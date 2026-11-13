@@ -21,10 +21,12 @@ not passed (driven red on pull request #5); the A-GATE test is written as AG-01 
 AG-06 in `docs/PLAN.md`, with the thirty-day terms fixed in advance.
 
 Every change that lands on main now sends the operator one Telegram line once the check
-passes there: the pull request's title, the scenes count and the next objective, read from
-this plan (`announce.py`, the `announce` job; `docs/DECISIONS.md`). A missing secret turns
-the job red; that was driven on main before the secrets existed. The first line, for #7,
-reached his phone on 13 November.
+passes there. Since his request of 13 November it is short: the phase whose step the change
+ticked in this plan's checklist, or "housekeeping" when it ticked none, the scenes count and
+the pull request's number, for example "kestrel2 · Phase 2 · step 3 of 6 done · scenes
+4/7 (#16)" (`announce.py`, the `announce` job; `docs/DECISIONS.md`). A missing secret
+turns the job red; that was driven on main before the secrets existed. The first line, for
+#7, reached his phone on 13 November.
 
 Three lanes now run day and night on the operator's PC, by his rulings of 13 November
 (`docs/DECISIONS.md`): MONEY (scenes 4 to 7), DATA (the rehearsal data, the parked lines,

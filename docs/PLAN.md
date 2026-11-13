@@ -6,9 +6,10 @@ scene 4.
 
 Scenes passing: **3 of 7**. Phase: **2-money-sim**.
 
-The two lines above belong to the money lane: it alone moves the scenes count, and its
-objective is the one the operator's Telegram line names. The data and ladder lanes'
-objectives are in their own sections below.
+The two lines above belong to the money lane: it alone moves the scenes count. The data
+and ladder lanes' objectives are in their own books below. The operator's Telegram line
+reads the ticked boxes under each `## Phase N` heading, so each lane's book sits inside its
+phase.
 
 ---
 
@@ -30,9 +31,10 @@ touch the same lines, and GitHub merges neither until it holds the other.
 | LADDER | `lab/`; `tests/unit/test_lab_*.py` |
 
 A new module is registered in `manifest.toml` under its lane's heading. A file no lane owns
-(`check.py`, `announce.py`, the guards, `BUDGET.json`, `CLAUDE.md`, `CANON.md`, the shared
-parts of the documents) is changed only by a session the operator starts himself. A lane
-that needs one changed says so in its STATUS section and carries on with what it can do.
+(`check.py`, `announce.py`, the guards, `BUDGET.json`, `CLAUDE.md`, `CANON.md`,
+`docs/SCENES.md`, `docs/FAILURE_PATTERNS.md`, the shared parts of the documents) is changed
+only by a session the operator starts himself. A lane that needs one changed, or finds a
+new recurring failure, writes it in its STATUS section and carries on with what it can.
 
 ---
 
@@ -75,7 +77,8 @@ scene 5. Scenes 1 to 3 keep passing on it.
 
 - [x] The rehearsal data in a file of its own (`tests/scenes/rehearsal.py`)
 - [ ] The rehearsal data lengthened to about fourteen months, the five rules buying and
-      selling in it, its UK and US holidays respected
+      selling in it, its UK and US holidays respected; the spoilt line's faults kept within
+      the last sixty sessions, or the store rightly stops parking it and scene 1 breaks
 - [ ] One line the archive refuses is parked, not the whole fetch stopped
 - [ ] The four parked lines brought back, or each one's reason confirmed: 2MU's five real
       moves recorded from a second source; 5QQQ's consolidation of 22 August 2024; SGLN's
