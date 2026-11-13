@@ -160,7 +160,7 @@ def _priced(line: Line, sound: Sequence[Bar], faults: list[Fault]) -> list[Bar]:
         if kept and not _agree(line, kept[-1], bar):
             unit = _far(bar, kept[-1].close)
             ahead = range(at + 1, min(at + 1 + BLIP, len(sound)) if unit else at + 1)
-            resume = next((n for n in ahead if _agree(line, kept[-1], sound[n])), at)
+            resume = next((n for n in ahead if not _far(sound[n], kept[-1].close)), at)
             for odd in sound[at:resume]:
                 faults.append(Fault(odd.day, f"{odd.day} {ASTRAY}"))
             if resume > at:

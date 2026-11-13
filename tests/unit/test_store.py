@@ -269,6 +269,14 @@ def test_a_real_crash_is_kept_and_parks_until_recorded(tmp_path: Path, at: int, 
     assert store.read(tmp_path, US.symbol) == bars
 
 
+def test_a_crash_after_days_in_the_wrong_unit_is_kept(tmp_path: Path) -> None:
+    """Only the days a hundredfold out are dropped; the real crash after them stays."""
+    by = {5: Decimal(100), 6: Decimal(100), 7: Decimal("0.4"), 8: Decimal("0.4")}
+    bars = tuple(_scaled(b, by.get(n, Decimal(1))) for n, b in enumerate(_bars(US, LONG)))
+    assert "split" in _parked(tmp_path, bars)[0]
+    assert bars[7:9] == store.read(tmp_path, US.symbol)[5:7]
+
+
 FREEZES: dict[str, Callable[[Bar, Bar], Bar]] = {
     "the bar before repeated": lambda bar, b: replace(b, day=bar.day, volume=0),
     "the bar before repeated whole": lambda bar, b: replace(b, day=bar.day),
