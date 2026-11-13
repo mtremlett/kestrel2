@@ -350,9 +350,18 @@ bought and sold. Each record carries a fingerprint of the code that made it and 
 bar it read, so a later batch can keep results and re-run only what changed. It names no
 price or profit yet: no result is reported without its costs (`docs/DECISIONS.md`).
 
+It now has a batch service (`lab/batch.py`) that runs many cells in turn and writes each
+result down as it finishes. A cell that fails is recorded with its error and the rest carry
+on; a batch stopped part way, even in the middle of writing a line, takes up where it
+stopped when started again, never running a finished cell twice. A failed cell is tried
+again on the next start. A batch refuses to start when the code on disk is no longer the
+code it loaded.
+
 ### Next step
 
-A batch service that runs many cells, survives a bad one and a restart.
+Results kept, keyed by code and data version, so only what changed is re-run: today a
+restart trusts a kept record of the same code without re-reading its bars, so a record
+from bars since corrected would be kept.
 
 ### Found, not fixed
 
@@ -371,6 +380,15 @@ A batch service that runs many cells, survives a bad one and a restart.
     is shown there only as "no trades". A fixture of more than 200 bars would cover them.
   - The key does not include the Python version, and only file contents, not file paths,
     are hashed; a file moved without a change of text keeps its key.
+- **What the blind review of the batch left** (nothing blocking; its two findings on
+  failed cells never retried and on cutting a torn line by rewriting the whole journal
+  are fixed and tested):
+  - That each line reaches the disk before the next cell starts (`os.fsync`) is not seen
+    by any test; removing it leaves the tests green. Only a killed process would show it.
+  - Nothing stops two processes working on one journal at once; the module says one at a
+    time. A lock is owed when the batch is started by anything but a person.
+  - A journal line corrupt in the middle fails loudly but names neither the file nor the
+    line; a failed cell keeps its error's type and message, not where it was raised.
 - **A cell runs all five strategies to keep one.** It asks `strategy.decide`, which decides
   every rule at once; a batch of the five on one line pays five times. Fine until a
   benchmark says otherwise.

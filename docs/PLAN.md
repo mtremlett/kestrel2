@@ -148,7 +148,7 @@ recorded and the rest carried on, and a restart taking up where it stopped - pro
 own contract test.
 
 - [x] The unit of work, keyed by code and data version (`lab/cell.py`)
-- [ ] A batch service that survives a bad cell and a restart
+- [x] A batch service that survives a bad cell and a restart (`lab/batch.py`)
 - [ ] Results kept, keyed by code and data version; only what changed is re-run
 - [ ] Each rung proven: it catches a planted edge and rejects a planted non-edge
 - [ ] Reproduces a published strategy's own published result
