@@ -8,10 +8,11 @@ The template turns each change of mind into a BUY or a SELL, and every other day
 HOLD. Each rule starts out of the market and holds nothing until its indicators are full.
 It sees only bars: never the clock, a vendor or the broker.
 
-THE DECLARATION. Each rule says, before it is ever tested, what it is: its bar, how long it
-means to hold, the lines it is judged on and the numbers of the bar it reads (STR-03). It
-has no word for a side. A rule is in a line or out of it, and out of one the template can
-only buy, so a strategy that sells short cannot be declared, or written (STR-06).
+THE DECLARATION. Each rule says, before it is ever tested, what it is: its bar, the longest
+it holds, the lines it is to be judged on and the numbers of the bar it reads (STR-03). It
+has no word for a side: a rule is in a line or out of it, and the template sells only what
+is held, so no rule can ask for a short sale, whatever it answers (STR-06). An order to
+sell that any other hand writes is the gate's to refuse (`orders.gate`).
 """
 
 from __future__ import annotations
@@ -34,7 +35,7 @@ ARITHMETIC = Context(prec=28, rounding=ROUND_HALF_EVEN)
 
 
 class Action(Enum):
-    """What a strategy says of a line each day. A sale is of what it holds: there is no word
+    """What a strategy says of a line each day. A sale is of what is held: there is no word
     for selling short, and none for how many."""
 
     BUY = "buy"
@@ -73,23 +74,21 @@ RANGES = frozenset({Field.HIGH, Field.LOW, Field.CLOSE})
 
 @dataclass(frozen=True)
 class Declared:
-    """What a strategy says of itself before it is tested, held to what its rule does by the
-    tests. It moves no decision here."""
+    """What a strategy says of itself before it is tested. It moves no decision; the tests
+    hold what it says of its data and its holding period to what its rule does."""
 
     bar: Timeframe
-    #: The most sessions it means to hold a line; held longer, its idea has failed. A pullback
-    #: declares the span of the average it sells on: not back over that in as many sessions, it
-    #: was no pullback. None: it follows a trend for as long as the trend lasts, and its own
-    #: rule is its only way out.
+    #: The most sessions from its buy to its sale. None: it has no such limit, and its own
+    #: rule is its only way out; so each of the five, for no published rule of theirs has one.
     hold: int | None
-    #: The lines it is tested and judged on: the desk trades each of the five on every line of
-    #: the instrument master, so each declares them all.
+    #: The lines it is to be judged on: the desk trades each of the five on every line of the
+    #: instrument master, so each declares them all.
     universe: tuple[Line, ...]
     reads: frozenset[Field]  #: its data: the numbers of each bar its decisions depend on
 
     def __post_init__(self) -> None:
-        if self.hold is not None and (type(self.hold) is not int or self.hold < 1):
-            raise ValueError(f"a holding period of {self.hold!r} sessions")
+        if self.hold is not None and self.hold < 1:
+            raise ValueError(f"a holding period of {self.hold} sessions")
         if not self.universe or len(set(self.universe)) != len(self.universe):
             raise ValueError("a test universe names at least one line, and none twice")
         if not self.reads:
@@ -158,7 +157,7 @@ class _Rsi2:
     above its 200-day average and the 2-day RSI is under 5; sell on a close above the
     5-day average."""
 
-    declared: ClassVar[Declared] = Declared(Timeframe.DAILY, 5, LINES, CLOSES)
+    declared: ClassVar[Declared] = Declared(Timeframe.DAILY, None, LINES, CLOSES)
 
     def __init__(self) -> None:
         self._long, self._short = _Window(200), _Window(5)
@@ -184,7 +183,7 @@ class _Bollinger:
     """Bollinger's bands at his settings, 20 days and 2 deviations: buy a close under the
     lower band; sell a close over the middle, the 20-day average."""
 
-    declared: ClassVar[Declared] = Declared(Timeframe.DAILY, 20, LINES, CLOSES)
+    declared: ClassVar[Declared] = Declared(Timeframe.DAILY, None, LINES, CLOSES)
 
     def __init__(self) -> None:
         self._closes = _Window(20)
@@ -298,7 +297,9 @@ def _run(
         if last is not None and n == len(bars) - 1:
             holding = last
         wants = rule.step(bar, holding)
-        action = Action.HOLD if wants == holding else Action.BUY if wants else Action.SELL
+        #: a sale only of what is held, a buy only of what is not, whatever the rule answered
+        sells, buys = holding and not wants, wants and not holding
+        action = Action.SELL if sells else Action.BUY if buys else Action.HOLD
         holding = wants
         yield Decision(name, symbol, bar.day, action)
 
