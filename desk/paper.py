@@ -54,6 +54,12 @@ class Holding:
     currency: str
     shares: Decimal
 
+    def __post_init__(self) -> None:
+        """Its kind and its currency are one word each, so the name it is compared under
+        (symbol, kind, currency) reads one way only; and its shares are a number."""
+        if not (self.kind.isalnum() and self.currency.isalnum() and self.shares.is_finite()):
+            raise ValueError(f"a holding the desk cannot trust: {self}")
+
 
 @dataclass(frozen=True)
 class Resting:
