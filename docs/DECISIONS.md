@@ -1380,12 +1380,13 @@ gives no answer: the desk's own engine must decide that cell.
   point, which is fast and rounds at about 16. Options: trust floating point and accept a
   rare different answer; do the grid in decimals too (no faster than the desk); floating
   point that knows when it cannot be sure. Chosen: the last. Prices become whole numbers of
-  the line's smallest step; while a rule's sums of them stay under 2**53 they are exact and
-  a tie is a true tie, called as the desk calls it. Everything else (prices as long as the
-  archive's seventeen digits, Wilder's smoothing) is trusted only when the two sides differ
-  by more than one part in a thousand million of their size, ten thousand times further than
-  rounding can move them. Closer than that is refused, never guessed. On prices like the
-  archive's no two numbers are that close, so nothing is refused; on made-up prices on a
+  the line's last decimal place; while a rule's sums of them stay under 2**53 they are
+  exact and a tie is a true tie, called as the desk calls it. Everything else (prices as
+  long as the archive's seventeen digits, Wilder's smoothing) is trusted only when the two
+  sides differ by more than one part in a thousand million of the prices they were worked
+  out from, ten thousand times further than rounding can move them. Closer than that is
+  refused, never guessed. Prices too long for the desk's own 28 digits to add exactly are
+  refused whole. On prices like the archive's nothing was refused; on made-up prices on a
   coarse tick, a close exactly on a Supertrend band is.
 - *A refusal is not a failure.* The desk's engine is the truth and the grid is its
   shortcut. When the unit of work is moved onto the grid, a refused cell is run by the
@@ -1401,5 +1402,33 @@ gives no answer: the desk's own engine must decide that cell.
   two short jumpy series), read from that file, never copied; each also cut short either
   side of every rule's warm-up. Beside them, three walks of 1,500 days at prices as long
   as the archive's, since the golden series sit on a 25p tick and real prices do not.
+
+**Evidence.** The parity test was seen failing first (no engine), and each later fix's test
+was seen failing on the engine before the fix. On the golden series the grid answers 477 of
+490 askings (seven series, five rules, fourteen lengths) and refuses 13, every one a close
+exactly on a Supertrend band; the test holds that count. Measured from outside the
+repository on 4,000 days of one line: the desk's engine about 100 ms for the five rules,
+the grid about 6 to 8 ms, after 17 ms once per line to read the prices in.
+
+Two blind reviews, each comparing the grid with the desk on thousands of random series of
+its own making. The first found one wrong answer: an RSI on days that move a
+thousand-millionth of the price, where the day's change is mostly rounding (53 of 1,201
+placements wrong). The second, of the repaired engine, found two more: a Supertrend band
+when a close sits far outside its day's range, and exact ties called among prices of 26
+digits and more, which the desk's own 28 digits cannot add exactly. None arises on prices
+like the archive's, but the rule is never a different answer, so each was made a failing
+test and fixed at its cause: a comparison's margin is now measured against the prices it
+was worked out from, and prices too long for the desk are refused. The second review's
+whole comparison was then run again on the repaired engine: twelve kinds of series, 120 of
+each, every rule, no difference from the desk and no error; its three searches that had
+found wrong answers found none. There was no third blind review.
+
+Deliberate breaks: 64 in the first round, 42 caught. The 22 left showed that a bar on which
+a rule would enter and would not stay never arose in any test, that five safeguards
+(a tie on each Supertrend band, the RSI's tie, the edge of exact arithmetic, the margin
+itself) were held by none, and one piece of code that could never run, since removed.
+Tests were added and those breaks driven again: all caught. What still survives, each
+recorded in `docs/STATUS.md`: breaks that cannot differ (a tie's direction where ties are
+already refused), a more cautious margin, and a few no series found can show.
 
 ## RUNGS

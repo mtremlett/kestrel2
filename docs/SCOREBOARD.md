@@ -61,6 +61,7 @@ touch the same lines. A session the operator starts himself appends to the table
 
 | date | scenes | desk lines | lab lines | test lines | guards | check | what moved |
 |---|---|---|---|---|---|---|---|
+| 2026-11-13 | 5 of 7 | 1400 | 619 | 2612 | 14 of 14 proven | green | The fast grid engine: each of the five strategies' position after every bar of a line, worked out on whole arrays, holding exactly what the desk's own engine holds on the golden series and on prices as long as the archive's, and refusing by name any comparison floating point cannot call, never guessing. About 12 to 16 times the desk's speed on the rules. Parity test seen failing first; two blind reviews found three wrong answers on prices no market has, each made a failing test and fixed, the second's random comparison then clean; 64 deliberate breaks, the gaps they showed closed. Next: the unit of work on the grid. |
 
 ### RUNGS
 

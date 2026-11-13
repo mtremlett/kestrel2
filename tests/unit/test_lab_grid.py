@@ -139,7 +139,7 @@ def test_a_tie_floating_point_cannot_call_is_refused_never_guessed() -> None:
         grid.prices(near)
     #: prices so long that the desk's own 28 digits cannot add them exactly: far apart, or
     #: (the second blind review's) small whole numbers of a step of 2**-60
-    fine = Decimal(5**60).scaleb(-60)
+    fine = Decimal(f"{5**60}E-60")
     for long in (Decimal("1E+27"), fine):
         with pytest.raises(grid.TooClose, match="too long"):
             grid.prices((near[0], replace(near[1], close=long)))

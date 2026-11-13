@@ -484,8 +484,10 @@ numbers are too close for floating point to tell which is larger the grid refuse
 by name (`TooClose`) and gives no answer; the desk's own engine must decide it. On prices
 like the archive's it refused nothing; on made-up prices on a coarse tick it refuses a
 close exactly on a Supertrend band. Measured on 4,000 days of one line: the desk's engine
-takes about 100 ms for the five rules, the grid about 8 ms, after 17 ms once per line to
-read its prices in. Nothing uses the grid yet: the unit of work still runs the desk's own.
+takes about 100 ms for the five rules, the grid 6 to 8 ms, after 17 ms once per line to
+read its prices in. Two blind reviews found three ways to a wrong answer, all on prices no
+market has; each is fixed and tested, and the second review's whole random comparison, run
+again on the repaired engine, found no difference from the desk. Nothing uses the grid yet: the unit of work still runs the desk's own.
 
 ### Next step
 
@@ -502,22 +504,32 @@ way, the grid's file counted in the code version. Then auto-tune.
 
 ### Found, not fixed
 
-- **What the blind reviews of the grid engine left** (the first found a wrong answer, fixed
-  and tested: an RSI worked from days that move a thousand-millionth of the price; and six
-  safeguards no test held, each now held by one):
+- **What the blind reviews of the grid engine left** (three wrong answers found, each fixed
+  and tested: an RSI on days that move a thousand-millionth of the price, a Supertrend band
+  when a close sits far outside its day's range, and ties among prices of 26 digits and
+  more; and six safeguards no test held, each now held by one). There was no third review
+  of the last repairs; the second review's own random comparison was run again and is clean:
+  - **A line with five or more identical closes in a row, at prices as long as the
+    archive's, is refused for the RSI** (and twenty or more for the Bollinger rule): an
+    average of equal long prices is a tie floating point cannot call. The desk's engine
+    decides those cells, so the answer is right and only slower. The store drops a frozen
+    feed, but a thinly traded research ticker may have such runs; worth counting on the
+    research universe before the first pass.
   - Reading a line's prices in costs twice what the five rules do (17 ms against 8 ms on
     4,000 days), nearly all of it turning each decimal into a whole number. It is paid once
     per line, not per cell. And the Supertrend and the RSI still walk the days one at a
     time for Wilder's smoothing and the carried bands. Fine until the first pass is timed.
-  - Four deliberate breaks survive that no series found can show: the Supertrend's band
+  - Deliberate breaks that survive, which no series found can show: the Supertrend's band
     carried on the day's own close for the day before's (no position differed on some 700
     series searched); a close set against its own day's upper band; the Bollinger check
     for whole prices whose squares pass 2**53 (it needs an exact tie among very large
-    numbers); and Wilder's smoothing on a series exactly as long as its window (nothing
-    reads that value).
-  - On a line the store has left with twenty or more unchanged closes in a row, the RSI's
-    gain and loss both fade to nothing and the grid refuses the line for that rule; the
-    desk's engine decides it. A frozen feed of five days or more is dropped by the store.
+    numbers); Wilder's smoothing on a series exactly as long as its window (nothing reads
+    that value); and the margin of the Supertrend's upper band and of its carrying measured
+    against the close alone, or against the day's prices and not all so far (the committed
+    case is the lower band's; the review's random comparison covers the rest, outside the
+    repository).
+  - On whole-number prices, about thirty unchanged closes in a row fade the RSI's gain and
+    loss to nothing and the grid refuses the line for that rule; the desk's engine decides.
   - The golden series are read from the money lane's `tests/unit/test_strategy.py`
     (`GOLDEN`, `_walk`, `_jumpy`, `_bars`, `START`): if that file renames them, the grid's
     test stops and the two lanes must move together.
