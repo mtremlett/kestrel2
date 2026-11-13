@@ -363,9 +363,12 @@ his PC with the desk's own client id (222), never 4001.
       exchange, pence or pounds, and its price steps, with a price put down onto the
       broker's step in the broker's unit (`desk/listing.py`); run on the real gateway on 13
       November: twenty of twenty listed, six London lines priced in pence
-- [ ] The fills and the orders the broker reports, read-only: each fill under the broker's
+- [x] The fills and the orders the broker reports, read-only: each fill under the broker's
       id with its price back in the line's currency, and the desk's own orders and stops
-      told from anyone else's {id: paper-reports; files: desk/reports.py, desk/paper.py,
+      told from anyone else's (`desk/reports.py`, #86; real gateway 13 November: 21 fills,
+      none the desk's, no order open; before real fills are written, the broker's later
+      corrections of a fill, R-PAPER-5; the true shape of an open order is seen on the first
+      real one) {id: paper-reports; files: desk/reports.py, desk/paper.py,
       tests/unit/test_reports.py, tests/unit/test_paper.py, manifest.toml}
 - [ ] The Gateway known before any order: its daily restart and the weekly re-login handled
       unattended. A re-login that needs his phone or password is his: a reminder line at the

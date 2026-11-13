@@ -2638,3 +2638,82 @@ over", the arithmetic setting).
   the folds' cutting, not write a second.
 - *"Its costs whole"* sits below the noted boxes without a note: it cannot start until the
   money lane's costs land, and that box has no id yet.
+
+### 2026-11-13 — the paper account check asks the desk's one comparison (R-MONEY-4, #75)
+
+**Decided**, by the lane as the desk's mentor (no one watching), when moving `paper.differences`
+onto `book.differences`. The door keeps what is its alone: paper accounts only, a holding's
+name, and the orders resting at the broker.
+
+- *The name a holding is compared under.* Options: its symbol, kind and currency in one phrase;
+  or the broker's own number for the line. Chosen: the phrase, so the same symbol in another
+  currency or as another kind of product is never the book's line. The broker's number needs
+  the listings read in the same check, a second conversation that is the adapter's to arrange.
+- *Stricter in two cases, on purpose.* Two entries each exactly the book's shares, and an entry
+  that matches beside another with shares, are both named now. Options: keep the door's own rule
+  to stay as lenient as before; or take the one rule whole. Chosen: the one rule whole. A line
+  with shares in two entries is never the book's one line, and a check that sends orders only
+  when clean should err towards naming.
+- *The sentence.* Options: leave "the broker holds 25, the desk's book 25", which reads as no
+  difference; add a line about the entries; or say it in each sentence. Chosen: each sentence
+  about a name given more than once says "holds 25 in one of 2 entries", counting every entry,
+  empty ones too.
+- *One word each.* A book's "BRK B" beside a broker's "BRK" of kind "B STK" came back clean
+  when a name was one phrase. Options: hand the rule the three parts apart (the money lane's);
+  or make such a holding impossible. Chosen: a holding cannot be made unless its kind and
+  currency are each one word of letters and digits and its shares a finite number. No real kind
+  or currency is refused (23 kinds and 26 currencies tried, from memory, not the broker's manual).
+- *The unfinished run's document lines.* Options: keep its edits on the branch (the claim guard
+  would refuse them); or state them in the pull request. Chosen: the pull request; the scribe
+  writes the documents. Its shortening of an older decision entry was dropped.
+- *Two breaks left surviving.* A kind or currency of letters only instead of letters and digits,
+  and the book's shares made positive: neither can change a result for any kind, currency or book
+  that exists. Options: add cases; or leave them. Chosen: leave them.
+
+**Evidence.** The whole check green three times. The real account read at 19:51 UK, read-only:
+seventeen lines at no shares, no order resting, nothing named. A blind review compared old and
+new rules on 1,651,663 accounts: no false clean, no difference lost, every sentence true; the old
+rule's 496 false cleans are the only new sentences. Thirty deliberate breaks in a copy outside
+the repository with Python's cache off: twenty-eight caught, the two above left.
+
+### 2026-11-13 — the fills and orders the paper broker reports (paper-reports, #86)
+
+**Decided**, by the lane as the desk's mentor (no one watching), for `desk/reports.py`, read-only:
+only questions are sent, nothing is placed.
+
+- *Whose is whose.* Options: the desk's client id alone; the order's reference alone; both.
+  Chosen: both. Another program could copy a reference, and the desk's own client with no
+  reference of the desk's is something the desk cannot explain; either is kept apart and named
+  by the daily check, never taken as the desk's.
+- *A fill's day.* The gateway tells each fill's time on a clock it names (London "MET", New York
+  "US/Eastern"; 14 and 7 real fills seen). Options: turn every time into UTC; or keep it as told
+  with its clock's name, taking only the session's day and the order within a line. Chosen: as
+  told. Turning the gateway's clock names into UTC needs a table of time zones the desk does not
+  carry. A desk fill on any clock but its venue's stops the reading. This departs from the canon's
+  "UTC inside" for this one value; to revisit if a time of day is ever needed.
+- *Twice, or corrected.* Options: stop for any fill on the account given twice; or only the
+  desk's own. Chosen: the desk's own. Others' fills are theirs to explain; the desk's own go to
+  its ledger, where a fill counted twice is a wrong position.
+- *What counts as a resting stop.* Options: any stop to sell the broker lists as open; or only
+  one it says it is holding ("PreSubmitted" or "Submitted"), for the shares left. Chosen: the
+  second. The broker lists refused and part-done orders as open too.
+- *An order with no state told.* Options: read it with no state; or stop. Chosen: stop, naming
+  the broker's id for it. An order is built once, with its state, when the reading is whole
+  (options: leave it, every path failed safe; or build once). Chosen: once, so a missing fact
+  cannot be mistaken for a value.
+- *An order told twice is left listed twice.* Options: keep one per broker's id; stop the
+  reading; or leave it. Chosen: leave it until a real order has been seen. A new order may briefly
+  carry no id of the broker's, so keeping one per id could hide a real order, the dangerous
+  direction; listed twice is a false alarm on the safe side.
+- *The tests tightened, none dropped.* The rule that unit tests never outgrow the product turned
+  the check red (244 test lines for 228 of product, two lines of room). Options: ask the operator
+  to loosen it (his alone, not needed); drop cases (never); or write the same cases in fewer
+  lines. Chosen: fewer lines (222 for 228); every case kept.
+
+**Evidence.** The whole check green four times. The real gateway at 20:40 and 21:05 UK (port
+4002, client 222), read-only: 21 fills, none the desk's; no order open; twenty of twenty lines
+listed; nothing named against the empty book. A blind review: nothing blocking; it checked field
+places against the published client (from memory, about nine in ten sure) and that nothing sent
+can place or cancel an order; its two test gaps closed. Deliberate breaks outside the repository,
+cache off: twenty-nine on the restored work and twenty on the final code, all caught, plus one
+that cannot change a result. Not witnessed: the unfinished run's tests failing first.

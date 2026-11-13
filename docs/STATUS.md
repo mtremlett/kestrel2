@@ -180,53 +180,53 @@ until that day's check is clean on a second day and the kill switch is drilled.
 
 ## PAPER
 
-Last updated: 13 November 2026 (this section cut to what is open; git keeps the rest).
+Last updated: 13 November 2026 (the account check on the one comparison; fills and orders read).
 
 ### Where it is
 
-Read-only so far; nothing has been placed on paper. The account check (`desk/paper.py`, client
-222, paper accounts only) found the account quiet on 13 November. All twenty lines are listed
-at the broker (`desk/listing.py`); six London lines are priced there in pence (`Listing.floor`).
+Read-only so far; nothing placed on paper. The account check (`desk/paper.py`, client 222, paper
+accounts only) asks `book.differences` (#75). All twenty lines are listed (`desk/listing.py`).
+`desk/reports.py` (#86) reads the day's fills and open orders, the desk's own told from others';
+real gateway 21:05 UK: 21 fills, none the desk's, no order open, quiet.
 
 ### Next step
 
-R-MONEY-4: `paper.differences` asks `book.differences`, so the rule has one home; with it, a
-holding matched by the broker's own number for the line. Then the fills and orders the broker
-reports, read-only: each fill under the broker's id, its price back from the broker's unit, the
-desk's own orders and stops told from anyone else's. Then placing, behind `Pretend`'s interface:
-no order until that day's check is clean, run on a second day, and the kill switch is drilled.
+paper-check: the check run daily and before any order, taught the desk's own resting stops from
+`reports.orders`; no send until clean. paper-gateway can run beside it. No order before a second
+clean day and the kill switch drilled.
 
 ### Requests to MONEY
 
-- [ ] R-PAPER-2 (blocking, opened 2026-11-13 18:15): `book.send`, `book.collect` and `day.trade`
-  accept any broker with `Pretend`'s interface, not `Pretend` by name, so the adapter stands in.
+- [x] R-PAPER-2 (blocking, opened 2026-11-13 18:15): done in #64.
+- [ ] R-PAPER-4 (later, opened 2026-11-13 20:05 UK): `book.differences` names an entry at no
+  shares beside another of the name carrying the book's shares: a false alarm that would stop a day.
+- [ ] R-PAPER-5 (later, opened 2026-11-13 21:10 UK): the ledger keeps a fill under the broker's
+  whole id (`book._record`); the broker's correction (".01" to ".02") would double it.
 
 ### Requests to DATA
 
 - [ ] R-PAPER-3 (later, opened 2026-11-13 18:55 UK): each line's ISIN a fact on `Line`, confirmed
-  from the issuer or the exchange, so the door knows the broker's line by it, not by its ticker.
+  from the issuer or exchange, so the door knows the broker's line by it, not its ticker.
 
 ### Done for other lanes
 
-- R-DATA-5: done in #53 for its first half (this lane's test lines state their UK tax). Open:
-  what the contract note of the first London product bought says of stamp duty (conformance).
+- R-DATA-5: done in #53 for its first half (test lines state their UK tax). Open: what the
+  first London contract note says of stamp duty (conformance).
+- R-MONEY-4: done in #75
 
 ### Found, not fixed
 
-- **Each day:** nothing runs the account check or reads the listings daily, or refuses an order
-  on an unlisted line; what the desk does with a held line that comes back unlisted is undecided.
-- **Before a stop rests:** the gateway probably sends a client its own open orders unasked, which
-  stops both readings; questions share a number space with orders; no real open order seen yet.
-- **2MU** (parked) trades in £1 steps above £500 where the broker's rule says £5: whether the
-  broker takes a stop on its own step there is unproven. See its conformance before it trades.
-- **Prices:** a paper stop and the simulation's differ by up to one step; a broker price out of
-  `Listing.floor` is a plain number, which the adapter must keep inside the door.
-- **Unread at the broker:** each line's hours, smallest order and order kinds (in the listing's
-  answer); daily bars for all twenty (DATA's check); SPCX is "SPACE EXPLORATION TECHN-CL A" there.
-- **The gateway:** no overall time limit on a conversation; unproven whether one that lost its
-  look-up or broker link tells a later client; some bad answers stop it with no plain sentence.
-- **For a session he starts:** the live-port guard reads for one number, so would miss the
-  desktop program's live port; deliberate breaks need Python's cache off (FAILURE_PATTERNS).
+- **Each day:** nothing runs the check or reads the listings daily, or refuses an unlisted line;
+  a holding is known by name, not the broker's number. No open order seen yet: its shape and the
+  news the gateway pushes unasked (stops a reading) are unseen; an order told twice is listed twice.
+- **The check:** "holds 0 in one of 2 entries" can read as shares missing; none names the account.
+  A paper stop and the simulation's differ by up to one step.
+- **Unread at the broker:** each line's hours, smallest order and order kinds; daily bars for all
+  twenty (DATA's check); SPCX is "SPACE EXPLORATION TECHN-CL A" there. 2MU (parked) steps £1
+  above £500, the broker's rule says £5: unproven.
+- **The gateway:** no time limit on a conversation; some bad answers stop it with no plain sentence.
+- **For a session he starts:** the live-port guard misses the desktop live port; breaks need Python's
+  cache off.
 
 ## DATA
 
