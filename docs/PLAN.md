@@ -482,13 +482,13 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
 - [x] Luck correction counting every trial: a verdict's chance multiplied by the number of
       trials it was picked from, one combined 5% test across the set, the count kept on
       every corrected verdict (`lab/luck.py`)
-- [ ] In-sample and out-of-sample folds, side by side after costs, the worst fold reported
+- [x] In-sample and out-of-sample folds, side by side after costs, the worst fold reported
       and judged on
       {id: rungs-folds; files: lab/folds.py, tests/unit/test_lab_folds.py, manifest.toml}
-- [ ] The count kept from batch to batch: one register of every trial ever tried on a
+- [x] The count kept from batch to batch: one register of every trial ever tried on a
       question, a dropped candidate included, so no later batch can start the count again
       {id: rungs-trials; files: lab/trials.py, tests/unit/test_lab_trials.py, manifest.toml}
-- [ ] The luck test fixed before any result: a deflated Sharpe with bands of 0.90 and 0.50,
+- [x] The luck test fixed before any result: a deflated Sharpe with bands of 0.90 and 0.50,
       one combined 5% test across the set, a daily Sharpe above 2 flagged, and one verdict
       rule over the named rungs (LAD-03, LAD-08, LAD-09)
       {id: rungs-deflated; files: lab/deflated.py, tests/unit/test_lab_deflated.py, manifest.toml}
