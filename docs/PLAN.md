@@ -456,25 +456,31 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
 
 - [x] The first rung proven: it catches a planted edge and rejects a planted non-edge, after
       the broker's costs and the desk's own stop (`lab/rung.py`)
-- [ ] Its costs whole: spread, slippage and the sale's own fees, from the desk's one cost
-      model once the money lane has them; and a rate of exchange for each day
 - [x] Luck correction counting every trial: a verdict's chance multiplied by the number of
       trials it was picked from, one combined 5% test across the set, the count kept on
       every corrected verdict (`lab/luck.py`)
-- [ ] The count kept from batch to batch: one register of every trial ever tried on a
-      question, a dropped candidate included, so no later batch can start the count again
 - [ ] In-sample and out-of-sample folds, side by side after costs, the worst fold reported
       and judged on
-- [ ] Plateaus over peaks: the centre of a plateau promoted, never a lone peak
-- [ ] Reproduces a published strategy's own published result
-- [ ] Failing fairly: too few effective trades is "not enough evidence", never a fail; a
-      check that the code is the published rule; no trades at all is a fault in the test
-      (LAD-06, STR-12)
+      {id: rungs-folds; files: lab/folds.py, tests/unit/test_lab_folds.py, manifest.toml}
+- [ ] The count kept from batch to batch: one register of every trial ever tried on a
+      question, a dropped candidate included, so no later batch can start the count again
+      {id: rungs-trials; files: lab/trials.py, tests/unit/test_lab_trials.py, manifest.toml}
 - [ ] The luck test fixed before any result: a deflated Sharpe with bands of 0.90 and 0.50,
       one combined 5% test across the set, a daily Sharpe above 2 flagged, and one verdict
       rule over the named rungs (LAD-03, LAD-08, LAD-09)
+      {id: rungs-deflated; files: lab/deflated.py, tests/unit/test_lab_deflated.py, manifest.toml}
+- [ ] Plateaus over peaks: the centre of a plateau promoted, never a lone peak
+      {id: rungs-plateau; files: lab/plateau.py, tests/unit/test_lab_plateau.py, manifest.toml}
 - [ ] Periods and regimes: replays across periods and regimes; a strategy never failed for
       working in only one; out-of-regime trades tagged on paper (LAD-05, REG-03, STR-20)
+      {id: rungs-regimes; files: lab/regime.py, tests/unit/test_lab_regime.py, manifest.toml; after: rungs-folds}
+- [ ] Failing fairly: too few effective trades is "not enough evidence", never a fail; a
+      check that the code is the published rule; no trades at all is a fault in the test
+      (LAD-06, STR-12)
+      {id: rungs-fair; files: *; after: rungs-folds, rungs-trials, rungs-deflated, rungs-plateau, rungs-regimes}
+- [ ] Its costs whole: spread, slippage and the sale's own fees, from the desk's one cost
+      model once the money lane has them; and a rate of exchange for each day
+- [ ] Reproduces a published strategy's own published result
 - [ ] Each indicator known-answer tested against a published reference series (STR-14)
 - [ ] Before paper: a kill condition declared for each strategy; promotion only after at
       least thirty effective paper trades, net positive (STR-17, LAD-11)
