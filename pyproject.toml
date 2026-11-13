@@ -38,7 +38,7 @@ max-complexity = 8
 python_version = "3.11"
 strict = true
 warn_unreachable = true
-files = ["desk", "lab", "tests", "check.py"]
+files = ["desk", "lab", "tests", "check.py", "announce.py"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

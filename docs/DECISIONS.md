@@ -220,3 +220,50 @@ were excellent." Offered three definitions of "excellent" at about 12:53, he cho
 chose "£1,500 (Recommended)".
 
 **Replaces.** "Ten consecutive £100 days", close to unreachable for an honest edge.
+
+---
+
+## 2026-11-13 — one Telegram line for each change that lands on main
+
+**Decided.** The operator's request, in chat on 13 November: when a change lands on main,
+GitHub sends him one plain-English Telegram line, for example "kestrel2: price store
+merged (#6). Scenes passing 1 of 7. Next: daily bars for the twenty lines." One line per
+merge, which is one per session's deliverable; nothing on a timer.
+
+**How.** A job, `announce`, in the one workflow (`.github/workflows/check.yml`). It runs
+only on main, and only after the check has passed there. `announce.py`, beside
+`check.py`, takes the title and number of the pull request whose merge made the commit
+from GitHub, and the scenes count and the current objective from `docs/PLAN.md`. The
+scenes count is read with the same pattern the check uses to hold that number true, so
+the line can never report a number the check has not measured.
+
+**It refuses rather than guesses.** A missing or blank secret
+(`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, set by the operator on GitHub and nowhere else)
+turns the job red before anything is sent; it never skips. So does a plan that no longer
+states its objective or its scenes count, a commit on main that no pull request made, and
+Telegram not confirming delivery. The message number Telegram returns is written on the
+run's page as the delivery record.
+
+**The key never reaches a log.** The repository is public. The key's shape is checked on
+entry, so a bad paste is refused by name without being shown, and an error from Telegram
+names the host it came from, never the address, which holds the key.
+
+**Proven.** Eleven deliberate breaks were each caught by `tests/unit/test_announce.py`:
+a blank secret taken as set; a missing secret skipped; the secrets never read; the wrong
+pull request announced; a plan without its objective, and one without its count, sent
+anyway; Telegram's refusal ignored; the error printing the address with the key; a
+half-valid key let through; no time limit on a call; the delivery record losing
+Telegram's message number. A blind review found nothing blocking; three of its minor
+points were taken (the sending tests, the key's shape, a truer error when GitHub has not
+yet linked a commit to its pull request).
+
+**No new dependency.** The standard library only (`urllib`, `json`), on GitHub's own
+Python. Nothing is added to `requirements.txt`.
+
+**What it is not.** This is a notice about the repository, not the desk's messenger. The
+desk's morning and evening messages, with their delivery record and an alarm on silence,
+are phase 3, behind one adapter in `desk/`. When that is built, this line either goes
+through it or is the one exception, decided then and recorded here.
+
+**The cost.** The line comes only when the check on main passes. If main were ever red
+after a merge, no line comes, and GitHub's own failure notice is the alarm.

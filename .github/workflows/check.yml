@@ -32,6 +32,31 @@ jobs:
       - name: the one check
         run: python check.py
 
+  announce:
+    # ONE LINE TO THE OPERATOR'S TELEGRAM for each change that lands on main, once the
+    # check has passed there. The key and chat id are secrets he set himself; a missing
+    # one turns this job red, it never skips. docs/DECISIONS.md, 13 November 2026.
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: send the operator one line
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python announce.py
+
   guards-cannot-be-loosened:
     # A change to a guard, a budget or the manifest is allowed, but it is never quiet:
     # this job states it in the pull request so the operator sees it before merging.
