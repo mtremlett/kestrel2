@@ -82,7 +82,10 @@ def test_a_bad_cell_is_recorded_and_the_rest_carry_on(tmp_path: Path) -> None:
     assert outcomes[1] == Failed(EMPTY, cell.LOADED, f"ValueError: {raised.value}")
     assert outcomes[2] == Failed(UNREAD, cell.LOADED, "KeyError: 'QQQ'")
     assert batch.run(cells, _reader(), journal) == outcomes
-    assert _lines(journal)[4:] == _lines(journal)[1:3], "only the failed cells are run again"
+    assert len(_lines(journal)) == 4, "a failure the journal holds was written again"
+    for _ in range(2):  # no bars to read at all: each cell's new failure is written, once
+        assert all(isinstance(o, Failed) for o in batch.run(cells, batch.stored(tmp_path), journal))
+    assert [row["error"][:17] for row in _lines(journal)[4:]] == ["FileNotFoundError"] * 4
 
 
 def test_a_restart_takes_up_where_the_last_run_stopped(tmp_path: Path, ran: list[Cell]) -> None:
