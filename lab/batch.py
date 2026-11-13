@@ -79,13 +79,23 @@ def _one(todo: Cell, bars: Bars, kept: Kept) -> Outcome:
         return Failed(todo, cell.LOADED, f"{type(error).__name__}: {error}")
 
 
+def _whole(journal: Path) -> bytes:
+    """The journal up to a line a stop cut short; nothing where there is none yet."""
+    text = journal.read_bytes() if journal.exists() else b""
+    return text[: text.rfind(b"\n") + 1]
+
+
+def rows(journal: Path) -> list[dict[str, Any]]:
+    """Every outcome the journal holds, oldest first: a record, or a failure and its error."""
+    return [json.loads(line) for line in _whole(journal).splitlines()]
+
+
 def _resume(journal: Path) -> tuple[Kept, int]:
     """The journal's records by key, and its length up to a line a stop cut short."""
-    text = journal.read_bytes() if journal.exists() else b""
-    whole = text[: text.rfind(b"\n") + 1]
-    rows = (json.loads(line) for line in whole.splitlines())
-    kept = (row for row in rows if "error" not in row)
-    return {(*row["cell"], row["code"], row["data"]): _load(row) for row in kept}, len(whole)
+    whole = _whole(journal)
+    kept = (json.loads(line) for line in whole.splitlines())
+    found = {(*r["cell"], r["code"], r["data"]): _load(r) for r in kept if "error" not in r}
+    return found, len(whole)
 
 
 def _id(key: Key) -> tuple[str, ...]:

@@ -1689,6 +1689,65 @@ rows collapsed into one a name), thirty-one by the review (five survived), fifte
 repaired code (one gap: two stops collapsed). Six gaps are closed and each is now caught; the
 one left narrows a type of the interface's, which can refuse a broker, never admit one.
 
+### 2026-11-13 — the money book's next boxes noted: the kill switch first (#76)
+
+**Decided**, by the lane as the desk's mentor.
+- *The kill switch's files.* Options: refuse at the gate in `desk/orders.py`, or on the send
+  path in `desk/book.py`. Chosen: the send path, with a new `desk/kill.py` and `desk/broker.py`
+  (cancelling). The gate stays a pure rule over the order and the book; whether the switch is
+  thrown is a fact on disk, read at the edge where the reconciliation refusal already lives.
+- *The costs wait for the kill switch (`after: money-kill`).* Options: side by side, or in turn.
+  Chosen: in turn; both change `desk/book.py`, and his ruling puts the kill switch first.
+- *The crash watch left un-noted.* Options: note it with no `after` (a session would meet it
+  before the five-minute data exists), or wait. Chosen: wait for the data lane's box ids.
+- *File lists err wide.* A session may change nothing outside its note, so a missing file strands
+  it; a wider note only makes it wait its turn.
+
+### 2026-11-13 — each strategy declares what it is (#92, money-declared)
+
+**Decided**, by the lane as the desk's mentor.
+- *Holding period: each of the five declares none.* Options: (a) 5 sessions for RSI-2 and 20 for
+  Bollinger, the span of the average each sells on; (b) none for all five; (c) a number measured
+  from history. First built (a), but neither published rule has a time exit: RSI-2 outstays 5
+  sessions in 13 of 39 golden trades, Bollinger outstays 20 in 29 of 52 (longest 133). Chosen (b):
+  a declaration says only what its rule does; (c) is tuning. The time stop (STP-11) must choose
+  each limit and build the exit in the same change; the golden days will move, so it needs his
+  approval (canon B5).
+- *Test universe: every line of the instrument master, by reference.* Options: (a) the master's
+  lines; (b) a narrower list per rule; (c) a rule about a line's facts. Chosen (a): a rule judged on
+  fewer lines than it trades would trade unjudged; (b) changes what is traded with no evidence;
+  (c) makes the research list part of a verdict. By reference, so a new line is declared at once.
+- *Data: the numbers of the daily bar a rule reads*, proved (not a named source: the desk has one).
+- *The bar is one value, daily;* a second comes with the bars that would feed it.
+- *The declaration sits on the rule itself.* Options: (a) on the rule; (b) a second table by name;
+  (c) a wrapper. Chosen (a): one home; a rule without one fails the type check.
+- *A short sale.* No word for it in declaration, action or decision; the template sells only what
+  is held. A hand-made decision to sell is left to the gate (refusing it at its making breaks
+  orders tests this box may not edit); the true fix is the order type (recommended box).
+- *Ticked though a remainder is named:* a session given the same files could do no more.
+
+### 2026-11-13 — the kill switch and its drill (#95, money-kill)
+
+**Decided**, by the lane as the desk's mentor.
+- *The stops stay.* Options: (a) cancel everything, stops included; (b) cancel and sell all held;
+  (c) cancel working orders, keep the stops. Chosen (c): removing stops would leave holdings
+  unprotected when something is wrong; selling all is a trading decision. The message says what is held.
+- *Sales are refused too* (not only buys): all new orders stop, the one promise simple enough to
+  trust in an emergency; the stops at the broker still sell.
+- *The switch goes on the record before the broker is asked*: the desk is stopped even if the
+  broker's line is down.
+- *The send path reads the switch itself* (`desk/book.py`), not callers: nothing bypasses it (B1).
+  It reads twice, before the broker is asked and at the last moment before the order goes; each
+  reading was removed in turn and the tests caught both.
+- *An order the broker already has is still recorded while the switch is on*: recording sends
+  nothing, and refusing would leave the book wrong.
+- *Only the operator releases it*, with a reason; no timer. A pull never fails for want of a
+  reason ("no reason given"). A record that cannot be read stops the desk (fail shut).
+- *The drill is real, on a scratch desk at the pretend broker* (options: pull the real switch; a
+  checklist): it stops no real trading, cannot be ticked without being run, and fails by name.
+  "Monthly" is 31 days. The pretend broker gains one fault, an order left working.
+- *Branch:* finished on `lane/money-1113-203647-s1` as asked; nothing pushed to `lane/money-1113-212543-s1`.
+
 ## DATA
 
 ### 2026-11-13 — the fourteen months are built; the scenes move onto them in two steps
@@ -2579,3 +2638,82 @@ over", the arithmetic setting).
   the folds' cutting, not write a second.
 - *"Its costs whole"* sits below the noted boxes without a note: it cannot start until the
   money lane's costs land, and that box has no id yet.
+
+### 2026-11-13 — the paper account check asks the desk's one comparison (R-MONEY-4, #75)
+
+**Decided**, by the lane as the desk's mentor (no one watching), when moving `paper.differences`
+onto `book.differences`. The door keeps what is its alone: paper accounts only, a holding's
+name, and the orders resting at the broker.
+
+- *The name a holding is compared under.* Options: its symbol, kind and currency in one phrase;
+  or the broker's own number for the line. Chosen: the phrase, so the same symbol in another
+  currency or as another kind of product is never the book's line. The broker's number needs
+  the listings read in the same check, a second conversation that is the adapter's to arrange.
+- *Stricter in two cases, on purpose.* Two entries each exactly the book's shares, and an entry
+  that matches beside another with shares, are both named now. Options: keep the door's own rule
+  to stay as lenient as before; or take the one rule whole. Chosen: the one rule whole. A line
+  with shares in two entries is never the book's one line, and a check that sends orders only
+  when clean should err towards naming.
+- *The sentence.* Options: leave "the broker holds 25, the desk's book 25", which reads as no
+  difference; add a line about the entries; or say it in each sentence. Chosen: each sentence
+  about a name given more than once says "holds 25 in one of 2 entries", counting every entry,
+  empty ones too.
+- *One word each.* A book's "BRK B" beside a broker's "BRK" of kind "B STK" came back clean
+  when a name was one phrase. Options: hand the rule the three parts apart (the money lane's);
+  or make such a holding impossible. Chosen: a holding cannot be made unless its kind and
+  currency are each one word of letters and digits and its shares a finite number. No real kind
+  or currency is refused (23 kinds and 26 currencies tried, from memory, not the broker's manual).
+- *The unfinished run's document lines.* Options: keep its edits on the branch (the claim guard
+  would refuse them); or state them in the pull request. Chosen: the pull request; the scribe
+  writes the documents. Its shortening of an older decision entry was dropped.
+- *Two breaks left surviving.* A kind or currency of letters only instead of letters and digits,
+  and the book's shares made positive: neither can change a result for any kind, currency or book
+  that exists. Options: add cases; or leave them. Chosen: leave them.
+
+**Evidence.** The whole check green three times. The real account read at 19:51 UK, read-only:
+seventeen lines at no shares, no order resting, nothing named. A blind review compared old and
+new rules on 1,651,663 accounts: no false clean, no difference lost, every sentence true; the old
+rule's 496 false cleans are the only new sentences. Thirty deliberate breaks in a copy outside
+the repository with Python's cache off: twenty-eight caught, the two above left.
+
+### 2026-11-13 — the fills and orders the paper broker reports (paper-reports, #86)
+
+**Decided**, by the lane as the desk's mentor (no one watching), for `desk/reports.py`, read-only:
+only questions are sent, nothing is placed.
+
+- *Whose is whose.* Options: the desk's client id alone; the order's reference alone; both.
+  Chosen: both. Another program could copy a reference, and the desk's own client with no
+  reference of the desk's is something the desk cannot explain; either is kept apart and named
+  by the daily check, never taken as the desk's.
+- *A fill's day.* The gateway tells each fill's time on a clock it names (London "MET", New York
+  "US/Eastern"; 14 and 7 real fills seen). Options: turn every time into UTC; or keep it as told
+  with its clock's name, taking only the session's day and the order within a line. Chosen: as
+  told. Turning the gateway's clock names into UTC needs a table of time zones the desk does not
+  carry. A desk fill on any clock but its venue's stops the reading. This departs from the canon's
+  "UTC inside" for this one value; to revisit if a time of day is ever needed.
+- *Twice, or corrected.* Options: stop for any fill on the account given twice; or only the
+  desk's own. Chosen: the desk's own. Others' fills are theirs to explain; the desk's own go to
+  its ledger, where a fill counted twice is a wrong position.
+- *What counts as a resting stop.* Options: any stop to sell the broker lists as open; or only
+  one it says it is holding ("PreSubmitted" or "Submitted"), for the shares left. Chosen: the
+  second. The broker lists refused and part-done orders as open too.
+- *An order with no state told.* Options: read it with no state; or stop. Chosen: stop, naming
+  the broker's id for it. An order is built once, with its state, when the reading is whole
+  (options: leave it, every path failed safe; or build once). Chosen: once, so a missing fact
+  cannot be mistaken for a value.
+- *An order told twice is left listed twice.* Options: keep one per broker's id; stop the
+  reading; or leave it. Chosen: leave it until a real order has been seen. A new order may briefly
+  carry no id of the broker's, so keeping one per id could hide a real order, the dangerous
+  direction; listed twice is a false alarm on the safe side.
+- *The tests tightened, none dropped.* The rule that unit tests never outgrow the product turned
+  the check red (244 test lines for 228 of product, two lines of room). Options: ask the operator
+  to loosen it (his alone, not needed); drop cases (never); or write the same cases in fewer
+  lines. Chosen: fewer lines (222 for 228); every case kept.
+
+**Evidence.** The whole check green four times. The real gateway at 20:40 and 21:05 UK (port
+4002, client 222), read-only: 21 fills, none the desk's; no order open; twenty of twenty lines
+listed; nothing named against the empty book. A blind review: nothing blocking; it checked field
+places against the published client (from memory, about nine in ten sure) and that nothing sent
+can place or cancel an order; its two test gaps closed. Deliberate breaks outside the repository,
+cache off: twenty-nine on the restored work and twenty on the final code, all caught, plus one
+that cannot change a result. Not witnessed: the unfinished run's tests failing first.

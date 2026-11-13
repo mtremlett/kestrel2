@@ -267,7 +267,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
 - [x] Any broker behind the send path and the day run, not the pretend one by name, giving
       its holdings and stops as entries, read once for each order (`broker.Broker`; the
       paper lane's R-PAPER-2)
-- [ ] **The kill switch, before the paper lane sends any order:** one command stops all new
+- [x] **The kill switch, before the paper lane sends any order:** one command stops all new
       orders and cancels the open ones, and the desk says so; drilled before FIRST-LIGHT's first
       day and then monthly (EMG-02, canon B1) {id: money-kill; files: desk/kill.py,
       desk/broker.py, desk/book.py, tests/unit/test_kill*.py, tests/unit/test_broker*.py,
@@ -301,8 +301,9 @@ day's trading and reconciliation are built, and any broker can stand behind them
       refused at the gate (EMG-04 when live) {id: money-limits; files: desk/orders.py,
       desk/book.py, desk/day.py, tests/unit/test_orders*.py, tests/unit/test_book*.py,
       tests/unit/test_day*.py, tests/scenes/test_scenes.py; after: money-record}
-- [ ] Each strategy's declaration typed: its bar, holding period, test universe and data; a
-      short sale cannot be built at all (STR-03, STR-06) {id: money-declared;
+- [x] Each strategy's declaration typed: its bar, holding period, test universe and data; a
+      short sale cannot be built at all (STR-03, STR-06); remains: a sale made only from the
+      book's holding (orders, day, broker) {id: money-declared;
       files: desk/strategy.py, tests/unit/test_strategy*.py}
 - [ ] The money invariants property-tested, seeded: positions equal the sum of fills, equity
       equals cash plus market value, profit equals realised plus unrealised less costs, orders
@@ -362,9 +363,12 @@ his PC with the desk's own client id (222), never 4001.
       exchange, pence or pounds, and its price steps, with a price put down onto the
       broker's step in the broker's unit (`desk/listing.py`); run on the real gateway on 13
       November: twenty of twenty listed, six London lines priced in pence
-- [ ] The fills and the orders the broker reports, read-only: each fill under the broker's
+- [x] The fills and the orders the broker reports, read-only: each fill under the broker's
       id with its price back in the line's currency, and the desk's own orders and stops
-      told from anyone else's {id: paper-reports; files: desk/reports.py, desk/paper.py,
+      told from anyone else's (`desk/reports.py`, #86; real gateway 13 November: 21 fills,
+      none the desk's, no order open; before real fills are written, the broker's later
+      corrections of a fill, R-PAPER-5; the true shape of an open order is seen on the first
+      real one) {id: paper-reports; files: desk/reports.py, desk/paper.py,
       tests/unit/test_reports.py, tests/unit/test_paper.py, manifest.toml}
 - [ ] The Gateway known before any order: its daily restart and the weekly re-login handled
       unattended. A re-login that needs his phone or password is his: a reminder line at the

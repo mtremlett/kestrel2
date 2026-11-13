@@ -165,7 +165,16 @@ def test_scene_5_the_position_is_closed(tmp_path: Path) -> None:
             assert trip.gross == (trip.sell.price - trip.buy.price) * trip.buy.quantity
         assert trip.buy.symbol == trip.sell.symbol and trip.buy.quantity == -trip.sell.quantity > 0
         assert {trip.buy.execution_id, trip.sell.execution_id} <= ids, "an id not the broker's"
-        assert trip.costs > 0 and trip.profit == trip.gross - trip.costs
+        costs = trip.costs
+        assert min(costs.commission, costs.spread, costs.slippage) > 0, "a cost never charged"
+        assert (costs.currency > 0) == (trip.buy.symbol not in pounds), "pounds converted, or not"
+        assert trip.profit == trip.gross - costs.total, "a profit not after all costs"
+    assert {t.buy.symbol for t in trips if t.costs.uk_taxes} == {
+        line.symbol for line in LINES if line.uk_tax
+    }, "UK tax charged on a line that pays none, or not on the UK share"
+    assert any(
+        trip.costs.slippage > trip.costs.spread for trip in trips
+    ), "no stop's sale among the trips, slipping further than a sale at the market"
 
 
 def test_scene_6_the_book_is_the_brokers(tmp_path: Path) -> None:

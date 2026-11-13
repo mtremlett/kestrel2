@@ -86,53 +86,51 @@ everything on main, so two green lanes cannot combine into a red main.
 
 ## MONEY
 
-Last updated: 13 November 2026 (any broker behind the send path).
+Last updated: 13 November 2026 (the kill switch; each strategy declared).
 
 ### Where it is
 
-Scenes 5 of 7. Built and real (its decisions in `docs/DECISIONS.md`): the five rules
-(`strategy`); sizing, cost and the gate (`orders`); the pretend broker (`broker`); the send
-path, the ledger, the book and reconciliation on one comparison (`book`); the day's trading
-(`day.trade`), behind which any broker can stand (`broker.Broker`). Unfinished, raising
-NotImplementedError by design: `day.run`, the day's record; scenes 6 and 7 pass together on it.
+Scenes 5 of 7. Built: the five rules with typed declarations (`strategy`); sizing, cost, gate
+(`orders`); the pretend broker; the send path, ledger, book, reconciliation (`book`); the day's
+trading (`day.trade`); the kill switch and its drill (`kill`, EMG-02). Unfinished, raising
+NotImplementedError by design: `day.run`; scenes 6 and 7 pass together on it.
 
 ### Next step
 
-The kill switch and its drill (EMG-02; his ruling: first of the lane's own book), cancelling
-a sixth question of any broker. Then the costs whole (R-RUNGS-1), and the day's record
-(`day.run`), scene 6 checking the book against the broker's on every day.
+The costs whole (R-RUNGS-1), then the day's record (`day.run`), scene 6 checking the book against
+the broker's every day. Boxes noted in order (#76); emergencies can start beside costs.
 
 ### Done for other lanes
 
 - R-PAPER-2: done in #64
-
 ### Requests to PAPER
-
 - [ ] R-MONEY-4 (later, opened 2026-11-13 18:35 UK): `paper.differences` asks `book.differences`.
+- [ ] R-MONEY-5 (blocking, opened 2026-11-13 21:39 UK): the paper adapter answers `Broker.cancel`:
+  own client id's working orders only, named once confirmed, stops left; error if not whole.
+- [ ] R-MONEY-6 (blocking, opened 2026-11-13 21:39 UK): the paper send refuses unless
+  `kill.drilled(root, day)`; better, run `kill.drill(root, now)` at each paper desk start.
+- [ ] R-MONEY-7 (later, opened 2026-11-13 21:39 UK): a typed command calling `kill.pull`, sending
+  `Killed.words()` to Telegram; with a supervised desk, one lock across the send path's last read.
 
 ### Requests to DATA
-
 - [x] R-MONEY-2 (blocking, opened 2026-11-13 18:15): the scenes moved onto the fourteen months.
 - [ ] R-MONEY-3 (later, opened 2026-11-13 18:15): a daily rate, pounds per dollar, in the store.
 
 ### Found, not fixed
 
-- **Costs:** spread, slippage and UK tax are charged nowhere yet; no one rounding policy (to
-  the penny); fees are IBKR UK's fixed schedule, not tiered; scene 3 mixes currency and fees.
-- **Nobody is told of a mismatch yet.** Until someone acts, a line whose stop was cancelled is
-  unprotected, and one partly sold by hand keeps a stop for more shares than are held.
-- **The ledger** is not forced to disk, and a lost one reads as "no fills" without a word.
-- **The gate** takes the book as a bare mapping, trusts the stop of an order built by hand,
-  and sizes at the last close: a gap up at the open can fill above a fifth.
-- **The day run** decides each line's whole history again every day (24 seconds in scene 5),
-  reads the archive it is handed (R-DATA-3), and has no halt to read yet.
-- **The rules:** a decision depends on where the history starts; "warming up" and "staying
-  out" both read as hold; twenty days means twenty bars; the true range lives in `strategy`.
-- **For the paper adapter:** an order still working is in none of the five answers, so `place`
-  must answer finally or the gate overbuys; a resting order that is no sell stop is unseen; a
-  stop's level is never compared; a connection lost while reading is not a stated answer.
-- **Untested at the pretend broker:** `inject` on any symbol; a planted position beside the
-  desk's stop; a partial fill of one share; several stops sold on one open.
+- **Costs:** spread, slippage, UK tax charged nowhere yet; no one rounding policy; fixed IBKR UK
+  fees. New cost legs arrive as additions (other lanes' tests pin `orders.cost`, `book.COLUMNS`).
+- **A sale can exceed the holding:** `orders.Sale` can be built for more than held (the gate
+  refuses it at send); recommended box: a sale made only from the book's holding.
+- **Nothing reads a declaration yet:** `day.trade` trades every rule on every line.
+- **Kill switch:** paper cancel unproven; the drill records no code version; an empty `ledger.csv`
+  reads as "no fills"; two programs at once leave a hair's-breadth window.
+- **Nobody is told of a mismatch yet;** the gate takes the book as a bare mapping, sizes at the
+  last close; the day run redecides all history daily and has no halt.
+- **The rules:** a decision depends on where history starts; `strategy.today` on one bar stops unclearly.
+- **For the paper adapter:** a working order is in none of the five answers; a stop's level is
+  never compared; a connection lost while reading is not a stated answer.
+- A helper's empty copy under `kestrel2\.claude\worktreesgent-a208b88dff47c8527` can go.
 
 ## PAPER
 
@@ -182,53 +180,53 @@ until that day's check is clean on a second day and the kill switch is drilled.
 
 ## PAPER
 
-Last updated: 13 November 2026 (this section cut to what is open; git keeps the rest).
+Last updated: 13 November 2026 (the account check on the one comparison; fills and orders read).
 
 ### Where it is
 
-Read-only so far; nothing has been placed on paper. The account check (`desk/paper.py`, client
-222, paper accounts only) found the account quiet on 13 November. All twenty lines are listed
-at the broker (`desk/listing.py`); six London lines are priced there in pence (`Listing.floor`).
+Read-only so far; nothing placed on paper. The account check (`desk/paper.py`, client 222, paper
+accounts only) asks `book.differences` (#75). All twenty lines are listed (`desk/listing.py`).
+`desk/reports.py` (#86) reads the day's fills and open orders, the desk's own told from others';
+real gateway 21:05 UK: 21 fills, none the desk's, no order open, quiet.
 
 ### Next step
 
-R-MONEY-4: `paper.differences` asks `book.differences`, so the rule has one home; with it, a
-holding matched by the broker's own number for the line. Then the fills and orders the broker
-reports, read-only: each fill under the broker's id, its price back from the broker's unit, the
-desk's own orders and stops told from anyone else's. Then placing, behind `Pretend`'s interface:
-no order until that day's check is clean, run on a second day, and the kill switch is drilled.
+paper-check: the check run daily and before any order, taught the desk's own resting stops from
+`reports.orders`; no send until clean. paper-gateway can run beside it. No order before a second
+clean day and the kill switch drilled.
 
 ### Requests to MONEY
 
-- [ ] R-PAPER-2 (blocking, opened 2026-11-13 18:15): `book.send`, `book.collect` and `day.trade`
-  accept any broker with `Pretend`'s interface, not `Pretend` by name, so the adapter stands in.
+- [x] R-PAPER-2 (blocking, opened 2026-11-13 18:15): done in #64.
+- [ ] R-PAPER-4 (later, opened 2026-11-13 20:05 UK): `book.differences` names an entry at no
+  shares beside another of the name carrying the book's shares: a false alarm that would stop a day.
+- [ ] R-PAPER-5 (later, opened 2026-11-13 21:10 UK): the ledger keeps a fill under the broker's
+  whole id (`book._record`); the broker's correction (".01" to ".02") would double it.
 
 ### Requests to DATA
 
 - [ ] R-PAPER-3 (later, opened 2026-11-13 18:55 UK): each line's ISIN a fact on `Line`, confirmed
-  from the issuer or the exchange, so the door knows the broker's line by it, not by its ticker.
+  from the issuer or exchange, so the door knows the broker's line by it, not its ticker.
 
 ### Done for other lanes
 
-- R-DATA-5: done in #53 for its first half (this lane's test lines state their UK tax). Open:
-  what the contract note of the first London product bought says of stamp duty (conformance).
+- R-DATA-5: done in #53 for its first half (test lines state their UK tax). Open: what the
+  first London contract note says of stamp duty (conformance).
+- R-MONEY-4: done in #75
 
 ### Found, not fixed
 
-- **Each day:** nothing runs the account check or reads the listings daily, or refuses an order
-  on an unlisted line; what the desk does with a held line that comes back unlisted is undecided.
-- **Before a stop rests:** the gateway probably sends a client its own open orders unasked, which
-  stops both readings; questions share a number space with orders; no real open order seen yet.
-- **2MU** (parked) trades in £1 steps above £500 where the broker's rule says £5: whether the
-  broker takes a stop on its own step there is unproven. See its conformance before it trades.
-- **Prices:** a paper stop and the simulation's differ by up to one step; a broker price out of
-  `Listing.floor` is a plain number, which the adapter must keep inside the door.
-- **Unread at the broker:** each line's hours, smallest order and order kinds (in the listing's
-  answer); daily bars for all twenty (DATA's check); SPCX is "SPACE EXPLORATION TECHN-CL A" there.
-- **The gateway:** no overall time limit on a conversation; unproven whether one that lost its
-  look-up or broker link tells a later client; some bad answers stop it with no plain sentence.
-- **For a session he starts:** the live-port guard reads for one number, so would miss the
-  desktop program's live port; deliberate breaks need Python's cache off (FAILURE_PATTERNS).
+- **Each day:** nothing runs the check or reads the listings daily, or refuses an unlisted line;
+  a holding is known by name, not the broker's number. No open order seen yet: its shape and the
+  news the gateway pushes unasked (stops a reading) are unseen; an order told twice is listed twice.
+- **The check:** "holds 0 in one of 2 entries" can read as shares missing; none names the account.
+  A paper stop and the simulation's differ by up to one step.
+- **Unread at the broker:** each line's hours, smallest order and order kinds; daily bars for all
+  twenty (DATA's check); SPCX is "SPACE EXPLORATION TECHN-CL A" there. 2MU (parked) steps £1
+  above £500, the broker's rule says £5: unproven.
+- **The gateway:** no time limit on a conversation; some bad answers stop it with no plain sentence.
+- **For a session he starts:** the live-port guard misses the desktop live port; breaks need Python's
+  cache off.
 
 ## DATA
 
