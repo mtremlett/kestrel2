@@ -11,11 +11,12 @@ Each is an ordinary cell (`lab/cell.py`), so nothing crosses a boundary: the rul
 no bar after its cell's end, and a trade counts only where it was bought and its sale
 filled inside one cell. A trade held across a boundary belongs to neither side of it.
 
-The verdict is given on the worst fold: the one whose out-of-sample trades stand the fewest
-standard errors above nothing, a fold with too few trades to say standing lowest of all.
-The strategy passes this rung when that fold passes the first rung, which is every fold
-passing it. Every fold's out-of-sample verdict is a trial the luck rung counts
-(`lab/luck.py`).
+The verdict is given on the worst fold. A fold the first rung failed is worse than any it
+passed, so thirty trades are asked of every fold; among those, the worst is the one whose
+out-of-sample trades stand the fewest standard errors above nothing, a fold with under two
+trades standing lowest of all. The strategy passes this rung when that fold passes the first
+rung, which is every fold passing it. Every fold's out-of-sample verdict is a trial the
+luck rung counts (`lab/luck.py`).
 """
 
 from __future__ import annotations
@@ -48,7 +49,10 @@ class Folded:
     @property
     def worst(self) -> Fold:
         """The fold judged on; of two equally bad, the older."""
-        return min(self.folds, key=lambda f: (f.outside.t is not None, f.outside.t or 0))
+        return min(
+            self.folds,
+            key=lambda f: (f.outside.passed, f.outside.t is not None, f.outside.t or 0),
+        )
 
     @property
     def passed(self) -> bool:

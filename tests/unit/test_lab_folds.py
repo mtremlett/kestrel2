@@ -119,6 +119,14 @@ def test_the_worst_fold_is_the_fewest_standard_errors_up_and_too_few_trades_is_l
     assert Folded((first, second)).worst is first, "of two equally bad, the older"
     with pytest.raises(ValueError, match="no folds"):
         Folded(())
+    #: a fold the first rung failed is worse than any it passed, however many standard errors
+    #: its few trades stand up: the fold judged on is a failing one while there is one
+    many = _verdict(*["0.08", "-0.02", "0.03"] * 10)
+    assert many.passed and not good.passed and _t(good) > _t(many) > 3
+    thin = Folded((Fold(many, many), Fold(many, good), Fold(many, many)))
+    assert thin.worst.outside is good and not thin.passed
+    assert Folded((Fold(many, good), Fold(many, poor))).worst.outside is poor
+    assert Folded((Fold(lost, many), Fold(one, many))).passed, "every fold passed"
 
 
 def test_every_fold_is_a_trial_the_luck_rung_counts() -> None:
