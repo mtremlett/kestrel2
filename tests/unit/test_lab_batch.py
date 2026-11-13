@@ -18,8 +18,7 @@ from lab.batch import Failed
 from lab.cell import Cell, Record, Trade
 
 START = date(2020, 1, 1)
-#: breakout_20_10 buys on bar 21 and sells on bar 23 (test_lab_cell)
-SHAPE = [10] * 20 + [10.4, 11, 11, 9.4, 9.4]
+SHAPE = [10] * 20 + [10.4, 11, 11, 9.4, 9.4]  #: breakout_20_10 buys on bar 21, sells on bar 23
 BARS = tuple(
     Bar(START + timedelta(n), p, p + Decimal("0.5"), p - Decimal("0.5"), p, 1)
     for n, p in enumerate(Decimal(str(value)) for value in SHAPE)
