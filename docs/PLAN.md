@@ -97,16 +97,15 @@ tickers: the S&P 500, the Nasdaq 100, the FTSE 350 and 200 most-traded US funds,
 2010, through the one store's checks, apart from the twenty trading lines), and 201 of them
 park for a large one-day move nobody has recorded, most on real days of a real market.
 Decide and build how research reads them, without loosening the store the desk trades on.
-The grid lane needs it. Before it, the money lane's blocking request R-MONEY-2 (the scenes
-moved onto the fourteen months); R-MONEY-1 (each line's UK tax) is done.
+The grid lane needs it. The money lane's blocking requests are done: R-MONEY-1 (each line's
+UK tax) and R-MONEY-2 (the scenes on the whole fourteen months).
 
 - [x] The rehearsal data in a file of its own (`tests/scenes/rehearsal.py`)
 - [x] The rehearsal data lengthened to about fourteen months, the five rules buying and
       selling in it on every clean line, its UK and US holidays respected; the spoilt line's
       faults kept within the last sixty sessions (`docs/DECISIONS.md`, the data lane's)
-- [ ] The scenes moved onto the whole fourteen months (`SCENES_FROM` back to `FIRST`), once
-      the money lane's scene 2 counts each line's own sessions; until then they see its
-      last six weeks
+- [x] The scenes moved onto the whole fourteen months, each line on its own venue's
+      calendar; the six-week window is gone (R-MONEY-2)
 - [x] One line the archive refuses is parked, not the whole fetch stopped (`archive.gather`, `store.Refused`)
 - [x] The research list: 1,065 tickers with their venue and currency (the four lists
       overlap, so not 1,500), kept apart from the instrument master's twenty trading lines;
