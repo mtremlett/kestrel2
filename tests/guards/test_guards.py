@@ -18,6 +18,7 @@ import subprocess
 import sys
 import tomllib
 from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 PRODUCT_DIRS = ("desk", "lab")
@@ -65,12 +66,14 @@ def _tracked() -> list[str]:
     return [line for line in out.stdout.splitlines() if line]
 
 
-def _budget() -> dict[str, object]:
-    return json.loads((ROOT / "BUDGET.json").read_text(encoding="utf-8"))
+def _budget() -> dict[str, Any]:
+    data: dict[str, Any] = json.loads((ROOT / "BUDGET.json").read_text(encoding="utf-8"))
+    return data
 
 
-def _manifest() -> dict[str, object]:
-    return tomllib.loads((ROOT / "manifest.toml").read_text(encoding="utf-8"))
+def _manifest() -> dict[str, Any]:
+    data: dict[str, Any] = tomllib.loads((ROOT / "manifest.toml").read_text(encoding="utf-8"))
+    return data
 
 
 # ---------------------------------------------------------------- bloat
@@ -101,7 +104,7 @@ def test_the_tree_is_inside_this_phases_ceiling() -> None:
 
 
 def test_no_file_is_a_monolith() -> None:
-    cap = int(_budget()["max_lines_per_file"])  # type: ignore[call-overload]
+    cap = int(_budget()["max_lines_per_file"])
     too_big = {
         str(p.relative_to(ROOT)): len(p.read_bytes().splitlines())
         for p in _product() + _tests()
@@ -111,7 +114,7 @@ def test_no_file_is_a_monolith() -> None:
 
 
 def test_no_function_is_a_monolith() -> None:
-    cap = int(_budget()["max_lines_per_function"])  # type: ignore[call-overload]
+    cap = int(_budget()["max_lines_per_function"])
     long_ones: dict[str, int] = {}
     for path in _product():
         tree = ast.parse(path.read_text(encoding="utf-8"))
@@ -142,7 +145,7 @@ def test_tests_never_outgrow_the_product() -> None:
 def test_every_module_is_registered_in_the__manifest() -> None:
     """SPRAWL. Register the module, then write it. 'No new file without a search and a
     removal' was prose on the first desk; here the check refuses the file."""
-    listed = set(_manifest()["modules"])  # type: ignore[arg-type]
+    listed = set(_manifest()["modules"])
     actual = {str(p.relative_to(ROOT)).replace("\\", "/") for p in _product()}
     assert actual - listed == set(), (
         f"not in manifest.toml: {sorted(actual - listed)}. "
