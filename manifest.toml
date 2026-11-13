@@ -50,3 +50,4 @@ ladder = ["lab/*", "tests/unit/test_lab_*.py"]
 # the ladder lane
 "lab/cell.py" = "the ladder's unit of work: one strategy on one line over one window, keyed by the code's and the data's versions"
 "lab/batch.py" = "the ladder's batch service: runs many cells, records a bad one and carries on, and takes up where a stopped run left off"
+"lab/rung.py" = "the ladder's first rung: a cell's trades priced at the desk's fills and the broker's costs, and judged against chance"
