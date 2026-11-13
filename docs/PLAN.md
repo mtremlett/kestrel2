@@ -97,7 +97,8 @@ tickers: the S&P 500, the Nasdaq 100, the FTSE 350 and 200 most-traded US funds,
 2010, through the one store's checks, apart from the twenty trading lines), and 201 of them
 park for a large one-day move nobody has recorded, most on real days of a real market.
 Decide and build how research reads them, without loosening the store the desk trades on.
-The grid lane needs it.
+The grid lane needs it. Before it, the money lane's blocking request R-MONEY-2 (the scenes
+moved onto the fourteen months); R-MONEY-1 (each line's UK tax) is done.
 
 - [x] The rehearsal data in a file of its own (`tests/scenes/rehearsal.py`)
 - [x] The rehearsal data lengthened to about fourteen months, the five rules buying and
@@ -155,11 +156,42 @@ The grid lane needs it.
       profit and the hold-the-market yardstick (UNI-07)
 - [ ] Survivorship: the research list taken as it stood on each past date, with the names
       that left it, or the bias measured and stated on every verdict (BT-09)
+- [x] Each line's UK tax a fact on the line, from one table of two rates: nil for a fund or
+      an exchange-traded product, stamp duty for a UK share; the twenty lines each state nil,
+      and one London line of the rehearsal data pays it (R-MONEY-1)
 - [ ] UK stamp duty and taxes confirmed line by line, in one table by instrument type
-      (NS-05)
+      (NS-05): the table is built and the five London funds confirmed; still owed, the five
+      London products seen on a contract note, the research list's London shares name by
+      name, Ireland's 1%, and the default removed (R-DATA-4, R-DATA-5)
 - [ ] Leveraged-product lifecycle watched: an issuer's closure, a compulsory redemption or
       an ISA eligibility change on any line held or researched raises an alert (BIC-11)
 - [ ] Disk watched; old research files roll off by rule (OPS-07)
+- [ ] **Hot every five minutes, paramount (his ruling, 13 November evening):** during each
+      venue's trading hours the keeper fetches every clean line's newest five-minute bar
+      every five minutes, checks it on entry, and updates every indicator the rules and the
+      crash watch read; a line whose bar is late, missing or out of line is parked at once
+      and not traded, and the other lines carry on; a line that comes clean comes back by
+      itself. The source's delay is measured and shown, never hidden (DQ-12, DAT-07, DAT-11)
+- [ ] The hot bars' first source is the broker: he already pays for IBKR's market data, so
+      the five-minute keeper reads live bars through IB Gateway's paper port, read-only, and
+      the free archive is the second source and the check on it; first prove, read-only,
+      that the paper account sees his live data and not the delayed kind, and if it does
+      not, say which setting he must turn on (DAT-02, DAT-07)
+- [ ] One fast store for hot and deep data, standard library only: SQLite in WAL mode with
+      one writer and many readers, held to benchmarks set now: a five-minute round for every
+      line written in under a second, a line's last week read in under 50 ms, a line's daily
+      history read in under 200 ms (DAT-04)
+- [ ] Deep history: daily bars back to 2000 wherever the archive has them, the calendars
+      carried back first; the old desk's Stooq store used only as a head start, every bar
+      re-checked on entry (DAT-03, BT-09)
+- [ ] A five-minute store, started now because the free archive keeps only about sixty days
+      of five-minute bars: each evening the twenty lines' five-minute bars are saved through
+      the same checks; the last week kept hot for reading, everything older archived, none
+      thrown away (DAT-11)
+- [ ] Kept hot, always: the runner runs the store's keeper after the US close and before the
+      London open on every trading day, a dated receipt each time; a line staler than one
+      session raises an alert, and a keeper that misses its slot raises one too (DQ-12,
+      DAT-07)
 
 ## Phase 2 — the money path, in simulation
 
@@ -217,6 +249,11 @@ day's trading and reconciliation are built.
 - [ ] **The kill switch, before the paper lane sends any order:** one command stops all new
       orders and cancels the open ones, and the desk says so; drilled before FIRST-LIGHT's
       first day and then monthly (EMG-02, canon B1)
+- [ ] **The crash watch, on the five-minute data:** every five minutes in trading hours it
+      reads the newest bars of every held and watched line and the market's own; a fall that
+      crosses the emergency thresholds halts all buying at once, alerts him immediately at
+      any hour, and records why; the protective sell across every position (STP-07) acts on
+      it once built (EMG-01, EMG-03)
 - [ ] Emergencies in numbers: an emergency, a crash and a black swan each defined by
       measured falls, each with its action (EMG-01)
 - [ ] Halts: a halt is a typed record; while one is in force the desk buys nothing and
@@ -266,6 +303,9 @@ back clean, and the check has been taught the desk's own resting stops. The acco
 old desk's (his ruling, 13 November), reached through IB Gateway's paper port 4002 on his
 PC with the desk's own client id (222), never 4001.
 
+- [ ] No paper order before the kill switch is drilled, held by the code: the adapter's
+      send refuses unless a drill record of the kill switch from the last 31 days exists,
+      and a contract test proves the refusal
 - [ ] The Gateway known before any order: its daily restart and the weekly re-login handled
       unattended. A re-login that needs his phone or password is his: a reminder line at the
       right time, never a workaround. The old desk's gateway alarms are a quarry only. (The
@@ -343,14 +383,19 @@ refuses, the same record either way, the grid's file counted in the code version
 
 ### The rungs lane's book
 
-**Lane objective:** luck correction that counts every trial: a winner is corrected for how
-many trials it was picked from, and every rung records that count (canon B6, AG-01).
+**Lane objective:** in-sample and out-of-sample folds: a strategy's history cut into folds,
+each judged after costs, the two shown side by side, and the verdict given on the worst
+fold; every fold is a trial the luck rung counts (canon B6, AG-01).
 
 - [x] The first rung proven: it catches a planted edge and rejects a planted non-edge, after
       the broker's costs and the desk's own stop (`lab/rung.py`)
 - [ ] Its costs whole: spread, slippage and the sale's own fees, from the desk's one cost
       model once the money lane has them; and a rate of exchange for each day
-- [ ] Luck correction counting every trial
+- [x] Luck correction counting every trial: a verdict's chance multiplied by the number of
+      trials it was picked from, one combined 5% test across the set, the count kept on
+      every corrected verdict (`lab/luck.py`)
+- [ ] The count kept from batch to batch: one register of every trial ever tried on a
+      question, a dropped candidate included, so no later batch can start the count again
 - [ ] In-sample and out-of-sample folds, side by side after costs, the worst fold reported
       and judged on
 - [ ] Plateaus over peaks: the centre of a plateau promoted, never a lone peak
@@ -375,6 +420,25 @@ many trials it was picked from, and every rung records that count (canon B6, AG-
       (STR-18)
 - [ ] Stress scenarios: the 2020 crash, flash crashes, a leveraged product's gap (2008 lies
       before the history) (TST-06)
+- [ ] **The eleven rungs made trustworthy before any verdict counts**, the old desk's
+      biggest failure (its rung audit of 20 October is the quarry): sample size by effective
+      trades; costs charged; a confidence interval; excess over the benchmark after the
+      market risk taken, judged by its size and not merely measured; at least two regime
+      windows; benchmark-relative excess judged by a confidence interval, not a sign; the
+      deflated Sharpe with the number of trials and their spread taken from one clustered
+      set; combinatorial purged cross-validation (or the probability of overfitting across
+      the whole roster); a placebo on blocks of days; walk-forward folds; a block bootstrap
+      that duplicates no other rung. Each rung proven alone: a planted edge passes it,
+      five hundred cells of pure noise pass it at about its stated rate and no more, a power
+      curve at three effect sizes, a broken copy of the rung caught, and each defect the old
+      audit found kept as a case that must fail (LAD-09, LAD-03, LAD-08)
+- [ ] **The eponymous strategies through the ladder first**, before any grid exploration:
+      the twenty-one published rules the old desk listed, ported one at a time as rules under
+      the one template, each with its author's source, instrument, period and published
+      figure written down, so that reproduction can run (the old desk's never did, for want
+      of the figures); each reproduced on its author's own market first, and only then judged
+      on ours. The bar for twenty-one trials is high and most are expected to fail: that is
+      the information (BT-15, STR-14)
 
 ## Phase 5 — the edge
 

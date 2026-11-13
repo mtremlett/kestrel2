@@ -460,7 +460,7 @@ day's check is clean. The check should be run again on a second day before the f
 
 ## DATA
 
-Last updated: 13 November 2026 (the research list).
+Last updated: 13 November 2026 (each line's UK tax).
 
 ### Where it is
 
@@ -546,12 +546,41 @@ thirty-one deliberate breaks, twenty-eight were caught at once, two once their t
 added, and the last, a change of order, changes nothing; a blind review's two blocking
 findings are fixed or decided (`docs/DECISIONS.md`).
 
+Every line now states what a purchase pays in UK transaction tax (`Line.uk_tax`), asked by
+the money lane (R-MONEY-1). One table in the instrument master holds the two rates: nil for
+a fund or an exchange-traded product, and a UK share's stamp duty, half of one per cent of
+what is paid. A line can state only one of the two, and only a London line can pay: any
+other figure, or a US line with UK tax, cannot be made. Each of the twenty trading lines
+states nil. For the five London funds (SMGB, IITU, VHYG, ISF, VUSA) that is confirmed from
+the tax office's own manual. For the five London products (3LGO, 2MU, 5QQQ, IB1T, SGLN) it
+is how the law reads and what brokers say, but no official page or issuer's document naming
+them was reached: it is to be seen on a real contract note (`docs/DECISIONS.md`). The
+research list's 347 London shares are each charged stamp duty, an assumption not checked
+name by name (below). One London line of the rehearsal data (L01) is now a UK share: over
+the fourteen months the rules buy it three times and its stamp duty comes to £29.66, so the
+day's record has a tax to count. Tests seen failing first; seventeen deliberate breaks,
+fifteen caught, one that changes nothing, and one no test can see yet (the rehearsal line's
+tax: nothing reads it until the money lane builds the day's record); a blind review's two
+blocking findings, both of wording that claimed more than was proven, are taken.
+
 ### Next step
 
-The research list's parked fifth: 201 tickers wait for their large moves to be recorded,
+R-MONEY-2, the money lane's other blocking request: the scenes moved onto the whole
+fourteen months (`SCENES_FROM = FIRST`), a short session of its own; until it is done the
+scenes see six weeks in which nothing is bought, so no tax is charged there either. Then
+the research list's parked fifth: 201 tickers wait for their large moves to be recorded,
 most of them real days of a real market. Decide and build how research reads them without
-loosening the trading store. The scenes' move onto the whole fourteen months is ready on
-the money lane's side (`SCENES_FROM = FIRST`) and is a one-line session of its own.
+loosening the trading store.
+
+### Done for other lanes
+
+- R-MONEY-1: done in this pull request. `line.uk_tax` is the part of a purchase's value paid
+  in UK tax (`lines.NO_TAX` or `lines.STAMP_DUTY`, an exact decimal); a sale pays none. In
+  the rehearsal data L01 pays it. For the money lane to know: the tax is not yet in
+  `orders.cost` or the gate, so a taxed buy sized to its fifth can pass it by the duty (L01's
+  first buy is £1,967.67 before £9.84 of duty, so it fits today); the tax office collects it
+  to the penny, which belongs to the day record's one rounding policy; and the money lane's
+  note that the ten London lines are "assumed nil" can now point here.
 
 ### Requests to GRID
 
@@ -575,9 +604,45 @@ the money lane's side (`SCENES_FROM = FIRST`) and is a one-line session of its o
   `Mapping[Line, Sequence[Bar] | Refused]`.
 - `SESSIONS` will then be every day either venue trades; a day run on it meets days only
   one venue trades (Thanksgiving, Easter Monday).
+- [ ] R-DATA-4 (later, opened 2026-11-13 18:40 UK): every `Line(...)` in the money lane's tests
+  states its UK tax as a fifth fact (`NO_TAX` or `STAMP_DUTY`). Once the paper lane's do too,
+  the data lane removes the default, so a line cannot be made without saying what it pays,
+  as with leverage.
+
+### Requests to PAPER
+
+- [ ] R-DATA-5 (later, opened 2026-11-13 18:40 UK): every `Line(...)` in `tests/unit/test_paper.py`
+  states its UK tax as a fifth fact (`NO_TAX` or `STAMP_DUTY`), for the same reason as
+  R-DATA-4. And when the first conformance trade buys a London product, its contract note
+  shows whether stamp duty was charged: tell the data lane what it says.
 
 ### Found, not fixed
 
+- **What each line's UK tax leaves open** (blind review; its two blocking findings taken):
+  - **The five London products' nil is not confirmed from an official source.** 3LGO, 2MU,
+    5QQQ, IB1T and SGLN are debt of issuers outside the UK, not funds, so the 2014 exemption
+    for funds does not name them. Nil is how the law reads and what brokers say; the
+    issuers' prospectuses could not be fetched. He can settle it in a minute: the order
+    preview for any of them at his own broker shows whether stamp duty is charged. If one
+    pays, it is one word on its line.
+  - **A line made without stating its tax pays nil.** Leverage cannot be left out; the tax
+    can, because the other lanes' tests build lines from four facts and this lane may not
+    edit them. The twenty lines, the research list and the rehearsal lines each state it.
+    Asked of the money and paper lanes (R-DATA-4, R-DATA-5); then the default goes.
+  - **The research list's London shares are all charged a UK share's stamp duty, unchecked
+    name by name.** A member registered outside the UK most likely pays none (the review
+    names, from memory, EXPN, GLEN, WPP, WIZZ, CCH, HSX, LRE and Channel Islands trusts
+    such as 3IN, INPP, TRIG, SEQI, BHMG, HVPE, NBPE, PSH, VOF, VEIL, TFIF, RTW), so research
+    overstates their cost by half a per cent a purchase. One registered in Ireland (DCC,
+    GFTU, GNC) pays Ireland's 1%, and IAG may pay Spain's tax instead: rates no line can
+    state yet, so their cost is understated. Nothing trades on this list.
+  - **The takeover panel's levy is not modelled:** a flat pound or so on a trade over
+    £10,000 in a UK company's shares, on sales too. No trade is that large at £2,000 a
+    holding, and none of the twenty is a UK company's share.
+  - **Each line's kind was written from what the session knows of the ten products**, not
+    read from the broker or the exchange. The paper lane's next step reads each line as the
+    broker knows it; a fund that turned out to be a share would show there.
+  - Nothing tests that the rehearsal's taxed line is bought; scene 7 will, once built.
 - **Four of the twenty lines are parked, each for a reason in the archive's data:**
   - 3LGO has no history in the free archive at all (the same product in dollars, 3GOL,
     has fourteen years). He chose to keep 3LGO; it waits for history to gather.
@@ -802,7 +867,8 @@ way, the grid's file counted in the code version. Then auto-tune.
 
 ## RUNGS
 
-Last updated: 13 November 2026. Took over the ladder lane's first rung on 13 November.
+Last updated: 13 November 2026 (the luck rung). Took over the ladder lane's first rung on
+13 November.
 
 ### Where it is
 
@@ -816,10 +882,23 @@ standard errors above nothing. On made-up prices it passed a planted edge on eve
 forty random histories tried and failed all forty with no edge; it fails an edge that a £3
 least commission eats at a small capital, and the same edge with too few trades.
 
+The ladder now has its luck rung (`lab/luck.py`), for the day many strategies are tried at
+once. Try enough of them and some pass the first rung with no edge at all, about one in
+forty. So the first rung's verdicts are judged again as one set: each one's chance of being
+luck is multiplied by the number of trials it was picked from, and it passes only if that
+is still 5% or less and it passed the first rung. Every trial counts, whatever became of it:
+a loser, one with too few trades, and one that gave no verdict at all (a cell that failed, a
+candidate dropped), which the caller must state. Each corrected verdict carries the count it
+was corrected for. On made-up trades: of forty sets of forty strategies with no edge, the
+first rung alone handed over a "winner" in twenty-six; after the correction, in one (5%
+allows two). A real edge added to each set passed in all forty. A modest winner stands
+alone and picked from eight, and falls picked from nine.
+
 ### Next step
 
-Luck correction that counts every trial: a winner is corrected for how many trials it was
-picked from, and every rung records that count (canon B6, AG-01).
+In-sample and out-of-sample folds: a strategy's history cut into folds, each judged after
+costs, the two side by side, the verdict on the worst fold; every fold a trial the luck rung
+counts (canon B6, AG-01).
 
 ### Requests to MONEY
 
@@ -842,6 +921,25 @@ picked from, and every rung records that count (canon B6, AG-01).
   one share costs more than its room fails the whole verdict loudly; and at two standard
   errors about one cell in forty passes by chance, so a batch of many cells needs the luck
   rung before any winner is believed.
+- **The luck rung's chance is honest only for bell-shaped trades** (blind review, its one
+  blocking finding: the module had promised the 5% without saying so; it now says so). A
+  rule with many small wins and a rare large loss, judged on few trades, reads as far less
+  chance than it is: on made-up trades of that shape with no edge (95% win 1%, 5% lose 19%),
+  about a fifth of thirty-trade trials beat a correction for a hundred trials, and about one
+  in twenty of sixty-trade trials. The cure belongs to the book's box "the luck test fixed
+  before any result" (a deflated Sharpe, which reads skew and fat tails) and to "failing
+  fairly" (effective trades). **No winner on real prices is to be believed before then.**
+- **The count is the caller's to give.** The rung counts every verdict it is handed and
+  every trial the caller says left none; handed one batch, one line or one strategy at a
+  time, it would count only that. A cell whose gains have no spread at all stops the first
+  rung and leaves no verdict, so it too must be stated. Nothing yet keeps the count from
+  batch to batch: a register of every trial ever tried is a box in the book.
+- **What else the blind review of the luck rung left** (nothing blocking): the 5% line
+  itself is not held by a test (a chance landing on exactly 5% does not arise from real
+  numbers; "under 5%" for "5% or under" survives, as does a slightly coarser sum inside the
+  chance); the chance asked for no trades, or the count given as a fraction, is not refused
+  in plain words (neither can arise from a verdict); and `rung.verdict`, the first rung's
+  pass rule as one function, is called by the first rung and by the luck rung's tests only.
 - **Two deliberate breaks of the first rung survive, neither able to differ:** a pass bar
   of "over 2" for "2 or over" (a t of exactly 2 does not arise), and the rung's arithmetic
   setting (the caller's default is the same).

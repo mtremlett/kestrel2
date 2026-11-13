@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from collections import Counter
 from datetime import date
+from decimal import Decimal
 
 import pytest
 
-from desk.lines import LINES, Line
+from desk.lines import LINES, NO_TAX, STAMP_DUTY, Line
 
 
 def test_the_master_holds_twenty_lines_ten_on_each_venue_each_in_its_own_currency() -> None:
@@ -32,3 +33,20 @@ def test_a_suspension_can_be_recorded_only_on_a_day_its_venue_traded() -> None:
     assert Line("AAA", "US", "USD", 1, suspended=frozenset({date(2025, 11, 6)}))
     with pytest.raises(ValueError, match="2025-11-27"):
         Line("AAA", "US", "USD", 1, suspended=frozenset({date(2025, 11, 27)}))
+
+
+def test_uk_tax_is_a_fact_on_the_line_and_each_of_the_ten_london_lines_pays_none() -> None:
+    london = "3LGO 2MU SMGB IITU VHYG 5QQQ IB1T ISF VUSA SGLN".split()
+    taxes = {line.symbol: line.uk_tax for line in LINES if line.venue == "LSE"}
+    assert taxes == dict.fromkeys(london, NO_TAX) and NO_TAX == 0
+    assert {line.uk_tax for line in LINES} == {NO_TAX}, "a US line pays no UK tax"
+    assert Line("BARC", "LSE", "GBP", 1, STAMP_DUTY).uk_tax == Decimal("0.005")
+    assert Line("IHG", "LSE", "USD", 1, STAMP_DUTY).uk_tax == STAMP_DUTY  #: quoted in dollars
+
+
+def test_a_line_pays_nil_or_stamp_duty_and_only_a_london_line_can_pay_it() -> None:
+    for tax in (Decimal("0.01"), Decimal("-0.005"), Decimal("0.5"), 0.005, 0):
+        with pytest.raises(ValueError, match="BBB: no UK tax on a purchase is"):
+            Line("BBB", "LSE", "GBP", 1, tax)  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="AAA: a US line pays no UK tax"):
+        Line("AAA", "US", "USD", 1, STAMP_DUTY)
