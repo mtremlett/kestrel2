@@ -14,7 +14,7 @@ from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from decimal import Decimal
 from pathlib import Path
-from typing import BinaryIO
+from typing import BinaryIO, TypeVar
 
 from desk import book
 from desk.lines import LINES, Line
@@ -29,6 +29,8 @@ HOLDING, HOLDINGS_END, ORDER, ORDERS_END = "61", "62", "5", "53"
 START, ASK_HOLDINGS, ASK_ORDERS = 71, 61, 16  #: what the desk sends: none places an order
 #: News of the gateway's price feeds, which this door does not read; any other news stops it.
 FEEDS = frozenset({"2103", "2104", "2105", "2106", "2107", "2108", "2119", "2157", "2158"})
+Send = Callable[[bytes], object]  #: what puts the desk's bytes on the connection
+T = TypeVar("T")
 
 
 class NotPaper(Exception):
@@ -82,7 +84,7 @@ def message(*fields: object) -> bytes:
     return struct.pack(">I", len(body)) + body
 
 
-def _next(wire: BinaryIO) -> list[str]:
+def receive(wire: BinaryIO) -> list[str]:
     """The gateway's next message, as its fields."""
     head = wire.read(4)
     size = struct.unpack(">I", head)[0] if len(head) == 4 else 0
@@ -95,10 +97,10 @@ def _next(wire: BinaryIO) -> list[str]:
     return fields
 
 
-def _other(fields: list[str]) -> str:
-    """A message that is no holding and no order, and its kind: every account it names must
-    be a paper one, its news may be of the price feeds only, and a kind the desk does not
-    know is refused."""
+def other(fields: list[str]) -> str:
+    """A message that answers no question of the desk's, and its kind: every account it
+    names must be a paper one, its news may be of the price feeds only, and a kind the desk
+    does not know is refused."""
     kind = fields[0]
     if len(fields) < {ACCOUNTS: 3, NEWS: 5}.get(kind, 1):
         raise ValueError(f"a message from the gateway cut short: {fields}")
@@ -129,41 +131,52 @@ def _order(fields: list[str]) -> Resting:
     return Resting(broker_id, client, _paper(account), symbol, action, Decimal(shares), kind)
 
 
-def converse(wire: BinaryIO, send: Callable[[bytes], object]) -> Account:
-    """Read the account over an open connection: offer the one version, start as the desk's
-    client, and only once the gateway has named its accounts, all paper, ask for every
-    holding and every open order, reading until it says both lists are whole."""
+def start(wire: BinaryIO, send: Send) -> None:
+    """Open a conversation: offer the one version, start as the desk's client, and read
+    until the gateway is ready and has named its accounts, all paper. Nothing is asked
+    before."""
     offer = f"v{VERSION}".encode()
     send(b"API\0" + struct.pack(">I", len(offer)) + offer)
-    greeting = _next(wire)
+    greeting = receive(wire)
     if len(greeting) != 2 or greeting[0] != VERSION:
         raise ValueError(f"the gateway greeted with {greeting}; the desk reads {VERSION} only")
     send(message(START, 2, CLIENT, ""))
     ready: set[str] = set()
     while not {ACCOUNTS, READY} <= ready:
-        ready.add(_other(_next(wire)))
+        ready.add(other(receive(wire)))
+
+
+def converse(wire: BinaryIO, send: Send) -> Account:
+    """Read the account over an open connection: once it is started, ask for every holding
+    and every open order, reading until the gateway says both lists are whole."""
+    start(wire, send)
     send(message(ASK_HOLDINGS, 1) + message(ASK_ORDERS, 1))
     holdings: list[Holding] = []
     orders: list[Resting] = []
     whole: set[str] = set()
     while not {HOLDINGS_END, ORDERS_END} <= whole:
-        fields = _next(wire)
+        fields = receive(wire)
         if fields[0] == HOLDING:
             holdings.append(_holding(fields))
         elif fields[0] == ORDER:
             orders.append(_order(fields))
         else:
-            whole.add(_other(fields))
+            whole.add(other(fields))
     return Account(tuple(holdings), tuple(orders))
 
 
-def read() -> Account:
-    """The paper account as the gateway gives it now. It dials the paper port and no other."""
+def dial(talk: Callable[[BinaryIO, Send], T]) -> T:
+    """Hold one conversation with the gateway. It dials the paper port and no other."""
     with (
         socket.create_connection((HOST, PORT), timeout=SECONDS) as link,
         link.makefile("rb") as wire,
     ):
-        return converse(wire, link.sendall)
+        return talk(wire, link.sendall)
+
+
+def read() -> Account:
+    """The paper account as the gateway gives it now."""
+    return dial(converse)
 
 
 def differences(
