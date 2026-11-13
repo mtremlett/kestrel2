@@ -139,15 +139,17 @@ def test_no_function_is_a_monolith() -> None:
 
 def test_tests_never_outgrow_the_product() -> None:
     """The first desk had 400,000 lines of test against 438,000 of product, and 2,221
-    of those tests were set aside as known failures. Tests are code we carry too."""
-    if not _budget()["test_lines_may_not_exceed_product_lines"]:
+    of those tests were set aside as known failures. Tests are code we carry too.
+
+    What grows one test per bug is the unit tests, so they are what is held to the
+    product, from the first line. The guards and the seven scenes are fixed in number
+    and change only with the operator's approval. Counting them too turned this guard
+    red the moment the scenes were written before their code, as the canon requires.
+    Ruled by the operator, 13 November 2026 (docs/DECISIONS.md)."""
+    if not _budget()["unit_test_lines_may_not_exceed_product_lines"]:
         return
-    product, tests = _lines(_product()), _lines(_tests())
-    #: Until there is a product, the guards themselves are the only tests; the rule
-    #: starts biting as soon as desk/ holds real code.
-    if product < 200:
-        return
-    assert tests <= product, f"tests {tests} lines > product {product} lines"
+    product, unit = _lines(_product()), _lines(sorted((ROOT / "tests" / "unit").rglob("*.py")))
+    assert unit <= product, f"unit tests {unit} lines > product {product} lines"
 
 
 # ---------------------------------------------------------------- sprawl

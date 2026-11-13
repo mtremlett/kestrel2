@@ -1,6 +1,7 @@
 # The scenes — what "working" means
 
-**These need the operator's approval, and change only with it.**
+**Approved by the operator on 13 November 2026 (`docs/DECISIONS.md`). They change only
+with his approval.**
 
 Seven scenes. Together they are one thin path through every part of the desk: data in,
 a decision, a size, a stop, an order, a fill, a sale, a reconciled book, a published day.

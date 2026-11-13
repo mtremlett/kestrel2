@@ -37,6 +37,6 @@
   },
   "max_lines_per_file": 400,
   "max_lines_per_function": 50,
-  "test_lines_may_not_exceed_product_lines": true,
+  "unit_test_lines_may_not_exceed_product_lines": true,
   "counted": "*.py in desk/ and lab/, blank lines and comments included - the honest number"
 }

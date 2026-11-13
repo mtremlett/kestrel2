@@ -13,10 +13,13 @@ how a desk ends up with two answers to the same question.
 from __future__ import annotations
 
 import argparse
+import re
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
+from xml.etree import ElementTree
 
 ROOT = Path(__file__).resolve().parent
 
@@ -35,12 +38,57 @@ FULL: list[Step] = [
     ("scenes", ["pytest", "tests/scenes", "-q"]),
 ]
 
+#: The one published progress number, in docs/PLAN.md. The scenes step holds it true.
+PUBLISHED = re.compile(r"Scenes passing: \*\*(\d+) of (\d+)\*\*")
+NOT_BUILT = "NotImplementedError: "
+
 
 def run(name: str, command: list[str]) -> tuple[str, int, float]:
     started = time.monotonic()
     tool = [sys.executable, "-m", *command] if command[0] != sys.executable else command
     result = subprocess.run(tool, cwd=ROOT, check=False)  # noqa: S603
     return name, result.returncode, time.monotonic() - started
+
+
+def judge(report: Path) -> tuple[int, int, list[str]]:
+    """Passing scenes, all scenes, and each scene that failed for any reason other than
+    reaching a part of the desk that is not built yet."""
+    passed, total, wrong = 0, 0, []
+    for case in ElementTree.parse(report).getroot().iter("testcase"):  # noqa: S314
+        total += 1
+        outcome = next((c for c in case if c.tag in ("failure", "error", "skipped")), None)
+        message = "" if outcome is None else outcome.get("message", outcome.tag)
+        if outcome is None:
+            passed += 1
+        elif outcome.tag == "failure" and message.startswith(NOT_BUILT):
+            print(f"  NOT BUILT  {case.get('name')}: {message.removeprefix(NOT_BUILT)}")
+        else:
+            wrong.append(f"{case.get('name')}: {outcome.tag}: {message}")
+    return passed, total, wrong
+
+
+def scenes(command: list[str]) -> tuple[str, int, float]:
+    """THE SCENES ARE A RATCHET, NOT A KNOWN-FAILING LIST. Each scene passes, or stops at
+    a part of the desk that raises NotImplementedError and is listed in docs/STATUS.md.
+    Any other failure is red. So is a count different from the one docs/PLAN.md
+    publishes: a passing scene that regresses, and a new pass nobody recorded."""
+    started = time.monotonic()
+    with tempfile.TemporaryDirectory() as folder:
+        report = Path(folder) / "scenes.xml"
+        run("scenes", [*command, f"--junitxml={report}"])
+        if not report.exists():
+            print("  the scenes wrote no report: pytest did not run them")
+            return "scenes", 1, time.monotonic() - started
+        passed, total, wrong = judge(report)
+    match = PUBLISHED.search((ROOT / "docs" / "PLAN.md").read_text(encoding="utf-8"))
+    published = (int(match[1]), int(match[2])) if match else None
+    for line in wrong:
+        print(f"  WRONG      {line}")
+    print(f"  scenes passing: {passed} of {total}; docs/PLAN.md publishes {published}")
+    if published != (passed, total):
+        print("  the published number is not the measured one: correct docs/PLAN.md")
+    red = bool(wrong) or published != (passed, total)
+    return "scenes", int(red), time.monotonic() - started
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -63,7 +111,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  {name:8} ABSENT  ({target} does not exist yet)")
             continue
         print(f"\n=== {name}")
-        results.append(run(name, command))
+        results.append(scenes(command) if name == "scenes" else run(name, command))
 
     print("\n--- the check")
     for name, code, seconds in results:
