@@ -1053,9 +1053,10 @@ operator will have smartphone and can approve things when requested."
    both arrive when he wakes. Anything that needs him goes at once, at any hour: a reset to
    press, a Gateway login, a decision, a lane halted, a crash, the keeper missing rounds.
 2. **The before-bed reset.** At 21:45 the runner forecasts the night from the last three
-   hours' rate. If the lanes would reach Fable's switch (45%) or the 80% pause before 08:00,
-   it asks for the Fable reset, or the weekly reset, before he sleeps. It asks only when the
-   reset gives back at least 25%, the week's reset is more than 36 hours away, and (for the
+   hours' rate. If the lanes would reach Fable's switch (97% of Fable's own allowance) or
+   the 80% pause before 08:00, it asks for the Fable reset, or the weekly reset, before he
+   sleeps. It asks only when the reset gives back enough (Fable at 50% or more, the week at
+   25%), the week's reset is more than 36 hours away, and (for the
    weekly one) it is unused and unexpired; once a night. So a night is not lost to a pause
    nobody could answer.
 3. **The five-minute keeper.** Once DATA's `desk/keeper.py` is on main, the runner runs
