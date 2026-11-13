@@ -12,9 +12,14 @@ that the trial's true Sharpe is above that bar, given how many trades it stands 
 shape: many small wins and a rare large loss make a Sharpe less sure than a bell does, which
 the luck rung's own chance (`lab/luck.py`) cannot see. At PASS or more the trial is believed;
 under FAIL, luck is the likelier story; between them it is in doubt, neither won nor lost.
-The number of trials is every trial, as on the luck rung; their spread is taken from those
-that have a Sharpe, losers with the rest. The trials are taken as separate looks: trials
-that lean on one another make the bar higher than it need be, never lower.
+
+The bar is fixed by two counts alone. The number of trials is every trial, as on the luck
+rung. The spread is the one a Sharpe with no edge has by its trades alone, one over the
+trades less one, the trial's own trades standing for every trial's: so no trial's bar moves
+with the company it is judged in, and the trials that can pass (thirty trades or more, the
+first rung's least) are not far from it. The trials are taken as separate looks, which sets
+the bar highest. The Sharpe is on the first rung's own deviation; the skew and the kurtosis
+are the plain moments of the gains.
 
 THE YEARLY SHARPE. Canon B6: a daily Sharpe above 2 is a red flag, not a win. It is worked
 here from the trades: the Sharpe a trade times the root of the trades a year over the
@@ -33,7 +38,7 @@ import enum
 import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from statistics import NormalDist, fmean, variance
+from statistics import NormalDist, fmean
 
 from lab import luck
 from lab.luck import Corrected
@@ -73,18 +78,18 @@ class Deflated:
     luck: Corrected  #: the luck rung's corrected verdict: the trial, its count, its chance
     sharpe: float | None  #: the mean gain a trade over the gains' spread; None under two trades
     yearly: float | None  #: the Sharpe a year over the trial's window
-    bar: float  #: the best Sharpe a trade that luck alone would give among the trials
+    bar: float | None  #: the best Sharpe luck alone gives among the trials, at its trades
     deflated: float  #: the chance the true Sharpe is above the bar; 0 without a Sharpe
 
     @property
     def rungs(self) -> dict[str, Answer]:
         """Each named rung's answer on this trial."""
-        believed = Answer.PASS if self.deflated >= PASS else Answer(self.deflated >= FAIL)
+        doubted = Answer.DOUBT if self.deflated >= FAIL else Answer.FAIL
         flagged = self.yearly is not None and self.yearly > FLAG
         return {
             "first": Answer.PASS if self.luck.verdict.passed else Answer.FAIL,
             "luck": Answer.PASS if self.luck.passed else Answer.FAIL,
-            "deflated": believed,
+            "deflated": Answer.PASS if self.deflated >= PASS else doubted,
             "yearly": Answer.DOUBT if flagged else Answer.PASS,
         }
 
@@ -96,17 +101,7 @@ class Deflated:
 def judge(verdicts: Sequence[Verdict], unjudged: int) -> tuple[Deflated, ...]:
     """Every verdict judged on every named rung, as one set: the verdicts given, and the
     trials tried that left no verdict, which count as much as any."""
-    corrected = luck.correct(verdicts, unjudged)
-    sharpes = [_sharpe(verdict) for verdict in verdicts]
-    known = [sharpe for sharpe in sharpes if sharpe is not None]
-    trials = len(verdicts) + unjudged
-    if trials > 1 and len(known) < 2:
-        raise ValueError(
-            f"{trials} trials and {len(known)} with a Sharpe: the spread of the trials' Sharpes "
-            "cannot be known from under two, so luck's best among them cannot be either"
-        )
-    bar = best_by_luck(variance(known), trials) if trials > 1 else 0.0
-    return tuple(_deflated(c, s, bar) for c, s in zip(corrected, sharpes, strict=True))
+    return tuple(_deflated(corrected) for corrected in luck.correct(verdicts, unjudged))
 
 
 def best_by_luck(spread: float, trials: int) -> float:
@@ -114,8 +109,8 @@ def best_by_luck(spread: float, trials: int) -> float:
     by this variance: nothing for one trial alone."""
     if trials == 1:
         return 0.0
-    best = (1 - _EULER) * _NORMAL.inv_cdf(1 - 1 / trials)
-    return math.sqrt(spread) * (best + _EULER * _NORMAL.inv_cdf(1 - 1 / (trials * math.e)))
+    best = (1 - _EULER) * _NORMAL.inv_cdf(1 / trials)
+    return -math.sqrt(spread) * (best + _EULER * _NORMAL.inv_cdf(1 / (trials * math.e)))
 
 
 def deflate(sharpe: float, bar: float, trades: int, skew: float, kurtosis: float) -> float:
@@ -123,20 +118,18 @@ def deflate(sharpe: float, bar: float, trades: int, skew: float, kurtosis: float
     trades whose gains have this skew and kurtosis (a bell's are 0 and 3)."""
     wobble = 1 - skew * sharpe + (kurtosis - 1) / 4 * sharpe**2
     if wobble <= 0:
-        raise ValueError(f"a Sharpe of {sharpe} on {trades} trades: gains of two values only")
+        raise ValueError(f"a Sharpe of {sharpe}, skew {skew}, kurtosis {kurtosis}: no error left")
     return _NORMAL.cdf((sharpe - bar) * math.sqrt((trades - 1) / wobble))
 
 
-def _sharpe(verdict: Verdict) -> float | None:
-    """The first rung's standard errors are the Sharpe times the root of the trades."""
-    return None if verdict.t is None else float(verdict.t) / math.sqrt(len(verdict.trades))
-
-
-def _deflated(corrected: Corrected, sharpe: float | None, bar: float) -> Deflated:
+def _deflated(corrected: Corrected) -> Deflated:
     verdict = corrected.verdict
-    if sharpe is None:
-        return Deflated(corrected, None, None, bar, 0.0)
+    if verdict.t is None:
+        return Deflated(corrected, None, None, None, 0.0)
     gains = [float(priced.gain) for priced in verdict.trades]
+    #: the first rung's standard errors are the Sharpe times the root of the trades
+    sharpe = float(verdict.t) / math.sqrt(len(gains))
+    bar = best_by_luck(1 / (len(gains) - 1), corrected.trials)
     mean = fmean(gains)
     second, third, fourth = (fmean((g - mean) ** power for g in gains) for power in (2, 3, 4))
     chance = deflate(sharpe, bar, len(gains), third / second**1.5, fourth / second**2)
