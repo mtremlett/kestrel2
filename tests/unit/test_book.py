@@ -287,15 +287,21 @@ def test_a_round_trip_pairs_each_sale_with_the_buys_it_closes_in_pounds_after_ev
     )
     assert [t.profit for t in trips[:2]] == [Decimal("-5.6"), Decimal("-37.14")], "every line off"
     assert trips[2].profit == trips[2].gross - trips[2].costs.total
-    #: a day's dealing is its own fills' money and costs, at its own rate: here, every trip's
-    (out, mon), (back, tue) = (book.dealt(tmp_path, (share, dollar), on) for on in (MON, TUE))
+    #: a record's dealing is the money and costs of the fills no record before it counted, each
+    #: at its own day's rate: Monday's three, then Tuesday's two; here, every trip's
+    (out, mon), (back, tue) = (
+        book.dealt(tmp_path, (share, dollar), *to) for to in ((MON, date.min, 0), (TUE, MON, 3))
+    )
     assert out == -700 and back == 645
     assert mon + tue == trips[0].costs + trips[1].costs + trips[2].costs
+    #: s-1's 200 pounds, had it reached the ledger after Monday's record, are Tuesday's
+    assert book.dealt(tmp_path, (share, dollar), TUE, MON, 2)[0] == back + 200
+    with pytest.raises(ValueError, match="holds 3"):  #: a ledger that has lost a fill
+        book.dealt(tmp_path, (share, dollar), TUE, MON, 4)
     assert book.positions(tmp_path, MON) == {"A": 6, "U": 10} and book.positions(tmp_path) == {}
-    days = (MON, TUE, date(2025, 11, 14))  #: a day's rate is the newest kept on or before it
-    assert [str(book.rate(tmp_path, "USD", on)) for on in days] == ["0.8", "0.75", "0.75"]
-    with pytest.raises(ValueError, match="USD"):
-        book.rate(tmp_path, "USD", date(2025, 11, 7))
+    assert [str(book.rate(tmp_path, "USD", on)) for on in (MON, TUE)] == ["0.8", "0.75"]
+    with pytest.raises(ValueError, match="USD"):  #: a day's rate is its own, never an older day's
+        book.rate(tmp_path, "USD", date(2025, 11, 14))
     with pytest.raises(ValueError, match="U"):
         book.round_trips(tmp_path, (A,))
     with pytest.raises(ValueError, match="kept at 0.75"):  #: a day's fills are never repriced

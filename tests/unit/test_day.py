@@ -5,7 +5,7 @@ beside the market's, to the penny, or the lines on which the book is not the bro
 
 from __future__ import annotations
 
-from dataclasses import replace
+from dataclasses import astuple, replace
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
@@ -131,19 +131,20 @@ def test_the_days_record_is_the_books_gain_after_every_cost_beside_the_markets(
 ) -> None:
     broker = Pretend(MARKET, {})
     pounds = [tuple(map(Decimal, row.split())) for row in ("15 5.58 5.58 0 0", "15 5.52 7.29 0 0")]
-    #: 221 each of A to D bought at 10.5 and of H at 8.5, where each closes: the costs alone
-    assert _run(tmp_path, broker, DAYS[21]) == day.Record(
-        DAYS[21], Decimal("-26.16"), Charges(*pounds[0]), Decimal("200.00"), ()
-    )
+    #: 221 each of A to D bought at 10.5 and of H at 8.5, where each closes: the costs alone,
+    #: and five fills' shares worth 11,160.50 for the next day to open from
+    first = (DAYS[21], Decimal("-26.16"), pounds[0], Decimal("200.00"), (), Decimal("11160.5"), 5)
+    assert astuple(_run(tmp_path, broker, DAYS[21])) == first
     #: A to D sold where they closed, and H by its stop at 8: 110.50 lost, and 27.818 of costs
-    assert _run(tmp_path, broker, DAYS[22]) == day.Record(
-        DAYS[22], Decimal("-138.32"), Charges(*pounds[1]), Decimal("-98.04"), ()
-    )
-    with pytest.raises(ValueError, match="VUAG"):  #: no yardstick, no record
-        day.run(tmp_path, ARCHIVE, broker, Settings(Decimal(10_000)), DAYS[22], {"GBP": Decimal(1)})
+    last = (DAYS[22], Decimal("-138.32"), pounds[1], Decimal("-98.04"), (), Decimal(0), 10)
+    assert astuple(_run(tmp_path, broker, DAYS[22])) == last
+    with pytest.raises(ValueError, match="VUAG"):  #: a desk given no yardstick has no record
+        bare, capital = Pretend(ARCHIVE, {}), Settings(Decimal(10_000))
+        bare.open(DAYS[21])
+        day.run(tmp_path / "bare", ARCHIVE, bare, capital, DAYS[21], {"GBP": Decimal(1)})
     for profit, differ in ((Decimal(1), ("A",)), (None, ())):
         with pytest.raises(ValueError, match="2025-02-05"):  #: a number, or the lines: never both
-            day.Record(DAYS[22], profit, Charges(*pounds[0]), Decimal(0), differ)
+            day.Record(DAYS[22], profit, Charges(*pounds[0]), Decimal(0), differ, Decimal(0), 0)
 
 
 def test_a_day_whose_book_is_not_the_brokers_names_the_lines_and_withholds_its_profit(
@@ -156,9 +157,14 @@ def test_a_day_whose_book_is_not_the_brokers_names_the_lines_and_withholds_its_p
     assert (record.profit, record.mismatches) == (None, ("G",)), "a mismatched day given a number"
     sold = (record.costs.commission, record.market)
     assert sold == (Decimal(15), Decimal("-98.04")), "A to D still sold, their costs still shown"
+    broker.inject("G", -5)  #: put right the day after: the day stays without a plain number
+    for on in DAYS[20:]:  #: no record is made again, and none before one already published
+        with pytest.raises(ValueError, match="never rewritten"):
+            day.publish(tmp_path, MARKET, broker, Settings(Decimal(10_000)), on)
     assert day.records(tmp_path)[-1] == record, "the day not kept as it was published"
-    day.publish(tmp_path, MARKET, broker, Settings(Decimal(10_000)), DAYS[20])  #: an older day
-    assert [r.day for r in day.records(tmp_path)] == list(DAYS[20:]), "not kept oldest first"
+    (tmp_path / day.RECORDS).write_text("2025-02-05,1,0,0,0,0,0,0,0,0", encoding="utf-8")
+    with pytest.raises(ValueError, match="not the desk's records"):  #: its first line not the names
+        day.records(tmp_path)
 
 
 def test_a_session_the_desk_missed_is_named_and_gets_its_record_before_any_later_day(
@@ -181,21 +187,34 @@ def test_a_session_the_desk_missed_is_named_and_gets_its_record_before_any_later
     assert day.records(tmp_path) == (bought, missed), "a record lost, or not kept in order"
 
 
-def test_a_dollar_holding_is_worth_each_days_close_at_that_days_own_rate(tmp_path: Path) -> None:
-    dollar, capital = Line("U", "US", "USD", 1), Settings(Decimal(10_000))
-    closes = zip(DAYS[20:], map(Decimal, (50, 51, 52)), strict=True)  #: each a dollar over its open
+def test_a_record_opens_from_what_the_last_one_closed_on_at_each_days_own_rate(
+    tmp_path: Path,
+) -> None:
+    dollar, capital, (fri, mon) = Line("U", "US", "USD", 1), Settings(Decimal(10_000)), DAYS[19:21]
+    #: three days' closes, each a dollar over its open
+    closes = zip(DAYS[18:21], map(Decimal, (50, 51, 52)), strict=True)
     held = tuple(Bar(on, c - 1, c + 1, c - 2, c, 1) for on, c in closes)
-    archive, records = {dollar: held, YARDSTICK: MARKET[YARDSTICK]}, list[day.Record]()
-    broker = Pretend(archive, {})
-    for on, rate in zip(DAYS[21:], ("0.8", "0.75"), strict=True):
-        broker.open(on)
-        if not records:  #: ten bought by hand at the open of 50, through the send path
-            buy = Order("o-1", dollar, 10, Decimal(50), Decimal("0.8"), Decimal(45))
-            book.send(tmp_path, broker, buy, capital)
-        rates = {"USD": Decimal(rate), "GBP": Decimal(1)}
-        records.append(day.run(tmp_path, archive, broker, capital, on, rates))
-    #: 400 pounds paid for what closes at 510 dollars, 408 pounds: 8 gained, 1.32024 of costs
+    archive = {dollar: held, YARDSTICK: tuple(replace(bar, close=Decimal(10)) for bar in held)}
+    broker, at = Pretend(archive, {}), {"USD": Decimal("0.8"), "GBP": Decimal(1)}
+    broker.open(fri)  #: ten bought by hand at the open of 50, through the send path
+    book.send(
+        tmp_path, broker, Order("o-1", dollar, 10, Decimal(50), at["USD"], Decimal(45)), capital
+    )
+    first = day.run(tmp_path, archive, broker, capital, fri, at)
+    #: 400 pounds paid for what closes at 510 dollars, 408 pounds: 8 gained, 1.32 of costs
     costs = Charges(*map(Decimal, ("0.8", "0.2", "0.2", "0.12", "0")))
-    assert (records[0].profit, records[0].costs) == (Decimal("6.68"), costs)
-    #: no fill the day after: 520 dollars at 0.75 are 390 pounds, 18 fewer, and no cost
-    assert (records[1].profit, records[1].costs.total) == (Decimal(-18), Decimal(0))
+    assert astuple(first)[1:] == (Decimal("6.68"), astuple(costs), Decimal(0), (), Decimal(408), 1)
+    #: five more bought after Friday's record, and a rate kept on the Saturday: neither is lost
+    book.send(
+        tmp_path, broker, Order("o-2", dollar, 5, Decimal(50), at["USD"], Decimal(45)), capital
+    )
+    book.record_rates(tmp_path, date(2025, 2, 1), {"USD": Decimal("0.7")})
+    broker.open(mon)
+    with pytest.raises(ValueError, match="no USD rate kept for 2025-02-03"):  #: never Saturday's
+        day.publish(tmp_path, archive, broker, capital, mon)
+    second = day.run(tmp_path, archive, broker, capital, mon, {**at, "USD": Decimal("0.75")})
+    #: 780 dollars at 0.75 are 585 pounds: Friday's 408 are 390, 18 fewer; the five that cost
+    #: 200 pounds on Friday are 195, and their 1.06 of costs are in this record, the first to
+    #: count them
+    assert (second.profit, second.costs.total) == (Decimal("-24.06"), Decimal("1.06"))
+    assert (second.worth, second.counted) == (Decimal(585), 2)

@@ -28,20 +28,22 @@ from desk.store import Bar
 from desk.strategy import Action
 
 RECORDS = "records.csv"
-HEADER = ("day", "profit", *Charges.__dataclass_fields__, "market", "mismatches")
+HEADER = ("day", "profit", *Charges.__dataclass_fields__, "market", "worth", "counted", "differ")
 
 
 @dataclass(frozen=True)
 class Record:
     """One day, as published: pounds, each amount rounded once, to the penny, where the record
     is made. A day whose book is not the broker's names the lines and has no profit; no other
-    day lacks one."""
+    day lacks one. With it, kept exact, what the next day's record carries on from."""
 
     day: date
     profit: Decimal | None  #: the book's gain after every cost; None when it is not the broker's
     costs: Charges  #: every cost of the day's fills, line by line: none can be left out
     market: Decimal  #: what the same capital would have earned simply holding the market
     mismatches: tuple[str, ...]  #: lines where the desk's book and the broker's differ
+    worth: Decimal  #: what the book held at the day's end was worth: the next record opens here
+    counted: int  #: the ledger's fills dated by the day, each counted by a record up to this one
 
     def __post_init__(self) -> None:
         if (self.profit is None) != bool(self.mismatches):
@@ -75,53 +77,65 @@ def publish(
 ) -> Record:
     """THE DAY'S RECORD, made at its end and kept (records). The book is set against the
     broker's: lines that differ are named and the profit withheld. Else the profit is what
-    the book gained: what it holds at the day's closes, less what it held at the closes
-    before, with the money the day's fills moved, after every cost of those fills. Beside
-    it, what the capital would have gained in the yardstick (lines.YARDSTICK, quoted in
-    pounds) from its close before to the day's. Every session has its record, in order: one
-    the desk missed is named, and published first, once its rates are kept."""
-    kept = {record.day: record for record in records(root)}
-    last = max((on for on in kept if on < day), default=day)
-    markets = {line.venue for line in archive}
-    traded = {on for venue in markets for on in venues.sessions(venue, last, day)}
-    if missed := sorted(traded - {last, day}):
-        raise ValueError(f"{day}: no record yet for {missed}, and each session has its own")
+    the book gained: what it holds at the day's closes, less what the last record kept it
+    worth, with the money moved by the fills no record has counted yet, after every cost of
+    those fills. So the days' profits add up to the ledger's, whatever is learned late.
+    Beside it, what the capital would have gained in the yardstick (lines.YARDSTICK, quoted
+    in pounds) from its close before to the day's. Every session has its record, in order
+    and once: one the desk missed is named, and published first, once its rates are kept."""
+    kept = records(root)
+    since, opened, counted = date.min, Decimal(0), 0
+    if kept:
+        since, opened, counted = kept[-1].day, kept[-1].worth, kept[-1].counted
+        if day <= since:
+            raise ValueError(f"{day}: the records run to {since}, and one is never rewritten")
+        traded = {on for line in archive for on in venues.sessions(line.venue, since, day)}
+        if missed := sorted(traded - {since, day}):
+            raise ValueError(f"{day}: no record yet for {missed}, and each session has its own")
     differ = book.reconcile(root, broker)
-    cash, costs = book.dealt(root, archive, day)
-    eve = day - timedelta(days=1)
-    gained = _worth(root, archive, day) - _worth(root, archive, eve) + cash
+    cash, costs = book.dealt(root, archive, day, since, counted)
+    worth, eve = _worth(root, archive, day), day - timedelta(days=1)
     market = _close(archive, YARDSTICK, day) / _close(archive, YARDSTICK, eve) - 1
-    profit = None if differ else pennies(gained - costs.total)
-    kept[day] = Record(day, profit, costs.published(), pennies(settings.capital * market), differ)
-    rows = (
-        (on, r.profit, *astuple(r.costs), r.market, *r.mismatches) for on, r in sorted(kept.items())
-    )
-    book.write(root / RECORDS, [HEADER, *rows])
-    return kept[day]
+    profit = None if differ else pennies(worth - opened + cash - costs.total)
+    ledger = sum(fill.day <= day for fill in book.fills(root))
+    held = pennies(settings.capital * market)
+    record = Record(day, profit, costs.published(), held, differ, worth, ledger)
+    book._write(root / RECORDS, [HEADER, *(_row(r) for r in (*kept, record))])
+    return record
+
+
+def _row(r: Record) -> tuple[object, ...]:
+    """A record as it is kept: the lines that differ last, as many as there are."""
+    return (r.day, r.profit, *astuple(r.costs), r.market, r.worth, r.counted, *r.mismatches)
 
 
 def records(root: Path) -> tuple[Record, ...]:
-    """Every day's record the desk has published, oldest first, as it was published."""
+    """Every day's record the desk has published, oldest first, as it was published. A file
+    there whose first line is not the records' own names is an error, never a day short."""
     path = root / RECORDS
     if not path.exists():
         return ()
     with path.open(newline="", encoding="utf-8") as kept:
-        rows = list(csv.reader(kept))[1:]
+        rows = list(csv.reader(kept))
+    if rows[:1] != [list(HEADER)]:
+        raise ValueError(f"{path}: not the desk's records")
     return tuple(
         Record(
             date.fromisoformat(row[0]),
             Decimal(row[1]) if row[1] else None,
             Charges(*map(Decimal, row[2:7])),
             Decimal(row[7]),
-            tuple(row[8:]),
+            tuple(row[10:]),
+            Decimal(row[8]),
+            int(row[9]),
         )
-        for row in rows
+        for row in rows[1:]
     )
 
 
 def _worth(root: Path, archive: Mapping[Line, Sequence[Bar]], upto: date) -> Decimal:
     """What the book held at a day's end was worth, in pounds: each line at its close then,
-    and the newest rate kept on or before that day."""
+    at the rate kept for that very day."""
     lines = {line.symbol: line for line in archive}
     return sum(
         (

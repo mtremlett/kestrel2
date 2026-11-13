@@ -85,7 +85,7 @@ def send(root: Path, broker: Broker, order: Order | Sale, settings: Settings) ->
 def turn(root: Path, to: Switch, at: datetime, why: str) -> None:
     """Write on the kill switch's record what happened to it at a moment, in UTC, and why."""
     record = (*switch(root), _turn(at, to, why))
-    write(root / SWITCH, [TURNS, *((t.isoformat(), s.value, w) for t, s, w in record)])
+    _write(root / SWITCH, [TURNS, *((t.isoformat(), s.value, w) for t, s, w in record)])
 
 
 def switch(root: Path) -> tuple[tuple[datetime, Switch, str], ...]:
@@ -145,7 +145,7 @@ def fills(root: Path) -> tuple[Fill, ...]:
     )
 
 
-def write(path: Path, rows: Iterable[Sequence[object]]) -> None:
+def _write(path: Path, rows: Iterable[Sequence[object]]) -> None:
     """Written whole, then swapped in, so a desk that dies mid-write leaves the old file."""
     path.parent.mkdir(parents=True, exist_ok=True)
     written = path.with_suffix(".tmp")
@@ -160,7 +160,7 @@ def _record(root: Path, new: Iterable[Fill]) -> None:
     known = {fill.execution_id for fill in ledger}
     added = tuple(fill for fill in new if fill.execution_id not in known)
     if added:
-        write(root / LEDGER, [COLUMNS, *(astuple(fill) for fill in ledger + added)])
+        _write(root / LEDGER, [COLUMNS, *(astuple(fill) for fill in ledger + added)])
 
 
 def collect(root: Path, broker: Broker) -> None:
@@ -230,7 +230,7 @@ def record_rates(root: Path, day: date, rates: Mapping[str, Decimal]) -> None:
             raise ValueError(f"{day}: a rate of {rate} pounds per {currency}")
         if kept.setdefault((day, currency), rate) != rate:
             raise ValueError(f"{day}: {currency} was kept at {kept[day, currency]}, not {rate}")
-    write(root / RATES, [("day", "currency", "rate"), *((*key, r) for key, r in kept.items())])
+    _write(root / RATES, [("day", "currency", "rate"), *((*key, r) for key, r in kept.items())])
 
 
 def _rates(root: Path) -> dict[tuple[date, str], Decimal]:
@@ -242,24 +242,30 @@ def _rates(root: Path) -> dict[tuple[date, str], Decimal]:
     return {(date.fromisoformat(r["day"]), r["currency"]): Decimal(r["rate"]) for r in rows}
 
 
-def rate(root: Path, currency: str, upto: date) -> Decimal:
-    """The pounds per unit of a currency kept for the newest day on or before a day: what a
-    holding in it is valued at that day's end. None kept by then is an error."""
-    kept = {on: r for (on, name), r in _rates(root).items() if name == currency and on <= upto}
-    if not kept:
-        raise ValueError(f"no {currency} rate kept on or before {upto}")
-    return kept[max(kept)]
+def rate(root: Path, currency: str, day: date) -> Decimal:
+    """The pounds per unit of a currency kept for a day: what a holding in it is valued at
+    that day's end. None kept for that very day is an error, never an older day's rate."""
+    kept = _rates(root).get((day, currency))
+    if kept is None:
+        raise ValueError(f"no {currency} rate kept for {day}")
+    return kept
 
 
-def dealt(root: Path, lines: Iterable[Line], day: date) -> tuple[Decimal, Charges]:
-    """THE DAY'S DEALING, in pounds: what the day's sales brought in less what its buys paid,
-    and every cost of the day's fills, line by line."""
-    pounds = _priced(root, lines)
+def dealt(
+    root: Path, lines: Iterable[Line], day: date, last: date, counted: int
+) -> tuple[Decimal, Charges]:
+    """A DAY'S DEALING, in pounds: what the sales brought in less what the buys paid, and
+    every cost, line by line, of the fills its record is the first to count. Those are the
+    fills dated after the last record's day, and any dated by then that reached the ledger
+    after that record had counted its own: the ledger keeps fills in the order they came."""
+    pounds, ledger = _priced(root, lines), fills(root)
+    old = [fill for fill in ledger if fill.day <= last]
+    if len(old) < counted:
+        raise ValueError(f"the ledger holds {len(old)} fills by {last}, fewer than the {counted}")
     cash, costs = Decimal(0), Charges(*(Decimal(0),) * 5)
-    for fill in fills(root):
-        if fill.day == day:
-            value, fee = pounds(fill, abs(fill.quantity))
-            cash, costs = cash + (value if fill.quantity < 0 else -value), costs + fee
+    for fill in old[counted:] + [fill for fill in ledger if last < fill.day <= day]:
+        value, fee = pounds(fill, abs(fill.quantity))
+        cash, costs = cash + (value if fill.quantity < 0 else -value), costs + fee
     return cash, costs
 
 
