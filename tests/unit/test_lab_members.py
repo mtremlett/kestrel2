@@ -3,6 +3,7 @@ the ones that have left, so a study of the past is not the survivors' alone."""
 
 from __future__ import annotations
 
+import hashlib
 from datetime import date, timedelta
 
 import pytest
@@ -31,15 +32,21 @@ def test_each_new_year_a_list_is_its_whole_membership_and_the_survivors_are_the_
         for name in TODAY
     }
     assert counted["SP500"] == [
-        *((500, 281), (500, 287), (500, 296), (500, 307), (500, 315), (502, 322), (504, 337)),
+        *((500, 279), (500, 287), (500, 296), (500, 307), (500, 315), (502, 322), (504, 337)),
         *((505, 356), (505, 377), (505, 389), (505, 406), (505, 416), (505, 426), (503, 440)),
         *((503, 453), (503, 467), (503, 484)),
     ]
     assert counted["NASDAQ100"] == [
-        *((101, 31), (101, 32), (101, 34), (101, 37), (101, 40), (105, 43), (105, 45), (104, 48)),
+        *((100, 32), (100, 33), (100, 35), (100, 38), (100, 41), (106, 43), (105, 45), (104, 48)),
         *((103, 54), (103, 57), (103, 59), (102, 63), (101, 69), (101, 73), (101, 78), (101, 83)),
         (101, 90),
     ]
+    #: every change and its day, so that none is altered without this line saying so
+    prints = {
+        n: hashlib.sha256(repr(r.changes).encode()).hexdigest()[:12]
+        for n, r in members.RECORDS.items()
+    }
+    assert prints == {"SP500": "9f8eb21b8207", "NASDAQ100": "a3760de517c5"}
 
 
 @pytest.mark.parametrize("name", TODAY)
@@ -66,8 +73,8 @@ def test_a_change_takes_effect_on_its_day_and_not_the_day_before() -> None:
 def test_a_ticker_another_company_carries_today_is_not_taken_for_the_one_that_left() -> None:
     """Q was Qwest until 2011 and is another company today; Berkshire joined in February 2010."""
     first = members.on("SP500", members.FIRST)
-    assert {"Q.2011", "JAVA", "BNI", "AGN", "AGN.2015"} <= set(first.left)
-    assert not {"Q", "BRK-B", "TSLA", "DELL"} & _symbols(first.listed)
+    assert {"Q.2011", "JAVA", "BNI", "AGN", "AGN.2015", "CB.2016"} <= set(first.left)
+    assert not {"Q", "BRK-B", "TSLA", "DELL", "CB"} & _symbols(first.listed)
     assert {"AAPL", "HWM", "MDLZ"} <= _symbols(first.listed) and "DD.2017" in first.left
 
 
@@ -84,14 +91,17 @@ def test_a_list_or_a_day_with_no_record_is_refused_never_guessed() -> None:
 
 def test_a_record_that_contradicts_the_list_or_itself_is_refused() -> None:
     day = date(2020, 1, 2)
-    aapl = universe.SP500[:1] + (universe.UNIVERSE[-1],)
-    for wrong in (Change(day, "ZZZZ", joined=True), Change(day, aapl[0].symbol, joined=False)):
+    pair = universe.SP500[:1] + (universe.UNIVERSE[-1],)
+    for wrong in (Change(day, "ZZZZ", joined=True), Change(day, pair[0].symbol, joined=False)):
         with pytest.raises(ValueError, match=wrong.symbol):
-            members.Record(aapl, (wrong,))
-    with pytest.raises(ValueError, match="out of order"):
-        members.changes("2020-01-02 +A 2020-01-03 -B")
+            members.Record(pair, (wrong,))
+    for text in ("2020-01-02 -GONE 2020-01-03 -OLD", f"{members.LAST + timedelta(1)} -OLD"):
+        with pytest.raises(ValueError, match="out of order"):
+            members.Record(pair, members.changes(text))
+    with pytest.raises(ValueError, match="before any day"):
+        members.changes("+A 2020-01-02 -B")
     record = members.Record(
-        aapl, members.changes(f"2020-01-03 +{aapl[1].symbol} -OLD 2020-01-02 -GONE")
+        pair, members.changes(f"2020-01-03 +{pair[1].symbol} -OLD 2020-01-02 -GONE")
     )
-    assert record.symbols(day) == {aapl[0].symbol, "OLD"}
-    assert record.symbols(day - timedelta(1)) == {aapl[0].symbol, "OLD", "GONE"}
+    assert record.symbols(day) == {pair[0].symbol, "OLD"}
+    assert record.symbols(day - timedelta(1)) == {pair[0].symbol, "OLD", "GONE"}

@@ -1,23 +1,30 @@
 """members - THE LISTS' PAST MEMBERS: who was on a published list on a past day, so that a
 study of the past is not the survivors' alone. The research list (`lab/universe.py`) holds
-today's members only; of the S&P 500 of January 2010, 281 of 500 are still on it.
+today's members only; of the S&P 500 of January 2010, 279 of 500 are still on it.
 
 A list on a past day is today's list with every change since undone, newest first. A member
-then is either still listed today, and is today's line, whose bars the research store keeps;
-or it has left, and is only a name: the free archive keeps no bars for most of them, so a
-study can count them and say so, and cannot yet trade them.
+then is either still on that list today, and is today's line; or it has left it, and is only
+a name. A name that left may still be a line of another list (Oracle left the Nasdaq 100 and
+is in the S&P 500), under that name or another: each list's record names its own. For most
+that left, the free archive keeps no bars, so a study can count them and say so. Being
+listed says nothing of bars either: a line's bars may begin after the day asked for.
 
 The record is Wikipedia's table of each list's changes, read on 13 November 2026 and
-corrected by hand where it contradicted itself or today's list (docs/DECISIONS.md, the data
-lane's). It is one unofficial source, and nothing proves it complete. Three rules name a
-member:
+corrected by hand where it contradicted itself, today's list or the news of the day (the
+data lane's decisions, docs/DECISIONS.md). It is one unofficial source and nothing proves it
+complete: a leaver it never saw join is taken as a member since 2010. Members are
+securities, so two classes of one company's shares count twice. Four rules name a member:
 
 - a company is named by the last ticker it carried on the list, so a change of ticker is no
-  change of member (Facebook joined as META);
+  change of member (Facebook joined as META), and the company that survives a merger keeps
+  its place under the ticker it took;
 - a leaver whose ticker another member carried later is named with the year it left: Q.2011
-  is Qwest, not the Q of today, so no stranger's bars are read as its own;
+  is Qwest, not the Q of today, so no stranger's bars are read as its own. The name is a
+  label, never parsed;
 - a change counts from its day: the joiner is a member on it, the leaver is not. The source
-  sometimes gives the last day of the old member instead, so a day here can be one out.
+  mixes the day of effect with the day before and the day of the news, so a day here can be
+  days out, and now and then weeks;
+- changes of one day are undone in the order written.
 
 Still owed: the FTSE 350, whose changes no free page lists, and the funds, a list this desk
 measured itself on one day. Asked for either, `on` refuses."""
@@ -30,7 +37,8 @@ from datetime import date
 from desk.lines import Line
 from lab import universe
 
-#: The days a list can be asked for: from the start of the record to the day of today's list.
+#: The days a list can be asked for: from the start of the record to the day `universe`
+#: gives for today's lists.
 FIRST, LAST = date(2010, 1, 1), date(2026, 11, 13)
 #: The lists of `universe` whose past members are not recorded yet.
 OWED = ("FTSE350", "ETFS")
@@ -51,13 +59,14 @@ class Members:
 
     day: date
     listed: tuple[Line, ...]  #: still on the list today, in today's order: today's lines
-    left: tuple[str, ...]  #: gone since, in order of name: no line, and no bars kept
+    left: tuple[str, ...]  #: off this list since, in order of name: a name, not a line
 
 
 @dataclass(frozen=True)
 class Record:
     """Today's list and every change that made it, newest first. One that contradicts the
-    list, or itself, cannot be made: a member cannot join twice running, or leave when out."""
+    list, or itself, cannot be made: a member cannot join twice running or leave when out, and
+    no change is later than the one before it, or than today's list."""
 
     today: tuple[Line, ...]
     changes: tuple[Change, ...]
@@ -68,9 +77,13 @@ class Record:
     def symbols(self, day: date) -> set[str]:
         """The members on day, by name: today's, with every change after day undone."""
         names = {line.symbol for line in self.today}
+        newer = LAST
         for change in self.changes:
+            if change.day > newer:
+                raise ValueError(f"{change.symbol} on {change.day}: out of order, after {newer}")
             if change.day <= day:
                 break
+            newer = change.day
             if change.joined != (change.symbol in names):
                 does = (
                     "joins a list it is not on afterwards"
@@ -83,17 +96,16 @@ class Record:
 
 
 def changes(text: str) -> tuple[Change, ...]:
-    """The changes written as days, newest first, each followed by its joiners (+) and its
-    leavers (-)."""
+    """The changes written as days, each followed by its joiners (+) and its leavers (-)."""
     made: list[Change] = []
-    day = date.max
+    day: date | None = None
     for word in text.split():
-        if word[0] in "+-":
-            made.append(Change(day, word[1:], word[0] == "+"))
-        elif date.fromisoformat(word) >= day:
-            raise ValueError(f"{word}: a day out of order, the newest comes first")
-        else:
+        if word[0] not in "+-":
             day = date.fromisoformat(word)
+        elif day is None:
+            raise ValueError(f"{word}: a change before any day")
+        else:
+            made.append(Change(day, word[1:], word[0] == "+"))
     return tuple(made)
 
 
@@ -121,11 +133,11 @@ RECORDS = {
             +GEHC 2022-12-22 +STLD -ABMD 2022-12-19 +FSLR -FBHS -MBC 2022-12-15 +MBC 2022-11-01
             +ACGL -TWTR 2022-10-12 +TRGP -NLSN 2022-10-03 +PCG -CTXS +EQT -DRE 2022-09-19 +CSGP
             -PVH +INVH -PENN 2022-06-21 -UA +KDP -UAA +ON -IPGP 2022-06-08 +VICI -CERN
-            2022-04-11 +WBD -DISCA -DISCK 2022-04-04 +CPT -PBCT 2022-03-02 +MOH -INFO 2022-02-15
-            +NDSN -XLNX 2022-02-03 -GPS 2022-02-02 +CEG 2021-12-20 +SBNY -LEG +SEDG -HBI +FDS
-            -WU 2021-12-14 +EPAM -KSU 2021-09-20 +MTCH -PRGO +DAY -UNM +BRO -NOV 2021-08-30
-            +TECH -MXIM 2021-07-21 +MRNA -ALXN 2021-06-04 -HFC 2021-06-03 +OGN 2021-05-14 +CRL
-            -FLIR 2021-04-20 +PTC -VAR 2021-03-22 +NXPI -FLS +PENN -SLG +GNRC -XRX +CZR -VNT
+            2022-04-11 -DISCK 2022-04-04 +CPT -PBCT 2022-03-02 +MOH -INFO 2022-02-15 +NDSN -XLNX
+            2022-02-03 -GPS 2022-02-02 +CEG 2021-12-20 +SBNY -LEG +SEDG -HBI +FDS -WU 2021-12-14
+            +EPAM -KSU 2021-09-20 +MTCH -PRGO +DAY -UNM +BRO -NOV 2021-08-30 +TECH -MXIM
+            2021-07-21 +MRNA -ALXN 2021-06-04 -HFC 2021-06-03 +OGN 2021-05-14 +CRL -FLIR
+            2021-04-20 +PTC -VAR 2021-03-22 +NXPI -FLS +PENN -SLG +GNRC -XRX +CZR -VNT
             2021-02-12 +MPWR -FTI 2021-01-21 +TRMB -CXO 2021-01-07 +ENPH -TIF 2020-12-21 +TSLA
             -AIV 2020-10-12 -NBL 2020-10-09 +VNT 2020-10-07 +POOL -ETFC 2020-09-21 +ETSY -HRB
             +TER -COTY +CTLT -KSS 2020-06-22 +BIO -ADS +TDY -HOG +TYL -JWN 2020-05-22 +WST -HP
@@ -148,15 +160,15 @@ RECORDS = {
             2017-04-04 +DXC -SWN 2017-03-20 +AMD -URBN +RJF -FTR +ARE -FSLR 2017-03-16 +SNPS
             -HAR 2017-03-13 +DISH -LLTC 2017-03-02 +REG -ENDP 2017-03-01 +CBOE -PBI 2017-02-28
             +INCY -SE 2017-01-05 +IDXX -STJ 2016-12-02 +MAA -OI +EVHC -LM 2016-09-30 +COTY -DO
-            2016-09-22 +COO -HOT 2016-09-08 +CHTR -EMC 2016-09-06 +MTD -TYC 2016-07-05 +FTV
+            2016-09-22 +COO -HOT 2016-09-08 +CHTR -EMC 2016-09-06 +MTD -JCI.2016 2016-07-05 +FTV
             -CPGX 2016-07-01 +LNT -GAS +ALB -TE 2016-06-22 +FBHS -CVC 2016-06-03 +TDG -BXLT
             2016-05-31 +AJG -CCE 2016-05-23 +LKQ -ARG 2016-05-18 +DLR -TWC 2016-05-13 +ALK
             -SNDK.2016 2016-05-03 +AYI -ADT 2016-04-25 +GPN -GME 2016-04-18 +ULTA -THC
             2016-04-08 +UA 2016-04-04 +FL -CAM 2016-03-30 +HOLX -POM +CNC -ESV 2016-03-07 +UDR
             -GMCR 2016-03-04 +AWK -CNX 2016-02-22 +CXO -PCL 2016-02-01 +CFG -PCP +FRT -BRCM
-            2016-01-19 +EXR -ACE 2016-01-05 +WTW -FOSL 2015-12-29 +CHD -ALTR 2015-12-15 -CMCSK
-            2015-12-01 +CSRA -CSC 2015-11-19 +ILMN -SIAL 2015-11-18 +SYF -GNW 2015-11-02 +HPE
-            -HCBK 2015-10-07 +VRSK -JOY 2015-09-18 +CMCSK +TFCF +NWS 2015-09-02 +UAL -HSP
+            2016-01-19 +EXR -CB.2016 2016-01-05 +WTW -FOSL 2015-12-29 +CHD -ALTR 2015-12-15
+            -CMCSK 2015-12-01 +CSRA -CSC 2015-11-19 +ILMN -SIAL 2015-11-18 +SYF -GNW 2015-11-02
+            +HPE -HCBK 2015-10-07 +VRSK -JOY 2015-09-18 +CMCSK +TFCF +NWS 2015-09-02 +UAL -HSP
             2015-08-28 +ATVI -PLL 2015-07-29 +SIG -DTV 2015-07-20 +PYPL -NE 2015-07-08 +AAP -FDO
             2015-07-06 +KHC -KRFT 2015-07-02 +CPGX -ATI 2015-07-01 +JBHT -TEG +BXLT -QEP
             2015-06-11 +QRVO -LO 2015-04-07 +O -WIN 2015-03-23 +AAL -AGN.2015 +EQIX -DNR +SLG
@@ -179,9 +191,10 @@ RECORDS = {
             2011-10-14 +TEL -CEPH 2011-09-23 +MOS -NSM 2011-07-05 +ACN -MI 2011-06-30 +MPC -RSH
             2011-06-01 +ANR -MEE 2011-04-27 +CMG -NOVL 2011-04-01 +BLK -GENZ 2011-03-31 +EW
             -Q.2011 2011-02-28 +COV -MFE 2011-02-25 +JOY -AYE 2011-01-03 +MMI -MDP 2010-12-17
-            +CVC -KG +FFIV -EK +NFLX -ODP +NFX -NYT 2010-11-17 +TT -PTV 2010-08-26 +TYC -SII
-            2010-07-14 +ACE -MIL 2010-06-30 +QEP -STR 2010-06-28 +KMX -XTO 2010-04-29 +CERN -BJS
-            2010-03-15 +OKE -BDK 2010-02-26 +HP -RX 2010-02-16 +BRK-B -BNI 2010-01-29 +NRG -JAVA
+            +CVC -KG +FFIV -EK +NFLX -ODP +NFX -NYT 2010-11-17 +TT -PTV 2010-08-26 +JCI -SII
+            2010-07-14 +CB -MIL 2010-06-30 +QEP -STR 2010-06-28 +KMX -XTO 2010-04-29 +CERN -BJS
+            2010-03-15 +OKE -BDK 2010-03-01 +WBD -PBG 2010-02-26 +HP -RX 2010-02-16 +BRK-B -BNI
+            2010-01-29 +NRG -JAVA
             """
         ),
     ),
@@ -207,25 +220,26 @@ RECORDS = {
             -AAL 2019-12-23 +ANSS -HAS +CDW -HSIC +CPRT -JBHT +CSGP -MYL +SGEN -NLOK +SPLK -WYNN
             2019-11-21 +EXC -CELG 2018-12-24 +AMD -ESRX +LULU -HOLX +NTAP -QRTEA +UAL -SHPG
             +VRSN -STX +WTW -VOD 2018-11-19 +XEL -XRAY 2018-11-05 +NXPI -CA 2018-07-23 +PEP
-            -DISH 2017-12-18 +ASML -AKAM +CDNS -DISCA -DISCK +SNPS -NCLH +TTWO -TSCO +WDAY -VIAB
+            -DISH 2017-12-18 +ASML -AKAM +CDNS -WBD -DISCK +SNPS -NCLH +TTWO -TSCO +WDAY -VIAB
             2017-10-23 +ALGN -MAT 2017-06-19 +MELI -YHOO 2017-04-24 +WYNN -TRIP 2017-03-20 +IDXX
             -SBAC 2017-02-07 +JBHT -NXPI 2016-12-19 +CTAS -BBBY +HAS -NTAP +HOLX -SRCL +KLAC
             -WFM 2016-10-19 +SHPG -LLTC 2016-07-18 +MCHP -ENDP 2016-06-20 +XRAY -LMCA -LMCK
             -BATRA -BATRK 2016-04-18 +BATRA +BATRK 2016-03-16 +NTES -SNDK.2016 2016-02-16 +CSX
             -KLAC 2015-12-21 +TCOM -CHRW +ENDP -EXPD +EXPE -GMCR +MXIM -GRMN +NCLH -SPLS +TMUS
-            -VIP +ULTA -WYNN -LILA -LILAK 2015-11-11 +PYPL -BRCM 2015-10-07 +INCY -ALTR
-            2015-08-03 +SWKS 2015-07-31 -SIAL 2015-07-29 +JD 2015-07-27 +BMRN 2015-07-24 -DTV
-            -CTRX 2015-07-02 +KHC -KRFT +LILA +LILAK 2015-03-23 +WBA -EQIX 2014-12-22 +AAL -EXPE
-            +EA -FFIV +LRCX -MXIM +CMCSA +FOX +LBTYK 2014-04-03 +GOOG 2013-12-23 +DISH -FOSL
-            +ILMN -MCHP +NXPI -NUAN +TRIP -SHLD +TSCO -XRAY 2013-11-18 +MAR -GOLD 2013-10-29
-            +VIP -DELL 2013-08-22 +GMCR -LIFE 2013-07-25 +CHTR -BMC 2013-07-15 +TSLA -ORCL
-            2013-06-06 +NFLX -PRGO 2013-06-05 +LMCA -VMED 2013-03-18 +KRFT -STRZA 2013-01-15
-            +STRZA -LMCA 2012-12-24 +ADI -APOL +CTRX -EA +DISCA -FLEX +EQIX -GMCR +LBTYA -LRCX
-            +LMCA -MRVL +REGN -NFLX +SBAC -RIMM +VRSK -VRSN +WDC -WCRX 2012-12-12 +META -INFY
-            2012-07-23 +MDLZ -TCOM 2012-05-30 +VIAB -TEVA 2012-04-23 +TXN -FSLR 2011-12-19 +AVGO
-            -FLIR +FOSL -ILMN +MNST -NIHD +NUAN -QGEN +GOLD -URBN 2011-12-06 +PRGO -JOYG
-            2011-07-15 +SIRI -CEPH 2011-05-27 +GMCR -MICC 2011-04-04 +ALXN -GENZ 2010-12-20
-            +AKAM -CTAS +TCOM -DISH +DLTR -FWLT +FFIV -HOLX +MU -JBHT +NFLX -LOGI +WFM -PDCO
+            -VIP +ULTA -WYNN -LILA -LILAK 2015-12-15 -CMCSK 2015-11-11 +PYPL -BRCM 2015-10-07
+            +INCY -ALTR 2015-08-03 +SWKS 2015-07-31 -SIAL 2015-07-29 +JD 2015-07-27 +BMRN
+            2015-07-24 -DTV -CTRX 2015-07-02 +KHC -KRFT +LILA +LILAK 2015-03-23 +WBA -EQIX
+            2014-12-22 +AAL -EXPE +EA -FFIV +LRCX -MXIM +CMCSK +FOX +LBTYK +DISCK +LMCK
+            2014-04-03 +GOOG 2013-12-23 +DISH -FOSL +ILMN -MCHP +NXPI -NUAN +TRIP -SHLD +TSCO
+            -XRAY 2013-11-18 +MAR -GOLD 2013-10-29 +VIP -DELL.2013 2013-08-22 +GMCR -LIFE
+            2013-07-25 +CHTR -BMC 2013-07-15 +TSLA -ORCL 2013-06-06 +NFLX -PRGO 2013-06-05 +LMCA
+            -VMED 2013-03-18 +KRFT -STRZA 2013-01-15 +STRZA -LMCA 2012-12-24 +ADI -APOL +CTRX
+            -EA +WBD -FLEX +EQIX -GMCR +LBTYA -LRCX +LMCA -MRVL +REGN -NFLX +SBAC -RIMM +VRSK
+            -VRSN +WDC -WCRX 2012-12-12 +META -INFY 2012-07-23 +MDLZ -TCOM 2012-05-30 +VIAB
+            -TEVA 2012-04-23 +TXN -FSLR 2011-12-19 +AVGO -FLIR +FOSL -ILMN +MNST -NIHD +NUAN
+            -QGEN +GOLD -URBN 2011-12-06 +PRGO -JOYG 2011-07-15 +SIRI -CEPH 2011-05-27 +GMCR
+            -MICC 2011-04-04 +ALXN -GENZ 2010-12-20 +AKAM -CTAS +TCOM -DISH +DLTR -FWLT +FFIV
+            -HOLX +MU -JBHT +NFLX -LOGI +WFM -PDCO
             """
         ),
     ),
