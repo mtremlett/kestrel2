@@ -75,3 +75,4 @@ rungs = []
 "lab/deflated.py" = "the luck test fixed before any result: the deflated Sharpe and its bands, the yearly Sharpe too good to be true, and the one verdict rule over the named rungs"
 "lab/trials.py" = "the register of trials: every trial ever tried on a question, kept from batch to batch, and the luck rung's count taken from it"
 "lab/plateau.py" = "plateaus over peaks: of a rule's many settings, the centre of a plateau of passing neighbours chosen, and a lone peak never promoted"
+"lab/regime.py" = "periods and regimes: a strategy replayed in each period and each regime of the weather, kept for the regimes it earns in, and its trades outside them tagged"
