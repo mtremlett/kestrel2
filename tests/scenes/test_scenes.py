@@ -64,9 +64,9 @@ def test_scene_2_the_decision_cannot_see_the_future(tmp_path: Path) -> None:
     every = strategy.decide(bars)
     names = {d.strategy for d in every}
     assert len(trading) == 19 and len(names) == 5
-    assert len(every) == len(names) * len(trading) * len(
-        SESSIONS
-    ), "a line or a day went unanswered"
+    assert len(every) == len(names) * sum(
+        len(b) for b in bars.values()
+    ), "a line or one of its own days went unanswered"
     for cut in SESSIONS:
         blind = {s: tuple(bar for bar in b if bar.day <= cut) for s, b in bars.items()}
         assert set(strategy.decide(blind)) == {
