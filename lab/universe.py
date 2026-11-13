@@ -14,23 +14,26 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 from datetime import date
+from decimal import Decimal
 from pathlib import Path
 
 from desk import archive, store
-from desk.lines import LINES, Line
+from desk.lines import LINES, NO_TAX, STAMP_DUTY, Line
 from desk.store import Bar, Parked
 
 
-def _lines(venue: str, currency: str, symbols: str) -> tuple[Line, ...]:
-    """Each ticker as a line, a fund's leverage after a colon. One the desk also trades is
-    the instrument master's own line, so its facts have one home; the two may not disagree."""
+def _lines(venue: str, currency: str, symbols: str, tax: Decimal = NO_TAX) -> tuple[Line, ...]:
+    """Each ticker as a line, a fund's leverage after a colon, its UK tax its list's. One the
+    desk also trades is the instrument master's own line, so its facts have one home; the two
+    may not disagree."""
     master = {(line.symbol, line.venue): line for line in LINES}
     made = []
     for entry in symbols.split():
         symbol, colon, leverage = entry.partition(":")
-        line = Line(symbol, venue, currency, int(leverage) if colon else 1)
+        line = Line(symbol, venue, currency, int(leverage) if colon else 1, tax)
         known = master.get((symbol, venue), line)
-        if (known.currency, known.leverage) != (line.currency, line.leverage):
+        facts = (line.currency, line.leverage, line.uk_tax)
+        if (known.currency, known.leverage, known.uk_tax) != facts:
             raise ValueError(f"{symbol}: the research list and the instrument master disagree")
         made.append(known)
     return tuple(made)
@@ -79,7 +82,8 @@ NASDAQ100 = _lines(
     """,
 )
 #: The FTSE 100 and the FTSE 250, less the three members London quotes in euros (BCG, MTLN,
-#: PEY), a currency no line can state yet; then the five it quotes in dollars.
+#: PEY), a currency no line can state yet; then the five it quotes in dollars. Each is a
+#: share, and is charged a UK share's stamp duty on a purchase.
 FTSE350 = _lines(
     "LSE",
     "GBP",
@@ -102,7 +106,8 @@ FTSE350 = _lines(
     TMPL TEM TRIG THG TCAP TRN TPK TRY TRST TFIF UTG UEM VSVS VCT VEIL VOF VTY VLX FAN WOSG JDW
     SMWH WIX WIZZ WKP WWH XPP XPS YNGA ZIG
     """,
-) + _lines("LSE", "USD", "BPCR CPG IHG MNTN RTW")
+    STAMP_DUTY,
+) + _lines("LSE", "USD", "BPCR CPG IHG MNTN RTW", STAMP_DUTY)
 #: The 200 with the highest median value traded a day over sixty sessions to 12 November 2026,
 #: from a field of 330 plain funds and funds built to make two or three times their market's
 #: daily move. Not in the field: a fund that moves against its market (a line's leverage is

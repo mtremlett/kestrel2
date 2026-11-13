@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 
 from desk import store, venues
-from desk.lines import LINES, Line
+from desk.lines import LINES, NO_TAX, STAMP_DUTY, Line
 from desk.store import Bar
 from lab import universe
 
@@ -36,6 +36,9 @@ def test_the_research_list_is_the_four_lists_of_the_ruling_each_on_its_own_venue
     american = universe.SP500 + universe.NASDAQ100 + universe.ETFS
     assert {(line.venue, line.currency) for line in american} == {("US", "USD")}
     assert {line.venue for line in universe.FTSE350} == {"LSE"}
+    #: a London share pays stamp duty on a purchase; no US ticker, share or fund, pays UK tax
+    assert {line.uk_tax for line in universe.FTSE350} == {STAMP_DUTY}
+    assert {line.uk_tax for line in american} == {NO_TAX}
     dollars = {line.symbol for line in universe.FTSE350 if line.currency == "USD"}
     assert dollars == {"BPCR", "CPG", "IHG", "MNTN", "RTW"}
     named = [(line.symbol, line.venue) for line in universe.UNIVERSE]
@@ -52,6 +55,8 @@ def test_a_ticker_that_is_also_a_trading_line_is_the_masters_own_line() -> None:
     for currency, entry in (("USD", "QQQ:3"), ("GBP", "QQQ")):
         with pytest.raises(ValueError, match="QQQ: the research list and the instrument master"):
             universe._lines("US", currency, entry)
+    with pytest.raises(ValueError, match="ISF: the research list and the instrument master"):
+        universe._lines("LSE", "GBP", "ISF", STAMP_DUTY)
 
 
 def test_only_a_fund_built_to_multiply_its_market_is_leveraged_and_says_by_how_much() -> None:
