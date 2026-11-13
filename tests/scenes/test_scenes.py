@@ -140,7 +140,7 @@ def test_scene_4_the_order_is_sent_and_the_stop_rests_at_the_broker(tmp_path: Pa
     assert broker.submitted().count("o-L06") == 1, "an order was sent twice"
 
     assert book.fills(tmp_path) == broker.fills(), "the ledger is not the broker's fills"
-    held = broker.positions()
+    held = dict(broker.holdings())
     assert held["L01"] == 10 and held["L06"] == 10
     assert broker.resting_stops() == {
         s: (n, Decimal(30)) for s, n in held.items()
@@ -173,7 +173,7 @@ def test_scene_6_the_book_is_the_brokers(tmp_path: Path) -> None:
     broker = Pretend(CLEAN, {line.symbol: Fault.REJECT for line in LINES})
     records = _run_days(tmp_path, broker, SESSIONS[1:-1])
     assert all(r.mismatches == () and r.profit is not None for r in records)
-    assert broker.positions() and book.positions(tmp_path) == broker.positions()
+    assert broker.holdings() and book.positions(tmp_path) == dict(broker.holdings())
 
     broker.inject("L07", 7)
     (last,) = _run_days(tmp_path, broker, SESSIONS[-1:])

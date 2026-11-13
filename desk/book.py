@@ -12,7 +12,7 @@ from datetime import date
 from decimal import Decimal
 from pathlib import Path
 
-from desk.broker import Disconnected, Fill, Pretend
+from desk.broker import Broker, Disconnected, Fill
 from desk.lines import Line
 from desk.orders import Order, Refused, Sale, Settings, charges, gate
 
@@ -45,7 +45,7 @@ class Difference:
     book: int  #: the shares the desk's book holds of it; 0 when it holds none
 
 
-def send(root: Path, broker: Pretend, order: Order | Sale, settings: Settings) -> Sent:
+def send(root: Path, broker: Broker, order: Order | Sale, settings: Settings) -> Sent:
     """Ask the broker what it did with the order's id, so a desk that restarts never sends
     it twice; if it never received it, pass the pre-trade gate and send it. Its fills are
     recorded and its stop rests at the broker. The gate reads the book, brought up to date
@@ -54,9 +54,8 @@ def send(root: Path, broker: Pretend, order: Order | Sale, settings: Settings) -
     go, shares the broker may not hold may not."""
     report = broker.report(order.order_id)
     if report is None:
-        differ, held, symbol = reconcile(root, broker), positions(root), order.line.symbol
-        unsure = any(d.name == symbol for d in differences(held, broker.positions().items()))
-        if differ and (isinstance(order, Order) or unsure):
+        held, differ, unsure = _compare(root, broker)
+        if differ and (isinstance(order, Order) or order.line.symbol in unsure):
             raise Refused(
                 f"{order.order_id}: not sent, the book is not the broker's on {list(differ)}"
             )
@@ -107,21 +106,29 @@ def _record(root: Path, new: Iterable[Fill]) -> None:
         _write(root / LEDGER, [COLUMNS, *(astuple(fill) for fill in ledger + added)])
 
 
-def collect(root: Path, broker: Pretend) -> None:
-    """Write in the ledger every fill the broker made that it lacks: a stop the broker sells
+def collect(root: Path, broker: Broker) -> None:
+    """Write in the ledger every fill the broker gives that it lacks: a stop the broker sells
     is in no order's answer."""
     _record(root, broker.fills())
 
 
-def reconcile(root: Path, broker: Pretend) -> tuple[str, ...]:
+def reconcile(root: Path, broker: Broker) -> tuple[str, ...]:
     """The lines on which the desk's book is not the broker's, once every fill the broker
     made is in the ledger: the shares differ, or the stop resting at the broker is not for
     exactly the shares held. None named: the book is the broker's."""
+    return _compare(root, broker)[1]
+
+
+def _compare(root: Path, broker: Broker) -> tuple[dict[str, int], tuple[str, ...], set[str]]:
+    """The broker asked once each for its fills, its stops and its holdings, in that order:
+    the book the fills add up to, the names on which it is not the broker's, and those of
+    them whose shares differ. The stops are read before the holdings, so a stop that sells
+    between the two shows as shares gone, never as shares still there to be sold."""
     collect(root, broker)
     ours = positions(root)
-    stops = [(symbol, shares) for symbol, (shares, _) in broker.resting_stops().items()]
-    differ = (*differences(ours, broker.positions().items()), *differences(ours, stops))
-    return tuple(sorted({d.name for d in differ}))
+    stops = differences(ours, broker.stops())
+    shares = {d.name for d in differences(ours, broker.holdings())}
+    return ours, tuple(sorted(shares | {d.name for d in stops})), shares
 
 
 def differences(

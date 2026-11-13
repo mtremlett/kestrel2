@@ -44,8 +44,9 @@ def test_a_buy_fills_at_the_open_under_the_brokers_id_and_leaves_its_stop() -> N
         fill.execution_id, "o-1", "A", 10, Decimal(50), MON
     )
     assert fill.execution_id not in {"o-1", other.execution_id} and broker.fills() == (fill, other)
-    assert broker.positions() == {"A": 10, "B": 3} and broker.report("o-9") is None
+    assert broker.holdings() == (("A", 10), ("B", 3)) == broker.stops(), "an entry: name, shares"
     assert broker.resting_stops() == {"A": (10, Decimal(45)), "B": (3, Decimal(15))}
+    assert broker.report("o-9") is None
     assert broker.report("o-1") == report and broker.place(_order("o-3", A, 5, "47")).reason is None
     assert broker.resting_stops()["A"] == (15, Decimal(47)), "one stop covers the whole line"
     again = _broker(None, _order("o-1"), _order("o-2", B, 3, "15"), _order("o-3", A, 5, "47"))
@@ -56,7 +57,7 @@ def test_each_fault_is_stated_and_hits_only_the_symbols_first_order() -> None:
     broker = _broker({"A": Fault.REJECT, "B": Fault.PARTIAL})
     rejected, partial = broker.place(_order("o-1")), broker.place(_order("o-2", B, 9, "15"))
     assert rejected.fills == () and rejected.reason and partial.reason
-    assert broker.positions() == {"B": 4} and broker.resting_stops() == {"B": (4, Decimal(15))}
+    assert broker.holdings() == (("B", 4),) and broker.resting_stops() == {"B": (4, Decimal(15))}
     assert broker.place(_order("o-3")).reason is None, "a fault outlived the first order"
     broker = _broker({"A": Fault.DISCONNECT})
     with pytest.raises(Disconnected, match="o-1"):
@@ -69,7 +70,7 @@ def test_each_fault_is_stated_and_hits_only_the_symbols_first_order() -> None:
         broker.place(_order("o-1"))
     duplicate = broker.place(_order("o-1"))
     assert duplicate.reason and broker.submitted() == ("o-0", "o-1", "o-1"), "duplicate silent"
-    assert broker.positions() == {"A": 10}, "the order was lost in the crash, or filled twice"
+    assert broker.holdings() == (("A", 10),), "the order was lost in the crash, or filled twice"
     assert broker.report("o-1").fills == broker.fills()  # type: ignore[union-attr]
     with pytest.raises(ValueError, match="Z"):
         Pretend(ARCHIVE, {"Z": Fault.REJECT})
@@ -80,12 +81,13 @@ def test_a_stop_sells_at_its_level_or_a_gapped_open_even_on_the_day_of_its_buy()
     broker.open(TUE)
     (sold,) = broker.fills()[2:]  #: B has no market on Tuesday: its stop waits, and no buy fills
     assert (sold.order_id, sold.quantity, sold.price) == ("o-1-stop", -10, Decimal(45))
-    assert broker.place(_order("o-4", B, 3, "15")).reason and broker.positions() == {"B": 3}
-    assert broker.place(_order("o-3", stop="47")).reason is None and broker.positions() == {"B": 3}
+    assert broker.place(_order("o-4", B, 3, "15")).reason and broker.holdings() == (("B", 3),)
+    assert broker.place(_order("o-3", stop="47")).reason is None
+    assert broker.holdings() == (("B", 3),) and broker.stops() == (("B", 3),)
     broker.open(WED)
-    assert broker.positions() == {} == broker.resting_stops() and broker.fills()[-1].price == 18
+    assert broker.holdings() == () == broker.stops() and broker.fills()[-1].price == 18
     broker.inject("B", 7)
-    assert (broker.positions(), broker.resting_stops(), len(broker.fills())) == ({"B": 7}, {}, 6)
+    assert (broker.holdings(), broker.stops(), len(broker.fills())) == ((("B", 7),), (), 6)
     with pytest.raises(ValueError, match="2025-11-11"):
         broker.open(TUE)
     with pytest.raises(ValueError, match="A: no stop"):
@@ -96,10 +98,8 @@ def test_a_sale_fills_at_the_open_and_takes_its_shares_off_the_lines_stop() -> N
     broker = _broker({"A": Fault.PARTIAL}, _order("o-1", B, 3, "15"), _order("o-2", A, 20))
     (fill,) = broker.place(Sale("s-1", A, 4)).fills  #: the fault was the buy's: half of 20
     assert (fill.quantity, fill.price, fill.day) == (-4, Decimal(50), MON)
-    assert broker.positions() == {"A": 6, "B": 3} and broker.resting_stops()["A"] == (
-        6,
-        Decimal(45),
-    )
-    assert broker.place(Sale("s-2", A, 6)).reason is None and broker.positions() == {"B": 3}
+    assert broker.holdings() == (("A", 6), ("B", 3)) == broker.stops()
+    assert broker.resting_stops()["A"] == (6, Decimal(45))
+    assert broker.place(Sale("s-2", A, 6)).reason is None and broker.holdings() == (("B", 3),)
     broker.open(TUE)  #: A's day falls through 45: no stop is left to sell what was sold
     assert len(broker.fills()) == 4 and broker.resting_stops() == {"B": (3, Decimal(15))}

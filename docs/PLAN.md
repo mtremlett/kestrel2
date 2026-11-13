@@ -1,8 +1,8 @@
 # The plan
 
-**Current objective:** the money lane's — any broker behind the send path (the paper lane's
-R-PAPER-2), then the kill switch and its drill (his ruling: first of its own book);
-then the costs whole, then the day's record, with which scenes 6 and 7 pass together.
+**Current objective:** the money lane's — the kill switch and its drill (his ruling: first
+of its own book); then the costs whole, then the day's record, with which scenes 6 and 7
+pass together.
 
 Scenes passing: **5 of 7**. Phase: **2-money-sim**.
 
@@ -204,17 +204,17 @@ UK tax) and R-MONEY-2 (the scenes on the whole fourteen months).
 
 ### The money lane's book — scenes 4 to 7, in order
 
-**Lane objective:** first the paper lane's blocking request R-PAPER-2 (the step below: any
-broker behind the send path). Then the kill switch, by his ruling of 13 November ("kill switch first"):
+**Lane objective:** the kill switch, by his ruling of 13 November ("kill switch first"):
 one command stops all new orders and cancels the open ones, the desk says so, and the drill
 is run against the pretend broker (the step below, EMG-02). The paper lane sends no order
-until it is drilled. After it, in order: the costs whole in the desk's one cost model
+until it is drilled. Cancelling is a sixth question of any broker (`broker.Broker`), so the
+paper adapter answers it too. After it, in order: the costs whole in the desk's one cost model
 (`desk/orders.py`): what a sale itself costs, and spread and slippage on both legs, the
 stop's sale included, each a stated assumption recorded in `docs/DECISIONS.md`; the rungs
 lane waits for them too. Then the day's record (`day.run`), once the data lane has put
 each line's UK tax on the line: scenes 6 and 7 read the same record, so they pass together
 (`docs/DECISIONS.md`, the money lane's). The pretend broker, the send path, the book, the
-day's trading and reconciliation are built.
+day's trading and reconciliation are built, and any broker can stand behind them.
 
 - [x] The pretend broker: fills at the day's prices, rejects, partial fills, disconnection,
       a crash, resting stops, positions, and a position injected behind the desk's back
@@ -231,8 +231,9 @@ day's trading and reconciliation are built.
 - [x] One rule for "is the book the broker's?", for the pretend broker and the paper account
       alike, entry by entry, the resting stops through it too (`book.differences`; the
       paper lane's R-PAPER-1)
-- [ ] Any broker behind the send path and the day run, not the pretend one by name, giving
-      its holdings and stops as entries (the paper lane's R-PAPER-2)
+- [x] Any broker behind the send path and the day run, not the pretend one by name, giving
+      its holdings and stops as entries, read once for each order (`broker.Broker`; the
+      paper lane's R-PAPER-2)
 - [ ] The costs whole: a sale's own cost, and spread and slippage on both legs, the stop's
       sale included, in the one cost model; UK tax from a fact on each line (asked of the
       data lane)
