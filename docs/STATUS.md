@@ -6,7 +6,17 @@ Last updated: 13 November 2026.
 
 ## Where we are
 
-Phase 1's data is in. Scene 1 passes: scenes passing 1 of 7. The twenty lines are in the
+Phase 2 under way. Scenes 1 and 2 pass: scenes passing 2 of 7. The desk has its five
+daily strategies (`desk/strategy.py`), chosen by the operator on 13 November: five
+textbook rules at their published settings, long only, untuned - Connors' RSI-2
+pullback, Bollinger's 20/2 pullback, the Turtles' 20/10 breakout, the 50/200-day cross
+and Supertrend 10/3. Each is shown one bar at a time after its close, so it cannot read
+a later bar; scene 2 proves the decisions up to any day are the same with the later
+bars deleted. A second implementation written apart from the desk's found the same
+trade days on sixty long walks, and forty-four of forty-five deliberate breaks were
+caught; the forty-fifth cannot change a decision.
+
+Phase 1's data is in. The twenty lines are in the
 instrument master (`desk/lines.py`), by the operator's ruling of 13 November: ten in
 London in pounds, ten in the US in dollars. One client for the free archive
 (`desk/archive.py`, Yahoo's public chart service) fetches every bar since 2010 and reads
@@ -40,9 +50,10 @@ reached his phone on 13 November.
 
 ## The next step
 
-Phase 2, by his ruling of 13 November: one strategy template and the five frozen daily
-strategies, so that scene 2 can pass on the clean lines. Leveraged lines are to be sized by
-what they control (his ruling the same day), when sizing is built.
+Phase 2's second step: sizing from one capital number, the stop set at entry, and a
+leveraged line sized by what it controls (his ruling of 13 November), so that scene 3
+passes. Before scene 5, the scenes' rehearsal data is lengthened to about fourteen months
+(his ruling of 13 November): on today's six weeks none of the five rules ever buys.
 
 ## Open questions for the operator
 
@@ -90,10 +101,27 @@ what they control (his ruling the same day), when sizing is built.
     between the two leaves them disagreeing.
   - The sixty-session window looks back a hundred days on the calendar, which knows 2010
     onward, so a trading day before mid-April 2010 cannot be prepared.
+- **What the blind review of the five strategies left for later scenes** (its blocking
+  findings, test gaps, are fixed):
+  - A rule's position is its own idea, not the book's. It counts each of its buys and
+    sells as done; if the gate refuses a buy, or the resting stop sells, the rule still
+    thinks it holds, will not buy again while its condition lasts, and later says sell to
+    a flat book. The day run must decide which it trusts before scene 5.
+  - A decision depends on where the history starts (the averages' seeds, Supertrend's
+    carried bands, the 50/200's observed cross). Measured: walk 1 with its first 30 bars
+    dropped changes two Bollinger decisions. If the archive's first date moves, the same
+    day can decide differently; a replay is identical only on identical saved data.
+  - A line whose last bar is older than the day still gets decisions, dated at its own
+    last bar. The day run must act only on decisions dated that day.
+  - "Still warming up" and "chose to stay out" both read as hold; "the 20 days before"
+    means the 20 bars before, so a day the store dropped is skipped over.
+  - Wilder's smoothing and the true range live inside `strategy`. If the stop at entry
+    is set from the true range, it is asked of `strategy`, not written a second time.
+- **None of the five rules ever buys in the scenes' rehearsal data.** They need 20 to 200
+  days of history and then a breakout or a sharp dip; the 33 rehearsal days drift
+  gently. Scene 5 cannot pass until the data is lengthened, as he ruled on 13 November.
 - **What a blind review of the scenes left open** (the rest was fixed before commit):
-  the fixture is 33 trading days, so a strategy needing a longer warm-up would never
-  trade in scenes 5 to 7 — lengthen it, with the venue calendars, when the five
-  strategies are chosen; the sizer is given total capital, not what is left after the
+  the sizer is given total capital, not what is left after the
   positions already held; the currency cost is not separated from commission in scene
   3; "a day with a cost line missing is refused" is held by the types, not by a day
   that should have paid UK tax showing none; scene 5 does not tell a sale by the
@@ -141,14 +169,14 @@ Every one of these raises NotImplementedError, by design, until its phase builds
 
 | part | phase |
 |---|---|
-| `strategy.decide` | 2 |
 | `orders.size`, `orders.cost`, `orders.gate` | 2 |
 | `broker.Pretend` and all its methods | 2 |
 | `book.send`, `book.fills`, `book.positions`, `book.round_trips` | 2 |
 | `day.run` | 2 |
 
-Built and real: the twenty lines, the archive client (`archive.fetch`), the price store
-(`store.prepare`, `store.read`, `store.faults`), the venue calendars,
+Built and real: the five strategies (`strategy.decide`), the twenty lines, the archive
+client (`archive.fetch`), the price store (`store.prepare`, `store.read`, `store.faults`),
+the venue calendars,
 the typed records (`Line`, `Bar`, `Parked`, `Decision`, `Settings`,
 `Order`, `Fill`, `Sent`, `RoundTrip`, `Costs`, `Record`), and `Order` refusing a missing
 stop, or one not below its price.
