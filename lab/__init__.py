@@ -7,3 +7,5 @@ It may import desk/, and must, because a verdict reached by a second implementat
 the strategy is a verdict about that second implementation. The first desk's simulator
 ran different code from the desk it was certifying.
 """
+
+import os  # DELIBERATE: an unused import, to prove auto-merge refuses a red check
