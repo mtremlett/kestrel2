@@ -4,12 +4,14 @@ from __future__ import annotations
 
 from datetime import UTC, date, datetime
 from decimal import Decimal
+from http.client import IncompleteRead
+from urllib.error import URLError
 
 import pytest
 
 from desk import archive
 from desk.lines import Line
-from desk.store import Bar
+from desk.store import Bar, Refused
 
 US, UK = Line("AAA", "US", "USD", 1), Line("BBB", "LSE", "GBP", 1)
 Row = tuple[str, str | None, str, str, str, int]
@@ -104,3 +106,23 @@ def test_a_price_that_is_not_a_number_enters_as_one_the_store_refuses() -> None:
     rows: tuple[Row, ...] = (("2025-11-13T14:30", "NaN", "Infinity", "1", "1", 9),)
     bar = archive.parse(US, _payload(rows))[0]
     assert not bar.open.is_finite() and not bar.high.is_finite()
+
+
+def test_a_line_the_archive_refuses_is_refused_alone_and_the_others_carry_on() -> None:
+    other, cut, late = (Line(s, "US", "USD", 1) for s in ("CCC", "DDD", "EEE"))
+    gone = {US: URLError("HTTP Error 404"), cut: IncompleteRead(b"{"), late: TimeoutError()}
+
+    def ask(line: Line, _: date) -> tuple[Bar, ...]:
+        if line in gone:
+            raise gone[line]
+        return archive.parse(line, _payload(symbol=line.symbol))
+
+    assert archive.gather((US, UK, other, cut, late), date(2025, 11, 17), ask) == {
+        US: Refused("URLError: <urlopen error HTTP Error 404>"),
+        UK: Refused("ValueError: BBB: the archive answered about BBB"),
+        other: archive.parse(other, _payload(symbol="CCC")),
+        cut: Refused("IncompleteRead: IncompleteRead(1 bytes read)"),
+        late: Refused("TimeoutError: "),
+    }
+    with pytest.raises(KeyError, match="chart"):  # a shape the desk does not know: stop all
+        archive.gather((US,), date(2025, 11, 17), lambda line, _: archive.parse(line, b"{}"))

@@ -9,13 +9,15 @@ New York falls on the session's own day; that day is the bar's day."""
 from __future__ import annotations
 
 import json
+from collections.abc import Callable, Iterable
 from datetime import UTC, date, datetime
 from decimal import Decimal
+from http.client import HTTPException
 from typing import Any
 from urllib.request import Request, urlopen
 
 from desk.lines import Line
-from desk.store import Bar
+from desk.store import Bar, Refused
 
 SOURCE = "https://query1.finance.yahoo.com/v8/finance/chart/"
 SUFFIX = {"LSE": ".L", "US": ""}  #: the archive's name for a line is its symbol and this
@@ -73,3 +75,17 @@ def fetch(line: Line, day: date) -> tuple[Bar, ...]:
     request = Request(address(line, day), headers={"User-Agent": "Mozilla/5.0"})  # noqa: S310
     with urlopen(request, timeout=30) as answer:  # noqa: S310
         return parse(line, answer.read())
+
+
+def gather(
+    lines: Iterable[Line], day: date, ask: Callable[[Line, date], tuple[Bar, ...]] = fetch
+) -> dict[Line, tuple[Bar, ...] | Refused]:
+    """Every line's bars before day. A line the archive cannot be reached for, or whose
+    answer is refused, is refused alone, with the reason, and the others carry on."""
+    answers: dict[Line, tuple[Bar, ...] | Refused] = {}
+    for line in lines:
+        try:
+            answers[line] = ask(line, day)
+        except (OSError, HTTPException, ValueError) as refusal:  # the network's or the answer's
+            answers[line] = Refused(f"{type(refusal).__name__}: {refusal}")
+    return answers

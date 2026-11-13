@@ -242,11 +242,20 @@ falls again, and each of the five rules buys and sells on every one of the ninet
 lines (his ruling of 13 November). The scenes still see only its last six weeks, which
 hold no holiday on either side, until scene 2 can count two calendars (below).
 
+One line the archive cannot be reached for, or whose answer is refused, is now parked alone
+with the reason, and the other lines carry on (`archive.gather`, `store.Refused`): a dropped
+connection, a half-delivered answer, a timeout, a missing page or an answer about the wrong
+line each park only that line, and the store keeps no bars for it, so none from an earlier
+day can be read as today's. An answer of a shape the desk does not know still stops the
+whole fetch. Its tests were seen failing first; six deliberate breaks were each caught; a
+blind review's one blocking finding (a half-delivered answer stopped everything) was made a
+failing test and fixed.
+
 ### Next step
 
 Move the scenes onto the whole fourteen months - one line, `SCENES_FROM = FIRST` - as soon
-as the money lane's scene 2 counts each line's own days. Meanwhile: one line the archive
-refuses is parked, not the whole fetch stopped.
+as the money lane's scene 2 counts each line's own days. Meanwhile: the store's open
+findings, below, starting with a frozen feed.
 
 ### Asked of the money lane
 
@@ -259,6 +268,10 @@ refuses is parked, not the whole fetch stopped.
   may cut on fewer days.
 - `SESSIONS` will then be every day either venue trades; a day run on it meets days only
   one venue trades (Thanksgiving, Easter Monday).
+- **The day run should read the archive through `archive.gather` and hand its answers to
+  `store.prepare` whole.** A refused line then arrives as `store.Refused` and parks with
+  its reason; `day.run`'s `archive` parameter would then be
+  `Mapping[Line, Sequence[Bar] | Refused]`.
 
 ### Found, not fixed
 
@@ -276,8 +289,6 @@ refuses is parked, not the whole fetch stopped.
 - **The free archive promises nothing.** Yahoo's chart service is free and keyless but
   unofficial; it may change or stop. Stooq, the other free archive, now answers with a
   bot check, which this desk does not get around.
-- **One line the archive refuses stops the whole fetch.** `archive.fetch` raises for that
-  line; the day run (phase 2) must park it instead and carry on with the others.
 - **None of the five rules ever buys in the six weeks the scenes see today.** The fourteen
   months are built and proven to trade; scene 5 needs the scenes moved onto them (above).
   Until then no test reads the months before October, so only the script recorded in
@@ -315,6 +326,16 @@ refuses is parked, not the whole fetch stopped.
   - A frozen feed (the same bar repeated with no volume) is not caught.
   - A vendor that leaves out a day a line did not trade (a suspension) parks the line
     for as long as that gap is in its history.
+- **What the blind review of the refused line left open:**
+  - A whole outage (no network, the archive down) parks every line one by one, each with
+    its own reason, rather than saying once that the archive is down. Safe, as nothing
+    trades, but noisy.
+  - Any `ValueError` while reading an answer parks the line, as the answer's fault. Today
+    each one comes from the answer; a future fault of the desk's own there would park a
+    line instead of stopping. One named error raised by `archive.parse` would close this.
+  - An answer of an unknown shape (a missing field) stops the whole fetch, by design: it
+    would hit every line alike.
+  - Nothing in the product calls `archive.gather` yet; the day run (phase 2) will.
 
 ## LADDER
 
