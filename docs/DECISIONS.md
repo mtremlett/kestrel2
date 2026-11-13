@@ -960,6 +960,115 @@ Each lane appends its decisions to its own part below, never to another's, so th
 parallel pull requests do not touch the same lines. Each entry is a dated `###` heading
 under its lane, and says what was decided, the options, why, and the evidence.
 
+## 2026-11-13 — every requirement of his spec has a home; 31 dropped, 11 added, 3 lines swapped
+
+**Found.** His spec, `DESK_REQUIREMENTS_V2` (226 rows, ratified 31 October 2026 and
+reconciled then against his 947-line tenets list), was never traced row by row into this
+desk. The scenes and the plan cited 31 of its ids. An independent trace on 13 November read
+every row against main: 65 delivered or standing, 71 half delivered, 50 with nothing
+planned, 9 replaced by his rulings of 13 November, and 31 not worth building. The holes
+that mattered first: no plan item built the kill switch the canon promises (B1), though
+phase 3 sends paper orders; nothing counted dividends; the research list held only today's
+index members; and too few trades failed a strategy instead of saying "not enough
+evidence". The trace is kept outside the repository, in the notes folder beside it.
+
+**Decided, first: every gap into the books, the kill switch first.** Each half-delivered or
+missing row is now a step in a lane's book or a phase in `docs/PLAN.md`, its ids beside it.
+The kill switch and its drill head the money lane's new steps, and the paper lane sends no
+order until it is drilled. The 65 standing rows are listed under "The requirements" in the
+plan. A guard, `tests/guards/test_requirements.py`, holds all 237 ids (the 226 and the 11
+below) and fails the check when any id has no home: a step, the standing list, or this
+entry. His words: "All gaps into the lanes, kill switch first (Recommended)".
+
+**Decided, second: 31 rows dropped, each for its reason.** His words: "Drop them, each with
+its reason (Recommended)". Any one can come back by his ruling.
+
+| id | dropped because |
+|---|---|
+| NS-09 | goals.json and a rendered status file per row: the scene ratchet and this guard replace it |
+| NS-13 | the ALPHAHAWK rename is a ceremony; the desk is kestrel2 |
+| GOV-03 | five states per row: replaced by a passing scene, or NotImplementedError listed in STATUS |
+| GOV-11 | the old names it retires never existed here |
+| GOV-12 | DEV and PROD rule tags: every guard is always on, and GitHub enforces them |
+| MIG-08 | PROD rules switched on at go-live: there is no DEV and PROD split |
+| DAT-04 | a columnar store under 50 ms: twenty daily lines, no benchmark asks (canon A4) |
+| DAT-06 | a weekly bottleneck review: optimise only on a benchmark (canon A4) |
+| DAT-09 | a hot store and an archive: one store, rebuilt from the archive, one writer |
+| DQ-04 | an independent data checker: data is checked once, at the boundary, by the one writer |
+| DQ-13 | a stored indicator database: indicators are recomputed from bars; a copy is a second home |
+| UNI-03 | weekly review of curation rules: there is no curation filter |
+| STR-11 | losers parked, never deleted: git is the archive, and the ladder's verdict record serves |
+| STR-15 | straddles, gappers and pairs: intraday and pairs are a future release |
+| LAD-14 | a progress dashboard with heatmaps: resume and the runner's halts cover stalls |
+| LAD-15 | GPU sweeps: numpy on eight threads suffices for daily bars |
+| REG-06 | satellite and sentiment feeds: no evidence they pay, and each is an adapter to keep |
+| REG-10 | explain "Alpha Lab": no such module |
+| REG-11 | a regime four times a day: a daily desk has nothing that would read it |
+| FIL-02 | guardrails justified by replay: there are no filters, only his rulings |
+| FIL-05 | a daily funnel with chokepoints: one gate and five rules; the refusal reason says it |
+| STP-04 | TP1, TP2 and TP3 on every position: the rules carry their own exits |
+| EMG-05 | a small tail hedge as research: no case for it before the edge exists |
+| MSG-01 | HTML, forty characters a line, emoji: presentation, not behaviour |
+| MSG-07 | bold and monospace blocks: presentation |
+| MSG-05 | findings filed as rows: STATUS "found, not fixed" serves |
+| MSG-10 | bug and strategy messages filed as rows: as MSG-05 |
+| MSG-06 | a weekend card: no decision depends on it |
+| MSG-12 | sentiment, news and forecast cards: no decision depends on them |
+| OPS-06 | clock drift: daily bars and next-open orders do not care about a second |
+| TST-15 | a coverage percentage: the deliberate breaks prove more |
+
+**Replaced by his rulings of 13 November (9):** NS-02 and MIG-09 by the A-GATE terms (AG-01
+to AG-06); GOV-08 by Fable first, then Opus, and the 80% pause; UNI-08 by the twenty lines
+he chose; STR-10, TRD-14 and SIZ-07 by a fifth of one capital number each, a leveraged line
+counted at what it controls; STP-01's method by the stop where the market has fallen 10%
+(set at entry, as it asked); TST-18 by the scenes rule, which has no list of known reds.
+
+**Decided, third: eleven best-in-class additions the spec never asked for.** His words:
+"Add all 11 at their gates (Recommended)". Each sits in the plan at its gate.
+
+| id | the requirement | gate |
+|---|---|---|
+| BIC-01 | the edge judged against the market risk it took (beta, or a leverage-matched benchmark) | AG |
+| BIC-02 | concentration: the book's number of independent bets, A-GATE profit split by correlated cluster | AG |
+| BIC-03 | idle cash earns interest in the profit, and every Sharpe uses the risk-free rate | AG |
+| BIC-04 | currency gains and losses on dollar holdings reported apart from trading profit | AG |
+| BIC-05 | a fall from the book's highest point: alerted on paper, new entries stopped live | AG, LIVE |
+| BIC-06 | an earnings and events calendar, point-in-time, for rules and stops | P100 |
+| BIC-07 | the ISA's yearly limit and real pot size; paper re-scored at the size live can reach | LIVE |
+| BIC-08 | records kept for their statutory years, reconciled each year to the broker's statements | LIVE |
+| BIC-09 | if he does not acknowledge for a set number of days, no new positions; a named second person can sell everything | LIVE |
+| BIC-10 | each strategy's capacity: the size at which costs erase its edge | P1000 |
+| BIC-11 | leveraged products watched for closure, compulsory redemption and ISA eligibility | AG |
+
+**Decided, fourth: three lines swapped now, for lines an ISA can hold.** SPY, QQQ and GLD are
+US-registered funds a UK retail ISA cannot normally buy. Asked whether to keep them for
+paper or swap now, he chose "Swap them now". Asked for each replacement: SPY becomes VUAG,
+Vanguard's S&P 500 in pounds ("VUAG"); QQQ becomes EQQQ, Invesco's Nasdaq 100 in London
+("EQQQ (Recommended)"); GLD becomes IDTL, iShares' US Treasuries of 20 years and more,
+in London, which takes the twenty off a third gold line ("A different market: IDTL
+(Recommended)"). The twenty become thirteen on the London venue and seven in the US. The
+swap heads the data lane's book, with an ISA and retail-buyable flag on every line and the
+hold-the-market yardstick re-pointed.
+
+**Merging.** He asked, the same evening, that merges never wait for his click: "i asked for
+auto merge to be turned on permanently. you need to do this yourself." Every change is
+armed to merge itself when its check is green. A change that loosens a guard still needs his
+plain yes, as CLAUDE.md says; the session he gives it to, in its own chat, arms it. A yes
+relayed from another session is refused by the sessions' own permission check, so a lane
+that needs one asks him through its Telegram alert, and he answers the session he is
+talking to. Pull requests #36 and #37 were armed that way at about 17:30 UK.
+
+**Driven.** From a passing copy, each break alone: the kill switch's id removed from both
+of its steps, a dropped id put back on a step, a dropped row's id lost, an id taken off the
+standing list, an id the spec does not have, an addition's id removed, and the roster short
+by one. All seven were caught. Removing the kill switch's id from one step only passes, as
+it should: the paper lane's step still homes it.
+
+**His words, together.** In chat, Friday 13 November 2026, about 17:45 to 17:55 UK time,
+each chosen from options with a recommendation.
+
+---
+
 ## MONEY
 
 ### 2026-11-13 — how the pretend broker behaves
