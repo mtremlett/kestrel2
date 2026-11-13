@@ -17,8 +17,10 @@ from pathlib import Path
 from desk import venues
 from desk.lines import Line
 
-#: A close this many times the last one, or this fraction of it, is not a market move: it
-#: is a wrong unit (pence among pounds is 100) or a split the archive did not adjust.
+#: Two neighbouring bars whose prices sit further apart than this factor (a fall of 37.5%,
+#: a rise of 60%) are not taken as a market move: a wrong unit (pence among pounds is 100),
+#: a bad print, or a split of 2-for-1 or more that the archive did not adjust. A smaller
+#: unadjusted split cannot be told from a real move by price alone, and passes.
 JUMP = Decimal("1.6")
 COLUMNS = ("day", "open", "high", "low", "close", "volume")
 
@@ -57,30 +59,71 @@ def _once(bars: Sequence[Bar], faults: list[str]) -> list[Bar]:
     return once
 
 
-def _unsound(bar: Bar, open_days: set[date]) -> str | None:
+def _unsound(line: Line, bar: Bar, open_days: set[date]) -> str | None:
     """Why a bar cannot be true on its own, or None."""
+    prices = (bar.open, bar.high, bar.low, bar.close)
     if bar.day not in open_days:
-        return f"{bar.day} is not a session that has closed"
-    if min(bar.open, bar.high, bar.low, bar.close) <= 0 or bar.volume < 0:
+        return f"{bar.day} is not a closed session on the {line.venue} calendar"
+    if not all(p.is_finite() and p > 0 for p in prices) or bar.volume < 0:
         return f"{bar.day} has a price or volume that cannot be"
     if not bar.low <= min(bar.open, bar.close) <= max(bar.open, bar.close) <= bar.high:
         return f"{bar.day} has an open or close outside its high and low"
     return None
 
 
+def _agree(line: Line, before: Bar, after: Bar) -> bool:
+    """Two neighbouring bars could both be true: each one's whole range lies within a
+    market's move of the other's close, or the line records the move as real."""
+
+    def near(bar: Bar, close: Decimal) -> bool:
+        return close / JUMP <= bar.low and bar.high <= close * JUMP
+
+    return after.day in line.real_moves or (near(after, before.close) and near(before, after.close))
+
+
+def _stray(at: int, links: Sequence[bool]) -> bool:
+    """A bar out of line with every neighbour, where links[n] says bars n and n+1 agree. A bar
+    at either end is a stray only if its one neighbour agrees with the bar beyond it; with two
+    bars there is no telling which is wrong, so neither is."""
+    left = links[at - 1] if at > 0 else None
+    right = links[at] if at < len(links) else None
+    if left is None or right is None:
+        own, beyond = (right, links[1:2]) if left is None else (left, links[-2:-1])
+        return own is False and list(beyond) == [True]
+    return not left and not right
+
+
+def _priced(line: Line, sound: Sequence[Bar], faults: list[str]) -> list[Bar]:
+    """Drop a lone bar out of line with its neighbours; keep a lasting step in the price, but
+    as a fault, until the line records it as a real move."""
+    links = [_agree(line, a, b) for a, b in zip(sound, sound[1:], strict=False)]
+    kept: list[Bar] = []
+    for at, bar in enumerate(sound):
+        if _stray(at, links):
+            faults.append(f"{bar.day} is out of line with the days either side: a wrong unit")
+            continue
+        if kept and not _agree(line, kept[-1], bar):
+            faults.append(
+                f"{bar.day} moved from {kept[-1].close} to {bar.close}: a split the archive "
+                "did not adjust, or a real move the line does not record"
+            )
+        kept.append(bar)
+    return kept
+
+
 def _clean(line: Line, bars: Sequence[Bar], day: date) -> tuple[list[Bar], list[str]]:
+    """The bars of one line that can be true, and every fault found on the way."""
     faults: list[str] = []
-    first = min((b.day for b in bars), default=day)
+    first = min((b.day for b in bars if b.day.year in venues.KNOWN), default=day)
     expected = venues.sessions(line.venue, first, day - timedelta(1))
-    open_days, kept = set(expected), list[Bar]()
+    open_days, sound = set(expected), []
     for bar in _once(bars, faults):
-        why = _unsound(bar, open_days)
-        if why is None and kept and not 1 / JUMP < bar.close / kept[-1].close < JUMP:
-            why = f"{bar.day} closes at {bar.close} after {kept[-1].close}: a wrong unit or split"
+        why = _unsound(line, bar, open_days)
         if why is None:
-            kept.append(bar)
+            sound.append(bar)
         else:
             faults.append(why)
+    kept = _priced(line, sound, faults)
     held = {b.day for b in kept}
     missing = [d for d in expected if d not in held]
     if not kept:
@@ -112,7 +155,8 @@ def prepare(root: Path, archive: Mapping[Line, Sequence[Bar]], day: date) -> tup
 
 
 def read(root: Path, symbol: str) -> tuple[Bar, ...]:
-    """Every clean bar the store holds for one line, oldest first."""
+    """Every bar the store kept for one line, oldest first. A parked line keeps the bars that
+    can be true, but does not trade."""
     with (root / f"{symbol}.csv").open(newline="", encoding="utf-8") as stored:
         return tuple(
             Bar(

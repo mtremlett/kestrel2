@@ -41,19 +41,55 @@ BAD_BARS: dict[str, Callable[[Bar], Bar]] = {
     "the close is outside the range": lambda b: replace(b, close=b.high + 1),
     "a price is not positive": lambda b: replace(b, low=Decimal(0)),
     "the volume is negative": lambda b: replace(b, volume=-1),
-    "the price is in the wrong unit": lambda b: replace(
-        b, open=b.open * 100, high=b.high * 100, low=b.low * 100, close=b.close * 100
-    ),
+    "the price is in the wrong unit": lambda b: _scaled(b, Decimal(100)),
+    "only the high is in the wrong unit": lambda b: replace(b, high=b.high * 100),
+    "only the low is in the wrong unit": lambda b: replace(b, low=b.low / 100),
+    "a price is not a number": lambda b: replace(b, high=Decimal("NaN")),
+    "a price is infinite": lambda b: replace(b, high=Decimal("Infinity")),
 }
 
 
+def _scaled(bar: Bar, by: Decimal) -> Bar:
+    return replace(
+        bar, open=bar.open * by, high=bar.high * by, low=bar.low * by, close=bar.close * by
+    )
+
+
+@pytest.mark.parametrize("at", [0, 4, -1], ids=["the first bar", "a middle bar", "the last bar"])
 @pytest.mark.parametrize("fault", sorted(BAD_BARS))
-def test_a_bad_bar_never_enters_and_its_line_is_parked(tmp_path: Path, fault: str) -> None:
+def test_a_bad_bar_never_enters_and_its_line_is_parked(tmp_path: Path, fault: str, at: int) -> None:
     bars = list(_bars(US))
-    bars[4] = BAD_BARS[fault](bars[4])
+    bars[at] = BAD_BARS[fault](bars[at])
     reasons = _parked(tmp_path, tuple(bars))
-    assert len(reasons) == 1 and "2025-11-07" in reasons[0]
-    assert store.read(tmp_path, US.symbol) == _bars(US)[:4] + _bars(US)[5:]
+    assert len(reasons) == 1 and str(bars[at].day) in reasons[0]
+    assert store.read(tmp_path, US.symbol) == tuple(b for b in _bars(US) if b.day != bars[at].day)
+
+
+def test_a_step_in_the_price_parks_the_line_and_keeps_every_bar(tmp_path: Path) -> None:
+    bars = (*_bars(US)[:5], *(_scaled(b, Decimal("0.5")) for b in _bars(US)[5:]))
+    reasons = _parked(tmp_path, bars)
+    assert len(reasons) == 1 and str(bars[5].day) in reasons[0] and "split" in reasons[0]
+    assert store.read(tmp_path, US.symbol) == bars
+
+
+def test_a_step_known_to_be_a_real_move_is_kept_and_not_parked(tmp_path: Path) -> None:
+    bars = (*_bars(US)[:5], *(_scaled(b, Decimal("0.5")) for b in _bars(US)[5:]))
+    line = replace(US, real_moves=frozenset({bars[5].day}))
+    assert _parked(tmp_path, bars, line) == []
+    assert store.read(tmp_path, US.symbol) == bars
+
+
+def test_a_line_that_cannot_be_read_never_stops_the_others(tmp_path: Path) -> None:
+    early = replace(_bars(US)[0], day=date(2009, 12, 31))
+    parked = store.prepare(tmp_path, {US: (early, *_bars(US)), UK: _bars(UK)}, DAY)
+    assert [p.symbol for p in parked] == [US.symbol] and "2009-12-31" in parked[0].reason
+    assert store.read(tmp_path, US.symbol) == _bars(US)
+    assert store.read(tmp_path, UK.symbol) == _bars(UK)
+
+
+def test_a_line_on_a_venue_without_a_calendar_cannot_be_made() -> None:
+    with pytest.raises(ValueError, match="NYSE"):
+        Line("CCC", "NYSE", "USD")
 
 
 def test_one_bar_given_twice_is_kept_once_and_its_line_parked(tmp_path: Path) -> None:
@@ -90,13 +126,19 @@ def test_a_uk_holiday_is_no_gap_in_a_us_line(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize(
-    "kept",
-    [_bars(US)[:-1], (*_bars(US)[:3], *_bars(US)[4:]), ()],
+    ("kept", "named"),
+    [
+        (_bars(US)[:-1], "2025-11-14"),
+        ((*_bars(US)[:3], *_bars(US)[4:]), "2025-11-06"),
+        ((), "every session"),
+    ],
     ids=["stale: the last session missing", "a hole in the middle", "no bars at all"],
 )
-def test_a_line_missing_a_session_is_parked(tmp_path: Path, kept: tuple[Bar, ...]) -> None:
+def test_a_line_missing_a_session_is_parked(
+    tmp_path: Path, kept: tuple[Bar, ...], named: str
+) -> None:
     reasons = _parked(tmp_path, kept)
-    assert len(reasons) == 1 and "missing" in reasons[0]
+    assert len(reasons) == 1 and "missing" in reasons[0] and named in reasons[0]
 
 
 def test_a_parked_line_comes_back_when_its_bars_are_clean(tmp_path: Path) -> None:
