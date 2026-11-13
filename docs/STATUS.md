@@ -2,7 +2,7 @@
 
 **Read this first, then `docs/PLAN.md`, then run `python check.py`.**
 
-Three lanes run side by side (`docs/PLAN.md`). The shared part below is changed only by a
+Five lanes run side by side (`docs/PLAN.md`). The shared part below is changed only by a
 session the operator starts himself; each lane writes only in its own section, so that
 parallel pull requests never touch the same lines. A lane's section says where it is, its
 next step, what it found and did not fix, and any question it holds for the operator.
@@ -30,10 +30,12 @@ the week's usage of his plan as the pull request states it on a line "Weekly usa
 the secrets existed. The first line, for #7, reached his phone on 13 November; the first
 short one, for #17, on the same day.
 
-Three lanes now run day and night on the operator's PC, by his rulings of 13 November
-(`docs/DECISIONS.md`): MONEY (scenes 4 to 7), DATA (the rehearsal data, the parked lines,
-the store's open findings) and LADDER (phase 4). A runner outside this repository starts
-each lane's next session when the last one ends, inside the plan's included usage only.
+Five lanes now run day and night on the operator's PC, by his rulings of 13 November
+(`docs/DECISIONS.md`): MONEY (scenes 5 to 7), PAPER (phase 3, begun alongside phase 2),
+DATA (the research universe, the parked lines, the store's findings), GRID (the fast grid
+engine) and RUNGS (the ladder's rungs). GRID and RUNGS run on Fable's own allowance. A
+runner outside this repository starts each lane's next session when the last one ends,
+inside the plan's included usage, stopping at 80% of the week.
 GitHub merges a pull request only when its check is green and its branch already holds
 everything on main, so two green lanes cannot combine into a red main.
 
@@ -72,6 +74,12 @@ everything on main, so two green lanes cannot combine into a red main.
   themselves still need the operator's hand.
 - **The predecessor's paper book is flat.** Read at 14:36 UK on 13 Nov 2026, read-only:
   paper account, no positions and no open orders. Nothing was placed.
+- **The unit tests are within a few lines of the product, and lanes collide on it.** The
+  guard holds unit tests to no more lines than `desk/` and `lab/` together (about 1,435
+  against 1,444 on this branch). The ladder's batch went red by one line once brought up to
+  date with main (#28), each lane green alone; the runner's re-check caught it and a line
+  was trimmed. Every lane's next test must come with as much product, or a test merged. A
+  session the operator starts could record this in `docs/FAILURE_PATTERNS.md`.
 
 ## MONEY
 
@@ -254,6 +262,29 @@ the typed records (`Line`, `Bar`, `Parked`, `Decision`, `Settings`,
 `Order`, `Fill`, `Sent`, `RoundTrip`, `Costs`, `Record`), and `Order` refusing a missing
 stop, or one not below its price.
 
+## PAPER
+
+Last updated: 13 November 2026.
+
+### Where it is
+
+Not started. Phase 3 begins alongside phase 2 by the operator's ruling of 13 November.
+The paper account is the old desk's, reached through IB Gateway on his PC (installed, and
+running for the old desk), port 4002 only, with the desk's own client id.
+
+### Next step
+
+The paper account proved quiet: a daily read-only check of its positions and open orders
+against the desk's own book, a mismatch flagged (scene 6), before any order is sent.
+
+### Found, not fixed
+
+- **The old desk's scheduled tasks.** From his account, 59 of the old desk's tasks show
+  disabled and one ready (`KESTREL_KILLSWITCH_ANCHOR`); eight could not be disabled
+  earlier and may be invisible without administrator rights. He is checking them in Task
+  Scheduler as administrator. Until he confirms, the daily check above is the only proof
+  that nothing else trades the account.
+
 ## DATA
 
 Last updated: 13 November 2026.
@@ -421,9 +452,10 @@ from the archive's.
     from the day after it, so it needs one session more to be caught.
   - A frozen run's days are also counted as missing sessions, so its reason says it twice.
 
-## LADDER
+## GRID
 
-Last updated: 13 November 2026.
+Last updated: 13 November 2026. Took over the ladder lane's cell, batch and results on 13
+November, when the operator split the ladder into GRID and RUNGS.
 
 ### Where it is
 
@@ -445,46 +477,14 @@ A result is now kept by what made it: the code and every bar the rule was shown.
 reads every cell's bars again and re-runs a cell only when its code or its bars have
 changed; a bar corrected after a window's end leaves that window's result alone.
 
-It now has its first rung (`lab/rung.py`), which says whether a strategy earns on a line
-after costs by more than chance would give. Each trade is sized by the desk's own sizer at
-the close it was decided on, bought at the next open through the desk's own pretend broker,
-where its 10% stop rests, and sold by that stop or at the open after the rule sells. The
-broker's own schedule prices both legs, and every verdict names it. A strategy passes when
-it made at least thirty trades and their average return after costs is at least two
-standard errors above nothing. On made-up prices it passed a planted edge on every one of
-forty random histories tried and failed all forty with no edge; it fails an edge that a £3
-least commission eats at a small capital, and the same edge with too few trades.
-
 ### Next step
 
-Reproduce a published strategy's own published result: one of the five, through the cell
-and the first rung, on the history its author used.
+The fast grid engine (`lab/`, numpy, his ruling of 13 November), proven first by a parity
+test against the desk's own engine on the golden data: the same decisions, day by day, or
+it is removed (canon B2).
 
 ### Found, not fixed
 
-- **The first rung's costs are not yet whole** (blind review). The desk's one cost model
-  has commission and currency conversion only: no spread, slippage or sale-only fees (a US
-  sale's regulatory fee), and no home for what a sale costs, so the rung charges a sale
-  what a buy of the same shares costs beyond its value (on dollars, a little more than the
-  truth). One exchange rate serves a whole window, so a dollar line's verdict carries no
-  currency gain or loss. All are owed before any verdict on real prices; asked of the money
-  lane: a sale's cost, spread and slippage in `desk/orders.py`.
-- **What else the blind review of the first rung left** (nothing blocking now; its two
-  blocking findings, the desk's stop left out and a loose test of the statistic, are
-  fixed): a verdict carries its record's key, whose code version does not cover
-  `lab/rung.py` or `desk/orders.py`, so verdicts must not be kept by that key; a line whose
-  one share costs more than its room fails the whole verdict loudly; and at two standard
-  errors about one cell in forty passes by chance, so a batch of many cells needs the luck
-  rung before any winner is believed.
-- **Two deliberate breaks of the first rung survive, neither able to differ:** a pass bar
-  of "over 2" for "2 or over" (a t of exactly 2 does not arise), and the rung's arithmetic
-  setting (the caller's default is the same).
-- **The unit tests are within a few lines of the product, and lanes collide on it.** The
-  guard holds unit tests to no more lines than `desk/` and `lab/` together (about 1,435
-  against 1,444 on this branch). The ladder's batch went red by one line once brought up to
-  date with main (#28), each lane green alone; the runner's re-check caught it and a line
-  was trimmed. Every lane's next test must come with as much product, or a test merged. A
-  session the operator starts could record this in `docs/FAILURE_PATTERNS.md`.
 - **What the blind review of the unit of work left for the batch** (nothing blocking; its
   test gaps on the data version and the trade pairing, and its unsorted-bars finding, are
   fixed and tested):
@@ -516,6 +516,46 @@ and the first rung, on the history its author used.
 - **A cell runs all five strategies to keep one.** It asks `strategy.decide`, which decides
   every rule at once; a batch of the five on one line pays five times. Fine until a
   benchmark says otherwise.
-
 - **A missing session older than sixty sessions no longer parks a line**, so research over
   years of history (the ladder) will meet gaps it must handle.
+
+## RUNGS
+
+Last updated: 13 November 2026. Took over the ladder lane's first rung on 13 November.
+
+### Where it is
+
+The ladder has its first rung (`lab/rung.py`), which says whether a strategy earns on a line
+after costs by more than chance would give. Each trade is sized by the desk's own sizer at
+the close it was decided on, bought at the next open through the desk's own pretend broker,
+where its 10% stop rests, and sold by that stop or at the open after the rule sells. The
+broker's own schedule prices both legs, and every verdict names it. A strategy passes when
+it made at least thirty trades and their average return after costs is at least two
+standard errors above nothing. On made-up prices it passed a planted edge on every one of
+forty random histories tried and failed all forty with no edge; it fails an edge that a £3
+least commission eats at a small capital, and the same edge with too few trades.
+
+### Next step
+
+Luck correction that counts every trial: a winner is corrected for how many trials it was
+picked from, and every rung records that count (canon B6, AG-01).
+
+### Found, not fixed
+
+- **The first rung's costs are not yet whole** (blind review). The desk's one cost model
+  has commission and currency conversion only: no spread, slippage or sale-only fees (a US
+  sale's regulatory fee), and no home for what a sale costs, so the rung charges a sale
+  what a buy of the same shares costs beyond its value (on dollars, a little more than the
+  truth). One exchange rate serves a whole window, so a dollar line's verdict carries no
+  currency gain or loss. All are owed before any verdict on real prices; asked of the money
+  lane: a sale's cost, spread and slippage in `desk/orders.py`.
+- **What else the blind review of the first rung left** (nothing blocking now; its two
+  blocking findings, the desk's stop left out and a loose test of the statistic, are
+  fixed): a verdict carries its record's key, whose code version does not cover
+  `lab/rung.py` or `desk/orders.py`, so verdicts must not be kept by that key; a line whose
+  one share costs more than its room fails the whole verdict loudly; and at two standard
+  errors about one cell in forty passes by chance, so a batch of many cells needs the luck
+  rung before any winner is believed.
+- **Two deliberate breaks of the first rung survive, neither able to differ:** a pass bar
+  of "over 2" for "2 or over" (a t of exactly 2 does not arise), and the rung's arithmetic
+  setting (the caller's default is the same).

@@ -5,29 +5,32 @@ broker's, a mismatch named and the day's profit withheld, so scene 6 passes.
 
 Scenes passing: **5 of 7**. Phase: **2-money-sim**.
 
-The two lines above belong to the money lane: it alone moves the scenes count. The data
-and ladder lanes' objectives are in their own books below. The operator's Telegram line
+The two lines above belong to the money lane: it alone moves the scenes count. The other
+lanes' objectives are in their own books below. The operator's Telegram line
 reads the ticked boxes under each `## Phase N` heading, so each lane's book sits inside its
 phase.
 
 ---
 
-## The three lanes
+## The five lanes
 
-Three chains of sessions run side by side on the operator's PC, day and night, each
-session starting when the one before it ends (his rulings, 13 November 2026,
-`docs/DECISIONS.md`). A lane's session works on its lane's objective only, edits only the
-files its lane owns, and writes only in its lane's parts of the shared documents: its
-section of `docs/STATUS.md`, its book here, its table in `docs/SCOREBOARD.md` and its part
-at the end of `docs/DECISIONS.md`. Each lane's book sits inside the phase it belongs to:
-DATA in phase 1, MONEY in phase 2, LADDER in phase 4. So two lanes' pull requests never
-touch the same lines, and GitHub merges neither until it holds the other.
+Five chains of sessions run side by side on the operator's PC, day and night, each session
+starting when the one before it ends (his rulings, 13 November 2026, `docs/DECISIONS.md`).
+A lane's session works on its lane's objective only, edits only the files its lane owns,
+and writes only in its lane's parts of the shared documents: its section of
+`docs/STATUS.md`, its book here, its table in `docs/SCOREBOARD.md` and its part at the end
+of `docs/DECISIONS.md`. Each lane's book sits inside the phase it belongs to: DATA in
+phase 1, MONEY in phase 2, PAPER in phase 3 (begun alongside phase 2, his ruling), GRID
+and RUNGS in phase 4. So two lanes' pull requests never touch the same lines, and GitHub
+merges neither until it holds the other.
 
 | lane | owns |
 |---|---|
 | MONEY | `desk/strategy.py`, `orders.py`, `broker.py`, `book.py`, `day.py`; `tests/scenes/test_scenes.py`; their unit tests |
-| DATA | `desk/lines.py`, `venues.py`, `archive.py`, `store.py`; `tests/scenes/rehearsal.py`; their unit tests |
-| LADDER | `lab/`; `tests/unit/test_lab_*.py` |
+| PAPER | the paper-broker modules it registers in `desk/`; their unit tests |
+| DATA | `desk/lines.py`, `venues.py`, `archive.py`, `store.py`, and the research list it registers; `tests/scenes/rehearsal.py`; their unit tests |
+| GRID | `lab/cell.py`, `lab/batch.py` and the grid engine it registers; their `tests/unit/test_lab_*.py` |
+| RUNGS | `lab/rung.py` and the rungs it registers; their `tests/unit/test_lab_*.py` |
 
 The table is a summary; `manifest.toml` is the source the check enforces (its `[lanes]`
 table, and each lane's heading over its modules). A lane's branch that changes any other
@@ -73,11 +76,12 @@ One store, one writer, cleaned on entry.
 - [x] Parking a bad line, with a reason, a date and a way back out
 - [x] **Scene 1 passes**
 
-### The data lane's book — rehearsal data first, then the parked lines and the store's findings
+### The data lane's book — the research universe first, then the parked lines and the store's findings
 
-**Lane objective:** the scenes' rehearsal data lengthened to about fourteen months, so
-the five rules trade in it (his ruling, 13 November), before the money lane reaches
-scene 5. Scenes 1 to 3 keep passing on it.
+**Lane objective:** the research universe, by his ruling of 13 November: about 1,500
+tickers (the S&P 500, the Nasdaq 100, the FTSE 350 and about 200 of the most-traded ETFs),
+daily since 2010, from the free archive, through the one store's checks, kept apart from
+the twenty trading lines. The grid lane needs it.
 
 - [x] The rehearsal data in a file of its own (`tests/scenes/rehearsal.py`)
 - [x] The rehearsal data lengthened to about fourteen months, the five rules buying and
@@ -87,16 +91,22 @@ scene 5. Scenes 1 to 3 keep passing on it.
       the money lane's scene 2 counts each line's own sessions; until then they see its
       last six weeks
 - [x] One line the archive refuses is parked, not the whole fetch stopped (`archive.gather`, `store.Refused`)
-- [ ] The four parked lines brought back, or each one's reason confirmed: 2MU's five real
-      moves recorded from a second source; 5QQQ's consolidation of 22 August 2024; SGLN's
-      garbled weeks of 2011; 3LGO's missing history, and when enough has gathered
-- [ ] The store's open findings in `docs/STATUS.md` (the data lane's section): a frozen
-      feed (done: a week of one bar repeated is dropped and parks a recent line); a
-      suspension gap (done: a suspension recorded on its line is no gap); a one-day crash
-      dropped as a wrong unit (done: only a hundredfold bar is dropped; a crash is kept and
-      parks until recorded); a stretched bar's changes unrecorded; bars and fault record
-      swapped one after the other; the window before mid-April 2010; a pence history the
-      archive calls pounds
+- [ ] The research list: about 1,500 tickers with their venue and currency, kept apart from
+      the instrument master's twenty trading lines; nothing on it is traded
+- [ ] The research list's daily bars since 2010, fetched and kept through the one store's
+      checks, a bad ticker parked with its reason
+- [ ] The full research universe, 5,000 and more, once the grid's first pass works
+- [ ] 2MU's five real moves recorded from a second source, or its reason confirmed
+- [ ] 5QQQ's consolidation of 22 August 2024 handled, or its reason confirmed
+- [ ] SGLN's garbled weeks of 2011 handled, or its reason confirmed
+- [ ] 3LGO's missing history, and a rule for when enough has gathered
+- [x] A frozen feed: a week of one bar repeated is dropped and parks a recent line
+- [x] A suspension recorded on its line is no gap
+- [x] A one-day crash is kept and parks until recorded; only a hundredfold bar is a wrong unit
+- [ ] A stretched bar's changes recorded beside it
+- [ ] A line's bars and its fault record written together, so a crash cannot part them
+- [ ] The window before mid-April 2010 prepared
+- [ ] A pence history the archive calls pounds caught
 - [ ] The calendars carried past 2027, before 2027 ends
 
 ## Phase 2 — the money path, in simulation
@@ -133,38 +143,60 @@ disagree. The pretend broker, the send path, the book and the day's trading are 
 
 ## Phase 3 — the money path, on paper
 
-- [ ] The real paper-broker adapter behind the same interface
-- [ ] Stops resting at the broker
+Begun alongside phase 2 by his ruling of 13 November: "Five lanes, phase 3 now".
+
+- [ ] **FIRST-LIGHT: ten consecutive clean trading days**
+
+### The paper lane's book
+
+**Lane objective:** the paper account proved quiet before any order. The account is the old
+desk's (his ruling, 13 November), reached through IB Gateway's paper port 4002 on his PC
+with the desk's own client id, never 4001. Every day a read-only check sets the account's
+positions and open orders against the desk's own book, and a mismatch is flagged (scene
+6). No order is sent until this exists and has run clean.
+
+- [ ] The paper account proved quiet: the daily read-only check of positions and open
+      orders against the desk's book, a mismatch flagged
+- [ ] The real paper-broker adapter behind the same interface as `broker.Pretend`, speaking
+      to IB Gateway with the standard library alone (`desk/` imports nothing else)
+- [ ] Stops resting at the broker, each rounded down to its line's price step
 - [ ] Unattended running, and recovery from a restart
 - [ ] Morning and evening messages, and an alarm on silence
-- [ ] **FIRST-LIGHT: ten consecutive clean trading days**
 
 ## Phase 4 — the ladder
 
-Runs now as a second track, the ladder lane, since phases 1 and 2 gave it data and a
-strategy template.
+Runs now as two lanes, GRID and RUNGS, by his ruling of 13 November. `lab/` may use numpy
+and nothing else beyond the standard library and `desk/`. Its ceiling rises from 1,500 to
+7,000 lines (`BUDGET.json`, his ruling) when he merges the pull request that carries it.
 
-### The ladder lane's book
+### The grid lane's book
 
-**Lane objective:** the ladder reproduces a published strategy's own published result: one
-of the five, run through the cell and the first rung on the history its author used, lands
-on the published figure, or the gap is explained trade by trade.
+**Lane objective:** the fast grid engine (`lab/`, numpy), proven first by a parity test
+against the desk's own engine on the golden data: the same decisions, day by day, or it is
+removed (canon B2).
 
 - [x] The unit of work, keyed by code and data version (`lab/cell.py`)
 - [x] A batch service that survives a bad cell and a restart (`lab/batch.py`)
 - [x] Results kept, keyed by code and data version; only what changed is re-run (`lab/batch.py`)
+- [ ] The fast grid engine, its parity with the desk's engine proven on the golden data
+- [ ] The grid's first pass over the research universe: every strategy at every setting on
+      every ticker, each cell kept by code and data version
+- [ ] Runs seven days without stopping
+
+### The rungs lane's book
+
+**Lane objective:** luck correction that counts every trial: a winner is corrected for how
+many trials it was picked from, and every rung records that count (canon B6, AG-01).
+
 - [x] The first rung proven: it catches a planted edge and rejects a planted non-edge, after
       the broker's costs and the desk's own stop (`lab/rung.py`)
 - [ ] Its costs whole: spread, slippage and the sale's own fees, from the desk's one cost
       model once the money lane has them; and a rate of exchange for each day
-- [ ] Each later rung proven the same way: luck-corrected for every trial, judged on its
-      worst fold (AG-01)
+- [ ] Luck correction counting every trial
+- [ ] In-sample and out-of-sample folds, side by side after costs, the worst fold reported
+      and judged on
+- [ ] Plateaus over peaks: the centre of a plateau promoted, never a lone peak
 - [ ] Reproduces a published strategy's own published result
-- [ ] Runs seven days without stopping
-
-The ladder lives in `lab/`, which phase 2's ceiling holds to 1,500 lines (`BUDGET.json`).
-Raising it is the operator's decision: the lane asks in its STATUS section when it nears
-the ceiling, and works inside it until he answers.
 
 ## Phase 5 — the edge
 

@@ -22,7 +22,7 @@
     "2-money-sim": {
       "product_lines": 7000,
       "product_files": 45,
-      "lab_lines": 7000
+      "lab_lines": 1500
     },
     "3-money-paper": {
       "product_lines": 9000,
