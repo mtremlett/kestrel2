@@ -119,3 +119,4 @@ def _room(line: Line, settings: Settings) -> Decimal:
     """Pounds one holding in the line may cost: a fifth of the capital, counted at what the
     line controls."""
     return settings.capital / HOLDINGS / line.leverage
+# probe: the data lane must not edit the money lane's file
