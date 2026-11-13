@@ -49,6 +49,10 @@ def _wire(*messages: Sequence[str]) -> io.BytesIO:
     return io.BytesIO(b"".join(struct.pack(">I", len(body)) + body for body in bodies))
 
 
+def _but(fields: Sequence[str], at: int, value: str) -> list[str]:
+    return [*fields[:at], value, *fields[at + 1 :]]
+
+
 def _smgb(*shares: int) -> Account:
     return Account(tuple(replace(SMGB, shares=Decimal(n)) for n in shares), ())
 
@@ -122,23 +126,15 @@ def test_nothing_is_asked_until_the_gateway_is_ready_and_its_accounts_are_all_pa
         ((ACCOUNTS, READY, STOP[:25], *ENDS), ValueError, "AAPL"),
         # listed as open is not being worked: an order with no state of its own is not read
         ((ACCOUNTS, READY, STOP, *ENDS), ValueError, "no state"),
-        ((ACCOUNTS, READY, STOP, [*STATUS[:6], "7", *STATUS[7:]], *ENDS), ValueError, "1234567"),
+        ((ACCOUNTS, READY, STOP, _but(STATUS, 6, "7"), *ENDS), ValueError, "1234567"),
         ((ACCOUNTS, READY, STOP, STATUS[:-1]), ValueError, "shape"),
         ((ACCOUNTS, READY, STOP, [*STATUS, ""]), ValueError, "shape"),
-        ((ACCOUNTS, READY, [*STATUS[:4], "", *STATUS[5:]]), ValueError, "plain number"),
-        ((ACCOUNTS, READY, [*STOP[:14], "1E+1", *STOP[15:]], *ENDS), ValueError, "plain number"),
+        ((ACCOUNTS, READY, _but(STATUS, 4, "")), ValueError, "plain number"),
+        ((ACCOUNTS, READY, _but(STOP, 14, "1E+1"), *ENDS), ValueError, "plain number"),
         ((ACCOUNTS, READY, [*FLAT[:14], "1_0", FLAT[15]]), ValueError, "plain number"),
-        (
-            (ACCOUNTS, READY, [*STOP[:13], "SSHORT", *STOP[14:]], STATUS, *ENDS),
-            ValueError,
-            "SSHORT",
-        ),
+        ((ACCOUNTS, READY, _but(STOP, 13, "SSHORT"), STATUS, *ENDS), ValueError, "SSHORT"),
         ((ACCOUNTS, READY, [*FLAT[:2], "U7654321", *FLAT[3:]]), paper.NotPaper, "U7654321"),
-        (
-            (ACCOUNTS, READY, [*STOP[:20], "U7654321", *STOP[21:]], *ENDS),
-            paper.NotPaper,
-            "U7654321",
-        ),
+        ((ACCOUNTS, READY, _but(STOP, 20, "U7654321"), *ENDS), paper.NotPaper, "U7654321"),
     ],
 )
 def test_an_answer_the_desk_cannot_trust_stops_the_reading(

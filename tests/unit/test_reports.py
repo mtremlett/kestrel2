@@ -10,7 +10,7 @@ from datetime import date, datetime
 from decimal import Decimal
 
 import pytest
-from test_paper import AAPL_STOP, ACCOUNTS, FEED, HELLO, READY, _wire
+from test_paper import AAPL_STOP, ACCOUNTS, FEED, HELLO, READY, _but, _wire
 
 from desk import paper, reports
 from desk.broker import Fill
@@ -45,30 +45,14 @@ UNSET = "1.7976931348623157E308"  #: the broker's own way of writing "no number"
 FEE = ("59", "1", BOUGHT[14], "3.0", "GBP", UNSET, UNSET, "")
 END = ("55", "1", "1")
 DAY = date(2026, 11, 13)
-
-
-def _made(*told: str, shares: int, price: str) -> Execution:
-    """A fill of the desk's own client on the paper account that day."""
-    made, ref, contract, symbol, at, clock = told
-    when = datetime.fromisoformat(f"{DAY} {at}")
-    amount = Decimal(shares), Decimal(price)
-    return Execution(made, "222", ref, "DU0000001", contract, symbol, *amount, when, clock)
-
-
-IN_LONDON = ("20261113-rsi2-IITU", "212969319", "IITU", "09:22:06", "MET")
-IN_NEW_YORK = ("20261112-rsi2-AAPL-stop", "265598", "AAPL", "09:30:11", "US/Eastern")
-BUY = _made(BOUGHT[14], *IN_LONDON, shares=26, price="3755.00")
-SALE = _made(SOLD[14], *IN_NEW_YORK, shares=-10, price="171.5")
+#: Those two fills as the desk should read them: its own client's, on the paper account.
+LONDON = ("212969319", "IITU", Decimal(26), Decimal("3755.00"), datetime(2026, 11, 13, 9, 22, 6))
+NEW_YORK = ("265598", "AAPL", Decimal(-10), Decimal("171.5"), datetime(2026, 11, 13, 9, 30, 11))
+BUY = Execution(BOUGHT[14], "222", "20261113-rsi2-IITU", "DU0000001", *LONDON, "MET")
+SALE = Execution(SOLD[14], "222", "20261112-rsi2-AAPL-stop", "DU0000001", *NEW_YORK, "US/Eastern")
 OURS = replace(AAPL_STOP, client="222")  # the desk's own stop: its client, its order id
 #: The broker's other words for where an order stands: in none of them is a stop protecting.
-NOT_HELD = (
-    *("PendingSubmit", "ApiPending", "PendingCancel", "Inactive"),
-    *("Cancelled", "ApiCancelled", "Filled", "presubmitted", ""),
-)
-
-
-def _but(fields: Sequence[str], at: int, value: str) -> list[str]:
-    return [*fields[:at], value, *fields[at + 1 :]]
+NOT_HELD = "PendingSubmit ApiPending PendingCancel Inactive Cancelled ApiCancelled Filled submitted"
 
 
 def _read(*messages: Sequence[str]) -> tuple[tuple[Execution, ...], list[bytes]]:
@@ -116,9 +100,7 @@ def test_the_desks_own_fills_are_the_ledgers_priced_in_the_lines_currency() -> N
         replace(BUY, client="31", contract="999", shares=Decimal("0.5"), clock="Asia/Tokyo"),
     ],
 )
-def test_a_fill_that_is_not_the_desks_own_is_kept_apart_as_the_broker_gave_it(
-    theirs: Execution,
-) -> None:
+def test_a_fill_not_the_desks_own_is_kept_apart_as_the_broker_gave_it(theirs: Execution) -> None:
     late = replace(SALE, client="31")
     told = reports.fills((theirs, SALE, late, late), LISTED)  # theirs to explain, twice or not
     assert told.others == (theirs, late, late) and [fill.symbol for fill in told.ours] == ["AAPL"]
@@ -202,7 +184,7 @@ def test_the_desks_own_orders_and_stops_are_told_from_anyone_elses() -> None:
     hand = replace(OURS, ref="", contract="999")  # the desk's client, no order id of the desk's
     part = replace(OURS, broker_id="11", state="Submitted", left=Decimal(4), symbol="aapl")
     # listed as open, but the broker is not holding it: not yet taken, refused, going or gone
-    idle = tuple(replace(OURS, broker_id=state, state=state) for state in NOT_HELD)
+    idle = tuple(replace(OURS, broker_id=s, state=s) for s in (*NOT_HELD.split(), ""))
     resting = (AAPL_STOP, OURS, buying, hand, limit, part, covering, *idle)
     assert reports.orders(resting, LISTED) == Orders(
         # entry by entry, never added up; for the shares still to be sold; known by its number
