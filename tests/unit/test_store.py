@@ -72,6 +72,15 @@ def test_a_step_in_the_price_parks_the_line_and_keeps_every_bar(tmp_path: Path) 
     assert store.read(tmp_path, US.symbol) == bars
 
 
+def test_two_bars_out_of_line_are_both_kept_for_no_one_can_tell_which_is_wrong(
+    tmp_path: Path,
+) -> None:
+    bars = (*_bars(US)[-2:-1], _scaled(_bars(US)[-1], Decimal(100)))
+    reasons = _parked(tmp_path, bars)
+    assert len(reasons) == 1 and str(bars[1].day) in reasons[0] and "split" in reasons[0]
+    assert store.read(tmp_path, US.symbol) == bars
+
+
 def test_a_step_known_to_be_a_real_move_is_kept_and_not_parked(tmp_path: Path) -> None:
     bars = (*_bars(US)[:5], *(_scaled(b, Decimal("0.5")) for b in _bars(US)[5:]))
     line = replace(US, real_moves=frozenset({bars[5].day}))
