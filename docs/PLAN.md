@@ -1,9 +1,40 @@
 # The plan
 
-**Current objective:** phase 2's third step — the pretend broker, with its faults, and the
-send path that records its fills, so that scene 4 passes.
+**Current objective:** the money lane's — the pretend broker, with its faults (rejects,
+partial fills, disconnection, crashes), proven by its own contract test, on the way to
+scene 4.
 
 Scenes passing: **3 of 7**. Phase: **2-money-sim**.
+
+The two lines above belong to the money lane: it alone moves the scenes count. The data
+and ladder lanes' objectives are in their own books below. The operator's Telegram line
+reads the ticked boxes under each `## Phase N` heading, so each lane's book sits inside its
+phase.
+
+---
+
+## The three lanes
+
+Three chains of sessions run side by side on the operator's PC, day and night, each
+session starting when the one before it ends (his rulings, 13 November 2026,
+`docs/DECISIONS.md`). A lane's session works on its lane's objective only, edits only the
+files its lane owns, and writes only in its lane's parts of the shared documents: its
+section of `docs/STATUS.md`, its book here, its table in `docs/SCOREBOARD.md` and its part
+at the end of `docs/DECISIONS.md`. Each lane's book sits inside the phase it belongs to:
+DATA in phase 1, MONEY in phase 2, LADDER in phase 4. So two lanes' pull requests never
+touch the same lines, and GitHub merges neither until it holds the other.
+
+| lane | owns |
+|---|---|
+| MONEY | `desk/strategy.py`, `orders.py`, `broker.py`, `book.py`, `day.py`; `tests/scenes/test_scenes.py`; their unit tests |
+| DATA | `desk/lines.py`, `venues.py`, `archive.py`, `store.py`; `tests/scenes/rehearsal.py`; their unit tests |
+| LADDER | `lab/`; `tests/unit/test_lab_*.py` |
+
+A new module is registered in `manifest.toml` under its lane's heading. A file no lane owns
+(`check.py`, `announce.py`, the guards, `BUDGET.json`, `CLAUDE.md`, `CANON.md`,
+`docs/SCENES.md`, `docs/FAILURE_PATTERNS.md`, the shared parts of the documents) is changed
+only by a session the operator starts himself. A lane that needs one changed, or finds a
+new recurring failure, writes it in its STATUS section and carries on with what it can.
 
 ---
 
@@ -38,6 +69,26 @@ One store, one writer, cleaned on entry.
 - [x] Parking a bad line, with a reason, a date and a way back out
 - [x] **Scene 1 passes**
 
+### The data lane's book — rehearsal data first, then the parked lines and the store's findings
+
+**Lane objective:** the scenes' rehearsal data lengthened to about fourteen months, so
+the five rules trade in it (his ruling, 13 November), before the money lane reaches
+scene 5. Scenes 1 to 3 keep passing on it.
+
+- [x] The rehearsal data in a file of its own (`tests/scenes/rehearsal.py`)
+- [ ] The rehearsal data lengthened to about fourteen months, the five rules buying and
+      selling in it, its UK and US holidays respected; the spoilt line's faults kept within
+      the last sixty sessions, or the store rightly stops parking it and scene 1 breaks
+- [ ] One line the archive refuses is parked, not the whole fetch stopped
+- [ ] The four parked lines brought back, or each one's reason confirmed: 2MU's five real
+      moves recorded from a second source; 5QQQ's consolidation of 22 August 2024; SGLN's
+      garbled weeks of 2011; 3LGO's missing history, and when enough has gathered
+- [ ] The store's open findings in `docs/STATUS.md` (the data lane's section): a frozen
+      feed; a suspension gap; a one-day crash dropped as a wrong unit; a stretched bar's
+      changes unrecorded; bars and fault record swapped one after the other; the window
+      before mid-April 2010; a pence history the archive calls pounds
+- [ ] The calendars carried past 2027, before 2027 ends
+
 ## Phase 2 — the money path, in simulation
 
 - [x] One strategy template; the five frozen daily strategies (his choice: five textbook
@@ -45,11 +96,27 @@ One store, one writer, cleaned on entry.
 - [x] Sizing from one capital number; stops set at entry; a leveraged line sized by what
       it controls (his rulings, 13 November: a fifth each, a stop where the market has
       fallen 10%) - **scene 3 passes**
-- [ ] The pretend broker, with faults: rejects, partial fills, disconnection, crashes
-- [ ] The book, the ledger, reconciliation, the day record
-- [ ] The scenes' rehearsal data lengthened to about fourteen months, so the five rules
-      trade in it (his ruling, 13 November), before scene 5 is attempted
-- [ ] **Scenes 2 to 7 pass in simulation**
+- [ ] **Scenes 2 to 7 pass in simulation**, by the money lane's book below; the data
+      lane's lengthened rehearsal data (phase 1) comes first
+
+### The money lane's book — scenes 4 to 7, in order
+
+**Lane objective:** the pretend broker (`desk/broker.py`), with its faults, proven by its
+own contract test.
+
+- [ ] The pretend broker: fills at the day's prices, rejects, partial fills, disconnection,
+      a crash, resting stops, positions, and a position injected behind the desk's back
+- [ ] The send path: every order through the one gate, sent once however often the desk
+      restarts, its fills recorded under the broker's ids - **scene 4 passes**
+- [ ] The book built from the broker: what is held and what is left, so the gate enforces
+      at most five holdings and two buys of one line share one fifth
+- [ ] The day run: decisions dated that day only, a rule's position read from the book,
+      round trips with their costs - **scene 5 passes** (needs the data lane's fourteen
+      months first)
+- [ ] Reconciliation: the desk's book against the broker's, a mismatch named and the day's
+      profit withheld - **scene 6 passes**
+- [ ] The day record: every cost line, what holding the market earned, and the same days
+      replayed to the same records - **scene 7 passes**
 
 ## Phase 3 — the money path, on paper
 
@@ -61,13 +128,24 @@ One store, one writer, cleaned on entry.
 
 ## Phase 4 — the ladder
 
-Starts as a second track as soon as phases 1 and 2 give it data and a strategy template.
+Runs now as a second track, the ladder lane, since phases 1 and 2 gave it data and a
+strategy template.
 
+### The ladder lane's book
+
+**Lane objective:** the ladder's unit of work - one strategy on one line over one window,
+a typed record keyed by the code's and the data's versions - and its contract test.
+
+- [ ] The unit of work, keyed by code and data version
 - [ ] A batch service that survives a bad cell and a restart
 - [ ] Results kept, keyed by code and data version; only what changed is re-run
 - [ ] Each rung proven: it catches a planted edge and rejects a planted non-edge
 - [ ] Reproduces a published strategy's own published result
 - [ ] Runs seven days without stopping
+
+The ladder lives in `lab/`, which phase 2's ceiling holds to 1,500 lines (`BUDGET.json`).
+Raising it is the operator's decision: the lane asks in its STATUS section when it nears
+the ceiling, and works inside it until he answers.
 
 ## Phase 5 — the edge
 
@@ -95,7 +173,7 @@ Starts as a second track as soon as phases 1 and 2 give it data and a strategy t
 
 ## Rules of the plan
 
-A batch is one session, one objective, one merge. A batch that adds net lines must name
+A batch is one session, one lane, one objective, one merge. A batch that adds net lines must name
 the scene it advances. No new capability until every scene passes.
 
 Estimates are from size, not measurement, and are re-made after phase 0 and after the
