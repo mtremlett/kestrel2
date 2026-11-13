@@ -32,9 +32,8 @@ def _ask(line: Line, day: date) -> tuple[Bar, ...]:
 
 def test_the_research_list_is_the_four_lists_of_the_ruling_each_on_its_own_venue() -> None:
     parts = (universe.SP500, universe.NASDAQ100, universe.FTSE350, universe.ETFS)
-    assert (
-        [len(part) for part in parts] == [len(set(part)) for part in parts] == [503, 101, 347, 200]
-    )
+    sizes = [len(part) for part in parts]
+    assert sizes == [len(set(part)) for part in parts] == [503, 101, 347, 200]
     american = universe.SP500 + universe.NASDAQ100 + universe.ETFS
     assert {(line.venue, line.currency) for line in american} == {("US", "USD")}
     assert {line.venue for line in universe.FTSE350} == {"LSE"}
@@ -51,11 +50,13 @@ def test_the_research_list_is_the_four_lists_of_the_ruling_each_on_its_own_venue
 def test_a_ticker_that_is_also_a_trading_line_is_the_masters_own_line() -> None:
     master = {(line.symbol, line.venue): line for line in LINES}
     shared = [line for line in universe.UNIVERSE if (line.symbol, line.venue) in master]
-    assert {"AAPL", "SPY", "MSTR"} <= {line.symbol for line in shared}
+    assert {"AAPL", "MU", "MSTR"} <= {line.symbol for line in shared}
+    #: GLD left the master for a London line: research's GLD is a ticker of its own again
+    assert ("GLD", "US") not in master and "GLD" in {line.symbol for line in universe.ETFS}
     assert all(line is master[line.symbol, line.venue] for line in shared)
     assert universe._lines("LSE", "GBP", "AAPL")[0] is not master["AAPL", "US"]
-    for currency, entry in (("USD", "QQQ:3"), ("GBP", "QQQ")):
-        with pytest.raises(ValueError, match="QQQ: the research list and the instrument master"):
+    for currency, entry in (("USD", "AMD:3"), ("GBP", "AMD")):
+        with pytest.raises(ValueError, match="AMD: the research list and the instrument master"):
             universe._lines("US", currency, entry)
     with pytest.raises(ValueError, match="ISF: the research list and the instrument master"):
         universe._lines("LSE", "GBP", "ISF", STAMP_DUTY)
@@ -94,10 +95,8 @@ def test_a_refused_ticker_is_parked_by_line_and_keeps_no_bars_and_the_rest_are_k
     assert universe.keep(tmp_path, DAY, both, _ask) == {}
     parked = universe.keep(tmp_path, DAY, both, refuse_london)
     assert list(parked) == london
-    assert all(
-        p.reason.endswith("TimeoutError: the archive did not answer") for p in parked.values()
-    )
-    assert all(p.day == DAY for p in parked.values())
+    for p in parked.values():
+        assert p.day == DAY and p.reason.endswith("TimeoutError: the archive did not answer")
     assert [store.read(tmp_path / "LSE", line.symbol) for line in london] == [(), ()]
     assert all(len(store.read(tmp_path / "US", symbol)) > 60 for symbol in ("BA", "COST"))
 
