@@ -235,7 +235,7 @@ whole of it, so "the broker holds something" cannot be read there.
 
 ### Requests to DATA
 
-- [ ] R-MONEY-1 (blocking, opened 2026-11-13 18:15): each line's UK transaction tax as a fact on the line
+- [x] R-MONEY-1 (blocking, opened 2026-11-13 18:15): each line's UK transaction tax as a fact on the line
   (`Line`): what a purchase pays, nil for a fund or an exchange-traded product, 0.5% stamp
   duty for a UK share, each of the ten London lines confirmed; and one London line in the
   rehearsal data that pays it. Scene 7 requires every cost line charged at least once, and
