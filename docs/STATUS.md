@@ -56,11 +56,13 @@ AG-06 in `docs/PLAN.md`, with the thirty-day terms fixed in advance.
 
 Every change that lands on main now sends the operator one Telegram line once the check
 passes there. Since his request of 13 November it is short: the phase whose step the change
-ticked in this plan's checklist, or "housekeeping" when it ticked none, the scenes count and
-the pull request's number, for example "kestrel2 · Phase 2 · step 3 of 6 done · scenes
-4/7 (#16)" (`announce.py`, the `announce` job; `docs/DECISIONS.md`). A missing secret
-turns the job red; that was driven on main before the secrets existed. The first line, for
-#7, reached his phone on 13 November.
+ticked in this plan's checklist, or "housekeeping" when it ticked none, the scenes count,
+the week's usage of his plan as the pull request states it on a line "Weekly usage: 21%"
+("n/a" when it states none), and the pull request's number, for example "kestrel2 · Phase
+2 · step 3 of 6 done · scenes 4/7 · usage 21% (#16)" (`announce.py`, the `announce` job;
+`docs/DECISIONS.md`). A missing secret turns the job red; that was driven on main before
+the secrets existed. The first line, for #7, reached his phone on 13 November; the first
+short one, for #17, on the same day.
 
 ## The next step
 
