@@ -1,10 +1,10 @@
 # The plan
 
-**Current objective:** the money lane's — the send path: every order through the one
-gate, sent once however often the desk restarts, its fills recorded under the broker's
-ids - so that scene 4 passes.
+**Current objective:** the money lane's — the book built from the broker: what is held and
+what is left, so the gate enforces at most five holdings and two buys of one line share
+one fifth.
 
-Scenes passing: **3 of 7**. Phase: **2-money-sim**.
+Scenes passing: **4 of 7**. Phase: **2-money-sim**.
 
 The two lines above belong to the money lane: it alone moves the scenes count. The data
 and ladder lanes' objectives are in their own books below. The operator's Telegram line
@@ -104,13 +104,14 @@ scene 5. Scenes 1 to 3 keep passing on it.
 
 ### The money lane's book — scenes 4 to 7, in order
 
-**Lane objective:** the send path (`book.send`, `book.fills`): every order through the one
-gate, asked of the broker by its id before it is sent, its fills recorded under the
-broker's ids - **scene 4 passes**. The pretend broker it sends to is built.
+**Lane objective:** the book built from the broker (`book.positions`): what is held and what
+is left, every fill the broker made written in the ledger (a stop's overnight sale
+included), so the gate enforces at most five holdings and two buys of one line share one
+fifth. The pretend broker and the send path are built; scene 4 passes.
 
 - [x] The pretend broker: fills at the day's prices, rejects, partial fills, disconnection,
       a crash, resting stops, positions, and a position injected behind the desk's back
-- [ ] The send path: every order through the one gate, sent once however often the desk
+- [x] The send path: every order through the one gate, sent once however often the desk
       restarts, its fills recorded under the broker's ids - **scene 4 passes**
 - [ ] The book built from the broker: what is held and what is left, so the gate enforces
       at most five holdings and two buys of one line share one fifth
