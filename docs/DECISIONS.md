@@ -306,3 +306,29 @@ asks him how they are sized.
 **His words.** In chat, Friday 13 November 2026, about 13:24 UK time: "10 uk and 10 us.
 uk includes 3lgo.l, 2mu.l, smgb.l, iitu.l, vhyg.l, 5qqq.l , 1b1t.l . us includes: aalp,
 tsla, nvda, spcx, mstr, amd."
+
+---
+
+## 2026-11-13 — London's auction prices, and old bad days
+
+**Found.** With the twenty lines fetched, all ten US lines came in clean and complete
+from 2010. All ten London lines were parked: on up to a quarter of their days the free
+archive's open or close sat outside that day's high and low, mostly by under 2%, at worst
+20% (2MU). London records its opening and closing auctions apart from the day's trading,
+which is the likely cause. And because a line is judged on its whole history, which never
+changes, one bad day years ago (ISF has a bar on 29 April 2011, when London was shut)
+parked a line for good.
+
+**Decided, first.** An open or close no more than 3% outside the day's range is taken as
+the official price, and the range is stretched to hold it; further out, the bar is still
+refused. A stop is then judged as if the price reached that open or close, which errs
+toward a stop being hit. The rule applies on both venues; the US lines have no such day.
+Asked how to treat those days, with three options, he chose "Trust the close, small gaps
+(Recommended)". Driven: with no stretch, a close 2.9% out parks its line; with 5%, an
+open 4% out enters. Both are caught.
+
+**Decided, second.** A bad day older than the last sixty trading days is removed and
+listed in the line's record, and no longer parks it; anything wrong in the last sixty
+sessions still does. A step in the price that the archive did not adjust parks the line
+however old it is, because it makes every bar before it wrong. Asked, he chose "Drop old
+bad days, hold back on recent ones (Recommended)".

@@ -38,7 +38,8 @@ def test_a_clean_line_is_stored_exactly_and_not_parked(tmp_path: Path) -> None:
 
 BAD_BARS: dict[str, Callable[[Bar], Bar]] = {
     "the high is below the low": lambda b: replace(b, high=b.low - 1),
-    "the close is outside the range": lambda b: replace(b, close=b.high + 1),
+    "the close is far above the range": lambda b: replace(b, close=b.high * Decimal("1.04")),
+    "the open is far below the range": lambda b: replace(b, open=b.low * Decimal("0.96")),
     "a price is not positive": lambda b: replace(b, low=Decimal(0)),
     "the volume is negative": lambda b: replace(b, volume=-1),
     "the price is in the wrong unit": lambda b: _scaled(b, Decimal(100)),
@@ -47,6 +48,29 @@ BAD_BARS: dict[str, Callable[[Bar], Bar]] = {
     "a price is not a number": lambda b: replace(b, high=Decimal("NaN")),
     "a price is infinite": lambda b: replace(b, high=Decimal("Infinity")),
 }
+
+
+@pytest.mark.parametrize(
+    "near",
+    [
+        lambda b: replace(b, close=b.high * Decimal("1.029")),
+        lambda b: replace(b, open=b.low * Decimal("0.971")),
+    ],
+    ids=["a close just above the high", "an open just below the low"],
+)
+def test_an_auction_price_just_outside_the_range_stretches_it(
+    tmp_path: Path, near: Callable[[Bar], Bar]
+) -> None:
+    """His ruling of 13 November: London records its auctions apart from the day's trading."""
+    bars = list(_bars(US))
+    bars[4] = near(bars[4])
+    assert _parked(tmp_path, tuple(bars)) == []
+    kept = store.read(tmp_path, US.symbol)[4]
+    assert (kept.open, kept.close) == (bars[4].open, bars[4].close)
+    assert (kept.low, kept.high) == (
+        min(bars[4].low, bars[4].open),
+        max(bars[4].high, bars[4].close),
+    )
 
 
 def _scaled(bar: Bar, by: Decimal) -> Bar:

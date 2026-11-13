@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import csv
 from collections.abc import Mapping, Sequence
-from dataclasses import astuple, dataclass
+from dataclasses import astuple, dataclass, replace
 from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -23,6 +23,11 @@ from desk.lines import Line
 #: wrong factor - a 3-for-2 split, pounds read as dollars - cannot be told from a real move
 #: by price alone, and passes.
 JUMP = Decimal("1.6")
+#: London records its opening and closing auctions apart from the day's trading, so an archive's
+#: open or close can sit just outside the day's high and low. Within this fraction of the range
+#: it is taken as the official price and the range stretched to hold it (the operator's ruling of
+#: 13 November 2026); further out, the bar cannot be true.
+STRETCH = Decimal("0.03")
 COLUMNS = ("day", "open", "high", "low", "close", "volume")
 
 
@@ -60,16 +65,18 @@ def _once(bars: Sequence[Bar], faults: list[str]) -> list[Bar]:
     return once
 
 
-def _unsound(line: Line, bar: Bar, open_days: set[date]) -> str | None:
-    """Why a bar cannot be true on its own, or None."""
+def _entered(line: Line, bar: Bar, open_days: set[date]) -> Bar | str:
+    """The bar as it enters the store, or why it cannot be true on its own."""
     prices = (bar.open, bar.high, bar.low, bar.close)
     if bar.day not in open_days:
         return f"{bar.day} is not a closed session on the {line.venue} calendar"
     if not all(p.is_finite() and p > 0 for p in prices) or bar.volume < 0:
         return f"{bar.day} has a price or volume that cannot be"
-    if not bar.low <= min(bar.open, bar.close) <= max(bar.open, bar.close) <= bar.high:
+    ends = (bar.open, bar.close)
+    reach = (bar.low * (1 - STRETCH), bar.high * (1 + STRETCH))
+    if not bar.low <= bar.high or not reach[0] <= min(ends) <= max(ends) <= reach[1]:
         return f"{bar.day} has an open or close outside its high and low"
-    return None
+    return replace(bar, high=max(bar.high, *ends), low=min(bar.low, *ends))
 
 
 def _agree(line: Line, before: Bar, after: Bar) -> bool:
@@ -122,11 +129,11 @@ def _clean(line: Line, bars: Sequence[Bar], day: date) -> tuple[list[Bar], list[
     expected = venues.sessions(line.venue, first, day - timedelta(1))
     open_days, sound = set(expected), []
     for bar in _once(bars, faults):
-        why = _unsound(line, bar, open_days)
-        if why is None:
-            sound.append(bar)
+        entered = _entered(line, bar, open_days)
+        if isinstance(entered, str):
+            faults.append(entered)
         else:
-            faults.append(why)
+            sound.append(entered)
     kept = _priced(line, sound, faults)
     held = {b.day for b in kept}
     missing = [d for d in expected if d not in held]
