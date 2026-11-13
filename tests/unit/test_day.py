@@ -171,8 +171,16 @@ def test_a_session_the_desk_missed_is_named_and_gets_its_record_before_any_later
     tmp_path: Path,
 ) -> None:
     broker, capital = Pretend(MARKET, {}), Settings(Decimal(10_000))
-    bought = _run(tmp_path, broker, DAYS[21])
-    broker.open(DAYS[22])  #: the desk is off: H's stop sells at the broker all the same
+    broker.open(DAYS[21])
+    _trade(tmp_path, broker, DAYS[21])  #: the desk dies before the day's record
+    broker.open(DAYS[22])  #: and is off: H's stop sells at the broker all the same
+    bought = day.publish(tmp_path, MARKET, broker, capital, DAYS[21])
+    #: the record made late is the day's own: the stop's sale, in the ledger by now, is not its
+    assert (bought.profit, bought.worth, bought.counted) == (
+        Decimal("-26.16"),
+        Decimal("11160.5"),
+        5,
+    )
     with pytest.raises(ValueError, match=r"2025-02-06: no record yet for .*2025, 2, 5"):
         day.publish(tmp_path, MARKET, broker, capital, date(2025, 2, 6))
     book.record_rates(tmp_path, DAYS[22], {"GBP": Decimal(1)})
@@ -195,15 +203,23 @@ def test_a_record_opens_from_what_the_last_one_closed_on_at_each_days_own_rate(
     closes = zip(DAYS[18:21], map(Decimal, (50, 51, 52)), strict=True)
     held = tuple(Bar(on, c - 1, c + 1, c - 2, c, 1) for on, c in closes)
     archive = {dollar: held, YARDSTICK: tuple(replace(bar, close=Decimal(10)) for bar in held)}
-    broker, at = Pretend(archive, {}), {"USD": Decimal("0.8"), "GBP": Decimal(1)}
+    broker, at = Pretend(archive, {}), {"USD": Decimal("0.8005"), "GBP": Decimal(1)}
     broker.open(fri)  #: ten bought by hand at the open of 50, through the send path
     book.send(
         tmp_path, broker, Order("o-1", dollar, 10, Decimal(50), at["USD"], Decimal(45)), capital
     )
     first = day.run(tmp_path, archive, broker, capital, fri, at)
-    #: 400 pounds paid for what closes at 510 dollars, 408 pounds: 8 gained, 1.32 of costs
+    #: 400.25 pounds paid for what closes at 510 dollars, 408.255 pounds: 8.005 gained, 1.321
+    #: of costs; the worth is kept exact, so the days after add up to the penny
     costs = Charges(*map(Decimal, ("0.8", "0.2", "0.2", "0.12", "0")))
-    assert astuple(first)[1:] == (Decimal("6.68"), astuple(costs), Decimal(0), (), Decimal(408), 1)
+    assert astuple(first)[1:] == (
+        Decimal("6.68"),
+        astuple(costs),
+        Decimal(0),
+        (),
+        Decimal("408.255"),
+        1,
+    )
     #: five more bought after Friday's record, and a rate kept on the Saturday: neither is lost
     book.send(
         tmp_path, broker, Order("o-2", dollar, 5, Decimal(50), at["USD"], Decimal(45)), capital
@@ -213,8 +229,8 @@ def test_a_record_opens_from_what_the_last_one_closed_on_at_each_days_own_rate(
     with pytest.raises(ValueError, match="no USD rate kept for 2025-02-03"):  #: never Saturday's
         day.publish(tmp_path, archive, broker, capital, mon)
     second = day.run(tmp_path, archive, broker, capital, mon, {**at, "USD": Decimal("0.75")})
-    #: 780 dollars at 0.75 are 585 pounds: Friday's 408 are 390, 18 fewer; the five that cost
-    #: 200 pounds on Friday are 195, and their 1.06 of costs are in this record, the first to
-    #: count them
-    assert (second.profit, second.costs.total) == (Decimal("-24.06"), Decimal("1.06"))
+    #: 780 dollars at 0.75 are 585 pounds: Friday's 408.255 are 390, 18.255 fewer; the five
+    #: that cost 200.125 pounds on Friday are 195, 5.125 fewer, and their 1.061 of costs are in
+    #: this record, the first to count them
+    assert (second.profit, second.costs.total) == (Decimal("-24.44"), Decimal("1.06"))
     assert (second.worth, second.counted) == (Decimal(585), 2)
