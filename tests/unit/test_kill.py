@@ -58,6 +58,7 @@ def test_one_command_stops_new_orders_cancels_the_working_ones_and_says_so(tmp_p
     broker.cancel_stop("A")  #: a holding with no stop is named, never passed over
     bare = kill.pull(tmp_path, broker, LATER, "again")
     assert bare.differ == ("A",) and "NOT the broker's on A" in bare.words()
+    assert not kill.drilled(tmp_path, MON), "a pull or a release counted as a drill"
 
 
 def test_the_switch_is_on_before_the_broker_is_asked_so_a_dead_line_still_stops_the_desk(
@@ -76,9 +77,29 @@ def test_the_switch_is_on_before_the_broker_is_asked_so_a_dead_line_still_stops_
     assert broker.submitted() == ("o-1", "o-2")
 
 
-def test_a_drill_that_keeps_every_promise_is_on_the_record_for_a_month_and_no_other_is(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+CANCEL = Pretend.cancel
+
+
+@pytest.mark.parametrize(
+    ("cancel", "broken"),
+    [  #: a broker that cancels nothing; one that names the order and leaves it working;
+        (lambda _: (), ("was cancelled", "never filled")),  #: and one that takes the stops too
+        (lambda broker: tuple(broker._working), ("never filled", "stop still rests")),
+        (lambda broker: broker._stops.clear() or CANCEL(broker), ("stop still rests", "again")),
+    ],
+)
+def test_a_drill_at_a_broker_that_breaks_a_promise_names_it_and_is_not_on_the_record(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, cancel: object, broken: tuple[str, ...]
 ) -> None:
+    monkeypatch.setattr(Pretend, "cancel", cancel)
+    with pytest.raises(kill.Failed) as failed:
+        kill.drill(tmp_path, NOW)
+    words = str(failed.value)
+    assert all(promise in words for promise in broken) and "refused" not in words, words
+    assert not kill.drilled(tmp_path, MON) and not list(tmp_path.iterdir()), "recorded as a drill"
+
+
+def test_a_drill_that_keeps_every_promise_is_on_the_record_for_a_month(tmp_path: Path) -> None:
     assert not kill.drilled(tmp_path, MON)
     kept = kill.drill(tmp_path, NOW)
     assert len(kept) == 8 and all("DRILL" not in promise for promise in kept)
@@ -87,7 +108,3 @@ def test_a_drill_that_keeps_every_promise_is_on_the_record_for_a_month_and_no_ot
     assert [day for day in range(-1, 33) if kill.drilled(tmp_path, MON + timedelta(day))] == list(
         range(32)
     ), "a drill counts from its own day for 31 more"
-    monkeypatch.setattr(Pretend, "cancel", lambda _: ())  #: a broker that cancels nothing
-    with pytest.raises(kill.Failed, match="cancelled.*never filled"):
-        kill.drill(tmp_path / "broken", NOW)
-    assert not kill.drilled(tmp_path / "broken", MON), "a broken drill was recorded as a drill"

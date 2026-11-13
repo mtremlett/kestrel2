@@ -112,7 +112,7 @@ def _rehearse(desk: Path, at: datetime) -> dict[str, bool]:
         book.send(desk, broker, buy("drill-working", working), room)
     said = pull(desk, broker, at, "the drill")
     orders = (buy("drill-buy", new), Sale("drill-sale", held, 10))
-    refused = [_refused(desk, broker, order, room) for order in orders]
+    answers = [_answer(desk, broker, order, room) for order in orders]
     reached = broker.submitted()
     broker.open(days[1])
     still = ((held.symbol, 10),)
@@ -120,20 +120,20 @@ def _rehearse(desk: Path, at: datetime) -> dict[str, bool]:
     release(desk, at, "the drill is over")
     return {
         "the order left working was cancelled, and named": said.cancelled == ("drill-working",),
-        "a new buy was refused, the switch given as the reason": refused[0],
-        "a sale was refused, the switch given as the reason": refused[1],
+        "a new buy was refused, the switch given as the reason": "kill switch" in answers[0],
+        "a sale was refused, the switch given as the reason": "kill switch" in answers[1],
         "nothing more reached the broker": reached == ("drill-held", "drill-working"),
         "the cancelled order never filled": after[0] == still == said.held,
         "the stop still rests for the shares held": after[1:] == (still, ()) and not said.differ,
         "the desk said so": all(word in said.words() for word in ("ON", "drill-working")),
-        "released, the desk sends again": book.send(desk, broker, orders[0], room).filled == 10,
+        "released, the desk sends again": _answer(desk, broker, orders[0], room) == "sent",
     }
 
 
-def _refused(desk: Path, broker: Broker, order: Order | Sale, room: Settings) -> bool:
-    """The send path refused the order, and gave the kill switch as its reason."""
+def _answer(desk: Path, broker: Broker, order: Order | Sale, room: Settings) -> str:
+    """What the send path did with the order: "sent", or its refusal in its own words."""
     try:
         book.send(desk, broker, order, room)
     except Refused as refusal:
-        return "kill switch" in str(refusal)
-    return False
+        return str(refusal)
+    return "sent"
