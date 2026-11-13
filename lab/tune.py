@@ -15,9 +15,10 @@ taking more than the threads left to them, it starts one worker fewer, never few
 with room it steps back up by one. The workers' own load is no reason to back off.
 
 A batch is cut from the front of the work, eight cells at first and then as many as fit half
-a worker's share at the memory the last batch measured per cell, so a worker reads only its
-own cells' bars, never the whole universe. A worker that dies has its batch halved and run
-again until the one cell that kills it stands alone, and that one is reported.
+a worker's share at the memory the last batch measured per cell, and no more than its part
+of what is left, so a worker reads only its own cells' bars, never the whole universe. A
+worker that dies has its batch halved and run again until the one cell that kills it stands
+alone, and that one is reported.
 
 While a pass runs it keeps `autotune.json` in the data folder as busy with the time, and as
 not busy when it ends; the runner starts fewer sessions meanwhile. Each pass appends one
@@ -159,11 +160,12 @@ class _Pass(Generic[T]):
         spawn = multiprocessing.get_context("spawn")
         while self.waiting and len(self.running) < self.allowed:
             first = self.waiting.pop(0)
-            if first[self.size :]:
-                self.waiting.insert(0, first[self.size :])
-            worker = spawn.Process(target=self.work, args=(first[: self.size],))
+            cut = min(self.size, -(-len(first) // max(1, self.threads - 1)))  # a worker's part
+            if first[cut:]:
+                self.waiting.insert(0, first[cut:])
+            worker = spawn.Process(target=self.work, args=(first[:cut],))
             worker.start()
-            self.running[worker] = first[: self.size]
+            self.running[worker] = first[:cut]
             self.machine.hold(worker)
             self.batches += 1
         self.most_workers = max(self.most_workers, len(self.running))

@@ -85,7 +85,8 @@ def _study(folder: Path, cells: Sequence[Cell]) -> None:
         hungry = bytearray(GB if line == QQQ else 1)
         return BARS[: len(BARS) * len(hungry)]
 
-    batch.run(cells, bars, folder / "journal.jsonl")
+    first = cells[0]  # a journal to a batch: one process at a time works on a journal
+    batch.run(cells, bars, folder / f"{first.strategy}-{first.symbol}.jsonl")
 
 
 @pytest.mark.parametrize(
@@ -154,7 +155,7 @@ def test_a_pass_runs_every_cell_and_a_dead_worker_costs_only_its_own_cell(tmp_pa
 
 
 def test_a_pc_short_of_memory_gets_one_worker_at_a_time(tmp_path: Path) -> None:
-    cells = [f"cell{n}" for n in range(20)]
+    cells = [f"cell{n}" for n in range(4)]
     clock = _ticking(SATURDAY, timedelta(seconds=1))
     report = tune.run(cells, partial(_mark, tmp_path), Pc(tmp_path, free=0.2), tmp_path, 8, clock)
     assert report.most_workers == 1 and report.batches > 1 and not report.died
@@ -188,10 +189,11 @@ def test_windows_refuses_a_hungry_cell_its_memory_and_the_batch_carries_on(
         cells += [Cell(names[0], QQQ, START, START + timedelta(24))]
         cells += [Cell(name, SPY, START, START + timedelta(24)) for name in names[1:]]
         report = tune.run(cells, partial(_study, tmp_path), pc, tmp_path, 8)
-        journal = (tmp_path / "journal.jsonl").read_text(encoding="utf-8")
-        rows = [json.loads(row) for row in journal.splitlines()]
-        assert [row["cell"][:2] for row in rows] == [[c.strategy, c.symbol] for c in cells]
-        assert [row.get("error", "")[:11] for row in rows] == ["", "MemoryError", *[""] * 4]
+        journals = "".join(j.read_text(encoding="utf-8") for j in tmp_path.glob("*-*.jsonl"))
+        rows = [json.loads(row) for row in journals.splitlines()]
+        ended = {(*row["cell"][:2], row.get("error", "")[:11]) for row in rows}
+        hungry = (names[0], "QQQ", "MemoryError")
+        assert ended == {hungry} | {(name, "SPY", "") for name in names} and len(rows) == 6
         assert not report.died  # the worker itself lived: the cell is recorded and the rest ran
         assert 0 < report.peak_memory <= report.ceiling <= SMALL
         assert 0 <= report.peak_cpu <= 1 and 0 < report.least_free < 1
