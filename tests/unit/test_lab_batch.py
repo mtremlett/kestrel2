@@ -121,6 +121,9 @@ def test_only_a_cell_whose_bars_changed_is_run_again(tmp_path: Path, ran: list[C
     again = batch.run(cells, _reader(spy=mended), journal)
     assert ran == [*cells, CELLS[0]], "only the cell that read the change is run again"
     assert again == (cell.run(CELLS[0], mended), first[1]) and again[0] != first[0]
+    del ran[:]
+    assert batch.run(cells, _reader(), journal) == first and ran == []  # the bars back: found
+    assert _lines(journal)[-1] == _lines(journal)[0], "a cell's last line is not its outcome"
 
 
 def test_one_symbol_is_two_companies_each_read_from_its_venues_folder(

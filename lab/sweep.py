@@ -100,7 +100,7 @@ def _tally(
 ) -> Pass:
     """The pass counted from each cell's last line in its journal, which is its outcome
     now: failed, or a record, run in this pass unless the journal held it before. A cell the
-    pass wrote no line for, on a ticker whose worker died, is undone."""
+    pass wrote no line for, on a ticker whose worker died, is undone; so is one with no line."""
     fates: Counter[str] = Counter()
     for (line, group), had in zip(todo.items(), before, strict=True):
         rows = batch.rows(journal(kept, line))
@@ -108,7 +108,7 @@ def _tally(
         last = {tuple(row["cell"]): (n >= had, row) for n, row in enumerate(rows)}
         for name in (tuple(batch.row(todo)) for todo in group):
             new, row = last.get(name, (False, {}))
-            if line in report.died and not new:
+            if not row or (line in report.died and not new):
                 fates["undone"] += 1
             elif "error" in row:
                 fates["failed"] += 1
@@ -213,8 +213,8 @@ def main(argv: Sequence[str]) -> None:
     """One pass over the research list from the archive's first day to today, its count
     written out; or, given a number of days, the week."""
     parser = argparse.ArgumentParser(description="the grid's pass, or its week")
-    for name in ("store", "kept", "data"):
-        parser.add_argument(name, type=Path)
+    for name in ("store", "kept", "data"):  # absolute: a pass's process starts elsewhere
+        parser.add_argument(name, type=lambda folder: Path(folder).resolve())
     parser.add_argument("--days", type=float, default=0)
     args = parser.parse_args(argv)
     if args.days:

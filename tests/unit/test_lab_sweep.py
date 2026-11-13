@@ -105,6 +105,8 @@ def test_a_ticker_whose_worker_dies_is_named_and_the_rest_are_kept(
     assert (done.cells, done.ran, done.kept, done.failed) == (4 * EACH, 2 * EACH, 0, EACH + 2)
     assert len(batch.rows(sweep.journal(tmp_path / "kept", ABSENT))) == EACH  # written once
     assert done.undone == EACH - 2, "the dead ticker's cells with no outcome are counted so"
+    again = _pass(tmp_path, (FATAL,))  # it fails the same way and dies: no line is written
+    assert (again.failed, again.undone, again.report.died) == (0, EACH, (FATAL,))
 
 
 def test_a_backward_window_or_a_ticker_listed_twice_runs_no_pass(tmp_path: Path) -> None:
@@ -154,7 +156,7 @@ def test_a_week_is_pass_after_pass_and_its_log_shows_how_long_without_stopping(
     sweep.week(once, tmp_path, 2, lambda: now[0], wait)
     assert now[0] == SATURDAY + timedelta(days=2), "the week waited on after its last pass"
     assert sweep.unbroken(tmp_path) == timedelta(hours=31, minutes=25)  # up to the idle pass
-    now[0] += timedelta(hours=5)  # the PC off for five hours, then the week started again
+    now[0] += timedelta(hours=1)  # the PC off for an hour, then the week started again
     sweep.week(once, tmp_path, 3, lambda: now[0], wait)
     rows = batch.rows(tmp_path / sweep.WEEK)
     assert rows[0] == {
@@ -165,5 +167,5 @@ def test_a_week_is_pass_after_pass_and_its_log_shows_how_long_without_stopping(
     assert (len(rows), rows[60]["error"]) == (118, "OSError: no store")
     assert waits[8:11] == [55 * 60, 0, 55 * 60], "a pass starts on the hour, or as the last ends"
     assert rows[10]["started"] == rows[9]["ended"]
-    # an idle pass, five hours off, half a day, a failed pass, then the longest run of all
+    # an idle pass, an hour off, half a day, a failed pass, then the longest run of all
     assert sweep.unbroken(tmp_path) == timedelta(hours=56, minutes=5)
