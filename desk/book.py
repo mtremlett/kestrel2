@@ -46,7 +46,7 @@ def send(root: Path, broker: Pretend, order: Order, settings: Settings) -> Sent:
             report = broker.place(order)
         except Disconnected as lost:  #: never received: stated, and sent again next time
             return Sent(order.order_id, 0, str(lost))
-    _record(root, report.fills)
+    collect(root, broker)  #: a stop sold on the day of its buy is in no answer
     return Sent(order.order_id, sum(fill.quantity for fill in report.fills), report.reason)
 
 
