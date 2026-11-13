@@ -86,11 +86,29 @@ everything on main, so two green lanes cannot combine into a red main.
 
 ## MONEY
 
-Last updated: 13 November 2026.
+Last updated: 13 November 2026 (the one comparison).
 
 ### Where it is
 
-The desk now checks its book against the broker's before every order (`book.reconcile`, on
+The desk now has one rule for "is the book the broker's?" (`book.differences`), which the
+paper lane asked for (R-PAPER-1) so the pretend broker and the real paper account are judged
+alike. It sets the book beside what a broker says it holds, entry by entry. Every entry must
+be the book's own shares of that line; entries that only add up to them are named, a line
+the book holds and the broker does not list is named, and a line the broker lists at no
+shares is not a holding. One thing is stricter than the paper door's rule was: a line held
+in two entries is never the book's, so two accounts each holding the book's shares can no
+longer read as clean. The same rule judges the stops resting at the broker. Reconciliation
+before every order (`book.reconcile`, `book.send`) now asks it, and over the rehearsal's
+fourteen months the desk trades exactly as before: the same 68 fills and 34 round trips,
+with and without every first order rejected. The paper door keeps its own copy of the rule
+until the paper lane moves it onto this one (asked below). Its test was seen failing
+first. A blind review found nothing blocking: it checked the rule on 210,525 made-up
+accounts against its own statement of it, without one wrong answer either way, and set the
+old reconciliation against the new over 8,000 random runs with every fault, without one
+difference. Sixty-seven deliberate breaks were driven, its and the lane's: seven gaps in
+the tests were found, each now closed and caught, and four breaks cannot change any answer.
+
+The desk checks its book against the broker's before every order (`book.reconcile`, on
 the send path, so nothing goes round it). Line by line it sets the shares its ledger adds up
 to beside the shares the broker reports and the stop resting there, and names each line
 that differs: a position bought or sold by hand, or a stop cancelled. While any line
@@ -180,7 +198,12 @@ caught; the forty-fifth cannot change a decision.
 
 ### Next step
 
-The kill switch and its drill, by his ruling of 13 November that it comes first: the paper
+First the paper lane's other blocking request (R-PAPER-2): the send path and the day run
+accept any broker that behaves as the pretend one does, not the pretend one by name. That
+broker should give its holdings and its resting stops as entries, a name and its shares
+each, so a real account's rows reach `book.differences` whole and are never added together
+on the way. Then the kill switch and its drill, by his ruling of 13 November that it comes
+first of the lane's own book: the paper
 lane sends no order until it is drilled, and nothing the money lane waits for holds it up.
 Then the costs whole in the one cost model (`desk/orders.py`): what a sale itself costs, and
 spread and slippage on both legs, the stop's sale included, each a stated assumption; the
@@ -190,6 +213,25 @@ holding the market earned. It needs each line's UK tax from the data lane (below
 6's test must move onto the fourteen months and check the book against the broker's every
 day: no rule holds anything at the end of the rehearsal data, on its six weeks or on the
 whole of it, so "the broker holds something" cannot be read there.
+
+### Done for other lanes
+
+- R-PAPER-1: done in this pull request
+
+### Requests to PAPER
+
+- [ ] R-MONEY-4 (later, opened 2026-11-13 18:35 UK): `paper.differences` asks `book.differences` and
+  drops its own comparison, so the rule has one home in fact. It hands over the book and the
+  account's entries under one name each, and words what comes back:
+  `book.differences({f"{s} STK {line.currency}": n ...}, [(f"{h.symbol} {h.kind} {h.currency}", h.shares) ...])`
+  gives a `Difference(name, broker, book)` for each entry that is not the book's, in the
+  order the door names them today. The orders stay the door's own. The blind review built
+  exactly this in a copy: all forty of the door's tests pass unchanged. Two things change,
+  both safer: two entries that are each the book's shares, clean today, are named; and an
+  entry that matches the book beside another entry with shares is named too, so it reads
+  "the broker holds 25, the desk's book 25". A name that comes back more than once is held
+  in more than one entry: the door should say so in its sentence. The name must keep the
+  kind and the currency, or another product under the same symbol would read as the book's.
 
 ### Requests to DATA
 
@@ -233,8 +275,6 @@ whole of it, so "the broker holds something" cannot be read there.
     the ledger is written again whole, in silence. Reconciliation sees only a change with
     no fill behind it. At a real broker, which gives recent fills only, a lost ledger would
     name every held line and stop the buying.
-  - A stop resting for the wrong number of shares on a line whose shares agree cannot be
-    made at the pretend broker, so "exactly the shares held" is tested only as "no stop".
   - A gate refusal of a sale during the day (selling more than the book holds) is now one
     of the day's answers and no longer stops the day. It cannot arise today.
   - **For the paper adapter (phase 3):** the broker's fills must be the desk's own orders
@@ -243,6 +283,19 @@ whole of it, so "the broker holds something" cannot be read there.
     positions that lag fills would each read as a mismatch and stop the morning's buying,
     so reconciliation there needs the broker's working orders; a dropped connection while
     reading positions or stops is not yet a stated answer, only in placing an order.
+- **What the blind review of the one comparison left** (nothing blocking; its six test
+  gaps taken, a stop for fewer shares than the line holds among them, which the pretend
+  broker can make after all):
+  - The send path reads the broker's holdings twice, once to name the lines that differ and
+    once to ask whether the order's own line does. At the pretend broker those are one
+    moment; at a real one they are two. When any broker can stand behind the send path
+    (R-PAPER-2), it should read once and judge both from that reading.
+  - A line the broker lists at no shares, which the book does not hold, no longer makes a
+    sale of that line "unsure". The pretend broker lists no such line; right for a real one.
+  - Two breaks no test can see at the pretend broker: a stop resting on a line the book
+    does not hold (the book learns of every fill, so it always holds it), and a sale of a
+    line only the broker holds (the gate refuses it anyway). The rule itself is tested on
+    both; a real broker's adapter needs its own test of each.
 - **What the blind review of the book left** (nothing blocking; its fix and test gap taken):
   - The book reaches the gate as a bare mapping of line to shares. Only the send path
     passes the real book; a typed book that only `book.positions` can make would stop a

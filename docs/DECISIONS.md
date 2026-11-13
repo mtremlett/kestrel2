@@ -1368,6 +1368,63 @@ tightened. The blind review, which ran 400 random runs of its own (20,907 orders
 fault) without one false mismatch, found nothing blocking; what it left is in
 `docs/STATUS.md`.
 
+### 2026-11-13 — one rule for "is the book the broker's?", for every broker
+
+**Decided**, by the lane as the desk's mentor (no one watching), on the paper lane's request
+R-PAPER-1: the comparison of the desk's book with a broker's holdings has one home,
+`book.differences`, and reconciliation (`book.reconcile`, `book.send`) is rebuilt on it.
+
+1. **What it is handed: the book, and the broker's entries, each a name and its shares.**
+   Options were (a) the pretend broker's own answer, one number a line, which a real
+   account's rows would have to be added together to fit, the very fault the paper lane's
+   blind review found; (b) a typed holding carrying the real broker's own words (its kind
+   of product, its currency), which puts one broker's language in the core and means
+   nothing at the pretend one; (c) plain entries, each named by the door that read them in
+   the same words it names the book's lines in. Chosen (c): the paper door names an entry
+   by its symbol, kind and currency, the pretend broker by its symbol, and the rule itself
+   knows no broker.
+2. **Entry by entry, never added up.** Taken whole from the paper lane's rule: each entry
+   must itself be the book's shares; a line the book holds and the broker does not list is
+   named at no shares; a line listed at no shares is no holding.
+3. **A line with shares in two entries is never the book's.** The paper door's rule passed
+   two entries that were each the book's shares, which is what two accounts each holding
+   the line would look like: twice the book, read as clean. Options were to carry the rule
+   over exactly as it stood, or to close this while it was being given its one home.
+   Chosen: close it. The book holds a line once. Zero entries do not count as a second
+   place, so every case the paper door's tests hold today comes out as before.
+4. **The resting stops go through the same rule.** "The stop is for exactly the shares
+   held" is the same comparison with the stops as the entries, so reconciliation asks one
+   rule twice and has none of its own. When the paper door is taught the desk's own stops,
+   it can hand them to the same rule.
+5. **What comes back: one typed difference for each entry that is not the book's**, with
+   the name, the broker's shares and the book's. Reconciliation keeps the names, as scene 6
+   reads them; the paper door can word its sentences from the same record.
+6. **The paper door's own comparison stays until the paper lane moves it** (its file, asked
+   as R-MONEY-4). Until then the rule is written twice; after it, once.
+7. **The other blocking request (R-PAPER-2, any broker behind the send path) is the next
+   session's**, not folded into this one: one objective a session. It should have a broker
+   give its holdings and stops as entries, so a real account's rows reach this rule whole.
+
+**Evidence.** The contract test was seen failing first (`book.differences` did not exist).
+Run from outside the repository, the old book and the new traded the rehearsal's fourteen
+months to the same 68 fills, 34 round trips and every order's answer, with and without each
+line's first order rejected. A blind review found nothing blocking. It set the rule against
+its own separate statement of it on 210,525 accounts of up to three entries (whole, short,
+fractional and zero shares): no disagreement passed as clean and no agreement was named. It
+ran the old reconciliation and the new side by side over 8,000 random runs at the pretend
+broker with every fault, hand trades and cancelled stops: no difference in any answer,
+ledger or refusal. And it rebuilt the paper door on the rule in a copy: all forty of the
+door's tests passed unchanged, and of 83,793 accounts none became less safe (23 false
+cleans, all "two entries each the book's", became named). Sixty-seven deliberate breaks were
+driven in copies outside the repository, with Python's cache off: forty-three by the lane
+(thirty-nine caught at once, two gaps closed, two that cannot differ) and twenty-four by
+the review (eight survived: six gaps, one of them found by the lane too, each closed and
+caught; two that cannot differ at the pretend broker). The seven gaps were a one-share
+line, a zero entry beside two that cancel, the lines named out of order, a stop for fewer
+shares than held, entries given as a stream that can be read once, a matching entry beside
+a wrong one, and a line listed only at no shares. What the review left is in
+`docs/STATUS.md`.
+
 ## DATA
 
 ### 2026-11-13 — the fourteen months are built; the scenes move onto them in two steps
