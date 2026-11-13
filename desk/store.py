@@ -40,7 +40,9 @@ BLIP = 20
 #: with no volume, is a frozen feed, not a market: the twenty lines' longest real run since 2010
 #: is three sessions (2MU, December 2022). Its bars are dropped and listed.
 FROZEN = 5
-UNITS = (Decimal(100), Decimal("0.01"))
+#: A price at least this many times, or this fraction of, its neighbour's close is in another
+#: unit (pence among pounds is 100), however far a market moves: a hundredfold, less a jump.
+FAR = 100 / JUMP
 UNRECORDED = "a gap in the archive, or a suspension the line does not record"
 ASTRAY = "is out of line with the days either side: a wrong unit"
 COLUMNS = ("day", "open", "high", "low", "close", "volume")
@@ -123,6 +125,13 @@ def _agree(line: Line, before: Bar, after: Bar) -> bool:
     return near(after, before.close) and near(before, after.close)
 
 
+def _far(bar: Bar, close: Decimal) -> bool:
+    """Some price of the bar sits in another unit from close: no market moves that far."""
+    return any(
+        p >= close * FAR or p * FAR <= close for p in (bar.open, bar.high, bar.low, bar.close)
+    )
+
+
 def _stray(at: int, links: Sequence[bool]) -> bool:
     """A bar out of line with every neighbour, where links[n] says bars n and n+1 agree. A bar
     at either end is a stray only if its one neighbour agrees with the bar beyond it; with two
@@ -136,21 +145,22 @@ def _stray(at: int, links: Sequence[bool]) -> bool:
 
 
 def _priced(line: Line, sound: Sequence[Bar], faults: list[Fault]) -> list[Bar]:
-    """Drop a bar, or a short run of bars, out of line with the days either side; keep a
-    lasting step in the price, but as a fault, until the line records it as a real move."""
+    """Drop a bar, or a short run of bars, a hundredfold out of line with the days either side;
+    keep any other move, a one-day crash too, but as a lasting fault, until the line records
+    it as a real move."""
     links = [_agree(line, a, b) for a, b in zip(sound, sound[1:], strict=False)]
     kept: list[Bar] = []
     resume = 0
     for at, bar in enumerate(sound):
         if at < resume:
             continue
-        if _stray(at, links):
+        if _stray(at, links) and _far(bar, sound[at - 1 if at else 1].close):
             faults.append(Fault(bar.day, f"{bar.day} {ASTRAY}"))
             continue
         if kept and not _agree(line, kept[-1], bar):
-            unit = any(u / JUMP <= bar.close / kept[-1].close <= u * JUMP for u in UNITS)
+            unit = _far(bar, kept[-1].close)
             ahead = range(at + 1, min(at + 1 + BLIP, len(sound)) if unit else at + 1)
-            resume = next((n for n in ahead if _agree(line, kept[-1], sound[n])), at)
+            resume = next((n for n in ahead if not _far(sound[n], kept[-1].close)), at)
             for odd in sound[at:resume]:
                 faults.append(Fault(odd.day, f"{odd.day} {ASTRAY}"))
             if resume > at:

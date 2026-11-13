@@ -287,11 +287,23 @@ record". A bar the archive gives on a recorded day is refused, and a day its ven
 trade cannot be recorded. None of the twenty has a suspension today. Tests seen failing
 first; four deliberate breaks each caught.
 
+A real one-day crash is no longer thrown away as "a wrong unit". Only a bar, or a short run,
+with a price a hundredfold out of line with its neighbour (pence among pounds) is dropped as
+bad data; any other move out of line, even for one day, is kept in the history and parks the
+line, however old, until each of its closes is recorded on the line (`Line.real_moves`), as a
+step in the price already did. On the real archive this kept 5QQQ's crash of 7 April 2025
+(the tariff sell-off: down 40% at the low, half won back the next day), which the store had
+been dropping; the same four lines park as before, and no clean line is touched. A crash
+straight after days in the wrong unit is now kept too. Tests seen failing first; seven
+deliberate breaks each caught; a blind review, nothing blocking, its one finding of the
+same kind fixed.
+
 ### Next step
 
 Move the scenes onto the whole fourteen months - one line, `SCENES_FROM = FIRST` - as soon
 as the money lane's scene 2 counts each line's own days (not yet, at #30). Meanwhile: the
-store's next open finding, below: a one-day crash dropped as a wrong unit.
+store's next open finding, below: a stretched bar's new high or low recorded as differing
+from the archive's.
 
 ### Asked of the money lane
 
@@ -333,8 +345,6 @@ store's next open finding, below: a one-day crash dropped as a wrong unit.
   of days in the wrong unit taken as a lasting step - is fixed and tested; the first fix
   dropped 2MU's real December 2024 crash as bad days, so a run is now bad days only when it
   sits a hundredfold out):
-  - A single day out of line with both neighbours is still dropped as a wrong unit, at any
-    size: a real one-day crash that recovers the next day would be lost from the history.
   - A stretched bar's new high or low is not recorded anywhere as differing from the
     archive's.
   - A line's bars and its fault record are swapped in one after the other, so a crash
@@ -373,6 +383,11 @@ store's next open finding, below: a one-day crash dropped as a wrong unit.
   - An answer of an unknown shape (a missing field) stops the whole fetch, by design: it
     would hit every line alike.
   - Nothing in the product calls `archive.gather` yet; the day run (phase 2) will.
+- **What the blind review of the one-day crash left open:**
+  - A bad print of a size other than a hundredfold (a tenth, a decimal slip) is now kept
+    and parks its line however old, and the only way out, `Line.real_moves`, records real
+    moves: there is no record of a known bad day. None of the twenty has one today.
+  - No test pins the hundredfold margin itself (62.5 times) on either side.
 - **What the blind review of the frozen feed left open:**
   - A freeze younger than five sessions is not caught: up to four days of a stale price
     can be traded on. Lowering the five would park real lines (2MU has runs of three).
