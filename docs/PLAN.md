@@ -270,6 +270,9 @@ back clean, and the check has been taught the desk's own resting stops. The acco
 old desk's (his ruling, 13 November), reached through IB Gateway's paper port 4002 on his
 PC with the desk's own client id (222), never 4001.
 
+- [ ] No paper order before the kill switch is drilled, held by the code: the adapter's
+      send refuses unless a drill record of the kill switch from the last 31 days exists,
+      and a contract test proves the refusal
 - [ ] The Gateway known before any order: its daily restart and the weekly re-login handled
       unattended. A re-login that needs his phone or password is his: a reminder line at the
       right time, never a workaround. The old desk's gateway alarms are a quarry only. (The
