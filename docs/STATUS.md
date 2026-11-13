@@ -472,6 +472,12 @@ account check should be run again on a second day before the first order.
   any broker with `Pretend`'s interface, not `Pretend` by name, so the paper adapter can
   stand behind them.
 
+### Done for other lanes
+
+- R-DATA-5: done in #53 for its first half (every `Line(...)` in this lane's tests states
+  its UK tax). Its second half stays open with the conformance trades: what the contract
+  note of the first London product bought says of stamp duty.
+
 ### Requests to DATA
 
 - [ ] R-PAPER-3 (later, opened 2026-11-13 18:55 UK): each line's ISIN as a fact on the line
