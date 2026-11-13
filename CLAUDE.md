@@ -24,8 +24,8 @@ advances no scene needs a reason in `docs/PLAN.md`.
    from the plan and the test that will prove it.
 2. **During.** That objective only. Follow the canon's workflow and its stop rules.
 3. **End.** Update `docs/STATUS.md`, append one line to `docs/SCOREBOARD.md`, commit,
-   push the branch, open or update the pull request, merge it when its check is green,
-   and give the operator five lines.
+   push the branch, open or update the pull request with auto-merge armed, and give the
+   operator five lines.
 
 ## The commands
 
@@ -35,9 +35,9 @@ advances no scene needs a reason in `docs/PLAN.md`.
 
 ## How code reaches main
 
-Branch, push, open a pull request, let GitHub run the check. When `check` is green on the
-pull request's last commit, the session merges it itself (`gh pr merge --squash`); the
-operator does not approve merges (his ruling, `docs/DECISIONS.md`). Main refuses a direct
+Branch, push, open a pull request, and arm auto-merge (`gh pr merge --squash --auto`):
+GitHub merges it the moment `check` is green on its last commit, with no one present. The
+operator does not approve merges (his rulings, `docs/DECISIONS.md`). Main refuses a direct
 push, a force-push and a merge whose check has not passed; GitHub enforces all three and
 each has been driven to prove it. Nothing merges red. There is no known-failing list.
 
