@@ -15,13 +15,16 @@ from collections import deque
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
-from decimal import Decimal
+from decimal import ROUND_HALF_EVEN, Context, Decimal, localcontext
 from enum import Enum
 from typing import Protocol
 
 from desk.store import Bar
 
 ZERO = Decimal(0)
+#: The one arithmetic every rule runs under, whatever the caller has set: 28 digits,
+#: halves to even. A different setting elsewhere cannot move a decision.
+ARITHMETIC = Context(prec=28, rounding=ROUND_HALF_EVEN)
 
 
 class Action(Enum):
@@ -174,8 +177,9 @@ class _Trend:
 
 class _Supertrend:
     """Seban's Supertrend at 10 days and 3 times the average true range (Wilder's), with
-    its bands carried as the common reference implementation carries them: buy a close
-    over yesterday's upper band; sell a close under yesterday's lower band."""
+    its bands carried as KivancOzbilgic's widely used TradingView script carries them, on
+    the middle of the day's range: buy a close over yesterday's upper band; sell a close
+    under yesterday's lower band."""
 
     def __init__(self) -> None:
         self._range = _Wilder(10)
@@ -186,7 +190,9 @@ class _Supertrend:
     def step(self, bar: Bar, holding: bool) -> bool:
         last, upper, lower = self._last, self._upper, self._lower
         if holding:
-            wants = lower is None or bar.close >= lower
+            if lower is None:
+                raise RuntimeError("supertrend: holding with no lower band, yet it bought")
+            wants = bar.close >= lower
         else:
             wants = upper is not None and bar.close > upper
         spread = bar.high - bar.low
@@ -225,9 +231,10 @@ def _run(name: str, rule: Rule, symbol: str, bars: Sequence[Bar]) -> Iterator[De
 
 def decide(bars: Mapping[str, Sequence[Bar]]) -> tuple[Decision, ...]:
     """A decision from every strategy for every line and every day the bars cover."""
-    return tuple(
-        decision
-        for symbol, series in bars.items()
-        for name, make in STRATEGIES.items()
-        for decision in _run(name, make(), symbol, series)
-    )
+    with localcontext(ARITHMETIC):
+        return tuple(
+            decision
+            for symbol, series in bars.items()
+            for name, make in STRATEGIES.items()
+            for decision in _run(name, make(), symbol, series)
+        )

@@ -6,7 +6,7 @@ from __future__ import annotations
 import random
 from collections.abc import Sequence
 from datetime import date, timedelta
-from decimal import Decimal
+from decimal import ROUND_FLOOR, Context, Decimal, localcontext
 
 import pytest
 
@@ -82,26 +82,58 @@ def test_trend_does_not_buy_a_cross_it_never_saw() -> None:
 
 def test_supertrend_buys_a_close_over_its_upper_band_and_sells_one_under_its_lower() -> None:
     #: ten days with a true range of 2: bands 94 and 106. Day 10 closes 110 > 106 and buys;
-    #: its lower band becomes 110 - 3 x 2.9 = 101.3, and day 11's close of 100 sells
-    bars = _bars([100] * 10 + [110, 100, 100], reach=1)
-    assert _trades("supertrend_10_3", bars) == [(10, Action.BUY), (11, Action.SELL)]
+    #: its lower band becomes 110 - 3 x 2.9 = 101.3. Day 11 closes on it exactly and holds;
+    #: the band is carried, as the close before was above it, and day 12's 100 sells
+    bars = _bars([100] * 10 + [110, 101.3, 100], reach=1)
+    assert _trades("supertrend_10_3", bars) == [(10, Action.BUY), (12, Action.SELL)]
+
+
+def test_rsi2_does_not_buy_a_close_exactly_on_its_200_day_average() -> None:
+    #: a climb, then a fall of 300 to 110: RSI(2) 2.2, but the 200 days to day 209 sum to
+    #: 22,000, so the average is 110 too, and "above" is not met
+    bars = _bars([100] * 200 + [150, 200, 250, 300, 350, 410, 410, 410, 410, 110])
+    assert _trades("rsi2_pullback", bars) == []
+
+
+def test_the_callers_arithmetic_cannot_move_a_decision() -> None:
+    bars = {"A": _walk(5, 1200)}
+    with localcontext(Context(prec=3, rounding=ROUND_FLOOR)):
+        coarse = strategy.decide(bars)
+    assert coarse == strategy.decide(bars)
 
 
 def _walk(seed: int, days: int) -> tuple[Bar, ...]:
-    """A random walk of trends and pullbacks, in pence, so that every strategy trades."""
+    """A random walk of trends and pullbacks, so that every strategy trades. Prices sit on
+    a 25p tick, so a close often equals a band or an old high exactly; each day's open,
+    high and low fall unevenly about its close, so a rule reading the wrong one is seen."""
     rng = random.Random(seed)  # noqa: S311 - a repeatable test walk, not a secret
-    cents, drift, closes = 10_000, 0, []
+    ticks, drift, out = 400, 0, []
     for n in range(days):
         if n % 150 == 0:
-            drift = rng.choice((-40, 40))
-        cents = max(1_000, cents + drift + rng.randint(-250, 250))
-        closes.append(cents / 100)
-    return _bars(closes, reach=1)
+            drift = rng.choice((-2, 2))
+        ticks = max(40, ticks + drift + rng.randint(-10, 10))
+        up, down = rng.randint(0, 8), rng.randint(0, 8)
+        close, high, low = (Decimal(t) / 4 for t in (ticks, ticks + up, ticks - down))
+        open_ = Decimal(ticks + rng.randint(-down, up)) / 4
+        out.append(Bar(START + timedelta(n), open_, high, low, close, 1000))
+    return tuple(out)
+
+
+def _jumpy(seed: int, days: int = 80) -> tuple[Bar, ...]:
+    """A short walk in whole pounds with jumps, so a close can land on a band exactly."""
+    rng = random.Random(seed)  # noqa: S311 - a repeatable test walk, not a secret
+    close, out = 100, []
+    for n in range(days):
+        close = max(10, close + rng.randint(-6, 6))
+        high, low = close + rng.randint(0, 3), close - rng.randint(0, 3)
+        price, top, bottom = Decimal(close), Decimal(high), Decimal(low)
+        out.append(Bar(START + timedelta(n), price, top, bottom, price, 1000))
+    return tuple(out)
 
 
 @pytest.mark.parametrize("seed", [1, 2, 3])
 def test_no_strategy_sees_a_bar_after_the_day_it_decides(seed: int) -> None:
-    bars = {"A": _walk(seed, 1200), "B": _walk(seed + 10, 1100)}
+    bars = {"A": _walk(seed, 1200), "B": _walk(seed + 20, 1100)}
     every = strategy.decide(bars)
     for name in strategy.STRATEGIES:
         for symbol in bars:
@@ -117,29 +149,81 @@ def test_no_strategy_sees_a_bar_after_the_day_it_decides(seed: int) -> None:
         assert set(strategy.decide(blind)) == {d for d in every if d.day in seen}
 
 
-#: Every day each strategy moves on walk 1, alternately a buy and a sell. Found identical, on
-#: four walks, by a second implementation written apart from the desk's from the same
-#: textbook rules (13 November 2026), so a changed setting or formula moves these days.
+#: Every day each strategy moves on these series, alternately a buy and a sell. Found
+#: identical, on sixty walks and these, by a second implementation written apart from the
+#: desk's from the same textbook rules (13 November 2026). Walks 5, 9, 29 and 36 and the
+#: two jumpy series are each the first found to show a wrong rule the others missed: a
+#: window a day off, Wilder's seed, the band's price or carry, or a tie broken wrongly.
 GOLDEN = {
-    "rsi2_pullback": (
-        "541 544 553 555 580 583 609 613 617 625 820 821 904 906 913 920 975 986 1097 1099"
-    ),
-    "bollinger_pullback": (
-        "37 74 131 169 209 232 244 292 298 311 616 677 713 723 904 927 943 959 975 1004 "
-        "1027 1038 1097 1104 1122 1124"
-    ),
-    "breakout_20_10": (
-        "90 112 181 200 364 373 418 428 453 499 523 540 559 579 596 616 683 692 751 904 "
-        "1042 1091 1125"
-    ),
-    "trend_50_200": "482 657 788 995 1090",
-    "supertrend_10_3": (
-        "91 131 181 208 365 374 423 429 470 542 558 615 683 692 753 912 929 943 1014 1027 1041"
-    ),
+    "walk 1": {
+        "rsi2_pullback": "455 458 480 484 505 507 886 889 914 921 937 942 966 970",
+        "bollinger_pullback": (
+            "21 127 129 149 202 208 478 494 502 588 592 682 699 757 917 931 936 956 965 977 "
+            "985 1018 1052 1087 1095 1111"
+        ),
+        "breakout_20_10": "152 201 228 423 430 454 765 888 892 914 1023 1028 1115",
+        "trend_50_200": "222 527 822 997",
+        "supertrend_10_3": "152 201 211 454 765 914 1020 1028",
+    },
+    "walk 5": {
+        "rsi2_pullback": "604 605 608 611 633 641 647 650 659 661 925 931 1000 1001",
+        "bollinger_pullback": (
+            "165 223 229 325 331 365 371 410 434 456 512 524 624 676 683 691 702 758 780 800 "
+            "929 932"
+        ),
+        "breakout_20_10": "21 166 472 511 537 608 910 999 1011",
+        "trend_50_200": "544 685 925",
+        "supertrend_10_3": "21 166 472 513 527 608 764 780 909",
+    },
+    "walk 9": {
+        "rsi2_pullback": (
+            "209 221 479 480 612 614 630 634 655 657 662 675 967 969 1074 1081 1170 1174"
+        ),
+        "bollinger_pullback": (
+            "44 50 176 237 239 304 310 337 382 391 409 416 425 454 612 700 719 787 789 818 "
+            "968 970 1171 1178"
+        ),
+        "breakout_20_10": "20 119 127 161 340 350 460 607 859 967 975 1172 1184",
+        "trend_50_200": "498 685 941",
+        "supertrend_10_3": "20 44 52 164 457 612 707 720 907 1079 1091 1171 1179",
+    },
+    "walk 29": {
+        "rsi2_pullback": "446 448 608 615 643 649 666 677 1090 1099",
+        "bollinger_pullback": (
+            "19 60 71 177 333 349 608 628 642 715 726 789 793 814 995 1004 1090 1110"
+        ),
+        "breakout_20_10": "317 446 455 608 952 995 1047 1058 1071 1094",
+        "trend_50_200": "329 373 433 693 984 1041 1052 1064 1071 1136",
+        "supertrend_10_3": "317 446 453 608 952 1092",
+    },
+    "walk 36": {
+        "rsi2_pullback": (
+            "199 212 408 412 420 422 449 457 721 722 728 729 766 769 773 780 822 826 1097 "
+            "1099 1155 1158"
+        ),
+        "bollinger_pullback": "170 303 449 516 568 575 597 603 766 793 811 943 949 952",
+        "breakout_20_10": (
+            "21 89 100 130 140 170 309 337 355 411 426 449 605 766 1013 1023 1069 1095 1107 "
+            "1155 1160"
+        ),
+        "trend_50_200": "397 487 671 846 1080",
+        "supertrend_10_3": (
+            "17 28 35 90 98 170 305 339 355 421 425 450 517 526 577 765 1016 1098 1105 1156 " "1159"
+        ),
+    },
+    "jumpy 10": {
+        "supertrend_10_3": "54",
+    },
+    "jumpy 332": {
+        "supertrend_10_3": "14 35 46 64 72",
+    },
 }
 
 
 def test_each_strategy_moves_on_the_days_a_second_implementation_found() -> None:
-    bars = _walk(1, 1200)
-    for name, days in GOLDEN.items():
-        assert [n for n, _ in _trades(name, bars)] == [int(n) for n in days.split()], name
+    for series, expected in GOLDEN.items():
+        kind, seed = series.split()
+        bars = _walk(int(seed), 1200) if kind == "walk" else _jumpy(int(seed))
+        for name, days in expected.items():
+            found = [n for n, _ in _trades(name, bars)]
+            assert found == [int(n) for n in days.split()], f"{name} on {series}"
