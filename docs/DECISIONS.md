@@ -903,6 +903,62 @@ blocking: its fix (a stop sold on its buy's own day reached the book only on the
 and its test gap (a crashed order's fill must count as a holding) are taken, the second
 driven by removing the first collect.
 
+### 2026-11-13 — the day run: whose position, which day, which rate
+
+**Decided**, by the lane as the desk's mentor (no one watching), for scene 5 and after:
+
+1. **A rule's position is the book's, not its own idea.** Options were (a) each rule
+   counting its own buys and sells as done, the book only refusing what it cannot do, or
+   (b) each rule told, on the day it decides, whether the book holds the line for it. (a)
+   leaves a rule whose buy was refused, or whose stop sold, believing it holds: it will not
+   buy again while its condition lasts and later says sell to a flat book. Chosen (b)
+   (`strategy.today`). The rules' indicators do not depend on what they hold, so the same
+   history gives the same bands either way.
+2. **A line is one holding, owned by the strategy whose buy opened it** (the strategy in its
+   latest buy's order id). Only that strategy's sell sells it, and it sells the whole of
+   what the book holds. While a line is held, the other four rules' signals on it are not
+   acted on. Of several rules buying one flat line the same day, the first in the
+   operator's list of five buys it. The other option, a position per rule within the
+   line's fifth, needs a stop per rule, which the broker's one stop a line (decided above)
+   does not give.
+3. **Sales first, then buys, each sized from the book after the send before it.** A sixth
+   line is refused by the gate and kept among the day's answers with its reason, never
+   dropped. A line sold that morning, by its rule or by its stop, is not bought again the
+   same day: its stop was judged against the whole day before the new order, and could
+   sell it twice on one bar.
+4. **Only decisions dated the line's venue's session before the day are acted on**, and
+   only on a day its venue trades. A line whose bars stop earlier is left alone that day.
+5. **The day run is given the day's pounds per unit of each currency, and keeps it**
+   (`rates.csv` beside the ledger). Each fill is now dated by the broker, so a round trip
+   prices each leg at its own day's kept rate. Options were a rate in the fill (the broker
+   does not report one), one rate for the whole run (wrong for a trip that spans a move in
+   the pound), or looking it up again later (not the rate of the day). The scenes give 0.79
+   every day; a daily rate in the store is asked of the data lane.
+6. **A round trip pairs each sale with the buys it closes, oldest first**; a fill split
+   between trips shares its commission and conversion by its shares. Spread, slippage and
+   UK tax are not yet charged: they belong to the day record (scene 7), where the spread
+   and slippage of both legs, the stop's sale included, must be added.
+7. **Scene 5 runs on the rehearsal's whole fourteen months** now, since no rule trades in
+   the six weeks the other scenes still see. When the data lane moves the scenes onto the
+   whole history, scene 5 reads the same data as the others.
+8. **Scene 2 counts each line against its own venue's calendar** over the scenes' days:
+   five decisions for every session the line's venue traded. Counting each line's own
+   bars, the first form tried, could not fail (the blind review's finding).
+
+**Evidence.** The new tests in `test_day`, `test_book`, `test_broker`, `test_orders` and
+`test_strategy` failed first on the unbuilt code; scene 5 failed on the six weeks and passes
+on the fourteen months. Twenty-five deliberate breaks were driven. Twenty-two were caught at
+once: the open's stops not collected, buys sized from a stale book, a line sold that morning
+bought again, a stale decision acted on, the book's holding not given to the rules, a sale
+leaving its stop or taking all of it, a sale at the close, the gate letting one share too
+many be sold, conversion on a pound line or on the wrong amount, a split fill's charges not
+shared or its rest forgotten, the wrong day's rate, a sale counted as negative shares, a
+fill's day moved, a missing rate not refused, a kept rate repriced, a zero rate, and a line
+missing a day in scene 2. One, a pound rate other than 1, was missed because its test met
+the "already kept" refusal first; the test now uses a fresh day and catches it. Two were
+missed because the code did nothing (an owner check `strategy.today` already makes, and a
+filter whose result was overwritten); both are removed.
+
 ## DATA
 
 ### 2026-11-13 — the fourteen months are built; the scenes move onto them in two steps
