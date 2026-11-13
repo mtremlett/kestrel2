@@ -26,8 +26,8 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: install the pinned tools
-        run: python -m pip install --disable-pip-version-check -e ".[dev]"
+      - name: install the declared environment
+        run: python -m pip install --disable-pip-version-check -r requirements.txt
 
       - name: the one check
         run: python check.py

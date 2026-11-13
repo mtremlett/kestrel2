@@ -3,16 +3,7 @@ name = "kestrel2"
 version = "0.1.0"
 description = "A small, verifiable quant desk for one retail trader. Paper and backtest only."
 requires-python = ">=3.11,<3.13"
-dependencies = []
-
-[project.optional-dependencies]
-# Pinned on purpose. A new dependency needs a line in docs/DECISIONS.md saying what
-# code it replaces, and the operator's approval on the pull request.
-dev = [
-  "pytest==8.3.4",
-  "ruff==0.8.6",
-  "mypy==1.14.1",
-]
+dependencies = []  # the declared environment has ONE home: requirements.txt
 
 [tool.ruff]
 line-length = 100
