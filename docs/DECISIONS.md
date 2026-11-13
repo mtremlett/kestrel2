@@ -1927,3 +1927,50 @@ recorded in `docs/STATUS.md`: breaks that cannot differ (a tie's direction where
 already refused), a more cautious margin, and a few no series found can show.
 
 ## RUNGS
+
+### 2026-11-13 — the luck rung: a chance multiplied by every trial, one 5% test across the set
+
+**Decided**, by the lane as the desk's mentor (no one watching). A verdict passes the luck
+rung (`lab/luck.py`) when it passed the first rung and its chance of being luck, multiplied
+by the number of trials it was picked from, is at most 5%. The chance is that of an average
+so many standard errors up, or further, from trades with no edge (Student's t on the trades
+themselves). Each corrected verdict carries the count.
+
+**The choices, and why.**
+- *The correction.* Options: multiply the chance by the count (Bonferroni); the same in
+  steps, a little kinder to the second and third winner (Holm); a deflated Sharpe; shuffling
+  the histories to see what luck alone gives. Chosen: the plain multiplication. It holds
+  however the trials lean on one another (five rules on one line share its history), needs
+  nothing but the trades, and is one sentence he can check. Holm passes almost nothing more
+  when winners are few among thousands. The deflated Sharpe has its own box in the book
+  (LAD-03) and will sit beside this, not replace the count.
+- *The line.* 5% across the whole set, the plan's own number (LAD-08): of twenty sets with
+  no edge anywhere, about one still hands over a winner.
+- *What counts as a trial.* Options: the verdicts that passed the first rung; every verdict;
+  every trial tried. Chosen: every trial tried: losers, those with too few trades, and those
+  that left no verdict at all (a cell that failed, a candidate dropped), which the caller
+  must state as a number; there is no default, and a number under nothing is refused.
+- *A trial the first rung failed* never passes here, however small its chance: thirty trades
+  remain the least.
+- *A verdict with under two trades* has no chance to speak of: it counts as certain luck.
+- *The chance itself.* No library the lab may use gives Student's tail, so it is worked here
+  as one smooth sum (about ten lines), and held to the textbook table's own rows.
+- *What it does not cover* (the blind review's blocking finding, taken): the 5% is true only
+  if each trial's own chance is true, which needs trades that are separate bets with gains
+  spread roughly like a bell. Many small wins and a rare large loss on few trades read as
+  far less chance than they are. The module now says so; the cure is in the book's later
+  boxes, and no winner on real prices is believed before it (`docs/STATUS.md`).
+- *The first rung's pass rule as one function* (`rung.verdict`), in a commit of its own,
+  nothing changed: the first rung calls it, and the luck rung's tests build their trials by
+  it, so no test carries a second copy of the rule.
+
+**Evidence.** Four contract tests, seen failing first (no module). The chance agrees with
+the published table to a part in a million, and with a second method written apart (outside
+the repository) to under one part in a million over degrees of freedom from 1 to 5,000; the
+blind review's own second method agreed to a few parts in a hundred million. Of forty sets
+of forty no-edge trials, twenty-six gave the first rung a winner and one gave the luck rung
+one; a real edge added to each passed in all forty. Forty-two deliberate breaks were driven
+in a copy outside the repository with Python's cache off: all caught but four, none able to
+change a real result: "under 5%" for "5% or under", an odd number of steps in the sum (a
+difference far below any line), and the first rung's two known ones ("over 2" for "2 or
+over", the arithmetic setting).
