@@ -511,3 +511,84 @@ capital), are each now refused and tested.
 with a 10% stop in the market's terms, a tenth each, the same 10% on every line's own
 price, or a stop set from each line's own swings, he chose "Fifth each, 10% stop
 (Recommended)".
+
+## 2026-11-13 — three lanes, each a chain of sessions, day and night on his PC
+
+**Decided.** The desk is built by three lanes at once: MONEY (scenes 4 to 7), DATA (the
+rehearsal data, the parked lines, the store's open findings) and LADDER (phase 4). Each
+lane is a chain of Claude Code sessions, each starting as soon as the one before it ends,
+each in its own fresh copy of main. A runner on his PC starts them, outside this
+repository (canon A3: tooling lives outside the tree), launched by a Windows scheduled task
+when he logs on. Each lane owns its files and its own sections of the shared documents
+(`docs/PLAN.md`), so their pull requests never touch the same lines.
+
+**His words**, in chat on Friday 13 November 2026: "i need each session chained onto the
+next, to run 24x7, whilst watching token use". Asked where, he chose "On this PC"; how many
+lanes, "Three lanes (Recommended)"; which account, "Start on my account now" (the second
+GitHub account stays an open question); what sessions may do unasked, "Bypass all
+checks"; and what they may spend, "Plan limits, never extra (Recommended)".
+
+**What this means.** No session buys usage beyond what his plan includes: when the plan's
+limit is reached, every lane waits until it resets and then carries on. A lane stops, and
+leaves a note in the runner's report, after two sessions in a row that land nothing or end
+red (canon A8). Sessions never dial the live port, never touch the predecessor's folders
+or its scheduled tasks, and everything they do is paper.
+
+**The cost.** Three lanes draw on one plan, so each moves at about a third of the pace one
+lane would when the plan's limit binds. Parallel work can be green apart and red together;
+the next decision closes that.
+
+## 2026-11-13 — nobody is watching a lane, so it decides for itself
+
+**Decided.** A lane session that meets a question of intended behaviour decides it itself,
+as the desk's mentor, from the north star, the scenes and his past rulings. It writes the
+options, its choice and the reasons in its lane's part of this file, and carries on. It
+still stops for what is his alone: going live, credentials, spend, permissions, moving the
+phase, and loosening a guard. Then it writes the question, with options and a
+recommendation, in its STATUS section, and lands what it has.
+
+**His words**, in chat on 13 November 2026: "i am not the expert. you know the north star
+and goals and requirements, so, as the elite desk mentor, you can make the decisions.
+remember this is all paper trading and not real money".
+
+**The cost.** A decision he would have made differently can stand for a while. Each one
+is in this file with its options, so he can overturn any of them in a sentence.
+
+## 2026-11-13 — a branch must hold everything on main before it merges
+
+**Decided.** The ruleset `main-guard` now requires a pull request's branch to be up to date
+with main before it merges ("require branches to be up to date", GitHub's strict status
+checks), on top of the green `check` it already required. A tightening, so it merged like
+any change.
+
+**Why.** Three lanes now open pull requests side by side. Two can each be green on their
+own and red together: one lengthens the rehearsal data while another writes a scene that
+assumes the old length, or both add unit tests that together pass the product's size.
+Before this, GitHub would merge both and main would go red with no Telegram line to say so
+(the line waits for a green check on main). Now the second waits until it holds the first,
+and its check runs again on the combination. The runner brings a lane's branch up to date
+with main, re-runs the check on the PC, and pushes, so GitHub checks it again before
+auto-merge can land it.
+
+**Driven red.** Pull request #16 was built on main as it stood before #15, with a harmless
+one-line change. Its `check` passed and GitHub marked it BEHIND. `gh pr merge 16 --squash`
+was refused: "the head branch is not up to date with the base branch". Armed for
+auto-merge, it stayed BEHIND and did not merge. It was closed unmerged and its branch
+deleted. The ruleset still lists no one who may bypass it.
+
+**The cost.** Each lane's merge can make the other lanes' open pull requests wait for one
+more check run, about two minutes each.
+
+---
+
+# The lanes' own decisions
+
+Each lane appends its decisions to its own part below, never to another's, so that
+parallel pull requests do not touch the same lines. Each entry is a dated `###` heading
+under its lane, and says what was decided, the options, why, and the evidence.
+
+## MONEY
+
+## DATA
+
+## LADDER
