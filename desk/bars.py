@@ -1,12 +1,13 @@
 """bars - THE ONE FAST STORE, for hot and deep bars alike: one SQLite file in WAL mode, the
-standard library's own, with one writer and many readers (the operator's need of 13 November
-2026, DAT-04). It is held to three benchmarks, in tests/unit/test_bars.py: a five-minute
-round for every line written in under a second, a line's last week read in under 50 ms, a
-line's daily history read in under 200 ms.
+standard library's own, with one writer at a time and many readers (the operator's need of 13
+November 2026, DAT-04). It is held to three benchmarks, in tests/unit/test_bars.py: a
+five-minute round for every line written in under a second, a line's last week read in under
+50 ms, a line's daily history read in under 200 ms.
 
-The writer works in rounds. Everything written in a round lands together when the round
-ends, forced to disk, or none of it does; a reader is never made to wait and sees whole
-rounds only. A second writer is refused at once, never queued.
+A writer works in rounds. Everything written in a round lands together when the round ends,
+forced to disk, or none of it does. A reader reads the last whole round while the next is
+being written, and never part of one. A second writer waits its turn, and is refused if it
+has not come within WAIT seconds (NoRound).
 
 A line is its venue and its symbol: one symbol can be two companies. A daily bar is named by
 its session's day; a five-minute bar by the moment it starts, in UTC. Prices are kept as the
@@ -27,6 +28,9 @@ from desk.store import Bar
 
 DAILY, FIVE = "daily", "five-minute"  #: the two spans of bar the store holds
 EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
+#: The seconds anyone waits for the file: a writer for the writer before it, and anyone while
+#: SQLite opens or closes the file's log as the first comes to it or the last goes.
+WAIT = 5.0
 #: Each bar under its line, its span and the start of its span: a daily bar's day as its
 #: ordinal, a five-minute bar's start as seconds since EPOCH. `held` names every line and
 #: span ever written, so that a line never written is not read as a line with no bars.
@@ -38,6 +42,7 @@ SCHEMA = (
     "CREATE TABLE IF NOT EXISTS held (venue TEXT NOT NULL, symbol TEXT NOT NULL,"
     " span TEXT NOT NULL, PRIMARY KEY (venue, symbol, span)) WITHOUT ROWID",
 )
+MADE = "SELECT 1 FROM sqlite_master WHERE name = 'held'"
 HOLD = "INSERT OR IGNORE INTO held VALUES (?, ?, ?)"
 HELD = "SELECT 1 FROM held WHERE venue = ? AND symbol = ? AND span = ?"
 CLEAR = "DELETE FROM bar WHERE venue = ? AND symbol = ? AND span = ?"
@@ -49,8 +54,9 @@ READ = (
 )
 
 
-class Busy(RuntimeError):
-    """Another writer holds the store. It has one writer; a second is refused, not queued."""
+class NoRound(RuntimeError):
+    """No round was begun, for SQLite's own reason: "database is locked" is a store that
+    stayed in another's hands for WAIT seconds."""
 
 
 def _seconds(moment: datetime) -> int:
@@ -77,46 +83,59 @@ class Five:
 
 
 class Round:
-    """One round of the one writer, open: what it is given lands when the round ends."""
+    """One round of a writer, open: what it is given lands when the round ends."""
 
     def __init__(self, held: sqlite3.Connection) -> None:
         self._held = held
 
     def _write(
-        self, how: str, line: Line, span: str, bars: Iterable[tuple[int, Bar | Five]]
+        self, whole: bool, line: Line, span: str, bars: Iterable[tuple[int, Bar | Five]]
     ) -> None:
+        """One line's bars of one span, all of them or, if any is refused, none: the round is
+        then as it was before, whether or not the caller ends it there."""
         key = (line.venue, line.symbol, span)
-        self._held.execute(HOLD, key)
         rows = (
             (*key, at, str(b.open), str(b.high), str(b.low), str(b.close), b.volume)
             for at, b in bars
         )
-        self._held.executemany(how, rows)
+        self._held.execute("SAVEPOINT line")
+        try:
+            self._held.execute(HOLD, key)
+            if whole:
+                self._held.execute(CLEAR, key)
+            self._held.executemany(ADD if whole else PUT, rows)
+        except BaseException:
+            self._held.execute("ROLLBACK TO line")
+            raise
+        finally:
+            self._held.execute("RELEASE line")
 
     def daily(self, line: Line, bars: Iterable[Bar]) -> None:
         """A line's daily history, whole: it takes the place of the history held before, for
-        an archive restates the past. A day given twice is refused, and the round with it."""
-        self._held.execute(CLEAR, (line.venue, line.symbol, DAILY))
-        self._write(ADD, line, DAILY, ((b.day.toordinal(), b) for b in bars))
+        an archive restates the past. A history that gives a day twice is refused."""
+        try:
+            self._write(True, line, DAILY, ((b.day.toordinal(), b) for b in bars))
+        except sqlite3.IntegrityError as twice:
+            what = f"{line.symbol} on {line.venue}: its history gives a day twice; none kept"
+            raise ValueError(what) from twice
 
     def five(self, line: Line, bars: Iterable[Five]) -> None:
         """More of a line's five-minute bars. They only gather: a bar given again for a moment
         takes the place of the one held for it, and no other bar is touched."""
-        self._write(PUT, line, FIVE, ((_seconds(b.start), b) for b in bars))
+        self._write(False, line, FIVE, ((_seconds(b.start), b) for b in bars))
 
 
 @contextmanager
 def writing(path: Path) -> Iterator[Round]:
-    """The one writer's next round on the store at path, which is made on its first round.
-    The round lands whole as the block ends; if the block fails, nothing of it lands."""
-    with closing(sqlite3.connect(path, timeout=0, isolation_level=None)) as held:
+    """A writer's next round on the store at path, which is made on its first round. The
+    round lands whole as the block ends; if the block fails, nothing of it lands."""
+    with closing(sqlite3.connect(path, timeout=WAIT, isolation_level=None)) as held:
         try:
             held.execute("PRAGMA journal_mode = WAL")
+            held.execute("PRAGMA synchronous = FULL")
             held.execute("BEGIN IMMEDIATE")
         except sqlite3.OperationalError as refusal:
-            if refusal.sqlite_errorcode != sqlite3.SQLITE_BUSY:
-                raise
-            raise Busy(f"{path}: another writer holds the store") from refusal
+            raise NoRound(f"{path}: {refusal}, waited {WAIT} seconds") from refusal
         with held:
             for table in SCHEMA:
                 held.execute(table)
@@ -124,11 +143,15 @@ def writing(path: Path) -> Iterator[Round]:
 
 
 def _read(path: Path, line: Line, span: str, first: int, end: int) -> list[tuple[int, ...]]:
-    """A line's rows of one span from first up to, not including, end, oldest first."""
+    """A line's rows of one span from first up to, not including, end, oldest first, read
+    at one moment of the store: its last whole round."""
+    key = (line.venue, line.symbol, span)
     if not path.is_file():
         raise FileNotFoundError(f"{path}: no store has been written there")
-    key = (line.venue, line.symbol, span)
-    with closing(sqlite3.connect(path)) as held:
+    with closing(sqlite3.connect(path, timeout=WAIT, isolation_level=None)) as held:
+        held.execute("BEGIN")
+        if held.execute(MADE).fetchone() is None:
+            raise FileNotFoundError(f"{path}: no round of the store has landed there")
         rows: list[tuple[int, ...]] = held.execute(READ, (*key, first, end)).fetchall()
         if not rows and held.execute(HELD, key).fetchone() is None:
             raise LookupError(
@@ -151,6 +174,6 @@ def five(path: Path, line: Line, since: datetime, until: datetime) -> tuple[Five
     first: its last week is the seven days up to now."""
     rows = _read(path, line, FIVE, _seconds(since), _seconds(until))
     return tuple(
-        Five(datetime.fromtimestamp(at, UTC), Decimal(o), Decimal(h), Decimal(lo), Decimal(c), v)
+        Five(EPOCH + timedelta(seconds=at), Decimal(o), Decimal(h), Decimal(lo), Decimal(c), v)
         for at, o, h, lo, c, v in rows
     )

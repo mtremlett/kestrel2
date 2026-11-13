@@ -23,7 +23,9 @@ from desk.store import Bar
 US, UK = Line("BA", "US", "USD", 1), Line("BA", "LSE", "GBP", 1)  #: one symbol, two companies
 NOON = datetime(2026, 11, 13, 12, 0, tzinfo=UTC)
 NEXT, ELSEWHERE = NOON + timedelta(minutes=5), timezone(timedelta(hours=1))
-ODD = (Decimal("0.1"), Decimal("1E+3"), Decimal("0.0001"), Decimal("123456.789012345"))
+ODD = (Decimal("1E+3"), Decimal("123456.789012345678901"), Decimal("0.0001"), Decimal("0.10"))
+#: A daily bar and a five-minute bar that the store keeps under one number, each in its span.
+TWINS = (Bar(date.fromordinal(600), *ODD, 1), Five(bars.EPOCH + timedelta(seconds=600), *ODD, 2))
 #: The benchmarks, in seconds, set on 13 November 2026 before the store was written.
 ROUND, WEEK, HISTORY = 1.0, 0.050, 0.200
 
@@ -46,13 +48,13 @@ def test_what_is_written_is_read_back_exactly_and_each_line_apart(tmp_path: Path
     with bars.writing(store) as round_:
         round_.daily(US, days[::-1])
         round_.five(US, fives[::-1])
-        round_.daily(UK, days[:3])
-        round_.five(UK, ())
+        round_.daily(UK, (*days[:3], TWINS[0], Bar(date.max, *ODD, 3)))
+        round_.five(UK, TWINS[1:])
     assert bars.daily(store, US) == days
-    assert bars.daily(store, UK) == days[:3]
+    assert bars.daily(store, UK) == (TWINS[0], *days[:3], Bar(date.max, *ODD, 3))
     assert bars.five(store, US, fives[0].start, NEXT) == fives
     assert bars.five(store, US, fives[10].start, fives[20].start) == fives[10:20]
-    assert bars.five(store, UK, fives[0].start, NEXT) == ()
+    assert bars.five(store, UK, bars.EPOCH, NEXT) == TWINS[1:]
     read = bars.five(store, US, NOON, NEXT)[0]
     assert read.start.utcoffset() == timedelta(0)
     assert [str(p) for p in (read.open, read.high, read.low, read.close)] == [str(p) for p in ODD]
@@ -75,20 +77,33 @@ def test_a_history_is_replaced_whole_and_five_minute_bars_gather(tmp_path: Path)
     assert bars.five(store, US, fives[0].start, NEXT) == (*fives[:19], corrected, *fives[20:])
     assert bars.daily(store, UK) == days
     assert bars.five(store, UK, fives[0].start, NEXT) == fives[:20]
-    with pytest.raises(sqlite3.IntegrityError), bars.writing(store) as round_:
-        round_.daily(US, (days[0], replace(days[0], volume=1)))
-    assert bars.daily(store, US) == days[5:]
+    with bars.writing(store) as round_:
+        with pytest.raises(ValueError, match="BA on US: its history gives a day twice"):
+            round_.daily(US, (*days[:9], replace(days[0], volume=1)))
+        round_.daily(UK, days[:9])
+    assert (bars.daily(store, US), bars.daily(store, UK)) == (days[5:], days[:9])
 
 
-def test_a_reader_sees_only_whole_rounds_and_a_second_writer_is_refused(tmp_path: Path) -> None:
+def test_a_reader_sees_only_whole_rounds_and_a_second_writer_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     store, days, fives = tmp_path / "bars.db", _days(30), _fives(30)
+    monkeypatch.setattr(bars, "WAIT", 0.05)
+    for _ in range(2):  # in the first round, and after it failed
+        with pytest.raises(RuntimeError, match="the first fails"), bars.writing(store):
+            with pytest.raises(FileNotFoundError, match="no round"):
+                bars.daily(store, US)
+            raise RuntimeError("the first fails")
     with bars.writing(store) as round_:
         round_.daily(US, days[:5])
     with pytest.raises(RuntimeError, match="the round fails"), bars.writing(store) as round_:
         round_.daily(US, days)
         round_.five(US, fives)
         assert bars.daily(store, US) == days[:5]
-        with pytest.raises(bars.Busy, match="another writer"), bars.writing(store):
+        with (
+            pytest.raises(bars.NoRound, match="bars.db: database is locked, waited 0.05"),
+            bars.writing(store),
+        ):
             pass
         raise RuntimeError("the round fails")
     assert bars.daily(store, US) == days[:5]
@@ -104,8 +119,9 @@ def test_a_store_or_a_line_never_written_is_refused_not_read_as_empty(tmp_path: 
     with bars.writing(store) as round_:
         round_.daily(US, ())
     assert bars.daily(store, US) == ()
-    with pytest.raises(LookupError, match="daily bars for BA on LSE"):
-        bars.daily(store, UK)
+    for other in (UK, Line("BB", "US", "USD", 1)):
+        with pytest.raises(LookupError, match=f"daily bars for {other.symbol} on {other.venue}"):
+            bars.daily(store, other)
     with pytest.raises(ValueError, match="UTC"):
         bars.five(store, US, NOON.replace(tzinfo=None), NEXT)
     with pytest.raises(ValueError, match="UTC"):
@@ -121,8 +137,8 @@ def test_a_five_minute_bar_starts_on_a_five_minute_mark_in_utc() -> None:
 
 
 def _fastest(job: Callable[[], object]) -> float:
-    """The seconds the fastest of three runs took: the store's speed, not a busy machine's."""
-    return min(timeit.repeat(job, number=1, repeat=3))
+    """The seconds the fastest of five runs took: the store's speed, not a busy machine's."""
+    return min(timeit.repeat(job, number=1, repeat=5))
 
 
 def test_the_deep_store_meets_its_three_benchmarks(tmp_path: Path) -> None:
@@ -133,7 +149,7 @@ def test_the_deep_store_meets_its_three_benchmarks(tmp_path: Path) -> None:
         for line in LINES:
             round_.daily(line, days)
             round_.five(line, fives)
-    newest = [Five(NOON + timedelta(minutes=5 * n), *ODD, 1) for n in range(1, 4)]
+    newest = [Five(NOON + timedelta(minutes=5 * n), *ODD, 1) for n in range(1, 6)]
     rounds = iter(newest)
 
     def a_round() -> None:
@@ -145,10 +161,10 @@ def test_the_deep_store_meets_its_three_benchmarks(tmp_path: Path) -> None:
     def a_week() -> tuple[Five, ...]:
         return bars.five(store, LINES[7], NOON - timedelta(7), NEXT)
 
-    assert (seconds := _fastest(a_round)) < ROUND, f"a round of {len(LINES)} took {seconds:.3f}s"
+    assert (round_took := _fastest(a_round)) < ROUND, f"{len(LINES)} lines: {round_took:.3f}s"
     assert bars.five(store, LINES[19], NEXT, NEXT + timedelta(hours=1)) == tuple(newest)
     assert a_week() == fives[-511:]
-    assert (seconds := _fastest(a_week)) < WEEK, f"a week took {seconds:.3f}s"
+    assert (week_took := _fastest(a_week)) < WEEK, f"a week took {week_took:.3f}s"
     assert bars.daily(store, LINES[7]) == days
-    seconds = _fastest(lambda: bars.daily(store, LINES[7]))
-    assert seconds < HISTORY, f"a history took {seconds:.3f}s"
+    history_took = _fastest(lambda: bars.daily(store, LINES[7]))
+    assert history_took < HISTORY, f"a history took {history_took:.3f}s"
