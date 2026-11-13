@@ -9,7 +9,7 @@ import pytest
 
 from desk.broker import Crash, Disconnected, Fault, Fill, Pretend
 from desk.lines import Line
-from desk.orders import Order
+from desk.orders import Order, Sale
 from desk.store import Bar
 
 A, B = Line("A", "LSE", "GBP", 1), Line("B", "US", "USD", 1)
@@ -40,7 +40,9 @@ def test_a_buy_fills_at_the_open_under_the_brokers_id_and_leaves_its_stop() -> N
     broker = _broker()
     report, second = (broker.place(o) for o in (_order("o-1"), _order("o-2", B, 3, "15")))
     (fill,), (other,) = report.fills, second.fills
-    assert report.reason is None and fill == Fill(fill.execution_id, "o-1", "A", 10, Decimal(50))
+    assert report.reason is None and fill == Fill(
+        fill.execution_id, "o-1", "A", 10, Decimal(50), MON
+    )
     assert fill.execution_id not in {"o-1", other.execution_id} and broker.fills() == (fill, other)
     assert broker.positions() == {"A": 10, "B": 3} and broker.report("o-9") is None
     assert broker.resting_stops() == {"A": (10, Decimal(45)), "B": (3, Decimal(15))}
@@ -86,3 +88,16 @@ def test_a_stop_sells_at_its_level_or_a_gapped_open_even_on_the_day_of_its_buy()
     assert (broker.positions(), broker.resting_stops(), len(broker.fills())) == ({"B": 7}, {}, 6)
     with pytest.raises(ValueError, match="2025-11-11"):
         broker.open(TUE)
+
+
+def test_a_sale_fills_at_the_open_and_takes_its_shares_off_the_lines_stop() -> None:
+    broker = _broker({"A": Fault.PARTIAL}, _order("o-1", B, 3, "15"), _order("o-2", A, 20))
+    (fill,) = broker.place(Sale("s-1", A, 4)).fills  #: the fault was the buy's: half of 20
+    assert (fill.quantity, fill.price, fill.day) == (-4, Decimal(50), MON)
+    assert broker.positions() == {"A": 6, "B": 3} and broker.resting_stops()["A"] == (
+        6,
+        Decimal(45),
+    )
+    assert broker.place(Sale("s-2", A, 6)).reason is None and broker.positions() == {"B": 3}
+    broker.open(TUE)  #: A's day falls through 45: no stop is left to sell what was sold
+    assert len(broker.fills()) == 4 and broker.resting_stops() == {"B": (3, Decimal(15))}

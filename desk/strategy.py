@@ -220,9 +220,15 @@ STRATEGIES: Mapping[str, Callable[[], Rule]] = {
 }
 
 
-def _run(name: str, rule: Rule, symbol: str, bars: Sequence[Bar]) -> Iterator[Decision]:
+def _run(
+    name: str, rule: Rule, symbol: str, bars: Sequence[Bar], last: bool | None = None
+) -> Iterator[Decision]:
+    """The rule's decisions, holding what it last chose; on the last bar, holding `last`
+    instead when it is given."""
     holding = False
-    for bar in bars:
+    for n, bar in enumerate(bars):
+        if last is not None and n == len(bars) - 1:
+            holding = last
         wants = rule.step(bar, holding)
         action = Action.HOLD if wants == holding else Action.BUY if wants else Action.SELL
         holding = wants
@@ -237,4 +243,16 @@ def decide(bars: Mapping[str, Sequence[Bar]]) -> tuple[Decision, ...]:
             for symbol, series in bars.items()
             for name, make in STRATEGIES.items()
             for decision in _run(name, make(), symbol, series)
+        )
+
+
+def today(bars: Mapping[str, Sequence[Bar]], held: Mapping[str, str]) -> tuple[Decision, ...]:
+    """Every strategy's decision on each line's last bar, its position read from the book:
+    held names, for each line the book holds, the strategy that holds it. A rule the book
+    holds nothing for may buy again after a stop or a refusal; one it holds for may sell."""
+    with localcontext(ARITHMETIC):
+        return tuple(
+            [*_run(name, make(), symbol, series, held.get(symbol) == name)][-1]
+            for symbol, series in bars.items()
+            for name, make in STRATEGIES.items()
         )

@@ -79,6 +79,23 @@ Last updated: 13 November 2026.
 
 ### Where it is
 
+Scene 5 passes: the desk sells, and closes round trips. Its day (`day.trade`) runs after
+the market opens: it writes in the ledger the stops the open sold, keeps the day's
+exchange rates, and acts only on decisions dated the session before, on lines whose venue
+trades that day. Each rule's position is read from the book: a line belongs to the rule
+whose buy opened it, only that rule's sell sells it (all of it), and a rule whose buy was
+refused or whose stop sold may buy again. Sales go first, through the one gate (the desk
+is long only), and take their shares off the line's resting stop; then each buy is sized
+from the book after the send before it, and a line sold that morning is not bought again.
+Each round trip pairs a sale with the buys it closes, oldest first, in pounds at each
+fill's own day's rate, after commission and currency conversion; on the rehearsal's
+fourteen months the rules' own sales close round trips. Scene 2 now counts each line
+against its own venue's calendar, so the scenes can move onto the fourteen months. The
+tests were seen failing first. Of twenty-five deliberate breaks, twenty-two were caught at
+once, one (a pound rate other than 1) once its test was corrected, and the two missed showed
+code that did nothing, now removed. A blind review found nothing blocking; its fixes are
+taken (below).
+
 The desk now knows what it holds (`book.positions`): the shares of each line its ledger's
 fills add up to, never the orders it meant to send, and never a position bought by hand at
 the broker. Every fill the broker made is written in the ledger before an order is judged
@@ -135,13 +152,36 @@ caught; the forty-fifth cannot change a decision.
 
 ### Next step
 
-The day run, so scene 5 passes: decisions dated that day only, a rule's position read from
-the book, a sell that takes its line's stop away, and round trips with their costs. It
-needs the data lane's fourteen months in the scenes, and scene 2 counting each line's own
-days first (asked of this lane, under DATA below); that is likely the first step.
+Reconciliation, so scene 6 passes: the desk's book against the broker's positions line by
+line, a mismatch named, the day's profit withheld and no buying while they disagree. Then
+the day record (scene 7), where spread, slippage and UK tax join the costs.
+
+### Asked of the data lane
+
+- Scene 2 now counts each line against its own venue's calendar: the scenes can move onto
+  the fourteen months (`SCENES_FROM = FIRST`). Scene 5 already reads them whole.
+- A daily exchange rate, pounds per dollar, in the store. The day run is handed the day's
+  rates (`day.trade`'s `rates`); the scenes give 0.79 every day.
 
 ### Found, not fixed
 
+- **What the blind review of the day run left** (nothing blocking; its fixes taken: a
+  rule's own sale required by scene 5, scene 2 counted against each venue's calendar, a
+  day's kept rate never repriced, and a missing rate refused before anything is sent):
+  - Money has no one rounding policy yet: a round trip's shared commission is divided in
+    whatever decimal setting the caller has. The day record (scene 7) must fix one, to the
+    penny, for every pound figure.
+  - "A line its rule sold this morning is not bought again" is tested only through a
+    stop's sale; the code is the same for both.
+  - A sale at the pretend broker of a line with no resting stop passes in silence; every
+    buy leaves one, so a missing stop means the two books differ: reconciliation's job.
+  - Spread, slippage and UK tax are not in a round trip's costs yet: the day record must
+    add both legs' spread and slippage, the stop's sale included.
+  - The day run decides each line's whole history again every day: fourteen months of
+    days take about twenty-four seconds in scene 5. Fine for now; a longer replay will
+    need the rules' state carried from day to day.
+  - The day run reads the archive it is handed; preparing it through the store
+    (`store.prepare`, asked by the data lane) is still to come, before paper.
 - **What the blind review of the book left** (nothing blocking; its fix and test gap taken):
   - The gate reads the desk's book, not the broker's. A position bought by hand at the
     broker is not counted, so the broker can hold a sixth line. Reconciliation (scene 6)
@@ -149,13 +189,10 @@ days first (asked of this lane, under DATA below); that is likely the first step
   - The book reaches the gate as a bare mapping of line to shares. Only the send path
     passes the real book; a typed book that only `book.positions` can make would stop a
     caller passing an empty one.
-  - Two orders sized before either is sent are both sized to a full fifth; the second is
-    then refused outright, not cut to what is left. The day run must size each buy from
-    the book after the send before it.
   - At a real broker an order waits for the open, so two orders sent overnight would each
     pass the gate on a book that holds neither. The paper adapter (phase 3) must count the
     orders the broker is still working, as well as the fills.
-  - Unit test lines stand at 1328 against 1328 of product, exactly at the guard: the next
+  - Unit test lines stand close to product lines (the guard keeps them at or under): each
     step's tests must come with its code.
 - **What the blind review of the pretend broker left for the send path and the day run**
   (its one finding fixed: a fault was used up by an order that met no market):
@@ -170,11 +207,6 @@ days first (asked of this lane, under DATA below); that is likely the first step
     stop's sale included, or profit reads too high.
   - An order is sized at the last close and fills at the next open. On a gap up the fill
     costs more than the gate allowed; the book must hold a line to what was filled.
-  - `open` judges the stops against the whole day before the desk's orders that day. A
-    line sold by its stop and bought again the same morning can be stopped out twice on
-    one bar. The day run should not buy a line its stop sold that day.
-  - The desk cannot sell yet: the broker takes buys only. Scene 5 needs a sell, which
-    must also take its line's resting stop away.
   - `inject` takes any symbol and a negative quantity (a hand sale) unchecked. Untested
     so far: a planted position on a line that also has the desk's stop, a partial fault
     on a one-share order, and several stops firing on one open.
@@ -190,16 +222,10 @@ days first (asked of this lane, under DATA below); that is likely the first step
     London funds and products, to be confirmed line by line before the day counts UK tax.
 - **What the blind review of the five strategies left for later scenes** (its blocking
   findings, test gaps, are fixed):
-  - A rule's position is its own idea, not the book's. It counts each of its buys and
-    sells as done; if the gate refuses a buy, or the resting stop sells, the rule still
-    thinks it holds, will not buy again while its condition lasts, and later says sell to
-    a flat book. The day run must decide which it trusts before scene 5.
   - A decision depends on where the history starts (the averages' seeds, Supertrend's
     carried bands, the 50/200's observed cross). Measured: walk 1 with its first 30 bars
     dropped changes two Bollinger decisions. If the archive's first date moves, the same
     day can decide differently; a replay is identical only on identical saved data.
-  - A line whose last bar is older than the day still gets decisions, dated at its own
-    last bar. The day run must act only on decisions dated that day.
   - "Still warming up" and "chose to stay out" both read as hold; "the 20 days before"
     means the 20 bars before, so a day the store dropped is skipped over.
   - Wilder's smoothing and the true range live inside `strategy`. If the stop at entry
@@ -216,11 +242,11 @@ Every one of these raises NotImplementedError, by design, until its phase builds
 
 | part | phase |
 |---|---|
-| `book.round_trips` | 2 |
-| `day.run` | 2 |
+| `day.run`: reconciliation and the day's record, after `day.trade` | 2 |
 
-Built and real: the send path, the ledger and the book (`book.send`, `book.fills`,
-`book.collect`, `book.positions`), the pretend broker (`broker.Pretend`), sizing, cost and
+Built and real: the day's trading (`day.trade`, `strategy.today`), sales and round trips
+(`orders.Sale`, `book.round_trips`, `book.record_rates`), the send path, the ledger and
+the book (`book.send`, `book.fills`, `book.collect`, `book.positions`), the pretend broker (`broker.Pretend`), sizing, cost and
 the gate across the book (`orders.size`, `orders.cost`, `orders.gate`), the five strategies (`strategy.decide`), the twenty lines, the archive
 client (`archive.fetch`), the price store (`store.prepare`, `store.read`, `store.faults`),
 the venue calendars,

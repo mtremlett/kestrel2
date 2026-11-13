@@ -1,9 +1,9 @@
 # The plan
 
-**Current objective:** the money lane's — the day run: decisions dated that day only, a
-rule's position read from the book, round trips with their costs, so scene 5 passes.
+**Current objective:** the money lane's — reconciliation: the desk's book against the
+broker's, a mismatch named and the day's profit withheld, so scene 6 passes.
 
-Scenes passing: **4 of 7**. Phase: **2-money-sim**.
+Scenes passing: **5 of 7**. Phase: **2-money-sim**.
 
 The two lines above belong to the money lane: it alone moves the scenes count. The data
 and ladder lanes' objectives are in their own books below. The operator's Telegram line
@@ -111,11 +111,10 @@ scene 5. Scenes 1 to 3 keep passing on it.
 
 ### The money lane's book — scenes 4 to 7, in order
 
-**Lane objective:** the day run (`day.run`), so scene 5 passes: decisions dated that day only,
-a rule's position read from the book, each buy sized from the book after the send before
-it, a sell that takes its line's resting stop away, and round trips with every cost. Scene
-2 counting each line's own days (asked by the data lane) comes first, so the scenes can
-move onto the fourteen months. The pretend broker, the send path and the book are built.
+**Lane objective:** reconciliation (`day.run`), so scene 6 passes: after the day's trading,
+the desk's book against the broker's positions line by line; a line that differs is named,
+the day's profit is withheld (never a plain number), and the desk buys nothing while they
+disagree. The pretend broker, the send path, the book and the day's trading are built.
 
 - [x] The pretend broker: fills at the day's prices, rejects, partial fills, disconnection,
       a crash, resting stops, positions, and a position injected behind the desk's back
@@ -123,12 +122,13 @@ move onto the fourteen months. The pretend broker, the send path and the book ar
       restarts, its fills recorded under the broker's ids - **scene 4 passes**
 - [x] The book built from the broker: what is held and what is left, so the gate enforces
       at most five holdings and two buys of one line share one fifth
-- [ ] The day run: decisions dated that day only, a rule's position read from the book,
-      round trips with their costs - **scene 5 passes** (needs the data lane's fourteen
-      months first)
+- [x] The day run: decisions dated that day only, a rule's position read from the book,
+      round trips with commission and conversion - **scene 5 passes** (on the fourteen
+      months; spread, slippage and UK tax come with the day record)
 - [ ] Reconciliation: the desk's book against the broker's, a mismatch named and the day's
       profit withheld - **scene 6 passes**
-- [ ] The day record: every cost line, what holding the market earned, and the same days
+- [ ] The day record: every cost line (spread, slippage and UK tax added to round trips),
+      one rounding policy for pounds, what holding the market earned, and the same days
       replayed to the same records - **scene 7 passes**
 
 ## Phase 3 — the money path, on paper

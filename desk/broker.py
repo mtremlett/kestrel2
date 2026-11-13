@@ -4,13 +4,13 @@ real one: its own execution ids, stops resting at the broker, and faults on requ
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 from decimal import Decimal
 from enum import Enum
 
 from desk.lines import Line
-from desk.orders import Order
+from desk.orders import Order, Sale
 from desk.store import Bar
 
 
@@ -21,6 +21,7 @@ class Fill:
     symbol: str
     quantity: int  #: positive bought, negative sold
     price: Decimal
+    day: date  #: the session the broker made it in
 
 
 @dataclass(frozen=True)
@@ -79,9 +80,10 @@ class Pretend:
         for symbol in sorted(self._stops):
             self._test(symbol, self._bars.get((symbol, day)))
 
-    def place(self, order: Order) -> Report:
-        """Receive an order to buy at the market: it fills at the day's open and leaves its
-        stop resting for the shares filled. One stop covers a line, at the newest level."""
+    def place(self, order: Order | Sale) -> Report:
+        """Receive an order at the market: it fills at the day's open. A buy leaves its stop
+        resting for the shares filled, one stop a line at the newest level; a sale takes its
+        shares off the line's stop."""
         bar = None if self._day is None else self._bars.get((order.line.symbol, self._day))
         fault = None if bar is None else self._faults.pop(order.line.symbol, None)
         if fault is Fault.DISCONNECT:
@@ -119,7 +121,7 @@ class Pretend:
             raise ValueError(f"{symbol}: a position of no shares injected")
         self._held[symbol] = self._held.get(symbol, 0) + quantity
 
-    def _execute(self, order: Order, fault: Fault | None, bar: Bar | None) -> Report:
+    def _execute(self, order: Order | Sale, fault: Fault | None, bar: Bar | None) -> Report:
         symbol, wanted = order.line.symbol, order.quantity
         if fault is Fault.REJECT:
             return Report(order.order_id, (), f"{order.order_id}: rejected by the broker")
@@ -128,11 +130,17 @@ class Pretend:
         filled = wanted // 2 if fault is Fault.PARTIAL else wanted
         if filled == 0:
             return Report(order.order_id, (), f"{order.order_id}: none of {wanted} filled")
-        fill = self._fill(order.order_id, symbol, filled, bar.open)
+        reason = None if filled == wanted else f"{order.order_id}: {filled} of {wanted} filled"
+        if isinstance(order, Sale):
+            fill = self._fill(order.order_id, symbol, -filled, bar.open, bar.day)
+            stop = self._stops.pop(symbol, None)
+            if stop is not None and stop.shares > filled:
+                self._stops[symbol] = replace(stop, shares=stop.shares - filled)
+            return Report(order.order_id, (fill,), reason)
+        fill = self._fill(order.order_id, symbol, filled, bar.open, bar.day)
         shares = filled + (self._stops[symbol].shares if symbol in self._stops else 0)
         self._stops[symbol] = _Stop(f"{order.order_id}-stop", shares, order.stop)
         self._test(symbol, bar)  #: the rest of the day's range can reach the new stop
-        reason = None if filled == wanted else f"{order.order_id}: {filled} of {wanted} filled"
         return Report(order.order_id, (fill,), reason)
 
     def _test(self, symbol: str, bar: Bar | None) -> None:
@@ -141,10 +149,10 @@ class Pretend:
         stop = self._stops[symbol]
         if bar is not None and bar.low <= stop.level:
             del self._stops[symbol]
-            self._fill(stop.order_id, symbol, -stop.shares, min(bar.open, stop.level))
+            self._fill(stop.order_id, symbol, -stop.shares, min(bar.open, stop.level), bar.day)
 
-    def _fill(self, order_id: str, symbol: str, quantity: int, price: Decimal) -> Fill:
-        fill = Fill(f"X{len(self._fills) + 1:05}", order_id, symbol, quantity, price)
+    def _fill(self, order_id: str, symbol: str, quantity: int, price: Decimal, on: date) -> Fill:
+        fill = Fill(f"X{len(self._fills) + 1:05}", order_id, symbol, quantity, price, on)
         self._fills.append(fill)
         self._held[symbol] = self._held.get(symbol, 0) + quantity
         return fill
