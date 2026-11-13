@@ -942,6 +942,36 @@ He presses the resets himself; the runner tells him when, by these rules:
 After any reset the runner reads the new usage and the new reset time from the plan, and
 never assumes the reset stays on Thursday. While the lanes wait at the cap, it reads the
 plan again every quarter of an hour, so a reset he presses lets them carry on at once.
+(The 45% figures above were read on the wrong scale: see the next entry.)
+
+## 2026-11-13 — Fable's figure is a share of Fable's own allowance: switch at 97%
+
+**The evidence.** From 17:37 to 20:08 every lane ran on Fable. The Fable window the plan
+reports (`seven_day_overage_included`) rose from 20% to 33%, 13 points, while the
+all-models week rose from 25% to 33%, 8 points. Were Fable's figure a share of the week,
+the week would have risen at least as much. So it is a share of Fable's own allowance
+(about half the week), and 100% means Fable is full. Switching to Opus at 45% would have
+thrown away more than half of the allowance his Fable resets give back.
+
+**His ruling**, in his own chat at 20:12 UK: "Please use all fable tokens and then flip to
+opus overnight. I can then reset fable in the morning around 8am". So:
+- the lanes stay on Fable until 97% of Fable's own allowance, or until Fable refuses a
+  session, then run on Opus;
+- no request to press the Fable reset before bed or overnight: at 21:45 the runner only
+  logs its forecast;
+- "press the Fable reset now" is sent by day only (08:00 to 22:00) at 95% or more, with the
+  week's reset more than 36 hours away; so a Fable that filled overnight is asked for at
+  08:00. The Fable figure is read every 15 minutes, so the lanes return to Fable as soon as
+  the reset shows;
+- the weekly 80% pause reads only the all-models window, and stands as ruled, at all
+  hours. Asked at 20:16 whether to run up to 95% of the week overnight instead, he answered
+  "Keep 80": an option he considered and declined. He accepts that the lanes may pause at
+  80% overnight until he presses the Fable reset at about 08:00.
+
+**Driven** in a scratch home: the lanes on Fable at 33% and 96%, on Opus at 97%, and on
+Fable when no figure is known; at 14:00, 94% asks nothing and 95% asks once; at 23:00 and
+03:00, 99% asks nothing; at 08:00, 99% asks once; at 21:45, Fable at 60% rising four points
+an hour and at 96% bring no request, only the forecast in the log.
 
 ## 2026-11-13 — the paper account is the old desk's
 
