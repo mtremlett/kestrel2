@@ -30,6 +30,11 @@ touch the same lines, and GitHub merges neither until it holds the other.
 | DATA | `desk/lines.py`, `venues.py`, `archive.py`, `store.py`; `tests/scenes/rehearsal.py`; their unit tests |
 | LADDER | `lab/`; `tests/unit/test_lab_*.py` |
 
+The table is a summary; `manifest.toml` is the source the check enforces (its `[lanes]`
+table, and each lane's heading over its modules). A lane's branch that changes any other
+file fails the check (`tests/guards/test_lanes.py`), and no change adds more than 300 net
+lines to `desk/` and `lab/` together.
+
 A new module is registered in `manifest.toml` under its lane's heading. A file no lane owns
 (`check.py`, `announce.py`, the guards, `BUDGET.json`, `CLAUDE.md`, `CANON.md`,
 `docs/SCENES.md`, `docs/FAILURE_PATTERNS.md`, the shared parts of the documents) is changed

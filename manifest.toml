@@ -19,6 +19,14 @@ purpose = "research and the ladder: judges strategies using the core's own code"
 may_import = ["stdlib", "desk"]
 allowed_third_party = []
 
+# Each lane's files beyond its modules (listed under its heading below) and their unit
+# tests. tests/guards/test_lanes.py refuses a lane branch that changes any other file,
+# apart from the shared documents. Changing this table is changing a guard.
+[lanes]
+money = ["tests/scenes/test_scenes.py"]
+data = ["tests/scenes/rehearsal.py"]
+ladder = ["lab/*", "tests/unit/test_lab_*.py"]
+
 # Every module, with the one thing it owns. Add a line here, then write the file.
 # Each lane (docs/PLAN.md) adds its modules under its own heading, so two lanes never
 # edit the same lines of this file.

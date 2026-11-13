@@ -47,9 +47,12 @@ everything on main, so two green lanes cannot combine into a red main.
 
 - **Two of the line limits are prose, not guards.** CLAUDE.md says its 80 lines and
   CANON.md its 200 are held by a guard; no test reads either, and CANON.md is 224 lines.
-- **A lane that needs the operator cannot reach him.** Its question waits in its STATUS
-  section, and Telegram speaks only when a pull request merges. A lane that is halted, or
-  out of usage, is seen only in the runner's report on his PC.
+- **The runner's own lines to his phone wait for his key.** A lane that halts, pauses at
+  the weekly cap or needs his decision, and the 07:00 line, are sent by the runner on his
+  PC from a file holding the bot key, which he copies beside the runner himself. Until he
+  does, they are written to the runner's log only.
+- **The lane guard judges whole files.** A lane may write in any part of a shared
+  document; that it keeps to its own section is checked only by the daily audit.
 - **A newer ruff on the operator's PC calls the tree badly formatted.** Version 0.15
   formats differently from the pinned 0.8.6, so `python check.py` run with whatever is
   installed shows format red on a clean main. Run it in an environment built from
