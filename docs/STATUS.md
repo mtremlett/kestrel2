@@ -285,7 +285,7 @@ against the desk's own book, a mismatch flagged (scene 6), before any order is s
 
 ## DATA
 
-Last updated: 13 November 2026.
+Last updated: 13 November 2026 (the research list).
 
 ### Where it is
 
@@ -353,12 +353,41 @@ straight after days in the wrong unit is now kept too. Tests seen failing first;
 deliberate breaks each caught; a blind review, nothing blocking, its one finding of the
 same kind fixed.
 
+The research list is built (`lab/universe.py`), by his ruling of 13 November: the S&P 500
+(503 tickers), the Nasdaq 100 (101), the FTSE 350 (347: three members London quotes in
+euros are left off, a currency no line can state yet) and the 200 most-traded US funds of a
+field of 330. Shares on two lists counted once, that is **1,065 tickers**, not the "about
+1,500" first guessed: the four lists overlap. It sits in `lab/`, which the trading core may
+never import, so being on it makes nothing tradable; a ticker the desk also trades (ten are)
+is the instrument master's own line. One command (`universe.keep`) fetches each ticker's
+bars since 2010 and keeps them through the one store's checks, one ticker at a time, each
+venue in its own folder, since one symbol can be two companies (BA is Boeing in New York and
+BAE Systems in London; thirteen symbols are shared). Driven on the real archive for 13
+November, in about ten minutes: every one of the 1,065 answered, 4.1 million daily bars;
+**864 are clean and 201 parked**, every one of the 201 for a one-day move larger than the
+store believes that nobody has recorded (406 moves; the commonest days are the flash crash
+of 6 May 2010, March 2020 and the day after the Brexit vote). Tests seen failing first; of
+thirty-one deliberate breaks, twenty-eight were caught at once, two once their tests were
+added, and the last, a change of order, changes nothing; a blind review's two blocking
+findings are fixed or decided (`docs/DECISIONS.md`).
+
 ### Next step
 
-Move the scenes onto the whole fourteen months - one line, `SCENES_FROM = FIRST` - as soon
-as the money lane's scene 2 counts each line's own days (not yet, at #30). Meanwhile: the
-store's next open finding, below: a stretched bar's new high or low recorded as differing
-from the archive's.
+The research list's parked fifth: 201 tickers wait for their large moves to be recorded,
+most of them real days of a real market. Decide and build how research reads them without
+loosening the trading store. The scenes' move onto the whole fourteen months is ready on
+the money lane's side (`SCENES_FROM = FIRST`) and is a one-line session of its own.
+
+### Asked of the grid lane
+
+- **A cell must name its ticker's venue.** `lab/cell.py` accepts only the twenty trading
+  lines and knows a line by its symbol alone; the research list has thirteen symbols that
+  are two companies. Take a `Line` from `universe.UNIVERSE`, and read its bars from its
+  venue's folder: `store.read(root / line.venue, line.symbol)`.
+- **A parked research ticker keeps its sound bars** and can be read, but 201 of them hold
+  a move nobody has confirmed; `universe.keep` returns them by line with the reason.
+- **Every ticker is a member today.** A result over the past on this list has survivor
+  bias, and its report must say so (canon B6).
 
 ### Asked of the money lane
 
@@ -396,6 +425,35 @@ from the archive's.
   months are built and proven to trade; scene 5 needs the scenes moved onto them (above).
   Until then no test reads the months before October, so only the script recorded in
   `docs/DECISIONS.md` shows they park nothing clean and that each rule trades in them.
+- **The research list, as fetched on 13 November** (`lab/universe.py`):
+  - A fifth of it is parked: 201 of 1,065, for 406 unrecorded one-day moves (93 US tickers,
+    108 London). Eighty-nine have one move only. Nothing fills `Line.real_moves` for a
+    research ticker, and its list has no place for one.
+  - It is today's members only, so the past studied on it is the survivors' past. The
+    lists' members year by year are not held.
+  - The research store is not kept anywhere yet: the fetch that proved it wrote 327 MB to a
+    scratch folder on his PC. `universe.keep` rebuilds it in about ten minutes; where it
+    lives, and its nightly refresh, come with the grid's first pass.
+  - A ticker the archive refuses for a day (a timeout, a throttled answer) loses its bars
+    until the next run, by the store's one rule (`docs/DECISIONS.md`). The proving run
+    paused a fifth of a second between tickers and was never refused; `universe.keep`
+    itself does not pace its requests.
+  - A ticker that leaves a list keeps its old files in the store, and a run stopped part
+    way leaves no mark of which tickers it reached. The store holds no record of the day or
+    the list it reflects.
+  - Three FTSE 350 members quoted in euros in London (BCG, MTLN, PEY) are left off: a line
+    is in pounds or dollars. Five quoted in dollars there are in.
+  - The 200 funds are the most traded of a field of 330 drawn up by the session, not of
+    every US fund: no free list of all of them by value traded was found. Funds that move
+    against their market, whose multiple has changed, on a single share or tracking
+    volatility are not in the field.
+  - Each ticker's name was checked only by the archive answering to it: a symbol that
+    exists but belongs to another company would pass.
+  - On the 1,065 the store dropped 770 frozen runs, 750 days with a price outside the
+    day's range and 265 bars on closed days, and found 314 gaps; none is recent enough to
+    park a ticker, but the rules were tuned on twenty lines, and thinly traded London
+    trusts may truly sit still for a week.
+  - PRN (a FTSE 250 member) is a reserved file name on older Windows; it wrote normally here.
 - **What the blind review of the store's rules left open** (its one blocking finding - a run
   of days in the wrong unit taken as a lasting step - is fixed and tested; the first fix
   dropped 2MU's real December 2024 crash as bad days, so a run is now bad days only when it
