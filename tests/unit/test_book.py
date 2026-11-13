@@ -3,6 +3,7 @@ the gate reads, built from every fill. Scene 4 holds the gate's refusal and a cr
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
@@ -10,7 +11,7 @@ from pathlib import Path
 import pytest
 
 from desk import book
-from desk.broker import Crash, Fault, Pretend
+from desk.broker import Broker, Crash, Fault, Pretend
 from desk.lines import Line
 from desk.orders import Order, Refused, Sale, Settings
 from desk.store import Bar
@@ -26,7 +27,7 @@ def _bar(day: date, low: int) -> Bar:
 WEEK = {line: (_bar(MON, 49), _bar(TUE, 44 if line == A else 49)) for line in SIX}  #: A's stop: 45
 
 
-def _send(root: Path, broker: Pretend, name: str = "o-1", line: Line = A, n: int = 10) -> book.Sent:
+def _send(root: Path, broker: Broker, name: str = "o-1", line: Line = A, n: int = 10) -> book.Sent:
     return book.send(root, broker, Order(name, line, n, *map(Decimal, (50, 1, 45))), ROOM)
 
 
@@ -124,6 +125,42 @@ def test_while_the_book_is_not_the_brokers_nothing_is_bought_and_no_such_line_so
     for line in SIX:
         broker.inject(line.symbol, 1)
     assert book.reconcile(tmp_path, broker) == tuple("ABCDEF"), "named in no order"
+
+
+class Account:
+    """Any broker, not the pretend one by name: its rows as a real account's door gives them,
+    and each reading of them counted."""
+
+    def __init__(self, inner: Pretend) -> None:
+        self.report, self.place, self.fills, self.stops = (
+            inner.report,
+            inner.place,
+            inner.fills,
+            inner.stops,
+        )
+        self.inner, self.read, self.rows = inner, 0, list[tuple[str, Decimal | int]]()
+
+    def holdings(self) -> Iterable[tuple[str, Decimal | int]]:
+        self.read += 1
+        return self.rows or self.inner.holdings()
+
+
+def test_any_broker_stands_behind_the_send_path_its_rows_read_once_and_never_added(
+    tmp_path: Path,
+) -> None:
+    pretend = Pretend(WEEK, {})
+    pretend.open(MON)
+    door = Account(pretend)
+    assert _send(tmp_path, door).filled == 10 and door.read == 1, "one order, two readings"
+    door.rows = [("A", 6), ("A", Decimal(4))]  #: the book's ten in two entries: never added up
+    assert book.reconcile(tmp_path, door) == ("A",)
+    with pytest.raises(Refused, match="s-1"):
+        book.send(tmp_path, door, Sale("s-1", A, 10), ROOM)
+    door.rows = [("A", 10), ("A CFD", 3)]  #: another product under A's name is not the line
+    with pytest.raises(Refused, match=r"o-2: .*\['A CFD'\]"):
+        _send(tmp_path, door, "o-2", SIX[1])
+    assert book.send(tmp_path, door, Sale("s-2", A, 10), ROOM).filled == 10, "A's shares agree"
+    assert door.read == 5, "the broker's holdings read more than once for an order"
 
 
 @pytest.mark.parametrize(

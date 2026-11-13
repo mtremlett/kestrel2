@@ -1,13 +1,15 @@
-"""broker - THE PRETEND BROKER the desk trades against in simulation. It behaves like the
-real one: its own execution ids, stops resting at the broker, and faults on request."""
+"""broker - WHAT THE DESK ASKS OF ANY BROKER, and THE PRETEND BROKER it trades against in
+simulation, which behaves like the real one: its own execution ids, stops resting at the
+broker, and faults on request."""
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import date
 from decimal import Decimal
 from enum import Enum
+from typing import Protocol
 
 from desk.lines import Line
 from desk.orders import Order, Sale
@@ -47,6 +49,30 @@ class Crash(Exception):
 
 class Disconnected(ConnectionError):
     """The connection dropped before the order reached the broker: it was never received."""
+
+
+class Broker(Protocol):
+    """Any broker the send path and the day run can stand on: the pretend one below, the
+    paper account behind its door. They know a broker by these five questions and no other."""
+
+    def report(self, order_id: str) -> Report | None:
+        """What the broker did with an order id, or None if it never received it."""
+
+    def place(self, order: Order | Sale) -> Report:
+        """Receive the order and answer for it. Disconnected, and nothing else, says it
+        never arrived: only then is it sent again."""
+
+    def fills(self) -> Iterable[Fill]:
+        """The fills of the desk's own orders and their stops, each under the broker's id."""
+
+    def holdings(self) -> Iterable[tuple[str, Decimal | int]]:
+        """What the account holds, entry by entry as the broker gives them and never added
+        together: a name and its shares. A line's symbol names that line and nothing else;
+        anything else held goes under a name of its own."""
+
+    def stops(self) -> Iterable[tuple[str, Decimal | int]]:
+        """Every stop resting at the broker, entry by entry: a name, as a holding's, and
+        the shares it would sell."""
 
 
 @dataclass(frozen=True)
@@ -108,8 +134,11 @@ class Pretend:
     def fills(self) -> tuple[Fill, ...]:
         return tuple(self._fills)
 
-    def positions(self) -> dict[str, int]:
-        return {symbol: held for symbol, held in sorted(self._held.items()) if held}
+    def holdings(self) -> tuple[tuple[str, int], ...]:
+        return tuple((symbol, held) for symbol, held in sorted(self._held.items()) if held)
+
+    def stops(self) -> tuple[tuple[str, int], ...]:
+        return tuple((symbol, shares) for symbol, (shares, _) in self.resting_stops().items())
 
     def resting_stops(self) -> dict[str, tuple[int, Decimal]]:
         """Every stop resting at the broker: the shares it would sell, and its level."""
