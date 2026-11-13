@@ -560,3 +560,51 @@ GitHub sends the previous plan in any form but base64 (it sends no content over 
 the job now stops naming that cause, not a plan with no phases. Its other points are
 accepted as the design: a line naming two phases runs past sixty characters, and a box
 un-ticked, or a phase renamed, reads as "housekeeping".
+
+---
+
+## 2026-11-13 — the week's usage on every Telegram line
+
+**His choice.** In chat on 13 November, offered ways to see how much of his plan's weekly
+allowance the desk's sessions use, he chose "Usage on each line, plus stop alerts
+(Recommended)". This entry is the first half. The stop alerts are sent by the lane runner
+from his PC, not by this line.
+
+**How.** GitHub cannot see his plan's usage, so the figure travels in the pull request.
+Each lane run writes one line in its pull request's description, exactly
+`Weekly usage: 21%`. `announce.py` reads it from the merged pull request's description,
+which comes back from the call to GitHub it already makes, and adds it to the line:
+
+    kestrel2 · Phase 2 · step 3 of 6 done · scenes 4/7 · usage 21% (#16)
+
+**Never a guess, never a red job.** A pull request made by hand has no such line, and its
+Telegram line says `usage n/a`. So does a line that is not exactly of that form: words
+before or after the figure, no percent sign, a fraction, digits in another script, or a
+figure over 100. The figure is read only from a line of its own, so a sentence that
+mentions weekly usage is not taken for it. Two such lines also give `n/a`: an example
+quoted beside the real one, or a stale figure left in, could say different things, and
+picking one would be a guess. A missing figure never stops the job; everything that stopped
+it before still does.
+
+**A snapshot.** The figure is the usage when the pull request was written, not when it
+landed. A lane run merges within minutes, so the two are close; a hand-made pull request
+has no figure at all.
+
+**Longer than sixty characters.** The usage figure adds about twelve characters. The
+length check on the live plan's line now allows 72. That is a change of requirement, his
+choice of usage on each line, not a test loosened to pass.
+
+**Proven.** Fourteen deliberate breaks were each caught by `tests/unit/test_announce.py`:
+a figure over 100 let through; 100% refused; the figure found partway along a line; no
+percent sign needed; words after the figure accepted; a Windows line ending refusing the
+figure; only the description's first line read; a missing figure shown as 0%; 0% shown
+as n/a; the usage left off; an empty description failing the job; the first of two lines
+taken; digits in any script accepted; the figure taken from another pull request. The
+earlier eleven breaks are still caught. The tests stay within the product's size: one
+test was folded into another, and a duplicate case dropped, to fit.
+
+**Reviewed.** A blind reviewer found nothing blocking. Its one medium finding was taken: a
+description holding both an example line and the real one used to give the first figure,
+and now gives `n/a`. So were two minor ones: digits only from 0 to 9, and a test for
+spaces after the figure. Its point that a line naming two phases and the usage runs to
+about ninety characters is accepted; such a merge is rare.
