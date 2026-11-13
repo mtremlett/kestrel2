@@ -86,11 +86,29 @@ everything on main, so two green lanes cannot combine into a red main.
 
 ## MONEY
 
-Last updated: 13 November 2026.
+Last updated: 13 November 2026 (the one comparison).
 
 ### Where it is
 
-The desk now checks its book against the broker's before every order (`book.reconcile`, on
+The desk now has one rule for "is the book the broker's?" (`book.differences`), which the
+paper lane asked for (R-PAPER-1) so the pretend broker and the real paper account are judged
+alike. It sets the book beside what a broker says it holds, entry by entry. Every entry must
+be the book's own shares of that line; entries that only add up to them are named, a line
+the book holds and the broker does not list is named, and a line the broker lists at no
+shares is not a holding. One thing is stricter than the paper door's rule was: a line held
+in two entries is never the book's, so two accounts each holding the book's shares can no
+longer read as clean. The same rule judges the stops resting at the broker. Reconciliation
+before every order (`book.reconcile`, `book.send`) now asks it, and over the rehearsal's
+fourteen months the desk trades exactly as before: the same 68 fills and 34 round trips,
+with and without every first order rejected. The paper door keeps its own copy of the rule
+until the paper lane moves it onto this one (asked below). Its test was seen failing
+first. A blind review found nothing blocking: it checked the rule on 210,525 made-up
+accounts against its own statement of it, without one wrong answer either way, and set the
+old reconciliation against the new over 8,000 random runs with every fault, without one
+difference. Sixty-seven deliberate breaks were driven, its and the lane's: seven gaps in
+the tests were found, each now closed and caught, and four breaks cannot change any answer.
+
+The desk checks its book against the broker's before every order (`book.reconcile`, on
 the send path, so nothing goes round it). Line by line it sets the shares its ledger adds up
 to beside the shares the broker reports and the stop resting there, and names each line
 that differs: a position bought or sold by hand, or a stop cancelled. While any line
@@ -180,7 +198,12 @@ caught; the forty-fifth cannot change a decision.
 
 ### Next step
 
-The kill switch and its drill, by his ruling of 13 November that it comes first: the paper
+First the paper lane's other blocking request (R-PAPER-2): the send path and the day run
+accept any broker that behaves as the pretend one does, not the pretend one by name. That
+broker should give its holdings and its resting stops as entries, a name and its shares
+each, so a real account's rows reach `book.differences` whole and are never added together
+on the way. Then the kill switch and its drill, by his ruling of 13 November that it comes
+first of the lane's own book: the paper
 lane sends no order until it is drilled, and nothing the money lane waits for holds it up.
 Then the costs whole in the one cost model (`desk/orders.py`): what a sale itself costs, and
 spread and slippage on both legs, the stop's sale included, each a stated assumption; the
@@ -191,9 +214,28 @@ holding the market earned. It needs each line's UK tax from the data lane (below
 day: no rule holds anything at the end of the rehearsal data, on its six weeks or on the
 whole of it, so "the broker holds something" cannot be read there.
 
+### Done for other lanes
+
+- R-PAPER-1: done in this pull request
+
+### Requests to PAPER
+
+- [ ] R-MONEY-4 (later, opened 2026-11-13 18:35 UK): `paper.differences` asks `book.differences` and
+  drops its own comparison, so the rule has one home in fact. It hands over the book and the
+  account's entries under one name each, and words what comes back:
+  `book.differences({f"{s} STK {line.currency}": n ...}, [(f"{h.symbol} {h.kind} {h.currency}", h.shares) ...])`
+  gives a `Difference(name, broker, book)` for each entry that is not the book's, in the
+  order the door names them today. The orders stay the door's own. The blind review built
+  exactly this in a copy: all forty of the door's tests pass unchanged. Two things change,
+  both safer: two entries that are each the book's shares, clean today, are named; and an
+  entry that matches the book beside another entry with shares is named too, so it reads
+  "the broker holds 25, the desk's book 25". A name that comes back more than once is held
+  in more than one entry: the door should say so in its sentence. The name must keep the
+  kind and the currency, or another product under the same symbol would read as the book's.
+
 ### Requests to DATA
 
-- [ ] R-MONEY-1 (blocking, opened 2026-11-13 18:15): each line's UK transaction tax as a fact on the line
+- [x] R-MONEY-1 (blocking, opened 2026-11-13 18:15): each line's UK transaction tax as a fact on the line
   (`Line`): what a purchase pays, nil for a fund or an exchange-traded product, 0.5% stamp
   duty for a UK share, each of the ten London lines confirmed; and one London line in the
   rehearsal data that pays it. Scene 7 requires every cost line charged at least once, and
@@ -233,8 +275,6 @@ whole of it, so "the broker holds something" cannot be read there.
     the ledger is written again whole, in silence. Reconciliation sees only a change with
     no fill behind it. At a real broker, which gives recent fills only, a lost ledger would
     name every held line and stop the buying.
-  - A stop resting for the wrong number of shares on a line whose shares agree cannot be
-    made at the pretend broker, so "exactly the shares held" is tested only as "no stop".
   - A gate refusal of a sale during the day (selling more than the book holds) is now one
     of the day's answers and no longer stops the day. It cannot arise today.
   - **For the paper adapter (phase 3):** the broker's fills must be the desk's own orders
@@ -243,6 +283,19 @@ whole of it, so "the broker holds something" cannot be read there.
     positions that lag fills would each read as a mismatch and stop the morning's buying,
     so reconciliation there needs the broker's working orders; a dropped connection while
     reading positions or stops is not yet a stated answer, only in placing an order.
+- **What the blind review of the one comparison left** (nothing blocking; its six test
+  gaps taken, a stop for fewer shares than the line holds among them, which the pretend
+  broker can make after all):
+  - The send path reads the broker's holdings twice, once to name the lines that differ and
+    once to ask whether the order's own line does. At the pretend broker those are one
+    moment; at a real one they are two. When any broker can stand behind the send path
+    (R-PAPER-2), it should read once and judge both from that reading.
+  - A line the broker lists at no shares, which the book does not hold, no longer makes a
+    sale of that line "unsure". The pretend broker lists no such line; right for a real one.
+  - Two breaks no test can see at the pretend broker: a stop resting on a line the book
+    does not hold (the book learns of every fill, so it always holds it), and a sale of a
+    line only the broker holds (the gate refuses it anyway). The rule itself is tested on
+    both; a real broker's adapter needs its own test of each.
 - **What the blind review of the book left** (nothing blocking; its fix and test gap taken):
   - The book reaches the gate as a bare mapping of line to shares. Only the send path
     passes the real book; a typed book that only `book.positions` can make would stop a
@@ -315,16 +368,58 @@ stop, or one not below its price.
 
 ## PAPER
 
-Last updated: 13 November 2026.
+Last updated: 13 November 2026 (the lines as the broker lists them).
 
 ### Where it is
 
-The desk can now read the paper account and say whether anything but the desk trades it
-(`desk/paper.py`). It connects to IB Gateway's paper port on his PC under the desk's own
-client id (222), asks two questions - what the account holds, and which orders rest on it -
-and hangs up. It places, changes and cancels nothing: the four messages it can send are
-fixed, and a test holds them byte for byte. The standard library alone, about two hundred
-lines.
+**The desk now knows each of its twenty lines as the paper broker lists it**
+(`desk/listing.py`): the broker's own number for the line, the exchange it lists it on,
+whether it prices it in pence or in pounds, and its price steps. It asks the broker each
+time, read-only, through the same door as the account check, and writes none of it down:
+two questions, neither of which can place an order, held byte for byte by a test.
+
+**Run on the real gateway, 13 November, about 18:35 UK: twenty of twenty listed**, each
+exactly once under the desk's own name and currency. All ten London lines are on London's
+funds list; eight US lines on Nasdaq and two (SPY, GLD) on Arca.
+
+- **Six London lines are priced in pence at the broker, four in pounds.** 3LGO, 2MU, IITU,
+  5QQQ, ISF and SGLN in pence; SMGB, VHYG, IB1T and VUSA in pounds. The broker calls the
+  currency of all ten pounds, and the desk's prices are all pounds. A stop sent in the
+  wrong unit would sit a hundred times too high or too low, so the desk converts in one
+  place (`Listing.floor`): a price in pounds goes down onto the broker's step and comes
+  out in the broker's unit. £37.556 on IITU becomes 3755.
+- **The steps are the broker's own rule, by price.** IITU, 3LGO, 5QQQ and SGLN move in
+  tenths of a penny under £5 and whole pence above £25; ISF in fifths of a penny at £10;
+  VUSA in quarters of a penny; every US line in cents.
+- **Proved on the broker's own prices.** The open, high, low and close of each line's last
+  thirty sessions, read from the broker (read-only), 2,392 prices. On nineteen lines every
+  price sits on the step the desk works out, in the unit it works out, and the prices move
+  in exactly that step, nothing finer and nothing coarser: whole pence on IITU, 3LGO and
+  SGLN, tenths of a penny on 5QQQ, fifths on ISF. A step read in the wrong unit would be a
+  hundred times out. 2MU agrees below £500; above it 36 of its 77 prices do not (below,
+  found not fixed).
+- **A line the broker does not list as the desk's is named, and the rest carry on**: not
+  there at all, there twice, or under the name but another kind of product, another
+  currency or an exchange outside the line's venue. It comes back as "unlisted" with the
+  reason, a different kind of record, so no order can be built for it by mistake.
+- **An answer the desk cannot read stops the whole reading**: a message of another shape,
+  an answer to a question it did not ask, steps that are not steps, any error but "no such
+  line", a gateway that hangs up, or an account that is not a paper one.
+
+The tests were seen failing first. A blind review found two blocking faults, both fixed and
+tested: a notice that the gateway cannot look lines up was passed over, so an outage could
+have read as "the broker lists nothing"; and an infinite or not-a-number price was let
+through. Its second reading approved the repair. Of 113 deliberate breaks, 101 were caught
+at once and five showed a gap in the tests, each closed; five different ones survive, four
+that cannot change a result and one (adding an exchange) that is a deliberate edit
+(`docs/DECISIONS.md`). Since the review, that same notice stops the account check too.
+
+The account check, built the session before (`desk/paper.py`): the desk can read the paper
+account and say whether anything but the desk trades it. It connects to IB Gateway's paper
+port on his PC under the desk's own client id (222), asks two questions - what the account
+holds, and which orders rest on it - and hangs up. It places, changes and cancels nothing:
+the four messages it can send are fixed, and a test holds them byte for byte. The standard
+library alone, about two hundred lines.
 
 **Run on the real account, 13 November, about 17:45 UK: quiet.** The account lists
 seventeen lines the old desk once held, every one at no shares, and no order rests on it.
@@ -354,14 +449,21 @@ the tests on the way, each closed (`docs/DECISIONS.md`).
 
 ### Next step
 
-Each of the twenty lines as the broker knows it (its name there, its exchange and its price
-step), read-only, so an order can name its line and a stop sits on a price the broker
-accepts. Then the fills and orders the broker reports, then placing: no order until that
-day's check is clean. The check should be run again on a second day before the first order.
+First, a short step now that the money lane has built the one comparison of a book with
+a broker (`book.differences`, R-PAPER-1, #52): the account check hands it the account's
+entries and keeps only what is the paper door's own (paper accounts only, the kind and
+currency of a holding, the resting orders), so the rule has one home.
+
+Then the fills and the orders the broker reports, read-only: each fill under the broker's own
+id, its price turned from the broker's unit back into the line's currency (pence into
+pounds on six London lines), and the desk's own orders and stops told from anyone else's,
+so the daily check can know the desk's resting stops. Then placing, behind `Pretend`'s
+interface: no order until that day's check is clean and the kill switch is drilled. The
+account check should be run again on a second day before the first order.
 
 ### Requests to MONEY
 
-- [ ] R-PAPER-1 (blocking, opened 2026-11-13 18:15): one home for "the book against the broker".
+- [x] R-PAPER-1 (blocking, opened 2026-11-13 18:15): one home for "the book against the broker".
   `paper.differences` is that rule for the real account; scene 6 (`day.run`) needs it
   against the pretend broker. One comparison should serve both, in `desk/book.py`, taking
   the book and the broker's holdings; the paper door would then hand it the account's
@@ -369,6 +471,19 @@ day's check is clean. The check should be run again on a second day before the f
 - [ ] R-PAPER-2 (blocking, opened 2026-11-13 18:15): `book.send`, `book.collect` and `day.trade` accept
   any broker with `Pretend`'s interface, not `Pretend` by name, so the paper adapter can
   stand behind them.
+
+### Done for other lanes
+
+- R-DATA-5: done in #53 for its first half (every `Line(...)` in this lane's tests states
+  its UK tax). Its second half stays open with the conformance trades: what the contract
+  note of the first London product bought says of stamp duty.
+
+### Requests to DATA
+
+- [ ] R-PAPER-3 (later, opened 2026-11-13 18:55 UK): each line's ISIN as a fact on the line
+  (`Line`), so the paper door can know the broker's line is the desk's by its ISIN, not by
+  its ticker. The broker gives it for all twenty (IITU is IE00B3WJKG14, AAPL US0378331005);
+  each should be confirmed from the issuer or the exchange, not copied from the broker.
 
 ### Found, not fixed
 
@@ -381,10 +496,66 @@ day's check is clean. The check should be run again on a second day before the f
   account. Its shape in the tests is the published client's, checked field by field by the
   blind review. Any order is named whatever its details; the first conformance trade must
   confirm them.
-- **Whether the broker's name for each of the twenty lines is the desk's is unproven.**
-  SMGB and AAPL appear under the desk's names among the old desk's lines. "A share or a
-  fund" is written in the door as the broker's word for it; the instrument master holds no
-  fact about a line at the broker. The next step settles both.
+- **2MU's real prices do not keep to the broker's own steps above £500.** The broker's rule
+  for it says steps of £5 there; on the days it traded above £500 it moved in steps of £1
+  (36 of 77 prices are off the £5 step). Below £500 it moves in exactly the rule's £2. A
+  stop put down onto a £5 step there sits up to 1% lower than asked. Whether the broker
+  takes a stop on its own step that the exchange does not quote is unproven. 2MU is parked
+  today; its conformance must be seen before it trades on paper.
+- **Fills, holdings and the broker's own bars come in the broker's unit.** On the six
+  London lines priced in pence, a fill's price will arrive a hundred times the desk's.
+  Only a price going out is converted so far (`Listing.floor`); the way back belongs to
+  the next step, in the same place.
+- **Nothing reads the listings each day yet, and nothing refuses an order on an unlisted
+  line**: the adapter will, when it places. Today's reading is one moment's.
+- **The account check still knows a holding by its name, kind and currency**, not by the
+  broker's own number for the line, which the listing now gives. Matching on the number
+  would be exact; it belongs with the move onto `book.differences` (next step).
+- **The same answer carries facts the desk does not read yet:** each line's trading hours
+  at the broker for the coming week, which the conformance trades need (given in central
+  European time for London: from 08:00 UK, to 16:30 UK on 3LGO, 2MU, 5QQQ and IB1T and to
+  16:50 on the other six; the US lines 09:30 to 16:00 New York); the smallest order (a
+  whole share on those four, fractions elsewhere; the desk trades whole shares); and the
+  kinds of order each line takes (a market order, a stop and good-till-cancelled on all
+  twenty).
+- **The broker gives daily bars for all twenty lines on this paper login** (thirty sessions
+  each were read, read-only, to prove the steps). The data lane's check of the archive
+  against the broker's price of record can be built on it; the six pence lines would need
+  dividing by a hundred.
+- **The broker's names for exchanges are a short list in the module** (London's funds
+  list; Nasdaq and Arca), each seen from the gateway on one of the twenty. When VUAG, EQQQ
+  and IDTL join the twenty they should list on London's funds list too; a line on any
+  other exchange (New York, say) comes back unlisted, by design, until its exchange is
+  added.
+- **What the blind review of the listings left** (its two blocking findings are fixed and
+  tested: a notice that the gateway cannot look lines up was passed over as price-feed
+  news, so an outage could have read as "the broker lists nothing"; and an infinite or
+  not-a-number price or step was let through):
+  - **The desk's own resting orders will probably stop both readings.** The gateway is
+    believed to send a client its own open orders, unasked, when it connects; the door
+    stops on an order it did not ask for. Nothing rests today. The next step, which reads
+    orders, must teach the door before the first stop rests. The questions' numbers (0 to
+    19) also share one space with order numbers; they must be kept apart then.
+  - **A price for the broker is a plain number, like a desk price.** Once it leaves
+    `Listing.floor`, nothing stops a caller setting 3755 pence beside 37.556 pounds. The
+    adapter must keep it inside the door, or give it a kind of its own.
+  - **The paper stop and the simulation's stop differ by up to one step**: the sizer and
+    the pretend broker use the stop unrounded. The conformance trades will show it.
+  - **Nothing decides yet what the desk does when a line it holds comes back unlisted.**
+    Not buying it is plain; its resting stop and its sale are the adapter's to settle.
+  - **The broker's line is known by its name, kind, currency and exchange**, not by its
+    ISIN, which is in the same answer, unread; the instrument master holds none (asked of
+    the data lane, below). A ticker given to another product on the same exchange would
+    pass. The broker's own name for each line is in the answer too: SPCX is "SPACE
+    EXPLORATION TECHN-CL A" there, which the data lane may want to set beside the
+    archive's history under that ticker.
+  - **A conversation has no time limit of its own**: fifteen seconds for each message, and
+    a gateway that kept sending price-feed news would never be cut off. Silence stops the
+    desk, as a timeout.
+  - **Whether the gateway says "no such line" while its look-up is down, and whether it
+    tells a client that connects after the loss, is unproven.** The desk stops on the
+    notice when it is sent.
+  - A step that is no number at all stops the desk loudly but without a plain sentence.
 - **The guard on the live port reads for one number.** It would not catch the live port of
   the broker's desktop program. The door's own test now holds its port and machine, and the
   paper-only lock stands behind it; a session he starts could make the guard refuse any
@@ -397,8 +568,8 @@ day's check is clean. The check should be run again on a second day before the f
   whether a client connecting afterwards is told is unproven.
 - **The gateway must be running and logged in**, and it logs itself out each day. Keeping
   it up belongs to "unattended running", later in the book.
-- **This change adds as many test lines as product lines** (202 each), so it leaves the
-  shared margin between unit tests and product where it was.
+- **Each of this lane's changes adds no more test lines than product lines**, so it leaves
+  the shared margin between unit tests and product where it was.
 - **A deliberate break can report the wrong result from Python's cache.** A break written
   within a second of the last, to a file of the same size, ran the old code once in this
   session and named the wrong test. Every lane drives breaks; they should be run with the
@@ -407,7 +578,7 @@ day's check is clean. The check should be run again on a second day before the f
 
 ## DATA
 
-Last updated: 13 November 2026 (the research list).
+Last updated: 13 November 2026 (each line's UK tax).
 
 ### Where it is
 
@@ -493,12 +664,41 @@ thirty-one deliberate breaks, twenty-eight were caught at once, two once their t
 added, and the last, a change of order, changes nothing; a blind review's two blocking
 findings are fixed or decided (`docs/DECISIONS.md`).
 
+Every line now states what a purchase pays in UK transaction tax (`Line.uk_tax`), asked by
+the money lane (R-MONEY-1). One table in the instrument master holds the two rates: nil for
+a fund or an exchange-traded product, and a UK share's stamp duty, half of one per cent of
+what is paid. A line can state only one of the two, and only a London line can pay: any
+other figure, or a US line with UK tax, cannot be made. Each of the twenty trading lines
+states nil. For the five London funds (SMGB, IITU, VHYG, ISF, VUSA) that is confirmed from
+the tax office's own manual. For the five London products (3LGO, 2MU, 5QQQ, IB1T, SGLN) it
+is how the law reads and what brokers say, but no official page or issuer's document naming
+them was reached: it is to be seen on a real contract note (`docs/DECISIONS.md`). The
+research list's 347 London shares are each charged stamp duty, an assumption not checked
+name by name (below). One London line of the rehearsal data (L01) is now a UK share: over
+the fourteen months the rules buy it three times and its stamp duty comes to £29.66, so the
+day's record has a tax to count. Tests seen failing first; seventeen deliberate breaks,
+fifteen caught, one that changes nothing, and one no test can see yet (the rehearsal line's
+tax: nothing reads it until the money lane builds the day's record); a blind review's two
+blocking findings, both of wording that claimed more than was proven, are taken.
+
 ### Next step
 
-The research list's parked fifth: 201 tickers wait for their large moves to be recorded,
+R-MONEY-2, the money lane's other blocking request: the scenes moved onto the whole
+fourteen months (`SCENES_FROM = FIRST`), a short session of its own; until it is done the
+scenes see six weeks in which nothing is bought, so no tax is charged there either. Then
+the research list's parked fifth: 201 tickers wait for their large moves to be recorded,
 most of them real days of a real market. Decide and build how research reads them without
-loosening the trading store. The scenes' move onto the whole fourteen months is ready on
-the money lane's side (`SCENES_FROM = FIRST`) and is a one-line session of its own.
+loosening the trading store.
+
+### Done for other lanes
+
+- R-MONEY-1: done in this pull request. `line.uk_tax` is the part of a purchase's value paid
+  in UK tax (`lines.NO_TAX` or `lines.STAMP_DUTY`, an exact decimal); a sale pays none. In
+  the rehearsal data L01 pays it. For the money lane to know: the tax is not yet in
+  `orders.cost` or the gate, so a taxed buy sized to its fifth can pass it by the duty (L01's
+  first buy is £1,967.67 before £9.84 of duty, so it fits today); the tax office collects it
+  to the penny, which belongs to the day record's one rounding policy; and the money lane's
+  note that the ten London lines are "assumed nil" can now point here.
 
 ### Requests to GRID
 
@@ -522,9 +722,45 @@ the money lane's side (`SCENES_FROM = FIRST`) and is a one-line session of its o
   `Mapping[Line, Sequence[Bar] | Refused]`.
 - `SESSIONS` will then be every day either venue trades; a day run on it meets days only
   one venue trades (Thanksgiving, Easter Monday).
+- [ ] R-DATA-4 (later, opened 2026-11-13 18:40 UK): every `Line(...)` in the money lane's tests
+  states its UK tax as a fifth fact (`NO_TAX` or `STAMP_DUTY`). Once the paper lane's do too,
+  the data lane removes the default, so a line cannot be made without saying what it pays,
+  as with leverage.
+
+### Requests to PAPER
+
+- [ ] R-DATA-5 (later, opened 2026-11-13 18:40 UK): every `Line(...)` in `tests/unit/test_paper.py`
+  states its UK tax as a fifth fact (`NO_TAX` or `STAMP_DUTY`), for the same reason as
+  R-DATA-4. And when the first conformance trade buys a London product, its contract note
+  shows whether stamp duty was charged: tell the data lane what it says.
 
 ### Found, not fixed
 
+- **What each line's UK tax leaves open** (blind review; its two blocking findings taken):
+  - **The five London products' nil is not confirmed from an official source.** 3LGO, 2MU,
+    5QQQ, IB1T and SGLN are debt of issuers outside the UK, not funds, so the 2014 exemption
+    for funds does not name them. Nil is how the law reads and what brokers say; the
+    issuers' prospectuses could not be fetched. He can settle it in a minute: the order
+    preview for any of them at his own broker shows whether stamp duty is charged. If one
+    pays, it is one word on its line.
+  - **A line made without stating its tax pays nil.** Leverage cannot be left out; the tax
+    can, because the other lanes' tests build lines from four facts and this lane may not
+    edit them. The twenty lines, the research list and the rehearsal lines each state it.
+    Asked of the money and paper lanes (R-DATA-4, R-DATA-5); then the default goes.
+  - **The research list's London shares are all charged a UK share's stamp duty, unchecked
+    name by name.** A member registered outside the UK most likely pays none (the review
+    names, from memory, EXPN, GLEN, WPP, WIZZ, CCH, HSX, LRE and Channel Islands trusts
+    such as 3IN, INPP, TRIG, SEQI, BHMG, HVPE, NBPE, PSH, VOF, VEIL, TFIF, RTW), so research
+    overstates their cost by half a per cent a purchase. One registered in Ireland (DCC,
+    GFTU, GNC) pays Ireland's 1%, and IAG may pay Spain's tax instead: rates no line can
+    state yet, so their cost is understated. Nothing trades on this list.
+  - **The takeover panel's levy is not modelled:** a flat pound or so on a trade over
+    £10,000 in a UK company's shares, on sales too. No trade is that large at £2,000 a
+    holding, and none of the twenty is a UK company's share.
+  - **Each line's kind was written from what the session knows of the ten products**, not
+    read from the broker or the exchange. The paper lane's next step reads each line as the
+    broker knows it; a fund that turned out to be a share would show there.
+  - Nothing tests that the rehearsal's taxed line is bought; scene 7 will, once built.
 - **Four of the twenty lines are parked, each for a reason in the archive's data:**
   - 3LGO has no history in the free archive at all (the same product in dollars, 3GOL,
     has fourteen years). He chose to keep 3LGO; it waits for history to gather.
@@ -628,128 +864,58 @@ the money lane's side (`SCENES_FROM = FIRST`) and is a one-line session of its o
 
 ## GRID
 
-Last updated: 13 November 2026. Took over the ladder lane's cell, batch and results on 13
-November, when the operator split the ladder into GRID and RUNGS.
+Last updated: 13 November 2026 (the section cut to its open items; git keeps the rest).
 
 ### Where it is
 
-The ladder has its unit of work (`lab/cell.py`): one of the five strategies on one of the
-twenty lines over a window of days. It runs the desk's own decisions, never a copy of them,
-over the line's whole history up to the window's end, and records the days each trade was
-bought and sold. Each record carries a fingerprint of the code that made it and of every
-bar it read, so a later batch can keep results and re-run only what changed. It names no
-price or profit yet: no result is reported without its costs (`docs/DECISIONS.md`).
-
-It now has a batch service (`lab/batch.py`) that runs many cells in turn and writes each
-result down as it finishes. A cell that fails is recorded with its error and the rest carry
-on; a batch stopped part way, even in the middle of writing a line, takes up where it
-stopped when started again, never running a finished cell twice. A failed cell is tried
-again on the next start. A batch refuses to start when the code on disk is no longer the
-code it loaded.
-
-A result is now kept by what made it: the code and every bar the rule was shown. Each run
-reads every cell's bars again and re-runs a cell only when its code or its bars have
-changed; a bar corrected after a window's end leaves that window's result alone.
-
-The fast grid engine is built (`lab/grid.py`, numpy) and proven against the desk's own
-engine: for each of the five strategies it works out, for a line's whole history at once,
-whether the strategy is in the market after every bar, and on the golden series and on
-prices as long as the archive's it holds exactly what the desk holds, day by day. It never
-guesses. The desk counts in exact decimals and the grid in floating point, so wherever two
-numbers are too close for floating point to tell which is larger the grid refuses the cell
-by name (`TooClose`) and gives no answer; the desk's own engine must decide it. On prices
-like the archive's it refused nothing; on made-up prices on a coarse tick it refuses a
-close exactly on a Supertrend band. Measured on 4,000 days of one line: the desk's engine
-takes about 100 ms for the five rules, the grid 6 to 8 ms, after 17 ms once per line to
-read its prices in. Two blind reviews found three ways to a wrong answer, all on prices no
-market has; each is fixed and tested, and the second review's whole random comparison, run
-again on the repaired engine, found no difference from the desk. Nothing uses the grid yet: the unit of work still runs the desk's own.
+Built and proven: the ladder's unit of work (`lab/cell.py`: one strategy on one line over a
+window, the days each trade was bought and sold, keyed by its code and its bars), the batch
+service that survives a bad cell and a restart and re-runs only what changed
+(`lab/batch.py`), and the fast grid engine (`lab/grid.py`), which holds exactly what the
+desk's engine holds after every bar or refuses by name (`TooClose`), never guessing: about
+7 ms for the five rules on 4,000 days against the desk's 100 ms. Nothing uses the grid
+yet: the unit of work still runs the desk's own engine. No price or profit is named.
 
 ### Next step
 
-Move the unit of work onto the grid (`lab/cell.py`): a cell's trades from the grid's
-answer, and from the desk's own engine whenever the grid refuses, the same record either
-way, the grid's file counted in the code version. Then auto-tune.
+Move the unit of work onto the grid (`lab/cell.py`), the desk's own engine deciding what
+the grid refuses, the same record either way. Then R-DATA-1, then auto-tune.
 
-### Asked of the money lane
+### Requests to MONEY
 
-- **The five rules take no settings.** The grid's first pass is "every strategy at every
-  setting", and the grid may only be trusted where it matches the desk's engine (canon B2).
-  Until `desk/strategy.py`'s rules can be made at other settings (the window lengths, the
-  RSI's bar, the bands' widths), the grid is proven, and so runs, at the published five only.
+- [ ] R-GRID-1 (later, opened 2026-11-13 18:15): the five rules made at other settings (window
+  lengths, the RSI's bar, the bands' widths) in `desk/strategy.py`. The grid's first pass is
+  "every setting", and the grid is trusted only where it matches the desk's engine (canon
+  B2); until then it runs at the published five only.
 
 ### Found, not fixed
 
-- **What the blind reviews of the grid engine left** (three wrong answers found, each fixed
-  and tested: an RSI on days that move a thousand-millionth of the price, a Supertrend band
-  when a close sits far outside its day's range, and ties among prices of 26 digits and
-  more; and six safeguards no test held, each now held by one). There was no third review
-  of the last repairs; the second review's own random comparison was run again and is clean:
-  - **A line with five or more identical closes in a row, at prices as long as the
-    archive's, is refused for the RSI** (and twenty or more for the Bollinger rule): an
-    average of equal long prices is a tie floating point cannot call. The desk's engine
-    decides those cells, so the answer is right and only slower. The store drops a frozen
-    feed, but a thinly traded research ticker may have such runs; worth counting on the
-    research universe before the first pass.
-  - Reading a line's prices in costs twice what the five rules do (17 ms against 8 ms on
-    4,000 days), nearly all of it turning each decimal into a whole number. It is paid once
-    per line, not per cell. And the Supertrend and the RSI still walk the days one at a
-    time for Wilder's smoothing and the carried bands. Fine until the first pass is timed.
-  - Deliberate breaks that survive, which no series found can show: the Supertrend's band
-    carried on the day's own close for the day before's (no position differed on some 700
-    series searched); a close set against its own day's upper band; the Bollinger check
-    for whole prices whose squares pass 2**53 (it needs an exact tie among very large
-    numbers); Wilder's smoothing on a series exactly as long as its window (nothing reads
-    that value); and the margin of the Supertrend's upper band and of its carrying measured
-    against the close alone, or against the day's prices and not all so far (the committed
-    case is the lower band's; the review's random comparison covers the rest, outside the
-    repository).
-  - On whole-number prices, about thirty unchanged closes in a row fade the RSI's gain and
-    loss to nothing and the grid refuses the line for that rule; the desk's engine decides.
-  - The golden series are read from the money lane's `tests/unit/test_strategy.py`
-    (`GOLDEN`, `_walk`, `_jumpy`, `_bars`, `START`): if that file renames them, the grid's
-    test stops and the two lanes must move together.
-- **A helper's working copy was left in the main folder.** The tool that gives a helper its
-  own copy made it under `.claude/worktrees/` of the operator's main kestrel2 folder, with a
-  branch `worktree-agent-ab11b126c53bfd69e` in the shared repository. This session did not
-  go into that folder to remove it. It holds no change and can be deleted.
-- **What the blind review of the unit of work left for the batch** (nothing blocking; its
-  test gaps on the data version and the trade pairing, and its unsorted-bars finding, are
-  fixed and tested):
-  - The code version is read from disk when `lab/cell.py` is imported. A long-lived
-    process that imported the strategies earlier, and had them changed on disk before
-    that, would key old code's results under the new code. The batch service must run each
-    batch in a fresh process, or refuse when the files no longer match `cell.LOADED`.
-  - Three of the five rules never trade in the contract test's twenty-five-day shapes
-    (RSI-2, the 50/200 cross, Supertrend need far longer); their agreement with the desk
-    is shown there only as "no trades". A fixture of more than 200 bars would cover them.
-  - The key does not include the Python version, and only file contents, not file paths,
-    are hashed; a file moved without a change of text keeps its key.
-- **What the blind review of the batch left** (nothing blocking; its two findings on
-  failed cells never retried and on cutting a torn line by rewriting the whole journal
-  are fixed and tested):
-  - That each line reaches the disk before the next cell starts (`os.fsync`) is not seen
-    by any test; removing it leaves the tests green. Only a killed process would show it.
-  - Nothing stops two processes working on one journal at once; the module says one at a
-    time. A lock is owed when the batch is started by anything but a person.
-  - A journal line corrupt in the middle fails loudly but names neither the file nor the
-    line; a failed cell keeps its error's type and message, not where it was raised.
-- **What keeping results by key left** (blind review, its one blocking finding fixed):
-  - The unit of work's fingerprint misses two breaks no test drives: a bar whose volume
-    alone changed, and two bars on one day (the order check's `<=` made `<`). Its contract
-    test owes a case for each.
-  - Every run reads and hashes each cell's bars, and a cell with no result hashes them
-    twice (once for its key, once in its run). Fine until a benchmark says otherwise.
-  - The journal keeps every old record and one line per failure per run; it only grows.
-- **A cell runs all five strategies to keep one.** It asks `strategy.decide`, which decides
-  every rule at once; a batch of the five on one line pays five times. Fine until a
-  benchmark says otherwise.
-- **A missing session older than sixty sessions no longer parks a line**, so research over
-  years of history (the ladder) will meet gaps it must handle.
+- **The grid refuses runs of equal closes**: five or more for the RSI, twenty or more for
+  Bollinger, about thirty on whole-number prices. The desk's engine decides those cells:
+  right, only slower. Count them on the research universe before the first pass.
+- Reading a line's prices in costs 17 ms per line, twice the five rules; the Supertrend and
+  the RSI still walk the days one at a time. Fine until the first pass is timed.
+- Deliberate breaks of the grid no series found can show: the Supertrend's band carried on
+  the day's own close; a close against its own day's upper band; the Bollinger check past
+  2**53; Wilder's smoothing on a series as long as its window; the upper band's margin.
+- The golden series are read from the money lane's `tests/unit/test_strategy.py` (`GOLDEN`,
+  `_walk`, `_jumpy`, `_bars`, `START`): if it renames them, the two lanes move together.
+- A helper's empty working copy sits under `.claude/worktrees/` of the operator's main
+  folder, with branch `worktree-agent-ab11b126c53bfd69e`. It can be deleted.
+- The unit of work: three of the five rules never trade in its contract test's 25-day
+  shapes; its key leaves out the Python version and file paths; no test drives a bar whose
+  volume alone changed, or two bars on one day; a cell runs all five rules to keep one.
+- The batch: no test sees each line forced to disk (`os.fsync`); nothing stops two
+  processes on one journal (a lock is owed before anything but a person starts it); a
+  corrupt journal line names neither file nor line; bars are hashed twice for a new cell;
+  the journal only grows.
+- A missing session older than sixty sessions no longer parks a line, so research over
+  years of history will meet gaps it must handle.
 
 ## RUNGS
 
-Last updated: 13 November 2026. Took over the ladder lane's first rung on 13 November.
+Last updated: 13 November 2026 (the luck rung). Took over the ladder lane's first rung on
+13 November.
 
 ### Where it is
 
@@ -763,10 +929,23 @@ standard errors above nothing. On made-up prices it passed a planted edge on eve
 forty random histories tried and failed all forty with no edge; it fails an edge that a £3
 least commission eats at a small capital, and the same edge with too few trades.
 
+The ladder now has its luck rung (`lab/luck.py`), for the day many strategies are tried at
+once. Try enough of them and some pass the first rung with no edge at all, about one in
+forty. So the first rung's verdicts are judged again as one set: each one's chance of being
+luck is multiplied by the number of trials it was picked from, and it passes only if that
+is still 5% or less and it passed the first rung. Every trial counts, whatever became of it:
+a loser, one with too few trades, and one that gave no verdict at all (a cell that failed, a
+candidate dropped), which the caller must state. Each corrected verdict carries the count it
+was corrected for. On made-up trades: of forty sets of forty strategies with no edge, the
+first rung alone handed over a "winner" in twenty-six; after the correction, in one (5%
+allows two). A real edge added to each set passed in all forty. A modest winner stands
+alone and picked from eight, and falls picked from nine.
+
 ### Next step
 
-Luck correction that counts every trial: a winner is corrected for how many trials it was
-picked from, and every rung records that count (canon B6, AG-01).
+In-sample and out-of-sample folds: a strategy's history cut into folds, each judged after
+costs, the two side by side, the verdict on the worst fold; every fold a trial the luck rung
+counts (canon B6, AG-01).
 
 ### Requests to MONEY
 
@@ -789,6 +968,25 @@ picked from, and every rung records that count (canon B6, AG-01).
   one share costs more than its room fails the whole verdict loudly; and at two standard
   errors about one cell in forty passes by chance, so a batch of many cells needs the luck
   rung before any winner is believed.
+- **The luck rung's chance is honest only for bell-shaped trades** (blind review, its one
+  blocking finding: the module had promised the 5% without saying so; it now says so). A
+  rule with many small wins and a rare large loss, judged on few trades, reads as far less
+  chance than it is: on made-up trades of that shape with no edge (95% win 1%, 5% lose 19%),
+  about a fifth of thirty-trade trials beat a correction for a hundred trials, and about one
+  in twenty of sixty-trade trials. The cure belongs to the book's box "the luck test fixed
+  before any result" (a deflated Sharpe, which reads skew and fat tails) and to "failing
+  fairly" (effective trades). **No winner on real prices is to be believed before then.**
+- **The count is the caller's to give.** The rung counts every verdict it is handed and
+  every trial the caller says left none; handed one batch, one line or one strategy at a
+  time, it would count only that. A cell whose gains have no spread at all stops the first
+  rung and leaves no verdict, so it too must be stated. Nothing yet keeps the count from
+  batch to batch: a register of every trial ever tried is a box in the book.
+- **What else the blind review of the luck rung left** (nothing blocking): the 5% line
+  itself is not held by a test (a chance landing on exactly 5% does not arise from real
+  numbers; "under 5%" for "5% or under" survives, as does a slightly coarser sum inside the
+  chance); the chance asked for no trades, or the count given as a fraction, is not refused
+  in plain words (neither can arise from a verdict); and `rung.verdict`, the first rung's
+  pass rule as one function, is called by the first rung and by the luck rung's tests only.
 - **Two deliberate breaks of the first rung survive, neither able to differ:** a pass bar
   of "over 2" for "2 or over" (a t of exactly 2 does not arise), and the rung's arithmetic
   setting (the caller's default is the same).
