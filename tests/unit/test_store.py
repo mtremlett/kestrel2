@@ -266,3 +266,31 @@ def test_a_real_fall_and_recovery_is_never_dropped_as_bad_days(tmp_path: Path) -
     reasons = _parked(tmp_path, bars)
     assert len(reasons) == 1 and "split" in reasons[0]
     assert store.read(tmp_path, US.symbol) == bars
+
+
+FREEZES: dict[str, Callable[[Bar, Bar], Bar]] = {
+    "the bar before repeated": lambda bar, b: replace(b, day=bar.day, volume=0),
+    "the bar before repeated whole": lambda bar, b: replace(b, day=bar.day),
+    "flat at the close before": lambda bar, b: Bar(bar.day, b.close, b.close, b.close, b.close, 0),
+    "flat, but traded": lambda bar, b: Bar(bar.day, b.close, b.close, b.close, b.close, 900),
+}
+
+
+@pytest.mark.parametrize("freeze", FREEZES.values(), ids=FREEZES.keys())
+@pytest.mark.parametrize("days", [4, 5], ids=["four days", "a week"])
+@pytest.mark.parametrize(
+    ("at", "recent"), [(5, False), (-63, True), (-5, True)], ids=["old", "into sixty", "to today"]
+)
+def test_a_week_of_one_price_and_no_volume_is_a_frozen_feed(
+    tmp_path: Path, freeze: Callable[[Bar, Bar], Bar], days: int, at: int, recent: bool
+) -> None:
+    bars = [replace(b, volume=900 + n) for n, b in enumerate(_bars(US, LONG))]
+    run = range(at % len(bars), at % len(bars) + days)
+    for n in run:
+        bars[n] = freeze(bars[n], bars[n - 1])
+    frozen = days >= 5 and freeze is not FREEZES["flat, but traded"]
+    reasons = _parked(tmp_path, tuple(bars))
+    assert bool(reasons) is (frozen and recent)
+    assert any("frozen feed" in f for f in store.faults(tmp_path, US.symbol)) is frozen
+    kept = tuple(b for n, b in enumerate(bars) if not (frozen and n in run))
+    assert store.read(tmp_path, US.symbol) == kept
