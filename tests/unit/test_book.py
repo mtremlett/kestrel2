@@ -12,7 +12,7 @@ import pytest
 from desk import book
 from desk.broker import Crash, Fault, Pretend
 from desk.lines import Line
-from desk.orders import Order, Refused, Settings
+from desk.orders import Order, Refused, Sale, Settings
 from desk.store import Bar
 
 A, MON, TUE = Line("A", "LSE", "GBP", 1), date(2025, 11, 10), date(2025, 11, 11)
@@ -77,6 +77,48 @@ def test_the_book_is_every_fill_the_broker_made_and_the_gate_reads_it(tmp_path: 
     book.collect(tmp_path, broker)
     assert book.fills(tmp_path) == broker.fills(), "a fill missed, or written twice"
     assert book.positions(tmp_path) == {s: 10 for s in "BCDEF"}, "a book not built from fills"
-    (tmp_path / book.LEDGER).write_text(",".join(book.COLUMNS) + "\nX,o,A,-1,5\n", "utf-8")
+    (tmp_path / book.LEDGER).write_text(
+        ",".join(book.COLUMNS) + "\nX,o,A,-1,5,2025-11-10\n", "utf-8"
+    )
     with pytest.raises(ValueError, match="A"):
         book.positions(tmp_path)
+
+
+def test_a_round_trip_pairs_each_sale_with_the_buys_it_closes_in_pounds_after_charges(
+    tmp_path: Path,
+) -> None:
+    dollar = Line("U", "US", "USD", 1)
+    broker = Pretend({**WEEK, dollar: WEEK[SIX[1]]}, {})
+    for on, rate in ((MON, "0.8"), (TUE, "0.75")):
+        broker.open(on)
+        book.record_rates(tmp_path, on, {"GBP": Decimal(1), "USD": Decimal(rate)})
+        if on == MON:
+            _send(tmp_path, broker)
+            book.send(
+                tmp_path, broker, Order("o-2", dollar, 10, *map(Decimal, (50, 0.8, 45))), ROOM
+            )
+            book.send(tmp_path, broker, Sale("s-1", A, 4), ROOM)
+    book.send(tmp_path, broker, Sale("s-2", dollar, 10), ROOM)  #: after A's stop sold the rest
+    trips = book.round_trips(tmp_path, (A, dollar))
+    assert [(t.sell.order_id, t.buy.quantity, t.sell.quantity) for t in trips] == [
+        ("s-1", 4, -4),
+        ("o-1-stop", 6, -6),
+        ("s-2", 10, -10),
+    ]
+    assert {t.buy.execution_id for t in trips[:2]} == {broker.fills()[0].execution_id}
+    #: each leg's commission shared by its shares: 3 pounds a London order, 1 dollar a US one
+    assert [(t.gross, t.costs) for t in trips[:2]] == [
+        (Decimal(0), Decimal("4.2")),
+        (Decimal(-30), Decimal("4.8")),
+    ]
+    #: 500 dollars at 0.8, back at 0.75; 0.03% conversion on the dollars moved each way
+    conversion = Decimal("0.0003") * (501 * Decimal("0.8") + 499 * Decimal("0.75"))
+    assert trips[2].gross == -25 and trips[2].costs == Decimal("1.55") + conversion
+    assert all(t.profit == t.gross - t.costs for t in trips)
+    with pytest.raises(ValueError, match="U"):
+        book.round_trips(tmp_path, (A,))
+    with pytest.raises(ValueError, match="kept at 0.75"):  #: a day's fills are never repriced
+        book.record_rates(tmp_path, TUE, {"USD": Decimal("0.76")})
+    for wrong in ({"GBP": Decimal("0.9")}, {"USD": Decimal(0)}):
+        with pytest.raises(ValueError, match="a rate of"):
+            book.record_rates(tmp_path, date(2025, 11, 12), wrong)

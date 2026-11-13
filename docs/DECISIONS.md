@@ -903,6 +903,62 @@ blocking: its fix (a stop sold on its buy's own day reached the book only on the
 and its test gap (a crashed order's fill must count as a holding) are taken, the second
 driven by removing the first collect.
 
+### 2026-11-13 — the day run: whose position, which day, which rate
+
+**Decided**, by the lane as the desk's mentor (no one watching), for scene 5 and after:
+
+1. **A rule's position is the book's, not its own idea.** Options were (a) each rule
+   counting its own buys and sells as done, the book only refusing what it cannot do, or
+   (b) each rule told, on the day it decides, whether the book holds the line for it. (a)
+   leaves a rule whose buy was refused, or whose stop sold, believing it holds: it will not
+   buy again while its condition lasts and later says sell to a flat book. Chosen (b)
+   (`strategy.today`). The rules' indicators do not depend on what they hold, so the same
+   history gives the same bands either way.
+2. **A line is one holding, owned by the strategy whose buy opened it** (the strategy in its
+   latest buy's order id). Only that strategy's sell sells it, and it sells the whole of
+   what the book holds. While a line is held, the other four rules' signals on it are not
+   acted on. Of several rules buying one flat line the same day, the first in the
+   operator's list of five buys it. The other option, a position per rule within the
+   line's fifth, needs a stop per rule, which the broker's one stop a line (decided above)
+   does not give.
+3. **Sales first, then buys, each sized from the book after the send before it.** A sixth
+   line is refused by the gate and kept among the day's answers with its reason, never
+   dropped. A line sold that morning, by its rule or by its stop, is not bought again the
+   same day: its stop was judged against the whole day before the new order, and could
+   sell it twice on one bar.
+4. **Only decisions dated the line's venue's session before the day are acted on**, and
+   only on a day its venue trades. A line whose bars stop earlier is left alone that day.
+5. **The day run is given the day's pounds per unit of each currency, and keeps it**
+   (`rates.csv` beside the ledger). Each fill is now dated by the broker, so a round trip
+   prices each leg at its own day's kept rate. Options were a rate in the fill (the broker
+   does not report one), one rate for the whole run (wrong for a trip that spans a move in
+   the pound), or looking it up again later (not the rate of the day). The scenes give 0.79
+   every day; a daily rate in the store is asked of the data lane.
+6. **A round trip pairs each sale with the buys it closes, oldest first**; a fill split
+   between trips shares its commission and conversion by its shares. Spread, slippage and
+   UK tax are not yet charged: they belong to the day record (scene 7), where the spread
+   and slippage of both legs, the stop's sale included, must be added.
+7. **Scene 5 runs on the rehearsal's whole fourteen months** now, since no rule trades in
+   the six weeks the other scenes still see. When the data lane moves the scenes onto the
+   whole history, scene 5 reads the same data as the others.
+8. **Scene 2 counts each line against its own venue's calendar** over the scenes' days:
+   five decisions for every session the line's venue traded. Counting each line's own
+   bars, the first form tried, could not fail (the blind review's finding).
+
+**Evidence.** The new tests in `test_day`, `test_book`, `test_broker`, `test_orders` and
+`test_strategy` failed first on the unbuilt code; scene 5 failed on the six weeks and passes
+on the fourteen months. Twenty-five deliberate breaks were driven. Twenty-two were caught at
+once: the open's stops not collected, buys sized from a stale book, a line sold that morning
+bought again, a stale decision acted on, the book's holding not given to the rules, a sale
+leaving its stop or taking all of it, a sale at the close, the gate letting one share too
+many be sold, conversion on a pound line or on the wrong amount, a split fill's charges not
+shared or its rest forgotten, the wrong day's rate, a sale counted as negative shares, a
+fill's day moved, a missing rate not refused, a kept rate repriced, a zero rate, and a line
+missing a day in scene 2. One, a pound rate other than 1, was missed because its test met
+the "already kept" refusal first; the test now uses a fresh day and catches it. Two were
+missed because the code did nothing (an owner check `strategy.today` already makes, and a
+filter whose result was overwritten); both are removed.
+
 ## DATA
 
 ### 2026-11-13 — the fourteen months are built; the scenes move onto them in two steps
@@ -960,6 +1016,62 @@ takes one; the money lane may cut on fewer days.
 **Chosen.** (c). It is what the north star needs: the desk never decides on a price the market did not make, and no line that trades is parked for being quiet. A week with no trade at all is also reason enough not to trade a line. Dropping, not keeping, the bars: kept, they would hand the strategies a calm week that never happened. Whether the archive or the market went quiet, the line waits until a real price arrives.
 
 **Evidence.** The twenty lines from the archive on 13 November: the longest real run is three sessions (2MU, December 2022); after the rule the same four lines park, for their old reasons, and no clean line has a frozen fault. Tests seen failing first. Nine deliberate breaks, each caught: the run made four and six; a traded repeat counted; a flat traded day counted; each kind of repeat removed; a whole repeat with volume let through; the rule switched off; the bars kept. A tenth, dating the fault by the run's first day, cannot change an outcome: the dropped days are also missing sessions, which park the line on their own. A blind review found nothing blocking; its point that a whole repeat, volume too, is a frozen feed was taken; its other points are in `docs/STATUS.md`.
+
+### 2026-11-13 — a suspension is recorded on the line, as a real move is
+
+**The question.** The archive leaves out a day a line did not trade because it was
+suspended. The store cannot tell that from a day the archive lost, and parks the line for
+sixty sessions. What should a missing session do?
+
+**Options.** (a) Leave it: any missing recent session parks, with no way back out but
+waiting sixty sessions. (b) Let a short hole in the middle pass, parking only when the
+newest session is missing: a day the archive lost would then be traded through unnoticed,
+a default that masks missing data. (c) Record a confirmed suspension on the line in the
+instrument master, as a real move is (`Line.suspended`): the store expects no bar that day,
+so its absence parks nothing; an unrecorded gap still parks, its reason naming the way out;
+a bar the archive gives on a recorded day is refused, for the record and the archive
+disagree; a day the venue did not trade cannot be recorded.
+
+**Chosen.** (c). It is what the north star needs: the desk never trades on a history with
+an unexplained hole, and a line suspended for a day comes back as soon as the fact is
+recorded, not three months later. Facts about a line come from the instrument master. None
+of the twenty has a suspension recorded today; none is parked for a gap.
+
+**Evidence.** Tests seen failing first. Four deliberate breaks, each caught: the record
+ignored; a bar on a recorded day let in; the reason naming no way out; any day allowed in
+the record.
+
+### 2026-11-13 — a one-day crash is kept; only a hundredfold bar is a wrong unit
+
+**The question.** A single day out of line with the days either side was dropped as "a wrong
+unit", at any size. On the real archive that dropped 5QQQ's crash of 7 April 2025: a five-times
+line down 40% at its low, half of it won back the next day. Which single days may the store
+throw away?
+
+**Options.** (a) Leave it: a real crash vanishes from the history, so every test of a rule on
+that history looks safer than the market was. (b) Keep an old one and list it, park only a
+recent one: a bad print would then stay in the history unparked, as a crash that never was.
+(c) Drop a day only when a price sits a hundredfold out of its neighbour (pence among pounds,
+the one fault price alone proves), the rule a run of days already followed; keep any other
+move and record it as a lasting fault, which parks however old until each close is recorded
+on the line (`Line.real_moves`), as a step in the price already did.
+
+**Chosen.** (c). It is what the north star needs: the desk neither forgets a loss the market
+really dealt nor trades on a history holding a move nobody has confirmed. One rule now
+decides for a single day and for a run. The cost: a bad print of another size, say a tenth,
+parks its line until someone looks; no line is parked by it today.
+
+**Evidence.** The twenty lines from the archive on 13 November: before, 5QQQ's 7 April 2025
+was dropped as a wrong unit; after, it is kept, its fall and its recovery listed as moves to
+record; the same four lines park, and no clean line has a new fault. Tests seen failing first:
+a 60% one-day fall, at the first bar, an old one, a recent one and the newest, each kept and
+parking, and each back out once its closes are recorded. Seven deliberate breaks, each
+caught: the size test removed, made always true, always false, made to read the close alone,
+its margin widened, its margin made a single jump, the wrong neighbour measured. A blind
+review found nothing blocking; its one finding of the same kind - a crash straight after
+days in the wrong unit was dropped with them - was made a failing test and fixed: a run in
+the wrong unit now ends at the first day back in the right one. Its other points are in
+`docs/STATUS.md`.
 
 ## LADDER
 

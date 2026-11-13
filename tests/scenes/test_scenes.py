@@ -16,14 +16,26 @@ from decimal import Decimal
 from pathlib import Path
 
 import pytest
-from rehearsal import BAD, CLEAN, LAST, LINES, SESSIONS, SPOILT, TODAY, WRONG_UNIT, before
+from rehearsal import (
+    BAD,
+    CLEAN,
+    HISTORY,
+    LAST,
+    LINES,
+    SESSIONS,
+    SPOILT,
+    TODAY,
+    WRONG_UNIT,
+    before,
+)
 
-from desk import book, day, orders, store, strategy
+from desk import book, day, orders, store, strategy, venues
 from desk.broker import Crash, Fault, Pretend
 
 # ---------------------------------------------------------------- the money
 
 SETTINGS = orders.Settings(capital=Decimal(10_000))
+RATES = {"GBP": Decimal(1), "USD": Decimal("0.79")}  #: pounds per unit, every rehearsal day
 
 
 def _order(symbol: str) -> orders.Order:
@@ -36,7 +48,7 @@ def _run_days(root: Path, broker: Pretend, days: Sequence[date]) -> list[day.Rec
     records = []
     for on in days:
         broker.open(on)
-        records.append(day.run(root, before(CLEAN, on), broker, SETTINGS, on))
+        records.append(day.run(root, before(CLEAN, on), broker, SETTINGS, on, RATES))
     return records
 
 
@@ -64,9 +76,10 @@ def test_scene_2_the_decision_cannot_see_the_future(tmp_path: Path) -> None:
     every = strategy.decide(bars)
     names = {d.strategy for d in every}
     assert len(trading) == 19 and len(names) == 5
-    assert len(every) == len(names) * len(trading) * len(
-        SESSIONS
-    ), "a line or a day went unanswered"
+    days = {line.symbol: venues.sessions(line.venue, SESSIONS[0], SESSIONS[-1]) for line in LINES}
+    assert len(every) == len(names) * sum(
+        len(days[symbol]) for symbol in trading
+    ), "a line or a day of its own venue's went unanswered"
     for cut in SESSIONS:
         blind = {s: tuple(bar for bar in b if bar.day <= cut) for s, b in bars.items()}
         assert set(strategy.decide(blind)) == {
@@ -135,11 +148,16 @@ def test_scene_4_the_order_is_sent_and_the_stop_rests_at_the_broker(tmp_path: Pa
 
 
 def test_scene_5_the_position_is_closed(tmp_path: Path) -> None:
-    broker = Pretend(CLEAN, {})
-    _run_days(tmp_path, broker, SESSIONS[1:])
+    #: the whole fourteen months: the rules need months of history before they trade
+    broker = Pretend(HISTORY, {})
+    for on in sorted({bar.day for bars in HISTORY.values() for bar in bars})[1:]:
+        broker.open(on)
+        day.trade(tmp_path, before(HISTORY, on), broker, SETTINGS, on, RATES)
 
-    trips = book.round_trips(tmp_path)
-    assert trips, "no complete round trip: a buy and a sell of the same line"
+    trips = book.round_trips(tmp_path, LINES)
+    assert any(
+        not trip.sell.order_id.endswith("-stop") for trip in trips
+    ), "no round trip closed by the strategy's own rule: a buy and its sale"
     ids = {fill.execution_id for fill in broker.fills()}
     pounds = {line.symbol for line in LINES if line.currency == "GBP"}
     for trip in trips:
