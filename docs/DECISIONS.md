@@ -992,6 +992,39 @@ and each was driven.
 in, because the runner starts at his logon. Starting it without a logon would need his
 password stored in Task Scheduler, which is his to decide. He is pausing updates instead.
 
+## 2026-11-13 — his hours, the before-bed reset, and the keeper's rounds
+
+**His words**, relayed 13 November evening: "operator will typically sleep from 10pm to 8am.
+operator will have smartphone and can approve things when requested."
+
+1. **His hours.** From 22:00 to 08:00 UK a change's Telegram line is not sent; GitHub's job
+   records it instead (`announce.py`). The runner's own news lines (the runner back, an
+   outage over, a drain, a request waiting a day) wait too. At 08:00 one message carries
+   the morning line, the audit's line, every change that landed overnight and the held
+   lines. The audit moves from 05:30 to 07:30 and the morning line from 07:00 to 08:00, so
+   both arrive when he wakes. Anything that needs him goes at once, at any hour: a reset to
+   press, a Gateway login, a decision, a lane halted, a crash, the keeper missing rounds.
+2. **The before-bed reset.** At 21:45 the runner forecasts the night from the last three
+   hours' rate. If the lanes would reach Fable's switch (45%) or the 80% pause before 08:00,
+   it asks for the Fable reset, or the weekly reset, before he sleeps. It asks only when the
+   reset gives back at least 25%, the week's reset is more than 36 hours away, and (for the
+   weekly one) it is unused and unexpired; once a night. So a night is not lost to a pause
+   nobody could answer.
+3. **The five-minute keeper.** Once DATA's `desk/keeper.py` is on main, the runner runs
+   `python -m desk.keeper` from a copy of main every five minutes, 08:00 to 21:00 UK on
+   weekdays (London opens at 08:00, New York closes at 21:00). The keeper reads the
+   calendars itself and exits at once when no venue is open, so holidays need no second
+   calendar in the runner. Plain code, no Claude session, no tokens. Two missed rounds in
+   a row reach him at any hour. DATA's sessions are told this contract.
+
+**Driven** in a scratch home, 25 cases: news held at night and sent by day, what needs him
+sent at once at 23:10, the 08:00 message carrying the night and clearing what was held, the
+night's idle hours 22:00 to 08:00; the forecast asking for each reset when the pace crosses
+the line before 08:00 and not when it is too small to matter, too slow, within 36 hours of
+the week's reset, already used, or with no readings, and once a night; the keeper not run
+outside its hours, at a weekend or before it exists, a round done, failed or hung, two
+misses told at once even at night, and its return held for the morning.
+
 ---
 
 # The lanes' own decisions
