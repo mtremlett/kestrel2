@@ -1745,6 +1745,51 @@ and the research list's shares stated as plain fact. Both are reworded and recor
 and in `docs/STATUS.md`; its other points are taken (a London share quoted in dollars
 tested, the default recorded and asked away) or listed there.
 
+### 2026-11-13 — the scenes on the whole fourteen months (R-MONEY-2), and the status cut
+
+The money lane asked (R-MONEY-2, blocking) for the scenes to see all fourteen months of the
+rehearsal data: scene 2 already counts each line against its own venue's calendar, and
+scene 7 needs days on which the rules trade; none trades in the last six weeks.
+
+**1. Widen the window, or remove it.** Options: (a) set the window's start back to the
+first day, one constant, leaving a filter that filters nothing; (b) remove the window, so
+the rehearsal data is one thing under one name. **Chosen (b):** less code, and no second
+view of the data to drift. `HISTORY`, scene 5's name for the whole of it, stays for now as
+a second name for `CLEAN`, because the scenes' file is the money lane's; asked away as
+R-DATA-6.
+
+**2. The cost in time.** Scene 2 deletes the later bars at every one of 311 days, not 33:
+it takes about 24 seconds, and the scenes step about 47, from 23. Options: (a) accept it;
+(b) keep scene 2 alone on a short window. **Chosen (a):** the check stays under two
+minutes, and a short window is exactly what hid holidays and trading days from the scenes.
+Scenes 6 and 7 will add the day run over the same months, about 24 seconds each (the money
+lane's note that the day run decides each line's whole history again every day).
+
+**3. The scenes' days** (`SESSIONS`) are now every day either venue trades, 311 of them:
+some are one venue's holiday (Thanksgiving, the UK's bank holidays). Scene 5 already runs
+the day's trading over exactly those days and passes; scenes 6 and 7 will meet them too.
+
+**4. The status cut.** By the operator's rule against document bloat the data lane's
+section of `docs/STATUS.md` went from 286 lines to 50, in a commit of its own: what is done
+was removed (git keeps it, and the book in `docs/PLAN.md` holds each open step), and each
+open finding, request and requirement id kept in a line or two.
+
+**Evidence.** Scenes 1 to 5 pass on the fourteen months; 6 and 7 stop, as before, at the
+day's record, which is not built. Two deliberate breaks, the Python cache off: every line
+laid on London's calendar (scenes 1 and 2 fail), and the data cut back to six weeks (scene 5
+fails). No test fails yet if the rehearsal's taxed line (L01) lost its stamp duty: scene 7
+will be that test.
+
+**The blind review** found nothing blocking: no scene proves less than before (the spoilt
+line's three faults still fall in its last sixty sessions; scene 2 now truly counts two
+calendars, eight days only London trades and four only the US), and the second name does no
+harm. It ran the day's trading itself with no faults: L01 is bought three times and US
+lines are bought, so scene 7's tax and currency costs can be charged, and no fill lands on
+a day only one venue trades. Two things it left for the money lane's day record, neither
+new: every rule is out of the market by the data's end, so scene 6 as written cannot find a
+holding (the money lane's own note of 13 November); and the scenes' first day, 2 September
+2024, is the US Labor Day, so the US lines have no bar until the day after.
+
 ## LADDER (until 13 November; since then GRID and RUNGS)
 
 ### 2026-11-13 — the ladder's unit of work: days only, the whole history, keyed by what it read
