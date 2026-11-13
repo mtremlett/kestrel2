@@ -132,8 +132,8 @@ what they control (his ruling the same day), when sizing is built.
   "access denied" because they were registered with different rights. Two of them can
   place orders. Buying is blocked by that desk's own kill switch instead; the tasks
   themselves still need the operator's hand.
-- **The predecessor's paper book is not flat.** It holds positions with stops resting at
-  the broker. Selling them needs the operator present, inside market hours.
+- **The predecessor's paper book is flat.** Read at 14:36 UK on 13 Nov 2026, read-only:
+  paper account, no positions and no open orders. Nothing was placed.
 
 ## Unfinished code
 
