@@ -121,6 +121,10 @@ class Pretend:
             raise ValueError(f"{symbol}: a position of no shares injected")
         self._held[symbol] = self._held.get(symbol, 0) + quantity
 
+    def cancel_stop(self, symbol: str) -> None:
+        """A resting stop cancelled behind the desk's back, as if by hand."""
+        del self._stops[symbol]
+
     def _execute(self, order: Order | Sale, fault: Fault | None, bar: Bar | None) -> Report:
         symbol, wanted = order.line.symbol, order.quantity
         if fault is Fault.REJECT:
