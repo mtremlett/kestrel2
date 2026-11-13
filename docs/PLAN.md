@@ -251,13 +251,15 @@ Begun alongside phase 2 by his ruling of 13 November: "Five lanes, phase 3 now".
 ### The paper lane's book
 
 **Lane objective:** the real paper-broker adapter behind the same interface as
-`broker.Pretend`, in `desk/paper.py` with the standard library alone, built from what it
-reads towards what it sends: first each of the twenty lines as the broker knows it (its
-name, exchange and price step there), then the fills and orders the broker reports, then
-placing. It sends no order until that day's read-only check (`paper.mismatches`) has come
-back clean, and the check has been taught the desk's own resting stops. The account is the
-old desk's (his ruling, 13 November), reached through IB Gateway's paper port 4002 on his
-PC with the desk's own client id (222), never 4001.
+`broker.Pretend`, through the one door (`desk/paper.py`) with the standard library alone,
+built from what it reads towards what it sends. The account and each of the twenty lines as
+the broker lists it are read (`desk/listing.py`). Next: the fills and orders the broker
+reports, read-only, each fill's price turned from the broker's unit (pence on six London
+lines) back into the line's currency, and the desk's own orders told from anyone else's;
+then placing. It sends no order until that day's read-only check (`paper.mismatches`) has
+come back clean, and the check has been taught the desk's own resting stops. The account is
+the old desk's (his ruling, 13 November), reached through IB Gateway's paper port 4002 on
+his PC with the desk's own client id (222), never 4001.
 
 - [ ] The Gateway known before any order: its daily restart and the weekly re-login handled
       unattended. A re-login that needs his phone or password is his: a reminder line at the
@@ -267,6 +269,13 @@ PC with the desk's own client id (222), never 4001.
 - [x] The read-only check of the paper account's positions and open orders against the
       desk's book, every mismatch named (`desk/paper.py`); run on the real account on 13
       November: quiet, no shares held and no order resting
+- [x] Each of the twenty lines as the broker lists it, read-only: its number there, its
+      exchange, pence or pounds, and its price steps, with a price put down onto the
+      broker's step in the broker's unit (`desk/listing.py`); run on the real gateway on 13
+      November: twenty of twenty listed, six London lines priced in pence
+- [ ] The fills and the orders the broker reports, read-only: each fill under the broker's
+      id with its price back in the line's currency, and the desk's own orders and stops
+      told from anyone else's
 - [ ] The check run every day and before any order: the adapter refuses to send until
       that day's check is clean, and tells the desk's own resting stops from anyone else's
 - [ ] The real paper-broker adapter behind the same interface as `broker.Pretend`, speaking
