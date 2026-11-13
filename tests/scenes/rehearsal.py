@@ -17,7 +17,7 @@ from datetime import date
 from decimal import Decimal
 
 from desk import venues
-from desk.lines import Line
+from desk.lines import NO_TAX, STAMP_DUTY, Line
 from desk.store import Bar
 
 FIRST, LAST = date(2024, 9, 2), date(2025, 11, 14)
@@ -26,8 +26,11 @@ TODAY = date(2025, 11, 17)  #: the Monday after: the desk prepares to trade on t
 #: FIRST once scene 2 counts each line's own sessions (docs/STATUS.md, the data lane's).
 SCENES_FROM = date(2025, 10, 1)
 #: Twenty synthetic lines: eight on the London venue in pounds, twelve in the US in dollars.
+#: The first is a UK share, whose purchase pays stamp duty; the rest pay no UK tax.
 LINES = tuple(
-    Line(f"L{n:02}", "LSE", "GBP", 1) if n <= 8 else Line(f"L{n:02}", "US", "USD", 1)
+    Line(f"L{n:02}", "LSE", "GBP", 1, STAMP_DUTY if n == 1 else NO_TAX)
+    if n <= 8
+    else Line(f"L{n:02}", "US", "USD", 1, NO_TAX)
     for n in range(1, 21)
 )
 BAD = LINES[4]
