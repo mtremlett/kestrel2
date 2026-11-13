@@ -12,7 +12,7 @@ import pytest
 
 from desk import store, venues
 from desk.lines import Line
-from desk.store import Bar
+from desk.store import Bar, Refused
 
 US, UK = Line("AAA", "US", "USD", 1), Line("BBB", "LSE", "GBP", 1)
 DAY = date(2025, 11, 17)  #: a Monday; the last session before it is Friday the 14th
@@ -127,6 +127,15 @@ def test_a_line_that_cannot_be_read_never_stops_the_others(tmp_path: Path) -> No
     parked = store.prepare(tmp_path, {US: (*_bars(US), unknown), UK: _bars(UK)}, DAY)
     assert [p.symbol for p in parked] == [US.symbol] and "2028-01-04" in parked[0].reason
     assert store.read(tmp_path, US.symbol) == _bars(US)
+    assert store.read(tmp_path, UK.symbol) == _bars(UK)
+
+
+def test_a_refused_line_is_parked_with_its_reason_and_no_old_bars(tmp_path: Path) -> None:
+    store.prepare(tmp_path, {US: _bars(US), UK: _bars(UK)}, DAY)
+    parked = store.prepare(tmp_path, {US: Refused("HTTP Error 404"), UK: _bars(UK)}, DAY)
+    assert parked == (store.Parked(US.symbol, "the archive refused it: HTTP Error 404", DAY),)
+    assert store.read(tmp_path, US.symbol) == ()
+    assert store.faults(tmp_path, US.symbol) == ("the archive refused it: HTTP Error 404",)
     assert store.read(tmp_path, UK.symbol) == _bars(UK)
 
 

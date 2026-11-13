@@ -87,7 +87,7 @@ scene 5. Scenes 1 to 3 keep passing on it.
 - [ ] The scenes moved onto the whole fourteen months (`SCENES_FROM` back to `FIRST`), once
       the money lane's scene 2 counts each line's own sessions; until then they see its
       last six weeks
-- [ ] One line the archive refuses is parked, not the whole fetch stopped
+- [x] One line the archive refuses is parked, not the whole fetch stopped (`archive.gather`, `store.Refused`)
 - [ ] The four parked lines brought back, or each one's reason confirmed: 2MU's five real
       moves recorded from a second source; 5QQQ's consolidation of 22 August 2024; SGLN's
       garbled weeks of 2011; 3LGO's missing history, and when enough has gathered

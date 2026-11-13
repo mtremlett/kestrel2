@@ -906,6 +906,16 @@ a trade on only 11 lines; a three-day dip gives it all nineteen.
 Scene 2's future-blind loop over all 311 days will take about twenty seconds where it now
 takes one; the money lane may cut on fewer days.
 
+### 2026-11-13 — which archive failures park one line, and which stop the fetch
+
+**The question.** When the free archive fails for one line, should the whole morning's fetch stop, or only that line park?
+
+**Options.** (a) Stop everything on any failure: one flaky line would keep all twenty from trading. (b) Park a line on any error at all: a fault in the desk's own code would be hidden as a parked line. (c) Park a line for a failure of the network or of the archive's answer - a dropped connection, a half-delivered answer, a timeout, a missing page, an answer that is not the line asked about or not in its currency - and stop everything for anything else, such as an answer of a shape the desk does not know, which would hit every line alike.
+
+**Chosen.** (c). It is what the north star needs: the clean lines still trade on a morning one line fails, and a fault of the desk is never mistaken for the archive's. The reason is kept with the error's name (a timeout carries no message of its own). A refused line keeps no bars in the store, so nothing from an earlier day can be read as today's.
+
+**Evidence.** Tests seen failing first. Six deliberate breaks, each caught: no handling at all; the answer's refusals not handled; every error handled; old bars left in place; the refusal dated too long ago to park; its reason dropped. A blind review found that a half-delivered answer (`IncompleteRead`) still stopped everything; it was made a failing test and fixed.
+
 ## LADDER
 
 ### 2026-11-13 — the ladder's unit of work: days only, the whole history, keyed by what it read

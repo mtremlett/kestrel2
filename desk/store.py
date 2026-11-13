@@ -58,6 +58,13 @@ class Fault:
 
 
 @dataclass(frozen=True)
+class Refused:
+    """The archive's answer for a line it would not, or could not, give."""
+
+    reason: str
+
+
+@dataclass(frozen=True)
 class Parked:
     symbol: str
     reason: str
@@ -183,13 +190,20 @@ def _write(path: Path, header: Sequence[str], rows: Iterable[Sequence[object]]) 
     part.replace(path)
 
 
-def prepare(root: Path, archive: Mapping[Line, Sequence[Bar]], day: date) -> tuple[Parked, ...]:
-    """Clean the archive's bars into the store at root, ready to trade on day."""
+def prepare(
+    root: Path, archive: Mapping[Line, Sequence[Bar] | Refused], day: date
+) -> tuple[Parked, ...]:
+    """Clean the archive's bars into the store at root, ready to trade on day. A line the
+    archive refused keeps no bars, so none from an earlier day can be read as today's."""
     root.mkdir(parents=True, exist_ok=True)
     parked = []
     for line, bars in archive.items():
         since = venues.sessions(line.venue, day - timedelta(100), day - timedelta(1))[-RECENT]
-        kept, faults = _clean(line, bars, day, since)
+        if isinstance(bars, Refused):
+            kept: list[Bar] = []
+            faults = [Fault(day, f"the archive refused it: {bars.reason}")]
+        else:
+            kept, faults = _clean(line, bars, day, since)
         _write(root / f"{line.symbol}.csv", COLUMNS, (astuple(bar) for bar in kept))
         _write(root / f"{line.symbol}.faults.csv", ("fault",), ((f.what,) for f in faults))
         recent = [f.what for f in faults if f.lasting or f.day >= since]
