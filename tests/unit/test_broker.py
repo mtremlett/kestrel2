@@ -103,3 +103,23 @@ def test_a_sale_fills_at_the_open_and_takes_its_shares_off_the_lines_stop() -> N
     assert broker.place(Sale("s-2", A, 6)).reason is None and broker.holdings() == (("B", 3),)
     broker.open(TUE)  #: A's day falls through 45: no stop is left to sell what was sold
     assert len(broker.fills()) == 4 and broker.resting_stops() == {"B": (3, Decimal(15))}
+
+
+def test_an_order_left_working_fills_at_its_next_market_unless_cancelled_and_stops_stay() -> None:
+    left, killed = (_broker({"B": Fault.STRAND}, _order("o-1")) for _ in range(2))
+    for broker in (left, killed):
+        with pytest.raises(Crash):  #: the desk died; the broker has the order, unfilled
+            broker.place(_order("o-2", B, 3, "15"))
+        working = broker.report("o-2")
+        assert working and working.fills == () and "working" in str(working.reason)
+        assert broker.place(_order("o-2", B, 3, "15")).reason, "a working order taken twice"
+    assert killed.cancel() == ("o-2",) and killed.cancel() == (), "named once, then none left"
+    assert "cancelled" in str(killed.report("o-2")) and killed.stops() == (("A", 10),)
+    for broker in (left, killed):
+        broker.open(TUE)  #: no market in B: it works on; A's stop sells, cancelled or not
+        assert broker.holdings() == () and broker.fills()[-1].order_id == "o-1-stop"
+        broker.open(WED)
+    assert left.holdings() == (("B", 3),) and left.resting_stops() == {"B": (3, Decimal(15))}
+    filled = left.report("o-2")
+    assert filled and filled.reason is None and filled.fills[0].price == 18 and left.cancel() == ()
+    assert killed.holdings() == () and len(killed.fills()) == 2, "a cancelled order filled"

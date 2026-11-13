@@ -50,6 +50,7 @@ rungs = []
 "desk/broker.py" = "the pretend broker the desk trades against in simulation"
 "desk/book.py" = "the ledger of fills under the broker's ids, and the book built from the broker"
 "desk/day.py" = "the desk's day: run once for a date, publish one record, replay it"
+"desk/kill.py" = "the kill switch: one command stops every new order and cancels the working ones, the desk says so, and its drill"
 
 # the paper lane
 "desk/paper.py" = "the one door to the paper broker: the paper account's holdings and resting orders, read and set against the desk's book"
