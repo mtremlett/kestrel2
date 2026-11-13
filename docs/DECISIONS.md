@@ -942,6 +942,31 @@ He presses the resets himself; the runner tells him when, by these rules:
 After any reset the runner reads the new usage and the new reset time from the plan, and
 never assumes the reset stays on Thursday. While the lanes wait at the cap, it reads the
 plan again every quarter of an hour, so a reset he presses lets them carry on at once.
+(The 45% figures above were read on the wrong scale: see the next entry.)
+
+## 2026-11-13 — Fable's figure is a share of Fable's own allowance: switch at 97%
+
+**The evidence.** From 17:37 to 20:08 every lane ran on Fable. The Fable window the plan
+reports (`seven_day_overage_included`) rose from 20% to 33%, 13 points, while the
+all-models week rose from 25% to 33%, 8 points. Were Fable's figure a share of the week,
+the week would have risen at least as much. So it is a share of Fable's own allowance
+(about half the week), and 100% means Fable is full. Switching to Opus at 45% would have
+thrown away more than half of the allowance his Fable resets give back.
+
+**Decided** (the session running the lanes, on the evidence, relayed at 20:08):
+- the lanes stay on Fable until 97% of Fable's own allowance, or until Fable refuses a
+  session, then run on Opus;
+- by day, "press the Fable reset now" at 95% or more, with the week's reset more than 36
+  hours away;
+- at 21:45, if Fable would reach 97% before 08:00 at the last two hours' rate, he is asked
+  to press it before bed whenever Fable is at 50% or more. The line names the trade-off:
+  pressing now gives back less than at full, but saves the night's hours;
+- the weekly 80% pause reads only the all-models window, as before.
+
+**Driven** in a scratch home: the lanes on Fable at 33% and 96%, on Opus at 97%, and on
+Fable when no figure is known; by day 94% asks nothing and 95% asks once; at 21:45, 60%
+rising four points an hour is asked for with the trade-off named, 40% rising eight is not
+(it gives back too little), and 60% rising two is not (it stays under 97% till morning).
 
 ## 2026-11-13 — the paper account is the old desk's
 
