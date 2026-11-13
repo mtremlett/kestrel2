@@ -14,7 +14,7 @@ from desk import store, venues
 from desk.lines import Line
 from desk.store import Bar
 
-US, UK = Line("AAA", "US", "USD"), Line("BBB", "LSE", "GBP")
+US, UK = Line("AAA", "US", "USD", 1), Line("BBB", "LSE", "GBP", 1)
 DAY = date(2025, 11, 17)  #: a Monday; the last session before it is Friday the 14th
 
 
@@ -132,7 +132,7 @@ def test_a_line_that_cannot_be_read_never_stops_the_others(tmp_path: Path) -> No
 
 def test_a_line_on_a_venue_without_a_calendar_cannot_be_made() -> None:
     with pytest.raises(ValueError, match="NYSE"):
-        Line("CCC", "NYSE", "USD")
+        Line("CCC", "NYSE", "USD", 1)
 
 
 def test_one_bar_given_twice_is_kept_once_and_its_line_parked(tmp_path: Path) -> None:

@@ -1,0 +1,93 @@
+"""orders: a fifth of the capital to each holding, counted at what the line controls, a stop
+where its market has fallen 10%, and Interactive Brokers UK's fixed fees (his ruling of 13
+November 2026, docs/DECISIONS.md)."""
+
+from __future__ import annotations
+
+from dataclasses import replace
+from datetime import date
+from decimal import Decimal
+
+import pytest
+
+from desk import orders
+from desk.lines import Line
+from desk.strategy import Action, Decision
+
+PLAIN, THREE_X, FIVE_X = (
+    Line("P", "LSE", "GBP", 1),
+    Line("T", "LSE", "GBP", 3),
+    Line("X", "LSE", "GBP", 5),
+)
+DOLLAR = Line("D", "US", "USD", 1)
+TEN_K = orders.Settings(capital=Decimal(10_000))
+ON = date(2025, 11, 14)
+
+
+def _buy(line: Line) -> Decision:
+    return Decision("rule", line.symbol, ON, Action.BUY)
+
+
+def _order(line: Line, quantity: int, price: str, fx: str = "1") -> orders.Order:
+    return orders.Order("o", line, quantity, Decimal(price), Decimal(fx), Decimal("0.01"))
+
+
+def test_a_holding_is_a_fifth_of_the_capital_counted_at_what_the_line_controls() -> None:
+    for line, fx, room in (
+        (PLAIN, "1", Decimal(2000)),
+        (THREE_X, "1", Decimal(2000) / 3),
+        (FIVE_X, "1", Decimal(400)),
+        (DOLLAR, "0.79", Decimal(2000)),
+    ):
+        order = orders.size(_buy(line), line, Decimal("7.30"), Decimal(fx), TEN_K)
+        more = _order(line, order.quantity + 1, "7.30", fx)
+        assert orders.cost(order) <= room < orders.cost(more), line
+        orders.gate(order, TEN_K)
+        with pytest.raises(orders.Refused, match="a fifth"):
+            orders.gate(more, TEN_K)
+    exact = orders.size(_buy(PLAIN), PLAIN, Decimal(1), Decimal(1), TEN_K)  #: 1997 + 3 fee
+    assert orders.cost(exact) == 2000 and exact.quantity == 1997, "a cost of exactly the room fits"
+    orders.gate(exact, TEN_K)
+
+
+def test_the_stop_sits_where_the_market_under_the_line_has_fallen_ten_percent() -> None:
+    plain = orders.size(_buy(PLAIN), PLAIN, Decimal("50.25"), Decimal(1), TEN_K)
+    stops = [
+        orders.size(_buy(x), x, Decimal("50.25"), Decimal(1), TEN_K).stop for x in (THREE_X, FIVE_X)
+    ]
+    assert [plain.stop, *stops] == [Decimal("45.225"), Decimal("35.175"), Decimal("25.125")]
+    with pytest.raises(ValueError, match="empties"):
+        orders.size(_buy(PLAIN), replace(PLAIN, leverage=10), Decimal(10), Decimal(1), TEN_K)
+    assert plain.order_id == "20251114-rule-P", "the same decision must make the same order"
+
+
+def test_the_fees_are_the_brokers_published_schedule() -> None:
+    #: London: 0.05% of the value, at least 3 pounds
+    assert orders.cost(_order(PLAIN, 100, "10")) == Decimal(1003)
+    assert orders.cost(_order(PLAIN, 1000, "10")) == Decimal(10005)
+    #: US: half a cent a share, at least a dollar, at most 1% of the value; then 0.03% on the
+    #: rate for every dollar bought, the commission's included
+    rate = Decimal("0.8") * Decimal("1.0003")
+    assert orders.cost(_order(DOLLAR, 100, "10", "0.8")) == Decimal(1001) * rate
+    assert orders.cost(_order(DOLLAR, 1000, "10", "0.8")) == Decimal(10005) * rate
+    assert orders.cost(_order(DOLLAR, 10, "5", "0.8")) == Decimal("50.5") * rate
+
+
+def test_only_a_buy_for_its_own_line_is_sized_and_a_share_must_be_affordable() -> None:
+    sell = Decision("rule", PLAIN.symbol, ON, Action.SELL)
+    for decision, line in ((sell, PLAIN), (_buy(DOLLAR), PLAIN)):
+        with pytest.raises(ValueError, match="buy"):
+            orders.size(decision, line, Decimal(10), Decimal(1), TEN_K)
+    with pytest.raises(orders.Refused, match="one share"):
+        orders.size(_buy(PLAIN), PLAIN, Decimal(10), Decimal(1), orders.Settings(Decimal(60)))
+    for line, fx in ((DOLLAR, "0"), (PLAIN, "0.8")):
+        with pytest.raises(ValueError, match="exchange rate"):
+            _order(line, 1, "10", fx)
+    for leverage in (0, Decimal("2.5"), True):
+        with pytest.raises(ValueError, match="leverage"):
+            Line("Z", "US", "USD", leverage)  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="quoted"):
+        Line("Z", "LSE", "gbp", 1)
+    for capital in ("Infinity", "0"):
+        with pytest.raises(ValueError, match="capital"):
+            orders.Settings(Decimal(capital))

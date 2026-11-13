@@ -33,7 +33,7 @@ SESSIONS = tuple(
 )
 #: Twenty synthetic lines: eight on the London venue in pounds, twelve in the US in dollars.
 LINES = tuple(
-    Line(f"L{n:02}", "LSE", "GBP") if n <= 8 else Line(f"L{n:02}", "US", "USD")
+    Line(f"L{n:02}", "LSE", "GBP", 1) if n <= 8 else Line(f"L{n:02}", "US", "USD", 1)
     for n in range(1, 21)
 )
 BAD = LINES[4]
