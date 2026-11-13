@@ -82,10 +82,12 @@ One store, one writer, cleaned on entry.
 
 ### The data lane's book — the research universe first, then the parked lines and the store's findings
 
-**Lane objective:** the research universe, by his ruling of 13 November: about 1,500
-tickers (the S&P 500, the Nasdaq 100, the FTSE 350 and about 200 of the most-traded ETFs),
-daily since 2010, from the free archive, through the one store's checks, kept apart from
-the twenty trading lines. The grid lane needs it.
+**Lane objective:** the research list's parked fifth. The list is built and fetched (1,065
+tickers: the S&P 500, the Nasdaq 100, the FTSE 350 and 200 most-traded US funds, daily since
+2010, through the one store's checks, apart from the twenty trading lines), and 201 of them
+park for a large one-day move nobody has recorded, most on real days of a real market.
+Decide and build how research reads them, without loosening the store the desk trades on.
+The grid lane needs it.
 
 - [x] The rehearsal data in a file of its own (`tests/scenes/rehearsal.py`)
 - [x] The rehearsal data lengthened to about fourteen months, the five rules buying and
@@ -95,10 +97,16 @@ the twenty trading lines. The grid lane needs it.
       the money lane's scene 2 counts each line's own sessions; until then they see its
       last six weeks
 - [x] One line the archive refuses is parked, not the whole fetch stopped (`archive.gather`, `store.Refused`)
-- [ ] The research list: about 1,500 tickers with their venue and currency, kept apart from
-      the instrument master's twenty trading lines; nothing on it is traded
-- [ ] The research list's daily bars since 2010, fetched and kept through the one store's
-      checks, a bad ticker parked with its reason
+- [x] The research list: 1,065 tickers with their venue and currency (the four lists
+      overlap, so not 1,500), kept apart from the instrument master's twenty trading lines;
+      being on it makes nothing tradable (`lab/universe.py`)
+- [x] The research list's daily bars since 2010, fetched and kept through the one store's
+      checks, a bad ticker parked with its reason (`universe.keep`): 864 clean, 201 parked
+- [ ] The research list's parked fifth: 201 tickers' large one-day moves confirmed, or a
+      rule for research that needs no confirmation
+- [ ] A home for the research store on his PC, refreshed nightly, a ticker that left a list
+      cleared out, and the day and list it reflects written beside it
+- [ ] The lists' members year by year, so a study of the past is not the survivors' alone
 - [ ] The full research universe, 5,000 and more, once the grid's first pass works
 - [ ] 2MU's five real moves recorded from a second source, or its reason confirmed
 - [ ] 5QQQ's consolidation of 22 August 2024 handled, or its reason confirmed

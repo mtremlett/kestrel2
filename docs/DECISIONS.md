@@ -1403,6 +1403,75 @@ days in the wrong unit was dropped with them - was made a failing test and fixed
 the wrong unit now ends at the first day back in the right one. Its other points are in
 `docs/STATUS.md`.
 
+### 2026-11-13 — the research list: what is on it, where it lives, and what a refusal does
+
+**The questions.** His ruling named four lists and "about 1,500" tickers, kept apart from
+the twenty trading lines, nothing on it traded. Building it raised six questions of intended
+behaviour.
+
+**1. How many.** The four lists, as published on 13 November, hold 503, 101, 350 and 200
+names, and overlap (86 of the Nasdaq 100 are in the S&P 500). Options: (a) the lists
+as ruled, each ticker once: 1,065; (b) pad to 1,500 with names from no list he chose.
+**Chosen (a):** the lists are the ruling and the number was an estimate of them. The full
+universe of 5,000 and more is already the plan's next size.
+
+**2. Where it lives.** Options: (a) in the instrument master beside the twenty, marked "not
+traded": one wrong flag and the desk trades a research ticker; (b) a module in `desk/`;
+(c) a module in `lab/`, which `desk/` may never import (the wall guard). **Chosen (c):**
+"nothing on it is traded" is then held by the wall, not by a flag. Ten of its tickers are
+also trading lines; for those the list hands out the master's own line, so a fact recorded
+there (a real move, a suspension) has one home, and a disagreement between the two refuses
+to load.
+
+**3. One store folder for each venue.** Thirteen symbols are two companies (BA is Boeing in
+New York and BAE Systems in London), and the store names a file by its symbol. Options:
+(a) rename one of each pair; (b) change the store's file names, the money lane's reader with
+them; (c) keep each venue's tickers in its own folder, the store unchanged. **Chosen (c).**
+A parked ticker is returned by its line, which carries its venue, never by symbol alone.
+
+**4. Which funds.** No free, published list of US funds by value traded was found. Options:
+(a) a list from memory; (b) a field of 330 well-known funds drawn up by the session, each
+fetched from the archive and ranked by its median value traded a day over the sixty sessions
+to 12 November, the top 200 taken. **Chosen (b):** the cut is measured, and repeatable. The
+200th trades about 87 million dollars a day. Left out of the field: funds that move against
+their market (a line's leverage is one or more), funds whose multiple has changed (their
+history is on two scales), single-share funds and volatility trackers. Ten funds built to
+make two or three times their market's move are in, each with its multiple.
+
+**5. Shares London does not quote in pounds.** The archive refused eight FTSE 350 members
+as "not GBP". Five are quoted in dollars and are recorded so, and come back clean. Three
+(BCG, MTLN, PEY) are quoted in euros; a line is in pounds or dollars. Options: (a) record
+them in pounds, knowingly false, and let them park every day; (b) teach every line euros,
+which reaches the money lane's sizing and conversion; (c) leave the three off and say so.
+**Chosen (c)**, until research needs them.
+
+**6. A ticker the archive refuses for a day.** The blind review's finding: a throttled or
+timed-out answer empties that ticker's file, sixteen years of bars, until the next run.
+Options: (a) leave the old bars in place for a refused ticker: yesterday's data would then
+read as today's, the fault the desk's store was built to refuse, and the research store
+would follow a second rule; (b) stop the whole run at the first refusal: one bad ticker
+would cost the other thousand; (c) one rule for every store: a ticker refused today holds
+no bars today and is parked with the reason, and the next run, ten minutes, restores it.
+**Chosen (c).** A cell on an emptied ticker fails loudly and is retried; nothing stale is
+ever studied. It is now a test.
+
+**Evidence.** Membership read from the published pages of the four lists (the S&P 500, the
+Nasdaq 100 as of 22 October, the FTSE 100 after 1 October and the FTSE 250 after 20 October
+2026). `universe.keep` driven on the real archive for 13 November by a script outside the
+repository: every one of the 1,065 answered; 4,097,609 bars; 249 tickers begin after January
+2010; 864 clean (625 of 718 US, 239 of 347 London) and 201 parked, each for a one-day move
+beyond the store's belief that its line does not record: 406 moves, 31 tickers on the flash
+crash of 6 May 2010, 46 in March 2020, 10 on the day after the Brexit vote. Tests seen
+failing first. Thirty-one deliberate breaks: twenty-eight caught at once (every venue in one
+folder, the parked dropped, a refused ticker's old bars left in place, a list left out, a
+multiple changed or lost, a ticker added or removed, and more); two caught once their tests
+were added (the master looked up by symbol alone; the two allowed to disagree on currency);
+the last, two tickers swapped in order, changes nothing. A blind review found two things
+blocking: a parked ticker did not say which venue it was on (fixed: parked by line), and
+question 6 (decided, and tested). Its other points are fixed (wording, a silent default for
+a missing multiple, the master silently winning a disagreement, eight London currencies) or
+listed in `docs/STATUS.md`.
+
 ## LADDER (until 13 November; since then GRID and RUNGS)
 
 ### 2026-11-13 — the ladder's unit of work: days only, the whole history, keyed by what it read
