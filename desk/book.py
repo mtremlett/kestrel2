@@ -4,12 +4,17 @@ it with the positions the broker reports."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import csv
+from collections.abc import Iterable
+from dataclasses import astuple, dataclass
 from decimal import Decimal
 from pathlib import Path
 
-from desk.broker import Fill, Pretend
-from desk.orders import Order, Settings
+from desk.broker import Disconnected, Fill, Pretend
+from desk.orders import Order, Settings, gate
+
+LEDGER = "ledger.csv"
+COLUMNS = ("execution_id", "order_id", "symbol", "quantity", "price")
 
 
 @dataclass(frozen=True)
@@ -29,13 +34,47 @@ class RoundTrip:
 
 
 def send(root: Path, broker: Pretend, order: Order, settings: Settings) -> Sent:
-    """Pass the pre-trade gate, send the order once, record its fills, and leave its stop
-    resting at the broker."""
-    raise NotImplementedError("book.send: the send path is phase 2")
+    """Ask the broker what it did with the order's id, so a desk that restarts never sends
+    it twice; if it never received it, pass the pre-trade gate and send it. Its fills are
+    recorded and its stop rests at the broker."""
+    report = broker.report(order.order_id)
+    if report is None:
+        gate(order, settings)
+        try:
+            report = broker.place(order)
+        except Disconnected as lost:  #: never received: stated, and sent again next time
+            return Sent(order.order_id, 0, str(lost))
+    _record(root, report.fills)
+    return Sent(order.order_id, sum(fill.quantity for fill in report.fills), report.reason)
 
 
 def fills(root: Path) -> tuple[Fill, ...]:
-    raise NotImplementedError("book.fills: the ledger is phase 2")
+    """Every fill the desk has recorded, in the order it learned of them."""
+    path = root / LEDGER
+    if not path.exists():
+        return ()
+    with path.open(newline="", encoding="utf-8") as ledger:
+        rows = list(csv.DictReader(ledger))
+    return tuple(
+        Fill(r["execution_id"], r["order_id"], r["symbol"], int(r["quantity"]), Decimal(r["price"]))
+        for r in rows
+    )
+
+
+def _record(root: Path, new: Iterable[Fill]) -> None:
+    """Add the fills not already in the ledger, under the broker's execution ids. The ledger
+    is written whole, then swapped in, so a desk that dies mid-write leaves the old one."""
+    ledger = fills(root)
+    known = {fill.execution_id for fill in ledger}
+    added = tuple(fill for fill in new if fill.execution_id not in known)
+    if not added:
+        return
+    root.mkdir(parents=True, exist_ok=True)
+    path = root / LEDGER
+    written = path.with_suffix(".tmp")
+    with written.open("w", newline="", encoding="utf-8") as out:
+        csv.writer(out).writerows([COLUMNS, *(astuple(fill) for fill in ledger + added)])
+    written.replace(path)
 
 
 def positions(root: Path) -> dict[str, int]:
