@@ -1027,3 +1027,27 @@ deliberate breaks driven; fifteen caught. The one left is the forcing of each li
 disk, which only a killed process would show. A blind review found nothing blocking; its
 two findings (failed cells never retried; cutting a torn line by emptying and rewriting
 the whole journal, which a second stop could lose) were fixed, and each fix driven red.
+
+### 2026-11-13 — the ladder keeps a result by what made it: its code and every bar it read
+
+**Decided.** A batch keeps a result by its key, the code version and the data version, and
+runs a cell again only when one of them has changed (`lab/batch.py`). Each run reads every
+cell's bars again to find its key; a journal record with that key is the cell's result.
+
+**The choices, and why.**
+- *How a batch learns the bars changed.* Options: trust a kept record until told otherwise;
+  a fingerprint per line kept by the store; read the cell's bars and hash them each run.
+  Chosen: read and hash each run. The store keeps no version of its own yet, and a record
+  from bars since corrected must never be kept; reading a line is cheap beside running the
+  rules on it. A benchmark may later ask for the store's own fingerprint.
+- *Which bars count.* Only those the rule is shown, up to the window's end, as in the key a
+  cell already carries: a bar corrected after a window ends leaves that window alone.
+- *Old records.* Records under other code or other bars stay in the journal, never matched;
+  the journal is append-only, and growing it is cheaper than rewriting it.
+
+**Evidence.** A contract test seen failing first (a corrected bar left the old result
+kept). Nineteen deliberate breaks driven; thirteen caught at first, and the blind review
+found the same gap: no test could tell a kept result from one worked out again. A count of
+the rule's real runs was added; the five breaks it should catch were driven again and all
+caught. Two remain, both in the unit of work's own fingerprint and owed to its contract
+test: a change of volume alone, and two bars on one day (`docs/STATUS.md`).
