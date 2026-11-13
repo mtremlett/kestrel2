@@ -146,6 +146,52 @@ at the broker (`desk/listing.py`); six London lines are priced there in pence (`
 
 ### Next step
 
+Two boxes can start at once (PLAN notes, 13 November): paper-reports (R-MONEY-4 first, then
+the broker's fills and orders, read-only) and paper-gateway (daily restart, weekly re-login).
+The rest is one chain behind paper-reports: check, adapter, stops, drill, conformance. No order
+until that day's check is clean on a second day and the kill switch is drilled.
+
+### Requests to MONEY
+
+- [x] R-PAPER-2 (blocking, opened 2026-11-13 18:15): done in #64.
+- Open: R-MONEY-4 is a request, not a box; it changes `desk/paper.py`, as paper-reports does.
+
+### Requests to DATA
+
+- [x] R-MONEY-2 (blocking, opened 2026-11-13 18:15): the scenes moved onto the fourteen months.
+- [ ] R-MONEY-3 (later, opened 2026-11-13 18:15): a daily rate, pounds per dollar, in the store.
+
+### Found, not fixed
+
+- **Costs:** spread, slippage and UK tax are charged nowhere yet; no one rounding policy (to
+  the penny); fees are IBKR UK's fixed schedule, not tiered; scene 3 mixes currency and fees.
+- **Nobody is told of a mismatch yet.** Until someone acts, a line whose stop was cancelled is
+  unprotected, and one partly sold by hand keeps a stop for more shares than are held.
+- **The ledger** is not forced to disk, and a lost one reads as "no fills" without a word.
+- **The gate** takes the book as a bare mapping, trusts the stop of an order built by hand,
+  and sizes at the last close: a gap up at the open can fill above a fifth.
+- **The day run** decides each line's whole history again every day (24 seconds in scene 5),
+  reads the archive it is handed (R-DATA-3), and has no halt to read yet.
+- **The rules:** a decision depends on where the history starts; "warming up" and "staying
+  out" both read as hold; twenty days means twenty bars; the true range lives in `strategy`.
+- **For the paper adapter:** an order still working is in none of the five answers, so `place`
+  must answer finally or the gate overbuys; a resting order that is no sell stop is unseen; a
+  stop's level is never compared; a connection lost while reading is not a stated answer.
+- **Untested at the pretend broker:** `inject` on any symbol; a planted position beside the
+  desk's stop; a partial fill of one share; several stops sold on one open.
+
+## PAPER
+
+Last updated: 13 November 2026 (this section cut to what is open; git keeps the rest).
+
+### Where it is
+
+Read-only so far; nothing has been placed on paper. The account check (`desk/paper.py`, client
+222, paper accounts only) found the account quiet on 13 November. All twenty lines are listed
+at the broker (`desk/listing.py`); six London lines are priced there in pence (`Listing.floor`).
+
+### Next step
+
 R-MONEY-4: `paper.differences` asks `book.differences`, so the rule has one home; with it, a
 holding matched by the broker's own number for the line. Then the fills and orders the broker
 reports, read-only: each fill under the broker's id, its price back from the broker's unit, the
