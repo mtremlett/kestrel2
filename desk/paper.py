@@ -15,11 +15,10 @@ from collections import Counter
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from decimal import Decimal
-from pathlib import Path
 from typing import BinaryIO, TypeVar
 
 from desk import book
-from desk.lines import LINES, Line
+from desk.lines import Line
 
 HOST, PORT = "127.0.0.1", 4002  #: the paper port on this machine: the only door the desk dials
 CLIENT = 222  #: the desk's own client id at the gateway (docs/DECISIONS.md)
@@ -221,37 +220,33 @@ def read() -> Account:
     return dial(converse)
 
 
+def named(
+    held: Mapping[str, int], entries: Iterable[tuple[str, Decimal]], saying: str
+) -> tuple[str, ...]:
+    """The desk's book against a broker's entries by the desk's one rule (book.differences),
+    each difference named in words, saying first what the entries are; and it is said when
+    the broker gives a name in more than one entry."""
+    rows = list(entries)
+    given = Counter(name for name, _ in rows)
+    several = {name: f" in one of {n} entries" for name, n in given.items() if n > 1}
+    return tuple(
+        f"{d.name}: {saying} {d.broker}{several.get(d.name, '')}, the desk's book {d.book}"
+        for d in book.differences(held, rows)
+    )
+
+
 def differences(
     account: Account, held: Mapping[str, int], lines: Iterable[Line]
 ) -> tuple[str, ...]:
-    """Every way the paper account differs from the desk's book, each named in words; none,
-    and nothing but the desk trades the account. held is the book (book.positions). The
-    comparison is the desk's one rule (book.differences); the door gives it each holding
-    under its symbol, kind and currency, so the same name in another currency is another
-    thing, and says when the broker gives a name in more than one entry. Every order
-    resting at the broker is named, whoever placed it: the desk rests none yet."""
+    """Every way the paper account's holdings differ from the desk's book, each named in
+    words; none, and it holds what the book holds. held is the book (book.positions). The
+    door gives the desk's one rule each holding under its symbol, kind and currency, so the
+    same name in another currency is another thing. The orders resting on the account are
+    told apart and named by the day's check (desk/clearance.py)."""
     known = {line.symbol: line for line in lines}
     unknown = sorted(set(held) - set(known))
     if unknown:
         raise ValueError(f"the book holds lines the desk was not given: {unknown}")
     ours = {f"{s} STK {known[s].currency}": shares for s, shares in held.items()}
     rows = [(f"{h.symbol} {h.kind} {h.currency}", h.shares) for h in account.holdings]
-    given = Counter(name for name, _ in rows)
-    several = {name: f" in one of {n} entries" for name, n in given.items() if n > 1}
-    differ = [
-        f"{d.name}: the broker holds {d.broker}{several.get(d.name, '')}, the desk's book {d.book}"
-        for d in book.differences(ours, rows)
-    ]
-    working = [
-        f"{o.symbol}: an order resting at the broker to {o.action} {o.shares} ({o.kind}, "
-        f"the broker's id {o.broker_id}, client {o.client})"
-        for o in account.orders
-    ]
-    return (*differ, *working)
-
-
-def mismatches(root: Path, ask: Callable[[], Account] = read) -> tuple[str, ...]:
-    """The daily read-only check: the paper account as it is now against the desk's book,
-    every difference named; none, and the account is quiet. Nothing is sent to the broker
-    but questions."""
-    return differences(ask(), book.positions(root), LINES)
+    return named(ours, rows, "the broker holds")
