@@ -104,7 +104,7 @@ def test_while_the_book_is_not_the_brokers_nothing_is_bought_and_no_such_line_so
     assert broker.submitted() == ("o-0", "o-1", "o-2", "s-1"), "sent while the books differ"
     broker.inject("E", -7)
     broker.inject("A", -3)
-    assert _send(tmp_path, broker, "o-3", SIX[3]).filled == 10, "the books agree again"
+    assert _send(tmp_path, broker, "o-3", SIX[3], 1).filled == 1, "the books agree again"
     broker.open(TUE)  #: A's stop sells it: the ledger learns of it before the books are compared
     assert book.reconcile(tmp_path, broker) == () and "A" not in book.positions(tmp_path)
     broker.cancel_stop("C")
@@ -112,14 +112,43 @@ def test_while_the_book_is_not_the_brokers_nothing_is_bought_and_no_such_line_so
     with pytest.raises(Refused, match="o-4"):
         _send(tmp_path, broker, "o-4", SIX[4])
     assert book.send(tmp_path, broker, Sale("s-2", SIX[2], 10), ROOM).filled == 10, "unprotected"
-    broker.inject("D", -10)  #: all of D sold by hand and its stop cancelled: only the book has it
+    broker.inject("D", -1)  #: all of D sold by hand and its stop cancelled: only the book has it
     broker.cancel_stop("D")
     assert book.reconcile(tmp_path, broker) == ("D",)
     with pytest.raises(Refused, match="s-3"):
-        book.send(tmp_path, broker, Sale("s-3", SIX[3], 10), ROOM)
+        book.send(tmp_path, broker, Sale("s-3", SIX[3], 1), ROOM)
+    broker.place(Order("x-1", SIX[5], 10, *map(Decimal, (50, 1, 45))))
+    broker.cancel_stop("F")
+    broker.place(Order("x-2", SIX[5], 5, *map(Decimal, (50, 1, 45))))  #: F's stop: 5 of its 15
+    assert book.reconcile(tmp_path, broker) == ("D", "F"), "a stop for fewer shares than held"
     for line in SIX:
         broker.inject(line.symbol, 1)
     assert book.reconcile(tmp_path, broker) == tuple("ABCDEF"), "named in no order"
+
+
+@pytest.mark.parametrize(
+    ("held", "entries", "named"),
+    [
+        ({"A": 25}, [("A", Decimal(25)), ("B", 0), ("B", 0)], []),  #: listed at no shares: not held
+        ({}, [("A", 25)], [("A", 25, 0)]),
+        ({"A": 25}, [], [("A", 0, 25)]),
+        ({"A": 25}, [("A", 0)], [("A", 0, 25)]),
+        ({"A": 25, "B": 4}, [("B", 5), ("A", -25)], [("A", -25, 25), ("B", 5, 4)]),
+        ({}, [("A", Decimal("0.5"))], [("A", Decimal("0.5"), 0)]),
+        #: entries that only add up to the book are two places, or a change while it was read
+        ({"A": 25}, [("A", 20), ("A", 5)], [("A", 5, 25), ("A", 20, 25)]),
+        ({"A": 25}, [("A", 25), ("A", 0)], [("A", 0, 25)]),
+        ({}, [("A", 25), ("A", 0), ("A", -25)], [("A", -25, 0), ("A", 25, 0)]),
+        ({"A": 25}, [("A", 25), ("A", 25)], [("A", 25, 25)] * 2),  #: fifty, in two places
+        ({"A": 25}, [("A", 25), ("A", 5)], [("A", 5, 25), ("A", 25, 25)]),
+    ],
+)
+def test_every_entry_of_the_brokers_is_the_books_own_shares_or_it_is_named(
+    held: dict[str, int],
+    entries: list[tuple[str, Decimal | int]],
+    named: list[tuple[str, Decimal | int, int]],
+) -> None:
+    assert book.differences(held, iter(entries)) == tuple(book.Difference(*n) for n in named)
 
 
 def test_a_round_trip_pairs_each_sale_with_the_buys_it_closes_in_pounds_after_charges(

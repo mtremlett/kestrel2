@@ -1,6 +1,7 @@
 # The plan
 
-**Current objective:** the money lane's — the kill switch and its drill (his ruling: first);
+**Current objective:** the money lane's — any broker behind the send path (the paper lane's
+R-PAPER-2), then the kill switch and its drill (his ruling: first of its own book);
 then the costs whole, then the day's record, with which scenes 6 and 7 pass together.
 
 Scenes passing: **5 of 7**. Phase: **2-money-sim**.
@@ -204,7 +205,8 @@ moved onto the fourteen months); R-MONEY-1 (each line's UK tax) is done.
 
 ### The money lane's book — scenes 4 to 7, in order
 
-**Lane objective:** the kill switch, by his ruling of 13 November ("kill switch first"):
+**Lane objective:** first the paper lane's blocking request R-PAPER-2 (the step below: any
+broker behind the send path). Then the kill switch, by his ruling of 13 November ("kill switch first"):
 one command stops all new orders and cancels the open ones, the desk says so, and the drill
 is run against the pretend broker (the step below, EMG-02). The paper lane sends no order
 until it is drilled. After it, in order: the costs whole in the desk's one cost model
@@ -227,6 +229,11 @@ day's trading and reconciliation are built.
 - [x] Reconciliation, before every order: the desk's book against the broker's positions
       and resting stops, each line that differs named; nothing bought, and no such line
       sold, while they differ (`book.reconcile`, on the send path)
+- [x] One rule for "is the book the broker's?", for the pretend broker and the paper account
+      alike, entry by entry, the resting stops through it too (`book.differences`; the
+      paper lane's R-PAPER-1)
+- [ ] Any broker behind the send path and the day run, not the pretend one by name, giving
+      its holdings and stops as entries (the paper lane's R-PAPER-2)
 - [ ] The costs whole: a sale's own cost, and spread and slippage on both legs, the stop's
       sale included, in the one cost model; UK tax from a fact on each line (asked of the
       data lane)
