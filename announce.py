@@ -11,6 +11,10 @@ and just after the merge, and sends one short Telegram line, read at a glance:
 
 The bot key and the chat id are GitHub secrets the operator sets himself. A missing one
 fails the job, loudly; it never skips. Standard library only (docs/DECISIONS.md).
+
+He sleeps from 22:00 to 08:00 UK (his words, 13 November 2026). A line made then is not
+sent: it is recorded in the job's summary, and the runner's 08:00 message lists the night's
+changes instead.
 """
 
 from __future__ import annotations
@@ -23,6 +27,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from collections.abc import Mapping
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -39,6 +44,27 @@ GITHUB = ("GITHUB_TOKEN", "GITHUB_REPOSITORY", "GITHUB_SHA", "GITHUB_STEP_SUMMAR
 #: The shape of a Telegram bot key. Checked on entry, so a bad paste is refused by name
 #: and never reaches a URL, where an error would print it in a public log.
 BOT_KEY = re.compile(r"\d+:[A-Za-z0-9_-]+")
+#: His sleeping hours, UK time: a line made in them waits for the runner's 08:00 message.
+QUIET_FROM, QUIET_UNTIL = 22, 8
+
+
+def _last_sunday(year: int, month: int) -> datetime:
+    """01:00 UTC on the month's last Sunday: when UK clocks change."""
+    day = datetime(year, month + 1, 1, 1, tzinfo=UTC) - timedelta(days=1)
+    return day - timedelta(days=(day.weekday() + 1) % 7)
+
+
+def uk_hour(when: datetime) -> int:
+    """The hour on a UK clock: GMT, or BST from the last Sunday of March to the last
+    Sunday of October (the law since 1998; no time-zone database needed)."""
+    utc = when.astimezone(UTC)
+    summer = _last_sunday(utc.year, 3) <= utc < _last_sunday(utc.year, 10)
+    return (utc + timedelta(hours=1 if summer else 0)).hour
+
+
+def asleep(when: datetime) -> bool:
+    hour = uk_hour(when)
+    return hour >= QUIET_FROM or hour < QUIET_UNTIL
 
 
 def steps(plan: str) -> dict[str, tuple[int, int]]:
@@ -120,7 +146,7 @@ def _github(github: Mapping[str, str], path: str) -> Any:
     )
 
 
-def main(env: Mapping[str, str] = os.environ) -> None:
+def main(env: Mapping[str, str] = os.environ, when: datetime | None = None) -> None:
     secrets, github = required(env, SECRETS), required(env, GITHUB)
     if not BOT_KEY.fullmatch(secrets["TELEGRAM_BOT_TOKEN"]):
         raise SystemExit("announce: TELEGRAM_BOT_TOKEN is not a bot key; set it again")
@@ -136,6 +162,10 @@ def main(env: Mapping[str, str] = os.environ) -> None:
     before = base64.b64decode(parent["content"]).decode("utf-8")
     after = (ROOT / "docs" / "PLAN.md").read_text(encoding="utf-8")
     text = line(before, after, number, usage)
+    if asleep(when or datetime.now(UTC)):
+        with Path(github["GITHUB_STEP_SUMMARY"]).open("a", encoding="utf-8") as record:
+            record.write(f"Held for the 08:00 message (his sleeping hours):\n\n> {text}\n")
+        return
     form = {"chat_id": secrets["TELEGRAM_CHAT_ID"], "text": text}
     sent = _call(
         urllib.request.Request(

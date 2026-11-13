@@ -1075,6 +1075,39 @@ pull request descriptions; a lane with nothing it may start sat idle untold.
 waited for it: every lane would have hung after a hard stop. Fixed (a re-entrant lock) and
 driven.
 
+## 2026-11-13 — his hours, the before-bed reset, and the keeper's rounds
+
+**His words**, relayed 13 November evening: "operator will typically sleep from 10pm to 8am.
+operator will have smartphone and can approve things when requested."
+
+1. **His hours.** From 22:00 to 08:00 UK a change's Telegram line is not sent; GitHub's job
+   records it instead (`announce.py`). The runner's own news lines (the runner back, an
+   outage over, a drain, a request waiting a day) wait too. At 08:00 one message carries
+   the morning line, the audit's line, every change that landed overnight and the held
+   lines. The audit moves from 05:30 to 07:30 and the morning line from 07:00 to 08:00, so
+   both arrive when he wakes. Anything that needs him goes at once, at any hour: a reset to
+   press, a Gateway login, a decision, a lane halted, a crash, the keeper missing rounds.
+2. **The before-bed reset.** At 21:45 the runner forecasts the night from the last three
+   hours' rate. If the lanes would reach the 80% pause before 08:00, it asks for the weekly
+   reset before he sleeps, when the week is at 25% or more, its reset is more than 36 hours
+   away, and the weekly reset is unused and unexpired; once a night. So a night is not lost
+   to a pause nobody could answer. Fable is never asked for before bed: his ruling at 20:12
+   is to use all of Fable, run on Opus overnight, and reset Fable at about 08:00.
+3. **The five-minute keeper.** Once DATA's `desk/keeper.py` is on main, the runner runs
+   `python -m desk.keeper` from a copy of main every five minutes, 08:00 to 21:00 UK on
+   weekdays (London opens at 08:00, New York closes at 21:00). The keeper reads the
+   calendars itself and exits at once when no venue is open, so holidays need no second
+   calendar in the runner. Plain code, no Claude session, no tokens. Two missed rounds in
+   a row reach him at any hour. DATA's sessions are told this contract.
+
+**Driven** in a scratch home, 25 cases: news held at night and sent by day, what needs him
+sent at once at 23:10, the 08:00 message carrying the night and clearing what was held, the
+night's idle hours 22:00 to 08:00; the forecast asking for each reset when the pace crosses
+the line before 08:00 and not when it is too small to matter, too slow, within 36 hours of
+the week's reset, already used, or with no readings, and once a night; the keeper not run
+outside its hours, at a weekend or before it exists, a round done, failed or hung, two
+misses told at once even at night, and its return held for the morning.
+
 ---
 
 # The lanes' own decisions
@@ -1937,6 +1970,69 @@ new: every rule is out of the market by the data's end, so scene 6 as written ca
 holding (the money lane's own note of 13 November); and the scenes' first day, 2 September
 2024, is the US Labor Day, so the US lines have no bar until the day after.
 
+### 2026-11-13 — research reads the parked fifth by a rule of its own (#80)
+
+**How research reads a ticker the store parks for an unconfirmed move.** Options: (a) leave the
+parked fifth out: research loses its most violent names, the ones a leveraged trend strategy lives
+on, and every result flatters; (b) read them as they are: a series that jumps a hundredfold (CLDN) or
+to a tenth is priced as a gain or loss nobody had; (c) confirm all 406 moves from a second source:
+there is none yet; (d) break the history at every unconfirmed move: the crashes of March 2020 and
+6 May 2010 vanish and every strategy looks safer than the market was; (e) a rule from the bars alone
+that sorts a change of scale from a market's move, each doubt resolved against the strategy. Chosen
+(e). It lives in `lab/`, which the desk cannot import, so the store keeps its one rule and still
+parks all 201.
+
+**The rule, and which way each doubt falls.** Only a move made wholly between two sessions can be a
+change of scale; a move within the day, or a spike that came back, cannot. Of the 33 such, a rise is
+never believed unconfirmed (disbelieving a windfall costs a study nothing; counting a false one
+flatters it). A fall is disbelieved only on ordinary trading, under 2.5 times the median value traded
+of the twenty sessions before: all fifteen such look like changes of scale, none confirmed; the
+lightest real fall came on 2.8 times (FANG, 9 March 2020). A fall with no volume to judge by is
+believed. The margin is thin and was chosen looking at this list. The one error that flatters a
+strategy, a real overnight crash on quiet trading read as a change of scale, is shown by none here.
+The desk only buys; a study of short sales would need the opposite rule for a rise.
+
+**What research reads of a ticker with a change of scale.** Options: (a) nothing; (b) only what
+follows the last one (ROR would keep 85 of 4,260 bars); (c) the longest run on one scale; (d) every
+run as a history of its own, which would make a ticker several lines for the grid. Chosen (c): 11,150
+bars unread against 28,702 by (b). The store's bars are not rescaled.
+
+**A bad print within a day is read, not mended.** Options: (a) clip a low or high far outside the
+day's open and close: it mends data after the one writer, and a real flash crash looks the same;
+(b) read it and name the day. Chosen (b).
+
+**Evidence.** Tests seen failing first; the rule driven over the real list from cached answers by a
+script outside the repository; 39 deliberate breaks with Python's cache off, 38 caught at once and the
+last (which of two equal runs is read) once its test was added. A blind review's two blocking points
+were wording the code did not keep, both corrected. The box stays unticked: the grid does not read
+through the rule yet (R-DATA-7), and WWH, SHC, ECHO, MRNA and ROR stand misjudged.
+
+### 2026-11-13 — the data lane's next boxes: the order, the keeper's road, the store's name (#66)
+
+**Which box is first.** Options: (a) the lane objective's parked fifth first; (b) the box that says
+"First, by his ruling" (VUAG, EQQQ and IDTL for SPY, QQQ and GLD) first. Chosen (b) with (a) beside
+it: his ruling names it first, and their files do not overlap. For that, the parked fifth's tests go
+in `tests/unit/test_lab_universe_parked.py` and do not touch `desk/store.py`.
+
+**The keeper's road.** Options: (a) one big keeper box holding all the lane's files, alone;
+(b) separate boxes with separate files. Chosen (b): the fast store, then trading hours and half-days,
+then five-minute bars into the fast store, then the keeper. Two of the four run side by side, and
+the paramount keeper is served sooner than by a lane held to one session.
+
+**Half-days before the keeper.** A keeper that did not know a venue's hours and early closes would
+park every line as "late" on a half-day, and could not know when no venue is open (exit 0 at once).
+
+**Five-minute bars ahead of the archive's manners in the order, not in dependence.** Both change
+`desk/archive.py`, so they cannot run together; the five-minute box is listed first because his
+ruling makes it paramount. "Polite fetching" (DAT-08) waits for "The archive spared".
+
+**The fast store's name.** `desk/bars.py`, not "hot": it becomes the one store for hot and deep data
+alike, under the one writer, not a second store beside the first (canon A4). How `desk/store.py`'s
+files move onto it is a later step.
+
+**No `after` naming another lane's box.** No other lane's ids were on main and the guard refuses an
+`after` naming no box; the one cross-lane dependence is an un-noted box and a request (R-DATA-9).
+
 ## LADDER (until 13 November; since then GRID and RUNGS)
 
 ### 2026-11-13 — the ladder's unit of work: days only, the whole history, keyed by what it read
@@ -2353,6 +2449,41 @@ gap, caught since. Measured from outside the repository on 4,000 days: a cell ab
 for any of the five rules, where the desk's engine alone took 90 to 100 ms; 17 ms of the
 25 is reading the line's prices in, paid again by each cell.
 
+### 2026-11-13 — a cell names its line and venue (R-DATA-1)
+
+**Decided.** A cell holds the whole `Line`, not symbol plus venue. Options: the Line; two
+strings. Chosen the Line: the data lane asked for it, the first rung needs the line's facts
+(currency, leverage, UK tax) to price a trade, and they then have one home.
+- A cell does not check its line against the research list. Options: check membership; trust
+  the typed Line. Chosen the latter: checking would put the list inside every result's code
+  version, so adding one ticker would re-run every kept cell; a line with no stored prices
+  already fails its own cell loudly and the rest carry on.
+- A symbol alone is still accepted, meaning one of the twenty. Options: break the rungs
+  lane's tests, which this lane may not edit; hold the change until they move, which they
+  cannot do first; accept both for now and ask them to move (R-GRID-2). Chosen the last; the
+  door is named as temporary in the code.
+- The journal names a cell by strategy, symbol, venue and window; a kept record is found by
+  those plus the code and data versions. The line's other facts are not written: the days a
+  rule bought and sold do not depend on them.
+
+**Evidence.** Four deliberate breaks, each caught and undone: every line read from the US
+folder; the journal leaving the venue out; a kept record never found; a cell given a line
+quietly taking the trading line of the same symbol. Blind review, nothing blocking.
+
+### 2026-11-13 — the grid lane's open boxes ordered for the runner (#71)
+
+**Decided.**
+- The cell's key (BT-04) comes before the first pass. Options: keep the book's order (pass
+  first, key later); move the key up. Chosen: up. A change to the key re-runs every kept cell,
+  so changing it after a pass over the research universe would throw that pass away.
+- Auto-tune lives in `lab/tune.py`, not inside `lab/batch.py`. Options: grow the batch
+  service; a new module around it. Chosen the module: auto-tune and the venue box then share
+  no file, two sessions can build them at once, and the batch keeps its one job.
+- The pass lives in `lab/sweep.py`: it owns which cells make a pass and the busy flag the
+  runner reads (`autotune.json`).
+- grid-weekend claims every file of the lane (`*`): making a sweep fast enough can touch the
+  engine, the cell and the batch alike, and it is last, so running alone costs nothing.
+
 ## RUNGS
 
 ### 2026-11-13 — the luck rung: a chance multiplied by every trial, one 5% test across the set
@@ -2401,3 +2532,18 @@ in a copy outside the repository with Python's cache off: all caught but four, n
 change a real result: "under 5%" for "5% or under", an odd number of steps in the sum (a
 difference far below any line), and the first rung's two known ones ("over 2" for "2 or
 over", the arithmetic setting).
+
+### 2026-11-13 — the rungs book's next boxes: one new module each, failing fairly last
+
+**Decided**, by the lane as the desk's mentor (#65).
+- *Where the boxes live.* Options: each in a new module (`lab/folds.py`, `trials.py`,
+  `deflated.py`, `plateau.py`, `regime.py`); or grow `lab/rung.py` and `lab/luck.py`.
+  Chosen: new modules. Each is one concept with one owner (canon A4), and boxes sharing no
+  file can be built side by side; growing the two files would force them into single file.
+- *Failing fairly runs alone, last.* It turns the first rung's pass-or-fail into three
+  answers (pass, fail, not enough evidence), which every other rung reads; done beside them
+  it would break whichever landed second. Doing it first would hold the folds behind it.
+- *Regimes waits for the folds*: it replays the same history cut by period and should reuse
+  the folds' cutting, not write a second.
+- *"Its costs whole"* sits below the noted boxes without a note: it cannot start until the
+  money lane's costs land, and that box has no id yet.
