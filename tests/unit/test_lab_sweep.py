@@ -146,7 +146,7 @@ def test_a_week_is_pass_after_pass_and_its_log_shows_how_long_without_stopping(
         now[0] += timedelta(minutes=200 if n == 9 else 5)  # one pass takes over three hours
         idle = {"ran": 0, "kept": 0, "failed": 9}  # a pass that ends holding no cell
         return (
-            {"error": "OSError: no store"} if n == 60 else idle if n == 30 else {**idle, "ran": 1}
+            {"error": "OSError: no store"} if n == 100 else idle if n == 30 else {**idle, "ran": 1}
         )
 
     def wait(seconds: float) -> None:
@@ -164,8 +164,8 @@ def test_a_week_is_pass_after_pass_and_its_log_shows_how_long_without_stopping(
         "ended": (SATURDAY + timedelta(minutes=5)).isoformat(),
         **{"ran": 1, "kept": 0, "failed": 9},
     }
-    assert (len(rows), rows[60]["error"]) == (118, "OSError: no store")
+    assert (len(rows), rows[100]["error"]) == (118, "OSError: no store")
     assert waits[8:11] == [55 * 60, 0, 55 * 60], "a pass starts on the hour, or as the last ends"
     assert rows[10]["started"] == rows[9]["ended"]
-    # an idle pass, an hour off, half a day, a failed pass, then the longest run of all
-    assert sweep.unbroken(tmp_path) == timedelta(hours=56, minutes=5)
+    # an idle pass, an hour off, the longest run of all, a failed pass, then the last
+    assert sweep.unbroken(tmp_path) == timedelta(hours=53, minutes=5)
