@@ -676,6 +676,120 @@ deleted. The ruleset still lists no one who may bypass it.
 **The cost.** Each lane's merge can make the other lanes' open pull requests wait for one
 more check run, about two minutes each.
 
+## 2026-11-13 — the lanes stop at 80% of the plan's week
+
+**His ruling**, chosen from options in chat on 13 November: "Yes, pause at 80%". The other
+20% of each week is his own.
+
+**How.** Before every run, the runner reads the plan's weekly usage. The figures come from
+the plan itself: a one-word session on the smallest model, which reports the plan's
+windows the way every session does. A reading counts only if it is under twenty minutes
+old and taken since the window last reset. At 80% or more of any weekly window, no run
+starts: every lane waits until that window resets, the pause is written in the usage log,
+and he gets one Telegram line. The account refuses extra usage ("overage rejected" in the
+plan's own report), and no API key reaches a session.
+
+**Driven.** A stand-in session reported 85% of the week with a reset a minute away. The lane
+paused, logged the cap and the pause, and sent the line. After the reset it read the
+plan again, found 20%, and ran its session.
+
+## 2026-11-13 — the lanes' models: quality first, then measure
+
+**His ruling**, from options: "Quality first, then measure (Recommended)". Every lane run
+is Claude Opus 5.5, at high effort on MONEY and medium on DATA and LADDER. Inside a run,
+chores (rebasing, document lines, driving the deliberate breaks) go to helpers on Claude
+Sonnet 5.5; blind reviews stay on Opus. The usage log keeps each run's model, effort and
+tokens, and the runner's report gives tokens per landed pull request per lane, so after
+three nights the choice can be compared and changed.
+
+## 2026-11-13 — the runner's own Telegram lines, and the week's usage
+
+**His ruling**, from options: "Usage on each line, plus stop alerts (Recommended)". Each
+lane run's pull request carries `Weekly usage: N%` on a line of its own, the highest weekly
+window. The session writes it, and the runner writes it again from the plan's figure when
+the run ends. The runner sends its own line when a lane pauses at the cap, stops after two
+failed runs, stops for any watch below, finishes its book, or stops for a decision that
+is his alone. It reads the bot key and chat id from a file beside the runner on his PC,
+which he copies there himself. The key never appears in a log or on a command line, and
+sessions are walled off from that folder.
+
+## 2026-11-13 — no nesting
+
+**His ruling**, from options. A lane run never starts another session or another runner;
+helpers inside a run are fine. That means three lanes, one process per lane at a time, and
+nothing more. The runner holds a lock per lane and refuses a second process for a lane
+that a live process holds. It refuses a second runner. Sessions are denied the commands
+that start Claude or the runner.
+
+**Driven.** A lane held by a live process was refused, a lock left by a dead process was
+taken over, and the lock was released at the end.
+
+## 2026-11-13 — mechanical guards against doom loops, sprawl and bloat
+
+**Asked** by the operator before the lanes run unattended. Rules in a session's prompt are
+not enough. Five guards, each driven against a deliberate violation (canon A7):
+
+1. **A lane changes only its own files, enforced by the check.** A branch named
+   `lane/<lane>-...` (the runner names them) may change only its lane's modules (under its
+   heading in `manifest.toml`), their unit tests, the files the manifest's new `[lanes]`
+   table gives it, and the shared documents. It may also add lines registering its own
+   modules. Anything else fails `tests/guards/test_lanes.py`: another lane's code, a
+   guard, CLAUDE.md, the workflow, or the ownership table itself. Seventeen cases were driven
+   in a copy whose main held the guard, and each behaved as intended. The first drive found
+   a defect: git's header lines were read as edits, so a lane registering its own module was
+   refused. That is fixed.
+2. **No change grows the product by more than 300 lines.** Any branch adding more than 300
+   net lines to `desk/` and `lab/` together fails the same file's second test. Driven: 300
+   passes, 301 fails, on a lane branch and on any other. The phase ceilings stand.
+3. **No progress: halt.** A lane whose last three landed pull requests ticked no box in its
+   book (for MONEY: and did not raise the scenes count) is halted, with a line to him.
+   Driven: two such landings left it running, the third halted it; a ticked box, or for
+   MONEY a scene passing, reset the count.
+4. **A recurring fix: halt** (canon A2). A landed `fix` that touches a code file another
+   `fix` of the same lane touched within its last ten landings halts the lane and names the
+   file, so a session he starts records it in `docs/FAILURE_PATTERNS.md` with its guard.
+   Driven: a second fix to the store halted the lane and named the file. These did not
+   halt it: two fixes touching only documents, a fix after a feature, a fix more than ten
+   landings later, and another lane's fix.
+5. **A line at 07:00.** Every morning at 07:00 UK he gets one line: scenes passing, desk,
+   lab and test lines, the share of fixes in the last 24 hours, the week's usage, and each
+   lane's state. If he hears nothing at 07:00, something is wrong: the alarm on silence.
+   Built from the live repository on 13 November, it read: "morning · scenes 4/7 · desk
+   1,096 lines · lab 166 · tests 1,809 · fixes 2 of 21 in 24h · usage 13% · ...".
+
+Guards 1 and 2 tighten the check, so they merge like any change. Guards 3 to 5 are in the
+runner, outside this repository. A lane that finishes its book is halted too, with a line
+asking for its next book.
+
+**Gap, recorded.** Guard 1 judges a lane by whole files. It does not check that a lane writes
+only in its own section of a shared document; the daily audit looks for that.
+
+**Learned the hard way.** The runner's first stop for these guards ended its own process
+and left one session running orphaned (it was ended, and nothing of it was pushed). The
+runner now has "drain", which lets each lane finish the session it is in and then stops,
+separate from "stop", which ends everything at once. Driven: a drain during a running
+session let it finish and record its run. Its copy was tidied and the runner ended, with
+no orphan left.
+
+## 2026-11-13 — an independent audit every morning
+
+**His ruling**, from options: "Yes, daily audit". At 05:30 UK the runner starts one fresh
+session on Claude Opus 5.5 at medium effort, in a fresh copy of main. It may only read: it
+has no tools to edit or write, and only git's and GitHub's reading commands. It reads
+every change that landed in the last 24 hours against the canon, the lanes' ownership,
+the failure patterns and the size rules. It reports each finding with its file, line,
+severity and lane. The report is kept in the runner's logs and summarised after the 07:00
+line as "audit: N findings (B blocking)". A blocking finding halts the lane it names until
+a session he starts looks at it. It counts against the 80% cap, and is skipped and logged at it.
+
+**Driven.** A copy of main was given one commit, as if from the data lane, with three
+planted faults: a store test weakened to a bare truth check, the money lane's file edited,
+and his 10% stop changed to 25%. The audit found all three, as blocking. It also found the
+commit had skipped the lane's end-of-session record. It halted the data lane (in a scratch
+copy of the runner's state) and wrote the line for him. It took 45 seconds; its tokens at
+list price came to about $0.30, which the plan pays. Its real share of the week shows in
+the usage log from its first morning.
+
 ---
 
 # The lanes' own decisions
