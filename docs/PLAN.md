@@ -224,14 +224,20 @@ Begun alongside phase 2 by his ruling of 13 November: "Five lanes, phase 3 now".
 
 ### The paper lane's book
 
-**Lane objective:** the paper account proved quiet before any order. The account is the old
-desk's (his ruling, 13 November), reached through IB Gateway's paper port 4002 on his PC
-with the desk's own client id, never 4001. Every day a read-only check sets the account's
-positions and open orders against the desk's own book, and a mismatch is flagged (scene
-6). No order is sent until this exists and has run clean.
+**Lane objective:** the real paper-broker adapter behind the same interface as
+`broker.Pretend`, in `desk/paper.py` with the standard library alone, built from what it
+reads towards what it sends: first each of the twenty lines as the broker knows it (its
+name, exchange and price step there), then the fills and orders the broker reports, then
+placing. It sends no order until that day's read-only check (`paper.mismatches`) has come
+back clean, and the check has been taught the desk's own resting stops. The account is the
+old desk's (his ruling, 13 November), reached through IB Gateway's paper port 4002 on his
+PC with the desk's own client id (222), never 4001.
 
-- [ ] The paper account proved quiet: the daily read-only check of positions and open
-      orders against the desk's book, a mismatch flagged
+- [x] The read-only check of the paper account's positions and open orders against the
+      desk's book, every mismatch named (`desk/paper.py`); run on the real account on 13
+      November: quiet, no shares held and no order resting
+- [ ] The check run every day and before any order: the adapter refuses to send until
+      that day's check is clean, and tells the desk's own resting stops from anyone else's
 - [ ] The real paper-broker adapter behind the same interface as `broker.Pretend`, speaking
       to IB Gateway with the standard library alone (`desk/` imports nothing else)
 - [ ] Stops resting at the broker, each rounded down to its line's price step

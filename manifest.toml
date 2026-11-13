@@ -51,6 +51,7 @@ rungs = []
 "desk/day.py" = "the desk's day: run once for a date, publish one record, replay it"
 
 # the paper lane
+"desk/paper.py" = "the one door to the paper broker: the paper account's holdings and resting orders, read and set against the desk's book"
 
 # the grid lane
 "lab/cell.py" = "the ladder's unit of work: one strategy on one line over one window, keyed by the code's and the data's versions"
