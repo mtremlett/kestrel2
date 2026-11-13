@@ -50,8 +50,7 @@ def test_a_holding_is_a_fifth_of_the_capital_counted_at_what_the_line_controls()
     orders.gate(exact, TEN_K, {})
     held = {"V": 10, "W": 10, "X": 10, "P": 997}  #: four holdings, P's 997 of its 1997 at a pound
     assert orders.size(_buy(PLAIN), PLAIN, Decimal(1), Decimal(1), TEN_K, held).quantity == 1000
-    pricier = orders.size(_buy(PLAIN), PLAIN, Decimal(2), Decimal(1), TEN_K, held)
-    assert pricier.quantity == 1, "the shares held are counted at the price the order is sized at"
+    assert orders.size(_buy(PLAIN), PLAIN, Decimal(2), Decimal(1), TEN_K, held).quantity == 1
     for full, why in (({"P": 1997}, "no room"), ({s: 1 for s in "VWXYZ"}, "5 holdings already")):
         with pytest.raises(orders.Refused, match=why):
             orders.size(_buy(PLAIN), PLAIN, Decimal(1), Decimal(1), TEN_K, full)
