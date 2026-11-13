@@ -83,6 +83,7 @@ def test_a_drill_that_keeps_every_promise_is_on_the_record_for_a_month_and_no_ot
     kept = kill.drill(tmp_path, NOW)
     assert len(kept) == 8 and all("DRILL" not in promise for promise in kept)
     assert book.killed(tmp_path) is None, "the drill stopped the real desk"
+    assert [p.name for p in tmp_path.iterdir()] == [book.SWITCH], "it wrote in the desk's books"
     assert [day for day in range(-1, 33) if kill.drilled(tmp_path, MON + timedelta(day))] == list(
         range(32)
     ), "a drill counts from its own day for 31 more"
