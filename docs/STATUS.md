@@ -268,20 +268,89 @@ Last updated: 13 November 2026.
 
 ### Where it is
 
-Not started. Phase 3 begins alongside phase 2 by the operator's ruling of 13 November.
-The paper account is the old desk's, reached through IB Gateway on his PC (installed, and
-running for the old desk), port 4002 only, with the desk's own client id.
+The desk can now read the paper account and say whether anything but the desk trades it
+(`desk/paper.py`). It connects to IB Gateway's paper port on his PC under the desk's own
+client id (222), asks two questions - what the account holds, and which orders rest on it -
+and hangs up. It places, changes and cancels nothing: the four messages it can send are
+fixed, and a test holds them byte for byte. The standard library alone, about two hundred
+lines.
+
+**Run on the real account, 13 November, about 17:45 UK: quiet.** The account lists
+seventeen lines the old desk once held, every one at no shares, and no order rests on it.
+Against the desk's book (empty: the desk has sent nothing on paper) the check named no
+difference. Held open a second time under the same client id, the gateway refused the
+desk with its reason, and the desk stopped, as it should.
+
+What the check holds to (`paper.differences`, `paper.mismatches`):
+- **Only a paper account is read.** The broker starts a paper account's code with a D. Any
+  other code, in the gateway's list of accounts, on a holding or on an order, stops the
+  desk before it asks that account anything. A gateway logged in to a real account cannot
+  be read as quiet.
+- **A holding must be the book's.** Matched by its symbol, kind and currency; more, fewer,
+  short, in another currency, as another kind of product, or split over two entries that
+  only add up to the book: each is named. A line the book holds and the broker does not is
+  named too.
+- **Every resting order is named**, whoever placed it, the desk's own client included: the
+  desk rests none on paper yet.
+- **A reading that stops is never a clean one.** A gateway that speaks another version,
+  hangs up, sends half a message, a message cut short, an unknown kind of message, or any
+  notice other than the state of its price feeds, stops the check with the reason.
+
+The tests were seen failing first. A blind review found one blocking fault (entries that
+added up to the book were passed as the book), fixed and tested, and nine lesser points,
+taken or recorded below. Sixty-five deliberate breaks are each caught; six showed a gap in
+the tests on the way, each closed (`docs/DECISIONS.md`).
 
 ### Next step
 
-The paper account proved quiet: a daily read-only check of its positions and open orders
-against the desk's own book, a mismatch flagged (scene 6), before any order is sent.
+Each of the twenty lines as the broker knows it (its name there, its exchange and its price
+step), read-only, so an order can name its line and a stop sits on a price the broker
+accepts. Then the fills and orders the broker reports, then placing: no order until that
+day's check is clean. The check should be run again on a second day before the first order.
+
+### Asked of the money lane
+
+- **One home for "the book against the broker".** `paper.differences` is that rule for
+  the real account; scene 6 (`day.run`) needs it against the pretend broker. One comparison
+  should serve both, in `desk/book.py`, taking the book and the broker's holdings; the
+  paper door would then hand it the account's entries and add only the orders.
+- **`book.send`, `book.collect` and `day.trade` name `Pretend` as the broker's type.** The
+  paper adapter needs them to accept anything with the same interface.
 
 ### Found, not fixed
 
 - **The old desk's scheduled tasks are all disabled**, he confirmed as administrator on
   13 November. The daily read-only check of the account stays all the same: it is the
   proof, every day, that nothing else trades it.
+- **Nothing runs the check each day yet**, and nothing makes the desk wait for it: one
+  clean reading at one moment is all there is. It is the lane's next box.
+- **An open order has never been seen from the real gateway**, since none rests on the
+  account. Its shape in the tests is the published client's, checked field by field by the
+  blind review. Any order is named whatever its details; the first conformance trade must
+  confirm them.
+- **Whether the broker's name for each of the twenty lines is the desk's is unproven.**
+  SMGB and AAPL appear under the desk's names among the old desk's lines. "A share or a
+  fund" is written in the door as the broker's word for it; the instrument master holds no
+  fact about a line at the broker. The next step settles both.
+- **The guard on the live port reads for one number.** It would not catch the live port of
+  the broker's desktop program. The door's own test now holds its port and machine, and the
+  paper-only lock stands behind it; a session he starts could make the guard refuse any
+  port in `desk/` but the paper one.
+- **Some bad answers stop the desk loudly but without a plain sentence:** a share count
+  that is no number, and a byte that is not text. A list of accounts ending in a comma
+  would be refused as "not a paper account"; the real gateway sends none.
+- **A gateway that has lost its link to the broker** may still answer from memory. It
+  announces the loss to clients connected at the time, and the desk stops on that notice;
+  whether a client connecting afterwards is told is unproven.
+- **The gateway must be running and logged in**, and it logs itself out each day. Keeping
+  it up belongs to "unattended running", later in the book.
+- **This change adds as many test lines as product lines** (202 each), so it leaves the
+  shared margin between unit tests and product where it was.
+- **A deliberate break can report the wrong result from Python's cache.** A break written
+  within a second of the last, to a file of the same size, ran the old code once in this
+  session and named the wrong test. Every lane drives breaks; they should be run with the
+  cache off (`PYTHONDONTWRITEBYTECODE=1`). A session he starts could record this in
+  `docs/FAILURE_PATTERNS.md`.
 
 ## DATA
 

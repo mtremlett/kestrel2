@@ -1474,6 +1474,72 @@ The tests were written after the module, not seen failing first; the breaks stan
 
 ## PAPER
 
+### 2026-11-13 — the paper account is read, never written, and only if it is a paper one
+
+**Decided**, by the lane as the desk's mentor (no one watching), for the first box of its
+book: the desk's one door to the paper broker (`desk/paper.py`) reads the account's
+holdings and resting orders and names every difference from the desk's book. It sends the
+gateway four things and no others: a greeting, a start, and two questions.
+
+**The choices, and why.**
+- *How to speak to the gateway.* Options: the broker's own Python client or a popular
+  wrapper (each a new dependency, and `desk/` may import the standard library alone); or
+  the gateway's own language over a plain connection. Chosen: the plain connection. This
+  step needs two questions and four kinds of answer, about a hundred lines.
+- *Which version of that language.* The gateway changes the shape of its messages from
+  version to version. Options: accept a range and carry a reader for each; take the newest
+  (it has since moved to another encoding); offer one version and refuse any other answer.
+  Chosen: one, version 176, which the gateway on his PC accepts and a widely used published
+  client reads. A gateway that will not speak it stops the check with that reason.
+- *The desk's client id.* Options: 0 (the gateway's master id, which can take over orders
+  placed by hand: never); a small number the old desk may still use; one fixed number of the
+  desk's own. Chosen: 222. If anything else ever holds it, the gateway refuses the desk
+  with a stated reason; the desk does not hunt for a free one.
+- *Only a paper account.* The broker starts a paper account's code with a D and no other
+  account's. The door refuses any other code: in the gateway's list of accounts, before a
+  single question is asked, and on every holding and every order. So a gateway logged in
+  to a real account by mistake cannot be read as "quiet", let alone traded. A second lock
+  beside the port.
+- *What "quiet" means today.* A holding is matched to the book by its symbol, its kind (a
+  share or fund) and its currency, so the same name in another currency, or as another kind
+  of product, is a difference. A line the broker lists at no shares is no holding. Each
+  entry the broker gives must itself be the book's shares: the first version added a line's
+  entries together, and the blind review showed that a holding changed while it was being
+  read, or 25 bought in one place and 25 sold short in another, would then pass as the
+  book. Every order resting at the broker is a difference, whoever placed it, the desk's
+  own client included: the desk rests none on paper yet. When the desk's own stops rest
+  there (the next box), the check must be taught to know them, and only them.
+- *What the check gives back.* The differences, in words (`paper.differences`,
+  `paper.mismatches`); none means quiet. It was first called "quiet", which a caller could
+  read backwards and trade exactly when the account was not; the review caught the name.
+- *The gateway's news.* It sends notices that its price feeds are up or down, which this
+  door does not use: those nine codes are passed over. Any other notice or error (the
+  client id taken, the link to the broker lost) stops the reading, as does a kind of message
+  the desk does not know. A reading that stops is never a clean one.
+- *The plan's first box, split in two.* The check exists and has run clean once; nothing
+  yet runs it each day or makes the desk wait for it. That half belongs to the adapter,
+  which must refuse to send until the day's check is clean, so it stays an open box.
+
+**Evidence.** From the real gateway on his PC, read-only, 13 November at about 17:45 UK,
+through the door's own code: it greeted in version 176, named one account, a paper one,
+and listed seventeen lines the old desk once held, each at no shares, and no order
+resting; against the desk's empty book the check named nothing. With the desk's client id
+already connected, a second connection was refused by the gateway ("326: the client id is
+already in use") and the desk stopped on it. The tests' messages are the gateway's own
+from that reading, with the account's code changed; only the open order is taken from the
+published client, since none rested to copy. The contract test was seen failing first (no
+module), and again for each of the review's fixes. A blind review checked every message
+number and field position against the published client and found them right; its one
+blocking finding (entries added together) is fixed and tested, and its nine lesser points
+are taken or recorded in `docs/STATUS.md`. Sixty-five deliberate breaks were driven in a copy
+outside the repository: fifty-nine were caught at once, and six showed a gap in the tests,
+each now closed and caught (the symbol read from the wrong field, asking before the
+gateway is ready or has named its accounts, another port, the two lists ending in the
+other order, and reading the connection as text). One lesson for every lane's breaks: a
+break written less than a second after the last, to a file of the same size, can run the
+old code from Python's cache and report the wrong result; the breaks were run again with
+the cache off before these numbers were written.
+
 ## GRID
 
 ## RUNGS

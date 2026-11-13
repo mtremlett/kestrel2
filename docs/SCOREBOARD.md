@@ -56,6 +56,7 @@ touch the same lines. A session the operator starts himself appends to the table
 
 | date | scenes | desk lines | lab lines | test lines | guards | check | what moved |
 |---|---|---|---|---|---|---|---|
+| 2026-11-13 | 5 of 7 | 1602 | 410 | 2652 | 14 of 14 proven | green | The desk can read the paper account, and only reads: what it holds and which orders rest on it, set against the desk's book, every difference named. Only a paper account is read at all; any other stops the desk before it asks a question. Run on the real account: quiet, no shares and no order; the gateway's refusal of a second connection was seen and stopped the desk. Tests seen failing first; a blind review's one blocking finding (entries added together passed as the book) fixed; sixty-five deliberate breaks each caught, six after a test gap was closed. Next: each of the twenty lines as the broker knows it, then the adapter. |
 
 ### GRID
 
