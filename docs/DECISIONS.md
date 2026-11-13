@@ -943,3 +943,32 @@ survived because the code was not needed (a filter on package names, and hashing
 names); that code was deleted, not tested. A blind review found nothing blocking; its
 test gaps (a high or low changed alone; the pairing of each buy with its own sell) and
 bars out of order being accepted were fixed, each break driven and caught.
+
+### 2026-11-13 — the ladder's batch: a journal on disk, failures retried, one code per run
+
+**Decided.** A batch runs a list of cells in turn (`lab/batch.py`) and appends each
+outcome to a journal file, one line per cell, forced to disk before the next cell starts.
+A cell that raises is recorded with its error and the batch carries on. On a restart the
+journal's records made by the same code are kept and those cells are not run again.
+
+**The choices, and why.**
+- *Where progress lives.* Options: a journal of finished cells; one file per cell; a
+  database. Chosen: one append-only journal of JSON lines. One file is the simplest thing a
+  stop cannot corrupt: a line cut short by a stop is the one cell that never finished, and
+  it is cut off and run again.
+- *Is a failed cell done?* Options: done, so the next run repeats the failure; not done, so
+  it is tried again. Chosen: tried again. The blind review showed why: what failed a cell
+  may be a missing day of data since filled, or a reader outside the code the key covers,
+  and a failure kept as done would hide the mend for ever. A cell that truly cannot run
+  costs one failure line per start.
+- *Which code's results count.* Only records made by the code this process runs. A batch
+  refuses to start when the code on disk is no longer what it loaded, as its records would
+  claim code it is not running: each batch runs in a fresh process.
+- *What a restart trusts.* For now a kept record is trusted without re-reading its bars;
+  checking the data version is the ladder's next item.
+
+**Evidence.** Four contract tests, seen failing first (the module did not exist). Sixteen
+deliberate breaks driven; fifteen caught. The one left is the forcing of each line to
+disk, which only a killed process would show. A blind review found nothing blocking; its
+two findings (failed cells never retried; cutting a torn line by emptying and rewriting
+the whole journal, which a second stop could lose) were fixed, and each fix driven red.
