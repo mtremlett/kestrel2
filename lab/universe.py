@@ -8,14 +8,20 @@ the archive names it (BRK-B, BT-A). Every one is a member today: a study of the 
 list sees only the survivors, and must say so.
 
 Their bars are kept by the one store, under its checks, in a folder for each venue, because
-one symbol can be two companies: BA is Boeing in New York and BAE Systems in London."""
+one symbol can be two companies: BA is Boeing in New York and BAE Systems in London.
+
+Research reads them through `read`, by a rule of its own for the large moves nobody has
+confirmed. The store parks a ticker for one, as it parks a trading line, and that is not
+loosened: the desk cannot import this module, so the rule can decide no trade."""
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Sequence
+from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
+from statistics import median
 
 from desk import archive, store
 from desk.lines import LINES, NO_TAX, STAMP_DUTY, Line
@@ -151,3 +157,48 @@ def keep(
         for found in store.prepare(root / line.venue, archive.gather([line], day, ask), day):
             parked[line] = found
     return parked
+
+
+#: Research's rule for a move the store parks for (docs/DECISIONS.md, the data lane's). Read
+#: on the list's 406 such moves of 13 November 2026: a fall made wholly between two sessions
+#: on under this many times the usual value traded was each time a change of scale (a split
+#: the archive did not adjust, a demerger, a special payment: fifteen, the heaviest on 2.3
+#: times); the lightest real fall came on 2.8. Two changes of scale on 2.5 and 4.4 times are
+#: read as losses. The usual is the median of the USUAL sessions before.
+HEAVY, USUAL = Decimal("2.5"), 20
+
+
+@dataclass(frozen=True)
+class History:
+    """A ticker's bars as research reads them: its longest run on one scale of price."""
+
+    bars: tuple[Bar, ...]  #: oldest first, none either side of a change of scale
+    moves: tuple[date, ...]  #: the days among them of an unconfirmed move, read as the market's
+    rescaled: tuple[date, ...]  #: every change of scale in what the store keeps for it
+
+
+def _rescaled(before: Sequence[Bar], bar: Bar) -> bool:
+    """An unconfirmed move is a change of the price's scale, not a move a holder lived
+    through, when it was made wholly between two sessions and it is a rise, or a fall on
+    ordinary trading. A rise is never believed unconfirmed: disbelieving a windfall costs a
+    study nothing, counting a false one flatters it. A fall is disbelieved only on ordinary
+    trading, with volume to judge by: forgetting a real loss flatters every strategy."""
+    last = before[-1].close
+    usual = median(b.close * b.volume for b in before[-USUAL:])
+    quiet = bar.close * bar.volume < HEAVY * usual
+    return bar.low > last * store.JUMP or (bar.high * store.JUMP < last and quiet)
+
+
+def read(root: Path, line: Line) -> History:
+    """A ticker's bars from the research store at root, parked or not. No trade is priced
+    across a change of scale: the bars are the longest run between two (the later of two as
+    long), and the unconfirmed moves inside it are named, so that a verdict can say how many
+    it was held through. A ticker the archive refused has no bars to read."""
+    bars = store.read(root / line.venue, line.symbol)
+    at = {bar.day: n for n, bar in enumerate(bars)}
+    moved = [at[day] for day in store.moves(line, bars)]
+    cuts = [n for n in moved if _rescaled(bars[:n], bars[n])]
+    edges = [0, *cuts, len(bars)]
+    start, end = max(zip(edges, edges[1:], strict=False), key=lambda run: (run[1] - run[0], run))
+    listed = tuple(bars[n].day for n in moved if start < n < end)
+    return History(bars[start:end], listed, tuple(bars[n].day for n in cuts))

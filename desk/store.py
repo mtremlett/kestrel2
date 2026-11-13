@@ -125,6 +125,13 @@ def _agree(line: Line, before: Bar, after: Bar) -> bool:
     return near(after, before.close) and near(before, after.close)
 
 
+def moves(line: Line, bars: Sequence[Bar]) -> tuple[date, ...]:
+    """The days in a line's kept bars that moved further than the store believes a market
+    moves and that the line does not record: each parks it until someone confirms it."""
+    pairs = zip(bars, bars[1:], strict=False)
+    return tuple(after.day for before, after in pairs if not _agree(line, before, after))
+
+
 def _far(bar: Bar, close: Decimal) -> bool:
     """Some price of the bar sits in another unit from close: no market moves that far."""
     return any(

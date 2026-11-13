@@ -4,9 +4,11 @@ lines, and their bars kept through the one store's checks."""
 from __future__ import annotations
 
 import re
+from dataclasses import replace
 from datetime import date, timedelta
-from decimal import Decimal
+from decimal import ROUND_CEILING, Decimal
 from pathlib import Path
+from statistics import median
 
 import pytest
 
@@ -98,3 +100,99 @@ def test_a_refused_ticker_is_parked_by_line_and_keeps_no_bars_and_the_rest_are_k
     assert all(p.day == DAY for p in parked.values())
     assert [store.read(tmp_path / "LSE", line.symbol) for line in london] == [(), ()]
     assert all(len(store.read(tmp_path / "US", symbol)) > 60 for symbol in ("BA", "COST"))
+
+
+MMM = universe.SP500[0]
+AT = 60
+
+
+def _scaled(bar: Bar, by: Decimal | int) -> Bar:
+    return replace(
+        bar, open=bar.open * by, high=bar.high * by, low=bar.low * by, close=bar.close * by
+    )
+
+
+def _stepped(by: Decimal | int, at: int = AT, bars: tuple[Bar, ...] | None = None) -> list[Bar]:
+    """A history whose every price from bar `at` on is `by` times what it was."""
+    bars = _ask(MMM, DAY) if bars is None else bars
+    return [bar if n < at else _scaled(bar, by) for n, bar in enumerate(bars)]
+
+
+def _read(tmp_path: Path, bars: list[Bar], line: Line = MMM) -> universe.History:
+    parked = universe.keep(tmp_path, DAY, [line], lambda *_: tuple(bars))
+    read = universe.read(tmp_path, line)
+    #: research's rule loosens nothing: the store parks the ticker for every move it finds
+    assert list(parked) == ([line] if read.moves or read.rescaled else [])
+    assert all(f"{day} moved" in parked[line].reason for day in read.moves + read.rescaled)
+    return read
+
+
+def _heavy(bars: list[Bar], at: int = AT) -> int:
+    """The fewest shares that make bar `at` heavy trading: 2.5 times its usual value traded."""
+    usual = median(bar.close * bar.volume for bar in bars[max(0, at - 20) : at])
+    return int((Decimal("2.5") * usual / bars[at].close).to_integral_value(ROUND_CEILING))
+
+
+def test_a_clean_ticker_is_read_whole_with_no_move(tmp_path: Path) -> None:
+    bars = list(_ask(MMM, DAY))
+    assert _read(tmp_path, bars) == universe.History(tuple(bars), (), ())
+
+
+@pytest.mark.parametrize("at", [1, 30, AT], ids=["the second bar", "early", "late"])
+def test_a_fall_wholly_overnight_on_ordinary_trading_is_a_change_of_scale(
+    tmp_path: Path, at: int
+) -> None:
+    """A split the archive did not adjust, a demerger, a special payment: research reads the
+    longer run of bars, before it or after. The same fall in heavy trading is the market's."""
+    bars = _stepped(Decimal("0.5"), at)
+    bars[: AT - 25] = [replace(bar, volume=bar.volume * 100) for bar in bars[: AT - 25]]
+    heavy = _heavy(bars, at)
+    bars[at] = replace(bars[at], volume=heavy - 1)
+    longer = bars[:at] if at == AT else bars[at:]
+    assert _read(tmp_path, bars) == universe.History(tuple(longer), (), (bars[at].day,))
+    bars[at] = replace(bars[at], volume=heavy)
+    assert _read(tmp_path, bars) == universe.History(tuple(bars), (bars[at].day,), ())
+
+
+def test_a_rise_wholly_overnight_is_a_change_of_scale_however_heavy_the_trading(
+    tmp_path: Path,
+) -> None:
+    """A windfall nobody has confirmed is not counted: a disbelieved gain costs no money."""
+    bars = _stepped(2, 30)
+    bars[30] = replace(bars[30], volume=bars[30].volume * 500)
+    assert _read(tmp_path, bars) == universe.History(tuple(bars[30:]), (), (bars[30].day,))
+
+
+def test_a_move_made_within_the_day_is_the_markets_and_is_read(tmp_path: Path) -> None:
+    """Listed on the day it was made and on the next, whose bar sits far from where it began."""
+    spike = list(_ask(MMM, DAY))
+    spike[AT] = replace(spike[AT], low=spike[AT].low / 2)
+    for by, bars in ((Decimal("0.5"), _stepped(Decimal("0.5"))), (2, _stepped(2)), (1, spike)):
+        last = _ask(MMM, DAY)[AT - 1].close
+        if by != 1:
+            bars[AT] = replace(
+                bars[AT], open=last, high=max(last, bars[AT].high), low=min(last, bars[AT].low)
+            )
+        days = (bars[AT].day, bars[AT + 1].day)
+        assert _read(tmp_path, bars) == universe.History(tuple(bars), days, ())
+
+
+def test_a_fall_with_no_volume_to_judge_it_by_is_read_as_the_markets(tmp_path: Path) -> None:
+    bars = [replace(bar, volume=0) for bar in _stepped(Decimal("0.5"))]
+    assert _read(tmp_path, bars) == universe.History(tuple(bars), (bars[AT].day,), ())
+
+
+def test_research_reads_the_longest_run_on_one_scale_and_lists_the_moves_inside_it(
+    tmp_path: Path,
+) -> None:
+    bars = _stepped(Decimal("0.5"), 30, tuple(_stepped(Decimal("0.5"), 10)))
+    for at in (20, 70):  #: a spike between the two changes of scale, and one after both
+        bars[at] = replace(bars[at], low=bars[at].low / 2)
+    days, cuts = (bars[70].day, bars[71].day), (bars[10].day, bars[30].day)
+    assert _read(tmp_path, bars) == universe.History(tuple(bars[30:]), days, cuts)
+
+
+def test_a_move_the_line_records_as_real_is_no_longer_a_question(tmp_path: Path) -> None:
+    bars = _stepped(Decimal("0.5"))
+    line = replace(MMM, real_moves=frozenset({(bars[AT].day, bars[AT].close)}))
+    assert _read(tmp_path, bars, line) == universe.History(tuple(bars), (), ())
