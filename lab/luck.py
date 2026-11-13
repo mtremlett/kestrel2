@@ -6,9 +6,12 @@ edge at all: at its bar, about one trial in forty. So the first rung's verdicts 
 again as one set. Each verdict's chance is the chance of an average that many standard errors
 up, or further, from trades with no edge (Student's t on its trades). That chance times the
 number of trials is its corrected chance, and a verdict passes this rung when it passed the
-first and its corrected chance is at most FAMILY. Then, if no trial in the set has an edge,
-the chance that even one passes is at most FAMILY, however the trials lean on one another
-(Bonferroni's bound: five rules on one line share its history, and it still holds).
+first and its corrected chance is at most FAMILY. Then, if no trial in the set has an edge
+and each trial's own chance is true, the chance that even one passes is at most FAMILY,
+however the trials lean on one another (Bonferroni's bound: five rules on one line share its
+history, and it still holds). A trial's own chance is true only for trades that are separate
+bets with gains spread roughly like a bell: many small wins and a rare large loss, on few
+trades, read as far less chance than they are, and the bound does not cover that.
 
 Every trial counts, whatever became of it: a loser, a trial with too few trades, and one that
 gave no verdict at all (a cell that failed, a candidate dropped), which the caller must
