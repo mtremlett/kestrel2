@@ -1780,6 +1780,16 @@ laid on London's calendar (scenes 1 and 2 fail), and the data cut back to six we
 fails). No test fails yet if the rehearsal's taxed line (L01) lost its stamp duty: scene 7
 will be that test.
 
+**The blind review** found nothing blocking: no scene proves less than before (the spoilt
+line's three faults still fall in its last sixty sessions; scene 2 now truly counts two
+calendars, eight days only London trades and four only the US), and the second name does no
+harm. It ran the day's trading itself with no faults: L01 is bought three times and US
+lines are bought, so scene 7's tax and currency costs can be charged, and no fill lands on
+a day only one venue trades. Two things it left for the money lane's day record, neither
+new: every rule is out of the market by the data's end, so scene 6 as written cannot find a
+holding (the money lane's own note of 13 November); and the scenes' first day, 2 September
+2024, is the US Labor Day, so the US lines have no bar until the day after.
+
 ## LADDER (until 13 November; since then GRID and RUNGS)
 
 ### 2026-11-13 — the ladder's unit of work: days only, the whole history, keyed by what it read
