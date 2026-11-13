@@ -121,3 +121,5 @@ cross-strategy protective sells, more than twenty lines, and more than five stra
 
 Each is a requirement in its own right. None of them holds the gate, because a desk that
 cannot complete one honest round trip has nothing to add them to.
+
+<!-- probe: a green branch behind main must not merge -->
