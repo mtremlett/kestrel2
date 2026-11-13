@@ -179,4 +179,5 @@ def _room(line: Line, settings: Settings) -> Decimal:
     line controls."""
     return settings.capital / HOLDINGS / line.leverage
 
+
 # drive: outside the claim
