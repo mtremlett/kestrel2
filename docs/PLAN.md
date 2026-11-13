@@ -19,7 +19,7 @@ The machinery that refuses, before any desk code.
 - [x] A phase-by-phase size ceiling, and a module manifest that walls the core
 - [ ] The documents: this one, the canon, the scenes, the architecture
 - [x] The scenes approved by the operator
-- [ ] The scenes written as failing tests
+- [x] The scenes written as failing tests
 - [ ] A git hook running the fast check before each commit
 - [ ] An independent reviewer that never sees the reasoning
 

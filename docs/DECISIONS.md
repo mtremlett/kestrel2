@@ -80,3 +80,53 @@ with the operator's approval.
 seven scenes were waiting on his approval: "i approve all."
 
 **What follows.** The next step in the plan is to write them as failing tests.
+
+---
+
+## 2026-11-13 — the scenes are a ratchet, not a known-failing list
+
+**Decided.** `check.py` judges the scenes this way: each scene passes, or it stops at a
+part of the desk that raises NotImplementedError because it is not built yet. Any other
+failure is red. The number of passing scenes must equal the one `docs/PLAN.md`
+publishes, so a passing scene that regresses is red, and so is a new pass nobody
+recorded.
+
+**Why.** The plan says to write the scenes as failing tests, the canon says the check is
+always green, and a guard forbids marking any test as expected to fail. Without this
+rule, seven honest failing scenes would turn main red until phase 2, and nothing could
+merge. With it, a scene can only be "failing" in one way — the desk is not built yet —
+and that list of unbuilt parts is kept by name in `docs/STATUS.md`.
+
+**The evidence.** Driven in a throwaway copy against six deliberate violations, each
+caught: a scene failing on a wrong answer; the plan publishing 1 of 7 with none passing;
+a scene passing that the plan did not record; a scene file that would not load; the
+plan's number deleted; a scene crashing in its own setup. The untouched tree is green.
+
+**The cost.** It trusts the error's name: a test raising NotImplementedError itself would
+count as unbuilt. Recorded in `docs/STATUS.md`. This change touches a guard
+(`check.py`), so it merges only with the operator's approval.
+
+---
+
+## 2026-11-13 — the desk's shape is set by what the scenes call
+
+**Decided.** Seven core modules, each owning one thing, registered in `manifest.toml`:
+`lines` (the instrument master), `store` (the one price store and its writer),
+`strategy` (the five frozen strategies, a decision for every line and day in one pass),
+`orders` (sizing from the one capital number, the order and its stop, the pre-trade
+gate), `broker` (the pretend broker with faults), `book` (the ledger under the broker's
+ids, and the book built from the broker) and `day` (one day run, published, replayed).
+
+**Why.** Writing the scenes as tests means writing the calls they make. The records are
+real; every behaviour raises NotImplementedError until its phase. An order without a
+stop cannot be constructed, and a day's costs cannot be recorded with a line missing:
+both are made impossible by the types rather than checked afterwards. There is no
+separate replay: replaying a day is running it again from the same saved data into a
+fresh folder, and scene 7 requires the records to be identical.
+
+**Reviewed.** A reviewer that never saw this reasoning read the scenes against
+`docs/SCENES.md`. Its one blocking finding (scene 3's smaller capital could be legal for
+a correct sizer) and the weak ones that let a wrong desk pass — the send path not
+passing the gate, stops unchecked for size and level, profit not tied to the fill
+prices, a replay that could read back its own record — were fixed before commit. What
+it found and was not fixed is listed in `docs/STATUS.md`.
