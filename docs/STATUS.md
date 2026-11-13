@@ -133,213 +133,53 @@ whole (R-RUNGS-1), and the day's record (`day.run`), scene 6 moved onto the four
 
 ## PAPER
 
-Last updated: 13 November 2026 (the lines as the broker lists them).
+Last updated: 13 November 2026 (this section cut to what is open; git keeps the rest).
 
 ### Where it is
 
-**The desk now knows each of its twenty lines as the paper broker lists it**
-(`desk/listing.py`): the broker's own number for the line, the exchange it lists it on,
-whether it prices it in pence or in pounds, and its price steps. It asks the broker each
-time, read-only, through the same door as the account check, and writes none of it down:
-two questions, neither of which can place an order, held byte for byte by a test.
-
-**Run on the real gateway, 13 November, about 18:35 UK: twenty of twenty listed**, each
-exactly once under the desk's own name and currency. All ten London lines are on London's
-funds list; eight US lines on Nasdaq and two (SPY, GLD) on Arca.
-
-- **Six London lines are priced in pence at the broker, four in pounds.** 3LGO, 2MU, IITU,
-  5QQQ, ISF and SGLN in pence; SMGB, VHYG, IB1T and VUSA in pounds. The broker calls the
-  currency of all ten pounds, and the desk's prices are all pounds. A stop sent in the
-  wrong unit would sit a hundred times too high or too low, so the desk converts in one
-  place (`Listing.floor`): a price in pounds goes down onto the broker's step and comes
-  out in the broker's unit. £37.556 on IITU becomes 3755.
-- **The steps are the broker's own rule, by price.** IITU, 3LGO, 5QQQ and SGLN move in
-  tenths of a penny under £5 and whole pence above £25; ISF in fifths of a penny at £10;
-  VUSA in quarters of a penny; every US line in cents.
-- **Proved on the broker's own prices.** The open, high, low and close of each line's last
-  thirty sessions, read from the broker (read-only), 2,392 prices. On nineteen lines every
-  price sits on the step the desk works out, in the unit it works out, and the prices move
-  in exactly that step, nothing finer and nothing coarser: whole pence on IITU, 3LGO and
-  SGLN, tenths of a penny on 5QQQ, fifths on ISF. A step read in the wrong unit would be a
-  hundred times out. 2MU agrees below £500; above it 36 of its 77 prices do not (below,
-  found not fixed).
-- **A line the broker does not list as the desk's is named, and the rest carry on**: not
-  there at all, there twice, or under the name but another kind of product, another
-  currency or an exchange outside the line's venue. It comes back as "unlisted" with the
-  reason, a different kind of record, so no order can be built for it by mistake.
-- **An answer the desk cannot read stops the whole reading**: a message of another shape,
-  an answer to a question it did not ask, steps that are not steps, any error but "no such
-  line", a gateway that hangs up, or an account that is not a paper one.
-
-The tests were seen failing first. A blind review found two blocking faults, both fixed and
-tested: a notice that the gateway cannot look lines up was passed over, so an outage could
-have read as "the broker lists nothing"; and an infinite or not-a-number price was let
-through. Its second reading approved the repair. Of 113 deliberate breaks, 101 were caught
-at once and five showed a gap in the tests, each closed; five different ones survive, four
-that cannot change a result and one (adding an exchange) that is a deliberate edit
-(`docs/DECISIONS.md`). Since the review, that same notice stops the account check too.
-
-The account check, built the session before (`desk/paper.py`): the desk can read the paper
-account and say whether anything but the desk trades it. It connects to IB Gateway's paper
-port on his PC under the desk's own client id (222), asks two questions - what the account
-holds, and which orders rest on it - and hangs up. It places, changes and cancels nothing:
-the four messages it can send are fixed, and a test holds them byte for byte. The standard
-library alone, about two hundred lines.
-
-**Run on the real account, 13 November, about 17:45 UK: quiet.** The account lists
-seventeen lines the old desk once held, every one at no shares, and no order rests on it.
-Against the desk's book (empty: the desk has sent nothing on paper) the check named no
-difference. Held open a second time under the same client id, the gateway refused the
-desk with its reason, and the desk stopped, as it should.
-
-What the check holds to (`paper.differences`, `paper.mismatches`):
-- **Only a paper account is read.** The broker starts a paper account's code with a D. Any
-  other code, in the gateway's list of accounts, on a holding or on an order, stops the
-  desk before it asks that account anything. A gateway logged in to a real account cannot
-  be read as quiet.
-- **A holding must be the book's.** Matched by its symbol, kind and currency; more, fewer,
-  short, in another currency, as another kind of product, or split over two entries that
-  only add up to the book: each is named. A line the book holds and the broker does not is
-  named too.
-- **Every resting order is named**, whoever placed it, the desk's own client included: the
-  desk rests none on paper yet.
-- **A reading that stops is never a clean one.** A gateway that speaks another version,
-  hangs up, sends half a message, a message cut short, an unknown kind of message, or any
-  notice other than the state of its price feeds, stops the check with the reason.
-
-The tests were seen failing first. A blind review found one blocking fault (entries that
-added up to the book were passed as the book), fixed and tested, and nine lesser points,
-taken or recorded below. Sixty-five deliberate breaks are each caught; six showed a gap in
-the tests on the way, each closed (`docs/DECISIONS.md`).
+Read-only so far; nothing has been placed on paper. The account check (`desk/paper.py`, client
+222, paper accounts only) found the account quiet on 13 November. All twenty lines are listed
+at the broker (`desk/listing.py`); six London lines are priced there in pence (`Listing.floor`).
 
 ### Next step
 
-First, a short step now that the money lane has built the one comparison of a book with
-a broker (`book.differences`, R-PAPER-1, #52): the account check hands it the account's
-entries and keeps only what is the paper door's own (paper accounts only, the kind and
-currency of a holding, the resting orders), so the rule has one home.
-
-Then the fills and the orders the broker reports, read-only: each fill under the broker's own
-id, its price turned from the broker's unit back into the line's currency (pence into
-pounds on six London lines), and the desk's own orders and stops told from anyone else's,
-so the daily check can know the desk's resting stops. Then placing, behind `Pretend`'s
-interface: no order until that day's check is clean and the kill switch is drilled. The
-account check should be run again on a second day before the first order.
+R-MONEY-4: `paper.differences` asks `book.differences`, so the rule has one home; with it, a
+holding matched by the broker's own number for the line. Then the fills and orders the broker
+reports, read-only: each fill under the broker's id, its price back from the broker's unit, the
+desk's own orders and stops told from anyone else's. Then placing, behind `Pretend`'s interface:
+no order until that day's check is clean, run on a second day, and the kill switch is drilled.
 
 ### Requests to MONEY
 
-- [x] R-PAPER-1 (blocking, opened 2026-11-13 18:15): one home for "the book against the broker".
-  `paper.differences` is that rule for the real account; scene 6 (`day.run`) needs it
-  against the pretend broker. One comparison should serve both, in `desk/book.py`, taking
-  the book and the broker's holdings; the paper door would then hand it the account's
-  entries and add only the orders.
-- [ ] R-PAPER-2 (blocking, opened 2026-11-13 18:15): `book.send`, `book.collect` and `day.trade` accept
-  any broker with `Pretend`'s interface, not `Pretend` by name, so the paper adapter can
-  stand behind them.
-
-### Done for other lanes
-
-- R-DATA-5: done in #53 for its first half (every `Line(...)` in this lane's tests states
-  its UK tax). Its second half stays open with the conformance trades: what the contract
-  note of the first London product bought says of stamp duty.
+- [ ] R-PAPER-2 (blocking, opened 2026-11-13 18:15): `book.send`, `book.collect` and `day.trade`
+  accept any broker with `Pretend`'s interface, not `Pretend` by name, so the adapter stands in.
 
 ### Requests to DATA
 
-- [ ] R-PAPER-3 (later, opened 2026-11-13 18:55 UK): each line's ISIN as a fact on the line
-  (`Line`), so the paper door can know the broker's line is the desk's by its ISIN, not by
-  its ticker. The broker gives it for all twenty (IITU is IE00B3WJKG14, AAPL US0378331005);
-  each should be confirmed from the issuer or the exchange, not copied from the broker.
+- [ ] R-PAPER-3 (later, opened 2026-11-13 18:55 UK): each line's ISIN a fact on `Line`, confirmed
+  from the issuer or the exchange, so the door knows the broker's line by it, not by its ticker.
+
+### Done for other lanes
+
+- R-DATA-5: done in #53 for its first half (this lane's test lines state their UK tax). Open:
+  what the contract note of the first London product bought says of stamp duty (conformance).
 
 ### Found, not fixed
 
-- **The old desk's scheduled tasks are all disabled**, he confirmed as administrator on
-  13 November. The daily read-only check of the account stays all the same: it is the
-  proof, every day, that nothing else trades it.
-- **Nothing runs the check each day yet**, and nothing makes the desk wait for it: one
-  clean reading at one moment is all there is. It is the lane's next box.
-- **An open order has never been seen from the real gateway**, since none rests on the
-  account. Its shape in the tests is the published client's, checked field by field by the
-  blind review. Any order is named whatever its details; the first conformance trade must
-  confirm them.
-- **2MU's real prices do not keep to the broker's own steps above £500.** The broker's rule
-  for it says steps of £5 there; on the days it traded above £500 it moved in steps of £1
-  (36 of 77 prices are off the £5 step). Below £500 it moves in exactly the rule's £2. A
-  stop put down onto a £5 step there sits up to 1% lower than asked. Whether the broker
-  takes a stop on its own step that the exchange does not quote is unproven. 2MU is parked
-  today; its conformance must be seen before it trades on paper.
-- **Fills, holdings and the broker's own bars come in the broker's unit.** On the six
-  London lines priced in pence, a fill's price will arrive a hundred times the desk's.
-  Only a price going out is converted so far (`Listing.floor`); the way back belongs to
-  the next step, in the same place.
-- **Nothing reads the listings each day yet, and nothing refuses an order on an unlisted
-  line**: the adapter will, when it places. Today's reading is one moment's.
-- **The account check still knows a holding by its name, kind and currency**, not by the
-  broker's own number for the line, which the listing now gives. Matching on the number
-  would be exact; it belongs with the move onto `book.differences` (next step).
-- **The same answer carries facts the desk does not read yet:** each line's trading hours
-  at the broker for the coming week, which the conformance trades need (given in central
-  European time for London: from 08:00 UK, to 16:30 UK on 3LGO, 2MU, 5QQQ and IB1T and to
-  16:50 on the other six; the US lines 09:30 to 16:00 New York); the smallest order (a
-  whole share on those four, fractions elsewhere; the desk trades whole shares); and the
-  kinds of order each line takes (a market order, a stop and good-till-cancelled on all
-  twenty).
-- **The broker gives daily bars for all twenty lines on this paper login** (thirty sessions
-  each were read, read-only, to prove the steps). The data lane's check of the archive
-  against the broker's price of record can be built on it; the six pence lines would need
-  dividing by a hundred.
-- **The broker's names for exchanges are a short list in the module** (London's funds
-  list; Nasdaq and Arca), each seen from the gateway on one of the twenty. When VUAG, EQQQ
-  and IDTL join the twenty they should list on London's funds list too; a line on any
-  other exchange (New York, say) comes back unlisted, by design, until its exchange is
-  added.
-- **What the blind review of the listings left** (its two blocking findings are fixed and
-  tested: a notice that the gateway cannot look lines up was passed over as price-feed
-  news, so an outage could have read as "the broker lists nothing"; and an infinite or
-  not-a-number price or step was let through):
-  - **The desk's own resting orders will probably stop both readings.** The gateway is
-    believed to send a client its own open orders, unasked, when it connects; the door
-    stops on an order it did not ask for. Nothing rests today. The next step, which reads
-    orders, must teach the door before the first stop rests. The questions' numbers (0 to
-    19) also share one space with order numbers; they must be kept apart then.
-  - **A price for the broker is a plain number, like a desk price.** Once it leaves
-    `Listing.floor`, nothing stops a caller setting 3755 pence beside 37.556 pounds. The
-    adapter must keep it inside the door, or give it a kind of its own.
-  - **The paper stop and the simulation's stop differ by up to one step**: the sizer and
-    the pretend broker use the stop unrounded. The conformance trades will show it.
-  - **Nothing decides yet what the desk does when a line it holds comes back unlisted.**
-    Not buying it is plain; its resting stop and its sale are the adapter's to settle.
-  - **The broker's line is known by its name, kind, currency and exchange**, not by its
-    ISIN, which is in the same answer, unread; the instrument master holds none (asked of
-    the data lane, below). A ticker given to another product on the same exchange would
-    pass. The broker's own name for each line is in the answer too: SPCX is "SPACE
-    EXPLORATION TECHN-CL A" there, which the data lane may want to set beside the
-    archive's history under that ticker.
-  - **A conversation has no time limit of its own**: fifteen seconds for each message, and
-    a gateway that kept sending price-feed news would never be cut off. Silence stops the
-    desk, as a timeout.
-  - **Whether the gateway says "no such line" while its look-up is down, and whether it
-    tells a client that connects after the loss, is unproven.** The desk stops on the
-    notice when it is sent.
-  - A step that is no number at all stops the desk loudly but without a plain sentence.
-- **The guard on the live port reads for one number.** It would not catch the live port of
-  the broker's desktop program. The door's own test now holds its port and machine, and the
-  paper-only lock stands behind it; a session he starts could make the guard refuse any
-  port in `desk/` but the paper one.
-- **Some bad answers stop the desk loudly but without a plain sentence:** a share count
-  that is no number, and a byte that is not text. A list of accounts ending in a comma
-  would be refused as "not a paper account"; the real gateway sends none.
-- **A gateway that has lost its link to the broker** may still answer from memory. It
-  announces the loss to clients connected at the time, and the desk stops on that notice;
-  whether a client connecting afterwards is told is unproven.
-- **The gateway must be running and logged in**, and it logs itself out each day. Keeping
-  it up belongs to "unattended running", later in the book.
-- **Each of this lane's changes adds no more test lines than product lines**, so it leaves
-  the shared margin between unit tests and product where it was.
-- **A deliberate break can report the wrong result from Python's cache.** A break written
-  within a second of the last, to a file of the same size, ran the old code once in this
-  session and named the wrong test. Every lane drives breaks; they should be run with the
-  cache off (`PYTHONDONTWRITEBYTECODE=1`). A session he starts could record this in
-  `docs/FAILURE_PATTERNS.md`.
+- **Each day:** nothing runs the account check or reads the listings daily, or refuses an order
+  on an unlisted line; what the desk does with a held line that comes back unlisted is undecided.
+- **Before a stop rests:** the gateway probably sends a client its own open orders unasked, which
+  stops both readings; questions share a number space with orders; no real open order seen yet.
+- **2MU** (parked) trades in £1 steps above £500 where the broker's rule says £5: whether the
+  broker takes a stop on its own step there is unproven. See its conformance before it trades.
+- **Prices:** a paper stop and the simulation's differ by up to one step; a broker price out of
+  `Listing.floor` is a plain number, which the adapter must keep inside the door.
+- **Unread at the broker:** each line's hours, smallest order and order kinds (in the listing's
+  answer); daily bars for all twenty (DATA's check); SPCX is "SPACE EXPLORATION TECHN-CL A" there.
+- **The gateway:** no overall time limit on a conversation; unproven whether one that lost its
+  look-up or broker link tells a later client; some bad answers stop it with no plain sentence.
+- **For a session he starts:** the live-port guard reads for one number, so would miss the
+  desktop program's live port; deliberate breaks need Python's cache off (FAILURE_PATTERNS).
 
 ## DATA
 
