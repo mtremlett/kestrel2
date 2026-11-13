@@ -737,7 +737,10 @@ not enough. Five guards, each driven against a deliberate violation (canon A7):
    guard, CLAUDE.md, the workflow, or the ownership table itself. Seventeen cases were driven
    in a copy whose main held the guard, and each behaved as intended. The first drive found
    a defect: git's header lines were read as edits, so a lane registering its own module was
-   refused. That is fixed.
+   refused. That is fixed. On GitHub, pull request #25 (branch `lane/data-probe`) added one
+   comment line to `desk/orders.py`, the money lane's file. The check failed on both its
+   push and its pull request: "the data lane may not change ['desk/orders.py']". It was
+   closed unmerged.
 2. **No change grows the product by more than 300 lines.** Any branch adding more than 300
    net lines to `desk/` and `lab/` together fails the same file's second test. Driven: 300
    passes, 301 fails, on a lane branch and on any other. The phase ceilings stand.
