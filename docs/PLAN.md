@@ -3,7 +3,7 @@
 **Current objective:** phase 2's first step — one strategy template and the five frozen
 daily strategies, so that scene 2 passes on the clean lines.
 
-Scenes passing: **1 of 7**. Phase: **2-money-sim**.
+Scenes passing: **2 of 7**. Phase: **2-money-sim**.
 
 ---
 
