@@ -1,0 +1,93 @@
+"""The grid's pass: every strategy on every ticker of a list, a ticker to a worker under the
+auto-tune, each cell kept by its code and its bars, and only what changed run again."""
+
+from __future__ import annotations
+
+import os
+from collections.abc import Sequence
+from datetime import date, timedelta
+from decimal import Decimal
+from pathlib import Path
+
+import pytest
+from test_lab_tune import Pc
+
+from desk import store, strategy, venues
+from desk.lines import STAMP_DUTY, Line
+from desk.store import Bar
+from lab import batch, cell, sweep, universe
+
+DAY = date(2026, 11, 13)
+START = DAY - timedelta(200)
+BOEING, BAE = Line("BA", "US", "USD", 1), Line("BA", "LSE", "GBP", 1, STAMP_DUTY)
+ABSENT = Line("NONE", "US", "USD", 1)  #: on the list, with no bars in the store
+FATAL = Line("FATAL", "US", "USD", 1)  #: the ticker whose worker dies
+LINES = (BOEING, ABSENT, BAE)
+EACH = len(strategy.STRATEGIES)
+
+
+def _keep(root: Path, line: Line, lift: int = 0) -> None:
+    """A line's bars cleaned into the store at root: a slow wave, so rules trade on it."""
+    days = venues.sessions(line.venue, START, DAY - timedelta(1))
+    up = [n % 40 if n % 80 < 40 else 40 - n % 40 for n in range(len(days))]
+    wave = [Decimal(100 + lift + step) for step in up]
+    bars = [Bar(d, p, p + 1, p - 1, p, 9) for d, p in zip(days, wave, strict=True)]
+    assert store.prepare(root / line.venue, {line: bars}, DAY) == ()
+
+
+def _dying(root: Path, kept: Path, start: date, end: date, lines: Sequence[Line]) -> None:
+    """A worker's work, its process ending dead as it reaches the fatal ticker."""
+    for line in lines:
+        if line == FATAL:
+            os._exit(3)
+        sweep.work(root, kept, start, end, [line])
+
+
+def _pass(tmp_path: Path, lines: Sequence[Line] = LINES) -> sweep.Pass:
+    pc = Pc(tmp_path)
+    return sweep.run(lines, tmp_path / "store", tmp_path / "kept", START, DAY, pc, tmp_path, 8)
+
+
+def test_every_strategy_on_every_ticker_is_kept_and_only_what_changed_is_run_again(
+    tmp_path: Path,
+) -> None:
+    root, kept = tmp_path / "store", tmp_path / "kept"
+    _keep(root, BOEING)
+    _keep(root, BAE, lift=50)
+    first = _pass(tmp_path)
+    assert (first.cells, first.ran, first.failed) == (3 * EACH, 2 * EACH, EACH)
+    assert (first.kept, first.undone, first.report.died) == (0, 0, ())
+    for line in (BOEING, BAE):  # the two companies called BA, each from its own venue's bars
+        bars = universe.read(root, line).bars
+        cells = sweep.cells(line, START, DAY)
+        assert [c.strategy for c in cells] == list(strategy.STRATEGIES)
+        held = batch.run(cells, {line: bars}.__getitem__, sweep.journal(kept, line))
+        assert held == tuple(cell.run(c, bars) for c in cells)
+        assert any(record.trades for record in held if isinstance(record, cell.Record))
+        assert len(batch.rows(sweep.journal(kept, line))) == EACH, "a kept cell was run again"
+    errors = {row["error"] for row in batch.rows(sweep.journal(kept, ABSENT))}
+    assert len(errors) == 1 and errors.pop().startswith("FileNotFoundError")
+
+    again = _pass(tmp_path)  # nothing changed: only the failed cells are tried again
+    assert (again.ran, again.kept, again.failed, again.undone) == (0, 2 * EACH, EACH, 0)
+    _keep(root, BAE, lift=60)  # one ticker's bars mended: its cells alone are run again
+    third = _pass(tmp_path)
+    assert (third.ran, third.kept, third.failed, third.undone) == (EACH, EACH, EACH, 0)
+
+
+def test_a_ticker_whose_worker_dies_is_named_and_the_rest_are_kept(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _keep(tmp_path / "store", BOEING)
+    _keep(tmp_path / "store", BAE)
+    monkeypatch.setattr(sweep, "work", _dying)
+    done = _pass(tmp_path, (BOEING, FATAL, BAE))
+    assert done.report.died == (FATAL,)
+    assert (done.cells, done.ran, done.kept, done.failed) == (3 * EACH, 2 * EACH, 0, 0)
+    assert done.undone == EACH, "the dead ticker's cells have no outcome, and are counted so"
+
+
+def test_a_window_that_ends_before_it_starts_runs_no_pass(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="ends before it starts"):
+        sweep.run(LINES, tmp_path, tmp_path, DAY, START, Pc(tmp_path), tmp_path, 8)
+    assert not (tmp_path / "autotune.json").exists()
