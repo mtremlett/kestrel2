@@ -91,9 +91,11 @@ scene 5. Scenes 1 to 3 keep passing on it.
       moves recorded from a second source; 5QQQ's consolidation of 22 August 2024; SGLN's
       garbled weeks of 2011; 3LGO's missing history, and when enough has gathered
 - [ ] The store's open findings in `docs/STATUS.md` (the data lane's section): a frozen
-      feed (done: a week of one bar repeated is dropped and parks a recent line); a suspension gap; a one-day crash dropped as a wrong unit; a stretched bar's
-      changes unrecorded; bars and fault record swapped one after the other; the window
-      before mid-April 2010; a pence history the archive calls pounds
+      feed (done: a week of one bar repeated is dropped and parks a recent line); a
+      suspension gap (done: a suspension recorded on its line is no gap); a one-day crash
+      dropped as a wrong unit; a stretched bar's changes unrecorded; bars and fault record
+      swapped one after the other; the window before mid-April 2010; a pence history the
+      archive calls pounds
 - [ ] The calendars carried past 2027, before 2027 ends
 
 ## Phase 2 — the money path, in simulation

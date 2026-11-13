@@ -961,6 +961,30 @@ takes one; the money lane may cut on fewer days.
 
 **Evidence.** The twenty lines from the archive on 13 November: the longest real run is three sessions (2MU, December 2022); after the rule the same four lines park, for their old reasons, and no clean line has a frozen fault. Tests seen failing first. Nine deliberate breaks, each caught: the run made four and six; a traded repeat counted; a flat traded day counted; each kind of repeat removed; a whole repeat with volume let through; the rule switched off; the bars kept. A tenth, dating the fault by the run's first day, cannot change an outcome: the dropped days are also missing sessions, which park the line on their own. A blind review found nothing blocking; its point that a whole repeat, volume too, is a frozen feed was taken; its other points are in `docs/STATUS.md`.
 
+### 2026-11-13 — a suspension is recorded on the line, as a real move is
+
+**The question.** The archive leaves out a day a line did not trade because it was
+suspended. The store cannot tell that from a day the archive lost, and parks the line for
+sixty sessions. What should a missing session do?
+
+**Options.** (a) Leave it: any missing recent session parks, with no way back out but
+waiting sixty sessions. (b) Let a short hole in the middle pass, parking only when the
+newest session is missing: a day the archive lost would then be traded through unnoticed,
+a default that masks missing data. (c) Record a confirmed suspension on the line in the
+instrument master, as a real move is (`Line.suspended`): the store expects no bar that day,
+so its absence parks nothing; an unrecorded gap still parks, its reason naming the way out;
+a bar the archive gives on a recorded day is refused, for the record and the archive
+disagree; a day the venue did not trade cannot be recorded.
+
+**Chosen.** (c). It is what the north star needs: the desk never trades on a history with
+an unexplained hole, and a line suspended for a day comes back as soon as the fact is
+recorded, not three months later. Facts about a line come from the instrument master. None
+of the twenty has a suspension recorded today; none is parked for a gap.
+
+**Evidence.** Tests seen failing first. Four deliberate breaks, each caught: the record
+ignored; a bar on a recorded day let in; the reason naming no way out; any day allowed in
+the record.
+
 ## LADDER
 
 ### 2026-11-13 — the ladder's unit of work: days only, the whole history, keyed by what it read
