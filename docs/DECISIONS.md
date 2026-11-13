@@ -2717,3 +2717,55 @@ places against the published client (from memory, about nine in ten sure) and th
 can place or cancel an order; its two test gaps closed. Deliberate breaks outside the repository,
 cache off: twenty-nine on the restored work and twenty on the final code, all caught, plus one
 that cannot change a result. Not witnessed: the unfinished run's tests failing first.
+
+### 2026-11-13 — the folds rung (rungs-folds, #79)
+
+**Decided**, by the lane as the desk's mentor. Options and choices:
+- *What "in-sample" means for a frozen rule with no settings.* (a) plain consecutive folds;
+  (b) walk-forward, each fold beside all the history before it. Chose (b): it is what a
+  chooser would have known the day the fold began, and it shows an edge decaying.
+- *What the verdict is judged on.* (a) worst fold among all parts; (b) worst out-of-sample
+  fold, in-sample shown beside it. Chose (b): in-sample is where a choice is made, never proof.
+- *The bar per fold.* (a) a looser bar; (b) the first rung whole. Chose (b): one rule, one
+  home. A thin fold reads as a fail until "failing fairly" makes it "not enough evidence".
+- *Trades across a boundary.* (a) to the fold it was bought in; (b) to neither. Chose (b):
+  otherwise an in-sample result would lean on out-of-sample prices.
+- *Luck trials.* The out-of-sample verdicts only: they are what a winner is picked on.
+- *Number of folds* is the caller's; fewer bars than parts is refused.
+
+### 2026-11-13 — the register of trials (rungs-trials, #91)
+
+**Decided**, by the lane as the desk's mentor.
+- *What makes two trials the same.* (a) the cell alone; (b) the cell with code and data
+  versions; (c) a made-up name. Chose (a), other candidates entered under a telling name:
+  with the code version every unrelated commit would double the count; with the data version
+  a mended bar would. Cost: a rule changed under its old name is not seen (written in STATUS).
+- *When a trial is counted.* (a) when its verdict arrives; (b) before it is run. Chose (b): a
+  failed cell or dropped candidate leaves no verdict, and the count must not rely on memory.
+- *One count or one per question.* Chose per question, each opened on purpose once, other
+  wordings refused: one count would charge a London question for New York trials; free
+  rewording is the restart the box forbids.
+- *A missing register.* (a) begin empty; (b) refuse, with a separate door to start one
+  on purpose. Chose (b): a wrong path must fail loudly, not count from nothing.
+- The same trial entered twice counts once; a verdict not in the register, or a trial judged
+  twice in one set, is refused; the trial's name is the register's own wording, apart from
+  how a cell prints, so a printing change cannot rename counted trials.
+
+### 2026-11-13 — the luck test fixed before any result (rungs-deflated, #98)
+
+**Decided**, by the lane as the desk's mentor.
+- *What the Sharpe is measured on.* (a) daily account values; (b) the trades. Chose (b): the
+  first rung's own gains, so the rungs cannot disagree about evidence.
+- *The spread setting luck's bar.* (a) the spread of the batch's Sharpes (the paper's own);
+  (b) one over the trades less one, what no edge gives. Built (a) first; review showed the
+  same winner failing beside noise (0.43) and passing beside its twin (0.9998). Chose (b):
+  the bar depends on two counts only, so no result can move it.
+- *The bands.* 0.90 and 0.50, the book's own: pass, fail, and doubt between (two bands, three
+  answers).
+- *The daily Sharpe above 2.* Worked as a yearly Sharpe from the trades (a verdict holds no
+  daily accounts). A flag gives doubt, not a note (nobody reads it) and not a fail (the cause
+  is usually a fault in the test).
+- *The one rule.* (a) the worst of the named rungs; (b) a score. Chose (a), refusing any set
+  of answers that is not exactly the named rungs; later rungs join by being named in the list.
+- The luck rung stays beside the deflated Sharpe. A trial under two trades fails.
+- Guards driven: 6 contract tests seen failing first; 47 deliberate breaks, 43 caught.
