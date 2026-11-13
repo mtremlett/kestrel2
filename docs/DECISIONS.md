@@ -458,3 +458,56 @@ merge it. It was closed unmerged and its branch deleted.
 **The cost.** An armed pull request stays armed: anything a session pushes to that branch
 afterwards merges too once it is green. Sessions push to their branch only what they mean
 to land.
+
+---
+
+## 2026-11-13 — a fifth to each holding, and a stop where its market has fallen 10%
+
+**Decided.** The desk sizes a buy from the one capital number (`orders.Settings.capital`):
+at most five holdings, each costing at most a fifth of the capital, a leveraged line
+counted at what it controls. Of £10,000, a plain line may take £2,000, 3LGO £666.67, 2MU
+£1,000 and 5QQQ £400. The stop is set when the order is made, where the market under the
+line has fallen 10%: 10% below the price on a plain line, 20% on 2MU, 30% on 3LGO, 50% on
+5QQQ. So the most any one stop loses is about 2% of the capital, on every line alike. The
+sizer takes the most whole shares whose full cost fits, and the pre-trade gate refuses an
+order that costs more; both read the same number (`_room` in `desk/orders.py`).
+
+This settles what the ruling above, "leveraged lines sized by what they control", left
+open: its "stop correspondingly closer" holds in money, not in price. The stop sits at the
+same fall of the market, so on a leveraged line's own price it is further away.
+
+Leverage is now a fact written against every line in the instrument master, never read
+from a name and never defaulted: a line cannot be made without it.
+
+**The costs.** An order's cost is priced under Interactive Brokers UK's fixed pricing, read
+from its published schedule on 13 November 2026 (`orders.BROKER`): London 0.05% of the
+value, at least £3; US half a cent a share, at least a dollar, at most 1% of the value;
+dollars bought by its automatic conversion, 0.03% on the rate, commission included. UK
+stamp duty is not in an order's cost: the ten London lines are exchange-traded funds and
+products, which normally pay none. That is to be confirmed line by line before the day's
+record counts UK tax.
+
+**The evidence.** The order tests were seen failing first. Thirty deliberate breaks
+were driven from a passing copy: the leverage of one line, the five holdings, the 10%, the
+stop's leverage, the room's leverage, the gate reading the whole capital, a cost exactly
+equal to the room refused, one share fewer, each fee and its minimum and cap, the
+conversion and what it is charged on, a pound line at a rate other than 1. The first run
+missed three (a leverage of nought, a cost exactly equal to the room, a rate of nought) and
+the second missed one (an exact fit of more than one share); each became a test. The
+re-review's checks on entry added four more (a currency, a whole leverage, a capital that is
+positive and finite). All thirty are now caught.
+
+**Reviewed.** A blind reviewer found two blocking problems. A pound line accepted any
+exchange rate, so an order worth £10,000 could cost "£100" and pass the gate: a pound line
+now requires a rate of exactly 1. And "at most five holdings" is checked nowhere, because
+the gate cannot see the book: it is recorded in `docs/STATUS.md`, to be built with the
+book. Its minor findings were taken (conversion on the commission too, bad inputs refused
+on entry, leverage required, the missing tests), or recorded. A second blind reviewer read
+the repairs and found nothing blocking; its three minor findings, inputs that slipped past
+a check on entry (a currency other than pounds or dollars, a leverage of 2.5, an infinite
+capital), are each now refused and tested.
+
+**His words.** In chat, Friday 13 November 2026, about 15:05 UK time. Offered a fifth each
+with a 10% stop in the market's terms, a tenth each, the same 10% on every line's own
+price, or a stop set from each line's own swings, he chose "Fifth each, 10% stop
+(Recommended)".

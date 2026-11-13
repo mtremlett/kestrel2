@@ -6,7 +6,19 @@ Last updated: 13 November 2026.
 
 ## Where we are
 
-Phase 2 under way. Scenes 1 and 2 pass: scenes passing 2 of 7. The desk has its five
+Phase 2 under way. Scenes 1, 2 and 3 pass: scenes passing 3 of 7.
+
+The desk now sizes a buy from one capital number (`desk/orders.py`), by the operator's
+ruling of 13 November: at most five holdings, each costing at most a fifth of the capital,
+a leveraged line counted at what it controls (5QQQ may take £400 of £10,000), and the stop
+set before the order exists, where the market under the line has fallen 10%. Whole shares
+only, priced in pounds under Interactive Brokers UK's published fixed fees, the currency
+conversion counted. The sizer and the pre-trade gate read the same number: change it and
+both move. Leverage is a fact on every line in the instrument master. Thirty deliberate
+breaks are each caught; a blind review's blocking finding (a pound line at any
+exchange rate slipped past the gate) is fixed, and its other one is recorded below.
+
+The desk has its five
 daily strategies (`desk/strategy.py`), chosen by the operator on 13 November: five
 textbook rules at their published settings, long only, untuned - Connors' RSI-2
 pullback, Bollinger's 20/2 pullback, the Turtles' 20/10 breakout, the 50/200-day cross
@@ -50,9 +62,8 @@ reached his phone on 13 November.
 
 ## The next step
 
-Phase 2's second step: sizing from one capital number, the stop set at entry, and a
-leveraged line sized by what it controls (his ruling of 13 November), so that scene 3
-passes. Before scene 5, the scenes' rehearsal data is lengthened to about fourteen months
+Phase 2's third step: the pretend broker, with its faults, and the send path that records
+its fills, so that scene 4 passes. Before scene 5, the scenes' rehearsal data is lengthened to about fourteen months
 (his ruling of 13 November): on today's six weeks none of the five rules ever buys.
 
 ## Open questions for the operator
@@ -101,6 +112,20 @@ passes. Before scene 5, the scenes' rehearsal data is lengthened to about fourte
     between the two leaves them disagreeing.
   - The sixty-session window looks back a hundred days on the calendar, which knows 2010
     onward, so a trading day before mid-April 2010 cannot be prepared.
+- **What the blind review of sizing left for the book** (its blocking finding - a pound
+  line accepted any exchange rate - is fixed and tested):
+  - **"At most five holdings" is not enforced yet.** The gate sees one order, not the
+    book, so a sixth holding passes, and two strategies buying the same line the same day
+    each get their own fifth (two orders, two ids). The book must give the gate what is
+    held and what is left before scene 5 trades more than one line.
+  - The gate trusts the stop of an order built by hand; only the sizer sets the 10% rule.
+    Scene 4's own orders carry a stop of 30, about a third below their price.
+  - Stops and costs are exact decimals, not rounded: a real broker refuses a stop off its
+    price step, so the paper adapter (phase 3) must round each stop to its line's step,
+    down, and the instrument master must carry that step.
+  - The fees are Interactive Brokers UK's fixed pricing. If his account is on tiered
+    pricing, the schedule is a different one; and UK stamp duty is assumed nil for the ten
+    London funds and products, to be confirmed line by line before the day counts UK tax.
 - **What the blind review of the five strategies left for later scenes** (its blocking
   findings, test gaps, are fixed):
   - A rule's position is its own idea, not the book's. It counts each of its buys and
@@ -169,12 +194,12 @@ Every one of these raises NotImplementedError, by design, until its phase builds
 
 | part | phase |
 |---|---|
-| `orders.size`, `orders.cost`, `orders.gate` | 2 |
 | `broker.Pretend` and all its methods | 2 |
 | `book.send`, `book.fills`, `book.positions`, `book.round_trips` | 2 |
 | `day.run` | 2 |
 
-Built and real: the five strategies (`strategy.decide`), the twenty lines, the archive
+Built and real: sizing, cost and the gate for one holding (`orders.size`, `orders.cost`,
+`orders.gate`), the five strategies (`strategy.decide`), the twenty lines, the archive
 client (`archive.fetch`), the price store (`store.prepare`, `store.read`, `store.faults`),
 the venue calendars,
 the typed records (`Line`, `Bar`, `Parked`, `Decision`, `Settings`,

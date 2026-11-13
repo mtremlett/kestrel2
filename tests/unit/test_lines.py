@@ -13,3 +13,8 @@ def test_the_master_holds_twenty_lines_ten_on_each_venue_each_in_its_own_currenc
         ("LSE", "GBP"): 10,
         ("US", "USD"): 10,
     }
+
+
+def test_leverage_is_a_fact_in_the_master_never_read_from_a_name() -> None:
+    leveraged = {line.symbol: line.leverage for line in LINES if line.leverage != 1}
+    assert leveraged == {"3LGO": 3, "2MU": 2, "5QQQ": 5}

@@ -1,9 +1,9 @@
 # The plan
 
-**Current objective:** phase 2's second step — sizing from one capital number, with the
-stop set at entry and a leveraged line sized by what it controls, so that scene 3 passes.
+**Current objective:** phase 2's third step — the pretend broker, with its faults, and the
+send path that records its fills, so that scene 4 passes.
 
-Scenes passing: **2 of 7**. Phase: **2-money-sim**.
+Scenes passing: **3 of 7**. Phase: **2-money-sim**.
 
 ---
 
@@ -42,8 +42,9 @@ One store, one writer, cleaned on entry.
 
 - [x] One strategy template; the five frozen daily strategies (his choice: five textbook
       rules, 13 November) - **scene 2 passes**
-- [ ] Sizing from one capital number; stops set at entry; a leveraged line sized by what
-      it controls (his ruling, 13 November)
+- [x] Sizing from one capital number; stops set at entry; a leveraged line sized by what
+      it controls (his rulings, 13 November: a fifth each, a stop where the market has
+      fallen 10%) - **scene 3 passes**
 - [ ] The pretend broker, with faults: rejects, partial fills, disconnection, crashes
 - [ ] The book, the ledger, reconciliation, the day record
 - [ ] The scenes' rehearsal data lengthened to about fourteen months, so the five rules

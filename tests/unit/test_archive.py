@@ -11,7 +11,7 @@ from desk import archive
 from desk.lines import Line
 from desk.store import Bar
 
-US, UK = Line("AAA", "US", "USD"), Line("BBB", "LSE", "GBP")
+US, UK = Line("AAA", "US", "USD", 1), Line("BBB", "LSE", "GBP", 1)
 Row = tuple[str, str | None, str, str, str, int]
 ROWS: tuple[Row, ...] = (
     ("2025-11-13T14:30", "187.4300079345703", "189.1", "186.5", "188.25", 51_000),
