@@ -233,22 +233,23 @@ The lane's objective, the research list's parked fifth (`docs/PLAN.md`). Open fo
 
 ## GRID
 
-Last updated: 13 November 2026 (the section cut to its open items; git keeps the rest).
+Last updated: 13 November 2026 (the unit of work on the grid engine).
 
 ### Where it is
 
 Built and proven: the ladder's unit of work (`lab/cell.py`: one strategy on one line over a
 window, the days each trade was bought and sold, keyed by its code and its bars), the batch
 service that survives a bad cell and a restart and re-runs only what changed
-(`lab/batch.py`), and the fast grid engine (`lab/grid.py`), which holds exactly what the
-desk's engine holds after every bar or refuses by name (`TooClose`), never guessing: about
-7 ms for the five rules on 4,000 days against the desk's 100 ms. Nothing uses the grid
-yet: the unit of work still runs the desk's own engine. No price or profit is named.
+(`lab/batch.py`), and the fast grid engine (`lab/grid.py`), which holds what the desk's
+engine holds after every bar or refuses by name (`TooClose`). The unit of work now runs on
+the grid: a cell's trades are the grid's answer, and the desk's own engine's wherever the
+grid refuses, the same record either way. A cell on 4,000 days takes about 25 ms, against
+the desk's engine's 95 ms. No price or profit is named.
 
 ### Next step
 
-Move the unit of work onto the grid (`lab/cell.py`), the desk's own engine deciding what
-the grid refuses, the same record either way. Then R-DATA-1, then auto-tune.
+R-DATA-1: a cell takes a `Line` of the research list and reads its venue's folder. Then
+auto-tune, so a pass can never take the PC down.
 
 ### Requests to MONEY
 
@@ -260,10 +261,8 @@ the grid refuses, the same record either way. Then R-DATA-1, then auto-tune.
 ### Found, not fixed
 
 - **The grid refuses runs of equal closes**: five or more for the RSI, twenty or more for
-  Bollinger, about thirty on whole-number prices. The desk's engine decides those cells:
-  right, only slower. Count them on the research universe before the first pass.
-- Reading a line's prices in costs 17 ms per line, twice the five rules; the Supertrend and
-  the RSI still walk the days one at a time. Fine until the first pass is timed.
+  Bollinger. The desk's engine decides those cells: right, only slower. Count them on the
+  research universe before the first pass. The Supertrend and the RSI still walk the days.
 - Deliberate breaks of the grid no series found can show: the Supertrend's band carried on
   the day's own close; a close against its own day's upper band; the Bollinger check past
   2**53; Wilder's smoothing on a series as long as its window; the upper band's margin.
@@ -271,15 +270,16 @@ the grid refuses, the same record either way. Then R-DATA-1, then auto-tune.
   `_walk`, `_jumpy`, `_bars`, `START`): if it renames them, the two lanes move together.
 - A helper's empty working copy sits under `.claude/worktrees/` of the operator's main
   folder, with branch `worktree-agent-ab11b126c53bfd69e`. It can be deleted.
-- The unit of work: three of the five rules never trade in its contract test's 25-day
-  shapes; its key leaves out the Python version and file paths; no test drives a bar whose
-  volume alone changed, or two bars on one day; a cell runs all five rules to keep one.
+- The unit of work: its key leaves out the Python version and file paths; no test drives a
+  bar whose volume alone changed, or two bars on one day; each cell reads its line's prices
+  in again (17 of its 25 ms); a refused cell runs all five of the desk's rules to keep one.
+- Blind review of the cell on the grid, nothing blocking: an infinite or not-a-number price
+  fails the cell loudly (the store should pass none); a negative price could weaken the
+  grid's refusal (no line has one); the desk's turn is tested on whole windows only.
 - The batch: no test sees each line forced to disk (`os.fsync`); nothing stops two
   processes on one journal (a lock is owed before anything but a person starts it); a
   corrupt journal line names neither file nor line; bars are hashed twice for a new cell;
-  the journal only grows.
-- A missing session older than sixty sessions no longer parks a line, so research over
-  years of history will meet gaps it must handle.
+  the journal only grows. Research over years will meet gaps the store no longer parks.
 
 ## RUNGS
 
