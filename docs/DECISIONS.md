@@ -2575,6 +2575,39 @@ quietly taking the trading line of the same symbol. Blind review, nothing blocki
 - grid-weekend claims every file of the lane (`*`): making a sweep fast enough can touch the
   engine, the cell and the batch alike, and it is last, so running alone costs nothing.
 
+### 2026-11-13 — a key per rung (grid-key, #88)
+
+**Decided.** Each rung (a module of `lab/` that builds on the cell) has a code version of its own, covering every file it reaches; the first rung reaches the cost model (`desk/orders.py`), so a change of costs moves every verdict's key and leaves the trades' keys alone.
+- *One key or a key per rung?* (a) fold the cost model and every rung's code into the cell's one key; (b) a key per rung. Chosen (b): under (a) a one-line commission change re-runs every trade search, hours of work, though the days a rule bought and sold cannot depend on costs. Under (b) a change re-runs exactly what it touches.
+- *The cost model's version.* A number someone must raise, or the code's own text. Chosen the text: a number kept by hand is a rule in prose.
+- *Chained, not swapped.* The rung's key hashes the record's code with the rung's, so trades made by older code never pass for this code's under a verdict's key.
+- *When read.* First asked, or at load. Chosen at load, every rung at once: the first showed a cost model edited after the process loaded the old one.
+- *What is a rung.* A `lab/` module reaching the cell through its imports; any other name is refused, no list kept by hand.
+
+**Evidence.** Test seen failing first; 27 deliberate breaks, 27 caught; a blind review's one blocking finding fixed. Open: nothing stamps a verdict with the key yet (R-GRID-3).
+
+### 2026-11-13 — the auto-tune: finish the kept work (grid-tune, #94)
+
+**Decided.**
+- *Which branch.* The kept branch, or a fresh one. Chosen the kept branch, as the restore instruction says, keeping the earlier three commits.
+- *Finish or delete.* Chosen finish: complete, green with main, review found no blocker.
+- *The review's minor findings.* Fix now or carry to grid-pass. Chosen carry: none is wrong behaviour today and the change sat at 296 of 300 lines allowed.
+- *UK clock.* `tune.spare` works out summer time itself because the calendar keeps its rule private. Keep and ask DATA for a public one (R-GRID-4), or wait. Chosen keep: proven on both sides of both hours.
+
+**Evidence.** 18 deliberate breaks, 18 caught; proven with the real Windows ceiling (a gigabyte cell under 400 MB was refused and the rest finished); blind review found nothing blocking.
+
+### 2026-11-13 — the grid's first pass (grid-pass, #102)
+
+**Decided.**
+- *What "every setting" means.* (a) whatever the desk's engine can make (`strategy.STRATEGIES`, five today); (b) settings invented in the grid. Chosen (a): the grid is trusted only where it matches the desk's engine (canon B2); settings are MONEY's (R-GRID-1).
+- *The unit handed to a worker.* A cell with a shared journal, or a ticker with a journal each. Chosen the ticker: prices read once instead of five times and two workers never write one journal.
+- *Which tickers.* Only the 864 clean ones, or all 1,065 through research's own reading. Chosen all 1,065: DATA built that reading for it (R-DATA-7), and a parked ticker can still be studied.
+- *Window.* The whole history, one window per cell; folds are RUNGS'.
+- *The research store.* A scratch folder rebuilt from cached answers, or a permanent home now. Chosen scratch: the home is DATA's box (R-GRID-5) and kept cells do not depend on it.
+- *A ticker listed twice is refused*, not quietly counted once: a repeat is a mistake in the list.
+
+**Evidence.** The pass run for real: 5,325 cells run and kept in 200 s, none failed; a second pass ran none, in 45 s. 14 deliberate breaks, all caught after the test was strengthened; a blind review's one blocking finding fixed.
+
 ## RUNGS
 
 ### 2026-11-13 — the luck rung: a chance multiplied by every trial, one 5% test across the set

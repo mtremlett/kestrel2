@@ -444,7 +444,7 @@ grid-tune and grid-key side by side; then grid-pass, grid-week, grid-declared, g
       its venue's folder (R-DATA-1). Remains: a cell can still be made from a symbol alone,
       only for the rungs lane's files (R-GRID-2) {id: grid-venue; files: lab/cell.py, lab/batch.py,
       tests/unit/test_lab_cell.py, tests/unit/test_lab_batch.py}
-- [ ] Auto-tune, so a pass can never take the PC down: a hard memory ceiling held by
+- [x] Auto-tune, so a pass can never take the PC down: a hard memory ceiling held by
       Windows itself (a Job Object on the workers, about 60% of the 64 GB); workers sized
       to free cores, two of the eight threads left free while markets are open (UK 08:00 to
       21:00 on trading days) and one overnight and at weekends; batches sized from measured
@@ -453,11 +453,11 @@ grid-tune and grid-key side by side; then grid-pass, grid-week, grid-declared, g
       memory and CPU logged for each pass. Proven: a deliberately memory-hungry cell is
       killed by the ceiling, the PC stays responsive and the batch carries on
       {id: grid-tune; files: lab/tune.py, tests/unit/test_lab_tune.py, manifest.toml}
-- [ ] The cell's key carries the cost model's version and the rung's code, so a change to
-      either re-runs what it touches (BT-04) {id: grid-key; files: lab/cell.py,
+- [x] The cell's key carries the cost model's version and the rung's code, so a change to
+      either re-runs what it touches (BT-04). Remains: nothing stamps a verdict with the new key yet (R-GRID-3) {id: grid-key; files: lab/cell.py,
       tests/unit/test_lab_cell.py; after: grid-venue}
-- [ ] The grid's first pass over the research universe: every strategy at every setting on
-      every ticker, each cell kept by code and data version {id: grid-pass; files:
+- [x] The grid's first pass over the research universe: every strategy at every setting on
+      every ticker, each cell kept by code and data version. Remains: a command the runner can start, a lock, a journal per worker (grid-week) {id: grid-pass; files:
       lab/sweep.py, lab/batch.py, lab/tune.py, tests/unit/test_lab_sweep.py,
       tests/unit/test_lab_batch.py, tests/unit/test_lab_tune.py, manifest.toml; after:
       grid-venue, grid-tune, grid-key}
