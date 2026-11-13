@@ -24,13 +24,19 @@ from desk.lines import Line
 #: by price alone, and passes.
 JUMP = Decimal("1.6")
 #: London records its opening and closing auctions apart from the day's trading, so an archive's
-#: open or close can sit just outside the day's high and low. Within this fraction of the range
+#: open or close can sit just outside the day's high and low. Within this fraction of the price
 #: it is taken as the official price and the range stretched to hold it (the operator's ruling of
 #: 13 November 2026); further out, the bar cannot be true.
 STRETCH = Decimal("0.03")
 #: Only a fault in the last this-many sessions parks a line; an older bad day is dropped and
 #: listed, for the line's history never changes (the operator's ruling of 13 November 2026).
 RECENT = 60
+#: The longest run of bars a hundredfold out of line with the bars either side of it that is
+#: taken as bad days in the wrong unit, not a lasting step. Any other fall and recovery, however
+#: short, may be real - a leveraged line can lose 40% and win it back - and parks as a step.
+BLIP = 20
+UNITS = (Decimal(100), Decimal("0.01"))
+ASTRAY = "is out of line with the days either side: a wrong unit"
 COLUMNS = ("day", "open", "high", "low", "close", "volume")
 
 
@@ -115,16 +121,25 @@ def _stray(at: int, links: Sequence[bool]) -> bool:
 
 
 def _priced(line: Line, sound: Sequence[Bar], faults: list[Fault]) -> list[Bar]:
-    """Drop a lone bar out of line with its neighbours; keep a lasting step in the price, but
-    as a fault, until the line records it as a real move."""
+    """Drop a bar, or a short run of bars, out of line with the days either side; keep a
+    lasting step in the price, but as a fault, until the line records it as a real move."""
     links = [_agree(line, a, b) for a, b in zip(sound, sound[1:], strict=False)]
     kept: list[Bar] = []
+    resume = 0
     for at, bar in enumerate(sound):
+        if at < resume:
+            continue
         if _stray(at, links):
-            what = f"{bar.day} is out of line with the days either side: a wrong unit"
-            faults.append(Fault(bar.day, what))
+            faults.append(Fault(bar.day, f"{bar.day} {ASTRAY}"))
             continue
         if kept and not _agree(line, kept[-1], bar):
+            unit = any(u / JUMP <= bar.close / kept[-1].close <= u * JUMP for u in UNITS)
+            ahead = range(at + 1, min(at + 1 + BLIP, len(sound)) if unit else at + 1)
+            resume = next((n for n in ahead if _agree(line, kept[-1], sound[n])), at)
+            for odd in sound[at:resume]:
+                faults.append(Fault(odd.day, f"{odd.day} {ASTRAY}"))
+            if resume > at:
+                continue
             what = (
                 f"{bar.day} moved from {kept[-1].close} to {bar.close}: a split the archive "
                 "did not adjust, or a real move the line does not record"

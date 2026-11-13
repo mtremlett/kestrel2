@@ -46,7 +46,7 @@ def _unit(line: Line, currency: object) -> Decimal:
 
 def parse(line: Line, payload: bytes) -> tuple[Bar, ...]:
     """A line's bars from the archive's answer. A day it gives without a full bar has none."""
-    chart = json.loads(payload, parse_float=Decimal)["chart"]
+    chart = json.loads(payload, parse_float=Decimal, parse_constant=Decimal)["chart"]
     if chart["error"] is not None or not chart["result"]:
         raise ValueError(f"{line.symbol}: the archive gave no answer: {chart['error']}")
     result: dict[str, Any] = chart["result"][0]
@@ -54,7 +54,7 @@ def parse(line: Line, payload: bytes) -> tuple[Bar, ...]:
     if named != line.symbol + SUFFIX[line.venue]:
         raise ValueError(f"{line.symbol}: the archive answered about {named}")
     unit = _unit(line, result["meta"]["currency"])
-    stamps: list[int] = result.get("timestamp", [])
+    stamps: list[int] = result.get("timestamp", [])  # absent when it holds no bar at all
     quote = result["indicators"]["quote"][0] if stamps else {}
     bars = []
     for n, stamp in enumerate(stamps):

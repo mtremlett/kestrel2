@@ -225,3 +225,35 @@ def test_an_old_step_in_the_price_still_parks_for_it_makes_every_bar_before_it_w
 def test_a_clean_line_lists_no_fault(tmp_path: Path) -> None:
     assert _parked(tmp_path, _bars(US, LONG)) == []
     assert store.faults(tmp_path, US.symbol) == ()
+
+
+@pytest.mark.parametrize("unit", ["100", "0.01"], ids=["pence", "pounds"])
+@pytest.mark.parametrize("days", [2, 5], ids=["two days", "five days"])
+@pytest.mark.parametrize(("at", "parks"), [(5, False), (-8, True)], ids=["old", "recent"])
+def test_a_run_of_days_in_the_wrong_unit_is_bad_days_not_a_step(
+    tmp_path: Path, unit: str, days: int, at: int, parks: bool
+) -> None:
+    clean = _bars(US, LONG)
+    run = range(at % len(clean), at % len(clean) + days)
+    bars = tuple(_scaled(b, Decimal(unit)) if n in run else b for n, b in enumerate(clean))
+    reasons = _parked(tmp_path, bars)
+    assert bool(reasons) is parks and not any("split" in r for r in reasons)
+    assert store.read(tmp_path, US.symbol) == tuple(b for n, b in enumerate(clean) if n not in run)
+
+
+@pytest.mark.parametrize(("back", "parks"), [(60, True), (61, False)])
+def test_the_sixtieth_session_back_is_the_oldest_that_parks(
+    tmp_path: Path, back: int, parks: bool
+) -> None:
+    bars = list(_bars(US, LONG))
+    bars[-back] = _scaled(bars[-back], Decimal(100))
+    assert bool(_parked(tmp_path, tuple(bars))) is parks
+
+
+def test_a_real_fall_and_recovery_is_never_dropped_as_bad_days(tmp_path: Path) -> None:
+    """A leveraged line can fall 40% and recover within days: only a hundredfold run is a unit."""
+    clean = _bars(US, LONG)
+    bars = tuple(_scaled(b, Decimal("0.6")) if 5 <= n < 10 else b for n, b in enumerate(clean))
+    reasons = _parked(tmp_path, bars)
+    assert len(reasons) == 1 and "split" in reasons[0]
+    assert store.read(tmp_path, US.symbol) == bars

@@ -89,3 +89,18 @@ def test_the_archive_is_asked_for_nothing_on_or_after_the_day() -> None:
     address = archive.address(UK, date(2025, 11, 17))
     assert "/BBB.L?" in address
     assert f"period2={int(datetime(2025, 11, 17, tzinfo=UTC).timestamp())}&" in address
+
+
+def test_a_london_line_priced_in_pounds_is_read_as_given_on_its_summer_session() -> None:
+    rows: tuple[Row, ...] = (("2025-06-13T07:00", "1.5", "1.75", "1.25", "1.5", 900),)
+    assert archive.parse(UK, _payload(rows, "GBP", "BBB.L")) == (
+        Bar(
+            date(2025, 6, 13), Decimal("1.5"), Decimal("1.75"), Decimal("1.25"), Decimal("1.5"), 900
+        ),
+    )
+
+
+def test_a_price_that_is_not_a_number_enters_as_one_the_store_refuses() -> None:
+    rows: tuple[Row, ...] = (("2025-11-13T14:30", "NaN", "Infinity", "1", "1", 9),)
+    bar = archive.parse(US, _payload(rows))[0]
+    assert not bar.open.is_finite() and not bar.high.is_finite()

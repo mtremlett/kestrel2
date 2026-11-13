@@ -331,4 +331,8 @@ open 4% out enters. Both are caught.
 listed in the line's record, and no longer parks it; anything wrong in the last sixty
 sessions still does. A step in the price that the archive did not adjust parks the line
 however old it is, because it makes every bar before it wrong. Asked, he chose "Drop old
-bad days, hold back on recent ones (Recommended)".
+bad days, hold back on recent ones (Recommended)". A run of up to twenty days a hundredfold out of
+line with the days either side (pence among pounds) is bad days, not a step; any other fall
+and recovery is kept and parks, since a leveraged line can lose 40% and win it back.
+Driven: a window of 3000 sessions, a window of 3, a step not counted as lasting, a run
+limit of 1, and a 40% fall taken as a unit were each caught.
