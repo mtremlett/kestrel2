@@ -864,124 +864,53 @@ loosening the trading store.
 
 ## GRID
 
-Last updated: 13 November 2026. Took over the ladder lane's cell, batch and results on 13
-November, when the operator split the ladder into GRID and RUNGS.
+Last updated: 13 November 2026 (the section cut to its open items; git keeps the rest).
 
 ### Where it is
 
-The ladder has its unit of work (`lab/cell.py`): one of the five strategies on one of the
-twenty lines over a window of days. It runs the desk's own decisions, never a copy of them,
-over the line's whole history up to the window's end, and records the days each trade was
-bought and sold. Each record carries a fingerprint of the code that made it and of every
-bar it read, so a later batch can keep results and re-run only what changed. It names no
-price or profit yet: no result is reported without its costs (`docs/DECISIONS.md`).
-
-It now has a batch service (`lab/batch.py`) that runs many cells in turn and writes each
-result down as it finishes. A cell that fails is recorded with its error and the rest carry
-on; a batch stopped part way, even in the middle of writing a line, takes up where it
-stopped when started again, never running a finished cell twice. A failed cell is tried
-again on the next start. A batch refuses to start when the code on disk is no longer the
-code it loaded.
-
-A result is now kept by what made it: the code and every bar the rule was shown. Each run
-reads every cell's bars again and re-runs a cell only when its code or its bars have
-changed; a bar corrected after a window's end leaves that window's result alone.
-
-The fast grid engine is built (`lab/grid.py`, numpy) and proven against the desk's own
-engine: for each of the five strategies it works out, for a line's whole history at once,
-whether the strategy is in the market after every bar, and on the golden series and on
-prices as long as the archive's it holds exactly what the desk holds, day by day. It never
-guesses. The desk counts in exact decimals and the grid in floating point, so wherever two
-numbers are too close for floating point to tell which is larger the grid refuses the cell
-by name (`TooClose`) and gives no answer; the desk's own engine must decide it. On prices
-like the archive's it refused nothing; on made-up prices on a coarse tick it refuses a
-close exactly on a Supertrend band. Measured on 4,000 days of one line: the desk's engine
-takes about 100 ms for the five rules, the grid 6 to 8 ms, after 17 ms once per line to
-read its prices in. Two blind reviews found three ways to a wrong answer, all on prices no
-market has; each is fixed and tested, and the second review's whole random comparison, run
-again on the repaired engine, found no difference from the desk. Nothing uses the grid yet: the unit of work still runs the desk's own.
+Built and proven: the ladder's unit of work (`lab/cell.py`: one strategy on one line over a
+window, the days each trade was bought and sold, keyed by its code and its bars), the batch
+service that survives a bad cell and a restart and re-runs only what changed
+(`lab/batch.py`), and the fast grid engine (`lab/grid.py`), which holds exactly what the
+desk's engine holds after every bar or refuses by name (`TooClose`), never guessing: about
+7 ms for the five rules on 4,000 days against the desk's 100 ms. Nothing uses the grid
+yet: the unit of work still runs the desk's own engine. No price or profit is named.
 
 ### Next step
 
-Move the unit of work onto the grid (`lab/cell.py`): a cell's trades from the grid's
-answer, and from the desk's own engine whenever the grid refuses, the same record either
-way, the grid's file counted in the code version. Then auto-tune.
+Move the unit of work onto the grid (`lab/cell.py`), the desk's own engine deciding what
+the grid refuses, the same record either way. Then R-DATA-1, then auto-tune.
 
-### Asked of the money lane
+### Requests to MONEY
 
-- **The five rules take no settings.** The grid's first pass is "every strategy at every
-  setting", and the grid may only be trusted where it matches the desk's engine (canon B2).
-  Until `desk/strategy.py`'s rules can be made at other settings (the window lengths, the
-  RSI's bar, the bands' widths), the grid is proven, and so runs, at the published five only.
+- [ ] R-GRID-1 (later, opened 2026-11-13 18:15): the five rules made at other settings (window
+  lengths, the RSI's bar, the bands' widths) in `desk/strategy.py`. The grid's first pass is
+  "every setting", and the grid is trusted only where it matches the desk's engine (canon
+  B2); until then it runs at the published five only.
 
 ### Found, not fixed
 
-- **What the blind reviews of the grid engine left** (three wrong answers found, each fixed
-  and tested: an RSI on days that move a thousand-millionth of the price, a Supertrend band
-  when a close sits far outside its day's range, and ties among prices of 26 digits and
-  more; and six safeguards no test held, each now held by one). There was no third review
-  of the last repairs; the second review's own random comparison was run again and is clean:
-  - **A line with five or more identical closes in a row, at prices as long as the
-    archive's, is refused for the RSI** (and twenty or more for the Bollinger rule): an
-    average of equal long prices is a tie floating point cannot call. The desk's engine
-    decides those cells, so the answer is right and only slower. The store drops a frozen
-    feed, but a thinly traded research ticker may have such runs; worth counting on the
-    research universe before the first pass.
-  - Reading a line's prices in costs twice what the five rules do (17 ms against 8 ms on
-    4,000 days), nearly all of it turning each decimal into a whole number. It is paid once
-    per line, not per cell. And the Supertrend and the RSI still walk the days one at a
-    time for Wilder's smoothing and the carried bands. Fine until the first pass is timed.
-  - Deliberate breaks that survive, which no series found can show: the Supertrend's band
-    carried on the day's own close for the day before's (no position differed on some 700
-    series searched); a close set against its own day's upper band; the Bollinger check
-    for whole prices whose squares pass 2**53 (it needs an exact tie among very large
-    numbers); Wilder's smoothing on a series exactly as long as its window (nothing reads
-    that value); and the margin of the Supertrend's upper band and of its carrying measured
-    against the close alone, or against the day's prices and not all so far (the committed
-    case is the lower band's; the review's random comparison covers the rest, outside the
-    repository).
-  - On whole-number prices, about thirty unchanged closes in a row fade the RSI's gain and
-    loss to nothing and the grid refuses the line for that rule; the desk's engine decides.
-  - The golden series are read from the money lane's `tests/unit/test_strategy.py`
-    (`GOLDEN`, `_walk`, `_jumpy`, `_bars`, `START`): if that file renames them, the grid's
-    test stops and the two lanes must move together.
-- **A helper's working copy was left in the main folder.** The tool that gives a helper its
-  own copy made it under `.claude/worktrees/` of the operator's main kestrel2 folder, with a
-  branch `worktree-agent-ab11b126c53bfd69e` in the shared repository. This session did not
-  go into that folder to remove it. It holds no change and can be deleted.
-- **What the blind review of the unit of work left for the batch** (nothing blocking; its
-  test gaps on the data version and the trade pairing, and its unsorted-bars finding, are
-  fixed and tested):
-  - The code version is read from disk when `lab/cell.py` is imported. A long-lived
-    process that imported the strategies earlier, and had them changed on disk before
-    that, would key old code's results under the new code. The batch service must run each
-    batch in a fresh process, or refuse when the files no longer match `cell.LOADED`.
-  - Three of the five rules never trade in the contract test's twenty-five-day shapes
-    (RSI-2, the 50/200 cross, Supertrend need far longer); their agreement with the desk
-    is shown there only as "no trades". A fixture of more than 200 bars would cover them.
-  - The key does not include the Python version, and only file contents, not file paths,
-    are hashed; a file moved without a change of text keeps its key.
-- **What the blind review of the batch left** (nothing blocking; its two findings on
-  failed cells never retried and on cutting a torn line by rewriting the whole journal
-  are fixed and tested):
-  - That each line reaches the disk before the next cell starts (`os.fsync`) is not seen
-    by any test; removing it leaves the tests green. Only a killed process would show it.
-  - Nothing stops two processes working on one journal at once; the module says one at a
-    time. A lock is owed when the batch is started by anything but a person.
-  - A journal line corrupt in the middle fails loudly but names neither the file nor the
-    line; a failed cell keeps its error's type and message, not where it was raised.
-- **What keeping results by key left** (blind review, its one blocking finding fixed):
-  - The unit of work's fingerprint misses two breaks no test drives: a bar whose volume
-    alone changed, and two bars on one day (the order check's `<=` made `<`). Its contract
-    test owes a case for each.
-  - Every run reads and hashes each cell's bars, and a cell with no result hashes them
-    twice (once for its key, once in its run). Fine until a benchmark says otherwise.
-  - The journal keeps every old record and one line per failure per run; it only grows.
-- **A cell runs all five strategies to keep one.** It asks `strategy.decide`, which decides
-  every rule at once; a batch of the five on one line pays five times. Fine until a
-  benchmark says otherwise.
-- **A missing session older than sixty sessions no longer parks a line**, so research over
-  years of history (the ladder) will meet gaps it must handle.
+- **The grid refuses runs of equal closes**: five or more for the RSI, twenty or more for
+  Bollinger, about thirty on whole-number prices. The desk's engine decides those cells:
+  right, only slower. Count them on the research universe before the first pass.
+- Reading a line's prices in costs 17 ms per line, twice the five rules; the Supertrend and
+  the RSI still walk the days one at a time. Fine until the first pass is timed.
+- Deliberate breaks of the grid no series found can show: the Supertrend's band carried on
+  the day's own close; a close against its own day's upper band; the Bollinger check past
+  2**53; Wilder's smoothing on a series as long as its window; the upper band's margin.
+- The golden series are read from the money lane's `tests/unit/test_strategy.py` (`GOLDEN`,
+  `_walk`, `_jumpy`, `_bars`, `START`): if it renames them, the two lanes move together.
+- A helper's empty working copy sits under `.claude/worktrees/` of the operator's main
+  folder, with branch `worktree-agent-ab11b126c53bfd69e`. It can be deleted.
+- The unit of work: three of the five rules never trade in its contract test's 25-day
+  shapes; its key leaves out the Python version and file paths; no test drives a bar whose
+  volume alone changed, or two bars on one day; a cell runs all five rules to keep one.
+- The batch: no test sees each line forced to disk (`os.fsync`); nothing stops two
+  processes on one journal (a lock is owed before anything but a person starts it); a
+  corrupt journal line names neither file nor line; bars are hashed twice for a new cell;
+  the journal only grows.
+- A missing session older than sixty sessions no longer parks a line, so research over
+  years of history will meet gaps it must handle.
 
 ## RUNGS
 
