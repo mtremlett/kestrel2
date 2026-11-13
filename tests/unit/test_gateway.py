@@ -65,7 +65,7 @@ def test_silence_is_his_and_a_gateway_there_but_unready_is_not(
 ) -> None:
     # 03:15 on a Monday, in his night: the restart that did not come back
     known = gateway.known(_at("2026-11-16 03:15"), Mock(side_effect=failure))
-    assert (known.state, known.ready) == (State.HIS if saw else State.UNWELL, False)
+    assert (known.state, known.ready or bool(known)) == (State.HIS if saw else State.UNWELL, False)
     his = ("yours", "no password", "outside the 02:55 to 03:15", "look at the PC", str(saw))
     assert all(said in known.words for said in his) == ("login" in known.words) == bool(saw)
     assert saw or known.words.endswith(f"did not say it is ready: {failure}")
