@@ -225,8 +225,8 @@ def test_a_line_made_while_he_sleeps_is_held_for_the_morning_not_sent(
 
 
 def test_his_hours_begin_at_22_and_end_at_08_uk_time_in_summer_too() -> None:
-    def gmt(*at: int) -> datetime:
-        return datetime(*at, tzinfo=UTC)
+    def gmt(year: int, month: int, day: int, hour: int, minute: int) -> datetime:
+        return datetime(year, month, day, hour, minute, tzinfo=UTC)
 
     winter = [
         announce.asleep(gmt(2026, 11, 13, h, m)) for h, m in ((21, 59), (22, 0), (7, 59), (8, 0))
