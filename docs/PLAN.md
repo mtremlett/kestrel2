@@ -350,14 +350,19 @@ refuses, the same record either way, the grid's file counted in the code version
 
 ### The rungs lane's book
 
-**Lane objective:** luck correction that counts every trial: a winner is corrected for how
-many trials it was picked from, and every rung records that count (canon B6, AG-01).
+**Lane objective:** in-sample and out-of-sample folds: a strategy's history cut into folds,
+each judged after costs, the two shown side by side, and the verdict given on the worst
+fold; every fold is a trial the luck rung counts (canon B6, AG-01).
 
 - [x] The first rung proven: it catches a planted edge and rejects a planted non-edge, after
       the broker's costs and the desk's own stop (`lab/rung.py`)
 - [ ] Its costs whole: spread, slippage and the sale's own fees, from the desk's one cost
       model once the money lane has them; and a rate of exchange for each day
-- [ ] Luck correction counting every trial
+- [x] Luck correction counting every trial: a verdict's chance multiplied by the number of
+      trials it was picked from, one combined 5% test across the set, the count kept on
+      every corrected verdict (`lab/luck.py`)
+- [ ] The count kept from batch to batch: one register of every trial ever tried on a
+      question, a dropped candidate included, so no later batch can start the count again
 - [ ] In-sample and out-of-sample folds, side by side after costs, the worst fold reported
       and judged on
 - [ ] Plateaus over peaks: the centre of a plateau promoted, never a lone peak

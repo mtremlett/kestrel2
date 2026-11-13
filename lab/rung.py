@@ -71,10 +71,18 @@ def judge(record: Record, bars: Sequence[Bar], settings: Settings, fx: Decimal) 
     at = {bar.day: n for n, bar in enumerate(read)}
     done = [t for t in record.trades if t.sold is not None and at[t.sold] + 1 < len(read)]
     with localcontext(ARITHMETIC):
-        priced = tuple(_price(record.key.cell, trade, read, at, settings, fx) for trade in done)
+        return verdict(
+            record.key,
+            tuple(_price(record.key.cell, trade, read, at, settings, fx) for trade in done),
+        )
+
+
+def verdict(key: Key, priced: tuple[Priced, ...]) -> Verdict:
+    """The first rung's one rule, on trades already priced."""
+    with localcontext(ARITHMETIC):
         t = standard_errors([p.gain for p in priced])
     passed = t is not None and len(priced) >= MIN_TRADES and t >= T_PASS
-    return Verdict(record.key, orders.BROKER, priced, t, passed)
+    return Verdict(key, orders.BROKER, priced, t, passed)
 
 
 def _price(

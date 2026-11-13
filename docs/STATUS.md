@@ -749,7 +749,8 @@ way, the grid's file counted in the code version. Then auto-tune.
 
 ## RUNGS
 
-Last updated: 13 November 2026. Took over the ladder lane's first rung on 13 November.
+Last updated: 13 November 2026 (the luck rung). Took over the ladder lane's first rung on
+13 November.
 
 ### Where it is
 
@@ -763,10 +764,23 @@ standard errors above nothing. On made-up prices it passed a planted edge on eve
 forty random histories tried and failed all forty with no edge; it fails an edge that a £3
 least commission eats at a small capital, and the same edge with too few trades.
 
+The ladder now has its luck rung (`lab/luck.py`), for the day many strategies are tried at
+once. Try enough of them and some pass the first rung with no edge at all, about one in
+forty. So the first rung's verdicts are judged again as one set: each one's chance of being
+luck is multiplied by the number of trials it was picked from, and it passes only if that
+is still 5% or less and it passed the first rung. Every trial counts, whatever became of it:
+a loser, one with too few trades, and one that gave no verdict at all (a cell that failed, a
+candidate dropped), which the caller must state. Each corrected verdict carries the count it
+was corrected for. On made-up trades: of forty sets of forty strategies with no edge, the
+first rung alone handed over a "winner" in twenty-six; after the correction, in one (5%
+allows two). A real edge added to each set passed in all forty. A modest winner stands
+alone and picked from eight, and falls picked from nine.
+
 ### Next step
 
-Luck correction that counts every trial: a winner is corrected for how many trials it was
-picked from, and every rung records that count (canon B6, AG-01).
+In-sample and out-of-sample folds: a strategy's history cut into folds, each judged after
+costs, the two side by side, the verdict on the worst fold; every fold a trial the luck rung
+counts (canon B6, AG-01).
 
 ### Requests to MONEY
 
@@ -789,6 +803,25 @@ picked from, and every rung records that count (canon B6, AG-01).
   one share costs more than its room fails the whole verdict loudly; and at two standard
   errors about one cell in forty passes by chance, so a batch of many cells needs the luck
   rung before any winner is believed.
+- **The luck rung's chance is honest only for bell-shaped trades** (blind review, its one
+  blocking finding: the module had promised the 5% without saying so; it now says so). A
+  rule with many small wins and a rare large loss, judged on few trades, reads as far less
+  chance than it is: on made-up trades of that shape with no edge (95% win 1%, 5% lose 19%),
+  about a fifth of thirty-trade trials beat a correction for a hundred trials, and about one
+  in twenty of sixty-trade trials. The cure belongs to the book's box "the luck test fixed
+  before any result" (a deflated Sharpe, which reads skew and fat tails) and to "failing
+  fairly" (effective trades). **No winner on real prices is to be believed before then.**
+- **The count is the caller's to give.** The rung counts every verdict it is handed and
+  every trial the caller says left none; handed one batch, one line or one strategy at a
+  time, it would count only that. A cell whose gains have no spread at all stops the first
+  rung and leaves no verdict, so it too must be stated. Nothing yet keeps the count from
+  batch to batch: a register of every trial ever tried is a box in the book.
+- **What else the blind review of the luck rung left** (nothing blocking): the 5% line
+  itself is not held by a test (a chance landing on exactly 5% does not arise from real
+  numbers; "under 5%" for "5% or under" survives, as does a slightly coarser sum inside the
+  chance); the chance asked for no trades, or the count given as a fraction, is not refused
+  in plain words (neither can arise from a verdict); and `rung.verdict`, the first rung's
+  pass rule as one function, is called by the first rung and by the luck rung's tests only.
 - **Two deliberate breaks of the first rung survive, neither able to differ:** a pass bar
   of "over 2" for "2 or over" (a t of exactly 2 does not arise), and the rung's arithmetic
   setting (the caller's default is the same).
