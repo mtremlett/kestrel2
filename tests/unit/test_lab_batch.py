@@ -9,10 +9,12 @@ from dataclasses import replace
 from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
+from typing import Any
 
 import pytest
 
-from desk import strategy
+from desk import store, strategy, venues
+from desk.lines import LINES, STAMP_DUTY, Line
 from desk.store import Bar
 from lab import batch, cell
 from lab.batch import Failed
@@ -24,21 +26,22 @@ BARS = tuple(
     Bar(START + timedelta(n), p, p + Decimal("0.5"), p - Decimal("0.5"), p, 1)
     for n, p in enumerate(Decimal(str(value)) for value in SHAPE)
 )
-CELLS = tuple(Cell(name, "SPY", START, START + timedelta(24)) for name in strategy.STRATEGIES)
-HELD = Cell("breakout_20_10", "SPY", START, START + timedelta(22))  #: still held at its end
-EMPTY = Cell("breakout_20_10", "SPY", START + timedelta(30), START + timedelta(40))
-UNREAD = Cell("breakout_20_10", "QQQ", START, START + timedelta(24))  #: its bars cannot be read
+SPY, QQQ = (next(line for line in LINES if line.symbol == s) for s in ("SPY", "QQQ"))
+CELLS = tuple(Cell(name, SPY, START, START + timedelta(24)) for name in strategy.STRATEGIES)
+HELD = Cell("breakout_20_10", SPY, START, START + timedelta(22))  #: still held at its end
+EMPTY = Cell("breakout_20_10", SPY, START + timedelta(30), START + timedelta(40))
+UNREAD = Cell("breakout_20_10", QQQ, START, START + timedelta(24))  #: its bars cannot be read
 
 
 def _reader(stop_at: int = 0, spy: Sequence[Bar] = BARS) -> batch.Bars:
     """SPY's bars; a stop (as by Ctrl-C) on read number stop_at."""
     read = list[str]()
 
-    def bars(symbol: str) -> Sequence[Bar]:
-        read.append(symbol)
+    def bars(line: Line) -> Sequence[Bar]:
+        read.append(line.symbol)
         if len(read) == stop_at:
             raise KeyboardInterrupt
-        return {"SPY": spy}[symbol]
+        return {"SPY": spy}[line.symbol]
 
     return bars
 
@@ -56,7 +59,7 @@ def ran(monkeypatch: pytest.MonkeyPatch) -> list[Cell]:
     return ran
 
 
-def _lines(journal: Path) -> list[object]:
+def _lines(journal: Path) -> list[dict[str, Any]]:
     return [json.loads(line) for line in journal.read_bytes().splitlines()]
 
 
@@ -113,3 +116,25 @@ def test_only_a_cell_whose_bars_changed_is_run_again(tmp_path: Path, ran: list[C
     again = batch.run(cells, _reader(spy=mended), journal)
     assert ran == [*cells, CELLS[0]], "only the cell that read the change is run again"
     assert again == (cell.run(CELLS[0], mended), first[1]) and again[0] != first[0]
+
+
+def test_one_symbol_is_two_companies_each_read_from_its_venues_folder(
+    tmp_path: Path, ran: list[Cell]
+) -> None:
+    day, journal = date(2026, 11, 13), tmp_path / "journal"
+    both = (Line("BA", "US", "USD", 1), Line("BA", "LSE", "GBP", 1, STAMP_DUTY))
+    for line in both:
+        base = Decimal(100 if line.venue == "US" else 200)
+        days = venues.sessions(line.venue, day - timedelta(120), day - timedelta(1))
+        bars = [
+            Bar(d, base + n % 7, base + 8, base - 1, base + n % 7, 9) for n, d in enumerate(days)
+        ]
+        assert store.prepare(tmp_path / line.venue, {line: bars}, day) == ()
+    cells = tuple(Cell("breakout_20_10", line, day - timedelta(120), day) for line in both)
+    us, london = batch.run(cells, batch.stored(tmp_path), journal)
+    assert us == cell.run(cells[0], store.read(tmp_path / "US", "BA"))
+    assert london == cell.run(cells[1], store.read(tmp_path / "LSE", "BA"))
+    assert [row["cell"][1:3] for row in _lines(journal)] == [["BA", "US"], ["BA", "LSE"]]
+    del ran[:]
+    assert batch.run(cells[::-1], batch.stored(tmp_path), journal) == (london, us)
+    assert ran == [], "a finished cell was run again"

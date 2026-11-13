@@ -9,6 +9,10 @@ before the window warms it, and nothing after the end is read. A trade belongs t
 it was bought in. The record holds days only: a price, a profit or a verdict is a later
 rung's, and none is reported without its costs.
 
+A cell names its line, not a symbol: one symbol can be two companies (BA is Boeing in New
+York and BAE Systems in London), so the venue is part of what a cell is. Any line may be
+studied, one of the research list as much as one of the twenty; studying it trades nothing.
+
 Two records with the same key are the same result. The code version is every file of this
 repository this module reaches through its imports, read once as the process loads it, so a key
 never claims code the process is not running. The data version is every bar the rule read.
@@ -24,28 +28,44 @@ from datetime import date
 from pathlib import Path
 
 from desk import strategy
-from desk.lines import LINES
+from desk.lines import LINES, Line
 from desk.store import Bar
-from desk.strategy import Action
+from desk.strategy import STRATEGIES, Action
 from lab import grid
 
 ROOT = Path(__file__).parents[1]
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, init=False)
 class Cell:
     strategy: str
-    symbol: str
+    line: Line  #: the ticker on its venue, with its facts
     start: date  #: the first day whose buys belong to the cell
     end: date  #: the last bar the rule is shown
 
-    def __post_init__(self) -> None:
-        if self.strategy not in strategy.STRATEGIES:
-            raise ValueError(f"no strategy is called {self.strategy!r}")
-        if self.symbol not in {line.symbol for line in LINES}:
-            raise ValueError(f"{self.symbol!r} is not a line in the instrument master")
-        if self.end < self.start:
-            raise ValueError(f"{self.symbol}: a window that ends before it starts")
+    def __init__(self, strategy: str, line: Line | str, start: date, end: date) -> None:
+        """A symbol alone names one of the twenty, where no two share one: the rungs lane's
+        cells are still made so, and this door closes when they name a line."""
+        if isinstance(line, str):
+            found = [known for known in LINES if known.symbol == line]
+            if not found:
+                raise ValueError(f"{line!r} is not a line in the instrument master")
+            line = found[0]
+        if strategy not in STRATEGIES:
+            raise ValueError(f"no strategy is called {strategy!r}")
+        if end < start:
+            raise ValueError(f"{line.symbol} on {line.venue}: a window that ends before it starts")
+        made = (("strategy", strategy), ("line", line), ("start", start), ("end", end))
+        for field, value in made:
+            object.__setattr__(self, field, value)
+
+    @property
+    def symbol(self) -> str:
+        return self.line.symbol
+
+    def __str__(self) -> str:
+        on = f"{self.line.symbol} on {self.line.venue}"
+        return f"{self.strategy} on {on}, {self.start} to {self.end}"
 
 
 @dataclass(frozen=True)
@@ -154,7 +174,7 @@ def _trades(cell: Cell, bars: Sequence[Bar]) -> tuple[Trade, ...]:
 def shown(cell: Cell, bars: Sequence[Bar]) -> tuple[Bar, ...]:
     """The bars the rule is shown: the line's, oldest first, up to the window's end."""
     if any(later.day <= bar.day for bar, later in zip(bars, bars[1:], strict=False)):
-        raise ValueError(f"{cell.symbol}: bars not one a day, oldest first")
+        raise ValueError(f"{cell}: bars not one a day, oldest first")
     return tuple(bar for bar in bars if bar.day <= cell.end)
 
 
@@ -168,7 +188,5 @@ def run(cell: Cell, bars: Sequence[Bar]) -> Record:
     read = shown(cell, bars)
     inside = sum(1 for bar in read if bar.day >= cell.start)
     if not inside:
-        raise ValueError(
-            f"{cell.strategy} on {cell.symbol}, {cell.start} to {cell.end}: no bars in the window"
-        )
+        raise ValueError(f"{cell}: no bars in the window")
     return Record(Key(cell, LOADED, _data_version(read)), inside, _trades(cell, read))
