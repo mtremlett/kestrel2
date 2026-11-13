@@ -93,7 +93,8 @@ scene 5. Scenes 1 to 3 keep passing on it.
 - [ ] The store's open findings in `docs/STATUS.md` (the data lane's section): a frozen
       feed (done: a week of one bar repeated is dropped and parks a recent line); a
       suspension gap (done: a suspension recorded on its line is no gap); a one-day crash
-      dropped as a wrong unit; a stretched bar's changes unrecorded; bars and fault record
+      dropped as a wrong unit (done: only a hundredfold bar is dropped; a crash is kept and
+      parks until recorded); a stretched bar's changes unrecorded; bars and fault record
       swapped one after the other; the window before mid-April 2010; a pence history the
       archive calls pounds
 - [ ] The calendars carried past 2027, before 2027 ends

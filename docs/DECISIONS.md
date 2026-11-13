@@ -985,6 +985,38 @@ of the twenty has a suspension recorded today; none is parked for a gap.
 ignored; a bar on a recorded day let in; the reason naming no way out; any day allowed in
 the record.
 
+### 2026-11-13 — a one-day crash is kept; only a hundredfold bar is a wrong unit
+
+**The question.** A single day out of line with the days either side was dropped as "a wrong
+unit", at any size. On the real archive that dropped 5QQQ's crash of 7 April 2025: a five-times
+line down 40% at its low, half of it won back the next day. Which single days may the store
+throw away?
+
+**Options.** (a) Leave it: a real crash vanishes from the history, so every test of a rule on
+that history looks safer than the market was. (b) Keep an old one and list it, park only a
+recent one: a bad print would then stay in the history unparked, as a crash that never was.
+(c) Drop a day only when a price sits a hundredfold out of its neighbour (pence among pounds,
+the one fault price alone proves), the rule a run of days already followed; keep any other
+move and record it as a lasting fault, which parks however old until each close is recorded
+on the line (`Line.real_moves`), as a step in the price already did.
+
+**Chosen.** (c). It is what the north star needs: the desk neither forgets a loss the market
+really dealt nor trades on a history holding a move nobody has confirmed. One rule now
+decides for a single day and for a run. The cost: a bad print of another size, say a tenth,
+parks its line until someone looks; no line is parked by it today.
+
+**Evidence.** The twenty lines from the archive on 13 November: before, 5QQQ's 7 April 2025
+was dropped as a wrong unit; after, it is kept, its fall and its recovery listed as moves to
+record; the same four lines park, and no clean line has a new fault. Tests seen failing first:
+a 60% one-day fall, at the first bar, an old one, a recent one and the newest, each kept and
+parking, and each back out once its closes are recorded. Seven deliberate breaks, each
+caught: the size test removed, made always true, always false, made to read the close alone,
+its margin widened, its margin made a single jump, the wrong neighbour measured. A blind
+review found nothing blocking; its one finding of the same kind - a crash straight after
+days in the wrong unit was dropped with them - was made a failing test and fixed: a run in
+the wrong unit now ends at the first day back in the right one. Its other points are in
+`docs/STATUS.md`.
+
 ## LADDER
 
 ### 2026-11-13 — the ladder's unit of work: days only, the whole history, keyed by what it read
