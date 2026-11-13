@@ -511,3 +511,52 @@ capital), are each now refused and tested.
 with a 10% stop in the market's terms, a tenth each, the same 10% on every line's own
 price, or a stop set from each line's own swings, he chose "Fifth each, 10% stop
 (Recommended)".
+
+---
+
+## 2026-11-13 — the Telegram line is short: the phase and its step
+
+**Asked.** The operator, in chat on 13 November: "for the telegram messages, can you make
+each much shorter and to the point? just phase or sub-phases?" The line had grown to three
+sentences: the pull request's title, the scenes count, and the next objective spelled out.
+
+**Decided by the session**, as the desk's mentor (his standing ruling: sessions settle
+intended behaviour themselves and record it). One line, under sixty characters, in three
+forms:
+
+    kestrel2 · Phase 2 · step 3 of 6 done · scenes 4/7 (#16)
+    kestrel2 · Phase 2 complete · scenes 7/7 (#20)
+    kestrel2 · housekeeping · scenes 4/7 (#17)
+
+"Step 3 of 6 done" is the phase's ticked boxes out of all its boxes in `docs/PLAN.md`.
+"Housekeeping" marks a change that ticked no step: a document, a chore, a repair. Steps
+ticked in two phases by one change name both. The scenes count and the pull request's
+number stay, so he can still ask about one change by its number.
+
+**How it knows.** The line compares the plan's phase checklists just before the merge
+(main's previous commit, fetched from GitHub) with just after it, and names the phases
+whose ticked count rose. It reads the checklists, never the "Current objective" sentence,
+so the plan can give each lane its own objective without changing the line. Only a box at
+the start of a line under a `## Phase N` heading is a step; a box indented under a step is
+part of it. A plan that loses its phase checklists or its scenes count turns the job red
+rather than sending half a line, as before.
+
+**Kept.** A missing secret still fails loudly, the bot key is still checked on entry and
+never printed, and the delivery record is unchanged. The "🔔 ACTION:" he sees in front of
+each line is not sent by the desk: `announce.py` sends the line alone, so that prefix
+comes from his own Telegram client or a forwarder.
+
+**Proven.** Eleven deliberate breaks were each caught by `tests/unit/test_announce.py`: a
+ticked step read as housekeeping; an unchanged phase announced; a finished phase not
+called complete; a phase's boxes running into the next heading; an indented box counted
+as a step (missed on the first run; the tests now hold it); the plan compared with itself
+instead of the previous one; the housekeeping mark dropped; a plan with no phases sent
+anyway; the number dropped; the scenes count or the step count read from the old plan.
+
+**Reviewed.** A blind reviewer found one thing to fix: two tests expected the step in
+the live plan to be in phase 0, so ticking phase 0's last box, a documents change, would
+have turned the check red. They now hold any phase. Its minor point was taken too: when
+GitHub sends the previous plan in any form but base64 (it sends no content over 1 MB),
+the job now stops naming that cause, not a plan with no phases. Its other points are
+accepted as the design: a line naming two phases runs past sixty characters, and a box
+un-ticked, or a phase renamed, reads as "housekeeping".
