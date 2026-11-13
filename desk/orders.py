@@ -60,7 +60,8 @@ class Sale:
 
 
 class Refused(Exception):
-    """The pre-trade gate refused an order, saying why."""
+    """The desk refused an order before sending it, saying why: the pre-trade gate, or the
+    send path while the book is not the broker's."""
 
 
 @dataclass(frozen=True)
