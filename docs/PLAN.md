@@ -159,6 +159,17 @@ The grid lane needs it.
 - [ ] Leveraged-product lifecycle watched: an issuer's closure, a compulsory redemption or
       an ISA eligibility change on any line held or researched raises an alert (BIC-11)
 - [ ] Disk watched; old research files roll off by rule (OPS-07)
+- [ ] Deep history: daily bars back to 2000 wherever the archive has them, the calendars
+      carried back first; the old desk's Stooq store used only as a head start, every bar
+      re-checked on entry (DAT-03, BT-09)
+- [ ] A five-minute store, started now because the free archive keeps only about sixty days
+      of five-minute bars: each evening the twenty lines' five-minute bars are saved through
+      the same checks; the last week kept hot for reading, everything older archived, none
+      thrown away (DAT-11)
+- [ ] Kept hot, always: the runner runs the store's keeper after the US close and before the
+      London open on every trading day, a dated receipt each time; a line staler than one
+      session raises an alert, and a keeper that misses its slot raises one too (DQ-12,
+      DAT-07)
 
 ## Phase 2 — the money path, in simulation
 
@@ -259,6 +270,9 @@ back clean, and the check has been taught the desk's own resting stops. The acco
 old desk's (his ruling, 13 November), reached through IB Gateway's paper port 4002 on his
 PC with the desk's own client id (222), never 4001.
 
+- [ ] No paper order before the kill switch is drilled, held by the code: the adapter's
+      send refuses unless a drill record of the kill switch from the last 31 days exists,
+      and a contract test proves the refusal
 - [ ] The Gateway known before any order: its daily restart and the weekly re-login handled
       unattended. A re-login that needs his phone or password is his: a reminder line at the
       right time, never a workaround. The old desk's gateway alarms are a quarry only. (The
@@ -306,14 +320,16 @@ and nothing else beyond the standard library and `desk/`. Its ceiling rises from
 
 ### The grid lane's book
 
-**Lane objective:** the fast grid engine (`lab/`, numpy), proven first by a parity test
-against the desk's own engine on the golden data: the same decisions, day by day, or it is
-removed (canon B2).
+**Lane objective:** the unit of work on the grid engine (`lab/cell.py` on `lab/grid.py`):
+a cell's trades from the grid's answer, and from the desk's own engine whenever the grid
+refuses, the same record either way, the grid's file counted in the code version.
 
 - [x] The unit of work, keyed by code and data version (`lab/cell.py`)
 - [x] A batch service that survives a bad cell and a restart (`lab/batch.py`)
 - [x] Results kept, keyed by code and data version; only what changed is re-run (`lab/batch.py`)
-- [ ] The fast grid engine, its parity with the desk's engine proven on the golden data
+- [x] The fast grid engine, its parity with the desk's engine proven on the golden data
+      (`lab/grid.py`: the same position after every bar, or a refusal, never a guess)
+- [ ] The unit of work on the grid, the desk's engine deciding what the grid refuses
 - [ ] Auto-tune, so a pass can never take the PC down: a hard memory ceiling held by
       Windows itself (a Job Object on the workers, about 60% of the 64 GB); workers sized
       to free cores, two of the eight threads left free while markets are open (UK 08:00 to
@@ -371,6 +387,25 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       (STR-18)
 - [ ] Stress scenarios: the 2020 crash, flash crashes, a leveraged product's gap (2008 lies
       before the history) (TST-06)
+- [ ] **The eleven rungs made trustworthy before any verdict counts**, the old desk's
+      biggest failure (its rung audit of 20 October is the quarry): sample size by effective
+      trades; costs charged; a confidence interval; excess over the benchmark after the
+      market risk taken, judged by its size and not merely measured; at least two regime
+      windows; benchmark-relative excess judged by a confidence interval, not a sign; the
+      deflated Sharpe with the number of trials and their spread taken from one clustered
+      set; combinatorial purged cross-validation (or the probability of overfitting across
+      the whole roster); a placebo on blocks of days; walk-forward folds; a block bootstrap
+      that duplicates no other rung. Each rung proven alone: a planted edge passes it,
+      five hundred cells of pure noise pass it at about its stated rate and no more, a power
+      curve at three effect sizes, a broken copy of the rung caught, and each defect the old
+      audit found kept as a case that must fail (LAD-09, LAD-03, LAD-08)
+- [ ] **The eponymous strategies through the ladder first**, before any grid exploration:
+      the twenty-one published rules the old desk listed, ported one at a time as rules under
+      the one template, each with its author's source, instrument, period and published
+      figure written down, so that reproduction can run (the old desk's never did, for want
+      of the figures); each reproduced on its author's own market first, and only then judged
+      on ours. The bar for twenty-one trials is high and most are expected to fail: that is
+      the information (BT-15, STR-14)
 
 ## Phase 5 — the edge
 
