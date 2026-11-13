@@ -868,6 +868,41 @@ broker first, gating an order the broker already had (the blind review's one gap
 fill twice, overwriting the ledger, counting the order's shares as filled, dropping a
 reason, a silent disconnection, and a price read back rounded.
 
+### 2026-11-13 — the book: the ledger's fills, read by the gate
+
+**Decided**, by the lane as the desk's mentor (no one watching), for the gate and scene 5:
+
+1. **The book is the ledger's fills added up, line by line.** Never the orders meant, and
+   never the broker's own positions: the book is what the desk itself knows, so scene 6 can
+   compare the two. A position bought by hand at the broker is not in the book; finding it
+   is reconciliation's job, not the gate's.
+2. **The send path brings the ledger up to date before the gate looks.** It writes every
+   fill the broker made that the ledger lacks (`book.collect`), so a stop sold overnight,
+   which is in no order's answer, frees its holding before the next buy is judged. The
+   other option, leaving that to the day run, would let a caller that forgot judge a buy
+   against a book that still holds the stopped line.
+3. **A line's shares, held and ordered, are counted together at the order's price and
+   rate** against its one fifth. Options were the price paid, or today's price. Today's is
+   what the line is worth now, which is the risk the fifth limits; the price paid would
+   also need each fill's exchange rate, which the ledger does not keep. So a line that has
+   risen leaves less room for a second buy, and one that has fallen leaves more.
+4. **A sixth line is refused; a second buy of a held line is not a new holding.** The
+   sizer gives a second buy what is left of the fifth and passes it through the same gate,
+   so the rule lives in one place.
+5. **A ledger that sells more of a line than it bought is refused loudly**: the desk is long
+   only, so such a ledger is broken, and the book says which line.
+
+**Evidence.** `tests/unit/test_book.py` and `tests/unit/test_orders.py` failed first on the
+unbuilt book and the one-holding gate. Fifteen deliberate breaks were each caught: no
+collect before the gate, an empty book given to the gate, collect writing nothing, the
+book counting buys only, a line sold out still counted, the long-only check removed, sales
+counted as buys, the five-holding check removed or off by one, a held line counted as a new
+holding, held shares ignored or counted twice, the sizer not subtracting what is held, the
+sizer skipping the gate, and a full line sized to no shares. A blind review found nothing
+blocking: its fix (a stop sold on its buy's own day reached the book only on the next send)
+and its test gap (a crashed order's fill must count as a holding) are taken, the second
+driven by removing the first collect.
+
 ## DATA
 
 ### 2026-11-13 — the fourteen months are built; the scenes move onto them in two steps

@@ -1,8 +1,7 @@
 # The plan
 
-**Current objective:** the money lane's — the book built from the broker: what is held and
-what is left, so the gate enforces at most five holdings and two buys of one line share
-one fifth.
+**Current objective:** the money lane's — the day run: decisions dated that day only, a
+rule's position read from the book, round trips with their costs, so scene 5 passes.
 
 Scenes passing: **4 of 7**. Phase: **2-money-sim**.
 
@@ -109,16 +108,17 @@ scene 5. Scenes 1 to 3 keep passing on it.
 
 ### The money lane's book — scenes 4 to 7, in order
 
-**Lane objective:** the book built from the broker (`book.positions`): what is held and what
-is left, every fill the broker made written in the ledger (a stop's overnight sale
-included), so the gate enforces at most five holdings and two buys of one line share one
-fifth. The pretend broker and the send path are built; scene 4 passes.
+**Lane objective:** the day run (`day.run`), so scene 5 passes: decisions dated that day only,
+a rule's position read from the book, each buy sized from the book after the send before
+it, a sell that takes its line's resting stop away, and round trips with every cost. Scene
+2 counting each line's own days (asked by the data lane) comes first, so the scenes can
+move onto the fourteen months. The pretend broker, the send path and the book are built.
 
 - [x] The pretend broker: fills at the day's prices, rejects, partial fills, disconnection,
       a crash, resting stops, positions, and a position injected behind the desk's back
 - [x] The send path: every order through the one gate, sent once however often the desk
       restarts, its fills recorded under the broker's ids - **scene 4 passes**
-- [ ] The book built from the broker: what is held and what is left, so the gate enforces
+- [x] The book built from the broker: what is held and what is left, so the gate enforces
       at most five holdings and two buys of one line share one fifth
 - [ ] The day run: decisions dated that day only, a rule's position read from the book,
       round trips with their costs - **scene 5 passes** (needs the data lane's fourteen
