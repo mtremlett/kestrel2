@@ -26,7 +26,7 @@ from desk.listing import Listing, Unlisted
 from desk.paper import Resting
 
 ASK_FILLS, ASK_ENDED = 7, 99  #: what this module sends: two questions, neither places an order
-FILL, FILLS_END, FEE = "11", "55", "59"  #: the answers, by the gateway's own numbers
+FILL, FILLS_END = paper.FILL, "55"  #: the answers, by the gateway's own numbers
 ENDED, ENDED_END = "101", "102"
 NUMBER = "1"  #: the number the desk gives its one question, which the answers carry back
 SIDES = {"BOT": 1, "SLD": -1}  #: the broker's words for a fill that bought and one that sold
@@ -107,7 +107,7 @@ def _execution(fields: list[str]) -> Execution:
 def converse(wire: BinaryIO, send: paper.Send) -> tuple[Execution, ...]:
     """Ask over an open connection for every fill made on the account today, whoever's order
     made it, reading until the gateway says the list is whole. The broker's note of each
-    fill's fee is passed over."""
+    fill's fee is passed over (paper.other)."""
     paper.start(wire, send)
     send(paper.message(ASK_FILLS, 3, NUMBER, 0, "", "", "", "", "", ""))
     found: list[Execution] = []
@@ -117,7 +117,7 @@ def converse(wire: BinaryIO, send: paper.Send) -> tuple[Execution, ...]:
             found.append(_execution(fields))
         elif fields[0] == FILLS_END and fields[2:] == [NUMBER]:
             return tuple(found)
-        elif fields[0] != FEE:
+        else:
             paper.other(fields)
 
 

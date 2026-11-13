@@ -1,8 +1,9 @@
 """placing - THE PAPER ACCOUNT BEHIND THE SEND PATH: what the desk asks of any broker
-(broker.Broker), answered by the paper account through the one door (desk/paper.py). It
-answers every question but one: what the broker did with an order, the desk's fills, what
-the account holds, the stops resting on it, and the kill switch's cancel. PLACING IS NOT
-BUILT: `place` raises, and no order is sent.
+(broker.Broker), answered by the paper account through the one door (desk/paper.py): what
+the broker did with an order, the desk's fills, what the account holds, the stops resting on
+it, the kill switch's cancel, and the placing of a sale. A BUY IS NOT SENT YET: the stop a
+buy leaves resting is not built, and no buy goes without it; nor does a sale on a line under
+a stop of the desk's own, whose shares it could not take off that stop. Both raise.
 
 Each answer is read from the gateway afresh, in a conversation of its own. The fills, the
 open orders and the stops are the desk's own alone (desk/reports.py): anyone else's is not
@@ -11,28 +12,40 @@ account's; an ended order is known by its reference alone, for the broker's list
 names no client. An answer that cannot be read whole is an error raised. The broker tells
 of the day alone: an order or a fill of an earlier day is in the desk's ledger, or nowhere.
 
-One thing is sent that is no question, and only by the kill switch: a cancel for each order
-of the desk's own still working. A stop resting to sell what is held is never cancelled."""
+Two things are sent that are no question. An order, by `place` alone: after the day's
+check came back clean (clearance.require) and the gateway said it is ready (gateway.known).
+And a cancel, for an order of the desk's own still working: by the kill switch, and by
+`place` for what the broker did not fill. A stop resting to sell what is held is never
+cancelled."""
 
 from __future__ import annotations
 
-from collections.abc import Collection, Iterator, Mapping
+from collections.abc import Callable, Collection, Iterator, Mapping
+from dataclasses import replace
+from datetime import datetime
 from decimal import Decimal
+from pathlib import Path
 from typing import BinaryIO
 
-from desk import paper, reports
-from desk.broker import Fill, Report
+from desk import clearance, gateway, listing, paper, reports
+from desk.broker import Disconnected, Fill, Report
 from desk.listing import Listing, Unlisted
-from desk.orders import Order, Sale
+from desk.orders import Order, Refused, Sale
 from desk.paper import Resting
 
-CANCEL = 4  #: what this module sends that is no question: cancel one order, by its number
+PLACE, CANCEL = 3, 4  #: what this module sends that is no question: an order, and a cancel
+#: The rest of an order's message, after its reference: sent at once, under no other order,
+#: and every one of the broker's other choices left as the published client leaves it
+#: (ib_insync 0.9.86, in this version of the gateway's language; its source read, never
+#: imported): no condition, no algorithm, and no "what if", which only asks.
+PLAIN = (
+    "1|0|0|0|0|0|0|0||0.0||||||||0||-1|0|||0|||0|0||0||||||0|||||0|||||||||||0|||0|0|||0||0|0|0|0"
+    "|||||||0|||||||||0|0|0|0|||0||"
+).split("|")
 CANCELLED = "202"  #: the gateway's notice that an order was cancelled, as it was asked
 #: The broker's words for an order it will not work again: cancelled, or done.
 GONE = frozenset({"Cancelled", "ApiCancelled"})
 OVER = GONE | {"Filled"}
-#: What the gateway tells unasked of an order and its fills while it is being cancelled.
-PASSED = (paper.ORDER, reports.FILL, reports.FEE)
 
 
 class NotCancelled(Exception):
@@ -61,7 +74,7 @@ def _told(wire: BinaryIO, numbers: Collection[str]) -> Iterator[tuple[str, str, 
                 yield fields[1], fields[2], None
         elif fields[0] == paper.NEWS and len(fields) > 4 and fields[2] in numbers:
             yield fields[2], fields[4], fields[3]
-        elif fields[0] not in PASSED:
+        else:
             paper.other(fields)
 
 
@@ -84,14 +97,44 @@ def _cancel(wire: BinaryIO, send: paper.Send, numbers: Collection[str]) -> dict[
     return said
 
 
+def _place(
+    wire: BinaryIO, send: paper.Send, listed: Listing, sale: Sale
+) -> tuple[str, bool, tuple[str, ...]]:
+    """Send a sale over an open connection, once, and read the broker's word of it: the
+    number it went under, whether the broker says it is over (filled, or cancelled), and
+    every notice the broker gave of it. It goes at the market, for the day, to the broker's
+    router, the line by the broker's own number for it, under the number the gateway gave
+    at the start and the desk's order id as its reference. The reading ends when the order
+    is over, or when the gateway has said nothing for as long as the door waits
+    (paper.SECONDS): the order is then not over, and is the desk's to cancel. A gateway that
+    hangs up first is an error: the order may have arrived."""
+    number, line = str(paper.start(wire, send)), listed.line
+    line_there = (listed.contract, line.symbol, "STK", "", "0.0", "", "", listing.ROUTE, "")
+    asks = ("SELL", sale.quantity, "MKT", "", "", "DAY", "", "", "O", 0, sale.order_id)
+    send(paper.message(PLACE, number, *line_there, line.currency, *[""] * 4, *asks, *PLAIN))
+    notices: list[str] = []
+    try:
+        for _, word, code in _told(wire, (number,)):
+            if code is None:
+                return number, True, tuple(notices)
+            notices.append(f"{code}: {word}")
+    except TimeoutError:  #: the door's wait ran out in silence: its answer is "not over"
+        pass
+    return number, False, tuple(notices)
+
+
 class Paper:
     """The paper account, as a broker the send path, the day run and the kill switch can
     stand on."""
 
-    def __init__(self, listings: Mapping[str, Listing | Unlisted]) -> None:
+    def __init__(
+        self, listings: Mapping[str, Listing | Unlisted], root: Path, clock: Callable[[], datetime]
+    ) -> None:
         """listings is each of the desk's lines as the broker lists it now (listing.read):
-        by them a fill, an order and a holding are known as a line's."""
-        self._listings = dict(listings)
+        by them a fill, an order and a holding are known as a line's. root holds the desk's
+        record, the day's checks among it; clock gives the moment, in UTC. Both are read
+        only before an order is sent."""
+        self._listings, self._root, self._clock = dict(listings), root, clock
 
     def _orders(self) -> reports.Orders:
         return reports.orders(paper.read().orders, self._listings)
@@ -121,10 +164,48 @@ class Paper:
         return Report(order_id, fills, reason)
 
     def place(self, order: Order | Sale) -> Report:
-        raise NotImplementedError(
-            f"placing.Paper.place: {order.order_id} is not sent; no order is sent to the paper "
-            "broker until placing is built (docs/PLAN.md, the paper lane's book)"
-        )
+        """Send a sale to the paper broker and give its last answer (_place): what did not
+        fill within the door's wait is cancelled, never left working, and the answer is
+        what the broker then says it did with the order (report), with the notices it gave
+        when it did not fill whole. Nothing is sent, and the reason raised, unless the
+        broker lists the line, today's check of the account came back clean (Refused), and
+        the gateway says it is ready: Disconnected, the order never received. NOT BUILT, and
+        raised before anything is sent: a buy, for the stop it must leave; and a sale on a
+        line where a stop of the desk's own is open, held or not yet, for the shares it
+        must take off that stop. An error once the order has gone is not Disconnected: the
+        broker may have it, and is asked (report) before it is ever sent again."""
+        if isinstance(order, Order):
+            raise NotImplementedError(
+                f"placing.Paper.place: {order.order_id} is not sent; no buy is sent to the paper "
+                "broker until the stop it leaves is built (docs/PLAN.md, paper-stops)"
+            )
+        symbol, now = order.line.symbol, self._clock()
+        listed = self._listings.get(symbol)
+        if not isinstance(listed, Listing):
+            why = listed.reason if listed else "it was not asked for the line"
+            raise Refused(f"{order.order_id}: not sent, the broker does not list {symbol}: {why}")
+        clearance.require(self._root, now, order.order_id)
+        known = gateway.known(now)
+        if not known:
+            raise Disconnected(f"{order.order_id}: not sent, {known.words}")
+        if any(
+            reports.ours(o.client, o.ref) and reports.stop_to_sell(o) and o.state not in OVER
+            for o in paper.read().orders
+            if o.contract == listed.contract
+        ):
+            raise NotImplementedError(
+                f"placing.Paper.place: {order.order_id} is not sent; a stop of the desk's own is "
+                f"open on {symbol}, and taking a sale's shares off it is not built "
+                "(docs/PLAN.md, paper-stops)"
+            )
+        number, over, notices = paper.dial(lambda wire, send: _place(wire, send, listed, order))
+        if not over:
+            self._cancelled({number: order.order_id})
+        nothing = Report(order.order_id, (), f"{order.order_id}: the broker tells nothing of it")
+        report = self.report(order.order_id) or nothing
+        if report.reason is None or not notices:
+            return report
+        return replace(report, reason=f"{report.reason}; it said: {'; '.join(notices)}")
 
     def fills(self) -> tuple[Fill, ...]:
         """The desk's own fills of today, as its ledger keeps them (reports.fills)."""

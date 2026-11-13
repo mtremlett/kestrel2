@@ -90,6 +90,10 @@ def test_the_account_is_read_as_the_gateway_gives_it_and_nothing_else_is_sent() 
         ((("15", "1", "I7654321,DU0000001"), READY), paper.NotPaper, "I7654321"),
         ((("15", "1", ""), READY), paper.NotPaper, "''"),
         ((ACCOUNTS,), ConnectionError, "hung up"),
+        # ready, but with no number the desk's next order could go under
+        ((ACCOUNTS, ("9", "1")), ValueError, "next order"),
+        ((ACCOUNTS, ("9", "1", "-4")), ValueError, "next order"),
+        ((ACCOUNTS, ("9", "1", "41", "")), ValueError, "next order"),
     ],
 )
 def test_nothing_is_asked_until_the_gateway_is_ready_and_its_accounts_are_all_paper(
@@ -99,6 +103,8 @@ def test_nothing_is_asked_until_the_gateway_is_ready_and_its_accounts_are_all_pa
     with pytest.raises(error, match=saying):
         paper.converse(_wire(HELLO, *messages, *ENDS), sent.append)
     assert len(sent) == 2  # the greeting and the start: no question about the account
+    # once ready, the start gives the number the gateway takes the desk's next order under
+    assert paper.start(_wire(HELLO, ACCOUNTS, ("9", "1", "41")), sent.append) == 41
 
 
 @pytest.mark.parametrize(
