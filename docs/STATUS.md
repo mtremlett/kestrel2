@@ -54,6 +54,9 @@ everything on main, so two green lanes cannot combine into a red main.
   the weekly cap or needs his decision, and the 07:00 line, are sent by the runner on his
   PC from a file holding the bot key, which he copies beside the runner himself. Until he
   does, they are written to the runner's log only.
+- **A Windows Update restart overnight stops the lanes until he logs in.** The runner
+  starts at his logon; starting it without one needs his password in Task Scheduler,
+  which is his call. He is pausing updates.
 - **The lane guard judges whole files.** A lane may write in any part of a shared
   document; that it keeps to its own section is checked only by the daily audit.
 - **A newer ruff on the operator's PC calls the tree badly formatted.** Version 0.15
@@ -188,19 +191,18 @@ holding the market earned. It needs each line's UK tax from the data lane (below
 day: no rule holds anything at the end of the rehearsal data, on its six weeks or on the
 whole of it, so "the broker holds something" cannot be read there.
 
-### Asked of the data lane
+### Requests to DATA
 
-- Scene 2 now counts each line against its own venue's calendar: the scenes can move onto
-  the fourteen months (`SCENES_FROM = FIRST`). Scene 5 already reads them whole.
-- A daily exchange rate, pounds per dollar, in the store. The day run is handed the day's
-  rates (`day.trade`'s `rates`); the scenes give 0.79 every day.
-- **Each line's UK transaction tax as a fact on the line** (`Line`): what a purchase pays,
-  nil for a fund or an exchange-traded product, 0.5% stamp duty for a UK share, each of the
-  ten London lines confirmed. And **one London line in the rehearsal data that pays it**:
-  scene 7 requires every cost line charged at least once, and scenes 6 and 7 cannot pass
-  until the day's record can count the tax. This is what the money lane waits for.
-- The scenes moved onto the fourteen months (`SCENES_FROM = FIRST`): scene 7 needs days on
-  which the rules trade, and none trades in the six weeks.
+- [ ] R-MONEY-1 (blocking, opened 2026-11-13 18:15): each line's UK transaction tax as a fact on the line
+  (`Line`): what a purchase pays, nil for a fund or an exchange-traded product, 0.5% stamp
+  duty for a UK share, each of the ten London lines confirmed; and one London line in the
+  rehearsal data that pays it. Scene 7 requires every cost line charged at least once, and
+  scenes 6 and 7 cannot pass until the day's record can count the tax.
+- [ ] R-MONEY-2 (blocking, opened 2026-11-13 18:15): the scenes moved onto the fourteen months
+  (`SCENES_FROM = FIRST`). Scene 2 now counts each line against its own venue's calendar,
+  and scene 7 needs days on which the rules trade; none trades in the six weeks.
+- [ ] R-MONEY-3 (later, opened 2026-11-13 18:15): a daily exchange rate, pounds per dollar, in the store.
+  The day run is handed the day's rates (`day.trade`'s `rates`); the scenes give 0.79.
 
 ### Found, not fixed
 
@@ -357,14 +359,16 @@ step), read-only, so an order can name its line and a stop sits on a price the b
 accepts. Then the fills and orders the broker reports, then placing: no order until that
 day's check is clean. The check should be run again on a second day before the first order.
 
-### Asked of the money lane
+### Requests to MONEY
 
-- **One home for "the book against the broker".** `paper.differences` is that rule for
-  the real account; scene 6 (`day.run`) needs it against the pretend broker. One comparison
-  should serve both, in `desk/book.py`, taking the book and the broker's holdings; the
-  paper door would then hand it the account's entries and add only the orders.
-- **`book.send`, `book.collect` and `day.trade` name `Pretend` as the broker's type.** The
-  paper adapter needs them to accept anything with the same interface.
+- [ ] R-PAPER-1 (blocking, opened 2026-11-13 18:15): one home for "the book against the broker".
+  `paper.differences` is that rule for the real account; scene 6 (`day.run`) needs it
+  against the pretend broker. One comparison should serve both, in `desk/book.py`, taking
+  the book and the broker's holdings; the paper door would then hand it the account's
+  entries and add only the orders.
+- [ ] R-PAPER-2 (blocking, opened 2026-11-13 18:15): `book.send`, `book.collect` and `day.trade` accept
+  any broker with `Pretend`'s interface, not `Pretend` by name, so the paper adapter can
+  stand behind them.
 
 ### Found, not fixed
 
@@ -496,32 +500,28 @@ most of them real days of a real market. Decide and build how research reads the
 loosening the trading store. The scenes' move onto the whole fourteen months is ready on
 the money lane's side (`SCENES_FROM = FIRST`) and is a one-line session of its own.
 
-### Asked of the grid lane
+### Requests to GRID
 
-- **A cell must name its ticker's venue.** `lab/cell.py` accepts only the twenty trading
-  lines and knows a line by its symbol alone; the research list has thirteen symbols that
-  are two companies. Take a `Line` from `universe.UNIVERSE`, and read its bars from its
-  venue's folder: `store.read(root / line.venue, line.symbol)`.
-- **A parked research ticker keeps its sound bars** and can be read, but 201 of them hold
-  a move nobody has confirmed; `universe.keep` returns them by line with the reason.
-- **Every ticker is a member today.** A result over the past on this list has survivor
-  bias, and its report must say so (canon B6).
+- [ ] R-DATA-1 (later, opened 2026-11-13 18:15): a cell names its ticker's venue. `lab/cell.py` accepts
+  only the twenty trading lines and knows a line by its symbol alone; the research list has
+  thirteen symbols that are two companies. Take a `Line` from `universe.UNIVERSE`, and read
+  its bars from its venue's folder: `store.read(root / line.venue, line.symbol)`.
+- A parked research ticker keeps its sound bars and can be read, but 201 of them hold a
+  move nobody has confirmed; `universe.keep` returns them by line with the reason.
+- Every ticker is a member today: a result over the past on this list has survivor bias,
+  and its report must say so (canon B6).
 
-### Asked of the money lane
+### Requests to MONEY
 
-- **Scene 2's count assumes every line trades the same days.** It expects five rules times
-  nineteen lines times one list of days. Over fourteen months London and the US keep
-  different holidays, so the count must be each line's own: the number of bars each line
-  has, added up, times five. That reads the same on today's six weeks, so it can land
-  first. Driven: at full length scene 2 finds 28,925 decisions, every one present, and
-  expects 29,545. Its future-blind loop over all 311 days takes about twenty seconds; it
-  may cut on fewer days.
+- [x] R-DATA-2 (blocking, opened 2026-11-13 18:15): scene 2's count made each line's own, the number of
+  bars each line has, added up, times five (done by the money lane before requests were
+  numbered).
+- [ ] R-DATA-3 (later, opened 2026-11-13 18:15): the day run reads the archive through `archive.gather`
+  and hands its answers to `store.prepare` whole, so a refused line arrives as
+  `store.Refused` and parks with its reason; `day.run`'s `archive` parameter would then be
+  `Mapping[Line, Sequence[Bar] | Refused]`.
 - `SESSIONS` will then be every day either venue trades; a day run on it meets days only
   one venue trades (Thanksgiving, Easter Monday).
-- **The day run should read the archive through `archive.gather` and hand its answers to
-  `store.prepare` whole.** A refused line then arrives as `store.Refused` and parks with
-  its reason; `day.run`'s `archive` parameter would then be
-  `Mapping[Line, Sequence[Bar] | Refused]`.
 
 ### Found, not fixed
 
@@ -713,6 +713,11 @@ least commission eats at a small capital, and the same edge with too few trades.
 
 Luck correction that counts every trial: a winner is corrected for how many trials it was
 picked from, and every rung records that count (canon B6, AG-01).
+
+### Requests to MONEY
+
+- [ ] R-RUNGS-1 (later, opened 2026-11-13 18:15): a sale's own cost, spread and slippage in
+  `desk/orders.py`, from the desk's one cost model, so the first rung's costs are whole.
 
 ### Found, not fixed
 

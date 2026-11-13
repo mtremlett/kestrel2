@@ -37,6 +37,15 @@ table, and each lane's heading over its modules). A lane's branch that changes a
 file fails the check (`tests/guards/test_lanes.py`), and no change adds more than 300 net
 lines to `desk/` and `lab/` together.
 
+**A lane that needs another lane's file changed does not touch it.** It writes a numbered
+request in its own STATUS section, under `### Requests to <LANE>`:
+`- [ ] R-<ITS LANE>-<n> (blocking|later, opened YYYY-MM-DD HH:MM): what is needed and why`.
+The owning lane records `- R-<LANE>-<n>: done in #NN` (or `declined, because ...`) under
+`### Done for other lanes` in its own section, and the asker then ticks its request. The
+runner puts each lane's open requests at the top of its next session; a blocking one is
+that session's objective, before its own book. The 07:00 line counts the open requests,
+and one open for more than a day is sent to the operator.
+
 A new module is registered in `manifest.toml` under its lane's heading. A file no lane owns
 (`check.py`, `announce.py`, the guards, `BUDGET.json`, `CLAUDE.md`, `CANON.md`,
 `docs/SCENES.md`, `docs/FAILURE_PATTERNS.md`, the shared parts of the documents) is changed
@@ -104,6 +113,11 @@ The grid lane needs it.
       checks, a bad ticker parked with its reason (`universe.keep`): 864 clean, 201 parked
 - [ ] The research list's parked fifth: 201 tickers' large one-day moves confirmed, or a
       rule for research that needs no confirmation
+- [ ] The archive spared: fetching slow and resumable, with backoff, each raw answer cached
+      in the folder `KESTREL2_DATA` names (outside the repository and every worktree); while
+      the archive refuses, `{"refusing_since": <time>}` written to `KESTREL2_DATA/archive.json`
+      (null once it answers), so the runner tells the operator after six hours, and other work
+      done meanwhile rather than retrying
 - [ ] A home for the research store on his PC, refreshed nightly, a ticker that left a list
       cleared out, and the day and list it reflects written beside it
 - [ ] The lists' members year by year, so a study of the past is not the survivors' alone
@@ -245,6 +259,11 @@ back clean, and the check has been taught the desk's own resting stops. The acco
 old desk's (his ruling, 13 November), reached through IB Gateway's paper port 4002 on his
 PC with the desk's own client id (222), never 4001.
 
+- [ ] The Gateway known before any order: its daily restart and the weekly re-login handled
+      unattended. A re-login that needs his phone or password is his: a reminder line at the
+      right time, never a workaround. The old desk's gateway alarms are a quarry only. (The
+      runner already watches port 4002 and the account, read-only, and tells him when it stops
+      answering.)
 - [x] The read-only check of the paper account's positions and open orders against the
       desk's book, every mismatch named (`desk/paper.py`); run on the real account on 13
       November: quiet, no shares held and no order resting
