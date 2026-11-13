@@ -36,7 +36,7 @@ RECENT = 60
 #: taken as bad days in the wrong unit, not a lasting step. Any other fall and recovery, however
 #: short, may be real - a leveraged line can lose 40% and win it back - and parks as a step.
 BLIP = 20
-#: A run of this many sessions or more, each repeating the bar before it or flat at its close,
+#: A run of this many sessions or more, each repeating the bar before it or flat at its close
 #: with no volume, is a frozen feed, not a market: the twenty lines' longest real run since 2010
 #: is three sessions (2MU, December 2022). Its bars are dropped and listed.
 FROZEN = 5
@@ -162,10 +162,12 @@ def _priced(line: Line, sound: Sequence[Bar], faults: list[Fault]) -> list[Bar]:
 
 
 def _still(before: Bar, bar: Bar) -> bool:
-    """Nothing traded, and the bar repeats the one before it or sits flat at its close."""
+    """The bar repeats the one before it, its volume too or with none, or sits flat at its
+    close with none: no market prints the same bar day after day."""
     prices = (bar.open, bar.high, bar.low, bar.close)
     repeated = prices == (before.open, before.high, before.low, before.close)
-    return bar.volume == 0 and (repeated or all(p == before.close for p in prices))
+    flat = all(p == before.close for p in prices)
+    return (repeated and bar.volume in (0, before.volume)) or (flat and bar.volume == 0)
 
 
 def _thawed(kept: Sequence[Bar], faults: list[Fault]) -> list[Bar]:
