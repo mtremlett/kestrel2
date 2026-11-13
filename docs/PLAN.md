@@ -1,6 +1,7 @@
 # The plan
 
-**Current objective:** the money lane's — the kill switch and its drill (his ruling: first);
+**Current objective:** the money lane's — any broker behind the send path (the paper lane's
+R-PAPER-2), then the kill switch and its drill (his ruling: first of its own book);
 then the costs whole, then the day's record, with which scenes 6 and 7 pass together.
 
 Scenes passing: **5 of 7**. Phase: **2-money-sim**.
@@ -183,6 +184,21 @@ moved onto the fourteen months); R-MONEY-1 (each line's UK tax) is done.
 - [ ] Leveraged-product lifecycle watched: an issuer's closure, a compulsory redemption or
       an ISA eligibility change on any line held or researched raises an alert (BIC-11)
 - [ ] Disk watched; old research files roll off by rule (OPS-07)
+- [ ] **Hot every five minutes, paramount (his ruling, 13 November evening):** during each
+      venue's trading hours the keeper fetches every clean line's newest five-minute bar
+      every five minutes, checks it on entry, and updates every indicator the rules and the
+      crash watch read; a line whose bar is late, missing or out of line is parked at once
+      and not traded, and the other lines carry on; a line that comes clean comes back by
+      itself. The source's delay is measured and shown, never hidden (DQ-12, DAT-07, DAT-11)
+- [ ] The hot bars' first source is the broker: he already pays for IBKR's market data, so
+      the five-minute keeper reads live bars through IB Gateway's paper port, read-only, and
+      the free archive is the second source and the check on it; first prove, read-only,
+      that the paper account sees his live data and not the delayed kind, and if it does
+      not, say which setting he must turn on (DAT-02, DAT-07)
+- [ ] One fast store for hot and deep data, standard library only: SQLite in WAL mode with
+      one writer and many readers, held to benchmarks set now: a five-minute round for every
+      line written in under a second, a line's last week read in under 50 ms, a line's daily
+      history read in under 200 ms (DAT-04)
 - [ ] Deep history: daily bars back to 2000 wherever the archive has them, the calendars
       carried back first; the old desk's Stooq store used only as a head start, every bar
       re-checked on entry (DAT-03, BT-09)
@@ -207,7 +223,8 @@ moved onto the fourteen months); R-MONEY-1 (each line's UK tax) is done.
 
 ### The money lane's book — scenes 4 to 7, in order
 
-**Lane objective:** the kill switch, by his ruling of 13 November ("kill switch first"):
+**Lane objective:** first the paper lane's blocking request R-PAPER-2 (the step below: any
+broker behind the send path). Then the kill switch, by his ruling of 13 November ("kill switch first"):
 one command stops all new orders and cancels the open ones, the desk says so, and the drill
 is run against the pretend broker (the step below, EMG-02). The paper lane sends no order
 until it is drilled. After it, in order: the costs whole in the desk's one cost model
@@ -230,6 +247,11 @@ day's trading and reconciliation are built.
 - [x] Reconciliation, before every order: the desk's book against the broker's positions
       and resting stops, each line that differs named; nothing bought, and no such line
       sold, while they differ (`book.reconcile`, on the send path)
+- [x] One rule for "is the book the broker's?", for the pretend broker and the paper account
+      alike, entry by entry, the resting stops through it too (`book.differences`; the
+      paper lane's R-PAPER-1)
+- [ ] Any broker behind the send path and the day run, not the pretend one by name, giving
+      its holdings and stops as entries (the paper lane's R-PAPER-2)
 - [ ] The costs whole: a sale's own cost, and spread and slippage on both legs, the stop's
       sale included, in the one cost model; UK tax from a fact on each line (asked of the
       data lane)
@@ -245,6 +267,11 @@ day's trading and reconciliation are built.
 - [ ] **The kill switch, before the paper lane sends any order:** one command stops all new
       orders and cancels the open ones, and the desk says so; drilled before FIRST-LIGHT's
       first day and then monthly (EMG-02, canon B1)
+- [ ] **The crash watch, on the five-minute data:** every five minutes in trading hours it
+      reads the newest bars of every held and watched line and the market's own; a fall that
+      crosses the emergency thresholds halts all buying at once, alerts him immediately at
+      any hour, and records why; the protective sell across every position (STP-07) acts on
+      it once built (EMG-01, EMG-03)
 - [ ] Emergencies in numbers: an emergency, a crash and a black swan each defined by
       measured falls, each with its action (EMG-01)
 - [ ] Halts: a halt is a typed record; while one is in force the desk buys nothing and
@@ -286,13 +313,17 @@ Begun alongside phase 2 by his ruling of 13 November: "Five lanes, phase 3 now".
 ### The paper lane's book
 
 **Lane objective:** the real paper-broker adapter behind the same interface as
-`broker.Pretend`, in `desk/paper.py` with the standard library alone, built from what it
-reads towards what it sends: first each of the twenty lines as the broker knows it (its
-name, exchange and price step there), then the fills and orders the broker reports, then
-placing. It sends no order until that day's read-only check (`paper.mismatches`) has come
-back clean, and the check has been taught the desk's own resting stops. The account is the
-old desk's (his ruling, 13 November), reached through IB Gateway's paper port 4002 on his
-PC with the desk's own client id (222), never 4001.
+`broker.Pretend`, through the one door (`desk/paper.py`) with the standard library alone,
+built from what it reads towards what it sends. The account and each of the twenty lines as
+the broker lists it are read (`desk/listing.py`). Next, first a short step: the account
+check moved onto the money lane's one comparison (`book.differences`, R-PAPER-1, done in
+#52), so "is the book the broker's?" has one home. Then the fills and orders the broker
+reports, read-only, each fill's price turned from the broker's unit (pence on six London
+lines) back into the line's currency, and the desk's own orders told from anyone else's;
+then placing. It sends no order until that day's read-only check (`paper.mismatches`) has
+come back clean, and the check has been taught the desk's own resting stops. The account is
+the old desk's (his ruling, 13 November), reached through IB Gateway's paper port 4002 on
+his PC with the desk's own client id (222), never 4001.
 
 - [ ] No paper order before the kill switch is drilled, held by the code: the adapter's
       send refuses unless a drill record of the kill switch from the last 31 days exists,
@@ -305,6 +336,13 @@ PC with the desk's own client id (222), never 4001.
 - [x] The read-only check of the paper account's positions and open orders against the
       desk's book, every mismatch named (`desk/paper.py`); run on the real account on 13
       November: quiet, no shares held and no order resting
+- [x] Each of the twenty lines as the broker lists it, read-only: its number there, its
+      exchange, pence or pounds, and its price steps, with a price put down onto the
+      broker's step in the broker's unit (`desk/listing.py`); run on the real gateway on 13
+      November: twenty of twenty listed, six London lines priced in pence
+- [ ] The fills and the orders the broker reports, read-only: each fill under the broker's
+      id with its price back in the line's currency, and the desk's own orders and stops
+      told from anyone else's
 - [ ] The check run every day and before any order: the adapter refuses to send until
       that day's check is clean, and tells the desk's own resting stops from anyone else's
 - [ ] The real paper-broker adapter behind the same interface as `broker.Pretend`, speaking

@@ -16,10 +16,10 @@ from types import SimpleNamespace
 import pytest
 
 from desk import book, paper
-from desk.lines import Line
+from desk.lines import NO_TAX, Line
 from desk.paper import Account, Holding, Resting
 
-LINES = (Line("AAPL", "US", "USD", 1), Line("SMGB", "LSE", "GBP", 1))
+LINES = (Line("AAPL", "US", "USD", 1, NO_TAX), Line("SMGB", "LSE", "GBP", 1, NO_TAX))
 #: Messages as the real gateway sent them on 13 November 2026, the account's code changed,
 #: and AAPL's local name, so that a reader taking it for the symbol is caught.
 HELLO = ("176", "20261113 17:42:38 Greenwich Mean Time")
@@ -95,6 +95,7 @@ def test_nothing_is_asked_until_the_gateway_is_ready_and_its_accounts_are_all_pa
         ((ACCOUNTS, READY, FLAT), ConnectionError, "hung up"),
         ((("4", "2", "-1", "326", "client id is already in use", ""),), ConnectionError, "326"),
         ((ACCOUNTS, READY, ("4", "2", "-1", "1100", "lost", "")), ConnectionError, "1100"),
+        ((ACCOUNTS, READY, ("4", "2", "-1", "2157", "no look-up", "")), ConnectionError, "2157"),
         ((ACCOUNTS, ("99", "1")), ValueError, "99"),
         ((ACCOUNTS, ()), ValueError, "cut short"),
         ((("15", "1"),), ValueError, "cut short"),
