@@ -405,7 +405,8 @@ alone, and its bars are read from its venue's folder. Then auto-tune.
       (`lab/grid.py`: the same position after every bar, or a refusal, never a guess)
 - [x] The unit of work on the grid, the desk's engine deciding what the grid refuses
 - [ ] A cell names its ticker's venue: a `Line` of the research list, its bars read from
-      its venue's folder (R-DATA-1)
+      its venue's folder (R-DATA-1) {id: grid-venue; files: lab/cell.py, lab/batch.py,
+      tests/unit/test_lab_cell.py, tests/unit/test_lab_batch.py}
 - [ ] Auto-tune, so a pass can never take the PC down: a hard memory ceiling held by
       Windows itself (a Job Object on the workers, about 60% of the 64 GB); workers sized
       to free cores, two of the eight threads left free while markets are open (UK 08:00 to
@@ -414,15 +415,24 @@ alone, and its bars are read from its venue's folder. Then auto-tune.
       about 25% free memory or above about 85% CPU and stepping back up with room; peak
       memory and CPU logged for each pass. Proven: a deliberately memory-hungry cell is
       killed by the ceiling, the PC stays responsive and the batch carries on
-- [ ] The grid's first pass over the research universe: every strategy at every setting on
-      every ticker, each cell kept by code and data version
-- [ ] Runs seven days without stopping
+      {id: grid-tune; files: lab/tune.py, tests/unit/test_lab_tune.py, manifest.toml}
 - [ ] The cell's key carries the cost model's version and the rung's code, so a change to
-      either re-runs what it touches (BT-04)
+      either re-runs what it touches (BT-04) {id: grid-key; files: lab/cell.py,
+      tests/unit/test_lab_cell.py; after: grid-venue}
+- [ ] The grid's first pass over the research universe: every strategy at every setting on
+      every ticker, each cell kept by code and data version {id: grid-pass; files:
+      lab/sweep.py, lab/batch.py, lab/tune.py, tests/unit/test_lab_sweep.py,
+      tests/unit/test_lab_batch.py, tests/unit/test_lab_tune.py, manifest.toml; after:
+      grid-venue, grid-tune, grid-key}
+- [ ] Runs seven days without stopping {id: grid-week; files: lab/batch.py, lab/sweep.py,
+      lab/tune.py, tests/unit/test_lab_batch.py, tests/unit/test_lab_sweep.py,
+      tests/unit/test_lab_tune.py; after: grid-pass}
 - [ ] Each strategy judged on its own declared universe; the everything-on-everything grid
       kept as a transfer study, never a verdict; sweeps on the declared universe (LAD-01,
-      LAD-13)
-- [ ] A full sweep within a weekend, its time measured (LAD-10)
+      LAD-13) {id: grid-declared; files: lab/sweep.py, tests/unit/test_lab_sweep.py; after:
+      grid-week}
+- [ ] A full sweep within a weekend, its time measured (LAD-10) {id: grid-weekend; files: *;
+      after: grid-declared}
 
 ### The rungs lane's book
 
