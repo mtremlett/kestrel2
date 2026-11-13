@@ -36,7 +36,7 @@ PART = ("3", "7", "Submitted", "4", "6", "171.4", "1234567", "0", "171.4", "31",
 ENDS = (("62", "1"), ("53", "1"))
 SMGB = Holding("DU0000001", "SMGB", "STK", "GBP", Decimal(25))
 LIVE = ("15", "1", "U7654321")
-HEAD = ("1234567", "31", "DU0000001", "AAPL", "SELL", Decimal(10), "STP", "265598")
+HEAD = ("1234567", "7", "31", "DU0000001", "AAPL", "SELL", Decimal(10), "STP", "265598")
 AAPL_STOP = Resting(*HEAD, "20261112-rsi2-AAPL-stop", "PreSubmitted", Decimal(10))
 TWO = "SMGB STK GBP: the broker holds {} in one of 2 entries, the desk's book {}"
 
@@ -74,10 +74,11 @@ def test_the_account_is_read_as_the_gateway_gives_it_and_nothing_else_is_sent() 
         b"\x00\x00\x00\x0a71\x002\x00222\x00\x00",  # start, as the desk's own client
         b"\x00\x00\x00\x0561\x001\x00\x00\x00\x00\x0516\x001\x00",  # positions; open orders
     ]
-    # the lists end either way; an order is read from its head alone, and stands where the
-    # broker last said, for the shares still to be done, wherever its state comes
-    late, _ = _read(ACCOUNTS, READY, STATUS, STOP[:26], PART, ENDS[1], HELD, ENDS[0])
-    assert late == Account((SMGB,), (replace(AAPL_STOP, state="Submitted", left=Decimal(6)),))
+    # the lists end either way; an order is read from its head alone, under its own number
+    # at its client, and stands where the broker last said, wherever its state comes
+    late, _ = _read(ACCOUNTS, READY, STATUS, _but(STOP[:26], 1, "9"), PART, ENDS[1], HELD, ENDS[0])
+    part = replace(AAPL_STOP, number="9", state="Submitted", left=Decimal(6))
+    assert late == Account((SMGB,), (part,))
 
 
 @pytest.mark.parametrize(

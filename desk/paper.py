@@ -71,6 +71,11 @@ class Holding:
         if not (self.kind.isalnum() and self.currency.isalnum() and self.shares.is_finite()):
             raise ValueError(f"a holding the desk cannot trust: {self}")
 
+    @property
+    def name(self) -> str:
+        """What it is compared under: the same symbol in another currency is another thing."""
+        return f"{self.symbol} {self.kind} {self.currency}"
+
 
 @dataclass(frozen=True)
 class Resting:
@@ -78,6 +83,7 @@ class Resting:
     it, and for how many shares, is its state: an order refused or part done is listed too."""
 
     broker_id: str  #: the broker's own lasting id for the order
+    number: str  #: the order's number at the client that placed it: that client cancels it by it
     client: str  #: the client id that placed it
     account: str
     symbol: str
@@ -151,10 +157,10 @@ def _order(fields: list[str], states: Mapping[str, tuple[str, Decimal]]) -> Rest
     order the desk can read."""
     if len(fields) < 26:
         raise ValueError(f"an order of a shape the desk does not read: {fields}")
-    contract, symbol, action, shares, kind, account, ref, client, broker_id = (
-        fields[n] for n in (2, 3, 13, 14, 15, 20, 23, 24, 25)
+    its, contract, symbol, action, shares, kind, account, ref, client, broker_id = (
+        fields[n] for n in (1, 2, 3, 13, 14, 15, 20, 23, 24, 25)
     )
-    head = (broker_id, client, only(account), symbol, action, number(shares, fields), kind)
+    head = (broker_id, its, client, only(account), symbol, action, number(shares, fields), kind)
     if broker_id not in states:
         raise ValueError(f"an order the broker told no state of, by its id for it: {broker_id}")
     return Resting(*head, contract, ref, *states[broker_id])
@@ -247,6 +253,11 @@ def differences(
     unknown = sorted(set(held) - set(known))
     if unknown:
         raise ValueError(f"the book holds lines the desk was not given: {unknown}")
-    ours = {f"{s} STK {known[s].currency}": shares for s, shares in held.items()}
-    rows = [(f"{h.symbol} {h.kind} {h.currency}", h.shares) for h in account.holdings]
-    return named(ours, rows, "the broker holds")
+    ours = {own(known[symbol]): shares for symbol, shares in held.items()}
+    return named(ours, [(h.name, h.shares) for h in account.holdings], "the broker holds")
+
+
+def own(line: Line) -> str:
+    """The name a holding of the desk's line goes under (Holding.name): a share or a fund,
+    in the line's currency."""
+    return f"{line.symbol} STK {line.currency}"

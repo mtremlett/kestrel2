@@ -1,6 +1,7 @@
 """reports - WHAT THE PAPER BROKER SAYS WAS DONE, AND WHOSE IT IS: the fills made on the
-paper account today, asked through the one door (desk/paper.py), and each fill and each
-resting order told apart as the desk's own or anyone else's. Only a question is sent.
+paper account today and the orders ended on it, asked through the one door (desk/paper.py),
+and each fill and each resting order told apart as the desk's own or anyone else's. Only
+questions are sent.
 
 The desk's own is what the desk's own client placed under an order id of the desk's, which
 the broker carries as the order's reference. A fill of the desk's own comes back as the
@@ -24,8 +25,9 @@ from desk.broker import Fill
 from desk.listing import Listing, Unlisted
 from desk.paper import Resting
 
-ASK_FILLS = 7  #: what this module sends: one question, which places no order
+ASK_FILLS, ASK_ENDED = 7, 99  #: what this module sends: two questions, neither places an order
 FILL, FILLS_END, FEE = "11", "55", "59"  #: the answers, by the gateway's own numbers
+ENDED, ENDED_END = "101", "102"
 NUMBER = "1"  #: the number the desk gives its one question, which the answers carry back
 SIDES = {"BOT": 1, "SLD": -1}  #: the broker's words for a fill that bought and one that sold
 #: When a fill was made, as the gateway tells it: the day and the time, on a clock it names.
@@ -122,6 +124,45 @@ def converse(wire: BinaryIO, send: paper.Send) -> tuple[Execution, ...]:
 def read() -> tuple[Execution, ...]:
     """Every fill the paper broker made on the account today, as the gateway gives them now."""
     return paper.dial(converse)
+
+
+@dataclass(frozen=True)
+class Ended:
+    """An order the broker will not work again, as it lists it among the day's ended ones.
+    That list names no client (38 real ones seen), so whose an order is rests on its
+    reference alone; and the shares it gives as the order's are those never done."""
+
+    ref: str  #: the reference it was placed under: on the desk's own, the desk's order id
+    state: str  #: the broker's word for how it ended: "Filled", "Cancelled"
+    filled: Decimal
+    left: Decimal  #: the shares never done: none on one filled whole
+
+
+def finished(wire: BinaryIO, send: paper.Send) -> tuple[Ended, ...]:
+    """Ask over an open connection for every order ended on the account today, whoever
+    placed it, reading until the gateway says the list is whole."""
+    paper.start(wire, send)
+    send(paper.message(ASK_ENDED, 0))
+    found: list[Ended] = []
+    while True:
+        fields = paper.receive(wire)
+        if fields == [ENDED_END]:
+            return tuple(found)
+        if fields[0] != ENDED:
+            paper.other(fields)
+        elif len(fields) != 101:
+            raise ValueError(f"an ended order of a shape the desk does not read: {fields}")
+        else:
+            left, account, ref, state, filled = (fields[n] for n in (13, 19, 22, 77, 87))
+            paper.only(account)
+            done = paper.number(filled, fields), paper.number(left, fields)
+            found.append(Ended(ref, state, *done))
+
+
+def ended() -> tuple[Ended, ...]:
+    """Every order ended on the account today, whoever placed it, as the gateway lists them
+    now: the filled and the cancelled."""
+    return paper.dial(finished)
 
 
 def ours(client: str, ref: str) -> bool:
