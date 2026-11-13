@@ -363,9 +363,12 @@ his PC with the desk's own client id (222), never 4001.
       exchange, pence or pounds, and its price steps, with a price put down onto the
       broker's step in the broker's unit (`desk/listing.py`); run on the real gateway on 13
       November: twenty of twenty listed, six London lines priced in pence
-- [ ] The fills and the orders the broker reports, read-only: each fill under the broker's
+- [x] The fills and the orders the broker reports, read-only: each fill under the broker's
       id with its price back in the line's currency, and the desk's own orders and stops
-      told from anyone else's {id: paper-reports; files: desk/reports.py, desk/paper.py,
+      told from anyone else's (`desk/reports.py`, #86; real gateway 13 November: 21 fills,
+      none the desk's, no order open; before real fills are written, the broker's later
+      corrections of a fill, R-PAPER-5; the true shape of an open order is seen on the first
+      real one) {id: paper-reports; files: desk/reports.py, desk/paper.py,
       tests/unit/test_reports.py, tests/unit/test_paper.py, manifest.toml}
 - [ ] The Gateway known before any order: its daily restart and the weekly re-login handled
       unattended. A re-login that needs his phone or password is his: a reminder line at the
@@ -479,13 +482,13 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
 - [x] Luck correction counting every trial: a verdict's chance multiplied by the number of
       trials it was picked from, one combined 5% test across the set, the count kept on
       every corrected verdict (`lab/luck.py`)
-- [ ] In-sample and out-of-sample folds, side by side after costs, the worst fold reported
+- [x] In-sample and out-of-sample folds, side by side after costs, the worst fold reported
       and judged on
       {id: rungs-folds; files: lab/folds.py, tests/unit/test_lab_folds.py, manifest.toml}
-- [ ] The count kept from batch to batch: one register of every trial ever tried on a
+- [x] The count kept from batch to batch: one register of every trial ever tried on a
       question, a dropped candidate included, so no later batch can start the count again
       {id: rungs-trials; files: lab/trials.py, tests/unit/test_lab_trials.py, manifest.toml}
-- [ ] The luck test fixed before any result: a deflated Sharpe with bands of 0.90 and 0.50,
+- [x] The luck test fixed before any result: a deflated Sharpe with bands of 0.90 and 0.50,
       one combined 5% test across the set, a daily Sharpe above 2 flagged, and one verdict
       rule over the named rungs (LAD-03, LAD-08, LAD-09)
       {id: rungs-deflated; files: lab/deflated.py, tests/unit/test_lab_deflated.py, manifest.toml}
