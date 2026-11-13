@@ -171,8 +171,9 @@ def test_any_broker_stands_behind_the_send_path_its_rows_read_once_and_never_add
     assert door.read == 6, "the broker's holdings read more than once for an order"
     door.rows = []
     assert _send(tmp_path, door, "o-3").filled == 10
-    door.resting = [("A", 6), ("A", Decimal(4))]  #: nor are two stops added up to the line's
-    assert book.reconcile(tmp_path, door) == ("A",)
+    for second in (Decimal(4), 10):  #: nor are two stops added up, or one dropped
+        door.resting = [("A", 6), ("A", second)]
+        assert book.reconcile(tmp_path, door) == ("A",)
     door.resting = []
     door.between.append(lambda: pretend.open(TUE))  #: A's stop sells while the broker is read
     with pytest.raises(Refused, match=r"s-3: .*\['A'\]"):  #: or its sale would sell A short

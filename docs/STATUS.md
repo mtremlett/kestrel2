@@ -93,15 +93,14 @@ Last updated: 13 November 2026 (any broker behind the send path).
 Scenes 5 of 7. Built and real (its decisions in `docs/DECISIONS.md`): the five rules
 (`strategy`); sizing, cost and the gate (`orders`); the pretend broker (`broker`); the send
 path, the ledger, the book and reconciliation on one comparison (`book`); the day's trading
-(`day.trade`). Any broker can stand behind them (`broker.Broker`: five questions, holdings
-and stops as entries, read once for each order). Unfinished, raising NotImplementedError by
-design: `day.run`, the day's record (phase 2); scenes 6 and 7 both read it, so pass together.
+(`day.trade`), behind which any broker can stand (`broker.Broker`). Unfinished, raising
+NotImplementedError by design: `day.run`, the day's record; scenes 6 and 7 pass together on it.
 
 ### Next step
 
 The kill switch and its drill (EMG-02; his ruling: first of the lane's own book), cancelling
 a sixth question of any broker. Then the costs whole (R-RUNGS-1), and the day's record
-(`day.run`), scene 6 moved onto the fourteen months.
+(`day.run`), scene 6 checking the book against the broker's on every day.
 
 ### Done for other lanes
 
@@ -113,14 +112,13 @@ a sixth question of any broker. Then the costs whole (R-RUNGS-1), and the day's 
 
 ### Requests to DATA
 
-- [ ] R-MONEY-2 (blocking, opened 2026-11-13 18:15): the scenes moved onto the fourteen months.
+- [x] R-MONEY-2 (blocking, opened 2026-11-13 18:15): the scenes moved onto the fourteen months.
 - [ ] R-MONEY-3 (later, opened 2026-11-13 18:15): a daily rate, pounds per dollar, in the store.
 
 ### Found, not fixed
 
-- **Costs:** spread, slippage and UK tax are in no fill, round trip, `orders.cost` or the gate
-  yet; money has no one rounding policy (to the penny); the fees are IBKR UK's fixed schedule,
-  not the tiered one; scene 3 does not part the currency cost from commission.
+- **Costs:** spread, slippage and UK tax are charged nowhere yet; no one rounding policy (to
+  the penny); fees are IBKR UK's fixed schedule, not tiered; scene 3 mixes currency and fees.
 - **Nobody is told of a mismatch yet.** Until someone acts, a line whose stop was cancelled is
   unprotected, and one partly sold by hand keeps a stop for more shares than are held.
 - **The ledger** is not forced to disk, and a lost one reads as "no fills" without a word.
@@ -130,9 +128,9 @@ a sixth question of any broker. Then the costs whole (R-RUNGS-1), and the day's 
   reads the archive it is handed (R-DATA-3), and has no halt to read yet.
 - **The rules:** a decision depends on where the history starts; "warming up" and "staying
   out" both read as hold; twenty days means twenty bars; the true range lives in `strategy`.
-- **For the paper adapter:** fills must be the desk's own orders and stops only; orders still
-  working must be counted by the gate and by reconciliation; a connection lost while reading
-  is not a stated answer; a stop on a line the book lacks needs its own test there.
+- **For the paper adapter:** an order still working is in none of the five answers, so `place`
+  must answer finally or the gate overbuys; a resting order that is no sell stop is unseen; a
+  stop's level is never compared; a connection lost while reading is not a stated answer.
 - **Untested at the pretend broker:** `inject` on any symbol; a planted position beside the
   desk's stop; a partial fill of one share; several stops sold on one open.
 
