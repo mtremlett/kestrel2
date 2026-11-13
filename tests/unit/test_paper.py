@@ -37,6 +37,7 @@ ENDS = (("62", "1"), ("53", "1"))
 SMGB = Holding("DU0000001", "SMGB", "STK", "GBP", Decimal(25))
 LIVE = ("15", "1", "U7654321")
 AAPL_STOP = Resting("1234567", "31", "DU0000001", "AAPL", "SELL", Decimal(10), "STP")
+TWO = "SMGB STK GBP: the broker holds {} in one of 2 entries, the desk's book {}"
 
 
 def _wire(*messages: Sequence[str]) -> io.BytesIO:
@@ -155,10 +156,12 @@ def test_a_book_that_is_the_brokers_has_no_difference() -> None:
         (_smgb(), {"SMGB": 25}, "SMGB STK GBP: the broker holds 0, the desk's book 25"),
         (_smgb(25), {"SMGB": 24}, "SMGB STK GBP: the broker holds 25, the desk's book 24"),
         (_smgb(-25), {"SMGB": 25}, "SMGB STK GBP: the broker holds -25, the desk's book 25"),
-        # rows that add up to the book are not the book: two places, or a change mid-reading
-        (_smgb(20, 5), {"SMGB": 25}, "SMGB STK GBP: the broker holds 5, the desk's book 25"),
-        (_smgb(25, 0), {"SMGB": 25}, "SMGB STK GBP: the broker holds 0, the desk's book 25"),
-        (_smgb(25, -25), {}, "SMGB STK GBP: the broker holds -25, the desk's book 0"),
+        # a line in two entries is never the book's one line: two places, or a change mid-reading
+        (_smgb(20, 5), {"SMGB": 25}, TWO.format(5, 25)),
+        (_smgb(25, 0), {"SMGB": 25}, TWO.format(0, 25)),
+        (_smgb(25, -25), {}, TWO.format(-25, 0)),
+        (_smgb(25, 5), {"SMGB": 25}, TWO.format(25, 25)),  # the entry that matches is named too
+        (_smgb(25, 25), {"SMGB": 25}, TWO.format(25, 25)),  # each the book's shares: twice the book
         (
             Account((replace(SMGB, currency="EUR"),), ()),
             {"SMGB": 25},
