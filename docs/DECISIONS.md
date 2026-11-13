@@ -951,6 +951,16 @@ takes one; the money lane may cut on fewer days.
 
 **Evidence.** Tests seen failing first. Six deliberate breaks, each caught: no handling at all; the answer's refusals not handled; every error handled; old bars left in place; the refusal dated too long ago to park; its reason dropped. A blind review found that a half-delivered answer (`IncompleteRead`) still stopped everything; it was made a failing test and fixed.
 
+### 2026-11-13 — what a frozen feed is, and what the store does with one
+
+**The question.** The archive can go on sending yesterday's bar as if it were today's. How many days of one repeated price make a frozen feed, which bars count, and what becomes of them?
+
+**Options.** (a) Any single day of one price and no volume: thin London lines have such days often (2MU has 441 days with no volume since 2010), so this would park real lines. (b) A run of three: 2MU really has runs of three. (c) A run of five sessions, a trading week, each bar repeating the one before it (its volume too, or with none) or flat at its close with nothing traded; a flat day that traded stays a market. Its bars dropped as untrue and listed, the fault dated by the run's last day, so a run reaching the last sixty sessions parks the line, as any recent fault does.
+
+**Chosen.** (c). It is what the north star needs: the desk never decides on a price the market did not make, and no line that trades is parked for being quiet. A week with no trade at all is also reason enough not to trade a line. Dropping, not keeping, the bars: kept, they would hand the strategies a calm week that never happened. Whether the archive or the market went quiet, the line waits until a real price arrives.
+
+**Evidence.** The twenty lines from the archive on 13 November: the longest real run is three sessions (2MU, December 2022); after the rule the same four lines park, for their old reasons, and no clean line has a frozen fault. Tests seen failing first. Nine deliberate breaks, each caught: the run made four and six; a traded repeat counted; a flat traded day counted; each kind of repeat removed; a whole repeat with volume let through; the rule switched off; the bars kept. A tenth, dating the fault by the run's first day, cannot change an outcome: the dropped days are also missing sessions, which park the line on their own. A blind review found nothing blocking; its point that a whole repeat, volume too, is a frozen feed was taken; its other points are in `docs/STATUS.md`.
+
 ## LADDER
 
 ### 2026-11-13 — the ladder's unit of work: days only, the whole history, keyed by what it read

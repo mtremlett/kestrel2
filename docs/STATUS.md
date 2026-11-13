@@ -271,11 +271,19 @@ whole fetch. Its tests were seen failing first; six deliberate breaks were each 
 blind review's one blocking finding (a half-delivered answer stopped everything) was made a
 failing test and fixed.
 
+A frozen feed is now caught: five sessions or more in a row, each repeating the bar before
+it (its volume too, or with none) or flat at its close with nothing traded, are dropped and
+listed, and the line parks if the run reaches the last sixty sessions. On the real archive
+the twenty lines' longest such run since 2010 is three sessions (2MU, December 2022), so it
+parks no clean line: the same four stay parked, for their old reasons. Tests seen failing
+first; nine deliberate breaks each caught; a blind review, nothing blocking, its one design
+point taken (a bar repeated whole, volume too, is frozen).
+
 ### Next step
 
 Move the scenes onto the whole fourteen months - one line, `SCENES_FROM = FIRST` - as soon
-as the money lane's scene 2 counts each line's own days. Meanwhile: the store's open
-findings, below, starting with a frozen feed.
+as the money lane's scene 2 counts each line's own days (not yet, at #29). Meanwhile: the
+store's next open finding, below: a suspension gap.
 
 ### Asked of the money lane
 
@@ -343,7 +351,6 @@ findings, below, starting with a frozen feed.
     saved beside its bars, but not whether they parked it), and a line dropped from the
     archive leaves its old files readable. The day run (phase 2)
     must read parking from the prepare it runs.
-  - A frozen feed (the same bar repeated with no volume) is not caught.
   - A vendor that leaves out a day a line did not trade (a suspension) parks the line
     for as long as that gap is in its history.
 - **What the blind review of the refused line left open:**
@@ -356,6 +363,12 @@ findings, below, starting with a frozen feed.
   - An answer of an unknown shape (a missing field) stops the whole fetch, by design: it
     would hit every line alike.
   - Nothing in the product calls `archive.gather` yet; the day run (phase 2) will.
+- **What the blind review of the frozen feed left open:**
+  - A freeze younger than five sessions is not caught: up to four days of a stale price
+    can be traded on. Lowering the five would park real lines (2MU has runs of three).
+  - A run whose first stale day already sits flat, with no volume, at a new price counts
+    from the day after it, so it needs one session more to be caught.
+  - A frozen run's days are also counted as missing sessions, so its reason says it twice.
 
 ## LADDER
 
