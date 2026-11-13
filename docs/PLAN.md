@@ -143,13 +143,19 @@ strategy template.
 
 ### The ladder lane's book
 
-**Lane objective:** the ladder's first rung, proven: it catches a planted edge and rejects a
-planted non-edge, each shown by its own contract test on synthetic bars, with its costs.
+**Lane objective:** the ladder reproduces a published strategy's own published result: one
+of the five, run through the cell and the first rung on the history its author used, lands
+on the published figure, or the gap is explained trade by trade.
 
 - [x] The unit of work, keyed by code and data version (`lab/cell.py`)
 - [x] A batch service that survives a bad cell and a restart (`lab/batch.py`)
 - [x] Results kept, keyed by code and data version; only what changed is re-run (`lab/batch.py`)
-- [ ] Each rung proven: it catches a planted edge and rejects a planted non-edge
+- [x] The first rung proven: it catches a planted edge and rejects a planted non-edge, after
+      the broker's costs and the desk's own stop (`lab/rung.py`)
+- [ ] Its costs whole: spread, slippage and the sale's own fees, from the desk's one cost
+      model once the money lane has them; and a rate of exchange for each day
+- [ ] Each later rung proven the same way: luck-corrected for every trial, judged on its
+      worst fold (AG-01)
 - [ ] Reproduces a published strategy's own published result
 - [ ] Runs seven days without stopping
 

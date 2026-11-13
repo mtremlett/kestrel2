@@ -1051,3 +1051,43 @@ found the same gap: no test could tell a kept result from one worked out again. 
 the rule's real runs was added; the five breaks it should catch were driven again and all
 caught. Two remain, both in the unit of work's own fingerprint and owed to its contract
 test: a change of volume alone, and two bars on one day (`docs/STATUS.md`).
+
+### 2026-11-13 — the ladder's first rung: thirty trades, two standard errors, after costs
+
+**Decided.** A strategy passes the first rung on a line (`lab/rung.py`) when it made at least
+thirty judged trades and the average of their returns after costs is at least two standard
+errors above nothing. Each trade is sized by the desk's own sizer at the close it was
+decided on, bought at the next open through the desk's own pretend broker with its stop
+resting there, and sold by that stop or at the open after the rule's sell. Both legs are
+priced by the desk's one cost model, and every verdict names the broker whose schedule
+priced it.
+
+**The choices, and why.**
+- *What is judged.* Options: total profit; the profit per day; the return of each trade.
+  Chosen: each trade's return after costs, on the pounds paid. Trades are separate bets,
+  so their spread measures how much of the average is luck; days inside one trade are not.
+- *The bar.* Options: any profit after costs; two standard errors; a stricter bar now.
+  Chosen: two standard errors and thirty trades, the textbook bar. Many cells tried at
+  once will throw up chance winners at this bar (about one in forty), which is why AG-01
+  asks for a luck correction for every trial: that is a rung of its own, in the book.
+- *The fills.* Options: the rule's own days only; the desk's fills and stop. Chosen: the
+  desk's. The blind review showed that leaving out the stop the desk always sets would
+  judge trades the desk never makes. The stop is the pretend broker's own, never a copy.
+- *A sale's cost.* The desk's cost model prices only a buy. Options: wait for the money
+  lane; write a sale's fee in the ladder; charge a sale what a buy of the same shares costs
+  beyond its value. Chosen: the last, through the one model; on dollars it charges a little
+  more than the truth, never less. A sale's own cost is asked of the money lane.
+- *Trades not judged.* One still held at the window's end, or sold on its last day, has
+  no sale price inside the window, and the rung reads nothing after it.
+
+**Evidence.** Five contract tests. On a hand-made trade every number is worked by hand, in
+pounds and in dollars, and the stop sells it. A planted edge passes on eight random
+histories (forty tried, all passed) and no edge fails on eight (forty tried, none passed,
+the highest 0.51 standard errors); an edge the £3 least commission eats at a £500 capital
+fails, though it stood over three standard errors before costs; and fixtures sit either
+side of each bar (1.98 fails, 2.14 passes; 29 trades fail, 30 pass). Thirty-five deliberate
+breaks were driven over two rounds; the first left six alive, showing the tests too loose,
+and the fixtures were rebuilt. Every break is now caught but two that cannot differ ("over
+2" for "2 or over", and the arithmetic setting). The blind review's two blocking findings
+(the stop left out, the statistic left loose) are fixed; the rest is in `docs/STATUS.md`.
+The tests were written after the module, not seen failing first; the breaks stand in.

@@ -394,13 +394,40 @@ A result is now kept by what made it: the code and every bar the rule was shown.
 reads every cell's bars again and re-runs a cell only when its code or its bars have
 changed; a bar corrected after a window's end leaves that window's result alone.
 
+It now has its first rung (`lab/rung.py`), which says whether a strategy earns on a line
+after costs by more than chance would give. Each trade is sized by the desk's own sizer at
+the close it was decided on, bought at the next open through the desk's own pretend broker,
+where its 10% stop rests, and sold by that stop or at the open after the rule sells. The
+broker's own schedule prices both legs, and every verdict names it. A strategy passes when
+it made at least thirty trades and their average return after costs is at least two
+standard errors above nothing. On made-up prices it passed a planted edge on every one of
+forty random histories tried and failed all forty with no edge; it fails an edge that a £3
+least commission eats at a small capital, and the same edge with too few trades.
+
 ### Next step
 
-The first rung, proven: it catches a planted edge and rejects a planted non-edge. It needs
-costs first (no result without them), and its prices from the desk's one cost model.
+Reproduce a published strategy's own published result: one of the five, through the cell
+and the first rung, on the history its author used.
 
 ### Found, not fixed
 
+- **The first rung's costs are not yet whole** (blind review). The desk's one cost model
+  has commission and currency conversion only: no spread, slippage or sale-only fees (a US
+  sale's regulatory fee), and no home for what a sale costs, so the rung charges a sale
+  what a buy of the same shares costs beyond its value (on dollars, a little more than the
+  truth). One exchange rate serves a whole window, so a dollar line's verdict carries no
+  currency gain or loss. All are owed before any verdict on real prices; asked of the money
+  lane: a sale's cost, spread and slippage in `desk/orders.py`.
+- **What else the blind review of the first rung left** (nothing blocking now; its two
+  blocking findings, the desk's stop left out and a loose test of the statistic, are
+  fixed): a verdict carries its record's key, whose code version does not cover
+  `lab/rung.py` or `desk/orders.py`, so verdicts must not be kept by that key; a line whose
+  one share costs more than its room fails the whole verdict loudly; and at two standard
+  errors about one cell in forty passes by chance, so a batch of many cells needs the luck
+  rung before any winner is believed.
+- **Two deliberate breaks of the first rung survive, neither able to differ:** a pass bar
+  of "over 2" for "2 or over" (a t of exactly 2 does not arise), and the rung's arithmetic
+  setting (the caller's default is the same).
 - **The unit tests are within a few lines of the product, and lanes collide on it.** The
   guard holds unit tests to no more lines than `desk/` and `lab/` together (about 1,435
   against 1,444 on this branch). The ladder's batch went red by one line once brought up to
