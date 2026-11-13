@@ -963,7 +963,10 @@ opus overnight. I can then reset fable in the morning around 8am". So:
   week's reset more than 36 hours away; so a Fable that filled overnight is asked for at
   08:00. The Fable figure is read every 15 minutes, so the lanes return to Fable as soon as
   the reset shows;
-- the weekly 80% pause reads only the all-models window, and stands as ruled.
+- the weekly 80% pause reads only the all-models window, and stands as ruled, at all
+  hours. Asked at 20:16 whether to run up to 95% of the week overnight instead, he answered
+  "Keep 80": an option he considered and declined. He accepts that the lanes may pause at
+  80% overnight until he presses the Fable reset at about 08:00.
 
 **Driven** in a scratch home: the lanes on Fable at 33% and 96%, on Opus at 97%, and on
 Fable when no figure is known; at 14:00, 94% asks nothing and 95% asks once; at 23:00 and
