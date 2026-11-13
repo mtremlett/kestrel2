@@ -17,15 +17,17 @@ allowed_third_party = []
 [packages.lab]
 purpose = "research and the ladder: judges strategies using the core's own code"
 may_import = ["stdlib", "desk"]
-allowed_third_party = []
+allowed_third_party = ["numpy"]  # his ruling, 13 November: research only; desk/ stays stdlib
 
 # Each lane's files beyond its modules (listed under its heading below) and their unit
 # tests. tests/guards/test_lanes.py refuses a lane branch that changes any other file,
 # apart from the shared documents. Changing this table is changing a guard.
 [lanes]
 money = ["tests/scenes/test_scenes.py"]
+paper = []
 data = ["tests/scenes/rehearsal.py"]
-ladder = ["lab/*", "tests/unit/test_lab_*.py"]
+grid = []
+rungs = []
 
 # Every module, with the one thing it owns. Add a line here, then write the file.
 # Each lane (docs/PLAN.md) adds its modules under its own heading, so two lanes never
@@ -47,6 +49,10 @@ ladder = ["lab/*", "tests/unit/test_lab_*.py"]
 "desk/book.py" = "the ledger of fills under the broker's ids, and the book built from the broker"
 "desk/day.py" = "the desk's day: run once for a date, publish one record, replay it"
 
-# the ladder lane
+# the paper lane
+
+# the grid lane
 "lab/cell.py" = "the ladder's unit of work: one strategy on one line over one window, keyed by the code's and the data's versions"
 "lab/batch.py" = "the ladder's batch service: runs many cells, records a bad one and carries on, and takes up where a stopped run left off"
+
+# the rungs lane

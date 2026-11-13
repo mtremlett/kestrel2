@@ -2,9 +2,9 @@
 (docs/PLAN.md). A rule in a session's prompt is a rule a confused session can break, so
 these refuse it in the check, on GitHub, before anything merges:
 
-- a lane's branch (named `lane/money-...`, `lane/data-...`, `lane/ladder-...` by the
-  runner) may change only its own lane's files, the shared documents, and add its own
-  modules to the manifest;
+- a lane's branch (named `lane/<lane>-...` by the runner: money, paper, data, grid,
+  rungs) may change only its own lane's files, the shared documents, and add its own
+  modules to the manifest; a branch naming a lane the manifest does not know fails;
 - no branch grows `desk/` and `lab/` together by more than 300 lines in one change.
 
 Ruled 13 November 2026 (docs/DECISIONS.md).
@@ -20,8 +20,8 @@ from fnmatch import fnmatch
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-LANE_BRANCH = re.compile(r"lane/(money|data|ladder)-")
-HEADING = re.compile(r"# the (money|data|ladder) lane")
+LANE_BRANCH = re.compile(r"lane/([a-z]+)-")  #: every lane branch; an unknown lane fails
+HEADING = re.compile(r"# the ([a-z]+) lane")
 MODULE = re.compile(r'"([^"]+)" = ".*"')
 #: Every lane writes in its own part of these (docs/PLAN.md says which part).
 SHARED = ("docs/STATUS.md", "docs/PLAN.md", "docs/SCOREBOARD.md", "docs/DECISIONS.md")
@@ -79,6 +79,7 @@ def _owned(lane: str) -> list[str]:
                 f"tests/unit/{prefix}{stem}_*.py",
             ]
     lanes = tomllib.loads((ROOT / "manifest.toml").read_text(encoding="utf-8"))["lanes"]
+    assert lane in lanes, f"no lane called {lane!r} in manifest.toml's [lanes]: {sorted(lanes)}"
     return patterns + list(lanes[lane])
 
 
