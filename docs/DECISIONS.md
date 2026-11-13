@@ -688,4 +688,40 @@ under its lane, and says what was decided, the options, why, and the evidence.
 
 ## DATA
 
+### 2026-11-13 — the fourteen months are built; the scenes move onto them in two steps
+
+**Found.** On their own calendars, a London line and a US line do not trade the same days
+over fourteen months (Easter Monday, Thanksgiving, the 4th of July and eight more), so
+there is no longer one list of days that every line shares. Scene 2 counts its decisions
+as five rules times nineteen lines times one list of days; at full length that count is
+wrong by design, and scene 2 goes red (driven: 28,925 decisions against 29,545 expected),
+though not one decision is missing. Scenes 1 and 3 pass at full length. Scene 2 is the
+money lane's file, which this lane may not edit.
+
+**Options.** (a) Give every line the same days, holidays ignored: the store rightly refuses
+a bar on a closed day, so the clean lines would park and scene 1 would break. (b) Choose
+windows so the two venues happen to have equal counts: a trick to fit one assertion.
+(c) Edit scene 2's count from this lane: against the lanes' ownership rule. (d) Build the
+fourteen months now, let the scenes keep seeing its last six weeks (which hold no holiday
+on either venue), and move them onto the whole of it with a one-line change once scene 2
+counts each line's own days.
+
+**Chosen.** (d). The data is in one place, its last six weeks in use; nothing is duplicated; main stays
+green; the move is one constant (`SCENES_FROM` in `tests/scenes/rehearsal.py`).
+
+**Evidence**, from a script run outside the repository on the whole fourteen months:
+London lines trade 307 sessions and US lines 303, on each venue's own calendar; the store
+keeps every clean line whole with no fault, and parks only the spoilt line, for its three
+faults (now placed among its last sixty sessions). Each of the five rules buys and sells
+on every one of the nineteen clean lines: RSI-2 19 round trips, Bollinger 38, the 20/10
+breakout 38, the 50/200 cross 19, Supertrend 57. Deliberate breaks: a London line laid on
+US days is refused for 25 August 2025 (a UK bank holiday) and parked for the missing 1
+September; a plain weekday calendar faults Christmas, Boxing Day and New Year in London,
+and Labor Day and Thanksgiving in the US. The first shape tried, a two-day dip, gave RSI-2
+a trade on only 11 lines; a three-day dip gives it all nineteen.
+
+**The cost.** Until the move, the scenes still run on six weeks in which no rule trades.
+Scene 2's future-blind loop over all 311 days will take about twenty seconds where it now
+takes one; the money lane may cut on fewer days.
+
 ## LADDER
