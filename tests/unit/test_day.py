@@ -129,17 +129,20 @@ def _run(root: Path, broker: Pretend, on: date) -> day.Record:
 def test_the_days_record_is_the_books_gain_after_every_cost_beside_the_markets(
     tmp_path: Path,
 ) -> None:
-    broker = Pretend(MARKET, {})
+    broker, capital = Pretend(MARKET, {}), Settings(Decimal(10_000))
     pounds = [tuple(map(Decimal, row.split())) for row in ("15 5.58 5.58 0 0", "15 5.52 7.29 0 0")]
     #: 221 each of A to D bought at 10.5 and of H at 8.5, where each closes: the costs alone,
     #: and five fills' shares worth 11,160.50 for the next day to open from
     first = (DAYS[21], Decimal("-26.16"), pounds[0], Decimal("200.00"), (), Decimal("11160.5"), 5)
     assert astuple(_run(tmp_path, broker, DAYS[21])) == first
+    with pytest.raises(ValueError, match="never rewritten"):  #: a day the records have reached
+        day.run(tmp_path, MARKET, broker, capital, DAYS[19], {"GBP": Decimal(1)})
+    assert len(broker.submitted()) == 5, "orders sent on old decisions, for a day that is over"
     #: A to D sold where they closed, and H by its stop at 8: 110.50 lost, and 27.818 of costs
     last = (DAYS[22], Decimal("-138.32"), pounds[1], Decimal("-98.04"), (), Decimal(0), 10)
     assert astuple(_run(tmp_path, broker, DAYS[22])) == last
     with pytest.raises(ValueError, match="VUAG"):  #: a desk given no yardstick has no record
-        bare, capital = Pretend(ARCHIVE, {}), Settings(Decimal(10_000))
+        bare = Pretend(ARCHIVE, {})
         bare.open(DAYS[21])
         day.run(tmp_path / "bare", ARCHIVE, bare, capital, DAYS[21], {"GBP": Decimal(1)})
     for profit, differ in ((Decimal(1), ("A",)), (None, ())):
@@ -150,7 +153,9 @@ def test_the_days_record_is_the_books_gain_after_every_cost_beside_the_markets(
 def test_a_day_whose_book_is_not_the_brokers_names_the_lines_and_withholds_its_profit(
     tmp_path: Path,
 ) -> None:
-    broker = Pretend(MARKET, {})
+    after, capital = date(2025, 2, 6), Settings(Decimal(10_000))  #: a day more, no price moving
+    longer = {line: (*bars, replace(bars[-1], day=after)) for line, bars in MARKET.items()}
+    broker = Pretend(longer, {})
     assert _run(tmp_path, broker, DAYS[21]).mismatches == ()
     broker.inject("G", 5)  #: bought by hand, after the day's record
     record = _run(tmp_path, broker, DAYS[22])
@@ -160,8 +165,13 @@ def test_a_day_whose_book_is_not_the_brokers_names_the_lines_and_withholds_its_p
     broker.inject("G", -5)  #: put right the day after: the day stays without a plain number
     for on in DAYS[20:]:  #: no record is made again, and none before one already published
         with pytest.raises(ValueError, match="never rewritten"):
-            day.publish(tmp_path, MARKET, broker, Settings(Decimal(10_000)), on)
+            day.publish(tmp_path, MARKET, broker, capital, on)
     assert day.records(tmp_path)[-1] == record, "the day not kept as it was published"
+    #: nothing sent the day after, the books agreeing again: the two days' number, published whole
+    book.record_rates(tmp_path, after, {"GBP": Decimal(1)})
+    whole = astuple(day.publish(tmp_path, longer, broker, capital, after))
+    costs = tuple(map(Decimal, "15 5.52 7.29 0 0".split()))
+    assert whole[1:] == (Decimal("-138.32"), costs, Decimal("-98.04"), (), Decimal(0), 10)
     (tmp_path / day.RECORDS).write_text("2025-02-05,1,0,0,0,0,0,0,0,0", encoding="utf-8")
     with pytest.raises(ValueError, match="not the desk's records"):  #: its first line not the names
         day.records(tmp_path)
@@ -174,6 +184,8 @@ def test_a_session_the_desk_missed_is_named_and_gets_its_record_before_any_later
     broker.open(DAYS[21])
     _trade(tmp_path, broker, DAYS[21])  #: the desk dies before the day's record
     broker.open(DAYS[22])  #: and is off: H's stop sells at the broker all the same
+    with pytest.raises(ValueError, match="fills begin on 2025-02-04"):  #: the first record is its
+        day.publish(tmp_path, MARKET, broker, capital, DAYS[22])
     bought = day.publish(tmp_path, MARKET, broker, capital, DAYS[21])
     #: the record made late is the day's own: the stop's sale, in the ledger by now, is not its
     assert (bought.profit, bought.worth, bought.counted) == (

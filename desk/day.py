@@ -38,9 +38,11 @@ class Record:
     day lacks one. With it, kept exact, what the next day's record carries on from."""
 
     day: date
-    profit: Decimal | None  #: the book's gain after every cost; None when it is not the broker's
-    costs: Charges  #: every cost of the day's fills, line by line: none can be left out
-    market: Decimal  #: what the same capital would have earned simply holding the market
+    #: The book's gain after every cost, since the last record that carried one: the day's
+    #: own, unless days before it were withheld. None when the book is not the broker's.
+    profit: Decimal | None
+    costs: Charges  #: every cost behind that gain, line by line: none can be left out
+    market: Decimal  #: what the capital would have earned simply holding the market those days
     mismatches: tuple[str, ...]  #: lines where the desk's book and the broker's differ
     worth: Decimal  #: what the book held at the day's end was worth: the next record opens here
     counted: int  #: the ledger's fills dated by the day, each counted by a record up to this one
@@ -76,32 +78,47 @@ def publish(
     day: date,
 ) -> Record:
     """THE DAY'S RECORD, made at its end and kept (records). The book is set against the
-    broker's: lines that differ are named and the profit withheld. Else the profit is what
-    the book gained: what it holds at the day's closes, less what the last record kept it
-    worth, with the money moved by the fills no record has counted yet, after every cost of
-    those fills. So the days' profits add up to the ledger's, whatever is learned late.
-    Beside it, what the capital would have gained in the yardstick (lines.YARDSTICK, quoted
-    in pounds) from its close before to the day's. Every session has its record, in order
-    and once: one the desk missed is named, and published first, once its rates are kept."""
+    broker's as it stands when the record is made: lines that differ are named and the
+    profit withheld. Else the profit is what the book gained since the last record that
+    carried one: what it holds at the day's closes, less what that record kept it worth,
+    with the money moved by the fills no such record has counted, after every cost of
+    those fills. So the profits add up to the ledger's, whatever was withheld or learned
+    late. Beside it, over the same days, what the capital would have gained in the
+    yardstick (lines.YARDSTICK, quoted in pounds). The first record is the day of the
+    ledger's first fill; every session after has its own, in order and once (_kept)."""
+    kept = _kept(root, archive, day)
+    start = (kept[0].day if kept else day) - timedelta(days=1)
+    plain = ((r.day, r.worth, r.counted) for r in reversed(kept) if r.profit is not None)
+    since, opened, counted = next(plain, (start, Decimal(0), 0))
+    differ = book.reconcile(root, broker)
+    ledger = [fill.day for fill in book.fills(root) if fill.day <= day]
+    if not kept and min(ledger, default=day) < day:
+        raise ValueError(
+            f"{day}: the ledger's fills begin on {min(ledger)}: the first record is its"
+        )
+    cash, costs = book.dealt(root, archive, day, since, counted)
+    worth = _worth(root, archive, day)
+    market = _close(archive, YARDSTICK, day) / _close(archive, YARDSTICK, since) - 1
+    profit = None if differ else pennies(worth - opened + cash - costs.total)
+    held = pennies(settings.capital * market)
+    record = Record(day, profit, costs.published(), held, differ, worth, len(ledger))
+    book._write(root / RECORDS, [HEADER, *(_row(r) for r in (*kept, record))])
+    return record
+
+
+def _kept(root: Path, archive: Mapping[Line, Sequence[Bar]], day: date) -> tuple[Record, ...]:
+    """The records so far, the day being the next to have one. A day they have reached is
+    over, and a later one waits for every session between: nothing is sent or recorded for
+    either. A session the desk missed gets its record from publish alone, its rates kept."""
     kept = records(root)
-    since, opened, counted = date.min, Decimal(0), 0
     if kept:
-        since, opened, counted = kept[-1].day, kept[-1].worth, kept[-1].counted
+        since = kept[-1].day
         if day <= since:
             raise ValueError(f"{day}: the records run to {since}, and one is never rewritten")
         traded = {on for line in archive for on in venues.sessions(line.venue, since, day)}
         if missed := sorted(traded - {since, day}):
             raise ValueError(f"{day}: no record yet for {missed}, and each session has its own")
-    differ = book.reconcile(root, broker)
-    cash, costs = book.dealt(root, archive, day, since, counted)
-    worth, eve = _worth(root, archive, day), day - timedelta(days=1)
-    market = _close(archive, YARDSTICK, day) / _close(archive, YARDSTICK, eve) - 1
-    profit = None if differ else pennies(worth - opened + cash - costs.total)
-    ledger = sum(fill.day <= day for fill in book.fills(root))
-    held = pennies(settings.capital * market)
-    record = Record(day, profit, costs.published(), held, differ, worth, ledger)
-    book._write(root / RECORDS, [HEADER, *(_row(r) for r in (*kept, record))])
-    return record
+    return kept
 
 
 def _row(r: Record) -> tuple[object, ...]:
@@ -169,7 +186,9 @@ def trade(
     its position read from the book; the sales first, then each buy sized from the book after
     the send before it. A line sold this morning, by its rule or its stop, is not bought
     again today. While the book is not the broker's the send path refuses every buy, and the
-    sale of a line whose shares differ. rates are the day's pounds per unit of each currency."""
+    sale of a line whose shares differ. rates are the day's pounds per unit of each currency.
+    Nothing is sent for a day the records have reached, or one beyond a session they lack."""
+    _kept(root, archive, day)
     book.collect(root, broker)  #: the stops the open sold
     book.record_rates(root, day, rates)
     held = book.positions(root)
