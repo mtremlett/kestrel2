@@ -306,14 +306,16 @@ and nothing else beyond the standard library and `desk/`. Its ceiling rises from
 
 ### The grid lane's book
 
-**Lane objective:** the fast grid engine (`lab/`, numpy), proven first by a parity test
-against the desk's own engine on the golden data: the same decisions, day by day, or it is
-removed (canon B2).
+**Lane objective:** the unit of work on the grid engine (`lab/cell.py` on `lab/grid.py`):
+a cell's trades from the grid's answer, and from the desk's own engine whenever the grid
+refuses, the same record either way, the grid's file counted in the code version.
 
 - [x] The unit of work, keyed by code and data version (`lab/cell.py`)
 - [x] A batch service that survives a bad cell and a restart (`lab/batch.py`)
 - [x] Results kept, keyed by code and data version; only what changed is re-run (`lab/batch.py`)
-- [ ] The fast grid engine, its parity with the desk's engine proven on the golden data
+- [x] The fast grid engine, its parity with the desk's engine proven on the golden data
+      (`lab/grid.py`: the same position after every bar, or a refusal, never a guess)
+- [ ] The unit of work on the grid, the desk's engine deciding what the grid refuses
 - [ ] Auto-tune, so a pass can never take the PC down: a hard memory ceiling held by
       Windows itself (a Job Object on the workers, about 60% of the 64 GB); workers sized
       to free cores, two of the eight threads left free while markets are open (UK 08:00 to
@@ -380,7 +382,14 @@ many trials it was picked from, and every rung records that count (canon B6, AG-
       history predicted, ahead of simply holding the market, never more than £1,500
       below the highest point, every day reconciled. Thirty days suffice only on the
       "excellent" terms fixed in advance there: £150 a day, a fall under £750, twenty
-      trades, the best three days under a third of the profit.
+      trades, the best three days under a third of the profit. By his ruling of 13
+      November evening, a candidate's paper days count from the first clean FIRST-LIGHT
+      day, or from the day it passed the ladder if that is later; and up to ten candidates
+      run side by side, each named here before its first paper day, the luck test counting
+      every one of them as a trial, a candidate dropped still counted.
+- [ ] Side-by-side candidates on one paper account: each with its own capital number and
+      its own book in the ledger, the gate applied per candidate, and the broker's account
+      reconciled against the sum of their books every day
 
 ## Phase 6 — the operator's own account, and widening
 

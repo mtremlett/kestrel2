@@ -1109,6 +1109,45 @@ each chosen from options with a recommendation.
 
 ---
 
+## 2026-11-13 — the weekend sprint: resets spent now, twelve sessions, and the A-GATE clock
+
+**Why.** At 18:20 UK he judged the target dates far too long and asked for ten times the
+pace. Building phases 2 to 4 is where the tokens go; once built, the desk trades paper as
+plain code and costs almost none. And the A-GATE's dates are set by the calendar, not by
+building, so only its terms could bring them forward.
+
+**Decided, first: the free resets are spent this week.** Every lane runs on Fable while
+Fable has room, then on Opus. The runner's Telegram line tells him when a Fable reset (two,
+expiring 9 March 2027) and then the weekly reset (one, expiring 10 December) would help;
+never within 36 hours of the weekly reset. The 80% pause stands. His words: "Spend them
+now (Recommended)".
+
+**Decided, second: up to twelve sessions at once.** Each lane runs two or three sessions
+side by side on book items whose files do not overlap; a session claims its item and files
+first, the runner starts nothing that overlaps a running claim, and the check fails a
+change outside its claim. Items that must go in order stay in order. His words: "Up to 12
+at once (Recommended)".
+
+**Decided, third: the A-GATE clock (AG-02 to AG-06 amended, AG-01 kept).** A candidate's
+paper days now count from the first clean FIRST-LIGHT day, or from the day it passed the
+ladder if that is later; they no longer wait for FIRST-LIGHT's ten days to finish. Up to
+ten candidates run side by side on the one paper account, each with its own capital number
+and its own book, each named in `docs/PLAN.md` before its first paper day. Every one counts
+as a trial in the luck test, and one dropped part-way still counts, so trying several
+raises the bar rather than lowering it. His words: "Both (Recommended)", offered against
+"Only the side-by-side candidates" and "Neither".
+
+**The cost.** The resets give about two and a half weeks of allowance this week and none
+in reserve until the weekly allowance renews. Twelve sessions mean more changes landing
+on main at once; the check, the claims and the lane guards hold them apart. The FIRST-LIGHT
+days now carry a candidate's money as well as the machine's proof, so a FIRST-LIGHT day
+that is not clean is also a lost A-GATE day.
+
+**His words, together.** In chat, Friday 13 November 2026, about 18:25 UK time, each
+chosen from options with a recommendation.
+
+---
+
 ## MONEY
 
 ### 2026-11-13 — how the pretend broker behaves
@@ -1712,5 +1751,69 @@ old code from Python's cache and report the wrong result; the breaks were run ag
 the cache off before these numbers were written.
 
 ## GRID
+
+### 2026-11-13 — the fast grid engine: it holds what the desk holds, or it refuses
+
+**Decided.** The grid engine (`lab/grid.py`) works out, for one strategy on one line, whether
+it is in the market after every bar, on whole arrays at once. It is a second implementation
+of the five rules, so it stays only while a parity test shows it holds what the desk's own
+engine holds after every bar (canon B2). Where it cannot be sure it raises `TooClose` and
+gives no answer: the desk's own engine must decide that cell.
+
+**The choices, and why.**
+- *The arithmetic.* The desk works in exact decimals at 28 digits; numpy works in floating
+  point, which is fast and rounds at about 16. Options: trust floating point and accept a
+  rare different answer; do the grid in decimals too (no faster than the desk); floating
+  point that knows when it cannot be sure. Chosen: the last. Prices become whole numbers of
+  the line's last decimal place; while a rule's sums of them stay under 2**53 they are
+  exact and a tie is a true tie, called as the desk calls it. Everything else (prices as
+  long as the archive's seventeen digits, Wilder's smoothing) is trusted only when the two
+  sides differ by more than one part in a thousand million of the prices they were worked
+  out from, ten thousand times further than rounding can move them. Closer than that is
+  refused, never guessed. Prices too long for the desk's own 28 digits to add exactly are
+  refused whole. On prices like the archive's nothing was refused; on made-up prices on a
+  coarse tick, a close exactly on a Supertrend band is.
+- *A refusal is not a failure.* The desk's engine is the truth and the grid is its
+  shortcut. When the unit of work is moved onto the grid, a refused cell is run by the
+  desk's engine, the one other path, and its record is the same record.
+- *What it answers.* Options: the desk's `Decision` for every bar; the position after each
+  bar as an array. Chosen: the array. Making one object per bar costs more than the rules
+  do, and a cell needs only the days a position opens and closes.
+- *The settings.* The five rules at their published settings only. The desk's rules take
+  no settings, so parity at any other setting cannot be shown yet; a grid over settings
+  waits for the desk's rules to take theirs (asked of the money lane in `docs/STATUS.md`).
+- *The golden data.* The series in the money lane's `tests/unit/test_strategy.py` on which
+  a second implementation written apart agreed with the desk (five walks of 1,200 days and
+  two short jumpy series), read from that file, never copied; each also cut short either
+  side of every rule's warm-up. Beside them, three walks of 1,500 days at prices as long
+  as the archive's, since the golden series sit on a 25p tick and real prices do not.
+
+**Evidence.** The parity test was seen failing first (no engine), and each later fix's test
+was seen failing on the engine before the fix. On the golden series the grid answers 477 of
+490 askings (seven series, five rules, fourteen lengths) and refuses 13, every one a close
+exactly on a Supertrend band; the test holds that count. Measured from outside the
+repository on 4,000 days of one line: the desk's engine about 100 ms for the five rules,
+the grid about 6 to 8 ms, after 17 ms once per line to read the prices in.
+
+Two blind reviews, each comparing the grid with the desk on thousands of random series of
+its own making. The first found one wrong answer: an RSI on days that move a
+thousand-millionth of the price, where the day's change is mostly rounding (53 of 1,201
+placements wrong). The second, of the repaired engine, found two more: a Supertrend band
+when a close sits far outside its day's range, and exact ties called among prices of 26
+digits and more, which the desk's own 28 digits cannot add exactly. None arises on prices
+like the archive's, but the rule is never a different answer, so each was made a failing
+test and fixed at its cause: a comparison's margin is now measured against the prices it
+was worked out from, and prices too long for the desk are refused. The second review's
+whole comparison was then run again on the repaired engine: twelve kinds of series, 120 of
+each, every rule, no difference from the desk and no error; its three searches that had
+found wrong answers found none. There was no third blind review.
+
+Deliberate breaks: 64 in the first round, 42 caught. The 22 left showed that a bar on which
+a rule would enter and would not stay never arose in any test, that five safeguards
+(a tie on each Supertrend band, the RSI's tie, the edge of exact arithmetic, the margin
+itself) were held by none, and one piece of code that could never run, since removed.
+Tests were added and those breaks driven again: all caught. What still survives, each
+recorded in `docs/STATUS.md`: breaks that cannot differ (a tie's direction where ties are
+already refused), a more cautious margin, and a few no series found can show.
 
 ## RUNGS
