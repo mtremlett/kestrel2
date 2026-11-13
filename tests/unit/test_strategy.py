@@ -51,12 +51,17 @@ def test_the_five_are_the_operators_five_each_on_daily_bars_and_all_twenty_lines
     assert all(d.bar is Timeframe.DAILY and d.universe == LINES for d in declared)
 
 
+class _Untouchable(Decimal):
+    def __bool__(self) -> bool:
+        raise InvalidOperation("read as true or false")
+
+
 def test_each_rule_reads_the_data_it_declares_and_no_other(monkeypatch: pytest.MonkeyPatch) -> None:
-    #: a number that cannot be added, compared or averaged without an error is put in place of
-    #: a number of every bar: in place of all a rule does not declare, it decides as before, so
-    #: it touched none of them; in place of any one it declares, it cannot decide at all
+    #: a number that cannot be added, compared or tested without an error is put in place of a
+    #: number of every bar: in place of all a rule does not declare, it decides as before, so on
+    #: this walk it used none of them; in place of any one it declares, it cannot decide at all
     bars, every = _walk(1, 1200), strategy.decide({"A": _walk(1, 1200)})
-    poison: Any = Decimal("sNaN")
+    poison: Any = _Untouchable("sNaN")
     assert {f.value for f in Field} == {f.name for f in fields(Bar)} - {"day"}
     for name, rule in strategy.STRATEGIES.items():
         monkeypatch.setattr(strategy, "STRATEGIES", {name: rule})
@@ -310,5 +315,6 @@ def test_each_strategy_moves_on_the_days_a_second_implementation_found() -> None
             found = [n for n, _ in _trades(name, bars)]
             assert found == [int(n) for n in days.split()], f"{name} on {series}"
             limit = strategy.STRATEGIES[name].declared.hold
-            held = [sold - bought for bought, sold in zip(found[::2], found[1::2], strict=False)]
-            assert limit is None or max(held, default=0) <= limit, f"{name} outstays {limit}"
+            ends = [*found[1::2], len(bars) - 1]  #: one still held is held to the last bar
+            held = [sold - bought for bought, sold in zip(found[::2], ends, strict=False)]
+            assert limit is None or max(held) <= limit, f"{name} outstays {limit} on {series}"

@@ -52,7 +52,7 @@ class Decision:
 
 
 class Timeframe(Enum):
-    """The bar a strategy is shown and sells on. The desk keeps daily bars and no other."""
+    """The bar a strategy is shown and decides on. The desk keeps daily bars and no other."""
 
     DAILY = "daily"
 
@@ -75,16 +75,16 @@ RANGES = frozenset({Field.HIGH, Field.LOW, Field.CLOSE})
 @dataclass(frozen=True)
 class Declared:
     """What a strategy says of itself before it is tested. It moves no decision; the tests
-    hold what it says of its data and its holding period to what its rule does."""
+    hold what it says of its data and its holding period to what its rule does on their series."""
 
     bar: Timeframe
-    #: The most sessions from its buy to its sale. None: it has no such limit, and its own
-    #: rule is its only way out; so each of the five, for no published rule of theirs has one.
+    #: The most sessions from its buy to its sale. None: it has no time limit of its own; so
+    #: each of the five, for no published rule of theirs has one.
     hold: int | None
     #: The lines it is to be judged on: the desk trades each of the five on every line of the
     #: instrument master, so each declares them all.
     universe: tuple[Line, ...]
-    reads: frozenset[Field]  #: its data: the numbers of each bar its decisions depend on
+    reads: frozenset[Field]  #: its data: the numbers of each bar it reads
 
     def __post_init__(self) -> None:
         if self.hold is not None and self.hold < 1:
