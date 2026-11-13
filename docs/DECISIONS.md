@@ -2532,3 +2532,18 @@ in a copy outside the repository with Python's cache off: all caught but four, n
 change a real result: "under 5%" for "5% or under", an odd number of steps in the sum (a
 difference far below any line), and the first rung's two known ones ("over 2" for "2 or
 over", the arithmetic setting).
+
+### 2026-11-13 — the rungs book's next boxes: one new module each, failing fairly last
+
+**Decided**, by the lane as the desk's mentor (#65).
+- *Where the boxes live.* Options: each in a new module (`lab/folds.py`, `trials.py`,
+  `deflated.py`, `plateau.py`, `regime.py`); or grow `lab/rung.py` and `lab/luck.py`.
+  Chosen: new modules. Each is one concept with one owner (canon A4), and boxes sharing no
+  file can be built side by side; growing the two files would force them into single file.
+- *Failing fairly runs alone, last.* It turns the first rung's pass-or-fail into three
+  answers (pass, fail, not enough evidence), which every other rung reads; done beside them
+  it would break whichever landed second. Doing it first would hold the folds behind it.
+- *Regimes waits for the folds*: it replays the same history cut by period and should reuse
+  the folds' cutting, not write a second.
+- *"Its costs whole"* sits below the noted boxes without a note: it cannot start until the
+  money lane's costs land, and that box has no id yet.

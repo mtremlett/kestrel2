@@ -347,7 +347,11 @@ only. **No winner on real prices is to be believed yet** (see below).
 
 In-sample and out-of-sample folds: a strategy's history cut into folds, each judged after
 costs, the two side by side, the verdict on the worst fold; every fold a trial the luck rung
-counts (canon B6, AG-01).
+counts (canon B6, AG-01). The book now notes six boxes in order: folds, trials register,
+deflated Sharpe, plateau, regimes (after folds), failing fairly (last, holds all files); the
+first four can run side by side. Notes for the other boxes come as they near; the costs
+box waits for the money lane's costs box to have an id (R-RUNGS-1). The deflated box may
+need `lab/luck.py`; if so its session says so.
 
 ### Requests to MONEY
 
