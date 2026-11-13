@@ -39,8 +39,9 @@ class NotPaper(Exception):
     """The gateway answered for an account that is not a paper one: the desk stops there."""
 
 
-def _paper(code: str) -> str:
-    """The account's code, which the broker starts with a D for a paper account alone."""
+def only(code: str) -> str:
+    """An account's code, given back if it is a paper one's: the broker starts a paper
+    account's code with a D, and no other's."""
     if not code.startswith("D"):
         raise NotPaper(f"account {code!r} is not a paper account: this desk is paper only")
     return code
@@ -72,6 +73,8 @@ class Resting:
     action: str
     shares: Decimal
     kind: str  #: the broker's word for the order: "STP" a stop, "MKT" at the market
+    contract: str  #: the broker's own number for what it would trade
+    ref: str  #: the reference it was placed under: on the desk's own, the desk's order id
 
     def __post_init__(self) -> None:
         if self.action not in ("BUY", "SELL"):
@@ -114,7 +117,7 @@ def other(fields: list[str]) -> str:
         raise ValueError(f"a message from the gateway cut short: {fields}")
     if kind == ACCOUNTS:
         for code in fields[2].split(","):
-            _paper(code)
+            only(code)
     elif kind == NEWS and fields[3] not in FEEDS:
         raise ConnectionError(f"the gateway says {fields[3]}: {fields[4]}")
     elif kind not in (NEWS, READY, STATUS, HOLDINGS_END, ORDERS_END):
@@ -126,17 +129,19 @@ def _holding(fields: list[str]) -> Holding:
     if len(fields) != 16:
         raise ValueError(f"a holding of a shape the desk does not read: {fields}")
     account, symbol, kind, currency, shares = (fields[n] for n in (2, 4, 5, 11, 14))
-    return Holding(_paper(account), symbol, kind, currency, Decimal(shares))
+    return Holding(only(account), symbol, kind, currency, Decimal(shares))
 
 
 def _order(fields: list[str]) -> Resting:
     """Only the head of the message is read: the line, the order and who placed it."""
     if len(fields) < 26:
         raise ValueError(f"an order of a shape the desk does not read: {fields}")
-    symbol, action, shares, kind, account, client, broker_id = (
-        fields[n] for n in (3, 13, 14, 15, 20, 24, 25)
+    contract, symbol, action, shares, kind, account, ref, client, broker_id = (
+        fields[n] for n in (2, 3, 13, 14, 15, 20, 23, 24, 25)
     )
-    return Resting(broker_id, client, _paper(account), symbol, action, Decimal(shares), kind)
+    return Resting(
+        broker_id, client, only(account), symbol, action, Decimal(shares), kind, contract, ref
+    )
 
 
 def start(wire: BinaryIO, send: Send) -> None:

@@ -30,13 +30,23 @@ HELD = "61 3 DU0000001 458512497 SMGB STK  0.0   LSEETF GBP SMGB EUE2 25 31.5".s
 #: An open order as the published client reads it; no order rested on the account to copy.
 STOP = (
     "5 7 265598 AAPL STK  0 ?  SMART USD AAPL.O NMS SELL 10 STP 0.0 171.5 GTC  DU0000001  0"
-    "  31 1234567 0 0 0".split(" ")
+    " 20261112-rsi2-AAPL-stop 31 1234567 0 0 0".split(" ")
 )
 STATUS = ("3", "7", "PreSubmitted", "0", "10", "0", "1234567", "0", "0", "31", "", "0")
 ENDS = (("62", "1"), ("53", "1"))
 SMGB = Holding("DU0000001", "SMGB", "STK", "GBP", Decimal(25))
 LIVE = ("15", "1", "U7654321")
-AAPL_STOP = Resting("1234567", "31", "DU0000001", "AAPL", "SELL", Decimal(10), "STP")
+AAPL_STOP = Resting(
+    "1234567",
+    "31",
+    "DU0000001",
+    "AAPL",
+    "SELL",
+    Decimal(10),
+    "STP",
+    "265598",
+    "20261112-rsi2-AAPL-stop",
+)
 TWO = "SMGB STK GBP: the broker holds {} in one of 2 entries, the desk's book {}"
 RESTS = "AAPL: an order resting at the broker to SELL {} (STP, the broker's id 1234567, client {})"
 
