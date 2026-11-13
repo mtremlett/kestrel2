@@ -8,6 +8,7 @@ refuses any other, so each message it reads has one known shape."""
 
 from __future__ import annotations
 
+import re
 import socket
 import struct
 from collections import Counter
@@ -32,6 +33,7 @@ START, ASK_HOLDINGS, ASK_ORDERS = 71, 61, 16  #: what the desk sends: none place
 #: it, that it cannot look lines up (2157) included: nothing it then says of a line is sound.
 FEEDS = frozenset({"2103", "2104", "2105", "2106", "2107", "2108", "2119", "2158"})
 Send = Callable[[bytes], object]  #: what puts the desk's bytes on the connection
+PLAIN = re.compile("-?[0-9]+([.][0-9]+)?")  #: a number as the gateway writes one
 T = TypeVar("T")
 
 
@@ -39,11 +41,21 @@ class NotPaper(Exception):
     """The gateway answered for an account that is not a paper one: the desk stops there."""
 
 
-def _paper(code: str) -> str:
-    """The account's code, which the broker starts with a D for a paper account alone."""
+def only(code: str) -> str:
+    """An account's code, given back if it is a paper one's: the broker starts a paper
+    account's code with a D, and no other's."""
     if not code.startswith("D"):
         raise NotPaper(f"account {code!r} is not a paper account: this desk is paper only")
     return code
+
+
+def number(text: str, fields: list[str]) -> Decimal:
+    """A number from a message of the gateway's: plain digits, with a point perhaps. Nothing,
+    not-a-number, an infinity and the broker's own "unset" (written with an exponent) are
+    refused, and the message named."""
+    if PLAIN.fullmatch(text) is None:
+        raise ValueError(f"{text!r} is no plain number, in the gateway's message: {fields}")
+    return Decimal(text)
 
 
 @dataclass(frozen=True)
@@ -63,7 +75,8 @@ class Holding:
 
 @dataclass(frozen=True)
 class Resting:
-    """An order the broker is still working, whoever placed it."""
+    """An order the broker lists as open, whoever placed it. Whether the broker is working
+    it, and for how many shares, is its state: an order refused or part done is listed too."""
 
     broker_id: str  #: the broker's own lasting id for the order
     client: str  #: the client id that placed it
@@ -72,6 +85,10 @@ class Resting:
     action: str
     shares: Decimal
     kind: str  #: the broker's word for the order: "STP" a stop, "MKT" at the market
+    contract: str  #: the broker's own number for what it would trade
+    ref: str  #: the reference it was placed under: on the desk's own, the desk's order id
+    state: str  #: the broker's word for where it stands: "PreSubmitted", "Inactive"
+    left: Decimal  #: the shares still to be done, as that state gives them
 
     def __post_init__(self) -> None:
         if self.action not in ("BUY", "SELL"):
@@ -114,7 +131,7 @@ def other(fields: list[str]) -> str:
         raise ValueError(f"a message from the gateway cut short: {fields}")
     if kind == ACCOUNTS:
         for code in fields[2].split(","):
-            _paper(code)
+            only(code)
     elif kind == NEWS and fields[3] not in FEEDS:
         raise ConnectionError(f"the gateway says {fields[3]}: {fields[4]}")
     elif kind not in (NEWS, READY, STATUS, HOLDINGS_END, ORDERS_END):
@@ -126,17 +143,30 @@ def _holding(fields: list[str]) -> Holding:
     if len(fields) != 16:
         raise ValueError(f"a holding of a shape the desk does not read: {fields}")
     account, symbol, kind, currency, shares = (fields[n] for n in (2, 4, 5, 11, 14))
-    return Holding(_paper(account), symbol, kind, currency, Decimal(shares))
+    return Holding(only(account), symbol, kind, currency, number(shares, fields))
 
 
-def _order(fields: list[str]) -> Resting:
-    """Only the head of the message is read: the line, the order and who placed it."""
+def _order(fields: list[str], states: Mapping[str, tuple[str, Decimal]]) -> Resting:
+    """Only the head of the message is read: the line, the order and who placed it. It
+    stands where the broker last said (states, by its ids): one it told no state of is no
+    order the desk can read."""
     if len(fields) < 26:
         raise ValueError(f"an order of a shape the desk does not read: {fields}")
-    symbol, action, shares, kind, account, client, broker_id = (
-        fields[n] for n in (3, 13, 14, 15, 20, 24, 25)
+    contract, symbol, action, shares, kind, account, ref, client, broker_id = (
+        fields[n] for n in (2, 3, 13, 14, 15, 20, 23, 24, 25)
     )
-    return Resting(broker_id, client, _paper(account), symbol, action, Decimal(shares), kind)
+    head = (broker_id, client, only(account), symbol, action, number(shares, fields), kind)
+    if broker_id not in states:
+        raise ValueError(f"an order the broker told no state of, by its id for it: {broker_id}")
+    return Resting(*head, contract, ref, *states[broker_id])
+
+
+def _state(fields: list[str]) -> tuple[str, tuple[str, Decimal]]:
+    """Where an order stands, under the broker's own id for it: the broker's word, and the
+    shares still to be done."""
+    if len(fields) != 12:
+        raise ValueError(f"an order's state of a shape the desk does not read: {fields}")
+    return fields[6], (fields[2], number(fields[4], fields))
 
 
 def start(wire: BinaryIO, send: Send) -> None:
@@ -156,21 +186,25 @@ def start(wire: BinaryIO, send: Send) -> None:
 
 def converse(wire: BinaryIO, send: Send) -> Account:
     """Read the account over an open connection: once it is started, ask for every holding
-    and every open order, reading until the gateway says both lists are whole."""
+    and every open order, reading until the gateway says both lists are whole. Each order
+    is then read with the state the broker last told of it, wherever in the answer it came."""
     start(wire, send)
     send(message(ASK_HOLDINGS, 1) + message(ASK_ORDERS, 1))
     holdings: list[Holding] = []
-    orders: list[Resting] = []
+    orders: list[list[str]] = []
+    states: dict[str, tuple[str, Decimal]] = {}
     whole: set[str] = set()
     while not {HOLDINGS_END, ORDERS_END} <= whole:
         fields = receive(wire)
         if fields[0] == HOLDING:
             holdings.append(_holding(fields))
         elif fields[0] == ORDER:
-            orders.append(_order(fields))
+            orders.append(fields)
+        elif fields[0] == STATUS:
+            states.update([_state(fields)])
         else:
             whole.add(other(fields))
-    return Account(tuple(holdings), tuple(orders))
+    return Account(tuple(holdings), tuple(_order(fields, states) for fields in orders))
 
 
 def dial(talk: Callable[[BinaryIO, Send], T]) -> T:
