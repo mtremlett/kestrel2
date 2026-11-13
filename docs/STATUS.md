@@ -590,32 +590,17 @@ way, the grid's file counted in the code version. Then auto-tune.
 
 ## RUNGS
 
-Last updated: 13 November 2026 (the luck rung). Took over the ladder lane's first rung on
-13 November.
+Last updated: 13 November 2026 (this section cut to what is open; git, the decisions and
+the scoreboard keep the rest).
 
 ### Where it is
 
-The ladder has its first rung (`lab/rung.py`), which says whether a strategy earns on a line
-after costs by more than chance would give. Each trade is sized by the desk's own sizer at
-the close it was decided on, bought at the next open through the desk's own pretend broker,
-where its 10% stop rests, and sold by that stop or at the open after the rule sells. The
-broker's own schedule prices both legs, and every verdict names it. A strategy passes when
-it made at least thirty trades and their average return after costs is at least two
-standard errors above nothing. On made-up prices it passed a planted edge on every one of
-forty random histories tried and failed all forty with no edge; it fails an edge that a £3
-least commission eats at a small capital, and the same edge with too few trades.
-
-The ladder now has its luck rung (`lab/luck.py`), for the day many strategies are tried at
-once. Try enough of them and some pass the first rung with no edge at all, about one in
-forty. So the first rung's verdicts are judged again as one set: each one's chance of being
-luck is multiplied by the number of trials it was picked from, and it passes only if that
-is still 5% or less and it passed the first rung. Every trial counts, whatever became of it:
-a loser, one with too few trades, and one that gave no verdict at all (a cell that failed, a
-candidate dropped), which the caller must state. Each corrected verdict carries the count it
-was corrected for. On made-up trades: of forty sets of forty strategies with no edge, the
-first rung alone handed over a "winner" in twenty-six; after the correction, in one (5%
-allows two). A real edge added to each set passed in all forty. A modest winner stands
-alone and picked from eight, and falls picked from nine.
+The ladder has two rungs. The first (`lab/rung.py`) says whether a strategy earns on a line
+after the broker's costs and the desk's own 10% stop by more than chance would give: at
+least thirty trades, their average return two standard errors above nothing. The luck rung
+(`lab/luck.py`) judges many first-rung verdicts as one set, each one's chance multiplied by
+every trial it was picked from, against one combined 5%. Both are proven on made-up prices
+only. **No winner on real prices is to be believed yet** (see below).
 
 ### Next step
 
@@ -630,39 +615,19 @@ counts (canon B6, AG-01).
 
 ### Found, not fixed
 
-- **The first rung's costs are not yet whole** (blind review). The desk's one cost model
-  has commission and currency conversion only: no spread, slippage or sale-only fees (a US
-  sale's regulatory fee), and no home for what a sale costs, so the rung charges a sale
-  what a buy of the same shares costs beyond its value (on dollars, a little more than the
-  truth). One exchange rate serves a whole window, so a dollar line's verdict carries no
-  currency gain or loss. All are owed before any verdict on real prices; asked of the money
-  lane: a sale's cost, spread and slippage in `desk/orders.py`.
-- **What else the blind review of the first rung left** (nothing blocking now; its two
-  blocking findings, the desk's stop left out and a loose test of the statistic, are
-  fixed): a verdict carries its record's key, whose code version does not cover
-  `lab/rung.py` or `desk/orders.py`, so verdicts must not be kept by that key; a line whose
-  one share costs more than its room fails the whole verdict loudly; and at two standard
-  errors about one cell in forty passes by chance, so a batch of many cells needs the luck
-  rung before any winner is believed.
-- **The luck rung's chance is honest only for bell-shaped trades** (blind review, its one
-  blocking finding: the module had promised the 5% without saying so; it now says so). A
-  rule with many small wins and a rare large loss, judged on few trades, reads as far less
-  chance than it is: on made-up trades of that shape with no edge (95% win 1%, 5% lose 19%),
-  about a fifth of thirty-trade trials beat a correction for a hundred trials, and about one
-  in twenty of sixty-trade trials. The cure belongs to the book's box "the luck test fixed
-  before any result" (a deflated Sharpe, which reads skew and fat tails) and to "failing
-  fairly" (effective trades). **No winner on real prices is to be believed before then.**
-- **The count is the caller's to give.** The rung counts every verdict it is handed and
-  every trial the caller says left none; handed one batch, one line or one strategy at a
-  time, it would count only that. A cell whose gains have no spread at all stops the first
-  rung and leaves no verdict, so it too must be stated. Nothing yet keeps the count from
-  batch to batch: a register of every trial ever tried is a box in the book.
-- **What else the blind review of the luck rung left** (nothing blocking): the 5% line
-  itself is not held by a test (a chance landing on exactly 5% does not arise from real
-  numbers; "under 5%" for "5% or under" survives, as does a slightly coarser sum inside the
-  chance); the chance asked for no trades, or the count given as a fraction, is not refused
-  in plain words (neither can arise from a verdict); and `rung.verdict`, the first rung's
-  pass rule as one function, is called by the first rung and by the luck rung's tests only.
-- **Two deliberate breaks of the first rung survive, neither able to differ:** a pass bar
-  of "over 2" for "2 or over" (a t of exactly 2 does not arise), and the rung's arithmetic
-  setting (the caller's default is the same).
+- **The first rung's costs are not whole.** No spread, slippage or sale-only fees: a sale is
+  charged as a buy of the same shares (R-RUNGS-1). One exchange rate serves a whole window,
+  so a dollar line's verdict carries no currency gain or loss. Owed before real prices.
+- **The luck rung's chance is honest only for bell-shaped trades.** Many small wins and a
+  rare large loss, on few trades, read as far less chance than they are. The cure is the
+  book's deflated Sharpe (LAD-03, LAD-08, LAD-09) and "failing fairly" (LAD-06, STR-12).
+- **The count of trials is the caller's to give.** A cell that leaves no verdict must be
+  stated, and nothing keeps the count from batch to batch: the register is a box in the book.
+- **A verdict must not be kept by its record's key**, whose code version does not cover
+  `lab/rung.py` or `desk/orders.py`.
+- **A line whose one share costs more than its room** fails the whole verdict loudly.
+- **Not held by a test, none able to arise from real numbers:** the 5% line exactly ("under"
+  for "or under"), the first rung's bar of exactly 2, and its arithmetic setting. The
+  chance asked for no trades, or a count given as a fraction, is not refused in plain words.
+- **`rung.verdict`**, the first rung's pass rule as one function, is called by the first
+  rung and by the luck rung's tests only.
