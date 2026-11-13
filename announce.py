@@ -5,9 +5,9 @@ GitHub runs this once the check has passed on main (the "announce" job in
 .github/workflows/check.yml). It compares docs/PLAN.md's phase checklists just before
 and just after the merge, and sends one short Telegram line, read at a glance:
 
-    kestrel2 · Phase 2 · step 3 of 6 done · scenes 4/7 (#16)
-    kestrel2 · Phase 2 complete · scenes 7/7 (#20)
-    kestrel2 · housekeeping · scenes 4/7 (#17)      (a change that ticks no step)
+    kestrel2 · Phase 2 · step 3 of 6 done · scenes 4/7 · usage 21% (#16)
+    kestrel2 · Phase 2 complete · scenes 7/7 · usage 34% (#20)
+    kestrel2 · housekeeping · scenes 4/7 · usage n/a (#17)   (no step; no usage stated)
 
 The bot key and the chat id are GitHub secrets the operator sets himself. A missing one
 fails the job, loudly; it never skips. Standard library only (docs/DECISIONS.md).
@@ -31,6 +31,9 @@ from check import PUBLISHED, ROOT
 #: A phase's checklist: its heading, then every line up to the next heading.
 PHASE = re.compile(r"^## (Phase \d+)\b.*$((?:\n(?!## ).*)*)", re.MULTILINE)
 BOX = re.compile(r"^- \[([ x])\]", re.MULTILINE)
+#: The week's usage of the operator's plan, which GitHub cannot see: a lane run states it
+#: on a line of its own in its pull request's description. A hand-made one has none.
+USAGE = re.compile(r"^Weekly usage: ([0-9]{1,3})%[ \t\r]*$", re.MULTILINE)
 SECRETS = ("TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID")
 GITHUB = ("GITHUB_TOKEN", "GITHUB_REPOSITORY", "GITHUB_SHA", "GITHUB_STEP_SUMMARY")
 #: The shape of a Telegram bot key. Checked on entry, so a bad paste is refused by name
@@ -46,9 +49,10 @@ def steps(plan: str) -> dict[str, tuple[int, int]]:
     return {name: (boxes.count("x"), len(boxes)) for name, boxes in found.items()}
 
 
-def line(before: str, after: str, number: int) -> str:
+def line(before: str, after: str, number: int, usage: int | None) -> str:
     """The one line: each phase in which this merge ticked a step, or "housekeeping" when
-    it ticked none. ValueError naming what docs/PLAN.md no longer says."""
+    it ticked none, and the week's usage as the pull request stated it, or "n/a".
+    ValueError naming what docs/PLAN.md no longer says."""
     scenes = PUBLISHED.search(after)
     if scenes is None:
         raise ValueError("docs/PLAN.md no longer publishes 'Scenes passing: **N of M**'")
@@ -59,6 +63,7 @@ def line(before: str, after: str, number: int) -> str:
         if done > was.get(name, (0, 0))[0]
     ]
     parts = ["kestrel2", *(moved or ["housekeeping"]), f"scenes {scenes[1]}/{scenes[2]}"]
+    parts.append("usage n/a" if usage is None else f"usage {usage}%")
     return " · ".join(parts) + f" (#{number})"
 
 
@@ -73,12 +78,21 @@ def required(env: Mapping[str, str], names: tuple[str, ...]) -> dict[str, str]:
     return {name: env[name].strip() for name in names}
 
 
-def merged(pulls: list[dict[str, Any]], sha: str) -> int:
-    """The number of the pull request whose merge made this commit. A commit on main that
-    no merge made went round the rules, and is not announced as normal."""
+def weekly(body: str | None) -> int | None:
+    """The week's usage, in percent, from its own line in a pull request's description,
+    or None unless exactly one such line states a whole percent up to 100: two lines, an
+    example quoted beside the real one or a stale one left in, could say different things."""
+    found = USAGE.findall(body or "")
+    return int(found[0]) if len(found) == 1 and int(found[0]) <= 100 else None
+
+
+def merged(pulls: list[dict[str, Any]], sha: str) -> tuple[int, int | None]:
+    """The number and the stated weekly usage of the pull request whose merge made this
+    commit. A commit on main that no merge made went round the rules, and is not
+    announced as normal."""
     for pull in pulls:
         if pull.get("merge_commit_sha") == sha:
-            return int(pull["number"])
+            return int(pull["number"]), weekly(pull.get("body"))
     raise ValueError(
         f"commit {sha} on main was not made by merging a pull request, "
         "or GitHub has not linked it yet: re-run this job to tell which"
@@ -111,7 +125,7 @@ def main(env: Mapping[str, str] = os.environ) -> None:
     if not BOT_KEY.fullmatch(secrets["TELEGRAM_BOT_TOKEN"]):
         raise SystemExit("announce: TELEGRAM_BOT_TOKEN is not a bot key; set it again")
     sha = github["GITHUB_SHA"]
-    number = merged(_github(github, f"commits/{sha}/pulls"), sha)
+    number, usage = merged(_github(github, f"commits/{sha}/pulls"), sha)
     # The plan as main held it just before this merge: the merge commit's first parent.
     parent = _github(github, f"contents/docs/PLAN.md?ref={sha}~1")
     if parent.get("encoding") != "base64":
@@ -120,7 +134,8 @@ def main(env: Mapping[str, str] = os.environ) -> None:
             "not base64; over 1 MB it sends no content"
         )
     before = base64.b64decode(parent["content"]).decode("utf-8")
-    text = line(before, (ROOT / "docs" / "PLAN.md").read_text(encoding="utf-8"), number)
+    after = (ROOT / "docs" / "PLAN.md").read_text(encoding="utf-8")
+    text = line(before, after, number, usage)
     form = {"chat_id": secrets["TELEGRAM_CHAT_ID"], "text": text}
     sent = _call(
         urllib.request.Request(

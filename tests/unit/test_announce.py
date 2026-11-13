@@ -44,26 +44,30 @@ ALL_DONE = TICKED.replace("- [ ] broker", "- [x] broker")
 def test_a_ticked_step_is_named_by_its_phase_and_count_word_for_word() -> None:
     before, after = _plan(PHASE_1, OPEN), _plan(PHASE_1, TICKED)
     assert (
-        announce.line(before, after, 15)
-        == "kestrel2 · Phase 2 · step 2 of 3 done · scenes 3/7 (#15)"
+        announce.line(before, after, 15, 21)
+        == "kestrel2 · Phase 2 · step 2 of 3 done · scenes 3/7 · usage 21% (#15)"
     )
 
 
-def test_a_change_that_ticks_no_step_still_sends_a_line_marked_as_housekeeping() -> None:
+def test_no_step_is_housekeeping_and_no_usage_figure_is_n_a_never_a_guess() -> None:
     plan = _plan(PHASE_1, TICKED)
-    assert announce.line(plan, plan, 16) == "kestrel2 · housekeeping · scenes 3/7 (#16)"
+    assert announce.line(plan, plan, 16, None) == (
+        "kestrel2 · housekeeping · scenes 3/7 · usage n/a (#16)"
+    )
 
 
 def test_the_last_step_of_a_phase_says_the_phase_is_complete() -> None:
     before, after = _plan(PHASE_1, TICKED), _plan(PHASE_1, ALL_DONE, scenes="7 of 7")
-    assert announce.line(before, after, 20) == "kestrel2 · Phase 2 complete · scenes 7/7 (#20)"
+    assert announce.line(before, after, 20, 100) == (
+        "kestrel2 · Phase 2 complete · scenes 7/7 · usage 100% (#20)"
+    )
 
 
 def test_steps_ticked_in_two_phases_at_once_are_both_named() -> None:
     before = _plan(PHASE_1.replace("- [x] bars", "- [ ] bars"), OPEN)
     after = _plan(PHASE_1, TICKED)
-    assert announce.line(before, after, 17) == (
-        "kestrel2 · Phase 1 complete · Phase 2 · step 2 of 3 done · scenes 3/7 (#17)"
+    assert announce.line(before, after, 17, None) == (
+        "kestrel2 · Phase 1 complete · Phase 2 · step 2 of 3 done · scenes 3/7 · usage n/a (#17)"
     )
 
 
@@ -71,11 +75,13 @@ def test_the_line_reads_the_plan_as_it_is_published_and_stays_short() -> None:
     scenes = PUBLISHED.search(PLAN)
     assert scenes is not None
     count = f"scenes {scenes[1]}/{scenes[2]}"
-    assert announce.line(PLAN, PLAN, 6) == f"kestrel2 · housekeeping · {count} (#6)"
-    ticked = announce.line(PLAN.replace("- [x]", "- [ ]", 1), PLAN, 106)
-    assert ticked.startswith("kestrel2 · Phase ") and ticked.endswith(f"· {count} (#106)")
+    assert announce.line(PLAN, PLAN, 6, 0) == f"kestrel2 · housekeeping · {count} · usage 0% (#6)"
+    ticked = announce.line(PLAN.replace("- [x]", "- [ ]", 1), PLAN, 106, 100)
+    assert ticked.startswith("kestrel2 · Phase ") and ticked.endswith(
+        f"· {count} · usage 100% (#106)"
+    )
     assert "housekeeping" not in ticked
-    assert len(ticked) <= 60, f"too long to read at a glance: {ticked}"
+    assert len(ticked) <= 72, f"too long to read at a glance: {ticked}"
 
 
 def test_a_plan_that_stops_saying_it_fails_instead_of_sending_half_a_line() -> None:
@@ -85,7 +91,7 @@ def test_a_plan_that_stops_saying_it_fails_instead_of_sending_half_a_line() -> N
         plan.replace("## Phase", "## Lane"),
     ):
         with pytest.raises(ValueError, match="docs/PLAN.md"):
-            announce.line(plan, broken, 6)
+            announce.line(plan, broken, 6, None)
 
 
 def test_a_missing_secret_fails_loudly_and_names_it() -> None:
@@ -97,16 +103,39 @@ def test_a_missing_secret_fails_loudly_and_names_it() -> None:
 
 def test_only_the_pull_request_that_made_the_commit_is_announced() -> None:
     pulls = [
-        {"merge_commit_sha": "aaa", "title": "an older change", "number": 5},
+        {"merge_commit_sha": "aaa", "number": 5, "body": "Weekly usage: 90%"},
         {"merge_commit_sha": "bbb", "title": "price store", "number": 6},
     ]
-    assert announce.merged(pulls, "bbb") == 6
+    assert announce.merged(pulls, "bbb") == (6, None)
     with pytest.raises(ValueError, match="ccc on main was not made by merging"):
         announce.merged(pulls, "ccc")
 
 
+def test_the_usage_figure_is_read_from_its_own_line_in_the_description_or_not_at_all() -> None:
+    bodies: dict[str | None, int | None] = {
+        "Weekly usage: 21%": 21,
+        "Phase 2, step 3.\r\n\r\nWeekly usage: 7%\r\n\r\nMore words.": 7,
+        "Weekly usage: 100%": 100,
+        None: None,
+        "": None,
+        "Made by hand, no figure.": None,
+        "Weekly usage: about 20%": None,
+        "Weekly usage: 21": None,
+        "Weekly usage: 101%": None,
+        "Weekly usage: 2.5%": None,
+        "Last week's Weekly usage: 30%": None,
+        "Weekly usage: 21% by Tuesday": None,
+        "Weekly usage: 21%  ": 21,
+        "Weekly usage: 21%\r\nWeekly usage: 90%": None,
+        "Weekly usage: ٢١%": None,
+    }
+    for body, figure in bodies.items():
+        pull = {"merge_commit_sha": "bbb", "number": 6, "body": body}
+        assert announce.merged([pull], "bbb") == (6, figure), body
+
+
 KEY = "123456:a-fake_key"
-PULLS = [{"merge_commit_sha": "bbb", "title": "price store", "number": 6}]
+PULLS = [{"merge_commit_sha": "bbb", "title": "x", "number": 6, "body": "Weekly usage: 21%"}]
 #: The plan as it stood on main just before this merge: one step fewer ticked.
 PARENT = {
     "encoding": "base64",
@@ -148,6 +177,7 @@ def test_a_delivered_line_is_recorded_with_telegrams_message_number(
     assert called[2] == f"https://api.telegram.org/bot{KEY}/sendMessage" and len(called) == 3
     record = (tmp_path / "summary.md").read_text(encoding="utf-8")
     assert "Telegram message 9 sent" in record and "kestrel2 · Phase " in record
+    assert "· usage 21% (#6)" in record
 
 
 def test_a_previous_plan_github_did_not_send_whole_fails_saying_so(
