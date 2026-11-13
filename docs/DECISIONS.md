@@ -953,20 +953,22 @@ the week would have risen at least as much. So it is a share of Fable's own allo
 (about half the week), and 100% means Fable is full. Switching to Opus at 45% would have
 thrown away more than half of the allowance his Fable resets give back.
 
-**Decided** (the session running the lanes, on the evidence, relayed at 20:08):
+**His ruling**, in his own chat at 20:12 UK: "Please use all fable tokens and then flip to
+opus overnight. I can then reset fable in the morning around 8am". So:
 - the lanes stay on Fable until 97% of Fable's own allowance, or until Fable refuses a
   session, then run on Opus;
-- by day, "press the Fable reset now" at 95% or more, with the week's reset more than 36
-  hours away;
-- at 21:45, if Fable would reach 97% before 08:00 at the last two hours' rate, he is asked
-  to press it before bed whenever Fable is at 50% or more. The line names the trade-off:
-  pressing now gives back less than at full, but saves the night's hours;
-- the weekly 80% pause reads only the all-models window, as before.
+- no request to press the Fable reset before bed or overnight: at 21:45 the runner only
+  logs its forecast;
+- "press the Fable reset now" is sent by day only (08:00 to 22:00) at 95% or more, with the
+  week's reset more than 36 hours away; so a Fable that filled overnight is asked for at
+  08:00. The Fable figure is read every 15 minutes, so the lanes return to Fable as soon as
+  the reset shows;
+- the weekly 80% pause reads only the all-models window, and stands as ruled.
 
 **Driven** in a scratch home: the lanes on Fable at 33% and 96%, on Opus at 97%, and on
-Fable when no figure is known; by day 94% asks nothing and 95% asks once; at 21:45, 60%
-rising four points an hour is asked for with the trade-off named, 40% rising eight is not
-(it gives back too little), and 60% rising two is not (it stays under 97% till morning).
+Fable when no figure is known; at 14:00, 94% asks nothing and 95% asks once; at 23:00 and
+03:00, 99% asks nothing; at 08:00, 99% asks once; at 21:45, Fable at 60% rising four points
+an hour and at 96% bring no request, only the forecast in the log.
 
 ## 2026-11-13 — the paper account is the old desk's
 
