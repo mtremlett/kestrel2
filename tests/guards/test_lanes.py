@@ -37,6 +37,7 @@ CLAIM_LINE = re.compile(r"^Claim:[ \t]*(.+?)[ \t]*\r?$", re.MULTILINE)
 WHOLE_LANE = "*"  #: a claim of every file the lane owns: its serial work
 NOTE = re.compile(r"\{((?:id|files|after):[^{}]*)\}")
 ID = re.compile(r"[a-z]+-[a-z0-9-]+")
+BOX = re.compile(r"^- \[[ x]\] (.*(?:\n[ \t]+\S.*)*)", re.MULTILINE)  #: a box, wrapped lines too
 
 
 def _git(*args: str) -> str:
@@ -187,9 +188,11 @@ def test_a_lane_changes_only_what_it_claimed() -> None:
 
 
 def _notes(plan: str) -> list[dict[str, list[str]]]:
-    """Every runner note on a box of a book: {id: x; files: a, b; after: y}."""
+    """Every runner note on a box of a book: {id: x; files: a, b; after: y}. Only a box's
+    own text (its wrapped lines included) is read, as the runner reads it; prose may show
+    a note as an example."""
     notes = []
-    for note in NOTE.findall(plan):
+    for note in (n for box in BOX.findall(plan) for n in NOTE.findall(" ".join(box.split()))):
         fields: dict[str, list[str]] = {}
         for part in note.split(";"):
             key, sep, value = part.partition(":")

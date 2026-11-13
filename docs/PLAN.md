@@ -14,12 +14,12 @@ phase.
 
 ## The five lanes
 
-Five chains of sessions run side by side on the operator's PC, day and night, each session
-starting when the one before it ends (his rulings, 13 November 2026, `docs/DECISIONS.md`).
-A lane's session works on its lane's objective only, edits only the files its lane owns,
-and writes only in its lane's parts of the shared documents: its section of
-`docs/STATUS.md`, its book here, its table in `docs/SCOREBOARD.md` and its part at the end
-of `docs/DECISIONS.md`. Each lane's book sits inside the phase it belongs to: DATA in
+Five lanes of sessions run side by side on the operator's PC, day and night, up to twelve
+sessions at once: MONEY and DATA three each, PAPER, GRID and RUNGS two each (his rulings,
+13 November 2026, `docs/DECISIONS.md`). A lane's session edits only the files its lane
+owns, and of those only its claim. Each lane's parts of the shared documents are its
+section of `docs/STATUS.md`, its book here, its table in `docs/SCOREBOARD.md` and its part
+at the end of `docs/DECISIONS.md`. Each lane's book sits inside the phase it belongs to: DATA in
 phase 1, MONEY in phase 2, PAPER in phase 3 (begun alongside phase 2, his ruling), GRID
 and RUNGS in phase 4. So two lanes' pull requests never touch the same lines, and GitHub
 merges neither until it holds the other.
@@ -37,11 +37,29 @@ table, and each lane's heading over its modules). A lane's branch that changes a
 file fails the check (`tests/guards/test_lanes.py`), and no change adds more than 300 net
 lines to `desk/` and `lab/` together.
 
-**A lane that needs another lane's file changed does not touch it.** It writes a numbered
-request in its own STATUS section, under `### Requests to <LANE>`:
+**The runner hands out the work, and a claim holds it.** A box of a book carries a note at
+the end of its text: `{id: money-kill; files: desk/kill.py, tests/unit/test_kill.py; after:
+money-costs}`. The id is unique; `files` names every file the box changes (globs allowed,
+`docs/PLAN.md` only for a box that moves the scenes count, `*` for one that must hold all
+the lane's files); `after` names the boxes, of any lane, done first. The runner gives a
+session the first box whose `after` boxes are done and whose files no running session
+holds; its files are the session's claim. A box with no note is serial work: one session,
+alone in its lane, claim `*`. A lane whose next five boxes are not all noted is asked to
+note them first. The claim is in the session's pull request as `Claim: ...`, and the check
+refuses a change outside it and a lane's pull request without one
+(`tests/guards/test_lanes.py`, which also refuses a note it cannot read).
+
+**Sessions do not write the shared documents; the lane's scribe does.** A session's pull
+request carries `Ticks:` (the ids it finished), its status, scoreboard line, decisions,
+what remains and its requests to other lanes. About every two hours a small scribe session
+per lane folds the landed descriptions into the lane's parts of the four documents: it
+ticks the boxes, numbers the requests and keeps the STATUS section under 50 lines.
+
+**A lane that needs another lane's file changed does not touch it.** Its request is folded
+into its own STATUS section, under `### Requests to <LANE>`:
 `- [ ] R-<ITS LANE>-<n> (blocking|later, opened YYYY-MM-DD HH:MM): what is needed and why`.
-The owning lane records `- R-<LANE>-<n>: done in #NN` (or `declined, because ...`) under
-`### Done for other lanes` in its own section, and the asker then ticks its request. The
+The owning lane names the request in its `Ticks:` line (or declines it, saying why), its
+scribe records it under `### Done for other lanes`, and the asker's scribe ticks it. The
 runner puts each lane's open requests at the top of its next session; a blocking one is
 that session's objective, before its own book. The 07:00 line counts the open requests,
 and one open for more than a day is sent to the operator.
