@@ -43,6 +43,7 @@ rungs = []
 "desk/store.py" = "the one price store and its one writer: bars cleaned on entry, bad lines parked"
 "desk/bars.py" = "the one fast store for hot and deep bars: one SQLite file, the one writer's whole rounds, many readers"
 "lab/universe.py" = "the research list: the tickers research may study, none of them traded, and their bars kept by the one store"
+"lab/members.py" = "the lists' past members: who was on a published list on a past day, the ones still listed told from the ones that left"
 
 # the money lane
 "desk/strategy.py" = "the five frozen daily strategies: a decision for every line and day"
