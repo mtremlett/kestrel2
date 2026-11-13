@@ -74,7 +74,7 @@ class Orders:
     #: the broker still holds it for, as the desk's one comparison takes them (book.differences).
     stops: tuple[tuple[str, Decimal], ...]
     #: The desk's own orders that are no such stop: one still to fill, or a stop the broker is
-    #: not holding (refused, being cancelled, its state not read). None of them protects.
+    #: not holding (not yet taken, refused, being cancelled). None of them protects.
     unsettled: tuple[Resting, ...]
     others: tuple[Resting, ...]  #: every order of anyone else's
 

@@ -13,7 +13,7 @@ import socket
 import struct
 from collections import Counter
 from collections.abc import Callable, Iterable, Mapping
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from decimal import Decimal
 from pathlib import Path
 from typing import BinaryIO, TypeVar
@@ -87,8 +87,8 @@ class Resting:
     kind: str  #: the broker's word for the order: "STP" a stop, "MKT" at the market
     contract: str  #: the broker's own number for what it would trade
     ref: str  #: the reference it was placed under: on the desk's own, the desk's order id
-    state: str = ""  #: the broker's word for where it stands, "PreSubmitted"; none until read
-    left: Decimal = Decimal(0)  #: the shares still to be done, as that state gives them
+    state: str  #: the broker's word for where it stands: "PreSubmitted", "Inactive"
+    left: Decimal  #: the shares still to be done, as that state gives them
 
     def __post_init__(self) -> None:
         if self.action not in ("BUY", "SELL"):
@@ -146,15 +146,19 @@ def _holding(fields: list[str]) -> Holding:
     return Holding(only(account), symbol, kind, currency, number(shares, fields))
 
 
-def _order(fields: list[str]) -> Resting:
-    """Only the head of the message is read: the line, the order and who placed it."""
+def _order(fields: list[str], states: Mapping[str, tuple[str, Decimal]]) -> Resting:
+    """Only the head of the message is read: the line, the order and who placed it. It
+    stands where the broker last said (states, by its ids): one it told no state of is no
+    order the desk can read."""
     if len(fields) < 26:
         raise ValueError(f"an order of a shape the desk does not read: {fields}")
     contract, symbol, action, shares, kind, account, ref, client, broker_id = (
         fields[n] for n in (2, 3, 13, 14, 15, 20, 23, 24, 25)
     )
-    count = number(shares, fields)
-    return Resting(broker_id, client, only(account), symbol, action, count, kind, contract, ref)
+    head = (broker_id, client, only(account), symbol, action, number(shares, fields), kind)
+    if broker_id not in states:
+        raise ValueError(f"an order the broker told no state of, by its id for it: {broker_id}")
+    return Resting(*head, contract, ref, *states[broker_id])
 
 
 def _state(fields: list[str]) -> tuple[str, tuple[str, Decimal]]:
@@ -183,11 +187,11 @@ def start(wire: BinaryIO, send: Send) -> None:
 def converse(wire: BinaryIO, send: Send) -> Account:
     """Read the account over an open connection: once it is started, ask for every holding
     and every open order, reading until the gateway says both lists are whole. Each order
-    is given the state the broker last told of it; one it told none of stops the reading."""
+    is then read with the state the broker last told of it, wherever in the answer it came."""
     start(wire, send)
     send(message(ASK_HOLDINGS, 1) + message(ASK_ORDERS, 1))
     holdings: list[Holding] = []
-    orders: list[Resting] = []
+    orders: list[list[str]] = []
     states: dict[str, tuple[str, Decimal]] = {}
     whole: set[str] = set()
     while not {HOLDINGS_END, ORDERS_END} <= whole:
@@ -195,16 +199,12 @@ def converse(wire: BinaryIO, send: Send) -> Account:
         if fields[0] == HOLDING:
             holdings.append(_holding(fields))
         elif fields[0] == ORDER:
-            orders.append(_order(fields))
+            orders.append(fields)
         elif fields[0] == STATUS:
             states.update([_state(fields)])
         else:
             whole.add(other(fields))
-    unstated = sorted(order.broker_id for order in orders if order.broker_id not in states)
-    if unstated:
-        raise ValueError(f"orders the broker told no state of, by its ids for them: {unstated}")
-    stated = (replace(o, state=states[o.broker_id][0], left=states[o.broker_id][1]) for o in orders)
-    return Account(tuple(holdings), tuple(stated))
+    return Account(tuple(holdings), tuple(_order(fields, states) for fields in orders))
 
 
 def dial(talk: Callable[[BinaryIO, Send], T]) -> T:

@@ -60,6 +60,11 @@ IN_NEW_YORK = ("20261112-rsi2-AAPL-stop", "265598", "AAPL", "09:30:11", "US/East
 BUY = _made(BOUGHT[14], *IN_LONDON, shares=26, price="3755.00")
 SALE = _made(SOLD[14], *IN_NEW_YORK, shares=-10, price="171.5")
 OURS = replace(AAPL_STOP, client="222")  # the desk's own stop: its client, its order id
+#: The broker's other words for where an order stands: in none of them is a stop protecting.
+NOT_HELD = (
+    *("PendingSubmit", "ApiPending", "PendingCancel", "Inactive"),
+    *("Cancelled", "ApiCancelled", "Filled", "presubmitted", ""),
+)
 
 
 def _but(fields: Sequence[str], at: int, value: str) -> list[str]:
@@ -84,14 +89,17 @@ def test_todays_fills_are_read_as_the_gateway_gives_them_and_only_a_question_is_
 def test_the_desks_own_fills_are_the_ledgers_priced_in_the_lines_currency() -> None:
     named = replace(BUY, symbol="iitu")  # a line is known by the broker's number for it
     later = replace(BUY, execution_id="0000e859.6553f2a1.02.01", shares=Decimal(-26))
+    eve = replace(SALE, execution_id="E", made=datetime(2026, 11, 12, 15, 59, 30))
     ledger = (
         # 3755 pence at the broker is 37.55 pounds on the desk's line
         Fill(BUY.execution_id, "20261113-rsi2-IITU", "IITU", 26, Decimal("37.55"), DAY),
+        # a fill's day is its own, on its exchange's clock: never the day it was read on
+        Fill("E", "20261112-rsi2-AAPL-stop", "AAPL", -10, Decimal("171.5"), date(2026, 11, 12)),
         Fill(SALE.execution_id, "20261112-rsi2-AAPL-stop", "AAPL", -10, Decimal("171.5"), DAY),
         Fill(later.execution_id, "20261113-rsi2-IITU", "IITU", -26, Decimal("37.55"), DAY),
     )
     # each line's fills in the order made; New York's clock is not London's to be set against
-    assert reports.fills((named, SALE, later), LISTED) == Fills(ledger, ())
+    assert reports.fills((named, eve, SALE, later), LISTED) == Fills(ledger, ())
     plain = reports.fills((replace(BUY, execution_id="A"), replace(BUY, execution_id="B")), LISTED)
     assert [fill.execution_id for fill in plain.ours] == ["A", "B"]  # no last part: two fills
 
@@ -193,8 +201,8 @@ def test_the_desks_own_orders_and_stops_are_told_from_anyone_elses() -> None:
     covering = replace(OURS, broker_id="10", action="BUY")  # a stop, but to buy
     hand = replace(OURS, ref="", contract="999")  # the desk's client, no order id of the desk's
     part = replace(OURS, broker_id="11", state="Submitted", left=Decimal(4), symbol="aapl")
-    # listed as open, but the broker is not holding it: refused, going, or its state unread
-    idle = tuple(replace(OURS, broker_id=s, state=s) for s in ("Inactive", "PendingCancel", ""))
+    # listed as open, but the broker is not holding it: not yet taken, refused, going or gone
+    idle = tuple(replace(OURS, broker_id=state, state=state) for state in NOT_HELD)
     resting = (AAPL_STOP, OURS, buying, hand, limit, part, covering, *idle)
     assert reports.orders(resting, LISTED) == Orders(
         # entry by entry, never added up; for the shares still to be sold; known by its number

@@ -119,18 +119,26 @@ def test_nothing_is_asked_until_the_gateway_is_ready_and_its_accounts_are_all_pa
         ((ACCOUNTS, READY, [*FLAT[:11], "", *FLAT[12:]]), ValueError, "cannot trust"),
         ((ACCOUNTS, READY, [*FLAT[:14], "NaN", FLAT[15]]), ValueError, "NaN"),
         ((ACCOUNTS, READY, [*FLAT[:14], "Infinity", FLAT[15]]), ValueError, "Infinity"),
-        ((ACCOUNTS, READY, STOP[:25]), ValueError, "AAPL"),
+        ((ACCOUNTS, READY, STOP[:25], *ENDS), ValueError, "AAPL"),
         # listed as open is not being worked: an order with no state of its own is not read
         ((ACCOUNTS, READY, STOP, *ENDS), ValueError, "no state"),
         ((ACCOUNTS, READY, STOP, [*STATUS[:6], "7", *STATUS[7:]], *ENDS), ValueError, "1234567"),
         ((ACCOUNTS, READY, STOP, STATUS[:-1]), ValueError, "shape"),
         ((ACCOUNTS, READY, STOP, [*STATUS, ""]), ValueError, "shape"),
         ((ACCOUNTS, READY, [*STATUS[:4], "", *STATUS[5:]]), ValueError, "plain number"),
-        ((ACCOUNTS, READY, [*STOP[:14], "1E+1", *STOP[15:]]), ValueError, "plain number"),
+        ((ACCOUNTS, READY, [*STOP[:14], "1E+1", *STOP[15:]], *ENDS), ValueError, "plain number"),
         ((ACCOUNTS, READY, [*FLAT[:14], "1_0", FLAT[15]]), ValueError, "plain number"),
-        ((ACCOUNTS, READY, [*STOP[:13], "SSHORT", *STOP[14:]]), ValueError, "SSHORT"),
+        (
+            (ACCOUNTS, READY, [*STOP[:13], "SSHORT", *STOP[14:]], STATUS, *ENDS),
+            ValueError,
+            "SSHORT",
+        ),
         ((ACCOUNTS, READY, [*FLAT[:2], "U7654321", *FLAT[3:]]), paper.NotPaper, "U7654321"),
-        ((ACCOUNTS, READY, [*STOP[:20], "U7654321", *STOP[21:]]), paper.NotPaper, "U7654321"),
+        (
+            (ACCOUNTS, READY, [*STOP[:20], "U7654321", *STOP[21:]], *ENDS),
+            paper.NotPaper,
+            "U7654321",
+        ),
     ],
 )
 def test_an_answer_the_desk_cannot_trust_stops_the_reading(
