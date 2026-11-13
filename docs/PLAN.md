@@ -97,16 +97,15 @@ tickers: the S&P 500, the Nasdaq 100, the FTSE 350 and 200 most-traded US funds,
 2010, through the one store's checks, apart from the twenty trading lines), and 201 of them
 park for a large one-day move nobody has recorded, most on real days of a real market.
 Decide and build how research reads them, without loosening the store the desk trades on.
-The grid lane needs it. Before it, the money lane's blocking request R-MONEY-2 (the scenes
-moved onto the fourteen months); R-MONEY-1 (each line's UK tax) is done.
+The grid lane needs it. The money lane's blocking requests are done: R-MONEY-1 (each line's
+UK tax) and R-MONEY-2 (the scenes on the whole fourteen months).
 
 - [x] The rehearsal data in a file of its own (`tests/scenes/rehearsal.py`)
 - [x] The rehearsal data lengthened to about fourteen months, the five rules buying and
       selling in it on every clean line, its UK and US holidays respected; the spoilt line's
       faults kept within the last sixty sessions (`docs/DECISIONS.md`, the data lane's)
-- [ ] The scenes moved onto the whole fourteen months (`SCENES_FROM` back to `FIRST`), once
-      the money lane's scene 2 counts each line's own sessions; until then they see its
-      last six weeks
+- [x] The scenes moved onto the whole fourteen months, each line on its own venue's
+      calendar; the six-week window is gone (R-MONEY-2)
 - [x] One line the archive refuses is parked, not the whole fetch stopped (`archive.gather`, `store.Refused`)
 - [x] The research list: 1,065 tickers with their venue and currency (the four lists
       overlap, so not 1,500), kept apart from the instrument master's twenty trading lines;
@@ -365,16 +364,18 @@ and nothing else beyond the standard library and `desk/`. Its ceiling rises from
 
 ### The grid lane's book
 
-**Lane objective:** the unit of work on the grid engine (`lab/cell.py` on `lab/grid.py`):
-a cell's trades from the grid's answer, and from the desk's own engine whenever the grid
-refuses, the same record either way, the grid's file counted in the code version.
+**Lane objective:** a cell names its ticker's venue (R-DATA-1, asked by the data lane): a
+cell takes a `Line` of the research list, not one of the twenty trading lines by symbol
+alone, and its bars are read from its venue's folder. Then auto-tune.
 
 - [x] The unit of work, keyed by code and data version (`lab/cell.py`)
 - [x] A batch service that survives a bad cell and a restart (`lab/batch.py`)
 - [x] Results kept, keyed by code and data version; only what changed is re-run (`lab/batch.py`)
 - [x] The fast grid engine, its parity with the desk's engine proven on the golden data
       (`lab/grid.py`: the same position after every bar, or a refusal, never a guess)
-- [ ] The unit of work on the grid, the desk's engine deciding what the grid refuses
+- [x] The unit of work on the grid, the desk's engine deciding what the grid refuses
+- [ ] A cell names its ticker's venue: a `Line` of the research list, its bars read from
+      its venue's folder (R-DATA-1)
 - [ ] Auto-tune, so a pass can never take the PC down: a hard memory ceiling held by
       Windows itself (a Job Object on the workers, about 60% of the 64 GB); workers sized
       to free cores, two of the eight threads left free while markets are open (UK 08:00 to
