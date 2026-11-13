@@ -1,6 +1,6 @@
-"""What the paper broker reports: today's fills read exactly as the gateway gives them, the
-desk's own under the broker's id and priced in the line's currency, and the desk's own
-fills, orders and stops told from anyone else's."""
+"""What the paper broker reports: today's fills and ended orders read exactly as the gateway
+gives them, the desk's own fills under the broker's id and priced in the line's currency,
+and the desk's own fills, orders and stops told from anyone else's."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ from desk import paper, reports
 from desk.broker import Fill
 from desk.lines import NO_TAX, Line
 from desk.listing import Listing, Unlisted
-from desk.reports import Execution, Fills, Orders
+from desk.reports import Ended, Execution, Fills, Orders
 
 IITU, AAPL = Line("IITU", "LSE", "GBP", 1, NO_TAX), Line("AAPL", "US", "USD", 1, NO_TAX)
 SMGB = Line("SMGB", "LSE", "GBP", 1, NO_TAX)
@@ -44,6 +44,19 @@ SOLD = (
 UNSET = "1.7976931348623157E308"  #: the broker's own way of writing "no number"
 FEE = ("59", "1", BOUGHT[14], "3.0", "GBP", UNSET, UNSET, "")
 END = ("55", "1", "1")
+#: An ended order in the shape of the 38 the real gateway listed on 13 November 2026, the
+#: account's code, the ids and the amounts changed and the reference made the desk's own. It
+#: was bought whole: the shares the list gives as the order's (place 13) are those never done.
+DONE = (
+    "101|212969319|IITU|STK||0|?||SMART|GBP|IITU|EUE2|BUY|0|MKT|0.0|0.0|DAY||DU0000001||0|"
+    "20261113-rsi2-IITU|1234571|0|0|0||||||||0|||0||-1||||||2147483647|0|0||3|0||0|None||0|0|0||"
+    f"0|0||||0|0|0|2147483647|2147483647||||IB|0|0||0|Filled|0|0|0|{UNSET}|{UNSET}|0|1|0||26|"
+    "2147483647|0|Not an insider or substantial shareholder|0|0|0|20261113 09:22:06 MET|"
+    "Filled Size: 26|||||"
+).split("|")
+#: Cancelled with ten of 26 done: a shape made up, for none part done has been seen.
+CUT = _but(_but(_but(DONE, 13, "16"), 77, "Cancelled"), 87, "10")
+WHOLE = Ended("20261113-rsi2-IITU", "Filled", Decimal(26), Decimal(0))
 DAY = date(2026, 11, 13)
 #: Those two fills as the desk should read them: its own client's, on the paper account.
 LONDON = ("212969319", "IITU", Decimal(26), Decimal("3755.00"), datetime(2026, 11, 13, 9, 22, 6))
@@ -177,9 +190,33 @@ def test_an_answer_the_desk_cannot_trust_stops_the_reading(
         _read(*messages)
 
 
+def test_the_days_ended_orders_are_read_as_the_gateway_lists_them() -> None:
+    def read(*messages: Sequence[str]) -> tuple[Ended, ...]:
+        return reports.finished(_wire(HELLO, ACCOUNTS, READY, *messages), lambda _: None)
+
+    cut = Ended(WHOLE.ref, "Cancelled", Decimal(10), Decimal(16))
+    assert read(FEED, DONE, CUT, DONE, ("102",)) == (WHOLE, cut, WHOLE)
+    assert read(("102",)) == ()  # a day on which no order ended
+    untrusted: list[tuple[list[Sequence[str]], type[Exception], str]] = [
+        ([DONE], ConnectionError, "hung up"),
+        ([DONE[:-1], ("102",)], ValueError, "shape"),
+        ([[*DONE, ""], ("102",)], ValueError, "shape"),
+        ([DONE, ("102", "1")], ValueError, "does not read"),
+        ([DONE, END], ValueError, "does not read"),  # the end of another list
+        ([_but(DONE, 19, "U7654321"), ("102",)], paper.NotPaper, "U7654321"),
+        ([_but(DONE, 87, UNSET), ("102",)], ValueError, "plain number"),
+        ([_but(DONE, 13, ""), ("102",)], ValueError, "plain number"),
+        ([_but(DONE, 77, UNSET), ("102",)], ValueError, "shape"),  # no word where its state is
+    ]
+    for messages, error, saying in untrusted:
+        with pytest.raises(error, match=saying):
+            read(*messages)
+
+
 def test_the_desks_own_orders_and_stops_are_told_from_anyone_elses() -> None:
     buying = replace(OURS, broker_id="8", contract="212969319", action="BUY", kind="MKT")
     limit = replace(OURS, broker_id="9", kind="STP LMT")  # to sell, but no plain stop
+    assert reports.stop_to_sell(OURS) and not reports.stop_to_sell(limit)
     covering = replace(OURS, broker_id="10", action="BUY")  # a stop, but to buy
     hand = replace(OURS, ref="", contract="999")  # the desk's client, no order id of the desk's
     part = replace(OURS, broker_id="11", state="Submitted", left=Decimal(4), symbol="aapl")

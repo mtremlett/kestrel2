@@ -82,7 +82,12 @@ def test_a_bad_cell_is_recorded_and_the_rest_carry_on(tmp_path: Path) -> None:
     assert outcomes[1] == Failed(EMPTY, cell.LOADED, f"ValueError: {raised.value}")
     assert outcomes[2] == Failed(UNREAD, cell.LOADED, "KeyError: 'QQQ'")
     assert batch.run(cells, _reader(), journal) == outcomes
-    assert _lines(journal)[4:] == _lines(journal)[1:3], "only the failed cells are run again"
+    assert len(_lines(journal)) == 4, "a failure the journal holds was written again"
+    for _ in range(2):  # no bars to read at all: each cell's new failure is written, once
+        assert all(isinstance(o, Failed) for o in batch.run(cells, batch.stored(tmp_path), journal))
+    assert [row["error"][:17] for row in _lines(journal)[4:]] == ["FileNotFoundError"] * 4
+    assert batch.run(cells, _reader(), journal) == outcomes  # the bars back: two records found
+    assert _lines(journal)[8:] == _lines(journal)[:4], "a cell's last line is not its outcome"
 
 
 def test_a_restart_takes_up_where_the_last_run_stopped(tmp_path: Path, ran: list[Cell]) -> None:
@@ -116,6 +121,9 @@ def test_only_a_cell_whose_bars_changed_is_run_again(tmp_path: Path, ran: list[C
     again = batch.run(cells, _reader(spy=mended), journal)
     assert ran == [*cells, CELLS[0]], "only the cell that read the change is run again"
     assert again == (cell.run(CELLS[0], mended), first[1]) and again[0] != first[0]
+    del ran[:]
+    assert batch.run(cells, _reader(), journal) == first and ran == []  # the bars back: found
+    assert _lines(journal)[-1] == _lines(journal)[0], "a cell's last line is not its outcome"
 
 
 def test_one_symbol_is_two_companies_each_read_from_its_venues_folder(
