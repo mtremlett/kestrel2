@@ -43,6 +43,17 @@ ALLOWED_DOCS = {
 }
 
 
+#: Assembled from pieces, never spelt out: a guard that names the thing it forbids
+#: flags its own source, and the cure for that must never be a whole-file excuse.
+MACHINE_MARKS = (
+    "C:" + "\\",
+    "C:" + "/",
+    "/c/" + "Users",
+    "PYTHON/" + "kestrel",
+    "mt" + "rem",
+)
+
+
 def _product() -> list[Path]:
     return sorted(p for d in PRODUCT_DIRS for p in (ROOT / d).rglob("*.py"))
 
@@ -246,11 +257,7 @@ def test_nothing_reaches_the_operators_machine() -> None:
     offenders: dict[str, list[str]] = {}
     for path in _tests() + _product():
         text = path.read_text(encoding="utf-8")
-        hits = [
-            mark
-            for mark in ("C:\\", "C:/", "/c/Users", "PYTHON/kestrel", "mtrem")
-            if mark in text and "noqa: absolute-path" not in text
-        ]
+        hits = [mark for mark in MACHINE_MARKS if mark in text]
         if hits:
             offenders[str(path.relative_to(ROOT))] = hits
     assert not offenders, f"machine-specific paths: {offenders}"
@@ -258,10 +265,18 @@ def test_nothing_reaches_the_operators_machine() -> None:
 
 def test_live_trading_cannot_be_reached() -> None:
     """The broker's live port is 4001 and its paper port is 4002. Nothing in this tree
-    may name 4001 except a refusal that proves it is never dialled."""
-    offenders: dict[str, int] = {}
+    may name 4001 only on a line that also says NEVER, in capitals. THIS GUARD WAS
+    MISSED THE FIRST TIME IT WAS DRIVEN: it excused any file holding the word never
+    anywhere, and the core package says it in ordinary prose. A whole-file escape
+    hatch is not a guard."""
+    offenders: dict[str, list[int]] = {}
     for path in _product():
         text = path.read_text(encoding="utf-8")
-        if "4001" in text and "NEVER" not in text.upper():
-            offenders[str(path.relative_to(ROOT))] = text.count("4001")
+        bad = [
+            number
+            for number, line in enumerate(text.splitlines(), 1)
+            if "4001" in line and "NEVER" not in line
+        ]
+        if bad:
+            offenders[str(path.relative_to(ROOT))] = bad
     assert not offenders, f"the live port is named without a refusal: {offenders}"
