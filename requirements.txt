@@ -10,3 +10,5 @@ ruff==0.8.6
 mypy==1.14.1
 # the one test runner
 pytest==8.3.4
+# arrays for the ladder's grid, lab/ only (his ruling, 13 November; docs/DECISIONS.md)
+numpy==2.1.3

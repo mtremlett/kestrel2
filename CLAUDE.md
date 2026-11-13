@@ -3,7 +3,7 @@
 # KESTREL2 — the facts a session needs
 
 The canon above is HOW work is done. This file is WHAT this desk is. Hard limit 80 lines
-(a guard is owed: `docs/STATUS.md`). A rule does not belong here; put it in the canon or make it a check.
+(a guard is owed: `docs/STATUS.md`). A rule belongs in the canon or a check, not here.
 
 ## The north star
 
@@ -19,10 +19,10 @@ advances no scene needs a reason in `docs/PLAN.md`.
 
 ## The session protocol — "continue", or "continue - lane X"
 
-Three lanes build the desk side by side, day and night: MONEY, DATA and LADDER, each a
-chain of sessions a runner on his PC starts outside this repository. `docs/PLAN.md` gives
-each lane its objective, its book of work and the files it owns. A lane session edits only
-its lane's files and its lane's sections of STATUS, PLAN, SCOREBOARD and DECISIONS.
+Five lanes build the desk side by side, day and night: MONEY, PAPER, DATA, GRID and
+RUNGS, each a chain of sessions a runner on his PC starts outside this repository.
+`docs/PLAN.md` gives each lane its objective, book of work and files (`manifest.toml`
+enforces them). A lane edits only those and its sections of STATUS, PLAN, SCOREBOARD, DECISIONS.
 
 1. **Start.** Read `docs/STATUS.md` and `docs/PLAN.md`. Run `python check.py`. If
    anything is red, restoring green IS the objective. Otherwise state the one objective
@@ -67,10 +67,10 @@ All of it is paper: no real money moves until he signs for going live.
 
 ## External systems
 
-The broker: one adapter in `desk/`, paper port 4002 only, not built yet. The live-money
-port is 4001 and this desk NEVER dials it; a guard reads every line of `desk/` and `lab/`.
-Prices: one client for a free archive (`desk/archive.py`), re-checked on entry. Messages:
-one Telegram line to him per merge (`announce.py`); the desk's own messenger is not built.
+The broker: the pretend one (`desk/broker.py`); the paper one, built by PAPER, on IB Gateway
+on his PC, port 4002 and the old desk's paper account. The live port 4001 this desk NEVER
+dials; a guard reads every line of `desk/` and `lab/`. Prices: one free archive
+(`desk/archive.py`). Messages: one Telegram line per merge (`announce.py`).
 
 ## The predecessor, and the failure patterns
 

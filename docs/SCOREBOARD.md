@@ -16,6 +16,7 @@ and the share of fix commits going down.
 | 2026-11-13 | 3 of 7 | 968 | 9 | 1481 | 12 of 12 proven | green | By his choice, each Telegram line now carries the week's usage of his plan, read from a line "Weekly usage: 21%" that lane runs write in their pull requests: "kestrel2 · Phase 2 · step 3 of 6 done · scenes 4/7 · usage 21% (#16)". A hand-made pull request shows "usage n/a", never a guess and never a red job. Fourteen deliberate breaks each caught; two lines in one description give n/a, not the first; the first short line, for #17, was delivered. |
 | 2026-11-13 | 3 of 7 | 968 | 9 | 1404 | 12 of 12 proven | green | Three lanes set up to run side by side, day and night, by the operator's rulings: MONEY, DATA and LADDER, each with its own objective, book of work, files and sections of the shared documents; the rehearsal data moved to its own file so the money and data lanes never share one. GitHub now merges a branch only when it holds all of main, driven red on #16. CLAUDE.md: unattended lanes decide intended behaviour themselves and record it. The runner lives outside the repository. |
 | 2026-11-13 | 4 of 7 | 1096 | 166 | 1941 | 14 of 14 proven | green | Mechanical guards before the lanes run unattended, by the operator's rulings: a lane's branch may change only its own files and no change adds over 300 product lines (two new guards, seventeen cases driven, one defect found in the guard and fixed); outside the repository, the runner now stops at 80% of the plan's week, halts a lane that lands three changes without progress or fixes one file twice, runs a read-only audit at 05:30 (it caught all three planted faults) and sends a line at 07:00. |
+| 2026-11-13 | 5 of 7 | 1400 | 410 | 2450 | 14 of 14 proven | green | By the operator's rulings: five lanes, phase 3 begun alongside phase 2 (PAPER), the ladder split into GRID and RUNGS on Fable's allowance, each lane's files apart in the manifest; numpy for the lab alone; the lab's ceiling to 7,000 in its own pull request, his to merge; the research universe, about 1,500 tickers, for DATA. Fifteen deliberate breaks of the changed guards each behaved as intended. |
 
 ## The lanes
 
@@ -42,7 +43,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-13 | 4 of 7 | 1201 | 266 | 2143 | 14 of 14 proven | green | A line suspended for a day no longer has to sit out three months: once the suspension is recorded on the line, the missing day is no gap; a gap nobody has recorded still parks the line and says how to bring it back. The store's tests were merged where they repeated each other, fifteen lines fewer, the same cases. Tests seen failing first; four deliberate breaks each caught; a blind review, nothing blocking, its two small points taken. |
 | 2026-11-13 | 4 of 7 | 1211 | 283 | 2176 | 14 of 14 proven | green | A real one-day crash is no longer thrown away as a wrong unit: only a price a hundredfold out is dropped, and any other move is kept and parks the line until it is recorded. On the real archive this kept 5QQQ's crash of 7 April 2025; the same four lines park, no clean line is touched. Tests seen failing first; seven deliberate breaks each caught; a blind review, nothing blocking, its one finding of the same kind fixed. |
 
-### LADDER
+### LADDER (until 13 November; since then GRID and RUNGS)
 
 | date | scenes | desk lines | lab lines | test lines | guards | check | what moved |
 |---|---|---|---|---|---|---|---|
@@ -50,3 +51,18 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-13 | 4 of 7 | 1096 | 266 | 2042 | 12 of 12 proven | green | The ladder's batch service: many cells run in turn, each result written to disk as it finishes; a bad cell recorded and the rest carried on, a failed cell tried again next time, and a stopped batch taking up where it stopped. Four contract tests seen failing first; sixteen deliberate breaks driven, fifteen caught (the one left, forcing each line to disk, no test can see); a blind review, nothing blocking, its two findings fixed. |
 | 2026-11-13 | 4 of 7 | 1162 | 283 | 2125 | 14 of 14 proven | green | The ladder keeps a result by what made it, its code and every bar it read, and runs a cell again only when one has changed: a corrected bar re-runs only the windows that read it. One contract test seen failing first; nineteen deliberate breaks driven, thirteen caught, then a count of the rule's real runs added and the five it should catch all caught; a blind review, its one blocking finding (the same gap) fixed. |
 | 2026-11-13 | 4 of 7 | 1190 | 410 | 2264 | 14 of 14 proven | green | The ladder's first rung: a strategy passes a line when thirty or more trades, sized and filled as the desk would with its stop at the pretend broker, average two standard errors above nothing after the broker's costs. It passed a planted edge and failed no edge on every history tried, and fails an edge the costs eat. Five contract tests; thirty-five deliberate breaks over two rounds, all caught but two that cannot differ; a blind review, its two blocking findings fixed. |
+
+### PAPER
+
+| date | scenes | desk lines | lab lines | test lines | guards | check | what moved |
+|---|---|---|---|---|---|---|---|
+
+### GRID
+
+| date | scenes | desk lines | lab lines | test lines | guards | check | what moved |
+|---|---|---|---|---|---|---|---|
+
+### RUNGS
+
+| date | scenes | desk lines | lab lines | test lines | guards | check | what moved |
+|---|---|---|---|---|---|---|---|
