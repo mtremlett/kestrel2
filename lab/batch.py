@@ -4,7 +4,8 @@ last run stopped. A result is kept by its key, the code and every bar it read, s
 run again only when one of them has changed.
 
 The journal holds one JSON line per finished cell, appended and forced to disk before the
-next cell starts. A line a stop cut short is a cell that never finished: it is cut off and
+next cell starts, its line named by symbol and venue, since one symbol can be two companies.
+A line a stop cut short is a cell that never finished: it is cut off and
 the cell run again. A cell's bars are read on every run, to find its key; only a record
 under that key counts as done, so one under other code or other bars does not. A failed
 cell is run again, as what failed it may lie outside that code or in data since mended. A
@@ -23,6 +24,8 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
+from desk import store
+from desk.lines import Line
 from desk.store import Bar
 from lab import cell
 from lab.cell import Cell, Key, Record, Trade
@@ -36,7 +39,14 @@ class Failed:
 
 
 Outcome = Record | Failed
-Bars = Callable[[str], Sequence[Bar]]  #: a line's bars by its symbol, oldest first
+Bars = Callable[[Line], Sequence[Bar]]  #: a line's bars, oldest first
+#: what the journal's records hold (bars in the window, trades), by cell, code and data
+Kept = dict[tuple[str, ...], tuple[int, tuple[Trade, ...]]]
+
+
+def stored(root: Path) -> Bars:
+    """Each line's bars as the research store at root keeps them: in its venue's folder."""
+    return lambda line: store.read(root / line.venue, line.symbol)
 
 
 def run(cells: Sequence[Cell], bars: Bars, journal: Path) -> tuple[Outcome, ...]:
@@ -49,32 +59,37 @@ def run(cells: Sequence[Cell], bars: Bars, journal: Path) -> tuple[Outcome, ...]
         out.truncate(whole)
         for todo in cells:
             outcome = _one(todo, bars, kept)
-            if isinstance(outcome, Failed) or outcome.key not in kept:
+            if isinstance(outcome, Failed) or _id(outcome.key) not in kept:
                 out.write(json.dumps(_dump(outcome)).encode() + b"\n")
                 out.flush()
                 os.fsync(out.fileno())
             if isinstance(outcome, Record):
-                kept[outcome.key] = outcome
+                kept[_id(outcome.key)] = (outcome.bars, outcome.trades)
             outcomes.append(outcome)
     return tuple(outcomes)
 
 
-def _one(todo: Cell, bars: Bars, kept: dict[Key, Record]) -> Outcome:
+def _one(todo: Cell, bars: Bars, kept: Kept) -> Outcome:
     try:
-        line = bars(todo.symbol)
-        found = kept.get(cell.key(todo, line))
-        return cell.run(todo, line) if found is None else found
+        line = bars(todo.line)
+        key = cell.key(todo, line)
+        found = kept.get(_id(key))
+        return cell.run(todo, line) if found is None else Record(key, *found)
     except Exception as error:  # noqa: BLE001 - a bad cell is recorded with its error; the rest run
         return Failed(todo, cell.LOADED, f"{type(error).__name__}: {error}")
 
 
-def _resume(journal: Path) -> tuple[dict[Key, Record], int]:
+def _resume(journal: Path) -> tuple[Kept, int]:
     """The journal's records by key, and its length up to a line a stop cut short."""
     text = journal.read_bytes() if journal.exists() else b""
     whole = text[: text.rfind(b"\n") + 1]
     rows = (json.loads(line) for line in whole.splitlines())
-    kept = (_load(row) for row in rows if "error" not in row)
-    return {record.key: record for record in kept}, len(whole)
+    kept = (row for row in rows if "error" not in row)
+    return {(*row["cell"], row["code"], row["data"]): _load(row) for row in kept}, len(whole)
+
+
+def _id(key: Key) -> tuple[str, ...]:
+    return (*_row(key.cell), key.code, key.data)
 
 
 def _dump(outcome: Outcome) -> dict[str, Any]:
@@ -90,15 +105,13 @@ def _dump(outcome: Outcome) -> dict[str, Any]:
     }
 
 
-def _load(row: dict[str, Any]) -> Record:
-    name, symbol, start, end = row["cell"]
-    found = Cell(name, symbol, _date(start), _date(end))
-    trades = tuple(Trade(_date(b), s and _date(s)) for b, s in row["trades"])
-    return Record(Key(found, row["code"], row["data"]), row["bars"], trades)
+def _load(row: dict[str, Any]) -> tuple[int, tuple[Trade, ...]]:
+    return int(row["bars"]), tuple(Trade(_date(b), s and _date(s)) for b, s in row["trades"])
 
 
 def _row(todo: Cell) -> list[str]:
-    return [todo.strategy, todo.symbol, todo.start.isoformat(), todo.end.isoformat()]
+    line, window = todo.line, [todo.start.isoformat(), todo.end.isoformat()]
+    return [todo.strategy, line.symbol, line.venue, *window]
 
 
 def _day(day: date | None) -> str | None:
