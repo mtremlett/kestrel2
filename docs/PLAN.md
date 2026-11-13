@@ -264,37 +264,55 @@ day's trading and reconciliation are built, and any broker can stand behind them
 - [x] Any broker behind the send path and the day run, not the pretend one by name, giving
       its holdings and stops as entries, read once for each order (`broker.Broker`; the
       paper lane's R-PAPER-2)
-- [ ] The costs whole: a sale's own cost, and spread and slippage on both legs, the stop's
-      sale included, in the one cost model; UK tax from a fact on each line (asked of the
-      data lane)
+- [ ] **The kill switch, before the paper lane sends any order:** one command stops all new
+      orders and cancels the open ones, and the desk says so; drilled before FIRST-LIGHT's first
+      day and then monthly (EMG-02, canon B1) {id: money-kill; files: desk/kill.py,
+      desk/broker.py, desk/book.py, tests/unit/test_kill*.py, tests/unit/test_broker*.py,
+      tests/unit/test_book*.py, tests/unit/test_day*.py, manifest.toml}
+- [ ] The costs whole: a sale's own cost, and spread and slippage on both legs, the stop's sale
+      included, in the one cost model; UK tax from a fact on each line (asked of the data lane)
+      {id: money-costs; files: desk/orders.py, desk/book.py, tests/unit/test_orders*.py,
+      tests/unit/test_book*.py, tests/scenes/test_scenes.py; after: money-kill}
 - [ ] The day's record (`day.run`): the day reconciled at its end, a mismatch named and its
       profit withheld; else the profit after every cost line, to one rounding policy, beside
-      what holding the market earned; the same days replayed to the same records. Scene 6's
-      days moved onto the fourteen months, its book checked against the broker's every day -
-      **scenes 6 and 7 pass**
+      what holding the market earned; the same days replayed to the same records. Scene 6's days
+      moved onto the fourteen months, its book checked against the broker's every day - **scenes
+      6 and 7 pass** {id: money-record; files: desk/day.py, desk/book.py, desk/orders.py,
+      tests/unit/test_day*.py, tests/unit/test_book*.py, tests/unit/test_orders*.py,
+      tests/scenes/test_scenes.py, docs/PLAN.md; after: money-costs}
 - [ ] SimCity, small: one command runs the whole desk's day over all fourteen months of
       rehearsal data against the pretend broker with its faults, every night, and writes one
-      record; a census names every part of the money path and turns red when one has no
-      scenario
-- [ ] **The kill switch, before the paper lane sends any order:** one command stops all new
-      orders and cancels the open ones, and the desk says so; drilled before FIRST-LIGHT's
-      first day and then monthly (EMG-02, canon B1)
+      record; a census names every part of the money path and turns red when one has no scenario
+      {id: money-simcity; files: desk/simcity.py, tests/unit/test_simcity*.py,
+      tests/scenes/test_scenes.py, manifest.toml; after: money-kill, money-record}
+- [ ] Emergencies in numbers: an emergency, a crash and a black swan each defined by measured
+      falls, each with its action (EMG-01) {id: money-emergencies; files: desk/emergency.py,
+      tests/unit/test_emergency*.py, manifest.toml}
+- [ ] Halts: a halt is a typed record; while one is in force the desk buys nothing and says so
+      every day until it is lifted, and the day's verdict reads it; each morning one list of
+      every blocker and every signal it blocked (FIL-08, NS-06, FIL-04, TRD-01)
+      {id: money-halts; files: desk/halt.py, desk/day.py, desk/book.py,
+      tests/unit/test_halt*.py, tests/unit/test_day*.py, tests/unit/test_book*.py,
+      manifest.toml; after: money-kill, money-record}
+- [ ] The gate's other limits from canon B1: a day's and a week's loss and an order rate,
+      refused at the gate (EMG-04 when live) {id: money-limits; files: desk/orders.py,
+      desk/book.py, desk/day.py, tests/unit/test_orders*.py, tests/unit/test_book*.py,
+      tests/unit/test_day*.py, tests/scenes/test_scenes.py; after: money-record}
+- [ ] Each strategy's declaration typed: its bar, holding period, test universe and data; a
+      short sale cannot be built at all (STR-03, STR-06) {id: money-declared;
+      files: desk/strategy.py, tests/unit/test_strategy*.py}
+- [ ] The money invariants property-tested, seeded: positions equal the sum of fills, equity
+      equals cash plus market value, profit equals realised plus unrealised less costs, orders
+      move only through valid states, sending is idempotent (TST-04, canon B4)
+      {id: money-invariants; files: tests/unit/test_book*.py, tests/unit/test_orders*.py,
+      tests/unit/test_broker*.py; after: money-record}
 - [ ] **The crash watch, on the five-minute data:** every five minutes in trading hours it
       reads the newest bars of every held and watched line and the market's own; a fall that
       crosses the emergency thresholds halts all buying at once, alerts him immediately at
       any hour, and records why; the protective sell across every position (STP-07) acts on
       it once built (EMG-01, EMG-03)
-- [ ] Emergencies in numbers: an emergency, a crash and a black swan each defined by
-      measured falls, each with its action (EMG-01)
-- [ ] Halts: a halt is a typed record; while one is in force the desk buys nothing and
-      says so every day until it is lifted, and the day's verdict reads it; each morning
-      one list of every blocker and every signal it blocked (FIL-08, NS-06, FIL-04, TRD-01)
-- [ ] The gate's other limits from canon B1: a day's and a week's loss and an order rate,
-      refused at the gate (EMG-04 when live)
 - [ ] A position the desk did not make is named and then sold on paper (TRD-06); no signal
       is left half-processed at the day's end (TST-08)
-- [ ] Each strategy's declaration typed: its bar, holding period, test universe and data;
-      a short sale cannot be built at all (STR-03, STR-06)
 - [ ] SimCity widened: a hundred seeded worlds with faults and drills, not one rehearsal
       world (TST-05, TST-22)
 - [ ] Small and illiquid trades: a trade whose expected gain is under twice its round-trip
@@ -304,9 +322,6 @@ day's trading and reconciliation are built, and any broker can stand behind them
       jumps the stop held against the loss limit; a hold limit and gap sizing for the
       leveraged lines (STP-11, STP-10, SIZ-09)
 - [ ] Fills realistic: spread and slippage in every fill, from the one cost model (TRD-09)
-- [ ] The money invariants property-tested, seeded: positions equal the sum of fills,
-      equity equals cash plus market value, profit equals realised plus unrealised less
-      costs, orders move only through valid states, sending is idempotent (TST-04, canon B4)
 - [ ] The golden reference run committed; a change to a size, a stop or a threshold is
       replayed on it before it lands (TST-21, GOV-09, canon B5)
 - [ ] Every trade's whole story: signal, intent, risk decision, order, fill and the bar it
