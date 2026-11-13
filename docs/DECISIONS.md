@@ -1017,17 +1017,24 @@ in #46 needs.
 **The machine.** No session starts while under 25% of memory is free, while twelve run, or
 while more than eight run and the grid's auto-tune says a pass is busy; one start a minute.
 
-**Driven (canon A7).** The guard: 24 cases in a scratch clone, each failing for its stated
+**Driven (canon A7).** The guard: 26 cases in a scratch clone, each failing for its stated
 reason, among them a change outside the claim, STATUS without claiming it, a pull request
-with no claim or two, a claim in a bullet, duplicate ids, an `after` naming nothing, a note
-without files or id; and passing for a claim kept, a glob, `*`, a scribe's four documents,
+with no claim or two, a claim in a bullet, duplicate ids, an `after` naming nothing or
+waiting on itself through others, a note without files or id; and passing for a claim kept, a glob, `*`, a scribe's four documents,
 a push run with no claim to read, and a note shown in prose. The runner, with a stand-in for
-sessions in a scratch home: 48 cases, among them two boxes on one file never side by side,
+sessions in a scratch home: 61 cases, among them two boxes on one file never side by side,
 a box waiting for its `after`, a carry's files held while its slot is idle, a blocking
 request draining its lane first, the memory floor and the grid's cap holding starts, a wider
 claim disarmed, a red pull-request run not hidden by a green push run, and twelve slots
 working a book through with a peak of nine sessions and no two claims ever overlapping. The
 older drives were re-run on the new code; the only misses were words changed on purpose.
+
+**Reviewed blind.** An independent reviewer found one blocking fault and six major ones, all
+fixed and driven: after a restart two slots could carry one pull request; two landings at
+once could lose a tick; GitHub not answering could free a claim whose pull request was open;
+two globs covering one file did not clash; a session arming its own merge could land before
+the runner read its Claim line (the runner now arms it, only after); two slots could swap
+pull request descriptions; a lane with nothing it may start sat idle untold.
 
 **Found on the way.** Taking over a lock left by a dead runner held the log's lock and then
 waited for it: every lane would have hung after a hard stop. Fixed (a re-entrant lock) and
