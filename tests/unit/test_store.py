@@ -264,8 +264,9 @@ def test_a_real_crash_is_kept_and_parks_until_recorded(tmp_path: Path, at: int, 
     assert store.read(tmp_path, US.symbol) == bars
     moved = [bars[n] for n in (start, start + days) if 0 < n < len(bars)]
     assert all(f"{b.day} moved" in reasons[0] for b in moved)
+    assert store.moves(US, bars) == tuple(b.day for b in moved)
     line = replace(US, real_moves=frozenset((b.day, b.close) for b in moved))
-    assert _parked(tmp_path, bars, line) == []
+    assert _parked(tmp_path, bars, line) == [] and store.moves(line, bars) == ()
     assert store.read(tmp_path, US.symbol) == bars
 
 

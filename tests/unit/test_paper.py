@@ -37,6 +37,8 @@ ENDS = (("62", "1"), ("53", "1"))
 SMGB = Holding("DU0000001", "SMGB", "STK", "GBP", Decimal(25))
 LIVE = ("15", "1", "U7654321")
 AAPL_STOP = Resting("1234567", "31", "DU0000001", "AAPL", "SELL", Decimal(10), "STP")
+TWO = "SMGB STK GBP: the broker holds {} in one of 2 entries, the desk's book {}"
+RESTS = "AAPL: an order resting at the broker to SELL {} (STP, the broker's id 1234567, client {})"
 
 
 def _wire(*messages: Sequence[str]) -> io.BytesIO:
@@ -47,6 +49,10 @@ def _wire(*messages: Sequence[str]) -> io.BytesIO:
 
 def _smgb(*shares: int) -> Account:
     return Account(tuple(replace(SMGB, shares=Decimal(n)) for n in shares), ())
+
+
+def _named(symbol: str) -> Account:
+    return Account((replace(SMGB, symbol=symbol),), ())
 
 
 def _read(*messages: Sequence[str]) -> tuple[Account, list[bytes]]:
@@ -102,6 +108,13 @@ def test_nothing_is_asked_until_the_gateway_is_ready_and_its_accounts_are_all_pa
         ((ACCOUNTS, ("4", "2", "-1", "2104")), ValueError, "cut short"),
         ((ACCOUNTS, READY, FLAT[:-1]), ValueError, "AAPL"),
         ((ACCOUNTS, READY, [*FLAT, ""]), ValueError, "AAPL"),
+        # a kind or a currency of two words could make one name of two things
+        ((ACCOUNTS, READY, [*FLAT[:5], "B STK", *FLAT[6:]]), ValueError, "B STK"),
+        ((ACCOUNTS, READY, [*FLAT[:11], "STK USD", *FLAT[12:]]), ValueError, "STK USD"),
+        ((ACCOUNTS, READY, [*FLAT[:5], "", *FLAT[6:]]), ValueError, "cannot trust"),
+        ((ACCOUNTS, READY, [*FLAT[:11], "", *FLAT[12:]]), ValueError, "cannot trust"),
+        ((ACCOUNTS, READY, [*FLAT[:14], "NaN", FLAT[15]]), ValueError, "NaN"),
+        ((ACCOUNTS, READY, [*FLAT[:14], "Infinity", FLAT[15]]), ValueError, "Infinity"),
         ((ACCOUNTS, READY, STOP[:25]), ValueError, "AAPL"),
         ((ACCOUNTS, READY, [*STOP[:13], "SSHORT", *STOP[14:]]), ValueError, "SSHORT"),
         ((ACCOUNTS, READY, [*FLAT[:2], "U7654321", *FLAT[3:]]), paper.NotPaper, "U7654321"),
@@ -155,10 +168,21 @@ def test_a_book_that_is_the_brokers_has_no_difference() -> None:
         (_smgb(), {"SMGB": 25}, "SMGB STK GBP: the broker holds 0, the desk's book 25"),
         (_smgb(25), {"SMGB": 24}, "SMGB STK GBP: the broker holds 25, the desk's book 24"),
         (_smgb(-25), {"SMGB": 25}, "SMGB STK GBP: the broker holds -25, the desk's book 25"),
-        # rows that add up to the book are not the book: two places, or a change mid-reading
-        (_smgb(20, 5), {"SMGB": 25}, "SMGB STK GBP: the broker holds 5, the desk's book 25"),
-        (_smgb(25, 0), {"SMGB": 25}, "SMGB STK GBP: the broker holds 0, the desk's book 25"),
-        (_smgb(25, -25), {}, "SMGB STK GBP: the broker holds -25, the desk's book 0"),
+        # a line in two entries is never the book's one line: two places, or a change mid-reading
+        (_smgb(20, 5), {"SMGB": 25}, TWO.format(5, 25)),
+        (_smgb(25, 0), {"SMGB": 25}, TWO.format(0, 25)),
+        (_smgb(25, -25), {}, TWO.format(-25, 0)),
+        (_smgb(25, 5), {"SMGB": 25}, TWO.format(25, 25)),  # the entry that matches is named too
+        (_smgb(25, 25), {"SMGB": 25}, TWO.format(25, 25)),  # each the book's shares: twice the book
+        (
+            _smgb(0, 0, 25),
+            {},
+            "SMGB STK GBP: the broker holds 25 in one of 3 entries, the desk's book 0",
+        ),
+        (Account((), ()), {"AAPL": 3}, "AAPL STK USD: the broker holds 0, the desk's book 3"),
+        # a holding that is no line of the desk's, and a name taken exactly as the broker gives it
+        (_named("TSLA"), {}, "TSLA STK GBP: the broker holds 25, the desk's book 0"),
+        (_named("smgb "), {"SMGB": 25}, "smgb  STK GBP: the broker holds 25, the desk's book 0"),
         (
             Account((replace(SMGB, currency="EUR"),), ()),
             {"SMGB": 25},
@@ -169,24 +193,29 @@ def test_a_book_that_is_the_brokers_has_no_difference() -> None:
             {},
             "SMGB CFD GBP: the broker holds 0.5, the desk's book 0",
         ),
-        (
-            Account((), (AAPL_STOP,)),
-            {},
-            "AAPL: an order resting at the broker to SELL 10 (STP, the broker's id 1234567, "
-            "client 31)",
-        ),
-        (
-            Account((), (replace(AAPL_STOP, client="222"),)),
-            {},
-            "AAPL: an order resting at the broker to SELL 10 (STP, the broker's id 1234567, "
-            "client 222)",
-        ),
+        (Account((), (AAPL_STOP,)), {}, RESTS.format(10, 31)),
+        (Account((), (replace(AAPL_STOP, client="222"),)), {}, RESTS.format(10, 222)),
+        (Account((), (replace(AAPL_STOP, shares=Decimal(0)),)), {}, RESTS.format(0, 31)),
     ],
 )
 def test_every_difference_from_the_book_is_named(
     account: Account, held: dict[str, int], named: str
 ) -> None:
     assert named in paper.differences(account, held, LINES)
+
+
+def test_each_entry_is_named_once_in_order_by_its_own_name_and_the_orders_after() -> None:
+    flat = Holding("DU0000001", "AAPL", "STK", "USD", Decimal(0))
+    other = replace(SMGB, account="DU0000002")  # a second paper account holding the same
+    buy = replace(AAPL_STOP, broker_id="7", action="BUY", kind="MKT")
+    account = Account((SMGB, flat, replace(SMGB, currency="EUR"), other), (AAPL_STOP, buy))
+    assert paper.differences(account, {"SMGB": 25}, LINES) == (
+        "SMGB STK EUR: the broker holds 25, the desk's book 0",  # one entry under its name
+        TWO.format(25, 25),
+        TWO.format(25, 25),  # each entry named, though the two read alike
+        RESTS.format(10, 31),
+        "AAPL: an order resting at the broker to BUY 10 (MKT, the broker's id 7, client 31)",
+    )
 
 
 def test_a_held_line_the_desk_was_not_given_is_refused() -> None:
