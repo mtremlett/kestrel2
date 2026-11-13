@@ -992,6 +992,54 @@ and each was driven.
 in, because the runner starts at his logon. Starting it without a logon would need his
 password stored in Task Scheduler, which is his to decide. He is pausing updates instead.
 
+## 2026-11-13 — no lane may sit idle overnight unseen
+
+**Asked**, for him: the first desks lost overnight hours to stalls nobody saw, and he wants
+to attend to nothing. Each was driven against a deliberate stall, in a scratch copy that
+could not reach his phone.
+- **A watchdog**, a second scheduled task every ten minutes, independent of the runner,
+  restarts it when its process is gone or its heartbeat (written every half minute) is over
+  ten minutes old, unless STOP is set; each restart is logged and sent. Driven: no runner,
+  a killed runner and a hung one (suspended, its heartbeat stale) were each restarted; STOP
+  was respected; an expired drain was lifted with no runner there.
+- **A drain ends by itself** after 45 minutes unless renewed, with a line at 30. Driven.
+- **A stall alarm:** a lane with no session for 20 minutes and no known reason (not the cap,
+  STOP or a halt already told) sends one line; so do three hours with nothing landed. Driven.
+- **An outage is not a failure:** Claude, GitHub or the network unreachable (GitHub refusing
+  a push from its own side included) is waited out with back-off of 5 to 30 minutes, never
+  counted toward a halt, told after 30 minutes and when it clears. Driven: three outages left
+  a lane running; two real failures still halted it. It began with #43, whose push GitHub's
+  server refused on 13 November and which the old runner counted as a failure.
+- **Idle hours by cause** (cap, halt, drain, outage, crash, none) are counted every minute;
+  the 07:00 line and the report give each lane's overnight hours. Time the runner was down
+  counts as crash.
+- **A reboot loses nothing:** a stopped session's unpushed work is committed as work in
+  progress on its branch and carried to the lane's next run, a lock left by a dead process
+  is taken over, an open lane pull request is adopted, and he gets "runner back: N lanes
+  starting".
+
+## 2026-11-13 — a halt is read by a doctor before it waits for him
+
+**Asked**, for zero attendance. After any halt the runner starts one fresh read-only session
+(Opus, medium effort, reading tools only) over the halt's evidence: its reason, the lane's
+last runs and their own last words, the runner's log. Its verdict: (a) a false alarm, and
+the lane restarts by itself, at most twice a day; (b) a real loop, and the lane stays halted
+with the pattern named for `docs/FAILURE_PATTERNS.md`; (c) a decision only he can make,
+sent to him with options and a recommendation. A finished book goes straight to him.
+Driven with a stand-in: each verdict acted on, the third false alarm in a day kept halted,
+no verdict kept halted and told. Driven for real on the RUNGS halt of 13 November: a correct
+false alarm (a session ended while its reviewer still ran) in 40 seconds.
+
+## 2026-11-13 — the documents held to a size a session reads whole
+
+**Asked**, for him: document bloat was a first-desk failure pattern, and STATUS had reached
+794 lines and DECISIONS 1,819. `tests/guards/test_documents.py` holds STATUS to 300 lines,
+each lane's section to 60, each entry here to 80, and CLAUDE.md to its 80 (a tightening).
+The lanes prune their own sections, since each knows which of its items are still open:
+the runner makes it the first, blocking objective of a lane whose section is over 60. The
+shared section was pruned here; the one entry over 80 is split. The 07:00 line gives the
+documents' sizes.
+
 ---
 
 # The lanes' own decisions
@@ -1062,6 +1110,10 @@ to AG-06); GOV-08 by Fable first, then Opus, and the 80% pause; UNI-08 by the tw
 he chose; STR-10, TRD-14 and SIZ-07 by a fifth of one capital number each, a leveraged line
 counted at what it controls; STP-01's method by the stop where the market has fallen 10%
 (set at entry, as it asked); TST-18 by the scenes rule, which has no list of known reds.
+
+## 2026-11-13 — his spec's additions, the lines swapped, and merging
+
+Continued from the entry above.
 
 **Decided, third: eleven best-in-class additions the spec never asked for.** His words:
 "Add all 11 at their gates (Recommended)". Each sits in the plan at its gate.

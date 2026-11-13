@@ -13,76 +13,33 @@ Last updated: 13 November 2026.
 
 ### Where we are
 
-Phase 2 under way. Scenes 1, 2 and 3 pass: scenes passing 3 of 7.
-
-Two rulings of 13 November are in force (`docs/DECISIONS.md`): sessions merge their own
-pull requests when the check is green, and GitHub now refuses any merge whose check has
-not passed (driven red on pull request #5); the A-GATE test is written as AG-01 to
-AG-06 in `docs/PLAN.md`, with the thirty-day terms fixed in advance.
-
-Every change that lands on main now sends the operator one Telegram line once the check
-passes there. Since his request of 13 November it is short: the phase whose step the change
-ticked in this plan's checklist, or "housekeeping" when it ticked none, the scenes count,
-the week's usage of his plan as the pull request states it on a line "Weekly usage: 21%"
-("n/a" when it states none), and the pull request's number, for example "kestrel2 · Phase
-2 · step 3 of 6 done · scenes 4/7 · usage 21% (#16)" (`announce.py`, the `announce` job;
-`docs/DECISIONS.md`). A missing secret turns the job red; that was driven on main before
-the secrets existed. The first line, for #7, reached his phone on 13 November; the first
-short one, for #17, on the same day.
-
-Five lanes now run day and night on the operator's PC, by his rulings of 13 November
-(`docs/DECISIONS.md`): MONEY (scenes 5 to 7), PAPER (phase 3, begun alongside phase 2),
-DATA (the research universe, the parked lines, the store's findings), GRID (the fast grid
-engine) and RUNGS (the ladder's rungs). Every lane runs on Fable while its allowance is
-under 45%, then on Opus until a Fable reset (his ruling). A
-runner outside this repository starts each lane's next session when the last one ends,
-inside the plan's included usage, stopping at 80% of the week.
-GitHub merges a pull request only when its check is green and its branch already holds
-everything on main, so two green lanes cannot combine into a red main.
+Phase 2, with phase 3 begun alongside it by his ruling; the scenes count is in
+`docs/PLAN.md`. Five lanes (MONEY, PAPER, DATA, GRID, RUNGS) run day and night on his PC,
+each a chain of sessions started by a runner outside this repository, inside his plan's
+included usage and stopping at 80% of its week. GitHub merges a pull request only when its
+check is green and its branch holds all of main. Each merge sends him one Telegram line;
+the runner adds a 07:00 line, an independent audit at 05:30, and a line whenever a lane
+stops, stalls or needs him (`docs/DECISIONS.md`). This file keeps what is open: a fixed
+item is removed, and git keeps it.
 
 ### Open questions for the operator
 
 1. **A second GitHub account** for sessions to work through, so that the guards cannot be
-   removed by the account that enforces them. On 13 November he chose to start the lanes
-   on his own account now; the question stays open for later.
+   removed by the account that enforces them. He chose to start on his own account; open.
 
 ### Found, not fixed
 
-- **Two of the line limits are prose, not guards.** CLAUDE.md says its 80 lines and
-  CANON.md its 200 are held by a guard; no test reads either, and CANON.md is 224 lines.
-- **The runner's own lines to his phone wait for his key.** A lane that halts, pauses at
-  the weekly cap or needs his decision, and the 07:00 line, are sent by the runner on his
-  PC from a file holding the bot key, which he copies beside the runner himself. Until he
-  does, they are written to the runner's log only.
-- **A Windows Update restart overnight stops the lanes until he logs in.** The runner
-  starts at his logon; starting it without one needs his password in Task Scheduler,
-  which is his call. He is pausing updates.
-- **The lane guard judges whole files.** A lane may write in any part of a shared
-  document; that it keeps to its own section is checked only by the daily audit.
-- **A newer ruff on the operator's PC calls the tree badly formatted.** Version 0.15
-  formats differently from the pinned 0.8.6, so `python check.py` run with whatever is
-  installed shows format red on a clean main. Run it in an environment built from
-  `requirements.txt`. The check does not yet say which tool versions it ran with.
-- **The scenes rule trusts the error's name.** A scene counts as "not built" when it
-  fails with NotImplementedError. A test that raised that error itself would pass as
-  unbuilt. No test does; nothing yet checks that none does.
-- **Sessions opened in the predecessor's folder carry its permissions.** The session that
-  wrote the scenes was started there and could not delete a scratch file. Open sessions
-  directly on this folder.
-- **The predecessor's price archive is five months stale.** A sample of 120 tickers
-  found the newest bar in June 2026 for 85% of them, none current, and some major names
-  absent entirely. It is usable as a head start on history, never as current data.
-- **The predecessor's scheduled tasks are all disabled.** Eight had refused a session with
-  "access denied"; on 13 November he checked every `KESTREL_` task in Task Scheduler as
-  administrator and each says disabled (`docs/DECISIONS.md`).
-- **The predecessor's paper book is flat.** Read at 14:36 UK on 13 Nov 2026, read-only:
-  paper account, no positions and no open orders. Nothing was placed.
-- **The unit tests are within a few lines of the product, and lanes collide on it.** The
-  guard holds unit tests to no more lines than `desk/` and `lab/` together (about 1,435
-  against 1,444 on this branch). The ladder's batch went red by one line once brought up to
-  date with main (#28), each lane green alone; the runner's re-check caught it and a line
-  was trimmed. Every lane's next test must come with as much product, or a test merged. A
-  session the operator starts could record this in `docs/FAILURE_PATTERNS.md`.
+- **CANON.md's 200-line limit is prose:** it is 224 lines, and no test holds it.
+- **A Windows Update restart overnight stops the lanes until he logs in.** Starting the
+  runner without a logon needs his password in Task Scheduler: his call. He pauses updates.
+- **The lane guard judges whole files:** that a lane writes only in its own section of a
+  shared document is checked by the daily audit alone.
+- **A newer ruff calls the tree badly formatted:** run the check in the environment built
+  from `requirements.txt`; the check does not say which tool versions it ran with.
+- **The scenes rule trusts the error's name:** a test raising NotImplementedError itself
+  would pass as unbuilt. None does; nothing checks that none does.
+- **Unit tests sit within a few lines of the product's size**, and two lanes green alone
+  can be red together (#28): each lane's next test needs as much product, or a test merged.
 
 ## MONEY
 
