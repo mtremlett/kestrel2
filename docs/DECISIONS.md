@@ -686,6 +686,44 @@ under its lane, and says what was decided, the options, why, and the evidence.
 
 ## MONEY
 
+### 2026-11-13 — how the pretend broker behaves
+
+**Decided**, by the lane as the desk's mentor (no one watching), for scene 4 and after:
+
+1. **A buy fills at the opening price of the day the market is open**, for the whole order.
+   The desk decides after a day's close and its order meets the next open. Options were the
+   open, the close, or the price the order was sized at. The open is what a market order sent
+   overnight gets. The close would be a price the desk had not seen when it sent the order.
+   The sized price would make every gap free.
+2. **A stop is tested on the day of its buy too**, against that day's whole range. Testing
+   it only from the next day would let a buy whose market fell through the stop the same
+   afternoon escape the loss. That is an optimistic fill, and the desk's measurements must
+   err the other way. A day that opens below a stop sells at the open, not at the stop.
+3. **One stop per line.** A second buy of a line held adds its shares to the line's one
+   stop, at the newest order's level. The book is to give each line one fifth (his ruling
+   on sizing), so a line is one holding, with one protection. The other option, a stop per
+   order, could leave two levels on one holding.
+4. **A fault hits a symbol's first order that meets a market.** An order sent before the
+   open, or on a day its line does not trade, is refused with that reason and leaves the
+   fault waiting (the blind review's finding: a fault used up on such an order never
+   happened at all). A partial fill gets half, rounded down, and the rest is cancelled. A
+   dropped connection means the order never reached the broker. A crash means the broker
+   has it, and has filled it, but the desk has no answer.
+5. **The desk asks before it sends again**, as with Interactive Brokers: the broker answers
+   `report(order_id)` with what it did, or nothing if it never received the id. A repeated
+   id is refused with a reason, never filled twice, and still counted as received, so
+   scene 4 sees a desk that sends twice.
+6. **A position planted by hand has no fill and no stop.** The broker reports it among its
+   positions only, as a real account shows a hand trade made elsewhere; scene 6 must find it.
+
+**Evidence.** `tests/unit/test_broker.py` failed first on the unbuilt broker. Thirty
+deliberate breaks of `desk/broker.py` were each caught. Among them: the order's own id
+used as the execution id, no stop left after a fill, a partial fill filling in full or in
+silence, a fault outliving its first order, a disconnected order counted as received, a
+crash losing the broker's record, a duplicate filling again, a gapped stop selling at its
+level, no stop test on the day of the buy, a fill at the close, and a fault spent on no
+market.
+
 ## DATA
 
 ## LADDER

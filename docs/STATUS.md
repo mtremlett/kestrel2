@@ -76,6 +76,19 @@ Last updated: 13 November 2026.
 
 ### Where it is
 
+The desk has a pretend broker to trade against in simulation (`desk/broker.py`), built to
+behave like the real one. A buy fills at the day's opening price under the broker's own
+execution id, and leaves a stop resting at the broker for the shares it got, so the stop
+protects the position even with the desk switched off. The stop is tested at every open,
+and on the day of the buy itself: a day that falls through it sells at the stop, or at the
+open when the day opens below it. Faults on request, each stated and never silent: a
+rejection, a partial fill (half, the rest cancelled), a dropped connection (the order never
+arrived), and the desk dying after the broker has the order. The desk can then ask the
+broker what it did with an order id, so it never needs to send twice; a repeated id is
+refused and counted. A position can be planted as if bought by hand. Its own contract test
+was seen failing first; thirty deliberate breaks of the broker were each caught; a blind
+review found nothing blocking, and its one fix taken (below) is tested.
+
 The desk now sizes a buy from one capital number (`desk/orders.py`), by the operator's
 ruling of 13 November: at most five holdings, each costing at most a fifth of the capital,
 a leveraged line counted at what it controls (5QQQ may take £400 of £10,000), and the stop
@@ -98,11 +111,30 @@ caught; the forty-fifth cannot change a decision.
 
 ### Next step
 
-The pretend broker, with its faults, proven by its own contract test; then the send path
-that records its fills, so that scene 4 passes.
+The send path (`book.send`): every order through the one gate, asked of the broker by its
+id before it is sent so a restart never sends it twice, its fills recorded under the
+broker's ids, and a stated reason for every order that did not fill - so that scene 4
+passes.
 
 ### Found, not fixed
 
+- **What the blind review of the pretend broker left for the send path and the day run**
+  (its one finding fixed: a fault was used up by an order that met no market):
+  - `book.send` must ask `broker.report(order_id)` before it places an order. Placing it
+    again and reading the refusal fails scene 4, which counts every receipt.
+  - The broker fills at the bare open and sells a stop at exactly its level. Spread and
+    slippage are not in its prices, so the day run must charge both, on both legs, the
+    stop's sale included, or profit reads too high.
+  - An order is sized at the last close and fills at the next open. On a gap up the fill
+    costs more than the gate allowed; the book must hold a line to what was filled.
+  - `open` judges the stops against the whole day before the desk's orders that day. A
+    line sold by its stop and bought again the same morning can be stopped out twice on
+    one bar. The day run should not buy a line its stop sold that day.
+  - The desk cannot sell yet: the broker takes buys only. Scene 5 needs a sell, which
+    must also take its line's resting stop away.
+  - `inject` takes any symbol and a negative quantity (a hand sale) unchecked. Untested
+    so far: a planted position on a line that also has the desk's stop, a partial fault
+    on a one-share order, and several stops firing on one open.
 - **What the blind review of sizing left for the book** (its blocking finding - a pound
   line accepted any exchange rate - is fixed and tested):
   - **"At most five holdings" is not enforced yet.** The gate sees one order, not the
@@ -146,11 +178,10 @@ Every one of these raises NotImplementedError, by design, until its phase builds
 
 | part | phase |
 |---|---|
-| `broker.Pretend` and all its methods | 2 |
 | `book.send`, `book.fills`, `book.positions`, `book.round_trips` | 2 |
 | `day.run` | 2 |
 
-Built and real: sizing, cost and the gate for one holding (`orders.size`, `orders.cost`,
+Built and real: the pretend broker (`broker.Pretend`), sizing, cost and the gate for one holding (`orders.size`, `orders.cost`,
 `orders.gate`), the five strategies (`strategy.decide`), the twenty lines, the archive
 client (`archive.fetch`), the price store (`store.prepare`, `store.read`, `store.faults`),
 the venue calendars,

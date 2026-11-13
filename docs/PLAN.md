@@ -1,8 +1,8 @@
 # The plan
 
-**Current objective:** the money lane's — the pretend broker, with its faults (rejects,
-partial fills, disconnection, crashes), proven by its own contract test, on the way to
-scene 4.
+**Current objective:** the money lane's — the send path: every order through the one
+gate, sent once however often the desk restarts, its fills recorded under the broker's
+ids - so that scene 4 passes.
 
 Scenes passing: **3 of 7**. Phase: **2-money-sim**.
 
@@ -101,10 +101,11 @@ scene 5. Scenes 1 to 3 keep passing on it.
 
 ### The money lane's book — scenes 4 to 7, in order
 
-**Lane objective:** the pretend broker (`desk/broker.py`), with its faults, proven by its
-own contract test.
+**Lane objective:** the send path (`book.send`, `book.fills`): every order through the one
+gate, asked of the broker by its id before it is sent, its fills recorded under the
+broker's ids - **scene 4 passes**. The pretend broker it sends to is built.
 
-- [ ] The pretend broker: fills at the day's prices, rejects, partial fills, disconnection,
+- [x] The pretend broker: fills at the day's prices, rejects, partial fills, disconnection,
       a crash, resting stops, positions, and a position injected behind the desk's back
 - [ ] The send path: every order through the one gate, sent once however often the desk
       restarts, its fills recorded under the broker's ids - **scene 4 passes**

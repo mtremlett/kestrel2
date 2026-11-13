@@ -26,6 +26,7 @@ touch the same lines. A session the operator starts himself appends to the table
 
 | date | scenes | desk lines | lab lines | test lines | guards | check | what moved |
 |---|---|---|---|---|---|---|---|
+| 2026-11-13 | 3 of 7 | 1057 | 9 | 1585 | 12 of 12 proven | green | The pretend broker is built: a buy fills at the next open under the broker's own id and leaves a stop resting at the broker, tested on the day of the buy too; a rejection, a partial fill, a dropped connection and a crash each give a stated reason; the desk can ask what the broker did with an order, so it never sends twice. Its contract test was seen failing first; thirty deliberate breaks each caught; a blind review's one fix taken (a fault used up on no market). Next: the send path, for scene 4. |
 
 ### DATA
 
