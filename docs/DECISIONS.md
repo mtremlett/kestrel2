@@ -942,6 +942,36 @@ He presses the resets himself; the runner tells him when, by these rules:
 After any reset the runner reads the new usage and the new reset time from the plan, and
 never assumes the reset stays on Thursday. While the lanes wait at the cap, it reads the
 plan again every quarter of an hour, so a reset he presses lets them carry on at once.
+(The 45% figures above were read on the wrong scale: see the next entry.)
+
+## 2026-11-13 — Fable's figure is a share of Fable's own allowance: switch at 97%
+
+**The evidence.** From 17:37 to 20:08 every lane ran on Fable. The Fable window the plan
+reports (`seven_day_overage_included`) rose from 20% to 33%, 13 points, while the
+all-models week rose from 25% to 33%, 8 points. Were Fable's figure a share of the week,
+the week would have risen at least as much. So it is a share of Fable's own allowance
+(about half the week), and 100% means Fable is full. Switching to Opus at 45% would have
+thrown away more than half of the allowance his Fable resets give back.
+
+**His ruling**, in his own chat at 20:12 UK: "Please use all fable tokens and then flip to
+opus overnight. I can then reset fable in the morning around 8am". So:
+- the lanes stay on Fable until 97% of Fable's own allowance, or until Fable refuses a
+  session, then run on Opus;
+- no request to press the Fable reset before bed or overnight: at 21:45 the runner only
+  logs its forecast;
+- "press the Fable reset now" is sent by day only (08:00 to 22:00) at 95% or more, with the
+  week's reset more than 36 hours away; so a Fable that filled overnight is asked for at
+  08:00. The Fable figure is read every 15 minutes, so the lanes return to Fable as soon as
+  the reset shows;
+- the weekly 80% pause reads only the all-models window, and stands as ruled, at all
+  hours. Asked at 20:16 whether to run up to 95% of the week overnight instead, he answered
+  "Keep 80": an option he considered and declined. He accepts that the lanes may pause at
+  80% overnight until he presses the Fable reset at about 08:00.
+
+**Driven** in a scratch home: the lanes on Fable at 33% and 96%, on Opus at 97%, and on
+Fable when no figure is known; at 14:00, 94% asks nothing and 95% asks once; at 23:00 and
+03:00, 99% asks nothing; at 08:00, 99% asks once; at 21:45, Fable at 60% rising four points
+an hour and at 96% bring no request, only the forecast in the log.
 
 ## 2026-11-13 — the paper account is the old desk's
 
@@ -2355,6 +2385,41 @@ Twenty deliberate breaks of the new code: nineteen caught, the twentieth being t
 gap, caught since. Measured from outside the repository on 4,000 days: a cell about 25 ms
 for any of the five rules, where the desk's engine alone took 90 to 100 ms; 17 ms of the
 25 is reading the line's prices in, paid again by each cell.
+
+### 2026-11-13 — a cell names its line and venue (R-DATA-1)
+
+**Decided.** A cell holds the whole `Line`, not symbol plus venue. Options: the Line; two
+strings. Chosen the Line: the data lane asked for it, the first rung needs the line's facts
+(currency, leverage, UK tax) to price a trade, and they then have one home.
+- A cell does not check its line against the research list. Options: check membership; trust
+  the typed Line. Chosen the latter: checking would put the list inside every result's code
+  version, so adding one ticker would re-run every kept cell; a line with no stored prices
+  already fails its own cell loudly and the rest carry on.
+- A symbol alone is still accepted, meaning one of the twenty. Options: break the rungs
+  lane's tests, which this lane may not edit; hold the change until they move, which they
+  cannot do first; accept both for now and ask them to move (R-GRID-2). Chosen the last; the
+  door is named as temporary in the code.
+- The journal names a cell by strategy, symbol, venue and window; a kept record is found by
+  those plus the code and data versions. The line's other facts are not written: the days a
+  rule bought and sold do not depend on them.
+
+**Evidence.** Four deliberate breaks, each caught and undone: every line read from the US
+folder; the journal leaving the venue out; a kept record never found; a cell given a line
+quietly taking the trading line of the same symbol. Blind review, nothing blocking.
+
+### 2026-11-13 — the grid lane's open boxes ordered for the runner (#71)
+
+**Decided.**
+- The cell's key (BT-04) comes before the first pass. Options: keep the book's order (pass
+  first, key later); move the key up. Chosen: up. A change to the key re-runs every kept cell,
+  so changing it after a pass over the research universe would throw that pass away.
+- Auto-tune lives in `lab/tune.py`, not inside `lab/batch.py`. Options: grow the batch
+  service; a new module around it. Chosen the module: auto-tune and the venue box then share
+  no file, two sessions can build them at once, and the batch keeps its one job.
+- The pass lives in `lab/sweep.py`: it owns which cells make a pass and the busy flag the
+  runner reads (`autotune.json`).
+- grid-weekend claims every file of the lane (`*`): making a sweep fast enough can touch the
+  engine, the cell and the batch alike, and it is last, so running alone costs nothing.
 
 ## RUNGS
 
