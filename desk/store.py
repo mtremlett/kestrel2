@@ -12,6 +12,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import astuple, dataclass, replace
 from datetime import date, timedelta
 from decimal import Decimal
+from itertools import groupby
 from pathlib import Path
 
 from desk import venues
@@ -35,6 +36,10 @@ RECENT = 60
 #: taken as bad days in the wrong unit, not a lasting step. Any other fall and recovery, however
 #: short, may be real - a leveraged line can lose 40% and win it back - and parks as a step.
 BLIP = 20
+#: A run of this many sessions or more, each repeating the bar before it or flat at its close,
+#: with no volume, is a frozen feed, not a market: the twenty lines' longest real run since 2010
+#: is three sessions (2MU, December 2022). Its bars are dropped and listed.
+FROZEN = 5
 UNITS = (Decimal(100), Decimal("0.01"))
 ASTRAY = "is out of line with the days either side: a wrong unit"
 COLUMNS = ("day", "open", "high", "low", "close", "volume")
@@ -156,6 +161,27 @@ def _priced(line: Line, sound: Sequence[Bar], faults: list[Fault]) -> list[Bar]:
     return kept
 
 
+def _still(before: Bar, bar: Bar) -> bool:
+    """Nothing traded, and the bar repeats the one before it or sits flat at its close."""
+    prices = (bar.open, bar.high, bar.low, bar.close)
+    repeated = prices == (before.open, before.high, before.low, before.close)
+    return bar.volume == 0 and (repeated or all(p == before.close for p in prices))
+
+
+def _thawed(kept: Sequence[Bar], faults: list[Fault]) -> list[Bar]:
+    """Drop and list every run of FROZEN or more still bars, by the run's last day."""
+    still = [at > 0 and _still(kept[at - 1], bar) for at, bar in enumerate(kept)]
+    thawed: list[Bar] = []
+    for frozen, pairs in groupby(zip(kept, still, strict=True), key=lambda pair: pair[1]):
+        run = [bar for bar, _ in pairs]
+        if frozen and len(run) >= FROZEN:
+            what = f"{run[0].day} to {run[-1].day} repeat one price with no volume: a frozen feed"
+            faults.append(Fault(run[-1].day, what))
+        else:
+            thawed.extend(run)
+    return thawed
+
+
 def _clean(
     line: Line, bars: Sequence[Bar], day: date, since: date
 ) -> tuple[list[Bar], list[Fault]]:
@@ -170,7 +196,7 @@ def _clean(
             faults.append(Fault(bar.day, entered))
         else:
             sound.append(entered)
-    kept = _priced(line, sound, faults)
+    kept = _thawed(_priced(line, sound, faults), faults)
     held = {b.day for b in kept}
     missing = [d for d in expected if d not in held]
     if not kept:
