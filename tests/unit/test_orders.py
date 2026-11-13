@@ -11,7 +11,7 @@ from decimal import Decimal
 import pytest
 
 from desk import orders
-from desk.lines import Line
+from desk.lines import STAMP_DUTY, Line
 from desk.strategy import Action, Decision
 
 PLAIN, THREE_X, FIVE_X = (
@@ -68,7 +68,7 @@ def test_the_stop_sits_where_the_market_under_the_line_has_fallen_ten_percent() 
     assert plain.order_id == "20251114-rule-P", "the same decision must make the same order"
 
 
-def test_the_fees_are_the_brokers_published_schedule() -> None:
+def test_every_cost_of_a_leg_is_charged_line_by_line_from_the_one_model() -> None:
     #: London: 0.05% of the value, at least 3 pounds
     assert orders.cost(_order(PLAIN, 100, "10")) == Decimal(1003)
     assert orders.cost(_order(PLAIN, 1000, "10")) == Decimal(10005)
@@ -78,6 +78,32 @@ def test_the_fees_are_the_brokers_published_schedule() -> None:
     assert orders.cost(_order(DOLLAR, 100, "10", "0.8")) == Decimal(1001) * rate
     assert orders.cost(_order(DOLLAR, 1000, "10", "0.8")) == Decimal(10005) * rate
     assert orders.cost(_order(DOLLAR, 10, "5", "0.8")) == Decimal("50.5") * rate
+    #: a UK share's purchase pays half of one per cent in tax, and its sale none; every leg
+    #: loses a twentieth of one per cent to the spread and as much to slippage, each times the
+    #: line's leverage, and a stop's sale slips three times as far
+    share, pound = replace(THREE_X, uk_tax=STAMP_DUTY), Decimal(1)
+    assert orders.cost(_order(share, 1000, "10")) == Decimal(10055), "the tax is cash it takes"
+    quoted = _order(Line("I", "LSE", "USD", 1, STAMP_DUTY), 1000, "10", "0.8")
+    assert orders.cost(quoted) == Decimal(10055) * rate, "a tax paid in dollars is converted"
+    assert [orders.charges(share, leg, 1000, Decimal(10), pound) for leg in orders.Leg] == [
+        _charges("5 15 15 0 50"),
+        _charges("5 15 15 0 0"),
+        _charges("5 15 45 0 0"),
+    ]
+    #: a US sale pays its regulators too, 20.60 dollars a million sold and 0.0195 cents a
+    #: share, at most 9.79 dollars; the dollars left are converted
+    sold = orders.charges(DOLLAR, orders.Leg.SALE, 1000, Decimal(10), Decimal("0.8"))
+    assert sold == _charges("4.3208 4 4 2.39870376 0"), "5.401 dollars; 9994.599 converted"
+    penny = orders.charges(DOLLAR, orders.Leg.STOP, 100_000, Decimal(1), pound)
+    assert penny.commission == Decimal("511.85"), "500, 2.06 and the most of 9.79"
+    assert (sold + sold).part(1, 2) == sold and sold.total == Decimal("14.71950376")
+    assert [orders.leg_of(name, n) for name, n in (("o-stop", 5), ("o", -5), ("o-stop", -5))] == [
+        *orders.Leg
+    ], "a fill's leg is read from its shares, and its stop's id"
+
+
+def _charges(lines: str) -> orders.Charges:
+    return orders.Charges(*map(Decimal, lines.split()))
 
 
 def test_only_a_buy_for_its_own_line_is_sized_and_a_share_must_be_affordable() -> None:

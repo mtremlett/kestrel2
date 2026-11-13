@@ -4,6 +4,7 @@ the gate reads, built from every fill. Scene 4 holds the gate's refusal and a cr
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
+from dataclasses import replace
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
@@ -12,8 +13,8 @@ import pytest
 
 from desk import book
 from desk.broker import Broker, Crash, Fault, Pretend
-from desk.lines import Line
-from desk.orders import Order, Refused, Sale, Settings
+from desk.lines import STAMP_DUTY, Line
+from desk.orders import Charges, Order, Refused, Sale, Settings
 from desk.store import Bar
 
 A, MON, TUE = Line("A", "LSE", "GBP", 1), date(2025, 11, 10), date(2025, 11, 11)
@@ -250,10 +251,10 @@ def test_every_entry_of_the_brokers_is_the_books_own_shares_or_it_is_named(
     assert book.differences(held, iter(entries)) == tuple(book.Difference(*n) for n in named)
 
 
-def test_a_round_trip_pairs_each_sale_with_the_buys_it_closes_in_pounds_after_charges(
+def test_a_round_trip_pairs_each_sale_with_the_buys_it_closes_in_pounds_after_every_cost(
     tmp_path: Path,
 ) -> None:
-    dollar = Line("U", "US", "USD", 1)
+    dollar, share = Line("U", "US", "USD", 1), replace(A, uk_tax=STAMP_DUTY)
     broker = Pretend({**WEEK, dollar: WEEK[SIX[1]]}, {})
     for on, rate in ((MON, "0.8"), (TUE, "0.75")):
         broker.open(on)
@@ -265,22 +266,26 @@ def test_a_round_trip_pairs_each_sale_with_the_buys_it_closes_in_pounds_after_ch
             )
             book.send(tmp_path, broker, Sale("s-1", A, 4), ROOM)
     book.send(tmp_path, broker, Sale("s-2", dollar, 10), ROOM)  #: after A's stop sold the rest
-    trips = book.round_trips(tmp_path, (A, dollar))
+    trips = book.round_trips(tmp_path, (share, dollar))
     assert [(t.sell.order_id, t.buy.quantity, t.sell.quantity) for t in trips] == [
         ("s-1", 4, -4),
         ("o-1-stop", 6, -6),
         ("s-2", 10, -10),
     ]
     assert {t.buy.execution_id for t in trips[:2]} == {broker.fills()[0].execution_id}
-    #: each leg's commission shared by its shares: 3 pounds a London order, 1 dollar a US one
+    #: each leg's costs shared by its shares: 3 pounds a London order, 0.05% of each leg to the
+    #: spread and to slippage, three times that as the stop sells at 45, and the buy's tax
     assert [(t.gross, t.costs) for t in trips[:2]] == [
-        (Decimal(0), Decimal("4.2")),
-        (Decimal(-30), Decimal("4.8")),
+        (Decimal(0), Charges(*map(Decimal, ("4.2", "0.2", "0.2", "0", "1")))),
+        (Decimal(-30), Charges(*map(Decimal, ("4.8", "0.285", "0.555", "0", "1.5")))),
     ]
-    #: 500 dollars at 0.8, back at 0.75; 0.03% conversion on the dollars moved each way
-    conversion = Decimal("0.0003") * (501 * Decimal("0.8") + 499 * Decimal("0.75"))
-    assert trips[2].gross == -25 and trips[2].costs == Decimal("1.55") + conversion
-    assert all(t.profit == t.gross - t.costs for t in trips)
+    #: 500 dollars at 0.8, back at 0.75: a dollar's commission each way and the regulators'
+    #: 1.225 cents on the sale; 0.03% conversion on the dollars moved each way
+    conversion = Decimal("0.0003") * (501 * Decimal("0.8") + Decimal("498.98775") * Decimal("0.75"))
+    assert trips[2].gross == -25 and trips[2].costs == Charges(
+        Decimal("1.5591875"), Decimal("0.3875"), Decimal("0.3875"), conversion, Decimal(0)
+    )
+    assert all(t.profit == t.gross - t.costs.total for t in trips)
     with pytest.raises(ValueError, match="U"):
         book.round_trips(tmp_path, (A,))
     with pytest.raises(ValueError, match="kept at 0.75"):  #: a day's fills are never repriced
