@@ -112,16 +112,55 @@ UK tax) and R-MONEY-2 (the scenes on the whole fourteen months).
       being on it makes nothing tradable (`lab/universe.py`)
 - [x] The research list's daily bars since 2010, fetched and kept through the one store's
       checks, a bad ticker parked with its reason (`universe.keep`): 864 clean, 201 parked
+- [ ] **First, by his ruling of 13 November:** SPY, QQQ and GLD leave the twenty for their
+      UK-listed twins an ISA can hold: VUAG (S&P 500), EQQQ (Nasdaq 100) and IDTL (US
+      Treasuries 20+ years), each on the London venue; every line carries an ISA and
+      retail-buyable flag; the "simply holding the market" yardstick re-pointed (UNI-09)
+      {id: data-isa-twins; files: desk/lines.py, tests/unit/test_lines.py, tests/unit/test_lab_universe.py}
 - [ ] The research list's parked fifth: 201 tickers' large one-day moves confirmed, or a
       rule for research that needs no confirmation
+      {id: data-parked-fifth; files: lab/universe.py, tests/unit/test_lab_universe_parked.py}
+- [ ] One fast store for hot and deep data, standard library only: SQLite in WAL mode with
+      one writer and many readers, held to benchmarks set now: a five-minute round for every
+      line written in under a second, a line's last week read in under 50 ms, a line's daily
+      history read in under 200 ms (DAT-04)
+      {id: data-fast-store; files: desk/bars.py, tests/unit/test_bars*.py, manifest.toml}
+- [ ] Half-days and auction times in the calendars (DQ-11)
+      {id: data-hours; files: desk/venues.py, tests/unit/test_venues*.py}
+- [ ] A five-minute store, started now because the free archive keeps only about sixty days
+      of five-minute bars: each evening the twenty lines' five-minute bars are saved through
+      the same checks; the last week kept hot for reading, everything older archived, none
+      thrown away (DAT-11)
+      {id: data-five-minute; files: desk/archive.py, tests/unit/test_archive*.py, desk/bars.py, tests/unit/test_bars*.py; after: data-fast-store}
+- [ ] **Hot every five minutes, paramount (his ruling, 13 November evening):** during each
+      venue's trading hours the keeper fetches every clean line's newest five-minute bar
+      every five minutes, checks it on entry, and updates every indicator the rules and the
+      crash watch read; a line whose bar is late, missing or out of line is parked at once
+      and not traded, and the other lines carry on; a line that comes clean comes back by
+      itself. The source's delay is measured and shown, never hidden (DQ-12, DAT-07, DAT-11)
+      {id: data-keeper; files: desk/keeper.py, tests/unit/test_keeper*.py, desk/bars.py, tests/unit/test_bars*.py, manifest.toml; after: data-five-minute, data-hours}
 - [ ] The archive spared: fetching slow and resumable, with backoff, each raw answer cached
       in the folder `KESTREL2_DATA` names (outside the repository and every worktree); while
       the archive refuses, `{"refusing_since": <time>}` written to `KESTREL2_DATA/archive.json`
       (null once it answers), so the runner tells the operator after six hours, and other work
       done meanwhile rather than retrying
+      {id: data-archive-spared; files: desk/archive.py, tests/unit/test_archive*.py}
+- [ ] Polite fetching: the archive's limits measured, slow and resumable requests, backing
+      off on refusals, raw responses cached, an alert after six hours refused (DAT-08)
+      {id: data-polite; files: desk/archive.py, tests/unit/test_archive*.py; after: data-archive-spared}
+- [ ] Kept hot, always: the runner runs the store's keeper after the US close and before the
+      London open on every trading day, a dated receipt each time; a line staler than one
+      session raises an alert, and a keeper that misses its slot raises one too (DQ-12,
+      DAT-07)
+      {id: data-kept-hot; files: desk/keeper.py, tests/unit/test_keeper*.py; after: data-keeper}
+- [ ] The store's keeper: its cadence, a dated receipt for each run, a restart drill; each
+      bar's source and arrival time kept (DQ-12, DQ-10)
+      {id: data-keeper-receipts; files: desk/keeper.py, tests/unit/test_keeper*.py, desk/bars.py, tests/unit/test_bars*.py; after: data-kept-hot}
 - [ ] A home for the research store on his PC, refreshed nightly, a ticker that left a list
       cleared out, and the day and list it reflects written beside it
+      {id: data-research-home; files: lab/universe.py, tests/unit/test_lab_universe*.py; after: data-parked-fifth, data-isa-twins}
 - [ ] The lists' members year by year, so a study of the past is not the survivors' alone
+      {id: data-members; files: lab/members.py, tests/unit/test_lab_members*.py, manifest.toml}
 - [ ] The full research universe, 5,000 and more, once the grid's first pass works
 - [ ] 2MU's five real moves recorded from a second source, or its reason confirmed
 - [ ] 5QQQ's consolidation of 22 August 2024 handled, or its reason confirmed
@@ -135,12 +174,6 @@ UK tax) and R-MONEY-2 (the scenes on the whole fourteen months).
 - [ ] The window before mid-April 2010 prepared
 - [ ] A pence history the archive calls pounds caught
 - [ ] The calendars carried past 2027, before 2027 ends
-- [ ] **First, by his ruling of 13 November:** SPY, QQQ and GLD leave the twenty for their
-      UK-listed twins an ISA can hold: VUAG (S&P 500), EQQQ (Nasdaq 100) and IDTL (US
-      Treasuries 20+ years), each on the London venue; every line carries an ISA and
-      retail-buyable flag; the "simply holding the market" yardstick re-pointed (UNI-09)
-- [ ] Polite fetching: the archive's limits measured, slow and resumable requests, backing
-      off on refusals, raw responses cached, an alert after six hours refused (DAT-08)
 - [ ] Coverage and quality measured: history at least twice the longest lookback for every
       line, five years by the A-GATE; a quality score per line and desk-wide, and a cap on
       the share of lines parked (DAT-03, DQ-01)
@@ -148,9 +181,6 @@ UK tax) and R-MONEY-2 (the scenes on the whole fourteen months).
       source, with a staleness alarm and a register of sources; the twenty lines' bars
       checked against the broker's price of record each day once PAPER connects (DQ-03,
       DAT-07, DAT-01, DAT-02)
-- [ ] The store's keeper: its cadence, a dated receipt for each run, a restart drill; each
-      bar's source and arrival time kept (DQ-12, DQ-10)
-- [ ] Half-days and auction times in the calendars (DQ-11)
 - [ ] Dividends and corporate actions: total-return history for the ladder, the paper
       profit and the hold-the-market yardstick (UNI-07)
 - [ ] Survivorship: the research list taken as it stood on each past date, with the names
@@ -165,32 +195,14 @@ UK tax) and R-MONEY-2 (the scenes on the whole fourteen months).
 - [ ] Leveraged-product lifecycle watched: an issuer's closure, a compulsory redemption or
       an ISA eligibility change on any line held or researched raises an alert (BIC-11)
 - [ ] Disk watched; old research files roll off by rule (OPS-07)
-- [ ] **Hot every five minutes, paramount (his ruling, 13 November evening):** during each
-      venue's trading hours the keeper fetches every clean line's newest five-minute bar
-      every five minutes, checks it on entry, and updates every indicator the rules and the
-      crash watch read; a line whose bar is late, missing or out of line is parked at once
-      and not traded, and the other lines carry on; a line that comes clean comes back by
-      itself. The source's delay is measured and shown, never hidden (DQ-12, DAT-07, DAT-11)
 - [ ] The hot bars' first source is the broker: he already pays for IBKR's market data, so
       the five-minute keeper reads live bars through IB Gateway's paper port, read-only, and
       the free archive is the second source and the check on it; first prove, read-only,
       that the paper account sees his live data and not the delayed kind, and if it does
       not, say which setting he must turn on (DAT-02, DAT-07)
-- [ ] One fast store for hot and deep data, standard library only: SQLite in WAL mode with
-      one writer and many readers, held to benchmarks set now: a five-minute round for every
-      line written in under a second, a line's last week read in under 50 ms, a line's daily
-      history read in under 200 ms (DAT-04)
 - [ ] Deep history: daily bars back to 2000 wherever the archive has them, the calendars
       carried back first; the old desk's Stooq store used only as a head start, every bar
       re-checked on entry (DAT-03, BT-09)
-- [ ] A five-minute store, started now because the free archive keeps only about sixty days
-      of five-minute bars: each evening the twenty lines' five-minute bars are saved through
-      the same checks; the last week kept hot for reading, everything older archived, none
-      thrown away (DAT-11)
-- [ ] Kept hot, always: the runner runs the store's keeper after the US close and before the
-      London open on every trading day, a dated receipt each time; a line staler than one
-      session raises an alert, and a keeper that misses its slot raises one too (DQ-12,
-      DAT-07)
 
 ## Phase 2 — the money path, in simulation
 
