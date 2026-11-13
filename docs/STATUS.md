@@ -183,289 +183,53 @@ no order until that day's check is clean, run on a second day, and the kill swit
 
 ## DATA
 
-Last updated: 13 November 2026 (each line's UK tax).
+Last updated: 13 November 2026 (the scenes on the whole fourteen months; this section cut).
 
 ### Where it is
 
-Phase 1's data is in. The twenty lines are in the
-instrument master (`desk/lines.py`), by the operator's ruling of 13 November: ten in
-London in pounds, ten in the US in dollars. One client for the free archive
-(`desk/archive.py`, Yahoo's public chart service) fetches every bar since 2010 and reads
-it once, on entry. Fetched into a store on 13 November for the 13th: **sixteen of the
-twenty are clean and ready**: all ten US lines from 2010, and SMGB, IITU, VHYG, IB1T, ISF
-and VUSA. Four are parked, each with a named reason (below, under "found, not fixed"). Two
-store rules came from his rulings the same day: a London auction price up to 3% outside
-the day's range stretches it, and only a fault in the last sixty sessions parks a line
-(older bad days are dropped and listed in the line's fault record; a price step parks
-however old).
-
-The desk has one price store with one writer (`desk/store.py`): it rebuilds itself from the archive each morning,
-keeps only bars that can be true, and parks a line it cannot clean with a dated reason;
-the line comes back by itself once its bars are clean. Gaps and staleness are judged
-against each venue's own calendar (`desk/venues.py`, London and US, 2010 to 2027). Its
-tests were seen failing first; a blind review's five blocking findings were each made a
-failing test, then fixed; and twenty-five deliberate breaks of the store, the
-calendar and the instrument master were each caught by a test. This session's three store
-rules were each driven against deliberate breaks in both directions, and caught.
-
-The scenes' rehearsal data (`tests/scenes/rehearsal.py`, this lane's) is now fourteen
-months long, September 2024 to 14 November 2025, each line on its own venue's calendar:
-London lines trade 307 days, US lines 303. It rises, falls, breaks out, dips sharply and
-falls again, and each of the five rules buys and sells on every one of the nineteen clean
-lines (his ruling of 13 November). The scenes still see only its last six weeks, which
-hold no holiday on either side, until scene 2 can count two calendars (below).
-
-One line the archive cannot be reached for, or whose answer is refused, is now parked alone
-with the reason, and the other lines carry on (`archive.gather`, `store.Refused`): a dropped
-connection, a half-delivered answer, a timeout, a missing page or an answer about the wrong
-line each park only that line, and the store keeps no bars for it, so none from an earlier
-day can be read as today's. An answer of a shape the desk does not know still stops the
-whole fetch. Its tests were seen failing first; six deliberate breaks were each caught; a
-blind review's one blocking finding (a half-delivered answer stopped everything) was made a
-failing test and fixed.
-
-A frozen feed is now caught: five sessions or more in a row, each repeating the bar before
-it (its volume too, or with none) or flat at its close with nothing traded, are dropped and
-listed, and the line parks if the run reaches the last sixty sessions. On the real archive
-the twenty lines' longest such run since 2010 is three sessions (2MU, December 2022), so it
-parks no clean line: the same four stay parked, for their old reasons. Tests seen failing
-first; nine deliberate breaks each caught; a blind review, nothing blocking, its one design
-point taken (a bar repeated whole, volume too, is frozen).
-
-A suspension can now be recorded on its line in the instrument master (`Line.suspended`),
-as a real move is: the store expects no bar on that day, so the line is not parked for the
-gap. A gap nobody has recorded still parks a line whose last sixty sessions it touches, and
-its reason now says the way out: "a gap in the archive, or a suspension the line does not
-record". A bar the archive gives on a recorded day is refused, and a day its venue did not
-trade cannot be recorded. None of the twenty has a suspension today. Tests seen failing
-first; four deliberate breaks each caught.
-
-A real one-day crash is no longer thrown away as "a wrong unit". Only a bar, or a short run,
-with a price a hundredfold out of line with its neighbour (pence among pounds) is dropped as
-bad data; any other move out of line, even for one day, is kept in the history and parks the
-line, however old, until each of its closes is recorded on the line (`Line.real_moves`), as a
-step in the price already did. On the real archive this kept 5QQQ's crash of 7 April 2025
-(the tariff sell-off: down 40% at the low, half won back the next day), which the store had
-been dropping; the same four lines park as before, and no clean line is touched. A crash
-straight after days in the wrong unit is now kept too. Tests seen failing first; seven
-deliberate breaks each caught; a blind review, nothing blocking, its one finding of the
-same kind fixed.
-
-The research list is built (`lab/universe.py`), by his ruling of 13 November: the S&P 500
-(503 tickers), the Nasdaq 100 (101), the FTSE 350 (347: three members London quotes in
-euros are left off, a currency no line can state yet) and the 200 most-traded US funds of a
-field of 330. Shares on two lists counted once, that is **1,065 tickers**, not the "about
-1,500" first guessed: the four lists overlap. It sits in `lab/`, which the trading core may
-never import, so being on it makes nothing tradable; a ticker the desk also trades (ten are)
-is the instrument master's own line. One command (`universe.keep`) fetches each ticker's
-bars since 2010 and keeps them through the one store's checks, one ticker at a time, each
-venue in its own folder, since one symbol can be two companies (BA is Boeing in New York and
-BAE Systems in London; thirteen symbols are shared). Driven on the real archive for 13
-November, in about ten minutes: every one of the 1,065 answered, 4.1 million daily bars;
-**864 are clean and 201 parked**, every one of the 201 for a one-day move larger than the
-store believes that nobody has recorded (406 moves; the commonest days are the flash crash
-of 6 May 2010, March 2020 and the day after the Brexit vote). Tests seen failing first; of
-thirty-one deliberate breaks, twenty-eight were caught at once, two once their tests were
-added, and the last, a change of order, changes nothing; a blind review's two blocking
-findings are fixed or decided (`docs/DECISIONS.md`).
-
-Every line now states what a purchase pays in UK transaction tax (`Line.uk_tax`), asked by
-the money lane (R-MONEY-1). One table in the instrument master holds the two rates: nil for
-a fund or an exchange-traded product, and a UK share's stamp duty, half of one per cent of
-what is paid. A line can state only one of the two, and only a London line can pay: any
-other figure, or a US line with UK tax, cannot be made. Each of the twenty trading lines
-states nil. For the five London funds (SMGB, IITU, VHYG, ISF, VUSA) that is confirmed from
-the tax office's own manual. For the five London products (3LGO, 2MU, 5QQQ, IB1T, SGLN) it
-is how the law reads and what brokers say, but no official page or issuer's document naming
-them was reached: it is to be seen on a real contract note (`docs/DECISIONS.md`). The
-research list's 347 London shares are each charged stamp duty, an assumption not checked
-name by name (below). One London line of the rehearsal data (L01) is now a UK share: over
-the fourteen months the rules buy it three times and its stamp duty comes to £29.66, so the
-day's record has a tax to count. Tests seen failing first; seventeen deliberate breaks,
-fifteen caught, one that changes nothing, and one no test can see yet (the rehearsal line's
-tax: nothing reads it until the money lane builds the day's record); a blind review's two
-blocking findings, both of wording that claimed more than was proven, are taken.
+Phase 1's data is in: the twenty lines, one archive client, one store with one writer, both venues'
+calendars for 2010 to 2027, and the research list (1,065 tickers: 864 clean, 201 parked). The scenes
+now see all fourteen months of rehearsal data (R-MONEY-2); scenes 1 to 5 pass on it.
 
 ### Next step
 
-R-MONEY-2, the money lane's other blocking request: the scenes moved onto the whole
-fourteen months (`SCENES_FROM = FIRST`), a short session of its own; until it is done the
-scenes see six weeks in which nothing is bought, so no tax is charged there either. Then
-the research list's parked fifth: 201 tickers wait for their large moves to be recorded,
-most of them real days of a real market. Decide and build how research reads them without
-loosening the trading store.
+The lane's objective, the research list's parked fifth (`docs/PLAN.md`). Open for later: R-MONEY-3
+(a daily pounds-per-dollar rate in the store) and R-PAPER-3 (each line's ISIN).
 
 ### Done for other lanes
 
-- R-MONEY-1: done in this pull request. `line.uk_tax` is the part of a purchase's value paid
-  in UK tax (`lines.NO_TAX` or `lines.STAMP_DUTY`, an exact decimal); a sale pays none. In
-  the rehearsal data L01 pays it. For the money lane to know: the tax is not yet in
-  `orders.cost` or the gate, so a taxed buy sized to its fifth can pass it by the duty (L01's
-  first buy is £1,967.67 before £9.84 of duty, so it fits today); the tax office collects it
-  to the penny, which belongs to the day record's one rounding policy; and the money lane's
-  note that the ten London lines are "assumed nil" can now point here.
+- R-MONEY-1: done in #47
+- R-MONEY-2: done in this pull request
 
 ### Requests to GRID
 
-- [ ] R-DATA-1 (later, opened 2026-11-13 18:15): a cell names its ticker's venue. `lab/cell.py` accepts
-  only the twenty trading lines and knows a line by its symbol alone; the research list has
-  thirteen symbols that are two companies. Take a `Line` from `universe.UNIVERSE`, and read
-  its bars from its venue's folder: `store.read(root / line.venue, line.symbol)`.
-- A parked research ticker keeps its sound bars and can be read, but 201 of them hold a
-  move nobody has confirmed; `universe.keep` returns them by line with the reason.
-- Every ticker is a member today: a result over the past on this list has survivor bias,
-  and its report must say so (canon B6).
+- [ ] R-DATA-1 (later, opened 2026-11-13 18:15): a cell takes a `Line` from `universe.UNIVERSE` and
+  reads `store.read(root / line.venue, line.symbol)`: thirteen symbols are two companies, by venue.
 
 ### Requests to MONEY
 
-- [x] R-DATA-2 (blocking, opened 2026-11-13 18:15): scene 2's count made each line's own, the number of
-  bars each line has, added up, times five (done by the money lane before requests were
-  numbered).
-- [ ] R-DATA-3 (later, opened 2026-11-13 18:15): the day run reads the archive through `archive.gather`
-  and hands its answers to `store.prepare` whole, so a refused line arrives as
-  `store.Refused` and parks with its reason; `day.run`'s `archive` parameter would then be
-  `Mapping[Line, Sequence[Bar] | Refused]`.
-- `SESSIONS` will then be every day either venue trades; a day run on it meets days only
-  one venue trades (Thanksgiving, Easter Monday).
-- [ ] R-DATA-4 (later, opened 2026-11-13 18:40 UK): every `Line(...)` in the money lane's tests
-  states its UK tax as a fifth fact (`NO_TAX` or `STAMP_DUTY`). Once the paper lane's do too,
-  the data lane removes the default, so a line cannot be made without saying what it pays,
-  as with leverage.
+- [ ] R-DATA-3 (later, opened 2026-11-13 18:15): the day run reads the archive through
+  `archive.gather` and hands `store.prepare` its answers whole, so a refused line parks with its reason.
+- [x] R-DATA-4 (later, opened 2026-11-13 18:40 UK): each `Line(...)` in its tests states its UK tax.
+- [ ] R-DATA-6 (later, opened 2026-11-13 19:20 UK): scene 5 reads `CLEAN`, now the one name for the
+  whole rehearsal data; `HISTORY` is the same thing, and then goes.
 
 ### Requests to PAPER
 
-- [ ] R-DATA-5 (later, opened 2026-11-13 18:40 UK): every `Line(...)` in `tests/unit/test_paper.py`
-  states its UK tax as a fifth fact (`NO_TAX` or `STAMP_DUTY`), for the same reason as
-  R-DATA-4. And when the first conformance trade buys a London product, its contract note
-  shows whether stamp duty was charged: tell the data lane what it says.
+- [x] R-DATA-5 (later, opened 2026-11-13 18:40 UK): each `Line(...)` in its tests states its UK tax.
 
 ### Found, not fixed
 
-- **What each line's UK tax leaves open** (blind review; its two blocking findings taken):
-  - **The five London products' nil is not confirmed from an official source.** 3LGO, 2MU,
-    5QQQ, IB1T and SGLN are debt of issuers outside the UK, not funds, so the 2014 exemption
-    for funds does not name them. Nil is how the law reads and what brokers say; the
-    issuers' prospectuses could not be fetched. He can settle it in a minute: the order
-    preview for any of them at his own broker shows whether stamp duty is charged. If one
-    pays, it is one word on its line.
-  - **A line made without stating its tax pays nil.** Leverage cannot be left out; the tax
-    can, because the other lanes' tests build lines from four facts and this lane may not
-    edit them. The twenty lines, the research list and the rehearsal lines each state it.
-    Asked of the money and paper lanes (R-DATA-4, R-DATA-5); then the default goes.
-  - **The research list's London shares are all charged a UK share's stamp duty, unchecked
-    name by name.** A member registered outside the UK most likely pays none (the review
-    names, from memory, EXPN, GLEN, WPP, WIZZ, CCH, HSX, LRE and Channel Islands trusts
-    such as 3IN, INPP, TRIG, SEQI, BHMG, HVPE, NBPE, PSH, VOF, VEIL, TFIF, RTW), so research
-    overstates their cost by half a per cent a purchase. One registered in Ireland (DCC,
-    GFTU, GNC) pays Ireland's 1%, and IAG may pay Spain's tax instead: rates no line can
-    state yet, so their cost is understated. Nothing trades on this list.
-  - **The takeover panel's levy is not modelled:** a flat pound or so on a trade over
-    £10,000 in a UK company's shares, on sales too. No trade is that large at £2,000 a
-    holding, and none of the twenty is a UK company's share.
-  - **Each line's kind was written from what the session knows of the ten products**, not
-    read from the broker or the exchange. The paper lane's next step reads each line as the
-    broker knows it; a fund that turned out to be a share would show there.
-  - Nothing tests that the rehearsal's taxed line is bought; scene 7 will, once built.
-- **Four of the twenty lines are parked, each for a reason in the archive's data:**
-  - 3LGO has no history in the free archive at all (the same product in dollars, 3GOL,
-    has fourteen years). He chose to keep 3LGO; it waits for history to gather.
-  - 2MU moved more in a day than the store believes a market moves, five times (5 August
-    2024, 26 September 2024, 19 December 2024, 4 April 2025, 24 October 2025): real crashes
-    of a 2x product, most likely. Each needs its confirmed close recorded in
-    `Line.real_moves`, from the issuer or a second source, before the line comes back.
-  - 5QQQ jumped from 0.0024 to 1.18 pounds on 22 August 2024: a share consolidation the
-    archive did not adjust. Its history before that date is on another scale.
-  - SGLN's first weeks, April to June 2011, swing between two price levels ten times: the
-    archive garbled them. A price step parks however old, so the line stays parked.
-- **The free archive promises nothing.** Yahoo's chart service is free and keyless but
-  unofficial; it may change or stop. Stooq, the other free archive, now answers with a
-  bot check, which this desk does not get around.
-- **None of the five rules ever buys in the six weeks the scenes see today.** The fourteen
-  months are built and proven to trade; scene 5 needs the scenes moved onto them (above).
-  Until then no test reads the months before October, so only the script recorded in
-  `docs/DECISIONS.md` shows they park nothing clean and that each rule trades in them.
-- **The research list, as fetched on 13 November** (`lab/universe.py`):
-  - A fifth of it is parked: 201 of 1,065, for 406 unrecorded one-day moves (93 US tickers,
-    108 London). Eighty-nine have one move only. Nothing fills `Line.real_moves` for a
-    research ticker, and its list has no place for one.
-  - It is today's members only, so the past studied on it is the survivors' past. The
-    lists' members year by year are not held.
-  - The research store is not kept anywhere yet: the fetch that proved it wrote 327 MB to a
-    scratch folder on his PC. `universe.keep` rebuilds it in about ten minutes; where it
-    lives, and its nightly refresh, come with the grid's first pass.
-  - A ticker the archive refuses for a day (a timeout, a throttled answer) loses its bars
-    until the next run, by the store's one rule (`docs/DECISIONS.md`). The proving run
-    paused a fifth of a second between tickers and was never refused; `universe.keep`
-    itself does not pace its requests.
-  - A ticker that leaves a list keeps its old files in the store, and a run stopped part
-    way leaves no mark of which tickers it reached. The store holds no record of the day or
-    the list it reflects.
-  - Three FTSE 350 members quoted in euros in London (BCG, MTLN, PEY) are left off: a line
-    is in pounds or dollars. Five quoted in dollars there are in.
-  - The 200 funds are the most traded of a field of 330 drawn up by the session, not of
-    every US fund: no free list of all of them by value traded was found. Funds that move
-    against their market, whose multiple has changed, on a single share or tracking
-    volatility are not in the field.
-  - Each ticker's name was checked only by the archive answering to it: a symbol that
-    exists but belongs to another company would pass.
-  - On the 1,065 the store dropped 770 frozen runs, 750 days with a price outside the
-    day's range and 265 bars on closed days, and found 314 gaps; none is recent enough to
-    park a ticker, but the rules were tuned on twenty lines, and thinly traded London
-    trusts may truly sit still for a week.
-  - PRN (a FTSE 250 member) is a reserved file name on older Windows; it wrote normally here.
-- **What the blind review of the store's rules left open** (its one blocking finding - a run
-  of days in the wrong unit taken as a lasting step - is fixed and tested; the first fix
-  dropped 2MU's real December 2024 crash as bad days, so a run is now bad days only when it
-  sits a hundredfold out):
-  - A stretched bar's new high or low is not recorded anywhere as differing from the
-    archive's.
-  - A line's bars and its fault record are swapped in one after the other, so a crash
-    between the two leaves them disagreeing.
-  - The sixty-session window looks back a hundred days on the calendar, which knows 2010
-    onward, so a trading day before mid-April 2010 cannot be prepared.
-- **What the blind review of the store left open** (its five blocking findings, and one
-  its re-review found in the repair, were fixed and each is now a test):
-  - The calendar knows 2010 to 2027 only. A bar from another year is refused and its
-    line parked; history before 2010 needs that decade's one-off closures first.
-  - A split the archive did not adjust parks the line if it is 2-for-1 or larger; a
-    smaller wrong factor (a 3-for-2 split, pounds read as dollars) cannot be told from
-    a real move by price alone and passes.
-    So does a whole history quoted in pence by an archive that says pounds: pence
-    become pounds only when the archive names them pence.
-  - A real move larger than the store believes (a fall of 37.5%, a rise of 60%) parks
-    the line until its confirmed close is recorded on the line (`Line.real_moves`).
-    Nothing fills that record yet; 2MU is parked for want of it.
-  - Two bad bars in a row are kept and the line parked, not cleaned: safe only while a
-    parked line is never traded or read for a decision.
-  - Parking lives only in what `store.prepare` returns (each line's faults are now
-    saved beside its bars, but not whether they parked it), and a line dropped from the
-    archive leaves its old files readable. The day run (phase 2)
-    must read parking from the prepare it runs.
-  - A vendor that leaves out a day a line did not trade (a suspension) parks the line
-    while the gap is in its last sixty sessions, until the suspension is recorded on the
-    line (`Line.suspended`), from the exchange or a second source. Nothing fills that
-    record yet, and nothing tells a lost day from a suspension by itself.
-- **What the blind review of the refused line left open:**
-  - A whole outage (no network, the archive down) parks every line one by one, each with
-    its own reason, rather than saying once that the archive is down. Safe, as nothing
-    trades, but noisy.
-  - Any `ValueError` while reading an answer parks the line, as the answer's fault. Today
-    each one comes from the answer; a future fault of the desk's own there would park a
-    line instead of stopping. One named error raised by `archive.parse` would close this.
-  - An answer of an unknown shape (a missing field) stops the whole fetch, by design: it
-    would hit every line alike.
-  - Nothing in the product calls `archive.gather` yet; the day run (phase 2) will.
-- **What the blind review of the one-day crash left open:**
-  - A bad print of a size other than a hundredfold (a tenth, a decimal slip) is now kept
-    and parks its line however old, and the only way out, `Line.real_moves`, records real
-    moves: there is no record of a known bad day. None of the twenty has one today.
-  - No test pins the hundredfold margin itself (62.5 times) on either side.
-- **What the blind review of the frozen feed left open:**
-  - A freeze younger than five sessions is not caught: up to four days of a stale price
-    can be traded on. Lowering the five would park real lines (2MU has runs of three).
-  - A run whose first stale day already sits flat, with no volume, at a new price counts
-    from the day after it, so it needs one session more to be caught.
-  - A frozen run's days are also counted as missing sessions, so its reason says it twice.
+- **UK tax (NS-05).** Nil for the five London products is unseen on a contract note. A line's tax
+  still defaults to nil; that can go now. The research list's London shares pay 0.5%, unchecked.
+- **Four of the twenty are parked:** 3LGO (no history), 2MU (five real crashes unrecorded), 5QQQ (an
+  unadjusted consolidation), SGLN (garbled 2011). The archive is free, unofficial, unpaced (DAT-08).
+- **The scenes' days** are now every day either venue trades; scenes 6 and 7 meet days only one does.
+- **The research list** is today's members only (BT-09), has no kept home, keeps a departed ticker's
+  files, loses a ticker's bars on a refused day, and leaves off three London members quoted in euros.
+- **The store:** nothing fills `Line.real_moves` or `Line.suspended`; a wrong factor under 2-for-1
+  passes; a bad print not a hundredfold out, and a freeze under five sessions, have no rule; parking
+  lives only in what `store.prepare` returns. No test yet pins that L01's stamp duty is charged.
 
 ## GRID
 
