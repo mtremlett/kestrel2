@@ -32,9 +32,8 @@ def _ask(line: Line, day: date) -> tuple[Bar, ...]:
 
 def test_the_research_list_is_the_four_lists_of_the_ruling_each_on_its_own_venue() -> None:
     parts = (universe.SP500, universe.NASDAQ100, universe.FTSE350, universe.ETFS)
-    assert (
-        [len(part) for part in parts] == [len(set(part)) for part in parts] == [503, 101, 347, 200]
-    )
+    sizes = [len(part) for part in parts]
+    assert sizes == [len(set(part)) for part in parts] == [503, 101, 347, 200]
     american = universe.SP500 + universe.NASDAQ100 + universe.ETFS
     assert {(line.venue, line.currency) for line in american} == {("US", "USD")}
     assert {line.venue for line in universe.FTSE350} == {"LSE"}
@@ -96,10 +95,8 @@ def test_a_refused_ticker_is_parked_by_line_and_keeps_no_bars_and_the_rest_are_k
     assert universe.keep(tmp_path, DAY, both, _ask) == {}
     parked = universe.keep(tmp_path, DAY, both, refuse_london)
     assert list(parked) == london
-    assert all(
-        p.reason.endswith("TimeoutError: the archive did not answer") for p in parked.values()
-    )
-    assert all(p.day == DAY for p in parked.values())
+    for p in parked.values():
+        assert p.day == DAY and p.reason.endswith("TimeoutError: the archive did not answer")
     assert [store.read(tmp_path / "LSE", line.symbol) for line in london] == [(), ()]
     assert all(len(store.read(tmp_path / "US", symbol)) > 60 for symbol in ("BA", "COST"))
 

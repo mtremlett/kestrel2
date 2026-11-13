@@ -10,31 +10,25 @@ import pytest
 
 from desk.lines import LINES, NO_TAX, STAMP_DUTY, YARDSTICK, Line
 
-#: Named by the ladder's tests, so still in the master, recorded as lines no ISA can hold;
-#: they leave, and this with them, when those tests name another line (docs/PLAN.md).
+#: Still in the master only because the ladder's tests name them; they leave when those do not.
 LEAVING = {"SPY", "QQQ"}
 
 
 def test_the_master_holds_the_twenty_of_the_ruling_thirteen_in_london_and_seven_in_the_us() -> None:
-    assert len({line.symbol for line in LINES}) == len(LINES)
-    twenty = [line for line in LINES if line.symbol not in LEAVING]
-    assert Counter((line.venue, line.currency) for line in twenty) == {
-        ("LSE", "GBP"): 12,
-        ("LSE", "USD"): 1,  #: IDTL, which London prices in dollars
-        ("US", "USD"): 7,
-    }
-    assert {line.symbol for line in LINES} >= {"VUAG", "EQQQ", "IDTL"}
-    assert "GLD" not in {line.symbol for line in LINES}
-    assert {(line.symbol, line.venue) for line in LINES} - {
-        (line.symbol, line.venue) for line in twenty
-    } == {(symbol, "US") for symbol in LEAVING}
+    symbols = {line.symbol for line in LINES}
+    assert len(symbols) == len(LINES) and "GLD" not in symbols
+    assert symbols >= {"VUAG", "EQQQ", "IDTL"}
+    twenty = Counter((ln.venue, ln.currency) for ln in LINES if ln.symbol not in LEAVING)
+    #: the one London line in dollars is IDTL
+    assert twenty == {("LSE", "GBP"): 12, ("LSE", "USD"): 1, ("US", "USD"): 7}
+    leaving = {ln.symbol: ln.venue for ln in LINES if ln.symbol in LEAVING}
+    assert leaving == dict.fromkeys(LEAVING, "US")
 
 
 def test_every_line_says_whether_an_isa_can_hold_it_and_a_retail_customer_buy_it() -> None:
     flags = {line.symbol: (line.isa, line.retail) for line in LINES}
     refused = {s: held for s, held in flags.items() if held != (True, True)}
-    #: a US fund has no UK papers, so neither; a note on bitcoin a retail customer can buy,
-    #: and a stocks and shares ISA cannot
+    #: a US fund has no UK papers; a bitcoin note a retail customer can buy and an ISA cannot
     assert refused == {**dict.fromkeys(LEAVING, (False, False)), "IB1T": (False, True)}
     unrecorded = Line("AAA", "US", "USD", 1)  #: nobody has recorded either: neither yes nor no
     assert unrecorded.isa is None and unrecorded.retail is None
@@ -46,7 +40,7 @@ def test_every_line_says_whether_an_isa_can_hold_it_and_a_retail_customer_buy_it
 def test_simply_holding_the_market_is_the_s_and_p_500_in_pounds_an_isa_can_hold() -> None:
     assert YARDSTICK in LINES and YARDSTICK.symbol == "VUAG"
     assert (YARDSTICK.venue, YARDSTICK.currency, YARDSTICK.leverage) == ("LSE", "GBP", 1)
-    assert YARDSTICK.isa and YARDSTICK.retail
+    assert (YARDSTICK.isa, YARDSTICK.retail) == (True, True)
 
 
 def test_leverage_is_a_fact_in_the_master_never_read_from_a_name() -> None:
