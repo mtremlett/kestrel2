@@ -39,25 +39,33 @@ def test_a_holding_is_a_fifth_of_the_capital_counted_at_what_the_line_controls()
         (FIVE_X, "1", Decimal(400)),
         (DOLLAR, "0.79", Decimal(2000)),
     ):
-        order = orders.size(_buy(line), line, Decimal("7.30"), Decimal(fx), TEN_K)
+        order = orders.size(_buy(line), line, Decimal("7.30"), Decimal(fx), TEN_K, {})
         more = _order(line, order.quantity + 1, "7.30", fx)
         assert orders.cost(order) <= room < orders.cost(more), line
-        orders.gate(order, TEN_K)
+        orders.gate(order, TEN_K, {})
         with pytest.raises(orders.Refused, match="a fifth"):
-            orders.gate(more, TEN_K)
-    exact = orders.size(_buy(PLAIN), PLAIN, Decimal(1), Decimal(1), TEN_K)  #: 1997 + 3 fee
+            orders.gate(more, TEN_K, {})
+    exact = orders.size(_buy(PLAIN), PLAIN, Decimal(1), Decimal(1), TEN_K, {})  #: 1997 + 3 fee
     assert orders.cost(exact) == 2000 and exact.quantity == 1997, "a cost of exactly the room fits"
-    orders.gate(exact, TEN_K)
+    orders.gate(exact, TEN_K, {})
+    held = {"V": 10, "W": 10, "X": 10, "P": 997}  #: four holdings, P's 997 of its 1997 at a pound
+    assert orders.size(_buy(PLAIN), PLAIN, Decimal(1), Decimal(1), TEN_K, held).quantity == 1000
+    pricier = orders.size(_buy(PLAIN), PLAIN, Decimal(2), Decimal(1), TEN_K, held)
+    assert pricier.quantity == 1, "the shares held are counted at the price the order is sized at"
+    for full, why in (({"P": 1997}, "no room"), ({s: 1 for s in "VWXYZ"}, "5 holdings already")):
+        with pytest.raises(orders.Refused, match=why):
+            orders.size(_buy(PLAIN), PLAIN, Decimal(1), Decimal(1), TEN_K, full)
 
 
 def test_the_stop_sits_where_the_market_under_the_line_has_fallen_ten_percent() -> None:
-    plain = orders.size(_buy(PLAIN), PLAIN, Decimal("50.25"), Decimal(1), TEN_K)
+    plain = orders.size(_buy(PLAIN), PLAIN, Decimal("50.25"), Decimal(1), TEN_K, {})
     stops = [
-        orders.size(_buy(x), x, Decimal("50.25"), Decimal(1), TEN_K).stop for x in (THREE_X, FIVE_X)
+        orders.size(_buy(x), x, Decimal("50.25"), Decimal(1), TEN_K, {}).stop
+        for x in (THREE_X, FIVE_X)
     ]
     assert [plain.stop, *stops] == [Decimal("45.225"), Decimal("35.175"), Decimal("25.125")]
     with pytest.raises(ValueError, match="empties"):
-        orders.size(_buy(PLAIN), replace(PLAIN, leverage=10), Decimal(10), Decimal(1), TEN_K)
+        orders.size(_buy(PLAIN), replace(PLAIN, leverage=10), Decimal(10), Decimal(1), TEN_K, {})
     assert plain.order_id == "20251114-rule-P", "the same decision must make the same order"
 
 
@@ -77,9 +85,9 @@ def test_only_a_buy_for_its_own_line_is_sized_and_a_share_must_be_affordable() -
     sell = Decision("rule", PLAIN.symbol, ON, Action.SELL)
     for decision, line in ((sell, PLAIN), (_buy(DOLLAR), PLAIN)):
         with pytest.raises(ValueError, match="buy"):
-            orders.size(decision, line, Decimal(10), Decimal(1), TEN_K)
+            orders.size(decision, line, Decimal(10), Decimal(1), TEN_K, {})
     with pytest.raises(orders.Refused, match="one share"):
-        orders.size(_buy(PLAIN), PLAIN, Decimal(10), Decimal(1), orders.Settings(Decimal(60)))
+        orders.size(_buy(PLAIN), PLAIN, Decimal(10), Decimal(1), orders.Settings(Decimal(60)), {})
     for line, fx in ((DOLLAR, "0"), (PLAIN, "0.8")):
         with pytest.raises(ValueError, match="exchange rate"):
             _order(line, 1, "10", fx)

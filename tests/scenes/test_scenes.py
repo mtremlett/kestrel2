@@ -79,17 +79,19 @@ def test_scene_3_a_size_and_a_stop_from_one_number() -> None:
     buy = strategy.Decision("any", line.symbol, LAST, strategy.Action.BUY)
     price, fx = Decimal("50.25"), Decimal("0.79")  #: dollars, and pounds per dollar
 
-    order = orders.size(buy, line, price, fx, SETTINGS)
+    order = orders.size(buy, line, price, fx, SETTINGS, {})
     assert order.quantity > 0 and (order.line, order.price, order.fx) == (line, price, fx)
     spend = orders.cost(order)
     assert order.quantity * price * fx < spend <= SETTINGS.capital, "pounds, currency cost counted"
-    orders.gate(order, SETTINGS)
+    orders.gate(order, SETTINGS, {})
 
     #: one penny less than this order costs: the sizer and the gate must both move
     less = orders.Settings(capital=spend - Decimal("0.01"))
-    assert orders.size(buy, line, price, fx, less).quantity < order.quantity, "sizer did not move"
+    assert (
+        orders.size(buy, line, price, fx, less, {}).quantity < order.quantity
+    ), "sizer did not move"
     with pytest.raises(orders.Refused):
-        orders.gate(order, less)
+        orders.gate(order, less, {})
     with pytest.raises(TypeError):
         orders.Order("o-1", line, 10, price, fx)  # type: ignore[call-arg]
     for stop in (Decimal(0), price):

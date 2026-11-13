@@ -3,7 +3,8 @@ and the one pre-trade gate reads the same capital number as the sizer."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from collections.abc import Mapping
+from dataclasses import dataclass, replace
 from decimal import Decimal
 
 from desk.lines import Line
@@ -70,9 +71,17 @@ FEES = {
 CONVERSION = Decimal("0.0003")
 
 
-def size(decision: Decision, line: Line, price: Decimal, fx: Decimal, settings: Settings) -> Order:
-    """The most whole shares whose cost fits the line's room, and the stop, for a buy; fx is
-    pounds per unit of the line's currency."""
+def size(
+    decision: Decision,
+    line: Line,
+    price: Decimal,
+    fx: Decimal,
+    settings: Settings,
+    held: Mapping[str, int],
+) -> Order:
+    """The most whole shares whose cost, with the shares of the line already held, fits the
+    line's room, and the stop, for a buy; fx is pounds per unit of the line's currency, and
+    held is the book (book.positions)."""
     if decision.action is not Action.BUY or decision.symbol != line.symbol:
         raise ValueError(f"{line.symbol}: only a buy for this line is sized, not {decision}")
     if STOP_FALL * line.leverage >= 1:
@@ -90,7 +99,12 @@ def size(decision: Decision, line: Line, price: Decimal, fx: Decimal, settings: 
     while over - fits > 1:  #: cost grows with the shares, so halve the gap until it closes
         middle = (fits + over) // 2
         fits, over = (middle, over) if cost(order(middle)) <= room else (fits, middle)
-    return order(fits)
+    already = held.get(line.symbol, 0)
+    if fits <= already:
+        raise Refused(f"{order_id}: {already} shares held leave no room for more")
+    bought = order(fits - already)
+    gate(bought, settings, held)
+    return bought
 
 
 def cost(order: Order) -> Decimal:
@@ -105,13 +119,19 @@ def cost(order: Order) -> Decimal:
     return pounds if order.line.currency == "GBP" else pounds * (1 + CONVERSION)
 
 
-def gate(order: Order, settings: Settings) -> None:
+def gate(order: Order, settings: Settings, held: Mapping[str, int]) -> None:
     """The one pre-trade gate, on the send path: raises Refused, or lets the order through.
-    It holds one holding's limit; the limits across the book come with the book."""
-    if cost(order) > _room(order.line, settings):
+    held is the book (book.positions): a new line needs one of the five holdings free, and a
+    line's shares, held and ordered, are counted together at the order's price and rate."""
+    symbol = order.line.symbol
+    if symbol not in held and len(held) >= HOLDINGS:
+        raise Refused(f"{order.order_id}: {len(held)} holdings already, at most {HOLDINGS}")
+    whole = replace(order, quantity=order.quantity + held.get(symbol, 0))
+    if cost(whole) > _room(order.line, settings):
         raise Refused(
-            f"{order.order_id}: {cost(order)} pounds, counted {order.line.leverage} times for "
-            f"what it controls, is over a fifth of the capital of {settings.capital}"
+            f"{order.order_id}: {cost(whole)} pounds for {whole.quantity} shares, counted "
+            f"{order.line.leverage} times for what it controls, is over a fifth of the "
+            f"capital of {settings.capital}"
         )
 
 

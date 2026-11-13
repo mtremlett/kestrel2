@@ -36,10 +36,12 @@ class RoundTrip:
 def send(root: Path, broker: Pretend, order: Order, settings: Settings) -> Sent:
     """Ask the broker what it did with the order's id, so a desk that restarts never sends
     it twice; if it never received it, pass the pre-trade gate and send it. Its fills are
-    recorded and its stop rests at the broker."""
+    recorded and its stop rests at the broker. The gate reads the book, brought up to date
+    with the broker's fills first."""
     report = broker.report(order.order_id)
     if report is None:
-        gate(order, settings)
+        collect(root, broker)
+        gate(order, settings, positions(root))
         try:
             report = broker.place(order)
         except Disconnected as lost:  #: never received: stated, and sent again next time
@@ -77,8 +79,22 @@ def _record(root: Path, new: Iterable[Fill]) -> None:
     written.replace(path)
 
 
+def collect(root: Path, broker: Pretend) -> None:
+    """Write in the ledger every fill the broker made that it lacks: a stop the broker sells
+    is in no order's answer."""
+    _record(root, broker.fills())
+
+
 def positions(root: Path) -> dict[str, int]:
-    raise NotImplementedError("book.positions: the book is phase 2")
+    """What the desk holds: the shares of each line its ledger's fills add up to, never the
+    orders it meant to send. A line sold out is not held."""
+    held: dict[str, int] = {}
+    for fill in fills(root):
+        held[fill.symbol] = held.get(fill.symbol, 0) + fill.quantity
+    short = sorted(symbol for symbol, shares in held.items() if shares < 0)
+    if short:
+        raise ValueError(f"the ledger sells more than it bought of {short}: the desk is long only")
+    return {symbol: shares for symbol, shares in sorted(held.items()) if shares}
 
 
 def round_trips(root: Path) -> tuple[RoundTrip, ...]:
