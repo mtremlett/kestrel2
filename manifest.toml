@@ -58,6 +58,7 @@ rungs = []
 "desk/listing.py" = "each line as the paper broker knows it: its contract there, its exchange, the unit of its prices and its price steps, asked through the one door"
 "desk/reports.py" = "what the paper broker reports was done: the day's fills on the account, each of the desk's own under the broker's id and priced in its line's currency, and the desk's own fills, orders and stops told from anyone else's"
 "desk/gateway.py" = "the gateway's own week, known before any order: whether it is ready, its daily restart waited out, a gateway from which nothing comes back the operator's to look at, and his weekly login's reminder"
+"desk/clearance.py" = "the day's check and no order without it: the paper account against the desk's book, the desk's own resting stops told from anyone else's orders, each check on a dated record, and the refusal to send until that day's check is clean"
 
 # the grid lane
 "lab/cell.py" = "the ladder's unit of work: one strategy on one line over one window, keyed by the code's and the data's versions"
