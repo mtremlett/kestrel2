@@ -16,7 +16,7 @@ from pathlib import Path
 
 from desk.broker import Broker, Disconnected, Fill
 from desk.lines import Line
-from desk.orders import Order, Refused, Sale, Settings, charges, gate
+from desk.orders import Charges, Order, Refused, Sale, Settings, charges, gate, leg_of
 
 LEDGER, RATES, SWITCH = "ledger.csv", "rates.csv", "switch.csv"
 COLUMNS = ("execution_id", "order_id", "symbol", "quantity", "price", "day")
@@ -43,8 +43,8 @@ class RoundTrip:
     buy: Fill
     sell: Fill
     gross: Decimal  #: pounds, before costs
-    costs: Decimal  #: pounds, every cost of both legs
-    profit: Decimal  #: pounds, gross less costs
+    costs: Charges  #: pounds, every cost of both legs, line by line
+    profit: Decimal  #: pounds, gross less every cost
 
 
 @dataclass(frozen=True)
@@ -243,19 +243,21 @@ def _rates(root: Path) -> dict[tuple[date, str], Decimal]:
 
 def round_trips(root: Path, lines: Iterable[Line]) -> tuple[RoundTrip, ...]:
     """Each sale in the ledger matched with the buys it closes, oldest first, in pounds at
-    each fill's own day's rate. A fill split between trips shares its charges by its shares."""
+    each fill's own day's rate, after every cost of both legs from the one cost model, a
+    stop's sale priced as one. A fill split between trips shares its costs by its shares."""
     known, rates = {line.symbol: line for line in lines}, _rates(root)
     unknown = sorted({fill.symbol for fill in fills(root)} - set(known))
     if unknown:
         raise ValueError(f"the ledger trades lines the desk was not given: {unknown}")
 
-    def pounds(fill: Fill, shares: int) -> tuple[Decimal, Decimal]:
-        """The fill's value and its share of the fill's charges, both for shares, in pounds."""
+    def pounds(fill: Fill, shares: int) -> tuple[Decimal, Charges]:
+        """The fill's value and its share of the fill's costs, both for shares, in pounds."""
         line = known[fill.symbol]
         rate = rates.get((fill.day, line.currency))
         if rate is None:
             raise ValueError(f"{fill.execution_id}: no {line.currency} rate kept for {fill.day}")
-        fee = charges(line, fill.quantity, fill.price, rate) * shares / abs(fill.quantity)
+        leg, whole = leg_of(fill.order_id, fill.quantity), abs(fill.quantity)
+        fee = charges(line, leg, whole, fill.price, rate).part(shares, whole)
         return fill.price * shares * rate, fee
 
     opened: dict[str, deque[tuple[Fill, int]]] = {}
@@ -278,7 +280,7 @@ def round_trips(root: Path, lines: Iterable[Line]) -> tuple[RoundTrip, ...]:
                     replace(fill, quantity=-shares),
                     got - paid,
                     bought + sold,
-                    got - paid - bought - sold,
+                    got - paid - (bought + sold).total,
                 )
             )
     return tuple(trips)
