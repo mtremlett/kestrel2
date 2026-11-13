@@ -1,10 +1,11 @@
 """gateway - THE GATEWAY KNOWN BEFORE ANY ORDER. IB Gateway on his PC keeps a week of its
-own. This module knows that week and answers two questions about it; it sends nothing to
-anyone: whoever sends an order asks `known` first, and the messenger carries the lines.
+own. This module knows that week and answers two questions about it. It sends nothing to
+anyone and nothing calls it yet: whoever sends an order is to ask `known` first, and
+whoever writes to him is to carry its lines (docs/STATUS.md).
 
 Every day at 03:00 on a UK clock the gateway restarts itself and is back within seconds,
 logged in on the week's own token. `known` waits that out: in the twenty minutes around it
-the gateway is restarting whatever it would answer, and is not even dialled.
+the gateway is restarting whatever it would answer, and `known` does not dial it.
 
 Once a week, after the broker's weekend reset, the next login needs his password. That
 login is his alone: the desk keeps no password, types none and starts no program.
@@ -12,10 +13,11 @@ login is his alone: the desk keeps no password, types none and starts no program
 he is awake in which a login lasts the whole week.
 
 At any other time a gateway from which nothing comes back is his to look at, and `known`
-gives his line, at any hour (his ruling, docs/DECISIONS.md). One that is there but does not
-say it is ready (the client id taken, the broker's link lost) is unwell: no order, and no
-login of his. One the desk cannot trust (another version, an account that is not a paper
-one) is a fault, and is raised as one."""
+gives his line, whatever the hour (his ruling, docs/DECISIONS.md). One that is there but
+does not say it is ready (the client id taken; the broker's link lost, when the gateway
+says so before it greets) is unwell: no order, and not known to be his. One the desk
+cannot trust (another version, an account that is not a paper one), and any other fault of
+the machine's, is raised."""
 
 from __future__ import annotations
 
@@ -27,51 +29,58 @@ from enum import Enum
 from desk import paper
 from desk.venues import CLOCKS, _sunday
 
-#: The gateway's own daily restart, on a UK clock (its setting on his PC), and the time the
-#: desk gives it either side: an order sent into it could be lost, and the runner's own
+#: The gateway's own daily restart, on a UK clock (its setting on his PC), and the time
+#: `known` gives it either side: an order sent into it could be lost, and the runner's own
 #: watch calls fifteen minutes of silence longer than a restart.
 FROM, RESTART, UNTIL = time(2, 55), time(3), time(3, 15)
-SUNDAY, WAKES = 6, time(8)  #: the weekly login's day, and the hour he wakes (docs/DECISIONS.md)
-Knock = Callable[[], object]  #: what asks the gateway whether it is ready: an OSError if not
+#: The weekly login, on a UK clock: its day, the hour by which the broker's weekend reset is
+#: over (01:00 in New York: 05:00 or 06:00 here), and the hour he wakes (docs/DECISIONS.md).
+SUNDAY, RESET, WAKES = 6, time(6), time(8)
+Knock = Callable[[], object]  #: what asks the gateway whether it is ready; it raises if not
 
 ANSWERED = "the paper Gateway answered the desk's knock"
 WAITING = (
-    f"the paper Gateway restarts itself at {RESTART:%H:%M} UK each day: until {UNTIL:%H:%M} "
-    "the desk does not dial it and sends nothing"
+    f"the paper Gateway restarts itself at {RESTART:%H:%M} UK each day: from {FROM:%H:%M} "
+    f"until {UNTIL:%H:%M} it is not ready, and the desk's knock is not made"
 )
 UNWELL = "the paper Gateway is there but did not say it is ready: {}"
 SILENT = (
-    f"The paper Gateway does not answer, and this is more than its {RESTART:%H:%M} restart, "
-    f"which the desk waits out until {UNTIL:%H:%M}. Please look at the PC: if the Gateway "
-    "is showing its login, that login is yours (the desk keeps no password). The desk saw: {}"
+    f"The paper Gateway does not answer: {{}}. This is outside the {FROM:%H:%M} to "
+    f"{UNTIL:%H:%M} the desk allows for its daily restart. Please look at the PC: if the "
+    "Gateway is showing its login, that login is yours (the desk keeps no password)."
 )
 WEEKLY = (
-    "Sunday: the paper Gateway's weekly login is yours today. Once a week, after its weekend "
-    "reset, the broker asks for the password again; the desk keeps no password and will not "
-    "try. Please close the Gateway on the PC and log in again today, even if it still looks "
-    "logged in. If you have done so since 06:00 this morning, it is done. Left undone, the "
-    f"Gateway may not come back from its {RESTART:%H:%M} restart tonight."
+    "Sunday: the paper Gateway's weekly login is yours today. After its weekend reset the "
+    "broker asks for the password again; the desk keeps no password and will not try. "
+    "Please close the Gateway on the PC and log in again today, even if it looks logged in; "
+    f"if you have since {RESET:%H:%M} this morning, it is done. Left undone, it may not "
+    f"come back from its {RESTART:%H:%M} restart tonight."
 )
 
 
 class State(Enum):
-    READY = "ready"  #: it answered the desk's knock, clear of its restart: all that is known
+    READY = "ready"  #: it greeted the desk's knock, clear of its restart: all that is known
     RESTARTING = "restarting"  #: its own daily restart: the desk waits, nobody need be told
-    UNWELL = "unwell"  #: there, but it did not say it is ready: no order, and no login of his
-    HIS = "his"  #: nothing came back, and it is no restart: the operator's to look at
+    UNWELL = "unwell"  #: there, but it did not say it is ready: no order; not known to be his
+    HIS = "his"  #: nothing came back, outside its restart's time: the operator's to look at
 
 
 @dataclass(frozen=True)
 class Known:
-    """What the desk knows of the gateway at one moment."""
+    """What the desk knows of the gateway at one moment. It is true only when ready, so no
+    way of asking reads a gateway that is not ready as one that is."""
 
     state: State
     words: str  #: the same in plain words; when it is his, the line for him
 
     @property
     def ready(self) -> bool:
-        """The one question before an order. Every other state is a reason not to send."""
+        """Asked before an order: any other state is a reason not to send. Ready is the
+        gateway's greeting and no more; the day's own readings must still come back whole."""
         return self.state is State.READY
+
+    def __bool__(self) -> bool:
+        return self.ready
 
 
 @dataclass(frozen=True)
@@ -100,17 +109,19 @@ def knock() -> None:
 
 
 def known(now: datetime, ask: Knock = knock) -> Known:
-    """The gateway now, asked before any order: ready only if it answers the desk's knock
-    outside its own restart, in which it is not dialled at all. Otherwise, when nothing came
-    back (the port closed, or silence), it is his and the words are his line; when it
-    answered anything else, or broke off, it is unwell and the words say what it said."""
+    """The gateway now, asked before any order: ready only if it greets the desk's knock
+    outside its own restart, in which the knock is not made at all. Otherwise, when nothing
+    came back (its port closed, or silence), it is his and the words are his line; when it
+    said anything else, or broke off, it is unwell and the words say what it said."""
     if FROM <= _uk(now).time() < UNTIL:
         return Known(State.RESTARTING, WAITING)
     try:
         ask()
-    except (ConnectionRefusedError, TimeoutError) as nothing:
-        return Known(State.HIS, SILENT.format(nothing))
-    except OSError as said:
+    except ConnectionRefusedError:
+        return Known(State.HIS, SILENT.format("its port is closed"))
+    except TimeoutError:
+        return Known(State.HIS, SILENT.format(f"it said nothing for {paper.SECONDS} seconds"))
+    except ConnectionError as said:
         return Known(State.UNWELL, UNWELL.format(said))
     return Known(State.READY, ANSWERED)
 
