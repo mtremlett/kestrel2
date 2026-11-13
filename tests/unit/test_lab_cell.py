@@ -184,3 +184,29 @@ def test_the_code_version_reaches_the_strategies() -> None:
     reached = cell.reached(cell.ROOT)
     assert {"lab/__init__.py", "lab/cell.py", "desk/strategy.py", "desk/store.py"} <= set(reached)
     assert "lab/grid.py" in reached, "a change to the grid engine is a change to every result"
+
+
+def test_a_rungs_key_moves_with_all_its_module_reaches_the_cost_model_too(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    record, rungs = cell.run(_cell(21, 24), _bars(SHAPE)).key, ("lab.rung", "lab.luck")
+    judged, old = record.rung("lab.rung"), replace(record, code="older code").rung("lab.rung")
+    assert judged == replace(record, code=judged.code) != record
+    assert len({judged, record.rung("lab.luck"), judged.rung("lab.luck"), old}) == 4, "a key each"
+    assert cell.rungs() == cell.RUNGS and cell.CELL not in cell.RUNGS
+    reached = cell.reached(cell.ROOT, "lab.luck")
+    _tree(tmp_path, {path: (cell.ROOT / path).read_text("utf-8") for path in reached})
+    #: what a change runs again: the trades, the first rung's verdicts, the luck rung's
+    touched = {"desk/orders.py": "011", "lab/rung.py": "011", "lab/luck.py": "001"}
+    for path, moves in (touched | {"lab/grid.py": "111"}).items():
+        before = [cell.code_version(tmp_path), *(cell.rungs(tmp_path)[rung] for rung in rungs)]
+        (tmp_path / path).write_bytes((tmp_path / path).read_bytes() + b"Z = 2\n")
+        after = [cell.code_version(tmp_path), *(cell.rungs(tmp_path)[rung] for rung in rungs)]
+        assert "".join(str(int(a != b)) for a, b in zip(before, after, strict=True)) == moves, path
+    #: a key is of the versions the process read as it loaded, whatever the disk says since
+    monkeypatch.setattr(cell, "RUNGS", cell.rungs(tmp_path))
+    assert record.rung("lab.rung") not in (judged, record.rung("lab.luck"))
+    with pytest.raises(ValueError, match=r"lab\.grid is not a rung"):
+        record.rung("lab.grid")
+    with pytest.raises(ValueError, match=r"lab\.gone: no module"):
+        cell.code_version(tmp_path, "lab.gone")
