@@ -3,7 +3,7 @@
 **Current objective:** the money lane's — the day run: decisions dated that day only, a
 rule's position read from the book, round trips with their costs, so scene 5 passes.
 
-Scenes passing: **4 of 7**. Phase: **2-money-sim**.
+Scenes passing: **5 of 7**. Phase: **2-money-sim**.
 
 The two lines above belong to the money lane: it alone moves the scenes count. The data
 and ladder lanes' objectives are in their own books below. The operator's Telegram line

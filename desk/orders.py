@@ -46,6 +46,19 @@ class Order:
             )
 
 
+@dataclass(frozen=True)
+class Sale:
+    """An order to sell shares of a line the book holds, at the market."""
+
+    order_id: str
+    line: Line
+    quantity: int
+
+    def __post_init__(self) -> None:
+        if self.quantity <= 0:
+            raise ValueError(f"sale {self.order_id}: needs shares to sell")
+
+
 class Refused(Exception):
     """The pre-trade gate refused an order, saying why."""
 
@@ -86,7 +99,7 @@ def size(
         raise ValueError(f"{line.symbol}: only a buy for this line is sized, not {decision}")
     if STOP_FALL * line.leverage >= 1:
         raise ValueError(f"{line.symbol}: at {line.leverage} times, a 10% fall empties the line")
-    order_id = f"{decision.day:%Y%m%d}-{decision.strategy}-{line.symbol}"
+    order_id = order_id_of(decision)
     stop = price * (1 - STOP_FALL * line.leverage)
 
     def order(quantity: int) -> Order:
@@ -107,23 +120,48 @@ def size(
     return bought
 
 
-def cost(order: Order) -> Decimal:
-    """What the order costs in pounds: its value and the broker's commission, and on a line
-    not in pounds, the conversion of both."""
-    value = order.quantity * order.price
-    fee = FEES[order.line.venue]
-    commission = max(fee.minimum, fee.per_share * order.quantity + fee.of_value * value)
+def order_id_of(decision: Decision) -> str:
+    """The id of the order a decision makes: its day, its strategy and its line."""
+    return f"{decision.day:%Y%m%d}-{decision.strategy}-{decision.symbol}"
+
+
+def strategy_of(order_id: str) -> str:
+    """The strategy whose decision made the order, or the stop it left."""
+    return order_id.split("-")[1]
+
+
+def charges(line: Line, quantity: int, price: Decimal, fx: Decimal) -> Decimal:
+    """The broker's charges on one leg, in pounds: its commission, and on a line not in
+    pounds the conversion of the money moved. quantity is negative for a sale."""
+    value, fee = abs(quantity) * price, FEES[line.venue]
+    commission = max(fee.minimum, fee.per_share * abs(quantity) + fee.of_value * value)
     if fee.cap is not None:
         commission = min(commission, fee.cap * value)
-    pounds = (value + commission) * order.fx
-    return pounds if order.line.currency == "GBP" else pounds * (1 + CONVERSION)
+    moved = value + commission if quantity > 0 else value - commission
+    return commission * fx + (0 if line.currency == "GBP" else moved * fx * CONVERSION)
 
 
-def gate(order: Order, settings: Settings, held: Mapping[str, int]) -> None:
+def cost(order: Order) -> Decimal:
+    """What the order costs in pounds: its value, the broker's commission, and on a line
+    not in pounds, the conversion of both."""
+    return order.quantity * order.price * order.fx + charges(
+        order.line, order.quantity, order.price, order.fx
+    )
+
+
+def gate(order: Order | Sale, settings: Settings, held: Mapping[str, int]) -> None:
     """The one pre-trade gate, on the send path: raises Refused, or lets the order through.
-    held is the book (book.positions): a new line needs one of the five holdings free, and a
-    line's shares, held and ordered, are counted together at the order's price and rate."""
+    held is the book (book.positions): a sale needs the shares in it, for the desk is long
+    only; a new line needs one of the five holdings free, and a line's shares, held and
+    ordered, are counted together at the order's price and rate."""
     symbol = order.line.symbol
+    if isinstance(order, Sale):
+        if order.quantity > held.get(symbol, 0):
+            raise Refused(
+                f"{order.order_id}: sells {order.quantity} of {symbol}, the book holds "
+                f"{held.get(symbol, 0)}: the desk is long only"
+            )
+        return
     if symbol not in held and len(held) >= HOLDINGS:
         raise Refused(f"{order.order_id}: {len(held)} holdings already, at most {HOLDINGS}")
     whole = replace(order, quantity=order.quantity + held.get(symbol, 0))

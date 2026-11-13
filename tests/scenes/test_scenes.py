@@ -16,7 +16,18 @@ from decimal import Decimal
 from pathlib import Path
 
 import pytest
-from rehearsal import BAD, CLEAN, LAST, LINES, SESSIONS, SPOILT, TODAY, WRONG_UNIT, before
+from rehearsal import (
+    BAD,
+    CLEAN,
+    HISTORY,
+    LAST,
+    LINES,
+    SESSIONS,
+    SPOILT,
+    TODAY,
+    WRONG_UNIT,
+    before,
+)
 
 from desk import book, day, orders, store, strategy
 from desk.broker import Crash, Fault, Pretend
@@ -24,6 +35,7 @@ from desk.broker import Crash, Fault, Pretend
 # ---------------------------------------------------------------- the money
 
 SETTINGS = orders.Settings(capital=Decimal(10_000))
+RATES = {"GBP": Decimal(1), "USD": Decimal("0.79")}  #: pounds per unit, every rehearsal day
 
 
 def _order(symbol: str) -> orders.Order:
@@ -36,7 +48,7 @@ def _run_days(root: Path, broker: Pretend, days: Sequence[date]) -> list[day.Rec
     records = []
     for on in days:
         broker.open(on)
-        records.append(day.run(root, before(CLEAN, on), broker, SETTINGS, on))
+        records.append(day.run(root, before(CLEAN, on), broker, SETTINGS, on, RATES))
     return records
 
 
@@ -135,10 +147,13 @@ def test_scene_4_the_order_is_sent_and_the_stop_rests_at_the_broker(tmp_path: Pa
 
 
 def test_scene_5_the_position_is_closed(tmp_path: Path) -> None:
-    broker = Pretend(CLEAN, {})
-    _run_days(tmp_path, broker, SESSIONS[1:])
+    #: the whole fourteen months: the rules need months of history before they trade
+    broker = Pretend(HISTORY, {})
+    for on in sorted({bar.day for bars in HISTORY.values() for bar in bars})[1:]:
+        broker.open(on)
+        day.trade(tmp_path, before(HISTORY, on), broker, SETTINGS, on, RATES)
 
-    trips = book.round_trips(tmp_path)
+    trips = book.round_trips(tmp_path, LINES)
     assert trips, "no complete round trip: a buy and a sell of the same line"
     ids = {fill.execution_id for fill in broker.fills()}
     pounds = {line.symbol for line in LINES if line.currency == "GBP"}
