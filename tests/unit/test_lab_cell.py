@@ -76,17 +76,19 @@ def test_the_grid_answers_and_the_desk_decides_what_it_refuses(
         return desk(bars)
 
     monkeypatch.setattr(strategy, "decide", counted)
-    for series, kind in (("walk 1", _walk(1, 1200)), ("jumpy 10", _jumpy(10))):
+    series_asked = (("walk 1", _walk(1, 1200), 0), ("jumpy 10", _jumpy(10), 1))
+    for series, kind, desks in (*series_asked, ("jumpy 332", _jumpy(332), 2)):
         for name, days in GOLDEN[series].items():
             record = cell.run(Cell(name, "SPY", kind[0].day, kind[-1].day), kind)
             found = [t.bought for t in record.trades]
             found += [t.sold for t in record.trades if t.sold is not None]
             assert sorted(found) == [kind[int(n)].day for n in days.split()], (series, name)
-        #: the grid answers every rule on the walk; on the jumpy series a close sits
+        #: the grid answers every rule on the walk; on each jumpy series a close sits
         #: exactly on a Supertrend band, and that one cell is the desk's own engine's
-        assert asked[0] == (series == "jumpy 10"), series
-    with pytest.raises(grid.TooClose):
-        grid.held("supertrend_10_3", grid.prices(_jumpy(10)))
+        assert asked[0] == desks, series
+    for seed in (10, 332):
+        with pytest.raises(grid.TooClose):
+            grid.held("supertrend_10_3", grid.prices(_jumpy(seed)))
 
 
 def test_a_trade_belongs_to_the_window_it_was_bought_in() -> None:
