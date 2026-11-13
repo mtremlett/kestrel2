@@ -36,10 +36,9 @@ def test_every_line_says_whether_an_isa_can_hold_it_and_a_retail_customer_buy_it
     #: a US fund has no UK papers, so neither; a note on bitcoin a retail customer can buy,
     #: and a stocks and shares ISA cannot
     assert refused == {**dict.fromkeys(LEAVING, (False, False)), "IB1T": (False, True)}
-    assert {type(flag) for held in flags.values() for flag in held} == {bool}
-    unrecorded = Line("AAA", "US", "USD", 1)  #: nobody has recorded either: it carries neither
-    assert (unrecorded.isa, unrecorded.retail) == (False, False)
-    for isa, retail in ((1, True), (True, None), ("yes", "yes")):
+    unrecorded = Line("AAA", "US", "USD", 1)  #: nobody has recorded either: neither yes nor no
+    assert unrecorded.isa is None and unrecorded.retail is None
+    for isa, retail in ((1, True), (True, 0), ("yes", "yes")):
         with pytest.raises(ValueError, match="BBB: whether an ISA can hold it"):
             Line("BBB", "LSE", "GBP", 1, NO_TAX, isa, retail)  # type: ignore[arg-type]
 

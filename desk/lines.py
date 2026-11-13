@@ -22,10 +22,10 @@ class Line:
     currency: str  #: the currency its prices are quoted in: "GBP" or "USD"
     leverage: int  #: how many times its market's daily move the line makes; 1 when plain
     uk_tax: Decimal = NO_TAX  #: the part of a purchase's value paid in UK tax, from the table
-    #: Recorded, never assumed: that a UK stocks and shares ISA can hold the line, and that a
-    #: UK retail customer can buy it. A line nobody has recorded either of carries neither.
-    isa: bool = False
-    retail: bool = False
+    #: Whether a UK stocks and shares ISA can hold the line, and whether a UK retail customer
+    #: can buy it: yes or no once recorded, never assumed, and None until somebody has.
+    isa: bool | None = None
+    retail: bool | None = None
     #: Closes that moved further than the store believes a market moves, recorded as real,
     #: by day: a crash or a jump, confirmed, never a split (the archive must adjust those).
     real_moves: frozenset[tuple[date, Decimal]] = field(default_factory=frozenset)
@@ -46,10 +46,10 @@ class Line:
             raise ValueError(f"{self.symbol}: no UK tax on a purchase is {self.uk_tax!r}")
         if self.uk_tax and self.venue != "LSE":
             raise ValueError(f"{self.symbol}: a {self.venue} line pays no UK tax")
-        if type(self.isa) is not bool or type(self.retail) is not bool:
+        if not {type(self.isa), type(self.retail)} <= {bool, type(None)}:
             raise ValueError(
                 f"{self.symbol}: whether an ISA can hold it and a retail customer buy it is"
-                f" yes or no, not {self.isa!r} and {self.retail!r}"
+                f" yes, no or unrecorded, not {self.isa!r} and {self.retail!r}"
             )
         shut = [d for d in sorted(self.suspended) if venues.sessions(self.venue, d, d) != (d,)]
         if shut:
