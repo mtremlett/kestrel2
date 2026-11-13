@@ -5,7 +5,7 @@ it with the positions the broker reports."""
 from __future__ import annotations
 
 import csv
-from collections import deque
+from collections import Counter, deque
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import astuple, dataclass, replace
 from datetime import date
@@ -36,6 +36,15 @@ class RoundTrip:
     profit: Decimal  #: pounds, gross less costs
 
 
+@dataclass(frozen=True)
+class Difference:
+    """One entry of a broker's that is not the desk's book."""
+
+    name: str  #: what is held, in the words the book and the broker's entries share
+    broker: Decimal | int  #: the shares the broker's entry gives; 0 when it gives no entry
+    book: int  #: the shares the desk's book holds of it; 0 when it holds none
+
+
 def send(root: Path, broker: Pretend, order: Order | Sale, settings: Settings) -> Sent:
     """Ask the broker what it did with the order's id, so a desk that restarts never sends
     it twice; if it never received it, pass the pre-trade gate and send it. Its fills are
@@ -46,7 +55,7 @@ def send(root: Path, broker: Pretend, order: Order | Sale, settings: Settings) -
     report = broker.report(order.order_id)
     if report is None:
         differ, held, symbol = reconcile(root, broker), positions(root), order.line.symbol
-        unsure = held.get(symbol) != broker.positions().get(symbol)
+        unsure = any(d.name == symbol for d in differences(held, broker.positions().items()))
         if differ and (isinstance(order, Order) or unsure):
             raise Refused(
                 f"{order.order_id}: not sent, the book is not the broker's on {list(differ)}"
@@ -109,12 +118,29 @@ def reconcile(root: Path, broker: Pretend) -> tuple[str, ...]:
     made is in the ledger: the shares differ, or the stop resting at the broker is not for
     exactly the shares held. None named: the book is the broker's."""
     collect(root, broker)
-    ours, theirs = positions(root), broker.positions()
-    stops = {symbol: shares for symbol, (shares, _) in broker.resting_stops().items()}
+    ours = positions(root)
+    stops = [(symbol, shares) for symbol, (shares, _) in broker.resting_stops().items()]
+    differ = (*differences(ours, broker.positions().items()), *differences(ours, stops))
+    return tuple(sorted({d.name for d in differ}))
+
+
+def differences(
+    held: Mapping[str, int], entries: Iterable[tuple[str, Decimal | int]]
+) -> tuple[Difference, ...]:
+    """THE BOOK AGAINST A BROKER: the one comparison, for any broker, of its holdings or of
+    the stops resting there. held is the book (positions); entries are what the broker
+    gives, each a name and its shares, the name in the words held uses. Every entry must be
+    the book's own shares of its name: entries that only add up to them are two places, or
+    a change while they were read, and a name with shares in two entries is never the
+    book's one line. A name the book holds and the broker does not give is named at no
+    shares; a name the broker lists at no shares is not held. None named: they agree."""
+    rows = list(entries)
+    places = Counter(name for name, shares in rows if shares)
+    rows += [(name, 0) for name in held.keys() - {name for name, _ in rows}]
     return tuple(
-        symbol
-        for symbol in sorted(ours.keys() | theirs.keys() | stops.keys())
-        if not ours.get(symbol, 0) == theirs.get(symbol, 0) == stops.get(symbol, 0)
+        Difference(name, shares, held.get(name, 0))
+        for name, shares in sorted(rows)
+        if shares != held.get(name, 0) or (shares and places[name] > 1)
     )
 
 
