@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import Counter
+from datetime import date
 
 import pytest
 
@@ -25,3 +26,9 @@ def test_leverage_is_a_fact_in_the_master_never_read_from_a_name() -> None:
 def test_a_line_on_a_venue_without_a_calendar_cannot_be_made() -> None:
     with pytest.raises(ValueError, match="NYSE"):
         Line("CCC", "NYSE", "USD", 1)
+
+
+def test_a_suspension_can_be_recorded_only_on_a_day_its_venue_traded() -> None:
+    assert Line("AAA", "US", "USD", 1, suspended=frozenset({date(2025, 11, 6)}))
+    with pytest.raises(ValueError, match="2025-11-27"):
+        Line("AAA", "US", "USD", 1, suspended=frozenset({date(2025, 11, 27)}))

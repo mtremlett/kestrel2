@@ -18,6 +18,9 @@ class Line:
     #: Closes that moved further than the store believes a market moves, recorded as real,
     #: by day: a crash or a jump, confirmed, never a split (the archive must adjust those).
     real_moves: frozenset[tuple[date, Decimal]] = field(default_factory=frozenset)
+    #: Sessions of its venue on which the line did not trade, recorded: a suspension,
+    #: confirmed, so the store finds no gap there.
+    suspended: frozenset[date] = field(default_factory=frozenset)
 
     def __post_init__(self) -> None:
         if self.venue not in venues.RULES:
@@ -28,6 +31,9 @@ class Line:
             raise ValueError(
                 f"{self.symbol}: leverage {self.leverage!r} is not a whole one or more"
             )
+        for day in sorted(self.suspended):
+            if venues.sessions(self.venue, day, day) != (day,):
+                raise ValueError(f"{self.symbol}: {day} is no {self.venue} session to suspend")
 
 
 #: The twenty frozen lines, by the operator's ruling of 13 November 2026 (docs/DECISIONS.md).

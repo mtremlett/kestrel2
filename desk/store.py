@@ -41,6 +41,7 @@ BLIP = 20
 #: is three sessions (2MU, December 2022). Its bars are dropped and listed.
 FROZEN = 5
 UNITS = (Decimal(100), Decimal("0.01"))
+UNRECORDED = "a gap in the archive, or a suspension the line does not record"
 ASTRAY = "is out of line with the days either side: a wrong unit"
 COLUMNS = ("day", "open", "high", "low", "close", "volume")
 
@@ -96,6 +97,8 @@ def _once(bars: Sequence[Bar], faults: list[Fault]) -> list[Bar]:
 def _entered(line: Line, bar: Bar, open_days: set[date]) -> Bar | str:
     """The bar as it enters the store, or why it cannot be true on its own."""
     prices = (bar.open, bar.high, bar.low, bar.close)
+    if bar.day in line.suspended:
+        return f"{bar.day} has a bar, yet {line.symbol} records it as suspended"
     if bar.day not in open_days:
         return f"{bar.day} is not a closed session on the {line.venue} calendar"
     if not all(p.is_finite() and p > 0 for p in prices) or bar.volume < 0:
@@ -190,7 +193,8 @@ def _clean(
     """The bars of one line that can be true, and every fault found on the way."""
     faults: list[Fault] = []
     first = min((b.day for b in bars if b.day.year in venues.KNOWN), default=day)
-    expected = venues.sessions(line.venue, first, day - timedelta(1))
+    every = venues.sessions(line.venue, first, day - timedelta(1))
+    expected = [d for d in every if d not in line.suspended]
     open_days, sound = set(expected), []
     for bar in _once(bars, faults):
         entered = _entered(line, bar, open_days)
@@ -205,7 +209,8 @@ def _clean(
         faults.append(Fault(day, "no clean bar: every session missing"))
     for gap in ([d for d in missing if d < since], [d for d in missing if d >= since]):
         if kept and gap:
-            faults.append(Fault(gap[0], f"{len(gap)} sessions missing, the first {gap[0]}"))
+            what = f"{len(gap)} sessions missing, the first {gap[0]}: {UNRECORDED}"
+            faults.append(Fault(gap[0], what))
     return kept, faults
 
 

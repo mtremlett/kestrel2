@@ -176,16 +176,29 @@ def test_a_uk_holiday_is_no_gap_in_a_us_line(tmp_path: Path) -> None:
     ("kept", "named"),
     [
         (_bars(US)[:-1], "2025-11-14"),
-        ((*_bars(US)[:3], *_bars(US)[4:]), "2025-11-06"),
         ((), "every session"),
     ],
-    ids=["stale: the last session missing", "a hole in the middle", "no bars at all"],
+    ids=["stale: the last session missing", "no bars at all"],
 )
 def test_a_line_missing_a_session_is_parked(
     tmp_path: Path, kept: tuple[Bar, ...], named: str
 ) -> None:
     reasons = _parked(tmp_path, kept)
     assert len(reasons) == 1 and "missing" in reasons[0] and named in reasons[0]
+
+
+HOLE = (*_bars(US)[:3], *_bars(US)[4:])  #: Thursday 6 November left out
+
+
+def test_only_a_session_the_line_is_recorded_as_suspended_may_be_missing(tmp_path: Path) -> None:
+    (reason,) = _parked(tmp_path, HOLE)
+    assert "2025-11-06" in reason and "suspension" in reason
+    suspended = replace(US, suspended=frozenset({date(2025, 11, 6)}))
+    assert _parked(tmp_path, HOLE, suspended) == []
+    assert store.read(tmp_path, US.symbol) == HOLE
+    (reason,) = _parked(tmp_path, _bars(US), suspended)
+    assert "2025-11-06" in reason and "suspended" in reason
+    assert store.read(tmp_path, US.symbol) == HOLE
 
 
 def test_a_parked_line_comes_back_when_its_bars_are_clean(tmp_path: Path) -> None:

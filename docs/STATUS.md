@@ -279,11 +279,19 @@ parks no clean line: the same four stay parked, for their old reasons. Tests see
 first; nine deliberate breaks each caught; a blind review, nothing blocking, its one design
 point taken (a bar repeated whole, volume too, is frozen).
 
+A suspension can now be recorded on its line in the instrument master (`Line.suspended`),
+as a real move is: the store expects no bar on that day, so the line is not parked for the
+gap. A gap nobody has recorded still parks a line whose last sixty sessions it touches, and
+its reason now says the way out: "a gap in the archive, or a suspension the line does not
+record". A bar the archive gives on a recorded day is refused, and a day its venue did not
+trade cannot be recorded. None of the twenty has a suspension today. Tests seen failing
+first; four deliberate breaks each caught.
+
 ### Next step
 
 Move the scenes onto the whole fourteen months - one line, `SCENES_FROM = FIRST` - as soon
-as the money lane's scene 2 counts each line's own days (not yet, at #29). Meanwhile: the
-store's next open finding, below: a suspension gap.
+as the money lane's scene 2 counts each line's own days (not yet, at #30). Meanwhile: the
+store's next open finding, below: a one-day crash dropped as a wrong unit.
 
 ### Asked of the money lane
 
@@ -352,7 +360,9 @@ store's next open finding, below: a suspension gap.
     archive leaves its old files readable. The day run (phase 2)
     must read parking from the prepare it runs.
   - A vendor that leaves out a day a line did not trade (a suspension) parks the line
-    for as long as that gap is in its history.
+    while the gap is in its last sixty sessions, until the suspension is recorded on the
+    line (`Line.suspended`), from the exchange or a second source. Nothing fills that
+    record yet, and nothing tells a lost day from a suspension by itself.
 - **What the blind review of the refused line left open:**
   - A whole outage (no network, the archive down) parks every line one by one, each with
     its own reason, rather than saying once that the archive is down. Safe, as nothing
