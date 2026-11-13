@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import date, timedelta
+from decimal import Decimal
 
 import pytest
 from test_lab_folds import _verdict, _window
@@ -110,6 +111,10 @@ def test_a_replay_that_could_show_nothing_is_refused_as_a_fault_in_the_test() ->
     ]
     assert found.whole == rung.judge(cell.run(_window(bars), bars), bars, TEN_K, POUND)
     assert len(_judge(bars, weather, 25).periods) == 25, "a bar a period is the limit"
+    spy = cell.Cell("breakout_20_10", "SPY", bars[0].day, bars[-1].day)
+    usd = regime.judge(spy, bars, TEN_K, Decimal("0.8"), weather, 2)  #: priced in dollars
+    paid = {v.trades[0].paid for v in (usd.whole, usd.periods[1].verdict, usd.regimes[1].verdict)}
+    assert paid == {Decimal("2055.976608")}, "the first rung's own figure, in every replay"
     with pytest.raises(ValueError, match="two regimes or more"):
         _judge(bars, _weather(bars, "wet"))
     for periods in (1, 26):
