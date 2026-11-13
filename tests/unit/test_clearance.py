@@ -53,7 +53,7 @@ def test_a_line_held_under_the_desks_own_stop_for_exactly_its_shares_is_no_diffe
         ((OURS, AAPL_STOP), 10, (THEIRS,)),
         # the desk's own, but refused or still to fill: no protection, and named
         (
-            (replace(OURS, state="Inactive"),),
+            (replace(OURS, state="Inactive", left=Decimal(0)),),
             10,
             (STOP.format(0, 10), ORDER.format("SELL", "STP, Inactive", "1234567", 222, IDLE)),
         ),
@@ -68,9 +68,11 @@ def test_every_stop_and_order_that_is_not_the_books_is_named_holdings_first(
 
 
 def _check(patch: pytest.MonkeyPatch, root: Path, at: datetime, account: Account) -> Check:
-    """The day's check at a moment: the door lists the desk's lines and gives the account."""
-    patch.setattr(listing, "read", lambda lines: LISTED if lines is LINES else {})
-    patch.setattr(paper, "read", lambda: account)
+    """The day's check at a moment: the door lists the desk's lines, then gives the account,
+    the newest thing read."""
+    answers = iter((LISTED, account))
+    patch.setattr(listing, "read", lambda lines: next(answers) if lines is LINES else {})
+    patch.setattr(paper, "read", lambda: next(answers))
     return clearance.check(root, at)
 
 
@@ -92,6 +94,7 @@ def test_no_order_until_todays_newest_check_came_back_clean(
     with pytest.raises(Refused, match="o-2: not sent, .*08:05 UTC.*the broker holds 10"):
         clearance.require(tmp_path, hours[2], "o-2")
     # and so does one whose reading stopped: it has not come back, and is never a clean one
+    monkeypatch.setattr(listing, "read", lambda _: LISTED)
     monkeypatch.setattr(paper, "read", lambda: paper.only("U7654321"))
     with pytest.raises(paper.NotPaper):
         clearance.check(tmp_path, hours[2])
