@@ -209,11 +209,20 @@ def test_scene_7_a_day_that_counts_and_the_same_day_replayed(tmp_path: Path) -> 
     charged = [sum(column) for column in zip(*(astuple(r.costs) for r in records), strict=True)]
     assert all(total > 0 for total in charged), "a cost line was never charged"
     assert any(r.market != 0 for r in records), "what holding the market earned is missing"
+    #: the market's figure is the capital in the yardstick, from each close to the next
+    bars = MARKET[YARDSTICK]
+    moves = sum((b.close / a.close - 1 for a, b in zip(bars, bars[1:], strict=False)), Decimal(0))
+    near = len(records) * Decimal("0.005")  #: each day is rounded once, to the penny
+    held = sum((r.market for r in records), Decimal(0))
+    assert abs(held - SETTINGS.capital * moves) <= near, "the market's figure not the yardstick's"
     #: the book ends flat, so the days' profits are the round trips', a day's rounding apart
     trips = sum((trip.profit for trip in book.round_trips(tmp_path, MARKET)), Decimal(0))
     days = sum((r.profit for r in records if r.profit is not None), Decimal(0))
     assert book.positions(tmp_path) == {} and trips != 0
-    assert abs(days - trips) <= len(records) * Decimal("0.005"), "profits not the ledger's"
+    assert abs(days - trips) <= near, "the days' profits are not the ledger's"
+    dealt = {fill.day for fill in book.fills(tmp_path)}
+    assert any(r.profit for r in records if r.day not in dealt), "a holding's own day in no record"
+    assert day.records(tmp_path) == tuple(records), "the days not kept as they were published"
     again = _run_days(tmp_path / "again", Pretend(MARKET, {}), SESSIONS[1:])
     assert again == records, "the same days replayed from the saved data gave other records"
     with pytest.raises(TypeError):

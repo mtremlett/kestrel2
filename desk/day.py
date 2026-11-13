@@ -3,8 +3,9 @@ and publish one record. The same days run again from the same saved data give th
 
 from __future__ import annotations
 
+import csv
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import astuple, dataclass
 from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -26,11 +27,15 @@ from desk.orders import (
 from desk.store import Bar
 from desk.strategy import Action
 
+RECORDS = "records.csv"
+HEADER = ("day", "profit", *Charges.__dataclass_fields__, "market", "mismatches")
+
 
 @dataclass(frozen=True)
 class Record:
-    """One day, published: pounds, each amount rounded once to the penny (orders.pennies). A
-    day whose book is not the broker's names the lines and has no profit; no other lacks one."""
+    """One day, as published: pounds, each amount rounded once, to the penny, where the record
+    is made. A day whose book is not the broker's names the lines and has no profit; no other
+    day lacks one."""
 
     day: date
     profit: Decimal | None  #: the book's gain after every cost; None when it is not the broker's
@@ -68,25 +73,55 @@ def publish(
     settings: Settings,
     day: date,
 ) -> Record:
-    """THE DAY'S RECORD, made at its end. The book is set against the broker's: lines that
-    differ are named and the profit withheld. Else the profit is what the book gained: what
-    it holds at the day's closes, less what it held at the closes before, with the money
-    the day's fills moved, after every cost of those fills. Beside it, what the capital
-    would have gained in the yardstick (lines.YARDSTICK, quoted in pounds) from its close
-    before to the day's. A line whose venue was shut stands at its newest close."""
+    """THE DAY'S RECORD, made at its end and kept (records). The book is set against the
+    broker's: lines that differ are named and the profit withheld. Else the profit is what
+    the book gained: what it holds at the day's closes, less what it held at the closes
+    before, with the money the day's fills moved, after every cost of those fills. Beside
+    it, what the capital would have gained in the yardstick (lines.YARDSTICK, quoted in
+    pounds) from its close before to the day's. Every session has its record, in order: one
+    the desk missed is named, and published first, once its rates are kept."""
+    kept = {record.day: record for record in records(root)}
+    last = max((on for on in kept if on < day), default=day)
+    markets = {line.venue for line in archive}
+    traded = {on for venue in markets for on in venues.sessions(venue, last, day)}
+    if missed := sorted(traded - {last, day}):
+        raise ValueError(f"{day}: no record yet for {missed}, and each session has its own")
     differ = book.reconcile(root, broker)
     cash, costs = book.dealt(root, archive, day)
     eve = day - timedelta(days=1)
     gained = _worth(root, archive, day) - _worth(root, archive, eve) + cash
     market = _close(archive, YARDSTICK, day) / _close(archive, YARDSTICK, eve) - 1
     profit = None if differ else pennies(gained - costs.total)
-    earned = pennies(settings.capital * market)
-    return Record(day, profit, costs.published(), earned, differ)
+    kept[day] = Record(day, profit, costs.published(), pennies(settings.capital * market), differ)
+    rows = (
+        (on, r.profit, *astuple(r.costs), r.market, *r.mismatches) for on, r in sorted(kept.items())
+    )
+    book.write(root / RECORDS, [HEADER, *rows])
+    return kept[day]
+
+
+def records(root: Path) -> tuple[Record, ...]:
+    """Every day's record the desk has published, oldest first, as it was published."""
+    path = root / RECORDS
+    if not path.exists():
+        return ()
+    with path.open(newline="", encoding="utf-8") as kept:
+        rows = list(csv.reader(kept))[1:]
+    return tuple(
+        Record(
+            date.fromisoformat(row[0]),
+            Decimal(row[1]) if row[1] else None,
+            Charges(*map(Decimal, row[2:7])),
+            Decimal(row[7]),
+            tuple(row[8:]),
+        )
+        for row in rows
+    )
 
 
 def _worth(root: Path, archive: Mapping[Line, Sequence[Bar]], upto: date) -> Decimal:
-    """What the book held at a day's end was worth, in pounds: each line at its newest close,
-    and the newest rate kept, on or before that day."""
+    """What the book held at a day's end was worth, in pounds: each line at its close then,
+    and the newest rate kept on or before that day."""
     lines = {line.symbol: line for line in archive}
     return sum(
         (
@@ -98,11 +133,14 @@ def _worth(root: Path, archive: Mapping[Line, Sequence[Bar]], upto: date) -> Dec
 
 
 def _close(archive: Mapping[Line, Sequence[Bar]], line: Line, upto: date) -> Decimal:
-    """The line's newest close on or before a day; without one the day has no record."""
-    closes = [bar.close for bar in archive.get(line, ()) if bar.day <= upto]
-    if not closes:
-        raise ValueError(f"{upto}: no close of {line.symbol} by then, so the day has no record")
-    return closes[-1]
+    """The line's close at a day's end: its newest bar's by then. A session of its venue
+    since that bar, the line not suspended, is a bar owed: an error, never an older price."""
+    bars = [bar for bar in archive.get(line, ()) if bar.day <= upto]
+    since = venues.sessions(line.venue, bars[-1].day, upto) if bars else (upto,)
+    owed = [on for on in since if not bars or (on > bars[-1].day and on not in line.suspended)]
+    if owed:
+        raise ValueError(f"{upto}: no close of {line.symbol} for {owed}, so the day has no record")
+    return bars[-1].close
 
 
 def trade(

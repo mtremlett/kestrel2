@@ -5,6 +5,7 @@ beside the market's, to the penny, or the lines on which the book is not the bro
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
@@ -14,7 +15,7 @@ import pytest
 from desk import book, day, venues
 from desk.broker import Broker, Crash, Fault, Pretend
 from desk.lines import YARDSTICK, Line
-from desk.orders import Charges, Settings
+from desk.orders import Charges, Order, Settings
 from desk.store import Bar
 
 DAYS = venues.sessions("LSE", date(2025, 1, 6), date(2025, 2, 28))[:23]
@@ -37,12 +38,13 @@ ARCHIVE = dict(
     [*(_line(s, FLAT + BOTH) for s in "ABCD"), _line("H", [*FLAT, 9, 8.5, 8], "0.3")]
     + [_line("F", FLAT + BOTH), _line("G", [*FLAT[1:], 9])]
 )
-#: the same, with the yardstick too young for any rule: it closes at 10, 10.2 and 10.1
+#: the same, with the yardstick too young for any rule: it closes at 10, 10, 10.2 and 10.1,
+#: a pound under each open
 MARKET = {
     **ARCHIVE,
     YARDSTICK: tuple(
-        Bar(on, c, c, c, c, 1)
-        for on, c in zip(DAYS[20:], map(Decimal, ("10", "10.2", "10.1")), strict=True)
+        Bar(on, c + 1, c + 1, c, c, 1)
+        for on, c in zip(DAYS[19:], map(Decimal, ("10", "10", "10.2", "10.1")), strict=True)
     ),
 }
 
@@ -152,7 +154,48 @@ def test_a_day_whose_book_is_not_the_brokers_names_the_lines_and_withholds_its_p
     broker.inject("G", 5)  #: bought by hand, after the day's record
     record = _run(tmp_path, broker, DAYS[22])
     assert (record.profit, record.mismatches) == (None, ("G",)), "a mismatched day given a number"
-    assert (record.costs.commission, record.market) == (
-        Decimal(15),
-        Decimal("-98.04"),
-    ), "A to D still sold"
+    sold = (record.costs.commission, record.market)
+    assert sold == (Decimal(15), Decimal("-98.04")), "A to D still sold, their costs still shown"
+    assert day.records(tmp_path)[-1] == record, "the day not kept as it was published"
+    day.publish(tmp_path, MARKET, broker, Settings(Decimal(10_000)), DAYS[20])  #: an older day
+    assert [r.day for r in day.records(tmp_path)] == list(DAYS[20:]), "not kept oldest first"
+
+
+def test_a_session_the_desk_missed_is_named_and_gets_its_record_before_any_later_day(
+    tmp_path: Path,
+) -> None:
+    broker, capital = Pretend(MARKET, {}), Settings(Decimal(10_000))
+    bought = _run(tmp_path, broker, DAYS[21])
+    broker.open(DAYS[22])  #: the desk is off: H's stop sells at the broker all the same
+    with pytest.raises(ValueError, match=r"2025-02-06: no record yet for .*2025, 2, 5"):
+        day.publish(tmp_path, MARKET, broker, capital, date(2025, 2, 6))
+    book.record_rates(tmp_path, DAYS[22], {"GBP": Decimal(1)})
+    first = next(iter(MARKET))  #: A, still held: its bar for the day is owed, not yesterday's
+    with pytest.raises(ValueError, match="no close of A for"):
+        day.publish(tmp_path, {**MARKET, first: MARKET[first][:-1]}, broker, capital, DAYS[22])
+    halted = replace(first, suspended=frozenset({DAYS[22]}))  #: unless it did not trade
+    rest = {line: bars for line, bars in MARKET.items() if line != first}
+    missed = day.publish(tmp_path, {**rest, halted: MARKET[first][:-1]}, broker, capital, DAYS[22])
+    #: H's 110.50 lost and its stop's 3.00, 0.884 and 2.652 of costs, in the missed day's record
+    assert (missed.profit, missed.costs.total) == (Decimal("-117.04"), Decimal("6.53"))
+    assert day.records(tmp_path) == (bought, missed), "a record lost, or not kept in order"
+
+
+def test_a_dollar_holding_is_worth_each_days_close_at_that_days_own_rate(tmp_path: Path) -> None:
+    dollar, capital = Line("U", "US", "USD", 1), Settings(Decimal(10_000))
+    closes = zip(DAYS[20:], map(Decimal, (50, 51, 52)), strict=True)  #: each a dollar over its open
+    held = tuple(Bar(on, c - 1, c + 1, c - 2, c, 1) for on, c in closes)
+    archive, records = {dollar: held, YARDSTICK: MARKET[YARDSTICK]}, list[day.Record]()
+    broker = Pretend(archive, {})
+    for on, rate in zip(DAYS[21:], ("0.8", "0.75"), strict=True):
+        broker.open(on)
+        if not records:  #: ten bought by hand at the open of 50, through the send path
+            buy = Order("o-1", dollar, 10, Decimal(50), Decimal("0.8"), Decimal(45))
+            book.send(tmp_path, broker, buy, capital)
+        rates = {"USD": Decimal(rate), "GBP": Decimal(1)}
+        records.append(day.run(tmp_path, archive, broker, capital, on, rates))
+    #: 400 pounds paid for what closes at 510 dollars, 408 pounds: 8 gained, 1.32024 of costs
+    costs = Charges(*map(Decimal, ("0.8", "0.2", "0.2", "0.12", "0")))
+    assert (records[0].profit, records[0].costs) == (Decimal("6.68"), costs)
+    #: no fill the day after: 520 dollars at 0.75 are 390 pounds, 18 fewer, and no cost
+    assert (records[1].profit, records[1].costs.total) == (Decimal(-18), Decimal(0))

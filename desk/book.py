@@ -85,7 +85,7 @@ def send(root: Path, broker: Broker, order: Order | Sale, settings: Settings) ->
 def turn(root: Path, to: Switch, at: datetime, why: str) -> None:
     """Write on the kill switch's record what happened to it at a moment, in UTC, and why."""
     record = (*switch(root), _turn(at, to, why))
-    _write(root / SWITCH, [TURNS, *((t.isoformat(), s.value, w) for t, s, w in record)])
+    write(root / SWITCH, [TURNS, *((t.isoformat(), s.value, w) for t, s, w in record)])
 
 
 def switch(root: Path) -> tuple[tuple[datetime, Switch, str], ...]:
@@ -145,7 +145,7 @@ def fills(root: Path) -> tuple[Fill, ...]:
     )
 
 
-def _write(path: Path, rows: Iterable[Sequence[object]]) -> None:
+def write(path: Path, rows: Iterable[Sequence[object]]) -> None:
     """Written whole, then swapped in, so a desk that dies mid-write leaves the old file."""
     path.parent.mkdir(parents=True, exist_ok=True)
     written = path.with_suffix(".tmp")
@@ -160,7 +160,7 @@ def _record(root: Path, new: Iterable[Fill]) -> None:
     known = {fill.execution_id for fill in ledger}
     added = tuple(fill for fill in new if fill.execution_id not in known)
     if added:
-        _write(root / LEDGER, [COLUMNS, *(astuple(fill) for fill in ledger + added)])
+        write(root / LEDGER, [COLUMNS, *(astuple(fill) for fill in ledger + added)])
 
 
 def collect(root: Path, broker: Broker) -> None:
@@ -230,7 +230,7 @@ def record_rates(root: Path, day: date, rates: Mapping[str, Decimal]) -> None:
             raise ValueError(f"{day}: a rate of {rate} pounds per {currency}")
         if kept.setdefault((day, currency), rate) != rate:
             raise ValueError(f"{day}: {currency} was kept at {kept[day, currency]}, not {rate}")
-    _write(root / RATES, [("day", "currency", "rate"), *((*key, r) for key, r in kept.items())])
+    write(root / RATES, [("day", "currency", "rate"), *((*key, r) for key, r in kept.items())])
 
 
 def _rates(root: Path) -> dict[tuple[date, str], Decimal]:
