@@ -33,20 +33,12 @@ STOP = (
     " 20261112-rsi2-AAPL-stop 31 1234567 0 0 0".split(" ")
 )
 STATUS = ("3", "7", "PreSubmitted", "0", "10", "0", "1234567", "0", "0", "31", "", "0")
+PART = ("3", "7", "Submitted", "4", "6", "171.4", "1234567", "0", "171.4", "31", "", "0")
 ENDS = (("62", "1"), ("53", "1"))
 SMGB = Holding("DU0000001", "SMGB", "STK", "GBP", Decimal(25))
 LIVE = ("15", "1", "U7654321")
-AAPL_STOP = Resting(
-    "1234567",
-    "31",
-    "DU0000001",
-    "AAPL",
-    "SELL",
-    Decimal(10),
-    "STP",
-    "265598",
-    "20261112-rsi2-AAPL-stop",
-)
+HEAD = ("1234567", "31", "DU0000001", "AAPL", "SELL", Decimal(10), "STP", "265598")
+AAPL_STOP = Resting(*HEAD, "20261112-rsi2-AAPL-stop", "PreSubmitted", Decimal(10))
 TWO = "SMGB STK GBP: the broker holds {} in one of 2 entries, the desk's book {}"
 RESTS = "AAPL: an order resting at the broker to SELL {} (STP, the broker's id 1234567, client {})"
 
@@ -80,8 +72,10 @@ def test_the_account_is_read_as_the_gateway_gives_it_and_nothing_else_is_sent() 
         b"\x00\x00\x00\x0a71\x002\x00222\x00\x00",  # start, as the desk's own client
         b"\x00\x00\x00\x0561\x001\x00\x00\x00\x00\x0516\x001\x00",  # positions; open orders
     ]
-    late, _ = _read(ACCOUNTS, READY, STOP, ENDS[1], HELD, ENDS[0])  # the lists end either way
-    assert late == Account((SMGB,), (AAPL_STOP,))
+    # the lists end either way; an order is read from its head alone, and stands where the
+    # broker last said, for the shares still to be done, wherever its state comes
+    late, _ = _read(ACCOUNTS, READY, STATUS, STOP[:26], PART, ENDS[1], HELD, ENDS[0])
+    assert late == Account((SMGB,), (replace(AAPL_STOP, state="Submitted", left=Decimal(6)),))
 
 
 @pytest.mark.parametrize(
@@ -126,6 +120,14 @@ def test_nothing_is_asked_until_the_gateway_is_ready_and_its_accounts_are_all_pa
         ((ACCOUNTS, READY, [*FLAT[:14], "NaN", FLAT[15]]), ValueError, "NaN"),
         ((ACCOUNTS, READY, [*FLAT[:14], "Infinity", FLAT[15]]), ValueError, "Infinity"),
         ((ACCOUNTS, READY, STOP[:25]), ValueError, "AAPL"),
+        # listed as open is not being worked: an order with no state of its own is not read
+        ((ACCOUNTS, READY, STOP, *ENDS), ValueError, "no state"),
+        ((ACCOUNTS, READY, STOP, [*STATUS[:6], "7", *STATUS[7:]], *ENDS), ValueError, "1234567"),
+        ((ACCOUNTS, READY, STOP, STATUS[:-1]), ValueError, "shape"),
+        ((ACCOUNTS, READY, STOP, [*STATUS, ""]), ValueError, "shape"),
+        ((ACCOUNTS, READY, [*STATUS[:4], "", *STATUS[5:]]), ValueError, "plain number"),
+        ((ACCOUNTS, READY, [*STOP[:14], "1E+1", *STOP[15:]]), ValueError, "plain number"),
+        ((ACCOUNTS, READY, [*FLAT[:14], "1_0", FLAT[15]]), ValueError, "plain number"),
         ((ACCOUNTS, READY, [*STOP[:13], "SSHORT", *STOP[14:]]), ValueError, "SSHORT"),
         ((ACCOUNTS, READY, [*FLAT[:2], "U7654321", *FLAT[3:]]), paper.NotPaper, "U7654321"),
         ((ACCOUNTS, READY, [*STOP[:20], "U7654321", *STOP[21:]]), paper.NotPaper, "U7654321"),
