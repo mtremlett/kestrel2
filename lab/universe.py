@@ -171,7 +171,9 @@ HEAVY, USUAL = Decimal("2.5"), 20
 
 @dataclass(frozen=True)
 class History:
-    """A ticker's bars as research reads them: its longest run on one scale of price."""
+    """A ticker's bars as research reads them: its longest run on one scale of price. It
+    stops short of the store's last day when a day of `rescaled` is later than its last bar:
+    it is then no guide to today. Which run is longest can change as sessions gather."""
 
     bars: tuple[Bar, ...]  #: oldest first, none either side of a change of scale
     #: The days among them of an unconfirmed move, read as the market's. One made within a

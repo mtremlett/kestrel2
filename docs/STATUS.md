@@ -232,31 +232,30 @@ no order until that day's check is clean, run on a second day, and the kill swit
 
 ## DATA
 
-Last updated: 13 November 2026 (the scenes on the whole fourteen months; this section cut).
+Last updated: 13 November 2026 (research reads the parked fifth; the next twelve boxes noted).
 
 ### Where it is
 
-Phase 1's data is in: the twenty lines, one archive client, one store with one writer, both venues'
-calendars for 2010 to 2027, and the research list (1,065 tickers: 864 clean, 201 parked). The scenes
-now see all fourteen months of rehearsal data (R-MONEY-2); scenes 1 to 5 pass on it.
+The twenty lines, one archive client, one store, both calendars to 2027, the research list (1,065:
+864 clean, 201 parked by the store). Research reads all 1,065 through `universe.read` (#80): 21 cut at a
+change of scale, 383 moves read as the market's, named in `History.moves`; the grid does not yet (R-DATA-7).
 
 ### Next step
 
-The lane's objective, the research list's parked fifth (`docs/PLAN.md`). Open for later: R-MONEY-3
-(a daily pounds-per-dollar rate in the store) and R-PAPER-3 (each line's ISIN).
+Boxes noted for side-by-side sessions (#66): data-isa-twins, data-parked-fifth (open: R-DATA-7; five
+tickers misjudged: WWH, SHC, ECHO, MRNA, ROR), data-fast-store, data-hours; then the keeper. Later: R-MONEY-3, R-PAPER-3.
 
 ### Done for other lanes
-
 - R-MONEY-1: done in #47
-- R-MONEY-2: done in this pull request
+- R-MONEY-2: done in #60
 
 ### Requests to GRID
-
 - [ ] R-DATA-1 (later, opened 2026-11-13 18:15): a cell takes a `Line` from `universe.UNIVERSE` and
   reads `store.read(root / line.venue, line.symbol)`: thirteen symbols are two companies, by venue.
+- [ ] R-DATA-7 (later, opened 2026-11-13 20:20 UK): with R-DATA-1, a cell reads
+  `universe.read(root, line).bars`, not `store.read`, and keeps `History.moves` and `.rescaled`.
 
 ### Requests to MONEY
-
 - [ ] R-DATA-3 (later, opened 2026-11-13 18:15): the day run reads the archive through
   `archive.gather` and hands `store.prepare` its answers whole, so a refused line parks with its reason.
 - [x] R-DATA-4 (later, opened 2026-11-13 18:40 UK): each `Line(...)` in its tests states its UK tax.
@@ -264,71 +263,71 @@ The lane's objective, the research list's parked fifth (`docs/PLAN.md`). Open fo
   whole rehearsal data; `HISTORY` is the same thing, and then goes.
 
 ### Requests to PAPER
-
 - [x] R-DATA-5 (later, opened 2026-11-13 18:40 UK): each `Line(...)` in its tests states its UK tax.
+- [ ] R-DATA-9 (later, opened 2026-11-13 20:20 UK): at `desk/paper.py`, a read-only question for a
+  line's newest five-minute bars, and whether the paper account gets live market data or delayed.
+
+### Requests to RUNGS
+- [ ] R-DATA-8 (later, opened 2026-11-13 20:20 UK): a verdict states how many trades were held through
+  a day in `History.moves` (about a hundred London bad prints), shown with and without them.
 
 ### Found, not fixed
 
-- **UK tax (NS-05).** Nil for the five London products is unseen on a contract note. A line's tax
-  still defaults to nil; that can go now. The research list's London shares pay 0.5%, unchecked.
-- **Four of the twenty are parked:** 3LGO (no history), 2MU (five real crashes unrecorded), 5QQQ (an
-  unadjusted consolidation), SGLN (garbled 2011). The archive is free, unofficial, unpaced (DAT-08).
-- **The scenes' days** are now every day either venue trades; scenes 6 and 7 meet days only one does.
-- **The research list** is today's members only (BT-09), has no kept home, keeps a departed ticker's
-  files, loses a ticker's bars on a refused day, and leaves off three London members quoted in euros.
-- **The store:** nothing fills `Line.real_moves` or `Line.suspended`; a wrong factor under 2-for-1
-  passes; a bad print not a hundredfold out, and a freeze under five sessions, have no rule; parking
-  lives only in what `store.prepare` returns. No test yet pins that L01's stamp duty is charged.
+- **UK tax (NS-05).** Five London products unseen on a contract note; London shares 0.5%, unchecked.
+- **Parked of the twenty:** 3LGO, 2MU, 5QQQ, SGLN. The archive is free, unpaced (DAT-08).
+- **The research list:** today's members only (BT-09), no kept home; scale changes under the store's
+  belief are UNI-07; a crash won back next open cuts history (ROSE); raw answers unread.
+- **The store:** nothing fills `Line.real_moves` or `.suspended`; a bad print under a hundredfold and a
+  freeze under five sessions have no rule.
 
 ## GRID
 
-Last updated: 13 November 2026 (the unit of work on the grid engine).
-
+Last updated: 13 November 2026 (a cell names its line and venue).
 ### Where it is
 
-Built and proven: the ladder's unit of work (`lab/cell.py`: one strategy on one line over a
-window, the days each trade was bought and sold, keyed by its code and its bars), the batch
-service that survives a bad cell and a restart and re-runs only what changed
-(`lab/batch.py`), and the fast grid engine (`lab/grid.py`), which holds what the desk's
-engine holds after every bar or refuses by name (`TooClose`). The unit of work now runs on
-the grid: a cell's trades are the grid's answer, and the desk's own engine's wherever the
-grid refuses, the same record either way. A cell on 4,000 days takes about 25 ms, against
-the desk's engine's 95 ms. No price or profit is named.
+Built and proven: the unit of work (`lab/cell.py`), the restart-safe batch (`lab/batch.py`) and
+the fast grid engine (`lab/grid.py`: the desk's position after every bar, or a refusal by name,
+`TooClose`). A cell runs on the grid (25 ms on 4,000 days, the desk's 95) and holds its whole
+`Line`: one symbol can be two companies (BA; thirteen such), so bars come from the line's own
+venue's folder and the journal names symbol and venue. No price or profit is named.
 
 ### Next step
 
-R-DATA-1: a cell takes a `Line` of the research list and reads its venue's folder. Then
-auto-tune, so a pass can never take the PC down.
+Auto-tune (`lab/tune.py`), so a pass can never take the PC down; it can run beside the key
+box (BT-04). Then the first pass, which runs at the published five settings on the 864 clean
+tickers until R-GRID-1 and the data lane's parked fifth land; then the week, the weekend.
+
+### Done for other lanes
+
+- R-DATA-1: done in #73
 
 ### Requests to MONEY
 
 - [ ] R-GRID-1 (later, opened 2026-11-13 18:15): the five rules made at other settings (window
-  lengths, the RSI's bar, the bands' widths) in `desk/strategy.py`. The grid's first pass is
-  "every setting", and the grid is trusted only where it matches the desk's engine (canon
-  B2); until then it runs at the published five only.
+  lengths, the RSI's bar, the bands' widths) in `desk/strategy.py`; the grid is trusted only
+  where it matches the desk's engine (canon B2), so it runs at the published five until then.
+
+### Requests to RUNGS
+
+- [ ] R-GRID-2 (later, opened 2026-11-13 20:04 UK): make each cell from a Line (`Cell(name, line,
+  start, end)`) in `tests/unit/test_lab_rung.py` and `test_lab_luck.py`, and price in `lab/rung.py`
+  with `c.line`: a research-list cell cannot be priced today. Then GRID drops `Cell.symbol`.
 
 ### Found, not fixed
 
-- **The grid refuses runs of equal closes**: five or more for the RSI, twenty or more for
-  Bollinger. The desk's engine decides those cells: right, only slower. Count them on the
-  research universe before the first pass. The Supertrend and the RSI still walk the days.
-- Deliberate breaks of the grid no series found can show: the Supertrend's band carried on
-  the day's own close; a close against its own day's upper band; the Bollinger check past
-  2**53; Wilder's smoothing on a series as long as its window; the upper band's margin.
-- The golden series are read from the money lane's `tests/unit/test_strategy.py` (`GOLDEN`,
-  `_walk`, `_jumpy`, `_bars`, `START`): if it renames them, the two lanes move together.
-- A helper's empty working copy sits under `.claude/worktrees/` of the operator's main
-  folder, with branch `worktree-agent-ab11b126c53bfd69e`. It can be deleted.
+- **The grid refuses runs of equal closes** (five+ for the RSI, twenty+ for Bollinger); the
+  desk's engine decides those cells, only slower. Count them before the first pass.
+- Deliberate breaks of the grid no series found can show: the Supertrend's band on the day's
+  own close; a close against its day's upper band; the Bollinger check past 2**53; Wilder's
+  smoothing as long as its window; the upper band's margin.
+- The golden series are read from `tests/unit/test_strategy.py` (`GOLDEN`, `_walk`, `_jumpy`,
+  `_bars`, `START`): if the money lane renames them, the two lanes move together.
+- A helper's empty copy under `.claude/worktrees/` (branch `worktree-agent-ab11b126c53bfd69e`) can go.
 - The unit of work: its key leaves out the Python version and file paths; no test drives a
-  bar whose volume alone changed, or two bars on one day; each cell reads its line's prices
-  in again (17 of its 25 ms); a refused cell runs all five of the desk's rules to keep one.
-- Blind review of the cell on the grid, nothing blocking: an infinite or not-a-number price
-  fails the cell loudly (the store should pass none); a negative price could weaken the
-  grid's refusal (no line has one); the desk's turn is tested on whole windows only.
-- The batch: no test sees each line forced to disk (`os.fsync`); nothing stops two
-  processes on one journal (a lock is owed before anything but a person starts it); a
-  corrupt journal line names neither file nor line; bars are hashed twice for a new cell;
-  the journal only grows. Research over years will meet gaps the store no longer parks.
+  bar whose volume alone changed, or two bars on one day; a refused cell runs all five rules;
+  a cell does not check its line is on the research list (no prices fails that cell loudly).
+- The batch: no test sees each line forced to disk; nothing stops two processes on one
+  journal (a lock is owed); bars hashed twice for a new cell; the journal only grows.
 
 ## RUNGS
 
@@ -348,7 +347,11 @@ only. **No winner on real prices is to be believed yet** (see below).
 
 In-sample and out-of-sample folds: a strategy's history cut into folds, each judged after
 costs, the two side by side, the verdict on the worst fold; every fold a trial the luck rung
-counts (canon B6, AG-01).
+counts (canon B6, AG-01). The book now notes six boxes in order: folds, trials register,
+deflated Sharpe, plateau, regimes (after folds), failing fairly (last, holds all files); the
+first four can run side by side. Notes for the other boxes come as they near; the costs
+box waits for the money lane's costs box to have an id (R-RUNGS-1). The deflated box may
+need `lab/luck.py`; if so its session says so.
 
 ### Requests to MONEY
 
