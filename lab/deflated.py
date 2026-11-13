@@ -27,14 +27,18 @@ trial's window, which is what daily accounts come to over a year when one trade'
 nothing of the next. Above FLAG the trial is in doubt however it scored: such a result is
 far more often a fault in the test (a peek ahead, a cost left out) than an edge.
 
-THE ONE RULE. Each rung in NAMED answers pass, doubt or fail; the verdict is the worst of
-them, and `rule` refuses a set of answers that is not exactly the named rungs, so none can
+THE ONE RULE. Each rung in NAMED gives its answer (`rung.Answer`); the verdict is the least
+of them, and `rule` refuses a set of answers that is not exactly the named rungs, so none can
 be left out after its answer is seen. A later rung joins by being named here.
+
+FAILING FAIRLY (LAD-06). Every rung here reads the one trial's trades, so where the first
+rung found too few of them, or none, no rung has anything more to judge: each gives the
+first rung's own answer, not enough evidence or a fault in the test, and none a fail. Such
+a trial still counts among the trials every other is corrected for.
 """
 
 from __future__ import annotations
 
-import enum
 import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -42,7 +46,7 @@ from statistics import NormalDist, fmean
 
 from lab import luck
 from lab.luck import Corrected
-from lab.rung import Verdict
+from lab.rung import Answer, Verdict
 
 #: The bands of the deflated Sharpe (LAD-03): believed at nine chances in ten that the true
 #: Sharpe beats luck's best; failed under an even chance; in doubt between.
@@ -58,16 +62,8 @@ _EULER = 0.5772156649015329
 _YEAR = 365.25
 
 
-class Answer(enum.IntEnum):
-    """A rung's answer, and the rule's; the worst is the least."""
-
-    FAIL = 0
-    DOUBT = 1  #: neither a win nor a loss: not promoted, and not thrown away
-    PASS = 2
-
-
 def rule(rungs: Mapping[str, Answer]) -> Answer:
-    """The one verdict rule: the worst answer among the named rungs, every one of them."""
+    """The one verdict rule: the least answer among the named rungs, every one of them."""
     if set(rungs) != set(NAMED):
         raise ValueError(f"the rule reads {NAMED}, every one and no other: given {sorted(rungs)}")
     return min(rungs.values())
@@ -84,10 +80,13 @@ class Deflated:
     @property
     def rungs(self) -> dict[str, Answer]:
         """Each named rung's answer on this trial."""
+        first = self.luck.verdict.answer
+        if first in (Answer.FAULT, Answer.THIN):
+            return dict.fromkeys(NAMED, first)
         doubted = Answer.DOUBT if self.deflated >= FAIL else Answer.FAIL
         flagged = self.yearly is not None and self.yearly > FLAG
         return {
-            "first": Answer.PASS if self.luck.verdict.passed else Answer.FAIL,
+            "first": first,
             "luck": Answer.PASS if self.luck.passed else Answer.FAIL,
             "deflated": Answer.PASS if self.deflated >= PASS else doubted,
             "yearly": Answer.DOUBT if flagged else Answer.PASS,
