@@ -56,7 +56,9 @@ def pull(root: Path, broker: Broker, at: datetime, why: str) -> Killed:
     """THE ONE COMMAND. The switch goes on the record first, so the send path sends nothing
     from then on even if the broker cannot be reached; then the broker cancels what is still
     working; then the book is set against the broker's. A broker that cannot answer is an
-    error raised, with the switch on. Pulled again, it does all of it again."""
+    error raised, with the switch on. Pulled again, it does all of it again; pulled with no
+    reason it still stops the desk, and says none was given."""
+    why = why.strip() or "no reason given"
     book.turn(root, Switch.ON, at, why)
     cancelled = tuple(broker.cancel())
     differ = book.reconcile(root, broker)

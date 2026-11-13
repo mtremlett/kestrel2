@@ -139,6 +139,7 @@ def test_while_the_kill_switch_is_on_nothing_is_sent_and_every_refusal_says_why(
     book.turn(tmp_path, book.Switch.DRILLED, at, "a drill is not a pull")
     assert book.killed(tmp_path) is None
     book.turn(tmp_path, book.Switch.ON, at, "his word")
+    book.turn(tmp_path, book.Switch.DRILLED, at, "nor is it a release")
     for order in (Order("o-3", SIX[2], 10, *map(Decimal, (50, 1, 45))), Sale("s-1", A, 10)):
         with pytest.raises(Refused, match=f"{order.order_id}: .*kill switch.*09:30 UTC: his word"):
             book.send(tmp_path, broker, order, ROOM)
@@ -152,14 +153,22 @@ def test_while_the_kill_switch_is_on_nothing_is_sent_and_every_refusal_says_why(
     assert [(to.value, why) for when, to, why in book.switch(tmp_path) if when == at] == [
         ("drilled", "a drill is not a pull"),
         ("on", "his word"),
+        ("drilled", "nor is it a release"),
         ("off", "his word again"),
     ], "the record does not read back as it was written"
     for when, why in ((datetime(2025, 11, 10, 9, 30), "no zone"), (at, " ")):
         with pytest.raises(ValueError, match="kill switch"):
             book.turn(tmp_path, book.Switch.ON, when, why)
-    (tmp_path / book.SWITCH).write_text("at,turn,why\nwhen,on,torn\n", "utf-8")
-    with pytest.raises(ValueError):  #: a record that cannot be read never reads as off
-        _send(tmp_path, broker, "o-4", SIX[3])
+    door = Account(broker)  #: pulled while the broker is answering the send path
+    door.between.append(lambda: book.turn(tmp_path, book.Switch.ON, at, "as it answered"))
+    with pytest.raises(Refused, match="o-4: .*kill switch.*as it answered"):
+        _send(tmp_path, door, "o-4", SIX[3])
+    assert broker.submitted() == ("o-1", "o-2", "o-3"), "sent after the switch was pulled"
+    stamp = "2025-11-10T09:30:00"
+    for torn in ("", f"{stamp}+00:00,on,x\n", f"at,turn,why\n{stamp},on,x\n", "at,turn,why\n\n"):
+        (tmp_path / book.SWITCH).write_text(torn, "utf-8")
+        with pytest.raises(ValueError):  #: a record that cannot be read never reads as off
+            _send(tmp_path, broker, "o-4", SIX[3])
 
 
 class Account:

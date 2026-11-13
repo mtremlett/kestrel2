@@ -50,7 +50,8 @@ def test_one_command_stops_new_orders_cancels_the_working_ones_and_says_so(tmp_p
         book.send(tmp_path, broker, Sale("s-1", A, 10), ROOM)
     broker.open(TUE)
     assert broker.holdings() == (("A", 10),) == broker.stops(), "B filled, or A's stop was taken"
-    assert kill.pull(tmp_path, broker, LATER, "pulled twice").cancelled == (), "nothing was left"
+    twice = kill.pull(tmp_path, broker, LATER, " ")  #: no reason is no reason not to stop
+    assert twice.cancelled == () and "(no reason given)" in twice.words(), "nothing was left"
     kill.release(tmp_path, LATER, "his word")
     assert _buy(tmp_path, broker, "o-3", C).filled == 10, "released, the desk still sent nothing"
     with pytest.raises(ValueError, match="not on"):
@@ -70,6 +71,7 @@ def test_the_switch_is_on_before_the_broker_is_asked_so_a_dead_line_still_stops_
         raise ConnectionError("the broker does not answer")
 
     monkeypatch.setattr(broker, "cancel", dead)
+    monkeypatch.setattr(broker, "holdings", dead)  #: the refusal below asks the broker nothing
     with pytest.raises(ConnectionError):  #: stated, never a quiet "nothing was working"
         kill.pull(tmp_path, broker, NOW, "the line is down")
     with pytest.raises(Refused, match="the line is down"):

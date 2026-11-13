@@ -20,6 +20,7 @@ from desk.orders import Order, Refused, Sale, Settings, charges, gate
 
 LEDGER, RATES, SWITCH = "ledger.csv", "rates.csv", "switch.csv"
 COLUMNS = ("execution_id", "order_id", "symbol", "quantity", "price", "day")
+TURNS = ("at", "turn", "why")
 
 
 class Switch(Enum):
@@ -62,17 +63,17 @@ def send(root: Path, broker: Broker, order: Order | Sale, settings: Settings) ->
     with the broker's fills first. While the book is not the broker's on any line nothing
     is bought, and a line is sold only if its shares agree: one that has lost its stop may
     go, shares the broker may not hold may not. While the kill switch is on nothing is sent
-    at all; what the broker already has is still recorded."""
+    at all, were it pulled as the broker answered; what the broker already has is recorded."""
     report = broker.report(order.order_id)
     if report is None:
-        if on := killed(root):
-            raise Refused(f"{order.order_id}: not sent, {on}")
+        _unless_killed(root, order.order_id)
         held, differ, unsure = _compare(root, broker)
         if differ and (isinstance(order, Order) or order.line.symbol in unsure):
             raise Refused(
                 f"{order.order_id}: not sent, the book is not the broker's on {list(differ)}"
             )
         gate(order, settings, held)
+        _unless_killed(root, order.order_id)  #: read again, at the last moment before it goes
         try:
             report = broker.place(order)
         except Disconnected as lost:  #: never received: stated, and sent again next time
@@ -83,22 +84,35 @@ def send(root: Path, broker: Broker, order: Order | Sale, settings: Settings) ->
 
 def turn(root: Path, to: Switch, at: datetime, why: str) -> None:
     """Write on the kill switch's record what happened to it at a moment, in UTC, and why."""
-    if at.utcoffset() != timedelta(0) or not why.strip():
-        raise ValueError(f"the kill switch, {to.value} at {at} for {why!r}: no UTC time or reason")
-    record = (*switch(root), (at, to, why))
-    _write(
-        root / SWITCH, [("at", "turn", "why"), *((t.isoformat(), s.value, w) for t, s, w in record)]
-    )
+    record = (*switch(root), _turn(at, to, why))
+    _write(root / SWITCH, [TURNS, *((t.isoformat(), s.value, w) for t, s, w in record)])
 
 
 def switch(root: Path) -> tuple[tuple[datetime, Switch, str], ...]:
-    """The kill switch's record, oldest first: each moment, what happened to it, and why."""
+    """The kill switch's record, oldest first: each moment, what happened to it, and why. No
+    record is a switch never touched; one that is there and cannot be read whole is an error,
+    never a switch that is off."""
     path = root / SWITCH
     if not path.exists():
         return ()
     with path.open(newline="", encoding="utf-8") as record:
-        rows = list(csv.DictReader(record))
-    return tuple((datetime.fromisoformat(r["at"]), Switch(r["turn"]), r["why"]) for r in rows)
+        rows = list(csv.reader(record))
+    if rows[:1] != [list(TURNS)]:
+        raise ValueError(f"{path}: not the kill switch's record, so nothing is sent")
+    return tuple(_turn(datetime.fromisoformat(at), Switch(to), why) for at, to, why in rows[1:])
+
+
+def _turn(at: datetime, to: Switch, why: str) -> tuple[datetime, Switch, str]:
+    """An entry of the kill switch's record: a moment in UTC and a reason, or an error."""
+    if at.utcoffset() != timedelta(0) or not why.strip():
+        raise ValueError(f"the kill switch, {to.value} at {at} for {why!r}: no UTC time or reason")
+    return at, to, why
+
+
+def _unless_killed(root: Path, order_id: str) -> None:
+    """Refuse the order while the kill switch is on, in the switch's own words."""
+    if on := killed(root):
+        raise Refused(f"{order_id}: not sent, {on}")
 
 
 def killed(root: Path) -> str | None:
