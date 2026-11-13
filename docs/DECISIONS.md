@@ -174,8 +174,14 @@ please confirm."
 and a squash, but not a passing check, so a session could have merged red. Asked once
 whether GitHub itself should refuse a merge whose check has not passed, his answer at
 about 12:53: "Yes, add it (Recommended)". The ruleset now requires the `check` job
-(GitHub Actions) to pass before any merge to main. How it was driven against a deliberately red pull request
-is recorded with the pull request that added it, below.
+(GitHub Actions) to pass before any merge to main.
+
+**Driven red.** Pull request #5 added an unused import, a deliberate lint failure. The
+check failed on GitHub, GitHub reported the pull request BLOCKED, and `gh pr merge
+--squash` was refused: "the base branch policy prohibits the merge". It was closed
+unmerged. Not tried: whether the owner's account could force it through as an
+administrator. Trying it risks merging red, and it is the reason a second, non-admin
+account is recommended before unattended work.
 
 ---
 
