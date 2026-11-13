@@ -1,6 +1,8 @@
 """paper - THE ONE DOOR TO THE PAPER BROKER: IB Gateway's paper port on this machine, spoken
-to with the standard library alone. So far the desk only reads through it: the account's
-holdings and the orders resting on it, set against the desk's own book. It places nothing.
+to with the standard library alone. Here the desk reads the account's holdings and the
+orders resting on it, and sets them against its own book. Every conversation with the
+gateway goes through this door (`dial`); none yet places an order, and the one thing sent
+that is no question is the kill switch's cancel (desk/placing.py).
 
 The gateway speaks in messages: four bytes of length, then fields each ended by a zero byte,
 the first naming the message's kind. The desk offers one version of that language and
@@ -15,11 +17,10 @@ from collections import Counter
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from decimal import Decimal
-from pathlib import Path
 from typing import BinaryIO, TypeVar
 
 from desk import book
-from desk.lines import LINES, Line
+from desk.lines import Line
 
 HOST, PORT = "127.0.0.1", 4002  #: the paper port on this machine: the only door the desk dials
 CLIENT = 222  #: the desk's own client id at the gateway (docs/DECISIONS.md)
@@ -72,6 +73,11 @@ class Holding:
         if not (self.kind.isalnum() and self.currency.isalnum() and self.shares.is_finite()):
             raise ValueError(f"a holding the desk cannot trust: {self}")
 
+    @property
+    def name(self) -> str:
+        """What it is compared under: the same symbol in another currency is another thing."""
+        return f"{self.symbol} {self.kind} {self.currency}"
+
 
 @dataclass(frozen=True)
 class Resting:
@@ -79,6 +85,7 @@ class Resting:
     it, and for how many shares, is its state: an order refused or part done is listed too."""
 
     broker_id: str  #: the broker's own lasting id for the order
+    number: str  #: the order's number at the client that placed it: that client cancels it by it
     client: str  #: the client id that placed it
     account: str
     symbol: str
@@ -152,10 +159,10 @@ def _order(fields: list[str], states: Mapping[str, tuple[str, Decimal]]) -> Rest
     order the desk can read."""
     if len(fields) < 26:
         raise ValueError(f"an order of a shape the desk does not read: {fields}")
-    contract, symbol, action, shares, kind, account, ref, client, broker_id = (
-        fields[n] for n in (2, 3, 13, 14, 15, 20, 23, 24, 25)
+    its, contract, symbol, action, shares, kind, account, ref, client, broker_id = (
+        fields[n] for n in (1, 2, 3, 13, 14, 15, 20, 23, 24, 25)
     )
-    head = (broker_id, client, only(account), symbol, action, number(shares, fields), kind)
+    head = (broker_id, its, client, only(account), symbol, action, number(shares, fields), kind)
     if broker_id not in states:
         raise ValueError(f"an order the broker told no state of, by its id for it: {broker_id}")
     return Resting(*head, contract, ref, *states[broker_id])
@@ -221,37 +228,38 @@ def read() -> Account:
     return dial(converse)
 
 
+def named(
+    held: Mapping[str, int], entries: Iterable[tuple[str, Decimal]], saying: str
+) -> tuple[str, ...]:
+    """The desk's book against a broker's entries by the desk's one rule (book.differences),
+    each difference named in words, saying first what the entries are; and it is said when
+    the broker gives a name in more than one entry."""
+    rows = list(entries)
+    given = Counter(name for name, _ in rows)
+    several = {name: f" in one of {n} entries" for name, n in given.items() if n > 1}
+    return tuple(
+        f"{d.name}: {saying} {d.broker}{several.get(d.name, '')}, the desk's book {d.book}"
+        for d in book.differences(held, rows)
+    )
+
+
 def differences(
     account: Account, held: Mapping[str, int], lines: Iterable[Line]
 ) -> tuple[str, ...]:
-    """Every way the paper account differs from the desk's book, each named in words; none,
-    and nothing but the desk trades the account. held is the book (book.positions). The
-    comparison is the desk's one rule (book.differences); the door gives it each holding
-    under its symbol, kind and currency, so the same name in another currency is another
-    thing, and says when the broker gives a name in more than one entry. Every order
-    resting at the broker is named, whoever placed it: the desk rests none yet."""
+    """Every way the paper account's holdings differ from the desk's book, each named in
+    words; none, and it holds what the book holds. held is the book (book.positions). The
+    door gives the desk's one rule each holding under its symbol, kind and currency, so the
+    same name in another currency is another thing. The orders resting on the account are
+    told apart and named by the day's check (desk/clearance.py)."""
     known = {line.symbol: line for line in lines}
     unknown = sorted(set(held) - set(known))
     if unknown:
         raise ValueError(f"the book holds lines the desk was not given: {unknown}")
-    ours = {f"{s} STK {known[s].currency}": shares for s, shares in held.items()}
-    rows = [(f"{h.symbol} {h.kind} {h.currency}", h.shares) for h in account.holdings]
-    given = Counter(name for name, _ in rows)
-    several = {name: f" in one of {n} entries" for name, n in given.items() if n > 1}
-    differ = [
-        f"{d.name}: the broker holds {d.broker}{several.get(d.name, '')}, the desk's book {d.book}"
-        for d in book.differences(ours, rows)
-    ]
-    working = [
-        f"{o.symbol}: an order resting at the broker to {o.action} {o.shares} ({o.kind}, "
-        f"the broker's id {o.broker_id}, client {o.client})"
-        for o in account.orders
-    ]
-    return (*differ, *working)
+    ours = {own(known[symbol]): shares for symbol, shares in held.items()}
+    return named(ours, [(h.name, h.shares) for h in account.holdings], "the broker holds")
 
 
-def mismatches(root: Path, ask: Callable[[], Account] = read) -> tuple[str, ...]:
-    """The daily read-only check: the paper account as it is now against the desk's book,
-    every difference named; none, and the account is quiet. Nothing is sent to the broker
-    but questions."""
-    return differences(ask(), book.positions(root), LINES)
+def own(line: Line) -> str:
+    """The name a holding of the desk's line goes under (Holding.name): a share or a fund,
+    in the line's currency."""
+    return f"{line.symbol} STK {line.currency}"

@@ -363,9 +363,12 @@ his PC with the desk's own client id (222), never 4001.
       exchange, pence or pounds, and its price steps, with a price put down onto the
       broker's step in the broker's unit (`desk/listing.py`); run on the real gateway on 13
       November: twenty of twenty listed, six London lines priced in pence
-- [ ] The fills and the orders the broker reports, read-only: each fill under the broker's
+- [x] The fills and the orders the broker reports, read-only: each fill under the broker's
       id with its price back in the line's currency, and the desk's own orders and stops
-      told from anyone else's {id: paper-reports; files: desk/reports.py, desk/paper.py,
+      told from anyone else's (`desk/reports.py`, #86; real gateway 13 November: 21 fills,
+      none the desk's, no order open; before real fills are written, the broker's later
+      corrections of a fill, R-PAPER-5; the true shape of an open order is seen on the first
+      real one) {id: paper-reports; files: desk/reports.py, desk/paper.py,
       tests/unit/test_reports.py, tests/unit/test_paper.py, manifest.toml}
 - [ ] The Gateway known before any order: its daily restart and the weekly re-login handled
       unattended. A re-login that needs his phone or password is his: a reminder line at the
@@ -441,7 +444,7 @@ grid-tune and grid-key side by side; then grid-pass, grid-week, grid-declared, g
       its venue's folder (R-DATA-1). Remains: a cell can still be made from a symbol alone,
       only for the rungs lane's files (R-GRID-2) {id: grid-venue; files: lab/cell.py, lab/batch.py,
       tests/unit/test_lab_cell.py, tests/unit/test_lab_batch.py}
-- [ ] Auto-tune, so a pass can never take the PC down: a hard memory ceiling held by
+- [x] Auto-tune, so a pass can never take the PC down: a hard memory ceiling held by
       Windows itself (a Job Object on the workers, about 60% of the 64 GB); workers sized
       to free cores, two of the eight threads left free while markets are open (UK 08:00 to
       21:00 on trading days) and one overnight and at weekends; batches sized from measured
@@ -450,11 +453,11 @@ grid-tune and grid-key side by side; then grid-pass, grid-week, grid-declared, g
       memory and CPU logged for each pass. Proven: a deliberately memory-hungry cell is
       killed by the ceiling, the PC stays responsive and the batch carries on
       {id: grid-tune; files: lab/tune.py, tests/unit/test_lab_tune.py, manifest.toml}
-- [ ] The cell's key carries the cost model's version and the rung's code, so a change to
-      either re-runs what it touches (BT-04) {id: grid-key; files: lab/cell.py,
+- [x] The cell's key carries the cost model's version and the rung's code, so a change to
+      either re-runs what it touches (BT-04). Remains: nothing stamps a verdict with the new key yet (R-GRID-3) {id: grid-key; files: lab/cell.py,
       tests/unit/test_lab_cell.py; after: grid-venue}
-- [ ] The grid's first pass over the research universe: every strategy at every setting on
-      every ticker, each cell kept by code and data version {id: grid-pass; files:
+- [x] The grid's first pass over the research universe: every strategy at every setting on
+      every ticker, each cell kept by code and data version. Remains: a command the runner can start, a lock, a journal per worker (grid-week) {id: grid-pass; files:
       lab/sweep.py, lab/batch.py, lab/tune.py, tests/unit/test_lab_sweep.py,
       tests/unit/test_lab_batch.py, tests/unit/test_lab_tune.py, manifest.toml; after:
       grid-venue, grid-tune, grid-key}
@@ -479,13 +482,13 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
 - [x] Luck correction counting every trial: a verdict's chance multiplied by the number of
       trials it was picked from, one combined 5% test across the set, the count kept on
       every corrected verdict (`lab/luck.py`)
-- [ ] In-sample and out-of-sample folds, side by side after costs, the worst fold reported
+- [x] In-sample and out-of-sample folds, side by side after costs, the worst fold reported
       and judged on
       {id: rungs-folds; files: lab/folds.py, tests/unit/test_lab_folds.py, manifest.toml}
-- [ ] The count kept from batch to batch: one register of every trial ever tried on a
+- [x] The count kept from batch to batch: one register of every trial ever tried on a
       question, a dropped candidate included, so no later batch can start the count again
       {id: rungs-trials; files: lab/trials.py, tests/unit/test_lab_trials.py, manifest.toml}
-- [ ] The luck test fixed before any result: a deflated Sharpe with bands of 0.90 and 0.50,
+- [x] The luck test fixed before any result: a deflated Sharpe with bands of 0.90 and 0.50,
       one combined 5% test across the set, a daily Sharpe above 2 flagged, and one verdict
       rule over the named rungs (LAD-03, LAD-08, LAD-09)
       {id: rungs-deflated; files: lab/deflated.py, tests/unit/test_lab_deflated.py, manifest.toml}

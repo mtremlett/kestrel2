@@ -10,12 +10,11 @@ from collections.abc import Sequence
 from contextlib import nullcontext
 from dataclasses import replace
 from decimal import Decimal
-from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
-from desk import book, paper
+from desk import paper
 from desk.lines import NO_TAX, Line
 from desk.paper import Account, Holding, Resting
 
@@ -37,10 +36,9 @@ PART = ("3", "7", "Submitted", "4", "6", "171.4", "1234567", "0", "171.4", "31",
 ENDS = (("62", "1"), ("53", "1"))
 SMGB = Holding("DU0000001", "SMGB", "STK", "GBP", Decimal(25))
 LIVE = ("15", "1", "U7654321")
-HEAD = ("1234567", "31", "DU0000001", "AAPL", "SELL", Decimal(10), "STP", "265598")
+HEAD = ("1234567", "7", "31", "DU0000001", "AAPL", "SELL", Decimal(10), "STP", "265598")
 AAPL_STOP = Resting(*HEAD, "20261112-rsi2-AAPL-stop", "PreSubmitted", Decimal(10))
 TWO = "SMGB STK GBP: the broker holds {} in one of 2 entries, the desk's book {}"
-RESTS = "AAPL: an order resting at the broker to SELL {} (STP, the broker's id 1234567, client {})"
 
 
 def _wire(*messages: Sequence[str]) -> io.BytesIO:
@@ -76,10 +74,11 @@ def test_the_account_is_read_as_the_gateway_gives_it_and_nothing_else_is_sent() 
         b"\x00\x00\x00\x0a71\x002\x00222\x00\x00",  # start, as the desk's own client
         b"\x00\x00\x00\x0561\x001\x00\x00\x00\x00\x0516\x001\x00",  # positions; open orders
     ]
-    # the lists end either way; an order is read from its head alone, and stands where the
-    # broker last said, for the shares still to be done, wherever its state comes
-    late, _ = _read(ACCOUNTS, READY, STATUS, STOP[:26], PART, ENDS[1], HELD, ENDS[0])
-    assert late == Account((SMGB,), (replace(AAPL_STOP, state="Submitted", left=Decimal(6)),))
+    # the lists end either way; an order is read from its head alone, under its own number
+    # at its client, and stands where the broker last said, wherever its state comes
+    late, _ = _read(ACCOUNTS, READY, STATUS, _but(STOP[:26], 1, "9"), PART, ENDS[1], HELD, ENDS[0])
+    part = replace(AAPL_STOP, number="9", state="Submitted", left=Decimal(6))
+    assert late == Account((SMGB,), (part,))
 
 
 @pytest.mark.parametrize(
@@ -209,9 +208,6 @@ def test_a_book_that_is_the_brokers_has_no_difference() -> None:
             {},
             "SMGB CFD GBP: the broker holds 0.5, the desk's book 0",
         ),
-        (Account((), (AAPL_STOP,)), {}, RESTS.format(10, 31)),
-        (Account((), (replace(AAPL_STOP, client="222"),)), {}, RESTS.format(10, 222)),
-        (Account((), (replace(AAPL_STOP, shares=Decimal(0)),)), {}, RESTS.format(0, 31)),
     ],
 )
 def test_every_difference_from_the_book_is_named(
@@ -220,29 +216,17 @@ def test_every_difference_from_the_book_is_named(
     assert named in paper.differences(account, held, LINES)
 
 
-def test_each_entry_is_named_once_in_order_by_its_own_name_and_the_orders_after() -> None:
+def test_each_entry_is_named_once_in_order_by_its_own_name_and_no_order_is() -> None:
     flat = Holding("DU0000001", "AAPL", "STK", "USD", Decimal(0))
     other = replace(SMGB, account="DU0000002")  # a second paper account holding the same
-    buy = replace(AAPL_STOP, broker_id="7", action="BUY", kind="MKT")
-    account = Account((SMGB, flat, replace(SMGB, currency="EUR"), other), (AAPL_STOP, buy))
+    account = Account((SMGB, flat, replace(SMGB, currency="EUR"), other), (AAPL_STOP,))
     assert paper.differences(account, {"SMGB": 25}, LINES) == (
         "SMGB STK EUR: the broker holds 25, the desk's book 0",  # one entry under its name
         TWO.format(25, 25),
         TWO.format(25, 25),  # each entry named, though the two read alike
-        RESTS.format(10, 31),
-        "AAPL: an order resting at the broker to BUY 10 (MKT, the broker's id 7, client 31)",
-    )
+    )  # the orders resting there are the day's check's to tell apart (test_clearance.py)
 
 
 def test_a_held_line_the_desk_was_not_given_is_refused() -> None:
     with pytest.raises(ValueError, match="XXXX"):
         paper.differences(Account((), ()), {"XXXX": 1}, LINES)
-
-
-def test_the_check_reads_the_desks_own_ledger(tmp_path: Path) -> None:
-    rows = (",".join(book.COLUMNS), "X1,20251114-rsi2-SMGB,SMGB,25,31.5,2025-11-14")
-    (tmp_path / book.LEDGER).write_text("\n".join(rows), encoding="utf-8")
-    assert paper.mismatches(tmp_path, lambda: _smgb(25)) == ()
-    assert paper.mismatches(tmp_path, lambda: _smgb()) == (
-        "SMGB STK GBP: the broker holds 0, the desk's book 25",
-    )
