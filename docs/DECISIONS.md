@@ -724,6 +724,33 @@ crash losing the broker's record, a duplicate filling again, a gapped stop selli
 level, no stop test on the day of the buy, a fill at the close, and a fault spent on no
 market.
 
+### 2026-11-13 — the send path: ask first, gate second, a fill written once
+
+**Decided**, by the lane as the desk's mentor (no one watching), for scene 4:
+
+1. **The desk asks the broker before anything else.** If the broker already has the order's
+   id, the desk records what it did and sends nothing. Only an order the broker never
+   received goes through the pre-trade gate and is sent. The other option, the gate first,
+   would judge an order the broker already holds a second time: after a restart with a
+   changed capital it could be refused, and its fills, real at the broker, never written.
+   Every order the broker receives still passed the gate on the way.
+2. **A dropped connection is a stated answer, not a crash.** The order never arrived, so the
+   desk says so in the order's reason and the same id may be sent again; the broker answers
+   for it then. A crash after the broker has the order is the desk dying: it stops, and the
+   next ask records what the broker did.
+3. **The ledger is one file of fills, keyed by the broker's execution id**, written whole and
+   swapped in, as the price store is, so a desk that dies mid-write keeps the old one. A
+   fill already written is never written again, so asking about an order twice is harmless.
+4. **The ledger learns only what the send path is told.** A stop the broker sells overnight is
+   not in any order's answer; the book built from the broker (the next step) and the day run
+   must collect it, or the ledger and the broker's fills part company.
+
+**Evidence.** `tests/unit/test_book.py` failed first on the unbuilt send path; scene 4 now
+passes. Eleven deliberate breaks of `desk/book.py` were each caught: never asking the
+broker first, gating an order the broker already had (the blind review's one gap), skipping the gate, letting a dropped connection escape, not recording, recording a
+fill twice, overwriting the ledger, counting the order's shares as filled, dropping a
+reason, a silent disconnection, and a price read back rounded.
+
 ## DATA
 
 ### 2026-11-13 — the fourteen months are built; the scenes move onto them in two steps

@@ -76,6 +76,15 @@ Last updated: 13 November 2026.
 
 ### Where it is
 
+Scene 4 passes: the desk sends an order and its stop rests at the broker (`book.send`).
+Before sending, the desk asks the broker whether it already has the order; if so it
+records what the broker did and sends nothing, so a desk that dies mid-send and restarts
+never buys twice. Only an order the broker never received passes the pre-trade gate and is
+sent. Each fill is written once in the desk's ledger under the broker's own execution id.
+A rejection, a partial fill and a dropped connection each come back with a stated reason;
+a dropped order may be sent again, since the broker never had it. The contract test was
+seen failing first; eleven deliberate breaks of the send path were each caught.
+
 The desk has a pretend broker to trade against in simulation (`desk/broker.py`), built to
 behave like the real one. A buy fills at the day's opening price under the broker's own
 execution id, and leaves a stop resting at the broker for the shares it got, so the stop
@@ -111,17 +120,24 @@ caught; the forty-fifth cannot change a decision.
 
 ### Next step
 
-The send path (`book.send`): every order through the one gate, asked of the broker by its
-id before it is sent so a restart never sends it twice, its fills recorded under the
-broker's ids, and a stated reason for every order that did not fill - so that scene 4
-passes.
+The book built from the broker (`book.positions`): what is held and what is left, with
+every fill the broker made in the ledger, a stop's overnight sale included, so the gate
+can enforce at most five holdings and give two buys of one line one fifth between them.
 
 ### Found, not fixed
 
 - **What the blind review of the pretend broker left for the send path and the day run**
   (its one finding fixed: a fault was used up by an order that met no market):
-  - `book.send` must ask `broker.report(order_id)` before it places an order. Placing it
-    again and reading the refusal fails scene 4, which counts every receipt.
+  - The ledger holds only the fills an order's answer carries. A stop the broker sells is
+    in no order's answer, so the book must collect the broker's fills since the last
+    ask, or the ledger and the broker part company on the first stop that fires.
+  - **What the blind review of the send path left** (nothing blocking; its test gap - an
+    order the broker already holds must not be judged by the gate again - is fixed):
+    the ledger is swapped in whole but not forced to disk, so a power cut (not a crash of
+    the desk) can lose it; and a ledger deleted later reads as "no fills" without a
+    word. Neither can send twice, since the broker is asked first; reconciliation
+    (scene 6) is where a lost ledger must show. Unit test lines now stand at 1261 against
+    1262 of product: the next step's tests must come with its code.
   - The broker fills at the bare open and sells a stop at exactly its level. Spread and
     slippage are not in its prices, so the day run must charge both, on both legs, the
     stop's sale included, or profit reads too high.
@@ -178,10 +194,10 @@ Every one of these raises NotImplementedError, by design, until its phase builds
 
 | part | phase |
 |---|---|
-| `book.send`, `book.fills`, `book.positions`, `book.round_trips` | 2 |
+| `book.positions`, `book.round_trips` | 2 |
 | `day.run` | 2 |
 
-Built and real: the pretend broker (`broker.Pretend`), sizing, cost and the gate for one holding (`orders.size`, `orders.cost`,
+Built and real: the send path and the ledger (`book.send`, `book.fills`), the pretend broker (`broker.Pretend`), sizing, cost and the gate for one holding (`orders.size`, `orders.cost`,
 `orders.gate`), the five strategies (`strategy.decide`), the twenty lines, the archive
 client (`archive.fetch`), the price store (`store.prepare`, `store.read`, `store.faults`),
 the venue calendars,
