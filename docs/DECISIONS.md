@@ -726,4 +726,76 @@ market.
 
 ## DATA
 
+### 2026-11-13 — the fourteen months are built; the scenes move onto them in two steps
+
+**Found.** On their own calendars, a London line and a US line do not trade the same days
+over fourteen months (Easter Monday, Thanksgiving, the 4th of July and eight more), so
+there is no longer one list of days that every line shares. Scene 2 counts its decisions
+as five rules times nineteen lines times one list of days; at full length that count is
+wrong by design, and scene 2 goes red (driven: 28,925 decisions against 29,545 expected),
+though not one decision is missing. Scenes 1 and 3 pass at full length. Scene 2 is the
+money lane's file, which this lane may not edit.
+
+**Options.** (a) Give every line the same days, holidays ignored: the store rightly refuses
+a bar on a closed day, so the clean lines would park and scene 1 would break. (b) Choose
+windows so the two venues happen to have equal counts: a trick to fit one assertion.
+(c) Edit scene 2's count from this lane: against the lanes' ownership rule. (d) Build the
+fourteen months now, let the scenes keep seeing its last six weeks (which hold no holiday
+on either venue), and move them onto the whole of it with a one-line change once scene 2
+counts each line's own days.
+
+**Chosen.** (d). The data is in one place, its last six weeks in use; nothing is duplicated; main stays
+green; the move is one constant (`SCENES_FROM` in `tests/scenes/rehearsal.py`).
+
+**Evidence**, from a script run outside the repository on the whole fourteen months:
+London lines trade 307 sessions and US lines 303, on each venue's own calendar; the store
+keeps every clean line whole with no fault, and parks only the spoilt line, for its three
+faults (now placed among its last sixty sessions). Each of the five rules buys and sells
+on every one of the nineteen clean lines: RSI-2 19 round trips, Bollinger 38, the 20/10
+breakout 38, the 50/200 cross 19, Supertrend 57. Deliberate breaks: a London line laid on
+US days is refused for 25 August 2025 (a UK bank holiday) and parked for the missing 1
+September; a plain weekday calendar faults Christmas, Boxing Day and New Year in London,
+and Labor Day and Thanksgiving in the US. The first shape tried, a two-day dip, gave RSI-2
+a trade on only 11 lines; a three-day dip gives it all nineteen.
+
+**The cost.** Until the move, the scenes still run on six weeks in which no rule trades.
+Scene 2's future-blind loop over all 311 days will take about twenty seconds where it now
+takes one; the money lane may cut on fewer days.
+
 ## LADDER
+
+### 2026-11-13 — the ladder's unit of work: days only, the whole history, keyed by what it read
+
+**Decided.** The ladder's unit of work is a cell: one of the five strategies, one line of
+the twenty, and a window of days (`lab/cell.py`). Its record holds the trades the desk's own
+`strategy.decide` makes there, as days only: the day bought and the day sold, or none while
+still held at the window's end. It is keyed by a code version and a data version.
+
+**The choices, and why.**
+- *What the record holds.* Options: days only; days with prices and a profit before costs;
+  a profit after costs. Chosen: days only. The canon reports no result without its costs,
+  and pricing a trade honestly needs the fill convention, the sizing and the exchange rate
+  of each day, which are a rung of their own. Days are facts every later rung agrees on.
+- *Where the rule starts.* Options: at the window's first day; at the line's first bar.
+  Chosen: the line's first bar, with nothing after the window's end shown. A rule needs up
+  to 200 days to warm up, and the money lane found that a decision depends on where the
+  history starts; starting where the desk starts keeps the ladder's decisions the desk's.
+- *Which trades are the window's.* A trade belongs to the window it was bought in, so
+  windows laid side by side count each trade once.
+- *The code version.* Options: the git commit; a hand-kept list of files; every file of the
+  repository that `lab/cell.py` reaches through its imports. Chosen: the files reached,
+  read once as the process loads them, Windows line endings ignored. A commit moves with
+  any document, and a hand-kept list goes stale the day someone forgets it; following the
+  imports cannot forget a file the result depends on.
+- *The data version.* Every bar the rule was shown, so a bar changed years before the
+  window moves the key, and one after the window does not.
+
+**Evidence.** Nine contract tests, seen failing first. Seventeen deliberate breaks of
+the module were driven against them; fifteen were caught at once. Two showed the test
+itself was blind (Windows writes its own line endings, so the "same code on Windows" check
+compared like with like; and the package files were never proven counted, which hid that
+`lab/__init__.py` was not hashed at all): both fixed, and each break then caught. Two more
+survived because the code was not needed (a filter on package names, and hashing file
+names); that code was deleted, not tested. A blind review found nothing blocking; its
+test gaps (a high or low changed alone; the pairing of each buy with its own sell) and
+bars out of order being accepted were fixed, each break driven and caught.

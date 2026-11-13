@@ -76,9 +76,12 @@ the five rules trade in it (his ruling, 13 November), before the money lane reac
 scene 5. Scenes 1 to 3 keep passing on it.
 
 - [x] The rehearsal data in a file of its own (`tests/scenes/rehearsal.py`)
-- [ ] The rehearsal data lengthened to about fourteen months, the five rules buying and
-      selling in it, its UK and US holidays respected; the spoilt line's faults kept within
-      the last sixty sessions, or the store rightly stops parking it and scene 1 breaks
+- [x] The rehearsal data lengthened to about fourteen months, the five rules buying and
+      selling in it on every clean line, its UK and US holidays respected; the spoilt line's
+      faults kept within the last sixty sessions (`docs/DECISIONS.md`, the data lane's)
+- [ ] The scenes moved onto the whole fourteen months (`SCENES_FROM` back to `FIRST`), once
+      the money lane's scene 2 counts each line's own sessions; until then they see its
+      last six weeks
 - [ ] One line the archive refuses is parked, not the whole fetch stopped
 - [ ] The four parked lines brought back, or each one's reason confirmed: 2MU's five real
       moves recorded from a second source; 5QQQ's consolidation of 22 August 2024; SGLN's
@@ -134,10 +137,11 @@ strategy template.
 
 ### The ladder lane's book
 
-**Lane objective:** the ladder's unit of work - one strategy on one line over one window,
-a typed record keyed by the code's and the data's versions - and its contract test.
+**Lane objective:** a batch service that runs many cells (`lab/cell.py`), one bad cell
+recorded and the rest carried on, and a restart taking up where it stopped - proven by its
+own contract test.
 
-- [ ] The unit of work, keyed by code and data version
+- [x] The unit of work, keyed by code and data version (`lab/cell.py`)
 - [ ] A batch service that survives a bad cell and a restart
 - [ ] Results kept, keyed by code and data version; only what changed is re-run
 - [ ] Each rung proven: it catches a planted edge and rejects a planted non-edge

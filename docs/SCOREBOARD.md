@@ -32,8 +32,10 @@ touch the same lines. A session the operator starts himself appends to the table
 
 | date | scenes | desk lines | lab lines | test lines | guards | check | what moved |
 |---|---|---|---|---|---|---|---|
+| 2026-11-13 | 3 of 7 | 968 | 9 | 1524 | 12 of 12 proven | green | The rehearsal data is now fourteen months on each venue's own calendar, and each of the five rules buys and sells on every clean line in it; holidays laid on the wrong calendar were each refused by the store. The scenes still see its last six weeks until the money lane's scene 2 counts two calendars; then the move is one line. |
 
 ### LADDER
 
 | date | scenes | desk lines | lab lines | test lines | guards | check | what moved |
 |---|---|---|---|---|---|---|---|
+| 2026-11-13 | 3 of 7 | 968 | 166 | 1640 | 12 of 12 proven | green | The ladder's unit of work: one strategy on one line over one window, its trades the desk's own decisions over the line's whole history, days only until costs come, keyed by a fingerprint of the code it reached and every bar it read. Nine contract tests seen failing first; nineteen deliberate breaks driven, two showing blind tests (fixed) and two showing unneeded code (deleted); a blind review, nothing blocking, its test gaps fixed. |
