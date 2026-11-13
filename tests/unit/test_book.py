@@ -117,6 +117,8 @@ def test_a_round_trip_pairs_each_sale_with_the_buys_it_closes_in_pounds_after_ch
     assert all(t.profit == t.gross - t.costs for t in trips)
     with pytest.raises(ValueError, match="U"):
         book.round_trips(tmp_path, (A,))
-    for wrong in ({"USD": Decimal("0.76")}, {"GBP": Decimal("0.9")}, {"EUR": Decimal(0)}):
-        with pytest.raises(ValueError, match="rate|kept"):  #: a day's fills are never repriced
-            book.record_rates(tmp_path, TUE, wrong)
+    with pytest.raises(ValueError, match="kept at 0.75"):  #: a day's fills are never repriced
+        book.record_rates(tmp_path, TUE, {"USD": Decimal("0.76")})
+    for wrong in ({"GBP": Decimal("0.9")}, {"USD": Decimal(0)}):
+        with pytest.raises(ValueError, match="a rate of"):
+            book.record_rates(tmp_path, date(2025, 11, 12), wrong)
