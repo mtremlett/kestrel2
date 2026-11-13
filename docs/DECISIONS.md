@@ -1108,6 +1108,38 @@ the week's reset, already used, or with no readings, and once a night; the keepe
 outside its hours, at a weekend or before it exists, a round done, failed or hung, two
 misses told at once even at night, and its return held for the morning.
 
+## 2026-11-13 — the runner restarts without a drain; the doctor takes the recommended option
+
+**Why.** Four drains this evening each idled lanes for up to 45 minutes while the last
+sessions finished: the opposite of the pace he asked for.
+
+**How.** Each session now writes its output to a file, not to the runner, and each slot keeps
+a record of its session on disk (process, output, work, branch, phase). `restart.cmd` (or
+`runner.py restart`) ends the runner once no merge, push or launch is half done, without
+touching a session; the next runner holds each recorded slot's claim before any slot takes
+work, waits for the session to end, reads its output, and lands its pull request as usual.
+A session is known by its program file and its start time, so an update between runners,
+or a process number Windows reused, is not mistaken for it. A stop still ends every session.
+A drain is needed only for a change to how sessions are launched.
+
+**Driven.** With stand-in sessions in a scratch home, 15 cases: a restart during three
+sessions (none killed, all three adopted, finished and landed, none started twice); during
+the pull requests' watch; with the sessions ending between runners; after an update between
+runners; with a reused process number; between a session's legs (its own session resumed);
+and a stop ending adopted sessions. A blind review found eleven faults, all fixed. Live at
+21:30: `runner.py restart` took 11 seconds; the new runner adopted five slots (three
+sessions still running, two pull requests being watched), started nothing twice, and the
+first adopted pull request landed four seconds later.
+
+**His standing ruling**, via #90: "please always go with recommended to avoid waiting for me
+to attend". When the doctor finds a halt is a decision for him, it takes the recommended
+option, gives it to the lane's next session to act on and record, restarts the lane, and
+sends him one line saying what was chosen and why. Going live, credentials and spending
+money still wait for him, as does a lane the doctor has already restarted twice that day.
+Sessions follow the same ruling for their own questions. Driven: 11 cases. While his ruling
+raising the unit-test budget to 1.5 times the product (#90) lands, a pull request red on
+that budget alone is not counted toward a halt.
+
 ---
 
 # The lanes' own decisions
