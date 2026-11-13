@@ -578,24 +578,23 @@ account check should be run again on a second day before the first order.
 
 ## DATA
 
-Last updated: 13 November 2026 (this section cut to its open items; git keeps the rest).
+Last updated: 13 November 2026 (the scenes on the whole fourteen months; this section cut).
 
 ### Where it is
 
-Phase 1's data is in: the twenty lines with their leverage and UK tax (`desk/lines.py`), one archive
-client, one store with one writer (`desk/store.py`), both venues' calendars for 2010 to 2027,
-fourteen months of rehearsal data, and the research list (`lab/universe.py`: 1,065 tickers, 864
-clean, 201 parked). Sixteen of the twenty lines are clean and four parked (below).
+Phase 1's data is in: the twenty lines, one archive client, one store with one writer, both venues'
+calendars for 2010 to 2027, and the research list (1,065 tickers: 864 clean, 201 parked). The scenes
+now see all fourteen months of rehearsal data (R-MONEY-2); scenes 1 to 5 pass on it.
 
 ### Next step
 
-R-MONEY-2, the money lane's blocking request: the scenes moved onto the whole fourteen months. Then
-the lane's objective, the research list's parked fifth (`docs/PLAN.md`). R-MONEY-3 (a daily
-pounds-per-dollar rate in the store) and R-PAPER-3 (each line's ISIN) are open, for later.
+The lane's objective, the research list's parked fifth (`docs/PLAN.md`). Open for later: R-MONEY-3
+(a daily pounds-per-dollar rate in the store) and R-PAPER-3 (each line's ISIN).
 
 ### Done for other lanes
 
 - R-MONEY-1: done in #47
+- R-MONEY-2: done in this pull request
 
 ### Requests to GRID
 
@@ -607,6 +606,8 @@ pounds-per-dollar rate in the store) and R-PAPER-3 (each line's ISIN) are open, 
 - [ ] R-DATA-3 (later, opened 2026-11-13 18:15): the day run reads the archive through
   `archive.gather` and hands `store.prepare` its answers whole, so a refused line parks with its reason.
 - [x] R-DATA-4 (later, opened 2026-11-13 18:40 UK): each `Line(...)` in its tests states its UK tax.
+- [ ] R-DATA-6 (later, opened 2026-11-13 19:20 UK): scene 5 reads `CLEAN`, now the one name for the
+  whole rehearsal data; `HISTORY` is the same thing, and then goes.
 
 ### Requests to PAPER
 
@@ -614,19 +615,16 @@ pounds-per-dollar rate in the store) and R-PAPER-3 (each line's ISIN) are open, 
 
 ### Found, not fixed
 
-- **UK tax (NS-05).** Nil for the five London products is how the law reads, not yet seen on a
-  contract note (the paper lane reports the first). A line made without its tax still pays nil; the
-  default can go now. The research list's London shares all pay 0.5%, unchecked name by name
-  (Jersey, Ireland's 1%, Spain). The takeover levy is not modelled.
-- **Four lines parked:** 3LGO (no history), 2MU (five real crashes unrecorded), 5QQQ (an unadjusted
-  consolidation), SGLN (garbled weeks of 2011). Each is a step in the book.
-- **The archive** is free and unofficial, and fetching does not pace itself (DAT-08).
+- **UK tax (NS-05).** Nil for the five London products is unseen on a contract note. A line's tax
+  still defaults to nil; that can go now. The research list's London shares pay 0.5%, unchecked.
+- **Four of the twenty are parked:** 3LGO (no history), 2MU (five real crashes unrecorded), 5QQQ (an
+  unadjusted consolidation), SGLN (garbled 2011). The archive is free, unofficial, unpaced (DAT-08).
+- **The scenes' days** are now every day either venue trades; scenes 6 and 7 meet days only one does.
 - **The research list** is today's members only (BT-09), has no kept home, keeps a departed ticker's
   files, loses a ticker's bars on a refused day, and leaves off three London members quoted in euros.
 - **The store:** nothing fills `Line.real_moves` or `Line.suspended`; a wrong factor under 2-for-1
-  passes; a bad print not a hundredfold out, and a freeze under five sessions, have no rule; bars and
-  faults are written apart; parking lives only in what `store.prepare` returns; any `ValueError` in
-  an answer parks its line. Unpinned by a test: the hundredfold margin, and that L01's tax is charged.
+  passes; a bad print not a hundredfold out, and a freeze under five sessions, have no rule; parking
+  lives only in what `store.prepare` returns. No test yet pins that L01's stamp duty is charged.
 
 ## GRID
 
