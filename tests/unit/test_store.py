@@ -259,6 +259,21 @@ def test_a_real_fall_and_recovery_is_never_dropped_as_bad_days(tmp_path: Path) -
     assert store.read(tmp_path, US.symbol) == bars
 
 
+@pytest.mark.parametrize("at", [0, 5, -8, -1], ids=["first", "old", "recent", "newest"])
+def test_a_real_one_day_crash_is_kept_and_parks_until_recorded(tmp_path: Path, at: int) -> None:
+    """5QQQ fell 60% on 7 April 2025 and won half of it back the next day: only a hundredfold
+    bar is a wrong unit. Any other move parks, however old, until each close is recorded."""
+    bars = list(_bars(US, LONG))
+    bars[at] = _scaled(bars[at], Decimal("0.4"))
+    reasons = _parked(tmp_path, tuple(bars))
+    assert len(reasons) == 1 and "split" in reasons[0] and "wrong unit" not in reasons[0]
+    assert store.read(tmp_path, US.symbol) == tuple(bars)
+    moved = (bars[n] for n in range(at % len(bars), at % len(bars) + 2) if 0 < n < len(bars))
+    line = replace(US, real_moves=frozenset((b.day, b.close) for b in moved))
+    assert _parked(tmp_path, tuple(bars), line) == []
+    assert store.read(tmp_path, US.symbol) == tuple(bars)
+
+
 FREEZES: dict[str, Callable[[Bar, Bar], Bar]] = {
     "the bar before repeated": lambda bar, b: replace(b, day=bar.day, volume=0),
     "the bar before repeated whole": lambda bar, b: replace(b, day=bar.day),
