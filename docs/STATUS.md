@@ -11,8 +11,9 @@ with one writer (`desk/store.py`): it rebuilds itself from the archive each morn
 keeps only bars that can be true, and parks a line it cannot clean with a dated reason;
 the line comes back by itself once its bars are clean. Gaps and staleness are judged
 against each venue's own calendar (`desk/venues.py`, London and US, 2010 to 2027). Its
-tests were seen failing first, and thirteen deliberate breaks of the store and calendar
-were each caught by a test.
+tests were seen failing first; a blind review's five blocking findings were each made a
+failing test, then fixed; and twenty-five deliberate breaks of the store, the
+calendar and the instrument master were each caught by a test.
 
 Two rulings of 13 November are in force (`docs/DECISIONS.md`): sessions merge their own
 pull requests when the check is green, and GitHub now refuses any merge whose check has
@@ -40,15 +41,26 @@ the store. The twenty lines themselves are not chosen yet; that choice comes fir
   3; "a day with a cost line missing is refused" is held by the types, not by a day
   that should have paid UK tax showing none; scene 5 does not tell a sale by the
   strategy's rule from one by the resting stop; "no halt in force" has no interface yet.
-- **The store cannot read history before 2010 or after 2027.** The calendar refuses those
-  years rather than guess, so a line whose archive reaches back further stops the
-  prepare loudly. Extend the calendar's one-off closures before loading older history.
-- **A split the archive did not adjust parks the line**, as does a genuine one-day move
-  of more than 60% up or 37.5% down. Parking is the safe side; adjusting for splits needs
-  a record of corporate actions, which nothing holds yet.
-- **A whole history quoted in pence passes.** The store catches a change of unit within
-  a line, not a line that is in the wrong unit from its first bar. The instrument master
-  does not yet say which unit each line is quoted in.
+- **What the blind review of the store left open** (its five blocking findings, and one
+  its re-review found in the repair, were fixed and each is now a test):
+  - The calendar knows 2010 to 2027 only. A bar from another year is refused and its
+    line parked; history before 2010 needs that decade's one-off closures first.
+  - A split the archive did not adjust parks the line if it is 2-for-1 or larger; a
+    smaller wrong factor (a 3-for-2 split, pounds read as dollars) cannot be told from
+    a real move by price alone and passes.
+    So does a whole history quoted in pence: the instrument master does not yet say
+    which unit each line is quoted in.
+  - A real move larger than the store believes (a fall of 37.5%, a rise of 60%) parks
+    the line until its confirmed close is recorded on the line (`Line.real_moves`).
+    Nothing fills that record yet; the twenty lines are not chosen.
+  - Two bad bars in a row are kept and the line parked, not cleaned: safe only while a
+    parked line is never traded or read for a decision.
+  - Parking lives only in what `store.prepare` returns; nothing saves it yet, and a
+    line dropped from the archive leaves its old file readable. The day run (phase 2)
+    must read parking from the prepare it runs.
+  - A frozen feed (the same bar repeated with no volume) is not caught.
+  - A vendor that leaves out a day a line did not trade (a suspension) parks the line
+    for as long as that gap is in its history.
 - **The scenes rule trusts the error's name.** A scene counts as "not built" when it
   fails with NotImplementedError. A test that raised that error itself would pass as
   unbuilt. No test does; nothing yet checks that none does.
