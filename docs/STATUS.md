@@ -14,18 +14,17 @@ GitHub. Main refuses a direct push, proven by trying one.
 
 ## The next step
 
-Write the seven scenes as failing tests, once the operator has approved them. They are
+The operator approved all seven scenes on 13 November (`docs/DECISIONS.md`). Write them
+as failing tests. They are
 expected to fail — that is the point. Then phase 1: one price store with one writer,
 cleaned on entry.
 
 ## Open questions for the operator
 
-1. **The scenes** in `docs/SCENES.md` need his approval before they become the
-   scoreboard.
-2. **A second GitHub account** for sessions to work through, so that the guards cannot be
+1. **A second GitHub account** for sessions to work through, so that the guards cannot be
    removed by the account that enforces them. Not urgent; needed before any unattended
    work.
-3. **The A-GATE test.** Ten consecutive £100 days is close to unreachable for an honest
+2. **The A-GATE test.** Ten consecutive £100 days is close to unreachable for an honest
    edge. The recommendation is sixty trading days averaged, luck-corrected, with a
    drawdown limit. He has agreed in conversation; it is not yet written into a
    requirement.

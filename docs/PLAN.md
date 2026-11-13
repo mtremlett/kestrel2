@@ -18,7 +18,7 @@ The machinery that refuses, before any desk code.
 - [x] GitHub runs the check on a clean machine with no access to the operator's PC
 - [x] A phase-by-phase size ceiling, and a module manifest that walls the core
 - [ ] The documents: this one, the canon, the scenes, the architecture
-- [ ] The scenes approved by the operator
+- [x] The scenes approved by the operator
 - [ ] The scenes written as failing tests
 - [ ] A git hook running the fast check before each commit
 - [ ] An independent reviewer that never sees the reasoning

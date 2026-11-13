@@ -68,3 +68,15 @@ ruff, mypy, pytest.
 **Why.** They were briefly written down twice, in `requirements.txt` and in a
 `pyproject.toml` extra, which is two homes for one fact. GitHub's check installs the one
 list and does not build the project, because nothing imports it as an installed package.
+
+---
+
+## 2026-11-13 — the seven scenes are approved
+
+**Decided.** The seven scenes in `docs/SCENES.md` are the scoreboard. They change only
+with the operator's approval.
+
+**His words.** In chat, Friday 13 November 2026, about 11:55 UK time, answering that the
+seven scenes were waiting on his approval: "i approve all."
+
+**What follows.** The next step in the plan is to write them as failing tests.
