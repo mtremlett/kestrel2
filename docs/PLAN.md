@@ -15,12 +15,12 @@ phase.
 
 ## The five lanes
 
-Five chains of sessions run side by side on the operator's PC, day and night, each session
-starting when the one before it ends (his rulings, 13 November 2026, `docs/DECISIONS.md`).
-A lane's session works on its lane's objective only, edits only the files its lane owns,
-and writes only in its lane's parts of the shared documents: its section of
-`docs/STATUS.md`, its book here, its table in `docs/SCOREBOARD.md` and its part at the end
-of `docs/DECISIONS.md`. Each lane's book sits inside the phase it belongs to: DATA in
+Five lanes of sessions run side by side on the operator's PC, day and night, up to twelve
+sessions at once: MONEY and DATA three each, PAPER, GRID and RUNGS two each (his rulings,
+13 November 2026, `docs/DECISIONS.md`). A lane's session edits only the files its lane
+owns, and of those only its claim. Each lane's parts of the shared documents are its
+section of `docs/STATUS.md`, its book here, its table in `docs/SCOREBOARD.md` and its part
+at the end of `docs/DECISIONS.md`. Each lane's book sits inside the phase it belongs to: DATA in
 phase 1, MONEY in phase 2, PAPER in phase 3 (begun alongside phase 2, his ruling), GRID
 and RUNGS in phase 4. So two lanes' pull requests never touch the same lines, and GitHub
 merges neither until it holds the other.
@@ -38,11 +38,29 @@ table, and each lane's heading over its modules). A lane's branch that changes a
 file fails the check (`tests/guards/test_lanes.py`), and no change adds more than 300 net
 lines to `desk/` and `lab/` together.
 
-**A lane that needs another lane's file changed does not touch it.** It writes a numbered
-request in its own STATUS section, under `### Requests to <LANE>`:
+**The runner hands out the work, and a claim holds it.** A box of a book carries a note at
+the end of its text: `{id: money-kill; files: desk/kill.py, tests/unit/test_kill.py; after:
+money-costs}`. The id is unique; `files` names every file the box changes (globs allowed,
+`docs/PLAN.md` only for a box that moves the scenes count, `*` for one that must hold all
+the lane's files); `after` names the boxes, of any lane, done first. The runner gives a
+session the first box whose `after` boxes are done and whose files no running session
+holds; its files are the session's claim. A box with no note is serial work: one session,
+alone in its lane, claim `*`. A lane whose next five boxes are not all noted is asked to
+note them first. The claim is in the session's pull request as `Claim: ...`, and the check
+refuses a change outside it and a lane's pull request without one
+(`tests/guards/test_lanes.py`, which also refuses a note it cannot read).
+
+**Sessions do not write the shared documents; the lane's scribe does.** A session's pull
+request carries `Ticks:` (the ids it finished), its status, scoreboard line, decisions,
+what remains and its requests to other lanes. About every two hours a small scribe session
+per lane folds the landed descriptions into the lane's parts of the four documents: it
+ticks the boxes, numbers the requests and keeps the STATUS section under 50 lines.
+
+**A lane that needs another lane's file changed does not touch it.** Its request is folded
+into its own STATUS section, under `### Requests to <LANE>`:
 `- [ ] R-<ITS LANE>-<n> (blocking|later, opened YYYY-MM-DD HH:MM): what is needed and why`.
-The owning lane records `- R-<LANE>-<n>: done in #NN` (or `declined, because ...`) under
-`### Done for other lanes` in its own section, and the asker then ticks its request. The
+The owning lane names the request in its `Ticks:` line (or declines it, saying why), its
+scribe records it under `### Done for other lanes`, and the asker's scribe ticks it. The
 runner puts each lane's open requests at the top of its next session; a blocking one is
 that session's objective, before its own book. The 07:00 line counts the open requests,
 and one open for more than a day is sent to the operator.
@@ -375,7 +393,8 @@ alone, and its bars are read from its venue's folder. Then auto-tune.
       (`lab/grid.py`: the same position after every bar, or a refusal, never a guess)
 - [x] The unit of work on the grid, the desk's engine deciding what the grid refuses
 - [ ] A cell names its ticker's venue: a `Line` of the research list, its bars read from
-      its venue's folder (R-DATA-1)
+      its venue's folder (R-DATA-1) {id: grid-venue; files: lab/cell.py, lab/batch.py,
+      tests/unit/test_lab_cell.py, tests/unit/test_lab_batch.py}
 - [ ] Auto-tune, so a pass can never take the PC down: a hard memory ceiling held by
       Windows itself (a Job Object on the workers, about 60% of the 64 GB); workers sized
       to free cores, two of the eight threads left free while markets are open (UK 08:00 to
@@ -384,15 +403,24 @@ alone, and its bars are read from its venue's folder. Then auto-tune.
       about 25% free memory or above about 85% CPU and stepping back up with room; peak
       memory and CPU logged for each pass. Proven: a deliberately memory-hungry cell is
       killed by the ceiling, the PC stays responsive and the batch carries on
-- [ ] The grid's first pass over the research universe: every strategy at every setting on
-      every ticker, each cell kept by code and data version
-- [ ] Runs seven days without stopping
+      {id: grid-tune; files: lab/tune.py, tests/unit/test_lab_tune.py, manifest.toml}
 - [ ] The cell's key carries the cost model's version and the rung's code, so a change to
-      either re-runs what it touches (BT-04)
+      either re-runs what it touches (BT-04) {id: grid-key; files: lab/cell.py,
+      tests/unit/test_lab_cell.py; after: grid-venue}
+- [ ] The grid's first pass over the research universe: every strategy at every setting on
+      every ticker, each cell kept by code and data version {id: grid-pass; files:
+      lab/sweep.py, lab/batch.py, lab/tune.py, tests/unit/test_lab_sweep.py,
+      tests/unit/test_lab_batch.py, tests/unit/test_lab_tune.py, manifest.toml; after:
+      grid-venue, grid-tune, grid-key}
+- [ ] Runs seven days without stopping {id: grid-week; files: lab/batch.py, lab/sweep.py,
+      lab/tune.py, tests/unit/test_lab_batch.py, tests/unit/test_lab_sweep.py,
+      tests/unit/test_lab_tune.py; after: grid-pass}
 - [ ] Each strategy judged on its own declared universe; the everything-on-everything grid
       kept as a transfer study, never a verdict; sweeps on the declared universe (LAD-01,
-      LAD-13)
-- [ ] A full sweep within a weekend, its time measured (LAD-10)
+      LAD-13) {id: grid-declared; files: lab/sweep.py, tests/unit/test_lab_sweep.py; after:
+      grid-week}
+- [ ] A full sweep within a weekend, its time measured (LAD-10) {id: grid-weekend; files: *;
+      after: grid-declared}
 
 ### The rungs lane's book
 
