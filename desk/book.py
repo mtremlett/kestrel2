@@ -40,16 +40,18 @@ def send(root: Path, broker: Pretend, order: Order | Sale, settings: Settings) -
     """Ask the broker what it did with the order's id, so a desk that restarts never sends
     it twice; if it never received it, pass the pre-trade gate and send it. Its fills are
     recorded and its stop rests at the broker. The gate reads the book, brought up to date
-    with the broker's fills first. While the book is not the broker's nothing is bought,
-    and no line they differ on is sold: the stops resting at the broker hold meanwhile."""
+    with the broker's fills first. While the book is not the broker's on any line nothing
+    is bought, and a line is sold only if its shares agree: one that has lost its stop may
+    go, shares the broker may not hold may not."""
     report = broker.report(order.order_id)
     if report is None:
-        differ = reconcile(root, broker)
-        if differ and (isinstance(order, Order) or order.line.symbol in differ):
+        differ, held, symbol = reconcile(root, broker), positions(root), order.line.symbol
+        unsure = held.get(symbol) != broker.positions().get(symbol)
+        if differ and (isinstance(order, Order) or unsure):
             raise Refused(
                 f"{order.order_id}: not sent, the book is not the broker's on {list(differ)}"
             )
-        gate(order, settings, positions(root))
+        gate(order, settings, held)
         try:
             report = broker.place(order)
         except Disconnected as lost:  #: never received: stated, and sent again next time

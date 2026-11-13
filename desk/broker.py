@@ -123,6 +123,8 @@ class Pretend:
 
     def cancel_stop(self, symbol: str) -> None:
         """A resting stop cancelled behind the desk's back, as if by hand."""
+        if symbol not in self._stops:
+            raise ValueError(f"{symbol}: no stop rests to be cancelled")
         del self._stops[symbol]
 
     def _execute(self, order: Order | Sale, fault: Fault | None, bar: Bar | None) -> Report:

@@ -61,7 +61,7 @@ def trade(
     its position read from the book; the sales first, then each buy sized from the book after
     the send before it. A line sold this morning, by its rule or its stop, is not bought
     again today. While the book is not the broker's the send path refuses every buy, and the
-    sale of a line they differ on. rates are the day's pounds per unit of each currency."""
+    sale of a line whose shares differ. rates are the day's pounds per unit of each currency."""
     book.collect(root, broker)  #: the stops the open sold
     book.record_rates(root, day, rates)
     held = book.positions(root)

@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 
 from desk import book, day, venues
-from desk.broker import Pretend
+from desk.broker import Crash, Fault, Pretend
 from desk.lines import Line
 from desk.orders import Settings
 from desk.store import Bar
@@ -81,3 +81,7 @@ def test_a_day_the_book_is_not_the_brokers_buys_nothing_and_sells_only_lines_tha
     assert [s.order_id[-1] for s in sold] == list("ABCD"), "a sale left unanswered"
     assert [s.filled > 0 for s in sold] == [False, True, True, True], "A sold, or B to D kept"
     assert "['A']" in str(sold[0].reason) and list(book.positions(tmp_path)) == ["A"]
+    dying = Pretend(ARCHIVE, {"A": Fault.CRASH})
+    dying.open(DAYS[21])
+    with pytest.raises(Crash):  #: only a refusal is an answer: the desk dying is not
+        _trade(tmp_path / "dying", dying, DAYS[21])
