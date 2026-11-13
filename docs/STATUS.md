@@ -20,6 +20,12 @@ pull requests when the check is green, and GitHub now refuses any merge whose ch
 not passed (driven red on pull request #5); the A-GATE test is written as AG-01 to
 AG-06 in `docs/PLAN.md`, with the thirty-day terms fixed in advance.
 
+Every change that lands on main now sends the operator one Telegram line once the check
+passes there: the pull request's title, the scenes count and the next objective, read from
+this plan (`announce.py`, the `announce` job; `docs/DECISIONS.md`). A missing secret turns
+the job red; that was driven on main before the secrets existed. The first line, for #7,
+reached his phone on 13 November.
+
 ## The next step
 
 The rest of phase 1: daily bars for the twenty lines, fetched from a free archive into
@@ -33,6 +39,17 @@ the store. The twenty lines themselves are not chosen yet; that choice comes fir
 
 ## Found, not fixed
 
+- **No Telegram line when main is red after a merge.** The line waits for the check on
+  main. Two green pull requests could combine into a red main, and then he hears nothing
+  from Telegram; GitHub's own failure notice is the only alarm. Closing it means either
+  requiring a branch to be up to date before it merges, or a second line for a red main.
+- **A newer ruff on the operator's PC calls the tree badly formatted.** Version 0.15
+  formats differently from the pinned 0.8.6, so `python check.py` run with whatever is
+  installed shows format red on a clean main. Run it in an environment built from
+  `requirements.txt`. The check does not yet say which tool versions it ran with.
+- **The plan and the budget still say phase 0.** `docs/PLAN.md` and `BUDGET.json` name
+  `0-foundations` while phase 1 is under way, so phase 0's size ceiling still applies.
+  Moving to `1-data` is a budget change for the operator.
 - **What a blind review of the scenes left open** (the rest was fixed before commit):
   the fixture is 33 trading days, so a strategy needing a longer warm-up would never
   trade in scenes 5 to 7 — lengthen it, with the venue calendars, when the five

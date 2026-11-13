@@ -62,7 +62,7 @@ and to own.
 |---|---|---|
 | broker (paper) | one adapter in `desk/`, paper port only | not built yet |
 | price history | a free archive, re-fetched and re-checked on entry | not built yet |
-| messages to the operator | one messenger, with a delivery record | not built yet |
+| messages to the operator | one messenger, with a delivery record | desk: not built; merges: one Telegram line, `announce.py` |
 
 The live-money port is 4001 and this desk NEVER dials it. The paper port is 4002. A guard
 reads every line of every file in `desk/` and `lab/` on every change.

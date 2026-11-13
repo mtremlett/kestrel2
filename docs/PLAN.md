@@ -22,6 +22,8 @@ The machinery that refuses, before any desk code.
 - [x] The scenes written as failing tests
 - [ ] A git hook running the fast check before each commit
 - [ ] An independent reviewer that never sees the reasoning
+- [x] One Telegram line to the operator for each change that lands on main (his request,
+      13 November: he follows progress without reading GitHub)
 
 ## Phase 1 — data
 
