@@ -216,3 +216,12 @@ def test_the_books_notes_can_be_handed_out() -> None:
     assert not twice, f"two boxes share the ids {twice}"
     missing = sorted({a for n in notes for a in n.get("after", []) if a not in ids})
     assert not missing, f"boxes wait for ids no box has: {missing}"
+    after = {n["id"][0]: n.get("after", []) for n in notes}
+    for start in after:
+        seen, todo = set(), list(after[start])
+        while todo:
+            box = todo.pop()
+            assert box != start, f"{start} waits, through its afters, for itself"
+            if box not in seen:
+                seen.add(box)
+                todo += after.get(box, [])
