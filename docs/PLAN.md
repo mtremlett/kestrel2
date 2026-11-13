@@ -3,7 +3,7 @@
 **Current objective:** finish phase 0 — the machinery, the documents and the scenes
 approved by the operator.
 
-Scenes passing: **0 of 7**. Phase: **0-foundations**.
+Scenes passing: **1 of 7**. Phase: **0-foundations**.
 
 ---
 
