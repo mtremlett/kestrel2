@@ -31,8 +31,8 @@ Bools = NDArray[np.bool_]
 
 #: Floating point holds every whole number below this exactly.
 EXACT = 2.0**53
-#: The largest multiple of one price a sum here forms: four times a 200-day sum, twice.
-LINEAR = 1600
+#: The largest multiple of one price a sum here forms: 200 closes and 200 times a close.
+LINEAR = 400
 #: A comparison of rounded numbers is trusted when its sides differ by more than this part
 #: of their size. Rounding moves them by about one part in 10**13 at the very most.
 MARGIN = 1e-9
@@ -188,10 +188,11 @@ RULES: Mapping[str, Callable[[Prices], tuple[Bools, Bools]]] = {
 def held(name: str, p: Prices) -> Bools:
     """Whether the strategy is in the market after each bar. It starts out. A bar on which
     it would both enter and stay, or neither, settles it whatever it held; one on which it
-    would only stay leaves it as it was; one on which it would only enter turns it over."""
+    would only stay leaves it as it was; one on which it would only enter turns it over.
+    The first bar settles it out: no rule enters or stays before its indicators are full."""
     enter, stay = RULES[name](p)
     turns = np.cumsum(enter & ~stay)
-    settled = np.maximum.accumulate(np.where(enter == stay, np.arange(len(enter)), -1))
-    was: Bools = enter[settled] & (settled >= 0)  #: what the last settling bar left it
-    turned: Bools = (turns - np.where(settled < 0, 0, turns[settled])) % 2 == 1
+    settled = np.maximum.accumulate(np.where(enter == stay, np.arange(len(enter)), 0))
+    was: Bools = enter[settled]  #: what the last settling bar left it
+    turned: Bools = (turns - turns[settled]) % 2 == 1
     return was ^ turned

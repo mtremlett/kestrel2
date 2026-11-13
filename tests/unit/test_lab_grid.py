@@ -59,18 +59,27 @@ def test_the_grid_holds_what_the_desk_holds_on_the_golden_series() -> None:
     assert refused == REFUSED
 
 
-def _archive(seed: int, days: int = 1500) -> tuple[Bar, ...]:
-    """Prices as the free archive gives them: sixteen or seventeen digits, no two alike."""
+def _archive(seed: int, days: int = 1500, calm: bool = False) -> tuple[Bar, ...]:
+    """Prices as the free archive gives them: sixteen or seventeen digits, no two alike.
+    A calm one moves little, in a narrow range, between sudden jumps of up to a tenth."""
     rng = random.Random(seed)  # noqa: S311 - a repeatable test walk, not a secret
     close, drift, out = 100.0, 0.0, []
     for n in range(days):
-        if n % 150 == 0:
+        if n % 150 == 0 and not calm:
             drift = rng.choice((-0.002, 0.002))
-        close *= 1 + drift + rng.gauss(0, 0.012)
-        high, low = close * (1 + rng.random() / 50), close * (1 - rng.random() / 50)
+        move = drift + rng.gauss(0, 0.004 if calm else 0.012)
+        close *= 1 + move + (rng.uniform(-0.1, 0.1) if calm and rng.random() < 0.15 else 0)
+        reach = 400 if calm else 50
+        high, low = close * (1 + rng.random() / reach), close * (1 - rng.random() / reach)
         price, top, bottom = (Decimal(repr(value)) for value in (close, high, low))
         out.append(Bar(START + timedelta(n), price, top, bottom, price, 1000))
     return tuple(out)
+
+
+def test_a_bar_that_would_enter_and_would_not_stay_turns_the_position_over() -> None:
+    #: after a jump, the Supertrend's upper band can sit under its lower one: a close
+    #: between them buys when out and sells when in. Seed 3 holds such a bar.
+    assert _agree(_archive(3, 400, calm=True), "calm 3") == set()
 
 
 @pytest.mark.parametrize("seed", [1, 2, 3])
@@ -91,12 +100,23 @@ def test_a_tie_between_whole_prices_is_called_exactly() -> None:
 
 
 def test_a_tie_floating_point_cannot_call_is_refused_never_guessed() -> None:
-    #: day 11 closes exactly on the Supertrend's carried lower band (test_strategy)
-    on_band = grid.prices(_bars([100] * 10 + [110, 101.3, 100], reach=1))
+    #: Wilder's smoothing is never exact. The Supertrend: day 11 closes on its carried lower
+    #: band (test_strategy); day 10 closes on its upper band of 106; day 9 closes on its own
+    #: day's upper band, which decides whether the band is carried
+    flat = _bars([100] * 12, reach=1)
+    own = (*flat[:9], replace(flat[9], close=Decimal(106)), *flat[10:])
+    for bars in (
+        _bars([100] * 10 + [110, 101.3, 100], reach=1),
+        _bars([100] * 10 + [106], reach=1),
+        own,
+    ):
+        with pytest.raises(grid.TooClose, match="too close"):
+            grid.held("supertrend_10_3", grid.prices(bars))
+    #: the RSI: a rise of 2 then a fall of 19 leave the loss exactly 19 times the gain
     with pytest.raises(grid.TooClose, match="too close"):
-        grid.held("supertrend_10_3", on_band)
-    #: the same flat days as above, at a price too long to be a whole number of anything
-    long = Decimal("1.2345678901234567")
+        grid.held("rsi2_pullback", grid.prices(_bars([100] * 200 + [102, 83])))
+    #: flat days on their 20-day average, at prices whose sums are past what is held exactly
+    long = Decimal("1.0000000000001")
     flat = tuple(
         replace(bar, high=bar.high * long, low=bar.low * long, close=bar.close * long)
         for bar in _bars([10] * 20 + [9, 9.5, 10.5])

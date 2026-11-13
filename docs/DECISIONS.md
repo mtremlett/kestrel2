@@ -1367,4 +1367,39 @@ The tests were written after the module, not seen failing first; the breaks stan
 
 ## GRID
 
+### 2026-11-13 — the fast grid engine: it holds what the desk holds, or it refuses
+
+**Decided.** The grid engine (`lab/grid.py`) works out, for one strategy on one line, whether
+it is in the market after every bar, on whole arrays at once. It is a second implementation
+of the five rules, so it stays only while a parity test shows it holds what the desk's own
+engine holds after every bar (canon B2). Where it cannot be sure it raises `TooClose` and
+gives no answer: the desk's own engine must decide that cell.
+
+**The choices, and why.**
+- *The arithmetic.* The desk works in exact decimals at 28 digits; numpy works in floating
+  point, which is fast and rounds at about 16. Options: trust floating point and accept a
+  rare different answer; do the grid in decimals too (no faster than the desk); floating
+  point that knows when it cannot be sure. Chosen: the last. Prices become whole numbers of
+  the line's smallest step; while a rule's sums of them stay under 2**53 they are exact and
+  a tie is a true tie, called as the desk calls it. Everything else (prices as long as the
+  archive's seventeen digits, Wilder's smoothing) is trusted only when the two sides differ
+  by more than one part in a thousand million of their size, ten thousand times further than
+  rounding can move them. Closer than that is refused, never guessed. On prices like the
+  archive's no two numbers are that close, so nothing is refused; on made-up prices on a
+  coarse tick, a close exactly on a Supertrend band is.
+- *A refusal is not a failure.* The desk's engine is the truth and the grid is its
+  shortcut. When the unit of work is moved onto the grid, a refused cell is run by the
+  desk's engine, the one other path, and its record is the same record.
+- *What it answers.* Options: the desk's `Decision` for every bar; the position after each
+  bar as an array. Chosen: the array. Making one object per bar costs more than the rules
+  do, and a cell needs only the days a position opens and closes.
+- *The settings.* The five rules at their published settings only. The desk's rules take
+  no settings, so parity at any other setting cannot be shown yet; a grid over settings
+  waits for the desk's rules to take theirs (asked of the money lane in `docs/STATUS.md`).
+- *The golden data.* The series in the money lane's `tests/unit/test_strategy.py` on which
+  a second implementation written apart agreed with the desk (five walks of 1,200 days and
+  two short jumpy series), read from that file, never copied; each also cut short either
+  side of every rule's warm-up. Beside them, three walks of 1,500 days at prices as long
+  as the archive's, since the golden series sit on a 25p tick and real prices do not.
+
 ## RUNGS
