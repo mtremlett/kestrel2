@@ -8,9 +8,11 @@ next cell starts, its line named by symbol and venue, since one symbol can be tw
 A line a stop cut short is a cell that never finished: it is cut off and
 the cell run again. A cell's bars are read on every run, to find its key; only a record
 under that key counts as done, so one under other code or other bars does not. A failed
-cell is run again, as what failed it may lie outside that code or in data since mended; a
-failure the journal already holds as that cell's last outcome is not written again, so a
-cell that fails every pass of a week does not grow its journal. A run is refused when the
+cell is run again, as what failed it may lie outside that code or in data since mended. An
+outcome is written only where it differs from the cell's last line, so the last line of a
+cell is always its outcome now: a cell that fails the same way every pass of a week does not
+grow its journal, and one whose record is found again after a failure has it written again.
+A run is refused when the
 code on disk is no longer the code the process loaded, since its records would claim code it
 is not running: each batch runs in a fresh process, and one process at a time works on a
 journal.
@@ -62,8 +64,7 @@ def run(cells: Sequence[Cell], bars: Bars, journal: Path) -> tuple[Outcome, ...]
         for todo in cells:
             outcome = _one(todo, bars, kept)
             new = _dump(outcome)
-            fresh = isinstance(outcome, Failed) or _id(outcome.key) not in kept
-            if fresh and last.get(tuple(row(todo))) != new:
+            if last.get(tuple(row(todo))) != new:
                 out.write(json.dumps(new).encode() + b"\n")
                 out.flush()
                 os.fsync(out.fileno())

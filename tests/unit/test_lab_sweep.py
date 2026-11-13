@@ -85,8 +85,12 @@ def test_every_strategy_on_every_ticker_is_kept_and_only_what_changed_is_run_aga
     again = _pass(tmp_path)  # nothing changed: only the failed cells are tried again
     assert (again.ran, again.kept, again.failed, again.undone) == (0, 2 * EACH, EACH, 0)
     _keep(root, BAE, lift=60)  # one ticker's bars mended: its cells alone are run again
+    (root / "US" / "BA.csv").rename(root / "US" / "away")  # and another's cannot be read
     third = _pass(tmp_path)
-    assert (third.ran, third.kept, third.failed, third.undone) == (EACH, EACH, EACH, 0)
+    assert (third.ran, third.kept, third.failed, third.undone) == (EACH, 0, 2 * EACH, 0)
+    (root / "US" / "away").rename(root / "US" / "BA.csv")  # back as they were: found kept
+    fourth = _pass(tmp_path)
+    assert (fourth.ran, fourth.kept, fourth.failed, fourth.undone) == (0, 2 * EACH, EACH, 0)
     assert len(batch.rows(sweep.journal(kept, ABSENT))) == EACH, "a failure was written again"
 
 
@@ -138,24 +142,28 @@ def test_a_week_is_pass_after_pass_and_its_log_shows_how_long_without_stopping(
     def once() -> dict[str, Any]:
         n = len(batch.rows(tmp_path / sweep.WEEK))
         now[0] += timedelta(minutes=200 if n == 9 else 5)  # one pass takes over three hours
-        return {"error": "OSError: no store"} if n == 60 else {"ran": n}
+        idle = {"ran": 0, "kept": 0, "failed": 9}  # a pass that ends holding no cell
+        return (
+            {"error": "OSError: no store"} if n == 60 else idle if n == 30 else {**idle, "ran": 1}
+        )
 
     def wait(seconds: float) -> None:
         waits.append(seconds)
         now[0] += timedelta(seconds=seconds)
 
     sweep.week(once, tmp_path, 2, lambda: now[0], wait)
-    assert sweep.unbroken(tmp_path) == timedelta(hours=47, minutes=25)
+    assert now[0] == SATURDAY + timedelta(days=2), "the week waited on after its last pass"
+    assert sweep.unbroken(tmp_path) == timedelta(hours=31, minutes=25)  # up to the idle pass
     now[0] += timedelta(hours=5)  # the PC off for five hours, then the week started again
     sweep.week(once, tmp_path, 3, lambda: now[0], wait)
     rows = batch.rows(tmp_path / sweep.WEEK)
     assert rows[0] == {
         "started": SATURDAY.isoformat(),
         "ended": (SATURDAY + timedelta(minutes=5)).isoformat(),
-        "ran": 0,
+        **{"ran": 1, "kept": 0, "failed": 9},
     }
     assert (len(rows), rows[60]["error"]) == (118, "OSError: no store")
     assert waits[8:11] == [55 * 60, 0, 55 * 60], "a pass starts on the hour, or as the last ends"
     assert rows[10]["started"] == rows[9]["ended"]
-    # two days, a gap, half a day, a failed pass, then the longest run without stopping
+    # an idle pass, five hours off, half a day, a failed pass, then the longest run of all
     assert sweep.unbroken(tmp_path) == timedelta(hours=56, minutes=5)

@@ -23,7 +23,8 @@ each hour, each over the research list from the archive's first day to that day,
 a process of its own, so a pass runs the code on disk that hour and a pass that dies costs
 the week only itself. Every pass is one line of `week.jsonl` in the data folder, its count
 or the error that ended it, and `unbroken` reads from that log how long the grid has run
-without stopping: seven days of it is the proof.
+without stopping: seven days of it is the proof. A pass that failed, or held no cell at its
+end, or started more than a pause after the one before it ended, is where a run stops.
 """
 
 from __future__ import annotations
@@ -97,23 +98,24 @@ def work(root: Path, kept: Path, start: date, end: date, lines: Sequence[Line]) 
 def _tally(
     todo: dict[Line, tuple[Cell, ...]], kept: Path, before: Sequence[int], report: tune.Report[Line]
 ) -> Pass:
-    """The pass counted from what it added to each journal: a cell's last outcome there. A
-    cell with none is undone where its ticker's worker died; where it finished, the cell is
-    kept, or failed again just as the journal last said."""
-    ran = failed = held = undone = 0
+    """The pass counted from each cell's last line in its journal, which is its outcome
+    now: failed, or a record, run in this pass unless the journal held it before. A cell the
+    pass wrote no line for, on a ticker whose worker died, is undone."""
+    fates: Counter[str] = Counter()
     for (line, group), had in zip(todo.items(), before, strict=True):
         rows = batch.rows(journal(kept, line))
-        last = {tuple(row["cell"]): "error" in row for row in rows}
-        new = {tuple(row["cell"]): "error" in row for row in rows[had:]}
-        quiet = [name for name in (tuple(batch.row(c)) for c in group) if name not in new]
-        again = 0 if line in report.died else sum(last.get(name, False) for name in quiet)
-        failed += sum(new.values()) + again
-        ran += len(new) - sum(new.values())
-        if line in report.died:
-            undone += len(quiet)
-        else:
-            held += len(quiet) - again
-    return Pass(report, sum(map(len, todo.values())), ran, held, failed, undone)
+        held = {(*row["cell"], row["code"], row.get("data")) for row in rows[:had]}
+        last = {tuple(row["cell"]): (n >= had, row) for n, row in enumerate(rows)}
+        for name in (tuple(batch.row(todo)) for todo in group):
+            new, row = last.get(name, (False, {}))
+            if line in report.died and not new:
+                fates["undone"] += 1
+            elif "error" in row:
+                fates["failed"] += 1
+            else:
+                known = (*name, row["code"], row["data"]) in held
+                fates["kept" if known else "ran"] += 1
+    return Pass(report, sum(map(len, todo.values())), *(fates[name] for name in COUNTS[1:]))
 
 
 def _alone(kept: Path) -> IO[bytes]:
@@ -125,9 +127,9 @@ def _alone(kept: Path) -> IO[bytes]:
             msvcrt.locking(lock.fileno(), msvcrt.LK_NBLCK, 1)
         else:
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-    except OSError:
+    except OSError as held:
         lock.close()
-        raise RuntimeError(f"another pass is at work on {kept}") from None
+        raise RuntimeError(f"another pass is at work on {kept}") from held
     return lock
 
 
@@ -187,21 +189,21 @@ def week(
         times = {"started": started.isoformat(), "ended": ended.isoformat()}
         with (data / WEEK).open("a", encoding="utf-8") as log:
             log.write(json.dumps({**times, **counts}) + "\n")
-        wait(max(0.0, (started + PAUSE - ended).total_seconds()))
+        wait(max(0.0, (min(started + PAUSE, end) - ended).total_seconds()))
 
 
 def unbroken(data: Path) -> timedelta:
     """The longest the week's log shows the grid running without stopping: from one pass's
-    start to a later one's end, no pass between them failed, and none started more than two
-    PAUSEs after the one before it ended."""
+    start to a later one's end, where no pass failed or ended holding no cell, and none
+    started more than a PAUSE after the one before it ended."""
     best, last = timedelta(0), datetime.min.replace(tzinfo=UTC)
     first: datetime | None = None  #: where the run now being read began
     for row in batch.rows(data / WEEK):
         started, ended = (datetime.fromisoformat(row[at]) for at in ("started", "ended"))
-        if "error" in row:
+        if "error" in row or not row["ran"] + row["kept"]:
             first = None
             continue
-        if first is None or started - last > 2 * PAUSE:
+        if first is None or started - last > PAUSE:
             first = started
         best, last = max(best, ended - first), ended
     return best
