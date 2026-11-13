@@ -179,14 +179,16 @@ and nothing else beyond the standard library and `desk/`. Its ceiling rises from
 
 ### The grid lane's book
 
-**Lane objective:** the fast grid engine (`lab/`, numpy), proven first by a parity test
-against the desk's own engine on the golden data: the same decisions, day by day, or it is
-removed (canon B2).
+**Lane objective:** the unit of work on the grid engine (`lab/cell.py` on `lab/grid.py`):
+a cell's trades from the grid's answer, and from the desk's own engine whenever the grid
+refuses, the same record either way, the grid's file counted in the code version.
 
 - [x] The unit of work, keyed by code and data version (`lab/cell.py`)
 - [x] A batch service that survives a bad cell and a restart (`lab/batch.py`)
 - [x] Results kept, keyed by code and data version; only what changed is re-run (`lab/batch.py`)
-- [ ] The fast grid engine, its parity with the desk's engine proven on the golden data
+- [x] The fast grid engine, its parity with the desk's engine proven on the golden data
+      (`lab/grid.py`: the same position after every bar, or a refusal, never a guess)
+- [ ] The unit of work on the grid, the desk's engine deciding what the grid refuses
 - [ ] Auto-tune, so a pass can never take the PC down: a hard memory ceiling held by
       Windows itself (a Job Object on the workers, about 60% of the 64 GB); workers sized
       to free cores, two of the eight threads left free while markets are open (UK 08:00 to

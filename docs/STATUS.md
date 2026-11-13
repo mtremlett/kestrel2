@@ -475,14 +475,56 @@ A result is now kept by what made it: the code and every bar the rule was shown.
 reads every cell's bars again and re-runs a cell only when its code or its bars have
 changed; a bar corrected after a window's end leaves that window's result alone.
 
+The fast grid engine is built (`lab/grid.py`, numpy) and proven against the desk's own
+engine: for each of the five strategies it works out, for a line's whole history at once,
+whether the strategy is in the market after every bar, and on the golden series and on
+prices as long as the archive's it holds exactly what the desk holds, day by day. It never
+guesses. The desk counts in exact decimals and the grid in floating point, so wherever two
+numbers are too close for floating point to tell which is larger the grid refuses the cell
+by name (`TooClose`) and gives no answer; the desk's own engine must decide it. On prices
+like the archive's it refused nothing; on made-up prices on a coarse tick it refuses a
+close exactly on a Supertrend band. Measured on 4,000 days of one line: the desk's engine
+takes about 100 ms for the five rules, the grid about 8 ms, after 17 ms once per line to
+read its prices in. Nothing uses the grid yet: the unit of work still runs the desk's own.
+
 ### Next step
 
-The fast grid engine (`lab/`, numpy, his ruling of 13 November), proven first by a parity
-test against the desk's own engine on the golden data: the same decisions, day by day, or
-it is removed (canon B2).
+Move the unit of work onto the grid (`lab/cell.py`): a cell's trades from the grid's
+answer, and from the desk's own engine whenever the grid refuses, the same record either
+way, the grid's file counted in the code version. Then auto-tune.
+
+### Asked of the money lane
+
+- **The five rules take no settings.** The grid's first pass is "every strategy at every
+  setting", and the grid may only be trusted where it matches the desk's engine (canon B2).
+  Until `desk/strategy.py`'s rules can be made at other settings (the window lengths, the
+  RSI's bar, the bands' widths), the grid is proven, and so runs, at the published five only.
 
 ### Found, not fixed
 
+- **What the blind reviews of the grid engine left** (the first found a wrong answer, fixed
+  and tested: an RSI worked from days that move a thousand-millionth of the price; and six
+  safeguards no test held, each now held by one):
+  - Reading a line's prices in costs twice what the five rules do (17 ms against 8 ms on
+    4,000 days), nearly all of it turning each decimal into a whole number. It is paid once
+    per line, not per cell. And the Supertrend and the RSI still walk the days one at a
+    time for Wilder's smoothing and the carried bands. Fine until the first pass is timed.
+  - Four deliberate breaks survive that no series found can show: the Supertrend's band
+    carried on the day's own close for the day before's (no position differed on some 700
+    series searched); a close set against its own day's upper band; the Bollinger check
+    for whole prices whose squares pass 2**53 (it needs an exact tie among very large
+    numbers); and Wilder's smoothing on a series exactly as long as its window (nothing
+    reads that value).
+  - On a line the store has left with twenty or more unchanged closes in a row, the RSI's
+    gain and loss both fade to nothing and the grid refuses the line for that rule; the
+    desk's engine decides it. A frozen feed of five days or more is dropped by the store.
+  - The golden series are read from the money lane's `tests/unit/test_strategy.py`
+    (`GOLDEN`, `_walk`, `_jumpy`, `_bars`, `START`): if that file renames them, the grid's
+    test stops and the two lanes must move together.
+- **A helper's working copy was left in the main folder.** The tool that gives a helper its
+  own copy made it under `.claude/worktrees/` of the operator's main kestrel2 folder, with a
+  branch `worktree-agent-ab11b126c53bfd69e` in the shared repository. This session did not
+  go into that folder to remove it. It holds no change and can be deleted.
 - **What the blind review of the unit of work left for the batch** (nothing blocking; its
   test gaps on the data version and the trade pairing, and its unsorted-bars finding, are
   fixed and tested):
