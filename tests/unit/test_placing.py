@@ -5,6 +5,7 @@ from anyone else's, and nothing sent but questions and the kill switch's cancels
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
+from dataclasses import replace
 from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
@@ -20,13 +21,13 @@ from desk.orders import Sale
 
 ID = "20261113-rsi2-IITU"
 HELD = "61 3 DU0000001 212969319 IITU STK  0.0   LSEETF GBP IITU EUE2 26 37.5".split(" ")
-TSLA = "61 3 DU0000001 76792991 TSLA STK  0.0   NASDAQ USD TSLA NMS 5 400.0".split(" ")
 FILL = Fill(BUY.execution_id, ID, "IITU", 26, Decimal("37.55"), BUY.made.date())
 #: What the desk asks in a conversation, after its greeting and its start: of the account
 #: (its holdings; every open order), of the day's ended orders, of the day's fills.
 ACCOUNT = _wire(("61", "1"), ("16", "1")).getvalue()
 ENDED, FILLS = _wire(("99", "0")).getvalue(), _wire("7|3|1|0||||||".split("|")).getvalue()
 STOPPED = _but(_but(BOUGHT, 18, "SLD"), 26, f"{ID}-stop")  # the desk's stop on the line, sold
+AFTER = _but(DONE, 22, f"{ID}-stop")  # and that stop's own order, ended: not the order asked of
 AT = datetime(2026, 11, 16, 8, 5, tzinfo=UTC)
 
 
@@ -73,9 +74,10 @@ def test_the_book_is_reconciled_with_the_paper_account_by_questions_alone(
     assert book.fills(tmp_path) == (FILL,) and sent == [FILLS, ACCOUNT, ACCOUNT]
     theirs = _account([], *_order("7", "SELL STP", f"{ID}-stop", "PreSubmitted", client="31"))
     short = _order("7", "SELL STP", f"{ID}-stop", "Submitted", left=20)
-    _gateway(monkeypatch, theirs, [END], theirs, _account([HELD, TSLA]))
+    _gateway(monkeypatch, theirs, [END], theirs, _account([HELD, _but(HELD, 11, "EUR")]))
     assert broker.stops() == ()  # another client's stop protects nothing of the desk's
-    assert book.reconcile(tmp_path, broker) == ("IITU", "TSLA STK USD")  # no stop; not a line
+    # no stop on the line; and its name in another currency is no line of the desk's
+    assert book.reconcile(tmp_path, broker) == ("IITU", "IITU STK EUR")
     _gateway(monkeypatch, _account([], *short, *short), _account([HELD, HELD]))
     assert broker.stops() == (("IITU", 20), ("IITU", 20))  # entry by entry, never added up
     assert broker.holdings() == (("IITU", 26), ("IITU", 26))
@@ -91,13 +93,16 @@ def test_the_book_is_reconciled_with_the_paper_account_by_questions_alone(
         ((), (), (), None),  # the broker tells nothing of it: never received
         # someone else's order and fill under the desk's id, and the desk's stop under its own
         (_order("8", "BUY MKT", ID, "Submitted", client="31"), (), (_but(BOUGHT, 22, "31"),), None),
-        (_order("7", "SELL STP", f"{ID}-stop", "PreSubmitted"), (), (STOPPED,), None),
+        (_order("7", "SELL STP", f"{ID}-stop", "PendingSubmit"), (AFTER,), (STOPPED,), None),
         (_order("8", "BUY MKT", ID, "Submitted", 16), (), (), ((), "Submitted, 16 shares still")),
         (_order("8", "BUY MKT", ID, "Inactive"), (), (BOUGHT,), ((FILL,), "Inactive, 26 shares")),
         ((), (DONE,), (BOUGHT,), ((FILL,), None)),  # ended, filled whole, and its fills say so
+        ((), (DONE,), (_but(BOUGHT, 18, "SLD"),), ((replace(FILL, quantity=-26),), None)),  # a sale
         ((), (CUT,), (), ((), "Cancelled, 10 shares filled and 16 not; its fills today come to 0")),
         ((), (DONE,), (), ((), "Filled, 26 shares filled and 0 not; its fills today come to 0")),
         ((), (DONE, DONE), (BOUGHT,), ((FILL,), "Filled, 26 shares filled and 0 not; Filled")),
+        ((), (_but(DONE, 13, "4"),), (BOUGHT,), ((FILL,), "Filled, 26 shares filled and 4 not")),
+        ((), (_but(DONE, 87, "0"),), (), ((), "Filled, 0 shares filled and 0 not")),
         (_order("8", "BUY MKT", ID, "Filled", 0), (DONE,), (BOUGHT,), ((FILL,), "Filled, 0 sh")),
         ((), (), (BOUGHT,), ((FILL,), "nothing of the order; its fills today come to 26")),
     ],
@@ -133,6 +138,7 @@ WORKING = _account(
 )
 GONE = (
     _order("8", "BUY MKT", "b", "Filled", client="31")[1],  # theirs, of the same number
+    _order("7", "SELL STP", f"{ID}-stop", "Filled", 0)[1],  # the desk's stop, sold meanwhile
     *_order("8", "BUY MKT", "a", "PendingCancel"),
     ("4", "2", "8", "202", "Order Canceled - reason:", ""),
     _order("12", "BUY LMT", "f", "ApiCancelled")[1],
@@ -159,7 +165,6 @@ def test_the_kill_switch_cancels_the_desks_own_working_orders_and_names_each_onc
 def test_a_cancel_not_confirmed_whole_is_an_error(monkeypatch: pytest.MonkeyPatch) -> None:
     for answer, error, saying in [
         (GONE[:-1], ConnectionError, "hung up"),  # not every one is known to be over
-        ([("4", "2", "9", "10148", "cannot be cancelled", "")], ConnectionError, "10148"),
         ([("4", "2", "-1", "1100", "lost", "")], ConnectionError, "1100"),
         ([GONE[-1][:-1]], ValueError, "shape"),
         ([("4", "2", "7", "202", "Order Canceled - reason:", "")], ConnectionError, "202"),
@@ -169,3 +174,12 @@ def test_a_cancel_not_confirmed_whole_is_an_error(monkeypatch: pytest.MonkeyPatc
         with pytest.raises(error, match=saying):
             placing.Paper(LISTED).cancel()
         assert sent == [ACCOUNT, CANCELS]
+    # a cancel refused is settled by the account read again: over before the cancel, or working
+    refusal = ("4", "2", "9", "10148", "cannot be cancelled, state: Filled", "")
+    answer = [refusal, GONE[-1], _order("12", "BUY LMT", "f", "Cancelled")[1]]
+    over = _account([HELD], *PROTECTED[3:5], *_order("9", "SELL MKT", "c", "Filled", 0))
+    sent = _gateway(monkeypatch, WORKING, answer, over, WORKING, answer, WORKING)
+    assert placing.Paper(LISTED).cancel() == ("a", "f")
+    with pytest.raises(placing.NotCancelled, match="c .10148: cannot be cancelled"):
+        placing.Paper(LISTED).cancel()
+    assert sent == [ACCOUNT, CANCELS, ACCOUNT] * 2

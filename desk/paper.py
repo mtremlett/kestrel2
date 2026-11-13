@@ -1,6 +1,8 @@
 """paper - THE ONE DOOR TO THE PAPER BROKER: IB Gateway's paper port on this machine, spoken
-to with the standard library alone. So far the desk only reads through it: the account's
-holdings and the orders resting on it, set against the desk's own book. It places nothing.
+to with the standard library alone. Here the desk reads the account's holdings and the
+orders resting on it, and sets them against its own book. Every conversation with the
+gateway goes through this door (`dial`); none yet places an order, and the one thing sent
+that is no question is the kill switch's cancel (desk/placing.py).
 
 The gateway speaks in messages: four bytes of length, then fields each ended by a zero byte,
 the first naming the message's kind. The desk offers one version of that language and

@@ -54,7 +54,8 @@ DONE = (
     "2147483647|0|Not an insider or substantial shareholder|0|0|0|20261113 09:22:06 MET|"
     "Filled Size: 26|||||"
 ).split("|")
-CUT = _but(_but(_but(DONE, 13, "16"), 77, "Cancelled"), 87, "10")  # cancelled, ten of 26 done
+#: Cancelled with ten of 26 done: a shape made up, for none part done has been seen.
+CUT = _but(_but(_but(DONE, 13, "16"), 77, "Cancelled"), 87, "10")
 WHOLE = Ended("20261113-rsi2-IITU", "Filled", Decimal(26), Decimal(0))
 DAY = date(2026, 11, 13)
 #: Those two fills as the desk should read them: its own client's, on the paper account.
@@ -205,6 +206,7 @@ def test_the_days_ended_orders_are_read_as_the_gateway_lists_them() -> None:
         ([_but(DONE, 19, "U7654321"), ("102",)], paper.NotPaper, "U7654321"),
         ([_but(DONE, 87, UNSET), ("102",)], ValueError, "plain number"),
         ([_but(DONE, 13, ""), ("102",)], ValueError, "plain number"),
+        ([_but(DONE, 77, UNSET), ("102",)], ValueError, "shape"),  # no word where its state is
     ]
     for messages, error, saying in untrusted:
         with pytest.raises(error, match=saying):
@@ -214,6 +216,7 @@ def test_the_days_ended_orders_are_read_as_the_gateway_lists_them() -> None:
 def test_the_desks_own_orders_and_stops_are_told_from_anyone_elses() -> None:
     buying = replace(OURS, broker_id="8", contract="212969319", action="BUY", kind="MKT")
     limit = replace(OURS, broker_id="9", kind="STP LMT")  # to sell, but no plain stop
+    assert reports.stop_to_sell(OURS) and not reports.stop_to_sell(limit)
     covering = replace(OURS, broker_id="10", action="BUY")  # a stop, but to buy
     hand = replace(OURS, ref="", contract="999")  # the desk's client, no order id of the desk's
     part = replace(OURS, broker_id="11", state="Submitted", left=Decimal(4), symbol="aapl")

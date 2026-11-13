@@ -130,7 +130,9 @@ def read() -> tuple[Execution, ...]:
 class Ended:
     """An order the broker will not work again, as it lists it among the day's ended ones.
     That list names no client (38 real ones seen), so whose an order is rests on its
-    reference alone; and the shares it gives as the order's are those never done."""
+    reference alone. The shares it gives as the order's were none on each one filled and all
+    of them on each one cancelled, so they are read as the shares never done; one part
+    filled and then cancelled has not been seen."""
 
     ref: str  #: the reference it was placed under: on the desk's own, the desk's order id
     state: str  #: the broker's word for how it ended: "Filled", "Cancelled"
@@ -150,7 +152,7 @@ def finished(wire: BinaryIO, send: paper.Send) -> tuple[Ended, ...]:
             return tuple(found)
         if fields[0] != ENDED:
             paper.other(fields)
-        elif len(fields) != 101:
+        elif len(fields) != 101 or not fields[77].isalpha():  #: its state, a word, in its place
             raise ValueError(f"an ended order of a shape the desk does not read: {fields}")
         else:
             left, account, ref, state, filled = (fields[n] for n in (13, 19, 22, 77, 87))
@@ -163,6 +165,11 @@ def ended() -> tuple[Ended, ...]:
     """Every order ended on the account today, whoever placed it, as the gateway lists them
     now: the filled and the cancelled."""
     return paper.dial(finished)
+
+
+def stop_to_sell(order: Resting) -> bool:
+    """Whether an order is a plain stop to sell: the one kind that protects a holding."""
+    return (order.action, order.kind) == ("SELL", "STP")
 
 
 def ours(client: str, ref: str) -> bool:
@@ -228,7 +235,7 @@ def orders(resting: Iterable[Resting], listings: Mapping[str, Listing | Unlisted
             others.append(order)
             continue
         line = _line(order.contract, listings, order).line
-        if (order.action, order.kind) == ("SELL", "STP") and order.state in HELD:
+        if stop_to_sell(order) and order.state in HELD:
             stops.append((line.symbol, order.left))
         else:
             unsettled.append(order)
