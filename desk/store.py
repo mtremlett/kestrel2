@@ -8,8 +8,8 @@ in, so a reader never sees half a write."""
 from __future__ import annotations
 
 import csv
-from collections.abc import Mapping, Sequence
-from dataclasses import astuple, dataclass
+from collections.abc import Iterable, Mapping, Sequence
+from dataclasses import astuple, dataclass, replace
 from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -23,6 +23,20 @@ from desk.lines import Line
 #: wrong factor - a 3-for-2 split, pounds read as dollars - cannot be told from a real move
 #: by price alone, and passes.
 JUMP = Decimal("1.6")
+#: London records its opening and closing auctions apart from the day's trading, so an archive's
+#: open or close can sit just outside the day's high and low. Within this fraction of the price
+#: it is taken as the official price and the range stretched to hold it (the operator's ruling of
+#: 13 November 2026); further out, the bar cannot be true.
+STRETCH = Decimal("0.03")
+#: Only a fault in the last this-many sessions parks a line; an older bad day is dropped and
+#: listed, for the line's history never changes (the operator's ruling of 13 November 2026).
+RECENT = 60
+#: The longest run of bars a hundredfold out of line with the bars either side of it that is
+#: taken as bad days in the wrong unit, not a lasting step. Any other fall and recovery, however
+#: short, may be real - a leveraged line can lose 40% and win it back - and parks as a step.
+BLIP = 20
+UNITS = (Decimal(100), Decimal("0.01"))
+ASTRAY = "is out of line with the days either side: a wrong unit"
 COLUMNS = ("day", "open", "high", "low", "close", "volume")
 
 
@@ -37,13 +51,20 @@ class Bar:
 
 
 @dataclass(frozen=True)
+class Fault:
+    day: date  #: the session it concerns
+    what: str
+    lasting: bool = False  #: a step in the price: wrong for every bar before it, however old
+
+
+@dataclass(frozen=True)
 class Parked:
     symbol: str
     reason: str
     day: date
 
 
-def _once(bars: Sequence[Bar], faults: list[str]) -> list[Bar]:
+def _once(bars: Sequence[Bar], faults: list[Fault]) -> list[Bar]:
     """One bar per date. A date given twice the same keeps one; given twice differently,
     neither, because the store cannot know which is true."""
     by_day: dict[date, list[Bar]] = {}
@@ -52,24 +73,26 @@ def _once(bars: Sequence[Bar], faults: list[str]) -> list[Bar]:
     once = []
     for day, given in sorted(by_day.items()):
         if len(set(given)) > 1:
-            faults.append(f"{day} given {len(given)} times, differently; none kept")
+            faults.append(Fault(day, f"{day} given {len(given)} times, differently; none kept"))
             continue
         if len(given) > 1:
-            faults.append(f"{day} given {len(given)} times")
+            faults.append(Fault(day, f"{day} given {len(given)} times"))
         once.append(given[0])
     return once
 
 
-def _unsound(line: Line, bar: Bar, open_days: set[date]) -> str | None:
-    """Why a bar cannot be true on its own, or None."""
+def _entered(line: Line, bar: Bar, open_days: set[date]) -> Bar | str:
+    """The bar as it enters the store, or why it cannot be true on its own."""
     prices = (bar.open, bar.high, bar.low, bar.close)
     if bar.day not in open_days:
         return f"{bar.day} is not a closed session on the {line.venue} calendar"
     if not all(p.is_finite() and p > 0 for p in prices) or bar.volume < 0:
         return f"{bar.day} has a price or volume that cannot be"
-    if not bar.low <= min(bar.open, bar.close) <= max(bar.open, bar.close) <= bar.high:
+    ends = (bar.open, bar.close)
+    reach = (bar.low * (1 - STRETCH), bar.high * (1 + STRETCH))
+    if not bar.low <= bar.high or not reach[0] <= min(ends) <= max(ends) <= reach[1]:
         return f"{bar.day} has an open or close outside its high and low"
-    return None
+    return replace(bar, high=max(bar.high, *ends), low=min(bar.low, *ends))
 
 
 def _agree(line: Line, before: Bar, after: Bar) -> bool:
@@ -97,52 +120,66 @@ def _stray(at: int, links: Sequence[bool]) -> bool:
     return not left and not right
 
 
-def _priced(line: Line, sound: Sequence[Bar], faults: list[str]) -> list[Bar]:
-    """Drop a lone bar out of line with its neighbours; keep a lasting step in the price, but
-    as a fault, until the line records it as a real move."""
+def _priced(line: Line, sound: Sequence[Bar], faults: list[Fault]) -> list[Bar]:
+    """Drop a bar, or a short run of bars, out of line with the days either side; keep a
+    lasting step in the price, but as a fault, until the line records it as a real move."""
     links = [_agree(line, a, b) for a, b in zip(sound, sound[1:], strict=False)]
     kept: list[Bar] = []
+    resume = 0
     for at, bar in enumerate(sound):
+        if at < resume:
+            continue
         if _stray(at, links):
-            faults.append(f"{bar.day} is out of line with the days either side: a wrong unit")
+            faults.append(Fault(bar.day, f"{bar.day} {ASTRAY}"))
             continue
         if kept and not _agree(line, kept[-1], bar):
-            faults.append(
+            unit = any(u / JUMP <= bar.close / kept[-1].close <= u * JUMP for u in UNITS)
+            ahead = range(at + 1, min(at + 1 + BLIP, len(sound)) if unit else at + 1)
+            resume = next((n for n in ahead if _agree(line, kept[-1], sound[n])), at)
+            for odd in sound[at:resume]:
+                faults.append(Fault(odd.day, f"{odd.day} {ASTRAY}"))
+            if resume > at:
+                continue
+            what = (
                 f"{bar.day} moved from {kept[-1].close} to {bar.close}: a split the archive "
                 "did not adjust, or a real move the line does not record"
             )
+            faults.append(Fault(bar.day, what, lasting=True))
         kept.append(bar)
     return kept
 
 
-def _clean(line: Line, bars: Sequence[Bar], day: date) -> tuple[list[Bar], list[str]]:
+def _clean(
+    line: Line, bars: Sequence[Bar], day: date, since: date
+) -> tuple[list[Bar], list[Fault]]:
     """The bars of one line that can be true, and every fault found on the way."""
-    faults: list[str] = []
+    faults: list[Fault] = []
     first = min((b.day for b in bars if b.day.year in venues.KNOWN), default=day)
     expected = venues.sessions(line.venue, first, day - timedelta(1))
     open_days, sound = set(expected), []
     for bar in _once(bars, faults):
-        why = _unsound(line, bar, open_days)
-        if why is None:
-            sound.append(bar)
+        entered = _entered(line, bar, open_days)
+        if isinstance(entered, str):
+            faults.append(Fault(bar.day, entered))
         else:
-            faults.append(why)
+            sound.append(entered)
     kept = _priced(line, sound, faults)
     held = {b.day for b in kept}
     missing = [d for d in expected if d not in held]
     if not kept:
-        faults.append("no clean bar: every session missing")
-    elif missing:
-        faults.append(f"{len(missing)} sessions missing, the first {missing[0]}")
+        faults.append(Fault(day, "no clean bar: every session missing"))
+    for gap in ([d for d in missing if d < since], [d for d in missing if d >= since]):
+        if kept and gap:
+            faults.append(Fault(gap[0], f"{len(gap)} sessions missing, the first {gap[0]}"))
     return kept, faults
 
 
-def _write(path: Path, bars: Sequence[Bar]) -> None:
+def _write(path: Path, header: Sequence[str], rows: Iterable[Sequence[object]]) -> None:
     part = path.with_suffix(".part")
     with part.open("w", newline="", encoding="utf-8") as out:
         writer = csv.writer(out)
-        writer.writerow(COLUMNS)
-        writer.writerows(astuple(bar) for bar in bars)
+        writer.writerow(header)
+        writer.writerows(rows)
     part.replace(path)
 
 
@@ -151,10 +188,13 @@ def prepare(root: Path, archive: Mapping[Line, Sequence[Bar]], day: date) -> tup
     root.mkdir(parents=True, exist_ok=True)
     parked = []
     for line, bars in archive.items():
-        kept, faults = _clean(line, bars, day)
-        _write(root / f"{line.symbol}.csv", kept)
-        if faults:
-            parked.append(Parked(line.symbol, "; ".join(faults), day))
+        since = venues.sessions(line.venue, day - timedelta(100), day - timedelta(1))[-RECENT]
+        kept, faults = _clean(line, bars, day, since)
+        _write(root / f"{line.symbol}.csv", COLUMNS, (astuple(bar) for bar in kept))
+        _write(root / f"{line.symbol}.faults.csv", ("fault",), ((f.what,) for f in faults))
+        recent = [f.what for f in faults if f.lasting or f.day >= since]
+        if recent:
+            parked.append(Parked(line.symbol, "; ".join(recent), day))
     return tuple(parked)
 
 
@@ -173,3 +213,10 @@ def read(root: Path, symbol: str) -> tuple[Bar, ...]:
             )
             for row in csv.DictReader(stored)
         )
+
+
+def faults(root: Path, symbol: str) -> tuple[str, ...]:
+    """Every fault found in a line's bars on the last prepare, the old ones that no longer
+    park it included."""
+    with (root / f"{symbol}.faults.csv").open(newline="", encoding="utf-8") as stored:
+        return tuple(row["fault"] for row in csv.DictReader(stored))

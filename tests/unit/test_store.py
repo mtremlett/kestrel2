@@ -38,7 +38,8 @@ def test_a_clean_line_is_stored_exactly_and_not_parked(tmp_path: Path) -> None:
 
 BAD_BARS: dict[str, Callable[[Bar], Bar]] = {
     "the high is below the low": lambda b: replace(b, high=b.low - 1),
-    "the close is outside the range": lambda b: replace(b, close=b.high + 1),
+    "the close is far above the range": lambda b: replace(b, close=b.high * Decimal("1.04")),
+    "the open is far below the range": lambda b: replace(b, open=b.low * Decimal("0.96")),
     "a price is not positive": lambda b: replace(b, low=Decimal(0)),
     "the volume is negative": lambda b: replace(b, volume=-1),
     "the price is in the wrong unit": lambda b: _scaled(b, Decimal(100)),
@@ -47,6 +48,29 @@ BAD_BARS: dict[str, Callable[[Bar], Bar]] = {
     "a price is not a number": lambda b: replace(b, high=Decimal("NaN")),
     "a price is infinite": lambda b: replace(b, high=Decimal("Infinity")),
 }
+
+
+@pytest.mark.parametrize(
+    "near",
+    [
+        lambda b: replace(b, close=b.high * Decimal("1.029")),
+        lambda b: replace(b, open=b.low * Decimal("0.971")),
+    ],
+    ids=["a close just above the high", "an open just below the low"],
+)
+def test_an_auction_price_just_outside_the_range_stretches_it(
+    tmp_path: Path, near: Callable[[Bar], Bar]
+) -> None:
+    """His ruling of 13 November: London records its auctions apart from the day's trading."""
+    bars = list(_bars(US))
+    bars[4] = near(bars[4])
+    assert _parked(tmp_path, tuple(bars)) == []
+    kept = store.read(tmp_path, US.symbol)[4]
+    assert (kept.open, kept.close) == (bars[4].open, bars[4].close)
+    assert (kept.low, kept.high) == (
+        min(bars[4].low, bars[4].open),
+        max(bars[4].high, bars[4].close),
+    )
 
 
 def _scaled(bar: Bar, by: Decimal) -> Bar:
@@ -99,9 +123,9 @@ def test_a_recorded_real_move_lets_through_only_its_own_close(tmp_path: Path, at
 
 
 def test_a_line_that_cannot_be_read_never_stops_the_others(tmp_path: Path) -> None:
-    early = replace(_bars(US)[0], day=date(2009, 12, 31))
-    parked = store.prepare(tmp_path, {US: (early, *_bars(US)), UK: _bars(UK)}, DAY)
-    assert [p.symbol for p in parked] == [US.symbol] and "2009-12-31" in parked[0].reason
+    unknown = replace(_bars(US)[0], day=date(2028, 1, 4))
+    parked = store.prepare(tmp_path, {US: (*_bars(US), unknown), UK: _bars(UK)}, DAY)
+    assert [p.symbol for p in parked] == [US.symbol] and "2028-01-04" in parked[0].reason
     assert store.read(tmp_path, US.symbol) == _bars(US)
     assert store.read(tmp_path, UK.symbol) == _bars(UK)
 
@@ -164,3 +188,72 @@ def test_a_parked_line_comes_back_when_its_bars_are_clean(tmp_path: Path) -> Non
     assert _parked(tmp_path, _bars(US)[:-1])
     assert _parked(tmp_path, _bars(US)) == []
     assert store.read(tmp_path, US.symbol) == _bars(US)
+
+
+LONG = date(2025, 6, 2)  #: more than sixty sessions before DAY on both venues
+
+
+@pytest.mark.parametrize(
+    ("spoil", "named"),
+    [
+        (lambda b: (*b[:5], _scaled(b[5], Decimal(100)), *b[6:]), "2025-06-09"),
+        (lambda b: (*b[:5], *b[6:]), "2025-06-09"),
+        (lambda b: (*b, replace(b[0], day=date(2025, 6, 19))), "2025-06-19"),
+    ],
+    ids=["a bar in the wrong unit", "a session missing", "a bar on a US holiday"],
+)
+def test_an_old_bad_day_is_dropped_and_listed_but_does_not_park(
+    tmp_path: Path, spoil: Callable[[tuple[Bar, ...]], tuple[Bar, ...]], named: str
+) -> None:
+    """His ruling of 13 November: only the last sixty sessions can hold a line back."""
+    bars = _bars(US, LONG)
+    assert _parked(tmp_path, spoil(bars)) == []
+    assert date.fromisoformat(named) not in [b.day for b in store.read(tmp_path, US.symbol)]
+    listed = store.faults(tmp_path, US.symbol)
+    assert listed and all(named in fault for fault in listed)
+
+
+def test_an_old_step_in_the_price_still_parks_for_it_makes_every_bar_before_it_wrong(
+    tmp_path: Path,
+) -> None:
+    bars = _bars(US, LONG)
+    stepped = (*bars[:5], *(_scaled(b, Decimal("0.5")) for b in bars[5:]))
+    reasons = _parked(tmp_path, stepped)
+    assert len(reasons) == 1 and str(bars[5].day) in reasons[0] and "split" in reasons[0]
+
+
+def test_a_clean_line_lists_no_fault(tmp_path: Path) -> None:
+    assert _parked(tmp_path, _bars(US, LONG)) == []
+    assert store.faults(tmp_path, US.symbol) == ()
+
+
+@pytest.mark.parametrize("unit", ["100", "0.01"], ids=["pence", "pounds"])
+@pytest.mark.parametrize("days", [2, 5], ids=["two days", "five days"])
+@pytest.mark.parametrize(("at", "parks"), [(5, False), (-8, True)], ids=["old", "recent"])
+def test_a_run_of_days_in_the_wrong_unit_is_bad_days_not_a_step(
+    tmp_path: Path, unit: str, days: int, at: int, parks: bool
+) -> None:
+    clean = _bars(US, LONG)
+    run = range(at % len(clean), at % len(clean) + days)
+    bars = tuple(_scaled(b, Decimal(unit)) if n in run else b for n, b in enumerate(clean))
+    reasons = _parked(tmp_path, bars)
+    assert bool(reasons) is parks and not any("split" in r for r in reasons)
+    assert store.read(tmp_path, US.symbol) == tuple(b for n, b in enumerate(clean) if n not in run)
+
+
+@pytest.mark.parametrize(("back", "parks"), [(60, True), (61, False)])
+def test_the_sixtieth_session_back_is_the_oldest_that_parks(
+    tmp_path: Path, back: int, parks: bool
+) -> None:
+    bars = list(_bars(US, LONG))
+    bars[-back] = _scaled(bars[-back], Decimal(100))
+    assert bool(_parked(tmp_path, tuple(bars))) is parks
+
+
+def test_a_real_fall_and_recovery_is_never_dropped_as_bad_days(tmp_path: Path) -> None:
+    """A leveraged line can fall 40% and recover within days: only a hundredfold run is a unit."""
+    clean = _bars(US, LONG)
+    bars = tuple(_scaled(b, Decimal("0.6")) if 5 <= n < 10 else b for n, b in enumerate(clean))
+    reasons = _parked(tmp_path, bars)
+    assert len(reasons) == 1 and "split" in reasons[0]
+    assert store.read(tmp_path, US.symbol) == bars

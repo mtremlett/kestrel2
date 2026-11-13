@@ -267,3 +267,72 @@ through it or is the one exception, decided then and recorded here.
 
 **The cost.** The line comes only when the check on main passes. If main were ever red
 after a merge, no line comes, and GitHub's own failure notice is the alarm.
+
+---
+
+## 2026-11-13 — the twenty lines: ten in London, ten in the US
+
+**Decided.** The twenty frozen lines are ten on the London venue and ten in the US,
+all London lines priced in pounds and all US lines in dollars:
+
+| London | US |
+|---|---|
+| 3LGO WisdomTree Gold 3x daily | AAPL Apple |
+| 2MU Leverage Shares 2x Micron | TSLA Tesla |
+| SMGB VanEck Semiconductor | NVDA Nvidia |
+| IITU iShares S&P 500 Information Technology | SPCX SpaceX |
+| VHYG Vanguard All-World High Dividend | MSTR Strategy |
+| 5QQQ Leverage Shares 5x Nasdaq 100 | AMD Advanced Micro Devices |
+| IB1T iShares Bitcoin | SPY S&P 500 |
+| ISF iShares Core FTSE 100 | QQQ Nasdaq 100 |
+| VUSA Vanguard S&P 500, in pounds | MU Micron |
+| SGLN iShares Physical Gold | GLD Gold |
+
+**How each was checked.** Every ticker was looked up in the free archive on 13 November
+2026. Two he named did not exist there: "aalp" and "1b1t.l". Asked whether he meant AAPL
+and IB1T, he answered "Yes, AAPL and IB1T (Recommended)". SPCX is SpaceX, listed on 12
+June 2026. 3LGO has no history in the free archive, though the same product in dollars,
+3GOL, has fourteen years; offered 3GOL, 3LGO or plain gold, he chose "Keep 3LGO in
+pounds", so it holds no history to test on until the archive gathers some. The last seven
+were proposed with a recommendation each: for London he chose "ISF, VUSA, SGLN
+(Recommended)", for the US "SPY, QQQ, MU, GLD (Recommended)" - a yardstick for "simply
+holding the market" on each venue (AG-04) and the plain version of each leveraged line.
+
+**Leverage, told to him before anything trades it.** 3LGO is three times gold's daily
+move, 2MU twice Micron's, 5QQQ five times the Nasdaq's. They reset daily, so a 20% day
+empties a 5x line and a choppy market bleeds them even when the index ends flat. Phase 2
+asks him how they are sized.
+
+**His words.** In chat, Friday 13 November 2026, about 13:24 UK time: "10 uk and 10 us.
+uk includes 3lgo.l, 2mu.l, smgb.l, iitu.l, vhyg.l, 5qqq.l , 1b1t.l . us includes: aalp,
+tsla, nvda, spcx, mstr, amd."
+
+---
+
+## 2026-11-13 — London's auction prices, and old bad days
+
+**Found.** With the twenty lines fetched, all ten US lines came in clean and complete
+from 2010. All ten London lines were parked: on up to a quarter of their days the free
+archive's open or close sat outside that day's high and low, mostly by under 2%, at worst
+20% (2MU). London records its opening and closing auctions apart from the day's trading,
+which is the likely cause. And because a line is judged on its whole history, which never
+changes, one bad day years ago (ISF has a bar on 29 April 2011, when London was shut)
+parked a line for good.
+
+**Decided, first.** An open or close no more than 3% outside the day's range is taken as
+the official price, and the range is stretched to hold it; further out, the bar is still
+refused. A stop is then judged as if the price reached that open or close, which errs
+toward a stop being hit. The rule applies on both venues; the US lines have no such day.
+Asked how to treat those days, with three options, he chose "Trust the close, small gaps
+(Recommended)". Driven: with no stretch, a close 2.9% out parks its line; with 5%, an
+open 4% out enters. Both are caught.
+
+**Decided, second.** A bad day older than the last sixty trading days is removed and
+listed in the line's record, and no longer parks it; anything wrong in the last sixty
+sessions still does. A step in the price that the archive did not adjust parks the line
+however old it is, because it makes every bar before it wrong. Asked, he chose "Drop old
+bad days, hold back on recent ones (Recommended)". A run of up to twenty days a hundredfold out of
+line with the days either side (pence among pounds) is bad days, not a step; any other fall
+and recovery is kept and parks, since a leveraged line can lose 40% and win it back.
+Driven: a window of 3000 sessions, a window of 3, a step not counted as lasting, a run
+limit of 1, and a 40% fall taken as a unit were each caught.

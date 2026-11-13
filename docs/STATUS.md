@@ -6,14 +6,26 @@ Last updated: 13 November 2026.
 
 ## Where we are
 
-Phase 1 under way. Scene 1 passes: scenes passing 1 of 7. The desk has one price store
-with one writer (`desk/store.py`): it rebuilds itself from the archive each morning,
+Phase 1's data is in. Scene 1 passes: scenes passing 1 of 7. The twenty lines are in the
+instrument master (`desk/lines.py`), by the operator's ruling of 13 November: ten in
+London in pounds, ten in the US in dollars. One client for the free archive
+(`desk/archive.py`, Yahoo's public chart service) fetches every bar since 2010 and reads
+it once, on entry. Fetched into a store on 13 November for the 13th: **sixteen of the
+twenty are clean and ready**: all ten US lines from 2010, and SMGB, IITU, VHYG, IB1T, ISF
+and VUSA. Four are parked, each with a named reason (below, under "found, not fixed"). Two
+store rules came from his rulings the same day: a London auction price up to 3% outside
+the day's range stretches it, and only a fault in the last sixty sessions parks a line
+(older bad days are dropped and listed in the line's fault record; a price step parks
+however old).
+
+The desk has one price store with one writer (`desk/store.py`): it rebuilds itself from the archive each morning,
 keeps only bars that can be true, and parks a line it cannot clean with a dated reason;
 the line comes back by itself once its bars are clean. Gaps and staleness are judged
 against each venue's own calendar (`desk/venues.py`, London and US, 2010 to 2027). Its
 tests were seen failing first; a blind review's five blocking findings were each made a
 failing test, then fixed; and twenty-five deliberate breaks of the store, the
-calendar and the instrument master were each caught by a test.
+calendar and the instrument master were each caught by a test. This session's three store
+rules were each driven against deliberate breaks in both directions, and caught.
 
 Two rulings of 13 November are in force (`docs/DECISIONS.md`): sessions merge their own
 pull requests when the check is green, and GitHub now refuses any merge whose check has
@@ -28,14 +40,20 @@ reached his phone on 13 November.
 
 ## The next step
 
-The rest of phase 1: daily bars for the twenty lines, fetched from a free archive into
-the store. The twenty lines themselves are not chosen yet; that choice comes first.
+Phase 2 begins with one strategy template and the five frozen daily strategies, so that
+scene 2 can pass on the clean lines. Moving the desk to phase 2 (and its size ceiling in
+`BUDGET.json`) is the operator's call.
 
 ## Open questions for the operator
 
 1. **A second GitHub account** for sessions to work through, so that the guards cannot be
    removed by the account that enforces them. Not urgent; needed before any unattended
    work.
+2. **How leveraged lines are sized** (3LGO 3x, 2MU 2x, 5QQQ 5x), before phase 2 trades
+   them. Recommendation to put to him: size by what they control (£1,000 of a 5x counts as
+   £5,000), with tighter stops.
+3. **Moving the desk to phase 2.** `BUDGET.json` still says phase 0; the product is 680
+   lines against its 1,500 ceiling.
 
 ## Found, not fixed
 
@@ -50,6 +68,36 @@ the store. The twenty lines themselves are not chosen yet; that choice comes fir
 - **The plan and the budget still say phase 0.** `docs/PLAN.md` and `BUDGET.json` name
   `0-foundations` while phase 1 is under way, so phase 0's size ceiling still applies.
   Moving to `1-data` is a budget change for the operator.
+- **Four of the twenty lines are parked, each for a reason in the archive's data:**
+  - 3LGO has no history in the free archive at all (the same product in dollars, 3GOL,
+    has fourteen years). He chose to keep 3LGO; it waits for history to gather.
+  - 2MU moved more in a day than the store believes a market moves, five times (5 August
+    2024, 26 September 2024, 19 December 2024, 4 April 2025, 24 October 2025): real crashes
+    of a 2x product, most likely. Each needs its confirmed close recorded in
+    `Line.real_moves`, from the issuer or a second source, before the line comes back.
+  - 5QQQ jumped from 0.0024 to 1.18 pounds on 22 August 2024: a share consolidation the
+    archive did not adjust. Its history before that date is on another scale.
+  - SGLN's first weeks, April to June 2011, swing between two price levels ten times: the
+    archive garbled them. A price step parks however old, so the line stays parked.
+- **The free archive promises nothing.** Yahoo's chart service is free and keyless but
+  unofficial; it may change or stop. Stooq, the other free archive, now answers with a
+  bot check, which this desk does not get around.
+- **One line the archive refuses stops the whole fetch.** `archive.fetch` raises for that
+  line; the day run (phase 2) must park it instead and carry on with the others.
+- **A missing session older than sixty sessions no longer parks a line**, so research over
+  years of history (the ladder) will meet gaps it must handle.
+- **What the blind review of this session left open** (its one blocking finding - a run
+  of days in the wrong unit taken as a lasting step - is fixed and tested; the first fix
+  dropped 2MU's real December 2024 crash as bad days, so a run is now bad days only when it
+  sits a hundredfold out):
+  - A single day out of line with both neighbours is still dropped as a wrong unit, at any
+    size: a real one-day crash that recovers the next day would be lost from the history.
+  - A stretched bar's new high or low is not recorded anywhere as differing from the
+    archive's.
+  - A line's bars and its fault record are swapped in one after the other, so a crash
+    between the two leaves them disagreeing.
+  - The sixty-session window looks back a hundred days on the calendar, which knows 2010
+    onward, so a trading day before mid-April 2010 cannot be prepared.
 - **What a blind review of the scenes left open** (the rest was fixed before commit):
   the fixture is 33 trading days, so a strategy needing a longer warm-up would never
   trade in scenes 5 to 7 — lengthen it, with the venue calendars, when the five
@@ -65,15 +113,16 @@ the store. The twenty lines themselves are not chosen yet; that choice comes fir
   - A split the archive did not adjust parks the line if it is 2-for-1 or larger; a
     smaller wrong factor (a 3-for-2 split, pounds read as dollars) cannot be told from
     a real move by price alone and passes.
-    So does a whole history quoted in pence: the instrument master does not yet say
-    which unit each line is quoted in.
+    So does a whole history quoted in pence by an archive that says pounds: pence
+    become pounds only when the archive names them pence.
   - A real move larger than the store believes (a fall of 37.5%, a rise of 60%) parks
     the line until its confirmed close is recorded on the line (`Line.real_moves`).
-    Nothing fills that record yet; the twenty lines are not chosen.
+    Nothing fills that record yet; 2MU is parked for want of it.
   - Two bad bars in a row are kept and the line parked, not cleaned: safe only while a
     parked line is never traded or read for a decision.
-  - Parking lives only in what `store.prepare` returns; nothing saves it yet, and a
-    line dropped from the archive leaves its old file readable. The day run (phase 2)
+  - Parking lives only in what `store.prepare` returns (each line's faults are now
+    saved beside its bars, but not whether they parked it), and a line dropped from the
+    archive leaves its old files readable. The day run (phase 2)
     must read parking from the prepare it runs.
   - A frozen feed (the same bar repeated with no volume) is not caught.
   - A vendor that leaves out a day a line did not trade (a suspension) parks the line
@@ -106,7 +155,8 @@ Every one of these raises NotImplementedError, by design, until its phase builds
 | `book.send`, `book.fills`, `book.positions`, `book.round_trips` | 2 |
 | `day.run` | 2 |
 
-Built and real: the price store (`store.prepare`, `store.read`), the venue calendars,
+Built and real: the twenty lines, the archive client (`archive.fetch`), the price store
+(`store.prepare`, `store.read`, `store.faults`), the venue calendars,
 the typed records (`Line`, `Bar`, `Parked`, `Decision`, `Settings`,
 `Order`, `Fill`, `Sent`, `RoundTrip`, `Costs`, `Record`), and `Order` refusing a missing
 stop, or one not below its price.
