@@ -232,7 +232,15 @@ def test_a_sale_is_sent_once_and_answered_with_what_the_broker_did(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     broker: Broker = _paper(_clear(tmp_path))
-    theirs = _account([HELD], *_order("7", "SELL STP", "x-stop", "PreSubmitted", client="31"))
+    # no stop the sale would leave: someone else's on the line, the desk's own there that is
+    # over, its own order there that is no stop, and its own stop on another line
+    far = _order("5", "SELL STP", "a-stop", "Submitted")
+    near = (("7", "x-stop", "PreSubmitted", 26, "31"), ("9", f"{ID}-stop", "Cancelled", 0, "222"))
+    stops = [
+        m for n, ref, state, left, by in near for m in _order(n, "SELL STP", ref, state, left, by)
+    ]
+    idle = _order("12", "BUY LMT", "f", "Inactive")
+    theirs = _account([HELD], *stops, *idle, _but(far[0], 2, "265598"), far[1])
     # told as it fills: the order, its fill under no question's number, the fee, a warning
     filling = [*MINE, _but(SOLD, 1, "-1"), FEE, ("4", "2", "41", "2109", "hours ignored", "")]
     filled = _order("41", "SELL MKT", ID, "Filled", 0)[1]
