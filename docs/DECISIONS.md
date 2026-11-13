@@ -1944,6 +1944,104 @@ break written less than a second after the last, to a file of the same size, can
 old code from Python's cache and report the wrong result; the breaks were run again with
 the cache off before these numbers were written.
 
+### 2026-11-13 — each line as the broker lists it: asked each time, pence and pounds, and a line it does not list
+
+**Decided**, by the lane as the desk's mentor (no one watching), for the next box of its
+book: the desk asks the paper broker how it lists each of the twenty lines
+(`desk/listing.py`) and gets back, for each, the broker's own number for the line, the
+exchange it lists it on, whether it prices it in pence or in pounds, and its price steps.
+Two questions are sent through the one door, neither of which can place an order.
+
+**The choices, and why.**
+- *Where the broker's facts about a line live.* Options: on the line in the instrument
+  master (the money lane's review of sizing had suggested the master carry the price step);
+  in a table in the paper module; or asked of the broker each time. Chosen: asked each
+  time, nothing written down. A price step is not one number: the broker gives a rule of
+  bands (IITU moves in tenths of a penny under £5 and whole pence above £25), the rule
+  differs from line to line, and the broker and the exchange change it. A copy would be a
+  second home that goes stale in silence; the question also proves, each time, that the
+  broker still lists the line. The instrument master keeps the desk's facts, the broker
+  its own.
+- *How the desk knows the broker's line is its own.* The desk asks by the line's name, as a
+  share or fund, in its currency. The answer must come back exactly once, under that name,
+  kind and currency, on an exchange of the line's venue. The broker's names for those
+  exchanges are written in the module, each one seen from the gateway on one of the twenty
+  (London's funds list; Nasdaq and Arca; none of the twenty lists in New York): a line
+  listed anywhere else is unlisted until its exchange is added on purpose.
+- *A line the broker does not list.* Options: stop the whole reading; or name that line
+  with the reason and carry on. Chosen: carry on, as the data lane ruled for a line the
+  archive refuses. A leveraged product can be closed by its issuer; nineteen sound lines
+  should not stop for it. The line comes back as "unlisted" with the broker's own words or
+  what differed, a different kind of record from a listing, so the adapter cannot build an
+  order for it by mistake. An answer the desk cannot read (a message of another shape, an
+  answer to another question, any error but "no such line") still stops the whole reading:
+  a reading that stops is never a clean one.
+- *Pence and pounds.* The broker prices six of the ten London lines in pence (3LGO, 2MU,
+  IITU, 5QQQ, ISF, SGLN) and four in pounds (SMGB, VHYG, IB1T, VUSA), while it calls the
+  currency of all ten pounds; the desk's prices are all pounds. The broker's rule of steps
+  speaks in pounds. So a desk price is first put down onto its step in pounds, then
+  multiplied into the broker's unit (`Listing.floor`): £37.556 on IITU becomes 3755. This
+  was not taken from the broker's documents but tested on its own prices (below).
+- *Which steps.* A line has a rule for each place the broker can send its order. The desk
+  reads the rule of the broker's own router, where its orders will go, the route the
+  question itself is asked on.
+- *Down, never to the nearest.* A stop is put down onto the step, so it stays below the
+  price it was set from (an order whose stop is not below its price cannot exist). The
+  cost is a stop up to one step lower than the 10% rule's exact figure. A price with no
+  step at or below it is refused, and so is one that is not a finite number.
+- *A listing the desk cannot trust is no listing.* The record cannot be made at all
+  unless it has a real number for the line, a unit the line's currency is priced in (a
+  hundredth for pounds alone: pence; never for dollars, and never a tenth), and steps
+  that are steps: finite, above nothing, starting from a price of nothing, each band above
+  the last and starting on its own step. The reading stops on anything else. So the wrong
+  unit, the fault that would put a stop a hundred times out, cannot be carried in a
+  listing.
+- *The gateway's notice that it cannot look lines up.* The account check passed over nine
+  notices about the gateway's price feeds. One of them (2157) says the service that
+  answers questions about lines is down; the blind review showed that passing it over
+  could let an outage be read as "the broker lists nothing", every line unlisted. It now
+  stops any reading, the account's too: one rule, and a gateway in that state is not one
+  to trust on anything. The other eight are still passed over.
+
+**Evidence.** From the real gateway on his PC, read-only, 13 November at about 18:35 UK,
+through the module's own code, and again after each repair: twenty of twenty lines listed,
+each exactly once under the desk's name and currency; all ten London lines on London's
+funds list, eight US lines on Nasdaq, SPY and GLD on Arca; six London lines priced in
+pence, four in pounds; twelve different rules of steps among them. A name the broker does
+not know was asked on purpose and answered "No security definition has been found", the
+answer the desk reads as unlisted; a name asked without its currency came back twice
+(Boeing in New York and its Canadian receipt), the case the desk names as listed twice.
+
+*Pence or pounds was proved on prices, not taken from a manual.* The open, high, low and
+close of each line's last thirty sessions were read from the broker (a question about past
+prices, read-only, asked from outside the repository): 2,392 prices. Put through
+`Listing.floor`, every price of nineteen lines came back unchanged: it already sat on the
+step, in the unit, that the desk had worked out. Then the finer test, since a rule read a
+hundred times too fine would pass the first: in each band of each line's rule the prices
+were found to move in exactly the listing's step and no finer one, in twenty bands of
+twenty-one (whole pence on IITU, 3LGO and SGLN; a tenth of a penny on 5QQQ; a fifth on ISF;
+a quarter of a penny on VUSA; a cent on every US line). The twenty-first is 2MU above £500,
+where the broker's rule says £5 and the market moved in £1; below £500 it moves in the
+rule's £2 exactly. That one is recorded in `docs/STATUS.md`; 2MU is parked.
+
+The contract test was seen failing first (no module), and again for each repair. A blind
+review, which checked every field the desk reads against the gateway's twenty real answers
+and the published client, found two blocking faults: the look-up notice passed over, and
+infinite or not-a-number prices and steps let through. Both are fixed and tested, with its
+lesser points on the rule's number, the unit and the broker's number for the line. Its
+second reading approved the repair and found the rules being read before the line was known
+to be the desk's; that is fixed and tested too. What it left is in `docs/STATUS.md`.
+
+Deliberate breaks, driven in copies outside the repository with Python's cache off: 113
+over three rounds, 101 caught at once. Five showed a gap in the tests, each closed and
+caught when driven again (a cut-short "no such line" notice, a London line priced in
+pounds, an infinite band edge, and a listing one field short or one over whose rules still
+read). Five different breaks survive, seven runs in all. Four cannot change a result: a
+band taken to begin just above its edge, which differs only on a rule whose edge is off the
+step below it, and none of the twelve real rules is; a pairing check behind a length check
+that already forces it; and two that pick the last of exactly one. The fifth adds New York
+to the US exchanges, which no test forbids: adding an exchange is a deliberate edit.
+
 ## GRID
 
 ### 2026-11-13 — the fast grid engine: it holds what the desk holds, or it refuses
