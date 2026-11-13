@@ -6,19 +6,23 @@ Last updated: 13 November 2026.
 
 ## Where we are
 
-Phase 0. The operator approved the seven scenes on 13 November, and they are now written
-as tests in `tests/scenes/test_scenes.py`. Scenes passing: 0 of 7, as expected: each one
-stops at a part of the desk that is not built yet. The desk's shape exists only as the
-typed outlines those scenes call; there is no working desk code.
+Phase 1 under way. Scene 1 passes: scenes passing 1 of 7. The desk has one price store
+with one writer (`desk/store.py`): it rebuilds itself from the archive each morning,
+keeps only bars that can be true, and parks a line it cannot clean with a dated reason;
+the line comes back by itself once its bars are clean. Gaps and staleness are judged
+against each venue's own calendar (`desk/venues.py`, London and US, 2010 to 2027). Its
+tests were seen failing first, and thirteen deliberate breaks of the store and calendar
+were each caught by a test.
 
-The check is green: format, lint, strict types, twelve guards and the scenes step. The
-size rule now holds unit tests to the desk's size from the first line, by the
-operator's ruling of 13 November (`docs/DECISIONS.md`).
+Two rulings of 13 November are in force (`docs/DECISIONS.md`): sessions merge their own
+pull requests when the check is green, and GitHub now refuses any merge whose check has
+not passed (driven red on pull request #5); the A-GATE test is written as AG-01 to
+AG-06 in `docs/PLAN.md`, with the thirty-day terms fixed in advance.
 
 ## The next step
 
-The operator merges this branch. Then phase 1: one price store with one writer, cleaned
-on entry, until scene 1 passes.
+The rest of phase 1: daily bars for the twenty lines, fetched from a free archive into
+the store. The twenty lines themselves are not chosen yet; that choice comes first.
 
 ## Open questions for the operator
 
@@ -36,6 +40,15 @@ on entry, until scene 1 passes.
   3; "a day with a cost line missing is refused" is held by the types, not by a day
   that should have paid UK tax showing none; scene 5 does not tell a sale by the
   strategy's rule from one by the resting stop; "no halt in force" has no interface yet.
+- **The store cannot read history before 2010 or after 2027.** The calendar refuses those
+  years rather than guess, so a line whose archive reaches back further stops the
+  prepare loudly. Extend the calendar's one-off closures before loading older history.
+- **A split the archive did not adjust parks the line**, as does a genuine one-day move
+  of more than 60% up or 37.5% down. Parking is the safe side; adjusting for splits needs
+  a record of corporate actions, which nothing holds yet.
+- **A whole history quoted in pence passes.** The store catches a change of unit within
+  a line, not a line that is in the wrong unit from its first bar. The instrument master
+  does not yet say which unit each line is quoted in.
 - **The scenes rule trusts the error's name.** A scene counts as "not built" when it
   fails with NotImplementedError. A test that raised that error itself would pass as
   unbuilt. No test does; nothing yet checks that none does.
@@ -58,13 +71,13 @@ Every one of these raises NotImplementedError, by design, until its phase builds
 
 | part | phase |
 |---|---|
-| `store.prepare`, `store.read` | 1 |
 | `strategy.decide` | 2 |
 | `orders.size`, `orders.cost`, `orders.gate` | 2 |
 | `broker.Pretend` and all its methods | 2 |
 | `book.send`, `book.fills`, `book.positions`, `book.round_trips` | 2 |
 | `day.run` | 2 |
 
-Built and real: the typed records (`Line`, `Bar`, `Parked`, `Decision`, `Settings`,
+Built and real: the price store (`store.prepare`, `store.read`), the venue calendars,
+the typed records (`Line`, `Bar`, `Parked`, `Decision`, `Settings`,
 `Order`, `Fill`, `Sent`, `RoundTrip`, `Costs`, `Record`), and `Order` refusing a missing
 stop, or one not below its price.

@@ -1,7 +1,7 @@
 # The plan
 
-**Current objective:** finish phase 0 — the machinery, the documents and the scenes
-approved by the operator.
+**Current objective:** finish phase 1 — daily bars for the twenty lines from a free
+archive, into the store built for scene 1.
 
 Scenes passing: **1 of 7**. Phase: **0-foundations**.
 
@@ -28,10 +28,11 @@ The machinery that refuses, before any desk code.
 One store, one writer, cleaned on entry.
 
 - [ ] Daily bars for the twenty lines, from a free archive, re-fetched and re-checked
-- [ ] Cleaning on entry: units, duplicates, gaps, impossible prices, splits
-- [ ] Market calendars per venue; a UK holiday is not a US holiday
-- [ ] Parking a bad line, with a reason, a date and a way back out
-- [ ] **Scene 1 passes**
+- [x] Cleaning on entry: units, duplicates, gaps, impossible prices; a split the archive
+      did not adjust parks the line, it is not adjusted
+- [x] Market calendars per venue; a UK holiday is not a US holiday (2010 to 2027)
+- [x] Parking a bad line, with a reason, a date and a way back out
+- [x] **Scene 1 passes**
 
 ## Phase 2 — the money path, in simulation
 
