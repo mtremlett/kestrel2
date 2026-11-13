@@ -83,7 +83,7 @@ CANCEL = Pretend.cancel
 @pytest.mark.parametrize(
     ("cancel", "broken"),
     [  #: a broker that cancels nothing; one that names the order and leaves it working;
-        (lambda _: (), ("was cancelled", "never filled")),  #: and one that takes the stops too
+        (lambda _: (), ("was cancelled", "never filled", "said so")),  #: and one that takes stops
         (lambda broker: tuple(broker._working), ("never filled", "stop still rests")),
         (lambda broker: broker._stops.clear() or CANCEL(broker), ("stop still rests", "again")),
     ],
