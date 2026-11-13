@@ -37,6 +37,7 @@ touch the same lines. A session the operator starts himself appends to the table
 |---|---|---|---|---|---|---|---|
 | 2026-11-13 | 3 of 7 | 968 | 9 | 1524 | 12 of 12 proven | green | The rehearsal data is now fourteen months on each venue's own calendar, and each of the five rules buys and sells on every clean line in it; holidays laid on the wrong calendar were each refused by the store. The scenes still see its last six weeks until the money lane's scene 2 counts two calendars; then the move is one line. |
 | 2026-11-13 | 4 of 7 | 1126 | 166 | 1972 | 12 of 12 proven | green | One line the archive refuses is now parked alone, with its reason, and the other lines carry on; the store keeps no bars for it, so none from an earlier day can be read as today's. Tests seen failing first; six deliberate breaks each caught; a blind review's blocking finding (a half-delivered answer stopped everything) fixed. |
+| 2026-11-13 | 4 of 7 | 1190 | 266 | 2138 | 14 of 14 proven | green | A frozen feed is now caught: a week of the archive repeating one bar, or one price with nothing traded, is dropped and parks a line whose recent days it touches. On the real archive the longest real run is three days, so no clean line is parked by it. Tests seen failing first; nine deliberate breaks each caught; a blind review, nothing blocking, its one design point taken. |
 
 ### LADDER
 
