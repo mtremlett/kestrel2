@@ -25,10 +25,6 @@ on entry, until scene 1 passes.
 1. **A second GitHub account** for sessions to work through, so that the guards cannot be
    removed by the account that enforces them. Not urgent; needed before any unattended
    work.
-2. **The A-GATE test.** Ten consecutive £100 days is close to unreachable for an honest
-   edge. The recommendation is sixty trading days averaged, luck-corrected, with a
-   drawdown limit. He has agreed in conversation; it is not yet written into a
-   requirement.
 
 ## Found, not fixed
 

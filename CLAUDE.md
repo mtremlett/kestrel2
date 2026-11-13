@@ -24,7 +24,8 @@ advances no scene needs a reason in `docs/PLAN.md`.
    from the plan and the test that will prove it.
 2. **During.** That objective only. Follow the canon's workflow and its stop rules.
 3. **End.** Update `docs/STATUS.md`, append one line to `docs/SCOREBOARD.md`, commit,
-   push the branch, open or update the pull request, and give the operator five lines.
+   push the branch, open or update the pull request, merge it when its check is green,
+   and give the operator five lines.
 
 ## The commands
 
@@ -34,13 +35,16 @@ advances no scene needs a reason in `docs/PLAN.md`.
 
 ## How code reaches main
 
-Branch, push, open a pull request, let GitHub run the check, the operator merges. Main
-refuses a direct push and refuses a force-push; this is enforced by GitHub and has been
-driven to prove it. Nothing merges red. There is no known-failing list.
+Branch, push, open a pull request, let GitHub run the check. When `check` is green on the
+pull request's last commit, the session merges it itself (`gh pr merge --squash`); the
+operator does not approve merges (his ruling, `docs/DECISIONS.md`). Main refuses a direct
+push, a force-push and a merge whose check has not passed; GitHub enforces all three and
+each has been driven to prove it. Nothing merges red. There is no known-failing list.
 
 **A change that touches a guard** (`BUDGET.json`, `manifest.toml`, `tests/guards/`,
-`check.py`, `.github/`) is announced by the check on the pull request, and the operator
-decides. Guards may be tightened freely. Loosening one is his call, never a session's.
+`check.py`, `.github/`) is announced by the check on the pull request. Tightening one
+merges like any change. Loosening one waits for the operator's plain-English yes in chat,
+asked as a business question with options and a recommendation, never "review this".
 
 ## The operator
 
@@ -49,7 +53,8 @@ terms of business behaviour and risk. Never ask him to review code. Ask him abou
 intended behaviour, priorities and trade-offs, with options and a recommendation.
 
 He decides: going live, credentials, spend, permissions, the phase, and any loosening of
-a guard. Everything else technical is the session's to decide and to own.
+a guard. He does not approve merges. Everything else technical is the session's to decide
+and to own.
 
 ## External systems
 

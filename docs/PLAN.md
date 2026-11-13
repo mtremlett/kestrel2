@@ -64,8 +64,13 @@ Starts as a second track as soon as phases 1 and 2 give it data and a strategy t
 - [ ] Candidates through the ladder, leveraged index lines included
 - [ ] The operator's hand tickers judged honestly, with their own rules
 - [ ] Small-size paper trading as out-of-sample proof
-- [ ] **A-GATE: sixty trading days averaging £100 a day net, luck-corrected, ahead of
-      simply holding the market**
+- [ ] **A-GATE** (AG-01 to AG-06, his ruling of 13 November, `docs/DECISIONS.md`):
+      luck-corrected on years of history through the ladder; then sixty consecutive
+      paper days averaging at least £100 a day net of every cost, inside the range the
+      history predicted, ahead of simply holding the market, never more than £1,500
+      below the highest point, every day reconciled. Thirty days suffice only on the
+      "excellent" terms fixed in advance there: £150 a day, a fall under £750, twenty
+      trades, the best three days under a third of the profit.
 
 ## Phase 6 — the operator's own account, and widening
 
