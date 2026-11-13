@@ -297,11 +297,12 @@ Begun alongside phase 2 by his ruling of 13 November: "Five lanes, phase 3 now".
 **Lane objective:** the real paper-broker adapter behind the same interface as
 `broker.Pretend`, through the one door (`desk/paper.py`) with the standard library alone,
 built from what it reads towards what it sends. The account and each of the twenty lines as
-the broker lists it are read (`desk/listing.py`), and the account check asks the desk's one
-comparison (`book.differences`), so "is the book the broker's?" has one home. Next, the
-fills and orders the broker reports, read-only, each fill's price turned from the broker's
-unit (pence on six London lines) back into the line's currency, and the desk's own orders
-told from anyone else's; then placing. It sends no order until that day's read-only check (`paper.mismatches`) has
+the broker lists it are read (`desk/listing.py`). Next, first a short step: the account
+check moved onto the money lane's one comparison (`book.differences`, R-PAPER-1, done in
+#52), so "is the book the broker's?" has one home. Then the fills and orders the broker
+reports, read-only, each fill's price turned from the broker's unit (pence on six London
+lines) back into the line's currency, and the desk's own orders told from anyone else's;
+then placing. It sends no order until that day's read-only check (`paper.mismatches`) has
 come back clean, and the check has been taught the desk's own resting stops. The account is
 the old desk's (his ruling, 13 November), reached through IB Gateway's paper port 4002 on
 his PC with the desk's own client id (222), never 4001.
@@ -321,8 +322,6 @@ his PC with the desk's own client id (222), never 4001.
       exchange, pence or pounds, and its price steps, with a price put down onto the
       broker's step in the broker's unit (`desk/listing.py`); run on the real gateway on 13
       November: twenty of twenty listed, six London lines priced in pence
-- [x] The account check on the desk's one comparison of a book with a broker
-      (`book.differences`, the money lane's R-MONEY-4): a line in two entries is never the book's
 - [ ] The fills and the orders the broker reports, read-only: each fill under the broker's
       id with its price back in the line's currency, and the desk's own orders and stops
       told from anyone else's

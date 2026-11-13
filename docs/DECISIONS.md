@@ -2099,78 +2099,57 @@ Two questions are sent through the one door, neither of which can place an order
   cost is a stop up to one step lower than the 10% rule's exact figure. A price with no
   step at or below it is refused, and so is one that is not a finite number.
 - *A listing the desk cannot trust is no listing.* The record cannot be made at all
-  unless it has a real number for the line, a unit the line's currency is priced in (pence
-  for pounds alone; never for dollars, and never a tenth), and steps that are steps: finite,
-  above nothing, from a price of nothing up, each band above the last and starting on its
-  own step. So the wrong unit, which would put a stop a hundred times out, cannot be carried.
-- *The gateway's notice that it cannot look lines up* (2157). The account check passed it
-  over with the notices about price feeds; the blind review showed an outage could then be
-  read as "the broker lists nothing". It now stops any reading, the account's too: a
-  gateway in that state is not one to trust on anything. The other eight are passed over.
+  unless it has a real number for the line, a unit the line's currency is priced in (a
+  hundredth for pounds alone: pence; never for dollars, and never a tenth), and steps
+  that are steps: finite, above nothing, starting from a price of nothing, each band above
+  the last and starting on its own step. The reading stops on anything else. So the wrong
+  unit, the fault that would put a stop a hundred times out, cannot be carried in a
+  listing.
+- *The gateway's notice that it cannot look lines up.* The account check passed over nine
+  notices about the gateway's price feeds. One of them (2157) says the service that
+  answers questions about lines is down; the blind review showed that passing it over
+  could let an outage be read as "the broker lists nothing", every line unlisted. It now
+  stops any reading, the account's too: one rule, and a gateway in that state is not one
+  to trust on anything. The other eight are still passed over.
 
 **Evidence.** From the real gateway on his PC, read-only, 13 November at about 18:35 UK,
-and again after each repair: twenty of twenty lines listed, each exactly once; all ten
-London lines on London's funds list, eight US lines on Nasdaq, SPY and GLD on Arca; six
-London lines priced in pence, four in pounds; twelve rules of steps among them. A name the
-broker does not know answered "No security definition has been found"; a name asked without
-its currency came back twice, the case the desk names as listed twice.
+through the module's own code, and again after each repair: twenty of twenty lines listed,
+each exactly once under the desk's name and currency; all ten London lines on London's
+funds list, eight US lines on Nasdaq, SPY and GLD on Arca; six London lines priced in
+pence, four in pounds; twelve different rules of steps among them. A name the broker does
+not know was asked on purpose and answered "No security definition has been found", the
+answer the desk reads as unlisted; a name asked without its currency came back twice
+(Boeing in New York and its Canadian receipt), the case the desk names as listed twice.
 
-*Pence or pounds was proved on prices, not taken from a manual:* the open, high, low and
-close of each line's last thirty sessions, read from the broker, 2,392 prices. Through
-`Listing.floor` every price of nineteen lines came back unchanged, and in twenty bands of
-twenty-one the prices move in exactly the listing's step and no finer one. The twenty-first
-is 2MU above £500, where the rule says £5 and the market moved in £1 (`docs/STATUS.md`).
+*Pence or pounds was proved on prices, not taken from a manual.* The open, high, low and
+close of each line's last thirty sessions were read from the broker (a question about past
+prices, read-only, asked from outside the repository): 2,392 prices. Put through
+`Listing.floor`, every price of nineteen lines came back unchanged: it already sat on the
+step, in the unit, that the desk had worked out. Then the finer test, since a rule read a
+hundred times too fine would pass the first: in each band of each line's rule the prices
+were found to move in exactly the listing's step and no finer one, in twenty bands of
+twenty-one (whole pence on IITU, 3LGO and SGLN; a tenth of a penny on 5QQQ; a fifth on ISF;
+a quarter of a penny on VUSA; a cent on every US line). The twenty-first is 2MU above £500,
+where the broker's rule says £5 and the market moved in £1; below £500 it moves in the
+rule's £2 exactly. That one is recorded in `docs/STATUS.md`; 2MU is parked.
 
-The contract test was seen failing first, and again for each repair. A blind review found
-two blocking faults (the look-up notice passed over; infinite or not-a-number prices let
-through), both fixed and tested; its second reading approved the repair and found the rules
-read before the line was known to be the desk's, fixed too. Deliberate breaks, in copies
-outside the repository with Python's cache off: 113, 101 caught at once; five showed a gap
-in the tests, each closed; five survive, four that cannot change a result and one that adds
-New York to the US exchanges, a deliberate edit no test forbids.
+The contract test was seen failing first (no module), and again for each repair. A blind
+review, which checked every field the desk reads against the gateway's twenty real answers
+and the published client, found two blocking faults: the look-up notice passed over, and
+infinite or not-a-number prices and steps let through. Both are fixed and tested, with its
+lesser points on the rule's number, the unit and the broker's number for the line. Its
+second reading approved the repair and found the rules being read before the line was known
+to be the desk's; that is fixed and tested too. What it left is in `docs/STATUS.md`.
 
-### 2026-11-13 — the paper account check asks the desk's one comparison
-
-**Decided**, by the lane as the desk's mentor (no one watching), for the money lane's
-request R-MONEY-4: `paper.differences` hands each holding to `book.differences` and keeps
-no comparison of its own, so "is the book the broker's?" is one rule for the pretend broker
-and the paper account alike. The door still owns what is its alone: paper accounts only, a
-holding's name, and the resting orders.
-
-**The choices, and why.**
-- *The name a holding is compared under:* its symbol, kind and currency in one phrase
-  ("SMGB STK GBP"), as before, so the same symbol in another currency or as another kind
-  of product is never the book's line. Matching on the broker's own number for the line
-  was considered for this step and left for the adapter: it needs the listings read in the
-  same check, and a second conversation with the gateway is the adapter's to arrange.
-- *Stricter in two cases, on purpose.* A line the broker gives in two entries, each of them
-  exactly the book's shares, used to read as clean and is now named: the broker holds twice
-  the book. And an entry that matches the book beside another entry with shares is named
-  too. Both follow from the one rule: a line with shares in two entries is never the book's.
-- *The sentence.* Options: leave "the broker holds 25, the desk's book 25", which reads as
-  no difference at all; add a line of its own about the entries; or say it in each sentence.
-  Chosen: each sentence about a name the broker gives more than once says "holds 25 in one
-  of 2 entries". The count is of every entry the broker gives under the name, empty ones too.
-- *One word each.* The blind review showed that a name made of one phrase can be read two
-  ways if a kind or a currency holds a space: a book's "BRK B" beside a broker's "BRK" of
-  kind "B STK" came back clean. No line or broker word has a space today, but nothing
-  forbade it. Options: hand the rule the three parts kept apart (it takes one name, and is
-  the money lane's); or make such a holding impossible. Chosen: a holding cannot be made
-  unless its kind and its currency are each one word of letters and digits and its shares a
-  finite number. The reading stops on anything else, and a reading that stops is never clean.
-
-**Evidence.** The tests were seen failing first: five cases for the move, four for the
-repair. The real account was read, read-only, at about 19:25 UK and again at 19:40 after
-the repair: seventeen lines at no shares, each a share or fund in pounds or dollars, no
-order resting, nothing named against the empty book. A blind review set the old rule beside
-the new on 467,711 made-up accounts: no difference the old one named was lost, and the only
-new ones are the two meant. Letting spaces into the words, it found the one blocking fault
-above, now fixed and tested; SECOND_READING. Deliberate breaks, in copies outside the
-repository with Python's cache off: the lane's 34 (26 caught at once; six showed a gap in
-the tests, each closed and caught when driven again; two cannot change a result: a book
-line at no shares, and two lines of the master under one symbol); the review's 38 (ten
-survived the lane's tests, each now closed with a case and caught); seven of the new rule,
-all caught.
+Deliberate breaks, driven in copies outside the repository with Python's cache off: 113
+over three rounds, 101 caught at once. Five showed a gap in the tests, each closed and
+caught when driven again (a cut-short "no such line" notice, a London line priced in
+pounds, an infinite band edge, and a listing one field short or one over whose rules still
+read). Five different breaks survive, seven runs in all. Four cannot change a result: a
+band taken to begin just above its edge, which differs only on a rule whose edge is off the
+step below it, and none of the twelve real rules is; a pairing check behind a length check
+that already forces it; and two that pick the last of exactly one. The fifth adds New York
+to the US exchanges, which no test forbids: adding an exchange is a deliberate edit.
 
 ## GRID
 

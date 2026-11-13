@@ -136,20 +136,21 @@ a sixth question of any broker. Then the costs whole (R-RUNGS-1), and the day's 
 
 ## PAPER
 
-Last updated: 13 November 2026 (the account check on the desk's one comparison).
+Last updated: 13 November 2026 (this section cut to what is open; git keeps the rest).
 
 ### Where it is
 
 Read-only so far; nothing has been placed on paper. The account check (`desk/paper.py`, client
-222, paper accounts only) asks the desk's one comparison and found the account quiet twice on 13
-November. All twenty lines are listed at the broker (`desk/listing.py`), six London ones in pence.
+222, paper accounts only) found the account quiet on 13 November. All twenty lines are listed
+at the broker (`desk/listing.py`); six London lines are priced there in pence (`Listing.floor`).
 
 ### Next step
 
-The fills and orders the broker reports, read-only: each fill under the broker's id, its price
-back from the broker's unit, the desk's own orders and stops told from anyone else's. Then
-placing, behind `Pretend`'s interface (R-PAPER-2): no order until that day's check is clean, run
-on a second day, and the kill switch is drilled.
+R-MONEY-4: `paper.differences` asks `book.differences`, so the rule has one home; with it, a
+holding matched by the broker's own number for the line. Then the fills and orders the broker
+reports, read-only: each fill under the broker's id, its price back from the broker's unit, the
+desk's own orders and stops told from anyone else's. Then placing, behind `Pretend`'s interface:
+no order until that day's check is clean, run on a second day, and the kill switch is drilled.
 
 ### Requests to MONEY
 
@@ -163,17 +164,13 @@ on a second day, and the kill switch is drilled.
 
 ### Done for other lanes
 
-- R-MONEY-4: done in #PRNUM (`paper.differences` asks `book.differences`; its own copy is gone).
 - R-DATA-5: done in #53 for its first half (this lane's test lines state their UK tax). Open:
   what the contract note of the first London product bought says of stamp duty (conformance).
 
 ### Found, not fixed
 
 - **Each day:** nothing runs the account check or reads the listings daily, or refuses an order
-  on an unlisted line; a held line that comes back unlisted is undecided; a holding is known by
-  its name, not the broker's number for the line (that needs the listings in the same check).
-- **The check's sentences:** an entry at no shares beside the book's own entry is named (a false
-  alarm, the one rule's: for MONEY); none says which account, or the total of two entries.
+  on an unlisted line; what the desk does with a held line that comes back unlisted is undecided.
 - **Before a stop rests:** the gateway probably sends a client its own open orders unasked, which
   stops both readings; questions share a number space with orders; no real open order seen yet.
 - **2MU** (parked) trades in £1 steps above £500 where the broker's rule says £5: whether the
