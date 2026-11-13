@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import csv
 from collections import Counter, deque
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import astuple, dataclass, replace
 from datetime import date, datetime, timedelta
 from decimal import Decimal
@@ -208,12 +208,13 @@ def differences(
     )
 
 
-def positions(root: Path) -> dict[str, int]:
-    """What the desk holds: the shares of each line its ledger's fills add up to, never the
-    orders it meant to send. A line sold out is not held."""
+def positions(root: Path, upto: date = date.max) -> dict[str, int]:
+    """What the desk holds, or held at the end of a day: the shares of each line its ledger's
+    fills add up to, never the orders it meant to send. A line sold out is not held."""
     held: dict[str, int] = {}
     for fill in fills(root):
-        held[fill.symbol] = held.get(fill.symbol, 0) + fill.quantity
+        if fill.day <= upto:
+            held[fill.symbol] = held.get(fill.symbol, 0) + fill.quantity
     short = sorted(symbol for symbol, shares in held.items() if shares < 0)
     if short:
         raise ValueError(f"the ledger sells more than it bought of {short}: the desk is long only")
@@ -241,10 +242,30 @@ def _rates(root: Path) -> dict[tuple[date, str], Decimal]:
     return {(date.fromisoformat(r["day"]), r["currency"]): Decimal(r["rate"]) for r in rows}
 
 
-def round_trips(root: Path, lines: Iterable[Line]) -> tuple[RoundTrip, ...]:
-    """Each sale in the ledger matched with the buys it closes, oldest first, in pounds at
-    each fill's own day's rate, after every cost of both legs from the one cost model, a
-    stop's sale priced as one. A fill split between trips shares its costs by its shares."""
+def rate(root: Path, currency: str, upto: date) -> Decimal:
+    """The pounds per unit of a currency kept for the newest day on or before a day: what a
+    holding in it is valued at that day's end. None kept by then is an error."""
+    kept = {on: r for (on, name), r in _rates(root).items() if name == currency and on <= upto}
+    if not kept:
+        raise ValueError(f"no {currency} rate kept on or before {upto}")
+    return kept[max(kept)]
+
+
+def dealt(root: Path, lines: Iterable[Line], day: date) -> tuple[Decimal, Charges]:
+    """THE DAY'S DEALING, in pounds: what the day's sales brought in less what its buys paid,
+    and every cost of the day's fills, line by line."""
+    pounds = _priced(root, lines)
+    cash, costs = Decimal(0), Charges(*(Decimal(0),) * 5)
+    for fill in fills(root):
+        if fill.day == day:
+            value, fee = pounds(fill, abs(fill.quantity))
+            cash, costs = cash + (value if fill.quantity < 0 else -value), costs + fee
+    return cash, costs
+
+
+def _priced(root: Path, lines: Iterable[Line]) -> Callable[[Fill, int], tuple[Decimal, Charges]]:
+    """How the ledger's fills are priced in pounds: each at its own day's kept rate, its costs
+    from the one cost model, a stop's sale priced as one. A line not given is an error."""
     known, rates = {line.symbol: line for line in lines}, _rates(root)
     unknown = sorted({fill.symbol for fill in fills(root)} - set(known))
     if unknown:
@@ -253,13 +274,21 @@ def round_trips(root: Path, lines: Iterable[Line]) -> tuple[RoundTrip, ...]:
     def pounds(fill: Fill, shares: int) -> tuple[Decimal, Charges]:
         """The fill's value and its share of the fill's costs, both for shares, in pounds."""
         line = known[fill.symbol]
-        rate = rates.get((fill.day, line.currency))
-        if rate is None:
+        fx = rates.get((fill.day, line.currency))
+        if fx is None:
             raise ValueError(f"{fill.execution_id}: no {line.currency} rate kept for {fill.day}")
         leg, whole = leg_of(fill.order_id, fill.quantity), abs(fill.quantity)
-        fee = charges(line, leg, whole, fill.price, rate).part(shares, whole)
-        return fill.price * shares * rate, fee
+        fee = charges(line, leg, whole, fill.price, fx).part(shares, whole)
+        return fill.price * shares * fx, fee
 
+    return pounds
+
+
+def round_trips(root: Path, lines: Iterable[Line]) -> tuple[RoundTrip, ...]:
+    """Each sale in the ledger matched with the buys it closes, oldest first, in pounds at
+    each fill's own day's rate, after every cost of both legs from the one cost model, a
+    stop's sale priced as one. A fill split between trips shares its costs by its shares."""
+    pounds = _priced(root, lines)
     opened: dict[str, deque[tuple[Fill, int]]] = {}
     trips: list[RoundTrip] = []
     for fill in fills(root):

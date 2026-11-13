@@ -1,6 +1,7 @@
 """day: decisions dated that day only, each rule's position read from the book, its sales
 first, each buy sized from the book after the send before it, and no line bought again the
-morning its stop or its rule sold it."""
+morning its stop or its rule sold it. Then the day's record: the book's gain after every cost
+beside the market's, to the penny, or the lines on which the book is not the broker's."""
 
 from __future__ import annotations
 
@@ -12,8 +13,8 @@ import pytest
 
 from desk import book, day, venues
 from desk.broker import Broker, Crash, Fault, Pretend
-from desk.lines import Line
-from desk.orders import Settings
+from desk.lines import YARDSTICK, Line
+from desk.orders import Charges, Settings
 from desk.store import Bar
 
 DAYS = venues.sessions("LSE", date(2025, 1, 6), date(2025, 2, 28))[:23]
@@ -36,6 +37,14 @@ ARCHIVE = dict(
     [*(_line(s, FLAT + BOTH) for s in "ABCD"), _line("H", [*FLAT, 9, 8.5, 8], "0.3")]
     + [_line("F", FLAT + BOTH), _line("G", [*FLAT[1:], 9])]
 )
+#: the same, with the yardstick too young for any rule: it closes at 10, 10.2 and 10.1
+MARKET = {
+    **ARCHIVE,
+    YARDSTICK: tuple(
+        Bar(on, c, c, c, c, 1)
+        for on, c in zip(DAYS[20:], map(Decimal, ("10", "10.2", "10.1")), strict=True)
+    ),
+}
 
 
 def _trade(root: Path, broker: Broker, on: date) -> tuple[book.Sent, ...]:
@@ -107,3 +116,43 @@ def test_a_day_with_the_kill_switch_on_sends_nothing_and_every_answer_says_so(
     assert [s.order_id[-1] for s in answers] == list("ABCD"), "a decision left unanswered"
     assert all(s.filled == 0 and "kill switch" in str(s.reason) for s in answers)
     assert len(broker.submitted()) == 5 and list(book.positions(tmp_path)) == list("ABCD")
+
+
+def _run(root: Path, broker: Pretend, on: date) -> day.Record:
+    """The day whole, handed every bar there is: it must use none after the day's own."""
+    broker.open(on)
+    return day.run(root, MARKET, broker, Settings(Decimal(10_000)), on, {"GBP": Decimal(1)})
+
+
+def test_the_days_record_is_the_books_gain_after_every_cost_beside_the_markets(
+    tmp_path: Path,
+) -> None:
+    broker = Pretend(MARKET, {})
+    pounds = [tuple(map(Decimal, row.split())) for row in ("15 5.58 5.58 0 0", "15 5.52 7.29 0 0")]
+    #: 221 each of A to D bought at 10.5 and of H at 8.5, where each closes: the costs alone
+    assert _run(tmp_path, broker, DAYS[21]) == day.Record(
+        DAYS[21], Decimal("-26.16"), Charges(*pounds[0]), Decimal("200.00"), ()
+    )
+    #: A to D sold where they closed, and H by its stop at 8: 110.50 lost, and 27.818 of costs
+    assert _run(tmp_path, broker, DAYS[22]) == day.Record(
+        DAYS[22], Decimal("-138.32"), Charges(*pounds[1]), Decimal("-98.04"), ()
+    )
+    with pytest.raises(ValueError, match="VUAG"):  #: no yardstick, no record
+        day.run(tmp_path, ARCHIVE, broker, Settings(Decimal(10_000)), DAYS[22], {"GBP": Decimal(1)})
+    for profit, differ in ((Decimal(1), ("A",)), (None, ())):
+        with pytest.raises(ValueError, match="2025-02-05"):  #: a number, or the lines: never both
+            day.Record(DAYS[22], profit, Charges(*pounds[0]), Decimal(0), differ)
+
+
+def test_a_day_whose_book_is_not_the_brokers_names_the_lines_and_withholds_its_profit(
+    tmp_path: Path,
+) -> None:
+    broker = Pretend(MARKET, {})
+    assert _run(tmp_path, broker, DAYS[21]).mismatches == ()
+    broker.inject("G", 5)  #: bought by hand, after the day's record
+    record = _run(tmp_path, broker, DAYS[22])
+    assert (record.profit, record.mismatches) == (None, ("G",)), "a mismatched day given a number"
+    assert (record.costs.commission, record.market) == (
+        Decimal(15),
+        Decimal("-98.04"),
+    ), "A to D still sold"

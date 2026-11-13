@@ -1,40 +1,49 @@
-"""day - THE DESK'S DAY: prepare the data, decide, size, send, reconcile, publish one record.
-The same days run again from the same saved data give the same records."""
+"""day - THE DESK'S DAY: decide on the bars before it, size, send, and at its end reconcile
+and publish one record. The same days run again from the same saved data give the same records."""
 
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
 
 from desk import book, strategy, venues
 from desk.broker import Broker
-from desk.lines import Line
-from desk.orders import Order, Refused, Sale, Settings, order_id_of, size, strategy_of
+from desk.lines import YARDSTICK, Line
+from desk.orders import (
+    Charges,
+    Order,
+    Refused,
+    Sale,
+    Settings,
+    order_id_of,
+    pennies,
+    size,
+    strategy_of,
+)
 from desk.store import Bar
 from desk.strategy import Action
 
 
 @dataclass(frozen=True)
-class Costs:
-    """Every cost line, in pounds. A record cannot be made with one missing."""
-
-    commission: Decimal
-    spread: Decimal
-    slippage: Decimal
-    currency: Decimal
-    uk_taxes: Decimal
-
-
-@dataclass(frozen=True)
 class Record:
+    """One day, published: pounds, each amount rounded once to the penny (orders.pennies). A
+    day whose book is not the broker's names the lines and has no profit; no other lacks one."""
+
     day: date
-    profit: Decimal | None  #: after every cost; None when the book is not the broker's
-    costs: Costs
-    market: Decimal  #: what simply holding the market would have earned
+    profit: Decimal | None  #: the book's gain after every cost; None when it is not the broker's
+    costs: Charges  #: every cost of the day's fills, line by line: none can be left out
+    market: Decimal  #: what the same capital would have earned simply holding the market
     mismatches: tuple[str, ...]  #: lines where the desk's book and the broker's differ
+
+    def __post_init__(self) -> None:
+        if (self.profit is None) != bool(self.mismatches):
+            raise ValueError(
+                f"{self.day}: a profit of {self.profit} with the book and the broker's "
+                f"differing on {list(self.mismatches)}"
+            )
 
 
 def run(
@@ -45,8 +54,55 @@ def run(
     day: date,
     rates: Mapping[str, Decimal],
 ) -> Record:
-    trade(root, archive, broker, settings, day, rates)
-    raise NotImplementedError("day.run: the day's reconciled record is scenes 6 and 7")
+    """A whole day from the data saved by its end, the day's own bars in it: its orders are
+    decided on the bars before the day alone, and then its record is published."""
+    seen = {line: tuple(bar for bar in bars if bar.day < day) for line, bars in archive.items()}
+    trade(root, seen, broker, settings, day, rates)
+    return publish(root, archive, broker, settings, day)
+
+
+def publish(
+    root: Path,
+    archive: Mapping[Line, Sequence[Bar]],
+    broker: Broker,
+    settings: Settings,
+    day: date,
+) -> Record:
+    """THE DAY'S RECORD, made at its end. The book is set against the broker's: lines that
+    differ are named and the profit withheld. Else the profit is what the book gained: what
+    it holds at the day's closes, less what it held at the closes before, with the money
+    the day's fills moved, after every cost of those fills. Beside it, what the capital
+    would have gained in the yardstick (lines.YARDSTICK, quoted in pounds) from its close
+    before to the day's. A line whose venue was shut stands at its newest close."""
+    differ = book.reconcile(root, broker)
+    cash, costs = book.dealt(root, archive, day)
+    eve = day - timedelta(days=1)
+    gained = _worth(root, archive, day) - _worth(root, archive, eve) + cash
+    market = _close(archive, YARDSTICK, day) / _close(archive, YARDSTICK, eve) - 1
+    profit = None if differ else pennies(gained - costs.total)
+    earned = pennies(settings.capital * market)
+    return Record(day, profit, costs.published(), earned, differ)
+
+
+def _worth(root: Path, archive: Mapping[Line, Sequence[Bar]], upto: date) -> Decimal:
+    """What the book held at a day's end was worth, in pounds: each line at its newest close,
+    and the newest rate kept, on or before that day."""
+    lines = {line.symbol: line for line in archive}
+    return sum(
+        (
+            shares * _close(archive, lines[s], upto) * book.rate(root, lines[s].currency, upto)
+            for s, shares in book.positions(root, upto).items()
+        ),
+        Decimal(0),
+    )
+
+
+def _close(archive: Mapping[Line, Sequence[Bar]], line: Line, upto: date) -> Decimal:
+    """The line's newest close on or before a day; without one the day has no record."""
+    closes = [bar.close for bar in archive.get(line, ()) if bar.day <= upto]
+    if not closes:
+        raise ValueError(f"{upto}: no close of {line.symbol} by then, so the day has no record")
+    return closes[-1]
 
 
 def trade(

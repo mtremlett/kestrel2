@@ -287,6 +287,15 @@ def test_a_round_trip_pairs_each_sale_with_the_buys_it_closes_in_pounds_after_ev
     )
     assert [t.profit for t in trips[:2]] == [Decimal("-5.6"), Decimal("-37.14")], "every line off"
     assert trips[2].profit == trips[2].gross - trips[2].costs.total
+    #: a day's dealing is its own fills' money and costs, at its own rate: here, every trip's
+    (out, mon), (back, tue) = (book.dealt(tmp_path, (share, dollar), on) for on in (MON, TUE))
+    assert out == -700 and back == 645
+    assert mon + tue == trips[0].costs + trips[1].costs + trips[2].costs
+    assert book.positions(tmp_path, MON) == {"A": 6, "U": 10} and book.positions(tmp_path) == {}
+    days = (MON, TUE, date(2025, 11, 14))  #: a day's rate is the newest kept on or before it
+    assert [str(book.rate(tmp_path, "USD", on)) for on in days] == ["0.8", "0.75", "0.75"]
+    with pytest.raises(ValueError, match="USD"):
+        book.rate(tmp_path, "USD", date(2025, 11, 7))
     with pytest.raises(ValueError, match="U"):
         book.round_trips(tmp_path, (A,))
     with pytest.raises(ValueError, match="kept at 0.75"):  #: a day's fills are never repriced
