@@ -2353,6 +2353,41 @@ gap, caught since. Measured from outside the repository on 4,000 days: a cell ab
 for any of the five rules, where the desk's engine alone took 90 to 100 ms; 17 ms of the
 25 is reading the line's prices in, paid again by each cell.
 
+### 2026-11-13 — a cell names its line and venue (R-DATA-1)
+
+**Decided.** A cell holds the whole `Line`, not symbol plus venue. Options: the Line; two
+strings. Chosen the Line: the data lane asked for it, the first rung needs the line's facts
+(currency, leverage, UK tax) to price a trade, and they then have one home.
+- A cell does not check its line against the research list. Options: check membership; trust
+  the typed Line. Chosen the latter: checking would put the list inside every result's code
+  version, so adding one ticker would re-run every kept cell; a line with no stored prices
+  already fails its own cell loudly and the rest carry on.
+- A symbol alone is still accepted, meaning one of the twenty. Options: break the rungs
+  lane's tests, which this lane may not edit; hold the change until they move, which they
+  cannot do first; accept both for now and ask them to move (R-GRID-2). Chosen the last; the
+  door is named as temporary in the code.
+- The journal names a cell by strategy, symbol, venue and window; a kept record is found by
+  those plus the code and data versions. The line's other facts are not written: the days a
+  rule bought and sold do not depend on them.
+
+**Evidence.** Four deliberate breaks, each caught and undone: every line read from the US
+folder; the journal leaving the venue out; a kept record never found; a cell given a line
+quietly taking the trading line of the same symbol. Blind review, nothing blocking.
+
+### 2026-11-13 — the grid lane's open boxes ordered for the runner (#71)
+
+**Decided.**
+- The cell's key (BT-04) comes before the first pass. Options: keep the book's order (pass
+  first, key later); move the key up. Chosen: up. A change to the key re-runs every kept cell,
+  so changing it after a pass over the research universe would throw that pass away.
+- Auto-tune lives in `lab/tune.py`, not inside `lab/batch.py`. Options: grow the batch
+  service; a new module around it. Chosen the module: auto-tune and the venue box then share
+  no file, two sessions can build them at once, and the batch keeps its one job.
+- The pass lives in `lab/sweep.py`: it owns which cells make a pass and the busy flag the
+  runner reads (`autotune.json`).
+- grid-weekend claims every file of the lane (`*`): making a sweep fast enough can touch the
+  engine, the cell and the batch alike, and it is last, so running alone costs nothing.
+
 ## RUNGS
 
 ### 2026-11-13 — the luck rung: a chance multiplied by every trial, one 5% test across the set
