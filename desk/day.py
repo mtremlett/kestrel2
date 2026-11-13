@@ -106,4 +106,5 @@ def _due(line: Line, bars: Sequence[Bar], day: date) -> bool:
     dated any other day are not acted on."""
     return bool(bars) and venues.sessions(line.venue, bars[-1].day, day) == (bars[-1].day, day)
 
+
 # drive: inside the claim
