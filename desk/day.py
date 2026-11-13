@@ -10,7 +10,7 @@ from decimal import Decimal
 from pathlib import Path
 
 from desk import book, strategy, venues
-from desk.broker import Pretend
+from desk.broker import Broker
 from desk.lines import Line
 from desk.orders import Order, Refused, Sale, Settings, order_id_of, size, strategy_of
 from desk.store import Bar
@@ -40,7 +40,7 @@ class Record:
 def run(
     root: Path,
     archive: Mapping[Line, Sequence[Bar]],
-    broker: Pretend,
+    broker: Broker,
     settings: Settings,
     day: date,
     rates: Mapping[str, Decimal],
@@ -52,7 +52,7 @@ def run(
 def trade(
     root: Path,
     archive: Mapping[Line, Sequence[Bar]],
-    broker: Pretend,
+    broker: Broker,
     settings: Settings,
     day: date,
     rates: Mapping[str, Decimal],
@@ -93,7 +93,7 @@ def trade(
     return tuple(sent)
 
 
-def _send(root: Path, broker: Pretend, order: Order | Sale, settings: Settings) -> book.Sent:
+def _send(root: Path, broker: Broker, order: Order | Sale, settings: Settings) -> book.Sent:
     """Send through the one door; its refusal is the order's answer, kept with the day's."""
     try:
         return book.send(root, broker, order, settings)
