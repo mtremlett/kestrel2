@@ -20,9 +20,10 @@ One pass at a time works on a folder of journals.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections import Counter
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from datetime import date
+from datetime import UTC, date, datetime
 from functools import lru_cache, partial
 from pathlib import Path
 
@@ -57,7 +58,9 @@ def work(root: Path, kept: Path, start: date, end: date, lines: Sequence[Line]) 
     """A worker's work: each ticker's bars read once from the research store at root, every
     strategy run on them, each outcome kept in the ticker's journal as it finishes."""
 
-    @lru_cache(maxsize=1)  # one ticker's bars at a time; a failed read is every cell's error
+    @lru_cache(
+        maxsize=1
+    )  # one ticker's bars at a time; a read that fails is tried, and fails, for each cell
     def bars(line: Line) -> tuple[Bar, ...]:
         return universe.read(root, line).bars
 
@@ -67,13 +70,12 @@ def work(root: Path, kept: Path, start: date, end: date, lines: Sequence[Line]) 
 
 
 def _tally(
-    todo: Sequence[Sequence[Cell]], kept: Path, before: Sequence[int], report: tune.Report[Line]
+    todo: dict[Line, tuple[Cell, ...]], kept: Path, before: Sequence[int], report: tune.Report[Line]
 ) -> Pass:
     """The pass counted from what it added to each journal: a cell's last outcome there, and
     for a cell with none, kept where its ticker's worker finished and undone where it died."""
     ran = failed = held = undone = 0
-    for group, had in zip(todo, before, strict=True):
-        line = group[0].line
+    for (line, group), had in zip(todo.items(), before, strict=True):
         new = batch.rows(journal(kept, line))[had:]
         last = {tuple(row["cell"]): "error" in row for row in new}
         failed += sum(last.values())
@@ -82,7 +84,7 @@ def _tally(
             undone += len(group) - len(last)
         else:
             held += len(group) - len(last)
-    return Pass(report, sum(len(group) for group in todo), ran, held, failed, undone)
+    return Pass(report, sum(map(len, todo.values())), ran, held, failed, undone)
 
 
 def run(
@@ -94,11 +96,17 @@ def run(
     machine: tune.Machine,
     data: Path,
     threads: int,
+    clock: Callable[[], datetime] = lambda: datetime.now(UTC),
 ) -> Pass:
     """One pass over the lines, whose bars the research store at root holds: every cell from
     start to end run under the auto-tune or found kept, in the journals under kept. The
-    auto-tune's flag and log are written in data."""
-    todo = [cells(line, start, end) for line in lines]
+    auto-tune's flag and log are written in data. A ticker listed twice is refused: two
+    workers would hold its one journal."""
+    twice = [f"{line.symbol} on {line.venue}" for line, n in Counter(lines).items() if n > 1]
+    if twice:
+        raise ValueError(f"listed more than once: {', '.join(twice)}")
+    todo = {line: cells(line, start, end) for line in lines}
     before = [len(batch.rows(journal(kept, line))) for line in lines]
-    report = tune.run(lines, partial(work, root, kept, start, end), machine, data, threads)
+    each = partial(work, root, kept, start, end)
+    report = tune.run(lines, each, machine, data, threads, clock)
     return _tally(todo, kept, before, report)

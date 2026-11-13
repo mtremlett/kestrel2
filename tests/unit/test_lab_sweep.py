@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import Sequence
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
@@ -19,6 +19,7 @@ from lab import batch, cell, sweep, universe
 
 DAY = date(2026, 11, 13)
 START = DAY - timedelta(200)
+SATURDAY = datetime(2026, 11, 14, 12, tzinfo=UTC)
 BOEING, BAE = Line("BA", "US", "USD", 1), Line("BA", "LSE", "GBP", 1, STAMP_DUTY)
 ABSENT = Line("NONE", "US", "USD", 1)  #: on the list, with no bars in the store
 FATAL = Line("FATAL", "US", "USD", 1)  #: the ticker whose worker dies
@@ -43,9 +44,9 @@ def _dying(root: Path, kept: Path, start: date, end: date, lines: Sequence[Line]
         sweep.work(root, kept, start, end, [line])
 
 
-def _pass(tmp_path: Path, lines: Sequence[Line] = LINES) -> sweep.Pass:
-    pc = Pc(tmp_path)
-    return sweep.run(lines, tmp_path / "store", tmp_path / "kept", START, DAY, pc, tmp_path, 8)
+def _pass(tmp_path: Path, lines: Sequence[Line] = LINES, threads: int = 8) -> sweep.Pass:
+    pc, folders = Pc(tmp_path), (tmp_path / "store", tmp_path / "kept")
+    return sweep.run(lines, *folders, START, DAY, pc, tmp_path, threads, lambda: SATURDAY)
 
 
 def test_every_strategy_on_every_ticker_is_kept_and_only_what_changed_is_run_again(
@@ -81,13 +82,16 @@ def test_a_ticker_whose_worker_dies_is_named_and_the_rest_are_kept(
     _keep(tmp_path / "store", BOEING)
     _keep(tmp_path / "store", BAE)
     monkeypatch.setattr(sweep, "work", _dying)
-    done = _pass(tmp_path, (BOEING, FATAL, BAE))
-    assert done.report.died == (FATAL,)
-    assert (done.cells, done.ran, done.kept, done.failed) == (3 * EACH, 2 * EACH, 0, 0)
+    done = _pass(tmp_path, (BOEING, ABSENT, FATAL, BAE), threads=2)  # one batch, halved twice
+    assert done.report.died == (FATAL,) and done.report.batches == 5
+    assert (done.cells, done.ran, done.kept, done.failed) == (4 * EACH, 2 * EACH, 0, EACH)
+    assert len(batch.rows(sweep.journal(tmp_path / "kept", ABSENT))) == 2 * EACH  # tried twice
     assert done.undone == EACH, "the dead ticker's cells have no outcome, and are counted so"
 
 
-def test_a_window_that_ends_before_it_starts_runs_no_pass(tmp_path: Path) -> None:
+def test_a_backward_window_or_a_ticker_listed_twice_runs_no_pass(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="ends before it starts"):
         sweep.run(LINES, tmp_path, tmp_path, DAY, START, Pc(tmp_path), tmp_path, 8)
+    with pytest.raises(ValueError, match="more than once: BA on LSE"):
+        _pass(tmp_path, (BOEING, BAE, BAE))
     assert not (tmp_path / "autotune.json").exists()
