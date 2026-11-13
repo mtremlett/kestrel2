@@ -8,6 +8,7 @@ import io
 import json
 import urllib.error
 import urllib.request
+from datetime import UTC, datetime
 from email.message import Message
 from pathlib import Path
 from typing import Any
@@ -135,6 +136,7 @@ def test_the_usage_figure_is_read_from_its_own_line_in_the_description_or_not_at
 
 
 KEY = "123456:a-fake_key"
+DAY = datetime(2026, 11, 13, 14, 0, tzinfo=UTC)  #: a fixed afternoon: the line is sent
 PULLS = [{"merge_commit_sha": "bbb", "title": "x", "number": 6, "body": "Weekly usage: 21%"}]
 #: The plan as it stood on main just before this merge: one step fewer ticked.
 PARENT = {
@@ -169,7 +171,7 @@ def test_a_delivered_line_is_recorded_with_telegrams_message_number(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     called = _replies(monkeypatch, PULLS, PARENT, {"ok": True, "result": {"message_id": 9}})
-    announce.main(_env(tmp_path / "summary.md"))
+    announce.main(_env(tmp_path / "summary.md"), DAY)
     assert called[:2] == [
         "https://api.github.com/repos/o/r/commits/bbb/pulls",
         "https://api.github.com/repos/o/r/contents/docs/PLAN.md?ref=bbb~1",
@@ -185,7 +187,7 @@ def test_a_previous_plan_github_did_not_send_whole_fails_saying_so(
 ) -> None:
     _replies(monkeypatch, PULLS, {"encoding": "none", "content": ""})
     with pytest.raises(SystemExit, match="previous docs/PLAN.md .*'none'"):
-        announce.main(_env(tmp_path / "summary.md"))
+        announce.main(_env(tmp_path / "summary.md"), DAY)
     assert not (tmp_path / "summary.md").exists()
 
 
@@ -198,12 +200,50 @@ def test_an_undelivered_line_fails_and_never_prints_the_key(
     for refusal in ({"ok": False, "description": "chat not found"}, refused):
         _replies(monkeypatch, PULLS, PARENT, refusal)
         with pytest.raises(SystemExit, match="chat not found") as stopped:
-            announce.main(_env(tmp_path / "summary.md"))
+            announce.main(_env(tmp_path / "summary.md"), DAY)
         assert KEY not in str(stopped.value)
     assert not (tmp_path / "summary.md").exists()
 
 
 def test_a_key_that_is_not_a_bot_key_is_refused_by_name_not_shown() -> None:
     with pytest.raises(SystemExit, match="TELEGRAM_BOT_TOKEN is not a bot key") as stopped:
-        announce.main(_env(Path("unused"), key="123456:a bad paste"))
+        announce.main(_env(Path("unused"), key="123456:a bad paste"), DAY)
     assert "bad paste" not in str(stopped.value)
+
+
+def test_a_line_made_while_he_sleeps_is_held_for_the_morning_not_sent(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """22:00 to 08:00 UK: the line is recorded, and nothing reaches Telegram."""
+    for hour, minute in ((22, 0), (3, 30), (7, 59)):
+        called = _replies(monkeypatch, PULLS, PARENT)
+        night = datetime(2026, 11, 13, hour, minute, tzinfo=UTC)  # November: UK is UTC
+        announce.main(_env(tmp_path / "summary.md"), night)
+        assert not any("telegram" in url for url in called) and len(called) == 2
+    record = (tmp_path / "summary.md").read_text(encoding="utf-8")
+    assert record.count("Held for the 08:00 message") == 3 and "· usage 21% (#6)" in record
+
+
+def test_his_hours_begin_at_22_and_end_at_08_uk_time_in_summer_too() -> None:
+    def gmt(*at: int) -> datetime:
+        return datetime(*at, tzinfo=UTC)
+
+    winter = [
+        announce.asleep(gmt(2026, 11, 13, h, m)) for h, m in ((21, 59), (22, 0), (7, 59), (8, 0))
+    ]
+    assert winter == [False, True, True, False]
+    assert announce.asleep(gmt(2026, 7, 1, 21, 30))  # 22:30 in London
+    assert not announce.asleep(gmt(2026, 7, 1, 7, 0))  # 08:00 in London
+    # the clocks change at 01:00 UTC on the last Sundays of March and October
+    assert (
+        announce.uk_hour(gmt(2026, 3, 29, 0, 59)) == 0
+        and announce.uk_hour(gmt(2026, 3, 29, 1, 0)) == 2
+    )
+    assert (
+        announce.uk_hour(gmt(2026, 10, 25, 0, 59)) == 1
+        and announce.uk_hour(gmt(2026, 10, 25, 1, 0)) == 1
+    )
+    assert (
+        announce.uk_hour(gmt(2027, 3, 28, 1, 0)) == 2
+        and announce.uk_hour(gmt(2027, 10, 31, 0, 30)) == 1
+    )
