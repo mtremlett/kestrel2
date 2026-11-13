@@ -79,9 +79,10 @@ def _us(year: int) -> set[date]:
     thanksgiving = date(year, 11, 1) + timedelta((3 - date(year, 11, 1).weekday()) % 7 + 21)
     fixed = {_monday(year, 1, 3), _monday(year, 2, 3), _monday(year, 5, -1), _monday(year, 9, 1)}
     fixed |= {_easter(year) - timedelta(2), thanksgiving}
+    #: A Saturday New Year falls back to the old year's 31 December, which is only ever looked
+    #: up in the old year's own list, so the exchange stays open that day, as it does.
     dated = [date(year, 1, 1), date(year, 7, 4), date(year, 12, 25)]
-    fixed |= {_observed(day) for day in dated + [date(year, 6, 19)] * (year >= 2022)}
-    return {day for day in fixed if day.year == year}  #: a Saturday New Year is not kept
+    return fixed | {_observed(day) for day in dated + [date(year, 6, 19)] * (year >= 2022)}
 
 
 RULES: dict[str, Callable[[int], set[date]]] = {"LSE": _lse, "US": _us}

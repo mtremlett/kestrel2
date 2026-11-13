@@ -56,6 +56,13 @@ def test_a_bad_bar_never_enters_and_its_line_is_parked(tmp_path: Path, fault: st
     assert store.read(tmp_path, US.symbol) == _bars(US)[:4] + _bars(US)[5:]
 
 
+def test_one_bar_given_twice_is_kept_once_and_its_line_parked(tmp_path: Path) -> None:
+    bars = _bars(US)
+    reasons = _parked(tmp_path, (*bars, bars[2]))
+    assert len(reasons) == 1 and "2025-11-05" in reasons[0]
+    assert store.read(tmp_path, US.symbol) == bars
+
+
 def test_one_date_with_two_different_bars_keeps_neither(tmp_path: Path) -> None:
     bars = _bars(US)
     reasons = _parked(tmp_path, (*bars, replace(bars[2], close=bars[2].close + 1)))
