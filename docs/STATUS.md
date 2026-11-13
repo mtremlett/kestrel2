@@ -272,14 +272,37 @@ Last updated: 13 November 2026.
 
 ### Where it is
 
-Not started. Phase 4 runs now as a second track (`docs/PLAN.md`).
+The ladder has its unit of work (`lab/cell.py`): one of the five strategies on one of the
+twenty lines over a window of days. It runs the desk's own decisions, never a copy of them,
+over the line's whole history up to the window's end, and records the days each trade was
+bought and sold. Each record carries a fingerprint of the code that made it and of every
+bar it read, so a later batch can keep results and re-run only what changed. It names no
+price or profit yet: no result is reported without its costs (`docs/DECISIONS.md`).
 
 ### Next step
 
-The ladder's unit of work - one strategy on one line over one window, keyed by the code's
-and the data's versions - and its contract test.
+A batch service that runs many cells, survives a bad one and a restart.
 
 ### Found, not fixed
+
+- **The unit tests are within fifteen lines of the product.** The guard holds unit tests
+  to no more lines than `desk/` and `lab/` together (1,120 against 1,134 on this branch).
+  Every lane's next test must come with as much product, or a test consolidated.
+- **What the blind review of the unit of work left for the batch** (nothing blocking; its
+  test gaps on the data version and the trade pairing, and its unsorted-bars finding, are
+  fixed and tested):
+  - The code version is read from disk when `lab/cell.py` is imported. A long-lived
+    process that imported the strategies earlier, and had them changed on disk before
+    that, would key old code's results under the new code. The batch service must run each
+    batch in a fresh process, or refuse when the files no longer match `cell.LOADED`.
+  - Three of the five rules never trade in the contract test's twenty-five-day shapes
+    (RSI-2, the 50/200 cross, Supertrend need far longer); their agreement with the desk
+    is shown there only as "no trades". A fixture of more than 200 bars would cover them.
+  - The key does not include the Python version, and only file contents, not file paths,
+    are hashed; a file moved without a change of text keeps its key.
+- **A cell runs all five strategies to keep one.** It asks `strategy.decide`, which decides
+  every rule at once; a batch of the five on one line pays five times. Fine until a
+  benchmark says otherwise.
 
 - **A missing session older than sixty sessions no longer parks a line**, so research over
   years of history (the ladder) will meet gaps it must handle.

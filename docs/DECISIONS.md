@@ -725,3 +725,39 @@ Scene 2's future-blind loop over all 311 days will take about twenty seconds whe
 takes one; the money lane may cut on fewer days.
 
 ## LADDER
+
+### 2026-11-13 — the ladder's unit of work: days only, the whole history, keyed by what it read
+
+**Decided.** The ladder's unit of work is a cell: one of the five strategies, one line of
+the twenty, and a window of days (`lab/cell.py`). Its record holds the trades the desk's own
+`strategy.decide` makes there, as days only: the day bought and the day sold, or none while
+still held at the window's end. It is keyed by a code version and a data version.
+
+**The choices, and why.**
+- *What the record holds.* Options: days only; days with prices and a profit before costs;
+  a profit after costs. Chosen: days only. The canon reports no result without its costs,
+  and pricing a trade honestly needs the fill convention, the sizing and the exchange rate
+  of each day, which are a rung of their own. Days are facts every later rung agrees on.
+- *Where the rule starts.* Options: at the window's first day; at the line's first bar.
+  Chosen: the line's first bar, with nothing after the window's end shown. A rule needs up
+  to 200 days to warm up, and the money lane found that a decision depends on where the
+  history starts; starting where the desk starts keeps the ladder's decisions the desk's.
+- *Which trades are the window's.* A trade belongs to the window it was bought in, so
+  windows laid side by side count each trade once.
+- *The code version.* Options: the git commit; a hand-kept list of files; every file of the
+  repository that `lab/cell.py` reaches through its imports. Chosen: the files reached,
+  read once as the process loads them, Windows line endings ignored. A commit moves with
+  any document, and a hand-kept list goes stale the day someone forgets it; following the
+  imports cannot forget a file the result depends on.
+- *The data version.* Every bar the rule was shown, so a bar changed years before the
+  window moves the key, and one after the window does not.
+
+**Evidence.** Nine contract tests, seen failing first. Seventeen deliberate breaks of
+the module were driven against them; fifteen were caught at once. Two showed the test
+itself was blind (Windows writes its own line endings, so the "same code on Windows" check
+compared like with like; and the package files were never proven counted, which hid that
+`lab/__init__.py` was not hashed at all): both fixed, and each break then caught. Two more
+survived because the code was not needed (a filter on package names, and hashing file
+names); that code was deleted, not tested. A blind review found nothing blocking; its
+test gaps (a high or low changed alone; the pairing of each buy with its own sell) and
+bars out of order being accepted were fixed, each break driven and caught.
