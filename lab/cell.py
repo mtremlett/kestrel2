@@ -16,6 +16,11 @@ studied, one of the research list as much as one of the twenty; studying it trad
 Two records with the same key are the same result. The code version is every file of this
 repository this module reaches through its imports, read once as the process loads it, so a key
 never claims code the process is not running. The data version is every bar the rule read.
+
+A rung makes something of a record (a verdict, a correction), and what it makes has a key of
+its own (`Key.rung`): the record's, and every file the rung's module reaches. The first rung
+reaches the desk's cost model, so a change of costs gives every verdict a new key and leaves
+the trades theirs: only what a change touches is run again.
 """
 
 from __future__ import annotations
@@ -23,8 +28,9 @@ from __future__ import annotations
 import ast
 import hashlib
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
+from functools import cache
 from pathlib import Path
 
 from desk import strategy
@@ -34,6 +40,7 @@ from desk.strategy import STRATEGIES, Action
 from lab import grid
 
 ROOT = Path(__file__).parents[1]
+CELL = "lab.cell"  #: this module, the foot of the ladder
 
 
 @dataclass(frozen=True, init=False)
@@ -80,6 +87,12 @@ class Key:
     code: str  #: sha256 of the code that produced the record
     data: str  #: sha256 of every bar the rule was shown
 
+    def rung(self, module: str) -> Key:
+        """The key of what the rung in that module makes of what this key names: its code is
+        this key's and everything the rung's module reaches, the cost model with the rest."""
+        made = hashlib.sha256(f"{self.code}\n{loaded(module)}".encode()).hexdigest()
+        return replace(self, code=made)
+
 
 @dataclass(frozen=True)
 class Record:
@@ -118,26 +131,38 @@ def _files(root: Path, name: str) -> set[str]:
     return {f for f in found if f is not None}
 
 
-def reached(root: Path) -> tuple[str, ...]:
-    """lab/cell.py, its package, and every file under root they reach through imports."""
-    seen, waiting = set(), _files(root, "lab.cell")
+def reached(root: Path, module: str = CELL) -> tuple[str, ...]:
+    """The module's file, its packages', and every file under root they reach through
+    imports. The module is this one or a rung upon it: it reaches this one."""
+    if _file(root, module) is None:
+        raise ValueError(f"{module}: no module of that name under {root}")
+    seen, waiting = set(), _files(root, module)
     while waiting:
         path = waiting.pop()
         seen.add(path)
         waiting |= _imports(root, path) - seen
+    if _file(root, CELL) not in seen:
+        raise ValueError(f"{module} is not a rung: it never reaches the cell that makes the trades")
     return tuple(sorted(seen))
 
 
-def code_version(root: Path = ROOT) -> str:
+def code_version(root: Path = ROOT, module: str = CELL) -> str:
     """sha256 of the text of every file reached; a Windows line ending is not a change."""
     digest = hashlib.sha256()
-    for path in reached(root):
+    for path in reached(root, module):
         digest.update((root / path).read_bytes().replace(b"\r\n", b"\n") + b"\0")
     return digest.hexdigest()
 
 
 #: The code this process loaded, read once as it loads it.
 LOADED = code_version()
+
+
+@cache
+def loaded(module: str) -> str:
+    """A rung's code version, read once, the first time it is asked: a rung asks as the
+    process loads it, as LOADED is read."""
+    return code_version(ROOT, module)
 
 
 def _data_version(bars: Sequence[Bar]) -> str:
