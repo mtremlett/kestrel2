@@ -1192,10 +1192,11 @@ SQLite in WAL mode (standard library, one writer, many readers), held to benchma
 advance. DAT-04, dropped earlier this evening for want of a benchmark, is restored: he has
 now set the need, and the benchmarks are its test.
 
-**The cost, stated.** The free archive's five-minute bars arrive late: delayed by about
-fifteen minutes for London, and not guaranteed for the US. The delay is measured and shown
-on every bar. Prices without delay come from the broker, and a subscription for them is a
-spending decision for him, asked separately.
+**The source.** He already pays for IBKR's market data and uses the free archive as a
+second source (his words: "i already pay for ibkr market data and use yf.download as a second
+source"). So the hot bars come first from the broker, read-only through the paper port, and
+the free archive checks them. No new spending. The paper account must see his live data, not
+the delayed kind; the data lane proves that first, read-only.
 
 ---
 
