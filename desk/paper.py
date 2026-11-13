@@ -27,8 +27,9 @@ SECONDS = 15  #: a gateway silent for longer has not answered
 ACCOUNTS, READY, NEWS, STATUS = "15", "9", "4", "3"
 HOLDING, HOLDINGS_END, ORDER, ORDERS_END = "61", "62", "5", "53"
 START, ASK_HOLDINGS, ASK_ORDERS = 71, 61, 16  #: what the desk sends: none places an order
-#: News of the gateway's price feeds, which this door does not read; any other news stops it.
-FEEDS = frozenset({"2103", "2104", "2105", "2106", "2107", "2108", "2119", "2157", "2158"})
+#: News of the gateway's price feeds, which this door does not read; any other news stops
+#: it, that it cannot look lines up (2157) included: nothing it then says of a line is sound.
+FEEDS = frozenset({"2103", "2104", "2105", "2106", "2107", "2108", "2119", "2158"})
 Send = Callable[[bytes], object]  #: what puts the desk's bytes on the connection
 T = TypeVar("T")
 
