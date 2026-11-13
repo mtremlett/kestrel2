@@ -2575,6 +2575,39 @@ quietly taking the trading line of the same symbol. Blind review, nothing blocki
 - grid-weekend claims every file of the lane (`*`): making a sweep fast enough can touch the
   engine, the cell and the batch alike, and it is last, so running alone costs nothing.
 
+### 2026-11-13 — a key per rung (grid-key, #88)
+
+**Decided.** Each rung (a module of `lab/` that builds on the cell) has a code version of its own, covering every file it reaches; the first rung reaches the cost model (`desk/orders.py`), so a change of costs moves every verdict's key and leaves the trades' keys alone.
+- *One key or a key per rung?* (a) fold the cost model and every rung's code into the cell's one key; (b) a key per rung. Chosen (b): under (a) a one-line commission change re-runs every trade search, hours of work, though the days a rule bought and sold cannot depend on costs. Under (b) a change re-runs exactly what it touches.
+- *The cost model's version.* A number someone must raise, or the code's own text. Chosen the text: a number kept by hand is a rule in prose.
+- *Chained, not swapped.* The rung's key hashes the record's code with the rung's, so trades made by older code never pass for this code's under a verdict's key.
+- *When read.* First asked, or at load. Chosen at load, every rung at once: the first showed a cost model edited after the process loaded the old one.
+- *What is a rung.* A `lab/` module reaching the cell through its imports; any other name is refused, no list kept by hand.
+
+**Evidence.** Test seen failing first; 27 deliberate breaks, 27 caught; a blind review's one blocking finding fixed. Open: nothing stamps a verdict with the key yet (R-GRID-3).
+
+### 2026-11-13 — the auto-tune: finish the kept work (grid-tune, #94)
+
+**Decided.**
+- *Which branch.* The kept branch, or a fresh one. Chosen the kept branch, as the restore instruction says, keeping the earlier three commits.
+- *Finish or delete.* Chosen finish: complete, green with main, review found no blocker.
+- *The review's minor findings.* Fix now or carry to grid-pass. Chosen carry: none is wrong behaviour today and the change sat at 296 of 300 lines allowed.
+- *UK clock.* `tune.spare` works out summer time itself because the calendar keeps its rule private. Keep and ask DATA for a public one (R-GRID-4), or wait. Chosen keep: proven on both sides of both hours.
+
+**Evidence.** 18 deliberate breaks, 18 caught; proven with the real Windows ceiling (a gigabyte cell under 400 MB was refused and the rest finished); blind review found nothing blocking.
+
+### 2026-11-13 — the grid's first pass (grid-pass, #102)
+
+**Decided.**
+- *What "every setting" means.* (a) whatever the desk's engine can make (`strategy.STRATEGIES`, five today); (b) settings invented in the grid. Chosen (a): the grid is trusted only where it matches the desk's engine (canon B2); settings are MONEY's (R-GRID-1).
+- *The unit handed to a worker.* A cell with a shared journal, or a ticker with a journal each. Chosen the ticker: prices read once instead of five times and two workers never write one journal.
+- *Which tickers.* Only the 864 clean ones, or all 1,065 through research's own reading. Chosen all 1,065: DATA built that reading for it (R-DATA-7), and a parked ticker can still be studied.
+- *Window.* The whole history, one window per cell; folds are RUNGS'.
+- *The research store.* A scratch folder rebuilt from cached answers, or a permanent home now. Chosen scratch: the home is DATA's box (R-GRID-5) and kept cells do not depend on it.
+- *A ticker listed twice is refused*, not quietly counted once: a repeat is a mistake in the list.
+
+**Evidence.** The pass run for real: 5,325 cells run and kept in 200 s, none failed; a second pass ran none, in 45 s. 14 deliberate breaks, all caught after the test was strengthened; a blind review's one blocking finding fixed.
+
 ## RUNGS
 
 ### 2026-11-13 — the luck rung: a chance multiplied by every trial, one 5% test across the set
@@ -2717,3 +2750,55 @@ places against the published client (from memory, about nine in ten sure) and th
 can place or cancel an order; its two test gaps closed. Deliberate breaks outside the repository,
 cache off: twenty-nine on the restored work and twenty on the final code, all caught, plus one
 that cannot change a result. Not witnessed: the unfinished run's tests failing first.
+
+### 2026-11-13 — the folds rung (rungs-folds, #79)
+
+**Decided**, by the lane as the desk's mentor. Options and choices:
+- *What "in-sample" means for a frozen rule with no settings.* (a) plain consecutive folds;
+  (b) walk-forward, each fold beside all the history before it. Chose (b): it is what a
+  chooser would have known the day the fold began, and it shows an edge decaying.
+- *What the verdict is judged on.* (a) worst fold among all parts; (b) worst out-of-sample
+  fold, in-sample shown beside it. Chose (b): in-sample is where a choice is made, never proof.
+- *The bar per fold.* (a) a looser bar; (b) the first rung whole. Chose (b): one rule, one
+  home. A thin fold reads as a fail until "failing fairly" makes it "not enough evidence".
+- *Trades across a boundary.* (a) to the fold it was bought in; (b) to neither. Chose (b):
+  otherwise an in-sample result would lean on out-of-sample prices.
+- *Luck trials.* The out-of-sample verdicts only: they are what a winner is picked on.
+- *Number of folds* is the caller's; fewer bars than parts is refused.
+
+### 2026-11-13 — the register of trials (rungs-trials, #91)
+
+**Decided**, by the lane as the desk's mentor.
+- *What makes two trials the same.* (a) the cell alone; (b) the cell with code and data
+  versions; (c) a made-up name. Chose (a), other candidates entered under a telling name:
+  with the code version every unrelated commit would double the count; with the data version
+  a mended bar would. Cost: a rule changed under its old name is not seen (written in STATUS).
+- *When a trial is counted.* (a) when its verdict arrives; (b) before it is run. Chose (b): a
+  failed cell or dropped candidate leaves no verdict, and the count must not rely on memory.
+- *One count or one per question.* Chose per question, each opened on purpose once, other
+  wordings refused: one count would charge a London question for New York trials; free
+  rewording is the restart the box forbids.
+- *A missing register.* (a) begin empty; (b) refuse, with a separate door to start one
+  on purpose. Chose (b): a wrong path must fail loudly, not count from nothing.
+- The same trial entered twice counts once; a verdict not in the register, or a trial judged
+  twice in one set, is refused; the trial's name is the register's own wording, apart from
+  how a cell prints, so a printing change cannot rename counted trials.
+
+### 2026-11-13 — the luck test fixed before any result (rungs-deflated, #98)
+
+**Decided**, by the lane as the desk's mentor.
+- *What the Sharpe is measured on.* (a) daily account values; (b) the trades. Chose (b): the
+  first rung's own gains, so the rungs cannot disagree about evidence.
+- *The spread setting luck's bar.* (a) the spread of the batch's Sharpes (the paper's own);
+  (b) one over the trades less one, what no edge gives. Built (a) first; review showed the
+  same winner failing beside noise (0.43) and passing beside its twin (0.9998). Chose (b):
+  the bar depends on two counts only, so no result can move it.
+- *The bands.* 0.90 and 0.50, the book's own: pass, fail, and doubt between (two bands, three
+  answers).
+- *The daily Sharpe above 2.* Worked as a yearly Sharpe from the trades (a verdict holds no
+  daily accounts). A flag gives doubt, not a note (nobody reads it) and not a fail (the cause
+  is usually a fault in the test).
+- *The one rule.* (a) the worst of the named rungs; (b) a score. Chose (a), refusing any set
+  of answers that is not exactly the named rungs; later rungs join by being named in the list.
+- The luck rung stays beside the deflated Sharpe. A trial under two trades fails.
+- Guards driven: 6 contract tests seen failing first; 47 deliberate breaks, 43 caught.
