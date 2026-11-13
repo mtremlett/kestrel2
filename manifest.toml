@@ -22,4 +22,11 @@ allowed_third_party = []
 # Every module, with the one thing it owns. Add a line here, then write the file.
 [modules]
 "desk/__init__.py" = "the package marker; owns no behaviour"
+"desk/lines.py" = "the instrument master: the facts about each line"
+"desk/store.py" = "the one price store and its one writer: bars cleaned on entry, bad lines parked"
+"desk/strategy.py" = "the five frozen daily strategies: a decision for every line and day"
+"desk/orders.py" = "the order, sized from the one capital number, its stop, the pre-trade gate"
+"desk/broker.py" = "the pretend broker the desk trades against in simulation"
+"desk/book.py" = "the ledger of fills under the broker's ids, and the book built from the broker"
+"desk/day.py" = "the desk's day: run once for a date, publish one record, replay it"
 "lab/__init__.py" = "the package marker; owns no behaviour"
