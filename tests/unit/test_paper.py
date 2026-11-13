@@ -30,13 +30,15 @@ HELD = "61 3 DU0000001 458512497 SMGB STK  0.0   LSEETF GBP SMGB EUE2 25 31.5".s
 #: An open order as the published client reads it; no order rested on the account to copy.
 STOP = (
     "5 7 265598 AAPL STK  0 ?  SMART USD AAPL.O NMS SELL 10 STP 0.0 171.5 GTC  DU0000001  0"
-    "  31 1234567 0 0 0".split(" ")
+    " 20261112-rsi2-AAPL-stop 31 1234567 0 0 0".split(" ")
 )
 STATUS = ("3", "7", "PreSubmitted", "0", "10", "0", "1234567", "0", "0", "31", "", "0")
+PART = ("3", "7", "Submitted", "4", "6", "171.4", "1234567", "0", "171.4", "31", "", "0")
 ENDS = (("62", "1"), ("53", "1"))
 SMGB = Holding("DU0000001", "SMGB", "STK", "GBP", Decimal(25))
 LIVE = ("15", "1", "U7654321")
-AAPL_STOP = Resting("1234567", "31", "DU0000001", "AAPL", "SELL", Decimal(10), "STP")
+HEAD = ("1234567", "31", "DU0000001", "AAPL", "SELL", Decimal(10), "STP", "265598")
+AAPL_STOP = Resting(*HEAD, "20261112-rsi2-AAPL-stop", "PreSubmitted", Decimal(10))
 TWO = "SMGB STK GBP: the broker holds {} in one of 2 entries, the desk's book {}"
 RESTS = "AAPL: an order resting at the broker to SELL {} (STP, the broker's id 1234567, client {})"
 
@@ -45,6 +47,10 @@ def _wire(*messages: Sequence[str]) -> io.BytesIO:
     """What the gateway sends: each message's length, then its fields ended by a zero byte."""
     bodies = ("".join(f"{field}\0" for field in fields).encode() for fields in messages)
     return io.BytesIO(b"".join(struct.pack(">I", len(body)) + body for body in bodies))
+
+
+def _but(fields: Sequence[str], at: int, value: str) -> list[str]:
+    return [*fields[:at], value, *fields[at + 1 :]]
 
 
 def _smgb(*shares: int) -> Account:
@@ -70,8 +76,10 @@ def test_the_account_is_read_as_the_gateway_gives_it_and_nothing_else_is_sent() 
         b"\x00\x00\x00\x0a71\x002\x00222\x00\x00",  # start, as the desk's own client
         b"\x00\x00\x00\x0561\x001\x00\x00\x00\x00\x0516\x001\x00",  # positions; open orders
     ]
-    late, _ = _read(ACCOUNTS, READY, STOP, ENDS[1], HELD, ENDS[0])  # the lists end either way
-    assert late == Account((SMGB,), (AAPL_STOP,))
+    # the lists end either way; an order is read from its head alone, and stands where the
+    # broker last said, for the shares still to be done, wherever its state comes
+    late, _ = _read(ACCOUNTS, READY, STATUS, STOP[:26], PART, ENDS[1], HELD, ENDS[0])
+    assert late == Account((SMGB,), (replace(AAPL_STOP, state="Submitted", left=Decimal(6)),))
 
 
 @pytest.mark.parametrize(
@@ -115,10 +123,18 @@ def test_nothing_is_asked_until_the_gateway_is_ready_and_its_accounts_are_all_pa
         ((ACCOUNTS, READY, [*FLAT[:11], "", *FLAT[12:]]), ValueError, "cannot trust"),
         ((ACCOUNTS, READY, [*FLAT[:14], "NaN", FLAT[15]]), ValueError, "NaN"),
         ((ACCOUNTS, READY, [*FLAT[:14], "Infinity", FLAT[15]]), ValueError, "Infinity"),
-        ((ACCOUNTS, READY, STOP[:25]), ValueError, "AAPL"),
-        ((ACCOUNTS, READY, [*STOP[:13], "SSHORT", *STOP[14:]]), ValueError, "SSHORT"),
+        ((ACCOUNTS, READY, STOP[:25], *ENDS), ValueError, "AAPL"),
+        # listed as open is not being worked: an order with no state of its own is not read
+        ((ACCOUNTS, READY, STOP, *ENDS), ValueError, "no state"),
+        ((ACCOUNTS, READY, STOP, _but(STATUS, 6, "7"), *ENDS), ValueError, "1234567"),
+        ((ACCOUNTS, READY, STOP, STATUS[:-1]), ValueError, "shape"),
+        ((ACCOUNTS, READY, STOP, [*STATUS, ""]), ValueError, "shape"),
+        ((ACCOUNTS, READY, _but(STATUS, 4, "")), ValueError, "plain number"),
+        ((ACCOUNTS, READY, _but(STOP, 14, "1E+1"), *ENDS), ValueError, "plain number"),
+        ((ACCOUNTS, READY, [*FLAT[:14], "1_0", FLAT[15]]), ValueError, "plain number"),
+        ((ACCOUNTS, READY, _but(STOP, 13, "SSHORT"), STATUS, *ENDS), ValueError, "SSHORT"),
         ((ACCOUNTS, READY, [*FLAT[:2], "U7654321", *FLAT[3:]]), paper.NotPaper, "U7654321"),
-        ((ACCOUNTS, READY, [*STOP[:20], "U7654321", *STOP[21:]]), paper.NotPaper, "U7654321"),
+        ((ACCOUNTS, READY, _but(STOP, 20, "U7654321"), *ENDS), paper.NotPaper, "U7654321"),
     ],
 )
 def test_an_answer_the_desk_cannot_trust_stops_the_reading(
