@@ -237,7 +237,6 @@ The lane's objective, the research list's parked fifth (`docs/PLAN.md`). Open fo
 ## GRID
 
 Last updated: 13 November 2026 (the unit of work on the grid engine).
-
 ### Where it is
 
 Built and proven: the ladder's unit of work (`lab/cell.py`: one strategy on one line over a
@@ -251,8 +250,10 @@ the desk's engine's 95 ms. No price or profit is named.
 
 ### Next step
 
-R-DATA-1: a cell takes a `Line` of the research list and reads its venue's folder. Then
-auto-tune, so a pass can never take the PC down.
+Side by side: R-DATA-1 (a cell takes a `Line`, reads its venue's folder) and auto-tune
+(`lab/tune.py`); then the cell's key (BT-04), the first pass, week, declared, weekend. Open:
+RUNGS' `lab/rung.py` builds a `Cell` from a symbol (keep it working or ask RUNGS); "every
+setting" waits for R-GRID-1, the pass runs at the five published settings meanwhile.
 
 ### Requests to MONEY
 
@@ -271,8 +272,7 @@ auto-tune, so a pass can never take the PC down.
   2**53; Wilder's smoothing on a series as long as its window; the upper band's margin.
 - The golden series are read from the money lane's `tests/unit/test_strategy.py` (`GOLDEN`,
   `_walk`, `_jumpy`, `_bars`, `START`): if it renames them, the two lanes move together.
-- A helper's empty working copy sits under `.claude/worktrees/` of the operator's main
-  folder, with branch `worktree-agent-ab11b126c53bfd69e`. It can be deleted.
+- A helper's empty working copy (branch `worktree-agent-ab11b126c53bfd69e`) under the main folder's `.claude/worktrees/` can be deleted.
 - The unit of work: its key leaves out the Python version and file paths; no test drives a
   bar whose volume alone changed, or two bars on one day; each cell reads its line's prices
   in again (17 of its 25 ms); a refused cell runs all five of the desk's rules to keep one.

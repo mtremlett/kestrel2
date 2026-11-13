@@ -2299,6 +2299,24 @@ gap, caught since. Measured from outside the repository on 4,000 days: a cell ab
 for any of the five rules, where the desk's engine alone took 90 to 100 ms; 17 ms of the
 25 is reading the line's prices in, paid again by each cell.
 
+### 2026-11-13 — the grid lane's open boxes: order and where each one lives
+
+**Decided.** The seven open boxes are noted for the runner so sessions can take them side by
+side: grid-venue (R-DATA-1) and grid-tune share no file; then the cell's key; then grid-pass,
+grid-week, grid-declared, grid-weekend one after another.
+
+**The choices, and why.**
+- *The key before the first pass.* Options: keep the book's order, or move the key up.
+  Chosen: up. A change to the cell's key re-runs every kept cell, so changing it after a pass
+  over the whole research universe would throw that pass away.
+- *Auto-tune in `lab/tune.py`.* Options: grow `lab/batch.py`, or a new module around it.
+  Chosen: new module, so auto-tune and the venue box share no file and the batch service
+  keeps its one job.
+- *The pass in `lab/sweep.py`.* It owns which cells make a pass and the busy flag the runner
+  reads (`autotune.json`).
+- *grid-weekend claims every file of the lane.* Making a sweep fast may touch engine, cell and
+  batch alike, and it is last, so running alone costs nothing.
+
 ## RUNGS
 
 ### 2026-11-13 — the luck rung: a chance multiplied by every trial, one 5% test across the set
