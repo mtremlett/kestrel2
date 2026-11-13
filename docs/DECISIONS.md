@@ -1028,6 +1028,11 @@ request draining its lane first, the memory floor and the grid's cap holding sta
 claim disarmed, a red pull-request run not hidden by a green push run, and twelve slots
 working a book through with a peak of nine sessions and no two claims ever overlapping. The
 older drives were re-run on the new code; the only misses were words changed on purpose.
+On GitHub, once the guard was on main (#69, #70, closed unmerged): a money-lane pull
+request claiming `desk/day.py` and changing `desk/orders.py` failed its pull-request check
+on exactly that, and GitHub showed it BLOCKED although its push run was green; the same
+claim changing only `desk/day.py` was green and CLEAN. A first attempt from the guard's own
+branch was refused by the older lane guard, rightly, as a lane editing a guard.
 
 **Reviewed blind.** An independent reviewer found one blocking fault and six major ones, all
 fixed and driven: after a restart two slots could carry one pull request; two landings at
