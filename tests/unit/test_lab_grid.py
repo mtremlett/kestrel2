@@ -137,6 +137,26 @@ def test_a_tie_floating_point_cannot_call_is_refused_never_guessed() -> None:
     near = (near[0], replace(near[1], close=Decimal("1.00000000000000000001")))
     with pytest.raises(grid.TooClose, match="tell apart"):
         grid.prices(near)
-    #: prices so far apart that the desk's own 28 digits cannot add them exactly
-    with pytest.raises(grid.TooClose, match="far apart"):
-        grid.prices((near[0], replace(near[1], close=Decimal("1E+27"))))
+    #: prices so long that the desk's own 28 digits cannot add them exactly: far apart, or
+    #: (the second blind review's) small whole numbers of a step of 2**-60
+    fine = Decimal(5**60).scaleb(-60)
+    for long in (Decimal("1E+27"), fine):
+        with pytest.raises(grid.TooClose, match="too long"):
+            grid.prices((near[0], replace(near[1], close=long)))
+    #: and its other find: closes far outside their days' ranges, so that the Supertrend's
+    #: lower band is the small difference of two large numbers. The desk stays in on the
+    #: last day, a close of 500000004 over a band of 500000000.04; the grid had said out
+    days = "6,6,5 8,4,62 6,4,61 9,5,27 8,2,36 2,1,79 8,4,90 9,2,39 1,1,87 7,5,71"
+    rows = [[int(n) for n in day.split(",")] for day in days.split()]
+    wild = [[10**16 + h * 10**6, 10**16 + lo * 10**6, 10**9 + c] for h, lo, c in rows]
+    wild += [[10**16 + 3 * 10**7, 10**16 - 3 * 10**7, 5 * 10**16]]
+    wild += [[10**16 + 5 * 10**7, 10**16 - 5 * 10**7, 10**9 + 7]]
+    wild += [[47018568603106392, 47018568603106392, 10**9]]
+    wild += [[47018568703106392, 47018568503106392, 500000004]]
+    bars = tuple(
+        Bar(START + timedelta(n), Decimal(c), Decimal(h), Decimal(lo), Decimal(c), 1)
+        for n, (h, lo, c) in enumerate(wild)
+    )
+    assert _desk(bars)["supertrend_10_3"][-1] is True
+    with pytest.raises(grid.TooClose, match="too close"):
+        grid.held("supertrend_10_3", grid.prices(bars))

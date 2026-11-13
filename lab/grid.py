@@ -4,8 +4,8 @@ line, worked out on whole arrays at once, for the ladder's many cells.
 It is a second implementation of the desk's rules (`desk/strategy.py`), so it is kept only
 while a parity test shows it holds what the desk holds after every bar (canon B2). The desk
 works in exact decimals; this works in floating point, which is fast and not exact. So it
-never guesses. Prices are turned into whole numbers of the line's smallest step; sums of
-those are exact while they stay under 2**53, and a tie there is a true tie. Anything else
+never guesses. Prices are turned into whole numbers of the line's last decimal place; sums
+of those are exact while they stay under 2**53, and a tie there is a true tie. Anything else
 is trusted only when its two sides differ by a wide margin of the prices they were worked
 out from, and a comparison closer than that is refused with `TooClose`: the desk's own
 engine must decide that cell.
@@ -48,12 +48,13 @@ class TooClose(Exception):
 
 @dataclass(frozen=True)
 class Prices:
-    """A line's bars as arrays, oldest first, in whole numbers of its smallest step."""
+    """A line's bars as arrays, oldest first, in whole numbers of its last decimal place."""
 
     high: Floats
     low: Floats
     close: Floats
     whole: bool  #: every price, and every sum of them a rule forms, is held exactly
+    largest: Floats  #: the largest price of each bar and of every bar before it
 
 
 def prices(bars: Sequence[Bar]) -> Prices:
@@ -63,15 +64,16 @@ def prices(bars: Sequence[Bar]) -> Prices:
         for column in ([b.high for b in bars], [b.low for b in bars], [b.close for b in bars])
     ]
     step = math.lcm(*(bottom for column in ratios for _, bottom in column))
-    steps = [[top * (step // bottom) for top, bottom in column] for column in ratios]
+    place = next(10**n for n in range(step.bit_length() + 1) if 10**n % step == 0)
+    steps = [[top * (place // bottom) for top, bottom in column] for column in ratios]
     distinct = {number for column in steps for number in column}
     if max(distinct, default=0) * 200 >= DESK:
-        raise TooClose("prices too far apart for the desk's own sums to be exact")
+        raise TooClose("prices too long for the desk's own sums to be exact")
     table = np.array(steps, dtype=np.float64).reshape(3, len(bars))
     if len(distinct) != len(set(table.ravel().tolist())):
         raise TooClose("two prices too close for floating point to tell apart")
     whole = max(distinct, default=0) * LINEAR < EXACT
-    return Prices(table[0], table[1], table[2], whole)
+    return Prices(table[0], table[1], table[2], whole, np.maximum.accumulate(table.max(axis=0)))
 
 
 def _sure(p: Prices, margin: Floats, size: Floats, largest: Floats | float = 0.0) -> Floats:
@@ -120,10 +122,9 @@ def _rsi2(p: Prices) -> tuple[Bools, Bools]:
     gain = _wilder(np.maximum(change, 0), 2)[197:]
     loss = _wilder(np.maximum(-change, 0), 2)[197:]
     #: an RSI under 5 is a loss over 19 times the gain; with no loss at all it is 100. A
-    #: change is a close less a close, so it is only as sure as the closes are
+    #: change is a close less a close, so it is only as sure as the closes so far are
     low = loss > 0
-    size = (loss + 19 * gain + close[199:])[low]
-    low[low] = _sure(p, (loss - 19 * gain)[low], size, np.inf) > 0
+    low[low] = _sure(p, (loss - 19 * gain)[low], p.largest[199:][low], np.inf) > 0
     return _late(199, above & low, total), _late(4, stay, total)
 
 
@@ -176,11 +177,12 @@ def _supertrend(p: Prices) -> tuple[Bools, Bools]:
     width, middle = _wilder(spread, 10), (high[9:] + low[9:]) / 2  #: both from bar 9
     upper = _carried(middle + 3 * width, close[9:])
     lower = -_carried(3 * width - middle, -close[9:])
+    #: a band is a middle less a width, so it is only as sure as the prices so far are
     for band in (upper, lower):  #: whether each was carried, a close against its own day's
-        _sure(p, close[9:-1] - band[:-1], close[9:-1] + np.abs(band[:-1]), np.inf)
+        _sure(p, close[9:-1] - band[:-1], p.largest[9:-1], np.inf)
     after = close[10:]  #: each close against the bands of the day before
-    enter = _sure(p, after - upper[:-1], after + np.abs(upper[:-1]), np.inf) > 0
-    stay = _sure(p, after - lower[:-1], after + np.abs(lower[:-1]), np.inf) >= 0
+    enter = _sure(p, after - upper[:-1], p.largest[10:], np.inf) > 0
+    stay = _sure(p, after - lower[:-1], p.largest[10:], np.inf) >= 0
     return _late(10, enter, total), _late(10, stay, total)
 
 
