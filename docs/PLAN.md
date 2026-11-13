@@ -145,13 +145,12 @@ strategy template.
 
 ### The ladder lane's book
 
-**Lane objective:** a batch service that runs many cells (`lab/cell.py`), one bad cell
-recorded and the rest carried on, and a restart taking up where it stopped - proven by its
-own contract test.
+**Lane objective:** the ladder's first rung, proven: it catches a planted edge and rejects a
+planted non-edge, each shown by its own contract test on synthetic bars, with its costs.
 
 - [x] The unit of work, keyed by code and data version (`lab/cell.py`)
 - [x] A batch service that survives a bad cell and a restart (`lab/batch.py`)
-- [ ] Results kept, keyed by code and data version; only what changed is re-run
+- [x] Results kept, keyed by code and data version; only what changed is re-run (`lab/batch.py`)
 - [ ] Each rung proven: it catches a planted edge and rejects a planted non-edge
 - [ ] Reproduces a published strategy's own published result
 - [ ] Runs seven days without stopping

@@ -400,17 +400,23 @@ stopped when started again, never running a finished cell twice. A failed cell i
 again on the next start. A batch refuses to start when the code on disk is no longer the
 code it loaded.
 
+A result is now kept by what made it: the code and every bar the rule was shown. Each run
+reads every cell's bars again and re-runs a cell only when its code or its bars have
+changed; a bar corrected after a window's end leaves that window's result alone.
+
 ### Next step
 
-Results kept, keyed by code and data version, so only what changed is re-run: today a
-restart trusts a kept record of the same code without re-reading its bars, so a record
-from bars since corrected would be kept.
+The first rung, proven: it catches a planted edge and rejects a planted non-edge. It needs
+costs first (no result without them), and its prices from the desk's one cost model.
 
 ### Found, not fixed
 
-- **The unit tests are within fifteen lines of the product.** The guard holds unit tests
-  to no more lines than `desk/` and `lab/` together (1,120 against 1,134 on this branch).
-  Every lane's next test must come with as much product, or a test consolidated.
+- **The unit tests are within a few lines of the product, and lanes collide on it.** The
+  guard holds unit tests to no more lines than `desk/` and `lab/` together (about 1,435
+  against 1,444 on this branch). The ladder's batch went red by one line once brought up to
+  date with main (#28), each lane green alone; the runner's re-check caught it and a line
+  was trimmed. Every lane's next test must come with as much product, or a test merged. A
+  session the operator starts could record this in `docs/FAILURE_PATTERNS.md`.
 - **What the blind review of the unit of work left for the batch** (nothing blocking; its
   test gaps on the data version and the trade pairing, and its unsorted-bars finding, are
   fixed and tested):
@@ -432,6 +438,13 @@ from bars since corrected would be kept.
     time. A lock is owed when the batch is started by anything but a person.
   - A journal line corrupt in the middle fails loudly but names neither the file nor the
     line; a failed cell keeps its error's type and message, not where it was raised.
+- **What keeping results by key left** (blind review, its one blocking finding fixed):
+  - The unit of work's fingerprint misses two breaks no test drives: a bar whose volume
+    alone changed, and two bars on one day (the order check's `<=` made `<`). Its contract
+    test owes a case for each.
+  - Every run reads and hashes each cell's bars, and a cell with no result hashes them
+    twice (once for its key, once in its run). Fine until a benchmark says otherwise.
+  - The journal keeps every old record and one line per failure per run; it only grows.
 - **A cell runs all five strategies to keep one.** It asks `strategy.decide`, which decides
   every rule at once; a batch of the five on one line pays five times. Fine until a
   benchmark says otherwise.

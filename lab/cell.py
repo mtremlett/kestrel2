@@ -143,15 +143,24 @@ def _trades(cell: Cell, bars: Sequence[Bar]) -> tuple[Trade, ...]:
     return tuple(trades)
 
 
-def run(cell: Cell, bars: Sequence[Bar]) -> Record:
-    """The cell's record from the line's bars, oldest first; bars after its end are not read."""
+def _shown(cell: Cell, bars: Sequence[Bar]) -> tuple[Bar, ...]:
+    """The bars the rule is shown: the line's, oldest first, up to the window's end."""
     if any(later.day <= bar.day for bar, later in zip(bars, bars[1:], strict=False)):
         raise ValueError(f"{cell.symbol}: bars not one a day, oldest first")
-    shown = tuple(bar for bar in bars if bar.day <= cell.end)
+    return tuple(bar for bar in bars if bar.day <= cell.end)
+
+
+def key(cell: Cell, bars: Sequence[Bar]) -> Key:
+    """The key the cell's record from these bars would carry, without running the rule."""
+    return Key(cell, LOADED, _data_version(_shown(cell, bars)))
+
+
+def run(cell: Cell, bars: Sequence[Bar]) -> Record:
+    """The cell's record from the line's bars, oldest first; bars after its end are not read."""
+    shown = _shown(cell, bars)
     inside = sum(1 for bar in shown if bar.day >= cell.start)
     if not inside:
         raise ValueError(
             f"{cell.strategy} on {cell.symbol}, {cell.start} to {cell.end}: no bars in the window"
         )
-    key = Key(cell, LOADED, _data_version(shown))
-    return Record(key, inside, _trades(cell, shown))
+    return Record(Key(cell, LOADED, _data_version(shown)), inside, _trades(cell, shown))
