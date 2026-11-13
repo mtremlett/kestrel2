@@ -87,8 +87,8 @@ def _manifest_added_only(owned: list[str]) -> list[str]:
     base = _git("merge-base", "HEAD", "origin/main").strip()
     wrong = []
     for line in _git("diff", "-U0", base, "--", "manifest.toml").splitlines():
-        if line.startswith(("---", "+++", "@@")) or line in ("+", "-"):
-            continue
+        if not line.startswith(("+", "-")) or line.startswith(("+++", "---")) or line in "+-":
+            continue  # only the lines added or removed, not git's headers
         module = MODULE.fullmatch(line[1:].strip())
         if line.startswith("-") or not module or not any(fnmatch(module[1], p) for p in owned):
             wrong.append(line)
