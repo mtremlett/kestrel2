@@ -65,3 +65,4 @@ rungs = []
 "lab/rung.py" = "the ladder's first rung: a cell's trades priced at the desk's fills and the broker's costs, and judged against chance"
 "lab/luck.py" = "the ladder's luck rung: every trial counted, and each verdict's chance corrected for the number of trials it was picked from"
 "lab/folds.py" = "the ladder's folds rung: a history cut into folds, each judged after costs beside the history before it, and the verdict given on the worst"
+"lab/trials.py" = "the register of trials: every trial ever tried on a question, kept from batch to batch, and the luck rung's count taken from it"
