@@ -89,7 +89,10 @@ def _next(wire: BinaryIO) -> list[str]:
     body = wire.read(size)
     if len(head) < 4 or len(body) < size:
         raise ConnectionError("the gateway hung up before its answer was whole")
-    return body.decode().split("\0")[:-1]
+    fields = body.decode().split("\0")[:-1]
+    if not fields:
+        raise ValueError("a message from the gateway cut short: it names no kind")
+    return fields
 
 
 def _other(fields: list[str]) -> str:
@@ -97,6 +100,8 @@ def _other(fields: list[str]) -> str:
     be a paper one, its news may be of the price feeds only, and a kind the desk does not
     know is refused."""
     kind = fields[0]
+    if len(fields) < {ACCOUNTS: 3, NEWS: 5}.get(kind, 1):
+        raise ValueError(f"a message from the gateway cut short: {fields}")
     if kind == ACCOUNTS:
         for code in fields[2].split(","):
             _paper(code)
@@ -130,9 +135,9 @@ def converse(wire: BinaryIO, send: Callable[[bytes], object]) -> Account:
     holding and every open order, reading until it says both lists are whole."""
     offer = f"v{VERSION}".encode()
     send(b"API\0" + struct.pack(">I", len(offer)) + offer)
-    version = _next(wire)[0]
-    if version != VERSION:
-        raise ValueError(f"the gateway speaks version {version}; the desk reads {VERSION} only")
+    greeting = _next(wire)
+    if len(greeting) != 2 or greeting[0] != VERSION:
+        raise ValueError(f"the gateway greeted with {greeting}; the desk reads {VERSION} only")
     send(message(START, 2, CLIENT, ""))
     ready: set[str] = set()
     while not {ACCOUNTS, READY} <= ready:
@@ -161,27 +166,26 @@ def read() -> Account:
         return converse(wire, link.sendall)
 
 
-def quiet(account: Account, held: Mapping[str, int], lines: Iterable[Line]) -> tuple[str, ...]:
+def differences(
+    account: Account, held: Mapping[str, int], lines: Iterable[Line]
+) -> tuple[str, ...]:
     """Every way the paper account differs from the desk's book, each named in words; none,
-    and the account is quiet: nothing but the desk trades it. held is the book
-    (book.positions). A holding is matched by its symbol, kind and currency, so the same
-    name in another currency is another thing. Every order resting at the broker is named,
-    whoever placed it: the desk rests none of its own on paper yet."""
+    and nothing but the desk trades the account. held is the book (book.positions). A
+    holding is matched by its symbol, kind and currency, so the same name in another
+    currency is another thing. Each row the broker gives must be the book's own shares:
+    rows that only add up to them are two places, or a change while it was read. Every
+    order resting at the broker is named, whoever placed it: the desk rests none yet."""
     known = {line.symbol: line for line in lines}
     unknown = sorted(set(held) - set(known))
     if unknown:
         raise ValueError(f"the book holds lines the desk was not given: {unknown}")
     ours = {(s, "STK", known[s].currency): Decimal(shares) for s, shares in held.items()}
-    theirs: dict[tuple[str, str, str], Decimal] = {}
-    for h in account.holdings:
-        key = (h.symbol, h.kind, h.currency)
-        theirs[key] = theirs.get(key, Decimal(0)) + h.shares
-    both = sorted(ours.keys() | theirs.keys())
-    pairs = ((key, theirs.get(key, Decimal(0)), ours.get(key, Decimal(0))) for key in both)
+    rows = [((h.symbol, h.kind, h.currency), h.shares) for h in account.holdings]
+    rows += [(key, Decimal(0)) for key in ours.keys() - {key for key, _ in rows}]
     differ = [
-        f"{' '.join(key)}: the broker holds {broker}, the desk's book {desk}"
-        for key, broker, desk in pairs
-        if broker != desk
+        f"{' '.join(key)}: the broker holds {shares}, the desk's book {ours.get(key, 0)}"
+        for key, shares in sorted(rows)
+        if shares != ours.get(key, 0)
     ]
     working = [
         f"{o.symbol}: an order resting at the broker to {o.action} {o.shares} ({o.kind}, "
@@ -191,7 +195,8 @@ def quiet(account: Account, held: Mapping[str, int], lines: Iterable[Line]) -> t
     return (*differ, *working)
 
 
-def check(root: Path, ask: Callable[[], Account] = read) -> tuple[str, ...]:
+def mismatches(root: Path, ask: Callable[[], Account] = read) -> tuple[str, ...]:
     """The daily read-only check: the paper account as it is now against the desk's book,
-    every difference named. Nothing is sent to the broker but questions."""
-    return quiet(ask(), book.positions(root), LINES)
+    every difference named; none, and the account is quiet. Nothing is sent to the broker
+    but questions."""
+    return differences(ask(), book.positions(root), LINES)
