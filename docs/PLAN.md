@@ -307,14 +307,6 @@ come back clean, and the check has been taught the desk's own resting stops. The
 the old desk's (his ruling, 13 November), reached through IB Gateway's paper port 4002 on
 his PC with the desk's own client id (222), never 4001.
 
-- [ ] No paper order before the kill switch is drilled, held by the code: the adapter's
-      send refuses unless a drill record of the kill switch from the last 31 days exists,
-      and a contract test proves the refusal
-- [ ] The Gateway known before any order: its daily restart and the weekly re-login handled
-      unattended. A re-login that needs his phone or password is his: a reminder line at the
-      right time, never a workaround. The old desk's gateway alarms are a quarry only. (The
-      runner already watches port 4002 and the account, read-only, and tells him when it stops
-      answering.)
 - [x] The read-only check of the paper account's positions and open orders against the
       desk's book, every mismatch named (`desk/paper.py`); run on the real account on 13
       November: quiet, no shares held and no order resting
@@ -324,16 +316,37 @@ his PC with the desk's own client id (222), never 4001.
       November: twenty of twenty listed, six London lines priced in pence
 - [ ] The fills and the orders the broker reports, read-only: each fill under the broker's
       id with its price back in the line's currency, and the desk's own orders and stops
-      told from anyone else's
+      told from anyone else's {id: paper-reports; files: desk/reports.py, desk/paper.py,
+      tests/unit/test_reports.py, tests/unit/test_paper.py, manifest.toml}
+- [ ] The Gateway known before any order: its daily restart and the weekly re-login handled
+      unattended. A re-login that needs his phone or password is his: a reminder line at the
+      right time, never a workaround. The old desk's gateway alarms are a quarry only. (The
+      runner already watches port 4002 and the account, read-only, and tells him when it stops
+      answering.) {id: paper-gateway; files: desk/gateway.py, tests/unit/test_gateway.py,
+      manifest.toml}
 - [ ] The check run every day and before any order: the adapter refuses to send until
       that day's check is clean, and tells the desk's own resting stops from anyone else's
+      {id: paper-check; files: desk/clearance.py, desk/paper.py,
+      tests/unit/test_clearance.py, tests/unit/test_paper.py, manifest.toml;
+      after: paper-reports}
 - [ ] The real paper-broker adapter behind the same interface as `broker.Pretend`, speaking
       to IB Gateway with the standard library alone (`desk/` imports nothing else)
+      {id: paper-adapter; files: desk/placing.py, desk/paper.py, desk/reports.py,
+      tests/unit/test_placing.py, tests/unit/test_paper.py, tests/unit/test_reports.py,
+      manifest.toml; after: paper-reports, paper-check}
 - [ ] Stops resting at the broker, each rounded down to its line's price step
+      {id: paper-stops; files: desk/placing.py, desk/listing.py,
+      tests/unit/test_placing.py, tests/unit/test_listing.py; after: paper-adapter}
+- [ ] No paper order before the kill switch is drilled, held by the code: the adapter's
+      send refuses unless a drill record of the kill switch from the last 31 days exists,
+      and a contract test proves the refusal {id: paper-drill; files: desk/placing.py,
+      tests/unit/test_placing.py; after: paper-adapter, paper-stops}
 - [ ] Conformance trades, on paper, one London and one US line, each in its market's hours:
       a market buy at the open; the resting stop placed, triggered, and cancelled on a sale;
       a partial fill if the paper broker gives one; a rejection. Each real result recorded
       beside the pretend broker's, and the pretend broker fixed where they differ
+      {id: paper-conformance; files: *; after: paper-gateway, paper-check, paper-stops,
+      paper-drill}
 - [ ] Unattended running, and recovery from a restart
 - [ ] Morning and evening messages, and an alarm on silence
 - [ ] **No paper order until the money lane's kill switch has been drilled** (EMG-02)
