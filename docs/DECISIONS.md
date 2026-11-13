@@ -1510,6 +1510,70 @@ shares than held, entries given as a stream that can be read once, a matching en
 a wrong one, and a line listed only at no shares. What the review left is in
 `docs/STATUS.md`.
 
+### 2026-11-13 — any broker behind the send path: five questions, entries, each asked once
+
+**Decided**, by the lane as the desk's mentor (no one watching), on the paper lane's request
+R-PAPER-2: the send path, the ledger and the day run know a broker by five questions
+(`broker.Broker`) and no longer by the pretend broker's name.
+
+1. **A stated interface, not a parent class.** Options were (a) the paper adapter inherits
+   from the pretend broker, and with it a simulation's insides; (b) a parent class both must
+   inherit; (c) a typed statement of the questions, which any class that answers them
+   satisfies, the type check proving it wherever one is handed over. Chosen (c). It sits in
+   `desk/broker.py` beside the answers a broker gives (`Fill`, `Report`, `Disconnected`), so
+   an adapter imports one module. The manifest's line for that file still says only "the
+   pretend broker": a lane may not reword it, so a session he starts should.
+2. **Five questions, the ones the send path and the day run ask:** what did you do with
+   this order id; take this order; your fills; your holdings; your resting stops. Opening a
+   day, planting a position, cancelling a stop by hand and the stops' levels are the
+   simulation's own instruments and stay off it. Cancelling orders will be the sixth, added
+   with the kill switch that needs it, not before.
+3. **Holdings and stops are entries, a name and its shares each, as the broker gives them.**
+   The pretend broker gave one number a line, a shape a real account's rows would have to be
+   added together to fit. It now gives entries too (`holdings`, `stops`), and its old answer
+   (`positions`) is gone, not kept beside: one job, one path. Its stops with their levels
+   (`resting_stops`) stay for the simulation's tests, which prove the level.
+4. **A line's symbol names that line and nothing else.** The door that reads an account
+   names each entry; anything that is not the line itself (another kind of product, another
+   currency) goes under a name of its own. Such an entry is named as a difference and stops
+   all buying. Options for the line's own sale were to refuse it too, or to allow it while
+   the line's own entry agrees. Chosen: allow it, as a line that has lost its stop may be
+   sold: the shares are known to be there, and a sale only lowers risk.
+5. **Each question asked once for an order, the stops before the holdings.** The send path
+   asked for the holdings twice, once to name what differs and once to judge the order's own
+   line. It now asks once for the fills, the stops and the holdings, and judges both from
+   those answers (`book._compare`). They are three moments at a real broker, and the order
+   matters (the blind review's blocking finding): with the holdings read first, a stop that
+   sold between the two readings looked like "shares there, stop gone", a line that may be
+   sold, and its sale went out for shares already sold. Read stops first and the same moment
+   shows the shares gone, and the sale is refused. A stop that sells after the last reading
+   no order of questions can catch: that is the broker's to refuse.
+6. **`place` gives an order's last answer.** The send path and the gate count fills only, so
+   an order left working at the broker is in none of the five answers, and six buys could
+   each pass a gate that sees an empty book. Options were to add working orders to the
+   interface now, or to state that an adapter must not leave one working. Chosen: state it
+   (what is not filled is cancelled), and let working orders arrive with cancelling, in the
+   kill switch's step. The interface also states what the send path leans on: one stop a
+   line, for all the shares held; fills in the order made, under ids that never change; an
+   answer whole or an error.
+7. **Left open, in `docs/STATUS.md`:** a resting order that is not a sell stop is unseen, a
+   stop's level is never compared, and a connection lost while reading is not a stated answer.
+
+**Evidence.** Tests seen failing first: the type check refused any broker but the pretend
+one (seven errors), the new contract test failed on "one order, two readings", and the
+review's race test failed with the sale not refused. Run from outside the repository, main
+and this branch traded the fourteen months to the same ledger and the same answers, with and
+without every first order rejected (68 fills, 34 round trips), before the repair and after.
+The blind review rebuilt the old send path and ran it beside the new over 4,000 random
+sequences (179,764 steps: buys, sales, every fault, hand trades, cancelled stops) and 600
+random mornings of the day run: no answer, refusal, ledger or holding differed. Its one
+blocking finding is point 5, fixed and tested; its lesser ones are taken (the interface's
+wording, three test gaps) or recorded. Eighty-five deliberate breaks were driven in copies
+outside the repository, Python's cache off: thirty-nine by the lane (one gap: a broker's
+rows collapsed into one a name), thirty-one by the review (five survived), fifteen on the
+repaired code (one gap: two stops collapsed). Six gaps are closed and each is now caught; the
+one left narrows a type of the interface's, which can refuse a broker, never admit one.
+
 ## DATA
 
 ### 2026-11-13 — the fourteen months are built; the scenes move onto them in two steps
@@ -2185,6 +2249,40 @@ itself) were held by none, and one piece of code that could never run, since rem
 Tests were added and those breaks driven again: all caught. What still survives, each
 recorded in `docs/STATUS.md`: breaks that cannot differ (a tie's direction where ties are
 already refused), a more cautious margin, and a few no series found can show.
+
+### 2026-11-13 — the unit of work on the grid: one record, whichever engine answered
+
+**Decided.** A cell's trades (`lab/cell.py`) now come from the grid engine's answer, and from
+the desk's own engine whenever the grid refuses (`TooClose`). The record is the same record
+either way, and the same as before the change.
+
+**The choices, and why.**
+- *Does the record say which engine answered?* Options: mark each record "grid" or "desk";
+  say nothing. Chosen: nothing. The grid is kept only while it holds what the desk holds, so
+  the answer does not depend on who gave it, and two records with one key must be one
+  result. A count of refusals belongs to a pass's log, when a pass exists.
+- *What goes to the desk's engine.* Only a refusal. Any other error from the grid is a
+  fault and fails the cell loudly (the batch records it and carries on); the desk's engine
+  never hides it. A test holds this.
+- *The code version.* The grid's file is reached through the cell's imports, so a change to
+  the grid changes every key and every result is run again. numpy's own version is not in
+  the key; it is pinned in `requirements.txt`.
+- *Trades from positions.* The grid answers "in or out after each bar", so a trade is now
+  the day the position turns in and the day it turns out, on both paths; the desk's
+  decisions are first read into the same in-or-out list.
+
+**Evidence.** The test was seen failing first (the cell never asked the grid). It runs each
+of the five rules on three golden series: on the long walk the desk's engine is never
+asked; on each of the two jumpy series it is asked exactly once, for the Supertrend cell
+the grid refuses; every trade day is the golden one. A blind review rebuilt the old code
+from the diff and compared 88,815 cells (5,921 series, five rules, three windows each, each
+once as it runs and once with the grid made to refuse): no difference and no error;
+nothing blocking. Its test gap (any error, not only a refusal, could have been sent to the
+desk's engine unseen) is closed and was seen failing; the rest is in `docs/STATUS.md`.
+Twenty deliberate breaks of the new code: nineteen caught, the twentieth being that same
+gap, caught since. Measured from outside the repository on 4,000 days: a cell about 25 ms
+for any of the five rules, where the desk's engine alone took 90 to 100 ms; 17 ms of the
+25 is reading the line's prices in, paid again by each cell.
 
 ## RUNGS
 

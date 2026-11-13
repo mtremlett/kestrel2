@@ -3,6 +3,7 @@ the gate reads, built from every fill. Scene 4 holds the gate's refusal and a cr
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
@@ -10,7 +11,7 @@ from pathlib import Path
 import pytest
 
 from desk import book
-from desk.broker import Crash, Fault, Pretend
+from desk.broker import Broker, Crash, Fault, Pretend
 from desk.lines import Line
 from desk.orders import Order, Refused, Sale, Settings
 from desk.store import Bar
@@ -26,7 +27,7 @@ def _bar(day: date, low: int) -> Bar:
 WEEK = {line: (_bar(MON, 49), _bar(TUE, 44 if line == A else 49)) for line in SIX}  #: A's stop: 45
 
 
-def _send(root: Path, broker: Pretend, name: str = "o-1", line: Line = A, n: int = 10) -> book.Sent:
+def _send(root: Path, broker: Broker, name: str = "o-1", line: Line = A, n: int = 10) -> book.Sent:
     return book.send(root, broker, Order(name, line, n, *map(Decimal, (50, 1, 45))), ROOM)
 
 
@@ -109,7 +110,7 @@ def test_while_the_book_is_not_the_brokers_nothing_is_bought_and_no_such_line_so
     assert book.reconcile(tmp_path, broker) == () and "A" not in book.positions(tmp_path)
     broker.cancel_stop("C")
     assert book.reconcile(tmp_path, broker) == ("C",), "a held line with no stop resting"
-    with pytest.raises(Refused, match="o-4"):
+    with pytest.raises(Refused, match=r"o-4: .*\['C'\]"):
         _send(tmp_path, broker, "o-4", SIX[4])
     assert book.send(tmp_path, broker, Sale("s-2", SIX[2], 10), ROOM).filled == 10, "unprotected"
     broker.inject("D", -1)  #: all of D sold by hand and its stop cancelled: only the book has it
@@ -124,6 +125,59 @@ def test_while_the_book_is_not_the_brokers_nothing_is_bought_and_no_such_line_so
     for line in SIX:
         broker.inject(line.symbol, 1)
     assert book.reconcile(tmp_path, broker) == tuple("ABCDEF"), "named in no order"
+
+
+class Account:
+    """Any broker, not the pretend one by name: its rows as a real account's door gives them,
+    and each reading of them counted."""
+
+    def __init__(self, inner: Pretend) -> None:
+        self.report, self.place, self.fills = inner.report, inner.place, inner.fills
+        self.inner, self.read, self.between = inner, 0, list[Callable[[], None]]()
+        self.rows, self.resting = (list[tuple[str, Decimal | int]]() for _ in range(2))
+
+    def holdings(self) -> Iterable[tuple[str, Decimal | int]]:
+        self.read += 1
+        return self._then(self.rows or self.inner.holdings())
+
+    def stops(self) -> Iterable[tuple[str, Decimal | int]]:
+        return self._then(self.resting or self.inner.stops())
+
+    def _then(
+        self, answer: Iterable[tuple[str, Decimal | int]]
+    ) -> Iterable[tuple[str, Decimal | int]]:
+        """Give the answer; whatever waits between two readings happens after the first."""
+        while self.between:
+            self.between.pop()()
+        return answer
+
+
+def test_any_broker_stands_behind_the_send_path_its_rows_read_once_and_never_added(
+    tmp_path: Path,
+) -> None:
+    pretend = Pretend(WEEK, {})
+    pretend.open(MON)
+    door = Account(pretend)
+    assert _send(tmp_path, door).filled == 10 and door.read == 1, "one order, two readings"
+    for second in (Decimal(4), 10):  #: two entries are never added up to the book's ten,
+        door.rows = [("A", 6), ("A", second)]  #: nor is the first dropped for the second
+        assert book.reconcile(tmp_path, door) == ("A",)
+    with pytest.raises(Refused, match="s-1"):
+        book.send(tmp_path, door, Sale("s-1", A, 10), ROOM)
+    door.rows = [("A", 10), ("A CFD", 3)]  #: another product under A's name is not the line
+    with pytest.raises(Refused, match=r"o-2: .*\['A CFD'\]"):
+        _send(tmp_path, door, "o-2", SIX[1])
+    assert book.send(tmp_path, door, Sale("s-2", A, 10), ROOM).filled == 10, "A's shares agree"
+    assert door.read == 6, "the broker's holdings read more than once for an order"
+    door.rows = []
+    assert _send(tmp_path, door, "o-3").filled == 10
+    for second in (Decimal(4), 10):  #: nor are two stops added up, or one dropped
+        door.resting = [("A", 6), ("A", second)]
+        assert book.reconcile(tmp_path, door) == ("A",)
+    door.resting = []
+    door.between.append(lambda: pretend.open(TUE))  #: A's stop sells while the broker is read
+    with pytest.raises(Refused, match=r"s-3: .*\['A'\]"):  #: or its sale would sell A short
+        book.send(tmp_path, door, Sale("s-3", A, 10), ROOM)
 
 
 @pytest.mark.parametrize(

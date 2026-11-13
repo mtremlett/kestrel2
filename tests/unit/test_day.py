@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 
 from desk import book, day, venues
-from desk.broker import Crash, Fault, Pretend
+from desk.broker import Broker, Crash, Fault, Pretend
 from desk.lines import Line
 from desk.orders import Settings
 from desk.store import Bar
@@ -38,9 +38,17 @@ ARCHIVE = dict(
 )
 
 
-def _trade(root: Path, broker: Pretend, on: date) -> tuple[book.Sent, ...]:
+def _trade(root: Path, broker: Broker, on: date) -> tuple[book.Sent, ...]:
     before = {line: tuple(b for b in bars if b.day < on) for line, bars in ARCHIVE.items()}
     return day.trade(root, before, broker, Settings(Decimal(10_000)), on, {"GBP": Decimal(1)})
+
+
+class Door:
+    """Any broker, not the pretend one by name."""
+
+    def __init__(self, inner: Pretend) -> None:
+        self.report, self.place, self.fills = inner.report, inner.place, inner.fills
+        self.holdings, self.stops = inner.holdings, inner.stops
 
 
 def test_the_day_sells_what_each_rule_holds_then_buys_from_the_book_after_each_send(
@@ -49,13 +57,13 @@ def test_the_day_sells_what_each_rule_holds_then_buys_from_the_book_after_each_s
     broker, sent = Pretend(ARCHIVE, {}), []
     for on in DAYS[21:]:
         broker.open(on)
-        sent.append(_trade(tmp_path, broker, on))
+        sent.append(_trade(tmp_path, Door(broker), on))
     bought, sold = sent
     assert [s.order_id[-1] for s in bought] == list("ABCDHF"), "G acted on a day not its last"
     assert all(s.reason is None for s in bought[:5]) and "5 holdings" in str(bought[5].reason)
     assert [s.order_id[-1] for s in sold] == list("ABCD"), "H bought again the morning it sold"
     assert all(s.reason is None and s.filled > 0 for s in sold)
-    assert book.positions(tmp_path) == {} == broker.positions()
+    assert book.positions(tmp_path) == {} == dict(broker.holdings())
     trips = book.round_trips(tmp_path, tuple(ARCHIVE))
     assert sorted(t.buy.symbol for t in trips) == list("ABCDH")
     broker.open(date(2025, 2, 6))
