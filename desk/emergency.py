@@ -3,22 +3,24 @@ swan are each a fall that is measured, set here in advance, and each has the one
 does about it. Nothing here acts: the crash watch measures and reads, and the halt and the
 protective sale do what the level calls for.
 
-A fall is read in the line's MARKET'S terms, as its stop is: a line that makes three times its
-market's move has fallen a third as far as its price. It is measured twice: below the last
-session's close (the day's fall), and below the highest close of the last MONTH sessions (how
-far the month has fallen, which keeps a crash a crash on the days between its worst ones).
+A fall is measured twice: below the last session's close (the day's fall), and below the
+highest close of the last MONTH sessions (the month's fall, which keeps a crash a crash on the
+days between its worst ones). A line that makes three times its market's move is read in its
+MARKET'S terms, as its stop is: a third of its price's fall.
 
-The numbers were set against the archive's S&P 500 from 2010 to November 2026. Its worst day
-fell 11.9% and its worst month 32.6%, both in March 2020, so no day of it was a black swan; a
-crash, as defined here, came in six episodes read at each day's close (26 days) and in eight
-read at its low (37 days). Each US share of the desk's had an emergency on at most two or
-three days a year, read at the close."""
+The market is the yardstick, and its numbers were set on the series the desk reads: the S&P
+500 in pounds as London trades it (VUSA since May 2012, and the yardstick, its twin, since
+2019), in the archive to November 2026. Its worst day closed 7.2% down and its worst month
+23.4%, and within a day it read 8.7% and 26.0%, all in March 2020: a black swan is beyond
+every one of them. A crash, as defined here and read at each day's close, came on 26 days in
+six episodes (days within a month of each other are one episode). New York's own close is
+another series, with other falls, and these numbers are not its."""
 
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
-from decimal import Decimal
+from decimal import ROUND_DOWN, Decimal
 from enum import Enum
 
 from desk.lines import YARDSTICK, Line
@@ -27,11 +29,30 @@ from desk.orders import STOP_FALL
 MONTH = 20  #: sessions: a fall "below the month's high" is below the highest close of these
 
 
-class Action(Enum):
-    """What the desk does about it, and until when. He is told at once, whichever it is."""
+def _set(part: Decimal) -> str:
+    """A number set in advance, said whole: 0.125 is 12.5%, never 12%."""
+    return f"{(part * 100).normalize():f}%"
 
-    PARK = "buys no more of that line while it lasts; its stop rests at the broker"
-    HALT = "buys nothing on any line while it lasts; every stop rests at the broker"
+
+def _read(part: Decimal) -> str:
+    """A measured fall, cut to a tenth of a per cent and never rounded up to a number it did
+    not reach: 0.04996 is 4.9%."""
+    return f"{part.quantize(Decimal('0.001'), ROUND_DOWN):.1%}"
+
+
+class Action(Enum):
+    """What the desk does about it, and until when; he is told at once, whichever it is. A
+    reading within a day raises an emergency or a crash and never lifts it: only a session
+    that closes with the fall no longer one does."""
+
+    PARK = (
+        "buys no more of that line until a session closes clear of it, and sells nothing:"
+        " a holding is left to its stop"
+    )
+    HALT = (
+        "buys nothing on any line until a session closes clear of it, and sells nothing:"
+        " every holding is left to its stop"
+    )
     CASH = "sells every position, and buys nothing until he says so"
 
 
@@ -44,11 +65,15 @@ class Definition:
     high: Decimal | None  #: the fall below the month's high; none where only the day counts
     action: Action
 
+    def __post_init__(self) -> None:
+        if not 0 < self.day < (1 if self.high is None else self.high) <= 1:
+            raise ValueError(f"no emergency is a fall of {self.day} in a day, or {self.high}")
+
     def words(self) -> str:
         """The definition, as it is said."""
-        whose = "the market" if self.market else "any one line"
-        slow = f", or {self.high:.0%} below its month's high" if self.high is not None else ""
-        return f"{whose} down {self.day:.0%} in a day{slow}"
+        whose = "the market" if self.market else "any one line's market"
+        slow = "" if self.high is None else f", or {_set(self.high)} below its month's high"
+        return f"{whose} down {_set(self.day)} in a day{slow}"
 
 
 class Level(Enum):
@@ -56,13 +81,14 @@ class Level(Enum):
 
     EMERGENCY: a shock to one line: in one day, the whole fall its stop allows a holding.
     CRASH: the market falls as it has in one episode every two or three years.
-    BLACK SWAN: the market falls further than on any day or in any month of the history the
-    rules were tested on (and, in a day, as far as halts the US market a second time): the
-    desk has no test that says what its rules do there, so it stands in cash until he says."""
+    BLACK SWAN: the market falls further than it has read at any moment of the history the
+    rules are tested on. No test says what the rules do there, and to sell everything on a
+    fall that was only a crash costs more than to halt on one that was more: so its numbers
+    are the first round ones beyond the history's worst, and the desk stands in cash."""
 
     EMERGENCY = Definition(False, STOP_FALL, None, Action.PARK)
-    CRASH = Definition(True, Decimal("0.05"), Decimal("0.15"), Action.HALT)
-    BLACK_SWAN = Definition(True, Decimal("0.13"), Decimal("0.35"), Action.CASH)
+    CRASH = Definition(True, Decimal("0.04"), Decimal("0.12"), Action.HALT)
+    BLACK_SWAN = Definition(True, Decimal("0.10"), Decimal("0.30"), Action.CASH)
 
 
 @dataclass(frozen=True)
@@ -81,41 +107,48 @@ class Fall:
             )
 
     @property
+    def market(self) -> bool:
+        """Whether this is the market's own fall: the yardstick's, whose series set the numbers."""
+        return self.line.symbol == YARDSTICK.symbol
+
+    @property
     def level(self) -> Level | None:
-        """The gravest of the three this fall is, or none of them. Only the yardstick's fall
-        is the market's: one line, however far it falls, is never a crash."""
+        """The gravest of the three this fall is, or none of them. One line, however far it
+        falls, is never a crash."""
         met = None
         for level in Level:
             rule = level.value
-            if rule.market and self.line != YARDSTICK:
-                continue
-            if self.day >= rule.day or (rule.high is not None and self.high >= rule.high):
+            slow = rule.high is not None and self.high >= rule.high
+            if (self.day >= rule.day or slow) and (self.market or not rule.market):
                 met = level
         return met
 
     def words(self) -> str:
         """The fall, which of the three it is, and what the desk does: one message."""
-        times = f" (at {self.line.leverage} times its market)" if self.line.leverage > 1 else ""
-        fallen = (
-            f"{self.line.symbol}{times} is {self.day:.1%} below its last close and"
-            f" {self.high:.1%} below its month's high, in its market's terms"
-        )
-        level = self.level
+        line, level, fallen = self.line, self.level, "not below its last close"
+        if self.day:
+            fallen = f"{_read(self.day * line.leverage)} below its last close"
+        if self.day and line.leverage > 1:
+            fallen += f" (its market {_read(self.day)}: it moves {line.leverage} times as far)"
+        if self.market:
+            fallen += f" and {_read(self.high)} below its month's high"
         if level is None:
-            return f"{fallen}: none of the three emergencies."
+            return f"{line.symbol} is {fallen}: none of the three emergencies."
         rule, name = level.value, level.name.replace("_", " ")
-        return f"{name}, which is {rule.words()}: {fallen}. The desk {rule.action.value}."
+        said = f"{name}, which is {rule.words()}: {line.symbol} is {fallen}"
+        return f"{said}. The desk {rule.action.value}."
 
 
 def measure(line: Line, closes: Sequence[Decimal], price: Decimal) -> Fall:
     """A line's fall as its newest price stands. closes are its closes on the sessions before
-    this one, the oldest first, as many of the last MONTH as it has traded; price is its newest
-    bar's close, never a bar's low: a print the market took back within the bar is no fall."""
+    this one, the oldest first, the last MONTH of them at least; price is its newest bar's
+    close, never a bar's low: a print the market took back within the bar is no fall. For a
+    line that multiplies its market, the month's fall is its own divided, as its stop is."""
     month = closes[-MONTH:]
-    if not month or min(*month, price) <= 0:
+    if len(month) < MONTH or not all(p.is_finite() and p > 0 for p in (*month, price)):
         raise ValueError(
-            f"{line.symbol}: no fall is measured from {len(month)} closes, the least"
-            f" {min(month, default=None)}, to a price of {price}"
+            f"{line.symbol}: no fall is measured from {len(month)} of the month's {MONTH}"
+            f" closes to a price of {price}: every one must be a price"
         )
 
     def below(close: Decimal) -> Decimal:
@@ -125,8 +158,11 @@ def measure(line: Line, closes: Sequence[Decimal], price: Decimal) -> Fall:
 
 
 def alarms(falls: Iterable[Fall]) -> tuple[Fall, ...]:
-    """The falls that are one of the three, the gravest first: the first is what the desk does
-    as a whole, and each emergency after it names a line of its own."""
-    order = list(Level)
-    grave = [(order.index(level), fall) for fall in falls if (level := fall.level) is not None]
+    """The falls that are one of the three, the gravest first: a crash or a black swan, the
+    market's, is what the desk does as a whole, and each emergency names a line of its own.
+    The market's fall must be among them: a market nobody read is not a calm one."""
+    read, order = tuple(falls), list(Level)
+    if not any(fall.market for fall in read):
+        raise ValueError(f"the market, {YARDSTICK.symbol}, is not among the {len(read)} falls read")
+    grave = [(order.index(level), fall) for fall in read if (level := fall.level) is not None]
     return tuple(fall for _, fall in sorted(grave, key=lambda ranked: -ranked[0]))
