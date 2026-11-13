@@ -1,18 +1,22 @@
 """The five frozen strategies: each buys and sells on the day its published rule says, worked
-out by hand below, and none of them can see a bar after the day it decides."""
+out by hand below, and none of them can see a bar after the day it decides. Each declares
+what it is before it is tested, and none can sell a line it does not hold."""
 
 from __future__ import annotations
 
 import random
 from collections.abc import Sequence
+from dataclasses import fields, replace
 from datetime import date, timedelta
 from decimal import ROUND_FLOOR, Context, Decimal, localcontext
+from typing import Any
 
 import pytest
 
 from desk import strategy
+from desk.lines import LINES
 from desk.store import Bar
-from desk.strategy import Action
+from desk.strategy import Action, Field, Timeframe
 
 START = date(2020, 1, 1)
 
@@ -34,14 +38,74 @@ def _trades(name: str, bars: Sequence[Bar]) -> list[tuple[int, Action]]:
     return sorted((days[d.day], d.action) for d in decided if d.action is not Action.HOLD)
 
 
-def test_the_five_are_the_operators_five() -> None:
-    assert set(strategy.STRATEGIES) == {
-        "rsi2_pullback",
-        "bollinger_pullback",
-        "breakout_20_10",
-        "trend_50_200",
-        "supertrend_10_3",
+def test_the_five_are_the_operators_five_each_with_its_declaration() -> None:
+    #: STR-03. A pullback means to be out within the span of the average it sells on; a trend
+    #: rule holds for as long as its trend. The desk trades every rule on every line, so each
+    #: is judged on all twenty.
+    declared = {name: rule.declared for name, rule in strategy.STRATEGIES.items()}
+    assert {name: d.hold for name, d in declared.items()} == {
+        "rsi2_pullback": 5,
+        "bollinger_pullback": 20,
+        "breakout_20_10": None,
+        "trend_50_200": None,
+        "supertrend_10_3": None,
     }
+    assert all(d.bar is Timeframe.DAILY and d.universe == LINES for d in declared.values())
+
+
+def test_each_strategy_reads_the_data_it_declares_and_no_other() -> None:
+    #: one number of every bar swapped for another walk's, with the day's count added so that
+    #: none is left as it was: a rule's decisions move if it declares the number, and only then
+    bars, other = _walk(1, 1200), _walk(2, 1200)
+    assert {f.value for f in Field} == {f.name for f in fields(Bar)} - {"day"}
+    for field in Field:
+        numbers = [getattr(bar, field.value) + n for n, bar in enumerate(other)]
+        swapped = [replace(b, **{field.value: v}) for b, v in zip(bars, numbers, strict=True)]
+        moved = set(strategy.decide({"A": swapped})) ^ set(strategy.decide({"A": bars}))
+        declaring = {n for n, rule in strategy.STRATEGIES.items() if field in rule.declared.reads}
+        assert {d.strategy for d in moved} == declaring, field
+
+
+def test_a_declaration_that_makes_no_sense_cannot_be_made() -> None:
+    good = strategy.STRATEGIES["rsi2_pullback"].declared
+    bad: dict[str, tuple[Any, ...]] = {
+        "hold": (0, -5, True, 2.5),
+        "universe": ((), LINES[:1] * 2),
+        "reads": (frozenset(),),
+    }
+    for name, values in bad.items():
+        for value in values:
+            with pytest.raises(ValueError, match=name.replace("hold", "holding period")):
+                replace(good, **{name: value})
+
+
+class _Fickle:
+    """A rule that answers by the toss of a coin, whatever it holds."""
+
+    def __init__(self) -> None:
+        self._coin = random.Random(7)  # noqa: S311 - a repeatable test coin, not a secret
+
+    def step(self, _bar: Bar, _holding: bool) -> bool:
+        return self._coin.random() < 0.5
+
+
+def test_whatever_a_rule_answers_it_cannot_sell_a_line_it_does_not_hold(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    #: STR-06. A rule is in a line or out of it, so out of one it can only buy: over a whole
+    #: history a sale follows its own buy, and today the one sale there can be is of the line
+    #: the book holds, by the rule it holds it for
+    monkeypatch.setattr(strategy, "STRATEGIES", {"fickle": _Fickle, "twin": _Fickle})
+    bars, said = {"A": _walk(1, 300), "B": _walk(2, 300)}, set()
+    acts = [d.action for d in strategy.decide({"A": bars["A"]}) if d.strategy == "fickle"]
+    acts = [action for action in acts if action is not Action.HOLD]
+    assert len(acts) > 100, "the coin never turned"
+    assert acts == [Action.BUY, Action.SELL] * (len(acts) // 2) + [Action.BUY] * (len(acts) % 2)
+    for cut in range(250, 300):
+        today = strategy.today({s: b[:cut] for s, b in bars.items()}, {"A": "fickle"})
+        said |= {(d.strategy, d.symbol, d.action) for d in today if d.action is not Action.HOLD}
+    buys = {(*pair, Action.BUY) for pair in (("twin", "A"), ("fickle", "B"), ("twin", "B"))}
+    assert said == {("fickle", "A", Action.SELL)} | buys
 
 
 def test_breakout_buys_a_new_20_day_high_and_sells_a_new_10_day_low() -> None:

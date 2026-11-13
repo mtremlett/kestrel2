@@ -7,18 +7,24 @@ read a later bar: being blind to the future is how it is built, not a promise it
 The template turns each change of mind into a BUY or a SELL, and every other day into a
 HOLD. Each rule starts out of the market and holds nothing until its indicators are full.
 It sees only bars: never the clock, a vendor or the broker.
+
+THE DECLARATION. Each rule says, before it is ever tested, what it is: its bar, how long it
+means to hold, the lines it is judged on and the numbers of the bar it reads (STR-03). It
+has no word for a side. A rule is in a line or out of it, and out of one the template can
+only buy, so a strategy that sells short cannot be declared, or written (STR-06).
 """
 
 from __future__ import annotations
 
 from collections import deque
-from collections.abc import Callable, Iterator, Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
 from decimal import ROUND_HALF_EVEN, Context, Decimal, localcontext
 from enum import Enum
-from typing import Protocol
+from typing import ClassVar, Protocol
 
+from desk.lines import LINES, Line
 from desk.store import Bar
 
 ZERO = Decimal(0)
@@ -28,6 +34,9 @@ ARITHMETIC = Context(prec=28, rounding=ROUND_HALF_EVEN)
 
 
 class Action(Enum):
+    """What a strategy says of a line each day. A sale is of what it holds: there is no word
+    for selling short, and none for how many."""
+
     BUY = "buy"
     SELL = "sell"
     HOLD = "hold"
@@ -41,7 +50,55 @@ class Decision:
     action: Action
 
 
+class Timeframe(Enum):
+    """The bar a strategy is shown and sells on. The desk keeps daily bars and no other."""
+
+    DAILY = "daily"
+
+
+class Field(Enum):
+    """A number of the bar: the data a rule may read."""
+
+    OPEN = "open"
+    HIGH = "high"
+    LOW = "low"
+    CLOSE = "close"
+    VOLUME = "volume"
+
+
+#: What the five read: the close alone, or the day's range with it.
+CLOSES = frozenset({Field.CLOSE})
+RANGES = frozenset({Field.HIGH, Field.LOW, Field.CLOSE})
+
+
+@dataclass(frozen=True)
+class Declared:
+    """What a strategy says of itself before it is tested, held to what its rule does by the
+    tests. It moves no decision here."""
+
+    bar: Timeframe
+    #: The most sessions it means to hold a line; held longer, its idea has failed. A pullback
+    #: declares the span of the average it sells on: not back over that in as many sessions, it
+    #: was no pullback. None: it follows a trend for as long as the trend lasts, and its own
+    #: rule is its only way out.
+    hold: int | None
+    #: The lines it is tested and judged on: the desk trades each of the five on every line of
+    #: the instrument master, so each declares them all.
+    universe: tuple[Line, ...]
+    reads: frozenset[Field]  #: its data: the numbers of each bar its decisions depend on
+
+    def __post_init__(self) -> None:
+        if self.hold is not None and (type(self.hold) is not int or self.hold < 1):
+            raise ValueError(f"a holding period of {self.hold!r} sessions")
+        if not self.universe or len(set(self.universe)) != len(self.universe):
+            raise ValueError("a test universe names at least one line, and none twice")
+        if not self.reads:
+            raise ValueError("a strategy reads at least one number of the bar")
+
+
 class Rule(Protocol):
+    declared: ClassVar[Declared]
+
     def step(self, bar: Bar, holding: bool) -> bool:
         """Shown the next bar after its close: whether to be in the market from here."""
         ...
@@ -101,6 +158,8 @@ class _Rsi2:
     above its 200-day average and the 2-day RSI is under 5; sell on a close above the
     5-day average."""
 
+    declared: ClassVar[Declared] = Declared(Timeframe.DAILY, 5, LINES, CLOSES)
+
     def __init__(self) -> None:
         self._long, self._short = _Window(200), _Window(5)
         self._gain, self._loss = _Wilder(2), _Wilder(2)
@@ -125,6 +184,8 @@ class _Bollinger:
     """Bollinger's bands at his settings, 20 days and 2 deviations: buy a close under the
     lower band; sell a close over the middle, the 20-day average."""
 
+    declared: ClassVar[Declared] = Declared(Timeframe.DAILY, 20, LINES, CLOSES)
+
     def __init__(self) -> None:
         self._closes = _Window(20)
 
@@ -143,6 +204,8 @@ class _Breakout:
     the highest high of the 20 days before; sell a close under the lowest low of the 10
     days before."""
 
+    declared: ClassVar[Declared] = Declared(Timeframe.DAILY, None, LINES, RANGES)
+
     def __init__(self) -> None:
         self._highs, self._lows = _Window(20), _Window(10)
 
@@ -160,6 +223,8 @@ class _Trend:
     """The 50/200-day cross: buy the day the 50-day average closes above the 200-day; sell
     the day it no longer is. A cross that happened before both averages existed is not
     one it saw, so it waits for the next."""
+
+    declared: ClassVar[Declared] = Declared(Timeframe.DAILY, None, LINES, CLOSES)
 
     def __init__(self) -> None:
         self._fast, self._slow = _Window(50), _Window(200)
@@ -180,6 +245,8 @@ class _Supertrend:
     its bands carried as KivancOzbilgic's widely used TradingView script carries them, on
     the middle of the day's range: buy a close over yesterday's upper band; sell a close
     under yesterday's lower band."""
+
+    declared: ClassVar[Declared] = Declared(Timeframe.DAILY, None, LINES, RANGES)
 
     def __init__(self) -> None:
         self._range = _Wilder(10)
@@ -210,8 +277,9 @@ class _Supertrend:
         return wants
 
 
-#: The five, by name. Each call makes a fresh rule that has seen nothing.
-STRATEGIES: Mapping[str, Callable[[], Rule]] = {
+#: The five, by name, each with its declaration. Each call makes a fresh rule that has seen
+#: nothing.
+STRATEGIES: Mapping[str, type[Rule]] = {
     "rsi2_pullback": _Rsi2,
     "bollinger_pullback": _Bollinger,
     "breakout_20_10": _Breakout,
