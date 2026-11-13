@@ -26,31 +26,38 @@ LISTED: dict[str, Listing | Unlisted] = {
     "AAPL": Listing(AAPL, "265598", "NASDAQ", 1, CENT),
     "SMGB": Unlisted(SMGB, "the broker lists 0 contracts under the name"),
 }
-#: Fills as the published client reads them in the door's one version: none has been made on
-#: the paper account to copy. A buy of the desk's own in London, and its stop's sale in the US.
+#: Fills in the shape the real gateway gave on 13 November 2026 (twenty-one that day, all the
+#: old desk's): the time on the exchange's own clock, the price as the broker writes it, each
+#: fill's fee noted after them all. The account's code, the ids and the amounts are changed, and
+#: the client and reference made the desk's own: a buy in London, in pence, and a stop's sale.
 BOUGHT = (
-    "11|1|7|212969319|IITU|STK||0.0|||LSEETF|GBP|IITU|EUE2|0000e0d5.6553f2a1.01.01|"
-    "20261113 08:00:07 Europe/London|DU0000001|LSEETF|BOT|26|3755.0|1234567|222|0|26|3755.0|"
-    "20261113-rsi2-IITU||||1"
+    "11|1|2872|212969319|IITU|STK||0.0|||LSEETF|GBP|IITU|EUE2|0000e859.6553f2a1.01.01|"
+    "20261113 09:22:06 MET|DU0000001|LSEETF|BOT|26|3755.00|1234567|222|0|26|3755.00|"
+    "20261113-rsi2-IITU||||2"
 ).split("|")
 SOLD = (
-    "11|1|9|265598|AAPL|STK||0.0|||NASDAQ|USD|AAPL|NMS|0000e0d5.6553f2a9.01.01|"
-    "20261113  14:31:02|DU0000001|NASDAQ|SLD|10|171.5|1234570|222|0|10|171.5|"
-    "20261112-rsi2-AAPL-stop||||2"
+    "11|1|2852|265598|AAPL|STK||0.0|||IBKRATS|USD|AAPL|NMS|0000dc8f.6553f2a9.01.01|"
+    "20261113 09:30:11 US/Eastern|DU0000001|IBKRATS|SLD|10|171.5|1234570|222|0|10|171.5|"
+    "20261112-rsi2-AAPL-stop||||1"
 ).split("|")
-FEE = ("59", "1", "0000e0d5.6553f2a1.01.01", "3.0", "GBP", "1.7976931348623157E308", "", "")
+FEE = ("59", "1", BOUGHT[14], "3.0", "GBP", "1.7976931348623157E308", "1.7976931348623157E308", "")
 END = ("55", "1", "1")
 DAY = date(2026, 11, 13)
 
 
-def _made(part: str, ref: str, contract: str, symbol: str, shares: int, price: str) -> Execution:
+def _made(*told: str, shares: int, price: str) -> Execution:
     """A fill of the desk's own client on the paper account that day."""
-    made = f"0000e0d5.{part}.01.01", "222", ref, "DU0000001", contract, symbol
-    return Execution(*made, Decimal(shares), Decimal(price), DAY)
+    made, ref, contract, symbol, clock = told
+    quantity = Decimal(shares), Decimal(price)
+    return Execution(made, "222", ref, "DU0000001", contract, symbol, *quantity, DAY, clock)
 
 
-BUY = _made("6553f2a1", "20261113-rsi2-IITU", "212969319", "IITU", 26, "3755.0")
-SALE = _made("6553f2a9", "20261112-rsi2-AAPL-stop", "265598", "AAPL", -10, "171.5")
+BUY = _made(
+    BOUGHT[14], "20261113-rsi2-IITU", "212969319", "IITU", "MET", shares=26, price="3755.00"
+)
+SALE = _made(
+    SOLD[14], "20261112-rsi2-AAPL-stop", "265598", "AAPL", "US/Eastern", shares=-10, price="171.5"
+)
 OURS = replace(AAPL_STOP, client="222")  # the desk's own stop: its client, its order id
 
 
@@ -90,7 +97,8 @@ def test_the_desks_own_fills_are_the_ledgers_priced_in_the_lines_currency() -> N
         replace(BUY, ref=""),  # the desk's client, under no order id of the desk's
         replace(BUY, ref=" "),
         replace(BUY, client="2222"),
-        replace(BUY, client="31", contract="999", shares=Decimal("0.5")),  # not the desk's to read
+        # not the desk's to read: no line of its own, a part of a share, another clock
+        replace(BUY, client="31", contract="999", shares=Decimal("0.5"), clock="Asia/Tokyo"),
     ],
 )
 def test_a_fill_that_is_not_the_desks_own_is_kept_apart_as_the_broker_gave_it(
@@ -106,6 +114,10 @@ def test_a_fill_that_is_not_the_desks_own_is_kept_apart_as_the_broker_gave_it(
         (replace(BUY, contract="999"), "999"),  # the desk's own, on no line of the desk's
         (replace(BUY, contract="458512497", symbol="SMGB"), "SMGB"),  # a line now unlisted
         (replace(BUY, shares=Decimal("25.5")), "25.5"),  # the desk orders whole shares
+        # a day told on another clock than its exchange's may not be its session's day
+        (replace(BUY, clock="US/Eastern"), "US/Eastern"),
+        (replace(SALE, clock="MET"), "MET"),
+        (replace(BUY, clock="Asia/Tokyo"), "Asia/Tokyo"),
     ],
 )
 def test_a_fill_of_the_desks_own_that_it_cannot_give_whole_stops_the_reading(
@@ -130,11 +142,15 @@ def test_a_fill_of_the_desks_own_that_it_cannot_give_whole_stops_the_reading(
         ((_but(BOUGHT, 16, "U7654321"), END), paper.NotPaper, "U7654321"),
         ((_but(BOUGHT, 18, "SSHORT"), END), ValueError, "SSHORT"),
         ((_but(BOUGHT, 18, ""), END), ValueError, "cannot trust"),
-        ((_but(BOUGHT, 15, "20261113-08:00:07"), END), ValueError, "20261113-08:00:07"),
+        ((_but(BOUGHT, 15, "20261113-08:22:06"), END), ValueError, "20261113-08:22:06"),
         ((_but(BOUGHT, 15, "1794556807"), END), ValueError, "1794556807"),
         ((_but(BOUGHT, 15, "20261113"), END), ValueError, "cannot trust"),
         ((_but(BOUGHT, 15, ""), END), ValueError, "cannot trust"),
-        ((_but(BOUGHT, 15, "20261332 08:00:07"), END), ValueError, "20261332|month"),
+        ((_but(BOUGHT, 15, "20261113 09:22:06"), END), ValueError, "cannot trust"),  # no clock
+        ((_but(BOUGHT, 15, "20261113 09:22:06 "), END), ValueError, "cannot trust"),
+        ((_but(BOUGHT, 15, "20261113  09:22:06"), END), ValueError, "cannot trust"),
+        ((_but(BOUGHT, 15, "20261113 09:22:06  MET"), END), ValueError, "cannot trust"),
+        ((_but(BOUGHT, 15, "20261132 09:22:06 MET"), END), ValueError, "day is out of range"),
         ((_but(BOUGHT, 14, ""), END), ValueError, "cannot trust"),
         ((_but(BOUGHT, 19, "0"), END), ValueError, "cannot trust"),
         ((_but(BOUGHT, 19, "-26"), END), ValueError, "cannot trust"),
@@ -145,8 +161,8 @@ def test_a_fill_of_the_desks_own_that_it_cannot_give_whole_stops_the_reading(
         ((_but(BOUGHT, 20, "NaN"), END), ValueError, "NaN"),
         ((_but(BOUGHT, 20, "Infinity"), END), ValueError, "Infinity"),
         # one fill given twice, or a fill and the broker's correction of it: counted once only
-        ((BOUGHT, SOLD, BOUGHT, END), ValueError, "0000e0d5.6553f2a1.01"),
-        ((BOUGHT, _but(BOUGHT, 14, "0000e0d5.6553f2a1.01.02"), END), ValueError, "corrected"),
+        ((BOUGHT, SOLD, BOUGHT, END), ValueError, "0000e859.6553f2a1.01"),
+        ((BOUGHT, _but(BOUGHT, 14, "0000e859.6553f2a1.01.02"), END), ValueError, "corrected"),
     ],
 )
 def test_an_answer_the_desk_cannot_trust_stops_the_reading(

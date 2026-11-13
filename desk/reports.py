@@ -28,8 +28,12 @@ ASK_FILLS = 7  #: what this module sends: one question, which places no order
 FILL, FILLS_END, FEE = "11", "55", "59"  #: the answers, by the gateway's own numbers
 NUMBER = "1"  #: the number the desk gives its one question, which the answers carry back
 SIDES = {"BOT": 1, "SLD": -1}  #: the broker's words for a fill that bought and one that sold
-#: When a fill was made, as the gateway tells it: the day, the time, and perhaps the zone.
-WHEN = re.compile(r"(\d{8}) +\d\d:\d\d:\d\d( .+)?")
+#: When a fill was made, as the gateway tells it: the day and the time, on a clock it names.
+WHEN = re.compile(r"(\d{8}) \d\d:\d\d:\d\d (\S.*)")
+#: The clock the gateway tells each venue's fills on, seen on real fills of both: the one
+#: it keeps the exchange's hours on (for London an hour ahead of London's own, the same day
+#: all session long), so a fill's day there is the day of its session.
+CLOCKS = {"LSE": "MET", "US": "US/Eastern"}
 
 
 @dataclass(frozen=True)
@@ -44,7 +48,8 @@ class Execution:
     symbol: str
     shares: Decimal  #: positive bought, negative sold
     price: Decimal  #: in the broker's unit: pence on some London lines
-    day: date  #: the day it was made, as the gateway tells the time
+    day: date  #: the day it was made, on the clock the gateway names
+    clock: str  #: that clock, in the gateway's word for it
 
     def __post_init__(self) -> None:
         """It has an id to be kept under, shares that moved, and a price that is a price."""
@@ -94,6 +99,7 @@ def _execution(fields: list[str]) -> Execution:
         SIDES[side] * count,
         Decimal(price),
         date.fromisoformat(when[1]),
+        when[2],
     )
 
 
@@ -146,7 +152,8 @@ def fills(executions: Iterable[Execution], listings: Mapping[str, Listing | Unli
     """The broker's fills told apart: the desk's own as its ledger keeps them, each priced
     in its line's currency, and everyone else's as given. listings is each line as the
     broker lists it now (listing.read). A fill of the desk's own that cannot be given whole
-    (on no listed line, or not in whole shares) is an error raised, never left out."""
+    (on no listed line, not in whole shares, or its day not told on its exchange's clock) is
+    an error raised, never left out."""
     own: list[Fill] = []
     others: list[Execution] = []
     for e in executions:
@@ -154,8 +161,8 @@ def fills(executions: Iterable[Execution], listings: Mapping[str, Listing | Unli
             others.append(e)
             continue
         listed = _line(e.contract, listings, e)
-        if e.shares != int(e.shares):
-            raise ValueError(f"a fill of the desk's own of {e.shares} shares, not whole: {e}")
+        if e.shares != int(e.shares) or e.clock != CLOCKS[listed.line.venue]:
+            raise ValueError(f"the desk's own, not whole shares on its exchange's clock: {e}")
         price = e.price / listed.magnifier
         own.append(Fill(e.execution_id, e.ref, listed.line.symbol, int(e.shares), price, e.day))
     return Fills(tuple(own), tuple(others))
