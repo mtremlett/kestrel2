@@ -26,8 +26,14 @@ ROUTE = "SMART"  #: where the desk's orders will go: the broker's own router
 #: gateway on one of the desk's lines. A line listed on any other is unlisted until its
 #: exchange is named here.
 EXCHANGES = {"LSE": frozenset({"LSEETF"}), "US": frozenset({"NASDAQ", "ARCA"})}
+SHAPE = "a listing of a shape the desk does not read: {}"
 #: What the broker may multiply a currency's prices by: pounds alone are also priced in pence.
 UNITS = {"GBP": (1, 100), "USD": (1,)}
+
+
+def _number(text: str) -> bool:
+    """Whether a text is one of the broker's numbers for a thing: plain digits alone."""
+    return text.isascii() and text.isdigit()
 
 
 @dataclass(frozen=True)
@@ -46,7 +52,7 @@ class Listing:
         steps: from nothing up, each band above the last, each starting on its own step."""
         lows = [low for low, _ in self.steps]
         if not (
-            (self.contract.isdigit() and int(self.contract) > 0)
+            (_number(self.contract) and int(self.contract) > 0)
             and self.magnifier in UNITS[self.line.currency]
             and all(
                 low.is_finite() and step.is_finite() and step > 0 and low % step == 0
@@ -110,16 +116,14 @@ def _steps(wire: BinaryIO, send: paper.Send, rule: str) -> tuple[tuple[Decimal, 
 
 
 def _rule(fields: list[str]) -> str:
-    """The number of the rule of price steps where the desk's orders will go, from a listing
-    whose shape is the one the desk reads: the rules sit six from the end, one for each of
-    the line's exchanges."""
-    if len(fields) > 30 and len(fields) == 40 + 2 * int(fields[30]):
-        exchanges, rules = fields[16].split(","), fields[-6].split(",")
-        if len(exchanges) == len(rules) and exchanges.count(ROUTE) == 1:
-            rule = rules[exchanges.index(ROUTE)]
-            if rule.isdigit():
-                return rule
-    raise ValueError(f"a listing of a shape the desk does not read: {fields}")
+    """The number of the rule of price steps where the desk's orders will go: the rules sit
+    six from the end of a listing, one for each of the line's exchanges."""
+    exchanges, rules = fields[16].split(","), fields[-6].split(",")
+    if len(exchanges) == len(rules) and exchanges.count(ROUTE) == 1:
+        rule = rules[exchanges.index(ROUTE)]
+        if _number(rule):
+            return rule
+    raise ValueError(SHAPE.format(fields))
 
 
 def _listing(wire: BinaryIO, send: paper.Send, number: str, line: Line) -> Listing | Unlisted:
@@ -128,7 +132,9 @@ def _listing(wire: BinaryIO, send: paper.Send, number: str, line: Line) -> Listi
         return Unlisted(line, f"the broker says: {found}")
     if len(found) != 1:
         return Unlisted(line, f"the broker lists {len(found)} contracts under the name")
-    fields, rule = found[0], _rule(found[0])
+    fields = found[0]
+    if len(fields) < 31 or len(fields) != 40 + 2 * int(fields[30]):
+        raise ValueError(SHAPE.format(fields))
     symbol, kind, currency, contract, magnifier, exchange = (
         fields[n] for n in (2, 3, 8, 12, 17, 20)
     )
@@ -138,7 +144,8 @@ def _listing(wire: BinaryIO, send: paper.Send, number: str, line: Line) -> Listi
         return Unlisted(
             line, f"the broker's {symbol} ({kind}, in {currency}, on {exchange}) is another thing"
         )
-    return Listing(line, contract, exchange, int(magnifier), _steps(wire, send, rule))
+    #: only a contract that is the desk's line is asked for its steps, or needs rules at all
+    return Listing(line, contract, exchange, int(magnifier), _steps(wire, send, _rule(fields)))
 
 
 def converse(

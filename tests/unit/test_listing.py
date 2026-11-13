@@ -15,7 +15,7 @@ from desk.lines import Line
 from desk.listing import Listing, Unlisted
 
 IITU, AAPL = Line("IITU", "LSE", "GBP", 1), Line("AAPL", "US", "USD", 1)
-OPEN = (("176", "20261113 19:31:25 Greenwich Mean Time"), ("15", "1", "DU0000001"), ("9", "1", "1"))
+OPEN = (("176", "20261113 18:31:25 Greenwich Mean Time"), ("15", "1", "DU0000001"), ("9", "1", "1"))
 #: Answers as the real gateway sent them on 13 November 2026, each question's number made the
 #: test's, the long lists (order kinds, hours, AAPL's 27 exchanges) cut short, and AAPL's
 #: exchanges turned round so that the rule where an order goes is neither first nor the rest's.
@@ -83,6 +83,7 @@ def test_each_line_is_read_as_the_gateway_gives_it_and_only_questions_are_sent(
         (IN_PENCE, "7.4474", "744.5"),
         (IN_PENCE, "0.0507", "5.05"),
         (IN_CENTS, "171.519", "171.51"),
+        (replace(IN_PENCE, magnifier=1), "37.556", "37.55"),  # a London line priced in pounds
     ],
 )
 def test_a_price_is_put_down_onto_the_brokers_step_in_the_brokers_unit(
@@ -104,7 +105,7 @@ def test_a_price_with_no_step_at_or_below_it_is_refused(price: str) -> None:
         ((IITU_IS, _but(IITU_IS, 12, "999"), ENDS[0]), "2 contracts"),
         ((ENDS[0],), "0 contracts"),
         ((_but(IITU_IS, 20, "NASDAQ"), ENDS[0]), "on NASDAQ"),  # another venue's exchange
-        ((_but(IITU_IS, 8, "EUR"), ENDS[0]), "EUR"),
+        ((_but(_but(IITU_IS, 8, "EUR"), 16, "AEB"), ENDS[0]), "EUR"),  # whatever its rules
         ((_but(IITU_IS, 3, "CFD"), ENDS[0]), "CFD"),
         ((_but(IITU_IS, 2, "IITV"), ENDS[0]), "IITV"),
     ],
@@ -125,8 +126,8 @@ def test_a_line_the_broker_does_not_list_as_the_desks_is_named_and_the_rest_carr
         ((IITU_IS, ENDS[0]), ConnectionError, "hung up"),
         ((_but(IITU_IS, 1, "1"),), ValueError, "does not read"),
         ((IITU_IS, ENDS[1]), ValueError, "does not read"),
-        ((IITU_IS[:-1], ENDS[0]), ValueError, "shape"),
-        (([*IITU_IS, ""], ENDS[0]), ValueError, "shape"),
+        ((_but(IITU_IS, 35, IITU_IS[36])[:-1], ENDS[0], PENCE), ValueError, "shape"),  # one short
+        (([*_but(IITU_IS, 37, IITU_IS[36]), ""], ENDS[0], PENCE), ValueError, "shape"),  # one over
         ((IITU_IS[:30], ENDS[0]), ValueError, "shape"),
         ((_but(IITU_IS, 36, "984,3051"), ENDS[0]), ValueError, "shape"),
         ((_but(IITU_IS, 36, ",984,3051,984"), ENDS[0]), ValueError, "shape"),
@@ -135,6 +136,7 @@ def test_a_line_the_broker_does_not_list_as_the_desks_is_named_and_the_rest_carr
         ((_but(IITU_IS, 17, "10"), ENDS[0], PENCE), ValueError, "cannot trust"),
         ((_but(IITU_IS, 12, "0"), ENDS[0], PENCE), ValueError, "cannot trust"),
         ((_but(IITU_IS, 12, ""), ENDS[0], PENCE), ValueError, "cannot trust"),
+        ((_but(IITU_IS, 12, "\u0663"), ENDS[0], PENCE), ValueError, "cannot trust"),  # no digit
         ((IITU_IS, ENDS[0], PENCE, _but(AAPL_IS, 17, "100"), ENDS[1], CENTS), ValueError, "trust"),
         ((IITU_IS, ENDS[0], _but(PENCE, 1, "3051")), ValueError, "does not read"),
         ((IITU_IS, ENDS[0], PENCE[:-1]), ValueError, "shape"),
@@ -145,6 +147,7 @@ def test_a_line_the_broker_does_not_list_as_the_desks_is_named_and_the_rest_carr
         ((IITU_IS, ENDS[0], "93 984 2 0 0.01 5 0".split()), ValueError, "cannot trust"),
         ((IITU_IS, ENDS[0], "93 984 1 0 -0.01".split()), ValueError, "cannot trust"),
         ((IITU_IS, ENDS[0], "93 984 1 0 Infinity".split()), ValueError, "cannot trust"),
+        ((IITU_IS, ENDS[0], "93 984 2 0 0.01 Infinity 1".split()), ValueError, "cannot trust"),
         ((IITU_IS, ENDS[0], "93 984 2 0 0.03 0.1 0.07".split()), ValueError, "cannot trust"),
         ((IITU_IS, ENDS[0], "93 984 0".split()), ValueError, "cannot trust"),
         ((_but(UNKNOWN, 3, "321"),), ConnectionError, "321"),
