@@ -122,6 +122,29 @@ def test_while_the_book_is_not_the_brokers_nothing_is_bought_and_no_such_line_so
     assert book.reconcile(tmp_path, broker) == tuple("ABCDEF"), "named in no order"
 
 
+@pytest.mark.parametrize(
+    ("held", "entries", "named"),
+    [
+        ({"A": 25}, [("A", Decimal(25)), ("B", 0), ("B", 0)], []),  #: listed at no shares: not held
+        ({}, [("A", 25)], [("A", 25, 0)]),
+        ({"A": 25}, [], [("A", 0, 25)]),
+        ({"A": 25, "B": 4}, [("B", 5), ("A", -25)], [("A", -25, 25), ("B", 5, 4)]),
+        ({}, [("A", Decimal("0.5"))], [("A", Decimal("0.5"), 0)]),
+        #: entries that only add up to the book are two places, or a change while it was read
+        ({"A": 25}, [("A", 20), ("A", 5)], [("A", 5, 25), ("A", 20, 25)]),
+        ({"A": 25}, [("A", 25), ("A", 0)], [("A", 0, 25)]),
+        ({}, [("A", 25), ("A", -25)], [("A", -25, 0), ("A", 25, 0)]),
+        ({"A": 25}, [("A", 25), ("A", 25)], [("A", 25, 25)] * 2),  #: fifty, in two places
+    ],
+)
+def test_every_entry_of_the_brokers_is_the_books_own_shares_or_it_is_named(
+    held: dict[str, int],
+    entries: list[tuple[str, Decimal | int]],
+    named: list[tuple[str, Decimal | int, int]],
+) -> None:
+    assert book.differences(held, entries) == tuple(book.Difference(*n) for n in named)
+
+
 def test_a_round_trip_pairs_each_sale_with_the_buys_it_closes_in_pounds_after_charges(
     tmp_path: Path,
 ) -> None:
