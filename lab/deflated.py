@@ -100,7 +100,13 @@ class Deflated:
 def judge(verdicts: Sequence[Verdict], unjudged: int) -> tuple[Deflated, ...]:
     """Every verdict judged on every named rung, as one set: the verdicts given, and the
     trials tried that left no verdict, which count as much as any."""
-    return tuple(_deflated(corrected) for corrected in luck.correct(verdicts, unjudged))
+    return read(luck.correct(verdicts, unjudged))
+
+
+def read(corrected: Sequence[Corrected]) -> tuple[Deflated, ...]:
+    """Verdicts already corrected for their count, judged on every named rung: the door for
+    a count the register of trials keeps from batch to batch (`trials.correct`)."""
+    return tuple(_deflated(one) for one in corrected)
 
 
 def best_by_luck(spread: float, trials: int) -> float:

@@ -16,7 +16,8 @@ FAILING FAIRLY (LAD-06, STR-12). A strategy is failed only by a test that could 
 it. Under MIN_TRADES judged trades there is not enough evidence: the answer is THIN, whatever
 the trades made or lost, and never a fail. No judged trade at all is a FAULT in the test (a
 window too short, the wrong bars, a rule that cannot fire there): it says nothing of the
-rule. And no verdict is given by code that is not the published rule (`lab/published.py`).
+rule. And `judge` gives no verdict on code that is not the published rule
+(`lab/published.py`). Gains with no spread at all are still refused loudly, few or many.
 The trades counted are the effective ones: each judged whole, and each a bet of its own,
 since a rule holds one position on a line at a time. Trades pooled across lines, where two
 held together are one bet, are counted here when pooling is built.

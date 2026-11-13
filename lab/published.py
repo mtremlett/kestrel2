@@ -9,7 +9,9 @@ which the published rule, worked by hand from its own words, buys and sells on s
 and on no other. The same series and days are pinned, with their working, in the
 strategies' own contract test. Two pieces of code must give exactly those trades: the desk's
 own engine (`strategy.decide`), which is what would trade, and the ladder's cell
-(`lab/cell.py`), which is what is judged and may be the fast grid's answer.
+(`lab/cell.py`), which is what is judged: the fast grid's answer wherever the grid gives
+one, so each rule has a series with a trade that the grid answers itself (a tie it refuses
+goes to the desk's engine).
 
 Code that gives any other trade on any series is not the published rule, and it is refused
 loudly: a fault in the test, never a verdict on the strategy. A rule with nothing written
@@ -145,6 +147,13 @@ PUBLISHED: Mapping[str, Published] = {
                 ((10, 12),),
                 reach="1",
             ),
+            _case(
+                "the same with bar 11 at 102, clear of the band of 101.3, and held: no tie, "
+                "so the fast grid answers this one itself and is held to the rule too",
+                [100] * 10 + [110, 102, 100],
+                ((10, 12),),
+                reach="1",
+            ),
         ),
     ),
 }
@@ -172,7 +181,7 @@ def proven(name: str) -> Published:
 
 
 def _desk(name: str, bars: Sequence[Bar]) -> Trades:
-    decided = [d.action for d in strategy.decide({name: bars}) if d.strategy == name]
+    decided = [d.action for d in strategy.decide({LINES[0].symbol: bars}) if d.strategy == name]
     turns = [n for n, action in enumerate(decided) if action is not Action.HOLD]
     return tuple(zip(turns[::2], [*turns[1::2], None], strict=False))
 
