@@ -6,7 +6,7 @@ build prices of their own, so lengthening it is one change in one file.
 Fourteen months of made-up prices (the operator's ruling of 13 November 2026): a steady
 rise, a slow fall, a breakout, a sharp three-day dip, a recovery and a last fall, so that
 each of the five rules buys and sells. Each line trades on its own venue's sessions, so a
-UK holiday is not a US one. The scenes see the history from SCENES_FROM on.
+UK holiday is not a US one. The scenes see all of it.
 """
 
 from __future__ import annotations
@@ -17,17 +17,17 @@ from datetime import date
 from decimal import Decimal
 
 from desk import venues
-from desk.lines import Line
+from desk.lines import NO_TAX, STAMP_DUTY, Line
 from desk.store import Bar
 
 FIRST, LAST = date(2024, 9, 2), date(2025, 11, 14)
 TODAY = date(2025, 11, 17)  #: the Monday after: the desk prepares to trade on this day
-#: The six weeks the scenes see today, with no UK or US holiday in them. It moves back to
-#: FIRST once scene 2 counts each line's own sessions (docs/STATUS.md, the data lane's).
-SCENES_FROM = date(2025, 10, 1)
 #: Twenty synthetic lines: eight on the London venue in pounds, twelve in the US in dollars.
+#: The first is a UK share, whose purchase pays stamp duty; the rest pay no UK tax.
 LINES = tuple(
-    Line(f"L{n:02}", "LSE", "GBP", 1) if n <= 8 else Line(f"L{n:02}", "US", "USD", 1)
+    Line(f"L{n:02}", "LSE", "GBP", 1, STAMP_DUTY if n == 1 else NO_TAX)
+    if n <= 8
+    else Line(f"L{n:02}", "US", "USD", 1, NO_TAX)
     for n in range(1, 21)
 )
 BAD = LINES[4]
@@ -61,12 +61,10 @@ def _bars(n: int, days: Sequence[date]) -> tuple[Bar, ...]:
     return tuple(bars)
 
 
-HISTORY: Archive = {
+CLEAN: Archive = {
     line: _bars(n, venues.sessions(line.venue, FIRST, LAST)) for n, line in enumerate(LINES, 1)
 }
-CLEAN: Archive = {
-    line: tuple(bar for bar in bars if bar.day >= SCENES_FROM) for line, bars in HISTORY.items()
-}
+HISTORY = CLEAN  #: scene 5's name for it, until the money lane reads CLEAN (R-DATA-6)
 SESSIONS = tuple(sorted({bar.day for bars in CLEAN.values() for bar in bars}))
 #: The bad line's three faults, all in its last sixty sessions so that they park it: a price
 #: in pence among pounds, a date given twice, a day missing.
