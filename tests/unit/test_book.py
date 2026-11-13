@@ -4,7 +4,7 @@ the gate reads, built from every fill. Scene 4 holds the gate's refusal and a cr
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
-from datetime import date
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
 
@@ -127,12 +127,48 @@ def test_while_the_book_is_not_the_brokers_nothing_is_bought_and_no_such_line_so
     assert book.reconcile(tmp_path, broker) == tuple("ABCDEF"), "named in no order"
 
 
+def test_while_the_kill_switch_is_on_nothing_is_sent_and_every_refusal_says_why(
+    tmp_path: Path,
+) -> None:
+    broker = Pretend(WEEK, {"B": Fault.CRASH})
+    broker.open(MON)
+    _send(tmp_path, broker)
+    with pytest.raises(Crash):  #: the broker has o-2 and the desk has no answer yet
+        _send(tmp_path, broker, "o-2", SIX[1])
+    at = datetime(2025, 11, 10, 9, 30, tzinfo=UTC)
+    book.turn(tmp_path, book.Switch.DRILLED, at, "a drill is not a pull")
+    assert book.killed(tmp_path) is None
+    book.turn(tmp_path, book.Switch.ON, at, "his word")
+    for order in (Order("o-3", SIX[2], 10, *map(Decimal, (50, 1, 45))), Sale("s-1", A, 10)):
+        with pytest.raises(Refused, match=f"{order.order_id}: .*kill switch.*09:30 UTC: his word"):
+            book.send(tmp_path, broker, order, ROOM)
+    assert broker.submitted() == ("o-1", "o-2"), "sent while the kill switch was on"
+    assert _send(tmp_path, broker, "o-2", SIX[1]).filled == 10, "what the broker did, unrecorded"
+    broker.open(TUE)  #: A's stop sells: the ledger still learns of it
+    book.collect(tmp_path, broker)
+    assert book.positions(tmp_path) == {"B": 10}
+    book.turn(tmp_path, book.Switch.OFF, at, "his word again")
+    assert _send(tmp_path, broker, "o-3", SIX[2]).filled == 10, "off, and still nothing sent"
+    assert [(to.value, why) for when, to, why in book.switch(tmp_path) if when == at] == [
+        ("drilled", "a drill is not a pull"),
+        ("on", "his word"),
+        ("off", "his word again"),
+    ], "the record does not read back as it was written"
+    for when, why in ((datetime(2025, 11, 10, 9, 30), "no zone"), (at, " ")):
+        with pytest.raises(ValueError, match="kill switch"):
+            book.turn(tmp_path, book.Switch.ON, when, why)
+    (tmp_path / book.SWITCH).write_text("at,turn,why\nwhen,on,torn\n", "utf-8")
+    with pytest.raises(ValueError):  #: a record that cannot be read never reads as off
+        _send(tmp_path, broker, "o-4", SIX[3])
+
+
 class Account:
     """Any broker, not the pretend one by name: its rows as a real account's door gives them,
     and each reading of them counted."""
 
     def __init__(self, inner: Pretend) -> None:
         self.report, self.place, self.fills = inner.report, inner.place, inner.fills
+        self.cancel = inner.cancel
         self.inner, self.read, self.between = inner, 0, list[Callable[[], None]]()
         self.rows, self.resting = (list[tuple[str, Decimal | int]]() for _ in range(2))
 
