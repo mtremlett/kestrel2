@@ -55,15 +55,17 @@ READ = (
 
 
 class NoRound(RuntimeError):
-    """No round was begun, for SQLite's own reason: "database is locked" is a store that
-    stayed in another's hands for WAIT seconds."""
+    """No round was begun, or the round is lost, for SQLite's own reason: "database is
+    locked" is a store that stayed in another's hands for WAIT seconds."""
 
 
 def _seconds(moment: datetime) -> int:
-    """A moment in UTC as whole seconds since EPOCH; one in no zone, or another, is refused."""
+    """The first whole second since EPOCH at or after a moment in UTC, so that a bar starts
+    at or after a moment exactly when its second does. A moment in no zone, or at any
+    distance from UTC, is refused."""
     if moment.utcoffset() != timedelta(0):
         raise ValueError(f"{moment!r} is not a moment in UTC")
-    return (moment - EPOCH) // timedelta(seconds=1)
+    return -((EPOCH - moment) // timedelta(seconds=1))
 
 
 @dataclass(frozen=True)
@@ -92,7 +94,10 @@ class Round:
         self, whole: bool, line: Line, span: str, bars: Iterable[tuple[int, Bar | Five]]
     ) -> None:
         """One line's bars of one span, all of them or, if any is refused, none: the round is
-        then as it was before, whether or not the caller ends it there."""
+        then as it was before, whether or not the caller ends it there. A round that SQLite
+        itself has dropped (a full disk) takes no more, and nothing of it lands."""
+        if not self._held.in_transaction:
+            raise NoRound(f"SQLite dropped this round: nothing of it lands, {line.symbol} too")
         key = (line.venue, line.symbol, span)
         rows = (
             (*key, at, str(b.open), str(b.high), str(b.low), str(b.close), b.volume)
@@ -105,10 +110,10 @@ class Round:
                 self._held.execute(CLEAR, key)
             self._held.executemany(ADD if whole else PUT, rows)
         except BaseException:
-            self._held.execute("ROLLBACK TO line")
+            if self._held.in_transaction:
+                self._held.execute("ROLLBACK TO line")
             raise
-        finally:
-            self._held.execute("RELEASE line")
+        self._held.execute("RELEASE line")
 
     def daily(self, line: Line, bars: Iterable[Bar]) -> None:
         """A line's daily history, whole: it takes the place of the history held before, for
@@ -135,7 +140,7 @@ def writing(path: Path) -> Iterator[Round]:
             held.execute("PRAGMA synchronous = FULL")
             held.execute("BEGIN IMMEDIATE")
         except sqlite3.OperationalError as refusal:
-            raise NoRound(f"{path}: {refusal}, waited {WAIT} seconds") from refusal
+            raise NoRound(f"{path}: no round begun: {refusal}") from refusal
         with held:
             for table in SCHEMA:
                 held.execute(table)

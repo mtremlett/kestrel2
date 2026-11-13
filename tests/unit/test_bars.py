@@ -23,6 +23,7 @@ from desk.store import Bar
 US, UK = Line("BA", "US", "USD", 1), Line("BA", "LSE", "GBP", 1)  #: one symbol, two companies
 NOON = datetime(2026, 11, 13, 12, 0, tzinfo=UTC)
 NEXT, ELSEWHERE = NOON + timedelta(minutes=5), timezone(timedelta(hours=1))
+TICK = timedelta(microseconds=1)
 ODD = (Decimal("1E+3"), Decimal("123456.789012345678901"), Decimal("0.0001"), Decimal("0.10"))
 #: A daily bar and a five-minute bar that the store keeps under one number, each in its span.
 TWINS = (Bar(date.fromordinal(600), *ODD, 1), Five(bars.EPOCH + timedelta(seconds=600), *ODD, 2))
@@ -54,6 +55,7 @@ def test_what_is_written_is_read_back_exactly_and_each_line_apart(tmp_path: Path
     assert bars.daily(store, UK) == (TWINS[0], *days[:3], Bar(date.max, *ODD, 3))
     assert bars.five(store, US, fives[0].start, NEXT) == fives
     assert bars.five(store, US, fives[10].start, fives[20].start) == fives[10:20]
+    assert bars.five(store, US, fives[9].start + TICK, fives[19].start + TICK) == fives[10:20]
     assert bars.five(store, UK, bars.EPOCH, NEXT) == TWINS[1:]
     read = bars.five(store, US, NOON, NEXT)[0]
     assert read.start.utcoffset() == timedelta(0)
@@ -75,8 +77,7 @@ def test_a_history_is_replaced_whole_and_five_minute_bars_gather(tmp_path: Path)
         round_.five(US, (corrected, *fives[20:]))
     assert bars.daily(store, US) == days[5:]
     assert bars.five(store, US, fives[0].start, NEXT) == (*fives[:19], corrected, *fives[20:])
-    assert bars.daily(store, UK) == days
-    assert bars.five(store, UK, fives[0].start, NEXT) == fives[:20]
+    assert (bars.daily(store, UK), bars.five(store, UK, fives[0].start, NEXT)) == (days, fives[:20])
     with bars.writing(store) as round_:
         with pytest.raises(ValueError, match="BA on US: its history gives a day twice"):
             round_.daily(US, (*days[:9], replace(days[0], volume=1)))
@@ -100,13 +101,21 @@ def test_a_reader_sees_only_whole_rounds_and_a_second_writer_is_refused(
         round_.daily(US, days)
         round_.five(US, fives)
         assert bars.daily(store, US) == days[:5]
-        with (
-            pytest.raises(bars.NoRound, match="bars.db: database is locked, waited 0.05"),
-            bars.writing(store),
-        ):
-            pass
+        with pytest.raises(bars.NoRound, match="bars.db: no round begun: database is locked"):
+            bars.writing(store).__enter__()
         raise RuntimeError("the round fails")
     assert bars.daily(store, US) == days[:5]
+
+    def dropped(_bar: Bar) -> Bar:
+        round_._held.rollback()  # as SQLite itself does to a round when the disk fills
+        raise OSError("the disk is full")
+
+    with bars.writing(store) as round_:
+        round_.five(US, fives)
+        with pytest.raises(OSError, match="the disk is full"):
+            round_.daily(US, map(dropped, days))
+        with pytest.raises(bars.NoRound, match="dropped this round"):
+            round_.five(US, fives)
     with pytest.raises(LookupError, match="five-minute bars for BA on US"):
         bars.five(store, US, fives[0].start, NEXT)
 
@@ -118,20 +127,19 @@ def test_a_store_or_a_line_never_written_is_refused_not_read_as_empty(tmp_path: 
     assert not store.exists()
     with bars.writing(store) as round_:
         round_.daily(US, ())
-    assert bars.daily(store, US) == ()
+        round_.five(UK, ())
+    assert (bars.daily(store, US), bars.five(store, UK, NOON, NEXT)) == ((), ())
     for other in (UK, Line("BB", "US", "USD", 1)):
         with pytest.raises(LookupError, match=f"daily bars for {other.symbol} on {other.venue}"):
             bars.daily(store, other)
-    with pytest.raises(ValueError, match="UTC"):
-        bars.five(store, US, NOON.replace(tzinfo=None), NEXT)
-    with pytest.raises(ValueError, match="UTC"):
-        bars.five(store, US, NOON, NEXT.astimezone(ELSEWHERE))
+    for since, until in ((NOON.replace(tzinfo=None), NEXT), (NOON, NEXT.astimezone(ELSEWHERE))):
+        with pytest.raises(ValueError, match="UTC"):
+            bars.five(store, US, since, until)
 
 
 def test_a_five_minute_bar_starts_on_a_five_minute_mark_in_utc() -> None:
-    zones = (NOON.replace(tzinfo=None), NOON.astimezone(ELSEWHERE))
-    late = (timedelta(minutes=1), timedelta(seconds=1), timedelta(microseconds=1))
-    for start in (*zones, *(NOON + by for by in late)):
+    late = (NOON + timedelta(minutes=1), NOON + timedelta(seconds=1), NOON + TICK)
+    for start in (NOON.replace(tzinfo=None), NOON.astimezone(ELSEWHERE), *late):
         with pytest.raises(ValueError, match="UTC"):
             Five(start, *ODD, 1)
 
@@ -161,10 +169,12 @@ def test_the_deep_store_meets_its_three_benchmarks(tmp_path: Path) -> None:
     def a_week() -> tuple[Five, ...]:
         return bars.five(store, LINES[7], NOON - timedelta(7), NEXT)
 
-    assert (round_took := _fastest(a_round)) < ROUND, f"{len(LINES)} lines: {round_took:.3f}s"
+    round_took = _fastest(a_round)
+    assert round_took < ROUND, f"a round of {len(LINES)} lines took {round_took:.3f}s"
     assert bars.five(store, LINES[19], NEXT, NEXT + timedelta(hours=1)) == tuple(newest)
     assert a_week() == fives[-511:]
-    assert (week_took := _fastest(a_week)) < WEEK, f"a week took {week_took:.3f}s"
+    week_took = _fastest(a_week)
+    assert week_took < WEEK, f"a week took {week_took:.3f}s"
     assert bars.daily(store, LINES[7]) == days
     history_took = _fastest(lambda: bars.daily(store, LINES[7]))
     assert history_took < HISTORY, f"a history took {history_took:.3f}s"
