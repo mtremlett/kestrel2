@@ -280,20 +280,18 @@ tickers misjudged: WWH, SHC, ECHO, MRNA, ROR), data-fast-store, data-hours; then
 
 ## GRID
 
-Last updated: 13 November 2026 (a cell names its line and venue).
+Last updated: 13 November 2026 (the first pass run; a key per rung; the auto-tune).
 ### Where it is
 
-Built and proven: the unit of work (`lab/cell.py`), the restart-safe batch (`lab/batch.py`) and
-the fast grid engine (`lab/grid.py`: the desk's position after every bar, or a refusal by name,
-`TooClose`). A cell runs on the grid (25 ms on 4,000 days, the desk's 95) and holds its whole
-`Line`: one symbol can be two companies (BA; thirteen such), so bars come from the line's own
-venue's folder and the journal names symbol and venue. No price or profit is named.
+Built and proven: the cell, the restart-safe batch, the fast grid engine, a key per rung
+(`lab/cell.py`: costs move verdict keys, not trades'), the auto-tune (`lab/tune.py`: Windows
+memory ceiling, workers sized to the cores, back-off, busy flag) and the pass (`lab/sweep.py`).
+The first pass ran for real: 5,325 cells (1,065 tickers x 5 strategies) in 200 s, a second in 45 s.
 
 ### Next step
 
-Auto-tune (`lab/tune.py`), so a pass can never take the PC down; it can run beside the key
-box (BT-04). Then the first pass, which runs at the published five settings on the 864 clean
-tickers until R-GRID-1 and the data lane's parked fifth land; then the week, the weekend.
+grid-week (seven days without stopping): needs a command of its own for the runner, a lock on
+one folder of journals, a journal per worker, and failed cells not growing the journal each pass.
 
 ### Done for other lanes
 
@@ -301,31 +299,34 @@ tickers until R-GRID-1 and the data lane's parked fifth land; then the week, the
 
 ### Requests to MONEY
 
-- [ ] R-GRID-1 (later, opened 2026-11-13 18:15): the five rules made at other settings (window
-  lengths, the RSI's bar, the bands' widths) in `desk/strategy.py`; the grid is trusted only
-  where it matches the desk's engine (canon B2), so it runs at the published five until then.
+- [ ] R-GRID-1 (later, opened 2026-11-13 18:15): the five rules at other settings in
+  `desk/strategy.py`; the grid runs the published five until then (canon B2).
 
 ### Requests to RUNGS
 
-- [ ] R-GRID-2 (later, opened 2026-11-13 20:04 UK): make each cell from a Line (`Cell(name, line,
-  start, end)`) in `tests/unit/test_lab_rung.py` and `test_lab_luck.py`, and price in `lab/rung.py`
-  with `c.line`: a research-list cell cannot be priced today. Then GRID drops `Cell.symbol`.
+- [ ] R-GRID-2 (later, opened 2026-11-13 20:04 UK): make each cell from a Line in
+  `test_lab_rung.py`, `test_lab_luck.py`, and price in `lab/rung.py` with `c.line`. Then GRID drops `Cell.symbol`.
+- [ ] R-GRID-3 (later, opened 2026-11-13 21:10 UK): stamp each verdict with `record.key.rung("lab.rung")`
+  and each luck correction with `.rung("lab.luck")` in `lab/rung.py`; include the capital setting
+  and exchange rate in what a kept verdict is found by. Needed before any verdict is kept.
+
+### Requests to DATA
+
+- [ ] R-GRID-4 (later, opened 2026-11-13 21:35 UK): a public "UK clock time of a moment" in
+  `desk/venues.py`, so `lab/tune.py` drops its own summer-time rule.
+- [ ] R-GRID-5 (later, opened 2026-11-13 22:20 UK): the research store's home (data-research-home)
+  built on this PC (the first pass used a scratch copy); R-DATA-7's second half is still owed.
 
 ### Found, not fixed
 
-- **The grid refuses runs of equal closes** (five+ for the RSI, twenty+ for Bollinger); the
-  desk's engine decides those cells, only slower. Count them before the first pass.
-- Deliberate breaks of the grid no series found can show: the Supertrend's band on the day's
-  own close; a close against its day's upper band; the Bollinger check past 2**53; Wilder's
-  smoothing as long as its window; the upper band's margin.
-- The golden series are read from `tests/unit/test_strategy.py` (`GOLDEN`, `_walk`, `_jumpy`,
-  `_bars`, `START`): if the money lane renames them, the two lanes move together.
-- A helper's empty copy under `.claude/worktrees/` (branch `worktree-agent-ab11b126c53bfd69e`) can go.
-- The unit of work: its key leaves out the Python version and file paths; no test drives a
-  bar whose volume alone changed, or two bars on one day; a refused cell runs all five rules;
-  a cell does not check its line is on the research list (no prices fails that cell loudly).
-- The batch: no test sees each line forced to disk; nothing stops two processes on one
-  journal (a lock is owed); bars hashed twice for a new cell; the journal only grows.
+- **The grid refuses runs of equal closes**; the desk's engine decides them, slower. Not yet counted.
+- Grid breaks no series found can show: Supertrend's band on the day's close; Bollinger past 2**53;
+  Wilder's smoothing as long as its window; the band's margin. Golden series live in `test_strategy.py`.
+- Cell/batch: key leaves out Python version and paths; capital and exchange rate are in no key; no lock
+  on a journal. Unit-test lines equal product lines (2,861): more test than product turns the check red.
+- Tune: the proof uses one worker; priority and kill-on-exit untested; a worker that never finishes
+  holds the pass; batch size follows only the last batch; the busy flag's write can fail.
+- First pass: survivors only; refusals and run/kept/failed counts not logged. Scratch copies owed removal: `.claude/worktrees/` helpers, `C:	mp	unebreaks`, `C:	mp	unedriver`.
 
 ## RUNGS
 
