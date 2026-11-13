@@ -1,0 +1,42 @@
+{
+  "why": [
+    "The size ratchet. tests/guards/test_guards.py FAILS when the tree exceeds the",
+    "ceiling of the current phase. The ceilings are agreed with the operator BEFORE",
+    "the phase starts, so a build never has to negotiate room for itself. Raising a",
+    "ceiling, or adding a phase, is an edit to this file and needs the operator's",
+    "approval on the pull request.",
+    "The old desk had no number like this and reached 438,466 lines of product code."
+  ],
+  "phase": "0-foundations",
+  "phases": {
+    "0-foundations": {
+      "product_lines": 1500,
+      "product_files": 20,
+      "lab_lines": 20
+    },
+    "1-data": {
+      "product_lines": 3500,
+      "product_files": 30,
+      "lab_lines": 20
+    },
+    "2-money-sim": {
+      "product_lines": 7000,
+      "product_files": 45,
+      "lab_lines": 1500
+    },
+    "3-money-paper": {
+      "product_lines": 9000,
+      "product_files": 55,
+      "lab_lines": 1500
+    },
+    "4-ladder": {
+      "product_lines": 9000,
+      "product_files": 55,
+      "lab_lines": 7000
+    }
+  },
+  "max_lines_per_file": 400,
+  "max_lines_per_function": 50,
+  "test_lines_may_not_exceed_product_lines": true,
+  "counted": "*.py in desk/ and lab/, blank lines and comments included - the honest number"
+}

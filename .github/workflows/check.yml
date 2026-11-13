@@ -1,0 +1,56 @@
+name: check
+
+# THE CHECK RUNS HERE, NOT ONLY ON THE OPERATOR'S PC. This machine has no access to his
+# data, his broker or his files - which is exactly why a test cannot quietly start
+# depending on live state and call itself green.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: install the pinned tools
+        run: python -m pip install --disable-pip-version-check -e ".[dev]"
+
+      - name: the one check
+        run: python check.py
+
+  guards-cannot-be-loosened:
+    # A change to a guard, a budget or the manifest is allowed, but it is never quiet:
+    # this job states it in the pull request so the operator sees it before merging.
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: say whether this change touches a guard
+        run: |
+          git fetch --no-tags --depth=50 origin "${{ github.base_ref }}"
+          changed=$(git diff --name-only "origin/${{ github.base_ref }}"...HEAD)
+          guards=$(echo "$changed" | grep -E '^(BUDGET.json|manifest.toml|pyproject.toml|check.py|tests/guards/|\.github/)' || true)
+          if [ -n "$guards" ]; then
+            echo "::warning title=This change touches a guard::$guards"
+            echo "THIS CHANGE TOUCHES A GUARD - the operator approves it or it does not merge:"
+            echo "$guards"
+          else
+            echo "No guard touched."
+          fi

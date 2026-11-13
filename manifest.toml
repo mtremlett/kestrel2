@@ -1,0 +1,25 @@
+# THE MANIFEST - every module, its one job, and what it may import.
+#
+# A .py file under desk/ or lab/ that is not listed here FAILS the check, so a new
+# module is registered on purpose before it is written. This is the wall that the
+# old desk never had: its trading run could reach 352,000 lines of anything.
+#
+# THE WALL, in one line each:
+#   desk/  the trading core. Imports the standard library and its allowed third
+#          party list ONLY. It may never import lab/.
+#   lab/   research and the ladder. May import desk/ (it tests the real thing).
+
+[packages.desk]
+purpose = "the trading core: data in, decisions out, orders to one broker door"
+may_import = ["stdlib"]
+allowed_third_party = []
+
+[packages.lab]
+purpose = "research and the ladder: judges strategies using the core's own code"
+may_import = ["stdlib", "desk"]
+allowed_third_party = []
+
+# Every module, with the one thing it owns. Add a line here, then write the file.
+[modules]
+"desk/__init__.py" = "the package marker; owns no behaviour"
+"lab/__init__.py" = "the package marker; owns no behaviour"

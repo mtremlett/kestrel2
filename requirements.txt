@@ -1,0 +1,12 @@
+# THE DECLARED ENVIRONMENT. Nothing is installed that is not on this list, pinned.
+#
+# A new line here needs an entry in docs/DECISIONS.md saying what code it replaces that
+# we would otherwise write and maintain, and the operator's approval on the pull request.
+# On the first desk, one unreviewed install pulled in three packages nobody had read.
+
+# the one check: format, lint, complexity, security rules
+ruff==0.8.6
+# the one type checker, strict on the whole tree
+mypy==1.14.1
+# the one test runner
+pytest==8.3.4

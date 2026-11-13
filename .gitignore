@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+.venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# DATA NEVER ENTERS THIS REPOSITORY. It is public, and prices, positions and account
+# records are not ours to publish. Test fixtures live in tests/fixtures/ and are tiny,
+# synthetic and committed on purpose.
+data/
+*.parquet
+*.csv
+!tests/fixtures/**
