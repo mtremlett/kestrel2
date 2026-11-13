@@ -267,3 +267,42 @@ through it or is the one exception, decided then and recorded here.
 
 **The cost.** The line comes only when the check on main passes. If main were ever red
 after a merge, no line comes, and GitHub's own failure notice is the alarm.
+
+---
+
+## 2026-11-13 — the twenty lines: ten in London, ten in the US
+
+**Decided.** The twenty frozen lines are ten on the London venue and ten in the US,
+all London lines priced in pounds and all US lines in dollars:
+
+| London | US |
+|---|---|
+| 3LGO WisdomTree Gold 3x daily | AAPL Apple |
+| 2MU Leverage Shares 2x Micron | TSLA Tesla |
+| SMGB VanEck Semiconductor | NVDA Nvidia |
+| IITU iShares S&P 500 Information Technology | SPCX SpaceX |
+| VHYG Vanguard All-World High Dividend | MSTR Strategy |
+| 5QQQ Leverage Shares 5x Nasdaq 100 | AMD Advanced Micro Devices |
+| IB1T iShares Bitcoin | SPY S&P 500 |
+| ISF iShares Core FTSE 100 | QQQ Nasdaq 100 |
+| VUSA Vanguard S&P 500, in pounds | MU Micron |
+| SGLN iShares Physical Gold | GLD Gold |
+
+**How each was checked.** Every ticker was looked up in the free archive on 13 November
+2026. Two he named did not exist there: "aalp" and "1b1t.l". Asked whether he meant AAPL
+and IB1T, he answered "Yes, AAPL and IB1T (Recommended)". SPCX is SpaceX, listed on 12
+June 2026. 3LGO has no history in the free archive, though the same product in dollars,
+3GOL, has fourteen years; offered 3GOL, 3LGO or plain gold, he chose "Keep 3LGO in
+pounds", so it holds no history to test on until the archive gathers some. The last seven
+were proposed with a recommendation each: for London he chose "ISF, VUSA, SGLN
+(Recommended)", for the US "SPY, QQQ, MU, GLD (Recommended)" - a yardstick for "simply
+holding the market" on each venue (AG-04) and the plain version of each leveraged line.
+
+**Leverage, told to him before anything trades it.** 3LGO is three times gold's daily
+move, 2MU twice Micron's, 5QQQ five times the Nasdaq's. They reset daily, so a 20% day
+empties a 5x line and a choppy market bleeds them even when the index ends flat. Phase 2
+asks him how they are sized.
+
+**His words.** In chat, Friday 13 November 2026, about 13:24 UK time: "10 uk and 10 us.
+uk includes 3lgo.l, 2mu.l, smgb.l, iitu.l, vhyg.l, 5qqq.l , 1b1t.l . us includes: aalp,
+tsla, nvda, spcx, mstr, amd."

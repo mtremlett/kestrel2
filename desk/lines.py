@@ -21,3 +21,15 @@ class Line:
     def __post_init__(self) -> None:
         if self.venue not in venues.RULES:
             raise ValueError(f"{self.symbol}: no calendar for venue {self.venue!r}")
+
+
+#: The twenty frozen lines, by the operator's ruling of 13 November 2026 (docs/DECISIONS.md).
+#: 3LGO, 2MU and 5QQQ are leveraged: three, two and five times their index's daily move.
+LINES = tuple(
+    Line(symbol, venue, currency)
+    for venue, currency, symbols in (
+        ("LSE", "GBP", "3LGO 2MU SMGB IITU VHYG 5QQQ IB1T ISF VUSA SGLN"),
+        ("US", "USD", "AAPL TSLA NVDA SPCX MSTR AMD SPY QQQ MU GLD"),
+    )
+    for symbol in symbols.split()
+)

@@ -24,6 +24,7 @@ allowed_third_party = []
 "desk/__init__.py" = "the package marker; owns no behaviour"
 "desk/lines.py" = "the instrument master: the facts about each line"
 "desk/venues.py" = "the one calendar: the days each venue trades, its own holidays and no other's"
+"desk/archive.py" = "the one client for the free price archive: a line's daily bars, checked on entry"
 "desk/store.py" = "the one price store and its one writer: bars cleaned on entry, bad lines parked"
 "desk/strategy.py" = "the five frozen daily strategies: a decision for every line and day"
 "desk/orders.py" = "the order, sized from the one capital number, its stop, the pre-trade gate"
