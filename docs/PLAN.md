@@ -136,7 +136,10 @@ UK tax) and R-MONEY-2 (the scenes on the whole fourteen months).
       retail-buyable flag; the "simply holding the market" yardstick re-pointed (UNI-09)
       {id: data-isa-twins; files: desk/lines.py, tests/unit/test_lines.py, tests/unit/test_lab_universe.py}
 - [ ] The research list's parked fifth: 201 tickers' large one-day moves confirmed, or a
-      rule for research that needs no confirmation
+      rule for research that needs no confirmation (rule built in `universe.read`, #80; remains:
+      the grid reads through it (R-DATA-7) and the rungs count the named moves (R-DATA-8); the
+      2.5 times re-measured on the full universe; WWH, SHC and three windfalls settled by a
+      second source; a home for the research store)
       {id: data-parked-fifth; files: lab/universe.py, tests/unit/test_lab_universe_parked.py}
 - [ ] One fast store for hot and deep data, standard library only: SQLite in WAL mode with
       one writer and many readers, held to benchmarks set now: a five-minute round for every

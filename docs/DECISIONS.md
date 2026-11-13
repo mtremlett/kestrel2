@@ -1937,6 +1937,69 @@ new: every rule is out of the market by the data's end, so scene 6 as written ca
 holding (the money lane's own note of 13 November); and the scenes' first day, 2 September
 2024, is the US Labor Day, so the US lines have no bar until the day after.
 
+### 2026-11-13 — research reads the parked fifth by a rule of its own (#80)
+
+**How research reads a ticker the store parks for an unconfirmed move.** Options: (a) leave the
+parked fifth out: research loses its most violent names, the ones a leveraged trend strategy lives
+on, and every result flatters; (b) read them as they are: a series that jumps a hundredfold (CLDN) or
+to a tenth is priced as a gain or loss nobody had; (c) confirm all 406 moves from a second source:
+there is none yet; (d) break the history at every unconfirmed move: the crashes of March 2020 and
+6 May 2010 vanish and every strategy looks safer than the market was; (e) a rule from the bars alone
+that sorts a change of scale from a market's move, each doubt resolved against the strategy. Chosen
+(e). It lives in `lab/`, which the desk cannot import, so the store keeps its one rule and still
+parks all 201.
+
+**The rule, and which way each doubt falls.** Only a move made wholly between two sessions can be a
+change of scale; a move within the day, or a spike that came back, cannot. Of the 33 such, a rise is
+never believed unconfirmed (disbelieving a windfall costs a study nothing; counting a false one
+flatters it). A fall is disbelieved only on ordinary trading, under 2.5 times the median value traded
+of the twenty sessions before: all fifteen such look like changes of scale, none confirmed; the
+lightest real fall came on 2.8 times (FANG, 9 March 2020). A fall with no volume to judge by is
+believed. The margin is thin and was chosen looking at this list. The one error that flatters a
+strategy, a real overnight crash on quiet trading read as a change of scale, is shown by none here.
+The desk only buys; a study of short sales would need the opposite rule for a rise.
+
+**What research reads of a ticker with a change of scale.** Options: (a) nothing; (b) only what
+follows the last one (ROR would keep 85 of 4,260 bars); (c) the longest run on one scale; (d) every
+run as a history of its own, which would make a ticker several lines for the grid. Chosen (c): 11,150
+bars unread against 28,702 by (b). The store's bars are not rescaled.
+
+**A bad print within a day is read, not mended.** Options: (a) clip a low or high far outside the
+day's open and close: it mends data after the one writer, and a real flash crash looks the same;
+(b) read it and name the day. Chosen (b).
+
+**Evidence.** Tests seen failing first; the rule driven over the real list from cached answers by a
+script outside the repository; 39 deliberate breaks with Python's cache off, 38 caught at once and the
+last (which of two equal runs is read) once its test was added. A blind review's two blocking points
+were wording the code did not keep, both corrected. The box stays unticked: the grid does not read
+through the rule yet (R-DATA-7), and WWH, SHC, ECHO, MRNA and ROR stand misjudged.
+
+### 2026-11-13 — the data lane's next boxes: the order, the keeper's road, the store's name (#66)
+
+**Which box is first.** Options: (a) the lane objective's parked fifth first; (b) the box that says
+"First, by his ruling" (VUAG, EQQQ and IDTL for SPY, QQQ and GLD) first. Chosen (b) with (a) beside
+it: his ruling names it first, and their files do not overlap. For that, the parked fifth's tests go
+in `tests/unit/test_lab_universe_parked.py` and do not touch `desk/store.py`.
+
+**The keeper's road.** Options: (a) one big keeper box holding all the lane's files, alone;
+(b) separate boxes with separate files. Chosen (b): the fast store, then trading hours and half-days,
+then five-minute bars into the fast store, then the keeper. Two of the four run side by side, and
+the paramount keeper is served sooner than by a lane held to one session.
+
+**Half-days before the keeper.** A keeper that did not know a venue's hours and early closes would
+park every line as "late" on a half-day, and could not know when no venue is open (exit 0 at once).
+
+**Five-minute bars ahead of the archive's manners in the order, not in dependence.** Both change
+`desk/archive.py`, so they cannot run together; the five-minute box is listed first because his
+ruling makes it paramount. "Polite fetching" (DAT-08) waits for "The archive spared".
+
+**The fast store's name.** `desk/bars.py`, not "hot": it becomes the one store for hot and deep data
+alike, under the one writer, not a second store beside the first (canon A4). How `desk/store.py`'s
+files move onto it is a later step.
+
+**No `after` naming another lane's box.** No other lane's ids were on main and the guard refuses an
+`after` naming no box; the one cross-lane dependence is an un-noted box and a request (R-DATA-9).
+
 ## LADDER (until 13 November; since then GRID and RUNGS)
 
 ### 2026-11-13 — the ladder's unit of work: days only, the whole history, keyed by what it read
