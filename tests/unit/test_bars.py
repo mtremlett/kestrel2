@@ -203,11 +203,14 @@ def test_a_five_minute_bar_enters_through_the_checks_the_daily_store_makes() -> 
         _at(30, noon=eve): f"2026-12-24 12:30 {hours}",
         _at(0, noon=NOON - timedelta(1)): "2026-11-12 12:00 has a bar, yet BA records the day"
         " as suspended",
+        _at(0, noon=NOON.replace(year=2030)): f"2030-11-13 12:00 {hours}",  # no calendar yet
         _at(10, "Infinity"): f"2026-11-13 12:10 {price} cannot be",
         _at(15, "10", "11", "0"): f"2026-11-13 12:15 {price} cannot be",
         _at(20, volume=-1): f"2026-11-13 12:20 {price} cannot be",
         _at(25, "11.4"): "2026-11-13 12:25 has an open or close outside its high and low",
         _at(30, "10", "8"): "2026-11-13 12:30 has an open or close outside its high and low",
+        _at(45, "10.05", "10", "10.1", "10.05"): "2026-11-13 12:45 has an open or close outside"
+        " its high and low",
     }
     given = [*odd, _at(35), _at(35, volume=6), _at(40), *good]
     given[given.index(stretched)] = _at(5, "11.2", "11", "9", "8.8")
@@ -220,14 +223,18 @@ def test_a_wrong_unit_is_not_kept_and_any_other_far_move_is_kept_as_a_fault() ->
     pence, tenth, double = ("1000", "1100", "900", "1000"), ("0.1",) * 4, ("20", "22", "18", "20")
     given = [_at(0, *pence), _at(5), _at(10), _at(15, *pence), _at(20), _at(25)]
     given += [_at(30, *double), _at(35, *pence), _at(40, *tenth), _at(45)]
+    #: a spike, out of line with the bar before and the bar after; then a move of exactly JUMP
+    given += [_at(50, "10", "30"), _at(55, "10", "11", "10"), _at(60, "16", "16", "10", "16")]
     kept, faults = bars.checked(UK, given)
-    assert kept == [given[n] for n in (1, 2, 4, 5, 6, 9)]
+    assert kept == [given[n] for n in (1, 2, 4, 5, 6, 9, 10, 11, 12)]
     unit = "is a hundredfold from the bars around it: a wrong unit"
     assert faults == [
         *(f"2026-11-13 12:{minute} {unit}" for minute in ("00", "15")),
         "2026-11-13 12:30 moved from 10 to 20",
         *(f"2026-11-13 12:{minute} {unit}" for minute in ("35", "40")),
         "2026-11-13 12:45 moved from 20 to 10",
+        "2026-11-13 12:50 moved from 10 to 10",
+        "2026-11-13 12:55 moved from 10 to 10",
     ]
     assert bars.checked(UK, [_at(0, *pence)]) == ([_at(0, *pence)], [])  # nothing to judge it by
 
@@ -256,5 +263,10 @@ def test_each_evenings_bars_are_kept_in_one_round_and_none_is_ever_thrown_away(
     with pytest.raises(OSError, match="cut short"):
         bars.keep(store, {UK: [_at(55)], US: cut()})
     assert bars.keep(store, {UK: Refused("URLError: gone"), US: ()}) == {UK: (gone,), US: ()}
+    pence = [_at(n, "1000", "1100", "900", "1000") for n in (0, 5, 55)]  # the whole answer
+    unit = "is a hundredfold from the bars around it: a wrong unit"
+    assert bars.keep(store, {UK: pence}) == {
+        UK: tuple(f"2026-11-13 12:{minute} {unit}" for minute in ("00", "05", "55"))
+    }
     assert bars.five(store, UK, bars.EPOCH, NEXT + timedelta(1)) == held
     assert bars.five(store, US, bars.EPOCH, NEXT + timedelta(1)) == (late,)
