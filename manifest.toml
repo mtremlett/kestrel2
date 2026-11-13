@@ -43,6 +43,7 @@ rungs = []
 "desk/store.py" = "the one price store and its one writer: bars cleaned on entry, bad lines parked"
 "desk/bars.py" = "the one fast store for hot and deep bars: one SQLite file, the one writer's whole rounds, many readers"
 "lab/universe.py" = "the research list: the tickers research may study, none of them traded, and their bars kept by the one store"
+"lab/members.py" = "the lists' past members: who was on a published list on a past day, the ones still listed told from the ones that left"
 
 # the money lane
 "desk/strategy.py" = "the five frozen daily strategies: a decision for every line and day"
@@ -68,4 +69,5 @@ rungs = []
 "lab/rung.py" = "the ladder's first rung: a cell's trades priced at the desk's fills and the broker's costs, and judged against chance"
 "lab/luck.py" = "the ladder's luck rung: every trial counted, and each verdict's chance corrected for the number of trials it was picked from"
 "lab/folds.py" = "the ladder's folds rung: a history cut into folds, each judged after costs beside the history before it, and the verdict given on the worst"
+"lab/deflated.py" = "the luck test fixed before any result: the deflated Sharpe and its bands, the yearly Sharpe too good to be true, and the one verdict rule over the named rungs"
 "lab/trials.py" = "the register of trials: every trial ever tried on a question, kept from batch to batch, and the luck rung's count taken from it"
