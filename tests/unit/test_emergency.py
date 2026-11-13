@@ -34,9 +34,10 @@ def _bars(line: Line, closes: Sequence[int]) -> list[Bar]:
 
 
 def _five(line: Line, close: str, late: timedelta = timedelta(0)) -> Five:
-    """The line's five-minute bar closing at close, at DAY's open or that much later."""
+    """The line's five-minute bar closing at close, at DAY's open or that much later, with a
+    print at half the price that the market took back within the bar."""
     price = Decimal(close)
-    return Five(venues.hours(line.venue, DAY).open + late, price, price, price, price, 1)
+    return Five(venues.hours(line.venue, DAY).open + late, price, price, price / 2, price, 1)
 
 
 def _fall(line: Line, day: str, high: str | None = None) -> emergency.Fall:
@@ -128,9 +129,9 @@ def test_the_alarms_are_one_sessions_falls_that_are_one_of_the_three_gravest_fir
     assert emergency.alarms(iter([shock, swan, quiet])) == (swan, shock)
     assert emergency.alarms([quiet, calm]) == ()
     stale = replace(quiet, on=DAY - timedelta(days=1))
-    for unread in ([quiet, shock], [market, quiet, swan], [market, stale]):  #: none; two; two days
-        with pytest.raises(Unread, match="hold [012] readings of the market, VUAG, and [12] days"):
-            emergency.alarms(unread)
+    for unread in ([quiet, shock], [market, quiet, swan], [market, stale], [market, shock, shock]):
+        with pytest.raises(Unread, match="falls of [23] lines and [12] days, the market's .VUAG. "):
+            emergency.alarms(unread)  #: no market; the market twice; two days; a line twice
     assert market.words() == (
         "CRASH, which is the market (VUAG) down 4% in a day, or 12% below its month's high: VUAG,"
         " on 2025-11-28, is 14.7% below its month's high and 6.2% below its last close. The desk"

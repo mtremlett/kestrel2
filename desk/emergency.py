@@ -171,10 +171,11 @@ def measure(line: Line, bars: Sequence[Bar], newest: Five) -> Fall:
     """A line's fall as its newest five-minute bar closes: its close, never its low, for a
     print the market took back within the bar is no fall. The bar says which session is read,
     and must start within one of the line's venue. bars are the line's daily bars from the
-    store, the oldest first; only those before that session are read, and they must be the
-    line's last MONTH sessions, each one and no other, up to the session before: a close a day
-    stale, or missing, would make one day's fall of two. The price must lie within a move the
-    store believes of the last close. If any of it fails, the line is unread."""
+    store, the oldest first; the last MONTH of those before that session are read, and they
+    must be the line's last MONTH sessions, each one and no other, up to the session before: a
+    close a day stale, or missing, would make one day's fall of two. The price must lie within
+    a move the store believes of the last close. If any of it fails, the line is unread; a
+    year the calendar does not know is the calendar's own error, and stops whoever asked."""
     day, price = newest.start.date(), newest.close
     month = [bar for bar in bars if bar.day < day][-MONTH:]
     first, last = (month[0].day, month[-1].close) if month else (day, price)
@@ -185,8 +186,8 @@ def measure(line: Line, bars: Sequence[Bar], newest: Five) -> Fall:
         raise Unread(
             f"{line.symbol}: no fall is read from its bar of {newest.start:%Y-%m-%d %H:%M} UTC"
             f" closing at {price}: it must lie in a session of {line.venue}, after the closes of"
-            f" the line's last {MONTH} sessions ({len(month)} given, the last at {last}), and"
-            " within a move the store believes of the last"
+            f" the line's last {MONTH} sessions ({len(month)} of them given), and within a move"
+            " the store believes of the last"
         )
     closes = [bar.close for bar in month]
     below = [max(Decimal(0), 1 - price / close) for close in (closes[-1], max(closes))]
@@ -196,15 +197,16 @@ def measure(line: Line, bars: Sequence[Bar], newest: Five) -> Fall:
 def alarms(falls: Iterable[Fall]) -> tuple[Fall, ...]:
     """The falls that are one of the three, the gravest first: a crash or a black swan, the
     market's, is what the desk does as a whole, and each emergency names a line of its own.
-    They are one session's, and the market's fall is among them, once: a market nobody read is
-    not a calm one. With no market to read (London shut, New York open) each fall's own level
-    still stands, and the caller reads those and says the market is unread."""
+    They are one session's, one to a line, and the market's fall is among them: a market nobody
+    read is not a calm one. With no market to read (London shut, New York open) each fall's own
+    level still stands, and the caller reads those and says the market is unread."""
     read, order = tuple(falls), list(Level)
-    markets, days = sum(fall.market for fall in read), {fall.on for fall in read}
-    if markets != 1 or len(days) != 1:
+    lines, days = {fall.line for fall in read}, {fall.on for fall in read}
+    if len(lines) != len(read) or YARDSTICK not in lines or len(days) != 1:
         raise Unread(
-            f"{len(read)} falls hold {markets} readings of the market, {YARDSTICK.symbol}, and"
-            f" {len(days)} days: there must be one of each"
+            f"{len(read)} falls of {len(lines)} lines and {len(days)} days, the market's"
+            f" ({YARDSTICK.symbol}) {'among' if YARDSTICK in lines else 'not among'} them: there"
+            " must be one fall to a line, the market's with them, and one day"
         )
     grave = [(order.index(level), fall) for fall in read if (level := fall.level) is not None]
     return tuple(fall for _, fall in sorted(grave, key=lambda ranked: -ranked[0]))
