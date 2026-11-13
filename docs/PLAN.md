@@ -133,10 +133,11 @@ strategy template.
 
 ### The ladder lane's book
 
-**Lane objective:** the ladder's unit of work - one strategy on one line over one window,
-a typed record keyed by the code's and the data's versions - and its contract test.
+**Lane objective:** a batch service that runs many cells (`lab/cell.py`), one bad cell
+recorded and the rest carried on, and a restart taking up where it stopped - proven by its
+own contract test.
 
-- [ ] The unit of work, keyed by code and data version
+- [x] The unit of work, keyed by code and data version (`lab/cell.py`)
 - [ ] A batch service that survives a bad cell and a restart
 - [ ] Results kept, keyed by code and data version; only what changed is re-run
 - [ ] Each rung proven: it catches a planted edge and rejects a planted non-edge
