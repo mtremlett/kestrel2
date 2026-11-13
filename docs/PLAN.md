@@ -37,6 +37,15 @@ table, and each lane's heading over its modules). A lane's branch that changes a
 file fails the check (`tests/guards/test_lanes.py`), and no change adds more than 300 net
 lines to `desk/` and `lab/` together.
 
+**A lane that needs another lane's file changed does not touch it.** It writes a numbered
+request in its own STATUS section, under `### Requests to <LANE>`:
+`- [ ] R-<ITS LANE>-<n> (blocking|later, opened YYYY-MM-DD HH:MM): what is needed and why`.
+The owning lane records `- R-<LANE>-<n>: done in #NN` (or `declined, because ...`) under
+`### Done for other lanes` in its own section, and the asker then ticks its request. The
+runner puts each lane's open requests at the top of its next session; a blocking one is
+that session's objective, before its own book. The 07:00 line counts the open requests,
+and one open for more than a day is sent to the operator.
+
 A new module is registered in `manifest.toml` under its lane's heading. A file no lane owns
 (`check.py`, `announce.py`, the guards, `BUDGET.json`, `CLAUDE.md`, `CANON.md`,
 `docs/SCENES.md`, `docs/FAILURE_PATTERNS.md`, the shared parts of the documents) is changed
@@ -94,7 +103,12 @@ the twenty trading lines. The grid lane needs it.
 - [ ] The research list: about 1,500 tickers with their venue and currency, kept apart from
       the instrument master's twenty trading lines; nothing on it is traded
 - [ ] The research list's daily bars since 2010, fetched and kept through the one store's
-      checks, a bad ticker parked with its reason
+      checks, a bad ticker parked with its reason. The research store lives outside the
+      repository and every worktree, in the folder `KESTREL2_DATA` names. Fetching is slow and
+      resumable, with backoff, and each raw answer is cached there, so the archive is never
+      hammered. While the archive refuses, the fetcher writes `{"refusing_since": <time>}` to
+      `KESTREL2_DATA/archive.json` (null once it answers); the runner tells the operator after
+      six hours, and the lane does other work rather than retry
 - [ ] The full research universe, 5,000 and more, once the grid's first pass works
 - [ ] 2MU's five real moves recorded from a second source, or its reason confirmed
 - [ ] 5QQQ's consolidation of 22 August 2024 handled, or its reason confirmed
@@ -159,6 +173,10 @@ with the desk's own client id, never 4001. Every day a read-only check sets the 
 positions and open orders against the desk's own book, and a mismatch is flagged (scene
 6). No order is sent until this exists and has run clean.
 
+- [ ] The Gateway known, read-only, before any order: port 4002 answers as a paper
+      account, with the desk's own client id; its daily restart and the weekly re-login
+      handled unattended. A re-login that needs his phone or password is his: a reminder line
+      at the right time, never a workaround. The old desk's gateway alarms are a quarry only
 - [ ] The paper account proved quiet: the daily read-only check of positions and open
       orders against the desk's book, a mismatch flagged
 - [ ] The real paper-broker adapter behind the same interface as `broker.Pretend`, speaking

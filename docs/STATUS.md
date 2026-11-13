@@ -54,6 +54,9 @@ everything on main, so two green lanes cannot combine into a red main.
   the weekly cap or needs his decision, and the 07:00 line, are sent by the runner on his
   PC from a file holding the bot key, which he copies beside the runner himself. Until he
   does, they are written to the runner's log only.
+- **A Windows Update restart overnight stops the lanes until he logs in.** The runner
+  starts at his logon; starting it without one needs his password in Task Scheduler,
+  which is his call. He is pausing updates.
 - **The lane guard judges whole files.** A lane may write in any part of a shared
   document; that it keeps to its own section is checked only by the daily audit.
 - **A newer ruff on the operator's PC calls the tree badly formatted.** Version 0.15

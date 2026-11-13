@@ -952,6 +952,46 @@ positions and open orders, read-only, against the desk's own book, and flags a m
 (scene 6). The old desk's scheduled tasks were disabled, and he is checking the eight that
 could not be seen without administrator rights. This is the first box of PAPER's book.
 
+## 2026-11-13 — four gaps closed before the lanes run unattended
+
+**Asked** by the session that set the lanes up, after a pre-mortem of five lanes running
+overnight. Each gap is closed in the runner (outside this repository) or in a lane's book,
+and each was driven.
+
+1. **The Claude CLI is pinned.** An update overnight could change its flags under the lanes,
+   as one version's refusal of Fable did on 13 November. The lanes run one version's own file
+   (2.1.323), and their sessions have the auto-updater turned off. The version changes only
+   when he runs the runner's update command. That updates the CLI, gives the new version
+   one small Fable session, and pins it only if it passes. Driven: the current version
+   passed and was pinned. A broken "new version" failed its trial in plain words, and the
+   lanes kept the old one.
+2. **Cross-lane requests are mechanical.** A lane that needs another lane's file changed
+   writes a numbered request in its own STATUS section. The owner records it done or
+   declined in its own (the rule is in `docs/PLAN.md`). The runner puts each lane's open
+   requests at the top of its next session; a blocking one is the session's objective
+   before its own book. The 07:00 line counts them, and one open over a day is sent to the
+   operator once. Driven: open, ticked, done and declined requests told apart; a request
+   wrapped over two lines read whole; each lane shown only what is asked of it; one line
+   per request over a day, not repeated.
+3. **IB Gateway is watched, read-only.** Every five minutes the runner knocks on port 4002.
+   Every six hours it opens the API's handshake as its own client (917), reads the account
+   and leaves. It sends nothing else and never an order. On 13 November the Gateway answered
+   on 4002 only (4001 closed), every installation is set to paper, and the account it named
+   is a paper one (its id starts DU). Fifteen minutes without an answer (longer than its
+   daily restart) sends him one line saying a login may be his to do; its return sends
+   another. Driven, with a dead port standing in for a logged-out Gateway: nothing at first,
+   one line after fifteen minutes, no repeat, one line on its return. How the desk itself
+   handles the daily restart and the weekly re-login is the first box of PAPER's book.
+4. **The free archive is not hammered.** DATA's book now asks for slow, resumable fetching
+   with backoff and cached raw answers, kept outside every worktree. While the archive
+   refuses, the fetcher writes when that began to a file the runner reads; after six hours
+   he gets one line, and the lane does other work rather than burn sessions retrying.
+   Driven: two hours of refusal sent nothing; seven hours sent one line, once.
+
+**Left with him.** A Windows Update restart overnight leaves the lanes stopped until he logs
+in, because the runner starts at his logon. Starting it without a logon would need his
+password stored in Task Scheduler, which is his to decide. He is pausing updates instead.
+
 ---
 
 # The lanes' own decisions
