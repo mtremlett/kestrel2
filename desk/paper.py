@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import socket
 import struct
+from collections import Counter
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from decimal import Decimal
@@ -52,6 +53,12 @@ class Holding:
     kind: str  #: the broker's word for what is held: "STK" is a share or a fund
     currency: str
     shares: Decimal
+
+    def __post_init__(self) -> None:
+        """Its kind and its currency are one word each, so the name it is compared under
+        (symbol, kind, currency) reads one way only; and its shares are a number."""
+        if not (self.kind.isalnum() and self.currency.isalnum() and self.shares.is_finite()):
+            raise ValueError(f"a holding the desk cannot trust: {self}")
 
 
 @dataclass(frozen=True)
@@ -184,22 +191,22 @@ def differences(
     account: Account, held: Mapping[str, int], lines: Iterable[Line]
 ) -> tuple[str, ...]:
     """Every way the paper account differs from the desk's book, each named in words; none,
-    and nothing but the desk trades the account. held is the book (book.positions). A
-    holding is matched by its symbol, kind and currency, so the same name in another
-    currency is another thing. Each row the broker gives must be the book's own shares:
-    rows that only add up to them are two places, or a change while it was read. Every
-    order resting at the broker is named, whoever placed it: the desk rests none yet."""
+    and nothing but the desk trades the account. held is the book (book.positions). The
+    comparison is the desk's one rule (book.differences); the door gives it each holding
+    under its symbol, kind and currency, so the same name in another currency is another
+    thing, and says when the broker gives a name in more than one entry. Every order
+    resting at the broker is named, whoever placed it: the desk rests none yet."""
     known = {line.symbol: line for line in lines}
     unknown = sorted(set(held) - set(known))
     if unknown:
         raise ValueError(f"the book holds lines the desk was not given: {unknown}")
-    ours = {(s, "STK", known[s].currency): Decimal(shares) for s, shares in held.items()}
-    rows = [((h.symbol, h.kind, h.currency), h.shares) for h in account.holdings]
-    rows += [(key, Decimal(0)) for key in ours.keys() - {key for key, _ in rows}]
+    ours = {f"{s} STK {known[s].currency}": shares for s, shares in held.items()}
+    rows = [(f"{h.symbol} {h.kind} {h.currency}", h.shares) for h in account.holdings]
+    given = Counter(name for name, _ in rows)
+    several = {name: f" in one of {n} entries" for name, n in given.items() if n > 1}
     differ = [
-        f"{' '.join(key)}: the broker holds {shares}, the desk's book {ours.get(key, 0)}"
-        for key, shares in sorted(rows)
-        if shares != ours.get(key, 0)
+        f"{d.name}: the broker holds {d.broker}{several.get(d.name, '')}, the desk's book {d.book}"
+        for d in book.differences(ours, rows)
     ]
     working = [
         f"{o.symbol}: an order resting at the broker to {o.action} {o.shares} ({o.kind}, "
