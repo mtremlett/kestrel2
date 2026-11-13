@@ -140,6 +140,10 @@ disagree. The pretend broker, the send path, the book and the day's trading are 
 - [ ] The day record: every cost line (spread, slippage and UK tax added to round trips),
       one rounding policy for pounds, what holding the market earned, and the same days
       replayed to the same records - **scene 7 passes**
+- [ ] SimCity, small: one command runs the whole desk's day over all fourteen months of
+      rehearsal data against the pretend broker with its faults, every night, and writes one
+      record; a census names every part of the money path and turns red when one has no
+      scenario
 
 ## Phase 3 — the money path, on paper
 
@@ -160,6 +164,10 @@ positions and open orders against the desk's own book, and a mismatch is flagged
 - [ ] The real paper-broker adapter behind the same interface as `broker.Pretend`, speaking
       to IB Gateway with the standard library alone (`desk/` imports nothing else)
 - [ ] Stops resting at the broker, each rounded down to its line's price step
+- [ ] Conformance trades, on paper, one London and one US line, each in its market's hours:
+      a market buy at the open; the resting stop placed, triggered, and cancelled on a sale;
+      a partial fill if the paper broker gives one; a rejection. Each real result recorded
+      beside the pretend broker's, and the pretend broker fixed where they differ
 - [ ] Unattended running, and recovery from a restart
 - [ ] Morning and evening messages, and an alarm on silence
 
@@ -179,6 +187,14 @@ removed (canon B2).
 - [x] A batch service that survives a bad cell and a restart (`lab/batch.py`)
 - [x] Results kept, keyed by code and data version; only what changed is re-run (`lab/batch.py`)
 - [ ] The fast grid engine, its parity with the desk's engine proven on the golden data
+- [ ] Auto-tune, so a pass can never take the PC down: a hard memory ceiling held by
+      Windows itself (a Job Object on the workers, about 60% of the 64 GB); workers sized
+      to free cores, two of the eight threads left free while markets are open (UK 08:00 to
+      21:00 on trading days) and one overnight and at weekends; batches sized from measured
+      memory per cell, bars read per ticker, never the whole universe; backing off under
+      about 25% free memory or above about 85% CPU and stepping back up with room; peak
+      memory and CPU logged for each pass. Proven: a deliberately memory-hungry cell is
+      killed by the ceiling, the PC stays responsive and the batch carries on
 - [ ] The grid's first pass over the research universe: every strategy at every setting on
       every ticker, each cell kept by code and data version
 - [ ] Runs seven days without stopping

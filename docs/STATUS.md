@@ -33,7 +33,8 @@ short one, for #17, on the same day.
 Five lanes now run day and night on the operator's PC, by his rulings of 13 November
 (`docs/DECISIONS.md`): MONEY (scenes 5 to 7), PAPER (phase 3, begun alongside phase 2),
 DATA (the research universe, the parked lines, the store's findings), GRID (the fast grid
-engine) and RUNGS (the ladder's rungs). GRID and RUNGS run on Fable's own allowance. A
+engine) and RUNGS (the ladder's rungs). Every lane runs on Fable while its allowance is
+under 45%, then on Opus until a Fable reset (his ruling). A
 runner outside this repository starts each lane's next session when the last one ends,
 inside the plan's included usage, stopping at 80% of the week.
 GitHub merges a pull request only when its check is green and its branch already holds
@@ -68,10 +69,9 @@ everything on main, so two green lanes cannot combine into a red main.
 - **The predecessor's price archive is five months stale.** A sample of 120 tickers
   found the newest bar in June 2026 for 85% of them, none current, and some major names
   absent entirely. It is usable as a head start on history, never as current data.
-- **Eight of the predecessor's scheduled tasks could not be disabled** — they refuse with
-  "access denied" because they were registered with different rights. Two of them can
-  place orders. Buying is blocked by that desk's own kill switch instead; the tasks
-  themselves still need the operator's hand.
+- **The predecessor's scheduled tasks are all disabled.** Eight had refused a session with
+  "access denied"; on 13 November he checked every `KESTREL_` task in Task Scheduler as
+  administrator and each says disabled (`docs/DECISIONS.md`).
 - **The predecessor's paper book is flat.** Read at 14:36 UK on 13 Nov 2026, read-only:
   paper account, no positions and no open orders. Nothing was placed.
 - **The unit tests are within a few lines of the product, and lanes collide on it.** The
@@ -279,11 +279,9 @@ against the desk's own book, a mismatch flagged (scene 6), before any order is s
 
 ### Found, not fixed
 
-- **The old desk's scheduled tasks.** From his account, 59 of the old desk's tasks show
-  disabled and one ready (`KESTREL_KILLSWITCH_ANCHOR`); eight could not be disabled
-  earlier and may be invisible without administrator rights. He is checking them in Task
-  Scheduler as administrator. Until he confirms, the daily check above is the only proof
-  that nothing else trades the account.
+- **The old desk's scheduled tasks are all disabled**, he confirmed as administrator on
+  13 November. The daily read-only check of the account stays all the same: it is the
+  proof, every day, that nothing else trades it.
 
 ## DATA
 

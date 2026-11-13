@@ -882,6 +882,67 @@ is more than twelve hours away, he gets one line: "the weekly reset would help n
 - With the week at 85% and three hours to go, they waited without the reset line.
 - A Fable refusal paused only the Fable lanes.
 
+## 2026-11-13 — the old desk's tasks are all disabled
+
+**His check**, as administrator in Task Scheduler on 13 November: '"Right-click any
+KESTREL_ task".....all say "disabled"'. The eight a session could not disable earlier are
+disabled too. The PAPER lane may use the shared paper account on that basis; the daily
+read-only check of its positions and open orders stays, as the proof each day.
+
+## 2026-11-13 — auto-tune, so the grid can never take the PC down
+
+**His words**: "we need to use auto-tune to make sure we do not run out of cpu or memory.
+in the first repo we ran a program called backtest with an argument of '123456'. this
+sometimes ran out of memory and crashed the pc." It belongs to GRID, built before the
+first big pass. A hard memory ceiling held by Windows itself, not only watched (a Job
+Object on the worker processes, about 60% of the 64 GB). Workers sized to free cores: two
+of the eight threads left free while markets are open (UK 08:00 to 21:00 on trading days)
+for the paper desk and the lanes, one overnight and at weekends. Batches sized from
+measured memory per cell, bars read per ticker, never the whole universe at once. Backing
+off (fewer workers, smaller batches) under about 25% free memory or above about 85% CPU
+sustained, and stepping back up with room. Peak memory and CPU logged for each pass. It is
+proven when a deliberately memory-hungry cell is killed by the ceiling, the PC stays
+responsive, and the batch carries on. The predecessor's backtest tool is a quarry only.
+
+## 2026-11-13 — SimCity, small, after scene 7
+
+**His question**: when will SimCity work? The old desk's SimCity ran hundreds of whole
+trading lives over saved bars with the market shut, with a census so every part of the
+desk had a scenario. It goes in MONEY's book right after scene 7, kept small: one command
+runs the whole desk's day over all fourteen months of rehearsal data against the pretend
+broker with its faults, every night, and writes one record; a census names every part of
+the money path and turns red when one has no scenario.
+
+## 2026-11-13 — conformance trades, UK and US, in phase 3
+
+**His question**: which phase runs them? PAPER's, as phase 3's proof that the pretend broker
+behaves like the real one. On paper only, on one London and one US line, in each market's
+hours: a market buy at the open; the resting stop placed, triggered, and cancelled on a
+sale; a partial fill if the paper broker gives one; a rejection. Each real result is
+recorded beside the pretend broker's, and the pretend broker is fixed where they differ.
+A small matrix, not the old desk's 48 cells.
+
+## 2026-11-13 — Fable first, then Opus; and when to press a reset
+
+**His rulings**, refining the two above on models and Fable. Every lane runs on Claude Fable
+5.2 while Fable's allowance is under about 45%, then on Claude Opus 5.5 (high effort on
+MONEY and PAPER, medium on the others) until a Fable reset refills it. Fable's use can be
+given back by his two Fable resets; Opus's cannot. A session refused on Fable's allowance
+carries on on Opus. The usage log keeps tokens per landed change per model, so the two can
+be compared on quality and cost.
+
+He presses the resets himself; the runner tells him when, by these rules:
+- "Press the Fable reset now" when Fable's allowance is at 45% or more and the week's reset
+  is more than 36 hours away;
+- "Press the weekly reset now" when every lane waits at the 80% pause and the week's reset
+  is more than 36 hours away;
+- within 36 hours of the week's reset, never: the lanes wait;
+- once, a week before 10 December, a reminder that the weekly reset expires unused.
+
+After any reset the runner reads the new usage and the new reset time from the plan, and
+never assumes the reset stays on Thursday. While the lanes wait at the cap, it reads the
+plan again every quarter of an hour, so a reset he presses lets them carry on at once.
+
 ## 2026-11-13 — the paper account is the old desk's
 
 **His ruling**, from options: "The same paper account (Recommended)". The new desk connects
