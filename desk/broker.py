@@ -41,6 +41,7 @@ class Fault(Enum):
     PARTIAL = "partial fill"
     DISCONNECT = "disconnection"
     CRASH = "the desk dies after the broker has the order"
+    STRAND = "the desk dies after the broker has the order, which is left working, unfilled"
 
 
 class Crash(Exception):
@@ -53,12 +54,13 @@ class Disconnected(ConnectionError):
 
 class Broker(Protocol):
     """Any broker the send path and the day run can stand on: the pretend one below, the
-    paper account behind its door. They ask it these five questions and no other. An answer
-    it cannot give whole is an error raised, never a shorter answer."""
+    paper account behind its door. They ask it five questions, and the kill switch a sixth.
+    An answer it cannot give whole is an error raised, never a shorter answer."""
 
     def report(self, order_id: str) -> Report | None:
         """What the broker did with an order id, or None if it never received it. It knows
-        an order from the moment it has it, for as long as the desk might send it again."""
+        an order from the moment it has it, for as long as the desk might send it again; of
+        one a dead desk left working its reason says so, until it fills or is cancelled."""
 
     def place(self, order: Order | Sale) -> Report:
         """Receive the order and give its last answer: what it did not fill is cancelled,
@@ -79,6 +81,12 @@ class Broker(Protocol):
     def stops(self) -> Iterable[tuple[str, Decimal | int]]:
         """Every stop resting at the broker to sell, entry by entry: a name, as a
         holding's, and the shares it would sell."""
+
+    def cancel(self) -> Iterable[str]:
+        """Cancel every order of the desk's own still working at the broker, and name each
+        by the desk's order id once the broker says it is cancelled; none working, none
+        named. The stops resting to sell what is held are not working orders and stay: the
+        kill switch leaves nothing held unprotected. No one else's order is touched."""
 
 
 @dataclass(frozen=True)
@@ -103,14 +111,21 @@ class Pretend:
         self._fills: list[Fill] = []
         self._held: dict[str, int] = {}
         self._stops: dict[str, _Stop] = {}
+        self._working: dict[str, Order | Sale] = {}
 
     def open(self, day: date) -> None:
-        """The market opens on day: orders fill at its prices and resting stops are tested."""
+        """The market opens on day: orders fill at its prices, resting stops are tested, and
+        an order left working fills at the open of its line's next market."""
         if self._day is not None and day <= self._day:
             raise ValueError(f"the market last opened on {self._day}; it cannot open on {day}")
         self._day = day
         for symbol in sorted(self._stops):
             self._test(symbol, self._bars.get((symbol, day)))
+        for order_id, order in tuple(self._working.items()):
+            bar = self._bars.get((order.line.symbol, day))
+            if bar is not None:
+                del self._working[order_id]
+                self._reports[order_id] = self._execute(order, None, bar)
 
     def place(self, order: Order | Sale) -> Report:
         """Receive an order at the market: it fills at the day's open. A buy leaves its stop
@@ -123,11 +138,22 @@ class Pretend:
         self._received.append(order.order_id)
         if order.order_id in self._reports:
             return Report(order.order_id, (), f"{order.order_id}: a duplicate order id, refused")
-        report = self._execute(order, fault, bar)
+        if fault is Fault.STRAND:
+            self._working[order.order_id] = order
+            report = Report(order.order_id, (), f"{order.order_id}: working, none filled yet")
+        else:
+            report = self._execute(order, fault, bar)
         self._reports[order.order_id] = report
-        if fault is Fault.CRASH:
+        if fault in (Fault.CRASH, Fault.STRAND):
             raise Crash(f"{order.order_id}: the desk died before the broker's answer reached it")
         return report
+
+    def cancel(self) -> tuple[str, ...]:
+        cancelled = tuple(self._working)
+        for order_id in cancelled:
+            self._reports[order_id] = Report(order_id, (), f"{order_id}: cancelled, none filled")
+        self._working.clear()
+        return cancelled
 
     def report(self, order_id: str) -> Report | None:
         """What the broker did with an order id, or None if it never received it."""
