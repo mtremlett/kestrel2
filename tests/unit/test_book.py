@@ -93,8 +93,8 @@ def test_while_the_book_is_not_the_brokers_nothing_is_bought_and_no_such_line_so
     for n, line in enumerate(SIX[:3]):
         _send(tmp_path, broker, f"o-{n}", line)
     assert book.reconcile(tmp_path, broker) == ()
-    broker.inject("E", 7)  #: bought by hand, and three of A sold by hand
-    broker.inject("A", -3)
+    broker.inject("E", 7)  #: bought by hand, and three more of A
+    broker.inject("A", 3)
     assert book.reconcile(tmp_path, broker) == ("A", "E")
     with pytest.raises(Refused, match=r"o-3: .*\['A', 'E'\]"):
         _send(tmp_path, broker, "o-3", SIX[3])
@@ -103,7 +103,7 @@ def test_while_the_book_is_not_the_brokers_nothing_is_bought_and_no_such_line_so
     assert book.send(tmp_path, broker, Sale("s-1", SIX[1], 10), ROOM).filled == 10, "B agrees"
     assert broker.submitted() == ("o-0", "o-1", "o-2", "s-1"), "sent while the books differ"
     broker.inject("E", -7)
-    broker.inject("A", 3)
+    broker.inject("A", -3)
     assert _send(tmp_path, broker, "o-3", SIX[3]).filled == 10, "the books agree again"
     broker.open(TUE)  #: A's stop sells it: the ledger learns of it before the books are compared
     assert book.reconcile(tmp_path, broker) == () and "A" not in book.positions(tmp_path)

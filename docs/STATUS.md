@@ -87,6 +87,23 @@ Last updated: 13 November 2026.
 
 ### Where it is
 
+The desk now checks its book against the broker's before every order (`book.reconcile`, on
+the send path, so nothing goes round it). Line by line it sets the shares its ledger adds up
+to beside the shares the broker reports and the stop resting there, and names each line
+that differs: a position bought or sold by hand, or a stop cancelled. While any line
+differs the desk buys nothing. It still sells a line whose shares agree, one that has lost
+its stop included, and never a line whose shares differ, since the broker may not hold
+them. The day carries on and keeps each refusal as that order's stated answer; buying
+starts again by itself once the two agree. Over the rehearsal's fourteen months the two
+never differ and the desk trades exactly as before. Tests seen failing first; forty-four
+deliberate breaks over two rounds: the first round missed five of thirty-one, each a gap
+in the tests, now closed and driven again; all are caught. A blind review found nothing
+blocking; its findings are taken or recorded (below).
+
+**Scenes 6 and 7 will pass together, not one after the other** (`docs/DECISIONS.md`): both
+read the day's one record, and a reconciled day's profit cannot be published until every
+cost line is real. Scenes stay at 5 of 7 until then.
+
 Scene 5 passes: the desk sells, and closes round trips. Its day (`day.trade`) runs after
 the market opens: it writes in the ledger the stops the open sold, keeps the day's
 exchange rates, and acts only on decisions dated the session before, on lines whose venue
@@ -160,9 +177,14 @@ caught; the forty-fifth cannot change a decision.
 
 ### Next step
 
-Reconciliation, so scene 6 passes: the desk's book against the broker's positions line by
-line, a mismatch named, the day's profit withheld and no buying while they disagree. Then
-the day record (scene 7), where spread, slippage and UK tax join the costs.
+The costs whole in the one cost model (`desk/orders.py`): what a sale itself costs, and
+spread and slippage on both legs, the stop's sale included, each a stated assumption; the
+rungs lane waits for them too. Then the day's record (`day.run`): the day reconciled at its
+end, a mismatch named and its profit withheld, else the profit after every cost beside what
+holding the market earned. It needs each line's UK tax from the data lane (below). Scene
+6's test must move onto the fourteen months and check the book against the broker's every
+day: no rule holds anything at the end of the rehearsal data, on its six weeks or on the
+whole of it, so "the broker holds something" cannot be read there.
 
 ### Asked of the data lane
 
@@ -170,6 +192,13 @@ the day record (scene 7), where spread, slippage and UK tax join the costs.
   the fourteen months (`SCENES_FROM = FIRST`). Scene 5 already reads them whole.
 - A daily exchange rate, pounds per dollar, in the store. The day run is handed the day's
   rates (`day.trade`'s `rates`); the scenes give 0.79 every day.
+- **Each line's UK transaction tax as a fact on the line** (`Line`): what a purchase pays,
+  nil for a fund or an exchange-traded product, 0.5% stamp duty for a UK share, each of the
+  ten London lines confirmed. And **one London line in the rehearsal data that pays it**:
+  scene 7 requires every cost line charged at least once, and scenes 6 and 7 cannot pass
+  until the day's record can count the tax. This is what the money lane waits for.
+- The scenes moved onto the fourteen months (`SCENES_FROM = FIRST`): scene 7 needs days on
+  which the rules trade, and none trades in the six weeks.
 
 ### Found, not fixed
 
@@ -181,8 +210,6 @@ the day record (scene 7), where spread, slippage and UK tax join the costs.
     penny, for every pound figure.
   - "A line its rule sold this morning is not bought again" is tested only through a
     stop's sale; the code is the same for both.
-  - A sale at the pretend broker of a line with no resting stop passes in silence; every
-    buy leaves one, so a missing stop means the two books differ: reconciliation's job.
   - Spread, slippage and UK tax are not in a round trip's costs yet: the day record must
     add both legs' spread and slippage, the stop's sale included.
   - The day run decides each line's whole history again every day: fourteen months of
@@ -190,10 +217,29 @@ the day record (scene 7), where spread, slippage and UK tax join the costs.
     need the rules' state carried from day to day.
   - The day run reads the archive it is handed; preparing it through the store
     (`store.prepare`, asked by the data lane) is still to come, before paper.
+- **What the blind review of reconciliation left** (nothing blocking; taken: a line that
+  has lost its stop may still be sold, a stated error for cancelling a stop that does not
+  rest, and tests for a line only the book holds and for an order the broker already has):
+  - **Nobody is told yet.** A mismatch stops the buying and is in each order's answer, but
+    reaches the operator only when the day's record and the messages exist. Until a person
+    acts, a line whose stop was cancelled sits unprotected unless its rule sells it, and a
+    line partly sold by hand keeps a stop for more shares than are held, which would sell
+    the broker short. The desk cannot place or change a stop by itself.
+  - A lost ledger does not show at the pretend broker: it gives every fill it ever made, so
+    the ledger is written again whole, in silence. Reconciliation sees only a change with
+    no fill behind it. At a real broker, which gives recent fills only, a lost ledger would
+    name every held line and stop the buying.
+  - A stop resting for the wrong number of shares on a line whose shares agree cannot be
+    made at the pretend broker, so "exactly the shares held" is tested only as "no stop".
+  - A gate refusal of a sale during the day (selling more than the book holds) is now one
+    of the day's answers and no longer stops the day. It cannot arise today.
+  - **For the paper adapter (phase 3):** the broker's fills must be the desk's own orders
+    and their stops only, or a hand trade's fill would be written in the ledger and the two
+    books would agree; orders still working, a stop placed before its buy fills, and
+    positions that lag fills would each read as a mismatch and stop the morning's buying,
+    so reconciliation there needs the broker's working orders; a dropped connection while
+    reading positions or stops is not yet a stated answer, only in placing an order.
 - **What the blind review of the book left** (nothing blocking; its fix and test gap taken):
-  - The gate reads the desk's book, not the broker's. A position bought by hand at the
-    broker is not counted, so the broker can hold a sixth line. Reconciliation (scene 6)
-    must stop buying while the book and the broker disagree.
   - The book reaches the gate as a bare mapping of line to shares. Only the send path
     passes the real book; a typed book that only `book.positions` can make would stop a
     caller passing an empty one.
@@ -208,8 +254,8 @@ the day record (scene 7), where spread, slippage and UK tax join the costs.
     order the broker already holds must not be judged by the gate again - is fixed):
     the ledger is swapped in whole but not forced to disk, so a power cut (not a crash of
     the desk) can lose it; and a ledger deleted later reads as "no fills" without a
-    word. Neither can send twice, since the broker is asked first; reconciliation
-    (scene 6) is where a lost ledger must show.
+    word. Neither can send twice, since the broker is asked first (what reconciliation
+    sees of a lost ledger is above).
   - The broker fills at the bare open and sells a stop at exactly its level. Spread and
     slippage are not in its prices, so the day run must charge both, on both legs, the
     stop's sale included, or profit reads too high.
@@ -250,11 +296,12 @@ Every one of these raises NotImplementedError, by design, until its phase builds
 
 | part | phase |
 |---|---|
-| `day.run`: reconciliation and the day's record, after `day.trade` | 2 |
+| `day.run`: the day's reconciled record (its mismatches, profit, costs and the market), after `day.trade` | 2 |
 
 Built and real: the day's trading (`day.trade`, `strategy.today`), sales and round trips
-(`orders.Sale`, `book.round_trips`, `book.record_rates`), the send path, the ledger and
-the book (`book.send`, `book.fills`, `book.collect`, `book.positions`), the pretend broker (`broker.Pretend`), sizing, cost and
+(`orders.Sale`, `book.round_trips`, `book.record_rates`), the send path, the ledger, the
+book and its reconciliation (`book.send`, `book.fills`, `book.collect`, `book.positions`,
+`book.reconcile`), the pretend broker (`broker.Pretend`), sizing, cost and
 the gate across the book (`orders.size`, `orders.cost`, `orders.gate`), the five strategies (`strategy.decide`), the twenty lines, the archive
 client (`archive.fetch`), the price store (`store.prepare`, `store.read`, `store.faults`),
 the venue calendars,

@@ -1118,6 +1118,62 @@ the "already kept" refusal first; the test now uses a fresh day and catches it. 
 missed because the code did nothing (an owner check `strategy.today` already makes, and a
 filter whose result was overwritten); both are removed.
 
+### 2026-11-13 — reconciliation: before every order, shares and stops; and scenes 6 and 7 together
+
+**Decided**, by the lane as the desk's mentor (no one watching):
+
+1. **The book is checked against the broker's on the send path, before every order**
+   (`book.reconcile`, called by `book.send`). Options were (a) once, in the day run after
+   the open; (b) on the send path, the one door every order already passes. Chosen (b): a
+   hand trade made in the middle of a morning is seen before the next order, and any later
+   caller of the send path (the paper lane's) is held by it without being told to. It stays
+   out of `orders.gate`, which is pure and is also the rungs lane's; the refusal is the
+   same `Refused` the gate raises.
+2. **A line differs when its shares differ, or when the stop resting at the broker is not
+   for exactly the shares the book holds.** Every share the desk holds has its stop at the
+   broker; a holding whose stop was cancelled is the most dangerous quiet state there is,
+   so it is named like a wrong position. Shares alone, the scene's own words, would miss it.
+3. **While any line differs the desk buys nothing; it sells a line only if that line's
+   shares agree.** Options were (a) send nothing at all; (b) stop buying only; (c) stop
+   buying, and never sell a line whose shares differ. (a) would hold a rule's sale of a
+   sound line for as long as a person takes to look. (b) would sell the book's ten shares
+   of a line of which the broker holds four, and leave the desk short. Chosen (c), with the
+   blind review's point taken: a line whose shares agree but whose stop is gone may be
+   sold, since that is the protective act. Nothing is remembered from day to day: the two
+   books are compared afresh each time, and buying starts again once they agree.
+4. **The day does not stop.** A refusal on the send path becomes that order's answer, with
+   its reason naming the lines, kept with the day's others. The desk dying, or any other
+   error, still stops the day.
+5. **An order the broker already has is recorded, never refused**, whatever the books say:
+   the broker is asked first, as before.
+6. **Scenes 6 and 7 pass together.** The plan had reconciliation turn scene 6 by itself. It
+   cannot: scene 6 asks that a reconciled day carry a profit, scene 7 reads the same
+   record, and a profit is not published without every cost (canon B4). Spread, slippage
+   and a sale's own cost are not in the cost model, and UK tax needs a fact on each line
+   that the data lane owns. Options were (a) give scene 6 a record with the missing costs
+   at nought; (b) take "a reconciled day has a number" out of scene 6; (c) land
+   reconciliation under its own contract tests and turn both scenes when the record is
+   real. (a) is a made-up number and (b) weakens a scene to count it. Chosen (c). The
+   scenes stay at 5 of 7 for this step; the lane's book says what remains.
+7. **Scene 6's days.** No rule holds a position at the end of the rehearsal data, on its
+   six weeks or its fourteen months, so "the broker holds something" cannot be read after
+   the last day. When the record lands, scene 6 will run the fourteen months and set the
+   book against the broker's on every day, which asks more of the desk, not less.
+
+**Evidence.** Two contract tests seen failing first (`book.reconcile` did not exist; the day
+sent five buys with a hand-bought line at the broker). Over the fourteen months, with and
+without every line's first order rejected, the desk made the same 68 fills and 34 round
+trips as before the change: in ordinary running the two books never differ. Thirty-one
+deliberate breaks were driven first; twenty-six were caught and five missed, each a gap in
+the tests: a line only the book holds, the names in no order, an order the broker already
+has refused while the books differ, any error at all kept as an answer, and a cancelled
+stop that also emptied the position. Tests were added for each. Thirteen more were then
+driven, those five and eight against the review's fix; twelve were caught at once and the
+thirteenth (a sale allowed when the broker holds more than the book) after its test was
+tightened. The blind review, which ran 400 random runs of its own (20,907 orders, every
+fault) without one false mismatch, found nothing blocking; what it left is in
+`docs/STATUS.md`.
+
 ## DATA
 
 ### 2026-11-13 — the fourteen months are built; the scenes move onto them in two steps
