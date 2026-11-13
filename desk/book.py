@@ -54,11 +54,11 @@ def send(root: Path, broker: Broker, order: Order | Sale, settings: Settings) ->
     go, shares the broker may not hold may not."""
     report = broker.report(order.order_id)
     if report is None:
-        held, shares, stops = _compare(root, broker)
-        differ = sorted({d.name for d in (*shares, *stops)})
-        unsure = any(d.name == order.line.symbol for d in shares)
-        if differ and (isinstance(order, Order) or unsure):
-            raise Refused(f"{order.order_id}: not sent, the book is not the broker's on {differ}")
+        held, differ, unsure = _compare(root, broker)
+        if differ and (isinstance(order, Order) or order.line.symbol in unsure):
+            raise Refused(
+                f"{order.order_id}: not sent, the book is not the broker's on {list(differ)}"
+            )
         gate(order, settings, held)
         try:
             report = broker.place(order)
@@ -116,18 +116,19 @@ def reconcile(root: Path, broker: Broker) -> tuple[str, ...]:
     """The lines on which the desk's book is not the broker's, once every fill the broker
     made is in the ledger: the shares differ, or the stop resting at the broker is not for
     exactly the shares held. None named: the book is the broker's."""
-    _, shares, stops = _compare(root, broker)
-    return tuple(sorted({d.name for d in (*shares, *stops)}))
+    return _compare(root, broker)[1]
 
 
-def _compare(
-    root: Path, broker: Broker
-) -> tuple[dict[str, int], tuple[Difference, ...], tuple[Difference, ...]]:
-    """One reading of the broker: its fills into the ledger, then the book they add up to,
-    and what differs from it in the broker's holdings and in its resting stops."""
+def _compare(root: Path, broker: Broker) -> tuple[dict[str, int], tuple[str, ...], set[str]]:
+    """The broker asked once each for its fills, its stops and its holdings, in that order:
+    the book the fills add up to, the names on which it is not the broker's, and those of
+    them whose shares differ. The stops are read before the holdings, so a stop that sells
+    between the two shows as shares gone, never as shares still there to be sold."""
     collect(root, broker)
     ours = positions(root)
-    return ours, differences(ours, broker.holdings()), differences(ours, broker.stops())
+    stops = differences(ours, broker.stops())
+    shares = {d.name for d in differences(ours, broker.holdings())}
+    return ours, tuple(sorted(shares | {d.name for d in stops})), shares
 
 
 def differences(

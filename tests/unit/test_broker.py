@@ -87,7 +87,7 @@ def test_a_stop_sells_at_its_level_or_a_gapped_open_even_on_the_day_of_its_buy()
     broker.open(WED)
     assert broker.holdings() == () == broker.stops() and broker.fills()[-1].price == 18
     broker.inject("B", 7)
-    assert (broker.holdings(), broker.resting_stops(), len(broker.fills())) == ((("B", 7),), {}, 6)
+    assert (broker.holdings(), broker.stops(), len(broker.fills())) == ((("B", 7),), (), 6)
     with pytest.raises(ValueError, match="2025-11-11"):
         broker.open(TUE)
     with pytest.raises(ValueError, match="A: no stop"):

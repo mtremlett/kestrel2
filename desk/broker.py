@@ -53,17 +53,23 @@ class Disconnected(ConnectionError):
 
 class Broker(Protocol):
     """Any broker the send path and the day run can stand on: the pretend one below, the
-    paper account behind its door. They know a broker by these five questions and no other."""
+    paper account behind its door. They ask it these five questions and no other. An answer
+    it cannot give whole is an error raised, never a shorter answer."""
 
     def report(self, order_id: str) -> Report | None:
-        """What the broker did with an order id, or None if it never received it."""
+        """What the broker did with an order id, or None if it never received it. It knows
+        an order from the moment it has it, for as long as the desk might send it again."""
 
     def place(self, order: Order | Sale) -> Report:
-        """Receive the order and answer for it. Disconnected, and nothing else, says it
-        never arrived: only then is it sent again."""
+        """Receive the order and give its last answer: what it did not fill is cancelled,
+        never left working. A buy leaves one stop resting on its line, for all the shares
+        held, at the order's stop; a sale takes its shares off that stop. Disconnected, and
+        nothing else, says the order never arrived: only then is it sent again."""
 
     def fills(self) -> Iterable[Fill]:
-        """The fills of the desk's own orders and their stops, each under the broker's id."""
+        """The fills of the desk's own orders and their stops, in the order they were made:
+        each under the broker's execution id, the same at every reading, with the desk's
+        order id, its line's symbol and a price in the line's currency."""
 
     def holdings(self) -> Iterable[tuple[str, Decimal | int]]:
         """What the account holds, entry by entry as the broker gives them and never added
@@ -71,8 +77,8 @@ class Broker(Protocol):
         anything else held goes under a name of its own."""
 
     def stops(self) -> Iterable[tuple[str, Decimal | int]]:
-        """Every stop resting at the broker, entry by entry: a name, as a holding's, and
-        the shares it would sell."""
+        """Every stop resting at the broker to sell, entry by entry: a name, as a
+        holding's, and the shares it would sell."""
 
 
 @dataclass(frozen=True)

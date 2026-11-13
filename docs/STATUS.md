@@ -86,21 +86,26 @@ everything on main, so two green lanes cannot combine into a red main.
 
 ## MONEY
 
-Last updated: 13 November 2026 (this section cut to what is open; git keeps the rest).
+Last updated: 13 November 2026 (any broker behind the send path).
 
 ### Where it is
 
 Scenes 5 of 7. Built and real (its decisions in `docs/DECISIONS.md`): the five rules
 (`strategy`); sizing, cost and the gate (`orders`); the pretend broker (`broker`); the send
 path, the ledger, the book and reconciliation on one comparison (`book`); the day's trading
-(`day.trade`). Unfinished, raising NotImplementedError by design: `day.run`, the day's
-record (phase 2); scenes 6 and 7 both read it, so they pass together.
+(`day.trade`). Any broker can stand behind them (`broker.Broker`: five questions, holdings
+and stops as entries, read once for each order). Unfinished, raising NotImplementedError by
+design: `day.run`, the day's record (phase 2); scenes 6 and 7 both read it, so pass together.
 
 ### Next step
 
-R-PAPER-2: any broker behind the send path and the day run, read once for each order. Then
-the kill switch and its drill (EMG-02; his ruling: first of the lane's own book), the costs
-whole (R-RUNGS-1), and the day's record (`day.run`), scene 6 moved onto the fourteen months.
+The kill switch and its drill (EMG-02; his ruling: first of the lane's own book), cancelling
+a sixth question of any broker. Then the costs whole (R-RUNGS-1), and the day's record
+(`day.run`), scene 6 moved onto the fourteen months.
+
+### Done for other lanes
+
+- R-PAPER-2: done in this pull request
 
 ### Requests to PAPER
 
