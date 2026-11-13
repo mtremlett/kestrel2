@@ -8,6 +8,8 @@ from datetime import date
 from decimal import Decimal
 from pathlib import Path
 
+import pytest
+
 from desk import book, day, venues
 from desk.broker import Pretend
 from desk.lines import Line
@@ -54,3 +56,6 @@ def test_the_day_sells_what_each_rule_holds_then_buys_from_the_book_after_each_s
     assert book.positions(tmp_path) == {} == broker.positions()
     trips = book.round_trips(tmp_path, tuple(ARCHIVE))
     assert sorted(t.buy.symbol for t in trips) == list("ABCDH")
+    broker.open(date(2025, 2, 6))
+    with pytest.raises(ValueError, match="GBP"):
+        day.trade(tmp_path, ARCHIVE, broker, Settings(Decimal(10_000)), date(2025, 2, 6), {})

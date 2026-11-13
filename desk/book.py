@@ -112,8 +112,12 @@ def positions(root: Path) -> dict[str, int]:
 def record_rates(root: Path, day: date, rates: Mapping[str, Decimal]) -> None:
     """Keep the day's pounds per unit of each currency, so its fills are priced in pounds
     from the saved record, never from a rate looked up again later."""
-    kept = {key: rate for key, rate in _rates(root).items() if key[0] != day}
-    kept.update({(day, currency): rate for currency, rate in rates.items()})
+    kept = _rates(root)
+    for currency, rate in rates.items():
+        if not (rate.is_finite() and rate > 0) or (currency == "GBP" and rate != 1):
+            raise ValueError(f"{day}: a rate of {rate} pounds per {currency}")
+        if kept.setdefault((day, currency), rate) != rate:
+            raise ValueError(f"{day}: {currency} was kept at {kept[day, currency]}, not {rate}")
     _write(root / RATES, [("day", "currency", "rate"), *((*key, r) for key, r in kept.items())])
 
 

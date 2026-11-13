@@ -29,7 +29,7 @@ from rehearsal import (
     before,
 )
 
-from desk import book, day, orders, store, strategy
+from desk import book, day, orders, store, strategy, venues
 from desk.broker import Crash, Fault, Pretend
 
 # ---------------------------------------------------------------- the money
@@ -76,9 +76,10 @@ def test_scene_2_the_decision_cannot_see_the_future(tmp_path: Path) -> None:
     every = strategy.decide(bars)
     names = {d.strategy for d in every}
     assert len(trading) == 19 and len(names) == 5
+    days = {line.symbol: venues.sessions(line.venue, SESSIONS[0], SESSIONS[-1]) for line in LINES}
     assert len(every) == len(names) * sum(
-        len(b) for b in bars.values()
-    ), "a line or one of its own days went unanswered"
+        len(days[symbol]) for symbol in trading
+    ), "a line or a day of its own venue's went unanswered"
     for cut in SESSIONS:
         blind = {s: tuple(bar for bar in b if bar.day <= cut) for s, b in bars.items()}
         assert set(strategy.decide(blind)) == {
@@ -154,7 +155,9 @@ def test_scene_5_the_position_is_closed(tmp_path: Path) -> None:
         day.trade(tmp_path, before(HISTORY, on), broker, SETTINGS, on, RATES)
 
     trips = book.round_trips(tmp_path, LINES)
-    assert trips, "no complete round trip: a buy and a sell of the same line"
+    assert any(
+        not trip.sell.order_id.endswith("-stop") for trip in trips
+    ), "no round trip closed by the strategy's own rule: a buy and its sale"
     ids = {fill.execution_id for fill in broker.fills()}
     pounds = {line.symbol for line in LINES if line.currency == "GBP"}
     for trip in trips:

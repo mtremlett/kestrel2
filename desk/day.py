@@ -66,6 +66,9 @@ def trade(
     held = book.positions(root)
     holders = {f.symbol: strategy_of(f.order_id) for f in book.fills(root) if f.quantity > 0}
     due = {line.symbol: line for line, bars in archive.items() if _due(line, bars, day)}
+    unpriced = sorted({line.currency for line in due.values()} - set(rates))
+    if unpriced:
+        raise ValueError(f"{day}: no rate in pounds for {unpriced}; nothing sent")
     decided = strategy.today(
         {symbol: archive[line] for symbol, line in due.items()},
         {symbol: holders[symbol] for symbol in held if symbol in due},
@@ -73,7 +76,7 @@ def trade(
     sent = [
         book.send(root, broker, Sale(order_id_of(d), due[d.symbol], held[d.symbol]), settings)
         for d in decided
-        if d.action is Action.SELL and holders.get(d.symbol) == d.strategy and d.symbol in held
+        if d.action is Action.SELL  #: only the rule the book holds the line for can sell
     ]
     for d in (d for d in decided if d.action is Action.BUY):
         now, line = book.positions(root), due[d.symbol]
