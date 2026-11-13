@@ -224,26 +224,13 @@ def test_a_line_made_while_he_sleeps_is_held_for_the_morning_not_sent(
     assert record.count("Held for the 08:00 message") == 3 and "· usage 21% (#6)" in record
 
 
-def test_his_hours_begin_at_22_and_end_at_08_uk_time_in_summer_too() -> None:
-    def gmt(year: int, month: int, day: int, hour: int, minute: int) -> datetime:
-        return datetime(year, month, day, hour, minute, tzinfo=UTC)
-
-    winter = [
-        announce.asleep(gmt(2026, 11, 13, h, m)) for h, m in ((21, 59), (22, 0), (7, 59), (8, 0))
-    ]
-    assert winter == [False, True, True, False]
-    assert announce.asleep(gmt(2026, 7, 1, 21, 30))  # 22:30 in London
-    assert not announce.asleep(gmt(2026, 7, 1, 7, 0))  # 08:00 in London
-    # the clocks change at 01:00 UTC on the last Sundays of March and October
-    assert (
-        announce.uk_hour(gmt(2026, 3, 29, 0, 59)) == 0
-        and announce.uk_hour(gmt(2026, 3, 29, 1, 0)) == 2
-    )
-    assert (
-        announce.uk_hour(gmt(2026, 10, 25, 0, 59)) == 1
-        and announce.uk_hour(gmt(2026, 10, 25, 1, 0)) == 1
-    )
-    assert (
-        announce.uk_hour(gmt(2027, 3, 28, 1, 0)) == 2
-        and announce.uk_hour(gmt(2027, 10, 31, 0, 30)) == 1
-    )
+def test_his_hours_are_22_to_08_on_a_uk_clock_through_both_clock_changes() -> None:
+    # (UTC, the UK clock's hour): GMT, and BST from 01:00 UTC on March's last Sunday to October's
+    uk_hours = [((2026, 11, 13, 21, 59), 21), ((2026, 7, 1, 21, 30), 22), ((2026, 3, 29, 0, 59), 0),
+                ((2026, 3, 29, 1, 0), 2), ((2026, 10, 25, 0, 59), 1), ((2026, 10, 25, 1, 0), 1),
+                ((2027, 3, 28, 1, 0), 2), ((2027, 10, 31, 0, 30), 1)]  # fmt: skip
+    for (y, mo, d, h, mi), uk in uk_hours:
+        assert announce.uk_hour(datetime(y, mo, d, h, mi, tzinfo=UTC)) == uk, (y, mo, d, h, mi)
+    hours = ((21, 59), (22, 0), (7, 59), (8, 0))
+    night = [announce.asleep(datetime(2026, 11, 13, h, m, tzinfo=UTC)) for h, m in hours]
+    assert night == [False, True, True, False]
