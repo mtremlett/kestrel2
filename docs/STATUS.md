@@ -79,6 +79,18 @@ Last updated: 13 November 2026.
 
 ### Where it is
 
+The desk now knows what it holds (`book.positions`): the shares of each line its ledger's
+fills add up to, never the orders it meant to send, and never a position bought by hand at
+the broker. Every fill the broker made is written in the ledger before an order is judged
+and again after it is sent (`book.collect`), so a stop sold overnight, or on the very day
+of its buy, frees its holding at once. The pre-trade gate reads that book: a sixth line is
+refused, and the shares a line already holds and the shares ordered share its one fifth,
+counted together at today's price. A second buy of a held line is sized to what is left.
+The tests were seen failing first; fifteen deliberate breaks were each caught; a blind
+review found nothing blocking, and its fix (a stop sold on its buy's own day reached the
+book only on the next send) and its test gap (a crashed order's fill counted as a holding)
+are taken and tested.
+
 Scene 4 passes: the desk sends an order and its stop rests at the broker (`book.send`).
 Before sending, the desk asks the broker whether it already has the order; if so it
 records what the broker did and sends nothing, so a desk that dies mid-send and restarts
@@ -123,24 +135,36 @@ caught; the forty-fifth cannot change a decision.
 
 ### Next step
 
-The book built from the broker (`book.positions`): what is held and what is left, with
-every fill the broker made in the ledger, a stop's overnight sale included, so the gate
-can enforce at most five holdings and give two buys of one line one fifth between them.
+The day run, so scene 5 passes: decisions dated that day only, a rule's position read from
+the book, a sell that takes its line's stop away, and round trips with their costs. It
+needs the data lane's fourteen months in the scenes, and scene 2 counting each line's own
+days first (asked of this lane, under DATA below); that is likely the first step.
 
 ### Found, not fixed
 
+- **What the blind review of the book left** (nothing blocking; its fix and test gap taken):
+  - The gate reads the desk's book, not the broker's. A position bought by hand at the
+    broker is not counted, so the broker can hold a sixth line. Reconciliation (scene 6)
+    must stop buying while the book and the broker disagree.
+  - The book reaches the gate as a bare mapping of line to shares. Only the send path
+    passes the real book; a typed book that only `book.positions` can make would stop a
+    caller passing an empty one.
+  - Two orders sized before either is sent are both sized to a full fifth; the second is
+    then refused outright, not cut to what is left. The day run must size each buy from
+    the book after the send before it.
+  - At a real broker an order waits for the open, so two orders sent overnight would each
+    pass the gate on a book that holds neither. The paper adapter (phase 3) must count the
+    orders the broker is still working, as well as the fills.
+  - Unit test lines stand at 1328 against 1328 of product, exactly at the guard: the next
+    step's tests must come with its code.
 - **What the blind review of the pretend broker left for the send path and the day run**
   (its one finding fixed: a fault was used up by an order that met no market):
-  - The ledger holds only the fills an order's answer carries. A stop the broker sells is
-    in no order's answer, so the book must collect the broker's fills since the last
-    ask, or the ledger and the broker part company on the first stop that fires.
   - **What the blind review of the send path left** (nothing blocking; its test gap - an
     order the broker already holds must not be judged by the gate again - is fixed):
     the ledger is swapped in whole but not forced to disk, so a power cut (not a crash of
     the desk) can lose it; and a ledger deleted later reads as "no fills" without a
     word. Neither can send twice, since the broker is asked first; reconciliation
-    (scene 6) is where a lost ledger must show. Unit test lines now stand at 1261 against
-    1262 of product: the next step's tests must come with its code.
+    (scene 6) is where a lost ledger must show.
   - The broker fills at the bare open and sells a stop at exactly its level. Spread and
     slippage are not in its prices, so the day run must charge both, on both legs, the
     stop's sale included, or profit reads too high.
@@ -156,10 +180,6 @@ can enforce at most five holdings and give two buys of one line one fifth betwee
     on a one-share order, and several stops firing on one open.
 - **What the blind review of sizing left for the book** (its blocking finding - a pound
   line accepted any exchange rate - is fixed and tested):
-  - **"At most five holdings" is not enforced yet.** The gate sees one order, not the
-    book, so a sixth holding passes, and two strategies buying the same line the same day
-    each get their own fifth (two orders, two ids). The book must give the gate what is
-    held and what is left before scene 5 trades more than one line.
   - The gate trusts the stop of an order built by hand; only the sizer sets the 10% rule.
     Scene 4's own orders carry a stop of 30, about a third below their price.
   - Stops and costs are exact decimals, not rounded: a real broker refuses a stop off its
@@ -185,8 +205,7 @@ can enforce at most five holdings and give two buys of one line one fifth betwee
   - Wilder's smoothing and the true range live inside `strategy`. If the stop at entry
     is set from the true range, it is asked of `strategy`, not written a second time.
 - **What a blind review of the scenes left open** (the rest was fixed before commit):
-  the sizer is given total capital, not what is left after the
-  positions already held; the currency cost is not separated from commission in scene
+  the currency cost is not separated from commission in scene
   3; "a day with a cost line missing is refused" is held by the types, not by a day
   that should have paid UK tax showing none; scene 5 does not tell a sale by the
   strategy's rule from one by the resting stop; "no halt in force" has no interface yet.
@@ -197,11 +216,12 @@ Every one of these raises NotImplementedError, by design, until its phase builds
 
 | part | phase |
 |---|---|
-| `book.positions`, `book.round_trips` | 2 |
+| `book.round_trips` | 2 |
 | `day.run` | 2 |
 
-Built and real: the send path and the ledger (`book.send`, `book.fills`), the pretend broker (`broker.Pretend`), sizing, cost and the gate for one holding (`orders.size`, `orders.cost`,
-`orders.gate`), the five strategies (`strategy.decide`), the twenty lines, the archive
+Built and real: the send path, the ledger and the book (`book.send`, `book.fills`,
+`book.collect`, `book.positions`), the pretend broker (`broker.Pretend`), sizing, cost and
+the gate across the book (`orders.size`, `orders.cost`, `orders.gate`), the five strategies (`strategy.decide`), the twenty lines, the archive
 client (`archive.fetch`), the price store (`store.prepare`, `store.read`, `store.faults`),
 the venue calendars,
 the typed records (`Line`, `Bar`, `Parked`, `Decision`, `Settings`,
