@@ -30,7 +30,6 @@ import hashlib
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from datetime import date
-from functools import cache
 from pathlib import Path
 
 from desk import strategy
@@ -90,7 +89,9 @@ class Key:
     def rung(self, module: str) -> Key:
         """The key of what the rung in that module makes of what this key names: its code is
         this key's and everything the rung's module reaches, the cost model with the rest."""
-        made = hashlib.sha256(f"{self.code}\n{loaded(module)}".encode()).hexdigest()
+        if module not in RUNGS:
+            raise ValueError(f"{module} is not a rung: no module of lab/ that reaches the cell")
+        made = hashlib.sha256(f"{self.code}\n{RUNGS[module]}".encode()).hexdigest()
         return replace(self, code=made)
 
 
@@ -132,8 +133,7 @@ def _files(root: Path, name: str) -> set[str]:
 
 
 def reached(root: Path, module: str = CELL) -> tuple[str, ...]:
-    """The module's file, its packages', and every file under root they reach through
-    imports. The module is this one or a rung upon it: it reaches this one."""
+    """The module's file, its packages', and every file under root they reach through imports."""
     if _file(root, module) is None:
         raise ValueError(f"{module}: no module of that name under {root}")
     seen, waiting = set(), _files(root, module)
@@ -141,8 +141,6 @@ def reached(root: Path, module: str = CELL) -> tuple[str, ...]:
         path = waiting.pop()
         seen.add(path)
         waiting |= _imports(root, path) - seen
-    if _file(root, CELL) not in seen:
-        raise ValueError(f"{module} is not a rung: it never reaches the cell that makes the trades")
     return tuple(sorted(seen))
 
 
@@ -154,15 +152,18 @@ def code_version(root: Path = ROOT, module: str = CELL) -> str:
     return digest.hexdigest()
 
 
-#: The code this process loaded, read once as it loads it.
+def rungs(root: Path = ROOT) -> dict[str, str]:
+    """The code version of each rung: a module of lab/ that reaches this one, whose trades
+    it makes something of."""
+    names = [f"lab.{path.stem}" for path in sorted((root / "lab").glob("[!_]*.py"))]
+    upon = [name for name in names if name != CELL and _file(root, CELL) in reached(root, name)]
+    return {name: code_version(root, name) for name in upon}
+
+
+#: The code this process loaded, read once as it loads it: this module's, and each rung's,
+#: so no key claims a cost model or a rung edited on disk since.
 LOADED = code_version()
-
-
-@cache
-def loaded(module: str) -> str:
-    """A rung's code version, read once, the first time it is asked: a rung asks as the
-    process loads it, as LOADED is read."""
-    return code_version(ROOT, module)
+RUNGS = rungs()
 
 
 def _data_version(bars: Sequence[Bar]) -> str:
