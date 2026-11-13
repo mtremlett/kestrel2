@@ -36,7 +36,7 @@ def test_each_of_the_three_is_defined_in_numbers_set_in_advance_with_its_action(
     assert odd.words() == "the market down 12.5% in a day, or 100% below its month's high"
     for day, high in (("0", None), ("1", None), ("0.2", "0.2"), ("0.2", "1.01"), ("-0.1", "0.2")):
         with pytest.raises(ValueError, match="no emergency is a fall of"):
-            Definition(False, Decimal(day), high and Decimal(high), Action.PARK)
+            Definition(False, Decimal(day), Decimal(high) if high else None, Action.PARK)
 
 
 def test_a_fall_is_measured_in_its_markets_terms_from_the_last_close_and_the_months_high() -> None:
