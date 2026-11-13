@@ -2234,6 +2234,25 @@ step below it, and none of the twelve real rules is; a pairing check behind a le
 that already forces it; and two that pick the last of exactly one. The fifth adds New York
 to the US exchanges, which no test forbids: adding an exchange is a deliberate edit.
 
+### 2026-11-13 — the paper lane's book ordered: read-only first, placing last, one new module per box
+
+Options and choices (from #68):
+1. Kill-switch refusal: first in the book, or after the adapter whose send it guards. Chosen:
+   after. The refusal is a line in the adapter's send and reads the money lane's drill record,
+   which is not built. Nothing is loosened: paper-conformance, the first real paper order, waits
+   for paper-drill.
+2. Should paper-drill and paper-conformance name the money lane's kill switch in `after`? Chosen:
+   only this lane's ids for now, as the money lane has not noted its book and the check refuses an
+   `after` naming no box. The wait is held by the box text, the four boxes in front, and the lane
+   objective. Owed: add the id to paper-drill's `after` once it exists.
+3. Order: reports, daily check, adapter, stops, drill refusal, then a real order, following "built
+   from what it reads towards what it sends".
+4. New modules (`reports`, `gateway`, `clearance`, `placing`) or all in `desk/paper.py`. Chosen:
+   their own: paper.py is 216 of 400 lines, and separate files let paper-gateway run beside the
+   chain. A session finding one unnecessary need not create it.
+5. paper-conformance holds every file (`files: *`): it runs on the real account in market hours
+   and may fix any module where the broker differs, so it runs alone.
+
 ## GRID
 
 ### 2026-11-13 — the fast grid engine: it holds what the desk holds, or it refuses
