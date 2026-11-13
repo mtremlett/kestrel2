@@ -250,13 +250,31 @@ def test_the_sixtieth_session_back_is_the_oldest_that_parks(
     assert bool(_parked(tmp_path, tuple(bars))) is parks
 
 
-def test_a_real_fall_and_recovery_is_never_dropped_as_bad_days(tmp_path: Path) -> None:
-    """A leveraged line can fall 40% and recover within days: only a hundredfold run is a unit."""
-    clean = _bars(US, LONG)
-    bars = tuple(_scaled(b, Decimal("0.6")) if 5 <= n < 10 else b for n, b in enumerate(clean))
+@pytest.mark.parametrize("days", [1, 5], ids=["one day", "a week"])
+@pytest.mark.parametrize("at", [0, 5, -8, -1], ids=["first", "old", "recent", "newest"])
+def test_a_real_crash_is_kept_and_parks_until_recorded(tmp_path: Path, at: int, days: int) -> None:
+    """5QQQ's low on 7 April 2025 sat 40% under the close before, and it recovered the next day:
+    only a hundredfold bar is a wrong unit. Any other move parks, however old, until recorded."""
+    clean, start = _bars(US, LONG), at % len(_bars(US, LONG))
+    bars = tuple(
+        _scaled(b, Decimal("0.6")) if 0 <= n - start < days else b for n, b in enumerate(clean)
+    )
     reasons = _parked(tmp_path, bars)
-    assert len(reasons) == 1 and "split" in reasons[0]
+    assert len(reasons) == 1 and "wrong unit" not in reasons[0]
     assert store.read(tmp_path, US.symbol) == bars
+    moved = [bars[n] for n in (start, start + days) if 0 < n < len(bars)]
+    assert all(f"{b.day} moved" in reasons[0] for b in moved)
+    line = replace(US, real_moves=frozenset((b.day, b.close) for b in moved))
+    assert _parked(tmp_path, bars, line) == []
+    assert store.read(tmp_path, US.symbol) == bars
+
+
+def test_a_crash_after_days_in_the_wrong_unit_is_kept(tmp_path: Path) -> None:
+    """Only the days a hundredfold out are dropped; the real crash after them stays."""
+    by = {5: Decimal(100), 6: Decimal(100), 7: Decimal("0.4"), 8: Decimal("0.4")}
+    bars = tuple(_scaled(b, by.get(n, Decimal(1))) for n, b in enumerate(_bars(US, LONG)))
+    assert "split" in _parked(tmp_path, bars)[0]
+    assert bars[7:9] == store.read(tmp_path, US.symbol)[5:7]
 
 
 FREEZES: dict[str, Callable[[Bar, Bar], Bar]] = {

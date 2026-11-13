@@ -56,3 +56,4 @@ rungs = []
 "lab/batch.py" = "the ladder's batch service: runs many cells, records a bad one and carries on, and takes up where a stopped run left off"
 
 # the rungs lane
+"lab/rung.py" = "the ladder's first rung: a cell's trades priced at the desk's fills and the broker's costs, and judged against chance"

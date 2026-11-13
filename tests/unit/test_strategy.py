@@ -95,6 +95,21 @@ def test_rsi2_does_not_buy_a_close_exactly_on_its_200_day_average() -> None:
     assert _trades("rsi2_pullback", bars) == []
 
 
+def test_today_decides_each_lines_last_bar_holding_what_the_book_holds_for_each_rule() -> None:
+    #: the breakout's own idea holds both from day 21; the book holds only the second for it
+    up, down = _bars([10] * 20 + [10.4, 11, 12]), _bars([10] * 20 + [10.4, 11, 9.4])
+    today = strategy.today({"U": up, "D": down}, {"D": "breakout_20_10"})
+    assert (
+        sorted((d.symbol, d.day) for d in today)
+        == [("D", down[-1].day)] * 5 + [("U", up[-1].day)] * 5
+    )
+    acts = {(d.symbol, d.strategy): d.action for d in today}
+    assert acts["U", "breakout_20_10"] is Action.BUY, "a rule the book holds nothing for"
+    assert acts["D", "breakout_20_10"] is Action.SELL
+    (flat,) = (d for d in strategy.today({"D": down}, {}) if d.strategy == "breakout_20_10")
+    assert flat.action is Action.HOLD, "a rule sold what the book does not hold for it"
+
+
 def test_the_callers_arithmetic_cannot_move_a_decision() -> None:
     bars = {"A": _walk(5, 1200)}
     with localcontext(Context(prec=3, rounding=ROUND_FLOOR)):

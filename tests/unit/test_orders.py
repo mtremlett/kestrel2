@@ -98,3 +98,14 @@ def test_only_a_buy_for_its_own_line_is_sized_and_a_share_must_be_affordable() -
     for capital in ("Infinity", "0"):
         with pytest.raises(ValueError, match="capital"):
             orders.Settings(Decimal(capital))
+
+
+def test_a_sale_passes_the_gate_only_for_shares_the_book_holds() -> None:
+    sale = orders.Sale("s", PLAIN, 10)
+    orders.gate(sale, TEN_K, {"P": 10, "Q": 1, "R": 1, "S": 1, "T": 1})
+    for held in ({"P": 9}, {}):
+        with pytest.raises(orders.Refused, match="long only"):
+            orders.gate(sale, TEN_K, held)
+    with pytest.raises(ValueError, match="shares"):
+        orders.Sale("s", PLAIN, 0)
+    assert orders.strategy_of(orders.order_id_of(_buy(PLAIN))) == "rule"
