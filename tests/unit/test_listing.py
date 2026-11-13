@@ -11,10 +11,10 @@ from decimal import Decimal
 import pytest
 
 from desk import listing, paper
-from desk.lines import Line
+from desk.lines import NO_TAX, Line
 from desk.listing import Listing, Unlisted
 
-IITU, AAPL = Line("IITU", "LSE", "GBP", 1), Line("AAPL", "US", "USD", 1)
+IITU, AAPL = Line("IITU", "LSE", "GBP", 1, NO_TAX), Line("AAPL", "US", "USD", 1, NO_TAX)
 OPEN = (("176", "20261113 18:31:25 Greenwich Mean Time"), ("15", "1", "DU0000001"), ("9", "1", "1"))
 #: Answers as the real gateway sent them on 13 November 2026, each question's number made the
 #: test's, the long lists (order kinds, hours, AAPL's 27 exchanges) cut short, and AAPL's

@@ -449,7 +449,12 @@ the tests on the way, each closed (`docs/DECISIONS.md`).
 
 ### Next step
 
-The fills and the orders the broker reports, read-only: each fill under the broker's own
+First, a short step now that the money lane has built the one comparison of a book with
+a broker (`book.differences`, R-PAPER-1, #52): the account check hands it the account's
+entries and keeps only what is the paper door's own (paper accounts only, the kind and
+currency of a holding, the resting orders), so the rule has one home.
+
+Then the fills and the orders the broker reports, read-only: each fill under the broker's own
 id, its price turned from the broker's unit back into the line's currency (pence into
 pounds on six London lines), and the desk's own orders and stops told from anyone else's,
 so the daily check can know the desk's resting stops. Then placing, behind `Pretend`'s
@@ -458,7 +463,7 @@ account check should be run again on a second day before the first order.
 
 ### Requests to MONEY
 
-- [ ] R-PAPER-1 (blocking, opened 2026-11-13 18:15): one home for "the book against the broker".
+- [x] R-PAPER-1 (blocking, opened 2026-11-13 18:15): one home for "the book against the broker".
   `paper.differences` is that rule for the real account; scene 6 (`day.run`) needs it
   against the pretend broker. One comparison should serve both, in `desk/book.py`, taking
   the book and the broker's holdings; the paper door would then hand it the account's
@@ -499,7 +504,7 @@ account check should be run again on a second day before the first order.
   line**: the adapter will, when it places. Today's reading is one moment's.
 - **The account check still knows a holding by its name, kind and currency**, not by the
   broker's own number for the line, which the listing now gives. Matching on the number
-  would be exact; it changes `paper.differences`, so it waits for R-PAPER-1.
+  would be exact; it belongs with the move onto `book.differences` (next step).
 - **The same answer carries facts the desk does not read yet:** each line's trading hours
   at the broker for the coming week, which the conformance trades need (given in central
   European time for London: from 08:00 UK, to 16:30 UK on 3LGO, 2MU, 5QQQ and IB1T and to

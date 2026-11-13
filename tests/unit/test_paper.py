@@ -16,10 +16,10 @@ from types import SimpleNamespace
 import pytest
 
 from desk import book, paper
-from desk.lines import Line
+from desk.lines import NO_TAX, Line
 from desk.paper import Account, Holding, Resting
 
-LINES = (Line("AAPL", "US", "USD", 1), Line("SMGB", "LSE", "GBP", 1))
+LINES = (Line("AAPL", "US", "USD", 1, NO_TAX), Line("SMGB", "LSE", "GBP", 1, NO_TAX))
 #: Messages as the real gateway sent them on 13 November 2026, the account's code changed,
 #: and AAPL's local name, so that a reader taking it for the symbol is caught.
 HELLO = ("176", "20261113 17:42:38 Greenwich Mean Time")

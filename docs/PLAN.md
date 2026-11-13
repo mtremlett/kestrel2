@@ -297,7 +297,9 @@ Begun alongside phase 2 by his ruling of 13 November: "Five lanes, phase 3 now".
 **Lane objective:** the real paper-broker adapter behind the same interface as
 `broker.Pretend`, through the one door (`desk/paper.py`) with the standard library alone,
 built from what it reads towards what it sends. The account and each of the twenty lines as
-the broker lists it are read (`desk/listing.py`). Next: the fills and orders the broker
+the broker lists it are read (`desk/listing.py`). Next, first a short step: the account
+check moved onto the money lane's one comparison (`book.differences`, R-PAPER-1, done in
+#52), so "is the book the broker's?" has one home. Then the fills and orders the broker
 reports, read-only, each fill's price turned from the broker's unit (pence on six London
 lines) back into the line's currency, and the desk's own orders told from anyone else's;
 then placing. It sends no order until that day's read-only check (`paper.mismatches`) has
