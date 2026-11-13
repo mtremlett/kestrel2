@@ -1031,7 +1031,6 @@ its reason (Recommended)". Any one can come back by his ruling.
 | GOV-11 | the old names it retires never existed here |
 | GOV-12 | DEV and PROD rule tags: every guard is always on, and GitHub enforces them |
 | MIG-08 | PROD rules switched on at go-live: there is no DEV and PROD split |
-| DAT-04 | a columnar store under 50 ms: twenty daily lines, no benchmark asks (canon A4) |
 | DAT-06 | a weekly bottleneck review: optimise only on a benchmark (canon A4) |
 | DAT-09 | a hot store and an archive: one store, rebuilt from the archive, one writer |
 | DQ-04 | an independent data checker: data is checked once, at the boundary, by the one writer |
@@ -1170,6 +1169,33 @@ each with its published figure written down so that reproduction can run.
 instead of again for every bar. The grid lane's numpy engine is that method, held to the
 desk's engine by a parity test (canon B2); its old desk equivalent had parity tests that
 were red on main.
+
+---
+
+## 2026-11-13 — hot every five minutes, a crash watch, and one fast store
+
+**His words, about 18:55 UK:** "please confirm that it runs during the trading data every
+5mins? we need hot data every 5mins. this is paramount. if a crash event happens then we need
+5min price and indicator data to immediately flag a crash situation". And: "the data quality
+monitor needs to make sure ticker price and all indicator data is always hot ... we need a
+high performance way to reading and writing to a database." And: "any tickers with suspect
+data issues are checked, but, then parked ... one ticker with bad data should not stop all
+trading."
+
+**Decided by the mentor, as his rulings allow.** During each venue's trading hours the
+keeper takes every clean line's newest five-minute bar every five minutes, checks it on
+entry, and updates every indicator the rules and the crash watch read. A late, missing or
+out-of-line bar parks only its line, at once; the rest carry on, and a line that comes clean
+returns by itself. A crash watch on those bars halts all buying the moment a fall crosses
+the emergency thresholds, and alerts him at any hour. Hot and deep data share one store,
+SQLite in WAL mode (standard library, one writer, many readers), held to benchmarks set in
+advance. DAT-04, dropped earlier this evening for want of a benchmark, is restored: he has
+now set the need, and the benchmarks are its test.
+
+**The cost, stated.** The free archive's five-minute bars arrive late: delayed by about
+fifteen minutes for London, and not guaranteed for the US. The delay is measured and shown
+on every bar. Prices without delay come from the broker, and a subscription for them is a
+spending decision for him, asked separately.
 
 ---
 
