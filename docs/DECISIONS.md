@@ -152,3 +152,71 @@ whether to count only the everyday tests (option A), his words: "Yes, option A".
 **The evidence.** Driven in a throwaway copy: untouched, the guard passes; with 401
 lines of unit test against 303 of product, it fails with "unit tests 401 lines > product
 303 lines".
+
+---
+
+## 2026-11-13 — sessions merge their own pull requests when the check is green
+
+**Decided.** A session merges its own pull request (`gh pr merge --squash`) when the
+`check` job is green on the pull request's last commit. The operator is not asked to
+approve merges. A pull request that LOOSENS a guard (`BUDGET.json`, `manifest.toml`,
+`tests/guards/`, `check.py`, `.github/`) still waits for his plain-English yes in chat,
+asked as a business question with options and a recommendation, never "review this".
+Tightening a guard merges like any change.
+
+**His words.** In chat, Friday 13 November 2026, about 12:46 UK time: "operator asks
+that they are not required to approve merge requests. can the mentor do this for me? ...
+i am not the expert, so how would i know if there was an error. there is no point in
+asking me to check this and approve. you must do this via your guardrails and checks.
+please confirm."
+
+**Made a guard, not a promise.** GitHub's ruleset `main-guard` required a pull request
+and a squash, but not a passing check, so a session could have merged red. Asked once
+whether GitHub itself should refuse a merge whose check has not passed, his answer at
+about 12:53: "Yes, add it (Recommended)". The ruleset now requires the `check` job
+(GitHub Actions) to pass before any merge to main.
+
+**Driven red.** Pull request #5 added an unused import, a deliberate lint failure. The
+check failed on GitHub, GitHub reported the pull request BLOCKED, and `gh pr merge
+--squash` was refused: "the base branch policy prohibits the merge". It was closed
+unmerged. Not tried: whether the owner's account could force it through as an
+administrator. Trying it risks merging red, and it is the reason a second, non-admin
+account is recommended before unattended work.
+
+---
+
+## 2026-11-13 — the A-GATE test
+
+**Decided.** The requirement, as written in `docs/PLAN.md` phase 5 (AG-01 to AG-06). A
+strategy set passes A-GATE only when all of these hold:
+
+| id | condition |
+|---|---|
+| AG-01 | It passed the ladder first: luck-corrected for every trial it was picked from, after costs, judged on its worst fold, over years of history, not weeks. |
+| AG-02 | Sixty consecutive trading days on paper, through the one engine, average at least £100 a day net of every cost (commission, spread, slippage, currency, UK tax), priced under the broker it trades. |
+| AG-03 | The paper result sits inside the range the history predicted for a sixty-day stretch. A paper run far below it fails, however it ended. |
+| AG-04 | Its net profit over the sixty days is more than the same capital would have made simply holding the market over the same days. |
+| AG-05 | The money never falls more than £1,500 below its highest point during the sixty days. |
+| AG-06 | Every one of the sixty days reconciled with the broker, no safety rule overridden, no halt bypassed. |
+
+**Why the luck correction sits on the history, not on the sixty days.** Sixty days is
+too short to separate skill from luck on its own: proving it from paper days alone needs
+a yearly Sharpe above 3, which the canon treats as a red flag. So the history proves the
+edge after counting every trial, and the paper days prove the live desk earns what the
+history said it would.
+
+**Shortened to thirty days only if all of these hold, fixed now, before any result:**
+an average of at least £150 a day net over the thirty days; the money never more than
+£750 below its highest point; at least twenty completed trades; the best three days
+together under a third of the profit; and AG-01, AG-03, AG-04 and AG-06 as above. Any one
+missing and the run continues to sixty days. These numbers are not changed after a
+result has been seen.
+
+**His words.** In chat, Friday 13 November 2026, about 12:46 UK time, agreeing the
+sixty-day test: "i agree. if we are working will and the P&L can reflect a good
+framework and good strategies then we could tune this to 30days, but only if conditions
+were excellent." Offered three definitions of "excellent" at about 12:53, he chose
+"Strong (Recommended)"; offered three limits for the fall from the highest point, he
+chose "£1,500 (Recommended)".
+
+**Replaces.** "Ten consecutive £100 days", close to unreachable for an honest edge.

@@ -1,9 +1,9 @@
 # The plan
 
-**Current objective:** finish phase 0 — the machinery, the documents and the scenes
-approved by the operator.
+**Current objective:** finish phase 1 — daily bars for the twenty lines from a free
+archive, into the store built for scene 1.
 
-Scenes passing: **0 of 7**. Phase: **0-foundations**.
+Scenes passing: **1 of 7**. Phase: **0-foundations**.
 
 ---
 
@@ -28,10 +28,11 @@ The machinery that refuses, before any desk code.
 One store, one writer, cleaned on entry.
 
 - [ ] Daily bars for the twenty lines, from a free archive, re-fetched and re-checked
-- [ ] Cleaning on entry: units, duplicates, gaps, impossible prices, splits
-- [ ] Market calendars per venue; a UK holiday is not a US holiday
-- [ ] Parking a bad line, with a reason, a date and a way back out
-- [ ] **Scene 1 passes**
+- [x] Cleaning on entry: units, duplicates, gaps, impossible prices; a split the archive
+      did not adjust parks the line, it is not adjusted
+- [x] Market calendars per venue; a UK holiday is not a US holiday (2010 to 2027)
+- [x] Parking a bad line, with a reason, a date and a way back out
+- [x] **Scene 1 passes**
 
 ## Phase 2 — the money path, in simulation
 
@@ -64,8 +65,13 @@ Starts as a second track as soon as phases 1 and 2 give it data and a strategy t
 - [ ] Candidates through the ladder, leveraged index lines included
 - [ ] The operator's hand tickers judged honestly, with their own rules
 - [ ] Small-size paper trading as out-of-sample proof
-- [ ] **A-GATE: sixty trading days averaging £100 a day net, luck-corrected, ahead of
-      simply holding the market**
+- [ ] **A-GATE** (AG-01 to AG-06, his ruling of 13 November, `docs/DECISIONS.md`):
+      luck-corrected on years of history through the ladder; then sixty consecutive
+      paper days averaging at least £100 a day net of every cost, inside the range the
+      history predicted, ahead of simply holding the market, never more than £1,500
+      below the highest point, every day reconciled. Thirty days suffice only on the
+      "excellent" terms fixed in advance there: £150 a day, a fall under £750, twenty
+      trades, the best three days under a third of the profit.
 
 ## Phase 6 — the operator's own account, and widening
 
