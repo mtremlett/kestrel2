@@ -34,14 +34,16 @@ def _bars(closes: Sequence[float]) -> tuple[Bar, ...]:
     return tuple(bars)
 
 
-def _walk(seed: int, push: float, days: int = 5000) -> tuple[Bar, ...]:
+def _walk(seed: int, *pushes: float, days: int = 5000) -> tuple[Bar, ...]:
     """A random walk pulled gently back towards 10; a push is a planted edge, added to each
-    day after a close over the 20 before it, so a breakout is followed by a rise."""
+    day after a close over the 20 before it, so a breakout is followed by a rise. Each push
+    lasts so many days, so walks of one seed are the same bar for bar until their pushes differ."""
     rng, closes = random.Random(seed), [10.0]  # noqa: S311 - a repeatable test walk, not a secret
-    while len(closes) < days:
+    while len(closes) < days * len(pushes):
         up = len(closes) > 20 and closes[-1] > max(closes[-21:-1])
         pull = 0.005 * math.log(closes[-1] / 10)
-        closes.append(closes[-1] * (1 + rng.gauss(0, 0.01) + (push if up else 0) - pull))
+        push = pushes[len(closes) // days] if up else 0
+        closes.append(closes[-1] * (1 + rng.gauss(0, 0.01) + push - pull))
     return _bars(closes)
 
 
