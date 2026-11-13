@@ -992,6 +992,59 @@ and each was driven.
 in, because the runner starts at his logon. Starting it without a logon would need his
 password stored in Task Scheduler, which is his to decide. He is pausing updates instead.
 
+## 2026-11-13 — twelve sessions at once, held apart by claims
+
+**Asked** by the operator at 18:25: "Up to 12 at once (Recommended)". Built by a session
+started for it by the one that set the lanes up; the runner is outside this repository.
+
+**How.** MONEY and DATA run three sessions each, PAPER, GRID and RUNGS two each. The runner,
+not the session, picks the work: the first box of a lane's book whose note names its files,
+whose `after` boxes are done, and whose files no running session holds. Those files are the
+session's claim. A box with no note runs alone in its lane. The rule is in `docs/PLAN.md`
+("The five lanes"); the claim is enforced in `tests/guards/test_lanes.py`, which reads it
+from the pull request on GitHub (or from KESTREL_CLAIM on the PC) and refuses a lane's pull
+request without one. The runner also refuses to land a pull request whose `Claim:` line is
+not the claim it gave, and reads the worst of the two "check" runs (the push's and the pull
+request's), since only the pull request's can read the claim.
+
+**The shared documents.** Twelve sessions writing STATUS, SCOREBOARD and DECISIONS at once
+would collide. So a session writes `Ticks:`, its status, decisions and requests in its pull
+request, and a small scribe session per lane (Sonnet, about every two hours) folds them in.
+A ticked box counts as done the moment its pull request lands, so the next box waits for no
+scribe. The scribe also keeps each STATUS section under 50 lines, which the document guard
+in #46 needs.
+
+**The machine.** No session starts while under 25% of memory is free, while twelve run, or
+while more than eight run and the grid's auto-tune says a pass is busy; one start a minute.
+
+**Driven (canon A7).** The guard: 26 cases in a scratch clone, each failing for its stated
+reason, among them a change outside the claim, STATUS without claiming it, a pull request
+with no claim or two, a claim in a bullet, duplicate ids, an `after` naming nothing or
+waiting on itself through others, a note without files or id; and passing for a claim kept, a glob, `*`, a scribe's four documents,
+a push run with no claim to read, and a note shown in prose. The runner, with a stand-in for
+sessions in a scratch home: 61 cases, among them two boxes on one file never side by side,
+a box waiting for its `after`, a carry's files held while its slot is idle, a blocking
+request draining its lane first, the memory floor and the grid's cap holding starts, a wider
+claim disarmed, a red pull-request run not hidden by a green push run, and twelve slots
+working a book through with a peak of nine sessions and no two claims ever overlapping. The
+older drives were re-run on the new code; the only misses were words changed on purpose.
+On GitHub, once the guard was on main (#69, #70, closed unmerged): a money-lane pull
+request claiming `desk/day.py` and changing `desk/orders.py` failed its pull-request check
+on exactly that, and GitHub showed it BLOCKED although its push run was green; the same
+claim changing only `desk/day.py` was green and CLEAN. A first attempt from the guard's own
+branch was refused by the older lane guard, rightly, as a lane editing a guard.
+
+**Reviewed blind.** An independent reviewer found one blocking fault and six major ones, all
+fixed and driven: after a restart two slots could carry one pull request; two landings at
+once could lose a tick; GitHub not answering could free a claim whose pull request was open;
+two globs covering one file did not clash; a session arming its own merge could land before
+the runner read its Claim line (the runner now arms it, only after); two slots could swap
+pull request descriptions; a lane with nothing it may start sat idle untold.
+
+**Found on the way.** Taking over a lock left by a dead runner held the log's lock and then
+waited for it: every lane would have hung after a hard stop. Fixed (a re-entrant lock) and
+driven.
+
 ---
 
 # The lanes' own decisions
@@ -2150,6 +2203,25 @@ band taken to begin just above its edge, which differs only on a rule whose edge
 step below it, and none of the twelve real rules is; a pairing check behind a length check
 that already forces it; and two that pick the last of exactly one. The fifth adds New York
 to the US exchanges, which no test forbids: adding an exchange is a deliberate edit.
+
+### 2026-11-13 — the paper lane's book ordered: read-only first, placing last, one new module per box
+
+Options and choices (from #68):
+1. Kill-switch refusal: first in the book, or after the adapter whose send it guards. Chosen:
+   after. The refusal is a line in the adapter's send and reads the money lane's drill record,
+   which is not built. Nothing is loosened: paper-conformance, the first real paper order, waits
+   for paper-drill.
+2. Should paper-drill and paper-conformance name the money lane's kill switch in `after`? Chosen:
+   only this lane's ids for now, as the money lane has not noted its book and the check refuses an
+   `after` naming no box. The wait is held by the box text, the four boxes in front, and the lane
+   objective. Owed: add the id to paper-drill's `after` once it exists.
+3. Order: reports, daily check, adapter, stops, drill refusal, then a real order, following "built
+   from what it reads towards what it sends".
+4. New modules (`reports`, `gateway`, `clearance`, `placing`) or all in `desk/paper.py`. Chosen:
+   their own: paper.py is 216 of 400 lines, and separate files let paper-gateway run beside the
+   chain. A session finding one unnecessary need not create it.
+5. paper-conformance holds every file (`files: *`): it runs on the real account in market hours
+   and may fix any module where the broker differs, so it runs alone.
 
 ## GRID
 

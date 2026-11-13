@@ -15,12 +15,12 @@ phase.
 
 ## The five lanes
 
-Five chains of sessions run side by side on the operator's PC, day and night, each session
-starting when the one before it ends (his rulings, 13 November 2026, `docs/DECISIONS.md`).
-A lane's session works on its lane's objective only, edits only the files its lane owns,
-and writes only in its lane's parts of the shared documents: its section of
-`docs/STATUS.md`, its book here, its table in `docs/SCOREBOARD.md` and its part at the end
-of `docs/DECISIONS.md`. Each lane's book sits inside the phase it belongs to: DATA in
+Five lanes of sessions run side by side on the operator's PC, day and night, up to twelve
+sessions at once: MONEY and DATA three each, PAPER, GRID and RUNGS two each (his rulings,
+13 November 2026, `docs/DECISIONS.md`). A lane's session edits only the files its lane
+owns, and of those only its claim. Each lane's parts of the shared documents are its
+section of `docs/STATUS.md`, its book here, its table in `docs/SCOREBOARD.md` and its part
+at the end of `docs/DECISIONS.md`. Each lane's book sits inside the phase it belongs to: DATA in
 phase 1, MONEY in phase 2, PAPER in phase 3 (begun alongside phase 2, his ruling), GRID
 and RUNGS in phase 4. So two lanes' pull requests never touch the same lines, and GitHub
 merges neither until it holds the other.
@@ -38,11 +38,29 @@ table, and each lane's heading over its modules). A lane's branch that changes a
 file fails the check (`tests/guards/test_lanes.py`), and no change adds more than 300 net
 lines to `desk/` and `lab/` together.
 
-**A lane that needs another lane's file changed does not touch it.** It writes a numbered
-request in its own STATUS section, under `### Requests to <LANE>`:
+**The runner hands out the work, and a claim holds it.** A box of a book carries a note at
+the end of its text: `{id: money-kill; files: desk/kill.py, tests/unit/test_kill.py; after:
+money-costs}`. The id is unique; `files` names every file the box changes (globs allowed,
+`docs/PLAN.md` only for a box that moves the scenes count, `*` for one that must hold all
+the lane's files); `after` names the boxes, of any lane, done first. The runner gives a
+session the first box whose `after` boxes are done and whose files no running session
+holds; its files are the session's claim. A box with no note is serial work: one session,
+alone in its lane, claim `*`. A lane whose next five boxes are not all noted is asked to
+note them first. The claim is in the session's pull request as `Claim: ...`, and the check
+refuses a change outside it and a lane's pull request without one
+(`tests/guards/test_lanes.py`, which also refuses a note it cannot read).
+
+**Sessions do not write the shared documents; the lane's scribe does.** A session's pull
+request carries `Ticks:` (the ids it finished), its status, scoreboard line, decisions,
+what remains and its requests to other lanes. About every two hours a small scribe session
+per lane folds the landed descriptions into the lane's parts of the four documents: it
+ticks the boxes, numbers the requests and keeps the STATUS section under 50 lines.
+
+**A lane that needs another lane's file changed does not touch it.** Its request is folded
+into its own STATUS section, under `### Requests to <LANE>`:
 `- [ ] R-<ITS LANE>-<n> (blocking|later, opened YYYY-MM-DD HH:MM): what is needed and why`.
-The owning lane records `- R-<LANE>-<n>: done in #NN` (or `declined, because ...`) under
-`### Done for other lanes` in its own section, and the asker then ticks its request. The
+The owning lane names the request in its `Ticks:` line (or declines it, saying why), its
+scribe records it under `### Done for other lanes`, and the asker's scribe ticks it. The
 runner puts each lane's open requests at the top of its next session; a blocking one is
 that session's objective, before its own book. The 07:00 line counts the open requests,
 and one open for more than a day is sent to the operator.
@@ -112,16 +130,55 @@ UK tax) and R-MONEY-2 (the scenes on the whole fourteen months).
       being on it makes nothing tradable (`lab/universe.py`)
 - [x] The research list's daily bars since 2010, fetched and kept through the one store's
       checks, a bad ticker parked with its reason (`universe.keep`): 864 clean, 201 parked
+- [ ] **First, by his ruling of 13 November:** SPY, QQQ and GLD leave the twenty for their
+      UK-listed twins an ISA can hold: VUAG (S&P 500), EQQQ (Nasdaq 100) and IDTL (US
+      Treasuries 20+ years), each on the London venue; every line carries an ISA and
+      retail-buyable flag; the "simply holding the market" yardstick re-pointed (UNI-09)
+      {id: data-isa-twins; files: desk/lines.py, tests/unit/test_lines.py, tests/unit/test_lab_universe.py}
 - [ ] The research list's parked fifth: 201 tickers' large one-day moves confirmed, or a
       rule for research that needs no confirmation
+      {id: data-parked-fifth; files: lab/universe.py, tests/unit/test_lab_universe_parked.py}
+- [ ] One fast store for hot and deep data, standard library only: SQLite in WAL mode with
+      one writer and many readers, held to benchmarks set now: a five-minute round for every
+      line written in under a second, a line's last week read in under 50 ms, a line's daily
+      history read in under 200 ms (DAT-04)
+      {id: data-fast-store; files: desk/bars.py, tests/unit/test_bars*.py, manifest.toml}
+- [ ] Half-days and auction times in the calendars (DQ-11)
+      {id: data-hours; files: desk/venues.py, tests/unit/test_venues*.py}
+- [ ] A five-minute store, started now because the free archive keeps only about sixty days
+      of five-minute bars: each evening the twenty lines' five-minute bars are saved through
+      the same checks; the last week kept hot for reading, everything older archived, none
+      thrown away (DAT-11)
+      {id: data-five-minute; files: desk/archive.py, tests/unit/test_archive*.py, desk/bars.py, tests/unit/test_bars*.py; after: data-fast-store}
+- [ ] **Hot every five minutes, paramount (his ruling, 13 November evening):** during each
+      venue's trading hours the keeper fetches every clean line's newest five-minute bar
+      every five minutes, checks it on entry, and updates every indicator the rules and the
+      crash watch read; a line whose bar is late, missing or out of line is parked at once
+      and not traded, and the other lines carry on; a line that comes clean comes back by
+      itself. The source's delay is measured and shown, never hidden (DQ-12, DAT-07, DAT-11)
+      {id: data-keeper; files: desk/keeper.py, tests/unit/test_keeper*.py, desk/bars.py, tests/unit/test_bars*.py, manifest.toml; after: data-five-minute, data-hours}
 - [ ] The archive spared: fetching slow and resumable, with backoff, each raw answer cached
       in the folder `KESTREL2_DATA` names (outside the repository and every worktree); while
       the archive refuses, `{"refusing_since": <time>}` written to `KESTREL2_DATA/archive.json`
       (null once it answers), so the runner tells the operator after six hours, and other work
       done meanwhile rather than retrying
+      {id: data-archive-spared; files: desk/archive.py, tests/unit/test_archive*.py}
+- [ ] Polite fetching: the archive's limits measured, slow and resumable requests, backing
+      off on refusals, raw responses cached, an alert after six hours refused (DAT-08)
+      {id: data-polite; files: desk/archive.py, tests/unit/test_archive*.py; after: data-archive-spared}
+- [ ] Kept hot, always: the runner runs the store's keeper after the US close and before the
+      London open on every trading day, a dated receipt each time; a line staler than one
+      session raises an alert, and a keeper that misses its slot raises one too (DQ-12,
+      DAT-07)
+      {id: data-kept-hot; files: desk/keeper.py, tests/unit/test_keeper*.py; after: data-keeper}
+- [ ] The store's keeper: its cadence, a dated receipt for each run, a restart drill; each
+      bar's source and arrival time kept (DQ-12, DQ-10)
+      {id: data-keeper-receipts; files: desk/keeper.py, tests/unit/test_keeper*.py, desk/bars.py, tests/unit/test_bars*.py; after: data-kept-hot}
 - [ ] A home for the research store on his PC, refreshed nightly, a ticker that left a list
       cleared out, and the day and list it reflects written beside it
+      {id: data-research-home; files: lab/universe.py, tests/unit/test_lab_universe*.py; after: data-parked-fifth, data-isa-twins}
 - [ ] The lists' members year by year, so a study of the past is not the survivors' alone
+      {id: data-members; files: lab/members.py, tests/unit/test_lab_members*.py, manifest.toml}
 - [ ] The full research universe, 5,000 and more, once the grid's first pass works
 - [ ] 2MU's five real moves recorded from a second source, or its reason confirmed
 - [ ] 5QQQ's consolidation of 22 August 2024 handled, or its reason confirmed
@@ -135,12 +192,6 @@ UK tax) and R-MONEY-2 (the scenes on the whole fourteen months).
 - [ ] The window before mid-April 2010 prepared
 - [ ] A pence history the archive calls pounds caught
 - [ ] The calendars carried past 2027, before 2027 ends
-- [ ] **First, by his ruling of 13 November:** SPY, QQQ and GLD leave the twenty for their
-      UK-listed twins an ISA can hold: VUAG (S&P 500), EQQQ (Nasdaq 100) and IDTL (US
-      Treasuries 20+ years), each on the London venue; every line carries an ISA and
-      retail-buyable flag; the "simply holding the market" yardstick re-pointed (UNI-09)
-- [ ] Polite fetching: the archive's limits measured, slow and resumable requests, backing
-      off on refusals, raw responses cached, an alert after six hours refused (DAT-08)
 - [ ] Coverage and quality measured: history at least twice the longest lookback for every
       line, five years by the A-GATE; a quality score per line and desk-wide, and a cap on
       the share of lines parked (DAT-03, DQ-01)
@@ -148,9 +199,6 @@ UK tax) and R-MONEY-2 (the scenes on the whole fourteen months).
       source, with a staleness alarm and a register of sources; the twenty lines' bars
       checked against the broker's price of record each day once PAPER connects (DQ-03,
       DAT-07, DAT-01, DAT-02)
-- [ ] The store's keeper: its cadence, a dated receipt for each run, a restart drill; each
-      bar's source and arrival time kept (DQ-12, DQ-10)
-- [ ] Half-days and auction times in the calendars (DQ-11)
 - [ ] Dividends and corporate actions: total-return history for the ladder, the paper
       profit and the hold-the-market yardstick (UNI-07)
 - [ ] Survivorship: the research list taken as it stood on each past date, with the names
@@ -165,32 +213,14 @@ UK tax) and R-MONEY-2 (the scenes on the whole fourteen months).
 - [ ] Leveraged-product lifecycle watched: an issuer's closure, a compulsory redemption or
       an ISA eligibility change on any line held or researched raises an alert (BIC-11)
 - [ ] Disk watched; old research files roll off by rule (OPS-07)
-- [ ] **Hot every five minutes, paramount (his ruling, 13 November evening):** during each
-      venue's trading hours the keeper fetches every clean line's newest five-minute bar
-      every five minutes, checks it on entry, and updates every indicator the rules and the
-      crash watch read; a line whose bar is late, missing or out of line is parked at once
-      and not traded, and the other lines carry on; a line that comes clean comes back by
-      itself. The source's delay is measured and shown, never hidden (DQ-12, DAT-07, DAT-11)
 - [ ] The hot bars' first source is the broker: he already pays for IBKR's market data, so
       the five-minute keeper reads live bars through IB Gateway's paper port, read-only, and
       the free archive is the second source and the check on it; first prove, read-only,
       that the paper account sees his live data and not the delayed kind, and if it does
       not, say which setting he must turn on (DAT-02, DAT-07)
-- [ ] One fast store for hot and deep data, standard library only: SQLite in WAL mode with
-      one writer and many readers, held to benchmarks set now: a five-minute round for every
-      line written in under a second, a line's last week read in under 50 ms, a line's daily
-      history read in under 200 ms (DAT-04)
 - [ ] Deep history: daily bars back to 2000 wherever the archive has them, the calendars
       carried back first; the old desk's Stooq store used only as a head start, every bar
       re-checked on entry (DAT-03, BT-09)
-- [ ] A five-minute store, started now because the free archive keeps only about sixty days
-      of five-minute bars: each evening the twenty lines' five-minute bars are saved through
-      the same checks; the last week kept hot for reading, everything older archived, none
-      thrown away (DAT-11)
-- [ ] Kept hot, always: the runner runs the store's keeper after the US close and before the
-      London open on every trading day, a dated receipt each time; a line staler than one
-      session raises an alert, and a keeper that misses its slot raises one too (DQ-12,
-      DAT-07)
 
 ## Phase 2 — the money path, in simulation
 
@@ -234,37 +264,55 @@ day's trading and reconciliation are built, and any broker can stand behind them
 - [x] Any broker behind the send path and the day run, not the pretend one by name, giving
       its holdings and stops as entries, read once for each order (`broker.Broker`; the
       paper lane's R-PAPER-2)
-- [ ] The costs whole: a sale's own cost, and spread and slippage on both legs, the stop's
-      sale included, in the one cost model; UK tax from a fact on each line (asked of the
-      data lane)
+- [ ] **The kill switch, before the paper lane sends any order:** one command stops all new
+      orders and cancels the open ones, and the desk says so; drilled before FIRST-LIGHT's first
+      day and then monthly (EMG-02, canon B1) {id: money-kill; files: desk/kill.py,
+      desk/broker.py, desk/book.py, tests/unit/test_kill*.py, tests/unit/test_broker*.py,
+      tests/unit/test_book*.py, tests/unit/test_day*.py, manifest.toml}
+- [ ] The costs whole: a sale's own cost, and spread and slippage on both legs, the stop's sale
+      included, in the one cost model; UK tax from a fact on each line (asked of the data lane)
+      {id: money-costs; files: desk/orders.py, desk/book.py, tests/unit/test_orders*.py,
+      tests/unit/test_book*.py, tests/scenes/test_scenes.py; after: money-kill}
 - [ ] The day's record (`day.run`): the day reconciled at its end, a mismatch named and its
       profit withheld; else the profit after every cost line, to one rounding policy, beside
-      what holding the market earned; the same days replayed to the same records. Scene 6's
-      days moved onto the fourteen months, its book checked against the broker's every day -
-      **scenes 6 and 7 pass**
+      what holding the market earned; the same days replayed to the same records. Scene 6's days
+      moved onto the fourteen months, its book checked against the broker's every day - **scenes
+      6 and 7 pass** {id: money-record; files: desk/day.py, desk/book.py, desk/orders.py,
+      tests/unit/test_day*.py, tests/unit/test_book*.py, tests/unit/test_orders*.py,
+      tests/scenes/test_scenes.py, docs/PLAN.md; after: money-costs}
 - [ ] SimCity, small: one command runs the whole desk's day over all fourteen months of
       rehearsal data against the pretend broker with its faults, every night, and writes one
-      record; a census names every part of the money path and turns red when one has no
-      scenario
-- [ ] **The kill switch, before the paper lane sends any order:** one command stops all new
-      orders and cancels the open ones, and the desk says so; drilled before FIRST-LIGHT's
-      first day and then monthly (EMG-02, canon B1)
+      record; a census names every part of the money path and turns red when one has no scenario
+      {id: money-simcity; files: desk/simcity.py, tests/unit/test_simcity*.py,
+      tests/scenes/test_scenes.py, manifest.toml; after: money-kill, money-record}
+- [ ] Emergencies in numbers: an emergency, a crash and a black swan each defined by measured
+      falls, each with its action (EMG-01) {id: money-emergencies; files: desk/emergency.py,
+      tests/unit/test_emergency*.py, manifest.toml}
+- [ ] Halts: a halt is a typed record; while one is in force the desk buys nothing and says so
+      every day until it is lifted, and the day's verdict reads it; each morning one list of
+      every blocker and every signal it blocked (FIL-08, NS-06, FIL-04, TRD-01)
+      {id: money-halts; files: desk/halt.py, desk/day.py, desk/book.py,
+      tests/unit/test_halt*.py, tests/unit/test_day*.py, tests/unit/test_book*.py,
+      manifest.toml; after: money-kill, money-record}
+- [ ] The gate's other limits from canon B1: a day's and a week's loss and an order rate,
+      refused at the gate (EMG-04 when live) {id: money-limits; files: desk/orders.py,
+      desk/book.py, desk/day.py, tests/unit/test_orders*.py, tests/unit/test_book*.py,
+      tests/unit/test_day*.py, tests/scenes/test_scenes.py; after: money-record}
+- [ ] Each strategy's declaration typed: its bar, holding period, test universe and data; a
+      short sale cannot be built at all (STR-03, STR-06) {id: money-declared;
+      files: desk/strategy.py, tests/unit/test_strategy*.py}
+- [ ] The money invariants property-tested, seeded: positions equal the sum of fills, equity
+      equals cash plus market value, profit equals realised plus unrealised less costs, orders
+      move only through valid states, sending is idempotent (TST-04, canon B4)
+      {id: money-invariants; files: tests/unit/test_book*.py, tests/unit/test_orders*.py,
+      tests/unit/test_broker*.py; after: money-record}
 - [ ] **The crash watch, on the five-minute data:** every five minutes in trading hours it
       reads the newest bars of every held and watched line and the market's own; a fall that
       crosses the emergency thresholds halts all buying at once, alerts him immediately at
       any hour, and records why; the protective sell across every position (STP-07) acts on
       it once built (EMG-01, EMG-03)
-- [ ] Emergencies in numbers: an emergency, a crash and a black swan each defined by
-      measured falls, each with its action (EMG-01)
-- [ ] Halts: a halt is a typed record; while one is in force the desk buys nothing and
-      says so every day until it is lifted, and the day's verdict reads it; each morning
-      one list of every blocker and every signal it blocked (FIL-08, NS-06, FIL-04, TRD-01)
-- [ ] The gate's other limits from canon B1: a day's and a week's loss and an order rate,
-      refused at the gate (EMG-04 when live)
 - [ ] A position the desk did not make is named and then sold on paper (TRD-06); no signal
       is left half-processed at the day's end (TST-08)
-- [ ] Each strategy's declaration typed: its bar, holding period, test universe and data;
-      a short sale cannot be built at all (STR-03, STR-06)
 - [ ] SimCity widened: a hundred seeded worlds with faults and drills, not one rehearsal
       world (TST-05, TST-22)
 - [ ] Small and illiquid trades: a trade whose expected gain is under twice its round-trip
@@ -274,9 +322,6 @@ day's trading and reconciliation are built, and any broker can stand behind them
       jumps the stop held against the loss limit; a hold limit and gap sizing for the
       leveraged lines (STP-11, STP-10, SIZ-09)
 - [ ] Fills realistic: spread and slippage in every fill, from the one cost model (TRD-09)
-- [ ] The money invariants property-tested, seeded: positions equal the sum of fills,
-      equity equals cash plus market value, profit equals realised plus unrealised less
-      costs, orders move only through valid states, sending is idempotent (TST-04, canon B4)
 - [ ] The golden reference run committed; a change to a size, a stop or a threshold is
       replayed on it before it lands (TST-21, GOV-09, canon B5)
 - [ ] Every trade's whole story: signal, intent, risk decision, order, fill and the bar it
@@ -307,14 +352,6 @@ come back clean, and the check has been taught the desk's own resting stops. The
 the old desk's (his ruling, 13 November), reached through IB Gateway's paper port 4002 on
 his PC with the desk's own client id (222), never 4001.
 
-- [ ] No paper order before the kill switch is drilled, held by the code: the adapter's
-      send refuses unless a drill record of the kill switch from the last 31 days exists,
-      and a contract test proves the refusal
-- [ ] The Gateway known before any order: its daily restart and the weekly re-login handled
-      unattended. A re-login that needs his phone or password is his: a reminder line at the
-      right time, never a workaround. The old desk's gateway alarms are a quarry only. (The
-      runner already watches port 4002 and the account, read-only, and tells him when it stops
-      answering.)
 - [x] The read-only check of the paper account's positions and open orders against the
       desk's book, every mismatch named (`desk/paper.py`); run on the real account on 13
       November: quiet, no shares held and no order resting
@@ -324,17 +361,39 @@ his PC with the desk's own client id (222), never 4001.
       November: twenty of twenty listed, six London lines priced in pence
 - [ ] The fills and the orders the broker reports, read-only: each fill under the broker's
       id with its price back in the line's currency, and the desk's own orders and stops
-      told from anyone else's
+      told from anyone else's {id: paper-reports; files: desk/reports.py, desk/paper.py,
+      tests/unit/test_reports.py, tests/unit/test_paper.py, manifest.toml}
+- [ ] The Gateway known before any order: its daily restart and the weekly re-login handled
+      unattended. A re-login that needs his phone or password is his: a reminder line at the
+      right time, never a workaround. The old desk's gateway alarms are a quarry only. (The
+      runner already watches port 4002 and the account, read-only, and tells him when it stops
+      answering.) {id: paper-gateway; files: desk/gateway.py, tests/unit/test_gateway.py,
+      manifest.toml}
 - [ ] The check run every day and before any order: the adapter refuses to send until
       that day's check is clean, and tells the desk's own resting stops from anyone else's
+      {id: paper-check; files: desk/clearance.py, desk/paper.py,
+      tests/unit/test_clearance.py, tests/unit/test_paper.py, manifest.toml;
+      after: paper-reports}
 - [ ] The real paper-broker adapter behind the same interface as `broker.Pretend`, speaking
       to IB Gateway with the standard library alone (`desk/` imports nothing else)
+      {id: paper-adapter; files: desk/placing.py, desk/paper.py, desk/reports.py,
+      tests/unit/test_placing.py, tests/unit/test_paper.py, tests/unit/test_reports.py,
+      manifest.toml; after: paper-reports, paper-check}
 - [ ] Stops resting at the broker, each rounded down to its line's price step
+      {id: paper-stops; files: desk/placing.py, desk/listing.py,
+      tests/unit/test_placing.py, tests/unit/test_listing.py; after: paper-adapter}
+- [ ] No paper order before the kill switch is drilled, held by the code: the adapter's
+      send refuses unless a drill record of the kill switch from the last 31 days exists,
+      and a contract test proves the refusal (owed: name the money lane's kill-switch box in
+      `after` once it has an id) {id: paper-drill; files: desk/placing.py,
+      tests/unit/test_placing.py; after: paper-adapter, paper-stops}
 - [ ] Conformance trades, on paper, one London and one US line, each in its market's hours:
       a market buy at the open; the resting stop placed, triggered, and cancelled on a sale;
       a partial fill if the paper broker gives one; a rejection. Each real result recorded
       beside the pretend broker's, and the pretend broker fixed where they differ
-- [ ] Unattended running, and recovery from a restart
+      {id: paper-conformance; files: *; after: paper-gateway, paper-check, paper-stops,
+      paper-drill}
+- [ ] Unattended running, and recovery from a restart (boxes from here down are not yet noted)
 - [ ] Morning and evening messages, and an alarm on silence
 - [ ] **No paper order until the money lane's kill switch has been drilled** (EMG-02)
 - [ ] The desk's own process supervised: one supervisor, restarts proven by killing it,
@@ -375,7 +434,8 @@ alone, and its bars are read from its venue's folder. Then auto-tune.
       (`lab/grid.py`: the same position after every bar, or a refusal, never a guess)
 - [x] The unit of work on the grid, the desk's engine deciding what the grid refuses
 - [ ] A cell names its ticker's venue: a `Line` of the research list, its bars read from
-      its venue's folder (R-DATA-1)
+      its venue's folder (R-DATA-1) {id: grid-venue; files: lab/cell.py, lab/batch.py,
+      tests/unit/test_lab_cell.py, tests/unit/test_lab_batch.py}
 - [ ] Auto-tune, so a pass can never take the PC down: a hard memory ceiling held by
       Windows itself (a Job Object on the workers, about 60% of the 64 GB); workers sized
       to free cores, two of the eight threads left free while markets are open (UK 08:00 to
@@ -384,15 +444,24 @@ alone, and its bars are read from its venue's folder. Then auto-tune.
       about 25% free memory or above about 85% CPU and stepping back up with room; peak
       memory and CPU logged for each pass. Proven: a deliberately memory-hungry cell is
       killed by the ceiling, the PC stays responsive and the batch carries on
-- [ ] The grid's first pass over the research universe: every strategy at every setting on
-      every ticker, each cell kept by code and data version
-- [ ] Runs seven days without stopping
+      {id: grid-tune; files: lab/tune.py, tests/unit/test_lab_tune.py, manifest.toml}
 - [ ] The cell's key carries the cost model's version and the rung's code, so a change to
-      either re-runs what it touches (BT-04)
+      either re-runs what it touches (BT-04) {id: grid-key; files: lab/cell.py,
+      tests/unit/test_lab_cell.py; after: grid-venue}
+- [ ] The grid's first pass over the research universe: every strategy at every setting on
+      every ticker, each cell kept by code and data version {id: grid-pass; files:
+      lab/sweep.py, lab/batch.py, lab/tune.py, tests/unit/test_lab_sweep.py,
+      tests/unit/test_lab_batch.py, tests/unit/test_lab_tune.py, manifest.toml; after:
+      grid-venue, grid-tune, grid-key}
+- [ ] Runs seven days without stopping {id: grid-week; files: lab/batch.py, lab/sweep.py,
+      lab/tune.py, tests/unit/test_lab_batch.py, tests/unit/test_lab_sweep.py,
+      tests/unit/test_lab_tune.py; after: grid-pass}
 - [ ] Each strategy judged on its own declared universe; the everything-on-everything grid
       kept as a transfer study, never a verdict; sweeps on the declared universe (LAD-01,
-      LAD-13)
-- [ ] A full sweep within a weekend, its time measured (LAD-10)
+      LAD-13) {id: grid-declared; files: lab/sweep.py, tests/unit/test_lab_sweep.py; after:
+      grid-week}
+- [ ] A full sweep within a weekend, its time measured (LAD-10) {id: grid-weekend; files: *;
+      after: grid-declared}
 
 ### The rungs lane's book
 
@@ -402,25 +471,31 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
 
 - [x] The first rung proven: it catches a planted edge and rejects a planted non-edge, after
       the broker's costs and the desk's own stop (`lab/rung.py`)
-- [ ] Its costs whole: spread, slippage and the sale's own fees, from the desk's one cost
-      model once the money lane has them; and a rate of exchange for each day
 - [x] Luck correction counting every trial: a verdict's chance multiplied by the number of
       trials it was picked from, one combined 5% test across the set, the count kept on
       every corrected verdict (`lab/luck.py`)
-- [ ] The count kept from batch to batch: one register of every trial ever tried on a
-      question, a dropped candidate included, so no later batch can start the count again
 - [ ] In-sample and out-of-sample folds, side by side after costs, the worst fold reported
       and judged on
-- [ ] Plateaus over peaks: the centre of a plateau promoted, never a lone peak
-- [ ] Reproduces a published strategy's own published result
-- [ ] Failing fairly: too few effective trades is "not enough evidence", never a fail; a
-      check that the code is the published rule; no trades at all is a fault in the test
-      (LAD-06, STR-12)
+      {id: rungs-folds; files: lab/folds.py, tests/unit/test_lab_folds.py, manifest.toml}
+- [ ] The count kept from batch to batch: one register of every trial ever tried on a
+      question, a dropped candidate included, so no later batch can start the count again
+      {id: rungs-trials; files: lab/trials.py, tests/unit/test_lab_trials.py, manifest.toml}
 - [ ] The luck test fixed before any result: a deflated Sharpe with bands of 0.90 and 0.50,
       one combined 5% test across the set, a daily Sharpe above 2 flagged, and one verdict
       rule over the named rungs (LAD-03, LAD-08, LAD-09)
+      {id: rungs-deflated; files: lab/deflated.py, tests/unit/test_lab_deflated.py, manifest.toml}
+- [ ] Plateaus over peaks: the centre of a plateau promoted, never a lone peak
+      {id: rungs-plateau; files: lab/plateau.py, tests/unit/test_lab_plateau.py, manifest.toml}
 - [ ] Periods and regimes: replays across periods and regimes; a strategy never failed for
       working in only one; out-of-regime trades tagged on paper (LAD-05, REG-03, STR-20)
+      {id: rungs-regimes; files: lab/regime.py, tests/unit/test_lab_regime.py, manifest.toml; after: rungs-folds}
+- [ ] Failing fairly: too few effective trades is "not enough evidence", never a fail; a
+      check that the code is the published rule; no trades at all is a fault in the test
+      (LAD-06, STR-12)
+      {id: rungs-fair; files: *; after: rungs-folds, rungs-trials, rungs-deflated, rungs-plateau, rungs-regimes}
+- [ ] Its costs whole: spread, slippage and the sale's own fees, from the desk's one cost
+      model once the money lane has them; and a rate of exchange for each day
+- [ ] Reproduces a published strategy's own published result
 - [ ] Each indicator known-answer tested against a published reference series (STR-14)
 - [ ] Before paper: a kill condition declared for each strategy; promotion only after at
       least thirty effective paper trades, net positive (STR-17, LAD-11)
