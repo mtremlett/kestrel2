@@ -38,6 +38,7 @@ SMGB = Holding("DU0000001", "SMGB", "STK", "GBP", Decimal(25))
 LIVE = ("15", "1", "U7654321")
 AAPL_STOP = Resting("1234567", "31", "DU0000001", "AAPL", "SELL", Decimal(10), "STP")
 TWO = "SMGB STK GBP: the broker holds {} in one of 2 entries, the desk's book {}"
+RESTS = "AAPL: an order resting at the broker to SELL {} (STP, the broker's id 1234567, client {})"
 
 
 def _wire(*messages: Sequence[str]) -> io.BytesIO:
@@ -172,24 +173,26 @@ def test_a_book_that_is_the_brokers_has_no_difference() -> None:
             {},
             "SMGB CFD GBP: the broker holds 0.5, the desk's book 0",
         ),
-        (
-            Account((), (AAPL_STOP,)),
-            {},
-            "AAPL: an order resting at the broker to SELL 10 (STP, the broker's id 1234567, "
-            "client 31)",
-        ),
-        (
-            Account((), (replace(AAPL_STOP, client="222"),)),
-            {},
-            "AAPL: an order resting at the broker to SELL 10 (STP, the broker's id 1234567, "
-            "client 222)",
-        ),
+        (Account((), (AAPL_STOP,)), {}, RESTS.format(10, 31)),
+        (Account((), (replace(AAPL_STOP, client="222"),)), {}, RESTS.format(10, 222)),
+        (Account((), (replace(AAPL_STOP, shares=Decimal(0)),)), {}, RESTS.format(0, 31)),
     ],
 )
 def test_every_difference_from_the_book_is_named(
     account: Account, held: dict[str, int], named: str
 ) -> None:
     assert named in paper.differences(account, held, LINES)
+
+
+def test_each_entry_is_named_once_in_order_by_its_own_name_and_the_orders_after() -> None:
+    flat = Holding("DU0000001", "AAPL", "STK", "USD", Decimal(0))
+    account = Account((SMGB, flat, replace(SMGB, currency="EUR"), SMGB), (AAPL_STOP,))
+    assert paper.differences(account, {"SMGB": 25}, LINES) == (
+        "SMGB STK EUR: the broker holds 25, the desk's book 0",  # one entry under its name
+        TWO.format(25, 25),
+        TWO.format(25, 25),  # each entry named, though the two read alike
+        RESTS.format(10, 31),
+    )
 
 
 def test_a_held_line_the_desk_was_not_given_is_refused() -> None:
