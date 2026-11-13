@@ -357,3 +357,76 @@ brought back along the way.
 **His words.** In chat, Friday 13 November 2026, about 14:00 UK time. Offered three ways
 to size the leveraged lines, he chose "Size by what they control (Recommended)". Offered
 phase 2 now or one more data session first, he chose "Move to phase 2 now (Recommended)".
+
+---
+
+## 2026-11-13 — the five frozen strategies: five textbook rules
+
+**Decided.** The desk's five daily strategies are five published rules at their authors'
+settings, long only, untuned (`desk/strategy.py`):
+
+| name | the rule |
+|---|---|
+| `rsi2_pullback` | Connors (2008): buy when the close is above its 200-day average and the 2-day RSI is under 5; sell on a close above the 5-day average |
+| `bollinger_pullback` | Bollinger, 20 days and 2 deviations: buy a close under the lower band; sell a close over the 20-day average |
+| `breakout_20_10` | The Turtles' system 1 (Faith, 2007), on the close: buy a close over the highest high of the 20 days before; sell a close under the lowest low of the 10 days before |
+| `trend_50_200` | Buy the day the 50-day average crosses above the 200-day; sell the day it no longer is |
+| `supertrend_10_3` | Seban's Supertrend, 10 days and 3 average true ranges, as the common reference script carries its bands: buy a close over yesterday's upper band, sell one under yesterday's lower |
+
+**Why.** At this stage they prove the machine, not an edge; whether any earns money is the
+ladder's question (phase 4) before any money depends on it. Published settings leave
+nothing tuned, so nothing was picked from trials, and each can later be checked against
+its author's own published results.
+
+**The template.** A rule is shown one bar at a time after its close and says whether it
+wants to be in the market; it is never handed the series, so it cannot read a later bar.
+The template turns each change of mind into a buy or a sell and every other day into a
+hold. Each starts out of the market.
+
+**The evidence.** Each rule buys and sells on the day worked out by hand in its contract
+test, ties included: a close exactly on the Supertrend's band holds, and a pullback
+exactly on the 200-day average does not buy. A second implementation, written by a
+separate agent from the rules above without seeing the desk's code, found identical trade
+days for all five on sixty 1,200-day walks, whose prices sit on a 25p tick and whose
+open, high and low fall unevenly about the close, and on the hand-made series. Seven
+series' days are pinned in `tests/unit/test_strategy.py`: walk 1, plus each walk or
+short jumpy series that was the first to show a wrong rule the others let through.
+
+Forty-five deliberate breaks were driven, each from a copy of the tree whose own tests
+first passed: every window one day long or short, every "over" turned into "at or over",
+the wrong deviation, band width, smoothing or its seed, true range, band carry or price
+the bands sit on, too few digits, the caller's arithmetic leaking in, the 50/200 buying a
+cross it never saw, selling what it did not hold, and the template peeking one bar ahead.
+Forty-four are caught. The one that passes, an RSI "at or under 5" for "under 5", cannot
+differ: in this arithmetic the RSI never comes out at exactly 5.
+
+**Reviewed.** A blind reviewer found no look-ahead and no rule off its definition, but
+showed wrong rules passing the first tests: the test walk's bars were symmetric about an
+open equal to the close, so a window a day off, the close read for the middle of the
+range, or a tie broken the wrong way could not show. The walk was rebuilt, the second
+implementation re-run, and the series that catch each one pinned. One run of the breaks
+was first read as all caught when its starting tests were themselves failing; the breaks
+are now run only from a passing start. The reviewer's minor points were taken: the
+Supertrend script is named, an impossible state raises instead of quietly holding, and
+the rules run under one stated arithmetic whatever the caller has set. What it found for
+later scenes is in `docs/STATUS.md`.
+
+**His words.** In chat, Friday 13 November 2026, offered five textbook rules, the old
+desk's four plus one, or his own five, he chose "Five textbook rules (Recommended)".
+
+---
+
+## 2026-11-13 — the scenes' rehearsal data is to be lengthened
+
+**Found.** On the scenes' six weeks of made-up prices, none of the five rules ever buys:
+they need 20 to 200 days of history first, then a breakout or a sharp dip, and the
+rehearsal prices only drift gently. Scene 5 needs a complete buy and sell, so it cannot
+pass on that data.
+
+**Decided.** The rehearsal data becomes about fourteen months of made-up prices with a
+steady rise, a sharp dip and a breakout, still tiny, fixed and identical on every
+machine, so that all five rules can buy and sell. Every scene still passes or fails for
+the same reasons it does today. It is done before scene 5 is attempted.
+
+**His words.** In chat, Friday 13 November 2026, offered longer rehearsal data, one dip
+in the six weeks, or deciding later, he chose "Longer rehearsal data (Recommended)".
