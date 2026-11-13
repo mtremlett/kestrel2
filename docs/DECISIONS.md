@@ -1075,6 +1075,39 @@ pull request descriptions; a lane with nothing it may start sat idle untold.
 waited for it: every lane would have hung after a hard stop. Fixed (a re-entrant lock) and
 driven.
 
+## 2026-11-13 — his hours, the before-bed reset, and the keeper's rounds
+
+**His words**, relayed 13 November evening: "operator will typically sleep from 10pm to 8am.
+operator will have smartphone and can approve things when requested."
+
+1. **His hours.** From 22:00 to 08:00 UK a change's Telegram line is not sent; GitHub's job
+   records it instead (`announce.py`). The runner's own news lines (the runner back, an
+   outage over, a drain, a request waiting a day) wait too. At 08:00 one message carries
+   the morning line, the audit's line, every change that landed overnight and the held
+   lines. The audit moves from 05:30 to 07:30 and the morning line from 07:00 to 08:00, so
+   both arrive when he wakes. Anything that needs him goes at once, at any hour: a reset to
+   press, a Gateway login, a decision, a lane halted, a crash, the keeper missing rounds.
+2. **The before-bed reset.** At 21:45 the runner forecasts the night from the last three
+   hours' rate. If the lanes would reach the 80% pause before 08:00, it asks for the weekly
+   reset before he sleeps, when the week is at 25% or more, its reset is more than 36 hours
+   away, and the weekly reset is unused and unexpired; once a night. So a night is not lost
+   to a pause nobody could answer. Fable is never asked for before bed: his ruling at 20:12
+   is to use all of Fable, run on Opus overnight, and reset Fable at about 08:00.
+3. **The five-minute keeper.** Once DATA's `desk/keeper.py` is on main, the runner runs
+   `python -m desk.keeper` from a copy of main every five minutes, 08:00 to 21:00 UK on
+   weekdays (London opens at 08:00, New York closes at 21:00). The keeper reads the
+   calendars itself and exits at once when no venue is open, so holidays need no second
+   calendar in the runner. Plain code, no Claude session, no tokens. Two missed rounds in
+   a row reach him at any hour. DATA's sessions are told this contract.
+
+**Driven** in a scratch home, 25 cases: news held at night and sent by day, what needs him
+sent at once at 23:10, the 08:00 message carrying the night and clearing what was held, the
+night's idle hours 22:00 to 08:00; the forecast asking for each reset when the pace crosses
+the line before 08:00 and not when it is too small to matter, too slow, within 36 hours of
+the week's reset, already used, or with no readings, and once a night; the keeper not run
+outside its hours, at a weekend or before it exists, a round done, failed or hung, two
+misses told at once even at night, and its return held for the morning.
+
 ---
 
 # The lanes' own decisions
@@ -2353,6 +2386,41 @@ gap, caught since. Measured from outside the repository on 4,000 days: a cell ab
 for any of the five rules, where the desk's engine alone took 90 to 100 ms; 17 ms of the
 25 is reading the line's prices in, paid again by each cell.
 
+### 2026-11-13 — a cell names its line and venue (R-DATA-1)
+
+**Decided.** A cell holds the whole `Line`, not symbol plus venue. Options: the Line; two
+strings. Chosen the Line: the data lane asked for it, the first rung needs the line's facts
+(currency, leverage, UK tax) to price a trade, and they then have one home.
+- A cell does not check its line against the research list. Options: check membership; trust
+  the typed Line. Chosen the latter: checking would put the list inside every result's code
+  version, so adding one ticker would re-run every kept cell; a line with no stored prices
+  already fails its own cell loudly and the rest carry on.
+- A symbol alone is still accepted, meaning one of the twenty. Options: break the rungs
+  lane's tests, which this lane may not edit; hold the change until they move, which they
+  cannot do first; accept both for now and ask them to move (R-GRID-2). Chosen the last; the
+  door is named as temporary in the code.
+- The journal names a cell by strategy, symbol, venue and window; a kept record is found by
+  those plus the code and data versions. The line's other facts are not written: the days a
+  rule bought and sold do not depend on them.
+
+**Evidence.** Four deliberate breaks, each caught and undone: every line read from the US
+folder; the journal leaving the venue out; a kept record never found; a cell given a line
+quietly taking the trading line of the same symbol. Blind review, nothing blocking.
+
+### 2026-11-13 — the grid lane's open boxes ordered for the runner (#71)
+
+**Decided.**
+- The cell's key (BT-04) comes before the first pass. Options: keep the book's order (pass
+  first, key later); move the key up. Chosen: up. A change to the key re-runs every kept cell,
+  so changing it after a pass over the research universe would throw that pass away.
+- Auto-tune lives in `lab/tune.py`, not inside `lab/batch.py`. Options: grow the batch
+  service; a new module around it. Chosen the module: auto-tune and the venue box then share
+  no file, two sessions can build them at once, and the batch keeps its one job.
+- The pass lives in `lab/sweep.py`: it owns which cells make a pass and the busy flag the
+  runner reads (`autotune.json`).
+- grid-weekend claims every file of the lane (`*`): making a sweep fast enough can touch the
+  engine, the cell and the batch alike, and it is last, so running alone costs nothing.
+
 ## RUNGS
 
 ### 2026-11-13 — the luck rung: a chance multiplied by every trial, one 5% test across the set
@@ -2401,3 +2469,18 @@ in a copy outside the repository with Python's cache off: all caught but four, n
 change a real result: "under 5%" for "5% or under", an odd number of steps in the sum (a
 difference far below any line), and the first rung's two known ones ("over 2" for "2 or
 over", the arithmetic setting).
+
+### 2026-11-13 — the rungs book's next boxes: one new module each, failing fairly last
+
+**Decided**, by the lane as the desk's mentor (#65).
+- *Where the boxes live.* Options: each in a new module (`lab/folds.py`, `trials.py`,
+  `deflated.py`, `plateau.py`, `regime.py`); or grow `lab/rung.py` and `lab/luck.py`.
+  Chosen: new modules. Each is one concept with one owner (canon A4), and boxes sharing no
+  file can be built side by side; growing the two files would force them into single file.
+- *Failing fairly runs alone, last.* It turns the first rung's pass-or-fail into three
+  answers (pass, fail, not enough evidence), which every other rung reads; done beside them
+  it would break whichever landed second. Doing it first would hold the folds behind it.
+- *Regimes waits for the folds*: it replays the same history cut by period and should reuse
+  the folds' cutting, not write a second.
+- *"Its costs whole"* sits below the noted boxes without a note: it cannot start until the
+  money lane's costs land, and that box has no id yet.
