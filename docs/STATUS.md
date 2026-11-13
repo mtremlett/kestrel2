@@ -177,7 +177,9 @@ caught; the forty-fifth cannot change a decision.
 
 ### Next step
 
-The costs whole in the one cost model (`desk/orders.py`): what a sale itself costs, and
+The kill switch and its drill, by his ruling of 13 November that it comes first: the paper
+lane sends no order until it is drilled, and nothing the money lane waits for holds it up.
+Then the costs whole in the one cost model (`desk/orders.py`): what a sale itself costs, and
 spread and slippage on both legs, the stop's sale included, each a stated assumption; the
 rungs lane waits for them too. Then the day's record (`day.run`): the day reconciled at its
 end, a mismatch named and its profit withheld, else the profit after every cost beside what

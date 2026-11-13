@@ -1268,6 +1268,12 @@ filter whose result was overwritten); both are removed.
    six weeks or its fourteen months, so "the broker holds something" cannot be read after
    the last day. When the record lands, scene 6 will run the fourteen months and set the
    book against the broker's on every day, which asks more of the desk, not less.
+8. **The kill switch is the lane's next objective, ahead of the costs.** His ruling of the
+   same day, which reached this branch as it was finishing, puts the kill switch first and
+   holds the paper lane's orders until it is drilled. Options were the costs next, as the
+   scenes' order suggests, or the kill switch next. Chosen the kill switch: it is his word,
+   another lane waits on it, and scenes 6 and 7 wait on the data lane's tax fact in any
+   case, so the scenes lose nothing by it.
 
 **Evidence.** Two contract tests seen failing first (`book.reconcile` did not exist; the day
 sent five buys with a hand-bought line at the broker). Over the fourteen months, with and

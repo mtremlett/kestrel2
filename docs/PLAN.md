@@ -1,7 +1,7 @@
 # The plan
 
-**Current objective:** the money lane's — the costs whole (a sale's own cost, spread and
-slippage), then the day's record, with which scenes 6 and 7 pass together.
+**Current objective:** the money lane's — the kill switch and its drill (his ruling: first);
+then the costs whole, then the day's record, with which scenes 6 and 7 pass together.
 
 Scenes passing: **5 of 7**. Phase: **2-money-sim**.
 
@@ -150,13 +150,16 @@ the twenty trading lines. The grid lane needs it.
 
 ### The money lane's book — scenes 4 to 7, in order
 
-**Lane objective:** the costs whole in the desk's one cost model (`desk/orders.py`): what a
-sale itself costs, and spread and slippage on both legs, the stop's sale included, each a
-stated assumption recorded in `docs/DECISIONS.md`. The day's record cannot be published
-without them (canon B4), and the rungs lane waits for them too. Then the day's record
-(`day.run`), once the data lane has put each line's UK tax on the line: scenes 6 and 7 read
-the same record, so they pass together (`docs/DECISIONS.md`, the money lane's). The pretend
-broker, the send path, the book, the day's trading and reconciliation are built.
+**Lane objective:** the kill switch, by his ruling of 13 November ("kill switch first"):
+one command stops all new orders and cancels the open ones, the desk says so, and the drill
+is run against the pretend broker (the step below, EMG-02). The paper lane sends no order
+until it is drilled. After it, in order: the costs whole in the desk's one cost model
+(`desk/orders.py`): what a sale itself costs, and spread and slippage on both legs, the
+stop's sale included, each a stated assumption recorded in `docs/DECISIONS.md`; the rungs
+lane waits for them too. Then the day's record (`day.run`), once the data lane has put
+each line's UK tax on the line: scenes 6 and 7 read the same record, so they pass together
+(`docs/DECISIONS.md`, the money lane's). The pretend broker, the send path, the book, the
+day's trading and reconciliation are built.
 
 - [x] The pretend broker: fills at the day's prices, rejects, partial fills, disconnection,
       a crash, resting stops, positions, and a position injected behind the desk's back
