@@ -793,6 +793,165 @@ copy of the runner's state) and wrote the line for him. It took 45 seconds; its 
 list price came to about $0.30, which the plan pays. Its real share of the week shows in
 the usage log from its first morning.
 
+## 2026-11-13 — five lanes, and phase 3 begins alongside phase 2
+
+**His ruling**, chosen from options in chat at about 17:15 UK on 13 November: "Five lanes,
+phase 3 now (Recommended)". He decides the phase, so phase 3's work starts now, alongside
+phase 2. `BUDGET.json` keeps its phase; only the lab's ceiling moves (below).
+
+- **MONEY** finishes scenes 5 to 7.
+- **PAPER** (new) builds phase 3: the real paper-broker adapter behind the same interface
+  as `broker.Pretend`, stops resting at the broker, recovery from a restart, then the
+  morning and evening messages. Paper port 4002 only. The guard on 4001 stays, and
+  sessions are now also refused any shell command that names 4001.
+- **DATA** widens to the research universe (below), besides its book.
+- **GRID** (from the ladder) builds the fast grid engine. Its parity test against the
+  desk's engine on the golden data comes first (canon B2): it matches, or it is removed.
+- **RUNGS** (from the ladder) builds the rungs: a planted edge caught and a non-edge
+  rejected, luck correction counting every trial, in-sample and out-of-sample folds with
+  the worst fold reported, and plateaus over peaks (canon B6).
+
+No two lanes share a file. `manifest.toml` gives each lane its own heading over its
+modules, and `tests/guards/test_lanes.py` refuses a lane's branch that changes another's.
+The ladder's existing modules (`lab/cell.py`, `lab/batch.py`) go to GRID; RUNGS starts
+with none. A branch naming a lane the manifest does not know fails the check, so the old
+ladder's branch name cannot slip through unguarded. As the desk's mentor, the session set
+PAPER's effort to high, like MONEY's: it is the code that speaks to a real broker. GRID,
+RUNGS and DATA run at medium.
+
+**Driven.** Fifteen cases, in a copy whose main held the change. These were refused: rungs
+editing grid's module and its test, grid registering under rungs' heading, paper editing
+money's broker, money editing the lab, and the old ladder's branch. Rungs and paper each
+registering and writing their own module passed.
+
+## 2026-11-13 — numpy, for the lab only
+
+**His ruling**, from options: "Allow numpy, research only (Recommended)". `numpy==2.1.3` is
+pinned in `requirements.txt`, and is the one third-party package `lab/` may import
+(`manifest.toml`). `desk/` stays standard library, and the wall guard enforces it.
+
+**What it replaces.** The grid runs every strategy's rule over about 1,500 lines, sixteen
+years of daily bars and many parameter settings. In plain Python that is loops over every
+bar of every cell: rolling windows, cumulative sums, crossings, drawdowns, written and
+kept by us, and slower than a night allows. numpy does the same arithmetic on whole arrays,
+in tested code we do not maintain. The grid must match the desk's own engine on the golden
+data, or be removed (canon B2).
+
+**Driven.** Within the same fifteen: the lab importing numpy passed; the desk importing
+numpy and the lab importing pandas were each refused by the wall.
+
+## 2026-11-13 — the lab's ceiling raised to 7,000 lines
+
+**His ruling**, to the question asked as a guard loosening: "Yes, to 7,000 now
+(Recommended)". In `BUDGET.json`, phase `2-money-sim`'s `lab_lines` goes from 1,500 to
+7,000: the phase 4 figure agreed before phase 0. Nothing else in the budget changes. The
+change travels alone, in its own pull request with his words in its description. A session
+may not arm a guard's loosening on a yes relayed through another session, so he merges
+that pull request himself. Until he does, the lab's ceiling stays at 1,500.
+
+**Driven.** With the ceiling at 7,000, a lab of exactly 7,000 lines passed, and one more
+line failed it.
+
+## 2026-11-13 — the research universe: about 1,500 tickers first
+
+**His ruling**, from options: "About 1,500 first (Recommended)". The S&P 500, the Nasdaq
+100, the FTSE 350 and about 200 of the most-traded ETFs, daily since 2010, from the free
+archive, through the one store's checks. This is a research list, kept apart from the
+twenty trading lines in the instrument master: nothing on it is traded. The full 5,000
+and more comes after the grid's first pass works. It is DATA's lane objective now,
+because the grid needs it.
+
+## 2026-11-13 — the ladder lanes run on Fable's allowance
+
+**His ruling**, from options: "Use them for the lanes (Recommended)". GRID and RUNGS run on
+Claude Fable 5.2, which has its own allowance, up to half of the weekly limit. A Fable
+reset gives back what Fable used of the weekly limit. He has two Fable resets (to 9 March
+2027) and one weekly reset (to 10 December), and clicks them himself.
+
+**How.** The runner reads Fable's window from the same rate-limit report the sessions
+give for the week; the plan calls it `seven_day_overage_included`, and it appears only
+in Fable sessions (seen 13 November: 2% while the week stood at 15%). The 80% pause stays on the all-models week alone. A session refused on
+Fable's allowance pauses only the two Fable lanes. At 90% of Fable's allowance he gets one
+line: "a Fable reset would help now". When every lane waits at 80% and the week's reset
+is more than twelve hours away, he gets one line: "the weekly reset would help now".
+
+**Driven.** Eighteen cases with the plan's report played back:
+- With Fable at 95% and the week at 40%, no lane waited and the Fable line went out once.
+- With the week at 82% and twelve hours or more to go, every lane waited, the reset line
+  went out once, and the pause was logged.
+- With the week at 85% and three hours to go, they waited without the reset line.
+- A Fable refusal paused only the Fable lanes.
+
+## 2026-11-13 — the old desk's tasks are all disabled
+
+**His check**, as administrator in Task Scheduler on 13 November: '"Right-click any
+KESTREL_ task".....all say "disabled"'. The eight a session could not disable earlier are
+disabled too. The PAPER lane may use the shared paper account on that basis; the daily
+read-only check of its positions and open orders stays, as the proof each day.
+
+## 2026-11-13 — auto-tune, so the grid can never take the PC down
+
+**His words**: "we need to use auto-tune to make sure we do not run out of cpu or memory.
+in the first repo we ran a program called backtest with an argument of '123456'. this
+sometimes ran out of memory and crashed the pc." It belongs to GRID, built before the
+first big pass. A hard memory ceiling held by Windows itself, not only watched (a Job
+Object on the worker processes, about 60% of the 64 GB). Workers sized to free cores: two
+of the eight threads left free while markets are open (UK 08:00 to 21:00 on trading days)
+for the paper desk and the lanes, one overnight and at weekends. Batches sized from
+measured memory per cell, bars read per ticker, never the whole universe at once. Backing
+off (fewer workers, smaller batches) under about 25% free memory or above about 85% CPU
+sustained, and stepping back up with room. Peak memory and CPU logged for each pass. It is
+proven when a deliberately memory-hungry cell is killed by the ceiling, the PC stays
+responsive, and the batch carries on. The predecessor's backtest tool is a quarry only.
+
+## 2026-11-13 — SimCity, small, after scene 7
+
+**His question**: when will SimCity work? The old desk's SimCity ran hundreds of whole
+trading lives over saved bars with the market shut, with a census so every part of the
+desk had a scenario. It goes in MONEY's book right after scene 7, kept small: one command
+runs the whole desk's day over all fourteen months of rehearsal data against the pretend
+broker with its faults, every night, and writes one record; a census names every part of
+the money path and turns red when one has no scenario.
+
+## 2026-11-13 — conformance trades, UK and US, in phase 3
+
+**His question**: which phase runs them? PAPER's, as phase 3's proof that the pretend broker
+behaves like the real one. On paper only, on one London and one US line, in each market's
+hours: a market buy at the open; the resting stop placed, triggered, and cancelled on a
+sale; a partial fill if the paper broker gives one; a rejection. Each real result is
+recorded beside the pretend broker's, and the pretend broker is fixed where they differ.
+A small matrix, not the old desk's 48 cells.
+
+## 2026-11-13 — Fable first, then Opus; and when to press a reset
+
+**His rulings**, refining the two above on models and Fable. Every lane runs on Claude Fable
+5.2 while Fable's allowance is under about 45%, then on Claude Opus 5.5 (high effort on
+MONEY and PAPER, medium on the others) until a Fable reset refills it. Fable's use can be
+given back by his two Fable resets; Opus's cannot. A session refused on Fable's allowance
+carries on on Opus. The usage log keeps tokens per landed change per model, so the two can
+be compared on quality and cost.
+
+He presses the resets himself; the runner tells him when, by these rules:
+- "Press the Fable reset now" when Fable's allowance is at 45% or more and the week's reset
+  is more than 36 hours away;
+- "Press the weekly reset now" when every lane waits at the 80% pause and the week's reset
+  is more than 36 hours away;
+- within 36 hours of the week's reset, never: the lanes wait;
+- once, a week before 10 December, a reminder that the weekly reset expires unused.
+
+After any reset the runner reads the new usage and the new reset time from the plan, and
+never assumes the reset stays on Thursday. While the lanes wait at the cap, it reads the
+plan again every quarter of an hour, so a reset he presses lets them carry on at once.
+
+## 2026-11-13 — the paper account is the old desk's
+
+**His ruling**, from options: "The same paper account (Recommended)". The new desk connects
+through port 4002 only, with its own client id. Before the PAPER lane sends its first
+order, it must prove nothing else trades that account. Every day it checks the account's
+positions and open orders, read-only, against the desk's own book, and flags a mismatch
+(scene 6). The old desk's scheduled tasks were disabled, and he is checking the eight that
+could not be seen without administrator rights. This is the first box of PAPER's book.
+
 ---
 
 # The lanes' own decisions
@@ -1073,7 +1232,7 @@ days in the wrong unit was dropped with them - was made a failing test and fixed
 the wrong unit now ends at the first day back in the right one. Its other points are in
 `docs/STATUS.md`.
 
-## LADDER
+## LADDER (until 13 November; since then GRID and RUNGS)
 
 ### 2026-11-13 — the ladder's unit of work: days only, the whole history, keyed by what it read
 
@@ -1203,3 +1362,9 @@ and the fixtures were rebuilt. Every break is now caught but two that cannot dif
 2" for "2 or over", and the arithmetic setting). The blind review's two blocking findings
 (the stop left out, the statistic left loose) are fixed; the rest is in `docs/STATUS.md`.
 The tests were written after the module, not seen failing first; the breaks stand in.
+
+## PAPER
+
+## GRID
+
+## RUNGS
