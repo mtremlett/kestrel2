@@ -27,26 +27,30 @@ LINES = (BOEING, ABSENT, BAE)
 EACH = len(strategy.STRATEGIES)
 
 
-def _keep(root: Path, line: Line, lift: int = 0) -> None:
-    """A line's bars cleaned into the store at root: a slow wave, so rules trade on it."""
+def _keep(root: Path, line: Line, lift: int = 0, split: int = 0) -> None:
+    """A line's bars cleaned into the store at root: a slow wave, so rules trade on it, its
+    first `split` bars at ten times the price, as before a split nobody adjusted."""
     days = venues.sessions(line.venue, START, DAY - timedelta(1))
     up = [n % 40 if n % 80 < 40 else 40 - n % 40 for n in range(len(days))]
-    wave = [Decimal(100 + lift + step) for step in up]
+    wave = [Decimal(100 + lift + step) * (10 if n < split else 1) for n, step in enumerate(up)]
     bars = [Bar(d, p, p + 1, p - 1, p, 9) for d, p in zip(days, wave, strict=True)]
-    assert store.prepare(root / line.venue, {line: bars}, DAY) == ()
+    assert bool(store.prepare(root / line.venue, {line: bars}, DAY)) == bool(split)
 
 
 def _dying(root: Path, kept: Path, start: date, end: date, lines: Sequence[Line]) -> None:
-    """A worker's work, its process ending dead as it reaches the fatal ticker."""
+    """A worker's work, its process ending dead two cells into the fatal ticker."""
     for line in lines:
         if line == FATAL:
+            kept.joinpath(line.venue).mkdir(parents=True, exist_ok=True)
+            none = dict[Line, Sequence[Bar]]().__getitem__  # no bars: each cell fails
+            batch.run(sweep.cells(line, start, end)[:2], none, sweep.journal(kept, line))
             os._exit(3)
         sweep.work(root, kept, start, end, [line])
 
 
-def _pass(tmp_path: Path, lines: Sequence[Line] = LINES, threads: int = 8) -> sweep.Pass:
+def _pass(tmp_path: Path, lines: Sequence[Line] = LINES) -> sweep.Pass:
     pc, folders = Pc(tmp_path), (tmp_path / "store", tmp_path / "kept")
-    return sweep.run(lines, *folders, START, DAY, pc, tmp_path, threads, lambda: SATURDAY)
+    return sweep.run(lines, *folders, START, DAY, pc, tmp_path, 2, lambda: SATURDAY)
 
 
 def test_every_strategy_on_every_ticker_is_kept_and_only_what_changed_is_run_again(
@@ -54,12 +58,13 @@ def test_every_strategy_on_every_ticker_is_kept_and_only_what_changed_is_run_aga
 ) -> None:
     root, kept = tmp_path / "store", tmp_path / "kept"
     _keep(root, BOEING)
-    _keep(root, BAE, lift=50)
+    _keep(root, BAE, lift=50, split=30)  # parked by the store, and studied all the same
     first = _pass(tmp_path)
     assert (first.cells, first.ran, first.failed) == (3 * EACH, 2 * EACH, EACH)
     assert (first.kept, first.undone, first.report.died) == (0, 0, ())
     for line in (BOEING, BAE):  # the two companies called BA, each from its own venue's bars
-        bars = universe.read(root, line).bars
+        bars = universe.read(root, line).bars  # research's reading: none before a split
+        assert len(bars) == len(store.read(root / line.venue, "BA")) - 30 * (line == BAE)
         cells = sweep.cells(line, START, DAY)
         assert [c.strategy for c in cells] == list(strategy.STRATEGIES)
         held = batch.run(cells, {line: bars}.__getitem__, sweep.journal(kept, line))
@@ -69,6 +74,8 @@ def test_every_strategy_on_every_ticker_is_kept_and_only_what_changed_is_run_aga
     errors = {row["error"] for row in batch.rows(sweep.journal(kept, ABSENT))}
     assert len(errors) == 1 and errors.pop().startswith("FileNotFoundError")
 
+    with sweep.journal(kept, BOEING).open("ab") as cut:
+        cut.write(b'{"cell": ["breakout_20_10", "BA')  # a line a stop cut short
     again = _pass(tmp_path)  # nothing changed: only the failed cells are tried again
     assert (again.ran, again.kept, again.failed, again.undone) == (0, 2 * EACH, EACH, 0)
     _keep(root, BAE, lift=60)  # one ticker's bars mended: its cells alone are run again
@@ -82,11 +89,11 @@ def test_a_ticker_whose_worker_dies_is_named_and_the_rest_are_kept(
     _keep(tmp_path / "store", BOEING)
     _keep(tmp_path / "store", BAE)
     monkeypatch.setattr(sweep, "work", _dying)
-    done = _pass(tmp_path, (BOEING, ABSENT, FATAL, BAE), threads=2)  # one batch, halved twice
+    done = _pass(tmp_path, (BOEING, ABSENT, FATAL, BAE))  # one batch, halved twice
     assert done.report.died == (FATAL,) and done.report.batches == 5
-    assert (done.cells, done.ran, done.kept, done.failed) == (4 * EACH, 2 * EACH, 0, EACH)
+    assert (done.cells, done.ran, done.kept, done.failed) == (4 * EACH, 2 * EACH, 0, EACH + 2)
     assert len(batch.rows(sweep.journal(tmp_path / "kept", ABSENT))) == 2 * EACH  # tried twice
-    assert done.undone == EACH, "the dead ticker's cells have no outcome, and are counted so"
+    assert done.undone == EACH - 2, "the dead ticker's cells with no outcome are counted so"
 
 
 def test_a_backward_window_or_a_ticker_listed_twice_runs_no_pass(tmp_path: Path) -> None:
