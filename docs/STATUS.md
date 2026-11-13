@@ -11,33 +11,21 @@ as tests in `tests/scenes/test_scenes.py`. Scenes passing: 0 of 7, as expected: 
 stops at a part of the desk that is not built yet. The desk's shape exists only as the
 typed outlines those scenes call; there is no working desk code.
 
-**The check is RED on one guard, and only the operator can clear it** — see open
-question 1. Everything else is green: format, lint, strict types, eleven of twelve
-guards, and the scenes step.
+The check is green: format, lint, strict types, twelve guards and the scenes step. The
+size rule now holds unit tests to the desk's size from the first line, by the
+operator's ruling of 13 November (`docs/DECISIONS.md`).
 
 ## The next step
 
-The operator's ruling on open question 1. Then this branch merges, and phase 1 starts:
-one price store with one writer, cleaned on entry, until scene 1 passes.
+The operator merges this branch. Then phase 1: one price store with one writer, cleaned
+on entry, until scene 1 passes.
 
 ## Open questions for the operator
 
-1. **A size rule blocks writing the tests before the code.** The rule: once the desk
-   passes 200 lines, test lines may not exceed desk lines. The guards alone are 282
-   lines and the seven scenes 220, so writing the scenes first — which the canon
-   requires — puts tests at 502 lines against 303 of desk outline. Options:
-   - **A (recommended):** the rule counts only the everyday tests, the kind that pile up
-     one per bug, and applies from the first line instead of from 200. The guards and
-     the scenes are fixed in number and already change only with his approval.
-   - **B:** keep the rule. Then nothing on this branch can merge until about 200 more
-     lines of desk exist, and phase 1 would have to be built on this same branch.
-   A session tried to make change A and was refused, correctly: loosening a guard is
-   his call. On his word, the edit is a few lines in `tests/guards/test_guards.py`
-   and one key in `BUDGET.json`.
-2. **A second GitHub account** for sessions to work through, so that the guards cannot be
+1. **A second GitHub account** for sessions to work through, so that the guards cannot be
    removed by the account that enforces them. Not urgent; needed before any unattended
    work.
-3. **The A-GATE test.** Ten consecutive £100 days is close to unreachable for an honest
+2. **The A-GATE test.** Ten consecutive £100 days is close to unreachable for an honest
    edge. The recommendation is sixty trading days averaged, luck-corrected, with a
    drawdown limit. He has agreed in conversation; it is not yet written into a
    requirement.

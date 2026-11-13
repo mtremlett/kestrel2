@@ -130,3 +130,25 @@ a correct sizer) and the weak ones that let a wrong desk pass — the send path 
 passing the gate, stops unchecked for size and level, profit not tied to the fill
 prices, a replay that could read back its own record — were fixed before commit. What
 it found and was not fixed is listed in `docs/STATUS.md`.
+
+---
+
+## 2026-11-13 — the size rule holds unit tests to the product, from the first line
+
+**Decided.** The guard `test_tests_never_outgrow_the_product` compares the lines of
+`tests/unit/` with the lines of `desk/` and `lab/`, with no exemption below 200 lines.
+The guards and the scenes are no longer counted. The budget key is now
+`unit_test_lines_may_not_exceed_product_lines`.
+
+**Why.** Counting every test made the rule red the moment the scenes were written before
+their code, as the canon requires: 502 test lines (282 of guards, 220 of scenes) against
+303 of desk outline. What grows one test per bug is the unit tests. The guards and the
+scenes are fixed in number and change only with his approval.
+
+**By.** The operator. A session proposed it and was refused when it tried to make the
+change itself: loosening a guard is his call. Asked in chat on Friday 13 November 2026
+whether to count only the everyday tests (option A), his words: "Yes, option A".
+
+**The evidence.** Driven in a throwaway copy: untouched, the guard passes; with 401
+lines of unit test against 303 of product, it fails with "unit tests 401 lines > product
+303 lines".
