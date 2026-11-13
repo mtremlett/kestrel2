@@ -180,6 +180,9 @@ def test_a_move_made_within_the_day_is_the_markets_and_is_read(tmp_path: Path) -
 def test_a_fall_with_no_volume_to_judge_it_by_is_read_as_the_markets(tmp_path: Path) -> None:
     bars = [replace(bar, volume=0) for bar in _stepped(Decimal("0.5"))]
     assert _read(tmp_path, bars) == universe.History(tuple(bars), (bars[AT].day,), ())
+    bars = _stepped(Decimal("0.5"), 30)
+    bars[30] = replace(bars[30], volume=0)  #: quoted on the new scale, and nothing traded at it
+    assert _read(tmp_path, bars) == universe.History(tuple(bars[30:]), (), (bars[30].day,))
 
 
 def test_research_reads_the_longest_run_on_one_scale_and_lists_the_moves_inside_it(
@@ -190,6 +193,9 @@ def test_research_reads_the_longest_run_on_one_scale_and_lists_the_moves_inside_
         bars[at] = replace(bars[at], low=bars[at].low / 2)
     days, cuts = (bars[70].day, bars[71].day), (bars[10].day, bars[30].day)
     assert _read(tmp_path, bars) == universe.History(tuple(bars[30:]), days, cuts)
+    even = _stepped(Decimal("0.5"), 43)[1:]  #: two runs as long: the later is read
+    assert len(even) == 84
+    assert _read(tmp_path, even) == universe.History(tuple(even[42:]), (), (even[42].day,))
 
 
 def test_a_move_the_line_records_as_real_is_no_longer_a_question(tmp_path: Path) -> None:

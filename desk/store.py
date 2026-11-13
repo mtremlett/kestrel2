@@ -126,8 +126,10 @@ def _agree(line: Line, before: Bar, after: Bar) -> bool:
 
 
 def moves(line: Line, bars: Sequence[Bar]) -> tuple[date, ...]:
-    """The days in a line's kept bars that moved further than the store believes a market
-    moves and that the line does not record: each parks it until someone confirms it."""
+    """The days in a line's kept bars whose bar and the bar kept before it cannot both be
+    true, by a move further than the store believes a market makes that the line does not
+    record. They are the moves a line is parked for until confirmed, judged on the bars as
+    kept: where a frozen run was dropped, the bars either side of it are neighbours here."""
     pairs = zip(bars, bars[1:], strict=False)
     return tuple(after.day for before, after in pairs if not _agree(line, before, after))
 

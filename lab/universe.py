@@ -161,10 +161,11 @@ def keep(
 
 #: Research's rule for a move the store parks for (docs/DECISIONS.md, the data lane's). Read
 #: on the list's 406 such moves of 13 November 2026: a fall made wholly between two sessions
-#: on under this many times the usual value traded was each time a change of scale (a split
-#: the archive did not adjust, a demerger, a special payment: fifteen, the heaviest on 2.3
-#: times); the lightest real fall came on 2.8. Two changes of scale on 2.5 and 4.4 times are
-#: read as losses. The usual is the median of the USUAL sessions before.
+#: on under this many times the usual value traded looks each time like a change of scale (a
+#: split the archive did not adjust, a demerger, a special payment: fifteen, the heaviest on
+#: 2.3 times, none confirmed from a second source); the lightest real fall came on 2.8. Two
+#: that look like changes of scale, on 2.5 and 4.4 times, are read as losses. The usual is
+#: the median of the USUAL sessions before. The number was chosen looking at that one list.
 HEAVY, USUAL = Decimal("2.5"), 20
 
 
@@ -173,16 +174,20 @@ class History:
     """A ticker's bars as research reads them: its longest run on one scale of price."""
 
     bars: tuple[Bar, ...]  #: oldest first, none either side of a change of scale
-    moves: tuple[date, ...]  #: the days among them of an unconfirmed move, read as the market's
+    #: The days among them of an unconfirmed move, read as the market's. One made within a
+    #: day is named on that day and on the next, whose bar sits far from where the day began.
+    moves: tuple[date, ...]
     rescaled: tuple[date, ...]  #: every change of scale in what the store keeps for it
 
 
 def _rescaled(before: Sequence[Bar], bar: Bar) -> bool:
     """An unconfirmed move is a change of the price's scale, not a move a holder lived
     through, when it was made wholly between two sessions and it is a rise, or a fall on
-    ordinary trading. A rise is never believed unconfirmed: disbelieving a windfall costs a
-    study nothing, counting a false one flatters it. A fall is disbelieved only on ordinary
-    trading, with volume to judge by: forgetting a real loss flatters every strategy."""
+    ordinary trading. A rise is never believed unconfirmed: the desk only buys, so counting
+    a false windfall flatters a study and disbelieving a real one cannot. A fall is
+    disbelieved only on trading under HEAVY times a usual that is known: forgetting a real
+    loss flatters every strategy, so a fall with no usual volume to judge it by is believed.
+    The price of disbelief is the bars on the shorter side of the move, which go unread."""
     last = before[-1].close
     usual = median(b.close * b.volume for b in before[-USUAL:])
     quiet = bar.close * bar.volume < HEAVY * usual
