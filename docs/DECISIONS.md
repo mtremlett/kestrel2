@@ -1148,6 +1148,31 @@ chosen from options with a recommendation.
 
 ---
 
+## 2026-11-13 — deep and five-minute data, kept hot; trustworthy rungs; the eponymous strategies first
+
+**His asks, about 18:35 UK.** A database of many years for backtesting, like the old Stooq
+data; a hot store of a week of five-minute bars; a monitor that keeps all data fresh; the
+eleven rungs made trustworthy, "the biggest issue in the previous repo"; and the eponymous
+strategies through the ladder first.
+
+**Decided by the mentor, as his rulings allow.** Daily history is carried back to 2000
+where the archive has it. A five-minute store starts now, for the twenty lines: the free
+archive keeps only about sixty days of five-minute bars, so every week not collected is lost
+for good; the last week is kept hot and nothing is thrown away. The store's keeper runs on
+every trading day after the US close and before the London open, with an alert for a stale
+line or a missed run. The rungs lane makes each of the eleven rungs pass its own known-answer
+test before any verdict counts: a planted edge passes, pure noise passes at about the stated
+rate, a power curve, a broken rung caught, and every defect the old desk's rung audit of 20
+October found kept as a failing case. The twenty-one eponymous strategies go through first,
+each with its published figure written down so that reproduction can run.
+
+**The old desk's "Yeager" speed-up** was computing an indicator once over a whole series
+instead of again for every bar. The grid lane's numpy engine is that method, held to the
+desk's engine by a parity test (canon B2); its old desk equivalent had parity tests that
+were red on main.
+
+---
+
 ## MONEY
 
 ### 2026-11-13 — how the pretend broker behaves
