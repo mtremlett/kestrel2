@@ -171,6 +171,11 @@ moved onto the fourteen months); R-MONEY-1 (each line's UK tax) is done.
       crash watch read; a line whose bar is late, missing or out of line is parked at once
       and not traded, and the other lines carry on; a line that comes clean comes back by
       itself. The source's delay is measured and shown, never hidden (DQ-12, DAT-07, DAT-11)
+- [ ] The hot bars' first source is the broker: he already pays for IBKR's market data, so
+      the five-minute keeper reads live bars through IB Gateway's paper port, read-only, and
+      the free archive is the second source and the check on it; first prove, read-only,
+      that the paper account sees his live data and not the delayed kind, and if it does
+      not, say which setting he must turn on (DAT-02, DAT-07)
 - [ ] One fast store for hot and deep data, standard library only: SQLite in WAL mode with
       one writer and many readers, held to benchmarks set now: a five-minute round for every
       line written in under a second, a line's last week read in under 50 ms, a line's daily
