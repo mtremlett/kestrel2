@@ -104,7 +104,7 @@ a sixth question of any broker. Then the costs whole (R-RUNGS-1), and the day's 
 
 ### Done for other lanes
 
-- R-PAPER-2: done in this pull request
+- R-PAPER-2: done in #64
 
 ### Requests to PAPER
 
