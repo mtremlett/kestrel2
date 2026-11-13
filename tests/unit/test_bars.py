@@ -1,12 +1,13 @@
 """The fast store: what is written is read back exactly, in whole rounds, by one writer and
-many readers, and it is held to the three benchmarks the operator's need set (DAT-04)."""
+many readers, and it is held to the three benchmarks the operator's need set (DAT-04). Each
+evening's five-minute bars enter through the daily store's checks, for good (DAT-11)."""
 
 from __future__ import annotations
 
 import itertools
 import sqlite3
 import timeit
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from contextlib import closing
 from dataclasses import replace
 from datetime import UTC, date, datetime, time, timedelta, timezone
@@ -18,7 +19,7 @@ import pytest
 from desk import bars
 from desk.bars import Five
 from desk.lines import LINES, Line
-from desk.store import Bar
+from desk.store import Bar, Refused
 
 US, UK = Line("BA", "US", "USD", 1), Line("BA", "LSE", "GBP", 1)  #: one symbol, two companies
 NOON = datetime(2026, 11, 13, 12, 0, tzinfo=UTC)
@@ -150,9 +151,10 @@ def _fastest(job: Callable[[], object]) -> float:
 
 
 def test_the_deep_store_meets_its_three_benchmarks(tmp_path: Path) -> None:
-    """Each of the twenty lines holds 7,000 daily bars, the sessions of 27 years, and 6,120
-    five-minute bars, London's sixty sessions that the archive keeps."""
-    store, days, fives = tmp_path / "bars.db", _days(7_000), _fives(6_120)
+    """Each of the twenty lines holds 7,000 daily bars, the sessions of 27 years, and 26,010
+    five-minute bars, a year of London's sessions: the week is read hot from on top of every
+    older bar, archived beneath it in the one file."""
+    store, days, fives = tmp_path / "bars.db", _days(7_000), _fives(26_010)
     with bars.writing(store) as round_:
         for line in LINES:
             round_.daily(line, days)
@@ -178,3 +180,93 @@ def test_the_deep_store_meets_its_three_benchmarks(tmp_path: Path) -> None:
     assert bars.daily(store, LINES[7]) == days
     history_took = _fastest(lambda: bars.daily(store, LINES[7]))
     assert history_took < HISTORY, f"a history took {history_took:.3f}s"
+
+
+def _at(minutes: int, *prices: str, volume: int = 5, noon: datetime = NOON) -> Five:
+    """A bar so many minutes after noon: its open, high, low and close, or 10, 11, 9 and 10."""
+    open_, high, low, close = (*prices, *("10", "11", "9", "10")[len(prices) :])
+    start = noon + timedelta(minutes=minutes)
+    return Five(start, Decimal(open_), Decimal(high), Decimal(low), Decimal(close), volume)
+
+
+def test_a_five_minute_bar_enters_through_the_checks_the_daily_store_makes() -> None:
+    eve = datetime(2026, 12, 24, 12, 0, tzinfo=UTC)  #: a half-day: London shuts at 12:30
+    line = replace(UK, suspended=frozenset({date(2026, 11, 12)}))
+    stretched = replace(_at(5), open=Decimal("11.2"), high=Decimal("11.2"), low=Decimal("8.8"))
+    stretched = replace(stretched, close=Decimal("8.8"))
+    good = [_at(-240), _at(0), stretched, _at(40), _at(265), _at(25, noon=eve)]
+    hours, price = "is outside the trading hours of the LSE calendar", "has a price or volume that"
+    odd = {
+        _at(-245): f"2026-11-13 07:55 {hours}",
+        _at(270): f"2026-11-13 16:30 {hours}",
+        _at(0, noon=NOON + timedelta(1)): f"2026-11-14 12:00 {hours}",
+        _at(30, noon=eve): f"2026-12-24 12:30 {hours}",
+        _at(0, noon=NOON - timedelta(1)): "2026-11-12 12:00 has a bar, yet BA records the day"
+        " as suspended",
+        _at(0, noon=NOON.replace(year=2030)): f"2030-11-13 12:00 {hours}",  # no calendar yet
+        _at(10, "Infinity"): f"2026-11-13 12:10 {price} cannot be",
+        _at(15, "10", "11", "0"): f"2026-11-13 12:15 {price} cannot be",
+        _at(20, volume=-1): f"2026-11-13 12:20 {price} cannot be",
+        _at(25, "11.4"): "2026-11-13 12:25 has an open or close outside its high and low",
+        _at(30, "10", "8"): "2026-11-13 12:30 has an open or close outside its high and low",
+        _at(45, "10.05", "10", "10.1", "10.05"): "2026-11-13 12:45 has an open or close outside"
+        " its high and low",
+    }
+    given = [*odd, _at(35), _at(35, volume=6), _at(40), *good]
+    given[given.index(stretched)] = _at(5, "11.2", "11", "9", "8.8")
+    kept, faults = bars.checked(line, given[::-1])
+    assert kept == good
+    assert faults == sorted([*odd.values(), "2026-11-13 12:35 given 2 ways; none kept"])
+
+
+def test_a_wrong_unit_is_not_kept_and_any_other_far_move_is_kept_as_a_fault() -> None:
+    pence, tenth, double = ("1000", "1100", "900", "1000"), ("0.1",) * 4, ("20", "22", "18", "20")
+    given = [_at(0, *pence), _at(5), _at(10), _at(15, *pence), _at(20), _at(25)]
+    given += [_at(30, *double), _at(35, *pence), _at(40, *tenth), _at(45)]
+    #: a spike, out of line with the bar before and the bar after; then a move of exactly JUMP
+    given += [_at(50, "10", "30"), _at(55, "10", "11", "10"), _at(60, "16", "16", "10", "16")]
+    kept, faults = bars.checked(UK, given)
+    assert kept == [given[n] for n in (1, 2, 4, 5, 6, 9, 10, 11, 12)]
+    unit = "is a hundredfold from the bars around it: a wrong unit"
+    assert faults == [
+        *(f"2026-11-13 12:{minute} {unit}" for minute in ("00", "15")),
+        "2026-11-13 12:30 moved from 10 to 20",
+        *(f"2026-11-13 12:{minute} {unit}" for minute in ("35", "40")),
+        "2026-11-13 12:45 moved from 20 to 10",
+        "2026-11-13 12:50 moved from 10 to 10",
+        "2026-11-13 12:55 moved from 10 to 10",
+    ]
+    assert bars.checked(UK, [_at(0, *pence)]) == ([_at(0, *pence)], [])  # nothing to judge it by
+
+
+def test_each_evenings_bars_are_kept_in_one_round_and_none_is_ever_thrown_away(
+    tmp_path: Path,
+) -> None:
+    store, first, late = tmp_path / "bars.db", [_at(n) for n in range(0, 50, 5)], _at(180)
+    gone = "the archive refused it: URLError: gone"
+    assert bars.keep(store, {UK: first, US: Refused("URLError: gone")}) == {UK: (), US: (gone,)}
+    restated, bad = replace(first[9], volume=99), replace(first[0], low=Decimal(0))
+    evening = {UK: iter([restated, _at(50), bad, _at(270)]), US: [late, _at(0)]}
+    assert bars.keep(store, evening) == {
+        UK: (
+            "2026-11-13 12:00 has a price or volume that cannot be",
+            "2026-11-13 16:30 is outside the trading hours of the LSE calendar",
+        ),
+        US: ("2026-11-13 12:00 is outside the trading hours of the US calendar",),
+    }
+    held = (*first[:9], restated, _at(50))
+
+    def cut() -> Iterator[Five]:
+        yield _at(185)
+        raise OSError("the answer was cut short")
+
+    with pytest.raises(OSError, match="cut short"):
+        bars.keep(store, {UK: [_at(55)], US: cut()})
+    assert bars.keep(store, {UK: Refused("URLError: gone"), US: ()}) == {UK: (gone,), US: ()}
+    pence = [_at(n, "1000", "1100", "900", "1000") for n in (0, 5, 55)]  # the whole answer
+    unit = "is a hundredfold from the bars around it: a wrong unit"
+    assert bars.keep(store, {UK: pence}) == {
+        UK: tuple(f"2026-11-13 12:{minute} {unit}" for minute in ("00", "05", "55"))
+    }
+    assert bars.five(store, UK, bars.EPOCH, NEXT + timedelta(1)) == held
+    assert bars.five(store, US, bars.EPOCH, NEXT + timedelta(1)) == (late,)
