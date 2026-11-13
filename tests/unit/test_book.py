@@ -36,6 +36,7 @@ def test_an_order_the_broker_already_has_is_recorded_not_judged_again(tmp_path: 
     with pytest.raises(Crash):
         _send(tmp_path, broker)
     order = Order("o-1", A, 10, *map(Decimal, (50, 1, 45)))
+    broker.inject("B", 1)  #: nor refused while the books differ: the broker has it
     assert book.send(tmp_path, broker, order, Settings(Decimal(1))).filled == 10, "fills unwritten"
 
 
@@ -82,6 +83,43 @@ def test_the_book_is_every_fill_the_broker_made_and_the_gate_reads_it(tmp_path: 
     )
     with pytest.raises(ValueError, match="A"):
         book.positions(tmp_path)
+
+
+def test_while_the_book_is_not_the_brokers_nothing_is_bought_and_no_such_line_sold(
+    tmp_path: Path,
+) -> None:
+    broker = Pretend(WEEK, {})
+    broker.open(MON)
+    for n, line in enumerate(SIX[:3]):
+        _send(tmp_path, broker, f"o-{n}", line)
+    assert book.reconcile(tmp_path, broker) == ()
+    broker.inject("E", 7)  #: bought by hand, and three more of A
+    broker.inject("A", 3)
+    assert book.reconcile(tmp_path, broker) == ("A", "E")
+    with pytest.raises(Refused, match=r"o-3: .*\['A', 'E'\]"):
+        _send(tmp_path, broker, "o-3", SIX[3])
+    with pytest.raises(Refused, match="s-0: .*not the broker's"):
+        book.send(tmp_path, broker, Sale("s-0", A, 10), ROOM)
+    assert book.send(tmp_path, broker, Sale("s-1", SIX[1], 10), ROOM).filled == 10, "B agrees"
+    assert broker.submitted() == ("o-0", "o-1", "o-2", "s-1"), "sent while the books differ"
+    broker.inject("E", -7)
+    broker.inject("A", -3)
+    assert _send(tmp_path, broker, "o-3", SIX[3]).filled == 10, "the books agree again"
+    broker.open(TUE)  #: A's stop sells it: the ledger learns of it before the books are compared
+    assert book.reconcile(tmp_path, broker) == () and "A" not in book.positions(tmp_path)
+    broker.cancel_stop("C")
+    assert book.reconcile(tmp_path, broker) == ("C",), "a held line with no stop resting"
+    with pytest.raises(Refused, match="o-4"):
+        _send(tmp_path, broker, "o-4", SIX[4])
+    assert book.send(tmp_path, broker, Sale("s-2", SIX[2], 10), ROOM).filled == 10, "unprotected"
+    broker.inject("D", -10)  #: all of D sold by hand and its stop cancelled: only the book has it
+    broker.cancel_stop("D")
+    assert book.reconcile(tmp_path, broker) == ("D",)
+    with pytest.raises(Refused, match="s-3"):
+        book.send(tmp_path, broker, Sale("s-3", SIX[3], 10), ROOM)
+    for line in SIX:
+        broker.inject(line.symbol, 1)
+    assert book.reconcile(tmp_path, broker) == tuple("ABCDEF"), "named in no order"
 
 
 def test_a_round_trip_pairs_each_sale_with_the_buys_it_closes_in_pounds_after_charges(
