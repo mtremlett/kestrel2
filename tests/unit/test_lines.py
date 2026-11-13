@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from collections import Counter
 
-from desk.lines import LINES
+import pytest
+
+from desk.lines import LINES, Line
 
 
 def test_the_master_holds_twenty_lines_ten_on_each_venue_each_in_its_own_currency() -> None:
@@ -18,3 +20,8 @@ def test_the_master_holds_twenty_lines_ten_on_each_venue_each_in_its_own_currenc
 def test_leverage_is_a_fact_in_the_master_never_read_from_a_name() -> None:
     leveraged = {line.symbol: line.leverage for line in LINES if line.leverage != 1}
     assert leveraged == {"3LGO": 3, "2MU": 2, "5QQQ": 5}
+
+
+def test_a_line_on_a_venue_without_a_calendar_cannot_be_made() -> None:
+    with pytest.raises(ValueError, match="NYSE"):
+        Line("CCC", "NYSE", "USD", 1)

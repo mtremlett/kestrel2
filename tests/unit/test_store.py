@@ -16,6 +16,7 @@ from desk.store import Bar, Refused
 
 US, UK = Line("AAA", "US", "USD", 1), Line("BBB", "LSE", "GBP", 1)
 DAY = date(2025, 11, 17)  #: a Monday; the last session before it is Friday the 14th
+LONG = date(2025, 6, 2)  #: more than sixty sessions before DAY on both venues
 
 
 def _bars(line: Line, first: date = date(2025, 11, 3)) -> tuple[Bar, ...]:
@@ -32,7 +33,9 @@ def _parked(tmp_path: Path, bars: tuple[Bar, ...], line: Line = US) -> list[str]
 
 def test_a_clean_line_is_stored_exactly_and_not_parked(tmp_path: Path) -> None:
     assert store.prepare(tmp_path, {US: _bars(US), UK: _bars(UK)}, DAY) == ()
-    assert store.read(tmp_path, US.symbol) == _bars(US)
+    assert store.prepare(tmp_path, {US: _bars(US, LONG)}, DAY) == ()
+    assert store.faults(tmp_path, US.symbol) == ()
+    assert store.read(tmp_path, US.symbol) == _bars(US, LONG)
     assert store.read(tmp_path, UK.symbol) == _bars(UK)
 
 
@@ -89,10 +92,17 @@ def test_a_bad_bar_never_enters_and_its_line_is_parked(tmp_path: Path, fault: st
     assert store.read(tmp_path, US.symbol) == tuple(b for b in _bars(US) if b.day != bars[at].day)
 
 
-def test_a_step_in_the_price_parks_the_line_and_keeps_every_bar(tmp_path: Path) -> None:
-    bars = (*_bars(US)[:5], *(_scaled(b, Decimal("0.5")) for b in _bars(US)[5:]))
+@pytest.mark.parametrize("first", [date(2025, 11, 3), LONG], ids=["recent", "old"])
+def test_a_step_in_the_price_parks_the_line_and_keeps_every_bar_until_recorded_real(
+    tmp_path: Path, first: date
+) -> None:
+    """A step parks however old it is, for it makes every bar before it wrong."""
+    bars = (*_bars(US, first)[:5], *(_scaled(b, Decimal("0.5")) for b in _bars(US, first)[5:]))
     reasons = _parked(tmp_path, bars)
     assert len(reasons) == 1 and str(bars[5].day) in reasons[0] and "split" in reasons[0]
+    assert store.read(tmp_path, US.symbol) == bars
+    line = replace(US, real_moves=frozenset({(bars[5].day, bars[5].close)}))
+    assert _parked(tmp_path, bars, line) == []
     assert store.read(tmp_path, US.symbol) == bars
 
 
@@ -102,13 +112,6 @@ def test_two_bars_out_of_line_are_both_kept_for_no_one_can_tell_which_is_wrong(
     bars = (*_bars(US)[-2:-1], _scaled(_bars(US)[-1], Decimal(100)))
     reasons = _parked(tmp_path, bars)
     assert len(reasons) == 1 and str(bars[1].day) in reasons[0] and "split" in reasons[0]
-    assert store.read(tmp_path, US.symbol) == bars
-
-
-def test_a_step_known_to_be_a_real_move_is_kept_and_not_parked(tmp_path: Path) -> None:
-    bars = (*_bars(US)[:5], *(_scaled(b, Decimal("0.5")) for b in _bars(US)[5:]))
-    line = replace(US, real_moves=frozenset({(bars[5].day, bars[5].close)}))
-    assert _parked(tmp_path, bars, line) == []
     assert store.read(tmp_path, US.symbol) == bars
 
 
@@ -139,23 +142,15 @@ def test_a_refused_line_is_parked_with_its_reason_and_no_old_bars(tmp_path: Path
     assert store.read(tmp_path, UK.symbol) == _bars(UK)
 
 
-def test_a_line_on_a_venue_without_a_calendar_cannot_be_made() -> None:
-    with pytest.raises(ValueError, match="NYSE"):
-        Line("CCC", "NYSE", "USD", 1)
-
-
-def test_one_bar_given_twice_is_kept_once_and_its_line_parked(tmp_path: Path) -> None:
+@pytest.mark.parametrize("differently", [False, True], ids=["the same", "differently"])
+def test_one_date_given_twice_parks_its_line_and_keeps_it_once_or_not_at_all(
+    tmp_path: Path, differently: bool
+) -> None:
     bars = _bars(US)
-    reasons = _parked(tmp_path, (*bars, bars[2]))
+    reasons = _parked(tmp_path, (*bars, replace(bars[2], close=bars[2].close + int(differently))))
     assert len(reasons) == 1 and "2025-11-05" in reasons[0]
-    assert store.read(tmp_path, US.symbol) == bars
-
-
-def test_one_date_with_two_different_bars_keeps_neither(tmp_path: Path) -> None:
-    bars = _bars(US)
-    reasons = _parked(tmp_path, (*bars, replace(bars[2], close=bars[2].close + 1)))
-    assert len(reasons) == 1 and "2025-11-05" in reasons[0]
-    assert bars[2].day not in [b.day for b in store.read(tmp_path, US.symbol)]
+    kept = tuple(b for b in bars if not (differently and b is bars[2]))
+    assert store.read(tmp_path, US.symbol) == kept
 
 
 @pytest.mark.parametrize(
@@ -199,9 +194,6 @@ def test_a_parked_line_comes_back_when_its_bars_are_clean(tmp_path: Path) -> Non
     assert store.read(tmp_path, US.symbol) == _bars(US)
 
 
-LONG = date(2025, 6, 2)  #: more than sixty sessions before DAY on both venues
-
-
 @pytest.mark.parametrize(
     ("spoil", "named"),
     [
@@ -220,20 +212,6 @@ def test_an_old_bad_day_is_dropped_and_listed_but_does_not_park(
     assert date.fromisoformat(named) not in [b.day for b in store.read(tmp_path, US.symbol)]
     listed = store.faults(tmp_path, US.symbol)
     assert listed and all(named in fault for fault in listed)
-
-
-def test_an_old_step_in_the_price_still_parks_for_it_makes_every_bar_before_it_wrong(
-    tmp_path: Path,
-) -> None:
-    bars = _bars(US, LONG)
-    stepped = (*bars[:5], *(_scaled(b, Decimal("0.5")) for b in bars[5:]))
-    reasons = _parked(tmp_path, stepped)
-    assert len(reasons) == 1 and str(bars[5].day) in reasons[0] and "split" in reasons[0]
-
-
-def test_a_clean_line_lists_no_fault(tmp_path: Path) -> None:
-    assert _parked(tmp_path, _bars(US, LONG)) == []
-    assert store.faults(tmp_path, US.symbol) == ()
 
 
 @pytest.mark.parametrize("unit", ["100", "0.01"], ids=["pence", "pounds"])
