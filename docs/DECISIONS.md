@@ -942,6 +942,36 @@ He presses the resets himself; the runner tells him when, by these rules:
 After any reset the runner reads the new usage and the new reset time from the plan, and
 never assumes the reset stays on Thursday. While the lanes wait at the cap, it reads the
 plan again every quarter of an hour, so a reset he presses lets them carry on at once.
+(The 45% figures above were read on the wrong scale: see the next entry.)
+
+## 2026-11-13 — Fable's figure is a share of Fable's own allowance: switch at 97%
+
+**The evidence.** From 17:37 to 20:08 every lane ran on Fable. The Fable window the plan
+reports (`seven_day_overage_included`) rose from 20% to 33%, 13 points, while the
+all-models week rose from 25% to 33%, 8 points. Were Fable's figure a share of the week,
+the week would have risen at least as much. So it is a share of Fable's own allowance
+(about half the week), and 100% means Fable is full. Switching to Opus at 45% would have
+thrown away more than half of the allowance his Fable resets give back.
+
+**His ruling**, in his own chat at 20:12 UK: "Please use all fable tokens and then flip to
+opus overnight. I can then reset fable in the morning around 8am". So:
+- the lanes stay on Fable until 97% of Fable's own allowance, or until Fable refuses a
+  session, then run on Opus;
+- no request to press the Fable reset before bed or overnight: at 21:45 the runner only
+  logs its forecast;
+- "press the Fable reset now" is sent by day only (08:00 to 22:00) at 95% or more, with the
+  week's reset more than 36 hours away; so a Fable that filled overnight is asked for at
+  08:00. The Fable figure is read every 15 minutes, so the lanes return to Fable as soon as
+  the reset shows;
+- the weekly 80% pause reads only the all-models window, and stands as ruled, at all
+  hours. Asked at 20:16 whether to run up to 95% of the week overnight instead, he answered
+  "Keep 80": an option he considered and declined. He accepts that the lanes may pause at
+  80% overnight until he presses the Fable reset at about 08:00.
+
+**Driven** in a scratch home: the lanes on Fable at 33% and 96%, on Opus at 97%, and on
+Fable when no figure is known; at 14:00, 94% asks nothing and 95% asks once; at 23:00 and
+03:00, 99% asks nothing; at 08:00, 99% asks once; at 21:45, Fable at 60% rising four points
+an hour and at 96% bring no request, only the forecast in the log.
 
 ## 2026-11-13 — the paper account is the old desk's
 
@@ -2203,6 +2233,25 @@ band taken to begin just above its edge, which differs only on a rule whose edge
 step below it, and none of the twelve real rules is; a pairing check behind a length check
 that already forces it; and two that pick the last of exactly one. The fifth adds New York
 to the US exchanges, which no test forbids: adding an exchange is a deliberate edit.
+
+### 2026-11-13 — the paper lane's book ordered: read-only first, placing last, one new module per box
+
+Options and choices (from #68):
+1. Kill-switch refusal: first in the book, or after the adapter whose send it guards. Chosen:
+   after. The refusal is a line in the adapter's send and reads the money lane's drill record,
+   which is not built. Nothing is loosened: paper-conformance, the first real paper order, waits
+   for paper-drill.
+2. Should paper-drill and paper-conformance name the money lane's kill switch in `after`? Chosen:
+   only this lane's ids for now, as the money lane has not noted its book and the check refuses an
+   `after` naming no box. The wait is held by the box text, the four boxes in front, and the lane
+   objective. Owed: add the id to paper-drill's `after` once it exists.
+3. Order: reports, daily check, adapter, stops, drill refusal, then a real order, following "built
+   from what it reads towards what it sends".
+4. New modules (`reports`, `gateway`, `clearance`, `placing`) or all in `desk/paper.py`. Chosen:
+   their own: paper.py is 216 of 400 lines, and separate files let paper-gateway run beside the
+   chain. A session finding one unnecessary need not create it.
+5. paper-conformance holds every file (`files: *`): it runs on the real account in market hours
+   and may fix any module where the broker differs, so it runs alone.
 
 ## GRID
 
