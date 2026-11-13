@@ -165,6 +165,16 @@ moved onto the fourteen months); R-MONEY-1 (each line's UK tax) is done.
 - [ ] Leveraged-product lifecycle watched: an issuer's closure, a compulsory redemption or
       an ISA eligibility change on any line held or researched raises an alert (BIC-11)
 - [ ] Disk watched; old research files roll off by rule (OPS-07)
+- [ ] **Hot every five minutes, paramount (his ruling, 13 November evening):** during each
+      venue's trading hours the keeper fetches every clean line's newest five-minute bar
+      every five minutes, checks it on entry, and updates every indicator the rules and the
+      crash watch read; a line whose bar is late, missing or out of line is parked at once
+      and not traded, and the other lines carry on; a line that comes clean comes back by
+      itself. The source's delay is measured and shown, never hidden (DQ-12, DAT-07, DAT-11)
+- [ ] One fast store for hot and deep data, standard library only: SQLite in WAL mode with
+      one writer and many readers, held to benchmarks set now: a five-minute round for every
+      line written in under a second, a line's last week read in under 50 ms, a line's daily
+      history read in under 200 ms (DAT-04)
 - [ ] Deep history: daily bars back to 2000 wherever the archive has them, the calendars
       carried back first; the old desk's Stooq store used only as a head start, every bar
       re-checked on entry (DAT-03, BT-09)
@@ -227,6 +237,11 @@ day's trading and reconciliation are built.
 - [ ] **The kill switch, before the paper lane sends any order:** one command stops all new
       orders and cancels the open ones, and the desk says so; drilled before FIRST-LIGHT's
       first day and then monthly (EMG-02, canon B1)
+- [ ] **The crash watch, on the five-minute data:** every five minutes in trading hours it
+      reads the newest bars of every held and watched line and the market's own; a fall that
+      crosses the emergency thresholds halts all buying at once, alerts him immediately at
+      any hour, and records why; the protective sell across every position (STP-07) acts on
+      it once built (EMG-01, EMG-03)
 - [ ] Emergencies in numbers: an emergency, a crash and a black swan each defined by
       measured falls, each with its action (EMG-01)
 - [ ] Halts: a halt is a typed record; while one is in force the desk buys nothing and
