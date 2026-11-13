@@ -372,7 +372,8 @@ his PC with the desk's own client id (222), never 4001.
       tests/unit/test_placing.py, tests/unit/test_listing.py; after: paper-adapter}
 - [ ] No paper order before the kill switch is drilled, held by the code: the adapter's
       send refuses unless a drill record of the kill switch from the last 31 days exists,
-      and a contract test proves the refusal {id: paper-drill; files: desk/placing.py,
+      and a contract test proves the refusal (owed: name the money lane's kill-switch box in
+      `after` once it has an id) {id: paper-drill; files: desk/placing.py,
       tests/unit/test_placing.py; after: paper-adapter, paper-stops}
 - [ ] Conformance trades, on paper, one London and one US line, each in its market's hours:
       a market buy at the open; the resting stop placed, triggered, and cancelled on a sale;
@@ -380,7 +381,7 @@ his PC with the desk's own client id (222), never 4001.
       beside the pretend broker's, and the pretend broker fixed where they differ
       {id: paper-conformance; files: *; after: paper-gateway, paper-check, paper-stops,
       paper-drill}
-- [ ] Unattended running, and recovery from a restart
+- [ ] Unattended running, and recovery from a restart (boxes from here down are not yet noted)
 - [ ] Morning and evening messages, and an alarm on silence
 - [ ] **No paper order until the money lane's kill switch has been drilled** (EMG-02)
 - [ ] The desk's own process supervised: one supervisor, restarts proven by killing it,
