@@ -1109,6 +1109,45 @@ each chosen from options with a recommendation.
 
 ---
 
+## 2026-11-13 — the weekend sprint: resets spent now, twelve sessions, and the A-GATE clock
+
+**Why.** At 18:20 UK he judged the target dates far too long and asked for ten times the
+pace. Building phases 2 to 4 is where the tokens go; once built, the desk trades paper as
+plain code and costs almost none. And the A-GATE's dates are set by the calendar, not by
+building, so only its terms could bring them forward.
+
+**Decided, first: the free resets are spent this week.** Every lane runs on Fable while
+Fable has room, then on Opus. The runner's Telegram line tells him when a Fable reset (two,
+expiring 9 March 2027) and then the weekly reset (one, expiring 10 December) would help;
+never within 36 hours of the weekly reset. The 80% pause stands. His words: "Spend them
+now (Recommended)".
+
+**Decided, second: up to twelve sessions at once.** Each lane runs two or three sessions
+side by side on book items whose files do not overlap; a session claims its item and files
+first, the runner starts nothing that overlaps a running claim, and the check fails a
+change outside its claim. Items that must go in order stay in order. His words: "Up to 12
+at once (Recommended)".
+
+**Decided, third: the A-GATE clock (AG-02 to AG-06 amended, AG-01 kept).** A candidate's
+paper days now count from the first clean FIRST-LIGHT day, or from the day it passed the
+ladder if that is later; they no longer wait for FIRST-LIGHT's ten days to finish. Up to
+ten candidates run side by side on the one paper account, each with its own capital number
+and its own book, each named in `docs/PLAN.md` before its first paper day. Every one counts
+as a trial in the luck test, and one dropped part-way still counts, so trying several
+raises the bar rather than lowering it. His words: "Both (Recommended)", offered against
+"Only the side-by-side candidates" and "Neither".
+
+**The cost.** The resets give about two and a half weeks of allowance this week and none
+in reserve until the weekly allowance renews. Twelve sessions mean more changes landing
+on main at once; the check, the claims and the lane guards hold them apart. The FIRST-LIGHT
+days now carry a candidate's money as well as the machine's proof, so a FIRST-LIGHT day
+that is not clean is also a lost A-GATE day.
+
+**His words, together.** In chat, Friday 13 November 2026, about 18:25 UK time, each
+chosen from options with a recommendation.
+
+---
+
 ## MONEY
 
 ### 2026-11-13 — how the pretend broker behaves

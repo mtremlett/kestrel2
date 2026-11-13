@@ -380,7 +380,14 @@ many trials it was picked from, and every rung records that count (canon B6, AG-
       history predicted, ahead of simply holding the market, never more than £1,500
       below the highest point, every day reconciled. Thirty days suffice only on the
       "excellent" terms fixed in advance there: £150 a day, a fall under £750, twenty
-      trades, the best three days under a third of the profit.
+      trades, the best three days under a third of the profit. By his ruling of 13
+      November evening, a candidate's paper days count from the first clean FIRST-LIGHT
+      day, or from the day it passed the ladder if that is later; and up to ten candidates
+      run side by side, each named here before its first paper day, the luck test counting
+      every one of them as a trial, a candidate dropped still counted.
+- [ ] Side-by-side candidates on one paper account: each with its own capital number and
+      its own book in the ledger, the gate applied per candidate, and the broker's account
+      reconciled against the sum of their books every day
 
 ## Phase 6 — the operator's own account, and widening
 
