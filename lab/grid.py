@@ -6,8 +6,9 @@ while a parity test shows it holds what the desk holds after every bar (canon B2
 works in exact decimals; this works in floating point, which is fast and not exact. So it
 never guesses. Prices are turned into whole numbers of the line's smallest step; sums of
 those are exact while they stay under 2**53, and a tie there is a true tie. Anything else
-is trusted only when it is clear by a wide margin, and a comparison closer than that is
-refused with `TooClose`: the desk's own engine must decide that cell.
+is trusted only when its two sides differ by a wide margin of the prices they were worked
+out from, and a comparison closer than that is refused with `TooClose`: the desk's own
+engine must decide that cell.
 
 Each rule gives two answers for every bar: would it enter if out, would it stay if in.
 None of the five's indicators depends on its position, so both are worked out for every
@@ -34,8 +35,11 @@ EXACT = 2.0**53
 #: The largest multiple of one price a sum here forms: 200 closes and 200 times a close.
 LINEAR = 400
 #: A comparison of rounded numbers is trusted when its sides differ by more than this part
-#: of their size. Rounding moves them by about one part in 10**13 at the very most.
+#: of its size, which is never less than the prices it was worked out from: rounding moves
+#: a result by about one part in 10**13 of those at the very most.
 MARGIN = 1e-9
+#: The desk keeps 28 digits. Its sums of a line's prices are exact below this.
+DESK = 10**28
 
 
 class TooClose(Exception):
@@ -60,8 +64,10 @@ def prices(bars: Sequence[Bar]) -> Prices:
     ]
     step = math.lcm(*(bottom for column in ratios for _, bottom in column))
     steps = [[top * (step // bottom) for top, bottom in column] for column in ratios]
-    table = np.array(steps, dtype=np.float64).reshape(3, len(bars))
     distinct = {number for column in steps for number in column}
+    if max(distinct, default=0) * 200 >= DESK:
+        raise TooClose("prices too far apart for the desk's own sums to be exact")
+    table = np.array(steps, dtype=np.float64).reshape(3, len(bars))
     if len(distinct) != len(set(table.ravel().tolist())):
         raise TooClose("two prices too close for floating point to tell apart")
     whole = max(distinct, default=0) * LINEAR < EXACT
@@ -113,8 +119,11 @@ def _rsi2(p: Prices) -> tuple[Bools, Bools]:
     #: both start at bar 2; from bar 199 on is all a buy can read
     gain = _wilder(np.maximum(change, 0), 2)[197:]
     loss = _wilder(np.maximum(-change, 0), 2)[197:]
-    #: an RSI under 5 is a loss over 19 times the gain; with no loss at all it is 100
-    low = _sure(p, loss - 19 * gain, loss + 19 * gain, np.inf) > 0
+    #: an RSI under 5 is a loss over 19 times the gain; with no loss at all it is 100. A
+    #: change is a close less a close, so it is only as sure as the closes are
+    low = loss > 0
+    size = (loss + 19 * gain + close[199:])[low]
+    low[low] = _sure(p, (loss - 19 * gain)[low], size, np.inf) > 0
     return _late(199, above & low, total), _late(4, stay, total)
 
 
