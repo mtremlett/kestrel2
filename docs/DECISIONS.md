@@ -992,6 +992,47 @@ and each was driven.
 in, because the runner starts at his logon. Starting it without a logon would need his
 password stored in Task Scheduler, which is his to decide. He is pausing updates instead.
 
+## 2026-11-13 — twelve sessions at once, held apart by claims
+
+**Asked** by the operator at 18:25: "Up to 12 at once (Recommended)". Built by a session
+started for it by the one that set the lanes up; the runner is outside this repository.
+
+**How.** MONEY and DATA run three sessions each, PAPER, GRID and RUNGS two each. The runner,
+not the session, picks the work: the first box of a lane's book whose note names its files,
+whose `after` boxes are done, and whose files no running session holds. Those files are the
+session's claim. A box with no note runs alone in its lane. The rule is in `docs/PLAN.md`
+("The five lanes"); the claim is enforced in `tests/guards/test_lanes.py`, which reads it
+from the pull request on GitHub (or from KESTREL_CLAIM on the PC) and refuses a lane's pull
+request without one. The runner also refuses to land a pull request whose `Claim:` line is
+not the claim it gave, and reads the worst of the two "check" runs (the push's and the pull
+request's), since only the pull request's can read the claim.
+
+**The shared documents.** Twelve sessions writing STATUS, SCOREBOARD and DECISIONS at once
+would collide. So a session writes `Ticks:`, its status, decisions and requests in its pull
+request, and a small scribe session per lane (Sonnet, about every two hours) folds them in.
+A ticked box counts as done the moment its pull request lands, so the next box waits for no
+scribe. The scribe also keeps each STATUS section under 50 lines, which the document guard
+in #46 needs.
+
+**The machine.** No session starts while under 25% of memory is free, while twelve run, or
+while more than eight run and the grid's auto-tune says a pass is busy; one start a minute.
+
+**Driven (canon A7).** The guard: 24 cases in a scratch clone, each failing for its stated
+reason, among them a change outside the claim, STATUS without claiming it, a pull request
+with no claim or two, a claim in a bullet, duplicate ids, an `after` naming nothing, a note
+without files or id; and passing for a claim kept, a glob, `*`, a scribe's four documents,
+a push run with no claim to read, and a note shown in prose. The runner, with a stand-in for
+sessions in a scratch home: 48 cases, among them two boxes on one file never side by side,
+a box waiting for its `after`, a carry's files held while its slot is idle, a blocking
+request draining its lane first, the memory floor and the grid's cap holding starts, a wider
+claim disarmed, a red pull-request run not hidden by a green push run, and twelve slots
+working a book through with a peak of nine sessions and no two claims ever overlapping. The
+older drives were re-run on the new code; the only misses were words changed on purpose.
+
+**Found on the way.** Taking over a lock left by a dead runner held the log's lock and then
+waited for it: every lane would have hung after a hard stop. Fixed (a re-entrant lock) and
+driven.
+
 ---
 
 # The lanes' own decisions
