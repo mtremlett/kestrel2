@@ -1031,7 +1031,6 @@ its reason (Recommended)". Any one can come back by his ruling.
 | GOV-11 | the old names it retires never existed here |
 | GOV-12 | DEV and PROD rule tags: every guard is always on, and GitHub enforces them |
 | MIG-08 | PROD rules switched on at go-live: there is no DEV and PROD split |
-| DAT-04 | a columnar store under 50 ms: twenty daily lines, no benchmark asks (canon A4) |
 | DAT-06 | a weekly bottleneck review: optimise only on a benchmark (canon A4) |
 | DAT-09 | a hot store and an archive: one store, rebuilt from the archive, one writer |
 | DQ-04 | an independent data checker: data is checked once, at the boundary, by the one writer |
@@ -1145,6 +1144,59 @@ that is not clean is also a lost A-GATE day.
 
 **His words, together.** In chat, Friday 13 November 2026, about 18:25 UK time, each
 chosen from options with a recommendation.
+
+---
+
+## 2026-11-13 — deep and five-minute data, kept hot; trustworthy rungs; the eponymous strategies first
+
+**His asks, about 18:35 UK.** A database of many years for backtesting, like the old Stooq
+data; a hot store of a week of five-minute bars; a monitor that keeps all data fresh; the
+eleven rungs made trustworthy, "the biggest issue in the previous repo"; and the eponymous
+strategies through the ladder first.
+
+**Decided by the mentor, as his rulings allow.** Daily history is carried back to 2000
+where the archive has it. A five-minute store starts now, for the twenty lines: the free
+archive keeps only about sixty days of five-minute bars, so every week not collected is lost
+for good; the last week is kept hot and nothing is thrown away. The store's keeper runs on
+every trading day after the US close and before the London open, with an alert for a stale
+line or a missed run. The rungs lane makes each of the eleven rungs pass its own known-answer
+test before any verdict counts: a planted edge passes, pure noise passes at about the stated
+rate, a power curve, a broken rung caught, and every defect the old desk's rung audit of 20
+October found kept as a failing case. The twenty-one eponymous strategies go through first,
+each with its published figure written down so that reproduction can run.
+
+**The old desk's "Yeager" speed-up** was computing an indicator once over a whole series
+instead of again for every bar. The grid lane's numpy engine is that method, held to the
+desk's engine by a parity test (canon B2); its old desk equivalent had parity tests that
+were red on main.
+
+---
+
+## 2026-11-13 — hot every five minutes, a crash watch, and one fast store
+
+**His words, about 18:55 UK:** "please confirm that it runs during the trading data every
+5mins? we need hot data every 5mins. this is paramount. if a crash event happens then we need
+5min price and indicator data to immediately flag a crash situation". And: "the data quality
+monitor needs to make sure ticker price and all indicator data is always hot ... we need a
+high performance way to reading and writing to a database." And: "any tickers with suspect
+data issues are checked, but, then parked ... one ticker with bad data should not stop all
+trading."
+
+**Decided by the mentor, as his rulings allow.** During each venue's trading hours the
+keeper takes every clean line's newest five-minute bar every five minutes, checks it on
+entry, and updates every indicator the rules and the crash watch read. A late, missing or
+out-of-line bar parks only its line, at once; the rest carry on, and a line that comes clean
+returns by itself. A crash watch on those bars halts all buying the moment a fall crosses
+the emergency thresholds, and alerts him at any hour. Hot and deep data share one store,
+SQLite in WAL mode (standard library, one writer, many readers), held to benchmarks set in
+advance. DAT-04, dropped earlier this evening for want of a benchmark, is restored: he has
+now set the need, and the benchmarks are its test.
+
+**The source.** He already pays for IBKR's market data and uses the free archive as a
+second source (his words: "i already pay for ibkr market data and use yf.download as a second
+source"). So the hot bars come first from the broker, read-only through the paper port, and
+the free archive checks them. No new spending. The paper account must see his live data, not
+the delayed kind; the data lane proves that first, read-only.
 
 ---
 
@@ -1551,6 +1603,91 @@ question 6 (decided, and tested). Its other points are fixed (wording, a silent 
 a missing multiple, the master silently winning a disagreement, eight London currencies) or
 listed in `docs/STATUS.md`.
 
+### 2026-11-13 — a line's UK tax: two rates, a fact on the line, and how far each is confirmed
+
+**The questions.** The money lane asked (R-MONEY-1) for what a purchase pays in UK
+transaction tax as a fact on each line, the ten London lines confirmed, and one London line
+of the rehearsal data that pays it. This entry replaces the sentence above, under the costs,
+that the tax "is to be confirmed line by line". Five questions of intended behaviour.
+
+**1. What the fact is.** Options: (a) a kind on the line (share, fund, product) from which
+the cost model works out the tax; (b) the rate itself on the line, taken from one table of
+rates in the instrument master. **Chosen (b).** The tax does not follow the kind: a share
+of a company registered abroad can pay none. The cost model needs a number, and a kind
+would be a second fact to keep true. The table has two rates, nil and a UK share's half of
+one per cent (`lines.NO_TAX`, `lines.STAMP_DUTY`); a line can state only one of them, and
+only a London line can pay, so a wrong figure or a taxed US line cannot be made. A sale pays
+none.
+
+**2. A line made without it.** Leverage cannot be left out of a line. Options: (a) the
+same for the tax: about thirty lines built in the money and paper lanes' tests would stop
+working, in files this lane may not edit, and main would be red; (b) nil when not stated,
+for good; (c) nil when not stated for now, every real list stating it, and the other lanes
+asked to state it in their tests so the default can go. **Chosen (c)** (R-DATA-4,
+R-DATA-5). Until then a UK share built by hand from four facts pays nothing, which is the
+risk; no list the desk or research reads is built that way.
+
+**3. The ten London lines: nil, and how far confirmed.** As the session knows them:
+
+| line | what it is | why nil | confirmed |
+|---|---|---|---|
+| SMGB | VanEck Semiconductor fund, Irish | exchange-traded funds are exempt | yes |
+| IITU | iShares S&P 500 technology fund, Irish | the same | yes |
+| VHYG | Vanguard world high-dividend fund, Irish | the same | yes |
+| ISF | iShares FTSE 100 fund, Irish | the same | yes |
+| VUSA | Vanguard S&P 500 fund, Irish | the same | yes |
+| 3LGO | WisdomTree three-times gold product, debt of an Irish issuer | not a UK company's security | as the law reads |
+| 2MU | Leverage Shares two-times Micron product, debt of an Irish issuer | the same | as the law reads |
+| 5QQQ | Leverage Shares five-times Nasdaq product, debt of an Irish issuer | the same | as the law reads |
+| IB1T | iShares Bitcoin product, debt of a Swiss issuer | the same | as the law reads |
+| SGLN | iShares physical gold product, debt of an Irish issuer | the same | as the law reads |
+
+The funds: the Stamp Duty and Stamp Duty Reserve Tax (Exchange Traded Funds) (Exemption)
+Regulations 2014 (SI 2014/911), read in the tax office's manual (STSM101065) on 13 November
+2026; interactive investor's and Freetrade's pages say the same. The products are not funds,
+so those regulations do not name them. Stamp duty reserve tax falls on a UK company's
+securities, or ones kept on a UK register, and these are debt of companies outside the UK;
+brokers charge none. But no official page or issuer's document saying so of these five was
+reached: the prospectuses could not be fetched, and the brokers' cost pages for IB1T do not
+mention the tax. Options: (a) nil, recorded as not officially confirmed; (b) half a per
+cent until confirmed, most likely false, and it would make the leveraged lines look worse
+than they are; (c) stop and ask the operator. **Chosen (a):** it is the best reading, a
+mistake costs half a per cent of a purchase on paper only, and it is settled by any real
+contract note or by the order preview at his own broker. If one pays, one word on its line
+changes.
+
+**4. The research list's London shares.** Options: (a) leave them at nil: 347 UK shares
+would be studied free of a tax nearly all of them pay; (b) charge each a UK share's stamp
+duty, knowing a minority registered abroad pay none and three or so registered in Ireland
+pay 1%; (c) check all 347 this session. **Chosen (b):** it is right for most, errs toward
+too much cost for most of the rest, and the exceptions the blind review named from memory
+are listed in `docs/STATUS.md` to be checked name by name. Ireland's 1% is a third rate, to
+be added to the table when a line needs it.
+
+**5. Which rehearsal line pays.** L01, a London line the rules buy: three times over the
+fourteen months (2 October 2024, 22 April and 16 June 2025), £29.66 of stamp duty in all at
+the fills' prices. In the six weeks the scenes see today nothing is bought, so the tax is
+charged there only once the scenes move (R-MONEY-2).
+
+**Not in the fact:** rounding (the tax office collects to the penny; the day record's one
+rounding policy), and the takeover panel's flat levy on a trade over £10,000 in a UK
+company's shares, which no trade of £2,000 reaches.
+
+**Evidence.** Tests seen failing first: a line accepted any tax, the research list's London
+shares paid nil, and a disagreement with the master on tax went unseen. A script outside the
+repository ran the day's trading over the fourteen months before and after: the same buys,
+and stamp duty of nil, then £29.66. Seventeen deliberate breaks, driven by a helper with
+the Python cache off: fifteen caught (a rate changed, the default changed, each refusal
+removed, the twenty lines or the research list given the wrong rate, the disagreement check
+blinded); one changes nothing (the twenty lines built without stating the tax, which is the
+default of question 2); one no test can see yet (the rehearsal line's tax removed: nothing
+reads it until the money lane builds the day's record, and scene 7 will then need it). A
+blind review found two things blocking, both wording that claimed more than was proven:
+"each confirmed" before this entry existed and beyond what was found for the five products,
+and the research list's shares stated as plain fact. Both are reworded and recorded here
+and in `docs/STATUS.md`; its other points are taken (a London share quoted in dollars
+tested, the default recorded and asked away) or listed there.
+
 ## LADDER (until 13 November; since then GRID and RUNGS)
 
 ### 2026-11-13 — the ladder's unit of work: days only, the whole history, keyed by what it read
@@ -1850,4 +1987,115 @@ to the US exchanges, which no test forbids: adding an exchange is a deliberate e
 
 ## GRID
 
+### 2026-11-13 — the fast grid engine: it holds what the desk holds, or it refuses
+
+**Decided.** The grid engine (`lab/grid.py`) works out, for one strategy on one line, whether
+it is in the market after every bar, on whole arrays at once. It is a second implementation
+of the five rules, so it stays only while a parity test shows it holds what the desk's own
+engine holds after every bar (canon B2). Where it cannot be sure it raises `TooClose` and
+gives no answer: the desk's own engine must decide that cell.
+
+**The choices, and why.**
+- *The arithmetic.* The desk works in exact decimals at 28 digits; numpy works in floating
+  point, which is fast and rounds at about 16. Options: trust floating point and accept a
+  rare different answer; do the grid in decimals too (no faster than the desk); floating
+  point that knows when it cannot be sure. Chosen: the last. Prices become whole numbers of
+  the line's last decimal place; while a rule's sums of them stay under 2**53 they are
+  exact and a tie is a true tie, called as the desk calls it. Everything else (prices as
+  long as the archive's seventeen digits, Wilder's smoothing) is trusted only when the two
+  sides differ by more than one part in a thousand million of the prices they were worked
+  out from, ten thousand times further than rounding can move them. Closer than that is
+  refused, never guessed. Prices too long for the desk's own 28 digits to add exactly are
+  refused whole. On prices like the archive's nothing was refused; on made-up prices on a
+  coarse tick, a close exactly on a Supertrend band is.
+- *A refusal is not a failure.* The desk's engine is the truth and the grid is its
+  shortcut. When the unit of work is moved onto the grid, a refused cell is run by the
+  desk's engine, the one other path, and its record is the same record.
+- *What it answers.* Options: the desk's `Decision` for every bar; the position after each
+  bar as an array. Chosen: the array. Making one object per bar costs more than the rules
+  do, and a cell needs only the days a position opens and closes.
+- *The settings.* The five rules at their published settings only. The desk's rules take
+  no settings, so parity at any other setting cannot be shown yet; a grid over settings
+  waits for the desk's rules to take theirs (asked of the money lane in `docs/STATUS.md`).
+- *The golden data.* The series in the money lane's `tests/unit/test_strategy.py` on which
+  a second implementation written apart agreed with the desk (five walks of 1,200 days and
+  two short jumpy series), read from that file, never copied; each also cut short either
+  side of every rule's warm-up. Beside them, three walks of 1,500 days at prices as long
+  as the archive's, since the golden series sit on a 25p tick and real prices do not.
+
+**Evidence.** The parity test was seen failing first (no engine), and each later fix's test
+was seen failing on the engine before the fix. On the golden series the grid answers 477 of
+490 askings (seven series, five rules, fourteen lengths) and refuses 13, every one a close
+exactly on a Supertrend band; the test holds that count. Measured from outside the
+repository on 4,000 days of one line: the desk's engine about 100 ms for the five rules,
+the grid about 6 to 8 ms, after 17 ms once per line to read the prices in.
+
+Two blind reviews, each comparing the grid with the desk on thousands of random series of
+its own making. The first found one wrong answer: an RSI on days that move a
+thousand-millionth of the price, where the day's change is mostly rounding (53 of 1,201
+placements wrong). The second, of the repaired engine, found two more: a Supertrend band
+when a close sits far outside its day's range, and exact ties called among prices of 26
+digits and more, which the desk's own 28 digits cannot add exactly. None arises on prices
+like the archive's, but the rule is never a different answer, so each was made a failing
+test and fixed at its cause: a comparison's margin is now measured against the prices it
+was worked out from, and prices too long for the desk are refused. The second review's
+whole comparison was then run again on the repaired engine: twelve kinds of series, 120 of
+each, every rule, no difference from the desk and no error; its three searches that had
+found wrong answers found none. There was no third blind review.
+
+Deliberate breaks: 64 in the first round, 42 caught. The 22 left showed that a bar on which
+a rule would enter and would not stay never arose in any test, that five safeguards
+(a tie on each Supertrend band, the RSI's tie, the edge of exact arithmetic, the margin
+itself) were held by none, and one piece of code that could never run, since removed.
+Tests were added and those breaks driven again: all caught. What still survives, each
+recorded in `docs/STATUS.md`: breaks that cannot differ (a tie's direction where ties are
+already refused), a more cautious margin, and a few no series found can show.
+
 ## RUNGS
+
+### 2026-11-13 — the luck rung: a chance multiplied by every trial, one 5% test across the set
+
+**Decided**, by the lane as the desk's mentor (no one watching). A verdict passes the luck
+rung (`lab/luck.py`) when it passed the first rung and its chance of being luck, multiplied
+by the number of trials it was picked from, is at most 5%. The chance is that of an average
+so many standard errors up, or further, from trades with no edge (Student's t on the trades
+themselves). Each corrected verdict carries the count.
+
+**The choices, and why.**
+- *The correction.* Options: multiply the chance by the count (Bonferroni); the same in
+  steps, a little kinder to the second and third winner (Holm); a deflated Sharpe; shuffling
+  the histories to see what luck alone gives. Chosen: the plain multiplication. It holds
+  however the trials lean on one another (five rules on one line share its history), needs
+  nothing but the trades, and is one sentence he can check. Holm passes almost nothing more
+  when winners are few among thousands. The deflated Sharpe has its own box in the book
+  (LAD-03) and will sit beside this, not replace the count.
+- *The line.* 5% across the whole set, the plan's own number (LAD-08): of twenty sets with
+  no edge anywhere, about one still hands over a winner.
+- *What counts as a trial.* Options: the verdicts that passed the first rung; every verdict;
+  every trial tried. Chosen: every trial tried: losers, those with too few trades, and those
+  that left no verdict at all (a cell that failed, a candidate dropped), which the caller
+  must state as a number; there is no default, and a number under nothing is refused.
+- *A trial the first rung failed* never passes here, however small its chance: thirty trades
+  remain the least.
+- *A verdict with under two trades* has no chance to speak of: it counts as certain luck.
+- *The chance itself.* No library the lab may use gives Student's tail, so it is worked here
+  as one smooth sum (about ten lines), and held to the textbook table's own rows.
+- *What it does not cover* (the blind review's blocking finding, taken): the 5% is true only
+  if each trial's own chance is true, which needs trades that are separate bets with gains
+  spread roughly like a bell. Many small wins and a rare large loss on few trades read as
+  far less chance than they are. The module now says so; the cure is in the book's later
+  boxes, and no winner on real prices is believed before it (`docs/STATUS.md`).
+- *The first rung's pass rule as one function* (`rung.verdict`), in a commit of its own,
+  nothing changed: the first rung calls it, and the luck rung's tests build their trials by
+  it, so no test carries a second copy of the rule.
+
+**Evidence.** Four contract tests, seen failing first (no module). The chance agrees with
+the published table to a part in a million, and with a second method written apart (outside
+the repository) to under one part in a million over degrees of freedom from 1 to 5,000; the
+blind review's own second method agreed to a few parts in a hundred million. Of forty sets
+of forty no-edge trials, twenty-six gave the first rung a winner and one gave the luck rung
+one; a real edge added to each passed in all forty. Forty-two deliberate breaks were driven
+in a copy outside the repository with Python's cache off: all caught but four, none able to
+change a real result: "under 5%" for "5% or under", an odd number of steps in the sum (a
+difference far below any line), and the first rung's two known ones ("over 2" for "2 or
+over", the arithmetic setting).
