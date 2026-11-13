@@ -22,6 +22,10 @@ class Line:
     currency: str  #: the currency its prices are quoted in: "GBP" or "USD"
     leverage: int  #: how many times its market's daily move the line makes; 1 when plain
     uk_tax: Decimal = NO_TAX  #: the part of a purchase's value paid in UK tax, from the table
+    #: Recorded, never assumed: that a UK stocks and shares ISA can hold the line, and that a
+    #: UK retail customer can buy it. A line nobody has recorded either of carries neither.
+    isa: bool = False
+    retail: bool = False
     #: Closes that moved further than the store believes a market moves, recorded as real,
     #: by day: a crash or a jump, confirmed, never a split (the archive must adjust those).
     real_moves: frozenset[tuple[date, Decimal]] = field(default_factory=frozenset)
@@ -42,22 +46,42 @@ class Line:
             raise ValueError(f"{self.symbol}: no UK tax on a purchase is {self.uk_tax!r}")
         if self.uk_tax and self.venue != "LSE":
             raise ValueError(f"{self.symbol}: a {self.venue} line pays no UK tax")
-        for day in sorted(self.suspended):
-            if venues.sessions(self.venue, day, day) != (day,):
-                raise ValueError(f"{self.symbol}: {day} is no {self.venue} session to suspend")
+        if type(self.isa) is not bool or type(self.retail) is not bool:
+            raise ValueError(
+                f"{self.symbol}: whether an ISA can hold it and a retail customer buy it is"
+                f" yes or no, not {self.isa!r} and {self.retail!r}"
+            )
+        shut = [d for d in sorted(self.suspended) if venues.sessions(self.venue, d, d) != (d,)]
+        if shut:
+            raise ValueError(f"{self.symbol}: {shut[0]} is no {self.venue} session to suspend")
 
 
-#: The twenty frozen lines, by the operator's ruling of 13 November 2026 (docs/DECISIONS.md).
+#: The frozen lines, by the operator's rulings of 13 November 2026 (docs/DECISIONS.md). SPY,
+#: QQQ and GLD, US funds a UK ISA cannot buy, leave for VUAG (the S&P 500), EQQQ (the Nasdaq
+#: 100) and IDTL (US Treasuries of twenty years and more, which London prices in dollars):
+#: thirteen in London and seven in the US. GLD is gone; SPY and QQQ stay, recorded as lines
+#: no ISA holds, only until the ladder's tests stop naming them (docs/PLAN.md).
+#: Each row records whether an ISA can hold its lines and whether a retail customer can buy
+#: them. IB1T, a note on bitcoin, has been open to retail since 8 October 2025 and shut out
+#: of a stocks and shares ISA since 6 April 2026. The leveraged three are as their issuers
+#: say, where an ISA's platform offers them.
 #: Each with its leverage: 3LGO, 2MU and 5QQQ make three, two and five times their market's
-#: daily move. None pays UK tax on a purchase: the ten in London are five funds (SMGB, IITU,
-#: VHYG, ISF, VUSA), exempt by regulation, and five exchange-traded products, debt of an
-#: issuer outside the UK (3LGO, 2MU, 5QQQ, IB1T, SGLN), nil as the law reads and still to be
-#: seen on a broker's contract note (docs/DECISIONS.md, the data lane's).
+#: daily move. None pays UK tax on a purchase: the thirteen in London are eight funds (SMGB,
+#: IITU, VHYG, ISF, VUSA, VUAG, EQQQ, IDTL), exempt by regulation, and five exchange-traded
+#: products, debt of an issuer outside the UK (3LGO, 2MU, 5QQQ, IB1T, SGLN), nil as the law
+#: reads and still to be seen on a broker's contract note (docs/DECISIONS.md, the data lane's).
 LINES = tuple(
-    Line(symbol, venue, currency, int(leverage), NO_TAX)
-    for venue, currency, symbols in (
-        ("LSE", "GBP", "3LGO:3 2MU:2 SMGB:1 IITU:1 VHYG:1 5QQQ:5 IB1T:1 ISF:1 VUSA:1 SGLN:1"),
-        ("US", "USD", "AAPL:1 TSLA:1 NVDA:1 SPCX:1 MSTR:1 AMD:1 SPY:1 QQQ:1 MU:1 GLD:1"),
+    Line(symbol, venue, currency, int(leverage), NO_TAX, isa, retail)
+    for venue, currency, isa, retail, symbols in (
+        ("LSE", "GBP", True, True, "3LGO:3 2MU:2 SMGB:1 IITU:1 VHYG:1 5QQQ:5 ISF:1 VUSA:1 SGLN:1"),
+        ("LSE", "GBP", True, True, "VUAG:1 EQQQ:1"),
+        ("LSE", "GBP", False, True, "IB1T:1"),
+        ("LSE", "USD", True, True, "IDTL:1"),
+        ("US", "USD", True, True, "AAPL:1 TSLA:1 NVDA:1 SPCX:1 MSTR:1 AMD:1 MU:1"),
+        ("US", "USD", False, False, "SPY:1 QQQ:1"),
     )
     for symbol, leverage in (entry.split(":") for entry in symbols.split())
 )
+#: What "simply holding the market" means, the one yardstick the desk's profit is set beside
+#: (AG-04): VUAG, the S&P 500 in pounds with its dividends kept in, where SPY stood.
+YARDSTICK = next(line for line in LINES if line.symbol == "VUAG")
