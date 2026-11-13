@@ -121,7 +121,8 @@ class _Pass(Generic[T]):
     machine: Machine
     threads: int
     share: int  #: bytes one worker may commit
-    waiting: list[Sequence[T]]
+    waiting: Sequence[T]  #: the work not yet cut into batches
+    halves: list[Sequence[T]] = field(default_factory=list)  #: a dead batch's, each run whole
     running: dict[BaseProcess, Sequence[T]] = field(default_factory=dict)
     died: list[T] = field(default_factory=list)
     size: int = FIRST
@@ -139,7 +140,7 @@ class _Pass(Generic[T]):
             if worker.exitcode == 0:
                 self.size = fit(self.machine.spent(worker), len(batch), self.share)
             elif len(batch) > 1:
-                self.waiting[:0] = [batch[: len(batch) // 2], batch[len(batch) // 2 :]]
+                self.halves += [batch[: len(batch) // 2], batch[len(batch) // 2 :]]
             else:
                 self.died.extend(batch)
             worker.close()
@@ -150,22 +151,21 @@ class _Pass(Generic[T]):
         busy, ours = self.machine.load()
         most = max(1, self.threads - spare(now))
         self.allowed = step(self.allowed, most, self.threads, free / total, busy, ours)
-        self.peak_cpu, self.least_free = (
-            max(self.peak_cpu, busy),
-            min(self.least_free, free / total),
-        )
+        self.peak_cpu = max(self.peak_cpu, busy)
+        self.least_free = min(self.least_free, free / total)
 
     def start(self) -> None:
         """Batches cut from the front of the work, each in a fresh worker under the ceiling."""
         spawn = multiprocessing.get_context("spawn")
-        while self.waiting and len(self.running) < self.allowed:
-            first = self.waiting.pop(0)
-            cut = min(self.size, -(-len(first) // max(1, self.threads - 1)))  # a worker's part
-            if first[cut:]:
-                self.waiting.insert(0, first[cut:])
-            worker = spawn.Process(target=self.work, args=(first[:cut],))
+        while (self.halves or self.waiting) and len(self.running) < self.allowed:
+            cut = min(self.size, -(-len(self.waiting) // max(1, self.threads - 1)))  # its part
+            if self.halves:
+                batch = self.halves.pop(0)
+            else:
+                batch, self.waiting = self.waiting[:cut], self.waiting[cut:]
+            worker = spawn.Process(target=self.work, args=(batch,))
             worker.start()
-            self.running[worker] = first[:cut]
+            self.running[worker] = batch
             self.machine.hold(worker)
             self.batches += 1
         self.most_workers = max(self.most_workers, len(self.running))
@@ -189,10 +189,10 @@ def run(
     started = clock()
     ceiling = int(machine.memory()[0] * CEILING)
     machine.limit(ceiling, ceiling // max(1, threads - 1))
-    state = _Pass(work, machine, threads, ceiling // max(1, threads - 1), [todo] if todo else [])
+    state = _Pass(work, machine, threads, ceiling // max(1, threads - 1), todo)
     seen = flagged = started - REFRESH
     try:
-        while state.waiting or state.running:
+        while state.waiting or state.halves or state.running:
             now = clock()
             state.reap()
             if now - seen >= TICK:
@@ -207,8 +207,10 @@ def run(
                 connection.wait(sentinels, timeout=TICK.total_seconds())
         peak = machine.peak()
     finally:
-        state.stop()
-        _flag(data, {"busy": False})
+        try:
+            state.stop()
+        finally:
+            _flag(data, {"busy": False})
     counts = (len(todo), state.batches, tuple(state.died), ceiling, peak)
     marks = (state.peak_cpu, state.least_free, state.most_workers)
     report = Report(started.isoformat(), clock().isoformat(), *counts, *marks)

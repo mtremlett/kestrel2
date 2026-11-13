@@ -4,8 +4,10 @@ sized to the free cores and backed off under load, a dead worker's batch carried
 from __future__ import annotations
 
 import json
+import multiprocessing
 import os
 import sys
+import time
 from collections.abc import Callable, Sequence
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
@@ -22,7 +24,7 @@ from lab import batch, tune
 from lab.cell import Cell
 
 GB = 1 << 30
-SMALL = 7 * 400 * (1 << 20)  #: a ceiling for the proof: 400 MB a worker, seven workers
+SMALL = 400 * (1 << 20)  #: a ceiling for the proof: 400 MB for the one worker of two threads
 SATURDAY = datetime(2026, 11, 14, 12, tzinfo=UTC)
 START = date(2020, 1, 1)
 SHAPE = [10] * 20 + [10.4, 11, 11, 9.4, 9.4]
@@ -75,6 +77,7 @@ def _mark(folder: Path, cells: Sequence[str]) -> None:
     for name in cells:
         if name == "fatal":
             os._exit(3)
+        time.sleep(600 if name == "stuck" else 0)
         (folder / name).write_text("done", encoding="utf-8")
 
 
@@ -85,8 +88,7 @@ def _study(folder: Path, cells: Sequence[Cell]) -> None:
         hungry = bytearray(GB if line == QQQ else 1)
         return BARS[: len(BARS) * len(hungry)]
 
-    first = cells[0]  # a journal to a batch: one process at a time works on a journal
-    batch.run(cells, bars, folder / f"{first.strategy}-{first.symbol}.jsonl")
+    batch.run(cells, bars, folder / "journal.jsonl")
 
 
 @pytest.mark.parametrize(
@@ -162,6 +164,20 @@ def test_a_pc_short_of_memory_gets_one_worker_at_a_time(tmp_path: Path) -> None:
     assert all((tmp_path / name).exists() for name in cells)
 
 
+def test_batches_grow_to_what_the_memory_measured_allows(tmp_path: Path) -> None:
+    cells = [f"cell{n}" for n in range(40)]  # two threads: one worker, its part all that is left
+    report = tune.run(cells, partial(_mark, tmp_path), Pc(tmp_path), tmp_path, 2, lambda: SATURDAY)
+    assert report.batches == 3  # eight cells unmeasured, then sixteen at a time
+    assert all((tmp_path / name).exists() for name in cells)
+
+
+def test_a_dead_batch_is_halved_until_its_one_cell_stands_alone(tmp_path: Path) -> None:
+    cells = [f"cell{n}" for n in range(7)] + ["fatal"]
+    report = tune.run(cells, partial(_mark, tmp_path), Pc(tmp_path), tmp_path, 2, lambda: SATURDAY)
+    assert report.died == ("fatal",) and report.batches == 7  # 8 cells; 4 and 4; 2 and 2; 1 and 1
+    assert all((tmp_path / name).exists() for name in cells[:7])
+
+
 def test_a_pass_that_is_stopped_leaves_no_worker_and_no_busy_flag(tmp_path: Path) -> None:
     def stopped() -> datetime:
         if (tmp_path / tune.FLAG).exists():
@@ -170,8 +186,8 @@ def test_a_pass_that_is_stopped_leaves_no_worker_and_no_busy_flag(tmp_path: Path
 
     pc = Pc(tmp_path)
     with pytest.raises(KeyboardInterrupt):
-        tune.run(["cell0"], partial(_mark, tmp_path), pc, tmp_path, 8, stopped)
-    assert pc.closed
+        tune.run(["stuck"], partial(_mark, tmp_path), pc, tmp_path, 8, stopped)
+    assert pc.closed and multiprocessing.active_children() == []
     assert json.loads((tmp_path / tune.FLAG).read_text(encoding="utf-8")) == {"busy": False}
 
 
@@ -188,12 +204,11 @@ def test_windows_refuses_a_hungry_cell_its_memory_and_the_batch_carries_on(
         cells = [Cell(names[0], SPY, START, START + timedelta(24))]
         cells += [Cell(names[0], QQQ, START, START + timedelta(24))]
         cells += [Cell(name, SPY, START, START + timedelta(24)) for name in names[1:]]
-        report = tune.run(cells, partial(_study, tmp_path), pc, tmp_path, 8)
-        journals = "".join(j.read_text(encoding="utf-8") for j in tmp_path.glob("*-*.jsonl"))
-        rows = [json.loads(row) for row in journals.splitlines()]
-        ended = {(*row["cell"][:2], row.get("error", "")[:11]) for row in rows}
-        hungry = (names[0], "QQQ", "MemoryError")
-        assert ended == {hungry} | {(name, "SPY", "") for name in names} and len(rows) == 6
-        assert not report.died  # the worker itself lived: the cell is recorded and the rest ran
+        report = tune.run(cells, partial(_study, tmp_path), pc, tmp_path, 2)
+        journal = (tmp_path / "journal.jsonl").read_text(encoding="utf-8")
+        rows = [json.loads(row) for row in journal.splitlines()]
+        assert [row["cell"][:2] for row in rows] == [[c.strategy, c.symbol] for c in cells]
+        assert [row.get("error", "")[:11] for row in rows] == ["", "MemoryError", *[""] * 4]
+        assert not report.died and report.batches == 1  # one worker: refused, it ran the rest
         assert 0 < report.peak_memory <= report.ceiling <= SMALL
         assert 0 <= report.peak_cpu <= 1 and 0 < report.least_free < 1
