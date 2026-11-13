@@ -11,20 +11,29 @@ has not come within WAIT seconds (NoRound).
 
 A line is its venue and its symbol: one symbol can be two companies. A daily bar is named by
 its session's day; a five-minute bar by the moment it starts, in UTC. Prices are kept as the
-exact decimals they were written as."""
+exact decimals they were written as.
+
+Five-minute bars are kept for good (DAT-11): the free archive forgets them after sixty days,
+so `keep` saves each evening's through the checks the daily store makes. No moment's bar is
+ever removed; one the archive restates takes the place of the one held only by passing those
+checks, its unit judged against what is held. The last week stays hot with every older bar
+archived beneath it in the same file: the benchmark reads a week from under a year of them,
+for twenty lines."""
 
 from __future__ import annotations
 
 import sqlite3
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 from contextlib import closing, contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
+from statistics import median_low
 
+from desk import venues
 from desk.lines import Line
-from desk.store import Bar
+from desk.store import FAR, JUMP, STRETCH, Bar, Refused
 
 DAILY, FIVE = "daily", "five-minute"  #: the two spans of bar the store holds
 EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
@@ -48,6 +57,7 @@ HELD = "SELECT 1 FROM held WHERE venue = ? AND symbol = ? AND span = ?"
 CLEAR = "DELETE FROM bar WHERE venue = ? AND symbol = ? AND span = ?"
 ADD = "INSERT INTO bar VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
 PUT = "INSERT OR REPLACE INTO bar VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+CLOSES = "SELECT close FROM bar WHERE venue = ? AND symbol = ? AND span = ? AND at >= ?"
 READ = (
     "SELECT at, open, high, low, close, volume FROM bar"
     " WHERE venue = ? AND symbol = ? AND span = ? AND at >= ? AND at < ? ORDER BY at"
@@ -129,6 +139,11 @@ class Round:
         takes the place of the one held for it, and no other bar is touched."""
         self._write(False, line, FIVE, ((_seconds(b.start), b) for b in bars))
 
+    def closes(self, line: Line, since: datetime) -> list[Decimal]:
+        """The closes of the line's five-minute bars held from since on, this round's too."""
+        key = (line.venue, line.symbol, FIVE, _seconds(since))
+        return [Decimal(close) for (close,) in self._held.execute(CLOSES, key)]
+
 
 @contextmanager
 def writing(path: Path) -> Iterator[Round]:
@@ -182,3 +197,84 @@ def five(path: Path, line: Line, since: datetime, until: datetime) -> tuple[Five
         Five(EPOCH + timedelta(seconds=at), Decimal(o), Decimal(h), Decimal(lo), Decimal(c), v)
         for at, o, h, lo, c, v in rows
     )
+
+
+def _entered(line: Line, bar: Five) -> Five | str:
+    """The bar as it enters the store, or why it cannot be true on its own: the daily store's
+    checks, made at five minutes. A bar belongs to a session's continuous trading: one that
+    starts before the open, or at the close or after it, is no bar of that session."""
+    prices, at = (bar.open, bar.high, bar.low, bar.close), f"{bar.start:%Y-%m-%d %H:%M}"
+    known = bar.start.year in venues.KNOWN
+    session = venues.open_at(line.venue, bar.start) if known else None
+    if bar.start.date() in line.suspended:
+        return f"{at} has a bar, yet {line.symbol} records the day as suspended"
+    if session is None or bar.start >= session.close:
+        return f"{at} is outside the trading hours of the {line.venue} calendar"
+    if not all(p.is_finite() and p > 0 for p in prices) or bar.volume < 0:
+        return f"{at} has a price or volume that cannot be"
+    ends = (bar.open, bar.close)
+    reach = (bar.low * (1 - STRETCH), bar.high * (1 + STRETCH))
+    if not bar.low <= bar.high or not reach[0] <= min(ends) <= max(ends) <= reach[1]:
+        return f"{at} has an open or close outside its high and low"
+    return replace(bar, high=max(bar.high, *ends), low=min(bar.low, *ends))
+
+
+def _near(bar: Five, other: Five) -> bool:
+    """The bar's whole range lies within a market's move of the other's close."""
+    return other.close / JUMP <= bar.low and bar.high <= other.close * JUMP
+
+
+def checked(
+    line: Line, bars: Iterable[Five], held: Sequence[Decimal] = ()
+) -> tuple[list[Five], list[str]]:
+    """The bars of one line that can be true, oldest first, and every fault found on the way.
+    A moment given twice differently keeps neither bar. A bar a hundredfold from the middle
+    of the closes held, or with none held the middle close of all that was given, is in a
+    wrong unit, and is not kept. Any other move further
+    than the store believes a market makes may be real: its bar is kept, and the move is a
+    fault. Five minutes in which nothing traded have no bar, and that is no fault."""
+    faults: list[str] = []
+    given: dict[datetime, set[Five]] = {}
+    for bar in bars:
+        given.setdefault(bar.start, set()).add(bar)
+    sound: list[Five] = []
+    for start, said in sorted(given.items()):
+        entered = _entered(line, next(iter(said))) if len(said) == 1 else None
+        if isinstance(entered, Five):
+            sound.append(entered)
+        else:
+            faults.append(entered or f"{start:%Y-%m-%d %H:%M} given {len(said)} ways; none kept")
+    if not sound:
+        return [], faults
+    middle = median_low(held or [bar.close for bar in sound])
+    kept: list[Five] = []
+    for bar in sound:
+        at = f"{bar.start:%Y-%m-%d %H:%M}"
+        if any(p >= middle * FAR or p * FAR <= middle for p in (bar.high, bar.low)):
+            faults.append(f"{at} is a hundredfold from the bars around it: a wrong unit")
+            continue
+        if kept and not (_near(bar, kept[-1]) and _near(kept[-1], bar)):
+            faults.append(f"{at} moved from {kept[-1].close} to {bar.close}")
+        kept.append(bar)
+    return kept, faults
+
+
+def keep(
+    path: Path, answers: Mapping[Line, Iterable[Five] | Refused]
+) -> dict[Line, tuple[str, ...]]:
+    """An evening's answers from the archive into the store at path, in one round: each line's
+    bars that pass the checks, their unit judged against the bars held from the same days,
+    and every line's faults. A line the archive refused adds nothing this evening. A bar held
+    stays unless a bar for its own moment passes the checks, and takes its place."""
+    faults: dict[Line, tuple[str, ...]] = {}
+    with writing(path) as round_:
+        for line, bars in answers.items():
+            if isinstance(bars, Refused):
+                faults[line] = (f"the archive refused it: {bars.reason}",)
+                continue
+            given = list(bars)
+            since = min((bar.start for bar in given), default=EPOCH)
+            kept, found = checked(line, given, round_.closes(line, since))
+            round_.five(line, kept)
+            faults[line] = tuple(found)
+    return faults
