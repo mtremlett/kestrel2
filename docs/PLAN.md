@@ -426,9 +426,9 @@ and nothing else beyond the standard library and `desk/`. Its ceiling rises from
 
 ### The grid lane's book
 
-**Lane objective:** a cell names its ticker's venue (R-DATA-1, asked by the data lane): a
-cell takes a `Line` of the research list, not one of the twenty trading lines by symbol
-alone, and its bars are read from its venue's folder. Then auto-tune.
+**Lane objective:** auto-tune, so a pass can never take the PC down; then the cell's key, the
+first pass and the rest. (A cell names its line and venue, R-DATA-1: done in #73.) Order:
+grid-tune and grid-key side by side; then grid-pass, grid-week, grid-declared, grid-weekend.
 
 - [x] The unit of work, keyed by code and data version (`lab/cell.py`)
 - [x] A batch service that survives a bad cell and a restart (`lab/batch.py`)
@@ -436,8 +436,9 @@ alone, and its bars are read from its venue's folder. Then auto-tune.
 - [x] The fast grid engine, its parity with the desk's engine proven on the golden data
       (`lab/grid.py`: the same position after every bar, or a refusal, never a guess)
 - [x] The unit of work on the grid, the desk's engine deciding what the grid refuses
-- [ ] A cell names its ticker's venue: a `Line` of the research list, its bars read from
-      its venue's folder (R-DATA-1) {id: grid-venue; files: lab/cell.py, lab/batch.py,
+- [x] A cell names its ticker's venue: a `Line` of the research list, its bars read from
+      its venue's folder (R-DATA-1). Remains: a cell can still be made from a symbol alone,
+      only for the rungs lane's files (R-GRID-2) {id: grid-venue; files: lab/cell.py, lab/batch.py,
       tests/unit/test_lab_cell.py, tests/unit/test_lab_batch.py}
 - [ ] Auto-tune, so a pass can never take the PC down: a hard memory ceiling held by
       Windows itself (a Job Object on the workers, about 60% of the 64 GB); workers sized
