@@ -90,6 +90,23 @@ Last updated: 13 November 2026.
 
 ### Where it is
 
+The desk now checks its book against the broker's before every order (`book.reconcile`, on
+the send path, so nothing goes round it). Line by line it sets the shares its ledger adds up
+to beside the shares the broker reports and the stop resting there, and names each line
+that differs: a position bought or sold by hand, or a stop cancelled. While any line
+differs the desk buys nothing. It still sells a line whose shares agree, one that has lost
+its stop included, and never a line whose shares differ, since the broker may not hold
+them. The day carries on and keeps each refusal as that order's stated answer; buying
+starts again by itself once the two agree. Over the rehearsal's fourteen months the two
+never differ and the desk trades exactly as before. Tests seen failing first; forty-four
+deliberate breaks over two rounds: the first round missed five of thirty-one, each a gap
+in the tests, now closed and driven again; all are caught. A blind review found nothing
+blocking; its findings are taken or recorded (below).
+
+**Scenes 6 and 7 will pass together, not one after the other** (`docs/DECISIONS.md`): both
+read the day's one record, and a reconciled day's profit cannot be published until every
+cost line is real. Scenes stay at 5 of 7 until then.
+
 Scene 5 passes: the desk sells, and closes round trips. Its day (`day.trade`) runs after
 the market opens: it writes in the ledger the stops the open sold, keeps the day's
 exchange rates, and acts only on decisions dated the session before, on lines whose venue
@@ -163,16 +180,29 @@ caught; the forty-fifth cannot change a decision.
 
 ### Next step
 
-Reconciliation, so scene 6 passes: the desk's book against the broker's positions line by
-line, a mismatch named, the day's profit withheld and no buying while they disagree. Then
-the day record (scene 7), where spread, slippage and UK tax join the costs.
+The kill switch and its drill, by his ruling of 13 November that it comes first: the paper
+lane sends no order until it is drilled, and nothing the money lane waits for holds it up.
+Then the costs whole in the one cost model (`desk/orders.py`): what a sale itself costs, and
+spread and slippage on both legs, the stop's sale included, each a stated assumption; the
+rungs lane waits for them too. Then the day's record (`day.run`): the day reconciled at its
+end, a mismatch named and its profit withheld, else the profit after every cost beside what
+holding the market earned. It needs each line's UK tax from the data lane (below). Scene
+6's test must move onto the fourteen months and check the book against the broker's every
+day: no rule holds anything at the end of the rehearsal data, on its six weeks or on the
+whole of it, so "the broker holds something" cannot be read there.
 
-### Asked of the data lane
+### Requests to DATA
 
-- Scene 2 now counts each line against its own venue's calendar: the scenes can move onto
-  the fourteen months (`SCENES_FROM = FIRST`). Scene 5 already reads them whole.
-- A daily exchange rate, pounds per dollar, in the store. The day run is handed the day's
-  rates (`day.trade`'s `rates`); the scenes give 0.79 every day.
+- [ ] R-MONEY-1 (blocking, opened 2026-11-13 18:15): each line's UK transaction tax as a fact on the line
+  (`Line`): what a purchase pays, nil for a fund or an exchange-traded product, 0.5% stamp
+  duty for a UK share, each of the ten London lines confirmed; and one London line in the
+  rehearsal data that pays it. Scene 7 requires every cost line charged at least once, and
+  scenes 6 and 7 cannot pass until the day's record can count the tax.
+- [ ] R-MONEY-2 (blocking, opened 2026-11-13 18:15): the scenes moved onto the fourteen months
+  (`SCENES_FROM = FIRST`). Scene 2 now counts each line against its own venue's calendar,
+  and scene 7 needs days on which the rules trade; none trades in the six weeks.
+- [ ] R-MONEY-3 (later, opened 2026-11-13 18:15): a daily exchange rate, pounds per dollar, in the store.
+  The day run is handed the day's rates (`day.trade`'s `rates`); the scenes give 0.79.
 
 ### Found, not fixed
 
@@ -184,8 +214,6 @@ the day record (scene 7), where spread, slippage and UK tax join the costs.
     penny, for every pound figure.
   - "A line its rule sold this morning is not bought again" is tested only through a
     stop's sale; the code is the same for both.
-  - A sale at the pretend broker of a line with no resting stop passes in silence; every
-    buy leaves one, so a missing stop means the two books differ: reconciliation's job.
   - Spread, slippage and UK tax are not in a round trip's costs yet: the day record must
     add both legs' spread and slippage, the stop's sale included.
   - The day run decides each line's whole history again every day: fourteen months of
@@ -193,10 +221,29 @@ the day record (scene 7), where spread, slippage and UK tax join the costs.
     need the rules' state carried from day to day.
   - The day run reads the archive it is handed; preparing it through the store
     (`store.prepare`, asked by the data lane) is still to come, before paper.
+- **What the blind review of reconciliation left** (nothing blocking; taken: a line that
+  has lost its stop may still be sold, a stated error for cancelling a stop that does not
+  rest, and tests for a line only the book holds and for an order the broker already has):
+  - **Nobody is told yet.** A mismatch stops the buying and is in each order's answer, but
+    reaches the operator only when the day's record and the messages exist. Until a person
+    acts, a line whose stop was cancelled sits unprotected unless its rule sells it, and a
+    line partly sold by hand keeps a stop for more shares than are held, which would sell
+    the broker short. The desk cannot place or change a stop by itself.
+  - A lost ledger does not show at the pretend broker: it gives every fill it ever made, so
+    the ledger is written again whole, in silence. Reconciliation sees only a change with
+    no fill behind it. At a real broker, which gives recent fills only, a lost ledger would
+    name every held line and stop the buying.
+  - A stop resting for the wrong number of shares on a line whose shares agree cannot be
+    made at the pretend broker, so "exactly the shares held" is tested only as "no stop".
+  - A gate refusal of a sale during the day (selling more than the book holds) is now one
+    of the day's answers and no longer stops the day. It cannot arise today.
+  - **For the paper adapter (phase 3):** the broker's fills must be the desk's own orders
+    and their stops only, or a hand trade's fill would be written in the ledger and the two
+    books would agree; orders still working, a stop placed before its buy fills, and
+    positions that lag fills would each read as a mismatch and stop the morning's buying,
+    so reconciliation there needs the broker's working orders; a dropped connection while
+    reading positions or stops is not yet a stated answer, only in placing an order.
 - **What the blind review of the book left** (nothing blocking; its fix and test gap taken):
-  - The gate reads the desk's book, not the broker's. A position bought by hand at the
-    broker is not counted, so the broker can hold a sixth line. Reconciliation (scene 6)
-    must stop buying while the book and the broker disagree.
   - The book reaches the gate as a bare mapping of line to shares. Only the send path
     passes the real book; a typed book that only `book.positions` can make would stop a
     caller passing an empty one.
@@ -211,8 +258,8 @@ the day record (scene 7), where spread, slippage and UK tax join the costs.
     order the broker already holds must not be judged by the gate again - is fixed):
     the ledger is swapped in whole but not forced to disk, so a power cut (not a crash of
     the desk) can lose it; and a ledger deleted later reads as "no fills" without a
-    word. Neither can send twice, since the broker is asked first; reconciliation
-    (scene 6) is where a lost ledger must show.
+    word. Neither can send twice, since the broker is asked first (what reconciliation
+    sees of a lost ledger is above).
   - The broker fills at the bare open and sells a stop at exactly its level. Spread and
     slippage are not in its prices, so the day run must charge both, on both legs, the
     stop's sale included, or profit reads too high.
@@ -253,11 +300,12 @@ Every one of these raises NotImplementedError, by design, until its phase builds
 
 | part | phase |
 |---|---|
-| `day.run`: reconciliation and the day's record, after `day.trade` | 2 |
+| `day.run`: the day's reconciled record (its mismatches, profit, costs and the market), after `day.trade` | 2 |
 
 Built and real: the day's trading (`day.trade`, `strategy.today`), sales and round trips
-(`orders.Sale`, `book.round_trips`, `book.record_rates`), the send path, the ledger and
-the book (`book.send`, `book.fills`, `book.collect`, `book.positions`), the pretend broker (`broker.Pretend`), sizing, cost and
+(`orders.Sale`, `book.round_trips`, `book.record_rates`), the send path, the ledger, the
+book and its reconciliation (`book.send`, `book.fills`, `book.collect`, `book.positions`,
+`book.reconcile`), the pretend broker (`broker.Pretend`), sizing, cost and
 the gate across the book (`orders.size`, `orders.cost`, `orders.gate`), the five strategies (`strategy.decide`), the twenty lines, the archive
 client (`archive.fetch`), the price store (`store.prepare`, `store.read`, `store.faults`),
 the venue calendars,
@@ -271,24 +319,95 @@ Last updated: 13 November 2026.
 
 ### Where it is
 
-Not started. Phase 3 begins alongside phase 2 by the operator's ruling of 13 November.
-The paper account is the old desk's, reached through IB Gateway on his PC (installed, and
-running for the old desk), port 4002 only, with the desk's own client id.
+The desk can now read the paper account and say whether anything but the desk trades it
+(`desk/paper.py`). It connects to IB Gateway's paper port on his PC under the desk's own
+client id (222), asks two questions - what the account holds, and which orders rest on it -
+and hangs up. It places, changes and cancels nothing: the four messages it can send are
+fixed, and a test holds them byte for byte. The standard library alone, about two hundred
+lines.
+
+**Run on the real account, 13 November, about 17:45 UK: quiet.** The account lists
+seventeen lines the old desk once held, every one at no shares, and no order rests on it.
+Against the desk's book (empty: the desk has sent nothing on paper) the check named no
+difference. Held open a second time under the same client id, the gateway refused the
+desk with its reason, and the desk stopped, as it should.
+
+What the check holds to (`paper.differences`, `paper.mismatches`):
+- **Only a paper account is read.** The broker starts a paper account's code with a D. Any
+  other code, in the gateway's list of accounts, on a holding or on an order, stops the
+  desk before it asks that account anything. A gateway logged in to a real account cannot
+  be read as quiet.
+- **A holding must be the book's.** Matched by its symbol, kind and currency; more, fewer,
+  short, in another currency, as another kind of product, or split over two entries that
+  only add up to the book: each is named. A line the book holds and the broker does not is
+  named too.
+- **Every resting order is named**, whoever placed it, the desk's own client included: the
+  desk rests none on paper yet.
+- **A reading that stops is never a clean one.** A gateway that speaks another version,
+  hangs up, sends half a message, a message cut short, an unknown kind of message, or any
+  notice other than the state of its price feeds, stops the check with the reason.
+
+The tests were seen failing first. A blind review found one blocking fault (entries that
+added up to the book were passed as the book), fixed and tested, and nine lesser points,
+taken or recorded below. Sixty-five deliberate breaks are each caught; six showed a gap in
+the tests on the way, each closed (`docs/DECISIONS.md`).
 
 ### Next step
 
-The paper account proved quiet: a daily read-only check of its positions and open orders
-against the desk's own book, a mismatch flagged (scene 6), before any order is sent.
+Each of the twenty lines as the broker knows it (its name there, its exchange and its price
+step), read-only, so an order can name its line and a stop sits on a price the broker
+accepts. Then the fills and orders the broker reports, then placing: no order until that
+day's check is clean. The check should be run again on a second day before the first order.
+
+### Requests to MONEY
+
+- [ ] R-PAPER-1 (blocking, opened 2026-11-13 18:15): one home for "the book against the broker".
+  `paper.differences` is that rule for the real account; scene 6 (`day.run`) needs it
+  against the pretend broker. One comparison should serve both, in `desk/book.py`, taking
+  the book and the broker's holdings; the paper door would then hand it the account's
+  entries and add only the orders.
+- [ ] R-PAPER-2 (blocking, opened 2026-11-13 18:15): `book.send`, `book.collect` and `day.trade` accept
+  any broker with `Pretend`'s interface, not `Pretend` by name, so the paper adapter can
+  stand behind them.
 
 ### Found, not fixed
 
 - **The old desk's scheduled tasks are all disabled**, he confirmed as administrator on
   13 November. The daily read-only check of the account stays all the same: it is the
   proof, every day, that nothing else trades it.
+- **Nothing runs the check each day yet**, and nothing makes the desk wait for it: one
+  clean reading at one moment is all there is. It is the lane's next box.
+- **An open order has never been seen from the real gateway**, since none rests on the
+  account. Its shape in the tests is the published client's, checked field by field by the
+  blind review. Any order is named whatever its details; the first conformance trade must
+  confirm them.
+- **Whether the broker's name for each of the twenty lines is the desk's is unproven.**
+  SMGB and AAPL appear under the desk's names among the old desk's lines. "A share or a
+  fund" is written in the door as the broker's word for it; the instrument master holds no
+  fact about a line at the broker. The next step settles both.
+- **The guard on the live port reads for one number.** It would not catch the live port of
+  the broker's desktop program. The door's own test now holds its port and machine, and the
+  paper-only lock stands behind it; a session he starts could make the guard refuse any
+  port in `desk/` but the paper one.
+- **Some bad answers stop the desk loudly but without a plain sentence:** a share count
+  that is no number, and a byte that is not text. A list of accounts ending in a comma
+  would be refused as "not a paper account"; the real gateway sends none.
+- **A gateway that has lost its link to the broker** may still answer from memory. It
+  announces the loss to clients connected at the time, and the desk stops on that notice;
+  whether a client connecting afterwards is told is unproven.
+- **The gateway must be running and logged in**, and it logs itself out each day. Keeping
+  it up belongs to "unattended running", later in the book.
+- **This change adds as many test lines as product lines** (202 each), so it leaves the
+  shared margin between unit tests and product where it was.
+- **A deliberate break can report the wrong result from Python's cache.** A break written
+  within a second of the last, to a file of the same size, ran the old code once in this
+  session and named the wrong test. Every lane drives breaks; they should be run with the
+  cache off (`PYTHONDONTWRITEBYTECODE=1`). A session he starts could record this in
+  `docs/FAILURE_PATTERNS.md`.
 
 ## DATA
 
-Last updated: 13 November 2026.
+Last updated: 13 November 2026 (the research list).
 
 ### Where it is
 
@@ -356,28 +475,53 @@ straight after days in the wrong unit is now kept too. Tests seen failing first;
 deliberate breaks each caught; a blind review, nothing blocking, its one finding of the
 same kind fixed.
 
+The research list is built (`lab/universe.py`), by his ruling of 13 November: the S&P 500
+(503 tickers), the Nasdaq 100 (101), the FTSE 350 (347: three members London quotes in
+euros are left off, a currency no line can state yet) and the 200 most-traded US funds of a
+field of 330. Shares on two lists counted once, that is **1,065 tickers**, not the "about
+1,500" first guessed: the four lists overlap. It sits in `lab/`, which the trading core may
+never import, so being on it makes nothing tradable; a ticker the desk also trades (ten are)
+is the instrument master's own line. One command (`universe.keep`) fetches each ticker's
+bars since 2010 and keeps them through the one store's checks, one ticker at a time, each
+venue in its own folder, since one symbol can be two companies (BA is Boeing in New York and
+BAE Systems in London; thirteen symbols are shared). Driven on the real archive for 13
+November, in about ten minutes: every one of the 1,065 answered, 4.1 million daily bars;
+**864 are clean and 201 parked**, every one of the 201 for a one-day move larger than the
+store believes that nobody has recorded (406 moves; the commonest days are the flash crash
+of 6 May 2010, March 2020 and the day after the Brexit vote). Tests seen failing first; of
+thirty-one deliberate breaks, twenty-eight were caught at once, two once their tests were
+added, and the last, a change of order, changes nothing; a blind review's two blocking
+findings are fixed or decided (`docs/DECISIONS.md`).
+
 ### Next step
 
-Move the scenes onto the whole fourteen months - one line, `SCENES_FROM = FIRST` - as soon
-as the money lane's scene 2 counts each line's own days (not yet, at #30). Meanwhile: the
-store's next open finding, below: a stretched bar's new high or low recorded as differing
-from the archive's.
+The research list's parked fifth: 201 tickers wait for their large moves to be recorded,
+most of them real days of a real market. Decide and build how research reads them without
+loosening the trading store. The scenes' move onto the whole fourteen months is ready on
+the money lane's side (`SCENES_FROM = FIRST`) and is a one-line session of its own.
 
-### Asked of the money lane
+### Requests to GRID
 
-- **Scene 2's count assumes every line trades the same days.** It expects five rules times
-  nineteen lines times one list of days. Over fourteen months London and the US keep
-  different holidays, so the count must be each line's own: the number of bars each line
-  has, added up, times five. That reads the same on today's six weeks, so it can land
-  first. Driven: at full length scene 2 finds 28,925 decisions, every one present, and
-  expects 29,545. Its future-blind loop over all 311 days takes about twenty seconds; it
-  may cut on fewer days.
+- [ ] R-DATA-1 (later, opened 2026-11-13 18:15): a cell names its ticker's venue. `lab/cell.py` accepts
+  only the twenty trading lines and knows a line by its symbol alone; the research list has
+  thirteen symbols that are two companies. Take a `Line` from `universe.UNIVERSE`, and read
+  its bars from its venue's folder: `store.read(root / line.venue, line.symbol)`.
+- A parked research ticker keeps its sound bars and can be read, but 201 of them hold a
+  move nobody has confirmed; `universe.keep` returns them by line with the reason.
+- Every ticker is a member today: a result over the past on this list has survivor bias,
+  and its report must say so (canon B6).
+
+### Requests to MONEY
+
+- [x] R-DATA-2 (blocking, opened 2026-11-13 18:15): scene 2's count made each line's own, the number of
+  bars each line has, added up, times five (done by the money lane before requests were
+  numbered).
+- [ ] R-DATA-3 (later, opened 2026-11-13 18:15): the day run reads the archive through `archive.gather`
+  and hands its answers to `store.prepare` whole, so a refused line arrives as
+  `store.Refused` and parks with its reason; `day.run`'s `archive` parameter would then be
+  `Mapping[Line, Sequence[Bar] | Refused]`.
 - `SESSIONS` will then be every day either venue trades; a day run on it meets days only
   one venue trades (Thanksgiving, Easter Monday).
-- **The day run should read the archive through `archive.gather` and hand its answers to
-  `store.prepare` whole.** A refused line then arrives as `store.Refused` and parks with
-  its reason; `day.run`'s `archive` parameter would then be
-  `Mapping[Line, Sequence[Bar] | Refused]`.
 
 ### Found, not fixed
 
@@ -399,6 +543,35 @@ from the archive's.
   months are built and proven to trade; scene 5 needs the scenes moved onto them (above).
   Until then no test reads the months before October, so only the script recorded in
   `docs/DECISIONS.md` shows they park nothing clean and that each rule trades in them.
+- **The research list, as fetched on 13 November** (`lab/universe.py`):
+  - A fifth of it is parked: 201 of 1,065, for 406 unrecorded one-day moves (93 US tickers,
+    108 London). Eighty-nine have one move only. Nothing fills `Line.real_moves` for a
+    research ticker, and its list has no place for one.
+  - It is today's members only, so the past studied on it is the survivors' past. The
+    lists' members year by year are not held.
+  - The research store is not kept anywhere yet: the fetch that proved it wrote 327 MB to a
+    scratch folder on his PC. `universe.keep` rebuilds it in about ten minutes; where it
+    lives, and its nightly refresh, come with the grid's first pass.
+  - A ticker the archive refuses for a day (a timeout, a throttled answer) loses its bars
+    until the next run, by the store's one rule (`docs/DECISIONS.md`). The proving run
+    paused a fifth of a second between tickers and was never refused; `universe.keep`
+    itself does not pace its requests.
+  - A ticker that leaves a list keeps its old files in the store, and a run stopped part
+    way leaves no mark of which tickers it reached. The store holds no record of the day or
+    the list it reflects.
+  - Three FTSE 350 members quoted in euros in London (BCG, MTLN, PEY) are left off: a line
+    is in pounds or dollars. Five quoted in dollars there are in.
+  - The 200 funds are the most traded of a field of 330 drawn up by the session, not of
+    every US fund: no free list of all of them by value traded was found. Funds that move
+    against their market, whose multiple has changed, on a single share or tracking
+    volatility are not in the field.
+  - Each ticker's name was checked only by the archive answering to it: a symbol that
+    exists but belongs to another company would pass.
+  - On the 1,065 the store dropped 770 frozen runs, 750 days with a price outside the
+    day's range and 265 bars on closed days, and found 314 gaps; none is recent enough to
+    park a ticker, but the rules were tuned on twenty lines, and thinly traded London
+    trusts may truly sit still for a week.
+  - PRN (a FTSE 250 member) is a reserved file name on older Windows; it wrote normally here.
 - **What the blind review of the store's rules left open** (its one blocking finding - a run
   of days in the wrong unit taken as a lasting step - is fixed and tested; the first fix
   dropped 2MU's real December 2024 crash as bad days, so a run is now bad days only when it
@@ -540,6 +713,11 @@ least commission eats at a small capital, and the same edge with too few trades.
 
 Luck correction that counts every trial: a winner is corrected for how many trials it was
 picked from, and every rung records that count (canon B6, AG-01).
+
+### Requests to MONEY
+
+- [ ] R-RUNGS-1 (later, opened 2026-11-13 18:15): a sale's own cost, spread and slippage in
+  `desk/orders.py`, from the desk's one cost model, so the first rung's costs are whole.
 
 ### Found, not fixed
 

@@ -14,7 +14,7 @@ from pathlib import Path
 
 from desk.broker import Disconnected, Fill, Pretend
 from desk.lines import Line
-from desk.orders import Order, Sale, Settings, charges, gate
+from desk.orders import Order, Refused, Sale, Settings, charges, gate
 
 LEDGER, RATES = "ledger.csv", "rates.csv"
 COLUMNS = ("execution_id", "order_id", "symbol", "quantity", "price", "day")
@@ -40,11 +40,18 @@ def send(root: Path, broker: Pretend, order: Order | Sale, settings: Settings) -
     """Ask the broker what it did with the order's id, so a desk that restarts never sends
     it twice; if it never received it, pass the pre-trade gate and send it. Its fills are
     recorded and its stop rests at the broker. The gate reads the book, brought up to date
-    with the broker's fills first."""
+    with the broker's fills first. While the book is not the broker's on any line nothing
+    is bought, and a line is sold only if its shares agree: one that has lost its stop may
+    go, shares the broker may not hold may not."""
     report = broker.report(order.order_id)
     if report is None:
-        collect(root, broker)
-        gate(order, settings, positions(root))
+        differ, held, symbol = reconcile(root, broker), positions(root), order.line.symbol
+        unsure = held.get(symbol) != broker.positions().get(symbol)
+        if differ and (isinstance(order, Order) or unsure):
+            raise Refused(
+                f"{order.order_id}: not sent, the book is not the broker's on {list(differ)}"
+            )
+        gate(order, settings, held)
         try:
             report = broker.place(order)
         except Disconnected as lost:  #: never received: stated, and sent again next time
@@ -95,6 +102,20 @@ def collect(root: Path, broker: Pretend) -> None:
     """Write in the ledger every fill the broker made that it lacks: a stop the broker sells
     is in no order's answer."""
     _record(root, broker.fills())
+
+
+def reconcile(root: Path, broker: Pretend) -> tuple[str, ...]:
+    """The lines on which the desk's book is not the broker's, once every fill the broker
+    made is in the ledger: the shares differ, or the stop resting at the broker is not for
+    exactly the shares held. None named: the book is the broker's."""
+    collect(root, broker)
+    ours, theirs = positions(root), broker.positions()
+    stops = {symbol: shares for symbol, (shares, _) in broker.resting_stops().items()}
+    return tuple(
+        symbol
+        for symbol in sorted(ours.keys() | theirs.keys() | stops.keys())
+        if not ours.get(symbol, 0) == theirs.get(symbol, 0) == stops.get(symbol, 0)
+    )
 
 
 def positions(root: Path) -> dict[str, int]:

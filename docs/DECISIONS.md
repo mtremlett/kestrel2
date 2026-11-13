@@ -1000,6 +1000,115 @@ Each lane appends its decisions to its own part below, never to another's, so th
 parallel pull requests do not touch the same lines. Each entry is a dated `###` heading
 under its lane, and says what was decided, the options, why, and the evidence.
 
+## 2026-11-13 — every requirement of his spec has a home; 31 dropped, 11 added, 3 lines swapped
+
+**Found.** His spec, `DESK_REQUIREMENTS_V2` (226 rows, ratified 31 October 2026 and
+reconciled then against his 947-line tenets list), was never traced row by row into this
+desk. The scenes and the plan cited 31 of its ids. An independent trace on 13 November read
+every row against main: 65 delivered or standing, 71 half delivered, 50 with nothing
+planned, 9 replaced by his rulings of 13 November, and 31 not worth building. The holes
+that mattered first: no plan item built the kill switch the canon promises (B1), though
+phase 3 sends paper orders; nothing counted dividends; the research list held only today's
+index members; and too few trades failed a strategy instead of saying "not enough
+evidence". The trace is kept outside the repository, in the notes folder beside it.
+
+**Decided, first: every gap into the books, the kill switch first.** Each half-delivered or
+missing row is now a step in a lane's book or a phase in `docs/PLAN.md`, its ids beside it.
+The kill switch and its drill head the money lane's new steps, and the paper lane sends no
+order until it is drilled. The 65 standing rows are listed under "The requirements" in the
+plan. A guard, `tests/guards/test_requirements.py`, holds all 237 ids (the 226 and the 11
+below) and fails the check when any id has no home: a step, the standing list, or this
+entry. His words: "All gaps into the lanes, kill switch first (Recommended)".
+
+**Decided, second: 31 rows dropped, each for its reason.** His words: "Drop them, each with
+its reason (Recommended)". Any one can come back by his ruling.
+
+| id | dropped because |
+|---|---|
+| NS-09 | goals.json and a rendered status file per row: the scene ratchet and this guard replace it |
+| NS-13 | the ALPHAHAWK rename is a ceremony; the desk is kestrel2 |
+| GOV-03 | five states per row: replaced by a passing scene, or NotImplementedError listed in STATUS |
+| GOV-11 | the old names it retires never existed here |
+| GOV-12 | DEV and PROD rule tags: every guard is always on, and GitHub enforces them |
+| MIG-08 | PROD rules switched on at go-live: there is no DEV and PROD split |
+| DAT-04 | a columnar store under 50 ms: twenty daily lines, no benchmark asks (canon A4) |
+| DAT-06 | a weekly bottleneck review: optimise only on a benchmark (canon A4) |
+| DAT-09 | a hot store and an archive: one store, rebuilt from the archive, one writer |
+| DQ-04 | an independent data checker: data is checked once, at the boundary, by the one writer |
+| DQ-13 | a stored indicator database: indicators are recomputed from bars; a copy is a second home |
+| UNI-03 | weekly review of curation rules: there is no curation filter |
+| STR-11 | losers parked, never deleted: git is the archive, and the ladder's verdict record serves |
+| STR-15 | straddles, gappers and pairs: intraday and pairs are a future release |
+| LAD-14 | a progress dashboard with heatmaps: resume and the runner's halts cover stalls |
+| LAD-15 | GPU sweeps: numpy on eight threads suffices for daily bars |
+| REG-06 | satellite and sentiment feeds: no evidence they pay, and each is an adapter to keep |
+| REG-10 | explain "Alpha Lab": no such module |
+| REG-11 | a regime four times a day: a daily desk has nothing that would read it |
+| FIL-02 | guardrails justified by replay: there are no filters, only his rulings |
+| FIL-05 | a daily funnel with chokepoints: one gate and five rules; the refusal reason says it |
+| STP-04 | TP1, TP2 and TP3 on every position: the rules carry their own exits |
+| EMG-05 | a small tail hedge as research: no case for it before the edge exists |
+| MSG-01 | HTML, forty characters a line, emoji: presentation, not behaviour |
+| MSG-07 | bold and monospace blocks: presentation |
+| MSG-05 | findings filed as rows: STATUS "found, not fixed" serves |
+| MSG-10 | bug and strategy messages filed as rows: as MSG-05 |
+| MSG-06 | a weekend card: no decision depends on it |
+| MSG-12 | sentiment, news and forecast cards: no decision depends on them |
+| OPS-06 | clock drift: daily bars and next-open orders do not care about a second |
+| TST-15 | a coverage percentage: the deliberate breaks prove more |
+
+**Replaced by his rulings of 13 November (9):** NS-02 and MIG-09 by the A-GATE terms (AG-01
+to AG-06); GOV-08 by Fable first, then Opus, and the 80% pause; UNI-08 by the twenty lines
+he chose; STR-10, TRD-14 and SIZ-07 by a fifth of one capital number each, a leveraged line
+counted at what it controls; STP-01's method by the stop where the market has fallen 10%
+(set at entry, as it asked); TST-18 by the scenes rule, which has no list of known reds.
+
+**Decided, third: eleven best-in-class additions the spec never asked for.** His words:
+"Add all 11 at their gates (Recommended)". Each sits in the plan at its gate.
+
+| id | the requirement | gate |
+|---|---|---|
+| BIC-01 | the edge judged against the market risk it took (beta, or a leverage-matched benchmark) | AG |
+| BIC-02 | concentration: the book's number of independent bets, A-GATE profit split by correlated cluster | AG |
+| BIC-03 | idle cash earns interest in the profit, and every Sharpe uses the risk-free rate | AG |
+| BIC-04 | currency gains and losses on dollar holdings reported apart from trading profit | AG |
+| BIC-05 | a fall from the book's highest point: alerted on paper, new entries stopped live | AG, LIVE |
+| BIC-06 | an earnings and events calendar, point-in-time, for rules and stops | P100 |
+| BIC-07 | the ISA's yearly limit and real pot size; paper re-scored at the size live can reach | LIVE |
+| BIC-08 | records kept for their statutory years, reconciled each year to the broker's statements | LIVE |
+| BIC-09 | if he does not acknowledge for a set number of days, no new positions; a named second person can sell everything | LIVE |
+| BIC-10 | each strategy's capacity: the size at which costs erase its edge | P1000 |
+| BIC-11 | leveraged products watched for closure, compulsory redemption and ISA eligibility | AG |
+
+**Decided, fourth: three lines swapped now, for lines an ISA can hold.** SPY, QQQ and GLD are
+US-registered funds a UK retail ISA cannot normally buy. Asked whether to keep them for
+paper or swap now, he chose "Swap them now". Asked for each replacement: SPY becomes VUAG,
+Vanguard's S&P 500 in pounds ("VUAG"); QQQ becomes EQQQ, Invesco's Nasdaq 100 in London
+("EQQQ (Recommended)"); GLD becomes IDTL, iShares' US Treasuries of 20 years and more,
+in London, which takes the twenty off a third gold line ("A different market: IDTL
+(Recommended)"). The twenty become thirteen on the London venue and seven in the US. The
+swap heads the data lane's book, with an ISA and retail-buyable flag on every line and the
+hold-the-market yardstick re-pointed.
+
+**Merging.** He asked, the same evening, that merges never wait for his click: "i asked for
+auto merge to be turned on permanently. you need to do this yourself." Every change is
+armed to merge itself when its check is green. A change that loosens a guard still needs his
+plain yes, as CLAUDE.md says; the session he gives it to, in its own chat, arms it. A yes
+relayed from another session is refused by the sessions' own permission check, so a lane
+that needs one asks him through its Telegram alert, and he answers the session he is
+talking to. Pull requests #36 and #37 were armed that way at about 17:30 UK.
+
+**Driven.** From a passing copy, each break alone: the kill switch's id removed from both
+of its steps, a dropped id put back on a step, a dropped row's id lost, an id taken off the
+standing list, an id the spec does not have, an addition's id removed, and the roster short
+by one. All seven were caught. Removing the kill switch's id from one step only passes, as
+it should: the paper lane's step still homes it.
+
+**His words, together.** In chat, Friday 13 November 2026, about 17:45 to 17:55 UK time,
+each chosen from options with a recommendation.
+
+---
+
 ## MONEY
 
 ### 2026-11-13 — how the pretend broker behaves
@@ -1158,6 +1267,68 @@ the "already kept" refusal first; the test now uses a fresh day and catches it. 
 missed because the code did nothing (an owner check `strategy.today` already makes, and a
 filter whose result was overwritten); both are removed.
 
+### 2026-11-13 — reconciliation: before every order, shares and stops; and scenes 6 and 7 together
+
+**Decided**, by the lane as the desk's mentor (no one watching):
+
+1. **The book is checked against the broker's on the send path, before every order**
+   (`book.reconcile`, called by `book.send`). Options were (a) once, in the day run after
+   the open; (b) on the send path, the one door every order already passes. Chosen (b): a
+   hand trade made in the middle of a morning is seen before the next order, and any later
+   caller of the send path (the paper lane's) is held by it without being told to. It stays
+   out of `orders.gate`, which is pure and is also the rungs lane's; the refusal is the
+   same `Refused` the gate raises.
+2. **A line differs when its shares differ, or when the stop resting at the broker is not
+   for exactly the shares the book holds.** Every share the desk holds has its stop at the
+   broker; a holding whose stop was cancelled is the most dangerous quiet state there is,
+   so it is named like a wrong position. Shares alone, the scene's own words, would miss it.
+3. **While any line differs the desk buys nothing; it sells a line only if that line's
+   shares agree.** Options were (a) send nothing at all; (b) stop buying only; (c) stop
+   buying, and never sell a line whose shares differ. (a) would hold a rule's sale of a
+   sound line for as long as a person takes to look. (b) would sell the book's ten shares
+   of a line of which the broker holds four, and leave the desk short. Chosen (c), with the
+   blind review's point taken: a line whose shares agree but whose stop is gone may be
+   sold, since that is the protective act. Nothing is remembered from day to day: the two
+   books are compared afresh each time, and buying starts again once they agree.
+4. **The day does not stop.** A refusal on the send path becomes that order's answer, with
+   its reason naming the lines, kept with the day's others. The desk dying, or any other
+   error, still stops the day.
+5. **An order the broker already has is recorded, never refused**, whatever the books say:
+   the broker is asked first, as before.
+6. **Scenes 6 and 7 pass together.** The plan had reconciliation turn scene 6 by itself. It
+   cannot: scene 6 asks that a reconciled day carry a profit, scene 7 reads the same
+   record, and a profit is not published without every cost (canon B4). Spread, slippage
+   and a sale's own cost are not in the cost model, and UK tax needs a fact on each line
+   that the data lane owns. Options were (a) give scene 6 a record with the missing costs
+   at nought; (b) take "a reconciled day has a number" out of scene 6; (c) land
+   reconciliation under its own contract tests and turn both scenes when the record is
+   real. (a) is a made-up number and (b) weakens a scene to count it. Chosen (c). The
+   scenes stay at 5 of 7 for this step; the lane's book says what remains.
+7. **Scene 6's days.** No rule holds a position at the end of the rehearsal data, on its
+   six weeks or its fourteen months, so "the broker holds something" cannot be read after
+   the last day. When the record lands, scene 6 will run the fourteen months and set the
+   book against the broker's on every day, which asks more of the desk, not less.
+8. **The kill switch is the lane's next objective, ahead of the costs.** His ruling of the
+   same day, which reached this branch as it was finishing, puts the kill switch first and
+   holds the paper lane's orders until it is drilled. Options were the costs next, as the
+   scenes' order suggests, or the kill switch next. Chosen the kill switch: it is his word,
+   another lane waits on it, and scenes 6 and 7 wait on the data lane's tax fact in any
+   case, so the scenes lose nothing by it.
+
+**Evidence.** Two contract tests seen failing first (`book.reconcile` did not exist; the day
+sent five buys with a hand-bought line at the broker). Over the fourteen months, with and
+without every line's first order rejected, the desk made the same 68 fills and 34 round
+trips as before the change: in ordinary running the two books never differ. Thirty-one
+deliberate breaks were driven first; twenty-six were caught and five missed, each a gap in
+the tests: a line only the book holds, the names in no order, an order the broker already
+has refused while the books differ, any error at all kept as an answer, and a cancelled
+stop that also emptied the position. Tests were added for each. Thirteen more were then
+driven, those five and eight against the review's fix; twelve were caught at once and the
+thirteenth (a sale allowed when the broker holds more than the book) after its test was
+tightened. The blind review, which ran 400 random runs of its own (20,907 orders, every
+fault) without one false mismatch, found nothing blocking; what it left is in
+`docs/STATUS.md`.
+
 ## DATA
 
 ### 2026-11-13 — the fourteen months are built; the scenes move onto them in two steps
@@ -1271,6 +1442,75 @@ review found nothing blocking; its one finding of the same kind - a crash straig
 days in the wrong unit was dropped with them - was made a failing test and fixed: a run in
 the wrong unit now ends at the first day back in the right one. Its other points are in
 `docs/STATUS.md`.
+
+### 2026-11-13 — the research list: what is on it, where it lives, and what a refusal does
+
+**The questions.** His ruling named four lists and "about 1,500" tickers, kept apart from
+the twenty trading lines, nothing on it traded. Building it raised six questions of intended
+behaviour.
+
+**1. How many.** The four lists, as published on 13 November, hold 503, 101, 350 and 200
+names, and overlap (86 of the Nasdaq 100 are in the S&P 500). Options: (a) the lists
+as ruled, each ticker once: 1,065; (b) pad to 1,500 with names from no list he chose.
+**Chosen (a):** the lists are the ruling and the number was an estimate of them. The full
+universe of 5,000 and more is already the plan's next size.
+
+**2. Where it lives.** Options: (a) in the instrument master beside the twenty, marked "not
+traded": one wrong flag and the desk trades a research ticker; (b) a module in `desk/`;
+(c) a module in `lab/`, which `desk/` may never import (the wall guard). **Chosen (c):**
+"nothing on it is traded" is then held by the wall, not by a flag. Ten of its tickers are
+also trading lines; for those the list hands out the master's own line, so a fact recorded
+there (a real move, a suspension) has one home, and a disagreement between the two refuses
+to load.
+
+**3. One store folder for each venue.** Thirteen symbols are two companies (BA is Boeing in
+New York and BAE Systems in London), and the store names a file by its symbol. Options:
+(a) rename one of each pair; (b) change the store's file names, the money lane's reader with
+them; (c) keep each venue's tickers in its own folder, the store unchanged. **Chosen (c).**
+A parked ticker is returned by its line, which carries its venue, never by symbol alone.
+
+**4. Which funds.** No free, published list of US funds by value traded was found. Options:
+(a) a list from memory; (b) a field of 330 well-known funds drawn up by the session, each
+fetched from the archive and ranked by its median value traded a day over the sixty sessions
+to 12 November, the top 200 taken. **Chosen (b):** the cut is measured, and repeatable. The
+200th trades about 87 million dollars a day. Left out of the field: funds that move against
+their market (a line's leverage is one or more), funds whose multiple has changed (their
+history is on two scales), single-share funds and volatility trackers. Ten funds built to
+make two or three times their market's move are in, each with its multiple.
+
+**5. Shares London does not quote in pounds.** The archive refused eight FTSE 350 members
+as "not GBP". Five are quoted in dollars and are recorded so, and come back clean. Three
+(BCG, MTLN, PEY) are quoted in euros; a line is in pounds or dollars. Options: (a) record
+them in pounds, knowingly false, and let them park every day; (b) teach every line euros,
+which reaches the money lane's sizing and conversion; (c) leave the three off and say so.
+**Chosen (c)**, until research needs them.
+
+**6. A ticker the archive refuses for a day.** The blind review's finding: a throttled or
+timed-out answer empties that ticker's file, sixteen years of bars, until the next run.
+Options: (a) leave the old bars in place for a refused ticker: yesterday's data would then
+read as today's, the fault the desk's store was built to refuse, and the research store
+would follow a second rule; (b) stop the whole run at the first refusal: one bad ticker
+would cost the other thousand; (c) one rule for every store: a ticker refused today holds
+no bars today and is parked with the reason, and the next run, ten minutes, restores it.
+**Chosen (c).** A cell on an emptied ticker fails loudly and is retried; nothing stale is
+ever studied. It is now a test.
+
+**Evidence.** Membership read from the published pages of the four lists (the S&P 500, the
+Nasdaq 100 as of 22 October, the FTSE 100 after 1 October and the FTSE 250 after 20 October
+2026). `universe.keep` driven on the real archive for 13 November by a script outside the
+repository: every one of the 1,065 answered; 4,097,609 bars; 249 tickers begin after January
+2010; 864 clean (625 of 718 US, 239 of 347 London) and 201 parked, each for a one-day move
+beyond the store's belief that its line does not record: 406 moves, 31 tickers on the flash
+crash of 6 May 2010, 46 in March 2020, 10 on the day after the Brexit vote. Tests seen
+failing first. Thirty-one deliberate breaks: twenty-eight caught at once (every venue in one
+folder, the parked dropped, a refused ticker's old bars left in place, a list left out, a
+multiple changed or lost, a ticker added or removed, and more); two caught once their tests
+were added (the master looked up by symbol alone; the two allowed to disagree on currency);
+the last, two tickers swapped in order, changes nothing. A blind review found two things
+blocking: a parked ticker did not say which venue it was on (fixed: parked by line), and
+question 6 (decided, and tested). Its other points are fixed (wording, a silent default for
+a missing multiple, the master silently winning a disagreement, eight London currencies) or
+listed in `docs/STATUS.md`.
 
 ## LADDER (until 13 November; since then GRID and RUNGS)
 
@@ -1404,6 +1644,72 @@ and the fixtures were rebuilt. Every break is now caught but two that cannot dif
 The tests were written after the module, not seen failing first; the breaks stand in.
 
 ## PAPER
+
+### 2026-11-13 — the paper account is read, never written, and only if it is a paper one
+
+**Decided**, by the lane as the desk's mentor (no one watching), for the first box of its
+book: the desk's one door to the paper broker (`desk/paper.py`) reads the account's
+holdings and resting orders and names every difference from the desk's book. It sends the
+gateway four things and no others: a greeting, a start, and two questions.
+
+**The choices, and why.**
+- *How to speak to the gateway.* Options: the broker's own Python client or a popular
+  wrapper (each a new dependency, and `desk/` may import the standard library alone); or
+  the gateway's own language over a plain connection. Chosen: the plain connection. This
+  step needs two questions and four kinds of answer, about a hundred lines.
+- *Which version of that language.* The gateway changes the shape of its messages from
+  version to version. Options: accept a range and carry a reader for each; take the newest
+  (it has since moved to another encoding); offer one version and refuse any other answer.
+  Chosen: one, version 176, which the gateway on his PC accepts and a widely used published
+  client reads. A gateway that will not speak it stops the check with that reason.
+- *The desk's client id.* Options: 0 (the gateway's master id, which can take over orders
+  placed by hand: never); a small number the old desk may still use; one fixed number of the
+  desk's own. Chosen: 222. If anything else ever holds it, the gateway refuses the desk
+  with a stated reason; the desk does not hunt for a free one.
+- *Only a paper account.* The broker starts a paper account's code with a D and no other
+  account's. The door refuses any other code: in the gateway's list of accounts, before a
+  single question is asked, and on every holding and every order. So a gateway logged in
+  to a real account by mistake cannot be read as "quiet", let alone traded. A second lock
+  beside the port.
+- *What "quiet" means today.* A holding is matched to the book by its symbol, its kind (a
+  share or fund) and its currency, so the same name in another currency, or as another kind
+  of product, is a difference. A line the broker lists at no shares is no holding. Each
+  entry the broker gives must itself be the book's shares: the first version added a line's
+  entries together, and the blind review showed that a holding changed while it was being
+  read, or 25 bought in one place and 25 sold short in another, would then pass as the
+  book. Every order resting at the broker is a difference, whoever placed it, the desk's
+  own client included: the desk rests none on paper yet. When the desk's own stops rest
+  there (the next box), the check must be taught to know them, and only them.
+- *What the check gives back.* The differences, in words (`paper.differences`,
+  `paper.mismatches`); none means quiet. It was first called "quiet", which a caller could
+  read backwards and trade exactly when the account was not; the review caught the name.
+- *The gateway's news.* It sends notices that its price feeds are up or down, which this
+  door does not use: those nine codes are passed over. Any other notice or error (the
+  client id taken, the link to the broker lost) stops the reading, as does a kind of message
+  the desk does not know. A reading that stops is never a clean one.
+- *The plan's first box, split in two.* The check exists and has run clean once; nothing
+  yet runs it each day or makes the desk wait for it. That half belongs to the adapter,
+  which must refuse to send until the day's check is clean, so it stays an open box.
+
+**Evidence.** From the real gateway on his PC, read-only, 13 November at about 17:45 UK,
+through the door's own code: it greeted in version 176, named one account, a paper one,
+and listed seventeen lines the old desk once held, each at no shares, and no order
+resting; against the desk's empty book the check named nothing. With the desk's client id
+already connected, a second connection was refused by the gateway ("326: the client id is
+already in use") and the desk stopped on it. The tests' messages are the gateway's own
+from that reading, with the account's code changed; only the open order is taken from the
+published client, since none rested to copy. The contract test was seen failing first (no
+module), and again for each of the review's fixes. A blind review checked every message
+number and field position against the published client and found them right; its one
+blocking finding (entries added together) is fixed and tested, and its nine lesser points
+are taken or recorded in `docs/STATUS.md`. Sixty-five deliberate breaks were driven in a copy
+outside the repository: fifty-nine were caught at once, and six showed a gap in the tests,
+each now closed and caught (the symbol read from the wrong field, asking before the
+gateway is ready or has named its accounts, another port, the two lists ending in the
+other order, and reading the connection as text). One lesson for every lane's breaks: a
+break written less than a second after the last, to a file of the same size, can run the
+old code from Python's cache and report the wrong result; the breaks were run again with
+the cache off before these numbers were written.
 
 ## GRID
 
