@@ -336,3 +336,24 @@ line with the days either side (pence among pounds) is bad days, not a step; any
 and recovery is kept and parks, since a leveraged line can lose 40% and win it back.
 Driven: a window of 3000 sessions, a window of 3, a step not counted as lasting, a run
 limit of 1, and a 40% fall taken as a unit were each caught.
+
+---
+
+## 2026-11-13 — leveraged lines sized by what they control; phase 2 begins
+
+**Decided, first.** When the desk sizes an order in a leveraged line, the money counts
+times its leverage against every limit: £1,000 in 5QQQ (5x) counts as £5,000, in 3LGO
+(3x) as £3,000, in 2MU (2x) as £2,000. Each line then puts the same real risk on the book,
+and its stop sits correspondingly closer. Built with sizing in phase 2; the leverage of
+each line becomes a fact in the instrument master, never read from its name.
+
+**Decided, second.** Phase 1's data is done (sixteen of twenty lines clean, four parked
+with named reasons) and the desk moves to phase 2: strategies, sizing and the pretend
+broker, in simulation only. `BUDGET.json` names `2-money-sim`, whose ceilings - 7,000 lines
+of desk code in 45 files, 1,500 of lab - were agreed before phase 0 began. This raises a
+guard's ceiling, and his answer below is the plain yes it needs. The four parked lines are
+brought back along the way.
+
+**His words.** In chat, Friday 13 November 2026, about 14:00 UK time. Offered three ways
+to size the leveraged lines, he chose "Size by what they control (Recommended)". Offered
+phase 2 now or one more data session first, he chose "Move to phase 2 now (Recommended)".

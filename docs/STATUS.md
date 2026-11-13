@@ -40,20 +40,15 @@ reached his phone on 13 November.
 
 ## The next step
 
-Phase 2 begins with one strategy template and the five frozen daily strategies, so that
-scene 2 can pass on the clean lines. Moving the desk to phase 2 (and its size ceiling in
-`BUDGET.json`) is the operator's call.
+Phase 2, by his ruling of 13 November: one strategy template and the five frozen daily
+strategies, so that scene 2 can pass on the clean lines. Leveraged lines are to be sized by
+what they control (his ruling the same day), when sizing is built.
 
 ## Open questions for the operator
 
 1. **A second GitHub account** for sessions to work through, so that the guards cannot be
    removed by the account that enforces them. Not urgent; needed before any unattended
    work.
-2. **How leveraged lines are sized** (3LGO 3x, 2MU 2x, 5QQQ 5x), before phase 2 trades
-   them. Recommendation to put to him: size by what they control (£1,000 of a 5x counts as
-   £5,000), with tighter stops.
-3. **Moving the desk to phase 2.** `BUDGET.json` still says phase 0; the product is 680
-   lines against its 1,500 ceiling.
 
 ## Found, not fixed
 
@@ -65,9 +60,6 @@ scene 2 can pass on the clean lines. Moving the desk to phase 2 (and its size ce
   formats differently from the pinned 0.8.6, so `python check.py` run with whatever is
   installed shows format red on a clean main. Run it in an environment built from
   `requirements.txt`. The check does not yet say which tool versions it ran with.
-- **The plan and the budget still say phase 0.** `docs/PLAN.md` and `BUDGET.json` name
-  `0-foundations` while phase 1 is under way, so phase 0's size ceiling still applies.
-  Moving to `1-data` is a budget change for the operator.
 - **Four of the twenty lines are parked, each for a reason in the archive's data:**
   - 3LGO has no history in the free archive at all (the same product in dollars, 3GOL,
     has fourteen years). He chose to keep 3LGO; it waits for history to gather.
