@@ -34,25 +34,22 @@ def _bars(closes: Sequence[float]) -> tuple[Bar, ...]:
     return tuple(bars)
 
 
-def _walk(seed: int, push: float, days: int = 5000) -> tuple[Bar, ...]:
-    """A random walk pulled gently back towards 10; a push is a planted edge, added to each
-    day after a close over the 20 before it, so a breakout is followed by a rise."""
+def _walk(seed: int, *pushes: float, days: int = 5000) -> tuple[Bar, ...]:
+    """A random walk pulled gently back towards 10; each push is a planted edge for its stretch
+    of days, added to each day after a close over the 20 before it: a breakout, then a rise."""
     rng, closes = random.Random(seed), [10.0]  # noqa: S311 - a repeatable test walk, not a secret
-    while len(closes) < days:
+    while len(closes) < days * len(pushes):
         up = len(closes) > 20 and closes[-1] > max(closes[-21:-1])
         pull = 0.005 * math.log(closes[-1] / 10)
-        closes.append(closes[-1] * (1 + rng.gauss(0, 0.01) + (push if up else 0) - pull))
+        push = pushes[len(closes) // days] if up else 0
+        closes.append(closes[-1] * (1 + rng.gauss(0, 0.01) + push - pull))
     return _bars(closes)
 
 
 def _judge(
-    bars: tuple[Bar, ...],
-    last: int,
-    symbol: str = "VUSA",
-    fx: Decimal = POUND,
-    room: Settings = TEN_K,
+    bars: Sequence[Bar], end: int, symbol: str = "VUSA", fx: Decimal = POUND, room: Settings = TEN_K
 ) -> rung.Verdict:
-    record = cell.run(Cell("breakout_20_10", symbol, bars[0].day, bars[last].day), bars)
+    record = cell.run(Cell("breakout_20_10", symbol, bars[0].day, bars[end].day), bars)
     return rung.judge(record, bars, room, fx)
 
 
@@ -96,9 +93,8 @@ def test_an_edge_the_costs_eat_is_rejected() -> None:
 
 
 def test_the_mean_is_judged_in_standard_errors_of_the_sample() -> None:
-    assert (
-        rung.standard_errors([Decimal(1), Decimal(2), Decimal(3)]) == Decimal(12).sqrt()
-    ), "2 over the root of 1 / 3"
+    three = rung.standard_errors([Decimal(1), Decimal(2), Decimal(3)])
+    assert three == Decimal(12).sqrt(), "2 over the root of 1 / 3"
     assert rung.standard_errors([Decimal(1)]) is None
     with pytest.raises(ValueError, match="no spread"):
         rung.standard_errors([Decimal(1), Decimal(1)])
