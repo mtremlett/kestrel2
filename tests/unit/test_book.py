@@ -285,7 +285,8 @@ def test_a_round_trip_pairs_each_sale_with_the_buys_it_closes_in_pounds_after_ev
     assert trips[2].gross == -25 and trips[2].costs == Charges(
         Decimal("1.5591875"), Decimal("0.3875"), Decimal("0.3875"), conversion, Decimal(0)
     )
-    assert all(t.profit == t.gross - t.costs.total for t in trips)
+    assert [t.profit for t in trips[:2]] == [Decimal("-5.6"), Decimal("-37.14")], "every line off"
+    assert trips[2].profit == trips[2].gross - trips[2].costs.total
     with pytest.raises(ValueError, match="U"):
         book.round_trips(tmp_path, (A,))
     with pytest.raises(ValueError, match="kept at 0.75"):  #: a day's fills are never repriced

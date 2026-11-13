@@ -1,6 +1,6 @@
 """orders - AN ORDER, SIZED FROM THE ONE CAPITAL NUMBER. It cannot exist without its stop,
 and the one pre-trade gate reads the same capital number as the sizer. THE ONE COST MODEL:
-every cost of a leg, line by line, for the gate, the round trip and research alike."""
+every cost of a leg, line by line, for whoever prices a buy, a sale or a stop's sale."""
 
 from __future__ import annotations
 
@@ -199,6 +199,8 @@ def charges(line: Line, leg: Leg, shares: int, price: Decimal, fx: Decimal) -> C
     broker's commission, with the regulators' fees on a sale; the spread and the slippage
     assumed; the conversion of the money moved, on a line not in pounds; and the UK tax the
     line states, on a purchase."""
+    if shares <= 0:
+        raise ValueError(f"{line.symbol}: {shares} shares {leg.value}; the leg says which side")
     value, fee = shares * price, FEES[line.venue]
     commission = max(fee.minimum, fee.per_share * shares + fee.of_value * value)
     if fee.cap is not None:

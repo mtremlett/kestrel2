@@ -96,7 +96,13 @@ def test_every_cost_of_a_leg_is_charged_line_by_line_from_the_one_model() -> Non
     assert sold == _charges("4.3208 4 4 2.39870376 0"), "5.401 dollars; 9994.599 converted"
     penny = orders.charges(DOLLAR, orders.Leg.STOP, 100_000, Decimal(1), pound)
     assert penny.commission == Decimal("511.85"), "500, 2.06 and the most of 9.79"
-    assert (sold + sold).part(1, 2) == sold and sold.total == Decimal("14.71950376")
+    capped = orders.charges(DOLLAR, orders.Leg.SALE, 10, Decimal(5), pound).commission
+    assert capped == Decimal("0.50298"), "the 1% caps the commission, never the regulators' fees"
+    with pytest.raises(ValueError, match="-5 shares sold"):
+        orders.charges(DOLLAR, orders.Leg.SALE, -5, Decimal(10), pound)
+    assert (sold + sold).part(1, 2) == sold
+    taxed = orders.charges(share, orders.Leg.BUY, 1000, Decimal(10), pound)
+    assert (taxed + sold).total == Decimal("99.71950376"), "85 and 14.71950376: all five lines"
     assert [orders.leg_of(name, n) for name, n in (("o-stop", 5), ("o", -5), ("o-stop", -5))] == [
         *orders.Leg
     ], "a fill's leg is read from its shares, and its stop's id"
