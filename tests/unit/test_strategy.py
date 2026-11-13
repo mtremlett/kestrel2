@@ -38,7 +38,7 @@ def _trades(name: str, bars: Sequence[Bar]) -> list[tuple[int, Action]]:
     return sorted((days[d.day], d.action) for d in decided if d.action is not Action.HOLD)
 
 
-def test_the_five_are_the_operators_five_each_on_daily_bars_and_all_twenty_lines() -> None:
+def test_the_five_are_the_operators_five_each_on_daily_bars_and_every_line() -> None:
     assert set(strategy.STRATEGIES) == {
         "rsi2_pullback",
         "bollinger_pullback",
