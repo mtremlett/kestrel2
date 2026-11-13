@@ -50,8 +50,9 @@ class Line:
 #: The twenty frozen lines, by the operator's ruling of 13 November 2026 (docs/DECISIONS.md).
 #: Each with its leverage: 3LGO, 2MU and 5QQQ make three, two and five times their market's
 #: daily move. None pays UK tax on a purchase: the ten in London are five funds (SMGB, IITU,
-#: VHYG, ISF, VUSA) and five exchange-traded products, debt of an issuer outside the UK (3LGO,
-#: 2MU, 5QQQ, IB1T, SGLN), each confirmed as recorded in docs/DECISIONS.md.
+#: VHYG, ISF, VUSA), exempt by regulation, and five exchange-traded products, debt of an
+#: issuer outside the UK (3LGO, 2MU, 5QQQ, IB1T, SGLN), nil as the law reads and still to be
+#: seen on a broker's contract note (docs/DECISIONS.md, the data lane's).
 LINES = tuple(
     Line(symbol, venue, currency, int(leverage), NO_TAX)
     for venue, currency, symbols in (

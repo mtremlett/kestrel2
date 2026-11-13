@@ -96,7 +96,8 @@ tickers: the S&P 500, the Nasdaq 100, the FTSE 350 and 200 most-traded US funds,
 2010, through the one store's checks, apart from the twenty trading lines), and 201 of them
 park for a large one-day move nobody has recorded, most on real days of a real market.
 Decide and build how research reads them, without loosening the store the desk trades on.
-The grid lane needs it.
+The grid lane needs it. Before it, the money lane's blocking request R-MONEY-2 (the scenes
+moved onto the fourteen months); R-MONEY-1 (each line's UK tax) is done.
 
 - [x] The rehearsal data in a file of its own (`tests/scenes/rehearsal.py`)
 - [x] The rehearsal data lengthened to about fourteen months, the five rules buying and
@@ -154,8 +155,13 @@ The grid lane needs it.
       profit and the hold-the-market yardstick (UNI-07)
 - [ ] Survivorship: the research list taken as it stood on each past date, with the names
       that left it, or the bias measured and stated on every verdict (BT-09)
+- [x] Each line's UK tax a fact on the line, from one table of two rates: nil for a fund or
+      an exchange-traded product, stamp duty for a UK share; the twenty lines each state nil,
+      and one London line of the rehearsal data pays it (R-MONEY-1)
 - [ ] UK stamp duty and taxes confirmed line by line, in one table by instrument type
-      (NS-05)
+      (NS-05): the table is built and the five London funds confirmed; still owed, the five
+      London products seen on a contract note, the research list's London shares name by
+      name, Ireland's 1%, and the default removed (R-DATA-4, R-DATA-5)
 - [ ] Leveraged-product lifecycle watched: an issuer's closure, a compulsory redemption or
       an ISA eligibility change on any line held or researched raises an alert (BIC-11)
 - [ ] Disk watched; old research files roll off by rule (OPS-07)

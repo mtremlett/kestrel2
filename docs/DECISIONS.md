@@ -1551,6 +1551,91 @@ question 6 (decided, and tested). Its other points are fixed (wording, a silent 
 a missing multiple, the master silently winning a disagreement, eight London currencies) or
 listed in `docs/STATUS.md`.
 
+### 2026-11-13 — a line's UK tax: two rates, a fact on the line, and how far each is confirmed
+
+**The questions.** The money lane asked (R-MONEY-1) for what a purchase pays in UK
+transaction tax as a fact on each line, the ten London lines confirmed, and one London line
+of the rehearsal data that pays it. This entry replaces the sentence above, under the costs,
+that the tax "is to be confirmed line by line". Five questions of intended behaviour.
+
+**1. What the fact is.** Options: (a) a kind on the line (share, fund, product) from which
+the cost model works out the tax; (b) the rate itself on the line, taken from one table of
+rates in the instrument master. **Chosen (b).** The tax does not follow the kind: a share
+of a company registered abroad can pay none. The cost model needs a number, and a kind
+would be a second fact to keep true. The table has two rates, nil and a UK share's half of
+one per cent (`lines.NO_TAX`, `lines.STAMP_DUTY`); a line can state only one of them, and
+only a London line can pay, so a wrong figure or a taxed US line cannot be made. A sale pays
+none.
+
+**2. A line made without it.** Leverage cannot be left out of a line. Options: (a) the
+same for the tax: about thirty lines built in the money and paper lanes' tests would stop
+working, in files this lane may not edit, and main would be red; (b) nil when not stated,
+for good; (c) nil when not stated for now, every real list stating it, and the other lanes
+asked to state it in their tests so the default can go. **Chosen (c)** (R-DATA-4,
+R-DATA-5). Until then a UK share built by hand from four facts pays nothing, which is the
+risk; no list the desk or research reads is built that way.
+
+**3. The ten London lines: nil, and how far confirmed.** As the session knows them:
+
+| line | what it is | why nil | confirmed |
+|---|---|---|---|
+| SMGB | VanEck Semiconductor fund, Irish | exchange-traded funds are exempt | yes |
+| IITU | iShares S&P 500 technology fund, Irish | the same | yes |
+| VHYG | Vanguard world high-dividend fund, Irish | the same | yes |
+| ISF | iShares FTSE 100 fund, Irish | the same | yes |
+| VUSA | Vanguard S&P 500 fund, Irish | the same | yes |
+| 3LGO | WisdomTree three-times gold product, debt of an Irish issuer | not a UK company's security | as the law reads |
+| 2MU | Leverage Shares two-times Micron product, debt of an Irish issuer | the same | as the law reads |
+| 5QQQ | Leverage Shares five-times Nasdaq product, debt of an Irish issuer | the same | as the law reads |
+| IB1T | iShares Bitcoin product, debt of a Swiss issuer | the same | as the law reads |
+| SGLN | iShares physical gold product, debt of an Irish issuer | the same | as the law reads |
+
+The funds: the Stamp Duty and Stamp Duty Reserve Tax (Exchange Traded Funds) (Exemption)
+Regulations 2014 (SI 2014/911), read in the tax office's manual (STSM101065) on 13 November
+2026; interactive investor's and Freetrade's pages say the same. The products are not funds,
+so those regulations do not name them. Stamp duty reserve tax falls on a UK company's
+securities, or ones kept on a UK register, and these are debt of companies outside the UK;
+brokers charge none. But no official page or issuer's document saying so of these five was
+reached: the prospectuses could not be fetched, and the brokers' cost pages for IB1T do not
+mention the tax. Options: (a) nil, recorded as not officially confirmed; (b) half a per
+cent until confirmed, most likely false, and it would make the leveraged lines look worse
+than they are; (c) stop and ask the operator. **Chosen (a):** it is the best reading, a
+mistake costs half a per cent of a purchase on paper only, and it is settled by any real
+contract note or by the order preview at his own broker. If one pays, one word on its line
+changes.
+
+**4. The research list's London shares.** Options: (a) leave them at nil: 347 UK shares
+would be studied free of a tax nearly all of them pay; (b) charge each a UK share's stamp
+duty, knowing a minority registered abroad pay none and three or so registered in Ireland
+pay 1%; (c) check all 347 this session. **Chosen (b):** it is right for most, errs toward
+too much cost for most of the rest, and the exceptions the blind review named from memory
+are listed in `docs/STATUS.md` to be checked name by name. Ireland's 1% is a third rate, to
+be added to the table when a line needs it.
+
+**5. Which rehearsal line pays.** L01, a London line the rules buy: three times over the
+fourteen months (2 October 2024, 22 April and 16 June 2025), £29.66 of stamp duty in all at
+the fills' prices. In the six weeks the scenes see today nothing is bought, so the tax is
+charged there only once the scenes move (R-MONEY-2).
+
+**Not in the fact:** rounding (the tax office collects to the penny; the day record's one
+rounding policy), and the takeover panel's flat levy on a trade over £10,000 in a UK
+company's shares, which no trade of £2,000 reaches.
+
+**Evidence.** Tests seen failing first: a line accepted any tax, the research list's London
+shares paid nil, and a disagreement with the master on tax went unseen. A script outside the
+repository ran the day's trading over the fourteen months before and after: the same buys,
+and stamp duty of nil, then £29.66. Seventeen deliberate breaks, driven by a helper with
+the Python cache off: fifteen caught (a rate changed, the default changed, each refusal
+removed, the twenty lines or the research list given the wrong rate, the disagreement check
+blinded); one changes nothing (the twenty lines built without stating the tax, which is the
+default of question 2); one no test can see yet (the rehearsal line's tax removed: nothing
+reads it until the money lane builds the day's record, and scene 7 will then need it). A
+blind review found two things blocking, both wording that claimed more than was proven:
+"each confirmed" before this entry existed and beyond what was found for the five products,
+and the research list's shares stated as plain fact. Both are reworded and recorded here
+and in `docs/STATUS.md`; its other points are taken (a London share quoted in dollars
+tested, the default recorded and asked away) or listed there.
+
 ## LADDER (until 13 November; since then GRID and RUNGS)
 
 ### 2026-11-13 — the ladder's unit of work: days only, the whole history, keyed by what it read

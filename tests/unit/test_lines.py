@@ -41,6 +41,7 @@ def test_uk_tax_is_a_fact_on_the_line_and_each_of_the_ten_london_lines_pays_none
     assert taxes == dict.fromkeys(london, NO_TAX) and NO_TAX == 0
     assert {line.uk_tax for line in LINES} == {NO_TAX}, "a US line pays no UK tax"
     assert Line("BARC", "LSE", "GBP", 1, STAMP_DUTY).uk_tax == Decimal("0.005")
+    assert Line("IHG", "LSE", "USD", 1, STAMP_DUTY).uk_tax == STAMP_DUTY  #: quoted in dollars
 
 
 def test_a_line_pays_nil_or_stamp_duty_and_only_a_london_line_can_pay_it() -> None:

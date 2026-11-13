@@ -26,8 +26,7 @@ TODAY = date(2025, 11, 17)  #: the Monday after: the desk prepares to trade on t
 #: FIRST once scene 2 counts each line's own sessions (docs/STATUS.md, the data lane's).
 SCENES_FROM = date(2025, 10, 1)
 #: Twenty synthetic lines: eight on the London venue in pounds, twelve in the US in dollars.
-#: The first is a UK share, whose purchase pays stamp duty; the rest pay no UK tax. The rules
-#: buy it three times in the fourteen months, first on 2 October 2024.
+#: The first is a UK share, whose purchase pays stamp duty; the rest pay no UK tax.
 LINES = tuple(
     Line(f"L{n:02}", "LSE", "GBP", 1, STAMP_DUTY if n == 1 else NO_TAX)
     if n <= 8

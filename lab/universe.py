@@ -82,8 +82,10 @@ NASDAQ100 = _lines(
     """,
 )
 #: The FTSE 100 and the FTSE 250, less the three members London quotes in euros (BCG, MTLN,
-#: PEY), a currency no line can state yet; then the five it quotes in dollars. Each is a
-#: share, and is charged a UK share's stamp duty on a purchase.
+#: PEY), a currency no line can state yet; then the five it quotes in dollars. Each is
+#: charged a UK share's stamp duty on a purchase, an assumption not confirmed name by name:
+#: a member registered outside the UK may pay none, and one registered in Ireland pays
+#: Ireland's 1%, a rate no line can state yet (docs/STATUS.md, the data lane's).
 FTSE350 = _lines(
     "LSE",
     "GBP",
