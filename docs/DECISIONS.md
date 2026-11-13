@@ -430,3 +430,31 @@ the same reasons it does today. It is done before scene 5 is attempted.
 
 **His words.** In chat, Friday 13 November 2026, offered longer rehearsal data, one dip
 in the six weeks, or deciding later, he chose "Longer rehearsal data (Recommended)".
+
+---
+
+## 2026-11-13 — auto-merge: a green pull request lands with no one present
+
+**Decided.** GitHub's "allow auto-merge" is on for this repository. A session arms it when
+it opens its pull request (`gh pr merge --squash --auto`), and GitHub merges the pull
+request the moment the required `check` passes on its last commit. Nobody has to be
+present for the merge.
+
+**Why.** Until now a session had to stay until GitHub finished the check and then merge
+by hand, and when it could not wait, the merge waited for him. His words, in chat on
+Friday 13 November 2026, after #12 waited on him: "can we switch this on so you do not
+need me to attend?"
+
+**What does not change.** The ruleset `main-guard` still requires the `check` job, squash
+merges only, and has no one who may bypass it; auto-merge waits on exactly that rule. A
+pull request that loosens a guard is still not armed until his plain-English yes. The job
+that names a touched guard on a pull request only warns; it never blocked a merge, by
+hand or now.
+
+**Driven red.** Pull request #13 added an unused import, a deliberate lint failure, and
+had auto-merge armed. Both runs of `check` failed; GitHub held it BLOCKED and did not
+merge it. It was closed unmerged and its branch deleted.
+
+**The cost.** An armed pull request stays armed: anything a session pushes to that branch
+afterwards merges too once it is green. Sessions push to their branch only what they mean
+to land.
