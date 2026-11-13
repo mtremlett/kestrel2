@@ -128,11 +128,11 @@ def test_a_setting_never_tried_and_the_grids_own_edge_are_no_plateau() -> None:
     kept = {s: v for s, v in combs.items() if v.passed}
     assert plateau.depths((SEVEN,), kept) == dict.fromkeys(kept, 1)
     assert not plateau.choose((SEVEN,), kept).passed and not plateau.choose((SEVEN,), combs).passed
-    #: steps are the grid's own, on exact numbers: 2 to 2.2 is a step, uneven steps too
-    exact = tuple(Decimal(v) for v in ("2", "2.2", "3.3", "30", "33"))
+    #: steps are the grid's own, on exact numbers: 10 to 11 is a step, uneven steps too
+    exact = (10, 11, Decimal("12.1"), Decimal("30"), 33)
     fine: dict[Setting, Verdict] = {(v,): _verdict(PASS, str(v)) for v in exact}
     chosen = plateau.choose((exact,), fine)
-    assert chosen.setting == (Decimal("3.3"),) and chosen.depth == 3
+    assert chosen.setting == (Decimal("12.1"),) and chosen.depth == 3
 
 
 def test_a_grid_or_a_surface_that_cannot_show_a_true_plateau_is_refused() -> None:
@@ -154,6 +154,7 @@ def test_a_grid_or_a_surface_that_cannot_show_a_true_plateau_is_refused() -> Non
         ("exact decimals", ((10, 20, Decimal("Infinity")),), line),
         ("not a setting of the grid", (FIVE,), line | {(60,): _verdict(PASS)}),
         ("not a setting of the grid", (FIVE,), line | {(30, 30): _verdict(PASS)}),
+        ("not a setting of the grid", (FIVE,), {(float(v),): x for (v,), x in line.items()}),  # type: ignore[misc]
         ("a cell of its own", (FIVE,), line | {(30,): line[40,]}),
         ("one line and window", (FIVE,), line | {(30,): _verdict(PASS, symbol="ISF")}),
         ("one line and window", (FIVE,), line | {(30,): _verdict(PASS, days=(0, 8))}),

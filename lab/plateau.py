@@ -130,7 +130,10 @@ def _places(grid: Grid, surface: Mapping[Setting, Verdict]) -> dict[Place, Setti
         raise ValueError("no settings: there is no surface to find a plateau on")
     for setting in surface:
         on = isinstance(setting, tuple) and len(setting) == len(ranks)
-        if not on or any(value not in rank for value, rank in zip(setting, ranks, strict=True)):
+        if not on or any(
+            type(v) not in (int, Decimal) or v not in rank
+            for v, rank in zip(setting, ranks, strict=True)
+        ):
             raise ValueError(f"{setting!r} is not a setting of the grid declared")
     keys = {verdict.key for verdict in surface.values()}
     if len({key.cell for key in keys}) < len(surface):
