@@ -20,7 +20,8 @@ from desk.lines import Line
 #: Two neighbouring bars whose prices sit further apart than this factor (a fall of 37.5%,
 #: a rise of 60%) are not taken as a market move: a wrong unit (pence among pounds is 100),
 #: a bad print, or a split of 2-for-1 or more that the archive did not adjust. A smaller
-#: unadjusted split cannot be told from a real move by price alone, and passes.
+#: wrong factor - a 3-for-2 split, pounds read as dollars - cannot be told from a real move
+#: by price alone, and passes.
 JUMP = Decimal("1.6")
 COLUMNS = ("day", "open", "high", "low", "close", "volume")
 
@@ -73,12 +74,15 @@ def _unsound(line: Line, bar: Bar, open_days: set[date]) -> str | None:
 
 def _agree(line: Line, before: Bar, after: Bar) -> bool:
     """Two neighbouring bars could both be true: each one's whole range lies within a
-    market's move of the other's close, or the line records the move as real."""
+    market's move of the other's close, or the line records this very close as a real move."""
 
     def near(bar: Bar, close: Decimal) -> bool:
         return close / JUMP <= bar.low and bar.high <= close * JUMP
 
-    return after.day in line.real_moves or (near(after, before.close) and near(before, after.close))
+    confirmed = dict(line.real_moves).get(after.day)
+    if confirmed is not None:
+        return after.close == confirmed and near(after, after.close)
+    return near(after, before.close) and near(before, after.close)
 
 
 def _stray(at: int, links: Sequence[bool]) -> bool:

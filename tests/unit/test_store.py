@@ -83,9 +83,19 @@ def test_two_bars_out_of_line_are_both_kept_for_no_one_can_tell_which_is_wrong(
 
 def test_a_step_known_to_be_a_real_move_is_kept_and_not_parked(tmp_path: Path) -> None:
     bars = (*_bars(US)[:5], *(_scaled(b, Decimal("0.5")) for b in _bars(US)[5:]))
-    line = replace(US, real_moves=frozenset({bars[5].day}))
+    line = replace(US, real_moves=frozenset({(bars[5].day, bars[5].close)}))
     assert _parked(tmp_path, bars, line) == []
     assert store.read(tmp_path, US.symbol) == bars
+
+
+@pytest.mark.parametrize("at", [5, -1], ids=["a middle bar", "the newest bar"])
+def test_a_recorded_real_move_lets_through_only_its_own_close(tmp_path: Path, at: int) -> None:
+    bars = list(_bars(US))
+    line = replace(US, real_moves=frozenset({(bars[at].day, bars[at].close / 2)}))
+    bars[at] = _scaled(bars[at], Decimal(100))
+    reasons = _parked(tmp_path, tuple(bars), line)
+    assert len(reasons) == 1 and str(bars[at].day) in reasons[0]
+    assert bars[at] not in store.read(tmp_path, US.symbol)
 
 
 def test_a_line_that_cannot_be_read_never_stops_the_others(tmp_path: Path) -> None:
