@@ -1,9 +1,9 @@
 # The plan
 
 **Current objective:** phase 2's first step — one strategy template and the five frozen
-daily strategies, so that scene 2 passes on the clean lines (the operator moves the phase).
+daily strategies, so that scene 2 passes on the clean lines.
 
-Scenes passing: **1 of 7**. Phase: **0-foundations**.
+Scenes passing: **1 of 7**. Phase: **2-money-sim**.
 
 ---
 
@@ -41,7 +41,8 @@ One store, one writer, cleaned on entry.
 ## Phase 2 — the money path, in simulation
 
 - [ ] One strategy template; the five frozen daily strategies
-- [ ] Sizing from one capital number; stops set at entry
+- [ ] Sizing from one capital number; stops set at entry; a leveraged line sized by what
+      it controls (his ruling, 13 November)
 - [ ] The pretend broker, with faults: rejects, partial fills, disconnection, crashes
 - [ ] The book, the ledger, reconciliation, the day record
 - [ ] **Scenes 2 to 7 pass in simulation**
