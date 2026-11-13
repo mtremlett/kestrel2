@@ -12,7 +12,7 @@ from pathlib import Path
 from desk import book, strategy, venues
 from desk.broker import Pretend
 from desk.lines import Line
-from desk.orders import Refused, Sale, Settings, order_id_of, size, strategy_of
+from desk.orders import Order, Refused, Sale, Settings, order_id_of, size, strategy_of
 from desk.store import Bar
 from desk.strategy import Action
 
@@ -46,7 +46,7 @@ def run(
     rates: Mapping[str, Decimal],
 ) -> Record:
     trade(root, archive, broker, settings, day, rates)
-    raise NotImplementedError("day.run: reconciliation and the day's record are scenes 6 and 7")
+    raise NotImplementedError("day.run: the day's reconciled record is scenes 6 and 7")
 
 
 def trade(
@@ -60,7 +60,8 @@ def trade(
     """The day's orders, after the market opens: each rule's decision on the session before,
     its position read from the book; the sales first, then each buy sized from the book after
     the send before it. A line sold this morning, by its rule or its stop, is not bought
-    again today. rates are the day's pounds per unit of each currency."""
+    again today. While the book is not the broker's the send path refuses every buy, and the
+    sale of a line whose shares differ. rates are the day's pounds per unit of each currency."""
     book.collect(root, broker)  #: the stops the open sold
     book.record_rates(root, day, rates)
     held = book.positions(root)
@@ -74,7 +75,7 @@ def trade(
         {symbol: holders[symbol] for symbol in held if symbol in due},
     )
     sent = [
-        book.send(root, broker, Sale(order_id_of(d), due[d.symbol], held[d.symbol]), settings)
+        _send(root, broker, Sale(order_id_of(d), due[d.symbol], held[d.symbol]), settings)
         for d in decided
         if d.action is Action.SELL  #: only the rule the book holds the line for can sell
     ]
@@ -88,8 +89,16 @@ def trade(
         except Refused as refused:  #: the gate's answer, kept with the day's others
             sent.append(book.Sent(order_id_of(d), 0, str(refused)))
             continue
-        sent.append(book.send(root, broker, order, settings))
+        sent.append(_send(root, broker, order, settings))
     return tuple(sent)
+
+
+def _send(root: Path, broker: Pretend, order: Order | Sale, settings: Settings) -> book.Sent:
+    """Send through the one door; its refusal is the order's answer, kept with the day's."""
+    try:
+        return book.send(root, broker, order, settings)
+    except Refused as refused:
+        return book.Sent(order.order_id, 0, str(refused))
 
 
 def _due(line: Line, bars: Sequence[Bar], day: date) -> bool:

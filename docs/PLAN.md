@@ -1,7 +1,7 @@
 # The plan
 
-**Current objective:** the money lane's — reconciliation: the desk's book against the
-broker's, a mismatch named and the day's profit withheld, so scene 6 passes.
+**Current objective:** the money lane's — the kill switch and its drill (his ruling: first);
+then the costs whole, then the day's record, with which scenes 6 and 7 pass together.
 
 Scenes passing: **5 of 7**. Phase: **2-money-sim**.
 
@@ -158,10 +158,16 @@ The grid lane needs it.
 
 ### The money lane's book — scenes 4 to 7, in order
 
-**Lane objective:** reconciliation (`day.run`), so scene 6 passes: after the day's trading,
-the desk's book against the broker's positions line by line; a line that differs is named,
-the day's profit is withheld (never a plain number), and the desk buys nothing while they
-disagree. The pretend broker, the send path, the book and the day's trading are built.
+**Lane objective:** the kill switch, by his ruling of 13 November ("kill switch first"):
+one command stops all new orders and cancels the open ones, the desk says so, and the drill
+is run against the pretend broker (the step below, EMG-02). The paper lane sends no order
+until it is drilled. After it, in order: the costs whole in the desk's one cost model
+(`desk/orders.py`): what a sale itself costs, and spread and slippage on both legs, the
+stop's sale included, each a stated assumption recorded in `docs/DECISIONS.md`; the rungs
+lane waits for them too. Then the day's record (`day.run`), once the data lane has put
+each line's UK tax on the line: scenes 6 and 7 read the same record, so they pass together
+(`docs/DECISIONS.md`, the money lane's). The pretend broker, the send path, the book, the
+day's trading and reconciliation are built.
 
 - [x] The pretend broker: fills at the day's prices, rejects, partial fills, disconnection,
       a crash, resting stops, positions, and a position injected behind the desk's back
@@ -172,11 +178,17 @@ disagree. The pretend broker, the send path, the book and the day's trading are 
 - [x] The day run: decisions dated that day only, a rule's position read from the book,
       round trips with commission and conversion - **scene 5 passes** (on the fourteen
       months; spread, slippage and UK tax come with the day record)
-- [ ] Reconciliation: the desk's book against the broker's, a mismatch named and the day's
-      profit withheld - **scene 6 passes**
-- [ ] The day record: every cost line (spread, slippage and UK tax added to round trips),
-      one rounding policy for pounds, what holding the market earned, and the same days
-      replayed to the same records - **scene 7 passes**
+- [x] Reconciliation, before every order: the desk's book against the broker's positions
+      and resting stops, each line that differs named; nothing bought, and no such line
+      sold, while they differ (`book.reconcile`, on the send path)
+- [ ] The costs whole: a sale's own cost, and spread and slippage on both legs, the stop's
+      sale included, in the one cost model; UK tax from a fact on each line (asked of the
+      data lane)
+- [ ] The day's record (`day.run`): the day reconciled at its end, a mismatch named and its
+      profit withheld; else the profit after every cost line, to one rounding policy, beside
+      what holding the market earned; the same days replayed to the same records. Scene 6's
+      days moved onto the fourteen months, its book checked against the broker's every day -
+      **scenes 6 and 7 pass**
 - [ ] SimCity, small: one command runs the whole desk's day over all fourteen months of
       rehearsal data against the pretend broker with its faults, every night, and writes one
       record; a census names every part of the money path and turns red when one has no

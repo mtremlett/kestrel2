@@ -88,6 +88,8 @@ def test_a_stop_sells_at_its_level_or_a_gapped_open_even_on_the_day_of_its_buy()
     assert (broker.positions(), broker.resting_stops(), len(broker.fills())) == ({"B": 7}, {}, 6)
     with pytest.raises(ValueError, match="2025-11-11"):
         broker.open(TUE)
+    with pytest.raises(ValueError, match="A: no stop"):
+        broker.cancel_stop("A")
 
 
 def test_a_sale_fills_at_the_open_and_takes_its_shares_off_the_lines_stop() -> None:
