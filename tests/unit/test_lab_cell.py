@@ -89,6 +89,11 @@ def test_the_grid_answers_and_the_desk_decides_what_it_refuses(
     for seed in (10, 332):
         with pytest.raises(grid.TooClose):
             grid.held("supertrend_10_3", grid.prices(_jumpy(seed)))
+    #: only a refusal goes to the desk's engine: a fault in the grid is never hidden by it
+    monkeypatch.setattr(grid, "held", lambda name, p: [][0])
+    with pytest.raises(IndexError):
+        cell.run(Cell("trend_50_200", "SPY", START, _walk(1, 300)[-1].day), _walk(1, 300))
+    assert asked[0] == 2
 
 
 def test_a_trade_belongs_to_the_window_it_was_bought_in() -> None:

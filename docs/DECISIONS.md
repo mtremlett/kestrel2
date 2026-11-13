@@ -2108,6 +2108,40 @@ Tests were added and those breaks driven again: all caught. What still survives,
 recorded in `docs/STATUS.md`: breaks that cannot differ (a tie's direction where ties are
 already refused), a more cautious margin, and a few no series found can show.
 
+### 2026-11-13 — the unit of work on the grid: one record, whichever engine answered
+
+**Decided.** A cell's trades (`lab/cell.py`) now come from the grid engine's answer, and from
+the desk's own engine whenever the grid refuses (`TooClose`). The record is the same record
+either way, and the same as before the change.
+
+**The choices, and why.**
+- *Does the record say which engine answered?* Options: mark each record "grid" or "desk";
+  say nothing. Chosen: nothing. The grid is kept only while it holds what the desk holds, so
+  the answer does not depend on who gave it, and two records with one key must be one
+  result. A count of refusals belongs to a pass's log, when a pass exists.
+- *What goes to the desk's engine.* Only a refusal. Any other error from the grid is a
+  fault and fails the cell loudly (the batch records it and carries on); the desk's engine
+  never hides it. A test holds this.
+- *The code version.* The grid's file is reached through the cell's imports, so a change to
+  the grid changes every key and every result is run again. numpy's own version is not in
+  the key; it is pinned in `requirements.txt`.
+- *Trades from positions.* The grid answers "in or out after each bar", so a trade is now
+  the day the position turns in and the day it turns out, on both paths; the desk's
+  decisions are first read into the same in-or-out list.
+
+**Evidence.** The test was seen failing first (the cell never asked the grid). It runs each
+of the five rules on three golden series: on the long walk the desk's engine is never
+asked; on each of the two jumpy series it is asked exactly once, for the Supertrend cell
+the grid refuses; every trade day is the golden one. A blind review rebuilt the old code
+from the diff and compared 88,815 cells (5,921 series, five rules, three windows each, each
+once as it runs and once with the grid made to refuse): no difference and no error;
+nothing blocking. Its test gap (any error, not only a refusal, could have been sent to the
+desk's engine unseen) is closed and was seen failing; the rest is in `docs/STATUS.md`.
+Twenty deliberate breaks of the new code: nineteen caught, the twentieth being that same
+gap, caught since. Measured from outside the repository on 4,000 days: a cell about 25 ms
+for any of the five rules, where the desk's engine alone took 90 to 100 ms; 17 ms of the
+25 is reading the line's prices in, paid again by each cell.
+
 ## RUNGS
 
 ### 2026-11-13 — the luck rung: a chance multiplied by every trial, one 5% test across the set

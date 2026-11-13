@@ -364,16 +364,18 @@ and nothing else beyond the standard library and `desk/`. Its ceiling rises from
 
 ### The grid lane's book
 
-**Lane objective:** the unit of work on the grid engine (`lab/cell.py` on `lab/grid.py`):
-a cell's trades from the grid's answer, and from the desk's own engine whenever the grid
-refuses, the same record either way, the grid's file counted in the code version.
+**Lane objective:** a cell names its ticker's venue (R-DATA-1, asked by the data lane): a
+cell takes a `Line` of the research list, not one of the twenty trading lines by symbol
+alone, and its bars are read from its venue's folder. Then auto-tune.
 
 - [x] The unit of work, keyed by code and data version (`lab/cell.py`)
 - [x] A batch service that survives a bad cell and a restart (`lab/batch.py`)
 - [x] Results kept, keyed by code and data version; only what changed is re-run (`lab/batch.py`)
 - [x] The fast grid engine, its parity with the desk's engine proven on the golden data
       (`lab/grid.py`: the same position after every bar, or a refusal, never a guess)
-- [ ] The unit of work on the grid, the desk's engine deciding what the grid refuses
+- [x] The unit of work on the grid, the desk's engine deciding what the grid refuses
+- [ ] A cell names its ticker's venue: a `Line` of the research list, its bars read from
+      its venue's folder (R-DATA-1)
 - [ ] Auto-tune, so a pass can never take the PC down: a hard memory ceiling held by
       Windows itself (a Job Object on the workers, about 60% of the 64 GB); workers sized
       to free cores, two of the eight threads left free while markets are open (UK 08:00 to
