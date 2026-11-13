@@ -185,14 +185,30 @@ failing test, then fixed; and twenty-five deliberate breaks of the store, the
 calendar and the instrument master were each caught by a test. This session's three store
 rules were each driven against deliberate breaks in both directions, and caught.
 
-The scenes' rehearsal data now lives in its own file, `tests/scenes/rehearsal.py`, which
-this lane owns.
+The scenes' rehearsal data (`tests/scenes/rehearsal.py`, this lane's) is now fourteen
+months long, September 2024 to 14 November 2025, each line on its own venue's calendar:
+London lines trade 307 days, US lines 303. It rises, falls, breaks out, dips sharply and
+falls again, and each of the five rules buys and sells on every one of the nineteen clean
+lines (his ruling of 13 November). The scenes still see only its last six weeks, which
+hold no holiday on either side, until scene 2 can count two calendars (below).
 
 ### Next step
 
-The rehearsal data lengthened to about fourteen months (his ruling of 13 November): on
-today's six weeks none of the five rules ever buys, and the money lane needs them to trade
-before scene 5.
+Move the scenes onto the whole fourteen months - one line, `SCENES_FROM = FIRST` - as soon
+as the money lane's scene 2 counts each line's own days. Meanwhile: one line the archive
+refuses is parked, not the whole fetch stopped.
+
+### Asked of the money lane
+
+- **Scene 2's count assumes every line trades the same days.** It expects five rules times
+  nineteen lines times one list of days. Over fourteen months London and the US keep
+  different holidays, so the count must be each line's own: the number of bars each line
+  has, added up, times five. That reads the same on today's six weeks, so it can land
+  first. Driven: at full length scene 2 finds 28,925 decisions, every one present, and
+  expects 29,545. Its future-blind loop over all 311 days takes about twenty seconds; it
+  may cut on fewer days.
+- `SESSIONS` will then be every day either venue trades; a day run on it meets days only
+  one venue trades (Thanksgiving, Easter Monday).
 
 ### Found, not fixed
 
@@ -212,9 +228,10 @@ before scene 5.
   bot check, which this desk does not get around.
 - **One line the archive refuses stops the whole fetch.** `archive.fetch` raises for that
   line; the day run (phase 2) must park it instead and carry on with the others.
-- **None of the five rules ever buys in the scenes' rehearsal data.** They need 20 to 200
-  days of history and then a breakout or a sharp dip; the 33 rehearsal days drift
-  gently. Scene 5 cannot pass until the data is lengthened, as he ruled on 13 November.
+- **None of the five rules ever buys in the six weeks the scenes see today.** The fourteen
+  months are built and proven to trade; scene 5 needs the scenes moved onto them (above).
+  Until then no test reads the months before October, so only the script recorded in
+  `docs/DECISIONS.md` shows they park nothing clean and that each rule trades in them.
 - **What the blind review of the store's rules left open** (its one blocking finding - a run
   of days in the wrong unit taken as a lasting step - is fixed and tested; the first fix
   dropped 2MU's real December 2024 crash as bad days, so a run is now bad days only when it

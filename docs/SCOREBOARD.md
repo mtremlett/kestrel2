@@ -31,6 +31,7 @@ touch the same lines. A session the operator starts himself appends to the table
 
 | date | scenes | desk lines | lab lines | test lines | guards | check | what moved |
 |---|---|---|---|---|---|---|---|
+| 2026-11-13 | 3 of 7 | 968 | 9 | 1524 | 12 of 12 proven | green | The rehearsal data is now fourteen months on each venue's own calendar, and each of the five rules buys and sells on every clean line in it; holidays laid on the wrong calendar were each refused by the store. The scenes still see its last six weeks until the money lane's scene 2 counts two calendars; then the move is one line. |
 
 ### LADDER
 
