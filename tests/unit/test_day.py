@@ -4,7 +4,7 @@ morning its stop or its rule sold it."""
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
 
@@ -48,7 +48,7 @@ class Door:
 
     def __init__(self, inner: Pretend) -> None:
         self.report, self.place, self.fills = inner.report, inner.place, inner.fills
-        self.holdings, self.stops = inner.holdings, inner.stops
+        self.holdings, self.stops, self.cancel = inner.holdings, inner.stops, inner.cancel
 
 
 def test_the_day_sells_what_each_rule_holds_then_buys_from_the_book_after_each_send(
@@ -93,3 +93,17 @@ def test_a_day_the_book_is_not_the_brokers_buys_nothing_and_sells_only_lines_tha
     dying.open(DAYS[21])
     with pytest.raises(Crash):  #: only a refusal is an answer: the desk dying is not
         _trade(tmp_path / "dying", dying, DAYS[21])
+
+
+def test_a_day_with_the_kill_switch_on_sends_nothing_and_every_answer_says_so(
+    tmp_path: Path,
+) -> None:
+    broker = Pretend(ARCHIVE, {})
+    broker.open(DAYS[21])
+    _trade(tmp_path, broker, DAYS[21])
+    book.turn(tmp_path, book.Switch.ON, datetime(2025, 2, 5, 7, tzinfo=UTC), "his word")
+    broker.open(DAYS[22])  #: H's stop sells at the broker, switch or no switch
+    answers = _trade(tmp_path, Door(broker), DAYS[22])
+    assert [s.order_id[-1] for s in answers] == list("ABCD"), "a decision left unanswered"
+    assert all(s.filled == 0 and "kill switch" in str(s.reason) for s in answers)
+    assert len(broker.submitted()) == 5 and list(book.positions(tmp_path)) == list("ABCD")
