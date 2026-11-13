@@ -18,6 +18,7 @@ import csv
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
+from itertools import pairwise
 from pathlib import Path
 
 from desk import book, listing, paper, reports
@@ -86,8 +87,8 @@ def _order(order: Resting, whose: str) -> str:
 
 def checks(root: Path) -> tuple[Check, ...]:
     """The record of the day's checks, oldest first. No record is a desk never checked; one
-    that is there and is not, row for row, as the desk writes it is an error, never a clean
-    day."""
+    that is there and is not, row for row and in the order made, as the desk writes it is an
+    error, never a clean day."""
     path = root / CHECKS
     if not path.exists():
         return ()
@@ -95,7 +96,18 @@ def checks(root: Path) -> tuple[Check, ...]:
         rows = list(csv.reader(record))
     if rows[:1] != [list(COLUMNS)]:
         raise ValueError(f"{path}: not the record of the day's checks, so nothing is sent")
-    return tuple(_check(path, row) for row in rows[1:])
+    return _ordered(path, tuple(_check(path, row) for row in rows[1:]))
+
+
+def _ordered(path: Path, record: tuple[Check, ...]) -> tuple[Check, ...]:
+    """A record in the order its checks were made, so that its last is its newest; or an error."""
+    for earlier, later in pairwise(record):
+        if earlier.at > later.at:
+            raise ValueError(
+                f"{path}: a check at {later.at} follows one at {earlier.at}: not the order "
+                "made (a clock gone back?), so nothing is sent"
+            )
+    return record
 
 
 def _check(path: Path, row: list[str]) -> Check:
@@ -115,21 +127,23 @@ def check(root: Path, now: datetime) -> Check:
     broker lists it now, then the account, read through the one door and set against the
     desk's book, whose ledger whoever runs the day has brought up to date first. The check
     is on the record as begun before anything is asked, and as what it found once it comes
-    back; a reading that stops is raised, and leaves it begun."""
-    before = checks(root)
+    back; a reading that stops is raised, and leaves it begun. So is a check that finds the
+    record changed under it: another ran beside it, and what that one found stays."""
     begun = Check(now, None)
-    if before and before[-1].at > now:
-        raise ValueError(f"a check at {now} would come before the record's last, {before[-1].at}")
-    _keep(root, (*before, begun))
+    _keep(root, (*checks(root), begun))
     listings = listing.read(LINES)
     found = differences(paper.read(), listings, book.positions(root), LINES)
+    record = checks(root)
+    if record[-1:] != (begun,):
+        raise ValueError(f"{root / CHECKS}: another check ran beside the one begun at {now}")
     done = replace(begun, found=found)
-    _keep(root, (*before, done))
+    _keep(root, (*record[:-1], done))
     return done
 
 
-def _keep(root: Path, record: Iterable[Check]) -> None:
-    book._write(root / CHECKS, [COLUMNS, *(check.row() for check in record)])
+def _keep(root: Path, record: tuple[Check, ...]) -> None:
+    path = root / CHECKS
+    book._write(path, [COLUMNS, *(check.row() for check in _ordered(path, record))])
 
 
 def require(root: Path, now: datetime, order_id: str) -> None:

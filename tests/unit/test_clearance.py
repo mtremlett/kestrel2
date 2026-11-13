@@ -79,7 +79,7 @@ def _check(patch: pytest.MonkeyPatch, root: Path, at: datetime, account: Account
 def test_no_order_until_todays_newest_check_came_back_clean(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    hours = [NOW + timedelta(hours=n) for n in range(5)]
+    *hours, late = (NOW + timedelta(hours=n) for n in range(6))
     with pytest.raises(Refused, match="o-1: not sent, .*not been checked today"):
         clearance.require(tmp_path, NOW, "o-1")
     assert _check(monkeypatch, tmp_path, NOW, QUIET) == Check(NOW, ())
@@ -93,19 +93,24 @@ def test_no_order_until_todays_newest_check_came_back_clean(
     assert found == Check(hours[1], (HOLDS.format(10, 0),))
     with pytest.raises(Refused, match="o-2: not sent, .*08:05 UTC.*the broker holds 10"):
         clearance.require(tmp_path, hours[2], "o-2")
-    # and so does one whose reading stopped: it has not come back, and is never a clean one
-    monkeypatch.setattr(listing, "read", lambda _: LISTED)
-    monkeypatch.setattr(paper, "read", lambda: paper.only("U7654321"))
+    # and so does one whose reading stopped anywhere: it has not come back, and is no clean one
+    monkeypatch.setattr(listing, "read", lambda _: paper.only("U7654321"))
     with pytest.raises(paper.NotPaper):
         clearance.check(tmp_path, hours[2])
     with pytest.raises(Refused, match="o-3: not sent, .*09:05 UTC.*not come back"):
         clearance.require(tmp_path, hours[3], "o-3")
     assert clearance.checks(tmp_path) == (Check(NOW, ()), found, Check(hours[2], None))
-    with pytest.raises(ValueError, match="before"):  # a clock gone back is no newer check
+    with pytest.raises(ValueError, match="order made"):  # a clock gone back is no newer check
         _check(monkeypatch, tmp_path, hours[1], QUIET)
     _check(monkeypatch, tmp_path, hours[3], QUIET)
     clearance.require(tmp_path, hours[4], "o-3")
-    assert len(clearance.checks(tmp_path)) == 4, "every check is kept, none written over"
+    # a check that ran beside this one and named something is never written over by it
+    monkeypatch.setattr(listing, "read", lambda _: LISTED)
+    monkeypatch.setattr(paper, "read", lambda: _check(monkeypatch, tmp_path, late, BARE) and QUIET)
+    with pytest.raises(ValueError, match="beside"):
+        clearance.check(tmp_path, hours[4])
+    kept = clearance.checks(tmp_path)  # every check is kept, in the order made
+    assert kept[3:] == (Check(hours[3], ()), Check(hours[4], None), Check(late, found.found))
 
 
 def test_the_check_reads_the_desks_own_ledger(
@@ -131,6 +136,7 @@ def test_the_check_reads_the_desks_own_ledger(
         HEAD + AT + ",differs\n",  # differs, and names nothing
         HEAD + AT + ",begun,\n",
         HEAD + AT + ",clean\n" + AT + ",Clean\n",
+        HEAD + AT + ",clean\n2026-11-16T07:04:00+00:00,clean\n",  # not in the order made
         HEAD + "2026-11-16T07:05:00,clean\n",  # a moment on no clock
         HEAD + "2026-11-16T08:05:00+01:00,clean\n",
         HEAD + "2026-11-16 07:05:00+00:00,clean\n",  # not as the desk writes a moment
