@@ -1,7 +1,7 @@
 # The plan
 
-**Current objective:** finish phase 1 — daily bars for the twenty lines from a free
-archive, into the store built for scene 1.
+**Current objective:** phase 2's first step — one strategy template and the five frozen
+daily strategies, so that scene 2 passes on the clean lines (the operator moves the phase).
 
 Scenes passing: **1 of 7**. Phase: **0-foundations**.
 
@@ -29,7 +29,9 @@ The machinery that refuses, before any desk code.
 
 One store, one writer, cleaned on entry.
 
-- [ ] Daily bars for the twenty lines, from a free archive, re-fetched and re-checked
+- [x] The twenty lines chosen and in the instrument master (his ruling, 13 November)
+- [x] Daily bars for the twenty lines, from a free archive, re-fetched and re-checked:
+      sixteen clean, four parked with named reasons (`docs/STATUS.md`)
 - [x] Cleaning on entry: units, duplicates, gaps, impossible prices; a split the archive
       did not adjust parks the line, it is not adjusted
 - [x] Market calendars per venue; a UK holiday is not a US holiday (2010 to 2027)
