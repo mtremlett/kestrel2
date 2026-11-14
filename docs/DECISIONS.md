@@ -2859,6 +2859,39 @@ Decided by the PAPER lane as the desk's mentor, no one watching.
 - New modules named before they exist: `desk/messenger.py`, `desk/running.py`, `desk/supervisor.py`. paper-running also holds
   `desk/placing.py` for R-MONEY-8 and waits for paper-messages so there is one messenger.
 
+### 2026-11-14 — the desk's one voice (#142)
+
+Decided by the PAPER lane as the desk's mentor, no one watching.
+
+- *Alarm on silence:* the desk alarming itself (a dead desk cannot); only a human rule; a watch outside the desk reading the delivery record. Chosen the watch, with the human rule beside it.
+- *Hours:* morning 08:00 (05:40 was in his night), owed by 08:30; evening 21:05, owed by 21:30 (21:00 sat on New York's bell on 465 of 502 sessions). Nothing sent from 22:00; only the alarm goes at any hour.
+- *The record is SQLite,* not a CSV: two writers by design, and two processes drove the CSV unreadable within six writes.
+- *Asked on the record before the door; told twice rather than never.* A lost Telegram answer means a resend.
+- *Over-long messages* are cut at the door and kept whole on the record. *The key* comes from `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`; giving it to the desk is his alone.
+- *The morning message claims only what it asked* (Gateway, the day's check, kill switch and drill). The merge line and runner alerts stay outside until paper-cards.
+- Evidence: two blind reviews, three blocking findings fixed; 518 deliberate breaks, 473 caught as driven, gaps closed and driven again.
+
+### 2026-11-14 — the unattended desk (#152)
+
+Decided by the PAPER lane as the desk's mentor, no one watching.
+
+- *A step, not a loop:* a restart then needs no special path; what is done is known from the desk's records (and `running.csv`).
+- *Recovery runs whenever the check names something* (not at start, not every step). The stop kept is the newest whose buy really bought, for the shares held, only where they are the book's; read before the dead desk's orders are cancelled. It waits while the kill switch is on or undrilled.
+- *The check comes before a record too* (blocking finding). *A round is made once a day,* all answers told to him; an unclean check keeps it owed. Orders go whenever clear, however late (cut-off asked of MONEY).
+- *A line with no bar of the session before is left out and named,* not the whole round refused.
+- *Record hour:* five minutes after the last closing auction. *His hours:* nothing before 08:00 or from 22:00; a Gateway failure goes at any hour, once per day.
+- *The adapter itself refuses an order not dated the session before* (R-MONEY-8), by the venue's calendar.
+- Evidence: tests seen failing first; two blind reviews (2 blocking fixed); 78 deliberate breaks, 78 caught; dried read-only at the real Gateway.
+
+### 2026-11-14 — the daily kill-switch drill (#155)
+
+Decided by the PAPER lane as the desk's mentor, no one watching.
+
+- *When:* only when the last drill is over 31 days old; once each day before that day's first work; at each process start. Chosen daily: a step has no start, and a month-old drill says nothing of today's code. The 31-day refusal stays in the adapter as the floor.
+- *Where:* after the ledger, before the check (the check may put right with orders). *A failed drill stops everything but the ledger* and the step fails; told once in his words, wrapped from the money lane's error.
+- *Any day the desk works,* on the UTC day. No message for a drill that passed.
+- Evidence: tests seen failing first; one blind review, nothing blocking; 31 deliberate breaks, all caught; dried at the real paper Gateway with the switch on.
+
 ## GRID
 
 ### 2026-11-13 — the fast grid engine: it holds what the desk holds, or it refuses
