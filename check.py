@@ -13,11 +13,14 @@ how a desk ends up with two answers to the same question.
 from __future__ import annotations
 
 import argparse
+import contextlib
+import os
 import re
 import subprocess
 import sys
 import tempfile
 import time
+from collections.abc import Iterator
 from pathlib import Path
 from xml.etree import ElementTree
 
@@ -41,6 +44,78 @@ FULL: list[Step] = [
 #: The one published progress number, in docs/PLAN.md. The scenes step holds it true.
 PUBLISHED = re.compile(r"Scenes passing: \*\*(\d+) of (\d+)\*\*")
 NOT_BUILT = "NotImplementedError: "
+
+
+#: Seconds between looks for a free turn.
+WAIT_SECONDS = 2.0
+
+
+def _alive(pid: int) -> bool:
+    """Whether a process still runs (a check that died leaves its turn file behind). On
+    Windows it asks the process's exit code, never os.kill, which would end it there."""
+    import ctypes  # noqa: PLC0415
+
+    windll = getattr(ctypes, "windll", None)
+    if windll is None:  # not Windows
+        try:
+            os.kill(pid, 0)
+        except OSError:
+            return False
+        return True
+    handle = windll.kernel32.OpenProcess(0x1000, False, pid)  # query limited information
+    if not handle:
+        return False
+    code = ctypes.c_ulong()
+    windll.kernel32.GetExitCodeProcess(handle, ctypes.byref(code))
+    windll.kernel32.CloseHandle(handle)
+    return bool(code.value == 259)  # still active
+
+
+def _take(path: Path) -> bool:
+    """A turn is a file made in one step (it exists, or this check made it), naming its
+    check's process. One whose process has gone is freed, so a killed check holds no turn."""
+    try:
+        made = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+    except FileExistsError:
+        try:
+            owner = int(path.read_text(encoding="utf-8") or 0)
+        except (OSError, ValueError):
+            return False  # being written this instant: look again
+        if owner and not _alive(owner):
+            path.unlink(missing_ok=True)
+        return False
+    with os.fdopen(made, "w", encoding="utf-8") as out:
+        out.write(str(os.getpid()))
+    return True
+
+
+@contextlib.contextmanager
+def turn() -> Iterator[None]:
+    """AT MOST N FULL CHECKS AT ONCE ON ONE PC. Up to twelve sessions check side by side on
+    the operator's PC; on 14 November six at once took nine minutes each against thirty
+    seconds alone. KESTREL_CHECK_TURNS=N (set by the runner) makes a check wait its turn;
+    unset, on GitHub or in a person's own run, nothing waits."""
+    turns = int(os.environ.get("KESTREL_CHECK_TURNS") or 0)
+    if turns <= 0:
+        yield
+        return
+    folder = Path(os.environ.get("KESTREL2_DATA") or tempfile.gettempdir()) / "check-turns"
+    folder.mkdir(parents=True, exist_ok=True)
+    started, told = time.monotonic(), False
+    while True:
+        for path in (folder / f"turn-{n}" for n in range(turns)):
+            if _take(path):
+                if told:
+                    print(f"  (waited {time.monotonic() - started:.0f}s for a turn)")
+                try:
+                    yield
+                finally:
+                    path.unlink(missing_ok=True)
+                return
+        if not told:
+            print(f"  waiting for a turn: {turns} full checks at once on this PC")
+            told = True
+        time.sleep(WAIT_SECONDS)
 
 
 def run(name: str, command: list[str]) -> tuple[str, int, float]:
@@ -102,7 +177,13 @@ def main(argv: list[str] | None = None) -> int:
     else:
         steps = FAST if args.fast else FULL
 
-    results = []
+    results: list[tuple[str, int, float]] = []
+    with turn() if steps is FULL else contextlib.nullcontext():
+        _steps(steps, results)
+    return _report(results)
+
+
+def _steps(steps: list[Step], results: list[tuple[str, int, float]]) -> None:
     for name, command in steps:
         #: A missing directory is not a pass. Until a stage creates its tests, the step
         #: says ABSENT out loud rather than printing nothing and exiting 0.
@@ -113,6 +194,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"\n=== {name}")
         results.append(scenes(command) if name == "scenes" else run(name, command))
 
+
+def _report(results: list[tuple[str, int, float]]) -> int:
     print("\n--- the check")
     for name, code, seconds in results:
         print(f"  {name:8} {'PASS' if code == 0 else f'FAIL rc={code}'}  {seconds:5.1f}s")
