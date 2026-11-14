@@ -1,6 +1,7 @@
 """halt - WHAT STOPS THE DESK BUYING. A HALT (FIL-08, NS-06) is a typed record: called at a
-moment for a reason, and in force until it is lifted. Nothing lifts one because time has
-passed. While one is in force the send path refuses every buy, and the rules and the stops
+moment for a reason, by someone, and in force until it is lifted. Nothing lifts one because
+time has passed: the operator lifts any, and the part that called one lifts its own unless it
+is his alone. While one is in force the send path refuses every buy, and the rules and the stops
 sell as ever; every day's record names it, that day does not count, and the desk says so each
 day, counting the days. THE BLOCKERS (FIL-04, TRD-01) are everything that can stand between a
 rule's signal and its whole trade, each named once here; every morning's orders leave one list
@@ -22,7 +23,9 @@ from desk.orders import Refused
 from desk.store import _write
 
 HALTS, BLOCKED = "halts.csv", "blocked"  #: the one record of halts; a folder, a list a morning
-COLUMNS = ("called", "why", "lifted", "lifted_why")
+COLUMNS = ("called", "why", "by", "may_lift", "lifted", "lifted_why")
+OPERATOR = "the operator"  #: who calls a halt by hand, and may lift any
+ALONE, EITHER = "the operator alone", "whoever called it, or the operator"  #: who may lift one
 LISTED = ("order_id", "blocker", "filled", "reason")
 
 
@@ -49,23 +52,29 @@ class Stopped(Refused):
 
 @dataclass(frozen=True)
 class Halt:
-    """One halt. Its moments are in UTC and each has its reason, or it cannot be made."""
+    """One halt. Its moments are in UTC and each has its reason, and somebody called it, or
+    it cannot be made."""
 
     at: datetime  #: when it was called
-    why: str  #: with the moment, what the halt is known by
+    why: str  #: with the moment and the caller, what the halt is known by
     lifted: tuple[datetime, str] | None = None  #: when and why; None while it is in force
+    by: str = OPERATOR  #: who called it
+    his: bool = True  #: only the operator lifts it; if not, whoever called it may too
 
     def __post_init__(self) -> None:
         for moment, why in ((self.at, self.why), *((self.lifted,) if self.lifted else ())):
-            if moment.utcoffset() != timedelta(0) or not why.strip() or moment < self.at:
+            unsaid = not why.strip() or not self.by.strip()
+            if moment.utcoffset() != timedelta(0) or unsaid or moment < self.at:
                 raise ValueError(
-                    f"a halt called at {self.at} for {self.why!r}, lifted {self.lifted}: each "
-                    "needs a time in UTC and a reason, and is lifted no sooner than called"
+                    f"a halt called at {self.at} by {self.by!r} for {self.why!r}, lifted "
+                    f"{self.lifted}: each needs a time in UTC and a reason, the halt its "
+                    "caller, and it is lifted no sooner than called"
                 )
 
     @property
     def since(self) -> str:
-        return f"called {self.at:%Y-%m-%d %H:%M} UTC: {self.why}"
+        who = "" if self.by == OPERATOR else f" by {self.by}"
+        return f"called {self.at:%Y-%m-%d %H:%M} UTC{who}: {self.why}"
 
     def on(self, day: date) -> bool:
         """In force at some moment of the day, by UTC's date: the day it was called on, the
@@ -93,20 +102,24 @@ class Blocked:
     reason: str  #: the refusal, or the broker's answer, in its own words
 
 
-def call(root: Path, at: datetime, why: str) -> Halt:
+def call(root: Path, at: datetime, why: str, by: str = OPERATOR, his: bool = True) -> Halt:
     """A HALT IS CALLED: from now the send path sends no buy. Whoever calls it gives the
-    moment and the reason, and no well-made halt is refused for what the record holds; one
-    already in force for that moment and reason is the same halt, and is not kept twice."""
-    record, halt = kept(root), Halt(at, why)
+    moment and the reason, and says who they are and whether it is the operator's alone to
+    lift: called by hand it is his own. No well-made halt is refused for what the record
+    holds; one already in force from that caller for that moment and reason is the same
+    halt, and is not kept twice."""
+    record, halt = kept(root), Halt(at, why, None, by, his)
     if halt not in record:
         _keep(root / HALTS, COLUMNS, map(_row, (*record, halt)))
     return halt
 
 
-def lift(root: Path, halt: Halt, at: datetime, why: str) -> Halt:
+def lift(root: Path, halt: Halt, at: datetime, why: str, by: str = OPERATOR) -> Halt:
     """A HALT IS LIFTED: that one, as it stands in force (in_force), and no other; by whoever
     may, the operator, or the part that called it once what it was called for has ended,
-    with the reason. One that is not in force is an error."""
+    unless it is his alone, with the reason. One that is not in force is an error."""
+    if by != OPERATOR and (halt.his or by != halt.by):
+        raise ValueError(f"{by!r} may not lift the halt {halt.since}: {OPERATOR} may")
     record, lifted = list(kept(root)), replace(halt, lifted=(at, why))
     if halt.lifted is not None or halt not in record:
         raise ValueError(f"no halt {halt.since} is in force: none lifted at {at}, {why!r}")
@@ -124,9 +137,9 @@ def kept(root: Path) -> tuple[Halt, ...]:
 
 def _halt(path: Path, row: list[str]) -> Halt:
     try:
-        called, why, at, lifted_why = row
+        called, why, by, may_lift, at, lifted_why = row
         lifted = (datetime.fromisoformat(at), lifted_why) if at else None
-        halt = Halt(datetime.fromisoformat(called), why, lifted)
+        halt = Halt(datetime.fromisoformat(called), why, lifted, by, may_lift == ALONE)
     except ValueError as fault:
         raise ValueError(f"{path}: {row} is no halt of the desk's: {fault}") from fault
     if _row(halt) != tuple(row):
@@ -136,7 +149,8 @@ def _halt(path: Path, row: list[str]) -> Halt:
 
 def _row(halt: Halt) -> tuple[str, ...]:
     at, why = halt.lifted or (None, "")
-    return (halt.at.isoformat(), halt.why, at.isoformat() if at else "", why)
+    may_lift = ALONE if halt.his else EITHER
+    return (halt.at.isoformat(), halt.why, halt.by, may_lift, at.isoformat() if at else "", why)
 
 
 def in_force(root: Path) -> tuple[Halt, ...]:
