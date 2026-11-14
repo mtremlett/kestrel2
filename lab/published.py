@@ -29,9 +29,11 @@ desk's parts are one piece of code at any length. Held by name: the moving avera
 deviation of Bollinger's bands, the breakout's highest high and lowest low. Held as the
 rule's own lines work them, the rule shown the table's days and its smoothing read after
 each: the RSI's gains and losses, and the true range and its average, from prices alone.
-No rule is proven while one of them gives another number. What a rule's own line works and
-does not keep (the RSI's last ratio, a band's two deviations from its average) and
-Supertrend's carried band, which no table here prints, are held by the known answers alone.
+No rule is proven while one of them gives another number. The tables show a rule only days
+on which it holds nothing, and none has a day whose own low is its lowest of 14. What a
+rule's own line works and does not keep (the RSI's last ratio, a band's two deviations from
+its average) and Supertrend's carried band, which no table here prints, are left to the
+known answers above and the strategies' contract test.
 
 A series is its closes; each bar opens on its close, and its high and low lie `reach` either
 side of it, one bar a day. Bars are counted from 0.
@@ -289,17 +291,15 @@ INDICATORS: Mapping[str, Table] = {
     "true range": Table(
         _SCHOOL + "the average true range (cs-atr.xls): QQQ, 1 April to 13 May 2010, 14 days",
         _columns(
-            "High: 48.7000 48.7200 48.9000 48.8700 48.8200 49.0500 49.2000 49.3500 49.9200 "
-            "50.1900 50.1200 49.6600 49.8800 50.1900 50.3600 50.5700 50.6500 50.4300 49.6300 "
-            "50.3300 50.2900 50.1700 49.3200 48.5000 48.3201 46.8000 47.8000 48.3900 48.6600 "
-            "48.7900",
-            "Low: 47.7900 48.1400 48.3900 48.3700 48.2400 48.6350 48.9400 48.8600 49.5000 49.8700 "
-            "49.2000 48.9000 49.4300 49.7250 49.2600 50.0900 50.3000 49.2100 48.9800 49.6100 "
-            "49.2000 49.4300 48.0800 47.6400 41.5500 44.2833 47.3100 47.2000 47.9000 47.7301",
-            "Close: 48.1600 48.6100 48.7500 48.6300 48.7400 49.0300 49.0700 49.3200 49.9100 "
-            "50.1300 49.5300 49.5000 49.7500 50.0300 50.3100 50.5200 50.4100 49.3400 49.3700 "
-            "50.2300 49.2375 49.9300 48.4300 48.1800 46.5700 45.4100 47.7700 47.7200 48.6200 "
-            "47.8500",
+            "High: 48.7 48.72 48.9 48.87 48.82 49.05 49.2 49.35 49.92 50.19 50.12 49.66 49.88 "
+            "50.19 50.36 50.57 50.65 50.43 49.63 50.33 50.29 50.17 49.32 48.5 48.3201 46.8 47.8 "
+            "48.39 48.66 48.79",
+            "Low: 47.79 48.14 48.39 48.37 48.24 48.635 48.94 48.86 49.5 49.87 49.2 48.9 49.43 "
+            "49.725 49.26 50.09 50.3 49.21 48.98 49.61 49.2 49.43 48.08 47.64 41.55 44.2833 47.31 "
+            "47.2 47.9 47.7301",
+            "Close: 48.16 48.61 48.75 48.63 48.74 49.03 49.07 49.32 49.91 50.13 49.53 49.5 49.75 "
+            "50.03 50.31 50.52 50.41 49.34 49.37 50.23 49.2375 49.93 48.43 48.18 46.57 45.41 "
+            "47.77 47.72 48.62 47.85",
         ),
         _columns(
             "TR: 0.9100 0.5800 0.5100 0.5000 0.5800 0.4150 0.2600 0.4900 0.6000 0.3200 0.9300 "
