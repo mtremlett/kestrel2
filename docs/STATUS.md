@@ -291,47 +291,47 @@ Last updated: 14 November 2026 (cut to what is open; git, decisions and scoreboa
 
 ### Where it is
 
-The ladder has its rungs, each proven on made-up prices only: the first (`lab/rung.py`: the
-desk's one cost model, a day's rate for each fill, four answers - passed, failed, not enough
-evidence, a fault in the test - and no verdict on code that is not the published rule,
-`lab/published.py`); luck; folds; the register of trials; the deflated Sharpe with one
-verdict rule; plateaus (`lab/plateau.py`); periods and regimes (`lab/regime.py`). **No winner
-on real prices is to be believed yet.**
+The ladder's rungs, proven on made-up prices only: the first (`lab/rung.py`), luck, folds, trials,
+the deflated Sharpe with one verdict rule, plateaus, regimes; and, built but called by nothing yet: the author's own result (`lab/reproduce.py`, #120),
+promotion (`lab/promotion.py`, #127) and the market's rung (`lab/market.py`, #131).
+**No winner on real prices is to be believed yet; no real author's figure is on file.**
 
 ### Next step
 
-Reproduce a published strategy's own result; then each indicator against a published
-reference series (STR-14). Unit tests sit at the product's size (guard); keep them no longer.
+Boxes open, ready first (PLAN): rungs-beta (BIC-02 remains), rungs-reproduce (first real
+figure waits on R-RUNGS-5; making the first rung wait for one is free), rungs-stress,
+rungs-trustworthy (name the market rung among the rungs). Unit tests stay at the product's size.
 
 ### Requests to MONEY
 
-None open (R-RUNGS-1, the sale's own cost: done in #101, used in #115).
+- [ ] R-RUNGS-6 (later, 2026-11-14 01:20): the indicators of `desk/strategy.py` reachable by name (STR-14).
+- [ ] R-RUNGS-7 (later, 2026-11-14 01:50): the day's run reads each candidate's `promotion.standing`
+  at day's end, buys nothing for a killed one, says so in the record.
+- [ ] R-RUNGS-8 (later, 2026-11-14 01:50): `orders.strategy_of` refuses an unreadable id, naming it.
 
 ### Requests to GRID
 
-- [ ] R-RUNGS-2 (later, opened 2026-11-13 21:22 UK): the declared sweep enters every cell in
-  the register (`trials.enter`) before the batch runs, at one fixed path in the data folder.
-- [ ] R-RUNGS-4 (later, opened 2026-11-14 00:35 UK): a kept verdict's key should take in the
-  rates it was priced with (with the capital, R-GRID-3).
+- [ ] R-RUNGS-2 (later, 2026-11-13 21:22): the declared sweep enters every cell in the register
+  (`trials.enter`) before the batch runs, at one fixed path.
+- [ ] R-RUNGS-4 (later, 2026-11-14 00:35): a kept verdict's key takes in the rates it was priced with.
 
 ### Requests to DATA
 
-- [ ] R-RUNGS-3 (blocking, opened 2026-11-14 00:35 UK): a kept daily rate of pounds per dollar
-  for every trading day of the research history (one per day, above nothing), readable as day
-  to rate, so a dollar line can be judged.
+- [ ] R-RUNGS-3 (blocking, 2026-11-14 00:35): a kept daily rate of pounds per dollar for every
+  trading day of the research history, readable as day to rate.
+- [ ] R-RUNGS-5 (blocking, 2026-11-14 01:20): SPY's bars and the US calendar's sessions back to
+  January 1993, saying whether prices are dividend-adjusted (Connors' RSI-2 figure is 1993-2008).
 
 ### Found, not fixed
 
 - **Nothing calls the new rungs yet**; rules carry no settings, nothing supplies the regime
-  weather (REG-01). `luck.correct` is still a door beside the register, which has no lock or
-  home path. Plateau and regime read pass or not only. The regime tag reaches paper only when
-  promotion hands home regimes to the desk. Folds fail a one-regime specialist whose fold falls
-  in its bad weather; the yearly Sharpe flag reads a regime's years from the whole window.
-- **A verdict must not be kept by its record's key**: no rates, capital or `lab/rung.py` code.
-- **Tests still make cells from a symbol** (R-GRID-2, half done). Spread and slippage are
-  assumed figures, not measured on paper fills.
+  weather (REG-01). `luck.correct` is still a door beside the register. Plateau and regime read
+  pass or not only. A verdict must not be kept by its record's key (no rates, capital or code).
+- **Reproduction:** "next open" dates a trade by the rule's day; a trade open at period's end is
+  left out; Bollinger, the 50/200 cross, Supertrend have no author's test as frozen (ruling owed).
+- **Promotion:** the fall sees sold shares only; the day-end reading is unenforced;
+  `promotion.DEEPEST` (£1,500) belongs to the A-GATE's module; candidates may each fall £1,500.
+- **Market rung:** alternating calm and storm passes a rider twice as often (5 in 100, not 2.5);
+  a window opening on a held trade counts those days as nothing; no key of its own.
 - **Smaller:** a fold-boundary trade counts in neither fold; a window of no days holding two
-  trades divides by zero, unnamed; a line whose one share costs more than its room fails the
-  whole verdict loudly; a rule changed under its old name is not a new trial; regime names
-  differing only by capitals are two regimes; weathers tried per rule are the caller's count.
-- **Unheld by a test (none can arise from real numbers):** the 5% line and the bar of 2, exactly.
+  trades divides by zero, unnamed. Scratch owed removal in `C:/tmp`: repro*, promo*, pbdriver*, market*.
