@@ -9,15 +9,23 @@ from collections.abc import Sequence
 from dataclasses import replace
 from datetime import date, timedelta
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 
-from desk.orders import BROKER, Settings
+from desk import book
+from desk.broker import Pretend
+from desk.lines import LINES
+from desk.orders import BROKER, Charges, Order, Settings
 from desk.store import Bar
 from lab import cell, rung
 from lab.cell import Cell, Trade
+from lab.rung import Answer
 
-TEN_K, POUND = Settings(Decimal(10_000)), Decimal(1)
+TEN_K, ZERO = Settings(Decimal(10_000)), Decimal(0)
+POUND: rung.Rates = {}  #: a pound line reads no rate
+FREE = Charges(ZERO, ZERO, ZERO, ZERO, ZERO)
+SPY = next(line for line in LINES if line.symbol == "SPY")
 #: breakout_20_10 buys on the close of bar 20, over bar 19's high of 10.05, and sells on the
 #: close of bar 23, under the low of 9.95 ten days before
 SHAPE = [10] * 20 + [10.4, 11, 11, 9.4, 9.4]
@@ -47,41 +55,96 @@ def _walk(seed: int, *pushes: float, days: int = 5000) -> tuple[Bar, ...]:
 
 
 def _judge(
-    bars: Sequence[Bar], end: int, symbol: str = "VUSA", fx: Decimal = POUND, room: Settings = TEN_K
+    bars: Sequence[Bar],
+    end: int,
+    symbol: str = "VUSA",
+    rates: rung.Rates = POUND,
+    room: Settings = TEN_K,
 ) -> rung.Verdict:
     record = cell.run(Cell("breakout_20_10", symbol, bars[0].day, bars[end].day), bars)
-    return rung.judge(record, bars, room, fx)
+    return rung.judge(record, bars, room, rates)
 
 
-def test_a_trade_is_sized_at_its_close_filled_at_the_next_open_and_stopped_by_the_broker() -> None:
+def test_a_trade_is_sized_at_its_close_filled_at_the_next_open_and_stopped_by_the_broker(
+    tmp_path: Path,
+) -> None:
     bars = _bars(SHAPE)
     (gbp,) = _judge(bars, 24).trades  #: 192 shares sized at 10.40, filled at bar 21's 10.70
     assert gbp.trade == Trade(bars[20].day, bars[23].day)
-    assert (gbp.shares, gbp.paid) == (192, Decimal("2057.4")), "192 x 10.70 + £3"
+    assert gbp.held == (bars[21].day, bars[23].day), "filled the next morning; stopped on bar 23"
+    assert (gbp.shares, gbp.paid) == (192, Decimal("2054.4")), "192 x 10.70"
     #: bar 23's low of 9.353 reaches the stop 10% under 10.40, so it sells there, not at 9.40
-    assert gbp.received == Decimal("1794.12"), "192 x 9.36 - £3"
-    assert (gbp.gross, gbp.costs) == (Decimal("-257.28"), Decimal(6))
-    assert gbp.gain == Decimal("-263.28") / Decimal("2057.4")
-    (usd,) = _judge(bars, 24, "SPY", Decimal("0.8")).trades
-    #: paid (2568 + 1.2) x 0.8 x 1.0003; back 2246.4 x 0.8 x 2 less (2246.4 + 1.2) x 0.8 x 1.0003
-    assert (usd.shares, usd.paid) == (240, Decimal("2055.976608"))
-    assert (usd.received, usd.gross) == (Decimal("1795.620576"), Decimal("-257.28"))
+    assert (gbp.received, gbp.gross) == (Decimal("1797.12"), Decimal("-257.28")), "192 x 9.36"
+    #: a leg: £3, and a twentieth of 1% for half the spread; as much slips, thrice at the stop
+    assert gbp.costs == Charges(Decimal(6), Decimal("1.92576"), Decimal("3.72288"), ZERO, ZERO)
+    assert gbp.gain == Decimal("-268.92864") / Decimal("2054.4")
+    #: sold by the rule at the next open of 9.90, clear of the stop: a sale slips once
+    (ruled,) = _judge(_bars([*SHAPE[:23], 9.9, 9.9]), 24).trades
+    assert (ruled.received, ruled.costs.slippage) == (Decimal("1900.8"), Decimal("1.9776"))
+    assert ruled.held == (bars[21].day, bars[24].day), "sold at the open after the rule's sell"
+    #: but an open of 8.95, under the stop resting at 9.36, is the stop's sale and slips thrice
+    (gapped,) = _judge(_bars([*SHAPE[:23], 9.9, 8]), 24).trades
+    assert (gapped.received, gapped.costs.slippage) == (Decimal("1718.4"), Decimal("3.6048"))
+    #: a dollar line: sized at the rate of the morning it is sent, each fill at its own day's
+    days, dear, cheap = (bars[21].day, bars[23].day), Decimal("0.8"), Decimal("0.75")
+    rates = dict(zip(days, (dear, cheap), strict=True))
+    (usd,) = _judge(bars, 24, "SPY", rates).trades
+    assert (usd.shares, usd.paid, usd.received) == (240, Decimal("2054.4"), Decimal("1684.8"))
+    assert usd.gross == Decimal("-369.6"), "the dollar's fall is in it: 240 x 9.36 x 0.05 more"
+    #: bought: 0.96 + 1.0272 + 1.0272 + 0.616608 to convert; stopped: 0.96980688 with the US
+    #: sale's own fees + 0.8424 + 2.5272 + 0.505149057936
+    assert usd.costs.total == Decimal("8.475563937936")
+    assert _judge(bars, 24, "SPY", rates | {days[0]: Decimal("0.4")}).trades[0].shares == 480
+    #: the desk's own book prices the same two fills to the same pounds and the same costs
+    broker = Pretend({SPY: bars[21:24]}, {})
+    broker.open(bars[21].day)
+    stop = Decimal("9.36")
+    broker.place(Order("20100121-breakout_20_10-SPY", SPY, 240, Decimal("10.4"), dear, stop))
+    for bar in bars[22:24]:
+        broker.open(bar.day)
+    book.collect(tmp_path, broker)
+    for on, rate in rates.items():
+        book.record_rates(tmp_path, on, {"USD": rate})
+    (trip,) = book.round_trips(tmp_path, [SPY])
+    assert (trip.gross, trip.costs, trip.sell.price) == (usd.gross, usd.costs, stop)
+    for needed in rates:  #: a rate not given, or not a number above nothing, is refused
+        bad: tuple[dict[date, Decimal], ...] = (
+            {},
+            {needed: ZERO},
+            {needed: -dear},
+            {needed: Decimal("NaN")},
+        )
+        for wrong in bad:
+            given = {d: rate for d, rate in rates.items() if d != needed} | wrong
+            with pytest.raises(
+                ValueError, match=f"SPY: no rate of pounds per USD to price {needed}"
+            ):
+                _judge(bars, 24, "SPY", given)
     assert _judge(bars, 23).trades == _judge(bars, 22).trades == (), "sold on the last day, or held"
+    #: no trades at all is a fault in the test, and says nothing of the rule
+    assert (_judge(bars, 23).answer, _judge(bars, 23).t) == (Answer.FAULT, None)
+    assert (_judge(bars, 24).answer, _judge(bars, 24).t) == (Answer.THIN, None), "one trade"
     assert _judge(bars, 24).broker == BROKER
 
 
 def test_a_planted_edge_passes_and_a_planted_non_edge_does_not() -> None:
     for seed in range(8):
         edge, none = _judge(_walk(seed, 0.008), -1), _judge(_walk(seed, 0), -1)
-        assert edge.passed and len(edge.trades) >= rung.MIN_TRADES, (seed, edge.t)
-        assert not none.passed and none.t is not None and none.t < 1, (seed, none.t)
-    #: the bar sits between these two: 1.98 standard errors fails, 2.14 passes
-    faint, just = _judge(_walk(5, 0.005), -1), _judge(_walk(27, 0.006), -1)
-    assert faint.t is not None and Decimal("1.9") < faint.t < rung.T_PASS and not faint.passed
-    assert just.t is not None and just.t < Decimal("2.14") and just.passed
-    #: and between these: 29 trades are too few, however strong, and 30 enough
+        assert edge.answer is Answer.PASS and len(edge.trades) >= rung.MIN_TRADES, (seed, edge.t)
+        assert none.answer is Answer.FAIL and none.t is not None and none.t < 1, (seed, none.t)
+        #: the same loser on too few trades has not failed: there is not enough evidence
+        few = _judge(_walk(seed, 0)[:1500], -1)
+        assert 2 <= len(few.trades) < rung.MIN_TRADES and few.answer is Answer.THIN, seed
+        assert not few.passed and few.t is not None and few.t < 1, (seed, few.t)
+    #: the bar sits between these two: 1.99 standard errors fails, 2.02 passes
+    faint, just = _judge(_walk(1, 0.005), -1), _judge(_walk(16, 0.005), -1)
+    assert faint.t is not None and Decimal("1.9") < faint.t < rung.T_PASS
+    assert faint.answer is Answer.FAIL and not faint.passed
+    assert just.t is not None and just.t < Decimal("2.03") and just.passed
+    #: and between these: 29 trades are not enough evidence, however strong, and 30 are
     short, thirty = _judge(_walk(0, 0.008)[:2400], -1), _judge(_walk(0, 0.008)[:2450], -1)
-    assert len(short.trades) == 29 and short.t is not None and short.t > 3 and not short.passed
+    assert len(short.trades) == 29 and short.t is not None and short.t > Decimal("2.8")
+    assert not short.passed and short.answer is Answer.THIN
     assert len(thirty.trades) == 30 and thirty.passed
 
 

@@ -6,16 +6,16 @@ from __future__ import annotations
 import io
 import socket
 import struct
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from contextlib import nullcontext
 from dataclasses import replace
 from decimal import Decimal
-from pathlib import Path
 from types import SimpleNamespace
+from typing import BinaryIO
 
 import pytest
 
-from desk import book, paper
+from desk import paper
 from desk.lines import NO_TAX, Line
 from desk.paper import Account, Holding, Resting
 
@@ -27,24 +27,76 @@ ACCOUNTS, READY = ("15", "1", "DU0000001"), ("9", "1", "1")
 FEED = ("4", "2", "-1", "2104", "Market data farm connection is OK:eufarm", "")
 FLAT = "61 3 DU0000001 265598 AAPL STK  0.0   NASDAQ USD AAPL.O NMS 0 0.0".split(" ")
 HELD = "61 3 DU0000001 458512497 SMGB STK  0.0   LSEETF GBP SMGB EUE2 25 31.5".split(" ")
-#: An open order as the published client reads it; no order rested on the account to copy.
+#: An open order's head, its fields placed as in the real ones of 14 November 2026 (136 in all).
 STOP = (
     "5 7 265598 AAPL STK  0 ?  SMART USD AAPL.O NMS SELL 10 STP 0.0 171.5 GTC  DU0000001  0"
-    "  31 1234567 0 0 0".split(" ")
+    " 20261112-rsi2-AAPL-stop 31 1234567 0 0 0".split(" ")
 )
 STATUS = ("3", "7", "PreSubmitted", "0", "10", "0", "1234567", "0", "0", "31", "", "0")
+PART = ("3", "7", "Submitted", "4", "6", "171.4", "1234567", "0", "171.4", "31", "", "0")
 ENDS = (("62", "1"), ("53", "1"))
 SMGB = Holding("DU0000001", "SMGB", "STK", "GBP", Decimal(25))
 LIVE = ("15", "1", "U7654321")
-AAPL_STOP = Resting("1234567", "31", "DU0000001", "AAPL", "SELL", Decimal(10), "STP")
+HEAD = ("1234567", "7", "31", "DU0000001", "AAPL", "SELL", Decimal(10), "STP", "265598")
+AAPL_STOP = Resting(*HEAD, "20261112-rsi2-AAPL-stop", "PreSubmitted", Decimal(10), Decimal("171.5"))
+GONE = ("4", "2", "7", "202", "Order Canceled - reason:", "")  # news of an order, no fault
+NEXT = ("9", "1", "41")  # the gateway, ready: the number its next order goes under
+Said = Sequence[Sequence[str]]  # what the gateway says in one conversation
 TWO = "SMGB STK GBP: the broker holds {} in one of 2 entries, the desk's book {}"
-RESTS = "AAPL: an order resting at the broker to SELL {} (STP, the broker's id 1234567, client {})"
 
 
 def _wire(*messages: Sequence[str]) -> io.BytesIO:
     """What the gateway sends: each message's length, then its fields ended by a zero byte."""
     bodies = ("".join(f"{field}\0" for field in fields).encode() for fields in messages)
     return io.BytesIO(b"".join(struct.pack(">I", len(body)) + body for body in bodies))
+
+
+def _but(fields: Sequence[str], at: int, value: str) -> list[str]:
+    return [*fields[:at], value, *fields[at + 1 :]]
+
+
+def _order(
+    number: str, deal: str, ref: str, state: str, left: int = 26, client: str = "222"
+) -> tuple[Sequence[str], Sequence[str]]:
+    """An order open on IITU and the broker's last word of it: deal is its action, kind, level."""
+    action, kind, *level = deal.split()
+    said = (number, "212969319", action, kind, *(level or ["171.5"]), ref, client, client + number)
+    order: dict[int, str] = dict(zip((1, 2, 13, 15, 17, 23, 24, 25), said, strict=True))
+    status = ("3", number, state, "0", str(left), "0", client + number, "0", "0", client, "", "0")
+    return [order.get(n, field) for n, field in enumerate(STOP)], status
+
+
+def _account(holdings: Sequence[Sequence[str]], *orders: Sequence[str]) -> list[Sequence[str]]:
+    return [*holdings, ENDS[0], *orders, ENDS[1]]
+
+
+class _Silent(io.BytesIO):
+    """A gateway that has said its last and does not hang up: the door's wait runs out."""
+
+    def read(self, size: int | None = -1) -> bytes:
+        if self.tell() == len(self.getvalue()):
+            raise TimeoutError("timed out")
+        return super().read(size)
+
+
+def _gateway(
+    patch: pytest.MonkeyPatch, *answers: Sequence[Sequence[str]], silent: bool = False
+) -> list[bytes]:
+    """A gateway that answers each conversation the desk opens with the next of answers, and
+    none after them; what the desk sent in each, after its greeting and its start. Its
+    answer given, it hangs up; or, silent, says no more and does not."""
+    left, sent = list(answers), list[bytes]()
+
+    def dial(talk: Callable[[BinaryIO, paper.Send], object]) -> object:
+        said: list[bytes] = []
+        wire = _wire(HELLO, ACCOUNTS, NEXT, *left.pop(0))
+        try:
+            return talk(_Silent(wire.getvalue()) if silent else wire, said.append)
+        finally:
+            sent.append(b"".join(said[2:]))
+
+    patch.setattr(paper, "dial", dial)
+    return sent
 
 
 def _smgb(*shares: int) -> Account:
@@ -61,7 +113,9 @@ def _read(*messages: Sequence[str]) -> tuple[Account, list[bytes]]:
 
 
 def test_the_account_is_read_as_the_gateway_gives_it_and_nothing_else_is_sent() -> None:
-    account, sent = _read(ACCOUNTS, FEED, READY, FEED, FLAT, HELD, ENDS[0], STOP, STATUS, ENDS[1])
+    told = (ACCOUNTS, FEED, READY, FEED, GONE, FLAT, HELD, ENDS[0], STOP, STATUS, ENDS[1])
+    # the real gateway opens by telling, unasked, each order of this client's still open
+    account, sent = _read(STOP, STATUS, ENDS[1], *told)
     assert account == Account(
         (Holding("DU0000001", "AAPL", "STK", "USD", Decimal(0)), SMGB), (AAPL_STOP,)
     )
@@ -70,8 +124,17 @@ def test_the_account_is_read_as_the_gateway_gives_it_and_nothing_else_is_sent() 
         b"\x00\x00\x00\x0a71\x002\x00222\x00\x00",  # start, as the desk's own client
         b"\x00\x00\x00\x0561\x001\x00\x00\x00\x00\x0516\x001\x00",  # positions; open orders
     ]
-    late, _ = _read(ACCOUNTS, READY, STOP, ENDS[1], HELD, ENDS[0])  # the lists end either way
-    assert late == Account((SMGB,), (AAPL_STOP,))
+    # the lists end either way; an order is read from its head alone, under its own number
+    # at its client, and stands where the broker last said, wherever its state comes. One told
+    # again (the real gateway tells one again, unasked, as it settles it) is one order, by the
+    # broker's own id for it, as last told: here its shares changed, which is not yet seen of it
+    again = (STATUS, STOP, _but(_but(STOP[:26], 1, "9"), 14, "4"), PART)
+    late, _ = _read(ACCOUNTS, READY, *again, ENDS[1], HELD, ENDS[0])
+    part = replace(AAPL_STOP, number="9", shares=Decimal(4), state="Submitted", left=Decimal(6))
+    assert late == Account((SMGB,), (part,))
+    # only a stop has a level: what the broker writes in its place on another order is not read
+    market, _ = _read(ACCOUNTS, READY, _but(_but(STOP, 15, "MKT"), 17, "1.79E308"), STATUS, *ENDS)
+    assert market.orders == (replace(AAPL_STOP, kind="MKT", level=None),)
 
 
 @pytest.mark.parametrize(
@@ -83,6 +146,10 @@ def test_the_account_is_read_as_the_gateway_gives_it_and_nothing_else_is_sent() 
         ((("15", "1", "I7654321,DU0000001"), READY), paper.NotPaper, "I7654321"),
         ((("15", "1", ""), READY), paper.NotPaper, "''"),
         ((ACCOUNTS,), ConnectionError, "hung up"),
+        # ready, but with no number the desk's next order could go under
+        ((ACCOUNTS, ("9", "1")), ValueError, "next order"),
+        ((ACCOUNTS, ("9", "1", "-4")), ValueError, "next order"),
+        ((ACCOUNTS, ("9", "1", "41", "")), ValueError, "next order"),
     ],
 )
 def test_nothing_is_asked_until_the_gateway_is_ready_and_its_accounts_are_all_paper(
@@ -92,6 +159,8 @@ def test_nothing_is_asked_until_the_gateway_is_ready_and_its_accounts_are_all_pa
     with pytest.raises(error, match=saying):
         paper.converse(_wire(HELLO, *messages, *ENDS), sent.append)
     assert len(sent) == 2  # the greeting and the start: no question about the account
+    # once ready, the start gives the number the gateway takes the desk's next order under
+    assert paper.start(_wire(HELLO, ("9", "1", "7"), ("9", "1", "41"), ACCOUNTS), sent.append) == 41
 
 
 @pytest.mark.parametrize(
@@ -115,10 +184,22 @@ def test_nothing_is_asked_until_the_gateway_is_ready_and_its_accounts_are_all_pa
         ((ACCOUNTS, READY, [*FLAT[:11], "", *FLAT[12:]]), ValueError, "cannot trust"),
         ((ACCOUNTS, READY, [*FLAT[:14], "NaN", FLAT[15]]), ValueError, "NaN"),
         ((ACCOUNTS, READY, [*FLAT[:14], "Infinity", FLAT[15]]), ValueError, "Infinity"),
-        ((ACCOUNTS, READY, STOP[:25]), ValueError, "AAPL"),
-        ((ACCOUNTS, READY, [*STOP[:13], "SSHORT", *STOP[14:]]), ValueError, "SSHORT"),
+        ((ACCOUNTS, READY, STOP[:25], *ENDS), ValueError, "AAPL"),
+        # listed as open is not being worked: an order with no state of its own is not read
+        ((ACCOUNTS, READY, STOP, *ENDS), ValueError, "no state"),
+        ((ACCOUNTS, READY, STOP, _but(STATUS, 6, "7"), *ENDS), ValueError, "1234567"),
+        # orders are told apart by the broker's id: one under none could hide another
+        ((ACCOUNTS, READY, _but(STOP, 25, "0"), _but(STATUS, 6, "0"), *ENDS), ValueError, "no id"),
+        ((ACCOUNTS, READY, _but(STOP, 25, ""), _but(STATUS, 6, ""), *ENDS), ValueError, "no id"),
+        ((ACCOUNTS, READY, STOP, STATUS[:-1]), ValueError, "shape"),
+        ((ACCOUNTS, READY, STOP, [*STATUS, ""]), ValueError, "shape"),
+        ((ACCOUNTS, READY, _but(STATUS, 4, "")), ValueError, "plain number"),
+        ((ACCOUNTS, READY, _but(STOP, 14, "1E+1"), *ENDS), ValueError, "plain number"),
+        ((ACCOUNTS, READY, _but(STOP, 17, "1.79E308"), STATUS, *ENDS), ValueError, "plain number"),
+        ((ACCOUNTS, READY, [*FLAT[:14], "1_0", FLAT[15]]), ValueError, "plain number"),
+        ((ACCOUNTS, READY, _but(STOP, 13, "SSHORT"), STATUS, *ENDS), ValueError, "SSHORT"),
         ((ACCOUNTS, READY, [*FLAT[:2], "U7654321", *FLAT[3:]]), paper.NotPaper, "U7654321"),
-        ((ACCOUNTS, READY, [*STOP[:20], "U7654321", *STOP[21:]]), paper.NotPaper, "U7654321"),
+        ((ACCOUNTS, READY, _but(STOP, 20, "U7654321"), *ENDS), paper.NotPaper, "U7654321"),
     ],
 )
 def test_an_answer_the_desk_cannot_trust_stops_the_reading(
@@ -193,9 +274,6 @@ def test_a_book_that_is_the_brokers_has_no_difference() -> None:
             {},
             "SMGB CFD GBP: the broker holds 0.5, the desk's book 0",
         ),
-        (Account((), (AAPL_STOP,)), {}, RESTS.format(10, 31)),
-        (Account((), (replace(AAPL_STOP, client="222"),)), {}, RESTS.format(10, 222)),
-        (Account((), (replace(AAPL_STOP, shares=Decimal(0)),)), {}, RESTS.format(0, 31)),
     ],
 )
 def test_every_difference_from_the_book_is_named(
@@ -204,29 +282,17 @@ def test_every_difference_from_the_book_is_named(
     assert named in paper.differences(account, held, LINES)
 
 
-def test_each_entry_is_named_once_in_order_by_its_own_name_and_the_orders_after() -> None:
+def test_each_entry_is_named_once_in_order_by_its_own_name_and_no_order_is() -> None:
     flat = Holding("DU0000001", "AAPL", "STK", "USD", Decimal(0))
     other = replace(SMGB, account="DU0000002")  # a second paper account holding the same
-    buy = replace(AAPL_STOP, broker_id="7", action="BUY", kind="MKT")
-    account = Account((SMGB, flat, replace(SMGB, currency="EUR"), other), (AAPL_STOP, buy))
+    account = Account((SMGB, flat, replace(SMGB, currency="EUR"), other), (AAPL_STOP,))
     assert paper.differences(account, {"SMGB": 25}, LINES) == (
         "SMGB STK EUR: the broker holds 25, the desk's book 0",  # one entry under its name
         TWO.format(25, 25),
         TWO.format(25, 25),  # each entry named, though the two read alike
-        RESTS.format(10, 31),
-        "AAPL: an order resting at the broker to BUY 10 (MKT, the broker's id 7, client 31)",
-    )
+    )  # the orders resting there are the day's check's to tell apart (test_clearance.py)
 
 
 def test_a_held_line_the_desk_was_not_given_is_refused() -> None:
     with pytest.raises(ValueError, match="XXXX"):
         paper.differences(Account((), ()), {"XXXX": 1}, LINES)
-
-
-def test_the_check_reads_the_desks_own_ledger(tmp_path: Path) -> None:
-    rows = (",".join(book.COLUMNS), "X1,20251114-rsi2-SMGB,SMGB,25,31.5,2025-11-14")
-    (tmp_path / book.LEDGER).write_text("\n".join(rows), encoding="utf-8")
-    assert paper.mismatches(tmp_path, lambda: _smgb(25)) == ()
-    assert paper.mismatches(tmp_path, lambda: _smgb()) == (
-        "SMGB STK GBP: the broker holds 0, the desk's book 25",
-    )

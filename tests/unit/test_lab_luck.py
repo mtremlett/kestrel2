@@ -8,6 +8,7 @@ from datetime import date
 from decimal import Decimal
 
 import pytest
+from test_lab_rung import FREE
 
 from lab import luck, rung
 from lab.cell import Cell, Key, Trade
@@ -21,7 +22,7 @@ def _verdict(seed: int, edge: float, trades: int = 40) -> Verdict:
     by the first rung's own rule."""
     rng = random.Random(seed)  # noqa: S311 - a repeatable test draw, not a secret
     back = [Decimal(f"{100 * (1 + rng.gauss(edge, 0.02)):.4f}") for _ in range(trades)]
-    priced = tuple(Priced(Trade(DAY, DAY), 1, Decimal(100), b, b - 100) for b in back)
+    priced = tuple(Priced(Trade(DAY, DAY), 1, Decimal(100), b, FREE, (DAY, DAY)) for b in back)
     return rung.verdict(Key(Cell("breakout_20_10", "VUSA", DAY, DAY), "code", str(seed)), priced)
 
 

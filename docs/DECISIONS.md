@@ -1108,6 +1108,38 @@ the week's reset, already used, or with no readings, and once a night; the keepe
 outside its hours, at a weekend or before it exists, a round done, failed or hung, two
 misses told at once even at night, and its return held for the morning.
 
+## 2026-11-13 — the runner restarts without a drain; the doctor takes the recommended option
+
+**Why.** Four drains this evening each idled lanes for up to 45 minutes while the last
+sessions finished: the opposite of the pace he asked for.
+
+**How.** Each session now writes its output to a file, not to the runner, and each slot keeps
+a record of its session on disk (process, output, work, branch, phase). `restart.cmd` (or
+`runner.py restart`) ends the runner once no merge, push or launch is half done, without
+touching a session; the next runner holds each recorded slot's claim before any slot takes
+work, waits for the session to end, reads its output, and lands its pull request as usual.
+A session is known by its program file and its start time, so an update between runners,
+or a process number Windows reused, is not mistaken for it. A stop still ends every session.
+A drain is needed only for a change to how sessions are launched.
+
+**Driven.** With stand-in sessions in a scratch home, 15 cases: a restart during three
+sessions (none killed, all three adopted, finished and landed, none started twice); during
+the pull requests' watch; with the sessions ending between runners; after an update between
+runners; with a reused process number; between a session's legs (its own session resumed);
+and a stop ending adopted sessions. A blind review found eleven faults, all fixed. Live at
+21:30: `runner.py restart` took 11 seconds; the new runner adopted five slots (three
+sessions still running, two pull requests being watched), started nothing twice, and the
+first adopted pull request landed four seconds later.
+
+**His standing ruling**, via #90: "please always go with recommended to avoid waiting for me
+to attend". When the doctor finds a halt is a decision for him, it takes the recommended
+option, gives it to the lane's next session to act on and record, restarts the lane, and
+sends him one line saying what was chosen and why. Going live, credentials and spending
+money still wait for him, as does a lane the doctor has already restarted twice that day.
+Sessions follow the same ruling for their own questions. Driven: 11 cases. While his ruling
+raising the unit-test budget to 1.5 times the product (#90) lands, a pull request red on
+that budget alone is not counted toward a halt.
+
 ---
 
 # The lanes' own decisions
@@ -1313,6 +1345,25 @@ second source (his words: "i already pay for ibkr market data and use yf.downloa
 source"). So the hot bars come first from the broker, read-only through the paper port, and
 the free archive checks them. No new spending. The paper account must see his live data, not
 the delayed kind; the data lane proves that first, read-only.
+
+## 2026-11-14 — five answers: concentration shown first, no book yet, one account, updates paused
+
+**His rulings**, in his own chat, from options with a recommendation each:
+1. **Concentration is shown, not yet a condition.** "Show it first": the book's number of
+   independent bets and its profit by correlated cluster go on every report; the A-GATE
+   sets no mark on them until a few reports show what normal looks like. The option
+   declined: a pass-or-fail mark now, chosen without evidence.
+2. **No Connors book for now.** "Work around this for now." The first reproduction is
+   Connors' Double 7's on SPY, whose figure is already read from its publication and
+   written down (#141); RSI-2's reproduction waits until its figure is on file. The book
+   ("Short Term Trading Strategies That Work", Connors and Alvarez, 2008) carries both;
+   seen 14 November at about $23 to £48 used, no new price confirmed.
+3. **No second GitHub account yet.** "No - leave for now." Sessions stay on his account;
+   the question stays open, to be asked again before going live.
+4. **The runner's Telegram key** he copies beside the runner himself, as ruled on
+   13 November; he was given the steps.
+5. **Windows updates stay paused.** "I agree": no password goes into Task Scheduler; a
+   restart still stops the lanes until he logs in.
 
 ---
 
@@ -1681,6 +1732,149 @@ outside the repository, Python's cache off: thirty-nine by the lane (one gap: a 
 rows collapsed into one a name), thirty-one by the review (five survived), fifteen on the
 repaired code (one gap: two stops collapsed). Six gaps are closed and each is now caught; the
 one left narrows a type of the interface's, which can refuse a broker, never admit one.
+
+### 2026-11-13 — the money book's next boxes noted: the kill switch first (#76)
+
+**Decided**, by the lane as the desk's mentor.
+- *The kill switch's files.* Options: refuse at the gate in `desk/orders.py`, or on the send
+  path in `desk/book.py`. Chosen: the send path, with a new `desk/kill.py` and `desk/broker.py`
+  (cancelling). The gate stays a pure rule over the order and the book; whether the switch is
+  thrown is a fact on disk, read at the edge where the reconciliation refusal already lives.
+- *The costs wait for the kill switch (`after: money-kill`).* Options: side by side, or in turn.
+  Chosen: in turn; both change `desk/book.py`, and his ruling puts the kill switch first.
+- *The crash watch left un-noted.* Options: note it with no `after` (a session would meet it
+  before the five-minute data exists), or wait. Chosen: wait for the data lane's box ids.
+- *File lists err wide.* A session may change nothing outside its note, so a missing file strands
+  it; a wider note only makes it wait its turn.
+
+### 2026-11-13 — each strategy declares what it is (#92, money-declared)
+
+**Decided**, by the lane as the desk's mentor.
+- *Holding period: each of the five declares none.* Options: (a) 5 sessions for RSI-2 and 20 for
+  Bollinger, the span of the average each sells on; (b) none for all five; (c) a number measured
+  from history. First built (a), but neither published rule has a time exit: RSI-2 outstays 5
+  sessions in 13 of 39 golden trades, Bollinger outstays 20 in 29 of 52 (longest 133). Chosen (b):
+  a declaration says only what its rule does; (c) is tuning. The time stop (STP-11) must choose
+  each limit and build the exit in the same change; the golden days will move, so it needs his
+  approval (canon B5).
+- *Test universe: every line of the instrument master, by reference.* Options: (a) the master's
+  lines; (b) a narrower list per rule; (c) a rule about a line's facts. Chosen (a): a rule judged on
+  fewer lines than it trades would trade unjudged; (b) changes what is traded with no evidence;
+  (c) makes the research list part of a verdict. By reference, so a new line is declared at once.
+- *Data: the numbers of the daily bar a rule reads*, proved (not a named source: the desk has one).
+- *The bar is one value, daily;* a second comes with the bars that would feed it.
+- *The declaration sits on the rule itself.* Options: (a) on the rule; (b) a second table by name;
+  (c) a wrapper. Chosen (a): one home; a rule without one fails the type check.
+- *A short sale.* No word for it in declaration, action or decision; the template sells only what
+  is held. A hand-made decision to sell is left to the gate (refusing it at its making breaks
+  orders tests this box may not edit); the true fix is the order type (recommended box).
+- *Ticked though a remainder is named:* a session given the same files could do no more.
+
+### 2026-11-13 — the kill switch and its drill (#95, money-kill)
+
+**Decided**, by the lane as the desk's mentor.
+- *The stops stay.* Options: (a) cancel everything, stops included; (b) cancel and sell all held;
+  (c) cancel working orders, keep the stops. Chosen (c): removing stops would leave holdings
+  unprotected when something is wrong; selling all is a trading decision. The message says what is held.
+- *Sales are refused too* (not only buys): all new orders stop, the one promise simple enough to
+  trust in an emergency; the stops at the broker still sell.
+- *The switch goes on the record before the broker is asked*: the desk is stopped even if the
+  broker's line is down.
+- *The send path reads the switch itself* (`desk/book.py`), not callers: nothing bypasses it (B1).
+  It reads twice, before the broker is asked and at the last moment before the order goes; each
+  reading was removed in turn and the tests caught both.
+- *An order the broker already has is still recorded while the switch is on*: recording sends
+  nothing, and refusing would leave the book wrong.
+- *Only the operator releases it*, with a reason; no timer. A pull never fails for want of a
+  reason ("no reason given"). A record that cannot be read stops the desk (fail shut).
+- *The drill is real, on a scratch desk at the pretend broker* (options: pull the real switch; a
+  checklist): it stops no real trading, cannot be ticked without being run, and fails by name.
+  "Monthly" is 31 days. The pretend broker gains one fault, an order left working.
+- *Branch:* finished on `lane/money-1113-203647-s1` as asked; nothing pushed to `lane/money-1113-212543-s1`.
+
+### 2026-11-13 — the costs whole (money-costs, #101)
+
+**Decided**, by the lane as the desk's mentor, under his ruling "always go with recommended".
+- *Spread: 0.05% of a leg's value, assumed.* Options: nothing until measured; one flat assumed rate; a measured figure per line. Chosen the flat rate now, measurement asked for (R-MONEY-10): a result with no spread flatters every strategy (canon B4).
+- *Slippage: 0.05% a leg, assumed.* Same options, same choice.
+- *A leveraged line pays its leverage times as much.* Options: one rate; times leverage; per line. Chosen times leverage: 3LGO pays 0.15% a leg, 5QQQ 0.25%.
+- *A stop's sale slips three times as far* (the spread is not multiplied). Options: as any sale; a multiple; modelled from each day's fall. Chosen three times: a stop sells into a fall.
+- *Spread and slippage are taken off the profit, not counted in an order's cost.* Options: inside the fifth of capital; profit only. Chosen profit only: they are the fill being worse than the sizing price, not a bill; it keeps the numbers research has judged.
+- *UK tax is part of an order's cost.* Options: profit only; also in the order's cost. Chosen both: it is cash leaving with the purchase.
+- *The regulators' fees (SEC, FINRA) go in the commission line.* Options: a sixth line; with commission. Chosen with commission: scene 7 names five lines.
+- *The FINRA fee is charged though on holiday to the end of 2026.* Options: nought until January; the published rate. Chosen the rate: a date is a special case; the error is a fraction of a penny, on the safe side.
+- *The leg is a typed word* (`orders.Leg`, read in `orders.leg_of`). Options: a sign and a flag; three words. Chosen three words.
+
+**Evidence.** Fourteen months: costs £161.54 → £338.78, profit £967.23 → £791.66. Blind review: no wrong money. 35 breaks, 34 caught, the missed one (UK tax left out of the total) now caught.
+
+### 2026-11-13 — the three emergencies in numbers (money-emergencies, #108)
+
+**Decided**, by the lane as the desk's mentor, under his ruling "always go with recommended". A changed number is one line of code and one of its test.
+- *"The market".* Options: the S&P 500 in dollars at New York's close; the yardstick as the desk reads it (pounds, London's close). Chosen the yardstick (VUAG, AG-04); numbers set on VUSA (same index since 2012) and checked on VUAG. New York's numbers on the desk's series would cry black swan on a crash; the code refuses any other market reading.
+- *A crash: 4% in a day or 12% below the month's high.* Measured on VUSA: 4%/10% 46 days, 7 episodes; 4%/12% 26 days, 6; 5%/12% 22, 3; 5%/15% 14, March 2020 only. Chosen 4%/12%: the six episodes anyone would name, none missed. It halts buying; sells nothing (his stop already says where to sell).
+- *A black swan: 10% in a day or 30% below the month's high.* Options: just beyond the worst closes (8%/25%); round numbers beyond the worst readings within a day (8.7%/26.0%). Chosen the latter: the crash watch reads within the day, so 8% could have sold everything on 9 and 12 March 2020. It means cash, and only the operator lifts it.
+- *An emergency: one line down 10% in a day, in its market's terms* (tied to `STOP_FALL`). Options 5%, 7%, 10%, 13%, 15%. Chosen 10%: about ten a year across twenty lines (5% would be about sixty from the US shares alone). The desk buys no more of that line; others carry on. Only the day's fall counts, not the month's.
+- *When each ends:* only when a day ends clear of it; a reading within the day raises, never lifts.
+- *A bar's close is read, never its low:* the archive's bad lows would each have been a black swan.
+- *His other words:* a desk fault is the book not matching (EMG-06) and the kill switch (EMG-02); a volatility spike is a crash; a market halt has no price, so it is unread, never calm.
+- *Unread is its own answer* (`Unread`, raised by name). Options: measure with whatever is given; refuse. Chosen refuse.
+- *The definitions say what the desk "is to" do*, since nothing acts yet; the type is `Response`, not a second `Action`.
+
+**Evidence.** Four blind reviews (the first found the numbers set on the wrong series); breaks 91 of 92 caught, the last then caught.
+
+### 2026-11-14 — the day's record (money-record, #114 and #124)
+
+**Decided**, by the lane as the desk's mentor, under his ruling "always go with recommended".
+- *A day's profit is the book's gain, not only closed trades.* Options: round trips closed that day; change in worth plus dealing less costs. Chosen the second: a falling day is a losing day. They agree when the book is flat.
+- *One rounding policy: to the penny, half to even, once, where published.* Everything before is exact.
+- *The market's figure: the capital times the yardstick's move over the record's days.* Options: the same capital each day; the capital bought once and held. Chosen each day (like-for-like with the fixed capital). The column must not be added up as buy-and-hold (R-MONEY-14).
+- *Each record opens from what the last closed on* (worth and count of fills kept in the record). Options: work it out again from files; keep it. Chosen keep: the first review showed two ways the first loses money in silence.
+- *A record is never rewritten;* a late fill is in the next record.
+- *A withheld day's money is published with the next plain number* rather than left out of every record.
+- *A day is over when its record is made, or the ledger holds a later fill.* Options: ledger alone (as landed in #114); records alone (blind before the first record); either. Chosen either (#124): each sees what the other cannot.
+- *A missing record does not hold the next day's orders.* Options: no order until every earlier session has its record; buys held, sales through; nothing held. Chosen nothing held: one late close must not stop rule sales.
+- *A records file the desk cannot read stops the morning's orders;* an absent file (a new desk) trades. Chosen stop loudly.
+- *A holding is valued at that very day's rate or the day has no record;* records begin at the ledger's first fill; a bar owed is an error unless the line is suspended.
+- *Scene 6's last check reads "something was held on some day"*, and both books are compared every day.
+- *The ledger writer keeps its private name* (`book._write`) so the paper lane's merged code stays green; asked of PAPER (R-MONEY-11).
+- *#114 landed before its last mend's review reported* (#124 closed the finding); nothing but the pretend broker is on this path.
+
+**Evidence.** Fourteen months: 310 days' profits add to £791.66, the 34 round trips'. #114: three blind reviews, 4 blocking findings mended, 27 breaks, 25 caught and the 2 missed then caught. #124: a review found an old day with a made record could be sent again (five buys, £11,602 on £10,000 in its run); closed, eight breaks all caught.
+
+### 2026-11-14 — the rest of the money book noted (money-notes, #130)
+
+- *The crash watch has its own module, `desk/watch.py`, and waits for the halts.* Options: (a) a new module that reads the bars and the emergency thresholds and raises a halt; (b) inside `desk/emergency.py`. Chosen (a): emergency is pure definitions and measurement, the watch runs every five minutes and acts, and "halts all buying" needs the typed halt first. It does not wait for the data lane (the five-minute bar type is in the store); his alert is the paper lane's messenger, the watch gives the words.
+- *The golden run (money-golden) holds all the lane's files and runs alone, after the fills, limits and halts.* Options: (a) commit it now; (b) once what a fill costs and what the gate refuses have stopped moving. Chosen (b): each golden change needs his approval (canon B5), so committing early spends his attention on planned changes. Its numbers live in a file the lane owns (a unit test beside the day's).
+- *Fills realistic waits for the money invariants,* so the change to what a fill is lands under the property tests.
+- *Honest money and the whole story wait for the fills,* which move the profit lines they report. Neither waits for the golden run; if honest money lands after it, its interest moves the golden numbers once, with the explanation B5 asks for.
+- *Boxes that share files but do not depend on each other* (small trades, time and gaps, the stranger) carry no `after`: the runner already keeps two sessions off the same files.
+
+### 2026-11-14 — the money invariants (money-invariants, TST-04, #132)
+
+- *Seeded with the standard library's random numbers, not a property-testing library.* Options: (a) `hypothesis` (a new dependency: his approval, and `requirements.txt` is outside the claim); (b) worlds from `random.Random(seed)`, as the lab's tests do. Chosen (b): no dependency, the same world for the same seed everywhere, a failing seed is its own reproduction.
+- *"Equity is cash plus market value" is tested through the day's published record.* Options: (a) at the book alone, valuing holdings in the test: the first blind review proved the value cancels and the check cannot fail; (b) drive `day.publish` in every world and set its worth and profit against the broker's holdings at the test's own closes and rates; (c) leave it to a box that owns the day's tests. Chosen (b): the record is the only place the desk states its equity. The file is named for the book because the claim names it so.
+- *The late-fill path is kept beside the record.* The record brings the ledger up to date first, so it never meets a late fill against the pretend broker; the test also counts each day's dealing on the ledger as it stood (`book.dealt`) and holds each fill counted once.
+- *Costs shared between round trips are compared to 1e-27 of a pound, everything else exactly.* Sharing a split fill's costs by division is the one inexact step; the largest difference measured was 2.1e-27.
+- *The guard proved (canon A7): 37 deliberate breaks, 36 caught,* two by no other money-path test (a sale closing the newest buy; a part-sold buy sent to the back of the queue). Not caught: a book-and-broker comparison that finds nothing, which breaks no invariant where the two always agree; the reconciliation tests catch it. Two blind reviews found three blocking issues, all mended: the market-value term cancelled, a cancelled order that later filled was invisible, a first send reaching the broker twice went unseen.
+- Found, not fixed (product files outside the claim): no fault can reach a sale; the pretend broker never fills in two executions; an order's state is read from words, not typed.
+- All of this is paper. His standing ruling of 13 November: "please always go with recommended to avoid waiting for me to attend".
+
+### 2026-11-14 — SimCity, small (money-simcity, #134)
+
+Decided by the MONEY lane as the desk's mentor, no one watching.
+
+- *What a "part of the money path" is.* Options: a hand-kept list; every function; everything the six modules offer by name plus the broker's five faults. Chosen: the last. A hand list rots; private helpers are their callers' business. A rule's own arithmetic is not a part; "rules that never held a line" is reported beside the census.
+- *Measured, not claimed.* Options: scenarios declare their cover; the profiler records what ran. Chosen: the profiler (about 17 seconds a night).
+- *Which modules.* Six: strategy, orders, broker, book, day, kill. Not `emergency.py` until the crash watch is built.
+- *One life, not several.* A fault on every line; each thing done to the desk waits for a plain day. Several lives cost about a minute each.
+- *"One command" is a function,* run by the check on every change; a command-line entry would reach into `tests/`. The nightly run on his PC is the runner's.
+- *The night's test sits with the unit tests,* so the scenes stay his seven.
+- *Land RED and pin it.* Options: leave the limit of five untried; try it, say RED, pin the test to that one broken promise; mend the send path here (outside the box's files). Chosen: the second. The pin fails if any other promise breaks, or the moment the fault is mended.
+- *A red night is kept; a night that cannot be lived is an error.* Nothing written when data is missing or the time is not UTC.
+- *No exact money figures pinned,* so another lane's rightful change cannot turn this test red beyond its claim.
+- Evidence: two blind reviews, each with a blocking finding mended; 27 deliberate breaks, 24 caught, 1 closed by a test, 1 dead name removed, 1 rightly green.
+- Found, not fixed: six lines held when a working order fills late (box money-working); a cancelled stop never put back (money-restop).
+- All of this is paper. His standing ruling of 13 November: "please always go with recommended to avoid waiting for me to attend".
 
 ## DATA
 
@@ -2374,6 +2568,42 @@ Options and choices (from #68):
 5. paper-conformance holds every file (`files: *`): it runs on the real account in market hours
    and may fix any module where the broker differs, so it runs alone.
 
+### 2026-11-14 — a buy goes with its stop; the line settled after any order (paper-adapter, paper-stops, #123)
+
+Decided by the PAPER lane as the desk's mentor, no one watching.
+
+- *How a buy and its stop go together.* Options: (a) send the stop after the buy fills: a second or two with no stop, and a
+  dead desk leaves shares unprotected; (b) attach the stop to the buy so the broker holds both, then settle; (c) rest the
+  stop first: impossible without risking a short sale. Chosen: (b); if the stop's half is refused the buy never reaches the market.
+- *Which shares the stop is for, and on what evidence.* Options: (a) the desk's own sum, checked against the account;
+  (b) the account's shares alone; (c) size from the account, and act only when the account moved by exactly the order's
+  fills and "filled" is borne out by fills. Chosen: (c), after the blind review showed five ways the sum is silently wrong.
+  When the three disagree nothing is changed and an error is raised.
+- *A sale: take shares off the stop before or after.* Chosen: after, by what happened; one mechanism for buys and sales.
+  For a moment the stop is for more shares than held (recorded, not fixed).
+- *Replace a stop, never change it in place* (changing a stop attached to a buy is unproven); new first, then cancel the old,
+  so a line is never under none. A line whose stops are unsettled is refused, buy and sale alike. A stop already right is
+  kept whatever its name; a stop the broker is not holding counts as none.
+- *The broker's notice 202 (order cancelled) is news, not a fault, in every reading.* This changes one line of #110's test:
+  cancelling a buy makes the broker cancel its stop and say so. The comparison of book with broker still names any line left bare.
+- *A stop with no price at the broker* stops the buy with an error before anything is dialled. The stop rests until
+  cancelled (GTC), plainest kind. A stop that ends some other way while being cancelled is an error unless the shares are as read.
+- *Both boxes ticked.* No test order was sent to the real Gateway: one wrong field could make a real order on a shared account.
+- The tests' pretend Gateway moved into the door's test file (no test changed): the placing tests were at the 400-line cap.
+- Evidence: tests seen failing first; blind review, one blocking finding fixed; 60 + 25 + 31 deliberate breaks, 2 that cannot differ.
+
+### 2026-11-14 — the paper book's next boxes ordered for the runner (#128)
+
+Decided by the PAPER lane as the desk's mentor, no one watching.
+
+- *Messages and the unattended day ahead of conformance.* Options: conformance next; boxes needing no market first. Chosen:
+  the latter: it is a weekend, and conformance holds every file so would stall the lane until Monday. The code already
+  refuses any order without a drilled kill switch and clean check.
+- *Supervision after conformance:* its box needs seven days without an operator action and would hold the first paper trades.
+- *Conformance keeps `files: *`:* nobody has seen where real results are recorded; a missed file would stop the session.
+- New modules named before they exist: `desk/messenger.py`, `desk/running.py`, `desk/supervisor.py`. paper-running also holds
+  `desk/placing.py` for R-MONEY-8 and waits for paper-messages so there is one messenger.
+
 ## GRID
 
 ### 2026-11-13 — the fast grid engine: it holds what the desk holds, or it refuses
@@ -2509,6 +2739,63 @@ quietly taking the trading line of the same symbol. Blind review, nothing blocki
 - grid-weekend claims every file of the lane (`*`): making a sweep fast enough can touch the
   engine, the cell and the batch alike, and it is last, so running alone costs nothing.
 
+### 2026-11-13 — a key per rung (grid-key, #88)
+
+**Decided.** Each rung (a module of `lab/` that builds on the cell) has a code version of its own, covering every file it reaches; the first rung reaches the cost model (`desk/orders.py`), so a change of costs moves every verdict's key and leaves the trades' keys alone.
+- *One key or a key per rung?* (a) fold the cost model and every rung's code into the cell's one key; (b) a key per rung. Chosen (b): under (a) a one-line commission change re-runs every trade search, hours of work, though the days a rule bought and sold cannot depend on costs. Under (b) a change re-runs exactly what it touches.
+- *The cost model's version.* A number someone must raise, or the code's own text. Chosen the text: a number kept by hand is a rule in prose.
+- *Chained, not swapped.* The rung's key hashes the record's code with the rung's, so trades made by older code never pass for this code's under a verdict's key.
+- *When read.* First asked, or at load. Chosen at load, every rung at once: the first showed a cost model edited after the process loaded the old one.
+- *What is a rung.* A `lab/` module reaching the cell through its imports; any other name is refused, no list kept by hand.
+
+**Evidence.** Test seen failing first; 27 deliberate breaks, 27 caught; a blind review's one blocking finding fixed. Open: nothing stamps a verdict with the key yet (R-GRID-3).
+
+### 2026-11-13 — the auto-tune: finish the kept work (grid-tune, #94)
+
+**Decided.**
+- *Which branch.* The kept branch, or a fresh one. Chosen the kept branch, as the restore instruction says, keeping the earlier three commits.
+- *Finish or delete.* Chosen finish: complete, green with main, review found no blocker.
+- *The review's minor findings.* Fix now or carry to grid-pass. Chosen carry: none is wrong behaviour today and the change sat at 296 of 300 lines allowed.
+- *UK clock.* `tune.spare` works out summer time itself because the calendar keeps its rule private. Keep and ask DATA for a public one (R-GRID-4), or wait. Chosen keep: proven on both sides of both hours.
+
+**Evidence.** 18 deliberate breaks, 18 caught; proven with the real Windows ceiling (a gigabyte cell under 400 MB was refused and the rest finished); blind review found nothing blocking.
+
+### 2026-11-13 — the grid's first pass (grid-pass, #102)
+
+**Decided.**
+- *What "every setting" means.* (a) whatever the desk's engine can make (`strategy.STRATEGIES`, five today); (b) settings invented in the grid. Chosen (a): the grid is trusted only where it matches the desk's engine (canon B2); settings are MONEY's (R-GRID-1).
+- *The unit handed to a worker.* A cell with a shared journal, or a ticker with a journal each. Chosen the ticker: prices read once instead of five times and two workers never write one journal.
+- *Which tickers.* Only the 864 clean ones, or all 1,065 through research's own reading. Chosen all 1,065: DATA built that reading for it (R-DATA-7), and a parked ticker can still be studied.
+- *Window.* The whole history, one window per cell; folds are RUNGS'.
+- *The research store.* A scratch folder rebuilt from cached answers, or a permanent home now. Chosen scratch: the home is DATA's box (R-GRID-5) and kept cells do not depend on it.
+- *A ticker listed twice is refused*, not quietly counted once: a repeat is a mistake in the list.
+
+**Evidence.** The pass run for real: 5,325 cells run and kept in 200 s, none failed; a second pass ran none, in 45 s. 14 deliberate breaks, all caught after the test was strengthened; a blind review's one blocking finding fixed.
+
+### 2026-11-14 — the grid's week: who starts it, how it runs, what breaks it (grid-week, #111)
+
+**Decided.** By the GRID lane as the desk's mentor, no one watching.
+- *Who starts the seven-day run.* This session, now, detached, from a pinned copy of the code, or a command left for the operator. Chosen now: the box cannot close for seven days, so each hour unstarted is an hour later; paper research only, below-normal priority under the memory ceiling, one process to end. His ruling: always go with recommended.
+- *Ticks: none.* Tick when the service runs, or when the log shows seven days. Chosen the log: "runs seven days" is a measurement nobody has seen. Recommended to the scribe: let grid-declared start now, as it waited on the shared file, not the week.
+- *Each pass in a fresh process*, not one long-lived process: five lanes change code day and night, and a crash or leak should cost one pass, not the week.
+- *A pass every hour*, not back to back or daily: prices change daily and code a few times a day; hourly picks changes up and leaves the PC to the lanes.
+- *What breaks "without stopping".* A failed pass, a pass holding no cell, a gap over an hour. Chosen to break on a failed pass: a service alive and producing nothing is not the grid running. One dead ticker does not break it.
+- *The window ends today*, so each midnight every cell is new; the cost is growth of results (Found, not fixed).
+- *A failed cell is written once*, only where the outcome differs from its last line; a cell's last line is its outcome now.
+- *No time limit on a pass*: any number is a guess; a hung pass writes no line, so the log shows the stop.
+
+**Evidence.** 36 deliberate breaks over two rounds: 30 caught at first, 4 after strengthening, 1 changes nothing, 1 left uncaught (named). Two blind reviews; two blocking defects fixed. Real run: 5,325 cells in 3 min 58 s; a short week of four passes read 17 min 50 s.
+
+### 2026-11-14 — what "seven days" is measured to (grid-week, #118)
+
+**Decided.** By the GRID lane as the desk's mentor, no one watching.
+- *The measure.* (a) loosen it, counting to the last pass's start plus an hour; (b) have someone start one more pass by hand on 20 November; (c) the week runs until a pass has ended its whole length after the first began. Chosen (c): the measure is honest; a proof needing a person at the right hour is no proof for a desk no one watches.
+- *Restart the running week now.* Chosen now, between two passes: the gap was ten minutes, inside the hour allowed, so the count carried on. His ruling: always go with recommended.
+- *The earlier short passes count*, from 22:45 UTC on 13 November, as the rule reads; either reading passes seven days, the run going to 21 November 00:44 UTC.
+- *Ticks: none*, as in #111.
+
+**Evidence.** A clean week read 6 days 23 hours before the fix (seen failing first), exactly seven after. 10 deliberate breaks: 9 caught, the tenth after one line strengthened. One blocking review finding fixed.
+
 ## RUNGS
 
 ### 2026-11-13 — the luck rung: a chance multiplied by every trial, one 5% test across the set
@@ -2572,3 +2859,351 @@ over", the arithmetic setting).
   the folds' cutting, not write a second.
 - *"Its costs whole"* sits below the noted boxes without a note: it cannot start until the
   money lane's costs land, and that box has no id yet.
+
+### 2026-11-13 — the paper account check asks the desk's one comparison (R-MONEY-4, #75)
+
+**Decided**, by the lane as the desk's mentor (no one watching), when moving `paper.differences`
+onto `book.differences`. The door keeps what is its alone: paper accounts only, a holding's
+name, and the orders resting at the broker.
+
+- *The name a holding is compared under.* Options: its symbol, kind and currency in one phrase;
+  or the broker's own number for the line. Chosen: the phrase, so the same symbol in another
+  currency or as another kind of product is never the book's line. The broker's number needs
+  the listings read in the same check, a second conversation that is the adapter's to arrange.
+- *Stricter in two cases, on purpose.* Two entries each exactly the book's shares, and an entry
+  that matches beside another with shares, are both named now. Options: keep the door's own rule
+  to stay as lenient as before; or take the one rule whole. Chosen: the one rule whole. A line
+  with shares in two entries is never the book's one line, and a check that sends orders only
+  when clean should err towards naming.
+- *The sentence.* Options: leave "the broker holds 25, the desk's book 25", which reads as no
+  difference; add a line about the entries; or say it in each sentence. Chosen: each sentence
+  about a name given more than once says "holds 25 in one of 2 entries", counting every entry,
+  empty ones too.
+- *One word each.* A book's "BRK B" beside a broker's "BRK" of kind "B STK" came back clean
+  when a name was one phrase. Options: hand the rule the three parts apart (the money lane's);
+  or make such a holding impossible. Chosen: a holding cannot be made unless its kind and
+  currency are each one word of letters and digits and its shares a finite number. No real kind
+  or currency is refused (23 kinds and 26 currencies tried, from memory, not the broker's manual).
+- *The unfinished run's document lines.* Options: keep its edits on the branch (the claim guard
+  would refuse them); or state them in the pull request. Chosen: the pull request; the scribe
+  writes the documents. Its shortening of an older decision entry was dropped.
+- *Two breaks left surviving.* A kind or currency of letters only instead of letters and digits,
+  and the book's shares made positive: neither can change a result for any kind, currency or book
+  that exists. Options: add cases; or leave them. Chosen: leave them.
+
+**Evidence.** The whole check green three times. The real account read at 19:51 UK, read-only:
+seventeen lines at no shares, no order resting, nothing named. A blind review compared old and
+new rules on 1,651,663 accounts: no false clean, no difference lost, every sentence true; the old
+rule's 496 false cleans are the only new sentences. Thirty deliberate breaks in a copy outside
+the repository with Python's cache off: twenty-eight caught, the two above left.
+
+### 2026-11-13 — the fills and orders the paper broker reports (paper-reports, #86)
+
+**Decided**, by the lane as the desk's mentor (no one watching), for `desk/reports.py`, read-only:
+only questions are sent, nothing is placed.
+
+- *Whose is whose.* Options: the desk's client id alone; the order's reference alone; both.
+  Chosen: both. Another program could copy a reference, and the desk's own client with no
+  reference of the desk's is something the desk cannot explain; either is kept apart and named
+  by the daily check, never taken as the desk's.
+- *A fill's day.* The gateway tells each fill's time on a clock it names (London "MET", New York
+  "US/Eastern"; 14 and 7 real fills seen). Options: turn every time into UTC; or keep it as told
+  with its clock's name, taking only the session's day and the order within a line. Chosen: as
+  told. Turning the gateway's clock names into UTC needs a table of time zones the desk does not
+  carry. A desk fill on any clock but its venue's stops the reading. This departs from the canon's
+  "UTC inside" for this one value; to revisit if a time of day is ever needed.
+- *Twice, or corrected.* Options: stop for any fill on the account given twice; or only the
+  desk's own. Chosen: the desk's own. Others' fills are theirs to explain; the desk's own go to
+  its ledger, where a fill counted twice is a wrong position.
+- *What counts as a resting stop.* Options: any stop to sell the broker lists as open; or only
+  one it says it is holding ("PreSubmitted" or "Submitted"), for the shares left. Chosen: the
+  second. The broker lists refused and part-done orders as open too.
+- *An order with no state told.* Options: read it with no state; or stop. Chosen: stop, naming
+  the broker's id for it. An order is built once, with its state, when the reading is whole
+  (options: leave it, every path failed safe; or build once). Chosen: once, so a missing fact
+  cannot be mistaken for a value.
+- *An order told twice is left listed twice.* Options: keep one per broker's id; stop the
+  reading; or leave it. Chosen: leave it until a real order has been seen. A new order may briefly
+  carry no id of the broker's, so keeping one per id could hide a real order, the dangerous
+  direction; listed twice is a false alarm on the safe side.
+- *The tests tightened, none dropped.* The rule that unit tests never outgrow the product turned
+  the check red (244 test lines for 228 of product, two lines of room). Options: ask the operator
+  to loosen it (his alone, not needed); drop cases (never); or write the same cases in fewer
+  lines. Chosen: fewer lines (222 for 228); every case kept.
+
+**Evidence.** The whole check green four times. The real gateway at 20:40 and 21:05 UK (port
+4002, client 222), read-only: 21 fills, none the desk's; no order open; twenty of twenty lines
+listed; nothing named against the empty book. A blind review: nothing blocking; it checked field
+places against the published client (from memory, about nine in ten sure) and that nothing sent
+can place or cancel an order; its two test gaps closed. Deliberate breaks outside the repository,
+cache off: twenty-nine on the restored work and twenty on the final code, all caught, plus one
+that cannot change a result. Not witnessed: the unfinished run's tests failing first.
+
+### 2026-11-13 — the folds rung (rungs-folds, #79)
+
+**Decided**, by the lane as the desk's mentor. Options and choices:
+- *What "in-sample" means for a frozen rule with no settings.* (a) plain consecutive folds;
+  (b) walk-forward, each fold beside all the history before it. Chose (b): it is what a
+  chooser would have known the day the fold began, and it shows an edge decaying.
+- *What the verdict is judged on.* (a) worst fold among all parts; (b) worst out-of-sample
+  fold, in-sample shown beside it. Chose (b): in-sample is where a choice is made, never proof.
+- *The bar per fold.* (a) a looser bar; (b) the first rung whole. Chose (b): one rule, one
+  home. A thin fold reads as a fail until "failing fairly" makes it "not enough evidence".
+- *Trades across a boundary.* (a) to the fold it was bought in; (b) to neither. Chose (b):
+  otherwise an in-sample result would lean on out-of-sample prices.
+- *Luck trials.* The out-of-sample verdicts only: they are what a winner is picked on.
+- *Number of folds* is the caller's; fewer bars than parts is refused.
+
+### 2026-11-13 — the register of trials (rungs-trials, #91)
+
+**Decided**, by the lane as the desk's mentor.
+- *What makes two trials the same.* (a) the cell alone; (b) the cell with code and data
+  versions; (c) a made-up name. Chose (a), other candidates entered under a telling name:
+  with the code version every unrelated commit would double the count; with the data version
+  a mended bar would. Cost: a rule changed under its old name is not seen (written in STATUS).
+- *When a trial is counted.* (a) when its verdict arrives; (b) before it is run. Chose (b): a
+  failed cell or dropped candidate leaves no verdict, and the count must not rely on memory.
+- *One count or one per question.* Chose per question, each opened on purpose once, other
+  wordings refused: one count would charge a London question for New York trials; free
+  rewording is the restart the box forbids.
+- *A missing register.* (a) begin empty; (b) refuse, with a separate door to start one
+  on purpose. Chose (b): a wrong path must fail loudly, not count from nothing.
+- The same trial entered twice counts once; a verdict not in the register, or a trial judged
+  twice in one set, is refused; the trial's name is the register's own wording, apart from
+  how a cell prints, so a printing change cannot rename counted trials.
+
+### 2026-11-13 — the luck test fixed before any result (rungs-deflated, #98)
+
+**Decided**, by the lane as the desk's mentor.
+- *What the Sharpe is measured on.* (a) daily account values; (b) the trades. Chose (b): the
+  first rung's own gains, so the rungs cannot disagree about evidence.
+- *The spread setting luck's bar.* (a) the spread of the batch's Sharpes (the paper's own);
+  (b) one over the trades less one, what no edge gives. Built (a) first; review showed the
+  same winner failing beside noise (0.43) and passing beside its twin (0.9998). Chose (b):
+  the bar depends on two counts only, so no result can move it.
+- *The bands.* 0.90 and 0.50, the book's own: pass, fail, and doubt between (two bands, three
+  answers).
+- *The daily Sharpe above 2.* Worked as a yearly Sharpe from the trades (a verdict holds no
+  daily accounts). A flag gives doubt, not a note (nobody reads it) and not a fail (the cause
+  is usually a fault in the test).
+- *The one rule.* (a) the worst of the named rungs; (b) a score. Chose (a), refusing any set
+  of answers that is not exactly the named rungs; later rungs join by being named in the list.
+- The luck rung stays beside the deflated Sharpe. A trial under two trades fails.
+- Guards driven: 6 contract tests seen failing first; 47 deliberate breaks, 43 caught.
+
+### 2026-11-13 — the Gateway's own week known before any order (paper-gateway, #100)
+
+Decided by the PAPER lane as the desk's mentor, no one watching, under his ruling "always go with recommended".
+
+- *The daily restart.* Options: any silence is an alarm (he is woken at 03:00 nightly); quiet retries inside every
+  reading; or know the restart's time. Chosen: know it. The Gateway's logs hold sixteen restarts, all at 03:00 UK, all back
+  within seconds. 02:55 to 03:15 is "restarting" whatever it would answer, and it is not dialled.
+- *Which silence is his.* Options: all failures his; only a closed port; split by what came back. Chosen: split. Nothing
+  came back (port closed, 15 seconds silent) is his login, told at any hour on his ruling that a Gateway login goes at once;
+  something came back but not "ready" is unwell and not his; anything else is raised as a fault.
+- *True only when ready.* `known(now)` is true only for a ready Gateway, so no way of asking can send into one that is not.
+- *The weekly reminder.* Options: Saturday evening (spent by the weekend reset); the reset itself (he is asleep); Monday
+  (too late); Sunday 08:00 UK. Chosen: Sunday 08:00, every Sunday, answered or not, since the desk cannot see his login.
+- *The UK clock.* Options: add a time-zone dependency (his call); a second rule; the calendar's own dates. Chosen: the
+  calendar's, at the cost of three repeated lines (R-PAPER-6 removes them).
+- *Ticked though nothing sends the lines yet.* Sending is the messenger's, asking the adapter's; both owed under Remains.
+- Evidence: contract test seen failing first; two blind reviews, seven blocking findings fixed; 183 deliberate breaks, four gaps left and named.
+
+### 2026-11-13 — the day's check and the refusal (paper-check, #104)
+
+Decided by the PAPER lane as the desk's mentor, no one watching.
+
+- *Where the refusal lives.* Options: a question the adapter asks at the last moment; a lock inside the door reading every
+  message; a wrapper round any broker. Chosen: the question (`clearance.require`), as the kill switch's drill is ruled.
+- *A record, not a held pass.* Chosen: a dated record in the desk's folder (`checks.csv`), surviving restarts.
+- *"Begun" first, then the result.* A check that dies half way leaves a row that refuses orders, with no error handling.
+- *The newest check decides*, not any clean one that day. The day is the UTC date (both sessions fall inside one).
+- *Whose stop.* Only the desk's own stop under its own order id protects; anyone else's is named and the line unprotected.
+- *Holdings stay with the door, orders go to the check*, because a lane may not reword the manifest's description.
+- Recorded, not changed: no maximum age inside a day; the zero-share stop; a future-dated row sticks. Evidence: 54 breaks, 49 caught at once, two gaps closed.
+
+### 2026-11-13 — the paper account answers five of six questions (paper-adapter first step, R-MONEY-5, #110)
+
+Decided by the PAPER lane as the desk's mentor, no one watching.
+
+- *How much in one change.* Options: the whole adapter; the five answers with placing raising. Chosen: the five (209 product
+  lines, under the 300 cap); placing cannot be safe without its stop.
+- *What "did the broker receive it" reads.* Options: open orders and fills; those plus the day's ended orders. Chosen: both
+  plus ended, read in the order open, ended, fills, so nothing slips between readings and nothing is sent twice.
+- *Filled completely* only when listed once, ended, filled whole, and the desk's fills agree; else the broker's words.
+- *A refused cancel.* Options: raise; take as "already over"; read the account again. Chosen: read again (a fill just before
+  the cancel is the likeliest case; "over" could hide a working order). A stop to sell is never cancelled.
+- *The ended list names no program*: the reference alone decides, which can only make the desk send less.
+- *Stops given* are the desk's own. *The published client* (ib_insync 0.9.86) was read as a reference only, never imported.
+- *Tests against product:* 223 test lines for 209 product; shared messages and loops, no case dropped. Evidence: 65 breaks, 62 caught at once.
+
+### 2026-11-14 — a sale can be placed; a buy waits for its stop; the drill held by code (paper-adapter second step, paper-drill, R-MONEY-6, #113)
+
+Decided by the PAPER lane as the desk's mentor, no one watching.
+
+- *How much in one change.* Options: both sides with the stop later (a buy could sit unprotected); everything at once (over
+  300 lines, too much unproven); the sale whole and a buy refused in code. Chosen: the third.
+- *A sale on a line under the desk's own stop* is refused: it would leave a stop for shares not held and could sell short.
+- *The drill now, not in its own box.* The review's blocking point: this change is where the adapter can send, and his
+  ruling is no order before a drill. So paper-drill and R-MONEY-6 are done here: a drill within 31 days, else refused.
+- *The broker's last word.* Read until the order is over or the Gateway is silent 15 seconds, then cancel what did not fill.
+- *Answer read afresh* from the broker, one home for "what did it do". *Not ready* is "never received"; no drill, no check, an
+  unlisted line are refusals. *An error after sending*: raise and leave it; the broker is asked before any resend.
+- *No trial order* went to the real Gateway: one wrong field could place a real order on an account shared with the old desk.
+- *Unasked news passed over in every reading*, reversing one line of #86's tests, since fees and states arrive after an order.
+- Evidence: 64 breaks, 62 caught at once, two gaps closed; the 115 order fields checked twice independently, no difference.
+
+### 2026-11-14 — plateaus over peaks (rungs-plateau, #107)
+
+**Decided**, by the lane as the desk's mentor.
+- *What counts as beside a setting.* Options: sides only; sides and corners. Chosen: sides and corners (eight neighbours for two parameters), the stricter, since a failing corner is a failing rule one step away.
+- *The grid's edge.* Options: passing ground; unknown. Chosen: unknown, so a setting on the edge has depth 1 and is never promoted: the best on a slope still rising is not a plateau.
+- *Failures left off the surface.* Options: read the grid from the results; declare the grid first. Chosen: declared first; a missing setting counts as never tried and ends a plateau (the first blind review's finding).
+- *The least plateau.* Options: depth 2 (the setting and all beside it); deeper. Chosen: depth 2, the smallest shape that is not a peak; the deepest is chosen first anyway.
+- *Ties.* Options: best own score; best worst neighbouring score. Chosen: best worst neighbour, so the choice never chases one high score; then grid order, so arrival order changes nothing.
+- *The least step between values, a tenth of the lower.* Options: none; a limit. Chosen: a limit, compared exactly; values a hair apart are one rule tried twice and would make a plateau of a peak.
+- *Settings held to the grid's own number types.* Options: accept anything equal to a grid value; refuse floats and bools. Chosen: refuse.
+- *Which branch carried the pull request.* Chosen: the restored branch, keeping its history without a force-push.
+
+**Evidence.** Two blind reviews; depth matched a naive definition on 5,980 random surfaces; 22 of 24 deliberate mutations caught (one equivalent, one now pinned). Nothing calls the module yet: the five rules carry no settings.
+
+### 2026-11-14 — periods and regimes (rungs-regimes, #109)
+
+**Decided**, by the lane as the desk's mentor.
+- *What the weather is.* Options: this module invents a regime label; the caller gives each day's regime by name. Chosen: the caller; the label is the "Market weather" box's (REG-01), one owner per concept.
+- *Which regime a trade belongs to.* Options: the day decided on; the day filled; the day sold. Chosen: the day decided on, all the desk could know when it sent the order, and the day the paper tag reads.
+- *How a regime is replayed.* Options: a separate run per unbroken stretch; the whole window run once and its priced trades shared out by regime. Chosen: the latter; the rule stays warmed, every trade is in exactly one regime, nothing is priced twice. Periods reuse the folds' cutting (the lane's ruling of 13 November).
+- *"Never failed for working in only one".* Options: pass only if it earns in most regimes; not failed if it earned on the whole window or in one regime or more. Chosen: the latter, the box's own words; each look is a trial for the luck rung.
+- *A strategy that passed only on all weather together.* Options: call it proven in each regime it traded in; it has no home and every paper trade is tagged. Chosen: no home; the tag is a fact, not a refusal, so over-tagging costs nothing and under-tagging hides a risk.
+- *Periods earn no home.* A past period cannot come again; they are shown side by side, never picked from.
+- *Refused as faults:* a day with no regime; a regime name not one plain word; a window all one regime; under two periods or more periods than bars.
+
+**Evidence.** Four contract tests; 68 deliberate breaks over two rounds, one harmless survivor; a blind review's two blocking faults fixed.
+
+### 2026-11-14 — failing fairly (rungs-fair, #112)
+
+**Decided**, by the lane as the desk's mentor.
+- *Several answers read together.* Options: a fail always first; a fault in the test first, then a fail on enough trades, then not enough evidence, then doubt, then pass. Chosen: the latter; a faulty test says nothing, and a real fail on enough trades outranks what too few could not settle.
+- *A window whose only trade is still held, or sold on its last day.* Options: not enough evidence; a fault in the test. Chosen: fault; the window was too short to judge even one trade.
+- *Known answers written in `lab/published.py` and in the strategies' contract test.* Options: one home; two. Chosen: two; the contract test is the independent pin, so editing the published answers alone cannot make wrong code pass.
+- *"Effective trades"* today is trades judged whole on one line; pooling across lines waits until pooling is built.
+
+**Evidence.** Deliberate violations driven in tests: a rule buying a day early, a grid selling a day late, a rule with no publication; each refused. Not built (minor): plateau and regime rungs read only pass or not.
+
+### 2026-11-14 — the first rung's costs whole (rungs-costs, #115)
+
+**Decided**, by the lane as the desk's mentor.
+- *What a trade's return is measured on.* Options: the pounds out at the buy with its commission and conversion in, as before; the pounds the shares' value took at the buy's fill, every cost of both legs off the profit. Chosen: the latter, as the desk's own book states a round trip, so rung and book agree to the penny. This replaces the 13 November wording "on the pounds paid".
+- *Which day's rate sizes an order.* Options: the decision day; the sending morning. Chosen: the sending morning, as the desk's day does (the blind review caught the first draft).
+- *A pound line and the rates.* Options: demand a rate of 1; read none. Chosen: none.
+- *A missing day's rate.* Options: carry the last forward; refuse. Chosen: refuse; carrying forward is a default that masks missing data (canon A2).
+- *A sale on a morning that opens at or under the stop.* Options: an ordinary sale; the stop's sale. Chosen: the stop's, which slips three times as far.
+- *Re-pinned test numbers*, under his ruling of 13 November "always go with recommended": with fuller costs three pins on made-up prices moved (the bracket seeds are now 1 and 16; one pin reads "above 2.8"). Not a golden number, not a loosened guard.
+
+**Evidence.** Rung and the desk's book agree on the same fills; eight deliberate breaks, all caught; two blind-review findings fixed.
+
+### 2026-11-14 — the author's own result (rungs-reproduce, #120)
+
+**Decided**, by the lane as the desk's mentor.
+- *Costs in a reproduction.* Options: the desk's costs; count as the author counted, before costs. Chosen: the author's way; the question is whether the code is the author's, and the desk's costs could never match a figure. What a rule earns stays the first rung's to say.
+- *How near is "the same".* Options: one tolerance; one written beside each printed number before any run. Chosen: the second; a nearness picked after a run is picked to pass.
+- *A figure not read from its source.* Options: enter second-hand numbers marked unverified; enter nothing. Chosen: nothing; a number nobody checked proves nothing.
+- *A hole in the bars.* Options: carry on; refuse, warm-up included. Chosen: refuse; a 200-day average over a hole is another average.
+- *No trade in the author's period.* Options: "not reproduced"; refusal. Chosen: refusal; a share of winners among no trades is no number.
+- *Which box.* The indicator box was not taken because it needs the money lane's file.
+
+**Evidence.** Sixteen deliberate breaks, all caught; a blind review's two blocking findings fixed.
+
+### 2026-11-14 — before paper and after it (rungs-promotion, #127)
+
+**Decided**, by the lane as the desk's mentor.
+- *Which box.* Options: reproduction, indicators, the later requests, "before paper". Chosen: "before paper", the first waiting on nobody.
+- *A kill condition.* Options: free words; numbers. Chosen: numbers, a fall in pounds from the highest paper profit and a run of lost trades, both required; words can be argued with afterwards.
+- *The loosest kill.* Options: any fall; none deeper than the A-GATE's £1,500 (AG-05). Chosen: the cap. Open: several candidates may each declare £1,500; a share per candidate belongs with phase 5's side-by-side box.
+- *Kill numbers for the five rules now.* Options: declare today; none until a rule passes. Chosen: none; a number with no history is a guess.
+- *Effective trades.* Options: every round trip; every order; the most trades no two held on one day. Chosen: the last, the lowest honest count.
+- *An order sold in parts.* Options: a trade from its first sale; only once whole, its money counted meanwhile. Chosen: the second; else history is rewritten.
+- *A day's sales and the fall.* Options: sale by sale; the day together. Chosen: together; fill order within a day is the broker's accident.
+- *"A penny ahead".* Chosen: by the one rounding policy.
+- *Losses still held.* Options: withhold promotion while anything is held; judge sold trades only. Chosen: sold only (a rule nearly always holds something); the stop bounds the rest.
+- *Words.* Chosen: the ladder's own (fail, not enough evidence, doubt, pass).
+
+**Evidence.** Two blind reviews; 82 deliberate breaks over three rounds; bet count checked against brute force on 3,000 random sets.
+
+### 2026-11-14 — the market's rung (rungs-market, BIC-01, #131)
+
+**Decided**, by the lane as the desk's mentor.
+- *Which box.* Options: reproduction, indicators, three-strategies, this. Chosen: this, first half (BIC-01) only.
+- *What the risk is measured on.* Options: each trade beside the market over its days; every day of the window. Chosen: every day; under the first a rule in for rises and out for falls scores nothing, its skill being the days it stood aside.
+- *Beta or a leverage-matched benchmark.* Options: assume stated leverage; measure the share carried. Chosen: measure; a five-times line held a fifth of the days carries the market's risk.
+- *The market only or the line as well.* Options: the market; the line; both. Chosen: both, after the blind review showed a rider of a self-climbing line passing; the lesser excess is judged.
+- *The bar.* Options: any positive excess; two standard errors; a new figure. Chosen: the first rung's two standard errors; no new knob.
+- *Which line is the market.* Options: fix VUAG; the caller names it, on the line's own venue. Chosen: the second; closes hours apart understate risk. Owed: write down each line's market once the rung is wired in.
+- *A trade the first rung could not judge.* Options: count its days as nothing; leave them out. Chosen: leave out (LAD-06).
+- *Costs within a trade's days.* Options: split between legs; all on the selling day. Chosen: the selling day, so days sum to the first rung's gain.
+- *When it answers.* Options: its own answer; repeat a first-rung fail. Chosen: its own; the verdict rule takes the least.
+
+**Evidence.** 45 deliberate breaks, 42 caught, 3 that no single line can produce; a blind review's two blocking findings fixed.
+
+### 2026-11-14 — the nine open boxes noted (rungs-notes, #129)
+
+**Decided**, by the lane as the desk's mentor.
+- *The order.* Options: the book's order; ready boxes first. Chosen: ready first; a session handed a blocked box is spent on nothing.
+- *The eleven-rungs box.* Options: a fixed set of files so others run beside it; all the lane's files, alone. Chosen: alone; a guessed list would stop it half-way. A later session may split it.
+- *Beta before the eleven rungs.* Options: folded in; its own box first. Chosen: its own, one home for "the market risk taken".
+- *Leveraged and eponymous boxes* hold all the lane's files; new rules live in `desk/strategy.py`, so each will need a request to MONEY.
+
+### 2026-11-14 — the first real paper orders, with the markets shut (paper-conformance, dry half, #135)
+
+Decided by the PAPER lane as the desk's mentor, no one watching.
+
+- *Send real orders with the markets shut?* Options: wait for market hours; send one share with its stop while no market can
+  fill it and cancel at once; also force rare answers. Chosen: the second. Drill, clean check and Gateway ready first.
+- *One dry order on every line.* It learns each line's stop step and unit and which lines the account may trade; found SPY, QQQ refused.
+- *A conformance desk of its own* (`KESTREL2_DATA/conformance`), so no conformance fill counts towards FIRST-LIGHT. The driver is scaffolding outside the repository.
+- *An order the broker tells twice is one order.* Options: mend in each reader or once in the door; known by the broker's id or by everything read of it.
+  Chosen: once, by the broker's lasting id, last telling standing; an order under no real id is refused loudly. Known-by-content would read two stops if shares changed, and could cancel a line's only stop.
+- *Tests against product:* 4 product lines, 48 test lines, spent from the guard's room to make the lane's pretend match the real.
+- *The 15 seconds a refusal costs are left*: stopping at "Inactive" would lose the reason. *Kill switch pulled whole on the real account*, released at once.
+- *Ticks none:* fills, a triggered stop, a sale and a part fill cannot exist with markets shut.
+- Evidence: 13 deliberate breaks, all caught; 609 recorded conversations replayed through the code; a blind review's three looks, the last clean.
+### 2026-11-14 — the book's concentration (rungs-beta, BIC-02, #136)
+- Which box: reproduction (waits on DATA), indicators (waits on MONEY), or the market-risk box's second half. Chosen the last: waits on nobody, and the eleven-rungs box waits on it.
+- What "moves together" is measured on: (a) each holding's own daily profit; (b) the lines' price moves. Chosen (b): a line is held on few days, so profits overlap too little to measure, while prices give a full year.
+- Moves over one day, two days or a week. Chosen two days: London closes 16:30, New York 21:00, so a US day reaches a London line the day after (the same company's two listings read 0.79 day against day, 0.88 over two days). A week leaves too few moves.
+- History: only the days judged (too few; chance joins lines), everything kept (lines that parted still join), or the latest year. Chosen the latest 250 moves, 120 the fewest. Fixed before any result.
+- The line between together and apart: 0.3, 0.5 or 0.7. Chosen a half, either sign (a line and its inverse are one bet): clear of chance on a year, low enough that a share and its market are one bet.
+- Clusters only where every pair links, or joined through chains. Chosen chains: errs towards more concentrated, the safe direction.
+- Independent bets: count clusters held, or the effective number weighing pounds and movement. Chosen the second: counting clusters calls 4,000 pounds in one market and 10 in another two bets.
+- A pass mark: set one now, or measure and show only. Chosen show only: a new A-GATE condition is the operator's. Recommended when asked: show both numbers on every report, set a mark after seeing a few.
+- A line's profit not stated, or a day held outside the year read: suppose/answer anyway, or refuse. Chosen refuse (blind review): both give a wrong split or weighing, silently.
+- Ticks: none, as #131 and #127, or rungs-beta. Chosen rungs-beta: both halves are built and proven; leaving it open would hand the same work to another session.
+
+### 2026-11-14 — which rules wait for the author's result (rungs-reproduce, second step, #139)
+- Every rule waits for a reproduction, or a rule waits for every figure on file for it. Chosen the second: three of five rules (Bollinger, 50/200 cross, Supertrend) have no author's test, and the first would stop the whole lane on one data request. The verdict carries the fact, so promotion can demand it later.
+- Wait by a new "waiting" answer, or by a loud refusal as for code that is not the published rule. Chosen refusal.
+- What counts: any "the same", or only one of the figure on file, over its market and period, by the code as it now is. Chosen the second.
+- Does the rung re-run the reproduction: no, it takes the answer of `reproduce`, since `folds` and `regime` have no author's bars to pass. Said plainly in the module. Not ticked: the figure and first real run remain.
+
+### 2026-11-14 — the first printed result (rungs-reproduce, a step, #141)
+- Which result first: (a) wait for RSI-2's figure, which needs the book bought (spend is the operator's); (b) the publisher's free chapter, Double 7's on SPY from 29 January 1993 (153 trades, 80.4%, 0.85%, 122.36 points); (c) web write-ups. Chosen (b); (c) refused as second hand.
+- Figure fixed before any run: end 31 December 2007 (not printed for SPY; taken from the chapter's other tables); filled at the close. Same means: within 5 trades, 1.5 points of per cent correct, 0.05 average gain, 10 points. Wide because the end date is uncertain by months; not to be moved after a run.
+- Prices as traded or dividend-adjusted: the 122.36 points look like unadjusted prices (inference). Chosen: ask DATA for both, let the points say.
+- Enter it in FIGURES now, or when the rule and bars exist. Chosen the second: a figure on file stops every verdict on its rule, and this rule is not coded.
+- Buying the book is the operator's. Recommended: yes, one copy; it holds RSI-2 and several more of the twenty-one rules' figures.
+
+### 2026-11-14 — stress scenarios judge nothing (rungs-stress, TST-06, #140)
+- Pass or fail a strategy: fail above a loss bar set here, or measure only. Chosen measure only: the loss the desk will bear from a gap is MONEY's to set once (STP-10); a bar here would be a second home for one rule.
+- Which fall is the gap: an invented figure, the worst day of the history (7.2%/8.7%), or the black swan's 10% already ruled. Chosen the black swan's, read from `desk/emergency.py`, times the line's leverage.
+- The gap's cost: the trade's whole loss, or the night's own take. Chosen the night's own (the first review showed the other picks the lowest close, not the worst night). Limit: the market's fall, not a single share's.
+- When an episode is "tested": the dates cover it, or the rule is shown able to trade through it. Chosen the stricter: bought before it began, a bar for every session, judged trades to its end. A wrongly "untested" costs evidence; a wrongly "lost nothing" costs money.
+- Episodes fixed in code before any result: 2020 crash from the session after 19 February's high to 23 March; May 2010 as two days (London's morning after counts); August 2015 one day. Flash-crash stops fill at their level, so the figure is the least lost.
+
+### 2026-11-14 — indicators held to tables printed by others (rungs-indicators, first step, STR-14, #145)
+- Take the box though it waits on MONEY, or return it. Chosen take: the parts where classic mistakes live (sample deviation, exponential average for Wilder's) are reachable today.
+- Reach `_Window` and `_Wilder` directly, wait for public names, or test through strategies only (only frozen settings 2 to 200 days visible, no published table). Chosen direct: one piece of code at any length. The cost is a coupling to MONEY's private names, asked about as R-RUNGS-6.
+- Publication: Wilder's and Bollinger's books (not obtainable this session) or StockCharts' spreadsheets (read cell by cell). Chosen StockCharts; the books' tables stay worth adding if the operator has them.
+- Nearness fixed before the first run: average exact to six places, deviation and smoothed value to four. Nothing needed loosening.
+- Wilder's smoothing fed the spreadsheet's own Gain, Loss and true-range columns, not a re-typed split (that would test a second copy).
+- A gate in `proven` before any verdict, not only a test: under a millisecond once per run.
+- Ticks: none; "each indicator" is not true while the RSI and true range as wholes are out of reach.

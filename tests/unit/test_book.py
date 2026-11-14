@@ -4,16 +4,18 @@ the gate reads, built from every fill. Scene 4 holds the gate's refusal and a cr
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
-from datetime import date
+from dataclasses import replace
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
 import pytest
 
-from desk import book
+from desk import book, halt
 from desk.broker import Broker, Crash, Fault, Pretend
-from desk.lines import Line
-from desk.orders import Order, Refused, Sale, Settings
+from desk.halt import Blocker, Stopped
+from desk.lines import STAMP_DUTY, Line
+from desk.orders import Charges, Order, Refused, Sale, Settings
 from desk.store import Bar
 
 A, MON, TUE = Line("A", "LSE", "GBP", 1), date(2025, 11, 10), date(2025, 11, 11)
@@ -48,8 +50,8 @@ def test_an_order_is_sent_once_its_fault_stated_and_only_a_lost_one_sent_again(
     broker = Pretend(WEEK, {} if fault is None else {"A": fault})
     broker.open(MON)
     sent = _send(tmp_path, broker)
-    assert (sent.reason is None) == (fault is None)
-    assert sent.reason is None or "o-1" in sent.reason
+    assert (sent.reason is None) == (fault is None) == (sent.blocker is None)
+    assert sent.reason is None or ("o-1" in sent.reason and sent.blocker is Blocker.BROKER)
     assert sent.filled == {None: 10, Fault.PARTIAL: 5}.get(fault, 0)
     assert len(broker.submitted()) == (fault is not Fault.DISCONNECT)
     assert book.fills(tmp_path) == broker.fills()
@@ -127,13 +129,97 @@ def test_while_the_book_is_not_the_brokers_nothing_is_bought_and_no_such_line_so
     assert book.reconcile(tmp_path, broker) == tuple("ABCDEF"), "named in no order"
 
 
+def test_while_the_kill_switch_is_on_nothing_is_sent_and_every_refusal_says_why(
+    tmp_path: Path,
+) -> None:
+    broker = Pretend(WEEK, {"B": Fault.CRASH})
+    broker.open(MON)
+    _send(tmp_path, broker)
+    with pytest.raises(Crash):  #: the broker has o-2 and the desk has no answer yet
+        _send(tmp_path, broker, "o-2", SIX[1])
+    at = datetime(2025, 11, 10, 9, 30, tzinfo=UTC)
+    book.turn(tmp_path, book.Switch.DRILLED, at, "a drill is not a pull")
+    assert book.killed(tmp_path) is None
+    book.turn(tmp_path, book.Switch.ON, at, "his word")
+    book.turn(tmp_path, book.Switch.DRILLED, at, "nor is it a release")
+    for order in (Order("o-3", SIX[2], 10, *map(Decimal, (50, 1, 45))), Sale("s-1", A, 10)):
+        with pytest.raises(Refused, match=f"{order.order_id}: .*kill switch.*09:30 UTC: his word"):
+            book.send(tmp_path, broker, order, ROOM)
+    assert broker.submitted() == ("o-1", "o-2"), "sent while the kill switch was on"
+    assert _send(tmp_path, broker, "o-2", SIX[1]).filled == 10, "what the broker did, unrecorded"
+    broker.open(TUE)  #: A's stop sells: the ledger still learns of it
+    book.collect(tmp_path, broker)
+    assert book.positions(tmp_path) == {"B": 10}
+    book.turn(tmp_path, book.Switch.OFF, at, "his word again")
+    assert _send(tmp_path, broker, "o-3", SIX[2]).filled == 10, "off, and still nothing sent"
+    assert [(to.value, why) for when, to, why in book.switch(tmp_path) if when == at] == [
+        ("drilled", "a drill is not a pull"),
+        ("on", "his word"),
+        ("drilled", "nor is it a release"),
+        ("off", "his word again"),
+    ], "the record does not read back as it was written"
+    for when, why in ((datetime(2025, 11, 10, 9, 30), "no zone"), (at, " ")):
+        with pytest.raises(ValueError, match="kill switch"):
+            book.turn(tmp_path, book.Switch.ON, when, why)
+    door = Account(broker)  #: pulled while the broker is answering the send path
+    door.between.append(lambda: book.turn(tmp_path, book.Switch.ON, at, "as it answered"))
+    with pytest.raises(Refused, match="o-4: .*kill switch.*as it answered"):
+        _send(tmp_path, door, "o-4", SIX[3])
+    assert broker.submitted() == ("o-1", "o-2", "o-3"), "sent after the switch was pulled"
+    stamp = "2025-11-10T09:30:00"
+    for torn in ("", f"{stamp}+00:00,on,x\n", f"at,turn,why\n{stamp},on,x\n", "at,turn,why\n\n"):
+        (tmp_path / book.SWITCH).write_text(torn, "utf-8")
+        with pytest.raises(ValueError):  #: a record that cannot be read never reads as off
+            _send(tmp_path, broker, "o-4", SIX[3])
+
+
+def test_while_a_halt_is_in_force_no_buy_is_sent_a_sale_goes_and_a_refusal_names_its_blocker(
+    tmp_path: Path,
+) -> None:
+    broker, at = Pretend(WEEK, {}), datetime(2025, 11, 10, 9, 30, tzinfo=UTC)
+    broker.open(MON)
+    _send(tmp_path, broker)
+    halt.call(tmp_path, at, "the market fell 5%")
+    halt.call(tmp_path, at + timedelta(hours=1), "his word")  #: every halt in force is named
+    words = "o-2: not sent, a halt is in force, called 2025-11-10 09:30 UTC: the market fell 5%"
+    with pytest.raises(Stopped, match=f"{words}; called 2025-11-10 10:30 UTC: his word") as refusal:
+        _send(tmp_path, broker, "o-2", SIX[1])
+    assert refusal.value.blocker is Blocker.HALT and broker.submitted() == ("o-1",)
+    sold = book.send(tmp_path, broker, Sale("s-1", A, 10), ROOM)
+    assert sold == book.Sent("s-1", 10, None), "a sale stopped by a halt"
+    for called in halt.in_force(tmp_path):
+        halt.lift(tmp_path, called, at + timedelta(hours=1), "calm again")
+    assert _send(tmp_path, broker, "o-2", SIX[1]).filled == 10, "lifted, and still nothing bought"
+    door = Account(broker)  #: called while the broker is answering the send path
+    door.between.append(lambda: halt.call(tmp_path, at + timedelta(hours=1), "as it answered"))
+    with pytest.raises(Stopped, match="o-3: .*as it answered"):
+        _send(tmp_path, door, "o-3", SIX[2])
+    assert broker.submitted() == ("o-1", "s-1", "o-2"), "bought after the halt was called"
+    broker.inject("E", 7)  #: each refusal names its blocker: the book, then the switch over both
+    book.turn(tmp_path / "calm", book.Switch.ON, at, "his word")
+    for desk, blocker in ((tmp_path / "calm", Blocker.KILL), (tmp_path / "new", Blocker.BOOK)):
+        with pytest.raises(Stopped) as refusal:
+            _send(desk, broker, "o-4", SIX[3])
+        assert refusal.value.blocker is blocker
+    with pytest.raises(Stopped, match="long only") as refusal:  #: and the gate
+        book.send(tmp_path / "bare", Pretend(WEEK, {}), Sale("s-9", A, 10), ROOM)
+    assert refusal.value.blocker is Blocker.GATE
+    for answer in ((0, "refused", None), (10, None, Blocker.GATE)):
+        with pytest.raises(ValueError, match="o-5"):  #: a reason and no blocker, or the reverse
+            book.Sent("o-5", *answer)
+    (tmp_path / halt.HALTS).write_text("", "utf-8")
+    with pytest.raises(ValueError, match="halt"):  #: unreadable never reads as no halt
+        _send(tmp_path, broker, "o-6", SIX[4])
+
+
 class Account:
     """Any broker, not the pretend one by name: its rows as a real account's door gives them,
     and each reading of them counted."""
 
     def __init__(self, inner: Pretend) -> None:
         self.report, self.place, self.fills = inner.report, inner.place, inner.fills
-        self.inner, self.read, self.between = inner, 0, list[Callable[[], None]]()
+        self.cancel = inner.cancel
+        self.inner, self.read, self.between = inner, 0, list[Callable[[], object]]()
         self.rows, self.resting = (list[tuple[str, Decimal | int]]() for _ in range(2))
 
     def holdings(self) -> Iterable[tuple[str, Decimal | int]]:
@@ -205,10 +291,10 @@ def test_every_entry_of_the_brokers_is_the_books_own_shares_or_it_is_named(
     assert book.differences(held, iter(entries)) == tuple(book.Difference(*n) for n in named)
 
 
-def test_a_round_trip_pairs_each_sale_with_the_buys_it_closes_in_pounds_after_charges(
+def test_a_round_trip_pairs_each_sale_with_the_buys_it_closes_in_pounds_after_every_cost(
     tmp_path: Path,
 ) -> None:
-    dollar = Line("U", "US", "USD", 1)
+    dollar, share = Line("U", "US", "USD", 1), replace(A, uk_tax=STAMP_DUTY)
     broker = Pretend({**WEEK, dollar: WEEK[SIX[1]]}, {})
     for on, rate in ((MON, "0.8"), (TUE, "0.75")):
         broker.open(on)
@@ -220,22 +306,42 @@ def test_a_round_trip_pairs_each_sale_with_the_buys_it_closes_in_pounds_after_ch
             )
             book.send(tmp_path, broker, Sale("s-1", A, 4), ROOM)
     book.send(tmp_path, broker, Sale("s-2", dollar, 10), ROOM)  #: after A's stop sold the rest
-    trips = book.round_trips(tmp_path, (A, dollar))
+    trips = book.round_trips(tmp_path, (share, dollar))
     assert [(t.sell.order_id, t.buy.quantity, t.sell.quantity) for t in trips] == [
         ("s-1", 4, -4),
         ("o-1-stop", 6, -6),
         ("s-2", 10, -10),
     ]
     assert {t.buy.execution_id for t in trips[:2]} == {broker.fills()[0].execution_id}
-    #: each leg's commission shared by its shares: 3 pounds a London order, 1 dollar a US one
+    #: each leg's costs shared by its shares: 3 pounds a London order, 0.05% of each leg to the
+    #: spread and to slippage, three times that as the stop sells at 45, and the buy's tax
     assert [(t.gross, t.costs) for t in trips[:2]] == [
-        (Decimal(0), Decimal("4.2")),
-        (Decimal(-30), Decimal("4.8")),
+        (Decimal(0), Charges(*map(Decimal, ("4.2", "0.2", "0.2", "0", "1")))),
+        (Decimal(-30), Charges(*map(Decimal, ("4.8", "0.285", "0.555", "0", "1.5")))),
     ]
-    #: 500 dollars at 0.8, back at 0.75; 0.03% conversion on the dollars moved each way
-    conversion = Decimal("0.0003") * (501 * Decimal("0.8") + 499 * Decimal("0.75"))
-    assert trips[2].gross == -25 and trips[2].costs == Decimal("1.55") + conversion
-    assert all(t.profit == t.gross - t.costs for t in trips)
+    #: 500 dollars at 0.8, back at 0.75: a dollar's commission each way and the regulators'
+    #: 1.225 cents on the sale; 0.03% conversion on the dollars moved each way
+    conversion = Decimal("0.0003") * (501 * Decimal("0.8") + Decimal("498.98775") * Decimal("0.75"))
+    assert trips[2].gross == -25 and trips[2].costs == Charges(
+        Decimal("1.5591875"), Decimal("0.3875"), Decimal("0.3875"), conversion, Decimal(0)
+    )
+    assert [t.profit for t in trips[:2]] == [Decimal("-5.6"), Decimal("-37.14")], "every line off"
+    assert trips[2].profit == trips[2].gross - trips[2].costs.total
+    #: a record's dealing is the money and costs of the fills no record before it counted, each
+    #: at its own day's rate: Monday's three, then Tuesday's two; here, every trip's
+    (out, mon), (back, tue) = (
+        book.dealt(tmp_path, (share, dollar), *to) for to in ((MON, date.min, 0), (TUE, MON, 3))
+    )
+    assert out == -700 and back == 645
+    assert mon + tue == trips[0].costs + trips[1].costs + trips[2].costs
+    #: s-1's 200 pounds, had it reached the ledger after Monday's record, are Tuesday's
+    assert book.dealt(tmp_path, (share, dollar), TUE, MON, 2)[0] == back + 200
+    with pytest.raises(ValueError, match="holds 3"):  #: a ledger that has lost a fill
+        book.dealt(tmp_path, (share, dollar), TUE, MON, 4)
+    assert book.positions(tmp_path, MON) == {"A": 6, "U": 10} and book.positions(tmp_path) == {}
+    assert [str(book.rate(tmp_path, "USD", on)) for on in (MON, TUE)] == ["0.8", "0.75"]
+    with pytest.raises(ValueError, match="USD"):  #: a day's rate is its own, never an older day's
+        book.rate(tmp_path, "USD", date(2025, 11, 14))
     with pytest.raises(ValueError, match="U"):
         book.round_trips(tmp_path, (A,))
     with pytest.raises(ValueError, match="kept at 0.75"):  #: a day's fills are never repriced
