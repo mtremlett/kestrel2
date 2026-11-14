@@ -116,12 +116,12 @@ def test_at_each_open_the_step_checks_the_account_and_sends_the_days_orders_once
     assert _step(monkeypatch, desk, OPEN, [MADE, END]) == [FILLS] and _told(post)[2:] == [said[2]]
     assert _told(desk.bars) == [MON.date()] * 2  # the store is asked once for each round
     # yesterday's round is not today's, and a line with no bar of the session before is left
-    # out and named, never passed over as "none was due"
+    # out and named, never passed over in silence
     quiet, _ = _desk(tmp_path / "quiet", IITU=FLAT_)
     for now in (MON, MON + timedelta(days=1)):
         assert _step(monkeypatch, quiet, now, none, tp.EMPTY, none) == [FILLS, ACCOUNT, FILLS]
     first, second = running.notes(quiet.root)
-    assert first[::2] == (MON, "London, today's orders: none was due.")
+    assert first[::2] == (MON, "London, today's orders: none sent in this round.")
     assert second[::2] == (MON + timedelta(days=1), f"{first.words} {OUT.format('Mon 16', 'IITU')}")
     # a round is owed only while its venue trades: in London's closing auction none is begun
     # (Thanksgiving: New York is shut all day)
@@ -129,8 +129,14 @@ def test_at_each_open_the_step_checks_the_account_and_sends_the_days_orders_once
     assert _step(monkeypatch, quiet, auction, none, tp.EMPTY) == [FILLS, ACCOUNT]
     assert len(running.notes(quiet.root)) == 2
     # the hour he wakes is on a UK clock: 07:00 UTC in summer (a Saturday: the check alone)
-    summer, july = _desk(tmp_path / "summer")[0], datetime(2026, 7, 4, 6, 59, tzinfo=UTC)
-    assert _step(monkeypatch, summer, july) == []
+    (summer, door), july = _desk(tmp_path / "summer"), datetime(2026, 7, 4, 6, 59, tzinfo=UTC)
+    for seconds, news in enumerate(("news kept for the hour he wakes", "and more, a second on")):
+        running._note(summer.root, july + timedelta(seconds=seconds), "recovered", news)
+    assert _step(monkeypatch, summer, july) == [] and not door.called
+    with pytest.raises(ConnectionError):  # and a check that did not come back is run again
+        _step(monkeypatch, summer, july + timedelta(minutes=1), none, [])
+    assert _told(door)[:2] == ["news kept for the hour he wakes", "and more, a second on"]
+    july += timedelta(minutes=5)
     assert _step(monkeypatch, summer, july + timedelta(minutes=1), none, tp.EMPTY) == [
         FILLS,
         ACCOUNT,
@@ -210,7 +216,7 @@ def test_a_check_that_names_what_a_dead_desk_left_is_run_again_once_it_is_put_ri
     what = [note.what for note in running.notes(tmp_path)]
     assert what == ["recovered", "orders LSE"] and book.positions(tmp_path) == {}
     assert "IITU left under no stop, none of it held" in _told(post)[1]
-    assert _told(post)[2] == "London, today's orders: none was due."
+    assert _told(post)[2] == "London, today's orders: none sent in this round."
     # started again only once the markets are shut, it is put right before the day's record,
     # which then carries a profit: the book is the broker's
     assert _step(monkeypatch, late, SHUT, *put, tp.EMPTY, tp.EMPTY) == [*wire, ACCOUNT, ACCOUNT]
@@ -244,6 +250,13 @@ def test_the_days_record_is_made_once_every_market_is_shut_and_a_missed_session_
     assert (record.day, record.profit, record.market) == (MON.date(), Decimal(0), Decimal("118.75"))
     assert "The last day on record, Mon 16 Nov" in _told(post)[-1]  # the evening message
     assert _step(monkeypatch, desk, SHUT + timedelta(minutes=5)) == []  # made once
+    # an account that is not the book does not hold the record back: it is made, the profit
+    # withheld (someone's shares on the account: nothing the desk can put right)
+    odd, _ = _desk(tmp_path / "odd", VUAG=WEEK)
+    theirs: list[Said] = [[END], tp.BARE, tp.BARE, tp.BARE, [END], tp.BARE, [END], tp.BARE, tp.BARE]
+    assert len(_step(monkeypatch, odd, SHUT, *theirs)) == 9
+    (withheld,) = day.records(odd.root)
+    assert withheld.profit is None and withheld.mismatches == ("IITU",)
     # a desk that was off since Friday's buy: each session it missed gets its own record, the
     # oldest first, from the bars saved by that day's end and at that day's own kept rates
     missed, tuesday = _desk(tmp_path / "missed", IITU=WEEK, VUAG=WEEK)
@@ -306,6 +319,8 @@ def test_a_step_that_fails_tells_him_once_and_is_an_error_and_a_silent_gateway_i
     sunday, bell = _desk(tmp_path / "sunday")  # his login's reminder waits for his waking hours
     running.step(sunday, MON.replace(day=15, hour=23, minute=30))
     assert _told(bell) == [his]
+    running.step(sunday, MON.replace(day=15, hour=12))  # and goes in them
+    assert _told(bell)[1].startswith("Sunday: the paper Gateway's weekly login is yours")
     with pytest.raises(ValueError, match="the desk's day is kept in UTC"):  # before any asking
         running.step(silent, MON.astimezone(timezone(timedelta(hours=1))))
     (tmp_path / "silent" / running.NOTES).write_text("not,the,record\n", "utf-8")

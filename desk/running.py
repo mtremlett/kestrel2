@@ -66,8 +66,7 @@ PUT_RIGHT = "The desk put right what a desk that stopped part-way left at the pa
 NOT_THE_BOOK = "The paper account is not the desk's book, so no order goes. Its check named: {}."
 FAILED = "A step of the desk failed; the next tries again: {}: {}. Its like today is not told."
 UNASKED = Known(State.UNWELL, gateway.UNWELL.format("the desk's knock on it failed"))
-#: The bars the store kept before a day, for every line, and the symbols it has parked.
-Saved = tuple[Mapping[Line, Sequence[Bar]], Collection[str]]
+Saved = tuple[Mapping[Line, Sequence[Bar]], Collection[str]]  #: bars by line; who is parked
 
 
 @dataclass(frozen=True)
@@ -123,8 +122,9 @@ def recover(
     a stop of the desk's own open on it, now or before that cancel (the broker ends a buy's
     stop with the buy), if its shares at the broker are the book's, is left under the one
     stop due (_due, Paper.settle). A line whose shares are not the book's is left as it is,
-    for the day's check to name. Nothing is done while the kill switch is on, or undrilled:
-    the desk sends nothing then."""
+    for the day's check to name; so is one held under no stop at all, for a stop's level is
+    kept nowhere but at the broker. Nothing is done while the kill switch is on, or
+    undrilled: the desk sends nothing then."""
     if book.killed(root) or not kill.drilled(root, today):
         return ()
     before = paper.read()
@@ -210,7 +210,7 @@ def _round(desk: Desk, broker: placing.Paper, venue: str, now: datetime) -> None
     said = [
         f"{s.order_id}, {s.filled} shares done" + f" ({s.reason})" * bool(s.reason) for s in sent
     ]
-    words = f"{VENUES[venue]}, today's orders: {'; '.join(said) or 'none was due'}."
+    words = f"{VENUES[venue]}, today's orders: {'; '.join(said) or 'none sent in this round'}."
     left = f" Left out, parked or with no bar of {last[0]:%a %d %b}: {', '.join(out)}."
     _note(desk.root, now, ORDERS.format(venue), words + left * bool(out))
 
@@ -268,7 +268,7 @@ def _say(desk: Desk, now: datetime, known: Known) -> None:
     if messenger.MORNING.start <= local.time() < messenger.SLEEPS:
         messenger.remind(root, now, post)
         for note in (n for n in notes(root) if now - n.at < DAY):
-            messenger.send(root, now, f"{note.what} {note.at:%Y-%m-%d %H:%M}", note.words, post)
+            messenger.send(root, now, f"{note.what} {note.at:%Y-%m-%d %H:%M:%S}", note.words, post)
 
 
 def step(desk: Desk, now: datetime) -> None:
