@@ -80,14 +80,19 @@ def test_a_trade_is_sized_at_its_close_filled_at_the_next_open_and_stopped_by_th
     #: sold by the rule at the next open of 9.90, clear of the stop: a sale slips once
     (ruled,) = _judge(_bars([*SHAPE[:23], 9.9, 9.9]), 24).trades
     assert (ruled.received, ruled.costs.slippage) == (Decimal("1900.8"), Decimal("1.9776"))
-    #: a dollar line: sized at the rate of the day decided on, each fill at its own day's
-    day, dear, cheap = (bars[n].day for n in (20, 21, 23)), Decimal("0.8"), Decimal("0.75")
-    rates = dict(zip(day, (dear, dear, cheap), strict=True))
+    #: but an open of 8.95, under the stop resting at 9.36, is the stop's sale and slips thrice
+    (gapped,) = _judge(_bars([*SHAPE[:23], 9.9, 8]), 24).trades
+    assert (gapped.received, gapped.costs.slippage) == (Decimal("1718.4"), Decimal("3.6048"))
+    #: a dollar line: sized at the rate of the morning it is sent, each fill at its own day's
+    days, dear, cheap = (bars[21].day, bars[23].day), Decimal("0.8"), Decimal("0.75")
+    rates = dict(zip(days, (dear, cheap), strict=True))
     (usd,) = _judge(bars, 24, "SPY", rates).trades
     assert (usd.shares, usd.paid, usd.received) == (240, Decimal("2054.4"), Decimal("1684.8"))
     assert usd.gross == Decimal("-369.6"), "the dollar's fall is in it: 240 x 9.36 x 0.05 more"
-    assert usd.costs.total == Decimal("8.475563937936"), "the US sale's own fees among them"
-    assert _judge(bars, 24, "SPY", rates | {bars[20].day: Decimal("0.4")}).trades[0].shares == 480
+    #: bought: 0.96 + 1.0272 + 1.0272 + 0.616608 to convert; stopped: 0.96980688 with the US
+    #: sale's own fees + 0.8424 + 2.5272 + 0.505149057936
+    assert usd.costs.total == Decimal("8.475563937936")
+    assert _judge(bars, 24, "SPY", rates | {days[0]: Decimal("0.4")}).trades[0].shares == 480
     #: the desk's own book prices the same two fills to the same pounds and the same costs
     broker = Pretend({SPY: bars[21:24]}, {})
     broker.open(bars[21].day)
@@ -100,9 +105,19 @@ def test_a_trade_is_sized_at_its_close_filled_at_the_next_open_and_stopped_by_th
         book.record_rates(tmp_path, on, {"USD": rate})
     (trip,) = book.round_trips(tmp_path, [SPY])
     assert (trip.gross, trip.costs, trip.sell.price) == (usd.gross, usd.costs, stop)
-    for needed in rates:
-        with pytest.raises(ValueError, match=f"SPY: no rate of pounds per USD given for {needed}"):
-            _judge(bars, 24, "SPY", {d: rate for d, rate in rates.items() if d != needed})
+    for needed in rates:  #: a rate not given, or not a number above nothing, is refused
+        bad: tuple[dict[date, Decimal], ...] = (
+            {},
+            {needed: ZERO},
+            {needed: -dear},
+            {needed: Decimal("NaN")},
+        )
+        for wrong in bad:
+            given = {d: rate for d, rate in rates.items() if d != needed} | wrong
+            with pytest.raises(
+                ValueError, match=f"SPY: no rate of pounds per USD to price {needed}"
+            ):
+                _judge(bars, 24, "SPY", given)
     assert _judge(bars, 23).trades == _judge(bars, 22).trades == (), "sold on the last day, or held"
     #: no trades at all is a fault in the test, and says nothing of the rule
     assert (_judge(bars, 23).answer, _judge(bars, 23).t) == (Answer.FAULT, None)

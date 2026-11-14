@@ -10,10 +10,12 @@ ITS COSTS WHOLE. Each leg is charged by the desk's one cost model (`orders.charg
 desk's own book charges a round trip: the broker's commission, a sale's own fees, half the
 spread and the slippage on both legs (a stop's sale slips further), the conversion on a line
 not in pounds and the UK tax on a purchase. No cost is worked out here. Each fill is turned
-into pounds at its own day's rate of exchange, the order sized at the rate of the day it was
-decided on, so a dollar line's verdict carries the currency's gain or loss with the trade's
-own. A pound is a pound: a pound line reads no rate. A day a rate is needed for and not
-given is refused loudly, never filled in from another day.
+into pounds at its own day's rate of exchange, the order sized at the rate of the morning it
+is sent on, as the desk's day sizes it, so a dollar line's verdict carries the currency's gain
+or loss with the trade's own. A pound is a pound: a pound line reads no rate. A day whose
+rate is needed and is not given, or is not a number above nothing, is refused loudly, never
+filled in from another day. A sale whose morning opens at or under the resting stop is the
+stop's sale, as it is at the broker, and slips as one.
 
 The rung passes a strategy when it made at least MIN_TRADES judged trades and the mean of
 their returns after costs is at least T_PASS standard errors above nothing. Every verdict
@@ -142,20 +144,22 @@ def _price(
         raise ValueError(f"{c.symbol}, bought {trade.bought}: still held, so it has no price")
     line, decided, out = c.line, at[trade.bought], at[trade.sold] + 1
     decision = Decision(c.strategy, c.symbol, trade.bought, Action.BUY)
-    sized_at = _rate(line, rates, trade.bought)
-    order = orders.size(decision, line, read[decided].close, sized_at, settings, {})
     held = read[decided + 1 : out]
+    sized_at = _rate(line, rates, held[0].day)
+    order = orders.size(decision, line, read[decided].close, sized_at, settings, {})
     broker = Pretend({line: held}, {})
     broker.open(held[0].day)
     broker.place(order)
     for bar in held[1:]:
         broker.open(bar.day)
     (bought, *stopped) = broker.fills()
-    sale = (Leg.STOP, stopped[0].price, stopped[0].day) if stopped else None
+    if stopped:
+        sale = (Leg.STOP, stopped[0].price, stopped[0].day)
+    else:  #: an open at or under the stop is the stop's sale: it rests there before the sale
+        gapped = read[out].open <= order.stop
+        sale = (Leg.STOP if gapped else Leg.SALE, read[out].open, read[out].day)
     paid, buying = _leg(line, rates, order.quantity, Leg.BUY, bought.price, bought.day)
-    received, selling = _leg(
-        line, rates, order.quantity, *(sale or (Leg.SALE, read[out].open, read[out].day))
-    )
+    received, selling = _leg(line, rates, order.quantity, *sale)
     return Priced(trade, order.quantity, paid, received, buying + selling)
 
 
@@ -171,9 +175,12 @@ def _rate(line: Line, rates: Rates, day: date) -> Decimal:
     """Pounds per unit of the line's currency on the day; a pound line reads no rate."""
     if line.currency == "GBP":
         return Decimal(1)
-    if day not in rates:
-        raise ValueError(f"{line.symbol}: no rate of pounds per {line.currency} given for {day}")
-    return rates[day]
+    rate = rates.get(day)
+    if rate is None or not (rate.is_finite() and rate > 0):
+        raise ValueError(
+            f"{line.symbol}: no rate of pounds per {line.currency} to price {day} by: {rate}"
+        )
+    return rate
 
 
 def standard_errors(gains: Sequence[Decimal]) -> Decimal | None:
