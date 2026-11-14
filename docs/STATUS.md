@@ -242,10 +242,11 @@ Built and proven: the cell, the batch, the fast grid engine, a key per rung, the
 
 ### Next step
 
-grid-week: the seven-day run is going (pid in `C:\tmp\kestrel2_week\pid.txt`). Nothing to build. On or after
-20 Nov 23:45 UK read `sweep.unbroken(Path(KESTREL2_DATA))`: 7 days ticks it. If it died, restart within the hour:
-`python -B -m lab.sweep C:\tmp\kestrel2_grid\store %KESTREL2_DATA%\grid\cells %KESTREL2_DATA% --days 7`
-from `C:\tmp\kestrel2_week\code`. grid-declared can start now (it waited only on the shared file).
+grid-week: the seven-day run is going (pid in `%KESTREL2_DATA%\grid\week.pid`; moved off C:\tmp at 12:13 on 14 Nov,
+unbroken). Nothing to build. On or after 20 Nov 23:45 UK read `sweep.unbroken(Path(KESTREL2_DATA))`: 7 days ticks it.
+If it died, restart within the hour, at below-normal priority, from `C:\Users\mtrem\PYTHON\kestrel2_lanes\gridweek`:
+`python -B -m lab.sweep %KESTREL2_DATA%\grid\store %KESTREL2_DATA%\grid\cells %KESTREL2_DATA% --days 7`.
+grid-declared can start now (it waited only on the shared file).
 
 ### Done for other lanes
 - R-DATA-1: done in #73
@@ -277,7 +278,7 @@ from `C:\tmp\kestrel2_week\code`. grid-declared can start now (it waited only on
 - Tune: the proof uses one worker; priority and kill-on-exit untested; batch size follows the last batch only.
 - Week: a pass over 48 hours is cut and logged failed, so a sweep needing more fails LAD-10 (grid-weekend); a torn `week.jsonl` line needs hand-mending; results grow ~9 MB a day
   (pruning owed, R-GRID-1); an outside pass on the same folder, a PC restart not followed within the hour (nothing restarts it),
-  or the scratch store `C:\tmp\kestrel2_grid\store` cleared breaks the run (data-research-home fixes the last).
+  or the copied store `%KESTREL2_DATA%\grid\store` cleared breaks the run (data-research-home fixes the last).
 - Log counts tickers as "cells"; refused cells uncounted; busy flag stale if a pass is killed outright or cut at its limit.
   Scratch copies owed removal: `.claude/worktrees/` helpers, `C:\tmp\unebreaks`, `C:\tmp\unedriver`.
 
