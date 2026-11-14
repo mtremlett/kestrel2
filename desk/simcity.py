@@ -170,7 +170,8 @@ class _Life:
         saved = {line: [b for b in bars if b.day <= on] for line, bars in self.market.items()}
         for line, bars in self.market.items():  #: a line plays only from its first bar to its last
             if line != YARDSTICK and not bars[0].day < on <= bars[-1].day:
-                saved.pop(line), self.left.add(line.symbol)
+                del saved[line]
+                self.left.add(line.symbol)
         scenario, buys = self.census.scenario, self.pretend.buys
         record = self._run(saved, on)
         self.census.now(scenario)
