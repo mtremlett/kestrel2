@@ -8,6 +8,7 @@ from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
 
@@ -86,6 +87,47 @@ def test_the_book_is_every_fill_the_broker_made_and_the_gate_reads_it(tmp_path: 
     )
     with pytest.raises(ValueError, match="A"):
         book.positions(tmp_path)
+
+
+def test_a_desk_that_died_mid_send_has_what_it_left_working_cancelled_before_it_sends_again(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    broker, asked = Pretend(WEEK, {"E": Fault.STRAND, "F": Fault.DISCONNECT}), list[int]()
+    cancel = broker.cancel
+
+    def counted() -> tuple[str, ...]:
+        asked.append(1)
+        if len(asked) == 1:
+            raise ConnectionError("the broker does not answer")
+        return cancel()
+
+    monkeypatch.setattr(broker, "cancel", counted)
+    broker.open(MON)
+    for n, line in enumerate(SIX[:4]):
+        _send(tmp_path, broker, f"o-{n}", line)
+    with pytest.raises(Crash):  #: the broker has o-4, unfilled, and the desk has no answer
+        _send(tmp_path, broker, "o-4", SIX[4])
+    assert not asked, "a cancel asked of the broker by a desk that had every answer"
+    with pytest.raises(ConnectionError):  #: it cannot cancel: nothing goes, and it is asked again
+        _send(tmp_path, broker, "o-5", SIX[5])
+    assert broker.working() == ("o-4",) and "o-5" not in broker.submitted(), "sent regardless"
+    stranded = _send(tmp_path, broker, "o-4", SIX[4])  #: cancelled before its answer is asked
+    assert (stranded.filled, stranded.blocker) == (0, Blocker.BROKER), "its answer: none bought"
+    assert "cancelled" in str(stranded.reason) and broker.submitted().count("o-4") == 1
+    assert _send(tmp_path, broker, "o-5", SIX[5]).filled == 0, "F's connection drops once"
+    assert _send(tmp_path, broker, "o-5", SIX[5]).filled == 10, "the fifth line, E's never bought"
+    assert len(asked) == 2, "asked again of a desk settled, or one whose order was lost at the door"
+    broker._faults["A"] = Fault.STRAND  #: it dies again, as it sends A's sale: started again,
+    with pytest.raises(Crash):  #: the sale is cancelled, or it would sell what A's stop has sold
+        book.send(tmp_path, broker, Sale("s-1", A, 10), ROOM)
+    assert "cancelled" in str(book.send(tmp_path, broker, Sale("s-1", A, 10), ROOM).reason)
+    broker.open(TUE)  #: E's next market, and A's stop sells: no sixth line, and A not sold short
+    book.collect(tmp_path, broker)
+    assert book.positions(tmp_path) == {s: 10 for s in "BCDF"}, "the order a dead desk left filled"
+    monkeypatch.setattr(broker, "place", Mock(side_effect=Refused("the door's own word")))
+    with pytest.raises(Refused, match="the door's own word"):  #: it sent nothing: no death
+        _send(tmp_path, broker, "o-6")
+    assert not [p.name for p in tmp_path.iterdir() if p.name != book.LEDGER], "a note left behind"
 
 
 def test_while_the_book_is_not_the_brokers_nothing_is_bought_and_no_such_line_sold(

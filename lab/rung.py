@@ -29,7 +29,8 @@ rule. And `judge` gives no verdict on code that is not the published rule
 (`lab/published.py`). Gains with no spread at all are still refused loudly, few or many.
 THE AUTHOR'S RESULT FIRST. A rule with an author's figure on file (`lab/reproduce.py`) is given
 no verdict until each figure's reproduction is handed over, made by the code as it now is and
-the same as the author's; the verdict carries them. With none on file it carries none.
+the same as the author's; the verdict carries them, each saying whether its figure is the
+author's own or a replication standing in for it. With none on file it carries none.
 The trades counted are the effective ones: each judged whole, and each a bet of its own,
 since a rule holds one position on a line at a time. Trades pooled across lines, where two
 held together are one bet, are counted here when pooling is built.
@@ -101,7 +102,7 @@ class Verdict:
     trades: tuple[Priced, ...]
     t: Decimal | None  #: the mean gain in standard errors; None under two trades
     answer: Answer  #: PASS, FAIL, THIN or FAULT: the first rung never answers DOUBT
-    reproduced: tuple[Reproduction, ...]  #: the author's own results behind it, if on file
+    reproduced: tuple[Reproduction, ...]  #: the published results behind it, if on file
 
     @property
     def passed(self) -> bool:
