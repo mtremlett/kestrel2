@@ -52,7 +52,11 @@ RULES: dict[str, tuple[Make, Line, str]] = {  # rule site -> (synthetic archive,
         "split of 7",
     ),
     "_thawed:1": (
-        lambda b: [*b[:5], *(Bar(x.day, *[b[4].close] * 4, 0) for x in b[5:10]), *b[10:]],
+        lambda b: [
+            *b[:5],
+            *(Bar(x.day, b[4].close, b[4].close, b[4].close, b[4].close, 0) for x in b[5:10]),
+            *b[10:],
+        ],
         US,
         "frozen",
     ),
