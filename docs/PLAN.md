@@ -272,11 +272,11 @@ day's trading and reconciliation are built, and any broker can stand behind them
       day and then monthly (EMG-02, canon B1) {id: money-kill; files: desk/kill.py,
       desk/broker.py, desk/book.py, tests/unit/test_kill*.py, tests/unit/test_broker*.py,
       tests/unit/test_book*.py, tests/unit/test_day*.py, manifest.toml}
-- [ ] The costs whole: a sale's own cost, and spread and slippage on both legs, the stop's sale
+- [x] The costs whole: a sale's own cost, and spread and slippage on both legs, the stop's sale
       included, in the one cost model; UK tax from a fact on each line (asked of the data lane)
       {id: money-costs; files: desk/orders.py, desk/book.py, tests/unit/test_orders*.py,
       tests/unit/test_book*.py, tests/scenes/test_scenes.py; after: money-kill}
-- [ ] The day's record (`day.run`): the day reconciled at its end, a mismatch named and its
+- [x] The day's record (`day.run`): the day reconciled at its end, a mismatch named and its
       profit withheld; else the profit after every cost line, to one rounding policy, beside
       what holding the market earned; the same days replayed to the same records. Scene 6's days
       moved onto the fourteen months, its book checked against the broker's every day - **scenes
@@ -288,7 +288,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       record; a census names every part of the money path and turns red when one has no scenario
       {id: money-simcity; files: desk/simcity.py, tests/unit/test_simcity*.py,
       tests/scenes/test_scenes.py, manifest.toml; after: money-kill, money-record}
-- [ ] Emergencies in numbers: an emergency, a crash and a black swan each defined by measured
+- [x] Emergencies in numbers: an emergency, a crash and a black swan each defined by measured
       falls, each with its action (EMG-01) {id: money-emergencies; files: desk/emergency.py,
       tests/unit/test_emergency*.py, manifest.toml}
 - [ ] Halts: a halt is a typed record; while one is in force the desk buys nothing and says so
