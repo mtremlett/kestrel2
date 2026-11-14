@@ -305,9 +305,10 @@ day's trading and reconciliation are built, and any broker can stand behind them
       short sale cannot be built at all (STR-03, STR-06); remains: a sale made only from the
       book's holding (orders, day, broker) {id: money-declared;
       files: desk/strategy.py, tests/unit/test_strategy*.py}
-- [ ] The money invariants property-tested, seeded: positions equal the sum of fills, equity
+- [x] The money invariants property-tested, seeded: positions equal the sum of fills, equity
       equals cash plus market value, profit equals realised plus unrealised less costs, orders
-      move only through valid states, sending is idempotent (TST-04, canon B4)
+      move only through valid states, sending is idempotent (TST-04, canon B4). Done in #132,
+      25 seeded worlds; remains: a fault that can reach a sale or fill in two executions
       {id: money-invariants; files: tests/unit/test_book*.py, tests/unit/test_orders*.py,
       tests/unit/test_broker*.py; after: money-record}
 - [ ] **The crash watch, on the five-minute data:** every five minutes in trading hours it
