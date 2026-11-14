@@ -1,6 +1,6 @@
 """watch: one look reads each trading line's newest ended bar, or says why not; a crash, as
 the market trades or as its day ended, halts all buying at once, he is told once and the
-halt says why; only a day that ends clear lifts it; his own lift is his word; a black swan
+halt says why; only a day that ends clear lifts it; a black swan
 is his alone, and is read twice before any sale; one line's emergency halts nothing; a
 market that cannot be read is never calm."""
 
@@ -110,7 +110,7 @@ def test_a_look_reads_each_trading_line_at_its_newest_ended_bar_or_says_why_not(
             watch.read(hot, kept, now)
 
 
-def test_a_crash_halts_all_buying_at_once_tells_him_once_and_his_lift_is_his_word(
+def test_a_crash_halts_all_buying_at_once_tells_him_once_and_the_halt_says_why(
     tmp_path: Path,
 ) -> None:
     root, post = tmp_path / "desk", Mock(side_effect=count(1))
@@ -129,26 +129,12 @@ def test_a_crash_halts_all_buying_at_once_tells_him_once_and_his_lift_is_his_wor
     assert "DONE: a halt is in force" in told.text
     _look(tmp_path, "10:15", post)
     assert halt.kept(root) == (called,) and post.call_count == 1, "called or told twice"
-    #: HIS WORD: he lifts it, and while the market has not ended a day clear the watch calls
-    #: no other, telling him once a day that it reads a crash and buys
+    #: lifted by hand while a bar of the day still raises it: called again, and he is told
     halt.lift(root, called, _at("10:50"), "his word")
-    for clock in ("11:05", "11:10", "16:36"):  #: a crash at each, and the day ended one
-        _look(tmp_path, clock, post)
-    _trade(tmp_path, YARDSTICK, {"08:00": 90, "16:25": 93}, THU)
-    _look(tmp_path, "08:05", post, THU, (*CALM, 94))  #: the next day too, which ends clear
-    assert halt.in_force(root) == (), "a halt called over his word"
-    word = messenger.deliveries(root)[1]
-    assert "NOT DONE: no halt is called" in word.text and "2025-11-12 10:50 UTC" in word.text
-    _trade(tmp_path, YARDSTICK, {"08:00": 89}, FRI)  #: a day ended clear: a crash is new
-    _look(tmp_path, "08:05", post, FRI, (*CALM, 94, 93))
+    _look(tmp_path, "11:05", post)
     (again,) = halt.in_force(root)
-    assert again.at == _at("08:05", FRI) and "4.3% below its last close" in again.why
-    assert _names(tmp_path) == [
-        told.name,
-        "watch 2025-11-12 CRASH on his word",
-        "watch 2025-11-13 CRASH on his word",
-        "watch 2025-11-14 08:05 CRASH",
-    ]
+    assert again.at == _at("11:05") and (again.by, again.his) == (watch.WATCH, False)
+    assert _names(tmp_path) == [told.name, "watch 2025-11-12 11:05 CRASH"]
 
 
 def test_a_crash_the_desk_slept_through_is_halted_whenever_it_next_looks(
@@ -242,20 +228,19 @@ def test_a_black_swan_is_his_alone_to_lift_and_is_read_twice_before_any_sale(
     _look(tmp_path, "16:36", post)  #: the day ended clear: the crash's is lifted, never his
     assert halt.in_force(root) == (hand, swan) and post.call_count == 5  #: and he is told so
     assert messenger.deliveries(root)[-1].text.count("HALT IN FORCE, day 1") == 2
-    #: next day his halt stands: read twice again; then he lifts it, and that is his word
-    _trade(tmp_path, YARDSTICK, {"08:00": 88, "08:05": 88, "08:10": 94}, THU)
-    assert [_look(tmp_path, at, post, THU, after).cash for at in ("08:05", "08:10")] == [
-        False,
-        True,
-    ]
-    halt.lift(root, swan, _at("08:12", THU), "his word")
-    #: a black swan still, then a crash: no sale, and no halt of either kind
-    sold = [_look(tmp_path, at, post, THU, after).cash for at in ("08:13", "08:15")]
-    assert sold == [False, False], "sold on a black swan he lifted"
-    assert halt.in_force(root) == (hand,), "a halt called over his word"
+    #: next day his halt stands, and a crash is raised on its own; then a black swan, twice
+    _trade(tmp_path, YARDSTICK, {"08:00": 94}, THU)
+    assert not _look(tmp_path, "08:05", post, THU, after).cash
+    _trade(tmp_path, YARDSTICK, {"08:05": 88, "08:10": 88}, THU)
+    assert _look(tmp_path, "08:15", post, THU, after).cash
+    halt.lift(root, swan, _at("08:17", THU), "his word")  #: while it reads so: called again
+    _look(tmp_path, "08:18", post, THU, after)
+    _, fresh, again = halt.in_force(root)
+    assert (fresh.his, again.his, again.at) == (False, True, _at("08:18", THU))
     assert _names(tmp_path)[5:] == [
+        "watch 2025-11-13 08:05 CRASH",
         "watch 2025-11-13 BLACK_SWAN twice",
-        "watch 2025-11-13 BLACK_SWAN on his word",
+        "watch 2025-11-13 08:18 BLACK_SWAN",
     ]
 
 

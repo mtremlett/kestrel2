@@ -15,10 +15,10 @@ define it (desk/emergency.py). Then, at once:
   position waits for. That sale is not built (STP-07): nothing is sold, and he is told so.
 - AN EMERGENCY, one line's: he is told, and that nothing parks one line yet.
 
-HIS WORD. A halt of the watch's that he lifts while the market reads so stays lifted: the
-watch calls no other as grave or less until the market has ended a day clear, and tells him
-each day it still reads so. A black swan is a crash too; a crash's lift is no word on a
-black swan. The record says who lifted a halt, so the watch's own lift is never his word.
+THE WATCH'S HALTS FOLLOW THE MARKET, a crash's and a black swan's each on its own. One he
+lifts while the market still raises it is called again at the next look, and he is told: his
+lift holds once the market has ended a day clear. A way for his word to stand against the
+market is not built. The record says who lifted each halt.
 
 WHAT HE IS TOLD, through the desk's one voice, at any hour, each message once under its
 name: each halt of the watch's while it stands, in the fall's own words (the halt's reason,
@@ -63,19 +63,16 @@ DONE = {
         "market ends a day clear of a crash, and tells you."
     ),
     Level.BLACK_SWAN: (
-        "DONE: a halt is in force that only you lift, and no buy goes on any line. NOT DONE: "
-        "nothing is sold. The sale of every position is not built, and would wait for a "
-        "second reading; the stops rest at the broker as ever."
+        "DONE: a halt is in force that only you lift, and no buy goes on any line; lifted "
+        "before the market has ended a day clear, the watch calls it again. NOT DONE: nothing "
+        "is sold. The sale of every position is not built, and would wait for a second "
+        "reading; the stops rest at the broker as ever."
     ),
 }
 TWICE = (
     "BLACK SWAN, READ TWICE: the market's two newest bars both say so. {} NOT DONE: nothing "
     "is sold, for the sale of every position is not built. The stops rest at the broker; the "
     "rest is yours."
-)
-WORD = (
-    "{} NOT DONE: no halt is called for this, on your word: you lifted the watch's halt at "
-    "{:%Y-%m-%d %H:%M} UTC while the market read so, and it has not ended a day clear since."
 )
 BLIND = (
     "THE CRASH WATCH IS BLIND: it cannot read the market. {}. No halt is called for that, "
@@ -215,23 +212,12 @@ def _lift(root: Path, end: Fall, session: Hours, now: datetime) -> Owed:
     return told
 
 
-def _call(root: Path, hot: Path, market: Sequence[Bar], fall: Fall, now: datetime) -> Owed:
+def _call(root: Path, fall: Fall, now: datetime) -> None:
     """THE MARKET'S FALL HALTS ALL BUYING: a halt of the watch's is called, his alone to lift
-    for a black swan, unless one as grave stands, or his word does: he lifted the last such
-    halt while the market read so, and it has not ended a day clear since. Given back: what
-    he is owed if no halt is called on his word, once for the fall's day and level."""
+    for a black swan, unless one of its kind stands already."""
     his = fall.level is Level.BLACK_SWAN
-    mine = [h for h in halt.kept(root) if h.by == WATCH and (h.his or not his)]
-    lifts = [h.lifted for h in mine if h.lifted is not None]
-    if len(lifts) < len(mine):
-        return []
-    at, _, who = max(lifts, default=(now, "", WATCH))
-    word = who != WATCH and _raised(hot, market, at)
-    if word and not any(_clear(hot, market, session) for session in _over(at, now)):
-        name = f"watch {fall.on} {'BLACK_SWAN' if his else 'CRASH'} on his word"
-        return [(name, WORD.format(fall.words(), at))]
-    halt.call(root, now, fall.words(), by=WATCH, his=his)
-    return []
+    if not any(h.by == WATCH and h.his == his for h in halt.in_force(root)):
+        halt.call(root, now, fall.words(), by=WATCH, his=his)
 
 
 def _halts(root: Path, hot: Path, market: Sequence[Bar], now: datetime) -> Owed:
@@ -246,7 +232,7 @@ def _halts(root: Path, hot: Path, market: Sequence[Bar], now: datetime) -> Owed:
         day = last[0].close.date()
         owed.append((f"watch {day} end unread", UNENDED.format(day)))
     for fall in _raised(hot, market, now):
-        owed += _call(root, hot, market, fall, now)
+        _call(root, fall, now)
     return owed
 
 
