@@ -131,7 +131,7 @@ def check(root: Path, now: datetime) -> Check:
     record changed under it: another ran beside it, and what that one found stays."""
     begun = Check(now, None)
     _keep(root, (*checks(root), begun))
-    listings = listing.read(LINES)
+    listings = listing.kept(root, now, LINES)
     found = differences(paper.read(), listings, book.positions(root), LINES)
     record = checks(root)
     if record[-1:] != (begun,):

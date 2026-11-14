@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import io
 import struct
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import replace
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 
@@ -170,3 +172,30 @@ def test_the_lines_are_asked_through_the_one_door(monkeypatch: pytest.MonkeyPatc
     wire = io.BytesIO(_frame(*OPEN, IITU_IS, ENDS[0], PENCE))
     monkeypatch.setattr(paper, "dial", lambda talk: talk(wire, sent.append))
     assert listing.read((IITU,)) == {"IITU": IN_PENCE} and len(sent) == 4
+
+
+def test_the_broker_is_asked_once_a_day_and_a_failed_reading_keeps_nothing(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    asked: list[int] = []
+    answers = iter([TimeoutError("silent"), {"IITU": IN_PENCE, "AAPL": Unlisted(AAPL, "none")}])
+
+    def read(lines: Iterable[Line]) -> dict[str, Listing | Unlisted]:
+        asked.append(len(tuple(lines)))
+        answer = next(answers)
+        if isinstance(answer, Exception):
+            raise answer
+        return answer
+
+    monkeypatch.setattr(listing, "read", read)
+    at = datetime(2026, 11, 16, 6, 0, tzinfo=UTC)
+    with pytest.raises(TimeoutError):
+        listing.kept(tmp_path, at, (IITU, AAPL))
+    kept = [listing.kept(tmp_path, at + timedelta(minutes=5 * n), (IITU, AAPL)) for n in range(40)]
+    assert asked == [2, 2] and all(k == kept[0] for k in kept) and kept[0]["IITU"] == IN_PENCE
+    assert kept[0]["AAPL"] == Unlisted(AAPL, "none")
+    monkeypatch.setattr(listing, "read", lambda _: {"IITU": IN_PENCE, "AAPL": IN_CENTS})
+    assert listing.kept(tmp_path, at + timedelta(days=1), (IITU, AAPL))["AAPL"] == IN_CENTS
+    (tmp_path / listing.KEPT / "2026-11-16.json").write_text('{"IITU": {}, "AAPL": {}}')
+    with pytest.raises(ValueError, match="cannot read"):
+        listing.kept(tmp_path, at, (IITU, AAPL))
