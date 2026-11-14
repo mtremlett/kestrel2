@@ -3,8 +3,9 @@
 these refuse it in the check, on GitHub, before anything merges:
 
 - a lane's branch (named `lane/<lane>-...` by the runner: money, paper, data, grid,
-  rungs) may change only its own lane's files, the shared documents, and add its own
-  modules to the manifest; a branch naming a lane the manifest does not know fails;
+  rungs) may change only its own lane's files (its decisions in `docs/lanes/<lane>.md`
+  among them), the shared documents, and add its own modules to the manifest; a branch
+  naming a lane the manifest does not know fails;
 - no branch grows `desk/` and `lab/` together by more than 300 lines in one change;
 - up to twelve sessions run at once, so each lane session holds a claim: the files it
   may change, given it by the runner and written in its pull request as `Claim: ...`.

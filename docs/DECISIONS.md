@@ -1685,25 +1685,25 @@ claim naming it; the money lane still writing `docs/DECISIONS.md`, as the scribe
 
 ## MONEY
 
-This lane's decisions are in `docs/lanes/money.md`. Until the runner's scribe
-writes there, a new entry may land below; the next scribe moves it.
+This lane's decisions are in `docs/lanes/money.md`. Until the runner's scribe is
+pointed there (a runner change, `docs/STATUS.md`), its new entries land below.
 
 ## DATA
 
-This lane's decisions are in `docs/lanes/data.md`. Until the runner's scribe
-writes there, a new entry may land below; the next scribe moves it.
+This lane's decisions are in `docs/lanes/data.md`. Until the runner's scribe is
+pointed there (a runner change, `docs/STATUS.md`), its new entries land below.
 
 ## PAPER
 
-This lane's decisions are in `docs/lanes/paper.md`. Until the runner's scribe
-writes there, a new entry may land below; the next scribe moves it.
+This lane's decisions are in `docs/lanes/paper.md`. Until the runner's scribe is
+pointed there (a runner change, `docs/STATUS.md`), its new entries land below.
 
 ## GRID
 
-This lane's decisions are in `docs/lanes/grid.md`. Until the runner's scribe
-writes there, a new entry may land below; the next scribe moves it.
+This lane's decisions are in `docs/lanes/grid.md`. Until the runner's scribe is
+pointed there (a runner change, `docs/STATUS.md`), its new entries land below.
 
 ## RUNGS
 
-This lane's decisions are in `docs/lanes/rungs.md`. Until the runner's scribe
-writes there, a new entry may land below; the next scribe moves it.
+This lane's decisions are in `docs/lanes/rungs.md`. Until the runner's scribe is
+pointed there (a runner change, `docs/STATUS.md`), its new entries land below.
