@@ -4,7 +4,7 @@
 of its own book); then the costs whole, then the day's record, with which scenes 6 and 7
 pass together.
 
-Scenes passing: **5 of 7**. Phase: **2-money-sim**.
+Scenes passing: **7 of 7**. Phase: **2-money-sim**.
 
 The two lines above belong to the money lane: it alone moves the scenes count. The other
 lanes' objectives are in their own books below. The operator's Telegram line
@@ -351,7 +351,7 @@ check moved onto the money lane's one comparison (`book.differences`, R-PAPER-1,
 #52), so "is the book the broker's?" has one home. Then the fills and orders the broker
 reports, read-only, each fill's price turned from the broker's unit (pence on six London
 lines) back into the line's currency, and the desk's own orders told from anyone else's;
-then placing. It sends no order until that day's read-only check (`paper.mismatches`) has
+then placing. It sends no order until that day's read-only check (`clearance.check`) has
 come back clean, and the check has been taught the desk's own resting stops. The account is
 the old desk's (his ruling, 13 November), reached through IB Gateway's paper port 4002 on
 his PC with the desk's own client id (222), never 4001.
@@ -370,26 +370,31 @@ his PC with the desk's own client id (222), never 4001.
       corrections of a fill, R-PAPER-5; the true shape of an open order is seen on the first
       real one) {id: paper-reports; files: desk/reports.py, desk/paper.py,
       tests/unit/test_reports.py, tests/unit/test_paper.py, manifest.toml}
-- [ ] The Gateway known before any order: its daily restart and the weekly re-login handled
+- [x] The Gateway known before any order: its daily restart and the weekly re-login handled
       unattended. A re-login that needs his phone or password is his: a reminder line at the
-      right time, never a workaround. The old desk's gateway alarms are a quarry only. (The
+      right time, never a workaround. The old desk's gateway alarms are a quarry only. (Done in #100; remains:
+      the messenger sends his lines, the adapter asks `gateway.known`, Sunday 15 Nov seen live.) (The
       runner already watches port 4002 and the account, read-only, and tells him when it stops
       answering.) {id: paper-gateway; files: desk/gateway.py, tests/unit/test_gateway.py,
       manifest.toml}
-- [ ] The check run every day and before any order: the adapter refuses to send until
-      that day's check is clean, and tells the desk's own resting stops from anyone else's
+- [x] The check run every day and before any order: the adapter refuses to send until
+      that day's check is clean, and tells the desk's own resting stops from anyone else's (`desk/clearance.py`, #104; remains: the
+      adapter's send asks `clearance.require`, done in #113; a daily run and a message when unclean)
       {id: paper-check; files: desk/clearance.py, desk/paper.py,
       tests/unit/test_clearance.py, tests/unit/test_paper.py, manifest.toml;
       after: paper-reports}
 - [ ] The real paper-broker adapter behind the same interface as `broker.Pretend`, speaking
-      to IB Gateway with the standard library alone (`desk/` imports nothing else)
+      to IB Gateway with the standard library alone (`desk/` imports nothing else). Five answers
+      and a sale done (#110, #113); remains: the buy with its stop, which is also paper-stops
+      (reading a stop's level needs `desk/paper.py`: do both under this claim)
       {id: paper-adapter; files: desk/placing.py, desk/paper.py, desk/reports.py,
       tests/unit/test_placing.py, tests/unit/test_paper.py, tests/unit/test_reports.py,
       manifest.toml; after: paper-reports, paper-check}
 - [ ] Stops resting at the broker, each rounded down to its line's price step
       {id: paper-stops; files: desk/placing.py, desk/listing.py,
       tests/unit/test_placing.py, tests/unit/test_listing.py; after: paper-adapter}
-- [ ] No paper order before the kill switch is drilled, held by the code: the adapter's
+- [x] No paper order before the kill switch is drilled, held by the code (done in #113; remains: the
+      drill run at each desk start): the adapter's
       send refuses unless a drill record of the kill switch from the last 31 days exists,
       and a contract test proves the refusal (owed: name the money lane's kill-switch box in
       `after` once it has an id) {id: paper-drill; files: desk/placing.py,
@@ -492,17 +497,19 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       one combined 5% test across the set, a daily Sharpe above 2 flagged, and one verdict
       rule over the named rungs (LAD-03, LAD-08, LAD-09)
       {id: rungs-deflated; files: lab/deflated.py, tests/unit/test_lab_deflated.py, manifest.toml}
-- [ ] Plateaus over peaks: the centre of a plateau promoted, never a lone peak
+- [x] Plateaus over peaks: the centre of a plateau promoted, never a lone peak. Remains: nothing
+      calls it; the rules carry no settings yet
       {id: rungs-plateau; files: lab/plateau.py, tests/unit/test_lab_plateau.py, manifest.toml}
-- [ ] Periods and regimes: replays across periods and regimes; a strategy never failed for
-      working in only one; out-of-regime trades tagged on paper (LAD-05, REG-03, STR-20)
+- [x] Periods and regimes: replays across periods and regimes; a strategy never failed for
+      working in only one; out-of-regime trades tagged on paper (LAD-05, REG-03, STR-20).
+      Remains: the weather (REG-01) and handing home regimes to the desk (before paper)
       {id: rungs-regimes; files: lab/regime.py, tests/unit/test_lab_regime.py, manifest.toml; after: rungs-folds}
-- [ ] Failing fairly: too few effective trades is "not enough evidence", never a fail; a
+- [x] Failing fairly: too few effective trades is "not enough evidence", never a fail; a
       check that the code is the published rule; no trades at all is a fault in the test
-      (LAD-06, STR-12)
+      (LAD-06, STR-12). Remains: plateau and regime rungs read only pass or not
       {id: rungs-fair; files: *; after: rungs-folds, rungs-trials, rungs-deflated, rungs-plateau, rungs-regimes}
-- [ ] Its costs whole: spread, slippage and the sale's own fees, from the desk's one cost
-      model once the money lane has them; and a rate of exchange for each day
+- [x] Its costs whole: spread, slippage and the sale's own fees, from the desk's one cost
+      model; and a rate of exchange for each day. Remains: real daily rates (R-RUNGS-3)
 - [ ] Reproduces a published strategy's own published result
 - [ ] Each indicator known-answer tested against a published reference series (STR-14)
 - [ ] Before paper: a kill condition declared for each strategy; promotion only after at

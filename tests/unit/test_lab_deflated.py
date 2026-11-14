@@ -9,6 +9,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 import pytest
+from test_lab_rung import FREE
 
 from lab import deflated, luck, rung
 from lab.cell import Cell, Key, Trade
@@ -21,7 +22,7 @@ def _verdict(gains: list[float], years: float = 10, name: str = "a") -> Verdict:
     """A trial with these gains, one per trade, over a window of so many years, judged by
     the first rung's own rule."""
     back = [Decimal(f"{100 * (1 + gain):.4f}") for gain in gains]
-    priced = tuple(Priced(Trade(DAY, DAY), 1, Decimal(100), b, b - 100) for b in back)
+    priced = tuple(Priced(Trade(DAY, DAY), 1, Decimal(100), b, FREE) for b in back)
     window = Cell("breakout_20_10", "VUSA", DAY, DAY + timedelta(days=round(365.25 * years)))
     return rung.verdict(Key(window, "code", name), priced)
 

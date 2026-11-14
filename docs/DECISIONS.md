@@ -2802,3 +2802,114 @@ that cannot change a result. Not witnessed: the unfinished run's tests failing f
   of answers that is not exactly the named rungs; later rungs join by being named in the list.
 - The luck rung stays beside the deflated Sharpe. A trial under two trades fails.
 - Guards driven: 6 contract tests seen failing first; 47 deliberate breaks, 43 caught.
+
+### 2026-11-13 — the Gateway's own week known before any order (paper-gateway, #100)
+
+Decided by the PAPER lane as the desk's mentor, no one watching, under his ruling "always go with recommended".
+
+- *The daily restart.* Options: any silence is an alarm (he is woken at 03:00 nightly); quiet retries inside every
+  reading; or know the restart's time. Chosen: know it. The Gateway's logs hold sixteen restarts, all at 03:00 UK, all back
+  within seconds. 02:55 to 03:15 is "restarting" whatever it would answer, and it is not dialled.
+- *Which silence is his.* Options: all failures his; only a closed port; split by what came back. Chosen: split. Nothing
+  came back (port closed, 15 seconds silent) is his login, told at any hour on his ruling that a Gateway login goes at once;
+  something came back but not "ready" is unwell and not his; anything else is raised as a fault.
+- *True only when ready.* `known(now)` is true only for a ready Gateway, so no way of asking can send into one that is not.
+- *The weekly reminder.* Options: Saturday evening (spent by the weekend reset); the reset itself (he is asleep); Monday
+  (too late); Sunday 08:00 UK. Chosen: Sunday 08:00, every Sunday, answered or not, since the desk cannot see his login.
+- *The UK clock.* Options: add a time-zone dependency (his call); a second rule; the calendar's own dates. Chosen: the
+  calendar's, at the cost of three repeated lines (R-PAPER-6 removes them).
+- *Ticked though nothing sends the lines yet.* Sending is the messenger's, asking the adapter's; both owed under Remains.
+- Evidence: contract test seen failing first; two blind reviews, seven blocking findings fixed; 183 deliberate breaks, four gaps left and named.
+
+### 2026-11-13 — the day's check and the refusal (paper-check, #104)
+
+Decided by the PAPER lane as the desk's mentor, no one watching.
+
+- *Where the refusal lives.* Options: a question the adapter asks at the last moment; a lock inside the door reading every
+  message; a wrapper round any broker. Chosen: the question (`clearance.require`), as the kill switch's drill is ruled.
+- *A record, not a held pass.* Chosen: a dated record in the desk's folder (`checks.csv`), surviving restarts.
+- *"Begun" first, then the result.* A check that dies half way leaves a row that refuses orders, with no error handling.
+- *The newest check decides*, not any clean one that day. The day is the UTC date (both sessions fall inside one).
+- *Whose stop.* Only the desk's own stop under its own order id protects; anyone else's is named and the line unprotected.
+- *Holdings stay with the door, orders go to the check*, because a lane may not reword the manifest's description.
+- Recorded, not changed: no maximum age inside a day; the zero-share stop; a future-dated row sticks. Evidence: 54 breaks, 49 caught at once, two gaps closed.
+
+### 2026-11-13 — the paper account answers five of six questions (paper-adapter first step, R-MONEY-5, #110)
+
+Decided by the PAPER lane as the desk's mentor, no one watching.
+
+- *How much in one change.* Options: the whole adapter; the five answers with placing raising. Chosen: the five (209 product
+  lines, under the 300 cap); placing cannot be safe without its stop.
+- *What "did the broker receive it" reads.* Options: open orders and fills; those plus the day's ended orders. Chosen: both
+  plus ended, read in the order open, ended, fills, so nothing slips between readings and nothing is sent twice.
+- *Filled completely* only when listed once, ended, filled whole, and the desk's fills agree; else the broker's words.
+- *A refused cancel.* Options: raise; take as "already over"; read the account again. Chosen: read again (a fill just before
+  the cancel is the likeliest case; "over" could hide a working order). A stop to sell is never cancelled.
+- *The ended list names no program*: the reference alone decides, which can only make the desk send less.
+- *Stops given* are the desk's own. *The published client* (ib_insync 0.9.86) was read as a reference only, never imported.
+- *Tests against product:* 223 test lines for 209 product; shared messages and loops, no case dropped. Evidence: 65 breaks, 62 caught at once.
+
+### 2026-11-14 — a sale can be placed; a buy waits for its stop; the drill held by code (paper-adapter second step, paper-drill, R-MONEY-6, #113)
+
+Decided by the PAPER lane as the desk's mentor, no one watching.
+
+- *How much in one change.* Options: both sides with the stop later (a buy could sit unprotected); everything at once (over
+  300 lines, too much unproven); the sale whole and a buy refused in code. Chosen: the third.
+- *A sale on a line under the desk's own stop* is refused: it would leave a stop for shares not held and could sell short.
+- *The drill now, not in its own box.* The review's blocking point: this change is where the adapter can send, and his
+  ruling is no order before a drill. So paper-drill and R-MONEY-6 are done here: a drill within 31 days, else refused.
+- *The broker's last word.* Read until the order is over or the Gateway is silent 15 seconds, then cancel what did not fill.
+- *Answer read afresh* from the broker, one home for "what did it do". *Not ready* is "never received"; no drill, no check, an
+  unlisted line are refusals. *An error after sending*: raise and leave it; the broker is asked before any resend.
+- *No trial order* went to the real Gateway: one wrong field could place a real order on an account shared with the old desk.
+- *Unasked news passed over in every reading*, reversing one line of #86's tests, since fees and states arrive after an order.
+- Evidence: 64 breaks, 62 caught at once, two gaps closed; the 115 order fields checked twice independently, no difference.
+
+### 2026-11-14 — plateaus over peaks (rungs-plateau, #107)
+
+**Decided**, by the lane as the desk's mentor.
+- *What counts as beside a setting.* Options: sides only; sides and corners. Chosen: sides and corners (eight neighbours for two parameters), the stricter, since a failing corner is a failing rule one step away.
+- *The grid's edge.* Options: passing ground; unknown. Chosen: unknown, so a setting on the edge has depth 1 and is never promoted: the best on a slope still rising is not a plateau.
+- *Failures left off the surface.* Options: read the grid from the results; declare the grid first. Chosen: declared first; a missing setting counts as never tried and ends a plateau (the first blind review's finding).
+- *The least plateau.* Options: depth 2 (the setting and all beside it); deeper. Chosen: depth 2, the smallest shape that is not a peak; the deepest is chosen first anyway.
+- *Ties.* Options: best own score; best worst neighbouring score. Chosen: best worst neighbour, so the choice never chases one high score; then grid order, so arrival order changes nothing.
+- *The least step between values, a tenth of the lower.* Options: none; a limit. Chosen: a limit, compared exactly; values a hair apart are one rule tried twice and would make a plateau of a peak.
+- *Settings held to the grid's own number types.* Options: accept anything equal to a grid value; refuse floats and bools. Chosen: refuse.
+- *Which branch carried the pull request.* Chosen: the restored branch, keeping its history without a force-push.
+
+**Evidence.** Two blind reviews; depth matched a naive definition on 5,980 random surfaces; 22 of 24 deliberate mutations caught (one equivalent, one now pinned). Nothing calls the module yet: the five rules carry no settings.
+
+### 2026-11-14 — periods and regimes (rungs-regimes, #109)
+
+**Decided**, by the lane as the desk's mentor.
+- *What the weather is.* Options: this module invents a regime label; the caller gives each day's regime by name. Chosen: the caller; the label is the "Market weather" box's (REG-01), one owner per concept.
+- *Which regime a trade belongs to.* Options: the day decided on; the day filled; the day sold. Chosen: the day decided on, all the desk could know when it sent the order, and the day the paper tag reads.
+- *How a regime is replayed.* Options: a separate run per unbroken stretch; the whole window run once and its priced trades shared out by regime. Chosen: the latter; the rule stays warmed, every trade is in exactly one regime, nothing is priced twice. Periods reuse the folds' cutting (the lane's ruling of 13 November).
+- *"Never failed for working in only one".* Options: pass only if it earns in most regimes; not failed if it earned on the whole window or in one regime or more. Chosen: the latter, the box's own words; each look is a trial for the luck rung.
+- *A strategy that passed only on all weather together.* Options: call it proven in each regime it traded in; it has no home and every paper trade is tagged. Chosen: no home; the tag is a fact, not a refusal, so over-tagging costs nothing and under-tagging hides a risk.
+- *Periods earn no home.* A past period cannot come again; they are shown side by side, never picked from.
+- *Refused as faults:* a day with no regime; a regime name not one plain word; a window all one regime; under two periods or more periods than bars.
+
+**Evidence.** Four contract tests; 68 deliberate breaks over two rounds, one harmless survivor; a blind review's two blocking faults fixed.
+
+### 2026-11-14 — failing fairly (rungs-fair, #112)
+
+**Decided**, by the lane as the desk's mentor.
+- *Several answers read together.* Options: a fail always first; a fault in the test first, then a fail on enough trades, then not enough evidence, then doubt, then pass. Chosen: the latter; a faulty test says nothing, and a real fail on enough trades outranks what too few could not settle.
+- *A window whose only trade is still held, or sold on its last day.* Options: not enough evidence; a fault in the test. Chosen: fault; the window was too short to judge even one trade.
+- *Known answers written in `lab/published.py` and in the strategies' contract test.* Options: one home; two. Chosen: two; the contract test is the independent pin, so editing the published answers alone cannot make wrong code pass.
+- *"Effective trades"* today is trades judged whole on one line; pooling across lines waits until pooling is built.
+
+**Evidence.** Deliberate violations driven in tests: a rule buying a day early, a grid selling a day late, a rule with no publication; each refused. Not built (minor): plateau and regime rungs read only pass or not.
+
+### 2026-11-14 — the first rung's costs whole (rungs-costs, #115)
+
+**Decided**, by the lane as the desk's mentor.
+- *What a trade's return is measured on.* Options: the pounds out at the buy with its commission and conversion in, as before; the pounds the shares' value took at the buy's fill, every cost of both legs off the profit. Chosen: the latter, as the desk's own book states a round trip, so rung and book agree to the penny. This replaces the 13 November wording "on the pounds paid".
+- *Which day's rate sizes an order.* Options: the decision day; the sending morning. Chosen: the sending morning, as the desk's day does (the blind review caught the first draft).
+- *A pound line and the rates.* Options: demand a rate of 1; read none. Chosen: none.
+- *A missing day's rate.* Options: carry the last forward; refuse. Chosen: refuse; carrying forward is a default that masks missing data (canon A2).
+- *A sale on a morning that opens at or under the stop.* Options: an ordinary sale; the stop's sale. Chosen: the stop's, which slips three times as far.
+- *Re-pinned test numbers*, under his ruling of 13 November "always go with recommended": with fuller costs three pins on made-up prices moved (the bracket seeds are now 1 and 16; one pin reads "above 2.8"). Not a golden number, not a loosened guard.
+
+**Evidence.** Rung and the desk's book agree on the same fills; eight deliberate breaks, all caught; two blind-review findings fixed.

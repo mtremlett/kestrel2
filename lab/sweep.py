@@ -19,12 +19,13 @@ One pass at a time works on a folder of journals: a pass holds the folder's lock
 system lets go if the pass dies, and a second pass on it is refused.
 
 The week (`python -m lab.sweep STORE KEPT DATA --days 7`) is pass after pass, one starting
-each hour, each over the research list from the archive's first day to that day, and each in
-a process of its own, so a pass runs the code on disk that hour and a pass that dies costs
-the week only itself. Every pass is one line of `week.jsonl` in the data folder, its count
-or the error that ended it, and `unbroken` reads from that log how long the grid has run
-without stopping: seven days of it is the proof. A pass that failed, or held no cell at its
-end, or started more than a pause after the one before it ended, is where a run stops.
+each hour until one has ended that many days after the first began, each over the research
+list from the archive's first day to that day, and each in a process of its own, so a pass
+runs the code on disk that hour and a pass that dies costs the week only itself. Every pass
+is one line of `week.jsonl` in the data folder, its count or the error that ended it, and
+`unbroken` reads from that log how long the grid has run without stopping: seven days of it
+is the proof. A pass that failed, or held no cell at its end, or started more than a pause
+after the one before it ended, is where a run stops.
 """
 
 from __future__ import annotations
@@ -179,17 +180,23 @@ def week(
     clock: Callable[[], datetime] = lambda: datetime.now(UTC),
     wait: Callable[[float], None] = time.sleep,
 ) -> None:
-    """Pass after pass for that many days, one starting each PAUSE, or as the last ends if
-    that is later; each is a line of the week's log in data, with its count or its error. A
-    pass that fails is logged and the week carries on."""
-    end = clock() + timedelta(days=days)
-    while (started := clock()) < end:
+    """Pass after pass, one starting each PAUSE, or as the last ends if that is later, until
+    one has ended that many days after the first began: so a week nothing stops shows its
+    whole length in its log, from its first pass's start to its last one's end. Each pass
+    is a line of that log in data, with its count or its error. A pass that fails is logged
+    and the week carries on."""
+    end: datetime | None = None
+    while True:
+        started = clock()
+        end = end or started + timedelta(days=days)
         counts = once()
         ended = clock()
         times = {"started": started.isoformat(), "ended": ended.isoformat()}
         with (data / WEEK).open("a", encoding="utf-8") as log:
             log.write(json.dumps({**times, **counts}) + "\n")
-        wait(max(0.0, (min(started + PAUSE, end) - ended).total_seconds()))
+        if ended >= end:
+            return
+        wait(max(0.0, (started + PAUSE - ended).total_seconds()))
 
 
 def unbroken(data: Path) -> timedelta:
