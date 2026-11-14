@@ -15,7 +15,9 @@ START = datetime(2026, 11, 15, 1, 30, tzinfo=UTC)
 
 
 def _data(root: Path) -> Path:
-    for name in ("market_history.db", "market_live.db"):
+    (root / "daily").mkdir()
+    (root / "daily" / "SPY.csv").write_text("d,c\n1,2\n", encoding="utf-8")
+    for name in ("market_history.db", "market_live.db", "bars.db"):
         with closing(sqlite3.connect(root / name)) as db:
             db.execute("PRAGMA journal_mode=WAL")
             db.execute("CREATE TABLE t (x)")
@@ -35,8 +37,11 @@ def test_snapshot_copies_each_store_and_the_ledger_and_keeps_the_last_few(tmp_pa
         "20261116T013000Z", "20261117T013000Z", "20261118T013000Z",
     ]  # fmt: skip
     assert sorted(p.name for p in made.iterdir()) == [
-        "ledger.csv", "market_history.db", "market_live.db",
+        "bars.db", "daily", "ledger.csv", "market_history.db", "market_live.db",
     ]  # fmt: skip
+    assert (made / "daily" / "SPY.csv").read_text(encoding="utf-8") == "d,c\n1,2\n"
+    with closing(sqlite3.connect(made / "bars.db")) as copy:
+        assert copy.execute("SELECT x FROM t").fetchall() == [("bars.db",)]
     with closing(sqlite3.connect(made / "market_live.db")) as copy:
         assert copy.execute("SELECT x FROM t").fetchall() == [("market_live.db",)]
     assert (made / "ledger.csv").read_text(encoding="utf-8") == "a,b\n1,2\n"

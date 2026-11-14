@@ -16,7 +16,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 BACKUP, KEEP = "backup", 7  #: the folder inside the data folder; how many snapshots stay
-DATABASES = ("market_history.db", "market_live.db", "market.db")  #: those present are copied
+DATABASES = ("market_history.db", "market_live.db", "market.db", "bars.db")  #: those present
+DAILY = "daily"  #: the daily store's folder, copied whole when present
 LEDGER = Path("desk") / "ledger.csv"
 STAMP = "%Y%m%dT%H%M%SZ"
 
@@ -49,6 +50,8 @@ def snapshot(data: Path, now: datetime, keep: int = KEEP) -> Path:
         _copy_database(path, building / path.name)
     if (data / LEDGER).is_file():
         shutil.copy2(data / LEDGER, building / LEDGER.name)
+    if (data / DAILY).is_dir():
+        shutil.copytree(data / DAILY, building / DAILY)
     building.rename(final)
     for old in sorted(p for p in folder.iterdir() if p.is_dir() and p.suffix != ".partial")[:-keep]:
         shutil.rmtree(old)
