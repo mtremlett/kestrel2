@@ -97,7 +97,7 @@ def test_no_rule_is_proven_on_an_indicator_that_does_not_give_its_published_tabl
     for table in tables.values():  #: every printed column is held, on prices given exactly
         assert table.source.strip() and table.given and all(table.printed.values())
     with pytest.raises(ValueError, match="prints nothing"):
-        replace(tables["the moving average"], printed={})
+        replace(tables["moving average"], printed={})
     #: the commonest mistake: the deviation of a sample (over 19), where Bollinger's is over 20
     sample = Decimal(stdev(published.INDICATORS["Bollinger's bands"].given["Price"][:20]))
     monkeypatch.setattr(strategy._Window, "deviation", lambda _: sample)
