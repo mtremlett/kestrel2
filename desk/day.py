@@ -114,7 +114,8 @@ def publish(
     held = pennies(settings.capital * market)
     halts = tuple(h.at for h in halt.on(root, day)), halt.stopped(root, day)
     record = Record(day, profit, costs.published(), held, differ, worth, len(ledger), *halts)
-    _bare(root, day, book_held, unsure, stops)
+    if record.stopped is not None:  #: a day nobody sent for has no list (halt.morning)
+        _bare(root, day, book_held, unsure, stops)
     book._write(root / RECORDS, [HEADER, *(_row(r) for r in (*kept, record))])
     return record
 
@@ -262,8 +263,7 @@ def _bare(
         for s, n in held.items()
         if s in resting and s not in unsure and resting[s] < n
     ]
-    if bare:  #: a day without its list is a day whose orders were never sent (halt.stopped)
-        halt.note(root, day, bare)
+    halt.note(root, day, bare)
 
 
 def _unread(root: Path, lines: Sequence[Line], due: Mapping[str, Line], day: date) -> None:

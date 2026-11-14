@@ -392,3 +392,7 @@ def test_a_holding_whose_stop_was_lost_is_on_that_days_list_with_the_stop_to_put
         (stop.order_id, f"{s}: {held[s]} {put} {stop.order_id}, selling {held[s]} at {stop.level}")
         for s, stop in (("A", lost), ("D", half))
     ], "not told that day, told of shares the broker may not hold, or under another stop"
+    broker.open(DAYS[22])  #: a session missed, A still bare: no list for a day nobody sent for
+    book.record_rates(tmp_path, DAYS[22], {"GBP": Decimal(1)})
+    day.publish(tmp_path, MARKET, broker, room, DAYS[22])
+    assert halt.stopped(tmp_path, DAYS[22]) is None, "a list for a day whose orders never went"
