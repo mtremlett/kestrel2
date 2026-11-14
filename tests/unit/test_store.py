@@ -323,19 +323,20 @@ def _prepared(tmp_path: Path, bars: tuple[Bar, ...], line: Line, rated: bool = T
     return [p.reason for p in store.prepare(tmp_path, {line: bars}, DAY, rates)]
 
 
-@pytest.mark.parametrize("stray", [False, True], ids=["a step", "a stray bar"])
+@pytest.mark.parametrize("run", [0, 1, 25], ids=["a step", "a stray bar", "a month of them"])
 def test_a_change_of_currency_below_a_jump_is_found_by_the_days_pound(
-    tmp_path: Path, stray: bool
+    tmp_path: Path, run: int
 ) -> None:
-    """IITU x0.662, VUAG x0.791: a step as large as the pound in dollars is no market move."""
+    """IITU x0.662, VUAG x0.791: a step as large as the pound in dollars is no market move;
+    EQQQ's dollar bars of October 2014 ran past BLIP, and the rate still names them."""
     clean = _bars(US, LONG)
-    mixed = [_scaled(b, 1 / POUND) for b in clean[30 : 31 if stray else None]]
-    bars = (*clean[:30], *mixed, *clean[31:]) if stray else (*clean[:30], *mixed)
+    mixed = [_scaled(b, 1 / POUND) for b in (clean[30 : 30 + run] if run else clean[30:])]
+    bars = (*clean[:30], *mixed, *clean[30 + run :]) if run else (*clean[:30], *mixed)
     assert _prepared(tmp_path, bars, US, rated=False) == []  # unseen without the rate
     reasons = _prepared(tmp_path, bars, US)
-    assert bool(reasons) is not stray  # a step is lasting; a stray old bar is dropped and listed
-    assert any(("wrong unit" in f) is stray for f in store.faults(tmp_path, US.symbol))
-    assert len(store.read(tmp_path, US.symbol)) == len(bars) - stray
+    assert bool(reasons) is not run  # a step is lasting; dollar bars among pounds are dropped
+    assert any(("wrong unit" in f) is bool(run) for f in store.faults(tmp_path, US.symbol))
+    assert len(store.read(tmp_path, US.symbol)) == len(bars) - run
     assert _prepared(tmp_path, bars, replace(US, leverage=3)) == []  # a real crash is as large
 
 

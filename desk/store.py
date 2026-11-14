@@ -205,7 +205,9 @@ def _priced(line: Line, sound: Sequence[Bar], faults: list[Fault], rates: Rates)
             continue
         if kept and not _agree(line, kept[-1], bar, rates):
             unit = _far(bar, kept[-1].close, rate)
-            ahead = range(at + 1, min(at + 1 + BLIP, len(sound)) if unit else at + 1)
+            dollars = _fx(bar.close / kept[-1].close, rate, FX_FAR)  # the pound's rate holds a run
+            reach = len(sound) if dollars else min(at + 1 + BLIP, len(sound))
+            ahead = range(at + 1, reach if unit else at + 1)
             resume = next((n for n in ahead if not _far(sound[n], kept[-1].close, rate)), at)
             for odd in sound[at:resume]:
                 faults.append(Fault(odd.day, f"{odd.day} {ASTRAY}"))
