@@ -222,7 +222,7 @@ def test_the_set_is_every_published_rule_on_every_line_and_its_doors_are_the_des
         assert (line, before) == (POUND, ladder.END + step)
         return [Bar(when, close, close, close, close, 0) for when, close in at]
 
-    pounds = ladder.rates(ask)
+    pounds = ladder.rates(tmp_path, ask)
     assert sorted(pounds) == [day + n * step for n in (1, 11, 12, 13, 14)]
     assert (pounds[day + step], pounds[day + 11 * step]) == (Decimal("0.8"), Decimal("0.625"))
     #: bars come through the keeper's door, up to the window's end; a parked line is refused

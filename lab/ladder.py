@@ -155,6 +155,7 @@ FOLDS = folds.FOLDS
 #: The market each venue's lines are set beside: the S&P 500 in New York, the FTSE 100 in London.
 MARKETS = {"US": "SPY", "LSE": "ISF"}
 FOLDER, RESULTS, REGISTER = "ladder", "set1.jsonl", "set1.trials.jsonl"
+POUNDS = "pound.jsonl"  #: the table of the pound's closes, kept under FOLDER
 #: A cell that waits on data is tried again no sooner than this after its last try.
 RETRY = timedelta(minutes=30)
 FAILED = (ValueError, OSError, keeper.Stale)  #: what may leave a cell unjudged; all else is a bug
@@ -193,17 +194,34 @@ def stored(home: Path) -> Bars:
     return bars
 
 
-def rates(ask: Callable[[Line, date], Sequence[Bar]] = archive.fetch) -> dict[date, Decimal]:
+def rates(
+    home: Path, ask: Callable[[Line, date], Sequence[Bar]] = archive.fetch
+) -> dict[date, Decimal]:
     """Pounds per dollar for each day to the window's end, as the desk's day takes it: one
-    over the pound's last close before the day. A day whose last close is too old, or is no
-    pound's, has no rate, and the first rung refuses to price it."""
-    closes = ask(POUND, END + keeper.DAY)
+    over the pound's last close before the day. The pound's closes are kept in one table under
+    the home, and the archive is asked only while it lacks the close on the window's last day.
+    A day whose last close is too old, or is no pound's, has no rate, and the first rung
+    refuses to price it."""
+    table = home / FOLDER / POUNDS
+    held: dict[date, Decimal] = {}
+    if table.exists():
+        rows = map(json.loads, table.read_text(encoding="utf-8").splitlines())
+        held = {date.fromisoformat(row[0]): Decimal(row[1]) for row in rows}
+    if END not in held:
+        held |= {bar.day: bar.close for bar in ask(POUND, END + keeper.DAY)}
+        table.parent.mkdir(parents=True, exist_ok=True)
+        (fresh := table.with_suffix(".new")).write_text(
+            "".join(f"{json.dumps([d.isoformat(), str(c)])}\n" for d, c in sorted(held.items())),
+            encoding="utf-8",
+        )
+        fresh.replace(table)
+    closes = sorted(held.items())
     made: dict[date, Decimal] = {}
-    for bar, later in zip(closes, [*closes[1:], None], strict=True):
-        until = min(bar.day + FRESH, END if later is None else later.day)
-        if DOLLARS[0] < bar.close < DOLLARS[1]:
-            rate = (1 / bar.close).quantize(Decimal("0.000001"))
-            made |= {bar.day + n * keeper.DAY: rate for n in range(1, (until - bar.day).days + 1)}
+    for (day, close), later in zip(closes, [*closes[1:], None], strict=True):
+        until = min(day + FRESH, END if later is None else later[0])
+        if DOLLARS[0] < close < DOLLARS[1]:
+            rate = (1 / close).quantize(Decimal("0.000001"))
+            made |= {day + n * keeper.DAY: rate for n in range(1, (until - day).days + 1)}
     return made
 
 
@@ -343,7 +361,7 @@ def main(env: Mapping[str, str]) -> int:
     if not env.get("KESTREL2_DATA"):
         sys.exit("ladder: KESTREL2_DATA names no data folder, so the set has no home")
     home = Path(env["KESTREL2_DATA"])
-    sys.stdout.write(run(home, cache(stored(home)), rates()) + "\n")
+    sys.stdout.write(run(home, cache(stored(home)), rates(home)) + "\n")
     return 0
 
 
