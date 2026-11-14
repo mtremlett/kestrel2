@@ -56,13 +56,13 @@ def test_the_count_is_kept_from_batch_to_batch(register: Path) -> None:
     assert trials.count(register, ASKED) == 9 and trials.count(register, LONDON) == 1
     lines = [json.loads(line) for line in register.read_text(encoding="utf-8").splitlines()]
     assert len(lines) == 13 and lines[:2] == [{"register": "trials"}, {"question": ASKED}]
-    trial = f"{rule} on AAPL on {AAPL.venue}, 2020-01-01 to 2024-01-01"
+    trial = f"{rule} {trials.rule_hash(rule)} on AAPL on {AAPL.venue}, 2020-01-01 to 2024-01-01"
     assert lines[2] == {"question": ASKED, "trial": trial}
 
 
 def test_a_winner_is_corrected_for_every_trial_the_register_holds(register: Path) -> None:
     trials.enter(register, ASKED, NAMES[1:])
-    with pytest.raises(ValueError, match=f"never entered.*{FIVE[0].strategy} on AAPL"):
+    with pytest.raises(ValueError, match=f"never entered.*{FIVE[0].strategy} [0-9a-f]{{12}} on AAPL"):
         trials.correct(register, ASKED, [WINNER])
     trials.enter(register, ASKED, [NAMES[0], "dropped one", "dropped two", "dropped three"])
     (eight,) = trials.correct(register, ASKED, [WINNER])
@@ -83,6 +83,31 @@ def test_a_winner_is_corrected_for_every_trial_the_register_holds(register: Path
     trials.enter(register, LONDON, NAMES[:2])
     assert [c.trials for c in trials.correct(register, LONDON, both)] == [2, 2]
     assert trials.correct(register, ASKED, []) == ()
+
+
+RULE = """
+LIMIT = 20
+def high(x):
+    return x + LIMIT
+class Rule:
+    def go(self):
+        return high(1)
+"""
+
+
+def test_a_changed_rule_is_new_trials_and_a_reformatted_one_is_not(register: Path) -> None:
+    same = trials.code_hash(RULE, "Rule")
+    tidied = "# a note\n\n" + RULE.replace("(1)", "( 1 )") + "def low(x):\n    return x\n"
+    assert same == trials.code_hash(tidied, "Rule")
+    for old, new in (("20", "21"), ("x + L", "x - L"), ("1)", "2)")):
+        assert trials.code_hash(RULE.replace(old, new), "Rule") != same
+    with pytest.raises(ValueError, match="no class called 'Nothing'"):
+        trials.code_hash(RULE, "Nothing")
+    hashes = {trials.rule_hash(rule) for rule in strategy.STRATEGIES}
+    assert len(hashes) == len(strategy.STRATEGIES) and all(len(h) == 12 for h in hashes)
+    #: the hash is in the name, so a rule run again as changed adds a trial to the count
+    one, now = trials.name(FIVE[0]), trials.rule_hash(FIVE[0].strategy)
+    assert now in one and trials.enter(register, ASKED, [one, one.replace(now, same)]) == 2
 
 
 def test_a_question_worded_anew_cannot_begin_the_count_again(register: Path) -> None:
