@@ -40,9 +40,9 @@ def _order(
 ) -> tuple[Sequence[str], Sequence[str]]:
     """An order open on IITU and the broker's last word of it: deal is its action, kind, level."""
     action, kind, *level = deal.split()
-    said = (number, "212969319", action, kind, *(level or ["171.5"]), ref, client, f"100{number}")
+    said = (number, "212969319", action, kind, *(level or ["171.5"]), ref, client, client + number)
     order: dict[int, str] = dict(zip((1, 2, 13, 15, 17, 23, 24, 25), said, strict=True))
-    status = ("3", number, state, "0", str(left), "0", f"100{number}", "0", "0", client, "", "0")
+    status = ("3", number, state, "0", str(left), "0", client + number, "0", "0", client, "", "0")
     return [order.get(n, field) for n, field in enumerate(STOP)], status
 
 
@@ -204,7 +204,8 @@ def test_a_cancel_not_confirmed_whole_is_an_error(monkeypatch: pytest.MonkeyPatc
     # a cancel refused is settled by the account read again: over before the cancel, or working
     refusal = ("4", "2", "9", "10148", "cannot be cancelled, state: Filled", "")
     answer = [refusal, GONE[-1], _order("12", "BUY LMT", "f", "Cancelled")[1]]
-    over = _account([HELD], *PROTECTED[3:5], *_order("9", "SELL MKT", "c", "Filled", 0))
+    theirs = _order("9", "BUY MKT", "z", "Submitted", client="31")  # another's, of its number
+    over = _account([HELD], *theirs, *_order("9", "SELL MKT", "c", "Filled", 0))
     sent = _gateway(monkeypatch, WORKING, answer, over, WORKING, answer, WORKING)
     assert _paper().cancel() == ("a", "f")
     with pytest.raises(placing.NotCancelled, match="c .10148: cannot be cancelled"):
@@ -234,8 +235,7 @@ ENDED_7, ENDED_42 = (_order(n, "SELL STP", "x", "Cancelled", 0)[1] for n in ("7"
 
 
 def _msg(but: dict[int, str]) -> bytes:
-    """The sale's message, but for the places given: 16 its action, 17 its shares, 18 its kind,
-    20 its level, 21 how long it stands, 26 its reference, 27 sent at once, 28 what it waits on."""
+    """ORDER but for: 16 action, 17 shares, 18 kind, 20 level, 21 how long, 26 name, 27-28 sent."""
     return _wire(list((dict(enumerate(ORDER)) | but).values())).getvalue()
 
 
@@ -295,12 +295,9 @@ def test_a_sale_the_broker_falls_silent_on_is_cancelled_and_never_left_working(
     assert sent == [b"", ACCOUNT, PLACED, CANCEL, *ASKED, ACCOUNT, SMALLER, CANCEL_7]
     # a cancel refused with the sale still working, and a cancel met with silence, are errors:
     # never an answer, whatever the broker would then say it did
-    cases: list[tuple[Said, list[Said], type[Exception]]] = [
-        ([UNFOUND], [_account([HELD], *MINE)], placing.NotCancelled),
-        ([], [BARE, [("102",)], [END]], TimeoutError),
-    ]
-    for cancel, after, error in cases:
-        sent = _gateway(monkeypatch, [], BARE, [REJECTED], cancel, *after, silent=True)
+    for error, cancel in {placing.NotCancelled: [UNFOUND], TimeoutError: []}.items():
+        working = _account([HELD], *MINE)
+        sent = _gateway(monkeypatch, [], BARE, [REJECTED], cancel, working, silent=True)
         with pytest.raises(error):
             broker.place(SALE)
         assert sent[2:4] == [PLACED, CANCEL]
@@ -324,18 +321,25 @@ def test_a_buy_goes_with_its_stop_and_the_line_is_left_under_one_stop_for_all_it
     # onto the broker's step, in pence. Filled whole, the stop is for the shares held: no more
     both = _msg({16: "BUY", 27: "0"}) + _msg(AT_STOP | {1: "42", 28: "41"})
     assert sent == [b"", ACCOUNT, both, *ASKED, ACCOUNT]
+    # a stop the broker is not holding protects nothing: the stop due is sent, that one cancelled
+    limbo = _account([HELD], *_order("42", "SELL STP 3600.0", f"{ID}-stop", "Inactive"))
+    sent = _gateway(monkeypatch, [], BARE, FILLING, limbo, *did, limbo, RESTS, [ENDED_42])
+    assert broker.place(BUY_IT).fills == (FILL,) and sent[6:] == [ACCOUNT, _msg(AT_STOP), CANCEL_42]
     # a line held under a stop already: one stop for all its shares at the buy's level is
     # sent to rest first, and only then are the two it replaces cancelled
-    two = _account([HELD], *PROTECTED[3:5], *CHILD)
+    two = _account([HELD], *CHILD, *PROTECTED[3:5])
     sent = _gateway(monkeypatch, [], PROTECTED, FILLING, two, *did, two, RESTS, [ENDED_7, ENDED_42])
     assert broker.place(BUY_IT) == Report(ID, (FILL,), None)
-    assert sent[6:] == [ACCOUNT, _msg(AT_STOP | {17: "52"}), CANCEL_7 + CANCEL_42]
-    # a buy the broker does not fill is cancelled; the stop that waited on it, were it still
-    # listed, is cancelled too, and the stop the line was under stays as it was
+    assert sent[6:] == [ACCOUNT, _msg(AT_STOP | {17: "52"}), CANCEL_42 + CANCEL_7]
+    # a buy not filled is cancelled, the stop behind it too if still listed; the line's own stays
     none: list[Said] = [[_but(MINE[1], 2, "Cancelled")], two, [("102",)], [END], two, [ENDED_42]]
     sent = _gateway(monkeypatch, [], PROTECTED, [CHILD[1]], *none, silent=True)
-    assert broker.place(BUY_IT).fills == ()
+    assert broker.place(BUY_IT) == Report(ID, (), f"{ID}: the broker tells nothing of it")
     assert sent[2:] == [both, CANCEL, *ASKED, ACCOUNT, CANCEL_42]
+    # a buy the broker refuses, the stop behind it ended first: the stop's end is not the buy's
+    told = [_but(REJECTED, 2, "42"), ENDED_42]
+    sent = _gateway(monkeypatch, [], BARE, told, none[0], BARE, *none[2:4], BARE, silent=True)
+    assert "201: Order rejected" in str(broker.place(BUY_IT).reason) and sent[3] == CANCEL
 
 
 def test_a_sale_takes_its_shares_off_the_stop_and_a_stop_not_settled_is_an_error(
@@ -351,15 +355,11 @@ def test_a_sale_takes_its_shares_off_the_stop_and_a_stop_not_settled_is_an_error
     sent = _gateway(monkeypatch, [], PROTECTED, *sold, [_but(UNFOUND, 2, "7")], flat)
     with pytest.raises(placing.NotCancelled, match="-stop .10147"):
         broker.place(SALE)
-    # the stop a part sale leaves, ended by the broker or met with silence: an error, and the
-    # stop the line was under is not cancelled
-    cases: list[tuple[Said, type[Exception], str]] = [
-        ([REJECTED, _but(MINE[1], 2, "Cancelled")], placing.Unprotected, "Cancelled.*201: Order"),
-        ([REJECTED], TimeoutError, "timed out"),
-    ]
-    for answer, error, saying in cases:
-        sent = _gateway(monkeypatch, [], PROTECTED, [], cases[0][0][1:], *PART, answer, silent=True)
-        with pytest.raises(error, match=saying):
+    # the stop a part sale leaves, ended or met with silence: an error, the old one not cancelled
+    said = [REJECTED, _but(MINE[1], 2, "Cancelled")]  # refused, then ended; or refused, and silence
+    for error, n in {placing.Unprotected: 2, TimeoutError: 1}.items():
+        sent = _gateway(monkeypatch, [], PROTECTED, [], said[1:], *PART, said[:n], silent=True)
+        with pytest.raises(error, match="Cancelled; it said: .'201: Order|timed out"):
             broker.place(SALE)
         assert sent[7:] == [ACCOUNT, SMALLER]
 

@@ -302,13 +302,13 @@ class Paper:
 
     def _settle(self, listed: Listing, due: Stop | None) -> None:
         """Leave a line under the one stop due on it, or under none: a stop of the desk's
-        own the broker holds for those shares, at that level and under that reference, is
-        kept. With none such, the stop due is sent to rest first (_rest), and only then is
-        every other stop of the desk's own on the line cancelled: the line is never under
-        none meanwhile, and for a moment under more than the shares held."""
+        own the broker holds for those shares at that level is kept, whatever its reference.
+        With none such, the stop due is sent to rest first (_rest), and only then is every
+        other stop of the desk's own on the line cancelled: the line is never under none
+        meanwhile, and for a moment under more than the shares held."""
         stops = self._stops(listed)
-        match = (o for o in stops if (o.left, o.level, o.ref) == due and o.state in reports.HELD)
-        kept = next(match, None)
+        held = (o for o in stops if o.state in reports.HELD)
+        kept = next((o for o in held if due and (o.left, o.level) == due[:2]), None)
         if due is not None and kept is None:
             paper.dial(lambda wire, send: _rest(wire, send, listed, due))
         spare = {o.number: o.ref for o in stops if o is not kept}
