@@ -135,7 +135,7 @@ def test_the_days_record_is_the_books_gain_after_every_cost_beside_the_markets(
     #: and five fills' shares worth 11,160.50 for the next day to open from
     first = (DAYS[21], Decimal("-26.16"), pounds[0], Decimal("200.00"), (), Decimal("11160.5"), 5)
     assert astuple(_run(tmp_path, broker, DAYS[21])) == first
-    with pytest.raises(ValueError, match="never rewritten"):  #: a day the records have reached
+    with pytest.raises(ValueError, match="the day is over"):  #: the ledger has later fills
         day.run(tmp_path, MARKET, broker, capital, DAYS[19], {"GBP": Decimal(1)})
     assert len(broker.submitted()) == 5, "orders sent on old decisions, for a day that is over"
     #: A to D sold where they closed, and H by its stop at 8: 110.50 lost, and 27.818 of costs
@@ -172,6 +172,12 @@ def test_a_day_whose_book_is_not_the_brokers_names_the_lines_and_withholds_its_p
     whole = astuple(day.publish(tmp_path, longer, broker, capital, after))
     costs = tuple(map(Decimal, "15 5.52 7.29 0 0".split()))
     assert whole[1:] == (Decimal("-138.32"), costs, Decimal("-98.04"), (), Decimal(0), 10)
+    #: a desk whose first day is withheld: its next number runs from before that first day
+    other, late = tmp_path / "other", Pretend(MARKET, {})
+    late.inject("G", 5)
+    assert _run(other, late, DAYS[21]).profit is None
+    late.inject("G", -5)  #: the yardstick closed at 10 before the first day, and at 10.1 now
+    assert _run(other, late, DAYS[22]).market == Decimal("100.00")
     (tmp_path / day.RECORDS).write_text("2025-02-05,1,0,0,0,0,0,0,0,0", encoding="utf-8")
     with pytest.raises(ValueError, match="not the desk's records"):  #: its first line not the names
         day.records(tmp_path)
@@ -183,8 +189,11 @@ def test_a_session_the_desk_missed_is_named_and_gets_its_record_before_any_later
     broker, capital = Pretend(MARKET, {}), Settings(Decimal(10_000))
     broker.open(DAYS[21])
     _trade(tmp_path, broker, DAYS[21])  #: the desk dies before the day's record
+    with pytest.raises(ValueError, match="the day is over"):  #: with no record yet, all the same
+        _trade(tmp_path, broker, DAYS[19])
+    assert len(broker.submitted()) == 5, "orders sent on old decisions, for a day that is over"
     broker.open(DAYS[22])  #: and is off: H's stop sells at the broker all the same
-    with pytest.raises(ValueError, match="fills begin on 2025-02-04"):  #: the first record is its
+    with pytest.raises(ValueError, match="no record yet for .*2025, 2, 4"):  #: the first is its
         day.publish(tmp_path, MARKET, broker, capital, DAYS[22])
     bought = day.publish(tmp_path, MARKET, broker, capital, DAYS[21])
     #: the record made late is the day's own: the stop's sale, in the ledger by now, is not its
