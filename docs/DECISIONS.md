@@ -1743,25 +1743,25 @@ The pattern's text could not land from the DATA lane (the lane guard refuses
 
 ## MONEY
 
-This lane's decisions are in `docs/lanes/money.md`. Until the runner's scribe is
-pointed there (a runner change, `docs/STATUS.md`), its new entries land below.
+This lane's decisions are in `docs/lanes/money.md`; its scribe writes there (from
+14 November 2026, 21:04) and moves there any entry that lands below.
 
 ## DATA
 
-This lane's decisions are in `docs/lanes/data.md`. Until the runner's scribe is
-pointed there (a runner change, `docs/STATUS.md`), its new entries land below.
+This lane's decisions are in `docs/lanes/data.md`; its scribe writes there (from
+14 November 2026, 21:04) and moves there any entry that lands below.
 
 ## PAPER
 
-This lane's decisions are in `docs/lanes/paper.md`. Until the runner's scribe is
-pointed there (a runner change, `docs/STATUS.md`), its new entries land below.
+This lane's decisions are in `docs/lanes/paper.md`; its scribe writes there (from
+14 November 2026, 21:04) and moves there any entry that lands below.
 
 ## GRID
 
-This lane's decisions are in `docs/lanes/grid.md`. Until the runner's scribe is
-pointed there (a runner change, `docs/STATUS.md`), its new entries land below.
+This lane's decisions are in `docs/lanes/grid.md`; its scribe writes there (from
+14 November 2026, 21:04) and moves there any entry that lands below.
 
 ## RUNGS
 
-This lane's decisions are in `docs/lanes/rungs.md`. Until the runner's scribe is
-pointed there (a runner change, `docs/STATUS.md`), its new entries land below.
+This lane's decisions are in `docs/lanes/rungs.md`; its scribe writes there (from
+14 November 2026, 21:04) and moves there any entry that lands below.
