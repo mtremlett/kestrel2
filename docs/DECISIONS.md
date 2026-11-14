@@ -1645,6 +1645,21 @@ back under 9,000.
 **Driven.** With the ceiling at 10,500, a desk/ of exactly 10,500 lines passed, and one more
 line failed it.
 
+
+## 2026-11-14 — CLAUDE.md and CANON.md held to their limits by a guard
+
+**Approved** in the after-first-light queue (item 5): a guard reading CLAUDE.md at most 80 lines
+and CANON.md at most 200, the canon trimmed by merging rules, not deleting them. The canon said
+"Limit: 200 lines, held by a guard" and stood at 225 with no guard: the promise in prose had
+already been broken. `BUDGET.json` now holds both caps, so loosening one is announced as a guard
+change; `test_the_rulebooks_stay_short` reads them. The canon went to 189 lines by merging rules
+said twice (A1's stop rule into A8, A5's repeats of A3, A4 and A9 into one line, A9's
+work-around rule into A1.3) and dropping blank lines and separators. No rule was removed.
+
+**Driven.** A canon of 201 lines failed and one of exactly 200 passed; a CLAUDE.md of 81 lines
+failed; a budget that forgot CLAUDE.md's cap failed; a cap of 150 under the 189-line canon
+failed. Each named the file and its count.
+
 ---
 
 ## MONEY
