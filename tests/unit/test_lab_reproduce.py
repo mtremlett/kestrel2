@@ -14,7 +14,7 @@ import pytest
 from desk import venues
 from desk.lines import LINES
 from desk.store import Bar
-from lab import published, reproduce
+from lab import cell, published, reproduce
 from lab.published import Case, Published
 from lab.reproduce import Figure, Fill, Measure, Stated
 
@@ -48,9 +48,9 @@ AT_CLOSE = (
 def test_the_authors_own_figure_is_reproduced_counted_as_the_author_counted() -> None:
     bars = _bars()
     made = reproduce.reproduce(_figure(Fill.CLOSE, *AT_CLOSE), bars)
-    trades, winners, mean = (found.measured for found in made.found)
-    assert made.reproduced and (trades, winners, round(mean, 6)) == (2, 50, Decimal("22.363636"))
-    kept = reproduce.cell.key(made.key.cell, bars).rung("lab.reproduce")
+    measured = [str(round(found.measured, 6)) for found in made.found]
+    assert made.reproduced and measured == ["2.000000", "50.000000", "22.363636"]
+    kept = cell.key(made.key.cell, bars).rung("lab.reproduce")
     assert made.key == kept, "the code, this module's too, and the bars that made it"
     #: history before the period warms the rule, and a trade belongs to the period it was
     #: bought in: from bar 21 the second trade alone is the author's
@@ -59,7 +59,8 @@ def test_the_authors_own_figure_is_reproduced_counted_as_the_author_counted() ->
     #: the same rule filled a day later is another result: the author's way of counting is
     #: part of the figure, and the same figure is not reproduced by it
     late = reproduce.reproduce(_figure(Fill.NEXT_OPEN, *AT_CLOSE), bars)
-    assert [(f.measured, f.same) for f in late.found] == [(2, True), (50, True), (12.5, False)]
+    out = [(Decimal(2), True), (Decimal(50), True), (Decimal("12.5"), False)]
+    assert [(f.measured, f.same) for f in late.found] == out
     assert not late.reproduced
     at_open = (Measure.MEAN_GAIN, "12.5", "0")
     assert reproduce.reproduce(_figure(Fill.NEXT_OPEN, at_open), bars).reproduced
@@ -67,7 +68,7 @@ def test_the_authors_own_figure_is_reproduced_counted_as_the_author_counted() ->
     #: second trade's sale at the next open is gone, and one trade of +25% is left
     early = replace(_figure(Fill.NEXT_OPEN, at_open), end=DAYS[-2])
     (short,) = reproduce.reproduce(early, bars[:-1]).found
-    assert (short.measured, short.same) == (25, False)
+    assert (short.measured, short.same) == (Decimal(25), False)
 
 
 def test_a_figure_is_missed_by_a_hair_and_met_on_its_edge() -> None:
@@ -107,7 +108,7 @@ def test_nothing_is_called_a_reproduction_that_could_not_be_one(
         ({"strategy": "a rule of no author"}, "no published rule"),
     ):
         with pytest.raises(ValueError, match=why):
-            replace(figure, **wrong)  # type: ignore[arg-type]  # each a field of the figure
+            replace(figure, **wrong)
     #: every figure on file is of a rule on file; and code that is not the published rule
     #: reproduces nothing
     assert all(kept.strategy in published.PUBLISHED for kept in reproduce.FIGURES)
