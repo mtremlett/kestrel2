@@ -55,6 +55,21 @@ def _but(fields: Sequence[str], at: int, value: str) -> list[str]:
     return [*fields[:at], value, *fields[at + 1 :]]
 
 
+def _order(
+    number: str, deal: str, ref: str, state: str, left: int = 26, client: str = "222"
+) -> tuple[Sequence[str], Sequence[str]]:
+    """An order open on IITU and the broker's last word of it: deal is its action, kind, level."""
+    action, kind, *level = deal.split()
+    said = (number, "212969319", action, kind, *(level or ["171.5"]), ref, client, client + number)
+    order: dict[int, str] = dict(zip((1, 2, 13, 15, 17, 23, 24, 25), said, strict=True))
+    status = ("3", number, state, "0", str(left), "0", client + number, "0", "0", client, "", "0")
+    return [order.get(n, field) for n, field in enumerate(STOP)], status
+
+
+def _account(holdings: Sequence[Sequence[str]], *orders: Sequence[str]) -> list[Sequence[str]]:
+    return [*holdings, ENDS[0], *orders, ENDS[1]]
+
+
 class _Silent(io.BytesIO):
     """A gateway that has said its last and does not hang up: the door's wait runs out."""
 

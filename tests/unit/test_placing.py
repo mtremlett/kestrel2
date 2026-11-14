@@ -12,7 +12,7 @@ from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
-from test_paper import ENDS, FLAT, STOP, Said, _but, _gateway, _wire
+from test_paper import FLAT, Said, _account, _but, _gateway, _order, _wire
 from test_reports import AAPL, BOUGHT, BUY, CUT, DONE, END, FEE, IITU, LISTED, SMGB
 
 from desk import book, kill, paper, placing
@@ -29,21 +29,6 @@ ENDED, FILLS = _wire(("99", "0")).getvalue(), _wire("7|3|1|0||||||".split("|")).
 STOPPED = _but(_but(BOUGHT, 18, "SLD"), 26, f"{ID}-stop")  # the desk's stop on the line, sold
 AFTER = _but(DONE, 22, f"{ID}-stop")  # and that stop's own order, ended: not the order asked of
 AT = datetime(2026, 11, 16, 8, 5, tzinfo=UTC)
-
-
-def _order(
-    number: str, deal: str, ref: str, state: str, left: int = 26, client: str = "222"
-) -> tuple[Sequence[str], Sequence[str]]:
-    """An order open on IITU and the broker's last word of it: deal is its action, kind, level."""
-    action, kind, *level = deal.split()
-    said = (number, "212969319", action, kind, *(level or ["171.5"]), ref, client, client + number)
-    order: dict[int, str] = dict(zip((1, 2, 13, 15, 17, 23, 24, 25), said, strict=True))
-    status = ("3", number, state, "0", str(left), "0", client + number, "0", "0", client, "", "0")
-    return [order.get(n, field) for n, field in enumerate(STOP)], status
-
-
-def _account(holdings: Sequence[Sequence[str]], *orders: Sequence[str]) -> list[Sequence[str]]:
-    return [*holdings, ENDS[0], *orders, ENDS[1]]
 
 
 def _paper(root: Path = Path("unread"), at: datetime = AT) -> placing.Paper:
