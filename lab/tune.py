@@ -109,7 +109,7 @@ def fit(peak: int, cells: int, share: int) -> int:
     return max(1, min(MOST, share * cells // (2 * peak)))
 
 
-def flag(data: Path, state: dict[str, Any]) -> None:
+def _flag(data: Path, state: dict[str, Any]) -> None:
     fresh = data / (FLAG + ".new")
     fresh.write_text(json.dumps(state), encoding="utf-8")
     fresh.replace(data / FLAG)
@@ -201,7 +201,7 @@ def run(
             state.start()
             if now - flagged >= REFRESH:
                 flagged = now
-                flag(data, {"busy": True, "at": now.isoformat()})
+                _flag(data, {"busy": True, "at": now.isoformat()})
             if state.running:
                 sentinels = [worker.sentinel for worker in state.running]
                 connection.wait(sentinels, timeout=TICK.total_seconds())
@@ -210,7 +210,7 @@ def run(
         try:
             state.stop()
         finally:
-            flag(data, {"busy": False})
+            _flag(data, {"busy": False})
     counts = (len(todo), state.batches, tuple(state.died), ceiling, peak)
     marks = (state.peak_cpu, state.least_free, state.most_workers)
     report = Report(started.isoformat(), clock().isoformat(), *counts, *marks)

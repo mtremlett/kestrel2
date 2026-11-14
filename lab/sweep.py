@@ -36,6 +36,7 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 import time
 from collections import Counter
 from collections.abc import Callable, Sequence
@@ -164,20 +165,23 @@ def run(
 
 def fresh(root: Path, kept: Path, data: Path, limit: timedelta = LIMIT) -> dict[str, Any]:
     """One pass in a process of its own, on the code then on disk: its count, or the error
-    that ended it. A pass still running at the limit is ended, and the PC flagged not busy."""
+    that ended it. A pass still running at the limit is ended. Its words go to files, not
+    pipes: a pipe would wait on for any worker the ended pass left holding it."""
     command = [sys.executable, "-m", "lab.sweep", str(root), str(kept), str(data)]
     home, seconds = Path(__file__).parents[1], limit.total_seconds()
-    try:
-        done = subprocess.run(  # noqa: S603
-            command, cwd=home, capture_output=True, text=True, check=False, timeout=seconds
-        )
-    except subprocess.TimeoutExpired:
-        tune.flag(data, {"busy": False})
-        return {"error": f"TimeoutExpired: ended at its limit of {limit}"}
+    with tempfile.TemporaryFile("w+") as out, tempfile.TemporaryFile("w+") as err:
+        try:
+            done = subprocess.run(  # noqa: S603
+                command, cwd=home, stdout=out, stderr=err, check=False, timeout=seconds
+            )
+        except subprocess.TimeoutExpired:
+            return {"error": f"TimeoutExpired: ended at its limit of {limit}"}
+        out.seek(0)
+        err.seek(0)
+        counted, said = out.read().splitlines(), err.read().strip().splitlines()
     if done.returncode:
-        said = done.stderr.strip().splitlines() or [f"exit code {done.returncode}"]
-        return {"error": said[-1]}
-    counts: dict[str, Any] = json.loads(done.stdout.splitlines()[-1])
+        return {"error": (said or [f"exit code {done.returncode}"])[-1]}
+    counts: dict[str, Any] = json.loads(counted[-1])
     return counts
 
 
