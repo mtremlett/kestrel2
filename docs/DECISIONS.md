@@ -3703,3 +3703,5 @@ Decided by the PAPER lane as the desk's mentor, no one watching.
 **Sources.** `Source` in `desk/bars.py` gains `STOOQ_RAW`, `IBKR_STORE`, `STOOQ_STORE` and `TREND_STOOQ`, so that each old store's bars are kept under its own name. All are non-fresh: they only fill.
 
 **Remains.** The pin and the manifest's `allowed_third_party`, then the readers.
+
+**14 November, later.** The four `Source` names are on main (#203). The pin was tried again under a claim naming `requirements.txt`: `tests/guards/test_lanes.py` still refuses the file to the DATA lane whatever the claim says, so it needs `requirements.txt` added to a lane's files in `manifest.toml` `[lanes]` (a guard loosening: recommended, taken, DATA's list), in a session whose claim holds `manifest.toml`.
