@@ -351,7 +351,7 @@ def _make(name: str, settings: Settings) -> Rule:
     """A fresh rule at its settings; a rule or an argument the desk does not have is refused."""
     if unknown := set(settings) - set(STRATEGIES):
         raise ValueError(f"settings for rules the desk does not have: {sorted(unknown)}")
-    return STRATEGIES[name](**settings.get(name, {}))  # type: ignore[call-arg]
+    return STRATEGIES[name](**settings.get(name, {}))
 
 
 def _run(
