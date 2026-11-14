@@ -1560,6 +1560,35 @@ one store stays their only writer.
 
 ---
 
+## 2026-11-14 — data for 4,000+ tickers: tiers, SQLite now, a bounded ingest
+
+**His ask, about 11:30 UK.** "ultimately we want to trade 4000+ tickers across hundreds of
+strategies. can we rename the databases market_history and history_live? ensure both
+databases ... can cope. ... will there be a queue growing problem? ... think of multiple
+options, verify them, score them and then recommend them."
+
+**Researched.** An independent study, with every key claim checked at its source, is kept in
+the notes folder (`data_stack_2026-11-14.md`). IBKR cannot stream 4,000 tickers. Each needs a
+market-data line; an account starts with 100, and boosters top out near 1,100 at $300 a
+month. Small-bar history is capped at 60 requests per 10 minutes. The load itself is small:
+about 1.8 million 1-minute rows a day at 4,000 tickers, one transaction a minute. Scored
+options: for live data, tiers score 23 of 30 against 18 for IBKR alone; for storage, SQLite
+in WAL mode scores 27, Parquet with DuckDB for sealed history 27, DuckDB alone 25, QuestDB
+24, TimescaleDB 23 and ClickHouse 20.
+
+**Decided, the recommended options.**
+- The databases are `market_history.db` and `market_live.db` (his names).
+- Data comes in three tiers: live from IBKR for held, signalled and watched names; a US vendor
+  feed bought only after the A-GATE and only if a strategy needs it; and daily bars for all.
+- SQLite stays (standard library, one writer).
+- Months of intraday history are sealed into compressed files once a benchmark shows the need.
+- The ingest is bounded by construction, not by watching.
+- Nothing new is bought now. The vendor feed (about $99 a month), IBKR boosters ($30 a month
+  per 100 names) and a London second source (about £30 a month) are spending, asked of him
+  when a strategy needs them.
+
+---
+
 ## MONEY
 
 ### 2026-11-13 — how the pretend broker behaves
@@ -3051,6 +3080,17 @@ quietly taking the trading line of the same symbol. Blind review, nothing blocki
 
 **Evidence.** A clean week read 6 days 23 hours before the fix (seen failing first), exactly seven after. 10 deliberate breaks: 9 caught, the tenth after one line strengthened. One blocking review finding fixed.
 
+### 2026-11-14 — a limit on a pass of the week (grid-week, #125)
+
+**Decided.** By the GRID lane as the desk's mentor, no one watching.
+- *A limit, and its length.* #111 chose none. Options: (a) none; (b) a few hours; (c) 48 hours. Chosen (c): the desk already requires a full sweep to fit a weekend (LAD-10), so a longer pass has failed that whatever the week does; a hung pass was the one failure the week could not survive alone. A short limit refused for #111's reason. Cost: a hang costs up to two days.
+- *The running week stays on its pinned code.* Options: (a) restart it between passes as #118 did; (b) leave it. Chosen (b): a hang breaks the count either way, so the change cannot save this run; a restart risks a clean count.
+- *The busy flag stays the pass's own.* Options: (a) the week writes "not busy" after ending a pass; (b) the next pass writes its own. Chosen (b): a second writer could end the week on a refused write and could say "not busy" over another pass.
+- *A hung pass is a failed pass in the log*, so it breaks the unbroken time (#111's rule).
+- *Ticks: none*, as #111 and #118.
+
+**Evidence.** A real pass ended at a 20 s limit (error at 20.0 s, no worker left, lock free); the next pass ran whole (5,325 cells, 115 kept). 11 deliberate breaks, 9 caught; uncaught: the limit multiplied, and the count read from a successful pass's file (the real pass is the evidence). Blind review: nothing blocking; pipes replaced by files so a leftover worker cannot hold the week.
+
 ## RUNGS
 
 ### 2026-11-13 — the luck rung: a chance multiplied by every trial, one 5% test across the set
@@ -3462,3 +3502,22 @@ Decided by the PAPER lane as the desk's mentor, no one watching.
 - Wilder's smoothing fed the spreadsheet's own Gain, Loss and true-range columns, not a re-typed split (that would test a second copy).
 - A gate in `proven` before any verdict, not only a test: under a millisecond once per run.
 - Ticks: none; "each indicator" is not true while the RSI and true range as wholes are out of reach.
+
+### 2026-11-14 — RSI-2's figure and the book (rungs-reproduce, blocked, #143, #149)
+- Read RSI-2's figure from a copy of the book on a stranger's site: (a) yes, free and now; (b) no, wait for a bought copy. Chosen (b): not the publisher's, cannot be shown unaltered, and taking it is not the desk's to decide unattended. Write-ups refused again (second hand; they disagree on which rule the book's table tests).
+- Connors' own free "RSI 25" figure on SPY (1993-2008: 85 trades, 88.24% correct, 1.50% average gain; 2009-2017: 62 trades, 96.77%, 1.32%): write it into the code, or note it only. Chosen note only: the rule is on nobody's list and the desk holds one position on a line, so a figure in code would be a promise nothing can keep.
+- Run RSI-2 on real SPY before its figure is known: only as a dry run, no author's number beside it, over years the book does not cover. Nearness is still fixed with the figure, before any run against it.
+- Build anything while the box waits (a reader of the store, a runner of every figure): chosen nothing; code for a need nobody has yet is growth the canon forbids. A two-line record of the finding was kept so the next session reads it first.
+- Buying the book is the operator's (spend), so the recommended option is not taken for him. Recommended: yes, one copy of Connors and Alvarez, Short Term Trading Strategies That Work (2008).
+- Ticks: none; the box is marked blocked so the runner stops handing it out.
+
+### 2026-11-14 — indicators through the rules' own lines (rungs-indicators, second step, STR-14, #154)
+- Wait for MONEY to name the indicators (R-RUNGS-6), copy the rules' lines here, or show the rule itself the published days and read what its lines fed to its smoothing. Chosen the third: a copy proves nothing about what trades; waiting leaves the true range's gap term unheld. Cost: deeper coupling to private names, asked about as R-RUNGS-12.
+- A rule at 2 or 10 days against a 14-day table: its smoothing parts are swapped for ones of the table's length; a smoothing of length 1 returns what it was fed, which reads the raw Gain, Loss and TR columns.
+- The RSI's table is now given closes, so Gain and Loss become printed columns to be matched; the numbers on file were re-read and found identical first.
+- Channel table: the stochastic oscillator's spreadsheet (the only ChartSchool one printing highest high and lowest low). Its weakness (no day whose own low is the 14-day low) is stated, not hidden.
+- Nearness fixed before the first run: Gain, Loss, TR, highest high, lowest low exact to four places; averages to four. Nothing loosened.
+- The surviving break (a lowest low leaving today out): leave unsaid, invent a series (refused), or say so and ask for a second table. Chosen say so.
+- Two commits in one pull request (re-laying tables under the 400-line cap, then the feature). Chosen over two pull requests.
+- Evidence (A7): 27 deliberate breaks, 26 caught; blind review compared 19 columns to the spreadsheets' cells and drove 21 mutations, nothing blocking.
+- Ticks: none; "each indicator" is not true while the RSI's ratio is held by no printed number.

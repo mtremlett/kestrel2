@@ -35,12 +35,6 @@ ROOM, RATES = Settings(Decimal(10_000)), {"GBP": Decimal(1), "USD": Decimal("0.7
 NOW = datetime(2025, 11, 17, 22, 0, tzinfo=UTC)
 #: Ten weeks of it: too few for every rule to buy and to sell.
 SHORT = {line: [bar for bar in bars if bar.day <= SESSIONS[50]] for line, bars in MARKET.items()}
-#: FOUND BY SIMCITY'S FIRST NIGHT, and not this module's to mend: an order left working by a
-#: desk that died fills at the next open, and the gate, which counts the book alone, has by
-#: then let five other lines be bought. Three worlds in four come to it and the rest do not,
-#: so it is allowed and not asked for; when the send path counts what is still working, this
-#: line goes in that change and the night is held to green.
-SIX_HELD = f"never more than {orders.HOLDINGS} lines are held"
 WORLD = simcity._Counted  #: a world's broker, kept for a test that puts another in its place
 
 
@@ -59,7 +53,8 @@ def busy(patch: pytest.MonkeyPatch, root: Path, worlds: tuple[int, ...]) -> simc
 @pytest.fixture(scope="module")
 def lived(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, simcity.Night, list[object]]:
     """One world of the fourteen months, lived once for every test here that reads it; with
-    it, its life and its round trips, counted while its book still stood."""
+    it, its life and its round trips, counted while its book still stood. It is the first
+    world that came to six lines held, before the send path cancelled what a dead desk left."""
     root, live, seen = tmp_path_factory.mktemp("nights"), simcity._live, list[object]()
 
     def watched(life: simcity._Life) -> None:
@@ -68,7 +63,7 @@ def lived(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, simcity.Night
 
     with pytest.MonkeyPatch.context() as patch:
         patch.setattr(simcity, "_live", watched)
-        return root, simcity.run(root, MARKET, ROOM, RATES, NOW, range(1)), seen
+        return root, simcity.run(root, MARKET, ROOM, RATES, NOW, (1,)), seen
 
 
 @pytest.fixture(scope="module")
@@ -88,8 +83,7 @@ def test_a_world_of_the_fourteen_months_is_lived_with_every_fault_and_the_night_
     money = (sum(record.profit or 0 for record in plain), sum(r.market for r in plain))
     assert (night.days, night.withheld, night.trips, night.deaths) == counts, "a number misnamed"
     assert (night.profit, night.market) == money and len(set(counts + money)) == 6, "or the money"
-    assert not night.bare and night.green == (not night.broken), night.words()
-    assert not [broken for broken in night.broken if SIX_HELD not in broken], night.words()
+    assert night.green and not (night.bare or night.broken), night.words()
     assert (night.worlds, night.days) == (1, len(SESSIONS) - 1), "a session without its day"
     assert all(night.met.values()), f"no order without a fault, or a fault never met: {night.met}"
     assert night.deaths == night.met[Fault.CRASH] + night.met[Fault.STRAND] >= 2
@@ -122,6 +116,8 @@ def test_the_census_names_every_part_of_the_money_path_and_the_scenarios_that_ra
         "strategy.decide": simcity.RULES,
         "day.run": simcity.DAY,
         "book.send": simcity.RESTART,
+        "broker.Pretend.cancel": simcity.RESTART,  #: what a dead desk left working, cancelled
+        "broker.Pretend.working": simcity.DAY,
         "broker.Pretend.inject": simcity.BEHIND,
         "broker.Pretend.cancel_stop": simcity.UNSTOPPED,
         "kill.pull": simcity.KILLED,
@@ -205,9 +201,7 @@ def test_each_thing_done_to_the_desk_has_its_turn_and_one_never_done_leaves_its_
     assert not night.green and "SIMCITY RED" in night.words()
     assert {f"never happened: {scenario}" for scenario, _ in simcity.EVENTS} <= {*night.broken}
     assert any("every rule asks" in broken for broken in night.broken), "ten weeks is too few"
-    assert {"kill.pull", "kill.drill", "broker.Pretend.cancel", "book.turn"} <= {
-        *night.bare
-    }, "a part no scenario ran was not named"
+    assert {"kill.pull", "kill.drill", "book.turn"} <= {*night.bare}, "a part not run, not named"
     assert all(part in night.words() for part in night.bare + night.broken)
     assert "day.run" not in night.bare, "a part that ran was called bare"
 
@@ -319,7 +313,8 @@ def test_a_part_behind_a_wrapper_is_still_a_part(monkeypatch: pytest.MonkeyPatch
 @pytest.mark.parametrize(
     ("owner", "name", "broken_desk", "promises", "first"),
     [  #: the shares never appear; the broker forgets its orders; the record differs alone; it
-        #: never differs; no fill is kept; each day's profit a penny out; his limit two lines
+        #: never differs; no fill is kept; what a dead desk left working is never cancelled;
+        #: each day's profit a penny out; his limit two lines
         #: fewer; the broker fills at the saved prices, not the world's; and, with the switch
         #: the one thing done to the desk, it stops nothing
         (Pretend, "inject", lambda *_: None, ["did not make"], 0),
@@ -327,6 +322,7 @@ def test_a_part_behind_a_wrapper_is_still_a_part(monkeypatch: pytest.MonkeyPatch
         (book, "reconcile", lambda *_: ("L01",), ["nothing is bought", "no line is named"], 0),
         (book, "reconcile", lambda *_: (), ["with no stop at the broker"], 0),
         (book, "collect", lambda *_: None, ["the ledger is the broker's own fills"], 0),
+        (book, "_settle", lambda *_: None, ["left working"], 0),
         (day, "pennies", lambda p: orders.pennies(p) + Decimal("0.01"), ["profits add up"], 0),
         (simcity, "HOLDINGS", 3, ["never more than 3 lines are held"], 0),
         (simcity, "_Counted", lambda _, rng: WORLD(SHORT, rng), ["inside its day's range"], 0),

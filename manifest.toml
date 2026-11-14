@@ -54,6 +54,7 @@ rungs = []
 "desk/kill.py" = "the kill switch: one command stops every new order and cancels the working ones, the desk says so, and its drill"
 "desk/emergency.py" = "the three emergencies in numbers: an emergency, a crash and a black swan, each a measured fall set in advance, each with its action"
 "desk/halt.py" = "what stops the desk buying: the halt, a typed record in force until it is lifted and said every day, and the blockers, every one named, with each morning's list of the signals each blocked"
+"desk/watch.py" = "the crash watch: one look every five minutes reads each trading line's newest bar, and a fall that is one of the three emergencies halts all buying at once, tells him and records why; it lifts its own halt when the market ends a day clear"
 "desk/simcity.py" = "SimCity, small: one command lives the desk's whole day over all the saved data at the pretend broker with its faults and writes the night's one record, with the census of the money path's parts and the scenarios that ran them"
 
 # the paper lane
@@ -65,6 +66,7 @@ rungs = []
 "desk/placing.py" = "the paper account behind the send path: what the desk asks of any broker answered through the one door, its fills, holdings, stops and what it did with an order, and the kill switch's cancel of the desk's own working orders; placing itself is not built"
 "desk/messenger.py" = "the desk's one voice: every message to the operator through one door and onto one delivery record, each delivered once under its name; the morning and the evening message of a trading day, his weekly login's reminder, and the alarm when a daily message is not delivered by its hour"
 "desk/running.py" = "the desk unattended: one step that does what the desk owes at its moment, once, from its records alone (the day's check, each venue's orders, the day's record, what he is told), and what a desk that died part-way left at the broker put right"
+"desk/supervisor.py" = "the desk's processes kept alive: one supervisor that runs each registered job when due in a process of its own, one of each at a time, a dated receipt for every run, the desk's health judged from outside by the receipts, and the ledger of what the operator did with the measure of how long the desk has run without him"
 
 # the grid lane
 "lab/cell.py" = "the ladder's unit of work: one strategy on one line over one window, keyed by the code's and the data's versions"

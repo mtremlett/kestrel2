@@ -155,6 +155,20 @@ UK tax) and R-MONEY-2 (the scenes on the whole fourteen months).
       2.5 times re-measured on the full universe; WWH, SHC and three windfalls settled by a
       second source; a home for the research store)
       {id: data-parked-fifth; files: lab/universe.py, tests/unit/test_lab_universe_parked.py}
+- [ ] **Data in tiers, for 4,000+ tickers** (research of 14 November, kept in the notes
+      folder as `data_stack_2026-11-14.md`). Tier A: held, signalled and watched names, live
+      1-minute from IBKR within his line allowance (100 now). Tier B: US breadth at 1 minute
+      from one vendor feed, bought only when a strategy needs it, after the A-GATE. Tier C:
+      every ticker daily. Each tier's source sits behind one adapter, so a vendor can change
+      without touching a strategy. London breadth beyond IBKR's lines runs at 5 or 15
+      minutes. A name moves between tiers as it gains or loses a signal or position (DAT-01,
+      DAT-05)
+- [ ] **An ingest that cannot pile up, by construction:** one slot per ticker per minute, so a
+      round never holds more than its tickers; a late round is replaced by the next, and its
+      gap goes to a bounded backfill list; writes are upserts on ticker, bar size and time, so
+      a retry never duplicates; each round's lag, size and refusals recorded and alerted on.
+      Finished months of intraday history are sealed into compressed files for the lab to
+      read, when a benchmark shows SQLite slowing (DAT-07, DQ-12)
 - [x] One fast store for hot and deep data, standard library only: SQLite in WAL mode with
       one writer and many readers, held to benchmarks set now: a five-minute round for every
       line written in under a second, a line's last week read in under 50 ms, a line's daily
@@ -233,13 +247,13 @@ UK tax) and R-MONEY-2 (the scenes on the whole fourteen months).
       an ISA eligibility change on any line held or researched raises an alert (BIC-11)
 - [ ] Disk watched; old research files roll off by rule (OPS-07)
 - [ ] **Two databases, both owned by the one store** (his ruling, 14 November), in the desk's
-      data folder, never in this public repository: `market.db`, long-term, every timeframe
-      from an hour up plus all imported intraday history; and `market_hot.db`, live 1-minute
+      data folder, never in this public repository: `market_history.db`, long-term, every timeframe
+      from an hour up plus all imported intraday history; and `market_live.db`, live 1-minute
       bars for the twenty lines and a watchlist of up to 100 within his IBKR line allowance.
       The hot keeper runs every minute in each venue's hours, IBKR first, with the free
-      archive as a check; each night the day's hot bars roll into `market.db`. Every useful
+      archive as a check; each night the day's live bars roll into `market_history.db`. Every useful
       store on C: (`kestrel2_notes\data_register.md`, tagged IMPORT) is consolidated into
-      `market.db`, each source marked verified there. One consistent snapshot of both
+      `market_history.db`, each source marked verified there. One consistent snapshot of both
       databases and the ledger is written each night for his own backup to carry (DAT-11,
       DQ-12, DQ-05)
 - [ ] The old stores consolidated, never lost: once the one store holds their bars, verified by
@@ -588,13 +602,12 @@ grid-tune and grid-key side by side; then grid-pass, grid-week, grid-declared, g
       lab/sweep.py, lab/batch.py, lab/tune.py, tests/unit/test_lab_sweep.py,
       tests/unit/test_lab_batch.py, tests/unit/test_lab_tune.py, manifest.toml; after:
       grid-venue, grid-tune, grid-key}
-- [ ] Runs seven days without stopping. Remains: the seven days themselves; the run began 13 Nov 23:29 UK (moved onto the fix 14 Nov 00:41 UTC, pid in `C:	mp\kestrel2_week\pid.txt`); on or after 20 Nov 23:45 UK read `sweep.unbroken` and tick if 7 days {id: grid-week; files: lab/batch.py, lab/sweep.py,
+- [ ] Runs seven days without stopping. Remains: the seven days themselves; the run began 13 Nov 23:29 UK (moved onto the fix 14 Nov 00:41 UTC) and is not on the 48-hour pass limit of #125; on or after 20 Nov 23:45 UK read `sweep.unbroken` and tick if 7 days {id: grid-week; waits: 2026-11-21; files: lab/batch.py, lab/sweep.py,
       lab/tune.py, tests/unit/test_lab_batch.py, tests/unit/test_lab_sweep.py,
       tests/unit/test_lab_tune.py; after: grid-pass}
 - [ ] Each strategy judged on its own declared universe; the everything-on-everything grid
       kept as a transfer study, never a verdict; sweeps on the declared universe (LAD-01,
-      LAD-13) {id: grid-declared; files: lab/sweep.py, tests/unit/test_lab_sweep.py; after:
-      grid-week}
+      LAD-13) {id: grid-declared; files: lab/sweep.py, tests/unit/test_lab_sweep.py}
 - [ ] A full sweep within a weekend, its time measured (LAD-10) {id: grid-weekend; files: *;
       after: grid-declared}
 
@@ -640,9 +653,11 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       real daily rates R-RUNGS-3; the operator's ruling on concentration in the A-GATE)
       {id: rungs-beta; files: lab/beta.py, tests/unit/test_lab_beta.py, manifest.toml}
 - [ ] Reproduces a published strategy's own published result. Built: `lab/reproduce.py`
-      (#120). Remains: Connors' RSI-2 figure from the book, SPY from 1993 (R-RUNGS-5), the first
-      real run. Built: the first rung waits for a figure on file (#139); the Double 7's
-      figure written down (#141). Remains also: `folds`/`regime` passing reproductions on
+      (#120). Built: the first rung waits for a figure on file (#139); the Double 7's
+      figure written down (#141); dry run on real SPY 2011-19 ran all five rules (#143).
+      BLOCKED (#143, #149; do not hand out): waits on RSI-2's figure from the book (his spend;
+      free pages and Google Books print none), SPY and sessions from 1993 (R-RUNGS-5), the
+      Double 7's rule (R-RUNGS-10). Remains also: `folds`/`regime` passing reproductions on
       {id: rungs-reproduce; files: lab/reproduce.py, lab/rung.py,
       tests/unit/test_lab_reproduce.py, tests/unit/test_lab_rung.py}
 - [x] Stress scenarios: the 2020 crash, flash crashes, a leveraged product's gap (2008 lies
@@ -663,8 +678,10 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       audit found kept as a case that must fail (LAD-09, LAD-03, LAD-08)
       {id: rungs-trustworthy; files: *; after: rungs-beta}
 - [ ] Each indicator known-answer tested against a published reference series (STR-14).
-      Built: moving average, Bollinger deviation, Wilder smoothing held to four published tables
-      (#145). Remains: the RSI, true range, bands, carried band, channel (R-RUNGS-6); room for more tables
+      Built: moving average, Bollinger deviation, Wilder smoothing (#145); true range, RSI gains
+      and losses, channel (#154): five tables, 250 printed numbers. Remains: RSI ratio and band
+      line (R-RUNGS-6, 12), carried band, a fresh-low table, each table run holding, tables
+      moved to own module (file at its 400 cap)
       {id: rungs-indicators; files: lab/published.py, tests/unit/test_lab_published.py}
 - [ ] Before paper: a kill condition declared for each strategy; promotion only after at
       least thirty effective paper trades, net positive (STR-17, LAD-11). Built:

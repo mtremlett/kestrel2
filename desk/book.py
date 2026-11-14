@@ -1,7 +1,8 @@
 """book - THE LEDGER AND THE BOOK. Fills are written under the broker's own ids. The book is
 the sum of those fills, never the orders the desk meant to send, and reconciling compares
 it with the positions the broker reports. The send path keeps the kill switch's record,
-and sends nothing while it is on, and no buy while a halt is in force."""
+and sends nothing while it is on, and no buy while a halt is in force. It notes each order
+as it goes, and what a desk that died mid-send left working is cancelled before it sends."""
 
 from __future__ import annotations
 
@@ -15,12 +16,13 @@ from enum import Enum
 from pathlib import Path
 
 from desk import halt
-from desk.broker import Broker, Disconnected, Fill
+from desk.broker import Broker, Disconnected, Fill, Report
 from desk.halt import Blocker, Stopped
 from desk.lines import Line
 from desk.orders import Charges, Order, Refused, Sale, Settings, charges, gate, leg_of
 
 LEDGER, RATES, SWITCH = "ledger.csv", "rates.csv", "switch.csv"
+GOING = "going.csv"  #: the order at the broker's door, kept only until the desk has its answer
 COLUMNS = ("execution_id", "order_id", "symbol", "quantity", "price", "day")
 TURNS = ("at", "turn", "why")
 
@@ -73,7 +75,9 @@ def send(root: Path, broker: Broker, order: Order | Sale, settings: Settings) ->
     at all, and while a halt is in force no buy, were either done as the broker answered;
     what the broker already has is recorded. Every refusal made here names its blocker
     (Stopped), the gate's too, and so does an answer that is not a whole fill; a refusal
-    that names none is the broker's own door's."""
+    that names none is the broker's own door's. Before any of it, what a desk that died
+    mid-send left working is cancelled (_settle): the gate counts the book alone."""
+    _settle(root, broker)
     report = broker.report(order.order_id)
     if report is None:
         _unless_stopped(root, order)
@@ -87,12 +91,40 @@ def send(root: Path, broker: Broker, order: Order | Sale, settings: Settings) ->
             raise Stopped(Blocker.GATE, str(refused)) from refused
         _unless_stopped(root, order)  #: read again, at the last moment before it goes
         try:
-            report = broker.place(order)
+            report = _place(root, broker, order)
         except Disconnected as lost:  #: never received: stated, and sent again next time
             return Sent(order.order_id, 0, str(lost), Blocker.BROKER)
     collect(root, broker)  #: a stop sold on the day of its buy is in no answer
     filled, short = sum(abs(f.quantity) for f in report.fills), report.reason is not None
     return Sent(order.order_id, filled, report.reason, Blocker.BROKER if short else None)
+
+
+def _place(root: Path, broker: Broker, order: Order | Sale) -> Report:
+    """The order goes to the broker, the desk's note of it kept from before it goes until the
+    desk has the broker's last answer, or its door's word that the order never went. A note
+    still there afterwards is a desk that died in between."""
+    going = root / GOING
+    _write(going, [(order.order_id,)])
+    try:
+        report = broker.place(order)
+    except (Disconnected, Refused):
+        going.unlink()
+        raise
+    going.unlink()
+    return report
+
+
+def _settle(root: Path, broker: Broker) -> None:
+    """A DESK THAT DIED MID-SEND left its note (_place) and, perhaps, its order working at
+    the broker, where it could fill behind a gate that counts the book alone: a sixth line.
+    So before the send path asks of an order or sends one, the broker cancels every order of
+    the desk's own still working, and only then is the note gone: a broker that cannot
+    cancel is an error raised, and nothing is sent. While the kill switch is on the note
+    waits: the switch's pull cancels, and the desk sends nothing."""
+    going = root / GOING
+    if going.exists() and killed(root) is None:
+        tuple(broker.cancel())
+        going.unlink()
 
 
 def turn(root: Path, to: Switch, at: datetime, why: str) -> None:
