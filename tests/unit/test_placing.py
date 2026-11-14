@@ -192,6 +192,7 @@ ORDER = (
 PLACED, CANCEL = _wire(ORDER).getvalue(), _wire(("4", "1", "41", "")).getvalue()
 MINE = _order("41", "SELL MKT", ID, "Submitted")  # the sale as the broker has it, and its state
 BARE = _account([HELD])  # the line held, and under no stop of the desk's own
+EMPTY = _account([FLAT])  # and the account with none of the line, and no order
 REJECTED = ("4", "2", "41", "201", "Order rejected - reason: closed", "")
 BUY_IT = Order(ID, IITU, 26, Decimal(40), Decimal(1), Decimal("36.007"))  # its stop off the step
 #: The stop that goes with the buy, as the broker lists it; and both as it tells them filling.
@@ -212,7 +213,8 @@ CANCEL_7, CANCEL_42 = (_wire(("4", "1", n, "")).getvalue() for n in ("7", "42"))
 UNFOUND = ("4", "2", "41", "10147", "OrderId 41 that needs to be cancelled is not found", "")
 FAR = _order("5", "SELL STP", "a-stop", "Submitted")
 #: A sale cut at ten of 26 on the line under its stop, as the broker tells it; what is asked.
-PART: list[Said] = [PROTECTED, [CUT, ("102",)], [_but(SOLD, 19, "10"), END], PROTECTED]
+LEFT = _account([_but(HELD, 14, "16")], *PROTECTED[3:5])  # sixteen held, the stop still for 26
+PART: list[Said] = [LEFT, [CUT, ("102",)], [_but(SOLD, 19, "10"), END], LEFT]
 ASKED = [ACCOUNT, ENDED, FILLS]
 #: No stop a sale of the line would leave: someone else's on it, the desk's own there that is
 #: over, its own order there that is no stop, and its own stop on another line.
@@ -233,10 +235,10 @@ def test_a_sale_is_sent_once_and_answered_with_what_the_broker_did(
     filling = [*MINE, _but(SOLD, 1, "-1"), FEE, ("4", "2", "41", "2109", "hours ignored", "")]
     filled = _order("41", "SELL MKT", ID, "Filled", 0)[1]
     did = [_account([FLAT], FEE), [DONE, ("102",)], [SOLD, END]]  # the fee, late and unasked
-    sent = _gateway(monkeypatch, [], AROUND, [*filling, filled], *did, AROUND)
+    sent = _gateway(monkeypatch, [], AROUND, [*filling, filled], *did, did[0])
     assert broker.place(SALE) == Report(ID, (OUT,), None)
-    # a knock; the line's stops; the sale, under the gateway's next number; what it then did;
-    # and the line's stops again: none of the desk's own open on it, so nothing more is sent
+    # a knock; the line's shares and stops; the sale, under the gateway's next number; what it
+    # then did; and the line again: its shares gone, no stop of the desk's own on it, no more sent
     assert sent == [b"", ACCOUNT, PLACED, ACCOUNT, ENDED, FILLS, ACCOUNT]
     # refused on entry and ended by the broker itself: nothing to cancel, and no list has it
     over = [REJECTED, _but(MINE[1], 2, "Cancelled")]
@@ -282,7 +284,7 @@ def test_a_buy_goes_with_its_stop_and_the_line_is_left_under_one_stop_for_all_it
 ) -> None:
     broker: Broker = _paper(_ready(tmp_path))
     did, under = [[DONE, ("102",)], [BOUGHT, END]], _account([HELD], *CHILD)
-    sent = _gateway(monkeypatch, [], BARE, FILLING, under, *did, under)
+    sent = _gateway(monkeypatch, [], EMPTY, FILLING, under, *did, under)
     assert broker.place(BUY_IT) == Report(ID, (FILL,), None)
     # the buy is held back until its stop is sent behind it, to wait on it: the stop put down
     # onto the broker's step, in pence. Filled whole, the stop is for the shares held: no more
@@ -290,19 +292,27 @@ def test_a_buy_goes_with_its_stop_and_the_line_is_left_under_one_stop_for_all_it
     assert sent == [b"", ACCOUNT, both, *ASKED, ACCOUNT]
     # a stop the broker is not holding protects nothing: the stop due is sent, that one cancelled
     limbo = _account([HELD], *_order("42", "SELL STP 3600.0", f"{ID}-stop", "Inactive"))
-    sent = _gateway(monkeypatch, [], BARE, FILLING, limbo, *did, limbo, RESTS, [ENDED_42])
+    sent = _gateway(monkeypatch, [], EMPTY, FILLING, limbo, *did, limbo, [MINE[1]], [ENDED_42])
     assert broker.place(BUY_IT).fills == (FILL,) and sent[6:] == [ACCOUNT, _msg(AT_STOP), CANCEL_42]
-    # a line held under a stop already: one stop for all its shares at the buy's level is
-    # sent to rest first, and only then are the two it replaces cancelled
-    two = _account([HELD], *CHILD, *PROTECTED[3:5])
-    sent = _gateway(monkeypatch, [], PROTECTED, FILLING, two, *did, two, RESTS, [ENDED_7, ENDED_42])
+    # a line held under an earlier buy's stop: one stop for all its shares, at this buy's level
+    # and under its name, is sent to rest first, and only then are the two it replaces cancelled
+    old = _order("7", "SELL STP", "b-stop", "PreSubmitted")
+    was, two = _account([HELD], *old), _account([_but(HELD, 14, "52")], *CHILD, *old)
+    sent = _gateway(monkeypatch, [], was, FILLING, two, *did, two, RESTS, [ENDED_7, ENDED_42])
     assert broker.place(BUY_IT) == Report(ID, (FILL,), None)
     assert sent[6:] == [ACCOUNT, _msg(AT_STOP | {17: "52"}), CANCEL_42 + CANCEL_7]
     # a buy not filled is cancelled, the stop behind it too if still listed; the line's own stays
-    none: list[Said] = [[_but(MINE[1], 2, "Cancelled")], two, [("102",)], [END], two, [ENDED_42]]
-    sent = _gateway(monkeypatch, [], PROTECTED, [CHILD[1]], *none, silent=True)
+    idle = _account([HELD], *CHILD, *old)
+    none: list[Said] = [[_but(MINE[1], 2, "Cancelled")], idle, [("102",)], [END], idle, [ENDED_42]]
+    sent = _gateway(monkeypatch, [], was, [CHILD[1]], *none, silent=True)
     assert broker.place(BUY_IT) == Report(ID, (), f"{ID}: the broker tells nothing of it")
     assert sent[2:] == [both, CANCEL, *ASKED, ACCOUNT, CANCEL_42]
+    # a buy cut at ten of 26: its stop is for the ten bought, never the 26 ordered
+    ten = _account([_but(HELD, 14, "10")], *CHILD)
+    cut: list[Said] = [none[0], ten, PART[1], [_but(BOUGHT, 19, "10"), END], ten]
+    sent = _gateway(monkeypatch, [], EMPTY, [], *cut, RESTS, [ENDED_42], silent=True)
+    assert broker.place(BUY_IT).fills == (replace(FILL, quantity=10),)
+    assert sent[7:] == [ACCOUNT, _msg(AT_STOP | {17: "10"}), CANCEL_42]
     # a buy the broker refuses, the stop behind it ended first: the stop's end is not the buy's
     told = [_but(REJECTED, 2, "42"), ENDED_42]
     sent = _gateway(monkeypatch, [], BARE, told, none[0], BARE, *none[2:4], BARE, silent=True)
@@ -313,7 +323,7 @@ def test_a_sale_takes_its_shares_off_the_stop_and_a_stop_not_settled_is_an_error
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     broker = _paper(_ready(tmp_path))
-    flat = _account([FLAT], *PROTECTED[3:5])
+    flat = _account([_but(FLAT, 14, "5")], *PROTECTED[3:5])  # another line's shares, not this one's
     sold: list[Said] = [[_but(MINE[1], 2, "Filled")], flat, [DONE, ("102",)], [SOLD, END], flat]
     sent = _gateway(monkeypatch, [], PROTECTED, *sold, [ENDED_7])
     assert broker.place(SALE) == Report(ID, (OUT,), None)
@@ -322,6 +332,19 @@ def test_a_sale_takes_its_shares_off_the_stop_and_a_stop_not_settled_is_an_error
     sent = _gateway(monkeypatch, [], PROTECTED, *sold, [_but(UNFOUND, 2, "7")], flat)
     with pytest.raises(placing.NotCancelled, match="-stop .10147"):
         broker.place(SALE)
+    # the broker's last word, its fills and the account's shares must agree, or the line's stops
+    # are left as they are: a buy whose own stop has sold already; a buy told filled, its fills late
+    whole = [BOUGHT, END]
+    for fills, after in ((whole, EMPTY), (whole[1:], _account([FLAT], *CHILD))):
+        sent = _gateway(monkeypatch, [], EMPTY, FILLING, after, [DONE, ("102",)], fills, after)
+        with pytest.raises(placing.Unprotected, match="do not agree"):
+            broker.place(BUY_IT)
+        assert sent[6:] == [ACCOUNT]
+    # and so when the broker's word that the buy filled comes in answer to the desk's cancel
+    late: list[Said] = [[_but(MINE[1], 2, "Filled")], EMPTY, [("102",)], whole[1:], EMPTY]
+    sent = _gateway(monkeypatch, [], EMPTY, [], *late, silent=True)
+    with pytest.raises(placing.Unprotected, match="was Filled, its fills come to 0 shares"):
+        broker.place(BUY_IT)
     # the stop a part sale leaves, ended or met with silence: an error, the old one not cancelled
     said = [REJECTED, _but(MINE[1], 2, "Cancelled")]  # refused, then ended; or refused, and silence
     for error, n in {placing.Unprotected: 2, TimeoutError: 1}.items():
