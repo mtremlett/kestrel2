@@ -3,17 +3,19 @@ and a results table written with every column, labelled PRE-REVIEW."""
 
 from __future__ import annotations
 
+import importlib
 import json
+import sys
 from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
-from types import ModuleType
 
 import pytest
 from test_lab_ladder import EDGE, ISF, NOISE, VUSA, _door
 from test_lab_reproduce import AT_CLOSE, _figure
 from test_lab_reproduce import _bars as _author
 
+import desk
 from desk import strategy
 from desk.lines import LINES
 from lab import grid, ladder, published, reproduce
@@ -68,17 +70,20 @@ def test_the_set_reproduces_each_rule_judges_it_on_every_line_and_writes_the_tab
     assert "goes forward" in md and ": 0 of 3 lines go forward" in md
 
 
-def test_a_rule_file_the_ladder_does_not_name_or_that_names_no_rules_is_refused(
-    tmp_path: Path,
+def test_the_desks_folder_is_the_one_list_a_new_file_is_taken_and_keyed_a_bare_one_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    one, bare = ModuleType("desk.eponymous_x"), ModuleType("desk.eponymous_x")
-    one.EPONYMOUS = {"x": 1}  # type: ignore[attr-defined]
-    (tmp_path / "eponymous_x.py").touch()
-    assert ladder.eponymous([one], tmp_path) == ("x",)
-    (tmp_path / "eponymous_y.py").touch()
-    with pytest.raises(ValueError, match="not the modules the ladder names"):
-        ladder.eponymous([one], tmp_path)
-    (tmp_path / "eponymous_y.py").unlink()
-    with pytest.raises(ValueError, match="no EPONYMOUS mapping"):
-        ladder.eponymous([bare], tmp_path)
-    assert {m.__name__ for m in ladder.MODULES} >= {"desk.eponymous_bands"}
+    """A new eponymous file in the folder is imported and changes the keys, with no edit to the
+    ladder; one that names its rules in no EPONYMOUS is refused, by name."""
+    monkeypatch.setattr(desk, "__path__", [*desk.__path__, str(tmp_path)])
+    monkeypatch.setattr(sys, "modules", dict(sys.modules))  #: the planted files leave no trace
+    importlib.invalidate_caches()
+    before = ladder.code(tmp_path)
+    planted = tmp_path / "eponymous_planted.py"
+    planted.write_text("EPONYMOUS = {'planted_x': 1}")
+    assert ladder.eponymous(tmp_path) == ("planted_x",) and ladder.code(tmp_path) != before
+    planted.write_text("EPONYMOUS = {'planted_x': 2}")
+    assert ladder.code(tmp_path) not in (before, ladder.code(Path(desk.__file__).parent))
+    (tmp_path / "eponymous_bare.py").write_text("X = 1")
+    with pytest.raises(ValueError, match="desk.eponymous_bare names its rules in no EPONYMOUS"):
+        ladder.eponymous(tmp_path)
