@@ -288,26 +288,27 @@ from `C:\tmp\kestrel2_week\code`. grid-declared can start now (it waited only on
 ## RUNGS
 
 Last updated: 14 November 2026 (cut to what is open; git, decisions and scoreboard keep the rest).
-
 ### Where it is
 
 Rungs proven on made-up prices only: first (`lab/rung.py`), luck, folds, trials, deflated Sharpe, plateaus,
 regimes; built but called by nothing yet: author's result (`reproduce`), promotion, market rung, book
-concentration (`bets`, #136), stress (`stress`, #140), indicator tables (`published`, #145). The first rung
-refuses a rule with an author's figure on file until reproduced (#139).
+concentration (`bets`, #136), stress (`stress`, #140), indicator tables (`published`, #145, #154: 250 numbers).
+The first rung refuses a rule with an author's figure on file until reproduced (#139).
 **No winner on real prices is to be believed yet; no real author's figure is on file.**
 
 ### Next step
 
-Open boxes (PLAN): rungs-trustworthy (name market rung; wire bets, stress), rungs-reproduce (R-RUNGS-5),
-rungs-indicators (R-RUNGS-6). Unit tests stay at the product's size.
-Ruled 14 Nov (DECISIONS): concentration shown on every report, no A-GATE mark yet; no Connors book
-for now: reproduce Double 7's first (#141), RSI-2 waits for its figure.
+Open boxes (PLAN): rungs-trustworthy (name market rung; wire bets, stress), rungs-indicators (R-RUNGS-6, 12).
+**rungs-reproduce is BLOCKED, hand it out no more** (#143, #149): waits on the book (his spend; recommended
+yes, Connors and Alvarez 2008; its RSI table may be of another rule), R-RUNGS-5, R-RUNGS-10. Free: Connors'
+"RSI 25" figure, uncoded. Unit tests stay at the product's size. Ruled 14 Nov (DECISIONS):
+concentration shown on every report, no A-GATE mark yet; no book for now.
 
 ### Requests to MONEY
 
-- [ ] R-RUNGS-6 (blocking, 01:20): the indicators of `desk/strategy.py` public and by name (STR-14);
-  keep `_Window`, `_Wilder` importable meanwhile (13 lab test files read them).
+- [ ] R-RUNGS-6 (blocking, 01:20): the indicators of `desk/strategy.py` public and by name (STR-14).
+- [ ] R-RUNGS-12 (blocking, 07:55): narrows R-RUNGS-6 to a public RSI and Bollinger lower band; keep `_Window`,
+  `_Wilder`, `_Rsi2`, `_Supertrend`, `_gain`, `_loss`, `_range` meanwhile.
 - [ ] R-RUNGS-7 (later, 01:50): the day's run reads each candidate's `promotion.standing`, buys nothing for a killed one.
 - [ ] R-RUNGS-8 (later, 01:50): `orders.strategy_of` refuses an unreadable id, naming it.
 - [ ] R-RUNGS-10 (later, 04:50): Connors' Double 7's as a desk rule (first reproduction's rule).
@@ -326,12 +327,11 @@ for now: reproduce Double 7's first (#141), RSI-2 waits for its figure.
 
 ### Found, not fixed
 
-- **Nothing calls the new rungs yet**; no settings on rules, no regime weather (REG-01). `luck.correct`
-  is a door beside the register. `folds.judge`, `regime.judge` cannot pass a reproduction on.
-- **Reproduction:** rung trusts `reproduce`'s answer, not the author's bars; Bollinger, 50/200 cross,
-  Supertrend have no author's test (ruling owed). Double 7's figure written, not on file.
+- **Nothing calls the new rungs yet**; no settings on rules, no regime weather (REG-01); `luck.correct` is a
+  door beside the register. **Reproduction:** `folds.judge`, `regime.judge` cannot pass one on; Bollinger,
+  50/200 cross, Supertrend have no author's test (ruling owed); Double 7's figure not on file.
 - **Promotion:** fall sees sold shares only; `DEEPEST` belongs to the A-GATE. **Market/stress:** calm-storm
   alternation passes a rider twice as often; "days end at first unjudged trade" lives twice, belongs in `rung.py`.
 - **Bets:** a young line (<120 moves) stops it; clusters near 0.5 flip year to year. **Indicators:**
-  `published.py` 361 of 400 lines; its manifest line omits them.
-- Scratch owed removal in `C:/tmp`: repro*, promo*, market*, bets*, rungswait*, rungs_s2_*, ind*.
+  `published.py` at its 400-line cap; RSI ratio, band line, carried band unheld; tables run flat only;
+  no fresh-low table for the channel. Scratch owed removal in `C:/tmp`: repro*, promo*, market*, bets*, rungs*, ind*.
