@@ -1,6 +1,6 @@
-"""The five frozen strategies: each buys and sells on the day its published rule says, worked
-out by hand below, and none of them can see a bar after the day it decides. Each declares
-what it is before it is tested, and none can sell a line it does not hold."""
+"""The five frozen strategies, and the wiring rule beside them: each buys and sells on the day
+its rule says, worked out by hand below, and none can see a bar after the day it decides.
+Each declares what it is before it is tested, and none can sell a line it does not hold."""
 
 from __future__ import annotations
 
@@ -19,6 +19,8 @@ from desk.store import Bar
 from desk.strategy import Action, Field, Timeframe
 
 START = date(2020, 1, 1)
+#: every rule the template can run: the five, and the wiring strategy listed apart from them
+RULES = {**strategy.STRATEGIES, **strategy.WIRING}
 
 
 def _bars(closes: Sequence[float | int], reach: float = 0.5) -> tuple[Bar, ...]:
@@ -33,7 +35,9 @@ def _bars(closes: Sequence[float | int], reach: float = 0.5) -> tuple[Bar, ...]:
 def _trades(name: str, bars: Sequence[Bar]) -> list[tuple[int, Action]]:
     """The days, as positions in the series, on which one strategy buys or sells."""
     days = {bar.day: n for n, bar in enumerate(bars)}
-    decided = [d for d in strategy.decide({"X": bars}) if d.strategy == name]
+    with pytest.MonkeyPatch.context() as only:
+        only.setattr(strategy, "STRATEGIES", {name: RULES[name]})
+        decided = strategy.decide({"X": bars})
     assert len(decided) == len(bars), f"{name} left a day unanswered"
     return sorted((days[d.day], d.action) for d in decided if d.action is not Action.HOLD)
 
@@ -47,7 +51,9 @@ def test_the_five_are_the_operators_five_each_on_daily_bars_and_every_line() -> 
         "supertrend_10_3",
     }
     #: STR-03: the desk trades every rule on every line, so each is to be judged on them all
-    declared = [rule.declared for rule in strategy.STRATEGIES.values()]
+    #: the sixth is a WIRING strategy: declared as they are, and listed apart from the five
+    assert set(strategy.WIRING) == {"ema_9_21"}
+    declared = [rule.declared for rule in RULES.values()]
     assert all(d.bar is Timeframe.DAILY and d.universe == LINES for d in declared)
 
 
@@ -60,14 +66,14 @@ def test_each_rule_reads_the_data_it_declares_and_no_other(monkeypatch: pytest.M
     #: a number that cannot be added, compared or tested without an error is put in place of a
     #: number of every bar: in place of all a rule does not declare, it decides as before, so on
     #: this walk it used none of them; in place of any one it declares, it cannot decide at all
-    bars, every = _walk(1, 1200), strategy.decide({"A": _walk(1, 1200)})
+    bars = _walk(1, 1200)
     poison: Any = _Untouchable("sNaN")
     assert {f.value for f in Field} == {f.name for f in fields(Bar)} - {"day"}
-    for name, rule in strategy.STRATEGIES.items():
+    for name, rule in RULES.items():
         monkeypatch.setattr(strategy, "STRATEGIES", {name: rule})
         unread = {f.value: poison for f in Field if f not in rule.declared.reads}
         blind = strategy.decide({"A": [replace(bar, **unread) for bar in bars]})
-        assert blind == tuple(d for d in every if d.strategy == name)
+        assert blind == strategy.decide({"A": bars})
         for field in rule.declared.reads:
             with pytest.raises(InvalidOperation):
                 strategy.decide({"A": [replace(bar, **{field.value: poison}) for bar in bars]})
@@ -167,6 +173,21 @@ def test_trend_does_not_buy_a_cross_it_never_saw() -> None:
     assert _trades("trend_50_200", _bars([100 + n for n in range(260)])) == []
 
 
+def test_ema_buys_the_9_day_crossing_over_the_21_day_and_sells_it_under(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    #: level at 10 for 21 days. Day 21's 12: 10.4 over 10.18, buys; day 22's 11: 10.52 over
+    #: 10.26, holds; day 23's 8: 10.016 under 10.051, sells. A climb from the start is a
+    #: cross it never saw; level is not over, so no buy; and held while level, no sale
+    bars = _bars([10] * 21 + [12, 11, 8])
+    assert _trades("ema_9_21", bars) == [(21, Action.BUY), (23, Action.SELL)]
+    assert _trades("ema_9_21", _bars([100 + n for n in range(60)])) == []
+    assert _trades("ema_9_21", _bars([10] * 30)) == []
+    monkeypatch.setattr(strategy, "STRATEGIES", strategy.WIRING)
+    (level,) = strategy.today({"X": bars[:21]}, {"X": "ema_9_21"})
+    assert level.action is Action.HOLD
+
+
 def test_supertrend_buys_a_close_over_its_upper_band_and_sells_one_under_its_lower() -> None:
     #: ten days with a true range of 2: bands 94 and 106. Day 10 closes 110 > 106 and buys;
     #: its lower band becomes 110 - 3 x 2.9 = 101.3. Day 11 closes on it exactly and holds;
@@ -234,7 +255,10 @@ def _jumpy(seed: int, days: int = 80) -> tuple[Bar, ...]:
 
 
 @pytest.mark.parametrize("seed", [1, 2, 3])
-def test_no_strategy_sees_a_bar_after_the_day_it_decides(seed: int) -> None:
+def test_no_strategy_sees_a_bar_after_the_day_it_decides(
+    seed: int, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(strategy, "STRATEGIES", RULES)
     bars = {"A": _walk(seed, 1200), "B": _walk(seed + 20, 1100)}
     every = strategy.decide(bars)
     for name in strategy.STRATEGIES:
@@ -320,16 +344,24 @@ GOLDEN = {
         "supertrend_10_3": "14 35 46 64 72",
     },
 }
+#: The wiring rule's days, found so on 14 November. Apart: the lab's grid reads GOLDEN.
+WIRED = {
+    "walk 1": "153 203 211 457 763 915 1024 1026 1136 1146 1162 1167 1173 1183 1184 1191",
+    "walk 9": "51 166 398 404 460 623 830 833 853 869 906 1172 1178",
+    "jumpy 10": "38 45 55",
+    "jumpy 332": "45 65 75",
+}
 
 
 def test_each_strategy_moves_on_the_days_a_second_implementation_found() -> None:
-    for series, expected in GOLDEN.items():
+    wired = {series: {"ema_9_21": days} for series, days in WIRED.items()}
+    for series, expected in (*GOLDEN.items(), *wired.items()):
         kind, seed = series.split()
         bars = _walk(int(seed), 1200) if kind == "walk" else _jumpy(int(seed))
         for name, days in expected.items():
             found = [n for n, _ in _trades(name, bars)]
             assert found == [int(n) for n in days.split()], f"{name} on {series}"
-            limit = strategy.STRATEGIES[name].declared.hold
+            limit = RULES[name].declared.hold
             ends = [*found[1::2], len(bars) - 1]  #: one still held is held to the last bar
             held = [sold - bought for bought, sold in zip(found[::2], ends, strict=False)]
             assert limit is None or max(held) <= limit, f"{name} outstays {limit} on {series}"
