@@ -270,7 +270,7 @@ class Paper:
                 f"shares, and the account's {listed.line.symbol} went from {was} to {held}: "
                 "these do not agree, and the line's stops are left as they are"
             )
-        self._settle(listed, stops, _due(before, held, moved, new))
+        self._settle(listed, held, stops, _due(before, held, moved, new))
         if report.reason is None or not notices:
             return report
         return replace(report, reason=f"{report.reason}; it said: {'; '.join(notices)}")
@@ -327,19 +327,28 @@ class Paper:
             raise Refused(f"{order_id}: not sent, {where}")
         return held, (rests[0] if rests else None)
 
-    def _settle(self, listed: Listing, stops: Sequence[Resting], due: Stop | None) -> None:
-        """Leave a line under the one stop due on it, or under none; stops is the desk's own
-        open on it now. One the broker holds for those shares at that level is kept, whatever
-        its reference. With none such, the stop due is sent to rest first (_rest), and only
-        then is every other cancelled: the line is never under none meanwhile, and for a
-        moment under more than the shares held."""
-        held = (o for o in stops if o.state in reports.HELD)
-        kept = next((o for o in held if due and (o.left, o.level) == due[:2]), None)
+    def _settle(
+        self, listed: Listing, held: Decimal, stops: Sequence[Resting], due: Stop | None
+    ) -> None:
+        """Leave a line under the one stop due on it, or under none; held is the shares the
+        account has of it and stops the desk's own open on it, as just read. One the broker
+        holds for those shares at that level is kept, whatever its reference. With none
+        such, the stop due is sent to rest first (_rest), and only then is every other
+        cancelled: the line is never under none meanwhile, and for a moment under more than
+        the shares held. A stop that sold as it was being cancelled, or ended unseen and the
+        account's shares with it, is Unprotected: the stop due is for shares no longer held."""
+        resting = (o for o in stops if o.state in reports.HELD)
+        kept = next((o for o in resting if due and (o.left, o.level) == due[:2]), None)
         if due is not None and kept is None:
             paper.dial(lambda wire, send: _rest(wire, send, listed, due))
         spare = {o.number: o.ref for o in stops if o is not kept}
-        if spare:
-            self._cancelled(spare)
+        said = self._cancelled(spare) if spare else {}
+        odd = {spare[number]: word for number, word in said.items() if word not in GONE}
+        if odd and ("Filled" in odd.values() or self._line(listed)[0] != held):
+            raise Unprotected(
+                f"a stop of the desk's own on {listed.line.symbol} ended another way as it was "
+                f"being cancelled, sold perhaps: {odd}"
+            )
 
     def fills(self) -> tuple[Fill, ...]:
         """The desk's own fills of today, as its ledger keeps them (reports.fills)."""

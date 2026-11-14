@@ -194,6 +194,9 @@ def _msg(but: dict[int, str]) -> bytes:
 
 AT_STOP = {18: "STP", 20: "3600.00", 21: "GTC", 26: f"{ID}-stop"}  # 36.007 pounds, in pence
 SMALLER = _msg(AT_STOP | {17: "16", 20: "171.5"})  # the line's stop, for sixteen shares
+LOTS, ALL = _but(HELD, 14, "52"), _msg(AT_STOP | {17: "52"})  # 52 held, and one stop for them
+TEN = _account([_but(HELD, 14, "10")], *CHILD)  # ten of the line held, the buy's stop for 26
+TENTH = [_but(BOUGHT, 19, "10"), END]  # the day's fills: ten bought
 CANCEL_7, CANCEL_42 = (_wire(("4", "1", n, "")).getvalue() for n in ("7", "42"))
 UNFOUND = ("4", "2", "41", "10147", "OrderId 41 that needs to be cancelled is not found", "")
 FAR = _order("5", "SELL STP", "a-stop", "Submitted")
@@ -220,7 +223,8 @@ def test_a_sale_is_sent_once_and_answered_with_what_the_broker_did(
     filling = [*MINE, _but(SOLD, 1, "-1"), FEE, ("4", "2", "41", "2109", "hours ignored", "")]
     filled = _order("41", "SELL MKT", ID, "Filled", 0)[1]
     did = [_account([FLAT], FEE), [DONE, ("102",)], [SOLD, END]]  # the fee, late and unasked
-    sent = _gateway(monkeypatch, [], AROUND, [*filling, filled], *did, did[0])
+    after = _account([FLAT], *AROUND[2:-1])  # its shares gone, the orders around it as they were
+    sent = _gateway(monkeypatch, [], AROUND, [*filling, filled], *did, after)
     assert broker.place(SALE) == Report(ID, (OUT,), None)
     # a knock; the line's shares and stops; the sale, under the gateway's next number; what it
     # then did; and the line again: its shares gone, no stop of the desk's own on it, no more sent
@@ -282,10 +286,14 @@ def test_a_buy_goes_with_its_stop_and_the_line_is_left_under_one_stop_for_all_it
     # a line held under an earlier buy's stop: one stop for all its shares, at this buy's level
     # and under its name, is sent to rest first, and only then are the two it replaces cancelled
     old = _order("7", "SELL STP", "b-stop", "PreSubmitted")
-    was, two = _account([HELD], *old), _account([_but(HELD, 14, "52")], *CHILD, *old)
+    was, two = _account([HELD], *old), _account([LOTS], *CHILD, *old)
     sent = _gateway(monkeypatch, [], was, FILLING, two, *did, two, RESTS, [ENDED_7, ENDED_42])
     assert broker.place(BUY_IT) == Report(ID, (FILL,), None)
-    assert sent[6:] == [ACCOUNT, _msg(AT_STOP | {17: "52"}), CANCEL_42 + CANCEL_7]
+    assert sent[6:] == [ACCOUNT, ALL, CANCEL_42 + CANCEL_7]
+    # a line held under no stop of the desk's is given one for all the shares the account holds
+    more = _account([HELD, HELD], *CHILD)  # in two entries, as the broker may give them
+    sent = _gateway(monkeypatch, [], BARE, FILLING, more, *did, more, RESTS, [ENDED_42])
+    assert broker.place(BUY_IT).fills == (FILL,) and sent[6:] == [ACCOUNT, ALL, CANCEL_42]
     # a buy not filled is cancelled, the stop behind it too if still listed; the line's own stays
     idle = _account([HELD], *CHILD, *old)
     none: list[Said] = [[_but(MINE[1], 2, "Cancelled")], idle, [("102",)], [END], idle, [ENDED_42]]
@@ -293,8 +301,7 @@ def test_a_buy_goes_with_its_stop_and_the_line_is_left_under_one_stop_for_all_it
     assert broker.place(BUY_IT) == Report(ID, (), f"{ID}: the broker tells nothing of it")
     assert sent[2:] == [both, CANCEL, *ASKED, ACCOUNT, CANCEL_42]
     # a buy cut at ten of 26: its stop is for the ten bought, never the 26 ordered
-    ten = _account([_but(HELD, 14, "10")], *CHILD)
-    cut: list[Said] = [none[0], ten, PART[1], [_but(BOUGHT, 19, "10"), END], ten]
+    cut: list[Said] = [none[0], TEN, PART[1], TENTH, TEN]
     sent = _gateway(monkeypatch, [], EMPTY, [], *cut, RESTS, [ENDED_42], silent=True)
     assert broker.place(BUY_IT).fills == (replace(FILL, quantity=10),)
     assert sent[7:] == [ACCOUNT, _msg(AT_STOP | {17: "10"}), CANCEL_42]
@@ -318,13 +325,17 @@ def test_a_sale_takes_its_shares_off_the_stop_and_a_stop_not_settled_is_an_error
     with pytest.raises(placing.NotCancelled, match="-stop .10147"):
         broker.place(SALE)
     # the broker's last word, its fills and the account's shares must agree, or the line's stops
-    # are left as they are: a buy whose own stop has sold already; a buy told filled, its fills late
+    # are left as they are: a buy whose own stop has sold already; a buy told filled, with fills
+    # for ten of its 26; and a sale told filled, its fills not yet listed
     whole = [BOUGHT, END]
-    for fills, after in ((whole, EMPTY), (whole[1:], _account([FLAT], *CHILD))):
+    for fills, after in ((whole, EMPTY), (TENTH, TEN)):
         sent = _gateway(monkeypatch, [], EMPTY, FILLING, after, [DONE, ("102",)], fills, after)
         with pytest.raises(placing.Unprotected, match="do not agree"):
             broker.place(BUY_IT)
         assert sent[6:] == [ACCOUNT]
+    sent = _gateway(monkeypatch, [], PROTECTED, sold[0], flat, [("102",)], whole[1:], flat)
+    with pytest.raises(placing.Unprotected, match="went from 26 to 0"):
+        broker.place(SALE)
     # and so when the broker's word that the buy filled comes in answer to the desk's cancel
     late: list[Said] = [[_but(MINE[1], 2, "Filled")], EMPTY, [("102",)], whole[1:], EMPTY]
     sent = _gateway(monkeypatch, [], EMPTY, [], *late, silent=True)
@@ -337,6 +348,18 @@ def test_a_sale_takes_its_shares_off_the_stop_and_a_stop_not_settled_is_an_error
         with pytest.raises(error, match="Cancelled; it said: .'201: Order|timed out"):
             broker.place(SALE)
         assert sent[7:] == [ACCOUNT, SMALLER]
+    # the old stop sold as it was being cancelled, or ended unseen and the account's shares
+    # changed: an error. Ended unseen, the shares as they were: it was cancelled already
+    gone, bare = [_but(UNFOUND, 2, "7")], _account([_but(HELD, 14, "16")])
+    ends: list[list[Said]] = [[[_but(ENDED_7, 2, "Filled")]], [gone, EMPTY, EMPTY]]
+    for end in ends:
+        sent = _gateway(monkeypatch, [], PROTECTED, [], said[1:], *PART, RESTS, *end, silent=True)
+        with pytest.raises(placing.Unprotected, match="as it was being cancelled"):
+            broker.place(SALE)
+    sent = _gateway(
+        monkeypatch, [], PROTECTED, [], said[1:], *PART, RESTS, gone, bare, bare, silent=True
+    )
+    assert broker.place(SALE).fills == (replace(OUT, quantity=-10),) and sent[-1] == ACCOUNT
 
 
 def test_nothing_is_sent_without_a_drill_a_clean_day_a_ready_gateway_and_the_stops_settled(
