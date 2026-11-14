@@ -152,6 +152,18 @@ class _Wilder:
         return self.value
 
 
+def rsi(gain: Decimal, loss: Decimal) -> Decimal:
+    """Wilder's relative strength index (New Concepts in Technical Trading Systems, 1978) of
+    a smoothed gain and a smoothed loss: 100 less 100 over one more than gain over loss, and
+    100 where nothing was lost."""
+    return Decimal(100) if loss == 0 else 100 - 100 / (1 + gain / loss)
+
+
+def lower_band(mean: Decimal, deviation: Decimal) -> Decimal:
+    """Bollinger's lower band at his setting: two deviations under the average."""
+    return mean - 2 * deviation
+
+
 class _Rsi2:
     """Connors' RSI-2 (Short Term Trading Strategies That Work, 2008): buy when the close is
     above its 200-day average and the 2-day RSI is under 5; sell on a close above the
@@ -165,7 +177,7 @@ class _Rsi2:
         self._last: Decimal | None = None
 
     def step(self, bar: Bar, holding: bool) -> bool:
-        close, last, rsi = bar.close, self._last, None
+        close, last, index = bar.close, self._last, None
         self._long.add(close)
         self._short.add(close)
         self._last = close
@@ -173,10 +185,10 @@ class _Rsi2:
             gain = self._gain.add(max(close - last, ZERO))
             loss = self._loss.add(max(last - close, ZERO))
             if gain is not None and loss is not None:
-                rsi = Decimal(100) if loss == 0 else 100 - 100 / (1 + gain / loss)
+                index = rsi(gain, loss)
         if holding:
             return close <= self._short.mean()
-        return rsi is not None and self._long.full and close > self._long.mean() and rsi < 5
+        return index is not None and self._long.full and close > self._long.mean() and index < 5
 
 
 class _Bollinger:
@@ -195,7 +207,7 @@ class _Bollinger:
         mean = self._closes.mean()
         if holding:
             return bar.close <= mean
-        return bar.close < mean - 2 * self._closes.deviation()
+        return bar.close < lower_band(mean, self._closes.deviation())
 
 
 class _Breakout:
