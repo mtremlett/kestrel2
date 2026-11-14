@@ -50,13 +50,16 @@ rungs = []
 
 # the money lane
 "desk/strategy.py" = "the five frozen daily strategies: a decision for every line and day"
+"desk/eponymous_swing.py" = "the eponymous rules, one published rule per author under the strategy template: weekly_reversal_jegadeesh; the paper desk does not trade them"
 "desk/eponymous_connors.py" = "Connors' RSI-2 as a rule under the one template, with its author, source and published setting; not traded by the paper desk"
 "desk/eponymous_bollinger_squeeze.py" = "Bollinger's band squeeze as a rule under the one template, with its author, source and published setting; not traded by the paper desk"
+"desk/eponymous_clenow_momentum.py" = "Clenow's momentum rule (Stocks on the Move) as a rule under the one template, author, source and published figure written down; not traded by the paper desk"
 "desk/orders.py" = "the order, sized from the one capital number, its stop, the pre-trade gate"
 "desk/broker.py" = "the pretend broker the desk trades against in simulation"
 "desk/book.py" = "the ledger of fills under the broker's ids, and the book built from the broker"
 "desk/carry.py" = "the pound's rate on a day London is shut and the US trades: the last London session's carried over, at most three US sessions"
 "desk/eponymous_bands.py" = "the eponymous channel rules (Donchian's four-week breakout), each a rule under the strategy template, authors and sources written down; the paper desk does not trade them"
+"desk/eponymous_dan_zanger.py" = "Dan Zanger's heavy-volume base breakout as a rule under the one template, with its author, secondary source and published figure range; not traded by the paper desk"
 "desk/day.py" = "the desk's day: run once for a date, publish one record, replay it"
 "desk/kill.py" = "the kill switch: one command stops every new order and cancels the working ones, the desk says so, and its drill"
 "desk/emergency.py" = "the three emergencies in numbers: an emergency, a crash and a black swan, each a measured fall set in advance, each with its action"
@@ -64,6 +67,7 @@ rungs = []
 "desk/watch.py" = "the crash watch: one look every five minutes reads each trading line's newest bar, and a fall that is one of the three emergencies halts all buying at once, tells him and records why; it lifts its own halt when the market ends a day clear"
 "desk/simcity.py" = "SimCity, small: one command lives the desk's whole day over all the saved data at the pretend broker with its faults and writes the night's one record, with the census of the money path's parts and the scenarios that ran them"
 "desk/simcitycmd.py" = "SimCity's command line: the saved store lived in a night of worlds (all with --full) as the runner asks, the night's words printed, the code 1 for a red night"
+"desk/eponymous_breakouts.py" = "rules named for their authors, ported one at a time under the strategy template and judged on the ladder, never traded by the paper desk: Darvas's box"
 
 # the paper lane
 "desk/paper.py" = "the one door to the paper broker: the paper account's holdings and resting orders, read and set against the desk's book"
@@ -84,6 +88,7 @@ rungs = []
 "lab/grid.py" = "the fast grid engine: each strategy's position after every bar, on whole arrays; it matches the desk's own decisions or refuses"
 "lab/tune.py" = "the pass's auto-tune: the memory ceiling Windows holds on the workers, their number sized to the free cores and backed off under load, each pass's peaks logged"
 "lab/sweep.py" = "the grid's pass: every strategy at every setting on every ticker of a list, a ticker to a worker under the auto-tune, each cell kept by its code and its bars"
+"lab/transfer.py" = "the grid's transfer study: a rule's settings fitted on one line at the centre of a plateau, never a lone peak, and scored on every other line the store holds; the result labelled PRE-REVIEW"
 
 # the rungs lane
 "lab/rung.py" = "the ladder's first rung: a cell's trades priced at the desk's fills and the broker's costs, and judged against chance"
