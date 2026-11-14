@@ -1,7 +1,7 @@
 """book - THE LEDGER AND THE BOOK. Fills are written under the broker's own ids. The book is
 the sum of those fills, never the orders the desk meant to send, and reconciling compares
 it with the positions the broker reports. The send path keeps the kill switch's record,
-and sends nothing while it is on."""
+and sends nothing while it is on, and no buy while a halt is in force."""
 
 from __future__ import annotations
 
@@ -14,7 +14,9 @@ from decimal import Decimal
 from enum import Enum
 from pathlib import Path
 
+from desk import halt
 from desk.broker import Broker, Disconnected, Fill
+from desk.halt import Blocker, Stopped
 from desk.lines import Line
 from desk.orders import Charges, Order, Refused, Sale, Settings, charges, gate, leg_of
 
@@ -36,6 +38,11 @@ class Sent:
     order_id: str
     filled: int
     reason: str | None  #: why it did not fill completely; None only when it did
+    blocker: Blocker | None = None  #: what stood in its way: named with the reason, or neither
+
+    def __post_init__(self) -> None:
+        if (self.reason is None) != (self.blocker is None):
+            raise ValueError(f"{self.order_id}: {self.reason!r} with the blocker {self.blocker}")
 
 
 @dataclass(frozen=True)
@@ -63,23 +70,29 @@ def send(root: Path, broker: Broker, order: Order | Sale, settings: Settings) ->
     with the broker's fills first. While the book is not the broker's on any line nothing
     is bought, and a line is sold only if its shares agree: one that has lost its stop may
     go, shares the broker may not hold may not. While the kill switch is on nothing is sent
-    at all, were it pulled as the broker answered; what the broker already has is recorded."""
+    at all, and while a halt is in force no buy, were either done as the broker answered;
+    what the broker already has is recorded. Every refusal made here names its blocker
+    (Stopped), the gate's too, and so does an answer that is not a whole fill; a refusal
+    that names none is the broker's own door's."""
     report = broker.report(order.order_id)
     if report is None:
-        _unless_killed(root, order.order_id)
+        _unless_stopped(root, order)
         held, differ, unsure = _compare(root, broker)
         if differ and (isinstance(order, Order) or order.line.symbol in unsure):
-            raise Refused(
-                f"{order.order_id}: not sent, the book is not the broker's on {list(differ)}"
-            )
-        gate(order, settings, held)
-        _unless_killed(root, order.order_id)  #: read again, at the last moment before it goes
+            words = f"{order.order_id}: not sent, the book is not the broker's on {list(differ)}"
+            raise Stopped(Blocker.BOOK, words)
+        try:
+            gate(order, settings, held)
+        except Refused as refused:
+            raise Stopped(Blocker.GATE, str(refused)) from refused
+        _unless_stopped(root, order)  #: read again, at the last moment before it goes
         try:
             report = broker.place(order)
         except Disconnected as lost:  #: never received: stated, and sent again next time
-            return Sent(order.order_id, 0, str(lost))
+            return Sent(order.order_id, 0, str(lost), Blocker.BROKER)
     collect(root, broker)  #: a stop sold on the day of its buy is in no answer
-    return Sent(order.order_id, sum(abs(f.quantity) for f in report.fills), report.reason)
+    filled, short = sum(abs(f.quantity) for f in report.fills), report.reason is not None
+    return Sent(order.order_id, filled, report.reason, Blocker.BROKER if short else None)
 
 
 def turn(root: Path, to: Switch, at: datetime, why: str) -> None:
@@ -112,7 +125,15 @@ def _turn(at: datetime, to: Switch, why: str) -> tuple[datetime, Switch, str]:
 def _unless_killed(root: Path, order_id: str) -> None:
     """Refuse the order while the kill switch is on, in the switch's own words."""
     if on := killed(root):
-        raise Refused(f"{order_id}: not sent, {on}")
+        raise Stopped(Blocker.KILL, f"{order_id}: not sent, {on}")
+
+
+def _unless_stopped(root: Path, order: Order | Sale) -> None:
+    """Refuse the order while the kill switch is on, and a buy while a halt is in force."""
+    _unless_killed(root, order.order_id)
+    if isinstance(order, Order) and (halts := halt.in_force(root)):
+        said = "; ".join(h.since for h in halts)
+        raise Stopped(Blocker.HALT, f"{order.order_id}: not sent, a halt is in force, {said}")
 
 
 def killed(root: Path) -> str | None:
