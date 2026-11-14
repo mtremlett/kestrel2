@@ -16,21 +16,22 @@ of the day alone: an order or a fill of an earlier day is in the desk's ledger, 
 
 Two things are sent that are no question. An order, by `place` alone: after the kill
 switch was drilled (kill.drilled), the day's check came back clean (clearance.require) and
-the gateway said it is ready (gateway.known).
-And a cancel, for an order of the desk's own: by the kill switch, of each still working,
-never a stop resting to sell what is held; and by `place`, of what the broker did not fill,
-and of a stop only once the stop that replaces it rests, or no share is left under it."""
+the gateway said it is ready (gateway.known); and the stop a line is left under (`settle`),
+by `place` and, after a restart, by desk/running.py. And a cancel, for an order of the
+desk's own: by the kill switch, of each still working, never a stop resting to sell what is
+held; by `place`, of what the broker did not fill; and by `settle`, of a stop only once the
+stop that replaces it rests, or no share is left under it."""
 
 from __future__ import annotations
 
 from collections.abc import Callable, Collection, Iterator, Mapping, Sequence
 from dataclasses import replace
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 from typing import BinaryIO, NamedTuple
 
-from desk import clearance, gateway, kill, listing, paper, reports
+from desk import clearance, gateway, kill, listing, paper, reports, venues
 from desk.broker import Disconnected, Fill, Report
 from desk.listing import Listing, Unlisted
 from desk.orders import Order, Refused, Sale
@@ -201,6 +202,20 @@ def _due(before: Stop | None, held: Decimal, moved: int, new: Stop | None) -> St
     return kept._replace(shares=held) if kept and held > 0 else None
 
 
+def on(account: paper.Account, listed: Listing) -> tuple[Decimal, list[Resting]]:
+    """A line in one reading of the account: the shares the account holds of it, and the
+    desk's own stops to sell open on it, held by the broker or not yet."""
+    name = paper.own(listed.line)
+    held = sum((h.shares for h in account.holdings if h.name == name), Decimal(0))
+    stops = [
+        o
+        for o in account.orders
+        if o.contract == listed.contract and o.state not in OVER
+        if reports.ours(o.client, o.ref) and reports.stop_to_sell(o)
+    ]
+    return held, stops
+
+
 class Paper:
     """The paper account, as a broker the send path, the day run and the kill switch can
     stand on."""
@@ -246,7 +261,7 @@ class Paper:
         broker has not ended when it falls silent is cancelled, and the answer is what the
         broker then says it did with the order (report), with the notices it gave when it
         did not fill whole. A buy goes with its stop, and whatever the broker did, the line
-        is then left under the one stop due on it (_due, _settle): but only once the
+        is then left under the one stop due on it (_due, settle): but only once the
         account's shares of the line have moved by exactly the order's fills, and an order
         the broker called filled has fills for all its shares. Otherwise a stop has sold
         meanwhile or a reading is late: Unprotected, and the line's stops are left as they
@@ -263,14 +278,14 @@ class Paper:
             last = self._cancelled({number: ref})[number]
         report = self.report(ref) or Report(ref, (), f"{ref}: the broker tells nothing of it")
         moved = sum(fill.quantity for fill in report.fills)
-        held, stops = self._line(listed)
+        held, stops = on(paper.read(), listed)
         if held != was + moved or (last == "Filled" and abs(moved) != order.quantity):
             raise Unprotected(
                 f"{ref}: the broker's last word of it was {last}, its fills come to {moved} "
                 f"shares, and the account's {listed.line.symbol} went from {was} to {held}: "
                 "these do not agree, and the line's stops are left as they are"
             )
-        self._settle(listed, held, stops, _due(before, held, moved, new))
+        self.settle(listed, held, stops, _due(before, held, moved, new))
         if report.reason is None or not notices:
             return report
         return replace(report, reason=f"{report.reason}; it said: {'; '.join(notices)}")
@@ -278,16 +293,21 @@ class Paper:
     def _cleared(self, order: Order | Sale) -> tuple[Listing, Stop | None]:
         """The line as the broker lists it, and the stop a buy goes with (_with), for an
         order cleared to go: the broker lists the line (Refused) and has a price at or below
-        the buy's stop (an error raised: no line of the desk's is priced that low), the kill
-        switch was drilled within its month and today's check of the account came back
-        clean (Refused, both), and the gateway says it is ready: Disconnected, the order
-        never received."""
+        the buy's stop (an error raised: no line of the desk's is priced that low), the
+        order's id is dated the session of its venue before today's, so it was decided on
+        yesterday's bars and no older (Refused), the kill switch was drilled within its
+        month and today's check of the account came back clean (Refused, both), and the
+        gateway says it is ready: Disconnected, the order never received."""
         symbol, now = order.line.symbol, self._clock()
         listed = self._listings.get(symbol)
         if not isinstance(listed, Listing):
             why = listed.reason if listed else "it was not asked for the line"
             raise Refused(f"{order.order_id}: not sent, the broker does not list {symbol}: {why}")
         new = _with(listed, order) if isinstance(order, Order) else None
+        last = venues.sessions(order.line.venue, now.date() - timedelta(days=9), now.date())[-2:]
+        if [f"{day:%Y%m%d}" for day in last] != [order.order_id[:8], f"{now:%Y%m%d}"]:
+            why = f"{now:%Y-%m-%d} is not the session of {order.line.venue}'s next after"
+            raise Refused(f"{order.order_id}: not sent, {why} the one it is dated")
         if not kill.drilled(self._root, now.date()):
             why = f"the kill switch was not drilled in the last {kill.DRILL_DAYS} days"
             raise Refused(f"{order.order_id}: not sent, {why}")
@@ -297,25 +317,12 @@ class Paper:
             raise Disconnected(f"{order.order_id}: not sent, {known.words}")
         return listed, new
 
-    def _line(self, listed: Listing) -> tuple[Decimal, list[Resting]]:
-        """A line in one reading of the account: the shares the account holds of it, and
-        the desk's own stops to sell open on it, held by the broker or not yet."""
-        account, name = paper.read(), paper.own(listed.line)
-        held = sum((h.shares for h in account.holdings if h.name == name), Decimal(0))
-        stops = [
-            o
-            for o in account.orders
-            if o.contract == listed.contract and o.state not in OVER
-            if reports.ours(o.client, o.ref) and reports.stop_to_sell(o)
-        ]
-        return held, stops
-
     def _before(self, listed: Listing, order_id: str) -> tuple[Decimal, Stop | None]:
         """A line before an order goes: the shares the account holds of it, and the stop of
         the desk's own it is under, or None with none open on it. More than one open, or one
         the broker is not holding, and the order is Refused: what the line is under is not
         settled, and the day's check names it."""
-        held, stops = self._line(listed)
+        held, stops = on(paper.read(), listed)
         rests = [
             Stop(o.left, o.level, o.ref)
             for o in stops
@@ -327,7 +334,7 @@ class Paper:
             raise Refused(f"{order_id}: not sent, {where}")
         return held, (rests[0] if rests else None)
 
-    def _settle(
+    def settle(
         self, listed: Listing, held: Decimal, stops: Sequence[Resting], due: Stop | None
     ) -> None:
         """Leave a line under the one stop due on it, or under none; held is the shares the
@@ -344,7 +351,7 @@ class Paper:
         spare = {o.number: o.ref for o in stops if o is not kept}
         said = self._cancelled(spare) if spare else {}
         odd = {spare[number]: word for number, word in said.items() if word not in GONE}
-        if odd and ("Filled" in odd.values() or self._line(listed)[0] != held):
+        if odd and ("Filled" in odd.values() or on(paper.read(), listed)[0] != held):
             raise Unprotected(
                 f"a stop of the desk's own on {listed.line.symbol} ended another way as it was "
                 f"being cancelled, sold perhaps: {odd}"
