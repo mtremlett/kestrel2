@@ -8,6 +8,9 @@ started again simply by asking for a step.
 What a step owes, in this order, and only of a gateway that says it is ready:
 - THE LEDGER brought up to date with the broker's fills, at every step in which a market is
   open: the broker tells of the day alone.
+- THE KILL SWITCH'S DRILL (kill.drill), each day before anything else of that day's work,
+  once: no order goes on a day the switch was not seen to work. A drill that broke a promise
+  is a step that failed: nothing below is done, and the next step drills again.
 - THE DAY'S CHECK (clearance.check), from the hour he wakes, and again before each round of
   orders and each record. When it names anything, what a dead desk left at the broker is
   first put right (`recover`) and the account checked again. Still not clean, no order goes
@@ -48,6 +51,7 @@ from desk import (
     placing,
     venues,
 )
+from desk.book import Switch
 from desk.gateway import Known, State
 from desk.lines import LINES, Line
 from desk.listing import Listing, Unlisted
@@ -234,7 +238,8 @@ def _owed(root: Path, now: datetime) -> list[date]:
 def _work(desk: Desk, now: datetime) -> None:
     """What a step owes of a ready gateway, in the module's order; the paper account is
     asked only when something is owed. A round and a record each have the check before
-    them, so a desk started again at any hour is recovered before it orders or publishes."""
+    them, so a desk started again at any hour is recovered before it orders or publishes;
+    and the day's drill is before them all, an error raised if it broke a promise."""
     root = desk.root
     rounds, owed, last = _pending(root, now), _owed(root, now), clearance.checks(root)[-1:]
     checked = bool(last) and last[0].at.date() == now.date() and last[0].found is not None
@@ -245,6 +250,8 @@ def _work(desk: Desk, now: datetime) -> None:
     listings = listing.read(LINES)
     broker = placing.Paper(listings, root, lambda: now)
     book.collect(root, broker)
+    if (Switch.DRILLED, now.date()) not in {(to, at.date()) for at, to, _ in book.switch(root)}:
+        kill.drill(root, now)
     if check and not _clean(desk, broker, listings, now):
         rounds = []
     for venue in rounds:
