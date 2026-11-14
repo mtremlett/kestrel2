@@ -87,51 +87,53 @@ everything on main, so two green lanes cannot combine into a red main.
 
 ## MONEY
 
-Last updated: 13 November 2026 (the kill switch; each strategy declared).
-
+Last updated: 14 November 2026 (the costs whole, the emergencies, the day's record).
 ### Where it is
-
-Scenes 5 of 7. Built: the five rules with typed declarations (`strategy`); sizing, cost, gate
-(`orders`); the pretend broker; the send path, ledger, book, reconciliation (`book`); the day's
-trading (`day.trade`); the kill switch and its drill (`kill`, EMG-02). Unfinished, raising
-NotImplementedError by design: `day.run`; scenes 6 and 7 pass together on it.
+Scenes 7 of 7. Built: the five rules; sizing, the one cost model (five lines), gate (`orders`); the
+pretend broker; send path, ledger, book, reconciliation (`book`); the day (`day.trade`, `day.run`,
+`day.publish`: the record to the penny in `records.csv`); the kill switch; `emergency` (EMG-01).
 
 ### Next step
-
-The costs whole (R-RUNGS-1), then the day's record (`day.run`), scene 6 checking the book against
-the broker's every day. Boxes noted in order (#76); emergencies can start beside costs.
+SimCity small (money-simcity), halts, the gate's other limits, the money invariants.
 
 ### Done for other lanes
 
 - R-PAPER-2: done in #64
+- R-RUNGS-1: done in #101
+
 ### Requests to PAPER
-- [ ] R-MONEY-4 (later, opened 2026-11-13 18:35 UK): `paper.differences` asks `book.differences`.
-- [ ] R-MONEY-5 (blocking, opened 2026-11-13 21:39 UK): the paper adapter answers `Broker.cancel`:
-  own client id's working orders only, named once confirmed, stops left; error if not whole.
-- [ ] R-MONEY-6 (blocking, opened 2026-11-13 21:39 UK): the paper send refuses unless
-  `kill.drilled(root, day)`; better, run `kill.drill(root, now)` at each paper desk start.
 - [ ] R-MONEY-7 (later, opened 2026-11-13 21:39 UK): a typed command calling `kill.pull`, sending
   `Killed.words()` to Telegram; with a supervised desk, one lock across the send path's last read.
+- [ ] R-MONEY-8 (blocking, opened 2026-11-14 00:45 UK): the paper day calls `day.trade` (today, real
+  data) and `day.publish`, never `day.run`; the adapter refuses an order not dated the session
+  before the broker's today. Missed day: `book.record_rates`, `day.publish`.
+- [ ] R-MONEY-9 (later, opened 2026-11-13 22:11 UK): a stop's fills get the order's id plus "-stop".
+- [ ] R-MONEY-10 (later, opened 2026-11-13 22:11 UK): in conformance set paper fills beside
+  `orders.charges` and the assumed 0.05% spread a leg; say if fills already carry the spread.
+- [ ] R-MONEY-11 (later, opened 2026-11-14 00:20 UK): when you hold `desk/clearance.py`, say so; the
+  ledger's writer `book._write` then becomes public (`book.write`).
 
 ### Requests to DATA
 - [x] R-MONEY-2 (blocking, opened 2026-11-13 18:15): the scenes moved onto the fourteen months.
 - [ ] R-MONEY-3 (later, opened 2026-11-13 18:15): a daily rate, pounds per dollar, in the store.
+- [ ] R-MONEY-12 (later, opened 2026-11-13 22:56 UK): on the master, the lines standing for the
+  market: the yardstick's twin (VUSA) and one trading in New York's hours.
+
+### Requests to RUNGS
+- [ ] R-MONEY-13 (later, opened 2026-11-13 22:11 UK): the first rung prices each leg with
+  `orders.charges(line, leg, shares, price, fx)`; today it charges a sale as a purchase.
+- [ ] R-MONEY-14 (later, opened 2026-11-14 00:20 UK): AG-04 must not add the records' market column
+  (£783.73 added, £420.64 held): compound the days or read the two closes.
 
 ### Found, not fixed
-
-- **Costs:** spread, slippage, UK tax charged nowhere yet; no one rounding policy; fixed IBKR UK
-  fees. New cost legs arrive as additions (other lanes' tests pin `orders.cost`, `book.COLUMNS`).
-- **A sale can exceed the holding:** `orders.Sale` can be built for more than held (the gate
-  refuses it at send); recommended box: a sale made only from the book's holding.
-- **Nothing reads a declaration yet:** `day.trade` trades every rule on every line.
-- **Kill switch:** paper cancel unproven; the drill records no code version; an empty `ledger.csv`
-  reads as "no fills"; two programs at once leave a hair's-breadth window.
-- **Nobody is told of a mismatch yet;** the gate takes the book as a bare mapping, sizes at the
-  last close; the day run redecides all history daily and has no halt.
-- **The rules:** a decision depends on where history starts; `strategy.today` on one bar stops unclearly.
-- **For the paper adapter:** a working order is in none of the five answers; a stop's level is
-  never compared; a connection lost while reading is not a stated answer.
-- A helper's empty copy under `kestrel2\.claude\worktreesgent-a208b88dff47c8527` can go.
+- **No clock on the day path:** an old day with no record and no later fill is not known old (R-MONEY-8).
+- **Costs:** spread and slippage assumed, not measured; fills carrying their own spread must not
+  have it taken off twice (TRD-09); a stop's fill is known by name, not a typed word.
+- **Records:** a withheld day shows twice if added; a damaged `records.csv` row is not named.
+- **Emergencies:** one bad VUAG price could call for selling all (R-MONEY-12); market unread
+  after London closes; 5QQQ can have no emergency.
+- A sale can exceed the holding; nothing reads a declaration yet; a mismatch tells nobody yet;
+  the day run has no halt. A helper's empty copy under `kestrel2\.claude\worktreesgent-a208b88dff47c8527` can go.
 
 ## PAPER
 
