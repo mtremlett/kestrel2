@@ -5,6 +5,7 @@ pass; a fresh bar wins, and each bar that differs from one held is counted."""
 from __future__ import annotations
 
 import sqlite3
+import zipfile
 from collections.abc import Iterable, Mapping
 from contextlib import closing
 from datetime import UTC, date, datetime, timedelta
@@ -216,10 +217,28 @@ def _parquet(folder: Path, line: Line, walls: list[datetime], fetched: bool = Fa
         (made / "fetch.json").write_text("{}")
 
 
-def test_the_parquet_stores_are_read_on_their_own_clocks_and_adopted_once(
+def _stooq(trend: Path, raw: Path, line: Line, walls: list[datetime]) -> None:
+    """mark_the_trend's Stooq file and a raw Stooq zip of a line's bars of 10 11 9 10 and 5."""
+    trend.mkdir()
+    cells = {
+        name: [x] * len(walls)
+        for name, x in zip(headstart.TREND[1:], (10.0, 11.0, 9.0, 10.0, 5.0), strict=True)
+    }
+    pq.write_table(pa.table({"DATE": walls} | cells), trend / f"{line.symbol}.L.5.parquet")
+    later = [walls[0], walls[1] + timedelta(minutes=5)]  # the zip's second moment is its own
+    rows = [f"{line.symbol}.UK,5,{w:%Y%m%d},{w:%H%M%S},10,11,9,10,5,0" for w in later]
+    (raw / "2026-10-24").mkdir(parents=True)
+    with zipfile.ZipFile(raw / "2026-10-24/5_uk_txt__24oct26.zip", "w") as made:
+        made.writestr(
+            f"data/5 min/uk/lse etfs/{line.symbol.lower()}.uk.txt", "\n".join(["<T>", *rows])
+        )
+
+
+def test_the_parquet_and_stooq_stores_are_read_on_their_own_clocks_and_adopted_once(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     line, store, ibkr, stooq = LINES[2], tmp_path / "market.db", tmp_path / "i", tmp_path / "s"
+    trend, raw = tmp_path / "t", tmp_path / "r"
     with bars.writing(store) as round_:
         round_.five(line, [_at(0)])
     monkeypatch.setattr(archive, "fetch", lambda _line, _day: (DAY,))
@@ -227,20 +246,23 @@ def test_the_parquet_stores_are_read_on_their_own_clocks_and_adopted_once(
     hour = timedelta(hours=1)  # Stooq's clock in winter
     _parquet(ibkr, line, [_at(0).start, _at(5).start], fetched=True)
     _parquet(stooq, line, [_at(0).start + hour, _at(10).start + hour])
-    sources = [headstart.reader(where) for where in (ibkr, stooq)]
-    assert [how[0] for how in sources if how] == [Source.IBKR_STORE, Source.STOOQ_STORE]
+    _stooq(trend, raw, line, [_at(0).start + hour, _at(15).start + hour])
+    wheres = (ibkr, stooq, trend, raw)
+    sources = [headstart.reader(where) for where in wheres]
+    made = [Source.IBKR_STORE, Source.STOOQ_STORE, Source.TREND_STOOQ, Source.STOOQ_RAW]
+    assert [how[0] for how in sources if how] == made
+    with pytest.raises(ValueError, match="no zip of us"):
+        headstart.raw(US, raw)
     register = tmp_path / "register.md"
-    register.write_text("".join(f"| IMPORT | `{where}` | 1 GB | |\n" for where in (ibkr, stooq)))
+    register.write_text("".join(f"| IMPORT | `{where}` | 1 GB | |\n" for where in wheres))
     day = NOON.date() + timedelta(1)
-    read = "2 old stores read, 0 already in, 0 with no reader yet (none)"
+    read = "4 old stores read, 0 already in, 0 with no reader yet (none)"
     assert headstart.main(register, store, day) == (
-        f"headstart: {read}; bars filled 2, met 2, differ 0"
+        f"headstart: {read}; bars filled 4, met 4, differ 0"
     )
-    assert bars.five(store, line, NOON, NOON + timedelta(1)) == (_at(0), _at(5), _at(10))
-    assert bars.sources(store, line, bars.FIVE) == dict.fromkeys(
-        (Source.ARCHIVE, Source.IBKR_STORE, Source.STOOQ_STORE), 1
-    )
-    again = "headstart: 0 old stores read, 2 already in, 0 with no reader yet (none)"
+    assert bars.five(store, line, NOON, NOON + timedelta(1)) == tuple(map(_at, (0, 5, 10, 15, 20)))
+    assert bars.sources(store, line, bars.FIVE) == dict.fromkeys((Source.ARCHIVE, *made), 1)
+    again = "headstart: 0 old stores read, 4 already in, 0 with no reader yet (none)"
     assert headstart.main(register, store, day) == f"{again}; bars filled 0, met 0, differ 0"
 
 
