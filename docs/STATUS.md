@@ -9,7 +9,7 @@ next step, what it found and did not fix, and any question it holds for the oper
 
 ## Shared
 
-Last updated: 13 November 2026.
+Last updated: 14 November 2026.
 
 ### Where we are
 
@@ -33,8 +33,9 @@ short one, for #17, on the same day.
 Five lanes now run day and night on the operator's PC, by his rulings of 13 November
 (`docs/DECISIONS.md`): MONEY (scenes 5 to 7), PAPER (phase 3, begun alongside phase 2),
 DATA (the research universe, the parked lines, the store's findings), GRID (the fast grid
-engine) and RUNGS (the ladder's rungs). Every lane runs on Fable while its allowance is
-under 45%, then on Opus until a Fable reset (his ruling). A
+engine) and RUNGS (the ladder's rungs). Every lane runs on Fable until 97% of Fable's own
+allowance is used or Fable refuses a session, then on Opus until a Fable reset (his ruling
+at 20:12 on 13 November, which replaced the earlier 45%). A
 runner outside this repository starts each lane's next session when the last one ends,
 inside the plan's included usage, stopping at 80% of the week.
 GitHub merges a pull request only when its check is green and its branch already holds
