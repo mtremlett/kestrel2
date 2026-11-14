@@ -3829,3 +3829,16 @@ Decided by the PAPER lane as the desk's mentor, no one watching.
 - The missing 12 November. Options: record the line as suspended (false); leave the gap (parks the line for 60 sessions); build it from the archive's five-minute bars of that day. Chosen: the last.
 - Cross-check source. The archive holds nothing of 3LGO before 13 November, so the database's July daily closes are the only independent proof; gate: at least half the overlapping closes agree (7 of 9 did). Units: pence assumed for a pound line, refuted by the store's jump check if wrong.
 - No blind review was run in this unattended session.
+
+## 2026-11-14 — failure pattern 13, the cleaner tuned on live lines (R-RUNNER-43)
+
+The store-rules guard, `tests/unit/test_store_rules.py` (#225), is pattern 13's mechanism.
+Its drive evidence, from the pull requests that drove it (each plant reverted):
+- #225: a new fault site in `desk/store.py` failed the sites test; a new constant failed
+  the constants test; `BLIP` 20 to 21 failed the constants test; a reworded "bad print"
+  failed that rule's row.
+- #227: `EXTRA = 1` added to the store failed
+  `test_every_tuning_constant_of_the_store_is_pinned_to_its_value`; a new `Fault(...)`
+  branch in `_once` failed `test_every_rule_in_the_store_is_pinned_by_a_row_that_fires_it`.
+The pattern's text could not land from the DATA lane (the lane guard refuses
+`docs/FAILURE_PATTERNS.md`); a non-lane session added it.
