@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import astuple
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
 
@@ -31,11 +31,15 @@ from rehearsal import (
 
 from desk import book, day, orders, store, strategy, venues
 from desk.broker import Crash, Fault, Pretend
+from desk.lines import YARDSTICK
 
 # ---------------------------------------------------------------- the money
 
 SETTINGS = orders.Settings(capital=Decimal(10_000))
 RATES = {"GBP": Decimal(1), "USD": Decimal("0.79")}  #: pounds per unit, every rehearsal day
+#: The rehearsal data with the desk's one yardstick for "simply holding the market" among its
+#: lines, as it is among the twenty: here it follows a London line's prices.
+MARKET = {**CLEAN, YARDSTICK: CLEAN[LINES[1]]}
 
 
 def _order(symbol: str) -> orders.Order:
@@ -45,10 +49,12 @@ def _order(symbol: str) -> orders.Order:
 
 
 def _run_days(root: Path, broker: Pretend, days: Sequence[date]) -> list[day.Record]:
+    """Each day whole, from the data saved by its end: its own bars, and none after."""
     records = []
     for on in days:
         broker.open(on)
-        records.append(day.run(root, before(CLEAN, on), broker, SETTINGS, on, RATES))
+        saved = before(MARKET, on + timedelta(days=1))
+        records.append(day.run(root, saved, broker, SETTINGS, on, RATES))
     return records
 
 
@@ -179,10 +185,15 @@ def test_scene_5_the_position_is_closed(tmp_path: Path) -> None:
 
 def test_scene_6_the_book_is_the_brokers(tmp_path: Path) -> None:
     #: every line's first order is rejected: the desk meant to buy and did not
-    broker = Pretend(CLEAN, {line.symbol: Fault.REJECT for line in LINES})
-    records = _run_days(tmp_path, broker, SESSIONS[1:-1])
-    assert all(r.mismatches == () and r.profit is not None for r in records)
-    assert broker.holdings() and book.positions(tmp_path) == dict(broker.holdings())
+    broker = Pretend(MARKET, {line.symbol: Fault.REJECT for line in MARKET})
+    held = 0
+    for on in SESSIONS[1:-1]:  #: the fourteen months, the two books side by side every day
+        (record,) = _run_days(tmp_path, broker, [on])
+        assert record.mismatches == () and record.profit is not None, f"{on}: no plain number"
+        ours = book.positions(tmp_path)
+        assert ours == dict(broker.holdings()) == dict(broker.stops()), f"{on}: not the broker's"
+        held += bool(ours)
+    assert held, "nothing was ever held, so the two books agreed about nothing"
 
     broker.inject("L07", 7)
     (last,) = _run_days(tmp_path, broker, SESSIONS[-1:])
@@ -191,14 +202,28 @@ def test_scene_6_the_book_is_the_brokers(tmp_path: Path) -> None:
 
 
 def test_scene_7_a_day_that_counts_and_the_same_day_replayed(tmp_path: Path) -> None:
-    broker = Pretend(CLEAN, {})
+    broker = Pretend(MARKET, {})
     records = _run_days(tmp_path, broker, SESSIONS[1:])
 
     assert all(r.mismatches == () and r.profit is not None for r in records)
     charged = [sum(column) for column in zip(*(astuple(r.costs) for r in records), strict=True)]
     assert all(total > 0 for total in charged), "a cost line was never charged"
     assert any(r.market != 0 for r in records), "what holding the market earned is missing"
-    again = _run_days(tmp_path / "again", Pretend(CLEAN, {}), SESSIONS[1:])
+    #: the market's figure is the capital in the yardstick, from each close to the next
+    bars = MARKET[YARDSTICK]
+    moves = sum((b.close / a.close - 1 for a, b in zip(bars, bars[1:], strict=False)), Decimal(0))
+    near = len(records) * Decimal("0.005")  #: each day is rounded once, to the penny
+    held = sum((r.market for r in records), Decimal(0))
+    assert abs(held - SETTINGS.capital * moves) <= near, "the market's figure not the yardstick's"
+    #: the book ends flat, so the days' profits are the round trips', a day's rounding apart
+    trips = sum((trip.profit for trip in book.round_trips(tmp_path, MARKET)), Decimal(0))
+    days = sum((r.profit for r in records if r.profit is not None), Decimal(0))
+    assert book.positions(tmp_path) == {} and trips != 0
+    assert abs(days - trips) <= near, "the days' profits are not the ledger's"
+    dealt = {fill.day for fill in book.fills(tmp_path)}
+    assert any(r.profit for r in records if r.day not in dealt), "a holding's own day in no record"
+    assert day.records(tmp_path) == tuple(records), "the days not kept as they were published"
+    again = _run_days(tmp_path / "again", Pretend(MARKET, {}), SESSIONS[1:])
     assert again == records, "the same days replayed from the saved data gave other records"
     with pytest.raises(TypeError):
-        day.Costs(Decimal(1), Decimal(1), Decimal(1), Decimal(1))  # type: ignore[call-arg]
+        orders.Charges(Decimal(1), Decimal(1), Decimal(1), Decimal(1))  # type: ignore[call-arg]
