@@ -126,7 +126,7 @@ def raw(line: Line, folder: Path) -> tuple[Five, ...]:
     )
 
 
-def _asked(path: Path, ask: str, ticker: str) -> list[tuple[Any, ...]]:
+def asked(path: Path, ask: str, ticker: str) -> list[tuple[Any, ...]]:
     """What the old desk's database at path answers to a question about one ticker, opened
     read-only: nothing is written to it or beside it, and one not there is not made. One whose
     log still holds changes is being written, and is refused."""
@@ -142,7 +142,7 @@ def database(line: Line, path: Path) -> tuple[Five, ...]:
     the archive does and stamps a bar with the moment it starts, in UTC. A line it holds no
     bar of is refused."""
     ticker = line.symbol + archive.SUFFIX[line.venue]
-    rows = _asked(path, BARS, ticker)
+    rows = asked(path, BARS, ticker)
     if not rows:
         raise ValueError(f"{path.name} holds no five-minute bar of {ticker}")
     return _stamped(((datetime.fromisoformat(at), *rest) for at, *rest in rows), False)
@@ -190,8 +190,8 @@ def daily(line: Line, data: Path, stores: tuple[Path, Path], day: date) -> str:
         raise ValueError(f"{line.symbol}: the archive gave no bar before {day} to join to")
     mine = matrix_days(line, stores[0])
     close = {bar.day: bar.close for bar in mine}
-    asked = _asked(stores[1], DAYS, line.symbol + archive.SUFFIX[line.venue])
-    theirs = [(date.fromisoformat(at[:10]), Decimal(str(c))) for at, c in asked if c]
+    got = asked(stores[1], DAYS, line.symbol + archive.SUFFIX[line.venue])
+    theirs = [(date.fromisoformat(at[:10]), Decimal(str(c))) for at, c in got if c]
     met = [(c, close[d]) for d, c in theirs if d in close]
     differ = sum(abs(c - kept) > bars.AGREE * kept for c, kept in met)
     if (doubt := _doubt(len(met), differ)) is not None:
