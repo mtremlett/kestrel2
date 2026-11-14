@@ -112,8 +112,8 @@ PUBLISHED: Mapping[str, Published] = {
         "Faith, Way of the Turtle (2007): the Turtles' system 1, on the close",
         (
             _case(
-                "highs of 10.5 for twenty days: 10.4 does not clear them and 11 does, on bar "
-                "21; bar 23's 9.4 is under the lows of 9.5 ten days before, and sells",
+                "highs of 10.5 for twenty days: bar 20's 10.4 does not clear them; bar 21's 11 "
+                "clears bar 20's high of 10.9; bar 23's 9.4 is under the lows of 9.5, and sells",
                 [10] * 20 + ["10.4", 11, 11, "9.4", "9.4"],
                 ((21, 23),),
             ),
