@@ -1,7 +1,6 @@
 """reproduce - THE AUTHOR'S OWN RESULT: the desk's code run on the author's market over the
 author's period, counted as the author counted, and set beside the figure the author printed.
-It is to come before a published rule is judged on the desk's market; nothing yet makes the
-first rung wait for it (docs/STATUS.md).
+It comes before a published rule is judged on the desk's market: the first rung waits for it.
 
 The published rules (`lab/published.py`) hold the code to the rule's words on short series
 worked by hand. This holds it to the author's result: the same code on the same market over
@@ -29,6 +28,12 @@ session, or hold a bar on a day that is none, from the first bar the rule is sho
 period's end (the one calendar says which days those are); code that is not
 the published rule; a period in which the rule made no trade. One number outside its
 nearness and the figure is not reproduced, and each number made is given beside the author's.
+
+THE FIRST RUNG WAITS (`settled`). A rule with an author's figure on file is given no verdict on
+the desk's market until every such figure's reproduction is handed over: of the figure as it is
+on file, made by the code as it now is, and the same in every number. A rule with no figure on
+file is judged, and its verdict says that no author's result stands behind it. What is handed
+over is `reproduce`'s own answer: the rung does not read the author's bars again.
 
 NO FIGURE IS ON FILE YET. None of the five rules' authors' figures has been read from its
 source by this desk, and the desk's bars begin in 2010, after the periods the books tested.
@@ -117,6 +122,10 @@ class Reproduction:
     key: Key  #: the code, this module's with the rule's, and the bars that made it
     found: tuple[Found, ...]  #: each number the author stated, with the desk's beside it
 
+    def __post_init__(self) -> None:
+        if tuple(found.stated for found in self.found) != self.figure.stated:
+            raise ValueError(f"{self.figure.source}: not the figure's numbers, each as stated")
+
     @property
     def reproduced(self) -> bool:
         return all(found.same for found in self.found)
@@ -172,3 +181,30 @@ def _gains(trades: Sequence[Trade], read: Sequence[Bar], fill: Fill) -> list[Dec
         if bought is not None and sold is not None:
             gains.append(sold / bought - 1)
     return gains
+
+
+def settled(strategy: str, made: Sequence[Reproduction]) -> tuple[Reproduction, ...]:
+    """The authors' own results that stand behind a verdict on the rule: one for each of its
+    figures on file. Refused loudly while any figure waits, and for anything handed over that
+    is not a reproduction of one of them by the code as it now is."""
+    owed = [figure for figure in FIGURES if figure.strategy == strategy]
+    for one in made:
+        if one.figure not in owed:
+            raise ValueError(f"{strategy}: {one.figure.source} is no figure on file for it")
+        c = Cell(strategy, one.figure.line, one.figure.start, one.figure.end)
+        if one.key != Key(c, cell.LOADED, one.key.data).rung(__name__):
+            raise ValueError(
+                f"{one.figure.source}: made over another market or period than the figure's, "
+                "or by other code than this: run it again"
+            )
+        if not one.reproduced:
+            out = "; ".join(
+                f"{f.stated.measure.value}: {f.measured} against the author's {f.stated.value}"
+                for f in one.found
+                if not f.same
+            )
+            raise ValueError(f"{one.figure.source}: not reproduced, so no verdict ({out})")
+    waiting = [figure.source for figure in owed if all(one.figure != figure for one in made)]
+    if waiting:
+        raise ValueError(f"{strategy}: no verdict before its author's own result: {waiting}")
+    return tuple(dict.fromkeys(made))

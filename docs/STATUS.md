@@ -91,13 +91,12 @@ Last updated: 14 November 2026 (the costs whole, the emergencies, the day's reco
 ### Where it is
 Scenes 7 of 7. Built: the five rules; sizing, the one cost model (five lines), gate (`orders`); the
 pretend broker; send path, ledger, book, reconciliation (`book`); the day (`day.trade`, `day.run`,
-`day.publish`: the record to the penny in `records.csv`); the kill switch; `emergency` (EMG-01).
+`day.publish`: the record to the penny in `records.csv`); kill switch; `emergency`; invariants (#132).
 
 ### Next step
-SimCity small (money-simcity), halts, the gate's other limits, the money invariants.
+SimCity small (money-simcity), halts, the gate's other limits, then fills realistic (money-fills).
 
 ### Done for other lanes
-
 - R-PAPER-2: done in #64
 - R-RUNGS-1: done in #101
 
@@ -132,6 +131,7 @@ SimCity small (money-simcity), halts, the gate's other limits, the money invaria
 - **Records:** a withheld day shows twice if added; a damaged `records.csv` row is not named.
 - **Emergencies:** one bad VUAG price could call for selling all (R-MONEY-12); market unread
   after London closes; 5QQQ can have no emergency.
+- **Pretend broker:** no fault reaches a sale or fills in two executions; order state is untyped.
 - A sale can exceed the holding; nothing reads a declaration yet; a mismatch tells nobody yet;
   the day run has no halt. A helper's empty copy under `kestrel2\.claude\worktreesgent-a208b88dff47c8527` can go.
 
@@ -166,7 +166,6 @@ Order: paper-messages, paper-running, paper-kill-drilled, paper-conformance (a c
 - [ ] R-PAPER-6 (later, 2026-11-13 22:10): `desk/venues.py` gives a venue's wall clock publicly; `desk/gateway.py` drops its copy.
 
 ### Done for other lanes
-
 - R-DATA-5: done in #53 (first half). Open: what the first London contract note says of stamp duty (conformance).
 - R-MONEY-4: done in #75
 - R-MONEY-5: done in #110
@@ -251,7 +250,6 @@ grid-week: the seven-day run is going (pid in `C:\tmp\kestrel2_week\pid.txt`). N
 from `C:\tmp\kestrel2_week\code`. grid-declared can start now (it waited only on the shared file).
 
 ### Done for other lanes
-
 - R-DATA-1: done in #73
 ### Requests to MONEY
 

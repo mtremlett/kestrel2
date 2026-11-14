@@ -13,10 +13,12 @@ import pytest
 
 from desk import venues
 from desk.lines import LINES
+from desk.orders import Settings
 from desk.store import Bar
-from lab import cell, published, reproduce
+from lab import cell, published, reproduce, rung
+from lab.cell import Cell
 from lab.published import Case, Published
-from lab.reproduce import Figure, Fill, Measure, Stated
+from lab.reproduce import Figure, Fill, Measure, Reproduction, Stated
 
 VUSA = next(line for line in LINES if line.symbol == "VUSA")
 #: The Turtles' rule, by hand (highs and lows half a point either side of each close): bar
@@ -116,3 +118,52 @@ def test_nothing_is_called_a_reproduction_that_could_not_be_one(
     published.proven.cache_clear()
     with pytest.raises(ValueError, match="no published rule on file"):
         reproduce.reproduce(figure, bars)
+
+
+def test_the_first_rung_waits_for_the_authors_own_result(monkeypatch: pytest.MonkeyPatch) -> None:
+    bars, figure = _bars(), _figure(Fill.CLOSE, *AT_CLOSE)
+    record = cell.run(Cell(figure.strategy, VUSA, DAYS[0], DAYS[-1]), bars)
+
+    def judge(*made: Reproduction) -> rung.Verdict:
+        return rung.judge(record, bars, Settings(Decimal(10_000)), {}, made)
+
+    made = reproduce.reproduce(figure, bars)
+    #: no figure on file: judged, the verdict saying no author's result stands behind it; and
+    #: a reproduction of a figure that is not on file stands behind nothing
+    assert judge().reproduced == ()
+    with pytest.raises(ValueError, match="a planted author is no figure on file for it"):
+        judge(made)
+    #: the figure on file: no verdict before it is reproduced, at either door of the rung
+    monkeypatch.setattr(reproduce, "FIGURES", (figure,))
+    with pytest.raises(ValueError, match="no verdict before its author.*a planted author"):
+        judge()
+    with pytest.raises(ValueError, match="no verdict before its author.*a planted author"):
+        rung.verdict(record.key, ())
+    with pytest.raises(ValueError, match="no verdict before"):  #: said before any price is missed
+        dollars = Cell(figure.strategy, "SPY", DAYS[0], DAYS[-1])
+        rung.judge(cell.run(dollars, bars), bars, Settings(Decimal(10_000)), {})
+    assert judge(made, made).reproduced == (made,)
+    assert rung.verdict(record.key, (), (made,)).reproduced == (made,)
+    #: one made by other code than this, or over another period, is no reproduction of it;
+    #: nor is one that leaves a stated number out, or moves how near is the same
+    elsewhere = replace(made.key, cell=Cell("breakout_20_10", VUSA, *DAYS[1:3]))
+    for key in (replace(made.key, code="older"), elsewhere):
+        with pytest.raises(ValueError, match="another market or period.*or by other code"):
+            judge(replace(made, key=key))
+    wide = replace(made.found[2], stated=replace(made.found[2].stated, within=Decimal(99)))
+    for found in ((), made.found[:2], (*made.found[:2], wide)):
+        with pytest.raises(ValueError, match="not the figure's numbers"):
+            replace(made, found=found)
+    #: a rule of another author waits for nothing of this one's, and is not helped by it
+    other = cell.run(Cell("rsi2_pullback", VUSA, DAYS[0], DAYS[-1]), bars)
+    assert rung.judge(other, bars, Settings(Decimal(10_000)), {}).reproduced == ()
+    with pytest.raises(ValueError, match="rsi2_pullback: a planted author is no figure on file"):
+        rung.judge(other, bars, Settings(Decimal(10_000)), {}, (made,))
+    #: a figure the code misses holds the rule up, each number out named; and every figure
+    #: on file is waited for, not the first alone
+    missed = reproduce.reproduce(_figure(Fill.NEXT_OPEN, *AT_CLOSE), bars)
+    monkeypatch.setattr(reproduce, "FIGURES", (figure, missed.figure))
+    with pytest.raises(ValueError, match=r"not reproduced.*: 12.5\d* against the author's 22.36"):
+        judge(made, missed)
+    with pytest.raises(ValueError, match="no verdict before"):
+        judge(made)
