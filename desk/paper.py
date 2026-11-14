@@ -35,6 +35,7 @@ UNASKED = "-1"  #: the number a fill carries when no question of the desk's aske
 #: News of the gateway's price feeds, which this door does not read; any other news stops
 #: it, that it cannot look lines up (2157) included: nothing it then says of a line is sound.
 FEEDS = frozenset({"2103", "2104", "2105", "2106", "2107", "2108", "2119", "2158"})
+CANCELLED = "202"  #: its notice that an order was cancelled: news of an order, and no fault
 Send = Callable[[bytes], object]  #: what puts the desk's bytes on the connection
 PLAIN = re.compile("-?[0-9]+([.][0-9]+)?")  #: a number as the gateway writes one
 T = TypeVar("T")
@@ -98,6 +99,7 @@ class Resting:
     ref: str  #: the reference it was placed under: on the desk's own, the desk's order id
     state: str  #: the broker's word for where it stands: "PreSubmitted", "Inactive"
     left: Decimal  #: the shares still to be done, as that state gives them
+    level: Decimal | None  #: the price a stop ("STP") goes at, in the broker's unit; else None
 
     def __post_init__(self) -> None:
         if self.action not in ("BUY", "SELL"):
@@ -135,15 +137,16 @@ def other(fields: list[str]) -> str:
     """A message that answers no question of the desk's, and its kind: every account it
     names must be a paper one, its news may be of the price feeds only, and a kind the desk
     does not know is refused. What the gateway tells unasked of an order as it changes (the
-    order, its state, a fill under no question's number, the fill's fee) is passed over: a
-    reading that asks for orders takes it as its answer, and no other needs it."""
+    order, its state, that it was cancelled, a fill under no question's number, the fill's
+    fee) is passed over: a reading that asks for orders takes it as its answer, and no other
+    needs it."""
     kind = fields[0]
     if len(fields) < {ACCOUNTS: 3, NEWS: 5}.get(kind, 1):
         raise ValueError(f"a message from the gateway cut short: {fields}")
     if kind == ACCOUNTS:
         for code in fields[2].split(","):
             only(code)
-    elif kind == NEWS and fields[3] not in FEEDS:
+    elif kind == NEWS and fields[3] != CANCELLED and fields[3] not in FEEDS:
         raise ConnectionError(f"the gateway says {fields[3]}: {fields[4]}")
     elif kind not in (NEWS, READY, STATUS, HOLDINGS_END, ORDERS_END, ORDER, FEE) and (
         fields[:2] != [FILL, UNASKED]
@@ -160,18 +163,19 @@ def _holding(fields: list[str]) -> Holding:
 
 
 def _order(fields: list[str], states: Mapping[str, tuple[str, Decimal]]) -> Resting:
-    """Only the head of the message is read: the line, the order and who placed it. It
-    stands where the broker last said (states, by its ids): one it told no state of is no
-    order the desk can read."""
+    """Only the head of the message is read: the line, the order and who placed it, and a
+    stop's level. It stands where the broker last said (states, by its ids): one it told no
+    state of is no order the desk can read."""
     if len(fields) < 26:
         raise ValueError(f"an order of a shape the desk does not read: {fields}")
-    its, contract, symbol, action, shares, kind, account, ref, client, broker_id = (
-        fields[n] for n in (1, 2, 3, 13, 14, 15, 20, 23, 24, 25)
+    its, contract, symbol, action, shares, kind, level, account, ref, client, broker_id = (
+        fields[n] for n in (1, 2, 3, 13, 14, 15, 17, 20, 23, 24, 25)
     )
     head = (broker_id, its, client, only(account), symbol, action, number(shares, fields), kind)
     if broker_id not in states:
         raise ValueError(f"an order the broker told no state of, by its id for it: {broker_id}")
-    return Resting(*head, contract, ref, *states[broker_id])
+    at = number(level, fields) if kind == "STP" else None
+    return Resting(*head, contract, ref, *states[broker_id], at)
 
 
 def _state(fields: list[str]) -> tuple[str, tuple[str, Decimal]]:
