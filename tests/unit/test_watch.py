@@ -145,31 +145,32 @@ def test_a_crash_halts_all_buying_at_once_tells_him_once_and_his_lift_is_his_wor
     assert again.at == _at("08:05", FRI) and "4.3% below its last close" in again.why
     assert _names(tmp_path) == [
         told.name,
-        "watch 2025-11-12 VUAG on his word",
-        "watch 2025-11-13 VUAG on his word",
+        "watch 2025-11-12 CRASH on his word",
+        "watch 2025-11-13 CRASH on his word",
         "watch 2025-11-14 08:05 CRASH",
     ]
 
 
-def test_a_day_that_ended_in_a_crash_is_halted_whenever_the_desk_next_looks(
+def test_a_crash_the_desk_slept_through_is_halted_whenever_it_next_looks(
     tmp_path: Path,
 ) -> None:
     root, post = tmp_path / "desk", Mock(side_effect=count(1))
     _trade(tmp_path, YARDSTICK, {"13:50": 99})
     _look(tmp_path, "13:55", post)  #: calm, and then the desk is down as the market falls
-    _trade(tmp_path, YARDSTICK, {"15:00": 95, "16:20": 95})
-    for clock in ("16:36", "17:00"):  #: the day's last bar has not landed: its end is unread
+    _trade(tmp_path, YARDSTICK, {"15:00": 95, "15:05": 99, "16:20": 99})  #: and comes back
+    for clock in ("16:36", "17:00"):  #: one bar read a crash; the day's last has not landed
         _look(tmp_path, clock, post)
-    assert halt.kept(root) == () and _names(tmp_path) == ["watch 2025-11-12 end unread"]
-    _trade(tmp_path, YARDSTICK, {"16:25": 95})
-    _trade(tmp_path, YARDSTICK, {"08:00": "95.5"}, THU)
-    _look(tmp_path, "07:55", post, THU, (*CALM, 95))  #: before London opens, and its orders
-    (called,) = halt.in_force(root)
-    assert called.at == _at("07:55", THU) and "VUAG, on 2025-11-12, is 5.0% below" in called.why
-    _look(tmp_path, "08:05", post, THU, (*CALM, 95))  #: today reads no crash: it has not ended
-    assert halt.in_force(root) == (called,) and _names(tmp_path)[1:] == [
-        "watch 2025-11-13 07:55 CRASH"
-    ]
+    (slept,) = halt.in_force(root)
+    assert slept.at == _at("16:36") and "5.0% below its last close" in slept.why
+    assert _names(tmp_path) == ["watch 2025-11-12 16:36 CRASH", "watch 2025-11-12 end unread"]
+    _trade(tmp_path, YARDSTICK, {"16:25": 99})  #: it lands: the day ended clear after all
+    _look(tmp_path, "07:55", post, THU, (*CALM, 99))
+    assert halt.in_force(root) == (), "a day read to have ended clear did not lift its halt"
+    _trade(tmp_path, YARDSTICK, {"16:25": 95}, THU)  #: a day that fell at its last bar alone
+    _look(tmp_path, "20:00", post, THU, (*CALM, 99))  #: seen that evening, London long shut
+    (ended,) = halt.in_force(root)
+    assert ended.at == _at("20:00", THU) and "4.0% below its last close" in ended.why
+    assert _names(tmp_path)[2:] == ["watch 2025-11-12 16:36 lifted", "watch 2025-11-13 20:00 CRASH"]
 
 
 def test_the_watch_lifts_its_own_crash_halt_only_once_the_market_ends_a_day_clear(
@@ -199,7 +200,14 @@ def test_the_watch_lifts_its_own_crash_halt_only_once_the_market_ends_a_day_clea
     assert "the crash watch: the market ended 2025-11-13 clear of a crash" in ended.lifted[1]
     assert _names(tmp_path) == ["watch 2025-11-12 10:05 CRASH", "watch 2025-11-12 10:05 lifted"]
     lifted = messenger.deliveries(root)[-1].text  #: with what still stops the desk buying
-    assert "HALT LIFTED at 2025-11-13 16:35 UTC" in lifted and "HALT IN FORCE, day 2" in lifted
+    assert "HALT LIFTED at 2025-11-13 16:35 UTC" in lifted and "HALT IN FORCE, day 3" in lifted
+    #: the watch's own lift is no word of his: its day restated to a crash, and a new one
+    _trade(tmp_path, YARDSTICK, {"16:25": "91.1"}, THU)
+    _trade(tmp_path, YARDSTICK, {"08:00": 91}, FRI)
+    _look(tmp_path, "08:05", post, FRI, (*after, 96))
+    assert len(halt.in_force(root)) == 2 and _names(tmp_path)[2:] == [
+        "watch 2025-11-14 08:05 CRASH"
+    ]
 
 
 def test_a_black_swan_is_his_alone_to_lift_and_is_read_twice_before_any_sale(
@@ -220,6 +228,8 @@ def test_a_black_swan_is_his_alone_to_lift_and_is_read_twice_before_any_sale(
     _trade(tmp_path, YARDSTICK, {"10:15": 88, "16:25": 99})
     _trade(tmp_path, TRIPLE, {"10:15": 70})  #: one line's emergency in the same look
     assert _look(tmp_path, "10:20", post).cash, "its two newest bars said so: read twice"
+    stale = watch.read(tmp_path / "bars.db", _daily(), _at("10:41"))
+    assert stale.blind and not stale.cash, "sold on a market no longer heard from"
     _, once, twice, _ = messenger.deliveries(root)
     assert _names(tmp_path) == [
         "watch 2025-11-12 10:00 CRASH",
@@ -245,7 +255,7 @@ def test_a_black_swan_is_his_alone_to_lift_and_is_read_twice_before_any_sale(
     assert halt.in_force(root) == (hand,), "a halt called over his word"
     assert _names(tmp_path)[5:] == [
         "watch 2025-11-13 BLACK_SWAN twice",
-        "watch 2025-11-13 VUAG on his word",
+        "watch 2025-11-13 BLACK_SWAN on his word",
     ]
 
 

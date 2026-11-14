@@ -32,7 +32,8 @@ def test_a_halt_is_in_force_from_its_call_until_it_is_lifted_and_never_expires(
     assert halt.kept(tmp_path) == (first, second), "one halt called twice is kept twice"
     gone = halt.lift(tmp_path, first, datetime(2025, 11, 12, 7, tzinfo=UTC), "the market is calm")
     assert halt.in_force(tmp_path) == (second,) and halt.kept(tmp_path) == (gone, second)
-    assert gone.lifted == (datetime(2025, 11, 12, 7, tzinfo=UTC), "the market is calm")
+    calm = (datetime(2025, 11, 12, 7, tzinfo=UTC), "the market is calm", halt.OPERATOR)
+    assert gone.lifted == calm
     #: in force on the day it was lifted, whatever the hour, and on no day after
     still = [gone in halt.on(tmp_path, on) for on in (TUE, WED, year)]
     assert still == [True, True, False], "not in force on the day it was lifted, or after it"
@@ -80,6 +81,8 @@ def test_a_halt_says_who_called_it_and_is_lifted_only_by_who_may(tmp_path: Path)
     ended = halt.lift(tmp_path, crash, LATER, "the day ended clear", by=watch)
     his = halt.lift(tmp_path, swan, LATER, "his word")  #: the operator lifts any halt
     assert halt.kept(tmp_path) == (hand, ended, his) and halt.in_force(tmp_path) == (hand,)
+    #: and the record says who lifted each
+    assert [h.lifted[2] for h in (ended, his) if h.lifted] == [watch, halt.OPERATOR]
     with pytest.raises(ValueError, match="halt"):
         halt.call(tmp_path, NOW, "called by nobody", by=" ")
 

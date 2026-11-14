@@ -23,7 +23,7 @@ from desk.orders import Refused
 from desk.store import _write
 
 HALTS, BLOCKED = "halts.csv", "blocked"  #: the one record of halts; a folder, a list a morning
-COLUMNS = ("called", "why", "by", "may_lift", "lifted", "lifted_why")
+COLUMNS = ("called", "why", "by", "may_lift", "lifted", "lifted_why", "lifted_by")
 OPERATOR = "the operator"  #: who calls a halt by hand, and may lift any
 ALONE, EITHER = "the operator alone", "whoever called it, or the operator"  #: who may lift one
 LISTED = ("order_id", "blocker", "filled", "reason")
@@ -57,18 +57,20 @@ class Halt:
 
     at: datetime  #: when it was called
     why: str  #: with the moment and the caller, what the halt is known by
-    lifted: tuple[datetime, str] | None = None  #: when and why; None while it is in force
+    #: when, why and by whom it was lifted; None while it is in force
+    lifted: tuple[datetime, str, str] | None = None
     by: str = OPERATOR  #: who called it
     his: bool = True  #: only the operator lifts it; if not, whoever called it may too
 
     def __post_init__(self) -> None:
-        for moment, why in ((self.at, self.why), *((self.lifted,) if self.lifted else ())):
-            unsaid = not why.strip() or not self.by.strip()
+        who = (self.by, *(self.lifted[2:] if self.lifted else ()))
+        for moment, why in ((self.at, self.why), *((self.lifted[:2],) if self.lifted else ())):
+            unsaid = not why.strip() or not all(name.strip() for name in who)
             if moment.utcoffset() != timedelta(0) or unsaid or moment < self.at:
                 raise ValueError(
                     f"a halt called at {self.at} by {self.by!r} for {self.why!r}, lifted "
-                    f"{self.lifted}: each needs a time in UTC and a reason, the halt its "
-                    "caller, and it is lifted no sooner than called"
+                    f"{self.lifted}: each needs a time in UTC, a reason and who did it, "
+                    "and it is lifted no sooner than called"
                 )
 
     @property
@@ -84,7 +86,7 @@ class Halt:
     def words(self, day: date) -> str:
         """What the desk says of it on a day it was in force: on its last, that it is lifted."""
         if self.lifted is not None and self.lifted[0].date() <= day:
-            at, why = self.lifted
+            at, why, _ = self.lifted
             return f"HALT LIFTED at {at:%Y-%m-%d %H:%M} UTC ({why}); it was {self.since}."
         return (
             f"HALT IN FORCE, day {(day - self.at.date()).days + 1}, {self.since}. The desk buys "
@@ -120,7 +122,7 @@ def lift(root: Path, halt: Halt, at: datetime, why: str, by: str = OPERATOR) -> 
     unless it is his alone, with the reason. One that is not in force is an error."""
     if by != OPERATOR and (halt.his or by != halt.by):
         raise ValueError(f"{by!r} may not lift the halt {halt.since}: {OPERATOR} may")
-    record, lifted = list(kept(root)), replace(halt, lifted=(at, why))
+    record, lifted = list(kept(root)), replace(halt, lifted=(at, why, by))
     if halt.lifted is not None or halt not in record:
         raise ValueError(f"no halt {halt.since} is in force: none lifted at {at}, {why!r}")
     record[record.index(halt)] = lifted
@@ -137,8 +139,8 @@ def kept(root: Path) -> tuple[Halt, ...]:
 
 def _halt(path: Path, row: list[str]) -> Halt:
     try:
-        called, why, by, may_lift, at, lifted_why = row
-        lifted = (datetime.fromisoformat(at), lifted_why) if at else None
+        called, why, by, may_lift, at, lifted_why, lifted_by = row
+        lifted = (datetime.fromisoformat(at), lifted_why, lifted_by) if at else None
         halt = Halt(datetime.fromisoformat(called), why, lifted, by, may_lift == ALONE)
     except ValueError as fault:
         raise ValueError(f"{path}: {row} is no halt of the desk's: {fault}") from fault
@@ -148,9 +150,10 @@ def _halt(path: Path, row: list[str]) -> Halt:
 
 
 def _row(halt: Halt) -> tuple[str, ...]:
-    at, why = halt.lifted or (None, "")
+    at, why, who = halt.lifted or (None, "", "")
     may_lift = ALONE if halt.his else EITHER
-    return (halt.at.isoformat(), halt.why, halt.by, may_lift, at.isoformat() if at else "", why)
+    lifted = (at.isoformat() if at else "", why, who)
+    return (halt.at.isoformat(), halt.why, halt.by, may_lift, *lifted)
 
 
 def in_force(root: Path) -> tuple[Halt, ...]:
