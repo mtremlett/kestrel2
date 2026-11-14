@@ -1815,6 +1815,23 @@ one left narrows a type of the interface's, which can refuse a broker, never adm
 - Found, not fixed (product files outside the claim): no fault can reach a sale; the pretend broker never fills in two executions; an order's state is read from words, not typed.
 - All of this is paper. His standing ruling of 13 November: "please always go with recommended to avoid waiting for me to attend".
 
+### 2026-11-14 — SimCity, small (money-simcity, #134)
+
+Decided by the MONEY lane as the desk's mentor, no one watching.
+
+- *What a "part of the money path" is.* Options: a hand-kept list; every function; everything the six modules offer by name plus the broker's five faults. Chosen: the last. A hand list rots; private helpers are their callers' business. A rule's own arithmetic is not a part; "rules that never held a line" is reported beside the census.
+- *Measured, not claimed.* Options: scenarios declare their cover; the profiler records what ran. Chosen: the profiler (about 17 seconds a night).
+- *Which modules.* Six: strategy, orders, broker, book, day, kill. Not `emergency.py` until the crash watch is built.
+- *One life, not several.* A fault on every line; each thing done to the desk waits for a plain day. Several lives cost about a minute each.
+- *"One command" is a function,* run by the check on every change; a command-line entry would reach into `tests/`. The nightly run on his PC is the runner's.
+- *The night's test sits with the unit tests,* so the scenes stay his seven.
+- *Land RED and pin it.* Options: leave the limit of five untried; try it, say RED, pin the test to that one broken promise; mend the send path here (outside the box's files). Chosen: the second. The pin fails if any other promise breaks, or the moment the fault is mended.
+- *A red night is kept; a night that cannot be lived is an error.* Nothing written when data is missing or the time is not UTC.
+- *No exact money figures pinned,* so another lane's rightful change cannot turn this test red beyond its claim.
+- Evidence: two blind reviews, each with a blocking finding mended; 27 deliberate breaks, 24 caught, 1 closed by a test, 1 dead name removed, 1 rightly green.
+- Found, not fixed: six lines held when a working order fills late (box money-working); a cancelled stop never put back (money-restop).
+- All of this is paper. His standing ruling of 13 November: "please always go with recommended to avoid waiting for me to attend".
+
 ## DATA
 
 ### 2026-11-13 — the fourteen months are built; the scenes move onto them in two steps
