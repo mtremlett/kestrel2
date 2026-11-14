@@ -12,6 +12,8 @@ from decimal import Decimal
 from pathlib import Path
 
 import numpy as np
+import pyarrow as pa  # type: ignore[import-untyped]  # ships no stubs
+import pyarrow.parquet as pq  # type: ignore[import-untyped]  # ships no stubs
 import pytest
 
 from desk import archive, bars, store, venues
@@ -190,6 +192,56 @@ def test_every_store_the_register_tags_import_is_adopted_once_and_counted(
         register.write_text(f"{sound}| IMPORT | {row} |\n")
         with pytest.raises((ValueError, FileNotFoundError), match=why):
             headstart.main(register, store, day)
+
+
+def _parquet(folder: Path, line: Line, walls: list[datetime], fetched: bool = False) -> None:
+    """A parquet store of the old desk's form: a line's bars of 10 11 9 10 and 5 shares at the
+    walls, and a last one with a hole in its open; ibkr_store alone keeps a fetch record."""
+    made = folder / f"freq=5/market=uk/ticker={line.symbol}.UK"
+    made.mkdir(parents=True)
+    walls = [*walls, walls[-1] + timedelta(minutes=5)]
+    rows = len(walls)
+    table = pa.table(
+        {
+            "ts": [wall.replace(tzinfo=None) for wall in walls],
+            "open": [10.0] * (rows - 1) + [None],
+            "high": [11.0] * rows,
+            "low": [9.0] * rows,
+            "close": [10.0] * rows,
+            "volume": [5.0] * rows,
+        }
+    )
+    pq.write_table(table, made / "part.parquet")
+    if fetched:
+        (made / "fetch.json").write_text("{}")
+
+
+def test_the_parquet_stores_are_read_on_their_own_clocks_and_adopted_once(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    line, store, ibkr, stooq = LINES[2], tmp_path / "market.db", tmp_path / "i", tmp_path / "s"
+    with bars.writing(store) as round_:
+        round_.five(line, [_at(0)])
+    monkeypatch.setattr(archive, "fetch", lambda _line, _day: (DAY,))
+    monkeypatch.setattr(archive, "fetch_five", lambda _line, _now: (_at(0),))
+    hour = timedelta(hours=1)  # Stooq's clock in winter
+    _parquet(ibkr, line, [_at(0).start, _at(5).start], fetched=True)
+    _parquet(stooq, line, [_at(0).start + hour, _at(10).start + hour])
+    sources = [headstart.reader(where) for where in (ibkr, stooq)]
+    assert [how[0] for how in sources if how] == [Source.IBKR_STORE, Source.STOOQ_STORE]
+    register = tmp_path / "register.md"
+    register.write_text("".join(f"| IMPORT | `{where}` | 1 GB | |\n" for where in (ibkr, stooq)))
+    day = NOON.date() + timedelta(1)
+    read = "2 old stores read, 0 already in, 0 with no reader yet (none)"
+    assert headstart.main(register, store, day) == (
+        f"headstart: {read}; bars filled 2, met 2, differ 0"
+    )
+    assert bars.five(store, line, NOON, NOON + timedelta(1)) == (_at(0), _at(5), _at(10))
+    assert bars.sources(store, line, bars.FIVE) == dict.fromkeys(
+        (Source.ARCHIVE, Source.IBKR_STORE, Source.STOOQ_STORE), 1
+    )
+    again = "headstart: 0 old stores read, 2 already in, 0 with no reader yet (none)"
+    assert headstart.main(register, store, day) == f"{again}; bars filled 0, met 0, differ 0"
 
 
 def _history(tmp_path: Path, closes: list[float]) -> tuple[Path, Path]:
