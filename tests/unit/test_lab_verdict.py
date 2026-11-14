@@ -3,20 +3,23 @@ step of units is refused before any rung, and a line too young is its own label.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import replace
 from decimal import Decimal
+from typing import Any
 
 import pytest
 from test_lab_ladder import EDGE, ISF, NOISE, VUSA
 
+from desk.store import Bar
 from lab import ladder, market, verdict
 from lab.cell import Cell
-from lab.rung import Answer
+from lab.rung import Answer, Rates
 
 CELL = Cell("breakout_20_10", VUSA, EDGE[0].day, ladder.END)
 
 
-def _judge(bars=EDGE, pounds=None):  # type: ignore[no-untyped-def]
+def _judge(bars: Sequence[Bar] = EDGE, pounds: Rates | None = None) -> dict[str, Any]:
     return verdict.judge(CELL, bars, ISF, NOISE, pounds or {}, 6, ())
 
 
