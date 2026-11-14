@@ -1589,6 +1589,34 @@ in WAL mode scores 27, Parquet with DuckDB for sealed history 27, DuckDB alone 2
 
 ---
 
+## 2026-11-14 — no new data spend: IBKR's real capacity, a free collector, weather recorded first
+
+**His words, about 12:40 UK.** "derive a finite number of tickers (minus 10%) that can be
+easily refreshed within these limits ... i do not want to pay for more data, not until this
+desk can pay for itself." And: research the free tiers of the keys he already has, for
+triangulation and for news and market regime, as the first mark_the_trend did. "does the
+elite desk agree?"
+
+**Researched**, sources cited, in the notes folder (`free_data_2026-11-14.md`). IBKR's own
+historical-limits page says the hard 60-per-10-minutes rule is for bars of 30 seconds or less.
+For 1 minute and longer it is "lifted" to a soft throttle, with no published number. The old
+desk built eight regime feeds and a sentiment daemon. None was ever shown to predict out of
+sample. Its regime map discarded about 74% of its winning cells, and its regime history was
+overwritten in place.
+
+**Decided by the mentor, as his rulings allow.**
+- Within IBKR's free capacity, with 10% kept spare: 90 tickers live, a measured ramp for
+  polled ones, and daily bars for all.
+- A daily free collector starts now, so that history the free tiers drop is kept.
+- Weather follows "record first, prove second, act last": realised-volatility sizing first,
+  everything else recorded until it passes REG-07.
+- News serves event awareness only.
+- Nothing is bought. Databento's free credit needs a card, so it is his decision, not taken.
+- The data-service keys move into the desk's own secrets file, outside the repository. His
+  Trading 212 keys and his email passwords are never copied.
+
+---
+
 ## MONEY
 
 ### 2026-11-13 — how the pretend broker behaves

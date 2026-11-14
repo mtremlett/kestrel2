@@ -290,6 +290,24 @@ UK tax) and R-MONEY-2 (the scenes on the whole fourteen months).
 - [ ] Leveraged-product lifecycle watched: an issuer's closure, a compulsory redemption or
       an ISA eligibility change on any line held or researched raises an alert (BIC-11)
 - [ ] Disk watched; old research files roll off by rule (OPS-07)
+- [ ] **IBKR's capacity, no new spend, 10% kept spare** (research of 14 November,
+      `free_data_2026-11-14.md` in the notes folder): 90 tickers streamed live, 1-minute bars
+      built from quotes; polled 1-minute bars for 27 tickers every 5 minutes, 81 every 15 and
+      324 hourly as the guaranteed floor, rising toward 270, 810 and 3,240 only as far as a
+      measured ramp on the paper port allows (every request counted with its error codes;
+      any pacing refusal halves the rate); daily bars for every ticker (DAT-01, DAT-05)
+- [ ] **A free collector, started now, before anything uses it:** once a day, about 300 calls
+      across the free tiers he already has, each response kept raw and timestamped: a US
+      second opinion on every bar (Massive's whole-market daily), a third (Tiingo), a rotating
+      London audit sample (Alpha Vantage and EODHD), US macro series and release dates (FRED,
+      BLS, BEA, EIA), earnings calendars (Finnhub and Alpha Vantage, cross-checked), and news
+      with timestamps (Finnhub, Marketaux, GNews). NewsAPI is not used: its free terms forbid
+      it. History that free tiers do not keep cannot be bought back later (BIC-06, DAT-01)
+- [ ] **Market weather recorded before it acts:** realised-volatility sizing researched first,
+      the one effect with strong published evidence; index trend and breadth from the desk's
+      own bars next; VIX term structure, credit spreads and the yield curve recorded each day
+      but acting only once each passes REG-07; news for event awareness, never a signal until
+      proven (REG-01, REG-07, STR-20)
 
 ## Phase 2 — the money path, in simulation
 
