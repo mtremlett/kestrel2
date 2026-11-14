@@ -25,6 +25,7 @@ from dataclasses import dataclass
 from datetime import date
 from decimal import ROUND_HALF_EVEN, Context, Decimal, localcontext
 from enum import Enum
+from inspect import signature
 from typing import ClassVar, Protocol
 
 from desk.lines import LINES, Line
@@ -172,9 +173,9 @@ def rsi(gain: Decimal, loss: Decimal) -> Decimal:
     return Decimal(100) if loss == 0 else 100 - 100 / (1 + gain / loss)
 
 
-def lower_band(mean: Decimal, deviation: Decimal) -> Decimal:
-    """Bollinger's lower band at his setting: two deviations under the average."""
-    return mean - 2 * deviation
+def lower_band(mean: Decimal, deviation: Decimal, width: Decimal = Decimal(2)) -> Decimal:
+    """Bollinger's lower band, at his setting two deviations under the average."""
+    return mean - width * deviation
 
 
 class _Rsi2:
@@ -184,9 +185,9 @@ class _Rsi2:
 
     declared: ClassVar[Declared] = Declared(Timeframe.DAILY, None, LINES, CLOSES)
 
-    def __init__(self) -> None:
-        self._long, self._short = _Window(200), _Window(5)
-        self._gain, self._loss = _Wilder(2), _Wilder(2)
+    def __init__(self, trend: int = 200, exit: int = 5, length: int = 2, below: int = 5) -> None:
+        self._long, self._short, self._below = _Window(trend), _Window(exit), below
+        self._gain, self._loss = _Wilder(length), _Wilder(length)
         self._last: Decimal | None = None
 
     def step(self, bar: Bar, holding: bool) -> bool:
@@ -201,7 +202,12 @@ class _Rsi2:
                 index = rsi(gain, loss)
         if holding:
             return close <= self._short.mean()
-        return index is not None and self._long.full and close > self._long.mean() and index < 5
+        return (
+            index is not None
+            and self._long.full
+            and close > self._long.mean()
+            and index < self._below
+        )
 
 
 class _Bollinger:
@@ -210,8 +216,8 @@ class _Bollinger:
 
     declared: ClassVar[Declared] = Declared(Timeframe.DAILY, None, LINES, CLOSES)
 
-    def __init__(self) -> None:
-        self._closes = _Window(20)
+    def __init__(self, length: int = 20, width: Decimal = Decimal(2)) -> None:
+        self._closes, self._width = _Window(length), width
 
     def step(self, bar: Bar, holding: bool) -> bool:
         self._closes.add(bar.close)
@@ -220,7 +226,7 @@ class _Bollinger:
         mean = self._closes.mean()
         if holding:
             return bar.close <= mean
-        return bar.close < lower_band(mean, self._closes.deviation())
+        return bar.close < lower_band(mean, self._closes.deviation(), self._width)
 
 
 class _Breakout:
@@ -230,8 +236,8 @@ class _Breakout:
 
     declared: ClassVar[Declared] = Declared(Timeframe.DAILY, None, LINES, RANGES)
 
-    def __init__(self) -> None:
-        self._highs, self._lows = _Window(20), _Window(10)
+    def __init__(self, entry: int = 20, exit: int = 10) -> None:
+        self._highs, self._lows = _Window(entry), _Window(exit)
 
     def step(self, bar: Bar, holding: bool) -> bool:
         if holding:
@@ -250,8 +256,10 @@ class _Trend:
 
     declared: ClassVar[Declared] = Declared(Timeframe.DAILY, None, LINES, CLOSES)
 
-    def __init__(self) -> None:
-        self._fast, self._slow = _Window(50), _Window(200)
+    def __init__(self, fast: int = 50, slow: int = 200) -> None:
+        if fast >= slow:
+            raise ValueError(f"a cross of a {fast}-day average over a {slow}-day one")
+        self._fast, self._slow = _Window(fast), _Window(slow)
         self._above: bool | None = None
 
     def step(self, bar: Bar, holding: bool) -> bool:
@@ -272,8 +280,8 @@ class _Supertrend:
 
     declared: ClassVar[Declared] = Declared(Timeframe.DAILY, None, LINES, RANGES)
 
-    def __init__(self) -> None:
-        self._range = _Wilder(10)
+    def __init__(self, length: int = 10, mult: Decimal = Decimal(3)) -> None:
+        self._range, self._mult = _Wilder(length), mult
         self._last: Decimal | None = None
         self._upper: Decimal | None = None
         self._lower: Decimal | None = None
@@ -292,7 +300,7 @@ class _Supertrend:
         width = self._range.add(spread)
         if width is not None:
             middle = (bar.high + bar.low) / 2
-            self._upper, self._lower = middle + 3 * width, middle - 3 * width
+            self._upper, self._lower = middle + self._mult * width, middle - self._mult * width
             if last is not None and upper is not None and last < upper:
                 self._upper = min(self._upper, upper)
             if last is not None and lower is not None and last > lower:
@@ -333,6 +341,21 @@ STRATEGIES: Mapping[str, type[Rule]] = {
 #: The WIRING strategies, listed apart from the five: rules kept to test the desk's wiring
 #: end to end, tested as the five are, and NEVER A-GATE candidates, whatever they earn.
 WIRING: Mapping[str, type[Rule]] = {"ema_9_21": _EmaCross}
+
+
+def build(name: str, **settings: int | Decimal) -> Rule:
+    """A fresh one of the five at the given settings, the rest at their published ones: the
+    names are those of its constructor, each setting positive and a whole number where the
+    published one is."""
+    make = STRATEGIES[name]
+    published = {n: p.default for n, p in signature(make).parameters.items()}
+    for key, value in settings.items():
+        kind = type(published.get(key))
+        if kind is type(None) or isinstance(value, bool) or value <= 0:
+            raise ValueError(f"{name}: no setting {key}={value!r}; it has {sorted(published)}")
+        if kind is int and not isinstance(value, int):
+            raise ValueError(f"{name}: {key}={value!r} is not a whole number")
+    return make(**settings)
 
 
 def _run(

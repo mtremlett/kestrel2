@@ -156,7 +156,7 @@ def test_the_rsi_and_the_lower_band_have_one_named_home_the_rules_trade_on(
     assert strategy.lower_band(Decimal("9.95"), Decimal("0.218")) == Decimal("9.514")
     #: shown another number at that name, each rule no longer makes the trade pinned above
     monkeypatch.setattr(strategy, "rsi", lambda _gain, _loss: Decimal(50))
-    monkeypatch.setattr(strategy, "lower_band", lambda mean, _deviation: mean - 5)
+    monkeypatch.setattr(strategy, "lower_band", lambda mean, _deviation, _width: mean - 5)
     pullback = _bars([100 + n for n in range(200)] + [300, 290, 280, 285, 300])
     assert _trades("rsi2_pullback", pullback) == []
     assert _trades("bollinger_pullback", _bars([10] * 20 + [9, 9.5, 10.5])) == []
@@ -365,3 +365,33 @@ def test_each_strategy_moves_on_the_days_a_second_implementation_found() -> None
             ends = [*found[1::2], len(bars) - 1]  #: one still held is held to the last bar
             held = [sold - bought for bought, sold in zip(found[::2], ends, strict=False)]
             assert limit is None or max(held) <= limit, f"{name} outstays {limit} on {series}"
+
+
+def _steps(rule: strategy.Rule, bars: Sequence[Bar]) -> list[Action]:
+    return [d.action for d in strategy._run("x", rule, "X", bars)]
+
+
+def test_build_other_settings_move_the_rule_and_published_ones_do_not() -> None:
+    """The five at other settings (R-GRID-1): none given is the published rule; a shorter
+    window buys earlier; a setting the rule lacks, a non-positive one or a fractional window
+    is refused by name."""
+    wave = _bars([100 + (n % 20) * (1 if n % 40 < 20 else -1) for n in range(300)])
+    with localcontext(strategy.ARITHMETIC):
+        for name, make in strategy.STRATEGIES.items():
+            assert _steps(strategy.build(name), wave) == _steps(make(), wave)
+        first = lambda rule: _steps(rule, wave).index(Action.BUY)  # noqa: E731
+        assert first(strategy.build("breakout_20_10", entry=5)) < first(
+            strategy.build("breakout_20_10")
+        )
+        assert first(strategy.build("trend_50_200", slow=100)) < first(
+            strategy.build("trend_50_200")
+        )
+    for name, bad in [
+        ("trend_50_200", {"fast": 200}),
+        ("bollinger_pullback", {"width": Decimal(0)}),
+        ("breakout_20_10", {"entry": 2.5}),
+        ("supertrend_10_3", {"period": 10}),
+        ("rsi2_pullback", {"exit": True}),
+    ]:
+        with pytest.raises(ValueError, match="day|setting|whole"):
+            strategy.build(name, **bad)  # type: ignore[arg-type]
