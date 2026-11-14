@@ -1,10 +1,10 @@
 """simcity - SIMCITY. ONE COMMAND lives the desk's day through a hundred seeded worlds of the saved
 data, at the pretend broker with all its faults, and writes one record of the night. A WORLD is
 the saved lines on their own days, each line's months dealt again by the world's number; by it
-too come the broker's faults and what goes wrong on a real desk: it dies mid-send and is started
-again, a position appears behind its back, a stop is cancelled by hand, the kill switch is
-pulled. THE CENSUS names each part of the money path with the scenarios that ran it. A part none
-ran, or a promise broken in a world, turns the night red and names the world."""
+too come the faults and what goes wrong on a real desk: it dies mid-send and is started again,
+a position appears behind its back, a stop is cancelled by hand, the kill switch is pulled. THE
+CENSUS names each part of the money path with the scenarios that ran it. A part none ran, or a
+promise broken in a world, turns the night red and names the world."""
 
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ from types import CodeType, ModuleType
 
 from desk import book, broker, day, halt, kill, orders, strategy
 from desk.broker import Crash, Fault, Pretend, Report
-from desk.lines import Line
+from desk.lines import YARDSTICK, Line
 from desk.orders import HOLDINGS, Order, Sale, Settings, pennies
 from desk.store import Bar
 from desk.strategy import Action
@@ -56,9 +56,8 @@ RECKONING = "the night's reckoning"
 
 @dataclass(frozen=True)
 class Night:
-    """ONE NIGHT'S RECORD: what the desk's lives came to, added up over the worlds, the census,
-    and every promise of the desk's that the night saw broken, with how many worlds broke it
-    and the first of them. Green is no part bare and no promise broken."""
+    """ONE NIGHT'S RECORD: what the desk's lives came to over the worlds, the census, and every
+    promise of the desk's the night saw broken. Green is no part bare and no promise broken."""
 
     at: datetime
     worlds: int  #: seeded worlds lived, each from holding nothing to its end or the desk's stop
@@ -72,6 +71,7 @@ class Night:
     idle: tuple[str, ...]  #: the rules that held no line in any world lived to its end
     census: Mapping[str, tuple[str, ...]]  #: each part of the money path, and what ran it
     broken: tuple[str, ...]
+    left: tuple[str, ...]  #: lines left out of a world on days before their first bar
 
     @property
     def bare(self) -> tuple[str, ...]:
@@ -88,23 +88,21 @@ class Night:
         idle = f" Rules that never held a line: {', '.join(self.idle)}." if self.idle else ""
         bare = f" NO SCENARIO for {', '.join(self.bare)}." if self.bare else ""
         broken = f" BROKEN: {'; '.join(self.broken)}." if self.broken else ""
+        left = f" Left out until their first bar: {', '.join(self.left)}." if self.left else ""
         return (
             f"SIMCITY {'GREEN' if self.green else 'RED'}, {self.at:%Y-%m-%d %H:%M} UTC. The desk "
             f"lived {self.worlds} seeded worlds, {self.days} days, at the pretend broker. Of its "
-            f"orders {self.met[None]} met no fault; {met}. It died mid-send and was started "
-            f"again {self.deaths} times. On {self.withheld} days the book was not the broker's "
-            f"and the profit withheld. "
-            f"{self.trips} round trips made {self.profit} pounds after every cost; holding the "
-            f"market made {self.market}.{idle} Census: {len(self.census)} parts of the money "
-            f"path, {len(self.bare)} with no scenario.{bare}{broken}"
+            f"orders {self.met[None]} met no fault; {met}. It died mid-send and was started again "
+            f"{self.deaths} times. On {self.withheld} days the book was not the broker's and the "
+            f"profit withheld. {self.trips} round trips made {self.profit} pounds after every "
+            f"cost; holding the market made {self.market}.{idle} Census: {len(self.census)} "
+            f"parts of the money path, {len(self.bare)} with no scenario.{bare}{broken}{left}"
         )
 
 
 def parts() -> dict[CodeType, str]:
-    """THE PARTS: all that a module of the money path offers by name, each function and each
-    method or property of its classes, under the name the code gives it. A name beginning
-    with an underscore is its callers' business, and a Protocol's methods are a question's
-    wording with nothing to run."""
+    """THE PARTS: all a module of the money path offers by name, each function and each method
+    or property of its classes; not an underscore name, nor a Protocol's wording."""
     found: dict[CodeType, str] = {}
     for module in PATH:
         for name, thing in vars(module).items():
@@ -147,8 +145,7 @@ class _Census:
 def _market(archive: Archive, rng: random.Random) -> dict[Line, tuple[Bar, ...]]:
     """A WORLD'S MARKET: every saved line on its own days, from its own first bar. Each day's
     bar keeps its shape against the close before it, to the penny, and those days are dealt
-    again a MONTH at a time, each line's months in an order of its own: a world's lines do
-    not move as one, and each still ends where its saved history does."""
+    again a MONTH at a time, each line's in an order of its own; each still ends where it did."""
     market = {}
     for line in sorted(archive, key=lambda line: line.symbol):
         bars = archive[line]
@@ -168,8 +165,7 @@ def _market(archive: Archive, rng: random.Random) -> dict[Line, tuple[Bar, ...]]
 
 class _Counted(Pretend):
     """One world's pretend broker. For one in FAULTY of the orders at its door a fault, drawn
-    by the world's seed, is set waiting on the order's line; each order is counted by the fault
-    it met there: the one waiting on its line that the broker used up on it, or none."""
+    by the world's seed, is set waiting on its line; each order is counted by the fault it met."""
 
     def __init__(self, archive: Archive, rng: random.Random) -> None:
         super().__init__(archive, {})
@@ -203,6 +199,8 @@ class _Life:
         self.rng = random.Random(seed)  # noqa: S311 - a repeatable draw, not a secret
         self.market = _market(archive, self.rng)
         self.pretend = _Counted(self.market, self.rng)
+        self.began = self.market[YARDSTICK][0].day if YARDSTICK in self.market else date.min
+        self.left = {x.symbol for x, bars in self.market.items() if bars[0].day > self.began}
         self.records, self.deaths, self.trips = list[day.Record](), 0, 0
         self.kept, self.done, self.held = dict[str, bool](), set[str](), set[str]()
         self.stopped = ""  #: the day the desk said it could not go on, and its words
@@ -212,7 +210,11 @@ class _Life:
 
     def live(self, on: date) -> day.Record:
         """One day whole, from the data saved by its end, and its record."""
-        saved = {line: [b for b in bars if b.day <= on] for line, bars in self.market.items()}
+        saved = {
+            x: [b for b in bars if b.day <= on]
+            for x, bars in self.market.items()
+            if bars[0].day < on
+        }
         scenario, buys = self.census.scenario, self.pretend.buys
         record = self._run(saved, on)
         self.census.now(scenario)
@@ -289,10 +291,10 @@ def run(
     worlds: Sequence[int] = WORLDS,
 ) -> Night:
     """THE ONE COMMAND. In each world a desk that holds nothing lives every session of the
-    archive after its first, on a book of its own that is thrown away; the night's one record
-    is added to those kept under root, dated at, and given back. Red or green, it is kept.
-    worlds are the numbers of the worlds to live: one alone is that world again, exactly. A
-    world in which the desk refuses to go on ends there, and is a promise broken."""
+    archive after the yardstick's first, on a book of its own thrown away; the night's one
+    record is added to those kept under root, dated at, and given back. Red or green, it is
+    kept. worlds are the numbers of the worlds to live: one alone is that world again. A world
+    in which the desk refuses to go on ends there, and is a promise broken."""
     if at.utcoffset() != timedelta(0):
         raise ValueError(f"SimCity's night at {at}: not a time in UTC")
     path, rows = root / NIGHTS, [list(HEADER)]
@@ -330,9 +332,9 @@ def run(
 def _live(life: _Life) -> None:
     """The life, day by day, and its reckoning. Something is done to the desk on one in
     EVENTFUL of the mornings it holds a line under its stop and its last record was a plain
-    one, so no two are muddled: each thing in turn, in an order the seed deals and deals again."""
+    one: each thing in turn, in an order the seed deals and deals again."""
     census, pretend, todo = life.census, life.pretend, list[Event]()
-    for on in sorted({bar.day for bars in life.market.values() for bar in bars})[1:]:
+    for on in sorted({b.day for bs in life.market.values() for b in bs if b.day > life.began}):
         census.now(DAY)
         pretend.open(on)
         fit = life.records and not life.records[-1].mismatches and pretend.stops()
@@ -364,9 +366,8 @@ def _live(life: _Life) -> None:
 def _night(
     at: datetime, lives: Sequence[_Life], census: _Census, alone: Sequence[strategy.Decision]
 ) -> Night:
-    """What the worlds came to, added up, and the night's record made: a promise broken is
-    named once, with how many worlds broke it and the first of them; a desk that stopped,
-    with what it said in the first."""
+    """What the worlds came to, added up: a promise broken is named once, with how many worlds
+    broke it and the first; a desk that stopped, with what it said in the first."""
     records = [record for life in lives for record in life.records]
     plain = [record for record in records if record.profit is not None]
     met = {fault: sum(life.pretend.met[fault] for life in lives) for fault in (None, *Fault)}
@@ -380,18 +381,17 @@ def _night(
     if halt := [f"world {life.seed} {life.stopped}" for life in lives if life.stopped]:
         broken.append(f"the desk stops on no day (in {len(halt)} worlds, the first {halt[0]})")
     asked = {(decision.strategy, decision.action) for decision in alone}
-    both = {(rule, to) for rule in strategy.STRATEGIES for to in (Action.BUY, Action.SELL)}
-    if not both <= asked:
+    if not {(r, to) for r in strategy.STRATEGIES for to in (Action.BUY, Action.SELL)} <= asked:
         broken.append("every rule asks to buy and to sell somewhere in the saved data")
-    done = set[str]().union(*(life.done for life in lives))
-    broken += [f"never happened: {scenario}" for scenario, _ in EVENTS if scenario not in done]
-    held = set[str]().union(*(life.held for life in lives))
-    idle = tuple(rule for rule in strategy.STRATEGIES if rule not in held)
-    deaths, trips = (sum(life.deaths for life in lives), sum(life.trips for life in lives))
+    ever = [(scenario, any(scenario in life.done for life in lives)) for scenario, _ in EVENTS]
+    broken += [f"never happened: {scenario}" for scenario, happened in ever if not happened]
+    idle = tuple(r for r in strategy.STRATEGIES if not any(r in life.held for life in lives))
+    deaths = sum(life.deaths for life in lives)
     profit = sum((record.profit or Decimal(0) for record in plain), Decimal(0))
     market = sum((record.market for record in plain), Decimal(0))
-    money = (len(records) - len(plain), trips, profit, market)
-    return Night(at, len(lives), len(records), met, deaths, *money, idle, ran, tuple(broken))
+    money = (len(records) - len(plain), sum(life.trips for life in lives), profit, market)
+    left = tuple(sorted({symbol for life in lives for symbol in life.left}))
+    return Night(at, len(lives), len(records), met, deaths, *money, idle, ran, tuple(broken), left)
 
 
 if __name__ == "__main__":
