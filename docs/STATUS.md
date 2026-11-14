@@ -50,10 +50,6 @@ everything on main, so two green lanes cannot combine into a red main.
 
 ### Found, not fixed
 
-- **The scribes still write lane decisions into `docs/DECISIONS.md`.** Each lane's
-  decisions moved to `docs/lanes/<lane>.md` (#234); until the runner's scribe claim and
-  prompt name that file, new entries land under the lane's stub in DECISIONS.md and nobody
-  moves them. The change is outside the repository, in the runner's slots.py and runner.py.
 - **The runner's own lines to his phone wait for his key.** A lane that halts, pauses at
   the weekly cap or needs his decision, and the 07:00 line, are sent by the runner on his
   PC from a file holding the bot key, which he copies beside the runner himself. Until he
