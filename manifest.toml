@@ -80,5 +80,6 @@ rungs = []
 "lab/reproduce.py" = "the author's own result: a published rule run on its author's market and period, counted as the author counted, and set beside the figure the author printed"
 "lab/promotion.py" = "before paper and after it: a candidate only with the ladder's pass and its kill condition written first, and promoted only on thirty effective paper trades, net positive"
 "lab/regime.py" = "periods and regimes: a strategy replayed in each period and each regime of the weather, kept for the regimes it earns in, and its trades outside them tagged"
+"lab/stress.py" = "the stress scenarios: a strategy's trades taken through the flash crashes and the 2020 crash, and what a black swan's overnight gap would cost it at its leverage, in pounds and never a pass"
 "lab/market.py" = "the market's rung: a strategy's days set beside its market's, its beta measured, and its excess over the market risk it took judged by its confidence interval"
 "lab/bets.py" = "the book's concentration: its number of independent bets from how its lines move together, and its profit split by correlated cluster"
