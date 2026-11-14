@@ -213,6 +213,7 @@ def trade(
     if made := [record.day for record in records(root) if record.day >= day]:
         raise ValueError(f"{day}: the day is over, the records running to {made[-1]}")
     book.record_rates(root, day, rates)
+    _bare(root, broker, day)
     held = book.positions(root)
     holders = {f.symbol: strategy_of(f.order_id) for f in book.fills(root) if f.quantity > 0}
     due = {line.symbol: line for line, bars in archive.items() if _due(line, bars, day)}
@@ -233,6 +234,28 @@ def trade(
         price = archive[line][-1].close, rates[line.currency]
         sent.append(_answer(root, day, _buy(root, broker, d, line, price, settings, day)))
     return tuple(sent)
+
+
+def _bare(root: Path, broker: Broker, day: date) -> None:
+    """A HOLDING WITH NO STOP, TOLD AT ONCE: each line the book holds with no stop resting at
+    the broker for all its shares goes on the morning's list, under the stop it is due (its
+    newest buy's, at the level kept for it, book.levels), saying what to put back. A line
+    under its stop again leaves the list when the morning runs again."""
+    held, kept = book.positions(root), book.levels(root)
+    due = {f.symbol: f"{f.order_id}-stop" for f in book.fills(root) if f.quantity > 0}
+    resting = {d.name: d.broker for d in book.differences(held, broker.stops())}
+    bare = (
+        halt.Blocked(
+            due[s],
+            Blocker.BOOK,
+            0,
+            f"{s}: {n} shares held, {resting[s]} under a stop "
+            f"at the broker; put back {due[s]}, selling {n} at {kept.get(due[s], 'no level kept')}",
+        )
+        for s, n in held.items()
+        if s in resting
+    )
+    halt.note(root, day, bare, (due[s] for s in held))
 
 
 def _unread(root: Path, lines: Sequence[Line], due: Mapping[str, Line], day: date) -> None:

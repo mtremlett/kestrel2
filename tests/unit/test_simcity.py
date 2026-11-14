@@ -323,6 +323,7 @@ def test_a_part_behind_a_wrapper_is_still_a_part(monkeypatch: pytest.MonkeyPatch
         (book, "reconcile", lambda *_: (), ["with no stop at the broker"], 0),
         (book, "collect", lambda *_: None, ["the ledger is the broker's own fills"], 0),
         (book, "_settle", lambda *_: None, ["left working"], 0),
+        (day, "_bare", lambda *_: None, ["on that morning's list"], 1),
         (day, "pennies", lambda p: orders.pennies(p) + Decimal("0.01"), ["profits add up"], 0),
         (simcity, "HOLDINGS", 3, ["never more than 3 lines are held"], 0),
         (simcity, "_Counted", lambda _, rng: WORLD(SHORT, rng), ["inside its day's range"], 0),

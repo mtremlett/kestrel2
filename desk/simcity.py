@@ -25,7 +25,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import CodeType, ModuleType
 
-from desk import book, broker, day, kill, orders, strategy
+from desk import book, broker, day, halt, kill, orders, strategy
 from desk.broker import Crash, Fault, Pretend, Report
 from desk.lines import Line
 from desk.orders import HOLDINGS, Order, Sale, Settings, pennies
@@ -199,8 +199,7 @@ class _Counted(Pretend):
 
 
 class _Life:
-    """One desk's life in one world: its market and its broker, every draw from the world's
-    seed, and what the life has seen of the desk's promises."""
+    """One desk's life in one world: its market, its broker, and its promises kept or not."""
 
     def __init__(
         self, desk: Path, archive: Archive, room: Settings, rates: Rates, seed: int, census: _Census
@@ -220,6 +219,7 @@ class _Life:
         """One day whole, from the data saved by its end, and its record."""
         saved = {line: [b for b in bars if b.day <= on] for line, bars in self.market.items()}
         scenario, buys = self.census.scenario, self.pretend.buys
+        unstopped = {*book.positions(self.desk)} - {*dict(self.pretend.stops())}
         record = self._run(saved, on)
         self.census.now(scenario)
         quiet = not (record.mismatches and self.pretend.buys > buys)
@@ -229,6 +229,9 @@ class _Life:
         self.promise("no order is left working at a day's end", not self.pretend.working())
         bare = {*held} - {*stopped} - {*record.mismatches}
         self.promise("a line held with no stop at the broker is named that day", not bare)
+        listed = [b.reason for b in halt.morning(self.desk, on)[halt.Blocker.BOOK]]
+        untold = [s for s in unstopped & {*held} if not any(w.startswith(f"{s}: ") for w in listed)]
+        self.promise("a line held with no stop is on that morning's list", not untold)
         same = held == stopped == dict(self.pretend.holdings())
         named = bool(record.mismatches)
         self.promise("no line is named on a day the book is the broker's", not (same and named))
@@ -256,10 +259,8 @@ def _behind(life: _Life, on: date) -> None:
 
 
 def _unstopped(life: _Life, on: date) -> None:
-    """The stop under a holding of the seed's choosing is cancelled by hand. After the day's
-    record the hand puts it back, if the same shares are still held; one time in FORGOTTEN
-    nothing does, and the line is to be named every day until its rule sells it, which every
-    day's promises try."""
+    """The stop under a holding of the seed's choosing is cancelled by hand, and put back after
+    the day's record if the same shares are still held; one time in FORGOTTEN it never is."""
     held = life.rng.choice(life.pretend.stops())
     put_back = life.pretend.lose_stop(held[0])
     life.live(on)

@@ -365,3 +365,28 @@ def test_a_record_opens_from_what_the_last_one_closed_on_at_each_days_own_rate(
     shut = date(2025, 2, 17)  #: New York is shut, so U is owed no bar: the yardstick alone is
     assert day.trade(tmp_path, archive, broker, capital, shut, at) == ()
     assert [b.order_id for b in halt.morning(tmp_path, shut)[Blocker.UNREAD]] == [YARDSTICK.symbol]
+
+
+def test_a_holding_whose_stop_was_lost_is_on_that_mornings_list_with_the_stop_to_put_back(
+    tmp_path: Path,
+) -> None:
+    broker, room, pounds = Pretend(ARCHIVE, {}), Settings(Decimal(10_000)), {"GBP": Decimal(1)}
+    broker.open(DAYS[21])
+    _trade(tmp_path, broker, DAYS[21])
+    lost = broker._stops["A"]
+    broker.cancel_stop("A")  #: by hand, overnight
+    broker.open(DAYS[22])
+    stale = {
+        line: bars[:21] for line, bars in ARCHIVE.items()
+    }  #: no rule decides: told all the same
+    day.trade(tmp_path, stale, broker, room, DAYS[22], pounds)
+    shares, kept = book.positions(tmp_path)["A"], book.levels(tmp_path)
+    assert kept[lost.order_id] == lost.level, "a level the desk did not rest the stop at"
+    told = f"A: {shares} shares held, 0 under a stop at the broker; put back {lost.order_id}, "
+    bare = halt.morning(tmp_path, DAYS[22])[Blocker.BOOK]
+    assert [(b.order_id, b.reason) for b in bare] == [
+        (lost.order_id, f"{told}selling {shares} at {lost.level}")
+    ], "not told that morning, or told another line"
+    broker._stops["A"] = lost  #: put back: the morning run again leaves it off the list
+    day.trade(tmp_path, stale, broker, room, DAYS[22], pounds)
+    assert not halt.morning(tmp_path, DAYS[22])[Blocker.BOOK]

@@ -23,6 +23,7 @@ from desk.orders import Charges, Order, Refused, Sale, Settings, charges, gate, 
 
 LEDGER, RATES, SWITCH = "ledger.csv", "rates.csv", "switch.csv"
 GOING = "going.csv"  #: the order at the broker's door, kept only until the desk has its answer
+STOPS, LEVELS = "stops.csv", ("stop", "level")  #: each buy's stop level, kept as the buy goes
 COLUMNS = ("execution_id", "order_id", "symbol", "quantity", "price", "day")
 TURNS = ("at", "turn", "why")
 
@@ -104,6 +105,10 @@ def _place(root: Path, broker: Broker, order: Order | Sale) -> Report:
     desk has the broker's last answer, or its door's word that the order never went. A note
     still there afterwards is a desk that died in between."""
     going = root / GOING
+    if isinstance(order, Order):  #: the broker may lose the stop: its level is kept here too
+        kept = levels(root)
+        kept.setdefault(f"{order.order_id}-stop", order.stop)
+        _write(root / STOPS, [LEVELS, *kept.items()])
     _write(going, [(order.order_id,)])
     try:
         report = broker.place(order)
@@ -125,6 +130,19 @@ def _settle(root: Path, broker: Broker) -> None:
     if going.exists() and killed(root) is None:
         tuple(broker.cancel())
         going.unlink()
+
+
+def levels(root: Path) -> dict[str, Decimal]:
+    """THE STOPS THE DESK RESTED: each buy's stop level under the stop's own id (the buy's,
+    with "-stop"), oldest first, so a stop the broker lost is put back at its own level."""
+    path = root / STOPS
+    if not path.exists():
+        return {}
+    with path.open(newline="", encoding="utf-8") as kept:
+        rows = list(csv.reader(kept))
+    if rows[:1] != [list(LEVELS)]:
+        raise ValueError(f"{path}: not the desk's stop levels")
+    return {name: Decimal(level) for name, level in rows[1:]}
 
 
 def turn(root: Path, to: Switch, at: datetime, why: str) -> None:
