@@ -1662,6 +1662,25 @@ review found "never declare done without the check's output" dropped, and it is 
 failed; a budget that forgot CLAUDE.md's cap failed; a cap of 150 under the canon
 failed. Each named the file and its count.
 
+
+## 2026-11-14 — each lane's decisions in its own file
+
+**Approved** in the after-first-light queue (items 3 and 4): one file per lane, `docs/lanes/<lane>.md`;
+13 of 14 clashes in 175 pull requests were the shared documents. Each lane's part of this file
+(2,152 lines in all) moved verbatim to its own file; a check counted every line before and
+after and found none lost. Only that lane may change its file (`tests/guards/test_lanes.py`), the
+document set admits one per lane the manifest knows, and each is held to 800 lines
+(`max_lines_per_lane_doc` in `BUDGET.json`; the largest is DATA's at 596), the size limit #46
+proposed, rebuilt per lane. A stub under each lane's heading here keeps the runner's scribe
+working until its prompt and claim name the lane's file. The lanes' STATUS sections stay in
+`docs/STATUS.md` for now, because the runner reads each lane's requests from there.
+
+**Driven** in a throwaway clone. Failed: a lane file of 801 lines; a lane file for a lane the
+manifest lacks; a budget without the cap; the money lane changing the data lane's file; the
+money lane changing its own file outside its claim; a lane branch the manifest does not know.
+Passed: a lane file of exactly 800; the money lane changing its own file with claim `*` or a
+claim naming it; the money lane still writing `docs/DECISIONS.md`, as the scribe does today.
+
 ---
 
 ## MONEY

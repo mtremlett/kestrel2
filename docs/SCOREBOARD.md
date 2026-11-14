@@ -18,6 +18,7 @@ and the share of fix commits going down.
 | 2026-11-13 | 4 of 7 | 1096 | 166 | 1941 | 14 of 14 proven | green | Mechanical guards before the lanes run unattended, by the operator's rulings: a lane's branch may change only its own files and no change adds over 300 product lines (two new guards, seventeen cases driven, one defect found in the guard and fixed); outside the repository, the runner now stops at 80% of the plan's week, halts a lane that lands three changes without progress or fixes one file twice, runs a read-only audit at 05:30 (it caught all three planted faults) and sends a line at 07:00. |
 | 2026-11-13 | 5 of 7 | 1400 | 410 | 2450 | 14 of 14 proven | green | By the operator's rulings: five lanes, phase 3 begun alongside phase 2 (PAPER), the ladder split into GRID and RUNGS on Fable's allowance, each lane's files apart in the manifest; numpy for the lab alone; the lab's ceiling to 7,000 in its own pull request, his to merge; the research universe, about 1,500 tickers, for DATA. Fifteen deliberate breaks of the changed guards each behaved as intended. |
 | 2026-11-14 | 7 of 7 | - | - | - | +1 proven | green | CLAUDE.md (80) and CANON.md (200) held to their limits by a guard reading BUDGET.json; the canon merged from 225 to 190 lines, no rule removed; five breaks driven, all caught. |
+| 2026-11-14 | 7 of 7 | - | - | - | +1 proven | green | Each lane's decisions moved, verbatim, from docs/DECISIONS.md (3,831 lines to about 1,710) to docs/lanes/<lane>.md, owned by that lane alone and held to 800 lines; twelve cases driven. |
 
 ## The lanes
 
