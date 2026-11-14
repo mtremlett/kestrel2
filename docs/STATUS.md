@@ -288,25 +288,27 @@ grid-declared can start now (it waited only on the shared file).
 
 ## RUNGS
 
-Last updated: 14 November 2026 (cut to what is open; git, decisions and scoreboard keep the rest).
+Last updated: 14 November 2026.
 ### Where it is
 
 Rungs proven on made-up prices only: first (`lab/rung.py`), luck, folds, trials, deflated Sharpe, plateaus,
 regimes; built but called by nothing yet: author's result (`reproduce`), promotion, market rung, book
 concentration (`bets`, #136), stress (`stress`, #140), indicator tables (`published`, #145, #154: 250 numbers).
 The first rung refuses a rule with an author's figure on file until reproduced (#139).
-**No winner on real prices is to be believed yet; no real author's figure is on file.**
+**No winner on real prices is to be believed yet; no real author's or replication's figure is on file.**
 
 ### Next step
-
 Open boxes (PLAN): rungs-trustworthy (name market rung; wire bets, stress), rungs-indicators (R-RUNGS-6, 12).
-**rungs-reproduce is BLOCKED, hand it out no more** (#143, #149): waits on the book (his spend; recommended
-yes, Connors and Alvarez 2008; its RSI table may be of another rule), R-RUNGS-5, R-RUNGS-10. Free: Connors'
-"RSI 25" figure, uncoded. Unit tests stay at the product's size. Ruled 14 Nov (DECISIONS):
-concentration shown on every report, no A-GATE mark yet; no book for now.
+**rungs-reproduce is BLOCKED, hand it out no more** (#143, #149, #169, #186): no book is bought (his ruling, 14 Nov);
+a replication stands in for an author's figure, labelled second hand (#169). Best free figures are in DECISIONS;
+none on file. Waits on SPY from 1993 (R-RUNGS-5, 9), Double 7's as a rule (R-RUNGS-10), RSI-2 buying under 10
+(R-RUNGS-14), the index from 1983 (R-RUNGS-13); then `folds`/`regime`/`stress` pass reproductions on; a person
+reopens each page before a figure goes on file. Unit tests stay at the product's size. Ruled 14 Nov: concentration on every report.
+
+### Done for other lanes
+- R-DATA-11, R-RUNNER-5, R-RUNNER-3: done in #186 (rungs' tests price dollar trades on AAPL and NVDA; notes out of `lab/reproduce.py`)
 
 ### Requests to MONEY
-
 - [ ] R-RUNGS-6 (blocking, 01:20): the indicators of `desk/strategy.py` public and by name (STR-14).
 - [ ] R-RUNGS-12 (blocking, 07:55): narrows R-RUNGS-6 to a public RSI and Bollinger lower band; keep `_Window`,
   `_Wilder`, `_Rsi2`, `_Supertrend`, `_gain`, `_loss`, `_range` meanwhile.
@@ -314,25 +316,23 @@ concentration shown on every report, no A-GATE mark yet; no book for now.
 - [ ] R-RUNGS-8 (later, 01:50): `orders.strategy_of` refuses an unreadable id, naming it.
 - [ ] R-RUNGS-10 (later, 04:50): Connors' Double 7's as a desk rule (first reproduction's rule).
 - [ ] R-RUNGS-11 (later, 04:48): the gap loss limit (STP-10) one named number in `desk/orders.py`.
+- [ ] R-RUNGS-14 (later, 14 Nov 10:05): RSI-2 able to buy under 10 as well as 5 (a setting), for the one SPY test with exact dates.
 
 ### Requests to GRID
-
 - [ ] R-RUNGS-2 (later, 13 Nov): the declared sweep enters every cell in the register before the batch runs.
 - [ ] R-RUNGS-4 (later, 00:35): a kept verdict's key takes in the rates it was priced with.
 
 ### Requests to DATA
-
 - [ ] R-RUNGS-3 (blocking, 00:35): a kept daily pounds-per-dollar rate for every research day.
 - [ ] R-RUNGS-5 (blocking, 01:20): SPY and US sessions back to January 1993, saying if dividend-adjusted.
 - [ ] R-RUNGS-9 (blocking, 04:50): with R-RUNGS-5, SPY from 29 Jan 1993 kept as traded and adjusted, labelled.
+- [ ] R-RUNGS-13 (later, 14 Nov 10:05): the S&P 500 index from 1983 to Feb 2013 as a line with daily closes and US sessions.
 
 ### Found, not fixed
-
 - **Nothing calls the new rungs yet**; no settings on rules, no regime weather (REG-01); `luck.correct` is a
-  door beside the register. **Reproduction:** `folds.judge`, `regime.judge` cannot pass one on; Bollinger,
-  50/200 cross, Supertrend have no author's test (ruling owed); Double 7's figure not on file.
+  door beside the register. **Reproduction:** Bollinger, 50/200 cross, Supertrend have no author's test (ruling owed).
 - **Promotion:** fall sees sold shares only; `DEEPEST` belongs to the A-GATE. **Market/stress:** calm-storm
   alternation passes a rider twice as often; "days end at first unjudged trade" lives twice, belongs in `rung.py`.
 - **Bets:** a young line (<120 moves) stops it; clusters near 0.5 flip year to year. **Indicators:**
-  `published.py` at its 400-line cap; RSI ratio, band line, carried band unheld; tables run flat only;
-  no fresh-low table for the channel. Scratch owed removal in `C:/tmp`: repro*, promo*, market*, bets*, rungs*, ind*.
+  `published.py` at its 400-line cap; RSI ratio, band line, carried band unheld; no fresh-low table for the channel.
+  Scratch owed removal in `C:/tmp`: repro*, promo*, market*, bets*, rungs*, ind*.
