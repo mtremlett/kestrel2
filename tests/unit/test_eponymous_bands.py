@@ -16,7 +16,7 @@ from desk.store import Bar
 from desk.strategy import Action, Timeframe
 
 
-def _bars(closes: list[int | str]) -> tuple[Bar, ...]:
+def _bars(closes: list[str]) -> tuple[Bar, ...]:
     out = []
     for n, value in enumerate(closes):
         close = Decimal(str(value))
@@ -28,7 +28,7 @@ def _bars(closes: list[int | str]) -> tuple[Bar, ...]:
 def test_four_week_rule_trades_on_the_days_it_fixes() -> None:
     # 20 flat sessions (highs 100.5, lows 99.5), then: 21 is not a breakout, 22 closes over the
     # 20-day high (101.0 on session 21 is the high; 102 > 101), 24 closes under the 20-day low.
-    closes: list[int | str] = [100] * 20 + ["100.5", 102, 103, 99, 98]
+    closes = ["100"] * 20 + ["100.5", "102", "103", "99", "98"]
     bars = _bars(closes)
     with pytest.MonkeyPatch.context() as only:
         only.setattr(strategy, "STRATEGIES", EPONYMOUS)
