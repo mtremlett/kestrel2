@@ -141,7 +141,8 @@ def _row(r: Record) -> tuple[object, ...]:
 
 def records(root: Path) -> tuple[Record, ...]:
     """Every day's record the desk has published, oldest first, as it was published. A file
-    there whose first line is not the records' own names is an error, never a day short."""
+    there whose first line is not the records' own names is an error, never a day short. A
+    row that ends at its money is a record made without its halts: it does not count."""
     path = root / RECORDS
     if not path.exists():
         return ()
@@ -161,7 +162,7 @@ def records(root: Path) -> tuple[Record, ...]:
             tuple(map(datetime.fromisoformat, row[10].split())),
             int(row[11]) if row[11] else None,
         )
-        for row in rows[1:]
+        for row in (kept if kept[10:] else [*kept, "", ""] for kept in rows[1:])
     )
 
 

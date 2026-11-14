@@ -279,6 +279,10 @@ def test_a_day_whose_book_is_not_the_brokers_names_the_lines_and_withholds_its_p
     (tmp_path / day.RECORDS).write_text("2025-02-05,1,0,0,0,0,0,0,0,0", encoding="utf-8")
     with pytest.raises(ValueError, match="not the desk's records"):  #: its first line not the names
         day.records(tmp_path)
+    #: a row kept without its halts and its stopped signals is a record made without them
+    bare = day.Record(DAYS[22], Decimal(1), Charges(*costs), Decimal(0), (), Decimal(0), 0)
+    book._write(tmp_path / day.RECORDS, [day.HEADER, day._row(bare)[:10]])
+    assert day.records(tmp_path) == (bare,) and not bare.counts, "a day nobody sent for counted"
 
 
 def test_a_session_the_desk_missed_is_named_and_gets_its_record_before_any_later_day(
