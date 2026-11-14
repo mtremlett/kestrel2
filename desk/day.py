@@ -51,9 +51,10 @@ class Record:
     mismatches: tuple[str, ...]  #: lines where the desk's book and the broker's differ
     worth: Decimal  #: what the book held at the day's end was worth: the next record opens here
     counted: int  #: the ledger's fills dated by the day, each counted by a record up to this one
-    #: the halts in force that day, each by the moment it was called, as halt.kept stood
-    halted: tuple[datetime, ...]
-    stopped: int | None  #: signals the kill switch or a halt refused; None, no orders sent
+    #: the halts in force that day, each by the moment it was called, as halt.kept stood. A
+    #: record made without these two says nothing was sent, and does not count
+    halted: tuple[datetime, ...] = ()
+    stopped: int | None = None  #: signals the kill switch or a halt refused; None, none sent
     counts: bool = field(init=False)  #: the verdict
 
     def __post_init__(self) -> None:

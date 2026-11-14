@@ -196,6 +196,8 @@ def test_the_days_record_is_the_books_gain_after_every_cost_beside_the_markets(
             day.Record(
                 DAYS[22], profit, Charges(*pounds[0]), Decimal(0), differ, Decimal(0), 0, (), 0
             )
+    unsaid = day.Record(DAYS[22], Decimal(1), Charges(*pounds[0]), Decimal(0), (), Decimal(0), 0)
+    assert (unsaid.halted, unsaid.stopped, unsaid.counts) == ((), None, False), "counted"
 
 
 def test_a_day_with_a_halt_in_force_buys_nothing_says_so_in_its_record_and_does_not_count(
