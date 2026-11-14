@@ -229,7 +229,7 @@ def test_a_sale_is_sent_once_and_answered_with_what_the_broker_did(
     # a knock; the line's shares and stops; the sale, under the gateway's next number; what it
     # then did; and the line again: its shares gone, no stop of the desk's own on it, no more sent
     assert sent == [b"", ACCOUNT, PLACED, ACCOUNT, ENDED, FILLS, ACCOUNT]
-    # refused on entry and ended by the broker itself: nothing to cancel, and no list has it
+    # ended by the broker itself, a reason given: no cancel (a real refusal: test_placing_seen.py)
     over = [REJECTED, _but(MINE[1], 2, "Cancelled")]
     sent = _gateway(monkeypatch, [], BARE, over, BARE, [("102",)], [END], BARE)
     told = broker.place(SALE)
