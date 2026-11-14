@@ -204,15 +204,9 @@ FAR = _order("5", "SELL STP", "a-stop", "Submitted")
 LEFT = _account([_but(HELD, 14, "16")], *PROTECTED[3:5])  # sixteen held, the stop still for 26
 PART: list[Said] = [LEFT, [CUT, ("102",)], [_but(SOLD, 19, "10"), END], LEFT]
 ASKED = [ACCOUNT, ENDED, FILLS]
-#: No stop a sale of the line would leave: someone else's on it, the desk's own there that is
-#: over, its own order there that is no stop, and its own stop on another line.
-AROUND = _account(
-    [HELD],
-    *_order("7", "SELL STP", "x-stop", "PreSubmitted", client="31"),
-    *_order("9", "SELL STP", f"{ID}-stop", "Cancelled", 0),
-    *_order("12", "BUY LMT", "f", "Inactive"),
-    *(_but(FAR[0], 2, "265598"), FAR[1]),
-)
+#: No stop a sale of the line would leave: the desk's own there, over; its own on another line.
+OLD = _order("9", "SELL STP", f"{ID}-stop", "Cancelled", 0)
+AROUND = _account([HELD], *OLD, _but(FAR[0], 2, "265598"), FAR[1])
 
 
 def test_a_sale_is_sent_once_and_answered_with_what_the_broker_did(
@@ -223,7 +217,10 @@ def test_a_sale_is_sent_once_and_answered_with_what_the_broker_did(
     filling = [*MINE, _but(SOLD, 1, "-1"), FEE, ("4", "2", "41", "2109", "hours ignored", "")]
     filled = _order("41", "SELL MKT", ID, "Filled", 0)[1]
     did = [_account([FLAT], FEE), [DONE, ("102",)], [SOLD, END]]  # the fee, late and unasked
-    after = _account([FLAT], *AROUND[2:-1])  # its shares gone, the orders around it as they were
+    # its shares gone, the orders around it as they were; and, come since, someone else's stop
+    # on the line and an order of the desk's there that is no stop: neither is the line's stop
+    theirs = _order("7", "SELL STP", "x-stop", "PreSubmitted", client="31")
+    after = _account([FLAT], *AROUND[2:-1], *theirs, *_order("12", "BUY LMT", "f", "Inactive"))
     sent = _gateway(monkeypatch, [], AROUND, [*filling, filled], *did, after)
     assert broker.place(SALE) == Report(ID, (OUT,), None)
     # a knock; the line's shares and stops; the sale, under the gateway's next number; what it
@@ -386,13 +383,16 @@ def test_nothing_is_sent_without_a_drill_a_clean_day_a_ready_gateway_and_the_sto
             with pytest.raises(error, match=saying):
                 broker.place(order)
             assert sent == []
-    # what the line is under must be settled first: a stop of the desk's own the broker is not
-    # yet holding, or two of them, and nothing is sent. Known only by asking: a knock, the account
-    unsettled = _account([HELD], *_order("7", "SELL STP", f"{ID}-stop", "PendingSubmit"))
-    for stops in (unsettled, _account([HELD], *PROTECTED[3:5], *CHILD)):
+    # what the line is under must be settled first: a stop of the desk's own not yet held, or
+    # two; and no other order open at the broker, the desk's own on any line or anyone else's
+    late = _order("7", "SELL STP", f"{ID}-stop", "PendingSubmit")
+    more = [_order("8", "BUY MKT", "a", "Submitted", client=c) for c in ("222", "31")]
+    far = (*PROTECTED[3:5], _but(more[0][0], 2, "265598"), more[0][1])  # its own, on another line
+    whys = ["stops on IITU are not settled: .*-stop .P"] * 2 + ["open at the broker: .'a .Subm"] * 2
+    for rest, why in zip((late, (*PROTECTED[3:5], *CHILD), far, more[1]), whys, strict=True):
         for order in either:
-            sent = _gateway(monkeypatch, [], stops)
-            with pytest.raises(Refused, match="stops on IITU are not settled: .*-stop .P"):
+            sent = _gateway(monkeypatch, [], _account([HELD], *rest))
+            with pytest.raises(Refused, match=why):
                 _paper(ready).place(order)
             assert sent == [b"", ACCOUNT]
     monkeypatch.setattr(paper, "dial", Mock(side_effect=ConnectionRefusedError))
