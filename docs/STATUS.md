@@ -290,47 +290,47 @@ Last updated: 14 November 2026 (cut to what is open; git, decisions and scoreboa
 
 ### Where it is
 
-The ladder's rungs, proven on made-up prices only: the first (`lab/rung.py`), luck, folds, trials,
-the deflated Sharpe with one verdict rule, plateaus, regimes; and, built but called by nothing yet: the author's own result (`lab/reproduce.py`, #120),
-promotion (`lab/promotion.py`, #127) and the market's rung (`lab/market.py`, #131).
+Rungs proven on made-up prices only: first (`lab/rung.py`), luck, folds, trials, deflated Sharpe, plateaus,
+regimes; built but called by nothing yet: author's result (`reproduce`), promotion, market rung, book
+concentration (`bets`, #136), stress (`stress`, #140), indicator tables (`published`, #145). The first rung
+refuses a rule with an author's figure on file until reproduced (#139).
 **No winner on real prices is to be believed yet; no real author's figure is on file.**
 
 ### Next step
 
-Boxes open, ready first (PLAN): rungs-beta (BIC-02 remains), rungs-reproduce (first real
-figure waits on R-RUNGS-5; making the first rung wait for one is free), rungs-stress,
-rungs-trustworthy (name the market rung among the rungs). Unit tests stay at the product's size.
+Open boxes (PLAN): rungs-trustworthy (name market rung; wire bets, stress), rungs-reproduce (R-RUNGS-5),
+rungs-indicators (R-RUNGS-6). Unit tests stay at the product's size.
+Operator's: is concentration a condition of the A-GATE or a number shown? Recommended: show both
+numbers on every report first, set a mark after a few. Also his: buy Connors' book (one copy).
 
 ### Requests to MONEY
 
-- [ ] R-RUNGS-6 (later, 2026-11-14 01:20): the indicators of `desk/strategy.py` reachable by name (STR-14).
-- [ ] R-RUNGS-7 (later, 2026-11-14 01:50): the day's run reads each candidate's `promotion.standing`
-  at day's end, buys nothing for a killed one, says so in the record.
-- [ ] R-RUNGS-8 (later, 2026-11-14 01:50): `orders.strategy_of` refuses an unreadable id, naming it.
+- [ ] R-RUNGS-6 (blocking, 01:20): the indicators of `desk/strategy.py` public and by name (STR-14);
+  keep `_Window`, `_Wilder` importable meanwhile (13 lab test files read them).
+- [ ] R-RUNGS-7 (later, 01:50): the day's run reads each candidate's `promotion.standing`, buys nothing for a killed one.
+- [ ] R-RUNGS-8 (later, 01:50): `orders.strategy_of` refuses an unreadable id, naming it.
+- [ ] R-RUNGS-10 (later, 04:50): Connors' Double 7's as a desk rule (first reproduction's rule).
+- [ ] R-RUNGS-11 (later, 04:48): the gap loss limit (STP-10) one named number in `desk/orders.py`.
 
 ### Requests to GRID
 
-- [ ] R-RUNGS-2 (later, 2026-11-13 21:22): the declared sweep enters every cell in the register
-  (`trials.enter`) before the batch runs, at one fixed path.
-- [ ] R-RUNGS-4 (later, 2026-11-14 00:35): a kept verdict's key takes in the rates it was priced with.
+- [ ] R-RUNGS-2 (later, 13 Nov): the declared sweep enters every cell in the register before the batch runs.
+- [ ] R-RUNGS-4 (later, 00:35): a kept verdict's key takes in the rates it was priced with.
 
 ### Requests to DATA
 
-- [ ] R-RUNGS-3 (blocking, 2026-11-14 00:35): a kept daily rate of pounds per dollar for every
-  trading day of the research history, readable as day to rate.
-- [ ] R-RUNGS-5 (blocking, 2026-11-14 01:20): SPY's bars and the US calendar's sessions back to
-  January 1993, saying whether prices are dividend-adjusted (Connors' RSI-2 figure is 1993-2008).
+- [ ] R-RUNGS-3 (blocking, 00:35): a kept daily pounds-per-dollar rate for every research day.
+- [ ] R-RUNGS-5 (blocking, 01:20): SPY and US sessions back to January 1993, saying if dividend-adjusted.
+- [ ] R-RUNGS-9 (blocking, 04:50): with R-RUNGS-5, SPY from 29 Jan 1993 kept as traded and adjusted, labelled.
 
 ### Found, not fixed
 
-- **Nothing calls the new rungs yet**; rules carry no settings, nothing supplies the regime
-  weather (REG-01). `luck.correct` is still a door beside the register. Plateau and regime read
-  pass or not only. A verdict must not be kept by its record's key (no rates, capital or code).
-- **Reproduction:** "next open" dates a trade by the rule's day; a trade open at period's end is
-  left out; Bollinger, the 50/200 cross, Supertrend have no author's test as frozen (ruling owed).
-- **Promotion:** the fall sees sold shares only; the day-end reading is unenforced;
-  `promotion.DEEPEST` (£1,500) belongs to the A-GATE's module; candidates may each fall £1,500.
-- **Market rung:** alternating calm and storm passes a rider twice as often (5 in 100, not 2.5);
-  a window opening on a held trade counts those days as nothing; no key of its own.
-- **Smaller:** a fold-boundary trade counts in neither fold; a window of no days holding two
-  trades divides by zero, unnamed. Scratch owed removal in `C:/tmp`: repro*, promo*, pbdriver*, market*.
+- **Nothing calls the new rungs yet**; no settings on rules, no regime weather (REG-01). `luck.correct`
+  is a door beside the register. `folds.judge`, `regime.judge` cannot pass a reproduction on.
+- **Reproduction:** rung trusts `reproduce`'s answer, not the author's bars; Bollinger, 50/200 cross,
+  Supertrend have no author's test (ruling owed). Double 7's figure written, not on file.
+- **Promotion:** fall sees sold shares only; `DEEPEST` belongs to the A-GATE. **Market/stress:** calm-storm
+  alternation passes a rider twice as often; "days end at first unjudged trade" lives twice, belongs in `rung.py`.
+- **Bets:** a young line (<120 moves) stops it; clusters near 0.5 flip year to year. **Indicators:**
+  `published.py` 361 of 400 lines; its manifest line omits them.
+- Scratch owed removal in `C:/tmp`: repro*, promo*, market*, bets*, rungswait*, rungs_s2_*, ind*.
