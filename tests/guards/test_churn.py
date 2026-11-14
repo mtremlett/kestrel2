@@ -5,7 +5,8 @@ three fixes, counting this change when it is one, fails the check until
 
 A fix is a change whose title starts `fix` (main's history is one squashed change per pull
 request, titled as the pull request was). This change's title is its pull request's on
-GitHub, and otherwise the subjects of its own commits.
+GitHub; a push run on GitHub leaves that to its pull request's run, so the two never disagree
+on one commit; on the PC it is the subjects of the change's own commits.
 
 Approved by the operator, 14 November 2026 (gate G-B, docs/DECISIONS.md).
 """
@@ -22,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[2]
 PRODUCT = ("desk/", "lab/")
 WINDOW = 10  #: a file's last this many changes, this one included when it is a fix
 FIXES = 3  #: this many fixes among them is a recurring problem
-FIX = re.compile(r"fix\b")
+FIX = re.compile(r"fix\b", re.IGNORECASE)
 
 
 def _git(*args: str) -> str:
@@ -37,10 +38,14 @@ def _git(*args: str) -> str:
 
 
 def _titles(base: str) -> list[str]:
-    """This change's title: its pull request's on GitHub, else its own commits' subjects."""
-    if os.environ.get("GITHUB_EVENT_NAME") == "pull_request":
+    """This change's title: its pull request's on GitHub, none on a push run there (the
+    pull request's run judges it), else its own commits' subjects."""
+    event_name = os.environ.get("GITHUB_EVENT_NAME")
+    if event_name == "pull_request":
         event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text(encoding="utf-8"))
         return [str(event["pull_request"]["title"])]
+    if event_name:
+        return []
     return _git("log", "--format=%s", f"{base}..HEAD").splitlines()
 
 
@@ -68,5 +73,6 @@ def test_a_file_fixed_again_and_again_names_its_mechanism() -> None:
         f"fixed {FIXES} or more times in its last {WINDOW} changes, and no mechanism named: "
         f"{unnamed}. Stop fixing; find why it keeps breaking (CANON A2) and add a pattern to "
         "docs/FAILURE_PATTERNS.md naming the file in backquotes. A lane cannot: it writes "
-        "the finding under 'Found, not fixed' in its STATUS section and its session ends."
+        "the finding under 'Found, not fixed' in its STATUS section and its session ends, "
+        "and a session the operator starts records the pattern."
     )
