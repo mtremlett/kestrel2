@@ -300,3 +300,19 @@ def test_each_evenings_bars_are_kept_in_one_round_and_none_is_ever_thrown_away(
     }
     assert bars.five(store, UK, bars.EPOCH, NEXT + timedelta(1)) == held
     assert bars.five(store, US, bars.EPOCH, NEXT + timedelta(1)) == (late,)
+
+
+def test_the_audit_rechecks_every_held_line_and_names_its_faults(tmp_path: Path) -> None:
+    store, ten = tmp_path / "bars.db", Decimal(10)
+    good = [Bar(date(2026, 11, 2) + timedelta(n), ten, ten + 1, ten - 1, ten, 5) for n in range(5)]
+    bad = replace(good[2], high=Decimal(1), low=Decimal(2))  # a high below its low
+    stray = Five(datetime(2026, 11, 14, 12, 0, tzinfo=UTC), ten, ten, ten, ten, 1)
+    with bars.writing(store) as round_:
+        round_.daily(Line("ZZZ", "US", "USD", 1), [*good[:2], bad, *good[3:]])  # a research ticker
+        round_.daily(US, good)
+        round_.five(US, [stray])  # a Saturday: outside the venue's hours
+    before = store.stat().st_mtime_ns
+    said = bars.audit(store)
+    assert said.startswith("bars audit: 3 lines, 11 bars, 3 faults (")
+    assert "worst: ZZZ on US (daily) 2, BA on US (five-minute) 1" in said
+    assert store.stat().st_mtime_ns == before
