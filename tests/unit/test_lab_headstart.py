@@ -175,7 +175,9 @@ def test_every_store_the_register_tags_import_is_adopted_once_and_counted(
         == f"headstart: 2 old stores read, 0 already in, {counts}"
     )
     assert bars.five(store, line, NOON, NOON + timedelta(1)) == (_at(0), _at(5), _at(10))
-    assert bars.sources(store, line, bars.FIVE) == dict.fromkeys(Source, 1)
+    assert bars.sources(store, line, bars.FIVE) == dict.fromkeys(
+        (Source.ARCHIVE, Source.MATRICES, Source.DATABASE), 1
+    )
     said = capsys.readouterr().out.splitlines()
     for source in Source.MATRICES, Source.DATABASE:  # the matrices, named second, read first
         assert f"{source.value}: {line.symbol}: filled 1, met 1, differ 0; " in said
