@@ -209,7 +209,9 @@ def start(wire: BinaryIO, send: Send) -> int:
 def converse(wire: BinaryIO, send: Send) -> Account:
     """Read the account over an open connection: once it is started, ask for every holding
     and every open order, reading until the gateway says both lists are whole. Each order
-    is then read with the state the broker last told of it, wherever in the answer it came."""
+    is then read with the state the broker last told of it, wherever in the answer it came.
+    One told more than once is one order, by the broker's id for it, as last told: the gateway
+    tells an order again, unasked, as it changes (seen of a real stop, 14 November 2026)."""
     start(wire, send)
     send(message(ASK_HOLDINGS, 1) + message(ASK_ORDERS, 1))
     holdings: list[Holding] = []
@@ -226,7 +228,8 @@ def converse(wire: BinaryIO, send: Send) -> Account:
             states.update([_state(fields)])
         else:
             whole.add(other(fields))
-    return Account(tuple(holdings), tuple(_order(fields, states) for fields in orders))
+    told = {order.broker_id: order for order in (_order(fields, states) for fields in orders)}
+    return Account(tuple(holdings), tuple(told.values()))
 
 
 def dial(talk: Callable[[BinaryIO, Send], T]) -> T:

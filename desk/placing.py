@@ -221,11 +221,11 @@ class Paper:
         """What the broker did today with an order id, or None if it tells nothing of it. Its
         open orders are read first, then the day's ended ones, then the day's fills, so that
         an order which ends or fills between the readings is in one of them: read the other
-        way round it could be in none, and be sent again. (Unproven on a real order: that
-        the ended list never lags the open one, and that it keeps an order refused on
-        entry.) The reason is None only for an order the broker lists once, ended and filled
-        whole, with fills that come to the shares it says were filled; otherwise it is
-        everything the broker says of it."""
+        way round it could be in none, and be sent again. (Seen on real orders, 14 November
+        2026: the ended list had each at once after its cancel, and keeps one refused on
+        entry, as cancelled; a fill is still unseen.) The reason is None only for an order
+        the broker lists once, ended and filled whole, with fills that come to the shares it
+        says were filled; otherwise it is everything the broker says of it."""
         listed = [o for o in self._orders().unsettled if o.ref == order_id]
         ended = [e for e in reports.ended() if e.ref == order_id]
         fills = tuple(fill for fill in self.fills() if fill.order_id == order_id)

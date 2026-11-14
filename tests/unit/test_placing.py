@@ -54,12 +54,12 @@ def test_the_book_is_reconciled_with_the_paper_account_by_questions_alone(
     assert book.reconcile(tmp_path, broker) == ()  # a line is known by its symbol alone
     assert book.fills(tmp_path) == (FILL,) and sent == [FILLS, ACCOUNT, ACCOUNT]
     theirs = _account([], *_order("7", "SELL STP", f"{ID}-stop", "PreSubmitted", client="31"))
-    short = _order("7", "SELL STP", f"{ID}-stop", "Submitted", left=20)
+    short = [_order(n, "SELL STP", f"{ID}-stop", "Submitted", left=20) for n in ("7", "9")]
     _gateway(monkeypatch, theirs, [END], theirs, _account([HELD, _but(HELD, 11, "EUR")]))
     assert broker.stops() == ()  # another client's stop protects nothing of the desk's
     # no stop on the line; and its name in another currency is no line of the desk's
     assert book.reconcile(tmp_path, broker) == ("IITU", "IITU STK EUR")
-    _gateway(monkeypatch, _account([], *short, *short), _account([HELD, HELD]))
+    _gateway(monkeypatch, _account([], *short[0], *short[1]), _account([HELD, HELD]))
     assert broker.stops() == (("IITU", 20), ("IITU", 20))  # entry by entry, never added up
     assert broker.holdings() == (("IITU", 26), ("IITU", 26))
 
