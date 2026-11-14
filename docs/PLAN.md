@@ -714,9 +714,10 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       A replication may stand in for an author's figure, labelled second hand; best free figures
       written down, none on file (#169, #186). BLOCKED (do not hand out): waits on SPY and
       sessions from 1993 (R-RUNGS-5, 9), the Double 7's rule (R-RUNGS-10), RSI-2 buying under 10
-      (R-RUNGS-14), the index from 1983 (R-RUNGS-13). Remains also: `folds`/`regime`/`stress` passing reproductions on
+      (R-RUNGS-14), the index from 1983 (R-RUNGS-13), all five still open (#195). Remains also: `folds`/`regime`/`stress` passing reproductions on
       {id: rungs-reproduce; files: lab/reproduce.py, lab/rung.py,
-      tests/unit/test_lab_reproduce.py, tests/unit/test_lab_rung.py}
+      tests/unit/test_lab_reproduce.py, tests/unit/test_lab_rung.py;
+      waits: R-RUNGS-5, R-RUNGS-9, R-RUNGS-10, R-RUNGS-13, R-RUNGS-14}
 - [x] Stress scenarios: the 2020 crash, flash crashes, a leveraged product's gap (2008 lies
       before the history) (TST-06). Built: `lab/stress.py` (#140). Remains: nothing calls it;
       judged by the loss limit when MONEY sets it (R-RUNGS-11); first run on real bars
