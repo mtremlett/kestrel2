@@ -1645,6 +1645,22 @@ back under 9,000.
 **Driven.** With the ceiling at 10,500, a desk/ of exactly 10,500 lines passed, and one more
 line failed it.
 
+
+## 2026-11-14 — the docstring ratchet: undocumented public definitions never rise
+
+**Approved** in the after-first-light queue (item 9): undocumented public definitions may fall,
+never rise. On main today 71 of the 437 public functions, classes and methods in `desk/` and
+`lab/` have no docstring. `tests/guards/test_ratchets.py` counts them at main's commit the
+change starts from and in the change itself, and fails if the count rises. No number is kept by
+hand, so no lane needs to edit a guard file when it documents something, and the count can only
+fall. A public definition is one whose name does not start with `_`, at a module's top level or
+inside a public class.
+
+**Driven.** An undocumented public function, async function, class, method of a public class,
+and function in a new file each failed, as did removing an existing docstring. A documented new
+function, a private undocumented one, a deleted product file, and documenting one while adding
+one undocumented each passed.
+
 ---
 
 ## MONEY
