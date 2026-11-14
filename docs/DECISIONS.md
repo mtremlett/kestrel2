@@ -3106,3 +3106,43 @@ Decided by the PAPER lane as the desk's mentor, no one watching.
 - *The 15 seconds a refusal costs are left*: stopping at "Inactive" would lose the reason. *Kill switch pulled whole on the real account*, released at once.
 - *Ticks none:* fills, a triggered stop, a sale and a part fill cannot exist with markets shut.
 - Evidence: 13 deliberate breaks, all caught; 609 recorded conversations replayed through the code; a blind review's three looks, the last clean.
+### 2026-11-14 — the book's concentration (rungs-beta, BIC-02, #136)
+- Which box: reproduction (waits on DATA), indicators (waits on MONEY), or the market-risk box's second half. Chosen the last: waits on nobody, and the eleven-rungs box waits on it.
+- What "moves together" is measured on: (a) each holding's own daily profit; (b) the lines' price moves. Chosen (b): a line is held on few days, so profits overlap too little to measure, while prices give a full year.
+- Moves over one day, two days or a week. Chosen two days: London closes 16:30, New York 21:00, so a US day reaches a London line the day after (the same company's two listings read 0.79 day against day, 0.88 over two days). A week leaves too few moves.
+- History: only the days judged (too few; chance joins lines), everything kept (lines that parted still join), or the latest year. Chosen the latest 250 moves, 120 the fewest. Fixed before any result.
+- The line between together and apart: 0.3, 0.5 or 0.7. Chosen a half, either sign (a line and its inverse are one bet): clear of chance on a year, low enough that a share and its market are one bet.
+- Clusters only where every pair links, or joined through chains. Chosen chains: errs towards more concentrated, the safe direction.
+- Independent bets: count clusters held, or the effective number weighing pounds and movement. Chosen the second: counting clusters calls 4,000 pounds in one market and 10 in another two bets.
+- A pass mark: set one now, or measure and show only. Chosen show only: a new A-GATE condition is the operator's. Recommended when asked: show both numbers on every report, set a mark after seeing a few.
+- A line's profit not stated, or a day held outside the year read: suppose/answer anyway, or refuse. Chosen refuse (blind review): both give a wrong split or weighing, silently.
+- Ticks: none, as #131 and #127, or rungs-beta. Chosen rungs-beta: both halves are built and proven; leaving it open would hand the same work to another session.
+
+### 2026-11-14 — which rules wait for the author's result (rungs-reproduce, second step, #139)
+- Every rule waits for a reproduction, or a rule waits for every figure on file for it. Chosen the second: three of five rules (Bollinger, 50/200 cross, Supertrend) have no author's test, and the first would stop the whole lane on one data request. The verdict carries the fact, so promotion can demand it later.
+- Wait by a new "waiting" answer, or by a loud refusal as for code that is not the published rule. Chosen refusal.
+- What counts: any "the same", or only one of the figure on file, over its market and period, by the code as it now is. Chosen the second.
+- Does the rung re-run the reproduction: no, it takes the answer of `reproduce`, since `folds` and `regime` have no author's bars to pass. Said plainly in the module. Not ticked: the figure and first real run remain.
+
+### 2026-11-14 — the first printed result (rungs-reproduce, a step, #141)
+- Which result first: (a) wait for RSI-2's figure, which needs the book bought (spend is the operator's); (b) the publisher's free chapter, Double 7's on SPY from 29 January 1993 (153 trades, 80.4%, 0.85%, 122.36 points); (c) web write-ups. Chosen (b); (c) refused as second hand.
+- Figure fixed before any run: end 31 December 2007 (not printed for SPY; taken from the chapter's other tables); filled at the close. Same means: within 5 trades, 1.5 points of per cent correct, 0.05 average gain, 10 points. Wide because the end date is uncertain by months; not to be moved after a run.
+- Prices as traded or dividend-adjusted: the 122.36 points look like unadjusted prices (inference). Chosen: ask DATA for both, let the points say.
+- Enter it in FIGURES now, or when the rule and bars exist. Chosen the second: a figure on file stops every verdict on its rule, and this rule is not coded.
+- Buying the book is the operator's. Recommended: yes, one copy; it holds RSI-2 and several more of the twenty-one rules' figures.
+
+### 2026-11-14 — stress scenarios judge nothing (rungs-stress, TST-06, #140)
+- Pass or fail a strategy: fail above a loss bar set here, or measure only. Chosen measure only: the loss the desk will bear from a gap is MONEY's to set once (STP-10); a bar here would be a second home for one rule.
+- Which fall is the gap: an invented figure, the worst day of the history (7.2%/8.7%), or the black swan's 10% already ruled. Chosen the black swan's, read from `desk/emergency.py`, times the line's leverage.
+- The gap's cost: the trade's whole loss, or the night's own take. Chosen the night's own (the first review showed the other picks the lowest close, not the worst night). Limit: the market's fall, not a single share's.
+- When an episode is "tested": the dates cover it, or the rule is shown able to trade through it. Chosen the stricter: bought before it began, a bar for every session, judged trades to its end. A wrongly "untested" costs evidence; a wrongly "lost nothing" costs money.
+- Episodes fixed in code before any result: 2020 crash from the session after 19 February's high to 23 March; May 2010 as two days (London's morning after counts); August 2015 one day. Flash-crash stops fill at their level, so the figure is the least lost.
+
+### 2026-11-14 — indicators held to tables printed by others (rungs-indicators, first step, STR-14, #145)
+- Take the box though it waits on MONEY, or return it. Chosen take: the parts where classic mistakes live (sample deviation, exponential average for Wilder's) are reachable today.
+- Reach `_Window` and `_Wilder` directly, wait for public names, or test through strategies only (only frozen settings 2 to 200 days visible, no published table). Chosen direct: one piece of code at any length. The cost is a coupling to MONEY's private names, asked about as R-RUNGS-6.
+- Publication: Wilder's and Bollinger's books (not obtainable this session) or StockCharts' spreadsheets (read cell by cell). Chosen StockCharts; the books' tables stay worth adding if the operator has them.
+- Nearness fixed before the first run: average exact to six places, deviation and smoothed value to four. Nothing needed loosening.
+- Wilder's smoothing fed the spreadsheet's own Gain, Loss and true-range columns, not a re-typed split (that would test a second copy).
+- A gate in `proven` before any verdict, not only a test: under a millisecond once per run.
+- Ticks: none; "each indicator" is not true while the RSI and true range as wholes are out of reach.
