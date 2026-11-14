@@ -238,7 +238,7 @@ tickers misjudged: WWH, SHC, ECHO, MRNA, ROR), data-fast-store, data-hours; then
 
 ## GRID
 
-Last updated: 14 November 2026 (the grid's week built, started and moved onto its fix).
+Last updated: 14 November 2026 (a hung pass of the week is now ended at 48 hours, #125).
 ### Where it is
 
 Built and proven: the cell, the batch, the fast grid engine, a key per rung, the auto-tune
@@ -279,10 +279,10 @@ from `C:\tmp\kestrel2_week\code`. grid-declared can start now (it waited only on
 - Grid breaks no series found can show (Supertrend band, Bollinger past 2**53, Wilder window, band margin).
 - Cell/batch: key leaves out Python version, paths, capital and exchange rate. Unit-test lines equal product lines.
 - Tune: the proof uses one worker; priority and kill-on-exit untested; batch size follows the last batch only.
-- Week: no limit on a pass's time; a torn `week.jsonl` line needs hand-mending; results grow ~9 MB a day
-  (pruning owed, R-GRID-1); an outside pass on the same folder, a PC restart not followed within the hour,
+- Week: a pass over 48 hours is cut and logged failed, so a sweep needing more fails LAD-10 (grid-weekend); a torn `week.jsonl` line needs hand-mending; results grow ~9 MB a day
+  (pruning owed, R-GRID-1); an outside pass on the same folder, a PC restart not followed within the hour (nothing restarts it),
   or the scratch store `C:\tmp\kestrel2_grid\store` cleared breaks the run (data-research-home fixes the last).
-- Log counts tickers as "cells"; refused cells uncounted; busy flag stale if a pass is killed outright.
+- Log counts tickers as "cells"; refused cells uncounted; busy flag stale if a pass is killed outright or cut at its limit.
   Scratch copies owed removal: `.claude/worktrees/` helpers, `C:\tmp\unebreaks`, `C:\tmp\unedriver`.
 
 ## RUNGS
