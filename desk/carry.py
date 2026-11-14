@@ -25,3 +25,17 @@ def carried(known: Mapping[date, Decimal], day: date) -> Decimal | None:
     if len(sessions("US", last + timedelta(days=1), day)) > CARRIED:
         return None
     return known.get(last)
+
+
+def pounds_per_dollar(closes: Mapping[date, Decimal], day: date) -> Decimal | None:
+    """One over the pound's last close in dollars before the day, to six places; fresh while no
+    session shared by London and New York lies between that close and the day (a long holiday
+    weekend is not a stale rate, a missing week is). None where there is none, or it is stale."""
+    before = [d for d in closes if d < day]
+    if not before:
+        return None
+    last = max(before)
+    gap = timedelta(days=1)
+    if set(sessions("LSE", last + gap, day - gap)) & set(sessions("US", last + gap, day - gap)):
+        return None
+    return (1 / closes[last]).quantize(Decimal("0.000001"))
