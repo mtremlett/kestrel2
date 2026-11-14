@@ -1367,6 +1367,22 @@ the delayed kind; the data lane proves that first, read-only.
 
 ---
 
+## 2026-11-14 — phase 3 begins: phase 2's scenes all pass
+
+**Found.** At 08:00 on Saturday 14 November, scenes passed 7 of 7: phase 2's goal, the money
+path in simulation, is met. The desk had 5,421 of phase 2's 7,000 lines and was growing about
+320 lines an hour across twelve sessions, so the ceiling would have turned every money, paper
+and data change red within about five hours. The paper lane has worked in phase 3 since his
+ruling of 13 November.
+
+**Decided.** `BUDGET.json` names `3-money-paper`, whose ceilings (9,000 lines of desk code in
+55 files) were agreed before phase 0 began. Its lab ceiling is set to 7,000, not the 1,500
+written then: he raised the lab to 7,000 on 13 November for the ladder lanes that now run
+alongside, and moving the phase must not take that back. Nothing else changes. This loosens
+a ceiling and moves the phase, both his to decide. He has ruled that a question put to him
+takes its recommended option without waiting (13 November, about 21:05), but a session's
+permission check asks for his direct yes on these, so he was asked. His words, Saturday 14
+November about 08:15 UK, offered "Yes, phase 3" (recommended) or "Not yet": "Yes, phase 3".
 ## 2026-11-13 — tests up to 1.5 times the product; the recommended option, always
 
 **Found.** With ten sessions adding tests side by side, the rule "unit tests may not exceed
@@ -1411,6 +1427,54 @@ where they differ; their stored indicators are only a cross-check, never copied,
 indicator kept in two places is the second-home failure. The ladder runs in sets, each
 published as it finishes, and a strategy graduates to paper only through all eleven rungs
 and the luck test, named in the plan before its first paper day.
+
+---
+
+## 2026-11-14 — Monday holds; one pre-flight and one deep night run; old data kept
+
+**His words, about 09:20 UK.** "If something misses Monday, FIRST-LIGHT starts on Tuesday
+instead....this is not acceptable. we must itentify blockers and work together to find
+solutions. this is the elite desk way." He asked for daemons and monitors per lane, daily
+known-answer tests "as if these are pre-flight checks", synthetic trades, simulations,
+lifecycle and funnel tests, audits, smoke, integrity, canary and wiring scans. And whether to
+delete the original stores after import.
+
+**Decided by the mentor, as his rulings allow.**
+- FIRST-LIGHT's first day is Monday 16 November, 08:00. It starts on every clean line,
+  and later lines join without restarting the count. Each blocker has a workaround that keeps
+  every safety rule (in `docs/PLAN.md`), and a dry rehearsal on Sunday at 18:00 ends in a
+  go/no-go line to him.
+- His test list becomes two runs, not many processes: one pre-flight each trading morning and
+  one deep run each night (fuller at weekends), each writing one record into the morning
+  line. The old desk had sixty scheduled tasks; one process with many checks keeps the
+  checking without the sprawl. A "funnel" count was dropped on 13 November (FIL-05) because
+  one gate has one step; a refusal's reason serves it.
+- The old stores are consolidated into the one store on C: and verified; the originals are
+  then deleted with his explicit yes, asked at that time. Never E:, which is his backup drive
+  (his words: "E: drive is my automated backups drive. please do not use this"). `C:\mtt_cache` was kept back while his mark_the_trend programs
+  might read it; asked, he answered "Retired", so it is treated like the other stores.
+- The GPU is not used for now. The old desk measured no gain on it (its mentor's hand-over
+  of 18 October: "GPU/in-memory: no gain"), it would add a library and a second engine needing
+  its own parity test, and numpy on the CPU has not yet been shown to fall short. If a full
+  pass over the research universe overruns a weekend, a benchmark decides.
+
+---
+
+## 2026-11-14 — self-contained now, a cloud server later
+
+**His words, about 10:00 UK.** "as we build kestrel2, there should be no link to other
+folders or repo. when kestrel2 is live we can remove all other older folders ... if we are
+using another folder area, then please copy the contents to have zero dependencies. the
+future idea is that all of this desk is packaged and migrated to a cloud server and cloud
+database to avoid the single point of failure which is my current desktop pc."
+
+**Decided.** The desk depends only on its own folders: the repository, its runner, its data
+folder and its notes. The old desks are a quarry. Their code is ported under test, and their
+stores are copied in through the one store's checks, never read in place at run time. Paths
+come from one setting, and the database is named `market.db`, without the project's name,
+behind the one store, so that a server database can replace it. A guard will hold this. Moving
+to a cloud server is a phase 7 step, drilled before real money, and the Windows-only parts of
+the runner sit behind one door so they can be swapped.
 
 ---
 
