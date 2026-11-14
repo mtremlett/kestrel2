@@ -8,7 +8,7 @@ from __future__ import annotations
 import io
 from collections.abc import Callable, Sequence
 from dataclasses import replace
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 from typing import BinaryIO
@@ -292,12 +292,14 @@ def test_nothing_is_sent_without_a_drill_a_clean_day_a_ready_gateway_and_the_sto
 ) -> None:
     ready, unchecked, night = _ready(tmp_path), tmp_path / "unchecked", AT.replace(hour=3, minute=0)
     book.turn(unchecked, book.Switch.DRILLED, AT, "every promise kept")
+    book.turn(tmp_path / "old", book.Switch.DRILLED, AT - timedelta(days=32), "every promise kept")
     buy = Order(ID, IITU, 26, Decimal(40), Decimal(1), Decimal(36))
     refusals: list[tuple[placing.Paper, Order | Sale, type[Exception], str]] = [
         (_paper(ready), buy, NotImplementedError, "no buy is sent"),  # its stop is not built
         (_paper(ready), Sale(ID, SMGB, 5), Refused, "does not list SMGB: the broker lists 0"),
         (_paper(ready), Sale(ID, replace(SMGB, symbol="VUSA"), 5), Refused, "VUSA: it was not"),
         (_paper(tmp_path / "new"), SALE, Refused, "was not drilled in the last 31 days"),
+        (_paper(tmp_path / "old"), SALE, Refused, "was not drilled in the last 31 days"),
         (_paper(unchecked), SALE, Refused, "not been checked today"),
         (_paper(ready, night), SALE, Disconnected, "restarts itself"),  # and is not dialled
     ]
