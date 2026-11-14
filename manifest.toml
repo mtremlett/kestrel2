@@ -60,6 +60,7 @@ rungs = []
 "desk/halt.py" = "what stops the desk buying: the halt, a typed record in force until it is lifted and said every day, and the blockers, every one named, with each morning's list of the signals each blocked"
 "desk/watch.py" = "the crash watch: one look every five minutes reads each trading line's newest bar, and a fall that is one of the three emergencies halts all buying at once, tells him and records why; it lifts its own halt when the market ends a day clear"
 "desk/simcity.py" = "SimCity, small: one command lives the desk's whole day over all the saved data at the pretend broker with its faults and writes the night's one record, with the census of the money path's parts and the scenarios that ran them"
+"desk/simcitynight.py" = "SimCity's night: the one record of a night of worlds added up, its census, its broken promises and the lines left out, and the words it is told in"
 "desk/simcitycmd.py" = "SimCity's command line: the saved store lived in a night of worlds (all with --full) as the runner asks, the night's words printed, the code 1 for a red night"
 
 # the paper lane

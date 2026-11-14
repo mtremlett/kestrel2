@@ -379,3 +379,14 @@ def test_the_command_lives_the_saved_store_in_a_night_and_its_code_is_zero_only_
         assert len(kept.readlines()) == 3
     with pytest.raises(SystemExit):
         simcitycmd.main(["--fast"], {"KESTREL2_DATA": str(tmp_path)}, lambda: NOW)
+
+
+def test_a_line_not_yet_begun_is_left_out_and_named_while_every_day_is_lived(
+    tmp_path: Path,
+) -> None:
+    late = LINES[0]
+    young = {**SHORT, late: [bar for bar in SHORT[late] if bar.day >= SESSIONS[30]]}
+    night = simcity.run(tmp_path, young, ROOM, RATES, NOW, (3,))
+    assert late.symbol in night.left and late.symbol in night.words()
+    assert not [b for b in night.broken if b.startswith("the desk stops")], night.broken
+    assert night.days == len(SESSIONS[1:51])
