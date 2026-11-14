@@ -1560,6 +1560,35 @@ one store stays their only writer.
 
 ---
 
+## 2026-11-14 — data for 4,000+ tickers: tiers, SQLite now, a bounded ingest
+
+**His ask, about 11:30 UK.** "ultimately we want to trade 4000+ tickers across hundreds of
+strategies. can we rename the databases market_history and history_live? ensure both
+databases ... can cope. ... will there be a queue growing problem? ... think of multiple
+options, verify them, score them and then recommend them."
+
+**Researched.** An independent study, with every key claim checked at its source, is kept in
+the notes folder (`data_stack_2026-11-14.md`). IBKR cannot stream 4,000 tickers. Each needs a
+market-data line; an account starts with 100, and boosters top out near 1,100 at $300 a
+month. Small-bar history is capped at 60 requests per 10 minutes. The load itself is small:
+about 1.8 million 1-minute rows a day at 4,000 tickers, one transaction a minute. Scored
+options: for live data, tiers score 23 of 30 against 18 for IBKR alone; for storage, SQLite
+in WAL mode scores 27, Parquet with DuckDB for sealed history 27, DuckDB alone 25, QuestDB
+24, TimescaleDB 23 and ClickHouse 20.
+
+**Decided, the recommended options.**
+- The databases are `market_history.db` and `market_live.db` (his names).
+- Data comes in three tiers: live from IBKR for held, signalled and watched names; a US vendor
+  feed bought only after the A-GATE and only if a strategy needs it; and daily bars for all.
+- SQLite stays (standard library, one writer).
+- Months of intraday history are sealed into compressed files once a benchmark shows the need.
+- The ingest is bounded by construction, not by watching.
+- Nothing new is bought now. The vendor feed (about $99 a month), IBKR boosters ($30 a month
+  per 100 names) and a London second source (about £30 a month) are spending, asked of him
+  when a strategy needs them.
+
+---
+
 ## MONEY
 
 ### 2026-11-13 — how the pretend broker behaves
@@ -2858,6 +2887,39 @@ Decided by the PAPER lane as the desk's mentor, no one watching.
 - *Conformance keeps `files: *`:* nobody has seen where real results are recorded; a missed file would stop the session.
 - New modules named before they exist: `desk/messenger.py`, `desk/running.py`, `desk/supervisor.py`. paper-running also holds
   `desk/placing.py` for R-MONEY-8 and waits for paper-messages so there is one messenger.
+
+### 2026-11-14 — the desk's one voice (#142)
+
+Decided by the PAPER lane as the desk's mentor, no one watching.
+
+- *Alarm on silence:* the desk alarming itself (a dead desk cannot); only a human rule; a watch outside the desk reading the delivery record. Chosen the watch, with the human rule beside it.
+- *Hours:* morning 08:00 (05:40 was in his night), owed by 08:30; evening 21:05, owed by 21:30 (21:00 sat on New York's bell on 465 of 502 sessions). Nothing sent from 22:00; only the alarm goes at any hour.
+- *The record is SQLite,* not a CSV: two writers by design, and two processes drove the CSV unreadable within six writes.
+- *Asked on the record before the door; told twice rather than never.* A lost Telegram answer means a resend.
+- *Over-long messages* are cut at the door and kept whole on the record. *The key* comes from `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`; giving it to the desk is his alone.
+- *The morning message claims only what it asked* (Gateway, the day's check, kill switch and drill). The merge line and runner alerts stay outside until paper-cards.
+- Evidence: two blind reviews, three blocking findings fixed; 518 deliberate breaks, 473 caught as driven, gaps closed and driven again.
+
+### 2026-11-14 — the unattended desk (#152)
+
+Decided by the PAPER lane as the desk's mentor, no one watching.
+
+- *A step, not a loop:* a restart then needs no special path; what is done is known from the desk's records (and `running.csv`).
+- *Recovery runs whenever the check names something* (not at start, not every step). The stop kept is the newest whose buy really bought, for the shares held, only where they are the book's; read before the dead desk's orders are cancelled. It waits while the kill switch is on or undrilled.
+- *The check comes before a record too* (blocking finding). *A round is made once a day,* all answers told to him; an unclean check keeps it owed. Orders go whenever clear, however late (cut-off asked of MONEY).
+- *A line with no bar of the session before is left out and named,* not the whole round refused.
+- *Record hour:* five minutes after the last closing auction. *His hours:* nothing before 08:00 or from 22:00; a Gateway failure goes at any hour, once per day.
+- *The adapter itself refuses an order not dated the session before* (R-MONEY-8), by the venue's calendar.
+- Evidence: tests seen failing first; two blind reviews (2 blocking fixed); 78 deliberate breaks, 78 caught; dried read-only at the real Gateway.
+
+### 2026-11-14 — the daily kill-switch drill (#155)
+
+Decided by the PAPER lane as the desk's mentor, no one watching.
+
+- *When:* only when the last drill is over 31 days old; once each day before that day's first work; at each process start. Chosen daily: a step has no start, and a month-old drill says nothing of today's code. The 31-day refusal stays in the adapter as the floor.
+- *Where:* after the ledger, before the check (the check may put right with orders). *A failed drill stops everything but the ledger* and the step fails; told once in his words, wrapped from the money lane's error.
+- *Any day the desk works,* on the UTC day. No message for a drill that passed.
+- Evidence: tests seen failing first; one blind review, nothing blocking; 31 deliberate breaks, all caught; dried at the real paper Gateway with the switch on.
 
 ## GRID
 

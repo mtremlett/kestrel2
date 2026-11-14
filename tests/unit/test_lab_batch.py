@@ -26,22 +26,22 @@ BARS = tuple(
     Bar(START + timedelta(n), p, p + Decimal("0.5"), p - Decimal("0.5"), p, 1)
     for n, p in enumerate(Decimal(str(value)) for value in SHAPE)
 )
-SPY, QQQ = (next(line for line in LINES if line.symbol == s) for s in ("SPY", "QQQ"))
-CELLS = tuple(Cell(name, SPY, START, START + timedelta(24)) for name in strategy.STRATEGIES)
-HELD = Cell("breakout_20_10", SPY, START, START + timedelta(22))  #: still held at its end
-EMPTY = Cell("breakout_20_10", SPY, START + timedelta(30), START + timedelta(40))
-UNREAD = Cell("breakout_20_10", QQQ, START, START + timedelta(24))  #: its bars cannot be read
+AAPL, NVDA = (next(line for line in LINES if line.symbol == s) for s in ("AAPL", "NVDA"))
+CELLS = tuple(Cell(name, AAPL, START, START + timedelta(24)) for name in strategy.STRATEGIES)
+HELD = Cell("breakout_20_10", AAPL, START, START + timedelta(22))  #: still held at its end
+EMPTY = Cell("breakout_20_10", AAPL, START + timedelta(30), START + timedelta(40))
+UNREAD = Cell("breakout_20_10", NVDA, START, START + timedelta(24))  #: its bars cannot be read
 
 
-def _reader(stop_at: int = 0, spy: Sequence[Bar] = BARS) -> batch.Bars:
-    """SPY's bars; a stop (as by Ctrl-C) on read number stop_at."""
+def _reader(stop_at: int = 0, aapl: Sequence[Bar] = BARS) -> batch.Bars:
+    """AAPL's bars; a stop (as by Ctrl-C) on read number stop_at."""
     read = list[str]()
 
     def bars(line: Line) -> Sequence[Bar]:
         read.append(line.symbol)
         if len(read) == stop_at:
             raise KeyboardInterrupt
-        return {"SPY": spy}[line.symbol]
+        return {"AAPL": aapl}[line.symbol]
 
     return bars
 
@@ -80,7 +80,7 @@ def test_a_bad_cell_is_recorded_and_the_rest_carry_on(tmp_path: Path) -> None:
     with pytest.raises(ValueError) as raised:
         cell.run(EMPTY, BARS)
     assert outcomes[1] == Failed(EMPTY, cell.LOADED, f"ValueError: {raised.value}")
-    assert outcomes[2] == Failed(UNREAD, cell.LOADED, "KeyError: 'QQQ'")
+    assert outcomes[2] == Failed(UNREAD, cell.LOADED, "KeyError: 'NVDA'")
     assert batch.run(cells, _reader(), journal) == outcomes
     assert len(_lines(journal)) == 4, "a failure the journal holds was written again"
     for _ in range(2):  # no bars to read at all: each cell's new failure is written, once
@@ -118,7 +118,7 @@ def test_only_a_cell_whose_bars_changed_is_run_again(tmp_path: Path, ran: list[C
     journal, cells, mended = tmp_path / "journal", (CELLS[0], HELD), list(BARS)
     mended[23] = replace(BARS[23], close=Decimal("9.5"))  # after HELD's end: HELD never reads it
     first = batch.run(cells, _reader(), journal)
-    again = batch.run(cells, _reader(spy=mended), journal)
+    again = batch.run(cells, _reader(aapl=mended), journal)
     assert ran == [*cells, CELLS[0]], "only the cell that read the change is run again"
     assert again == (cell.run(CELLS[0], mended), first[1]) and again[0] != first[0]
     del ran[:]
