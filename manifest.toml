@@ -52,6 +52,7 @@ rungs = []
 "desk/strategy.py" = "the five frozen daily strategies: a decision for every line and day"
 "desk/eponymous_swing.py" = "the eponymous rules, one published rule per author under the strategy template: weekly_reversal_jegadeesh; the paper desk does not trade them"
 "desk/eponymous_connors.py" = "Connors' RSI-2 as a rule under the one template, with its author, source and published setting; not traded by the paper desk"
+"desk/eponymous_clenow_momentum.py" = "Clenow's momentum rule (Stocks on the Move) as a rule under the one template, author, source and published figure written down; not traded by the paper desk"
 "desk/orders.py" = "the order, sized from the one capital number, its stop, the pre-trade gate"
 "desk/broker.py" = "the pretend broker the desk trades against in simulation"
 "desk/book.py" = "the ledger of fills under the broker's ids, and the book built from the broker"
