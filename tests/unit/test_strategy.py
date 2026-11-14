@@ -141,6 +141,21 @@ def test_rsi2_never_buys_a_pullback_below_the_200_day() -> None:
     assert _trades("rsi2_pullback", bars) == []
 
 
+def test_the_rsi_and_the_lower_band_have_one_named_home_the_rules_trade_on(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    #: STR-14: nothing lost is 100, nothing gained 0, three gained to one lost 75
+    pairs = ((3, 0), (0, 0), (0, 3), (3, 1))
+    assert [strategy.rsi(Decimal(g), Decimal(lost)) for g, lost in pairs] == [100, 100, 0, 75]
+    assert strategy.lower_band(Decimal("9.95"), Decimal("0.218")) == Decimal("9.514")
+    #: shown another number at that name, each rule no longer makes the trade pinned above
+    monkeypatch.setattr(strategy, "rsi", lambda _gain, _loss: Decimal(50))
+    monkeypatch.setattr(strategy, "lower_band", lambda mean, _deviation: mean - 5)
+    pullback = _bars([100 + n for n in range(200)] + [300, 290, 280, 285, 300])
+    assert _trades("rsi2_pullback", pullback) == []
+    assert _trades("bollinger_pullback", _bars([10] * 20 + [9, 9.5, 10.5])) == []
+
+
 def test_trend_buys_the_50_day_crossing_over_the_200_day_and_sells_the_cross_back() -> None:
     #: day 200: 102 > 100.5 crosses; from day 250 at 50, the 50-day is 197-3j and the
     #: 200-day 124.75-j/4, so j=27 (day 277) is the first day under
