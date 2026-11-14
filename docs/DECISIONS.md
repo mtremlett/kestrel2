@@ -3048,6 +3048,42 @@ Decided by the PAPER lane as the desk's mentor, no one watching.
 - *Any day the desk works,* on the UTC day. No message for a drill that passed.
 - Evidence: tests seen failing first; one blind review, nothing blocking; 31 deliberate breaks, all caught; dried at the real paper Gateway with the switch on.
 
+### 2026-11-14 — a buy goes with its stop; the line settled after any order (paper-adapter, paper-stops, #123)
+
+Decided by the PAPER lane as the desk's mentor, no one watching.
+
+- *How a buy and its stop go together.* Options: (a) send the stop after the buy fills: a second or two with no stop, and a
+  dead desk leaves shares unprotected; (b) attach the stop to the buy so the broker holds both, then settle; (c) rest the
+  stop first: impossible without risking a short sale. Chosen: (b); if the stop's half is refused the buy never reaches the market.
+- *Which shares the stop is for, and on what evidence.* Options: (a) the desk's own sum, checked against the account;
+  (b) the account's shares alone; (c) size from the account, and act only when the account moved by exactly the order's
+  fills and "filled" is borne out by fills. Chosen: (c), after the blind review showed five ways the sum is silently wrong.
+  When the three disagree nothing is changed and an error is raised.
+- *A sale: take shares off the stop before or after.* Chosen: after, by what happened; one mechanism for buys and sales.
+  For a moment the stop is for more shares than held (recorded, not fixed).
+- *Replace a stop, never change it in place* (changing a stop attached to a buy is unproven); new first, then cancel the old,
+  so a line is never under none. A line whose stops are unsettled is refused, buy and sale alike. A stop already right is
+  kept whatever its name; a stop the broker is not holding counts as none.
+- *The broker's notice 202 (order cancelled) is news, not a fault, in every reading.* This changes one line of #110's test:
+  cancelling a buy makes the broker cancel its stop and say so. The comparison of book with broker still names any line left bare.
+- *A stop with no price at the broker* stops the buy with an error before anything is dialled. The stop rests until
+  cancelled (GTC), plainest kind. A stop that ends some other way while being cancelled is an error unless the shares are as read.
+- *Both boxes ticked.* No test order was sent to the real Gateway: one wrong field could make a real order on a shared account.
+- The tests' pretend Gateway moved into the door's test file (no test changed): the placing tests were at the 400-line cap.
+- Evidence: tests seen failing first; blind review, one blocking finding fixed; 60 + 25 + 31 deliberate breaks, 2 that cannot differ.
+
+### 2026-11-14 — the paper book's next boxes ordered for the runner (#128)
+
+Decided by the PAPER lane as the desk's mentor, no one watching.
+
+- *Messages and the unattended day ahead of conformance.* Options: conformance next; boxes needing no market first. Chosen:
+  the latter: it is a weekend, and conformance holds every file so would stall the lane until Monday. The code already
+  refuses any order without a drilled kill switch and clean check.
+- *Supervision after conformance:* its box needs seven days without an operator action and would hold the first paper trades.
+- *Conformance keeps `files: *`:* nobody has seen where real results are recorded; a missed file would stop the session.
+- New modules named before they exist: `desk/messenger.py`, `desk/running.py`, `desk/supervisor.py`. paper-running also holds
+  `desk/placing.py` for R-MONEY-8 and waits for paper-messages so there is one messenger.
+
 ## GRID
 
 ### 2026-11-13 — the fast grid engine: it holds what the desk holds, or it refuses
@@ -3720,3 +3756,35 @@ Decided by the PAPER lane as the desk's mentor, no one watching.
 **Remains.** The pin and the manifest's `allowed_third_party`, then the readers.
 
 **14 November, later.** The four `Source` names are on main (#203). The pin was tried again under a claim naming `requirements.txt`: `tests/guards/test_lanes.py` still refuses the file to the DATA lane whatever the claim says, so it needs `requirements.txt` added to a lane's files in `manifest.toml` `[lanes]` (a guard loosening: recommended, taken, DATA's list), in a session whose claim holds `manifest.toml`.
+
+### 2026-11-14 — the old stores as a head start, as a command (data-headstart, #190)
+- Where the register is found. Options: a new environment variable; an argument; the notes folder next to the data folder. Chosen: next to the data folder (`KESTREL2_DATA/../kestrel2_notes/data_register.md`), so every path still comes from the one setting (OPS-15).
+- Which database. Options: `bars.db`; `market.db`, as R-RUNNER-11 names it. Chosen: `market.db`. Bringing the two files together belongs to data-two-stores.
+- How a store is read. Options: by its name in the register; by its form (a `.db` file, or a folder of a line's matrices). Chosen: by form, so a renamed folder is still read; any other form is counted as "no reader yet", never skipped silently.
+- The archive's five-minute bars go in first. Without them an empty market.db held nothing to prove an old bar's clock and the trial let in no bar; with them it let in 245,593.
+- A store that cannot be read. Options: exit 1; exit 0 and name it in the counts. Chosen: exit 0 and name it; exit 1 is kept for a real failure.
+
+### 2026-11-14 — the store's keeper (data-keeper, archive half, #188)
+- Where the daily bars are kept. Options: (a) the existing price store (a file per line, cleaned by `store.prepare`) in `KESTREL2_DATA/daily`, with a record of the day covered; (b) inside the SQLite store. Chosen (a): the store the desk and scenes already trade on; the database's move is R-RUNNER-11's.
+- When a refresh is due. Options: once each morning; morning and again after each venue's close. Chosen both: the day's record needs the day's closes that evening (R-PAPER-23), and the archive restates a close overnight.
+- How long after a close. 30 minutes (`keeper.SETTLED`): the archive shows London about a quarter-hour late and an official close prints minutes after the bell. To be measured on real closes.
+- A line the archive will not answer for. Options: always empty it; always keep what is held. Chosen by the day: a day already held keeps its bars, a new day parks the line with no bars, so an archive away at 06:00 does not blind a desk that was whole at 21:35.
+- What is a miss: a venue with no line answered, or no clean line. One refused line among answered ones is parked alone and is no miss.
+- A faulted line is asked again for six calls (half an hour), then left until the next refresh, unless its whole venue is blind: then at every call.
+- A weekend call. Options: do nothing on any non-trading day; fetch what the store does not yet hold. Chosen the second: a whole store is left alone at once, and Sunday's rehearsal and a missed Friday evening are readied without a special command.
+- The broker's bars as the fallback are not in this change (300-line step limit; the question must be proven on the Gateway). Until then a line without fresh bars is parked and not traded, and an archive wholly away ends the command with 1 so he is told after two rounds.
+- The databases' names are not changed here (`bars.db` stays until R-RUNNER-11).
+
+### 2026-11-14 — the store audited each morning (R-RUNNER-18, #199)
+- Faults are grouped "by kind" by stripping dates, times and numbers from the store's own fault text, so no second set of rules exists. Options: a fixed list of kinds (a second rule set); this. Chosen: this.
+
+### 2026-11-14 — the nightly backup (R-RUNNER-13, #204)
+- Which databases. The plan names market_history.db and market_live.db but today's store is market.db. Options: wait for the rename; copy whichever of the three exist. Chosen the latter (fails loudly if none), so the 01:30 job works now and after the split.
+- Keep 7 nights ("the last few").
+- A same-night rerun is refused rather than overwritten, so a good snapshot is never replaced.
+
+### 2026-11-14 — 3LGO's daily history (R-RUNNER-21, #209)
+- Where to keep the history. Options: write the line's CSV directly (lost at the next keeper refresh, which rebuilds from the archive); change the keeper (outside the claim); shelve beside the store (`daily/<venue>/history/`) and join in `store.prepare`. Chosen: the last; the archive wins on any day it gives.
+- The missing 12 November. Options: record the line as suspended (false); leave the gap (parks the line for 60 sessions); build it from the archive's five-minute bars of that day. Chosen: the last.
+- Cross-check source. The archive holds nothing of 3LGO before 13 November, so the database's July daily closes are the only independent proof; gate: at least half the overlapping closes agree (7 of 9 did). Units: pence assumed for a pound line, refuted by the store's jump check if wrong.
+- No blind review was run in this unattended session.
