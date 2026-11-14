@@ -182,5 +182,7 @@ def test_five_minute_bars_are_asked_for_as_far_back_as_the_archive_keeps_them() 
     address = archive.address_five(UK, MARK)
     first, end = (int((MARK - timedelta(days)).timestamp()) for days in (59, 0))
     assert address.endswith(f"/BBB.L?period1={first}&period2={end}&interval=5m")
+    week = int((MARK - timedelta(7)).timestamp())  # or a shorter time back, as a round asks
+    assert f"?period1={week}&period2={end}&" in archive.address_five(UK, MARK, timedelta(7))
     with pytest.raises(TypeError, match="offset-naive"):
         archive.address_five(UK, MARK.replace(tzinfo=None))

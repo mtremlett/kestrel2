@@ -44,6 +44,7 @@ rungs = []
 "desk/bars.py" = "the one fast store for hot and deep bars: one SQLite file, the one writer's whole rounds, many readers"
 "lab/universe.py" = "the research list: the tickers research may study, none of them traded, and their bars kept by the one store"
 "lab/members.py" = "the lists' past members: who was on a published list on a past day, the ones still listed told from the ones that left"
+"desk/keeper.py" = "the store's keeper: one command that does whatever the store is owed when it is called, each venue's daily bars refreshed from the archive and its five-minute round taken in its hours, and the door the daily bars are read through"
 "lab/headstart.py" = "the old desk's stores as a head start: its five-minute bars read, never written, and let into the one fast store under their source's name only where a fresh daily bar vouches for them"
 
 # the money lane
