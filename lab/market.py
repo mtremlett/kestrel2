@@ -15,17 +15,22 @@ nothing. The market's day is its close on the close before. Both are in pounds, 
 its own rate of exchange (`rung.rate`), so a dollar line carries the currency as its market
 does.
 
+SET BESIDE TWO THINGS SIMPLY HELD, each in its turn: its own line, and the market. A rule on
+a line that climbs of itself, whatever the market does, has earned the line's climb and not
+a penny by its rule; the market alone would not show that, and the line alone would not show
+a line that is only the market geared up. The strategy must stand against both.
+
 THE RISK IT TOOK IS MEASURED, never assumed: the least-squares line through the days gives
-the strategy's beta, how much of the market's move it carried on an average day, in and out.
+the strategy's beta, how much of the other's move it carried on an average day, in and out.
 A line's stated leverage is not that number (five times the market for a fifth of the days is
 the market's own risk), so a leveraged line needs no rule of its own. What is left of a
-day's gain once beta times the market's is taken away is the EXCESS.
+day's gain once beta times the other's is taken away is the EXCESS.
 
 JUDGED BY ITS INTERVAL, NOT ITS SIGN. The rung passes a strategy whose mean excess a day is
-at least `rung.T_PASS` standard errors above nothing, the first rung's own bar: the whole of
-its confidence interval above nothing, not merely a figure that came out positive. A rule
-that times its market well is in for the rises and out for the falls: its excess is real,
-and it passes.
+at least `rung.T_PASS` standard errors above nothing, the first rung's own bar, against the
+line and against the market: the whole of each confidence interval above nothing, not merely
+a figure that came out positive. A rule that times its line well is in for the rises and out
+for the falls: its excess is real, and it passes.
 
 FAILING FAIRLY (LAD-06). Where the first rung found too few trades, or none, this rung has no
 more to judge and gives the first rung's answer, measuring nothing. A trade the first rung
@@ -35,8 +40,8 @@ neither are its days: the days counted end on the day it was bought.
 WHICH MARKET is the caller's to say, and nothing calls this rung yet (docs/STATUS.md). It
 must trade on the line's own venue: closes hours apart, or sessions one has and the other
 has not, understate the risk taken. Refused loudly: such a market; a counted day the market
-has no bar on, or none the day before; bars that did not make the verdict; a market that
-never moved; days that leave no spread to judge by.
+has no bar on, or none the day before; bars that did not make the verdict; a market or a
+line that never moved; days that leave no spread to judge by.
 """
 
 from __future__ import annotations
@@ -53,13 +58,14 @@ from desk.lines import Line
 from desk.store import Bar
 from desk.strategy import ARITHMETIC
 from lab import cell, rung
+from lab.cell import Cell
 from lab.rung import Answer, Priced, Rates, Verdict
 
 
 @dataclass(frozen=True)
 class Fit:
-    beta: float  #: the part of the market's move the strategy carried, a day
-    excess: float  #: the mean of a day's gain beyond beta times the market's
+    beta: float  #: the part of the other's move the strategy carried, a day
+    excess: float  #: the mean of a day's gain beyond beta times the other's
     t: float  #: the excess in its standard errors
 
 
@@ -68,17 +74,16 @@ class Against:
     verdict: Verdict  #: the first rung's, whose trades these are
     market: Line
     days: int  #: the days counted; none where the first rung left nothing to judge
-    beta: float | None
-    excess: float | None
-    t: float | None
-    answer: Answer  #: PASS or FAIL, or the first rung's THIN or FAULT
+    line: Fit | None  #: against its own line simply held
+    wide: Fit | None  #: against the market
+    answer: Answer  #: this rung's own: PASS or FAIL, or the first rung's THIN or FAULT
 
 
 def judge(
     verdict: Verdict, bars: Sequence[Bar], market: Line, held: Sequence[Bar], rates: Rates
 ) -> Against:
-    """The first rung's verdict on a whole window judged against the market: the line's
-    bars that made it, and the market's own, both oldest first."""
+    """The first rung's verdict on a whole window judged against its line simply held and
+    against the market: the line's bars that made it, and the market's own, oldest first."""
     c = verdict.key.cell
     if market.venue != c.line.venue:
         raise ValueError(
@@ -88,28 +93,34 @@ def judge(
     if cell.key(c, bars) != verdict.key:
         raise ValueError(f"{c}: these bars or this code did not make the verdict")
     if verdict.answer in (Answer.FAULT, Answer.THIN):
-        return Against(verdict, market, 0, None, None, None, verdict.answer)
+        return Against(verdict, market, 0, None, None, verdict.answer)
     read = cell.shown(c, bars)
     judged = {priced.trade for priced in verdict.trades}
     unjudged = [trade.bought for trade in cell.run(c, bars).trades if trade not in judged]
     last = min(unjudged, default=c.end)
-    marks = {bar.day: bar.close for bar in held}
-
-    def close(day: date) -> Decimal:
-        if day not in marks:
-            raise ValueError(f"{c}: {market.symbol} has no bar on {day} to set beside it")
-        return marks[day] * rung.rate(market, rates, day)
-
-    own, moved = [], []
+    days = [bar.day for bar in read if bar.day <= last]
+    #: the first day counted is the window's first with a close before it to move from
+    days = days[max(1, sum(1 for day in days if day < c.start)) - 1 :]
     with localcontext(ARITHMETIC):
         made = daily(verdict.trades, read, c.line, rates)
-        for before, bar in zip(read, read[1:], strict=False):
-            if c.start <= bar.day <= last:
-                own.append(float(made.get(bar.day, Decimal(0))))
-                moved.append(float(close(bar.day) / close(before.day) - 1))
-    found = fit(own, moved)
-    answer = Answer.PASS if found.t >= rung.T_PASS else Answer.FAIL
-    return Against(verdict, market, len(own), found.beta, found.excess, found.t, answer)
+        own = [float(made.get(day, Decimal(0))) for day in days[1:]]
+        line = fit(own, _moves(c, c.line, read, rates, days))
+        wide = fit(own, _moves(c, market, held, rates, days))
+    passed = min(line.t, wide.t) >= rung.T_PASS
+    return Against(verdict, market, len(own), line, wide, Answer.PASS if passed else Answer.FAIL)
+
+
+def _moves(
+    c: Cell, line: Line, bars: Sequence[Bar], rates: Rates, days: Sequence[date]
+) -> list[float]:
+    """The line's move on each of the days after the first: its close on the close of the
+    day before, in pounds, each at its own day's rate."""
+    marks = {bar.day: bar.close for bar in bars}
+    lost = [day for day in days if day not in marks]
+    if lost:
+        raise ValueError(f"{c}: {line.symbol} has no bar on {lost[0]} to set beside it")
+    closes = [marks[day] * rung.rate(line, rates, day) for day in days]
+    return [float(now / before - 1) for before, now in zip(closes, closes[1:], strict=False)]
 
 
 def daily(

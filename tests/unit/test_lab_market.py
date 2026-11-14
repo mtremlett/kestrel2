@@ -11,7 +11,7 @@ from decimal import Decimal
 import pytest
 from test_lab_rung import POUND, SHAPE, SPY, _bars, _judge, _walk
 
-from desk.lines import YARDSTICK
+from desk.lines import LINES, YARDSTICK
 from desk.orders import Settings
 from desk.store import Bar
 from lab import cell, market, rung
@@ -19,6 +19,7 @@ from lab.cell import Cell
 from lab.rung import Answer
 
 ROOM = Settings(Decimal(100_000))  #: room for a share of a market that has risen a hundredfold
+IDTL = next(line for line in LINES if line.symbol == "IDTL")
 VUSA = _judge(_bars(SHAPE), 24).key.cell.line
 
 
@@ -34,39 +35,58 @@ def _against(bars: tuple[Bar, ...], held: tuple[Bar, ...], end: int = -1) -> mar
     return market.judge(_judge(bars, end, room=ROOM), bars, YARDSTICK, held, POUND)
 
 
+def _t(found: market.Against) -> tuple[float, float]:
+    assert found.line is not None and found.wide is not None
+    return found.line.t, found.wide.t
+
+
 def test_a_rule_that_only_rides_its_market_fails_and_an_edge_of_its_own_passes() -> None:
     for seed in (1, 2, 4, 5):  #: four markets whose rider the first rung passes
         up = _rising(seed + 100)  #: its own draws: the walks share none with it
         rider = _against(up, up)  #: the breakout on the rising market itself
         assert rider.verdict.passed, "it earned, after costs: the first rung passes it"
-        assert rider.t is not None and rider.t < 1 and rider.answer is Answer.FAIL, (seed, rider.t)
-        assert rider.beta is not None and 0.3 < rider.beta < 0.9, "in the market half its days"
-        #: a planted edge on a line of its own, the market rising beside it, is its own
+        assert max(_t(rider)) < 1 and rider.answer is Answer.FAIL, (seed, _t(rider))
+        assert rider.wide is not None and 0.3 < rider.wide.beta < 0.9, "in it half its days"
+        #: a line that climbs of itself beside a flat market: its rider beats the market by
+        #: the line's own climb, and has still found nothing
+        alone = _against(up, _walk(seed, 0))
+        assert alone.verdict.passed and alone.answer is Answer.FAIL, seed
+        assert _t(alone)[0] < 1 and _t(alone)[1] > 2.5, (seed, _t(alone))
+        #: a planted edge is its own: in for the line's rises and out for the rest
         edge = _against(_walk(seed, 0.008), up)
-        assert edge.answer is Answer.PASS and edge.t is not None and edge.t > 2.5, (seed, edge.t)
-        assert edge.beta is not None and abs(edge.beta) < 0.05 and 4900 < edge.days <= 4999
-        timed = _against(_walk(seed, 0.008), _walk(seed, 0.008))  #: the line its own market
-        assert timed.answer is Answer.PASS, "in for its rises and out for the rest: an edge"
+        assert edge.answer is Answer.PASS and min(_t(edge)) > 2.5, (seed, _t(edge))
+        assert edge.wide is not None and abs(edge.wide.beta) < 0.05 and 4900 < edge.days <= 4999
         none = _against(_walk(seed, 0), up)
-        assert none.answer is Answer.FAIL and none.t is not None and none.t < 1, (seed, none.t)
+        assert none.answer is Answer.FAIL and max(_t(none)) < 1, (seed, _t(none))
         #: too few trades are not enough evidence here either, and nothing is measured
         few = _against(_walk(seed, 0)[:1500], up)
-        assert (few.answer, few.t, few.beta, few.days) == (Answer.THIN, None, None, 0)
+        assert (few.answer, few.line, few.wide, few.days) == (Answer.THIN, None, None, 0)
+    #: the bar sits between these two, and the lesser of the two excesses is the one judged
+    faint, just = (
+        _against(_walk(24, 0.0035), _rising(100)),
+        _against(_walk(27, 0.004), _rising(100)),
+    )
+    assert _t(faint)[0] > 2.1 and 1.97 < _t(faint)[1] < 2 and faint.answer is Answer.FAIL
+    assert 2 < min(_t(just)) < max(_t(just)) < 2.05 and just.answer is Answer.PASS
     none = _against(_bars(SHAPE), _rising(0), 23)
     assert none.answer is Answer.FAULT, "no trade: a fault in the test"
 
 
-def test_a_trade_still_held_at_the_end_ends_the_days_counted_where_it_was_bought() -> None:
+def test_a_trade_not_judged_ends_the_days_counted_on_the_day_it_was_bought() -> None:
     bars, up = _walk(0, 0.008), _rising(100)
-    end = next(n for n in range(4000, 5000) if _judge(bars, n).trades != _judge(bars, n + 1).trades)
-    #: at `end` the last sale has not filled: its trade is not judged, nor are its days
-    cut = _against(bars, up, end)
-    judged = cut.verdict.trades[-1].held[1]
-    assert bars[end].day > judged and cut.days < end
-    assert bars[cut.days].day >= judged, "every judged day is counted"
-    assert bars[cut.days + 1].day > judged, "and the unjudged trade's own days are not"
+
+    def trades(n: int, start: int = 0) -> tuple[cell.Trade, ...]:
+        return cell.run(Cell("breakout_20_10", "VUSA", bars[start].day, bars[n].day), bars).trades
+
+    #: still held at the window's end, and sold on its last day with no morning after to fill
+    held = next(n for n in range(4000, 5000) if trades(n)[-1].sold is None)
+    sold = next(n for n in range(4000, 5000) if trades(n)[-1].sold == bars[n].day)
+    for end in (held, sold):
+        cut = _against(bars, up, end)
+        assert cut.verdict.trades[-1].trade == trades(end)[-2], "the last trade is not judged"
+        assert bars[cut.days].day == trades(end)[-1].bought, "bar 0 moves from nothing"
     #: the days before a window's start warm the rule, and are not counted
-    late = cell.run(Cell("breakout_20_10", "VUSA", bars[1000].day, bars[end].day), bars)
+    late = cell.run(Cell("breakout_20_10", "VUSA", bars[1000].day, bars[sold].day), bars)
     after = market.judge(rung.judge(late, bars, ROOM, POUND), bars, YARDSTICK, up, POUND)
     assert after.answer is Answer.PASS and cut.days - after.days == 999
 
@@ -123,7 +143,6 @@ def test_what_cannot_be_the_market_it_took_is_refused() -> None:
         market.judge(verdict, bars[:-1], YARDSTICK, up, POUND)
     with pytest.raises(ValueError, match="never moved"):
         market.judge(verdict, bars, YARDSTICK, _bars([10] * 5000), POUND)
-    #: a dollar market is read in pounds, each day at its own rate, on days nothing is held too
-    dollars = {bar.day: Decimal("0.8") for bar in bars[2:]}
-    with pytest.raises(ValueError, match=f"no rate of pounds per USD to price {bars[1].day}"):
-        market.judge(_judge(bars, -1, "SPY", dollars), bars, SPY, up, dollars)
+    #: a dollar market is read in pounds at each day's own rate, whatever the line's currency
+    with pytest.raises(ValueError, match=f"IDTL: no rate of pounds per USD to price {bars[0].day}"):
+        market.judge(verdict, bars, IDTL, up, POUND)
