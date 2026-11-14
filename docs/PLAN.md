@@ -571,7 +571,7 @@ his PC with the desk's own client id (222), never 4001.
       beside the pretend broker's, and the pretend broker fixed where they differ.
       Remains: the in-hours half (#135 did the dry orders, 59 cancelled): fills, triggered stop, sale, part fill, SPY
       {id: paper-conformance; files: *; after: paper-gateway, paper-check, paper-stops,
-      paper-drill}
+      paper-drill; waits: 2026-11-16}
 - [ ] The desk's own process supervised: one supervisor, restarts proven by killing it,
       health judged from outside by dated receipts, surviving a reboot, a dropped network
       and a broker disconnect; a ledger of operator actions proving seven days without one,
@@ -588,13 +588,20 @@ his PC with the desk's own client id (222), never 4001.
       record, the merge line and the runner's alerts behind the same door (MSG-02, MSG-03,
       MSG-04, MSG-09, MSG-11) {id: paper-cards; files: desk/messenger.py,
       tests/unit/test_messenger.py; after: paper-messages, paper-running}
-- [ ] The day's extras: missed winners, blocked signals, and the running cost set against
-      net profit each week (MSG-13, NS-14) (boxes from here down are not yet noted)
 - [ ] FIRST-LIGHT counted by the desk itself: ten consecutive clean days, and a day that
       sent nothing cannot be green (NS-10)
+      {id: paper-first-light; files: desk/streak.py, tests/unit/test_streak.py,
+      manifest.toml; after: paper-running}
 - [ ] An independent watcher of the supervisor, which is restarted weekly (OPS-03)
+      {id: paper-watcher; files: desk/watcher.py, tests/unit/test_watcher.py,
+      manifest.toml; after: paper-supervised}
 - [ ] Backups: the fill ledger and the day records copied twice, one copy off the PC, and a
       restore drilled every quarter (DQ-05, DQ-09)
+      {id: paper-backups; files: desk/backup.py, tests/unit/test_backup.py, manifest.toml}
+- [ ] The day's extras: missed winners, blocked signals, and the running cost set against
+      net profit each week (MSG-13, NS-14)
+      {id: paper-extras; files: desk/messenger.py, tests/unit/test_messenger.py;
+      after: paper-cards}
 
 ## Phase 4 — the ladder
 
