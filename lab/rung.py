@@ -11,10 +11,21 @@ one still held, or sold on the window's last day, is not.
 The rung passes a strategy when it made at least MIN_TRADES judged trades and the mean of
 their returns after costs is at least T_PASS standard errors above nothing. Every verdict
 names the broker whose schedule priced it.
+
+FAILING FAIRLY (LAD-06, STR-12). A strategy is failed only by a test that could have passed
+it. Under MIN_TRADES judged trades there is not enough evidence: the answer is THIN, whatever
+the trades made or lost, and never a fail. No judged trade at all is a FAULT in the test (a
+window too short, the wrong bars, a rule that cannot fire there): it says nothing of the
+rule. And `judge` gives no verdict on code that is not the published rule
+(`lab/published.py`). Gains with no spread at all are still refused loudly, few or many.
+The trades counted are the effective ones: each judged whole, and each a bet of its own,
+since a rule holds one position on a line at a time. Trades pooled across lines, where two
+held together are one bet, are counted here when pooling is built.
 """
 
 from __future__ import annotations
 
+import enum
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import date
@@ -26,13 +37,26 @@ from desk.lines import LINES
 from desk.orders import Order, Settings
 from desk.store import Bar
 from desk.strategy import ARITHMETIC, Action, Decision
-from lab import cell
+from lab import cell, published
 from lab.cell import Cell, Key, Record, Trade
 
 #: His A-GATE (AG-01) asks for years of history; thirty trades is the fewest whose mean
 #: return a t-statistic can fairly judge, and two standard errors is the textbook bar.
 MIN_TRADES = 30
 T_PASS = Decimal(2)
+
+
+class Answer(enum.IntEnum):
+    """A rung's answer on a trial, and the ladder's. Where several are read together (the
+    folds of a history, the named rungs on one trial) the least is the one given: a fault
+    in the test before anything it seemed to show, and a fail on enough trades before what
+    too few could not settle."""
+
+    FAULT = 0  #: no trades at all: the test is at fault, and says nothing of the rule
+    FAIL = 1  #: enough trades, and it did not earn
+    THIN = 2  #: not enough evidence: too few trades to pass it, or to fail it
+    DOUBT = 3  #: neither a win nor a loss: not promoted, and not thrown away
+    PASS = 4
 
 
 @dataclass(frozen=True)
@@ -59,12 +83,17 @@ class Verdict:
     broker: str  #: whose schedule priced it
     trades: tuple[Priced, ...]
     t: Decimal | None  #: the mean gain in standard errors; None under two trades
-    passed: bool
+    answer: Answer  #: PASS, FAIL, THIN or FAULT: the first rung never answers DOUBT
+
+    @property
+    def passed(self) -> bool:
+        return self.answer is Answer.PASS
 
 
 def judge(record: Record, bars: Sequence[Bar], settings: Settings, fx: Decimal) -> Verdict:
     """The verdict on the record's trades, priced on the bars that made it; fx is pounds per
     unit of the line's currency, one rate for the window."""
+    published.proven(record.key.cell.strategy)
     if cell.key(record.key.cell, bars) != record.key:
         raise ValueError(f"{record.key.cell}: these bars or this code did not make the record")
     read = cell.shown(record.key.cell, bars)
@@ -81,8 +110,11 @@ def verdict(key: Key, priced: tuple[Priced, ...]) -> Verdict:
     """The first rung's one rule, on trades already priced."""
     with localcontext(ARITHMETIC):
         t = standard_errors([p.gain for p in priced])
-    passed = t is not None and len(priced) >= MIN_TRADES and t >= T_PASS
-    return Verdict(key, orders.BROKER, priced, t, passed)
+    if t is None or len(priced) < MIN_TRADES:
+        answer = Answer.THIN if priced else Answer.FAULT
+    else:
+        answer = Answer.PASS if t >= T_PASS else Answer.FAIL
+    return Verdict(key, orders.BROKER, priced, t, answer)
 
 
 def _price(
