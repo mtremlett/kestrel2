@@ -5,13 +5,14 @@ stopped at any moment and run again, one process at a time, and it ends with one
 
 NOTHING IS CHOSEN BY EYE. The set is every rule with a publication on file
 (`lab/published.py`) on every line of its declared universe, over one window fixed here
-before any result. The folds, the market each venue is set beside and the question the
-trials are counted under are fixed here too, and none is an argument of the command.
+before any result and judged from the line's first bar in it, so its years are years it
+traded. The folds, the market each venue is set beside and the question the trials are
+counted under are fixed here too, and none is an argument of the command.
 
 EVERY TRIAL IS COUNTED BEFORE ANYTHING IS RUN. Each cell, and each of its folds, is entered
 in the set's own register of trials (`lab/trials.py`) before the first is judged, so a cell
 that fails, cannot be judged or is never reached has been counted already, and every answer
-is corrected for the whole set. A set that grows is judged again against the new count.
+is corrected for the register's whole count. A set that grows is judged again against it.
 
 THE RUNGS RUN, each one's answer in the rung's own words (`rung.Answer`) with its reason:
 the author's own result where a figure is on file (`lab/reproduce.py`); the first rung, the
@@ -81,7 +82,7 @@ UNRUN = {
     "stress": "it gives pounds lost and never a pass; the loss limit to judge them by is not set",
 }
 NO_FIGURE = "no author's figure is on file for the rule: no published result stands behind it"
-FAILED = (ValueError, OSError, ArithmeticError, LookupError)  #: a cell that could not be judged
+FAILED = (ValueError, OSError, keeper.Stale)  #: what may leave a cell unjudged; all else is a bug
 Row = Mapping[str, Any]  #: a cell's line in the results file
 Judged = dict[str, tuple[Answer, str]]  #: each rung's answer on a cell, and its reason
 
@@ -136,8 +137,10 @@ def run(home: Path, bars: Bars, pounds: Rates, todo: Sequence[Cell] | None = Non
     results, register = home / FOLDER / RESULTS, home / FOLDER / REGISTER
     if not results.exists() and not register.exists():  #: the set's first run, and only that
         results.parent.mkdir(parents=True, exist_ok=True)
-        trials.start(register)
-        trials.ask(register, QUESTION)
+        (fresh := register.with_suffix(".new")).unlink(missing_ok=True)
+        trials.start(fresh)
+        trials.ask(fresh, QUESTION)
+        fresh.replace(register)  #: whole or not there: a stop before this begins it again
     count = trials.enter(register, QUESTION, [name for c in todo for name in names(c)])
     text = results.read_bytes() if results.exists() else b""
     whole = text[: text.rfind(b"\n") + 1]
@@ -148,7 +151,7 @@ def run(home: Path, bars: Bars, pounds: Rates, todo: Sequence[Cell] | None = Non
         out.truncate(len(whole))
         for c in todo:
             was = last.get(tuple(batch.row(c)))
-            row = _one(c, bars, pounds, register, count, was, behind)
+            row = _one(c, bars, pounds, count, was, behind)
             if row != was:
                 out.write(json.dumps(row).encode() + b"\n")
                 out.flush()
@@ -173,14 +176,14 @@ def _one(
     c: Cell,
     bars: Bars,
     pounds: Rates,
-    register: Path,
     count: int,
     was: Row | None,
     behind: dict[str, tuple[Reproduction, ...]],
 ) -> Row:
     """The cell's line: the one kept, where it is kept under the key these bars, rates and
-    trials give; else its answers now, or why it could not be judged."""
-    head = {"set": 1, "cell": batch.row(c), "trials": count}
+    trials give; else its answers now, or why it could not be judged. It is judged from the
+    line's first bar, so that its years are years it could trade in."""
+    head: dict[str, Any] = {"set": 1, "cell": batch.row(c), "trials": count}
     try:
         beside = next(line for line in LINES if line.symbol == MARKETS[c.line.venue])
         own, held = bars(c.line), bars(beside)
@@ -188,6 +191,7 @@ def _one(
             owed = [figure for figure in reproduce.FIGURES if figure.strategy == c.strategy]
             behind[c.strategy] = tuple(reproduce.reproduce(f, bars(f.line)) for f in owed)
         made = behind[c.strategy]
+        c = Cell(c.strategy, c.line, max([c.start, *(bar.day for bar in own[:1])]), c.end)
         mine = cell.key(c, own).rung(ME)
         days = sorted(day for day in pounds if day <= c.end and c.line.currency != "GBP")
         market = cell.key(Cell(c.strategy, beside, c.start, c.end), held).data
@@ -196,7 +200,8 @@ def _one(
         key = hashlib.sha256("\n".join(parts).encode()).hexdigest()
         if was is not None and was.get("key") == key:
             return was
-        return head | {"key": key} | _judge(c, own, beside, held, pounds, register, made)
+        judged = _judge(c, own, beside, held, pounds, count, made)
+        return head | {"key": key, "from": c.start.isoformat()} | judged
     except FAILED as error:
         return head | {"error": f"{type(error).__name__}: {error}"}
 
@@ -207,7 +212,7 @@ def _judge(
     beside: Line,
     held: Sequence[Bar],
     pounds: Rates,
-    register: Path,
+    count: int,
     made: Sequence[Reproduction],
 ) -> dict[str, Any]:
     """Every rung's answer on the cell with its reason, the rungs not run with theirs, and
@@ -218,7 +223,7 @@ def _judge(
         return {"rungs": {"reproduce": [Answer.FAIL.name, str(missed)]}, "every": False}
     unrun, settings = dict(UNRUN), Settings(CAPITAL)
     verdict = rung.judge(cell.run(c, own), own, settings, pounds, made)
-    (one,) = deflated.read(trials.correct(register, QUESTION, [verdict]))
+    (one,) = deflated.judge([verdict], count - 1)  #: every other trial the register holds
     rungs = _named(verdict, one)
     if made:
         said = "; ".join(f"{m.figure.hand.value} result, {m.figure.source}" for m in made)
@@ -226,6 +231,9 @@ def _judge(
         unrun["folds"] = "the folds rung cannot yet hand an author's result to its folds"
     else:
         unrun["reproduce"] = NO_FIGURE
+    if not made and verdict.answer is Answer.FAULT:  #: no trade in it, so none in any fold of it
+        rungs["folds"] = rungs["first"]
+    elif not made:
         worst = (folded := folds.judge(c, own, settings, pounds, FOLDS)).worst
         rungs["folds"] = (
             folded.answer,
