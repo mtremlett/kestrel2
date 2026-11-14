@@ -1666,6 +1666,12 @@ last nine; two fix commits on one branch counted as one (three, not four); a pul
 `fix` over commits titled `feat`; a file named without backquotes. Passed: a feat after two
 fixes; fixes eleven changes back; a title `fixed:`; a pull request titled `feat` over `fix`
 commits; a change touching no product file; the file named in backquotes; nothing changed.
+A blind review found that GitHub runs the check on a push and on the pull request, and the two
+could disagree on one commit (commit subjects against the title that lands). A push run there
+now leaves the fix judgement to the pull request's run, and `Fix:` counts as `fix:` does;
+driven: a capital `Fix:` and a pull request titled `Fix(kill):` failed, the push run of the same
+commit passed, a push run still failed a feat after three fixes, and `fixup!` passed. Known gap:
+a pull request's title changed to `fix` after its check ran is not checked again.
 
 ---
 
