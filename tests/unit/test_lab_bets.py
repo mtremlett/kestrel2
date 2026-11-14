@@ -148,8 +148,8 @@ def test_what_cannot_be_measured_is_refused() -> None:
     with pytest.raises(ValueError, match="no lines"):
         _see({}, held={})
     lost, stray = {VUAG: D("-Infinity")}, {LAST: {NVDA: D(5)}}
-    odd_ones = (({AAPL: D(5)}, HELD, "AAPL"), ({}, stray, "NVDA"), (lost, HELD, "VUAG"))
-    for gains, book, odd in odd_ones:
+    us = ({AAPL: D(5)}, HELD, "AAPL")
+    for gains, book, odd in (us, ({}, stray, "NVDA"), (lost, HELD, "VUAG")):
         with pytest.raises(ValueError, match=f"'{odd}'.: held with no bars given, of bars and"):
             _see(WORLD, gains, book)
     with pytest.raises(ValueError, match="'5QQQ', 'EQQQ', 'ISF', 'SGLN'.* profit only the one"):
