@@ -22,7 +22,7 @@ from lab import cell, grid
 from lab.cell import Cell, Trade
 
 START = date(2020, 1, 1)
-SPY = next(line for line in LINES if line.symbol == "SPY")
+AAPL = next(line for line in LINES if line.symbol == "AAPL")
 #: breakout_20_10, worked out in test_strategy: buys on bar 21, sells on bar 23
 SHAPE = [10] * 20 + [10.4, 11, 11, 9.4, 9.4]
 
@@ -37,12 +37,12 @@ def _day(n: int) -> date:
 
 
 def _cell(first: int, last: int, name: str = "breakout_20_10") -> Cell:
-    return Cell(name, SPY, _day(first), _day(last))
+    return Cell(name, AAPL, _day(first), _day(last))
 
 
 def test_a_cell_names_a_real_strategy_a_real_line_and_a_window() -> None:
     with pytest.raises(ValueError, match="no strategy"):
-        Cell("best_ever", "SPY", _day(0), _day(9))
+        Cell("best_ever", "AAPL", _day(0), _day(9))
     with pytest.raises(ValueError, match="instrument master"):
         Cell("breakout_20_10", "ACME", _day(0), _day(9))
     with pytest.raises(ValueError, match="ends before it starts"):
@@ -54,7 +54,7 @@ def test_a_cell_names_a_real_strategy_a_real_line_and_a_window() -> None:
     cells = [Cell("breakout_20_10", line, _day(0), _day(9)) for line in (boeing, bae)]
     assert cells[0] != cells[1] and [c.line.venue for c in cells] == ["US", "LSE"]
     #: by its symbol alone a cell is still one of the twenty, until the rungs name a line
-    assert Cell("breakout_20_10", "SPY", _day(9), _day(9)) == _cell(9, 9)
+    assert Cell("breakout_20_10", "AAPL", _day(9), _day(9)) == _cell(9, 9)
     assert replace(cells[1], end=_day(12)) == Cell("breakout_20_10", bae, _day(0), _day(12))
 
 
@@ -64,7 +64,7 @@ def test_its_trades_are_the_desks_own_decisions() -> None:
         record = cell.run(_cell(0, len(bars) - 1, name), bars)
         acted = [
             (d.day, d.action)
-            for d in strategy.decide({"SPY": bars})
+            for d in strategy.decide({"AAPL": bars})
             if d.strategy == name and d.action is not Action.HOLD
         ]
         paired = [(t.bought, Action.BUY) for t in record.trades]
@@ -89,7 +89,7 @@ def test_the_grid_answers_and_the_desk_decides_what_it_refuses(
     series_asked = (("walk 1", _walk(1, 1200), 0), ("jumpy 10", _jumpy(10), 1))
     for series, kind, desks in (*series_asked, ("jumpy 332", _jumpy(332), 2)):
         for name, days in GOLDEN[series].items():
-            record = cell.run(Cell(name, SPY, kind[0].day, kind[-1].day), kind)
+            record = cell.run(Cell(name, AAPL, kind[0].day, kind[-1].day), kind)
             found = [t.bought for t in record.trades]
             found += [t.sold for t in record.trades if t.sold is not None]
             assert sorted(found) == [kind[int(n)].day for n in days.split()], (series, name)
@@ -102,7 +102,7 @@ def test_the_grid_answers_and_the_desk_decides_what_it_refuses(
     #: only a refusal goes to the desk's engine: a fault in the grid is never hidden by it
     monkeypatch.setattr(grid, "RULES", {})
     with pytest.raises(KeyError):
-        cell.run(Cell("trend_50_200", SPY, START, _walk(1, 300)[-1].day), _walk(1, 300))
+        cell.run(Cell("trend_50_200", AAPL, START, _walk(1, 300)[-1].day), _walk(1, 300))
     assert asked[0] == 2
 
 
@@ -143,7 +143,7 @@ def test_the_data_version_moves_with_any_bar_it_read() -> None:
 
 def test_a_window_with_no_bars_is_refused() -> None:
     bars = _bars(SHAPE)
-    with pytest.raises(ValueError, match="SPY on US.*no bars"):
+    with pytest.raises(ValueError, match="AAPL on US.*no bars"):
         cell.run(_cell(30, 40), bars)
 
 
