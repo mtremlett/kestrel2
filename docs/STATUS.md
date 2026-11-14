@@ -238,23 +238,22 @@ tickers misjudged: WWH, SHC, ECHO, MRNA, ROR), data-fast-store, data-hours; then
 
 ## GRID
 
-Last updated: 13 November 2026 (the first pass run; a key per rung; the auto-tune).
+Last updated: 14 November 2026 (the grid's week built, started and moved onto its fix).
 ### Where it is
 
-Built and proven: the cell, the restart-safe batch, the fast grid engine, a key per rung
-(`lab/cell.py`: costs move verdict keys, not trades'), the auto-tune (`lab/tune.py`: Windows
-memory ceiling, workers sized to the cores, back-off, busy flag) and the pass (`lab/sweep.py`).
-The first pass ran for real: 5,325 cells (1,065 tickers x 5 strategies) in 200 s, a second in 45 s.
+Built and proven: the cell, the batch, the fast grid engine, a key per rung, the auto-tune
+(`lab/tune.py`), the pass and the hourly week (`lab/sweep.py`). A pass: 5,325 cells in 2 to 4 min.
 
 ### Next step
 
-grid-week (seven days without stopping): needs a command of its own for the runner, a lock on
-one folder of journals, a journal per worker, and failed cells not growing the journal each pass.
+grid-week: the seven-day run is going (pid in `C:\tmp\kestrel2_week\pid.txt`). Nothing to build. On or after
+20 Nov 23:45 UK read `sweep.unbroken(Path(KESTREL2_DATA))`: 7 days ticks it. If it died, restart within the hour:
+`python -B -m lab.sweep C:\tmp\kestrel2_grid\store %KESTREL2_DATA%\grid\cells %KESTREL2_DATA% --days 7`
+from `C:\tmp\kestrel2_week\code`. grid-declared can start now (it waited only on the shared file).
 
 ### Done for other lanes
 
 - R-DATA-1: done in #73
-
 ### Requests to MONEY
 
 - [ ] R-GRID-1 (later, opened 2026-11-13 18:15): the five rules at other settings in
@@ -278,13 +277,14 @@ one folder of journals, a journal per worker, and failed cells not growing the j
 ### Found, not fixed
 
 - **The grid refuses runs of equal closes**; the desk's engine decides them, slower. Not yet counted.
-- Grid breaks no series found can show: Supertrend's band on the day's close; Bollinger past 2**53;
-  Wilder's smoothing as long as its window; the band's margin. Golden series live in `test_strategy.py`.
-- Cell/batch: key leaves out Python version and paths; capital and exchange rate are in no key; no lock
-  on a journal. Unit-test lines equal product lines (2,861): more test than product turns the check red.
-- Tune: the proof uses one worker; priority and kill-on-exit untested; a worker that never finishes
-  holds the pass; batch size follows only the last batch; the busy flag's write can fail.
-- First pass: survivors only; refusals and run/kept/failed counts not logged. Scratch copies owed removal: `.claude/worktrees/` helpers, `C:	mp	unebreaks`, `C:	mp	unedriver`.
+- Grid breaks no series found can show (Supertrend band, Bollinger past 2**53, Wilder window, band margin).
+- Cell/batch: key leaves out Python version, paths, capital and exchange rate. Unit-test lines equal product lines.
+- Tune: the proof uses one worker; priority and kill-on-exit untested; batch size follows the last batch only.
+- Week: no limit on a pass's time; a torn `week.jsonl` line needs hand-mending; results grow ~9 MB a day
+  (pruning owed, R-GRID-1); an outside pass on the same folder, a PC restart not followed within the hour,
+  or the scratch store `C:\tmp\kestrel2_grid\store` cleared breaks the run (data-research-home fixes the last).
+- Log counts tickers as "cells"; refused cells uncounted; busy flag stale if a pass is killed outright.
+  Scratch copies owed removal: `.claude/worktrees/` helpers, `C:\tmp\unebreaks`, `C:\tmp\unedriver`.
 
 ## RUNGS
 
