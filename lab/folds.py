@@ -26,13 +26,12 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from decimal import Decimal
 
 from desk.orders import Settings
 from desk.store import Bar
 from lab import cell, rung
 from lab.cell import Cell
-from lab.rung import Answer, Verdict
+from lab.rung import Answer, Rates, Verdict
 
 
 @dataclass(frozen=True)
@@ -91,11 +90,13 @@ def cut(window: Cell, bars: Sequence[Bar], folds: int) -> tuple[tuple[Cell, Cell
     )
 
 
-def judge(window: Cell, bars: Sequence[Bar], settings: Settings, fx: Decimal, folds: int) -> Folded:
+def judge(
+    window: Cell, bars: Sequence[Bar], settings: Settings, rates: Rates, folds: int
+) -> Folded:
     """The window in folds, each cell run and judged by the first rung on the line's bars;
-    fx is pounds per unit of the line's currency, one rate for the window."""
+    each fill at its own day's rate of exchange."""
 
     def first_rung(c: Cell) -> Verdict:
-        return rung.judge(cell.run(c, bars), bars, settings, fx)
+        return rung.judge(cell.run(c, bars), bars, settings, rates)
 
     return Folded(tuple(Fold(first_rung(i), first_rung(o)) for i, o in cut(window, bars, folds)))
