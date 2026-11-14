@@ -1748,6 +1748,55 @@ one left narrows a type of the interface's, which can refuse a broker, never adm
   "Monthly" is 31 days. The pretend broker gains one fault, an order left working.
 - *Branch:* finished on `lane/money-1113-203647-s1` as asked; nothing pushed to `lane/money-1113-212543-s1`.
 
+### 2026-11-13 — the costs whole (money-costs, #101)
+
+**Decided**, by the lane as the desk's mentor, under his ruling "always go with recommended".
+- *Spread: 0.05% of a leg's value, assumed.* Options: nothing until measured; one flat assumed rate; a measured figure per line. Chosen the flat rate now, measurement asked for (R-MONEY-10): a result with no spread flatters every strategy (canon B4).
+- *Slippage: 0.05% a leg, assumed.* Same options, same choice.
+- *A leveraged line pays its leverage times as much.* Options: one rate; times leverage; per line. Chosen times leverage: 3LGO pays 0.15% a leg, 5QQQ 0.25%.
+- *A stop's sale slips three times as far* (the spread is not multiplied). Options: as any sale; a multiple; modelled from each day's fall. Chosen three times: a stop sells into a fall.
+- *Spread and slippage are taken off the profit, not counted in an order's cost.* Options: inside the fifth of capital; profit only. Chosen profit only: they are the fill being worse than the sizing price, not a bill; it keeps the numbers research has judged.
+- *UK tax is part of an order's cost.* Options: profit only; also in the order's cost. Chosen both: it is cash leaving with the purchase.
+- *The regulators' fees (SEC, FINRA) go in the commission line.* Options: a sixth line; with commission. Chosen with commission: scene 7 names five lines.
+- *The FINRA fee is charged though on holiday to the end of 2026.* Options: nought until January; the published rate. Chosen the rate: a date is a special case; the error is a fraction of a penny, on the safe side.
+- *The leg is a typed word* (`orders.Leg`, read in `orders.leg_of`). Options: a sign and a flag; three words. Chosen three words.
+
+**Evidence.** Fourteen months: costs £161.54 → £338.78, profit £967.23 → £791.66. Blind review: no wrong money. 35 breaks, 34 caught, the missed one (UK tax left out of the total) now caught.
+
+### 2026-11-13 — the three emergencies in numbers (money-emergencies, #108)
+
+**Decided**, by the lane as the desk's mentor, under his ruling "always go with recommended". A changed number is one line of code and one of its test.
+- *"The market".* Options: the S&P 500 in dollars at New York's close; the yardstick as the desk reads it (pounds, London's close). Chosen the yardstick (VUAG, AG-04); numbers set on VUSA (same index since 2012) and checked on VUAG. New York's numbers on the desk's series would cry black swan on a crash; the code refuses any other market reading.
+- *A crash: 4% in a day or 12% below the month's high.* Measured on VUSA: 4%/10% 46 days, 7 episodes; 4%/12% 26 days, 6; 5%/12% 22, 3; 5%/15% 14, March 2020 only. Chosen 4%/12%: the six episodes anyone would name, none missed. It halts buying; sells nothing (his stop already says where to sell).
+- *A black swan: 10% in a day or 30% below the month's high.* Options: just beyond the worst closes (8%/25%); round numbers beyond the worst readings within a day (8.7%/26.0%). Chosen the latter: the crash watch reads within the day, so 8% could have sold everything on 9 and 12 March 2020. It means cash, and only the operator lifts it.
+- *An emergency: one line down 10% in a day, in its market's terms* (tied to `STOP_FALL`). Options 5%, 7%, 10%, 13%, 15%. Chosen 10%: about ten a year across twenty lines (5% would be about sixty from the US shares alone). The desk buys no more of that line; others carry on. Only the day's fall counts, not the month's.
+- *When each ends:* only when a day ends clear of it; a reading within the day raises, never lifts.
+- *A bar's close is read, never its low:* the archive's bad lows would each have been a black swan.
+- *His other words:* a desk fault is the book not matching (EMG-06) and the kill switch (EMG-02); a volatility spike is a crash; a market halt has no price, so it is unread, never calm.
+- *Unread is its own answer* (`Unread`, raised by name). Options: measure with whatever is given; refuse. Chosen refuse.
+- *The definitions say what the desk "is to" do*, since nothing acts yet; the type is `Response`, not a second `Action`.
+
+**Evidence.** Four blind reviews (the first found the numbers set on the wrong series); breaks 91 of 92 caught, the last then caught.
+
+### 2026-11-14 — the day's record (money-record, #114 and #124)
+
+**Decided**, by the lane as the desk's mentor, under his ruling "always go with recommended".
+- *A day's profit is the book's gain, not only closed trades.* Options: round trips closed that day; change in worth plus dealing less costs. Chosen the second: a falling day is a losing day. They agree when the book is flat.
+- *One rounding policy: to the penny, half to even, once, where published.* Everything before is exact.
+- *The market's figure: the capital times the yardstick's move over the record's days.* Options: the same capital each day; the capital bought once and held. Chosen each day (like-for-like with the fixed capital). The column must not be added up as buy-and-hold (R-MONEY-14).
+- *Each record opens from what the last closed on* (worth and count of fills kept in the record). Options: work it out again from files; keep it. Chosen keep: the first review showed two ways the first loses money in silence.
+- *A record is never rewritten;* a late fill is in the next record.
+- *A withheld day's money is published with the next plain number* rather than left out of every record.
+- *A day is over when its record is made, or the ledger holds a later fill.* Options: ledger alone (as landed in #114); records alone (blind before the first record); either. Chosen either (#124): each sees what the other cannot.
+- *A missing record does not hold the next day's orders.* Options: no order until every earlier session has its record; buys held, sales through; nothing held. Chosen nothing held: one late close must not stop rule sales.
+- *A records file the desk cannot read stops the morning's orders;* an absent file (a new desk) trades. Chosen stop loudly.
+- *A holding is valued at that very day's rate or the day has no record;* records begin at the ledger's first fill; a bar owed is an error unless the line is suspended.
+- *Scene 6's last check reads "something was held on some day"*, and both books are compared every day.
+- *The ledger writer keeps its private name* (`book._write`) so the paper lane's merged code stays green; asked of PAPER (R-MONEY-11).
+- *#114 landed before its last mend's review reported* (#124 closed the finding); nothing but the pretend broker is on this path.
+
+**Evidence.** Fourteen months: 310 days' profits add to £791.66, the 34 round trips'. #114: three blind reviews, 4 blocking findings mended, 27 breaks, 25 caught and the 2 missed then caught. #124: a review found an old day with a made record could be sent again (five buys, £11,602 on £10,000 in its run); closed, eight breaks all caught.
+
 ## DATA
 
 ### 2026-11-13 — the fourteen months are built; the scenes move onto them in two steps
@@ -2607,6 +2656,30 @@ quietly taking the trading line of the same symbol. Blind review, nothing blocki
 - *A ticker listed twice is refused*, not quietly counted once: a repeat is a mistake in the list.
 
 **Evidence.** The pass run for real: 5,325 cells run and kept in 200 s, none failed; a second pass ran none, in 45 s. 14 deliberate breaks, all caught after the test was strengthened; a blind review's one blocking finding fixed.
+
+### 2026-11-14 — the grid's week: who starts it, how it runs, what breaks it (grid-week, #111)
+
+**Decided.** By the GRID lane as the desk's mentor, no one watching.
+- *Who starts the seven-day run.* This session, now, detached, from a pinned copy of the code, or a command left for the operator. Chosen now: the box cannot close for seven days, so each hour unstarted is an hour later; paper research only, below-normal priority under the memory ceiling, one process to end. His ruling: always go with recommended.
+- *Ticks: none.* Tick when the service runs, or when the log shows seven days. Chosen the log: "runs seven days" is a measurement nobody has seen. Recommended to the scribe: let grid-declared start now, as it waited on the shared file, not the week.
+- *Each pass in a fresh process*, not one long-lived process: five lanes change code day and night, and a crash or leak should cost one pass, not the week.
+- *A pass every hour*, not back to back or daily: prices change daily and code a few times a day; hourly picks changes up and leaves the PC to the lanes.
+- *What breaks "without stopping".* A failed pass, a pass holding no cell, a gap over an hour. Chosen to break on a failed pass: a service alive and producing nothing is not the grid running. One dead ticker does not break it.
+- *The window ends today*, so each midnight every cell is new; the cost is growth of results (Found, not fixed).
+- *A failed cell is written once*, only where the outcome differs from its last line; a cell's last line is its outcome now.
+- *No time limit on a pass*: any number is a guess; a hung pass writes no line, so the log shows the stop.
+
+**Evidence.** 36 deliberate breaks over two rounds: 30 caught at first, 4 after strengthening, 1 changes nothing, 1 left uncaught (named). Two blind reviews; two blocking defects fixed. Real run: 5,325 cells in 3 min 58 s; a short week of four passes read 17 min 50 s.
+
+### 2026-11-14 — what "seven days" is measured to (grid-week, #118)
+
+**Decided.** By the GRID lane as the desk's mentor, no one watching.
+- *The measure.* (a) loosen it, counting to the last pass's start plus an hour; (b) have someone start one more pass by hand on 20 November; (c) the week runs until a pass has ended its whole length after the first began. Chosen (c): the measure is honest; a proof needing a person at the right hour is no proof for a desk no one watches.
+- *Restart the running week now.* Chosen now, between two passes: the gap was ten minutes, inside the hour allowed, so the count carried on. His ruling: always go with recommended.
+- *The earlier short passes count*, from 22:45 UTC on 13 November, as the rule reads; either reading passes seven days, the run going to 21 November 00:44 UTC.
+- *Ticks: none*, as in #111.
+
+**Evidence.** A clean week read 6 days 23 hours before the fix (seen failing first), exactly seven after. 10 deliberate breaks: 9 caught, the tenth after one line strengthened. One blocking review finding fixed.
 
 ## RUNGS
 

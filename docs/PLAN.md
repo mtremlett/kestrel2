@@ -272,11 +272,11 @@ day's trading and reconciliation are built, and any broker can stand behind them
       day and then monthly (EMG-02, canon B1) {id: money-kill; files: desk/kill.py,
       desk/broker.py, desk/book.py, tests/unit/test_kill*.py, tests/unit/test_broker*.py,
       tests/unit/test_book*.py, tests/unit/test_day*.py, manifest.toml}
-- [ ] The costs whole: a sale's own cost, and spread and slippage on both legs, the stop's sale
+- [x] The costs whole: a sale's own cost, and spread and slippage on both legs, the stop's sale
       included, in the one cost model; UK tax from a fact on each line (asked of the data lane)
       {id: money-costs; files: desk/orders.py, desk/book.py, tests/unit/test_orders*.py,
       tests/unit/test_book*.py, tests/scenes/test_scenes.py; after: money-kill}
-- [ ] The day's record (`day.run`): the day reconciled at its end, a mismatch named and its
+- [x] The day's record (`day.run`): the day reconciled at its end, a mismatch named and its
       profit withheld; else the profit after every cost line, to one rounding policy, beside
       what holding the market earned; the same days replayed to the same records. Scene 6's days
       moved onto the fourteen months, its book checked against the broker's every day - **scenes
@@ -288,7 +288,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       record; a census names every part of the money path and turns red when one has no scenario
       {id: money-simcity; files: desk/simcity.py, tests/unit/test_simcity*.py,
       tests/scenes/test_scenes.py, manifest.toml; after: money-kill, money-record}
-- [ ] Emergencies in numbers: an emergency, a crash and a black swan each defined by measured
+- [x] Emergencies in numbers: an emergency, a crash and a black swan each defined by measured
       falls, each with its action (EMG-01) {id: money-emergencies; files: desk/emergency.py,
       tests/unit/test_emergency*.py, manifest.toml}
 - [ ] Halts: a halt is a typed record; while one is in force the desk buys nothing and says so
@@ -399,28 +399,40 @@ his PC with the desk's own client id (222), never 4001.
       and a contract test proves the refusal (owed: name the money lane's kill-switch box in
       `after` once it has an id) {id: paper-drill; files: desk/placing.py,
       tests/unit/test_placing.py; after: paper-adapter, paper-stops}
+- [ ] Morning and evening messages, and an alarm on silence
+      {id: paper-messages; files: desk/messenger.py, tests/unit/test_messenger.py,
+      manifest.toml}
+- [ ] Unattended running, and recovery from a restart
+      {id: paper-running; files: desk/running.py, desk/placing.py,
+      tests/unit/test_running.py, tests/unit/test_placing.py, manifest.toml;
+      after: paper-adapter, paper-stops, paper-messages}
+- [ ] **No paper order until the money lane's kill switch has been drilled** (EMG-02)
+      {id: paper-kill-drilled; files: desk/running.py, tests/unit/test_running.py;
+      after: money-kill, paper-drill, paper-running}
 - [ ] Conformance trades, on paper, one London and one US line, each in its market's hours:
       a market buy at the open; the resting stop placed, triggered, and cancelled on a sale;
       a partial fill if the paper broker gives one; a rejection. Each real result recorded
       beside the pretend broker's, and the pretend broker fixed where they differ
       {id: paper-conformance; files: *; after: paper-gateway, paper-check, paper-stops,
       paper-drill}
-- [ ] Unattended running, and recovery from a restart (boxes from here down are not yet noted)
-- [ ] Morning and evening messages, and an alarm on silence
-- [ ] **No paper order until the money lane's kill switch has been drilled** (EMG-02)
 - [ ] The desk's own process supervised: one supervisor, restarts proven by killing it,
       health judged from outside by dated receipts, surviving a reboot, a dropped network
       and a broker disconnect; a ledger of operator actions proving seven days without one,
       bar the ruled Gateway re-login (OPS-01, OPS-02, OPS-04, OPS-10, NS-01)
+      {id: paper-supervised; files: desk/supervisor.py, tests/unit/test_supervisor.py,
+      manifest.toml; after: paper-running}
 - [ ] The running process always on main's latest code, and a money-path change reaching
       it only at a safe point, never mid-send (OPS-05, OPS-16)
+      {id: paper-on-main; files: desk/supervisor.py, tests/unit/test_supervisor.py;
+      after: paper-supervised}
 - [ ] The messages: a start-of-day card by 05:40; an end-of-day summary with the profit,
       the streak and the verdict; a line on every change of state and "the desk is not
       trading" by 09:30 UK; urgency levels without storms; one messenger with a delivery
       record, the merge line and the runner's alerts behind the same door (MSG-02, MSG-03,
-      MSG-04, MSG-09, MSG-11)
+      MSG-04, MSG-09, MSG-11) {id: paper-cards; files: desk/messenger.py,
+      tests/unit/test_messenger.py; after: paper-messages, paper-running}
 - [ ] The day's extras: missed winners, blocked signals, and the running cost set against
-      net profit each week (MSG-13, NS-14)
+      net profit each week (MSG-13, NS-14) (boxes from here down are not yet noted)
 - [ ] FIRST-LIGHT counted by the desk itself: ten consecutive clean days, and a day that
       sent nothing cannot be green (NS-10)
 - [ ] An independent watcher of the supervisor, which is restarted weekly (OPS-03)
@@ -466,7 +478,7 @@ grid-tune and grid-key side by side; then grid-pass, grid-week, grid-declared, g
       lab/sweep.py, lab/batch.py, lab/tune.py, tests/unit/test_lab_sweep.py,
       tests/unit/test_lab_batch.py, tests/unit/test_lab_tune.py, manifest.toml; after:
       grid-venue, grid-tune, grid-key}
-- [ ] Runs seven days without stopping {id: grid-week; files: lab/batch.py, lab/sweep.py,
+- [ ] Runs seven days without stopping. Remains: the seven days themselves; the run began 13 Nov 23:29 UK (moved onto the fix 14 Nov 00:41 UTC, pid in `C:	mp\kestrel2_week\pid.txt`); on or after 20 Nov 23:45 UK read `sweep.unbroken` and tick if 7 days {id: grid-week; files: lab/batch.py, lab/sweep.py,
       lab/tune.py, tests/unit/test_lab_batch.py, tests/unit/test_lab_sweep.py,
       tests/unit/test_lab_tune.py; after: grid-pass}
 - [ ] Each strategy judged on its own declared universe; the everything-on-everything grid
