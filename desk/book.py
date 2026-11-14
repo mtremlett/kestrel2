@@ -17,6 +17,7 @@ from pathlib import Path
 
 from desk import halt
 from desk.broker import Broker, Disconnected, Fill, Report
+from desk.carry import carried
 from desk.halt import Blocker, Stopped
 from desk.lines import Line
 from desk.orders import Charges, Order, Refused, Sale, Settings, charges, gate, leg_of
@@ -322,9 +323,8 @@ def _rates(root: Path) -> dict[tuple[date, str], Decimal]:
 
 
 def rate(root: Path, currency: str, day: date) -> Decimal:
-    """The pounds per unit of a currency kept for a day: what a holding in it is valued at
-    that day's end. None kept for that very day is an error, never an older day's rate."""
-    kept = _rates(root).get((day, currency))
+    """Pounds per unit of a currency kept for a day, carried over a UK-only holiday (desk.carry)."""
+    kept = carried({d: r for (d, c), r in _rates(root).items() if c == currency}, day)
     if kept is None:
         raise ValueError(f"no {currency} rate kept for {day}")
     return kept
