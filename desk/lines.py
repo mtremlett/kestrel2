@@ -29,6 +29,11 @@ class Line:
     #: Closes that moved further than the store believes a market moves, recorded as real,
     #: by day: a crash or a jump, confirmed, never a split (the archive must adjust those).
     real_moves: frozenset[tuple[date, Decimal]] = field(default_factory=frozenset)
+    #: Splits and consolidations, confirmed by a second free source or a published notice, by
+    #: the first day at the new price: the number the old price is multiplied by (500 for a
+    #: consolidation of 500 to 1, 0.5 for a split of 2 to 1), outside a market's move. The
+    #: store adjusts the older bars only if the bar's jump is that ratio; never a guessed one.
+    splits: frozenset[tuple[date, Decimal]] = field(default_factory=frozenset)
     #: Sessions of its venue on which the line did not trade, recorded: a suspension,
     #: confirmed, so the store finds no gap there.
     suspended: frozenset[date] = field(default_factory=frozenset)
@@ -51,6 +56,11 @@ class Line:
                 f"{self.symbol}: whether an ISA can hold it and a retail customer buy it is"
                 f" yes, no or unrecorded, not {self.isa!r} and {self.retail!r}"
             )
+        self._records()
+
+    def _records(self) -> None:
+        if any(not r.is_finite() or r <= 0 or r == 1 for _, r in self.splits):
+            raise ValueError(f"{self.symbol}: a split's ratio must be positive and not one")
         shut = [d for d in sorted(self.suspended) if venues.sessions(self.venue, d, d) != (d,)]
         if shut:
             raise ValueError(f"{self.symbol}: {shut[0]} is no {self.venue} session to suspend")

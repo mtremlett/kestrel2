@@ -186,3 +186,14 @@ def test_five_minute_bars_are_asked_for_as_far_back_as_the_archive_keeps_them() 
     assert f"?period1={week}&period2={end}&" in archive.address_five(UK, MARK, timedelta(7))
     with pytest.raises(TypeError, match="offset-naive"):
         archive.address_five(UK, MARK.replace(tzinfo=None))
+
+
+def test_the_pound_stamped_at_londons_summer_midnight_is_dated_by_the_day_it_opens() -> None:
+    """G7: 00:00 in London is 23:00 UTC of the evening before in summer, and 00:00 in winter."""
+    rows: tuple[Row, ...] = (
+        ("2025-06-12T23:00", "1.35", "1.36", "1.34", "1.355", 0),
+        ("2025-12-12T00:00", "1.33", "1.34", "1.32", "1.335", 0),
+    )
+    fx = Line("GBPUSD=X", "US", "USD", 1)
+    days = [bar.day for bar in archive.parse(fx, _payload(rows, "USD", "GBPUSD=X"))]
+    assert days == [date(2025, 6, 13), date(2025, 12, 12)]
