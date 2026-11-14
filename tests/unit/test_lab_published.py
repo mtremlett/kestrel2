@@ -6,6 +6,7 @@ from __future__ import annotations
 from collections.abc import MutableMapping
 from dataclasses import replace
 from decimal import Decimal
+from statistics import stdev
 from typing import Any, cast
 
 import numpy as np
@@ -35,6 +36,11 @@ class _Eager:
 
     def step(self, bar: Bar, _holding: bool) -> bool:
         return bar.close > Decimal("10.2")
+
+
+def _plain(self: Any, value: Decimal) -> Decimal | None:
+    self.seen = [*getattr(self, "seen", []), value][-14:]
+    return sum(self.seen, Decimal(0)) / 14 if len(self.seen) == 14 else None
 
 
 def test_each_rule_the_ladder_judges_gives_its_published_answers_and_names_its_source() -> None:
@@ -81,3 +87,43 @@ def test_code_that_is_not_the_published_rule_is_refused_and_gives_no_verdict(
     published.proven.cache_clear()
     with pytest.raises(ValueError, match="no published rule on file"):
         rung.judge(record, bars, TEN_K, POUND)
+
+
+def test_no_rule_is_proven_on_an_indicator_that_does_not_give_its_published_table(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    tables = published.indicators()
+    assert tables is published.INDICATORS and len(tables) == 4
+    for table in tables.values():  #: every printed column is held, on prices given exactly
+        assert table.source.strip() and table.given and all(table.printed.values())
+    with pytest.raises(ValueError, match="prints nothing"):
+        replace(tables["the moving average"], printed={})
+    #: the commonest mistake: the deviation of a sample (over 19), where Bollinger's is over 20
+    sample = Decimal(stdev(published.INDICATORS["Bollinger's bands"].given["Price"][:20]))
+    monkeypatch.setattr(strategy._Window, "deviation", lambda _: sample)
+    wrong = r"Bollinger's bands, its Standard Deviation, is not.*StockCharts.*1\.3255 at row 0"
+    for refused in (published.indicators, lambda: published.proven(BREAKOUT)):
+        published.indicators.cache_clear()
+        published.proven.cache_clear()
+        with pytest.raises(ValueError, match=wrong):
+            refused()
+    monkeypatch.undo()
+    #: and a plain 14-day average passed off as Wilder's: right on the first row, wrong after
+    monkeypatch.setattr(strategy._Wilder, "add", _plain)
+    with pytest.raises(ValueError, match=r"Wilder's smoothing, its Avg Gain,.*0\.2384 at row 1"):
+        published.indicators()
+    monkeypatch.undo()
+    #: every row of every column is held, to the last place printed: any one of them out by
+    #: one in that place, or a column a row short, is refused, and named
+    held = cast(MutableMapping[str, Any], published.INDICATORS)
+    for name, table in dict(tables).items():
+        for column, printed in table.printed.items():
+            one = Decimal(1).scaleb(-len(str(printed[0]).split(".")[1]))
+            near = [
+                (*printed[:n], printed[n] + one, *printed[n + 1 :]) for n in range(len(printed))
+            ]
+            for other in (printed[:-1], *near):
+                monkeypatch.setitem(held, name, replace(table, printed={column: other}))
+                with pytest.raises(ValueError, match=f"the desk's {name}, its {column}, is not"):
+                    published.indicators()
+        monkeypatch.setitem(held, name, table)
