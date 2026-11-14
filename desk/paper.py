@@ -13,6 +13,7 @@ from __future__ import annotations
 import re
 import socket
 import struct
+import sys
 from collections import Counter
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
@@ -282,3 +283,9 @@ def own(line: Line) -> str:
     """The name a holding of the desk's line goes under (Holding.name): a share or a fund,
     in the line's currency."""
     return f"{line.symbol} STK {line.currency}"
+
+
+if __name__ == "__main__":
+    from desk import conformance  #: the command's home; it imports this module, so only here
+
+    sys.exit(conformance.main(sys.argv[1:]))
