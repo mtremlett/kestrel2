@@ -204,10 +204,9 @@ def test_while_a_halt_is_in_force_no_buy_is_sent_a_sale_goes_and_a_refusal_names
     with pytest.raises(Stopped, match="long only") as refusal:  #: and the gate
         book.send(tmp_path / "bare", Pretend(WEEK, {}), Sale("s-9", A, 10), ROOM)
     assert refusal.value.blocker is Blocker.GATE
-    with pytest.raises(ValueError, match="o-5"):  #: a reason and no blocker, or one and no reason
-        book.Sent("o-5", 0, "refused")
-    with pytest.raises(ValueError, match="o-5"):
-        book.Sent("o-5", 10, None, Blocker.GATE)
+    for answer in ((0, "refused", None), (10, None, Blocker.GATE)):
+        with pytest.raises(ValueError, match="o-5"):  #: a reason and no blocker, or the reverse
+            book.Sent("o-5", *answer)
     (tmp_path / halt.HALTS).write_text("", "utf-8")
     with pytest.raises(ValueError, match="halt"):  #: unreadable never reads as no halt
         _send(tmp_path, broker, "o-6", SIX[4])

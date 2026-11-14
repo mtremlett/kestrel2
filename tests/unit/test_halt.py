@@ -26,22 +26,16 @@ def test_a_halt_is_in_force_from_its_call_until_it_is_lifted_and_never_expires(
     assert halt.kept(tmp_path) == halt.in_force(tmp_path) == (first, second)
     assert first == Halt(NOW, "the market fell 5% today") and first.lifted is None
     year = MON + timedelta(days=365)  #: no halt ends because time has passed
-    assert [halt.on(tmp_path, on) for on in (date(2025, 11, 9), MON, year)] == [
-        (),
-        (first, second),
-        (first, second),
-    ]
+    both = (first, second)
+    assert [halt.on(tmp_path, on) for on in (date(2025, 11, 9), MON, year)] == [(), both, both]
     assert halt.call(tmp_path, NOW, "the market fell 5% today") == first  #: the same halt
     assert halt.kept(tmp_path) == (first, second), "one halt called twice is kept twice"
     gone = halt.lift(tmp_path, first, datetime(2025, 11, 12, 7, tzinfo=UTC), "the market is calm")
     assert halt.in_force(tmp_path) == (second,) and halt.kept(tmp_path) == (gone, second)
     assert gone.lifted == (datetime(2025, 11, 12, 7, tzinfo=UTC), "the market is calm")
     #: in force on the day it was lifted, whatever the hour, and on no day after
-    assert [first.at in {h.at for h in halt.on(tmp_path, on)} for on in (TUE, WED, year)] == [
-        True,
-        True,
-        False,
-    ]
+    still = [gone in halt.on(tmp_path, on) for on in (TUE, WED, year)]
+    assert still == [True, True, False], "not in force on the day it was lifted, or after it"
     for which, at, why in (
         (first, LATER, "lifted already, as it stood"),
         (gone, LATER, "lifted already, as it stands"),
