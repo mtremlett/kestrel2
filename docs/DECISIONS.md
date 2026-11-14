@@ -2274,6 +2274,65 @@ files move onto it is a later step.
 **No `after` naming another lane's box.** No other lane's ids were on main and the guard refuses an
 `after` naming no box; the one cross-lane dependence is an un-noted box and a request (R-DATA-9).
 
+### 2026-11-13 — the parked fifth's box closed on the rule as it stands (data-parked-fifth, #84)
+
+- **Tick the box, or hold it for the misjudgements.** Options: (a) hold it open until WWH, SHC and the three windfalls are settled from a second source: none exists, so the box would block the research home behind it for good; (b) tune the rule until they come out right: every signal tried (range, a round ratio, a gap in sessions) also catches real crashes (PCG 0.476, ALNY 0.515), and raising 2.5 to catch WWH (2.51) leaves FANG's real crash (2.76) a whisker away, on a number chosen looking at this one list; (c) tick it. Chosen (c): every known error is a false loss or an unread stretch, which makes a strategy look worse, never better, and each is named in the history.
+- **A crash wholly won back overnight stays cut at the way back.** Options: (a) read through a one-day excursion that returns (on the one real case, ROSE, that reads three false moves instead of one, the day "returned to" being a stale quote); (b) leave it. Chosen (b).
+- **A move made within a day stays named on two days.** Naming it once would be truer for a count, but tests outside the box hold the behaviour and the rungs' request counts trades held through a named day, not days. Left as is.
+- **Tests not landed over the size guard.** Options: (a) ask him to loosen the guard, for two hair's-breadth cases; (b) grow the product to make room, which is forbidden in spirit; (c) run them from outside the repository and record the output. Chosen (c): 14 deliberate breaks, 12 caught by the existing tests.
+
+### 2026-11-13 — the ISA twins, the flags and the yardstick (data-isa-twins, first step, #85)
+
+- **Red on the tests-no-bigger-than-the-product guard.** Options: (a) tighten the claimed tests keeping every assertion; (b) add product lines; (c) ask for the guard to be loosened; (d) close the pull request. Chosen (a): (b) grows code to get round a guard, (c) is not needed, (d) throws away finished work.
+- **SPY and QQQ cannot leave in this change.** Options: (a) add nothing until other lanes' tests change; (b) add the twins and flags, remove GLD, keep SPY and QQQ flagged as not holdable and ask GRID and RUNGS to stop naming them; (c) edit the other lanes' tests (refused by the claim). Chosen (b); the master holds 22 lines for a while, held by a test that names the two as leaving.
+- **IDTL is priced in dollars.** The archive and the exchange quote it in dollars; the pound-priced IDTG is a different, currency-hedged product. Chosen: IDTL as he ruled, in dollars, so a purchase carries the currency cost like a US line.
+- **The yardstick is one line, VUAG.** Options: VUAG; VUSA (same index, pays out its dividends); one yardstick per venue. Chosen VUAG: one capital number in pounds, one yardstick in pounds, and its dividends stay in its price, so holding it is the whole of what the market earned (AG-04).
+- **What the flags say.** Options: one flag "ISA-ready"; two facts. Chosen two: IB1T shows why (retail yes, ISA no, crypto notes shut to new purchases in an ISA from 6 April 2026).
+- **A line nobody has recorded.** Options: default no; default unrecorded; no default. Chosen unrecorded (None): no would call a thousand research tickers unholdable, falsely; no default would break files outside the claim.
+- **The constructor's suspension check was reshaped** (same behaviour, same test) to stay inside the lint's complexity limit rather than touch the limit.
+
+### 2026-11-13 — trading hours in the one calendar (data-hours, #87)
+
+- **Summer time by rule, in the calendar.** Options: (a) Python's time-zone database (this PC lacks it; needs `tzdata`, a file outside the claim); (b) each country's rule in the one calendar. Chosen (b): `desk/` stays standard library only, both sides of every change tested.
+- **A venue is open from its open to its closing auction, both ends included.** Options: continuous trading only; to the auction. Chosen the second: a five-minute bar is whole only at its end, so the keeper's round at 16:30 and 16:35 London (16:00 New York) collects the day's last bar and the official close.
+- **A shut day asked for its hours is refused; a shut moment asked "is it open" answers nothing.** The first is the caller's mistake; the second is the keeper's ordinary question.
+- **London's half-days by rule** (last session before Christmas Day, last of the year), not by 24 and 31 December: on a weekend London closes the Friday before. New York has no such carry.
+- **Closing auctions as each exchange publishes:** New York's at the bell, London's five minutes after continuous trading ends.
+
+### 2026-11-13 — the one fast store (data-fast-store, #89)
+
+- **One table for both spans, a line keyed by venue and symbol.** Options: a table per line; one table keyed by venue, symbol, span and start. Chosen the second: one model, and thirteen symbols are two companies by venue.
+- **Prices as exact text.** Options: floating point; whole ticks (needs every tick size); the decimal's own text. Chosen the text (canon B4), the history benchmark met with room.
+- **A daily history is replaced whole; five-minute bars gather.** The archive restates the past for splits and a dropped bad day must go; five-minute bars are forgotten by the archive after sixty days, so nothing is cleared and a bar given again replaces that one bar.
+- **A second writer waits up to five seconds, then is refused.** First built as refuse-at-once; review showed the only writer refused when readers merely opened and closed the file. Chosen SQLite's own bounded wait, not a retry in the desk's code.
+- **Each round forced to disk (FULL).** NORMAL is faster but a power cut can lose rounds; the benchmark is met eighty times over with FULL.
+- **A refused line leaves its round whole** (one bad ticker must not stop all trading); a round SQLite itself drops lands nothing.
+- **A store or line never written is an error, not an empty answer** (failure pattern 10).
+- **The fastest of five runs is the benchmark's measure,** because one run fails by chance on a busy machine; the numbers live in the test.
+- **Evidence (A7):** 107 deliberate breaks over three versions; survivors listed in the pull request, each unobservable in a unit test. Two blind reviews: seven blocking points, all mended.
+
+### 2026-11-13 — the survivors' lists (data-members, first part, #96)
+
+- **Where past members come from.** Options: (a) a paid history of index members (spending is the operator's); (b) the index owners' notices change by change (hundreds of documents); (c) Wikipedia's dated change tables, checked by walking today's list back through them. Chosen (c): free, the walk reaches exactly 500 and 100 in 2010; unofficial, and the module says so. If survivorship ever decides a promotion, a paid history is the question for him then.
+- **Where the record lives.** A file outside the repository, or the module's text. Chosen the text (about 100 lines, versioned with the code), with a golden fingerprint so no change or date is altered unnoticed.
+- **How a past member is named.** A ticker is not a company (Q was Qwest, is Qnity). Options: match by ticker; carry every ticker change as an event; name each company by its last ticker on the list, and a leaver whose ticker a later member carried with its year of leaving (Q.2011, CB.2016, JCI.2016, ...). Chosen the last: no stranger's bars read as a leaver's, one mechanism.
+- **Hand corrections to the source,** each because the walk back contradicted today's list: ticker changes written as a leaver and a joiner made one company (Facebook to META and twenty more); GOOG for GOOGL in April 2014; two mergers followed by the surviving company (ACE took CB, Tyco took JCI; which company's prices the archive keeps under CB and JCI before the mergers is unconfirmed); four early-2010 S&P changes added from news of the day (NRG, Berkshire, Discovery, ONEOK); second share classes of Comcast, Discovery and Liberty written as joining (22 December 2014, inferred, not sourced).
+- **Days outside the record** (before 1 January 2010, after 13 November 2026) are refused, never guessed.
+- **The year-by-year counts and the record's fingerprint are golden numbers;** they change only by a deliberate, explained edit.
+
+### 2026-11-13 — five-minute bars saved for good (data-five-minute, #97)
+
+- **Where "everything older" lives.** Options: one file with the week read from on top of the older bars; a second archive file that older bars move into. Chosen one file: 5.2 million bars still read a week in 5 ms, and moving bars between two files is the one place a bar could be lost.
+- **How much is asked each evening.** The day's bars only, or all 59 days the archive keeps. Chosen all 59: 22 requests either way, a missed evening heals itself, a corrected bar is picked up.
+- **A bar the archive restates takes its place if it passes the checks,** so the evening's answer can correct a bar saved while it was forming; a restatement in a wrong unit never gets in.
+- **Checks not carried over from daily bars:** a missing bar and a repeated price are no fault (thin lines trade in few spans; 345 of 3LGO's bars were flat); a line late or missing its newest bar is the keeper's to judge.
+- **A big move is kept and listed, not dropped,** as the daily store does: the crash watch needs those bars.
+- **A wrong unit is judged against the middle price** of the bars held for those days (of the answer itself the first time). Simpler than neighbour rules and not dragged along by a run of bad bars; on the very first save an answer more than half wrong would be judged the wrong way round, and every such bar is listed.
+- **The archive's "price of the moment" and a forming bar are not bars yet;** the client leaves them out so a fault list means something.
+- **The store's file is `KESTREL2_DATA/bars.db`,** chosen now so the first night's bars are saved where the keeper will look.
+- **`archive.gather` no longer has a default question;** every caller already named one.
+- **Identical repeats of one bar are kept once without a fault,** or they would repeat for 59 evenings.
+
 ## LADDER (until 13 November; since then GRID and RUNGS)
 
 ### 2026-11-13 — the ladder's unit of work: days only, the whole history, keyed by what it read
