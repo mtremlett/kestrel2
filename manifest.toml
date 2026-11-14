@@ -50,6 +50,7 @@ rungs = []
 
 # the money lane
 "desk/strategy.py" = "the five frozen daily strategies: a decision for every line and day"
+"desk/eponymous_swing.py" = "the eponymous rules, one published rule per author under the strategy template: weekly_reversal_jegadeesh; the paper desk does not trade them"
 "desk/eponymous_connors.py" = "Connors' RSI-2 as a rule under the one template, with its author, source and published setting; not traded by the paper desk"
 "desk/orders.py" = "the order, sized from the one capital number, its stop, the pre-trade gate"
 "desk/broker.py" = "the pretend broker the desk trades against in simulation"
