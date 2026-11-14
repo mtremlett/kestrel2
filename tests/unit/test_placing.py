@@ -4,17 +4,15 @@ day, a buy with its stop, the line left under one stop of the desk's for the sha
 
 from __future__ import annotations
 
-import io
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
-from typing import BinaryIO
 from unittest.mock import Mock
 
 import pytest
-from test_paper import ACCOUNTS, ENDS, FLAT, HELLO, STOP, _but, _wire
+from test_paper import ENDS, FLAT, STOP, Said, _but, _gateway, _wire
 from test_reports import AAPL, BOUGHT, BUY, CUT, DONE, END, FEE, IITU, LISTED, SMGB
 
 from desk import book, kill, paper, placing
@@ -31,8 +29,6 @@ ENDED, FILLS = _wire(("99", "0")).getvalue(), _wire("7|3|1|0||||||".split("|")).
 STOPPED = _but(_but(BOUGHT, 18, "SLD"), 26, f"{ID}-stop")  # the desk's stop on the line, sold
 AFTER = _but(DONE, 22, f"{ID}-stop")  # and that stop's own order, ended: not the order asked of
 AT = datetime(2026, 11, 16, 8, 5, tzinfo=UTC)
-NEXT = ("9", "1", "41")  # the gateway, ready: the number its next order goes under
-Said = Sequence[Sequence[str]]  # what the gateway says in one conversation
 
 
 def _order(
@@ -48,35 +44,6 @@ def _order(
 
 def _account(holdings: Sequence[Sequence[str]], *orders: Sequence[str]) -> list[Sequence[str]]:
     return [*holdings, ENDS[0], *orders, ENDS[1]]
-
-
-class _Silent(io.BytesIO):
-    """A gateway that has said its last and does not hang up: the door's wait runs out."""
-
-    def read(self, size: int | None = -1) -> bytes:
-        if self.tell() == len(self.getvalue()):
-            raise TimeoutError("timed out")
-        return super().read(size)
-
-
-def _gateway(
-    patch: pytest.MonkeyPatch, *answers: Sequence[Sequence[str]], silent: bool = False
-) -> list[bytes]:
-    """A gateway that answers each conversation the desk opens with the next of answers, and
-    none after them; what the desk sent in each, after its greeting and its start. Its
-    answer given, it hangs up; or, silent, says no more and does not."""
-    left, sent = list(answers), list[bytes]()
-
-    def dial(talk: Callable[[BinaryIO, paper.Send], object]) -> object:
-        said: list[bytes] = []
-        wire = _wire(HELLO, ACCOUNTS, NEXT, *left.pop(0))
-        try:
-            return talk(_Silent(wire.getvalue()) if silent else wire, said.append)
-        finally:
-            sent.append(b"".join(said[2:]))
-
-    patch.setattr(paper, "dial", dial)
-    return sent
 
 
 def _paper(root: Path = Path("unread"), at: datetime = AT) -> placing.Paper:

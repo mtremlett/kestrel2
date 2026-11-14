@@ -6,11 +6,12 @@ from __future__ import annotations
 import io
 import socket
 import struct
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from contextlib import nullcontext
 from dataclasses import replace
 from decimal import Decimal
 from types import SimpleNamespace
+from typing import BinaryIO
 
 import pytest
 
@@ -39,6 +40,8 @@ LIVE = ("15", "1", "U7654321")
 HEAD = ("1234567", "7", "31", "DU0000001", "AAPL", "SELL", Decimal(10), "STP", "265598")
 AAPL_STOP = Resting(*HEAD, "20261112-rsi2-AAPL-stop", "PreSubmitted", Decimal(10), Decimal("171.5"))
 GONE = ("4", "2", "7", "202", "Order Canceled - reason:", "")  # news of an order, no fault
+NEXT = ("9", "1", "41")  # the gateway, ready: the number its next order goes under
+Said = Sequence[Sequence[str]]  # what the gateway says in one conversation
 TWO = "SMGB STK GBP: the broker holds {} in one of 2 entries, the desk's book {}"
 
 
@@ -50,6 +53,35 @@ def _wire(*messages: Sequence[str]) -> io.BytesIO:
 
 def _but(fields: Sequence[str], at: int, value: str) -> list[str]:
     return [*fields[:at], value, *fields[at + 1 :]]
+
+
+class _Silent(io.BytesIO):
+    """A gateway that has said its last and does not hang up: the door's wait runs out."""
+
+    def read(self, size: int | None = -1) -> bytes:
+        if self.tell() == len(self.getvalue()):
+            raise TimeoutError("timed out")
+        return super().read(size)
+
+
+def _gateway(
+    patch: pytest.MonkeyPatch, *answers: Sequence[Sequence[str]], silent: bool = False
+) -> list[bytes]:
+    """A gateway that answers each conversation the desk opens with the next of answers, and
+    none after them; what the desk sent in each, after its greeting and its start. Its
+    answer given, it hangs up; or, silent, says no more and does not."""
+    left, sent = list(answers), list[bytes]()
+
+    def dial(talk: Callable[[BinaryIO, paper.Send], object]) -> object:
+        said: list[bytes] = []
+        wire = _wire(HELLO, ACCOUNTS, NEXT, *left.pop(0))
+        try:
+            return talk(_Silent(wire.getvalue()) if silent else wire, said.append)
+        finally:
+            sent.append(b"".join(said[2:]))
+
+    patch.setattr(paper, "dial", dial)
+    return sent
 
 
 def _smgb(*shares: int) -> Account:
