@@ -1140,6 +1140,45 @@ Sessions follow the same ruling for their own questions. Driven: 11 cases. While
 raising the unit-test budget to 1.5 times the product (#90) lands, a pull request red on
 that budget alone is not counted toward a halt.
 
+## 2026-11-14 — boxes that wait; requests the runner opens; the desk's jobs; the check's turns
+
+**Why.** At 08:00 three lanes had halted overnight (DATA 21:37, GRID 01:51, RUNGS 07:19), only
+5 of 12 sessions ran, and the check took nine minutes. One mechanism behind the halts: a box
+blocked outside its lane (seven days of time, a book not bought, another lane's change) was
+handed out again and again, because the plan could not say a box waits.
+
+**Built (the runner, outside this repository).**
+- *Boxes that wait.* A box's note may say `waits:` a request, a date or `operator` (the guard
+  checks the value, #158). The runner also holds waits of its own: a session's `Waits:` line,
+  or the doctor's finding after a halt (checked: a real box, a wait it can judge; never over
+  a decision that is his or a recurring fix). A waiting box is never handed out; boxes after it
+  that do not need it are freed; it is offered again when its request is done or its date
+  comes. A wait on a request not yet numbered waits a day for it; `operator` waits are told to
+  him and lifted by `runner.py unwait <box>`. Scribes write the held waits into the books.
+- *Requests the runner opens.* Each major or blocking finding of the daily audit becomes a
+  blocking request in the owning lane's list (R-RUNNER-n), closed for good once done. Request
+  lines are now read however their date is written: most of the lanes' requests (R-MONEY-15,
+  R-RUNGS-5, R-RUNGS-6) had been invisible to the runner, so blocking requests never reached
+  their lanes.
+- *The desk's jobs* (no Claude session): `desk.running` every five minutes on weekdays as the
+  supervisor's stand-in, only after a passed dry rehearsal; `desk.keeper` every five minutes;
+  a pre-flight at 07:15 and a deep run nightly, both in the 08:00 message; on Sunday at 18:00
+  the dry rehearsal, then one go/no-go line naming each open blocker with its workaround. Each
+  runs once its module has a command on main (requests R-RUNNER-6, -7 to PAPER and DATA).
+- *The check's turns* (#161): at most four full checks at once on the PC.
+
+**This morning.** GRID's seven-day box waits until 21 November and frees grid-declared;
+RUNGS's indicators wait on R-RUNGS-6 (RSI-2 now from the best free replication, #157);
+DATA's ISA swap waits on R-RUNNER-4 and -5 (its #85 asks of GRID and RUNGS, never in STATUS).
+The three halts were lifted at 09:18 with each lane's redirect, by a restart that adopted
+every running session.
+
+**Driven.** In scratch homes: waits 36 cases, jobs 26, the turns 8 (four breaks and real
+processes), the guard 29; the earlier drives re-run on the new code. A blind review found one
+blocking and five major faults in the waits (live since 09:18), all fixed and driven, and
+loaded with the jobs by a second restart.
+Measured: CPU 100% on all 8 logical processors with six checks at once.
+
 ---
 
 # The lanes' own decisions
