@@ -41,8 +41,8 @@ over is `reproduce`'s own answer: the rung does not read the author's bars again
 A FIGURE GOES ON FILE only from the page that printed it, the author's or a replication's,
 read at the time and never from memory, and only once the desk holds the rule as the page
 tests it and the author's market over the author's period: a figure on file stops every
-verdict on its rule until it is reproduced. Figures read and waiting for either are kept,
-with how near is the same, in `docs/DECISIONS.md`, not here.
+verdict on its rule until it is reproduced. A figure read and waiting for either is
+written down, with how near is the same, in `docs/DECISIONS.md` and never in this module.
 
 SECOND HAND, AND LABELLED SO (his ruling, 14 November 2026: no book is bought). Where an
 author's table is not to be had free, the best replication somebody else has published stands
