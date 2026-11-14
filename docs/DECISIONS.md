@@ -1560,6 +1560,35 @@ one store stays their only writer.
 
 ---
 
+## 2026-11-14 — data for 4,000+ tickers: tiers, SQLite now, a bounded ingest
+
+**His ask, about 11:30 UK.** "ultimately we want to trade 4000+ tickers across hundreds of
+strategies. can we rename the databases market_history and history_live? ensure both
+databases ... can cope. ... will there be a queue growing problem? ... think of multiple
+options, verify them, score them and then recommend them."
+
+**Researched.** An independent study, with every key claim checked at its source, is kept in
+the notes folder (`data_stack_2026-11-14.md`). IBKR cannot stream 4,000 tickers. Each needs a
+market-data line; an account starts with 100, and boosters top out near 1,100 at $300 a
+month. Small-bar history is capped at 60 requests per 10 minutes. The load itself is small:
+about 1.8 million 1-minute rows a day at 4,000 tickers, one transaction a minute. Scored
+options: for live data, tiers score 23 of 30 against 18 for IBKR alone; for storage, SQLite
+in WAL mode scores 27, Parquet with DuckDB for sealed history 27, DuckDB alone 25, QuestDB
+24, TimescaleDB 23 and ClickHouse 20.
+
+**Decided, the recommended options.**
+- The databases are `market_history.db` and `market_live.db` (his names).
+- Data comes in three tiers: live from IBKR for held, signalled and watched names; a US vendor
+  feed bought only after the A-GATE and only if a strategy needs it; and daily bars for all.
+- SQLite stays (standard library, one writer).
+- Months of intraday history are sealed into compressed files once a benchmark shows the need.
+- The ingest is bounded by construction, not by watching.
+- Nothing new is bought now. The vendor feed (about $99 a month), IBKR boosters ($30 a month
+  per 100 names) and a London second source (about £30 a month) are spending, asked of him
+  when a strategy needs them.
+
+---
+
 ## MONEY
 
 ### 2026-11-13 — how the pretend broker behaves

@@ -155,6 +155,20 @@ UK tax) and R-MONEY-2 (the scenes on the whole fourteen months).
       2.5 times re-measured on the full universe; WWH, SHC and three windfalls settled by a
       second source; a home for the research store)
       {id: data-parked-fifth; files: lab/universe.py, tests/unit/test_lab_universe_parked.py}
+- [ ] **Data in tiers, for 4,000+ tickers** (research of 14 November, kept in the notes
+      folder as `data_stack_2026-11-14.md`). Tier A: held, signalled and watched names, live
+      1-minute from IBKR within his line allowance (100 now). Tier B: US breadth at 1 minute
+      from one vendor feed, bought only when a strategy needs it, after the A-GATE. Tier C:
+      every ticker daily. Each tier's source sits behind one adapter, so a vendor can change
+      without touching a strategy. London breadth beyond IBKR's lines runs at 5 or 15
+      minutes. A name moves between tiers as it gains or loses a signal or position (DAT-01,
+      DAT-05)
+- [ ] **An ingest that cannot pile up, by construction:** one slot per ticker per minute, so a
+      round never holds more than its tickers; a late round is replaced by the next, and its
+      gap goes to a bounded backfill list; writes are upserts on ticker, bar size and time, so
+      a retry never duplicates; each round's lag, size and refusals recorded and alerted on.
+      Finished months of intraday history are sealed into compressed files for the lab to
+      read, when a benchmark shows SQLite slowing (DAT-07, DQ-12)
 - [x] One fast store for hot and deep data, standard library only: SQLite in WAL mode with
       one writer and many readers, held to benchmarks set now: a five-minute round for every
       line written in under a second, a line's last week read in under 50 ms, a line's daily
@@ -233,13 +247,13 @@ UK tax) and R-MONEY-2 (the scenes on the whole fourteen months).
       an ISA eligibility change on any line held or researched raises an alert (BIC-11)
 - [ ] Disk watched; old research files roll off by rule (OPS-07)
 - [ ] **Two databases, both owned by the one store** (his ruling, 14 November), in the desk's
-      data folder, never in this public repository: `market.db`, long-term, every timeframe
-      from an hour up plus all imported intraday history; and `market_hot.db`, live 1-minute
+      data folder, never in this public repository: `market_history.db`, long-term, every timeframe
+      from an hour up plus all imported intraday history; and `market_live.db`, live 1-minute
       bars for the twenty lines and a watchlist of up to 100 within his IBKR line allowance.
       The hot keeper runs every minute in each venue's hours, IBKR first, with the free
-      archive as a check; each night the day's hot bars roll into `market.db`. Every useful
+      archive as a check; each night the day's live bars roll into `market_history.db`. Every useful
       store on C: (`kestrel2_notes\data_register.md`, tagged IMPORT) is consolidated into
-      `market.db`, each source marked verified there. One consistent snapshot of both
+      `market_history.db`, each source marked verified there. One consistent snapshot of both
       databases and the ledger is written each night for his own backup to carry (DAT-11,
       DQ-12, DQ-05)
 - [ ] The old stores consolidated, never lost: once the one store holds their bars, verified by
