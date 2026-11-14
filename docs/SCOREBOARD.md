@@ -75,6 +75,14 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-13 | 5 of 7 | - | - | - | 14 of 14 proven | green | #97 data-five-minute: five-minute bars saved for good through the daily store's checks, 74,845 real bars on 22 lines kept on the first night with no fault; 38 deliberate breaks driven; a blind review's 2 blocking findings fixed.
 | 2026-11-14 | 5 of 7 | - | - | - | 14 of 14 proven | green | #175 data-headstart (first step): the old desk's five-minute bars as a head start, each bar with its source, fresh wins (237,402 + 8,191 bars pass on a copy; the real store after R-RUNNER-10) | 36 deliberate breaks, 35 caught and the last closed | blind review: 1 blocking, fixed |
 | 2026-11-14 | 5 of 7 | - | - | - | 14 of 14 proven | green | #180 the data lane's open boxes in working order, 14 more noted for the runner (23 of 32 open boxes can now be handed out) | fast check green; notes read by the guard | no review (one document) |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #190 data-headstart: `python -m lab.headstart` reads the register's IMPORT stores into market.db, resumable, one line of counts; 245,593 old five-minute bars tried in on the real stores. |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #188 data-keeper (archive half, R-RUNNER-7): one command refreshes each venue's daily bars morning and evening and takes the five-minute round in hours; a blind venue exits 1. 3 tests, 23 of 23 breaks caught, driven on the real archive. |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #196 data-headstart: docstring only, no reader landed; stooq_raw needs a Source, parquet needs a library. |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #199 R-RUNNER-18 `python -m desk.bars --audit` built and run on the real store (22 lines, 320,438 bars, 0 faults, 18 s). |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #203 R-RUNNER-24 half: four Sources added; the pyarrow pin blocked by the lane guard. |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #204 `python -m desk.snapshot` nightly backup command, R-RUNNER-13 done. |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #205 R-RUNNER-24 half done: Sources on main, the pyarrow pin blocked by the lane guard (docs only). |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #209 3LGO's daily history command (R-RUNNER-21): 2,816 clean bars, database cross-check 7 of 9, line unparked. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 

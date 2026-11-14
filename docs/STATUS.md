@@ -188,53 +188,64 @@ paper-conformance in-hours half (needs open markets; drivers must date orders th
 
 ## DATA
 
-Last updated: 14 November 2026 (folds #84, #85, #87, #89, #96, #97, #175, #180).
+Last updated: 14 November 2026 (folds #84-#97, #175, #180, #188, #190, #196, #199, #203, #204, #205, #209).
 ### Where it is
-The twenty lines (22 on the master until SPY and QQQ leave; VUAG, EQQQ, IDTL in, ISA and retail flags,
-yardstick VUAG, #85), one archive client, one store, both calendars to 2027 with hours (#87). Research reads
-all 1,065 through `universe.read` (#84; the store still parks 201); the grid does not yet (R-DATA-7). The
-fast store `desk/bars.py` (#89) holds five-minute bars, 74,845 real ones saved 13 Nov (#97). Members of the
-S&P 500 and Nasdaq 100 since 2010 (#96). The old desk's five-minute bars are a head start (#175,
-`lab/headstart.py`): each kept with its source, a fresh bar wins; proven on a copy, NOT yet run on the real
-store (waits for R-RUNNER-10, `market.db`). Open boxes stand in working order, keeper first (#180).
+Twenty lines (22 until SPY and QQQ leave; yardstick VUAG), one archive client, one store, calendars to 2027 (#87).
+Research reads all 1,065 through `universe.read` (#84; grid not yet, R-DATA-7). Fast store `desk/bars.py` (#89).
+Built: keeper `python -m desk.keeper` (#188, archive half; store filled for Monday, 16 of 22 lines clean;
+R-PAPER-23 to confirm on Monday's real closes); `python -m lab.headstart` (#190, 245,593 old five-minute bars
+tried in) and `--daily 3LGO` (#209, 2,816 clean bars); `desk.bars --audit` (#199); `desk.snapshot` (#204); four
+Sources for old stores (#203). The runner has yet to run and schedule these.
 ### Next step
-data-keeper (R-RUNNER-7: the archive's delay, the file kept open, the "price of the moment"); then the head
-start on the real store after R-RUNNER-10; its remains: daily bars (calendar before 2010, adjusted against
-as-traded, R-RUNGS-5/9), parquet stores (pyarrow, his), 3LGO, research-list bars. Then data-isa-twins
-(waits on R-DATA-10/11), data-members, data-research-home.
+Keeper's second half (broker's bars as fallback, R-DATA-9); the six London lines parked for old moves (VUAG
+among them); head start's remains (pyarrow pin and parquet readers wait R-RUNNER-24, stooq_raw, old daily bars,
+SGLN's off-mark bar refused alone, research-list bars); then data-isa-twins, data-members, data-research-home.
 ### Done for other lanes
 - R-MONEY-1: done in #47; R-MONEY-2: done in #60; R-PAPER-6: done in #175; R-GRID-4: done in #175
 ### Requests to GRID
 - [x] R-DATA-1: done in #73
-- [ ] R-DATA-7 (later, opened 2026-11-13 20:20 UK): a cell reads `universe.read(root, line).bars`, not
-  `store.read`, and keeps `History.moves` and `.rescaled`.
-- [ ] R-DATA-10 (blocking, opened 2026-11-13 21:45 UK): `test_lab_batch.py`, `test_lab_cell.py` look SPY and
-  QQQ up in the master by name; name lines that stay (AAPL, NVDA) so SPY and QQQ can leave.
+- [ ] R-DATA-7 (later, 2026-11-13 20:20 UK): a cell reads `universe.read(root, line).bars`, not `store.read`,
+  and keeps `History.moves` and `.rescaled`.
+- [ ] R-DATA-10 (blocking, 2026-11-13 21:45 UK): `test_lab_batch.py`, `test_lab_cell.py` look SPY and QQQ up
+  by name; name lines that stay (AAPL, NVDA).
 ### Requests to MONEY
 - [x] R-DATA-4: each `Line(...)` in its tests states its UK tax.
-- [ ] R-DATA-3 (later, opened 2026-11-13 18:15): the day run reads the archive through `archive.gather` and
-  hands `store.prepare` its answers whole, so a refused line parks with its reason.
-- [ ] R-DATA-6 (later, opened 2026-11-13 19:20 UK): scene 5 reads `CLEAN`; `HISTORY` is the same, and goes.
-- [ ] R-DATA-12 (later, opened 2026-11-13 21:45 UK): `day.run` reads "simply holding the market" from
-  `lines.YARDSTICK` (VUAG); nothing is bought in the ISA on a line whose `isa` flag is not yes.
-- [ ] R-DATA-13 (later, opened 2026-11-14 12:25 UK): `test_watch.py` line 58 names its source,
+- [ ] R-DATA-3 (later, 2026-11-13 18:15): the day run reads the archive through `archive.gather` and hands
+  `store.prepare` its answers whole, so a refused line parks with its reason.
+- [ ] R-DATA-6 (later, 2026-11-13 19:20 UK): scene 5 reads `CLEAN`; `HISTORY` is the same, and goes.
+- [ ] R-DATA-12 (later, 2026-11-13 21:45 UK): `day.run` reads "simply holding the market" from `lines.YARDSTICK`
+  (VUAG); nothing is bought in the ISA on a line whose `isa` flag is not yes.
+- [ ] R-DATA-13 (later, 2026-11-14 12:25 UK): `test_watch.py` line 58 names its source,
   `bars.writing(tmp / "bars.db", bars.Source.ARCHIVE)`, so every round must name one.
 ### Requests to PAPER
 - [x] R-DATA-5: each `Line(...)` in its tests states its UK tax.
-- [ ] R-DATA-9 (later, opened 2026-11-13 20:20 UK): a read-only question for a line's newest five-minute
-  bars at `desk/paper.py`, and whether the paper account gets live or delayed data.
+- [ ] R-DATA-9 (later, 2026-11-13 20:20 UK): a read-only question for a line's newest five-minute bars at
+  `desk/paper.py`, and whether the paper account gets live or delayed data.
+- [ ] R-DATA-14 (blocking, 2026-11-14 15:30 UK): wire the door `keeper.saved(home, day)` and the crash watch's
+  store `home / keeper.HOT`; make the day's record only once `keeper.target(venue, now)` is past the day for
+  every venue, or the door refuses 25 minutes every evening.
+- [ ] R-DATA-15 (later, 2026-11-14 15:30 UK): may the keeper ask the Gateway for bars through `paper.dial`, or
+  does PAPER build that question (R-DATA-9)? It is the archive's fallback.
 ### Requests to RUNGS
-- [ ] R-DATA-8 (later, opened 2026-11-13 20:20 UK): a verdict states how many trades were held through a
-  day in `History.moves` (about a hundred London bad prints), shown with and without them.
-- [ ] R-DATA-11 (blocking, opened 2026-11-13 21:45 UK): `test_lab_rung.py` prices a dollar trade on "SPY"
-  from the master; name a US line that stays (AAPL) so SPY can leave.
+- [ ] R-DATA-8 (later, 2026-11-13 20:20 UK): a verdict states how many trades were held through a day in
+  `History.moves` (about a hundred London bad prints), with and without them.
+- [ ] R-DATA-11 (blocking, 2026-11-13 21:45 UK): `test_lab_rung.py` prices a dollar trade on "SPY"; name a US
+  line that stays (AAPL).
+### Requests to RUNNER
+- [ ] R-DATA-16 (blocking, 2026-11-14 16:20 UK): `test_check.py::test_at_most_n_full_checks_run_at_once` is
+  flaky on Windows (WinError 32: `check.turn` unlinks its turn file while another thread holds it).
+- [ ] R-DATA-17 (blocking, 2026-11-14 16:00 UK): pin `pyarrow==26.0.1`, add it to manifest `allowed_third_party`,
+  and add requirements.txt to DATA's lane files (the guard refuses it).
+- [ ] R-DATA-18 (later, 2026-11-14 15:30 UK): keeper calls run to 21:40 UK at least, logs kept (stdout,
+  `MISSED:` on stderr); schedule `lab.headstart`, `--daily 3LGO`, audit and snapshot.
 ### Found, not fixed
 - **UK tax (NS-05).** Five London products unseen on a contract note; London shares 0.5%, unchecked.
 - **Operator:** IB1T (Bitcoin) is not ISA-holdable (crypto notes shut to new ISA purchases from 6 Apr 2026).
 - **Research:** today's members only (BT-09); scale changes under the store's belief are UNI-07; WWH, SHC, EDV,
   ROSE read false losses. Member record (#96): one unofficial source; `members.on` raises for FTSE350, ETFS.
-- **The store:** nothing fills `Line.real_moves` or `.suspended`; calendar ends 2027; nothing runs `bars.keep`
-  nightly until the keeper; 3% of busy reads pass 50 ms; the bars benchmark fails on a saturated disk.
+- **The store:** nothing fills `Line.real_moves` or `.suspended`; 6 of 13 London lines parked on the real archive.
+- **Keeper:** a refresh dying between bars and record leaves a stale record (healed next call); keepers not
+  locked apart. **Head start:** SGLN's off-mark bar; stale manifest wording; old daily bars need a fill-only write.
 
 ## GRID
 
