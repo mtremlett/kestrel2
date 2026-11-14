@@ -1,35 +1,27 @@
 # The canon
-
 Rules that keep this codebase converging instead of doom looping. They apply to every
 task in every session. Project facts live in `CLAUDE.md`; recurring failures and their
 guards live in `docs/FAILURE_PATTERNS.md`.
 
-**Limit: 200 lines, held by a guard.** A new rule must replace or merge an existing one,
-or become an automated check. A rule that lives only in prose is a rule that will be
-forgotten — the first desk proved that with 56 lessons and 64 deny rules.
-
----
+**Limit: 200 lines, held by a guard** (`BUDGET.json`). A new rule replaces or merges an
+existing one, or becomes a check: the first desk forgot 56 lessons and 64 deny rules.
 
 # Part A — engineering
-
 ## A1. Prime directives
-
 1. **North star first.** Every change traces to a requirement id or an item in
    `docs/PLAN.md`. Everything else waits.
 2. **Build the machinery, not patches.** Correct results come from the design — one
    model, one engine, one source of truth — not from checks bolted on afterwards.
 3. **Less code is progress.** Deleting dead code, scaffolding and duplicates is
-   high-value work. Never grow the codebase to work around a problem.
+   high-value work. Never grow the codebase to work around a problem, nor work around one
+   whose real fix is known: make the fix, or say that it is out of scope.
 4. **Always green.** The whole check passes on GitHub before every merge, and a passing
    scene never regresses.
 5. **Evidence over assumption.** Read the code, reproduce it, run the check. No claim
    without proof from this session.
 6. **Small, reversible steps.** One concern per commit.
-7. **Stop instead of spiralling.** Two failed attempts at one problem means stop and
-   rethink.
 
 ## A2. Fix the machine, not the symptom
-
 - Before editing, write down the hypothesis and the evidence: the failing test, the
   traceback, the log. No guess-fixes.
 - Fix where the wrong value is produced, not where it is noticed.
@@ -48,7 +40,6 @@ forgotten — the first desk proved that with 56 lessons and 64 deny rules.
   immutable data, explicit state machines.
 
 ## A3. Tests — few, strong, about the product
-
 - One check command runs everything. The hook, GitHub, the demo and the scoreboard all
   use it. There is no other way of verifying.
 - The test suite is the only verification code. No scaffolding: no verify, check, smoke,
@@ -70,13 +61,11 @@ forgotten — the first desk proved that with 56 lessons and 64 deny rules.
   coverage, and is reported.
 
 ## A4. Structure
-
 - `manifest.toml` lists every module, the one thing it owns and what it may import.
   Register a module before creating it. A guard enforces it.
 - **One owner per concept:** one model, one config loader, one client per external
-  system, one home per business rule. Search before you create; merge duplicates on
-  sight.
-- One source of truth for names, symbols, ids, thresholds, calendars and configuration.
+  system, one home per business rule, one source of truth for names, symbols, ids,
+  thresholds, calendars and configuration. Search before you create; merge duplicates.
 - **Pure core, side effects at the edges.** Logic is data in, data out. Network, files,
   the broker and the clock sit behind thin adapters.
 - **Fail loudly.** No broad or empty exception handlers, no silent fallbacks, no
@@ -93,21 +82,14 @@ forgotten — the first desk proved that with 56 lessons and 64 deny rules.
 - No secrets in code, logs or the repository. This repository is public.
 
 ## A5. Forbidden
-
-- Creating a new version of a file (`_v2`, `_new`, `_fixed`, a copy) instead of editing
-  the original.
 - **Fake implementations:** placeholder logic, hardcoded or random results, or fakes in
   product code presented as working. Unfinished parts raise `NotImplementedError` and are
   listed in `docs/STATUS.md`.
-- Writing summary, notes or report files outside the fixed document set.
-- Adding a script to prove something works.
-- Commenting out failing code or tests.
-- Editing many files to fix one bug before finding the mechanism.
-- Starting a second objective in one session.
-- Declaring done without the check's output.
+- A new version of a file (`_v2`, `_new`, `_fixed`, a copy) instead of editing the
+  original; commented-out code or tests; summary, notes or report files outside the fixed
+  document set; editing many files to fix one bug before finding the mechanism.
 
 ## A6. Workflow
-
 **Ready** means: a requirement id, acceptance criteria in business terms, the modules
 affected, and the test that will prove it.
 
@@ -125,24 +107,19 @@ affected, and the test that will prove it.
 8. **Record.** `docs/STATUS.md`, `docs/PLAN.md`, and `docs/DECISIONS.md` or
    `docs/FAILURE_PATTERNS.md` where relevant.
 
-**Done** means: the fast check green locally, the whole check green on GitHub, tests seen failing first,
-reviewer passed, documents updated, committed, and a plain-English report given.
+**Done** means: the fast check green locally, the whole check green on GitHub, tests seen
+failing first, reviewer passed, documents updated, committed, and a plain-English report.
 
 ## A7. Prove the guard, never trust it
-
 A guard nobody has seen fail is a guard nobody has tested. **Every guard is driven
 against a deliberate violation before it is called a guard**, and the evidence — the
-mistake, the test that caught it — is recorded in `docs/DECISIONS.md`.
-
-This is not theory. On the first day, eleven of twelve guards caught their violation.
-The twelfth was the one that stops this desk reaching live money: it excused any file
-containing the word "never" anywhere, and the core package said it in ordinary prose. It
-had been passing green while doing nothing. **A whole-file escape hatch is not a guard.**
+mistake, the test that caught it — is recorded in `docs/DECISIONS.md`. On the first day
+the guard that keeps this desk from live money passed green while doing nothing: it excused
+any file holding the word "never". **A whole-file escape hatch is not a guard.**
 
 ## A8. Stop rules
-
-- **Two failed attempts at one problem: stop.** Record what was learned, propose a
-  different approach or ask.
+- **Two failed attempts at one problem: stop**, and never retry a failing command
+  unchanged. Record what was learned, propose a different approach or ask.
 - **A passing scene fails: stop everything else and restore it.** If one attempt does not
   fix it, revert the commit that broke it. Never repair forward on a broken tree.
 - The change grows beyond the plan — more files, more special cases, the size cap
@@ -150,23 +127,15 @@ had been passing green while doing nothing. **A whole-file escape hatch is not a
 - Requirements are ambiguous, or behaviour the operator can see would change beyond the
   task: ask, with options and a recommendation.
 - You cannot explain why something works or fails: do not edit. Investigate or ask.
-- Never retry a failing command unchanged.
 
 ## A9. Scope
-
 - One objective per session, taken from `docs/PLAN.md`.
 - Do only what the task asks. No drive-by refactors, renames or extras; log anything else
   under "found, not fixed" in `docs/STATUS.md`.
 - Never mix a behaviour change and restructuring in one commit.
-- Never work around a problem when the real fix is known. If the real fix is out of
-  scope, say so.
-
----
 
 # Part B — the trading desk
-
 ## B1. Safety
-
 - The desk works in backtest and paper only. It never enables live mode, places a real
   order, connects to a real account or reads live credentials.
 - Live mode is off by default, needs explicit configuration and a human confirmation, and
@@ -175,7 +144,6 @@ had been passing green while doing nothing. **A whole-file escape hatch is not a
   limits. Nothing bypasses it. A kill switch stops all trading, and the drill is run.
 
 ## B2. One engine
-
 - Backtest, paper and live share one engine and identical strategy code. Only the
   adapters differ: the data feed, the broker, the clock.
 - Strategies see only the strategy interface — point-in-time data, the portfolio, order
@@ -184,7 +152,6 @@ had been passing green while doing nothing. **A whole-file escape hatch is not a
   golden dataset in a parity test, or be removed.
 
 ## B3. Time and data
-
 - The engine serves only data available at the simulated moment. A future-blind test
   proves decisions up to time T are identical with and without data after T.
 - Timestamps are timezone-aware UTC inside. One calendar source. One documented
@@ -196,7 +163,6 @@ had been passing green while doing nothing. **A whole-file escape hatch is not a
   name.
 
 ## B4. Numbers and accounting
-
 - Money uses exact decimals or integer ticks with one rounding policy. Amounts carry
   their currency, and conversion happens in one place.
 - **Invariants, property-tested:** positions equal the sum of fills; equity equals cash
@@ -207,7 +173,6 @@ had been passing green while doing nothing. **A whole-file escape hatch is not a
   the broker whose schedule priced it.
 
 ## B5. Reproducibility
-
 - The same data, configuration, seed and code version give identical results. Every run
   records its id, configuration, data version and commit.
 - A golden reference run on fixture data is committed. Any change to a golden number
@@ -216,7 +181,6 @@ had been passing green while doing nothing. **A whole-file escape hatch is not a
   linked by ids.
 
 ## B6. Research discipline
-
 - Parameters are chosen in-sample only. Results show in-sample and out-of-sample side by
   side, after costs, with the worst fold reported and judged on.
 - Every winner is corrected for luck, and records how many trials it was picked from.
