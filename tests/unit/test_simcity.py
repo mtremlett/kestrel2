@@ -16,8 +16,8 @@ from decimal import Decimal
 from functools import partial
 from itertools import pairwise
 from pathlib import Path
-from types import ModuleType, SimpleNamespace
-from typing import cast
+from types import ModuleType
+from typing import Any
 
 import pytest
 
@@ -73,7 +73,7 @@ def lived(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, simcity.Night
 
 @pytest.fixture(scope="module")
 def sound(tmp_path_factory: pytest.TempPathFactory) -> simcity.Night:
-    """Two busy worlds of a desk nobody has broken."""
+    """Two busy worlds of the desk as it stands, nothing in it broken by a test."""
     with pytest.MonkeyPatch.context() as patch:
         return busy(patch, tmp_path_factory.mktemp("sound"), (0, 1))
 
@@ -88,7 +88,7 @@ def test_a_world_of_the_fourteen_months_is_lived_with_every_fault_and_the_night_
     money = (sum(record.profit or 0 for record in plain), sum(r.market for r in plain))
     assert (night.days, night.withheld, night.trips, night.deaths) == counts, "a number misnamed"
     assert (night.profit, night.market) == money and len(set(counts + money)) == 6, "or the money"
-    assert not night.bare, night.words()
+    assert not night.bare and night.green == (not night.broken), night.words()
     assert not [broken for broken in night.broken if SIX_HELD not in broken], night.words()
     assert (night.worlds, night.days) == (1, len(SESSIONS) - 1), "a session without its day"
     assert all(night.met.values()), f"no order without a fault, or a fault never met: {night.met}"
@@ -97,7 +97,9 @@ def test_a_world_of_the_fourteen_months_is_lived_with_every_fault_and_the_night_
     assert set(night.idle) < set(strategy.STRATEGIES), "no rule ever held a line"
     verdict = "GREEN" if night.green else "RED"
     said = (f"SIMCITY {verdict}", "2025-11-17 22:00", "1 seeded worlds, 310 days", "0 with no")
-    for part in (*said, *night.idle, *night.broken, *(fault.value for fault in Fault)):
+    told = (f"again {night.deaths} times", f"On {night.withheld} days", f"made {night.market}.")
+    made = f"{night.trips} round trips made {night.profit} pounds"
+    for part in (*said, *told, made, *night.idle, *night.broken, *(f.value for f in Fault)):
         assert part in night.words(), f"the night did not say {part!r}: {night.words()}"
     with (root / simcity.NIGHTS).open(newline="", encoding="utf-8") as kept:
         header, row = csv.reader(kept)  #: one record for the night, each number under its name
@@ -164,12 +166,19 @@ def test_a_worlds_market_is_the_saved_lines_on_their_own_days_dealt_again_by_its
 def test_a_night_is_its_worlds_added_up_and_a_world_lived_alone_is_the_same_world_again(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    seeds, live = (3, 5, 8), simcity._live
+    seeds, live, run, shown = (3, 5, 8), simcity._live, day.run, list[object]()
+
+    def watched(desk: Path, saved: simcity.Archive, *rest: Any) -> day.Record:
+        shown.append(saved)
+        return run(desk, saved, *rest)
 
     def lived_and_judged(life: simcity._Life) -> None:
-        live(life)  #: and a promise of the test's own, broken in every world but the first
-        life.promise("the test's own", life.seed == seeds[0])
+        live(life)  #: on its last day the desk was shown its own world, whole
+        assert shown[-1] == {line: list(bars) for line, bars in life.market.items()}
+        life.promise("the test's own", life.seed == seeds[0])  #: broken in all but the first
+        life.trips = life.seed  #: and round trips of the test's own, to be added up
 
+    monkeypatch.setattr(day, "run", watched)
     monkeypatch.setattr(simcity, "_live", lived_and_judged)
     whole = busy(monkeypatch, tmp_path, seeds)
     alone = [busy(monkeypatch, tmp_path, (seed,)) for seed in seeds]
@@ -268,15 +277,15 @@ def test_a_worlds_broker_draws_faults_at_its_door_and_counts_each_when_it_is_use
 
 
 def test_a_stop_cancelled_by_hand_is_put_back_as_it_was_unless_forgotten_or_its_shares_sold(
-    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(simcity, "FAULTY", 10**9)
-    door, seen = simcity._Counted(SHORT, drawn(0)), list[object]()
+    life, seen = simcity._Life(tmp_path, SHORT, ROOM, RATES, 0, simcity._Census()), list[object]()
+    door, hand = life.pretend, partial(simcity._unstopped, life, SESSIONS[1])
     door.open(SESSIONS[1])
     buy = orders.Order("o-1", LINES[0], 4, Decimal(50), Decimal(1), Decimal(1))
     rested = door.place(buy) and door.resting_stops()
-    life = SimpleNamespace(pretend=door, rng=drawn(0), live=lambda _: seen.append(door.stops()))
-    hand = partial(simcity._unstopped, cast(simcity._Life, life), SESSIONS[1])
+    monkeypatch.setattr(life, "live", lambda _: seen.append(door.stops()))
     hand()
     assert seen == [()] and door.resting_stops() == rested, "not lost for its day, or not put back"
     monkeypatch.setattr(simcity, "FORGOTTEN", 1)
@@ -284,7 +293,7 @@ def test_a_stop_cancelled_by_hand_is_put_back_as_it_was_unless_forgotten_or_its_
     assert not door.stops(), "forgotten, and put back"
     monkeypatch.setattr(simcity, "FORGOTTEN", 10**9)
     door.place(replace(buy, order_id="o-2", line=LINES[1]))
-    life.live = lambda _: door.place(orders.Sale("s-1", LINES[1], 1))
+    monkeypatch.setattr(life, "live", lambda _: door.place(orders.Sale("s-1", LINES[1], 1)))
     hand()
     assert not door.stops(), "a stop put back for shares no longer held"
 
@@ -310,7 +319,7 @@ def test_a_part_behind_a_wrapper_is_still_a_part(monkeypatch: pytest.MonkeyPatch
 @pytest.mark.parametrize(
     ("owner", "name", "broken_desk", "promises", "first"),
     [  #: the shares never appear; the broker forgets its orders; the record differs alone; it
-        #: never differs; no fill is kept; each day's profit a pound out; his limit two lines
+        #: never differs; no fill is kept; each day's profit a penny out; his limit two lines
         #: fewer; the broker fills at the saved prices, not the world's; and, with the switch
         #: the one thing done to the desk, it stops nothing
         (Pretend, "inject", lambda *_: None, ["did not make"], 0),
@@ -318,7 +327,7 @@ def test_a_part_behind_a_wrapper_is_still_a_part(monkeypatch: pytest.MonkeyPatch
         (book, "reconcile", lambda *_: ("L01",), ["nothing is bought", "no line is named"], 0),
         (book, "reconcile", lambda *_: (), ["with no stop at the broker"], 0),
         (book, "collect", lambda *_: None, ["the ledger is the broker's own fills"], 0),
-        (day, "pennies", lambda pounds: orders.pennies(pounds) + 1, ["profits add up"], 0),
+        (day, "pennies", lambda p: orders.pennies(p) + Decimal("0.01"), ["profits add up"], 0),
         (simcity, "HOLDINGS", 3, ["never more than 3 lines are held"], 0),
         (simcity, "_Counted", lambda _, rng: WORLD(SHORT, rng), ["inside its day's range"], 0),
         (book, "_unless_killed", lambda *_: None, ["nothing reaches the", "drill is on the"], 2),

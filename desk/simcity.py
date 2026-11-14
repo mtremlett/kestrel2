@@ -71,10 +71,10 @@ class Night:
     met: Mapping[Fault | None, int]  #: the orders at the broker's door, by the fault each met
     deaths: int  #: times the desk died mid-send and was started again
     withheld: int  #: days whose profit was withheld, the book not the broker's
-    trips: int  #: round trips closed
+    trips: int  #: round trips closed, in the worlds lived to their end
     profit: Decimal  #: pounds after every cost: the days' records added up
     market: Decimal  #: pounds the capital would have made simply holding the market
-    idle: tuple[str, ...]  #: the rules that never held a line all night
+    idle: tuple[str, ...]  #: the rules that held no line in any world lived to its end
     census: Mapping[str, tuple[str, ...]]  #: each part of the money path, and what ran it
     broken: tuple[str, ...]
 
