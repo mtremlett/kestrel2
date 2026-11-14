@@ -182,7 +182,7 @@ def test_the_watch_lifts_its_own_crash_halt_only_once_the_market_ends_a_day_clea
     (ended,) = (called for called in halt.kept(root) if called.lifted)
     assert halt.in_force(root) == (other,) and ended.at == crash.at, "another's halt lifted"
     #: lifted as of the end of the day that ended clear, whenever the look came
-    assert ended.lifted is not None and ended.lifted[0] == _at("16:35", THU)
+    assert ended.lifted is not None and ended.lifted[::2] == (_at("16:35", THU), watch.WATCH)
     assert "the crash watch: the market ended 2025-11-13 clear of a crash" in ended.lifted[1]
     assert _names(tmp_path) == ["watch 2025-11-12 10:05 CRASH", "watch 2025-11-12 10:05 lifted"]
     lifted = messenger.deliveries(root)[-1].text  #: with what still stops the desk buying
@@ -242,6 +242,11 @@ def test_a_black_swan_is_his_alone_to_lift_and_is_read_twice_before_any_sale(
         "watch 2025-11-13 BLACK_SWAN twice",
         "watch 2025-11-13 08:18 BLACK_SWAN",
     ]
+    _trade(tmp_path, YARDSTICK, {"16:25": 99}, THU)  #: the day ends clear: now his lift holds
+    _look(tmp_path, "07:00", post, FRI, (*after, 99))
+    halt.lift(root, halt.in_force(root)[-1], _at("07:05", FRI), "his word")
+    _look(tmp_path, "07:10", post, FRI, (*after, 99))
+    assert halt.in_force(root) == (hand,), "a halt he lifted after a clear end was called again"
 
 
 def test_one_lines_emergency_halts_nothing_and_a_market_unread_is_told_and_never_calm(
