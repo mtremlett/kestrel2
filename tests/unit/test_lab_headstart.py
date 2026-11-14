@@ -144,28 +144,47 @@ def test_an_old_bar_enters_only_vouched_for_and_checked_and_a_fresh_bar_wins(
     assert bars.sources(store, UK, bars.FIVE) == {Source.ARCHIVE: 3}
 
 
-def test_both_old_stores_are_adopted_against_the_archives_daily_bars(
+def test_every_store_the_register_tags_import_is_adopted_once_and_counted(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    line, store = LINES[2], tmp_path / "bars.db"
+    line, store, old = LINES[2], tmp_path / "market.db", tmp_path / "old.db"
     with bars.writing(store) as round_:
         round_.five(line, [_at(0)])
+    asked: list[date] = []
 
-    def fetch(_line: Line, _day: date) -> tuple[Bar, ...]:
+    def fetch(_line: Line, day: date) -> tuple[Bar, ...]:
+        asked.append(day)
         return (DAY,)
 
     monkeypatch.setattr(archive, "fetch", fetch)
+    monkeypatch.setattr(archive, "fetch_five", lambda _line, _now: (_at(0),))
     walls = [NOON + timedelta(minutes=minutes) for minutes in (60, 70)]
-    _matrix(tmp_path, f"{line.symbol}.UK", walls, [[1000, 1100, 900, 1000, 5]] * 2)
-    ticker = f"{line.symbol}.L"
-    _database(
-        tmp_path / "old.db",
-        [(ticker, "5m", _at(n).start.isoformat(), 10, 11, 9, 10, 5) for n in (5, 10)],
+    for folder in "matrix", "parquet":
+        (tmp_path / folder).mkdir()
+    _matrix(tmp_path / "matrix", f"{line.symbol}.UK", walls, [[1000, 1100, 900, 1000, 5]] * 2)
+    rows = [(f"{line.symbol}.L", "5m", _at(n).start.isoformat(), 10, 11, 9, 10, 5) for n in (5, 10)]
+    _database(old, rows)
+    register = tmp_path / "register.md"
+    named = [("IMPORT", old), ("IMPORT", tmp_path / "matrix"), ("IMPORT", tmp_path / "parquet")]
+    tagged = "\n".join(f"| {tag} | `{where}` | 1 GB | |" for tag, where in named)
+    register.write_text(f"| tag | folder |\n{tagged}\n| CROSS-CHECK | `{tmp_path}` | |\n")
+    day = NOON.date() + timedelta(1)
+    counts = "1 with no reader yet (parquet); bars filled 2, met 2, differ 0"
+    assert (
+        headstart.main(register, store, day)
+        == f"headstart: 2 old stores read, 0 already in, {counts}"
     )
-    headstart.main(tmp_path, tmp_path / "old.db", store, NOON.date() + timedelta(1))
     assert bars.five(store, line, NOON, NOON + timedelta(1)) == (_at(0), _at(5), _at(10))
     assert bars.sources(store, line, bars.FIVE) == dict.fromkeys(Source, 1)
     said = capsys.readouterr().out.splitlines()
-    for source in Source.MATRICES, Source.DATABASE:  # whose clock the matrices' bar proves
+    for source in Source.MATRICES, Source.DATABASE:  # the matrices, named second, read first
         assert f"{source.value}: {line.symbol}: filled 1, met 1, differ 0; " in said
-    assert len(said) == 2 * len(LINES)
+    assert len(said) == 2 * len(LINES) + 1 and len(asked) == len(LINES)
+    again = "headstart: 0 old stores read, 2 already in, 1 with no reader yet (parquet); bars"
+    assert headstart.main(register, store, day) == f"{again} filled 0, met 0, differ 0"
+    assert len(asked) == len(LINES)  # nothing left to read in asks the archive for nothing
+    sound = register.read_text()
+    for row, why in ("", "by its path"), (f"`{old}`", "a second store"), ("`x`", "not there"):
+        register.write_text(f"{sound}| IMPORT | {row} |\n")
+        with pytest.raises((ValueError, FileNotFoundError), match=why):
+            headstart.main(register, store, day)
