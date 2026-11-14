@@ -136,7 +136,7 @@ def _tally(
     return Pass(report, sum(map(len, todo.values())), *(fates[name] for name in COUNTS[1:]))
 
 
-def _alone(kept: Path) -> IO[bytes]:
+def alone(kept: Path) -> IO[bytes]:
     """The folder of journals held for one pass, by a lock the system lets go if it dies."""
     kept.mkdir(parents=True, exist_ok=True)
     lock = (kept / LOCK).open("ab")
@@ -170,7 +170,7 @@ def run(
     if twice:
         raise ValueError(f"listed more than once: {', '.join(twice)}")
     todo = {line: cells(line, start, end) for line in lines}
-    with _alone(kept):
+    with alone(kept):
         before = [len(batch.rows(journal(kept, line))) for line in lines]
         each = partial(work, root, kept, start, end)
         report = tune.run(lines, each, machine, data, threads, clock)
