@@ -173,3 +173,5 @@ def test_a_week_is_pass_after_pass_and_its_log_shows_how_long_without_stopping(
     (clean := tmp_path / "clean").mkdir()  # a week nothing stops shows its whole length
     sweep.week(lambda: {"ran": 1, "kept": 0}, clean, 7, lambda: now[0], wait)
     assert sweep.unbroken(clean) == timedelta(days=7)
+    late = sweep.fresh(clean, clean, clean, timedelta(milliseconds=1))  # a pass past its limit
+    assert late == {"error": "TimeoutExpired: ended at its limit of 0:00:00.001000"}
