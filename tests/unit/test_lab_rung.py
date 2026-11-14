@@ -71,6 +71,7 @@ def test_a_trade_is_sized_at_its_close_filled_at_the_next_open_and_stopped_by_th
     bars = _bars(SHAPE)
     (gbp,) = _judge(bars, 24).trades  #: 192 shares sized at 10.40, filled at bar 21's 10.70
     assert gbp.trade == Trade(bars[20].day, bars[23].day)
+    assert gbp.held == (bars[21].day, bars[23].day), "filled the next morning; stopped on bar 23"
     assert (gbp.shares, gbp.paid) == (192, Decimal("2054.4")), "192 x 10.70"
     #: bar 23's low of 9.353 reaches the stop 10% under 10.40, so it sells there, not at 9.40
     assert (gbp.received, gbp.gross) == (Decimal("1797.12"), Decimal("-257.28")), "192 x 9.36"
@@ -80,6 +81,7 @@ def test_a_trade_is_sized_at_its_close_filled_at_the_next_open_and_stopped_by_th
     #: sold by the rule at the next open of 9.90, clear of the stop: a sale slips once
     (ruled,) = _judge(_bars([*SHAPE[:23], 9.9, 9.9]), 24).trades
     assert (ruled.received, ruled.costs.slippage) == (Decimal("1900.8"), Decimal("1.9776"))
+    assert ruled.held == (bars[21].day, bars[24].day), "sold at the open after the rule's sell"
     #: but an open of 8.95, under the stop resting at 9.36, is the stop's sale and slips thrice
     (gapped,) = _judge(_bars([*SHAPE[:23], 9.9, 8]), 24).trades
     assert (gapped.received, gapped.costs.slippage) == (Decimal("1718.4"), Decimal("3.6048"))

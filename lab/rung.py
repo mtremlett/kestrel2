@@ -77,6 +77,7 @@ class Priced:
     paid: Decimal  #: pounds the shares' value took at the buy's fill, at that day's rate
     received: Decimal  #: pounds their value brought at the sale's fill, at its own day's rate
     costs: Charges  #: every cost of both legs, line by line, from the desk's one cost model
+    held: tuple[date, date]  #: the day its buy filled, and the day its sale did
 
     @property
     def gross(self) -> Decimal:
@@ -145,7 +146,7 @@ def _price(
     line, decided, out = c.line, at[trade.bought], at[trade.sold] + 1
     decision = Decision(c.strategy, c.symbol, trade.bought, Action.BUY)
     held = read[decided + 1 : out]
-    sized_at = _rate(line, rates, held[0].day)
+    sized_at = rate(line, rates, held[0].day)
     order = orders.size(decision, line, read[decided].close, sized_at, settings, {})
     broker = Pretend({line: held}, {})
     broker.open(held[0].day)
@@ -160,27 +161,27 @@ def _price(
         sale = (Leg.STOP if gapped else Leg.SALE, read[out].open, read[out].day)
     paid, buying = _leg(line, rates, order.quantity, Leg.BUY, bought.price, bought.day)
     received, selling = _leg(line, rates, order.quantity, *sale)
-    return Priced(trade, order.quantity, paid, received, buying + selling)
+    return Priced(trade, order.quantity, paid, received, buying + selling, (bought.day, sale[2]))
 
 
 def _leg(
     line: Line, rates: Rates, shares: int, leg: Leg, price: Decimal, day: date
 ) -> tuple[Decimal, Charges]:
     """A leg's value and its every cost, in pounds at its own day's rate."""
-    rate = _rate(line, rates, day)
-    return shares * price * rate, orders.charges(line, leg, shares, price, rate)
+    at = rate(line, rates, day)
+    return shares * price * at, orders.charges(line, leg, shares, price, at)
 
 
-def _rate(line: Line, rates: Rates, day: date) -> Decimal:
+def rate(line: Line, rates: Rates, day: date) -> Decimal:
     """Pounds per unit of the line's currency on the day; a pound line reads no rate."""
     if line.currency == "GBP":
         return Decimal(1)
-    rate = rates.get(day)
-    if rate is None or not (rate.is_finite() and rate > 0):
+    given = rates.get(day)
+    if given is None or not (given.is_finite() and given > 0):
         raise ValueError(
-            f"{line.symbol}: no rate of pounds per {line.currency} to price {day} by: {rate}"
+            f"{line.symbol}: no rate of pounds per {line.currency} to price {day} by: {given}"
         )
-    return rate
+    return given
 
 
 def standard_errors(gains: Sequence[Decimal]) -> Decimal | None:
