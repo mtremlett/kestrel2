@@ -14,6 +14,21 @@ DONCHIAN CHANNEL BREAKOUT.
                (`strategy.breakout_20_10`); the four-week rule exits on the 4-week low, 20 sessions.
   Reading here: four weeks is 20 sessions; long only (the original also sold short, which the
                template has no word for); on the close, as the template's other breakouts are.
+
+DONCHIAN FADE IN A CHOP.
+  Author:      Richard Donchian (the channel of the highest high and lowest low of N periods).
+  Source:      SECONDARY, read 14 Nov 2026: the fade of a channel inside a range is not in
+               his writings; it is the common reading of his channel in trading texts (the
+               bands as the edges of a range, the middle as the mean). Primary source not
+               found; the old desk's `EPONYMOUS_STRATEGIES` could not be read in this run.
+  Instrument:  his fund traded commodity futures; the fade carries no instrument of its own.
+  Published figure: none found; none is claimed here.
+  Where sources differ: the exit is the channel's middle here; some texts exit at the
+               opposite band. No source fixes the period for the fade; the breakout's 20 is used.
+  Reading here: long only; buy a close under the lowest low of the 20 sessions before (the
+               floor of the range); sell a close at or over the middle of that channel, the
+               mean of its highest high and lowest low. "Chop" is not detected: the template
+               has no regime word, so the rule is the fade alone.
 """
 
 from __future__ import annotations
@@ -49,5 +64,28 @@ class DonchianChannelBreakout:
         return wants
 
 
+class DonchianFadeChop:
+    """Buy a close under the lowest low of the 20 sessions before; sell a close at or over
+    the middle of that channel. Nothing is bought until 20 sessions are seen."""
+
+    declared: ClassVar[Declared] = Declared(Timeframe.DAILY, None, LINES, RANGES)
+
+    def __init__(self) -> None:
+        self._highs, self._lows = _Window(WEEKS_4), _Window(WEEKS_4)
+
+    def step(self, bar: Bar, holding: bool) -> bool:
+        """Shown the next bar after its close: whether to be in the market from here."""
+        if holding:
+            wants = bar.close < (self._highs.high() + self._lows.low()) / 2
+        else:
+            wants = self._lows.full and bar.close < self._lows.low()
+        self._highs.add(bar.high)
+        self._lows.add(bar.low)
+        return wants
+
+
 #: The eponymous rules by name, apart from the five and the wiring strategy.
-EPONYMOUS: Mapping[str, type[Rule]] = {"donchian_channel_breakout": DonchianChannelBreakout}
+EPONYMOUS: Mapping[str, type[Rule]] = {
+    "donchian_channel_breakout": DonchianChannelBreakout,
+    "donchian_fade_chop": DonchianFadeChop,
+}

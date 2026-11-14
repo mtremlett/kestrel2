@@ -10,7 +10,7 @@ from decimal import Decimal
 import pytest
 
 from desk import strategy
-from desk.eponymous_bands import EPONYMOUS, DonchianChannelBreakout
+from desk.eponymous_bands import EPONYMOUS, DonchianChannelBreakout, DonchianFadeChop
 from desk.lines import LINES
 from desk.store import Bar
 from desk.strategy import Action, Timeframe
@@ -31,7 +31,11 @@ def test_four_week_rule_trades_on_the_days_it_fixes() -> None:
     closes = ["100"] * 20 + ["100.5", "102", "103", "99", "98"]
     bars = _bars(closes)
     with pytest.MonkeyPatch.context() as only:
-        only.setattr(strategy, "STRATEGIES", EPONYMOUS)
+        only.setattr(
+            strategy,
+            "STRATEGIES",
+            {"donchian_channel_breakout": EPONYMOUS["donchian_channel_breakout"]},
+        )
         decided = strategy.decide({"X": bars})
     trades = [(n, d.action) for n, d in enumerate(decided) if d.action is not Action.HOLD]
     assert trades == [(21, Action.BUY), (23, Action.SELL)]
@@ -41,3 +45,19 @@ def test_four_week_rule_trades_on_the_days_it_fixes() -> None:
 def test_declares_a_daily_rule_on_every_line() -> None:
     declared = DonchianChannelBreakout.declared
     assert (declared.bar, declared.hold, declared.universe) == (Timeframe.DAILY, None, LINES)
+
+
+def test_fade_buys_the_floor_and_sells_the_middle() -> None:
+    # 20 flat sessions (channel 99.5-100.5, middle 100); 20 closes under the floor; 21 stays
+    # under the middle (99.5); 22 closes at 100, the middle of the channel, and sells.
+    bars = _bars(["100"] * 20 + ["99", "99.2", "100", "100"])
+    with pytest.MonkeyPatch.context() as only:
+        only.setattr(
+            strategy, "STRATEGIES", {"donchian_fade_chop": EPONYMOUS["donchian_fade_chop"]}
+        )
+        decided = strategy.decide({"X": bars})
+    assert [(n, d.action) for n, d in enumerate(decided) if d.action is not Action.HOLD] == [
+        (20, Action.BUY),
+        (22, Action.SELL),
+    ]
+    assert DonchianFadeChop.declared == DonchianChannelBreakout.declared
