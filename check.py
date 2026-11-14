@@ -4,6 +4,10 @@
     python check.py           everything (the gate for a merge)
     python check.py --fast    format, lint and the guards only, for a commit hook
     python check.py --scenes  the north-star scenes alone, in plain English
+    python check.py --only unit --shard 2/3
+                              one step of the full check (GitHub runs the steps side by
+                              side, and the unit tests in parts; its job named "check"
+                              is green only when every one of them is)
 
 The git hook runs this. The GitHub check runs this. "Done" means this exited 0 and
 you read the output. There is no second way of being sure, because a second way is
@@ -13,11 +17,14 @@ how a desk ends up with two answers to the same question.
 from __future__ import annotations
 
 import argparse
+import contextlib
+import os
 import re
 import subprocess
 import sys
 import tempfile
 import time
+from collections.abc import Iterator
 from pathlib import Path
 from xml.etree import ElementTree
 
@@ -38,9 +45,97 @@ FULL: list[Step] = [
     ("scenes", ["pytest", "tests/scenes", "-q"]),
 ]
 
+UNIT_DIR = "tests/unit"
+
+
+def shard(command: list[str], part: int, parts: int) -> list[str]:
+    """The unit step's command for the `part`-th of `parts` shares of its test files,
+    heaviest first, each to the lightest share so far: every file in exactly one share."""
+    files = sorted((ROOT / UNIT_DIR).glob("test_*.py"), key=lambda f: (-f.stat().st_size, f.name))
+    shares: list[list[str]] = [[] for _ in range(parts)]
+    sizes = [0] * parts
+    for f in files:
+        lightest = sizes.index(min(sizes))
+        shares[lightest].append(f.relative_to(ROOT).as_posix())
+        sizes[lightest] += f.stat().st_size
+    return [a for c in command for a in (shares[part - 1] if c == UNIT_DIR else [c])]
+
+
 #: The one published progress number, in docs/PLAN.md. The scenes step holds it true.
 PUBLISHED = re.compile(r"Scenes passing: \*\*(\d+) of (\d+)\*\*")
 NOT_BUILT = "NotImplementedError: "
+
+
+#: Seconds between looks for a free turn.
+WAIT_SECONDS = 2.0
+
+
+def _alive(pid: int) -> bool:
+    """Whether a process still runs (a check that died leaves its turn file behind). On
+    Windows it asks the process's exit code, never os.kill, which would end it there."""
+    import ctypes  # noqa: PLC0415
+
+    windll = getattr(ctypes, "windll", None)
+    if windll is None:  # not Windows
+        try:
+            os.kill(pid, 0)
+        except OSError:
+            return False
+        return True
+    handle = windll.kernel32.OpenProcess(0x1000, False, pid)  # query limited information
+    if not handle:
+        return False
+    code = ctypes.c_ulong()
+    windll.kernel32.GetExitCodeProcess(handle, ctypes.byref(code))
+    windll.kernel32.CloseHandle(handle)
+    return bool(code.value == 259)  # still active
+
+
+def _take(path: Path) -> bool:
+    """A turn is a file made in one step (it exists, or this check made it), naming its
+    check's process. One whose process has gone is freed, so a killed check holds no turn."""
+    try:
+        made = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+    except FileExistsError:
+        try:
+            owner = int(path.read_text(encoding="utf-8") or 0)
+        except (OSError, ValueError):
+            return False  # being written this instant: look again
+        if owner and not _alive(owner):
+            path.unlink(missing_ok=True)
+        return False
+    with os.fdopen(made, "w", encoding="utf-8") as out:
+        out.write(str(os.getpid()))
+    return True
+
+
+@contextlib.contextmanager
+def turn() -> Iterator[None]:
+    """AT MOST N FULL CHECKS AT ONCE ON ONE PC. Up to twelve sessions check side by side on
+    the operator's PC; on 14 November six at once took nine minutes each against thirty
+    seconds alone. KESTREL_CHECK_TURNS=N (set by the runner) makes a check wait its turn;
+    unset, on GitHub or in a person's own run, nothing waits."""
+    turns = int(os.environ.get("KESTREL_CHECK_TURNS") or 0)
+    if turns <= 0:
+        yield
+        return
+    folder = Path(os.environ.get("KESTREL2_DATA") or tempfile.gettempdir()) / "check-turns"
+    folder.mkdir(parents=True, exist_ok=True)
+    started, told = time.monotonic(), False
+    while True:
+        for path in (folder / f"turn-{n}" for n in range(turns)):
+            if _take(path):
+                if told:
+                    print(f"  (waited {time.monotonic() - started:.0f}s for a turn)")
+                try:
+                    yield
+                finally:
+                    path.unlink(missing_ok=True)
+                return
+        if not told:
+            print(f"  waiting for a turn: {turns} full checks at once on this PC")
+            told = True
+        time.sleep(WAIT_SECONDS)
 
 
 def run(name: str, command: list[str]) -> tuple[str, int, float]:
@@ -95,14 +190,33 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="the one check")
     parser.add_argument("--fast", action="store_true", help="format, lint and guards only")
     parser.add_argument("--scenes", action="store_true", help="the north-star scenes only")
+    parser.add_argument(
+        "--only", choices=[name for name, _ in FULL], help="one step of the full check"
+    )
+    parser.add_argument(
+        "--shard", metavar="I/N", help="with --only unit: the I-th of N shares of its tests"
+    )
     args = parser.parse_args(argv)
 
     if args.scenes:
         steps = [("scenes", ["pytest", "tests/scenes", "-q", "-v"])]
+    elif args.only:
+        steps = [step for step in FULL if step[0] == args.only]
     else:
         steps = FAST if args.fast else FULL
+    if args.shard:
+        part, parts = (int(x) for x in args.shard.split("/"))
+        if args.only != "unit" or not 1 <= part <= parts:
+            parser.error("--shard I/N needs --only unit and 1 <= I <= N")
+        steps = [("unit", shard(steps[0][1], part, parts))]
 
-    results = []
+    results: list[tuple[str, int, float]] = []
+    with turn() if steps is FULL else contextlib.nullcontext():
+        _steps(steps, results)
+    return _report(results)
+
+
+def _steps(steps: list[Step], results: list[tuple[str, int, float]]) -> None:
     for name, command in steps:
         #: A missing directory is not a pass. Until a stage creates its tests, the step
         #: says ABSENT out loud rather than printing nothing and exiting 0.
@@ -113,6 +227,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"\n=== {name}")
         results.append(scenes(command) if name == "scenes" else run(name, command))
 
+
+def _report(results: list[tuple[str, int, float]]) -> int:
     print("\n--- the check")
     for name, code, seconds in results:
         print(f"  {name:8} {'PASS' if code == 0 else f'FAIL rc={code}'}  {seconds:5.1f}s")
