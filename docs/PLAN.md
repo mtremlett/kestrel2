@@ -141,20 +141,32 @@ UK tax) and R-MONEY-2 (the scenes on the whole fourteen months).
       being on it makes nothing tradable (`lab/universe.py`)
 - [x] The research list's daily bars since 2010, fetched and kept through the one store's
       checks, a bad ticker parked with its reason (`universe.keep`): 864 clean, 201 parked
-- [ ] **First, by his ruling of 13 November:** SPY, QQQ and GLD leave the twenty for their
-      UK-listed twins an ISA can hold: VUAG (S&P 500), EQQQ (Nasdaq 100) and IDTL (US
-      Treasuries 20+ years), each on the London venue; every line carries an ISA and
-      retail-buyable flag; the "simply holding the market" yardstick re-pointed (UNI-09)
-      (built in #85: the three twins, both flags, yardstick VUAG, GLD out; remains: SPY and QQQ
-      leave the master once GRID's and RUNGS's tests stop naming them (the requests to GRID and RUNGS);
-      IB1T is not ISA-holdable, for the operator)
-      {id: data-isa-twins; files: desk/lines.py, tests/unit/test_lines.py, tests/unit/test_lab_universe.py; waits: R-RUNNER-4, R-RUNNER-5}
+- [ ] **Hot every five minutes, paramount (his ruling, 13 November evening):** during each
+      venue's trading hours the keeper fetches every clean line's newest five-minute bar
+      every five minutes, checks it on entry, and updates every indicator the rules and the
+      crash watch read; a line whose bar is late, missing or out of line is parked at once
+      and not traded, and the other lines carry on; a line that comes clean comes back by
+      itself. The source's delay is measured and shown, never hidden (DQ-12, DAT-07, DAT-11)
+      {id: data-keeper; files: desk/keeper.py, tests/unit/test_keeper*.py, desk/bars.py, tests/unit/test_bars*.py, manifest.toml; after: data-five-minute, data-hours}
 - [x] The research list's parked fifth: 201 tickers' large one-day moves confirmed, or a
       rule for research that needs no confirmation (rule built in `universe.read`, #80; remains:
       the grid reads through it (R-DATA-7) and the rungs count the named moves (R-DATA-8); the
       2.5 times re-measured on the full universe; WWH, SHC and three windfalls settled by a
       second source; a home for the research store)
       {id: data-parked-fifth; files: lab/universe.py, tests/unit/test_lab_universe_parked.py}
+- [ ] **The old desk's stores as a head start, now** (his ask, 14 November): its daily and
+      five-minute bars (Stooq and IBKR stores, and its per-ticker matrices) read in through
+      the one store's checks, every bar re-checked, each kept with its source; where a fresh
+      bar from the archive or the broker differs, the fresh one wins and the difference is
+      counted. Its stored indicators are not copied: indicators are recomputed from bars, and
+      the old values serve only as a cross-check of the recomputation (DAT-03, DAT-01)
+      {id: data-headstart; files: lab/headstart.py, tests/unit/test_lab_headstart.py, desk/bars.py, tests/unit/test_bars*.py, manifest.toml}
+- [ ] The archive spared: fetching slow and resumable, with backoff, each raw answer cached
+      in the folder `KESTREL2_DATA` names (outside the repository and every worktree); while
+      the archive refuses, `{"refusing_since": <time>}` written to `KESTREL2_DATA/archive.json`
+      (null once it answers), so the runner tells the operator after six hours, and other work
+      done meanwhile rather than retrying
+      {id: data-archive-spared; files: desk/archive.py, tests/unit/test_archive*.py}
 - [x] One fast store for hot and deep data, standard library only: SQLite in WAL mode with
       one writer and many readers, held to benchmarks set now: a five-minute round for every
       line written in under a second, a line's last week read in under 50 ms, a line's daily
@@ -167,50 +179,99 @@ UK tax) and R-MONEY-2 (the scenes on the whole fourteen months).
       the same checks; the last week kept hot for reading, everything older archived, none
       thrown away (DAT-11)
       {id: data-five-minute; files: desk/archive.py, tests/unit/test_archive*.py, desk/bars.py, tests/unit/test_bars*.py; after: data-fast-store}
-- [ ] **Hot every five minutes, paramount (his ruling, 13 November evening):** during each
-      venue's trading hours the keeper fetches every clean line's newest five-minute bar
-      every five minutes, checks it on entry, and updates every indicator the rules and the
-      crash watch read; a line whose bar is late, missing or out of line is parked at once
-      and not traded, and the other lines carry on; a line that comes clean comes back by
-      itself. The source's delay is measured and shown, never hidden (DQ-12, DAT-07, DAT-11)
-      {id: data-keeper; files: desk/keeper.py, tests/unit/test_keeper*.py, desk/bars.py, tests/unit/test_bars*.py, manifest.toml; after: data-five-minute, data-hours}
-- [ ] The archive spared: fetching slow and resumable, with backoff, each raw answer cached
-      in the folder `KESTREL2_DATA` names (outside the repository and every worktree); while
-      the archive refuses, `{"refusing_since": <time>}` written to `KESTREL2_DATA/archive.json`
-      (null once it answers), so the runner tells the operator after six hours, and other work
-      done meanwhile rather than retrying
-      {id: data-archive-spared; files: desk/archive.py, tests/unit/test_archive*.py}
-- [ ] Polite fetching: the archive's limits measured, slow and resumable requests, backing
-      off on refusals, raw responses cached, an alert after six hours refused (DAT-08)
-      {id: data-polite; files: desk/archive.py, tests/unit/test_archive*.py; after: data-archive-spared}
+- [ ] The lists' members year by year, so a study of the past is not the survivors' alone
+      (S&P 500 and Nasdaq 100 built in #96, `lab/members.py`; remains: the FTSE 350 and the funds,
+      joining the lists' records up, a second source for 2010 to 2014)
+      {id: data-members; files: lab/members.py, tests/unit/test_lab_members*.py, manifest.toml}
 - [ ] Kept hot, always: the runner runs the store's keeper after the US close and before the
       London open on every trading day, a dated receipt each time; a line staler than one
       session raises an alert, and a keeper that misses its slot raises one too (DQ-12,
       DAT-07)
       {id: data-kept-hot; files: desk/keeper.py, tests/unit/test_keeper*.py; after: data-keeper}
+- [ ] Polite fetching: the archive's limits measured, slow and resumable requests, backing
+      off on refusals, raw responses cached, an alert after six hours refused (DAT-08)
+      {id: data-polite; files: desk/archive.py, tests/unit/test_archive*.py; after: data-archive-spared}
 - [ ] The store's keeper: its cadence, a dated receipt for each run, a restart drill; each
       bar's source and arrival time kept (DQ-12, DQ-10)
       {id: data-keeper-receipts; files: desk/keeper.py, tests/unit/test_keeper*.py, desk/bars.py, tests/unit/test_bars*.py; after: data-kept-hot}
+- [ ] **First, by his ruling of 13 November:** SPY, QQQ and GLD leave the twenty for their
+      UK-listed twins an ISA can hold: VUAG (S&P 500), EQQQ (Nasdaq 100) and IDTL (US
+      Treasuries 20+ years), each on the London venue; every line carries an ISA and
+      retail-buyable flag; the "simply holding the market" yardstick re-pointed (UNI-09)
+      (built in #85: the three twins, both flags, yardstick VUAG, GLD out; remains: SPY and QQQ
+      leave the master once GRID's and RUNGS's tests stop naming them (the requests to GRID and RUNGS);
+      IB1T is not ISA-holdable, for the operator)
+      {id: data-isa-twins; files: desk/lines.py, tests/unit/test_lines.py, tests/unit/test_lab_universe.py; waits: R-RUNNER-4, R-RUNNER-5}
 - [ ] A home for the research store on his PC, refreshed nightly, a ticker that left a list
       cleared out, and the day and list it reflects written beside it
       {id: data-research-home; files: lab/universe.py, tests/unit/test_lab_universe*.py; after: data-parked-fifth, data-isa-twins}
-- [ ] The lists' members year by year, so a study of the past is not the survivors' alone
-      (S&P 500 and Nasdaq 100 built in #96, `lab/members.py`; remains: the FTSE 350 and the funds,
-      joining the lists' records up, a second source for 2010 to 2014)
-      {id: data-members; files: lab/members.py, tests/unit/test_lab_members*.py, manifest.toml}
-- [ ] The full research universe, 5,000 and more, once the grid's first pass works
-- [ ] 2MU's five real moves recorded from a second source, or its reason confirmed
-- [ ] 5QQQ's consolidation of 22 August 2024 handled, or its reason confirmed
-- [ ] SGLN's garbled weeks of 2011 handled, or its reason confirmed
-- [ ] 3LGO's missing history, and a rule for when enough has gathered
+- [ ] The hot bars' first source is the broker: he already pays for IBKR's market data, so
+      the five-minute keeper reads live bars through IB Gateway's paper port, read-only, and
+      the free archive is the second source and the check on it; first prove, read-only,
+      that the paper account sees his live data and not the delayed kind, and if it does
+      not, say which setting he must turn on (DAT-02, DAT-07)
+      {id: data-broker-bars; files: desk/keeper.py, tests/unit/test_keeper*.py; after: data-keeper-receipts; waits: R-DATA-9}
+- [ ] **An ingest that cannot pile up, by construction:** one slot per ticker per minute, so a
+      round never holds more than its tickers; a late round is replaced by the next, and its
+      gap goes to a bounded backfill list; writes are upserts on ticker, bar size and time, so
+      a retry never duplicates; each round's lag, size and refusals recorded and alerted on.
+      Finished months of intraday history are sealed into compressed files for the lab to
+      read, when a benchmark shows SQLite slowing (DAT-07, DQ-12)
+      {id: data-ingest; files: desk/keeper.py, tests/unit/test_keeper*.py, desk/bars.py, tests/unit/test_bars*.py; after: data-keeper-receipts}
+- [ ] **Two databases, both owned by the one store** (his ruling, 14 November), in the desk's
+      data folder, never in this public repository: `market_history.db`, long-term, every timeframe
+      from an hour up plus all imported intraday history; and `market_live.db`, live 1-minute
+      bars for the twenty lines and a watchlist of up to 100 within his IBKR line allowance.
+      The hot keeper runs every minute in each venue's hours, IBKR first, with the free
+      archive as a check; each night the day's live bars roll into `market_history.db`. Every useful
+      store on C: (`kestrel2_notes\data_register.md`, tagged IMPORT) is consolidated into
+      `market_history.db`, each source marked verified there. One consistent snapshot of both
+      databases and the ledger is written each night for his own backup to carry (DAT-11,
+      DQ-12, DQ-05)
+      {id: data-two-stores; files: desk/bars.py, tests/unit/test_bars*.py, desk/keeper.py, tests/unit/test_keeper*.py; after: data-ingest, data-headstart}
+- [ ] **Data in tiers, for 4,000+ tickers** (research of 14 November, kept in the notes
+      folder as `data_stack_2026-11-14.md`). Tier A: held, signalled and watched names, live
+      1-minute from IBKR within his line allowance (100 now). Tier B: US breadth at 1 minute
+      from one vendor feed, bought only when a strategy needs it, after the A-GATE. Tier C:
+      every ticker daily. Each tier's source sits behind one adapter, so a vendor can change
+      without touching a strategy. London breadth beyond IBKR's lines runs at 5 or 15
+      minutes. A name moves between tiers as it gains or loses a signal or position (DAT-01,
+      DAT-05)
+      {id: data-tiers; files: desk/tiers.py, tests/unit/test_tiers.py, manifest.toml; after: data-two-stores}
+- [ ] The calendars carried past 2027, before 2027 ends
+      {id: data-calendar-years; files: desk/venues.py, tests/unit/test_venues*.py}
+- [ ] Deep history: daily bars back to 2000 wherever the archive has them, the calendars
+      carried back first; the old desk's Stooq store used only as a head start, every bar
+      re-checked on entry (DAT-03, BT-09)
+      {id: data-deep-history; files: desk/venues.py, tests/unit/test_venues*.py, lab/headstart.py, tests/unit/test_lab_headstart.py, desk/archive.py, tests/unit/test_archive*.py; after: data-calendar-years, data-headstart, data-polite}
 - [x] A frozen feed: a week of one bar repeated is dropped and parks a recent line
 - [x] A suspension recorded on its line is no gap
 - [x] A one-day crash is kept and parks until recorded; only a hundredfold bar is a wrong unit
+- [ ] The old stores consolidated, never lost: once the one store holds their bars, verified by
+      counts and checksums per ticker and timeframe and by one restore drill, the originals
+      are deleted from C: with his explicit yes, asked then (never copied to E:, his backup
+      drive). His mark_the_trend programs are retired (his word, 14 November), so
+      `C:\mtt_cache` is treated like the other stores (DQ-05, OPS-07)
+      {id: data-consolidated; files: lab/headstart.py, tests/unit/test_lab_headstart.py; after: data-deep-history, data-two-stores}
+- [ ] 2MU's five real moves recorded from a second source, or its reason confirmed
+      {id: data-2mu; files: desk/lines.py, tests/unit/test_lines.py, desk/store.py, tests/unit/test_store.py}
+- [ ] 5QQQ's consolidation of 22 August 2024 handled, or its reason confirmed
+      {id: data-5qqq; files: desk/lines.py, tests/unit/test_lines.py, desk/store.py, tests/unit/test_store.py; after: data-2mu}
+- [ ] SGLN's garbled weeks of 2011 handled, or its reason confirmed
+      {id: data-sgln; files: desk/lines.py, tests/unit/test_lines.py, desk/store.py, tests/unit/test_store.py; after: data-5qqq}
+- [ ] 3LGO's missing history, and a rule for when enough has gathered
+      {id: data-3lgo; files: desk/lines.py, tests/unit/test_lines.py, desk/store.py, tests/unit/test_store.py; after: data-sgln}
 - [ ] A stretched bar's changes recorded beside it
+      {id: data-stretched; files: desk/store.py, tests/unit/test_store.py; after: data-3lgo}
 - [ ] A line's bars and its fault record written together, so a crash cannot part them
-- [ ] The window before mid-April 2010 prepared
+      {id: data-written-together; files: desk/store.py, tests/unit/test_store.py; after: data-stretched}
 - [ ] A pence history the archive calls pounds caught
-- [ ] The calendars carried past 2027, before 2027 ends
+      {id: data-pence; files: desk/store.py, tests/unit/test_store.py; after: data-written-together}
+- [ ] The full research universe, 5,000 and more, once the grid's first pass works
+- [x] Each line's UK tax a fact on the line, from one table of two rates: nil for a fund or
+      an exchange-traded product, stamp duty for a UK share; the twenty lines each state nil,
+      and one London line of the rehearsal data pays it (R-MONEY-1)
+- [ ] The window before mid-April 2010 prepared
 - [ ] Coverage and quality measured: history at least twice the longest lookback for every
       line, five years by the A-GATE; a quality score per line and desk-wide, and a cap on
       the share of lines parked (DAT-03, DQ-01)
@@ -222,9 +283,6 @@ UK tax) and R-MONEY-2 (the scenes on the whole fourteen months).
       profit and the hold-the-market yardstick (UNI-07)
 - [ ] Survivorship: the research list taken as it stood on each past date, with the names
       that left it, or the bias measured and stated on every verdict (BT-09)
-- [x] Each line's UK tax a fact on the line, from one table of two rates: nil for a fund or
-      an exchange-traded product, stamp duty for a UK share; the twenty lines each state nil,
-      and one London line of the rehearsal data pays it (R-MONEY-1)
 - [ ] UK stamp duty and taxes confirmed line by line, in one table by instrument type
       (NS-05): the table is built and the five London funds confirmed; still owed, the five
       London products seen on a contract note, the research list's London shares name by
@@ -232,35 +290,6 @@ UK tax) and R-MONEY-2 (the scenes on the whole fourteen months).
 - [ ] Leveraged-product lifecycle watched: an issuer's closure, a compulsory redemption or
       an ISA eligibility change on any line held or researched raises an alert (BIC-11)
 - [ ] Disk watched; old research files roll off by rule (OPS-07)
-- [ ] **Two databases, both owned by the one store** (his ruling, 14 November), in the desk's
-      data folder, never in this public repository: `market.db`, long-term, every timeframe
-      from an hour up plus all imported intraday history; and `market_hot.db`, live 1-minute
-      bars for the twenty lines and a watchlist of up to 100 within his IBKR line allowance.
-      The hot keeper runs every minute in each venue's hours, IBKR first, with the free
-      archive as a check; each night the day's hot bars roll into `market.db`. Every useful
-      store on C: (`kestrel2_notes\data_register.md`, tagged IMPORT) is consolidated into
-      `market.db`, each source marked verified there. One consistent snapshot of both
-      databases and the ledger is written each night for his own backup to carry (DAT-11,
-      DQ-12, DQ-05)
-- [ ] The old stores consolidated, never lost: once the one store holds their bars, verified by
-      counts and checksums per ticker and timeframe and by one restore drill, the originals
-      are deleted from C: with his explicit yes, asked then (never copied to E:, his backup
-      drive). His mark_the_trend programs are retired (his word, 14 November), so
-      `C:\mtt_cache` is treated like the other stores (DQ-05, OPS-07)
-- [ ] **The old desk's stores as a head start, now** (his ask, 14 November): its daily and
-      five-minute bars (Stooq and IBKR stores, and its per-ticker matrices) read in through
-      the one store's checks, every bar re-checked, each kept with its source; where a fresh
-      bar from the archive or the broker differs, the fresh one wins and the difference is
-      counted. Its stored indicators are not copied: indicators are recomputed from bars, and
-      the old values serve only as a cross-check of the recomputation (DAT-03, DAT-01)
-- [ ] The hot bars' first source is the broker: he already pays for IBKR's market data, so
-      the five-minute keeper reads live bars through IB Gateway's paper port, read-only, and
-      the free archive is the second source and the check on it; first prove, read-only,
-      that the paper account sees his live data and not the delayed kind, and if it does
-      not, say which setting he must turn on (DAT-02, DAT-07)
-- [ ] Deep history: daily bars back to 2000 wherever the archive has them, the calendars
-      carried back first; the old desk's Stooq store used only as a head start, every bar
-      re-checked on entry (DAT-03, BT-09)
 
 ## Phase 2 — the money path, in simulation
 
@@ -338,13 +367,11 @@ day's trading and reconciliation are built, and any broker can stand behind them
 - [ ] A holding whose stop was cancelled by hand gets it back the same day, or he is told at
       once (found by SimCity: 98 sessions held with no stop)
       {id: money-restop; files: desk/day.py, desk/book.py, tests/unit/test_day*.py,
-      tests/unit/test_book*.py; after: money-working}
+      tests/unit/test_book*.py, desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml;
+      after: money-working}
 - [x] Emergencies in numbers: an emergency, a crash and a black swan each defined by measured
       falls, each with its action (EMG-01) {id: money-emergencies; files: desk/emergency.py,
       tests/unit/test_emergency*.py, manifest.toml}
-- [ ] (Every box adding a public function to strategy, orders, broker, book, day or kill also
-      needs `desk/simcity.py, tests/unit/test_simcity*.py` in its files, one session at a time;
-      a function no scenario runs turns the check red: halts and limits among them.)
 - [x] Halts: a halt is a typed record; while one is in force the desk buys nothing and says so
       every day until it is lifted, and the day's verdict reads it; each morning one list of
       every blocker and every signal it blocked (FIL-08, NS-06, FIL-04, TRD-01). Done in #148;
@@ -355,7 +382,8 @@ day's trading and reconciliation are built, and any broker can stand behind them
 - [ ] The gate's other limits from canon B1: a day's and a week's loss and an order rate,
       refused at the gate (EMG-04 when live) {id: money-limits; files: desk/orders.py,
       desk/book.py, desk/day.py, tests/unit/test_orders*.py, tests/unit/test_book*.py,
-      tests/unit/test_day*.py, tests/scenes/test_scenes.py; after: money-record}
+      tests/unit/test_day*.py, tests/scenes/test_scenes.py,
+      desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml; after: money-record, money-working}
 - [x] Each strategy's declaration typed: its bar, holding period, test universe and data; a
       short sale cannot be built at all (STR-03, STR-06); remains: a sale made only from the
       book's holding (orders, day, broker) {id: money-declared;
@@ -376,8 +404,8 @@ day's trading and reconciliation are built, and any broker can stand behind them
 - [ ] A position the desk did not make is named and then sold on paper (TRD-06); no signal
       is left half-processed at the day's end (TST-08)
       {id: money-stranger; files: desk/day.py, desk/book.py, desk/orders.py,
-      tests/unit/test_day*.py, tests/unit/test_book*.py, tests/unit/test_orders*.py;
-      after: money-halts}
+      tests/unit/test_day*.py, tests/unit/test_book*.py, tests/unit/test_orders*.py,
+      desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml; after: money-halts, money-working}
 - [x] SimCity widened: a hundred seeded worlds with faults and drills, not one rehearsal
       world (TST-05, TST-22). Done in #150; remains: a nightly run on his PC with its records, worlds
       that deal every line's months alike, which worlds and code/data versions in the record
@@ -387,17 +415,19 @@ day's trading and reconciliation are built, and any broker can stand behind them
       cost is flagged, and no position is above 1% of its line's twenty-day traded value
       (SIZ-10, TRD-10)
       {id: money-small; files: desk/orders.py, desk/day.py, tests/unit/test_orders*.py,
-      tests/unit/test_day*.py; after: money-limits}
+      tests/unit/test_day*.py, desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml;
+      after: money-limits}
 - [ ] Time and gaps: a time stop after the strategy's declared holding period; a gap that
       jumps the stop held against the loss limit; a hold limit and gap sizing for the
       leveraged lines (STP-11, STP-10, SIZ-09)
       {id: money-time-gaps; files: desk/day.py, desk/orders.py, desk/strategy.py,
-      tests/unit/test_day*.py, tests/unit/test_orders*.py, tests/unit/test_strategy*.py;
-      after: money-limits}
+      tests/unit/test_day*.py, tests/unit/test_orders*.py, tests/unit/test_strategy*.py,
+      desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml; after: money-limits}
 - [ ] Fills realistic: spread and slippage in every fill, from the one cost model (TRD-09)
       {id: money-fills; files: desk/broker.py, desk/orders.py, desk/book.py,
       tests/unit/test_broker*.py, tests/unit/test_orders*.py, tests/unit/test_book*.py,
-      tests/unit/test_day*.py, tests/scenes/test_scenes.py; after: money-invariants}
+      tests/unit/test_day*.py, tests/scenes/test_scenes.py,
+      desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml; after: money-invariants, money-working}
 - [ ] The golden reference run committed; a change to a size, a stop or a threshold is
       replayed on it before it lands (TST-21, GOV-09, canon B5)
       {id: money-golden; files: *; after: money-fills, money-limits, money-halts}
@@ -405,13 +435,20 @@ day's trading and reconciliation are built, and any broker can stand behind them
       read, linked by ids; profit attributed by strategy, line, holding time and cost
       (TRD-11, TRD-12, DQ-08)
       {id: money-story; files: desk/story.py, desk/book.py, desk/day.py,
-      tests/unit/test_story*.py, tests/unit/test_book*.py, tests/unit/test_day*.py, manifest.toml;
-      after: money-fills, money-limits}
+      tests/unit/test_story*.py, tests/unit/test_book*.py, tests/unit/test_day*.py,
+      desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml; after: money-fills, money-limits}
 - [ ] Money honestly counted: interest on idle cash, with the risk-free rate in every
       Sharpe; currency gains and losses on dollar holdings reported apart from trading
       profit; a fall from the book's highest point alerted on paper (BIC-03, BIC-04, BIC-05)
       {id: money-honest; files: desk/day.py, desk/book.py, tests/unit/test_day*.py,
-      tests/unit/test_book*.py; after: money-fills}
+      tests/unit/test_book*.py, desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml;
+      after: money-fills}
+- [ ] (Every box adding a public function to strategy, orders, broker, book, day or kill also
+      needs `desk/simcity.py, tests/unit/test_simcity*.py` in its files, one session at a time;
+      a function no scenario runs turns the check red: halts and limits among them.)
+      {id: money-census; files: desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml;
+      after: money-restop, money-watch, money-stranger, money-small, money-time-gaps,
+      money-golden, money-story, money-honest}
 
 ## Phase 3 — the money path, on paper
 
@@ -500,14 +537,14 @@ his PC with the desk's own client id (222), never 4001.
       and a contract test proves the refusal (owed: name the money lane's kill-switch box in
       `after` once it has an id) {id: paper-drill; files: desk/placing.py,
       tests/unit/test_placing.py; after: paper-adapter, paper-stops}
-- [ ] Morning and evening messages, and an alarm on silence
+- [x] Morning and evening messages, and an alarm on silence (#142; remains: paper-running calls it, something outside the desk runs `messenger.watch`, his bot key in the desk's environment)
       {id: paper-messages; files: desk/messenger.py, tests/unit/test_messenger.py,
       manifest.toml}
-- [ ] Unattended running, and recovery from a restart
+- [x] Unattended running, and recovery from a restart (#152; remains: the process that asks for a step, the price store's door, DATA's rates)
       {id: paper-running; files: desk/running.py, desk/placing.py,
       tests/unit/test_running.py, tests/unit/test_placing.py, manifest.toml;
       after: paper-adapter, paper-stops, paper-messages}
-- [ ] **No paper order until the money lane's kill switch has been drilled** (EMG-02)
+- [x] **No paper order until the money lane's kill switch has been drilled** (EMG-02) (#155: drilled once each day at the step's first work)
       {id: paper-kill-drilled; files: desk/running.py, tests/unit/test_running.py;
       after: money-kill, paper-drill, paper-running}
 - [ ] Conformance trades, on paper, one London and one US line, each in its market's hours:

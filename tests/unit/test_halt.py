@@ -32,7 +32,8 @@ def test_a_halt_is_in_force_from_its_call_until_it_is_lifted_and_never_expires(
     assert halt.kept(tmp_path) == (first, second), "one halt called twice is kept twice"
     gone = halt.lift(tmp_path, first, datetime(2025, 11, 12, 7, tzinfo=UTC), "the market is calm")
     assert halt.in_force(tmp_path) == (second,) and halt.kept(tmp_path) == (gone, second)
-    assert gone.lifted == (datetime(2025, 11, 12, 7, tzinfo=UTC), "the market is calm")
+    calm = (datetime(2025, 11, 12, 7, tzinfo=UTC), "the market is calm", halt.OPERATOR)
+    assert gone.lifted == calm
     #: in force on the day it was lifted, whatever the hour, and on no day after
     still = [gone in halt.on(tmp_path, on) for on in (TUE, WED, year)]
     assert still == [True, True, False], "not in force on the day it was lifted, or after it"
@@ -63,6 +64,29 @@ def test_a_halt_is_in_force_from_its_call_until_it_is_lifted_and_never_expires(
     assert halt.in_force(tmp_path) == (second, late[1]), "the wrong halt lifted, or both"
 
 
+def test_a_halt_says_who_called_it_and_is_lifted_only_by_who_may(tmp_path: Path) -> None:
+    watch = "the crash watch"
+    hand = halt.call(tmp_path, NOW, "his word")
+    crash = halt.call(tmp_path, NOW, "the market fell 5%", by=watch, his=False)
+    swan = halt.call(tmp_path, LATER, "the market fell 11%", by=watch)
+    assert (hand.by, hand.his, swan.his) == (halt.OPERATOR, True, True)
+    assert halt.kept(tmp_path) == halt.in_force(tmp_path) == (hand, crash, swan)
+    assert hand.since == "called 2025-11-10 09:30 UTC: his word"
+    assert crash.since == "called 2025-11-10 09:30 UTC by the crash watch: the market fell 5%"
+    #: his own, one that is his alone, another part's, and nobody's
+    for which, by in ((hand, watch), (swan, watch), (crash, "the keeper"), (crash, " ")):
+        with pytest.raises(ValueError, match="may not lift the halt called 2025-11-10"):
+            halt.lift(tmp_path, which, LATER, "calm again", by=by)
+    assert halt.in_force(tmp_path) == (hand, crash, swan), "lifted by one who may not"
+    ended = halt.lift(tmp_path, crash, LATER, "the day ended clear", by=watch)
+    his = halt.lift(tmp_path, swan, LATER, "his word")  #: the operator lifts any halt
+    assert halt.kept(tmp_path) == (hand, ended, his) and halt.in_force(tmp_path) == (hand,)
+    #: and the record says who lifted each
+    assert [h.lifted[2] for h in (ended, his) if h.lifted] == [watch, halt.OPERATOR]
+    with pytest.raises(ValueError, match="halt"):
+        halt.call(tmp_path, NOW, "called by nobody", by=" ")
+
+
 def test_a_record_of_halts_that_cannot_be_read_is_an_error_and_never_no_halt(
     tmp_path: Path,
 ) -> None:
@@ -77,6 +101,8 @@ def test_a_record_of_halts_that_cannot_be_read_is_an_error_and_never_no_halt(
         whole + f"{stamp}+00:00,x\n",  #: a row cut short
         whole.replace(",,", f",{stamp}+00:00,"),  #: lifted, and no reason given
         whole.replace(stamp, "2025-11-10 09:30:00"),  #: not as the desk writes a moment
+        whole.replace("the operator alone", "anyone"),  #: lifted by nobody the desk knows
+        whole.replace(",the operator,the operator alone", ""),  #: as kept before callers were
     ):
         (tmp_path / halt.HALTS).write_text(torn, "utf-8")
         for read in (halt.kept, halt.in_force):

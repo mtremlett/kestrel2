@@ -32,7 +32,7 @@ BARS = tuple(
     Bar(START + timedelta(n), p, p + Decimal("0.5"), p - Decimal("0.5"), p, 1)
     for n, p in enumerate(Decimal(str(value)) for value in SHAPE)
 )
-SPY, QQQ = (next(line for line in LINES if line.symbol == s) for s in ("SPY", "QQQ"))
+AAPL, NVDA = (next(line for line in LINES if line.symbol == s) for s in ("AAPL", "NVDA"))
 
 
 class Pc:
@@ -82,10 +82,10 @@ def _mark(folder: Path, cells: Sequence[str]) -> None:
 
 
 def _study(folder: Path, cells: Sequence[Cell]) -> None:
-    """A worker's real work: a batch of cells, where reading QQQ's bars wants a gigabyte."""
+    """A worker's real work: a batch of cells, where reading NVDA's bars wants a gigabyte."""
 
     def bars(line: Line) -> Sequence[Bar]:
-        hungry = bytearray(GB if line == QQQ else 1)
+        hungry = bytearray(GB if line == NVDA else 1)
         return BARS[: len(BARS) * len(hungry)]
 
     batch.run(cells, bars, folder / "journal.jsonl")
@@ -201,9 +201,9 @@ def test_windows_refuses_a_hungry_cell_its_memory_and_the_batch_carries_on(
         pc = tune.windows()
         monkeypatch.setattr(tune, "CEILING", SMALL / pc.memory()[0])
         names = tuple(strategy.STRATEGIES)
-        cells = [Cell(names[0], SPY, START, START + timedelta(24))]
-        cells += [Cell(names[0], QQQ, START, START + timedelta(24))]
-        cells += [Cell(name, SPY, START, START + timedelta(24)) for name in names[1:]]
+        cells = [Cell(names[0], AAPL, START, START + timedelta(24))]
+        cells += [Cell(names[0], NVDA, START, START + timedelta(24))]
+        cells += [Cell(name, AAPL, START, START + timedelta(24)) for name in names[1:]]
         report = tune.run(cells, partial(_study, tmp_path), pc, tmp_path, 2)
         journal = (tmp_path / "journal.jsonl").read_text(encoding="utf-8")
         rows = [json.loads(row) for row in journal.splitlines()]
