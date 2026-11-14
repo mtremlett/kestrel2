@@ -315,25 +315,46 @@ day's trading and reconciliation are built, and any broker can stand behind them
       crosses the emergency thresholds halts all buying at once, alerts him immediately at
       any hour, and records why; the protective sell across every position (STP-07) acts on
       it once built (EMG-01, EMG-03)
+      {id: money-watch; files: desk/watch.py, desk/halt.py, tests/unit/test_watch*.py,
+      tests/unit/test_halt*.py, manifest.toml; after: money-halts}
 - [ ] A position the desk did not make is named and then sold on paper (TRD-06); no signal
       is left half-processed at the day's end (TST-08)
+      {id: money-stranger; files: desk/day.py, desk/book.py, desk/orders.py,
+      tests/unit/test_day*.py, tests/unit/test_book*.py, tests/unit/test_orders*.py;
+      after: money-halts}
 - [ ] SimCity widened: a hundred seeded worlds with faults and drills, not one rehearsal
       world (TST-05, TST-22)
+      {id: money-worlds; files: desk/simcity.py, tests/unit/test_simcity*.py;
+      after: money-simcity}
 - [ ] Small and illiquid trades: a trade whose expected gain is under twice its round-trip
       cost is flagged, and no position is above 1% of its line's twenty-day traded value
       (SIZ-10, TRD-10)
+      {id: money-small; files: desk/orders.py, desk/day.py, tests/unit/test_orders*.py,
+      tests/unit/test_day*.py; after: money-limits}
 - [ ] Time and gaps: a time stop after the strategy's declared holding period; a gap that
       jumps the stop held against the loss limit; a hold limit and gap sizing for the
       leveraged lines (STP-11, STP-10, SIZ-09)
+      {id: money-time-gaps; files: desk/day.py, desk/orders.py, desk/strategy.py,
+      tests/unit/test_day*.py, tests/unit/test_orders*.py, tests/unit/test_strategy*.py;
+      after: money-limits}
 - [ ] Fills realistic: spread and slippage in every fill, from the one cost model (TRD-09)
+      {id: money-fills; files: desk/broker.py, desk/orders.py, desk/book.py,
+      tests/unit/test_broker*.py, tests/unit/test_orders*.py, tests/unit/test_book*.py,
+      tests/unit/test_day*.py, tests/scenes/test_scenes.py; after: money-invariants}
 - [ ] The golden reference run committed; a change to a size, a stop or a threshold is
       replayed on it before it lands (TST-21, GOV-09, canon B5)
+      {id: money-golden; files: *; after: money-fills, money-limits, money-halts}
 - [ ] Every trade's whole story: signal, intent, risk decision, order, fill and the bar it
       read, linked by ids; profit attributed by strategy, line, holding time and cost
       (TRD-11, TRD-12, DQ-08)
+      {id: money-story; files: desk/story.py, desk/book.py, desk/day.py,
+      tests/unit/test_story*.py, tests/unit/test_book*.py, tests/unit/test_day*.py, manifest.toml;
+      after: money-fills, money-limits}
 - [ ] Money honestly counted: interest on idle cash, with the risk-free rate in every
       Sharpe; currency gains and losses on dollar holdings reported apart from trading
       profit; a fall from the book's highest point alerted on paper (BIC-03, BIC-04, BIC-05)
+      {id: money-honest; files: desk/day.py, desk/book.py, tests/unit/test_day*.py,
+      tests/unit/test_book*.py; after: money-fills}
 
 ## Phase 3 — the money path, on paper
 
