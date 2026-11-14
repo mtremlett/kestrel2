@@ -283,14 +283,30 @@ day's trading and reconciliation are built, and any broker can stand behind them
       6 and 7 pass** {id: money-record; files: desk/day.py, desk/book.py, desk/orders.py,
       tests/unit/test_day*.py, tests/unit/test_book*.py, tests/unit/test_orders*.py,
       tests/scenes/test_scenes.py, docs/PLAN.md; after: money-costs}
-- [ ] SimCity, small: one command runs the whole desk's day over all fourteen months of
+- [x] SimCity, small: one command runs the whole desk's day over all fourteen months of
       rehearsal data against the pretend broker with its faults, every night, and writes one
-      record; a census names every part of the money path and turns red when one has no scenario
+      record; a census names every part of the money path and turns red when one has no scenario.
+      Done in #134; its first night is RED (six lines held against five). Remains: a nightly
+      run on his PC with its records kept (the runner's owner); code and data version in the record
       {id: money-simcity; files: desk/simcity.py, tests/unit/test_simcity*.py,
       tests/scenes/test_scenes.py, manifest.toml; after: money-kill, money-record}
+- [ ] **First, from SimCity's red night:** the send path counts orders still working, so a desk
+      that died mid-send never holds more than five lines; any broker says which of the desk's
+      own orders are still working; SimCity's night turns green and its pin (`SIX_HELD`) goes
+      {id: money-working; files: desk/book.py, desk/broker.py, desk/orders.py, desk/kill.py,
+      desk/simcity.py, tests/unit/test_book*.py, tests/unit/test_broker*.py,
+      tests/unit/test_orders*.py, tests/unit/test_kill*.py, tests/unit/test_simcity*.py;
+      after: money-simcity}
+- [ ] A holding whose stop was cancelled by hand gets it back the same day, or he is told at
+      once (found by SimCity: 98 sessions held with no stop)
+      {id: money-restop; files: desk/day.py, desk/book.py, tests/unit/test_day*.py,
+      tests/unit/test_book*.py; after: money-working}
 - [x] Emergencies in numbers: an emergency, a crash and a black swan each defined by measured
       falls, each with its action (EMG-01) {id: money-emergencies; files: desk/emergency.py,
       tests/unit/test_emergency*.py, manifest.toml}
+- [ ] (Every box adding a public function to strategy, orders, broker, book, day or kill also
+      needs `desk/simcity.py, tests/unit/test_simcity*.py` in its files, one session at a time;
+      a function no scenario runs turns the check red: halts and limits among them.)
 - [ ] Halts: a halt is a typed record; while one is in force the desk buys nothing and says so
       every day until it is lifted, and the day's verdict reads it; each morning one list of
       every blocker and every signal it blocked (FIL-08, NS-06, FIL-04, TRD-01)
