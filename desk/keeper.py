@@ -7,20 +7,25 @@ Two things are owed on a trading day, each venue's on its own calendar.
 
 THE DAILY BARS of a venue's lines, asked of the archive whole and cleaned by the one store,
 twice: at the day's first call, before any open, for the day about to trade; and again once
-the venue's session is over and SETTLED has passed, so that the day's closes are held that
-evening and the day's record can be made. The evening's bars are asked again in the morning,
-for an archive restates a close overnight. A line the archive would not answer for is parked
-alone, with no bars, and asked again at every call; a line parked for a fault in its bars is
-asked again for TRIES calls, and then left for the next refresh. What was last held, for
-which day, and who is parked is a record beside the bars, and the door (`saved`) reads no
-bars it does not cover.
+the venue's session is over and SETTLED has passed (`target`), so that the day's closes are
+held that evening and the day's record can be made. The evening's bars are asked again in
+the morning, for an archive restates a close overnight. What was last held, for which day,
+and who is parked is a record beside the bars, and the door (`saved`) reads no bars it does
+not cover.
 
-THE FIVE-MINUTE ROUND, at every call from a venue's open to its closing auction: its lines'
-bars of the last RECENT, through the fast store's checks, so a round missed heals at the next.
+A line the archive would not answer for is asked again at every call. Asked for a day the
+store already holds, it keeps the bars and the standing it has; asked for a new day it is
+parked alone, with no bars, for bars a day short are not that day's. A line parked for a
+fault in its bars is asked again for TRIES calls and then left for the next refresh, unless
+no line of its venue is clean: then it is asked at every call.
 
-A call that left a venue with no line answered is a miss: the command says why and ends
-with 1. One call asks the archive for SPENT seconds and no longer; a line not reached by
-then is refused as any other, for the runner counts four minutes without an end as a miss."""
+THE FIVE-MINUTE ROUND, at every call from a venue's open until SETTLED after its closing
+auction, for the archive shows a session's last bars late: its lines' bars of the last
+RECENT, through the fast store's checks, so a round missed heals at the next.
+
+A call that left a venue with no line answered, or with no line clean, is a miss: the
+command says so and ends with 1. One call asks the archive for SPENT seconds and no longer;
+a line not reached by then is refused as any other."""
 
 from __future__ import annotations
 
@@ -46,7 +51,9 @@ RECORD = "kept.json"  #: in each venue's folder of the daily store: its last ref
 SETTLED = timedelta(minutes=30)
 TRIES = 6  #: the calls at which a line parked for a fault is asked again: half an hour's
 RECENT = timedelta(days=7)  #: how far back a five-minute round asks: the week kept hot
-SPENT = 180.0  #: the seconds of one call in which the archive is still asked
+#: The seconds of one call in which the archive is still asked: an answer then waited for
+#: its thirty seconds, and the bars written, still end within the runner's four minutes.
+SPENT = 150.0
 DAY = timedelta(days=1)
 When = TypeVar("When")
 Read = TypeVar("Read")
@@ -87,6 +94,10 @@ def _record(folder: Path, kept: Kept) -> None:
     part.replace(folder / RECORD)
 
 
+def _symbol(line: Line) -> str:
+    return line.symbol
+
+
 def target(venue: str, now: datetime) -> date:
     """The day a venue's daily bars are readied for at a moment: today, until its session is
     over and SETTLED has passed; from then, and all through a day it does not trade, tomorrow."""
@@ -102,20 +113,23 @@ def _refresh(
 ) -> Kept | None:
     """A venue's daily bars refreshed as far as they are owed at now, and the record of it;
     None when nothing was owed, and nothing asked."""
-    venue = lines[0].venue
-    readied, last = target(venue, now), _kept(folder)
-    if last is None or last.day != readied or last.at.date() != now.date():
-        asked, tries, parked = list(lines), 1, {}
+    readied, last = target(lines[0].venue, now), _kept(folder)
+    same = last is not None and last.day == readied
+    before = dict(last.parked) if last is not None and same else {}
+    if last is None or not same or last.at.date() != now.date():
+        asked, tries = list(lines), 1
     else:
-        again = last.refused if last.tries >= TRIES else set(last.parked)
-        asked = [line for line in lines if line.symbol in again]
-        tries = last.tries + 1
-        parked = {symbol: why for symbol, why in last.parked.items() if symbol not in again}
+        blind = len(last.parked) == len(lines)
+        again = last.refused | (set(last.parked) if last.tries < TRIES or blind else set())
+        asked, tries = [line for line in lines if line.symbol in again], last.tries + 1
     if not asked:
         return None
     answers = archive.gather(asked, readied, ask)
-    parked |= {found.symbol: found.reason for found in store.prepare(folder, answers, readied)}
     refused = {line.symbol for line, answer in answers.items() if isinstance(answer, Refused)}
+    given = {line: answer for line, answer in answers.items() if line.symbol not in refused}
+    found = store.prepare(folder, given if same else answers, readied)
+    parked = {symbol: why for symbol, why in before.items() if symbol not in map(_symbol, given)}
+    parked |= {line.symbol: line.reason for line in found}
     kept = Kept(readied, now, tries, parked, frozenset(refused))
     _record(folder, kept)
     return kept
@@ -162,7 +176,7 @@ def _told(kept: Kept, mine: Sequence[Line]) -> tuple[str, bool]:
         f"{venue}: daily bars before {kept.day}: {clean} of {len(mine)} lines clean, "
         f"{len(kept.refused)} refused by the archive (asked {kept.tries} times today)"
     )
-    return words, len(kept.refused) == len(mine)
+    return words, len(mine) in (len(kept.refused), len(kept.parked))
 
 
 def _round(
@@ -200,7 +214,7 @@ def keep(
         kept = _refresh(home / DAILY / venue, mine, now, _within(daily, clock, ends))
         if kept is not None:
             told.append(_told(kept, mine))
-        if venues.open_at(venue, now) is not None:
+        if venues.open_at(venue, now) or venues.open_at(venue, now - SETTLED):
             told.append(_round(home / HOT, mine, now, _within(five, clock, ends)))
     return [words for words, _ in told], [words for words, miss in told if miss]
 
