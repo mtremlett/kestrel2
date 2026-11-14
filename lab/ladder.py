@@ -40,19 +40,19 @@ day's pounds per dollar comes from `desk/carry.py`, the one rule the desk prices
 the same archive and inside the same bounds as the desk's day takes it (`desk/command.py`).
 
 SET EPON (R-RUNNER-81) is what `python -m lab.ladder` runs: every rule of every
-`desk/eponymous_*.py` (named in `MODULES`, so that its code is in every key; a file not named
-there is refused) on every line the research store holds, in the same register, results file and
-rungs. It ends by writing
-`ladder/sets/EPON.md` and `.json` - each rule, each line, each rung's answer with its reason, the
-trials it was judged against, the author's result beside the desk's, and what goes forward - and one
-line, `SET EPON: <n> rules, <passed> passed, table <path>`. A rule has passed when it has a line
-whose one verdict is PASS and whose every rung run passed. Every table is PRE-REVIEW until the blind
-review (R-RUNNER-40) is clean. `python -m lab.ladder first` runs the first set of published rules.
+`desk/eponymous_*.py` (every one the folder holds is imported, its code in every key) on every
+line the research store holds, in the same register, results file and rungs. It writes
+`ladder/sets/EPON.md` and `.json` - each rule, line and rung's answer with its reason, the trials,
+the author's result beside the desk's, what goes forward - and ends `SET EPON: <n> rules,
+<passed> passed, table <path>`. A rule has passed when a line's one verdict is PASS and every rung
+run passed. Every table is PRE-REVIEW until the blind review (R-RUNNER-40) is clean.
+`python -m lab.ladder first` runs the first set of published rules.
 """
 
 from __future__ import annotations
 
 import hashlib
+import importlib
 import json
 import os
 import sys
@@ -63,11 +63,10 @@ from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from functools import cache, lru_cache
 from pathlib import Path
-from types import ModuleType
 from typing import Any
 
 import desk
-from desk import archive, carry, eponymous_bands, eponymous_connors, keeper
+from desk import archive, carry, keeper
 from desk.command import DOLLARS, POUND
 from desk.lines import LINES, Line
 from desk.store import Bar
@@ -88,9 +87,7 @@ FOLDS = verdict.FOLDS
 MARKETS = {"US": "SPY", "LSE": "ISF"}
 FOLDER, RESULTS = "ladder", "set1.jsonl"
 STATUS = "PRE-REVIEW"  #: what every table is until the blind review (R-RUNNER-40) is clean
-#: The files of eponymous rules the ladder reads. A new `desk/eponymous_*.py` is named here, so
-#: that its code is reached by the code version of every key that it could change.
-MODULES: Sequence[ModuleType] = (eponymous_bands, eponymous_connors)
+DESK = Path(desk.__file__).parent  #: the one list of eponymous files: this folder
 COLUMNS = ("rule", "line", "venue", "answer", "rungs", "trials", "reproduction", "goes forward")
 
 
@@ -245,7 +242,8 @@ def _one(
         mine = cell.key(c, own).rung(ME)
         days = sorted(day for day in pounds if day <= c.end and c.line.currency != "GBP")
         market = cell.key(Cell(c.strategy, beside, c.start, c.end), held).data
-        parts = [mine.code, mine.data, market, str(count), *(f"{d} {pounds[d]}" for d in days)]
+        rates = (f"{d} {pounds[d]}" for d in days)
+        parts = [mine.code, CODE, mine.data, market, str(count), *rates]
         parts += [one.key.code + one.key.data for one in made]
         head |= {"reproduction": [reproduce.said(one) for one in made]} if made else {}
         key = hashlib.sha256("\n".join(parts).encode()).hexdigest()
@@ -268,17 +266,22 @@ def _due(was: Row, now: datetime) -> bool:
     return "error" in was and now - datetime.fromisoformat(was["tried"]) >= RETRY
 
 
-def eponymous(
-    modules: Sequence[ModuleType] = MODULES, folder: Path = Path(desk.__file__).parent
-) -> tuple[str, ...]:
-    """The name of every rule of every `desk/eponymous_*.py`. A file not named in `MODULES`, or
-    one that names its rules in no `EPONYMOUS`, is refused: its rules would be judged on code
-    the keys do not reach, or not at all."""
-    files = {path.stem for path in folder.glob("eponymous_*.py")}
-    if files != {m.__name__.rpartition(".")[2] for m in modules}:
-        raise ValueError(f"{sorted(files)} are not the modules the ladder names: {MODULES}")
+def code(folder: Path = DESK) -> str:
+    """sha256 of the text of every eponymous file, a Windows line ending not a change: part of
+    every key, so no rule is judged on code the keys do not reach."""
+    texts = [p.read_bytes().replace(b"\r\n", b"\n") for p in sorted(folder.glob("eponymous_*.py"))]
+    return hashlib.sha256(b"\0".join(texts)).hexdigest()
+
+
+CODE = code()  #: the eponymous files as this process loaded them: in every key
+
+
+def eponymous(folder: Path = DESK) -> tuple[str, ...]:
+    """The name of every rule of every `desk/eponymous_*.py`, each file imported: the folder is
+    the one list. A file that names its rules in no `EPONYMOUS` is refused, by name."""
     names: list[str] = []
-    for module in modules:
+    for path in sorted(folder.glob("eponymous_*.py")):
+        module = importlib.import_module(f"{desk.__name__}.{path.stem}")
         if not hasattr(module, "EPONYMOUS"):
             raise ValueError(f"{module.__name__} names its rules in no EPONYMOUS mapping")
         names += module.EPONYMOUS
