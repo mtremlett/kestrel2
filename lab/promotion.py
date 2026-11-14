@@ -90,9 +90,10 @@ class Candidate:
         if self.strategy not in STRATEGIES:
             raise ValueError(f"{self.strategy}: no strategy of the desk's to put on paper")
         rungs, said = self.ladder.get("rungs", {}), self.ladder.get("answer")
-        if not set(NAMED) <= set(rungs):
+        answers = {name: Answer.__members__.get(str(rungs.get(name, [""])[0])) for name in NAMED}
+        if None in answers.values():
             raise ValueError(f"{self.strategy} has not passed the ladder: no {NAMED} in {rungs}")
-        verdict = rule({name: Answer[rungs[name][0]] for name in NAMED})
+        verdict = rule({name: answer for name, answer in answers.items() if answer is not None})
         if verdict is not Answer.PASS or said != verdict.name:
             raise ValueError(
                 f"{self.strategy} has not passed the ladder: its rungs give {verdict.name}, "

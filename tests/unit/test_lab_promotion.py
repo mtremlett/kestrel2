@@ -70,7 +70,7 @@ def test_no_candidate_without_the_ladders_pass_and_a_kill_condition_that_can_bit
     #: failed), a line that says less, and one short of a named rung: none is a candidate
     thin, beaten = _row(folds="THIN"), _row(answer="THIN", market="FAIL")
     del (short := _row())["rungs"]["market"]
-    for row in (thin, beaten, _row(answer="DOUBT"), _row(answer="THIN", folds="THIN"), short):
+    for row in (thin, beaten, _row(answer="DOUBT"), _row(folds="OK"), short):
         with pytest.raises(ValueError, match="has not passed the ladder"):
             Candidate(row, DAY, ON_PAPER.kill)
     with pytest.raises(ValueError, match="no strategy of the desk's"):

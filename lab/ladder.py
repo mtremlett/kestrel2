@@ -19,7 +19,7 @@ the author's own result where a figure is on file (`lab/reproduce.py`); the firs
 luck rung, the deflated Sharpe and the yearly Sharpe (`lab/deflated.py`); the folds
 (`lab/folds.py`); and the market's rung (`lab/market.py`). The one verdict is the one rule
 over those six, every one: a cell whose folds could not be run has no verdict, and a worst
-fold too thin to say holds the verdict at THIN, however the whole history scored. A
+fold too thin to say holds the verdict at THIN at best, however the whole history scored. A
 rule whose author's figure is not reproduced is given no verdict on the desk's lines. A rung
 that is built and cannot yet be run is named with its reason on every line (UNRUN): none is
 left out in silence, and nothing is called passed that was not judged. No answer here sends
