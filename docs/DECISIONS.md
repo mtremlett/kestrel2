@@ -1367,6 +1367,31 @@ the delayed kind; the data lane proves that first, read-only.
 
 ---
 
+## 2026-11-13 — tests up to 1.5 times the product; the recommended option, always
+
+**Found.** With ten sessions adding tests side by side, the rule "unit tests may not exceed
+the product's lines" sat at exactly its limit (2,861 lines each), and at 20:57 a data-lane
+change went red by eight lines once it held main. The work next in line - the kill switch,
+the money invariants, the eleven rungs - properly needs more test than code.
+
+**Decided, first.** Unit tests may reach 1.5 times the product's lines (`BUDGET.json`,
+`unit_test_lines_per_product_line`). The guard still stops test-per-bug piles; 1.5 is a
+ceiling, not a target. A loosening; his words below are its yes. Driven: tests at 1.2 times the
+product fail at 1.0 and pass at 1.5, and tests grown past 1.5 times fail.
+
+**Decided, second: the recommended option is taken without waiting.** A question put to him
+with options and a recommendation no longer waits for his answer: the session takes the
+recommended option, records it here, and tells him on Telegram. That includes loosening a
+guard, moving the phase and permissions. He alone still decides going live, entering
+credentials and spending money; no real money moves until he signs for going live. A
+session whose own permission check will not arm a loosening on this standing ruling leaves
+it armed-ready and named in its STATUS section, for the next session he talks to.
+
+**His words.** Friday 13 November 2026, about 21:05 UK, offered "1.5" (recommended) or "keep
+1": "1.5 . please always go with recommended to avoid waiting for me to attend."
+
+---
+
 ## MONEY
 
 ### 2026-11-13 — how the pretend broker behaves
