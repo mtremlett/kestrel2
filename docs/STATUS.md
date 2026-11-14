@@ -13,7 +13,7 @@ Last updated: 14 November 2026.
 
 ### Where we are
 
-Phase 2 under way. Scenes 1, 2 and 3 pass: scenes passing 3 of 7.
+Phase 2 under way. All seven scenes pass: scenes passing 7 of 7.
 
 Two rulings of 13 November are in force (`docs/DECISIONS.md`): sessions merge their own
 pull requests when the check is green, and GitHub now refuses any merge whose check has
