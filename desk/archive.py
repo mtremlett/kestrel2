@@ -5,7 +5,10 @@ the master does not hold, is refused.
 
 The archive is Yahoo's public chart service: free, with no key, and with no promise that it
 lasts. It dates each daily bar by its session's opening moment in UTC, which for London and
-New York falls on the session's own day; that day is the bar's day. A five-minute bar it
+New York falls on the session's own day; that day is the bar's day. The pound in dollars it
+dates by London's midnight, which in summer is 23:00 UTC of the evening before: an hour is
+added to every daily stamp, so that moment falls on the day it opens and a bar is never read
+a day early, ahead of its time (G7). A five-minute bar it
 dates by the moment the five minutes start, and it keeps them for sixty days only (DAT-11)."""
 
 from __future__ import annotations
@@ -31,6 +34,7 @@ DAILY, FIVE = "1d", "5m"  #: the archive's names for the two spans of bar the de
 #: How far back five-minute bars are asked for. The archive refuses the whole answer when any
 #: of it is over sixty days old (seen 13 November 2026), so the desk asks for a day less.
 KEPT = timedelta(days=59)
+MIDNIGHT = timedelta(hours=1)  #: London's midnight in summer, behind UTC's by this
 When = TypeVar("When")
 Read = TypeVar("Read")
 Row = tuple[int, Decimal, Decimal, Decimal, Decimal, int]
@@ -96,7 +100,9 @@ def _read(line: Line, span: str, payload: bytes) -> tuple[dict[str, Any], list[R
 def parse(line: Line, payload: bytes) -> tuple[Bar, ...]:
     """A line's daily bars from the archive's answer."""
     rows = _read(line, DAILY, payload)[1]
-    return tuple(Bar(datetime.fromtimestamp(row[0], UTC).date(), *row[1:]) for row in rows)
+    return tuple(
+        Bar((EPOCH + timedelta(seconds=row[0]) + MIDNIGHT).date(), *row[1:]) for row in rows
+    )
 
 
 def parse_five(line: Line, payload: bytes, now: datetime) -> tuple[Five, ...]:
