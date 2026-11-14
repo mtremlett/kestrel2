@@ -7,7 +7,7 @@
     "approval on the pull request.",
     "The old desk had no number like this and reached 438,466 lines of product code."
   ],
-  "phase": "2-money-sim",
+  "phase": "3-money-paper",
   "phases": {
     "0-foundations": {
       "product_lines": 1500,
@@ -27,7 +27,7 @@
     "3-money-paper": {
       "product_lines": 9000,
       "product_files": 55,
-      "lab_lines": 1500
+      "lab_lines": 7000
     },
     "4-ladder": {
       "product_lines": 9000,

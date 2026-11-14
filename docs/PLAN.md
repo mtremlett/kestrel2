@@ -4,7 +4,7 @@
 of its own book); then the costs whole, then the day's record, with which scenes 6 and 7
 pass together.
 
-Scenes passing: **7 of 7**. Phase: **2-money-sim**.
+Scenes passing: **7 of 7**. Phase: **3-money-paper**.
 
 The two lines above belong to the money lane: it alone moves the scenes count. The other
 lanes' objectives are in their own books below. The operator's Telegram line
@@ -42,9 +42,13 @@ lines to `desk/` and `lab/` together.
 the end of its text: `{id: money-kill; files: desk/kill.py, tests/unit/test_kill.py; after:
 money-costs}`. The id is unique; `files` names every file the box changes (globs allowed,
 `docs/PLAN.md` only for a box that moves the scenes count, `*` for one that must hold all
-the lane's files); `after` names the boxes, of any lane, done first. The runner gives a
-session the first box whose `after` boxes are done and whose files no running session
-holds; its files are the session's claim. A box with no note is serial work: one session,
+the lane's files); `after` names the boxes, of any lane, done first; `waits` names what
+the box waits on outside the lane: a request (`R-RUNGS-6`), a date (`2026-11-21`) or
+`operator`. The runner gives a session the first box whose `after` boxes are done, whose
+waits are met and whose files no running session holds; its files are the session's claim.
+A box blocked outside the lane is never handed out again: the session says `Waits: ...` in
+its pull request, or the doctor finds it, and the runner holds it back until the request is
+done or the date comes, freeing the boxes after it that do not truly need it. A box with no note is serial work: one session,
 alone in its lane, claim `*`. A lane whose next five boxes are not all noted is asked to
 note them first. The claim is in the session's pull request as `Claim: ...`, and the check
 refuses a change outside it and a lane's pull request without one
@@ -221,6 +225,11 @@ UK tax) and R-MONEY-2 (the scenes on the whole fourteen months).
 - [ ] Leveraged-product lifecycle watched: an issuer's closure, a compulsory redemption or
       an ISA eligibility change on any line held or researched raises an alert (BIC-11)
 - [ ] Disk watched; old research files roll off by rule (OPS-07)
+- [ ] The old stores consolidated, never lost: once the one store holds their bars, verified by
+      counts and checksums per ticker and timeframe and by one restore drill, the originals
+      are deleted from C: with his explicit yes, asked then (never copied to E:, his backup
+      drive). His mark_the_trend programs are retired (his word, 14 November), so
+      `C:\mtt_cache` is treated like the other stores (DQ-05, OPS-07)
 - [ ] **The old desk's stores as a head start, now** (his ask, 14 November): its daily and
       five-minute bars (Stooq and IBKR stores, and its per-ticker matrices) read in through
       the one store's checks, every bar re-checked, each kept with its source; where a fresh
@@ -389,6 +398,29 @@ day's trading and reconciliation are built, and any broker can stand behind them
 Begun alongside phase 2 by his ruling of 13 November: "Five lanes, phase 3 now".
 
 - [ ] **FIRST-LIGHT: ten consecutive clean trading days**
+- [ ] **FIRST-LIGHT's first day is Monday 16 November, 08:00 London** (his ruling: the date
+      holds; blockers get workarounds, never a later date). It starts on every one of the
+      twenty lines that is clean that morning; a line that joins later (an ISA swap still in
+      hand, a line parked) joins without restarting the count. Each blocker has a workaround
+      that keeps every safety rule: until the working-orders count is built, the send refuses
+      any line with an open order at the broker (the paper account is read before every
+      round); until the supervisor is built, the runner itself runs the desk's day on
+      schedule; the twenty lines' daily bars come from the store, refreshed from the archive
+      each morning, with the broker's bars as the fallback. Sunday 18:00: a dry rehearsal of
+      the whole day, and one go/no-go line to him naming any blocker still open and its
+      workaround (NS-10, TRD-01)
+- [ ] **One pre-flight each trading morning, before the open:** the whole check green on main;
+      one SimCity world lived; each rung's known-answer cases (a planted edge passes, noise
+      fails); the paper Gateway's handshake; every line's data fresh and its checksums whole;
+      a canary bar compared across two sources; the messenger's delivery proven; a halt in
+      force named. One record, one go/no-go line; a no-go halts buying for the day, never
+      silently (OPS-04, GOV-13, TST-21)
+- [ ] **One deep run each night after the US close, and a full one each weekend:** the hundred
+      SimCity worlds with faults and drills, the stress scenarios, the rungs' null and power
+      calibration, a synthetic round trip of every order type through the pretend broker,
+      every trade's lifecycle traced end to end; the weekend run adds the deliberate breaks
+      of the money path. One record each, folded into the morning line (TST-05, TST-22,
+      TST-20, TRD-11)
 
 ### The paper lane's book
 
