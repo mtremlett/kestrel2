@@ -555,7 +555,7 @@ grid-tune and grid-key side by side; then grid-pass, grid-week, grid-declared, g
       lab/sweep.py, lab/batch.py, lab/tune.py, tests/unit/test_lab_sweep.py,
       tests/unit/test_lab_batch.py, tests/unit/test_lab_tune.py, manifest.toml; after:
       grid-venue, grid-tune, grid-key}
-- [ ] Runs seven days without stopping. Remains: the seven days themselves; the run began 13 Nov 23:29 UK (moved onto the fix 14 Nov 00:41 UTC) and is not on the 48-hour pass limit of #125; on or after 20 Nov 23:45 UK read `sweep.unbroken` and tick if 7 days {id: grid-week; waits: 2026-11-21 (its seven-day run began 13 Nov 23:29 UK and is read on or after 20 Nov 23:45 UK; nothing to build meanwhile); files: lab/batch.py, lab/sweep.py,
+- [ ] Runs seven days without stopping. Remains: the seven days themselves; the run began 13 Nov 23:29 UK (moved onto the fix 14 Nov 00:41 UTC) and is not on the 48-hour pass limit of #125; on or after 20 Nov 23:45 UK read `sweep.unbroken` and tick if 7 days {id: grid-week; waits: 2026-11-21; files: lab/batch.py, lab/sweep.py,
       lab/tune.py, tests/unit/test_lab_batch.py, tests/unit/test_lab_sweep.py,
       tests/unit/test_lab_tune.py; after: grid-pass}
 - [ ] Each strategy judged on its own declared universe; the everything-on-everything grid
