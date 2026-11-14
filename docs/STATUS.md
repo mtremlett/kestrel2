@@ -135,99 +135,54 @@ the broker's every day. Boxes noted in order (#76); emergencies can start beside
 
 ## PAPER
 
-Last updated: 13 November 2026 (this section cut to what is open; git keeps the rest).
+Last updated: 14 November 2026 (folds #100, #104, #110, #113).
 
 ### Where it is
 
-Read-only so far; nothing has been placed on paper. The account check (`desk/paper.py`, client
-222, paper accounts only) found the account quiet on 13 November. All twenty lines are listed
-at the broker (`desk/listing.py`); six London lines are priced there in pence (`Listing.floor`).
+Nothing placed on paper. The desk reads the account, the twenty lines, fills and orders; knows the Gateway's week
+(`desk/gateway.py`); keeps a dated daily check (`desk/clearance.py`); and `desk/placing.py` answers all six broker
+questions for a sale: refused unless line listed, kill switch drilled within 31 days, check clean, Gateway ready.
 
 ### Next step
 
-Two boxes can start at once (PLAN notes, 13 November): paper-reports (R-MONEY-4 first, then
-the broker's fills and orders, read-only) and paper-gateway (daily restart, weekly re-login).
-The rest is one chain behind paper-reports: check, adapter, stops, drill, conformance. No order
-until that day's check is clean on a second day and the kill switch is drilled.
+paper-adapter's rest = paper-stops: a buy sent only with its stop (one stop for all shares held, on the price step);
+a sale takes shares off it. Needs `desk/paper.py` to read a stop's level: do it under paper-adapter's claim, tick both.
+Then paper-conformance. `Paper.place` raises NotImplementedError for a buy and for a sale on a line under the desk's stop.
 
 ### Requests to MONEY
 
-- [x] R-PAPER-2 (blocking, opened 2026-11-13 18:15): done in #64.
-- Open: R-MONEY-4 is a request, not a box; it changes `desk/paper.py`, as paper-reports does.
+- [ ] R-PAPER-4 (later, 2026-11-13 20:05): `book.differences` names an entry at no shares beside another carrying the shares.
+- [ ] R-PAPER-5 (later, 2026-11-13 21:10): the ledger keys a fill by whole id; the broker's ".01" to ".02" would double it.
+- [ ] R-PAPER-7 (later, 2026-11-13 22:45): one public keeper of dated records (the check borrows `book._write`, `_turn`).
+- [ ] R-PAPER-8 (later, 2026-11-13 23:30): the day's run collects fills at day's end too (broker tells today only).
+- [ ] R-PAPER-9 (later, 2026-11-13 23:30): word `Broker.stops` as the desk's own stops only, or say others are needed.
+- [ ] R-PAPER-10 (later, 2026-11-14 00:30): when `place` raises other than "never received"/refusal, pull the kill switch
+  or tell him at once? Today the day stops and the next start asks the broker.
 
 ### Requests to DATA
 
-- [x] R-MONEY-2 (blocking, opened 2026-11-13 18:15): the scenes moved onto the fourteen months.
-- [ ] R-MONEY-3 (later, opened 2026-11-13 18:15): a daily rate, pounds per dollar, in the store.
-
-### Found, not fixed
-
-- **Costs:** spread, slippage and UK tax are charged nowhere yet; no one rounding policy (to
-  the penny); fees are IBKR UK's fixed schedule, not tiered; scene 3 mixes currency and fees.
-- **Nobody is told of a mismatch yet.** Until someone acts, a line whose stop was cancelled is
-  unprotected, and one partly sold by hand keeps a stop for more shares than are held.
-- **The ledger** is not forced to disk, and a lost one reads as "no fills" without a word.
-- **The gate** takes the book as a bare mapping, trusts the stop of an order built by hand,
-  and sizes at the last close: a gap up at the open can fill above a fifth.
-- **The day run** decides each line's whole history again every day (24 seconds in scene 5),
-  reads the archive it is handed (R-DATA-3), and has no halt to read yet.
-- **The rules:** a decision depends on where the history starts; "warming up" and "staying
-  out" both read as hold; twenty days means twenty bars; the true range lives in `strategy`.
-- **For the paper adapter:** an order still working is in none of the five answers, so `place`
-  must answer finally or the gate overbuys; a resting order that is no sell stop is unseen; a
-  stop's level is never compared; a connection lost while reading is not a stated answer.
-- **Untested at the pretend broker:** `inject` on any symbol; a planted position beside the
-  desk's stop; a partial fill of one share; several stops sold on one open.
-
-## PAPER
-
-Last updated: 13 November 2026 (the account check on the one comparison; fills and orders read).
-
-### Where it is
-
-Read-only so far; nothing placed on paper. The account check (`desk/paper.py`, client 222, paper
-accounts only) asks `book.differences` (#75). All twenty lines are listed (`desk/listing.py`).
-`desk/reports.py` (#86) reads the day's fills and open orders, the desk's own told from others';
-real gateway 21:05 UK: 21 fills, none the desk's, no order open, quiet.
-
-### Next step
-
-paper-check: the check run daily and before any order, taught the desk's own resting stops from
-`reports.orders`; no send until clean. paper-gateway can run beside it. No order before a second
-clean day and the kill switch drilled.
-
-### Requests to MONEY
-
-- [x] R-PAPER-2 (blocking, opened 2026-11-13 18:15): done in #64.
-- [ ] R-PAPER-4 (later, opened 2026-11-13 20:05 UK): `book.differences` names an entry at no
-  shares beside another of the name carrying the book's shares: a false alarm that would stop a day.
-- [ ] R-PAPER-5 (later, opened 2026-11-13 21:10 UK): the ledger keeps a fill under the broker's
-  whole id (`book._record`); the broker's correction (".01" to ".02") would double it.
-
-### Requests to DATA
-
-- [ ] R-PAPER-3 (later, opened 2026-11-13 18:55 UK): each line's ISIN a fact on `Line`, confirmed
-  from the issuer or exchange, so the door knows the broker's line by it, not its ticker.
+- [ ] R-PAPER-3 (later, 2026-11-13 18:55): each line's ISIN a fact on `Line`, confirmed from issuer/exchange.
+- [ ] R-PAPER-6 (later, 2026-11-13 22:10): `desk/venues.py` gives a venue's wall clock publicly; `desk/gateway.py` drops its copy.
 
 ### Done for other lanes
 
-- R-DATA-5: done in #53 for its first half (test lines state their UK tax). Open: what the
-  first London contract note says of stamp duty (conformance).
+- R-DATA-5: done in #53 (first half). Open: what the first London contract note says of stamp duty (conformance).
 - R-MONEY-4: done in #75
+- R-MONEY-5: done in #110
+- R-MONEY-6: done in #113 (running the drill at each desk start is left to unattended running)
 
 ### Found, not fixed
 
-- **Each day:** nothing runs the check or reads the listings daily, or refuses an unlisted line;
-  a holding is known by name, not the broker's number. No open order seen yet: its shape and the
-  news the gateway pushes unasked (stops a reading) are unseen; an order told twice is listed twice.
-- **The check:** "holds 0 in one of 2 entries" can read as shares missing; none names the account.
-  A paper stop and the simulation's differ by up to one step.
-- **Unread at the broker:** each line's hours, smallest order and order kinds; daily bars for all
-  twenty (DATA's check); SPCX is "SPACE EXPLORATION TECHN-CL A" there. 2MU (parked) steps £1
-  above £500, the broker's rule says £5: unproven.
-- **The gateway:** no time limit on a conversation; some bad answers stop it with no plain sentence.
-- **For a session he starts:** the live-port guard misses the desktop live port; breaks need Python's
-  cache off.
+- **Nobody sends his lines yet:** Sunday reminder and "his login" wait for the messenger; Sunday 15 Nov shows whether the
+  Gateway stops answering at the weekend reset. A lasting "unwell" has no listener.
+- **Nothing runs the day:** no caller of the check, `gateway.known` or daily fills; a clean check lasts the UTC day;
+  a run at 00:00-01:00 UK summer is dated yesterday; a future-dated row refuses all orders.
+- **Unseen on a real order:** open-order shape, cancel answers, refusal on entry, part fills, unasked news mid-reading.
+- **Placing:** IDTL not found at the broker; no overall limit on the last-word wait or a conversation; an error after
+  sending leaves the order as the broker has it; no account named; a stop's level never compared; a zero-share stop reads as agreeing.
+- **Stale words:** `manifest.toml` says placing "is not built"; `desk/gateway.py` says "nothing calls it yet".
+- **Unread at the broker:** hours, smallest order, order kinds; daily bars; SPCX's name; 2MU's step (£1 vs £5).
+- **For a session he starts:** the live-port guard misses the desktop live port; breaks need Python's cache off.
 
 ## DATA
 
@@ -331,50 +286,51 @@ one folder of journals, a journal per worker, and failed cells not growing the j
 
 ## RUNGS
 
-Last updated: 13 November 2026 (this section cut to what is open; git, the decisions and
-the scoreboard keep the rest).
+Last updated: 14 November 2026 (cut to what is open; git, decisions and scoreboard keep the rest).
 
 ### Where it is
 
-The ladder has five rungs, each proven on made-up prices only: the first (`lab/rung.py`:
-thirty trades, two standard errors above nothing after costs and the 10% stop); the luck
-rung (`lab/luck.py`: one combined 5% across a set); folds (`lab/folds.py`: in-sample beside
-out-of-sample, verdict on the worst fold, each fold a trial); the register of trials
-(`lab/trials.py`: the count kept from batch to batch); and the deflated Sharpe with one
-verdict rule over four named rungs (`lab/deflated.py`). **No winner on real prices is to be
-believed yet.**
+The ladder has its rungs, each proven on made-up prices only: the first (`lab/rung.py`: the
+desk's one cost model, a day's rate for each fill, four answers - passed, failed, not enough
+evidence, a fault in the test - and no verdict on code that is not the published rule,
+`lab/published.py`); luck; folds; the register of trials; the deflated Sharpe with one
+verdict rule; plateaus (`lab/plateau.py`); periods and regimes (`lab/regime.py`). **No winner
+on real prices is to be believed yet.**
 
 ### Next step
 
-Plateaus over peaks (`rungs-plateau`) and regimes (`rungs-regimes`), then failing fairly
-(`rungs-fair`, last, holds all files), which joins folds, register and deflated into the
-ladder (a door for the register's count into `deflated.judge`). The costs box waits on
-R-RUNGS-1. The unit tests sit at the product's size (guard); keep tests no longer than code.
+Reproduce a published strategy's own result; then each indicator against a published
+reference series (STR-14). Unit tests sit at the product's size (guard); keep them no longer.
 
 ### Requests to MONEY
 
-- [ ] R-RUNGS-1 (later, opened 2026-11-13 18:15): a sale's own cost, spread and slippage in
-  `desk/orders.py`, from the desk's one cost model, so the first rung's costs are whole.
+None open (R-RUNGS-1, the sale's own cost: done in #101, used in #115).
 
 ### Requests to GRID
 
 - [ ] R-RUNGS-2 (later, opened 2026-11-13 21:22 UK): the declared sweep enters every cell in
   the register (`trials.enter`) before the batch runs, at one fixed path in the data folder.
+- [ ] R-RUNGS-4 (later, opened 2026-11-14 00:35 UK): a kept verdict's key should take in the
+  rates it was priced with (with the capital, R-GRID-3).
+
+### Requests to DATA
+
+- [ ] R-RUNGS-3 (blocking, opened 2026-11-14 00:35 UK): a kept daily rate of pounds per dollar
+  for every trading day of the research history (one per day, above nothing), readable as day
+  to rate, so a dollar line can be judged.
 
 ### Found, not fixed
 
-- **The first rung's costs are not whole.** No spread, slippage or sale-only fees: a sale is
-  charged as a buy of the same shares (R-RUNGS-1). One exchange rate serves a whole window,
-  so a dollar line's verdict carries no currency gain or loss. Owed before real prices.
-- **Nothing calls the register or `deflated` yet**; `luck.correct` (caller's count) is still
-  a door beside the register. A rule changed under its old name is not a new trial; the
-  register has no lock (one writer at a time) and no home path yet. A fold-boundary trade
-  counts in neither fold. A window of no days holding two trades divides by zero, unnamed.
-- **A verdict must not be kept by its record's key**, whose code version does not cover
-  `lab/rung.py` or `desk/orders.py`.
-- **A line whose one share costs more than its room** fails the whole verdict loudly.
-- **Not held by a test, none able to arise from real numbers:** the 5% line exactly ("under"
-  for "or under"), the first rung's bar of exactly 2, and its arithmetic setting. The
-  chance asked for no trades, or a count given as a fraction, is not refused in plain words.
-- **`rung.verdict`**, the first rung's pass rule as one function, is called by the first
-  rung and by the luck rung's tests only.
+- **Nothing calls the new rungs yet**; rules carry no settings, nothing supplies the regime
+  weather (REG-01). `luck.correct` is still a door beside the register, which has no lock or
+  home path. Plateau and regime read pass or not only. The regime tag reaches paper only when
+  promotion hands home regimes to the desk. Folds fail a one-regime specialist whose fold falls
+  in its bad weather; the yearly Sharpe flag reads a regime's years from the whole window.
+- **A verdict must not be kept by its record's key**: no rates, capital or `lab/rung.py` code.
+- **Tests still make cells from a symbol** (R-GRID-2, half done). Spread and slippage are
+  assumed figures, not measured on paper fills.
+- **Smaller:** a fold-boundary trade counts in neither fold; a window of no days holding two
+  trades divides by zero, unnamed; a line whose one share costs more than its room fails the
+  whole verdict loudly; a rule changed under its old name is not a new trial; regime names
+  differing only by capitals are two regimes; weathers tried per rule are the caller's count.
+- **Unheld by a test (none can arise from real numbers):** the 5% line and the bar of 2, exactly.
