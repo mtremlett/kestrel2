@@ -9,7 +9,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 import pytest
-from test_lab_rung import POUND, SHAPE, SPY, TEN_K, _bars, _walk
+from test_lab_rung import AAPL, POUND, SHAPE, TEN_K, _bars, _walk
 
 from desk import orders
 from desk.orders import Leg
@@ -67,7 +67,7 @@ def test_an_episode_is_replayed_in_pounds_after_costs() -> None:
     assert (may.episode.name, may.trades, may.made) == (MAY, (trade,), Decimal("-326.52864"))
     assert found.worst == Decimal("0.032652864") and found.verdict.answer is Answer.THIN
     #: a dollar line: each close and each fill at its own day's rate, the dollar's move in it
-    _marked(_stress(bars, "SPY", _rates(bars)), bars, _rates(bars))
+    _marked(_stress(bars, "AAPL", _rates(bars)), bars, _rates(bars))
     for late in range(-4, 5):  #: bought or sold before it, on its first day, its last, after
         _marked(_stress(_flash(late)), _flash(late))
         assert _stress(_flash(late)).untested == (AUGUST, CRASH)
@@ -140,11 +140,11 @@ def test_the_gap_is_a_black_swans_fall_in_a_night_times_the_leverage_on_the_wors
     #: the close at the night's rate, the open and the sale's costs at the morning's
     walk = _walk(1, 0.008)  #: its worst night is in its fiftieth trade of sixty-one
     rates, at = _rates(walk), {bar.day: n for n, bar in enumerate(walk)}
-    found = _stress(walk, "SPY", rates)
+    found = _stress(walk, "AAPL", rates)
     takes = []
     for p in found.verdict.trades:
         for n in range(at[p.held[0]], at[p.held[1]]):
             opened, rate = walk[n].close * (1 - TENTH), rates[walk[n + 1].day]
-            sold = orders.charges(SPY, Leg.STOP, p.shares, opened, rate).total
+            sold = orders.charges(AAPL, Leg.STOP, p.shares, opened, rate).total
             takes.append(p.shares * (walk[n].close * rates[walk[n].day] - opened * rate) + sold)
     assert found.gap is not None and found.gap.lost == max(takes) > 0
