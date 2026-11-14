@@ -10,10 +10,12 @@ inside a working copy, which a session throws away.
 
 A trial is entered under the question it was asked of, by name, BEFORE it is run: then one
 that fails, gives no verdict or is dropped has been counted already, and nothing here takes
-a trial out. A cell's name is its rule, its line and venue and its window, so the same cell
-run again (a restart, mended bars) is the same trial, and the same rule on another line or
-window is another. A rule that is changed is a new trial and must be given a new name: the
-register cannot see a change made under an old one. A candidate that is no cell is entered
+a trial out. A cell's name is its rule and the first twelve letters of the hash of the rule's code
+(its class in `desk/strategy.py` and all it names there), its line and venue and its window,
+so the same cell run again (a restart, mended bars) is the same trial, and the same rule on
+another line or window is another. A rule that is changed is new trials, never a free second
+look: the hash is in the name. A fold is no trial of its own: nothing is picked from it.
+A candidate that is no cell is entered
 under any name that tells it apart. A trial asked of two questions counts in each.
 
 Nothing begins a count without a word. A register that is not there, or is empty, is
@@ -29,11 +31,16 @@ is refused. One process at a time writes, which is the caller's to keep; a stale
 
 from __future__ import annotations
 
+import ast
+import hashlib
+import inspect
 import json
 import os
 from collections.abc import Iterable, Sequence
+from functools import cache
 from pathlib import Path
 
+from desk import strategy
 from lab import luck
 from lab.cell import Cell
 from lab.luck import Corrected
@@ -46,7 +53,37 @@ def name(cell: Cell) -> str:
     """The cell as a trial: its rule, its line on its venue, its window. The register's own
     wording, kept apart from how a cell is printed, which may change."""
     line, window = cell.line, f"{cell.start.isoformat()} to {cell.end.isoformat()}"
-    return f"{cell.strategy} on {line.symbol} on {line.venue}, {window}"
+    return f"{cell.strategy} {rule_hash(cell.strategy)} on {line.symbol} on {line.venue}, {window}"
+
+
+@cache
+def rule_hash(rule: str) -> str:
+    """The first twelve letters of the hash of the rule's code as this process loaded it."""
+    return code_hash(inspect.getsource(strategy), strategy.STRATEGIES[rule].__name__)
+
+
+def code_hash(source: str, name: str) -> str:
+    """The hash of what the class `name` in this module's text is made of: its syntax tree
+    and that of every class, function and constant of the module it names, however deep, so
+    a change in the logic changes it and a comment, a blank line or an unrelated edit does not."""
+    defined: dict[str, ast.stmt] = {}
+    for node in ast.parse(source).body:
+        if isinstance(node, ast.ClassDef | ast.FunctionDef):
+            defined[node.name] = node
+        elif isinstance(node, ast.Assign | ast.AnnAssign):
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            defined |= {t.id: node for t in targets if isinstance(t, ast.Name)}
+    if name not in defined:
+        raise ValueError(f"no class called {name!r} in the module's code")
+    reached, waiting = set(), [name]
+    while waiting:
+        if (here := waiting.pop()) not in reached:
+            reached.add(here)
+            waiting += [
+                n.id for n in ast.walk(defined[here]) if isinstance(n, ast.Name) and n.id in defined
+            ]
+    text = "\n".join(ast.dump(defined[n]) for n in sorted(reached))
+    return hashlib.sha256(text.encode()).hexdigest()[:12]
 
 
 def start(register: Path) -> None:
