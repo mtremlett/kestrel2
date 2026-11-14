@@ -18,7 +18,7 @@ from desk.store import Bar
 from lab import cell, published, reproduce, rung
 from lab.cell import Cell
 from lab.published import Case, Published
-from lab.reproduce import Figure, Fill, Measure, Reproduction, Stated
+from lab.reproduce import Figure, Fill, Hand, Measure, Reproduction, Stated
 
 VUSA = next(line for line in LINES if line.symbol == "VUSA")
 #: The Turtles' rule, by hand (highs and lows half a point either side of each close): bar
@@ -38,7 +38,8 @@ def _bars() -> tuple[Bar, ...]:
 
 def _figure(fill: Fill, *stated: tuple[Measure, str, str]) -> Figure:
     numbers = tuple(Stated(m, Decimal(value), Decimal(within)) for m, value, within in stated)
-    return Figure("breakout_20_10", "a planted author", VUSA, DAYS[0], DAYS[-1], fill, numbers)
+    source = ("breakout_20_10", "a planted author", VUSA, DAYS[0], DAYS[-1])
+    return Figure(*source, fill, numbers, Hand.AUTHOR)
 
 
 AT_CLOSE = (
@@ -80,6 +81,16 @@ def test_a_figure_is_missed_by_a_hair_and_met_on_its_edge() -> None:
     for stated, same in (("12.39", False), ("12.4", True), ("12.6", True), ("12.61", False)):
         figure = _figure(Fill.NEXT_OPEN, (Measure.MEAN_GAIN, stated, "0.1"))
         assert reproduce.reproduce(figure, bars).reproduced is same, stated
+    #: sources that disagree: the same is anywhere in the range they give, its ends included,
+    #: and nowhere outside it; a range given upside down is no range
+    ranges = (("12.5", "14", True), ("11", "12.5", True), ("12.51", "14", False))
+    for low, high, same in (*ranges, ("11", "12.49", False)):
+        between = Stated.between(Measure.MEAN_GAIN, Decimal(low), Decimal(high))
+        ranged = replace(figure, stated=(between,), hand=Hand.SECOND)
+        assert reproduce.reproduce(ranged, bars).reproduced is same, (low, high)
+    for low, high in (("3", "2"), ("-Infinity", "Infinity")):
+        with pytest.raises(ValueError, match=f"no range runs from {low} to {high}"):
+            Stated.between(Measure.TRADES, Decimal(low), Decimal(high))
     #: one number out is the whole figure out
     out = _figure(Fill.CLOSE, (Measure.TRADES, "3", "0"), (Measure.WINNERS, "50", "0"))
     assert not reproduce.reproduce(out, bars).reproduced
@@ -137,9 +148,9 @@ def test_the_first_rung_waits_for_the_authors_own_result(monkeypatch: pytest.Mon
         judge(made)
     #: the figure on file: no verdict before it is reproduced, at either door of the rung
     monkeypatch.setattr(reproduce, "FIGURES", (figure,))
-    with pytest.raises(ValueError, match="no verdict before its author.*a planted author"):
+    with pytest.raises(ValueError, match="no verdict before its published.*a planted author"):
         judge()
-    with pytest.raises(ValueError, match="no verdict before its author.*a planted author"):
+    with pytest.raises(ValueError, match="no verdict before its published.*a planted author"):
         rung.verdict(record.key, ())
     with pytest.raises(ValueError, match="no verdict before"):  #: said before any price is missed
         dollars = Cell(figure.strategy, "SPY", DAYS[0], DAYS[-1])
@@ -169,3 +180,16 @@ def test_the_first_rung_waits_for_the_authors_own_result(monkeypatch: pytest.Mon
         judge(made, missed)
     with pytest.raises(ValueError, match="no verdict before"):
         judge(made)
+    #: a replication standing in for the author is waited for alike, the verdict carries
+    #: whose result stands behind it, and a number missed is called the replication's
+    second, astray = (replace(one.figure, hand=Hand.SECOND) for one in (made, missed))
+    monkeypatch.setattr(reproduce, "FIGURES", (second,))
+    with pytest.raises(ValueError, match="no verdict before"):
+        judge()
+    (behind,) = judge(reproduce.reproduce(second, bars)).reproduced
+    assert behind.figure.hand is Hand.SECOND
+    with pytest.raises(ValueError, match="a planted author is no figure on file"):
+        judge(made)  #: the author's own is not the replication on file
+    monkeypatch.setattr(reproduce, "FIGURES", (astray,))
+    with pytest.raises(ValueError, match="against the replication's 22.36"):
+        judge(reproduce.reproduce(astray, bars))
