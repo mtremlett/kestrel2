@@ -93,7 +93,10 @@ def rates(root: Path, day: date) -> dict[str, Decimal]:
     """A DAY'S POUNDS PER UNIT OF EACH CURRENCY: the dollar's as the desk's record at root
     keeps it for the day, else one over the pound's last close in dollars before the day. A
     close that is no pound's, or too old for the day, is an error and no rate."""
-    kept = book._rates(root).get((day, "USD"))
+    try:
+        kept: Decimal | None = book.rate(root, "USD", day)
+    except ValueError:
+        kept = None
     if kept is None:
         #: the archive adds the day's own bar, still moving (seen 14 November 2026): not before it
         last = [bar for bar in archive.fetch(POUND, day) if bar.day < day][-1:]
