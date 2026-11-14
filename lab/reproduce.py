@@ -9,9 +9,10 @@ prices or the way of counting differ from the author's, and a verdict on the des
 market would be a verdict on something else. The old desk listed twenty-one published rules
 and reproduced none of them, for want of the figures.
 
-A FIGURE is the author's, written down before anything is run: the source, the market, the
-period, where the author's test fills an order, each number printed, and how near the desk's
-must come to be called the same. How near is fixed with the figure and never after a run.
+A FIGURE is the author's (or, labelled so, a replication's: SECOND HAND below), written down
+before anything is run: the source, the market, the period, where the test fills an order,
+each number printed, and how near the desk's must come to be called the same. How near is
+fixed with the figure and never after a run.
 
 COUNTED AS THE AUTHOR COUNTED. An author's figure is nearly always before any cost, and is
 filled where the author says. The numbers made here are that arithmetic and nothing else:
@@ -37,10 +38,11 @@ on file, made by the code as it now is, and the same in every number. A rule wit
 file is judged, and its verdict says that no author's result stands behind it. What is handed
 over is `reproduce`'s own answer: the rung does not read the author's bars again.
 
-NO FIGURE IS ON FILE YET. A figure is entered in FIGURES only from the publication itself,
-never from memory or from a second hand, and the desk's bars begin in 2010, after the periods
-the books tested. Read so far, on 14 November 2026, is one chapter of Connors and Alvarez
-(2008): its tenth, as its publisher gives it away, whose table is of another rule (a close at
+NO FIGURE IS ON FILE YET. A figure is entered in FIGURES only from the page that printed it,
+the author's or a replication's, read at the time and never from memory, and the desk's bars
+begin in 2010, after the periods the books tested.
+Read so far, on 14 November 2026, is one chapter of Connors and Alvarez (2008): its tenth,
+as its publisher gives it away, whose table is of another rule (a close at
 a seven-day low bought while SPY is above its 200-day average, at a seven-day high sold) on
 SPY from 29 January 1993: 153 trades, 80.4% of them gaining, a mean gain of 0.85%, 122.36
 points. Its end is not printed and is taken as the end of 2007, where the chapter's other
@@ -49,9 +51,37 @@ points. It waits for its rule to be coded and proven. The chapter that tests RSI
 ninth, this desk has not read: none of the five rules has its figure. The authors' own free
 pages (TradingMarkets, Connors Research), searched the same day, print no table of RSI-2 on
 SPY, Google Books shows no page of the book (no preview), and a copy of the book that
-somebody else has put on the web is not read from: RSI-2's
-figure waits for the book itself, and whether its table is of the rule as coded here (bought
-under 5, sold over the 5-day average) is not known until then.
+somebody else has put on the web is not read from: whether the book's table is of the rule as
+coded here (bought under 5, sold over the 5-day average) is not known.
+
+SECOND HAND, AND LABELLED SO (his ruling, 14 November 2026: no book is bought). Where an
+author's table is not to be had free, the best replication somebody else has published stands
+in: a figure whose `hand` is SECOND, its source saying who ran it and when. Where two such
+sources of one test (the same rule, market, period and fills) print different numbers, the
+range they give is the figure (`Stated.between`), and the desk's must land inside it. A
+verdict carries its figures, so whose result stands behind it is read from the verdict. This
+replaces the refusal of web write-ups as second hand, made the same morning.
+
+RSI-2 AT SECOND HAND, searched the same day: no free page prints, of SPY, the trades of the
+rule as coded. The two nearest are of another market and of another setting. Both are written
+down here, how near fixed before any run; neither can go on file yet, and a figure on file
+stops every verdict on its rule until it is reproduced.
+(1) Swanson, "Connors 2-Period RSI Update For 2013" (EasyLanguage Mastery): the rule as coded,
+bought and sold at the close, but on the S&P 500 index "from 1983": 129 trades, 82% of them
+profitable. It calls the RSI "cumulative", taken here as the plain 2-day RSI under 5, which
+its own tests of thresholds from 1 to 30 fit and a sum of two days' could not. Its dates are
+not printed. The page is dated 26 August 2013 and its first reader's comment 18 March 2013,
+so the test was run before that March: the period is taken as the first session of 1983 to
+the last of February 2013, and the same as within 8 trades and 3 points of the 82%. Its
+dollars are sized by volatility and are no number of ours; its SPY column is misprinted, by
+its author's word, and is not used. It waits for the index from 1983 as a line with its bars.
+(2) Empirica Lab, note EL-R-2026-302 (11 October 2026): SPY, adjusted for dividends, filled at
+the close, 29 January 1993 to 30 September 2026, bought under 10 and not under 5: 265 trades,
+204 of them gaining, a mean gain of 0.63%, 2 hundredths of a per cent charged a side (whether
+the mean is after them is not said); before 2009, 116 trades, 81%, 0.79%. Of buying under 5 it
+prints 2.7% a year and no count of trades. Bought under 10 is another rule than the one coded:
+it waits for a rule that carries its settings, and then the same is within 3 trades, 2 points
+of the share gaining and 0.06 of the mean gain.
 """
 
 from __future__ import annotations
@@ -77,6 +107,13 @@ class Fill(enum.Enum):
     NEXT_OPEN = 1  #: at the next bar's open, as the desk itself fills
 
 
+class Hand(enum.Enum):
+    """Whose test printed a figure's numbers; the words name them where a number is missed."""
+
+    AUTHOR = "the author's"
+    SECOND = "the replication's"  #: somebody else's published run of the author's rule
+
+
 class Measure(enum.Enum):
     """A number an author prints of a test."""
 
@@ -89,8 +126,16 @@ class Measure(enum.Enum):
 @dataclass(frozen=True)
 class Stated:
     measure: Measure
-    value: Decimal  #: as the author printed it
+    value: Decimal  #: as printed; the middle of the range, where sources disagree
     within: Decimal  #: how far from it the desk's may lie and be the same, fixed beforehand
+
+    @classmethod
+    def between(cls, measure: Measure, low: Decimal, high: Decimal) -> Stated:
+        """Sources that disagree: the same is anywhere from the least printed to the most."""
+        if not (low.is_finite() and high.is_finite() and low <= high):
+            raise ValueError(f"{measure.value}: no range runs from {low} to {high}")
+        with localcontext(ARITHMETIC):
+            return cls(measure, (low + high) / 2, (high - low) / 2)
 
 
 @dataclass(frozen=True)
@@ -102,6 +147,7 @@ class Figure:
     end: date  #: and the last bar the rule is shown
     fill: Fill
     stated: tuple[Stated, ...]
+    hand: Hand  #: the author's own table, or a replication standing in for it
 
     def __post_init__(self) -> None:
         if self.strategy not in published.PUBLISHED:
@@ -145,7 +191,7 @@ class Reproduction:
         return all(found.same for found in self.found)
 
 
-#: The authors' figures on file, each read from its publication. None yet (see above).
+#: The figures on file, each read from the page that printed it. None yet (see above).
 FIGURES: tuple[Figure, ...] = ()
 
 
@@ -217,12 +263,13 @@ def settled(strategy: str, made: Sequence[Reproduction]) -> tuple[Reproduction, 
             )
         if not one.reproduced:
             out = "; ".join(
-                f"{f.stated.measure.value}: {f.measured} against the author's {f.stated.value}"
+                f"{f.stated.measure.value}: {f.measured} against "
+                f"{one.figure.hand.value} {f.stated.value}"
                 for f in one.found
                 if not f.same
             )
             raise ValueError(f"{one.figure.source}: not reproduced, so no verdict ({out})")
     waiting = [figure.source for figure in owed if all(one.figure != figure for one in made)]
     if waiting:
-        raise ValueError(f"{strategy}: no verdict before its author's own result: {waiting}")
+        raise ValueError(f"{strategy}: no verdict before its published result: {waiting}")
     return tuple(dict.fromkeys(made))
