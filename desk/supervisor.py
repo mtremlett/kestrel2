@@ -1,0 +1,299 @@
+"""supervisor - THE DESK'S OWN PROCESSES, KEPT ALIVE BY ONE SUPERVISOR. Everything the desk
+runs unattended is a job on one register (JOBS): its name, the module that is its program,
+how often it is due and how long it may take. The one supervisor (`supervise`) looks every
+few seconds and runs each job that is due, one at a time, each in a process of its own in a
+window nobody sees. It remembers nothing: a job is due when its last receipt began its own
+interval ago, so a supervisor started again, after a kill or a reboot, simply carries on.
+
+ONE OF EACH, held by the system and not by a note in a file. The supervisor holds a lock in
+the desk's root for its whole life, and so does each job's process (`work`). The system lets
+go of a lock the moment its process is gone, however it went. So a second supervisor leaves
+at once; and a job left running by a supervisor that was killed is never joined by a second
+of the same job: the next is refused until that one has ended, and its receipt says so.
+
+A DATED RECEIPT for every run, written as it ends: the job, when it began and ended, and how:
+done, or the code it ended with and its last words, or that it was killed at its time limit.
+A job that fails is run again when next due and not before. The supervisor dials nothing, so
+a dropped network or a lost broker is one bad receipt after another, and then a good one.
+
+HEALTH IS JUDGED FROM OUTSIDE (`health`), by the receipts alone, by whoever asks: a job with
+no receipt in the time one must come is not being run (the supervisor is dead, or stuck), and
+a job whose last runs ended badly is named with how. No job registered is itself not well.
+
+THE LEDGER OF WHAT HE DID (`acted`): each thing the operator does for the desk is written
+here by whoever does or sees it. `unattended` measures how long the desk has run without
+him: back to the last thing he did that no ruling excepts (the paper Gateway's weekly login
+is his by ruling, docs/DECISIONS.md), or to the last hour without a receipt, whichever is
+the later. A desk that was not running proves nothing. Seven days are owed (NS-01).
+
+Not built (docs/STATUS.md): the register is empty, for the desk's step has no command yet;
+nobody is told what `health` finds; and the supervisor's own start, once, by Windows."""
+
+from __future__ import annotations
+
+import runpy
+import sqlite3
+import subprocess
+import sys
+import time
+from collections.abc import Callable, Iterator, Sequence
+from contextlib import closing, contextmanager
+from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
+from typing import NamedTuple
+
+RECORD = "supervisor.db"
+TABLES = (
+    "CREATE TABLE IF NOT EXISTS receipts (job, began, ended, how)",
+    "CREATE TABLE IF NOT EXISTS actions (at, what, ruled)",
+)
+READ = "SELECT job, began, ended, how FROM receipts"
+LAST = f"{READ} WHERE job = ? ORDER BY rowid DESC LIMIT 1"
+#: A job's bad endings since it last ended well, oldest first.
+BAD = (
+    f"{READ} WHERE job = :job AND rowid > (SELECT COALESCE(MAX(rowid), 0) "  # noqa: S608 - fixed
+    "FROM receipts WHERE job = :job AND how = :done) ORDER BY rowid"
+)
+HIS = "SELECT COALESCE(MAX(at), '') FROM actions WHERE NOT ruled"
+RAN = "SELECT began FROM receipts WHERE began > ? AND began <= ? ORDER BY began DESC"
+WAIT = 5  #: seconds one process waits for another's write of the record
+LOOK = 15  #: seconds between the supervisor's looks at what is due
+SAID = 200  #: the most of a job's last words its receipt keeps
+SILENCE = timedelta(hours=1)  #: receipts further apart than this: the desk was not running
+OWED = timedelta(days=7)  #: how long the desk is to run without him (NS-01)
+HIDDEN = getattr(subprocess, "CREATE_NO_WINDOW", 0)  #: on Windows, no window for a process
+DONE, ENDED = "done", "ended {}: {}"
+OVERRAN = "was still running after {}, its time limit, and was killed"
+NOTHING = "No job is registered with the supervisor: nothing of the desk runs under it."
+LATE = "No receipt of the desk's {} {}: nothing is running it. Please look at the PC."
+BADLY = "The desk's {} has not ended well since {:%a %d %b %H:%M} UTC ({} in a row). The latest {}."
+ALONE = "The desk has run {} days {} hours without him: {} days are owed (NS-01)."
+LOGIN = "the paper Gateway's weekly login"
+USAGE = "python -m desk.supervisor run ROOT | health ROOT | acted ROOT WHAT HE DID | login ROOT"
+Clock = Callable[[], datetime]
+
+
+@dataclass(frozen=True)
+class Job:
+    """One thing the desk runs unattended, as the register holds it."""
+
+    name: str
+    module: str  #: its program, run as `python -m` runs one, the desk's root its one word
+    every: timedelta  #: due again this long after its last run began
+    limit: timedelta  #: a run still going after this long is killed
+
+
+#: THE ONE REGISTER of what the desk runs unattended. Empty (docs/STATUS.md): the desk's step
+#: has no command yet, and a module that only imports would end "done" with nothing done.
+JOBS: tuple[Job, ...] = ()
+Run = Callable[[Job, Path], str]
+
+
+class Receipt(NamedTuple):
+    """One run of a job, as the record keeps it."""
+
+    job: str
+    began: datetime
+    ended: datetime
+    how: str  #: DONE, or how else it ended
+
+
+class Action(NamedTuple):
+    """One thing the operator did for the desk, as the ledger keeps it."""
+
+    at: datetime
+    what: str
+    ruled: bool  #: his by a ruling of his own, so no break in the desk's running without him
+
+
+class Held(Exception):
+    """Another process holds the lock: one supervisor, and one of each job, at a time."""
+
+
+def _utc(moment: datetime) -> datetime:
+    if moment.utcoffset() != timedelta(0):
+        raise ValueError(f"{moment} is no moment in UTC: the supervisor's record is in UTC alone")
+    return moment
+
+
+def _now() -> datetime:
+    return datetime.now(UTC)
+
+
+@contextmanager
+def _only(root: Path, name: str) -> Iterator[None]:
+    """The lock of that name in the desk's root, held until left or until this process is
+    gone, when the system lets go of it. Held by another, it is refused at once."""
+    root.mkdir(parents=True, exist_ok=True)
+    with closing(sqlite3.connect(root / f"{name}.lock", timeout=0, isolation_level=None)) as lock:
+        try:
+            lock.execute("BEGIN EXCLUSIVE")
+        except sqlite3.OperationalError as refused:
+            if refused.sqlite_errorcode != sqlite3.SQLITE_BUSY:
+                raise
+            raise Held(f"another {name} is running in {root}: one at a time") from None
+        yield
+
+
+@contextmanager
+def _record(root: Path) -> Iterator[sqlite3.Connection]:
+    """The receipts and the ledger, opened: one file, each write whole or not at all, read
+    and written by the supervisor and by whoever judges it from outside."""
+    root.mkdir(parents=True, exist_ok=True)
+    with closing(sqlite3.connect(root / RECORD, timeout=WAIT, isolation_level=None)) as record:
+        for table in TABLES:
+            record.execute(table)
+        yield record
+
+
+def _receipt(row: tuple[str, str, str, str]) -> Receipt:
+    return Receipt(row[0], datetime.fromisoformat(row[1]), datetime.fromisoformat(row[2]), row[3])
+
+
+def receipts(root: Path) -> tuple[Receipt, ...]:
+    """Every receipt, oldest first. No record is a desk nothing has yet been run for."""
+    with _record(root) as record:
+        return tuple(map(_receipt, record.execute(f"{READ} ORDER BY rowid")))
+
+
+def _run(job: Job, root: Path) -> str:
+    """A job's own process (work), in a window nobody sees, to its end or to its time limit,
+    where it is killed. Given back: how it ended, as its receipt keeps it."""
+    command = [sys.executable, "-m", "desk.supervisor", "work", str(root), job.name, job.module]
+    limit = job.limit.total_seconds()
+    try:
+        ended = subprocess.run(  # noqa: S603 - the desk's own python, on a registered module
+            command, capture_output=True, errors="replace", timeout=limit, creationflags=HIDDEN
+        )
+    except subprocess.TimeoutExpired:
+        return OVERRAN.format(job.limit)
+    last = (ended.stderr.strip().splitlines() or ["it said nothing"])[-1]
+    return DONE if ended.returncode == 0 else ENDED.format(ended.returncode, last[:SAID])
+
+
+def attend(
+    root: Path, jobs: Sequence[Job], clock: Clock = _now, run: Run = _run
+) -> tuple[Receipt, ...]:
+    """ONE LOOK: each job due at its moment is run to its end, one at a time in the
+    register's order, and its receipt kept. Given back: this look's receipts."""
+    kept = []
+    for job in jobs:
+        began = _utc(clock())
+        with _record(root) as record:
+            last = record.execute(LAST, (job.name,)).fetchone()
+        if last is None or began - _receipt(last).began >= job.every:
+            how = run(job, root)
+            receipt = Receipt(job.name, began, _utc(clock()), how)
+            row = (job.name, began.isoformat(), receipt.ended.isoformat(), how)
+            with _record(root) as record:
+                record.execute("INSERT INTO receipts VALUES (?, ?, ?, ?)", row)
+            kept.append(receipt)
+    return tuple(kept)
+
+
+def work(root: Path, name: str, module: str) -> None:
+    """A JOB'S OWN PROCESS: the job's lock held for the whole of its life, and its module run
+    as the program, the desk's root its one word. While a run before it holds the lock (one
+    a dead supervisor left running), this one is refused and runs nothing."""
+    with _only(root, f"job-{name}"):
+        sys.argv = [module, str(root)]
+        runpy.run_module(module, run_name="__main__", alter_sys=True)
+
+
+def health(root: Path, now: datetime, jobs: Sequence[Job]) -> tuple[str, ...]:
+    """THE DESK'S HEALTH, JUDGED FROM OUTSIDE its processes by the receipts alone: what is
+    wrong, in words for him; nothing, and all is well. A job is not being run when its last
+    receipt began longer ago than its interval, every job's time limit and one look, the
+    longest a supervisor that lives can leave it. A job that is run is named while its last
+    receipt ended badly, with how many have since it last ended well."""
+    if not jobs:
+        return (NOTHING,)
+    patience = sum((job.limit for job in jobs), timedelta(seconds=LOOK))
+    wrong = []
+    with _record(root) as record:
+        for job in jobs:
+            bad = [*map(_receipt, record.execute(BAD, {"job": job.name, "done": DONE}))]
+            last = [*map(_receipt, record.execute(LAST, (job.name,)))]
+            if not last or _utc(now) - last[0].began > job.every + patience:
+                since = f"since {last[0].ended:%a %d %b %H:%M} UTC" if last else "at all"
+                wrong.append(LATE.format(job.name, since))
+            elif bad:
+                wrong.append(BADLY.format(job.name, bad[0].began, len(bad), bad[-1].how))
+    return tuple(wrong)
+
+
+def acted(root: Path, at: datetime, what: str, ruled: bool = False) -> Action:
+    """ONE THING HE DID FOR THE DESK, onto the ledger, with the moment in UTC and what it was.
+    ruled marks the one thing a ruling of his makes his own to do: the Gateway's login."""
+    if not what.strip():
+        raise ValueError(f"the operator's action at {at} has no words for what he did")
+    with _record(root) as record:
+        record.execute("INSERT INTO actions VALUES (?, ?, ?)", (_utc(at).isoformat(), what, ruled))
+    return Action(at, what, ruled)
+
+
+def actions(root: Path) -> tuple[Action, ...]:
+    """The ledger of what he did for the desk, oldest first."""
+    with _record(root) as record:
+        rows = record.execute("SELECT at, what, ruled FROM actions ORDER BY at, rowid").fetchall()
+    return tuple(Action(datetime.fromisoformat(at), what, bool(ruled)) for at, what, ruled in rows)
+
+
+def unattended(root: Path, now: datetime) -> timedelta:
+    """HOW LONG THE DESK HAS RUN WITHOUT HIM, to now: back through the receipts for as long
+    as each began within SILENCE of the next, and no further than the last thing he did
+    that no ruling excepts. No receipt within SILENCE of now is no time at all."""
+    with _record(root) as record:
+        his = record.execute(HIS).fetchone()[0]
+        ran = record.execute(RAN, (his, _utc(now).isoformat())).fetchall()
+    since = now
+    for (began,) in ran:
+        if since - datetime.fromisoformat(began) > SILENCE:
+            break
+        since = datetime.fromisoformat(began)
+    return now - since
+
+
+def supervise(
+    root: Path, jobs: Sequence[Job], clock: Clock = _now, wait: Callable[[float], None] = time.sleep
+) -> None:
+    """THE ONE SUPERVISOR, for as long as it lives: the supervisor's lock taken (Held, and
+    another is alive), then a look at what is due every LOOK seconds. Nothing registered is
+    refused. An error of its own ends it: whatever started it starts it again."""
+    if not jobs:
+        raise ValueError(NOTHING)
+    with _only(root, "supervisor"):
+        while True:
+            attend(root, jobs, clock)
+            wait(LOOK)
+
+
+def main(argv: Sequence[str], clock: Clock = _now) -> int:
+    """THE COMMAND LINE (USAGE). run: the supervisor, which leaves at once and without fault
+    when another is alive. health: what is wrong and how long the desk has run without him,
+    1 when anything is wrong. acted, login: a thing he did, onto the ledger, at this moment."""
+    match argv:
+        case ["run", root]:
+            try:
+                supervise(Path(root), JOBS)
+            except Held as other:
+                sys.stdout.write(f"{other}\n")
+        case ["work", root, name, module]:
+            work(Path(root), name, module)
+        case ["health", root]:
+            wrong, alone = health(Path(root), clock(), JOBS), unattended(Path(root), clock())
+            told = ALONE.format(alone.days, alone.seconds // 3600, OWED.days)
+            sys.stdout.write("\n".join([*wrong, told]) + "\n")
+            return int(bool(wrong))
+        case ["acted", root, *words] if words:
+            acted(Path(root), clock(), " ".join(words))
+        case ["login", root]:
+            acted(Path(root), clock(), LOGIN, ruled=True)
+        case _:
+            raise SystemExit(USAGE)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
