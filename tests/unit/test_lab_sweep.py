@@ -175,3 +175,12 @@ def test_a_week_is_pass_after_pass_and_its_log_shows_how_long_without_stopping(
     assert sweep.unbroken(clean) == timedelta(days=7)
     late = sweep.fresh(clean, clean, clean, timedelta(milliseconds=1))  # a pass past its limit
     assert late == {"error": "TimeoutExpired: ended at its limit of 0:00:00.001000"}
+
+
+def test_held_is_every_ticker_the_store_has_bars_for_the_list_or_not(tmp_path: Path) -> None:
+    other = Line("ZZZZ", "LSE", "GBP", 1, STAMP_DUTY)
+    for line in (BOEING, BAE, other):
+        _keep(tmp_path, line)
+    (tmp_path / "US" / "ZZZ.faults.csv").write_text("fault\n")  # a note, not a ticker
+    assert sweep.held(tmp_path) == (BAE, other, BOEING)
+    assert sweep.held(tmp_path)[0] is next(x for x in universe.UNIVERSE if x == BAE)
