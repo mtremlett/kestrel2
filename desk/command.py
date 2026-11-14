@@ -95,10 +95,9 @@ def rates(root: Path, day: date) -> dict[str, Decimal]:
     close that is no pound's, or too old for the day, is an error and no rate."""
     kept = book._rates(root).get((day, "USD"))
     if kept is None:
-        last = archive.fetch(POUND, day)[-1:]
-        if not (
-            last and DAY <= day - last[0].day <= FRESH and DOLLARS[0] < last[0].close < DOLLARS[1]
-        ):
+        #: the archive adds the day's own bar, still moving (seen 14 November 2026): not before it
+        last = [bar for bar in archive.fetch(POUND, day) if bar.day < day][-1:]
+        if not (last and day - last[0].day <= FRESH and DOLLARS[0] < last[0].close < DOLLARS[1]):
             raise ValueError(f"{day}: the archive has no pound in dollars to trust: {last}")
         kept = (1 / last[0].close).quantize(Decimal("0.000001"))
     return {"GBP": Decimal(1), "USD": kept}

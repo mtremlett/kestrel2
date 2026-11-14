@@ -122,6 +122,9 @@ def test_the_doors_refuse_an_archive_that_answers_for_no_line_and_a_pound_they_c
         monkeypatch.setattr(archive, "fetch", lambda _line, _day, given=given: given)
         with pytest.raises(ValueError, match="no pound in dollars to trust"):
             command.rates(tmp_path, ask)
+    moving = (_flat(today, "1.25"), _flat(ask, "1.3"))  # the day's own bar is passed over
+    monkeypatch.setattr(archive, "fetch", lambda _line, _day: moving)
+    assert command.rates(tmp_path, ask)["USD"] == Decimal("0.8")
     with pytest.raises(SystemExit, match="KESTREL2_DATA names no whole path to a folder"):
         command.main([], {"KESTREL2_DATA": ""})
 
