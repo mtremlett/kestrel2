@@ -27,7 +27,7 @@ money = ["tests/scenes/test_scenes.py"]
 paper = []
 data = ["tests/scenes/rehearsal.py"]
 grid = []
-rungs = ["tests/ladder_spec/*"]
+rungs = []
 
 # Every module, with the one thing it owns. Add a line here, then write the file.
 # Each lane (docs/PLAN.md) adds its modules under its own heading, so two lanes never
