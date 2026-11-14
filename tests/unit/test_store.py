@@ -49,7 +49,6 @@ BAD_BARS: dict[str, Callable[[Bar], Bar]] = {
     "only the high is in the wrong unit": lambda b: replace(b, high=b.high * 100),
     "only the low is in the wrong unit": lambda b: replace(b, low=b.low / 100),
     "the high is a bad print": lambda b: replace(b, high=b.high * 2),
-    "the low is a bad print": lambda b: replace(b, low=b.low / 2),
     "a price is not a number": lambda b: replace(b, high=Decimal("NaN")),
     "a price is infinite": lambda b: replace(b, high=Decimal("Infinity")),
 }

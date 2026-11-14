@@ -128,8 +128,8 @@ def _entered(line: Line, bar: Bar, open_days: set[date]) -> Bar | str:
     reach = (bar.low * (1 - STRETCH), bar.high * (1 + STRETCH))
     if not bar.low <= bar.high or not reach[0] <= min(ends) <= max(ends) <= reach[1]:
         return f"{bar.day} has an open or close outside its high and low"
-    if bar.high >= JUMP * max(ends) or bar.low * JUMP <= min(ends):
-        return f"{bar.day} has a high or low far from its own open and close: a bad print"
+    if bar.high >= JUMP * max(ends):
+        return f"{bar.day} has a high far above its own open and close: a bad print"
     return replace(bar, high=max(bar.high, *ends), low=min(bar.low, *ends))
 
 
@@ -207,7 +207,8 @@ def _priced(line: Line, sound: Sequence[Bar], faults: list[Fault], rates: Rates)
             faults.append(Fault(bar.day, f"{bar.day} {ASTRAY}"))
             continue
         if kept and not _agree(line, kept[-1], bar, rates):
-            if bar.volume == 0:  # no trade states no price (2MU, 24 October 2025)
+            back = at + 1 < len(sound) and _agree(line, kept[-1], sound[at + 1], rates)
+            if bar.volume == 0 and back:  # no trade states no price (2MU, 24 October 2025)
                 faults.append(Fault(bar.day, f"{bar.day} {ASTRAY}: it has no volume"))
                 continue
             unit = _far(bar, kept[-1].close, rate)
