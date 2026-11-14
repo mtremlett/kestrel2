@@ -372,6 +372,8 @@ def test_nothing_is_sent_without_a_drill_a_clean_day_a_ready_gateway_and_the_sto
     refusals: list[tuple[placing.Paper, tuple[Order | Sale, ...], type[Exception], str]] = [
         (_paper(ready), (Sale(ID, SMGB, 5),), Refused, "does not list SMGB: the broker lists 0"),
         (_paper(ready), (Sale(ID, replace(SMGB, symbol="VUSA"), 5),), Refused, "VUSA: it was not"),
+        (_paper(ready, AT + timedelta(days=1)), either, Refused, "not dated the session before"),
+        (_paper(ready, AT - timedelta(days=2)), either, Refused, "today, 2026-11-14, a session"),
         (_paper(tmp_path / "new"), either, Refused, "was not drilled in the last 31 days"),
         (_paper(tmp_path / "old"), either, Refused, "was not drilled in the last 31 days"),
         (_paper(unchecked), either, Refused, "not been checked today"),
