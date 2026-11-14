@@ -39,8 +39,8 @@ class _Eager:
 
 
 def _plain(self: Any, value: Decimal) -> Decimal | None:
-    self._first.add(value)
-    return cast(Decimal, self._first.mean()) if self._first.full else None
+    self.seen = [*getattr(self, "seen", []), value][-14:]
+    return sum(self.seen, Decimal(0)) / 14 if len(self.seen) == 14 else None
 
 
 def test_each_rule_the_ladder_judges_gives_its_published_answers_and_names_its_source() -> None:
@@ -113,10 +113,17 @@ def test_no_rule_is_proven_on_an_indicator_that_does_not_give_its_published_tabl
     with pytest.raises(ValueError, match=r"Wilder's smoothing, its Avg Gain,.*0\.2384 at row 1"):
         published.indicators()
     monkeypatch.undo()
-    #: and held to the last place printed: one row out by one in its fourth place is refused
-    name = "Wilder's smoothing of the true range"
-    near = (*tables[name].printed["ATR"][:-1], Decimal("1.3166"))
+    #: every row of every column is held, to the last place printed: any one of them out by
+    #: one in that place, or a column a row short, is refused, and named
     held = cast(MutableMapping[str, Any], published.INDICATORS)
-    monkeypatch.setitem(held, name, replace(tables[name], printed={"ATR": near}))
-    with pytest.raises(ValueError, match=r"1\.3165 at row 16 where the table prints 1\.3166"):
-        published.indicators()
+    for name, table in dict(tables).items():
+        for column, printed in table.printed.items():
+            one = Decimal(1).scaleb(-len(str(printed[0]).split(".")[1]))
+            near = [
+                (*printed[:n], printed[n] + one, *printed[n + 1 :]) for n in range(len(printed))
+            ]
+            for other in (printed[:-1], *near):
+                monkeypatch.setitem(held, name, replace(table, printed={column: other}))
+                with pytest.raises(ValueError, match=f"the desk's {name}, its {column}, is not"):
+                    published.indicators()
+        monkeypatch.setitem(held, name, table)

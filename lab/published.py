@@ -25,10 +25,12 @@ mistake in every rule that reads it: the old desk never checked one against a nu
 not worked itself. So the parts the desk's rules measure with (the moving average, the
 deviation of Bollinger's bands, Wilder's smoothing under the RSI and the average true range)
 are held to tables printed by somebody else, StockCharts' ChartSchool, whose spreadsheets
-give the prices exactly and the answers row by row (`INDICATORS`). No rule is proven while
-one of them gives another number. What a rule makes of its parts in its own lines (the
-RSI's ratio, the true range, a band) is not reachable by name yet, and is held by the known
-answers above alone.
+give what each is worked from exactly and its answers row by row (`INDICATORS`), at the
+tables' own lengths of 10, 20 and 14 days: the desk's parts are one piece of code at any
+length. No rule is proven while one of them gives another number. What a rule makes of its
+parts in its own lines (the RSI's gains, losses and ratio, the true range, a band, a carried
+band) is not reachable by name yet, and with the highest high and lowest low of the
+breakout, which no table here prints, is held by the known answers above alone.
 
 A series is its closes; each bar opens on its close, and its high and low lie `reach` either
 side of it, one bar a day. Bars are counted from 0.
@@ -181,6 +183,7 @@ class Table:
     source: str
     given: Columns
     printed: Columns
+    made: Callable[[Columns], Mapping[str, Sequence[Decimal]]]  #: the desk's own, by column
 
     def __post_init__(self) -> None:
         if not self.source.strip() or not self.printed:
@@ -189,6 +192,21 @@ class Table:
 
 def _column(*numbers: str) -> tuple[Decimal, ...]:
     return tuple(Decimal(n) for n in " ".join(numbers).split())
+
+
+def _windows(size: int, values: Sequence[Decimal]) -> Iterator[_Window]:
+    """The desk's window of `size` after each value, from the one that fills it."""
+    window = _Window(size)
+    for value in values:
+        window.add(value)
+        if window.full:
+            yield window
+
+
+def _smoothed(values: Sequence[Decimal]) -> list[Decimal]:
+    """The desk's Wilder smoothing over 14 values, from the one that completes its first."""
+    wilder = _Wilder(14)
+    return [made for made in map(wilder.add, values) if made is not None]
 
 
 INDICATORS: Mapping[str, Table] = {
@@ -208,6 +226,7 @@ INDICATORS: Mapping[str, Table] = {
                 "23.612980 23.505730 23.432250 23.277340 23.131210",
             )
         },
+        lambda given: {"10-day SMA": [w.mean() for w in _windows(10, given["Price"])]},
     ),
     "Bollinger's bands": Table(
         _SCHOOL + "Bollinger Bands (cs-bbands.xls): SPY, 1 May to 30 June 2009, 20 days",
@@ -231,6 +250,10 @@ INDICATORS: Mapping[str, Table] = {
                 "2.0218 2.0094 1.9951 1.9360 1.7601 1.6828 1.7791 1.7041 1.6420 1.6451 1.6013",
                 "1.5492",
             ),
+        },
+        lambda given: {
+            "Middle Band": [w.mean() for w in _windows(20, given["Price"])],
+            "Standard Deviation": [w.deviation() for w in _windows(20, given["Price"])],
         },
     ),
     "Wilder's smoothing": Table(
@@ -257,9 +280,10 @@ INDICATORS: Mapping[str, Table] = {
                 "0.1938 0.2747 0.2551 0.2369 0.2199 0.2861 0.3198 0.2970",
             ),
         },
+        lambda given: {"Avg Gain": _smoothed(given["Gain"]), "Avg Loss": _smoothed(given["Loss"])},
     ),
     "Wilder's smoothing of the true range": Table(
-        _SCHOOL + "the average true range (cs-atr.xls): QQQQ, 1 April to 13 May 2010, 14 days",
+        _SCHOOL + "the average true range (cs-atr.xls): QQQ, 1 April to 13 May 2010, 14 days",
         {
             "TR": _column(
                 "0.9100 0.5800 0.5100 0.5000 0.5800 0.4150 0.2600 0.4900 0.6000 0.3200 0.9300",
@@ -273,39 +297,8 @@ INDICATORS: Mapping[str, Table] = {
                 "1.2092 1.3026 1.3803 1.3667 1.3362 1.3165",
             )
         },
+        lambda given: {"ATR": _smoothed(given["TR"])},
     ),
-}
-
-
-def _windows(size: int, values: Sequence[Decimal]) -> Iterator[_Window]:
-    """The desk's window of `size` after each value, from the one that fills it."""
-    window = _Window(size)
-    for value in values:
-        window.add(value)
-        if window.full:
-            yield window
-
-
-def _smoothed(values: Sequence[Decimal]) -> list[Decimal]:
-    """The desk's Wilder smoothing over 14 values, from the one that completes its first."""
-    wilder = _Wilder(14)
-    return [made for made in map(wilder.add, values) if made is not None]
-
-
-#: What the desk's own code makes of what each table gives, column by column.
-_MADE: Mapping[str, Callable[[Columns], Mapping[str, Sequence[Decimal]]]] = {
-    "the moving average": lambda given: {
-        "10-day SMA": [w.mean() for w in _windows(10, given["Price"])]
-    },
-    "Bollinger's bands": lambda given: {
-        "Middle Band": [w.mean() for w in _windows(20, given["Price"])],
-        "Standard Deviation": [w.deviation() for w in _windows(20, given["Price"])],
-    },
-    "Wilder's smoothing": lambda given: {
-        "Avg Gain": _smoothed(given["Gain"]),
-        "Avg Loss": _smoothed(given["Loss"]),
-    },
-    "Wilder's smoothing of the true range": lambda given: {"ATR": _smoothed(given["TR"])},
 }
 
 
@@ -316,7 +309,7 @@ def indicators() -> Mapping[str, Table]:
     that does not."""
     with localcontext(strategy.ARITHMETIC):
         for name, table in INDICATORS.items():
-            columns = _MADE[name](table.given)
+            columns = table.made(table.given)
             for column, printed in table.printed.items():
                 _hold(f"the desk's {name}, its {column}", table, columns[column], printed)
     return INDICATORS
