@@ -39,8 +39,8 @@ class Record:
     is made. A day whose book is not the broker's names the lines and has no profit; no other
     day lacks one. With it, kept exact, what the next day's record carries on from. A day with
     a halt in force names it, and keeps its number. THE DAY'S VERDICT (NS-06): it counts only
-    if its book was the broker's, no halt was in force, and the send path stopped no signal
-    for a halt or the kill switch."""
+    if its book was the broker's, no halt was in force, and its orders were sent, none of
+    them stopped for a halt or the kill switch."""
 
     day: date
     #: The book's gain after every cost, since the last record that carried one: the day's
@@ -53,11 +53,11 @@ class Record:
     counted: int  #: the ledger's fills dated by the day, each counted by a record up to this one
     #: the halts in force that day, each by the moment it was called, as halt.kept stood
     halted: tuple[datetime, ...]
-    stopped: int  #: the signals the kill switch or a halt refused that morning (halt.stopped)
+    stopped: int | None  #: signals the kill switch or a halt refused; None, no orders sent
     counts: bool = field(init=False)  #: the verdict
 
     def __post_init__(self) -> None:
-        clear = self.profit is not None and not self.halted and not self.stopped
+        clear = self.profit is not None and not self.halted and self.stopped == 0
         object.__setattr__(self, "counts", clear)
         if (self.profit is None) != bool(self.mismatches):
             raise ValueError(
@@ -158,7 +158,7 @@ def records(root: Path) -> tuple[Record, ...]:
             Decimal(row[8]),
             int(row[9]),
             tuple(map(datetime.fromisoformat, row[10].split())),
-            int(row[11]),
+            int(row[11]) if row[11] else None,
         )
         for row in rows[1:]
     )

@@ -129,18 +129,25 @@ def test_a_day_the_book_is_not_the_brokers_buys_nothing_and_sells_only_lines_tha
     assert "['A']" in str(sold[0].reason) and list(book.positions(tmp_path)) == ["A"]
     listed = halt.morning(tmp_path, DAYS[22])  #: a sale refused is on the list like a buy
     assert [b.order_id[-1] for b in listed[Blocker.BOOK] + listed[Blocker.HELD]] == ["A", "H"]
-    dying = Pretend(ARCHIVE, {"A": Fault.PARTIAL, "C": Fault.CRASH})
+    dying = Pretend(ARCHIVE, {"A": Fault.CRASH})
     dying.open(DAYS[21])
     with pytest.raises(Crash):  #: only a refusal is an answer: the desk dying is not
         _trade(tmp_path / "dying", dying, DAYS[21])
-    #: A's part fill is on the list the moment it is answered, and stays when the desk is
-    #: started again and its rule, holding A now, asks for no more
-    for run in (None, _trade(tmp_path / "dying", dying, DAYS[21])):
-        part = halt.morning(tmp_path / "dying", DAYS[21])[Blocker.BROKER]
-        assert [(b.order_id[-1], b.filled) for b in part] == [("A", 110)], f"dropped: {run}"
+    opened = halt.morning(tmp_path / "dying", DAYS[21])  #: its list opened before any order went
+    assert [b.order_id for b in opened[Blocker.UNREAD]] == ["G"]
     dying.open(DAYS[22])  #: the fill it died on is the broker's alone: the first record its day's
     with pytest.raises(ValueError, match="no record yet for .*2025, 2, 4"):
         day.publish(tmp_path / "dying", MARKET, dying, Settings(Decimal(10_000)), DAYS[22])
+    part = Pretend(ARCHIVE, {"A": Fault.PARTIAL, "C": Fault.CRASH})
+    part.open(DAYS[21])
+    with pytest.raises(Crash):
+        _trade(tmp_path / "part", part, DAYS[21])
+    #: A's part fill is on the list the moment it is answered, and stays when the desk is
+    #: started again and its rule, holding A now, asks for no more
+    for again in (False, True):
+        kept = halt.morning(tmp_path / "part", DAYS[21])[Blocker.BROKER]
+        assert [(b.order_id[-1], b.filled) for b in kept] == [("A", 110)], f"dropped: {again}"
+        _trade(tmp_path / "part", part, DAYS[21])
 
 
 def test_a_day_with_the_kill_switch_on_sends_nothing_and_every_order_is_answered_so(
@@ -305,6 +312,8 @@ def test_a_session_the_desk_missed_is_named_and_gets_its_record_before_any_later
     #: H's 110.50 lost and its stop's 3.00, 0.884 and 2.652 of costs, in the missed day's record
     assert (missed.profit, missed.costs.total) == (Decimal("-117.04"), Decimal("6.53"))
     assert day.records(tmp_path) == (bought, missed), "a record lost, or not kept in order"
+    never = (bought.stopped, missed.stopped, missed.counts)  #: its orders were never sent
+    assert never == (0, None, False), "a day the desk sent no orders on, counted"
 
 
 def test_a_record_opens_from_what_the_last_one_closed_on_at_each_days_own_rate(

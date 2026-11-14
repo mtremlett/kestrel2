@@ -7,7 +7,7 @@ rule's signal and its whole trade, each named once here; every morning's orders 
 of every blocker with the signals it blocked. Sending what is said to him is the messenger's.
 WHAT A HALT IS NOT. It cancels nothing: a buy a dead desk left working at the broker can still
 fill, and only the kill switch cancels. Its moments are its caller's word, so the day's verdict
-also reads what the send path did (stopped). And one process at a time calls or lifts."""
+also reads what the send path did (stopped). One process at a time writes or reads these."""
 
 from __future__ import annotations
 
@@ -176,11 +176,11 @@ def _listed(path: Path) -> list[Blocked]:
         raise ValueError(f"{path}: not a list of the desk's blockers: {fault!r}") from fault
 
 
-def stopped(root: Path, day: date) -> int:
+def stopped(root: Path, day: date) -> int | None:
     """The signals a morning's list holds under the kill switch or a halt: what the send path
-    did, whatever moments the halts were given. A day whose orders were never sent has none."""
-    found = _listed(root / BLOCKED / f"{day}.csv")
-    return sum(b.blocker in (Blocker.KILL, Blocker.HALT) for b in found)
+    did, whatever moments the halts were given. None for a day whose orders were never sent."""
+    path, stops = root / BLOCKED / f"{day}.csv", (Blocker.KILL, Blocker.HALT)
+    return sum(b.blocker in stops for b in _listed(path)) if path.exists() else None
 
 
 def morning(root: Path, day: date) -> dict[Blocker, tuple[Blocked, ...]]:
@@ -197,8 +197,9 @@ def morning(root: Path, day: date) -> dict[Blocker, tuple[Blocked, ...]]:
 def listed(root: Path, day: date) -> str:
     """The morning's list in plain English, for whoever must be told."""
     found = morning(root, day)
+    signals = sum(len(found[b]) for b in Blocker if b is not Blocker.UNREAD)
     said = (f"{b.value}: {', '.join(s.order_id for s in found[b]) or 'none'}." for b in Blocker)
-    return f"BLOCKERS, {day}: {sum(map(len, found.values()))} signals blocked. {' '.join(said)}"
+    return f"BLOCKERS, {day}: {signals} signals blocked. {' '.join(said)}"
 
 
 def _rows(path: Path, names: tuple[str, ...]) -> list[list[str]]:

@@ -126,7 +126,7 @@ def test_each_morning_one_list_names_every_blocker_and_every_signal_it_blocked(
 ) -> None:
     with pytest.raises(ValueError, match="2025-11-10"):  #: no list is not a morning with none
         halt.morning(tmp_path, MON)
-    assert halt.stopped(tmp_path, MON) == 0, "orders never sent, and some called stopped"
+    assert halt.stopped(tmp_path, MON) is None, "orders never sent is not none stopped"
     held = Blocked("20251110-bollinger-A", Blocker.HALT, 0, "not sent, a halt is in force")
     part = Blocked("20251110-rsi-B", Blocker.BROKER, 5, "5 of 10, filled in part")
     late = Blocked("C", Blocker.UNREAD, 0, "C: no bar for the session before")
@@ -139,7 +139,9 @@ def test_each_morning_one_list_names_every_blocker_and_every_signal_it_blocked(
     assert [len(blocked) for blocked in listed.values()] == [1, 1, 1, 0, 0, 0, 1]
     assert halt.stopped(tmp_path, MON) == 2, "what the switch and a halt refused, not counted"
     words = halt.listed(tmp_path, MON)
-    assert "2025-11-10: 4 signals blocked" in words and all(b.value in words for b in Blocker)
+    #: three signals: the line that was not read is listed, and is no signal
+    assert "2025-11-10: 3 signals blocked" in words and all(b.value in words for b in Blocker)
+    assert "The line has no bar for the session before: C." in words
     assert "A halt is in force: 20251110-bollinger-A." in words
     assert "The book is not the broker's: none." in words
     assert not any(halt.morning(tmp_path, TUE).values()), "another morning's signals listed"
