@@ -82,6 +82,7 @@ UNRUN = {
     "stress": "it gives pounds lost and never a pass; the loss limit to judge them by is not set",
 }
 NO_FIGURE = "no author's figure is on file for the rule: no published result stands behind it"
+NO_FOLDS = "the folds rung cannot yet hand an author's result to its folds"
 FAILED = (ValueError, OSError, keeper.Stale)  #: what may leave a cell unjudged; all else is a bug
 Row = Mapping[str, Any]  #: a cell's line in the results file
 Judged = dict[str, tuple[Answer, str]]  #: each rung's answer on a cell, and its reason
@@ -221,19 +222,17 @@ def _judge(
         reproduce.settled(c.strategy, made)
     except ValueError as missed:  #: the rule as coded is not the author's: no verdict on ours
         return {"rungs": {"reproduce": [Answer.FAIL.name, str(missed)]}, "every": False}
-    unrun, settings = dict(UNRUN), Settings(CAPITAL)
+    unrun = UNRUN | ({"folds": NO_FOLDS} if made else {"reproduce": NO_FIGURE})
+    settings = Settings(CAPITAL)
     verdict = rung.judge(cell.run(c, own), own, settings, pounds, made)
     (one,) = deflated.judge([verdict], count - 1)  #: every other trial the register holds
     rungs = _named(verdict, one)
     if made:
         said = "; ".join(f"{m.figure.hand.value} result, {m.figure.source}" for m in made)
         rungs["reproduce"] = (Answer.PASS, f"reproduced: {said}")
-        unrun["folds"] = "the folds rung cannot yet hand an author's result to its folds"
-    else:
-        unrun["reproduce"] = NO_FIGURE
-    if not made and verdict.answer is Answer.FAULT:  #: no trade in it, so none in any fold of it
+    elif verdict.answer is Answer.FAULT:  #: no trade in it, so none in any fold of it
         rungs["folds"] = rungs["first"]
-    elif not made:
+    else:
         worst = (folded := folds.judge(c, own, settings, pounds, FOLDS)).worst
         rungs["folds"] = (
             folded.answer,
