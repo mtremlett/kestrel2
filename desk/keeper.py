@@ -1,7 +1,8 @@
 """keeper - THE STORE'S KEEPER: one command, `python -m desk.keeper`, that does whatever the
 store is owed at the moment it is called, and ends. The runner calls it every five minutes
 of a weekday. It reads the calendars itself: on a day no venue trades it ends at once, and
-well, having asked nothing.
+well, having asked nothing, unless the store does not hold the bars before its venues' next
+sessions (it was never filled, or an evening was missed): those are then asked for, once.
 
 Two things are owed on a trading day, each venue's on its own calendar.
 
@@ -108,12 +109,21 @@ def target(venue: str, now: datetime) -> date:
     return day + DAY
 
 
+def _short(venue: str, last: Kept | None, day: date) -> bool:
+    """The venue's last refresh does not hold every session before a day: there was none, or
+    the venue has traded since the day it readied."""
+    return last is None or bool(venues.sessions(venue, last.day, day - DAY))
+
+
 def _refresh(
-    folder: Path, lines: Sequence[Line], now: datetime, ask: Ask[date, tuple[Bar, ...]]
+    folder: Path, lines: Sequence[Line], now: datetime, ask: Ask[date, tuple[Bar, ...]], idle: bool
 ) -> Kept | None:
     """A venue's daily bars refreshed as far as they are owed at now, and the record of it;
-    None when nothing was owed, and nothing asked."""
+    None when nothing was owed, and nothing asked. On an idle day, when no venue trades,
+    only bars the store does not yet hold are owed."""
     readied, last = target(lines[0].venue, now), _kept(folder)
+    if idle and not _short(lines[0].venue, last, readied):
+        return None
     same = last is not None and last.day == readied
     before = dict(last.parked) if last is not None and same else {}
     if last is None or not same or last.at.date() != now.date():
@@ -146,7 +156,7 @@ def saved(
     for line in lines:
         folder = home / DAILY / line.venue
         last = _kept(folder)
-        if last is None or venues.sessions(line.venue, last.day, day - DAY):
+        if last is None or _short(line.venue, last, day):
             had = "never refreshed" if last is None else f"last readied for {last.day}"
             raise Stale(f"{line.symbol}: no {line.venue} bars before {day} are held: {had}")
         held[line] = tuple(bar for bar in store.read(folder, line.symbol) if bar.day < day)
@@ -203,15 +213,14 @@ def keep(
     clock: Callable[[], float] = time.monotonic,
 ) -> tuple[list[str], list[str]]:
     """WHATEVER IS OWED AT NOW, done once: what was done, in words, and of those the misses.
-    Nothing is asked, and nothing said, on a day no venue trades."""
+    Nothing is asked, and nothing said, on a day no venue trades and the store is whole."""
     if now.utcoffset() != timedelta(0):
         raise ValueError(f"{now!r} is not a moment in UTC")
-    if not any(venues.sessions(venue, now.date(), now.date()) for venue in venues.RULES):
-        return [], []
+    idle = not any(venues.sessions(venue, now.date(), now.date()) for venue in venues.RULES)
     ends, told = clock() + SPENT, []
     for venue in sorted({line.venue for line in lines}):
         mine = [line for line in lines if line.venue == venue]
-        kept = _refresh(home / DAILY / venue, mine, now, _within(daily, clock, ends))
+        kept = _refresh(home / DAILY / venue, mine, now, _within(daily, clock, ends), idle)
         if kept is not None:
             told.append(_told(kept, mine))
         if venues.open_at(venue, now) or venues.open_at(venue, now - SETTLED):

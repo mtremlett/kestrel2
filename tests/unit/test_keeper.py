@@ -149,12 +149,16 @@ def test_nothing_is_asked_on_a_day_no_venue_trades_nor_once_the_calls_time_is_sp
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     pretend = Archive()
-    for shut in (SAT, YULE):
-        assert pretend.keep(tmp_path, _at(9, day=shut)) == ([], []) and pretend.asked == []
-    assert list(tmp_path.iterdir()) == [] and keeper.main(tmp_path, _at(9, day=SAT)) == 0
+    said, missed = pretend.keep(tmp_path, _at(9, day=SAT))  # a store never filled is owed its bars
+    assert pretend.asked == ["BBB", "AAA", "CCC"] and len(said) == 2 and missed == []
+    assert keeper.saved(tmp_path, MON, LINES)[0][UK] == _bars(UK, MON)  # ready for Monday
+    assert pretend.keep(tmp_path, _at(9, 5, SAT)) == ([], []) and pretend.asked == []
+    assert keeper.main(tmp_path, _at(9, day=SAT)) == 0  # held: nothing is owed, nothing asked
     said, missed = pretend.keep(tmp_path, _at(15), slow=True)  # both open; its time spent in two
     assert pretend.asked == ["BBB", "BBB 5m"] and missed == said[2:] and len(said) == 4
     assert keeper.saved(tmp_path, MON, LINES)[1] == {"AAA", "CCC"}
+    pretend.keep(tmp_path, _at(21, 30, YULE - timedelta(1)))  # Christmas Eve's closes are held
+    assert pretend.keep(tmp_path, _at(9, day=YULE)) == ([], []) and pretend.asked == []
     with pytest.raises(ValueError, match="not a moment in UTC"):
         keeper.keep(tmp_path, datetime(2026, 11, 16, 6))
 
