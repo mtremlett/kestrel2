@@ -4,12 +4,15 @@ ran it, and a part with none, or a promise of the desk's broken, turns the night
 
 from __future__ import annotations
 
+import cProfile
 import csv
 import sys
 from collections.abc import Callable
+from dataclasses import replace
 from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
+from types import ModuleType
 
 import pytest
 
@@ -49,7 +52,8 @@ def test_the_fourteen_months_are_lived_with_every_fault_and_the_night_is_recorde
     assert night.days == len(SESSIONS) - 1, "a session of the fourteen months without its day"
     assert all(night.met.values()), f"no order without a fault, or a fault never met: {night.met}"
     assert night.deaths == night.met[Fault.CRASH] + night.met[Fault.STRAND] >= 2
-    assert night.withheld >= 2 and night.trips, "no day's profit withheld, or no round trip"
+    assert night.withheld >= 2, "no day withheld for the hand's shares, or for the lost stop"
+    assert night.trips, "no round trip in fourteen months"
     assert night.profit != 0 != night.market
     assert set(night.idle) < set(strategy.STRATEGIES), "no rule ever held a line"
     said = ("SIMCITY RED", "2025-11-17 22:00", f"{night.days} days", "0 with no", *night.idle)
@@ -127,6 +131,9 @@ def test_a_night_that_cannot_be_kept_or_lived_is_an_error_and_leaves_nothing_run
     with pytest.raises(ValueError, match="no close of"):  #: the yardstick is not in the data
         simcity.run(tmp_path, {line: SHORT[line] for line in LINES}, ROOM, RATES, NOW)
     assert sys.getprofile() is None, "the census went on watching after the night died"
+    probe = cProfile.Profile()  #: and where a profiler left on refuses a second, none does
+    probe.enable()
+    probe.disable()
     assert not list(tmp_path.iterdir()), "a night that died was kept"
     (tmp_path / simcity.NIGHTS).write_text("something else\n", encoding="utf-8")
     monkeypatch.setattr(simcity, "_live", None)  #: refused before the night is lived at all
@@ -134,13 +141,52 @@ def test_a_night_that_cannot_be_kept_or_lived_is_an_error_and_leaves_nothing_run
         simcity.run(tmp_path, SHORT, ROOM, RATES, NOW)
 
 
+def test_a_fault_is_counted_when_the_broker_uses_it_up_and_never_before() -> None:
+    line = LINES[0]
+    door = simcity._Counted(SHORT, {line.symbol: Fault.REJECT})
+    order = orders.Order("o-1", line, 1, Decimal(50), Decimal(1), Decimal(45))
+    door.place(order)  #: no market has opened yet: the fault still waits on its line
+    door.open(SESSIONS[1])
+    door.place(replace(order, order_id="o-2"))
+    door.place(replace(order, order_id="o-3"))
+    assert door.met == {None: 2, Fault.REJECT: 1} and door.buys == 3
+
+
+def test_a_part_behind_a_wrapper_is_still_a_part(monkeypatch: pytest.MonkeyPatch) -> None:
+    class Offered:
+        @classmethod
+        def made(cls) -> None: ...
+
+        @staticmethod
+        def plain() -> None: ...
+
+        def _kept(self) -> None: ...
+
+    fake = ModuleType("desk.fake")
+    Offered.__module__, fake.Offered = fake.__name__, Offered  # type: ignore[attr-defined]
+    monkeypatch.setattr(simcity, "PATH", (fake,))
+    assert sorted(name.rpartition("Offered.")[2] for name in simcity.parts().values()) == [
+        *("made", "plain")
+    ], "a classmethod or a staticmethod passed over, or a private name counted"
+
+
+def test_a_kill_switch_that_stops_nothing_is_a_red_night_and_not_an_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(simcity, "EVENTS", simcity.EVENTS[::-1])  #: the switch pulled first
+    monkeypatch.setattr(book, "_unless_killed", lambda *_: None)
+    night = simcity.run(tmp_path, SHORT, ROOM, RATES, NOW)
+    for promise in ("nothing reaches the broker", "drill is on the record"):
+        assert [broken for broken in night.broken if promise in broken], night.broken
+
+
 @pytest.mark.parametrize(
     ("owner", "name", "broken_desk", "promise"),
-    [  #: the shares never appear; the broker forgets its orders; the stop stays; the record
-        (Pretend, "inject", lambda *_: None, "did not make"),  #: differs alone; no fill is kept
+    [  #: the shares never appear; the broker forgets its orders; the record differs alone;
+        (Pretend, "inject", lambda *_: None, "did not make"),  #: it never differs; no fill kept
         (Pretend, "report", lambda *_: None, "reached the broker twice"),
-        (Pretend, "cancel_stop", lambda *_: None, "lost its stop"),
         (book, "reconcile", lambda *_: ("L01",), "nothing is bought"),
+        (book, "reconcile", lambda *_: (), "with no stop at the broker"),
         (book, "collect", lambda *_: None, "the ledger is the broker's own fills"),
     ],
 )

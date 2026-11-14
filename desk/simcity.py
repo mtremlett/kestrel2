@@ -12,6 +12,7 @@ import cProfile
 import csv
 from collections import Counter
 from collections.abc import Callable, Mapping, Sequence
+from contextlib import suppress
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
@@ -23,7 +24,7 @@ from types import CodeType, ModuleType
 from desk import book, broker, day, kill, orders, strategy
 from desk.broker import Crash, Fault, Pretend, Report
 from desk.lines import Line
-from desk.orders import Order, Sale, Settings
+from desk.orders import HOLDINGS, Order, Sale, Settings
 from desk.store import Bar
 from desk.strategy import Action
 
@@ -105,7 +106,7 @@ def parts() -> dict[CodeType, str]:
                 continue
             members = vars(thing).items() if isinstance(thing, type) else ((name, thing),)
             for inner, member in members:
-                for wrapper in ("fget", "func", "__func__", "__wrapped__"):
+                for wrapper in ("fget", "__func__", "__wrapped__"):
                     member = getattr(member, wrapper, member)
                 code = getattr(member, "__code__", None)
                 if isinstance(code, CodeType) and not inner.startswith("_"):
@@ -176,8 +177,10 @@ class _Life:
         self.census.now(scenario)
         quiet = not (record.mismatches and self.pretend.buys > buys)
         self.promise("nothing is bought on a day the book is not the broker's", quiet)
-        few = len(book.positions(self.desk)) <= orders.HOLDINGS
-        self.promise(f"never more than {orders.HOLDINGS} lines are held", few)
+        held, stopped = {*book.positions(self.desk)}, {name for name, _ in self.pretend.stops()}
+        self.promise(f"never more than {HOLDINGS} lines are held", len(held) <= HOLDINGS)
+        bare = held - stopped - {*record.mismatches}
+        self.promise("a line held with no stop at the broker is named that day", not bare)
         self.records.append(record)
         return record
 
@@ -201,12 +204,9 @@ def _behind(life: _Life, on: date) -> None:
 
 def _unstopped(life: _Life, on: date) -> None:
     """The stop under a holding is cancelled by hand, and nothing puts it back: the line is
-    named every day until its rule sells it."""
-    symbol = life.pretend.stops()[0][0]
-    life.pretend.cancel_stop(symbol)
-    record = life.live(on)
-    named = record.mismatches == (symbol,) or symbol not in book.positions(life.desk)
-    life.promise("a holding that lost its stop is named until it is sold", named)
+    to be named every day until its rule sells it, which every day's promises try."""
+    life.pretend.cancel_stop(life.pretend.stops()[0][0])
+    life.live(on)
 
 
 def _killed(life: _Life, on: date) -> None:
@@ -217,7 +217,8 @@ def _killed(life: _Life, on: date) -> None:
     quiet = life.pretend.submitted() == reached and "KILL SWITCH ON" in said.words()
     life.promise("with the kill switch on nothing reaches the broker, and the desk says so", quiet)
     kill.release(life.desk, at, "SimCity releases it")
-    kill.drill(life.desk, at)
+    with suppress(kill.Failed):  #: a drill that failed is not on the record: said below
+        kill.drill(life.desk, at)
     life.promise("the kill switch's drill is on the record", kill.drilled(life.desk, on))
 
 
