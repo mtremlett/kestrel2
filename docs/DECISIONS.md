@@ -3796,6 +3796,8 @@ Decided by the PAPER lane as the desk's mentor, no one watching.
 
 **14 November, later.** The four `Source` names are on main (#203). The pin was tried again under a claim naming `requirements.txt`: `tests/guards/test_lanes.py` still refuses the file to the DATA lane whatever the claim says, so it needs `requirements.txt` added to a lane's files in `manifest.toml` `[lanes]` (a guard loosening: recommended, taken, DATA's list), in a session whose claim holds `manifest.toml`.
 
+**His approval, 14 November ~20:05**, in chat, answering "pyarrow: it lets the old-store readers open the old stores' files, which gives the ladder years of extra history ... My recommendation is yes": "Yes, allow pyarrow". Pinned as `pyarrow==22.0.0`, the version already installed on the desk's PC (so the jobs need no install), and added to `lab`'s `allowed_third_party` only. `desk/` stays standard library; the wall guard still refuses it there. Made by the coordinator in a non-lane change, because no lane may touch `requirements.txt` or `manifest.toml`'s third-party lists; the lanes table is unchanged.
+
 ### 2026-11-14 — the old stores as a head start, as a command (data-headstart, #190)
 - Where the register is found. Options: a new environment variable; an argument; the notes folder next to the data folder. Chosen: next to the data folder (`KESTREL2_DATA/../kestrel2_notes/data_register.md`), so every path still comes from the one setting (OPS-15).
 - Which database. Options: `bars.db`; `market.db`, as R-RUNNER-11 names it. Chosen: `market.db`. Bringing the two files together belongs to data-two-stores.
