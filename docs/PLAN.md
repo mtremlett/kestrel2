@@ -338,13 +338,11 @@ day's trading and reconciliation are built, and any broker can stand behind them
 - [ ] A holding whose stop was cancelled by hand gets it back the same day, or he is told at
       once (found by SimCity: 98 sessions held with no stop)
       {id: money-restop; files: desk/day.py, desk/book.py, tests/unit/test_day*.py,
-      tests/unit/test_book*.py; after: money-working}
+      tests/unit/test_book*.py, desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml;
+      after: money-working}
 - [x] Emergencies in numbers: an emergency, a crash and a black swan each defined by measured
       falls, each with its action (EMG-01) {id: money-emergencies; files: desk/emergency.py,
       tests/unit/test_emergency*.py, manifest.toml}
-- [ ] (Every box adding a public function to strategy, orders, broker, book, day or kill also
-      needs `desk/simcity.py, tests/unit/test_simcity*.py` in its files, one session at a time;
-      a function no scenario runs turns the check red: halts and limits among them.)
 - [x] Halts: a halt is a typed record; while one is in force the desk buys nothing and says so
       every day until it is lifted, and the day's verdict reads it; each morning one list of
       every blocker and every signal it blocked (FIL-08, NS-06, FIL-04, TRD-01). Done in #148;
@@ -355,7 +353,8 @@ day's trading and reconciliation are built, and any broker can stand behind them
 - [ ] The gate's other limits from canon B1: a day's and a week's loss and an order rate,
       refused at the gate (EMG-04 when live) {id: money-limits; files: desk/orders.py,
       desk/book.py, desk/day.py, tests/unit/test_orders*.py, tests/unit/test_book*.py,
-      tests/unit/test_day*.py, tests/scenes/test_scenes.py; after: money-record}
+      tests/unit/test_day*.py, tests/scenes/test_scenes.py,
+      desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml; after: money-record, money-working}
 - [x] Each strategy's declaration typed: its bar, holding period, test universe and data; a
       short sale cannot be built at all (STR-03, STR-06); remains: a sale made only from the
       book's holding (orders, day, broker) {id: money-declared;
@@ -376,8 +375,8 @@ day's trading and reconciliation are built, and any broker can stand behind them
 - [ ] A position the desk did not make is named and then sold on paper (TRD-06); no signal
       is left half-processed at the day's end (TST-08)
       {id: money-stranger; files: desk/day.py, desk/book.py, desk/orders.py,
-      tests/unit/test_day*.py, tests/unit/test_book*.py, tests/unit/test_orders*.py;
-      after: money-halts}
+      tests/unit/test_day*.py, tests/unit/test_book*.py, tests/unit/test_orders*.py,
+      desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml; after: money-halts, money-working}
 - [x] SimCity widened: a hundred seeded worlds with faults and drills, not one rehearsal
       world (TST-05, TST-22). Done in #150; remains: a nightly run on his PC with its records, worlds
       that deal every line's months alike, which worlds and code/data versions in the record
@@ -387,17 +386,19 @@ day's trading and reconciliation are built, and any broker can stand behind them
       cost is flagged, and no position is above 1% of its line's twenty-day traded value
       (SIZ-10, TRD-10)
       {id: money-small; files: desk/orders.py, desk/day.py, tests/unit/test_orders*.py,
-      tests/unit/test_day*.py; after: money-limits}
+      tests/unit/test_day*.py, desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml;
+      after: money-limits}
 - [ ] Time and gaps: a time stop after the strategy's declared holding period; a gap that
       jumps the stop held against the loss limit; a hold limit and gap sizing for the
       leveraged lines (STP-11, STP-10, SIZ-09)
       {id: money-time-gaps; files: desk/day.py, desk/orders.py, desk/strategy.py,
-      tests/unit/test_day*.py, tests/unit/test_orders*.py, tests/unit/test_strategy*.py;
-      after: money-limits}
+      tests/unit/test_day*.py, tests/unit/test_orders*.py, tests/unit/test_strategy*.py,
+      desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml; after: money-limits}
 - [ ] Fills realistic: spread and slippage in every fill, from the one cost model (TRD-09)
       {id: money-fills; files: desk/broker.py, desk/orders.py, desk/book.py,
       tests/unit/test_broker*.py, tests/unit/test_orders*.py, tests/unit/test_book*.py,
-      tests/unit/test_day*.py, tests/scenes/test_scenes.py; after: money-invariants}
+      tests/unit/test_day*.py, tests/scenes/test_scenes.py,
+      desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml; after: money-invariants, money-working}
 - [ ] The golden reference run committed; a change to a size, a stop or a threshold is
       replayed on it before it lands (TST-21, GOV-09, canon B5)
       {id: money-golden; files: *; after: money-fills, money-limits, money-halts}
@@ -405,13 +406,20 @@ day's trading and reconciliation are built, and any broker can stand behind them
       read, linked by ids; profit attributed by strategy, line, holding time and cost
       (TRD-11, TRD-12, DQ-08)
       {id: money-story; files: desk/story.py, desk/book.py, desk/day.py,
-      tests/unit/test_story*.py, tests/unit/test_book*.py, tests/unit/test_day*.py, manifest.toml;
-      after: money-fills, money-limits}
+      tests/unit/test_story*.py, tests/unit/test_book*.py, tests/unit/test_day*.py,
+      desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml; after: money-fills, money-limits}
 - [ ] Money honestly counted: interest on idle cash, with the risk-free rate in every
       Sharpe; currency gains and losses on dollar holdings reported apart from trading
       profit; a fall from the book's highest point alerted on paper (BIC-03, BIC-04, BIC-05)
       {id: money-honest; files: desk/day.py, desk/book.py, tests/unit/test_day*.py,
-      tests/unit/test_book*.py; after: money-fills}
+      tests/unit/test_book*.py, desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml;
+      after: money-fills}
+- [ ] (Every box adding a public function to strategy, orders, broker, book, day or kill also
+      needs `desk/simcity.py, tests/unit/test_simcity*.py` in its files, one session at a time;
+      a function no scenario runs turns the check red: halts and limits among them.)
+      {id: money-census; files: desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml;
+      after: money-restop, money-watch, money-stranger, money-small, money-time-gaps,
+      money-golden, money-story, money-honest}
 
 ## Phase 3 — the money path, on paper
 
