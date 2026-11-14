@@ -195,6 +195,18 @@ def reproduce(figure: Figure, bars: Sequence[Bar]) -> Reproduction:
     return Reproduction(figure, record.key.rung(__name__), found)
 
 
+def said(one: Reproduction) -> str:
+    """The reproduction in words, for a results table: whose figure, and each number the desk's
+    code made beside the author's, with how near it had to come."""
+    numbers = "; ".join(
+        f"{f.stated.measure.value} {f.measured:.2f} against {one.figure.hand.value} "
+        f"{f.stated.value} (within {f.stated.within})"
+        for f in one.found
+    )
+    verb = "reproduced" if one.reproduced else "NOT reproduced"
+    return f"{verb}: {one.figure.hand.value} result, {one.figure.source}: {numbers}"
+
+
 def _fills(
     trades: Sequence[Trade], read: Sequence[Bar], fill: Fill
 ) -> list[tuple[Decimal, Decimal]]:
