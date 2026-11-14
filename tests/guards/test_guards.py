@@ -151,6 +151,23 @@ def test_tests_never_outgrow_the_product() -> None:
     assert unit <= ratio * product, f"unit tests {unit} lines > {ratio} x product {product}"
 
 
+def test_the_rulebooks_stay_short() -> None:
+    """BLOAT, in the rules. CLAUDE.md and CANON.md each promise a limit, and the first desk
+    shows what a promise in prose is worth: 56 lessons and 64 deny rules that nobody read.
+    A new rule replaces or merges an old one, or becomes a check like this one."""
+    caps: dict[str, int] = _budget()["max_lines_per_rulebook"]
+    assert set(caps) == {"CLAUDE.md", "CANON.md"}, f"the rulebooks capped: {sorted(caps)}"
+    over = {
+        name: lines
+        for name, cap in caps.items()
+        if (lines := len((ROOT / name).read_bytes().splitlines())) > cap
+    }
+    assert not over, (
+        f"over their limits {caps}: {over}. Merge a rule into another, or make it a check; "
+        "never delete one to make room."
+    )
+
+
 # ---------------------------------------------------------------- sprawl
 
 

@@ -17,7 +17,7 @@ allowed_third_party = []
 [packages.lab]
 purpose = "research and the ladder: judges strategies using the core's own code"
 may_import = ["stdlib", "desk"]
-allowed_third_party = ["numpy"]  # his ruling, 13 November: research only; desk/ stays stdlib
+allowed_third_party = ["numpy", "pyarrow"]  # his rulings, 13 and 14 November: research only; desk/ stays stdlib
 
 # Each lane's files beyond its modules (listed under its heading below) and their unit
 # tests. tests/guards/test_lanes.py refuses a lane branch that changes any other file,

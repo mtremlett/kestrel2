@@ -36,6 +36,7 @@
     }
   },
   "max_lines_per_file": 400,
+  "max_lines_per_rulebook": {"CLAUDE.md": 80, "CANON.md": 200},
   "max_lines_per_function": 50,
   "unit_test_lines_per_product_line": 1.5,
   "counted": "*.py in desk/ and lab/, blank lines and comments included - the honest number"
