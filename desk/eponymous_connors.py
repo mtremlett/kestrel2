@@ -1,5 +1,18 @@
-"""eponymous_connors - Connors' RSI-2, ported as a rule under the one template (SET 1 of the
-eponymous strategies, R-RUNNER-60). The paper desk does not trade it.
+"""eponymous_connors - Connors' rules, ported under the one template (SET 1 of the eponymous
+strategies, R-RUNNER-60 and R-RUNNER-61). The paper desk does not trade them.
+
+CONNORS %B (R-RUNNER-61). AUTHORS: Larry Connors and Cesar Alvarez. SOURCE: High Probability ETF
+Trading (TradingMarkets, 2009), the %b chapter. The book's rule, long only: buy at the close when
+the close is above its 200-day average and %b (where the close sits in Bollinger's 20-day, 2
+deviation bands: 0 at the lower band, 1 at the upper) has closed under 0.2 three days running;
+sell at the close when %b closes over 0.8. AUTHOR'S TEST: US index and sector ETFs, daily bars,
+from each ETF's launch to 2008. The published figure is NOT written here: no copy of the book was
+on hand and a figure from memory would be a guess; the ladder measures the rule after costs.
+Secondary sources (blogs, undated here) quote the same entry but exit on %b over 0.5 (the
+middle band) or on a close over the 5-day average, so the RANGE of the exit is 0.5 to 0.8; this
+port takes the book's 0.8. A flat window has no bands, so no %b: it ends the run of low days.
+
+---- RSI-2 below ----
 
 AUTHORS: Larry Connors and Cesar Alvarez. SOURCE: Short Term Trading Strategies That Work
 (TradingMarkets, 2008), the chapter on the 2-period RSI. The book's rule, long only: buy at the
@@ -35,6 +48,7 @@ from desk.strategy import (
     _run,
     _Wilder,
     _Window,
+    lower_band,
     rsi,
 )
 
@@ -67,6 +81,42 @@ class ConnorsRsi2:
         if holding:
             return close <= self._short.mean()
         return index is not None and self._long.full and close > self._long.mean() and index < ENTRY
+
+
+#: the book's Bollinger window, run of low days, the %b to buy under and the %b to sell over
+WINDOW, RUN, LOW, HIGH = 20, 3, Decimal("0.2"), Decimal("0.8")
+
+
+class ConnorsPercentB:
+    """The book's rule: in above the 200-day average after three closes under 0.2; out over 0.8."""
+
+    declared: ClassVar[Declared] = Declared(Timeframe.DAILY, None, LINES, CLOSES)
+
+    def __init__(self) -> None:
+        self._long, self._bands = _Window(TREND), _Window(WINDOW)
+        self._low_days = 0
+
+    def step(self, bar: Bar, holding: bool) -> bool:
+        """Shown the next bar after its close: whether to be in the market from here."""
+        close = bar.close
+        self._long.add(close)
+        self._bands.add(close)
+        dev = self._bands.deviation() if self._bands.full else ZERO
+        b = (close - lower_band(self._bands.mean(), dev)) / (4 * dev) if dev else None
+        self._low_days = self._low_days + 1 if b is not None and b < LOW else 0
+        if holding:
+            return b is None or b <= HIGH
+        return self._long.full and close > self._long.mean() and self._low_days >= RUN
+
+
+def decide_percent_b(bars: Mapping[str, Sequence[Bar]]) -> tuple[Decision, ...]:
+    """The %b rule's decision for every line and every day the bars cover."""
+    with localcontext(ARITHMETIC):
+        return tuple(
+            d
+            for symbol, series in bars.items()
+            for d in _run("connors_percent_b", ConnorsPercentB(), symbol, series)
+        )
 
 
 def decide(bars: Mapping[str, Sequence[Bar]]) -> tuple[Decision, ...]:
