@@ -52,6 +52,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #176 notes for the runner: all eleven open boxes of the money book noted, the standing SimCity rule folded into eight boxes' files; docs only. |
 | 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #185 R-RUNGS-6/12: the RSI and Bollinger's lower band public by name (`strategy.rsi`, `strategy.lower_band`), the rules trading on them; no number moved; 7 breaks, all caught; a blind review, nothing blocking. |
 | 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #191 money-restop, first step: a stop lost at the broker is told the same day with the stop, shares and level to put back; the desk keeps every stop's level; SimCity promises it. 8 breaks, all caught; two blind reviews, nothing blocking. |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #200 money-simcity-command: `python -m desk.simcity [--full]` runs SimCity as a plain-code job, red night = exit 1; 2 deliberate breaks, 2 caught (R-RUNNER-23). |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #207 sixth frozen rule `ema_9_21` on main as a WIRING strategy, listed apart from the five, never an A-GATE candidate; tested by hand, future-blind and against a second implementation; 13 breaks caught; not yet run by the desk or the ladder (R-RUNNER-20). |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #208 carry rule in `desk/carry.py` + `book.rate`: the pound's rate carried over a UK-only holiday, at most 3 US sessions; 2025-04-21 and 2025-12-26 under test (R-RUNNER-26, part). |
 
 ### DATA
 
