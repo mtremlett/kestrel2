@@ -1430,6 +1430,36 @@ and the luck test, named in the plan before its first paper day.
 
 ---
 
+## 2026-11-14 — Monday holds; one pre-flight and one deep night run; old data kept
+
+**His words, about 09:20 UK.** "If something misses Monday, FIRST-LIGHT starts on Tuesday
+instead....this is not acceptable. we must itentify blockers and work together to find
+solutions. this is the elite desk way." He asked for daemons and monitors per lane, daily
+known-answer tests "as if these are pre-flight checks", synthetic trades, simulations,
+lifecycle and funnel tests, audits, smoke, integrity, canary and wiring scans. And whether to
+delete the original stores after import.
+
+**Decided by the mentor, as his rulings allow.**
+- FIRST-LIGHT's first day is Monday 16 November, 08:00. It starts on every clean line,
+  and later lines join without restarting the count. Each blocker has a workaround that keeps
+  every safety rule (in `docs/PLAN.md`), and a dry rehearsal on Sunday at 18:00 ends in a
+  go/no-go line to him.
+- His test list becomes two runs, not many processes: one pre-flight each trading morning and
+  one deep run each night (fuller at weekends), each writing one record into the morning
+  line. The old desk had sixty scheduled tasks; one process with many checks keeps the
+  checking without the sprawl. A "funnel" count was dropped on 13 November (FIL-05) because
+  one gate has one step; a refusal's reason serves it.
+- The old stores are consolidated into the one store on C: and verified; the originals are
+  then deleted with his explicit yes, asked at that time. Never E:, which is his backup drive
+  (his words: "E: drive is my automated backups drive. please do not use this"). `C:\mtt_cache` was kept back while his mark_the_trend programs
+  might read it; asked, he answered "Retired", so it is treated like the other stores.
+- The GPU is not used for now. The old desk measured no gain on it (its mentor's hand-over
+  of 18 October: "GPU/in-memory: no gain"), it would add a library and a second engine needing
+  its own parity test, and numpy on the CPU has not yet been shown to fall short. If a full
+  pass over the research universe overruns a weekend, a benchmark decides.
+
+---
+
 ## MONEY
 
 ### 2026-11-13 — how the pretend broker behaves
