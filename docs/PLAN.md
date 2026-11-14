@@ -315,25 +315,46 @@ day's trading and reconciliation are built, and any broker can stand behind them
       crosses the emergency thresholds halts all buying at once, alerts him immediately at
       any hour, and records why; the protective sell across every position (STP-07) acts on
       it once built (EMG-01, EMG-03)
+      {id: money-watch; files: desk/watch.py, desk/halt.py, tests/unit/test_watch*.py,
+      tests/unit/test_halt*.py, manifest.toml; after: money-halts}
 - [ ] A position the desk did not make is named and then sold on paper (TRD-06); no signal
       is left half-processed at the day's end (TST-08)
+      {id: money-stranger; files: desk/day.py, desk/book.py, desk/orders.py,
+      tests/unit/test_day*.py, tests/unit/test_book*.py, tests/unit/test_orders*.py;
+      after: money-halts}
 - [ ] SimCity widened: a hundred seeded worlds with faults and drills, not one rehearsal
       world (TST-05, TST-22)
+      {id: money-worlds; files: desk/simcity.py, tests/unit/test_simcity*.py;
+      after: money-simcity}
 - [ ] Small and illiquid trades: a trade whose expected gain is under twice its round-trip
       cost is flagged, and no position is above 1% of its line's twenty-day traded value
       (SIZ-10, TRD-10)
+      {id: money-small; files: desk/orders.py, desk/day.py, tests/unit/test_orders*.py,
+      tests/unit/test_day*.py; after: money-limits}
 - [ ] Time and gaps: a time stop after the strategy's declared holding period; a gap that
       jumps the stop held against the loss limit; a hold limit and gap sizing for the
       leveraged lines (STP-11, STP-10, SIZ-09)
+      {id: money-time-gaps; files: desk/day.py, desk/orders.py, desk/strategy.py,
+      tests/unit/test_day*.py, tests/unit/test_orders*.py, tests/unit/test_strategy*.py;
+      after: money-limits}
 - [ ] Fills realistic: spread and slippage in every fill, from the one cost model (TRD-09)
+      {id: money-fills; files: desk/broker.py, desk/orders.py, desk/book.py,
+      tests/unit/test_broker*.py, tests/unit/test_orders*.py, tests/unit/test_book*.py,
+      tests/unit/test_day*.py, tests/scenes/test_scenes.py; after: money-invariants}
 - [ ] The golden reference run committed; a change to a size, a stop or a threshold is
       replayed on it before it lands (TST-21, GOV-09, canon B5)
+      {id: money-golden; files: *; after: money-fills, money-limits, money-halts}
 - [ ] Every trade's whole story: signal, intent, risk decision, order, fill and the bar it
       read, linked by ids; profit attributed by strategy, line, holding time and cost
       (TRD-11, TRD-12, DQ-08)
+      {id: money-story; files: desk/story.py, desk/book.py, desk/day.py,
+      tests/unit/test_story*.py, tests/unit/test_book*.py, tests/unit/test_day*.py, manifest.toml;
+      after: money-fills, money-limits}
 - [ ] Money honestly counted: interest on idle cash, with the risk-free rate in every
       Sharpe; currency gains and losses on dollar holdings reported apart from trading
       profit; a fall from the book's highest point alerted on paper (BIC-03, BIC-04, BIC-05)
+      {id: money-honest; files: desk/day.py, desk/book.py, tests/unit/test_day*.py,
+      tests/unit/test_book*.py; after: money-fills}
 
 ## Phase 3 — the money path, on paper
 
@@ -383,14 +404,14 @@ his PC with the desk's own client id (222), never 4001.
       {id: paper-check; files: desk/clearance.py, desk/paper.py,
       tests/unit/test_clearance.py, tests/unit/test_paper.py, manifest.toml;
       after: paper-reports}
-- [ ] The real paper-broker adapter behind the same interface as `broker.Pretend`, speaking
-      to IB Gateway with the standard library alone (`desk/` imports nothing else). Five answers
-      and a sale done (#110, #113); remains: the buy with its stop, which is also paper-stops
-      (reading a stop's level needs `desk/paper.py`: do both under this claim)
+- [x] The real paper-broker adapter behind the same interface as `broker.Pretend`, speaking
+      to IB Gateway with the standard library alone (`desk/` imports nothing else). All six
+      answers done (#110, #113, #123); remains: nothing to build, each "unproven at the real
+      Gateway" item is for paper-conformance
       {id: paper-adapter; files: desk/placing.py, desk/paper.py, desk/reports.py,
       tests/unit/test_placing.py, tests/unit/test_paper.py, tests/unit/test_reports.py,
       manifest.toml; after: paper-reports, paper-check}
-- [ ] Stops resting at the broker, each rounded down to its line's price step
+- [x] Stops resting at the broker, each rounded down to its line's price step (done in #123)
       {id: paper-stops; files: desk/placing.py, desk/listing.py,
       tests/unit/test_placing.py, tests/unit/test_listing.py; after: paper-adapter}
 - [x] No paper order before the kill switch is drilled, held by the code (done in #113; remains: the
@@ -399,28 +420,40 @@ his PC with the desk's own client id (222), never 4001.
       and a contract test proves the refusal (owed: name the money lane's kill-switch box in
       `after` once it has an id) {id: paper-drill; files: desk/placing.py,
       tests/unit/test_placing.py; after: paper-adapter, paper-stops}
+- [ ] Morning and evening messages, and an alarm on silence
+      {id: paper-messages; files: desk/messenger.py, tests/unit/test_messenger.py,
+      manifest.toml}
+- [ ] Unattended running, and recovery from a restart
+      {id: paper-running; files: desk/running.py, desk/placing.py,
+      tests/unit/test_running.py, tests/unit/test_placing.py, manifest.toml;
+      after: paper-adapter, paper-stops, paper-messages}
+- [ ] **No paper order until the money lane's kill switch has been drilled** (EMG-02)
+      {id: paper-kill-drilled; files: desk/running.py, tests/unit/test_running.py;
+      after: money-kill, paper-drill, paper-running}
 - [ ] Conformance trades, on paper, one London and one US line, each in its market's hours:
       a market buy at the open; the resting stop placed, triggered, and cancelled on a sale;
       a partial fill if the paper broker gives one; a rejection. Each real result recorded
       beside the pretend broker's, and the pretend broker fixed where they differ
       {id: paper-conformance; files: *; after: paper-gateway, paper-check, paper-stops,
       paper-drill}
-- [ ] Unattended running, and recovery from a restart (boxes from here down are not yet noted)
-- [ ] Morning and evening messages, and an alarm on silence
-- [ ] **No paper order until the money lane's kill switch has been drilled** (EMG-02)
 - [ ] The desk's own process supervised: one supervisor, restarts proven by killing it,
       health judged from outside by dated receipts, surviving a reboot, a dropped network
       and a broker disconnect; a ledger of operator actions proving seven days without one,
       bar the ruled Gateway re-login (OPS-01, OPS-02, OPS-04, OPS-10, NS-01)
+      {id: paper-supervised; files: desk/supervisor.py, tests/unit/test_supervisor.py,
+      manifest.toml; after: paper-running}
 - [ ] The running process always on main's latest code, and a money-path change reaching
       it only at a safe point, never mid-send (OPS-05, OPS-16)
+      {id: paper-on-main; files: desk/supervisor.py, tests/unit/test_supervisor.py;
+      after: paper-supervised}
 - [ ] The messages: a start-of-day card by 05:40; an end-of-day summary with the profit,
       the streak and the verdict; a line on every change of state and "the desk is not
       trading" by 09:30 UK; urgency levels without storms; one messenger with a delivery
       record, the merge line and the runner's alerts behind the same door (MSG-02, MSG-03,
-      MSG-04, MSG-09, MSG-11)
+      MSG-04, MSG-09, MSG-11) {id: paper-cards; files: desk/messenger.py,
+      tests/unit/test_messenger.py; after: paper-messages, paper-running}
 - [ ] The day's extras: missed winners, blocked signals, and the running cost set against
-      net profit each week (MSG-13, NS-14)
+      net profit each week (MSG-13, NS-14) (boxes from here down are not yet noted)
 - [ ] FIRST-LIGHT counted by the desk itself: ten consecutive clean days, and a day that
       sent nothing cannot be green (NS-10)
 - [ ] An independent watcher of the supervisor, which is restarted weekly (OPS-03)
@@ -466,7 +499,7 @@ grid-tune and grid-key side by side; then grid-pass, grid-week, grid-declared, g
       lab/sweep.py, lab/batch.py, lab/tune.py, tests/unit/test_lab_sweep.py,
       tests/unit/test_lab_batch.py, tests/unit/test_lab_tune.py, manifest.toml; after:
       grid-venue, grid-tune, grid-key}
-- [ ] Runs seven days without stopping {id: grid-week; files: lab/batch.py, lab/sweep.py,
+- [ ] Runs seven days without stopping. Remains: the seven days themselves; the run began 13 Nov 23:29 UK (moved onto the fix 14 Nov 00:41 UTC, pid in `C:	mp\kestrel2_week\pid.txt`); on or after 20 Nov 23:45 UK read `sweep.unbroken` and tick if 7 days {id: grid-week; files: lab/batch.py, lab/sweep.py,
       lab/tune.py, tests/unit/test_lab_batch.py, tests/unit/test_lab_sweep.py,
       tests/unit/test_lab_tune.py; after: grid-pass}
 - [ ] Each strategy judged on its own declared universe; the everything-on-everything grid
@@ -510,19 +543,16 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       {id: rungs-fair; files: *; after: rungs-folds, rungs-trials, rungs-deflated, rungs-plateau, rungs-regimes}
 - [x] Its costs whole: spread, slippage and the sale's own fees, from the desk's one cost
       model; and a rate of exchange for each day. Remains: real daily rates (R-RUNGS-3)
-- [ ] Reproduces a published strategy's own published result
-- [ ] Each indicator known-answer tested against a published reference series (STR-14)
-- [ ] Before paper: a kill condition declared for each strategy; promotion only after at
-      least thirty effective paper trades, net positive (STR-17, LAD-11)
-- [ ] At least three ladder-passed strategies and a feasibility number before A-GATE paper
-      (NS-04)
 - [ ] The edge judged against the market risk it took (its beta, or a leverage-matched
       benchmark), and the book's concentration measured as its number of independent bets,
       with the A-GATE profit split by correlated cluster (BIC-01, BIC-02)
-- [ ] His paramount case: long and inverse leveraged-ETP trend strategies through the ladder
-      (STR-18)
+      {id: rungs-beta; files: lab/beta.py, tests/unit/test_lab_beta.py, manifest.toml}
+- [ ] Reproduces a published strategy's own published result
+      {id: rungs-reproduce; files: lab/reproduce.py, lab/rung.py,
+      tests/unit/test_lab_reproduce.py, tests/unit/test_lab_rung.py}
 - [ ] Stress scenarios: the 2020 crash, flash crashes, a leveraged product's gap (2008 lies
       before the history) (TST-06)
+      {id: rungs-stress; files: lab/stress.py, tests/unit/test_lab_stress.py, manifest.toml}
 - [ ] **The eleven rungs made trustworthy before any verdict counts**, the old desk's
       biggest failure (its rung audit of 20 October is the quarry): sample size by effective
       trades; costs charged; a confidence interval; excess over the benchmark after the
@@ -535,6 +565,17 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       five hundred cells of pure noise pass it at about its stated rate and no more, a power
       curve at three effect sizes, a broken copy of the rung caught, and each defect the old
       audit found kept as a case that must fail (LAD-09, LAD-03, LAD-08)
+      {id: rungs-trustworthy; files: *; after: rungs-beta}
+- [ ] Each indicator known-answer tested against a published reference series (STR-14)
+      {id: rungs-indicators; files: lab/published.py, tests/unit/test_lab_published.py}
+- [ ] Before paper: a kill condition declared for each strategy; promotion only after at
+      least thirty effective paper trades, net positive (STR-17, LAD-11)
+      {id: rungs-promotion; files: lab/promotion.py, tests/unit/test_lab_promotion.py;
+      after: rungs-trustworthy}
+- [ ] At least three ladder-passed strategies and a feasibility number before A-GATE paper
+      (NS-04)
+      {id: rungs-feasibility; files: lab/feasibility.py, tests/unit/test_lab_feasibility.py,
+      manifest.toml; after: rungs-trustworthy}
 - [ ] **The eponymous strategies through the ladder first**, before any grid exploration:
       the twenty-one published rules the old desk listed, ported one at a time as rules under
       the one template, each with its author's source, instrument, period and published
@@ -542,6 +583,10 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       of the figures); each reproduced on its author's own market first, and only then judged
       on ours. The bar for twenty-one trials is high and most are expected to fail: that is
       the information (BT-15, STR-14)
+      {id: rungs-eponymous; files: *; after: rungs-trustworthy, rungs-indicators}
+- [ ] His paramount case: long and inverse leveraged-ETP trend strategies through the ladder
+      (STR-18)
+      {id: rungs-leveraged; files: *; after: rungs-trustworthy}
 
 ## Phase 5 — the edge
 

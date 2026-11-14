@@ -2489,6 +2489,42 @@ Options and choices (from #68):
 5. paper-conformance holds every file (`files: *`): it runs on the real account in market hours
    and may fix any module where the broker differs, so it runs alone.
 
+### 2026-11-14 — a buy goes with its stop; the line settled after any order (paper-adapter, paper-stops, #123)
+
+Decided by the PAPER lane as the desk's mentor, no one watching.
+
+- *How a buy and its stop go together.* Options: (a) send the stop after the buy fills: a second or two with no stop, and a
+  dead desk leaves shares unprotected; (b) attach the stop to the buy so the broker holds both, then settle; (c) rest the
+  stop first: impossible without risking a short sale. Chosen: (b); if the stop's half is refused the buy never reaches the market.
+- *Which shares the stop is for, and on what evidence.* Options: (a) the desk's own sum, checked against the account;
+  (b) the account's shares alone; (c) size from the account, and act only when the account moved by exactly the order's
+  fills and "filled" is borne out by fills. Chosen: (c), after the blind review showed five ways the sum is silently wrong.
+  When the three disagree nothing is changed and an error is raised.
+- *A sale: take shares off the stop before or after.* Chosen: after, by what happened; one mechanism for buys and sales.
+  For a moment the stop is for more shares than held (recorded, not fixed).
+- *Replace a stop, never change it in place* (changing a stop attached to a buy is unproven); new first, then cancel the old,
+  so a line is never under none. A line whose stops are unsettled is refused, buy and sale alike. A stop already right is
+  kept whatever its name; a stop the broker is not holding counts as none.
+- *The broker's notice 202 (order cancelled) is news, not a fault, in every reading.* This changes one line of #110's test:
+  cancelling a buy makes the broker cancel its stop and say so. The comparison of book with broker still names any line left bare.
+- *A stop with no price at the broker* stops the buy with an error before anything is dialled. The stop rests until
+  cancelled (GTC), plainest kind. A stop that ends some other way while being cancelled is an error unless the shares are as read.
+- *Both boxes ticked.* No test order was sent to the real Gateway: one wrong field could make a real order on a shared account.
+- The tests' pretend Gateway moved into the door's test file (no test changed): the placing tests were at the 400-line cap.
+- Evidence: tests seen failing first; blind review, one blocking finding fixed; 60 + 25 + 31 deliberate breaks, 2 that cannot differ.
+
+### 2026-11-14 — the paper book's next boxes ordered for the runner (#128)
+
+Decided by the PAPER lane as the desk's mentor, no one watching.
+
+- *Messages and the unattended day ahead of conformance.* Options: conformance next; boxes needing no market first. Chosen:
+  the latter: it is a weekend, and conformance holds every file so would stall the lane until Monday. The code already
+  refuses any order without a drilled kill switch and clean check.
+- *Supervision after conformance:* its box needs seven days without an operator action and would hold the first paper trades.
+- *Conformance keeps `files: *`:* nobody has seen where real results are recorded; a missed file would stop the session.
+- New modules named before they exist: `desk/messenger.py`, `desk/running.py`, `desk/supervisor.py`. paper-running also holds
+  `desk/placing.py` for R-MONEY-8 and waits for paper-messages so there is one messenger.
+
 ## GRID
 
 ### 2026-11-13 — the fast grid engine: it holds what the desk holds, or it refuses
@@ -2656,6 +2692,30 @@ quietly taking the trading line of the same symbol. Blind review, nothing blocki
 - *A ticker listed twice is refused*, not quietly counted once: a repeat is a mistake in the list.
 
 **Evidence.** The pass run for real: 5,325 cells run and kept in 200 s, none failed; a second pass ran none, in 45 s. 14 deliberate breaks, all caught after the test was strengthened; a blind review's one blocking finding fixed.
+
+### 2026-11-14 — the grid's week: who starts it, how it runs, what breaks it (grid-week, #111)
+
+**Decided.** By the GRID lane as the desk's mentor, no one watching.
+- *Who starts the seven-day run.* This session, now, detached, from a pinned copy of the code, or a command left for the operator. Chosen now: the box cannot close for seven days, so each hour unstarted is an hour later; paper research only, below-normal priority under the memory ceiling, one process to end. His ruling: always go with recommended.
+- *Ticks: none.* Tick when the service runs, or when the log shows seven days. Chosen the log: "runs seven days" is a measurement nobody has seen. Recommended to the scribe: let grid-declared start now, as it waited on the shared file, not the week.
+- *Each pass in a fresh process*, not one long-lived process: five lanes change code day and night, and a crash or leak should cost one pass, not the week.
+- *A pass every hour*, not back to back or daily: prices change daily and code a few times a day; hourly picks changes up and leaves the PC to the lanes.
+- *What breaks "without stopping".* A failed pass, a pass holding no cell, a gap over an hour. Chosen to break on a failed pass: a service alive and producing nothing is not the grid running. One dead ticker does not break it.
+- *The window ends today*, so each midnight every cell is new; the cost is growth of results (Found, not fixed).
+- *A failed cell is written once*, only where the outcome differs from its last line; a cell's last line is its outcome now.
+- *No time limit on a pass*: any number is a guess; a hung pass writes no line, so the log shows the stop.
+
+**Evidence.** 36 deliberate breaks over two rounds: 30 caught at first, 4 after strengthening, 1 changes nothing, 1 left uncaught (named). Two blind reviews; two blocking defects fixed. Real run: 5,325 cells in 3 min 58 s; a short week of four passes read 17 min 50 s.
+
+### 2026-11-14 — what "seven days" is measured to (grid-week, #118)
+
+**Decided.** By the GRID lane as the desk's mentor, no one watching.
+- *The measure.* (a) loosen it, counting to the last pass's start plus an hour; (b) have someone start one more pass by hand on 20 November; (c) the week runs until a pass has ended its whole length after the first began. Chosen (c): the measure is honest; a proof needing a person at the right hour is no proof for a desk no one watches.
+- *Restart the running week now.* Chosen now, between two passes: the gap was ten minutes, inside the hour allowed, so the count carried on. His ruling: always go with recommended.
+- *The earlier short passes count*, from 22:45 UTC on 13 November, as the rule reads; either reading passes seven days, the run going to 21 November 00:44 UTC.
+- *Ticks: none*, as in #111.
+
+**Evidence.** A clean week read 6 days 23 hours before the fix (seen failing first), exactly seven after. 10 deliberate breaks: 9 caught, the tenth after one line strengthened. One blocking review finding fixed.
 
 ## RUNGS
 
