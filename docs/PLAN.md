@@ -94,6 +94,13 @@ The machinery that refuses, before any desk code.
 - [ ] An independent reviewer that never sees the reasoning
 - [x] One Telegram line to the operator for each change that lands on main (his request,
       13 November: he follows progress without reading GitHub)
+- [ ] **Self-contained and portable** (his ruling, 14 November): the desk runs only from its
+      own folders (this repository, its runner, its data folder and its notes) and reads
+      nothing in any other repository or store at run time. Whatever it needs from the old
+      desks is copied in through the one store's checks or ported as code under its own
+      test. Every path comes from one setting; the database has a generic name (`market.db`)
+      behind the one store, so it can later be a server database. A guard fails a change that
+      names a folder outside these (OPS-15)
 - [ ] Standing guards still owed, each built by a session he starts (the spec's NOW rows):
       a secret scan on every change (OPS-11); a number with a second home caught (CODE-04);
       dead modules and duplicates caught (TST-11); a stale green treated as red (GOV-13);
@@ -138,21 +145,24 @@ UK tax) and R-MONEY-2 (the scenes on the whole fourteen months).
       UK-listed twins an ISA can hold: VUAG (S&P 500), EQQQ (Nasdaq 100) and IDTL (US
       Treasuries 20+ years), each on the London venue; every line carries an ISA and
       retail-buyable flag; the "simply holding the market" yardstick re-pointed (UNI-09)
-      {id: data-isa-twins; files: desk/lines.py, tests/unit/test_lines.py, tests/unit/test_lab_universe.py}
-- [ ] The research list's parked fifth: 201 tickers' large one-day moves confirmed, or a
+      (built in #85: the three twins, both flags, yardstick VUAG, GLD out; remains: SPY and QQQ
+      leave the master once GRID's and RUNGS's tests stop naming them (the requests to GRID and RUNGS);
+      IB1T is not ISA-holdable, for the operator)
+      {id: data-isa-twins; files: desk/lines.py, tests/unit/test_lines.py, tests/unit/test_lab_universe.py; waits: R-RUNNER-4, R-RUNNER-5}
+- [x] The research list's parked fifth: 201 tickers' large one-day moves confirmed, or a
       rule for research that needs no confirmation (rule built in `universe.read`, #80; remains:
       the grid reads through it (R-DATA-7) and the rungs count the named moves (R-DATA-8); the
       2.5 times re-measured on the full universe; WWH, SHC and three windfalls settled by a
       second source; a home for the research store)
       {id: data-parked-fifth; files: lab/universe.py, tests/unit/test_lab_universe_parked.py}
-- [ ] One fast store for hot and deep data, standard library only: SQLite in WAL mode with
+- [x] One fast store for hot and deep data, standard library only: SQLite in WAL mode with
       one writer and many readers, held to benchmarks set now: a five-minute round for every
       line written in under a second, a line's last week read in under 50 ms, a line's daily
       history read in under 200 ms (DAT-04)
       {id: data-fast-store; files: desk/bars.py, tests/unit/test_bars*.py, manifest.toml}
-- [ ] Half-days and auction times in the calendars (DQ-11)
+- [x] Half-days and auction times in the calendars (DQ-11)
       {id: data-hours; files: desk/venues.py, tests/unit/test_venues*.py}
-- [ ] A five-minute store, started now because the free archive keeps only about sixty days
+- [x] A five-minute store, started now because the free archive keeps only about sixty days
       of five-minute bars: each evening the twenty lines' five-minute bars are saved through
       the same checks; the last week kept hot for reading, everything older archived, none
       thrown away (DAT-11)
@@ -185,6 +195,8 @@ UK tax) and R-MONEY-2 (the scenes on the whole fourteen months).
       cleared out, and the day and list it reflects written beside it
       {id: data-research-home; files: lab/universe.py, tests/unit/test_lab_universe*.py; after: data-parked-fifth, data-isa-twins}
 - [ ] The lists' members year by year, so a study of the past is not the survivors' alone
+      (S&P 500 and Nasdaq 100 built in #96, `lab/members.py`; remains: the FTSE 350 and the funds,
+      joining the lists' records up, a second source for 2010 to 2014)
       {id: data-members; files: lab/members.py, tests/unit/test_lab_members*.py, manifest.toml}
 - [ ] The full research universe, 5,000 and more, once the grid's first pass works
 - [ ] 2MU's five real moves recorded from a second source, or its reason confirmed
@@ -220,6 +232,16 @@ UK tax) and R-MONEY-2 (the scenes on the whole fourteen months).
 - [ ] Leveraged-product lifecycle watched: an issuer's closure, a compulsory redemption or
       an ISA eligibility change on any line held or researched raises an alert (BIC-11)
 - [ ] Disk watched; old research files roll off by rule (OPS-07)
+- [ ] **Two databases, both owned by the one store** (his ruling, 14 November), in the desk's
+      data folder, never in this public repository: `market.db`, long-term, every timeframe
+      from an hour up plus all imported intraday history; and `market_hot.db`, live 1-minute
+      bars for the twenty lines and a watchlist of up to 100 within his IBKR line allowance.
+      The hot keeper runs every minute in each venue's hours, IBKR first, with the free
+      archive as a check; each night the day's hot bars roll into `market.db`. Every useful
+      store on C: (`kestrel2_notes\data_register.md`, tagged IMPORT) is consolidated into
+      `market.db`, each source marked verified there. One consistent snapshot of both
+      databases and the ledger is written each night for his own backup to carry (DAT-11,
+      DQ-12, DQ-05)
 - [ ] The old stores consolidated, never lost: once the one store holds their bars, verified by
       counts and checksums per ticker and timeframe and by one restore drill, the originals
       are deleted from C: with his explicit yes, asked then (never copied to E:, his backup
@@ -307,7 +329,8 @@ day's trading and reconciliation are built, and any broker can stand behind them
       tests/scenes/test_scenes.py, manifest.toml; after: money-kill, money-record}
 - [ ] **First, from SimCity's red night:** the send path counts orders still working, so a desk
       that died mid-send never holds more than five lines; any broker says which of the desk's
-      own orders are still working; SimCity's night turns green and its pin (`SIX_HELD`) goes
+      own orders are still working; a sale left working by a dead desk with its stop resting under
+      it sells twice (the desk ends short): cover that too; SimCity's night turns green and its pin (`SIX_HELD`) goes
       {id: money-working; files: desk/book.py, desk/broker.py, desk/orders.py, desk/kill.py,
       desk/simcity.py, tests/unit/test_book*.py, tests/unit/test_broker*.py,
       tests/unit/test_orders*.py, tests/unit/test_kill*.py, tests/unit/test_simcity*.py;
@@ -322,9 +345,10 @@ day's trading and reconciliation are built, and any broker can stand behind them
 - [ ] (Every box adding a public function to strategy, orders, broker, book, day or kill also
       needs `desk/simcity.py, tests/unit/test_simcity*.py` in its files, one session at a time;
       a function no scenario runs turns the check red: halts and limits among them.)
-- [ ] Halts: a halt is a typed record; while one is in force the desk buys nothing and says so
+- [x] Halts: a halt is a typed record; while one is in force the desk buys nothing and says so
       every day until it is lifted, and the day's verdict reads it; each morning one list of
-      every blocker and every signal it blocked (FIL-08, NS-06, FIL-04, TRD-01)
+      every blocker and every signal it blocked (FIL-08, NS-06, FIL-04, TRD-01). Done in #148;
+      remains: a halt cancels no working buy (money-watch), SimCity lives no halted day, NS-10 reads `Record.counts`
       {id: money-halts; files: desk/halt.py, desk/day.py, desk/book.py,
       tests/unit/test_halt*.py, tests/unit/test_day*.py, tests/unit/test_book*.py,
       manifest.toml; after: money-kill, money-record}
@@ -354,8 +378,9 @@ day's trading and reconciliation are built, and any broker can stand behind them
       {id: money-stranger; files: desk/day.py, desk/book.py, desk/orders.py,
       tests/unit/test_day*.py, tests/unit/test_book*.py, tests/unit/test_orders*.py;
       after: money-halts}
-- [ ] SimCity widened: a hundred seeded worlds with faults and drills, not one rehearsal
-      world (TST-05, TST-22)
+- [x] SimCity widened: a hundred seeded worlds with faults and drills, not one rehearsal
+      world (TST-05, TST-22). Done in #150; remains: a nightly run on his PC with its records, worlds
+      that deal every line's months alike, which worlds and code/data versions in the record
       {id: money-worlds; files: desk/simcity.py, tests/unit/test_simcity*.py;
       after: money-simcity}
 - [ ] Small and illiquid trades: a trade whose expected gain is under twice its round-trip
@@ -606,9 +631,11 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       real daily rates R-RUNGS-3; the operator's ruling on concentration in the A-GATE)
       {id: rungs-beta; files: lab/beta.py, tests/unit/test_lab_beta.py, manifest.toml}
 - [ ] Reproduces a published strategy's own published result. Built: `lab/reproduce.py`
-      (#120). Remains: Connors' RSI-2 figure from the book, SPY from 1993 (R-RUNGS-5), the first
-      real run. Built: the first rung waits for a figure on file (#139); the Double 7's
-      figure written down (#141). Remains also: `folds`/`regime` passing reproductions on
+      (#120). Built: the first rung waits for a figure on file (#139); the Double 7's
+      figure written down (#141); dry run on real SPY 2011-19 ran all five rules (#143).
+      BLOCKED (#143, #149; do not hand out): waits on RSI-2's figure from the book (his spend;
+      free pages and Google Books print none), SPY and sessions from 1993 (R-RUNGS-5), the
+      Double 7's rule (R-RUNGS-10). Remains also: `folds`/`regime` passing reproductions on
       {id: rungs-reproduce; files: lab/reproduce.py, lab/rung.py,
       tests/unit/test_lab_reproduce.py, tests/unit/test_lab_rung.py}
 - [x] Stress scenarios: the 2020 crash, flash crashes, a leveraged product's gap (2008 lies
@@ -629,8 +656,10 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       audit found kept as a case that must fail (LAD-09, LAD-03, LAD-08)
       {id: rungs-trustworthy; files: *; after: rungs-beta}
 - [ ] Each indicator known-answer tested against a published reference series (STR-14).
-      Built: moving average, Bollinger deviation, Wilder smoothing held to four published tables
-      (#145). Remains: the RSI, true range, bands, carried band, channel (R-RUNGS-6); room for more tables
+      Built: moving average, Bollinger deviation, Wilder smoothing (#145); true range, RSI gains
+      and losses, channel (#154): five tables, 250 printed numbers. Remains: RSI ratio and band
+      line (R-RUNGS-6, 12), carried band, a fresh-low table, each table run holding, tables
+      moved to own module (file at its 400 cap)
       {id: rungs-indicators; files: lab/published.py, tests/unit/test_lab_published.py}
 - [ ] Before paper: a kill condition declared for each strategy; promotion only after at
       least thirty effective paper trades, net positive (STR-17, LAD-11). Built:
@@ -727,6 +756,11 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       BIC-07)
 - [ ] A ramp, not a switch: live compared with paper every day, a gap pausing the ramp
       (MIG-03, MIG-04)
+- [ ] **Off the single PC:** the desk packaged and moved to a cloud server with a cloud
+      database, so his desktop is no longer a single point of failure; the runner's
+      Windows-only parts (scheduled tasks, the memory ceiling) kept behind one door so they
+      can be swapped; IB Gateway and the secrets on the server; the move drilled before any
+      real money (OPS-15)
 - [ ] The desk rebuilt on a clean PC within two hours, its stops resting at the broker
       meanwhile (OPS-15)
 - [ ] Records kept for their statutory years and reconciled each year to the broker's
