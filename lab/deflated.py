@@ -29,7 +29,9 @@ far more often a fault in the test (a peek ahead, a cost left out) than an edge.
 
 THE ONE RULE. Each rung in NAMED gives its answer (`rung.Answer`); the verdict is the least
 of them, and `rule` refuses a set of answers that is not exactly the named rungs, so none can
-be left out after its answer is seen. A later rung joins by being named here.
+be left out after its answer is seen. Four are read here from the trial's trades (OWN); the
+folds (`lab/folds.py`) and the market (`lab/market.py`) are read where they are run, and a
+trial short of any one has no verdict. A later rung joins by being named here.
 
 FAILING FAIRLY (LAD-06). Every rung here reads the one trial's trades, so where the first
 rung found too few of them, or none, no rung has anything more to judge: each gives the
@@ -54,8 +56,9 @@ PASS = 0.90
 FAIL = 0.50
 #: The yearly Sharpe above which a result is flagged (canon B6).
 FLAG = 2.0
-#: The rungs the one rule reads (LAD-09), each trial judged on every one.
-NAMED = ("first", "luck", "deflated", "yearly")
+#: The rungs the one rule reads (LAD-09), each trial judged on every one; the first four here.
+NAMED = ("first", "luck", "deflated", "yearly", "folds", "market")
+OWN = NAMED[:4]
 
 _NORMAL = NormalDist()
 _EULER = 0.5772156649015329
@@ -79,10 +82,10 @@ class Deflated:
 
     @property
     def rungs(self) -> dict[str, Answer]:
-        """Each named rung's answer on this trial."""
+        """The answer on this trial of each named rung read here (OWN)."""
         first = self.luck.verdict.answer
         if first in (Answer.FAULT, Answer.THIN):
-            return dict.fromkeys(NAMED, first)
+            return dict.fromkeys(OWN, first)
         doubted = Answer.DOUBT if self.deflated >= FAIL else Answer.FAIL
         flagged = self.yearly is not None and self.yearly > FLAG
         return {
@@ -93,18 +96,19 @@ class Deflated:
         }
 
     @property
-    def answer(self) -> Answer:
-        return rule(self.rungs)
+    def least(self) -> Answer:
+        """The least of the rungs read here: a bound on the verdict, never the verdict."""
+        return min(self.rungs.values())
 
 
 def judge(verdicts: Sequence[Verdict], unjudged: int) -> tuple[Deflated, ...]:
-    """Every verdict judged on every named rung, as one set: the verdicts given, and the
+    """Every verdict judged on the rungs read here, as one set: the verdicts given, and the
     trials tried that left no verdict, which count as much as any."""
     return read(luck.correct(verdicts, unjudged))
 
 
 def read(corrected: Sequence[Corrected]) -> tuple[Deflated, ...]:
-    """Verdicts already corrected for their count, judged on every named rung: the door for
+    """Verdicts already corrected for their count, judged on the rungs read here: the door for
     a count the register of trials keeps from batch to batch (`trials.correct`)."""
     return tuple(_deflated(one) for one in corrected)
 
