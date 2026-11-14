@@ -154,9 +154,22 @@ def test_nothing_is_asked_on_a_day_no_venue_trades_nor_once_the_calls_time_is_sp
     assert keeper.saved(tmp_path, MON, LINES)[0][UK] == _bars(UK, MON)  # ready for Monday
     assert pretend.keep(tmp_path, _at(9, 5, SAT)) == ([], []) and pretend.asked == []
     assert keeper.main(tmp_path, _at(9, day=SAT)) == 0  # held: nothing is owed, nothing asked
+    other, pretend.refuses = tmp_path / "other", {"AAA"}
+    for minute in (0, 5, 10):  # a line refused at a weekend is asked again, as on any day
+        pretend.keep(other, _at(10, minute, SAT))
+        pretend.refuses = set() if minute else pretend.refuses
+        assert pretend.asked == (["AAA"] if minute else ["BBB", "AAA", "CCC"])
+    assert keeper.saved(other, MON, LINES) == (
+        {line: _bars(line, MON) for line in LINES},
+        frozenset(),
+    )
+    pretend.refuses = {"AAA"}  # Monday morning AAA is away: no session since, its bars stand
+    assert pretend.keep(other, _at(6))[1] == [] and pretend.asked == ["BBB", "AAA", "CCC"]
+    assert keeper.saved(other, MON, [US]) == ({US: _bars(US, MON)}, frozenset())
     said, missed = pretend.keep(tmp_path, _at(15), slow=True)  # both open; its time spent in two
     assert pretend.asked == ["BBB", "BBB 5m"] and missed == said[2:] and len(said) == 4
-    assert keeper.saved(tmp_path, MON, LINES)[1] == {"AAA", "CCC"}
+    assert keeper.saved(tmp_path, MON, LINES)[1] == frozenset()  # the weekend's bars stand
+    pretend.refuses = set()
     pretend.keep(tmp_path, _at(21, 30, YULE - timedelta(1)))  # Christmas Eve's closes are held
     assert pretend.keep(tmp_path, _at(9, day=YULE)) == ([], []) and pretend.asked == []
     with pytest.raises(ValueError, match="not a moment in UTC"):

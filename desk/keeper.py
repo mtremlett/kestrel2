@@ -120,11 +120,13 @@ def _refresh(
 ) -> Kept | None:
     """A venue's daily bars refreshed as far as they are owed at now, and the record of it;
     None when nothing was owed, and nothing asked. On an idle day, when no venue trades,
-    only bars the store does not yet hold are owed."""
+    only what the store does not yet hold is owed: bars before the next session, a refused
+    line, and every line of a venue none of whose lines is clean. A day the store already
+    holds is any whose sessions before it are all in the last refresh, across a weekend too."""
     readied, last = target(lines[0].venue, now), _kept(folder)
-    if idle and not _short(lines[0].venue, last, readied):
+    same = last is not None and not _short(lines[0].venue, last, readied)
+    if idle and same and last and not last.refused and len(last.parked) < len(lines):
         return None
-    same = last is not None and last.day == readied
     before = dict(last.parked) if last is not None and same else {}
     if last is None or not same or last.at.date() != now.date():
         asked, tries = list(lines), 1
