@@ -3,6 +3,7 @@ publication's known answers, and code that does not give them is refused before 
 
 from __future__ import annotations
 
+import re
 from collections.abc import MutableMapping
 from dataclasses import replace
 from decimal import Decimal
@@ -39,8 +40,9 @@ class _Eager:
 
 
 def _plain(self: Any, value: Decimal) -> Decimal | None:
-    self.seen = [*getattr(self, "seen", []), value][-14:]
-    return sum(self.seen, Decimal(0)) / 14 if len(self.seen) == 14 else None
+    self.seen, size = [*getattr(self, "seen", []), value][-self._size :], self._size
+    self.value = sum(self.seen, Decimal(0)) / size if len(self.seen) == size else None
+    return cast(Decimal | None, self.value)
 
 
 def test_each_rule_the_ladder_judges_gives_its_published_answers_and_names_its_source() -> None:
@@ -93,11 +95,11 @@ def test_no_rule_is_proven_on_an_indicator_that_does_not_give_its_published_tabl
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     tables = published.indicators()
-    assert tables is published.INDICATORS and len(tables) == 4
+    assert tables is published.INDICATORS and len(tables) == 5
     for table in tables.values():  #: every printed column is held, on prices given exactly
         assert table.source.strip() and table.given and all(table.printed.values())
     with pytest.raises(ValueError, match="prints nothing"):
-        replace(tables["the moving average"], printed={})
+        replace(tables["moving average"], printed={})
     #: the commonest mistake: the deviation of a sample (over 19), where Bollinger's is over 20
     sample = Decimal(stdev(published.INDICATORS["Bollinger's bands"].given["Price"][:20]))
     monkeypatch.setattr(strategy._Window, "deviation", lambda _: sample)
@@ -110,7 +112,18 @@ def test_no_rule_is_proven_on_an_indicator_that_does_not_give_its_published_tabl
     monkeypatch.undo()
     #: and a plain 14-day average passed off as Wilder's: right on the first row, wrong after
     monkeypatch.setattr(strategy._Wilder, "add", _plain)
-    with pytest.raises(ValueError, match=r"Wilder's smoothing, its Avg Gain,.*0\.2384 at row 1"):
+    with pytest.raises(ValueError, match=r"under the RSI, its Avg Gain,.*0\.2384 at row 1"):
+        published.indicators()
+    monkeypatch.undo()
+    #: and a true range blind to the gap from yesterday's close: the day's own range alone
+    step = strategy._Supertrend.step
+
+    def blind(rule: Any, bar: Bar, held: bool) -> bool:
+        rule._last = None
+        return step(rule, bar, held)
+
+    monkeypatch.setattr(strategy._Supertrend, "step", blind)
+    with pytest.raises(ValueError, match=r"true range, its TR, is not.*0\.4200 at row 8"):
         published.indicators()
     monkeypatch.undo()
     #: every row of every column is held, to the last place printed: any one of them out by
@@ -124,6 +137,8 @@ def test_no_rule_is_proven_on_an_indicator_that_does_not_give_its_published_tabl
             ]
             for other in (printed[:-1], *near):
                 monkeypatch.setitem(held, name, replace(table, printed={column: other}))
-                with pytest.raises(ValueError, match=f"the desk's {name}, its {column}, is not"):
+                with pytest.raises(
+                    ValueError, match=re.escape(f"the desk's {name}, its {column}, is not")
+                ):
                     published.indicators()
         monkeypatch.setitem(held, name, table)

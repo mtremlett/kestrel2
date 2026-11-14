@@ -1367,6 +1367,117 @@ the delayed kind; the data lane proves that first, read-only.
 
 ---
 
+## 2026-11-14 — phase 3 begins: phase 2's scenes all pass
+
+**Found.** At 08:00 on Saturday 14 November, scenes passed 7 of 7: phase 2's goal, the money
+path in simulation, is met. The desk had 5,421 of phase 2's 7,000 lines and was growing about
+320 lines an hour across twelve sessions, so the ceiling would have turned every money, paper
+and data change red within about five hours. The paper lane has worked in phase 3 since his
+ruling of 13 November.
+
+**Decided.** `BUDGET.json` names `3-money-paper`, whose ceilings (9,000 lines of desk code in
+55 files) were agreed before phase 0 began. Its lab ceiling is set to 7,000, not the 1,500
+written then: he raised the lab to 7,000 on 13 November for the ladder lanes that now run
+alongside, and moving the phase must not take that back. Nothing else changes. This loosens
+a ceiling and moves the phase, both his to decide. He has ruled that a question put to him
+takes its recommended option without waiting (13 November, about 21:05), but a session's
+permission check asks for his direct yes on these, so he was asked. His words, Saturday 14
+November about 08:15 UK, offered "Yes, phase 3" (recommended) or "Not yet": "Yes, phase 3".
+## 2026-11-13 — tests up to 1.5 times the product; the recommended option, always
+
+**Found.** With ten sessions adding tests side by side, the rule "unit tests may not exceed
+the product's lines" sat at exactly its limit (2,861 lines each), and at 20:57 a data-lane
+change went red by eight lines once it held main. The work next in line - the kill switch,
+the money invariants, the eleven rungs - properly needs more test than code.
+
+**Decided, first.** Unit tests may reach 1.5 times the product's lines (`BUDGET.json`,
+`unit_test_lines_per_product_line`). The guard still stops test-per-bug piles; 1.5 is a
+ceiling, not a target. A loosening; his words below are its yes. Driven: tests at 1.2 times the
+product fail at 1.0 and pass at 1.5, and tests grown past 1.5 times fail.
+
+**Decided, second: the recommended option is taken without waiting.** A question put to him
+with options and a recommendation no longer waits for his answer: the session takes the
+recommended option, records it here, and tells him on Telegram. That includes loosening a
+guard, moving the phase and permissions. He alone still decides going live, entering
+credentials and spending money; no real money moves until he signs for going live. A
+session whose own permission check will not arm a loosening on this standing ruling leaves
+it armed-ready and named in its STATUS section, for the next session he talks to.
+
+**His words.** Friday 13 November 2026, about 21:05 UK, offered "1.5" (recommended) or "keep
+1": "1.5 . please always go with recommended to avoid waiting for me to attend."
+
+---
+
+## 2026-11-14 — no books bought; the old stores as a head start; the ladder in published sets
+
+**His words, about 08:30 UK on 14 November.** "why do i need to buy a book. right now i
+cannot afford it, so instead, research on the internet and find a best fit answer. when
+ladder is working we can try variants to then test which is the favoured ones." And: the
+fast and second stores "were already built in the kestrel repo. maybe you can copy the
+contents?" And: "will you test in sets and then publish findings results as you iterate ...
+what is the graduation process into paper trading?"
+
+**Decided by the mentor, as his rulings allow.** No book is bought (that would be spending,
+his alone, and he has said no). Where an author's table is not free, the best published
+replication found on the internet stands in, labelled secondary, with its source written
+down, and reproduction must land inside the range the sources give. This replaces "RSI-2
+waits for the book" of this morning. The old desk's Stooq and IBKR stores and its matrices
+are read in now as a head start, every bar re-checked on entry and the fresh bar winning
+where they differ; their stored indicators are only a cross-check, never copied, since an
+indicator kept in two places is the second-home failure. The ladder runs in sets, each
+published as it finishes, and a strategy graduates to paper only through all eleven rungs
+and the luck test, named in the plan before its first paper day.
+
+---
+
+## 2026-11-14 — Monday holds; one pre-flight and one deep night run; old data kept
+
+**His words, about 09:20 UK.** "If something misses Monday, FIRST-LIGHT starts on Tuesday
+instead....this is not acceptable. we must itentify blockers and work together to find
+solutions. this is the elite desk way." He asked for daemons and monitors per lane, daily
+known-answer tests "as if these are pre-flight checks", synthetic trades, simulations,
+lifecycle and funnel tests, audits, smoke, integrity, canary and wiring scans. And whether to
+delete the original stores after import.
+
+**Decided by the mentor, as his rulings allow.**
+- FIRST-LIGHT's first day is Monday 16 November, 08:00. It starts on every clean line,
+  and later lines join without restarting the count. Each blocker has a workaround that keeps
+  every safety rule (in `docs/PLAN.md`), and a dry rehearsal on Sunday at 18:00 ends in a
+  go/no-go line to him.
+- His test list becomes two runs, not many processes: one pre-flight each trading morning and
+  one deep run each night (fuller at weekends), each writing one record into the morning
+  line. The old desk had sixty scheduled tasks; one process with many checks keeps the
+  checking without the sprawl. A "funnel" count was dropped on 13 November (FIL-05) because
+  one gate has one step; a refusal's reason serves it.
+- The old stores are consolidated into the one store on C: and verified; the originals are
+  then deleted with his explicit yes, asked at that time. Never E:, which is his backup drive
+  (his words: "E: drive is my automated backups drive. please do not use this"). `C:\mtt_cache` was kept back while his mark_the_trend programs
+  might read it; asked, he answered "Retired", so it is treated like the other stores.
+- The GPU is not used for now. The old desk measured no gain on it (its mentor's hand-over
+  of 18 October: "GPU/in-memory: no gain"), it would add a library and a second engine needing
+  its own parity test, and numpy on the CPU has not yet been shown to fall short. If a full
+  pass over the research universe overruns a weekend, a benchmark decides.
+
+---
+
+## 2026-11-14 — self-contained now, a cloud server later
+
+**His words, about 10:00 UK.** "as we build kestrel2, there should be no link to other
+folders or repo. when kestrel2 is live we can remove all other older folders ... if we are
+using another folder area, then please copy the contents to have zero dependencies. the
+future idea is that all of this desk is packaged and migrated to a cloud server and cloud
+database to avoid the single point of failure which is my current desktop pc."
+
+**Decided.** The desk depends only on its own folders: the repository, its runner, its data
+folder and its notes. The old desks are a quarry. Their code is ported under test, and their
+stores are copied in through the one store's checks, never read in place at run time. Paths
+come from one setting, and the database is named `market.db`, without the project's name,
+behind the one store, so that a server database can replace it. A guard will hold this. Moving
+to a cloud server is a phase 7 step, drilled before real money, and the Windows-only parts of
+the runner sit behind one door so they can be swapped.
+
+---
+
 ## MONEY
 
 ### 2026-11-13 — how the pretend broker behaves
@@ -2226,6 +2337,65 @@ files move onto it is a later step.
 
 **No `after` naming another lane's box.** No other lane's ids were on main and the guard refuses an
 `after` naming no box; the one cross-lane dependence is an un-noted box and a request (R-DATA-9).
+
+### 2026-11-13 — the parked fifth's box closed on the rule as it stands (data-parked-fifth, #84)
+
+- **Tick the box, or hold it for the misjudgements.** Options: (a) hold it open until WWH, SHC and the three windfalls are settled from a second source: none exists, so the box would block the research home behind it for good; (b) tune the rule until they come out right: every signal tried (range, a round ratio, a gap in sessions) also catches real crashes (PCG 0.476, ALNY 0.515), and raising 2.5 to catch WWH (2.51) leaves FANG's real crash (2.76) a whisker away, on a number chosen looking at this one list; (c) tick it. Chosen (c): every known error is a false loss or an unread stretch, which makes a strategy look worse, never better, and each is named in the history.
+- **A crash wholly won back overnight stays cut at the way back.** Options: (a) read through a one-day excursion that returns (on the one real case, ROSE, that reads three false moves instead of one, the day "returned to" being a stale quote); (b) leave it. Chosen (b).
+- **A move made within a day stays named on two days.** Naming it once would be truer for a count, but tests outside the box hold the behaviour and the rungs' request counts trades held through a named day, not days. Left as is.
+- **Tests not landed over the size guard.** Options: (a) ask him to loosen the guard, for two hair's-breadth cases; (b) grow the product to make room, which is forbidden in spirit; (c) run them from outside the repository and record the output. Chosen (c): 14 deliberate breaks, 12 caught by the existing tests.
+
+### 2026-11-13 — the ISA twins, the flags and the yardstick (data-isa-twins, first step, #85)
+
+- **Red on the tests-no-bigger-than-the-product guard.** Options: (a) tighten the claimed tests keeping every assertion; (b) add product lines; (c) ask for the guard to be loosened; (d) close the pull request. Chosen (a): (b) grows code to get round a guard, (c) is not needed, (d) throws away finished work.
+- **SPY and QQQ cannot leave in this change.** Options: (a) add nothing until other lanes' tests change; (b) add the twins and flags, remove GLD, keep SPY and QQQ flagged as not holdable and ask GRID and RUNGS to stop naming them; (c) edit the other lanes' tests (refused by the claim). Chosen (b); the master holds 22 lines for a while, held by a test that names the two as leaving.
+- **IDTL is priced in dollars.** The archive and the exchange quote it in dollars; the pound-priced IDTG is a different, currency-hedged product. Chosen: IDTL as he ruled, in dollars, so a purchase carries the currency cost like a US line.
+- **The yardstick is one line, VUAG.** Options: VUAG; VUSA (same index, pays out its dividends); one yardstick per venue. Chosen VUAG: one capital number in pounds, one yardstick in pounds, and its dividends stay in its price, so holding it is the whole of what the market earned (AG-04).
+- **What the flags say.** Options: one flag "ISA-ready"; two facts. Chosen two: IB1T shows why (retail yes, ISA no, crypto notes shut to new purchases in an ISA from 6 April 2026).
+- **A line nobody has recorded.** Options: default no; default unrecorded; no default. Chosen unrecorded (None): no would call a thousand research tickers unholdable, falsely; no default would break files outside the claim.
+- **The constructor's suspension check was reshaped** (same behaviour, same test) to stay inside the lint's complexity limit rather than touch the limit.
+
+### 2026-11-13 — trading hours in the one calendar (data-hours, #87)
+
+- **Summer time by rule, in the calendar.** Options: (a) Python's time-zone database (this PC lacks it; needs `tzdata`, a file outside the claim); (b) each country's rule in the one calendar. Chosen (b): `desk/` stays standard library only, both sides of every change tested.
+- **A venue is open from its open to its closing auction, both ends included.** Options: continuous trading only; to the auction. Chosen the second: a five-minute bar is whole only at its end, so the keeper's round at 16:30 and 16:35 London (16:00 New York) collects the day's last bar and the official close.
+- **A shut day asked for its hours is refused; a shut moment asked "is it open" answers nothing.** The first is the caller's mistake; the second is the keeper's ordinary question.
+- **London's half-days by rule** (last session before Christmas Day, last of the year), not by 24 and 31 December: on a weekend London closes the Friday before. New York has no such carry.
+- **Closing auctions as each exchange publishes:** New York's at the bell, London's five minutes after continuous trading ends.
+
+### 2026-11-13 — the one fast store (data-fast-store, #89)
+
+- **One table for both spans, a line keyed by venue and symbol.** Options: a table per line; one table keyed by venue, symbol, span and start. Chosen the second: one model, and thirteen symbols are two companies by venue.
+- **Prices as exact text.** Options: floating point; whole ticks (needs every tick size); the decimal's own text. Chosen the text (canon B4), the history benchmark met with room.
+- **A daily history is replaced whole; five-minute bars gather.** The archive restates the past for splits and a dropped bad day must go; five-minute bars are forgotten by the archive after sixty days, so nothing is cleared and a bar given again replaces that one bar.
+- **A second writer waits up to five seconds, then is refused.** First built as refuse-at-once; review showed the only writer refused when readers merely opened and closed the file. Chosen SQLite's own bounded wait, not a retry in the desk's code.
+- **Each round forced to disk (FULL).** NORMAL is faster but a power cut can lose rounds; the benchmark is met eighty times over with FULL.
+- **A refused line leaves its round whole** (one bad ticker must not stop all trading); a round SQLite itself drops lands nothing.
+- **A store or line never written is an error, not an empty answer** (failure pattern 10).
+- **The fastest of five runs is the benchmark's measure,** because one run fails by chance on a busy machine; the numbers live in the test.
+- **Evidence (A7):** 107 deliberate breaks over three versions; survivors listed in the pull request, each unobservable in a unit test. Two blind reviews: seven blocking points, all mended.
+
+### 2026-11-13 — the survivors' lists (data-members, first part, #96)
+
+- **Where past members come from.** Options: (a) a paid history of index members (spending is the operator's); (b) the index owners' notices change by change (hundreds of documents); (c) Wikipedia's dated change tables, checked by walking today's list back through them. Chosen (c): free, the walk reaches exactly 500 and 100 in 2010; unofficial, and the module says so. If survivorship ever decides a promotion, a paid history is the question for him then.
+- **Where the record lives.** A file outside the repository, or the module's text. Chosen the text (about 100 lines, versioned with the code), with a golden fingerprint so no change or date is altered unnoticed.
+- **How a past member is named.** A ticker is not a company (Q was Qwest, is Qnity). Options: match by ticker; carry every ticker change as an event; name each company by its last ticker on the list, and a leaver whose ticker a later member carried with its year of leaving (Q.2011, CB.2016, JCI.2016, ...). Chosen the last: no stranger's bars read as a leaver's, one mechanism.
+- **Hand corrections to the source,** each because the walk back contradicted today's list: ticker changes written as a leaver and a joiner made one company (Facebook to META and twenty more); GOOG for GOOGL in April 2014; two mergers followed by the surviving company (ACE took CB, Tyco took JCI; which company's prices the archive keeps under CB and JCI before the mergers is unconfirmed); four early-2010 S&P changes added from news of the day (NRG, Berkshire, Discovery, ONEOK); second share classes of Comcast, Discovery and Liberty written as joining (22 December 2014, inferred, not sourced).
+- **Days outside the record** (before 1 January 2010, after 13 November 2026) are refused, never guessed.
+- **The year-by-year counts and the record's fingerprint are golden numbers;** they change only by a deliberate, explained edit.
+
+### 2026-11-13 — five-minute bars saved for good (data-five-minute, #97)
+
+- **Where "everything older" lives.** Options: one file with the week read from on top of the older bars; a second archive file that older bars move into. Chosen one file: 5.2 million bars still read a week in 5 ms, and moving bars between two files is the one place a bar could be lost.
+- **How much is asked each evening.** The day's bars only, or all 59 days the archive keeps. Chosen all 59: 22 requests either way, a missed evening heals itself, a corrected bar is picked up.
+- **A bar the archive restates takes its place if it passes the checks,** so the evening's answer can correct a bar saved while it was forming; a restatement in a wrong unit never gets in.
+- **Checks not carried over from daily bars:** a missing bar and a repeated price are no fault (thin lines trade in few spans; 345 of 3LGO's bars were flat); a line late or missing its newest bar is the keeper's to judge.
+- **A big move is kept and listed, not dropped,** as the daily store does: the crash watch needs those bars.
+- **A wrong unit is judged against the middle price** of the bars held for those days (of the answer itself the first time). Simpler than neighbour rules and not dragged along by a run of bad bars; on the very first save an answer more than half wrong would be judged the wrong way round, and every such bar is listed.
+- **The archive's "price of the moment" and a forming bar are not bars yet;** the client leaves them out so a fault list means something.
+- **The store's file is `KESTREL2_DATA/bars.db`,** chosen now so the first night's bars are saved where the keeper will look.
+- **`archive.gather` no longer has a default question;** every caller already named one.
+- **Identical repeats of one bar are kept once without a fault,** or they would repeat for 59 evenings.
 
 ## LADDER (until 13 November; since then GRID and RUNGS)
 

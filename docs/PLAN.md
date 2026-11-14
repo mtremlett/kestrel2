@@ -4,7 +4,7 @@
 of its own book); then the costs whole, then the day's record, with which scenes 6 and 7
 pass together.
 
-Scenes passing: **7 of 7**. Phase: **2-money-sim**.
+Scenes passing: **7 of 7**. Phase: **3-money-paper**.
 
 The two lines above belong to the money lane: it alone moves the scenes count. The other
 lanes' objectives are in their own books below. The operator's Telegram line
@@ -42,9 +42,13 @@ lines to `desk/` and `lab/` together.
 the end of its text: `{id: money-kill; files: desk/kill.py, tests/unit/test_kill.py; after:
 money-costs}`. The id is unique; `files` names every file the box changes (globs allowed,
 `docs/PLAN.md` only for a box that moves the scenes count, `*` for one that must hold all
-the lane's files); `after` names the boxes, of any lane, done first. The runner gives a
-session the first box whose `after` boxes are done and whose files no running session
-holds; its files are the session's claim. A box with no note is serial work: one session,
+the lane's files); `after` names the boxes, of any lane, done first; `waits` names what
+the box waits on outside the lane: a request (`R-RUNGS-6`), a date (`2026-11-21`) or
+`operator`. The runner gives a session the first box whose `after` boxes are done, whose
+waits are met and whose files no running session holds; its files are the session's claim.
+A box blocked outside the lane is never handed out again: the session says `Waits: ...` in
+its pull request, or the doctor finds it, and the runner holds it back until the request is
+done or the date comes, freeing the boxes after it that do not truly need it. A box with no note is serial work: one session,
 alone in its lane, claim `*`. A lane whose next five boxes are not all noted is asked to
 note them first. The claim is in the session's pull request as `Claim: ...`, and the check
 refuses a change outside it and a lane's pull request without one
@@ -90,6 +94,13 @@ The machinery that refuses, before any desk code.
 - [ ] An independent reviewer that never sees the reasoning
 - [x] One Telegram line to the operator for each change that lands on main (his request,
       13 November: he follows progress without reading GitHub)
+- [ ] **Self-contained and portable** (his ruling, 14 November): the desk runs only from its
+      own folders (this repository, its runner, its data folder and its notes) and reads
+      nothing in any other repository or store at run time. Whatever it needs from the old
+      desks is copied in through the one store's checks or ported as code under its own
+      test. Every path comes from one setting; the database has a generic name (`market.db`)
+      behind the one store, so it can later be a server database. A guard fails a change that
+      names a folder outside these (OPS-15)
 - [ ] Standing guards still owed, each built by a session he starts (the spec's NOW rows):
       a secret scan on every change (OPS-11); a number with a second home caught (CODE-04);
       dead modules and duplicates caught (TST-11); a stale green treated as red (GOV-13);
@@ -134,21 +145,24 @@ UK tax) and R-MONEY-2 (the scenes on the whole fourteen months).
       UK-listed twins an ISA can hold: VUAG (S&P 500), EQQQ (Nasdaq 100) and IDTL (US
       Treasuries 20+ years), each on the London venue; every line carries an ISA and
       retail-buyable flag; the "simply holding the market" yardstick re-pointed (UNI-09)
-      {id: data-isa-twins; files: desk/lines.py, tests/unit/test_lines.py, tests/unit/test_lab_universe.py}
-- [ ] The research list's parked fifth: 201 tickers' large one-day moves confirmed, or a
+      (built in #85: the three twins, both flags, yardstick VUAG, GLD out; remains: SPY and QQQ
+      leave the master once GRID's and RUNGS's tests stop naming them (the requests to GRID and RUNGS);
+      IB1T is not ISA-holdable, for the operator)
+      {id: data-isa-twins; files: desk/lines.py, tests/unit/test_lines.py, tests/unit/test_lab_universe.py; waits: R-RUNNER-4, R-RUNNER-5}
+- [x] The research list's parked fifth: 201 tickers' large one-day moves confirmed, or a
       rule for research that needs no confirmation (rule built in `universe.read`, #80; remains:
       the grid reads through it (R-DATA-7) and the rungs count the named moves (R-DATA-8); the
       2.5 times re-measured on the full universe; WWH, SHC and three windfalls settled by a
       second source; a home for the research store)
       {id: data-parked-fifth; files: lab/universe.py, tests/unit/test_lab_universe_parked.py}
-- [ ] One fast store for hot and deep data, standard library only: SQLite in WAL mode with
+- [x] One fast store for hot and deep data, standard library only: SQLite in WAL mode with
       one writer and many readers, held to benchmarks set now: a five-minute round for every
       line written in under a second, a line's last week read in under 50 ms, a line's daily
       history read in under 200 ms (DAT-04)
       {id: data-fast-store; files: desk/bars.py, tests/unit/test_bars*.py, manifest.toml}
-- [ ] Half-days and auction times in the calendars (DQ-11)
+- [x] Half-days and auction times in the calendars (DQ-11)
       {id: data-hours; files: desk/venues.py, tests/unit/test_venues*.py}
-- [ ] A five-minute store, started now because the free archive keeps only about sixty days
+- [x] A five-minute store, started now because the free archive keeps only about sixty days
       of five-minute bars: each evening the twenty lines' five-minute bars are saved through
       the same checks; the last week kept hot for reading, everything older archived, none
       thrown away (DAT-11)
@@ -181,6 +195,8 @@ UK tax) and R-MONEY-2 (the scenes on the whole fourteen months).
       cleared out, and the day and list it reflects written beside it
       {id: data-research-home; files: lab/universe.py, tests/unit/test_lab_universe*.py; after: data-parked-fifth, data-isa-twins}
 - [ ] The lists' members year by year, so a study of the past is not the survivors' alone
+      (S&P 500 and Nasdaq 100 built in #96, `lab/members.py`; remains: the FTSE 350 and the funds,
+      joining the lists' records up, a second source for 2010 to 2014)
       {id: data-members; files: lab/members.py, tests/unit/test_lab_members*.py, manifest.toml}
 - [ ] The full research universe, 5,000 and more, once the grid's first pass works
 - [ ] 2MU's five real moves recorded from a second source, or its reason confirmed
@@ -216,6 +232,17 @@ UK tax) and R-MONEY-2 (the scenes on the whole fourteen months).
 - [ ] Leveraged-product lifecycle watched: an issuer's closure, a compulsory redemption or
       an ISA eligibility change on any line held or researched raises an alert (BIC-11)
 - [ ] Disk watched; old research files roll off by rule (OPS-07)
+- [ ] The old stores consolidated, never lost: once the one store holds their bars, verified by
+      counts and checksums per ticker and timeframe and by one restore drill, the originals
+      are deleted from C: with his explicit yes, asked then (never copied to E:, his backup
+      drive). His mark_the_trend programs are retired (his word, 14 November), so
+      `C:\mtt_cache` is treated like the other stores (DQ-05, OPS-07)
+- [ ] **The old desk's stores as a head start, now** (his ask, 14 November): its daily and
+      five-minute bars (Stooq and IBKR stores, and its per-ticker matrices) read in through
+      the one store's checks, every bar re-checked, each kept with its source; where a fresh
+      bar from the archive or the broker differs, the fresh one wins and the difference is
+      counted. Its stored indicators are not copied: indicators are recomputed from bars, and
+      the old values serve only as a cross-check of the recomputation (DAT-03, DAT-01)
 - [ ] The hot bars' first source is the broker: he already pays for IBKR's market data, so
       the five-minute keeper reads live bars through IB Gateway's paper port, read-only, and
       the free archive is the second source and the check on it; first prove, read-only,
@@ -378,6 +405,29 @@ day's trading and reconciliation are built, and any broker can stand behind them
 Begun alongside phase 2 by his ruling of 13 November: "Five lanes, phase 3 now".
 
 - [ ] **FIRST-LIGHT: ten consecutive clean trading days**
+- [ ] **FIRST-LIGHT's first day is Monday 16 November, 08:00 London** (his ruling: the date
+      holds; blockers get workarounds, never a later date). It starts on every one of the
+      twenty lines that is clean that morning; a line that joins later (an ISA swap still in
+      hand, a line parked) joins without restarting the count. Each blocker has a workaround
+      that keeps every safety rule: until the working-orders count is built, the send refuses
+      any line with an open order at the broker (the paper account is read before every
+      round); until the supervisor is built, the runner itself runs the desk's day on
+      schedule; the twenty lines' daily bars come from the store, refreshed from the archive
+      each morning, with the broker's bars as the fallback. Sunday 18:00: a dry rehearsal of
+      the whole day, and one go/no-go line to him naming any blocker still open and its
+      workaround (NS-10, TRD-01)
+- [ ] **One pre-flight each trading morning, before the open:** the whole check green on main;
+      one SimCity world lived; each rung's known-answer cases (a planted edge passes, noise
+      fails); the paper Gateway's handshake; every line's data fresh and its checksums whole;
+      a canary bar compared across two sources; the messenger's delivery proven; a halt in
+      force named. One record, one go/no-go line; a no-go halts buying for the day, never
+      silently (OPS-04, GOV-13, TST-21)
+- [ ] **One deep run each night after the US close, and a full one each weekend:** the hundred
+      SimCity worlds with faults and drills, the stress scenarios, the rungs' null and power
+      calibration, a synthetic round trip of every order type through the pretend broker,
+      every trade's lifecycle traced end to end; the weekend run adds the deliberate breaks
+      of the money path. One record each, folded into the morning line (TST-05, TST-22,
+      TST-20, TRD-11)
 
 ### The paper lane's book
 
@@ -611,6 +661,22 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       of the figures); each reproduced on its author's own market first, and only then judged
       on ours. The bar for twenty-one trials is high and most are expected to fail: that is
       the information (BT-15, STR-14)
+- [ ] **Published figures without buying books** (his ruling, 14 November): where an
+      author's own table is not to be had free, the best published replication found on the
+      internet stands in, labelled secondary, with its source, date, rules and period
+      written down; where sources disagree, the range is written down and reproduction must
+      land inside it. RSI-2 goes first this way; variants of each rule are tested later on
+      the ladder, never chosen by eye (BT-15)
+- [ ] **The ladder in sets, each published as it finishes:** set 1, the eponymous strategies;
+      set 2, the grid's transfer study over the research universe; then sets of variants
+      around any plateau found, each family named before it runs. After each set, one
+      Telegram summary and a results file: every strategy, every rung's verdict with its
+      reason, the trial count it was judged against, and what goes forward (LAD-09, LAD-03)
+- [ ] **Graduation to paper:** a strategy passes all eleven rungs and the luck test at the
+      set's full trial count (and its reproduction, if published); it is named in this plan,
+      with its kill condition, before its first paper day; it then trades paper side by side
+      with up to nine others under the A-GATE terms. Nothing reaches real money without his
+      signature (STR-17, LAD-11, MIG-07)
       {id: rungs-eponymous; files: *; after: rungs-trustworthy, rungs-indicators}
 - [ ] His paramount case: long and inverse leveraged-ETP trend strategies through the ladder
       (STR-18)
@@ -674,6 +740,11 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       BIC-07)
 - [ ] A ramp, not a switch: live compared with paper every day, a gap pausing the ramp
       (MIG-03, MIG-04)
+- [ ] **Off the single PC:** the desk packaged and moved to a cloud server with a cloud
+      database, so his desktop is no longer a single point of failure; the runner's
+      Windows-only parts (scheduled tasks, the memory ceiling) kept behind one door so they
+      can be swapped; IB Gateway and the secrets on the server; the move drilled before any
+      real money (OPS-15)
 - [ ] The desk rebuilt on a clean PC within two hours, its stops resting at the broker
       meanwhile (OPS-15)
 - [ ] Records kept for their statutory years and reconciled each year to the broker's
