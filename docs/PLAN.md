@@ -632,9 +632,11 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       real daily rates R-RUNGS-3; the operator's ruling on concentration in the A-GATE)
       {id: rungs-beta; files: lab/beta.py, tests/unit/test_lab_beta.py, manifest.toml}
 - [ ] Reproduces a published strategy's own published result. Built: `lab/reproduce.py`
-      (#120). Remains: Connors' RSI-2 figure from the book, SPY from 1993 (R-RUNGS-5), the first
-      real run. Built: the first rung waits for a figure on file (#139); the Double 7's
-      figure written down (#141). Remains also: `folds`/`regime` passing reproductions on
+      (#120). Built: the first rung waits for a figure on file (#139); the Double 7's
+      figure written down (#141); dry run on real SPY 2011-19 ran all five rules (#143).
+      BLOCKED (#143, #149; do not hand out): waits on RSI-2's figure from the book (his spend;
+      free pages and Google Books print none), SPY and sessions from 1993 (R-RUNGS-5), the
+      Double 7's rule (R-RUNGS-10). Remains also: `folds`/`regime` passing reproductions on
       {id: rungs-reproduce; files: lab/reproduce.py, lab/rung.py,
       tests/unit/test_lab_reproduce.py, tests/unit/test_lab_rung.py}
 - [x] Stress scenarios: the 2020 crash, flash crashes, a leveraged product's gap (2008 lies
@@ -655,8 +657,10 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       audit found kept as a case that must fail (LAD-09, LAD-03, LAD-08)
       {id: rungs-trustworthy; files: *; after: rungs-beta}
 - [ ] Each indicator known-answer tested against a published reference series (STR-14).
-      Built: moving average, Bollinger deviation, Wilder smoothing held to four published tables
-      (#145). Remains: the RSI, true range, bands, carried band, channel (R-RUNGS-6); room for more tables
+      Built: moving average, Bollinger deviation, Wilder smoothing (#145); true range, RSI gains
+      and losses, channel (#154): five tables, 250 printed numbers. Remains: RSI ratio and band
+      line (R-RUNGS-6, 12), carried band, a fresh-low table, each table run holding, tables
+      moved to own module (file at its 400 cap)
       {id: rungs-indicators; files: lab/published.py, tests/unit/test_lab_published.py}
 - [ ] Before paper: a kill condition declared for each strategy; promotion only after at
       least thirty effective paper trades, net positive (STR-17, LAD-11). Built:
