@@ -4,6 +4,10 @@
     python check.py           everything (the gate for a merge)
     python check.py --fast    format, lint and the guards only, for a commit hook
     python check.py --scenes  the north-star scenes alone, in plain English
+    python check.py --only unit --shard 2/3
+                              one step of the full check (GitHub runs the steps side by
+                              side, and the unit tests in parts; its job named "check"
+                              is green only when every one of them is)
 
 The git hook runs this. The GitHub check runs this. "Done" means this exited 0 and
 you read the output. There is no second way of being sure, because a second way is
@@ -40,6 +44,22 @@ FULL: list[Step] = [
     ("unit", ["pytest", "tests/unit", "-q"]),
     ("scenes", ["pytest", "tests/scenes", "-q"]),
 ]
+
+UNIT_DIR = "tests/unit"
+
+
+def shard(command: list[str], part: int, parts: int) -> list[str]:
+    """The unit step's command for the `part`-th of `parts` shares of its test files,
+    heaviest first, each to the lightest share so far: every file in exactly one share."""
+    files = sorted((ROOT / UNIT_DIR).glob("test_*.py"), key=lambda f: (-f.stat().st_size, f.name))
+    shares: list[list[str]] = [[] for _ in range(parts)]
+    sizes = [0] * parts
+    for f in files:
+        lightest = sizes.index(min(sizes))
+        shares[lightest].append(f.relative_to(ROOT).as_posix())
+        sizes[lightest] += f.stat().st_size
+    return [a for c in command for a in (shares[part - 1] if c == UNIT_DIR else [c])]
+
 
 #: The one published progress number, in docs/PLAN.md. The scenes step holds it true.
 PUBLISHED = re.compile(r"Scenes passing: \*\*(\d+) of (\d+)\*\*")
@@ -170,12 +190,25 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="the one check")
     parser.add_argument("--fast", action="store_true", help="format, lint and guards only")
     parser.add_argument("--scenes", action="store_true", help="the north-star scenes only")
+    parser.add_argument(
+        "--only", choices=[name for name, _ in FULL], help="one step of the full check"
+    )
+    parser.add_argument(
+        "--shard", metavar="I/N", help="with --only unit: the I-th of N shares of its tests"
+    )
     args = parser.parse_args(argv)
 
     if args.scenes:
         steps = [("scenes", ["pytest", "tests/scenes", "-q", "-v"])]
+    elif args.only:
+        steps = [step for step in FULL if step[0] == args.only]
     else:
         steps = FAST if args.fast else FULL
+    if args.shard:
+        part, parts = (int(x) for x in args.shard.split("/"))
+        if args.only != "unit" or not 1 <= part <= parts:
+            parser.error("--shard I/N needs --only unit and 1 <= I <= N")
+        steps = [("unit", shard(steps[0][1], part, parts))]
 
     results: list[tuple[str, int, float]] = []
     with turn() if steps is FULL else contextlib.nullcontext():
