@@ -125,6 +125,14 @@ def test_the_doors_refuse_an_archive_that_answers_for_no_line_and_a_pound_they_c
     moving = (_flat(today, "1.25"), _flat(ask, "1.3"))  # the day's own bar is passed over
     monkeypatch.setattr(archive, "fetch", lambda _line, _day: moving)
     assert command.rates(tmp_path, ask)["USD"] == Decimal("0.8")
+    # London shut, New York open: the last pound is carried, with no archive asked
+    monkeypatch.setattr(archive, "fetch", lambda *_: pytest.fail("the archive was asked"))
+    for kept, shut in (
+        (date(2025, 4, 17), date(2025, 4, 21)),
+        (date(2025, 12, 24), date(2025, 12, 26)),
+    ):
+        book.record_rates(tmp_path, kept, {"USD": Decimal("0.77")})
+        assert command.rates(tmp_path, shut)["USD"] == Decimal("0.77")
     with pytest.raises(SystemExit, match="KESTREL2_DATA names no whole path to a folder"):
         command.main([], {"KESTREL2_DATA": ""})
 
