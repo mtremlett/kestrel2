@@ -313,3 +313,50 @@ def test_shelved_older_bars_join_the_archives_and_outlast_every_rebuild(tmp_path
         assert store.prepare(tmp_path, {UK: every[3:]}, DAY) == ()
         assert store.read(tmp_path, UK.symbol) == every
     assert store.prepare(tmp_path, {US: _bars(US, LONG)}, DAY) == ()  # a line with none shelved
+
+
+POUND = Decimal("1.5")
+
+
+def _prepared(tmp_path: Path, bars: tuple[Bar, ...], line: Line, rated: bool = True) -> list[str]:
+    rates = {b.day: POUND for b in bars} if rated else {}
+    return [p.reason for p in store.prepare(tmp_path, {line: bars}, DAY, rates)]
+
+
+@pytest.mark.parametrize("stray", [False, True], ids=["a step", "a stray bar"])
+def test_a_change_of_currency_below_a_jump_is_found_by_the_days_pound(
+    tmp_path: Path, stray: bool
+) -> None:
+    """IITU x0.662, VUAG x0.791: a step as large as the pound in dollars is no market move."""
+    clean = _bars(US, LONG)
+    mixed = [_scaled(b, 1 / POUND) for b in clean[30 : 31 if stray else None]]
+    bars = (*clean[:30], *mixed, *clean[31:]) if stray else (*clean[:30], *mixed)
+    assert _prepared(tmp_path, bars, US, rated=False) == []  # unseen without the rate
+    reasons = _prepared(tmp_path, bars, US)
+    assert bool(reasons) is not stray  # a step is lasting; a stray old bar is dropped and listed
+    assert any(("wrong unit" in f) is stray for f in store.faults(tmp_path, US.symbol))
+    assert len(store.read(tmp_path, US.symbol)) == len(bars) - stray
+    assert _prepared(tmp_path, bars, replace(US, leverage=3)) == []  # a real crash is as large
+
+
+def test_a_recorded_split_adjusts_the_older_bars_only_by_the_ratio_the_jump_shows(
+    tmp_path: Path,
+) -> None:
+    """5QQQ x489 on 22 August 2024: adjusted only when recorded, never by a guessed ratio."""
+    clean = _bars(US, LONG)
+    day, ratio = clean[30].day, Decimal(500)
+    old = tuple(_scaled(b, 1 / ratio) for b in clean[:30])
+    bars = (*old, *clean[30:])
+    assert "moved" in _parked(tmp_path, bars)[0]  # unrecorded: parked, bars untouched
+    line = replace(US, splits=frozenset({(day, ratio)}))
+    assert _parked(tmp_path, bars, line) == []
+    assert store.read(tmp_path, US.symbol) == (
+        *(replace(b, volume=2) for b in clean[:30]),
+        *clean[30:],
+    )
+    assert (
+        "recorded as a split of 7"
+        in _parked(tmp_path, bars, replace(US, splits=frozenset({(day, Decimal(7))})))[0]
+    )
+    assert _parked(tmp_path, clean, line) == []  # the archive adjusted it already
+    assert store.read(tmp_path, US.symbol) == clean
