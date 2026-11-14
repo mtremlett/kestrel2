@@ -3,7 +3,7 @@ not run with theirs, and the one rule over them (`lab/ladder.py` holds the spec 
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from decimal import Decimal
 from typing import Any
 
@@ -11,15 +11,12 @@ from desk.command import CAPITAL
 from desk.lines import Line
 from desk.orders import Settings
 from desk.store import Bar
-from lab import cell, deflated, folds, luck, market, reproduce, rung, shuffle
+from lab import cell, deflated, luck, market, reproduce, rung, shuffle
 from lab.cell import Cell
 from lab.deflated import Deflated
 from lab.reproduce import Reproduction
 from lab.rung import Answer, Rates, Verdict
 
-#: The rules trade a line five to ten times a year and a fold is asked for thirty trades: so
-#: the window in three parts, two of them folds, each a trial the luck rung counts.
-FOLDS = 2
 #: Rungs that are built and that this set cannot yet be run through, each with why.
 UNRUN = {
     "regime": "the weather that names each day's regime is not built (REG-01)",
@@ -43,6 +40,7 @@ def judge(
     pounds: Rates,
     count: int,
     made: Sequence[Reproduction],
+    pooled: Callable[[], Pair],
 ) -> dict[str, Any]:
     """Every rung's answer with its reason, the rungs not run with theirs, the verdict's."""
     try:
@@ -62,7 +60,7 @@ def judge(
     elif verdict.answer is Answer.FAULT:  #: no trade in it, so none in any fold of it
         rungs["folds"] = rungs["first"]
     else:
-        rungs["folds"] = _folded(c, own, settings, pounds)
+        rungs["folds"] = pooled()
     against = market.judge(verdict, own, beside, held, pounds)
     said = rungs["first"][1]
     if against.line is not None and against.wide is not None:
@@ -101,17 +99,6 @@ def _named(verdict: Verdict, one: Deflated) -> Judged:
     if verdict.answer in (Answer.FAULT, Answer.THIN):  #: no rung has more to judge than the first
         why = dict.fromkeys(why, first)
     return {name: (answer, why[name]) for name, answer in one.rungs.items()}
-
-
-def _folded(c: Cell, own: Sequence[Bar], settings: Settings, pounds: Rates) -> Pair:
-    """The folds rung: the worst of the folds, its year named in the reason."""
-    worst = (folded := folds.judge(c, own, settings, pounds, FOLDS)).worst
-    return (
-        folded.answer,
-        f"the worst of {FOLDS} folds, from {worst.outside.key.cell.start}: "
-        f"{len(worst.outside.trades)} trades at {_n(worst.outside.t)} standard errors; on "
-        f"the history before it, {len(worst.inside.trades)} at {_n(worst.inside.t)}",
-    )
 
 
 def shuffled(

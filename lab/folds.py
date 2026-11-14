@@ -1,73 +1,33 @@
-"""folds - THE LADDER'S FOLDS RUNG: a strategy is believed only where it earned on history
-that no choice of it had seen, and it is judged on the worst such stretch.
+"""folds - THE LADDER'S FOLDS RUNG: a rule is believed only where it earned in every one of the
+last FOLDS whole calendar years, and it is judged on the worst (`lab/ladder.py` is the spec).
 
-A window's bars are cut into equal parts, oldest first. The first part is in-sample only:
-the history a chooser starts with. Every later part is a fold, and each fold is judged twice
-by the first rung (`lab/rung.py`), after the broker's costs: out-of-sample, on the fold
-alone, and in-sample, on everything in the window before it, which is all a chooser could
-have known the day the fold began. The two stand side by side, fold by fold.
-
-Each is an ordinary cell (`lab/cell.py`), so nothing crosses a boundary: the rule is shown
-no bar after its cell's end, and a trade counts only where it was bought and its sale
-filled inside one cell. A trade held across a boundary belongs to neither side of it.
-
-The verdict is given on the worst fold, and it is that fold's own answer (`rung.Answer`).
-Thirty trades are asked of every fold. A fold with no trade at all is worst: the history
-was cut too fine for the rule to trade in each part, a fault in the test. Then a fold that
-failed on enough trades; then one with too few, which is not enough evidence and never a
-fail; then one that passed. Among folds of one answer, the worst is the one whose
-out-of-sample trades stand the fewest standard errors above nothing, a fold with under two
-trades standing lowest. The strategy passes this rung when that fold passes the first
-rung, which is every fold passing it. Every fold's out-of-sample verdict is a trial the
-luck rung counts (`lab/luck.py`).
+A rule trades a line five to ten times a year, so a year is judged on the trades of every line
+of the rule at once, pooled, and the one answer is every line's. A fold's gains are taken by
+the day, every day one of its lines has a bar, summed over the lines as the market's rung marks
+them (`lab/market.py`), so trades held together are not counted as bets apart. Its trades are
+those bought and sold inside the year, as a cell's are (`lab/cell.py`). With MIN_TRADES pooled
+or more a fold PASSES if its mean day earned after costs, FAILS at T_PASS standard errors under
+nothing and is in DOUBT between; with fewer it is THIN, with none FAULT, and the worst fold
+speaks, its year named. `cut` is the other way of cutting a window, in equal parts, which the
+regime rung (`lab/regime.py`) keeps.
 """
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-from dataclasses import dataclass
+import math
+from collections.abc import Mapping, Sequence
+from datetime import date
+from decimal import Decimal
+from statistics import fmean, stdev
 
+from desk.lines import Line
 from desk.orders import Settings
 from desk.store import Bar
-from lab import cell, rung
+from lab import cell, market, rung
 from lab.cell import Cell
-from lab.rung import Answer, Rates, Verdict
+from lab.rung import Answer, Rates
 
-
-@dataclass(frozen=True)
-class Fold:
-    inside: Verdict  #: in-sample: the window before the fold, all a chooser had seen
-    outside: Verdict  #: out-of-sample: the fold alone
-
-
-@dataclass(frozen=True)
-class Folded:
-    folds: tuple[Fold, ...]  #: oldest first
-
-    def __post_init__(self) -> None:
-        if not self.folds:
-            raise ValueError("no folds: there is no worst fold to judge on")
-
-    @property
-    def worst(self) -> Fold:
-        """The fold judged on; of two equally bad, the older."""
-        return min(
-            self.folds,
-            key=lambda f: (f.outside.answer, f.outside.t is not None, f.outside.t or 0),
-        )
-
-    @property
-    def answer(self) -> Answer:
-        return self.worst.outside.answer
-
-    @property
-    def passed(self) -> bool:
-        return self.answer is Answer.PASS
-
-    @property
-    def trials(self) -> tuple[Verdict, ...]:
-        """Every fold's out-of-sample verdict: the trials this strategy cost."""
-        return tuple(fold.outside for fold in self.folds)
+FOLDS = 5
 
 
 def cut(window: Cell, bars: Sequence[Bar], folds: int) -> tuple[tuple[Cell, Cell], ...]:
@@ -90,13 +50,51 @@ def cut(window: Cell, bars: Sequence[Bar], folds: int) -> tuple[tuple[Cell, Cell
     )
 
 
+def years(end: date) -> range:
+    """The last FOLDS whole calendar years up to the end, oldest first."""
+    last = end.year if end >= date(end.year, 12, 31) else end.year - 1
+    return range(last - FOLDS + 1, last + 1)
+
+
 def judge(
-    window: Cell, bars: Sequence[Bar], settings: Settings, rates: Rates, folds: int
-) -> Folded:
-    """The window in folds, each cell run and judged by the first rung on the line's bars;
-    each fill at its own day's rate of exchange."""
+    rule: str, lines: Mapping[Line, Sequence[Bar]], settings: Settings, rates: Rates, end: date
+) -> tuple[Answer, str]:
+    """The rule's folds rung: each year's trades pooled over the lines, the worst year's
+    answer with its reason. A line with no bar in a year is left out of it."""
+    folds = [_fold(rule, lines, year, settings, rates) for year in years(end)]
+    answer, _, why = min(folds, key=lambda f: (f[0], f[1]))
+    return answer, why
 
-    def first_rung(c: Cell) -> Verdict:
-        return rung.judge(cell.run(c, bars), bars, settings, rates)
 
-    return Folded(tuple(Fold(first_rung(i), first_rung(o)) for i, o in cut(window, bars, folds)))
+def _fold(
+    rule: str, lines: Mapping[Line, Sequence[Bar]], year: int, settings: Settings, rates: Rates
+) -> tuple[Answer, float, str]:
+    made: dict[date, Decimal] = {}
+    days: set[date] = set()
+    trades = pooled = 0
+    for line, bars in lines.items():
+        window = Cell(rule, line, date(year, 1, 1), date(year, 12, 31))
+        if not any(bar.day >= window.start for bar in cell.shown(window, bars)):
+            continue
+        verdict = rung.judge(cell.run(window, bars), bars, settings, rates)
+        read = cell.shown(window, bars)
+        for day, gain in market.daily(verdict.trades, read, line, rates).items():
+            made[day] = made.get(day, Decimal(0)) + gain
+        days |= {bar.day for bar in read if bar.day >= window.start}
+        trades, pooled = trades + len(verdict.trades), pooled + 1
+    said = f"{year}: {trades} trades pooled from {pooled} lines; {rung.MIN_TRADES} asked"
+    if not trades:
+        return Answer.FAULT, 0.0, f"the worst of {FOLDS} folds, {said}, none made"
+    if trades < rung.MIN_TRADES:
+        return Answer.THIN, 0.0, f"the worst of {FOLDS} folds, {said}"
+    gains = [float(made.get(day, Decimal(0))) for day in sorted(days)]
+    mean = fmean(gains)
+    if not (spread := stdev(gains)):
+        raise ValueError(f"{year}: {len(gains)} days all of {mean}: no spread to judge the fold by")
+    t = mean / (spread / math.sqrt(len(gains)))
+    answer = Answer.PASS if mean > 0 else Answer.FAIL if t <= -float(rung.T_PASS) else Answer.DOUBT
+    return (
+        answer,
+        t,
+        f"the worst of {FOLDS} folds, {said}; mean day {mean:.5f}, {t:.2f} standard errors",
+    )

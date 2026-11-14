@@ -135,11 +135,12 @@ from pathlib import Path
 from typing import Any
 
 from desk import archive, keeper
-from desk.command import DOLLARS, FRESH, POUND
+from desk.command import CAPITAL, DOLLARS, FRESH, POUND
 from desk.lines import LINES, Line
+from desk.orders import Settings
 from desk.store import Bar
 from desk.strategy import STRATEGIES
-from lab import batch, cell, published, reproduce, trials, verdict
+from lab import batch, cell, folds, published, reproduce, trials, verdict
 from lab.batch import Bars
 from lab.cell import Cell
 from lab.reproduce import Reproduction
@@ -150,7 +151,7 @@ QUESTION = "set 1: does a published rule earn on one of the desk's lines?"
 #: The one window: from where the daily history is to be carried back to, to the last
 #: session before the set was first run. A later end is a new set of trials, on purpose.
 START, END = date(2000, 1, 1), date(2026, 11, 13)
-FOLDS = verdict.FOLDS
+FOLDS = folds.FOLDS
 #: The market each venue's lines are set beside: the S&P 500 in New York, the FTSE 100 in London.
 MARKETS = {"US": "SPY", "LSE": "ISF"}
 FOLDER, RESULTS, REGISTER = "ladder", "set1.jsonl", "set1.trials.jsonl"
@@ -170,9 +171,8 @@ def cells() -> tuple[Cell, ...]:
 
 
 def names(c: Cell) -> list[str]:
-    """The trials a cell costs, as the register names them: itself, and each of its folds."""
-    whole = trials.name(c)
-    return [whole, *(f"{whole}, fold {n} of {FOLDS}" for n in range(1, FOLDS + 1))]
+    """The trials a cell costs, as the register names them: itself. A fold is no trial."""
+    return [trials.name(c)]
 
 
 def stored(home: Path) -> Bars:
@@ -225,12 +225,14 @@ def run(
     whole = text[: text.rfind(b"\n") + 1]
     last = {tuple(row["cell"]): row for row in map(json.loads, whole.splitlines())}
     behind: dict[str, tuple[Reproduction, ...]] = {}
+    pools = cache(lambda rule: _pool(rule, todo, bars))
+    folded = cache(lambda rule: folds.judge(rule, pools(rule), Settings(CAPITAL), pounds, END))
     tally: Counter[str] = Counter()
     with results.open("ab") as out:
         out.truncate(len(whole))
         for c in todo:
             was = last.get(tuple(batch.row(c)))
-            row = _one(c, bars, pounds, count, was, behind, now())
+            row = _one(c, bars, pounds, count, was, (behind, pools, folded), now())
             if row != was:
                 out.write(json.dumps(row).encode() + b"\n")
                 out.flush()
@@ -259,13 +261,18 @@ def _one(
     pounds: Rates,
     count: int,
     was: Row | None,
-    behind: dict[str, tuple[Reproduction, ...]],
+    shared: tuple[
+        dict[str, tuple[Reproduction, ...]],
+        Callable[[str], Mapping[Line, Sequence[Bar]]],
+        Callable[[str], tuple[Answer, str]],
+    ],
     now: datetime,
 ) -> Row:
     """The cell's line: the one kept, where it is kept under the key these bars, rates and
     trials give; else its answers now, or why it could not be judged. It is judged from the
     line's first bar, so that its years are years it could trade in."""
     head: dict[str, Any] = {"set": 1, "cell": batch.row(c), "trials": count}
+    behind, pools, folded = shared
     tried = was.get("tried") if was is not None else None  #: a waiting cell's last try
     if was is not None and tried and now - datetime.fromisoformat(tried) < RETRY:
         return was  #: it waits on data, and was tried not long ago
@@ -277,18 +284,50 @@ def _one(
             behind[c.strategy] = tuple(reproduce.reproduce(f, bars(f.line)) for f in owed)
         made = behind[c.strategy]
         c = Cell(c.strategy, c.line, max([c.start, *(bar.day for bar in own[:1])]), c.end)
-        mine = cell.key(c, own).rung(ME)
-        days = sorted(day for day in pounds if day <= c.end and c.line.currency != "GBP")
-        market = cell.key(Cell(c.strategy, beside, c.start, c.end), held).data
-        parts = [mine.code, mine.data, market, str(count), *(f"{d} {pounds[d]}" for d in days)]
-        parts += [one.key.code + one.key.data for one in made]
-        key = hashlib.sha256("\n".join(parts).encode()).hexdigest()
+        pool = pools(c.strategy)
+        key = _key(c, own, (beside, held), pounds, count, made, pool)
         if was is not None and was.get("key") == key:
             return was
-        judged = verdict.judge(c, own, beside, held, pounds, count, made)
+        judged = verdict.judge(
+            c, own, beside, held, pounds, count, made, lambda: folded(c.strategy)
+        )
         return head | {"key": key, "from": c.start.isoformat()} | judged
     except FAILED as error:
         return head | {"error": f"{type(error).__name__}: {error}", "tried": now.isoformat()}
+
+
+def _key(
+    c: Cell,
+    own: Sequence[Bar],
+    market: tuple[Line, Sequence[Bar]],
+    pounds: Rates,
+    count: int,
+    made: Sequence[Reproduction],
+    pool: Mapping[Line, Sequence[Bar]],
+) -> str:
+    """What made a cell's answer: its code and bars, its market's, the count of trials, the
+    rates, the reproductions, and the bars of every line its folds pooled."""
+    mine = cell.key(c, own).rung(ME)
+    abroad = c.line.currency != "GBP" or any(line.currency != "GBP" for line in pool)
+    days = sorted(day for day in pounds if day <= c.end and abroad)
+    beside = cell.key(Cell(c.strategy, market[0], c.start, c.end), market[1]).data
+    parts = [mine.code, mine.data, beside, str(count), *(f"{d} {pounds[d]}" for d in days)]
+    parts += [one.key.code + one.key.data for one in made]
+    parts += [cell.key(Cell(c.strategy, ln, c.start, c.end), got).data for ln, got in pool.items()]
+    return hashlib.sha256("\n".join(parts).encode()).hexdigest()
+
+
+def _pool(rule: str, todo: Sequence[Cell], bars: Bars) -> dict[Line, Sequence[Bar]]:
+    """The bars of every line of the rule in the set that can be judged: a line that waits on
+    its bars is left out of the folds' pool."""
+    pool: dict[Line, Sequence[Bar]] = {}
+    for c in todo:
+        if c.strategy == rule:
+            try:
+                pool[c.line] = bars(c.line)
+            except FAILED:
+                continue
+    return pool
 
 
 def main(env: Mapping[str, str]) -> int:

@@ -73,13 +73,12 @@ def test_a_rule_that_earns_in_one_regime_alone_is_kept_for_it_and_tagged_outside
 
 def test_the_periods_are_the_folds_own_parts_each_replayed_alone() -> None:
     bars = _walk(0, EDGE, EDGE, 0)
-    found, cut = (
-        _judge(bars, _weather(bars, "fair", "foul"), 3),
-        folds.judge(_window(bars), bars, TEN_K, POUND, 2),
-    )
+    found = _judge(bars, _weather(bars, "fair", "foul"), 3)
+    (before, one), (_, two) = folds.cut(_window(bars), bars, 2)
+    cut = [rung.judge(cell.run(c, bars), bars, TEN_K, POUND) for c in (before, one, two)]
     first, second, third = found.periods  #: oldest first, the window in three equal parts
-    assert (first.verdict, second.verdict) == (cut.folds[0].inside, cut.folds[0].outside)
-    assert third.verdict == cut.folds[1].outside and [p.bars for p in found.periods] == [5000] * 3
+    assert [first.verdict, second.verdict, third.verdict] == cut
+    assert [p.bars for p in found.periods] == [5000] * 3
     assert second.name == f"{bars[5000].day} to {bars[9999].day}"
     #: shown side by side: it earned in two periods and not in the last
     assert [p.verdict.passed for p in found.periods] == [True, True, False]

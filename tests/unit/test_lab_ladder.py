@@ -76,25 +76,25 @@ def test_each_cell_is_judged_on_every_rung_and_kept_with_its_reasons_and_trials(
     book, todo = {VUSA: EDGE, ISF: NOISE}, _set(VUSA, ISF)
     said = ladder.run(tmp_path, _door(book), {}, todo)
     assert said.startswith("ladder set 1: 2 cells") and "\n" not in said
-    assert "against 6 trials: 2 judged now, 0 kept from before, 0 could not" in said
+    assert "against 2 trials: 2 judged now, 0 kept from before, 0 could not" in said
     assert "PASS 0, DOUBT 0, THIN 1, FAIL 1, FAULT 0; 0 with no verdict, a named" in said
     won, lost = _rows(tmp_path)
-    #: each rung's answer is that rung's own, the cell and its two folds among six trials,
+    #: each rung's answer is that rung's own, the two cells the trials,
     #: priced from the desk's one capital and set beside its venue's market; and the window
     #: judged begins at the line's first bar, so a yearly figure is of years it had bars in
     own = Cell("breakout_20_10", VUSA, EDGE[0].day, ladder.END)
     verdict = rung.judge(cell.run(own, EDGE), EDGE, ROOM, {})
-    (one,) = deflated.judge([verdict], 5)
+    (one,) = deflated.judge([verdict], 1)
     assert won["from"] == "2010-01-01" and f"of {one.yearly:.2f};" in won["rungs"]["yearly"][1]
     want = {name: answer.name for name, answer in one.rungs.items()} | {
-        "folds": folds.judge(own, EDGE, ROOM, {}, ladder.FOLDS).answer.name,
+        "folds": folds.judge(own.strategy, {VUSA: EDGE, ISF: NOISE}, ROOM, {}, ladder.END)[0].name,
         "market": market.judge(verdict, EDGE, ISF, NOISE, {}).answer.name,
         "shuffle": "THIN",  #: run last, and only on a trial that passed all before it
     }
     assert {name: answer for name, (answer, _) in won["rungs"].items()} == want
-    assert (won["trials"], one.luck.trials, won["trades"]) == (6, 6, len(verdict.trades))
+    assert (won["trials"], one.luck.trials, won["trades"]) == (2, 2, len(verdict.trades))
     assert f"{verdict.t:.2f} standard errors above" in won["rungs"]["first"][1]
-    assert "times 6 trials" in won["rungs"]["luck"][1] and all(w for _, w in won["rungs"].values())
+    assert "times 2 trials" in won["rungs"]["luck"][1] and all(w for _, w in won["rungs"].values())
     #: the planted edge passes every rung but its worst fold, too thin to say: so the one
     #: verdict, over every named rung, is THIN. The noise fails; no rung is left in silence
     assert want == dict.fromkeys(want, "PASS") | {"folds": "THIN", "shuffle": "THIN"}
@@ -126,24 +126,24 @@ def test_a_run_skips_what_is_kept_and_judges_again_only_what_has_changed(tmp_pat
     assert (
         rows[0]["key"] != rows[2]["key"] and rows[0]["rungs"]["first"] == rows[2]["rungs"]["first"]
     )
-    #: the set grown by a dollar line with no bars: nine trials now, so all are judged again;
+    #: the set grown by a dollar line with no bars: three trials now, so all are judged again;
     #: the one that cannot be is kept with its reason and its try time, tried an hour on
     more = _set(VUSA, ISF, AAPL)
     said = run(tmp_path, _door(book), {}, more)
-    assert "against 9 trials: 2 judged now, 0 kept from before, 1 could not be judged" in said
+    assert "against 3 trials: 2 judged now, 0 kept from before, 1 could not be judged" in said
     assert "0 judged now, 2 kept from before, 1 could" in run(tmp_path, _door(book), {}, more)
-    assert [row["trials"] for row in _rows(tmp_path)] == [6, 6, 6, 6, 9, 9, 9, 9]
+    assert [row["trials"] for row in _rows(tmp_path)] == [2, 2, 2, 2, 3, 3, 3, 3]
     assert _rows(tmp_path)[-1]["error"].startswith("Stale") and "key" not in _rows(tmp_path)[-1]
     #: its bars found, and no rate of exchange: refused with the day; the rates given, judged
     book |= {AAPL: EDGE, SPY: NOISE}
-    assert "1 could not be judged" in run(tmp_path, _door(book), {}, more)
+    assert "3 could not be judged" in run(tmp_path, _door(book), {}, more)  #: the rule's pool
     assert "no rate of pounds per USD" in _rows(tmp_path)[-1]["error"]
     pounds = {bar.day: Decimal("0.8") for bar in EDGE}
-    assert "1 judged now, 2 kept from before, 0 could" in run(tmp_path, _door(book), pounds, more)
-    assert _rows(tmp_path)[-1]["answer"] == "THIN" and len(_rows(tmp_path)) == 10
-    #: a dearer dollar on one day is another price: the dollar line alone is judged again
+    assert "3 judged now, 0 kept from before, 0 could" in run(tmp_path, _door(book), pounds, more)
+    assert _rows(tmp_path)[-1]["answer"] == "THIN"
+    #: a dearer dollar on one day is another price: the folds pool it, so all are judged again
     pounds[EDGE[50].day] = Decimal("0.9")
-    assert "1 judged now, 2 kept" in run(tmp_path, _door(book), pounds, more)
+    assert "3 judged now, 0 kept" in run(tmp_path, _door(book), pounds, more)
 
 
 def test_every_trial_is_counted_before_any_is_run_and_the_count_never_begins_again(
@@ -154,8 +154,8 @@ def test_every_trial_is_counted_before_any_is_run_and_the_count_never_begins_aga
     register.with_suffix(".new").write_bytes(trials.HEAD)
     clock, todo = [datetime(2026, 11, 14, 12, 0, tzinfo=UTC)], _set(VUSA, ISF)
     said = ladder.run(tmp_path, _door({}), {}, todo, lambda: clock[0])
-    assert "against 6 trials: 0 judged now, 0 kept from before, 2 could not be judged" in said
-    assert trials.count(register, ladder.QUESTION) == 6
+    assert "against 2 trials: 0 judged now, 0 kept from before, 2 could not be judged" in said
+    assert trials.count(register, ladder.QUESTION) == 2
     #: a line too short to have made a trade waits on its history, and is tried again no
     #: sooner than 30 minutes after its last try
     clock[0] += timedelta(minutes=30)
@@ -164,7 +164,7 @@ def test_every_trial_is_counted_before_any_is_run_and_the_count_never_begins_aga
     assert "waits on 452" in waits["error"] and "answer" not in waits
     clock[0] += timedelta(minutes=29)
     ladder.run(tmp_path, _door({VUSA: EDGE, ISF: NOISE}), {}, todo, lambda: clock[0])
-    assert len(_rows(tmp_path)) == 4 and _rows(tmp_path)[2] == waits
+    assert len(_rows(tmp_path)) == 5 and _rows(tmp_path)[2] == waits  #: ISF stood on VUSA
     clock[0] += timedelta(minutes=1)
     ladder.run(tmp_path, _door({VUSA: EDGE, ISF: NOISE}), {}, todo, lambda: clock[0])
     assert _rows(tmp_path)[-1]["answer"] == "THIN"
@@ -211,7 +211,7 @@ def test_the_set_is_every_published_rule_on_every_line_and_its_doors_are_the_des
     assert len(made) == len(set(made)) == len(published.PUBLISHED) * len(LINES)
     assert {(c.start, c.end) for c in made} == {(ladder.START, ladder.END)}
     assert ladder.names(made[0])[0] == trials.name(made[0])
-    assert len(set(ladder.names(made[0]))) == 1 + ladder.FOLDS
+    assert len(ladder.names(made[0])) == 1, "a fold is no trial"
     #: a day's rate is one over the pound's last close before it: none from a close that is
     #: no pound's, none from one over four days old
     day, step = date(2020, 1, 6), keeper.DAY
