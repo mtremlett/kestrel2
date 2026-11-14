@@ -83,6 +83,7 @@ rungs = []
 "lab/grid.py" = "the fast grid engine: each strategy's position after every bar, on whole arrays; it matches the desk's own decisions or refuses"
 "lab/tune.py" = "the pass's auto-tune: the memory ceiling Windows holds on the workers, their number sized to the free cores and backed off under load, each pass's peaks logged"
 "lab/sweep.py" = "the grid's pass: every strategy at every setting on every ticker of a list, a ticker to a worker under the auto-tune, each cell kept by its code and its bars"
+"lab/transfer.py" = "the grid's transfer study: a rule's settings fitted on one line at the centre of a plateau, never a lone peak, and scored on every other line the store holds; the result labelled PRE-REVIEW"
 
 # the rungs lane
 "lab/rung.py" = "the ladder's first rung: a cell's trades priced at the desk's fills and the broker's costs, and judged against chance"
