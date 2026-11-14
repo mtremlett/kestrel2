@@ -27,7 +27,7 @@ from typing import ClassVar
 
 from desk.lines import LINES
 from desk.store import Bar
-from desk.strategy import ARITHMETIC, RANGES, Decision, Declared, Timeframe, _run, _Window
+from desk.strategy import ARITHMETIC, RANGES, Decision, Declared, Rule, Timeframe, _run, _Window
 
 NAME = "weinstein_stage"
 #: the book's 30 weeks of closes, and the sessions (one week) the average is compared across
@@ -64,3 +64,6 @@ def decide(bars: Mapping[str, Sequence[Bar]]) -> tuple[Decision, ...]:
             for symbol, series in bars.items()
             for d in _run(NAME, WeinsteinStage(), symbol, series)
         )
+
+
+EPONYMOUS: Mapping[str, type[Rule]] = {NAME: WeinsteinStage}

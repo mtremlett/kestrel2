@@ -26,7 +26,7 @@ from typing import ClassVar
 
 from desk.lines import LINES
 from desk.store import Bar
-from desk.strategy import ARITHMETIC, RANGES, Decision, Declared, Timeframe, _run, _Window
+from desk.strategy import ARITHMETIC, RANGES, Decision, Declared, Rule, Timeframe, _run, _Window
 
 NAME = "williams_r"
 #: the book's days of range, and the %R (a negative percent) to buy at or below and sell at or above
@@ -60,3 +60,6 @@ def decide(bars: Mapping[str, Sequence[Bar]]) -> tuple[Decision, ...]:
         return tuple(
             d for symbol, series in bars.items() for d in _run(NAME, WilliamsR(), symbol, series)
         )
+
+
+EPONYMOUS: Mapping[str, type[Rule]] = {NAME: WilliamsR}

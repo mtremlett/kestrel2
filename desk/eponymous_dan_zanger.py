@@ -30,7 +30,7 @@ from typing import ClassVar
 
 from desk.lines import LINES
 from desk.store import Bar
-from desk.strategy import ARITHMETIC, Decision, Declared, Field, Timeframe, _run, _Window
+from desk.strategy import ARITHMETIC, Decision, Declared, Field, Rule, Timeframe, _run, _Window
 
 NAME = "dan_zanger_breakout"
 #: sessions of base, sessions of the exit average, and the volume multiple that is heavy
@@ -69,3 +69,6 @@ def decide(bars: Mapping[str, Sequence[Bar]]) -> tuple[Decision, ...]:
         return tuple(
             d for s, series in bars.items() for d in _run(NAME, DanZangerBreakout(), s, series)
         )
+
+
+EPONYMOUS: Mapping[str, type[Rule]] = {NAME: DanZangerBreakout}

@@ -30,6 +30,7 @@ from desk.strategy import (
     Decision,
     Declared,
     Field,
+    Rule,
     Timeframe,
     _Exponential,
     _run,
@@ -68,3 +69,6 @@ def decide(bars: Mapping[str, Sequence[Bar]]) -> tuple[Decision, ...]:
         return tuple(
             d for symbol, series in bars.items() for d in _run(NAME, KellBreakout(), symbol, series)
         )
+
+
+EPONYMOUS: Mapping[str, type[Rule]] = {NAME: KellBreakout}

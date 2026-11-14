@@ -30,7 +30,7 @@ from typing import ClassVar
 
 from desk.lines import LINES
 from desk.store import Bar
-from desk.strategy import ARITHMETIC, CLOSES, Decision, Declared, Timeframe, _run, _Window
+from desk.strategy import ARITHMETIC, CLOSES, Decision, Declared, Rule, Timeframe, _run, _Window
 
 NAME = "faber_tactical"
 #: the paper's months of average
@@ -68,3 +68,6 @@ def decide(bars: Mapping[str, Sequence[Bar]]) -> tuple[Decision, ...]:
             for symbol, series in bars.items()
             for d in _run(NAME, FaberTactical(), symbol, series)
         )
+
+
+EPONYMOUS: Mapping[str, type[Rule]] = {NAME: FaberTactical}

@@ -106,3 +106,6 @@ def decide(bars: Mapping[str, Sequence[Bar]]) -> tuple[Decision, ...]:
             for name, make in RULES.items()
             for decision in _run(name, make(), symbol, series)
         )
+
+
+EPONYMOUS: Mapping[str, type[Rule]] = {"darvas_box": _Darvas}
