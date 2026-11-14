@@ -3707,6 +3707,29 @@ Decided by the PAPER lane as the desk's mentor, no one watching.
 - Pages read through a web reader on the day, not opened by a person; a person or a later session opens each once more before its figure goes on file.
 - Ticks: R-DATA-11, R-RUNNER-5, R-RUNNER-3 (requests to this lane, done).
 
+### 2026-11-14 — the ladder's set 1 as one command (lab.ladder, LAD-09, LAD-03, BT-15, #198)
+- *Which strategies.* Options: only rules with an author's figure on file (empty today); every published rule held, each line saying whether an author's result stands behind it. Chosen the second: the set is fixed by the files, not by eye, and an empty file would tell him nothing. Nothing counts towards paper either way.
+- *Which lines.* Each rule's declared universe, the twenty-two lines; one answer per rule and line, no pooled answer invented.
+- *The window.* Options: all bars held, moving each day (a new trial daily); one fixed window. Chosen fixed, to 13 November 2026; a later end is a new set, on purpose. Judged from each line's first bar: dividing the yearly Sharpe by years the line did not exist came out 1.3 to 5 times too low (the review's blocking finding).
+- *Folds: two,* fixed before any result, since the rules trade five to ten times a year; 3 trials a cell, 330 in all.
+- *The market beside each venue.* SPY in New York, ISF in London, fixed before any result; the rung also sets each beside its own line held, the harder test.
+- *The one verdict.* Options: a new rule over all rungs run; the one in `lab/deflated.py`, with folds and market recorded beside it. Chosen the second: one home for the verdict rule.
+- *Dollar rates.* Options: wait for the kept rates (R-RUNGS-3); the desk's interim rule over history (the pound's last close before the day, none older than four days). Chosen the rule, unbent: one day (21 April 2025) has no rate and 32 cells wait. Declined: the day's own close (a peek), a longer limit chosen to cover one day.
+- *A parked line is not judged* (six London lines), and *a cell that cannot be judged* is kept with its reason and tried again; only a refusal by name, a missing file or a stale store counts, so a bug stops the run loudly. The command ends 0 when its pass finishes.
+
+### 2026-11-14 — waiting cells and short histories (R-RUNNER-25, #202)
+- *History needed before "no trade" means anything.* Options: 200 bars (the longest window); 452 (window plus a year, at 5-10 trades a year); 30 trades' worth. Chosen 452, the middle, recommended. A zero-trade verdict on a shorter line is "waits on history", not FAULT; on a long enough line it is still a FAULT.
+- *Retried cells.* Options: rewrite the cell with a new try time (one small line per cell per 30 minutes); a sidecar file. Chosen rewrite: the record stays in one file.
+
+### 2026-11-14 — a cell without its folds has no verdict (R-RUNNER-33, #206)
+- Options: (a) no verdict; (b) treat the unrun rung as THIN; (c) leave folds out of the rule for those cells. Chosen (a): the rule is every named rung and no other, and an unrun rung is not evidence; (b) blurs "too few trades" with "not run"; (c) brings back the gap the review found. No real cell is affected today (`reproduce.FIGURES` is empty).
+- `Candidate` checks the six named rungs and ignores the row's `unrun` list (regime, plateau, stress), as scoped. Refusing a row that lists unrun rungs is left, recommended when the first real candidate nears.
+
+### 2026-11-14 — rungs-reproduce handed out again while blocked (#195)
+- *Build anything while the box waits.* Options: (a) code a real run might want one day; (b) nothing. Chosen (b), as #149: with no figure, rule or prices nothing could call it.
+- *Open a pull request at all.* Options: none (the Waits line never reaches the runner); the smallest true record. Chosen the record, one comment line in `lab/reproduce.py`.
+- *Which request the Waits line names.* It takes one: R-RUNGS-5 (DATA, blocking) or R-RUNGS-10 (MONEY). Chosen R-RUNGS-5; the box's note in PLAN now holds all five waits.
+
 ## 2026-11-14 — pyarrow for the head start, and a source for each old store (R-RUNNER-24)
 
 **His ruling**, standing since 13 November: "please always go with recommended to avoid waiting for me to attend". #196 named why parquet folders and raw Stooq zips had no reader, and asked for option (a), taken as recommended: `pyarrow==26.0.1` to be pinned in `requirements.txt` and imported in `lab/headstart.py` only; `desk/` stays standard library. The pin itself is not in this change: the lane guard refuses `requirements.txt` to the DATA lane (it is in no lane's files), so it waits for a session that may touch it, together with `allowed_third_party` in `manifest.toml`.
