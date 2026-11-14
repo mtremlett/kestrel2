@@ -340,7 +340,12 @@ def _table(folder: Path, rows: Sequence[Row], rules: Sequence[str], count: int) 
     """The set's results table, `EPON.md` and `EPON.json`, labelled PRE-REVIEW."""
     folder.mkdir(parents=True, exist_ok=True)
     mine = _by_rule(rows, rules)
-    data = {"set": EPON.tag, "question": EPON.question, "status": STATUS, "trials": count}
+    data: dict[str, object] = {
+        "set": EPON.tag,
+        "question": EPON.question,
+        "status": STATUS,
+        "trials": count,
+    }
     data["rules"] = [
         {"rule": r, "passed": any(map(_goes, rs)), "cells": rs} for r, rs in mine.items()
     ]
