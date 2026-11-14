@@ -27,7 +27,7 @@ ACCOUNTS, READY = ("15", "1", "DU0000001"), ("9", "1", "1")
 FEED = ("4", "2", "-1", "2104", "Market data farm connection is OK:eufarm", "")
 FLAT = "61 3 DU0000001 265598 AAPL STK  0.0   NASDAQ USD AAPL.O NMS 0 0.0".split(" ")
 HELD = "61 3 DU0000001 458512497 SMGB STK  0.0   LSEETF GBP SMGB EUE2 25 31.5".split(" ")
-#: An open order as the published client reads it; no order rested on the account to copy.
+#: An open order's head, its fields placed as in the real ones of 14 November 2026 (136 in all).
 STOP = (
     "5 7 265598 AAPL STK  0 ?  SMART USD AAPL.O NMS SELL 10 STP 0.0 171.5 GTC  DU0000001  0"
     " 20261112-rsi2-AAPL-stop 31 1234567 0 0 0".split(" ")
@@ -114,7 +114,8 @@ def _read(*messages: Sequence[str]) -> tuple[Account, list[bytes]]:
 
 def test_the_account_is_read_as_the_gateway_gives_it_and_nothing_else_is_sent() -> None:
     told = (ACCOUNTS, FEED, READY, FEED, GONE, FLAT, HELD, ENDS[0], STOP, STATUS, ENDS[1])
-    account, sent = _read(*told)
+    # the real gateway opens by telling, unasked, each order of this client's still open
+    account, sent = _read(STOP, STATUS, ENDS[1], *told)
     assert account == Account(
         (Holding("DU0000001", "AAPL", "STK", "USD", Decimal(0)), SMGB), (AAPL_STOP,)
     )
@@ -124,9 +125,12 @@ def test_the_account_is_read_as_the_gateway_gives_it_and_nothing_else_is_sent() 
         b"\x00\x00\x00\x0561\x001\x00\x00\x00\x00\x0516\x001\x00",  # positions; open orders
     ]
     # the lists end either way; an order is read from its head alone, under its own number
-    # at its client, and stands where the broker last said, wherever its state comes
-    late, _ = _read(ACCOUNTS, READY, STATUS, _but(STOP[:26], 1, "9"), PART, ENDS[1], HELD, ENDS[0])
-    part = replace(AAPL_STOP, number="9", state="Submitted", left=Decimal(6))
+    # at its client, and stands where the broker last said, wherever its state comes. One told
+    # again (the real gateway tells one again, unasked, as it settles it) is one order, by the
+    # broker's own id for it, as last told: here its shares changed, which is not yet seen of it
+    again = (STATUS, STOP, _but(_but(STOP[:26], 1, "9"), 14, "4"), PART)
+    late, _ = _read(ACCOUNTS, READY, *again, ENDS[1], HELD, ENDS[0])
+    part = replace(AAPL_STOP, number="9", shares=Decimal(4), state="Submitted", left=Decimal(6))
     assert late == Account((SMGB,), (part,))
     # only a stop has a level: what the broker writes in its place on another order is not read
     market, _ = _read(ACCOUNTS, READY, _but(_but(STOP, 15, "MKT"), 17, "1.79E308"), STATUS, *ENDS)
@@ -184,6 +188,9 @@ def test_nothing_is_asked_until_the_gateway_is_ready_and_its_accounts_are_all_pa
         # listed as open is not being worked: an order with no state of its own is not read
         ((ACCOUNTS, READY, STOP, *ENDS), ValueError, "no state"),
         ((ACCOUNTS, READY, STOP, _but(STATUS, 6, "7"), *ENDS), ValueError, "1234567"),
+        # orders are told apart by the broker's id: one under none could hide another
+        ((ACCOUNTS, READY, _but(STOP, 25, "0"), _but(STATUS, 6, "0"), *ENDS), ValueError, "no id"),
+        ((ACCOUNTS, READY, _but(STOP, 25, ""), _but(STATUS, 6, ""), *ENDS), ValueError, "no id"),
         ((ACCOUNTS, READY, STOP, STATUS[:-1]), ValueError, "shape"),
         ((ACCOUNTS, READY, STOP, [*STATUS, ""]), ValueError, "shape"),
         ((ACCOUNTS, READY, _but(STATUS, 4, "")), ValueError, "plain number"),
