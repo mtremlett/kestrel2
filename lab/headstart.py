@@ -6,47 +6,48 @@ trusted, so no bar enters on the old desk's word:
 - the line's own daily bar from the archive, cleaned by the one store, must vouch for it: the
   bar lies within that day's high and low, as far out as the store lets an open or a close
   sit (STRETCH). A day with no fresh daily bar vouches for nothing;
-- a bar of a line priced in pounds that fits its day only as pence is read as pence, for the
-  old stores quote some of London so and say nowhere which; no other unit is tried;
+- a bar of a line priced in pounds that fits its day only as pence is read as pence (the old
+  stores quote some of London so, saying nowhere which); no other unit is tried;
 - then the fast store's own checks: trading hours, prices that can be, a wrong unit;
-- the store must already hold, from another source, bars for some of the same moments, and
-  at least half of those must agree: else nothing proves the line's bars are on the right
-  clock and of the right instrument, and none is kept.
+- the store must already hold, from another source, bars for some of the same moments, at
+  least half agreeing: else nothing proves the clock and the instrument, and none is kept.
 
 What enters is kept under its source's name and only fills moments that hold no bar: a fresh
 bar, held already or arriving later, wins, and each bar that differs from one held is counted.
 
-The old stores are read and never written, nor is anything written beside them. Which they
-are, the data register in the desk's notes says: every store it tags IMPORT, read by its form
-(`python -m lab.headstart`, into market.db in the data folder). Two forms have a reader: the
-per-line matrices of Stooq's bars, and the database mark_the_trend.db; any other is counted
-as having none yet: parquet folders for want of a parquet library, raw Stooq zips for want of
-a Source to keep them under. A store whose source the store
-holds already is not read again. Its indicators are not read at all.
+The old stores are read and never written, nor is anything written beside them. The data
+register in the desk's notes says which: every store it tags IMPORT, read by its form
+(`python -m lab.headstart`, into market.db in the data folder). Four forms have a reader: the
+matrices of Stooq's bars, the database mark_the_trend.db, and the parquet folders of ibkr_store
+(UTC) and stooq_store (Stooq's clock); any other is counted as having none yet. A store whose
+source the store holds already is not read again. Its indicators are not read at all.
 
 A line the archive gives no history of (3LGO, the operator's ask of 14 November 2026) takes
-its daily history from the matrices' daily bars (`python -m lab.headstart --daily 3LGO`): it
-needs the database's daily bars to agree with them on the days both hold, the days between
-the old bars and the archive's from the archive's five-minute bars, and all of it passes the
-one store's checks as a whole, with the archive's bars; else nothing is kept. It is shelved
-in the store, joined again to the archive's bars each time the store is rebuilt."""
+its daily history from the matrices' daily bars (`python -m lab.headstart --daily 3LGO`): the
+database's daily bars must agree with them on the days both hold, the days between the old
+bars and the archive's come from the archive's five-minute bars, and all of it passes the one
+store's checks as a whole, with the archive's bars; else nothing is kept. It is shelved in the
+store, joined again to the archive's bars each time the store is rebuilt."""
 
 from __future__ import annotations
 
+import math
 import os
 import sqlite3
 import sys
 import tempfile
 from collections import Counter
 from collections.abc import Callable, Iterable, Mapping, Sequence
-from contextlib import closing
+from contextlib import closing, suppress
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
+from functools import partial
 from pathlib import Path
 from typing import Any
 
 import numpy as np
+import pyarrow.parquet as pq  # type: ignore[import-untyped]  # ships no stubs
 
 from desk import archive, bars, store, venues
 from desk.bars import EPOCH, Five, Source
@@ -54,16 +55,16 @@ from desk.lines import LINES, Line
 from desk.store import STRETCH, Bar, Refused
 
 MARKET = {"LSE": "UK", "US": "US"}  #: the matrices' name for a line is its symbol and this
-#: Stooq stamps a bar with the moment it starts on Warsaw's clock, and the matrices kept that
-#: as if it were UTC (seen 14 November 2026: of SPY's bars 1 in 1,512 agreed with the
-#: archive's for the same moment as stamped, and 2,170 in 2,184 two hours earlier, in
-#: summer). Warsaw's clock is London's and an hour, summer and winter.
+#: Stooq stamps a bar with its start on Warsaw's clock, and the matrices kept that as if UTC
+#: (14 November 2026: 1 of SPY's 1,512 bars agreed with the archive's as stamped, 2,170 of
+#: 2,184 two hours earlier, in summer). Warsaw's clock is London's and an hour, all year.
 WARSAW = timedelta(hours=1)
 PENCE = Decimal("0.01")
 DAYS = "SELECT ts, close FROM ohlcv WHERE ticker = ? AND timeframe = '1d'"
 BARS = "SELECT ts, open, high, low, close, volume FROM ohlcv WHERE ticker = ? AND timeframe = '5m'"
 NO_DAY = "on a day with no fresh daily bar to vouch for them"
 OUTSIDE = "outside their day's fresh high and low"
+PARQUET = ("ts", "open", "high", "low", "close", "volume")
 IMPORT = "| IMPORT |"  #: how a row of the data register naming a store to read in begins
 
 
@@ -78,14 +79,34 @@ def matrices(line: Line, folder: Path) -> tuple[Five, ...]:
     numbers has none."""
     name = _named(line)
     stamps = np.load(folder / f"{name}_ts.npy").tolist()
-    made = []
-    for stamp, row in zip(stamps, np.load(folder / f"{name}_ohlcv.npy").T, strict=True):
-        if not np.isfinite(row).all():
-            continue
-        wall = EPOCH + timedelta(milliseconds=stamp)
-        ahead = WARSAW + venues.zone("LSE", wall.date()).utcoffset(None)
-        made.append(Five(wall - ahead, *_priced(row[:4], Decimal(1)), int(row[4])))
-    return tuple(made)
+    rows = zip(stamps, np.load(folder / f"{name}_ohlcv.npy").T, strict=True)
+    return tuple(
+        Five(wall - _ahead(wall), *_priced(row[:4], Decimal(1)), int(row[4]))
+        for stamp, row in rows
+        if np.isfinite(row).all() and (wall := EPOCH + timedelta(milliseconds=stamp))
+    )
+
+
+def _ahead(wall: datetime) -> timedelta:
+    """How far Stooq's clock is ahead of UTC at wall."""
+    return WARSAW + venues.zone("LSE", wall.date()).utcoffset(None)
+
+
+def _parquet(line: Line, folder: Path, stooq: bool) -> tuple[Five, ...]:
+    """A line's whole five-minute bars from a parquet folder (freq=5/market=../ticker=..), its
+    stamps on Stooq's clock or UTC; none held is refused. The fetch time, whose zone needs a
+    time zone database, is not read."""
+    market = MARKET[line.venue]
+    file = folder / f"freq=5/market={market.lower()}/ticker={line.symbol}.{market}/part.parquet"
+    if not file.is_file():
+        raise ValueError(f"{folder.name} holds no five-minute bar of {line.symbol}")
+    table = pq.ParquetFile(file).read(columns=list(PARQUET))
+    rows = zip(*(table[column].to_pylist() for column in PARQUET), strict=True)
+    return tuple(
+        Five(at.replace(tzinfo=UTC) - _ahead(at) * stooq, *_priced(prices, Decimal(1)), int(volume))
+        for at, *prices, volume in rows
+        if None not in (at, *prices, volume) and all(math.isfinite(x) for x in (*prices, volume))
+    )
 
 
 def _asked(path: Path, ask: str, ticker: str) -> list[tuple[Any, ...]]:
@@ -255,8 +276,8 @@ def adopt(
 
 
 def imports(register: Path) -> tuple[Path, ...]:
-    """The old stores the data register tags IMPORT, in its order: such a row begins
-    `| IMPORT |` and names its store's path between the first two backticks."""
+    """The old stores the register tags IMPORT, in order: such a row begins `| IMPORT |` and
+    names its path between the first two backticks."""
     rows = register.read_text(encoding="utf-8").splitlines()
     tagged = [row for row in rows if row.startswith(IMPORT)]
     unnamed = [row for row in tagged if row.count("`") < 2]
@@ -266,30 +287,30 @@ def imports(register: Path) -> tuple[Path, ...]:
 
 
 def reader(where: Path) -> tuple[Source, Callable[[Line, Path], tuple[Five, ...]]] | None:
-    """An old store's source and how it is read, judged by its form: a database file, or a
-    folder holding some line's matrices. Any other store has no reader yet; one that is not
-    there is refused, for the register names it wrongly or its drive is away."""
+    """An old store's source and how it is read, judged by its form: a database file, a
+    folder of some line's matrices, or a parquet folder. Any other store has no reader yet; one
+    that is not there is refused, for the register names it wrongly or its drive is away."""
     if not where.exists():
         raise FileNotFoundError(f"{where}: the register tags it IMPORT, and it is not there")
     if where.suffix == ".db":
         return Source.DATABASE, database
     if any((where / f"{_named(line)}_ts.npy").is_file() for line in LINES):
         return Source.MATRICES, matrices
+    if (where / "freq=5").is_dir():  # only ibkr_store keeps a fetch record beside its bars
+        found = next((where / "freq=5").glob("*/*/fetch.json"), None)
+        source = Source.IBKR_STORE if found else Source.STOOQ_STORE
+        return source, partial(_parquet, stooq=not found)
     return None
 
 
 def held(path: Path, source: Source) -> bool:
     """The store at path holds five-minute bars from source already. An old store lands in
     one round, whole or not at all, so one that is held is in, and is not read again."""
-    if not path.is_file():
-        return False
-    for line in LINES:
-        try:
-            if source in bars.sources(path, line, bars.FIVE):
-                return True
-        except LookupError:  # the store never held this line's five-minute bars: none of source
-            continue
-    return False
+    held_ = False
+    for line in LINES if path.is_file() else ():
+        with suppress(LookupError):  # the store never held this line's five-minute bars
+            held_ = held_ or source in bars.sources(path, line, bars.FIVE)
+    return held_
 
 
 def fresh(path: Path, day: date) -> dict[Line, tuple[Bar, ...]]:
@@ -315,8 +336,7 @@ def planned(register: Path, path: Path) -> tuple[list[Reader], list[str], list[s
     proof for the next; those whose source the store holds already; those with no reader. A
     source is one store, so two stores of one form are refused: the second would be skipped."""
     todo: list[Reader] = []
-    skipped: list[str] = []
-    unread: list[str] = []
+    skipped, unread = list[str](), list[str]()
     for where in imports(register):
         how = reader(where)
         if how is None:
@@ -331,11 +351,10 @@ def planned(register: Path, path: Path) -> tuple[list[Reader], list[str], list[s
 
 
 def main(register: Path, path: Path, day: date) -> str:
-    """Every old store the register tags IMPORT into the fast store at path, its bars met
-    with the archive's five-minute bars up to day, which enter first, and vouched for by its
-    daily bars before day. A store whose source is held already is skipped, so a run cut
-    short is simply run again. What became of each line is said, then one line of counts,
-    which is returned."""
+    """Every old store the register tags IMPORT into the fast store at path, its bars met with
+    the archive's five-minute bars up to day (which enter first) and vouched for by its daily
+    bars before day. A store already held is skipped, so a run cut short is run again. What
+    became of each line is said, then one line of counts, which is returned."""
     todo, skipped, unread = planned(register, path)
     daily = fresh(path, day) if todo else {}
     totals = Counter[str]()
@@ -360,9 +379,7 @@ def olds(register: Path, line: Line) -> tuple[Path, Path]:
     folder = next((p for p in found if (p / f"{_named(line, '1d')}_ts.npy").is_file()), None)
     old = next((p for p in found if p.suffix == ".db"), None)
     if folder is None or old is None:
-        raise ValueError(
-            f"{register}: IMPORT tags no daily matrices of {line.symbol} or no database"
-        )
+        raise ValueError(f"{register}: IMPORT tags no daily matrices of {line.symbol} or database")
     return folder, old
 
 
