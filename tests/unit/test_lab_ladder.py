@@ -212,19 +212,19 @@ def test_the_set_is_every_published_rule_on_every_line_and_its_doors_are_the_des
     assert {(c.start, c.end) for c in made} == {(ladder.START, ladder.END)}
     assert ladder.names(made[0])[0] == trials.name(made[0])
     assert len(set(ladder.names(made[0]))) == 1 + ladder.FOLDS
-    #: a day's rate is one over the pound's last close before it: none from a close that is
-    #: no pound's, none from one over four days old
-    day, step = date(2020, 1, 6), keeper.DAY
-    closes = [(day, "1.25"), (day + step, "2.5"), (day + 10 * step, "1.6")]
-    at = [(when, Decimal(close)) for when, close in closes]
+    #: a day's rate is the desk's one rule (desk/carry.py): one over the pound's last close
+    #: before it while fresh, none from a close that is no pound's; 2025-04-22, the day after
+    #: Easter Monday, whose last close is five days old, has its rate
+    step = keeper.DAY
+    at = [(date(2025, 4, 17), "1.25"), (date(2025, 4, 23), "2.5"), (date(2025, 4, 24), "1.6")]
 
     def ask(line: Line, before: date) -> list[Bar]:
         assert (line, before) == (POUND, ladder.END + step)
-        return [Bar(when, close, close, close, close, 0) for when, close in at]
+        return [Bar(when, Decimal(c), Decimal(c), Decimal(c), Decimal(c), 0) for when, c in at]
 
     pounds = ladder.rates(ask)
-    assert sorted(pounds) == [day + n * step for n in (1, 11, 12, 13, 14)]
-    assert (pounds[day + step], pounds[day + 11 * step]) == (Decimal("0.8"), Decimal("0.625"))
+    assert pounds[date(2025, 4, 22)] == Decimal("0.8") and date(2025, 4, 21) in pounds
+    assert date(2025, 4, 24) not in pounds and pounds[date(2025, 4, 25)] == Decimal("0.625")
     #: bars come through the keeper's door, up to the window's end; a parked line is refused
     parked: set[str] = set()
 
