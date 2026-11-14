@@ -135,8 +135,8 @@ def other(fields: list[str]) -> str:
     """A message that answers no question of the desk's, and its kind: every account it
     names must be a paper one, its news may be of the price feeds only, and a kind the desk
     does not know is refused. What the gateway tells unasked of an order as it changes (the
-    order, its state, a fill under no question's number, the fill's fee) is passed over in
-    every reading: the reading that asks for it gives it."""
+    order, its state, a fill under no question's number, the fill's fee) is passed over: a
+    reading that asks for orders takes it as its answer, and no other needs it."""
     kind = fields[0]
     if len(fields) < {ACCOUNTS: 3, NEWS: 5}.get(kind, 1):
         raise ValueError(f"a message from the gateway cut short: {fields}")

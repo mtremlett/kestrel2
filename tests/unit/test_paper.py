@@ -104,7 +104,7 @@ def test_nothing_is_asked_until_the_gateway_is_ready_and_its_accounts_are_all_pa
         paper.converse(_wire(HELLO, *messages, *ENDS), sent.append)
     assert len(sent) == 2  # the greeting and the start: no question about the account
     # once ready, the start gives the number the gateway takes the desk's next order under
-    assert paper.start(_wire(HELLO, ACCOUNTS, ("9", "1", "41")), sent.append) == 41
+    assert paper.start(_wire(HELLO, ("9", "1", "7"), ("9", "1", "41"), ACCOUNTS), sent.append) == 41
 
 
 @pytest.mark.parametrize(

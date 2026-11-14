@@ -12,8 +12,9 @@ account's; an ended order is known by its reference alone, for the broker's list
 names no client. An answer that cannot be read whole is an error raised. The broker tells
 of the day alone: an order or a fill of an earlier day is in the desk's ledger, or nowhere.
 
-Two things are sent that are no question. An order, by `place` alone: after the day's
-check came back clean (clearance.require) and the gateway said it is ready (gateway.known).
+Two things are sent that are no question. An order, by `place` alone: after the kill
+switch was drilled (kill.drilled), the day's check came back clean (clearance.require) and
+the gateway said it is ready (gateway.known).
 And a cancel, for an order of the desk's own still working: by the kill switch, and by
 `place` for what the broker did not fill. A stop resting to sell what is held is never
 cancelled."""
@@ -27,7 +28,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import BinaryIO
 
-from desk import clearance, gateway, listing, paper, reports
+from desk import clearance, gateway, kill, listing, paper, reports
 from desk.broker import Disconnected, Fill, Report
 from desk.listing import Listing, Unlisted
 from desk.orders import Order, Refused, Sale
@@ -164,17 +165,19 @@ class Paper:
         return Report(order_id, fills, reason)
 
     def place(self, order: Order | Sale) -> Report:
-        """Send a sale to the paper broker and give its last answer (_place): what did not
-        fill within the door's wait is cancelled, never left working, and the answer is
-        what the broker then says it did with the order (report), with the notices it gave
-        when it did not fill whole. Nothing is sent, and the reason raised, unless the
-        broker lists the line, today's check of the account came back clean (Refused), and
-        the gateway says it is ready: Disconnected, the order never received. NOT BUILT, and
-        raised before anything is sent: a buy, for the stop it must leave; and a sale on a
-        line where a stop of the desk's own is open, held or not yet, for the shares it
-        must take off that stop. An error once the order has gone is not Disconnected: the
-        broker may have it, and is asked (report) before it is ever sent again."""
-        if isinstance(order, Order):
+        """Send a sale to the paper broker and give its last answer (_place): what the
+        broker has not ended when it falls silent is cancelled, and the answer is what the
+        broker then says it did with the order (report), with the notices it gave when it
+        did not fill whole. Nothing is sent, and the reason raised, unless the broker lists
+        the line, the kill switch was drilled within its month and today's check of the
+        account came back clean (Refused), and the gateway says it is ready: Disconnected,
+        the order never received. NOT BUILT, and raised before anything is sent: a buy, for
+        the stop it must leave; and a sale on a line where a stop of the desk's own is open,
+        held or not yet, for the shares it must take off that stop. An error once the order
+        has gone is not Disconnected, and nothing more is sent, no cancel either: the order
+        stands as the broker has it, working perhaps, and the broker is asked (report)
+        before it is ever sent again."""
+        if not isinstance(order, Sale):
             raise NotImplementedError(
                 f"placing.Paper.place: {order.order_id} is not sent; no buy is sent to the paper "
                 "broker until the stop it leaves is built (docs/PLAN.md, paper-stops)"
@@ -184,6 +187,9 @@ class Paper:
         if not isinstance(listed, Listing):
             why = listed.reason if listed else "it was not asked for the line"
             raise Refused(f"{order.order_id}: not sent, the broker does not list {symbol}: {why}")
+        if not kill.drilled(self._root, now.date()):
+            why = f"the kill switch was not drilled in the last {kill.DRILL_DAYS} days"
+            raise Refused(f"{order.order_id}: not sent, {why}")
         clearance.require(self._root, now, order.order_id)
         known = gateway.known(now)
         if not known:
