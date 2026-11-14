@@ -19,8 +19,8 @@ Five lanes of sessions run side by side on the operator's PC, day and night, up 
 sessions at once: MONEY and DATA three each, PAPER, GRID and RUNGS two each (his rulings,
 13 November 2026, `docs/DECISIONS.md`). A lane's session edits only the files its lane
 owns, and of those only its claim. Each lane's parts of the shared documents are its
-section of `docs/STATUS.md`, its book here, its table in `docs/SCOREBOARD.md` and its part
-at the end of `docs/DECISIONS.md`. Each lane's book sits inside the phase it belongs to: DATA in
+section of `docs/STATUS.md`, its book here, its table in `docs/SCOREBOARD.md` and its own
+decisions in `docs/lanes/<lane>.md`, which only it may change. Each lane's book sits inside the phase it belongs to: DATA in
 phase 1, MONEY in phase 2, PAPER in phase 3 (begun alongside phase 2, his ruling), GRID
 and RUNGS in phase 4. So two lanes' pull requests never touch the same lines, and GitHub
 merges neither until it holds the other.

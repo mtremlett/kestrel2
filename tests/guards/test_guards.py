@@ -231,12 +231,31 @@ def test_no_versioned_copies_and_no_session_named_files() -> None:
     assert not bad, f"versioned or session-named: {bad}. Edit the original; git is the archive."
 
 
+def _lane_docs() -> set[str]:
+    """One document per lane the manifest knows, for its own decisions: docs/lanes/<lane>.md."""
+    return {f"docs/lanes/{lane}.md" for lane in _manifest()["lanes"]}
+
+
 def test_the_document_set_is_fixed() -> None:
+    allowed = ALLOWED_DOCS | _lane_docs()
     docs = {n for n in _tracked() if n.endswith(".md") and not n.startswith("docs/archive/")}
-    assert docs <= ALLOWED_DOCS, (
-        f"documents outside the fixed set: {sorted(docs - ALLOWED_DOCS)}. "
-        "Findings go in docs/STATUS.md, decisions in docs/DECISIONS.md."
+    assert docs <= allowed, (
+        f"documents outside the fixed set: {sorted(docs - allowed)}. "
+        "Findings go in docs/STATUS.md, decisions in docs/DECISIONS.md or the lane's own."
     )
+
+
+def test_each_lane_document_is_read_whole() -> None:
+    """BLOAT, in the documents. A lane's decisions are read by every session of the lane;
+    past a size nobody reads them whole, and a decision nobody reads is not one. Full, the
+    scribe folds the oldest settled entries into a summary; git keeps every word."""
+    cap = int(_budget()["max_lines_per_lane_doc"])
+    over = {
+        name: lines
+        for name in sorted(_lane_docs())
+        if (path := ROOT / name).exists() and (lines := len(path.read_bytes().splitlines())) > cap
+    }
+    assert not over, f"lane documents over {cap} lines: {over}. Fold the oldest entries."
 
 
 def test_no_data_is_committed() -> None:

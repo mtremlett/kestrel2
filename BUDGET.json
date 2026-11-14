@@ -36,6 +36,7 @@
     }
   },
   "max_lines_per_file": 400,
+  "max_lines_per_lane_doc": 800,
   "max_lines_per_rulebook": {"CLAUDE.md": 80, "CANON.md": 200},
   "max_lines_per_function": 50,
   "unit_test_lines_per_product_line": 1.5,

@@ -77,7 +77,7 @@ def _changes() -> dict[str, tuple[int, int]]:
 
 def _owned(lane: str) -> list[str]:
     """A lane's files: its modules (under its heading in manifest.toml), their unit tests,
-    and what manifest.toml's [lanes] table adds."""
+    its own decisions (docs/lanes/<lane>.md) and what manifest.toml's [lanes] table adds."""
     patterns: list[str] = []
     current = None
     for line in (ROOT / "manifest.toml").read_text(encoding="utf-8").splitlines():
@@ -95,7 +95,7 @@ def _owned(lane: str) -> list[str]:
             ]
     lanes = tomllib.loads((ROOT / "manifest.toml").read_text(encoding="utf-8"))["lanes"]
     assert lane in lanes, f"no lane called {lane!r} in manifest.toml's [lanes]: {sorted(lanes)}"
-    return patterns + list(lanes[lane])
+    return [*patterns, f"docs/lanes/{lane}.md", *lanes[lane]]
 
 
 def _manifest_added_only(owned: list[str]) -> list[str]:
