@@ -106,7 +106,7 @@ def parts() -> dict[CodeType, str]:
                 continue
             members = vars(thing).items() if isinstance(thing, type) else ((name, thing),)
             for inner, member in members:
-                for wrapper in ("fget", "__func__", "__wrapped__"):
+                for wrapper in ("fget", "__wrapped__"):  #: a property; a class's or static method
                     member = getattr(member, wrapper, member)
                 code = getattr(member, "__code__", None)
                 if isinstance(code, CodeType) and not inner.startswith("_"):
