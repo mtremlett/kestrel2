@@ -226,6 +226,7 @@ class _Life:
         self.promise("nothing is bought on a day the book is not the broker's", quiet)
         held, stopped = book.positions(self.desk), dict(self.pretend.stops())
         self.promise(f"never more than {HOLDINGS} lines are held", len(held) <= HOLDINGS)
+        self.promise("no order is left working at a day's end", not self.pretend.working())
         bare = {*held} - {*stopped} - {*record.mismatches}
         self.promise("a line held with no stop at the broker is named that day", not bare)
         same = held == stopped == dict(self.pretend.holdings())
