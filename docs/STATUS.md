@@ -137,16 +137,17 @@ SimCity small (money-simcity), halts, the gate's other limits, then fills realis
 
 ## PAPER
 
-Last updated: 14 November 2026 (folds #100, #104, #110, #113, #123, #128).
+Last updated: 14 November 2026 (folds #100, #104, #110, #113, #123, #128, #135).
 
 ### Where it is
 
-Nothing placed on paper. The paper account answers all six broker questions; a buy goes with its stop, and after any order
-the line is under one stop of the desk's own, or an error is raised. Nothing constructs the adapter in the product yet.
+First real paper orders sent 14 Nov (#135), markets shut: one share with its stop on every line (59 orders), all cancelled,
+nothing bought. Proven: buy+stop, stop step/unit on 19 lines, cancel, refusal, lone stop, kill switch. No fill seen. Nothing constructs the adapter in the product yet.
 
 ### Next step
 
-Order: paper-messages, paper-running, paper-kill-drilled, paper-conformance (a clean market day), supervision, main's code, cards.
+Order: paper-conformance in-hours half (fills, triggered stop, sale, part fill, SPY in hours; needs open markets; record and
+driver in KESTREL2_DATA/conformance; out of hours take R-MONEY-8), then supervision, main's code, cards.
 
 ### Requests to MONEY
 
@@ -156,33 +157,33 @@ Order: paper-messages, paper-running, paper-kill-drilled, paper-conformance (a c
 - [ ] R-PAPER-8 (later, 2026-11-13 23:30): the day's run collects fills at day's end too (broker tells today only).
 - [ ] R-PAPER-9 (later, 2026-11-13 23:30): word `Broker.stops` as the desk's own stops only, or say others are needed.
 - [ ] R-PAPER-10 (later, 2026-11-14 00:30): when `place` raises other than "never received"/refusal, pull the kill switch or tell him at once?
-- [ ] R-PAPER-11 (later, 2026-11-14 01:25): `place` can raise "word, fills and account do not agree" after an order has
-  gone; should the send path tell him at once and stop buying?
+- [ ] R-PAPER-11 (later, 2026-11-14 01:25): `place` can raise "word, fills and account do not agree" after an order has gone; should the send path tell him at once and stop buying?
 - [ ] R-PAPER-12 (later, 2026-11-14 01:25): word "a sale takes its shares off that stop" to allow two steps, or say if the pretend broker must.
+- [ ] R-PAPER-13 (later, 2026-11-14 02:50): the pretend broker refuses a repeated order id; the real one took it as new. Make it so, or `place` must refuse.
+- [ ] R-PAPER-14 (later, 2026-11-14 02:50): no buy on a line with `Line.retail` False (SPY, QQQ); the broker refuses them, 15 s each, daily.
+- [ ] R-PAPER-15 (later, 2026-11-14 02:50): a working buy has its stop listed at the real broker, so `book.reconcile` names the line; pretend has none. Match it, or `Broker.stops` leaves it out.
 
 ### Requests to DATA
 
 - [ ] R-PAPER-3 (later, 2026-11-13 18:55): each line's ISIN a fact on `Line`, confirmed from issuer/exchange.
 - [ ] R-PAPER-6 (later, 2026-11-13 22:10): `desk/venues.py` gives a venue's wall clock publicly; `desk/gateway.py` drops its copy.
+- [ ] R-PAPER-16 (later, 2026-11-14 02:50): IDTL in dollars is unlisted at the broker (needs its name or ISIN, with R-PAPER-3); SPY, QQQ can leave the lines.
 
 ### Done for other lanes
 - R-DATA-5: done in #53 (first half). Open: what the first London contract note says of stamp duty (conformance).
-- R-MONEY-4: done in #75
-- R-MONEY-5: done in #110
+- R-MONEY-4: done in #75; R-MONEY-5: done in #110
 - R-MONEY-6: done in #113 (running the drill at each desk start is left to unattended running)
 
 ### Found, not fixed
 
 - **Nobody sends his lines yet**; Sunday 15 Nov shows the weekend reset. **Nothing runs the day**: a run at 00:00-01:00 UK
   summer is dated yesterday; a future-dated row refuses all orders.
-- **Unproven at the real Gateway** (first conformance trade): the held-back buy and GTC stop behind it, stop states and
-  level/unit in an open order, cancel of the stop with the buy (notice 202), lagging fills/shares, refused cancels. Full list in #123.
-- **After an error part-way through an order nothing settles the line again** (recovery from a restart; reuse `Paper._settle`);
-  a stop that sells while its line's order goes, or two late readings together, can raise a false alarm or, rarely, pass silently.
-- **Placing:** no overall time limit; a line can briefly be under more than its shares; the kill switch cancels a buy, not its stop.
-- **Stale words:** `manifest.toml` says placing "is not built"; `desk/gateway.py` says "nothing calls it yet". Two breaks cannot be tested.
-- **Unread at the broker:** hours, smallest order, order kinds; daily bars; SPCX's name; 2MU's step (£1 vs £5).
-- **For a session he starts:** the live-port guard misses the desktop live port; breaks need Python's cache off.
+- **Unseen at the real Gateway (needs open markets):** a fill (shape, clock, fee, lag), a triggered stop, a sale taking shares
+  off the stop, a part fill, the stop behind a part-filled buy; a just-filled buy told again could carry a reason on a whole fill. Whether the weekend reset keeps the day's orders: Sunday.
+- **A refused order costs 15 s** (broker says "Inactive", then the reason; the desk waits out silence). A lone refused stop gives an error, not the reason. Unasked open orders arrive before "ready"; if one came after, a reading could miss another program's order.
+- **After an error part-way through an order nothing settles the line again** (reuse `Paper._settle`); a false alarm or rare silent pass.
+- **Placing:** no overall time limit; the kill switch cancels a buy, not its stop.
+- **Stale words:** `manifest.toml` says placing "is not built"; `desk/gateway.py` says "nothing calls it yet". Unread at the broker: hours, smallest order, order kinds; 2MU's step (£1 vs £5). Live-port guard misses the desktop port.
 
 ## DATA
 
