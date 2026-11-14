@@ -162,8 +162,12 @@ UK tax) and R-MONEY-2 (the scenes on the whole fourteen months).
       the old values serve only as a cross-check of the recomputation (DAT-03, DAT-01).
       Remains after #175 (five-minute bars built, not yet run on the real store): run it once
       R-RUNNER-10 has landed; daily bars (calendar before 2010, adjusted against as-traded);
-      the parquet stores; 3LGO; the old indicators as a cross-check
-      {id: data-headstart; files: lab/headstart.py, tests/unit/test_lab_headstart.py, desk/bars.py, tests/unit/test_bars*.py, manifest.toml}
+      the parquet stores; the old indicators as a cross-check
+      Built: `python -m lab.headstart` (#190, resumable, 245,593 old five-minute bars tried in
+      on the real stores); `--daily 3LGO` (#209, 2,816 clean bars); four Sources (#203).
+      Remains (readers wait R-RUNNER-24: pyarrow and the Sources first, #196): the pyarrow pin and readers for the parquet stores and stooq_raw, old daily
+      bars for other lines, SGLN's one off-mark bar refused alone, the research list's bars
+      {id: data-headstart; files: lab/headstart.py, tests/unit/test_lab_headstart.py, desk/bars.py, tests/unit/test_bars*.py, manifest.toml; waits: R-RUNNER-24}
 - [ ] The archive spared: fetching slow and resumable, with backoff, each raw answer cached
       in the folder `KESTREL2_DATA` names (outside the repository and every worktree); while
       the archive refuses, `{"refusing_since": <time>}` written to `KESTREL2_DATA/archive.json`
