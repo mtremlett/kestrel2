@@ -28,7 +28,18 @@ def _judge(bars: Sequence[Bar], count: int = 2) -> Folded:
 
 def _verdict(*gains: str) -> Verdict:
     days = (DAY, DAY)
-    made = tuple(Priced(Trade(*days), 1, Decimal(1), 1 + Decimal(g), FREE, days) for g in gains)
+    made = tuple(
+        Priced(
+            Trade(*days),
+            1,
+            Decimal(1),
+            1 + Decimal(g),
+            FREE,
+            days,
+            sum(map(Decimal, gains), Decimal(0)) / len(gains),
+        )
+        for g in gains
+    )
     return rung.verdict(Key(Cell("breakout_20_10", "VUSA", DAY, DAY), "code", "data"), made)
 
 

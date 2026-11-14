@@ -22,7 +22,18 @@ def _verdict(seed: int, edge: float, trades: int = 40) -> Verdict:
     by the first rung's own rule."""
     rng = random.Random(seed)  # noqa: S311 - a repeatable test draw, not a secret
     back = [Decimal(f"{100 * (1 + rng.gauss(edge, 0.02)):.4f}") for _ in range(trades)]
-    priced = tuple(Priced(Trade(DAY, DAY), 1, Decimal(100), b, FREE, (DAY, DAY)) for b in back)
+    priced = tuple(
+        Priced(
+            Trade(DAY, DAY),
+            1,
+            Decimal(100),
+            b,
+            FREE,
+            (DAY, DAY),
+            (sum(back, Decimal(0)) / len(back) - 100) / 100,
+        )
+        for b in back
+    )
     return rung.verdict(Key(Cell("breakout_20_10", "VUSA", DAY, DAY), "code", str(seed)), priced)
 
 
@@ -37,19 +48,19 @@ def test_the_chance_is_students_published_one() -> None:
 
 def test_a_winner_is_corrected_for_every_trial_it_was_picked_from() -> None:
     winner = _verdict(9, 0.008)
-    assert winner.passed and winner.t is not None and Decimal("2.6") < winner.t < Decimal("2.7")
+    assert winner.passed and winner.t is not None and Decimal("2.7") < winner.t < Decimal("2.8")
     (alone,) = luck.correct([winner], 0)
     assert alone.passed and alone.trials == 1 and alone.verdict is winner
-    assert alone.chance == alone.corrected == luck.tail(float(winner.t), 39) < 0.006
-    #: the same winner picked from eight trials stands, and from nine does not: 5% is the line
-    eight, nine = luck.correct([winner], 7)[0], luck.correct([winner], 8)[0]
-    assert (eight.trials, eight.passed, nine.trials, nine.passed) == (8, True, 9, False)
-    assert eight.corrected == 8 * alone.chance <= luck.FAMILY < 9 * alone.chance == nine.corrected
+    assert alone.chance == alone.corrected == luck.tail(float(winner.t), 40) < 0.006
+    #: the same winner picked from ten trials stands, and from eleven does not: 5% is the line
+    ten, eleven = luck.correct([winner], 9)[0], luck.correct([winner], 10)[0]
+    assert (ten.trials, ten.passed, eleven.trials, eleven.passed) == (10, True, 11, False)
+    assert ten.corrected == 10 * alone.chance <= luck.FAMILY < 11 * alone.chance == eleven.corrected
     #: a trial counts whatever became of it: a loser, one trade only, a cell that never ran
     loser, single = _verdict(1, -0.01), _verdict(2, 0.5, trades=1)
-    judged = luck.correct([loser, winner, single], 6)
-    assert [j.trials for j in judged] == [9, 9, 9] and not any(j.passed for j in judged)
-    assert judged[1] == nine and judged[0].corrected == judged[2].chance == 1.0
+    judged = luck.correct([loser, winner, single], 8)
+    assert [j.trials for j in judged] == [11, 11, 11] and not any(j.passed for j in judged)
+    assert judged[1] == eleven and judged[0].corrected == judged[2].chance == 1.0
     assert single.t is None and judged[0].chance > 0.99
     with pytest.raises(ValueError, match="-1 trials"):
         luck.correct([winner], -1)
@@ -64,7 +75,7 @@ def test_no_correction_makes_a_winner_of_a_trial_the_first_rung_failed() -> None
 
 def test_among_noise_chance_winners_do_not_survive_and_a_real_edge_does() -> None:
     families = [[_verdict(100 * f + n, 0) for n in range(40)] for f in range(40)]
-    assert sum(any(v.passed for v in family) for family in families) > 20, "the first rung alone"
+    assert sum(any(v.passed for v in family) for family in families) > 10, "the first rung alone"
     fooled = sum(any(j.passed for j in luck.correct(family, 0)) for family in families)
     assert fooled <= 2, "5% of forty sets of forty trials with no edge in any of them"
     real = _verdict(7, 0.015)

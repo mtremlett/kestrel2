@@ -22,7 +22,18 @@ def _verdict(gains: list[float], years: float = 10, name: str = "a") -> Verdict:
     """A trial with these gains, one per trade, over a window of so many years, judged by
     the first rung's own rule."""
     back = [Decimal(f"{100 * (1 + gain):.4f}") for gain in gains]
-    priced = tuple(Priced(Trade(DAY, DAY), 1, Decimal(100), b, FREE, (DAY, DAY)) for b in back)
+    priced = tuple(
+        Priced(
+            Trade(DAY, DAY),
+            1,
+            Decimal(100),
+            b,
+            FREE,
+            (DAY, DAY),
+            (sum(back, Decimal(0)) / len(back) - 100) / 100,
+        )
+        for b in back
+    )
     window = Cell("breakout_20_10", "VUSA", DAY, DAY + timedelta(days=round(365.25 * years)))
     return rung.verdict(Key(window, "code", name), priced)
 
@@ -67,32 +78,32 @@ def test_a_winner_falls_through_the_bands_as_the_trials_it_was_picked_from_grow(
     (alone,) = deflated.judge([winner], 0)
     assert alone.bar == 0 and alone.deflated > 0.99 and alone.least is Answer.PASS
     assert alone.luck == luck.correct([winner], 0)[0]
-    assert alone.sharpe == float(winner.t or 0) / math.sqrt(40)
+    assert alone.sharpe == float(winner.t or 0) / math.sqrt(41)
     assert alone.rungs == dict.fromkeys(deflated.OWN, Answer.PASS)
     seen, chances = {}, []
-    for unjudged in (0, 100, 50000):
+    for unjudged in (0, 200, 50000):
         *others, picked = deflated.judge([*noise, winner], unjudged)
         assert picked.luck.trials == 5 + unjudged
         assert all(o.rungs["first"] is o.rungs["luck"] is Answer.FAIL for o in others)
-        assert picked.bar == deflated.best_by_luck(1 / 39, 5 + unjudged) == others[0].bar
+        assert picked.bar == deflated.best_by_luck(1 / 40, 5 + unjudged) == others[0].bar
         seen[unjudged] = (picked.rungs["deflated"], picked.rungs["luck"], picked.least)
         chances.append(picked.deflated)
     assert seen == {
         0: (Answer.PASS, Answer.PASS, Answer.PASS),
-        100: (Answer.DOUBT, Answer.PASS, Answer.DOUBT),
+        200: (Answer.DOUBT, Answer.PASS, Answer.DOUBT),
         50000: (Answer.FAIL, Answer.FAIL, Answer.FAIL),
     }
     assert chances[0] >= deflated.PASS > chances[1] >= deflated.FAIL > chances[2]
     #: the bar is the count's alone: a trial's company, even its own twin, does not move it
-    twin, _ = deflated.judge([winner, winner], 103)
-    assert twin.deflated == chances[1] and twin.bar == pytest.approx(0.408, abs=5e-4)
+    twin, _ = deflated.judge([winner, winner], 203)
+    assert twin.deflated == chances[1] and twin.bar == pytest.approx(0.4385, abs=5e-4)
     #: the luck rung fails a weaker winner the first rung passed and the Sharpe left in doubt
-    weak = deflated.judge([*noise, _bell(9, 0.008)], 5)[-1]
+    weak = deflated.judge([*noise, _bell(9, 0.007)], 5)[-1]
     answers = (Answer.PASS, Answer.FAIL, Answer.DOUBT, Answer.PASS)
     assert weak.rungs == dict(zip(deflated.OWN, answers, strict=True))
     #: failing fairly: a trial with one trade has no Sharpe and one with no trades nothing at
     #: all; neither has failed, on any rung, and both still count
-    single, none, counted = deflated.judge([_verdict([0.5]), _verdict([]), winner], 102)
+    single, none, counted = deflated.judge([_verdict([0.5]), _verdict([]), winner], 202)
     assert (single.sharpe, single.yearly, single.bar, single.deflated) == (None, None, None, 0)
     assert single.rungs == dict.fromkeys(deflated.OWN, Answer.THIN) and counted == twin
     assert (single.least, none.least) == (Answer.THIN, Answer.FAULT)
@@ -106,7 +117,7 @@ def test_a_winner_falls_through_the_bands_as_the_trials_it_was_picked_from_grow(
 def test_small_wins_and_a_rare_large_loss_are_believed_less_than_a_bell() -> None:
     rng = random.Random(4)  # noqa: S311 - a repeatable test draw, not a secret
     lopsided = [0.012 + rng.gauss(0, 0.002) for _ in range(38)] + [-0.07, -0.05]
-    mean = sum(lopsided) / 40
+    mean = sum(lopsided) / 40  #: and the plant, a stop that costs the mean, is a 41st
     spread = math.sqrt(sum((g - mean) ** 2 for g in lopsided) / 39)
     #: a bell of the same trades, mean and spread, so the same standard errors
     draws = [rng.gauss(0, 1) for _ in range(40)]
@@ -115,9 +126,9 @@ def test_small_wins_and_a_rare_large_loss_are_believed_less_than_a_bell() -> Non
     bell = [mean + spread * (d - centre) / width for d in draws]
     noise = [_bell(n, 0) for n in range(100, 110)]
     one, other = (deflated.judge([*noise, _verdict(g)], 0)[-1] for g in (lopsided, bell))
-    width = math.sqrt(39 / 40) * spread
-    skew, tails = (sum((g - mean) ** p for g in lopsided) / 40 / width**p for p in (3, 4))
-    by_hand = deflated.deflate(one.sharpe or 0, deflated.best_by_luck(1 / 39, 11), 40, skew, tails)
+    width, planted = math.sqrt(39 / 41) * spread, [*lopsided, mean]
+    skew, tails = (sum((g - mean) ** p for g in planted) / 41 / width**p for p in (3, 4))
+    by_hand = deflated.deflate(one.sharpe or 0, deflated.best_by_luck(1 / 40, 11), 41, skew, tails)
     assert skew < -3 and tails > 15 and one.deflated == pytest.approx(by_hand, abs=1e-3)
     assert (
         one.sharpe == pytest.approx(other.sharpe, abs=1e-3)
@@ -132,9 +143,12 @@ def test_a_yearly_sharpe_above_two_is_flagged_and_is_not_a_win() -> None:
     gains = [0.01 + 0.02 * math.sin(n) for n in range(40)]
     slow, fast = (deflated.judge([_verdict(gains, years)], 0)[0] for years in (10, 2))
     sharpe = slow.sharpe or 0.0
-    assert 0.7 < sharpe == fast.sharpe and slow.deflated == fast.deflated > deflated.PASS
-    assert slow.yearly == pytest.approx(sharpe * 2, rel=1e-3) and slow.least is Answer.PASS
-    assert deflated.FLAG < sharpe * math.sqrt(20) == pytest.approx(fast.yearly, rel=1e-3)
+    assert 0.69 < sharpe == fast.sharpe and slow.deflated == fast.deflated > deflated.PASS
+    assert (
+        slow.yearly == pytest.approx(sharpe * math.sqrt(4.1), rel=1e-3)
+        and slow.least is Answer.PASS
+    )
+    assert deflated.FLAG < sharpe * math.sqrt(20.5) == pytest.approx(fast.yearly, rel=1e-3)
     assert fast.rungs == dict.fromkeys(deflated.OWN, Answer.PASS) | {"yearly": Answer.DOUBT}
     assert fast.least is Answer.DOUBT
 
@@ -142,7 +156,7 @@ def test_a_yearly_sharpe_above_two_is_flagged_and_is_not_a_win() -> None:
 def test_among_noise_chance_winners_do_not_survive_and_a_real_edge_does() -> None:
     families = [[_bell(100 * f + n, 0) for n in range(40)] for f in range(40)]
     judged = [deflated.judge(family, 0) for family in families]
-    assert sum(any(j.luck.verdict.passed for j in family) for family in judged) > 20
+    assert sum(any(j.luck.verdict.passed for j in family) for family in judged) > 10
     fooled = sum(any(j.least is Answer.PASS for j in family) for family in judged)
     assert fooled <= 2, "forty sets of forty trials with no edge in any: 5% is the most"
     found = [deflated.judge([*family, _bell(7, 0.015)], 0)[-1] for family in families]

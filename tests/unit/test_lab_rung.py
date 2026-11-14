@@ -136,16 +136,24 @@ def test_a_planted_edge_passes_and_a_planted_non_edge_does_not() -> None:
         few = _judge(_walk(seed, 0)[:1500], -1)
         assert 2 <= len(few.trades) < rung.MIN_TRADES and few.answer is Answer.THIN, seed
         assert not few.passed and few.t is not None and few.t < 1, (seed, few.t)
-    #: the bar sits between these two: 1.99 standard errors fails, 2.02 passes
-    faint, just = _judge(_walk(1, 0.005), -1), _judge(_walk(16, 0.005), -1)
+    #: the bar sits between these two: 1.98 standard errors fails, 2.02 passes
+    faint, just = _judge(_walk(12, 0.005), -1), _judge(_walk(40, 0.005), -1)
     assert faint.t is not None and Decimal("1.9") < faint.t < rung.T_PASS
     assert faint.answer is Answer.FAIL and not faint.passed
     assert just.t is not None and just.t < Decimal("2.03") and just.passed
     #: and between these: 29 trades are not enough evidence, however strong, and 30 are
     short, thirty = _judge(_walk(0, 0.008)[:2400], -1), _judge(_walk(0, 0.008)[:2450], -1)
-    assert len(short.trades) == 29 and short.t is not None and short.t > Decimal("2.8")
+    assert len(short.trades) == 29 and short.t is not None and short.t > Decimal("2.5")
     assert not short.passed and short.answer is Answer.THIN
     assert len(thirty.trades) == 30 and thirty.passed
+
+
+def test_one_more_trade_is_planted_at_the_rules_own_stop_and_is_no_trade_counted() -> None:
+    made = _judge(_walk(0, 0.008), -1)
+    assert all(p.stopped < p.gain and p.stopped < 0 for p in made.trades)
+    assert made.gains[-1] == min(p.stopped for p in made.trades)
+    assert made.gains[:-1] == tuple(p.gain for p in made.trades), "the trades' own gains, unmoved"
+    assert len(made.gains) == len(made.trades) + 1 and rung.planted([]) == ()
 
 
 def test_an_edge_the_costs_eat_is_rejected() -> None:
