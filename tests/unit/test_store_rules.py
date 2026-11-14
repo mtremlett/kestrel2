@@ -106,3 +106,17 @@ def test_each_rule_fires_on_its_synthetic_row(tmp_path: Path, site: str) -> None
     answer = make(clean)
     store.prepare(tmp_path, {line: answer}, DAY)
     assert any(seen in f for f in store.faults(tmp_path, US.symbol)), site
+
+
+@pytest.mark.parametrize("spike", [Decimal("1.7"), Decimal("1.2")], ids=["bad print", "wide day"])
+def test_a_wide_day_among_quiet_ones_leaves_no_step_in_its_neighbours(
+    tmp_path: Path, spike: Decimal
+) -> None:
+    """IDTL 17 March 2020 (a move of 0.03%) and VUAG 13-17 March: a day whose high stood far above
+    its own prices once made its quiet neighbours 'a split'. A day past JUMP is no bar; a wider
+    day than the market's is dropped on entry, so no step is found beside it; EQQQ's true jump
+    (the _priced:4 row) is still refused."""
+    clean = list(_bars(US, LONG))
+    odd = replace(clean[-8], high=clean[-8].close * spike)
+    store.prepare(tmp_path, {US: [*clean[:-8], odd, *clean[-7:]]}, DAY)
+    assert not any("moved from" in f for f in store.faults(tmp_path, US.symbol))
