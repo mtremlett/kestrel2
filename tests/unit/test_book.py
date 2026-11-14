@@ -127,7 +127,7 @@ def test_a_desk_that_died_mid_send_has_what_it_left_working_cancelled_before_it_
     monkeypatch.setattr(broker, "place", Mock(side_effect=Refused("the door's own word")))
     with pytest.raises(Refused, match="the door's own word"):  #: it sent nothing: no death
         _send(tmp_path, broker, "o-6")
-    assert not [p.name for p in tmp_path.iterdir() if p.name != book.LEDGER], "a note left behind"
+    assert {p.name for p in tmp_path.iterdir()} == {book.LEDGER, book.STOPS}, "a note left behind"
 
 
 def test_while_the_book_is_not_the_brokers_nothing_is_bought_and_no_such_line_sold(

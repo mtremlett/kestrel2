@@ -159,7 +159,8 @@ class Reproduction:
         return all(found.same for found in self.found)
 
 
-#: The figures on file, each read from the page that printed it. None yet.
+#: The figures on file, each read from the page that printed it. None yet: those read and
+#: waiting are in `docs/DECISIONS.md`, each with the market or the rule it waits for.
 FIGURES: tuple[Figure, ...] = ()
 
 

@@ -1617,6 +1617,25 @@ overwritten in place.
 
 ---
 
+## 2026-11-14 — the desk's ceiling raised to 10,500 lines, so FIRST-LIGHT never waits on it
+
+**His ruling**, in the coordinator's chat, to the question asked as a guard loosening. First
+"Yes, standby only", for a raise from 9,000 to 10,500 lines if the ceiling ever refused a
+FIRST-LIGHT change. Then, an hour later: "if i cannot attend at the time then i auto-approve
+it now. please confirm. do not stop or stall on account of desk code lines. we can
+iteratively refactor at a later date if need be." An unattended session may not raise a
+guard on a relayed yes, so the session he spoke to makes the raise now, while it is attended.
+In `BUDGET.json`, `product_lines` goes from 9,000 to 10,500 for phases `3-money-paper` and
+`4-ladder`. Phase 4 changes too, so the move to phase 4 cannot shrink the room. Nothing else
+in the budget changes. desk/ was 6,751 lines at the time. Until Monday 08:00 the runner still
+lets only FIRST-LIGHT boxes grow desk/. After FIRST-LIGHT, a deletion box aims to bring desk/
+back under 9,000.
+
+**Driven.** With the ceiling at 10,500, a desk/ of exactly 10,500 lines passed, and one more
+line failed it.
+
+---
+
 ## MONEY
 
 ### 2026-11-13 — how the pretend broker behaves
@@ -2128,6 +2147,37 @@ Decided by the MONEY lane as the desk's mentor, no one watching.
 - Records built without the two new facts, and a row of ten columns kept by hand (#152), read as nothing known sent and cannot count. Options: (a) strict reader, close this change until PAPER mends; (b) read such rows as the record's own not-known state; (c) convert old-name files (none exist). Chosen (b) as a bridge, asked of PAPER (R-MONEY-20, 21); the reader's allowance and the defaults go together.
 - records.csv changes shape with no conversion (no day's record exists outside a test). Who called a halt, who may lift it and a halt on one line are not recorded yet (crash watch).
 - Ticks: money-halts. Evidence: 128 deliberate breaks, 125 caught, 3 closed.
+
+### 2026-11-14 — a dead desk's working orders cancelled, not counted (money-working, #163)
+- What to do with an order a dead desk left working. Options: (a) as the box worded it: every broker gains a question and the limit counts the answer; (b) the desk notes each order as it goes, and after a death has the broker cancel whatever is working before it sends; (c) land nothing and ask the paper lane first. Chosen (b): (a) cannot be green from this box's files (the paper adapter is the paper lane's, and added questions change conversations its tests hold byte for byte); (c) leaves the limit broken and R-MONEY-15 open for rounds. (b) asks nothing new of any broker and is the 13 November broker ruling (what is not filled is cancelled). Cost: that trade is given up for the day; its rule asks again tomorrow. After a crash the desk prefers flat and certain.
+- The box is ticked though its second clause (a broker says which orders are working) is not built as worded: nothing is left working to list.
+- Which endings leave the note. Options: (a) only a death; (b) every ending but the broker's last answer or its door's word that nothing went. Chosen (b): not knowing is treated as a death.
+- The cancel comes at the start of every send (not only before a new order), so the leftover order's answer never reads "working" a moment before it is cancelled. While the kill switch is on the note waits: the pull has cancelled, and a refusal made with the switch on asks the broker nothing.
+- SimCity's eleventh promise: no order is left working at a day's end. The check's one lived world moved from 0 to 1, the first that came to six lines, so the test fails without the mend. The sending-twice test was tightened, not loosened (a working order's answer changes to cancelled, no fill added).
+- Evidence: hundred worlds GREEN (31,000 days, 1,195 deaths, 583 orders left working); 24 deliberate breaks, 20 caught at once, 4 survivors closed. Ticks: money-working.
+
+### 2026-11-14 — the crash watch (money-watch, #172)
+- His lift of a watch's halt. Options: (a) it stands until the market ends a day clear; (b) for that day only; (c) no memory: while the market still raises the halt, the watch calls it again and tells him. Built (a), narrowed three times; four reviews each found it buying into a fall or halting against his word. Chosen (c): errs toward the halt; he has no lift command yet. His recorded word against the market is owed.
+- Any bar of the session raises a halt, not only the newest: a look can be missed or bars land together. A day's end is read at its last five-minute bar once the auction is over; if missing it lifts nothing and he is told once.
+- A crash and a black swan are two halts, each on its own; the black swan's is his alone to lift. The watch lifts its own crash halt as of the day's end.
+- Twenty minutes unheard means unread (options 10, 15, 20: three missed rounds and a fourth late); change once the keeper's delay is measured. A thin line is read at its last trade while its venue is heard.
+- Blind (market unreadable) calls no halt: a stopped feed is far commoner than a crash, and a halted day does not count; he is told once an hour. One line's emergency parks nothing yet (the send path asks only for whole-desk halts; one ticker must not stop all trading).
+- The watch runs inside the desk's step, so the halts' record keeps one writer. A halt called with no caller named is the operator's own (outside tests call it so).
+- Evidence: five blind reviews (four failed, eleven findings closed); 82 of 89 breaks caught; twelve real sessions, 628 looks, no crash. Ticks: money-watch.
+
+### 2026-11-14 — notes for the runner (money-notes, #176)
+- The unnoted standing rule (a box adding a public function needs SimCity's files). Options: (a) leave it unnoted, so the runner treats it as whole-lane work; (b) note it as waiting on the operator, untrue; (c) put its files into each box it speaks of and give it a note placing it last. Chosen (c): true, and it frees the runner. It is now money-census, ticked when every other box is.
+- SimCity's file has one line of room. Options: a box of its own to split it, or let the first box needing room split it. Chosen the second.
+
+### 2026-11-14 — the RSI and the lower band made public (R-RUNGS-6, R-RUNGS-12, #185)
+- Options: (a) two plain functions of numbers the rules already work, read by the rules; (b) whole public indicator classes; (c) public aliases of the private classes. Chosen (a): names exactly the two lines RUNGS could not reach, one code path, every private name RUNGS uses still works. (b) is the cleaner end state once RUNGS stops reaching the private parts. The band's width stays the fixed 2 deviations.
+- Proof the rules read the names: the test puts another number at each name and sees the pinned trade vanish.
+
+### 2026-11-14 — a lost stop is told the same day (money-restop, first step, #191)
+- When the desk looks. Options: (a) a new read of the broker each morning; (b) the day record's existing reading at the day's end; (c) only when an order is refused. Chosen (b): (a) changes the paper conversation its tests pin; (c) says nothing on a quiet day. Cost: on the pretend desk a stop lost overnight is told at that day's end.
+- The level is kept by the desk as each buy goes out (not recomputed, not read from a broker that lost it).
+- Only lines the broker holds exactly as the book does, with fewer shares under a stop, are told: telling him to rest a stop for shares not held could sell short.
+- Under the book's blocker ("the book is not the broker's"), the list's id the stop's own; a blocker of its own needs `desk/halt.py`. Evidence: 8 breaks caught; SimCity promises it.
 
 ## DATA
 
@@ -3605,3 +3655,28 @@ Decided by the PAPER lane as the desk's mentor, no one watching.
 - Two commits in one pull request (re-laying tables under the 400-line cap, then the feature). Chosen over two pull requests.
 - Evidence (A7): 27 deliberate breaks, 26 caught; blind review compared 19 columns to the spreadsheets' cells and drove 21 mutations, nothing blocking.
 - Ticks: none; "each indicator" is not true while the RSI's ratio is held by no printed number.
+
+### 2026-11-14 — a replication stands in for the book's figure (rungs-reproduce, a step, #169)
+- What stands in for the book's RSI-2 table: (a) wait for the book (his spend; he has said no); (b) a best-fit number put together from pages that each test something else; (c) write down the nearest published tests exactly as printed, each of its own rule, market and period, and put none on file until the desk can run that very test. Chosen (c). His words: "cannot afford it, so instead, research on the internet and find a best fit answer." A number nobody printed is not a figure.
+- This replaces #141's refusal of web write-ups as second hand, made the same morning before his ruling.
+- Second hand as a label on the figure, or a separate list: chosen one list, each figure saying whose it is. The first rung waits for both alike; a second list would be a second home for one rule.
+- A range as its own kind of number, or a middle and a distance: chosen the second (`Stated.between`), one way of saying "the same", already tested at its edges.
+- Swanson's "cumulative RSI(2) below 5": read as Connors' cumulative RSI, or as the plain 2-day RSI. Chosen the plain one: he tests thresholds from 1 to 30 and a sum of two days' could not sit under 5 a hundred and twenty-nine times. An inference, labelled so; the tolerance is wide for it.
+- How near, fixed before any run: Swanson 8 trades and 3 points (his dates are not printed); Empirica 3 trades, 2 points, 0.06 of mean gain (exact dates, costs not said to be in or out).
+- Enter either figure in FIGURES now: no. A figure on file stops every verdict on its rule, and neither can be run yet.
+- Ticks: none; the first real run and the passing-on through folds and regimes are not done.
+
+### 2026-11-14 — the ruling acted on, the rungs' tests off SPY and QQQ (rungs-reproduce, requests, #186)
+- The ruling, taken for the operator by his standing ruling of 13 November: rungs-indicators waits on R-RUNGS-6; RSI-2 no longer waits for the book. His words of 14 November (#157): "why do i need to buy a book. right now i cannot afford it, so instead, research on the internet and find a best fit answer." Both reproductions are to be made from the best free published figures, labelled second hand; one needing prices from 1993 waits on R-RUNGS-5.
+- Run a reproduction today on the prices the desk has (2010 on)? (a) set the 1993-on figures beside a run over 2010-2026: refused, numbers of other years could only match by accident; (b) make a 2010-on figure by subtracting one printed span from another: refused, a number nobody printed; (c) wait for SPY from 1993. Chosen (c).
+- A third RSI-2 page, read and refused as a figure: Backtrex, "Does the RSI(2) strategy work on the S&P 500?" (run 2 October 2026), 3 October 2016 to 1 October 2026, 73 trades, 71.2% winners. Its period is inside the desk's prices, but it trades long and short, also sells under the 200-day average, carries a stop, and is on a contract for difference. Another rule on another market.
+- Where the research notes go: STATUS or DECISIONS. Chosen DECISIONS (how near is the same is a decision fixed before a run, and this record is never cut down); STATUS keeps one line on what the box waits on.
+- The figures written down, none on file, nearness fixed before any run:
+  1. Double 7's, the authors' own. Connors and Alvarez (2008), chapter 10 as its publisher gives it away: a close at a seven-day low bought while SPY is above its 200-day average, sold at a close at a seven-day high; SPY from 29 January 1993, end taken as the end of 2007: 153 trades, 80.4% gaining, mean gain 0.85%, 122.36 points. The same is within 5 trades, 1.5 points of share gaining, 0.05 of mean gain and 10 points. Waits for R-RUNGS-10 and SPY from 1993 as traded (R-RUNGS-5, 9).
+  2. Double 7's, second hand. StrategyQuant, "Larry Connors' Double 7 Strategy: Tested on SPY and 8 Other Markets" (Souckova, 16 September 2026): same rule, long only, daily SPY, filled at the close, no cost, January 1993 to September 2026: 333 trades. No share gaining or mean gain printed; profit factor, Sharpe and dollars are not numbers the desk counts. Dates taken as 29 January 1993 to 15 September 2026; the same is within 10 trades (days not printed; dividend adjustment unsaid). Waits as the first.
+  3. RSI-2, second hand, on the index. Swanson, "Connors 2-Period RSI Update For 2013" (EasyLanguage Mastery, 26 August 2013): rule as coded, at the close, S&P 500 index "from 1983": 129 trades, 82% profitable. Period taken as first session of 1983 to last of February 2013; "cumulative" read as plain 2-day RSI under 5. Within 8 trades and 3 points. Its dollars and misprinted SPY column are not used. Waits for the index from 1983 (R-RUNGS-13).
+  4. RSI-2, second hand, on SPY. Empirica Lab, note EL-R-2026-302 (11 October 2026): SPY dividend-adjusted, at the close, 29 January 1993 to 30 September 2026, bought under 10 and not under 5: 265 trades, 204 gaining, mean gain 0.63% (0.02% charged a side; whether the mean is after it is not said); before 2009: 116 trades, 81%, 0.79%. Within 3 trades, 2 points and 0.06. Waits for RSI-2 buying under 10 (R-RUNGS-14) and SPY from 1993.
+- The best free figure per rule: RSI-2, Empirica's (4), the only one on SPY with exact dates; Swanson's (3) is of the rule exactly as coded but needs the index. Double 7's: the authors' own (1), with StrategyQuant's (2) as the second-hand check.
+- Three requests and the ruling in one pull request: all on one box's files, each in its own commit.
+- Pages read through a web reader on the day, not opened by a person; a person or a later session opens each once more before its figure goes on file.
+- Ticks: R-DATA-11, R-RUNNER-5, R-RUNNER-3 (requests to this lane, done).

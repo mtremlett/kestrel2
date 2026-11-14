@@ -46,8 +46,8 @@ from functools import lru_cache, partial
 from pathlib import Path
 from typing import IO, Any
 
-from desk import archive
-from desk.lines import Line
+from desk import archive, venues
+from desk.lines import NO_TAX, STAMP_DUTY, Line
 from desk.store import Bar
 from desk.strategy import STRATEGIES
 from lab import batch, tune, universe
@@ -77,6 +77,20 @@ class Pass:
 def cells(line: Line, start: date, end: date) -> tuple[Cell, ...]:
     """Every strategy at every setting on one ticker, over one window."""
     return tuple(Cell(name, line, start, end) for name in STRATEGIES)
+
+
+def held(root: Path) -> tuple[Line, ...]:
+    """Every ticker the research store at root holds bars for, venue by venue, in order. One
+    on the research list is its own line; any other is plain (no leverage), quoted in its
+    venue's currency, and a London share pays stamp duty, as the list's shares do."""
+    known = {(line.symbol, line.venue): line for line in universe.UNIVERSE}
+    money = {"LSE": ("GBP", STAMP_DUTY), "US": ("USD", NO_TAX)}
+    return tuple(
+        known.get((path.stem, venue), Line(path.stem, venue, *money[venue][:1], 1, money[venue][1]))
+        for venue in sorted(venues.RULES)
+        for path in sorted((root / venue).glob("*.csv"))
+        if not path.stem.endswith(".faults")
+    )
 
 
 def journal(kept: Path, line: Line) -> Path:
@@ -230,17 +244,20 @@ def unbroken(data: Path) -> timedelta:
 
 def main(argv: Sequence[str]) -> None:
     """One pass over the research list from the archive's first day to today, its count
-    written out; or, given a number of days, the week."""
+    written out; with --held, over every ticker the store holds instead; or, given a number
+    of days, the week."""
     parser = argparse.ArgumentParser(description="the grid's pass, or its week")
     for name in ("store", "kept", "data"):  # absolute: a pass's process starts elsewhere
         parser.add_argument(name, type=lambda folder: Path(folder).resolve())
     parser.add_argument("--days", type=float, default=0)
+    parser.add_argument("--held", action="store_true", help="every ticker the store holds")
     args = parser.parse_args(argv)
     if args.days:
         return week(partial(fresh, args.store, args.kept, args.data), args.data, args.days)
     window, threads = (archive.SINCE, datetime.now(UTC).date()), os.cpu_count() or 2
     folders = (args.store, args.kept)
-    done = run(universe.UNIVERSE, *folders, *window, tune.windows(), args.data, threads)
+    lines = held(args.store) if args.held else universe.UNIVERSE
+    done = run(lines, *folders, *window, tune.windows(), args.data, threads)
     died = [f"{line.symbol} on {line.venue}" for line in done.report.died]
     counts = {name: getattr(done, name) for name in COUNTS}
     sys.stdout.write(json.dumps({**counts, "died": died}) + "\n")
