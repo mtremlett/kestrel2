@@ -26,6 +26,7 @@ VUSA = next(line for line in LINES if line.symbol == "VUSA")
 #: 19 sells; bar 32's 25 clears 20.5 and buys; bar 33's 18 is under bar 31's low of 18.5 and
 #: sells. Filled at the close: 11 to 19 and 25 to 18, +72.72...% and -28%, one winner of two.
 #: Filled at the next open (each bar opens on its close): 20 to 25 and 18 to 18, +25% and 0%.
+#: In points of the price, as Connors prints a test: 8 - 7 = 1 at the close, 5 + 0 at the open.
 CLOSES = (*[10] * 20, 11, *[20] * 10, 19, 25, 18, 18)
 DAYS = venues.sessions("LSE", date(2020, 1, 2), date(2020, 2, 19))
 
@@ -44,6 +45,7 @@ AT_CLOSE = (
     (Measure.TRADES, "2", "0"),
     (Measure.WINNERS, "50", "0"),
     (Measure.MEAN_GAIN, "22.36", "0.01"),  #: half of 72.72...% less 28% is 22.3636...%
+    (Measure.NET_POINTS, "1", "0"),
 )
 
 
@@ -51,7 +53,7 @@ def test_the_authors_own_figure_is_reproduced_counted_as_the_author_counted() ->
     bars = _bars()
     made = reproduce.reproduce(_figure(Fill.CLOSE, *AT_CLOSE), bars)
     measured = [str(round(found.measured, 6)) for found in made.found]
-    assert made.reproduced and measured == ["2.000000", "50.000000", "22.363636"]
+    assert made.reproduced and measured == ["2.000000", "50.000000", "22.363636", "1.000000"]
     kept = cell.key(made.key.cell, bars).rung("lab.reproduce")
     assert made.key == kept, "the code, this module's too, and the bars that made it"
     #: history before the period warms the rule, and a trade belongs to the period it was
@@ -61,7 +63,7 @@ def test_the_authors_own_figure_is_reproduced_counted_as_the_author_counted() ->
     #: the same rule filled a day later is another result: the author's way of counting is
     #: part of the figure, and the same figure is not reproduced by it
     late = reproduce.reproduce(_figure(Fill.NEXT_OPEN, *AT_CLOSE), bars)
-    out = [(Decimal(2), True), (Decimal(50), True), (Decimal("12.5"), False)]
+    out = [(Decimal(2), True), (Decimal(50), True), (Decimal("12.5"), False), (Decimal(5), False)]
     assert [(f.measured, f.same) for f in late.found] == out
     assert not late.reproduced
     at_open = (Measure.MEAN_GAIN, "12.5", "0")
