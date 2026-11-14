@@ -2,13 +2,9 @@
 PASSES; a walk with no memory, a line that climbs of itself and a rule of small wins with a
 rare loss at the stop FAIL; and the two rates PASS is held to are measured and printed.
 
-The check does not run this folder. The tests here are the spec's, written before the code,
-and none is ever set aside to make it pass. Those of the planted edge, the hidden loss, the
-folds and the shuffle fail until the ladder is built as written; those of nothing (the bell,
-the drift and the two lopsided worlds) hold already, since the ladder as it stands passes
-nothing at all, and are the controls that must go on holding once an edge can pass.
-`python -m pytest tests/ladder_spec -s` prints the rates: ten minutes as the ladder stands,
-and half an hour or so once every planted edge is shuffled a hundred times.
+The tests here are the spec's, written before the code, and none is ever set aside to
+make it pass. `python -m pytest tests/unit/test_lab_ladder_spec_answers.py -s` prints the rates:
+the false-PASS rate over sets of no edge, and the power over the planted trials.
 """
 
 from __future__ import annotations
@@ -20,7 +16,7 @@ from statistics import fmean
 from typing import Any
 
 import pytest
-from ladder_worlds import (
+from test_lab_ladder_spec_worlds import (
     BELL,
     DRIFT,
     EDGE,

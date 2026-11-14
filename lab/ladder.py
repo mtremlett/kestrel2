@@ -3,8 +3,7 @@ holds (`lab/published.py`), on every line it declares, through every rung, and k
 answer with its reason and its count of trials; it can be stopped at any moment and run again,
 one process at a time, and ends with one line of counts. THIS DOCSTRING IS THE ONE HOME of what
 the ladder must do; a rung's module says how it does its part, and may not set another bar.
-Its known answers are tested in `tests/ladder_spec/`. What is written here and not yet built is
-listed under OWED at the foot, and until that is empty no answer of the ladder is to be believed.
+Its known answers are tested in `tests/unit/test_lab_ladder_spec_*.py`, and all of it is built.
 
 WHAT PASS MEANS. On this line the rule earned, after every cost of the broker named, by more
 than luck among every trial tried, by more than its line or its market simply held, in the
@@ -114,10 +113,6 @@ reason until the data lane mends the bars or the master names the move.
 ITS DOORS stay, for the tests come in by them: `run(home, bars, pounds, todo)`; `names(cell)`,
 a list, the rule's hash a word of its own; and a line's keys `cell`, `trials`, `rungs` (each an
 answer and its reason), `answer`, `unrun` and `error`, its figures JSON numbers.
-
-OWED: the folds as written (they are two thirds of one line, 30 trades asked
-of each, and wait where a figure is on file); the shuffle; the drawdowns; one trial a cell and
-the rule's hash in its name; `made`; the kept table of rates; the step of units.
 """
 
 from __future__ import annotations

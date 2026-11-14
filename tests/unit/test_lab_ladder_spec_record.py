@@ -3,8 +3,7 @@ gating rung in the one verdict, one trial a cell with its rule's code in its nam
 each answer, the author's figure through the folds, the kept rates, a step of units refused
 and the resampled drawdowns.
 
-The check does not run this folder. Each test here is the spec's, written before the code:
-it fails until the ladder is built as written, and is never set aside to make it pass.
+Each test here is the spec's, written before the code, and is never set aside to make it pass.
 What no test here can hold, the build's own review must: that the commit is the commit, that
 the rule's hash moves when its code does, and that a drawdown is drawn and not made up.
 """
@@ -19,7 +18,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from ladder_worlds import BELL, EDGE, EIGHT, RATE, RULE, SIXTEEN, judged, world
+from test_lab_ladder_spec_worlds import BELL, EDGE, EIGHT, RATE, RULE, SIXTEEN, judged, world
 
 from desk import venues
 from desk.command import POUND

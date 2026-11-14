@@ -85,7 +85,7 @@ rungs = []
 # the rungs lane
 "lab/rung.py" = "the ladder's first rung: a cell's trades priced at the desk's fills and the broker's costs, and judged against chance"
 "lab/luck.py" = "the ladder's luck rung: every trial counted, and each verdict's chance corrected for the number of trials it was picked from"
-"lab/folds.py" = "the ladder's folds rung: the last five whole years, each judged on the trades of all of a rule's lines pooled, and the verdict given on the worst year; and a window cut in equal parts"
+"lab/folds.py" = "the ladder's folds rung: a history cut into folds, each judged after costs beside the history before it, and the verdict given on the worst"
 "lab/drawdown.py" = "the ladder's resampled drawdowns: the judged trades' pounds drawn again a thousand times, and the median and the 95th percentile of the deepest fall kept as parts of the capital, never a pass"
 "lab/units.py" = "the step of units: a line of pounds whose close steps by the rate of exchange in a day, a dollar series joined to a pound one, and is not judged"
 "lab/shuffle.py" = "the ladder's shuffle rung: the days of a line put in a random order a hundred times, and a rule that earns as much there has timed nothing"
