@@ -3395,3 +3395,41 @@ Decided by the PAPER lane as the desk's mentor, no one watching.
 - Wilder's smoothing fed the spreadsheet's own Gain, Loss and true-range columns, not a re-typed split (that would test a second copy).
 - A gate in `proven` before any verdict, not only a test: under a millisecond once per run.
 - Ticks: none; "each indicator" is not true while the RSI and true range as wholes are out of reach.
+
+### 2026-11-14 — the desk's one voice (paper-messages, #142)
+Decided by the PAPER lane as the desk's mentor, no one watching, under his ruling "always go with recommended".
+- Alarm on silence: the desk alarms about itself (a dead desk cannot); only the human rule "no message by 08:30 means look"; a watch outside the desk reading the delivery record. Chosen the outside watch, with the human rule beside it for when nothing runs.
+- Hours: morning 05:40 (old card; in his night, against his ruling that news waits until 08:00) or 08:00, owed by 08:30: chosen 08:00. Evening 21:00 (exactly on New York's bell on 465 of 502 sessions), the last close plus a margin each day (a moving hour), or 21:05 owed by 21:30, tested over every session of 2026-27: chosen 21:05. A message late past 22:00 is not sent that day; the morning one carries the state.
+- Days: every day London or New York trades; no weekend message (MSG-06 dropped 13 November).
+- The record is one SQLite file, not a CSV: the first blind review drove two processes at the CSV to an unreadable record within six writes, and then no message and no alarm. SQLite is already the desk's bar store; this is the one record with two writers by design (desk and watch).
+- Asked on the record before the door; options: send then write (the same alarm four times while the record could not be written), never resend a message whose answer was lost (an urgent line lost in silence), resend until Telegram's number is kept. Chosen the last: twice is harmless to a man, never is not.
+- Over Telegram's 4,096 characters: cut at the door with words saying so, kept whole on the record (not let Telegram refuse it, not split).
+- The key comes from the desk's environment under GitHub's two names; never shown. Giving it to the desk's process is his alone (credentials), asked in Remains only when paper-running is ready.
+- The merge line and the runner's lines stay outside this door for now (announce.py runs on GitHub): paper-cards (MSG-11).
+- The morning message claims only what it asked ("set for today on paper", three things named, stamped); the evening one says when the ledger may be behind the broker; a wrong clock is refused at the first asking.
+- Ticked though nothing calls it yet, as paper-gateway was. A change to the lock was tried, measured to do nothing, and dropped.
+- Evidence: test seen failing first; two blind reviews (3 blocking fixed); 518 breaks in three rounds, 473 caught as driven, every real gap closed and driven again; two to six processes: 600 of 600, 902 of 902, 1,593-1,599 of 1,600 (the rest refused unsaid after seven seconds, none garbled).
+
+### 2026-11-14 — the unattended day as one step (paper-running, R-MONEY-8, #152)
+Decided by the PAPER lane as the desk's mentor, no one watching.
+- A step, not a loop: a loop remembering the day, or one step working out what is owed from the records each time. Chosen the step; a restart needs no special path. New record `running.csv`: each round, recovery, unclean account, failure, dated.
+- A round's "done" is on the desk's own record, not the delivery record: orders must never wait on Telegram.
+- Recovery runs whenever the check names something (not once at start, not every step): costs nothing on a clean day, repeating changes nothing. It waits while the kill switch is on or undrilled, since a replacement stop is an order.
+- Which stop after a restart: the newest stop, or the newest whose buy the ledger holds a fill of, for the shares held and only where they are the book's. Chosen the second, `place`'s own rule; stops read as found before cancelling, because the broker ends a buy's stop with the buy.
+- The check comes before a record too (first review, blocking): a desk restarted after the close would otherwise publish with profit withheld.
+- A round once a day, whatever was answered (not repeated each step until close: dozens of Gateway talks, and a buy refused at 08:00 going at 15:55); every answer told. Orders go at the first clear step however late; a cut-off for late buys is asked of MONEY.
+- A line with no bar of the session before is left out and named, not the whole round refused.
+- Record hour: five minutes after the last closing auction. His hours: no check before 08:00 UK; notes only 08:00-22:00; a Gateway alarm at any hour, once from each 08:00 to the next; one failure of each kind a day.
+- The adapter itself refuses an order not dated the session before today, by the venue's calendar (R-MONEY-8): the last moment before the broker.
+- The price store's real door is left out (twelve untested lines, no room under the cap). Ticked though nothing asks for a step yet. Asked and refused by the cap: a warning when the Gateway is unwell all session; a stop level the desk keeps itself.
+- Evidence: tests seen failing first; two blind reviews (2 blocking fixed, second found none); breaks with cache off: 51 first design, 47 caught, 4 gaps closed; 72 on the fixed code, 72 caught, 6 more caught; one read-only run at the real Gateway.
+
+### 2026-11-14 — the kill switch drilled each day (paper-kill-drilled, EMG-02, #155)
+Decided by the PAPER lane as the desk's mentor, no one watching.
+- When: only when the last drill is over 31 days old (the least EMG-02 asks), once each day before that day's first work, or at every process start. Chosen daily: a step has no "start", the code changes many times a day, and a rehearsal costs a fiftieth of a second. The month stays as the adapter's floor.
+- Where in the step: after the ledger (the broker tells of today's fills today only), before the check (which may send stops).
+- A failed rehearsal stops: orders alone; orders and putting right; everything but the ledger. Chosen the last: the same drill passes on every merge, so a failure means the code or his PC is not as tested; do least, and a failing step is what the supervisor watches. Cost, from the review: the check and record wait too.
+- Any day the desk works, not only trading days; the day is UTC's, as the check's.
+- His words: the drill's error lists broken promises as plain statements, reading as the opposite. Options: change MONEY's words (not this lane's file); a second line; wrap the error. Chosen the wrap ("a rehearsal ... NOT kept"); asked of MONEY to word it.
+- The adapter is not changed (outside the box; conformance drivers use it directly). No message for a passed rehearsal.
+- Evidence: tests changed first and seen failing (an undrilled desk's buy never reached the broker); one blind review, nothing blocking, 4,576 drills to 2029 none failed; breaks on a scratch copy: 13 of 13 on the first design, 18 of 18 on the final; one read-only run at the real Gateway.

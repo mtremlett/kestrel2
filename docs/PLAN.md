@@ -497,14 +497,18 @@ his PC with the desk's own client id (222), never 4001.
       and a contract test proves the refusal (owed: name the money lane's kill-switch box in
       `after` once it has an id) {id: paper-drill; files: desk/placing.py,
       tests/unit/test_placing.py; after: paper-adapter, paper-stops}
-- [ ] Morning and evening messages, and an alarm on silence
+- [x] Morning and evening messages, and an alarm on silence
+      Built (#142), nothing calls it. Remains: paper-running calls it (done in #152), something outside the desk runs
+      `messenger.watch` every few minutes, his bot key in the desk's environment (his alone), a real message seen on his phone
       {id: paper-messages; files: desk/messenger.py, tests/unit/test_messenger.py,
       manifest.toml}
-- [ ] Unattended running, and recovery from a restart
+- [x] Unattended running, and recovery from a restart
+      Built (#152, R-MONEY-8). Remains: the two doors a step is given (price store; day's rates from DATA), the process that asks (paper-supervised)
       {id: paper-running; files: desk/running.py, desk/placing.py,
       tests/unit/test_running.py, tests/unit/test_placing.py, manifest.toml;
       after: paper-adapter, paper-stops, paper-messages}
-- [ ] **No paper order until the money lane's kill switch has been drilled** (EMG-02)
+- [x] **No paper order until the money lane's kill switch has been drilled** (EMG-02)
+      Built (#155): the step drills once each day before its check, orders and record
       {id: paper-kill-drilled; files: desk/running.py, tests/unit/test_running.py;
       after: money-kill, paper-drill, paper-running}
 - [ ] Conformance trades, on paper, one London and one US line, each in its market's hours:

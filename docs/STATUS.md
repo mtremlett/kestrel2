@@ -137,54 +137,49 @@ function need the SimCity files (a function no scenario runs turns the check red
 - A sale can exceed the holding; nothing reads a declaration yet; a mismatch tells nobody yet; no halt.
 
 ## PAPER
-
-Last updated: 14 November 2026 (folds #100, #104, #110, #113, #123, #128, #135).
-
+Last updated: 14 November 2026 (folds #100, #104, #110, #113, #123, #128, #135, #142, #152, #155).
 ### Where it is
-
-First real paper orders sent 14 Nov (#135), markets shut: one share with its stop on every line (59 orders), all cancelled,
-nothing bought. Proven: buy+stop, stop step/unit on 19 lines, cancel, refusal, lone stop, kill switch. No fill seen. Nothing constructs the adapter in the product yet.
-
+Built, nothing yet calling it: the messenger (#142: one door to his phone, delivery record, morning 08:00 and evening 21:05 UK, alarm
+on silence via `messenger.watch`); the unattended day (#152: `running.step`, ledger, check, recovery, rounds, record; adapter refuses
+stale orders); the daily kill-switch drill in the step (#155). 59 dry orders sent 14 Nov (#135), all cancelled; no fill seen, no real message sent.
 ### Next step
-
-Order: paper-conformance in-hours half (fills, triggered stop, sale, part fill, SPY in hours; needs open markets; record and
-driver in KESTREL2_DATA/conformance; out of hours take R-MONEY-8), then supervision, main's code, cards.
-
+paper-conformance in-hours half (fills, triggered stop, sale, part fill, SPY; open markets; drivers in KESTREL2_DATA/conformance
+must now date orders the session before), then paper-supervised (asks for a step every few minutes; two doors; bot key), main's code, cards.
 ### Requests to MONEY
-
 - [ ] R-PAPER-4 (later, 2026-11-13 20:05): `book.differences` names an entry at no shares beside another carrying the shares.
 - [ ] R-PAPER-5 (later, 2026-11-13 21:10): the ledger keys a fill by whole id; the broker's ".01" to ".02" would double it.
-- [ ] R-PAPER-7 (later, 2026-11-13 22:45): one public keeper of dated records (the check borrows `book._write`, `_turn`).
-- [ ] R-PAPER-8 (later, 2026-11-13 23:30): the day's run collects fills at day's end too (broker tells today only).
+- [ ] R-PAPER-7 (later, 2026-11-13 22:45): one public keeper of dated records (the check and `running` borrow `book._write`, `_turn`).
+- [ ] R-PAPER-8 (later, 2026-11-13 23:30): the day's run collects fills at day's end too (broker tells today only; #152 reads while open).
 - [ ] R-PAPER-9 (later, 2026-11-13 23:30): word `Broker.stops` as the desk's own stops only, or say others are needed.
 - [ ] R-PAPER-10 (later, 2026-11-14 00:30): when `place` raises other than "never received"/refusal, pull the kill switch or tell him at once?
-- [ ] R-PAPER-11 (later, 2026-11-14 01:25): `place` can raise "word, fills and account do not agree" after an order has gone; should the send path tell him at once and stop buying?
+- [ ] R-PAPER-11 (later, 2026-11-14 01:25): `place` can raise "word, fills and account do not agree" after an order has gone; tell him, stop buying?
 - [ ] R-PAPER-12 (later, 2026-11-14 01:25): word "a sale takes its shares off that stop" to allow two steps, or say if the pretend broker must.
 - [ ] R-PAPER-13 (later, 2026-11-14 02:50): the pretend broker refuses a repeated order id; the real one took it as new. Make it so, or `place` must refuse.
 - [ ] R-PAPER-14 (later, 2026-11-14 02:50): no buy on a line with `Line.retail` False (SPY, QQQ); the broker refuses them, 15 s each, daily.
-- [ ] R-PAPER-15 (later, 2026-11-14 02:50): a working buy has its stop listed at the real broker, so `book.reconcile` names the line; pretend has none. Match it, or `Broker.stops` leaves it out.
-
+- [ ] R-PAPER-15 (later, 2026-11-14 02:50): a working buy has its stop listed at the real broker, so `book.reconcile` names the line; pretend has none.
+- [ ] R-PAPER-17 (later, 2026-11-14 05:09): `book._write` has one temp file and no lock; two writers were driven to an unreadable record in six writes. The kill switch's record has two writers (the desk daily, his typed kill, R-MONEY-7) and an unreadable one refuses every order: a writer's own temp name, or one at a time.
+- [ ] R-PAPER-18 (later, 2026-11-14 06:50): rule on a cut-off for a late buy (a desk back at 15:00 sends London's orders then); let `day.trade` send sales without buys past it.
+- [ ] R-PAPER-19 (later, 2026-11-14 06:50): public "sessions owed a record" in `desk/day.py` (`running._owed` repeats `day._kept`) and "day an order is dated" in `desk/orders.py`.
+- [ ] R-PAPER-20 (later, 2026-11-14 08:00): public "a drill made on this day is on the record" in `desk/kill.py`, one home with the month's rule.
+- [ ] R-PAPER-21 (later, 2026-11-14 08:00): word `kill.Failed` for him (a rehearsal; the promises named were NOT kept); `running` wraps it meanwhile.
 ### Requests to DATA
-
 - [ ] R-PAPER-3 (later, 2026-11-13 18:55): each line's ISIN a fact on `Line`, confirmed from issuer/exchange.
-- [ ] R-PAPER-6 (later, 2026-11-13 22:10): `desk/venues.py` gives a venue's wall clock publicly; `desk/gateway.py` drops its copy.
+- [ ] R-PAPER-6 (later, 2026-11-13 22:10): `desk/venues.py` gives a venue's wall clock publicly; `gateway` and `running` drop their copies of `_uk`.
 - [ ] R-PAPER-16 (later, 2026-11-14 02:50): IDTL in dollars is unlisted at the broker (needs its name or ISIN, with R-PAPER-3); SPY, QQQ can leave the lines.
-
+- [ ] R-PAPER-22 (blocking, 2026-11-14 06:50): the day's pounds per dollar, readable for today before London's open and any past session, same at every asking (R-MONEY-3): without it no dollar line is priced, no day recorded.
+- [ ] R-PAPER-23 (blocking, 2026-11-14 06:50): say by what minute after each close the store holds that day's close for the twenty lines; the record (5 min after the last bell) fails loudly without them.
 ### Done for other lanes
 - R-DATA-5: done in #53 (first half). Open: what the first London contract note says of stamp duty (conformance).
 - R-MONEY-4: done in #75; R-MONEY-5: done in #110
-- R-MONEY-6: done in #113 (running the drill at each desk start is left to unattended running)
-
+- R-MONEY-6: done in #113 and #155 (drilled each day at the step's first work)
+- R-MONEY-8: done in #152
 ### Found, not fixed
-
-- **Nobody sends his lines yet**; Sunday 15 Nov shows the weekend reset. **Nothing runs the day**: a run at 00:00-01:00 UK
-  summer is dated yesterday; a future-dated row refuses all orders.
-- **Unseen at the real Gateway (needs open markets):** a fill (shape, clock, fee, lag), a triggered stop, a sale taking shares
-  off the stop, a part fill, the stop behind a part-filled buy; a just-filled buy told again could carry a reason on a whole fill. Whether the weekend reset keeps the day's orders: Sunday.
-- **A refused order costs 15 s** (broker says "Inactive", then the reason; the desk waits out silence). A lone refused stop gives an error, not the reason. Unasked open orders arrive before "ready"; if one came after, a reading could miss another program's order.
-- **After an error part-way through an order nothing settles the line again** (reuse `Paper._settle`); a false alarm or rare silent pass.
-- **Placing:** no overall time limit; the kill switch cancels a buy, not its stop.
-- **Stale words:** `manifest.toml` says placing "is not built"; `desk/gateway.py` says "nothing calls it yet". Unread at the broker: hours, smallest order, order kinds; 2MU's step (£1 vs £5). Live-port guard misses the desktop port.
+- **Nothing asks for a step; the step's two doors (price store, day's rates) and his bot key in the desk's environment (his alone) are not built;** the messenger's `watch` needs a caller outside the desk (runner round). A round is made once a day (refused or late-bar lines are not retried); orders go whenever clear, however late; a fill made when the desk never read again is in no later answer (mend ledger).
+- **Recovery trusts three readings seconds apart; a stop's level is kept only at the broker,** so shares bare after a stop cancelled by hand or a death mid-replacement are named to him, not re-rested. The kill switch's record is rewritten whole, unlocked. A failed rehearsal also holds the check and record; the morning message then names the wrong reason.
+- **Messages:** a desk dead after 08:00 is not called silent before 21:30; a Gateway not ready through a session is silent; a message whose answer is lost is told twice; fills after the evening message are unnamed; hours have three homes; morning message copies four of the send path's gates (paper-cards).
+- **Unseen at the real Gateway (open markets):** a fill (shape, clock, fee, lag), a triggered stop, a sale off the stop, a part fill; whether the weekend reset keeps orders. A refused order costs 15 s; a lone refused stop gives an error, not the reason.
+- **Placing:** no overall time limit; the kill switch cancels a buy, not its stop. A run at 00:00-01:00 UK summer is dated yesterday.
+- **Stale words:** `manifest.toml` says placing "is not built", `running` lacks the drill; `desk/gateway.py` says "nothing calls it yet"; PLAN/STATUS "at each desk start". Unread at the broker: hours, smallest order, order kinds; 2MU's step. Live-port guard misses the desktop port.
 
 ## DATA
 
