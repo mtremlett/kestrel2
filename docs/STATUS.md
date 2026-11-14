@@ -141,17 +141,16 @@ money-restop's put-back (`desk/broker.py`), then the limits, money-stranger, mon
 
 ## PAPER
 
-Last updated: 14 November 2026 (folds #100, #104, #110, #113, #123, #128, #135, #142, #152, #155).
+Last updated: 14 November 2026 (folds #100, #104, #110, #113, #123, #128, #135, #142, #152, #155, #168, #182, #183, #189, #210).
 
 ### Where it is
 
-Built, nothing asking yet: messenger (#142, no bot key), unattended step (#152), daily kill-switch drill (#155); orders refused
-unless dated the session before. First real orders 14 Nov (#135), markets shut, all cancelled. No fill seen.
+Built: messenger (#142), step (#152), drill (#155), supervisor, register empty (#168), no order while another is open (#182),
+`desk.running` step/--preflight/--rehearse (#189), `desk.paper --conformance london|us` (#210). No fill seen; his Telegram key unset.
 
 ### Next step
 
-paper-conformance in-hours half (needs open markets; drivers must date orders the session before), then paper-supervised
-(asks for a step every few minutes; builds the price store's door), main's code, cards.
+Mon 16 Nov: conformance runs 08:05 and 14:35 first, then the desk's day (account empty, never beside a step); compare the files; then supervised.
 
 ### Requests to MONEY
 
@@ -178,16 +177,17 @@ paper-conformance in-hours half (needs open markets; drivers must date orders th
 - [ ] R-PAPER-16 (later, 2026-11-14 02:50): IDTL in dollars is unlisted at the broker (needs name or ISIN, with R-PAPER-3); SPY, QQQ can leave the lines.
 - [ ] R-PAPER-22 (blocking, 2026-11-14 06:50): the day's pounds per dollar, readable before London's open and for any past session (R-MONEY-3's rate); else no dollar line is priced.
 - [ ] R-PAPER-23 (blocking, 2026-11-14 06:50): say by what minute after each close the store holds the twenty closes; the day's record fails without them.
+- [ ] R-PAPER-24 (later, 2026-11-14 13:40): a daily store of the archive's answers kept raw, which `desk/command.py` reads instead of rebuilding the store at each asking; and the pound's rate from it (R-PAPER-22).
 
 ### Done for other lanes
 - R-DATA-5: done in #53 (first half). Open: what the first London contract note says of stamp duty (conformance).
-- R-MONEY-4: done in #75; R-MONEY-5: done in #110; R-MONEY-8: done in #152; R-MONEY-6: done in #113 (drill daily, #155)
+- R-RUNNER-1, R-RUNNER-9, R-MONEY-15: done in #182; R-RUNNER-6: done in #189; R-RUNNER-22: done in #210; R-MONEY-4: done in #75; R-MONEY-5: done in #110; R-MONEY-8: done in #152; R-MONEY-6: done in #113 (drill daily, #155)
 
 ### Found, not fixed
 
-- **Nothing asks for a step; the price store's door and his bot key are missing.** Rounds are once a day, orders can go late, an idle Gateway is not told (cards). Unseen at the real Gateway: a fill, a triggered stop, a sale, a part fill.
-- **A stop's level is kept only at the broker; a refused order costs 15 s;** a fill on a day the desk never read the broker is in no later answer.
-- **Stale words:** `manifest.toml` says placing "is not built", running's line omits the drill; `desk/gateway.py` says "nothing calls it yet".
+- **Unseen at the real Gateway:** a fill, a triggered stop, a sale, a part fill (conformance, Monday). A stop's level is kept only at the broker; a refused order costs 15 s.
+- **Supervisor:** nothing registered, nothing starts it, nobody is told what health finds; `messenger.watch` has no caller; the days-without-him count is strict and only as good as the ledger. Also: the raw bars are overwritten (R-PAPER-24); a failed conformance run cannot mend an account the check names.
+- **Stale words:** `manifest.toml` says placing "is not built"; `desk/running.py` says "the supervisor: not built"; `desk/gateway.py` "nothing calls it yet". `desk/placing.py` and its test sit at the 400-line cap.
 
 ## DATA
 

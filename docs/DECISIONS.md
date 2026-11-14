@@ -3048,6 +3048,42 @@ Decided by the PAPER lane as the desk's mentor, no one watching.
 - *Any day the desk works,* on the UTC day. No message for a drill that passed.
 - Evidence: tests seen failing first; one blind review, nothing blocking; 31 deliberate breaks, all caught; dried at the real paper Gateway with the switch on.
 
+### 2026-11-14 — a buy goes with its stop; the line settled after any order (paper-adapter, paper-stops, #123)
+
+Decided by the PAPER lane as the desk's mentor, no one watching.
+
+- *How a buy and its stop go together.* Options: (a) send the stop after the buy fills: a second or two with no stop, and a
+  dead desk leaves shares unprotected; (b) attach the stop to the buy so the broker holds both, then settle; (c) rest the
+  stop first: impossible without risking a short sale. Chosen: (b); if the stop's half is refused the buy never reaches the market.
+- *Which shares the stop is for, and on what evidence.* Options: (a) the desk's own sum, checked against the account;
+  (b) the account's shares alone; (c) size from the account, and act only when the account moved by exactly the order's
+  fills and "filled" is borne out by fills. Chosen: (c), after the blind review showed five ways the sum is silently wrong.
+  When the three disagree nothing is changed and an error is raised.
+- *A sale: take shares off the stop before or after.* Chosen: after, by what happened; one mechanism for buys and sales.
+  For a moment the stop is for more shares than held (recorded, not fixed).
+- *Replace a stop, never change it in place* (changing a stop attached to a buy is unproven); new first, then cancel the old,
+  so a line is never under none. A line whose stops are unsettled is refused, buy and sale alike. A stop already right is
+  kept whatever its name; a stop the broker is not holding counts as none.
+- *The broker's notice 202 (order cancelled) is news, not a fault, in every reading.* This changes one line of #110's test:
+  cancelling a buy makes the broker cancel its stop and say so. The comparison of book with broker still names any line left bare.
+- *A stop with no price at the broker* stops the buy with an error before anything is dialled. The stop rests until
+  cancelled (GTC), plainest kind. A stop that ends some other way while being cancelled is an error unless the shares are as read.
+- *Both boxes ticked.* No test order was sent to the real Gateway: one wrong field could make a real order on a shared account.
+- The tests' pretend Gateway moved into the door's test file (no test changed): the placing tests were at the 400-line cap.
+- Evidence: tests seen failing first; blind review, one blocking finding fixed; 60 + 25 + 31 deliberate breaks, 2 that cannot differ.
+
+### 2026-11-14 — the paper book's next boxes ordered for the runner (#128)
+
+Decided by the PAPER lane as the desk's mentor, no one watching.
+
+- *Messages and the unattended day ahead of conformance.* Options: conformance next; boxes needing no market first. Chosen:
+  the latter: it is a weekend, and conformance holds every file so would stall the lane until Monday. The code already
+  refuses any order without a drilled kill switch and clean check.
+- *Supervision after conformance:* its box needs seven days without an operator action and would hold the first paper trades.
+- *Conformance keeps `files: *`:* nobody has seen where real results are recorded; a missed file would stop the session.
+- New modules named before they exist: `desk/messenger.py`, `desk/running.py`, `desk/supervisor.py`. paper-running also holds
+  `desk/placing.py` for R-MONEY-8 and waits for paper-messages so there is one messenger.
+
 ## GRID
 
 ### 2026-11-13 — the fast grid engine: it holds what the desk holds, or it refuses
