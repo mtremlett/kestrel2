@@ -47,3 +47,12 @@ def test_darvas_waits_for_the_third_session_before_the_box_stands() -> None:
         Bar(date(2026, 2, 1), Decimal(10), Decimal("10.5"), Decimal("9.4"), Decimal("10.4"), 1)
     ]
     assert {d.action for d in decide({"X": early})} == {Action.HOLD}
+
+
+def test_darvas_a_high_over_the_top_that_closes_inside_voids_the_box() -> None:
+    rows = [*SERIES[:4], ("11", "9.5", "9.9"), ("10.5", "9.6", "10.2")]
+    bars = [
+        Bar(date(2026, 1, 5 + n), Decimal(c), Decimal(h), Decimal(lo), Decimal(c), 1)
+        for n, (h, lo, c) in enumerate(rows)
+    ]
+    assert {d.action for d in decide({"X": bars})} == {Action.HOLD}

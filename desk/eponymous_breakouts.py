@@ -44,14 +44,16 @@ class _Formation:
 
 class _Darvas:
     """Nicolas Darvas's box (How I Made $2,000,000 in the Stock Market, 1960). Author's
-    instrument and period: American-listed shares he traded from his hotel rooms in 1957
-    and 1958. Published figure: a profit of about $2,000,000, his own account of it, never
+    instrument and period: American-listed shares he traded from his hotel rooms from 1957
+    to 1959 (his dates are loosely given).
+    Published figure: a profit of about $2,000,000, his own account of it, never
     audited (no secondary source is used here). The rule: a stock trading in a box, its
     top and bottom each confirmed by 3 sessions, is bought when it breaks out through the
     top, with a stop at the box's bottom; each higher box that forms raises the stop to
     its own bottom, and the stop never falls. On daily closes, as the template reads
-    them: buy a close over the top; sell a close under the stop. A break up that closes
-    inside the box, or a box left by a close under its bottom unheld, begins a new box."""
+    them: buy a close over the top; sell a close under the stop. A high over the top that closes
+    inside the box, or a box left by a close under its bottom unheld, begins a new box.
+    Simplification: he boxed only stocks making new highs; this rule boxes at any level."""
 
     declared: ClassVar[Declared] = Declared(Timeframe.DAILY, None, LINES, RANGES)
 
@@ -86,7 +88,7 @@ class _Darvas:
             self._raise_stop(self._box.bottom)
             self._restart(bar)
             return True
-        elif not holding and bar.close < self._box.bottom:
+        elif bar.high > self._box.top or (not holding and bar.close < self._box.bottom):
             self._restart(bar)
         return holding
 
