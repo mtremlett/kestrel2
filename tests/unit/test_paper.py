@@ -37,7 +37,8 @@ ENDS = (("62", "1"), ("53", "1"))
 SMGB = Holding("DU0000001", "SMGB", "STK", "GBP", Decimal(25))
 LIVE = ("15", "1", "U7654321")
 HEAD = ("1234567", "7", "31", "DU0000001", "AAPL", "SELL", Decimal(10), "STP", "265598")
-AAPL_STOP = Resting(*HEAD, "20261112-rsi2-AAPL-stop", "PreSubmitted", Decimal(10))
+AAPL_STOP = Resting(*HEAD, "20261112-rsi2-AAPL-stop", "PreSubmitted", Decimal(10), Decimal("171.5"))
+GONE = ("4", "2", "7", "202", "Order Canceled - reason:", "")  # news of an order, no fault
 TWO = "SMGB STK GBP: the broker holds {} in one of 2 entries, the desk's book {}"
 
 
@@ -65,7 +66,8 @@ def _read(*messages: Sequence[str]) -> tuple[Account, list[bytes]]:
 
 
 def test_the_account_is_read_as_the_gateway_gives_it_and_nothing_else_is_sent() -> None:
-    account, sent = _read(ACCOUNTS, FEED, READY, FEED, FLAT, HELD, ENDS[0], STOP, STATUS, ENDS[1])
+    told = (ACCOUNTS, FEED, READY, FEED, GONE, FLAT, HELD, ENDS[0], STOP, STATUS, ENDS[1])
+    account, sent = _read(*told)
     assert account == Account(
         (Holding("DU0000001", "AAPL", "STK", "USD", Decimal(0)), SMGB), (AAPL_STOP,)
     )
@@ -79,6 +81,9 @@ def test_the_account_is_read_as_the_gateway_gives_it_and_nothing_else_is_sent() 
     late, _ = _read(ACCOUNTS, READY, STATUS, _but(STOP[:26], 1, "9"), PART, ENDS[1], HELD, ENDS[0])
     part = replace(AAPL_STOP, number="9", state="Submitted", left=Decimal(6))
     assert late == Account((SMGB,), (part,))
+    # only a stop has a level: what the broker writes in its place on another order is not read
+    market, _ = _read(ACCOUNTS, READY, _but(_but(STOP, 15, "MKT"), 17, "1.79E308"), STATUS, *ENDS)
+    assert market.orders == (replace(AAPL_STOP, kind="MKT", level=None),)
 
 
 @pytest.mark.parametrize(
@@ -136,6 +141,7 @@ def test_nothing_is_asked_until_the_gateway_is_ready_and_its_accounts_are_all_pa
         ((ACCOUNTS, READY, STOP, [*STATUS, ""]), ValueError, "shape"),
         ((ACCOUNTS, READY, _but(STATUS, 4, "")), ValueError, "plain number"),
         ((ACCOUNTS, READY, _but(STOP, 14, "1E+1"), *ENDS), ValueError, "plain number"),
+        ((ACCOUNTS, READY, _but(STOP, 17, "1.79E308"), STATUS, *ENDS), ValueError, "plain number"),
         ((ACCOUNTS, READY, [*FLAT[:14], "1_0", FLAT[15]]), ValueError, "plain number"),
         ((ACCOUNTS, READY, _but(STOP, 13, "SSHORT"), STATUS, *ENDS), ValueError, "SSHORT"),
         ((ACCOUNTS, READY, [*FLAT[:2], "U7654321", *FLAT[3:]]), paper.NotPaper, "U7654321"),
