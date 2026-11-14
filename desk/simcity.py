@@ -3,7 +3,8 @@ saved data, at the pretend broker with every one of its faults, and writes one r
 night. What goes wrong on a real desk is done to this one on the way: it dies mid-send and is
 started again, a position appears behind its back, a stop is cancelled by hand, the kill
 switch is pulled. THE CENSUS names every part of the money path with the scenarios that ran
-it, measured while the night runs and never claimed; a part no scenario ran turns it red."""
+it, measured as the night runs and never claimed. A part no scenario ran, or a promise of
+the desk's seen broken, turns the night red."""
 
 from __future__ import annotations
 
@@ -20,7 +21,7 @@ from tempfile import TemporaryDirectory
 from types import CodeType, ModuleType
 
 from desk import book, broker, day, kill, orders, strategy
-from desk.broker import Crash, Disconnected, Fault, Pretend, Report
+from desk.broker import Crash, Fault, Pretend, Report
 from desk.lines import Line
 from desk.orders import Order, Sale, Settings
 from desk.store import Bar
@@ -31,7 +32,7 @@ Rates = Mapping[str, Decimal]  #: the pounds per unit of each currency, every da
 
 NIGHTS = "simcity.csv"
 HEADER = (
-    *("at", "verdict", "days", "whole", *(fault.name.lower() for fault in Fault), "deaths"),
+    *("at", "verdict", "days", "clean", *(fault.name.lower() for fault in Fault), "deaths"),
     *("withheld", "trips", "profit", "market", "idle", "bare", "broken"),
 )
 #: THE MONEY PATH: the modules an order travels through, from a rule's decision to the day's
@@ -76,14 +77,14 @@ class Night:
 
     def words(self) -> str:
         """One message, in plain English, for whoever must be told."""
-        met = ", ".join(f"{n} met {fault.value}" for fault, n in self.met.items() if fault)
+        met = "; ".join(f"{fault.value}: {n}" for fault, n in self.met.items() if fault)
         idle = f" Rules that never held a line: {', '.join(self.idle)}." if self.idle else ""
         bare = f" NO SCENARIO for {', '.join(self.bare)}." if self.bare else ""
         broken = f" BROKEN: {'; '.join(self.broken)}." if self.broken else ""
         return (
             f"SIMCITY {'GREEN' if self.green else 'RED'}, {self.at:%Y-%m-%d %H:%M} UTC. The desk "
-            f"lived {self.days} days at the pretend broker. Of its orders {self.met[None]} filled "
-            f"whole; {met}. It died mid-send and was started again {self.deaths} times. On "
+            f"lived {self.days} days at the pretend broker. Of its orders {self.met[None]} met no "
+            f"fault; {met}. It died mid-send and was started again {self.deaths} times. On "
             f"{self.withheld} days the book was not the broker's and the profit withheld. "
             f"{self.trips} round trips made {self.profit} pounds after every cost; holding the "
             f"market made {self.market}.{idle} Census: {len(self.census)} parts of the money "
@@ -104,7 +105,9 @@ def parts() -> dict[CodeType, str]:
                 continue
             members = vars(thing).items() if isinstance(thing, type) else ((name, thing),)
             for inner, member in members:
-                code = getattr(getattr(member, "fget", member), "__code__", None)
+                for wrapper in ("fget", "func", "__func__", "__wrapped__"):
+                    member = getattr(member, wrapper, member)
+                code = getattr(member, "__code__", None)
                 if isinstance(code, CodeType) and not inner.startswith("_"):
                     found[code] = f"{module.__name__.rpartition('.')[2]}.{code.co_qualname}"
     return found
@@ -134,8 +137,8 @@ class _Census:
 
 
 class _Counted(Pretend):
-    """The pretend broker, counting what each order met at its door: the fault it showed the
-    desk, or none when it filled whole."""
+    """The pretend broker, counting the orders at its door by the fault each met there: the
+    one waiting on its line that the broker used up on it, or none."""
 
     def __init__(self, archive: Archive, faults: Mapping[str, Fault]) -> None:
         super().__init__(archive, faults)
@@ -144,18 +147,11 @@ class _Counted(Pretend):
 
     def place(self, order: Order | Sale) -> Report:
         self.buys += isinstance(order, Order)
+        waiting = self._faults.get(order.line.symbol)
         try:
-            report = super().place(order)
-        except Disconnected:
-            self.met[Fault.DISCONNECT] += 1
-            raise
-        except Crash:
-            left = self.report(order.order_id)
-            self.met[Fault.CRASH if left and left.fills else Fault.STRAND] += 1
-            raise
-        short = Fault.PARTIAL if report.fills else Fault.REJECT
-        self.met[None if report.reason is None else short] += 1
-        return report
+            return super().place(order)
+        finally:  #: counted however the order ended, an error raised to the desk too
+            self.met[None if order.line.symbol in self._faults else waiting] += 1
 
 
 class _Life:
@@ -180,6 +176,8 @@ class _Life:
         self.census.now(scenario)
         quiet = not (record.mismatches and self.pretend.buys > buys)
         self.promise("nothing is bought on a day the book is not the broker's", quiet)
+        few = len(book.positions(self.desk)) <= orders.HOLDINGS
+        self.promise(f"never more than {orders.HOLDINGS} lines are held", few)
         self.records.append(record)
         return record
 
@@ -207,7 +205,8 @@ def _unstopped(life: _Life, on: date) -> None:
     symbol = life.pretend.stops()[0][0]
     life.pretend.cancel_stop(symbol)
     record = life.live(on)
-    life.promise("a holding that lost its stop is named", record.mismatches == (symbol,))
+    named = record.mismatches == (symbol,) or symbol not in book.positions(life.desk)
+    life.promise("a holding that lost its stop is named until it is sold", named)
 
 
 def _killed(life: _Life, on: date) -> None:
@@ -233,18 +232,18 @@ def run(root: Path, archive: Archive, room: Settings, rates: Rates, at: datetime
     those kept under root, dated at, and given back. Red or green, it is kept."""
     if at.utcoffset() != timedelta(0):
         raise ValueError(f"SimCity's night at {at}: not a time in UTC")
-    with TemporaryDirectory() as scratch:
-        life = _Life(Path(scratch), archive, room, rates)
-        try:
-            night = _live(life, at)
-        finally:
-            life.census.now(None)
     path, rows = root / NIGHTS, [list(HEADER)]
     if path.exists():
         with path.open(newline="", encoding="utf-8") as kept:
             rows = list(csv.reader(kept))
         if rows[:1] != [list(HEADER)]:
             raise ValueError(f"{path}: not SimCity's nights")
+    with TemporaryDirectory() as scratch:
+        life = _Life(Path(scratch), archive, room, rates)
+        try:
+            night = _live(life, at)
+        finally:
+            life.census.now(None)
     said = ("; ".join(names) for names in (night.idle, night.bare, night.broken))
     money = (night.deaths, night.withheld, night.trips, night.profit, night.market)
     verdict = "GREEN" if night.green else "RED"
