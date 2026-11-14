@@ -19,8 +19,9 @@ bar, held already or arriving later, wins, and each bar that differs from one he
 The old stores are read and never written, nor is anything written beside them. Which they
 are, the data register in the desk's notes says: every store it tags IMPORT, read by its form
 (`python -m lab.headstart`, into market.db in the data folder). Two forms have a reader: the
-per-line matrices of Stooq's bars, and the database mark_the_trend.db; any other, parquet
-folders and raw downloads, is counted as having none yet. A store whose source the store
+per-line matrices of Stooq's bars, and the database mark_the_trend.db; any other is counted
+as having none yet: parquet folders for want of a parquet library, raw Stooq zips for want of
+a Source to keep them under. A store whose source the store
 holds already is not read again. Its indicators are not read at all."""
 
 from __future__ import annotations
