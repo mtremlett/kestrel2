@@ -38,7 +38,7 @@ def _a_rule_at_every_setting(monkeypatch: pytest.MonkeyPatch) -> None:
 def _verdict(edge: str, rule: str = "r", symbol: str = "VUSA", days: Days = (0, 9)) -> Verdict:
     """Thirty trades around this mean gain, judged by the first rung's own rule."""
     gains = [Decimal(edge) + Decimal("0.02") * (-1) ** n for n in range(30)]
-    priced = tuple(Priced(Trade(DAY, DAY), 1, Decimal(1), 1 + g, FREE) for g in gains)
+    priced = tuple(Priced(Trade(DAY, DAY), 1, Decimal(1), 1 + g, FREE, (DAY, DAY)) for g in gains)
     start, end = (DAY + timedelta(days=n) for n in days)
     return rung.verdict(Key(Cell(rule, symbol, start, end), "code", "data"), priced)
 

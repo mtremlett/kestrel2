@@ -6,11 +6,12 @@ from __future__ import annotations
 import io
 import socket
 import struct
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from contextlib import nullcontext
 from dataclasses import replace
 from decimal import Decimal
 from types import SimpleNamespace
+from typing import BinaryIO
 
 import pytest
 
@@ -37,7 +38,10 @@ ENDS = (("62", "1"), ("53", "1"))
 SMGB = Holding("DU0000001", "SMGB", "STK", "GBP", Decimal(25))
 LIVE = ("15", "1", "U7654321")
 HEAD = ("1234567", "7", "31", "DU0000001", "AAPL", "SELL", Decimal(10), "STP", "265598")
-AAPL_STOP = Resting(*HEAD, "20261112-rsi2-AAPL-stop", "PreSubmitted", Decimal(10))
+AAPL_STOP = Resting(*HEAD, "20261112-rsi2-AAPL-stop", "PreSubmitted", Decimal(10), Decimal("171.5"))
+GONE = ("4", "2", "7", "202", "Order Canceled - reason:", "")  # news of an order, no fault
+NEXT = ("9", "1", "41")  # the gateway, ready: the number its next order goes under
+Said = Sequence[Sequence[str]]  # what the gateway says in one conversation
 TWO = "SMGB STK GBP: the broker holds {} in one of 2 entries, the desk's book {}"
 
 
@@ -49,6 +53,50 @@ def _wire(*messages: Sequence[str]) -> io.BytesIO:
 
 def _but(fields: Sequence[str], at: int, value: str) -> list[str]:
     return [*fields[:at], value, *fields[at + 1 :]]
+
+
+def _order(
+    number: str, deal: str, ref: str, state: str, left: int = 26, client: str = "222"
+) -> tuple[Sequence[str], Sequence[str]]:
+    """An order open on IITU and the broker's last word of it: deal is its action, kind, level."""
+    action, kind, *level = deal.split()
+    said = (number, "212969319", action, kind, *(level or ["171.5"]), ref, client, client + number)
+    order: dict[int, str] = dict(zip((1, 2, 13, 15, 17, 23, 24, 25), said, strict=True))
+    status = ("3", number, state, "0", str(left), "0", client + number, "0", "0", client, "", "0")
+    return [order.get(n, field) for n, field in enumerate(STOP)], status
+
+
+def _account(holdings: Sequence[Sequence[str]], *orders: Sequence[str]) -> list[Sequence[str]]:
+    return [*holdings, ENDS[0], *orders, ENDS[1]]
+
+
+class _Silent(io.BytesIO):
+    """A gateway that has said its last and does not hang up: the door's wait runs out."""
+
+    def read(self, size: int | None = -1) -> bytes:
+        if self.tell() == len(self.getvalue()):
+            raise TimeoutError("timed out")
+        return super().read(size)
+
+
+def _gateway(
+    patch: pytest.MonkeyPatch, *answers: Sequence[Sequence[str]], silent: bool = False
+) -> list[bytes]:
+    """A gateway that answers each conversation the desk opens with the next of answers, and
+    none after them; what the desk sent in each, after its greeting and its start. Its
+    answer given, it hangs up; or, silent, says no more and does not."""
+    left, sent = list(answers), list[bytes]()
+
+    def dial(talk: Callable[[BinaryIO, paper.Send], object]) -> object:
+        said: list[bytes] = []
+        wire = _wire(HELLO, ACCOUNTS, NEXT, *left.pop(0))
+        try:
+            return talk(_Silent(wire.getvalue()) if silent else wire, said.append)
+        finally:
+            sent.append(b"".join(said[2:]))
+
+    patch.setattr(paper, "dial", dial)
+    return sent
 
 
 def _smgb(*shares: int) -> Account:
@@ -65,7 +113,8 @@ def _read(*messages: Sequence[str]) -> tuple[Account, list[bytes]]:
 
 
 def test_the_account_is_read_as_the_gateway_gives_it_and_nothing_else_is_sent() -> None:
-    account, sent = _read(ACCOUNTS, FEED, READY, FEED, FLAT, HELD, ENDS[0], STOP, STATUS, ENDS[1])
+    told = (ACCOUNTS, FEED, READY, FEED, GONE, FLAT, HELD, ENDS[0], STOP, STATUS, ENDS[1])
+    account, sent = _read(*told)
     assert account == Account(
         (Holding("DU0000001", "AAPL", "STK", "USD", Decimal(0)), SMGB), (AAPL_STOP,)
     )
@@ -79,6 +128,9 @@ def test_the_account_is_read_as_the_gateway_gives_it_and_nothing_else_is_sent() 
     late, _ = _read(ACCOUNTS, READY, STATUS, _but(STOP[:26], 1, "9"), PART, ENDS[1], HELD, ENDS[0])
     part = replace(AAPL_STOP, number="9", state="Submitted", left=Decimal(6))
     assert late == Account((SMGB,), (part,))
+    # only a stop has a level: what the broker writes in its place on another order is not read
+    market, _ = _read(ACCOUNTS, READY, _but(_but(STOP, 15, "MKT"), 17, "1.79E308"), STATUS, *ENDS)
+    assert market.orders == (replace(AAPL_STOP, kind="MKT", level=None),)
 
 
 @pytest.mark.parametrize(
@@ -136,6 +188,7 @@ def test_nothing_is_asked_until_the_gateway_is_ready_and_its_accounts_are_all_pa
         ((ACCOUNTS, READY, STOP, [*STATUS, ""]), ValueError, "shape"),
         ((ACCOUNTS, READY, _but(STATUS, 4, "")), ValueError, "plain number"),
         ((ACCOUNTS, READY, _but(STOP, 14, "1E+1"), *ENDS), ValueError, "plain number"),
+        ((ACCOUNTS, READY, _but(STOP, 17, "1.79E308"), STATUS, *ENDS), ValueError, "plain number"),
         ((ACCOUNTS, READY, [*FLAT[:14], "1_0", FLAT[15]]), ValueError, "plain number"),
         ((ACCOUNTS, READY, _but(STOP, 13, "SSHORT"), STATUS, *ENDS), ValueError, "SSHORT"),
         ((ACCOUNTS, READY, [*FLAT[:2], "U7654321", *FLAT[3:]]), paper.NotPaper, "U7654321"),
