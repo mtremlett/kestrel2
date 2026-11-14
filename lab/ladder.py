@@ -34,8 +34,8 @@ cell that could not be judged (a line parked or stale, too short a history for a
 day with no rate) keeps its reason and the time of its last try, and is tried again no sooner
 than 30 minutes after it, whatever the runs between. A line a stop cut short is cut off.
 
-THE RATES are the desk's own until the data lane keeps a rate for every day (R-RUNGS-3): a
-day's pounds per dollar is one over the pound's last close in dollars before that day, from
+THE RATES are the desk's own until the data lane keeps a rate for every day (R-RUNGS-3): each
+day's pounds per dollar comes from `desk/carry.py`, the one rule the desk prices a day by, from
 the same archive and inside the same bounds as the desk's day takes it (`desk/command.py`).
 """
 
@@ -53,8 +53,8 @@ from functools import cache
 from pathlib import Path
 from typing import Any
 
-from desk import archive, keeper
-from desk.command import DOLLARS, FRESH, POUND
+from desk import archive, carry, keeper
+from desk.command import DOLLARS, POUND
 from desk.lines import LINES, Line
 from desk.store import Bar
 from desk.strategy import STRATEGIES
@@ -108,17 +108,21 @@ def stored(home: Path) -> Bars:
 
 
 def rates(ask: Callable[[Line, date], Sequence[Bar]] = archive.fetch) -> dict[date, Decimal]:
-    """Pounds per dollar for each day to the window's end, as the desk's day takes it: one
-    over the pound's last close before the day. A day whose last close is too old, or is no
-    pound's, has no rate, and the first rung refuses to price it."""
-    closes = ask(POUND, END + keeper.DAY)
-    made: dict[date, Decimal] = {}
-    for bar, later in zip(closes, [*closes[1:], None], strict=True):
-        until = min(bar.day + FRESH, END if later is None else later.day)
-        if DOLLARS[0] < bar.close < DOLLARS[1]:
-            rate = (1 / bar.close).quantize(Decimal("0.000001"))
-            made |= {bar.day + n * keeper.DAY: rate for n in range(1, (until - bar.day).days + 1)}
-    return made
+    """Pounds per dollar for each day to the window's end, by the desk's one rule
+    (`desk/carry.py`): one over the pound's last close before the day while it is fresh, and
+    across a UK-only holiday the last London session's rate, carried. A day the rule gives
+    none, or whose last close is no pound's, has no rate, and the first rung refuses it."""
+    closes = {
+        bar.day: bar.close
+        for bar in ask(POUND, END + keeper.DAY)
+        if DOLLARS[0] < bar.close < DOLLARS[1]
+    }
+    if not closes:
+        return {}
+    first = min(closes)
+    days = [first + n * keeper.DAY for n in range(1, (END - first).days + 1)]
+    known = {day: rate for day in days if (rate := carry.pounds_per_dollar(closes, day))}
+    return {day: rate for day in days if (rate := carry.carried(known, day))}
 
 
 def run(
