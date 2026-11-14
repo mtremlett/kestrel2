@@ -15,10 +15,10 @@ is late still goes, until 22:00; after that it is not sent.
 
 THE ALARM ON SILENCE. A desk that has died says nothing, so its silence is judged from
 outside its own process (`watch`): a daily message not delivered by its hour is told to him,
-once, at any hour, for that needs him. Its limits (docs/STATUS.md): a desk that dies after
-its morning message is not called silent before the evening's hour, and an alarm the door
-does not take by midnight is never told. And if on a trading day neither the morning message
-nor the alarm has come by 08:30, that is itself the sign: nothing on the PC runs.
+once, at any hour, for that needs him. What it does not catch is in docs/STATUS.md: chiefly,
+a desk that dies after its morning message is not called silent before the evening's hour.
+And if on a trading day neither the morning message nor the alarm has come by 08:30, that is
+itself the sign: nothing on the PC runs.
 
 Nothing here dials the broker or reads the clock: whoever runs the day gives the moment and
 what the gateway just said, and has brought the ledger up to date first."""
@@ -45,12 +45,8 @@ from desk.lines import LINES
 from desk.orders import Refused
 
 MESSAGES = "messages.db"
-TABLE = (
-    "CREATE TABLE IF NOT EXISTS messages "
-    "(at TEXT NOT NULL, name TEXT PRIMARY KEY, number INTEGER, text TEXT NOT NULL)"
-)
-#: Asked: a new name goes on the record with no number yet, and one asked before that the
-#: door never took is stamped again. Either is a write, and it is made before the door.
+TABLE = "CREATE TABLE IF NOT EXISTS messages (at, name PRIMARY KEY, number, text)"
+#: Asked, before the door: a new name with no number yet; one the door never took, stamped again.
 ASK = (
     "INSERT INTO messages VALUES (:at, :name, NULL, :text) "
     "ON CONFLICT (name) DO UPDATE SET at = :at, text = :text WHERE number IS NULL"
@@ -61,8 +57,8 @@ HOST = "api.telegram.org"
 #: desk in its environment. The key's shape is checked on entry, so a bad paste is refused by
 #: name and never reaches an address, where an error could show it.
 SECRETS = ("TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID")
-BOT_KEY = re.compile(r"\d+:[A-Za-z0-9_-]+")
-SECONDS = 30  #: how long the door waits for Telegram
+BOT_KEY = re.compile(r"[0-9]+:[A-Za-z0-9_-]+")
+SECONDS, READ = 30, 65536  #: how long the door waits at each step, the most bytes it reads
 LIMIT = 4096  #: the most characters Telegram takes in one message
 CUT = " ... (cut short here: the whole of it is on the desk's delivery record)"
 SILENT = (
@@ -70,8 +66,8 @@ SILENT = (
     "its delivery record at {:%H:%M}. Please look at the PC: the desk may not be running."
 )
 CLEAR = (
-    "The desk is set for today on paper: the Gateway answered, today's check of the account "
-    "named nothing, and the kill switch is off and drilled."
+    "As things stand the desk is set for today on paper: the Gateway answered, today's check "
+    "of the account named nothing, and the kill switch is off and drilled."
 )
 STALE = "The paper Gateway was not ready just now, so this is the desk's ledger as last read ({}). "
 Post = Callable[[str], int]  #: the door: words to his phone, Telegram's number for them back
@@ -97,6 +93,8 @@ class Delivery:
 
     def __post_init__(self) -> None:
         _sound(self.at, self.name, self.text)
+        if type(self.number) is not int or not 0 < self.number < 2**63:
+            raise ValueError(f"the message {self.name!r}: {self.number!r} is not Telegram's number")
 
 
 @dataclass(frozen=True)
@@ -117,30 +115,36 @@ def telegram(env: Mapping[str, str]) -> Post:
     """THE ONE REAL DOOR: his phone, by Telegram's bot service, with the key and the chat id
     the environment gives. Either missing, or a key of no key's shape, is refused here by
     name and never shown. What it posts is Undelivered unless Telegram says yes and gives the
-    message's number within SECONDS, in words that never hold the key."""
+    message's number, each step inside SECONDS. Its words never hold the key: of what the far
+    end said they repeat the refusal's number and Telegram's own description, no more."""
     missing = [name for name in SECRETS if not env.get(name, "").strip()]
     if missing:
-        raise Undelivered(f"no {' or '.join(missing)} in the desk's environment: his to set")
+        raise ValueError(f"no {' or '.join(missing)} in the desk's environment: his to set")
     key, chat = (env[name].strip() for name in SECRETS)
     if not BOT_KEY.fullmatch(key):
-        raise Undelivered(f"{SECRETS[0]} is not a bot key: his to set again")
+        raise ValueError(f"{SECRETS[0]} is not a bot key: his to set again")
+    secret = key.partition(":")[2]  #: the half that is secret, however an address spells it
 
     def post(text: str) -> int:
         form = urlencode({"chat_id": chat, "text": text}).encode()
-        request = Request(f"https://{HOST}/bot{key}/sendMessage", data=form)  # noqa: S310
+        request = Request(f"https://{HOST}/bot{key}/sendMessage", data=form)  # noqa: S310 - https
+        code, why = "", "an answer the desk cannot read"
         try:
             try:
-                with urlopen(request, timeout=SECONDS) as reply:  # noqa: S310
-                    said = json.load(reply)
-            except HTTPError as refused:
-                said = f"refused, {refused.code}: {refused.read().decode(errors='replace')}"
+                with urlopen(request, timeout=SECONDS) as reply:  # noqa: S310 - one fixed host
+                    said = json.loads(reply.read(READ))
+            except HTTPError as refused:  #: Telegram refuses in JSON too, with its description
+                code = f"refused, {refused.code}: "
+                said = json.loads(refused.read(READ))
         except (OSError, HTTPException, ValueError) as lost:  #: the network's, or no JSON
-            said = f"no answer: {lost}"
+            said = {"description": f"no answer the desk can read ({lost})"}
         match said:
-            case {"ok": True, "result": {"message_id": int(number)}}:
+            case {"ok": True, "result": {"message_id": int(number)}} if not code:
                 return number
+            case {"description": str(told)}:
+                why = told[:200]
         #: raised clear of the network's own error, which holds the address and so the key
-        raise Undelivered(f"{HOST} did not deliver: {said}".replace(key, "(his key)"))
+        raise Undelivered(f"{HOST} did not deliver: {code}{why}".replace(secret, "(his key)"))
 
     return post
 
@@ -179,13 +183,15 @@ def send(root: Path, now: datetime, name: str, text: str, post: Post) -> Deliver
         at, number, words = record.execute(kept, (name,)).fetchone()
         if number is None:
             number = post(words if len(words) <= LIMIT else words[: LIMIT - len(CUT)] + CUT)
+            Delivery(datetime.fromisoformat(at), name, number, words)  #: or no number is kept
             record.execute("UPDATE messages SET number = ? WHERE name = ?", (number, name))
     return Delivery(datetime.fromisoformat(at), name, number, words)
 
 
 def _today(daily: Daily, now: datetime) -> tuple[str | None, datetime]:
     """The daily message's own name today, None on a day no venue of the desk's trades; and
-    the moment on a UK clock."""
+    the moment on a UK clock. A moment not in UTC is refused, at every asking."""
+    _sound(now, daily.name, daily.name)
     local = gateway._uk(now)
     today = local.date()
     trades = any(venues.sessions(venue, today, today) for venue in {line.venue for line in LINES})
@@ -248,8 +254,8 @@ def morning(root: Path, now: datetime, known: Known, post: Post) -> Delivery | N
     if name is None:
         return None
     reasons = "; ".join(reason.rstrip(".") for reason in stops(root, now, known))
-    verdict = f"The desk is NOT trading today: {reasons}." if reasons else CLEAR
-    return send(root, now, name, f"{opens} {verdict} {_state(root)}", post)
+    stopped = f"As things stand the desk would send NO order today: {reasons}."
+    return send(root, now, name, f"{opens} {stopped if reasons else CLEAR} {_state(root)}", post)
 
 
 def evening(root: Path, now: datetime, known: Known, post: Post) -> Delivery | None:
@@ -273,6 +279,7 @@ def evening(root: Path, now: datetime, known: Known, post: Post) -> Delivery | N
 
 def remind(root: Path, now: datetime, post: Post) -> Delivery | None:
     """His weekly login's reminder (gateway.reminder), delivered once for each Sunday's due."""
+    _sound(now, "login", "login")
     due = gateway.reminder(now)
     return send(root, now, f"login {due.due:%Y-%m-%d}", due.line, post) if due else None
 
@@ -282,10 +289,11 @@ def watch(root: Path, now: datetime, post: Post) -> tuple[Delivery, ...]:
     each daily message owed by now and not delivered is told to him, once, at any hour.
     Given back: every such alarm standing, told now or before; none, and the desk has said
     all it owes today. A late message ends its own alarm."""
-    said = {done.name for done in deliveries(root)}
     owed = [(daily, *_today(daily, now)) for daily in (MORNING, EVENING)]
+    with _record(root) as record:
+        taken = record.execute("SELECT name FROM messages WHERE number IS NOT NULL").fetchall()
     return tuple(
         send(root, now, f"silence {name}", SILENT.format(daily.name, at, daily.owed, at), post)
         for daily, name, at in owed
-        if name and at.time() >= daily.owed and name not in said
+        if name and at.time() >= daily.owed and (name,) not in taken
     )
