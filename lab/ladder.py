@@ -292,8 +292,9 @@ def epon(
     counts = run(home, bars, pounds, todo, now, EPON)  #: a line's rules together: its bars once
     count = trials.count(home / FOLDER / f"{EPON.stem}.trials.jsonl", EPON.question)
     last = _last(_whole(home / FOLDER / f"{EPON.stem}.jsonl"))
-    table = _table(home / FOLDER / "sets", [last[tuple(batch.row(c))] for c in todo], rules, count)
-    passed = sum(any(map(_goes, mine)) for mine in _by_rule(last.values(), rules).values())
+    rows = [last[tuple(batch.row(c))] for c in todo]
+    table = _table(home / FOLDER / "sets", rows, rules, count)
+    passed = sum(any(map(_goes, mine)) for mine in _by_rule(rows, rules).values())
     return f"{counts}\nSET {EPON.tag}: {len(rules)} rules, {passed} passed, table {table}"
 
 
@@ -359,11 +360,18 @@ def main(env: Mapping[str, str], argv: Sequence[str] = ()) -> int:
     if not env.get("KESTREL2_DATA"):
         sys.exit("ladder: KESTREL2_DATA names no data folder, so the set has no home")
     home = Path(env["KESTREL2_DATA"])
-    if list(argv) == ["first"]:
+    if list(argv) not in ([], ["first"]):
+        sys.exit(f"ladder: {list(argv)} is no set; the command takes nothing, or `first`")
+    if argv:
         sys.stdout.write(run(home, cache(stored(home)), rates()) + "\n")
         return 0
     store = home / "grid" / "store"  #: the research store, one folder to a venue
-    read = lru_cache(maxsize=4)(lambda line: universe.read(store, line).bars)
+
+    def read(line: Line) -> Sequence[Bar]:
+        """The line's bars to the window's end, as research reads them."""
+        return [bar for bar in universe.read(store, line).bars if bar.day <= END]
+
+    read = lru_cache(maxsize=4)(read)
     sys.stdout.write(epon(home, read, rates(), sweep.held(store)) + "\n")
     return 0
 
