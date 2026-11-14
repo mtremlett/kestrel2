@@ -232,6 +232,16 @@ UK tax) and R-MONEY-2 (the scenes on the whole fourteen months).
 - [ ] Leveraged-product lifecycle watched: an issuer's closure, a compulsory redemption or
       an ISA eligibility change on any line held or researched raises an alert (BIC-11)
 - [ ] Disk watched; old research files roll off by rule (OPS-07)
+- [ ] **Two databases, both owned by the one store** (his ruling, 14 November), in the desk's
+      data folder, never in this public repository: `market.db`, long-term, every timeframe
+      from an hour up plus all imported intraday history; and `market_hot.db`, live 1-minute
+      bars for the twenty lines and a watchlist of up to 100 within his IBKR line allowance.
+      The hot keeper runs every minute in each venue's hours, IBKR first, with the free
+      archive as a check; each night the day's hot bars roll into `market.db`. Every useful
+      store on C: (`kestrel2_notes\data_register.md`, tagged IMPORT) is consolidated into
+      `market.db`, each source marked verified there. One consistent snapshot of both
+      databases and the ledger is written each night for his own backup to carry (DAT-11,
+      DQ-12, DQ-05)
 - [ ] The old stores consolidated, never lost: once the one store holds their bars, verified by
       counts and checksums per ticker and timeframe and by one restore drill, the originals
       are deleted from C: with his explicit yes, asked then (never copied to E:, his backup

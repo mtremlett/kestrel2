@@ -1478,6 +1478,27 @@ the runner sit behind one door so they can be swapped.
 
 ---
 
+## 2026-11-14 — two databases, 1-minute hot data, and the reset kept for Monday
+
+**His rulings, about 11:45 UK, each chosen from options.**
+- **Tokens to Monday 08:00**: "Monday-critical first (Recommended)". Until FIRST-LIGHT's first
+  morning only MONEY, PAPER and DATA run sessions, all at medium effort, at most six at once.
+  GRID's and RUNGS' backtests keep running as plain code. The evidence: the paper and money
+  lanes at high effort took about 63% of the spend, at $14 to $17 a landed change at list price.
+- **Hot data**: "1-minute", over the 5-minute recommended. It is kept for the twenty lines and a
+  watchlist of up to 100 within his IBKR line allowance.
+- **Backups**: his automated backup covers `C:\Users\mtrem\PYTHON`. The desk writes one
+  consistent snapshot each night for it to carry, and never writes to E: itself.
+- **No dashboard page**: "No, Telegram is enough".
+
+**Decided with them.** The desk keeps two databases, both owned by the one store: `market.db`,
+long-term, and `market_hot.db`, live. Every useful store found on C: is consolidated into
+`market.db`, so the old areas can be removed later, each only on his yes. Keeping these two
+apart lets the minute-by-minute writes never contend with long reads of history, while the
+one store stays their only writer.
+
+---
+
 ## MONEY
 
 ### 2026-11-13 — how the pretend broker behaves
