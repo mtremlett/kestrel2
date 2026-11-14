@@ -202,6 +202,10 @@ def test_the_rehearsal_lives_the_last_session_again_on_its_own_record_with_no_ma
     assert code == 1 and line.startswith("REHEARSAL NO-GO: New York's round of orders was not")
     for said in ("FILLED, the markets shut: ['20261113-bollinger", "account is not as found"):
         assert said in line
+    assert "The paper account is not the desk's book, so no order goes." in line
+    # orders of the desk's own still working at its end are cancelled, and named: NO-GO
+    code, line = rehearse(4, _2200={tp.ACCOUNT: tp.WORKING, tp.CANCELS: tp.GONE})
+    assert code == 1 and "not as found; left working, now cancelled: ('a', 'f')" in line
     # not begun: on a day a market trades, with the desk's own kill switch on, or with
     # anything on the paper account, which the rehearsal's empty book would not hold
     book.turn(tmp_path / "desk", book.Switch.ON, MON, "his word")
