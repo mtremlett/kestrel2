@@ -44,6 +44,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #124 the day's record's last mend: no order for a day whose record is made; two untested orderings now held; two blind reviews, eight deliberate breaks, eight caught. |
 | 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #130 money-notes: the thirteen unticked boxes of the money book all noted for the runner (nine new notes); notes only, no code. |
 | 2026-11-14 | 7 of 7 | - | - | +219 test | 14 of 14 proven | green | #132 money-invariants: the five money invariants held in 25 seeded worlds through the real send path, ledger, broker and day's record; nothing wrong found in the product; 37 deliberate breaks, 36 caught, two by no other money-path test; two blind reviews, three blocking findings mended. |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #134 money-simcity: one command lives the desk's fourteen months at the pretend broker with its five faults, deaths and restarts, a hand-made position, a cancelled stop and the kill switch, and writes one record; a measured census of 51 parts, all with a scenario; ten promises tried. Its first night is RED for a real fault: six lines held against five when an order left working fills late. Two blind reviews, both blocking findings mended; 27 deliberate breaks, 24 caught, 1 gap closed, 1 dead name removed |
 
 ### DATA
 

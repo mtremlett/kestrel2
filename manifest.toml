@@ -63,6 +63,7 @@ rungs = []
 "desk/clearance.py" = "the day's check and no order without it: the paper account against the desk's book, the desk's own resting stops told from anyone else's orders, each check on a dated record, and the refusal to send until that day's check is clean"
 "desk/placing.py" = "the paper account behind the send path: what the desk asks of any broker answered through the one door, its fills, holdings, stops and what it did with an order, and the kill switch's cancel of the desk's own working orders; placing itself is not built"
 "desk/messenger.py" = "the desk's one voice: every message to the operator through one door and onto one delivery record, each delivered once under its name; the morning and the evening message of a trading day, his weekly login's reminder, and the alarm when a daily message is not delivered by its hour"
+"desk/running.py" = "the desk unattended: one step that does what the desk owes at its moment, once, from its records alone (the day's check, each venue's orders, the day's record, what he is told), and what a desk that died part-way left at the broker put right"
 
 # the grid lane
 "lab/cell.py" = "the ladder's unit of work: one strategy on one line over one window, keyed by the code's and the data's versions"
