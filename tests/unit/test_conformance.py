@@ -168,10 +168,21 @@ def test_the_real_stop_is_put_above_the_price_paid_and_sold_or_not_the_line_is_l
         above,
         (listed, Decimal(18), [], placing.Stop(Decimal(18), Decimal(9900), name)),
     ]
+    reads = iter([held, gone, gone])  # the broker ends the raised stop as it is sent: it sold
+
+    def ended(_: object, *asked: object) -> None:
+        settled.append(asked)
+        if len(settled) == 5:
+            raise placing.Unprotected("the broker ended the stop, Filled")
+
+    monkeypatch.setattr(paper, "read", lambda: next(reads))
+    monkeypatch.setattr(placing.Paper, "settle", ended)
+    fall(run.second)
+    assert settled[4:] == [above, (listed, Decimal(0), [], None)]
     monkeypatch.setattr(paper, "read", lambda: gone)  # the buy bought nothing: nothing is sent
     with pytest.raises(ValueError, match="no share of it is held"):
         fall(run.second)
-    assert len(settled) == 4
+    assert len(settled) == 6
 
 
 def _world(patch: pytest.MonkeyPatch, found: tuple[str, ...] = (), sells: bool = True) -> Pretend:
@@ -216,6 +227,7 @@ def test_the_command_records_each_real_result_beside_the_pretend_brokers_once(
     assert [row[1:] for row in rows[:-1]] == [[step, said, said] for step, said in PRETEND.items()]
     assert rows[-1] == [MON.isoformat(), "the run", "whole", ""]
     assert paper.CLIENT == conformance.CLIENT == 223  # a client of its own, never the desk's 222
+    assert book.switch(record.parent)[-1][:2] == (MON, book.Switch.DRILLED)  # the day's own drill
     monkeypatch.setattr(paper, "dial", _never)  # recorded whole: never again, and nothing asked
     assert _run(tmp_path, MON + timedelta(days=1), "london") == 0
     assert _run(tmp_path, MON, "us") == 0  # New York is shut at 08:05

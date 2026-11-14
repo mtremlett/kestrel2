@@ -28,6 +28,7 @@ import csv
 import os
 import time
 from collections.abc import Callable, Mapping, Sequence
+from contextlib import suppress
 from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime
 from decimal import Decimal
@@ -200,7 +201,8 @@ def _raised(side: placing.Paper, root: Path, listed: Listing, wait: Wait) -> Fal
             raise ValueError(f"{order.order_id}: no share of it is held for a stop to sell")
         name, above = f"{order.order_id}-stop", listed.floor(max(paid) * ABOVE)
         try:
-            side.settle(listed, held, stops, placing.Stop(held, above, name))
+            with suppress(placing.Unprotected):  #: ended as it was sent: sold, if the shares go
+                side.settle(listed, held, stops, placing.Stop(held, above, name))
             for _ in range(WAITS):
                 if not placing.on(paper.read(), listed)[0]:
                     return
@@ -282,9 +284,7 @@ def main(
     root = Path(env["KESTREL2_DATA"]) / ROOT
     if list(argv) not in [["--conformance", m] for m in MARKETS] or not root.is_absolute():
         raise SystemExit("python -m desk.paper --conformance london|us, KESTREL2_DATA a whole path")
-    paper.CLIENT = (
-        CLIENT  #: this process is the conformance desk's, at the door and in its readings
-    )
+    paper.CLIENT = CLIENT  #: this process is the conformance desk's, at the door and in readings
     good, line = trade(root, argv[1], clock)
     print(line)  # noqa: T201 - the command's answer to whoever asked
     return int(not good)
