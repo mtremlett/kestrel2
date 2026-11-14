@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import io
 import struct
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Iterator, Sequence
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
@@ -178,7 +178,9 @@ def test_the_broker_is_asked_once_a_day_and_a_failed_reading_keeps_nothing(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     asked: list[int] = []
-    answers = iter([TimeoutError("silent"), {"IITU": IN_PENCE, "AAPL": Unlisted(AAPL, "none")}])
+    answers: Iterator[Exception | dict[str, Listing | Unlisted]] = iter(
+        [TimeoutError("silent"), {"IITU": IN_PENCE, "AAPL": Unlisted(AAPL, "none")}]
+    )
 
     def read(lines: Iterable[Line]) -> dict[str, Listing | Unlisted]:
         asked.append(len(tuple(lines)))
