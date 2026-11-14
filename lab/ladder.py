@@ -1,42 +1,108 @@
-"""ladder - THE LADDER'S FIRST SET: every published rule the desk holds, on every one of the
-desk's lines, through every rung that is built, each answer kept with its reason and the
-number of trials it was judged against. `python -m lab.ladder` is the whole of it: it can be
-stopped at any moment and run again, one process at a time, and it ends with one line of counts.
+"""ladder - THE LADDER, AND ITS SPEC. `python -m lab.ladder` takes every published rule the desk
+holds (`lab/published.py`), on every line it declares, through every rung, and keeps each
+answer with its reason and its count of trials; it can be stopped at any moment and run again,
+one process at a time, and ends with one line of counts. THIS DOCSTRING IS THE ONE HOME of what
+the ladder must do; a rung's module says how it does its part, and may not set another bar.
+Its known answers are tested in `tests/ladder_spec/`. What is written here and not yet built is
+listed under OWED at the foot, and until that is empty no answer of the ladder is to be believed.
 
-NOTHING IS CHOSEN BY EYE. The set is every rule with a publication on file
-(`lab/published.py`) on every line of its declared universe, over one window fixed here
-before any result and judged from the line's first bar in it, so its years are years it
-traded. The folds, the market each venue is set beside and the question the trials are
-counted under are fixed here too, and none is an argument of the command.
+WHAT PASS MEANS. On this line the rule earned, after every cost of the broker named, by more
+than luck among every trial tried, by more than its line or its market simply held, in the
+worst of the last five years as in the whole, and by the order of its days and not their mix.
+PASS is held to two rates, measured on planted histories and recorded by the tests: of sets
+with no edge in any trial, at most one in twenty is given a PASS; of trials with the planted
+edge, four in five or more. PASS sends nothing to paper: that is the promotion's
+(`lab/promotion.py`). The other answers (`rung.Answer`): FAIL, it did not earn, by a test that
+could have passed it; DOUBT, neither won nor lost, never promoted; THIN, too little evidence,
+never a fail; FAULT, the test is at fault and says nothing of the rule.
 
-EVERY TRIAL IS COUNTED BEFORE ANYTHING IS RUN. Each cell, and each of its folds, is entered
-in the set's own register of trials (`lab/trials.py`) before the first is judged, so a cell
-that fails, cannot be judged or is never reached has been counted already, and every answer
-is corrected for the register's whole count. A set that grows is judged again against it.
+NOTHING IS CHOSEN BY EYE. The set, the window (judged from each line's first bar in it), the
+folds, each venue's market, the seeds, the question the trials are counted under and every bar
+below are fixed here before any result, and none is an argument of the command.
 
-THE RUNGS RUN, each one's answer in the rung's own words (`rung.Answer`) with its reason:
-the author's own result where a figure is on file (`lab/reproduce.py`); the first rung, the
-luck rung, the deflated Sharpe and the yearly Sharpe (`lab/deflated.py`); the folds
-(`lab/folds.py`); and the market's rung (`lab/market.py`). The one verdict is the one rule
-over those six, every one: a cell whose folds could not be run has no verdict, and a worst
-fold too thin to say holds the verdict at THIN at best, however the whole history scored. A
-rule whose author's figure is not reproduced is given no verdict on the desk's lines. A rung
-that is built and cannot yet be run is named with its reason on every line (UNRUN): none is
-left out in silence, and nothing is called passed that was not judged. No answer here sends
-anything to paper: that takes all eleven rungs, each proven, and they are not all built.
+THE ONE VERDICT (G1) is the least answer over EVERY gating rung, each named in
+`deflated.NAMED`: a trial short of any one of them has no verdict, however the rest scored, and
+a rung joins or leaves only by a change to this page. THE RUNGS AND THEIR BARS:
+  reproduce  where the rule's author has a figure on file, the code as it is makes it again
+             (`lab/reproduce.py`); if not, no verdict on any line. Handed to every rung (M2).
+  first      30 judged trades or more, and their mean gain after every cost 2 standard errors
+             or more above nothing, the rule's own stop planted among them (`lab/rung.py`).
+  luck       its chance of that, times every trial of the set, at most 0.05 (`lab/luck.py`).
+  deflated   a deflated Sharpe of 0.90 passes; under 0.50 fails; between them, DOUBT.
+  yearly     a yearly Sharpe over 2 is DOUBT, never a win (`lab/deflated.py`, canon B6).
+  folds      walk-forward by the year, pooled by rule: the worst of FOLDS years earned.
+  market     its excess over its own line simply held, and over its market, each 2 standard
+             errors or more above nothing (`lab/market.py`; MARKETS names each venue's).
+  shuffle    of SHUFFLES histories of its own days in a random order, 0.05 or fewer do as well.
+Three more measure and never gate, each named on every line with its figures or the reason it
+was not run: regime, plateau, and stress with its resampled drawdowns.
 
-KEPT BY WHAT MADE IT. The results file holds one JSON line for each cell as it finishes,
-forced to disk before the next begins. A line is found again by its key: the code this
-module reaches, the cell's bars and its market's, the rates of exchange it was priced at,
-the count of trials and the reproductions behind it. A cell kept under that key is skipped;
-change any of them and it is judged again, and the last line of a cell is its answer now. A
-cell that could not be judged (a line parked or stale, too short a history for a trade, a
-day with no rate) keeps its reason and the time of its last try, and is tried again no sooner
-than 30 minutes after it, whatever the runs between. A line a stop cut short is cut off.
+RARE LARGE LOSSES (G2). Nine small wins in ten and a loss at the stop in the tenth, worth
+nothing together, show thirty wins and no loss one time in twenty-four, and no bar above stops
+that: at 30 trades 3.7% of such trials passed the first rung, the luck rung and the deflated
+Sharpe, whatever the count of trials. So wherever the first rung judges trades it counts ONE
+MORE, which the rule did not make: a loss at its own stop, the least any judged trade would
+have made had its stop sold it, with a stop's costs. It is in the standard errors and in all
+that is read from them (the luck's chance, the Sharpe's skew and kurtosis), and in no count of
+trades and no sum of pounds. A real edge on few tight trades pays for it with more trades, and
+that is the price. The least length of record that a Sharpe's skew and kurtosis ask for
+(MinTRL) is no second bar: it is the deflated band, read from the other side, and it too is
+blind to a loss not yet seen.
 
-THE RATES are the desk's own until the data lane keeps a rate for every day (R-RUNGS-3): a
-day's pounds per dollar is one over the pound's last close in dollars before that day, from
-the same archive and inside the same bounds as the desk's day takes it (`desk/command.py`).
+THE FOLDS (M1, M2, M6). The last FOLDS (5) whole calendar years of the window are the folds,
+each judged out-of-sample on its own year beside the in-sample history before it, every year
+back to the window's start (anchored). A rule trades a line five to ten times a year, so no
+line is asked for a fold's trades alone: the rule's trades on ALL its lines are pooled in each
+fold and the one answer is every line's. A fold's gains are taken by the day, every day of its
+year, summed over its lines as the market's rung marks them, so trades held together are not
+counted as bets apart; its trades are those bought and sold inside it, as a cell's are.
+With 30 pooled judged trades or more a fold PASSES if its mean day earned after costs, FAILS at
+2 standard errors or more under nothing, and is in DOUBT between; with fewer it is THIN; with
+none, FAULT. The verdict is the worst fold's. A fold is not a trial: nothing is picked from it.
+
+THE SHUFFLE (Monte Carlo, gating). Each of a line's days is kept whole, as its moves from the
+close before, and SHUFFLES (100) times they are put in a random order and the rule run on the
+history that makes, priced by the first rung. Each has the line's whole rise and no order in
+it, so a rule that earns as much there has timed nothing. The trial's share is the shuffles
+with standard errors at or above its own, and itself, over SHUFFLES + 1: 0.05 or under PASSES,
+more FAILS. It is run last and only on a trial that has passed every rung before it; any other
+is given the least of their answers. The order is drawn from the trial's name: a trial run
+again is shuffled the same.
+
+RESAMPLED DRAWDOWNS (Monte Carlo, for stress and sizing; never a pass). The judged trades'
+pounds are drawn again with replacement, as many as were judged, RESAMPLES (1,000) times from
+the trial's name, and each draw's deepest fall from a high is taken. The line keeps, under
+`drawdown`, their `median` and their 95th percentile (`p95`) as parts of the capital, beside
+the stress scenarios (`lab/stress.py`). The loss that judges them is the money lane's to set,
+once (R-RUNGS-11).
+
+EVERY TRIAL IS COUNTED BEFORE ANYTHING IS RUN, in the set's own register (`lab/trials.py`): one
+trial a cell, so one that fails or is never reached is counted already, and every answer is
+corrected for the whole count. A trial's name carries the hash of its rule's code, the rule's
+class in `desk/strategy.py` and all it names there (M4): a changed rule is new trials, never a
+free second look. The ladder so rebuilt is a new set, under a new question and register.
+
+KEPT BY WHAT MADE IT (M4). The results file holds one JSON line for each cell as it finishes,
+forced to disk before the next begins, the last line of a cell its answer now. Each line says
+what made it, under `made`: the commit, the code this module reaches, the rule's hash, the
+cell's bars, its market's, and the table of rates. A cell kept under those and the count of
+trials and reproductions is skipped; change any and it is judged again. A cell that could not
+be judged (a line parked or stale, too short a history for a trade, a day with no rate) keeps
+its reason and the time of its last try, and is tried again no sooner than 30 minutes later.
+
+THE RATES (M5) are one kept table under the data home, never asked for twice: a run adds the
+days the table lacks and reads the rest from it, so a verdict can be made again from what it
+names. A day's pounds per dollar is one over the pound's last close BEFORE that day, the rate
+the desk's own day has that morning (`desk/command.py`), inside the same bounds; never a later.
+
+A STEP OF UNITS (M3). A London line of a dollar fund can arrive part in dollars and part in
+pounds, a step under the price store's jump. A close that moves in one day by that day's rate
+or by one over it, to within 3%, on a day the instrument master does not name a real move, is
+such a step: the cell is not judged, and waits with the day as its reason.
+
+OWED: the stop planted; the folds as written (they are two thirds of one line, 30 trades asked
+of each, and wait where a figure is on file); the shuffle; the drawdowns; one trial a cell and
+the rule's hash in its name; `made`; the kept table of rates; the step of units.
 """
 
 from __future__ import annotations
