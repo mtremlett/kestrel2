@@ -30,10 +30,10 @@ from desk.orders import Charges
 KEY = "123456:AAH-his_key"
 ENV = {"TELEGRAM_BOT_TOKEN": f" {KEY}\n", "TELEGRAM_CHAT_ID": "42"}
 URL = f"https://api.telegram.org/bot{KEY}/sendMessage"
-ECHO = b"/bot123456%3AAAH-his_key/sendMessage"  #: the address as a page of the far end's echoes it
+ECHO = b"/bot123456%3AAAH-his_key/x"  #: the address as a page of the far end's might echo it
 YES = '{"ok": true, "result": {"message_id": %s}}'  #: Telegram's yes, with its number
 NO, LOST = "an answer the desk cannot read", "no answer the desk can read (%s)"
-HTML = LOST % "Expecting value: line 1 column 1 (char 0)"
+JUNK, PAD = LOST % "Expecting value: line 1 column %s", Mock(encode=Mock(return_value=b" " * 70000))
 STALLED = Mock(read=Mock(side_effect=TimeoutError("it stalled")))
 MON = datetime(2026, 11, 16, 8, tzinfo=UTC)  #: a Monday both venues trade; a UK clock is UTC
 HALF, NINE, NAIVE = MON.replace(minute=30), MON.replace(hour=21, minute=5), MON.replace(tzinfo=None)
@@ -93,6 +93,7 @@ def test_a_message_the_door_did_not_take_stays_asked_and_goes_next_time(tmp_path
         with pytest.raises(ValueError, match="no UTC time, name or words"):
             messenger.send(tmp_path, at, name, text or "\n", post)
     assert post.call_count == 2  # each refused before the door: nothing half-said to him
+    pytest.raises(ValueError, Delivery, NAIVE, "a", 1, "words")  # nor read back from a record
     for odd in (True, 0, 2**63, "7", None):  # a door's answer that is no number is never kept
         with pytest.raises(ValueError, match="'odd': .* is not Telegram's number"):
             messenger.send(tmp_path, MON, "odd", "words", Mock(return_value=odd))
@@ -121,7 +122,6 @@ def test_no_word_goes_unless_the_record_can_be_written(tmp_path: Path) -> None:
 
 
 def _network(monkeypatch: pytest.MonkeyPatch, reply: Any) -> Mock:
-    """The network, faked at its one edge: it says reply, or raises it."""
     says = reply if isinstance(reply, Exception) else lambda *_, **__: io.BytesIO(reply.encode())
     monkeypatch.setattr(messenger, "urlopen", urlopen := Mock(side_effect=says))
     return urlopen
@@ -151,11 +151,12 @@ def test_the_real_door_is_telegram_with_a_time_limit(monkeypatch: pytest.MonkeyP
         ('{"ok": 1, "result": {"message_id": 3}}', NO),  # yes is true, and nothing like it
         (YES % '"3"', NO),  # never a number made up
         ('{"description": "' + "y" * 300 + '"}', "y" * 200),  # Telegram's reason, and no essay
-        ("<html>", HTML),
+        (PAD, JUNK % "65537 (char 65536)"),  # no more of an answer is read than that
+        (_refused(400, PAD.encode()), "refused, 400: " + JUNK % "65537 (char 65536)"),
         (_refused(400, b'{"ok": false, "description": "chat gone"}'), "refused, 400: chat gone"),
         (_refused(500, (YES % 3).encode()), f"refused, 500: {NO}"),  # a refusal is never a yes
-        (_refused(404, b"no page " + ECHO), f"refused, 404: {HTML}"),  # its words not repeated
-        (_refused(404, b'{"description": "' + ECHO + b'"}'), "refused, 404: /bot123456%3AWHO/send"),
+        (_refused(404, b"no page " + ECHO), "refused, 404: " + JUNK % "1 (char 0)"),
+        (_refused(404, b'{"description": "' + ECHO + b'"}'), "refused, 404: /bot123456%3AWHO/x"),
         (HTTPError(URL, 502, "", Message(), STALLED), f"refused, 502: {LOST % 'it stalled'}"),
         (URLError(f"lost {URL}"), LOST % "<urlopen error lost https://WHERE:WHO/sendMessage>"),
         (IncompleteRead(b"{"), LOST % "IncompleteRead(1 bytes read)"),
@@ -168,9 +169,8 @@ def test_what_telegram_does_not_take_is_undelivered_and_the_key_is_never_shown(
     with pytest.raises(Undelivered) as no:
         messenger.telegram(ENV)("words")
     told = said.replace("WHERE", "api.telegram.org/bot123456").replace("WHO", "(his key)")
-    assert str(no.value).startswith(f"api.telegram.org did not deliver: {told}")
-    # raised clear of the network's own error, which holds the address and so the key
-    assert "his_key" not in str(no.value) and no.value.__context__ is None
+    assert str(no.value) == f"api.telegram.org did not deliver: {told}"  # and not a word more
+    assert "his_key" not in told and no.value.__context__ is None  # clear of the network's
 
 
 def test_the_morning_message_says_whether_anything_stops_the_desk_today(tmp_path: Path) -> None:
