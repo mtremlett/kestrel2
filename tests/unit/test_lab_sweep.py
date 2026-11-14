@@ -124,8 +124,8 @@ def test_a_second_pass_on_a_folder_a_pass_holds_is_refused_in_this_process_or_an
         with pytest.raises(RuntimeError, match="another pass is at work"):
             _pass(tmp_path)
         ticks, folders = itertools.count(), (tmp_path / "store", tmp_path / "kept", tmp_path)
-        if not (tmp_path / sweep.WEEK).exists():  # an hour's week: one pass, forty minutes in
-            clock = lambda: SATURDAY + timedelta(minutes=40) * next(ticks)  # noqa: E731
+        if not (tmp_path / sweep.WEEK).exists():  # an hour's week: one pass, seventy minutes long
+            clock = lambda: SATURDAY + timedelta(minutes=70) * next(ticks)  # noqa: E731
             sweep.week(partial(sweep.fresh, *folders), tmp_path, 1 / 24, clock, lambda _: None)
         return SATURDAY
 
@@ -154,9 +154,10 @@ def test_a_week_is_pass_after_pass_and_its_log_shows_how_long_without_stopping(
         now[0] += timedelta(seconds=seconds)
 
     sweep.week(once, tmp_path, 2, lambda: now[0], wait)
-    assert now[0] == SATURDAY + timedelta(days=2), "the week waited on after its last pass"
+    # its last pass is the first to end two days in, and the week does not wait on after it
+    assert now[0] == SATURDAY + timedelta(days=2, minutes=25)
     assert sweep.unbroken(tmp_path) == timedelta(hours=31, minutes=25)  # up to the idle pass
-    now[0] += timedelta(hours=1)  # the PC off for an hour, then the week started again
+    now[0] += timedelta(hours=2)  # the PC off for two hours, then the week started again
     sweep.week(once, tmp_path, 3, lambda: now[0], wait)
     rows = batch.rows(tmp_path / sweep.WEEK)
     assert rows[0] == {
@@ -164,8 +165,11 @@ def test_a_week_is_pass_after_pass_and_its_log_shows_how_long_without_stopping(
         "ended": (SATURDAY + timedelta(minutes=5)).isoformat(),
         **{"ran": 1, "kept": 0, "failed": 9},
     }
-    assert (len(rows), rows[100]["error"]) == (118, "OSError: no store")
+    assert (len(rows), rows[100]["error"]) == (120, "OSError: no store")
     assert waits[8:11] == [55 * 60, 0, 55 * 60], "a pass starts on the hour, or as the last ends"
     assert rows[10]["started"] == rows[9]["ended"]
-    # an idle pass, an hour off, the longest run of all, a failed pass, then the last
-    assert sweep.unbroken(tmp_path) == timedelta(hours=53, minutes=5)
+    # an idle pass, two hours off, the longest run of all, a failed pass, then the last
+    assert sweep.unbroken(tmp_path) == timedelta(hours=52, minutes=5)
+    (clean := tmp_path / "clean").mkdir()  # a week nothing stops shows its whole length
+    sweep.week(lambda: {"ran": 1, "kept": 0}, clean, 7, lambda: now[0], wait)
+    assert sweep.unbroken(clean) == timedelta(days=7)
