@@ -48,12 +48,16 @@ def test_the_deflated_sharpe_is_the_published_one() -> None:
 
 
 def test_one_rule_reads_every_named_rung_and_gives_the_worst() -> None:
-    assert deflated.NAMED == ("first", "luck", "deflated", "yearly")
+    assert deflated.NAMED == ("first", "luck", "deflated", "yearly", "folds", "market")
+    assert deflated.NAMED[:4] == deflated.OWN
     passes = dict.fromkeys(deflated.NAMED, Answer.PASS)
     assert deflated.rule(passes) is Answer.PASS
     assert deflated.rule(passes | {"yearly": Answer.DOUBT}) is Answer.DOUBT
+    assert deflated.rule(passes | {"folds": Answer.THIN}) is Answer.THIN, "a thin fold: no pass"
+    assert deflated.rule(passes | {"market": Answer.FAIL}) is Answer.FAIL
     assert deflated.rule(passes | {"yearly": Answer.DOUBT, "luck": Answer.FAIL}) is Answer.FAIL
-    for rungs in ({"first": Answer.PASS}, passes | {"another": Answer.PASS}):
+    without = {name: Answer.PASS for name in deflated.NAMED if name != "folds"}
+    for rungs in (without, passes | {"another": Answer.PASS}):
         with pytest.raises(ValueError, match="the rule reads"):
             deflated.rule(rungs)
 
@@ -61,17 +65,17 @@ def test_one_rule_reads_every_named_rung_and_gives_the_worst() -> None:
 def test_a_winner_falls_through_the_bands_as_the_trials_it_was_picked_from_grow() -> None:
     winner, noise = _bell(9, 0.012), [_bell(n, 0) for n in range(100, 104)]
     (alone,) = deflated.judge([winner], 0)
-    assert alone.bar == 0 and alone.deflated > 0.99 and alone.answer is Answer.PASS
+    assert alone.bar == 0 and alone.deflated > 0.99 and alone.least is Answer.PASS
     assert alone.luck == luck.correct([winner], 0)[0]
     assert alone.sharpe == float(winner.t or 0) / math.sqrt(40)
-    assert alone.rungs == dict.fromkeys(deflated.NAMED, Answer.PASS)
+    assert alone.rungs == dict.fromkeys(deflated.OWN, Answer.PASS)
     seen, chances = {}, []
     for unjudged in (0, 100, 50000):
         *others, picked = deflated.judge([*noise, winner], unjudged)
         assert picked.luck.trials == 5 + unjudged
         assert all(o.rungs["first"] is o.rungs["luck"] is Answer.FAIL for o in others)
         assert picked.bar == deflated.best_by_luck(1 / 39, 5 + unjudged) == others[0].bar
-        seen[unjudged] = (picked.rungs["deflated"], picked.rungs["luck"], picked.answer)
+        seen[unjudged] = (picked.rungs["deflated"], picked.rungs["luck"], picked.least)
         chances.append(picked.deflated)
     assert seen == {
         0: (Answer.PASS, Answer.PASS, Answer.PASS),
@@ -85,17 +89,17 @@ def test_a_winner_falls_through_the_bands_as_the_trials_it_was_picked_from_grow(
     #: the luck rung fails a weaker winner the first rung passed and the Sharpe left in doubt
     weak = deflated.judge([*noise, _bell(9, 0.008)], 5)[-1]
     answers = (Answer.PASS, Answer.FAIL, Answer.DOUBT, Answer.PASS)
-    assert weak.rungs == dict(zip(deflated.NAMED, answers, strict=True))
+    assert weak.rungs == dict(zip(deflated.OWN, answers, strict=True))
     #: failing fairly: a trial with one trade has no Sharpe and one with no trades nothing at
     #: all; neither has failed, on any rung, and both still count
     single, none, counted = deflated.judge([_verdict([0.5]), _verdict([]), winner], 102)
     assert (single.sharpe, single.yearly, single.bar, single.deflated) == (None, None, None, 0)
-    assert single.rungs == dict.fromkeys(deflated.NAMED, Answer.THIN) and counted == twin
-    assert (single.answer, none.answer) == (Answer.THIN, Answer.FAULT)
+    assert single.rungs == dict.fromkeys(deflated.OWN, Answer.THIN) and counted == twin
+    assert (single.least, none.least) == (Answer.THIN, Answer.FAULT)
     #: 29 trades at a yearly Sharpe far too good, or far under nothing: not enough evidence
     for thin in (_bell(9, 0.05, 29), _bell(9, -0.05, 29)):
         (judged,) = deflated.judge([_verdict([float(p.gain) for p in thin.trades], 1)], 0)
-        assert judged.answer is Answer.THIN and abs(judged.yearly or 0) > deflated.FLAG
+        assert judged.least is Answer.THIN and abs(judged.yearly or 0) > deflated.FLAG
     assert list(Answer) == [Answer.FAULT, Answer.FAIL, Answer.THIN, Answer.DOUBT, Answer.PASS]
 
 
@@ -121,7 +125,7 @@ def test_small_wins_and_a_rare_large_loss_are_believed_less_than_a_bell() -> Non
         and other.luck.passed
     )
     assert one.deflated < deflated.PASS < other.deflated
-    assert (one.answer, other.answer) == (Answer.DOUBT, Answer.PASS)
+    assert (one.least, other.least) == (Answer.DOUBT, Answer.PASS)
 
 
 def test_a_yearly_sharpe_above_two_is_flagged_and_is_not_a_win() -> None:
@@ -129,17 +133,17 @@ def test_a_yearly_sharpe_above_two_is_flagged_and_is_not_a_win() -> None:
     slow, fast = (deflated.judge([_verdict(gains, years)], 0)[0] for years in (10, 2))
     sharpe = slow.sharpe or 0.0
     assert 0.7 < sharpe == fast.sharpe and slow.deflated == fast.deflated > deflated.PASS
-    assert slow.yearly == pytest.approx(sharpe * 2, rel=1e-3) and slow.answer is Answer.PASS
+    assert slow.yearly == pytest.approx(sharpe * 2, rel=1e-3) and slow.least is Answer.PASS
     assert deflated.FLAG < sharpe * math.sqrt(20) == pytest.approx(fast.yearly, rel=1e-3)
-    assert fast.rungs == dict.fromkeys(deflated.NAMED, Answer.PASS) | {"yearly": Answer.DOUBT}
-    assert fast.answer is Answer.DOUBT
+    assert fast.rungs == dict.fromkeys(deflated.OWN, Answer.PASS) | {"yearly": Answer.DOUBT}
+    assert fast.least is Answer.DOUBT
 
 
 def test_among_noise_chance_winners_do_not_survive_and_a_real_edge_does() -> None:
     families = [[_bell(100 * f + n, 0) for n in range(40)] for f in range(40)]
     judged = [deflated.judge(family, 0) for family in families]
     assert sum(any(j.luck.verdict.passed for j in family) for family in judged) > 20
-    fooled = sum(any(j.answer is Answer.PASS for j in family) for family in judged)
+    fooled = sum(any(j.least is Answer.PASS for j in family) for family in judged)
     assert fooled <= 2, "forty sets of forty trials with no edge in any: 5% is the most"
     found = [deflated.judge([*family, _bell(7, 0.015)], 0)[-1] for family in families]
-    assert all(j.answer is Answer.PASS for j in found), "a real edge is not thrown out"
+    assert all(j.least is Answer.PASS for j in found), "a real edge is not thrown out"
