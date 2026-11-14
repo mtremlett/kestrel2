@@ -1,6 +1,7 @@
-"""reproduce - THE AUTHOR'S OWN RESULT: before a published rule is judged on the desk's
-market, the desk's code is run on the author's market over the author's period, counted as
-the author counted, and set beside the figure the author printed.
+"""reproduce - THE AUTHOR'S OWN RESULT: the desk's code run on the author's market over the
+author's period, counted as the author counted, and set beside the figure the author printed.
+It is to come before a published rule is judged on the desk's market; nothing yet makes the
+first rung wait for it (docs/STATUS.md).
 
 The published rules (`lab/published.py`) hold the code to the rule's words on short series
 worked by hand. This holds it to the author's result: the same code on the same market over
@@ -24,7 +25,8 @@ period warms it, and a trade belongs to the period it was bought in. A trade is 
 both its fills fall on bars the rule was shown: one still held at the end is not.
 
 NOTHING IS CALLED A REPRODUCTION THAT COULD NOT BE ONE. Refused loudly: bars that miss a
-session of the author's period (the one calendar says which days those are); code that is not
+session, or hold a bar on a day that is none, from the first bar the rule is shown to the
+period's end (the one calendar says which days those are); code that is not
 the published rule; a period in which the rule made no trade. One number outside its
 nearness and the figure is not reproduced, and each number made is given beside the author's.
 
@@ -92,8 +94,11 @@ class Figure:
             raise ValueError(f"{self.source}: a figure that states no number")
         if len(set(measures)) != len(measures):
             raise ValueError(f"{self.source}: a figure that states one number twice")
-        if any(stated.within < 0 for stated in self.stated):
-            raise ValueError(f"{self.source}: nothing lies nearer than nothing to a number")
+        for stated in self.stated:
+            if not (stated.value.is_finite() and stated.within.is_finite()):
+                raise ValueError(f"{self.source}: {stated.measure.value} is stated by no number")
+            if stated.within < 0:
+                raise ValueError(f"{self.source}: nothing lies nearer than nothing to a number")
 
 
 @dataclass(frozen=True)
@@ -109,7 +114,7 @@ class Found:
 @dataclass(frozen=True)
 class Reproduction:
     figure: Figure
-    key: Key  #: the code and the bars that made it
+    key: Key  #: the code, this module's with the rule's, and the bars that made it
     found: tuple[Found, ...]  #: each number the author stated, with the desk's beside it
 
     @property
@@ -125,18 +130,20 @@ def reproduce(figure: Figure, bars: Sequence[Bar]) -> Reproduction:
     """The figure's numbers as the desk's code makes them on the author's market, from the
     line's bars, oldest first, each beside the author's own."""
     published.proven(figure.strategy)
-    days = {bar.day for bar in bars}
-    period = venues.sessions(figure.line.venue, figure.start, figure.end)
-    missing = [day for day in period if day not in days]
-    if missing:
-        raise ValueError(
-            f"{figure.source}: {len(missing)} of the author's sessions on {figure.line.symbol} "
-            f"have no bar, the first {missing[0]}: not the author's market, so no reproduction"
-        )
     c = Cell(figure.strategy, figure.line, figure.start, figure.end)
     record = cell.run(c, bars)
+    read = cell.shown(c, bars)
+    first = min(figure.start, read[0].day)
+    traded = set(venues.sessions(figure.line.venue, first, figure.end))
+    odd = sorted(traded ^ {bar.day for bar in read})
+    if odd:
+        raise ValueError(
+            f"{figure.source}: {len(odd)} days of {figure.line.symbol} from {first} are a "
+            f"session with no bar or a bar on no session, the first {odd[0]}: not the "
+            "author's market, so no reproduction"
+        )
     with localcontext(ARITHMETIC):
-        gains = _gains(record.trades, cell.shown(c, bars), figure.fill)
+        gains = _gains(record.trades, read, figure.fill)
         if not gains:
             raise ValueError(f"{figure.source}: {c} made no trade to set beside the figure")
         made = {
@@ -145,7 +152,7 @@ def reproduce(figure: Figure, bars: Sequence[Bar]) -> Reproduction:
             Measure.MEAN_GAIN: 100 * sum(gains, Decimal(0)) / len(gains),
         }
     found = tuple(Found(stated, made[stated.measure]) for stated in figure.stated)
-    return Reproduction(figure, record.key, found)
+    return Reproduction(figure, record.key.rung(__name__), found)
 
 
 def _gains(trades: Sequence[Trade], read: Sequence[Bar], fill: Fill) -> list[Decimal]:

@@ -50,7 +50,12 @@ def test_the_authors_own_figure_is_reproduced_counted_as_the_author_counted() ->
     made = reproduce.reproduce(_figure(Fill.CLOSE, *AT_CLOSE), bars)
     trades, winners, mean = (found.measured for found in made.found)
     assert made.reproduced and (trades, winners, round(mean, 6)) == (2, 50, Decimal("22.363636"))
-    assert made.key == reproduce.cell.key(made.key.cell, bars), "the code and bars that made it"
+    kept = reproduce.cell.key(made.key.cell, bars).rung("lab.reproduce")
+    assert made.key == kept, "the code, this module's too, and the bars that made it"
+    #: history before the period warms the rule, and a trade belongs to the period it was
+    #: bought in: from bar 21 the second trade alone is the author's
+    later = replace(_figure(Fill.CLOSE, (Measure.MEAN_GAIN, "-28", "0")), start=DAYS[21])
+    assert reproduce.reproduce(later, bars).reproduced
     #: the same rule filled a day later is another result: the author's way of counting is
     #: part of the figure, and the same figure is not reproduced by it
     late = reproduce.reproduce(_figure(Fill.NEXT_OPEN, *AT_CLOSE), bars)
@@ -79,9 +84,16 @@ def test_nothing_is_called_a_reproduction_that_could_not_be_one(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     bars, figure = _bars(), _figure(Fill.CLOSE, *AT_CLOSE)
-    #: the author's market, whole: a session of the period with no bar is refused
-    with pytest.raises(ValueError, match=f"1 of the author's sessions.*{DAYS[25]}"):
-        reproduce.reproduce(figure, bars[:25] + bars[26:])
+    #: the author's market, whole: a session with no bar is refused, in the period or in the
+    #: history that warms the rule before it, and so is a bar on a day that is no session
+    saturday = replace(bars[21], day=date(2020, 2, 1))
+    for holed, day in (
+        (bars[:25] + bars[26:], DAYS[25]),
+        (bars[:5] + bars[6:], DAYS[5]),
+        (bars[:22] + (saturday,) + bars[22:], saturday.day),
+    ):
+        with pytest.raises(ValueError, match=f"1 days of VUSA.*the first {day}"):
+            reproduce.reproduce(replace(figure, start=DAYS[20]), holed)
     #: no trade in the author's period is nothing to set beside the figure
     with pytest.raises(ValueError, match="no trade"):
         reproduce.reproduce(replace(figure, end=DAYS[19]), bars)
@@ -91,6 +103,7 @@ def test_nothing_is_called_a_reproduction_that_could_not_be_one(
         ({"stated": ()}, "states no number"),
         ({"stated": figure.stated[:1] * 2}, "twice"),
         ({"stated": (Stated(Measure.TRADES, Decimal(2), Decimal(-1)),)}, "nearer than"),
+        ({"stated": (Stated(Measure.TRADES, Decimal(2), Decimal("Infinity")),)}, "no number"),
         ({"strategy": "a rule of no author"}, "no published rule"),
     ):
         with pytest.raises(ValueError, match=why):
