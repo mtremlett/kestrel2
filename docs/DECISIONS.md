@@ -1681,9 +1681,32 @@ it is counted now, and undocumented ones under an `if`, an `except` and a `match
 failed, while one nested inside a function passed. The count is of the total, as approved: a
 change that documents one old definition may add one new undocumented one.
 
----
+## 2026-11-14 — the churn guard: a third fix to one file waits for its mechanism
 
+**His yes**, 14 November about 18:30 ("Yes, Tuesday", gate G-B): a file fixed three or more times
+in its last ten changes fails the check until `docs/FAILURE_PATTERNS.md` names the mechanism.
+Built now, in a session he did not start for it, because nothing trips it today: no product file
+has three fixes in its last ten changes on main (`desk/store.py` and `lab/ladder.py` have two).
+`tests/guards/test_churn.py` reads each product file the change touches, counts the changes
+titled `fix` among its last ten on main, and counts the change itself as one more when its title
+(its pull request's on GitHub, else its commits') starts `fix`. At three, the check fails until
+FAILURE_PATTERNS names the file in backquotes. A lane cannot edit FAILURE_PATTERNS, so a lane
+that meets it stops and writes the finding in its STATUS section; the runner already halts a lane
+earlier, at a second fix, so this is the backstop the runner's halt lacked (pattern 11's debt).
+Only `desk/` and `lab/` count: nearly every change edits the shared documents.
 
+**Driven** in a throwaway clone with made-up histories on main. Failed: a third fix to
+`desk/store.py`; a feat to a file whose last ten changes hold three fixes; a fix after two in the
+last nine; two fix commits on one branch counted as one (three, not four); a pull request titled
+`fix` over commits titled `feat`; a file named without backquotes. Passed: a feat after two
+fixes; fixes eleven changes back; a title `fixed:`; a pull request titled `feat` over `fix`
+commits; a change touching no product file; the file named in backquotes; nothing changed.
+A blind review found that GitHub runs the check on a push and on the pull request, and the two
+could disagree on one commit (commit subjects against the title that lands). A push run there
+now leaves the fix judgement to the pull request's run, and `Fix:` counts as `fix:` does;
+driven: a capital `Fix:` and a pull request titled `Fix(kill):` failed, the push run of the same
+commit passed, a push run still failed a feat after three fixes, and `fixup!` passed. Known gap:
+a pull request's title changed to `fix` after its check ran is not checked again.
 
 ## 2026-11-14 — each lane's decisions in its own file
 

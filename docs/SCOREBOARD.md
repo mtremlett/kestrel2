@@ -20,6 +20,7 @@ and the share of fix commits going down.
 | 2026-11-14 | 7 of 7 | - | - | - | +1 proven | green | CLAUDE.md (80) and CANON.md (200) held to their limits by a guard reading BUDGET.json; the canon merged from 225 to 190 lines, no rule removed; five breaks driven, all caught. |
 | 2026-11-14 | 7 of 7 | - | - | - | +1 proven | green | The docstring ratchet: public definitions without a docstring (71 of 437 on main) may fall and never rise, measured against main on every change; nine cases driven, all as intended. |
 | 2026-11-14 | 7 of 7 | - | - | - | +1 proven | green | Each lane's decisions moved, verbatim, from docs/DECISIONS.md (3,831 lines to about 1,710) to docs/lanes/<lane>.md, owned by that lane alone and held to 800 lines; twelve cases driven. |
+| 2026-11-14 | 7 of 7 | - | - | - | +1 proven | green | The churn guard (G-B): a product file whose last ten changes hold three fixes, this one included, fails until docs/FAILURE_PATTERNS.md names it with its mechanism; nothing trips today; seventeen cases driven on made-up histories. |
 
 ## The lanes
 
