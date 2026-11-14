@@ -80,8 +80,34 @@ class Line:
 #: IITU, VHYG, ISF, VUSA, VUAG, EQQQ, IDTL), exempt by regulation, and five exchange-traded
 #: products, debt of an issuer outside the UK (3LGO, 2MU, 5QQQ, IB1T, SGLN), nil as the law
 #: reads and still to be seen on a broker's contract note (docs/DECISIONS.md, the data lane's).
+#: What a second free source confirms about the archive's bars (14 November 2026): the old
+#: desk's Stooq daily bars (stooq_store_matrix) give the same closes and volumes on each of
+#: these days, the closes exactly as the archive gives them. 2MU's and 5QQQ's days are real
+#: moves of a leveraged line that the one-day range test cannot tell from a bad bar; 5QQQ's
+#: price before 22 August 2024 was in a 500-for-1 consolidation's old shares (the archive's
+#: jump, x489.5, is the ratio within a day's move).
+MOVES = {
+    "2MU": (
+        (2024, 8, 5, "19.10699951171875"),
+        (2024, 9, 26, "27.74300048828125"),
+        (2024, 12, 19, "17.080999755859375"),
+        (2025, 4, 4, "8.165"),
+    ),
+    "5QQQ": ((2025, 4, 7, "0.345"), (2025, 4, 8, "0.4295000076293945")),
+}
+SPLITS = {"5QQQ": ((date(2024, 8, 22), Decimal(500)),)}
 LINES = tuple(
-    Line(symbol, venue, currency, int(leverage), NO_TAX, isa, retail)
+    Line(
+        symbol,
+        venue,
+        currency,
+        int(leverage),
+        NO_TAX,
+        isa,
+        retail,
+        frozenset((date(*day), Decimal(close)) for *day, close in MOVES.get(symbol, ())),
+        frozenset(SPLITS.get(symbol, ())),
+    )
     for venue, currency, isa, retail, symbols in (
         ("LSE", "GBP", True, True, "3LGO:3 2MU:2 SMGB:1 IITU:1 VHYG:1 5QQQ:5 ISF:1 VUSA:1 SGLN:1"),
         ("LSE", "GBP", True, True, "VUAG:1 EQQQ:1"),

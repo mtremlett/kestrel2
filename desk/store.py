@@ -128,6 +128,8 @@ def _entered(line: Line, bar: Bar, open_days: set[date]) -> Bar | str:
     reach = (bar.low * (1 - STRETCH), bar.high * (1 + STRETCH))
     if not bar.low <= bar.high or not reach[0] <= min(ends) <= max(ends) <= reach[1]:
         return f"{bar.day} has an open or close outside its high and low"
+    if bar.high >= JUMP * max(ends):
+        return f"{bar.day} has a high far above its own open and close: a bad print"
     return replace(bar, high=max(bar.high, *ends), low=min(bar.low, *ends))
 
 
@@ -170,7 +172,8 @@ def moves(line: Line, bars: Sequence[Bar], rates: Rates = NO_RATES) -> tuple[dat
 
 def _far(bar: Bar, close: Decimal, rate: Decimal | None) -> bool:
     """Some price of the bar sits in another unit from close: no market moves that far. The
-    pound's rate is another unit's (dollars among pounds), when the bar's close is so."""
+    pound's rate is another unit's (dollars among pounds), when the bar's close is so; a
+    rate of None, for a leveraged line whose real crashes sit as near it, is not tried."""
     hundredfold = any(
         p >= close * FAR or p * FAR <= close for p in (bar.open, bar.high, bar.low, bar.close)
     )
@@ -199,11 +202,15 @@ def _priced(line: Line, sound: Sequence[Bar], faults: list[Fault], rates: Rates)
     for at, bar in enumerate(sound):
         if at < resume:
             continue
-        rate = _rate(rates, bar.day)
+        rate = _rate(rates, bar.day) if line.leverage == 1 else None
         if _stray(at, links) and _far(bar, sound[at - 1 if at else 1].close, rate):
             faults.append(Fault(bar.day, f"{bar.day} {ASTRAY}"))
             continue
         if kept and not _agree(line, kept[-1], bar, rates):
+            back = at + 1 < len(sound) and _agree(line, kept[-1], sound[at + 1], rates)
+            if bar.volume == 0 and back:  # no trade states no price (2MU, 24 October 2025)
+                faults.append(Fault(bar.day, f"{bar.day} {ASTRAY}: it has no volume"))
+                continue
             unit = _far(bar, kept[-1].close, rate)
             dollars = _fx(bar.close / kept[-1].close, rate, FX_FAR)  # the pound's rate holds a run
             reach = len(sound) if dollars else min(at + 1 + BLIP, len(sound))

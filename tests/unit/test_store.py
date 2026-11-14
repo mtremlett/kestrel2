@@ -48,6 +48,7 @@ BAD_BARS: dict[str, Callable[[Bar], Bar]] = {
     "the price is in the wrong unit": lambda b: _scaled(b, Decimal(100)),
     "only the high is in the wrong unit": lambda b: replace(b, high=b.high * 100),
     "only the low is in the wrong unit": lambda b: replace(b, low=b.low / 100),
+    "the high is a bad print": lambda b: replace(b, high=b.high * 2),
     "a price is not a number": lambda b: replace(b, high=Decimal("NaN")),
     "a price is infinite": lambda b: replace(b, high=Decimal("Infinity")),
 }
@@ -278,6 +279,17 @@ def test_a_crash_after_days_in_the_wrong_unit_is_kept(tmp_path: Path) -> None:
     assert bars[7:9] == store.read(tmp_path, US.symbol)[5:7]
 
 
+@pytest.mark.parametrize("volume", [0, 900], ids=["no volume", "traded"])
+def test_a_bar_with_no_volume_out_of_line_with_the_bar_before_is_dropped(
+    tmp_path: Path, volume: int
+) -> None:
+    """2MU, 24 October 2025: a flat bar of no trade, 54% above the day before."""
+    bars = list(_bars(US, LONG))
+    bars[-8] = replace(_scaled(bars[-8], Decimal("1.7")), volume=volume)
+    assert ("moved" in _parked(tmp_path, tuple(bars))[0]) is bool(volume)
+    assert (bars[-8] in store.read(tmp_path, US.symbol)) is bool(volume)
+
+
 FREEZES: dict[str, Callable[[Bar, Bar], Bar]] = {
     "the bar before repeated": lambda bar, b: replace(b, day=bar.day, volume=0),
     "the bar before repeated whole": lambda bar, b: replace(b, day=bar.day),
@@ -338,6 +350,20 @@ def test_a_change_of_currency_below_a_jump_is_found_by_the_days_pound(
     assert any(("wrong unit" in f) is bool(run) for f in store.faults(tmp_path, US.symbol))
     assert len(store.read(tmp_path, US.symbol)) == len(bars) - run
     assert _prepared(tmp_path, bars, replace(US, leverage=3)) == []  # a real crash is as large
+
+
+def test_a_leveraged_crash_as_large_as_the_pound_is_kept_not_taken_for_dollars(
+    tmp_path: Path,
+) -> None:
+    """2MU, 4 April 2025: a day's high 1.5 times the next close, and the close the pound's step."""
+    clean = _bars(US, LONG)
+    bars = (
+        *clean[:29],
+        replace(clean[29], high=Decimal(77)),
+        *(_scaled(b, 1 / POUND) for b in clean[30:]),
+    )
+    assert "moved" in _prepared(tmp_path, bars, replace(US, leverage=2))[0]
+    assert store.read(tmp_path, US.symbol) == bars
 
 
 def test_a_recorded_split_adjusts_the_older_bars_only_by_the_ratio_the_jump_shows(
