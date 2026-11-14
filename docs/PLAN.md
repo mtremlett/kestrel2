@@ -543,19 +543,16 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       {id: rungs-fair; files: *; after: rungs-folds, rungs-trials, rungs-deflated, rungs-plateau, rungs-regimes}
 - [x] Its costs whole: spread, slippage and the sale's own fees, from the desk's one cost
       model; and a rate of exchange for each day. Remains: real daily rates (R-RUNGS-3)
-- [ ] Reproduces a published strategy's own published result
-- [ ] Each indicator known-answer tested against a published reference series (STR-14)
-- [ ] Before paper: a kill condition declared for each strategy; promotion only after at
-      least thirty effective paper trades, net positive (STR-17, LAD-11)
-- [ ] At least three ladder-passed strategies and a feasibility number before A-GATE paper
-      (NS-04)
 - [ ] The edge judged against the market risk it took (its beta, or a leverage-matched
       benchmark), and the book's concentration measured as its number of independent bets,
       with the A-GATE profit split by correlated cluster (BIC-01, BIC-02)
-- [ ] His paramount case: long and inverse leveraged-ETP trend strategies through the ladder
-      (STR-18)
+      {id: rungs-beta; files: lab/beta.py, tests/unit/test_lab_beta.py, manifest.toml}
+- [ ] Reproduces a published strategy's own published result
+      {id: rungs-reproduce; files: lab/reproduce.py, lab/rung.py,
+      tests/unit/test_lab_reproduce.py, tests/unit/test_lab_rung.py}
 - [ ] Stress scenarios: the 2020 crash, flash crashes, a leveraged product's gap (2008 lies
       before the history) (TST-06)
+      {id: rungs-stress; files: lab/stress.py, tests/unit/test_lab_stress.py, manifest.toml}
 - [ ] **The eleven rungs made trustworthy before any verdict counts**, the old desk's
       biggest failure (its rung audit of 20 October is the quarry): sample size by effective
       trades; costs charged; a confidence interval; excess over the benchmark after the
@@ -568,6 +565,17 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       five hundred cells of pure noise pass it at about its stated rate and no more, a power
       curve at three effect sizes, a broken copy of the rung caught, and each defect the old
       audit found kept as a case that must fail (LAD-09, LAD-03, LAD-08)
+      {id: rungs-trustworthy; files: *; after: rungs-beta}
+- [ ] Each indicator known-answer tested against a published reference series (STR-14)
+      {id: rungs-indicators; files: lab/published.py, tests/unit/test_lab_published.py}
+- [ ] Before paper: a kill condition declared for each strategy; promotion only after at
+      least thirty effective paper trades, net positive (STR-17, LAD-11)
+      {id: rungs-promotion; files: lab/promotion.py, tests/unit/test_lab_promotion.py;
+      after: rungs-trustworthy}
+- [ ] At least three ladder-passed strategies and a feasibility number before A-GATE paper
+      (NS-04)
+      {id: rungs-feasibility; files: lab/feasibility.py, tests/unit/test_lab_feasibility.py,
+      manifest.toml; after: rungs-trustworthy}
 - [ ] **The eponymous strategies through the ladder first**, before any grid exploration:
       the twenty-one published rules the old desk listed, ported one at a time as rules under
       the one template, each with its author's source, instrument, period and published
@@ -575,6 +583,10 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       of the figures); each reproduced on its author's own market first, and only then judged
       on ours. The bar for twenty-one trials is high and most are expected to fail: that is
       the information (BT-15, STR-14)
+      {id: rungs-eponymous; files: *; after: rungs-trustworthy, rungs-indicators}
+- [ ] His paramount case: long and inverse leveraged-ETP trend strategies through the ladder
+      (STR-18)
+      {id: rungs-leveraged; files: *; after: rungs-trustworthy}
 
 ## Phase 5 — the edge
 
