@@ -1,12 +1,13 @@
 """orders - AN ORDER, SIZED FROM THE ONE CAPITAL NUMBER. It cannot exist without its stop,
 and the one pre-trade gate reads the same capital number as the sizer. THE ONE COST MODEL:
-every cost of a leg, line by line, for whoever prices a buy, a sale or a stop's sale."""
+every cost of a leg, line by line, for whoever prices a buy, a sale or a stop's sale. AND THE
+ONE ROUNDING POLICY for what is published of it."""
 
 from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import astuple, dataclass, replace
-from decimal import Decimal
+from decimal import ROUND_HALF_EVEN, Decimal
 from enum import Enum
 
 from desk.lines import Line
@@ -94,6 +95,16 @@ class Charges:
     def part(self, shares: int, of: int) -> Charges:
         """The share of a fill's costs that some of its shares carry."""
         return Charges(*(a * shares / of for a in astuple(self)))
+
+    def published(self) -> Charges:
+        """Each line as it is published: rounded once, by the one policy (pennies)."""
+        return Charges(*map(pennies, astuple(self)))
+
+
+def pennies(amount: Decimal) -> Decimal:
+    """THE ONE ROUNDING POLICY. Money is carried exact and rounded once, where it is
+    published: to the penny, a half going to the even penny so that many days lean no way."""
+    return amount.quantize(Decimal("0.01"), ROUND_HALF_EVEN)
 
 
 @dataclass(frozen=True)
