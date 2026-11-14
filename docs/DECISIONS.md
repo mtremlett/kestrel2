@@ -1681,6 +1681,19 @@ money lane changing its own file outside its claim; a lane branch the manifest d
 Passed: a lane file of exactly 800; the money lane changing its own file with claim `*` or a
 claim naming it; the money lane still writing `docs/DECISIONS.md`, as the scribe does today.
 
+## 2026-11-14 — failure pattern 13, the cleaner tuned on live lines (R-RUNNER-43)
+
+The store-rules guard, `tests/unit/test_store_rules.py` (#225), is pattern 13's mechanism.
+Its drive evidence, from the pull requests that drove it (each plant reverted):
+- #225: a new fault site in `desk/store.py` failed the sites test; a new constant failed
+  the constants test; `BLIP` 20 to 21 failed the constants test; a reworded "bad print"
+  failed that rule's row.
+- #227: `EXTRA = 1` added to the store failed
+  `test_every_tuning_constant_of_the_store_is_pinned_to_its_value`; a new `Fault(...)`
+  branch in `_once` failed `test_every_rule_in_the_store_is_pinned_by_a_row_that_fires_it`.
+The pattern's text could not land from the DATA lane (the lane guard refuses
+`docs/FAILURE_PATTERNS.md`); a non-lane session added it.
+
 ---
 
 ## MONEY

@@ -81,3 +81,13 @@ three lanes (DATA, GRID, RUNGS) halted this way overnight.
 whose wait is unmet, holds back a box its session says `Waits:` for or the doctor finds
 blocked, and offers it again when the request is done or the date comes. The no-progress
 halt stays as the backstop.
+
+**13. Tuning the cleaner on live lines.** Each parked line's next odd bar drives another
+rule or exception into `desk/store.py`, and exact real prices get written into
+`desk/lines.py`, so the store is fitted to the data one line at a time instead of designed
+once. On 14 November: three rule changes in twenty minutes on the same six London lines.
+→ *Caught by:* the runner halts a lane whose second `fix` touches a file another `fix`
+touched within ten landed changes; and `tests/unit/test_store_rules.py` (#225) pins every
+rule in `desk/store.py` to a row of one synthetic fixture table, so a rule added without a
+row fails. That guard was driven red with an unpinned rule (`docs/DECISIONS.md`,
+R-RUNNER-43, #225 and #227).
