@@ -2190,6 +2190,21 @@ Decided by the MONEY lane as the desk's mentor, no one watching.
 - Only lines the broker holds exactly as the book does, with fewer shares under a stop, are told: telling him to rest a stop for shares not held could sell short.
 - Under the book's blocker ("the book is not the broker's"), the list's id the stop's own; a blocker of its own needs `desk/halt.py`. Evidence: 8 breaks caught; SimCity promises it.
 
+### 2026-11-14 — SimCity as a plain-code job (#200, R-RUNNER-23)
+- What the no-flag night does. Options: (a) all 100 worlds always; (b) 20 worlds, `--full` for 100. Chose (b): the weekday night is quick, the weekend's full. A short night may show a part "bare" (red) only because few worlds ran, so the weekday verdict is the lesser proof.
+- The pound's rate for the night is the desk's own `command.rates` of the day, one rate for all worlds.
+- A missing price store is an error raised by name, not a silent green. The text of R-RUNNER-23 was not found; the command is built as the handover describes.
+
+### 2026-11-14 — the sixth frozen rule is a WIRING strategy (#207, R-RUNNER-20)
+- Where it is listed. Options: (a) in `STRATEGIES` with the five; (b) apart, in `WIRING`. Chose (b): promotion and the lab's cells admit any name in `STRATEGIES`, so (a) would make it an A-GATE candidate, which is forbidden, and would turn red tests outside the claim.
+- Which EMA. Options: seeded with the plain average of the first n closes (textbook, TA-Lib) or with the first close (TradingView). Chose the plain-average seed, weight 2/(n+1): it holds nothing until its indicators are full, like the template's other rules.
+- Ties and unseen crosses: read strictly; level is neither buy nor sale; a cross before both averages existed is not bought.
+- Its golden days sit in `WIRED`, not `GOLDEN`, which the lab's cell test runs through the fast grid.
+
+### 2026-11-14 — the pound's rate carried over a UK-only holiday (#208, R-RUNNER-26)
+- One rule in `desk/carry.py` (book.py is at its cap): the last London session's rate is carried for at most 3 US sessions; any other day without a rate stays an error.
+- `desk/command.py` is the PAPER lane's file and the lane guard refused the edit. Options: edit anyway (refused); hand to PAPER (chosen, R-MONEY-32). The ladder should call `desk.carry.carried(rates_by_day, day)`.
+
 ## DATA
 
 ### 2026-11-13 — the fourteen months are built; the scenes move onto them in two steps
@@ -3032,6 +3047,42 @@ Decided by the PAPER lane as the desk's mentor, no one watching.
 - *Where:* after the ledger, before the check (the check may put right with orders). *A failed drill stops everything but the ledger* and the step fails; told once in his words, wrapped from the money lane's error.
 - *Any day the desk works,* on the UTC day. No message for a drill that passed.
 - Evidence: tests seen failing first; one blind review, nothing blocking; 31 deliberate breaks, all caught; dried at the real paper Gateway with the switch on.
+
+### 2026-11-14 — a buy goes with its stop; the line settled after any order (paper-adapter, paper-stops, #123)
+
+Decided by the PAPER lane as the desk's mentor, no one watching.
+
+- *How a buy and its stop go together.* Options: (a) send the stop after the buy fills: a second or two with no stop, and a
+  dead desk leaves shares unprotected; (b) attach the stop to the buy so the broker holds both, then settle; (c) rest the
+  stop first: impossible without risking a short sale. Chosen: (b); if the stop's half is refused the buy never reaches the market.
+- *Which shares the stop is for, and on what evidence.* Options: (a) the desk's own sum, checked against the account;
+  (b) the account's shares alone; (c) size from the account, and act only when the account moved by exactly the order's
+  fills and "filled" is borne out by fills. Chosen: (c), after the blind review showed five ways the sum is silently wrong.
+  When the three disagree nothing is changed and an error is raised.
+- *A sale: take shares off the stop before or after.* Chosen: after, by what happened; one mechanism for buys and sales.
+  For a moment the stop is for more shares than held (recorded, not fixed).
+- *Replace a stop, never change it in place* (changing a stop attached to a buy is unproven); new first, then cancel the old,
+  so a line is never under none. A line whose stops are unsettled is refused, buy and sale alike. A stop already right is
+  kept whatever its name; a stop the broker is not holding counts as none.
+- *The broker's notice 202 (order cancelled) is news, not a fault, in every reading.* This changes one line of #110's test:
+  cancelling a buy makes the broker cancel its stop and say so. The comparison of book with broker still names any line left bare.
+- *A stop with no price at the broker* stops the buy with an error before anything is dialled. The stop rests until
+  cancelled (GTC), plainest kind. A stop that ends some other way while being cancelled is an error unless the shares are as read.
+- *Both boxes ticked.* No test order was sent to the real Gateway: one wrong field could make a real order on a shared account.
+- The tests' pretend Gateway moved into the door's test file (no test changed): the placing tests were at the 400-line cap.
+- Evidence: tests seen failing first; blind review, one blocking finding fixed; 60 + 25 + 31 deliberate breaks, 2 that cannot differ.
+
+### 2026-11-14 — the paper book's next boxes ordered for the runner (#128)
+
+Decided by the PAPER lane as the desk's mentor, no one watching.
+
+- *Messages and the unattended day ahead of conformance.* Options: conformance next; boxes needing no market first. Chosen:
+  the latter: it is a weekend, and conformance holds every file so would stall the lane until Monday. The code already
+  refuses any order without a drilled kill switch and clean check.
+- *Supervision after conformance:* its box needs seven days without an operator action and would hold the first paper trades.
+- *Conformance keeps `files: *`:* nobody has seen where real results are recorded; a missed file would stop the session.
+- New modules named before they exist: `desk/messenger.py`, `desk/running.py`, `desk/supervisor.py`. paper-running also holds
+  `desk/placing.py` for R-MONEY-8 and waits for paper-messages so there is one messenger.
 
 ## GRID
 

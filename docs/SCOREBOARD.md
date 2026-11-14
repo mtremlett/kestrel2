@@ -52,6 +52,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #176 notes for the runner: all eleven open boxes of the money book noted, the standing SimCity rule folded into eight boxes' files; docs only. |
 | 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #185 R-RUNGS-6/12: the RSI and Bollinger's lower band public by name (`strategy.rsi`, `strategy.lower_band`), the rules trading on them; no number moved; 7 breaks, all caught; a blind review, nothing blocking. |
 | 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #191 money-restop, first step: a stop lost at the broker is told the same day with the stop, shares and level to put back; the desk keeps every stop's level; SimCity promises it. 8 breaks, all caught; two blind reviews, nothing blocking. |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #200 money-simcity-command: `python -m desk.simcity [--full]` runs SimCity as a plain-code job, red night = exit 1; 2 deliberate breaks, 2 caught (R-RUNNER-23). |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #207 sixth frozen rule `ema_9_21` on main as a WIRING strategy, listed apart from the five, never an A-GATE candidate; tested by hand, future-blind and against a second implementation; 13 breaks caught; not yet run by the desk or the ladder (R-RUNNER-20). |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #208 carry rule in `desk/carry.py` + `book.rate`: the pound's rate carried over a UK-only holiday, at most 3 US sessions; 2025-04-21 and 2025-12-26 under test (R-RUNNER-26, part). |
 
 ### DATA
 
@@ -112,6 +115,8 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-14 | 7 of 7 | 4426 | 3300 | 8212 | 14 of 14 proven | green | #142 paper-messages: the desk's one voice (`desk/messenger.py`): one door to his phone, one delivery record, each message once; morning (08:00 UK) and evening (21:05) messages, neither in his night; Sunday login reminder; alarm on silence asked from outside the desk. Nothing calls it; no real message sent. |
 | 2026-11-14 | 7 of 7 | 5024 | 3925 | 9193 | 14 of 14 proven | green | #152 paper-running: the unattended day as one step (`desk/running.py`): fills, check, recovery of what a stopped desk left, each market's orders once, the day's record; adapter refuses an order not dated the session before (R-MONEY-8). Nothing asks for a step; no order sent. |
 | 2026-11-14 | 7 of 7 | 5443 | 3926 | 9651 | 14 of 14 proven | green | #155 paper-kill-drilled: the unattended desk drills its kill switch each day before its check, orders and record; a failed drill stops the day and is told to him. Nothing asks for a step; no order sent. |
+| 2026-11-14 | 5 of 7 | 3950 | 2721 | 6938 | 14 of 14 proven | green | The paper adapter is whole: a buy goes to the paper account with its stop (held back until the stop is sent behind it, so the broker holds the stop from the moment it has the buy), and after any order the line is left under one stop of the desk's own for the shares held, the new one resting before any old one is cancelled; a sale takes its shares off the stop. Nothing sent to the real account: questions only, all quiet. A blind review's one blocking finding (the stop sized by the desk's sums alone) fixed: the broker's word, its fills and the account's shares must agree or an error is raised and the stops left alone. Deliberate breaks: 60, then 31 on the final code; the same 2 cannot differ in a test. Next: the conformance trades. |
+| 2026-11-14 | 5 of 7 | unchanged | unchanged | unchanged | unchanged | green | The paper book's next six boxes noted for the runner; nothing built, scenes 7 of 7. |
 
 ### GRID
 
