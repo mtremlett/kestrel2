@@ -25,7 +25,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import CodeType, ModuleType
 
-from desk import book, broker, day, kill, orders, strategy
+from desk import book, broker, day, halt, kill, orders, strategy
 from desk.broker import Crash, Fault, Pretend, Report
 from desk.lines import Line
 from desk.orders import HOLDINGS, Order, Sale, Settings, pennies
@@ -199,8 +199,7 @@ class _Counted(Pretend):
 
 
 class _Life:
-    """One desk's life in one world: its market and its broker, every draw from the world's
-    seed, and what the life has seen of the desk's promises."""
+    """One desk's life in one world: its market, its broker, and its promises kept or not."""
 
     def __init__(
         self, desk: Path, archive: Archive, room: Settings, rates: Rates, seed: int, census: _Census
@@ -229,7 +228,11 @@ class _Life:
         self.promise("no order is left working at a day's end", not self.pretend.working())
         bare = {*held} - {*stopped} - {*record.mismatches}
         self.promise("a line held with no stop at the broker is named that day", not bare)
-        same = held == stopped == dict(self.pretend.holdings())
+        mine = dict(self.pretend.holdings())  #: a line whose shares are not the book's is not
+        told = {b.reason.partition(":")[0] for b in halt.morning(self.desk, on)[halt.Blocker.BOOK]}
+        untold = {s for s, n in held.items() if s not in stopped and mine.get(s) == n} - told
+        self.promise("a line held with no stop is on that day's list, with its stop", not untold)
+        same = held == stopped == mine
         named = bool(record.mismatches)
         self.promise("no line is named on a day the book is the broker's", not (same and named))
         self.records.append(record)
@@ -256,10 +259,8 @@ def _behind(life: _Life, on: date) -> None:
 
 
 def _unstopped(life: _Life, on: date) -> None:
-    """The stop under a holding of the seed's choosing is cancelled by hand. After the day's
-    record the hand puts it back, if the same shares are still held; one time in FORGOTTEN
-    nothing does, and the line is to be named every day until its rule sells it, which every
-    day's promises try."""
+    """The stop under a holding of the seed's choosing is cancelled by hand, and put back after
+    the day's record if the same shares are still held; one time in FORGOTTEN it never is."""
     held = life.rng.choice(life.pretend.stops())
     put_back = life.pretend.lose_stop(held[0])
     life.live(on)
