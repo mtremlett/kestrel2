@@ -64,7 +64,7 @@ def test_each_cell_is_judged_on_every_rung_and_kept_with_its_reasons_and_trials(
     said = ladder.run(tmp_path, _door(book), {}, todo)
     assert said.startswith("ladder set 1: 2 cells") and "\n" not in said
     assert "against 6 trials: 2 judged now, 0 kept from before, 0 could not" in said
-    assert "PASS 1, DOUBT 0, THIN 0, FAIL 1, FAULT 0; 0 not the author's rule; 0 passed" in said
+    assert "PASS 0, DOUBT 0, THIN 1, FAIL 1, FAULT 0; 0 with no verdict, a named" in said
     won, lost = _rows(tmp_path)
     #: each rung's answer is that rung's own, the cell and its two folds among six trials,
     #: priced from the desk's one capital and set beside its venue's market; and the window
@@ -81,10 +81,10 @@ def test_each_cell_is_judged_on_every_rung_and_kept_with_its_reasons_and_trials(
     assert (won["trials"], one.luck.trials, won["trades"]) == (6, 6, len(verdict.trades))
     assert f"{verdict.t:.2f} standard errors above" in won["rungs"]["first"][1]
     assert "times 6 trials" in won["rungs"]["luck"][1] and all(w for _, w in won["rungs"].values())
-    #: the planted edge passes the one rule, and its worst fold made too few trades to say:
-    #: so it has not passed every rung. The noise fails; no rung left out is left in silence
+    #: the planted edge passes every rung but its worst fold, too thin to say: so the one
+    #: verdict, over every named rung, is THIN. The noise fails; no rung is left in silence
     assert want == dict.fromkeys(want, "PASS") | {"folds": "THIN"}
-    assert (won["answer"], won["every"], lost["answer"]) == ("PASS", False, "FAIL")
+    assert (won["answer"], won["every"], lost["answer"]) == ("THIN", False, "FAIL")
     assert lost["rungs"]["first"][0] == lost["rungs"]["market"][0] == "FAIL"
     assert set(won["unrun"]) == {"reproduce", "regime", "plateau", "stress"}
 
@@ -126,7 +126,7 @@ def test_a_run_skips_what_is_kept_and_judges_again_only_what_has_changed(tmp_pat
     assert "no rate of pounds per USD" in _rows(tmp_path)[-1]["error"]
     pounds = {bar.day: Decimal("0.8") for bar in EDGE}
     assert "1 judged now, 2 kept from before, 0 could" in run(tmp_path, _door(book), pounds, more)
-    assert _rows(tmp_path)[-1]["answer"] == "PASS" and len(_rows(tmp_path)) == 10
+    assert _rows(tmp_path)[-1]["answer"] == "THIN" and len(_rows(tmp_path)) == 10
     #: a dearer dollar on one day is another price: the dollar line alone is judged again
     pounds[EDGE[50].day] = Decimal("0.9")
     assert "1 judged now, 2 kept" in run(tmp_path, _door(book), pounds, more)
@@ -153,7 +153,7 @@ def test_every_trial_is_counted_before_any_is_run_and_the_count_never_begins_aga
     assert len(_rows(tmp_path)) == 4 and _rows(tmp_path)[2] == waits
     clock[0] += timedelta(minutes=1)
     ladder.run(tmp_path, _door({VUSA: EDGE, ISF: NOISE}), {}, todo, lambda: clock[0])
-    assert _rows(tmp_path)[-1]["answer"] == "PASS"
+    assert _rows(tmp_path)[-1]["answer"] == "THIN"
     register.unlink()  #: results with no register beside them: refused, never counted anew
     with pytest.raises(FileNotFoundError, match="no register of trials"):
         ladder.run(tmp_path, _door({}), {}, _set(VUSA, ISF))
@@ -179,10 +179,12 @@ def test_a_rule_with_a_figure_on_file_is_judged_only_behind_its_authors_result(
     (made,) = _rows(tmp_path / "made")
     answer, why = made["rungs"]["reproduce"]
     assert answer == "PASS" and "the author's result, a planted author" in why
-    #: the folds wait, and every rung that ran passed it, the author's result behind it
+    #: every rung that ran passed it, the author's result behind it; but the folds wait,
+    #: and the one rule reads them: no verdict until they are run
     assert "folds" in made["unrun"] and "reproduce" not in made["unrun"]
-    assert made["answer"] == "PASS" and made["every"]
-    assert "0 not the author's rule; 1 passed every rung run, 1 of them behind" in said
+    assert "answer" not in made and made["every"]
+    assert "1 with no verdict, a named rung not run; 0 not the author's rule; 1 passed" in said
+    assert "every rung run, 1 of them behind" in said
     #: a bar of the author's market mended: another result stands behind it, so judged again
     book[VUSA] = (replace(author[0], volume=7), *author[1:])
     assert "1 judged now, 0 kept" in ladder.run(tmp_path / "made", _door(book), {}, todo)

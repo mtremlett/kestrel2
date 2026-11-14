@@ -16,8 +16,10 @@ is corrected for the register's whole count. A set that grows is judged again ag
 
 THE RUNGS RUN, each one's answer in the rung's own words (`rung.Answer`) with its reason:
 the author's own result where a figure is on file (`lab/reproduce.py`); the first rung, the
-luck rung, the deflated Sharpe and the yearly Sharpe, with the one verdict rule over them
-(`lab/deflated.py`); the folds (`lab/folds.py`); and the market's rung (`lab/market.py`). A
+luck rung, the deflated Sharpe and the yearly Sharpe (`lab/deflated.py`); the folds
+(`lab/folds.py`); and the market's rung (`lab/market.py`). The one verdict is the one rule
+over those six, every one: a cell whose folds could not be run has no verdict, and a worst
+fold too thin to say holds the verdict at THIN, however the whole history scored. A
 rule whose author's figure is not reproduced is given no verdict on the desk's lines. A rung
 that is built and cannot yet be run is named with its reason on every line (UNRUN): none is
 left out in silence, and nothing is called passed that was not judged. No answer here sends
@@ -170,7 +172,8 @@ def run(
                 os.fsync(out.fileno())
             tally["failed" if "error" in row else "kept" if row is was else "judged"] += 1
             tally[row.get("answer", "none")] += 1
-            tally["missed"] += "error" not in row and "answer" not in row
+            tally["missed"] += "error" not in row and "unrun" not in row
+            tally["short"] += "unrun" in row and "answer" not in row
             tally["every"] += row.get("every", False)
             tally["behind"] += row.get("every", False) and "reproduce" in row["rungs"]
     answers = ", ".join(f"{a.name} {tally[a.name]}" for a in reversed(Answer))
@@ -178,7 +181,8 @@ def run(
         f"ladder set 1: {len(todo)} cells, each a published rule on a line, judged against "
         f"{count} trials: {tally['judged']} judged now, {tally['kept']} kept from before, "
         f"{tally['failed']} could not be judged and are tried again next run; the one rule's "
-        f"answers: {answers}; {tally['missed']} not the author's rule; {tally['every']} passed "
+        f"answers: {answers}; {tally['short']} with no verdict, a named rung not run; "
+        f"{tally['missed']} not the author's rule; {tally['every']} passed "
         f"every rung run, {tally['behind']} of them behind an author's result; none goes to "
         "paper before all eleven rungs are built."
     )
@@ -265,17 +269,17 @@ def _judge(
             f"{against.line.beta:.2f} of its own line's; {rung.T_PASS} asked of both"
         )
     rungs["market"] = (against.answer, said)
+    named = {name: rungs[name][0] for name in deflated.NAMED if name in rungs}
     return {
         "trades": len(verdict.trades),
         "rungs": {name: [answer.name, reason] for name, (answer, reason) in rungs.items()},
         "unrun": unrun,
-        "answer": one.answer.name,
         "every": all(answer is Answer.PASS for answer, _ in rungs.values()),
-    }
+    } | ({"answer": deflated.rule(named).name} if len(named) == len(deflated.NAMED) else {})
 
 
 def _named(verdict: Verdict, one: Deflated) -> Judged:
-    """The four rungs the one verdict rule reads, each with its reason."""
+    """The four rungs read from the trial's trades (`deflated.OWN`), each with its reason."""
     first = (
         f"{len(verdict.trades)} trades judged, their mean gain after every cost "
         f"({verdict.broker}) {_n(verdict.t)} standard errors above nothing; "

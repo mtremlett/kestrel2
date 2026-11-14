@@ -2,8 +2,10 @@
 pass and a kill condition written first, and comes off it promoted only on thirty effective
 paper trades, net positive (STR-17, LAD-11).
 
-BEFORE PAPER. A candidate is a strategy of the desk's that the ladder passed, by its one
-verdict rule (`lab/deflated.py`), with its kill condition: the numbers, written down before
+BEFORE PAPER. A candidate is a strategy of the desk's with the ladder's own line for it
+(`lab/ladder.py`), never a bare word: every rung the one verdict rule names (`lab/deflated.py`)
+answered on it, the rule read again over those answers a pass, and the line saying the same;
+and with its kill condition: the numbers, written down before
 its first paper trade, at which it is stopped. Written first, because a limit chosen while
 the losses are being watched is always a little further off. A candidate without the pass or
 without the condition cannot be made at all. The condition is two measured things, either
@@ -45,11 +47,13 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
+from typing import Any
 
 from desk.book import RoundTrip
 from desk.broker import Fill
 from desk.orders import pennies, strategy_of
 from desk.strategy import STRATEGIES
+from lab.deflated import NAMED, rule
 from lab.rung import MIN_TRADES, Answer
 
 #: The A-GATE's own fall (AG-05, pounds): no candidate's kill condition may sit beneath it.
@@ -72,18 +76,28 @@ class Kill:
 
 @dataclass(frozen=True)
 class Candidate:
-    """A strategy allowed onto paper: the ladder's pass, and its kill condition first."""
+    """A strategy allowed onto paper: the ladder's line passing it, and its kill condition first."""
 
-    strategy: str
-    ladder: Answer  #: the ladder's one verdict on it
+    ladder: Mapping[str, Any]  #: the ladder's line for the strategy on one of the desk's lines
     declared: date  #: the day its kill condition was written; its paper trades come after
     kill: Kill
+
+    @property
+    def strategy(self) -> str:
+        return str((self.ladder.get("cell") or [""])[0])
 
     def __post_init__(self) -> None:
         if self.strategy not in STRATEGIES:
             raise ValueError(f"{self.strategy}: no strategy of the desk's to put on paper")
-        if self.ladder is not Answer.PASS:
-            raise ValueError(f"{self.strategy} has not passed the ladder: {self.ladder.name}")
+        rungs, said = self.ladder.get("rungs", {}), self.ladder.get("answer")
+        if not set(NAMED) <= set(rungs):
+            raise ValueError(f"{self.strategy} has not passed the ladder: no {NAMED} in {rungs}")
+        verdict = rule({name: Answer[rungs[name][0]] for name in NAMED})
+        if verdict is not Answer.PASS or said != verdict.name:
+            raise ValueError(
+                f"{self.strategy} has not passed the ladder: its rungs give {verdict.name}, "
+                f"its line says {said}"
+            )
 
 
 @dataclass(frozen=True)

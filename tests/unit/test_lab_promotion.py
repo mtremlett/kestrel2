@@ -7,19 +7,29 @@ from collections.abc import Sequence
 from dataclasses import replace
 from datetime import date, timedelta
 from decimal import Decimal
+from typing import Any
 
 import pytest
 from test_lab_rung import FREE
 
 from desk.book import RoundTrip
 from desk.broker import Fill
-from lab import promotion
+from lab import deflated, promotion
 from lab.promotion import Candidate, Kill, Standing
 from lab.rung import Answer
 
 RULE, DAY = "breakout_20_10", date(2026, 1, 1)
-ON_PAPER = Candidate(RULE, Answer.PASS, DAY, Kill(Decimal(300), 4))
-TWO = Candidate(RULE, Answer.PASS, DAY, Kill(Decimal(300), 2))
+
+
+def _row(rule: str = RULE, answer: str = "PASS", **rungs: str) -> dict[str, Any]:
+    """The ladder's line for the rule on VUSA: every named rung passed, but those given."""
+    named = dict.fromkeys(deflated.NAMED, "PASS") | rungs
+    said = {name: [one, f"{name}'s reason"] for name, one in named.items()}
+    return {"cell": [rule, "VUSA", "LSE"], "rungs": said, "answer": answer}
+
+
+ON_PAPER = Candidate(_row(), DAY, Kill(Decimal(300), 4))
+TWO = Candidate(_row(), DAY, Kill(Decimal(300), 2))
 
 
 def _buy(day: int, line: str = "VUSA", rule: str = RULE, order: int | None = None) -> Fill:
@@ -56,11 +66,15 @@ def _stand(
 
 
 def test_no_candidate_without_the_ladders_pass_and_a_kill_condition_that_can_bite() -> None:
-    for answer in (Answer.FAULT, Answer.FAIL, Answer.THIN, Answer.DOUBT):
+    #: a line claiming a pass its own rungs do not give (a thin worst fold, the market
+    #: failed), a line that says less, and one short of a named rung: none is a candidate
+    thin, beaten = _row(folds="THIN"), _row(answer="THIN", market="FAIL")
+    del (short := _row())["rungs"]["market"]
+    for row in (thin, beaten, _row(answer="DOUBT"), _row(answer="THIN", folds="THIN"), short):
         with pytest.raises(ValueError, match="has not passed the ladder"):
-            Candidate(RULE, answer, DAY, ON_PAPER.kill)
+            Candidate(row, DAY, ON_PAPER.kill)
     with pytest.raises(ValueError, match="no strategy of the desk's"):
-        Candidate("a_hunch", Answer.PASS, DAY, ON_PAPER.kill)
+        Candidate(_row("a_hunch"), DAY, ON_PAPER.kill)
     for fall in ("0", "-1", "NaN", "Infinity", "1500.01"):
         with pytest.raises(ValueError, match="a fall of"):
             Kill(Decimal(fall), 4)
