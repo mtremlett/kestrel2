@@ -60,3 +60,24 @@ data, a check that prints nothing either way.
 canon's "fail loudly".
 → *Debt:* a check that cannot fail is still possible to write. Only A7 — driving each
 guard against a violation — catches that, and it is a practice, not a mechanism.
+
+**11. The long job fixed one defect at a time.** A process proven only by running for days
+(the grid's seven-day week, `lab/sweep.py`) meets each defect in its real run, one at a
+time: built in #111, its proof found 14 minutes short of seven days in #118, a hung pass
+able to stop the week for good in #125. Three changes in a row to one file.
+→ *Caught by:* `lab/sweep.py`'s tests run a compressed week (minutes for days) through the
+same code, a hung pass among them, so a defect shows there before the real run; and the
+runner halts a lane whose second `fix` touches a file another `fix` touched within ten
+landed changes.
+→ *Debt:* that halt reads the change's title, and #125 was titled `feat`; the daily audit
+caught it instead.
+
+**12. The blocked box handed out again.** A box that cannot be finished inside its lane
+(seven days of time, a book not yet bought, another lane's change) is handed to session
+after session, which do busy work that ticks nothing until the lane halts. On 14 November
+three lanes (DATA, GRID, RUNGS) halted this way overnight.
+→ *Caught by:* a box's note may say `waits: <request | date | operator>`
+(`tests/guards/test_lanes.py` refuses any other value); the runner never hands out a box
+whose wait is unmet, holds back a box its session says `Waits:` for or the doctor finds
+blocked, and offers it again when the request is done or the date comes. The no-progress
+halt stays as the backstop.

@@ -87,54 +87,49 @@ everything on main, so two green lanes cannot combine into a red main.
   session the operator starts could record this in `docs/FAILURE_PATTERNS.md`.
 
 ## MONEY
-
-Last updated: 14 November 2026 (the costs whole, the emergencies, the day's record).
+Last updated: 14 November 2026 (halts, a hundred seeded worlds).
 ### Where it is
 Scenes 7 of 7. Built: the five rules; sizing, cost model, gate (`orders`); pretend broker; send path,
-ledger, book, reconciliation (`book`); the day (`day.trade`, `run`, `publish`); kill switch; `emergency`;
-invariants (#132); SimCity (#134, `desk/simcity.py`): 51 parts censused, ten promises; **its night is RED**.
-
+ledger, book (`book`); the day; kill switch; `emergency`; invariants; halts (#148, `desk/halt.py`: no buy
+while one is in force, the day's verdict `Record.counts`, the morning's list of seven blockers);
+SimCity (#150): a hundred seeded worlds, 31,000 days; **its night is RED** (six lines held in 75 worlds
+in 100) and it found the desk can end up SHORT (a working sale and its stop both sell).
 ### Next step
-money-working (the send path counts orders still working: six lines held against five; turns SimCity
-green), money-restop, halts, the gate's other limits, then fills (money-fills). Boxes adding a public
-function need the SimCity files (a function no scenario runs turns the check red).
-
+money-working, first, and it must cover a sale too (restart cancels what it left working, or tie sale
+and stop); that turns SimCity green and removes `SIX_HELD`. Then money-restop, the limits, money-fills.
+`desk/simcity.py` is at 398 of 400 lines: split it before adding. Boxes adding a public function need it.
 ### Done for other lanes
 - R-PAPER-2: done in #64
 - R-RUNGS-1: done in #101
-
 ### Requests to PAPER
-- [ ] R-MONEY-7 (later, 2026-11-13): a typed command calling `kill.pull`, sending `Killed.words()` to
-  Telegram; with a supervised desk, one lock across the send path's last read.
-- [ ] R-MONEY-8 (blocking, 2026-11-14): the paper day calls `day.trade` (today, real data) and
-  `day.publish`, never `day.run`; the adapter refuses an order not dated the session before the
-  broker's today. Missed day: `book.record_rates`, `day.publish`.
+- [ ] R-MONEY-7 (later): a typed command calling `kill.pull`, sending `Killed.words()` to Telegram.
+- [ ] R-MONEY-8 (blocking): the paper day calls `day.trade` and `day.publish`, never `day.run`; the
+  adapter refuses an order not dated the session before the broker's today.
 - [ ] R-MONEY-9 (later): a stop's fills get the order's id plus "-stop". R-MONEY-10 (later): in
-  conformance set paper fills beside `orders.charges` and the assumed 0.05% spread; say if fills carry it.
-- [ ] R-MONEY-11 (later, 2026-11-14): when you hold `desk/clearance.py`, say so; `book._write` then goes public.
-- [ ] R-MONEY-15 (blocking, opened 2026-11-14 03:30 UK): no unattended paper order until the send path
-  counts orders still working (money-working); the adapter must then say which are working.
-
+  conformance set paper fills beside `orders.charges` and the assumed 0.05% spread.
+- [ ] R-MONEY-11 (later): when you hold `desk/clearance.py`, say so; `book._write` then goes public.
+- [ ] R-MONEY-15 (blocking): no unattended paper order until money-working has landed.
+- [ ] R-MONEY-17 (blocking, 2026-11-14 06:20): no paper sale unattended while a stop rests under the
+  same shares, unless tied at the broker or money-working landed; record in conformance what paper does.
+- [ ] R-MONEY-18 (later): the morning message carries `halt.listed(root, day)`; every day's carries
+  `halt.said(root, day)` when not None. R-MONEY-19 (later): a typed command to call and lift a halt.
+- [ ] R-MONEY-20 (later): `test_messenger.py` states each Record's `halted`, `stopped` (say `(), 0`);
+  the evening message says when a day does not count. R-MONEY-21 (later): `test_running.py` (line 213)
+  keeps Friday's record through `day._row(day.Record(...))`; then the short-row allowance goes. R-MONEY-22 (later): say if
+  `Broker.place` refusals at the paper account need a blocker of their own.
 ### Requests to DATA
-- [x] R-MONEY-2 (blocking, opened 2026-11-13 18:15): the scenes moved onto the fourteen months.
-- [ ] R-MONEY-3 (later): a daily rate, pounds per dollar, in the store. R-MONEY-16 (later, 2026-11-14):
-  rehearsal lines not all one shape, so the 50/200-day rule holds a line.
-- [ ] R-MONEY-12 (later, 2026-11-13): on the master, the market's lines: the yardstick's twin (VUSA), one in New York hours.
-
+- [ ] R-MONEY-3 (later): a daily rate, pounds per dollar, in the store.
+- [x] R-MONEY-16: no longer needed; across a hundred worlds every rule holds a line (#150).
+- [ ] R-MONEY-12 (later): on the master, the market's lines: the yardstick's twin (VUSA), one in New York hours.
 ### Requests to RUNGS
-- [ ] R-MONEY-13 (later): the first rung prices each leg with `orders.charges`; today a sale is charged as a purchase.
-- [ ] R-MONEY-14 (later, 2026-11-14): AG-04 must not add the records' market column (£783.73 added,
-  £420.64 held): compound the days or read the two closes.
-
+- [ ] R-MONEY-13 (later): the first rung prices each leg with `orders.charges`; a sale is charged as a purchase.
+- [ ] R-MONEY-14 (later): AG-04 must not add the records' market column: compound the days or read two closes.
 ### Found, not fixed
-- **No clock on the day path:** an old day with no record and no later fill is not known old (R-MONEY-8).
-- **Costs:** spread and slippage assumed; fills carrying their own spread must not have it taken off
-  twice (TRD-09); a stop's fill is known by name. **Records:** a withheld day shows twice if added.
-- **Emergencies:** one bad VUAG price could call for selling all (R-MONEY-12); 5QQQ can have none.
-- **Pretend broker:** no fault reaches a sale or fills in two executions; order state is untyped.
-- **SimCity (#134):** a stop cancelled by hand is never put back (money-restop); no nightly run on his PC
-  yet; no code or data version in its record.
-- A sale can exceed the holding; nothing reads a declaration yet; a mismatch tells nobody yet; no halt.
+- **No clock on the day path** (R-MONEY-8). **Costs:** spread and slippage assumed; a stop's fill is named. Emergencies: one bad VUAG price could call for selling all. A sale can exceed the holding.
+- **Halts:** cancel nothing at the broker (a working buy can fill; needs a buys-only cancel, money-watch);
+  moments are the caller's word; one process at a time; the part fill of a dying desk is not listed.
+- **SimCity:** no nightly run on his PC; record lacks which worlds, code and data versions; lines move
+  independently; a stopped world is counted unevenly; no halted day lived; manifest line says "small".
 
 ## PAPER
 
@@ -188,57 +183,58 @@ driver in KESTREL2_DATA/conformance; out of hours take R-MONEY-8), then supervis
 
 ## DATA
 
-Last updated: 13 November 2026 (research reads the parked fifth; the next twelve boxes noted).
-
+Last updated: 14 November 2026 (folds #84, #85, #87, #89, #96, #97).
 ### Where it is
-
-The twenty lines, one archive client, one store, both calendars to 2027, the research list (1,065:
-864 clean, 201 parked by the store). Research reads all 1,065 through `universe.read` (#80): 21 cut at a
-change of scale, 383 moves read as the market's, named in `History.moves`; the grid does not yet (R-DATA-7).
+The twenty lines (22 on the master until SPY and QQQ leave; VUAG, EQQQ, IDTL in, ISA and retail flags,
+yardstick VUAG, #85), one archive client, one store, both calendars to 2027 with hours (#87). Research reads
+all 1,065 through `universe.read` (#84; the store still parks 201); the grid does not yet (R-DATA-7). The
+fast store `desk/bars.py` (#89) holds five-minute bars, 74,845 real ones saved 13 Nov (#97). Members of the
+S&P 500 and Nasdaq 100 since 2010 (#96).
 
 ### Next step
-
-Boxes noted for side-by-side sessions (#66): data-isa-twins, data-parked-fifth (open: R-DATA-7; five
-tickers misjudged: WWH, SHC, ECHO, MRNA, ROR), data-fast-store, data-hours; then the keeper. Later: R-MONEY-3, R-PAPER-3.
+data-keeper (settle the archive's delay, the file kept open, the "price of the moment" before the open);
+data-isa-twins (SPY, QQQ leave; waits on R-DATA-10/11); data-members (FTSE 350, funds); data-research-home.
 
 ### Done for other lanes
-- R-MONEY-1: done in #47
-- R-MONEY-2: done in #60
+- R-MONEY-1: done in #47; R-MONEY-2: done in #60
 
 ### Requests to GRID
-- [ ] R-DATA-1 (later, opened 2026-11-13 18:15): a cell takes a `Line` from `universe.UNIVERSE` and
-  reads `store.read(root / line.venue, line.symbol)`: thirteen symbols are two companies, by venue.
-- [ ] R-DATA-7 (later, opened 2026-11-13 20:20 UK): with R-DATA-1, a cell reads
-  `universe.read(root, line).bars`, not `store.read`, and keeps `History.moves` and `.rescaled`.
+- [x] R-DATA-1: done in #73
+- [ ] R-DATA-7 (later, opened 2026-11-13 20:20 UK): a cell reads `universe.read(root, line).bars`, not
+  `store.read`, and keeps `History.moves` and `.rescaled`.
+- [ ] R-DATA-10 (blocking, opened 2026-11-13 21:45 UK): `test_lab_batch.py`, `test_lab_cell.py` look SPY and
+  QQQ up in the master by name; name lines that stay (AAPL, NVDA) so SPY and QQQ can leave.
 
 ### Requests to MONEY
-- [ ] R-DATA-3 (later, opened 2026-11-13 18:15): the day run reads the archive through
-  `archive.gather` and hands `store.prepare` its answers whole, so a refused line parks with its reason.
-- [x] R-DATA-4 (later, opened 2026-11-13 18:40 UK): each `Line(...)` in its tests states its UK tax.
-- [ ] R-DATA-6 (later, opened 2026-11-13 19:20 UK): scene 5 reads `CLEAN`, now the one name for the
-  whole rehearsal data; `HISTORY` is the same thing, and then goes.
+- [x] R-DATA-4: each `Line(...)` in its tests states its UK tax.
+- [ ] R-DATA-3 (later, opened 2026-11-13 18:15): the day run reads the archive through `archive.gather` and
+  hands `store.prepare` its answers whole, so a refused line parks with its reason.
+- [ ] R-DATA-6 (later, opened 2026-11-13 19:20 UK): scene 5 reads `CLEAN`; `HISTORY` is the same, and goes.
+- [ ] R-DATA-12 (later, opened 2026-11-13 21:45 UK): `day.run` reads "simply holding the market" from
+  `lines.YARDSTICK` (VUAG); nothing is bought in the ISA on a line whose `isa` flag is not yes.
 
 ### Requests to PAPER
-- [x] R-DATA-5 (later, opened 2026-11-13 18:40 UK): each `Line(...)` in its tests states its UK tax.
-- [ ] R-DATA-9 (later, opened 2026-11-13 20:20 UK): at `desk/paper.py`, a read-only question for a
-  line's newest five-minute bars, and whether the paper account gets live market data or delayed.
+- [x] R-DATA-5: each `Line(...)` in its tests states its UK tax.
+- [ ] R-DATA-9 (later, opened 2026-11-13 20:20 UK): a read-only question for a line's newest five-minute
+  bars at `desk/paper.py`, and whether the paper account gets live or delayed data.
 
 ### Requests to RUNGS
-- [ ] R-DATA-8 (later, opened 2026-11-13 20:20 UK): a verdict states how many trades were held through
-  a day in `History.moves` (about a hundred London bad prints), shown with and without them.
+- [ ] R-DATA-8 (later, opened 2026-11-13 20:20 UK): a verdict states how many trades were held through a
+  day in `History.moves` (about a hundred London bad prints), shown with and without them.
+- [ ] R-DATA-11 (blocking, opened 2026-11-13 21:45 UK): `test_lab_rung.py` prices a dollar trade on "SPY"
+  from the master; name a US line that stays (AAPL) so SPY can leave.
 
 ### Found, not fixed
-
 - **UK tax (NS-05).** Five London products unseen on a contract note; London shares 0.5%, unchecked.
-- **Parked of the twenty:** 3LGO, 2MU, 5QQQ, SGLN. The archive is free, unpaced (DAT-08).
-- **The research list:** today's members only (BT-09), no kept home; scale changes under the store's
-  belief are UNI-07; a crash won back next open cuts history (ROSE); raw answers unread.
-- **The store:** nothing fills `Line.real_moves` or `.suspended`; a bad print under a hundredfold and a
-  freeze under five sessions have no rule.
+- **Operator:** IB1T (Bitcoin) is not ISA-holdable (crypto notes shut to new ISA purchases from 6 Apr 2026).
+- **Research:** today's members only (BT-09); scale changes under the store's belief are UNI-07; WWH, SHC, EDV,
+  ROSE read false losses. Member record (#96): one unofficial source; `members.on` raises for FTSE350, ETFS.
+- **The store:** nothing fills `Line.real_moves` or `.suspended`; the per-bar checks exist in `store.py` and
+  `bars.py`; calendar ends 2027; nothing runs `bars.keep` nightly until the keeper; 3% of busy reads pass 50 ms.
 
 ## GRID
 
-Last updated: 14 November 2026 (the grid's week built, started and moved onto its fix).
+Last updated: 14 November 2026 (a hung pass of the week is now ended at 48 hours, #125).
 ### Where it is
 
 Built and proven: the cell, the batch, the fast grid engine, a key per rung, the auto-tune
@@ -279,35 +275,36 @@ from `C:\tmp\kestrel2_week\code`. grid-declared can start now (it waited only on
 - Grid breaks no series found can show (Supertrend band, Bollinger past 2**53, Wilder window, band margin).
 - Cell/batch: key leaves out Python version, paths, capital and exchange rate. Unit-test lines equal product lines.
 - Tune: the proof uses one worker; priority and kill-on-exit untested; batch size follows the last batch only.
-- Week: no limit on a pass's time; a torn `week.jsonl` line needs hand-mending; results grow ~9 MB a day
-  (pruning owed, R-GRID-1); an outside pass on the same folder, a PC restart not followed within the hour,
+- Week: a pass over 48 hours is cut and logged failed, so a sweep needing more fails LAD-10 (grid-weekend); a torn `week.jsonl` line needs hand-mending; results grow ~9 MB a day
+  (pruning owed, R-GRID-1); an outside pass on the same folder, a PC restart not followed within the hour (nothing restarts it),
   or the scratch store `C:\tmp\kestrel2_grid\store` cleared breaks the run (data-research-home fixes the last).
-- Log counts tickers as "cells"; refused cells uncounted; busy flag stale if a pass is killed outright.
+- Log counts tickers as "cells"; refused cells uncounted; busy flag stale if a pass is killed outright or cut at its limit.
   Scratch copies owed removal: `.claude/worktrees/` helpers, `C:\tmp\unebreaks`, `C:\tmp\unedriver`.
 
 ## RUNGS
 
 Last updated: 14 November 2026 (cut to what is open; git, decisions and scoreboard keep the rest).
-
 ### Where it is
 
 Rungs proven on made-up prices only: first (`lab/rung.py`), luck, folds, trials, deflated Sharpe, plateaus,
 regimes; built but called by nothing yet: author's result (`reproduce`), promotion, market rung, book
-concentration (`bets`, #136), stress (`stress`, #140), indicator tables (`published`, #145). The first rung
-refuses a rule with an author's figure on file until reproduced (#139).
+concentration (`bets`, #136), stress (`stress`, #140), indicator tables (`published`, #145, #154: 250 numbers).
+The first rung refuses a rule with an author's figure on file until reproduced (#139).
 **No winner on real prices is to be believed yet; no real author's figure is on file.**
 
 ### Next step
 
-Open boxes (PLAN): rungs-trustworthy (name market rung; wire bets, stress), rungs-reproduce (R-RUNGS-5),
-rungs-indicators (R-RUNGS-6). Unit tests stay at the product's size.
-Ruled 14 Nov (DECISIONS): concentration shown on every report, no A-GATE mark yet; no Connors book
-for now: reproduce Double 7's first (#141), RSI-2 waits for its figure.
+Open boxes (PLAN): rungs-trustworthy (name market rung; wire bets, stress), rungs-indicators (R-RUNGS-6, 12).
+**rungs-reproduce is BLOCKED, hand it out no more** (#143, #149): waits on the book (his spend; recommended
+yes, Connors and Alvarez 2008; its RSI table may be of another rule), R-RUNGS-5, R-RUNGS-10. Free: Connors'
+"RSI 25" figure, uncoded. Unit tests stay at the product's size. Ruled 14 Nov (DECISIONS):
+concentration shown on every report, no A-GATE mark yet; no book for now.
 
 ### Requests to MONEY
 
-- [ ] R-RUNGS-6 (blocking, 01:20): the indicators of `desk/strategy.py` public and by name (STR-14);
-  keep `_Window`, `_Wilder` importable meanwhile (13 lab test files read them).
+- [ ] R-RUNGS-6 (blocking, 01:20): the indicators of `desk/strategy.py` public and by name (STR-14).
+- [ ] R-RUNGS-12 (blocking, 07:55): narrows R-RUNGS-6 to a public RSI and Bollinger lower band; keep `_Window`,
+  `_Wilder`, `_Rsi2`, `_Supertrend`, `_gain`, `_loss`, `_range` meanwhile.
 - [ ] R-RUNGS-7 (later, 01:50): the day's run reads each candidate's `promotion.standing`, buys nothing for a killed one.
 - [ ] R-RUNGS-8 (later, 01:50): `orders.strategy_of` refuses an unreadable id, naming it.
 - [ ] R-RUNGS-10 (later, 04:50): Connors' Double 7's as a desk rule (first reproduction's rule).
@@ -326,12 +323,11 @@ for now: reproduce Double 7's first (#141), RSI-2 waits for its figure.
 
 ### Found, not fixed
 
-- **Nothing calls the new rungs yet**; no settings on rules, no regime weather (REG-01). `luck.correct`
-  is a door beside the register. `folds.judge`, `regime.judge` cannot pass a reproduction on.
-- **Reproduction:** rung trusts `reproduce`'s answer, not the author's bars; Bollinger, 50/200 cross,
-  Supertrend have no author's test (ruling owed). Double 7's figure written, not on file.
+- **Nothing calls the new rungs yet**; no settings on rules, no regime weather (REG-01); `luck.correct` is a
+  door beside the register. **Reproduction:** `folds.judge`, `regime.judge` cannot pass one on; Bollinger,
+  50/200 cross, Supertrend have no author's test (ruling owed); Double 7's figure not on file.
 - **Promotion:** fall sees sold shares only; `DEEPEST` belongs to the A-GATE. **Market/stress:** calm-storm
   alternation passes a rider twice as often; "days end at first unjudged trade" lives twice, belongs in `rung.py`.
 - **Bets:** a young line (<120 moves) stops it; clusters near 0.5 flip year to year. **Indicators:**
-  `published.py` 361 of 400 lines; its manifest line omits them.
-- Scratch owed removal in `C:/tmp`: repro*, promo*, market*, bets*, rungswait*, rungs_s2_*, ind*.
+  `published.py` at its 400-line cap; RSI ratio, band line, carried band unheld; tables run flat only;
+  no fresh-low table for the channel. Scratch owed removal in `C:/tmp`: repro*, promo*, market*, bets*, rungs*, ind*.
