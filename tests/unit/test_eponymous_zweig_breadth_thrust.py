@@ -33,7 +33,7 @@ def test_no_thrust_when_the_climb_is_slow_or_never_started_low() -> None:
 
 
 def test_a_day_without_breadth_fails_loudly_and_an_empty_day_is_refused() -> None:
-    bars = [Bar(date(2020, 1, 1), *[Decimal(1)] * 4, 1)]
+    bars = [Bar(date(2020, 1, 1), Decimal(1), Decimal(1), Decimal(1), Decimal(1), 1)]
     with pytest.raises(KeyError, match="no breadth"):
         decide({"X": bars}, {})
     with pytest.raises(ValueError, match="advances or declines"):
