@@ -45,7 +45,8 @@ everything on main, so two green lanes cannot combine into a red main.
 
 1. **A second GitHub account** for sessions to work through, so that the guards cannot be
    removed by the account that enforces them. On 13 November he chose to start the lanes
-   on his own account now; the question stays open for later.
+   on his own account now; on 14 November he said leave it for now. Ask again before going
+   live.
 
 ### Found, not fixed
 
@@ -56,8 +57,8 @@ everything on main, so two green lanes cannot combine into a red main.
   PC from a file holding the bot key, which he copies beside the runner himself. Until he
   does, they are written to the runner's log only.
 - **A Windows Update restart overnight stops the lanes until he logs in.** The runner
-  starts at his logon; starting it without one needs his password in Task Scheduler,
-  which is his call. He is pausing updates.
+  starts at his logon; starting it without one needs his password in Task Scheduler.
+  His ruling of 14 November: no password; updates stay paused.
 - **The lane guard judges whole files.** A lane may write in any part of a shared
   document; that it keeps to its own section is checked only by the daily audit.
 - **A newer ruff on the operator's PC calls the tree badly formatted.** Version 0.15
@@ -300,8 +301,8 @@ refuses a rule with an author's figure on file until reproduced (#139).
 
 Open boxes (PLAN): rungs-trustworthy (name market rung; wire bets, stress), rungs-reproduce (R-RUNGS-5),
 rungs-indicators (R-RUNGS-6). Unit tests stay at the product's size.
-Operator's: is concentration a condition of the A-GATE or a number shown? Recommended: show both
-numbers on every report first, set a mark after a few. Also his: buy Connors' book (one copy).
+Ruled 14 Nov (DECISIONS): concentration shown on every report, no A-GATE mark yet; no Connors book
+for now: reproduce Double 7's first (#141), RSI-2 waits for its figure.
 
 ### Requests to MONEY
 
