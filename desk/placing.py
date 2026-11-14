@@ -15,12 +15,12 @@ names no client. An answer that cannot be read whole is an error raised. The bro
 of the day alone: an order or a fill of an earlier day is in the desk's ledger, or nowhere.
 
 Two things are sent that are no question. An order, by `place` alone: after the kill
-switch was drilled (kill.drilled), the day's check came back clean (clearance.require) and
-the gateway said it is ready (gateway.known); and the stop a line is left under (`settle`),
-by `place` and, after a restart, by desk/running.py. And a cancel, for an order of the
-desk's own: by the kill switch, of each still working, never a stop resting to sell what is
-held; by `place`, of what the broker did not fill; and by `settle`, of a stop only once the
-stop that replaces it rests, or no share is left under it."""
+switch was drilled (kill.drilled), the day's check came back clean (clearance.require), the
+gateway said it is ready (gateway.known) and the broker lists no other order open (`_before`);
+and the stop a line is left under (`settle`), by `place` and, after a restart, by
+desk/running.py. And a cancel, for an order of the desk's own: by the kill switch, of each
+still working, never a stop resting to sell what is held; by `place`, of what the broker did
+not fill; and by `settle`, of a stop only once its replacement rests, or no share is left."""
 
 from __future__ import annotations
 
@@ -223,10 +223,9 @@ class Paper:
     def __init__(
         self, listings: Mapping[str, Listing | Unlisted], root: Path, clock: Callable[[], datetime]
     ) -> None:
-        """listings is each of the desk's lines as the broker lists it now (listing.read):
-        by them a fill, an order and a holding are known as a line's. root holds the desk's
-        record, the day's checks among it; clock gives the moment, in UTC. Both are read
-        only before an order is sent."""
+        """listings is each of the desk's lines as the broker lists it now (listing.read): by
+        them a fill, an order and a holding are known as a line's. root holds the desk's record,
+        the day's checks among it; clock gives the moment, in UTC: read only before a send."""
         self._listings, self._root, self._clock = dict(listings), root, clock
 
     def _orders(self) -> reports.Orders:
@@ -318,20 +317,21 @@ class Paper:
         return listed, new
 
     def _before(self, listed: Listing, order_id: str) -> tuple[Decimal, Stop | None]:
-        """A line before an order goes: the shares the account holds of it, and the stop of
-        the desk's own it is under, or None with none open on it. More than one open, or one
-        the broker is not holding, and the order is Refused: what the line is under is not
-        settled, and the day's check names it."""
-        held, stops = on(paper.read(), listed)
-        rests = [
-            Stop(o.left, o.level, o.ref)
-            for o in stops
-            if o.state in reports.HELD and o.level is not None
-        ]
+        """A line before an order goes: the shares the account holds of it and the one stop of
+        the desk's own it is under, or None. Refused: two stops open on it, or one the broker
+        is not holding; and WHILE ANY OTHER ORDER IS OPEN AT THE BROKER, on any line, anyone's,
+        as this reading of the account alone tells: it could fill behind the book's gate."""
+        account = paper.read()
+        (held, stops), told = on(account, listed), reports.orders(account.orders, self._listings)
+        kept = [o for o in stops if o.state in reports.HELD]
+        rests = [Stop(o.left, o.level, o.ref) for o in kept if o.level is not None]
         if len(stops) > 1 or len(rests) != len(stops):
             said = [f"{o.ref} ({o.state})" for o in stops]
             where = f"the desk's own stops on {listed.line.symbol} are not settled: {said}"
             raise Refused(f"{order_id}: not sent, {where}")
+        idle = [f"{o.ref} ({o.state})" for o in told.unsettled + told.others if o.state not in OVER]
+        if idle:
+            raise Refused(f"{order_id}: not sent, orders are still open at the broker: {idle}")
         return held, (rests[0] if rests else None)
 
     def settle(
