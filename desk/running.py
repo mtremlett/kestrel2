@@ -32,6 +32,7 @@ day's first of each kind only."""
 from __future__ import annotations
 
 import csv
+import sys
 from collections.abc import Callable, Collection, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
@@ -321,3 +322,9 @@ def step(desk: Desk, now: datetime) -> None:
         raise
     finally:
         _say(desk, now, known)
+
+
+if __name__ == "__main__":
+    from desk import command  #: the command line's home; it imports this module, so only here
+
+    sys.exit(command.main(sys.argv[1:]))
