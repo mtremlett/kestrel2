@@ -179,14 +179,16 @@ def test_while_a_halt_is_in_force_no_buy_is_sent_a_sale_goes_and_a_refusal_names
     broker, at = Pretend(WEEK, {}), datetime(2025, 11, 10, 9, 30, tzinfo=UTC)
     broker.open(MON)
     _send(tmp_path, broker)
-    called = halt.call(tmp_path, at, "the market fell 5%")
+    halt.call(tmp_path, at, "the market fell 5%")
+    halt.call(tmp_path, at + timedelta(hours=1), "his word")  #: every halt in force is named
     words = "o-2: not sent, a halt is in force, called 2025-11-10 09:30 UTC: the market fell 5%"
-    with pytest.raises(Stopped, match=words) as refusal:
+    with pytest.raises(Stopped, match=f"{words}; called 2025-11-10 10:30 UTC: his word") as refusal:
         _send(tmp_path, broker, "o-2", SIX[1])
     assert refusal.value.blocker is Blocker.HALT and broker.submitted() == ("o-1",)
     sold = book.send(tmp_path, broker, Sale("s-1", A, 10), ROOM)
     assert sold == book.Sent("s-1", 10, None), "a sale stopped by a halt"
-    halt.lift(tmp_path, called, at, "calm again")
+    for called in halt.in_force(tmp_path):
+        halt.lift(tmp_path, called, at + timedelta(hours=1), "calm again")
     assert _send(tmp_path, broker, "o-2", SIX[1]).filled == 10, "lifted, and still nothing bought"
     door = Account(broker)  #: called while the broker is answering the send path
     door.between.append(lambda: halt.call(tmp_path, at + timedelta(hours=1), "as it answered"))

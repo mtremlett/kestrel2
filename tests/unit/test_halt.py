@@ -4,6 +4,7 @@ blocker with the signals it blocked."""
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta, timezone
 from pathlib import Path
 
@@ -125,27 +126,36 @@ def test_each_morning_one_list_names_every_blocker_and_every_signal_it_blocked(
 ) -> None:
     with pytest.raises(ValueError, match="2025-11-10"):  #: no list is not a morning with none
         halt.morning(tmp_path, MON)
+    assert halt.stopped(tmp_path, MON) == 0, "orders never sent, and some called stopped"
     held = Blocked("20251110-bollinger-A", Blocker.HALT, 0, "not sent, a halt is in force")
     part = Blocked("20251110-rsi-B", Blocker.BROKER, 5, "5 of 10, filled in part")
-    halt.keep_morning(
-        tmp_path, MON, [held, part, Blocked("20251110-rsi-C", Blocker.HALT, 0, "the same")]
-    )
-    halt.keep_morning(tmp_path, TUE, [])
+    late = Blocked("C", Blocker.UNREAD, 0, "C: no bar for the session before")
+    halt.note(tmp_path, MON, [late])
+    halt.note(tmp_path, MON, [held, part, Blocked("20251110-rsi-C", Blocker.KILL, 0, "the same")])
+    halt.note(tmp_path, TUE, [])
     listed = halt.morning(tmp_path, MON)
     assert list(listed) == list(Blocker), "a blocker left off the list"
-    assert listed[Blocker.HALT][0] == held and listed[Blocker.BROKER] == (part,)
-    assert [len(blocked) for blocked in listed.values()] == [0, 2, 0, 0, 0, 1]
+    assert listed[Blocker.HALT] == (held,) and listed[Blocker.BROKER] == (part,)
+    assert [len(blocked) for blocked in listed.values()] == [1, 1, 1, 0, 0, 0, 1]
+    assert halt.stopped(tmp_path, MON) == 2, "what the switch and a halt refused, not counted"
     words = halt.listed(tmp_path, MON)
-    assert "2025-11-10: 3 signals blocked" in words and all(b.value in words for b in Blocker)
-    assert "A halt is in force: 20251110-bollinger-A, 20251110-rsi-C." in words
-    assert "The kill switch is on: none." in words
+    assert "2025-11-10: 4 signals blocked" in words and all(b.value in words for b in Blocker)
+    assert "A halt is in force: 20251110-bollinger-A." in words
+    assert "The book is not the broker's: none." in words
     assert not any(halt.morning(tmp_path, TUE).values()), "another morning's signals listed"
     assert "2025-11-11: 0 signals blocked" in halt.listed(tmp_path, TUE)
-    halt.keep_morning(
-        tmp_path, MON, [part]
-    )  #: the morning run again: its list as the last run left it
-    assert [*halt.morning(tmp_path, MON).values()] == [(), (), (), (), (), (part,)]
+    #: the morning run again: one answered whole leaves the list, one answered again is listed
+    #: once, as its last answer, and what is not answered again stays as it was
+    again = replace(part, filled=7)
+    halt.note(tmp_path, MON, [again], [held.order_id, "an order never listed"])
+    assert [*halt.morning(tmp_path, MON).values()][:3] == [(late,), (listed[Blocker.KILL][0],), ()]
+    assert (
+        halt.morning(tmp_path, MON)[Blocker.BROKER] == (again,) and halt.stopped(tmp_path, MON) == 1
+    )
     path = next((tmp_path / halt.BLOCKED).glob("2025-11-10*"))
     path.write_text(path.read_text("utf-8").replace("BROKER", "WEATHER"), "utf-8")
-    with pytest.raises(ValueError, match="blocker"):
-        halt.morning(tmp_path, MON)
+    for read in (halt.morning, halt.stopped, halt.listed):
+        with pytest.raises(ValueError, match="blocker"):
+            read(tmp_path, MON)
+    with pytest.raises(ValueError, match="blocker"):  #: nor is anything added to such a list
+        halt.note(tmp_path, MON, [held])

@@ -129,8 +129,7 @@ def _unless_killed(root: Path, order_id: str) -> None:
 
 
 def _unless_stopped(root: Path, order: Order | Sale) -> None:
-    """Refuse the order while the kill switch is on, and a buy while a halt is in force, in
-    the halts' own words."""
+    """Refuse the order while the kill switch is on, and a buy while a halt is in force."""
     _unless_killed(root, order.order_id)
     if isinstance(order, Order) and (halts := halt.in_force(root)):
         said = "; ".join(h.since for h in halts)

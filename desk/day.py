@@ -29,10 +29,8 @@ from desk.store import Bar
 from desk.strategy import Action, Decision
 
 RECORDS = "records.csv"
-HEADER = (
-    *("day", "profit", *Charges.__dataclass_fields__, "market", "worth", "counted"),
-    *("halted", "differ"),
-)
+MONEY = ("day", "profit", *Charges.__dataclass_fields__, "market", "worth", "counted")
+HEADER = (*MONEY, "halted", "stopped", "differ")
 
 
 @dataclass(frozen=True)
@@ -41,7 +39,8 @@ class Record:
     is made. A day whose book is not the broker's names the lines and has no profit; no other
     day lacks one. With it, kept exact, what the next day's record carries on from. A day with
     a halt in force names it, and keeps its number. THE DAY'S VERDICT (NS-06): it counts only
-    if its book was the broker's and no halt was in force."""
+    if its book was the broker's, no halt was in force, and the send path stopped no signal
+    for a halt or the kill switch."""
 
     day: date
     #: The book's gain after every cost, since the last record that carried one: the day's
@@ -52,13 +51,14 @@ class Record:
     mismatches: tuple[str, ...]  #: lines where the desk's book and the broker's differ
     worth: Decimal  #: what the book held at the day's end was worth: the next record opens here
     counted: int  #: the ledger's fills dated by the day, each counted by a record up to this one
-    #: the halts in force at some moment of the day, each by the moment it was called: the
-    #: record of halts (halt.kept) says why
+    #: the halts in force that day, each by the moment it was called, as halt.kept stood
     halted: tuple[datetime, ...]
+    stopped: int  #: the signals the kill switch or a halt refused that morning (halt.stopped)
     counts: bool = field(init=False)  #: the verdict
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "counts", self.profit is not None and not self.halted)
+        clear = self.profit is not None and not self.halted and not self.stopped
+        object.__setattr__(self, "counts", clear)
         if (self.profit is None) != bool(self.mismatches):
             raise ValueError(
                 f"{self.day}: a profit of {self.profit} with the book and the broker's "
@@ -97,7 +97,8 @@ def publish(
     late. Beside it, over the same days, what the capital would have gained in the
     yardstick (lines.YARDSTICK, quoted in pounds). Every session from the ledger's first
     fill has its own record, in order and once (_kept). The halts in force that day are read
-    from their record (halt.on), so the day says so for as long as one is."""
+    from their record (halt.on), so the day says so for as long as one is, and what the send
+    path stopped from the morning's list (halt.stopped)."""
     differ = book.reconcile(root, broker)
     kept = _kept(root, archive, day)
     start = (kept[0].day if kept else day) - timedelta(days=1)
@@ -109,8 +110,8 @@ def publish(
     market = _close(archive, YARDSTICK, day) / _close(archive, YARDSTICK, since) - 1
     profit = None if differ else pennies(worth - opened + cash - costs.total)
     held = pennies(settings.capital * market)
-    halted = tuple(h.at for h in halt.on(root, day))
-    record = Record(day, profit, costs.published(), held, differ, worth, len(ledger), halted)
+    halts = tuple(h.at for h in halt.on(root, day)), halt.stopped(root, day)
+    record = Record(day, profit, costs.published(), held, differ, worth, len(ledger), *halts)
     book._write(root / RECORDS, [HEADER, *(_row(r) for r in (*kept, record))])
     return record
 
@@ -133,9 +134,8 @@ def _kept(root: Path, archive: Mapping[Line, Sequence[Bar]], day: date) -> tuple
 
 def _row(r: Record) -> tuple[object, ...]:
     """A record as it is kept: the lines that differ last, as many as there are."""
-    halted = " ".join(called.isoformat() for called in r.halted)
     money = (r.day, r.profit, *astuple(r.costs), r.market, r.worth, r.counted)
-    return (*money, halted, *r.mismatches)
+    return (*money, " ".join(h.isoformat() for h in r.halted), r.stopped, *r.mismatches)
 
 
 def records(root: Path) -> tuple[Record, ...]:
@@ -154,10 +154,11 @@ def records(root: Path) -> tuple[Record, ...]:
             Decimal(row[1]) if row[1] else None,
             Charges(*map(Decimal, row[2:7])),
             Decimal(row[7]),
-            tuple(row[11:]),
+            tuple(row[12:]),
             Decimal(row[8]),
             int(row[9]),
             tuple(map(datetime.fromisoformat, row[10].split())),
+            int(row[11]),
         )
         for row in rows[1:]
     )
@@ -201,8 +202,9 @@ def trade(
     again today. While the book is not the broker's the send path refuses every buy, and the
     sale of a line whose shares differ. rates are the day's pounds per unit of each currency.
     Nothing is sent for a day that is over: its record made, or a later fill in the ledger.
-    Every buy and sale the rules ask for has its answer, and those not filled whole are kept
-    as the morning's list, each under its blocker (halt.morning)."""
+    Every buy and sale the rules ask for has its answer, and each not filled whole goes on
+    the morning's list as it is answered, under its blocker (halt.morning), with the lines
+    no rule could decide."""
     book.collect(root, broker)  #: the stops the open sold
     if later := max((fill.day for fill in book.fills(root) if fill.day > day), default=None):
         raise ValueError(f"{day}: the day is over, the ledger holding a fill of {later}")
@@ -215,26 +217,39 @@ def trade(
     unpriced = sorted({line.currency for line in due.values()} - set(rates))
     if unpriced:
         raise ValueError(f"{day}: no rate in pounds for {unpriced}; nothing sent")
+    _unread(root, tuple(archive), due, day)
     decided = strategy.today(
         {symbol: archive[line] for symbol, line in due.items()},
         {symbol: holders[symbol] for symbol in held if symbol in due},
     )
-    sent = [
-        _send(root, broker, Sale(order_id_of(d), due[d.symbol], held[d.symbol]), settings)
-        for d in decided
-        if d.action is Action.SELL  #: only the rule the book holds the line for can sell
-    ]
+    sent: list[book.Sent] = []
+    for d in (d for d in decided if d.action is Action.SELL):  #: by the rule that holds it
+        sale = Sale(order_id_of(d), due[d.symbol], held[d.symbol])
+        sent.append(_answer(root, day, _send(root, broker, sale, settings)))
     for d in (d for d in decided if d.action is Action.BUY):
         line = due[d.symbol]
         price = archive[line][-1].close, rates[line.currency]
-        sent.append(_buy(root, broker, d, line, price, settings, day))
-    blocked = (
-        halt.Blocked(s.order_id, s.blocker, s.filled, s.reason)
-        for s in sent
-        if s.blocker is not None and s.reason is not None
-    )
-    halt.keep_morning(root, day, blocked)
+        sent.append(_answer(root, day, _buy(root, broker, d, line, price, settings, day)))
     return tuple(sent)
+
+
+def _unread(root: Path, lines: Sequence[Line], due: Mapping[str, Line], day: date) -> None:
+    """Open the morning's list with the lines no rule could decide: its venue trades today
+    and its bars do not end at the session before. A line read now leaves the list."""
+    late = [s.symbol for s in lines if s.symbol not in due and venues.sessions(s.venue, day, day)]
+    why = f"no bar for the session before {day}, so no rule decided"
+    unread = [halt.Blocked(symbol, Blocker.UNREAD, 0, f"{symbol}: {why}") for symbol in late]
+    halt.note(root, day, unread, (line.symbol for line in lines))
+
+
+def _answer(root: Path, day: date, sent: book.Sent) -> book.Sent:
+    """An order's answer, put on the morning's list if it was blocked and taken off if not."""
+    if sent.blocker is None or sent.reason is None:
+        halt.note(root, day, (), (sent.order_id,))
+    else:
+        blocked = halt.Blocked(sent.order_id, sent.blocker, sent.filled, sent.reason)
+        halt.note(root, day, (blocked,))
+    return sent
 
 
 def _buy(

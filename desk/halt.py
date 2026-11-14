@@ -4,7 +4,10 @@ passed. While one is in force the send path refuses every buy, and the rules and
 sell as ever; every day's record names it, that day does not count, and the desk says so each
 day, counting the days. THE BLOCKERS (FIL-04, TRD-01) are everything that can stand between a
 rule's signal and its whole trade, each named once here; every morning's orders leave one list
-of every blocker with the signals it blocked. Sending what is said to him is the messenger's."""
+of every blocker with the signals it blocked. Sending what is said to him is the messenger's.
+WHAT A HALT IS NOT. It cancels nothing: a buy a dead desk left working at the broker can still
+fill, and only the kill switch cancels. Its moments are its caller's word, so the day's verdict
+also reads what the send path did (stopped). And one process at a time calls or lifts."""
 
 from __future__ import annotations
 
@@ -24,15 +27,16 @@ LISTED = ("order_id", "blocker", "filled", "reason")
 
 
 class Blocker(Enum):
-    """EVERY BLOCKER, in the order the day meets them: a signal that did not become its whole
-    trade was stopped by exactly one of these, and its answer names which."""
+    """EVERY BLOCKER. A signal that did not become its whole trade is listed under the first
+    of these it met, and its answer names which; so is a line no rule could decide."""
 
+    UNREAD = "The line has no bar for the session before"
     KILL = "The kill switch is on"
     HALT = "A halt is in force"
     BOOK = "The book is not the broker's"
     HELD = "The line is held already, or was sold this morning"
     GATE = "The pre-trade gate refused it"
-    BROKER = "The broker did not take it whole"
+    BROKER = "The broker, or the desk's door to it, did not take it whole"
 
 
 class Stopped(Refused):
@@ -81,9 +85,9 @@ class Halt:
 
 @dataclass(frozen=True)
 class Blocked:
-    """A signal that did not become its whole trade one morning."""
+    """A signal that did not become its whole trade one morning, or a line not read."""
 
-    order_id: str  #: the signal, by the order it asked for: its day, its rule and its line
+    order_id: str  #: the signal, by the order it asked for; of a line not read, its symbol
     blocker: Blocker
     filled: int  #: the shares that did trade: all but a part fill has none
     reason: str  #: the refusal, or the broker's answer, in its own words
@@ -91,7 +95,7 @@ class Blocked:
 
 def call(root: Path, at: datetime, why: str) -> Halt:
     """A HALT IS CALLED: from now the send path sends no buy. Whoever calls it gives the
-    moment and the reason, and no well-made halt is refused, whatever the record holds; one
+    moment and the reason, and no well-made halt is refused for what the record holds; one
     already in force for that moment and reason is the same halt, and is not kept twice."""
     record, halt = kept(root), Halt(at, why)
     if halt not in record:
@@ -151,10 +155,32 @@ def said(root: Path, day: date) -> str | None:
     return " ".join(halt.words(day) for halt in on(root, day)) or None
 
 
-def keep_morning(root: Path, day: date, blocked: Iterable[Blocked]) -> None:
-    """Keep a morning's list, in place of any kept for that day: as its last run left it."""
-    rows = ((b.order_id, b.blocker.name, b.filled, b.reason) for b in blocked)
-    _keep(root / BLOCKED / f"{day}.csv", LISTED, rows)
+def note(root: Path, day: date, blocked: Iterable[Blocked], whole: Iterable[str] = ()) -> None:
+    """ADD A MORNING'S ANSWERS TO ITS LIST. One blocked is listed in place of any answer it
+    had before; one answered whole (by its order's id) leaves the list; what was answered
+    before and is not answered now stays. So a morning run again, or one that died, loses
+    nothing. The list is there from the first call, for a morning on which none is blocked."""
+    path, blocked = root / BLOCKED / f"{day}.csv", list(blocked)
+    gone = {*whole, *(b.order_id for b in blocked)}
+    listed = [b for b in _listed(path) if b.order_id not in gone] + blocked
+    _keep(path, LISTED, ((b.order_id, b.blocker.name, b.filled, b.reason) for b in listed))
+
+
+def _listed(path: Path) -> list[Blocked]:
+    """A morning's list as it is kept; none kept yet is none listed, for whoever adds to it."""
+    if not path.exists():
+        return []
+    try:
+        return [Blocked(o, Blocker[b], int(n), why) for o, b, n, why in _rows(path, LISTED)]
+    except (KeyError, ValueError) as fault:
+        raise ValueError(f"{path}: not a list of the desk's blockers: {fault!r}") from fault
+
+
+def stopped(root: Path, day: date) -> int:
+    """The signals a morning's list holds under the kill switch or a halt: what the send path
+    did, whatever moments the halts were given. A day whose orders were never sent has none."""
+    found = _listed(root / BLOCKED / f"{day}.csv")
+    return sum(b.blocker in (Blocker.KILL, Blocker.HALT) for b in found)
 
 
 def morning(root: Path, day: date) -> dict[Blocker, tuple[Blocked, ...]]:
@@ -164,10 +190,7 @@ def morning(root: Path, day: date) -> dict[Blocker, tuple[Blocked, ...]]:
     path = root / BLOCKED / f"{day}.csv"
     if not path.exists():
         raise ValueError(f"{day}: no list of blockers, its orders were never sent")
-    try:
-        found = [Blocked(o, Blocker[b], int(n), why) for o, b, n, why in _rows(path, LISTED)]
-    except (KeyError, ValueError) as fault:
-        raise ValueError(f"{path}: not a list of the desk's blockers: {fault!r}") from fault
+    found = _listed(path)
     return {blocker: tuple(b for b in found if b.blocker is blocker) for blocker in Blocker}
 
 
