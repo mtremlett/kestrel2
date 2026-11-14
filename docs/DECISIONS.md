@@ -1645,6 +1645,28 @@ back under 9,000.
 **Driven.** With the ceiling at 10,500, a desk/ of exactly 10,500 lines passed, and one more
 line failed it.
 
+
+## 2026-11-14 — the churn guard: a third fix to one file waits for its mechanism
+
+**His yes**, 14 November about 18:30 ("Yes, Tuesday", gate G-B): a file fixed three or more times
+in its last ten changes fails the check until `docs/FAILURE_PATTERNS.md` names the mechanism.
+Built now, in a session he did not start for it, because nothing trips it today: no product file
+has three fixes in its last ten changes on main (`desk/store.py` and `lab/ladder.py` have two).
+`tests/guards/test_churn.py` reads each product file the change touches, counts the changes
+titled `fix` among its last ten on main, and counts the change itself as one more when its title
+(its pull request's on GitHub, else its commits') starts `fix`. At three, the check fails until
+FAILURE_PATTERNS names the file in backquotes. A lane cannot edit FAILURE_PATTERNS, so a lane
+that meets it stops and writes the finding in its STATUS section; the runner already halts a lane
+earlier, at a second fix, so this is the backstop the runner's halt lacked (pattern 11's debt).
+Only `desk/` and `lab/` count: nearly every change edits the shared documents.
+
+**Driven** in a throwaway clone with made-up histories on main. Failed: a third fix to
+`desk/store.py`; a feat to a file whose last ten changes hold three fixes; a fix after two in the
+last nine; two fix commits on one branch counted as one (three, not four); a pull request titled
+`fix` over commits titled `feat`; a file named without backquotes. Passed: a feat after two
+fixes; fixes eleven changes back; a title `fixed:`; a pull request titled `feat` over `fix`
+commits; a change touching no product file; the file named in backquotes; nothing changed.
+
 ---
 
 ## MONEY
