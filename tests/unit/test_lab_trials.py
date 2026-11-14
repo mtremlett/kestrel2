@@ -62,7 +62,9 @@ def test_the_count_is_kept_from_batch_to_batch(register: Path) -> None:
 
 def test_a_winner_is_corrected_for_every_trial_the_register_holds(register: Path) -> None:
     trials.enter(register, ASKED, NAMES[1:])
-    with pytest.raises(ValueError, match=f"never entered.*{FIVE[0].strategy} [0-9a-f]{{12}} on AAPL"):
+    with pytest.raises(
+        ValueError, match=f"never entered.*{FIVE[0].strategy} [0-9a-f]{{12}} on AAPL"
+    ):
         trials.correct(register, ASKED, [WINNER])
     trials.enter(register, ASKED, [NAMES[0], "dropped one", "dropped two", "dropped three"])
     (eight,) = trials.correct(register, ASKED, [WINNER])
