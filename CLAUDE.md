@@ -54,15 +54,15 @@ direct push, a force-push, a red merge and a branch behind it; each was driven t
 
 **A change that touches a guard** (`BUDGET.json`, `manifest.toml`, `tests/guards/`,
 `check.py`, `.github/`) is announced on the pull request. Tightening one merges like any
-change; loosening one waits for the operator's plain-English yes, asked as a business
-question with options and a recommendation, never "review this".
+change; loosening one is a business question with options and a recommendation, and by
+his standing ruling the recommended option is taken without waiting, then told to him.
 
 ## The operator
 
 He is not an engineer and does not read code or diffs. Write to him in plain English, in
 terms of business behaviour and risk, with options and a recommendation; never ask him
-to review code. He decides: going live, credentials, spend, permissions, moving the
-phase, and any loosening of a guard. Everything else is the session's to decide and own.
+to review code. He alone decides going live, entering credentials and spending money.
+Anything else asked of him takes the recommended option without waiting (13 November).
 All of it is paper: no real money moves until he signs for going live.
 
 ## External systems

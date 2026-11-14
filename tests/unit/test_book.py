@@ -5,14 +5,15 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 from dataclasses import replace
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
 import pytest
 
-from desk import book
+from desk import book, halt
 from desk.broker import Broker, Crash, Fault, Pretend
+from desk.halt import Blocker, Stopped
 from desk.lines import STAMP_DUTY, Line
 from desk.orders import Charges, Order, Refused, Sale, Settings
 from desk.store import Bar
@@ -49,8 +50,8 @@ def test_an_order_is_sent_once_its_fault_stated_and_only_a_lost_one_sent_again(
     broker = Pretend(WEEK, {} if fault is None else {"A": fault})
     broker.open(MON)
     sent = _send(tmp_path, broker)
-    assert (sent.reason is None) == (fault is None)
-    assert sent.reason is None or "o-1" in sent.reason
+    assert (sent.reason is None) == (fault is None) == (sent.blocker is None)
+    assert sent.reason is None or ("o-1" in sent.reason and sent.blocker is Blocker.BROKER)
     assert sent.filled == {None: 10, Fault.PARTIAL: 5}.get(fault, 0)
     assert len(broker.submitted()) == (fault is not Fault.DISCONNECT)
     assert book.fills(tmp_path) == broker.fills()
@@ -172,6 +173,45 @@ def test_while_the_kill_switch_is_on_nothing_is_sent_and_every_refusal_says_why(
             _send(tmp_path, broker, "o-4", SIX[3])
 
 
+def test_while_a_halt_is_in_force_no_buy_is_sent_a_sale_goes_and_a_refusal_names_its_blocker(
+    tmp_path: Path,
+) -> None:
+    broker, at = Pretend(WEEK, {}), datetime(2025, 11, 10, 9, 30, tzinfo=UTC)
+    broker.open(MON)
+    _send(tmp_path, broker)
+    halt.call(tmp_path, at, "the market fell 5%")
+    halt.call(tmp_path, at + timedelta(hours=1), "his word")  #: every halt in force is named
+    words = "o-2: not sent, a halt is in force, called 2025-11-10 09:30 UTC: the market fell 5%"
+    with pytest.raises(Stopped, match=f"{words}; called 2025-11-10 10:30 UTC: his word") as refusal:
+        _send(tmp_path, broker, "o-2", SIX[1])
+    assert refusal.value.blocker is Blocker.HALT and broker.submitted() == ("o-1",)
+    sold = book.send(tmp_path, broker, Sale("s-1", A, 10), ROOM)
+    assert sold == book.Sent("s-1", 10, None), "a sale stopped by a halt"
+    for called in halt.in_force(tmp_path):
+        halt.lift(tmp_path, called, at + timedelta(hours=1), "calm again")
+    assert _send(tmp_path, broker, "o-2", SIX[1]).filled == 10, "lifted, and still nothing bought"
+    door = Account(broker)  #: called while the broker is answering the send path
+    door.between.append(lambda: halt.call(tmp_path, at + timedelta(hours=1), "as it answered"))
+    with pytest.raises(Stopped, match="o-3: .*as it answered"):
+        _send(tmp_path, door, "o-3", SIX[2])
+    assert broker.submitted() == ("o-1", "s-1", "o-2"), "bought after the halt was called"
+    broker.inject("E", 7)  #: each refusal names its blocker: the book, then the switch over both
+    book.turn(tmp_path / "calm", book.Switch.ON, at, "his word")
+    for desk, blocker in ((tmp_path / "calm", Blocker.KILL), (tmp_path / "new", Blocker.BOOK)):
+        with pytest.raises(Stopped) as refusal:
+            _send(desk, broker, "o-4", SIX[3])
+        assert refusal.value.blocker is blocker
+    with pytest.raises(Stopped, match="long only") as refusal:  #: and the gate
+        book.send(tmp_path / "bare", Pretend(WEEK, {}), Sale("s-9", A, 10), ROOM)
+    assert refusal.value.blocker is Blocker.GATE
+    for answer in ((0, "refused", None), (10, None, Blocker.GATE)):
+        with pytest.raises(ValueError, match="o-5"):  #: a reason and no blocker, or the reverse
+            book.Sent("o-5", *answer)
+    (tmp_path / halt.HALTS).write_text("", "utf-8")
+    with pytest.raises(ValueError, match="halt"):  #: unreadable never reads as no halt
+        _send(tmp_path, broker, "o-6", SIX[4])
+
+
 class Account:
     """Any broker, not the pretend one by name: its rows as a real account's door gives them,
     and each reading of them counted."""
@@ -179,7 +219,7 @@ class Account:
     def __init__(self, inner: Pretend) -> None:
         self.report, self.place, self.fills = inner.report, inner.place, inner.fills
         self.cancel = inner.cancel
-        self.inner, self.read, self.between = inner, 0, list[Callable[[], None]]()
+        self.inner, self.read, self.between = inner, 0, list[Callable[[], object]]()
         self.rows, self.resting = (list[tuple[str, Decimal | int]]() for _ in range(2))
 
     def holdings(self) -> Iterable[tuple[str, Decimal | int]]:
