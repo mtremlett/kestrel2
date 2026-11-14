@@ -12,10 +12,11 @@ from pathlib import Path
 
 import pytest
 
-from desk import book, day, venues
-from desk.broker import Broker, Crash, Fault, Pretend
+from desk import book, day, halt, venues
+from desk.broker import Broker, Crash, Fault, Pretend, Report
+from desk.halt import Blocker
 from desk.lines import YARDSTICK, Line
-from desk.orders import Charges, Order, Settings
+from desk.orders import Charges, Order, Refused, Sale, Settings
 from desk.store import Bar
 
 DAYS = venues.sessions("LSE", date(2025, 1, 6), date(2025, 2, 28))[:23]
@@ -72,14 +73,24 @@ def test_the_day_sells_what_each_rule_holds_then_buys_from_the_book_after_each_s
     bought, sold = sent
     assert [s.order_id[-1] for s in bought] == list("ABCDHF"), "G acted on a day not its last"
     assert all(s.reason is None for s in bought[:5]) and "5 holdings" in str(bought[5].reason)
-    assert [s.order_id[-1] for s in sold] == list("ABCD"), "H bought again the morning it sold"
-    assert all(s.reason is None and s.filled > 0 for s in sold)
+    assert bought[5].blocker is Blocker.GATE and not any(s.blocker for s in bought[:5])
+    assert [s.order_id[-1] for s in sold] == list("ABCDH"), "a decision left unanswered"
+    assert all(s.reason is None and s.filled > 0 for s in sold[:4])
+    again = (sold[4].filled, sold[4].blocker)  #: H is not bought again the morning its stop sold
+    assert again == (0, Blocker.HELD) and "H was sold this morning" in str(sold[4].reason)
     assert book.positions(tmp_path) == {} == dict(broker.holdings())
     trips = book.round_trips(tmp_path, tuple(ARCHIVE))
     assert sorted(t.buy.symbol for t in trips) == list("ABCDH")
     broker.open(date(2025, 2, 6))
     with pytest.raises(ValueError, match="GBP"):
         day.trade(tmp_path, ARCHIVE, broker, Settings(Decimal(10_000)), date(2025, 2, 6), {})
+
+    def shut(order: Order | Sale) -> Report:
+        raise Refused(f"{order.order_id}: not sent, the account was not checked today")
+
+    door = Door(Pretend(ARCHIVE, {}))  #: a refusal at the broker's own door is the broker's
+    door.place = shut
+    assert {s.blocker for s in _trade(tmp_path / "shut", door, DAYS[21])} == {Blocker.BROKER}
 
 
 def test_a_day_the_book_is_not_the_brokers_buys_nothing_and_sells_only_lines_that_agree(
@@ -91,14 +102,16 @@ def test_a_day_the_book_is_not_the_brokers_buys_nothing_and_sells_only_lines_tha
     refused = _trade(tmp_path, broker, DAYS[21])
     assert [s.order_id[-1] for s in refused] == list("ABCDHF") and broker.submitted() == ()
     assert all(s.filled == 0 and "['G']" in str(s.reason) for s in refused), "no reason given"
+    assert {s.blocker for s in refused} == {Blocker.BOOK}
     broker.inject("G", -5)
     bought = _trade(tmp_path, broker, DAYS[21])  #: the same morning, once the books agree
     assert [s.filled > 0 for s in bought] == [True] * 5 + [False]
     broker.open(DAYS[22])
     broker.inject("A", -1)  #: one share of A sold by hand
     sold = _trade(tmp_path, broker, DAYS[22])
-    assert [s.order_id[-1] for s in sold] == list("ABCD"), "a sale left unanswered"
-    assert [s.filled > 0 for s in sold] == [False, True, True, True], "A sold, or B to D kept"
+    assert [s.order_id[-1] for s in sold] == list("ABCDH"), "a decision left unanswered"
+    assert [s.filled > 0 for s in sold[:4]] == [False, True, True, True], "A sold, or B to D kept"
+    assert [s.blocker for s in sold] == [Blocker.BOOK, None, None, None, Blocker.HELD]
     assert "['A']" in str(sold[0].reason) and list(book.positions(tmp_path)) == ["A"]
     dying = Pretend(ARCHIVE, {"A": Fault.CRASH})
     dying.open(DAYS[21])
@@ -118,8 +131,9 @@ def test_a_day_with_the_kill_switch_on_sends_nothing_and_every_answer_says_so(
     book.turn(tmp_path, book.Switch.ON, datetime(2025, 2, 5, 7, tzinfo=UTC), "his word")
     broker.open(DAYS[22])  #: H's stop sells at the broker, switch or no switch
     answers = _trade(tmp_path, Door(broker), DAYS[22])
-    assert [s.order_id[-1] for s in answers] == list("ABCD"), "a decision left unanswered"
-    assert all(s.filled == 0 and "kill switch" in str(s.reason) for s in answers)
+    assert [s.order_id[-1] for s in answers] == list("ABCDH"), "a decision left unanswered"
+    assert all(s.filled == 0 and "kill switch" in str(s.reason) for s in answers[:4])
+    assert [s.blocker for s in answers] == [*[Blocker.KILL] * 4, Blocker.HELD]
     assert len(broker.submitted()) == 5 and list(book.positions(tmp_path)) == list("ABCD")
 
 
@@ -137,20 +151,52 @@ def test_the_days_record_is_the_books_gain_after_every_cost_beside_the_markets(
     #: 221 each of A to D bought at 10.5 and of H at 8.5, where each closes: the costs alone,
     #: and five fills' shares worth 11,160.50 for the next day to open from
     first = (DAYS[21], Decimal("-26.16"), pounds[0], Decimal("200.00"), (), Decimal("11160.5"), 5)
-    assert astuple(_run(tmp_path, broker, DAYS[21])) == first
+    assert astuple(_run(tmp_path, broker, DAYS[21])) == (*first, (), True), "no halt: it counts"
     with pytest.raises(ValueError, match="the day is over"):  #: the ledger has later fills
         day.run(tmp_path, MARKET, broker, capital, DAYS[19], {"GBP": Decimal(1)})
     assert len(broker.submitted()) == 5, "orders sent on old decisions, for a day that is over"
     #: A to D sold where they closed, and H by its stop at 8: 110.50 lost, and 27.818 of costs
     last = (DAYS[22], Decimal("-138.32"), pounds[1], Decimal("-98.04"), (), Decimal(0), 10)
-    assert astuple(_run(tmp_path, broker, DAYS[22])) == last
+    assert astuple(_run(tmp_path, broker, DAYS[22])) == (*last, (), True)
     with pytest.raises(ValueError, match="VUAG"):  #: a desk given no yardstick has no record
         bare = Pretend(ARCHIVE, {})
         bare.open(DAYS[21])
         day.run(tmp_path / "bare", ARCHIVE, bare, capital, DAYS[21], {"GBP": Decimal(1)})
     for profit, differ in ((Decimal(1), ("A",)), (None, ())):
         with pytest.raises(ValueError, match="2025-02-05"):  #: a number, or the lines: never both
-            day.Record(DAYS[22], profit, Charges(*pounds[0]), Decimal(0), differ, Decimal(0), 0)
+            day.Record(DAYS[22], profit, Charges(*pounds[0]), Decimal(0), differ, Decimal(0), 0, ())
+
+
+def test_a_day_with_a_halt_in_force_buys_nothing_says_so_in_its_record_and_does_not_count(
+    tmp_path: Path,
+) -> None:
+    broker, early = Pretend(MARKET, {}), datetime(2025, 2, 3, 18, tzinfo=UTC)
+    called = halt.call(tmp_path, early, "the market fell 5%")
+    quiet = _run(tmp_path, broker, DAYS[21])
+    assert broker.submitted() == (), "bought while a halt was in force"
+    assert (quiet.profit, quiet.halted, quiet.counts) == (Decimal("0.00"), (early,), False)
+    blocked = halt.morning(tmp_path, DAYS[21])  #: every buy the rules asked for, and why not
+    assert [b.order_id[-1] for b in blocked[Blocker.HALT]] == list("ABCDHF")
+    assert all(
+        "a halt is in force" in b.reason and "fell 5%" in b.reason for b in blocked[Blocker.HALT]
+    )
+    assert sum(map(len, blocked.values())) == 6
+    halt.lift(tmp_path, called, datetime(2025, 2, 5, 7, tzinfo=UTC), "calm again")
+    lifted = _run(tmp_path, broker, DAYS[22])  #: nor does the day it was lifted on count
+    assert (lifted.halted, lifted.counts) == ((early,), False)
+    assert day.records(tmp_path) == (quiet, lifted), "the halt not kept as it was published"
+    other, selling, late = (
+        tmp_path / "other",
+        Pretend(MARKET, {}),
+        datetime(2025, 2, 5, 6, tzinfo=UTC),
+    )
+    bought = _run(other, selling, DAYS[21])
+    assert (bought.halted, bought.counts) == ((), True)
+    assert [b.order_id[-1] for b in halt.morning(other, DAYS[21])[Blocker.GATE]] == ["F"]
+    halt.call(other, late, "his word")
+    sold = _run(other, selling, DAYS[22])  #: the rules and the stops sell as ever: the same number
+    assert (sold.profit, sold.halted, sold.counts) == (Decimal("-138.32"), (late,), False)
+    assert book.positions(other) == {} and day.records(other) == (bought, sold)
 
 
 def test_a_day_whose_book_is_not_the_brokers_names_the_lines_and_withholds_its_profit(
@@ -162,7 +208,8 @@ def test_a_day_whose_book_is_not_the_brokers_names_the_lines_and_withholds_its_p
     assert _run(tmp_path, broker, DAYS[21]).mismatches == ()
     broker.inject("G", 5)  #: bought by hand, after the day's record
     record = _run(tmp_path, broker, DAYS[22])
-    assert (record.profit, record.mismatches) == (None, ("G",)), "a mismatched day given a number"
+    withheld = (record.profit, record.mismatches, record.counts)
+    assert withheld == (None, ("G",), False), "a mismatched day given a number, or counted"
     sold = (record.costs.commission, record.market)
     assert sold == (Decimal(15), Decimal("-98.04")), "A to D still sold, their costs still shown"
     broker.inject("G", -5)  #: put right the day after: the day stays without a plain number
@@ -174,7 +221,7 @@ def test_a_day_whose_book_is_not_the_brokers_names_the_lines_and_withholds_its_p
     book.record_rates(tmp_path, after, {"GBP": Decimal(1)})
     whole = astuple(day.publish(tmp_path, longer, broker, capital, after))
     costs = tuple(map(Decimal, "15 5.52 7.29 0 0".split()))
-    assert whole[1:] == (Decimal("-138.32"), costs, Decimal("-98.04"), (), Decimal(0), 10)
+    assert whole[1:8] == (Decimal("-138.32"), costs, Decimal("-98.04"), (), Decimal(0), 10, ())
     #: a desk whose first day is withheld: its next number runs from before that first day
     other, late = tmp_path / "other", Pretend(MARKET, {})
     late.inject("G", 5)
@@ -243,7 +290,7 @@ def test_a_record_opens_from_what_the_last_one_closed_on_at_each_days_own_rate(
     #: 400.25 pounds paid for what closes at 510 dollars, 408.255 pounds: 8.005 gained, 1.321
     #: of costs; the worth is kept exact, so the days after add up to the penny
     costs = Charges(*map(Decimal, ("0.8", "0.2", "0.2", "0.12", "0")))
-    assert astuple(first)[1:] == (
+    assert astuple(first)[1:7] == (
         Decimal("6.68"),
         astuple(costs),
         Decimal(0),

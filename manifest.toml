@@ -53,6 +53,7 @@ rungs = []
 "desk/day.py" = "the desk's day: run once for a date, publish one record, replay it"
 "desk/kill.py" = "the kill switch: one command stops every new order and cancels the working ones, the desk says so, and its drill"
 "desk/emergency.py" = "the three emergencies in numbers: an emergency, a crash and a black swan, each a measured fall set in advance, each with its action"
+"desk/halt.py" = "what stops the desk buying: the halt, a typed record in force until it is lifted and said every day, and the blockers, every one named, with each morning's list of the signals each blocked"
 "desk/simcity.py" = "SimCity, small: one command lives the desk's whole day over all the saved data at the pretend broker with its faults and writes the night's one record, with the census of the money path's parts and the scenarios that ran them"
 
 # the paper lane
