@@ -4,7 +4,7 @@
 of its own book); then the costs whole, then the day's record, with which scenes 6 and 7
 pass together.
 
-Scenes passing: **5 of 7**. Phase: **2-money-sim**.
+Scenes passing: **7 of 7**. Phase: **2-money-sim**.
 
 The two lines above belong to the money lane: it alone moves the scenes count. The other
 lanes' objectives are in their own books below. The operator's Telegram line
