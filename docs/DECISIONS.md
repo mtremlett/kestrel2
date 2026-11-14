@@ -1460,6 +1460,24 @@ delete the original stores after import.
 
 ---
 
+## 2026-11-14 — self-contained now, a cloud server later
+
+**His words, about 10:00 UK.** "as we build kestrel2, there should be no link to other
+folders or repo. when kestrel2 is live we can remove all other older folders ... if we are
+using another folder area, then please copy the contents to have zero dependencies. the
+future idea is that all of this desk is packaged and migrated to a cloud server and cloud
+database to avoid the single point of failure which is my current desktop pc."
+
+**Decided.** The desk depends only on its own folders: the repository, its runner, its data
+folder and its notes. The old desks are a quarry. Their code is ported under test, and their
+stores are copied in through the one store's checks, never read in place at run time. Paths
+come from one setting, and the database is named `market.db`, without the project's name,
+behind the one store, so that a server database can replace it. A guard will hold this. Moving
+to a cloud server is a phase 7 step, drilled before real money, and the Windows-only parts of
+the runner sit behind one door so they can be swapped.
+
+---
+
 ## MONEY
 
 ### 2026-11-13 — how the pretend broker behaves
