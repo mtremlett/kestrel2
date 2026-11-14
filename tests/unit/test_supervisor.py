@@ -27,13 +27,14 @@ T0, MIN, HOUR = datetime(2026, 11, 16, 8, tzinfo=UTC), timedelta(minutes=1), tim
 STEP = Job("step", "the_job", 5 * MIN, timedelta(seconds=60))
 OFTEN = replace(STEP, every=40 * MIN)
 BRIEF, KEEPER = replace(STEP, limit=timedelta(seconds=0.5)), Job("keeper", "x", 5 * MIN, 10 * MIN)
-#: A job's program adds its own process's number to a file in the root it is given. Then it
-#: ends well (OK); fails as a lost network would, with words nobody can read and more than a
-#: receipt keeps (LOST); does not end (STUCK); or cannot even end itself at its limit (FROZEN).
+#: A job's program adds its process's number to a file in the root it is given. Then it ends
+#: well (OK); fails as a lost network would, with words nobody can read and too many (LOST);
+#: does not end (STUCK), not even by itself (FROZEN); or is done, a thread of it left (LINGER).
 OK = "import os, sys\nwith open(sys.argv[1] + '/ran.txt', 'a') as f:\n f.write(f'{os.getpid()} ')\n"
 LOST = OK + "sys.stderr.buffer.write(b'\\x81\\n')\nraise SystemExit('the broker is gone ' * 20)\n"
 STUCK = OK + "import threading as t, time\ntime.sleep(60)\n"
 FROZEN = STUCK.replace("\nti", "\n[x.cancel() for x in t.enumerate()[1:]]\nti")
+LINGER = STUCK.replace("time.sleep(60)", "t.Thread(target=time.sleep, args=(60,)).start()")
 #: A supervisor of that one job in a process of its own, as Windows would start it.
 RUN = f"import datetime, pathlib, sys; from desk.supervisor import Job, supervise; supervise(pathlib.Path(sys.argv[1]), [{STEP!r}])"  # noqa: E501
 GONE = ENDED.format(1, ("the broker is gone " * 20)[: supervisor.SAID])
@@ -126,10 +127,10 @@ def test_a_job_killed_from_outside_or_still_running_at_its_time_limit_is_run_aga
         clock.return_value = T0 + n * MIN
         over = Receipt("step", clock(), clock(), OVERRAN.format(BRIEF.limit))
         assert supervisor.attend(root, [BRIEF], clock) == (over,)
-    # none left anything behind: the next run is a new process, and it ends well
-    _program(monkeypatch, tmp_path, OK)
+    # the next run is a new process and done; what lingers of it is ended at the limit too
+    _program(monkeypatch, tmp_path, LINGER)
     clock.return_value = T0 + 15 * MIN
-    assert supervisor.attend(root, [STEP], clock)[0].how == DONE
+    assert supervisor.attend(root, [BRIEF], clock)[0].how == DONE
     assert supervisor.health(root, clock(), [STEP]) == () and _ran(root)[-1] != _ran(root)[0]
 
 

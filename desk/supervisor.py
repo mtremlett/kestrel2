@@ -189,12 +189,13 @@ def work(root: Path, name: str, module: str, limit: float) -> None:
     a dead supervisor left running), this one is refused and runs nothing. At its time limit
     the process ends itself, watched or not, and the system lets go of its lock."""
     with _only(root, f"job-{name}"):
-        ends = Timer(limit, os._exit, (OVERRUN,))
+        code = [OVERRUN]
+        ends = Timer(limit, lambda: os._exit(code[0]))
         ends.daemon = True
         ends.start()
         sys.argv = [module, str(root)]
         runpy.run_module(module, run_name="__main__", alter_sys=True)
-        ends.cancel()
+        code[0] = 0  #: done: whatever of it lingers still ends at the limit, and as done
 
 
 def health(root: Path, now: datetime, jobs: Sequence[Job]) -> tuple[str, ...]:
@@ -272,7 +273,7 @@ def main(argv: Sequence[str], clock: Clock = _now) -> int:
     match argv:
         case ["run", root]:
             try:
-                supervise(Path(root), JOBS, clock)
+                supervise(Path(root), JOBS)
             except Held as other:
                 print(other)  # noqa: T201 - the command's answer to whoever typed it
         case ["work", root, name, module, limit]:
