@@ -31,8 +31,9 @@ module reaches, the cell's bars and its market's, the rates of exchange it was p
 the count of trials and the reproductions behind it. A cell kept under that key is skipped;
 change any of them and it is judged again, and the last line of a cell is its answer now. A
 cell that could not be judged (a line parked or stale, too short a history for a trade, a
-day with no rate) keeps its reason and the time of its last try, and is tried again no sooner
-than 30 minutes after it, whatever the runs between. A line a stop cut short is cut off.
+day with no rate) keeps its reason, its key and the time of its last try: it is tried again at
+once when the key differs, and when it is the same no sooner than 30 minutes after. A line a
+stop cut short is cut off.
 
 THE RATES are the desk's own until the data lane keeps a rate for every day (R-RUNGS-3): each
 day's pounds per dollar comes from `desk/carry.py`, the one rule the desk prices a day by, from
@@ -189,9 +190,7 @@ def _one(
     trials give; else its answers now, or why it could not be judged. It is judged from the
     line's first bar, so that its years are years it could trade in."""
     head: dict[str, Any] = {"set": 1, "cell": batch.row(c), "trials": count}
-    tried = was.get("tried") if was is not None else None  #: a waiting cell's last try
-    if was is not None and tried and now - datetime.fromisoformat(tried) < RETRY:
-        return was  #: it waits on data, and was tried not long ago
+    key = None  #: what this try covers, once the cell's bars are read
     try:
         beside = next(line for line in LINES if line.symbol == MARKETS[c.line.venue])
         own, held = bars(c.line), bars(beside)
@@ -206,12 +205,23 @@ def _one(
         parts = [mine.code, mine.data, market, str(count), *(f"{d} {pounds[d]}" for d in days)]
         parts += [one.key.code + one.key.data for one in made]
         key = hashlib.sha256("\n".join(parts).encode()).hexdigest()
-        if was is not None and was.get("key") == key:
-            return was
+        if was is not None and was.get("key") == key and not _due(was, now):
+            return was  #: kept, or failed on all of this before and tried not long ago
         judged = verdict.judge(c, own, beside, held, pounds, count, made)
         return head | {"key": key, "from": c.start.isoformat()} | judged
     except FAILED as error:
-        return head | {"error": f"{type(error).__name__}: {error}", "tried": now.isoformat()}
+        if was is not None and "error" in was and "key" not in was and not _due(was, now):
+            return was  #: its bars could not be read, and it was tried not long ago
+        return (
+            head
+            | ({} if key is None else {"key": key})
+            | {"error": f"{type(error).__name__}: {error}", "tried": now.isoformat()}
+        )
+
+
+def _due(was: Row, now: datetime) -> bool:
+    """A failed cell is tried again once its last try is 30 minutes old; a kept one never."""
+    return "error" in was and now - datetime.fromisoformat(was["tried"]) >= RETRY
 
 
 def main(env: Mapping[str, str]) -> int:
