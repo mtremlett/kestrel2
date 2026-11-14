@@ -222,8 +222,8 @@ UK tax) and R-MONEY-2 (the scenes on the whole fourteen months).
 - [ ] Disk watched; old research files roll off by rule (OPS-07)
 - [ ] The old stores consolidated, never lost: once the one store holds their bars, verified by
       counts and checksums per ticker and timeframe and by one restore drill, the originals
-      are copied whole to his E: drive; they leave C: only with his explicit yes, asked
-      separately. His mark_the_trend programs are retired (his word, 14 November), so
+      are deleted from C: with his explicit yes, asked then (never copied to E:, his backup
+      drive). His mark_the_trend programs are retired (his word, 14 November), so
       `C:\mtt_cache` is treated like the other stores (DQ-05, OPS-07)
 - [ ] **The old desk's stores as a head start, now** (his ask, 14 November): its daily and
       five-minute bars (Stooq and IBKR stores, and its per-ticker matrices) read in through
