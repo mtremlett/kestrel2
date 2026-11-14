@@ -273,7 +273,7 @@ def _work(desk: Desk, now: datetime) -> None:
     check = bool(rounds or owed) or (awake and not checked)
     if not (check or owed or any(venues.open_at(venue, now) for venue in VENUES)):
         return
-    listings = listing.read(LINES)
+    listings = listing.kept(root, now, LINES)
     broker = placing.Paper(listings, root, lambda: now)
     book.collect(root, broker)
     _drill(root, now)

@@ -6,13 +6,17 @@ broker changes its steps, and it prices some London lines in pence and others in
 Only questions are sent. A line the broker does not list exactly once as the desk's own
 (its name, a share or fund, its currency, an exchange of its venue) is named Unlisted with
 the reason, and the other lines carry on; an answer the desk cannot read or cannot trust
-stops the reading."""
+stops the reading. The broker's answer does not change within a day, so a desk asks once a
+UTC day and keeps the answer on its own record (kept)."""
 
 from __future__ import annotations
 
+import json
 from collections.abc import Iterable
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from decimal import Decimal
+from pathlib import Path
 from typing import BinaryIO
 
 from desk import paper
@@ -162,3 +166,60 @@ def converse(
 def read(lines: Iterable[Line]) -> dict[str, Listing | Unlisted]:
     """Each line as the paper broker lists it now, by its symbol."""
     return paper.dial(lambda wire, send: converse(wire, send, lines))
+
+
+KEPT = "listings"  #: the folder, under the desk's root, of the days' answers: one file a day
+
+
+def _kept_row(listed: Listing | Unlisted) -> dict[str, object]:
+    if isinstance(listed, Unlisted):
+        return {"unlisted": listed.reason}
+    steps = [[str(low), str(step)] for low, step in listed.steps]
+    return {
+        "contract": listed.contract,
+        "exchange": listed.exchange,
+        "magnifier": listed.magnifier,
+        "steps": steps,
+    }
+
+
+def _load(path: Path, lines: tuple[Line, ...]) -> dict[str, Listing | Unlisted] | None:
+    """A day's kept answer as typed listings, checked on entry (a Listing refuses what the
+    desk cannot trust); None when none is kept or it is of other lines than these."""
+    if not path.exists():
+        return None
+    try:
+        rows = json.loads(path.read_text(encoding="utf-8"))
+        if set(rows) != {line.symbol for line in lines}:
+            return None
+        return {
+            line.symbol: Unlisted(line, rows[line.symbol]["unlisted"])
+            if "unlisted" in rows[line.symbol]
+            else Listing(
+                line,
+                rows[line.symbol]["contract"],
+                rows[line.symbol]["exchange"],
+                rows[line.symbol]["magnifier"],
+                tuple((Decimal(low), Decimal(step)) for low, step in rows[line.symbol]["steps"]),
+            )
+            for line in lines
+        }
+    except (KeyError, TypeError, ValueError, ArithmeticError) as fault:
+        raise ValueError(f"{path}: a kept listing the desk cannot read: {fault!r}") from fault
+
+
+def kept(root: Path, now: datetime, lines: Iterable[Line]) -> dict[str, Listing | Unlisted]:
+    """Each line as the broker lists it, asked of the broker once for the UTC day of now and
+    kept whole in the desk's root; later steps of the day use the kept answer. A reading that
+    fails keeps nothing, so the next step asks again."""
+    wanted = tuple(lines)
+    path = root / KEPT / f"{now.astimezone(UTC).date()}.json"
+    known = _load(path, wanted)
+    if known is not None:
+        return known
+    answer = read(wanted)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    written = path.with_suffix(".tmp")
+    written.write_text(json.dumps({k: _kept_row(v) for k, v in answer.items()}), encoding="utf-8")
+    written.replace(path)
+    return answer
