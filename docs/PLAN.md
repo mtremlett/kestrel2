@@ -42,9 +42,13 @@ lines to `desk/` and `lab/` together.
 the end of its text: `{id: money-kill; files: desk/kill.py, tests/unit/test_kill.py; after:
 money-costs}`. The id is unique; `files` names every file the box changes (globs allowed,
 `docs/PLAN.md` only for a box that moves the scenes count, `*` for one that must hold all
-the lane's files); `after` names the boxes, of any lane, done first. The runner gives a
-session the first box whose `after` boxes are done and whose files no running session
-holds; its files are the session's claim. A box with no note is serial work: one session,
+the lane's files); `after` names the boxes, of any lane, done first; `waits` names what
+the box waits on outside the lane: a request (`R-RUNGS-6`), a date (`2026-11-21`) or
+`operator`. The runner gives a session the first box whose `after` boxes are done, whose
+waits are met and whose files no running session holds; its files are the session's claim.
+A box blocked outside the lane is never handed out again: the session says `Waits: ...` in
+its pull request, or the doctor finds it, and the runner holds it back until the request is
+done or the date comes, freeing the boxes after it that do not truly need it. A box with no note is serial work: one session,
 alone in its lane, claim `*`. A lane whose next five boxes are not all noted is asked to
 note them first. The claim is in the session's pull request as `Claim: ...`, and the check
 refuses a change outside it and a lane's pull request without one
