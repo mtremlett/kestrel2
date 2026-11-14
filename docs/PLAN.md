@@ -329,7 +329,8 @@ day's trading and reconciliation are built, and any broker can stand behind them
       tests/scenes/test_scenes.py, manifest.toml; after: money-kill, money-record}
 - [ ] **First, from SimCity's red night:** the send path counts orders still working, so a desk
       that died mid-send never holds more than five lines; any broker says which of the desk's
-      own orders are still working; SimCity's night turns green and its pin (`SIX_HELD`) goes
+      own orders are still working; a sale left working by a dead desk with its stop resting under
+      it sells twice (the desk ends short): cover that too; SimCity's night turns green and its pin (`SIX_HELD`) goes
       {id: money-working; files: desk/book.py, desk/broker.py, desk/orders.py, desk/kill.py,
       desk/simcity.py, tests/unit/test_book*.py, tests/unit/test_broker*.py,
       tests/unit/test_orders*.py, tests/unit/test_kill*.py, tests/unit/test_simcity*.py;
@@ -344,9 +345,10 @@ day's trading and reconciliation are built, and any broker can stand behind them
 - [ ] (Every box adding a public function to strategy, orders, broker, book, day or kill also
       needs `desk/simcity.py, tests/unit/test_simcity*.py` in its files, one session at a time;
       a function no scenario runs turns the check red: halts and limits among them.)
-- [ ] Halts: a halt is a typed record; while one is in force the desk buys nothing and says so
+- [x] Halts: a halt is a typed record; while one is in force the desk buys nothing and says so
       every day until it is lifted, and the day's verdict reads it; each morning one list of
-      every blocker and every signal it blocked (FIL-08, NS-06, FIL-04, TRD-01)
+      every blocker and every signal it blocked (FIL-08, NS-06, FIL-04, TRD-01). Done in #148;
+      remains: a halt cancels no working buy (money-watch), SimCity lives no halted day, NS-10 reads `Record.counts`
       {id: money-halts; files: desk/halt.py, desk/day.py, desk/book.py,
       tests/unit/test_halt*.py, tests/unit/test_day*.py, tests/unit/test_book*.py,
       manifest.toml; after: money-kill, money-record}
@@ -376,8 +378,9 @@ day's trading and reconciliation are built, and any broker can stand behind them
       {id: money-stranger; files: desk/day.py, desk/book.py, desk/orders.py,
       tests/unit/test_day*.py, tests/unit/test_book*.py, tests/unit/test_orders*.py;
       after: money-halts}
-- [ ] SimCity widened: a hundred seeded worlds with faults and drills, not one rehearsal
-      world (TST-05, TST-22)
+- [x] SimCity widened: a hundred seeded worlds with faults and drills, not one rehearsal
+      world (TST-05, TST-22). Done in #150; remains: a nightly run on his PC with its records, worlds
+      that deal every line's months alike, which worlds and code/data versions in the record
       {id: money-worlds; files: desk/simcity.py, tests/unit/test_simcity*.py;
       after: money-simcity}
 - [ ] Small and illiquid trades: a trade whose expected gain is under twice its round-trip
