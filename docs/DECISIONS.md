@@ -1367,6 +1367,24 @@ the delayed kind; the data lane proves that first, read-only.
 
 ---
 
+## 2026-11-14 — phase 3 begins: phase 2's scenes all pass
+
+**Found.** At 08:00 on Saturday 14 November, scenes passed 7 of 7: phase 2's goal, the money
+path in simulation, is met. The desk had 5,421 of phase 2's 7,000 lines and was growing about
+320 lines an hour across twelve sessions, so the ceiling would have turned every money, paper
+and data change red within about five hours. The paper lane has worked in phase 3 since his
+ruling of 13 November.
+
+**Decided.** `BUDGET.json` names `3-money-paper`, whose ceilings (9,000 lines of desk code in
+55 files) were agreed before phase 0 began. Its lab ceiling is set to 7,000, not the 1,500
+written then: he raised the lab to 7,000 on 13 November for the ladder lanes that now run
+alongside, and moving the phase must not take that back. Nothing else changes. This loosens
+a ceiling and moves the phase, both his to decide. He has ruled that a question put to him
+takes its recommended option without waiting (13 November, about 21:05). This was the
+recommended option, taken by his coordinating session and told to him.
+
+---
+
 ## MONEY
 
 ### 2026-11-13 — how the pretend broker behaves
