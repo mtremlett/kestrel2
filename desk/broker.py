@@ -54,7 +54,8 @@ class Disconnected(ConnectionError):
 
 class Broker(Protocol):
     """Any broker the send path and the day run can stand on: the pretend one below, the
-    paper account behind its door. They ask it five questions, and the kill switch a sixth.
+    paper account behind its door. They ask it five questions; the kill switch asks a sixth,
+    and so does the send path of a desk that died mid-send, before it sends again.
     An answer it cannot give whole is an error raised, never a shorter answer."""
 
     def report(self, order_id: str) -> Report | None:
@@ -66,7 +67,9 @@ class Broker(Protocol):
         """Receive the order and give its last answer: what it did not fill is cancelled,
         never left working. A buy leaves one stop resting on its line, for all the shares
         held, at the order's stop; a sale takes its shares off that stop. Disconnected, and
-        nothing else, says the order never arrived: only then is it sent again."""
+        nothing else, says the order never arrived: only then is it sent again. Refused is
+        the door's own word that it sent nothing. Any other error, and the desk does not know:
+        the order may be working, and is cancelled before the desk sends again."""
 
     def fills(self) -> Iterable[Fill]:
         """The fills of the desk's own orders and their stops, in the order they were made:
@@ -148,8 +151,12 @@ class Pretend:
             raise Crash(f"{order.order_id}: the desk died before the broker's answer reached it")
         return report
 
+    def working(self) -> tuple[str, ...]:
+        """Every order a dead desk left working here, unfilled, by the desk's order id."""
+        return tuple(self._working)
+
     def cancel(self) -> tuple[str, ...]:
-        cancelled = tuple(self._working)
+        cancelled = self.working()
         for order_id in cancelled:
             self._reports[order_id] = Report(order_id, (), f"{order_id}: cancelled, none filled")
         self._working.clear()

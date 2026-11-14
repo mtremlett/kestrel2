@@ -10,8 +10,9 @@ these refuse it in the check, on GitHub, before anything merges:
   may change, given it by the runner and written in its pull request as `Claim: ...`.
   The check reads the claim from the pull request on GitHub, or from KESTREL_CLAIM on
   the PC, and refuses a change outside it. A lane's pull request without one fails;
-- every `{id: ...; files: ...; after: ...}` note on a book's box parses, its id is
-  unique, and each `after` names a box that exists, so the runner can hand boxes out.
+- every `{id: ...; files: ...; after: ...; waits: ...}` note on a book's box parses, its
+  id is unique, each `after` names a box that exists, and each `waits` is a request
+  number, a date or `operator`, so the runner can hand boxes out and hold back the rest.
 
 Ruled 13 November 2026 (docs/DECISIONS.md).
 """
@@ -35,8 +36,10 @@ SHARED = ("docs/STATUS.md", "docs/PLAN.md", "docs/SCOREBOARD.md", "docs/DECISION
 MAX_NET_PRODUCT_LINES = 300
 CLAIM_LINE = re.compile(r"^Claim:[ \t]*(.+?)[ \t]*\r?$", re.MULTILINE)
 WHOLE_LANE = "*"  #: a claim of every file the lane owns: its serial work
-NOTE = re.compile(r"\{((?:id|files|after):[^{}]*)\}")
+NOTE = re.compile(r"\{((?:id|files|after|waits):[^{}]*)\}")
 ID = re.compile(r"[a-z]+-[a-z0-9-]+")
+#: what a box may wait on outside its lane: a request, a date, or the operator
+WAIT = re.compile(r"R-[A-Z]+-\d+|\d{4}-\d\d-\d\d|operator")
 BOX = re.compile(r"^- \[[ x]\] (.*(?:\n[ \t]+\S.*)*)", re.MULTILINE)  #: a box, wrapped lines too
 
 
@@ -196,12 +199,14 @@ def _notes(plan: str) -> list[dict[str, list[str]]]:
         fields: dict[str, list[str]] = {}
         for part in note.split(";"):
             key, sep, value = part.partition(":")
-            assert sep and key.strip() in ("id", "files", "after"), f"bad note {{{note}}}"
+            assert sep and key.strip() in ("id", "files", "after", "waits"), f"bad note {{{note}}}"
             fields[key.strip()] = [v.strip() for v in value.split(",") if v.strip()]
         assert len(fields.get("id", [])) == 1 and ID.fullmatch(
             fields["id"][0]
         ), f"a note needs one id like money-kill: {{{note}}}"
         assert fields.get("files"), f"a note names the files its box changes: {{{note}}}"
+        bad = [w for w in fields.get("waits", []) if not WAIT.fullmatch(w)]
+        assert not bad, f"a box waits on a request, a date or operator, not {bad}: {{{note}}}"
         notes.append(fields)
     return notes
 
