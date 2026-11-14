@@ -94,6 +94,13 @@ The machinery that refuses, before any desk code.
 - [ ] An independent reviewer that never sees the reasoning
 - [x] One Telegram line to the operator for each change that lands on main (his request,
       13 November: he follows progress without reading GitHub)
+- [ ] **Self-contained and portable** (his ruling, 14 November): the desk runs only from its
+      own folders (this repository, its runner, its data folder and its notes) and reads
+      nothing in any other repository or store at run time. Whatever it needs from the old
+      desks is copied in through the one store's checks or ported as code under its own
+      test. Every path comes from one setting; the database has a generic name (`market.db`)
+      behind the one store, so it can later be a server database. A guard fails a change that
+      names a folder outside these (OPS-15)
 - [ ] Standing guards still owed, each built by a session he starts (the spec's NOW rows):
       a secret scan on every change (OPS-11); a number with a second home caught (CODE-04);
       dead modules and duplicates caught (TST-11); a stale green treated as red (GOV-13);
@@ -728,6 +735,11 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       BIC-07)
 - [ ] A ramp, not a switch: live compared with paper every day, a gap pausing the ramp
       (MIG-03, MIG-04)
+- [ ] **Off the single PC:** the desk packaged and moved to a cloud server with a cloud
+      database, so his desktop is no longer a single point of failure; the runner's
+      Windows-only parts (scheduled tasks, the memory ceiling) kept behind one door so they
+      can be swapped; IB Gateway and the secrets on the server; the move drilled before any
+      real money (OPS-15)
 - [ ] The desk rebuilt on a clean PC within two hours, its stops resting at the broker
       meanwhile (OPS-15)
 - [ ] Records kept for their statutory years and reconciled each year to the broker's
