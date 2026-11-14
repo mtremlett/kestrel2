@@ -165,9 +165,10 @@ def _holding(fields: list[str]) -> Holding:
 def _order(fields: list[str], states: Mapping[str, tuple[str, Decimal]]) -> Resting:
     """Only the head of the message is read: the line, the order and who placed it, and a
     stop's level. It stands where the broker last said (states, by its ids): one it told no
-    state of is no order the desk can read."""
-    if len(fields) < 26:
-        raise ValueError(f"an order of a shape the desk does not read: {fields}")
+    state of is no order the desk can read, nor is one under no id of the broker's, for by
+    that id one order is told from another."""
+    if len(fields) < 26 or not (fields[25].isascii() and fields[25].isdigit() and int(fields[25])):
+        raise ValueError(f"an order of a shape the desk does not read, or under no id: {fields}")
     its, contract, symbol, action, shares, kind, level, account, ref, client, broker_id = (
         fields[n] for n in (1, 2, 3, 13, 14, 15, 17, 20, 23, 24, 25)
     )
@@ -209,7 +210,9 @@ def start(wire: BinaryIO, send: Send) -> int:
 def converse(wire: BinaryIO, send: Send) -> Account:
     """Read the account over an open connection: once it is started, ask for every holding
     and every open order, reading until the gateway says both lists are whole. Each order
-    is then read with the state the broker last told of it, wherever in the answer it came."""
+    is then read with the state the broker last told of it, wherever in the answer it came.
+    One told more than once is one order, by the broker's id for it, as last told: the gateway
+    tells an order again, unasked, as it settles it (seen of a real stop, 14 November 2026)."""
     start(wire, send)
     send(message(ASK_HOLDINGS, 1) + message(ASK_ORDERS, 1))
     holdings: list[Holding] = []
@@ -226,7 +229,8 @@ def converse(wire: BinaryIO, send: Send) -> Account:
             states.update([_state(fields)])
         else:
             whole.add(other(fields))
-    return Account(tuple(holdings), tuple(_order(fields, states) for fields in orders))
+    told = {order.broker_id: order for order in (_order(fields, states) for fields in orders)}
+    return Account(tuple(holdings), tuple(told.values()))
 
 
 def dial(talk: Callable[[BinaryIO, Send], T]) -> T:
