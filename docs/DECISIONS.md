@@ -1651,7 +1651,7 @@ line failed it.
 and CANON.md at most 200, the canon trimmed by merging rules, not deleting them. The canon said
 "Limit: 200 lines, held by a guard" and stood at 225 with no guard: the promise in prose had
 already been broken. `BUDGET.json` now holds both caps, so loosening one is announced as a guard
-change; `test_the_rulebooks_stay_short` reads them. The canon went to 191 lines by merging rules
+change; `test_the_rulebooks_stay_short` reads them. The canon went to 190 lines by merging rules
 said twice (A1's stop rule into A8, A5's repeats of A3, A4 and A9 into one line, A9's
 work-around rule into A1.3; A5's ban on proof scripts and second objectives left to A3 and A9,
 which already say it) and dropping blank lines and separators. No rule was removed; a blind
