@@ -1645,6 +1645,21 @@ back under 9,000.
 **Driven.** With the ceiling at 10,500, a desk/ of exactly 10,500 lines passed, and one more
 line failed it.
 
+## 2026-11-14 — CLAUDE.md and CANON.md held to their limits by a guard
+
+**Approved** in the after-first-light queue (item 5): a guard reading CLAUDE.md at most 80 lines
+and CANON.md at most 200, the canon trimmed by merging rules, not deleting them. The canon said
+"Limit: 200 lines, held by a guard" and stood at 225 with no guard: the promise in prose had
+already been broken. `BUDGET.json` now holds both caps, so loosening one is announced as a guard
+change; `test_the_rulebooks_stay_short` reads them. The canon went to 190 lines by merging rules
+said twice (A1's stop rule into A8, A5's repeats of A3, A4 and A9 into one line, A9's
+work-around rule into A1.3; A5's ban on proof scripts and second objectives left to A3 and A9,
+which already say it) and dropping blank lines and separators. No rule was removed; a blind
+review found "never declare done without the check's output" dropped, and it is back in A6.
+
+**Driven.** A canon of 201 lines failed and one of exactly 200 passed; a CLAUDE.md of 81 lines
+failed; a budget that forgot CLAUDE.md's cap failed; a cap of 150 under the canon
+failed. Each named the file and its count.
 
 ## 2026-11-14 — the docstring ratchet: undocumented public definitions never rise
 
@@ -3799,6 +3814,8 @@ Decided by the PAPER lane as the desk's mentor, no one watching.
 **Remains.** The pin and the manifest's `allowed_third_party`, then the readers.
 
 **14 November, later.** The four `Source` names are on main (#203). The pin was tried again under a claim naming `requirements.txt`: `tests/guards/test_lanes.py` still refuses the file to the DATA lane whatever the claim says, so it needs `requirements.txt` added to a lane's files in `manifest.toml` `[lanes]` (a guard loosening: recommended, taken, DATA's list), in a session whose claim holds `manifest.toml`.
+
+**His approval, 14 November ~20:05**, in chat, answering "pyarrow: it lets the old-store readers open the old stores' files, which gives the ladder years of extra history ... My recommendation is yes": "Yes, allow pyarrow". Pinned as `pyarrow==22.0.0`, the version already installed on the desk's PC (so the jobs need no install), and added to `lab`'s `allowed_third_party` only. `desk/` stays standard library; the wall guard still refuses it there. Made by the coordinator in a non-lane change, because no lane may touch `requirements.txt` or `manifest.toml`'s third-party lists; the lanes table is unchanged.
 
 ### 2026-11-14 — the old stores as a head start, as a command (data-headstart, #190)
 - Where the register is found. Options: a new environment variable; an argument; the notes folder next to the data folder. Chosen: next to the data folder (`KESTREL2_DATA/../kestrel2_notes/data_register.md`), so every path still comes from the one setting (OPS-15).
