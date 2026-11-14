@@ -1392,6 +1392,28 @@ it armed-ready and named in its STATUS section, for the next session he talks to
 
 ---
 
+## 2026-11-14 — no books bought; the old stores as a head start; the ladder in published sets
+
+**His words, about 08:30 UK on 14 November.** "why do i need to buy a book. right now i
+cannot afford it, so instead, research on the internet and find a best fit answer. when
+ladder is working we can try variants to then test which is the favoured ones." And: the
+fast and second stores "were already built in the kestrel repo. maybe you can copy the
+contents?" And: "will you test in sets and then publish findings results as you iterate ...
+what is the graduation process into paper trading?"
+
+**Decided by the mentor, as his rulings allow.** No book is bought (that would be spending,
+his alone, and he has said no). Where an author's table is not free, the best published
+replication found on the internet stands in, labelled secondary, with its source written
+down, and reproduction must land inside the range the sources give. This replaces "RSI-2
+waits for the book" of this morning. The old desk's Stooq and IBKR stores and its matrices
+are read in now as a head start, every bar re-checked on entry and the fresh bar winning
+where they differ; their stored indicators are only a cross-check, never copied, since an
+indicator kept in two places is the second-home failure. The ladder runs in sets, each
+published as it finishes, and a strategy graduates to paper only through all eleven rungs
+and the luck test, named in the plan before its first paper day.
+
+---
+
 ## MONEY
 
 ### 2026-11-13 — how the pretend broker behaves
