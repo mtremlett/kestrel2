@@ -20,8 +20,8 @@ forgotten — the first desk proved that with 56 lessons and 64 deny rules.
    model, one engine, one source of truth — not from checks bolted on afterwards.
 3. **Less code is progress.** Deleting dead code, scaffolding and duplicates is
    high-value work. Never grow the codebase to work around a problem.
-4. **Always green.** The check passes before every commit, and a passing scene never
-   regresses.
+4. **Always green.** The whole check passes on GitHub before every merge, and a passing
+   scene never regresses.
 5. **Evidence over assumption.** Read the code, reproduce it, run the check. No claim
    without proof from this session.
 6. **Small, reversible steps.** One concern per commit.
@@ -116,7 +116,8 @@ affected, and the test that will prove it.
 3. **Test first.** Write the scene or contract test and watch it fail for the right
    reason. For pure restructuring, confirm the tests already cover the behaviour.
 4. **Change.** The smallest change, at the source.
-5. **Verify.** Run the whole check and read the output.
+5. **Verify.** Locally, the fast check and the tests of what changed; then push, and read
+   GitHub's whole check. Run the whole check on the PC only to chase a red.
 6. **Review.** An independent reviewer that never saw the reasoning. Fix every blocking
    finding.
 7. **Commit.** One logical change, prefixed `feat`, `fix`, `refactor`, `test`, `docs` or
@@ -124,7 +125,7 @@ affected, and the test that will prove it.
 8. **Record.** `docs/STATUS.md`, `docs/PLAN.md`, and `docs/DECISIONS.md` or
    `docs/FAILURE_PATTERNS.md` where relevant.
 
-**Done** means: the check green locally and on GitHub, tests seen failing first,
+**Done** means: the fast check green locally, the whole check green on GitHub, tests seen failing first,
 reviewer passed, documents updated, committed, and a plain-English report given.
 
 ## A7. Prove the guard, never trust it
