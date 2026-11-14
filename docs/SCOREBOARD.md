@@ -52,6 +52,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #176 notes for the runner: all eleven open boxes of the money book noted, the standing SimCity rule folded into eight boxes' files; docs only. |
 | 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #185 R-RUNGS-6/12: the RSI and Bollinger's lower band public by name (`strategy.rsi`, `strategy.lower_band`), the rules trading on them; no number moved; 7 breaks, all caught; a blind review, nothing blocking. |
 | 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #191 money-restop, first step: a stop lost at the broker is told the same day with the stop, shares and level to put back; the desk keeps every stop's level; SimCity promises it. 8 breaks, all caught; two blind reviews, nothing blocking. |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #200 money-simcity-command: `python -m desk.simcity [--full]` runs SimCity as a plain-code job, red night = exit 1; 2 deliberate breaks, 2 caught (R-RUNNER-23). |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #207 sixth frozen rule `ema_9_21` on main as a WIRING strategy, listed apart from the five, never an A-GATE candidate; tested by hand, future-blind and against a second implementation; 13 breaks caught; not yet run by the desk or the ladder (R-RUNNER-20). |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #208 carry rule in `desk/carry.py` + `book.rate`: the pound's rate carried over a UK-only holiday, at most 3 US sessions; 2025-04-21 and 2025-12-26 under test (R-RUNNER-26, part). |
 
 ### DATA
 
@@ -75,6 +78,14 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-13 | 5 of 7 | - | - | - | 14 of 14 proven | green | #97 data-five-minute: five-minute bars saved for good through the daily store's checks, 74,845 real bars on 22 lines kept on the first night with no fault; 38 deliberate breaks driven; a blind review's 2 blocking findings fixed.
 | 2026-11-14 | 5 of 7 | - | - | - | 14 of 14 proven | green | #175 data-headstart (first step): the old desk's five-minute bars as a head start, each bar with its source, fresh wins (237,402 + 8,191 bars pass on a copy; the real store after R-RUNNER-10) | 36 deliberate breaks, 35 caught and the last closed | blind review: 1 blocking, fixed |
 | 2026-11-14 | 5 of 7 | - | - | - | 14 of 14 proven | green | #180 the data lane's open boxes in working order, 14 more noted for the runner (23 of 32 open boxes can now be handed out) | fast check green; notes read by the guard | no review (one document) |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #190 data-headstart: `python -m lab.headstart` reads the register's IMPORT stores into market.db, resumable, one line of counts; 245,593 old five-minute bars tried in on the real stores. |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #188 data-keeper (archive half, R-RUNNER-7): one command refreshes each venue's daily bars morning and evening and takes the five-minute round in hours; a blind venue exits 1. 3 tests, 23 of 23 breaks caught, driven on the real archive. |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #196 data-headstart: docstring only, no reader landed; stooq_raw needs a Source, parquet needs a library. |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #199 R-RUNNER-18 `python -m desk.bars --audit` built and run on the real store (22 lines, 320,438 bars, 0 faults, 18 s). |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #203 R-RUNNER-24 half: four Sources added; the pyarrow pin blocked by the lane guard. |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #204 `python -m desk.snapshot` nightly backup command, R-RUNNER-13 done. |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #205 R-RUNNER-24 half done: Sources on main, the pyarrow pin blocked by the lane guard (docs only). |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #209 3LGO's daily history command (R-RUNNER-21): 2,816 clean bars, database cross-check 7 of 9, line unparked. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
@@ -104,6 +115,8 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-14 | 7 of 7 | 4426 | 3300 | 8212 | 14 of 14 proven | green | #142 paper-messages: the desk's one voice (`desk/messenger.py`): one door to his phone, one delivery record, each message once; morning (08:00 UK) and evening (21:05) messages, neither in his night; Sunday login reminder; alarm on silence asked from outside the desk. Nothing calls it; no real message sent. |
 | 2026-11-14 | 7 of 7 | 5024 | 3925 | 9193 | 14 of 14 proven | green | #152 paper-running: the unattended day as one step (`desk/running.py`): fills, check, recovery of what a stopped desk left, each market's orders once, the day's record; adapter refuses an order not dated the session before (R-MONEY-8). Nothing asks for a step; no order sent. |
 | 2026-11-14 | 7 of 7 | 5443 | 3926 | 9651 | 14 of 14 proven | green | #155 paper-kill-drilled: the unattended desk drills its kill switch each day before its check, orders and record; a failed drill stops the day and is told to him. Nothing asks for a step; no order sent. |
+| 2026-11-14 | 5 of 7 | 3950 | 2721 | 6938 | 14 of 14 proven | green | The paper adapter is whole: a buy goes to the paper account with its stop (held back until the stop is sent behind it, so the broker holds the stop from the moment it has the buy), and after any order the line is left under one stop of the desk's own for the shares held, the new one resting before any old one is cancelled; a sale takes its shares off the stop. Nothing sent to the real account: questions only, all quiet. A blind review's one blocking finding (the stop sized by the desk's sums alone) fixed: the broker's word, its fills and the account's shares must agree or an error is raised and the stops left alone. Deliberate breaks: 60, then 31 on the final code; the same 2 cannot differ in a test. Next: the conformance trades. |
+| 2026-11-14 | 5 of 7 | unchanged | unchanged | unchanged | unchanged | green | The paper book's next six boxes noted for the runner; nothing built, scenes 7 of 7. |
 
 ### GRID
 
