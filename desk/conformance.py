@@ -5,22 +5,22 @@
 One run for each market, in its hours, on the PAPER account: the real broker is given the
 orders the desk's day will give it, through the desk's own send path (book.send), and each
 real result is recorded beside the pretend broker's (broker.Pretend) in `conformance` under
-the folder the environment names (KESTREL2_DATA): a desk of its own, so no conformance fill
-counts as the desk's trading. The session that owns the box compares the two.
+the folder the environment names (KESTREL2_DATA). It is A DESK OF ITS OWN, with a record and
+a client id of its own (CLIENT): whose an order or a fill is, is told by the client that
+placed it, so neither desk takes the other's fills into its ledger or cancels its orders.
 
 THE STEPS (`_steps`), on the venue's plain line that traded the most money in its last
-session: a rejection (one share of a line the instrument master records as one no retail
-customer may buy); a market buy of one share, its stop resting; its sale, the stop cancelled;
-a buy of the desk's own size (a part fill, if the broker gives one, shows in its fills); that
-buy's stop made to sell (the real one is put above the market, `_raised`; the pretend one's
-market falls to it); and the account left as found. A step that fails is recorded as failed,
-in the error's words; none after it is tried but the last, which puts the account back.
+session: a rejection (one share of a line the instrument master says no retail customer may
+buy); a market buy of one share, its stop resting; its sale, the stop cancelled; a buy of
+the desk's own size (a part fill, if given, shows in its fills); that buy's stop made to sell
+(the real one is put above the market, `_raised`; the pretend one's market falls to it); and
+the account left as found. A step that fails is recorded as failed, in the error's words;
+none after it is tried but the last, which puts the account back.
 
 NOTHING IS DONE, code 0: the market is not in continuous trading, or the rejection's is shut
 today; a whole run of the market is on record; or today's is, whole or not (one that failed
-is tried again on a later day). NOTHING IS SENT, code not 0, unless the gateway is ready, the
-kill switch off and drilled, and the day's check finds the account quiet. The pretend
-broker's whole run is made before the first real order goes."""
+is tried again on a later day). NOTHING IS SENT, code not 0, unless the gateway is ready, both
+desks' kill switches off, this one's drilled, and the account QUIET: nothing held, no order open."""
 
 from __future__ import annotations
 
@@ -39,18 +39,19 @@ from desk.broker import Broker, Fault, Pretend
 from desk.command import CAPITAL
 from desk.lines import LINES, Line
 from desk.listing import Listing
-from desk.orders import Order, Sale, Settings, order_id_of, size
+from desk.orders import Order, Refused, Sale, Settings, order_id_of, size
 from desk.running import DAY, VENUES
 from desk.store import Bar
 from desk.strategy import Action, Decision
 
 MARKETS = {"london": "LSE", "us": "US"}  #: the command's word for each venue
-USAGE = "python -m desk.paper --conformance london|us"
+CLIENT = 223  #: the conformance desk's own client id at the gateway: the desk's is paper.CLIENT
 ROOT, HEAD = "conformance", ("at", "step", "real", "pretend")
 WHOLE, FAILED, UNTRIED = "the run", "FAILED, ", "not tried: an earlier step failed"
 ROOM = Settings(CAPITAL)  #: the desk's one capital sizes the orders, as on its own day
-ABOVE = Decimal("1.05")  #: a stop put this far above the price just paid is above the market
-WAITS = 30  #: the seconds a stop put above the market is given to sell
+ABOVE, WAITS = Decimal("1.05"), 30  #: a stop this far above the price paid; its seconds to sell
+Wait = Callable[[float], None]  #: what lets a second pass
+Fall = Callable[[Order], None]  #: the market made to reach a buy's stop, which then sells
 NOTHING, BARRED = "CONFORMANCE {}: nothing done, {}.", "CONFORMANCE {} NOT BEGUN, nothing sent: "
 DONE = "CONFORMANCE {}: {} of {} steps done on {}, each recorded beside the pretend broker's in {}."
 AMISS = " FAILED: {}. A later day tries again; the last step named, THE ACCOUNT IS NOT AS FOUND."
@@ -73,13 +74,12 @@ class Side:
 
     root: Path
     broker: Broker
-    check: Callable[[], Sequence[str]]  #: the day's check, run now: what it names, if anything
-    fall: Callable[[Order], None]  #: the market made to reach a buy's stop, which then sells
+    check: Callable[[], Sequence[str] | None]  #: the day's check, run now: what it names
+    fall: Fall
 
 
 def _named(line: Line, today: date, name: str) -> Decision:
-    """What an order of the run is named by, a buy's or a sale's: its line, and the session of
-    its venue before today, as the paper door asks of every order (placing.Paper._cleared)."""
+    """An order's name: dated its venue's session before today (placing.Paper._cleared)."""
     before = venues.sessions(line.venue, today - 9 * DAY, today)[-2]
     return Decision(name, line.symbol, before, Action.BUY)
 
@@ -94,9 +94,8 @@ def _last(line: Line, today: date) -> Bar:
 
 
 def plan(lines: Sequence[Line], refused: Line, today: date, fx: Mapping[str, Decimal]) -> Plan:
-    """The run's orders: on the line, of those given, that traded the most money in its last
-    session, sized at that session's close by the desk's own sizer; and one share of the
-    line the broker is to refuse."""
+    """The run's orders: on the line given that traded the most money in its last session,
+    sized at its close by the desk's own sizer; and one share of the line to be refused."""
     if not lines:
         raise ValueError("the broker lists no plain line of the market for the run to trade")
     bars = {line: _last(line, today) for line in lines}
@@ -113,16 +112,16 @@ def plan(lines: Sequence[Line], refused: Line, today: date, fx: Mapping[str, Dec
 
 
 def _send(side: Side, order: Order | Sale) -> str:
-    """An order through the desk's send path, the day's check before it; and its answer."""
-    side.check()
+    """An order through the desk's send path, only on a clean check; and its answer."""
+    if found := side.check():
+        raise Refused(f"{order.order_id}: not sent, the day's check named: {'; '.join(found)}")
     sent = book.send(side.root, side.broker, order, ROOM)
     done = f"{order.order_id}: {sent.filled} of {order.quantity} shares done"
     return done + f" ({sent.reason})" * bool(sent.reason)
 
 
 def _leave(side: Side, run: Plan) -> str:
-    """THE ACCOUNT PUT BACK: every order of the run's still working cancelled, every share
-    its book holds sold, and then the day's check clean on an empty book; or an error."""
+    """THE ACCOUNT PUT BACK: working orders cancelled, shares sold, the check clean; or an error."""
     did = [f"cancelled {name}" for name in side.broker.cancel()]
     book.collect(side.root, side.broker)
     for symbol, shares in book.positions(side.root).items():
@@ -135,24 +134,20 @@ def _leave(side: Side, run: Plan) -> str:
     return "; ".join(did) or "nothing to put back"
 
 
-def _steps(run: Plan) -> tuple[tuple[str, Callable[[Side], str]], ...]:
-    def fall(side: Side) -> str:
-        side.fall(run.second)
-        return f"{run.second.order_id}-stop: the market reached it"
-
+def _steps(run: Plan) -> tuple[tuple[str, Callable[[Side], str | None]], ...]:
+    """The run's steps, each with its name: what it answers, or nothing beyond having been done."""
     return (
         ("a rejection", lambda side: _send(side, run.refusal)),
         ("a market buy at the open, its stop resting", lambda side: _send(side, run.first)),
         ("a sale, the stop cancelled", lambda side: _send(side, run.sale)),
         ("a buy of the desk's size, a part fill if given", lambda side: _send(side, run.second)),
-        ("the stop triggered", fall),
+        ("the stop triggered", lambda side: side.fall(run.second)),
         ("the account left as found", lambda side: _leave(side, run)),
     )
 
 
 def _seen(side: Side, since: int) -> str:
-    """What a step left, as the desk sees any broker: the fills new in the ledger, in the
-    order made, what the account holds and the stops resting on it."""
+    """What a step left, as the desk sees any broker: new fills, holdings, resting stops."""
     book.collect(side.root, side.broker)
     fills = [f"{f.order_id} {f.quantity:+} at {f.price}" for f in book.fills(side.root)[since:]]
     held = [f"{name} {shares}" for name, shares in side.broker.holdings() if shares]
@@ -162,26 +157,22 @@ def _seen(side: Side, since: int) -> str:
 
 
 def live(side: Side, run: Plan, note: Callable[[str, str], None]) -> list[str]:
-    """A RUN AT ONE BROKER: each step in turn, what it answered and left noted as soon as it
-    is done; and the steps that failed. After one fails only the last, which puts back, is tried."""
+    """A RUN AT ONE BROKER: each step noted as it is done; the names of those that failed."""
     steps, failed = _steps(run), list[str]()
     for name, act in steps:
-        since = len(book.fills(side.root))
-        if failed and name != steps[-1][0]:
-            note(name, UNTRIED)
-            continue
+        since, said = len(book.fills(side.root)), UNTRIED
         try:
-            said = act(side)
+            if not failed or name == steps[-1][0]:
+                said = f"{act(side) or 'done'}; {_seen(side, since)}"
         except Exception as fault:  # noqa: BLE001 - a step that fails is the run's finding, named
             said = f"{FAILED}{type(fault).__name__}: {fault}"
             failed.append(name)
-        note(name, f"{said}; {_seen(side, since)}")
+        note(name, said)
     return failed
 
 
 def pretend(run: Plan) -> dict[str, str]:
-    """The run at the pretend broker, its market open at the prices the orders were sized
-    at, the refusal's line set to reject, and the next day's market falling to the stop."""
+    """The run at the pretend broker: the sizing prices, a refusal, a fall to the stop."""
     today, buy, no = run.today, run.second, run.refusal
     bars: dict[Line, tuple[Bar, ...]]
     bars = {order.line: (Bar(today, *(order.price,) * 4, 0),) for order in (no, buy)}
@@ -195,25 +186,30 @@ def pretend(run: Plan) -> dict[str, str]:
     return said
 
 
-def _raised(
-    side: placing.Paper, root: Path, listed: Listing, wait: Callable[[float], None]
-) -> Callable[[Order], None]:
-    """THE REAL STOP MADE TO SELL: the line is left under one stop for the shares held, under
-    the buy's stop's own name, above the price the buy just paid (ABOVE), by the adapter's own
-    rule (Paper.settle). The account is then read each second until the shares are gone."""
+def _raised(side: placing.Paper, root: Path, listed: Listing, wait: Wait) -> Fall:
+    """THE REAL STOP MADE TO SELL: the line's one stop is put above the price the buy just
+    paid (ABOVE), by the adapter's own rule (Paper.settle), and the account read each second
+    until the shares are gone; WAITS seconds unsold is an error. SOLD OR NOT, the line is then
+    left under the buy's own stop for what is still held, or under none: no stop stays above
+    the market for a sale to meet, and none rests with no share behind it."""
 
     def fall(order: Order) -> None:
         paid = [fill.price for fill in book.fills(root) if fill.order_id == order.order_id]
         held, stops = placing.on(paper.read(), listed)
         if not (paid and held):
             raise ValueError(f"{order.order_id}: no share of it is held for a stop to sell")
-        stop = placing.Stop(held, listed.floor(max(paid) * ABOVE), f"{order.order_id}-stop")
-        side.settle(listed, held, stops, stop)
-        for _ in range(WAITS):
-            if not placing.on(paper.read(), listed)[0]:
-                return
-            wait(1)
-        raise TimeoutError(f"{stop.ref}: put above the market, it has not sold in {WAITS} seconds")
+        name, above = f"{order.order_id}-stop", listed.floor(max(paid) * ABOVE)
+        try:
+            side.settle(listed, held, stops, placing.Stop(held, above, name))
+            for _ in range(WAITS):
+                if not placing.on(paper.read(), listed)[0]:
+                    return
+                wait(1)
+            raise TimeoutError(f"{name}: put above the market, it has not sold in {WAITS} seconds")
+        finally:
+            held, stops = placing.on(paper.read(), listed)
+            back = placing.Stop(held, listed.floor(order.stop), name) if held else None
+            side.settle(listed, held, stops, back)
 
     return fall
 
@@ -237,41 +233,41 @@ def _barred(root: Path, market: str, refused: Line, now: datetime) -> tuple[bool
         return True, NOTHING.format(market, f"{VENUES[venue]} is shut, or the rejection's market")
     if why := _recorded(root, market, today):
         return True, NOTHING.format(market, why)
-    known = gateway.known(now)
-    if not known or book.killed(root):
-        return False, BARRED.format(market) + (book.killed(root) or known.words)
+    known, killed = gateway.known(now), book.killed(root) or book.killed(root.parent / command.ROOT)
+    if not known or killed:
+        return False, BARRED.format(market) + (killed or known.words)
     return None
 
 
 def trade(
-    root: Path, market: str, clock: Callable[[], datetime], wait: Callable[[float], None]
+    root: Path, market: str, clock: Callable[[], datetime], wait: Wait = time.sleep
 ) -> tuple[bool, str]:
     """THE COMMAND: whether all is well, and its one line (when, the module's words say)."""
     now, refused = clock(), next(line for line in LINES if line.retail is False)
     if barred := _barred(root, market, refused, now):
         return barred
     today, fits = now.date(), (MARKETS[market], 1, True)  #: the venue's own, plain, open to retail
-    if not kill.drilled(root, today):
-        kill.drill(root, now)
-
-    def check() -> tuple[str, ...]:
-        return clearance.check(root, clock()).found or ()
-
+    kill.drill(root, now)  #: no order on a day the switch was not seen to work: raised if broken
     listings = listing.read(LINES)
-    if found := (*check(), *book.positions(root)):
+    if found := (*(clearance.check(root, now).found or ()), *book.positions(root)):
         return False, f"{BARRED.format(market)}the paper account is not quiet: {'; '.join(found)}"
     listed = {x.line: x for x in listings.values() if isinstance(x, Listing)}
     plain = [line for line in listed if (line.venue, line.leverage, line.retail) == fits]
     run = plan(plain, refused, today, command.rates(root, today))
     beside, broker = pretend(run), placing.Paper(listings, root, clock)
-    side = Side(root, broker, check, _raised(broker, root, listed[run.second.line], wait))
+    fall = _raised(broker, root, listed[run.second.line], wait)
+    side = Side(root, broker, lambda: clearance.check(root, clock()).found, fall)
     record, rows = root / f"trades-{market}-{today:%Y%m%d}.csv", [HEAD]
 
     def note(step: str, real: str) -> None:
         rows.append((clock().isoformat(), step, real, beside.get(step, "")))
         book._write(record, rows)
 
-    failed = live(side, run, note)
+    try:
+        failed = live(side, run, note)
+    except BaseException:  #: whatever stopped the run, the account is still put back
+        _leave(side, run)
+        raise
     note(WHOLE, f"{FAILED}at: {'; '.join(failed)}" if failed else "whole")
     counts = (market, len(beside) - len(failed), len(beside), run.second.line.symbol, record)
     return not failed, DONE.format(*counts) + AMISS.format("; ".join(failed)) * bool(failed)
@@ -281,13 +277,14 @@ def main(
     argv: Sequence[str],
     env: Mapping[str, str] = os.environ,
     clock: Callable[[], datetime] = lambda: datetime.now(UTC),
-    wait: Callable[[float], None] = time.sleep,
 ) -> int:
-    """THE COMMAND LINE (USAGE): its one line of answer printed, and 0 when all is well."""
+    """THE COMMAND LINE: its one line of answer printed, and 0 when all is well."""
     root = Path(env["KESTREL2_DATA"]) / ROOT
-    asked = list(argv) in [["--conformance", market] for market in MARKETS]
-    if not (asked and root.is_absolute()):
-        raise SystemExit(f"{USAGE}, with KESTREL2_DATA a whole path to a folder")
-    good, line = trade(root, argv[1], clock, wait)
+    if list(argv) not in [["--conformance", m] for m in MARKETS] or not root.is_absolute():
+        raise SystemExit("python -m desk.paper --conformance london|us, KESTREL2_DATA a whole path")
+    paper.CLIENT = (
+        CLIENT  #: this process is the conformance desk's, at the door and in its readings
+    )
+    good, line = trade(root, argv[1], clock)
     print(line)  # noqa: T201 - the command's answer to whoever asked
     return int(not good)

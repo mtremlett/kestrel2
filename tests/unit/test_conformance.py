@@ -5,6 +5,7 @@ the archive, the Gateway and the paper broker played at their own doors."""
 from __future__ import annotations
 
 import csv
+from collections.abc import Callable
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -40,10 +41,14 @@ PRETEND = {
     f"{ID.format(2)} -1 at 110; held: none; stops: none",
     "a buy of the desk's size, a part fill if given": f"{ID.format(3)}: 18 of 18 shares done; "
     f"fills: {ID.format(3)} +18 at 110; held: VUAG 18; stops: VUAG 18",
-    "the stop triggered": f"{ID.format(3)}-stop: the market reached it; fills: "
-    f"{ID.format(3)}-stop -18 at 99.00; held: none; stops: none",
+    "the stop triggered": f"done; fills: {ID.format(3)}-stop -18 at 99.00; held: none; stops: none",
     "the account left as found": f"nothing to put back; {NONE}",
 }
+
+
+@pytest.fixture(autouse=True)
+def _the_desks_own_client_again(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(paper, "CLIENT", paper.CLIENT)  # the command makes it its own: put back
 
 
 def _fetch(line: Line, before: date) -> tuple[Bar, ...]:
@@ -102,9 +107,8 @@ def test_a_step_that_fails_is_named_and_the_account_is_still_put_back(
     side = conformance.Side(tmp_path, broker, lambda: (), stuck)
     assert conformance.live(side, run, said.__setitem__) == ["the stop triggered"]
     assert said["a rejection"].startswith(f"{NO}: 1 of 1 shares done; fills")
-    assert said["the stop triggered"] == (
-        f"FAILED, TimeoutError: {ID.format(3)}-stop: it has not sold; fills: none; "
-        "held: SPY 1, VUAG 18; stops: SPY 1, VUAG 18"
+    assert (
+        said["the stop triggered"] == f"FAILED, TimeoutError: {ID.format(3)}-stop: it has not sold"
     )
     assert said["the account left as found"] == (
         f"20261113-conf9lse-SPY: 1 of 1 shares done; {ID.format(9)}: 18 of 18 shares done; fills: "
@@ -113,52 +117,61 @@ def test_a_step_that_fails_is_named_and_the_account_is_still_put_back(
     assert (broker.holdings(), broker.stops(), book.positions(tmp_path)) == ((), (), {})
 
 
-def test_after_a_step_that_fails_none_is_tried_but_the_last_and_an_account_not_as_found_fails_it(
+def test_no_order_goes_while_the_check_names_anything_and_after_a_step_fails_only_the_last_is_tried(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    # no market in VUAG: the buy fills nothing, so its sale is refused by the desk's own gate
     run, said = _plan(monkeypatch), dict[str, str]()
-    side = conformance.Side(
-        tmp_path, _market(run, SPY), lambda: ("ISF: held by a hand",), lambda _: None
-    )
-    last = "the account left as found"
-    assert conformance.live(side, run, said.__setitem__) == ["a sale, the stop cancelled", last]
-    assert "FAILED, Stopped: " in said["a sale, the stop cancelled"]
-    assert said["the stop triggered"] == conformance.UNTRIED
+    broker, last = _market(run, VUAG, SPY), "the account left as found"
+    side = conformance.Side(tmp_path, broker, lambda: ("ISF: held by a hand",), lambda _: None)
+    assert conformance.live(side, run, said.__setitem__) == ["a rejection", last]
+    named = "not sent, the day's check named: ISF: held by a hand"
+    assert said["a rejection"] == f"FAILED, Refused: {NO}: {named}"
+    assert {said[step] for step in list(said)[1:-1]} == {conformance.UNTRIED}
     assert said[last].startswith("FAILED, ValueError: the account is not as found: the book holds")
-    assert "ISF: held by a hand" in said[last]
+    assert "ISF: held by a hand" in said[last] and broker.submitted() == ()
 
 
-def test_the_real_stop_is_put_above_the_price_paid_under_its_own_name_and_waited_on_until_it_sells(
+def test_the_real_stop_is_put_above_the_price_paid_and_sold_or_not_the_line_is_left_under_its_own(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     listed, run = LISTED["VUAG"], _plan(monkeypatch)
     assert isinstance(listed, Listing)
     paid = Fill("0001", ID.format(3), "VUAG", 18, Decimal("110.004"), MON.date())
     book._record(tmp_path, [paid])
-    held = paper.Account((paper.Holding("DU1", "VUAG", "STK", "GBP", Decimal(18)),), ())
-    reads, settled, waited = (
-        iter([held, held, paper.Account((), ())]),
-        list[object](),
-        list[float](),
+    held, gone = (
+        paper.Account((paper.Holding("DU1", "VUAG", "STK", "GBP", Decimal(18)),), ()),
+        paper.Account((), ()),
     )
+    reads, settled, waited = iter([held, held, gone, gone]), list[object](), list[float]()
     monkeypatch.setattr(paper, "read", lambda: next(reads))
     monkeypatch.setattr(placing.Paper, "settle", lambda _, *asked: settled.append(asked))
-    fall = conformance._raised(
-        placing.Paper(LISTED, tmp_path, lambda: MON), tmp_path, listed, waited.append
-    )
+    adapter = placing.Paper(LISTED, tmp_path, lambda: MON)
+    fall = conformance._raised(adapter, tmp_path, listed, waited.append)
     fall(run.second)
-    # 110.004 and a twentieth, down onto the broker's step, in the broker's pence
-    stop = placing.Stop(Decimal(18), Decimal("11550.00"), f"{ID.format(3)}-stop")
-    assert (settled, waited) == ([(listed, Decimal(18), [], stop)], [1])
-    monkeypatch.setattr(paper, "read", lambda: held)  # it never sells
+    # 110.004 and a twentieth, down onto the broker's step, in the broker's pence; once it has
+    # sold nothing is held, and the line is left under no stop
+    name = f"{ID.format(3)}-stop"
+    above: tuple[object, ...] = (
+        listed,
+        Decimal(18),
+        [],
+        placing.Stop(Decimal(18), Decimal("11550.00"), name),
+    )
+    assert (settled, waited) == ([above, (listed, Decimal(0), [], None)], [1])
+    monkeypatch.setattr(
+        paper, "read", lambda: held
+    )  # it never sells: back under the buy's own stop
     with pytest.raises(TimeoutError, match="has not sold in 30 seconds"):
         fall(run.second)
     assert len(waited) == 1 + conformance.WAITS
-    monkeypatch.setattr(paper, "read", lambda: paper.Account((), ()))  # the buy bought nothing
+    assert settled[2:] == [
+        above,
+        (listed, Decimal(18), [], placing.Stop(Decimal(18), Decimal(9900), name)),
+    ]
+    monkeypatch.setattr(paper, "read", lambda: gone)  # the buy bought nothing: nothing is sent
     with pytest.raises(ValueError, match="no share of it is held"):
         fall(run.second)
-    assert len(settled) == 2
+    assert len(settled) == 4
 
 
 def _world(patch: pytest.MonkeyPatch, found: tuple[str, ...] = (), sells: bool = True) -> Pretend:
@@ -202,6 +215,7 @@ def test_the_command_records_each_real_result_beside_the_pretend_brokers_once(
     assert head == list(conformance.HEAD)
     assert [row[1:] for row in rows[:-1]] == [[step, said, said] for step, said in PRETEND.items()]
     assert rows[-1] == [MON.isoformat(), "the run", "whole", ""]
+    assert paper.CLIENT == conformance.CLIENT == 223  # a client of its own, never the desk's 222
     monkeypatch.setattr(paper, "dial", _never)  # recorded whole: never again, and nothing asked
     assert _run(tmp_path, MON + timedelta(days=1), "london") == 0
     assert _run(tmp_path, MON, "us") == 0  # New York is shut at 08:05
@@ -219,16 +233,19 @@ def test_nothing_is_sent_unless_the_gateway_is_ready_the_switch_off_and_the_acco
     root = tmp_path / "conformance"
     broker = _world(monkeypatch, found=("AAPL: the broker holds 5, the desk's book 0",))
     assert _run(tmp_path, MON, "london") == 1
-    book.turn(root, book.Switch.ON, MON, "his hand")
-    assert _run(tmp_path, MON, "london") == 1
-    book.turn(root, book.Switch.OFF, MON, "his hand")
+    for desk in (root, tmp_path / "desk"):  # its own kill switch, and the desk's
+        book.turn(desk, book.Switch.ON, MON, "his hand")
+        assert _run(tmp_path, MON, "london") == 1
+        book.turn(desk, book.Switch.OFF, MON, "his hand")
     monkeypatch.setattr(paper, "dial", lambda _talk: (_ for _ in ()).throw(ConnectionRefusedError))
     assert _run(tmp_path, MON, "london") == 1
-    quiet, killed, closed = capsys.readouterr().out.splitlines()
+    quiet, killed, desks, closed = capsys.readouterr().out.splitlines()
     assert (
         "NOT BEGUN, nothing sent: the paper account is not quiet: AAPL: the broker holds 5" in quiet
     )
-    assert "NOT BEGUN, nothing sent: the kill switch is on" in killed
+    assert [
+        "NOT BEGUN, nothing sent: the kill switch is on" in said for said in (killed, desks)
+    ] == [True] * 2
     assert "NOT BEGUN, nothing sent: " in closed and "its port is closed" in closed
     assert (broker.submitted(), list(root.glob("trades-*"))) == ((), [])
 
@@ -248,3 +265,22 @@ def test_a_run_that_failed_is_code_1_and_recorded_and_tried_again_only_on_a_late
     (root / "trades-london-20261115.csv").write_text("not,a,record\n", encoding="utf-8")
     with pytest.raises(ValueError, match="not a record of the conformance trades"):
         _run(tmp_path, MON, "london")
+
+
+def test_whatever_stops_a_run_outside_its_steps_the_account_is_still_put_back(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    broker, live = _world(monkeypatch), conformance.live
+
+    def dies(
+        side: conformance.Side, run: conformance.Plan, note: Callable[[str, str], None]
+    ) -> list[str]:
+        if side.broker is not broker:
+            return live(side, run, note)  # the pretend broker's run, made first
+        conformance._send(side, run.second)
+        raise OSError("the record's disk")
+
+    monkeypatch.setattr(conformance, "live", dies)
+    with pytest.raises(OSError, match="the record's disk"):
+        _run(tmp_path, MON, "london")
+    assert (broker.submitted()[-1], broker.holdings()) == (ID.format(9), ())
