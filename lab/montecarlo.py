@@ -25,11 +25,11 @@ from datetime import date
 from decimal import Decimal
 from functools import cache
 from pathlib import Path
-from typing import Any
+from typing import Any, BinaryIO
 
 from desk.command import CAPITAL
 from desk.lines import LINES, Line
-from desk.orders import Settings
+from desk.orders import Refused, Settings
 from lab import batch, cell, ladder, rung, sweep
 from lab.cell import Cell, Record, Trade
 
@@ -153,7 +153,7 @@ def run(home: Path, gains: Gains) -> str:
     results.parent.mkdir(parents=True, exist_ok=True)
     kept = {tuple(row["id"]): row["key"] for row in _lines(results)}
     text = results.read_bytes() if results.exists() else b""
-    tally = {"now": 0, "before": 0, "failed": 0}
+    tally = {"now": 0, "before": 0, "refused": 0, "failed": 0}
     with results.open("ab") as out:
         out.truncate(text.rfind(b"\n") + 1)
         for job in jobs(home):
@@ -162,8 +162,13 @@ def run(home: Path, gains: Gains) -> str:
                 tally["before"] += 1
                 continue
             try:
-                made = gains(job)
-                got = resample(made, int(key[:16], 16))
+                try:
+                    made = gains(job)
+                    got = resample(made, int(key[:16], 16))
+                except Refused as error:  # the desk's sizing declined: a fact of the cell
+                    _keep(out, {"id": id_, "key": key, "refused": str(error)})
+                    tally["refused"] += 1
+                    continue
             except ladder.FAILED as error:
                 sys.stderr.write(f"montecarlo: {id_}: {error}\n")
                 tally["failed"] += 1
@@ -175,7 +180,15 @@ def run(home: Path, gains: Gains) -> str:
             os.fsync(out.fileno())
             tally["now"] += 1
     done = f"{tally['now']} resampled now, {tally['before']} kept from before"
+    done += f", {tally['refused']} refused by the desk's sizing" if tally["refused"] else ""
     return done + (f", {tally['failed']} could not be resampled" if tally["failed"] else "")
+
+
+def _keep(out: BinaryIO, row: dict[str, Any]) -> None:
+    """One result line, written whole and forced to disk."""
+    out.write(json.dumps(row).encode() + b"\n")
+    out.flush()
+    os.fsync(out.fileno())
 
 
 def _out(spread: Spread) -> list[str]:
