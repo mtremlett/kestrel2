@@ -2129,6 +2129,37 @@ Decided by the MONEY lane as the desk's mentor, no one watching.
 - records.csv changes shape with no conversion (no day's record exists outside a test). Who called a halt, who may lift it and a halt on one line are not recorded yet (crash watch).
 - Ticks: money-halts. Evidence: 128 deliberate breaks, 125 caught, 3 closed.
 
+### 2026-11-14 — a dead desk's working orders cancelled, not counted (money-working, #163)
+- What to do with an order a dead desk left working. Options: (a) as the box worded it: every broker gains a question and the limit counts the answer; (b) the desk notes each order as it goes, and after a death has the broker cancel whatever is working before it sends; (c) land nothing and ask the paper lane first. Chosen (b): (a) cannot be green from this box's files (the paper adapter is the paper lane's, and added questions change conversations its tests hold byte for byte); (c) leaves the limit broken and R-MONEY-15 open for rounds. (b) asks nothing new of any broker and is the 13 November broker ruling (what is not filled is cancelled). Cost: that trade is given up for the day; its rule asks again tomorrow. After a crash the desk prefers flat and certain.
+- The box is ticked though its second clause (a broker says which orders are working) is not built as worded: nothing is left working to list.
+- Which endings leave the note. Options: (a) only a death; (b) every ending but the broker's last answer or its door's word that nothing went. Chosen (b): not knowing is treated as a death.
+- The cancel comes at the start of every send (not only before a new order), so the leftover order's answer never reads "working" a moment before it is cancelled. While the kill switch is on the note waits: the pull has cancelled, and a refusal made with the switch on asks the broker nothing.
+- SimCity's eleventh promise: no order is left working at a day's end. The check's one lived world moved from 0 to 1, the first that came to six lines, so the test fails without the mend. The sending-twice test was tightened, not loosened (a working order's answer changes to cancelled, no fill added).
+- Evidence: hundred worlds GREEN (31,000 days, 1,195 deaths, 583 orders left working); 24 deliberate breaks, 20 caught at once, 4 survivors closed. Ticks: money-working.
+
+### 2026-11-14 — the crash watch (money-watch, #172)
+- His lift of a watch's halt. Options: (a) it stands until the market ends a day clear; (b) for that day only; (c) no memory: while the market still raises the halt, the watch calls it again and tells him. Built (a), narrowed three times; four reviews each found it buying into a fall or halting against his word. Chosen (c): errs toward the halt; he has no lift command yet. His recorded word against the market is owed.
+- Any bar of the session raises a halt, not only the newest: a look can be missed or bars land together. A day's end is read at its last five-minute bar once the auction is over; if missing it lifts nothing and he is told once.
+- A crash and a black swan are two halts, each on its own; the black swan's is his alone to lift. The watch lifts its own crash halt as of the day's end.
+- Twenty minutes unheard means unread (options 10, 15, 20: three missed rounds and a fourth late); change once the keeper's delay is measured. A thin line is read at its last trade while its venue is heard.
+- Blind (market unreadable) calls no halt: a stopped feed is far commoner than a crash, and a halted day does not count; he is told once an hour. One line's emergency parks nothing yet (the send path asks only for whole-desk halts; one ticker must not stop all trading).
+- The watch runs inside the desk's step, so the halts' record keeps one writer. A halt called with no caller named is the operator's own (outside tests call it so).
+- Evidence: five blind reviews (four failed, eleven findings closed); 82 of 89 breaks caught; twelve real sessions, 628 looks, no crash. Ticks: money-watch.
+
+### 2026-11-14 — notes for the runner (money-notes, #176)
+- The unnoted standing rule (a box adding a public function needs SimCity's files). Options: (a) leave it unnoted, so the runner treats it as whole-lane work; (b) note it as waiting on the operator, untrue; (c) put its files into each box it speaks of and give it a note placing it last. Chosen (c): true, and it frees the runner. It is now money-census, ticked when every other box is.
+- SimCity's file has one line of room. Options: a box of its own to split it, or let the first box needing room split it. Chosen the second.
+
+### 2026-11-14 — the RSI and the lower band made public (R-RUNGS-6, R-RUNGS-12, #185)
+- Options: (a) two plain functions of numbers the rules already work, read by the rules; (b) whole public indicator classes; (c) public aliases of the private classes. Chosen (a): names exactly the two lines RUNGS could not reach, one code path, every private name RUNGS uses still works. (b) is the cleaner end state once RUNGS stops reaching the private parts. The band's width stays the fixed 2 deviations.
+- Proof the rules read the names: the test puts another number at each name and sees the pinned trade vanish.
+
+### 2026-11-14 — a lost stop is told the same day (money-restop, first step, #191)
+- When the desk looks. Options: (a) a new read of the broker each morning; (b) the day record's existing reading at the day's end; (c) only when an order is refused. Chosen (b): (a) changes the paper conversation its tests pin; (c) says nothing on a quiet day. Cost: on the pretend desk a stop lost overnight is told at that day's end.
+- The level is kept by the desk as each buy goes out (not recomputed, not read from a broker that lost it).
+- Only lines the broker holds exactly as the book does, with fewer shares under a stop, are told: telling him to rest a stop for shares not held could sell short.
+- Under the book's blocker ("the book is not the broker's"), the list's id the stop's own; a blocker of its own needs `desk/halt.py`. Evidence: 8 breaks caught; SimCity promises it.
+
 ## DATA
 
 ### 2026-11-13 — the fourteen months are built; the scenes move onto them in two steps
