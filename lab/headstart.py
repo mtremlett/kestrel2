@@ -44,9 +44,9 @@ from desk.store import STRETCH, Bar, Refused
 
 MARKET = {"LSE": "UK", "US": "US"}  #: the matrices' name for a line is its symbol and this
 #: Stooq stamps a bar with the moment it starts on Warsaw's clock, and the matrices kept that
-#: as if it were UTC (seen 14 November 2026: against the archive's bars for the same weeks,
-#: none of 2,184 agreed as stamped and 2,170 did two hours earlier, in summer). Warsaw's
-#: clock is London's and an hour, summer and winter.
+#: as if it were UTC (seen 14 November 2026: of SPY's bars 1 in 1,512 agreed with the
+#: archive's for the same moment as stamped, and 2,170 in 2,184 two hours earlier, in
+#: summer). Warsaw's clock is London's and an hour, summer and winter.
 WARSAW = timedelta(hours=1)
 PENCE = Decimal("0.01")
 BARS = "SELECT ts, open, high, low, close, volume FROM ohlcv WHERE ticker = ? AND timeframe = '5m'"
