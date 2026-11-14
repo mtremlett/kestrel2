@@ -1,15 +1,12 @@
 """folds - THE LADDER'S FOLDS RUNG: a rule is believed only where it earned in every one of the
 last FOLDS whole calendar years, and it is judged on the worst (`lab/ladder.py` is the spec).
 
-A rule trades a line five to ten times a year, so a year is judged on the trades of every line
-of the rule at once, pooled, and the one answer is every line's. A fold's gains are taken by
-the day, every day one of its lines has a bar, summed over the lines as the market's rung marks
-them (`lab/market.py`), so trades held together are not counted as bets apart. Its trades are
-those bought and sold inside the year, as a cell's are (`lab/cell.py`). With MIN_TRADES pooled
-or more a fold PASSES if its mean day earned after costs, FAILS at T_PASS standard errors under
-nothing and is in DOUBT between; with fewer it is THIN, with none FAULT, and the worst fold
-speaks, its year named. `cut` is the other way of cutting a window, in equal parts, which the
-regime rung (`lab/regime.py`) keeps.
+A year is judged on the trades of every line of the rule pooled, one answer for all. Gains
+are taken by the day, summed over the lines as the market's rung marks them (`lab/market.py`),
+so trades held together are not bets apart. With MIN_TRADES pooled or more a fold PASSES if its
+mean day earned, FAILS at T_PASS standard errors under nothing, else DOUBT; fewer is THIN, none
+FAULT; the worst fold speaks, its year named. `cut`, a window in equal parts, is the regime
+rung's (`lab/regime.py`).
 """
 
 from __future__ import annotations
@@ -55,6 +52,13 @@ def years(end: date) -> range:
     """The last FOLDS whole calendar years up to the end, oldest first."""
     last = end.year if end >= date(end.year, 12, 31) else end.year - 1
     return range(last - FOLDS + 1, last + 1)
+
+
+def priced(line: Line, bars: Sequence[Bar], rates: Rates, end: date) -> None:
+    """Raise, naming the day, if a bar of the folds' years has no rate: the line waits."""
+    for bar in bars:
+        if bar.day.year in years(end):
+            rung.rate(line, rates, bar.day)
 
 
 def judge(

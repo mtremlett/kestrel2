@@ -194,17 +194,16 @@ def rates(
     home: Path, ask: Callable[[Line, date], Sequence[Bar]] = archive.fetch
 ) -> dict[date, Decimal]:
     """Pounds per dollar for each day to the window's end, as the desk's day takes it: one
-    over the pound's last close before the day. The pound's closes are kept in one table under
-    the home, and the archive is asked only while it lacks the close on the window's last day.
-    A day whose last close is too old, or is no pound's, has no rate, and the first rung
-    refuses to price it."""
+    over the pound's last close before the day, none where that close is too old or no pound's.
+    The closes are one table under the home; the archive is asked only while it lacks the
+    window's last day."""
     table = home / FOLDER / POUNDS
     held: dict[date, Decimal] = {}
     if table.exists():
         rows = map(json.loads, table.read_text(encoding="utf-8").splitlines())
         held = {date.fromisoformat(row[0]): Decimal(row[1]) for row in rows}
     if END not in held:
-        held |= {bar.day: bar.close for bar in ask(POUND, END + keeper.DAY)}
+        held = {bar.day: bar.close for bar in ask(POUND, END + keeper.DAY)} | held
         table.parent.mkdir(parents=True, exist_ok=True)
         (fresh := table.with_suffix(".new")).write_text(
             "".join(f"{json.dumps([d.isoformat(), str(c)])}\n" for d, c in sorted(held.items())),
@@ -229,6 +228,7 @@ def run(
     now: Callable[[], datetime] = lambda: datetime.now(UTC),
 ) -> str:
     """The set judged and kept under home, a cell kept already skipped: the one line of counts."""
+    commit()  #: the commit is read before anything is judged, and a failure to read it is loud
     if cell.code_version(module=ME) != cell.RUNGS[ME]:
         raise RuntimeError("the code on disk has changed since this process loaded it")
     todo = cells() if todo is None else todo
@@ -268,13 +268,12 @@ def run(
         f"answers: {answers}; {tally['short']} with no verdict, a named rung not run; "
         f"{tally['missed']} not the author's rule; {tally['every']} passed "
         f"every rung run, {tally['behind']} of them behind an author's result; none goes to "
-        "paper before all eleven rungs are built."
+        "paper from here: that is the promotion's."
     )
 
 
 def _shared(todo: Sequence[Cell], bars: Bars, pounds: Rates) -> Shared:
-    """What a run keeps across its cells: each rule's reproductions, its pool of lines, and
-    the folds judged once on that pool, the author's result handed to them (M2)."""
+    """What a run keeps across its cells: each rule's reproductions, pool and folds (M2)."""
     behind: dict[str, tuple[Reproduction, ...]] = {}
     pools = cache(lambda rule: _pool(rule, todo, bars, pounds))
     folded = cache(
@@ -330,8 +329,7 @@ def _made(
     pounds: Rates,
     pool: Mapping[Line, Sequence[Bar]],
 ) -> dict[str, str]:
-    """What made a cell's answer, each a hash in full: the code this module reaches, the rule's,
-    the cell's bars, its market's, the bars of every line its folds pooled, the table of rates."""
+    """What made a cell's answer, each a hash in full (the commit is no part of it)."""
     mine = cell.key(c, own).rung(ME)
     beside = cell.key(Cell(c.strategy, market[0], c.start, c.end), market[1]).data
     pooled = [cell.key(Cell(c.strategy, ln, c.start, c.end), got).data for ln, got in pool.items()]
@@ -353,24 +351,18 @@ def _hash(parts: Iterable[str]) -> str:
 @cache
 def commit() -> str:
     """The commit this process runs from, recorded and no part of any key (canon B5)."""
-    done = subprocess.run(  # noqa: S603 - git, by name, in this working copy
-        ["git", "rev-parse", "HEAD"],  # noqa: S607
-        cwd=cell.ROOT,
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    return done.stdout.strip()
+    git = ["git", "rev-parse", "HEAD"]
+    return subprocess.check_output(git, cwd=cell.ROOT, text=True).strip()  # noqa: S603
 
 
 def _pool(rule: str, todo: Sequence[Cell], bars: Bars, pounds: Rates) -> dict[Line, Sequence[Bar]]:
-    """The bars of every line of the rule in the set that can be judged: a line that waits on
-    its bars is left out of the folds' pool."""
+    """The bars of every line of the rule that can be judged: one that waits is left out."""
     pool: dict[Line, Sequence[Bar]] = {}
     for c in todo:
         if c.strategy == rule:
             try:
                 units.refuse(c.line, got := bars(c.line), pounds)
+                folds.priced(c.line, got, pounds, END)
                 pool[c.line] = got
             except FAILED:
                 continue

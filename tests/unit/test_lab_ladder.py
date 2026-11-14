@@ -140,7 +140,7 @@ def test_a_run_skips_what_is_kept_and_judges_again_only_what_has_changed(tmp_pat
     assert _rows(tmp_path)[-1]["error"].startswith("Stale") and "key" not in _rows(tmp_path)[-1]
     #: its bars found, and no rate of exchange: refused with the day; the rates given, judged
     book |= {AAPL: EDGE, SPY: NOISE}
-    assert "3 could not be judged" in run(tmp_path, _door(book), {}, more)  #: the rule's pool
+    assert "1 could not be judged" in run(tmp_path, _door(book), {}, more)  #: left out of the pool
     assert "no rate of pounds per USD" in _rows(tmp_path)[-1]["error"]
     pounds = {bar.day: Decimal("0.8") for bar in EDGE}
     assert "3 judged now, 0 kept from before, 0 could" in run(tmp_path, _door(book), pounds, more)

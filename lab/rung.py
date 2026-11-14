@@ -33,7 +33,7 @@ the same as the author's; the verdict carries them, each saying whether its figu
 author's own or a replication standing in for it. With none on file it carries none.
 The trades counted are the effective ones: each judged whole, and each a bet of its own,
 since a rule holds one position on a line at a time. Trades pooled across lines, where two
-held together are one bet, are counted here when pooling is built.
+held together are one bet, are counted by the folds rung (`lab/folds.py`), by the day.
 """
 
 from __future__ import annotations

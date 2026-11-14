@@ -1,10 +1,8 @@
 """drawdown - THE LADDER'S RESAMPLED DRAWDOWNS (Monte Carlo; they measure, and never pass).
 
 The judged trades' pounds, after every cost, are drawn again with replacement, as many as were
-judged, RESAMPLES times, from the trial's name so that a trial run again is drawn the same.
-Each draw's deepest fall from a high is taken, as a part of the desk's capital. What is kept
-is the median of those falls and the 95th percentile: the fall of a middling order of the
-same trades, and of one in twenty. The loss that judges them is the money lane's to set.
+judged, RESAMPLES times, seeded by the trial's name. Each draw's deepest fall from a high is
+taken as a part of the capital; the median and the 95th percentile are kept.
 """
 
 from __future__ import annotations
@@ -20,8 +18,7 @@ RESAMPLES = 1000
 
 
 def judge(trades: Sequence[Priced], name: str) -> dict[str, float]:
-    """The median and the 95th percentile of the deepest fall of RESAMPLES draws of the trades,
-    each a part of the capital; nothing is kept for a trial that judged no trade."""
+    """The median and 95th percentile of the deepest fall of RESAMPLES draws of the trades."""
     if not trades:
         raise ValueError(f"{name}: no judged trade to draw a drawdown from")
     pounds = [float(t.gross - t.costs.total) for t in trades]
@@ -34,7 +31,7 @@ def judge(trades: Sequence[Priced], name: str) -> dict[str, float]:
 
 
 def _fall(draw: Sequence[float]) -> float:
-    """The deepest fall of the running total from a high, the start counted as one."""
+    """The deepest fall of the running total from a high."""
     worth = [0.0, *accumulate(draw)]
     high, deepest = 0.0, 0.0
     for now in worth:

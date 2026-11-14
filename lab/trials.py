@@ -49,21 +49,31 @@ HEAD = b'{"register": "trials"}\n'  #: a register's first line: an empty file is
 
 @cache
 def rule_hash(rule: str) -> str:
-    """The sha256 of the rule's class in `desk/strategy.py` and every name of that module it
-    reaches, as the tree of their code: a comment or a blank line is no change."""
+    """The sha256 of the tree of the rule's class in `desk/strategy.py`, `_run`, `ARITHMETIC`
+    and every name of that module they reach: no comment, docstring or blank line moves it."""
     tree = ast.parse(Path(strategy.__file__).read_text(encoding="utf-8"))
-    defined = {
-        node.name if not isinstance(node, ast.Assign) else ast.unparse(node.targets[0]): node
-        for node in tree.body
-        if isinstance(node, ast.ClassDef | ast.FunctionDef | ast.Assign)
-    }
-    todo, seen = [strategy.STRATEGIES[rule].__name__], set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ClassDef | ast.FunctionDef) and ast.get_docstring(node):
+            node.body = node.body[1:] or [ast.Pass()]
+    defined = {_defines(node): node for node in tree.body if _defines(node)}
+    todo, seen = [strategy.STRATEGIES[rule].__name__, "_run", "ARITHMETIC"], set()
     while todo:
         if (found := todo.pop()) not in seen and found in defined:
             seen.add(found)
             todo += [n.id for n in ast.walk(defined[found]) if isinstance(n, ast.Name)]
     dumped = [ast.dump(defined[n]) for n in sorted(seen)]
-    return hashlib.sha256("\0".join(dumped).encode()).hexdigest()
+    return hashlib.sha256("|".join(dumped).encode()).hexdigest()
+
+
+def _defines(node: ast.stmt) -> str:
+    """The module-level name a statement defines, or none."""
+    if isinstance(node, ast.ClassDef | ast.FunctionDef):
+        return node.name
+    if isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Name):
+        return node.targets[0].id
+    if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+        return node.target.id
+    return ""
 
 
 def name(cell: Cell) -> str:
