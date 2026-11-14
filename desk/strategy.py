@@ -381,8 +381,8 @@ def decide(bars: Mapping[str, Sequence[Bar]]) -> tuple[Decision, ...]:
         return tuple(
             decision
             for symbol, series in bars.items()
-            for name, make in STRATEGIES.items()
-            for decision in _run(name, make(), symbol, series)
+            for name in STRATEGIES
+            for decision in _run(name, build(name), symbol, series)
         )
 
 
@@ -392,7 +392,7 @@ def today(bars: Mapping[str, Sequence[Bar]], held: Mapping[str, str]) -> tuple[D
     holds nothing for may buy again after a stop or a refusal; one it holds for may sell."""
     with localcontext(ARITHMETIC):
         return tuple(
-            [*_run(name, make(), symbol, series, held.get(symbol) == name)][-1]
+            [*_run(name, build(name), symbol, series, held.get(symbol) == name)][-1]
             for symbol, series in bars.items()
-            for name, make in STRATEGIES.items()
+            for name in STRATEGIES
         )

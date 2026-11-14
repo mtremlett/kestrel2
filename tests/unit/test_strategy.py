@@ -371,6 +371,10 @@ def _steps(rule: strategy.Rule, bars: Sequence[Bar]) -> list[Action]:
     return [d.action for d in strategy._run("x", rule, "X", bars)]
 
 
+def _first(rule: strategy.Rule, bars: Sequence[Bar]) -> int:
+    return _steps(rule, bars).index(Action.BUY)
+
+
 def test_build_other_settings_move_the_rule_and_published_ones_do_not() -> None:
     """The five at other settings (R-GRID-1): none given is the published rule; a shorter
     window buys earlier; a setting the rule lacks, a non-positive one or a fractional window
@@ -379,12 +383,11 @@ def test_build_other_settings_move_the_rule_and_published_ones_do_not() -> None:
     with localcontext(strategy.ARITHMETIC):
         for name, make in strategy.STRATEGIES.items():
             assert _steps(strategy.build(name), wave) == _steps(make(), wave)
-        first = lambda rule: _steps(rule, wave).index(Action.BUY)  # noqa: E731
-        assert first(strategy.build("breakout_20_10", entry=5)) < first(
-            strategy.build("breakout_20_10")
+        assert _first(strategy.build("breakout_20_10", entry=5), wave) < _first(
+            strategy.build("breakout_20_10"), wave
         )
-        assert first(strategy.build("trend_50_200", slow=100)) < first(
-            strategy.build("trend_50_200")
+        assert _first(strategy.build("trend_50_200", slow=100), wave) < _first(
+            strategy.build("trend_50_200"), wave
         )
     for name, bad in [
         ("trend_50_200", {"fast": 200}),
