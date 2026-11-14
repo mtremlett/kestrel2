@@ -34,14 +34,17 @@ def order() -> list[Line]:
     return [*first, *(line for line in every if line not in first)]
 
 
+def _d(x: float) -> Decimal:
+    return Decimal(str(x))
+
+
 def rows(line: Line, old: Path) -> list[Bar]:
     """A line's daily rows in the old database, as it names the line; a row with a hole is left."""
     got = headstart.asked(old, ROWS, line.symbol + archive.SUFFIX[line.venue])
-    cells = [(date.fromisoformat(at[:10]), *prices) for at, *prices in got]
     return [
-        Bar(day, *(Decimal(str(p)) for p in prices[:4]), int(prices[4]))
-        for day, *prices in cells
-        if None not in prices
+        Bar(date.fromisoformat(at[:10]), _d(o), _d(h), _d(lo), _d(c), int(v))
+        for at, o, h, lo, c, v in got
+        if None not in (o, h, lo, c, v)
     ]
 
 
@@ -90,7 +93,10 @@ def one(line: Line, old: Path, path: Path, day: date) -> str:
     if not mine:
         raise ValueError(f"{line.symbol}: the old database holds no daily row of it")
     unit = _unit(line, mine, held)
-    scaled = [Bar(b.day, *(p * unit for p in _prices(b)), b.volume) for b in mine]
+    scaled = [
+        Bar(b.day, b.open * unit, b.high * unit, b.low * unit, b.close * unit, b.volume)
+        for b in mine
+    ]
     with tempfile.TemporaryDirectory() as scratch:
         store.shelve(Path(scratch), line, scaled)
         ready = day if held else scaled[-1].day + timedelta(1)
