@@ -78,7 +78,11 @@ class Study:
 
 def families() -> tuple[Family, ...]:
     """Every rule the desk's engine can make, at the settings it has: the published one."""
-    return tuple(Family(name, (), lambda _, name=name: name) for name in STRATEGIES)
+
+    def published(name: str) -> Callable[[Setting], str]:
+        return lambda _setting: name
+
+    return tuple(Family(name, (), published(name)) for name in STRATEGIES)
 
 
 def _row(family: Family, fitted: Line | None, setting: Setting, line: Line, score: Score) -> Row:
