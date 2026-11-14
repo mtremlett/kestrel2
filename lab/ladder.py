@@ -158,6 +158,11 @@ FOLDER, RESULTS, REGISTER = "ladder", "set1.jsonl", "set1.trials.jsonl"
 #: A cell that waits on data is tried again no sooner than this after its last try.
 RETRY = timedelta(minutes=30)
 FAILED = (ValueError, OSError, keeper.Stale)  #: what may leave a cell unjudged; all else is a bug
+Shared = tuple[
+    dict[str, tuple[Reproduction, ...]],
+    Callable[[str], Mapping[Line, Sequence[Bar]]],
+    Callable[[str], tuple[Answer, str]],
+]
 Row = Mapping[str, Any]  #: a cell's line in the results file
 
 
@@ -224,15 +229,13 @@ def run(
     text = results.read_bytes() if results.exists() else b""
     whole = text[: text.rfind(b"\n") + 1]
     last = {tuple(row["cell"]): row for row in map(json.loads, whole.splitlines())}
-    behind: dict[str, tuple[Reproduction, ...]] = {}
-    pools = cache(lambda rule: _pool(rule, todo, bars))
-    folded = cache(lambda rule: folds.judge(rule, pools(rule), Settings(CAPITAL), pounds, END))
+    shared = _shared(todo, bars, pounds)
     tally: Counter[str] = Counter()
     with results.open("ab") as out:
         out.truncate(len(whole))
         for c in todo:
             was = last.get(tuple(batch.row(c)))
-            row = _one(c, bars, pounds, count, was, (behind, pools, folded), now())
+            row = _one(c, bars, pounds, count, was, shared, now())
             if row != was:
                 out.write(json.dumps(row).encode() + b"\n")
                 out.flush()
@@ -255,17 +258,21 @@ def run(
     )
 
 
+def _shared(todo: Sequence[Cell], bars: Bars, pounds: Rates) -> Shared:
+    """What a run keeps across its cells: each rule's reproductions, its pool of lines, and
+    the folds judged once on that pool."""
+    pools = cache(lambda rule: _pool(rule, todo, bars))
+    folded = cache(lambda rule: folds.judge(rule, pools(rule), Settings(CAPITAL), pounds, END))
+    return {}, pools, folded
+
+
 def _one(
     c: Cell,
     bars: Bars,
     pounds: Rates,
     count: int,
     was: Row | None,
-    shared: tuple[
-        dict[str, tuple[Reproduction, ...]],
-        Callable[[str], Mapping[Line, Sequence[Bar]]],
-        Callable[[str], tuple[Answer, str]],
-    ],
+    shared: Shared,
     now: datetime,
 ) -> Row:
     """The cell's line: the one kept, where it is kept under the key these bars, rates and

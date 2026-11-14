@@ -11,7 +11,7 @@ from desk.command import CAPITAL
 from desk.lines import Line
 from desk.orders import Settings
 from desk.store import Bar
-from lab import cell, deflated, luck, market, reproduce, rung, shuffle
+from lab import cell, deflated, drawdown, luck, market, reproduce, rung, shuffle, trials
 from lab.cell import Cell
 from lab.deflated import Deflated
 from lab.reproduce import Reproduction
@@ -75,6 +75,7 @@ def judge(
     named = {name: rungs[name][0] for name in deflated.NAMED if name in rungs}
     return {
         "trades": len(verdict.trades),
+        **({"drawdown": drawdown.judge(verdict.trades, trials.name(c))} if verdict.trades else {}),
         "rungs": {name: [answer.name, reason] for name, (answer, reason) in rungs.items()},
         "unrun": unrun,
         "every": all(answer is Answer.PASS for answer, _ in rungs.values()),
