@@ -50,10 +50,10 @@ def address(line: Line, day: date) -> str:
     return _address(line, _moment(SINCE), _moment(day), DAILY)
 
 
-def address_five(line: Line, now: datetime) -> str:
-    """Where every five-minute bar the archive still keeps of a line, up to now, is asked for.
-    A now in no time zone is refused."""
-    first, end = ((moment - EPOCH) // timedelta(seconds=1) for moment in (now - KEPT, now))
+def address_five(line: Line, now: datetime, back: timedelta = KEPT) -> str:
+    """Where a line's five-minute bars up to now are asked for: every one the archive still
+    keeps, or those of a shorter time back. A now in no time zone is refused."""
+    first, end = ((moment - EPOCH) // timedelta(seconds=1) for moment in (now - back, now))
     return _address(line, first, end, FIVE)
 
 
@@ -123,9 +123,10 @@ def fetch(line: Line, day: date) -> tuple[Bar, ...]:
     return parse(line, _ask(address(line, day)))
 
 
-def fetch_five(line: Line, now: datetime) -> tuple[Five, ...]:
-    """Every five-minute bar the archive still keeps for a line, up to now, read on entry."""
-    return parse_five(line, _ask(address_five(line, now)), now)
+def fetch_five(line: Line, now: datetime, back: timedelta = KEPT) -> tuple[Five, ...]:
+    """A line's five-minute bars up to now, read on entry: every one the archive still keeps,
+    or those of a shorter time back."""
+    return parse_five(line, _ask(address_five(line, now, back)), now)
 
 
 def gather(

@@ -159,7 +159,10 @@ UK tax) and R-MONEY-2 (the scenes on the whole fourteen months).
       the one store's checks, every bar re-checked, each kept with its source; where a fresh
       bar from the archive or the broker differs, the fresh one wins and the difference is
       counted. Its stored indicators are not copied: indicators are recomputed from bars, and
-      the old values serve only as a cross-check of the recomputation (DAT-03, DAT-01)
+      the old values serve only as a cross-check of the recomputation (DAT-03, DAT-01).
+      Remains after #175 (five-minute bars built, not yet run on the real store): run it once
+      R-RUNNER-10 has landed; daily bars (calendar before 2010, adjusted against as-traded);
+      the parquet stores; 3LGO; the old indicators as a cross-check
       {id: data-headstart; files: lab/headstart.py, tests/unit/test_lab_headstart.py, desk/bars.py, tests/unit/test_bars*.py, manifest.toml}
 - [ ] The archive spared: fetching slow and resumable, with backoff, each raw answer cached
       in the folder `KESTREL2_DATA` names (outside the repository and every worktree); while

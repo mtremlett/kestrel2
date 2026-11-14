@@ -44,6 +44,7 @@ rungs = []
 "desk/bars.py" = "the one fast store for hot and deep bars: one SQLite file, the one writer's whole rounds, many readers"
 "lab/universe.py" = "the research list: the tickers research may study, none of them traded, and their bars kept by the one store"
 "lab/members.py" = "the lists' past members: who was on a published list on a past day, the ones still listed told from the ones that left"
+"desk/keeper.py" = "the store's keeper: one command that does whatever the store is owed when it is called, each venue's daily bars refreshed from the archive and its five-minute round taken in its hours, and the door the daily bars are read through"
 "lab/headstart.py" = "the old desk's stores as a head start: its five-minute bars read, never written, and let into the one fast store under their source's name only where a fresh daily bar vouches for them"
 
 # the money lane
@@ -68,6 +69,7 @@ rungs = []
 "desk/messenger.py" = "the desk's one voice: every message to the operator through one door and onto one delivery record, each delivered once under its name; the morning and the evening message of a trading day, his weekly login's reminder, and the alarm when a daily message is not delivered by its hour"
 "desk/running.py" = "the desk unattended: one step that does what the desk owes at its moment, once, from its records alone (the day's check, each venue's orders, the day's record, what he is told), and what a desk that died part-way left at the broker put right"
 "desk/supervisor.py" = "the desk's processes kept alive: one supervisor that runs each registered job when due in a process of its own, one of each at a time, a dated receipt for every run, the desk's health judged from outside by the receipts, and the ledger of what the operator did with the measure of how long the desk has run without him"
+"desk/command.py" = "the desk's day as the runner asks for it: one step, the morning's pre-flight and the rehearsal of a whole day with the markets shut, each one line and a code; and the real doors a step is given, the price store's and the day's pounds per dollar"
 
 # the grid lane
 "lab/cell.py" = "the ladder's unit of work: one strategy on one line over one window, keyed by the code's and the data's versions"

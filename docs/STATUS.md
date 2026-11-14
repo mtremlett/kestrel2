@@ -183,28 +183,28 @@ paper-conformance in-hours half (needs open markets; drivers must date orders th
 
 ## DATA
 
-Last updated: 14 November 2026 (folds #84, #85, #87, #89, #96, #97).
+Last updated: 14 November 2026 (folds #84, #85, #87, #89, #96, #97, #175, #180).
 ### Where it is
 The twenty lines (22 on the master until SPY and QQQ leave; VUAG, EQQQ, IDTL in, ISA and retail flags,
 yardstick VUAG, #85), one archive client, one store, both calendars to 2027 with hours (#87). Research reads
 all 1,065 through `universe.read` (#84; the store still parks 201); the grid does not yet (R-DATA-7). The
 fast store `desk/bars.py` (#89) holds five-minute bars, 74,845 real ones saved 13 Nov (#97). Members of the
-S&P 500 and Nasdaq 100 since 2010 (#96).
-
+S&P 500 and Nasdaq 100 since 2010 (#96). The old desk's five-minute bars are a head start (#175,
+`lab/headstart.py`): each kept with its source, a fresh bar wins; proven on a copy, NOT yet run on the real
+store (waits for R-RUNNER-10, `market.db`). Open boxes stand in working order, keeper first (#180).
 ### Next step
-data-keeper (settle the archive's delay, the file kept open, the "price of the moment" before the open);
-data-isa-twins (SPY, QQQ leave; waits on R-DATA-10/11); data-members (FTSE 350, funds); data-research-home.
-
+data-keeper (R-RUNNER-7: the archive's delay, the file kept open, the "price of the moment"); then the head
+start on the real store after R-RUNNER-10; its remains: daily bars (calendar before 2010, adjusted against
+as-traded, R-RUNGS-5/9), parquet stores (pyarrow, his), 3LGO, research-list bars. Then data-isa-twins
+(waits on R-DATA-10/11), data-members, data-research-home.
 ### Done for other lanes
-- R-MONEY-1: done in #47; R-MONEY-2: done in #60
-
+- R-MONEY-1: done in #47; R-MONEY-2: done in #60; R-PAPER-6: done in #175; R-GRID-4: done in #175
 ### Requests to GRID
 - [x] R-DATA-1: done in #73
 - [ ] R-DATA-7 (later, opened 2026-11-13 20:20 UK): a cell reads `universe.read(root, line).bars`, not
   `store.read`, and keeps `History.moves` and `.rescaled`.
 - [ ] R-DATA-10 (blocking, opened 2026-11-13 21:45 UK): `test_lab_batch.py`, `test_lab_cell.py` look SPY and
   QQQ up in the master by name; name lines that stay (AAPL, NVDA) so SPY and QQQ can leave.
-
 ### Requests to MONEY
 - [x] R-DATA-4: each `Line(...)` in its tests states its UK tax.
 - [ ] R-DATA-3 (later, opened 2026-11-13 18:15): the day run reads the archive through `archive.gather` and
@@ -212,25 +212,24 @@ data-isa-twins (SPY, QQQ leave; waits on R-DATA-10/11); data-members (FTSE 350, 
 - [ ] R-DATA-6 (later, opened 2026-11-13 19:20 UK): scene 5 reads `CLEAN`; `HISTORY` is the same, and goes.
 - [ ] R-DATA-12 (later, opened 2026-11-13 21:45 UK): `day.run` reads "simply holding the market" from
   `lines.YARDSTICK` (VUAG); nothing is bought in the ISA on a line whose `isa` flag is not yes.
-
+- [ ] R-DATA-13 (later, opened 2026-11-14 12:25 UK): `test_watch.py` line 58 names its source,
+  `bars.writing(tmp / "bars.db", bars.Source.ARCHIVE)`, so every round must name one.
 ### Requests to PAPER
 - [x] R-DATA-5: each `Line(...)` in its tests states its UK tax.
 - [ ] R-DATA-9 (later, opened 2026-11-13 20:20 UK): a read-only question for a line's newest five-minute
   bars at `desk/paper.py`, and whether the paper account gets live or delayed data.
-
 ### Requests to RUNGS
 - [ ] R-DATA-8 (later, opened 2026-11-13 20:20 UK): a verdict states how many trades were held through a
   day in `History.moves` (about a hundred London bad prints), shown with and without them.
 - [ ] R-DATA-11 (blocking, opened 2026-11-13 21:45 UK): `test_lab_rung.py` prices a dollar trade on "SPY"
   from the master; name a US line that stays (AAPL) so SPY can leave.
-
 ### Found, not fixed
 - **UK tax (NS-05).** Five London products unseen on a contract note; London shares 0.5%, unchecked.
 - **Operator:** IB1T (Bitcoin) is not ISA-holdable (crypto notes shut to new ISA purchases from 6 Apr 2026).
 - **Research:** today's members only (BT-09); scale changes under the store's belief are UNI-07; WWH, SHC, EDV,
   ROSE read false losses. Member record (#96): one unofficial source; `members.on` raises for FTSE350, ETFS.
-- **The store:** nothing fills `Line.real_moves` or `.suspended`; the per-bar checks exist in `store.py` and
-  `bars.py`; calendar ends 2027; nothing runs `bars.keep` nightly until the keeper; 3% of busy reads pass 50 ms.
+- **The store:** nothing fills `Line.real_moves` or `.suspended`; calendar ends 2027; nothing runs `bars.keep`
+  nightly until the keeper; 3% of busy reads pass 50 ms; the bars benchmark fails on a saturated disk.
 
 ## GRID
 
