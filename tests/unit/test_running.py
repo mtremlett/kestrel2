@@ -16,9 +16,9 @@ import test_placing as tp
 from test_paper import FLAT, Said, _account, _but, _gateway, _order
 from test_reports import AAPL, BOUGHT, DONE, END, IITU, LISTED, SMGB
 
-from desk import book, clearance, day, listing, paper, running
+from desk import book, clearance, day, kill, listing, paper, running
 from desk.book import Switch
-from desk.broker import Fill
+from desk.broker import Fill, Pretend
 from desk.clearance import Check
 from desk.lines import YARDSTICK
 from desk.orders import Refused, Sale, Settings
@@ -58,9 +58,8 @@ OUT = "Left out, parked or with no bar of {} Nov: {}."
 
 
 def _desk(root: Path, **bars: Sequence[Bar]) -> tuple[Desk, Mock]:
-    """A drilled desk of £4,750, a door that takes every message, and the bars saved for its
-    lines: SMGB's the store has parked."""
-    book.turn(root, Switch.DRILLED, MON, "every promise kept")
+    """A desk of £4,750 whose kill switch was never drilled, a door that takes every message,
+    and the bars saved for its lines: SMGB's the store has parked."""
     lines, post = {"IITU": IITU, "AAPL": AAPL, "SMGB": SMGB, "VUAG": YARDSTICK}, Mock()
     post.side_effect = range(1, 99)
     saved = Mock(return_value=({lines[name]: series for name, series in bars.items()}, {"SMGB"}))
@@ -86,8 +85,9 @@ def test_at_each_open_the_step_checks_the_account_and_sends_the_days_orders_once
 ) -> None:
     desk, post = _desk(tmp_path, IITU=DIP, AAPL=DIP, SMGB=DIP)
     assert _step(monkeypatch, desk, MON.replace(hour=7, minute=55)) == []  # he sleeps: a knock
-    assert not (clearance.checks(tmp_path) or post.called)
-    # London is open: the ledger, the day's check, then London's lines through the money path.
+    assert not (clearance.checks(tmp_path) or post.called or book.switch(tmp_path))
+    # London is open: the ledger, the kill switch's drill (till then no order goes: this desk
+    # was never drilled), the day's check, then London's lines through the money path.
     # It asks the broker of the order, sets the book against the account, and sends the buy
     # with its stop; New York's line waits for its own open, and a parked line is left out, named
     asks: list[Said] = [tp.EMPTY, [("102",)], [END]]
@@ -115,6 +115,7 @@ def test_at_each_open_the_step_checks_the_account_and_sends_the_days_orders_once
     assert "bollinger_pullback-AAPL, 0 shares done" in said.words and "his word" in said.words
     assert _step(monkeypatch, desk, OPEN, [MADE, END]) == [FILLS] and _told(post)[2:] == [said[2]]
     assert _told(desk.bars) == [MON.date()] * 2  # the store is asked once for each round
+    assert [(at, to) for at, to, _ in book.switch(tmp_path)][:-1] == [(MON, Switch.DRILLED)]
     # yesterday's round is not today's, and a line with no bar of the session before is left
     # out and named, never passed over in silence
     quiet, _ = _desk(tmp_path / "quiet", IITU=FLAT_)
@@ -128,6 +129,8 @@ def test_at_each_open_the_step_checks_the_account_and_sends_the_days_orders_once
     auction = MON.replace(day=26, hour=16, minute=31)
     assert _step(monkeypatch, quiet, auction, none, tp.EMPTY) == [FILLS, ACCOUNT]
     assert len(running.notes(quiet.root)) == 2
+    days = [MON, MON + timedelta(days=1), auction]  # the drill is each day's own, made once
+    assert [turn[:2] for turn in book.switch(quiet.root)] == [(at, Switch.DRILLED) for at in days]
     # the hour he wakes is on a UK clock: 07:00 UTC in summer (a Saturday: the check alone)
     (summer, door), july = _desk(tmp_path / "summer"), datetime(2026, 7, 4, 6, 59, tzinfo=UTC)
     for seconds, news in enumerate(("news kept for the hour he wakes", "and more, a second on")):
@@ -137,10 +140,8 @@ def test_at_each_open_the_step_checks_the_account_and_sends_the_days_orders_once
         _step(monkeypatch, summer, july + timedelta(minutes=1), none, [])
     assert _told(door)[:2] == ["news kept for the hour he wakes", "and more, a second on"]
     july += timedelta(minutes=5)
-    assert _step(monkeypatch, summer, july + timedelta(minutes=1), none, tp.EMPTY) == [
-        FILLS,
-        ACCOUNT,
-    ]
+    sent = _step(monkeypatch, summer, july + timedelta(minutes=1), none, tp.EMPTY)
+    assert sent == [FILLS, ACCOUNT] and len(book.switch(summer.root)) == 1  # its drill, once
 
 
 def test_what_a_desk_that_died_part_way_left_at_the_broker_is_put_right(
@@ -150,7 +151,9 @@ def test_what_a_desk_that_died_part_way_left_at_the_broker_is_put_right(
         sent = _gateway(monkeypatch, *answers[:1], *answers)  # the account as found is read first
         return running.recover(root, tp._paper(root), LISTED, MON.date()), sent[1:]
 
-    _desk(tmp_path)
+    idle, part, unheld = (tmp_path / name for name in ("idle", "part", "unheld"))
+    for root in (tmp_path, idle, part, unheld):
+        kill.drill(root, MON)
     book._record(tmp_path, [BEFORE])
     # it died once its buy had filled: the line is under two stops, the old and the buy's. One
     # for all the shares, at the buy's level, is rested first; only then are the two cancelled
@@ -161,9 +164,7 @@ def test_what_a_desk_that_died_part_way_left_at_the_broker_is_put_right(
     assert sent == [ACCOUNT, FILLS, ACCOUNT, all_, tp.CANCEL_42 + tp.CANCEL_7]
     # it died with its buy still working: the buy is cancelled, and the stop that came with it,
     # of a buy that bought nothing, gives the line no level: the line keeps its own
-    idle = tmp_path / "idle"
     book._record(idle, [BEFORE])
-    book.turn(idle, Switch.DRILLED, MON, "every promise kept")
     buying = _order("41", "BUY MKT", ID, "Submitted")
     working = _account([tp.HELD], *STOP_7, *buying, *CHILD)
     gone, left = [_but(tp.MINE[1], 2, "Cancelled")], _account([tp.HELD], *STOP_7, *CHILD)
@@ -172,14 +173,13 @@ def test_what_a_desk_that_died_part_way_left_at_the_broker_is_put_right(
     assert sent == [ACCOUNT, tp.CANCEL, FILLS, ACCOUNT, tp.CANCEL_42]
     # that buy had bought ten, and the broker ended its stop with it: the ten are given a stop
     # at the level the buy's own had, known from the account as it was found
-    part, ten = _desk(tmp_path / "part")[0].root, [_but(tp.HELD, 14, "10")]
+    ten = [_but(tp.HELD, 14, "10")]
     found, bare = _account(ten, *buying, *CHILD), _account(ten)
     did, sent = recover(part, found, gone, [_but(MADE, 19, "10"), END], bare, tp.RESTS)
     rested = tp._msg(tp.AT_STOP | {17: "10", 20: "3240.0", 26: f"{ID}-stop"})
     assert sent == [ACCOUNT, tp.CANCEL, FILLS, ACCOUNT, rested] and "for 10 shares" in did[1]
     # and had it bought nothing, on a line not held: with the buy cancelled nothing is left
-    unheld, flat = _desk(tmp_path / "unheld")[0].root, _account([FLAT])
-    did, sent = recover(unheld, _account([FLAT], *buying, *CHILD), gone, [END], flat)
+    did, sent = recover(unheld, _account([FLAT], *buying, *CHILD), gone, [END], _account([FLAT]))
     assert did == (f"cancelled {ID}, left working",) and sent[1:] == [tp.CANCEL, FILLS, ACCOUNT]
     # a stop the broker is not holding protects nothing: one is rested, then that one cancelled
     limbo = _account([tp.HELD], *_order("7", "SELL STP", f"{OLD}-stop", "Inactive"))
@@ -326,6 +326,21 @@ def test_a_step_that_fails_tells_him_once_and_is_an_error_and_a_silent_gateway_i
     (tmp_path / "silent" / running.NOTES).write_text("not,the,record\n", "utf-8")
     with pytest.raises(ValueError, match="not the record of what the desk did"):
         running.step(silent, MON)
+    # a drill of the kill switch that broke a promise is such a failure, and nothing but the
+    # ledger comes before it: no check is run, so no order goes, and no record is made at the
+    # day's end, when the step drills again. Yesterday's drill is not today's, nor is his pull
+    broken, bell = _desk(tmp_path / "broken", IITU=DIP)
+    book.turn(broken.root, Switch.DRILLED, MON - timedelta(days=1), "every promise kept")
+    book.turn(broken.root, Switch.ON, MON, "his word")
+    monkeypatch.setattr(Pretend, "cancel", lambda _: ())  # a broker that cancels nothing
+    for now in (MON, SHUT):
+        with pytest.raises(kill.Failed, match="was cancelled"):
+            _step(monkeypatch, broken, now, [MADE, END])
+    assert book.fills(broken.root) == (FILL,) and len(book.switch(broken.root)) == 2
+    assert not (clearance.checks(broken.root) or day.records(broken.root))
+    _, failed, _ = _told(bell)  # the morning message, one line of it in his words, the evening's
+    assert "Failed: today's rehearsal of the kill switch did not pass, so the desk" in failed
+    assert "NOT kept: the kill switch's drill at 2026-11-16 08:05 UTC broke: ['the ord" in failed
 
 
 def test_an_order_is_dated_the_session_before_today_on_its_own_venues_calendar(
