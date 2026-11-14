@@ -55,6 +55,7 @@ rungs = []
 "desk/eponymous_connors.py" = "Connors' RSI-2 as a rule under the one template, with its author, source and published setting; not traded by the paper desk"
 "desk/eponymous_faber_tactical.py" = "Faber's 10-month trend rule as a rule under the one template, with its author, source and published setting; not traded by the paper desk"
 "desk/eponymous_kell_breakout.py" = "Oliver Kell's base-and-break as a rule under the one template, with its author, secondary source and the range of its setting; not traded by the paper desk"
+"desk/eponymous_zweig_breadth_thrust.py" = "Martin Zweig's breadth thrust as a rule under the one template, author, secondary source and published figure written down, BLOCKED ON DATA (no breadth store); not traded by the paper desk"
 "desk/eponymous_connors_three_day_high_low.py" = "Connors and Alvarez's three-day high/low rule as a rule under the one template, with its author, source and published setting; not traded by the paper desk"
 "desk/eponymous_williams_r.py" = "Larry Williams's %R as a rule under the one template, with its author, source and published setting range; not traded by the paper desk"
 "desk/eponymous_clenow_momentum.py" = "Clenow's momentum rule (Stocks on the Move) as a rule under the one template, author, source and published figure written down; not traded by the paper desk"
