@@ -1661,6 +1661,25 @@ review found "never declare done without the check's output" dropped, and it is 
 failed; a budget that forgot CLAUDE.md's cap failed; a cap of 150 under the canon
 failed. Each named the file and its count.
 
+## 2026-11-14 — the docstring ratchet: undocumented public definitions never rise
+
+**Approved** in the after-first-light queue (item 9): undocumented public definitions may fall,
+never rise. On main today 71 of the 437 public functions, classes and methods in `desk/` and
+`lab/` have no docstring. `tests/guards/test_ratchets.py` counts them at main's commit the
+change starts from and in the change itself, and fails if the count rises. No number is kept by
+hand, so no lane needs to edit a guard file when it documents something, and the count can only
+fall. A public definition is one whose name does not start with `_`, at a module's top level or
+inside a public class.
+
+**Driven.** An undocumented public function, async function, class, method of a public class,
+and function in a new file each failed, as did removing an existing docstring. A documented new
+function, a private undocumented one, a deleted product file, and documenting one while adding
+one undocumented each passed.
+A blind review found that a definition under a top-level `if`, `try` or `with` went uncounted;
+it is counted now, and undocumented ones under an `if`, an `except` and a `match` case each
+failed, while one nested inside a function passed. The count is of the total, as approved: a
+change that documents one old definition may add one new undocumented one.
+
 ---
 
 ## MONEY
