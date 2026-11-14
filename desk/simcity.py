@@ -1,13 +1,10 @@
-"""simcity - SIMCITY. ONE COMMAND lives the desk's whole day through a hundred seeded worlds of
-the saved data, at the pretend broker with every one of its faults, and writes one record of
-the night. A WORLD is the saved lines on their own days, each line's months dealt again by
-the world's number; by that number too are drawn the faults waiting at the broker's door and
-what goes wrong on a real desk, done to this one on the way: it dies mid-send and is started
+"""simcity - SIMCITY. ONE COMMAND lives the desk's day through a hundred seeded worlds of the saved
+data, at the pretend broker with all its faults, and writes one record of the night. A WORLD is
+the saved lines on their own days, each line's months dealt again by the world's number; by it
+too come the broker's faults and what goes wrong on a real desk: it dies mid-send and is started
 again, a position appears behind its back, a stop is cancelled by hand, the kill switch is
-pulled. THE CENSUS names every part of the money path with the scenarios that ran it,
-measured as the night runs and never claimed. A part no scenario ran in any world, or a
-promise of the desk's seen broken in one, turns the night red, and the world is named: lived
-alone, it is the same world again."""
+pulled. THE CENSUS names each part of the money path with the scenarios that ran it. A part none
+ran, or a promise broken in a world, turns the night red and names the world."""
 
 from __future__ import annotations
 
@@ -40,15 +37,13 @@ HEADER = (
     *("at", "verdict", "worlds", "days", "clean", *(fault.name.lower() for fault in Fault)),
     *("deaths", "withheld", "trips", "profit", "market", "idle", "bare", "broken"),
 )
-#: THE MONEY PATH: the modules an order travels through, from a rule's decision to the day's
-#: record, and the switch that stops it.
+#: THE MONEY PATH: the modules an order travels through, from a rule's decision to the record.
 PATH: tuple[ModuleType, ...] = (strategy, orders, broker, book, day, kill)
 WORLDS = range(100)  #: a night's worlds, each named by the number that seeds its every draw
 MONTH = 20  #: sessions of a line's that stay together, in their saved order, in every world
 FAULTY = 4  #: of the orders at the broker's door, one in so many finds a fault waiting
 EVENTFUL = 8  #: of the mornings a desk is fit for it, one in so many has something done to it
 FORGOTTEN = 8  #: of the stops cancelled by hand, one in so many is never put back
-#: The scenarios, as the census names them.
 RULES = "the rules alone, on all the data"
 DAY = "a day of the desk"
 RESTART = "the desk dies mid-send and is started again"
@@ -282,7 +277,6 @@ def _killed(life: _Life, on: date) -> None:
 
 
 Event = tuple[str, Callable[[_Life, date], object]]
-#: What is done to the desk, one of these on a morning it is fit for it.
 EVENTS: tuple[Event, ...] = ((BEHIND, _behind), (UNSTOPPED, _unstopped), (KILLED, _killed))
 
 
@@ -398,3 +392,9 @@ def _night(
     market = sum((record.market for record in plain), Decimal(0))
     money = (len(records) - len(plain), trips, profit, market)
     return Night(at, len(lives), len(records), met, deaths, *money, idle, ran, tuple(broken))
+
+
+if __name__ == "__main__":
+    from desk import simcitycmd
+
+    raise SystemExit(simcitycmd.main())
