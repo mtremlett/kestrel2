@@ -3680,3 +3680,15 @@ Decided by the PAPER lane as the desk's mentor, no one watching.
 - Three requests and the ruling in one pull request: all on one box's files, each in its own commit.
 - Pages read through a web reader on the day, not opened by a person; a person or a later session opens each once more before its figure goes on file.
 - Ticks: R-DATA-11, R-RUNNER-5, R-RUNNER-3 (requests to this lane, done).
+
+## 2026-11-14 — pyarrow for the head start, and a source for each old store (R-RUNNER-24)
+
+**His ruling**, standing since 13 November: "please always go with recommended to avoid waiting for me to attend". #196 named why parquet folders and raw Stooq zips had no reader, and asked for option (a), taken as recommended: `pyarrow==26.0.1` to be pinned in `requirements.txt` and imported in `lab/headstart.py` only; `desk/` stays standard library. The pin itself is not in this change: the lane guard refuses `requirements.txt` to the DATA lane (it is in no lane's files), so it waits for a session that may touch it, together with `allowed_third_party` in `manifest.toml`.
+
+**What it replaces.** Four of the five old stores hold parquet. A reader for that format (column encodings, compression, row groups) is code we would otherwise write and maintain; pyarrow is tested code we do not.
+
+**Options.** (a) pin pyarrow, lab only (chosen); (b) write a parquet reader (refused, large and ours to maintain); (c) leave four stores unread (refused, the head start's whole point is those bars).
+
+**Sources.** `Source` in `desk/bars.py` gains `STOOQ_RAW`, `IBKR_STORE`, `STOOQ_STORE` and `TREND_STOOQ`, so that each old store's bars are kept under its own name. All are non-fresh: they only fill.
+
+**Remains.** The pin and the manifest's `allowed_third_party`, then the readers.
