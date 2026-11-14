@@ -2802,3 +2802,72 @@ that cannot change a result. Not witnessed: the unfinished run's tests failing f
   of answers that is not exactly the named rungs; later rungs join by being named in the list.
 - The luck rung stays beside the deflated Sharpe. A trial under two trades fails.
 - Guards driven: 6 contract tests seen failing first; 47 deliberate breaks, 43 caught.
+
+### 2026-11-14 — plateaus over peaks (rungs-plateau, #107)
+
+**Decided** by the lane as the desk's mentor. `lab/plateau.py` promotes the centre of a plateau
+of passing settings, never the best score or a lone peak.
+- *Beside a setting.* Sides only, or sides and corners. Chosen sides and corners: a failing
+  corner is a failing rule one step away.
+- *The grid's edge.* Passing ground, or unknown. Chosen unknown: a setting on the edge is never
+  promoted; the best on a slope still rising is not a plateau.
+- *Failures left off the surface.* Read the grid from results, or declare it first. Chosen
+  declared first; a missing setting counts as never tried (the first blind review's finding).
+- *The least plateau.* Depth 2 (the setting and all beside it); deeper is preferred when there is one.
+- *Ties.* Best own score, or best worst neighbour. Chosen best worst neighbour, then grid order.
+- *The least step between values,* a tenth of the lower, compared exactly: values a hair apart are
+  one rule tried twice.
+- *Settings* held to the grid's own number types: floats and bools refused.
+- *Branch.* The restored branch carried the pull request, keeping its history without a force-push.
+
+### 2026-11-14 — periods and regimes (rungs-regimes, #109)
+
+**Decided** by the lane. `lab/regime.py` replays a strategy by period and by regime, each judged
+by the first rung after costs.
+- *What the weather is.* This module invents a label, or the caller gives each day's regime.
+  Chosen the caller: the label is the market-weather box's (REG-01), one owner per concept.
+- *Which regime a trade belongs to.* Day decided, filled or sold. Chosen the day decided: all the
+  desk could know when it sent the order, and the day the paper tag reads.
+- *How a regime is replayed.* A run per unbroken stretch, or the whole window once with trades
+  shared out by regime. Chosen the latter: the rule stays warmed, no trade is priced twice.
+  Periods reuse the folds rung's cutting.
+- *"Never failed for working in only one."* Pass only if it earns in most regimes, or not failed if
+  it earned on the whole or in one regime or more. Chosen the latter; the whole and every regime
+  are separate looks, each a trial for the luck rung.
+- *Passed only on all weather together.* Called proven in each regime it traded in, or no home with
+  every paper trade tagged. Chosen no home (the blind review showed the first calling a lost regime
+  "proven"); over-tagging costs nothing, under-tagging hides a risk.
+- *Periods earn no home:* shown side by side, never picked from.
+- Refused as faults: a day with no regime, a regime name not one plain word, a window all one
+  regime, under two periods or more periods than bars.
+
+### 2026-11-14 — failing fairly (rungs-fair, #112)
+
+**Decided** by the lane.
+- *Several answers read together.* A fail always first, or a fault in the test, then a fail on
+  enough trades, then not enough evidence, then doubt, then pass. Chosen the latter: a faulty test
+  says nothing, and a real fail on enough trades outranks what too few could not settle.
+- *A window whose only trade is still held, or sold on its last day.* Not enough evidence, or a
+  fault in the test. Chosen fault: the window was too short to judge one trade.
+- *Known answers in `lab/published.py` and the strategies' contract test.* One home or two.
+  Chosen two: the contract test is the independent pin, so editing the published answers alone
+  cannot make wrong code pass.
+- *"Effective trades"* today is trades judged whole on one line; pooling across lines waits until
+  pooling is built.
+
+### 2026-11-14 — the first rung's costs whole (rungs-costs, #115)
+
+**Decided** by the lane, with his 13 November ruling to go with the recommended option.
+- *What a trade's return is measured on.* The pounds out at the buy with its costs in, or the pounds
+  the shares' value took at the buy's fill with every cost of both legs off the profit. Chosen the
+  latter: how the desk's book states a round trip, so rung and book agree to the penny.
+- *Which day's rate sizes an order.* The decision day or the sending morning. Chosen the sending
+  morning, as the desk's day does (the blind review caught the first draft).
+- *A pound line and the rates.* Demand a rate of 1, or read none. Chosen none.
+- *A missing day's rate.* Carry the last forward, or refuse. Chosen refuse: carrying forward masks
+  missing data (canon A2).
+- *A sale on a morning that opens at or under the stop.* An ordinary sale, or the stop's sale (three
+  times the slippage). Chosen the stop's.
+- *Re-pinned test numbers on made-up prices* (fuller costs earn a little less): the two walks either
+  side of the pass bar are now seeds 1 and 16; the 29-strong-trades pin reads "above 2.8". No golden
+  run changed and no guard loosened.

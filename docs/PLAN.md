@@ -492,17 +492,21 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       one combined 5% test across the set, a daily Sharpe above 2 flagged, and one verdict
       rule over the named rungs (LAD-03, LAD-08, LAD-09)
       {id: rungs-deflated; files: lab/deflated.py, tests/unit/test_lab_deflated.py, manifest.toml}
-- [ ] Plateaus over peaks: the centre of a plateau promoted, never a lone peak
+- [x] Plateaus over peaks: the centre of a plateau promoted, never a lone peak
+      Remains: nothing calls it until rules carry settings
       {id: rungs-plateau; files: lab/plateau.py, tests/unit/test_lab_plateau.py, manifest.toml}
-- [ ] Periods and regimes: replays across periods and regimes; a strategy never failed for
+- [x] Periods and regimes: replays across periods and regimes; a strategy never failed for
       working in only one; out-of-regime trades tagged on paper (LAD-05, REG-03, STR-20)
+      Remains: the weather (REG-01) and joining folds to a specialist's home regime (rungs-fair's follow-on)
       {id: rungs-regimes; files: lab/regime.py, tests/unit/test_lab_regime.py, manifest.toml; after: rungs-folds}
-- [ ] Failing fairly: too few effective trades is "not enough evidence", never a fail; a
+- [x] Failing fairly: too few effective trades is "not enough evidence", never a fail; a
       check that the code is the published rule; no trades at all is a fault in the test
       (LAD-06, STR-12)
       {id: rungs-fair; files: *; after: rungs-folds, rungs-trials, rungs-deflated, rungs-plateau, rungs-regimes}
 - [ ] Its costs whole: spread, slippage and the sale's own fees, from the desk's one cost
-      model once the money lane has them; and a rate of exchange for each day
+      model once the money lane has them; and a rate of exchange for each day. Done in the rung
+      (#115); remains: kept daily rates of exchange from DATA (R-RUNGS-3) before a dollar
+      line is judged on real prices
 - [ ] Reproduces a published strategy's own published result
 - [ ] Each indicator known-answer tested against a published reference series (STR-14)
 - [ ] Before paper: a kill condition declared for each strategy; promotion only after at

@@ -331,41 +331,42 @@ one folder of journals, a journal per worker, and failed cells not growing the j
 
 ## RUNGS
 
-Last updated: 13 November 2026 (this section cut to what is open; git, the decisions and
+Last updated: 14 November 2026 (this section cut to what is open; git, the decisions and
 the scoreboard keep the rest).
 
 ### Where it is
 
-The ladder has five rungs, each proven on made-up prices only: the first (`lab/rung.py`:
-thirty trades, two standard errors above nothing after costs and the 10% stop); the luck
-rung (`lab/luck.py`: one combined 5% across a set); folds (`lab/folds.py`: in-sample beside
-out-of-sample, verdict on the worst fold, each fold a trial); the register of trials
-(`lab/trials.py`: the count kept from batch to batch); and the deflated Sharpe with one
-verdict rule over four named rungs (`lab/deflated.py`). **No winner on real prices is to be
-believed yet.**
+The ladder has its rungs, each proven on made-up prices only: first (`lab/rung.py`, costs now
+whole: each leg by the desk's one cost model, each fill at its day's rate), luck, folds,
+register, deflated Sharpe, plateau (`lab/plateau.py`), regimes (`lab/regime.py`), and fair
+failing (four answers, published-rule check in `lab/published.py`). **No winner on real
+prices is to be believed yet.**
 
 ### Next step
 
-Plateaus over peaks (`rungs-plateau`) and regimes (`rungs-regimes`), then failing fairly
-(`rungs-fair`, last, holds all files), which joins folds, register and deflated into the
-ladder (a door for the register's count into `deflated.judge`). The costs box waits on
-R-RUNGS-1. The unit tests sit at the product's size (guard); keep tests no longer than code.
+Reproduce a published strategy's own result, then each indicator against a published
+reference series (STR-14). Nothing calls plateau or regimes yet (rules carry no settings; the
+weather is REG-01's). Keep unit-test lines no longer than product lines (guard).
 
-### Requests to MONEY
+### Requests to DATA
 
-- [ ] R-RUNGS-1 (later, opened 2026-11-13 18:15): a sale's own cost, spread and slippage in
-  `desk/orders.py`, from the desk's one cost model, so the first rung's costs are whole.
+- [ ] R-RUNGS-3 (blocking, opened 2026-11-14 00:35 UK): a kept daily rate of pounds per dollar for
+  every trading day of the research history (one per day, above nothing, a holiday's rate decided
+  on entry), readable as day to rate, so a dollar line can be judged.
 
 ### Requests to GRID
 
 - [ ] R-RUNGS-2 (later, opened 2026-11-13 21:22 UK): the declared sweep enters every cell in
   the register (`trials.enter`) before the batch runs, at one fixed path in the data folder.
+- [ ] R-RUNGS-4 (later, opened 2026-11-14 00:35 UK): what a kept verdict is found by should take in
+  the rates it was priced with (with the capital, R-GRID-3).
 
 ### Found, not fixed
 
-- **The first rung's costs are not whole.** No spread, slippage or sale-only fees: a sale is
-  charged as a buy of the same shares (R-RUNGS-1). One exchange rate serves a whole window,
-  so a dollar line's verdict carries no currency gain or loss. Owed before real prices.
+- **Costs are whole, but no real daily rates exist yet** (R-RUNGS-3). Spread and slippage are
+  the money lane's assumed figures; a kept verdict's key covers neither rates nor capital.
+- **Plateau/regime read pass or not only**; the folds rung fails a specialist with one bad fold in
+  its bad weather; the register cannot name a regime's look (rungs-fair's follow-on).
 - **Nothing calls the register or `deflated` yet**; `luck.correct` (caller's count) is still
   a door beside the register. A rule changed under its old name is not a new trial; the
   register has no lock (one writer at a time) and no home path yet. A fold-boundary trade
