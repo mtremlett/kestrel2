@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from desk.orders import Refused
 from lab import montecarlo
 
 D = Decimal
@@ -85,6 +86,26 @@ def test_a_cell_that_cannot_be_priced_is_told_and_tried_again(tmp_path: Path) ->
     assert montecarlo.run(home, nothing) == (
         "0 resampled now, 0 kept from before, 2 could not be resampled"
     )
+
+
+def test_a_cell_whose_trade_the_desk_refuses_is_recorded_refused_and_the_rest_go_on(
+    tmp_path: Path,
+) -> None:
+    home = _home(tmp_path)
+
+    def gains(job: montecarlo.Job) -> list[D]:
+        if job.source == "ladder":
+            raise Refused("20231117-rsi2_pullback-AZO: one share costs more than the room")
+        return [D("0.02"), D("-0.01")]
+
+    line = "1 resampled now, 0 kept from before, 1 refused by the desk's sizing"
+    assert montecarlo.run(home, gains) == line
+    saved = (home / "montecarlo" / "results.jsonl").read_text().splitlines()
+    rows = [json.loads(x) for x in saved]
+    assert [r["id"][0] for r in rows] == ["ladder", "grid"]
+    assert "one share costs more" in rows[0]["refused"]
+    assert "refused" not in rows[1]
+    assert montecarlo.run(home, nothing) == "0 resampled now, 2 kept from before"
 
 
 def test_a_run_without_a_data_folder_stops_and_says_why() -> None:
