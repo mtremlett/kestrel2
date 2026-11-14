@@ -89,51 +89,51 @@ everything on main, so two green lanes cannot combine into a red main.
 
 Last updated: 14 November 2026 (the costs whole, the emergencies, the day's record).
 ### Where it is
-Scenes 7 of 7. Built: the five rules; sizing, the one cost model (five lines), gate (`orders`); the
-pretend broker; send path, ledger, book, reconciliation (`book`); the day (`day.trade`, `day.run`,
-`day.publish`: the record to the penny in `records.csv`); kill switch; `emergency`; invariants (#132).
+Scenes 7 of 7. Built: the five rules; sizing, cost model, gate (`orders`); pretend broker; send path,
+ledger, book, reconciliation (`book`); the day (`day.trade`, `run`, `publish`); kill switch; `emergency`;
+invariants (#132); SimCity (#134, `desk/simcity.py`): 51 parts censused, ten promises; **its night is RED**.
 
 ### Next step
-SimCity small (money-simcity), halts, the gate's other limits, then fills realistic (money-fills).
+money-working (the send path counts orders still working: six lines held against five; turns SimCity
+green), money-restop, halts, the gate's other limits, then fills (money-fills). Boxes adding a public
+function need the SimCity files (a function no scenario runs turns the check red).
 
 ### Done for other lanes
 - R-PAPER-2: done in #64
 - R-RUNGS-1: done in #101
 
 ### Requests to PAPER
-- [ ] R-MONEY-7 (later, opened 2026-11-13 21:39 UK): a typed command calling `kill.pull`, sending
-  `Killed.words()` to Telegram; with a supervised desk, one lock across the send path's last read.
-- [ ] R-MONEY-8 (blocking, opened 2026-11-14 00:45 UK): the paper day calls `day.trade` (today, real
-  data) and `day.publish`, never `day.run`; the adapter refuses an order not dated the session
-  before the broker's today. Missed day: `book.record_rates`, `day.publish`.
-- [ ] R-MONEY-9 (later, opened 2026-11-13 22:11 UK): a stop's fills get the order's id plus "-stop".
-- [ ] R-MONEY-10 (later, opened 2026-11-13 22:11 UK): in conformance set paper fills beside
-  `orders.charges` and the assumed 0.05% spread a leg; say if fills already carry the spread.
-- [ ] R-MONEY-11 (later, opened 2026-11-14 00:20 UK): when you hold `desk/clearance.py`, say so; the
-  ledger's writer `book._write` then becomes public (`book.write`).
+- [ ] R-MONEY-7 (later, 2026-11-13): a typed command calling `kill.pull`, sending `Killed.words()` to
+  Telegram; with a supervised desk, one lock across the send path's last read.
+- [ ] R-MONEY-8 (blocking, 2026-11-14): the paper day calls `day.trade` (today, real data) and
+  `day.publish`, never `day.run`; the adapter refuses an order not dated the session before the
+  broker's today. Missed day: `book.record_rates`, `day.publish`.
+- [ ] R-MONEY-9 (later): a stop's fills get the order's id plus "-stop". R-MONEY-10 (later): in
+  conformance set paper fills beside `orders.charges` and the assumed 0.05% spread; say if fills carry it.
+- [ ] R-MONEY-11 (later, 2026-11-14): when you hold `desk/clearance.py`, say so; `book._write` then goes public.
+- [ ] R-MONEY-15 (blocking, opened 2026-11-14 03:30 UK): no unattended paper order until the send path
+  counts orders still working (money-working); the adapter must then say which are working.
 
 ### Requests to DATA
 - [x] R-MONEY-2 (blocking, opened 2026-11-13 18:15): the scenes moved onto the fourteen months.
-- [ ] R-MONEY-3 (later, opened 2026-11-13 18:15): a daily rate, pounds per dollar, in the store.
-- [ ] R-MONEY-12 (later, opened 2026-11-13 22:56 UK): on the master, the lines standing for the
-  market: the yardstick's twin (VUSA) and one trading in New York's hours.
+- [ ] R-MONEY-3 (later): a daily rate, pounds per dollar, in the store. R-MONEY-16 (later, 2026-11-14):
+  rehearsal lines not all one shape, so the 50/200-day rule holds a line.
+- [ ] R-MONEY-12 (later, 2026-11-13): on the master, the market's lines: the yardstick's twin (VUSA), one in New York hours.
 
 ### Requests to RUNGS
-- [ ] R-MONEY-13 (later, opened 2026-11-13 22:11 UK): the first rung prices each leg with
-  `orders.charges(line, leg, shares, price, fx)`; today it charges a sale as a purchase.
-- [ ] R-MONEY-14 (later, opened 2026-11-14 00:20 UK): AG-04 must not add the records' market column
-  (£783.73 added, £420.64 held): compound the days or read the two closes.
+- [ ] R-MONEY-13 (later): the first rung prices each leg with `orders.charges`; today a sale is charged as a purchase.
+- [ ] R-MONEY-14 (later, 2026-11-14): AG-04 must not add the records' market column (£783.73 added,
+  £420.64 held): compound the days or read the two closes.
 
 ### Found, not fixed
 - **No clock on the day path:** an old day with no record and no later fill is not known old (R-MONEY-8).
-- **Costs:** spread and slippage assumed, not measured; fills carrying their own spread must not
-  have it taken off twice (TRD-09); a stop's fill is known by name, not a typed word.
-- **Records:** a withheld day shows twice if added; a damaged `records.csv` row is not named.
-- **Emergencies:** one bad VUAG price could call for selling all (R-MONEY-12); market unread
-  after London closes; 5QQQ can have no emergency.
+- **Costs:** spread and slippage assumed; fills carrying their own spread must not have it taken off
+  twice (TRD-09); a stop's fill is known by name. **Records:** a withheld day shows twice if added.
+- **Emergencies:** one bad VUAG price could call for selling all (R-MONEY-12); 5QQQ can have none.
 - **Pretend broker:** no fault reaches a sale or fills in two executions; order state is untyped.
-- A sale can exceed the holding; nothing reads a declaration yet; a mismatch tells nobody yet;
-  the day run has no halt. A helper's empty copy under `kestrel2\.claude\worktreesgent-a208b88dff47c8527` can go.
+- **SimCity (#134):** a stop cancelled by hand is never put back (money-restop); no nightly run on his PC
+  yet; no code or data version in its record.
+- A sale can exceed the holding; nothing reads a declaration yet; a mismatch tells nobody yet; no halt.
 
 ## PAPER
 
