@@ -18,16 +18,24 @@ from desk.orders import Settings
 from desk.store import Bar
 from lab import cell, trials
 from lab.cell import Cell
+from lab.reproduce import Reproduction
 from lab.rung import Rates, judge
 
 SHUFFLES = 100
 SHARE = Decimal("0.05")  #: at most this share of shuffles, itself among them, does as well
 
 
-def share(c: Cell, bars: Sequence[Bar], settings: Settings, rates: Rates) -> Decimal:
+def share(
+    c: Cell,
+    bars: Sequence[Bar],
+    settings: Settings,
+    rates: Rates,
+    made: Sequence[Reproduction] = (),
+) -> Decimal:
     """The trial's share among its shuffles; 1 for a trial of under two trades, which has no
-    standard errors to beat."""
-    own = _t(c, bars, settings, rates)
+    standard errors to beat. The rule's author's result, where on file, is handed to the first
+    rung with each history, as it is with the trial's own."""
+    own = _t(c, bars, settings, rates, made)
     if own is None:
         return Decimal(1)
     rng = random.Random(trials.name(c))  # noqa: S311 - a repeatable draw, not a secret
@@ -35,14 +43,16 @@ def share(c: Cell, bars: Sequence[Bar], settings: Settings, rates: Rates) -> Dec
     as_good = 1  #: the trial itself
     for _ in range(SHUFFLES):
         rng.shuffle(moves)
-        made = _history(bars, moves)
-        got = _t(c, made, settings, rates)
+        shuffled = _history(bars, moves)
+        got = _t(c, shuffled, settings, rates, made)
         as_good += got is not None and got >= own
     return Decimal(as_good) / (SHUFFLES + 1)
 
 
-def _t(c: Cell, bars: Sequence[Bar], settings: Settings, rates: Rates) -> Decimal | None:
-    return judge(cell.run(c, bars), bars, settings, rates).t
+def _t(
+    c: Cell, bars: Sequence[Bar], settings: Settings, rates: Rates, made: Sequence[Reproduction]
+) -> Decimal | None:
+    return judge(cell.run(c, bars), bars, settings, rates, made).t
 
 
 def _moves(bars: Sequence[Bar]) -> list[tuple[Decimal, ...]]:
