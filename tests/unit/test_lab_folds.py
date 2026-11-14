@@ -7,7 +7,7 @@ from decimal import Decimal
 
 import pytest
 from test_lab_luck import DAY
-from test_lab_rung import POUND, SHAPE, TEN_K, _bars, _walk
+from test_lab_rung import FREE, POUND, SHAPE, TEN_K, _bars, _walk
 
 from desk.store import Bar
 from lab import cell, folds, luck, rung
@@ -27,7 +27,7 @@ def _judge(bars: Sequence[Bar], count: int = 2) -> Folded:
 
 
 def _verdict(*gains: str) -> Verdict:
-    made = tuple(Priced(Trade(DAY, DAY), 1, Decimal(1), 1 + Decimal(g), Decimal(g)) for g in gains)
+    made = tuple(Priced(Trade(DAY, DAY), 1, Decimal(1), 1 + Decimal(g), FREE) for g in gains)
     return rung.verdict(Key(Cell("breakout_20_10", "VUSA", DAY, DAY), "code", "data"), made)
 
 
