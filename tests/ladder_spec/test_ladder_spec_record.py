@@ -5,6 +5,8 @@ and the resampled drawdowns.
 
 The check does not run this folder. Each test here is the spec's, written before the code:
 it fails until the ladder is built as written, and is never set aside to make it pass.
+What no test here can hold, the build's own review must: that the commit is the commit, that
+the rule's hash moves when its code does, and that a drawdown is drawn and not made up.
 """
 
 from __future__ import annotations
@@ -30,7 +32,7 @@ from lab.reproduce import Figure, Fill, Hand, Measure, Stated
 from lab.rung import Answer
 
 GATES = {"first", "luck", "deflated", "yearly", "folds", "market", "shuffle"}
-MADE = {"commit", "code", "rule", "data", "market", "rates"}
+MADE = {"commit", "code", "rule", "data", "market", "pool", "rates"}
 
 
 def test_one_verdict_over_every_gating_rung_and_one_trial_a_cell(tmp_path: Path) -> None:
@@ -52,8 +54,9 @@ def test_one_verdict_over_every_gating_rung_and_one_trial_a_cell(tmp_path: Path)
         made = row["made"]
         assert set(made) == MADE and all(re.fullmatch(r"[0-9a-f]{40,64}", v) for v in made.values())
         assert len(made["commit"]) == 40 and made["rule"].startswith(code[0])
-    assert len({row["made"]["data"] for row in rows}) == len(rows), "each line's own bars"
-    assert len({tuple(row["made"][k] for k in sorted(MADE - {"data"})) for row in rows}) == 1
+    #: each line's own bars; its venue's market; and one pool, code, rule and table for all
+    for name, many in (("data", len(rows)), ("market", 2), ("pool", 1), ("rates", 1), ("code", 1)):
+        assert len({row["made"][name] for row in rows}) == many, name
 
 
 def test_a_rule_behind_its_authors_figure_is_judged_on_every_rung_the_folds_too(
@@ -84,13 +87,16 @@ def test_the_rates_are_one_kept_table_never_asked_for_twice(tmp_path: Path) -> N
 
     def ask(line: Line, before: date) -> list[Bar]:
         asked.append((line, before))
-        closes = [(day, Decimal("1.25")), (day + timedelta(1), Decimal("1.6"))]
-        return [Bar(when, close, close, close, close, 0) for when, close in closes]
+        closes = [(day, "1.25"), (day + timedelta(1), "1.6"), (ladder.END, "1.28")]
+        at = [(when, Decimal(close)) for when, close in closes]
+        return [Bar(when, close, close, close, close, 0) for when, close in at]
 
     def gone(line: Line, before: date) -> list[Bar]:
         raise AssertionError(f"{line.symbol} before {before}: asked for again, and it is kept")
 
-    rates: Any = ladder.rates  #: the door as the spec gives it (M5): the data home, the archive
+    #: the door as the spec gives it (M5): the data home, then the archive, asked once for
+    #: all it has; the table then holds the pound's last close, and nothing is asked again
+    rates: Any = ladder.rates
     first = rates(tmp_path, ask)
     assert asked == [(POUND, ladder.END + timedelta(1))] and any((tmp_path / "ladder").iterdir())
     #: a day's rate is one over the pound's last close before it, and never a later one
@@ -117,4 +123,5 @@ def test_the_drawdowns_resampled_are_kept_and_made_the_same_again(tmp_path: Path
         #: parts of the capital: the deepest fall of a middling draw, and of one in twenty
         fall = row["drawdown"]
         assert set(fall) == {"median", "p95"} and 0 < fall["median"] <= fall["p95"] < 1
+    assert len({row["drawdown"]["median"] for row in first}) > len(first) / 2, "each line's own"
     assert [row["drawdown"] for row in first] == [row["drawdown"] for row in again]

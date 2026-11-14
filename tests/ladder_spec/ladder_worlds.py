@@ -10,6 +10,8 @@ Four kinds, and the answer each must be given by the one verdict:
     DRIFT     a line that climbs of itself, with nothing to time               FAIL
     LOPSIDED  nine trades in ten a small win, one in ten a loss at the         FAIL
               desk's own stop, and the mean of them nothing after costs
+    HIDDEN    the same, trading twice a year: under forty trades a line,       FAIL
+              so that one line in fifty has not met its loss yet
 
 Every history runs from 2010 to past the ladder's window, a bar each calendar day, so the
 ladder's last five whole years are all in it.
@@ -38,7 +40,7 @@ LONDON = ("SMGB", "IITU", "VHYG", "VUSA", "SGLN", "VUAG", "EQQQ", "IB1T")
 NEW_YORK = ("AAPL", "TSLA", "NVDA", "SPCX", "MSTR", "AMD", "MU", "QQQ")
 EIGHT = tuple(line for line in LINES if line.symbol in LONDON and line.venue == "LSE")
 SIXTEEN = EIGHT + tuple(line for line in LINES if line.symbol in NEW_YORK and line.venue == "US")
-EDGE, BELL, DRIFT, LOPSIDED = "edge", "bell", "drift", "lopsided"
+EDGE, BELL, DRIFT, LOPSIDED, HIDDEN = "edge", "bell", "drift", "lopsided", "hidden"
 #: The planted edge: each day after a close over the twenty before it rises this much more.
 PUSH = 0.012
 #: The drifting line's rise a day, in and out of the rule's hands alike.
@@ -124,13 +126,13 @@ def world(
 ) -> dict[Line, tuple[Bar, ...]]:
     """The seed's world of the kind: its sixteen lines' bars, and the two markets'. A market
     has no memory; it climbs where the lines do. An edge may be soured between two days."""
-    if kind not in (EDGE, BELL, DRIFT, LOPSIDED):
+    if kind not in (EDGE, BELL, DRIFT, LOPSIDED, HIDDEN):
         raise ValueError(f"{kind}: no such world")
     climb = CLIMB if kind == DRIFT else 0.0
 
     def make(own: int) -> tuple[Bar, ...]:
-        if kind == LOPSIDED:
-            return lopsided(own)
+        if kind in (LOPSIDED, HIDDEN):
+            return lopsided(own, SPARSE if kind == HIDDEN else DENSE)
         return walk(own, PUSH if kind == EDGE else 0.0, climb, sour)
 
     markets = {line: walk(1000 * seed + 100 + n, climb=climb) for n, line in enumerate(MARKETS)}

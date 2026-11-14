@@ -2,16 +2,22 @@
 PASSES; a walk with no memory, a line that climbs of itself and a rule of small wins with a
 rare loss at the stop FAIL; and the two rates PASS is held to are measured and printed.
 
-The check does not run this folder. Each test here is the spec's, written before the code:
-it fails until the ladder is built as written, and is never set aside to make it pass.
-`python -m pytest tests/ladder_spec -s` prints the rates; they take some minutes.
+The check does not run this folder. The tests here are the spec's, written before the code,
+and none is ever set aside to make it pass. Those of the planted edge, the hidden loss, the
+folds and the shuffle fail until the ladder is built as written; those of nothing (the bell,
+the drift and the two lopsided worlds) hold already, since the ladder as it stands passes
+nothing at all, and are the controls that must go on holding once an edge can pass.
+`python -m pytest tests/ladder_spec -s` prints the rates: ten minutes as the ladder stands,
+and half an hour or so once every planted edge is shuffled a hundred times.
 """
 
 from __future__ import annotations
 
+import importlib
 from datetime import date
 from pathlib import Path
 from statistics import fmean
+from typing import Any
 
 import pytest
 from ladder_worlds import (
@@ -19,9 +25,12 @@ from ladder_worlds import (
     DRIFT,
     EDGE,
     EIGHT,
+    HIDDEN,
     LOPSIDED,
     LOSSES,
+    POUNDS,
     RULE,
+    SIXTEEN,
     SPARSE,
     judged,
     lopsided,
@@ -30,6 +39,7 @@ from ladder_worlds import (
 
 from desk.command import CAPITAL
 from desk.orders import Settings
+from desk.store import Bar
 from lab import cell, deflated, ladder, rung
 from lab.cell import Cell
 from lab.rung import Answer
@@ -38,7 +48,8 @@ from lab.rung import Answer
 #: and of trials with the planted edge four in five or more.
 FALSE_PASS, POWER = 0.05, 0.8
 #: The worlds each rate is measured on: eighty planted trials, and twenty sets of each kind
-#: of nothing, sixteen trials a set.
+#: of nothing, sixteen trials a set. No set fooled of the eighty bounds the true rate under
+#: one in twenty-seven, nineteen times in twenty.
 EDGES, NOTHINGS = range(1, 6), range(1, 21)
 #: The desk's first set was 110 trials: a lone trial is judged here as one of so many.
 SET = 110
@@ -57,7 +68,7 @@ def test_a_planted_edge_passes_and_the_power_is_recorded(tmp_path: Path) -> None
     assert power >= POWER, f"{sorted(set(answers))}: a planted edge is not thrown away"
 
 
-@pytest.mark.parametrize("kind", [BELL, DRIFT, LOPSIDED])
+@pytest.mark.parametrize("kind", [BELL, DRIFT, LOPSIDED, HIDDEN])
 def test_nothing_fails_and_the_false_pass_rate_is_recorded(tmp_path: Path, kind: str) -> None:
     sets = [_answers(tmp_path, kind, seed) for seed in NOTHINGS]
     cells = [answer for answers in sets for answer in answers]
@@ -105,3 +116,23 @@ def test_the_folds_are_five_years_pooled_by_rule_and_judged_on_the_worst(tmp_pat
         answer, why = row["rungs"]["folds"]
         assert row["rungs"]["first"][0] == "PASS" and answer in ("FAIL", "DOUBT")
         assert "2023" in why and row["answer"] != "PASS"
+
+
+def test_the_shuffle_tells_an_edge_in_the_order_of_days_from_a_rise_with_none() -> None:
+    shuffle: Any = importlib.import_module("lab.shuffle")  #: the rung's door, as the spec names it
+    room = Settings(CAPITAL)
+
+    def share(bars: tuple[Bar, ...]) -> float:
+        window = Cell(RULE, EIGHT[0], bars[0].day, ladder.END)
+        return float(shuffle.share(window, bars, room, POUNDS))
+
+    #: a planted edge is in the order of its days: no shuffle of them does as well, and the
+    #: same trial is shuffled the same again
+    assert shuffle.SHUFFLES == 100
+    for bars in list(world(EDGE, 1).values())[2:4]:
+        assert share(bars) == share(bars) == pytest.approx(1 / (shuffle.SHUFFLES + 1))
+    #: a line that climbs of itself climbs as well in any order: its rule has timed nothing,
+    #: and chance alone puts one such line in twenty among the best of its shuffles
+    climbing = list(world(DRIFT, 1).values())[2:]
+    timed = sum(share(bars) <= 0.05 for bars in climbing)
+    assert len(climbing) == len(SIXTEEN) and timed <= 3, f"{timed} lines of no order passed"
