@@ -18,18 +18,26 @@ so `keep` saves each evening's through the checks the daily store makes. No mome
 ever removed; one the archive restates takes the place of the one held only by passing those
 checks, its unit judged against what is held. The last week stays hot with every older bar
 archived beneath it in the same file: the benchmark reads a week from under a year of them,
-for twenty lines."""
+for twenty lines.
+
+Every bar is kept with its source, and a round is one source's (Source). A fresh source,
+the archive, restates: its bar for a moment takes the place of whatever is held there. Any
+other source, a store that is no longer kept, only fills the moments that hold no bar, so a
+fresh bar always wins; where two sources' bars for one moment differ, that is counted
+(`apart`)."""
 
 from __future__ import annotations
 
 import sqlite3
-from collections.abc import Iterable, Iterator, Mapping, Sequence
+from collections.abc import Collection, Iterable, Iterator, Mapping, Sequence
 from contextlib import closing, contextmanager
 from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
+from enum import Enum
 from pathlib import Path
 from statistics import median_low
+from typing import Any
 
 from desk import venues
 from desk.lines import Line
@@ -40,6 +48,25 @@ EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 #: The seconds anyone waits for the file: a writer for the writer before it, and anyone while
 #: SQLite opens or closes the file's log as the first comes to it or the last goes.
 WAIT = 5.0
+#: Two sources' bars for one moment agree when no price of the four is further from the
+#: price held than this part of the price given: each vendor rounds its own way. Volumes are
+#: not set side by side, for each vendor counts the trades of its own set of venues.
+AGREE = Decimal("0.0001")
+
+
+class Source(Enum):
+    """Where a bar came from: a bar from anywhere else cannot be written."""
+
+    ARCHIVE = "archive"  #: the free price archive; until 14 November 2026 the one source
+    MATRICES = "old desk: Stooq matrices"  #: the old desk's two stores (lab/headstart.py)
+    DATABASE = "old desk: mark_the_trend.db"
+
+    @property
+    def fresh(self) -> bool:
+        """It is still asked, and so may restate a bar; an old store only fills."""
+        return self is Source.ARCHIVE
+
+
 #: Each bar under its line, its span and the start of its span: a daily bar's day as its
 #: ordinal, a five-minute bar's start as seconds since EPOCH. `held` names every line and
 #: span ever written, so that a line never written is not read as a line with no bars.
@@ -47,16 +74,26 @@ SCHEMA = (
     "CREATE TABLE IF NOT EXISTS bar (venue TEXT NOT NULL, symbol TEXT NOT NULL,"
     " span TEXT NOT NULL, at INTEGER NOT NULL, open TEXT NOT NULL, high TEXT NOT NULL,"
     " low TEXT NOT NULL, close TEXT NOT NULL, volume INTEGER NOT NULL,"
-    " PRIMARY KEY (venue, symbol, span, at)) WITHOUT ROWID",
+    " source TEXT NOT NULL, PRIMARY KEY (venue, symbol, span, at)) WITHOUT ROWID",
     "CREATE TABLE IF NOT EXISTS held (venue TEXT NOT NULL, symbol TEXT NOT NULL,"
     " span TEXT NOT NULL, PRIMARY KEY (venue, symbol, span)) WITHOUT ROWID",
 )
+#: A store made before sources were kept: every bar in it came from the archive.
+SOURCED = f"ALTER TABLE bar ADD COLUMN source TEXT NOT NULL DEFAULT '{Source.ARCHIVE.value}'"
 MADE = "SELECT 1 FROM sqlite_master WHERE name = 'held'"
 HOLD = "INSERT OR IGNORE INTO held VALUES (?, ?, ?)"
 HELD = "SELECT 1 FROM held WHERE venue = ? AND symbol = ? AND span = ?"
 CLEAR = "DELETE FROM bar WHERE venue = ? AND symbol = ? AND span = ?"
-ADD = "INSERT INTO bar VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
-PUT = "INSERT OR REPLACE INTO bar VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+ADD = "INSERT INTO bar VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+PUT, FILL = (ADD.replace("INSERT", f"INSERT OR {then}") for then in ("REPLACE", "IGNORE"))
+OTHERS = (
+    "SELECT at, open, high, low, close FROM bar WHERE venue = ? AND symbol = ? AND span = ?"
+    " AND source != ? AND at >= ? AND at <= ?"
+)
+SOURCES = (
+    "SELECT source, count(*) FROM bar"
+    " WHERE venue = ? AND symbol = ? AND span = ? AND at >= ? AND at < ? GROUP BY source"
+)
 CLOSES = "SELECT close FROM bar WHERE venue = ? AND symbol = ? AND span = ? AND at >= ?"
 READ = (
     "SELECT at, open, high, low, close, volume FROM bar"
@@ -95,49 +132,71 @@ class Five:
 
 
 class Round:
-    """One round of a writer, open: what it is given lands when the round ends."""
+    """One round of a writer, open: what it is given lands when the round ends, each bar
+    kept with the round's one source."""
 
-    def __init__(self, held: sqlite3.Connection) -> None:
-        self._held = held
+    def __init__(self, held: sqlite3.Connection, source: Source) -> None:
+        self._held, self._source = held, source
 
     def _write(
-        self, whole: bool, line: Line, span: str, bars: Iterable[tuple[int, Bar | Five]]
-    ) -> None:
+        self, put: str, line: Line, span: str, bars: Iterable[tuple[int, Bar | Five]]
+    ) -> int:
         """One line's bars of one span, all of them or, if any is refused, none: the round is
         then as it was before, whether or not the caller ends it there. A round that SQLite
-        itself has dropped (a full disk) takes no more, and nothing of it lands."""
+        itself has dropped (a full disk) takes no more, and nothing of it lands. It says how
+        many bars landed."""
         if not self._held.in_transaction:
             raise NoRound(f"SQLite dropped this round: nothing of it lands, {line.symbol} too")
         key = (line.venue, line.symbol, span)
         rows = (
-            (*key, at, str(b.open), str(b.high), str(b.low), str(b.close), b.volume)
+            (*key, at, *map(str, (b.open, b.high, b.low, b.close)), b.volume, self._source.value)
             for at, b in bars
         )
         self._held.execute("SAVEPOINT line")
         try:
             self._held.execute(HOLD, key)
-            if whole:
+            if put == ADD:
                 self._held.execute(CLEAR, key)
-            self._held.executemany(ADD if whole else PUT, rows)
+            landed = self._held.executemany(put, rows).rowcount
         except BaseException:
             if self._held.in_transaction:
                 self._held.execute("ROLLBACK TO line")
             raise
         self._held.execute("RELEASE line")
+        return landed
 
     def daily(self, line: Line, bars: Iterable[Bar]) -> None:
         """A line's daily history, whole: it takes the place of the history held before, for
-        an archive restates the past. A history that gives a day twice is refused."""
+        an archive restates the past, so only a fresh source may give one. A history that
+        gives a day twice is refused."""
+        if not self._source.fresh:
+            raise ValueError(f"{self._source.value} is no fresh source: it restates no history")
         try:
-            self._write(True, line, DAILY, ((b.day.toordinal(), b) for b in bars))
+            self._write(ADD, line, DAILY, ((b.day.toordinal(), b) for b in bars))
         except sqlite3.IntegrityError as twice:
             what = f"{line.symbol} on {line.venue}: its history gives a day twice; none kept"
             raise ValueError(what) from twice
 
-    def five(self, line: Line, bars: Iterable[Five]) -> None:
-        """More of a line's five-minute bars. They only gather: a bar given again for a moment
-        takes the place of the one held for it, and no other bar is touched."""
-        self._write(False, line, FIVE, ((_seconds(b.start), b) for b in bars))
+    def five(self, line: Line, bars: Iterable[Five]) -> int:
+        """More of a line's five-minute bars, and how many landed. They only gather: from a
+        fresh source a bar given again for a moment takes the place of the one held for it;
+        from any other a bar lands only on a moment that holds none. No other bar is touched."""
+        put = PUT if self._source.fresh else FILL
+        return self._write(put, line, FIVE, ((_seconds(b.start), b) for b in bars))
+
+    def apart(self, line: Line, bars: Collection[Five]) -> tuple[int, int]:
+        """How many of the bars meet a bar held from another source for their own moment, and
+        how many of those differ from it."""
+        given = {_seconds(bar.start): bar for bar in bars}
+        key = (line.venue, line.symbol, FIVE, self._source.value, min(given, default=0))
+        met = differ = 0
+        for at, *held in self._held.execute(OTHERS, (*key, max(given, default=0))):
+            if at in given:
+                bar = given[at]
+                prices = zip(held, (bar.open, bar.high, bar.low, bar.close), strict=True)
+                differ += any(abs(Decimal(was) - now) > AGREE * now for was, now in prices)
+                met += 1
+        return met, differ
 
     def closes(self, line: Line, since: datetime) -> list[Decimal]:
         """The closes of the line's five-minute bars held from since on, this round's too."""
@@ -146,8 +205,8 @@ class Round:
 
 
 @contextmanager
-def writing(path: Path) -> Iterator[Round]:
-    """A writer's next round on the store at path, which is made on its first round. The
+def writing(path: Path, source: Source) -> Iterator[Round]:
+    """A source's next round on the store at path, which is made on its first round. The
     round lands whole as the block ends; if the block fails, nothing of it lands."""
     with closing(sqlite3.connect(path, timeout=WAIT, isolation_level=None)) as held:
         try:
@@ -159,10 +218,14 @@ def writing(path: Path) -> Iterator[Round]:
         with held:
             for table in SCHEMA:
                 held.execute(table)
-            yield Round(held)
+            if all(column[1] != "source" for column in held.execute("PRAGMA table_info(bar)")):
+                held.execute(SOURCED)
+            yield Round(held, source)
 
 
-def _read(path: Path, line: Line, span: str, first: int, end: int) -> list[tuple[int, ...]]:
+def _read(
+    path: Path, line: Line, span: str, first: int, end: int, what: str = READ
+) -> list[tuple[Any, ...]]:
     """A line's rows of one span from first up to, not including, end, oldest first, read
     at one moment of the store: its last whole round."""
     key = (line.venue, line.symbol, span)
@@ -172,7 +235,7 @@ def _read(path: Path, line: Line, span: str, first: int, end: int) -> list[tuple
         held.execute("BEGIN")
         if held.execute(MADE).fetchone() is None:
             raise FileNotFoundError(f"{path}: no round of the store has landed there")
-        rows: list[tuple[int, ...]] = held.execute(READ, (*key, first, end)).fetchall()
+        rows: list[tuple[Any, ...]] = held.execute(what, (*key, first, end)).fetchall()
         if not rows and held.execute(HELD, key).fetchone() is None:
             raise LookupError(
                 f"{path}: the store never held {span} bars for {line.symbol} on {line.venue}"
@@ -197,6 +260,11 @@ def five(path: Path, line: Line, since: datetime, until: datetime) -> tuple[Five
         Five(EPOCH + timedelta(seconds=at), Decimal(o), Decimal(h), Decimal(lo), Decimal(c), v)
         for at, o, h, lo, c, v in rows
     )
+
+
+def sources(path: Path, line: Line, span: str) -> dict[Source, int]:
+    """How many of a line's bars of one span the store holds from each source."""
+    return {Source(name): count for name, count in _read(path, line, span, 0, 2**62, SOURCES)}
 
 
 def _entered(line: Line, bar: Five) -> Five | str:
@@ -265,9 +333,10 @@ def keep(
     """An evening's answers from the archive into the store at path, in one round: each line's
     bars that pass the checks, their unit judged against the bars held from the same days,
     and every line's faults. A line the archive refused adds nothing this evening. A bar held
-    stays unless a bar for its own moment passes the checks, and takes its place."""
+    stays unless a bar for its own moment passes the checks, and takes its place; where it
+    was held from another source and differs, that is counted among the line's faults."""
     faults: dict[Line, tuple[str, ...]] = {}
-    with writing(path) as round_:
+    with writing(path, Source.ARCHIVE) as round_:
         for line, bars in answers.items():
             if isinstance(bars, Refused):
                 faults[line] = (f"the archive refused it: {bars.reason}",)
@@ -275,6 +344,8 @@ def keep(
             given = list(bars)
             since = min((bar.start for bar in given), default=EPOCH)
             kept, found = checked(line, given, round_.closes(line, since))
+            differ = round_.apart(line, kept)[1]
             round_.five(line, kept)
-            faults[line] = tuple(found)
+            gave = [f"{differ} bars held from another source differ, and gave way"] * (differ > 0)
+            faults[line] = (*found, *gave)
     return faults
