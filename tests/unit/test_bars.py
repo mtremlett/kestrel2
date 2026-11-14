@@ -102,12 +102,15 @@ def test_a_bar_is_kept_with_its_source_and_only_a_fresh_source_restates(tmp_path
         assert round_.apart(UK, [over]) == (1, 1)
         with pytest.raises(ValueError, match="Stooq matrices is no fresh source"):
             round_.daily(UK, _days(1))
+        assert round_.days(UK, _days(1)) == 1  # a day that holds none is filled
     assert bars.sources(store, UK, bars.FIVE) == {Source.ARCHIVE: 1, Source.MATRICES: 1}
     with bars.writing(store, Source.ARCHIVE) as round_:
         assert round_.apart(UK, [far, held]) == (1, 1)
         assert round_.five(UK, [far]) == 1
+        assert round_.days(UK, [replace(_days(1)[0], volume=9)]) == 1  # a fresh bar takes the day
     assert bars.five(store, UK, bars.EPOCH, NEXT) == (held, far)
     assert bars.sources(store, UK, bars.FIVE) == {Source.ARCHIVE: 2}
+    assert bars.sources(store, UK, bars.DAILY) == {Source.ARCHIVE: 1}
 
 
 def test_a_reader_sees_only_whole_rounds_and_a_second_writer_is_refused(

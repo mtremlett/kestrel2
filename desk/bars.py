@@ -1,26 +1,23 @@
-"""bars - THE ONE FAST STORE, for hot and deep bars alike: one SQLite file in WAL mode, the
-standard library's own, with one writer at a time and many readers (the operator's need of 13
-November 2026, DAT-04). It is held to three benchmarks, in tests/unit/test_bars.py: a
-five-minute round for every line written in under a second, a line's last week read in under
-50 ms, a line's daily history read in under 200 ms.
+"""bars - THE ONE FAST STORE, for hot and deep bars alike: one SQLite file in WAL mode, with one
+writer at a time and many readers (DAT-04, 13 November 2026). Three benchmarks, in
+tests/unit/test_bars.py: a five-minute round for every line written in under a second, a
+line's last week read in under 50 ms, a line's daily history in under 200 ms.
 
-A writer works in rounds. Everything written in a round lands together when it ends, forced
-to disk, or none of it does. A reader reads the last whole round, never part of one. A second
-writer waits its turn, and is refused if it has not come within WAIT seconds (NoRound).
-
-A line is its venue and its symbol: one symbol can be two companies. A daily bar is named by
-its session's day; a five-minute bar by its start, in UTC. Prices are kept as exact decimals.
+A writer works in rounds: what is written lands together when the round ends, forced to disk,
+or none of it does. A reader reads the last whole round. A second writer waits its turn, and
+is refused if it has not come within WAIT seconds (NoRound). A line is its venue and its
+symbol: one symbol can be two companies. A daily bar is named by its session's day; a
+five-minute bar by its start, in UTC. Prices are kept as exact decimals.
 
 Five-minute bars are kept for good (DAT-11): the archive forgets them after sixty days, so
-`keep` saves each evening's through the daily store's checks. No moment's bar is ever
-removed; one the archive restates replaces the one held only by passing those checks, its
-unit judged against what is held. The last week stays hot with every older bar archived
-beneath it in the same file: the benchmark reads a week from under a year of them, for twenty lines.
+`keep` saves each evening's through the daily store's checks. No moment's bar is ever removed;
+one the archive restates replaces the one held only by passing those checks. The last week
+stays hot with every older bar archived beneath it in the same file.
 
 Every bar is kept with its source, a round being one source's (Source). A fresh source, the
-archive, restates: its bar takes the place of whatever is held for that moment. Any other,
-a store no longer kept, only fills moments that hold no bar, so a fresh bar always wins;
-where two sources' bars for one moment differ, that is counted (`apart`)."""
+archive, restates: its bar takes the place of what is held for that moment or day. Any other,
+a store no longer kept, only fills moments and days that hold no bar, so a fresh bar always
+wins; where two sources' five-minute bars for one moment differ, that is counted (`apart`)."""
 
 from __future__ import annotations
 
@@ -46,12 +43,11 @@ from desk.store import _clean as cleaned
 
 DAILY, FIVE = "daily", "five-minute"  #: the two spans of bar the store holds
 EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
-#: The seconds anyone waits for the file: a writer for the writer before it, and anyone while
-#: SQLite opens or closes the file's log as the first comes to it or the last goes.
+#: The seconds anyone waits for the file: a writer for the one before it, or SQLite's own log.
 WAIT = 5.0
-#: Two sources' bars for one moment agree when no price of the four is further from the
-#: price held than this part of the price given: each vendor rounds its own way. Volumes are
-#: not set side by side, for each vendor counts the trades of its own set of venues.
+#: Two sources' bars for one moment agree when no price of the four is further from the price
+#: held than this part of the price given: each vendor rounds its own way. Volumes are not
+#: compared, for each vendor counts the trades of its own venues.
 AGREE = Decimal("0.0001")
 
 
@@ -65,6 +61,7 @@ class Source(Enum):
     IBKR_STORE = "old desk: ibkr_store"
     STOOQ_STORE = "old desk: stooq_store"
     TREND_STOOQ = "old desk: mark_the_trend Stooq downloads"
+    MTT_DB = "old desk: mark_the_trend.db daily rows"  #: its daily bars alone
 
     @property
     def fresh(self) -> bool:
@@ -72,9 +69,9 @@ class Source(Enum):
         return self is Source.ARCHIVE
 
 
-#: Each bar under its line, its span and the start of its span: a daily bar's day as its
-#: ordinal, a five-minute bar's start as seconds since EPOCH. `held` names every line and
-#: span ever written, so that a line never written is not read as a line with no bars.
+#: Each bar under its line, its span and its start: a daily bar's day as its ordinal, a
+#: five-minute bar's start as seconds since EPOCH. `held` names every line and span ever
+#: written, so that a line never written is not read as a line with no bars.
 SCHEMA = (
     "CREATE TABLE IF NOT EXISTS bar (venue TEXT NOT NULL, symbol TEXT NOT NULL,"
     " span TEXT NOT NULL, at INTEGER NOT NULL, open TEXT NOT NULL, high TEXT NOT NULL,"
@@ -112,9 +109,8 @@ class NoRound(RuntimeError):
 
 
 def _seconds(moment: datetime) -> int:
-    """The first whole second since EPOCH at or after a moment in UTC, so that a bar starts
-    at or after a moment exactly when its second does. A moment in no zone, or at any
-    distance from UTC, is refused."""
+    """The first whole second since EPOCH at or after a moment in UTC, so that a bar starts at
+    or after a moment exactly when its second does; a moment in no zone, or off UTC, is refused."""
     if moment.utcoffset() != timedelta(0):
         raise ValueError(f"{moment!r} is not a moment in UTC")
     return -((EPOCH - moment) // timedelta(seconds=1))
@@ -171,9 +167,8 @@ class Round:
         return landed
 
     def daily(self, line: Line, bars: Iterable[Bar]) -> None:
-        """A line's daily history, whole: it takes the place of the history held before, for
-        an archive restates the past, so only a fresh source may give one. A history that
-        gives a day twice is refused."""
+        """A line's daily history, whole, in place of the one held: an archive restates the
+        past, so only a fresh source gives one. One that gives a day twice is refused."""
         if not self._source.fresh:
             raise ValueError(f"{self._source.value} is no fresh source: it restates no history")
         try:
@@ -181,6 +176,11 @@ class Round:
         except sqlite3.IntegrityError as twice:
             what = f"{line.symbol} on {line.venue}: its history gives a day twice; none kept"
             raise ValueError(what) from twice
+
+    def days(self, line: Line, bars: Iterable[Bar]) -> int:
+        """More daily bars, and how many landed: as `five`, but for days not moments."""
+        put = PUT if self._source.fresh else FILL
+        return self._write(put, line, DAILY, ((bar.day.toordinal(), bar) for bar in bars))
 
     def five(self, line: Line, bars: Iterable[Five]) -> int:
         """More of a line's five-minute bars, and how many landed. They only gather: from a
@@ -232,8 +232,8 @@ def writing(path: Path, source: Source = Source.ARCHIVE) -> Iterator[Round]:
 def _read(
     path: Path, line: Line, span: str, first: int, end: int, what: str = READ
 ) -> list[tuple[Any, ...]]:
-    """A line's rows of one span from first up to, not including, end, oldest first, read
-    at one moment of the store: its last whole round."""
+    """A line's rows of one span from first up to end, oldest first, read at one moment of the
+    store: its last whole round."""
     key = (line.venue, line.symbol, span)
     if not path.is_file():
         raise FileNotFoundError(f"{path}: no store has been written there")
@@ -373,8 +373,8 @@ def _audited(path: Path, venue: str, symbol: str, span: str) -> tuple[int, list[
 
 
 def audit(path: Path) -> str:
-    """Every line and ticker the store at path holds, re-checked and read-only: one line of
-    counts, the lines and bars, the faults by kind, and the worst three lines named."""
+    """Every line and ticker the store at path holds, re-checked read-only: one line of counts
+    and faults by kind, the worst three lines named."""
     with closing(sqlite3.connect(f"{path.as_uri()}?mode=ro", uri=True, timeout=WAIT)) as held:
         keys = held.execute("SELECT venue, symbol, span FROM held ORDER BY 1, 2, 3").fetchall()
     total, kinds, worst = 0, Counter[str](), Counter[str]()
