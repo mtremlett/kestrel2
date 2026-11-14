@@ -1380,8 +1380,9 @@ ruling of 13 November.
 written then: he raised the lab to 7,000 on 13 November for the ladder lanes that now run
 alongside, and moving the phase must not take that back. Nothing else changes. This loosens
 a ceiling and moves the phase, both his to decide. He has ruled that a question put to him
-takes its recommended option without waiting (13 November, about 21:05). This was the
-recommended option, taken by his coordinating session and told to him.
+takes its recommended option without waiting (13 November, about 21:05), but a session's
+permission check asks for his direct yes on these, so he was asked. His words, Saturday 14
+November about 08:15 UK, offered "Yes, phase 3" (recommended) or "Not yet": "Yes, phase 3".
 
 ---
 
