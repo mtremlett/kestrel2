@@ -139,7 +139,7 @@ UK tax) and R-MONEY-2 (the scenes on the whole fourteen months).
       Treasuries 20+ years), each on the London venue; every line carries an ISA and
       retail-buyable flag; the "simply holding the market" yardstick re-pointed (UNI-09)
       (built in #85: the three twins, both flags, yardstick VUAG, GLD out; remains: SPY and QQQ
-      leave the master once GRID's and RUNGS's tests stop naming them (R-DATA-10, R-DATA-11);
+      leave the master once GRID's and RUNGS's tests stop naming them (the requests to GRID and RUNGS);
       IB1T is not ISA-holdable, for the operator)
       {id: data-isa-twins; files: desk/lines.py, tests/unit/test_lines.py, tests/unit/test_lab_universe.py; waits: R-RUNNER-4, R-RUNNER-5}
 - [x] The research list's parked fifth: 201 tickers' large one-day moves confirmed, or a
