@@ -171,6 +171,10 @@ def test_what_a_desk_that_died_part_way_left_at_the_broker_is_put_right(
     did, sent = recover(part, found, gone, [_but(MADE, 19, "10"), END], bare, tp.RESTS)
     rested = tp._msg(tp.AT_STOP | {17: "10", 20: "3240.0", 26: f"{ID}-stop"})
     assert sent == [ACCOUNT, tp.CANCEL, FILLS, ACCOUNT, rested] and "for 10 shares" in did[1]
+    # and had it bought nothing, on a line not held: with the buy cancelled nothing is left
+    unheld, flat = _desk(tmp_path / "unheld")[0].root, _account([FLAT])
+    did, sent = recover(unheld, _account([FLAT], *buying, *CHILD), gone, [END], flat)
+    assert did == (f"cancelled {ID}, left working",) and sent[1:] == [tp.CANCEL, FILLS, ACCOUNT]
     # a stop the broker is not holding protects nothing: one is rested, then that one cancelled
     limbo = _account([tp.HELD], *_order("7", "SELL STP", f"{OLD}-stop", "Inactive"))
     did, sent = recover(idle, limbo, [END], limbo, tp.RESTS, [tp.ENDED_7])
@@ -292,8 +296,9 @@ def test_a_step_that_fails_tells_him_once_and_is_an_error_and_a_silent_gateway_i
     dial = Mock(side_effect=ConnectionRefusedError)
     monkeypatch.setattr(paper, "dial", dial)
     silent, door = _desk(tmp_path / "silent")
-    for hours in (15, 16, 19, 24):  # Monday 23:05; Tuesday 00:05, 03:05 and 08:05
+    for hours, told_by_then in ((15, 1), (16, 1), (19, 1), (24, 3)):  # 23:05, 00:05, 03:05, 08:05
         running.step(silent, MON + timedelta(hours=hours))
+        assert door.call_count == told_by_then
     his, again, morning = _told(door)
     assert his.startswith("The paper Gateway does not answer: its port is closed.")
     assert again == his and dial.call_count == 3
