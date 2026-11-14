@@ -1346,6 +1346,25 @@ source"). So the hot bars come first from the broker, read-only through the pape
 the free archive checks them. No new spending. The paper account must see his live data, not
 the delayed kind; the data lane proves that first, read-only.
 
+## 2026-11-14 — five answers: concentration shown first, no book yet, one account, updates paused
+
+**His rulings**, in his own chat, from options with a recommendation each:
+1. **Concentration is shown, not yet a condition.** "Show it first": the book's number of
+   independent bets and its profit by correlated cluster go on every report; the A-GATE
+   sets no mark on them until a few reports show what normal looks like. The option
+   declined: a pass-or-fail mark now, chosen without evidence.
+2. **No Connors book for now.** "Work around this for now." The first reproduction is
+   Connors' Double 7's on SPY, whose figure is already read from its publication and
+   written down (#141); RSI-2's reproduction waits until its figure is on file. The book
+   ("Short Term Trading Strategies That Work", Connors and Alvarez, 2008) carries both;
+   seen 14 November at about $23 to £48 used, no new price confirmed.
+3. **No second GitHub account yet.** "No - leave for now." Sessions stay on his account;
+   the question stays open, to be asked again before going live.
+4. **The runner's Telegram key** he copies beside the runner himself, as ruled on
+   13 November; he was given the steps.
+5. **Windows updates stay paused.** "I agree": no password goes into Task Scheduler; a
+   restart still stops the lanes until he logs in.
+
 ---
 
 ## MONEY
