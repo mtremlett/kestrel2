@@ -102,7 +102,7 @@ def test_an_old_bar_enters_only_vouched_for_and_checked_and_a_fresh_bar_wins(
     tmp_path: Path,
 ) -> None:
     store, fresh = tmp_path / "bars.db", [_at(0), _at(20, "10 11 9 9.5")]
-    with bars.writing(store, Source.ARCHIVE) as round_:
+    with bars.writing(store) as round_:
         round_.five(UK, fresh)
     yesterday = _five(NOON - timedelta(1))
     given = [_at(0), _at(5, PENCE), _at(10, "10 12 9 10"), yesterday, _at(20), _at(-300)]
@@ -148,7 +148,7 @@ def test_both_old_stores_are_adopted_against_the_archives_daily_bars(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     line, store = LINES[2], tmp_path / "bars.db"
-    with bars.writing(store, Source.ARCHIVE) as round_:
+    with bars.writing(store) as round_:
         round_.five(line, [_at(0)])
 
     def fetch(_line: Line, _day: date) -> tuple[Bar, ...]:

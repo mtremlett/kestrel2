@@ -205,9 +205,10 @@ class Round:
 
 
 @contextmanager
-def writing(path: Path, source: Source) -> Iterator[Round]:
-    """A source's next round on the store at path, which is made on its first round. The
-    round lands whole as the block ends; if the block fails, nothing of it lands."""
+def writing(path: Path, source: Source = Source.ARCHIVE) -> Iterator[Round]:
+    """A source's next round on the store at path, which is made on its first round: the
+    fresh archive's, as every round was before sources were kept, unless an old store is
+    named. The round lands whole as the block ends; if the block fails, nothing of it lands."""
     with closing(sqlite3.connect(path, timeout=WAIT, isolation_level=None)) as held:
         try:
             held.execute("PRAGMA journal_mode = WAL")
