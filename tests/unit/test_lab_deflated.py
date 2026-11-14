@@ -22,7 +22,7 @@ def _verdict(gains: list[float], years: float = 10, name: str = "a") -> Verdict:
     """A trial with these gains, one per trade, over a window of so many years, judged by
     the first rung's own rule."""
     back = [Decimal(f"{100 * (1 + gain):.4f}") for gain in gains]
-    priced = tuple(Priced(Trade(DAY, DAY), 1, Decimal(100), b, FREE) for b in back)
+    priced = tuple(Priced(Trade(DAY, DAY), 1, Decimal(100), b, FREE, (DAY, DAY)) for b in back)
     window = Cell("breakout_20_10", "VUSA", DAY, DAY + timedelta(days=round(365.25 * years)))
     return rung.verdict(Key(window, "code", name), priced)
 
