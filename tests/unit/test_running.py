@@ -140,10 +140,8 @@ def test_at_each_open_the_step_checks_the_account_and_sends_the_days_orders_once
         _step(monkeypatch, summer, july + timedelta(minutes=1), none, [])
     assert _told(door)[:2] == ["news kept for the hour he wakes", "and more, a second on"]
     july += timedelta(minutes=5)
-    assert _step(monkeypatch, summer, july + timedelta(minutes=1), none, tp.EMPTY) == [
-        FILLS,
-        ACCOUNT,
-    ]
+    sent = _step(monkeypatch, summer, july + timedelta(minutes=1), none, tp.EMPTY)
+    assert sent == [FILLS, ACCOUNT] and len(book.switch(summer.root)) == 1  # its drill, once
 
 
 def test_what_a_desk_that_died_part_way_left_at_the_broker_is_put_right(
@@ -329,18 +327,20 @@ def test_a_step_that_fails_tells_him_once_and_is_an_error_and_a_silent_gateway_i
     with pytest.raises(ValueError, match="not the record of what the desk did"):
         running.step(silent, MON)
     # a drill of the kill switch that broke a promise is such a failure, and nothing but the
-    # ledger comes before it: no check is run, so no order goes and no record is made, and the
-    # next step drills again. Yesterday's drill is not today's, nor is his pull of the switch
+    # ledger comes before it: no check is run, so no order goes, and no record is made at the
+    # day's end, when the step drills again. Yesterday's drill is not today's, nor is his pull
     broken, bell = _desk(tmp_path / "broken", IITU=DIP)
     book.turn(broken.root, Switch.DRILLED, MON - timedelta(days=1), "every promise kept")
     book.turn(broken.root, Switch.ON, MON, "his word")
     monkeypatch.setattr(Pretend, "cancel", lambda _: ())  # a broker that cancels nothing
-    for now in (MON, MON + timedelta(minutes=5)):
+    for now in (MON, SHUT):
         with pytest.raises(kill.Failed, match="was cancelled"):
             _step(monkeypatch, broken, now, [MADE, END])
-    assert book.fills(broken.root) == (FILL,) and not clearance.checks(broken.root)
-    (_, failed), turns = _told(bell), book.switch(broken.root)  # the morning message, and one line
-    assert len(turns) == 2 and "Failed: the kill switch's drill at 2026-11-16 08:05 UTC" in failed
+    assert book.fills(broken.root) == (FILL,) and len(book.switch(broken.root)) == 2
+    assert not (clearance.checks(broken.root) or day.records(broken.root))
+    _, failed, _ = _told(bell)  # the morning message, one line of it in his words, the evening's
+    assert "Failed: today's rehearsal of the kill switch did not pass, so the desk" in failed
+    assert "NOT kept: the kill switch's drill at 2026-11-16 08:05 UTC broke: ['the ord" in failed
 
 
 def test_an_order_is_dated_the_session_before_today_on_its_own_venues_calendar(

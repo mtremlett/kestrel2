@@ -8,9 +8,9 @@ started again simply by asking for a step.
 What a step owes, in this order, and only of a gateway that says it is ready:
 - THE LEDGER brought up to date with the broker's fills, at every step in which a market is
   open: the broker tells of the day alone.
-- THE KILL SWITCH'S DRILL (kill.drill), each day before anything else of that day's work,
-  once: no order goes on a day the switch was not seen to work. A drill that broke a promise
-  is a step that failed: nothing below is done, and the next step drills again.
+- THE KILL SWITCH'S DRILL (`_drill`), once each day, in UTC, at its first step with anything
+  below to do: no order goes on a day the switch was not seen to work. A drill that broke a
+  promise is a step that failed: nothing below is done, and the next step drills again.
 - THE DAY'S CHECK (clearance.check), from the hour he wakes, and again before each round of
   orders and each record. When it names anything, what a dead desk left at the broker is
   first put right (`recover`) and the account checked again. Still not clean, no order goes
@@ -69,6 +69,11 @@ ONCE = (UNCLEAN, TROUBLE)  #: told once a day, the first: of a failure, the firs
 PUT_RIGHT = "The desk put right what a desk that stopped part-way left at the paper broker: {}."
 NOT_THE_BOOK = "The paper account is not the desk's book, so no order goes. Its check named: {}."
 FAILED = "A step of the desk failed; the next tries again: {}: {}. Its like today is not told."
+UNDRILLED = (
+    "today's rehearsal of the kill switch did not pass, so the desk sends no order, checks no "
+    "account and makes no record until one does. It was a rehearsal on a pretend desk: no real "
+    "order was involved. Each promise named next was NOT kept: {}"
+)
 UNASKED = Known(State.UNWELL, gateway.UNWELL.format("the desk's knock on it failed"))
 Saved = tuple[Mapping[Line, Sequence[Bar]], Collection[str]]  #: bars by line; who is parked
 
@@ -235,6 +240,17 @@ def _owed(root: Path, now: datetime) -> list[date]:
     return [on for on in sorted(traded) if on < today or shut]
 
 
+def _drill(root: Path, now: datetime) -> None:
+    """THE DAY'S DRILL of the kill switch (kill.drill), unless one made today is on its
+    record. A drill within its month lets the adapter send (kill.drilled); the desk
+    unattended asks for today's own. One that broke a promise is that error, in his words."""
+    if (Switch.DRILLED, now.date()) not in {(to, at.date()) for at, to, _ in book.switch(root)}:
+        try:
+            kill.drill(root, now)
+        except kill.Failed as broke:
+            raise kill.Failed(UNDRILLED.format(broke)) from broke
+
+
 def _work(desk: Desk, now: datetime) -> None:
     """What a step owes of a ready gateway, in the module's order; the paper account is
     asked only when something is owed. A round and a record each have the check before
@@ -250,8 +266,7 @@ def _work(desk: Desk, now: datetime) -> None:
     listings = listing.read(LINES)
     broker = placing.Paper(listings, root, lambda: now)
     book.collect(root, broker)
-    if (Switch.DRILLED, now.date()) not in {(to, at.date()) for at, to, _ in book.switch(root)}:
-        kill.drill(root, now)
+    _drill(root, now)
     if check and not _clean(desk, broker, listings, now):
         rounds = []
     for venue in rounds:
