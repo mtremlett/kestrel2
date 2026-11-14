@@ -202,6 +202,20 @@ def _pending(root: Path, now: datetime) -> list[str]:
     ]
 
 
+def _fit(
+    saved: Saved, venue: str, today: date
+) -> tuple[dict[Line, Sequence[Bar]], list[str], date]:
+    """Of the bars saved before today, a venue's lines fit to decide on; the lines left out,
+    by name: parked by the store, or with no bar of the venue's session before today; and
+    that session. The venue trades today."""
+    bars, parked = saved
+    last = venues.sessions(venue, today - 9 * DAY, today)[-2]
+    mine = {line: series for line, series in bars.items() if line.venue == venue}
+    stale = {line for line, series in mine.items() if [bar.day for bar in series][-1:] != [last]}
+    out = sorted(line.symbol for line in mine if line in stale or line.symbol in parked)
+    return {line: series for line, series in mine.items() if line.symbol not in out}, out, last
+
+
 def _round(desk: Desk, broker: placing.Paper, venue: str, now: datetime) -> None:
     """A venue's orders for today, by the money path's own day, on the bars saved before
     today for the venue's lines; then the round goes on the record with the answer to each
@@ -209,18 +223,13 @@ def _round(desk: Desk, broker: placing.Paper, venue: str, now: datetime) -> None
     out, nothing decided on it, and named: never passed over in silence. A desk that dies
     in the round runs it again: the send path asks the broker of each order first."""
     today = now.date()
-    bars, parked = desk.bars(today)
-    last = [venues.sessions(venue, today - 9 * DAY, today)[-2]]
-    mine = {line: series for line, series in bars.items() if line.venue == venue}
-    stale = {line for line, series in mine.items() if [bar.day for bar in series][-1:] != last}
-    out = sorted(line.symbol for line in mine if line in stale or line.symbol in parked)
-    saved = {line: series for line, series in mine.items() if line.symbol not in out}
+    saved, out, last = _fit(desk.bars(today), venue, today)
     sent = day.trade(desk.root, saved, broker, desk.room, today, desk.rates(today))
     said = [
         f"{s.order_id}, {s.filled} shares done" + f" ({s.reason})" * bool(s.reason) for s in sent
     ]
     words = f"{VENUES[venue]}, today's orders: {'; '.join(said) or 'none sent in this round'}."
-    left = f" Left out, parked or with no bar of {last[0]:%a %d %b}: {', '.join(out)}."
+    left = f" Left out, parked or with no bar of {last:%a %d %b}: {', '.join(out)}."
     _note(desk.root, now, ORDERS.format(venue), words + left * bool(out))
 
 
