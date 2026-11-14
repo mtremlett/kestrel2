@@ -3022,3 +3022,54 @@ Decided by the PAPER lane as the desk's mentor, no one watching.
 - *Re-pinned test numbers*, under his ruling of 13 November "always go with recommended": with fuller costs three pins on made-up prices moved (the bracket seeds are now 1 and 16; one pin reads "above 2.8"). Not a golden number, not a loosened guard.
 
 **Evidence.** Rung and the desk's book agree on the same fills; eight deliberate breaks, all caught; two blind-review findings fixed.
+
+### 2026-11-14 — the author's own result (rungs-reproduce, #120)
+
+**Decided**, by the lane as the desk's mentor.
+- *Costs in a reproduction.* Options: the desk's costs; count as the author counted, before costs. Chosen: the author's way; the question is whether the code is the author's, and the desk's costs could never match a figure. What a rule earns stays the first rung's to say.
+- *How near is "the same".* Options: one tolerance; one written beside each printed number before any run. Chosen: the second; a nearness picked after a run is picked to pass.
+- *A figure not read from its source.* Options: enter second-hand numbers marked unverified; enter nothing. Chosen: nothing; a number nobody checked proves nothing.
+- *A hole in the bars.* Options: carry on; refuse, warm-up included. Chosen: refuse; a 200-day average over a hole is another average.
+- *No trade in the author's period.* Options: "not reproduced"; refusal. Chosen: refusal; a share of winners among no trades is no number.
+- *Which box.* The indicator box was not taken because it needs the money lane's file.
+
+**Evidence.** Sixteen deliberate breaks, all caught; a blind review's two blocking findings fixed.
+
+### 2026-11-14 — before paper and after it (rungs-promotion, #127)
+
+**Decided**, by the lane as the desk's mentor.
+- *Which box.* Options: reproduction, indicators, the later requests, "before paper". Chosen: "before paper", the first waiting on nobody.
+- *A kill condition.* Options: free words; numbers. Chosen: numbers, a fall in pounds from the highest paper profit and a run of lost trades, both required; words can be argued with afterwards.
+- *The loosest kill.* Options: any fall; none deeper than the A-GATE's £1,500 (AG-05). Chosen: the cap. Open: several candidates may each declare £1,500; a share per candidate belongs with phase 5's side-by-side box.
+- *Kill numbers for the five rules now.* Options: declare today; none until a rule passes. Chosen: none; a number with no history is a guess.
+- *Effective trades.* Options: every round trip; every order; the most trades no two held on one day. Chosen: the last, the lowest honest count.
+- *An order sold in parts.* Options: a trade from its first sale; only once whole, its money counted meanwhile. Chosen: the second; else history is rewritten.
+- *A day's sales and the fall.* Options: sale by sale; the day together. Chosen: together; fill order within a day is the broker's accident.
+- *"A penny ahead".* Chosen: by the one rounding policy.
+- *Losses still held.* Options: withhold promotion while anything is held; judge sold trades only. Chosen: sold only (a rule nearly always holds something); the stop bounds the rest.
+- *Words.* Chosen: the ladder's own (fail, not enough evidence, doubt, pass).
+
+**Evidence.** Two blind reviews; 82 deliberate breaks over three rounds; bet count checked against brute force on 3,000 random sets.
+
+### 2026-11-14 — the market's rung (rungs-market, BIC-01, #131)
+
+**Decided**, by the lane as the desk's mentor.
+- *Which box.* Options: reproduction, indicators, three-strategies, this. Chosen: this, first half (BIC-01) only.
+- *What the risk is measured on.* Options: each trade beside the market over its days; every day of the window. Chosen: every day; under the first a rule in for rises and out for falls scores nothing, its skill being the days it stood aside.
+- *Beta or a leverage-matched benchmark.* Options: assume stated leverage; measure the share carried. Chosen: measure; a five-times line held a fifth of the days carries the market's risk.
+- *The market only or the line as well.* Options: the market; the line; both. Chosen: both, after the blind review showed a rider of a self-climbing line passing; the lesser excess is judged.
+- *The bar.* Options: any positive excess; two standard errors; a new figure. Chosen: the first rung's two standard errors; no new knob.
+- *Which line is the market.* Options: fix VUAG; the caller names it, on the line's own venue. Chosen: the second; closes hours apart understate risk. Owed: write down each line's market once the rung is wired in.
+- *A trade the first rung could not judge.* Options: count its days as nothing; leave them out. Chosen: leave out (LAD-06).
+- *Costs within a trade's days.* Options: split between legs; all on the selling day. Chosen: the selling day, so days sum to the first rung's gain.
+- *When it answers.* Options: its own answer; repeat a first-rung fail. Chosen: its own; the verdict rule takes the least.
+
+**Evidence.** 45 deliberate breaks, 42 caught, 3 that no single line can produce; a blind review's two blocking findings fixed.
+
+### 2026-11-14 — the nine open boxes noted (rungs-notes, #129)
+
+**Decided**, by the lane as the desk's mentor.
+- *The order.* Options: the book's order; ready boxes first. Chosen: ready first; a session handed a blocked box is spent on nothing.
+- *The eleven-rungs box.* Options: a fixed set of files so others run beside it; all the lane's files, alone. Chosen: alone; a guessed list would stop it half-way. A later session may split it.
+- *Beta before the eleven rungs.* Options: folded in; its own box first. Chosen: its own, one home for "the market risk taken".
+- *Leveraged and eponymous boxes* hold all the lane's files; new rules live in `desk/strategy.py`, so each will need a request to MONEY.
