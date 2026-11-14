@@ -1660,6 +1660,10 @@ inside a public class.
 and function in a new file each failed, as did removing an existing docstring. A documented new
 function, a private undocumented one, a deleted product file, and documenting one while adding
 one undocumented each passed.
+A blind review found that a definition under a top-level `if`, `try` or `with` went uncounted;
+it is counted now, and undocumented ones under an `if`, an `except` and a `match` case each
+failed, while one nested inside a function passed. The count is of the total, as approved: a
+change that documents one old definition may add one new undocumented one.
 
 ---
 

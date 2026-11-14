@@ -23,6 +23,7 @@ def _git(*args: str) -> str:
         cwd=ROOT,
         capture_output=True,
         text=True,
+        encoding="utf-8",
         check=True,
     ).stdout
 
@@ -32,13 +33,19 @@ def _base() -> str:
     return _git("merge-base", "HEAD", "origin/main").strip()
 
 
+#: what a top-level statement holds: statements, an except's body, a match's cases
+BLOCK = (ast.stmt, ast.excepthandler, ast.match_case)
+
+
 def _undocumented(source: str) -> list[str]:
-    """The public functions, classes and methods of public classes with no docstring."""
+    """The public functions, classes and methods of public classes with no docstring,
+    those under a top-level `if`, `try` or `with` too; never one inside a function."""
     names: list[str] = []
-    todo = list(ast.parse(source).body)
+    todo: list[ast.AST] = list(ast.parse(source).body)
     while todo:
         node = todo.pop()
         if not isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef):
+            todo += [c for c in ast.iter_child_nodes(node) if isinstance(c, BLOCK)]
             continue
         if node.name.startswith("_"):
             continue
