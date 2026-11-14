@@ -545,18 +545,22 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       {id: rungs-fair; files: *; after: rungs-folds, rungs-trials, rungs-deflated, rungs-plateau, rungs-regimes}
 - [x] Its costs whole: spread, slippage and the sale's own fees, from the desk's one cost
       model; and a rate of exchange for each day. Remains: real daily rates (R-RUNGS-3)
-- [ ] The edge judged against the market risk it took (its beta, or a leverage-matched
+- [x] The edge judged against the market risk it took (its beta, or a leverage-matched
       benchmark), and the book's concentration measured as its number of independent bets,
       with the A-GATE profit split by correlated cluster (BIC-01, BIC-02). Built: BIC-01,
-      `lab/market.py` (#131). Remains: BIC-02; the rung named among those the verdict rule reads
+      `lab/market.py` (#131); BIC-02, `lab/bets.py` (#136). Remains: wiring (the caller with
+      the book's pounds and profit; the market rung named among those the verdict rule reads;
+      real daily rates R-RUNGS-3; the operator's ruling on concentration in the A-GATE)
       {id: rungs-beta; files: lab/beta.py, tests/unit/test_lab_beta.py, manifest.toml}
 - [ ] Reproduces a published strategy's own published result. Built: `lab/reproduce.py`
       (#120). Remains: Connors' RSI-2 figure from the book, SPY from 1993 (R-RUNGS-5), the first
-      real run, the first rung made to wait for a reproduction
+      real run. Built: the first rung waits for a figure on file (#139); the Double 7's
+      figure written down (#141). Remains also: `folds`/`regime` passing reproductions on
       {id: rungs-reproduce; files: lab/reproduce.py, lab/rung.py,
       tests/unit/test_lab_reproduce.py, tests/unit/test_lab_rung.py}
-- [ ] Stress scenarios: the 2020 crash, flash crashes, a leveraged product's gap (2008 lies
-      before the history) (TST-06)
+- [x] Stress scenarios: the 2020 crash, flash crashes, a leveraged product's gap (2008 lies
+      before the history) (TST-06). Built: `lab/stress.py` (#140). Remains: nothing calls it;
+      judged by the loss limit when MONEY sets it (R-RUNGS-11); first run on real bars
       {id: rungs-stress; files: lab/stress.py, tests/unit/test_lab_stress.py, manifest.toml}
 - [ ] **The eleven rungs made trustworthy before any verdict counts**, the old desk's
       biggest failure (its rung audit of 20 October is the quarry): sample size by effective
@@ -572,7 +576,8 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       audit found kept as a case that must fail (LAD-09, LAD-03, LAD-08)
       {id: rungs-trustworthy; files: *; after: rungs-beta}
 - [ ] Each indicator known-answer tested against a published reference series (STR-14).
-      Remains: the indicators reachable (R-RUNGS-6)
+      Built: moving average, Bollinger deviation, Wilder smoothing held to four published tables
+      (#145). Remains: the RSI, true range, bands, carried band, channel (R-RUNGS-6); room for more tables
       {id: rungs-indicators; files: lab/published.py, tests/unit/test_lab_published.py}
 - [ ] Before paper: a kill condition declared for each strategy; promotion only after at
       least thirty effective paper trades, net positive (STR-17, LAD-11). Built:
