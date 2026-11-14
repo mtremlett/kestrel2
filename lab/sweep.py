@@ -25,7 +25,8 @@ runs the code on disk that hour and a pass that dies costs the week only itself.
 is one line of `week.jsonl` in the data folder, its count or the error that ended it, and
 `unbroken` reads from that log how long the grid has run without stopping: seven days of it
 is the proof. A pass that failed, or held no cell at its end, or started more than a pause
-after the one before it ended, is where a run stops.
+after the one before it ended, is where a run stops. A pass still running at LIMIT is ended,
+its workers with it, and logged as failed: a pass that hangs costs the week only itself too.
 """
 
 from __future__ import annotations
@@ -57,6 +58,7 @@ else:
     import fcntl
 
 PAUSE = timedelta(hours=1)  #: from one pass's start to the next's, in the week
+LIMIT = timedelta(hours=48)  #: the longest a pass may run: a full sweep fits a weekend (LAD-10)
 WEEK, LOCK = "week.jsonl", "pass.lock"
 COUNTS = ("cells", "ran", "kept", "failed", "undone")
 
@@ -160,12 +162,18 @@ def run(
         return _tally(todo, kept, before, report)
 
 
-def fresh(root: Path, kept: Path, data: Path) -> dict[str, Any]:
+def fresh(root: Path, kept: Path, data: Path, limit: timedelta = LIMIT) -> dict[str, Any]:
     """One pass in a process of its own, on the code then on disk: its count, or the error
-    that ended it."""
+    that ended it. A pass still running at the limit is ended, and the PC flagged not busy."""
     command = [sys.executable, "-m", "lab.sweep", str(root), str(kept), str(data)]
-    home = Path(__file__).parents[1]
-    done = subprocess.run(command, cwd=home, capture_output=True, text=True, check=False)  # noqa: S603
+    home, seconds = Path(__file__).parents[1], limit.total_seconds()
+    try:
+        done = subprocess.run(  # noqa: S603
+            command, cwd=home, capture_output=True, text=True, check=False, timeout=seconds
+        )
+    except subprocess.TimeoutExpired:
+        tune.flag(data, {"busy": False})
+        return {"error": f"TimeoutExpired: ended at its limit of {limit}"}
     if done.returncode:
         said = done.stderr.strip().splitlines() or [f"exit code {done.returncode}"]
         return {"error": said[-1]}
