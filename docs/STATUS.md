@@ -87,49 +87,54 @@ everything on main, so two green lanes cannot combine into a red main.
   session the operator starts could record this in `docs/FAILURE_PATTERNS.md`.
 
 ## MONEY
-Last updated: 14 November 2026 (halts, a hundred seeded worlds).
+Last updated: 14 November 2026 (money-working, money-watch, a lost stop told).
 ### Where it is
-Scenes 7 of 7. Built: the five rules; sizing, cost model, gate (`orders`); pretend broker; send path,
-ledger, book (`book`); the day; kill switch; `emergency`; invariants; halts (#148, `desk/halt.py`: no buy
-while one is in force, the day's verdict `Record.counts`, the morning's list of seven blockers);
-SimCity (#150): a hundred seeded worlds, 31,000 days; **its night is RED** (six lines held in 75 worlds
-in 100) and it found the desk can end up SHORT (a working sale and its stop both sell).
+Scenes 7 of 7. Built: the five rules; sizing, cost model, gate; pretend broker; send path, ledger, book; the
+day; kill switch; `emergency`; invariants; halts (#148); SimCity (#150, #163): a hundred seeded worlds, 31,000
+days, eleven promises, 52 parts; **its night is GREEN** (money-working, #163: a note before each send; after a
+death the broker cancels what is left working, a sale too). The crash watch (#172, `desk/watch.py`) is built
+and halts nothing yet: nothing calls it. A lost stop is told the same day with stop, shares, level (#191).
 ### Next step
-money-working, first, and it must cover a sale too (restart cancels what it left working, or tie sale
-and stop); that turns SimCity green and removes `SIX_HELD`. Then money-restop, the limits, money-fills.
-`desk/simcity.py` is at 398 of 400 lines: split it before adding. Boxes adding a public function need it.
+money-restop's put-back (`desk/broker.py`), then the limits, money-stranger, money-fills. `desk/simcity.py` (399) and
+`desk/book.py` (400) are full: split first. A desk not restarted before the next open can end short (pretend broker should lapse orders at close).
 ### Done for other lanes
-- R-PAPER-2: done in #64
-- R-RUNGS-1: done in #101
+- R-PAPER-2: done in #64; R-RUNGS-1: done in #101; R-RUNGS-6, R-RUNGS-12: done in #185
 ### Requests to PAPER
 - [ ] R-MONEY-7 (later): a typed command calling `kill.pull`, sending `Killed.words()` to Telegram.
 - [ ] R-MONEY-8 (blocking): the paper day calls `day.trade` and `day.publish`, never `day.run`; the
   adapter refuses an order not dated the session before the broker's today.
-- [ ] R-MONEY-9 (later): a stop's fills get the order's id plus "-stop". R-MONEY-10 (later): in
-  conformance set paper fills beside `orders.charges` and the assumed 0.05% spread.
-- [ ] R-MONEY-11 (later): when you hold `desk/clearance.py`, say so; `book._write` then goes public.
-- [ ] R-MONEY-15 (blocking): no unattended paper order until money-working has landed.
-- [ ] R-MONEY-17 (blocking, 2026-11-14 06:20): no paper sale unattended while a stop rests under the
-  same shares, unless tied at the broker or money-working landed; record in conformance what paper does.
-- [ ] R-MONEY-18 (later): the morning message carries `halt.listed(root, day)`; every day's carries
-  `halt.said(root, day)` when not None. R-MONEY-19 (later): a typed command to call and lift a halt.
-- [ ] R-MONEY-20 (later): `test_messenger.py` states each Record's `halted`, `stopped` (say `(), 0`);
-  the evening message says when a day does not count. R-MONEY-21 (later): `test_running.py` (line 213)
-  keeps Friday's record through `day._row(day.Record(...))`; then the short-row allowance goes. R-MONEY-22 (later): say if
-  `Broker.place` refusals at the paper account need a blocker of their own.
+- [ ] R-MONEY-9 (later): a stop's fills get the order's id plus "-stop". R-MONEY-10 (later): in conformance set paper
+  fills beside `orders.charges` and the 0.05% spread. R-MONEY-11 (later): say when you hold `desk/clearance.py`.
+- [ ] R-MONEY-17 (blocking): no paper sale unattended while a stop rests under the same shares, unless tied at
+  the broker (money-working landed, #163); record in conformance what paper does.
+- [ ] R-MONEY-18 (later): the morning message carries `halt.listed(root, day)`, every day's `halt.said(root, day)`.
+  R-MONEY-19 (later): a typed command to call and lift a halt.
+- [ ] R-MONEY-20 (later): `test_messenger.py` states each Record's `halted`, `stopped` (say `(), 0`); the evening
+  message says when a day does not count. R-MONEY-21 (later): `test_running.py` (line 213) keeps Friday's record
+  through `day._row(day.Record(...))`. R-MONEY-22 (later): say if `Broker.place` refusals need a blocker of their own.
+- [ ] R-MONEY-23 (later): reword `desk/placing.py` where it says the cancel is the kill switch's alone, and its
+  `manifest.toml` line: a desk that died mid-send asks the same cancel through `book._settle`. R-MONEY-24 (later):
+  keep the day's check and `recover` before every round; say if you would rather the send path called one recovery.
+- [ ] R-MONEY-25 (blocking): the unattended step calls `watch.look(root, fast store, daily bars by line, now, post)`
+  every step, every hour, BEFORE its round of orders, and decides if London's morning round waits for the 08:05 bar.
+- [ ] R-MONEY-26 (later): a messenger call sending again what was never delivered. R-MONEY-27 (later): the halt-lifting
+  command names him (`by=halt.OPERATOR`), with a command for his word against the market.
+- [ ] R-MONEY-30 (later): `running.recover` puts back a line held with no stop, when its shares are the book's: stop
+  `<newest buy id>-stop` at `book.levels(root)[id]` rounded down to the price step, for the shares held.
+  R-MONEY-31 (later): with R-MONEY-18, the day's list message includes its lost-stop entries.
 ### Requests to DATA
-- [ ] R-MONEY-3 (later): a daily rate, pounds per dollar, in the store.
-- [x] R-MONEY-16: no longer needed; across a hundred worlds every rule holds a line (#150).
+- [ ] R-MONEY-3 (later): a daily rate, pounds per dollar, in the store. [x] R-MONEY-15, R-MONEY-16: done (#163, #150).
 - [ ] R-MONEY-12 (later): on the master, the market's lines: the yardstick's twin (VUSA), one in New York hours.
+- [ ] R-MONEY-28 (blocking): the keeper writes each line's ended five-minute bars to the fast store every five
+  minutes in trading hours, VUAG first, the day's last bar included; and says how late a bar lands (the watch's 20 minutes).
+  R-MONEY-29 (later): the keeper or monitor tells him when a whole venue is not heard from.
 ### Requests to RUNGS
 - [ ] R-MONEY-13 (later): the first rung prices each leg with `orders.charges`; a sale is charged as a purchase.
 - [ ] R-MONEY-14 (later): AG-04 must not add the records' market column: compound the days or read two closes.
 ### Found, not fixed
-- **No clock on the day path** (R-MONEY-8). **Costs:** spread and slippage assumed; a stop's fill is named. Emergencies: one bad VUAG price could call for selling all. A sale can exceed the holding.
-- **Halts:** cancel nothing at the broker (a working buy can fill; needs a buys-only cancel, money-watch);
-  moments are the caller's word; one process at a time; the part fill of a dying desk is not listed.
-- **SimCity:** no nightly run on his PC; record lacks which worlds, code and data versions; lines move
-  independently; a stopped world is counted unevenly; no halted day lived; manifest line says "small".
+- Costs: spread and slippage assumed; no clock on the day path (R-MONEY-8); `desk/halt.py` still says only the kill switch cancels.
+- Watch (#172): no market read after London shuts; `halt.lift` defaults to the operator; a halt cancels no working buy.
+- Lost stop (#191): kept level unrounded; `halt.listed` counts it blocked; `book.Reckoning` untyped. SimCity: no nightly run, no halted day or overnight death lived.
 
 ## PAPER
 

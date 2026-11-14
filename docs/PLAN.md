@@ -377,16 +377,23 @@ day's trading and reconciliation are built, and any broker can stand behind them
       run on his PC with its records kept (the runner's owner); code and data version in the record
       {id: money-simcity; files: desk/simcity.py, tests/unit/test_simcity*.py,
       tests/scenes/test_scenes.py, manifest.toml; after: money-kill, money-record}
-- [ ] **First, from SimCity's red night:** the send path counts orders still working, so a desk
+- [x] **First, from SimCity's red night:** the send path counts orders still working, so a desk
       that died mid-send never holds more than five lines; any broker says which of the desk's
       own orders are still working; a sale left working by a dead desk with its stop resting under
-      it sells twice (the desk ends short): cover that too; SimCity's night turns green and its pin (`SIX_HELD`) goes
+      it sells twice (the desk ends short): cover that too; SimCity's night turns green and its pin (`SIX_HELD`) goes.
+      Done in #163 (a note before each send; after a death the broker cancels what is working;
+      night green); remains: a desk not restarted before the next open can still end short (the
+      pretend broker should lapse a working order at the day's end, SimCity gain an overnight death);
+      the send path's cancels are told only by the leftover order's answer; simcity.py is 399 of 400 lines
       {id: money-working; files: desk/book.py, desk/broker.py, desk/orders.py, desk/kill.py,
       desk/simcity.py, tests/unit/test_book*.py, tests/unit/test_broker*.py,
       tests/unit/test_orders*.py, tests/unit/test_kill*.py, tests/unit/test_simcity*.py;
       after: money-simcity}
 - [ ] A holding whose stop was cancelled by hand gets it back the same day, or he is told at
-      once (found by SimCity: 98 sessions held with no stop)
+      once (found by SimCity: 98 sessions held with no stop). First step done in #191 (the desk keeps
+      every stop's level; a lost stop is on the day's list with stop, shares, level); remains: the
+      put-back itself (a way to rest a stop at a level in `desk/broker.py`; `running.recover` on paper),
+      the list reaching him (R-MONEY-18); desk/book.py and desk/simcity.py are at 400 of 400 lines: split first
       {id: money-restop; files: desk/day.py, desk/book.py, tests/unit/test_day*.py,
       tests/unit/test_book*.py, desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml;
       after: money-working}
@@ -415,7 +422,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       25 seeded worlds; remains: a fault that can reach a sale or fill in two executions
       {id: money-invariants; files: tests/unit/test_book*.py, tests/unit/test_orders*.py,
       tests/unit/test_broker*.py; after: money-record}
-- [ ] **The crash watch, on the five-minute data:** every five minutes in trading hours it
+- [x] **The crash watch, on the five-minute data (done in #172, `desk/watch.py`; nothing calls it yet; remains: his word against the market, the sale of every position STP-07, parking one line, a halt cancelling working buys):** every five minutes in trading hours it
       reads the newest bars of every held and watched line and the market's own; a fall that
       crosses the emergency thresholds halts all buying at once, alerts him immediately at
       any hour, and records why; the protective sell across every position (STP-07) acts on
