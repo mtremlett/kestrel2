@@ -305,9 +305,9 @@ class Paper:
             raise Refused(f"{order.order_id}: not sent, the broker does not list {symbol}: {why}")
         new = _with(listed, order) if isinstance(order, Order) else None
         last = venues.sessions(order.line.venue, now.date() - timedelta(days=9), now.date())[-2:]
-        if [f"{on:%Y%m%d}" for on in last] != [order.order_id[:8], f"{now:%Y%m%d}"]:
-            why = f"it is not dated the session before today, {now:%Y-%m-%d}, a session"
-            raise Refused(f"{order.order_id}: not sent, {why} of {order.line.venue}'s")
+        if [f"{day:%Y%m%d}" for day in last] != [order.order_id[:8], f"{now:%Y%m%d}"]:
+            why = f"{now:%Y-%m-%d} is not the session of {order.line.venue}'s next after"
+            raise Refused(f"{order.order_id}: not sent, {why} the one it is dated")
         if not kill.drilled(self._root, now.date()):
             why = f"the kill switch was not drilled in the last {kill.DRILL_DAYS} days"
             raise Refused(f"{order.order_id}: not sent, {why}")

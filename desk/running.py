@@ -9,11 +9,13 @@ What a step owes, in this order, and only of a gateway that says it is ready:
 - THE LEDGER brought up to date with the broker's fills, at every step in which a market is
   open: the broker tells of the day alone.
 - THE DAY'S CHECK (clearance.check), from the hour he wakes, and again before each round of
-  orders. When it names anything, what a dead desk left at the broker is first put right
-  (`recover`) and the account checked again. Still not clean, no order goes and he is told.
+  orders and each record. When it names anything, what a dead desk left at the broker is
+  first put right (`recover`) and the account checked again. Still not clean, no order goes
+  and he is told.
 - THE DAY'S ORDERS, one round for each venue, while it trades: the money path's own day
   (day.trade), on the bars saved before today, for that venue's lines. The send path asks
-  the broker of every order before it sends, so a round begun twice sends nothing twice.
+  the broker of every order before it sends, so a round begun twice sends nothing twice. A
+  round is made once, whatever was answered: an order refused in it is not sent later.
 - THE DAY'S RECORD (day.publish), once every market that traded has been shut five minutes;
   a session the desk missed gets its own first, oldest first, at that day's own rates.
 
@@ -22,7 +24,7 @@ morning and the evening message, a gateway that is his to look at, his weekly lo
 in his waking hours, each thing on the record of what the desk did (`notes`): a round, a
 recovery, an account that is not the book, a step that failed. A step that fails is still an
 error raised to whoever asked for it: the next step tries again, and he is told of the
-day's first only."""
+day's first of each kind only."""
 
 from __future__ import annotations
 
@@ -50,6 +52,7 @@ from desk.gateway import Known, State
 from desk.lines import LINES, Line
 from desk.listing import Listing, Unlisted
 from desk.orders import Settings
+from desk.paper import Resting
 from desk.reports import HELD
 from desk.store import Bar
 
@@ -58,10 +61,10 @@ VENUES = {"LSE": "London", "US": "New York"}  #: each venue of the desk's lines,
 SHUT = timedelta(minutes=5)  #: how long after a day's last closing auction its record is made
 DAY = timedelta(days=1)
 ORDERS, RECOVERED, UNCLEAN, TROUBLE = "orders {}", "recovered", "unclean", "trouble"
-ONCE = (UNCLEAN, TROUBLE)  #: told once a day, the first, however often they happen in it
+ONCE = (UNCLEAN, TROUBLE)  #: told once a day, the first: of a failure, the first of its kind
 PUT_RIGHT = "The desk put right what a desk that stopped part-way left at the paper broker: {}."
 NOT_THE_BOOK = "The paper account is not the desk's book, so no order goes. Its check named: {}."
-FAILED = "A step of the desk failed; the next tries again: {}: {}. Later ones today are not told."
+FAILED = "A step of the desk failed; the next tries again: {}: {}. Its like today is not told."
 UNASKED = Known(State.UNWELL, gateway.UNWELL.format("the desk's knock on it failed"))
 #: The bars the store kept before a day, for every line, and the symbols it has parked.
 Saved = tuple[Mapping[Line, Sequence[Bar]], Collection[str]]
@@ -74,7 +77,8 @@ class Desk:
     root: Path  #: where the ledger, the checks, the switch, the records and the messages are
     room: Settings
     post: messenger.Post  #: the door to his phone
-    bars: Callable[[date], Saved]  #: the price store's door, asked for the bars before a day
+    #: The price store's door: the bars before a day. The day's record needs its closes there.
+    bars: Callable[[date], Saved]
     #: A day's pounds per unit of each currency: the same answer at every asking.
     rates: Callable[[date], Mapping[str, Decimal]]
 
@@ -103,7 +107,7 @@ def notes(root: Path) -> tuple[Note, ...]:
 def _note(root: Path, now: datetime, what: str, words: str) -> None:
     """Keep one thing done; of those told once a day (ONCE), the day's first alone."""
     kept = notes(root)
-    if what in ONCE and any(n.what == what and n.at.date() == now.date() for n in kept):
+    if what.split()[0] in ONCE and any((n.what, n.at.date()) == (what, now.date()) for n in kept):
         return
     rows = ((n.at.isoformat(), n.what, n.words) for n in (*kept, Note(now, what, words)))
     book._write(root / NOTES, [HEAD, *rows])
@@ -116,21 +120,23 @@ def recover(
     put right by the order's own rules (desk/placing.py), each thing done named. Every order
     of the desk's own still working is cancelled: what `place` did not see filled is never
     left working. The ledger takes the fills the broker made meanwhile. Then each line with
-    a stop of the desk's own open on it, if its shares at the broker are the book's, is left
-    under the one stop due (_due, Paper.settle). A line whose shares are not the book's is
-    left as it is, for the day's check to name. Nothing is done while the kill switch is on,
-    or undrilled: the desk sends nothing then."""
+    a stop of the desk's own open on it, now or before that cancel (the broker ends a buy's
+    stop with the buy), if its shares at the broker are the book's, is left under the one
+    stop due (_due, Paper.settle). A line whose shares are not the book's is left as it is,
+    for the day's check to name. Nothing is done while the kill switch is on, or undrilled:
+    the desk sends nothing then."""
     if book.killed(root) or not kill.drilled(root, today):
         return ()
+    before = paper.read()
     did = [f"cancelled {name}, left working" for name in broker.cancel()]
     book.collect(root, broker)
     held, account = book.positions(root), paper.read()
     bought = {fill.order_id for fill in book.fills(root) if fill.quantity > 0}
     for listed in listings.values():
         if isinstance(listed, Listing):
-            shares, stops = placing.on(account, listed)
-            mine = stops and shares == held.get(listed.line.symbol, 0)
-            for due in _due(shares, stops, bought) if mine else ():
+            (shares, stops), was = placing.on(account, listed), placing.on(before, listed)[1]
+            mine = (stops or was) and shares == held.get(listed.line.symbol, 0)
+            for due in _due(shares, stops, was, bought) if mine else ():
                 broker.settle(listed, shares, stops, due)
                 under = f"one stop for {shares} shares" if due else "no stop, none of it held"
                 did.append(f"{listed.line.symbol} left under {under}")
@@ -138,23 +144,26 @@ def recover(
 
 
 def _due(
-    shares: Decimal, stops: Sequence[paper.Resting], bought: Collection[str]
+    shares: Decimal, stops: Sequence[Resting], was: Sequence[Resting], bought: Collection[str]
 ) -> tuple[placing.Stop | None, ...]:
     """The one stop a line found after a restart is to be left under, or None for none; and
     nothing at all for a line to be left as it is. The stop is for the shares held, at the
-    level and under the name of the newest of the line's stops whose buy the ledger holds a
-    fill of: a stop that came with a buy that bought nothing gives no level, as after any
-    order (placing._due). No share held, and no stop is due: one left resting could sell
-    short. Left as it is: a line already under one stop the broker holds for exactly its
-    shares, and a line held with no stop to take a level from."""
+    level and under the name of the newest of the line's stops, open now (stops) or before
+    the dead desk's orders were cancelled (was), whose buy the ledger holds a fill of: a
+    stop that came with a buy that bought nothing gives no level, as after any order
+    (placing._due). No share held, and no stop is due: one left resting could sell short.
+    Left as it is: a line already under one stop the broker holds for exactly its shares, a
+    line held with no stop to take a level from, and one with no share and no stop."""
     if [(o.left, o.state in HELD) for o in stops] == [(shares, True)]:
         return ()
     levels = [
         (int(o.number), placing.Stop(shares, o.level, o.ref))
-        for o in stops
+        for o in (*stops, *was)
         if o.level is not None and o.ref.removesuffix("-stop") in bought
     ]
-    return (max(levels)[1],) if shares and levels else () if shares else (None,)
+    if not shares:
+        return (None,) if stops else ()
+    return (max(levels)[1],) if levels else ()
 
 
 def _clean(
@@ -186,22 +195,24 @@ def _pending(root: Path, now: datetime) -> list[str]:
 
 def _round(desk: Desk, broker: placing.Paper, venue: str, now: datetime) -> None:
     """A venue's orders for today, by the money path's own day, on the bars saved before
-    today for the venue's lines the store has not parked; then the round goes on the record
-    with the answer to each order. A desk that dies in it runs it again: the send path asks
-    the broker of each order first."""
+    today for the venue's lines; then the round goes on the record with the answer to each
+    order. A line the store has parked, or with no bar of the session before today, is left
+    out, nothing decided on it, and named: never passed over in silence. A desk that dies
+    in the round runs it again: the send path asks the broker of each order first."""
     today = now.date()
     bars, parked = desk.bars(today)
-    saved = {
-        line: series
-        for line, series in bars.items()
-        if line.venue == venue and line.symbol not in parked
-    }
+    last = [venues.sessions(venue, today - 9 * DAY, today)[-2]]
+    mine = {line: series for line, series in bars.items() if line.venue == venue}
+    stale = {line for line, series in mine.items() if [bar.day for bar in series][-1:] != last}
+    out = sorted(line.symbol for line in mine if line in stale or line.symbol in parked)
+    saved = {line: series for line, series in mine.items() if line.symbol not in out}
     sent = day.trade(desk.root, saved, broker, desk.room, today, desk.rates(today))
     said = [
         f"{s.order_id}, {s.filled} shares done" + f" ({s.reason})" * bool(s.reason) for s in sent
     ]
     words = f"{VENUES[venue]}, today's orders: {'; '.join(said) or 'none was due'}."
-    _note(desk.root, now, ORDERS.format(venue), words)
+    left = f" Left out, parked or with no bar of {last[0]:%a %d %b}: {', '.join(out)}."
+    _note(desk.root, now, ORDERS.format(venue), words + left * bool(out))
 
 
 def _owed(root: Path, now: datetime) -> list[date]:
@@ -221,12 +232,14 @@ def _owed(root: Path, now: datetime) -> list[date]:
 
 
 def _work(desk: Desk, now: datetime) -> None:
-    """What a step owes of a ready gateway, in the module's order. The paper account is
-    asked only when something is owed: a market open, a check, a record."""
+    """What a step owes of a ready gateway, in the module's order; the paper account is
+    asked only when something is owed. A round and a record each have the check before
+    them, so a desk started again at any hour is recovered before it orders or publishes."""
     root = desk.root
     rounds, owed, last = _pending(root, now), _owed(root, now), clearance.checks(root)[-1:]
     checked = bool(last) and last[0].at.date() == now.date() and last[0].found is not None
-    check = bool(rounds) or (gateway._uk(now).time() >= messenger.MORNING.start and not checked)
+    awake = gateway._uk(now).time() >= messenger.MORNING.start
+    check = bool(rounds or owed) or (awake and not checked)
     if not (check or owed or any(venues.open_at(venue, now) for venue in VENUES)):
         return
     listings = listing.read(LINES)
@@ -243,19 +256,19 @@ def _work(desk: Desk, now: datetime) -> None:
 
 def _say(desk: Desk, now: datetime, known: Known) -> None:
     """Everything he is owed at a moment, each under its own name and so once: his line of
-    a gateway that is his to look at, a day's; the morning message; each thing the desk did
-    in the last day (notes), kept for his waking hours as the daily messages are; the
-    evening message; his weekly login's reminder."""
-    root, post = desk.root, desk.post
+    a gateway that is his to look at, at any hour, once from each hour he wakes to the
+    next; the morning and the evening message; and, kept for his waking hours as those
+    are, his weekly login's reminder and each thing the desk did in the last day (notes)."""
+    root, post, local = desk.root, desk.post, gateway._uk(now)
     if known.state is State.HIS:
-        messenger.send(root, now, f"gateway {now:%Y-%m-%d}", known.words, post)
+        since = local - timedelta(hours=gateway.WAKES.hour)
+        messenger.send(root, now, f"gateway {since:%Y-%m-%d}", known.words, post)
     messenger.morning(root, now, known, post)
-    awake = messenger.MORNING.start <= gateway._uk(now).time() < messenger.SLEEPS
-    for note in notes(root):
-        if awake and now - note.at < DAY:
-            messenger.send(root, now, f"{note.what} {note.at:%Y-%m-%d %H:%M}", note.words, post)
     messenger.evening(root, now, known, post)
-    messenger.remind(root, now, post)
+    if messenger.MORNING.start <= local.time() < messenger.SLEEPS:
+        messenger.remind(root, now, post)
+        for note in (n for n in notes(root) if now - n.at < DAY):
+            messenger.send(root, now, f"{note.what} {note.at:%Y-%m-%d %H:%M}", note.words, post)
 
 
 def step(desk: Desk, now: datetime) -> None:
@@ -272,7 +285,8 @@ def step(desk: Desk, now: datetime) -> None:
         if known:
             _work(desk, now)
     except Exception as fault:
-        _note(desk.root, now, TROUBLE, FAILED.format(type(fault).__name__, fault))
+        kind = type(fault).__name__
+        _note(desk.root, now, f"{TROUBLE} {kind}", FAILED.format(kind, fault))
         raise
     finally:
         _say(desk, now, known)
