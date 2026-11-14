@@ -146,10 +146,9 @@ def test_tests_never_outgrow_the_product() -> None:
     and change only with the operator's approval. Counting them too turned this guard
     red the moment the scenes were written before their code, as the canon requires.
     Ruled by the operator, 13 November 2026 (docs/DECISIONS.md)."""
-    if not _budget()["unit_test_lines_may_not_exceed_product_lines"]:
-        return
+    ratio = float(_budget()["unit_test_lines_per_product_line"])  #: 1.5, his ruling, 13 Nov
     product, unit = _lines(_product()), _lines(sorted((ROOT / "tests" / "unit").rglob("*.py")))
-    assert unit <= product, f"unit tests {unit} lines > product {product} lines"
+    assert unit <= ratio * product, f"unit tests {unit} lines > {ratio} x product {product}"
 
 
 # ---------------------------------------------------------------- sprawl

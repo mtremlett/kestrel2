@@ -1383,6 +1383,50 @@ a ceiling and moves the phase, both his to decide. He has ruled that a question 
 takes its recommended option without waiting (13 November, about 21:05), but a session's
 permission check asks for his direct yes on these, so he was asked. His words, Saturday 14
 November about 08:15 UK, offered "Yes, phase 3" (recommended) or "Not yet": "Yes, phase 3".
+## 2026-11-13 — tests up to 1.5 times the product; the recommended option, always
+
+**Found.** With ten sessions adding tests side by side, the rule "unit tests may not exceed
+the product's lines" sat at exactly its limit (2,861 lines each), and at 20:57 a data-lane
+change went red by eight lines once it held main. The work next in line - the kill switch,
+the money invariants, the eleven rungs - properly needs more test than code.
+
+**Decided, first.** Unit tests may reach 1.5 times the product's lines (`BUDGET.json`,
+`unit_test_lines_per_product_line`). The guard still stops test-per-bug piles; 1.5 is a
+ceiling, not a target. A loosening; his words below are its yes. Driven: tests at 1.2 times the
+product fail at 1.0 and pass at 1.5, and tests grown past 1.5 times fail.
+
+**Decided, second: the recommended option is taken without waiting.** A question put to him
+with options and a recommendation no longer waits for his answer: the session takes the
+recommended option, records it here, and tells him on Telegram. That includes loosening a
+guard, moving the phase and permissions. He alone still decides going live, entering
+credentials and spending money; no real money moves until he signs for going live. A
+session whose own permission check will not arm a loosening on this standing ruling leaves
+it armed-ready and named in its STATUS section, for the next session he talks to.
+
+**His words.** Friday 13 November 2026, about 21:05 UK, offered "1.5" (recommended) or "keep
+1": "1.5 . please always go with recommended to avoid waiting for me to attend."
+
+---
+
+## 2026-11-14 — no books bought; the old stores as a head start; the ladder in published sets
+
+**His words, about 08:30 UK on 14 November.** "why do i need to buy a book. right now i
+cannot afford it, so instead, research on the internet and find a best fit answer. when
+ladder is working we can try variants to then test which is the favoured ones." And: the
+fast and second stores "were already built in the kestrel repo. maybe you can copy the
+contents?" And: "will you test in sets and then publish findings results as you iterate ...
+what is the graduation process into paper trading?"
+
+**Decided by the mentor, as his rulings allow.** No book is bought (that would be spending,
+his alone, and he has said no). Where an author's table is not free, the best published
+replication found on the internet stands in, labelled secondary, with its source written
+down, and reproduction must land inside the range the sources give. This replaces "RSI-2
+waits for the book" of this morning. The old desk's Stooq and IBKR stores and its matrices
+are read in now as a head start, every bar re-checked on entry and the fresh bar winning
+where they differ; their stored indicators are only a cross-check, never copied, since an
+indicator kept in two places is the second-home failure. The ladder runs in sets, each
+published as it finishes, and a strategy graduates to paper only through all eleven rungs
+and the luck test, named in the plan before its first paper day.
 
 ---
 
