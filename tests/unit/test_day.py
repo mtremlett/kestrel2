@@ -50,6 +50,9 @@ MARKET = {
 }
 
 
+ARCHIVE_LINES = {line.symbol: line for line in ARCHIVE}
+
+
 def _trade(root: Path, broker: Broker, on: date) -> tuple[book.Sent, ...]:
     before = {line: tuple(b for b in bars if b.day < on) for line, bars in ARCHIVE.items()}
     return day.trade(root, before, broker, Settings(Decimal(10_000)), on, {"GBP": Decimal(1)})
@@ -367,26 +370,25 @@ def test_a_record_opens_from_what_the_last_one_closed_on_at_each_days_own_rate(
     assert [b.order_id for b in halt.morning(tmp_path, shut)[Blocker.UNREAD]] == [YARDSTICK.symbol]
 
 
-def test_a_holding_whose_stop_was_lost_is_on_that_mornings_list_with_the_stop_to_put_back(
+def test_a_holding_whose_stop_was_lost_is_on_that_days_list_with_the_stop_to_put_back(
     tmp_path: Path,
 ) -> None:
-    broker, room, pounds = Pretend(ARCHIVE, {}), Settings(Decimal(10_000)), {"GBP": Decimal(1)}
+    broker, room = Pretend(ARCHIVE, {}), Settings(Decimal(10_000))
     broker.open(DAYS[21])
     _trade(tmp_path, broker, DAYS[21])
-    lost = broker._stops["A"]
-    broker.cancel_stop("A")  #: by hand, overnight
-    broker.open(DAYS[22])
-    stale = {
-        line: bars[:21] for line, bars in ARCHIVE.items()
-    }  #: no rule decides: told all the same
-    day.trade(tmp_path, stale, broker, room, DAYS[22], pounds)
-    shares, kept = book.positions(tmp_path)["A"], book.levels(tmp_path)
-    assert kept[lost.order_id] == lost.level, "a level the desk did not rest the stop at"
-    told = f"A: {shares} shares held, 0 under a stop at the broker; put back {lost.order_id}, "
-    bare = halt.morning(tmp_path, DAYS[22])[Blocker.BOOK]
-    assert [(b.order_id, b.reason) for b in bare] == [
-        (lost.order_id, f"{told}selling {shares} at {lost.level}")
-    ], "not told that morning, or told another line"
-    broker._stops["A"] = lost  #: put back: the morning run again leaves it off the list
-    day.trade(tmp_path, stale, broker, room, DAYS[22], pounds)
-    assert not halt.morning(tmp_path, DAYS[22])[Blocker.BOOK]
+    lost, more, half = (broker._stops[symbol] for symbol in "ACD")
+    broker._faults["D"] = Fault.PARTIAL  #: half of D sold: what is left is the buy's
+    book.send(tmp_path, broker, Sale("s-1", ARCHIVE_LINES["D"], half.shares), room)
+    for symbol in "ABD":  #: by hand; and B's shares are not the book's, C's stop is for more
+        broker.cancel_stop(symbol)
+    broker.inject("B", 1)
+    broker._stops["C"] = replace(more, shares=more.shares + 5)
+    record = day.publish(tmp_path, MARKET, broker, room, DAYS[21])
+    held, kept = book.positions(tmp_path), book.levels(tmp_path)
+    assert kept[lost.order_id] == lost.level and record.mismatches == tuple("ABCD")
+    assert held["D"] == half.shares - half.shares // 2, "D not half sold"
+    put = "shares held, 0 under a stop at the broker; put back"
+    assert [(b.order_id, b.reason) for b in halt.morning(tmp_path, DAYS[21])[Blocker.BOOK]] == [
+        (stop.order_id, f"{s}: {held[s]} {put} {stop.order_id}, selling {held[s]} at {stop.level}")
+        for s, stop in (("A", lost), ("D", half))
+    ], "not told that day, told of shares the broker may not hold, or under another stop"

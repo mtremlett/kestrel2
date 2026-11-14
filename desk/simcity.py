@@ -219,7 +219,6 @@ class _Life:
         """One day whole, from the data saved by its end, and its record."""
         saved = {line: [b for b in bars if b.day <= on] for line, bars in self.market.items()}
         scenario, buys = self.census.scenario, self.pretend.buys
-        unstopped = {*book.positions(self.desk)} - {*dict(self.pretend.stops())}
         record = self._run(saved, on)
         self.census.now(scenario)
         quiet = not (record.mismatches and self.pretend.buys > buys)
@@ -229,10 +228,11 @@ class _Life:
         self.promise("no order is left working at a day's end", not self.pretend.working())
         bare = {*held} - {*stopped} - {*record.mismatches}
         self.promise("a line held with no stop at the broker is named that day", not bare)
-        listed = [b.reason for b in halt.morning(self.desk, on)[halt.Blocker.BOOK]]
-        untold = [s for s in unstopped & {*held} if not any(w.startswith(f"{s}: ") for w in listed)]
-        self.promise("a line held with no stop is on that morning's list", not untold)
-        same = held == stopped == dict(self.pretend.holdings())
+        mine = dict(self.pretend.holdings())  #: a line whose shares are not the book's is not
+        told = {b.reason.partition(":")[0] for b in halt.morning(self.desk, on)[halt.Blocker.BOOK]}
+        untold = {s for s, n in held.items() if s not in stopped and mine.get(s) == n} - told
+        self.promise("a line held with no stop is on that day's list, with its stop", not untold)
+        same = held == stopped == mine
         named = bool(record.mismatches)
         self.promise("no line is named on a day the book is the broker's", not (same and named))
         self.records.append(record)

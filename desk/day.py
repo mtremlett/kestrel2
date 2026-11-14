@@ -99,8 +99,9 @@ def publish(
     yardstick (lines.YARDSTICK, quoted in pounds). Every session from the ledger's first
     fill has its own record, in order and once (_kept). The halts in force that day are read
     from their record (halt.on), so the day says so for as long as one is, and what the send
-    path stopped from the morning's list (halt.stopped)."""
-    differ = book.reconcile(root, broker)
+    path stopped from the morning's list (halt.stopped). A line held with no stop for all its
+    shares goes on the day's list with the stop to put back (_bare)."""
+    book_held, differ, unsure, stops = book.reckon(root, broker)
     kept = _kept(root, archive, day)
     start = (kept[0].day if kept else day) - timedelta(days=1)
     plain = ((r.day, r.worth, r.counted) for r in reversed(kept) if r.profit is not None)
@@ -113,6 +114,7 @@ def publish(
     held = pennies(settings.capital * market)
     halts = tuple(h.at for h in halt.on(root, day)), halt.stopped(root, day)
     record = Record(day, profit, costs.published(), held, differ, worth, len(ledger), *halts)
+    _bare(root, day, book_held, unsure, stops)
     book._write(root / RECORDS, [HEADER, *(_row(r) for r in (*kept, record))])
     return record
 
@@ -213,7 +215,6 @@ def trade(
     if made := [record.day for record in records(root) if record.day >= day]:
         raise ValueError(f"{day}: the day is over, the records running to {made[-1]}")
     book.record_rates(root, day, rates)
-    _bare(root, broker, day)
     held = book.positions(root)
     holders = {f.symbol: strategy_of(f.order_id) for f in book.fills(root) if f.quantity > 0}
     due = {line.symbol: line for line, bars in archive.items() if _due(line, bars, day)}
@@ -236,26 +237,33 @@ def trade(
     return tuple(sent)
 
 
-def _bare(root: Path, broker: Broker, day: date) -> None:
-    """A HOLDING WITH NO STOP, TOLD AT ONCE: each line the book holds with no stop resting at
-    the broker for all its shares goes on the morning's list, under the stop it is due (its
-    newest buy's, at the level kept for it, book.levels), saying what to put back. A line
-    under its stop again leaves the list when the morning runs again."""
-    held, kept = book.positions(root), book.levels(root)
+def _bare(
+    root: Path,
+    day: date,
+    held: Mapping[str, int],
+    unsure: set[str],
+    stops: Sequence[book.Difference],
+) -> None:
+    """A HOLDING WITH NO STOP: each line whose shares the broker holds as the book does, with
+    fewer of them under a stop resting there, goes on the day's list under the stop it is due
+    (its newest buy's, at the level kept for it, book.levels), saying what to put back."""
+    kept = book.levels(root)
     due = {f.symbol: f"{f.order_id}-stop" for f in book.fills(root) if f.quantity > 0}
-    resting = {d.name: d.broker for d in book.differences(held, broker.stops())}
-    bare = (
+    resting = {d.name: d.broker for d in stops}
+    level = {s: kept.get(due[s], "a level never kept, so set one by hand") for s in held}
+    bare = [
         halt.Blocked(
             due[s],
             Blocker.BOOK,
             0,
-            f"{s}: {n} shares held, {resting[s]} under a stop "
-            f"at the broker; put back {due[s]}, selling {n} at {kept.get(due[s], 'no level kept')}",
+            f"{s}: {n} shares held, {resting[s]} under a stop at"
+            f" the broker; put back {due[s]}, selling {n} at {level[s]}",
         )
         for s, n in held.items()
-        if s in resting
-    )
-    halt.note(root, day, bare, (due[s] for s in held))
+        if s in resting and s not in unsure and resting[s] < n
+    ]
+    if bare:  #: a day without its list is a day whose orders were never sent (halt.stopped)
+        halt.note(root, day, bare)
 
 
 def _unread(root: Path, lines: Sequence[Line], due: Mapping[str, Line], day: date) -> None:

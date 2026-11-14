@@ -66,6 +66,9 @@ class Difference:
     book: int  #: the shares the desk's book holds of it; 0 when it holds none
 
 
+Reckoning = tuple[dict[str, int], tuple[str, ...], set[str], tuple[Difference, ...]]
+
+
 def send(root: Path, broker: Broker, order: Order | Sale, settings: Settings) -> Sent:
     """Ask the broker what it did with the order's id, so a desk that restarts never sends
     it twice; if it never received it, pass the pre-trade gate and send it. Its fills are
@@ -82,7 +85,7 @@ def send(root: Path, broker: Broker, order: Order | Sale, settings: Settings) ->
     report = broker.report(order.order_id)
     if report is None:
         _unless_stopped(root, order)
-        held, differ, unsure = _compare(root, broker)
+        held, differ, unsure, _ = _compare(root, broker)
         if differ and (isinstance(order, Order) or order.line.symbol in unsure):
             words = f"{order.order_id}: not sent, the book is not the broker's on {list(differ)}"
             raise Stopped(Blocker.BOOK, words)
@@ -105,10 +108,9 @@ def _place(root: Path, broker: Broker, order: Order | Sale) -> Report:
     desk has the broker's last answer, or its door's word that the order never went. A note
     still there afterwards is a desk that died in between."""
     going = root / GOING
-    if isinstance(order, Order):  #: the broker may lose the stop: its level is kept here too
-        kept = levels(root)
-        kept.setdefault(f"{order.order_id}-stop", order.stop)
-        _write(root / STOPS, [LEVELS, *kept.items()])
+    name, kept = f"{order.order_id}-stop", levels(root)  #: the broker may lose a buy's stop
+    if isinstance(order, Order) and name not in kept:
+        _write(root / STOPS, [LEVELS, *kept.items(), (name, order.stop)])
     _write(going, [(order.order_id,)])
     try:
         report = broker.place(order)
@@ -244,19 +246,25 @@ def reconcile(root: Path, broker: Broker) -> tuple[str, ...]:
     """The lines on which the desk's book is not the broker's, once every fill the broker
     made is in the ledger: the shares differ, or the stop resting at the broker is not for
     exactly the shares held. None named: the book is the broker's."""
-    return _compare(root, broker)[1]
+    return reckon(root, broker)[1]
 
 
-def _compare(root: Path, broker: Broker) -> tuple[dict[str, int], tuple[str, ...], set[str]]:
+def reckon(root: Path, broker: Broker) -> Reckoning:
+    """The book, the lines that differ, those whose shares do, the stops that do: one reading."""
+    return _compare(root, broker)
+
+
+def _compare(root: Path, broker: Broker) -> Reckoning:
     """The broker asked once each for its fills, its stops and its holdings, in that order:
-    the book the fills add up to, the names on which it is not the broker's, and those of
-    them whose shares differ. The stops are read before the holdings, so a stop that sells
-    between the two shows as shares gone, never as shares still there to be sold."""
+    the book the fills add up to, the names on which it is not the broker's, those of them
+    whose shares differ, and the stops that are not the book's shares. The stops are read
+    before the holdings, so a stop that sells between the two shows as shares gone, never as
+    shares still there to be sold."""
     collect(root, broker)
     ours = positions(root)
     stops = differences(ours, broker.stops())
     shares = {d.name for d in differences(ours, broker.holdings())}
-    return ours, tuple(sorted(shares | {d.name for d in stops})), shares
+    return ours, tuple(sorted(shares | {d.name for d in stops})), shares, stops
 
 
 def differences(
