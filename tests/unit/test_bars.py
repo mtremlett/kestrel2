@@ -17,7 +17,7 @@ from pathlib import Path
 import pytest
 
 from desk import bars
-from desk.bars import Five
+from desk.bars import Five, Source
 from desk.lines import LINES, Line
 from desk.store import Bar, Refused
 
@@ -47,7 +47,7 @@ def _fives(count: int) -> tuple[Five, ...]:
 
 def test_what_is_written_is_read_back_exactly_and_each_line_apart(tmp_path: Path) -> None:
     store, days, fives = tmp_path / "bars.db", _days(30), _fives(30)
-    with bars.writing(store) as round_:
+    with bars.writing(store, Source.ARCHIVE) as round_:
         round_.daily(US, days[::-1])
         round_.five(US, fives[::-1])
         round_.daily(UK, (*days[:3], TWINS[0], Bar(date.max, *ODD, 3)))
@@ -67,23 +67,47 @@ def test_what_is_written_is_read_back_exactly_and_each_line_apart(tmp_path: Path
 
 def test_a_history_is_replaced_whole_and_five_minute_bars_gather(tmp_path: Path) -> None:
     store, days, fives = tmp_path / "bars.db", _days(30), _fives(30)
-    with bars.writing(store) as round_:
+    with bars.writing(store, Source.ARCHIVE) as round_:
         round_.daily(US, days)
         round_.daily(UK, days)
         round_.five(US, fives[:20])
         round_.five(UK, fives[:20])
     corrected = replace(fives[19], close=Decimal("9.5"))
-    with bars.writing(store) as round_:
+    with bars.writing(store, Source.ARCHIVE) as round_:
         round_.daily(US, days[5:])
         round_.five(US, (corrected, *fives[20:]))
     assert bars.daily(store, US) == days[5:]
     assert bars.five(store, US, fives[0].start, NEXT) == (*fives[:19], corrected, *fives[20:])
     assert (bars.daily(store, UK), bars.five(store, UK, fives[0].start, NEXT)) == (days, fives[:20])
-    with bars.writing(store) as round_:
+    with bars.writing(store, Source.ARCHIVE) as round_:
         with pytest.raises(ValueError, match="BA on US: its history gives a day twice"):
             round_.daily(US, (*days[:9], replace(days[0], volume=1)))
         round_.daily(UK, days[:9])
     assert (bars.daily(store, US), bars.daily(store, UK)) == (days[5:], days[:9])
+
+
+def test_a_bar_is_kept_with_its_source_and_only_a_fresh_source_restates(tmp_path: Path) -> None:
+    store, fives, one = tmp_path / "bars.db", _fives(2), ("1",) * 4
+    with closing(sqlite3.connect(store)) as before:  # a store made before sources were kept
+        before.execute(bars.SCHEMA[0].replace(" source TEXT NOT NULL,", ""))
+        first = ("LSE", "BA", bars.FIVE, bars._seconds(fives[0].start), *one, 1)
+        before.execute(bars.ADD.replace(", ?)", ")"), first)
+        before.commit()
+    held = Five(fives[0].start, Decimal(1), Decimal(1), Decimal(1), Decimal(1), 1)
+    near, far = replace(held, close=Decimal("1.0001")), replace(fives[1], close=Decimal("0.2"))
+    with bars.writing(store, Source.MATRICES) as round_:
+        assert round_.apart(UK, [near, fives[1]]) == (1, 0)  # within a vendor's rounding
+        assert round_.five(UK, [near, fives[1]]) == 1  # the moment held stays as it is
+        over = replace(held, close=Decimal("1.00011"))
+        assert round_.apart(UK, [over]) == (1, 1)
+        with pytest.raises(ValueError, match="Stooq matrices is no fresh source"):
+            round_.daily(UK, _days(1))
+    assert bars.sources(store, UK, bars.FIVE) == {Source.ARCHIVE: 1, Source.MATRICES: 1}
+    with bars.writing(store, Source.ARCHIVE) as round_:
+        assert round_.apart(UK, [far, held]) == (1, 1)
+        assert round_.five(UK, [far]) == 1
+    assert bars.five(store, UK, bars.EPOCH, NEXT) == (held, far)
+    assert bars.sources(store, UK, bars.FIVE) == {Source.ARCHIVE: 2}
 
 
 def test_a_reader_sees_only_whole_rounds_and_a_second_writer_is_refused(
@@ -92,18 +116,24 @@ def test_a_reader_sees_only_whole_rounds_and_a_second_writer_is_refused(
     store, days, fives = tmp_path / "bars.db", _days(30), _fives(30)
     monkeypatch.setattr(bars, "WAIT", 0.05)
     for _ in range(2):  # in the first round, and after it failed
-        with pytest.raises(RuntimeError, match="the first fails"), bars.writing(store):
+        with (
+            pytest.raises(RuntimeError, match="the first fails"),
+            bars.writing(store, Source.ARCHIVE),
+        ):
             with pytest.raises(FileNotFoundError, match="no round"):
                 bars.daily(store, US)
             raise RuntimeError("the first fails")
-    with bars.writing(store) as round_:
+    with bars.writing(store, Source.ARCHIVE) as round_:
         round_.daily(US, days[:5])
-    with pytest.raises(RuntimeError, match="the round fails"), bars.writing(store) as round_:
+    with (
+        pytest.raises(RuntimeError, match="the round fails"),
+        bars.writing(store, Source.ARCHIVE) as round_,
+    ):
         round_.daily(US, days)
         round_.five(US, fives)
         assert bars.daily(store, US) == days[:5]
         with pytest.raises(bars.NoRound, match="bars.db: no round begun: database is locked"):
-            bars.writing(store).__enter__()
+            bars.writing(store, Source.ARCHIVE).__enter__()
         raise RuntimeError("the round fails")
     assert bars.daily(store, US) == days[:5]
 
@@ -111,7 +141,7 @@ def test_a_reader_sees_only_whole_rounds_and_a_second_writer_is_refused(
         round_._held.rollback()  # as SQLite itself does to a round when the disk fills
         raise OSError("the disk is full")
 
-    with bars.writing(store) as round_:
+    with bars.writing(store, Source.ARCHIVE) as round_:
         round_.five(US, fives)
         with pytest.raises(OSError, match="the disk is full"):
             round_.daily(US, map(dropped, days))
@@ -126,7 +156,7 @@ def test_a_store_or_a_line_never_written_is_refused_not_read_as_empty(tmp_path: 
     with pytest.raises(FileNotFoundError, match="bars.db"):
         bars.daily(store, US)
     assert not store.exists()
-    with bars.writing(store) as round_:
+    with bars.writing(store, Source.ARCHIVE) as round_:
         round_.daily(US, ())
         round_.five(UK, ())
     assert (bars.daily(store, US), bars.five(store, UK, NOON, NEXT)) == ((), ())
@@ -155,7 +185,7 @@ def test_the_deep_store_meets_its_three_benchmarks(tmp_path: Path) -> None:
     five-minute bars, a year of London's sessions: the week is read hot from on top of every
     older bar, archived beneath it in the one file."""
     store, days, fives = tmp_path / "bars.db", _days(7_000), _fives(26_010)
-    with bars.writing(store) as round_:
+    with bars.writing(store, Source.ARCHIVE) as round_:
         for line in LINES:
             round_.daily(line, days)
             round_.five(line, fives)
@@ -164,7 +194,7 @@ def test_the_deep_store_meets_its_three_benchmarks(tmp_path: Path) -> None:
 
     def a_round() -> None:
         bar = next(rounds)
-        with bars.writing(store) as round_:
+        with bars.writing(store, Source.ARCHIVE) as round_:
             for line in LINES:
                 round_.five(line, (bar,))
 
