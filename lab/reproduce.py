@@ -46,7 +46,11 @@ SPY from 29 January 1993: 153 trades, 80.4% of them gaining, a mean gain of 0.85
 points. Its end is not printed and is taken as the end of 2007, where the chapter's other
 tables end, so the same is fixed here, before any run, as within 5 trades, 1.5, 0.05 and 10
 points. It waits for its rule to be coded and proven. The chapter that tests RSI-2, the
-ninth, this desk has not read: none of the five rules has its figure.
+ninth, this desk has not read: none of the five rules has its figure. The authors' own free
+pages (TradingMarkets, Connors Research), searched the same day, print no table of RSI-2 on
+SPY, and a copy of the book that somebody else has put on the web is not read from: RSI-2's
+figure waits for the book itself, and whether its table is of the rule as coded here (bought
+under 5, sold over the 5-day average) is not known until then.
 """
 
 from __future__ import annotations
