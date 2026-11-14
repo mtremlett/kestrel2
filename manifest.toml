@@ -98,3 +98,4 @@ rungs = []
 "lab/market.py" = "the market's rung: a strategy's days set beside its market's, its beta measured, and its excess over the market risk it took judged by its confidence interval"
 "lab/bets.py" = "the book's concentration: its number of independent bets from how its lines move together, and its profit split by correlated cluster"
 "lab/ladder.py" = "the ladder's first set: one command that takes every published rule on every line through every rung built, keeps each answer with its reason and its count of trials, skips what is kept, and ends with one line of counts"
+"lab/verdict.py" = "the ladder's verdict on one cell: every rung's answer with its reason, the shuffle run last and only on a trial that passed the rest, and the one rule over them"

@@ -57,7 +57,7 @@ FAIL = 0.50
 #: The yearly Sharpe above which a result is flagged (canon B6).
 FLAG = 2.0
 #: The rungs the one rule reads (LAD-09), each trial judged on every one; the first four here.
-NAMED = ("first", "luck", "deflated", "yearly", "folds", "market")
+NAMED = ("first", "luck", "deflated", "yearly", "folds", "market", "shuffle")
 OWN = NAMED[:4]
 
 _NORMAL = NormalDist()
