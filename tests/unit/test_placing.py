@@ -268,12 +268,14 @@ def test_a_sale_the_broker_falls_silent_on_is_cancelled_and_never_left_working(
     assert told.fills == (replace(OUT, quantity=-10),)
     assert all(s in str(told.reason) for s in ("10 shares filled and 16 not", "399: not placed"))
     assert sent == [b"", ACCOUNT, PLACED, CANCEL, ACCOUNT, ENDED, FILLS]
-    # a cancel refused with the sale still working, and a cancel met with silence, are errors
-    for cancel, then, error in [
-        ([UNFOUND], _account([HELD], *MINE), placing.NotCancelled),
-        ([], [], TimeoutError),
-    ]:
-        sent = _gateway(monkeypatch, [], BARE, [REJECTED], cancel, then, silent=True)
+    # a cancel refused with the sale still working, and a cancel met with silence, are errors:
+    # never an answer, whatever the broker would then say it did
+    cases: list[tuple[Sequence[Sequence[str]], list[Sequence[Sequence[str]]], type[Exception]]] = [
+        ([UNFOUND], [_account([HELD], *MINE)], placing.NotCancelled),
+        ([], [BARE, [("102",)], [END]], TimeoutError),
+    ]
+    for cancel, then, error in cases:
+        sent = _gateway(monkeypatch, [], BARE, [REJECTED], cancel, *then, silent=True)
         with pytest.raises(error):
             broker.place(SALE)
         assert sent[2:4] == [PLACED, CANCEL]
