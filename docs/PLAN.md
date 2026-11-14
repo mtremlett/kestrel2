@@ -404,14 +404,14 @@ his PC with the desk's own client id (222), never 4001.
       {id: paper-check; files: desk/clearance.py, desk/paper.py,
       tests/unit/test_clearance.py, tests/unit/test_paper.py, manifest.toml;
       after: paper-reports}
-- [ ] The real paper-broker adapter behind the same interface as `broker.Pretend`, speaking
-      to IB Gateway with the standard library alone (`desk/` imports nothing else). Five answers
-      and a sale done (#110, #113); remains: the buy with its stop, which is also paper-stops
-      (reading a stop's level needs `desk/paper.py`: do both under this claim)
+- [x] The real paper-broker adapter behind the same interface as `broker.Pretend`, speaking
+      to IB Gateway with the standard library alone (`desk/` imports nothing else). All six
+      answers done (#110, #113, #123); remains: nothing to build, each "unproven at the real
+      Gateway" item is for paper-conformance
       {id: paper-adapter; files: desk/placing.py, desk/paper.py, desk/reports.py,
       tests/unit/test_placing.py, tests/unit/test_paper.py, tests/unit/test_reports.py,
       manifest.toml; after: paper-reports, paper-check}
-- [ ] Stops resting at the broker, each rounded down to its line's price step
+- [x] Stops resting at the broker, each rounded down to its line's price step (done in #123)
       {id: paper-stops; files: desk/placing.py, desk/listing.py,
       tests/unit/test_placing.py, tests/unit/test_listing.py; after: paper-adapter}
 - [x] No paper order before the kill switch is drilled, held by the code (done in #113; remains: the
