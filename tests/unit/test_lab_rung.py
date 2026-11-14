@@ -16,6 +16,7 @@ from desk.orders import BROKER, Settings
 from desk.store import Bar
 from lab import cell, rung
 from lab.cell import Cell, Trade
+from lab.rung import Answer
 
 TEN_K, POUND = Settings(Decimal(10_000)), Decimal(1)
 #: breakout_20_10 buys on the close of bar 20, over bar 19's high of 10.05, and sells on the
@@ -67,22 +68,30 @@ def test_a_trade_is_sized_at_its_close_filled_at_the_next_open_and_stopped_by_th
     assert (usd.shares, usd.paid) == (240, Decimal("2055.976608"))
     assert (usd.received, usd.gross) == (Decimal("1795.620576"), Decimal("-257.28"))
     assert _judge(bars, 23).trades == _judge(bars, 22).trades == (), "sold on the last day, or held"
+    #: no trades at all is a fault in the test, and says nothing of the rule
+    assert (_judge(bars, 23).answer, _judge(bars, 23).t) == (Answer.FAULT, None)
+    assert (_judge(bars, 24).answer, _judge(bars, 24).t) == (Answer.THIN, None), "one trade"
     assert _judge(bars, 24).broker == BROKER
 
 
 def test_a_planted_edge_passes_and_a_planted_non_edge_does_not() -> None:
     for seed in range(8):
         edge, none = _judge(_walk(seed, 0.008), -1), _judge(_walk(seed, 0), -1)
-        assert edge.passed and len(edge.trades) >= rung.MIN_TRADES, (seed, edge.t)
-        assert not none.passed and none.t is not None and none.t < 1, (seed, none.t)
+        assert edge.answer is Answer.PASS and len(edge.trades) >= rung.MIN_TRADES, (seed, edge.t)
+        assert none.answer is Answer.FAIL and none.t is not None and none.t < 1, (seed, none.t)
+        #: the same loser on too few trades has not failed: there is not enough evidence
+        few = _judge(_walk(seed, 0)[:1500], -1)
+        assert 2 <= len(few.trades) < rung.MIN_TRADES and few.answer is Answer.THIN, seed
+        assert not few.passed and few.t is not None and few.t < 1, (seed, few.t)
     #: the bar sits between these two: 1.98 standard errors fails, 2.14 passes
     faint, just = _judge(_walk(5, 0.005), -1), _judge(_walk(27, 0.006), -1)
-    assert faint.t is not None and Decimal("1.9") < faint.t < rung.T_PASS and not faint.passed
+    assert faint.t is not None and Decimal("1.9") < faint.t < rung.T_PASS
+    assert faint.answer is Answer.FAIL and not faint.passed
     assert just.t is not None and just.t < Decimal("2.14") and just.passed
-    #: and between these: 29 trades are too few, however strong, and 30 enough
+    #: and between these: 29 trades are not enough evidence, however strong, and 30 are
     short, thirty = _judge(_walk(0, 0.008)[:2400], -1), _judge(_walk(0, 0.008)[:2450], -1)
     assert len(short.trades) == 29 and short.t is not None and short.t > 3 and not short.passed
-    assert len(thirty.trades) == 30 and thirty.passed
+    assert short.answer is Answer.THIN and len(thirty.trades) == 30 and thirty.passed
 
 
 def test_an_edge_the_costs_eat_is_rejected() -> None:

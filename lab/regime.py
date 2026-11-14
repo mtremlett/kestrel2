@@ -25,7 +25,11 @@ NEVER FAILED FOR WORKING IN ONLY ONE. A strategy's home is every regime whose re
 the first rung. It is not failed here when it has a home, or when it passed on the whole
 window: one regime is enough, and a regime it lost in does not fail it. A strategy that
 passed only on all weather together (too few trades in any one regime) has no home: nothing
-here says which weather made its result.
+here says which weather made its result. Each replay carries the first rung's own answer:
+too few trades in a regime is not enough evidence there, never a fail, and a regime no
+trade was bought in reads as a test that tested nothing (`rung.Answer`): that replay shows
+nothing of the rule, and it is no fault of the whole. `passed` and `home` say only where
+it earned on enough trades; why it did not is the replay's own answer to give.
 
 THE PRICE, counted elsewhere. Everything here is before any correction for luck. The whole
 and every regime are separate looks at one rule, each a trial the luck rung counts

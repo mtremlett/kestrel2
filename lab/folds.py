@@ -11,10 +11,13 @@ Each is an ordinary cell (`lab/cell.py`), so nothing crosses a boundary: the rul
 no bar after its cell's end, and a trade counts only where it was bought and its sale
 filled inside one cell. A trade held across a boundary belongs to neither side of it.
 
-The verdict is given on the worst fold. A fold the first rung failed is worse than any it
-passed, so thirty trades are asked of every fold; among those, the worst is the one whose
+The verdict is given on the worst fold, and it is that fold's own answer (`rung.Answer`).
+Thirty trades are asked of every fold. A fold with no trade at all is worst: the history
+was cut too fine for the rule to trade in each part, a fault in the test. Then a fold that
+failed on enough trades; then one with too few, which is not enough evidence and never a
+fail; then one that passed. Among folds of one answer, the worst is the one whose
 out-of-sample trades stand the fewest standard errors above nothing, a fold with under two
-trades standing lowest of all. The strategy passes this rung when that fold passes the first
+trades standing lowest. The strategy passes this rung when that fold passes the first
 rung, which is every fold passing it. Every fold's out-of-sample verdict is a trial the
 luck rung counts (`lab/luck.py`).
 """
@@ -29,7 +32,7 @@ from desk.orders import Settings
 from desk.store import Bar
 from lab import cell, rung
 from lab.cell import Cell
-from lab.rung import Verdict
+from lab.rung import Answer, Verdict
 
 
 @dataclass(frozen=True)
@@ -51,12 +54,16 @@ class Folded:
         """The fold judged on; of two equally bad, the older."""
         return min(
             self.folds,
-            key=lambda f: (f.outside.passed, f.outside.t is not None, f.outside.t or 0),
+            key=lambda f: (f.outside.answer, f.outside.t is not None, f.outside.t or 0),
         )
 
     @property
+    def answer(self) -> Answer:
+        return self.worst.outside.answer
+
+    @property
     def passed(self) -> bool:
-        return self.worst.outside.passed
+        return self.answer is Answer.PASS
 
     @property
     def trials(self) -> tuple[Verdict, ...]:
