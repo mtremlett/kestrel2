@@ -1517,6 +1517,28 @@ the runner sit behind one door so they can be swapped.
 
 ---
 
+## 2026-11-14 — one merge train, and the check on GitHub split into parallel steps
+
+**Why.** At 11:05 eleven pull requests sat behind main. main merges only a change that is up
+to date, so each landing put every other one behind; the runner then re-ran the full check on
+this PC for each (about 9 minutes, ten at once), and those checks timed out. Nine changes
+landed between 08:00 and 11:00, against about six an hour before.
+
+**Decided.** The runner keeps one merge train: the oldest armed pull request that is not red,
+not in conflict and not being pushed to, brought up to date (main merged in, no local check),
+landed by auto-merge on GitHub's own check, then the next. On GitHub the check's steps run side
+by side, `python check.py --only <step>`, the unit tests in three shares, and the job named
+`check`, the one main requires, is green only when every step passed. A run superseded by a
+newer push to the same branch gives way, except on main. Nothing is loosened: every step of
+the full check still runs on every change.
+
+**The guard, driven.** `tests/guards/test_workflow.py` holds the workflow to `check.py`. Eight
+planted breaks were each caught: a step dropped, a unit share dropped, `if: always()` dropped,
+the success test weakened, `fail-fast` dropped, `needs: step` dropped, a share that loses one
+file, and every share given the same files.
+
+---
+
 ## 2026-11-14 — two databases, 1-minute hot data, and the reset kept for Monday
 
 **His rulings, about 11:45 UK, each chosen from options.**
