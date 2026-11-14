@@ -83,6 +83,7 @@ class Priced:
     received: Decimal  #: pounds their value brought at the sale's fill, at its own day's rate
     costs: Charges  #: every cost of both legs, line by line, from the desk's one cost model
     held: tuple[date, date]  #: the day its buy filled, and the day its sale did
+    stopped: Decimal  #: the return had its stop sold it, with a stop's costs (G2, the plant)
 
     @property
     def gross(self) -> Decimal:
@@ -103,6 +104,13 @@ class Verdict:
     t: Decimal | None  #: the mean gain in standard errors; None under two trades
     answer: Answer  #: PASS, FAIL, THIN or FAULT: the first rung never answers DOUBT
     reproduced: tuple[Reproduction, ...]  #: the published results behind it, if on file
+
+    @property
+    def gains(self) -> tuple[Decimal, ...]:
+        """What the standard errors and all read from them are taken over: every judged trade's
+        gain and ONE MORE the rule did not make, the least any would have made at its stop
+        (G2). It is none of the trades counted: not of the 30 asked, not of any sum of pounds."""
+        return planted(self.trades)
 
     @property
     def passed(self) -> bool:
@@ -133,6 +141,11 @@ def judge(
         )
 
 
+def planted(priced: Sequence[Priced]) -> tuple[Decimal, ...]:
+    """The gains of the judged trades and the one more that is planted among them (G2)."""
+    return (*(p.gain for p in priced), min(p.stopped for p in priced)) if priced else ()
+
+
 def verdict(
     key: Key, priced: tuple[Priced, ...], reproduced: Sequence[Reproduction] = ()
 ) -> Verdict:
@@ -140,7 +153,7 @@ def verdict(
     result is reproduced."""
     behind = reproduce.settled(key.cell.strategy, reproduced)
     with localcontext(ARITHMETIC):
-        t = standard_errors([p.gain for p in priced])
+        t = standard_errors(planted(priced)) if len(priced) > 1 else None
     if t is None or len(priced) < MIN_TRADES:
         answer = Answer.THIN if priced else Answer.FAULT
     else:
@@ -179,7 +192,11 @@ def _price(
         sale = (Leg.STOP if gapped else Leg.SALE, read[out].open, read[out].day)
     paid, buying = _leg(line, rates, order.quantity, Leg.BUY, bought.price, bought.day)
     received, selling = _leg(line, rates, order.quantity, *sale)
-    return Priced(trade, order.quantity, paid, received, buying + selling, (bought.day, sale[2]))
+    at_stop, stopping = _leg(line, rates, order.quantity, Leg.STOP, order.stop, sale[2])
+    ifstopped = (at_stop - paid - (buying + stopping).total) / paid
+    return Priced(
+        trade, order.quantity, paid, received, buying + selling, (bought.day, sale[2]), ifstopped
+    )
 
 
 def _leg(

@@ -50,7 +50,7 @@ def correct(verdicts: Sequence[Verdict], unjudged: int) -> tuple[Corrected, ...]
 
 
 def _corrected(verdict: Verdict, trials: int) -> Corrected:
-    chance = 1.0 if verdict.t is None else tail(float(verdict.t), len(verdict.trades) - 1)
+    chance = 1.0 if verdict.t is None else tail(float(verdict.t), len(verdict.gains) - 1)
     corrected = min(1.0, chance * trials)
     return Corrected(verdict, trials, chance, corrected, verdict.passed and corrected <= FAMILY)
 

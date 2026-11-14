@@ -115,7 +115,7 @@ ITS DOORS stay, for the tests come in by them: `run(home, bars, pounds, todo)`; 
 a list, the rule's hash a word of its own; and a line's keys `cell`, `trials`, `rungs` (each an
 answer and its reason), `answer`, `unrun` and `error`, its figures JSON numbers.
 
-OWED: the stop planted; the folds as written (they are two thirds of one line, 30 trades asked
+OWED: the folds as written (they are two thirds of one line, 30 trades asked
 of each, and wait where a figure is on file); the shuffle; the drawdowns; one trial a cell and
 the rule's hash in its name; `made`; the kept table of rates; the step of units.
 """
