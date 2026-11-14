@@ -579,13 +579,15 @@ his PC with the desk's own client id (222), never 4001.
       a market buy at the open; the resting stop placed, triggered, and cancelled on a sale;
       a partial fill if the paper broker gives one; a rejection. Each real result recorded
       beside the pretend broker's, and the pretend broker fixed where they differ.
-      Remains: the in-hours half (#135 did the dry orders, 59 cancelled): fills, triggered stop, sale, part fill, SPY
+      (Waits for 2026-11-16: the trial trades need London and US markets open, and weekend markets are shut.)
+      Remains: the in-hours half (#135 did the dry orders, 59 cancelled). The command `python -m desk.paper --conformance london|us` landed (#210), unproven by any real order; Monday's 08:05 and 14:35 runs are the first. Then this session compares the recorded files and fixes the pretend broker where they differ
       {id: paper-conformance; files: *; after: paper-gateway, paper-check, paper-stops,
       paper-drill; waits: 2026-11-16}
 - [ ] The desk's own process supervised: one supervisor, restarts proven by killing it,
       health judged from outside by dated receipts, surviving a reboot, a dropped network
       and a broker disconnect; a ledger of operator actions proving seven days without one,
       bar the ruled Gateway re-login (OPS-01, OPS-02, OPS-04, OPS-10, NS-01)
+      Remains: first step landed (#168, supervisor, receipts, health, ledger; register empty). Still to do: the step as a command (#189 gave `python -m desk.running`) registered as the first job, a job that tells him what health finds, Windows starting it, the kill drill, seven days counted
       {id: paper-supervised; files: desk/supervisor.py, tests/unit/test_supervisor.py,
       manifest.toml; after: paper-running}
 - [ ] The running process always on main's latest code, and a money-path change reaching
