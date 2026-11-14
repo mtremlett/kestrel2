@@ -1617,6 +1617,17 @@ overwritten in place.
 
 ---
 
+## 2026-11-14 — the whole check runs on GitHub; a session runs the fast check
+
+**His ruling**, in the coordinator's chat, to options put with a recommendation: "yes...option A".
+Measured first, from all 121 sessions that landed a change since 13 November 18:00: the whole
+`python check.py` run on the PC took 46.5% of all session minutes. That is a median of 8.9
+minutes a run, often several runs a session, with up to four checks at once on one PC. GitHub runs
+the same check in parallel parts in about 2.3 minutes, and refuses any merge that is not green. A
+session now runs `python check.py --fast` and the tests of what it changed, then pushes. The whole
+check on GitHub is the gate. It runs the whole check on the PC only to chase a red. Nothing merges
+red, as before. Expected: a typical session from about 22 minutes to about 12.
+
 ## 2026-11-14 — the desk's ceiling raised to 10,500 lines, so FIRST-LIGHT never waits on it
 
 **His ruling**, in the coordinator's chat, to the question asked as a guard loosening. First
@@ -3680,3 +3691,15 @@ Decided by the PAPER lane as the desk's mentor, no one watching.
 - Three requests and the ruling in one pull request: all on one box's files, each in its own commit.
 - Pages read through a web reader on the day, not opened by a person; a person or a later session opens each once more before its figure goes on file.
 - Ticks: R-DATA-11, R-RUNNER-5, R-RUNNER-3 (requests to this lane, done).
+
+## 2026-11-14 — pyarrow for the head start, and a source for each old store (R-RUNNER-24)
+
+**His ruling**, standing since 13 November: "please always go with recommended to avoid waiting for me to attend". #196 named why parquet folders and raw Stooq zips had no reader, and asked for option (a), taken as recommended: `pyarrow==26.0.1` to be pinned in `requirements.txt` and imported in `lab/headstart.py` only; `desk/` stays standard library. The pin itself is not in this change: the lane guard refuses `requirements.txt` to the DATA lane (it is in no lane's files), so it waits for a session that may touch it, together with `allowed_third_party` in `manifest.toml`.
+
+**What it replaces.** Four of the five old stores hold parquet. A reader for that format (column encodings, compression, row groups) is code we would otherwise write and maintain; pyarrow is tested code we do not.
+
+**Options.** (a) pin pyarrow, lab only (chosen); (b) write a parquet reader (refused, large and ours to maintain); (c) leave four stores unread (refused, the head start's whole point is those bars).
+
+**Sources.** `Source` in `desk/bars.py` gains `STOOQ_RAW`, `IBKR_STORE`, `STOOQ_STORE` and `TREND_STOOQ`, so that each old store's bars are kept under its own name. All are non-fresh: they only fill.
+
+**Remains.** The pin and the manifest's `allowed_third_party`, then the readers.

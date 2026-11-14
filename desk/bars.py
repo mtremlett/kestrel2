@@ -4,27 +4,23 @@ November 2026, DAT-04). It is held to three benchmarks, in tests/unit/test_bars.
 five-minute round for every line written in under a second, a line's last week read in under
 50 ms, a line's daily history read in under 200 ms.
 
-A writer works in rounds. Everything written in a round lands together when the round ends,
-forced to disk, or none of it does. A reader reads the last whole round while the next is
-being written, and never part of one. A second writer waits its turn, and is refused if it
-has not come within WAIT seconds (NoRound).
+A writer works in rounds. Everything written in a round lands together when it ends, forced
+to disk, or none of it does. A reader reads the last whole round, never part of one. A second
+writer waits its turn, and is refused if it has not come within WAIT seconds (NoRound).
 
 A line is its venue and its symbol: one symbol can be two companies. A daily bar is named by
-its session's day; a five-minute bar by the moment it starts, in UTC. Prices are kept as the
-exact decimals they were written as.
+its session's day; a five-minute bar by its start, in UTC. Prices are kept as exact decimals.
 
-Five-minute bars are kept for good (DAT-11): the free archive forgets them after sixty days,
-so `keep` saves each evening's through the checks the daily store makes. No moment's bar is
-ever removed; one the archive restates takes the place of the one held only by passing those
-checks, its unit judged against what is held. The last week stays hot with every older bar
-archived beneath it in the same file: the benchmark reads a week from under a year of them,
-for twenty lines.
+Five-minute bars are kept for good (DAT-11): the archive forgets them after sixty days, so
+`keep` saves each evening's through the daily store's checks. No moment's bar is ever
+removed; one the archive restates replaces the one held only by passing those checks, its
+unit judged against what is held. The last week stays hot with every older bar archived
+beneath it in the same file: the benchmark reads a week from under a year of them, for twenty lines.
 
-Every bar is kept with its source, and a round is one source's (Source). A fresh source,
-the archive, restates: its bar for a moment takes the place of whatever is held there. Any
-other source, a store that is no longer kept, only fills the moments that hold no bar, so a
-fresh bar always wins; where two sources' bars for one moment differ, that is counted
-(`apart`)."""
+Every bar is kept with its source, a round being one source's (Source). A fresh source, the
+archive, restates: its bar takes the place of whatever is held for that moment. Any other,
+a store no longer kept, only fills moments that hold no bar, so a fresh bar always wins;
+where two sources' bars for one moment differ, that is counted (`apart`)."""
 
 from __future__ import annotations
 
@@ -63,8 +59,12 @@ class Source(Enum):
     """Where a bar came from: a bar from anywhere else cannot be written."""
 
     ARCHIVE = "archive"  #: the free price archive; until 14 November 2026 the one source
-    MATRICES = "old desk: Stooq matrices"  #: the old desk's two stores (lab/headstart.py)
+    MATRICES = "old desk: Stooq matrices"  #: the old desk's stores (lab/headstart.py)
     DATABASE = "old desk: mark_the_trend.db"
+    STOOQ_RAW = "old desk: raw Stooq downloads"
+    IBKR_STORE = "old desk: ibkr_store"
+    STOOQ_STORE = "old desk: stooq_store"
+    TREND_STOOQ = "old desk: mark_the_trend Stooq downloads"
 
     @property
     def fresh(self) -> bool:
