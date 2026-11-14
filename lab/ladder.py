@@ -140,7 +140,7 @@ from desk.lines import LINES, Line
 from desk.orders import Settings
 from desk.store import Bar
 from desk.strategy import STRATEGIES
-from lab import batch, cell, folds, published, reproduce, trials, verdict
+from lab import batch, cell, folds, published, reproduce, trials, units, verdict
 from lab.batch import Bars
 from lab.cell import Cell
 from lab.reproduce import Reproduction
@@ -261,7 +261,7 @@ def run(
 def _shared(todo: Sequence[Cell], bars: Bars, pounds: Rates) -> Shared:
     """What a run keeps across its cells: each rule's reproductions, its pool of lines, and
     the folds judged once on that pool."""
-    pools = cache(lambda rule: _pool(rule, todo, bars))
+    pools = cache(lambda rule: _pool(rule, todo, bars, pounds))
     folded = cache(lambda rule: folds.judge(rule, pools(rule), Settings(CAPITAL), pounds, END))
     return {}, pools, folded
 
@@ -286,6 +286,7 @@ def _one(
     try:
         beside = next(line for line in LINES if line.symbol == MARKETS[c.line.venue])
         own, held = bars(c.line), bars(beside)
+        units.refuse(c.line, own, pounds)
         if c.strategy not in behind:
             owed = [figure for figure in reproduce.FIGURES if figure.strategy == c.strategy]
             behind[c.strategy] = tuple(reproduce.reproduce(f, bars(f.line)) for f in owed)
@@ -324,14 +325,15 @@ def _key(
     return hashlib.sha256("\n".join(parts).encode()).hexdigest()
 
 
-def _pool(rule: str, todo: Sequence[Cell], bars: Bars) -> dict[Line, Sequence[Bar]]:
+def _pool(rule: str, todo: Sequence[Cell], bars: Bars, pounds: Rates) -> dict[Line, Sequence[Bar]]:
     """The bars of every line of the rule in the set that can be judged: a line that waits on
     its bars is left out of the folds' pool."""
     pool: dict[Line, Sequence[Bar]] = {}
     for c in todo:
         if c.strategy == rule:
             try:
-                pool[c.line] = bars(c.line)
+                units.refuse(c.line, got := bars(c.line), pounds)
+                pool[c.line] = got
             except FAILED:
                 continue
     return pool

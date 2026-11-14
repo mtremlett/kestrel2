@@ -87,6 +87,7 @@ rungs = []
 "lab/luck.py" = "the ladder's luck rung: every trial counted, and each verdict's chance corrected for the number of trials it was picked from"
 "lab/folds.py" = "the ladder's folds rung: the last five whole years, each judged on the trades of all of a rule's lines pooled, and the verdict given on the worst year; and a window cut in equal parts"
 "lab/drawdown.py" = "the ladder's resampled drawdowns: the judged trades' pounds drawn again a thousand times, and the median and the 95th percentile of the deepest fall kept as parts of the capital, never a pass"
+"lab/units.py" = "the step of units: a line of pounds whose close steps by the rate of exchange in a day, a dollar series joined to a pound one, and is not judged"
 "lab/shuffle.py" = "the ladder's shuffle rung: the days of a line put in a random order a hundred times, and a rule that earns as much there has timed nothing"
 "lab/deflated.py" = "the luck test fixed before any result: the deflated Sharpe and its bands, the yearly Sharpe too good to be true, and the one verdict rule over the named rungs"
 "lab/trials.py" = "the register of trials: every trial ever tried on a question, kept from batch to batch, and the luck rung's count taken from it"
