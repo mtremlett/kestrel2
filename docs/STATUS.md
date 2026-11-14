@@ -89,11 +89,11 @@ everything on main, so two green lanes cannot combine into a red main.
 ## MONEY
 Last updated: 14 November 2026 (money-working, money-watch, a lost stop told).
 ### Where it is
-Scenes 7 of 7. Built: the five rules; sizing, cost model, gate; pretend broker; send path, ledger, book; the
+Scenes 7 of 7. Built: the five rules, and a sixth, `ema_9_21`, a WIRING rule never an A-GATE candidate (#207; the desk's day and the ladder do not run it yet); sizing, cost model, gate; pretend broker; send path, ledger, book; the
 day; kill switch; `emergency`; invariants; halts (#148); SimCity (#150, #163): a hundred seeded worlds, 31,000
 days, eleven promises, 52 parts; **its night is GREEN** (money-working, #163: a note before each send; after a
 death the broker cancels what is left working, a sale too). The crash watch (#172, `desk/watch.py`) is built
-and halts nothing yet: nothing calls it. A lost stop is told the same day with stop, shares, level (#191).
+and halts nothing yet: nothing calls it. A lost stop is told the same day with stop, shares, level (#191). `python -m desk.simcity [--full]` is the nightly job (#200; first real night waits for the desk's store). The pound's rate carries over a UK-only holiday (`desk/carry.py`, #208).
 ### Next step
 money-restop's put-back (`desk/broker.py`), then the limits, money-stranger, money-fills. `desk/simcity.py` (399) and
 `desk/book.py` (400) are full: split first. A desk not restarted before the next open can end short (pretend broker should lapse orders at close).
@@ -122,15 +122,18 @@ money-restop's put-back (`desk/broker.py`), then the limits, money-stranger, mon
 - [ ] R-MONEY-30 (later): `running.recover` puts back a line held with no stop, when its shares are the book's: stop
   `<newest buy id>-stop` at `book.levels(root)[id]` rounded down to the price step, for the shares held.
   R-MONEY-31 (later): with R-MONEY-18, the day's list message includes its lost-stop entries.
+- [ ] R-MONEY-32 (later): `desk/command.py` rates use `book.rate(root, "USD", day)`, falling back to the archive on ValueError, so the carry rule applies to the day.
 ### Requests to DATA
 - [ ] R-MONEY-3 (later): a daily rate, pounds per dollar, in the store. [x] R-MONEY-15, R-MONEY-16: done (#163, #150).
-- [ ] R-MONEY-12 (later): on the master, the market's lines: the yardstick's twin (VUSA), one in New York hours.
+  R-MONEY-12 (later): on the master, the market's lines: the yardstick's twin (VUSA), one in New York hours.
 - [ ] R-MONEY-28 (blocking): the keeper writes each line's ended five-minute bars to the fast store every five
   minutes in trading hours, VUAG first, the day's last bar included; and says how late a bar lands (the watch's 20 minutes).
   R-MONEY-29 (later): the keeper or monitor tells him when a whole venue is not heard from.
 ### Requests to RUNGS
+- [ ] R-MONEY-33 (later): ladder, cells and fast grid also run `strategy.WIRING` names (a grid twin for `ema_9_21`); promotion keeps refusing them.
+  R-MONEY-34 (blocking): `lab/rung.py` and `lab/ladder.py` use `desk.carry.carried(rates, day)` (F1: 32 US cells fail on 2025-04-21).
 - [ ] R-MONEY-13 (later): the first rung prices each leg with `orders.charges`; a sale is charged as a purchase.
-- [ ] R-MONEY-14 (later): AG-04 must not add the records' market column: compound the days or read two closes.
+  R-MONEY-14 (later): AG-04 must not add the records' market column: compound the days or read two closes.
 ### Found, not fixed
 - Costs: spread and slippage assumed; no clock on the day path (R-MONEY-8); `desk/halt.py` still says only the kill switch cancels.
 - Watch (#172): no market read after London shuts; `halt.lift` defaults to the operator; a halt cancels no working buy.

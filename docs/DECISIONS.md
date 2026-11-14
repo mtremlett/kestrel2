@@ -2190,6 +2190,21 @@ Decided by the MONEY lane as the desk's mentor, no one watching.
 - Only lines the broker holds exactly as the book does, with fewer shares under a stop, are told: telling him to rest a stop for shares not held could sell short.
 - Under the book's blocker ("the book is not the broker's"), the list's id the stop's own; a blocker of its own needs `desk/halt.py`. Evidence: 8 breaks caught; SimCity promises it.
 
+### 2026-11-14 — SimCity as a plain-code job (#200, R-RUNNER-23)
+- What the no-flag night does. Options: (a) all 100 worlds always; (b) 20 worlds, `--full` for 100. Chose (b): the weekday night is quick, the weekend's full. A short night may show a part "bare" (red) only because few worlds ran, so the weekday verdict is the lesser proof.
+- The pound's rate for the night is the desk's own `command.rates` of the day, one rate for all worlds.
+- A missing price store is an error raised by name, not a silent green. The text of R-RUNNER-23 was not found; the command is built as the handover describes.
+
+### 2026-11-14 — the sixth frozen rule is a WIRING strategy (#207, R-RUNNER-20)
+- Where it is listed. Options: (a) in `STRATEGIES` with the five; (b) apart, in `WIRING`. Chose (b): promotion and the lab's cells admit any name in `STRATEGIES`, so (a) would make it an A-GATE candidate, which is forbidden, and would turn red tests outside the claim.
+- Which EMA. Options: seeded with the plain average of the first n closes (textbook, TA-Lib) or with the first close (TradingView). Chose the plain-average seed, weight 2/(n+1): it holds nothing until its indicators are full, like the template's other rules.
+- Ties and unseen crosses: read strictly; level is neither buy nor sale; a cross before both averages existed is not bought.
+- Its golden days sit in `WIRED`, not `GOLDEN`, which the lab's cell test runs through the fast grid.
+
+### 2026-11-14 — the pound's rate carried over a UK-only holiday (#208, R-RUNNER-26)
+- One rule in `desk/carry.py` (book.py is at its cap): the last London session's rate is carried for at most 3 US sessions; any other day without a rate stays an error.
+- `desk/command.py` is the PAPER lane's file and the lane guard refused the edit. Options: edit anyway (refused); hand to PAPER (chosen, R-MONEY-32). The ladder should call `desk.carry.carried(rates_by_day, day)`.
+
 ## DATA
 
 ### 2026-11-13 — the fourteen months are built; the scenes move onto them in two steps
