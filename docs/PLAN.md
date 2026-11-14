@@ -162,8 +162,12 @@ UK tax) and R-MONEY-2 (the scenes on the whole fourteen months).
       the old values serve only as a cross-check of the recomputation (DAT-03, DAT-01).
       Remains after #175 (five-minute bars built, not yet run on the real store): run it once
       R-RUNNER-10 has landed; daily bars (calendar before 2010, adjusted against as-traded);
-      the parquet stores; 3LGO; the old indicators as a cross-check
-      {id: data-headstart; files: lab/headstart.py, tests/unit/test_lab_headstart.py, desk/bars.py, tests/unit/test_bars*.py, manifest.toml}
+      the parquet stores; the old indicators as a cross-check
+      Built: `python -m lab.headstart` (#190, resumable, 245,593 old five-minute bars tried in
+      on the real stores); `--daily 3LGO` (#209, 2,816 clean bars); four Sources (#203).
+      Remains (readers wait R-RUNNER-24: pyarrow and the Sources first, #196): the pyarrow pin and readers for the parquet stores and stooq_raw, old daily
+      bars for other lines, SGLN's one off-mark bar refused alone, the research list's bars
+      {id: data-headstart; files: lab/headstart.py, tests/unit/test_lab_headstart.py, desk/bars.py, tests/unit/test_bars*.py, manifest.toml; waits: R-RUNNER-24}
 - [ ] The archive spared: fetching slow and resumable, with backoff, each raw answer cached
       in the folder `KESTREL2_DATA` names (outside the repository and every worktree); while
       the archive refuses, `{"refusing_since": <time>}` written to `KESTREL2_DATA/archive.json`
@@ -579,13 +583,15 @@ his PC with the desk's own client id (222), never 4001.
       a market buy at the open; the resting stop placed, triggered, and cancelled on a sale;
       a partial fill if the paper broker gives one; a rejection. Each real result recorded
       beside the pretend broker's, and the pretend broker fixed where they differ.
-      Remains: the in-hours half (#135 did the dry orders, 59 cancelled): fills, triggered stop, sale, part fill, SPY
+      (Waits for 2026-11-16: the trial trades need London and US markets open, and weekend markets are shut.)
+      Remains: the in-hours half (#135 did the dry orders, 59 cancelled). The command `python -m desk.paper --conformance london|us` landed (#210), unproven by any real order; Monday's 08:05 and 14:35 runs are the first. Then this session compares the recorded files and fixes the pretend broker where they differ
       {id: paper-conformance; files: *; after: paper-gateway, paper-check, paper-stops,
       paper-drill; waits: 2026-11-16}
 - [ ] The desk's own process supervised: one supervisor, restarts proven by killing it,
       health judged from outside by dated receipts, surviving a reboot, a dropped network
       and a broker disconnect; a ledger of operator actions proving seven days without one,
       bar the ruled Gateway re-login (OPS-01, OPS-02, OPS-04, OPS-10, NS-01)
+      Remains: first step landed (#168, supervisor, receipts, health, ledger; register empty). Still to do: the step as a command (#189 gave `python -m desk.running`) registered as the first job, a job that tells him what health finds, Windows starting it, the kill drill, seven days counted
       {id: paper-supervised; files: desk/supervisor.py, tests/unit/test_supervisor.py,
       manifest.toml; after: paper-running}
 - [ ] The running process always on main's latest code, and a money-path change reaching
@@ -708,9 +714,10 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       A replication may stand in for an author's figure, labelled second hand; best free figures
       written down, none on file (#169, #186). BLOCKED (do not hand out): waits on SPY and
       sessions from 1993 (R-RUNGS-5, 9), the Double 7's rule (R-RUNGS-10), RSI-2 buying under 10
-      (R-RUNGS-14), the index from 1983 (R-RUNGS-13). Remains also: `folds`/`regime`/`stress` passing reproductions on
+      (R-RUNGS-14), the index from 1983 (R-RUNGS-13), all five still open (#195). Remains also: `folds`/`regime`/`stress` passing reproductions on
       {id: rungs-reproduce; files: lab/reproduce.py, lab/rung.py,
-      tests/unit/test_lab_reproduce.py, tests/unit/test_lab_rung.py}
+      tests/unit/test_lab_reproduce.py, tests/unit/test_lab_rung.py;
+      waits: R-RUNGS-5, R-RUNGS-9, R-RUNGS-10, R-RUNGS-13, R-RUNGS-14}
 - [x] Stress scenarios: the 2020 crash, flash crashes, a leveraged product's gap (2008 lies
       before the history) (TST-06). Built: `lab/stress.py` (#140). Remains: nothing calls it;
       judged by the loss limit when MONEY sets it (R-RUNGS-11); first run on real bars
