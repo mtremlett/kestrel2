@@ -279,10 +279,13 @@ def run(
 
 def _shared(todo: Sequence[Cell], bars: Bars, pounds: Rates) -> Shared:
     """What a run keeps across its cells: each rule's reproductions, its pool of lines, and
-    the folds judged once on that pool."""
+    the folds judged once on that pool, the author's result handed to them (M2)."""
+    behind: dict[str, tuple[Reproduction, ...]] = {}
     pools = cache(lambda rule: _pool(rule, todo, bars, pounds))
-    folded = cache(lambda rule: folds.judge(rule, pools(rule), Settings(CAPITAL), pounds, END))
-    return {}, pools, folded
+    folded = cache(
+        lambda rule: folds.judge(rule, pools(rule), Settings(CAPITAL), pounds, END, behind[rule])
+    )
+    return behind, pools, folded
 
 
 def _one(

@@ -24,7 +24,6 @@ UNRUN = {
     "stress": "it gives pounds lost and never a pass; the loss limit to judge them by is not set",
 }
 NO_FIGURE = "no author's figure is on file for the rule: no published result stands behind it"
-NO_FOLDS = "the folds rung cannot yet hand an author's result to its folds"
 #: A rule trades a line five to ten times a year and wants 200 sessions to warm up: a line of
 #: fewer bars than those and a year's trading has made no trade yet, which says nothing of the rule.
 MIN_BARS = 200 + 252
@@ -47,7 +46,7 @@ def judge(
         reproduce.settled(c.strategy, made)
     except ValueError as missed:  #: the rule as coded is not the author's: no verdict on ours
         return {"rungs": {"reproduce": [Answer.FAIL.name, str(missed)]}, "every": False}
-    unrun = UNRUN | ({"folds": NO_FOLDS} if made else {"reproduce": NO_FIGURE})
+    unrun = UNRUN | ({} if made else {"reproduce": NO_FIGURE})
     settings = Settings(CAPITAL)
     verdict = rung.judge(cell.run(c, own), own, settings, pounds, made)
     if verdict.answer is Answer.FAULT and len(own) < MIN_BARS:
@@ -57,10 +56,8 @@ def judge(
     if made:
         said = "; ".join(f"{m.figure.hand.value} result, {m.figure.source}" for m in made)
         rungs["reproduce"] = (Answer.PASS, f"reproduced: {said}")
-    elif verdict.answer is Answer.FAULT:  #: no trade in it, so none in any fold of it
-        rungs["folds"] = rungs["first"]
-    else:
-        rungs["folds"] = pooled()
+    #: no trade in it, so none in any fold of it
+    rungs["folds"] = rungs["first"] if verdict.answer is Answer.FAULT else pooled()
     against = market.judge(verdict, own, beside, held, pounds)
     said = rungs["first"][1]
     if against.line is not None and against.wide is not None:

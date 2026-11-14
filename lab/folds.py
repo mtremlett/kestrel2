@@ -25,6 +25,7 @@ from desk.orders import Settings
 from desk.store import Bar
 from lab import cell, market, rung
 from lab.cell import Cell
+from lab.reproduce import Reproduction
 from lab.rung import Answer, Rates
 
 FOLDS = 5
@@ -57,17 +58,28 @@ def years(end: date) -> range:
 
 
 def judge(
-    rule: str, lines: Mapping[Line, Sequence[Bar]], settings: Settings, rates: Rates, end: date
+    rule: str,
+    lines: Mapping[Line, Sequence[Bar]],
+    settings: Settings,
+    rates: Rates,
+    end: date,
+    made: Sequence[Reproduction] = (),
 ) -> tuple[Answer, str]:
     """The rule's folds rung: each year's trades pooled over the lines, the worst year's
-    answer with its reason. A line with no bar in a year is left out of it."""
-    folds = [_fold(rule, lines, year, settings, rates) for year in years(end)]
+    answer with its reason. A line with no bar in a year is left out of it. The rule's
+    author's result, where one is on file, is handed to the first rung in every fold (M2)."""
+    folds = [_fold(rule, lines, year, settings, rates, made) for year in years(end)]
     answer, _, why = min(folds, key=lambda f: (f[0], f[1]))
     return answer, why
 
 
 def _fold(
-    rule: str, lines: Mapping[Line, Sequence[Bar]], year: int, settings: Settings, rates: Rates
+    rule: str,
+    lines: Mapping[Line, Sequence[Bar]],
+    year: int,
+    settings: Settings,
+    rates: Rates,
+    made_again: Sequence[Reproduction],
 ) -> tuple[Answer, float, str]:
     made: dict[date, Decimal] = {}
     days: set[date] = set()
@@ -76,7 +88,7 @@ def _fold(
         window = Cell(rule, line, date(year, 1, 1), date(year, 12, 31))
         if not any(bar.day >= window.start for bar in cell.shown(window, bars)):
             continue
-        verdict = rung.judge(cell.run(window, bars), bars, settings, rates)
+        verdict = rung.judge(cell.run(window, bars), bars, settings, rates, made_again)
         read = cell.shown(window, bars)
         for day, gain in market.daily(verdict.trades, read, line, rates).items():
             made[day] = made.get(day, Decimal(0)) + gain
