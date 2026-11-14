@@ -20,18 +20,30 @@ out-of-sample trades stand the fewest standard errors above nothing, a fold with
 trades standing lowest. The strategy passes this rung when that fold passes the first
 rung, which is every fold passing it. Every fold's out-of-sample verdict is a trial the
 luck rung counts (`lab/luck.py`).
+
+THE LADDER'S OWN FOLDS are `pool`: the last YEARS whole calendar years of a window, the rule's
+trades pooled over all its lines in each, and the answer taken on the worst year as the
+ladder's spec writes it (`lab/ladder.py`). An author's figure on file is handed on to every
+cell (`reproduced`), so a rule with one is folded like any other.
 """
 
 from __future__ import annotations
 
+from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import date
+from decimal import Decimal, localcontext
 
 from desk.orders import Settings
 from desk.store import Bar
-from lab import cell, rung
+from desk.strategy import ARITHMETIC
+from lab import cell, market, rung
 from lab.cell import Cell
+from lab.reproduce import Reproduction
 from lab.rung import Answer, Rates, Verdict
+
+YEARS = 5  #: the last whole calendar years of a window are its folds (M6)
 
 
 @dataclass(frozen=True)
@@ -91,12 +103,133 @@ def cut(window: Cell, bars: Sequence[Bar], folds: int) -> tuple[tuple[Cell, Cell
 
 
 def judge(
-    window: Cell, bars: Sequence[Bar], settings: Settings, rates: Rates, folds: int
+    window: Cell,
+    bars: Sequence[Bar],
+    settings: Settings,
+    rates: Rates,
+    folds: int,
+    reproduced: Sequence[Reproduction] = (),
 ) -> Folded:
     """The window in folds, each cell run and judged by the first rung on the line's bars;
     each fill at its own day's rate of exchange."""
 
     def first_rung(c: Cell) -> Verdict:
-        return rung.judge(cell.run(c, bars), bars, settings, rates)
+        return rung.judge(cell.run(c, bars), bars, settings, rates, reproduced)
 
     return Folded(tuple(Fold(first_rung(i), first_rung(o)) for i, o in cut(window, bars, folds)))
+
+
+@dataclass(frozen=True)
+class Year:
+    """One calendar year, the rule's trades pooled over its lines: bought and sold inside it."""
+
+    year: int
+    lines: int  #: the lines pooled: those with a bar in the year
+    trades: int  #: judged trades, all lines
+    t: Decimal | None  #: the mean day in standard errors; None under two days
+    before: Decimal | None  #: the same on the history before the year, in-sample
+    answer: Answer
+
+
+@dataclass(frozen=True)
+class Pooled:
+    """The rule's years, pooled over its lines, and the one answer on the worst of them."""
+
+    years: tuple[Year, ...]  #: oldest first
+
+    @property
+    def worst(self) -> Year:
+        """The year judged on; of two equally bad, the older."""
+        return min(self.years, key=lambda y: (y.answer, y.t is not None, y.t or 0))
+
+    @property
+    def answer(self) -> Answer:
+        """The worst year's answer: the rule's, on every line."""
+        return self.worst.answer
+
+    @property
+    def reason(self) -> str:
+        """The worst year named, with its pooled figures and the history before it."""
+        w = self.worst
+        return (
+            f"the worst of {len(self.years)} yearly folds, {w.year}: {w.trades} trades pooled "
+            f"over {w.lines} lines, their mean day {_t(w.t)} standard errors from nothing; "
+            f"on the history before it, {_t(w.before)}"
+        )
+
+
+def _t(t: Decimal | None) -> str:
+    return "n/a" if t is None else f"{t:.2f}"
+
+
+def pool(
+    cells: Sequence[tuple[Cell, Sequence[Bar]]],
+    settings: Settings,
+    rates: Rates,
+    count: int = YEARS,
+    reproduced: Sequence[Reproduction] = (),
+) -> Pooled:
+    """One rule's whole-window cells, one a line with its bars (the lines that wait already
+    left out), walked forward over the last `count` whole calendar years before their common
+    end. In each year every line's trades bought and sold inside it are pooled, and its days
+    summed over the lines as the market rung marks them, so trades held together are not bets
+    apart. With 30 judged trades or more a year passes if its mean day earned after costs, fails
+    at 2 standard errors under nothing and is in doubt between; fewer is THIN, none a FAULT."""
+    ends = {c.end for c, _ in cells}
+    if len(ends) != 1 or len({c.strategy for c, _ in cells}) != 1:
+        raise ValueError("pooled cells must be one rule's, to one common end")
+    (end,) = ends
+    last = end.year if end >= date(end.year, 12, 31) else end.year - 1
+    first = last - count + 1
+    if count < 1 or min(c.start for c, _ in cells) > date(first, 1, 1):
+        raise ValueError(f"{cells[0][0].strategy}: no {count} whole years of history to fold")
+
+    def year(y: int) -> Year:
+        inside = _stretch(cells, None, date(y - 1, 12, 31), settings, rates, reproduced)
+        out = _stretch(cells, date(y, 1, 1), date(y, 12, 31), settings, rates, reproduced)
+        return Year(y, out[0], out[1], out[2], inside[2], _answer(out[1], out[2], out[3]))
+
+    return Pooled(tuple(year(y) for y in range(first, last + 1)))
+
+
+def _answer(trades: int, t: Decimal | None, mean: Decimal) -> Answer:
+    if not trades:
+        return Answer.FAULT
+    if t is None or trades < rung.MIN_TRADES:
+        return Answer.THIN
+    if mean > 0:
+        return Answer.PASS
+    return Answer.FAIL if t <= -rung.T_PASS else Answer.DOUBT
+
+
+def _stretch(
+    cells: Sequence[tuple[Cell, Sequence[Bar]]],
+    start: date | None,
+    end: date,
+    settings: Settings,
+    rates: Rates,
+    reproduced: Sequence[Reproduction],
+) -> tuple[int, int, Decimal | None, Decimal]:
+    """Lines pooled, judged trades, the mean day in standard errors, and the mean day, over
+    [start (each cell's own where None), end] with each line cut as an ordinary cell."""
+    gains: defaultdict[date, Decimal] = defaultdict(Decimal)
+    lines = trades = 0
+    for c, bars in cells:
+        begin = c.start if start is None else max(start, c.start)
+        if begin > end or not any(begin <= bar.day <= end for bar in bars):
+            continue
+        part = Cell(c.strategy, c.line, begin, end)
+        verdict = rung.judge(cell.run(part, bars), bars, settings, rates, reproduced)
+        lines, trades = lines + 1, trades + len(verdict.trades)
+        for bar in cell.shown(part, bars):
+            if bar.day >= begin:
+                gains[bar.day] += Decimal(0)
+        for day, made in market.daily(
+            verdict.trades, cell.shown(part, bars), c.line, rates
+        ).items():
+            gains[day] += made
+    if not trades:
+        return lines, 0, None, Decimal(0)
+    with localcontext(ARITHMETIC):
+        days = list(gains.values())
+        return lines, trades, rung.standard_errors(days), sum(days, Decimal(0)) / len(days)

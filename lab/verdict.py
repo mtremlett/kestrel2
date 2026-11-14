@@ -31,8 +31,19 @@ NO_FOLDS = "the folds rung cannot yet hand an author's result to its folds"
 #: A rule trades a line five to ten times a year and wants 200 sessions to warm up: a line of
 #: fewer bars than those and a year's trading has made no trade yet, which says nothing of the rule.
 MIN_BARS = 200 + 252
+#: A close that moves in a day by that day's pound, or one over it, to within this, on a line in
+#: pounds, is a part of the line quoted in dollars (M3): a step under the price store's jump.
+STEP = Decimal("0.03")
 Pair = tuple[Answer, str]
 Judged = dict[str, Pair]  #: each rung's answer on a cell, and its reason
+
+
+class TooYoung(ValueError):
+    """TOO YOUNG: the line has too few bars to have made a trade; no answer, and no FAULT."""
+
+
+class UnitStep(ValueError):
+    """A line in pounds that steps by the pound's rate in a day: part of it is in dollars."""
 
 
 def judge(
@@ -49,11 +60,12 @@ def judge(
         reproduce.settled(c.strategy, made)
     except ValueError as missed:  #: the rule as coded is not the author's: no verdict on ours
         return {"rungs": {"reproduce": [Answer.FAIL.name, str(missed)]}, "every": False}
+    _unstepped(c.line, own, pounds)
     unrun = UNRUN | ({"folds": NO_FOLDS} if made else {"reproduce": NO_FIGURE})
     settings = Settings(CAPITAL)
     verdict = rung.judge(cell.run(c, own), own, settings, pounds, made)
-    if verdict.answer is Answer.FAULT and len(own) < MIN_BARS:
-        raise ValueError(f"{c.line.symbol}: {len(own)} bars, no trade yet; waits on {MIN_BARS}")
+    if len(own) < MIN_BARS:  #: whatever it scored, a few trades say nothing of the rule
+        raise TooYoung(f"{c.line.symbol}: {len(own)} bars, no trade yet; waits on {MIN_BARS}")
     (one,) = deflated.judge([verdict], count - 1)  #: every other trial the register holds
     rungs = _named(verdict, one)
     if made:
@@ -81,6 +93,21 @@ def judge(
         "unrun": unrun,
         "every": all(answer is Answer.PASS for answer, _ in rungs.values()),
     } | ({"answer": deflated.rule(named).name} if len(named) == len(deflated.NAMED) else {})
+
+
+def _unstepped(line: Line, own: Sequence[Bar], pounds: Rates) -> None:
+    """Refuse a line in pounds with a day's step of the pound's rate not named a real move."""
+    named = {day for day, _ in line.real_moves}
+    for before, after in zip(own, own[1:], strict=False):
+        rate = pounds.get(after.day)
+        if line.currency != "GBP" or rate is None or after.day in named:
+            continue
+        if any(abs(after.close / before.close / r - 1) <= STEP for r in (rate, 1 / rate)):
+            raise UnitStep(
+                f"{line.symbol}: on {after.day} the close steps by the pound's {rate} or its "
+                "inverse, as a change of units; waits for the data lane to mend the bars or "
+                "the master to name the move"
+            )
 
 
 def _named(verdict: Verdict, one: Deflated) -> Judged:

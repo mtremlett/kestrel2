@@ -139,7 +139,11 @@ def test_a_run_skips_what_is_kept_and_judges_again_only_what_has_changed(tmp_pat
     assert "1 could not be judged" in run(tmp_path, _door(book), {}, more)
     assert "no rate of pounds per USD" in _rows(tmp_path)[-1]["error"]
     pounds = {bar.day: Decimal("0.8") for bar in EDGE}
-    assert "1 judged now, 2 kept from before, 0 could" in run(tmp_path, _door(book), pounds, more)
+    at = datetime.fromisoformat(_rows(tmp_path)[-1]["tried"]) + timedelta(minutes=5)
+    ladder.run(tmp_path, _door(book), {}, more, lambda: at)  #: nothing changed: it waits
+    assert len(_rows(tmp_path)) == 9
+    said = ladder.run(tmp_path, _door(book), pounds, more, lambda: at)  #: the rates, at once
+    assert "1 judged now, 2 kept from before, 0 could" in said
     assert _rows(tmp_path)[-1]["answer"] == "THIN" and len(_rows(tmp_path)) == 10
     #: a dearer dollar on one day is another price: the dollar line alone is judged again
     pounds[EDGE[50].day] = Decimal("0.9")
@@ -156,16 +160,16 @@ def test_every_trial_is_counted_before_any_is_run_and_the_count_never_begins_aga
     said = ladder.run(tmp_path, _door({}), {}, todo, lambda: clock[0])
     assert "against 6 trials: 0 judged now, 0 kept from before, 2 could not be judged" in said
     assert trials.count(register, ladder.QUESTION) == 6
-    #: a line too short to have made a trade waits on its history, and is tried again no
-    #: sooner than 30 minutes after its last try
+    #: a line too short to have made a trade waits on its history: with nothing changed it is
+    #: tried again no sooner than 30 minutes after its last try, and the moment its bars differ
+    short = _door({VUSA: EDGE[:1], ISF: NOISE})
     clock[0] += timedelta(minutes=30)
-    ladder.run(tmp_path, _door({VUSA: EDGE[:1], ISF: NOISE}), {}, todo, lambda: clock[0])
+    ladder.run(tmp_path, short, {}, todo, lambda: clock[0])
     waits = _rows(tmp_path)[2]
-    assert "waits on 452" in waits["error"] and "answer" not in waits
+    assert "waits on 452" in waits["error"] and "answer" not in waits and "key" in waits
     clock[0] += timedelta(minutes=29)
-    ladder.run(tmp_path, _door({VUSA: EDGE, ISF: NOISE}), {}, todo, lambda: clock[0])
+    ladder.run(tmp_path, short, {}, todo, lambda: clock[0])
     assert len(_rows(tmp_path)) == 4 and _rows(tmp_path)[2] == waits
-    clock[0] += timedelta(minutes=1)
     ladder.run(tmp_path, _door({VUSA: EDGE, ISF: NOISE}), {}, todo, lambda: clock[0])
     assert _rows(tmp_path)[-1]["answer"] == "THIN"
     register.unlink()  #: results with no register beside them: refused, never counted anew
