@@ -1,5 +1,7 @@
 """strategy - THE FIVE FROZEN DAILY STRATEGIES, chosen by the operator on 13 November 2026:
-five textbook rules at their published settings, long only, untuned.
+five textbook rules at their published settings, long only, untuned. A sixth, `ema_9_21`, is
+a WIRING strategy (his request, 14 November): it is here to test the desk's wiring while the
+ladder looks for real edge, it is listed apart (`WIRING`), and it is never an A-GATE candidate.
 
 THE TEMPLATE. A strategy is a rule that is shown one bar at a time, after its close, and
 says whether it wants to be in the market. It is never handed the series, so it cannot
@@ -67,7 +69,7 @@ class Field(Enum):
     VOLUME = "volume"
 
 
-#: What the five read: the close alone, or the day's range with it.
+#: What the rules read: the close alone, or the day's range with it.
 CLOSES = frozenset({Field.CLOSE})
 RANGES = frozenset({Field.HIGH, Field.LOW, Field.CLOSE})
 
@@ -149,6 +151,17 @@ class _Wilder:
         else:
             self._first.add(value)
             self.value = self._first.mean() if self._first.full else None
+        return self.value
+
+
+class _Exponential(_Wilder):
+    """The standard exponential average: seeded as Wilder's is, with the plain average of
+    the first `size` values, then each new value weighted two parts in `size + 1`."""
+
+    def add(self, value: Decimal) -> Decimal | None:
+        if self.value is None:
+            return super().add(value)
+        self.value += (value - self.value) * 2 / (self._size + 1)
         return self.value
 
 
@@ -288,8 +301,27 @@ class _Supertrend:
         return wants
 
 
+class _EmaCross:
+    """The 9/21-day exponential cross, a WIRING strategy: buy the day the 9-day exponential
+    average closes above the 21-day; sell the day it closes below. Level is neither. As with
+    the 50/200, a cross that happened before both averages existed is not one it saw."""
+
+    declared: ClassVar[Declared] = Declared(Timeframe.DAILY, None, LINES, CLOSES)
+
+    def __init__(self) -> None:
+        self._fast, self._slow = _Exponential(9), _Exponential(21)
+        self._above: bool | None = None
+
+    def step(self, bar: Bar, holding: bool) -> bool:
+        fast, slow = self._fast.add(bar.close), self._slow.add(bar.close)
+        if fast is None or slow is None:
+            return False
+        was, self._above = self._above, fast > slow
+        return fast >= slow if holding else fast > slow and was is False
+
+
 #: The five, by name, each with its declaration. Each call makes a fresh rule that has seen
-#: nothing.
+#: nothing. These, and no other, are the A-GATE's candidates: `ema_9_21` is not among them.
 STRATEGIES: Mapping[str, type[Rule]] = {
     "rsi2_pullback": _Rsi2,
     "bollinger_pullback": _Bollinger,
@@ -297,6 +329,10 @@ STRATEGIES: Mapping[str, type[Rule]] = {
     "trend_50_200": _Trend,
     "supertrend_10_3": _Supertrend,
 }
+
+#: The WIRING strategies, listed apart from the five: rules kept to test the desk's wiring
+#: end to end, tested as the five are, and NEVER A-GATE candidates, whatever they earn.
+WIRING: Mapping[str, type[Rule]] = {"ema_9_21": _EmaCross}
 
 
 def _run(

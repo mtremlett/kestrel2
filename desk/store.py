@@ -46,6 +46,10 @@ FAR = 100 / JUMP
 UNRECORDED = "a gap in the archive, or a suspension the line does not record"
 ASTRAY = "is out of line with the days either side: a wrong unit"
 COLUMNS = ("day", "open", "high", "low", "close", "volume")
+#: Where a line's older bars wait, in a folder of their own under the store's: the archive gives
+#: some lines a day or two, and the store is rebuilt from it on every prepare, so bars brought
+#: from elsewhere would be lost. They are joined to the archive's, which wins on any day it gives.
+HISTORY = "history"
 
 
 @dataclass(frozen=True)
@@ -255,7 +259,7 @@ def prepare(
             kept: list[Bar] = []
             faults = [Fault(day, f"the archive refused it: {bars.reason}")]
         else:
-            kept, faults = _clean(line, bars, day, since)
+            kept, faults = _clean(line, _joined(root, line, bars), day, since)
         _write(root / f"{line.symbol}.csv", COLUMNS, (astuple(bar) for bar in kept))
         _write(root / f"{line.symbol}.faults.csv", ("fault",), ((f.what,) for f in faults))
         recent = [f.what for f in faults if f.lasting or f.day >= since]
@@ -264,10 +268,8 @@ def prepare(
     return tuple(parked)
 
 
-def read(root: Path, symbol: str) -> tuple[Bar, ...]:
-    """Every bar the store kept for one line, oldest first. A parked line keeps the bars that
-    can be true, but does not trade."""
-    with (root / f"{symbol}.csv").open(newline="", encoding="utf-8") as stored:
+def _load(path: Path) -> tuple[Bar, ...]:
+    with path.open(newline="", encoding="utf-8") as stored:
         return tuple(
             Bar(
                 date.fromisoformat(row["day"]),
@@ -279,6 +281,27 @@ def read(root: Path, symbol: str) -> tuple[Bar, ...]:
             )
             for row in csv.DictReader(stored)
         )
+
+
+def shelve(root: Path, line: Line, bars: Iterable[Bar]) -> None:
+    """A line's older bars, kept for every prepare to join to the archive's, replacing any
+    shelved before. They are cleaned as the archive's are, with it, on each prepare."""
+    (root / HISTORY).mkdir(parents=True, exist_ok=True)
+    _write(root / HISTORY / f"{line.symbol}.csv", COLUMNS, (astuple(bar) for bar in bars))
+
+
+def _joined(root: Path, line: Line, bars: Sequence[Bar]) -> list[Bar]:
+    """The archive's bars and, for each day it gives none, the line's shelved bar."""
+    shelved = root / HISTORY / f"{line.symbol}.csv"
+    given = {bar.day for bar in bars}
+    older = (bar for bar in _load(shelved) if bar.day not in given) if shelved.is_file() else ()
+    return sorted([*older, *bars], key=lambda bar: bar.day)
+
+
+def read(root: Path, symbol: str) -> tuple[Bar, ...]:
+    """Every bar the store kept for one line, oldest first. A parked line keeps the bars that
+    can be true, but does not trade."""
+    return _load(root / f"{symbol}.csv")
 
 
 def faults(root: Path, symbol: str) -> tuple[str, ...]:

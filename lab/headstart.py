@@ -22,7 +22,14 @@ are, the data register in the desk's notes says: every store it tags IMPORT, rea
 per-line matrices of Stooq's bars, and the database mark_the_trend.db; any other is counted
 as having none yet: parquet folders for want of a parquet library, raw Stooq zips for want of
 a Source to keep them under. A store whose source the store
-holds already is not read again. Its indicators are not read at all."""
+holds already is not read again. Its indicators are not read at all.
+
+A line the archive gives no history of (3LGO, the operator's ask of 14 November 2026) takes
+its daily history from the matrices' daily bars (`python -m lab.headstart --daily 3LGO`): it
+needs the database's daily bars to agree with them on the days both hold, the days between
+the old bars and the archive's from the archive's five-minute bars, and all of it passes the
+one store's checks as a whole, with the archive's bars; else nothing is kept. It is shelved
+in the store, joined again to the archive's bars each time the store is rebuilt."""
 
 from __future__ import annotations
 
@@ -37,6 +44,7 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -52,15 +60,16 @@ MARKET = {"LSE": "UK", "US": "US"}  #: the matrices' name for a line is its symb
 #: summer). Warsaw's clock is London's and an hour, summer and winter.
 WARSAW = timedelta(hours=1)
 PENCE = Decimal("0.01")
+DAYS = "SELECT ts, close FROM ohlcv WHERE ticker = ? AND timeframe = '1d'"
 BARS = "SELECT ts, open, high, low, close, volume FROM ohlcv WHERE ticker = ? AND timeframe = '5m'"
 NO_DAY = "on a day with no fresh daily bar to vouch for them"
 OUTSIDE = "outside their day's fresh high and low"
 IMPORT = "| IMPORT |"  #: how a row of the data register naming a store to read in begins
 
 
-def _named(line: Line) -> str:
-    """The matrices' name for a line's five-minute bars."""
-    return f"{line.symbol}.{MARKET[line.venue]}_5m"
+def _named(line: Line, span: str = "5m") -> str:
+    """The matrices' name for a line's bars of a span."""
+    return f"{line.symbol}.{MARKET[line.venue]}_{span}"
 
 
 def matrices(line: Line, folder: Path) -> tuple[Five, ...]:
@@ -79,17 +88,24 @@ def matrices(line: Line, folder: Path) -> tuple[Five, ...]:
     return tuple(made)
 
 
-def database(line: Line, path: Path) -> tuple[Five, ...]:
-    """A line's five-minute bars from the old desk's database at path, which names a line as
-    the archive does and stamps a bar with the moment it starts, in UTC. It is opened
+def _asked(path: Path, ask: str, ticker: str) -> list[tuple[Any, ...]]:
+    """What the old desk's database at path answers to a question about one ticker. It is opened
     read-only, as a file nobody writes any more: nothing is written to it or beside it, and
     one that is not there is not made. One whose log still holds changes is being written,
-    and is refused; so is a line it holds no bar of."""
-    ticker, log = line.symbol + archive.SUFFIX[line.venue], path.with_name(f"{path.name}-wal")
+    and is refused."""
+    log = path.with_name(f"{path.name}-wal")
     if log.exists() and log.stat().st_size:
         raise ValueError(f"{path.name} is still being written: its log holds changes")
     with closing(sqlite3.connect(f"{path.as_uri()}?mode=ro&immutable=1", uri=True)) as old:
-        rows = old.execute(BARS, (ticker,)).fetchall()
+        return old.execute(ask, (ticker,)).fetchall()
+
+
+def database(line: Line, path: Path) -> tuple[Five, ...]:
+    """A line's five-minute bars from the old desk's database at path, which names a line as
+    the archive does and stamps a bar with the moment it starts, in UTC. A line it holds no
+    bar of is refused."""
+    ticker = line.symbol + archive.SUFFIX[line.venue]
+    rows = _asked(path, BARS, ticker)
     if not rows:
         raise ValueError(f"{path.name} holds no five-minute bar of {ticker}")
     whole = (row for row in rows if None not in row)
@@ -97,6 +113,73 @@ def database(line: Line, path: Path) -> tuple[Five, ...]:
         Five(datetime.fromisoformat(at), *_priced(prices, Decimal(1)), int(volume))
         for at, *prices, volume in whole
     )
+
+
+def matrix_days(line: Line, folder: Path) -> tuple[Bar, ...]:
+    """A line's daily bars from the old desk's matrices in folder, in the line's currency: a
+    day is stamped as itself. A line quoted in pounds is read as pence, which the first look
+    at the junction with the archive's bars proves or refutes."""
+    name = _named(line, "1d")
+    stamps = np.load(folder / f"{name}_ts.npy").tolist()
+    unit = PENCE if line.currency in archive.PENCE else Decimal(1)
+    return tuple(
+        Bar((EPOCH + timedelta(milliseconds=stamp)).date(), *_priced(row[:4], unit), int(row[4]))
+        for stamp, row in zip(stamps, np.load(folder / f"{name}_ohlcv.npy").T, strict=True)
+        if np.isfinite(row).all()
+    )
+
+
+def bridge(fives: Iterable[Five], after: date, before: date) -> list[Bar]:
+    """A daily bar for each day after one and before another, made of that day's five-minute
+    bars: the first open, the highest high, the lowest low, the last close, the volumes."""
+    days: dict[date, list[Five]] = {}
+    for five in sorted(fives, key=lambda bar: bar.start):
+        if after < five.start.date() < before:
+            days.setdefault(five.start.date(), []).append(five)
+    return [
+        Bar(
+            day,
+            got[0].open,
+            max(b.high for b in got),
+            min(b.low for b in got),
+            got[-1].close,
+            sum(b.volume for b in got),
+        )
+        for day, got in days.items()
+    ]
+
+
+def daily(line: Line, data: Path, stores: tuple[Path, Path], day: date) -> str:
+    """A line's daily history from the old desk's matrices and database (stores, in that order)
+    into the daily store under data, ready to trade on day, and one line saying so. Refused,
+    with nothing kept, where the database's closes do not agree with the matrices' on half
+    the days both hold, or where the one store would park the line on the whole."""
+    folder, old = stores
+    given = archive.fetch(line, day)
+    if not given:
+        raise ValueError(f"{line.symbol}: the archive gave no bar before {day} to join to")
+    mine = matrix_days(line, folder)
+    close = {bar.day: bar.close for bar in mine}
+    ticker = line.symbol + archive.SUFFIX[line.venue]
+    asked = _asked(old, DAYS, ticker)
+    theirs = [(date.fromisoformat(at[:10]), Decimal(str(c))) for at, c in asked if c]
+    met = [(c, close[d]) for d, c in theirs if d in close]
+    differ = sum(abs(c - kept) > bars.AGREE * kept for c, kept in met)
+    if (doubt := _doubt(len(met), differ)) is not None:
+        raise ValueError(f"{line.symbol}: {doubt}")
+    fives = archive.fetch_five(line, datetime.combine(day, time(), UTC))
+    older = [*mine, *bridge(fives, mine[-1].day, given[0].day)]
+    store_ = data / "daily" / line.venue
+    with tempfile.TemporaryDirectory() as scratch:
+        store.shelve(Path(scratch), line, older)
+        parked = store.prepare(Path(scratch), {line: given}, day)
+    if parked:
+        raise ValueError(f"{line.symbol}: the one store would park it: {parked[0].reason}")
+    store.shelve(store_, line, older)
+    store.prepare(store_, {line: given}, day)
+    kept = store.read(store_, line.symbol)
+    said = f"headstart: {line.symbol} daily: {len(kept)} bars from {kept[0].day}"
+    return f"{said}; the database's closes agree on {len(met) - differ} of {len(met)} days"
 
 
 def _priced(prices: Iterable[object], unit: Decimal) -> tuple[Decimal, Decimal, Decimal, Decimal]:
@@ -271,15 +354,30 @@ def main(register: Path, path: Path, day: date) -> str:
     return said
 
 
+def olds(register: Path, line: Line) -> tuple[Path, Path]:
+    """The register's IMPORT stores that hold a line's daily matrices, and its database."""
+    found = imports(register)
+    folder = next((p for p in found if (p / f"{_named(line, '1d')}_ts.npy").is_file()), None)
+    old = next((p for p in found if p.suffix == ".db"), None)
+    if folder is None or old is None:
+        raise ValueError(
+            f"{register}: IMPORT tags no daily matrices of {line.symbol} or no database"
+        )
+    return folder, old
+
+
 if __name__ == "__main__":
     if not os.environ.get("KESTREL2_DATA"):
         sys.exit("headstart: KESTREL2_DATA names no data folder, so the store has no home")
     DATA = Path(os.environ["KESTREL2_DATA"])
+    REGISTER, TODAY = DATA.parent / "kestrel2_notes" / "data_register.md", datetime.now(UTC).date()
     try:
-        main(
-            DATA.parent / "kestrel2_notes" / "data_register.md",
-            DATA / "market.db",
-            datetime.now(UTC).date(),
-        )
+        if sys.argv[1:2] == ["--daily"] and len(sys.argv) == 3:
+            ONE = next((x for x in LINES if x.symbol == sys.argv[2]), None)
+            if ONE is None:
+                sys.exit(f"headstart: {sys.argv[2]} is no line of the desk")
+            sys.stdout.write(daily(ONE, DATA, olds(REGISTER, ONE), TODAY) + "\n")
+        else:
+            main(REGISTER, DATA / "market.db", TODAY)
     except (OSError, ValueError, sqlite3.Error, bars.NoRound) as reason:  # the one line, then out
         sys.exit(f"headstart: {type(reason).__name__}: {reason}")

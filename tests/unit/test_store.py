@@ -304,3 +304,12 @@ def test_a_week_of_one_price_and_no_volume_is_a_frozen_feed(
     assert any("frozen feed" in f for f in store.faults(tmp_path, US.symbol)) is frozen
     kept = tuple(b for n, b in enumerate(bars) if not (frozen and n in run))
     assert store.read(tmp_path, US.symbol) == kept
+
+
+def test_shelved_older_bars_join_the_archives_and_outlast_every_rebuild(tmp_path: Path) -> None:
+    every = _bars(UK, LONG)
+    store.shelve(tmp_path, UK, every[:5])
+    for _ in range(2):  # the store is rebuilt from the archive on every prepare
+        assert store.prepare(tmp_path, {UK: every[3:]}, DAY) == ()
+        assert store.read(tmp_path, UK.symbol) == every
+    assert store.prepare(tmp_path, {US: _bars(US, LONG)}, DAY) == ()  # a line with none shelved

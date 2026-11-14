@@ -53,6 +53,7 @@ rungs = []
 "desk/orders.py" = "the order, sized from the one capital number, its stop, the pre-trade gate"
 "desk/broker.py" = "the pretend broker the desk trades against in simulation"
 "desk/book.py" = "the ledger of fills under the broker's ids, and the book built from the broker"
+"desk/carry.py" = "the pound's rate on a day London is shut and the US trades: the last London session's carried over, at most three US sessions"
 "desk/day.py" = "the desk's day: run once for a date, publish one record, replay it"
 "desk/kill.py" = "the kill switch: one command stops every new order and cancels the working ones, the desk says so, and its drill"
 "desk/emergency.py" = "the three emergencies in numbers: an emergency, a crash and a black swan, each a measured fall set in advance, each with its action"
@@ -72,6 +73,7 @@ rungs = []
 "desk/running.py" = "the desk unattended: one step that does what the desk owes at its moment, once, from its records alone (the day's check, each venue's orders, the day's record, what he is told), and what a desk that died part-way left at the broker put right"
 "desk/supervisor.py" = "the desk's processes kept alive: one supervisor that runs each registered job when due in a process of its own, one of each at a time, a dated receipt for every run, the desk's health judged from outside by the receipts, and the ledger of what the operator did with the measure of how long the desk has run without him"
 "desk/command.py" = "the desk's day as the runner asks for it: one step, the morning's pre-flight and the rehearsal of a whole day with the markets shut, each one line and a code; and the real doors a step is given, the price store's and the day's pounds per dollar"
+"desk/conformance.py" = "the conformance trades as a command: one run for each market in its hours on the paper account, a rejection, a buy with its stop, a sale, a buy of the desk's size and its stop made to sell, each real result recorded beside the pretend broker's; nothing sent unless the account is quiet, and the account left as found"
 
 # the grid lane
 "lab/cell.py" = "the ladder's unit of work: one strategy on one line over one window, keyed by the code's and the data's versions"
