@@ -305,9 +305,10 @@ day's trading and reconciliation are built, and any broker can stand behind them
       short sale cannot be built at all (STR-03, STR-06); remains: a sale made only from the
       book's holding (orders, day, broker) {id: money-declared;
       files: desk/strategy.py, tests/unit/test_strategy*.py}
-- [ ] The money invariants property-tested, seeded: positions equal the sum of fills, equity
+- [x] The money invariants property-tested, seeded: positions equal the sum of fills, equity
       equals cash plus market value, profit equals realised plus unrealised less costs, orders
-      move only through valid states, sending is idempotent (TST-04, canon B4)
+      move only through valid states, sending is idempotent (TST-04, canon B4). Done in #132,
+      25 seeded worlds; remains: a fault that can reach a sale or fill in two executions
       {id: money-invariants; files: tests/unit/test_book*.py, tests/unit/test_orders*.py,
       tests/unit/test_broker*.py; after: money-record}
 - [ ] **The crash watch, on the five-minute data:** every five minutes in trading hours it
@@ -545,9 +546,12 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       model; and a rate of exchange for each day. Remains: real daily rates (R-RUNGS-3)
 - [ ] The edge judged against the market risk it took (its beta, or a leverage-matched
       benchmark), and the book's concentration measured as its number of independent bets,
-      with the A-GATE profit split by correlated cluster (BIC-01, BIC-02)
+      with the A-GATE profit split by correlated cluster (BIC-01, BIC-02). Built: BIC-01,
+      `lab/market.py` (#131). Remains: BIC-02; the rung named among those the verdict rule reads
       {id: rungs-beta; files: lab/beta.py, tests/unit/test_lab_beta.py, manifest.toml}
-- [ ] Reproduces a published strategy's own published result
+- [ ] Reproduces a published strategy's own published result. Built: `lab/reproduce.py`
+      (#120). Remains: Connors' RSI-2 figure from the book, SPY from 1993 (R-RUNGS-5), the first
+      real run, the first rung made to wait for a reproduction
       {id: rungs-reproduce; files: lab/reproduce.py, lab/rung.py,
       tests/unit/test_lab_reproduce.py, tests/unit/test_lab_rung.py}
 - [ ] Stress scenarios: the 2020 crash, flash crashes, a leveraged product's gap (2008 lies
@@ -566,10 +570,12 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       curve at three effect sizes, a broken copy of the rung caught, and each defect the old
       audit found kept as a case that must fail (LAD-09, LAD-03, LAD-08)
       {id: rungs-trustworthy; files: *; after: rungs-beta}
-- [ ] Each indicator known-answer tested against a published reference series (STR-14)
+- [ ] Each indicator known-answer tested against a published reference series (STR-14).
+      Remains: the indicators reachable (R-RUNGS-6)
       {id: rungs-indicators; files: lab/published.py, tests/unit/test_lab_published.py}
 - [ ] Before paper: a kill condition declared for each strategy; promotion only after at
-      least thirty effective paper trades, net positive (STR-17, LAD-11)
+      least thirty effective paper trades, net positive (STR-17, LAD-11). Built:
+      `lab/promotion.py` (#127). Remains: the desk reads it (R-RUNGS-7); each candidate's kill numbers
       {id: rungs-promotion; files: lab/promotion.py, tests/unit/test_lab_promotion.py;
       after: rungs-trustworthy}
 - [ ] At least three ladder-passed strategies and a feasibility number before A-GATE paper

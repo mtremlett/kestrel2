@@ -27,6 +27,9 @@ the trades made or lost, and never a fail. No judged trade at all is a FAULT in 
 window too short, the wrong bars, a rule that cannot fire there): it says nothing of the
 rule. And `judge` gives no verdict on code that is not the published rule
 (`lab/published.py`). Gains with no spread at all are still refused loudly, few or many.
+THE AUTHOR'S RESULT FIRST. A rule with an author's figure on file (`lab/reproduce.py`) is given
+no verdict until each figure's reproduction is handed over, made by the code as it now is and
+the same as the author's; the verdict carries them. With none on file it carries none.
 The trades counted are the effective ones: each judged whole, and each a bet of its own,
 since a rule holds one position on a line at a time. Trades pooled across lines, where two
 held together are one bet, are counted here when pooling is built.
@@ -46,8 +49,9 @@ from desk.lines import Line
 from desk.orders import Charges, Leg, Settings
 from desk.store import Bar
 from desk.strategy import ARITHMETIC, Action, Decision
-from lab import cell, published
+from lab import cell, published, reproduce
 from lab.cell import Cell, Key, Record, Trade
+from lab.reproduce import Reproduction
 
 #: His A-GATE (AG-01) asks for years of history; thirty trades is the fewest whose mean
 #: return a t-statistic can fairly judge, and two standard errors is the textbook bar.
@@ -97,16 +101,24 @@ class Verdict:
     trades: tuple[Priced, ...]
     t: Decimal | None  #: the mean gain in standard errors; None under two trades
     answer: Answer  #: PASS, FAIL, THIN or FAULT: the first rung never answers DOUBT
+    reproduced: tuple[Reproduction, ...]  #: the author's own results behind it, if on file
 
     @property
     def passed(self) -> bool:
         return self.answer is Answer.PASS
 
 
-def judge(record: Record, bars: Sequence[Bar], settings: Settings, rates: Rates) -> Verdict:
+def judge(
+    record: Record,
+    bars: Sequence[Bar],
+    settings: Settings,
+    rates: Rates,
+    reproduced: Sequence[Reproduction] = (),
+) -> Verdict:
     """The verdict on the record's trades, priced on the bars that made it, each fill at its
-    own day's rate of exchange."""
+    own day's rate of exchange; none before the reproductions its rule waits for."""
     published.proven(record.key.cell.strategy)
+    reproduce.settled(record.key.cell.strategy, reproduced)  #: before anything is priced
     if cell.key(record.key.cell, bars) != record.key:
         raise ValueError(f"{record.key.cell}: these bars or this code did not make the record")
     read = cell.shown(record.key.cell, bars)
@@ -116,18 +128,23 @@ def judge(record: Record, bars: Sequence[Bar], settings: Settings, rates: Rates)
         return verdict(
             record.key,
             tuple(_price(record.key.cell, trade, read, at, settings, rates) for trade in done),
+            reproduced,
         )
 
 
-def verdict(key: Key, priced: tuple[Priced, ...]) -> Verdict:
-    """The first rung's one rule, on trades already priced."""
+def verdict(
+    key: Key, priced: tuple[Priced, ...], reproduced: Sequence[Reproduction] = ()
+) -> Verdict:
+    """The first rung's one rule, on trades already priced, once the rule's author's own
+    result is reproduced."""
+    behind = reproduce.settled(key.cell.strategy, reproduced)
     with localcontext(ARITHMETIC):
         t = standard_errors([p.gain for p in priced])
     if t is None or len(priced) < MIN_TRADES:
         answer = Answer.THIN if priced else Answer.FAULT
     else:
         answer = Answer.PASS if t >= T_PASS else Answer.FAIL
-    return Verdict(key, orders.BROKER, priced, t, answer)
+    return Verdict(key, orders.BROKER, priced, t, answer, behind)
 
 
 def _price(

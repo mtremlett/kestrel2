@@ -1797,6 +1797,24 @@ one left narrows a type of the interface's, which can refuse a broker, never adm
 
 **Evidence.** Fourteen months: 310 days' profits add to £791.66, the 34 round trips'. #114: three blind reviews, 4 blocking findings mended, 27 breaks, 25 caught and the 2 missed then caught. #124: a review found an old day with a made record could be sent again (five buys, £11,602 on £10,000 in its run); closed, eight breaks all caught.
 
+### 2026-11-14 — the rest of the money book noted (money-notes, #130)
+
+- *The crash watch has its own module, `desk/watch.py`, and waits for the halts.* Options: (a) a new module that reads the bars and the emergency thresholds and raises a halt; (b) inside `desk/emergency.py`. Chosen (a): emergency is pure definitions and measurement, the watch runs every five minutes and acts, and "halts all buying" needs the typed halt first. It does not wait for the data lane (the five-minute bar type is in the store); his alert is the paper lane's messenger, the watch gives the words.
+- *The golden run (money-golden) holds all the lane's files and runs alone, after the fills, limits and halts.* Options: (a) commit it now; (b) once what a fill costs and what the gate refuses have stopped moving. Chosen (b): each golden change needs his approval (canon B5), so committing early spends his attention on planned changes. Its numbers live in a file the lane owns (a unit test beside the day's).
+- *Fills realistic waits for the money invariants,* so the change to what a fill is lands under the property tests.
+- *Honest money and the whole story wait for the fills,* which move the profit lines they report. Neither waits for the golden run; if honest money lands after it, its interest moves the golden numbers once, with the explanation B5 asks for.
+- *Boxes that share files but do not depend on each other* (small trades, time and gaps, the stranger) carry no `after`: the runner already keeps two sessions off the same files.
+
+### 2026-11-14 — the money invariants (money-invariants, TST-04, #132)
+
+- *Seeded with the standard library's random numbers, not a property-testing library.* Options: (a) `hypothesis` (a new dependency: his approval, and `requirements.txt` is outside the claim); (b) worlds from `random.Random(seed)`, as the lab's tests do. Chosen (b): no dependency, the same world for the same seed everywhere, a failing seed is its own reproduction.
+- *"Equity is cash plus market value" is tested through the day's published record.* Options: (a) at the book alone, valuing holdings in the test: the first blind review proved the value cancels and the check cannot fail; (b) drive `day.publish` in every world and set its worth and profit against the broker's holdings at the test's own closes and rates; (c) leave it to a box that owns the day's tests. Chosen (b): the record is the only place the desk states its equity. The file is named for the book because the claim names it so.
+- *The late-fill path is kept beside the record.* The record brings the ledger up to date first, so it never meets a late fill against the pretend broker; the test also counts each day's dealing on the ledger as it stood (`book.dealt`) and holds each fill counted once.
+- *Costs shared between round trips are compared to 1e-27 of a pound, everything else exactly.* Sharing a split fill's costs by division is the one inexact step; the largest difference measured was 2.1e-27.
+- *The guard proved (canon A7): 37 deliberate breaks, 36 caught,* two by no other money-path test (a sale closing the newest buy; a part-sold buy sent to the back of the queue). Not caught: a book-and-broker comparison that finds nothing, which breaks no invariant where the two always agree; the reconciliation tests catch it. Two blind reviews found three blocking issues, all mended: the market-value term cancelled, a cancelled order that later filled was invisible, a first send reaching the broker twice went unseen.
+- Found, not fixed (product files outside the claim): no fault can reach a sale; the pretend broker never fills in two executions; an order's state is read from words, not typed.
+- All of this is paper. His standing ruling of 13 November: "please always go with recommended to avoid waiting for me to attend".
+
 ## DATA
 
 ### 2026-11-13 — the fourteen months are built; the scenes move onto them in two steps
@@ -3022,3 +3040,54 @@ Decided by the PAPER lane as the desk's mentor, no one watching.
 - *Re-pinned test numbers*, under his ruling of 13 November "always go with recommended": with fuller costs three pins on made-up prices moved (the bracket seeds are now 1 and 16; one pin reads "above 2.8"). Not a golden number, not a loosened guard.
 
 **Evidence.** Rung and the desk's book agree on the same fills; eight deliberate breaks, all caught; two blind-review findings fixed.
+
+### 2026-11-14 — the author's own result (rungs-reproduce, #120)
+
+**Decided**, by the lane as the desk's mentor.
+- *Costs in a reproduction.* Options: the desk's costs; count as the author counted, before costs. Chosen: the author's way; the question is whether the code is the author's, and the desk's costs could never match a figure. What a rule earns stays the first rung's to say.
+- *How near is "the same".* Options: one tolerance; one written beside each printed number before any run. Chosen: the second; a nearness picked after a run is picked to pass.
+- *A figure not read from its source.* Options: enter second-hand numbers marked unverified; enter nothing. Chosen: nothing; a number nobody checked proves nothing.
+- *A hole in the bars.* Options: carry on; refuse, warm-up included. Chosen: refuse; a 200-day average over a hole is another average.
+- *No trade in the author's period.* Options: "not reproduced"; refusal. Chosen: refusal; a share of winners among no trades is no number.
+- *Which box.* The indicator box was not taken because it needs the money lane's file.
+
+**Evidence.** Sixteen deliberate breaks, all caught; a blind review's two blocking findings fixed.
+
+### 2026-11-14 — before paper and after it (rungs-promotion, #127)
+
+**Decided**, by the lane as the desk's mentor.
+- *Which box.* Options: reproduction, indicators, the later requests, "before paper". Chosen: "before paper", the first waiting on nobody.
+- *A kill condition.* Options: free words; numbers. Chosen: numbers, a fall in pounds from the highest paper profit and a run of lost trades, both required; words can be argued with afterwards.
+- *The loosest kill.* Options: any fall; none deeper than the A-GATE's £1,500 (AG-05). Chosen: the cap. Open: several candidates may each declare £1,500; a share per candidate belongs with phase 5's side-by-side box.
+- *Kill numbers for the five rules now.* Options: declare today; none until a rule passes. Chosen: none; a number with no history is a guess.
+- *Effective trades.* Options: every round trip; every order; the most trades no two held on one day. Chosen: the last, the lowest honest count.
+- *An order sold in parts.* Options: a trade from its first sale; only once whole, its money counted meanwhile. Chosen: the second; else history is rewritten.
+- *A day's sales and the fall.* Options: sale by sale; the day together. Chosen: together; fill order within a day is the broker's accident.
+- *"A penny ahead".* Chosen: by the one rounding policy.
+- *Losses still held.* Options: withhold promotion while anything is held; judge sold trades only. Chosen: sold only (a rule nearly always holds something); the stop bounds the rest.
+- *Words.* Chosen: the ladder's own (fail, not enough evidence, doubt, pass).
+
+**Evidence.** Two blind reviews; 82 deliberate breaks over three rounds; bet count checked against brute force on 3,000 random sets.
+
+### 2026-11-14 — the market's rung (rungs-market, BIC-01, #131)
+
+**Decided**, by the lane as the desk's mentor.
+- *Which box.* Options: reproduction, indicators, three-strategies, this. Chosen: this, first half (BIC-01) only.
+- *What the risk is measured on.* Options: each trade beside the market over its days; every day of the window. Chosen: every day; under the first a rule in for rises and out for falls scores nothing, its skill being the days it stood aside.
+- *Beta or a leverage-matched benchmark.* Options: assume stated leverage; measure the share carried. Chosen: measure; a five-times line held a fifth of the days carries the market's risk.
+- *The market only or the line as well.* Options: the market; the line; both. Chosen: both, after the blind review showed a rider of a self-climbing line passing; the lesser excess is judged.
+- *The bar.* Options: any positive excess; two standard errors; a new figure. Chosen: the first rung's two standard errors; no new knob.
+- *Which line is the market.* Options: fix VUAG; the caller names it, on the line's own venue. Chosen: the second; closes hours apart understate risk. Owed: write down each line's market once the rung is wired in.
+- *A trade the first rung could not judge.* Options: count its days as nothing; leave them out. Chosen: leave out (LAD-06).
+- *Costs within a trade's days.* Options: split between legs; all on the selling day. Chosen: the selling day, so days sum to the first rung's gain.
+- *When it answers.* Options: its own answer; repeat a first-rung fail. Chosen: its own; the verdict rule takes the least.
+
+**Evidence.** 45 deliberate breaks, 42 caught, 3 that no single line can produce; a blind review's two blocking findings fixed.
+
+### 2026-11-14 — the nine open boxes noted (rungs-notes, #129)
+
+**Decided**, by the lane as the desk's mentor.
+- *The order.* Options: the book's order; ready boxes first. Chosen: ready first; a session handed a blocked box is spent on nothing.
+- *The eleven-rungs box.* Options: a fixed set of files so others run beside it; all the lane's files, alone. Chosen: alone; a guessed list would stop it half-way. A later session may split it.
+- *Beta before the eleven rungs.* Options: folded in; its own box first. Chosen: its own, one home for "the market risk taken".
+- *Leveraged and eponymous boxes* hold all the lane's files; new rules live in `desk/strategy.py`, so each will need a request to MONEY.

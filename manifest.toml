@@ -53,6 +53,7 @@ rungs = []
 "desk/day.py" = "the desk's day: run once for a date, publish one record, replay it"
 "desk/kill.py" = "the kill switch: one command stops every new order and cancels the working ones, the desk says so, and its drill"
 "desk/emergency.py" = "the three emergencies in numbers: an emergency, a crash and a black swan, each a measured fall set in advance, each with its action"
+"desk/simcity.py" = "SimCity, small: one command lives the desk's whole day over all the saved data at the pretend broker with its faults and writes the night's one record, with the census of the money path's parts and the scenarios that ran them"
 
 # the paper lane
 "desk/paper.py" = "the one door to the paper broker: the paper account's holdings and resting orders, read and set against the desk's book"
@@ -81,4 +82,6 @@ rungs = []
 "lab/reproduce.py" = "the author's own result: a published rule run on its author's market and period, counted as the author counted, and set beside the figure the author printed"
 "lab/promotion.py" = "before paper and after it: a candidate only with the ladder's pass and its kill condition written first, and promoted only on thirty effective paper trades, net positive"
 "lab/regime.py" = "periods and regimes: a strategy replayed in each period and each regime of the weather, kept for the regimes it earns in, and its trades outside them tagged"
+"lab/stress.py" = "the stress scenarios: a strategy's trades taken through the flash crashes and the 2020 crash, and what a black swan's overnight gap would cost it at its leverage, in pounds and never a pass"
 "lab/market.py" = "the market's rung: a strategy's days set beside its market's, its beta measured, and its excess over the market risk it took judged by its confidence interval"
+"lab/bets.py" = "the book's concentration: its number of independent bets from how its lines move together, and its profit split by correlated cluster"
