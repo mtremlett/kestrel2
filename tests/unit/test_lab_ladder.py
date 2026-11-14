@@ -93,10 +93,10 @@ def test_a_run_skips_what_is_kept_and_judges_again_only_what_has_changed(tmp_pat
     book, todo = {VUSA: EDGE, ISF: NOISE}, _set(VUSA, ISF)
     start = datetime(2026, 11, 14, tzinfo=UTC)
     tick = iter(start + timedelta(hours=n) for n in range(100))  #: each run an hour on
-    ladder_run = ladder.run
 
-    def run(*args: Any) -> str:
-        return ladder_run(*args, now=lambda t=next(tick): t)  # type: ignore[misc]
+    def run(home: Path, bars: Bars, pounds: Mapping[date, Decimal], todo: list[Cell]) -> str:
+        at = next(tick)
+        return ladder.run(home, bars, pounds, todo, lambda: at)
 
     run(tmp_path, _door(book), {}, todo)
     kept = _file(tmp_path).read_bytes()
@@ -113,13 +113,11 @@ def test_a_run_skips_what_is_kept_and_judges_again_only_what_has_changed(tmp_pat
         rows[0]["key"] != rows[2]["key"] and rows[0]["rungs"]["first"] == rows[2]["rungs"]["first"]
     )
     #: the set grown by a dollar line with no bars: nine trials now, so all are judged again;
-    #: the one that cannot be is kept with its reason and tried again, with the time of the try, an hour on
+    #: the one that cannot be is kept with its reason and its try time, tried an hour on
     more = _set(VUSA, ISF, AAPL)
     said = run(tmp_path, _door(book), {}, more)
     assert "against 9 trials: 2 judged now, 0 kept from before, 1 could not be judged" in said
-    assert "0 judged now, 2 kept from before, 1 could" in run(
-        tmp_path, _door(book), {}, more
-    )
+    assert "0 judged now, 2 kept from before, 1 could" in run(tmp_path, _door(book), {}, more)
     assert [row["trials"] for row in _rows(tmp_path)] == [6, 6, 6, 6, 9, 9, 9, 9]
     assert _rows(tmp_path)[-1]["error"].startswith("Stale") and "key" not in _rows(tmp_path)[-1]
     #: its bars found, and no rate of exchange: refused with the day; the rates given, judged
@@ -127,9 +125,7 @@ def test_a_run_skips_what_is_kept_and_judges_again_only_what_has_changed(tmp_pat
     assert "1 could not be judged" in run(tmp_path, _door(book), {}, more)
     assert "no rate of pounds per USD" in _rows(tmp_path)[-1]["error"]
     pounds = {bar.day: Decimal("0.8") for bar in EDGE}
-    assert "1 judged now, 2 kept from before, 0 could" in run(
-        tmp_path, _door(book), pounds, more
-    )
+    assert "1 judged now, 2 kept from before, 0 could" in run(tmp_path, _door(book), pounds, more)
     assert _rows(tmp_path)[-1]["answer"] == "PASS" and len(_rows(tmp_path)) == 10
     #: a dearer dollar on one day is another price: the dollar line alone is judged again
     pounds[EDGE[50].day] = Decimal("0.9")

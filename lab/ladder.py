@@ -197,8 +197,8 @@ def _one(
     trials give; else its answers now, or why it could not be judged. It is judged from the
     line's first bar, so that its years are years it could trade in."""
     head: dict[str, Any] = {"set": 1, "cell": batch.row(c), "trials": count}
-    tried = was.get("tried") if was else None  #: a waiting cell's last try, kept in its line
-    if tried and now - datetime.fromisoformat(tried) < RETRY:
+    tried = was.get("tried") if was is not None else None  #: a waiting cell's last try
+    if was is not None and tried and now - datetime.fromisoformat(tried) < RETRY:
         return was  #: it waits on data, and was tried not long ago
     try:
         beside = next(line for line in LINES if line.symbol == MARKETS[c.line.venue])
@@ -231,8 +231,7 @@ def _judge(
     count: int,
     made: Sequence[Reproduction],
 ) -> dict[str, Any]:
-    """Every rung's answer on the cell with its reason, the rungs not run with theirs, and
-    the one verdict rule's answer."""
+    """Every rung's answer with its reason, the rungs not run with theirs, the verdict's."""
     try:
         reproduce.settled(c.strategy, made)
     except ValueError as missed:  #: the rule as coded is not the author's: no verdict on ours
