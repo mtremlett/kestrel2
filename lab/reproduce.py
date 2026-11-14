@@ -48,7 +48,8 @@ tables end, so the same is fixed here, before any run, as within 5 trades, 1.5, 
 points. It waits for its rule to be coded and proven. The chapter that tests RSI-2, the
 ninth, this desk has not read: none of the five rules has its figure. The authors' own free
 pages (TradingMarkets, Connors Research), searched the same day, print no table of RSI-2 on
-SPY, and a copy of the book that somebody else has put on the web is not read from: RSI-2's
+SPY, Google Books shows no page of the book (no preview), and a copy of the book that
+somebody else has put on the web is not read from: RSI-2's
 figure waits for the book itself, and whether its table is of the rule as coded here (bought
 under 5, sold over the 5-day average) is not known until then.
 """
