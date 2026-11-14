@@ -434,7 +434,8 @@ his PC with the desk's own client id (222), never 4001.
 - [ ] Conformance trades, on paper, one London and one US line, each in its market's hours:
       a market buy at the open; the resting stop placed, triggered, and cancelled on a sale;
       a partial fill if the paper broker gives one; a rejection. Each real result recorded
-      beside the pretend broker's, and the pretend broker fixed where they differ
+      beside the pretend broker's, and the pretend broker fixed where they differ.
+      Remains: the in-hours half (#135 did the dry orders, 59 cancelled): fills, triggered stop, sale, part fill, SPY
       {id: paper-conformance; files: *; after: paper-gateway, paper-check, paper-stops,
       paper-drill}
 - [ ] The desk's own process supervised: one supervisor, restarts proven by killing it,
