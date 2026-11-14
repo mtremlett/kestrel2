@@ -62,6 +62,7 @@ rungs = []
 "desk/gateway.py" = "the gateway's own week, known before any order: whether it is ready, its daily restart waited out, a gateway from which nothing comes back the operator's to look at, and his weekly login's reminder"
 "desk/clearance.py" = "the day's check and no order without it: the paper account against the desk's book, the desk's own resting stops told from anyone else's orders, each check on a dated record, and the refusal to send until that day's check is clean"
 "desk/placing.py" = "the paper account behind the send path: what the desk asks of any broker answered through the one door, its fills, holdings, stops and what it did with an order, and the kill switch's cancel of the desk's own working orders; placing itself is not built"
+"desk/messenger.py" = "the desk's one voice: every message to the operator through one door and onto one delivery record, each delivered once under its name; the morning and the evening message of a trading day, his weekly login's reminder, and the alarm when a daily message is not delivered by its hour"
 
 # the grid lane
 "lab/cell.py" = "the ladder's unit of work: one strategy on one line over one window, keyed by the code's and the data's versions"
@@ -81,5 +82,6 @@ rungs = []
 "lab/reproduce.py" = "the author's own result: a published rule run on its author's market and period, counted as the author counted, and set beside the figure the author printed"
 "lab/promotion.py" = "before paper and after it: a candidate only with the ladder's pass and its kill condition written first, and promoted only on thirty effective paper trades, net positive"
 "lab/regime.py" = "periods and regimes: a strategy replayed in each period and each regime of the weather, kept for the regimes it earns in, and its trades outside them tagged"
+"lab/stress.py" = "the stress scenarios: a strategy's trades taken through the flash crashes and the 2020 crash, and what a black swan's overnight gap would cost it at its leverage, in pounds and never a pass"
 "lab/market.py" = "the market's rung: a strategy's days set beside its market's, its beta measured, and its excess over the market risk it took judged by its confidence interval"
 "lab/bets.py" = "the book's concentration: its number of independent bets from how its lines move together, and its profit split by correlated cluster"

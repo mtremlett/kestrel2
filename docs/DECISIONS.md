@@ -3091,3 +3091,18 @@ Decided by the PAPER lane as the desk's mentor, no one watching.
 - *The eleven-rungs box.* Options: a fixed set of files so others run beside it; all the lane's files, alone. Chosen: alone; a guessed list would stop it half-way. A later session may split it.
 - *Beta before the eleven rungs.* Options: folded in; its own box first. Chosen: its own, one home for "the market risk taken".
 - *Leveraged and eponymous boxes* hold all the lane's files; new rules live in `desk/strategy.py`, so each will need a request to MONEY.
+
+### 2026-11-14 — the first real paper orders, with the markets shut (paper-conformance, dry half, #135)
+
+Decided by the PAPER lane as the desk's mentor, no one watching.
+
+- *Send real orders with the markets shut?* Options: wait for market hours; send one share with its stop while no market can
+  fill it and cancel at once; also force rare answers. Chosen: the second. Drill, clean check and Gateway ready first.
+- *One dry order on every line.* It learns each line's stop step and unit and which lines the account may trade; found SPY, QQQ refused.
+- *A conformance desk of its own* (`KESTREL2_DATA/conformance`), so no conformance fill counts towards FIRST-LIGHT. The driver is scaffolding outside the repository.
+- *An order the broker tells twice is one order.* Options: mend in each reader or once in the door; known by the broker's id or by everything read of it.
+  Chosen: once, by the broker's lasting id, last telling standing; an order under no real id is refused loudly. Known-by-content would read two stops if shares changed, and could cancel a line's only stop.
+- *Tests against product:* 4 product lines, 48 test lines, spent from the guard's room to make the lane's pretend match the real.
+- *The 15 seconds a refusal costs are left*: stopping at "Inactive" would lose the reason. *Kill switch pulled whole on the real account*, released at once.
+- *Ticks none:* fills, a triggered stop, a sale and a part fill cannot exist with markets shut.
+- Evidence: 13 deliberate breaks, all caught; 609 recorded conversations replayed through the code; a blind review's three looks, the last clean.

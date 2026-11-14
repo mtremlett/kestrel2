@@ -1,7 +1,6 @@
 """reproduce - THE AUTHOR'S OWN RESULT: the desk's code run on the author's market over the
 author's period, counted as the author counted, and set beside the figure the author printed.
-It is to come before a published rule is judged on the desk's market; nothing yet makes the
-first rung wait for it (docs/STATUS.md).
+It comes before a published rule is judged on the desk's market: the first rung waits for it.
 
 The published rules (`lab/published.py`) hold the code to the rule's words on short series
 worked by hand. This holds it to the author's result: the same code on the same market over
@@ -18,7 +17,9 @@ COUNTED AS THE AUTHOR COUNTED. An author's figure is nearly always before any co
 filled where the author says. The numbers made here are that arithmetic and nothing else:
 they say whether the code is the author's, never what the rule would earn. What it would
 earn is the first rung's to say (`lab/rung.py`), after every cost, and no number from this
-module is a result of the desk's.
+module is a result of the desk's. Points gained are in the price as the bars carry it, so a
+figure in points is met only on prices as the author's were: old prices scaled down for the
+dividends paid since give nearly the same gains per cent, and far fewer points.
 
 The rule is shown every bar the line has up to the period's end, so history before the
 period warms it, and a trade belongs to the period it was bought in. A trade is counted once
@@ -30,10 +31,26 @@ period's end (the one calendar says which days those are); code that is not
 the published rule; a period in which the rule made no trade. One number outside its
 nearness and the figure is not reproduced, and each number made is given beside the author's.
 
-NO FIGURE IS ON FILE YET. None of the five rules' authors' figures has been read from its
-source by this desk, and the desk's bars begin in 2010, after the periods the books tested.
-A figure is entered in FIGURES only from the publication itself, never from memory or from a
-second hand.
+THE FIRST RUNG WAITS (`settled`). A rule with an author's figure on file is given no verdict on
+the desk's market until every such figure's reproduction is handed over: of the figure as it is
+on file, made by the code as it now is, and the same in every number. A rule with no figure on
+file is judged, and its verdict says that no author's result stands behind it. What is handed
+over is `reproduce`'s own answer: the rung does not read the author's bars again.
+
+NO FIGURE IS ON FILE YET. A figure is entered in FIGURES only from the publication itself,
+never from memory or from a second hand, and the desk's bars begin in 2010, after the periods
+the books tested. Read so far, on 14 November 2026, is one chapter of Connors and Alvarez
+(2008): its tenth, as its publisher gives it away, whose table is of another rule (a close at
+a seven-day low bought while SPY is above its 200-day average, at a seven-day high sold) on
+SPY from 29 January 1993: 153 trades, 80.4% of them gaining, a mean gain of 0.85%, 122.36
+points. Its end is not printed and is taken as the end of 2007, where the chapter's other
+tables end, so the same is fixed here, before any run, as within 5 trades, 1.5, 0.05 and 10
+points. It waits for its rule to be coded and proven. The chapter that tests RSI-2, the
+ninth, this desk has not read: none of the five rules has its figure. The authors' own free
+pages (TradingMarkets, Connors Research), searched the same day, print no table of RSI-2 on
+SPY, and a copy of the book that somebody else has put on the web is not read from: RSI-2's
+figure waits for the book itself, and whether its table is of the rule as coded here (bought
+under 5, sold over the 5-day average) is not known until then.
 """
 
 from __future__ import annotations
@@ -65,6 +82,7 @@ class Measure(enum.Enum):
     TRADES = "trades"
     WINNERS = "trades that gained, per cent"
     MEAN_GAIN = "mean gain a trade, per cent"
+    NET_POINTS = "points gained, every trade's together"
 
 
 @dataclass(frozen=True)
@@ -117,6 +135,10 @@ class Reproduction:
     key: Key  #: the code, this module's with the rule's, and the bars that made it
     found: tuple[Found, ...]  #: each number the author stated, with the desk's beside it
 
+    def __post_init__(self) -> None:
+        if tuple(found.stated for found in self.found) != self.figure.stated:
+            raise ValueError(f"{self.figure.source}: not the figure's numbers, each as stated")
+
     @property
     def reproduced(self) -> bool:
         return all(found.same for found in self.found)
@@ -143,21 +165,25 @@ def reproduce(figure: Figure, bars: Sequence[Bar]) -> Reproduction:
             "author's market, so no reproduction"
         )
     with localcontext(ARITHMETIC):
-        gains = _gains(record.trades, read, figure.fill)
-        if not gains:
+        fills = _fills(record.trades, read, figure.fill)
+        if not fills:
             raise ValueError(f"{figure.source}: {c} made no trade to set beside the figure")
+        gains = [sold / bought - 1 for bought, sold in fills]
         made = {
             Measure.TRADES: Decimal(len(gains)),
             Measure.WINNERS: Decimal(100 * sum(1 for gain in gains if gain > 0)) / len(gains),
             Measure.MEAN_GAIN: 100 * sum(gains, Decimal(0)) / len(gains),
+            Measure.NET_POINTS: sum((sold - bought for bought, sold in fills), Decimal(0)),
         }
     found = tuple(Found(stated, made[stated.measure]) for stated in figure.stated)
     return Reproduction(figure, record.key.rung(__name__), found)
 
 
-def _gains(trades: Sequence[Trade], read: Sequence[Bar], fill: Fill) -> list[Decimal]:
-    """Each counted trade's gain before any cost, as a fraction of its buying price, both
-    legs filled where the author's test fills them."""
+def _fills(
+    trades: Sequence[Trade], read: Sequence[Bar], fill: Fill
+) -> list[tuple[Decimal, Decimal]]:
+    """Each counted trade's two prices before any cost, bought and sold, both legs filled
+    where the author's test fills them."""
     at = {bar.day: n for n, bar in enumerate(read)}
 
     def price(day: date) -> Decimal | None:
@@ -165,10 +191,37 @@ def _gains(trades: Sequence[Trade], read: Sequence[Bar], fill: Fill) -> list[Dec
             return read[at[day]].close
         return read[at[day] + 1].open if at[day] + 1 < len(read) else None
 
-    gains = []
+    fills = []
     for trade in trades:
         sold = None if trade.sold is None else price(trade.sold)
         bought = price(trade.bought)
         if bought is not None and sold is not None:
-            gains.append(sold / bought - 1)
-    return gains
+            fills.append((bought, sold))
+    return fills
+
+
+def settled(strategy: str, made: Sequence[Reproduction]) -> tuple[Reproduction, ...]:
+    """The authors' own results that stand behind a verdict on the rule: one for each of its
+    figures on file. Refused loudly while any figure waits, and for anything handed over that
+    is not a reproduction of one of them by the code as it now is."""
+    owed = [figure for figure in FIGURES if figure.strategy == strategy]
+    for one in made:
+        if one.figure not in owed:
+            raise ValueError(f"{strategy}: {one.figure.source} is no figure on file for it")
+        c = Cell(strategy, one.figure.line, one.figure.start, one.figure.end)
+        if one.key != Key(c, cell.LOADED, one.key.data).rung(__name__):
+            raise ValueError(
+                f"{one.figure.source}: made over another market or period than the figure's, "
+                "or by other code than this: run it again"
+            )
+        if not one.reproduced:
+            out = "; ".join(
+                f"{f.stated.measure.value}: {f.measured} against the author's {f.stated.value}"
+                for f in one.found
+                if not f.same
+            )
+            raise ValueError(f"{one.figure.source}: not reproduced, so no verdict ({out})")
+    waiting = [figure.source for figure in owed if all(one.figure != figure for one in made)]
+    if waiting:
+        raise ValueError(f"{strategy}: no verdict before its author's own result: {waiting}")
+    return tuple(dict.fromkeys(made))
