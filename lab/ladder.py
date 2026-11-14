@@ -70,9 +70,9 @@ in a random order and the rule run on the history that makes, priced by the firs
 has the line's whole rise and no order in it: a rule that earns as much there has timed
 nothing. A trial's share, `shuffle.share(cell, bars, settings, rates)`, is the shuffles whose
 standard errors are its own or more (one of under two trades has none), and itself, over
-SHUFFLES + 1: 0.05 or under PASSES, more FAILS. The ladder runs it last and only on a trial that has passed every
-rung before it; any other is given the least of their answers. The order is drawn from the
-trial's name: a trial run again is shuffled the same.
+SHUFFLES + 1: 0.05 or under PASSES, more FAILS. The ladder runs it last and only on a trial
+that has passed every rung before it; any other is given the least of their answers. The
+order is drawn from the trial's name: a trial run again is shuffled the same.
 
 RESAMPLED DRAWDOWNS (Monte Carlo, for stress and sizing; never a pass). The judged trades'
 pounds are drawn again with replacement, as many as were judged, RESAMPLES (1,000) times from
