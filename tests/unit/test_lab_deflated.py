@@ -9,11 +9,11 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 import pytest
+from test_lab_rung import FREE
 
 from lab import deflated, luck, rung
 from lab.cell import Cell, Key, Trade
-from lab.deflated import Answer
-from lab.rung import Priced, Verdict
+from lab.rung import Answer, Priced, Verdict
 
 DAY = date(2010, 1, 1)
 
@@ -22,7 +22,7 @@ def _verdict(gains: list[float], years: float = 10, name: str = "a") -> Verdict:
     """A trial with these gains, one per trade, over a window of so many years, judged by
     the first rung's own rule."""
     back = [Decimal(f"{100 * (1 + gain):.4f}") for gain in gains]
-    priced = tuple(Priced(Trade(DAY, DAY), 1, Decimal(100), b, b - 100) for b in back)
+    priced = tuple(Priced(Trade(DAY, DAY), 1, Decimal(100), b, FREE) for b in back)
     window = Cell("breakout_20_10", "VUSA", DAY, DAY + timedelta(days=round(365.25 * years)))
     return rung.verdict(Key(window, "code", name), priced)
 
@@ -84,11 +84,19 @@ def test_a_winner_falls_through_the_bands_as_the_trials_it_was_picked_from_grow(
     assert twin.deflated == chances[1] and twin.bar == pytest.approx(0.408, abs=5e-4)
     #: the luck rung fails a weaker winner the first rung passed and the Sharpe left in doubt
     weak = deflated.judge([*noise, _bell(9, 0.008)], 5)[-1]
-    assert weak.rungs == dict(zip(deflated.NAMED, (2, 0, 1, 2), strict=True))
-    #: a trial with one trade has no Sharpe: it fails, and still counts
-    single, counted = deflated.judge([_verdict([0.5]), winner], 103)
+    answers = (Answer.PASS, Answer.FAIL, Answer.DOUBT, Answer.PASS)
+    assert weak.rungs == dict(zip(deflated.NAMED, answers, strict=True))
+    #: failing fairly: a trial with one trade has no Sharpe and one with no trades nothing at
+    #: all; neither has failed, on any rung, and both still count
+    single, none, counted = deflated.judge([_verdict([0.5]), _verdict([]), winner], 102)
     assert (single.sharpe, single.yearly, single.bar, single.deflated) == (None, None, None, 0)
-    assert single.answer is Answer.FAIL and counted == twin
+    assert single.rungs == dict.fromkeys(deflated.NAMED, Answer.THIN) and counted == twin
+    assert (single.answer, none.answer) == (Answer.THIN, Answer.FAULT)
+    #: 29 trades at a yearly Sharpe far too good, or far under nothing: not enough evidence
+    for thin in (_bell(9, 0.05, 29), _bell(9, -0.05, 29)):
+        (judged,) = deflated.judge([_verdict([float(p.gain) for p in thin.trades], 1)], 0)
+        assert judged.answer is Answer.THIN and abs(judged.yearly or 0) > deflated.FLAG
+    assert list(Answer) == [Answer.FAULT, Answer.FAIL, Answer.THIN, Answer.DOUBT, Answer.PASS]
 
 
 def test_small_wins_and_a_rare_large_loss_are_believed_less_than_a_bell() -> None:

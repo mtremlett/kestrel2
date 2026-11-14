@@ -7,13 +7,13 @@ from decimal import Decimal
 
 import pytest
 from test_lab_luck import DAY
-from test_lab_rung import POUND, SHAPE, TEN_K, _bars, _walk
+from test_lab_rung import FREE, POUND, SHAPE, TEN_K, _bars, _walk
 
 from desk.store import Bar
 from lab import cell, folds, luck, rung
 from lab.cell import Cell, Key, Trade
 from lab.folds import Fold, Folded
-from lab.rung import Priced, Verdict
+from lab.rung import Answer, Priced, Verdict
 
 EDGE = 0.012
 
@@ -27,7 +27,7 @@ def _judge(bars: Sequence[Bar], count: int = 2) -> Folded:
 
 
 def _verdict(*gains: str) -> Verdict:
-    made = tuple(Priced(Trade(DAY, DAY), 1, Decimal(1), 1 + Decimal(g), Decimal(g)) for g in gains)
+    made = tuple(Priced(Trade(DAY, DAY), 1, Decimal(1), 1 + Decimal(g), FREE) for g in gains)
     return rung.verdict(Key(Cell("breakout_20_10", "VUSA", DAY, DAY), "code", "data"), made)
 
 
@@ -96,3 +96,11 @@ def test_the_worst_fold_is_the_fewest_standard_errors_up_and_too_few_trades_is_l
     assert thin.worst.outside is good and not thin.passed
     assert Folded((Fold(many, good), Fold(many, poor))).worst.outside is poor
     assert Folded((Fold(lost, many), Fold(one, many))).passed, "every fold passed"
+    #: failing fairly: a thin fold is not enough evidence, never a fail; a fold that failed
+    #: on enough trades is worse; and a fold with no trades at all is a fault in the test
+    failed, empty = _verdict(*["0.01", "-0.02", "0.01"] * 10), _verdict()
+    assert (thin.answer, failed.answer, empty.answer) == (Answer.THIN, Answer.FAIL, Answer.FAULT)
+    fair = Folded((Fold(many, good), Fold(many, failed), Fold(many, lost)))
+    assert fair.worst.outside is failed and fair.answer is Answer.FAIL and _t(lost) < _t(failed)
+    faulty = Folded((Fold(many, failed), Fold(many, empty), Fold(empty, many)))
+    assert faulty.worst.outside is empty and faulty.answer is Answer.FAULT and not faulty.passed

@@ -1,8 +1,8 @@
 """paper - THE ONE DOOR TO THE PAPER BROKER: IB Gateway's paper port on this machine, spoken
 to with the standard library alone. Here the desk reads the account's holdings and the
 orders resting on it, and sets them against its own book. Every conversation with the
-gateway goes through this door (`dial`); none yet places an order, and the one thing sent
-that is no question is the kill switch's cancel (desk/placing.py).
+gateway goes through this door (`dial`); what is sent that is no question, an order and a
+cancel of one of the desk's own, is sent by desk/placing.py alone.
 
 The gateway speaks in messages: four bytes of length, then fields each ended by a zero byte,
 the first naming the message's kind. The desk offers one version of that language and
@@ -29,7 +29,9 @@ SECONDS = 15  #: a gateway silent for longer has not answered
 #: The kinds of message, by the gateway's own numbers.
 ACCOUNTS, READY, NEWS, STATUS = "15", "9", "4", "3"
 HOLDING, HOLDINGS_END, ORDER, ORDERS_END = "61", "62", "5", "53"
+FILL, FEE = "11", "59"  #: a fill, and the broker's note of its fee (read in desk/reports.py)
 START, ASK_HOLDINGS, ASK_ORDERS = 71, 61, 16  #: what the desk sends: none places an order
+UNASKED = "-1"  #: the number a fill carries when no question of the desk's asked for it
 #: News of the gateway's price feeds, which this door does not read; any other news stops
 #: it, that it cannot look lines up (2157) included: nothing it then says of a line is sound.
 FEEDS = frozenset({"2103", "2104", "2105", "2106", "2107", "2108", "2119", "2158"})
@@ -132,7 +134,9 @@ def receive(wire: BinaryIO) -> list[str]:
 def other(fields: list[str]) -> str:
     """A message that answers no question of the desk's, and its kind: every account it
     names must be a paper one, its news may be of the price feeds only, and a kind the desk
-    does not know is refused."""
+    does not know is refused. What the gateway tells unasked of an order as it changes (the
+    order, its state, a fill under no question's number, the fill's fee) is passed over: a
+    reading that asks for orders takes it as its answer, and no other needs it."""
     kind = fields[0]
     if len(fields) < {ACCOUNTS: 3, NEWS: 5}.get(kind, 1):
         raise ValueError(f"a message from the gateway cut short: {fields}")
@@ -141,7 +145,9 @@ def other(fields: list[str]) -> str:
             only(code)
     elif kind == NEWS and fields[3] not in FEEDS:
         raise ConnectionError(f"the gateway says {fields[3]}: {fields[4]}")
-    elif kind not in (NEWS, READY, STATUS, HOLDINGS_END, ORDERS_END):
+    elif kind not in (NEWS, READY, STATUS, HOLDINGS_END, ORDERS_END, ORDER, FEE) and (
+        fields[:2] != [FILL, UNASKED]
+    ):
         raise ValueError(f"a message of a kind the desk does not read: {fields}")
     return kind
 
@@ -176,19 +182,24 @@ def _state(fields: list[str]) -> tuple[str, tuple[str, Decimal]]:
     return fields[6], (fields[2], number(fields[4], fields))
 
 
-def start(wire: BinaryIO, send: Send) -> None:
+def start(wire: BinaryIO, send: Send) -> int:
     """Open a conversation: offer the one version, start as the desk's client, and read
     until the gateway is ready and has named its accounts, all paper. Nothing is asked
-    before."""
+    before. It gives the number the gateway, ready, takes this client's next order under."""
     offer = f"v{VERSION}".encode()
     send(b"API\0" + struct.pack(">I", len(offer)) + offer)
     greeting = receive(wire)
     if len(greeting) != 2 or greeting[0] != VERSION:
         raise ValueError(f"the gateway greeted with {greeting}; the desk reads {VERSION} only")
     send(message(START, 2, CLIENT, ""))
-    ready: set[str] = set()
-    while not {ACCOUNTS, READY} <= ready:
-        ready.add(other(receive(wire)))
+    told: dict[str, list[str]] = {}
+    while not {ACCOUNTS, READY} <= told.keys():
+        fields = receive(wire)
+        told[other(fields)] = fields
+    ready = told[READY]
+    if len(ready) != 3 or not (ready[2].isascii() and ready[2].isdigit()):
+        raise ValueError(f"the gateway is ready with no number for the next order: {ready}")
+    return int(ready[2])
 
 
 def converse(wire: BinaryIO, send: Send) -> Account:

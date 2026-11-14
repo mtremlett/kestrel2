@@ -25,7 +25,11 @@ NEVER FAILED FOR WORKING IN ONLY ONE. A strategy's home is every regime whose re
 the first rung. It is not failed here when it has a home, or when it passed on the whole
 window: one regime is enough, and a regime it lost in does not fail it. A strategy that
 passed only on all weather together (too few trades in any one regime) has no home: nothing
-here says which weather made its result.
+here says which weather made its result. Each replay carries the first rung's own answer:
+too few trades in a regime is not enough evidence there, never a fail, and a regime no
+trade was bought in reads as a test that tested nothing (`rung.Answer`): that replay shows
+nothing of the rule, and it is no fault of the whole. `passed` and `home` say only where
+it earned on enough trades; why it did not is the replay's own answer to give.
 
 THE PRICE, counted elsewhere. Everything here is before any correction for luck. The whole
 and every regime are separate looks at one rule, each a trial the luck rung counts
@@ -51,13 +55,12 @@ import hashlib
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import date
-from decimal import Decimal
 
 from desk.orders import Settings
 from desk.store import Bar
 from lab import cell, folds, rung, trials
 from lab.cell import Cell
-from lab.rung import Verdict
+from lab.rung import Rates, Verdict
 
 #: Each day's regime by name, as known at that day's close.
 Weather = Mapping[date, str]
@@ -116,19 +119,19 @@ def judge(
     window: Cell,
     bars: Sequence[Bar],
     settings: Settings,
-    fx: Decimal,
+    rates: Rates,
     weather: Weather,
     periods: int,
 ) -> Replayed:
     """The window replayed in so many periods and in each regime of its weather, every
-    replay judged by the first rung; fx is pounds per unit of the line's currency."""
+    replay judged by the first rung, each fill at its own day's rate of exchange."""
     days = [bar.day for bar in cell.shown(window, bars) if bar.day >= window.start]
     if not LEAST <= periods <= len(days):
         raise ValueError(
             f"{window}: {len(days)} bars in {periods} periods replay nothing: two periods or "
             "more, each a bar or more"
         )
-    whole = rung.judge(cell.run(window, bars), bars, settings, fx)
+    whole = rung.judge(cell.run(window, bars), bars, settings, rates)
     under: dict[str, list[date]] = {}
     for day in days:
         under.setdefault(_named(weather, day), []).append(day)
@@ -140,16 +143,16 @@ def judge(
     parts = (*first, *(outside for _, outside in rest))
     return Replayed(
         whole,
-        tuple(_period(part, bars, settings, fx) for part in parts),
+        tuple(_period(part, bars, settings, rates) for part in parts),
         tuple(_regime(whole, name, under[name]) for name in sorted(under)),
     )
 
 
-def _period(part: Cell, bars: Sequence[Bar], settings: Settings, fx: Decimal) -> Replay:
+def _period(part: Cell, bars: Sequence[Bar], settings: Settings, rates: Rates) -> Replay:
     """One part of the window, run and judged as a cell of its own."""
     record = cell.run(part, bars)
     name = f"{part.start} to {part.end}"
-    return Replay(name, record.bars, rung.judge(record, bars, settings, fx))
+    return Replay(name, record.bars, rung.judge(record, bars, settings, rates))
 
 
 def _regime(whole: Verdict, name: str, days: Sequence[date]) -> Replay:
