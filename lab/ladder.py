@@ -135,45 +135,29 @@ from pathlib import Path
 from typing import Any
 
 from desk import archive, keeper
-from desk.command import CAPITAL, DOLLARS, FRESH, POUND
+from desk.command import DOLLARS, FRESH, POUND
 from desk.lines import LINES, Line
-from desk.orders import Settings
 from desk.store import Bar
 from desk.strategy import STRATEGIES
-from lab import batch, cell, deflated, folds, luck, market, published, reproduce, rung, trials
+from lab import batch, cell, published, reproduce, trials, verdict
 from lab.batch import Bars
 from lab.cell import Cell
-from lab.deflated import Deflated
 from lab.reproduce import Reproduction
-from lab.rung import Answer, Rates, Verdict
+from lab.rung import Answer, Rates
 
 ME = "lab.ladder"  #: this module as the cell knows it, however the process was started
 QUESTION = "set 1: does a published rule earn on one of the desk's lines?"
 #: The one window: from where the daily history is to be carried back to, to the last
 #: session before the set was first run. A later end is a new set of trials, on purpose.
 START, END = date(2000, 1, 1), date(2026, 11, 13)
-#: The rules trade a line five to ten times a year and a fold is asked for thirty trades: so
-#: the window in three parts, two of them folds, each a trial the luck rung counts.
-FOLDS = 2
+FOLDS = verdict.FOLDS
 #: The market each venue's lines are set beside: the S&P 500 in New York, the FTSE 100 in London.
 MARKETS = {"US": "SPY", "LSE": "ISF"}
 FOLDER, RESULTS, REGISTER = "ladder", "set1.jsonl", "set1.trials.jsonl"
-#: Rungs that are built and that this set cannot yet be run through, each with why.
-UNRUN = {
-    "regime": "the weather that names each day's regime is not built (REG-01)",
-    "plateau": "the published rules carry no settings to choose among yet",
-    "stress": "it gives pounds lost and never a pass; the loss limit to judge them by is not set",
-}
-NO_FIGURE = "no author's figure is on file for the rule: no published result stands behind it"
-NO_FOLDS = "the folds rung cannot yet hand an author's result to its folds"
-#: A rule trades a line five to ten times a year and wants 200 sessions to warm up: a line of
-#: fewer bars than those and a year's trading has made no trade yet, which says nothing of the rule.
-MIN_BARS = 200 + 252
 #: A cell that waits on data is tried again no sooner than this after its last try.
 RETRY = timedelta(minutes=30)
 FAILED = (ValueError, OSError, keeper.Stale)  #: what may leave a cell unjudged; all else is a bug
 Row = Mapping[str, Any]  #: a cell's line in the results file
-Judged = dict[str, tuple[Answer, str]]  #: each rung's answer on a cell, and its reason
 
 
 def cells() -> tuple[Cell, ...]:
@@ -301,86 +285,10 @@ def _one(
         key = hashlib.sha256("\n".join(parts).encode()).hexdigest()
         if was is not None and was.get("key") == key:
             return was
-        judged = _judge(c, own, beside, held, pounds, count, made)
+        judged = verdict.judge(c, own, beside, held, pounds, count, made)
         return head | {"key": key, "from": c.start.isoformat()} | judged
     except FAILED as error:
         return head | {"error": f"{type(error).__name__}: {error}", "tried": now.isoformat()}
-
-
-def _judge(
-    c: Cell,
-    own: Sequence[Bar],
-    beside: Line,
-    held: Sequence[Bar],
-    pounds: Rates,
-    count: int,
-    made: Sequence[Reproduction],
-) -> dict[str, Any]:
-    """Every rung's answer with its reason, the rungs not run with theirs, the verdict's."""
-    try:
-        reproduce.settled(c.strategy, made)
-    except ValueError as missed:  #: the rule as coded is not the author's: no verdict on ours
-        return {"rungs": {"reproduce": [Answer.FAIL.name, str(missed)]}, "every": False}
-    unrun = UNRUN | ({"folds": NO_FOLDS} if made else {"reproduce": NO_FIGURE})
-    settings = Settings(CAPITAL)
-    verdict = rung.judge(cell.run(c, own), own, settings, pounds, made)
-    if verdict.answer is Answer.FAULT and len(own) < MIN_BARS:
-        raise ValueError(f"{c.line.symbol}: {len(own)} bars, no trade yet; waits on {MIN_BARS}")
-    (one,) = deflated.judge([verdict], count - 1)  #: every other trial the register holds
-    rungs = _named(verdict, one)
-    if made:
-        said = "; ".join(f"{m.figure.hand.value} result, {m.figure.source}" for m in made)
-        rungs["reproduce"] = (Answer.PASS, f"reproduced: {said}")
-    elif verdict.answer is Answer.FAULT:  #: no trade in it, so none in any fold of it
-        rungs["folds"] = rungs["first"]
-    else:
-        worst = (folded := folds.judge(c, own, settings, pounds, FOLDS)).worst
-        rungs["folds"] = (
-            folded.answer,
-            f"the worst of {FOLDS} folds, from {worst.outside.key.cell.start}: "
-            f"{len(worst.outside.trades)} trades at {_n(worst.outside.t)} standard errors; on "
-            f"the history before it, {len(worst.inside.trades)} at {_n(worst.inside.t)}",
-        )
-    against = market.judge(verdict, own, beside, held, pounds)
-    said = rungs["first"][1]
-    if against.line is not None and against.wide is not None:
-        said = (
-            f"over {against.days} days, {against.wide.t:.2f} standard errors beyond "
-            f"{against.wide.beta:.2f} of {beside.symbol}'s moves and {against.line.t:.2f} beyond "
-            f"{against.line.beta:.2f} of its own line's; {rung.T_PASS} asked of both"
-        )
-    rungs["market"] = (against.answer, said)
-    named = {name: rungs[name][0] for name in deflated.NAMED if name in rungs}
-    return {
-        "trades": len(verdict.trades),
-        "rungs": {name: [answer.name, reason] for name, (answer, reason) in rungs.items()},
-        "unrun": unrun,
-        "every": all(answer is Answer.PASS for answer, _ in rungs.values()),
-    } | ({"answer": deflated.rule(named).name} if len(named) == len(deflated.NAMED) else {})
-
-
-def _named(verdict: Verdict, one: Deflated) -> Judged:
-    """The four rungs read from the trial's trades (`deflated.OWN`), each with its reason."""
-    first = (
-        f"{len(verdict.trades)} trades judged, their mean gain after every cost "
-        f"({verdict.broker}) {_n(verdict.t)} standard errors above nothing; "
-        f"{rung.MIN_TRADES} trades and {rung.T_PASS} asked"
-    )
-    why = {
-        "first": first,
-        "luck": f"its chance of {one.luck.chance:.2g}, times {one.luck.trials} trials, is "
-        f"{one.luck.corrected:.2g}; {luck.FAMILY} or under asked",
-        "deflated": f"a deflated Sharpe of {one.deflated:.2f}; {deflated.PASS} passes and under "
-        f"{deflated.FAIL} fails",
-        "yearly": f"a yearly Sharpe of {_n(one.yearly)}; over {deflated.FLAG} is doubted",
-    }
-    if verdict.answer in (Answer.FAULT, Answer.THIN):  #: no rung has more to judge than the first
-        why = dict.fromkeys(why, first)
-    return {name: (answer, why[name]) for name, answer in one.rungs.items()}
-
-
-def _n(number: Decimal | float | None) -> str:
-    return "no" if number is None else f"{number:.2f}"
 
 
 def main(env: Mapping[str, str]) -> int:

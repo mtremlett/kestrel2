@@ -48,7 +48,7 @@ def test_the_deflated_sharpe_is_the_published_one() -> None:
 
 
 def test_one_rule_reads_every_named_rung_and_gives_the_worst() -> None:
-    assert deflated.NAMED == ("first", "luck", "deflated", "yearly", "folds", "market")
+    assert deflated.NAMED == ("first", "luck", "deflated", "yearly", "folds", "market", "shuffle")
     assert deflated.NAMED[:4] == deflated.OWN
     passes = dict.fromkeys(deflated.NAMED, Answer.PASS)
     assert deflated.rule(passes) is Answer.PASS
