@@ -21,10 +21,23 @@ from desk.command import CAPITAL, POUND
 from desk.lines import LINES, Line
 from desk.orders import Settings
 from desk.store import Bar
-from lab import cell, deflated, folds, ladder, market, published, reproduce, rung, trials
+from lab import (
+    cell,
+    deflated,
+    folds,
+    ladder,
+    market,
+    published,
+    reproduce,
+    rung,
+    shuffle,
+    trials,
+    verdict,
+)
 from lab.batch import Bars
 from lab.cell import Cell
 from lab.reproduce import Fill
+from lab.rung import Answer
 
 VUSA, ISF, AAPL, SPY = (
     next(line for line in LINES if line.symbol == s) for s in ("VUSA", "ISF", "AAPL", "SPY")
@@ -76,6 +89,7 @@ def test_each_cell_is_judged_on_every_rung_and_kept_with_its_reasons_and_trials(
     want = {name: answer.name for name, answer in one.rungs.items()} | {
         "folds": folds.judge(own, EDGE, ROOM, {}, ladder.FOLDS).answer.name,
         "market": market.judge(verdict, EDGE, ISF, NOISE, {}).answer.name,
+        "shuffle": "THIN",  #: run last, and only on a trial that passed all before it
     }
     assert {name: answer for name, (answer, _) in won["rungs"].items()} == want
     assert (won["trials"], one.luck.trials, won["trades"]) == (6, 6, len(verdict.trades))
@@ -83,7 +97,7 @@ def test_each_cell_is_judged_on_every_rung_and_kept_with_its_reasons_and_trials(
     assert "times 6 trials" in won["rungs"]["luck"][1] and all(w for _, w in won["rungs"].values())
     #: the planted edge passes every rung but its worst fold, too thin to say: so the one
     #: verdict, over every named rung, is THIN. The noise fails; no rung is left in silence
-    assert want == dict.fromkeys(want, "PASS") | {"folds": "THIN"}
+    assert want == dict.fromkeys(want, "PASS") | {"folds": "THIN", "shuffle": "THIN"}
     assert (won["answer"], won["every"], lost["answer"]) == ("THIN", False, "FAIL")
     assert lost["rungs"]["first"][0] == lost["rungs"]["market"][0] == "FAIL"
     assert set(won["unrun"]) == {"reproduce", "regime", "plateau", "stress"}
@@ -225,3 +239,16 @@ def test_the_set_is_every_published_rule_on_every_line_and_its_doors_are_the_des
         ladder.stored(tmp_path)(VUSA)
     with pytest.raises(SystemExit, match="KESTREL2_DATA names no data folder"):
         ladder.main({})
+
+
+def test_the_shuffle_is_run_last_and_only_on_a_trial_that_passed_every_rung_before_it(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    own = Cell("breakout_20_10", VUSA, EDGE[0].day, ladder.END)
+    before = {name: (Answer.PASS, "") for name in deflated.NAMED[:-1]}
+    ran = verdict.shuffled(own, EDGE, ROOM, {}, before)  # the only run of a hundred
+    assert ran is not None and ran[0] is Answer.PASS and "100 shuffles" in ran[1]
+    monkeypatch.setattr(shuffle, "share", lambda *_: pytest.fail("shuffled for nothing"))
+    doubt = before | {"yearly": (Answer.DOUBT, "too good")}
+    assert verdict.shuffled(own, EDGE, ROOM, {}, doubt) == (Answer.DOUBT, "too good")
+    assert verdict.shuffled(own, EDGE, ROOM, {}, {"first": before["first"]}) is None
