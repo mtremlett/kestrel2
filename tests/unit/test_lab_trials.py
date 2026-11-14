@@ -17,8 +17,8 @@ from lab.cell import Cell, Key
 from lab.rung import Verdict
 
 END = date(2024, 1, 1)
-SPY, QQQ = (next(line for line in LINES if line.symbol == s) for s in ("SPY", "QQQ"))
-FIVE = tuple(Cell(rule, SPY, DAY, END) for rule in strategy.STRATEGIES)
+AAPL, NVDA = (next(line for line in LINES if line.symbol == s) for s in ("AAPL", "NVDA"))
+FIVE = tuple(Cell(rule, AAPL, DAY, END) for rule in strategy.STRATEGIES)
 NAMES = [trials.name(c) for c in FIVE]
 ASKED, LONDON = "which daily rule earns on the twenty lines", "does it earn in London too"
 DOORS = (lambda r, q, _: trials.count(r, q), trials.enter, lambda r, q, _: trials.correct(r, q, []))
@@ -51,18 +51,18 @@ def test_the_count_is_kept_from_batch_to_batch(register: Path) -> None:
     assert trials.enter(register, LONDON, NAMES[:1]) == trials.count(register, LONDON) == 1
     #: the same rule on another line, or from another day, or to another, is another trial
     rule = FIVE[0].strategy
-    more = [Cell(rule, QQQ, DAY, END), Cell(rule, SPY, DAY, DAY), Cell(rule, SPY, END, END)]
+    more = [Cell(rule, NVDA, DAY, END), Cell(rule, AAPL, DAY, DAY), Cell(rule, AAPL, END, END)]
     assert trials.enter(register, ASKED, [trials.name(c) for c in more]) == 9
     assert trials.count(register, ASKED) == 9 and trials.count(register, LONDON) == 1
     lines = [json.loads(line) for line in register.read_text(encoding="utf-8").splitlines()]
     assert len(lines) == 13 and lines[:2] == [{"register": "trials"}, {"question": ASKED}]
-    trial = f"{rule} on SPY on {SPY.venue}, 2020-01-01 to 2024-01-01"
+    trial = f"{rule} on AAPL on {AAPL.venue}, 2020-01-01 to 2024-01-01"
     assert lines[2] == {"question": ASKED, "trial": trial}
 
 
 def test_a_winner_is_corrected_for_every_trial_the_register_holds(register: Path) -> None:
     trials.enter(register, ASKED, NAMES[1:])
-    with pytest.raises(ValueError, match=f"never entered.*{FIVE[0].strategy} on SPY"):
+    with pytest.raises(ValueError, match=f"never entered.*{FIVE[0].strategy} on AAPL"):
         trials.correct(register, ASKED, [WINNER])
     trials.enter(register, ASKED, [NAMES[0], "dropped one", "dropped two", "dropped three"])
     (eight,) = trials.correct(register, ASKED, [WINNER])

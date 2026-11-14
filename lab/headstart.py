@@ -16,10 +16,12 @@ trusted, so no bar enters on the old desk's word:
 What enters is kept under its source's name and only fills moments that hold no bar: a fresh
 bar, held already or arriving later, wins, and each bar that differs from one held is counted.
 
-The old stores are read and never written, nor is anything written beside them. They were
-two: per-line matrices of Stooq's bars, and the database mark_the_trend.db. Its parquet
-folders (Stooq, IBKR) need a reader the desk does not have (docs/STATUS.md). Its indicators
-are not read at all."""
+The old stores are read and never written, nor is anything written beside them. Which they
+are, the data register in the desk's notes says: every store it tags IMPORT, read by its form
+(`python -m lab.headstart`, into market.db in the data folder). Two forms have a reader: the
+per-line matrices of Stooq's bars, and the database mark_the_trend.db; any other, parquet
+folders and raw downloads, is counted as having none yet. A store whose source the store
+holds already is not read again. Its indicators are not read at all."""
 
 from __future__ import annotations
 
@@ -28,10 +30,10 @@ import sqlite3
 import sys
 import tempfile
 from collections import Counter
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from contextlib import closing
 from dataclasses import dataclass
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from pathlib import Path
 
@@ -52,13 +54,19 @@ PENCE = Decimal("0.01")
 BARS = "SELECT ts, open, high, low, close, volume FROM ohlcv WHERE ticker = ? AND timeframe = '5m'"
 NO_DAY = "on a day with no fresh daily bar to vouch for them"
 OUTSIDE = "outside their day's fresh high and low"
+IMPORT = "| IMPORT |"  #: how a row of the data register naming a store to read in begins
+
+
+def _named(line: Line) -> str:
+    """The matrices' name for a line's five-minute bars."""
+    return f"{line.symbol}.{MARKET[line.venue]}_5m"
 
 
 def matrices(line: Line, folder: Path) -> tuple[Five, ...]:
     """A line's five-minute bars from the old desk's matrices in folder: one array of moments
     and one of opens, highs, lows, closes and volumes. A moment without a bar of five
     numbers has none."""
-    name = f"{line.symbol}.{MARKET[line.venue]}_5m"
+    name = _named(line)
     stamps = np.load(folder / f"{name}_ts.npy").tolist()
     made = []
     for stamp, row in zip(stamps, np.load(folder / f"{name}_ohlcv.npy").T, strict=True):
@@ -162,27 +170,115 @@ def adopt(
     return adopted
 
 
-def main(old_matrices: Path, old_database: Path, path: Path, day: date) -> None:
-    """Both old stores into the fast store at path, the matrices first, each line's bars
-    vouched for by the archive's daily bars before day; what became of each line is said."""
+def imports(register: Path) -> tuple[Path, ...]:
+    """The old stores the data register tags IMPORT, in its order: such a row begins
+    `| IMPORT |` and names its store's path between the first two backticks."""
+    rows = register.read_text(encoding="utf-8").splitlines()
+    tagged = [row for row in rows if row.startswith(IMPORT)]
+    unnamed = [row for row in tagged if row.count("`") < 2]
+    if unnamed or not tagged:
+        raise ValueError(f"{register} tags no store IMPORT by its path: {unnamed}")
+    return tuple(Path(row.split("`")[1]) for row in tagged)
+
+
+def reader(where: Path) -> tuple[Source, Callable[[Line, Path], tuple[Five, ...]]] | None:
+    """An old store's source and how it is read, judged by its form: a database file, or a
+    folder holding some line's matrices. Any other store has no reader yet; one that is not
+    there is refused, for the register names it wrongly or its drive is away."""
+    if not where.exists():
+        raise FileNotFoundError(f"{where}: the register tags it IMPORT, and it is not there")
+    if where.suffix == ".db":
+        return Source.DATABASE, database
+    if any((where / f"{_named(line)}_ts.npy").is_file() for line in LINES):
+        return Source.MATRICES, matrices
+    return None
+
+
+def held(path: Path, source: Source) -> bool:
+    """The store at path holds five-minute bars from source already. An old store lands in
+    one round, whole or not at all, so one that is held is in, and is not read again."""
+    if not path.is_file():
+        return False
+    for line in LINES:
+        try:
+            if source in bars.sources(path, line, bars.FIVE):
+                return True
+        except LookupError:  # the store never held this line's five-minute bars: none of source
+            continue
+    return False
+
+
+def fresh(path: Path, day: date) -> dict[Line, tuple[Bar, ...]]:
+    """The archive's five-minute bars up to day into the store at path, for the old bars to be
+    met with, and every line's fresh daily bars before day, cleaned by the one store, to vouch
+    for them. An archive that gives no line's bars of either span proves nothing: refused."""
+    fives = archive.gather(LINES, datetime.combine(day, time(), UTC), archive.fetch_five)
+    answers = archive.gather(LINES, day, archive.fetch)
+    for span, given in ("five-minute", fives), ("daily", answers):
+        if all(isinstance(answer, Refused) for answer in given.values()):
+            raise ValueError(f"the archive gave no line's {span} bars before {day}: none proves")
+    bars.keep(path, fives)
     with tempfile.TemporaryDirectory() as scratch:
-        store.prepare(Path(scratch), archive.gather(LINES, day, archive.fetch), day)
-        daily = {line: store.read(Path(scratch), line.symbol) for line in LINES}
-    for source, where, read in (
-        (Source.MATRICES, old_matrices, matrices),
-        (Source.DATABASE, old_database, database),
-    ):
+        store.prepare(Path(scratch), answers, day)
+        return {line: store.read(Path(scratch), line.symbol) for line in LINES}
+
+
+Reader = tuple[Path, Source, Callable[[Line, Path], tuple[Five, ...]]]
+
+
+def planned(register: Path, path: Path) -> tuple[list[Reader], list[str], list[str]]:
+    """The register's IMPORT stores to read, newest first (the order of Source), each a clock's
+    proof for the next; those whose source the store holds already; those with no reader. A
+    source is one store, so two stores of one form are refused: the second would be skipped."""
+    todo: list[Reader] = []
+    skipped: list[str] = []
+    unread: list[str] = []
+    for where in imports(register):
+        how = reader(where)
+        if how is None:
+            unread.append(where.name)
+        elif any(how[0] is source for _, source, _ in todo) or how[0].value in skipped:
+            raise ValueError(f"{where}: a second store of the form of {how[0].value}")
+        elif held(path, how[0]):
+            skipped.append(how[0].value)
+        else:
+            todo.append((where, *how))
+    return sorted(todo, key=lambda one: list(Source).index(one[1])), skipped, unread
+
+
+def main(register: Path, path: Path, day: date) -> str:
+    """Every old store the register tags IMPORT into the fast store at path, its bars met
+    with the archive's five-minute bars up to day, which enter first, and vouched for by its
+    daily bars before day. A store whose source is held already is skipped, so a run cut
+    short is simply run again. What became of each line is said, then one line of counts,
+    which is returned."""
+    todo, skipped, unread = planned(register, path)
+    daily = fresh(path, day) if todo else {}
+    totals = Counter[str]()
+    for where, source, read in todo:
         for line, got in adopt(path, source, archive.gather(LINES, where, read), daily).items():
             counts = f"filled {got.filled}, met {got.met}, differ {got.differ}"
             more = [f"and {len(got.faults) - 4} more"] * (len(got.faults) > 4)
             faults = "; ".join([*got.faults[:4], *more])
             sys.stdout.write(f"{source.value}: {line.symbol}: {counts}; {faults}\n")
+            totals.update(filled=got.filled, met=got.met, differ=got.differ)
+    read_in = f"{len(todo)} old stores read, {len(skipped)} already in"
+    left = f"{len(unread)} with no reader yet ({', '.join(unread) or 'none'})"
+    bars_in = f"bars filled {totals['filled']}, met {totals['met']}, differ {totals['differ']}"
+    said = f"headstart: {read_in}, {left}; {bars_in}"
+    sys.stdout.write(said + "\n")
+    return said
 
 
 if __name__ == "__main__":
-    main(
-        Path(sys.argv[1]),
-        Path(sys.argv[2]),
-        Path(os.environ["KESTREL2_DATA"]) / "bars.db",
-        datetime.now(UTC).date(),
-    )
+    if not os.environ.get("KESTREL2_DATA"):
+        sys.exit("headstart: KESTREL2_DATA names no data folder, so the store has no home")
+    DATA = Path(os.environ["KESTREL2_DATA"])
+    try:
+        main(
+            DATA.parent / "kestrel2_notes" / "data_register.md",
+            DATA / "market.db",
+            datetime.now(UTC).date(),
+        )
+    except (OSError, ValueError, sqlite3.Error, bars.NoRound) as reason:  # the one line, then out
+        sys.exit(f"headstart: {type(reason).__name__}: {reason}")

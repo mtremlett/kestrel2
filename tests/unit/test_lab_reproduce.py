@@ -153,7 +153,7 @@ def test_the_first_rung_waits_for_the_authors_own_result(monkeypatch: pytest.Mon
     with pytest.raises(ValueError, match="no verdict before its published.*a planted author"):
         rung.verdict(record.key, ())
     with pytest.raises(ValueError, match="no verdict before"):  #: said before any price is missed
-        dollars = Cell(figure.strategy, "SPY", DAYS[0], DAYS[-1])
+        dollars = Cell(figure.strategy, "AAPL", DAYS[0], DAYS[-1])
         rung.judge(cell.run(dollars, bars), bars, Settings(Decimal(10_000)), {})
     assert judge(made, made).reproduced == (made,)
     assert rung.verdict(record.key, (), (made,)).reproduced == (made,)

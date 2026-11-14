@@ -68,6 +68,8 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-13 | 5 of 7 | - | - | - | 14 of 14 proven | green | #89 data-fast-store: the one fast store (`desk/bars.py`), SQLite in WAL mode, whole rounds, exact decimals; benchmarks held by test at 13 ms / 4 ms / 27 ms against 1 s / 50 ms / 200 ms; two blind reviews (7 blocking points, all mended), 107 deliberate breaks.
 | 2026-11-13 | 5 of 7 | - | - | - | 14 of 14 proven | green | #96 data-members (part): the S&P 500's and the Nasdaq 100's members on any day since 2010 (279 of 2010's 500 survive, 32 of 100); 28 deliberate breaks, 27 caught, 1 changes nothing; a blind review's 3 blocking findings fixed; FTSE 350 and funds owed.
 | 2026-11-13 | 5 of 7 | - | - | - | 14 of 14 proven | green | #97 data-five-minute: five-minute bars saved for good through the daily store's checks, 74,845 real bars on 22 lines kept on the first night with no fault; 38 deliberate breaks driven; a blind review's 2 blocking findings fixed.
+| 2026-11-14 | 5 of 7 | - | - | - | 14 of 14 proven | green | #175 data-headstart (first step): the old desk's five-minute bars as a head start, each bar with its source, fresh wins (237,402 + 8,191 bars pass on a copy; the real store after R-RUNNER-10) | 36 deliberate breaks, 35 caught and the last closed | blind review: 1 blocking, fixed |
+| 2026-11-14 | 5 of 7 | - | - | - | 14 of 14 proven | green | #180 the data lane's open boxes in working order, 14 more noted for the runner (23 of 32 open boxes can now be handed out) | fast check green; notes read by the guard | no review (one document) |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 

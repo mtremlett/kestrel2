@@ -1589,6 +1589,34 @@ in WAL mode scores 27, Parquet with DuckDB for sealed history 27, DuckDB alone 2
 
 ---
 
+## 2026-11-14 — no new data spend: IBKR's real capacity, a free collector, weather recorded first
+
+**His words, about 12:40 UK.** "derive a finite number of tickers (minus 10%) that can be
+easily refreshed within these limits ... i do not want to pay for more data, not until this
+desk can pay for itself." And: research the free tiers of the keys he already has, for
+triangulation and for news and market regime, as the first mark_the_trend did. "does the
+elite desk agree?"
+
+**Researched**, sources cited, in the notes folder (`free_data_2026-11-14.md`). IBKR's own
+historical-limits page says the hard 60-per-10-minutes rule is for bars of 30 seconds or less.
+For 1 minute and longer it is "lifted" to a soft throttle, with no published number. The old
+desk built eight regime feeds and a sentiment daemon. None was ever shown to predict out of
+sample. Its regime map discarded about 74% of its winning cells, and its regime history was
+overwritten in place.
+
+**Decided by the mentor, as his rulings allow.**
+- Within IBKR's free capacity, with 10% kept spare: 90 tickers live, a measured ramp for
+  polled ones, and daily bars for all.
+- A daily free collector starts now, so that history the free tiers drop is kept.
+- Weather follows "record first, prove second, act last": realised-volatility sizing first,
+  everything else recorded until it passes REG-07.
+- News serves event awareness only.
+- Nothing is bought. Databento's free credit needs a card, so it is his decision, not taken.
+- The data-service keys move into the desk's own secrets file, outside the repository. His
+  Trading 212 keys and his email passwords are never copied.
+
+---
+
 ## MONEY
 
 ### 2026-11-13 — how the pretend broker behaves
@@ -2535,6 +2563,29 @@ files move onto it is a later step.
 - **The store's file is `KESTREL2_DATA/bars.db`,** chosen now so the first night's bars are saved where the keeper will look.
 - **`archive.gather` no longer has a default question;** every caller already named one.
 - **Identical repeats of one bar are kept once without a fault,** or they would repeat for 59 evenings.
+
+### 2026-11-14 — the old desk's five-minute bars as a head start (data-headstart, first step, #175)
+
+- **Which objective first.** Options: (a) the keeper (R-RUNNER-7), as the protocol says; (b) the head start, as the runner's first instruction said. Chose (b): the later, more specific word, resting on his ruling "always go with recommended". The keeper is next.
+- **Five-minute before daily.** The archive forgets five-minute bars after sixty days, so the old desk's are the only copy; daily bars can be fetched again any day.
+- **What vouches for an old bar.** Options: (a) the old desk's cleaning; (b) the store's checks alone; (c) also that the bar lies inside its day's fresh daily bar (within the 3% the store allows). Chose (c): (b) cannot see a whole history in a wrong unit where nothing fresh is held.
+- **London pence.** Options: (a) refuse them (loses seven months of six lines); (b) read a bar as pence only when it fits the day's fresh range as pence and not as pounds; (c) try any factor. Chose (b): the readings are a hundredfold apart; no other factor is tried, so bars a hundred times too small are refused.
+- **A line's old bars need proof of their clock.** Options: (a) the daily range alone; (b) also bars already held for some of the same moments, at least half agreeing. Chose (b): the matrices were on Warsaw's clock (1 of 2,184 SPY bars agreed as stamped, 2,170 two hours earlier); aligned sources agreed on 65% to 99.4%, misaligned under 1%. Not tuned further.
+- **"Differs"** means any of the four prices further apart than 0.01%; volumes are not compared (vendors count different venues). Bars already held are recorded as the archive's.
+- **The parquet stores are not read.** They need a parquet reader, a new dependency (his to approve). Options: (a) add one to `lab/`; (b) convert once outside the repository; (c) leave them. Chose (c): the matrices carry Stooq's bars, IBKR's folder holds 24 tickers.
+- **The real store is not changed until this lands and `market.db` exists** (R-RUNNER-10): the store gains a column, so older code could not write to it; the command is one line and safe to repeat.
+- **A round that names no source.** Options: (a) ask MONEY to name the archive in its test and wait; (b) a round is the archive's unless an old store is named. Chose (b); the head start names its source every time. R-DATA-13 lets the default go later.
+- **data-isa-twins waits** until GRID and RUNGS stop naming SPY and QQQ in their tests (the runner's ruling taken on his standing one); the old stores' consolidation comes first (R-RUNNER-10), nothing to E:, no original deleted.
+- **Evidence (A7):** 36 deliberate breaks on scratch copies, 35 caught; the one missed (the order the two old stores are read in) caught since. Blind review: one blocking fault (a read-only open leaves two side files), fixed and tested. `manifest.toml` gains one line registering `lab/headstart.py`; nothing loosened.
+
+### 2026-11-14 — the data lane's open boxes in working order (#180)
+
+- **The keeper before the ISA twins.** Options: (a) twins first, as the book's wording says; (b) the keeper first. Chose (b): the twins wait on other lanes, the keeper is the runner's blocking request and his "paramount" ruling.
+- **The head start second:** his ask says "now", and five-minute bars older than sixty days exist nowhere else.
+- **The single-line findings (2MU, 5QQQ, SGLN, 3LGO) and the three store findings are chained one after another:** they change the same two files (`desk/lines.py`, `desk/store.py`), so only one could run at a time anyway.
+- **data-consolidated carries no "waits: operator".** Options: (a) hold the whole box for his yes; (b) hand it out and let its session stop at the deletion. Chose (b): only deleting the originals is his.
+- **data-tiers names a new module, `desk/tiers.py`:** which tier a name is in is one concept and needs one home; the building session may find a better name.
+- **Nine boxes left un-noted** rather than guessed at: a note naming the wrong files makes a session fail its check.
 
 ## LADDER (until 13 November; since then GRID and RUNGS)
 

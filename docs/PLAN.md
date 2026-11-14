@@ -159,7 +159,10 @@ UK tax) and R-MONEY-2 (the scenes on the whole fourteen months).
       the one store's checks, every bar re-checked, each kept with its source; where a fresh
       bar from the archive or the broker differs, the fresh one wins and the difference is
       counted. Its stored indicators are not copied: indicators are recomputed from bars, and
-      the old values serve only as a cross-check of the recomputation (DAT-03, DAT-01)
+      the old values serve only as a cross-check of the recomputation (DAT-03, DAT-01).
+      Remains after #175 (five-minute bars built, not yet run on the real store): run it once
+      R-RUNNER-10 has landed; daily bars (calendar before 2010, adjusted against as-traded);
+      the parquet stores; 3LGO; the old indicators as a cross-check
       {id: data-headstart; files: lab/headstart.py, tests/unit/test_lab_headstart.py, desk/bars.py, tests/unit/test_bars*.py, manifest.toml}
 - [ ] The archive spared: fetching slow and resumable, with backoff, each raw answer cached
       in the folder `KESTREL2_DATA` names (outside the repository and every worktree); while
@@ -290,6 +293,24 @@ UK tax) and R-MONEY-2 (the scenes on the whole fourteen months).
 - [ ] Leveraged-product lifecycle watched: an issuer's closure, a compulsory redemption or
       an ISA eligibility change on any line held or researched raises an alert (BIC-11)
 - [ ] Disk watched; old research files roll off by rule (OPS-07)
+- [ ] **IBKR's capacity, no new spend, 10% kept spare** (research of 14 November,
+      `free_data_2026-11-14.md` in the notes folder): 90 tickers streamed live, 1-minute bars
+      built from quotes; polled 1-minute bars for 27 tickers every 5 minutes, 81 every 15 and
+      324 hourly as the guaranteed floor, rising toward 270, 810 and 3,240 only as far as a
+      measured ramp on the paper port allows (every request counted with its error codes;
+      any pacing refusal halves the rate); daily bars for every ticker (DAT-01, DAT-05)
+- [ ] **A free collector, started now, before anything uses it:** once a day, about 300 calls
+      across the free tiers he already has, each response kept raw and timestamped: a US
+      second opinion on every bar (Massive's whole-market daily), a third (Tiingo), a rotating
+      London audit sample (Alpha Vantage and EODHD), US macro series and release dates (FRED,
+      BLS, BEA, EIA), earnings calendars (Finnhub and Alpha Vantage, cross-checked), and news
+      with timestamps (Finnhub, Marketaux, GNews). NewsAPI is not used: its free terms forbid
+      it. History that free tiers do not keep cannot be bought back later (BIC-06, DAT-01)
+- [ ] **Market weather recorded before it acts:** realised-volatility sizing researched first,
+      the one effect with strong published evidence; index trend and breadth from the desk's
+      own bars next; VIX term structure, credit spreads and the yield curve recorded each day
+      but acting only once each passes REG-07; news for event awareness, never a signal until
+      proven (REG-01, REG-07, STR-20)
 
 ## Phase 2 — the money path, in simulation
 
@@ -553,7 +574,7 @@ his PC with the desk's own client id (222), never 4001.
       beside the pretend broker's, and the pretend broker fixed where they differ.
       Remains: the in-hours half (#135 did the dry orders, 59 cancelled): fills, triggered stop, sale, part fill, SPY
       {id: paper-conformance; files: *; after: paper-gateway, paper-check, paper-stops,
-      paper-drill}
+      paper-drill; waits: 2026-11-16}
 - [ ] The desk's own process supervised: one supervisor, restarts proven by killing it,
       health judged from outside by dated receipts, surviving a reboot, a dropped network
       and a broker disconnect; a ledger of operator actions proving seven days without one,
@@ -570,13 +591,20 @@ his PC with the desk's own client id (222), never 4001.
       record, the merge line and the runner's alerts behind the same door (MSG-02, MSG-03,
       MSG-04, MSG-09, MSG-11) {id: paper-cards; files: desk/messenger.py,
       tests/unit/test_messenger.py; after: paper-messages, paper-running}
-- [ ] The day's extras: missed winners, blocked signals, and the running cost set against
-      net profit each week (MSG-13, NS-14) (boxes from here down are not yet noted)
 - [ ] FIRST-LIGHT counted by the desk itself: ten consecutive clean days, and a day that
       sent nothing cannot be green (NS-10)
+      {id: paper-first-light; files: desk/streak.py, tests/unit/test_streak.py,
+      manifest.toml; after: paper-running}
 - [ ] An independent watcher of the supervisor, which is restarted weekly (OPS-03)
+      {id: paper-watcher; files: desk/watcher.py, tests/unit/test_watcher.py,
+      manifest.toml; after: paper-supervised}
 - [ ] Backups: the fill ledger and the day records copied twice, one copy off the PC, and a
       restore drilled every quarter (DQ-05, DQ-09)
+      {id: paper-backups; files: desk/backup.py, tests/unit/test_backup.py, manifest.toml}
+- [ ] The day's extras: missed winners, blocked signals, and the running cost set against
+      net profit each week (MSG-13, NS-14)
+      {id: paper-extras; files: desk/messenger.py, tests/unit/test_messenger.py;
+      after: paper-cards}
 
 ## Phase 4 — the ladder
 
