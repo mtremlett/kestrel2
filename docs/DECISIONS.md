@@ -2802,3 +2802,65 @@ that cannot change a result. Not witnessed: the unfinished run's tests failing f
   of answers that is not exactly the named rungs; later rungs join by being named in the list.
 - The luck rung stays beside the deflated Sharpe. A trial under two trades fails.
 - Guards driven: 6 contract tests seen failing first; 47 deliberate breaks, 43 caught.
+
+### 2026-11-13 — the Gateway's own week known before any order (paper-gateway, #100)
+
+Decided by the PAPER lane as the desk's mentor, no one watching, under his ruling "always go with recommended".
+
+- *The daily restart.* Options: any silence is an alarm (he is woken at 03:00 nightly); quiet retries inside every
+  reading; or know the restart's time. Chosen: know it. The Gateway's logs hold sixteen restarts, all at 03:00 UK, all back
+  within seconds. 02:55 to 03:15 is "restarting" whatever it would answer, and it is not dialled.
+- *Which silence is his.* Options: all failures his; only a closed port; split by what came back. Chosen: split. Nothing
+  came back (port closed, 15 seconds silent) is his login, told at any hour on his ruling that a Gateway login goes at once;
+  something came back but not "ready" is unwell and not his; anything else is raised as a fault.
+- *True only when ready.* `known(now)` is true only for a ready Gateway, so no way of asking can send into one that is not.
+- *The weekly reminder.* Options: Saturday evening (spent by the weekend reset); the reset itself (he is asleep); Monday
+  (too late); Sunday 08:00 UK. Chosen: Sunday 08:00, every Sunday, answered or not, since the desk cannot see his login.
+- *The UK clock.* Options: add a time-zone dependency (his call); a second rule; the calendar's own dates. Chosen: the
+  calendar's, at the cost of three repeated lines (R-PAPER-6 removes them).
+- *Ticked though nothing sends the lines yet.* Sending is the messenger's, asking the adapter's; both owed under Remains.
+- Evidence: contract test seen failing first; two blind reviews, seven blocking findings fixed; 183 deliberate breaks, four gaps left and named.
+
+### 2026-11-13 — the day's check and the refusal (paper-check, #104)
+
+Decided by the PAPER lane as the desk's mentor, no one watching.
+
+- *Where the refusal lives.* Options: a question the adapter asks at the last moment; a lock inside the door reading every
+  message; a wrapper round any broker. Chosen: the question (`clearance.require`), as the kill switch's drill is ruled.
+- *A record, not a held pass.* Chosen: a dated record in the desk's folder (`checks.csv`), surviving restarts.
+- *"Begun" first, then the result.* A check that dies half way leaves a row that refuses orders, with no error handling.
+- *The newest check decides*, not any clean one that day. The day is the UTC date (both sessions fall inside one).
+- *Whose stop.* Only the desk's own stop under its own order id protects; anyone else's is named and the line unprotected.
+- *Holdings stay with the door, orders go to the check*, because a lane may not reword the manifest's description.
+- Recorded, not changed: no maximum age inside a day; the zero-share stop; a future-dated row sticks. Evidence: 54 breaks, 49 caught at once, two gaps closed.
+
+### 2026-11-13 — the paper account answers five of six questions (paper-adapter first step, R-MONEY-5, #110)
+
+Decided by the PAPER lane as the desk's mentor, no one watching.
+
+- *How much in one change.* Options: the whole adapter; the five answers with placing raising. Chosen: the five (209 product
+  lines, under the 300 cap); placing cannot be safe without its stop.
+- *What "did the broker receive it" reads.* Options: open orders and fills; those plus the day's ended orders. Chosen: both
+  plus ended, read in the order open, ended, fills, so nothing slips between readings and nothing is sent twice.
+- *Filled completely* only when listed once, ended, filled whole, and the desk's fills agree; else the broker's words.
+- *A refused cancel.* Options: raise; take as "already over"; read the account again. Chosen: read again (a fill just before
+  the cancel is the likeliest case; "over" could hide a working order). A stop to sell is never cancelled.
+- *The ended list names no program*: the reference alone decides, which can only make the desk send less.
+- *Stops given* are the desk's own. *The published client* (ib_insync 0.9.86) was read as a reference only, never imported.
+- *Tests against product:* 223 test lines for 209 product; shared messages and loops, no case dropped. Evidence: 65 breaks, 62 caught at once.
+
+### 2026-11-14 — a sale can be placed; a buy waits for its stop; the drill held by code (paper-adapter second step, paper-drill, R-MONEY-6, #113)
+
+Decided by the PAPER lane as the desk's mentor, no one watching.
+
+- *How much in one change.* Options: both sides with the stop later (a buy could sit unprotected); everything at once (over
+  300 lines, too much unproven); the sale whole and a buy refused in code. Chosen: the third.
+- *A sale on a line under the desk's own stop* is refused: it would leave a stop for shares not held and could sell short.
+- *The drill now, not in its own box.* The review's blocking point: this change is where the adapter can send, and his
+  ruling is no order before a drill. So paper-drill and R-MONEY-6 are done here: a drill within 31 days, else refused.
+- *The broker's last word.* Read until the order is over or the Gateway is silent 15 seconds, then cancel what did not fill.
+- *Answer read afresh* from the broker, one home for "what did it do". *Not ready* is "never received"; no drill, no check, an
+  unlisted line are refusals. *An error after sending*: raise and leave it; the broker is asked before any resend.
+- *No trial order* went to the real Gateway: one wrong field could place a real order on an account shared with the old desk.
+- *Unasked news passed over in every reading*, reversing one line of #86's tests, since fees and states arrive after an order.
+- Evidence: 64 breaks, 62 caught at once, two gaps closed; the 115 order fields checked twice independently, no difference.
