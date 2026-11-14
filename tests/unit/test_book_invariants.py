@@ -62,8 +62,8 @@ class World:
         self.bars = {(line.symbol, b.day): b for line, bars in self.market.items() for b in bars}
         self.orders, self.seen = list[Order | Sale](), dict[str, Report]()
         self.rates, self.closes = dict[date, dict[str, Decimal]](), dict[str, Decimal]()
-        self.last, self.counted, self.cash, self.costs = date.min, 0, Decimal(0), NONE
-        self.worth = Decimal(0)
+        self.last, self.counted, self.costs = date.min, 0, NONE
+        self.cash = self.worth = Decimal(0)
 
     def dawn(self, on: date) -> None:
         self.broker.open(on)
@@ -75,7 +75,7 @@ class World:
     def step(self, on: date) -> None:
         """One thing the desk does: send an order again as a desk restarted would, the newer
         the likelier; sell some of a line, or more than it holds; or buy."""
-        rng, known = self.rng, self.broker.fills()
+        rng = self.rng
         line, roll = rng.choice(tuple(self.lines.values())), rng.random()
         held = dict(self.broker.holdings()).get(line.symbol, 0)
         if roll < 0.3 and self.orders:
@@ -87,14 +87,15 @@ class World:
             stop, fx = price * rng.randrange(75, 96) / 100, self.rates[on][line.currency]
             self.send(Order(f"o-{len(self.orders)}", line, rng.randint(1, 40), price, fx, stop))
         self.states()
-        self.positions(known)
+        self.positions()
 
     def send(self, order: Order | Sale) -> None:
         """SENDING IS IDEMPOTENT: an order the broker has is never judged or sent again, and
-        nothing more is received or filled. The answer is the broker's own, or for an order
-        lost on the way none filled and why; and the broker's fills are in the ledger."""
+        nothing more is filled (states: nor is any order received twice). The answer is the
+        broker's own, or for an order lost on the way none filled and why; and the broker's
+        fills are in the ledger."""
         broker = self.broker
-        before, received, made = broker.report(order.order_id), broker.submitted(), broker.fills()
+        before, made = broker.report(order.order_id), broker.fills()
         if order not in self.orders:
             self.orders.append(order)
         try:
@@ -104,19 +105,20 @@ class World:
             return
         now = broker.report(order.order_id)  #: None: the connection dropped, so never received
         if before is not None:
-            again = (now, broker.submitted(), broker.fills())
-            assert again == (before, received, made), f"{order.order_id}: sent a second time"
+            assert (now, broker.fills()) == (before, made), f"{order.order_id}: sent again"
         filled = sum(abs(fill.quantity) for fill in now.fills) if now else 0
         assert (sent.order_id, sent.filled) == (order.order_id, filled), f"{sent}: not {now}"
-        assert sent.reason == now.reason if now else sent.reason, f"{sent}: not {now}'s reason"
+        assert (sent.reason == now.reason) if now else sent.reason, f"{sent}: not {now}'s reason"
         assert book.fills(self.root) == broker.fills(), f"{order.order_id}: a fill unwritten"
 
     def states(self) -> None:
-        """ORDERS MOVE ONLY THROUGH VALID STATES: never received, then working or final. A
-        final answer never changes and a received order is never forgotten; its answer holds
-        every fill made under its id, on its own line and for no more than its shares, and
-        its reason is None only when it filled whole."""
-        made = self.broker.fills()
+        """ORDERS MOVE ONLY THROUGH VALID STATES: never received, then received once, working
+        (the broker's reason says so, in that word) or final. A final answer never changes
+        and a received order is never forgotten; its answer holds every fill made under its
+        id, on its own line and for no more than its shares, and its reason is None only
+        when it filled whole."""
+        made, received = self.broker.fills(), self.broker.submitted()
+        assert len(set(received)) == len(received), f"an order received twice: {received}"
         for order in self.orders:
             was, now = self.seen.get(order.order_id), self.broker.report(order.order_id)
             mine = tuple(fill for fill in made if fill.order_id == order.order_id)
@@ -130,14 +132,13 @@ class World:
             assert (now.reason is None) == (filled == order.quantity), f"{now}"
             self.seen[order.order_id] = now
 
-    def positions(self, known: tuple[Fill, ...]) -> None:
-        """POSITIONS EQUAL THE SUM OF FILLS: the broker's fills are only ever added to, each
-        under an id of its own; the ledger is those fills; and the book, the broker's
-        holdings and the stops resting there are each what the fills add up to."""
+    def positions(self) -> None:
+        """POSITIONS EQUAL THE SUM OF FILLS: the ledger is the broker's fills, none lost,
+        changed or written twice; and the book, the broker's holdings and the stops resting
+        there are each what the fills add up to."""
         made, total = self.broker.fills(), Counter[str]()
-        assert made[: len(known)] == known, "a fill the broker made has changed or gone"
-        assert len({fill.execution_id for fill in made}) == len(made), "an execution id used twice"
-        assert book.reconcile(self.root, self.broker) == () and book.fills(self.root) == made
+        assert book.reconcile(self.root, self.broker) == (), "the book is not the broker's"
+        assert book.fills(self.root) == made, "the ledger is not the broker's fills"
         for fill in made:
             total[fill.symbol] += fill.quantity
         held = {symbol: shares for symbol, shares in sorted(total.items()) if shares}
@@ -159,13 +160,13 @@ class World:
         return money, sum((cost for _, _, cost in priced), NONE)
 
     def dusk(self, on: date) -> None:
-        """The day's dealing on the ledger as it stands, which no record counts on (a record
-        brings the ledger up to date first): on a day the desk did nothing, what its stops
-        sold reaches the ledger late. EVERY FILL'S MONEY AND COSTS ARE COUNTED ONCE over the
-        days. And PROFIT IS REALISED PLUS UNREALISED LESS COSTS: the money the fills moved is
-        the round trips' gross less what the shares still held were bought for, and every
-        cost is in a round trip or was paid to buy shares still held. Then the day's record;
-        and some nights every working order is cancelled, as the kill switch would."""
+        """First the day's dealing as the ledger stands before the record: on a day the desk
+        did nothing, its stops' sales are not in it yet and are counted the next day. EVERY
+        FILL'S MONEY AND COSTS ARE COUNTED ONCE over the days. Then what makes PROFIT
+        REALISED PLUS UNREALISED LESS COSTS, with the worth the day's record holds: the money
+        the fills moved is the round trips' gross less what the shares still held were
+        bought for, and every cost is in a round trip or was paid to buy shares still held.
+        Then the record; and on half the nights every working order is cancelled."""
         ledger, held, lines = book.fills(self.root), book.positions(self.root), self.lines.values()
         cash, costs = book.dealt(self.root, lines, on, self.last, self.counted)
         self.cash, self.costs = self.cash + cash, self.costs + costs
@@ -174,10 +175,10 @@ class World:
         assert (self.cash, self.costs) == (money, paid), "a fill counted twice, or in no day"
         trips, (basis, owed) = book.round_trips(self.root, lines), self.unsold(ledger, held)
         assert money == sum(t.gross for t in trips) - basis, "a sale closed the wrong buys"
-        assert all(t.profit == t.gross - t.costs.total for t in trips)
+        assert all(t.profit == t.gross - t.costs.total for t in trips), "a trip's profit"
         assert abs(paid.total - sum(t.costs.total for t in trips) - owed) < TINY, "a cost lost"
         self.record(on)
-        if self.rng.random() < 0.3:
+        if self.rng.random() < 0.5:
             self.broker.cancel()
         self.states()
 
@@ -193,10 +194,10 @@ class World:
         return value, costs
 
     def record(self, on: date) -> None:
-        """EQUITY IS CASH PLUS MARKET VALUE: the day's record (day.publish) is worth what the
-        broker's holdings are at the day's closes and rates, and its profit is, to the penny,
-        that less the day before's, plus the money the day's own fills moved, less their
-        costs. So the profits published add up to the cash plus what is held."""
+        """EQUITY IS CASH PLUS MARKET VALUE, day by day: the day's record (day.publish) is
+        worth what the broker's holdings are at the day's closes and rates, and its profit
+        is, to the penny, that less the day before's, plus the money the day's own fills
+        moved, less their costs."""
         kept, fx = day.publish(self.root, self.market, self.broker, CAPITAL, on), self.rates[on]
         held = self.broker.holdings()
         worth = Decimal(sum(n * self.closes[s] * fx[self.lines[s].currency] for s, n in held))
