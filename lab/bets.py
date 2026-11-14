@@ -31,27 +31,30 @@ little under: five holdings that truly share nothing measure about 4.8.
 
 A READING AFTER THE FACT, NOT A FORECAST. Every day held is weighed by the one year's moves,
 those after it among them, so each must lie in the year read, which ends with the bars
-given: the caller ends them with the days judged. Nothing trades on this number.
+given: the caller ends them with the days judged, and a line whose bars stop while its venue
+went on trading is refused, never left to end the year early. Nothing trades on this number.
 
 MEASURED AND SHOWN, NOT JUDGED. Nothing here passes or fails a book: what concentration the
-A-GATE allows is the operator's to rule, and nothing calls this yet (docs/STATUS.md).
+A-GATE allows is the operator's to rule, and nothing calls this yet.
 
 Refused loudly: no lines; fewer than FEWEST moves on days all the lines share; a line that
-never moved; a line held that has no bars here, and a line with bars and no profit stated or
-a profit and no bars; a book that held nothing; a day of it outside the year read; pounds
-held that are no number, below nothing, or nothing at all that day.
+never moved, or with a bar owed; a line held that has no bars here, and a line with bars and
+no profit stated or a profit and no bars; a profit that is no number; a book that held
+nothing; a day of it outside the year read; pounds held that are no number, below nothing,
+or nothing at all that day.
 """
 
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 
 import numpy as np
 from numpy.typing import NDArray
 
+from desk import venues
 from desk.lines import Line
 from desk.store import Bar
 from lab import rung
@@ -95,13 +98,13 @@ def measure(
     lines made over the days judged, after every cost (nothing, said so, where it made none)."""
     lines = set(bars)
     odd = {line for day in held.values() for line in day} - lines | lines ^ set(profit)
+    odd |= {line for line, made in profit.items() if not made.is_finite()}
     if odd:
         raise ValueError(
-            f"{sorted(line.symbol for line in odd)}: held with no bars given, or of bars and "
-            "profit only the one"
+            f"{sorted(line.symbol for line in odd)}: held with no bars given, of bars and "
+            "profit only the one, or a profit that is no number"
         )
-    first, moves, co = together(bars, rates)
-    end = max(bar.day for own in bars.values() for bar in own)
+    (first, end), moves, co = together(bars, rates)
     if not held:
         raise ValueError("a book that held nothing has no bets to count")
     out = sorted(day for day in held if not first <= day <= end)
@@ -112,9 +115,12 @@ def measure(
     return Concentration(moves, float(np.mean(counts)), min(counts), clusters)
 
 
-def together(bars: Mapping[Line, Sequence[Bar]], rates: Rates) -> tuple[date, int, Floats]:
+def together(
+    bars: Mapping[Line, Sequence[Bar]], rates: Rates
+) -> tuple[tuple[date, date], int, Floats]:
     """The lines' latest year of two-day moves in pounds, on the days all of them have a bar:
-    the first of those days, how many moves were read, and their co-variances, line by line."""
+    the first of those days with the last day of any bar, how many moves were read, and their
+    co-variances, line by line."""
     if not bars:
         raise ValueError("no lines given, so nothing moves together or apart")
     shared = set.intersection(*({bar.day for bar in own} for own in bars.values()))
@@ -124,16 +130,26 @@ def together(bars: Mapping[Line, Sequence[Bar]], rates: Rates) -> tuple[date, in
             f"{max(len(days) - 2, 0)} two-day moves on the days {len(bars)} lines share, "
             f"fewer than {FEWEST}: too few to call any of them apart"
         )
+    lasts = {line: max(bar.day for bar in own) for line, own in bars.items()}
+    end = max(lasts.values())
+    owed = sorted(
+        line.symbol
+        for line, last in lasts.items()
+        if set(venues.sessions(line.venue, last + timedelta(1), end)) - line.suspended
+    )
+    if owed:
+        raise ValueError(f"{owed}: bars owed up to {end}, their venues trading after their last")
     rows = []
     for line, own in bars.items():
         close = {bar.day: bar.close for bar in own}
         pounds = [float(close[day] * rung.rate(line, rates, day)) for day in days]
         rows.append([now / before - 1 for before, now in zip(pounds, pounds[2:], strict=False)])
     moves = np.array(rows, dtype=np.float64)
-    still = [line.symbol for line, row in zip(bars, moves, strict=True) if not row.any()]
+    co = np.atleast_2d(np.cov(moves))
+    still = [line.symbol for line, own in zip(bars, co.diagonal(), strict=True) if not own > 0]
     if still:
         raise ValueError(f"{', '.join(still)} never moved: nothing to set beside the others")
-    return days[0], moves.shape[1], np.atleast_2d(np.cov(moves))
+    return (days[0], end), moves.shape[1], co
 
 
 def count(pounds: Sequence[float], co: Floats) -> float:

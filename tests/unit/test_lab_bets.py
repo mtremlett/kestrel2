@@ -6,6 +6,7 @@ from __future__ import annotations
 import math
 import random
 from collections.abc import Mapping, Sequence
+from dataclasses import replace
 from datetime import date, timedelta
 from decimal import Decimal
 
@@ -82,17 +83,18 @@ def test_the_number_of_independent_bets_and_the_clusters_worked_by_hand() -> Non
         with pytest.raises(ValueError, match="pounds held"):
             bets.count(none, wild)
     #: a cluster: lines joined by a correlation of a half or more, either way, or by a chain
-    three, gains = (VUAG, EQQQ, SGLN), {VUAG: D(10), EQQQ: D(-4), SGLN: D(30)}
+    three, gains = (VUAG, EQQQ, SGLN), {VUAG: D(10), EQQQ: D(-44), SGLN: D(30)}
 
-    def split(ab: float, bc: float = 0.0) -> list[tuple[tuple[str, ...], Decimal]]:
-        co = np.array([[4.0, 6 * ab, 0], [6 * ab, 9, 3 * bc], [0, 3 * bc, 1]])
+    def split(ab: float, bc: float = 0.0, ac: float = 0.0) -> list[tuple[tuple[str, ...], Decimal]]:
+        co = np.array([[4.0, 6 * ab, 2 * ac], [6 * ab, 9, 3 * bc], [2 * ac, 3 * bc, 1]])
         made = bets.split(three, co, gains)
         return [(tuple(line.symbol for line in c.lines), c.profit) for c in made]
 
-    assert split(0.5) == [(("SGLN",), D(30)), (("VUAG", "EQQQ"), D(6))], "the largest gain first"
+    assert split(0.5) == [(("SGLN",), D(30)), (("VUAG", "EQQQ"), D(-34))], "the best gain first"
     assert split(-0.5) == split(0.5), "a line and its inverse are one bet"
-    assert split(0.49) == [(("SGLN",), D(30)), (("VUAG",), D(10)), (("EQQQ",), D(-4))]
-    assert split(0.5, -0.6) == [(("VUAG", "EQQQ", "SGLN"), D(36))], "joined through EQQQ"
+    assert split(0.49) == [(("SGLN",), D(30)), (("VUAG",), D(10)), (("EQQQ",), D(-44))]
+    whole = [(("VUAG", "EQQQ", "SGLN"), D(-4))]  #: joined through EQQQ, and through SGLN
+    assert split(0.5, -0.6) == whole and split(0, 0.5, 0.5) == whole
 
 
 def test_the_books_bets_and_its_profit_by_cluster_measured_on_its_lines_prices() -> None:
@@ -145,8 +147,9 @@ def test_what_cannot_be_measured_is_refused() -> None:
         _see({line: bars[-121:] for line, bars in WORLD.items()})
     with pytest.raises(ValueError, match="no lines"):
         _see({}, held={})
-    for gains, book, odd in (({SPY: D(5)}, HELD, "SPY"), ({}, {LAST: {QQQ: D(5)}}, "QQQ")):
-        with pytest.raises(ValueError, match=f"{odd}.*: held with no bars given, or of bars and"):
+    lost, stray = {VUAG: D("-Infinity")}, {LAST: {QQQ: D(5)}}
+    for gains, book, odd in (({SPY: D(5)}, HELD, "SPY"), ({}, stray, "QQQ"), (lost, HELD, "VUAG")):
+        with pytest.raises(ValueError, match=f"'{odd}'.: held with no bars given, of bars and"):
             _see(WORLD, gains, book)
     with pytest.raises(ValueError, match="'5QQQ', 'EQQQ', 'ISF', 'SGLN'.* profit only the one"):
         bets.measure(WORLD, POUND, HELD, {VUAG: D(5)})  #: a line's profit is said, never supposed
@@ -156,11 +159,23 @@ def test_what_cannot_be_measured_is_refused() -> None:
         _see(WORLD, held={LAST: {}})
     #: each day held is weighed by the year's moves, so it lies in the year read
     first = WORLD[VUAG][-252].day
-    assert _see(WORLD, held={first: HELD[LAST]}).bets == 1
-    for out in (first - timedelta(1), LAST + timedelta(1)):
-        with pytest.raises(
-            ValueError, match=f"held on {out}, outside the year .* {first} to {LAST}"
-        ):
-            _see(WORLD, held={LAST: HELD[LAST], out: HELD[LAST]})
-    with pytest.raises(ValueError, match="SGLN never moved"):
-        _see(WORLD | {SGLN: _bars([10] * 401)})
+    assert _see({VUAG: WORLD[VUAG]}, held={first: HELD[LAST]}).bets == 1, "one line, one bet"
+    before, after = first - timedelta(1), LAST + timedelta(1)
+    for out in ((before,), (after,), (after, before)):  #: the earliest such day is the one named
+        book = dict.fromkeys((LAST, *out), HELD[LAST])
+        with pytest.raises(ValueError, match=f"held on {min(out)}, outside .* {first} to {LAST}"):
+            _see(WORLD, held=book)
+    with pytest.raises(ValueError, match="SGLN never moved"):  #: at its closes, which are read
+        _see(WORLD | {SGLN: tuple(replace(bar, close=D(10)) for bar in WORLD[SGLN])})
+    #: a line whose bars stop while its venue trades on would end the year read early: its
+    #: last bar a Wednesday, the Thursday and Friday are owed, unless it was suspended on both
+    short = WORLD[ISF][:-3]
+    with pytest.raises(ValueError, match=f"'ISF'.: bars owed up to {LAST}"):
+        _see(WORLD | {ISF: short})
+    for days, owed in ((1, True), (2, True), (3, False)):
+        halted = replace(ISF, suspended=frozenset({LAST - timedelta(n) for n in range(1, days)}))
+        if owed:
+            with pytest.raises(ValueError, match="bars owed"):
+                _see({VUAG: WORLD[VUAG], halted: short})
+        else:
+            assert _see({VUAG: WORLD[VUAG], halted: short}).moves == 250
