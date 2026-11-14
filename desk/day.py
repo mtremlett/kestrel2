@@ -184,10 +184,12 @@ def trade(
     the send before it. A line sold this morning, by its rule or its stop, is not bought
     again today. While the book is not the broker's the send path refuses every buy, and the
     sale of a line whose shares differ. rates are the day's pounds per unit of each currency.
-    Nothing is sent for a day that is over: one the ledger already holds a later fill than."""
+    Nothing is sent for a day that is over: its record made, or a later fill in the ledger."""
     book.collect(root, broker)  #: the stops the open sold
     if later := max((fill.day for fill in book.fills(root) if fill.day > day), default=None):
         raise ValueError(f"{day}: the day is over, the ledger holding a fill of {later}")
+    if made := [record.day for record in records(root) if record.day >= day]:
+        raise ValueError(f"{day}: the day is over, the records running to {made[-1]}")
     book.record_rates(root, day, rates)
     held = book.positions(root)
     holders = {f.symbol: strategy_of(f.order_id) for f in book.fills(root) if f.quantity > 0}
