@@ -1617,6 +1617,25 @@ overwritten in place.
 
 ---
 
+## 2026-11-14 — the desk's ceiling raised to 10,500 lines, so FIRST-LIGHT never waits on it
+
+**His ruling**, in the coordinator's chat, to the question asked as a guard loosening. First
+"Yes, standby only", for a raise from 9,000 to 10,500 lines if the ceiling ever refused a
+FIRST-LIGHT change. Then, an hour later: "if i cannot attend at the time then i auto-approve
+it now. please confirm. do not stop or stall on account of desk code lines. we can
+iteratively refactor at a later date if need be." An unattended session may not raise a
+guard on a relayed yes, so the session he spoke to makes the raise now, while it is attended.
+In `BUDGET.json`, `product_lines` goes from 9,000 to 10,500 for phases `3-money-paper` and
+`4-ladder`. Phase 4 changes too, so the move to phase 4 cannot shrink the room. Nothing else
+in the budget changes. desk/ was 6,751 lines at the time. Until Monday 08:00 the runner still
+lets only FIRST-LIGHT boxes grow desk/. After FIRST-LIGHT, a deletion box aims to bring desk/
+back under 9,000.
+
+**Driven.** With the ceiling at 10,500, a desk/ of exactly 10,500 lines passed, and one more
+line failed it.
+
+---
+
 ## MONEY
 
 ### 2026-11-13 — how the pretend broker behaves
