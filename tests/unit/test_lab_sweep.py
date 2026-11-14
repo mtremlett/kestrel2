@@ -130,7 +130,7 @@ def test_a_second_pass_on_a_folder_a_pass_holds_is_refused_in_this_process_or_an
         return SATURDAY
 
     assert _pass(tmp_path, (ABSENT,), second).failed == EACH
-    row = batch.rows(tmp_path / sweep.WEEK)[-1]  # the week's one pass, the real command: refused
+    (row,) = batch.rows(tmp_path / sweep.WEEK)  # the week's one pass, the real command: refused
     refused = "RuntimeError: another pass is at work" if sys.platform == "win32" else "OSError"
     assert row["error"].startswith(refused) and row["started"] < row["ended"]
     assert sweep.unbroken(tmp_path) == timedelta(0)
