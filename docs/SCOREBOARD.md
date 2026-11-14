@@ -88,6 +88,8 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-13 | 5 of 7 | - | - | - | 14 of 14 proven | green | A rung's key carries its own code and the cost model's; the trades' key does not move with costs. 27 deliberate breaks, 27 caught; blind review's one blocking finding fixed (#88). |
 | 2026-11-13 | 5 of 7 | - | - | - | 14 of 14 proven | green | The pass's auto-tune: a Windows memory ceiling, workers sized to the free cores, back-off, busy flag, pass log. 18 of 18 deliberate breaks caught, blind review no blockers (#94). |
 | 2026-11-13 | 5 of 7 | - | - | - | 14 of 14 proven | green | The grid's first pass: 5,325 cells (1,065 tickers x 5 strategies) run and kept in 200 s on this PC; a second pass re-runs none, in 45 s (#102). |
+| 2026-11-13 | 5 of 7 | - | - | - | 14 of 14 proven | green | The grid's week built and started: a pass every hour, each in its own process, one at a time, each logged; four real passes 5 minutes apart ran clean, the seven-day run began 23:29 UK (#111). |
+| 2026-11-14 | 5 of 7 | - | - | - | 14 of 14 proven | green | A seven-day week now shows seven days in its log (it would have ended 14 minutes short); the run moved onto the fix with its count unbroken; the midnight pass ran all 5,325 cells clean in 2 minutes (#118). |
 
 ### RUNGS
 
