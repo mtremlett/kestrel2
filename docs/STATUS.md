@@ -137,19 +137,16 @@ SimCity small (money-simcity), halts, the gate's other limits, the money invaria
 
 ## PAPER
 
-Last updated: 14 November 2026 (folds #100, #104, #110, #113).
+Last updated: 14 November 2026 (folds #100, #104, #110, #113, #123, #128).
 
 ### Where it is
 
-Nothing placed on paper. The desk reads the account, the twenty lines, fills and orders; knows the Gateway's week
-(`desk/gateway.py`); keeps a dated daily check (`desk/clearance.py`); and `desk/placing.py` answers all six broker
-questions for a sale: refused unless line listed, kill switch drilled within 31 days, check clean, Gateway ready.
+Nothing placed on paper. The paper account answers all six broker questions; a buy goes with its stop, and after any order
+the line is under one stop of the desk's own, or an error is raised. Nothing constructs the adapter in the product yet.
 
 ### Next step
 
-paper-adapter's rest = paper-stops: a buy sent only with its stop (one stop for all shares held, on the price step);
-a sale takes shares off it. Needs `desk/paper.py` to read a stop's level: do it under paper-adapter's claim, tick both.
-Then paper-conformance. `Paper.place` raises NotImplementedError for a buy and for a sale on a line under the desk's stop.
+Order: paper-messages, paper-running, paper-kill-drilled, paper-conformance (a clean market day), supervision, main's code, cards.
 
 ### Requests to MONEY
 
@@ -158,8 +155,10 @@ Then paper-conformance. `Paper.place` raises NotImplementedError for a buy and f
 - [ ] R-PAPER-7 (later, 2026-11-13 22:45): one public keeper of dated records (the check borrows `book._write`, `_turn`).
 - [ ] R-PAPER-8 (later, 2026-11-13 23:30): the day's run collects fills at day's end too (broker tells today only).
 - [ ] R-PAPER-9 (later, 2026-11-13 23:30): word `Broker.stops` as the desk's own stops only, or say others are needed.
-- [ ] R-PAPER-10 (later, 2026-11-14 00:30): when `place` raises other than "never received"/refusal, pull the kill switch
-  or tell him at once? Today the day stops and the next start asks the broker.
+- [ ] R-PAPER-10 (later, 2026-11-14 00:30): when `place` raises other than "never received"/refusal, pull the kill switch or tell him at once?
+- [ ] R-PAPER-11 (later, 2026-11-14 01:25): `place` can raise "word, fills and account do not agree" after an order has
+  gone; should the send path tell him at once and stop buying?
+- [ ] R-PAPER-12 (later, 2026-11-14 01:25): word "a sale takes its shares off that stop" to allow two steps, or say if the pretend broker must.
 
 ### Requests to DATA
 
@@ -175,14 +174,14 @@ Then paper-conformance. `Paper.place` raises NotImplementedError for a buy and f
 
 ### Found, not fixed
 
-- **Nobody sends his lines yet:** Sunday reminder and "his login" wait for the messenger; Sunday 15 Nov shows whether the
-  Gateway stops answering at the weekend reset. A lasting "unwell" has no listener.
-- **Nothing runs the day:** no caller of the check, `gateway.known` or daily fills; a clean check lasts the UTC day;
-  a run at 00:00-01:00 UK summer is dated yesterday; a future-dated row refuses all orders.
-- **Unseen on a real order:** open-order shape, cancel answers, refusal on entry, part fills, unasked news mid-reading.
-- **Placing:** IDTL not found at the broker; no overall limit on the last-word wait or a conversation; an error after
-  sending leaves the order as the broker has it; no account named; a stop's level never compared; a zero-share stop reads as agreeing.
-- **Stale words:** `manifest.toml` says placing "is not built"; `desk/gateway.py` says "nothing calls it yet".
+- **Nobody sends his lines yet**; Sunday 15 Nov shows the weekend reset. **Nothing runs the day**: a run at 00:00-01:00 UK
+  summer is dated yesterday; a future-dated row refuses all orders.
+- **Unproven at the real Gateway** (first conformance trade): the held-back buy and GTC stop behind it, stop states and
+  level/unit in an open order, cancel of the stop with the buy (notice 202), lagging fills/shares, refused cancels. Full list in #123.
+- **After an error part-way through an order nothing settles the line again** (recovery from a restart; reuse `Paper._settle`);
+  a stop that sells while its line's order goes, or two late readings together, can raise a false alarm or, rarely, pass silently.
+- **Placing:** no overall time limit; a line can briefly be under more than its shares; the kill switch cancels a buy, not its stop.
+- **Stale words:** `manifest.toml` says placing "is not built"; `desk/gateway.py` says "nothing calls it yet". Two breaks cannot be tested.
 - **Unread at the broker:** hours, smallest order, order kinds; daily bars; SPCX's name; 2MU's step (£1 vs £5).
 - **For a session he starts:** the live-port guard misses the desktop live port; breaks need Python's cache off.
 
