@@ -9,7 +9,7 @@ from dataclasses import replace
 from decimal import Decimal
 
 import pytest
-from test_lab_rung import POUND, SHAPE, SPY, _bars, _judge, _walk
+from test_lab_rung import AAPL, POUND, SHAPE, _bars, _judge, _walk
 
 from desk.lines import LINES, YARDSTICK
 from desk.orders import Settings
@@ -104,10 +104,10 @@ def test_each_day_of_a_trade_is_marked_at_its_close_and_the_days_sum_to_its_gain
     assert abs(sum(days.values()) - gbp[0].gain) < Decimal("1e-25")
     #: a dollar line is marked at each day's own rate, so the currency's move is in its days
     fills = {bars[21].day: Decimal("0.8"), bars[23].day: Decimal("0.75")}
-    usd = _judge(bars, 24, "SPY", fills).trades
+    usd = _judge(bars, 24, "AAPL", fills).trades
     with pytest.raises(ValueError, match=f"no rate of pounds per USD to price {bars[22].day}"):
-        market.daily(usd, bars, SPY, fills)
-    marked = market.daily(usd, bars, SPY, fills | {bars[22].day: Decimal("0.7")})
+        market.daily(usd, bars, AAPL, fills)
+    marked = market.daily(usd, bars, AAPL, fills | {bars[22].day: Decimal("0.7")})
     assert marked[bars[22].day] == 240 * 11 * Decimal("-0.1") / paid, "the dollar fell a tenth"
     assert abs(sum(marked.values()) - usd[0].gain) < Decimal("1e-25")
     #: bought and stopped on one day: the whole gain is that day's
@@ -134,8 +134,8 @@ def test_the_fit_is_the_least_squares_line_and_its_excess_is_judged_in_standard_
 def test_what_cannot_be_the_market_it_took_is_refused() -> None:
     bars, up = _walk(0, 0.008), _rising(100)
     verdict = _judge(bars, -1)
-    with pytest.raises(ValueError, match="SPY trades on US, VUSA on LSE"):
-        market.judge(verdict, bars, SPY, up, POUND)
+    with pytest.raises(ValueError, match="AAPL trades on US, VUSA on LSE"):
+        market.judge(verdict, bars, AAPL, up, POUND)
     hole = bars[2500].day
     with pytest.raises(ValueError, match=f"VUAG has no bar on {hole}"):
         market.judge(verdict, bars, YARDSTICK, up[:2500] + up[2501:], POUND)

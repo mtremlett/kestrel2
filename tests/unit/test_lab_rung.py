@@ -25,7 +25,7 @@ from lab.rung import Answer
 TEN_K, ZERO = Settings(Decimal(10_000)), Decimal(0)
 POUND: rung.Rates = {}  #: a pound line reads no rate
 FREE = Charges(ZERO, ZERO, ZERO, ZERO, ZERO)
-SPY = next(line for line in LINES if line.symbol == "SPY")
+AAPL = next(line for line in LINES if line.symbol == "AAPL")
 #: breakout_20_10 buys on the close of bar 20, over bar 19's high of 10.05, and sells on the
 #: close of bar 23, under the low of 9.95 ten days before
 SHAPE = [10] * 20 + [10.4, 11, 11, 9.4, 9.4]
@@ -88,24 +88,24 @@ def test_a_trade_is_sized_at_its_close_filled_at_the_next_open_and_stopped_by_th
     #: a dollar line: sized at the rate of the morning it is sent, each fill at its own day's
     days, dear, cheap = (bars[21].day, bars[23].day), Decimal("0.8"), Decimal("0.75")
     rates = dict(zip(days, (dear, cheap), strict=True))
-    (usd,) = _judge(bars, 24, "SPY", rates).trades
+    (usd,) = _judge(bars, 24, "AAPL", rates).trades
     assert (usd.shares, usd.paid, usd.received) == (240, Decimal("2054.4"), Decimal("1684.8"))
     assert usd.gross == Decimal("-369.6"), "the dollar's fall is in it: 240 x 9.36 x 0.05 more"
     #: bought: 0.96 + 1.0272 + 1.0272 + 0.616608 to convert; stopped: 0.96980688 with the US
     #: sale's own fees + 0.8424 + 2.5272 + 0.505149057936
     assert usd.costs.total == Decimal("8.475563937936")
-    assert _judge(bars, 24, "SPY", rates | {days[0]: Decimal("0.4")}).trades[0].shares == 480
+    assert _judge(bars, 24, "AAPL", rates | {days[0]: Decimal("0.4")}).trades[0].shares == 480
     #: the desk's own book prices the same two fills to the same pounds and the same costs
-    broker = Pretend({SPY: bars[21:24]}, {})
+    broker = Pretend({AAPL: bars[21:24]}, {})
     broker.open(bars[21].day)
     stop = Decimal("9.36")
-    broker.place(Order("20100121-breakout_20_10-SPY", SPY, 240, Decimal("10.4"), dear, stop))
+    broker.place(Order("20100121-breakout_20_10-AAPL", AAPL, 240, Decimal("10.4"), dear, stop))
     for bar in bars[22:24]:
         broker.open(bar.day)
     book.collect(tmp_path, broker)
     for on, rate in rates.items():
         book.record_rates(tmp_path, on, {"USD": rate})
-    (trip,) = book.round_trips(tmp_path, [SPY])
+    (trip,) = book.round_trips(tmp_path, [AAPL])
     assert (trip.gross, trip.costs, trip.sell.price) == (usd.gross, usd.costs, stop)
     for needed in rates:  #: a rate not given, or not a number above nothing, is refused
         bad: tuple[dict[date, Decimal], ...] = (
@@ -117,9 +117,9 @@ def test_a_trade_is_sized_at_its_close_filled_at_the_next_open_and_stopped_by_th
         for wrong in bad:
             given = {d: rate for d, rate in rates.items() if d != needed} | wrong
             with pytest.raises(
-                ValueError, match=f"SPY: no rate of pounds per USD to price {needed}"
+                ValueError, match=f"AAPL: no rate of pounds per USD to price {needed}"
             ):
-                _judge(bars, 24, "SPY", given)
+                _judge(bars, 24, "AAPL", given)
     assert _judge(bars, 23).trades == _judge(bars, 22).trades == (), "sold on the last day, or held"
     #: no trades at all is a fault in the test, and says nothing of the rule
     assert (_judge(bars, 23).answer, _judge(bars, 23).t) == (Answer.FAULT, None)

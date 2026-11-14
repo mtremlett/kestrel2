@@ -12,16 +12,16 @@ from decimal import Decimal
 
 import numpy as np
 import pytest
-from test_lab_rung import POUND, SPY, _bars
+from test_lab_rung import AAPL, POUND, _bars
 
 from desk.lines import LINES, Line
 from desk.store import Bar
 from lab import bets
 from lab.rung import Rates
 
-VUAG, EQQQ, QQQ5, SGLN, ISF, QQQ = (
+VUAG, EQQQ, QQQ5, SGLN, ISF, NVDA = (
     next(line for line in LINES if line.symbol == s)
-    for s in ("VUAG", "EQQQ", "5QQQ", "SGLN", "ISF", "QQQ")
+    for s in ("VUAG", "EQQQ", "5QQQ", "SGLN", "ISF", "NVDA")
 )
 D = Decimal
 
@@ -123,16 +123,16 @@ def test_the_books_bets_and_its_profit_by_cluster_measured_on_its_lines_prices()
     #: day late: over two days they are plainly one market. In pounds, each day at its rate
     late = _made((0.3, A), (0.7, [0.0, *A[:-1]]))
     rates = {bar.day: D("0.8") for bar in late}
-    assert _names(_see({VUAG: WORLD[VUAG], SPY: late}, rates=rates)) == [("VUAG", "SPY")]
+    assert _names(_see({VUAG: WORLD[VUAG], AAPL: late}, rates=rates)) == [("VUAG", "AAPL")]
     #: two dollar lines that barely move share the dollar's own moves: one bet, in pounds
     swung = dict(zip(rates, (bar.close / 1000 for bar in WORLD[SGLN]), strict=True))
     calm = (_made((1, _moves(seed, 0.001))) for seed in (6, 7))
     dollars, book = (
-        dict(zip((SPY, QQQ), calm, strict=True)) | {ISF: WORLD[ISF]},
+        dict(zip((AAPL, NVDA), calm, strict=True)) | {ISF: WORLD[ISF]},
         {LAST: {ISF: D(9)}},
     )
-    assert _names(_see(dollars, held=book, rates=swung)) == [("SPY", "QQQ"), ("ISF",)]
-    with pytest.raises(ValueError, match=f"SPY: no rate of pounds per USD to price {LAST}"):
+    assert _names(_see(dollars, held=book, rates=swung)) == [("AAPL", "NVDA"), ("ISF",)]
+    with pytest.raises(ValueError, match=f"AAPL: no rate of pounds per USD to price {LAST}"):
         _see(dollars, held=book, rates=swung | {LAST: D(0)})
     #: a day one venue was shut is set aside for every line, and the year is still a year; a
     #: book is read on such a day too, the last of them included
@@ -147,8 +147,9 @@ def test_what_cannot_be_measured_is_refused() -> None:
         _see({line: bars[-121:] for line, bars in WORLD.items()})
     with pytest.raises(ValueError, match="no lines"):
         _see({}, held={})
-    lost, stray = {VUAG: D("-Infinity")}, {LAST: {QQQ: D(5)}}
-    for gains, book, odd in (({SPY: D(5)}, HELD, "SPY"), ({}, stray, "QQQ"), (lost, HELD, "VUAG")):
+    lost, stray = {VUAG: D("-Infinity")}, {LAST: {NVDA: D(5)}}
+    us = ({AAPL: D(5)}, HELD, "AAPL")
+    for gains, book, odd in (us, ({}, stray, "NVDA"), (lost, HELD, "VUAG")):
         with pytest.raises(ValueError, match=f"'{odd}'.: held with no bars given, of bars and"):
             _see(WORLD, gains, book)
     with pytest.raises(ValueError, match="'5QQQ', 'EQQQ', 'ISF', 'SGLN'.* profit only the one"):
