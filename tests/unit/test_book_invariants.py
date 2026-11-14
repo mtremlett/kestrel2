@@ -91,9 +91,10 @@ class World:
 
     def send(self, order: Order | Sale) -> None:
         """SENDING IS IDEMPOTENT: an order the broker has is never judged or sent again, and
-        nothing more is filled (states: nor is any order received twice). The answer is the
-        broker's own, or for an order lost on the way none filled and why; and the broker's
-        fills are in the ledger."""
+        nothing more is filled (states: nor is any order received twice): one a dead desk left
+        working is cancelled by then, and its answer says so. The answer is the broker's own,
+        or for an order lost on the way none filled and why; and the broker's fills are in
+        the ledger."""
         broker = self.broker
         before, made = broker.report(order.order_id), broker.fills()
         if order not in self.orders:
@@ -105,7 +106,9 @@ class World:
             return
         now = broker.report(order.order_id)  #: None: the connection dropped, so never received
         if before is not None:
-            assert (now, broker.fills()) == (before, made), f"{order.order_id}: sent again"
+            left = "working" in str(before.reason)  #: by a desk that died mid-send
+            assert (now == before) != left and broker.fills() == made, f"{order.order_id}: sent"
+            assert not left or "cancelled" in str(now and now.reason), f"{now}: left working"
         filled = sum(abs(fill.quantity) for fill in now.fills) if now else 0
         assert (sent.order_id, sent.filled) == (order.order_id, filled), f"{sent}: not {now}"
         assert (sent.reason == now.reason) if now else sent.reason, f"{sent}: not {now}'s reason"
