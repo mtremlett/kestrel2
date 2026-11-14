@@ -53,6 +53,7 @@ rungs = []
 "desk/orders.py" = "the order, sized from the one capital number, its stop, the pre-trade gate"
 "desk/broker.py" = "the pretend broker the desk trades against in simulation"
 "desk/book.py" = "the ledger of fills under the broker's ids, and the book built from the broker"
+"desk/carry.py" = "the pound's rate on a day London is shut and the US trades: the last London session's carried over, at most three US sessions"
 "desk/day.py" = "the desk's day: run once for a date, publish one record, replay it"
 "desk/kill.py" = "the kill switch: one command stops every new order and cancels the working ones, the desk says so, and its drill"
 "desk/emergency.py" = "the three emergencies in numbers: an emergency, a crash and a black swan, each a measured fall set in advance, each with its action"
