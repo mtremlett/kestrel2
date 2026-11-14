@@ -107,8 +107,9 @@ affected, and the test that will prove it.
 8. **Record.** `docs/STATUS.md`, `docs/PLAN.md`, and `docs/DECISIONS.md` or
    `docs/FAILURE_PATTERNS.md` where relevant.
 
-**Done** means: the fast check green locally, the whole check green on GitHub, tests seen
-failing first, reviewer passed, documents updated, committed, and a plain-English report.
+**Done** means: the fast check green locally, the whole check green on GitHub, its output
+read, tests seen failing first, reviewer passed, documents updated, committed, and a
+plain-English report. Never declare done without the check's output.
 
 ## A7. Prove the guard, never trust it
 A guard nobody has seen fail is a guard nobody has tested. **Every guard is driven
