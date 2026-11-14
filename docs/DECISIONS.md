@@ -1617,6 +1617,17 @@ overwritten in place.
 
 ---
 
+## 2026-11-14 — the whole check runs on GitHub; a session runs the fast check
+
+**His ruling**, in the coordinator's chat, to options put with a recommendation: "yes...option A".
+Measured first, from all 121 sessions that landed a change since 13 November 18:00: the whole
+`python check.py` run on the PC took 46.5% of all session minutes. That is a median of 8.9
+minutes a run, often several runs a session, with up to four checks at once on one PC. GitHub runs
+the same check in parallel parts in about 2.3 minutes, and refuses any merge that is not green. A
+session now runs `python check.py --fast` and the tests of what it changed, then pushes. The whole
+check on GitHub is the gate. It runs the whole check on the PC only to chase a red. Nothing merges
+red, as before. Expected: a typical session from about 22 minutes to about 12.
+
 ## 2026-11-14 — the desk's ceiling raised to 10,500 lines, so FIRST-LIGHT never waits on it
 
 **His ruling**, in the coordinator's chat, to the question asked as a guard loosening. First

@@ -28,9 +28,9 @@ forced to disk before the next begins. A line is found again by its key: the cod
 module reaches, the cell's bars and its market's, the rates of exchange it was priced at,
 the count of trials and the reproductions behind it. A cell kept under that key is skipped;
 change any of them and it is judged again, and the last line of a cell is its answer now. A
-cell that could not be judged (a line parked or stale, a day with no rate) keeps its reason
-and is tried again on every run, written only when the reason changes. A line a stop cut
-short is cut off.
+cell that could not be judged (a line parked or stale, too short a history for a trade, a
+day with no rate) keeps its reason and the time of its last try, and is tried again no sooner
+than 30 minutes after it, whatever the runs between. A line a stop cut short is cut off.
 
 THE RATES are the desk's own until the data lane keeps a rate for every day (R-RUNGS-3): a
 day's pounds per dollar is one over the pound's last close in dollars before that day, from
@@ -45,7 +45,7 @@ import os
 import sys
 from collections import Counter
 from collections.abc import Callable, Mapping, Sequence
-from datetime import date
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from functools import cache
 from pathlib import Path
@@ -83,6 +83,11 @@ UNRUN = {
 }
 NO_FIGURE = "no author's figure is on file for the rule: no published result stands behind it"
 NO_FOLDS = "the folds rung cannot yet hand an author's result to its folds"
+#: A rule trades a line five to ten times a year and wants 200 sessions to warm up: a line of
+#: fewer bars than those and a year's trading has made no trade yet, which says nothing of the rule.
+MIN_BARS = 200 + 252
+#: A cell that waits on data is tried again no sooner than this after its last try.
+RETRY = timedelta(minutes=30)
 FAILED = (ValueError, OSError, keeper.Stale)  #: what may leave a cell unjudged; all else is a bug
 Row = Mapping[str, Any]  #: a cell's line in the results file
 Judged = dict[str, tuple[Answer, str]]  #: each rung's answer on a cell, and its reason
@@ -110,7 +115,7 @@ def stored(home: Path) -> Bars:
     def bars(line: Line) -> Sequence[Bar]:
         held, parked = keeper.saved(home, END + keeper.DAY, [line])
         if parked:
-            raise ValueError(f"{line.symbol}: parked by the price store, so no answer on its bars")
+            raise ValueError(f"{line.symbol}: parked by the price store; waits on its bars")
         return held[line]
 
     return bars
@@ -130,7 +135,13 @@ def rates(ask: Callable[[Line, date], Sequence[Bar]] = archive.fetch) -> dict[da
     return made
 
 
-def run(home: Path, bars: Bars, pounds: Rates, todo: Sequence[Cell] | None = None) -> str:
+def run(
+    home: Path,
+    bars: Bars,
+    pounds: Rates,
+    todo: Sequence[Cell] | None = None,
+    now: Callable[[], datetime] = lambda: datetime.now(UTC),
+) -> str:
     """The set judged and kept under home, a cell kept already skipped: the one line of counts."""
     if cell.code_version(module=ME) != cell.RUNGS[ME]:
         raise RuntimeError("the code on disk has changed since this process loaded it")
@@ -152,7 +163,7 @@ def run(home: Path, bars: Bars, pounds: Rates, todo: Sequence[Cell] | None = Non
         out.truncate(len(whole))
         for c in todo:
             was = last.get(tuple(batch.row(c)))
-            row = _one(c, bars, pounds, count, was, behind)
+            row = _one(c, bars, pounds, count, was, behind, now())
             if row != was:
                 out.write(json.dumps(row).encode() + b"\n")
                 out.flush()
@@ -180,11 +191,15 @@ def _one(
     count: int,
     was: Row | None,
     behind: dict[str, tuple[Reproduction, ...]],
+    now: datetime,
 ) -> Row:
     """The cell's line: the one kept, where it is kept under the key these bars, rates and
     trials give; else its answers now, or why it could not be judged. It is judged from the
     line's first bar, so that its years are years it could trade in."""
     head: dict[str, Any] = {"set": 1, "cell": batch.row(c), "trials": count}
+    tried = was.get("tried") if was is not None else None  #: a waiting cell's last try
+    if was is not None and tried and now - datetime.fromisoformat(tried) < RETRY:
+        return was  #: it waits on data, and was tried not long ago
     try:
         beside = next(line for line in LINES if line.symbol == MARKETS[c.line.venue])
         own, held = bars(c.line), bars(beside)
@@ -204,7 +219,7 @@ def _one(
         judged = _judge(c, own, beside, held, pounds, count, made)
         return head | {"key": key, "from": c.start.isoformat()} | judged
     except FAILED as error:
-        return head | {"error": f"{type(error).__name__}: {error}"}
+        return head | {"error": f"{type(error).__name__}: {error}", "tried": now.isoformat()}
 
 
 def _judge(
@@ -216,8 +231,7 @@ def _judge(
     count: int,
     made: Sequence[Reproduction],
 ) -> dict[str, Any]:
-    """Every rung's answer on the cell with its reason, the rungs not run with theirs, and
-    the one verdict rule's answer."""
+    """Every rung's answer with its reason, the rungs not run with theirs, the verdict's."""
     try:
         reproduce.settled(c.strategy, made)
     except ValueError as missed:  #: the rule as coded is not the author's: no verdict on ours
@@ -225,6 +239,8 @@ def _judge(
     unrun = UNRUN | ({"folds": NO_FOLDS} if made else {"reproduce": NO_FIGURE})
     settings = Settings(CAPITAL)
     verdict = rung.judge(cell.run(c, own), own, settings, pounds, made)
+    if verdict.answer is Answer.FAULT and len(own) < MIN_BARS:
+        raise ValueError(f"{c.line.symbol}: {len(own)} bars, no trade yet; waits on {MIN_BARS}")
     (one,) = deflated.judge([verdict], count - 1)  #: every other trial the register holds
     rungs = _named(verdict, one)
     if made:
