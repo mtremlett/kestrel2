@@ -6,15 +6,35 @@ What comes back is the spread of the drawdowns and of the returns those paths ma
 measures and never gates: no verdict reads it. The draw is seeded, so a trial run again is
 resampled the same; a faster draw (a GPU) may stand behind `resample` only if it gives the
 same answer.
+
+`python -m lab.montecarlo` resamples every cell the ladder judged (its results file) and every
+cell the grid holds, and keeps one record per cell under `montecarlo/` in the data folder,
+keyed by what made it: a cell whose inputs have not changed is kept, not resampled again.
 """
 
 from __future__ import annotations
 
+import hashlib
+import json
+import os
 import random
-from collections.abc import Sequence
+import sys
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
+from datetime import date
 from decimal import Decimal
+from functools import cache
+from pathlib import Path
+from typing import Any
 
+from desk.command import CAPITAL
+from desk.lines import LINES, Line
+from desk.orders import Settings
+from lab import batch, cell, ladder, rung, sweep
+from lab.cell import Cell, Record, Trade
+
+ME = "lab.montecarlo"  #: this module as the cell knows it
+FOLDER, RESULTS = "montecarlo", "results.jsonl"
 PATHS = 1000
 QUANTILES = (Decimal("0.05"), Decimal("0.5"), Decimal("0.95"))  #: the cuts reported
 
@@ -70,3 +90,127 @@ def _spread(values: list[Decimal]) -> Spread:
     ordered = sorted(values)
     low, median, high = (ordered[int(q * (len(ordered) - 1))] for q in QUANTILES)
     return Spread(low, median, high)
+
+
+@dataclass(frozen=True)
+class Job:
+    """A cell to resample: where it came from, what made its trades, and the trades if held."""
+
+    source: str  #: "ladder" or "grid"
+    cell: Cell
+    made: str  #: the key the source gave it: change that and the cell is resampled again
+    trades: tuple[Trade, ...] | None  #: the grid's held trades; None for the ladder's own
+
+
+Gains = Callable[[Job], Sequence[Decimal]]  #: a job's trades, each as its return after costs
+
+
+def _lines(path: Path) -> Iterator[dict[str, Any]]:
+    """The whole lines of a results file, a last line cut short by a stop left out."""
+    text = path.read_bytes() if path.exists() else b""
+    yield from map(json.loads, text[: text.rfind(b"\n") + 1].splitlines())
+
+
+def _cell(lines: Mapping[tuple[str, str], Line], row: Mapping[str, Any], start: str) -> Cell:
+    """The cell a results line names, over the window from `start` to the line's own end."""
+    strategy, symbol, venue, _, end = row["cell"]
+    line = lines[symbol, venue]
+    return Cell(strategy, line, date.fromisoformat(start), date.fromisoformat(end))
+
+
+def jobs(home: Path) -> list[Job]:
+    """Every ladder cell that traded and every grid cell held, the latest line of each."""
+    found: dict[tuple[str, ...], Job] = {}
+    stored = sweep.held(
+        home / "grid" / "store"
+    )  #: the grid's lines; the desk's own take precedence
+    lines = {(x.symbol, x.venue): x for x in (*stored, *LINES)}
+    for row in _lines(home / ladder.FOLDER / ladder.RESULTS):
+        if row.get("trades") and "key" in row:
+            found[("ladder", *row["cell"])] = Job(
+                "ladder", _cell(lines, row, row["from"]), row["key"], None
+            )
+    for path in sorted((home / "grid" / "held").glob("*/*.jsonl")):
+        for row in _lines(path):
+            trades = tuple(
+                Trade(date.fromisoformat(b), s and date.fromisoformat(s)) for b, s in row["trades"]
+            )
+            made = row["code"] + row["data"]
+            found[("grid", *row["cell"])] = Job(
+                "grid", _cell(lines, row, row["cell"][3]), made, trades
+            )
+    return [job for job in found.values() if job.trades is None or job.trades]
+
+
+def _key(job: Job) -> str:
+    """What made the resampling: its source's key and the code of this rung and all it reaches."""
+    return hashlib.sha256(f"{job.made}\n{cell.RUNGS[ME]}\n{PATHS}".encode()).hexdigest()
+
+
+def run(home: Path, gains: Gains) -> str:
+    """Every job resampled and kept under home, a job kept already skipped: the line of counts."""
+    results = home / FOLDER / RESULTS
+    results.parent.mkdir(parents=True, exist_ok=True)
+    kept = {tuple(row["id"]): row["key"] for row in _lines(results)}
+    text = results.read_bytes() if results.exists() else b""
+    tally = {"now": 0, "before": 0, "failed": 0}
+    with results.open("ab") as out:
+        out.truncate(text.rfind(b"\n") + 1)
+        for job in jobs(home):
+            id_, key = [job.source, *batch.row(job.cell)], _key(job)
+            if kept.get(tuple(id_)) == key:
+                tally["before"] += 1
+                continue
+            try:
+                made = gains(job)
+                got = resample(made, int(key[:16], 16))
+            except ladder.FAILED as error:
+                sys.stderr.write(f"montecarlo: {id_}: {error}\n")
+                tally["failed"] += 1
+                continue
+            row = {"id": id_, "key": key, "trades": len(made), "paths": got.paths}
+            row |= {"drawdown": _out(got.drawdown), "returns": _out(got.returns)}
+            out.write(json.dumps(row).encode() + b"\n")
+            out.flush()
+            os.fsync(out.fileno())
+            tally["now"] += 1
+    done = f"{tally['now']} resampled now, {tally['before']} kept from before"
+    return done + (f", {tally['failed']} could not be resampled" if tally["failed"] else "")
+
+
+def _out(spread: Spread) -> list[str]:
+    """A spread as the results file keeps it: each cut as exact decimal text, lowest cut first."""
+    return [str(spread.low), str(spread.median), str(spread.high)]
+
+
+def priced(home: Path) -> Gains:
+    """The gains of a job from its line's bars in the data folder and the ladder's rates."""
+    pounds = cache(ladder.rates)
+    settings = Settings(CAPITAL)
+    stores = {"ladder": ladder.stored(home), "grid": batch.stored(home / "grid" / "store")}
+
+    def gains(job: Job) -> Sequence[Decimal]:
+        bars = stores[job.source](job.cell.line)
+        if job.trades is None:
+            record = cell.run(job.cell, bars)
+        else:
+            now = cell.key(job.cell, bars)
+            if now.code + now.data != job.made:
+                raise ValueError(f"{job.cell}: the held trades were not made by this code and bars")
+            record = Record(now, len(bars), job.trades)
+        return [p.gain for p in rung.judge(record, bars, settings, pounds(), []).trades]
+
+    return gains
+
+
+def main(env: Mapping[str, str]) -> int:
+    """Resample the data folder named by KESTREL2_DATA and print the line of counts."""
+    if not env.get("KESTREL2_DATA"):
+        sys.exit("montecarlo: KESTREL2_DATA names no data folder, so there is nothing to resample")
+    home = Path(env["KESTREL2_DATA"])
+    sys.stdout.write(run(home, priced(home)) + "\n")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(os.environ))
