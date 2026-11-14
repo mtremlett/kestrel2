@@ -10,7 +10,7 @@ from datetime import date, datetime
 from decimal import Decimal
 
 import pytest
-from test_paper import AAPL_STOP, ACCOUNTS, FEED, HELLO, READY, _but, _wire
+from test_paper import AAPL_STOP, ACCOUNTS, FEED, HELLO, READY, STATUS, STOP, _but, _wire
 
 from desk import paper, reports
 from desk.broker import Fill
@@ -81,6 +81,9 @@ def test_todays_fills_are_read_as_the_gateway_gives_them_and_only_a_question_is_
     assert sent[2:] == [_wire("7|3|1|0||||||".split("|")).getvalue()]
     assert _read(END)[0] == ()  # a day with no fill is an answer, and whole
     assert _read(BOUGHT, BOUGHT, END)[0] == (BUY, BUY)  # as given: whose it is comes after
+    # what the gateway tells unasked of an order while it is read (the order, its state, a
+    # fill under no question's number, its fee) answers nothing, and is passed over
+    assert _read(STOP, STATUS, _but(SOLD, 1, "-1"), FEE, BOUGHT, END)[0] == (BUY,)
 
 
 def test_the_desks_own_fills_are_the_ledgers_priced_in_the_lines_currency() -> None:
@@ -151,7 +154,6 @@ def test_a_fill_of_the_desks_own_that_it_cannot_give_whole_and_once_stops_the_re
         ((BOUGHT[:-1], END), ValueError, "shape"),
         (([*BOUGHT, ""], END), ValueError, "shape"),
         ((_but(BOUGHT, 1, "2"), END), ValueError, "does not read"),  # another question's answer
-        ((_but(BOUGHT, 1, "-1"), END), ValueError, "does not read"),  # a fill told of unasked
         ((BOUGHT, ("55", "1", "2")), ValueError, "does not read"),
         ((BOUGHT, ("99", "1"), END), ValueError, "99"),
         ((BOUGHT, ("4", "2", "1", "321", "no such question", "")), ConnectionError, "321"),
@@ -197,6 +199,7 @@ def test_the_days_ended_orders_are_read_as_the_gateway_lists_them() -> None:
     cut = Ended(WHOLE.ref, "Cancelled", Decimal(10), Decimal(16))
     assert read(FEED, DONE, CUT, DONE, ("102",)) == (WHOLE, cut, WHOLE)
     assert read(("102",)) == ()  # a day on which no order ended
+    assert read(STOP, STATUS, _but(BOUGHT, 1, "-1"), FEE, DONE, ("102",)) == (WHOLE,)  # unasked
     untrusted: list[tuple[list[Sequence[str]], type[Exception], str]] = [
         ([DONE], ConnectionError, "hung up"),
         ([DONE[:-1], ("102",)], ValueError, "shape"),
