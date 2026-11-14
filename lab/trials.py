@@ -10,10 +10,11 @@ inside a working copy, which a session throws away.
 
 A trial is entered under the question it was asked of, by name, BEFORE it is run: then one
 that fails, gives no verdict or is dropped has been counted already, and nothing here takes
-a trial out. A cell's name is its rule, its line and venue and its window, so the same cell
-run again (a restart, mended bars) is the same trial, and the same rule on another line or
-window is another. A rule that is changed is a new trial and must be given a new name: the
-register cannot see a change made under an old one. A candidate that is no cell is entered
+a trial out. A cell's name is its rule with the first twelve letters of the hash of its
+code, its line and venue and its window, so the same cell run again (a restart, mended bars)
+is the same trial, and the same rule on another line or window is another. A rule that is
+changed is a new trial, for its code is in its name: never a free second look.
+A candidate that is no cell is entered
 under any name that tells it apart. A trial asked of two questions counts in each.
 
 Nothing begins a count without a word. A register that is not there, or is empty, is
@@ -29,11 +30,15 @@ is refused. One process at a time writes, which is the caller's to keep; a stale
 
 from __future__ import annotations
 
+import ast
+import hashlib
 import json
 import os
 from collections.abc import Iterable, Sequence
+from functools import cache
 from pathlib import Path
 
+from desk import strategy
 from lab import luck
 from lab.cell import Cell
 from lab.luck import Corrected
@@ -42,11 +47,31 @@ from lab.rung import Verdict
 HEAD = b'{"register": "trials"}\n'  #: a register's first line: an empty file is not one
 
 
+@cache
+def rule_hash(rule: str) -> str:
+    """The sha256 of the rule's class in `desk/strategy.py` and every name of that module it
+    reaches, as the tree of their code: a comment or a blank line is no change."""
+    tree = ast.parse(Path(strategy.__file__).read_text(encoding="utf-8"))
+    defined = {
+        node.name if not isinstance(node, ast.Assign) else ast.unparse(node.targets[0]): node
+        for node in tree.body
+        if isinstance(node, ast.ClassDef | ast.FunctionDef | ast.Assign)
+    }
+    todo, seen = [strategy.STRATEGIES[rule].__name__], set()
+    while todo:
+        if (found := todo.pop()) not in seen and found in defined:
+            seen.add(found)
+            todo += [n.id for n in ast.walk(defined[found]) if isinstance(n, ast.Name)]
+    dumped = [ast.dump(defined[n]) for n in sorted(seen)]
+    return hashlib.sha256("\0".join(dumped).encode()).hexdigest()
+
+
 def name(cell: Cell) -> str:
-    """The cell as a trial: its rule, its line on its venue, its window. The register's own
-    wording, kept apart from how a cell is printed, which may change."""
+    """The cell as a trial: its rule and the hash of its code, its line on its venue, its
+    window. The register's own wording, kept apart from how a cell is printed."""
     line, window = cell.line, f"{cell.start.isoformat()} to {cell.end.isoformat()}"
-    return f"{cell.strategy} on {line.symbol} on {line.venue}, {window}"
+    code = rule_hash(cell.strategy)[:12]
+    return f"{cell.strategy} {code} on {line.symbol} on {line.venue}, {window}"
 
 
 def start(register: Path) -> None:

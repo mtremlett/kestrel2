@@ -125,9 +125,10 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import subprocess
 import sys
 from collections import Counter
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from functools import cache
@@ -311,36 +312,57 @@ def _one(
         made = behind[c.strategy]
         c = Cell(c.strategy, c.line, max([c.start, *(bar.day for bar in own[:1])]), c.end)
         pool = pools(c.strategy)
-        key = _key(c, own, (beside, held), pounds, count, made, pool)
+        stood = _made(c, own, (beside, held), pounds, pool)
+        key = _hash([*stood.values(), str(count), *(f"{m.key.code}{m.key.data}" for m in made)])
         if was is not None and was.get("key") == key:
             return was
         judged = verdict.judge(
             c, own, beside, held, pounds, count, made, lambda: folded(c.strategy)
         )
-        return head | {"key": key, "from": c.start.isoformat()} | judged
+        made_by = {"commit": commit(), **stood}
+        return head | {"key": key, "from": c.start.isoformat(), "made": made_by} | judged
     except FAILED as error:
         return head | {"error": f"{type(error).__name__}: {error}", "tried": now.isoformat()}
 
 
-def _key(
+def _made(
     c: Cell,
     own: Sequence[Bar],
     market: tuple[Line, Sequence[Bar]],
     pounds: Rates,
-    count: int,
-    made: Sequence[Reproduction],
     pool: Mapping[Line, Sequence[Bar]],
-) -> str:
-    """What made a cell's answer: its code and bars, its market's, the count of trials, the
-    rates, the reproductions, and the bars of every line its folds pooled."""
+) -> dict[str, str]:
+    """What made a cell's answer, each a hash in full: the code this module reaches, the rule's,
+    the cell's bars, its market's, the bars of every line its folds pooled, the table of rates."""
     mine = cell.key(c, own).rung(ME)
-    abroad = c.line.currency != "GBP" or any(line.currency != "GBP" for line in pool)
-    days = sorted(day for day in pounds if day <= c.end and abroad)
     beside = cell.key(Cell(c.strategy, market[0], c.start, c.end), market[1]).data
-    parts = [mine.code, mine.data, beside, str(count), *(f"{d} {pounds[d]}" for d in days)]
-    parts += [one.key.code + one.key.data for one in made]
-    parts += [cell.key(Cell(c.strategy, ln, c.start, c.end), got).data for ln, got in pool.items()]
-    return hashlib.sha256("\n".join(parts).encode()).hexdigest()
+    pooled = [cell.key(Cell(c.strategy, ln, c.start, c.end), got).data for ln, got in pool.items()]
+    days = (f"{d} {pounds[d]}" for d in sorted(pounds) if d <= c.end)
+    return {
+        "code": mine.code,
+        "rule": trials.rule_hash(c.strategy),
+        "data": mine.data,
+        "market": beside,
+        "pool": _hash(pooled),
+        "rates": _hash(days),
+    }
+
+
+def _hash(parts: Iterable[str]) -> str:
+    return hashlib.sha256(" ".join(parts).encode()).hexdigest()
+
+
+@cache
+def commit() -> str:
+    """The commit this process runs from, recorded and no part of any key (canon B5)."""
+    done = subprocess.run(  # noqa: S603 - git, by name, in this working copy
+        ["git", "rev-parse", "HEAD"],  # noqa: S607
+        cwd=cell.ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return done.stdout.strip()
 
 
 def _pool(rule: str, todo: Sequence[Cell], bars: Bars, pounds: Rates) -> dict[Line, Sequence[Bar]]:

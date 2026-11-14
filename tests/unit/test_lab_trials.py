@@ -29,7 +29,7 @@ def _on(cell: Cell, seed: int, edge: float) -> Verdict:
     return replace(_verdict(seed, edge), key=Key(cell, "code", str(seed)))
 
 
-WINNER = _on(FIVE[0], 9, 0.008)  #: it stands picked from eight trials, and not from nine
+WINNER = _on(FIVE[0], 9, 0.0078)  #: it stands picked from eight trials, and not from nine
 
 
 @pytest.fixture
@@ -56,13 +56,21 @@ def test_the_count_is_kept_from_batch_to_batch(register: Path) -> None:
     assert trials.count(register, ASKED) == 9 and trials.count(register, LONDON) == 1
     lines = [json.loads(line) for line in register.read_text(encoding="utf-8").splitlines()]
     assert len(lines) == 13 and lines[:2] == [{"register": "trials"}, {"question": ASKED}]
-    trial = f"{rule} on AAPL on {AAPL.venue}, 2020-01-01 to 2024-01-01"
+    trial = (
+        f"{rule} {trials.rule_hash(rule)[:12]} on AAPL on {AAPL.venue}, 2020-01-01 to 2024-01-01"
+    )
     assert lines[2] == {"question": ASKED, "trial": trial}
+
+
+def test_a_rules_name_carries_the_hash_of_its_own_code_and_what_it_names() -> None:
+    hashes = {rule: trials.rule_hash(rule) for rule in strategy.STRATEGIES}
+    assert len(set(hashes.values())) == len(hashes) and all(len(h) == 64 for h in hashes.values())
+    assert all(h[:12] in trials.name(Cell(rule, AAPL, DAY, END)) for rule, h in hashes.items())
 
 
 def test_a_winner_is_corrected_for_every_trial_the_register_holds(register: Path) -> None:
     trials.enter(register, ASKED, NAMES[1:])
-    with pytest.raises(ValueError, match=f"never entered.*{FIVE[0].strategy} on AAPL"):
+    with pytest.raises(ValueError, match=rf"never entered.*{FIVE[0].strategy} \w+ on AAPL"):
         trials.correct(register, ASKED, [WINNER])
     trials.enter(register, ASKED, [NAMES[0], "dropped one", "dropped two", "dropped three"])
     (eight,) = trials.correct(register, ASKED, [WINNER])
