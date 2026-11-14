@@ -1589,6 +1589,34 @@ in WAL mode scores 27, Parquet with DuckDB for sealed history 27, DuckDB alone 2
 
 ---
 
+## 2026-11-14 — no new data spend: IBKR's real capacity, a free collector, weather recorded first
+
+**His words, about 12:40 UK.** "derive a finite number of tickers (minus 10%) that can be
+easily refreshed within these limits ... i do not want to pay for more data, not until this
+desk can pay for itself." And: research the free tiers of the keys he already has, for
+triangulation and for news and market regime, as the first mark_the_trend did. "does the
+elite desk agree?"
+
+**Researched**, sources cited, in the notes folder (`free_data_2026-11-14.md`). IBKR's own
+historical-limits page says the hard 60-per-10-minutes rule is for bars of 30 seconds or less.
+For 1 minute and longer it is "lifted" to a soft throttle, with no published number. The old
+desk built eight regime feeds and a sentiment daemon. None was ever shown to predict out of
+sample. Its regime map discarded about 74% of its winning cells, and its regime history was
+overwritten in place.
+
+**Decided by the mentor, as his rulings allow.**
+- Within IBKR's free capacity, with 10% kept spare: 90 tickers live, a measured ramp for
+  polled ones, and daily bars for all.
+- A daily free collector starts now, so that history the free tiers drop is kept.
+- Weather follows "record first, prove second, act last": realised-volatility sizing first,
+  everything else recorded until it passes REG-07.
+- News serves event awareness only.
+- Nothing is bought. Databento's free credit needs a card, so it is his decision, not taken.
+- The data-service keys move into the desk's own secrets file, outside the repository. His
+  Trading 212 keys and his email passwords are never copied.
+
+---
+
 ## MONEY
 
 ### 2026-11-13 — how the pretend broker behaves
@@ -2887,6 +2915,39 @@ Decided by the PAPER lane as the desk's mentor, no one watching.
 - *Conformance keeps `files: *`:* nobody has seen where real results are recorded; a missed file would stop the session.
 - New modules named before they exist: `desk/messenger.py`, `desk/running.py`, `desk/supervisor.py`. paper-running also holds
   `desk/placing.py` for R-MONEY-8 and waits for paper-messages so there is one messenger.
+
+### 2026-11-14 — the desk's one voice (#142)
+
+Decided by the PAPER lane as the desk's mentor, no one watching.
+
+- *Alarm on silence:* the desk alarming itself (a dead desk cannot); only a human rule; a watch outside the desk reading the delivery record. Chosen the watch, with the human rule beside it.
+- *Hours:* morning 08:00 (05:40 was in his night), owed by 08:30; evening 21:05, owed by 21:30 (21:00 sat on New York's bell on 465 of 502 sessions). Nothing sent from 22:00; only the alarm goes at any hour.
+- *The record is SQLite,* not a CSV: two writers by design, and two processes drove the CSV unreadable within six writes.
+- *Asked on the record before the door; told twice rather than never.* A lost Telegram answer means a resend.
+- *Over-long messages* are cut at the door and kept whole on the record. *The key* comes from `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`; giving it to the desk is his alone.
+- *The morning message claims only what it asked* (Gateway, the day's check, kill switch and drill). The merge line and runner alerts stay outside until paper-cards.
+- Evidence: two blind reviews, three blocking findings fixed; 518 deliberate breaks, 473 caught as driven, gaps closed and driven again.
+
+### 2026-11-14 — the unattended desk (#152)
+
+Decided by the PAPER lane as the desk's mentor, no one watching.
+
+- *A step, not a loop:* a restart then needs no special path; what is done is known from the desk's records (and `running.csv`).
+- *Recovery runs whenever the check names something* (not at start, not every step). The stop kept is the newest whose buy really bought, for the shares held, only where they are the book's; read before the dead desk's orders are cancelled. It waits while the kill switch is on or undrilled.
+- *The check comes before a record too* (blocking finding). *A round is made once a day,* all answers told to him; an unclean check keeps it owed. Orders go whenever clear, however late (cut-off asked of MONEY).
+- *A line with no bar of the session before is left out and named,* not the whole round refused.
+- *Record hour:* five minutes after the last closing auction. *His hours:* nothing before 08:00 or from 22:00; a Gateway failure goes at any hour, once per day.
+- *The adapter itself refuses an order not dated the session before* (R-MONEY-8), by the venue's calendar.
+- Evidence: tests seen failing first; two blind reviews (2 blocking fixed); 78 deliberate breaks, 78 caught; dried read-only at the real Gateway.
+
+### 2026-11-14 — the daily kill-switch drill (#155)
+
+Decided by the PAPER lane as the desk's mentor, no one watching.
+
+- *When:* only when the last drill is over 31 days old; once each day before that day's first work; at each process start. Chosen daily: a step has no start, and a month-old drill says nothing of today's code. The 31-day refusal stays in the adapter as the floor.
+- *Where:* after the ledger, before the check (the check may put right with orders). *A failed drill stops everything but the ledger* and the step fails; told once in his words, wrapped from the money lane's error.
+- *Any day the desk works,* on the UTC day. No message for a drill that passed.
+- Evidence: tests seen failing first; one blind review, nothing blocking; 31 deliberate breaks, all caught; dried at the real paper Gateway with the switch on.
 
 ## GRID
 

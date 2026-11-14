@@ -179,17 +179,22 @@ def _sunday(day: date) -> date:
     return day + timedelta((6 - day.weekday()) % 7)
 
 
+def zone(venue: str, day: date) -> timezone:
+    """The venue's wall clock on a day: how far it stands from UTC, summer or winter."""
+    clock = CLOCKS[venue]
+    forward, back = (_sunday(date(day.year, month, n)) for month, n in clock.summer)
+    return timezone(timedelta(hours=clock.winter + (forward <= day < back)))
+
+
 @cache
 def hours(venue: str, day: date) -> Hours:
     """The hours of the venue's session on a day; a day it does not trade has none."""
     if sessions(venue, day, day) != (day,):
         raise ValueError(f"{venue} does not trade on {day}: it has no hours")
     clock = CLOCKS[venue]
-    forward, back = (_sunday(date(day.year, month, n)) for month, n in clock.summer)
-    zone = timezone(timedelta(hours=clock.winter + (forward <= day < back)))
     early = day in clock.half_days(day.year)
     opens, close = (
-        datetime.combine(day, at, zone).astimezone(UTC)
+        datetime.combine(day, at, zone(venue, day)).astimezone(UTC)
         for at in (clock.open, clock.early if early else clock.close)
     )
     return Hours(opens, close, close + clock.auction, early)
