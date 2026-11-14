@@ -1434,7 +1434,8 @@ delete the original stores after import.
   checking without the sprawl. A "funnel" count was dropped on 13 November (FIL-05) because
   one gate has one step; a refusal's reason serves it.
 - The old stores are copied to his E: drive once the import is verified, and leave C: only
-  with his explicit yes. `C:\mtt_cache` stays while his mark_the_trend programs read it.
+  with his explicit yes. `C:\mtt_cache` was kept back while his mark_the_trend programs
+  might read it; asked, he answered "Retired", so it is treated like the other stores.
 - The GPU is not used for now. The old desk measured no gain on it (its mentor's hand-over
   of 18 October: "GPU/in-memory: no gain"), it would add a library and a second engine needing
   its own parity test, and numpy on the CPU has not yet been shown to fall short. If a full
