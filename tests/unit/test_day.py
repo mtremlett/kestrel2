@@ -50,6 +50,9 @@ MARKET = {
 }
 
 
+ARCHIVE_LINES = {line.symbol: line for line in ARCHIVE}
+
+
 def _trade(root: Path, broker: Broker, on: date) -> tuple[book.Sent, ...]:
     before = {line: tuple(b for b in bars if b.day < on) for line, bars in ARCHIVE.items()}
     return day.trade(root, before, broker, Settings(Decimal(10_000)), on, {"GBP": Decimal(1)})
@@ -365,3 +368,31 @@ def test_a_record_opens_from_what_the_last_one_closed_on_at_each_days_own_rate(
     shut = date(2025, 2, 17)  #: New York is shut, so U is owed no bar: the yardstick alone is
     assert day.trade(tmp_path, archive, broker, capital, shut, at) == ()
     assert [b.order_id for b in halt.morning(tmp_path, shut)[Blocker.UNREAD]] == [YARDSTICK.symbol]
+
+
+def test_a_holding_whose_stop_was_lost_is_on_that_days_list_with_the_stop_to_put_back(
+    tmp_path: Path,
+) -> None:
+    broker, room = Pretend(ARCHIVE, {}), Settings(Decimal(10_000))
+    broker.open(DAYS[21])
+    _trade(tmp_path, broker, DAYS[21])
+    lost, more, half = (broker._stops[symbol] for symbol in "ACD")
+    broker._faults["D"] = Fault.PARTIAL  #: half of D sold: what is left is the buy's
+    book.send(tmp_path, broker, Sale("s-1", ARCHIVE_LINES["D"], half.shares), room)
+    for symbol in "ABD":  #: by hand; and B's shares are not the book's, C's stop is for more
+        broker.cancel_stop(symbol)
+    broker.inject("B", 1)
+    broker._stops["C"] = replace(more, shares=more.shares + 5)
+    record = day.publish(tmp_path, MARKET, broker, room, DAYS[21])
+    held, kept = book.positions(tmp_path), book.levels(tmp_path)
+    assert kept[lost.order_id] == lost.level and record.mismatches == tuple("ABCD")
+    assert held["D"] == half.shares - half.shares // 2, "D not half sold"
+    put = "shares held, 0 under a stop at the broker; put back"
+    assert [(b.order_id, b.reason) for b in halt.morning(tmp_path, DAYS[21])[Blocker.BOOK]] == [
+        (stop.order_id, f"{s}: {held[s]} {put} {stop.order_id}, selling {held[s]} at {stop.level}")
+        for s, stop in (("A", lost), ("D", half))
+    ], "not told that day, told of shares the broker may not hold, or under another stop"
+    broker.open(DAYS[22])  #: a session missed, A still bare: no list for a day nobody sent for
+    book.record_rates(tmp_path, DAYS[22], {"GBP": Decimal(1)})
+    day.publish(tmp_path, MARKET, broker, room, DAYS[22])
+    assert halt.stopped(tmp_path, DAYS[22]) is None, "a list for a day whose orders never went"
