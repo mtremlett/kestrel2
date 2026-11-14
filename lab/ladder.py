@@ -35,7 +35,7 @@ THE RUNGS AND THEIR BARS:
   folds      walk-forward by the year, pooled by rule: the worst of FOLDS years earned.
   market     its excess over its own line simply held, and over its market, each 2 standard
              errors or more above nothing (`lab/market.py`; MARKETS names each venue's).
-  shuffle    of SHUFFLES histories of its own days in a random order, 0.05 or fewer do as well.
+  shuffle    its share among SHUFFLES histories of its own days in a random order: 0.05.
 Three more measure and never gate, each named on every line with its figures or the reason it
 was not run: regime, plateau, and stress with its resampled drawdowns.
 
@@ -46,10 +46,10 @@ every rung read from a trial's own trades. So wherever the first rung judges tra
 ONE MORE, which the rule did not make: a loss at its own stop, the least any judged trade would
 have made had its stop sold it, with a stop's costs. It is a trade in the standard errors and
 in all that is read from them (the luck's chance; the Sharpe, its count, skew and kurtosis),
-and in no count of the 30 asked and no sum of pounds. A real edge on few tight trades pays for
-it with more trades, and that is the price. The least length of record that a Sharpe's skew
-and kurtosis ask for (MinTRL) is no second bar: it is the deflated band, read from the other
-side, and it too is blind to a loss not yet seen.
+and none of the verdict's trades: in no count of the 30 asked and no sum of pounds. A real edge
+on few tight trades pays for it with more of them, and that is the price. The least length of
+record a Sharpe's skew and kurtosis ask for (MinTRL) is no second bar: it is the deflated
+band, read from the other side, and it too is blind to a loss not yet seen.
 
 THE FOLDS (M1, M2, M6). The last FOLDS (5) whole calendar years of the window are the folds,
 each judged out-of-sample on its own year beside the in-sample history before it, every year
@@ -64,13 +64,13 @@ fold PASSES if its mean day earned after costs, FAILS at 2 standard errors or mo
 nothing, and is in DOUBT between; with fewer it is THIN; with none, FAULT. The verdict is the
 worst fold's, its year named in the reason. A fold is not a trial: nothing is picked from it.
 
-THE SHUFFLE (Monte Carlo, gating; `lab/shuffle.py`). Each of a line's days is kept whole, as
-its moves from the close before, and SHUFFLES (100) times they are put in a random order and
-the rule run on the history that makes, priced by the first rung. Each has the line's whole
-rise and no order in it, so a rule that earns as much there has timed nothing. The trial's
-share, `shuffle.share(cell, bars, settings, rates)`, is the shuffles with standard errors at
-or above its own (one of under two trades has none), and itself, over SHUFFLES + 1: 0.05 or
-under PASSES, more FAILS. The ladder runs it last and only on a trial that has passed every
+THE SHUFFLE (Monte Carlo, gating; `lab/shuffle.py`). Each day the cell is shown, after its
+first, is kept whole, as its moves from the close before, and SHUFFLES (100) times they are put
+in a random order and the rule run on the history that makes, priced by the first rung. Each
+has the line's whole rise and no order in it: a rule that earns as much there has timed
+nothing. A trial's share, `shuffle.share(cell, bars, settings, rates)`, is the shuffles whose
+standard errors are its own or more (one of under two trades has none), and itself, over
+SHUFFLES + 1: 0.05 or under PASSES, more FAILS. The ladder runs it last and only on a trial that has passed every
 rung before it; any other is given the least of their answers. The order is drawn from the
 trial's name: a trial run again is shuffled the same.
 
@@ -99,8 +99,9 @@ units) keeps its reason under `error` and the time of its last try, and is tried
 sooner than 30 minutes later.
 
 THE RATES (M5) are one table kept under the data home's ladder folder, by `rates(home, ask)`:
-a run asks the archive only for the pound's closes after the last the table holds, adds them,
-and reads every other day from the table, so a verdict can be made again from what it names.
+a run asks the archive (as now, for the pound to the window's end) only while the table lacks
+the pound's close on the window's last day, adds what it lacks, and reads every other day from
+the table, so a verdict can be made again from what it names.
 A day's pounds per dollar is one over the pound's last close BEFORE that day, the rate the
 desk's own day has that morning (`desk/command.py`), inside the same bounds; never a later.
 
@@ -109,6 +110,10 @@ pounds, a step under the price store's jump. On a line in pounds, a close that m
 day by that day's rate or by one over it, to within 3%, on a day the instrument master does
 not name a real move, is such a step: the cell is not judged, and waits with the day as its
 reason until the data lane mends the bars or the master names the move.
+
+ITS DOORS stay, for the tests come in by them: `run(home, bars, pounds, todo)`; `names(cell)`,
+a list, the rule's hash a word of its own; and a line's keys `cell`, `trials`, `rungs` (each an
+answer and its reason), `answer`, `unrun` and `error`, its figures JSON numbers.
 
 OWED: the stop planted; the folds as written (they are two thirds of one line, 30 trades asked
 of each, and wait where a figure is on file); the shuffle; the drawdowns; one trial a cell and
