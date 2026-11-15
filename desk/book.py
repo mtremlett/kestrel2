@@ -87,7 +87,7 @@ def send(root: Path, broker: Broker, order: Order | Sale, settings: Settings) ->
     report = broker.report(order.order_id)
     if report is None:
         _unless_stopped(root, order)
-        held, differ, unsure, _ = reckon(root, broker)
+        held, differ, unsure, _ = _compare(root, broker)
         if differ and (isinstance(order, Order) or order.line.symbol in unsure):
             words = f"{order.order_id}: not sent, the book is not the broker's on {list(differ)}"
             raise Stopped(Blocker.BOOK, words)
@@ -233,22 +233,20 @@ def _write(path: Path, rows: Iterable[Sequence[object]]) -> None:
 
 
 def _revision(execution_id: str) -> tuple[str, int]:
-    """An execution id as the fill it is and which version of it: the broker corrects a fill
-    by the same id but for its last part (".01" replaced by ".02")."""
-    fill, dot, last = execution_id.rpartition(".")
-    return (fill, int(last)) if dot and last.isdecimal() else (execution_id, 0)
+    """An execution id as its fill and version: a correction changes the last part (.01 to .02)."""
+    fill, _, last = execution_id.rpartition(".")
+    return (fill, int(last)) if last.isdecimal() and fill else (execution_id, 0)
 
 
 def _record(root: Path, new: Iterable[Fill]) -> None:
     """Add the fills not in the ledger; a fill the broker corrects replaces its earlier version."""
-    kept = {_revision(f.execution_id)[0]: f for f in fills(root)}
-    before = dict(kept)
+    kept = fills(root)
+    latest = {_revision(f.execution_id)[0]: f for f in kept}
     for fill in new:
-        name, version = _revision(fill.execution_id)
-        if name not in kept or version > _revision(kept[name].execution_id)[1]:
-            kept[name] = fill
-    if kept != before:
-        _write(root / LEDGER, [COLUMNS, *(astuple(fill) for fill in kept.values())])
+        name = _revision(fill.execution_id)[0]
+        latest[name] = max(latest.get(name, fill), fill, key=lambda f: _revision(f.execution_id)[1])
+    if tuple(latest.values()) != tuple(kept):
+        _write(root / LEDGER, [COLUMNS, *(astuple(fill) for fill in latest.values())])
 
 
 def collect(root: Path, broker: Broker) -> None:
@@ -257,18 +255,21 @@ def collect(root: Path, broker: Broker) -> None:
 
 
 def reconcile(root: Path, broker: Broker) -> tuple[str, ...]:
-    """The lines on which the desk's book is not the broker's, once every fill the broker
-    made is in the ledger: the shares differ, or the stop resting at the broker is not for
-    exactly the shares held. None named: the book is the broker's."""
+    """The lines on which the book is not the broker's, once every fill the broker made is in
+    the ledger: the shares differ, or the resting stop is not for the shares held."""
     return reckon(root, broker)[1]
 
 
 def reckon(root: Path, broker: Broker) -> Reckoning:
-    """The book, the lines that differ, those whose shares do, the stops that do: one reading.
-    The broker asked once each for its fills, its stops and its holdings, in that order:
-    the book, the names on which it is not the broker's, those whose shares differ, and the
-    stops that are not the book's shares. Stops are read before holdings, so a stop that sells
-    between the two shows as shares gone, never as shares still there to be sold."""
+    """The book, the lines that differ, those whose shares do, the stops that do: one reading."""
+    return _compare(root, broker)
+
+
+def _compare(root: Path, broker: Broker) -> Reckoning:
+    """The broker asked once each for its fills, stops and holdings, in that order: the book, the
+    names on which it is not the broker's, those whose shares differ, the stops that are not the
+    book's shares. Stops are read before holdings, so a stop that sells between the two shows
+    as shares gone, never as shares still there to be sold."""
     collect(root, broker)
     ours = positions(root)
     stops = differences(ours, broker.stops())
@@ -393,7 +394,7 @@ def round_trips(root: Path, lines: Iterable[Line]) -> tuple[RoundTrip, ...]:
                 lots.appendleft((buy, open_shares - shares))
             left -= shares
             (paid, bought), (got, sold) = pounds(buy, shares), pounds(fill, shares)
-            costs, gross = bought + sold, got - paid
-            sides = replace(buy, quantity=shares), replace(fill, quantity=-shares)
-            trips.append(RoundTrip(*sides, gross, costs, gross - costs.total))
+            gross, costs = got - paid, bought + sold
+            bought_leg, sold_leg = replace(buy, quantity=shares), replace(fill, quantity=-shares)
+            trips.append(RoundTrip(bought_leg, sold_leg, gross, costs, gross - costs.total))
     return tuple(trips)
