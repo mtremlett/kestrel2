@@ -205,5 +205,5 @@ def test_the_closes_are_held_within_the_named_figure_after_each_venues_close(
         assert keeper.HELD - timedelta(minutes=1) < held <= keeper.HELD
     for venue in venues.RULES:  # held before the runner's 22:00, UK time, on every session
         for day in venues.sessions(venue, date(2026, 11, 16), date(2027, 12, 31)):
-            held = venues.hours(venue, day).auction + keeper.HELD
-            assert held.astimezone(venues.zone("LSE", day)).hour < 22
+            done = venues.hours(venue, day).auction + keeper.HELD
+            assert done.astimezone(venues.zone("LSE", day)).hour < 22
