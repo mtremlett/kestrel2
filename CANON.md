@@ -125,6 +125,8 @@ against a deliberate violation before it is called a guard**, and the evidence â
 mistake, the test that caught it â€” is recorded in `docs/DECISIONS.md`. On the first day
 the guard that keeps this desk from live money passed green while doing nothing: it excused
 any file holding the word "never". **A whole-file escape hatch is not a guard.**
+**Rules reach a session by load, never by request:** CLAUDE.md's imports and the start-up
+hook carry them through every summary; "read this file" fades. What must never fail is a check.
 
 ## A8. Stop rules
 - **Two failed attempts at one problem: stop**, and never retry a failing command
