@@ -15,7 +15,7 @@ import pytest
 
 from desk import book
 from desk.broker import Pretend
-from desk.lines import LINES
+from desk.lines import LINES, Line
 from desk.orders import BROKER, Charges, Order, Settings
 from desk.store import Bar
 from lab import cell, rung
@@ -31,6 +31,11 @@ AAPL = next(line for line in LINES if line.symbol == "AAPL")
 #: breakout_20_10 buys on the close of bar 20, over bar 19's high of 10.05, and sells on the
 #: close of bar 23, under the low of 9.95 ten days before
 SHAPE = [10] * 20 + [10.4, 11, 11, 9.4, 9.4]
+
+
+def line_of(symbol: str) -> Line:
+    """The desk's line of this symbol."""
+    return next(line for line in LINES if line.symbol == symbol)
 
 
 def _bars(closes: Sequence[float]) -> tuple[Bar, ...]:
@@ -63,7 +68,7 @@ def _judge(
     rates: rung.Rates = POUND,
     room: Settings = TEN_K,
 ) -> rung.Verdict:
-    record = cell.run(Cell("breakout_20_10", symbol, bars[0].day, bars[end].day), bars)
+    record = cell.run(Cell("breakout_20_10", line_of(symbol), bars[0].day, bars[end].day), bars)
     return rung.judge(record, bars, room, rates)
 
 

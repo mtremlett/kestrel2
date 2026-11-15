@@ -9,7 +9,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 import pytest
-from test_lab_rung import AAPL, POUND, SHAPE, TEN_K, _bars, _walk
+from test_lab_rung import AAPL, POUND, SHAPE, TEN_K, _bars, _walk, line_of
 
 from desk import orders
 from desk.lines import LINES
@@ -34,7 +34,7 @@ def _flash(late: int = 0) -> tuple[Bar, ...]:
 
 
 def _stress(bars: Sequence[Bar], symbol: str = "VUSA", rates: rung.Rates = POUND) -> Stressed:
-    window = Cell("breakout_20_10", symbol, bars[0].day, bars[-1].day)
+    window = Cell("breakout_20_10", line_of(symbol), bars[0].day, bars[-1].day)
     return stress.judge(window, bars, TEN_K, rates)
 
 
