@@ -563,3 +563,123 @@ Decided by the MONEY lane as the desk's mentor, no one watching.
 ### 2026-11-14 — the pound's rate carried over a UK-only holiday (#208, R-RUNNER-26)
 - One rule in `desk/carry.py` (book.py is at its cap): the last London session's rate is carried for at most 3 US sessions; any other day without a rate stays an error.
 - `desk/command.py` is the PAPER lane's file and the lane guard refused the edit. Options: edit anyway (refused); hand to PAPER (chosen, R-MONEY-32). The ladder should call `desk.carry.carried(rates_by_day, day)`.
+
+### 2026-11-15 — the pound's rate from its closes (#224, R-RUNNER-44)
+- `desk/carry.py` `pounds_per_dollar(closes, day)`: one over the pound's last close before the day, fresh when no shared London-and-New-York session lies between.
+- Decided: "between" excludes the close day and the day itself; one missing shared session already made a close stale (the stated rule). The dollar sanity band (DOLLARS) stays with callers.
+- Remains: `lab/ladder.rates` (R-RUNNER-45) and `desk/command.rates` still use their own 4-day rule and must move onto it.
+
+### 2026-11-15 — SimCity worlds start each line at its own first bar (#231, R-RUNNER-48)
+- The deep run died on day 1: worlds start in 2010 but the yardstick VUAG begins in 2019. A line takes part on a day only if it has a bar before it; late lines are named in the night's words.
+- Decided: Days before the yardstick's first bar are not lived. Options: invent a market figure for them (a fake), or skip them; chose skip. No new module: the file was squeezed to its 400-line cap.
+- Remains: The deep run on the real store, once on main.
+
+### 2026-11-15 — Donchian four-week breakout (#246, R-RUNNER-63)
+- `DonchianChannelBreakout` in `desk/eponymous_bands.py`, long only, daily.
+- Decided: Exit. Options: the 10-day low (Turtle system 1, already in the desk) or the 20-day low (Donchian's own). Chose 20 so it differs from breakout_20_10 and follows the author. No primary-source figure found; none claimed.
+
+### 2026-11-15 — Connors' RSI-2 (#247, R-RUNNER-60)
+- `desk/eponymous_connors.py`, reusing strategy.py's helpers (one owner).
+- Decided: Entry under 10 (the book's main) rather than 5 (already the frozen rsi2_pullback); options 5 or 10, chose 10. The published figure is unwritten (no book copy).
+- Remains: The published figure; a blind review.
+
+### 2026-11-15 — pound close fresh across one missing shared session (#257, R-RUNNER-84)
+- `SHARED_MISSING = 1` in `desk/carry.py`: one missing shared session is fresh, two stale. Fixes the US cell on 2019-05-23 with no dated exception.
+- Decided: The request said every existing test stays, but one assertion (close 2 Jun 2025, day 4 Jun) encoded zero tolerance. Options: keep it (rule unmeetable) or flip it (chosen).
+
+### 2026-11-15 — weekly_reversal_jegadeesh (#248, R-RUNNER-76)
+- `desk/eponymous_swing.py`: buy a close under the close five sessions back, hold five, sell.
+- Decided: (1) Jegadeesh 1990 is monthly; the weekly form is Lehmann 1990; options 21 or 5 sessions, chose 5 as the name says. (2) Long-only keeps the loser leg of a long/short cross-section. (3) Private `_run`/`ARITHMETIC` imported from strategy.py to avoid a second decision loop.
+- Remains: Verify the paper's figures; wiring EPONYMOUS into the ladder.
+
+### 2026-11-15 — Connors %b (#256, R-RUNNER-61)
+- `ConnorsPercentB` in `desk/eponymous_connors.py`.
+- Decided: A flat 20-day window has no bands, so no %b: it resets the run of low days and forces no exit (options: treat as 0, which would buy flat markets, or undefined; chose undefined). Exit at the book's 0.8, not 0.5.
+
+### 2026-11-15 — Donchian fade in chop (#258, R-RUNNER-64)
+- `DonchianFadeChop`: buy at the 20-session low when the channel is a range, sell at the midpoint.
+- Decided: Range test: no filter / 10% width / ATR-based; chose 10% width, simplest. Exit: midpoint or far edge; chose midpoint, cautious. Source not found.
+- Remains: The source and any published figure; compare with the old desk.
+
+### 2026-11-15 — Dan Zanger breakout (#265, R-RUNNER-71)
+- `desk/eponymous_dan_zanger.py`: buy over the 50-day high on 1.5x volume, sell under the 10-day average.
+- Decided: The 50-day base and 1.5x volume are this port's numbers (options 40/60 days, 1.3x/2x; sources give none). The ladder can vary them.
+
+### 2026-11-15 — Clenow's momentum (#267, R-RUNNER-74)
+- `desk/eponymous_clenow_momentum.py`.
+- Decided: A single line cannot be ranked, so the book's "top fifth" becomes "score positive" (the alternative, a fixed threshold, is an invented number). The 14% figure is secondary.
+
+### 2026-11-15 — Darvas's box (#251, R-RUNNER-68)
+- `desk/eponymous_breakouts.py`, `darvas_box` in RULES (it keeps RULES, which its decide() uses).
+- Decided: (1) Close-based reading of the stop-buy: the template decides after the close, so a break that closes inside the box is no buy. (2) A box is complete when the lowest low from the top's session on has stood 3 sessions. The blind review's stale-top buy was fixed with a test.
+- Remains: The ladder wiring for RULES is another box.
+
+### 2026-11-15 — Connors' three-day high/low (#261, R-RUNNER-62)
+- `desk/eponymous_connors_three_day_high_low.py`.
+- Decided: Buy at the close or the next open; took the close, as the sibling Connors rule does. His standing ruling: go with recommended.
+
+### 2026-11-15 — Kell's base-and-break (#269, R-RUNNER-70)
+- `desk/eponymous_kell_breakout.py`.
+- Decided: Base 20 sessions and 10-day trail from the range 10-30 / 10 or 20; 20/10 matches the family's other breakouts.
+
+### 2026-11-15 — Mansfield RS momentum (#271, R-RUNNER-75)
+- `desk/eponymous_mansfield_rs_momentum.py`.
+- Decided: The template sees one line but RS needs the market. Options: (a) take SPY from the bars given (chosen; loud error without SPY); (b) edit the template (forbidden before Monday 21:30); (c) price-only proxy (not Mansfield). The zero-line cross only.
+
+### 2026-11-15 — Faber's 10-month rule (#264, R-RUNNER-73)
+- `desk/eponymous_faber_tactical.py`.
+- Decided: Month-end detection. (a) judge on the first bar of the next month (exact, one-session lag; chosen); (b) last weekday (breaks on holidays).
+
+### 2026-11-15 — Williams' %R (#273, R-RUNNER-67)
+- `desk/eponymous_williams_r.py`.
+- Decided: Bands: (a) the book's 10 days, -90/-10 (chosen), (b) the common 14 days, -80/-20 (recorded as range). Zero-range window keeps the position, %R being undefined.
+
+### 2026-11-15 — Zweig's breadth thrust (#275, R-RUNNER-80)
+- `desk/eponymous_zweig_breadth_thrust.py`; takes breadth as an argument and fails loudly on a missing day.
+- Decided: Zweig gives no sale. Options: (a) hold 230 sessions (the book's horizon; chosen), (b) sell when the average falls under 0.40, (c) none. Figures 24.6%, 14 signals are secondary.
+- Remains: A breadth series from DATA (R-MONEY-35).
+
+### 2026-11-15 — Bollinger's squeeze (#262, R-RUNNER-66)
+- `desk/eponymous_bollinger_squeeze.py`.
+- Decided: Exit on the middle band (options: middle, lower band, fixed days). Squeeze judged on the previous day, ties counted, so a bar cannot confirm its own squeeze.
+
+### 2026-11-15 — Weinstein stage analysis (#277, R-RUNNER-79)
+- `desk/eponymous_weinstein_stage.py`.
+- Decided: "Rising" is the average above its value 5 sessions earlier; options flat-or-rising or a longer slope; took the strict book reading.
+
+### 2026-11-15 — Raschke's Turtle Soup (#276, R-RUNNER-77)
+- `desk/eponymous_raschke_swing.py`.
+- Decided: Which Street Smarts setup? Options: 80-20 reversal, Holy Grail, Turtle Soup; chose Turtle Soup, the best-defined. Exit: the stop alone (a close under the buying day's low), no mechanical profit rule being published.
+- Remains: A later session can swap the setup if the old desk's reading differs.
+
+### 2026-11-15 — Minervini's breakout (#266, R-RUNNER-69)
+- `desk/eponymous_minervini_breakout.py`.
+- Decided: Relative-strength rank left out (a one-line rule cannot see the market; options stand-in or omit). Exit the 50-day average, not a 7-8% stop, since the template carries no entry price.
+
+### 2026-11-15 — Antonacci dual momentum (#250, R-RUNNER-72)
+- `desk/eponymous_momentum.py` `DualMomentum`.
+- Decided: The absolute-momentum leg alone with the bill return taken as zero (option (b): refuse until the template offers a second line). The call lags the month-end by one session. The 17.4% figure is from memory, unchecked.
+- Remains: The relative leg and bond fallback need a template change after Monday 21:30; a bill-rate series.
+
+### 2026-11-15 — Keltner's channel trend (#272, R-RUNNER-65)
+- `desk/eponymous_keltner_channel_trend.py`.
+- Decided: Window includes the judged day; exit at the lower band (the book's) rather than the centre line; long only.
+
+### 2026-11-15 — every eponymous module declares EPONYMOUS (#280, R-RUNNER-88)
+- 16 modules gained `EPONYMOUS: Mapping[str, type[Rule]]`; a registry test sits in `tests/unit/test_eponymous_swing.py` (the lane guard lets MONEY own only tests named after a module).
+- Decided: The nameless momentum rule is named `dual_momentum` (alternative `antonacci_dual_momentum`), the name its test uses.
+- Remains: `lab/cell.py`, `ladder.py`, `trials.py` still accept only STRATEGIES (R-RUNNER-89, R-RUNNER-87).
+
+### 2026-11-15 — Broker.stops names the desk's own stops (#282, R-PAPER-9)
+- Docstring only.
+- Decided: (a) the desk's own stops (chosen) or (b) every stop at the broker. The kill switch and conformance compare only the desk's orders; the old-desk account is shared on port 4002.
+
+### 2026-11-15 — DeMark's TD Sequential (#274, R-RUNNER-78)
+- `desk/eponymous_demark_sequential.py`.
+- Decided: Published figure left unwritten rather than quoted from memory; countdown compare = close at or below the low two bars back (the book reading), the close compare noted as range.
+- Remains: The countdown's cancel by a sell setup is coded but untested.
+
+### 2026-11-15 — unknown place error pulls the kill switch (#285, R-PAPER-10)
+- An error from `place` other than Disconnected, Refused or Crash turns the kill switch on, cancels the desk's working orders (stops for held shares stay) and raises `book.Alarm`.
+- Decided: (1) `book.Alarm` carries the message (options: post from book, which lacks a clock and messenger; or a typed error for the caller). (2) Crash passes through unchanged. (3) The switch's time is `datetime.now(UTC)`, as `send` has no clock argument. The blind review found the test did not prove the cancel; fixed and seen failing without it.
+- Remains: The Telegram line: R-MONEY-36 to PAPER.
