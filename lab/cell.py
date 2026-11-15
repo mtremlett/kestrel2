@@ -34,7 +34,7 @@ from decimal import localcontext
 from pathlib import Path
 
 from desk import strategy
-from desk.lines import LINES, Line
+from desk.lines import Line
 from desk.store import Bar
 from desk.strategy import ARITHMETIC, STRATEGIES, Action, _run
 from lab import grid, rulebook
@@ -43,28 +43,24 @@ ROOT = Path(__file__).parents[1]
 CELL = "lab.cell"  #: this module, the foot of the ladder
 
 
-@dataclass(frozen=True, init=False)
+@dataclass(frozen=True)
 class Cell:
     strategy: str
     line: Line  #: the ticker on its venue, with its facts
     start: date  #: the first day whose buys belong to the cell
     end: date  #: the last bar the rule is shown
 
-    def __init__(self, strategy: str, line: Line | str, start: date, end: date) -> None:
-        """A symbol alone names one of the twenty, where no two share one: the rungs lane's
-        cells are still made so, and this door closes when they name a line."""
-        if isinstance(line, str):
-            found = [known for known in LINES if known.symbol == line]
-            if not found:
-                raise ValueError(f"{line!r} is not a line in the instrument master")
-            line = found[0]
-        if strategy not in STRATEGIES:
-            rulebook.rule(strategy)  #: refuses a name the rule book does not know
-        if end < start:
-            raise ValueError(f"{line.symbol} on {line.venue}: a window that ends before it starts")
-        made = (("strategy", strategy), ("line", line), ("start", start), ("end", end))
-        for field, value in made:
-            object.__setattr__(self, field, value)
+    def __post_init__(self) -> None:
+        if not isinstance(
+            self.line, Line
+        ):  #: a boundary of untyped callers: a symbol is not a line
+            raise TypeError(f"a cell names a Line, not {type(self.line).__name__} {self.line!r}")
+        if self.strategy not in STRATEGIES:
+            rulebook.rule(self.strategy)  #: refuses a name the rule book does not know
+        if self.end < self.start:
+            raise ValueError(
+                f"{self.line.symbol} on {self.line.venue}: a window that ends before it starts"
+            )
 
     @property
     def symbol(self) -> str:
