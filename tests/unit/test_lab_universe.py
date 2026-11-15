@@ -43,7 +43,9 @@ def test_the_research_list_is_the_four_lists_of_the_ruling_each_on_its_own_venue
     dollars = {line.symbol for line in universe.FTSE350 if line.currency == "USD"}
     assert dollars == {"BPCR", "CPG", "IHG", "MNTN", "RTW"}
     named = [(line.symbol, line.venue) for line in universe.UNIVERSE]
-    assert len(named) == len(set(named)) == len(set(american + universe.FTSE350)) == 1065
+    assert len(named) == len(set(named)) == len(set(american + universe.FTSE350)) + 1 == 1066
+    #: ISF, London's yardstick, is studied so that the store holds LSE/ISF.csv for the ladder
+    assert [x.symbol for x in universe.YARDSTICKS] == ["ISF"]
     assert all(re.fullmatch("[A-Z0-9]+(-[A-Z])?", symbol) for symbol, _ in named)
 
 
@@ -79,6 +81,11 @@ def test_one_symbol_is_two_companies_so_each_venue_keeps_its_own_folder(tmp_path
     assert universe.keep(tmp_path, DAY, both, _ask) == {}
     assert store.read(tmp_path / "US", "BA")[-1].close < 150
     assert store.read(tmp_path / "LSE", "BA")[-1].close > 150
+
+
+def test_a_refresh_writes_londons_yardstick_where_the_ladder_reads_it(tmp_path: Path) -> None:
+    assert universe.keep(tmp_path, DAY, universe.YARDSTICKS, _ask) == {}
+    assert (tmp_path / "LSE" / "ISF.csv").is_file()
 
 
 def test_a_refused_ticker_is_parked_by_line_and_keeps_no_bars_and_the_rest_are_kept(
