@@ -11,6 +11,9 @@ What a step owes, in this order, and only of a gateway that says it is ready:
 - THE KILL SWITCH'S DRILL (`_drill`), once each day, in UTC, at its first step with anything
   below to do: no order goes on a day the switch was not seen to work. A drill that broke a
   promise is a step that failed: nothing below is done, and the next step drills again.
+- THE CRASH WATCH'S LOOK (watch.look), at every step and every hour, before anything below:
+  it halts buying on a crash, and a look that cannot yet read the market's first bar of its
+  session (London's 08:05) holds that venue's round of orders till the bar is in the fast store.
 - THE DAY'S CHECK (clearance.check), from the hour he wakes, and again before each round of
   orders and each record. When it names anything, what a dead desk left at the broker is
   first put right (`recover`) and the account checked again. Still not clean, no order goes
@@ -51,10 +54,11 @@ from desk import (
     paper,
     placing,
     venues,
+    watch,
 )
 from desk.book import Switch
 from desk.gateway import Known, State
-from desk.lines import LINES, Line
+from desk.lines import LINES, YARDSTICK, Line
 from desk.listing import Listing, Unlisted
 from desk.orders import Settings
 from desk.paper import Resting
@@ -90,6 +94,10 @@ class Desk:
     bars: Callable[[date], Saved]
     #: A day's pounds per unit of each currency: the same answer at every asking.
     rates: Callable[[date], Mapping[str, Decimal]]
+    #: The crash watch's two doors: the fast store of five-minute bars, and the daily bars as
+    #: last kept by the store's keeper (no archive is asked at a step's look, only at a round).
+    hot: Path
+    held: Callable[[date], Saved]
 
 
 class Note(NamedTuple):
@@ -191,15 +199,17 @@ def _clean(
     return not found
 
 
-def _pending(root: Path, now: datetime) -> list[str]:
+def _pending(root: Path, now: datetime, seen: watch.Look) -> list[str]:
     """The venues whose round of orders is owed now: in continuous trading, with no round of
-    today's on the record."""
+    today's on the record, and, of the market's own venue, once the look has read a bar of
+    the session (it holds the round till then, see watch.EARLY)."""
     done = {note.what for note in notes(root) if note.at.date() == now.date()}
     trading = {venue: venues.open_at(venue, now) for venue in VENUES}
     return [
         venue
         for venue, hours in trading.items()
         if hours and now < hours.close and ORDERS.format(venue) not in done
+        if not (venue == YARDSTICK.venue and seen.unread.get(YARDSTICK) == watch.EARLY)
     ]
 
 
@@ -267,13 +277,13 @@ def _drill(root: Path, now: datetime) -> None:
             raise kill.Failed(UNDRILLED.format(broke)) from broke
 
 
-def _work(desk: Desk, now: datetime) -> None:
+def _work(desk: Desk, now: datetime, seen: watch.Look) -> None:
     """What a step owes of a ready gateway, in the module's order; the paper account is
     asked only when something is owed. A round and a record each have the check before
     them, so a desk started again at any hour is recovered before it orders or publishes;
     and the day's drill is before them all, an error raised if it broke a promise."""
     root = desk.root
-    rounds, owed, last = _pending(root, now), _owed(root, now), clearance.checks(root)[-1:]
+    rounds, owed, last = _pending(root, now, seen), _owed(root, now), clearance.checks(root)[-1:]
     checked = bool(last) and last[0].at.date() == now.date() and last[0].found is not None
     awake = gateway._uk(now).time() >= messenger.MORNING.start
     check = bool(rounds or owed) or (awake and not checked)
@@ -320,8 +330,9 @@ def step(desk: Desk, now: datetime) -> None:
     known = UNASKED
     try:
         known = gateway.known(now)
+        seen = watch.look(desk.root, desk.hot, desk.held(now.date())[0], now, desk.post)
         if known:
-            _work(desk, now)
+            _work(desk, now, seen)
     except Exception as fault:
         kind = type(fault).__name__
         _note(desk.root, now, f"{TROUBLE} {kind}", FAILED.format(kind, fault))

@@ -45,6 +45,7 @@ from desk import (
     clearance,
     gateway,
     halt,
+    keeper,
     kill,
     listing,
     messenger,
@@ -121,8 +122,18 @@ def _post(env: Mapping[str, str]) -> messenger.Post:
     return unsaid
 
 
-def _desk(root: Path, post: messenger.Post) -> Desk:
-    return Desk(root, Settings(CAPITAL), post, partial(bars, root / STORE), partial(rates, root))
+def _desk(root: Path, post: messenger.Post, home: Path) -> Desk:
+    """The real doors, with the desk's records at root; the keeper's stores are in home."""
+    prices = partial(bars, root / STORE)
+    return Desk(
+        root,
+        Settings(CAPITAL),
+        post,
+        prices,
+        partial(rates, root),
+        home / keeper.HOT,
+        partial(keeper.saved, home),
+    )
 
 
 def _phone(env: Mapping[str, str]) -> str:
@@ -242,7 +253,7 @@ def rehearse(root: Path, now: datetime) -> tuple[bool, str]:
         said.append(text)
         return len(said)
 
-    desk = _desk(root / REHEARSALS / f"{now:%Y%m%dT%H%M%S}", post)
+    desk = _desk(root / REHEARSALS / f"{now:%Y%m%dT%H%M%S}", post, root.parent)
     moments, failed = _moments(on), list[str]()
     for at in moments:
         try:
@@ -269,7 +280,7 @@ def main(
     root, now = Path(env["KESTREL2_DATA"]) / ROOT, clock()
     if not root.is_absolute():
         raise SystemExit(f"KESTREL2_DATA names no whole path to a folder: {root.parent}")
-    desk = _desk(root, _post(env))
+    desk = _desk(root, _post(env), root.parent)
     match argv:
         case []:
             running.step(desk, now)
