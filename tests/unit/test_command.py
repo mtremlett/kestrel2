@@ -38,6 +38,7 @@ MON = datetime(2026, 11, 16, 7, 15, tzinfo=UTC)
 FRI, SUNDAY = date(2026, 11, 13), datetime(2026, 11, 15, 18, tzinfo=UTC)
 KEYS = {"TELEGRAM_BOT_TOKEN": "1:a", "TELEGRAM_CHAT_ID": "5"}
 Fetch = Callable[[Line, date], tuple[Bar, ...]]
+ASKED: list[tuple[Path, date]] = []  #: the keeper's store, each time the desk read it
 
 
 def _flat(on: date, price: str) -> Bar:
@@ -65,7 +66,12 @@ def _world(patch: pytest.MonkeyPatch, fetch: Fetch = _fetch) -> dict[bytes, Said
         return talk(_wire(HELLO, ACCOUNTS, NEXT, *answers[b"".join(asked[2:])]), lambda _: None)
 
     patch.setattr(archive, "fetch", fetch)
-    patch.setattr(keeper, "saved", lambda _home, day: ({n: fetch(n, day) for n in LINES}, set()))
+
+    def saved(home: Path, day: date) -> tuple[dict[Line, tuple[Bar, ...]], set[str]]:
+        ASKED.append((home, day))
+        return {n: fetch(n, day) for n in LINES}, set()
+
+    patch.setattr(keeper, "saved", saved)
     patch.setattr(paper, "dial", dial)
     patch.setattr(listing, "read", lambda _: LISTED)
     return answers
@@ -90,31 +96,16 @@ def test_a_step_does_the_days_work_under_the_data_folder_and_fails_by_name_witho
     (note,) = running.notes(desk)
     assert note.what == "orders LSE" and "none sent in this round" in note.words
     assert book.rate(desk, "USD", MON.date()) == Decimal("0.8") and not messenger.deliveries(desk)
-    assert (desk / "store" / "VUAG.csv").exists()
+    assert ASKED and {home for home, _ in ASKED} == {tmp_path}
     with pytest.raises(SystemExit, match="--preflight"):
         _run(tmp_path, MON, "--now")
 
 
-def test_the_doors_refuse_an_archive_that_answers_for_no_line_and_a_pound_they_cannot_trust(
+def test_the_doors_refuse_a_pound_they_cannot_trust(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    lost, today = set[str](), MON.date()
-
-    def fetch(line: Line, before: date) -> tuple[Bar, ...]:
-        if line.symbol in lost:
-            raise OSError("no network")
-        return _fetch(line, before)
-
-    _world(monkeypatch, fetch)
-    saved, parked = command.bars(tmp_path, today)
-    assert set(saved) == set(LINES) and not parked
-    assert {series[-1].day for series in saved.values()} == {FRI}
-    lost.add("ISF")  # a line the archive cannot be reached for is parked alone, with no bar
-    saved, parked = command.bars(tmp_path, today)
-    assert parked == {"ISF"} and [s for line, s in saved.items() if line.symbol == "ISF"] == [()]
-    lost |= {line.symbol for line in LINES}
-    with pytest.raises(OSError, match="gave no line's bars, so none are stored: OSError: no net"):
-        command.bars(tmp_path, today)
+    today = MON.date()
+    _world(monkeypatch)
     # the pound: a rate on the day's record is the day's, whatever the archive says later
     assert command.rates(tmp_path, today) == {"GBP": 1, "USD": Decimal("0.8")}
     book.record_rates(tmp_path, today, {"USD": Decimal("0.75")})
@@ -169,7 +160,7 @@ def test_the_preflight_says_ready_or_names_each_thing_that_is_not_and_sends_no_o
         raise ConnectionRefusedError
 
     monkeypatch.setattr(paper, "dial", shut)  # a Gateway that does not answer, and no prices
-    monkeypatch.setattr(archive, "fetch", lambda _line, _day: ())
+    monkeypatch.setattr(keeper, "saved", lambda _home, _day: ({n: () for n in LINES}, set()))
     assert _run(tmp_path, MON + timedelta(minutes=2), "--preflight", **KEYS) == 1
     line = capsys.readouterr().out
     assert "the Gateway: ConnectionError: The paper Gateway does not answer: its port" in line

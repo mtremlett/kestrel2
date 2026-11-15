@@ -137,8 +137,11 @@ ETFS = _lines(
     IUSG
     """,
 )
+#: London's yardstick, the iShares FTSE 100, which the ladder sets a London line beside: studied,
+#: never traded here (it is also a trading line, so the instrument master's own line).
+YARDSTICKS = _lines("LSE", "GBP", "ISF")
 #: Every ticker once: a share on two lists (most of the Nasdaq 100) is one line.
-UNIVERSE = tuple(dict.fromkeys(SP500 + NASDAQ100 + FTSE350 + ETFS))
+UNIVERSE = tuple(dict.fromkeys(SP500 + NASDAQ100 + FTSE350 + ETFS + YARDSTICKS))
 #: SPY, studied as the S&P 500's own history from its first session, 29 January 1993, and never
 #: traded: a reference series (R-RUNGS-5, R-PAPER-16), kept apart from the traded bars above.
 REFERENCE = tuple(line for line in ETFS if line.symbol == "SPY")

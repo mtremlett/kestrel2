@@ -27,7 +27,7 @@ from desk.running import Desk, Note
 from desk.store import Bar
 
 MON, ID, OLD = tp.AT, "20261113-bollinger_pullback-IITU", "20261112-rsi2_pullback-IITU"
-OPEN, SHUT = MON.replace(hour=14, minute=35), MON.replace(hour=21, minute=5)
+OPEN, SHUT = MON.replace(hour=14, minute=35), MON.replace(hour=21, minute=39)
 DAY = timedelta(days=1)
 SPAN = date(2026, 7, 1), date(2026, 11, 30)
 DAYS = [date(2026, 10, 16) + timedelta(days=n) for n in range(29)]
@@ -85,10 +85,9 @@ def _desk(root: Path, **bars: Sequence[Bar]) -> tuple[Desk, Mock]:
         root,
         Settings(Decimal(4750)),
         post,
-        saved,
         Mock(return_value=RATES),
         hot,
-        Mock(return_value=(given, set())),
+        saved,
     ), post
 
 
@@ -140,7 +139,7 @@ def test_at_each_open_the_step_checks_the_account_and_sends_the_days_orders_once
     assert said[:2] == (OPEN, "orders US") and len(clearance.checks(tmp_path)) == 2
     assert "bollinger_pullback-AAPL, 0 shares done" in said.words and "his word" in said.words
     assert _step(monkeypatch, desk, OPEN, [MADE, END]) == [FILLS] and _told(post)[2:] == [said[2]]
-    assert _told(desk.bars) == [MON.date()] * 2  # the store is asked once for each round
+    assert _told(desk.held) == [MON.date()] * 7  # five looks of the crash watch, two rounds
     assert [(at, to) for at, to, _ in book.switch(tmp_path)][:-1] == [(MON, Switch.DRILLED)]
     # yesterday's round is not today's, and a line with no bar of the session before is left
     # out and named, never passed over in silence
@@ -271,13 +270,15 @@ def test_the_days_record_is_made_once_every_market_is_shut_and_a_missed_session_
 ) -> None:
     desk, post = _desk(tmp_path, IITU=WEEK, VUAG=WEEK)
     clearance._keep(tmp_path, (Check(MON, ()),))
-    assert _step(monkeypatch, desk, SHUT - timedelta(minutes=1)) == []  # New York's bell, 21:00
+    assert (
+        _step(monkeypatch, desk, SHUT - timedelta(minutes=1)) == []
+    )  # 21:39: New York's closes are kept
     # the account is checked, then the book set against the broker's for the record
     read: list[Said] = [[END], tp.EMPTY, [END], tp.EMPTY, tp.EMPTY]
     assert _step(monkeypatch, desk, SHUT, *read) == [FILLS, ACCOUNT, FILLS, ACCOUNT, ACCOUNT]
     (record,) = day.records(tmp_path)
     assert (record.day, record.profit, record.market) == (MON.date(), Decimal(0), Decimal("118.75"))
-    assert "The last day on record, Mon 16 Nov" in _told(post)[-1]  # the evening message
+    assert "No day is on the desk's record yet" in _told(post)[-1]  # the evening, told at 21:05
     assert _step(monkeypatch, desk, SHUT + timedelta(minutes=5)) == []  # made once
     # an account that is not the book does not hold the record back: it is made, the profit
     # withheld (someone's shares on the account: nothing the desk can put right)
@@ -297,7 +298,9 @@ def test_the_days_record_is_made_once_every_market_is_shut_and_a_missed_session_
     assert [r.day for r in day.records(missed.root)] == days
     assert "The last day on record, Tue 17 Nov" in _told(tuesday)[-1]
     assert _told(missed.rates) == days
-    assert _told(missed.bars) == [on + timedelta(days=1) for on in days]
+    assert _told(missed.held)[1:] == [  # after the crash watch's look
+        on + timedelta(days=1) for on in days
+    ]
     assert [book.rate(missed.root, "GBP", on) for on in days] == [1, 1, 1]
 
 
