@@ -17,7 +17,9 @@ from desk.placing import Unprotected
 from desk.store import Bar
 
 A, B, MON = Line("A", "LSE", "GBP", 1), Line("B", "LSE", "GBP", 1), date(2025, 11, 10)
-WEEK = {line: (Bar(MON, *map(Decimal, (50, 51, 49, 51)), 1),) * 2 for line in (A, B)}
+WEEK = {
+    line: (Bar(MON, Decimal(50), Decimal(51), Decimal(49), Decimal(51), 1),) * 2 for line in (A, B)
+}
 ROOM = Settings(Decimal(10_000))
 
 

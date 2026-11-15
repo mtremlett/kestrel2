@@ -87,7 +87,7 @@ def send(root: Path, broker: Broker, order: Order | Sale, settings: Settings) ->
     report = broker.report(order.order_id)
     if report is None:
         _unless_stopped(root, order)
-        held, differ, unsure, _ = reckon(root, broker)
+        held, differ, unsure, _ = _compare(root, broker)
         if differ and (isinstance(order, Order) or order.line.symbol in unsure):
             words = f"{order.order_id}: not sent, the book is not the broker's on {list(differ)}"
             raise Stopped(Blocker.BOOK, words)
@@ -106,9 +106,8 @@ def send(root: Path, broker: Broker, order: Order | Sale, settings: Settings) ->
 
 
 def _place(root: Path, broker: Broker, order: Order | Sale) -> Report:
-    """The order goes to the broker, the desk's note of it kept until the desk has the broker's
-    last answer, or its door's word that it never went. Where the broker's word, fills and
-    account disagree (Unprotected) the order is gone: a halt stops buying, sales go on."""
+    """The order goes to the broker, the note kept until its last answer or its door's word that it
+    never went. Answers that disagree (Unprotected): gone, buying halted."""
     from desk.placing import Unprotected  #: placing imports this module, so only here
 
     going = root / GOING
@@ -139,9 +138,7 @@ def _place(root: Path, broker: Broker, order: Order | Sale) -> Report:
 
 
 def _settle(root: Path, broker: Broker) -> None:
-    """A DESK THAT DIED MID-SEND left its note (_place) and perhaps its order working, to fill
-    behind a gate that counts the book alone. So before the send path asks of an order or
-    sends one, the broker cancels the desk's own working orders, then the note is gone."""
+    """A DESK THAT DIED MID-SEND left a note (_place): the broker cancels its orders, it goes."""
     going = root / GOING
     if going.exists() and killed(root) is None:
         tuple(broker.cancel())
@@ -149,8 +146,7 @@ def _settle(root: Path, broker: Broker) -> None:
 
 
 def levels(root: Path) -> dict[str, Decimal]:
-    """THE STOPS THE DESK RESTED: each buy's stop level under its stop's id (the buy's and
-    "-stop"), oldest first, so a stop the broker lost goes back at its level."""
+    """THE STOPS THE DESK RESTED: each buy's stop level under its stop's id."""
     path = root / STOPS
     if not path.exists():
         return {}
@@ -268,10 +264,14 @@ def reconcile(root: Path, broker: Broker) -> tuple[str, ...]:
 
 
 def reckon(root: Path, broker: Broker) -> Reckoning:
-    """The broker asked once each for its fills, stops and holdings, in that order: the book, the
-    names on which it is not the broker's, those whose shares differ, the stops that are not the
-    book's shares. Stops are read before holdings, so a stop that sells between the two shows
-    as shares gone, never as shares still there to be sold."""
+    """One reading of the book against the broker."""
+    return _compare(root, broker)
+
+
+def _compare(root: Path, broker: Broker) -> Reckoning:
+    """The broker asked once for fills, stops, holdings in that order: the book, the names it
+    differs on, those whose shares differ, the stops not the book's. Stops come before holdings,
+    so a stop that sells between shows as shares gone, never shares left to sell."""
     collect(root, broker)
     ours = positions(root)
     stops = differences(ours, broker.stops())
