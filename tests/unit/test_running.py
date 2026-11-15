@@ -16,7 +16,7 @@ import test_placing as tp
 from test_paper import FLAT, Said, _account, _but, _gateway, _order
 from test_reports import AAPL, BOUGHT, DONE, END, IITU, LISTED, SMGB
 
-from desk import book, clearance, day, kill, listing, paper, running
+from desk import book, clearance, day, kill, listing, paper, running, watch
 from desk.book import Switch
 from desk.broker import Fill, Pretend
 from desk.clearance import Check
@@ -55,6 +55,14 @@ RATES = {"GBP": Decimal(1), "USD": Decimal("0.8")}
 UP = Decimal(41)
 WEEK = (*FLAT_, *(Bar(SHUT.date() + timedelta(days=n), UP, UP, UP, UP, 1) for n in (0, 1)))
 OUT = "Left out, parked or with no bar of {} Nov: {}."
+
+
+@pytest.fixture(autouse=True)
+def calm(monkeypatch: pytest.MonkeyPatch) -> Mock:
+    """The crash watch's look, which has its own tests: here the market reads calm."""
+    seen = Mock(side_effect=lambda _r, _h, _d, now, _p: watch.Look(now, (), {}))
+    monkeypatch.setattr(watch, "look", seen)
+    return seen
 
 
 def _desk(root: Path, **bars: Sequence[Bar]) -> tuple[Desk, Mock]:
@@ -114,7 +122,7 @@ def test_at_each_open_the_step_checks_the_account_and_sends_the_days_orders_once
     assert said[:2] == (OPEN, "orders US") and len(clearance.checks(tmp_path)) == 2
     assert "bollinger_pullback-AAPL, 0 shares done" in said.words and "his word" in said.words
     assert _step(monkeypatch, desk, OPEN, [MADE, END]) == [FILLS] and _told(post)[2:] == [said[2]]
-    assert _told(desk.bars) == [MON.date()] * 2  # the store is asked once for each round
+    assert _told(desk.bars) == [MON.date()] * 7  # asked at each of 5 looks and each of 2 rounds
     assert [(at, to) for at, to, _ in book.switch(tmp_path)][:-1] == [(MON, Switch.DRILLED)]
     # yesterday's round is not today's, and a line with no bar of the session before is left
     # out and named, never passed over in silence
@@ -268,7 +276,7 @@ def test_the_days_record_is_made_once_every_market_is_shut_and_a_missed_session_
     assert [r.day for r in day.records(missed.root)] == days
     assert "The last day on record, Tue 17 Nov" in _told(tuesday)[-1]
     assert _told(missed.rates) == days
-    assert _told(missed.bars) == [on + timedelta(days=1) for on in days]
+    assert _told(missed.bars)[1:] == [on + timedelta(days=1) for on in days]  # after the look's
     assert [book.rate(missed.root, "GBP", on) for on in days] == [1, 1, 1]
 
 
@@ -356,3 +364,18 @@ def test_an_order_is_dated_the_session_before_today_on_its_own_venues_calendar(
     ):
         with pytest.raises(Refused, match=saying):
             easter.place(order)
+
+
+def test_every_step_looks_before_its_orders_and_a_look_that_holds_sends_none(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, calm: Mock
+) -> None:
+    desk, post = _desk(tmp_path, IITU=FLAT_)
+    answers: list[Said] = [[END], tp.EMPTY, [END]]
+    calm.side_effect = lambda _r, _h, _d, now, _p: watch.Look(now, (), {YARDSTICK: watch.EARLY})
+    _step(monkeypatch, desk, MON.replace(minute=0), *answers)
+    assert not running.notes(tmp_path)  # London's round waits for the 08:05 bar
+    calm.side_effect = lambda _r, _h, _d, now, _p: watch.Look(now, (), {})
+    _step(monkeypatch, desk, MON, *answers)
+    assert [c.args[0] for c in calm.call_args_list] == [tmp_path, tmp_path]
+    assert calm.call_args.args[1:] == (desk.fast, desk.bars(MON.date())[0], MON, post)
+    assert running.notes(tmp_path)[0].what == "orders LSE"

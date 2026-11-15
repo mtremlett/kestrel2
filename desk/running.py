@@ -15,6 +15,9 @@ What a step owes, in this order, and only of a gateway that says it is ready:
   orders and each record. When it names anything, what a dead desk left at the broker is
   first put right (`recover`) and the account checked again. Still not clean, no order goes
   and he is told.
+- THE CRASH WATCH'S LOOK (watch.look), at every step and every hour, before any round. When
+  it cannot read the market (VUAG, the yardstick), no round is begun: London's morning round
+  waits for the 08:05 bar, and the next step asks again.
 - THE DAY'S ORDERS, one round for each venue, while it trades: the money path's own day
   (day.trade), on the bars saved before today, for that venue's lines. The send path asks
   the broker of every order before it sends, so a round begun twice sends nothing twice. A
@@ -45,16 +48,18 @@ from desk import (
     clearance,
     day,
     gateway,
+    keeper,
     kill,
     listing,
     messenger,
     paper,
     placing,
     venues,
+    watch,
 )
 from desk.book import Switch
 from desk.gateway import Known, State
-from desk.lines import LINES, Line
+from desk.lines import LINES, YARDSTICK, Line
 from desk.listing import Listing, Unlisted
 from desk.orders import Settings
 from desk.paper import Resting
@@ -90,6 +95,11 @@ class Desk:
     bars: Callable[[date], Saved]
     #: A day's pounds per unit of each currency: the same answer at every asking.
     rates: Callable[[date], Mapping[str, Decimal]]
+
+    @property
+    def fast(self) -> Path:
+        """The fast store the crash watch reads: in the data folder, beside the desk's own."""
+        return self.root.parent / keeper.HOT
 
 
 class Note(NamedTuple):
@@ -267,11 +277,12 @@ def _drill(root: Path, now: datetime) -> None:
             raise kill.Failed(UNDRILLED.format(broke)) from broke
 
 
-def _work(desk: Desk, now: datetime) -> None:
+def _work(desk: Desk, now: datetime, hold: bool) -> None:
     """What a step owes of a ready gateway, in the module's order; the paper account is
     asked only when something is owed. A round and a record each have the check before
     them, so a desk started again at any hour is recovered before it orders or publishes;
-    and the day's drill is before them all, an error raised if it broke a promise."""
+    and the day's drill is before them all, an error raised if it broke a promise. On a hold
+    (the watch cannot read the market) the check is made as ever but no round is begun."""
     root = desk.root
     rounds, owed, last = _pending(root, now), _owed(root, now), clearance.checks(root)[-1:]
     checked = bool(last) and last[0].at.date() == now.date() and last[0].found is not None
@@ -283,7 +294,7 @@ def _work(desk: Desk, now: datetime) -> None:
     broker = placing.Paper(listings, root, lambda: now)
     book.collect(root, broker)
     _drill(root, now)
-    if check and not _clean(desk, broker, listings, now):
+    if (check and not _clean(desk, broker, listings, now)) or hold:
         rounds = []
     for venue in rounds:
         _round(desk, broker, venue, now)
@@ -320,8 +331,9 @@ def step(desk: Desk, now: datetime) -> None:
     known = UNASKED
     try:
         known = gateway.known(now)
+        look = watch.look(desk.root, desk.fast, desk.bars(now.date())[0], now, desk.post)
         if known:
-            _work(desk, now)
+            _work(desk, now, YARDSTICK in look.unread)
     except Exception as fault:
         kind = type(fault).__name__
         _note(desk.root, now, f"{TROUBLE} {kind}", FAILED.format(kind, fault))
