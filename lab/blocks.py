@@ -88,6 +88,55 @@ class CloseBelowAverage(_Average):
         super().__init__(n, lambda close, mean: close < mean)
 
 
+class LowerRun(Block):
+    """Fires after `n` bars in a row, this one the last, each with a lower high and a lower low
+    than the bar before it."""
+
+    def __init__(self, n: int) -> None:
+        self._n, self._run = n, 0
+        self._last: Bar | None = None
+
+    def see(self, bar: Bar, holding: bool) -> bool:  # noqa: ARG002 - the one interface of every block
+        """Shown the next bar: whether the block fires."""
+        last, self._last = self._last, bar
+        lower = last is not None and bar.high < last.high and bar.low < last.low
+        self._run = self._run + 1 if lower else 0
+        return self._run >= self._n
+
+
+class _RangeEdge(Block):
+    """Fires when the close lies within `pct` per cent of the range of the last `n` bars (this
+    one's included), measured from its bottom or from its top. No range, no firing."""
+
+    def __init__(self, n: int, pct: int, from_top: bool) -> None:
+        self._highs, self._lows = _Window(n), _Window(n)
+        self._pct, self._from_top = pct, from_top
+
+    def see(self, bar: Bar, holding: bool) -> bool:  # noqa: ARG002 - the one interface of every block
+        """Shown the next bar: whether the block fires."""
+        self._highs.add(bar.high)
+        self._lows.add(bar.low)
+        if not self._highs.full:
+            return False
+        top, bottom = self._highs.high(), self._lows.low()
+        gap = top - bar.close if self._from_top else bar.close - bottom
+        return top > bottom and 100 * gap <= self._pct * (top - bottom)
+
+
+class CloseNearRangeLow(_RangeEdge):
+    """Fires on a close in the bottom `pct` per cent of the last `n` bars' range."""
+
+    def __init__(self, n: int, pct: int) -> None:
+        super().__init__(n, pct, from_top=False)
+
+
+class CloseNearRangeHigh(_RangeEdge):
+    """Fires on a close in the top `pct` per cent of the last `n` bars' range."""
+
+    def __init__(self, n: int, pct: int) -> None:
+        super().__init__(n, pct, from_top=True)
+
+
 class TrailingStop(Block):
     """Fires on a close `pct` per cent or more under the highest close since the position was
     first seen held. Nothing while the position is not held."""
@@ -141,9 +190,14 @@ class Spot:
 
 
 _DAYS = Param(int, 2, 400)
+_PCT = Param(int, 1, 50)
 #: The one list of blocks by name; a spec names these and no others.
 BLOCKS: Mapping[str, Spot] = {
     "highest_high": Spot(Kind.ENTRY, HighestHigh, {"n": _DAYS}),
+    "lower_run": Spot(Kind.ENTRY, LowerRun, {"n": _DAYS}),
+    "close_near_range_low": Spot(Kind.ENTRY, CloseNearRangeLow, {"n": _DAYS, "pct": _PCT}),
+    "close_near_range_high": Spot(Kind.EXIT, CloseNearRangeHigh, {"n": _DAYS, "pct": _PCT}),
+    "close_over_average": Spot(Kind.EXIT, CloseAboveAverage, {"n": _DAYS}),
     "lowest_low": Spot(Kind.EXIT, LowestLow, {"n": _DAYS}),
     "close_below_average": Spot(Kind.EXIT, CloseBelowAverage, {"n": _DAYS}),
     "trailing_stop": Spot(Kind.STOP, TrailingStop, {"pct": Param(Decimal, 1, 50)}),
