@@ -20,6 +20,9 @@ existing one, or becomes a check: the first desk forgot 56 lessons and 64 deny r
 5. **Evidence over assumption.** Read the code, reproduce it, run the check. No claim
    without proof from this session.
 6. **Small, reversible steps.** One concern per commit.
+7. **The machine is the product.** The runner and every tool that builds the desk obey
+   these same ceilings, caps, tests and rules. A process problem is fixed by deleting or
+   tightening, never by growing process code (the predecessors' tools outgrew the desk).
 
 ## A2. Fix the machine, not the symptom
 - Before editing, write down the hypothesis and the evidence: the failing test, the
@@ -42,6 +45,10 @@ existing one, or becomes a check: the first desk forgot 56 lessons and 64 deny r
 ## A3. Tests — few, strong, about the product
 - One check command runs everything. The hook, GitHub, the demo and the scoreboard all
   use it. There is no other way of verifying.
+- **One gate per principle, all inside that one check, on every change:** PEP-8, strict
+  types, docstrings, KISS (size, complexity), DRY (no duplicate bodies, one home per
+  number), SOLID (module walls, one contract test per interface). Only slow, deep tests
+  run nightly, and a red one is a fault. A principle with no gate is a wish.
 - The test suite is the only verification code. No scaffolding: no verify, check, smoke,
   debug or harness scripts in the tree, no tests of test helpers, no code that exists
   only to exercise other code. Scaffolding runs from outside the repository, and its
@@ -108,8 +115,9 @@ affected, and the test that will prove it.
    `docs/FAILURE_PATTERNS.md` where relevant.
 
 **Done** means: the fast check green locally, the whole check green on GitHub, its output
-read, tests seen failing first, reviewer passed, documents updated, committed, and a
-plain-English report. Never declare done without the check's output.
+read, tests seen failing first, reviewer passed, documents updated, committed, the outcome
+seen where it lands (a job's real result, never its exit code), and a plain-English
+report. Never declare done without the check's output and that outcome.
 
 ## A7. Prove the guard, never trust it
 A guard nobody has seen fail is a guard nobody has tested. **Every guard is driven

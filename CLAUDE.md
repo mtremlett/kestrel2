@@ -62,7 +62,7 @@ his standing ruling the recommended option is taken without waiting, then told t
 He is not an engineer and does not read code or diffs. Write to him in plain English, in
 terms of business behaviour and risk, with options and a recommendation; never ask him
 to review code. He alone decides going live, entering credentials and spending money.
-Anything else asked of him takes the recommended option without waiting (13 November).
+Whatever a rule, a guard or his ruling settles is decided, not asked; say which rule.
 All of it is paper: no real money moves until he signs for going live.
 
 ## External systems
