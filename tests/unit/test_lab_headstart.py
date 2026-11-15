@@ -8,6 +8,7 @@ import sqlite3
 import zipfile
 from collections.abc import Iterable, Mapping
 from contextlib import closing
+from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -137,7 +138,7 @@ def test_an_old_bar_enters_only_vouched_for_and_checked_and_a_fresh_bar_wins(
         UK: Adopted(0, 0, 0, ("4 bars on a day with no fresh daily bar to vouch for them",))
     }
     assert headstart.adopt(store, Source.DATABASE, {UK: astray}, {UK: [DAY]}) == {
-        UK: Adopted(0, 3, 3, (f"{wrong} instrument; none kept",))
+        UK: Adopted(0, 3, 3, (f"{wrong} instrument (on 2026-11-13); none kept",))
     }
     assert bars.five(store, UK, bars.EPOCH, NOON + timedelta(1)) == held
     late = _at(5, "10 11 9 9.9")
@@ -312,3 +313,33 @@ def test_a_daily_history_joins_the_archives_day_with_its_gap_bridged_by_five_min
     with pytest.raises(ValueError, match="2 of the 3 bars already held"):
         headstart.daily(UK, tmp_path / "other", stores, date(2025, 11, 18))
     assert not (tmp_path / "other").exists()
+
+
+def test_an_old_store_in_adjusted_prices_never_writes_over_the_raw_and_a_real_difference_is_refused(
+    tmp_path: Path,
+) -> None:
+    store, then = tmp_path / "bars.db", NOON - timedelta(1)
+    raw = lambda start: _five(start)  # noqa: E731  # as traded: 10 11 9 10
+    adjusted = lambda start: _five(start, "9.9 10.89 8.91 9.9")  # noqa: E731  # a dividend's 1%
+    with bars.writing(store) as round_:
+        round_.five(UK, [raw(then), raw(NOON), raw(NOON + timedelta(minutes=5))])
+    old = [adjusted(then), adjusted(then + timedelta(minutes=5)), raw(NOON)]
+    old += [_at(5, "10 11 9 10.5"), raw(NOON + timedelta(minutes=10))]
+    days = {UK: [DAY, replace(DAY, day=then.date())]}
+    said = "2 bars on days that are the adjusted form of the store's as-traded bars: not taken"
+    got = headstart.adopt(store, Source.MATRICES, {UK: old}, days)
+    assert got == {UK: Adopted(1, 3, 1, (said,))}  # the 12:10 raw bar alone fills
+    expected = (raw(then), raw(NOON), _at(5), _at(10))  # nothing of the raw is written over
+    assert bars.five(store, UK, bars.EPOCH, NOON + timedelta(1)) == expected
+    with bars.writing(store, Source.MATRICES) as round_:
+        seen = round_.compare(UK, [adjusted(then)])
+    assert dict(seen.factors) == {then.date(): Decimal("0.99")}
+    assert [p * Decimal("0.99") for p in (raw(then).open, raw(then).low)] == [
+        adjusted(then).open,
+        adjusted(then).low,
+    ]  # read adjusted, the raw is the old series
+    other = [_five(then, "10 11 9 10.5"), _at(0, "10 11 9 10.5")]
+    refused = headstart.adopt(store, Source.DATABASE, {UK: other}, days)[UK]
+    assert refused.filled == 0
+    assert "2 of the 2 bars already held for the same moments differ" in refused.faults[-1]
+    assert "(on 2026-11-12, 2026-11-13)" in refused.faults[-1]

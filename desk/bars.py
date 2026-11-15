@@ -37,6 +37,8 @@ from statistics import median_low
 from typing import Any
 
 from desk import venues
+from desk.compare import AGREE as AGREE
+from desk.compare import Verdict, judge
 from desk.lines import LINES, Line
 from desk.store import FAR, JUMP, STRETCH, Bar, Refused
 from desk.store import _clean as cleaned
@@ -45,10 +47,6 @@ DAILY, FIVE = "daily", "five-minute"  #: the two spans of bar the store holds
 EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 #: The seconds anyone waits for the file: a writer for the one before it, or SQLite's own log.
 WAIT = 5.0
-#: Two sources' bars for one moment agree when no price of the four is further from the price
-#: held than this part of the price given: each vendor rounds its own way. Volumes are not
-#: compared, for each vendor counts the trades of its own venues.
-AGREE = Decimal("0.0001")
 
 
 class Source(Enum):
@@ -189,19 +187,21 @@ class Round:
         put = PUT if self._source.fresh else FILL
         return self._write(put, line, FIVE, ((_seconds(b.start), b) for b in bars))
 
-    def apart(self, line: Line, bars: Collection[Five]) -> tuple[int, int]:
-        """How many of the bars meet a bar held from another source for their own moment, and
-        how many of those differ from it."""
+    def compare(self, line: Line, bars: Collection[Five]) -> Verdict:
+        """How the bars meet the bars held from another source for their own moments (see
+        desk.compare): agreeing, the adjusted form of the raw, or a real disagreement."""
         given = {_seconds(bar.start): bar for bar in bars}
         key = (line.venue, line.symbol, FIVE, self._source.value, min(given, default=0))
-        met = differ = 0
-        for at, *held in self._held.execute(OTHERS, (*key, max(given, default=0))):
-            if at in given:
-                bar = given[at]
-                prices = zip(held, (bar.open, bar.high, bar.low, bar.close), strict=True)
-                differ += any(abs(Decimal(was) - now) > AGREE * now for was, now in prices)
-                met += 1
-        return met, differ
+        rows = self._held.execute(OTHERS, (*key, max(given, default=0)))
+        return judge(
+            line, [(given[at], [Decimal(p) for p in held]) for at, *held in rows if at in given]
+        )
+
+    def apart(self, line: Line, bars: Collection[Five]) -> tuple[int, int]:
+        """How many of the bars meet a bar held from another source for their own moment, and
+        how many of those are no form of it."""
+        verdict = self.compare(line, bars)
+        return verdict.met, len(verdict.differ)
 
     def closes(self, line: Line, since: datetime) -> list[Decimal]:
         """The closes of the line's five-minute bars held from since on, this round's too."""
