@@ -44,6 +44,7 @@ from desk.strategy import (
     ZERO,
     Decision,
     Declared,
+    Rule,
     Timeframe,
     _run,
     _Wilder,
@@ -125,3 +126,6 @@ def decide(bars: Mapping[str, Sequence[Bar]]) -> tuple[Decision, ...]:
         return tuple(
             d for symbol, series in bars.items() for d in _run(NAME, ConnorsRsi2(), symbol, series)
         )
+
+
+EPONYMOUS: Mapping[str, type[Rule]] = {NAME: ConnorsRsi2, "connors_percent_b": ConnorsPercentB}

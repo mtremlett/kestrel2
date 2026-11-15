@@ -32,7 +32,16 @@ from typing import ClassVar
 
 from desk.lines import LINES
 from desk.store import Bar
-from desk.strategy import ARITHMETIC, CLOSES, Decision, Declared, Timeframe, _Exponential, _run
+from desk.strategy import (
+    ARITHMETIC,
+    CLOSES,
+    Decision,
+    Declared,
+    Rule,
+    Timeframe,
+    _Exponential,
+    _run,
+)
 
 NAME = "zweig_breadth_thrust"
 #: days of the average and of the climb; the low and high marks; sessions held after a buy
@@ -92,3 +101,6 @@ def decide(
             for symbol, series in bars.items()
             for d in _run(NAME, ZweigBreadthThrust(breadth), symbol, series)
         )
+
+
+EPONYMOUS: Mapping[str, type[Rule]] = {NAME: ZweigBreadthThrust}

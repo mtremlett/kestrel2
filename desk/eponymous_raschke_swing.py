@@ -33,7 +33,7 @@ from typing import ClassVar
 
 from desk.lines import LINES
 from desk.store import Bar
-from desk.strategy import ARITHMETIC, RANGES, Decision, Declared, Timeframe, _run
+from desk.strategy import ARITHMETIC, RANGES, Decision, Declared, Rule, Timeframe, _run
 
 NAME = "raschke_swing"
 #: the book's days of low to undercut, and sessions the older low must be old by
@@ -75,3 +75,6 @@ def decide(bars: Mapping[str, Sequence[Bar]]) -> tuple[Decision, ...]:
             for symbol, series in bars.items()
             for d in _run(NAME, RaschkeTurtleSoup(), symbol, series)
         )
+
+
+EPONYMOUS: Mapping[str, type[Rule]] = {NAME: RaschkeTurtleSoup}

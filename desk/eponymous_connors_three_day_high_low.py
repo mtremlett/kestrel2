@@ -25,7 +25,7 @@ from typing import ClassVar
 
 from desk.lines import LINES
 from desk.store import Bar
-from desk.strategy import ARITHMETIC, RANGES, Decision, Declared, Timeframe, _run, _Window
+from desk.strategy import ARITHMETIC, RANGES, Decision, Declared, Rule, Timeframe, _run, _Window
 
 NAME = "connors_three_day_high_low"
 #: the book's days of trend, days of exit, and lower-high-and-low days in a row to buy on
@@ -62,3 +62,6 @@ def decide(bars: Mapping[str, Sequence[Bar]]) -> tuple[Decision, ...]:
             for symbol, series in bars.items()
             for d in _run(NAME, ConnorsThreeDayHighLow(), symbol, series)
         )
+
+
+EPONYMOUS: Mapping[str, type[Rule]] = {NAME: ConnorsThreeDayHighLow}

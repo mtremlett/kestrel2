@@ -21,12 +21,13 @@ It is a module the paper desk does not trade: it is in no list of strategy.STRAT
 from __future__ import annotations
 
 from collections import deque
+from collections.abc import Mapping
 from decimal import Decimal
 from typing import ClassVar
 
 from desk.lines import LINES
 from desk.store import Bar
-from desk.strategy import CLOSES, Declared, Timeframe
+from desk.strategy import CLOSES, Declared, Rule, Timeframe
 
 #: month-ends in a year, plus the one a year ago: the 12-month return needs 13 closes
 MONTH_ENDS = 13
@@ -52,3 +53,6 @@ class DualMomentum:
                 self._in = self._ends[-1] > self._ends[0]
         self._month, self._last = month, bar.close
         return self._in
+
+
+EPONYMOUS: Mapping[str, type[Rule]] = {"dual_momentum": DualMomentum}
