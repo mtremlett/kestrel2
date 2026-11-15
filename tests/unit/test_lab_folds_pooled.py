@@ -15,6 +15,9 @@ from lab.folds import Pooled
 from lab.reproduce import Figure, Fill, Found, Hand, Measure, Reproduction, Stated
 from lab.rung import Answer
 
+ISF = next(line for line in LINES if line.symbol == "ISF")
+VUSA = next(line for line in LINES if line.symbol == "VUSA")
+
 DOLLARS = {date(2010, 1, 1) + timedelta(n): Decimal("0.8") for n in range(4000)}
 _STATED = Stated(Measure.TRADES, Decimal(1), Decimal(0))
 EDGE, YEAR, RULE, LSE = 0.012, 365, "breakout_20_10", tuple(line.symbol for line in LINES)
@@ -43,7 +46,7 @@ def test_an_edge_in_every_year_passes_a_dead_walk_does_not_and_a_sour_year_is_na
 
 def test_a_rule_with_an_authors_figure_is_still_folded(monkeypatch: pytest.MonkeyPatch) -> None:
     bars = _walk(1, EDGE, days=YEAR * 7)
-    c = Cell(RULE, "VUSA", bars[0].day, bars[-1].day)
+    c = Cell(RULE, VUSA, bars[0].day, bars[-1].day)
     figure = Figure(
         RULE, "a planted author", c.line, c.start, c.end, Fill.CLOSE, (_STATED,), Hand.AUTHOR
     )
@@ -60,10 +63,10 @@ def test_a_rule_with_an_authors_figure_is_still_folded(monkeypatch: pytest.Monke
 
 def test_the_years_are_whole_and_the_answers_are_fair() -> None:
     bars = _walk(1, EDGE, days=YEAR * 3)
-    cells = [(Cell(RULE, "VUSA", bars[0].day, bars[-1].day), bars)]
+    cells = [(Cell(RULE, VUSA, bars[0].day, bars[-1].day), bars)]
     with pytest.raises(ValueError, match="no 5 whole years"):
         folds.pool(cells, TEN_K, DOLLARS)
-    other = Cell(RULE, "ISF", bars[0].day, date(2012, 6, 1))
+    other = Cell(RULE, ISF, bars[0].day, date(2012, 6, 1))
     with pytest.raises(ValueError, match="one common end"):
         folds.pool([*cells, (other, bars)], TEN_K, DOLLARS)
     few = folds.pool(cells, TEN_K, DOLLARS, 1).years[0]  #: a year with under 30 trades is THIN
