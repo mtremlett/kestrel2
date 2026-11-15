@@ -234,7 +234,34 @@ def test_the_door_dials_the_paper_port_on_this_machine_and_no_other(
 
     monkeypatch.setattr(socket, "create_connection", dial)
     assert paper.read() == Account((SMGB,), ())
-    assert dialled == [("127.0.0.1", 4002), 15] and len(sent) == 3
+    assert dialled == [("127.0.0.1", 4002), paper.SECONDS] and len(sent) == 3
+
+
+class _ColdGateway:
+    """A stand-in link whose first answer comes FIRST_ANSWER seconds after it is asked, as a
+    cold gateway under load did on 15 November: a read times out if the limit is shorter."""
+
+    FIRST_ANSWER = 20
+
+    def __init__(self, limit: float) -> None:
+        self.limit, self.wire = limit, _wire(HELLO, ACCOUNTS, READY, HELD, *ENDS)
+
+    def read(self, size: int) -> bytes:
+        if self.limit < self.FIRST_ANSWER:
+            raise TimeoutError("timed out")
+        return self.wire.read(size)
+
+
+def test_a_gateway_slow_with_its_first_answer_is_waited_for(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def dial(_: tuple[str, int], timeout: float) -> nullcontext[SimpleNamespace]:
+        cold = _ColdGateway(timeout)
+        wire = SimpleNamespace(read=cold.read)
+        return nullcontext(SimpleNamespace(makefile=lambda _: nullcontext(wire), sendall=len))
+
+    monkeypatch.setattr(socket, "create_connection", dial)
+    assert paper.read() == Account((SMGB,), ())
 
 
 def test_a_book_that_is_the_brokers_has_no_difference() -> None:

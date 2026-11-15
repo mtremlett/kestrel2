@@ -26,7 +26,11 @@ from desk.lines import Line
 HOST, PORT = "127.0.0.1", 4002  #: the paper port on this machine: the only door the desk dials
 CLIENT = 222  #: the desk's own client id at the gateway (docs/DECISIONS.md)
 VERSION = "176"  #: the one version of the gateway's language the desk reads
-SECONDS = 15  #: a gateway silent for longer has not answered
+#: A gateway silent for longer has not answered. A cold one under load was slower than 15
+#: seconds to its first answer on 15 November (a step timed out at its first read, three
+#: times in two days), so the limit allows four times that; a gateway that is down refuses
+#: at once and costs none of it.
+SECONDS = 60
 #: The kinds of message, by the gateway's own numbers.
 ACCOUNTS, READY, NEWS, STATUS = "15", "9", "4", "3"
 HOLDING, HOLDINGS_END, ORDER, ORDERS_END = "61", "62", "5", "53"

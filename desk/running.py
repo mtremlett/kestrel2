@@ -75,7 +75,9 @@ ORDERS, RECOVERED, UNCLEAN, TROUBLE = "orders {}", "recovered", "unclean", "trou
 ONCE = (UNCLEAN, TROUBLE)  #: told once a day, the first: of a failure, the first of its kind
 PUT_RIGHT = "The desk put right what a desk that stopped part-way left at the paper broker: {}."
 NOT_THE_BOOK = "The paper account is not the desk's book, so no order goes. Its check named: {}."
-FAILED = "A step of the desk failed; the next tries again: {}: {}. Its like today is not told."
+FAILED = (
+    "A step of the desk failed; the next tries again: {}: {} (in {}). Its like today is not told."
+)
 UNDRILLED = (
     "today's rehearsal of the kill switch did not pass, so the desk sends no order, checks no "
     "account and makes no record until one does. It was a rehearsal on a pretend desk: no real "
@@ -323,6 +325,18 @@ def _say(desk: Desk, now: datetime, known: Known) -> None:
             messenger.send(root, now, f"{note.what} {note.at:%Y-%m-%d %H:%M:%S}", note.words, post)
 
 
+def _where(fault: BaseException) -> str:
+    """The call a failure came from: the innermost desk function on its traceback, as
+    module.function, so that no failure, a timeout included, is anonymous."""
+    where, trace = "outside the desk", fault.__traceback__
+    while trace is not None:
+        module = trace.tb_frame.f_globals.get("__name__", "")
+        if module.startswith("desk."):
+            where = f"{module}.{trace.tb_frame.f_code.co_name}"
+        trace = trace.tb_next
+    return where
+
+
 def step(desk: Desk, now: datetime) -> None:
     """ONE STEP OF THE DESK UNATTENDED, at a moment in UTC: the gateway is asked whether it
     is ready, and of one that is, whatever is owed is done (_work). A step that fails goes
@@ -344,7 +358,7 @@ def step(desk: Desk, now: datetime) -> None:
             raise unseen
     except Exception as fault:
         kind = type(fault).__name__
-        _note(desk.root, now, f"{TROUBLE} {kind}", FAILED.format(kind, fault))
+        _note(desk.root, now, f"{TROUBLE} {kind}", FAILED.format(kind, fault, _where(fault)))
         raise
     finally:
         _say(desk, now, known)
