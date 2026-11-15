@@ -59,6 +59,33 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #200 money-simcity-command: `python -m desk.simcity [--full]` runs SimCity as a plain-code job, red night = exit 1; 2 deliberate breaks, 2 caught (R-RUNNER-23). |
 | 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #207 sixth frozen rule `ema_9_21` on main as a WIRING strategy, listed apart from the five, never an A-GATE candidate; tested by hand, future-blind and against a second implementation; 13 breaks caught; not yet run by the desk or the ladder (R-RUNNER-20). |
 | 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #208 carry rule in `desk/carry.py` + `book.rate`: the pound's rate carried over a UK-only holiday, at most 3 US sessions; 2025-04-21 and 2025-12-26 under test (R-RUNNER-26, part). |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #224 R-RUNNER-44 the pound's rate from its closes, one rule in `desk/carry.py`, tested on Easter 2025. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #231 R-RUNNER-48 SimCity worlds start each line at its own first bar; late lines named in the night's words. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #246 R-RUNNER-63 Donchian four-week breakout ported under the template, known-answer tested. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #247 R-RUNNER-60 Connors' RSI-2 ported, known-answer tested (buy day 200, sell day 202). |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #257 R-RUNNER-84 the pound's close stays fresh across one missing shared session; one old assertion flipped by the rule. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #248 R-RUNNER-76 weekly_reversal_jegadeesh, first eponymous swing rule, 4 unit tests. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #256 R-RUNNER-61 Connors %b rule ported and known-answer tested. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #258 R-RUNNER-64 donchian_fade_chop ported, known-answer tested; source not found, labelled secondary. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #265 R-RUNNER-71 Dan Zanger breakout ported, known-answer tested. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #267 R-RUNNER-74 Clenow momentum ported, 3 known-answer tests. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #251 R-RUNNER-68 Darvas box ported under the template; a blind review's stale-top buy fixed with a test. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #261 R-RUNNER-62 Connors three-day high/low ported, known-answer tested. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #269 R-RUNNER-70 Kell base-and-break ported, known-answer tested. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #271 R-RUNNER-75 Mansfield RS momentum ported, known-answer tested; loud error without SPY. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #264 R-RUNNER-73 Faber 10-month trend rule ported, 2 known-answer tests. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #273 R-RUNNER-67 Williams %R ported, known-answer tested. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #275 R-RUNNER-80 Zweig breadth thrust ported, known-answer tested; blocked on breadth data (R-MONEY-35). |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #262 R-RUNNER-66 Bollinger squeeze ported, known-answer tested. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #277 R-RUNNER-79 Weinstein stage rule ported, known-answer tested. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #276 R-RUNNER-77 raschke_swing (Turtle Soup) ported, known-answer tested. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #266 R-RUNNER-69 Minervini breakout ported, known-answer tested. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #250 R-RUNNER-72 Antonacci dual momentum (absolute leg) ported, known-answer tested. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #272 R-RUNNER-65 Keltner channel trend ported, known-answer tested. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #280 R-RUNNER-88 every eponymous module declares EPONYMOUS; registry test added. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #282 R-PAPER-9 done, `Broker.stops` docstring only. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #274 R-RUNNER-78 DeMark's TD Sequential ported, known-answer tested. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #285 R-PAPER-10 unknown place error pulls the kill switch, contract-tested; blind review passed. |
 
 ### DATA
 

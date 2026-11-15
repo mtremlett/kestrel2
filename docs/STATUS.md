@@ -85,57 +85,46 @@ everything on main, so two green lanes cannot combine into a red main.
   session the operator starts could record this in `docs/FAILURE_PATTERNS.md`.
 
 ## MONEY
-Last updated: 14 November 2026 (money-working, money-watch, a lost stop told).
+Last updated: 15 November 2026 (27 pull requests folded: the pound's rate rule, SimCity late lines, 24 eponymous rules, R-PAPER-9, R-PAPER-10).
 ### Where it is
-Scenes 7 of 7. Built: the five rules, and a sixth, `ema_9_21`, a WIRING rule never an A-GATE candidate (#207; the desk's day and the ladder do not run it yet); sizing, cost model, gate; pretend broker; send path, ledger, book; the
+Scenes 7 of 7. Built: the five rules and a sixth, `ema_9_21`, a WIRING rule never an A-GATE candidate (#207); sizing, cost model, gate; pretend broker; send path, ledger, book; the
 day; kill switch; `emergency`; invariants; halts (#148); SimCity (#150, #163): a hundred seeded worlds, 31,000
-days, eleven promises, 52 parts; **its night is GREEN** (money-working, #163: a note before each send; after a
-death the broker cancels what is left working, a sale too). The crash watch (#172, `desk/watch.py`) is built
-and halts nothing yet: nothing calls it. A lost stop is told the same day with stop, shares, level (#191). `python -m desk.simcity [--full]` is the nightly job (#200; first real night waits for the desk's store). The pound's rate carries over a UK-only holiday (`desk/carry.py`, #208).
+days, eleven promises, 52 parts; **its night is GREEN** (#163). A line that begins late is left out of a world and named; days before the yardstick's first bar are not lived (#231). The crash watch (#172, `desk/watch.py`) is built
+and halts nothing yet: nothing calls it. A lost stop is told the same day (#191). `python -m desk.simcity [--full]` is the nightly job (#200). The pound's rate: `desk/carry.py` `pounds_per_dollar(closes, day)`, fresh while at most one shared London-and-New-York session is missing (#224, #257), and `carried` (#208).
+Twenty-four eponymous rules (R-RUNNER-60 to 80, 88), each in its own `desk/eponymous_*.py` under the one template, each with a known-answer test and a declared `EPONYMOUS` (#280); the paper desk trades none. Published figures are unwritten or labelled secondary where no book was at hand.
+An unknown error from the broker's `place` pulls the kill switch and raises `book.Alarm` (#285, R-PAPER-10). `Broker.stops` names the desk's own stops only (#282, R-PAPER-9).
 ### Next step
-money-restop's put-back (`desk/broker.py`), then the limits, money-stranger, money-fills. `desk/simcity.py` (399) and
+money-restop's put-back (`desk/broker.py`), then the limits, money-stranger, money-fills. `desk/simcity.py` (400) and
 `desk/book.py` (400) are full: split first. A desk not restarted before the next open can end short (pretend broker should lapse orders at close).
 ### Done for other lanes
-- R-PAPER-2: done in #64; R-RUNGS-1: done in #101; R-RUNGS-6, R-RUNGS-12: done in #185
+- R-PAPER-2: done in #64; R-RUNGS-1: done in #101; R-RUNGS-6, R-RUNGS-12: done in #185; R-PAPER-9: done in #282; R-PAPER-10: done in #285
+- R-RUNNER-44: done in #224; R-RUNNER-48: done in #231; R-RUNNER-84: done in #257; R-RUNNER-88: done in #280
+- R-RUNNER-60: done in #247; R-RUNNER-61: done in #256; R-RUNNER-62: done in #261; R-RUNNER-63: done in #246; R-RUNNER-64: done in #258; R-RUNNER-65: done in #272; R-RUNNER-66: done in #262; R-RUNNER-67: done in #273; R-RUNNER-68: done in #251; R-RUNNER-69: done in #266; R-RUNNER-70: done in #269; R-RUNNER-71: done in #265; R-RUNNER-72: done in #250; R-RUNNER-73: done in #264; R-RUNNER-74: done in #267; R-RUNNER-75: done in #271; R-RUNNER-76: done in #248; R-RUNNER-77: done in #276; R-RUNNER-78: done in #274; R-RUNNER-79: done in #277; R-RUNNER-80: done in #275
 ### Requests to PAPER
 - [ ] R-MONEY-7 (later): a typed command calling `kill.pull`, sending `Killed.words()` to Telegram.
-- [ ] R-MONEY-8 (blocking): the paper day calls `day.trade` and `day.publish`, never `day.run`; the
-  adapter refuses an order not dated the session before the broker's today.
-- [ ] R-MONEY-9 (later): a stop's fills get the order's id plus "-stop". R-MONEY-10 (later): in conformance set paper
-  fills beside `orders.charges` and the 0.05% spread. R-MONEY-11 (later): say when you hold `desk/clearance.py`.
-- [ ] R-MONEY-17 (blocking): no paper sale unattended while a stop rests under the same shares, unless tied at
-  the broker (money-working landed, #163); record in conformance what paper does.
-- [ ] R-MONEY-18 (later): the morning message carries `halt.listed(root, day)`, every day's `halt.said(root, day)`.
-  R-MONEY-19 (later): a typed command to call and lift a halt.
-- [ ] R-MONEY-20 (later): `test_messenger.py` states each Record's `halted`, `stopped` (say `(), 0`); the evening
-  message says when a day does not count. R-MONEY-21 (later): `test_running.py` (line 213) keeps Friday's record
-  through `day._row(day.Record(...))`. R-MONEY-22 (later): say if `Broker.place` refusals need a blocker of their own.
-- [ ] R-MONEY-23 (later): reword `desk/placing.py` where it says the cancel is the kill switch's alone, and its
-  `manifest.toml` line: a desk that died mid-send asks the same cancel through `book._settle`. R-MONEY-24 (later):
-  keep the day's check and `recover` before every round; say if you would rather the send path called one recovery.
-- [ ] R-MONEY-25 (blocking): the unattended step calls `watch.look(root, fast store, daily bars by line, now, post)`
-  every step, every hour, BEFORE its round of orders, and decides if London's morning round waits for the 08:05 bar.
-- [ ] R-MONEY-26 (later): a messenger call sending again what was never delivered. R-MONEY-27 (later): the halt-lifting
-  command names him (`by=halt.OPERATOR`), with a command for his word against the market.
-- [ ] R-MONEY-30 (later): `running.recover` puts back a line held with no stop, when its shares are the book's: stop
-  `<newest buy id>-stop` at `book.levels(root)[id]` rounded down to the price step, for the shares held.
-  R-MONEY-31 (later): with R-MONEY-18, the day's list message includes its lost-stop entries.
-- [ ] R-MONEY-32 (later): `desk/command.py` rates use `book.rate(root, "USD", day)`, falling back to the archive on ValueError, so the carry rule applies to the day.
+- [ ] R-MONEY-8 (blocking): the paper day calls `day.trade` and `day.publish`, never `day.run`; the adapter refuses an order not dated the session before the broker's today.
+- [ ] R-MONEY-9 (later): a stop's fills get the order's id plus "-stop". R-MONEY-10 (later): in conformance set paper fills beside `orders.charges` and the 0.05% spread. R-MONEY-11 (later): say when you hold `desk/clearance.py`.
+- [ ] R-MONEY-17 (blocking): no paper sale unattended while a stop rests under the same shares, unless tied at the broker (#163); record in conformance what paper does.
+- [ ] R-MONEY-18 (later): the morning message carries `halt.listed(root, day)`, every day's `halt.said(root, day)`. R-MONEY-19 (later): a typed command to call and lift a halt.
+- [ ] R-MONEY-20 (later): `test_messenger.py` states each Record's `halted`, `stopped` (say `(), 0`); the evening message says when a day does not count. R-MONEY-21 (later): `test_running.py` (line 213) keeps Friday's record through `day._row(day.Record(...))`. R-MONEY-22 (later): say if `Broker.place` refusals need a blocker of their own.
+- [ ] R-MONEY-23 (later): reword `desk/placing.py` (lines 269-272 too, "no cancel either", stale since #285) and its `manifest.toml` line: a desk that died mid-send asks the same cancel through `book._settle`. R-MONEY-24 (later): keep the day's check and `recover` before every round; say if you would rather the send path called one recovery.
+- [ ] R-MONEY-25 (blocking): the unattended step calls `watch.look(root, fast store, daily bars by line, now, post)` every step, every hour, BEFORE its round of orders, and decides if London's morning round waits for the 08:05 bar.
+- [ ] R-MONEY-26 (later): a messenger call sending again what was never delivered. R-MONEY-27 (later): the halt-lifting command names him (`by=halt.OPERATOR`), with a command for his word against the market.
+- [ ] R-MONEY-30 (later): `running.recover` puts back a line held with no stop, when its shares are the book's: stop `<newest buy id>-stop` at `book.levels(root)[id]` rounded down to the price step. R-MONEY-31 (later): with R-MONEY-18, the day's list message includes its lost-stop entries.
+- [ ] R-MONEY-32 (later): `desk/command.py` rates use `book.rate(root, "USD", day)`, falling back to the archive on ValueError; or move onto `carry.pounds_per_dollar` (#224).
+- [ ] R-MONEY-36 (blocking, opened 15 November 2026): catch `book.Alarm` in the day's send path (`desk/day.py` or `desk/messenger.py`) and message him its words once.
 ### Requests to DATA
-- [ ] R-MONEY-3 (later): a daily rate, pounds per dollar, in the store. [x] R-MONEY-15, R-MONEY-16: done (#163, #150).
-  R-MONEY-12 (later): on the master, the market's lines: the yardstick's twin (VUSA), one in New York hours.
-- [ ] R-MONEY-28 (blocking): the keeper writes each line's ended five-minute bars to the fast store every five
-  minutes in trading hours, VUAG first, the day's last bar included; and says how late a bar lands (the watch's 20 minutes).
-  R-MONEY-29 (later): the keeper or monitor tells him when a whole venue is not heard from.
+- [ ] R-MONEY-3 (later): a daily rate, pounds per dollar, in the store. [x] R-MONEY-15, R-MONEY-16: done (#163, #150). R-MONEY-12 (later): on the master, the market's lines: the yardstick's twin (VUSA), one in New York hours.
+- [ ] R-MONEY-28 (blocking): the keeper writes each line's ended five-minute bars to the fast store every five minutes in trading hours, VUAG first, the day's last bar included; and says how late a bar lands (the watch's 20 minutes). R-MONEY-29 (later): the keeper or monitor tells him when a whole venue is not heard from.
+- [ ] R-MONEY-35 (later, opened 14 November 2026): a daily advances/declines series for the US market, so Zweig's breadth thrust (#275) can run on real days.
 ### Requests to RUNGS
-- [ ] R-MONEY-33 (later): ladder, cells and fast grid also run `strategy.WIRING` names (a grid twin for `ema_9_21`); promotion keeps refusing them.
-  R-MONEY-34 (blocking): `lab/rung.py` and `lab/ladder.py` use `desk.carry.carried(rates, day)` (F1: 32 US cells fail on 2025-04-21).
-- [ ] R-MONEY-13 (later): the first rung prices each leg with `orders.charges`; a sale is charged as a purchase.
-  R-MONEY-14 (later): AG-04 must not add the records' market column: compound the days or read two closes.
+- [ ] R-MONEY-33 (later): ladder, cells and fast grid also run `strategy.WIRING` names (a grid twin for `ema_9_21`) and the `EPONYMOUS` rules (R-RUNNER-87); promotion keeps refusing the first.
+- [ ] R-MONEY-34 (blocking): `lab/rung.py` and `lab/ladder.py` use `desk.carry.pounds_per_dollar` (R-RUNNER-45); F1: 32 US cells fail on 2025-04-21.
+- [ ] R-MONEY-13 (later): the first rung prices each leg with `orders.charges`; a sale is charged as a purchase. R-MONEY-14 (later): AG-04 must not add the records' market column.
 ### Found, not fixed
-- Costs: spread and slippage assumed; no clock on the day path (R-MONEY-8); `desk/halt.py` still says only the kill switch cancels.
-- Watch (#172): no market read after London shuts; `halt.lift` defaults to the operator; a halt cancels no working buy.
-- Lost stop (#191): kept level unrounded; `halt.listed` counts it blocked; `book.Reckoning` untyped. SimCity: no nightly run, no halted day or overnight death lived.
+- Costs: spread and slippage assumed; no clock on the day path (R-MONEY-8); `desk/halt.py` still says only the kill switch cancels. Kill switch time in `book.send` is the wall clock (#285).
+- Watch (#172): no market read after London shuts; `halt.lift` defaults to the operator; a halt cancels no working buy. Lost stop (#191): kept level unrounded; `book.Reckoning` untyped.
+- SimCity: the deep run on the real store is unconfirmed after #231; no halted day or overnight death lived. TD Sequential's countdown cancel is untested (#274). Eponymous rules: published figures unchecked, several without a blind review.
 
 ## PAPER
 
