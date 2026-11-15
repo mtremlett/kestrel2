@@ -124,9 +124,9 @@ def _place(root: Path, broker: Broker, order: Order | Sale) -> Report:
     except Crash:
         raise
     except Unprotected as odd:
-        going.unlink()
-        words = f"{order.order_id}: gone, and not filled as told: {odd}; buying is halted"
+        words = f"{order.order_id}: gone, its answers do not hold: {odd}; buying is halted"
         halt.call(root, datetime.now(UTC), words, by="the send path")
+        going.unlink()
         gone = broker.report(order.order_id)
         return Report(order.order_id, gone.fills if gone else (), words)
     except Exception as error:  #: unknown: the desk does not guess, and the note stays
