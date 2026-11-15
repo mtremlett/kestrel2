@@ -320,22 +320,21 @@ class Paper:
             ours = rests[0]
             try:
                 ends = self._cancelled({o.number: o.ref for o in kept})
-            except OSError:  #: silent or hung up: the stop may be gone
+                now = on(paper.read(), listed)[0]
+            except Exception:  #: silent, hung up or unread: the stop may be gone
                 self._putback(listed, ours)
                 raise
             if "Filled" in ends.values():
-                raise Unprotected(
-                    f"{order_id}: not sent, its stop sold as it was cancelled: {ends}"
-                )
-            if (now := on(paper.read(), listed)[0]) != held or not GONE.issuperset(ends.values()):
+                raise Unprotected(f"{order_id}: not sent, its stop sold as it was cancelled")
+            if now != held or not GONE.issuperset(ends.values()):
                 self._putback(listed, ours)
                 raise Refused(f"{order_id}: not sent, its stop ended: {ends}, {now} held")
         return held, (rests[0] if rests else None)
 
     def _putback(self, listed: Listing, stop: Stop) -> None:
         """Put a line under its stop again, for the shares the account now holds."""
-        held, _ = on(paper.read(), listed)
-        self.settle(listed, held, [], _due(stop, held, 0, None))
+        held, stops = on(paper.read(), listed)
+        self.settle(listed, held, stops, _due(stop, held, 0, None))
 
     def settle(
         self, listed: Listing, held: Decimal, stops: Sequence[Resting], due: Stop | None

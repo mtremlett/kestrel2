@@ -320,11 +320,12 @@ def test_a_sale_takes_its_shares_off_the_stop_and_a_stop_not_settled_is_an_error
     sent = _gateway(monkeypatch, [], PROTECTED, [ENDED_7], BARE, *sold)
     assert broker.place(SALE) == Report(ID, (OUT,), None)
     assert sent[:5] == [b"", ACCOUNT, CANCEL_7, ACCOUNT, PLACED]
-    # a cancel the broker refuses, the stop still held there: the sale is never sent
-    sent = _gateway(monkeypatch, [], PROTECTED, [_but(UNFOUND, 2, "7")], PROTECTED)
+    # a cancel the broker refuses, the stop still held there: the sale is never sent, and the
+    # stop is read to rest still, so none is added beside it
+    sent = _gateway(monkeypatch, [], PROTECTED, [_but(UNFOUND, 2, "7")], PROTECTED, PROTECTED)
     with pytest.raises(placing.NotCancelled, match="-stop .10147"):
         broker.place(SALE)
-    assert sent == [b"", ACCOUNT, CANCEL_7, ACCOUNT]
+    assert sent == [b"", ACCOUNT, CANCEL_7, ACCOUNT, ACCOUNT]
     # the broker's last word, its fills and the account's shares must agree, or the line's stops
     # are left as they are: a buy whose own stop has sold already; a buy told filled, with fills
     # for ten of its 26; and a sale told filled, its fills not yet listed

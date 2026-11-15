@@ -66,6 +66,11 @@ def test_a_stop_that_sold_or_ended_as_it_was_cancelled_stops_the_sale_and_the_li
     with pytest.raises(Refused, match="16 held"):
         broker.place(tp.SALE)
     assert sent[5] == tp.SMALLER and tp.PLACED not in sent
+    # a cancel met with silence, the stop still resting: none is put beside it
+    sent = _gateway(monkeypatch, [], tp.PROTECTED, [], tp.PROTECTED, tp.PROTECTED, silent=True)
+    with pytest.raises(TimeoutError):
+        broker.place(tp.SALE)
+    assert not any(b"STP" in message for message in sent)
     # a sale that errs once its stop is cancelled puts the stop back for the shares held
     working = _account([tp.HELD], *tp.MINE)
     sent = _gateway(
