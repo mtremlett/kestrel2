@@ -35,7 +35,6 @@ UNRUN = {
     "stress": "it gives pounds lost and never a pass; the loss limit to judge them by is not set",
 }
 NO_FIGURE = "no author's figure is on file for the rule: no published result stands behind it"
-NO_FOLDS = "the folds rung cannot yet hand an author's result to its folds"
 #: A rule trades a line five to ten times a year and wants 200 sessions to warm up: a line of
 #: fewer bars than those and a year's trading has made no trade yet, which says nothing of the rule.
 MIN_BARS = 200 + 252
@@ -76,15 +75,14 @@ def judge(
     except ValueError as missed:  #: the rule as coded is not the author's: no verdict on ours
         return {"rungs": {"reproduce": [Answer.FAIL.name, str(missed)]}, "every": False}
     verdict = first or ready(c, own, pounds, made)
-    unrun = UNRUN | ({"folds": NO_FOLDS} if made else {"reproduce": NO_FIGURE})
+    unrun = UNRUN | ({} if made else {"reproduce": NO_FIGURE})
     settings = Settings(CAPITAL)
     (one,) = deflated.judge([verdict], count - 1)  #: every other trial the register holds
     rungs = _named(verdict, one)
     if made:
         said = "; ".join(f"{m.figure.hand.value} result, {m.figure.source}" for m in made)
         rungs["reproduce"] = (Answer.PASS, f"reproduced: {said}")
-    else:
-        rungs["folds"] = _folded(pooled)
+    rungs["folds"] = _folded(pooled)
     against = market.judge(verdict, own, beside, held, pounds)
     said = rungs["first"][1]
     if against.line is not None and against.wide is not None:
@@ -141,12 +139,12 @@ class Pool:
     folded: Pooled | None = None  #: pooled once, when first read
     failed: ValueError | None = None  #: why it could not be, told to every cell of the rule
 
-    def fold(self, pounds: Rates) -> Pooled:
+    def fold(self, pounds: Rates, made: Sequence[Reproduction] = ()) -> Pooled:
         """The lines folded by the last five whole years: once, a failure remembered."""
         if self.failed is not None:
             raise self.failed
         try:
-            self.folded = self.folded or pool(self.lines, pounds)
+            self.folded = self.folded or pool(self.lines, pounds, made)
         except ValueError as cannot:
             self.failed = cannot
             raise
@@ -171,9 +169,12 @@ def ready(c: Cell, own: Sequence[Bar], pounds: Rates, made: Sequence[Reproductio
     return rung.judge(cell.run(c, own), own, Settings(CAPITAL), pounds, made)
 
 
-def pool(lines: Sequence[tuple[Cell, Sequence[Bar]]], pounds: Rates) -> Pooled:
-    """One rule's lines, each with its bars, folded by the last five whole years."""
-    return folds.pool(lines, Settings(CAPITAL), pounds)
+def pool(
+    lines: Sequence[tuple[Cell, Sequence[Bar]]], pounds: Rates, made: Sequence[Reproduction] = ()
+) -> Pooled:
+    """One rule's lines, each with its bars, folded by the last five whole years, the author's
+    figure on file for the rule handed to every fold."""
+    return folds.pool(lines, Settings(CAPITAL), pounds, FOLDS, made)
 
 
 def _unstepped(line: Line, own: Sequence[Bar], pounds: Rates) -> None:
