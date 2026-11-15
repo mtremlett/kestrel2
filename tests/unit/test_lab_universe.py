@@ -215,9 +215,7 @@ def test_a_rise_wholly_overnight_is_a_change_of_scale_however_heavy_the_trading(
 
 def test_a_move_made_within_the_day_is_the_markets_and_is_read(tmp_path: Path) -> None:
     """Listed on the day it was made and on the next, whose bar sits far from where it began."""
-    spike = list(_ask(MMM, DAY))
-    spike[AT] = replace(spike[AT], low=spike[AT].low / 2)
-    for by, bars in ((Decimal("0.5"), _stepped(Decimal("0.5"))), (2, _stepped(2)), (1, spike)):
+    for by, bars in ((Decimal("0.5"), _stepped(Decimal("0.5"))), (2, _stepped(2))):
         last = _ask(MMM, DAY)[AT - 1].close
         if by != 1:
             bars[AT] = replace(
@@ -239,9 +237,9 @@ def test_research_reads_the_longest_run_on_one_scale_and_lists_the_moves_inside_
     tmp_path: Path,
 ) -> None:
     bars = _stepped(Decimal("0.5"), 30, tuple(_stepped(Decimal("0.5"), 10)))
-    for at in (20, 70):  #: a spike between the two changes of scale, and one after both
-        bars[at] = replace(bars[at], low=bars[at].low / 2)
-    days, cuts = (bars[70].day, bars[71].day), (bars[10].day, bars[30].day)
+    bars = _stepped(Decimal("0.5"), 50, tuple(bars))  #: a heavy fall after both, the market's
+    bars[50] = replace(bars[50], open=bars[49].close, volume=_heavy(bars, 50) * 4)
+    days, cuts = (bars[50].day, bars[51].day), (bars[10].day, bars[30].day)
     assert _read(tmp_path, bars) == universe.History(tuple(bars[30:]), days, cuts)
     even = _stepped(Decimal("0.5"), 43)[1:]  #: two runs as long: the later is read
     assert len(even) == 84
