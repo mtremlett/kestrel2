@@ -68,7 +68,6 @@ import desk
 from desk import archive, carry, keeper
 from desk.command import DOLLARS, POUND
 from desk.lines import LINES, Line
-from desk.orders import Refused
 from desk.store import Bar
 from desk.strategy import STRATEGIES, Rule
 from lab import batch, cell, published, reproduce, rulebook, rung, tape, trials, verdict
@@ -239,9 +238,10 @@ def _pool(rule: str, shared: Shared, bars: Bars, pounds: Rates) -> verdict.Pool:
             try:
                 made, own, _ = _resolve(c, bars)
                 firsts[made] = verdict.ready(made, own, pounds, shared.behind[rule])
-            except (*FAILED, Refused):  #: a line the sizing refuses is judged alone, as refused
+            except FAILED:
                 continue
-            lines[made] = own
+            if not firsts[made].refused:  #: a line the sizing refuses is judged alone, as refused
+                lines[made] = own
         dollars = any(c.line.currency != "GBP" for c in lines)
         data = ";".join(f"{c.line.symbol} {cell.key(c, own).data}" for c, own in lines.items())
         data = hashlib.sha256(data.encode()).hexdigest()
@@ -301,15 +301,13 @@ def _one(
         key = hashlib.sha256(";".join(parts).encode()).hexdigest()
         if was is not None and was.get("key") == key and not _due(was, now):
             return was  #: kept, or failed on all of this before and tried not long ago
+        if (first := pool.firsts.get(c)) is not None and first.refusal is not None:
+            reason = f"refused by the desk's sizing: {first.refusal}"
+            return head | {"key": key, "refused": reason}
         folded = lambda: pool.fold(pounds, made)  # noqa: E731 - asked for only if the folds are read
-        judged = verdict.judge(
-            c, own, beside, held, pounds, count, made, folded, pool.firsts.get(c)
-        )
+        judged = verdict.judge(c, own, beside, held, pounds, count, made, folded, first)
         done = _declared(judged, pool, c, own, pounds, made)
         return head | {"key": key, "from": c.start.isoformat()} | done
-    except Refused as error:  #: the desk's sizing declines the line at this capital: judged
-        reason = f"refused by the desk's sizing: {error}"
-        return head | ({} if key is None else {"key": key}) | {"refused": reason}
     except FAILED as error:
         if was is not None and "error" in was and "key" not in was and not _due(was, now):
             return was  #: its bars could not be read, and it was tried not long ago
