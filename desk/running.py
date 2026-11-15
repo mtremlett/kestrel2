@@ -225,7 +225,13 @@ def _round(desk: Desk, broker: placing.Paper, venue: str, now: datetime) -> None
     in the round runs it again: the send path asks the broker of each order first."""
     today = now.date()
     saved, out, last = _fit(desk.bars(today), venue, today)
-    sent = day.trade(desk.root, saved, broker, desk.room, today, desk.rates(today))
+
+    def tell(
+        name: str, words: str
+    ) -> None:  #: kept as a note: told at his next step until delivered
+        _note(desk.root, now, name, words)
+
+    sent = day.trade(desk.root, saved, broker, desk.room, today, desk.rates(today), tell)
     said = [
         f"{s.order_id}, {s.filled} shares done" + f" ({s.reason})" * bool(s.reason) for s in sent
     ]
