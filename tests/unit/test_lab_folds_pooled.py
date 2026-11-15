@@ -20,7 +20,10 @@ VUSA = next(line for line in LINES if line.symbol == "VUSA")
 
 DOLLARS = {date(2010, 1, 1) + timedelta(n): Decimal("0.8") for n in range(4000)}
 _STATED = Stated(Measure.TRADES, Decimal(1), Decimal(0))
-EDGE, YEAR, RULE, LSE = 0.012, 365, "breakout_20_10", LINES
+EDGE, YEAR, RULE = 0.012, 365, "breakout_20_10"
+LSE = tuple(
+    line for line in LINES if line.retail
+)  #: the lines a retail customer may buy (R-PAPER-14)
 
 
 def _pool(seed: int, *pushes: float, count: int = 5) -> Pooled:
