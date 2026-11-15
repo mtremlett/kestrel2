@@ -62,7 +62,7 @@ def test_a_unit_is_one_lines_one_fold_so_one_lines_history_spreads_over_the_work
     assert [y for c, y in cut if c == one] == [None, *range(2021, 2026)]  # five folds, one cell
     ladder_pool.run(tmp_path, _book, {}, [one], CLOCK, size=2)
     warmed = len(list((tmp_path / ladder.FOLDER / "tapes").glob("*.tape")))
-    assert warmed == 2  # the line and its market, once each, every fold cut from them
+    assert warmed == 1  # the line simulated once, the whole window and every fold cut from it
 
 
 def test_a_stop_planted_after_the_first_unit_ends_the_pass_there_and_a_stale_one_changes_nothing(
