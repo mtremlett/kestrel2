@@ -49,7 +49,8 @@ def test_a_stop_that_sold_or_ended_as_it_was_cancelled_stops_the_sale_and_the_li
     # part sold first: the sale is not sent, and the line is left under its stop for what is held
     broker = tp._paper(tp._ready(tmp_path))
     ended, bare, rests = _but(tp.ENDED_7, 2, "Filled"), tp.BARE, tp.RESTS
-    for ends in ([[ended], tp.EMPTY], [[_but(tp.UNFOUND, 2, "7")], bare, bare, rests]):
+    cases: list[list[Said]] = [[[ended], tp.EMPTY], [[_but(tp.UNFOUND, 2, "7")], bare, bare, rests]]
+    for ends in cases:
         sent = _gateway(monkeypatch, [], tp.PROTECTED, *ends)
         with pytest.raises(Refused, match="not sent, its stop sold or ended"):
             broker.place(tp.SALE)

@@ -329,10 +329,10 @@ class Paper:
         if idle:
             raise Refused(f"{order_id}: not sent, orders are still open at the broker: {idle}")
         if isinstance(order, Sale) and kept:
-            said, ours = self._cancelled({o.number: o.ref for o in kept}), rests[0]
-            if (now := on(paper.read(), listed)[0]) != held or not GONE.issuperset(said.values()):
+            ends, ours = self._cancelled({o.number: o.ref for o in kept}), rests[0]
+            if (now := on(paper.read(), listed)[0]) != held or not GONE.issuperset(ends.values()):
                 self.settle(listed, now, [], _due(ours, now, 0, None))  #: put back what is held
-                raise Refused(f"{order_id}: not sent, its stop sold or ended: {said}, {now} held")
+                raise Refused(f"{order_id}: not sent, its stop sold or ended: {ends}, {now} held")
         return held, (rests[0] if rests else None)
 
     def settle(
