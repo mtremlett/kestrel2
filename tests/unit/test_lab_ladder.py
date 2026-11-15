@@ -26,6 +26,7 @@ from lab import (
     deflated,
     folds,
     ladder,
+    ladder_sets,
     market,
     published,
     reproduce,
@@ -101,6 +102,7 @@ def test_each_cell_is_judged_on_every_rung_and_kept_with_its_reasons_and_trials(
     assert (won["answer"], won["every"], lost["answer"]) == ("THIN", False, "FAIL")
     assert lost["rungs"]["first"][0] == lost["rungs"]["market"][0] == "FAIL"
     assert set(won["unrun"]) == {"reproduce", "regime", "plateau", "stress"}
+    assert 0 <= won["drawdown"]["median"] <= won["drawdown"]["p95"] < 1, "measured, never gated"
 
 
 def test_a_run_skips_what_is_kept_and_judges_again_only_what_has_changed(tmp_path: Path) -> None:
@@ -150,6 +152,27 @@ def test_a_run_skips_what_is_kept_and_judges_again_only_what_has_changed(tmp_pat
     assert "1 judged now, 2 kept" in run(tmp_path, _door(book), pounds, more)
 
 
+def test_a_line_the_desks_sizing_refuses_is_a_judged_outcome_and_the_set_carries_on(
+    tmp_path: Path,
+) -> None:
+    dear = [
+        replace(b, open=b.open * 999, high=b.high * 999, low=b.low * 999, close=b.close * 999)
+        for b in EDGE
+    ]  #: one share costs more than the room of 2000 pounds
+    book = {ISF: NOISE, VUSA: dear, AAPL: EDGE, SPY: NOISE}
+    pounds = {bar.day: Decimal("0.8") for bar in EDGE}
+    said = ladder.run(tmp_path, _door(book), pounds, _set(VUSA, ISF))
+    refused, fine = _rows(tmp_path)
+    assert (
+        refused["refused"].startswith("refused by the desk's sizing: ") and "error" not in refused
+    )
+    assert "answer" not in refused and fine["answer"] in ("THIN", "FAIL") and "refused" not in fine
+    assert "1 judged now, 0 kept from before, 0 could not be judged and are tried" in said
+    assert "again next run, 1 refused by the desk's sizing;" in said
+    assert "0 judged now, 1 kept" in ladder.run(tmp_path, _door(book), pounds, _set(VUSA, ISF))
+    assert ladder_sets._said(refused)[1].startswith("refused by the desk's sizing")
+
+
 def test_a_short_line_is_judged_on_its_proxys_longer_bars_and_says_so(tmp_path: Path) -> None:
     vuag = next(line for line in LINES if line.symbol == "VUAG")
     pounds = {bar.day: Decimal("0.8") for bar in EDGE}
@@ -162,7 +185,7 @@ def test_a_short_line_is_judged_on_its_proxys_longer_bars_and_says_so(tmp_path: 
     book[vuag] = EDGE  #: no shorter than its proxy: judged on its own bars, no label
     ladder.run(tmp_path / "own", _door(book), pounds, _set(vuag))
     assert "proxy" not in _rows(tmp_path / "own")[0]
-    said = ladder._said(short)[1]
+    said = ladder_sets._said(short)[1]
     assert said.startswith("proxy: SPY for VUAG <br>")
 
 
@@ -258,7 +281,7 @@ def test_the_set_is_every_published_rule_on_every_line_and_its_doors_are_the_des
     with pytest.raises(ValueError, match="VUSA: parked"):
         ladder.stored(tmp_path)(VUSA)
     with pytest.raises(SystemExit, match="KESTREL2_DATA names no data folder"):
-        ladder.main({})
+        ladder_sets.main({})
 
 
 def test_the_shuffle_is_run_last_and_only_on_a_trial_that_passed_every_rung_before_it(

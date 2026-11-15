@@ -59,3 +59,11 @@ def test_a_line_too_young_to_have_traded_is_too_young_and_no_fault() -> None:
     with pytest.raises(verdict.TooYoung, match="waits on 452"):
         _judge(EDGE[:100])
     assert not issubclass(verdict.TooYoung, ArithmeticError)
+
+
+def test_resampled_drawdowns_are_parts_of_the_capital_and_drawn_the_same_again() -> None:
+    #: +500 and -500 drawn twice: a fall of 0, 500, 500 or 1,000 pounds, of 10,000 capital
+    both = [Decimal(500), Decimal(-500)]
+    assert verdict.drawdowns(both, "a trial") == {"median": 0.05, "p95": 0.1}
+    assert verdict.drawdowns(both, "a trial") == verdict.drawdowns(both, "a trial")
+    assert verdict.drawdowns([Decimal(-1000)], "x") == {"median": 0.1, "p95": 0.1}
