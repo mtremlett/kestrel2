@@ -9,6 +9,8 @@ on:
     branches: ["**"]
   pull_request:
     branches: [main]
+    # edited: a title changed after the check ran is checked again, as is the fix count
+    types: [opened, synchronize, reopened, edited]
 
 permissions:
   contents: read
@@ -64,6 +66,21 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      # A TYPED TITLE, SO THE FIX SHARE IS HONEST: main keeps one change per pull request,
+      # titled as it was, and the churn guard counts fixes by that title. The title arrives
+      # through an environment variable, never written into the script, so no title can
+      # run as code; it is never echoed either.
+      - name: the pull request's title is typed
+        if: github.event_name == 'pull_request'
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          typed='^(feat|fix|refactor|test|docs|chore|revert)(\(.+\))?: .+'
+          if [[ ! "$TITLE" =~ $typed ]]; then
+            echo "::error title=Untyped pull request title::the title must match $typed, for example 'fix(kill): ...' or 'docs: ...'. Retitle the pull request; the check runs again."
+            exit 1
+          fi
+
       - name: every step passed
         run: test "${{ needs.step.result }}" = "success"
 
