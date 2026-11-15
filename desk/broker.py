@@ -66,7 +66,9 @@ class Broker(Protocol):
     def place(self, order: Order | Sale) -> Report:
         """Receive the order and give its last answer: what it did not fill is cancelled,
         never left working. A buy leaves one stop resting on its line, for all the shares
-        held, at the order's stop; a sale takes its shares off that stop. Disconnected, and
+        held, at the order's stop; once the broker has answered a sale, its shares are off
+        that stop, whether the broker did it in one step or, as the real one does, changed
+        the stop's shares in a step of its own after the sale. Disconnected, and
         nothing else, says the order never arrived: only then is it sent again. Refused is
         the door's own word that it sent nothing. Any other error, and the desk does not know:
         the order may be working, and is cancelled before the desk sends again."""
