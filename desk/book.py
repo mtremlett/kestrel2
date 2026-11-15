@@ -1,8 +1,7 @@
-"""book - THE LEDGER AND THE BOOK. Fills are written under the broker's own ids. The book is
-the sum of those fills, never the orders the desk meant to send, and reconciling compares
-it with the positions the broker reports. The send path keeps the kill switch's record, sends
-nothing while it is on and no buy in a halt, notes each order as it goes, and cancels what a
-desk that died mid-send left working."""
+"""book - THE LEDGER AND THE BOOK. Fills are written under the broker's own ids; the book is
+their sum, never the orders the desk meant to send, and reconciling compares it with the
+broker's positions. The send path keeps the kill switch's record, sends nothing while it is on
+and no buy in a halt, notes each order as it goes, and cancels what a dead desk left working."""
 
 from __future__ import annotations
 
@@ -71,18 +70,20 @@ class Difference:
     book: int  #: the shares the desk's book holds of it; 0 when it holds none
 
 
+Tell = Callable[[str, str], None]  #: the door to his phone: a message's name, then its words
 Reckoning = tuple[dict[str, int], tuple[str, ...], set[str], tuple[Difference, ...]]
 
 
-def send(root: Path, broker: Broker, order: Order | Sale, settings: Settings) -> Sent:
+def send(
+    root: Path, broker: Broker, order: Order | Sale, settings: Settings, tell: Tell | None = None
+) -> Sent:
     """Ask the broker what it did with the order's id, so a desk that restarts never sends it
-    twice; if it never received it, pass the pre-trade gate and send it. Its fills are recorded
-    and its stop rests at the broker. The gate reads the book, brought up to date first. Where
-    the book is not the broker's nothing is bought, and a line is sold only if its shares
-    agree. Kill switch on: nothing is sent; a halt in force: no buy. Every refusal made here
-    names its blocker (Stopped), so does an answer that is not a whole fill; a refusal naming
-    none is the door's own. First, what a dead desk left working is cancelled (_settle). A
-    place that fails unknown (_place) pulls the kill switch: Alarm."""
+    twice; if it never received it, pass the pre-trade gate and send it. Fills are recorded and
+    a buy's stop rests at the broker. Where the book (brought up to date) is not the broker's
+    nothing is bought, and a line is sold only if its shares agree. Kill switch on: nothing is
+    sent; a halt in force: no buy. Every refusal names its blocker (Stopped), as does an answer
+    that is not a whole fill. A place that fails unknown pulls the kill switch (Alarm); one
+    that disagrees halts buying and is told (tell). A dead desk's working orders go first."""
     _settle(root, broker)
     report = broker.report(order.order_id)
     if report is None:
@@ -97,7 +98,7 @@ def send(root: Path, broker: Broker, order: Order | Sale, settings: Settings) ->
             raise Stopped(Blocker.GATE, str(refused)) from refused
         _unless_stopped(root, order)  #: read again, at the last moment before it goes
         try:
-            report = _place(root, broker, order)
+            report = _place(root, broker, order, tell)
         except Disconnected as lost:  #: never received: stated, and sent again next time
             return Sent(order.order_id, 0, str(lost), Blocker.BROKER)
     collect(root, broker)  #: a stop sold on the day of its buy is in no answer
@@ -105,9 +106,8 @@ def send(root: Path, broker: Broker, order: Order | Sale, settings: Settings) ->
     return Sent(order.order_id, filled, report.reason, Blocker.BROKER if short else None)
 
 
-def _place(root: Path, broker: Broker, order: Order | Sale) -> Report:
-    """The order goes to the broker, the desk's note of it kept from before it goes until the
-    desk has the broker's last answer, or its door's word that it never went."""
+def _place(root: Path, broker: Broker, order: Order | Sale, tell: Tell | None) -> Report:
+    """The order goes to the broker, the desk's note of it kept until it has the last answer."""
     going = root / GOING
     name, kept = f"{order.order_id}-stop", levels(root)  #: the broker may lose a buy's stop
     if isinstance(order, Order) and name not in kept:
@@ -120,20 +120,36 @@ def _place(root: Path, broker: Broker, order: Order | Sale) -> Report:
         raise
     except Crash:
         raise
-    except Exception as error:  #: unknown: the desk does not guess, and the note stays
-        words = f"{order.order_id}: the broker's place failed with {error!r}; the kill switch is on"
-        turn(root, Switch.ON, datetime.now(UTC), words)
-        tuple(broker.cancel())
-        raise Alarm(words) from error
+    except Exception as error:  # noqa: BLE001 - unknown: the desk does not guess; _disagreed alarms
+        report = _disagreed(root, broker, order, error, tell)
     going.unlink()
     return report
 
 
+def _disagreed(
+    root: Path, broker: Broker, order: Order | Sale, error: Exception, tell: Tell | None
+) -> Report:
+    """THE BROKER'S WORD, FILLS AND ACCOUNT DO NOT AGREE after the order has gone (R-PAPER-11,
+    Unprotected): buying is halted until he lifts it, he is told (tell), and the broker's
+    report is given, so the order is never sent again. Else (or with no one to tell) the kill
+    switch is pulled and Alarm raised."""
+    from desk import placing  # noqa: PLC0415 - placing reaches book through paper: a load cycle
+
+    if tell is None or not isinstance(error, placing.Unprotected):
+        words = f"{order.order_id}: place failed with {error!r}; the kill switch is on"
+        turn(root, Switch.ON, datetime.now(UTC), words)
+        tuple(broker.cancel())
+        raise Alarm(words) from error
+    words = f"{order.order_id}: the broker's word, fills and account do not agree: {error}"
+    halt.call(root, datetime.now(UTC), f"{words}; no buy goes until he lifts this", by="send path")
+    tell(f"disagree {order.order_id}", f"{words}. Buying is halted; sales go on.")
+    return broker.report(order.order_id) or Report(order.order_id, (), words)
+
+
 def _settle(root: Path, broker: Broker) -> None:
-    """A DESK THAT DIED MID-SEND left its note (_place) and, perhaps, its order working at
-    the broker, where it could fill behind a gate that counts the book alone. So before the
-    send path asks of an order or sends one, the broker cancels every order of the desk's
-    own still working, and only then is the note gone. While the kill switch is on it waits."""
+    """A DESK THAT DIED MID-SEND left its note (_place) and perhaps its order working, to fill
+    behind a gate that counts the book alone: before any send the broker cancels the desk's
+    own working orders, then the note is gone. While the kill switch is on it waits."""
     going = root / GOING
     if going.exists() and killed(root) is None:
         tuple(broker.cancel())
@@ -141,8 +157,7 @@ def _settle(root: Path, broker: Broker) -> None:
 
 
 def levels(root: Path) -> dict[str, Decimal]:
-    """THE STOPS THE DESK RESTED: each buy's stop level under the stop's own id (the buy's,
-    with "-stop"), oldest first, so a stop the broker lost is put back at its own level."""
+    """THE STOPS THE DESK RESTED: each buy's stop level under "<buy>-stop", oldest first."""
     path = root / STOPS
     if not path.exists():
         return {}
@@ -160,8 +175,7 @@ def turn(root: Path, to: Switch, at: datetime, why: str) -> None:
 
 
 def switch(root: Path) -> tuple[tuple[datetime, Switch, str], ...]:
-    """The kill switch's record, oldest first. No record is a switch never touched; one that
-    cannot be read whole is an error, never a switch that is off."""
+    """The kill switch's record, oldest first; one not readable whole is an error, never off."""
     path = root / SWITCH
     if not path.exists():
         return ()
@@ -194,8 +208,7 @@ def _unless_stopped(root: Path, order: Order | Sale) -> None:
 
 
 def killed(root: Path) -> str | None:
-    """The kill switch's word while it is on, when it was pulled and why; None while it is
-    off. A drill pulls a rehearsal desk's switch, never this one, so it is neither."""
+    """The kill switch's word while it is on, when and why; None while off. A drill is neither."""
     turns = [(at, to, why) for at, to, why in switch(root) if to is not Switch.DRILLED]
     if not turns or turns[-1][1] is Switch.OFF:
         return None
@@ -209,18 +222,12 @@ def fills(root: Path) -> tuple[Fill, ...]:
     if not path.exists():
         return ()
     with path.open(newline="", encoding="utf-8") as ledger:
-        rows = list(csv.DictReader(ledger))
-    return tuple(
-        Fill(
-            r["execution_id"],
-            r["order_id"],
-            r["symbol"],
-            int(r["quantity"]),
-            Decimal(r["price"]),
-            date.fromisoformat(r["day"]),
+        rows = csv.reader(ledger)
+        if next(rows, None) != list(COLUMNS):
+            raise ValueError(f"{path}: not the desk's ledger")
+        return tuple(
+            Fill(e, o, y, int(q), Decimal(p), date.fromisoformat(d)) for e, o, y, q, p, d in rows
         )
-        for r in rows
-    )
 
 
 def _write(path: Path, rows: Iterable[Sequence[object]]) -> None:
@@ -255,9 +262,8 @@ def collect(root: Path, broker: Broker) -> None:
 
 
 def reconcile(root: Path, broker: Broker) -> tuple[str, ...]:
-    """The lines on which the book is not the broker's, once every fill the broker made is in
-    the ledger: the shares differ, or the resting stop is not for the shares held."""
-    return reckon(root, broker)[1]
+    """The lines on which the book is not the broker's: shares differ, or the stop is not theirs."""
+    return _compare(root, broker)[1]
 
 
 def reckon(root: Path, broker: Broker) -> Reckoning:
@@ -266,10 +272,9 @@ def reckon(root: Path, broker: Broker) -> Reckoning:
 
 
 def _compare(root: Path, broker: Broker) -> Reckoning:
-    """The broker asked once each for its fills, stops and holdings, in that order: the book, the
-    names on which it is not the broker's, those whose shares differ, the stops that are not the
-    book's shares. Stops are read before holdings, so a stop that sells between the two shows
-    as shares gone, never as shares still there to be sold."""
+    """One reading: the book, the names it is not the broker's on, those whose shares differ,
+    the stops that are not the book's. The broker is asked fills, stops, holdings in that order,
+    so a stop that sells between the last two shows as shares gone, never still there."""
     collect(root, broker)
     ours = positions(root)
     stops = differences(ours, broker.stops())
@@ -280,12 +285,10 @@ def _compare(root: Path, broker: Broker) -> Reckoning:
 def differences(
     held: Mapping[str, int], entries: Iterable[tuple[str, Decimal | int]]
 ) -> tuple[Difference, ...]:
-    """THE BOOK AGAINST A BROKER: the one comparison, for any broker, of its holdings or of
-    the stops resting there. held is the book (positions); entries are what the broker gives,
-    each a name (in held's words) and its shares. Every entry must be the book's own shares of
-    its name: a name with shares in two entries is never the book's one line. A name the book
-    holds and the broker does not give is named at no shares; one the broker lists at no
-    shares is not held. None named: they agree."""
+    """THE BOOK AGAINST A BROKER: the one comparison of its holdings or resting stops. held is
+    the book; entries are the broker's (name, shares), which must be the book's own: shares in
+    two entries are never one line. A name the book holds and the broker omits has no shares;
+    one listed at none is not held. None named: they agree."""
     rows = list(entries)
     places = Counter(name for name, shares in rows if shares)
     rows += [(name, 0) for name in held.keys() - {name for name, _ in rows}]
@@ -297,8 +300,7 @@ def differences(
 
 
 def positions(root: Path, upto: date = date.max) -> dict[str, int]:
-    """What the desk holds, or held at the end of a day: the shares of each line its ledger's
-    fills add up to, never the orders it meant to send. A line sold out is not held."""
+    """What the desk holds, or held at a day's end: its ledger's fills added up, line by line."""
     held: dict[str, int] = {}
     for fill in fills(root):
         if fill.day <= upto:
@@ -325,8 +327,10 @@ def _rates(root: Path) -> dict[tuple[date, str], Decimal]:
     if not path.exists():
         return {}
     with path.open(newline="", encoding="utf-8") as saved:
-        rows = list(csv.DictReader(saved))
-    return {(date.fromisoformat(r["day"]), r["currency"]): Decimal(r["rate"]) for r in rows}
+        return {
+            (date.fromisoformat(r["day"]), r["currency"]): Decimal(r["rate"])
+            for r in csv.DictReader(saved)
+        }
 
 
 def rate(root: Path, currency: str, day: date) -> Decimal:
@@ -340,9 +344,9 @@ def rate(root: Path, currency: str, day: date) -> Decimal:
 def dealt(
     root: Path, lines: Iterable[Line], day: date, last: date, counted: int
 ) -> tuple[Decimal, Charges]:
-    """A DAY'S DEALING, in pounds: sales less buys, and every cost, line by line, of the fills
-    its record is the first to count: those dated after the last record's day, and any dated
-    by then that reached the ledger after that record had counted its own."""
+    """A DAY'S DEALING, in pounds: sales less buys and every cost of the fills its record is the
+    first to count: those dated after the last record's day, and any that reached the ledger
+    late."""
     pounds, ledger = _priced(root, lines), fills(root)
     old = [fill for fill in ledger if fill.day <= last]
     if len(old) < counted:
@@ -355,11 +359,9 @@ def dealt(
 
 
 def _priced(root: Path, lines: Iterable[Line]) -> Callable[[Fill, int], tuple[Decimal, Charges]]:
-    """How the ledger's fills are priced in pounds: each at its day's kept rate, its costs
-    from the one cost model. A line not given is an error."""
+    """How the ledger's fills are priced in pounds: at the day's kept rate, by the cost model."""
     known, rates = {line.symbol: line for line in lines}, _rates(root)
-    unknown = sorted({fill.symbol for fill in fills(root)} - set(known))
-    if unknown:
+    if unknown := sorted({fill.symbol for fill in fills(root)} - set(known)):
         raise ValueError(f"the ledger trades lines the desk was not given: {unknown}")
 
     def pounds(fill: Fill, shares: int) -> tuple[Decimal, Charges]:
@@ -376,9 +378,7 @@ def _priced(root: Path, lines: Iterable[Line]) -> Callable[[Fill, int], tuple[De
 
 
 def round_trips(root: Path, lines: Iterable[Line]) -> tuple[RoundTrip, ...]:
-    """Each sale in the ledger matched with the buys it closes, oldest first, in pounds at
-    each fill's day's rate, after every cost of both legs. A fill split between trips shares
-    its costs by its shares."""
+    """Each sale matched with the buys it closes, oldest first, in pounds after every cost."""
     pounds = _priced(root, lines)
     opened: dict[str, deque[tuple[Fill, int]]] = {}
     trips: list[RoundTrip] = []
