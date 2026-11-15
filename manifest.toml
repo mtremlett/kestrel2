@@ -122,6 +122,7 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "lab/deflated.py" = "the luck test fixed before any result: the deflated Sharpe and its bands, the yearly Sharpe too good to be true, and the one verdict rule over the named rungs"
 "lab/trials.py" = "the register of trials: every trial ever tried on a question, kept from batch to batch, and the luck rung's count taken from it"
 "lab/plateau.py" = "plateaus over peaks: of a rule's many settings, the centre of a plateau of passing neighbours chosen, and a lone peak never promoted"
+"lab/variants.py" = "a row's ranged settings made into variants: every combination counted as a trial before it runs, and the centre of the best plateau reported, never a lone peak"
 "lab/published.py" = "the published rules: each rule's source and known answers, and the refusal of code that does not give them"
 "lab/published_case.py" = "the shape of a known answer: a rule's source and the series, or whole bars, on which it trades on stated bars and no other"
 "lab/published_epon.py" = "the eponymous rules' publications: each rule's author, work and known answers, a book apart from the ladder's first set"
