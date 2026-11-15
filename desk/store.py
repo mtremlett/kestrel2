@@ -115,8 +115,10 @@ def _once(bars: Sequence[Bar], faults: list[Fault]) -> list[Bar]:
     return once
 
 
-def _entered(line: Line, bar: Bar, open_days: set[date]) -> Bar | str:
-    """The bar as it enters the store, or why it cannot be true on its own."""
+def _entered(line: Line, bar: Bar, open_days: set[date], faults: list[Fault]) -> Bar | str:
+    """The bar as it enters the store, or why it cannot be true on its own. A bar whose only
+    fault is an impossible high is kept, the high clamped to its open or close and the repair
+    listed: the open, close and volume stand. A deep low is the market's, read as a move."""
     prices = (bar.open, bar.high, bar.low, bar.close)
     if bar.day in line.suspended:
         return f"{bar.day} has a bar, yet {line.symbol} records it as suspended"
@@ -128,9 +130,11 @@ def _entered(line: Line, bar: Bar, open_days: set[date]) -> Bar | str:
     reach = (bar.low * (1 - STRETCH), bar.high * (1 + STRETCH))
     if not bar.low <= bar.high or not reach[0] <= min(ends) <= max(ends) <= reach[1]:
         return f"{bar.day} has an open or close outside its high and low"
-    if bar.high >= JUMP * max(ends):
-        return f"{bar.day} has a high far above its own open and close: a bad print"
-    return replace(bar, high=max(bar.high, *ends), low=min(bar.low, *ends))
+    high = max(bar.high, *ends)
+    if high >= JUMP * max(ends):
+        faults.append(Fault(bar.day, f"{bar.day} high repaired: was {bar.high}"))
+        high = max(ends)
+    return replace(bar, high=high, low=min(bar.low, *ends))
 
 
 def _rate(rates: Rates, day: date) -> Decimal | None:
@@ -282,7 +286,7 @@ def _clean(
     expected = [d for d in every if d not in line.suspended]
     open_days, sound = set(expected), []
     for bar in _once(bars, faults):
-        entered = _entered(line, bar, open_days)
+        entered = _entered(line, bar, open_days, faults)
         if isinstance(entered, str):
             faults.append(Fault(bar.day, entered))
         else:
