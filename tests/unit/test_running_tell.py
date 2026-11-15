@@ -53,6 +53,6 @@ def test_a_broker_that_disagrees_after_an_order_has_gone_reaches_him_once_naming
     fine = Pretend({IITU: (*DIP, today)}, {})
     fine.open(MON.date())
     running._round(quiet, fine, "LSE", MON)  # type: ignore[arg-type]
-    assert not any("do not agree" in words for words in _told(door)) and not halt.in_force(
-        quiet.root
-    )
+    running._say(quiet, MON, running.UNASKED)
+    assert not any("do not agree" in words for words in _told(door)) and _told(door), "morning only"
+    assert not halt.in_force(quiet.root)
