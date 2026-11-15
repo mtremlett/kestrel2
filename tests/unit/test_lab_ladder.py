@@ -170,7 +170,7 @@ def test_a_line_the_desks_sizing_refuses_is_a_judged_outcome_and_the_set_carries
     assert "1 judged now, 0 kept from before, 0 could not be judged and are tried" in said
     assert "again next run, 1 refused by the desk's sizing;" in said
     assert "0 judged now, 1 kept" in ladder.run(tmp_path, _door(book), pounds, _set(VUSA, ISF))
-    assert ladder._said(refused)[1].startswith("refused by the desk's sizing")
+    assert ladder_sets._said(refused)[1].startswith("refused by the desk's sizing")
 
 
 def test_a_short_line_is_judged_on_its_proxys_longer_bars_and_says_so(tmp_path: Path) -> None:
