@@ -736,6 +736,36 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       curve at three effect sizes, a broken copy of the rung caught, and each defect the old
       audit found kept as a case that must fail (LAD-09, LAD-03, LAD-08)
       {id: rungs-trustworthy; files: *; after: rungs-beta}
+- [ ] **LADDER READY, the cards (his ruling, 15 November: "done properly and to elite desk
+      specifications", then the ladder runs 24x7).** Ranked; each card one test and one change:
+  - [ ] L1 TAPE-CACHE: a rule on a line simulated once into a kept tape (trades, daily
+        returns), keyed by the rule, the engine, the bars and the rates; each rung's result
+        keyed by the tape and that rung's own code. Changing a rung re-simulates nothing
+  - [ ] L2 THE RUNG MAP: each of the eleven rungs above named to its module and test, built
+        or not, in `lab/ladder.py`'s docstring; the later cards follow it
+  - [ ] L3-L13 ONE CARD PER RUNG, built or proven to one standard, one module each so they
+        run in parallel: a planted edge passes; five hundred noise cells pass at about the
+        stated rate; a power curve at three effect sizes; a broken copy caught; each defect
+        of the old desk's rung audit kept as a case that must fail
+  - [ ] L14 one clustered set of trials for the deflated Sharpe, its spread measured
+  - [ ] L15 the blind review of the whole ladder (R-RUNNER-40), every blocking finding fixed
+  - [ ] L16 the gate: the runner runs the catalogue 24x7, each change re-running only its
+        own specs, each set's table published with "rungs built: n of 11"
+- [ ] **STRATEGIES AS DATA (his goal: 1,000+ strategies over 1,000+ tickers):**
+  - [ ] B1 building blocks written once, each known-answer tested: indicators, entries,
+        exits, stops, filters (regime filters among them), sizing
+  - [ ] B2 a typed Spec, validated on entry: an unknown block or a bad setting is refused
+  - [ ] B3 the catalogue, one TOML row per strategy with its source and known-answer case;
+        a guard: unique names, known blocks only, a source and a case on every row
+  - [ ] B4 the nineteen eponymous rules as rows, identical trades on the fixture proven,
+        then their Python files deleted
+  - [ ] B5 variants generated from a row's setting ranges, every one counted as a trial
+  - [ ] B6 the old desk's families listed and entered as sets of rows marked QUARRY, their
+        cases derived by hand, never from the old desk's numbers
+  - [ ] P1 a fast engine for rows, vectorised in `lab/`, matching the desk's engine on the
+        golden fixture (canon B2) or removed; indicators computed once per ticker and shared
+  - [ ] GC the grid chained onto each set: rows swept over their ranges and the research
+        universe, through the same tapes and rungs, the plateau's centre reported (canon B6)
 - [ ] Each indicator known-answer tested against a published reference series (STR-14).
       Built: moving average, Bollinger deviation, Wilder smoothing (#145); true range, RSI gains
       and losses, channel (#154): five tables, 250 printed numbers. Remains: RSI ratio and band
@@ -852,6 +882,59 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       BIC-10)
 
 ---
+
+## The machine, then the desk — his mandate of 15 November
+
+"Do not make the same mistakes as the previous kestrel repo and mark_the_trend repo."
+Reviews of both found the same mechanisms: tools outgrowing the product, activity counted
+as progress, status committed as history, suppressions in bulk, documents breeding. From
+Tuesday 17 November, STOP THE LINE: no feature card starts until the first block below is
+green on main. Designs, pre-mortems and planted breaks: the runner's notes,
+`tuesday-designs.md`. Each box is done only when its planted break is seen failing on main.
+
+**Stop the line (first, in this order)**
+- [ ] R2 outcome contract: a night job's real result, never its exit code; DONE only when proven
+- [ ] R3 the night jobs in the check, on committed real-shaped fixtures, under 60 s together
+- [ ] R5 the READY gate on dependencies: a card starts only when what it needs is on main
+- [ ] R7 a Stop hook with nested goals, one lane first, then every lane and every card
+- [ ] G1 health rules blocking: duplicate bodies, a number with two homes, lines per box
+- [ ] G2 suppressions: never rising from 80, each with its reason; no skip or xfail
+- [ ] G3 the repository root holds only its fixed set
+- [ ] G4 no status-only commits; state lives outside git
+- [ ] G5 the runner into this repository as `ops/`, under its own ceiling (7,668, only down)
+- [ ] G6 strategy scope: the desk trades its five; research rules in one rule book, capped
+- [ ] F4 every pull request title carries its type, so the fix share is honest
+- [ ] F6 a session runs its claim's tests and the fast check; the merge train runs all
+- [ ] F7 a lane writes its own section and one scoreboard line; the shared head generated
+- [ ] F8 a new module names its own concept, never an owner's name plus a suffix
+- [ ] F9 every runner request names the box or scene it serves, or it is not READY
+- [ ] Option C: phases 2 and 3 open, their needs offered, three sessions a lane, no auto-open
+- [ ] CONSOLIDATE: the eponymous files into one template under `lab/`, duplicates and
+  two-homed numbers removed, desk under 8,500 lines, results identical before and after
+
+**Design gates (inside the one check, every change)**
+- [ ] D1 DRY: unique function bodies; numbers in named constants (ratchet)
+- [ ] D2 one contract test per Protocol, run against every implementation
+- [ ] D3 the desk holds only what trades; each module owns one thing, said without "and"
+- [ ] D4 docstrings by convention, ratcheted to none missing
+- [ ] D5 dead code and test-only modules never rise
+- [ ] D7 churn by the same lines changed again, not by titles
+- [ ] D8 nightly deep tier: mutation tests on the money path, long property runs, SimCity
+
+**Keeping it honest, every week**
+- [ ] Every Sunday the runner opens a card to review every document in the fixed set
+  against main (stale facts, lengths, rules with no check); a missed week is a fault
+- [ ] Card time: median under 10 minutes and the slowest tenth under 25, measured in the
+  hourly report; a week above it is a fault with its causes named
+
+**The best small desk (after FIRST-LIGHT, each traced to a scene)**
+- [ ] Q1 each paper day's expected result against the real one, the gap tracked
+- [ ] Q2 trading costs measured from real paper fills against the model
+- [ ] Q3 survivorship: each list as it stood on each past date
+- [ ] Q4 desk-wide risk: a drawdown limit, correlation between lines, sizing by volatility
+- [ ] Q6 each strategy beside simply holding its market
+- [ ] Q7 a one-page runbook: if this happens, do that
+- [ ] Q8 market events in the calendar: no new entry into a known event
 
 ## The requirements
 
