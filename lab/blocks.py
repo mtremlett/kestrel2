@@ -10,6 +10,7 @@ filter then forbids).
 
 from __future__ import annotations
 
+from collections import deque
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from decimal import Decimal
@@ -137,6 +138,71 @@ class CloseNearRangeHigh(_RangeEdge):
         super().__init__(n, pct, from_top=True)
 
 
+#: A channel is a range when its width is at most this share of its midpoint.
+RANGE_WIDTH = Decimal("0.10")
+
+
+class _Channel(Block):
+    """The channel of the `n` bars before a bar: its highest high and lowest low, taken in
+    after the bar is judged. Subclasses say what the bar does against it."""
+
+    def __init__(self, n: int) -> None:
+        self._highs, self._lows = _Window(n), _Window(n)
+
+    def judge(self, bar: Bar, high: Decimal, low: Decimal) -> bool:
+        """Whether the bar fires against a full channel from `low` to `high`."""
+        raise NotImplementedError
+
+    def see(self, bar: Bar, holding: bool) -> bool:  # noqa: ARG002 - the one interface of every block
+        """Shown the next bar: whether the block fires."""
+        fires = self._highs.full and self.judge(bar, self._highs.high(), self._lows.low())
+        self._highs.add(bar.high)
+        self._lows.add(bar.low)
+        return fires
+
+
+class CloseAtRangeLow(_Channel):
+    """Fires on a close at or under the lowest low of the `n` bars before, when that channel
+    is a range: its width at most a tenth of its midpoint."""
+
+    def judge(self, bar: Bar, high: Decimal, low: Decimal) -> bool:
+        """Whether the close is at the low of a channel narrow enough to be a range."""
+        return high - low <= RANGE_WIDTH * (high + low) / 2 and bar.close <= low
+
+
+class CloseAtMidpoint(_Channel):
+    """Fires on a close at or over the midpoint of the channel of the `n` bars before."""
+
+    def judge(self, bar: Bar, high: Decimal, low: Decimal) -> bool:
+        """Whether the close is at or over the channel's midpoint."""
+        return bar.close >= (high + low) / 2
+
+
+class CloseUnderCloseAgo(Block):
+    """Fires on a close under the close `n` bars before: a loser of the last `n` sessions."""
+
+    def __init__(self, n: int) -> None:
+        self._closes: deque[Decimal] = deque(maxlen=n)
+
+    def see(self, bar: Bar, holding: bool) -> bool:  # noqa: ARG002 - the one interface of every block
+        """Shown the next bar: whether the block fires."""
+        fires = len(self._closes) == self._closes.maxlen and bar.close < self._closes[0]
+        self._closes.append(bar.close)
+        return fires
+
+
+class TimeStop(Block):
+    """Fires once the position has been seen held for `n` bars, however it stands."""
+
+    def __init__(self, n: int) -> None:
+        self._n, self._held = n, 0
+
+    def see(self, bar: Bar, holding: bool) -> bool:  # noqa: ARG002 - the one interface of every block
+        """Shown the next bar: whether the block fires."""
+        self._held = self._held + 1 if holding else 0
+        return self._held >= self._n
+
+
 class TrailingStop(Block):
     """Fires on a close `pct` per cent or more under the highest close since the position was
     first seen held. Nothing while the position is not held."""
@@ -163,7 +229,7 @@ class Always(Block):
 
 
 class Never(Block):
-    """Fires on no bar: the stop that never stops."""
+    """Fires on no bar: the stop that never stops, the exit that never leaves."""
 
     def see(self, bar: Bar, holding: bool) -> bool:  # noqa: ARG002 - the one interface of every block
         """Shown the next bar: whether the block fires."""
@@ -195,12 +261,17 @@ _PCT = Param(int, 1, 50)
 BLOCKS: Mapping[str, Spot] = {
     "highest_high": Spot(Kind.ENTRY, HighestHigh, {"n": _DAYS}),
     "lower_run": Spot(Kind.ENTRY, LowerRun, {"n": _DAYS}),
+    "close_at_range_low": Spot(Kind.ENTRY, CloseAtRangeLow, {"n": _DAYS}),
+    "close_under_close_ago": Spot(Kind.ENTRY, CloseUnderCloseAgo, {"n": _DAYS}),
+    "close_at_midpoint": Spot(Kind.EXIT, CloseAtMidpoint, {"n": _DAYS}),
     "close_near_range_low": Spot(Kind.ENTRY, CloseNearRangeLow, {"n": _DAYS, "pct": _PCT}),
     "close_near_range_high": Spot(Kind.EXIT, CloseNearRangeHigh, {"n": _DAYS, "pct": _PCT}),
     "close_over_average": Spot(Kind.EXIT, CloseAboveAverage, {"n": _DAYS}),
     "lowest_low": Spot(Kind.EXIT, LowestLow, {"n": _DAYS}),
     "close_below_average": Spot(Kind.EXIT, CloseBelowAverage, {"n": _DAYS}),
     "trailing_stop": Spot(Kind.STOP, TrailingStop, {"pct": Param(Decimal, 1, 50)}),
+    "time_stop": Spot(Kind.STOP, TimeStop, {"n": _DAYS}),
+    "no_exit": Spot(Kind.EXIT, Never, {}),
     "no_stop": Spot(Kind.STOP, Never, {}),
     "close_above_average": Spot(Kind.FILTER, CloseAboveAverage, {"n": _DAYS}),
     "no_filter": Spot(Kind.FILTER, Always, {}),

@@ -89,6 +89,32 @@ def _near_range_low(p: Prices, params: Params) -> Bools:
     return _range_edge(p, params, from_top=False)
 
 
+def _channel(p: Prices, n: int) -> tuple[Floats, Floats]:
+    """The highest high and lowest low of the n bars before each bar from n."""
+    return _windows(p.high, n).max(axis=1)[:-1], _windows(p.low, n).min(axis=1)[:-1]
+
+
+def _at_range_low(p: Prices, params: Params) -> Bools:
+    """Close at or under the channel's low, the channel a range: 20 * (high - low) is at most
+    high + low (a tenth of the midpoint), i.e. 21 * low - 19 * high is not negative."""
+    n = int(params["n"])
+    high, low = _channel(p, n)
+    ranged = _sure(p, 21 * low - 19 * high, 21 * low + 19 * high, 40 * _top(p)) >= 0
+    return _late(n, ranged & (p.close[n:] <= low), len(p.close))
+
+
+def _at_midpoint(p: Prices, params: Params) -> Bools:
+    n = int(params["n"])
+    high, low = _channel(p, n)
+    over = _sure(p, 2 * p.close[n:] - high - low, high + low + 2 * p.close[n:], 4 * _top(p)) >= 0
+    return _late(n, over, len(p.close))
+
+
+def _under_close_ago(p: Prices, params: Params) -> Bools:
+    n = int(params["n"])
+    return _late(n, p.close[n:] < p.close[:-n], len(p.close))
+
+
 def _always(p: Prices, params: Params) -> Bools:  # noqa: ARG001 - the one interface of every block
     return np.ones(len(p.close), dtype=np.bool_)
 
@@ -98,16 +124,21 @@ def _never(p: Prices, params: Params) -> Bools:  # noqa: ARG001 - the one interf
 
 
 #: The firing of each block of `lab.blocks.BLOCKS` that needs no position, by its name. The
-#: trailing stop is not here: it depends on the position, so the walk below works it out.
+#: trailing and time stops are not here: they depend on the position, so the walk below
+#: works them out.
 FIRES: Mapping[str, Fire] = {
     "highest_high": _highest_high,
     "lowest_low": _lowest_low,
     "close_below_average": _below_average,
     "close_over_average": _above_average,
     "lower_run": _lower_run,
+    "close_at_range_low": _at_range_low,
+    "close_at_midpoint": _at_midpoint,
+    "close_under_close_ago": _under_close_ago,
     "close_near_range_low": _near_range_low,
     "close_near_range_high": _near_range_high,
     "close_above_average": _above_average,
+    "no_exit": _never,
     "no_stop": _never,
     "no_filter": _always,
 }
@@ -128,24 +159,26 @@ class Shared:
         return self._fired[key]
 
 
-def _walk(p: Prices, wish: Bools, leave: Bools, pct: Decimal | None) -> Bools:
+def _walk(p: Prices, wish: Bools, leave: Bools, pct: Decimal | None, days: int = 0) -> Bools:
     """The position after each bar: out to start; out, it buys on a bar that wishes it; in, it
     sells on a bar that leaves or, given `pct`, on a close at or under the highest close since
     it was first seen held, less that per cent. That test, `close <= peak * (1 - pct / 100)`,
-    is made on whole numbers as `close * a <= peak * b`, and its closeness checked."""
+    is made on whole numbers as `close * a <= peak * b`, and its closeness checked. Given `days`,
+    it also sells on the bar that is its `days`-th held."""
     top, bottom = (pct or Decimal(0)).as_integer_ratio()
     a = 100 * bottom
     b, close = a - top, p.close.tolist()
     if _top(p) * a >= DESK:
         raise TooClose("prices too long for the desk's own stop to be exact")
-    out, holding, peak = [], False, None
+    out, holding, peak, kept = [], False, None, 0
     sides: list[tuple[float, float]] = []
     for n, (buy, sell) in enumerate(zip(wish.tolist(), leave.tolist(), strict=True)):
         if not holding:
-            peak, holding = None, buy
+            peak, holding, kept = None, buy, 0
         else:
+            kept += 1
             peak = close[n] if peak is None else max(peak, close[n])
-            holding = not sell
+            holding = not sell and kept != days
             if pct is not None:
                 sides.append((close[n] * a, peak * b))
                 holding = holding and close[n] * a > peak * b
@@ -164,4 +197,5 @@ def held(spec: Spec, shared: Shared) -> Bools:
         for place in ("entry", "exit", "filter")
     }
     stop = Decimal(spec.params["stop"]["pct"]) if spec.stop == "trailing_stop" else None
-    return _walk(shared.prices, fire["entry"] & fire["filter"], fire["exit"], stop)
+    days = int(spec.params["stop"]["n"]) if spec.stop == "time_stop" else 0
+    return _walk(shared.prices, fire["entry"] & fire["filter"], fire["exit"], stop, days)
