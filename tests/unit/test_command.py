@@ -15,7 +15,7 @@ import pytest
 import test_placing as tp
 from test_paper import ACCOUNTS, HELLO, NEXT, Said, _wire
 from test_reports import END, LISTED
-from test_running import MADE
+from test_running import MADE, fast_store
 
 from desk import (
     archive,
@@ -24,6 +24,7 @@ from desk import (
     command,
     day,
     halt,
+    keeper,
     listing,
     messenger,
     paper,
@@ -64,6 +65,7 @@ def _world(patch: pytest.MonkeyPatch, fetch: Fetch = _fetch) -> dict[bytes, Said
         return talk(_wire(HELLO, ACCOUNTS, NEXT, *answers[b"".join(asked[2:])]), lambda _: None)
 
     patch.setattr(archive, "fetch", fetch)
+    patch.setattr(keeper, "saved", lambda _home, day: ({n: fetch(n, day) for n in LINES}, set()))
     patch.setattr(paper, "dial", dial)
     patch.setattr(listing, "read", lambda _: LISTED)
     return answers
@@ -77,6 +79,7 @@ def test_a_step_does_the_days_work_under_the_data_folder_and_fails_by_name_witho
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     _world(monkeypatch)
+    fast_store(tmp_path / "bars.db", 51)
     assert _run(tmp_path, MON) == 0  # he sleeps: a knock
     assert capsys.readouterr().out == "STEP Mon 16 Nov 07:15 UTC: done.\n"
     # London open, and no key of his: the round is made on the store's bars at the pound's
@@ -177,6 +180,7 @@ def test_the_rehearsal_lives_the_last_session_again_on_its_own_record_with_no_ma
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     answers, whole, script = _world(monkeypatch), running.step, dict[int, dict[bytes, Said]]()
+    fast_store(tmp_path / "bars.db", 51)
 
     def step(desk: running.Desk, now: datetime) -> None:
         answers.update(script.get(now.hour * 100 + now.minute, {}))

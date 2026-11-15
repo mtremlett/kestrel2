@@ -16,7 +16,8 @@ import test_placing as tp
 from test_paper import FLAT, Said, _account, _but, _gateway, _order
 from test_reports import AAPL, BOUGHT, DONE, END, IITU, LISTED, SMGB
 
-from desk import book, clearance, day, kill, listing, paper, running
+from desk import book, clearance, day, kill, listing, paper, running, venues
+from desk.bars import Five, writing
 from desk.book import Switch
 from desk.broker import Fill, Pretend
 from desk.clearance import Check
@@ -27,6 +28,8 @@ from desk.store import Bar
 
 MON, ID, OLD = tp.AT, "20261113-bollinger_pullback-IITU", "20261112-rsi2_pullback-IITU"
 OPEN, SHUT = MON.replace(hour=14, minute=35), MON.replace(hour=21, minute=5)
+DAY = timedelta(days=1)
+SPAN = date(2026, 7, 1), date(2026, 11, 30)
 DAYS = [date(2026, 10, 16) + timedelta(days=n) for n in range(29)]
 ACCOUNT, FILLS, ASKED = tp.ACCOUNT, tp.FILLS, tp.ASKED
 #: Twenty-one sessions to Friday the 13th: flat, and with a last close Bollinger's rule buys.
@@ -54,7 +57,20 @@ RATES = {"GBP": Decimal(1), "USD": Decimal("0.8")}
 #: The same bars with Monday's and Tuesday's, each a pound up; and a round's last words.
 UP = Decimal(41)
 WEEK = (*FLAT_, *(Bar(SHUT.date() + timedelta(days=n), UP, UP, UP, UP, 1) for n in (0, 1)))
+JULY = tuple(
+    Bar(d, *(Decimal(40),) * 4, 1)
+    for d in venues.sessions("LSE", date(2026, 6, 1), date(2026, 7, 3))
+)
 OUT = "Left out, parked or with no bar of {} Nov: {}."
+
+
+def fast_store(hot: Path, price: int = 40) -> None:
+    """The fast store at hot, with the market heard from all through every session, five
+    minutes at a time, from July to November."""
+    sessions = (venues.hours("LSE", on) for on in venues.sessions("LSE", *SPAN))
+    every = [hours.open + n * timedelta(minutes=5) for hours in sessions for n in range(102)]
+    with writing(hot) as round_:
+        round_.five(YARDSTICK, [Five(at, *(Decimal(price),) * 4, 1) for at in every])
 
 
 def _desk(root: Path, **bars: Sequence[Bar]) -> tuple[Desk, Mock]:
@@ -62,8 +78,18 @@ def _desk(root: Path, **bars: Sequence[Bar]) -> tuple[Desk, Mock]:
     and the bars saved for its lines: SMGB's the store has parked."""
     lines, post = {"IITU": IITU, "AAPL": AAPL, "SMGB": SMGB, "VUAG": YARDSTICK}, Mock()
     post.side_effect = range(1, 99)
-    saved = Mock(return_value=({lines[name]: series for name, series in bars.items()}, {"SMGB"}))
-    return Desk(root, Settings(Decimal(4750)), post, saved, Mock(return_value=RATES)), post
+    given = {lines[name]: series for name, series in ({"VUAG": FLAT_} | bars).items()}
+    saved, hot = Mock(return_value=(given, {"SMGB"})), root.parent / f"{root.name}.db"
+    fast_store(hot)
+    return Desk(
+        root,
+        Settings(Decimal(4750)),
+        post,
+        saved,
+        Mock(return_value=RATES),
+        hot,
+        Mock(return_value=(given, set())),
+    ), post
 
 
 def _step(patch: pytest.MonkeyPatch, desk: Desk, now: datetime, *answers: Said) -> list[bytes]:
@@ -119,20 +145,23 @@ def test_at_each_open_the_step_checks_the_account_and_sends_the_days_orders_once
     # yesterday's round is not today's, and a line with no bar of the session before is left
     # out and named, never passed over in silence
     quiet, _ = _desk(tmp_path / "quiet", IITU=FLAT_)
-    for now in (MON, MON + timedelta(days=1)):
+    for now in (MON, MON + DAY):
         assert _step(monkeypatch, quiet, now, none, tp.EMPTY, none) == [FILLS, ACCOUNT, FILLS]
     first, second = running.notes(quiet.root)
     assert first[::2] == (MON, "London, today's orders: none sent in this round.")
-    assert second[::2] == (MON + timedelta(days=1), f"{first.words} {OUT.format('Mon 16', 'IITU')}")
+    assert second[::2] == (MON + DAY, f"{first.words} {OUT.format('Mon 16', 'IITU, VUAG')}")
     # a round is owed only while its venue trades: in London's closing auction none is begun
     # (Thanksgiving: New York is shut all day)
     auction = MON.replace(day=26, hour=16, minute=31)
     assert _step(monkeypatch, quiet, auction, none, tp.EMPTY) == [FILLS, ACCOUNT]
     assert len(running.notes(quiet.root)) == 2
-    days = [MON, MON + timedelta(days=1), auction]  # the drill is each day's own, made once
+    days = [MON, MON + DAY, auction]  # the drill is each day's own, made once
     assert [turn[:2] for turn in book.switch(quiet.root)] == [(at, Switch.DRILLED) for at in days]
     # the hour he wakes is on a UK clock: 07:00 UTC in summer (a Saturday: the check alone)
-    (summer, door), july = _desk(tmp_path / "summer"), datetime(2026, 7, 4, 6, 59, tzinfo=UTC)
+    (summer, door), july = (
+        _desk(tmp_path / "summer", VUAG=JULY),
+        datetime(2026, 7, 4, 6, 59, tzinfo=UTC),
+    )
     for seconds, news in enumerate(("news kept for the hour he wakes", "and more, a second on")):
         running._note(summer.root, july + timedelta(seconds=seconds), "recovered", news)
     assert _step(monkeypatch, summer, july) == [] and not door.called
@@ -289,9 +318,9 @@ def test_a_step_that_fails_tells_him_once_and_is_an_error_and_a_silent_gateway_i
     assert [check.found for check in clearance.checks(tmp_path)] == [None] * 3
     # one in his night is kept for the hour he wakes, and told then with the new day's first;
     # news a day old by then is not told
-    night, door = _desk(tmp_path / "night")
+    night, door = _desk(tmp_path / "night", VUAG=WEEK)
     running._note(night.root, MON - timedelta(hours=15), "recovered", "news a day old by then")
-    for now, told_by_then in ((MON.replace(hour=22, minute=30), 0), (MON + timedelta(days=1), 3)):
+    for now, told_by_then in ((MON.replace(hour=22, minute=30), 0), (MON + DAY, 3)):
         with pytest.raises(ConnectionError, match="hung up"):
             _step(monkeypatch, night, now, [END], [])
         assert door.call_count == told_by_then
@@ -308,7 +337,7 @@ def test_a_step_that_fails_tells_him_once_and_is_an_error_and_a_silent_gateway_i
     # hour, once from each hour he wakes to the next. In its own restart no knock is made
     dial = Mock(side_effect=ConnectionRefusedError)
     monkeypatch.setattr(paper, "dial", dial)
-    silent, door = _desk(tmp_path / "silent")
+    silent, door = _desk(tmp_path / "silent", VUAG=WEEK)
     for hours, told_by_then in ((15, 1), (16, 1), (19, 1), (24, 3)):  # 23:05, 00:05, 03:05, 08:05
         running.step(silent, MON + timedelta(hours=hours))
         assert door.call_count == told_by_then
