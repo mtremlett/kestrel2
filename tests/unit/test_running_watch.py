@@ -11,10 +11,11 @@ from unittest.mock import Mock
 import pytest
 import test_placing as tp
 from test_paper import Said
+from test_placing import ACCOUNT, FILLS
 from test_reports import END
 from test_running import FLAT_, _desk, _step
 
-from desk import book, running, watch
+from desk import book, clearance, paper, running, watch
 from desk.bars import Five, writing
 from desk.lines import YARDSTICK
 
@@ -28,7 +29,7 @@ def test_every_step_looks_at_the_market_first_and_london_waits_for_its_first_bar
     none: Said = [END]
     open_ = datetime(2026, 12, 1, 8, 5, tzinfo=UTC)  # the fast store holds no bar of this day
     # the market is unheard of at 08:05: the look says wait, and no round of orders is begun
-    _step(monkeypatch, desk, open_, none, tp.EMPTY)
+    assert _step(monkeypatch, desk, open_, none, tp.EMPTY) == [FILLS, ACCOUNT]  # no order
     assert not running.notes(tmp_path) and not book.fills(tmp_path)
     (call,) = look.call_args_list
     assert call.args[:2] == (desk.root, desk.hot) and call.args[3:] == (open_, desk.post)
@@ -40,3 +41,14 @@ def test_every_step_looks_at_the_market_first_and_london_waits_for_its_first_bar
     _step(monkeypatch, desk, later, none, tp.EMPTY, none)
     assert [n.what for n in running.notes(tmp_path)] == ["orders LSE"] and look.call_count == 2
     assert [c.args[3] for c in look.call_args_list] == [open_, later]
+    # a look that fails holds the round, and the rest of the step is done; the failure is raised
+    look.side_effect = OSError("the store is gone")
+    with pytest.raises(OSError, match="store is gone"):
+        _step(monkeypatch, desk, later + timedelta(days=1), none, tp.EMPTY)
+    assert [n.what for n in running.notes(tmp_path)][1:] == ["trouble OSError"]
+    assert len(clearance.checks(tmp_path)) == 3
+    # and a gateway that is silent is looked past: the look is made at any hour
+    look.side_effect = None
+    monkeypatch.setattr(paper, "dial", Mock(side_effect=ConnectionRefusedError))
+    running.step(desk, later + timedelta(days=1, hours=14))
+    assert look.call_args.args[3] == later + timedelta(days=1, hours=14)

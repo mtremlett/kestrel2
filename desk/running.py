@@ -5,15 +5,17 @@ supervisor: not built, docs/STATUS.md). A step remembers nothing. What is done i
 desk's records, and what is not is done by the next step: so a desk that died anywhere is
 started again simply by asking for a step.
 
+THE CRASH WATCH'S LOOK (watch.look) is made first at every step, every hour, whatever the
+gateway says: it halts buying on a crash, and while it has not read the market's first bar of
+its session (London's 08:05) it holds that venue's round of orders. A look that fails holds
+every round; the rest of the step is done, and the failure raised after.
+
 What a step owes, in this order, and only of a gateway that says it is ready:
 - THE LEDGER brought up to date with the broker's fills, at every step in which a market is
   open: the broker tells of the day alone.
 - THE KILL SWITCH'S DRILL (`_drill`), once each day, in UTC, at its first step with anything
   below to do: no order goes on a day the switch was not seen to work. A drill that broke a
   promise is a step that failed: nothing below is done, and the next step drills again.
-- THE CRASH WATCH'S LOOK (watch.look), at every step and every hour, before anything below:
-  it halts buying on a crash, and a look that cannot yet read the market's first bar of its
-  session (London's 08:05) holds that venue's round of orders till the bar is in the fast store.
 - THE DAY'S CHECK (clearance.check), from the hour he wakes, and again before each round of
   orders and each record. When it names anything, what a dead desk left at the broker is
   first put right (`recover`) and the account checked again. Still not clean, no order goes
@@ -199,10 +201,13 @@ def _clean(
     return not found
 
 
-def _pending(root: Path, now: datetime, seen: watch.Look) -> list[str]:
+def _pending(root: Path, now: datetime, seen: watch.Look | None) -> list[str]:
     """The venues whose round of orders is owed now: in continuous trading, with no round of
     today's on the record, and, of the market's own venue, once the look has read a bar of
-    the session (it holds the round till then, see watch.EARLY)."""
+    the session (it holds the round till then, see watch.EARLY). A look that failed (None)
+    holds every round: the rest of the step is still done, and the failure raised after."""
+    if seen is None:
+        return []
     done = {note.what for note in notes(root) if note.at.date() == now.date()}
     trading = {venue: venues.open_at(venue, now) for venue in VENUES}
     return [
@@ -277,7 +282,7 @@ def _drill(root: Path, now: datetime) -> None:
             raise kill.Failed(UNDRILLED.format(broke)) from broke
 
 
-def _work(desk: Desk, now: datetime, seen: watch.Look) -> None:
+def _work(desk: Desk, now: datetime, seen: watch.Look | None) -> None:
     """What a step owes of a ready gateway, in the module's order; the paper account is
     asked only when something is owed. A round and a record each have the check before
     them, so a desk started again at any hour is recovered before it orders or publishes;
@@ -327,12 +332,17 @@ def step(desk: Desk, now: datetime) -> None:
     that did not say it is ready."""
     if now.utcoffset() != timedelta(0):
         raise ValueError(f"{now} is no moment in UTC: the desk's day is kept in UTC alone")
-    known = UNASKED
+    known, seen, unseen = UNASKED, None, None  #: the look, or the error that it failed with
     try:
         known = gateway.known(now)
-        seen = watch.look(desk.root, desk.hot, desk.held(now.date())[0], now, desk.post)
+        try:
+            seen = watch.look(desk.root, desk.hot, desk.held(now.date())[0], now, desk.post)
+        except Exception as failed:  # noqa: BLE001 - no round goes unseen; the rest is done
+            unseen = failed
         if known:
             _work(desk, now, seen)
+        if unseen:
+            raise unseen
     except Exception as fault:
         kind = type(fault).__name__
         _note(desk.root, now, f"{TROUBLE} {kind}", FAILED.format(kind, fault))
