@@ -84,14 +84,15 @@ def test_a_place_that_fails_unknown_pulls_the_switch_and_keeps_the_note(
 ) -> None:
     broker = _desk(tmp_path)
 
-    def strange(_: Order | Sale) -> Report:
+    def strange(order: Order | Sale) -> Report:
+        broker._working[order.order_id] = order  # noqa: SLF001 - left working, as a strange failure may
         raise RuntimeError("the gateway sent gibberish")
 
     monkeypatch.setattr(broker, "place", strange)
     with pytest.raises(book.Alarm, match=r"o-3: .*gibberish.*kill switch is on"):
         _buy(tmp_path, broker, "o-3", C)
     assert "o-3" in str(book.killed(tmp_path)) and (tmp_path / book.GOING).exists()
-    assert broker.working() == (), "the order left working was not cancelled"
+    assert broker.working() == (), "the order the failed place left working was not cancelled"
     assert broker.stops() == (("A", 10),), "a stop resting to sell what is held was taken"
     with pytest.raises(Refused, match="o-4: .*kill switch"):
         _buy(tmp_path, broker, "o-4", C)
