@@ -85,8 +85,10 @@ class Broker(Protocol):
 
     def stops(self) -> Iterable[tuple[str, Decimal | int]]:
         """Every stop of the desk's own resting at the broker to sell, entry by entry: a
-        name, as a holding's, and the shares it would sell. A stop placed by anyone else
-        is not listed, as no one else's order is touched."""
+        name, as a holding's, and the shares it would sell. Only stops resting to sell shares
+        the account holds are listed: a stop attached to a buy still working protects nothing
+        yet and is left out. A stop placed by anyone else is not listed, as no one else's
+        order is touched."""
 
     def cancel(self) -> Iterable[str]:
         """Cancel every order of the desk's own still working at the broker, and name each
