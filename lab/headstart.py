@@ -49,6 +49,7 @@ import pyarrow.parquet as pq  # type: ignore[import-untyped]  # ships no stubs
 
 from desk import archive, bars, store, venues
 from desk.bars import EPOCH, Five, Source
+from desk.compare import doubt
 from desk.lines import LINES, Line
 from desk.store import STRETCH, Bar, Refused
 
@@ -61,6 +62,7 @@ BARS = "SELECT ts, open, high, low, close, volume FROM ohlcv WHERE ticker = ? AN
 PARQUET = ("ts", "open", "high", "low", "close", "volume")
 TREND = ("DATE", "Open", "High", "Low", "Close", "Volume")  #: mark_the_trend's columns
 RAW = "*/5_*_txt*.zip"  #: where Stooq's five-minute zips lie: a dated folder each
+_ADJUSTED = "that are the adjusted form of the store's as-traded bars: not taken"
 IMPORT = "| IMPORT |"  #: how a row of the data register naming a store to read in begins
 
 
@@ -192,10 +194,10 @@ def daily(line: Line, data: Path, stores: tuple[Path, Path], day: date) -> str:
     close = {bar.day: bar.close for bar in mine}
     got = asked(stores[1], DAYS, line.symbol + archive.SUFFIX[line.venue])
     theirs = [(date.fromisoformat(at[:10]), Decimal(str(c))) for at, c in got if c]
-    met = [(c, close[d]) for d, c in theirs if d in close]
-    differ = sum(abs(c - kept) > bars.AGREE * kept for c, kept in met)
-    if (doubt := _doubt(len(met), differ)) is not None:
-        raise ValueError(f"{line.symbol}: {doubt}")
+    met = [(d, c, close[d]) for d, c in theirs if d in close]
+    differ = [d for d, c, kept in met if abs(c - kept) > bars.AGREE * kept]
+    if (why := doubt(len(met), differ)) is not None:
+        raise ValueError(f"{line.symbol}: {why}")
     fives = archive.fetch_five(line, datetime.combine(day, time(), UTC))
     older = [*mine, *bridge(fives, mine[-1].day, given[0].day)]
     store_ = data / "daily" / line.venue
@@ -208,7 +210,7 @@ def daily(line: Line, data: Path, stores: tuple[Path, Path], day: date) -> str:
     store.prepare(store_, {line: given}, day)
     kept = store.read(store_, line.symbol)
     said = f"headstart: {line.symbol} daily: {len(kept)} bars from {kept[0].day}"
-    return f"{said}; the database's closes agree on {len(met) - differ} of {len(met)} days"
+    return f"{said}; the database's closes agree on {len(met) - len(differ)} of {len(met)} days"
 
 
 def _priced(prices: Iterable[object], unit: Decimal) -> tuple[Decimal, Decimal, Decimal, Decimal]:
@@ -228,14 +230,6 @@ def _vouched(line: Line, bar: Five, day: Bar | None) -> Five | str:
             prices = (bar.open, bar.high, bar.low, bar.close)
             return Five(bar.start, *_priced(prices, unit), bar.volume)
     return "outside their day's fresh high and low"
-
-
-def _doubt(met: int, differ: int) -> str | None:
-    """Why a line's bars that passed every check are still not kept, if they are not."""
-    if not met:
-        return "no bar is held for any of their moments to prove their clock; none kept"
-    held = f"{differ} of the {met} bars already held for the same moments differ"
-    return f"{held}: another clock or another instrument; none kept" if differ * 2 > met else None
 
 
 @dataclass(frozen=True)
@@ -270,11 +264,16 @@ def adopt(
             kept, found = bars.checked(line, sound, round_.closes(line, since))
             unvouched = Counter(why for why in judged if isinstance(why, str))
             faults = [f"{count} bars {why}" for why, count in sorted(unvouched.items())] + found
-            met, differ = round_.apart(line, kept)
-            if kept and (doubt := _doubt(met, differ)):
-                faults.append(doubt)
+            verdict = round_.compare(line, kept)
+            if kept and (why := doubt(verdict.met, verdict.differ)):
+                faults.append(why)
                 kept = []
-            adopted[line] = Adopted(round_.five(line, kept), met, differ, tuple(faults))
+            raw = [bar for bar in kept if bar.start.date() not in verdict.factors]
+            if len(raw) < len(kept):
+                faults.append(f"{len(kept) - len(raw)} bars on days {_ADJUSTED}")
+            adopted[line] = Adopted(
+                round_.five(line, raw), verdict.met, len(verdict.differ), tuple(faults)
+            )
     return adopted
 
 
