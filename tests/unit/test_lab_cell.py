@@ -139,6 +139,29 @@ def test_the_data_version_moves_with_any_bar_it_read() -> None:
     assert before.code == cell.code_version()
 
 
+def test_a_lines_bars_are_hashed_once_per_end_and_the_keys_are_the_same(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    bars, hashed = _bars(SHAPE), list[int]()
+    cells = [_cell(first, last) for last in (21, 24) for first in (0, 5, 21)]
+    fresh = [cell.key(c, bars) for c in cells]  #: the memo warm
+    cell._HASHED.clear()
+    real = cell._data_version
+
+    def counted(read: Sequence[Bar]) -> str:
+        hashed.append(len(read))
+        return real(read)
+
+    monkeypatch.setattr(cell, "_data_version", counted)
+    assert [cell.key(c, bars) for c in cells] == fresh
+    assert [cell.run(c, bars).key for c in cells] == fresh
+    assert sorted(hashed) == [22, 25]  #: one hash per (line, end), not per cell
+    again = _bars(SHAPE)  #: other bars for the same line are hashed anew, and keyed alike
+    assert [cell.key(c, again) for c in cells] == fresh and len(hashed) == 4
+    moved = tuple(replace(b, close=b.close + 1) for b in bars)
+    assert cell.key(cells[0], moved).data != fresh[0].data
+
+
 def test_a_window_with_no_bars_is_refused() -> None:
     bars = _bars(SHAPE)
     with pytest.raises(ValueError, match="AAPL on US.*no bars"):

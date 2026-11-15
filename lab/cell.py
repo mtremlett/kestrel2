@@ -170,6 +170,23 @@ def _data_version(bars: Sequence[Bar]) -> str:
     return digest.hexdigest()
 
 
+#: Each (line, end) hashed once: the bars object it was hashed from, its length, the digest.
+#: Another bars object for the same line (a placebo's) is not the same bars: it is hashed again.
+_HASHED: dict[tuple[Line, date], tuple[Sequence[Bar], int, str]] = {}
+
+
+def _version(cell: Cell, bars: Sequence[Bar], read: Sequence[Bar]) -> str:
+    """The data version of `read`, the bars shown up to the cell's end, hashed once per
+    (line, end) while the same bars are asked about; the digest is the same as hashing anew."""
+    at = (cell.line, cell.end)
+    memo = _HASHED.get(at)
+    if memo is not None and memo[0] is bars and memo[1] == len(bars):
+        return memo[2]
+    version = _data_version(read)
+    _HASHED[at] = (bars, len(bars), version)
+    return version
+
+
 def _held(cell: Cell, bars: Sequence[Bar]) -> list[bool]:
     """Whether the rule is in the market after each bar: the grid's answer, and the desk's
     own engine's wherever the grid refuses to give one."""
@@ -209,7 +226,7 @@ def shown(cell: Cell, bars: Sequence[Bar]) -> tuple[Bar, ...]:
 
 def key(cell: Cell, bars: Sequence[Bar]) -> Key:
     """The key the cell's record from these bars would carry, without running the rule."""
-    return Key(cell, LOADED, _data_version(shown(cell, bars)))
+    return Key(cell, LOADED, _version(cell, bars, shown(cell, bars)))
 
 
 def run(cell: Cell, bars: Sequence[Bar]) -> Record:
@@ -218,4 +235,4 @@ def run(cell: Cell, bars: Sequence[Bar]) -> Record:
     inside = sum(1 for bar in read if bar.day >= cell.start)
     if not inside:
         raise ValueError(f"{cell}: no bars in the window")
-    return Record(Key(cell, LOADED, _data_version(read)), inside, _trades(cell, read))
+    return Record(Key(cell, LOADED, _version(cell, bars, read)), inside, _trades(cell, read))
