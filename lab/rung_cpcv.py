@@ -13,19 +13,30 @@ is CHOSEN there when its trades' mean gain after costs is above nothing. The two
 out-of-sample, where the rule earns or LOSES by the same measure.
 
 PURGED. A trade held across a cut stands on both sides of it, and one bought in the embargo
-after a cut (a hundredth of the days, Lopez de Prado's own figure) was decided on what the
-stretch before it showed. Both are in no stretch, in every split, so nothing the in-sample
-side saw is judged out-of-sample.
+after a cut (a hundredth of the days, Lopez de Prado's own figure) follows too closely on the
+stretch before. Both are in no stretch, in every split, so no trade stands on both sides of one.
 
-THE PROBABILITY OF OVERFITTING is, of the splits the rule was chosen in, the share it then
-lost out-of-sample: about a half for noise, nothing for an edge that is there throughout.
+THE PROBABILITY OF OVERFITTING is this rung's own figure for one rule, not Bailey's across a
+roster: of the splits the rule was chosen in, the share it then lost out-of-sample. Pooled
+over many rules of noise it is a half, though one tape's own swings from nothing to one; for
+an edge that is there throughout it is nothing.
 
 THE RUNG PASSES a rule chosen in every split and losing in none: any two stretches of its
-history earn together, so one poor stretch fails nothing and gains that are one stretch's do.
-ITS STATED RATE (RATE) is 1 in 32 of rules with no edge, and is exact. It passes only when the
-two worst stretches sum above nothing; where each stretch's sum is as likely either side of
-nothing, whatever its size, and independent of the rest, that is all six above (1 in 64) or
-one below and the smallest of the six (1 in 64).
+history earn together. A poor stretch fails it only when it loses more than the next worst
+earns; gains that are all one stretch's always do. Earning on every two held out is being
+chosen on every four (two pairs), so the answer is decided out-of-sample: the choosing is in
+the probability reported, not in the pass.
+
+ITS STATED RATE (RATE) is 1 in 32, and exact for gains with no edge that are as likely either
+side of nothing. It passes only when the two worst stretches sum above nothing; where each
+stretch's sum is as likely above as below, whatever its size, and independent of the rest,
+that is all six above (1 in 64) or one below and the smallest of the six (1 in 64).
+IT IS NOT THE RATE OF LOPSIDED GAINS. A rule with no edge that makes many small wins and a few
+large losses passes more often wherever a stretch is short enough to hold no large loss: at
+nine wins to each loss nine times the size, about 3 in 32 at six trades a stretch (the tests
+record it) and under 1 in 32 at ten; the mirror shape, few large wins, a third of 1 in 32 at
+six. Gains that each carry on half of the last pass 1.3 in 32 on sixty trades. The rare large
+loss is the first rung's to plant (G2), and no rule passes the ladder by this rung alone.
 
 FAILING FAIRLY (LAD-06). No judged trade is a FAULT in the test. Under `rung.MIN_TRADES` left
 in the stretches, or a stretch with none, is THIN: the rung could not have passed it.
@@ -33,7 +44,7 @@ in the stretches, or a stretch with none, is THIN: the rung could not have passe
 READS THE TAPE, KEYED BY IT. It is handed the first rung's verdict on a tape (`lab/tape.py`),
 the tape's trades priced, and runs no simulation. Its result's key is the tape's own (the
 rule's code, the engine's, the bars, the window) and this module's code with all it reaches,
-the cost model among it. The rates it was priced at are the caller's to key.
+the cost model among it. The rates and the capital it was priced at are the caller's to key.
 """
 
 from __future__ import annotations
@@ -51,7 +62,7 @@ from lab import rung, tape
 from lab.rung import Answer, Priced, Verdict
 
 ME = "lab.rung_cpcv"  #: this module as the cell knows it
-STRETCHES, HELD_OUT = 6, 2
+STRETCHES, HELD_OUT = 6, 2  #: RATE is this pair's alone: change either and derive it again
 EMBARGO = 100  #: the days after a cut that are no stretch's: one in this many of the history's
 RATE = Fraction(2, 2**STRETCHES)  #: the share of rules with no edge it passes, two held out
 
