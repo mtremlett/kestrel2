@@ -53,6 +53,7 @@ from __future__ import annotations
 
 import hashlib
 import importlib
+import inspect
 import json
 import os
 import sys
@@ -70,8 +71,8 @@ from desk import archive, carry, keeper
 from desk.command import DOLLARS, POUND
 from desk.lines import LINES, Line
 from desk.store import Bar
-from desk.strategy import STRATEGIES
-from lab import batch, cell, published, reproduce, sweep, trials, universe, verdict
+from desk.strategy import STRATEGIES, Rule
+from lab import batch, cell, published, reproduce, rulebook, sweep, trials, universe, verdict
 from lab.batch import Bars
 from lab.cell import Cell
 from lab.reproduce import Reproduction
@@ -277,17 +278,18 @@ CODE = code()  #: the eponymous files as this process loaded them: in every key
 
 
 def eponymous(folder: Path = DESK) -> tuple[str, ...]:
-    """The name of every rule of every `desk/eponymous_*.py`, each file imported: the folder is
-    the one list. A file that names its rules in no `EPONYMOUS` is refused, by name."""
-    names: list[str] = []
+    """The name of every rule of every `desk/eponymous_*.py`, by the rule book; a file with no
+    `EPONYMOUS` is refused, by name. A rule that takes data (Zweig's breadth) is left out."""
     for path in sorted(folder.glob("eponymous_*.py")):
         module = importlib.import_module(f"{desk.__name__}.{path.stem}")
         if not hasattr(module, "EPONYMOUS"):
             raise ValueError(f"{module.__name__} names its rules in no EPONYMOUS mapping")
-        names += module.EPONYMOUS
-    if len(set(names)) != len(names):
-        raise ValueError(f"an eponymous rule is named twice: {sorted(names)}")
-    return tuple(names)
+    return tuple(n for n, make in rulebook.eponymous(folder).items() if not _needs_data(make))
+
+
+def _needs_data(make: type[Rule]) -> bool:
+    """Whether the rule cannot be made without an argument."""
+    return any(p.default is p.empty for p in inspect.signature(make).parameters.values())
 
 
 def epon(
