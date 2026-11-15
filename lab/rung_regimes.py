@@ -6,7 +6,6 @@ broker's costs, and each trade belongs to the window of the day it was bought. E
 then judged by the first rung's own rule (`rung.verdict`) on its own trades: it needs its own
 MIN_TRADES and its own T_PASS standard errors. A trade held across the cut belongs to the
 window it was bought in.
-
 THE RULE: a rule passes only when BOTH windows pass. One strong window is not enough: an
 edge that earned in one stretch alone, and bled in the other, is a stretch's luck. Otherwise
 the answer is the first rung's least of the two, so a window too thin to say holds the whole
@@ -17,8 +16,7 @@ is keyed by that tape's key plus this module's code (`Key.rung`), so a rung edit
 again and simulates nothing.
 
 PROVEN ALONE, by `tests/unit/test_lab_rung_regimes.py`: a planted edge passes; noise passes
-at about the stated rate of two windows both clearing the bar by chance; a power curve over
-edge sizes is recorded; a broken copy (either window enough) is caught.
+at the rate of two windows both clearing the bar by chance; a broken copy is caught.
 """
 
 from __future__ import annotations
