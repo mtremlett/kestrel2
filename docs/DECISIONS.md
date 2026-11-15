@@ -1875,3 +1875,18 @@ Pinned figures moved, each re-derived by running the first rung on the same seed
   are built by hand without a stop, so `Priced.stopped` is left unset and plants nothing. The
   default is a cost of keeping to the claim (test_lab_folds and test_lab_plateau build
   `Priced` too and are another lane's files); the ask to make it required is under Remains.
+
+## 15 Nov - the lab's ceiling rises by 400 lines, by his yes
+
+In `BUDGET.json`, `lab_lines` goes from 7,000 to 7,400 for phases `3-money-paper` and
+`4-ladder`. The desk's ceiling is unchanged at 10,500.
+
+Why: the lab held 6,976 of its 7,000 lines on main. Moving the twenty eponymous rules into
+the spec book as data rows (R-RUNNER-125, spec-epon) needs about 400 lines of blocks in
+`lab/blocks.py`. Two rules landed as spec rows with parity proven; the other seventeen could
+not fit. Once all twenty are rows, retire-epon (R-RUNNER-127) deletes about 1,600 desk lines
+of the old eponymous modules.
+
+His ruling, Sun 15 Nov 2026 ~13:20, in chat with the coordinator. He was offered three
+options: move 400 lines of ceiling from the desk to the lab (recommended), raise the lab by
+400 alone, or wait for Tuesday's consolidation. He chose "Raise research by 400".
