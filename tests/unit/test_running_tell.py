@@ -13,6 +13,7 @@ from test_running import DIP, ID, MON, _desk, _told
 
 from desk import halt, running
 from desk.broker import Pretend
+from desk.messenger import Undelivered
 from desk.orders import Order, Sale
 from desk.placing import Unprotected
 from desk.store import Bar
@@ -33,9 +34,21 @@ def test_a_broker_that_disagrees_after_an_order_has_gone_reaches_him_once_naming
 
     monkeypatch.setattr(broker, "place", disagree)
     running._round(desk, broker, "LSE", MON)  # type: ignore[arg-type]
+    post.side_effect = [
+        1,
+        Undelivered("down"),
+        7,
+        8,
+        9,
+        10,
+    ]  #: the morning goes, the disagreement fails once
+    with pytest.raises(Undelivered):
+        running._say(desk, MON, running.UNASKED)
+    for _ in range(2):
+        running._say(desk, MON, running.UNASKED)
     told = [words for words in _told(post) if "do not agree" in words]
-    assert len(told) == 1 and ID in told[0] and len(halt.in_force(tmp_path)) == 1
-    assert len(_told(post)) == 1  #: the disagreement alone, told once
+    assert len(told) == 2 and told[0] == told[1] and ID in told[0], "asked again, then once"
+    assert len(halt.in_force(tmp_path)) == 1
     quiet, door = _desk(tmp_path / "quiet", IITU=DIP)
     fine = Pretend({IITU: (*DIP, today)}, {})
     fine.open(MON.date())

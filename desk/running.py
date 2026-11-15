@@ -226,8 +226,10 @@ def _round(desk: Desk, broker: placing.Paper, venue: str, now: datetime) -> None
     today = now.date()
     saved, out, last = _fit(desk.bars(today), venue, today)
 
-    def tell(name: str, words: str) -> None:
-        messenger.send(desk.root, now, name, words, desk.post)
+    def tell(
+        name: str, words: str
+    ) -> None:  #: kept as a note: told at his next step until delivered
+        _note(desk.root, now, name, words)
 
     sent = day.trade(desk.root, saved, broker, desk.room, today, desk.rates(today), tell)
     said = [
