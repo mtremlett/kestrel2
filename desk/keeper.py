@@ -51,7 +51,7 @@ RECORD = "kept.json"  #: in each venue's folder of the daily store: its last ref
 #: London a quarter of an hour late, and an official close is printed minutes after its bell.
 SETTLED = timedelta(minutes=30)
 #: THE FIGURE THE DAY'S RECORD WAITS ON: by this long after a venue's closing auction its day's
-#: closes are held, worst case: the first call after SETTLED (the runner calls every five
+#: closes are held, if the archive answers at the first call: the first call after SETTLED (the runner calls every five
 #: minutes) and that call's four minutes. `target` turns to the next day at SETTLED itself.
 HELD = SETTLED + timedelta(minutes=5 + 4)
 TRIES = 6  #: the calls at which a line parked for a fault is asked again: half an hour's

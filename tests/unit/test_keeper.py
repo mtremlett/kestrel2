@@ -194,12 +194,15 @@ def test_the_closes_are_held_within_the_named_figure_after_each_venues_close(
     for venue, line in (("LSE", UK), ("US", US)):
         auction = venues.hours(venue, MON).auction
         pretend.keep(tmp_path / venue, _at(6, 5))
-        for minute in range(0, 60, 5):  # the runner's calls, one in five minutes
-            pretend.keep(tmp_path / venue, auction + timedelta(minutes=minute))
-            if keeper.target(venue, auction + timedelta(minutes=minute)) == tue:
+        start = auction + keeper.SETTLED - timedelta(seconds=1)  # the runner's worst luck
+        for call in range(12):  # its calls, one in five minutes, each taking four to finish
+            at = start + timedelta(minutes=5 * call)
+            pretend.keep(tmp_path / venue, at)
+            if keeper.target(venue, at) == tue:
                 break
         assert keeper.saved(tmp_path / venue, tue, [line])[0][line][-1].day == MON
-        assert keeper.SETTLED <= timedelta(minutes=minute) <= keeper.HELD
+        held = at + timedelta(minutes=4) - auction
+        assert keeper.HELD - timedelta(minutes=1) < held <= keeper.HELD
     for venue in venues.RULES:  # held before the runner's 22:00, UK time, on every session
         for day in venues.sessions(venue, date(2026, 11, 16), date(2027, 12, 31)):
             held = venues.hours(venue, day).auction + keeper.HELD
