@@ -6,19 +6,16 @@ two are sent together, the stop to wait on the buy; and after any order the line
 under one stop of the desk's own, for the shares the account then holds of it, once the
 broker's word, its fills and the account's shares agree.
 
-Each answer is read from the gateway afresh, in a conversation of its own. The fills, the
-open orders and the stops are the desk's own alone (desk/reports.py): anyone else's is named
-by the day's check (desk/clearance.py). The holdings are the whole account's; an ended order
-is known by its reference alone. An answer that cannot be read whole is an error raised. The
-broker tells of the day alone: an earlier day's order or fill is in the desk's ledger, or nowhere.
+Each answer is read from the gateway afresh. The fills, open orders and stops are the desk's
+own alone (desk/reports.py): anyone else's is named by the day's check (desk/clearance.py).
+The holdings are the whole account's. An answer that cannot be read whole is an error raised.
 
-Two things are sent that are no question. An order, by `place` alone, once the kill switch
-was drilled, the day's check came back clean (clearance.require), the gateway is ready and
-the broker lists no other order open (`_before`); and the stop a line is left under
-(`settle`), by `place` and, after a restart, desk/running.py. And a cancel, of an order of the
-desk's own: by the kill switch, of each still working but a stop resting to sell what is held;
-by `place`, of what the broker did not fill and of a line's stop before a sale; by `settle`,
-of a stop only once its replacement rests, or no share is left."""
+Two things are sent that are no question: an order, by `place` alone, once the kill switch
+was drilled, the day's check came back clean, the gateway is ready and no other order is open
+(`_before`); and the stop a line is left under (`settle`), by `place` and, after a restart,
+desk/running.py. And a cancel of an order of the desk's own: by the kill switch, of each still
+working but a stop resting to sell what is held; by `place`, of what the broker did not fill
+and of a line's stop before a sale; by `settle`, of a stop only once its replacement rests."""
 
 from __future__ import annotations
 
@@ -37,8 +34,7 @@ from desk.paper import Resting
 
 PLACE, CANCEL = 3, 4  #: what this module sends that is no question: an order, and a cancel
 #: The rest of an order's message after its reference: sent at once, under no other order, every
-#: other choice of the broker left as the published client (ib_insync 0.9.86, its source read,
-#: never imported) leaves it: no condition, no algorithm, and no "what if", which only asks.
+#: other choice left as the published client (ib_insync 0.9.86, never imported) leaves it.
 PLAIN = (
     "1|0|0|0|0|0|0|0||0.0||||||||0||-1|0|||0|||0|0||0||||||0|||||0|||||||||||0|||0|0|||0||0|0|0|0"
     "|||||||0|||||||||0|0|0|0|||0||"
@@ -251,45 +247,48 @@ class Paper:
         return Report(order_id, fills, reason)
 
     def place(self, order: Order | Sale) -> Report:
-        """Send an order to the paper broker and give its last answer (_place): what the
-        broker has not ended when it falls silent is cancelled, and the answer is what the
-        broker then says it did with the order (report), with the notices it gave when it
-        did not fill whole. A buy goes with its stop, and whatever the broker did, the line
-        is then left under the one stop due on it (_due, settle): but only once the
-        account's shares of the line have moved by exactly the order's fills, and an order
-        the broker called filled has fills for all its shares. Otherwise a stop has sold
-        meanwhile or a reading is late: Unprotected, and the line's stops are left as they
-        are. Nothing is sent, and the reason raised, unless the order is cleared to go
-        (_cleared: Refused, or Disconnected, the order never received) and what the line is
-        under is settled (_before: Refused). An error once the order has gone is not
-        Disconnected: the broker is asked (report) before it is ever sent again."""
-        (listed, new), ref = self._cleared(order), order.order_id
+        """Send an order to the paper broker and give its last answer (_place) as the broker
+        then reports it (report), with the notices it gave when it did not fill whole. A buy
+        goes with its stop, and the line is then left under the one stop due on it (_due,
+        settle), but only once the account's shares of the line have moved by exactly the
+        order's fills and an order called filled has fills for all its shares; otherwise
+        Unprotected, the line's stops left as they are. Nothing is sent unless the order is
+        cleared (_cleared) and the line settled (_before): Refused, or Disconnected.
+        An error once it has gone is not Disconnected. A sale that errs puts its stop back."""
+        listed, new = self._cleared(order)
         was, before = self._before(listed, order)
-        number, last, notices = paper.dial(lambda wire, send: _place(wire, send, listed, order))
-        if last is None:
-            last = self._cancelled({number: ref})[number]
-        report = self.report(ref) or Report(ref, (), f"{ref}: the broker tells nothing of it")
-        moved = sum(fill.quantity for fill in report.fills)
-        held, stops = on(paper.read(), listed)
-        if held != was + moved or (last == "Filled" and abs(moved) != order.quantity):
-            raise Unprotected(
-                f"{ref}: the broker's last word of it was {last}, its fills come to {moved} "
-                f"shares, and the account's {listed.line.symbol} went from {was} to {held}: "
-                "these do not agree, and the line's stops are left as they are"
-            )
+        ref = order.order_id
+        try:
+            number, last, notices = paper.dial(lambda wire, send: _place(wire, send, listed, order))
+            if last is None:
+                last = self._cancelled({number: ref})[number]
+            report = self.report(ref) or Report(ref, (), f"{ref}: the broker tells nothing of it")
+            moved = sum(fill.quantity for fill in report.fills)
+            held, stops = on(paper.read(), listed)
+            if held != was + moved or (last == "Filled" and abs(moved) != order.quantity):
+                raise Unprotected(
+                    f"{ref}: the broker's last word of it was {last}, its fills come to {moved} "
+                    f"shares, and the account's {listed.line.symbol} went from {was} to {held}: "
+                    "these do not agree, and the line's stops are left as they are (a sale's: none)"
+                )
+        except Unprotected:
+            raise
+        except Exception:  #: a sale cancelled its stop; put it back for what is held, re-raise
+            if isinstance(order, Sale) and before:
+                held, _ = on(paper.read(), listed)
+                self.settle(listed, held, [], _due(before, held, 0, None))
+            raise
         self.settle(listed, held, stops, _due(before, held, moved, new))
         if report.reason is None or not notices:
             return report
         return replace(report, reason=f"{report.reason}; it said: {'; '.join(notices)}")
 
     def _cleared(self, order: Order | Sale) -> tuple[Listing, Stop | None]:
-        """The line as the broker lists it, and the stop a buy goes with (_with), for an
-        order cleared to go: the broker lists the line (Refused) and has a price at or below
-        the buy's stop (an error raised: no line of the desk's is priced that low), the
-        order's id is dated the session of its venue before today's, so it was decided on
-        yesterday's bars and no older (Refused), the kill switch was drilled within its
-        month and today's check of the account came back clean (Refused, both), and the
-        gateway says it is ready: Disconnected, the order never received."""
+        """The line as the broker lists it, and the stop a buy goes with (_with), for an order
+        cleared to go: the broker lists the line and its price is above the buy's stop (an
+        error raised), the order's id is dated the venue's session before today's, the kill
+        switch was drilled within its month and today's check came back clean (Refused, all),
+        and the gateway says it is ready: Disconnected, the order never received."""
         symbol, now = order.line.symbol, self._clock()
         listed = self._listings.get(symbol)
         if not isinstance(listed, Listing):
@@ -304,19 +303,17 @@ class Paper:
             why = f"the kill switch was not drilled in the last {kill.DRILL_DAYS} days"
             raise Refused(f"{order.order_id}: not sent, {why}")
         clearance.require(self._root, now, order.order_id)
-        known = gateway.known(now)
-        if not known:
+        if not (known := gateway.known(now)):
             raise Disconnected(f"{order.order_id}: not sent, {known.words}")
         return listed, new
 
     def _before(self, listed: Listing, order: Order | Sale) -> tuple[Decimal, Stop | None]:
         """A line before an order goes: the shares the account holds of it and the one stop of
         the desk's own it is under, or None. Refused: two stops open on it, or one the broker
-        is not holding; and WHILE ANY OTHER ORDER IS OPEN AT THE BROKER, on any line, anyone's,
-        as this reading of the account alone tells: it could fill behind the book's gate.
+        is not holding; and WHILE ANY OTHER ORDER IS OPEN AT THE BROKER, on any line, anyone's.
         A SALE GOES ONLY WHEN NO STOP RESTS UNDER THE SAME SHARES (R-MONEY-17): the line's stop
-        is cancelled first, for the two are not tied at the broker and both could sell; if it
-        sold or ended another way meanwhile, the stop is put back for the shares held, Refused."""
+        is cancelled first (not tied at the broker, both could sell); if it ended another way
+        meanwhile, the stop is put back for the shares held, Refused; if it sold, Unprotected."""
         order_id, account = order.order_id, paper.read()
         (held, stops), told = on(account, listed), reports.orders(account.orders, self._listings)
         kept = [o for o in stops if o.state in reports.HELD]
@@ -330,20 +327,23 @@ class Paper:
             raise Refused(f"{order_id}: not sent, orders are still open at the broker: {idle}")
         if isinstance(order, Sale) and kept:
             ends, ours = self._cancelled({o.number: o.ref for o in kept}), rests[0]
+            if "Filled" in ends.values():
+                raise Unprotected(
+                    f"{order_id}: not sent, its stop sold as it was cancelled: {ends}"
+                )
             if (now := on(paper.read(), listed)[0]) != held or not GONE.issuperset(ends.values()):
                 self.settle(listed, now, [], _due(ours, now, 0, None))  #: put back what is held
-                raise Refused(f"{order_id}: not sent, its stop sold or ended: {ends}, {now} held")
+                raise Refused(f"{order_id}: not sent, its stop ended: {ends}, {now} held")
         return held, (rests[0] if rests else None)
 
     def settle(
         self, listed: Listing, held: Decimal, stops: Sequence[Resting], due: Stop | None
     ) -> None:
-        """Leave a line under the one stop due on it, or under none; held is the account's shares
-        of it and stops the desk's own open on it, as just read. One the broker holds for those
-        shares at that level is kept, whatever its reference. With none such, the stop due is
+        """Leave a line under the one stop due on it, or none; held is the account's shares of
+        it and stops the desk's own open on it, as just read. One the broker holds for those
+        shares at that level is kept, whatever its reference. With none, the stop due is
         sent to rest first (_rest) and only then is every other cancelled: never under none
-        meanwhile. A stop that sold as it was cancelled, or ended unseen and the account's
-        shares with it, is Unprotected: the stop due is for shares no longer held."""
+        meanwhile. A stop that sold as it was cancelled is Unprotected."""
         resting = (o for o in stops if o.state in reports.HELD)
         kept = next((o for o in resting if due and (o.left, o.level) == due[:2]), None)
         if due is not None and kept is None:

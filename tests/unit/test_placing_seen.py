@@ -7,11 +7,12 @@ from pathlib import Path
 
 import pytest
 import test_placing as tp
-from test_paper import Said, _but, _gateway, _order
+from test_paper import Said, _account, _but, _gateway, _order
 from test_reports import CUT, END
 
 from desk.broker import Report
 from desk.orders import Refused
+from desk.placing import NotCancelled, Unprotected
 
 
 def test_a_buy_the_broker_refuses_on_entry_is_answered_with_its_reason_and_nothing_is_left(
@@ -49,13 +50,33 @@ def test_a_stop_that_sold_or_ended_as_it_was_cancelled_stops_the_sale_and_the_li
     # part sold first: the sale is not sent, and the line is left under its stop for what is held
     broker = tp._paper(tp._ready(tmp_path))
     ended, bare, rests = _but(tp.ENDED_7, 2, "Filled"), tp.BARE, tp.RESTS
-    cases: list[list[Said]] = [[[ended], tp.EMPTY], [[_but(tp.UNFOUND, 2, "7")], bare, bare, rests]]
-    for ends in cases:
-        sent = _gateway(monkeypatch, [], tp.PROTECTED, *ends)
-        with pytest.raises(Refused, match="not sent, its stop sold or ended"):
-            broker.place(tp.SALE)
-        assert tp.PLACED not in sent
+    sent = _gateway(monkeypatch, [], tp.PROTECTED, [ended], tp.EMPTY)
+    with pytest.raises(Unprotected, match="sold as it was cancelled"):
+        broker.place(tp.SALE)
+    assert tp.PLACED not in sent
+    sent = _gateway(monkeypatch, [], tp.PROTECTED, [_but(tp.UNFOUND, 2, "7")], bare, bare, rests)
+    with pytest.raises(Refused, match="its stop ended"):
+        broker.place(tp.SALE)
+    assert tp.PLACED not in sent
     sent = _gateway(monkeypatch, [], tp.PROTECTED, [tp.ENDED_7], tp.LEFT, rests)
     with pytest.raises(Refused, match="16 held"):
         broker.place(tp.SALE)
     assert sent[4] == tp.SMALLER and tp.PLACED not in sent
+    # a sale that errs once its stop is cancelled puts the stop back for the shares held
+    working = _account([tp.HELD], *tp.MINE)
+    sent = _gateway(
+        monkeypatch,
+        [],
+        tp.PROTECTED,
+        [tp.ENDED_7],
+        bare,
+        [tp.REJECTED],
+        [tp.UNFOUND],
+        working,
+        bare,
+        rests,
+        silent=True,
+    )
+    with pytest.raises(NotCancelled):
+        broker.place(tp.SALE)
+    assert b"\x00SELL\x0026\x00STP\x00\x00171.5" in sent[-1]
