@@ -42,9 +42,9 @@ def _cell(first: int, last: int, name: str = "breakout_20_10") -> Cell:
 
 def test_a_cell_names_a_real_strategy_a_real_line_and_a_window() -> None:
     with pytest.raises(ValueError, match="no strategy"):
-        Cell("best_ever", "AAPL", _day(0), _day(9))
-    with pytest.raises(ValueError, match="instrument master"):
-        Cell("breakout_20_10", "ACME", _day(0), _day(9))
+        Cell("best_ever", AAPL, _day(0), _day(9))
+    with pytest.raises(TypeError, match="str 'AAPL'"):
+        Cell("breakout_20_10", "AAPL", _day(0), _day(9))  # type: ignore[arg-type]
     with pytest.raises(ValueError, match="ends before it starts"):
         _cell(9, 8)
     assert _cell(9, 9).end == _day(9)
@@ -53,8 +53,6 @@ def test_a_cell_names_a_real_strategy_a_real_line_and_a_window() -> None:
     boeing, bae = Line("BA", "US", "USD", 1), Line("BA", "LSE", "GBP", 1, STAMP_DUTY)
     cells = [Cell("breakout_20_10", line, _day(0), _day(9)) for line in (boeing, bae)]
     assert cells[0] != cells[1] and [c.line.venue for c in cells] == ["US", "LSE"]
-    #: by its symbol alone a cell is still one of the twenty, until the rungs name a line
-    assert Cell("breakout_20_10", "AAPL", _day(9), _day(9)) == _cell(9, 9)
     assert replace(cells[1], end=_day(12)) == Cell("breakout_20_10", bae, _day(0), _day(12))
 
 
