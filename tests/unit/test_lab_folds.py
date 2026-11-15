@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import replace
 from decimal import Decimal
 
 import pytest
 from test_lab_luck import DAY
 from test_lab_rung import FREE, POUND, SHAPE, TEN_K, _bars, _walk
 
+from desk.lines import LINES
 from desk.store import Bar
 from lab import cell, folds, luck, rung
 from lab.cell import Cell, Key, Trade
@@ -49,6 +51,10 @@ def test_a_window_is_cut_into_equal_parts_and_a_trade_across_a_boundary_is_in_ne
         with pytest.raises(ValueError, match="cannot be cut"):
             folds.cut(_window(bad), bad, count)
     assert len(folds.cut(_window(bars), bars, 24)) == 24, "a bar a part is the limit"
+    research = replace(LINES[0], symbol="ABBV")  #: a research line the desk does not trade
+    assert research not in LINES
+    wide = Cell("breakout_20_10", research, bars[0].day, bars[-1].day)
+    assert {c.line for pair in folds.cut(wide, bars, 4) for c in pair} == {research}
     (trade,) = rung.judge(cell.run(_window(bars), bars), bars, TEN_K, POUND).trades
     (last,) = _judge(bars, 1).folds  #: bars 12 to 24 hold the whole trade
     assert last.outside.trades == (trade,) and last.inside.trades == ()
