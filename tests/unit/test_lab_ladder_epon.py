@@ -18,7 +18,7 @@ from test_lab_reproduce import _bars as _author
 import desk
 from desk import strategy
 from desk.lines import LINES
-from lab import grid, ladder, published, reproduce
+from lab import grid, ladder, ladder_sets, published, reproduce
 from lab.cell import Cell
 from lab.published_epon import EPONYMOUS_PUBLISHED
 from lab.reproduce import Fill
@@ -38,7 +38,7 @@ def test_the_set_reproduces_each_rule_judges_it_on_every_line_and_writes_the_tab
     monkeypatch.setattr(reproduce, "FIGURES", (figure,))  #: the first rule has one, the second none
     book = {VUSA: EDGE, ISF: NOISE, SGLN: _author()}
     clock = lambda: datetime(2026, 11, 14, tzinfo=UTC)  # noqa: E731
-    said = ladder.epon(tmp_path, _door(book), {}, [VUSA, ISF, SGLN], clock, RULES)
+    said = ladder_sets.epon(tmp_path, _door(book), {}, [VUSA, ISF, SGLN], clock, RULES)
     table = tmp_path / "ladder" / "sets" / "EPON.md"
     assert said.splitlines()[-1] == f"SET EPON: 2 rules, 0 passed, table {table}"
     data = json.loads(table.with_suffix(".json").read_text())
@@ -101,7 +101,7 @@ def test_every_eponymous_file_of_the_real_desk_gives_a_rule_a_cell_and_a_first_r
     assert "zweig_breadth_thrust" not in found  #: it takes a breadth no store holds: left out
     todo = [Cell(rule, VUSA, ladder.START, ladder.END) for rule in found]
     clock = lambda: datetime(2026, 11, 14, tzinfo=UTC)  # noqa: E731
-    ladder.run(tmp_path, _door({VUSA: EDGE, ISF: NOISE}), {}, todo, clock, ladder.EPON)
+    ladder.run(tmp_path, _door({VUSA: EDGE, ISF: NOISE}), {}, todo, clock, ladder_sets.EPON)
     rows = [json.loads(x) for x in (tmp_path / "ladder" / "EPON.jsonl").read_text().splitlines()]
     assert [r["cell"][0] for r in rows] == list(found)
     #: a rule on file (lab/published_epon.py) is judged; the rest wait for the next step
