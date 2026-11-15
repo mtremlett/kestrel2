@@ -52,7 +52,6 @@ def test_fifty_copies_are_one_trial_and_fifty_strangers_are_fifty() -> None:
     one = trials.clusters(_set(np.tile(strangers[0], (50, 1))), 0)
     assert one.trials == 1 and one.held == len(one.clusters[0]) == 50
     assert one.spread(40) == 0, "one look alone was picked from nothing: no bar to set"
-    assert one.own[0] == pytest.approx([one.sharpes[0]] * 50), "no copy stands above another"
     #: copies geared and blurred, each still 0.9 like every other, are one look all the same
     blur = np.random.default_rng(2).normal(0, 0.003, (50, DAYS))
     geared = np.linspace(0.5, 3, 50)[:, None] * (strangers[0] + blur)
@@ -60,7 +59,6 @@ def test_fifty_copies_are_one_trial_and_fifty_strangers_are_fifty() -> None:
     fifty = trials.clusters(_set(strangers), 0)
     assert fifty.trials == fifty.held == 50 and fifty.days == DAYS
     assert fifty.sharpes == pytest.approx(_sharpes(strangers).tolist())
-    assert [own for (own,) in fifty.own] == pytest.approx(fifty.sharpes)
     #: the spread is the variance of the looks' Sharpes, restated for the picked trial: the
     #: paper's yearly variance over its trades a year, the variance a day times the days a trade
     by_day = float(_sharpes(strangers).var(ddof=1))
@@ -84,7 +82,7 @@ def _passes(rows: Rows) -> tuple[bool, bool]:
     won = gains[pick] - gains[pick].mean()
     second, third, fourth = (float(np.mean(won**power)) for power in (2, 3, 4))
     one, shape = float(_sharpes(gains)[pick]), (third / second**1.5, fourth / second**2)
-    bars = (between + looks.above(CELLS[pick], 40), between)
+    bars = (between + looks.above(CELLS[pick], one, 40), between)
     passed, bare = (deflated.deflate(one, bar, 40, *shape) >= deflated.PASS for bar in bars)
     return passed, bare
 
@@ -128,8 +126,6 @@ def test_a_cluster_is_alike_in_every_pair_and_weighs_its_steadier_trials_more() 
     assert found.sharpes == pytest.approx(by_hand, rel=1e-9)
     assert abs(plain.mean() / plain.std(ddof=1) - by_hand[0]) > 1e-4, "equal weights differ"
     assert found.spread(DAYS) == pytest.approx(np.var(by_hand, ddof=1), rel=1e-9)
-    #: and each trial's own Sharpe is kept beside its cluster's
-    assert found.own[0] == pytest.approx(_sharpes(rows[:2]).tolist(), rel=1e-9)
 
 
 def test_every_trial_counts_and_a_set_that_cannot_be_clustered_is_refused(tmp_path: Path) -> None:
@@ -182,7 +178,12 @@ def test_the_deflated_bar_is_set_by_the_clustered_set() -> None:
     ideas = np.repeat(_strangers(3, 5), 10, axis=0)
     ideas += np.random.default_rng(2).normal(0, 0.003, (50, DAYS))
     best = 20 + int(_sharpes(ideas[20:30]).argmax())  #: the winner the best of the third idea
-    copies = trials.clusters(_set(np.tile(strangers[0], (50, 1)), 7), 0)
+    #: fifty copies of the winner itself: days whose Sharpe, restated to a trade, is its own
+    pace = (DAYS / trades) ** 0.5
+    itself = (
+        strangers[0] - strangers[0].mean() + (alone.sharpe or 0) / pace * strangers[0].std(ddof=1)
+    )
+    copies = trials.clusters(_set(np.tile(itself, (50, 1)), 7), 0)
     five, fifty = trials.clusters(_set(ideas, best), 0), trials.clusters(_set(strangers, 7), 0)
     among_copies, among_five, among_fifty = (
         deflated.read(corrected, looks)[0] for looks in (copies, five, fifty)
@@ -192,15 +193,19 @@ def test_the_deflated_bar_is_set_by_the_clustered_set() -> None:
     assert among_copies.deflated == pytest.approx(alone.deflated, abs=1e-9)
     assert among_copies.luck == corrected[0] and among_copies.luck.trials == 50
     #: from five ideas tried ten ways: the luck among five looks at their measured spread, and
-    #: all its own Sharpe stands above its idea's, so it is judged no better than its cluster
-    stand = (_sharpes(ideas[best : best + 1])[0] - _weighed(ideas[20:30])) * (DAYS / trades) ** 0.5
-    assert stand > 0.01 and five.above(WINNER.key.cell, trades) == pytest.approx(stand, rel=1e-9)
-    assert among_five.bar == deflated.best_by_luck(five.spread(trades), 5) + stand
+    #: all that the Sharpe it is judged on stands above its idea's, restated to a trade: so it
+    #: is judged no better than its cluster, the third, however its own trades fell
+    judged, between = alone.sharpe or 0, deflated.best_by_luck(five.spread(trades), 5)
+    cluster = _weighed(ideas[20:30]) * pace
+    assert judged - cluster > 0.1
+    assert five.above(WINNER.key.cell, judged, trades) == pytest.approx(judged - cluster, rel=1e-9)
+    assert among_five.bar == pytest.approx(between + judged - cluster, rel=1e-9)
+    assert judged - (among_five.bar or 0) == pytest.approx(cluster - between, rel=1e-9)
     #: a trial under its cluster's Sharpe is given nothing back for it
-    assert five.above(CELLS[int(_sharpes(ideas[:10]).argmin())], trades) == 0
+    assert five.above(WINNER.key.cell, cluster - 0.1, trades) == 0
     #: from fifty strangers: their measured spread at its own trades, and no cluster to stand in
     plain = deflated.best_by_luck(fifty.spread(trades), 50)
-    assert among_fifty.bar == pytest.approx(plain, abs=1e-12)
+    assert among_fifty.bar == plain and fifty.above(WINNER.key.cell, 9.0, trades) == 0
     assert among_fifty.deflated < deflated.PASS < among_copies.deflated
     assert (among_copies.least.name, among_fifty.least.name) == ("PASS", "DOUBT")
     #: which, for strangers of plain noise, is about the bar fifty separate looks are given

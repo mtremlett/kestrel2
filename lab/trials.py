@@ -48,10 +48,10 @@ over its trades a year).
 
 THE PICK INSIDE A CLUSTER IS LUCK TOO. The paper judges a cluster's own returns; the desk
 judges the one trial picked, and the best of fifty near-copies stands above their cluster by
-luck. So A TRIAL IS JUDGED NO BETTER THAN ITS CLUSTER: whatever its own Sharpe stands above
-its cluster's (`Clustered.above`) is added to its bar, which is the paper's judging of the
-cluster whatever the cluster is made of. Nothing is added among exact copies, for a trial
-alone, or for one no better than its cluster.
+luck. So A TRIAL IS JUDGED NO BETTER THAN ITS CLUSTER: whatever the Sharpe it is judged on, a
+trade, stands above its cluster's restated to a trade (`Clustered.above`) is added to its bar,
+which is the paper's judging of the cluster, whatever the cluster is made of and however its
+trials book their trades. Nothing is added for a trial alone or one no better than its cluster.
 
 A trial that left no returns (a cell that failed, a rule that never traded) cannot be set
 beside the others: it is counted aloud as a look of its own, as on the luck rung, and
@@ -86,7 +86,7 @@ from lab.rung import Verdict
 HEAD = b'{"register": "trials"}\n'  #: a register's first line: an empty file is not one
 #: Fixed before any result. Two trials whose daily returns correlate by LINK or more are one
 #: look: in the paper's distance, the root of half of one less the correlation, they stand
-#: nearer to copies than to strangers. FEWEST days are asked so that no two strangers reach
+#: no nearer to strangers than to copies. FEWEST days are asked so that no two strangers reach
 #: LINK by chance, however many pairs a set holds.
 LINK, FEWEST = 0.75, 60
 
@@ -178,7 +178,6 @@ class Clustered:
 
     clusters: tuple[tuple[str, ...], ...]  #: every trial with returns, by name, in its cluster
     sharpes: tuple[float, ...]  #: each cluster's Sharpe a day, cluster for cluster
-    own: tuple[tuple[float, ...], ...]  #: each trial's own Sharpe a day, trial for trial
     unjudged: int  #: the trials that left no returns, each a look of its own
     days: int  #: the days the returns were given on
 
@@ -205,14 +204,15 @@ class Clustered:
             )
         return measured * self.days / trades
 
-    def above(self, cell: Cell, trades: int) -> float:
-        """How far the cell's own Sharpe stands above its cluster's, a trade for a trial of so
-        many trades: the luck of the pick inside the cluster. Nothing where it is no higher."""
+    def above(self, cell: Cell, sharpe: float, trades: int) -> float:
+        """How far the Sharpe the cell's trial is judged on, a trade over so many trades,
+        stands above its cluster's restated to a trade: the luck of the pick inside the
+        cluster. Nothing where it is no higher, and nothing for a trial alone in its cluster."""
         trial = name(cell)
-        for members, own, sharpe in zip(self.clusters, self.own, self.sharpes, strict=True):
+        for members, cluster in zip(self.clusters, self.sharpes, strict=True):
             if trial in members:
-                lift = max(0.0, own[members.index(trial)] - sharpe)
-                return float(lift * np.sqrt(self.days / trades))
+                stand = sharpe - cluster * float(np.sqrt(self.days / trades))
+                return max(0.0, stand) if len(members) > 1 else 0.0
         raise ValueError(f"{trial}: not a trial this set was clustered from")
 
 
@@ -234,13 +234,11 @@ def clusters(returns: Mapping[str, Sequence[float]], unjudged: int) -> Clustered
             "the others; a trial that left no returns is counted among the unjudged"
         )
     own = days.var(axis=1, ddof=1)
-    each = days.mean(axis=1) / np.sqrt(own)
     groups = _groups(np.atleast_2d(np.corrcoef(days)))
     weighed = [(days[group] / own[group, None]).sum(axis=0) for group in groups]
     return Clustered(
         tuple(tuple(names[n] for n in group) for group in groups),
         tuple(float(made.mean() / made.std(ddof=1)) for made in weighed),
-        tuple(tuple(each[group].tolist()) for group in groups),
         unjudged,
         days.shape[1],
     )

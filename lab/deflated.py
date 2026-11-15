@@ -14,7 +14,8 @@ shape: many small wins and a rare large loss make a Sharpe less sure than a bell
 the luck rung's own chance (`lab/luck.py`) cannot see. At PASS or more the trial is believed;
 under FAIL, luck is the likelier story; between them it is in doubt, neither won nor lost.
 
-The bar is fixed by two counts alone. The number of trials is every trial, as on the luck
+Judged as separate looks, the bar is fixed by two counts alone. The number of trials is
+every trial, as on the luck
 rung. The spread is the one a Sharpe with no edge has by its trades alone, one over the
 trades less one, the trial's own trades standing for every trial's: so no trial's bar moves
 with the company it is judged in, and the trials that can pass (thirty trades or more, the
@@ -26,8 +27,9 @@ ONE CLUSTERED SET (L14). Where the set's trials have been clustered by how their
 together (`trials.clusters`), `read` takes both counts from the clusters instead: the number
 of trials is the looks the set truly took, and the spread is the one measured among those
 looks' Sharpes, at the trial's own trades. To that the bar adds the luck of the pick inside
-the trial's own cluster: whatever its Sharpe stands above its cluster's, so a trial is judged
-no better than its cluster. Fifty copies of one strategy then set the bar of one trial, and
+the trial's own cluster: whatever its Sharpe a trade stands above its cluster's restated to a
+trade, so a trial is judged no better than its cluster. Fifty copies of one strategy then
+set the bar of one trial, and
 fifty strangers that of fifty. The luck rung's count is every trial, as before. That bar is
 fixed by rule and not by number: it is measured on the set's own returns, the trial's among
 them, and where the looks' true Sharpes differ it can stand above the bar of as many separate
@@ -162,7 +164,7 @@ def _deflated(corrected: Corrected, looks: Clustered | None) -> Deflated:
         bar = best_by_luck(1 / (len(gains) - 1), corrected.trials)
     else:
         bar = best_by_luck(looks.spread(len(gains)), looks.trials)
-        bar += looks.above(verdict.key.cell, len(gains))
+        bar += looks.above(verdict.key.cell, sharpe, len(gains))
     mean = fmean(gains)
     second, third, fourth = (fmean((g - mean) ** power for g in gains) for power in (2, 3, 4))
     chance = deflate(sharpe, bar, len(gains), third / second**1.5, fourth / second**2)
