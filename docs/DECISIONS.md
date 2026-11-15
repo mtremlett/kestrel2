@@ -1781,3 +1781,18 @@ then the break was removed:
   research list".
 - A rule "ghost_rule" added to the EPON set: "set EPON names rules the rule book lacks:
   ['ghost_rule']" (and the published-book test names it too).
+
+### R-RUNNER-107 — the master and the calendars agree (DATA, 15 November 2026)
+
+`tests/unit/test_lines_worlds.py`: every line of `desk.lines` has a rule and a clock in
+`desk.venues`, and every SimCity world (read as `simcity.run` deals them, with `_live`
+replaced so none is lived) is dated only on trading days of its lines' venues. The test
+reads the rehearsal data, which `desk.venues` itself dates, so it is green today; it is
+the net for a line or world that drifts. A line on an unknown venue is already refused when
+the `Line` is built (`__post_init__`), so the test's break is a venue that loses its
+calendar. Each was driven against a planted break, then the break was removed:
+
+- `CLOCKS["US"]` renamed "XX": "lines on a venue with no calendar in desk.venues (holidays
+  and hours): ['AAPL', 'TSLA', 'NVDA', 'SPCX', 'MSTR', 'AMD', 'MU', 'SPY', 'QQQ']".
+- `simcity._market` made to date its sixth bar 25 December: "world 0: L01 is dated
+  2024-12-25, which is no LSE session" (and every line after it).
