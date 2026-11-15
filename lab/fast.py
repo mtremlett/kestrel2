@@ -61,6 +61,34 @@ def _below_average(p: Prices, params: Params) -> Bools:
     return _late(n - 1, _against_average(p, n) < 0, len(p.close))
 
 
+def _lower_run(p: Prices, params: Params) -> Bools:
+    n = int(params["n"])
+    lower = np.zeros(len(p.close))  #: 1.0 on a bar with a lower high and a lower low
+    lower[1:] = (p.high[1:] < p.high[:-1]) & (p.low[1:] < p.low[:-1])
+    return _late(n - 1, _windows(lower, n).min(axis=1) > 0, len(p.close))
+
+
+def _range_edge(p: Prices, params: Params, from_top: bool) -> Bools:
+    """Close within `pct` per cent of the range of the last `n` bars, from its top or bottom:
+    `pct * range - 100 * gap` is not negative, and the range is not nothing."""
+    n, pct = int(params["n"]), int(params["pct"])
+    top, bottom = _windows(p.high, n).max(axis=1), _windows(p.low, n).min(axis=1)
+    close = p.close[n - 1 :]
+    gap = top - close if from_top else close - bottom
+    margin = _sure(
+        p, pct * (top - bottom) - 100 * gap, pct * (top - bottom) + 100 * gap, 200 * _top(p)
+    )
+    return _late(n - 1, (margin >= 0) & (top > bottom), len(p.close))
+
+
+def _near_range_high(p: Prices, params: Params) -> Bools:
+    return _range_edge(p, params, from_top=True)
+
+
+def _near_range_low(p: Prices, params: Params) -> Bools:
+    return _range_edge(p, params, from_top=False)
+
+
 def _always(p: Prices, params: Params) -> Bools:  # noqa: ARG001 - the one interface of every block
     return np.ones(len(p.close), dtype=np.bool_)
 
@@ -75,6 +103,10 @@ FIRES: Mapping[str, Fire] = {
     "highest_high": _highest_high,
     "lowest_low": _lowest_low,
     "close_below_average": _below_average,
+    "close_over_average": _above_average,
+    "lower_run": _lower_run,
+    "close_near_range_low": _near_range_low,
+    "close_near_range_high": _near_range_high,
     "close_above_average": _above_average,
     "no_stop": _never,
     "no_filter": _always,

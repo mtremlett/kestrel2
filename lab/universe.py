@@ -16,9 +16,10 @@ loosened: the desk cannot import this module, so the rule can decide no trade.""
 
 from __future__ import annotations
 
+import sys
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
-from datetime import date
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
 from statistics import median
@@ -162,6 +163,33 @@ def keep(
     return parked
 
 
+def _held(root: Path, line: Line) -> int:
+    """How many bars the store holds for the line; none before its first file."""
+    try:
+        return len(store.read(root / line.venue, line.symbol))
+    except FileNotFoundError:
+        return 0
+
+
+def refresh(
+    root: Path,
+    day: date,
+    lines: Iterable[Line] = UNIVERSE,
+    ask: Callable[[Line, date], tuple[Bar, ...]] = archive.fetch,
+) -> str:
+    """Keep each line through the one store writer, one at a time (a line's file is complete
+    before the next is asked for, so a stopped run resumes by running again), and say what
+    it did: lines refreshed, bars added (a line's gain on what it held; a bar is never
+    invented, so a day's second run adds none) and lines parked."""
+    refreshed = added = parked = 0
+    for line in lines:
+        before = _held(root, line)
+        parked += len(keep(root, day, [line], ask))
+        added += max(0, _held(root, line) - before)
+        refreshed += 1
+    return f"research refresh: {refreshed} lines refreshed, {added} bars added, {parked} parked"
+
+
 #: Research's rule for a move the store parks for (docs/DECISIONS.md, the data lane's). Read
 #: on the list's 406 such moves of 13 November 2026: a fall made wholly between two sessions
 #: on under this many times the usual value traded looks each time like a change of scale (a
@@ -212,3 +240,7 @@ def read(root: Path, line: Line) -> History:
     start, end = max(zip(edges, edges[1:], strict=False), key=lambda run: (run[1] - run[0], run))
     listed = tuple(bars[n].day for n in moved if start < n < end)
     return History(bars[start:end], listed, tuple(bars[n].day for n in cuts))
+
+
+if __name__ == "__main__":
+    sys.stdout.write(refresh(Path(sys.argv[1]), datetime.now(UTC).date()) + chr(10))
