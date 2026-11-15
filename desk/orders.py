@@ -252,6 +252,8 @@ def gate(order: Order | Sale, settings: Settings, held: Mapping[str, int]) -> No
                 f"{held.get(symbol, 0)}: the desk is long only"
             )
         return
+    if order.line.retail is False:  #: unrecorded (None) is not refused here
+        raise Refused(f"{order.order_id}: {symbol} is a line no retail customer may buy")
     if symbol not in held and len(held) >= HOLDINGS:
         raise Refused(f"{order.order_id}: {len(held)} holdings already, at most {HOLDINGS}")
     whole = replace(order, quantity=order.quantity + held.get(symbol, 0))

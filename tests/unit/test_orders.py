@@ -140,4 +140,9 @@ def test_a_sale_passes_the_gate_only_for_shares_the_book_holds() -> None:
             orders.gate(sale, TEN_K, held)
     with pytest.raises(ValueError, match="shares"):
         orders.Sale("s", PLAIN, 0)
+    shut, held = replace(PLAIN, retail=False), {"P": 10}
+    with pytest.raises(orders.Refused, match="P is a line no retail"):
+        orders.gate(_order(shut, 1, "10"), TEN_K, {})
+    orders.gate(orders.Sale("s", shut, 10), TEN_K, held)
+    orders.gate(_order(replace(PLAIN, retail=None), 1, "10"), TEN_K, {})
     assert orders.strategy_of(orders.order_id_of(_buy(PLAIN))) == "rule"
