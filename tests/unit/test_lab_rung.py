@@ -22,6 +22,8 @@ from lab import cell, rung
 from lab.cell import Cell, Trade
 from lab.rung import Answer
 
+VUSA = next(line for line in LINES if line.symbol == "VUSA")
+
 TEN_K, ZERO = Settings(Decimal(10_000)), Decimal(0)
 POUND: rung.Rates = {}  #: a pound line reads no rate
 FREE = Charges(ZERO, ZERO, ZERO, ZERO, ZERO)
@@ -173,6 +175,6 @@ def test_the_mean_is_judged_in_standard_errors_of_the_sample() -> None:
 
 def test_a_record_is_judged_only_on_the_bars_that_made_it() -> None:
     bars = _bars(SHAPE)
-    record = cell.run(Cell("breakout_20_10", "VUSA", bars[0].day, bars[24].day), bars)
+    record = cell.run(Cell("breakout_20_10", VUSA, bars[0].day, bars[24].day), bars)
     with pytest.raises(ValueError, match="did not make the record"):
         rung.judge(record, (replace(bars[0], close=Decimal(9)),) + bars[1:], TEN_K, POUND)
