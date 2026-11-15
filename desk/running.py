@@ -94,8 +94,8 @@ class Desk:
     post: messenger.Post  #: the door to his phone
     #: A day's pounds per unit of each currency: the same answer at every asking.
     rates: Callable[[date], Mapping[str, Decimal]]
-    #: The crash watch's two doors: the fast store of five-minute bars, and the daily bars as
-    #: last kept by the store's keeper (no archive is asked at a step's look, only at a round).
+    #: The fast store of five-minute bars for the crash watch, and the one door to the daily
+    #: bars, as last kept by the store's keeper (no archive is asked at a step).
     hot: Path
     held: Callable[[date], Saved]
 
