@@ -3,13 +3,16 @@ definition fixes, and not before it has seen enough."""
 
 from __future__ import annotations
 
+import random
 from datetime import date, timedelta
-from decimal import Decimal
+from decimal import Decimal, localcontext
 
 import pytest
 
+from desk.eponymous_clenow_momentum import score
 from desk.store import Bar
-from lab.blocks import BLOCKS, Block, Kind
+from desk.strategy import ARITHMETIC
+from lab.blocks import BLOCKS, Block, Kind, LogSlope
 
 
 def _fire(name: str, bars: list[tuple[int, int, int]], holding: bool = False, **params: int) -> str:
@@ -67,3 +70,13 @@ def test_block_fires_on_the_bars_its_definition_fixes(
 def test_every_block_has_its_kind_and_parameters_in_range() -> None:
     assert {s.kind for s in BLOCKS.values()} == set(Kind)
     assert all(p.low < p.high for s in BLOCKS.values() for p in s.params.values())
+
+
+def test_the_rolling_log_slope_scores_exactly_as_the_desks_clenow_score() -> None:
+    rng, slope, closes = random.Random(7), LogSlope(90), []  # noqa: S311 - a test draw
+    with localcontext(ARITHMETIC):
+        for _ in range(300):
+            closes.append(Decimal(f"{100 + rng.gauss(0, 5):.4f}"))
+            slope.add(closes[-1])
+            if slope.full:
+                assert slope.score() == score(closes[-90:])

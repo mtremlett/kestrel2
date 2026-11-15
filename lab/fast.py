@@ -20,7 +20,7 @@ from decimal import Decimal
 import numpy as np
 
 from desk.store import Bar
-from lab.grid import DESK, Bools, Floats, Prices, TooClose, _late, _sure, _windows, prices
+from lab.grid import DESK, MARGIN, Bools, Floats, Prices, TooClose, _late, _sure, _windows, prices
 from lab.spec import Spec
 
 Params = Mapping[str, int | Decimal]
@@ -59,6 +59,44 @@ def _above_average(p: Prices, params: Params) -> Bools:
 def _below_average(p: Prices, params: Params) -> Bools:
     n = int(params["n"])
     return _late(n - 1, _against_average(p, n) < 0, len(p.close))
+
+
+def _at_or_below_average(p: Prices, params: Params) -> Bools:
+    n = int(params["n"])
+    return _late(n - 1, _against_average(p, n) <= 0, len(p.close))
+
+
+def _big_moves(p: Prices, params: Params) -> Bools:
+    """Whether a move of more than `pct` per cent lies among the last `n` changes of the close:
+    `20 * |close - before| - 3 * before` is over nothing for 15 per cent, in whole numbers."""
+    n, pct = int(params["n"]), int(params["pct"])
+    change, before = np.abs(np.diff(p.close)), p.close[:-1]
+    margin = _sure(p, 100 * change - pct * before, 100 * change + pct * before, 100 * _top(p))
+    seen = np.concatenate(([0], np.cumsum(margin > 0)))  #: big moves among the first k changes
+    first = np.maximum(np.arange(1, len(p.close)) - n, 0)  #: the oldest change of each bar's n
+    big = np.zeros(len(p.close), dtype=np.bool_)
+    big[1:] = seen[1:] - seen[first] > 0
+    return big
+
+
+def _rising_score(p: Prices, params: Params) -> Bools:
+    """The last `n` closes score over nothing (the sign of the regression's covariance, which
+    is the sign of its slope) with no big move among the last `n` changes. A window whose
+    closes are all one price scores nothing; one whose covariance is lost in rounding is
+    refused."""
+    n = int(params["n"])
+    logs = _windows(np.log(p.close), n)
+    centred = logs - logs.mean(axis=1, keepdims=True)
+    spread = np.sqrt((centred**2).sum(axis=1))
+    rank = np.arange(n) - (n - 1) / 2
+    cov = centred @ rank
+    flat = _windows(p.close, n).max(axis=1) == _windows(p.close, n).min(axis=1)
+    reach = np.sqrt((rank**2).sum()) * spread
+    if (~flat & ((spread < 1e-9) | (np.abs(cov) < MARGIN * reach))).any():
+        raise TooClose("a regression too flat for floating point to call")
+    rising = np.zeros(len(p.close), dtype=np.bool_)
+    rising[n - 1 :] = ~flat & (cov > 0)
+    return rising & ~_big_moves(p, params)
 
 
 def _lower_run(p: Prices, params: Params) -> Bools:
@@ -135,6 +173,9 @@ FIRES: Mapping[str, Fire] = {
     "close_near_range_low": _near_range_low,
     "close_near_range_high": _near_range_high,
     "close_above_average": _above_average,
+    "close_at_or_under_average": _at_or_below_average,
+    "big_move": _big_moves,
+    "rising_score": _rising_score,
     "no_exit": _never,
     "no_stop": _never,
     "no_filter": _always,
