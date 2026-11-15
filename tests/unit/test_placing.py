@@ -334,9 +334,8 @@ def test_a_sale_takes_its_shares_off_the_stop_and_a_stop_not_settled_is_an_error
         with pytest.raises(placing.Unprotected, match="do not agree"):
             broker.place(BUY_IT)
         assert sent[6:] == [ACCOUNT]
-    sent = _gateway(
-        monkeypatch, [], PROTECTED, [ENDED_7], BARE, sold[0], flat, [("102",)], whole[1:], flat
-    )
+    aft: list[Said] = [sold[0], flat, [("102",)], whole[1:], flat, flat]
+    sent = _gateway(monkeypatch, [], PROTECTED, [ENDED_7], BARE, *aft)
     with pytest.raises(placing.Unprotected, match="went from 26 to 0"):
         broker.place(SALE)
     # and so when the broker's word that the buy filled comes in answer to the desk's cancel

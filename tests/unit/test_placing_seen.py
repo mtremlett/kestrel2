@@ -10,7 +10,9 @@ import test_placing as tp
 from test_paper import Said, _account, _but, _gateway, _order
 from test_reports import CUT, END
 
+from desk import paper, placing
 from desk.broker import Report
+from desk.listing import Listing
 from desk.orders import Refused
 from desk.placing import NotCancelled, Unprotected
 
@@ -54,14 +56,16 @@ def test_a_stop_that_sold_or_ended_as_it_was_cancelled_stops_the_sale_and_the_li
     with pytest.raises(Unprotected, match="sold as it was cancelled"):
         broker.place(tp.SALE)
     assert tp.PLACED not in sent
-    sent = _gateway(monkeypatch, [], tp.PROTECTED, [_but(tp.UNFOUND, 2, "7")], bare, bare, rests)
+    sent = _gateway(
+        monkeypatch, [], tp.PROTECTED, [_but(tp.UNFOUND, 2, "7")], bare, bare, bare, rests
+    )
     with pytest.raises(Refused, match="its stop ended"):
         broker.place(tp.SALE)
     assert tp.PLACED not in sent
-    sent = _gateway(monkeypatch, [], tp.PROTECTED, [tp.ENDED_7], tp.LEFT, rests)
+    sent = _gateway(monkeypatch, [], tp.PROTECTED, [tp.ENDED_7], tp.LEFT, tp.LEFT, rests)
     with pytest.raises(Refused, match="16 held"):
         broker.place(tp.SALE)
-    assert sent[4] == tp.SMALLER and tp.PLACED not in sent
+    assert sent[5] == tp.SMALLER and tp.PLACED not in sent
     # a sale that errs once its stop is cancelled puts the stop back for the shares held
     working = _account([tp.HELD], *tp.MINE)
     sent = _gateway(
@@ -80,3 +84,23 @@ def test_a_stop_that_sold_or_ended_as_it_was_cancelled_stops_the_sale_and_the_li
     with pytest.raises(NotCancelled):
         broker.place(tp.SALE)
     assert b"\x00SELL\x0026\x00STP\x00\x00171.5" in sent[-1]
+
+
+def test_a_stop_that_sold_or_ended_unseen_as_it_was_cancelled_by_settle_is_unprotected(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    # a stop left resting is cancelled once its replacement rests, or no share is left
+    broker = tp._paper(tp._ready(tmp_path))
+    listed = broker._listings[tp.SALE.line.symbol]
+    assert isinstance(listed, Listing)
+    gone = [_but(tp.UNFOUND, 2, "7")]
+    for end in ([[_but(tp.ENDED_7, 2, "Filled")]], [gone, tp.EMPTY, tp.EMPTY]):
+        _gateway(monkeypatch, tp.PROTECTED)
+        held, stops = placing.on(paper.read(), listed)
+        _gateway(monkeypatch, *end)
+        with pytest.raises(Unprotected, match="ended another way"):
+            broker.settle(listed, held, stops, None)
+    _gateway(monkeypatch, tp.PROTECTED)
+    held, stops = placing.on(paper.read(), listed)
+    _gateway(monkeypatch, gone, tp.BARE, tp.BARE)
+    broker.settle(listed, held, stops, None)
