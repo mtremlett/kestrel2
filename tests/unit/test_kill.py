@@ -79,6 +79,24 @@ def test_the_switch_is_on_before_the_broker_is_asked_so_a_dead_line_still_stops_
     assert broker.submitted() == ("o-1", "o-2")
 
 
+def test_a_place_that_fails_unknown_pulls_the_switch_and_keeps_the_note(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    broker = _desk(tmp_path)
+
+    def strange(_: Order | Sale) -> book.Report:
+        raise RuntimeError("the gateway sent gibberish")
+
+    monkeypatch.setattr(broker, "place", strange)
+    with pytest.raises(book.Alarm, match=r"o-3: .*gibberish.*kill switch is on"):
+        _buy(tmp_path, broker, "o-3", C)
+    assert "o-3" in str(book.killed(tmp_path)) and (tmp_path / book.GOING).exists()
+    assert broker.working() == (), "the order left working was not cancelled"
+    assert broker.stops() == (("A", 10),), "a stop resting to sell what is held was taken"
+    with pytest.raises(Refused, match="o-4: .*kill switch"):
+        _buy(tmp_path, broker, "o-4", C)
+
+
 CANCEL = Pretend.cancel
 
 
