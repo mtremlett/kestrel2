@@ -12,7 +12,7 @@ from test_lab_ladder import _set as _cells
 
 from desk.lines import Line
 from desk.store import Bar
-from lab import ladder, ladder_pool
+from lab import folds, ladder, ladder_pool
 from lab.batch import Bars
 
 CLOCK = lambda: datetime(2026, 11, 14, tzinfo=UTC)  # noqa: E731
@@ -48,3 +48,15 @@ def test_the_pool_writes_the_serial_runs_rows_in_its_order_and_a_workers_break_i
     bad, fine = _rows(tmp_path / "broken")
     assert bad["error"] == "RuntimeError: a bug in the worker" and "answer" in fine
     assert "1 judged now" in broken and "1 could not be judged" in broken
+
+
+def test_a_unit_is_one_lines_one_fold_so_one_lines_history_spreads_over_the_workers(
+    tmp_path: Path,
+) -> None:
+    (one,) = _cells(VUSA)
+    cut = ladder_pool.units([one, *_cells(ISF)])
+    assert len(cut) == 2 * (1 + folds.YEARS) and len({u for u in cut}) == len(cut)
+    assert [y for c, y in cut if c == one] == [None, *range(2021, 2026)]  # five folds, one cell
+    ladder_pool.run(tmp_path, _book, {}, [one], CLOCK, size=2)
+    warmed = len(list((tmp_path / ladder.FOLDER / "tapes").glob("*.tape")))
+    assert warmed >= 1 + folds.YEARS  # the whole window and each fold year, kept as tapes
