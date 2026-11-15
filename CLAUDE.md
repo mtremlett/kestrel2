@@ -70,7 +70,7 @@ All of it is paper: no real money moves until he signs for going live.
 The broker: the pretend one (`desk/broker.py`); the paper one, built by PAPER, on IB Gateway
 on his PC, port 4002 and the old desk's paper account. The live port 4001 this desk NEVER
 dials; a guard reads every line of `desk/` and `lab/`. Prices: one free archive
-(`desk/archive.py`). Messages: one Telegram line per merge (`announce.py`).
+(`desk/archive.py`). Messages: the runner's hourly report to his Telegram.
 
 ## The predecessor, and the failure patterns
 
