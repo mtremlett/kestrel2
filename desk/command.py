@@ -58,7 +58,7 @@ from desk.lines import LINES, Line
 from desk.orders import Settings
 from desk.running import DAY, VENUES, Desk
 
-ROOT, REHEARSALS = "desk", "rehearsals"  #: folders, each inside the one before
+ROOT, STORE, REHEARSALS = "desk", "store", "rehearsals"  #: folders, each inside the one before
 CAPITAL = Decimal(10_000)  #: the paper desk's one capital, in pounds, until he rules another
 #: The pound in dollars at the archive; no pound closes outside these; the oldest close trusted.
 POUND, DOLLARS, FRESH = Line("GBPUSD=X", "US", "USD", 1), (Decimal(1), Decimal(2)), 4 * DAY
