@@ -24,7 +24,7 @@ What a step owes, in this order, and only of a gateway that says it is ready:
   (day.trade), on the bars saved before today, for that venue's lines. The send path asks
   the broker of every order before it sends, so a round begun twice sends nothing twice. A
   round is made once, whatever was answered: an order refused in it is not sent later.
-- THE DAY'S RECORD (day.publish), once every market that traded has been shut five minutes;
+- THE DAY'S RECORD (day.publish), once every market that traded has its closes kept (keeper.HELD);
   a session the desk missed gets its own first, oldest first, at that day's own rates.
 
 Then, whatever happened, he is told through the desk's one voice (desk/messenger.py): the
@@ -50,6 +50,7 @@ from desk import (
     clearance,
     day,
     gateway,
+    keeper,
     kill,
     listing,
     messenger,
@@ -69,7 +70,6 @@ from desk.store import Bar
 
 NOTES, HEAD = "running.csv", ("at", "what", "words")
 VENUES = {"LSE": "London", "US": "New York"}  #: each venue of the desk's lines, as he is told it
-SHUT = timedelta(minutes=5)  #: how long after a day's last closing auction its record is made
 DAY = timedelta(days=1)
 ORDERS, RECOVERED, UNCLEAN, TROUBLE = "orders {}", "recovered", "unclean", "trouble"
 ONCE = (UNCLEAN, TROUBLE)  #: told once a day, the first: of a failure, the first of its kind
@@ -92,7 +92,7 @@ class Desk:
     root: Path  #: where the ledger, the checks, the switch, the records and the messages are
     room: Settings
     post: messenger.Post  #: the door to his phone
-    #: The price store's door: the bars before a day. The day's record needs its closes there.
+    #: Not read by a step, which reads `held`; command.py still gives it and is to drop it.
     bars: Callable[[date], Saved]
     #: A day's pounds per unit of each currency: the same answer at every asking.
     rates: Callable[[date], Mapping[str, Decimal]]
@@ -239,7 +239,7 @@ def _round(desk: Desk, broker: placing.Paper, venue: str, now: datetime) -> None
     out, nothing decided on it, and named: never passed over in silence. A desk that dies
     in the round runs it again: the send path asks the broker of each order first."""
     today = now.date()
-    saved, out, last = _fit(desk.bars(today), venue, today)
+    saved, out, last = _fit(desk.held(today), venue, today)
 
     def tell(
         name: str, words: str
@@ -258,13 +258,14 @@ def _round(desk: Desk, broker: placing.Paper, venue: str, now: datetime) -> None
 def _owed(root: Path, now: datetime) -> list[date]:
     """The sessions whose record is owed now, oldest first: each since the last record (with
     none yet, since the ledger's first fill, or today), and today's only once every venue
-    that traded today has been shut for SHUT."""
+    that traded today has had time to have its closes kept (keeper.HELD, past the moment
+    keeper.target turns to tomorrow), so the price store's door does not refuse the record."""
     kept, today = day.records(root), now.date()
     first = min((fill.day for fill in book.fills(root)), default=today)
     since = kept[-1].day if kept else min(first, today) - DAY
     traded = {on for venue in VENUES for on in venues.sessions(venue, since + DAY, today)}
     shut = all(
-        now >= venues.hours(venue, today).auction + SHUT
+        now >= venues.hours(venue, today).auction + keeper.HELD
         for venue in VENUES
         if venues.sessions(venue, today, today)
     )
@@ -304,7 +305,7 @@ def _work(desk: Desk, now: datetime, seen: watch.Look | None) -> None:
         _round(desk, broker, venue, now)
     for on in owed:  #: a missed session's rates are kept first, as its own day would have
         book.record_rates(root, on, desk.rates(on))
-        day.publish(root, desk.bars(on + DAY)[0], broker, desk.room, on)
+        day.publish(root, desk.held(on + DAY)[0], broker, desk.room, on)
 
 
 def _say(desk: Desk, now: datetime, known: Known) -> None:
