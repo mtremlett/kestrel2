@@ -11,9 +11,13 @@ import pytest
 from test_lab_folds import _verdict, _window
 from test_lab_rung import POUND, SHAPE, TEN_K, _bars, _walk
 
+from desk.lines import LINES
 from desk.store import Bar
 from lab import cell, folds, luck, regime, rung, trials
 from lab.regime import Replay, Replayed, Tag
+
+AAPL = next(line for line in LINES if line.symbol == "AAPL")
+VUSA = next(line for line in LINES if line.symbol == "VUSA")
 
 EDGE, TURN = 0.012, 500  #: the weather turns every 500 days
 
@@ -59,7 +63,7 @@ def test_a_rule_that_earns_in_one_regime_alone_is_kept_for_it_and_tagged_outside
             found.tag(weather, bars[-1].day + timedelta(1))
         #: the weather after the window's end is not read: a later label changes nothing
         #: and a window is its own days: none before its start, none after its end
-        inner = cell.Cell("breakout_20_10", "VUSA", bars[TURN].day, bars[3999].day)
+        inner = cell.Cell("breakout_20_10", VUSA, bars[TURN].day, bars[3999].day)
         later = {bar.day: "fog" for bar in bars[4000:]}
         seen = regime.judge(inner, bars, TEN_K, POUND, weather | later, 2)
         days = {bar.day: weather[bar.day] for bar in bars[TURN:4000]}
@@ -111,7 +115,7 @@ def test_a_replay_that_could_show_nothing_is_refused_as_a_fault_in_the_test() ->
     ]
     assert found.whole == rung.judge(cell.run(_window(bars), bars), bars, TEN_K, POUND)
     assert len(_judge(bars, weather, 25).periods) == 25, "a bar a period is the limit"
-    us = cell.Cell("breakout_20_10", "AAPL", bars[0].day, bars[-1].day)
+    us = cell.Cell("breakout_20_10", AAPL, bars[0].day, bars[-1].day)
     rates = dict.fromkeys((bar.day for bar in bars), Decimal("0.8"))
     usd = regime.judge(us, bars, TEN_K, rates, weather, 2)  #: priced in dollars
     paid = {v.trades[0].paid for v in (usd.whole, usd.periods[1].verdict, usd.regimes[1].verdict)}

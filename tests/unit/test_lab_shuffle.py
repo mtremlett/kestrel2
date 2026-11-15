@@ -6,14 +6,17 @@ from decimal import Decimal
 
 from test_lab_rung import POUND, TEN_K, _walk
 
+from desk.lines import LINES
 from lab import shuffle
 from lab.cell import Cell
+
+VUSA = next(line for line in LINES if line.symbol == "VUSA")
 
 
 def _share(*pushes: float) -> Decimal:
     bars = _walk(1, *pushes, days=3000)
     return shuffle.share(
-        Cell("breakout_20_10", "VUSA", bars[0].day, bars[-1].day), bars, TEN_K, POUND
+        Cell("breakout_20_10", VUSA, bars[0].day, bars[-1].day), bars, TEN_K, POUND
     )
 
 
