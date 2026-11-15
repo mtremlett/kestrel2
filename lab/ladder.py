@@ -77,6 +77,7 @@ from lab.cell import Cell
 from lab.reproduce import Reproduction
 from lab.rung import Answer, Rates
 
+RUNGS = "lab"  #: the package whose `rung_*` modules declare the rungs the ladder runs
 ME = "lab.ladder"  #: this module as the cell knows it, however the process was started
 QUESTION = "set 1: does a published rule earn on one of the desk's lines?"
 #: The one window: from where the daily history is carried back to, to the last session
@@ -282,11 +283,9 @@ def _one(
     head: dict[str, Any] = {"set": tag, "cell": batch.row(c), "trials": count}
     key = None  #: what this try covers, once the cell's bars are read
     try:
-        line = c.line
         c, own, proxy = _resolve(c, bars)
-        head |= {"proxy": f"proxy: {proxy.symbol} for {line.symbol}"} if proxy else {}
-        beside = next(one for one in LINES if one.symbol == MARKETS[c.line.venue])
-        held = bars(beside)
+        head |= {"proxy": f"proxy: {proxy.symbol} for {head['cell'][1]}"} if proxy else {}
+        held = bars(beside := next(one for one in LINES if one.symbol == MARKETS[c.line.venue]))
         made = _made(c.strategy, shared, bars)
         pool = _pool(c.strategy, shared, bars, pounds)
         mine = cell.key(c, own).rung(ME)
@@ -297,6 +296,7 @@ def _one(
         rates = (f"{d} {pounds[d]}" for d in days)
         parts = [mine.code, CODE, mine.data, market, pool.data, str(count), *rates]
         parts += [one.key.code + one.key.data for one in made]
+        parts += [one.name + one.code for one in rung.found(RUNGS)[0]]
         head |= {"reproduction": [reproduce.said(one) for one in made]} if made else {}
         key = hashlib.sha256(";".join(parts).encode()).hexdigest()
         if was is not None and was.get("key") == key and not _due(was, now):
@@ -305,7 +305,8 @@ def _one(
         judged = verdict.judge(
             c, own, beside, held, pounds, count, made, folded, pool.firsts.get(c)
         )
-        return head | {"key": key, "from": c.start.isoformat()} | judged
+        done = _declared(judged, pool, c, own, pounds, made)
+        return head | {"key": key, "from": c.start.isoformat()} | done
     except Refused as error:  #: the desk's sizing declines the line at this capital: judged
         reason = f"refused by the desk's sizing: {error}"
         return head | ({} if key is None else {"key": key}) | {"refused": reason}
@@ -317,6 +318,29 @@ def _one(
             | ({} if key is None else {"key": key})
             | {"error": f"{type(error).__name__}: {error}", "tried": now.isoformat()}
         )
+
+
+def _declared(
+    judged: dict[str, Any],
+    pool: verdict.Pool,
+    c: Cell,
+    own: Sequence[Bar],
+    pounds: Rates,
+    made: Sequence[Reproduction],
+) -> dict[str, Any]:
+    """The cell's answers with each rung that its module declares (`rung.found`) added, judged
+    on the first rung's verdict; the one rule's answer stays the named rungs'. A cell with no
+    first rung (the author's result not reproduced) has none to read."""
+    declared = rung.found(RUNGS)[0]
+    if not declared or "trades" not in judged:
+        return judged
+    read = pool.firsts.get(c) or verdict.ready(c, own, pounds, made)
+    rungs = dict(judged["rungs"])
+    for one in declared:
+        answer, reason = one.judge(read)
+        rungs[one.name] = [answer.name, reason]
+    every = judged["every"] and all(a == Answer.PASS.name for a, _ in rungs.values())
+    return judged | {"rungs": rungs, "every": every}
 
 
 def _proxy(line: Line, own: Sequence[Bar], bars: Bars) -> Line | None:
