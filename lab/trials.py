@@ -48,15 +48,18 @@ over its trades a year).
 
 THE PICK INSIDE A CLUSTER IS LUCK TOO. The paper judges a cluster's own returns; the desk
 judges the one trial picked, and the best of fifty near-copies stands above their cluster by
-luck. So each cluster keeps the variance of its own trials' Sharpes (`Clustered.beside`),
-and the bar adds the best that luck gives among so many at that spread: nothing among exact
-copies or for a trial alone, more the less alike the cluster's trials are.
+luck. So A TRIAL IS JUDGED NO BETTER THAN ITS CLUSTER: whatever its own Sharpe stands above
+its cluster's (`Clustered.above`) is added to its bar, which is the paper's judging of the
+cluster whatever the cluster is made of. Nothing is added among exact copies, for a trial
+alone, or for one no better than its cluster.
 
 A trial that left no returns (a cell that failed, a rule that never traded) cannot be set
 beside the others: it is counted aloud as a look of its own, as on the luck rung, and
 `clustered` takes that count from the register. THE RETURNS TO HAND IN are each trial's on
 every day of the one window all were judged over, nothing on a day it held nothing: fewer
-days than the window understate the spread among trials whose true Sharpes differ.
+days than the window understate the spread among trials whose true Sharpes differ. A Sharpe
+a day is restated to a trade as the yearly Sharpe is (`lab/deflated.py`): one day's return
+taken to tell nothing of the next.
 """
 
 from __future__ import annotations
@@ -83,7 +86,8 @@ from lab.rung import Verdict
 HEAD = b'{"register": "trials"}\n'  #: a register's first line: an empty file is not one
 #: Fixed before any result. Two trials whose daily returns correlate by LINK or more are one
 #: look: in the paper's distance, the root of half of one less the correlation, they stand
-#: nearer to copies than to strangers. Under FEWEST days strangers reach LINK by chance.
+#: nearer to copies than to strangers. FEWEST days are asked so that no two strangers reach
+#: LINK by chance, however many pairs a set holds.
 LINK, FEWEST = 0.75, 60
 
 
@@ -174,7 +178,7 @@ class Clustered:
 
     clusters: tuple[tuple[str, ...], ...]  #: every trial with returns, by name, in its cluster
     sharpes: tuple[float, ...]  #: each cluster's Sharpe a day, cluster for cluster
-    inside: tuple[float, ...]  #: the variance of the Sharpes a day of each cluster's own trials
+    own: tuple[tuple[float, ...], ...]  #: each trial's own Sharpe a day, trial for trial
     unjudged: int  #: the trials that left no returns, each a look of its own
     days: int  #: the days the returns were given on
 
@@ -201,13 +205,15 @@ class Clustered:
             )
         return measured * self.days / trades
 
-    def beside(self, cell: Cell, trades: int) -> tuple[float, int]:
-        """The cell's own cluster, for the luck of the pick inside it: the variance of its
-        trials' Sharpes, restated as `spread` is, and how many they are."""
-        for members, inside in zip(self.clusters, self.inside, strict=True):
-            if name(cell) in members:
-                return inside * self.days / trades, len(members)
-        raise ValueError(f"{name(cell)}: not a trial this set was clustered from")
+    def above(self, cell: Cell, trades: int) -> float:
+        """How far the cell's own Sharpe stands above its cluster's, a trade for a trial of so
+        many trades: the luck of the pick inside the cluster. Nothing where it is no higher."""
+        trial = name(cell)
+        for members, own, sharpe in zip(self.clusters, self.own, self.sharpes, strict=True):
+            if trial in members:
+                lift = max(0.0, own[members.index(trial)] - sharpe)
+                return float(lift * np.sqrt(self.days / trades))
+        raise ValueError(f"{trial}: not a trial this set was clustered from")
 
 
 def clusters(returns: Mapping[str, Sequence[float]], unjudged: int) -> Clustered:
@@ -234,7 +240,7 @@ def clusters(returns: Mapping[str, Sequence[float]], unjudged: int) -> Clustered
     return Clustered(
         tuple(tuple(names[n] for n in group) for group in groups),
         tuple(float(made.mean() / made.std(ddof=1)) for made in weighed),
-        tuple(float(np.var(each[group], ddof=1)) if len(group) > 1 else 0.0 for group in groups),
+        tuple(tuple(each[group].tolist()) for group in groups),
         unjudged,
         days.shape[1],
     )
