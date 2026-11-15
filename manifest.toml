@@ -27,7 +27,7 @@ money = ["tests/scenes/test_scenes.py"]
 paper = []
 data = ["tests/scenes/rehearsal.py"]
 grid = []
-rungs = []
+rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 
 # Every module, with the one thing it owns. Add a line here, then write the file.
 # Each lane (docs/PLAN.md) adds its modules under its own heading, so two lanes never
@@ -101,12 +101,12 @@ rungs = []
 "lab/rulebook.py" = "the lab's one list of rules by name: the desk's five and every rule of every eponymous file, found by the folder; only the five are A-GATE candidates"
 "lab/batch.py" = "the ladder's batch service: runs many cells, records a bad one and carries on, and takes up where a stopped run left off"
 "lab/grid.py" = "the fast grid engine: each strategy's position after every bar, on whole arrays; it matches the desk's own decisions or refuses"
-"lab/fast.py" = "the fast engine for spec rows: a row's position after every bar from its blocks worked out on whole arrays, shared between rows of one line, held to the desk's own engine trade for trade or refusing with TooClose"
 "lab/tune.py" = "the pass's auto-tune: the memory ceiling Windows holds on the workers, their number sized to the free cores and backed off under load, each pass's peaks logged"
 "lab/sweep.py" = "the grid's pass: every strategy at every setting on every ticker of a list, a ticker to a worker under the auto-tune, each cell kept by its code and its bars"
 "lab/transfer.py" = "the grid's transfer study: a rule's settings fitted on one line at the centre of a plateau, never a lone peak, and scored on every other line the store holds; the result labelled PRE-REVIEW"
 
 # the rungs lane
+"lab/fast.py" = "the fast engine for spec rows: a row's position after every bar from its blocks worked out on whole arrays, shared between rows of one line, held to the desk's own engine trade for trade or refusing with TooClose"
 "lab/rung.py" = "the ladder's first rung: a cell's trades priced at the desk's fills and the broker's costs, and judged against chance"
 "lab/luck.py" = "the ladder's luck rung: every trial counted, and each verdict's chance corrected for the number of trials it was picked from"
 "lab/folds.py" = "the ladder's folds rung: a history cut into folds, each judged after costs beside the history before it, and the verdict given on the worst"
