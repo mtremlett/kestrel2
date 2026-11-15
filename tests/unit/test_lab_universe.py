@@ -215,9 +215,7 @@ def test_a_rise_wholly_overnight_is_a_change_of_scale_however_heavy_the_trading(
 
 def test_a_move_made_within_the_day_is_the_markets_and_is_read(tmp_path: Path) -> None:
     """Listed on the day it was made and on the next, whose bar sits far from where it began."""
-    spike = list(_ask(MMM, DAY))
-    spike[AT] = replace(spike[AT], low=spike[AT].low / 2)
-    for by, bars in ((Decimal("0.5"), _stepped(Decimal("0.5"))), (2, _stepped(2)), (1, spike)):
+    for by, bars in ((Decimal("0.5"), _stepped(Decimal("0.5"))), (2, _stepped(2))):
         last = _ask(MMM, DAY)[AT - 1].close
         if by != 1:
             bars[AT] = replace(
@@ -225,6 +223,15 @@ def test_a_move_made_within_the_day_is_the_markets_and_is_read(tmp_path: Path) -
             )
         days = (bars[AT].day, bars[AT + 1].day)
         assert _read(tmp_path, bars) == universe.History(tuple(bars), days, ())
+        #: the close falls with the low: the market's, so no low is repaired
+        assert not any("low repaired" in f for f in store.faults(tmp_path / MMM.venue, MMM.symbol))
+    spike = list(_ask(MMM, DAY))  #: a bad low long enough ago that the line is not parked for it
+    spike[10] = replace(spike[10], low=spike[10].low / 2)
+    mended = replace(spike[10], low=min(spike[10].open, spike[10].close))
+    assert _read(tmp_path, spike) == universe.History((*spike[:10], mended, *spike[11:]), (), ())
+    assert f"{mended.day} low repaired: was {spike[10].low}" in store.faults(
+        tmp_path / MMM.venue, MMM.symbol
+    )
 
 
 def test_a_fall_with_no_volume_to_judge_it_by_is_read_as_the_markets(tmp_path: Path) -> None:
@@ -239,10 +246,12 @@ def test_research_reads_the_longest_run_on_one_scale_and_lists_the_moves_inside_
     tmp_path: Path,
 ) -> None:
     bars = _stepped(Decimal("0.5"), 30, tuple(_stepped(Decimal("0.5"), 10)))
-    for at in (20, 70):  #: a spike between the two changes of scale, and one after both
+    for at in (20, 70):  #: a bad low between the two changes of scale, and one after both
         bars[at] = replace(bars[at], low=bars[at].low / 2)
-    days, cuts = (bars[70].day, bars[71].day), (bars[10].day, bars[30].day)
-    assert _read(tmp_path, bars) == universe.History(tuple(bars[30:]), days, cuts)
+    cuts = (bars[10].day, bars[30].day)
+    kept = tuple(bars[30:])
+    mended = replace(bars[70], low=min(bars[70].open, bars[70].close))
+    assert _read(tmp_path, bars) == universe.History((*kept[:40], mended, *kept[41:]), (), cuts)
     even = _stepped(Decimal("0.5"), 43)[1:]  #: two runs as long: the later is read
     assert len(even) == 84
     assert _read(tmp_path, even) == universe.History(tuple(even[42:]), (), (even[42].day,))

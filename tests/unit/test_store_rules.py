@@ -38,6 +38,11 @@ RULES: dict[str, tuple[Make, Line, str]] = {  # rule site -> (synthetic archive,
         US,
         "high repaired",
     ),
+    "_entered:6": (
+        lambda b: [*b[:5], replace(b[5], low=b[5].low / 2), *b[6:]],
+        US,
+        "low repaired",
+    ),
     "_priced:1": (lambda b: [*b[:-8], _scaled(b[-8], Decimal(100)), *b[-7:]], US, "wrong unit"),
     "_priced:2": (
         lambda b: [*b[:-8], replace(_scaled(b[-8], Decimal("1.7")), volume=0), *b[-7:]],
@@ -141,3 +146,22 @@ def test_a_bad_high_is_repaired_and_kept_but_a_bad_close_is_refused(tmp_path: Pa
     wrong = replace(was, close=was.high * 2)
     store.prepare(tmp_path, {US: [*clean[:5], wrong, *clean[6:]]}, DAY)
     assert was.day not in {b.day for b in store.read(tmp_path, US.symbol)}
+
+
+def test_a_bad_low_is_repaired_and_the_line_not_parked_but_a_fall_the_close_shares_is_kept(
+    tmp_path: Path,
+) -> None:
+    """VUAG 16 March 2020 (R-RUNNER-185): a low far under both open and close is a bad print,
+    clamped and listed, the line not parked; a close that falls with its low is the market's."""
+    clean = list(_bars(US, LONG))
+    was = clean[5]
+    bad = replace(was, low=min(was.open, was.close) / 3)
+    store.prepare(tmp_path, {US: [*clean[:5], bad, *clean[6:]]}, DAY)
+    kept = {b.day: b for b in store.read(tmp_path, US.symbol)}[was.day]
+    assert (kept.open, kept.close, kept.volume) == (was.open, was.close, was.volume)
+    assert kept.low == min(was.open, was.close)
+    assert any("low repaired: was" in f for f in store.faults(tmp_path, US.symbol))
+    assert not any("moved" in f for f in store.faults(tmp_path, US.symbol))
+    fall = replace(was, close=was.close / 3, low=was.close / 3)
+    store.prepare(tmp_path, {US: [*clean[:5], fall, *clean[6:]]}, DAY)
+    assert not any("low repaired" in f for f in store.faults(tmp_path, US.symbol))
