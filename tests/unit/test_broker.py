@@ -68,10 +68,9 @@ def test_each_fault_is_stated_and_hits_only_the_symbols_first_order() -> None:
     broker.open(MON)
     with pytest.raises(Crash):
         broker.place(_order("o-1"))
-    duplicate = broker.place(_order("o-1"))
-    assert duplicate.reason and broker.submitted() == ("o-0", "o-1", "o-1"), "duplicate silent"
-    assert broker.holdings() == (("A", 10),), "the order was lost in the crash, or filled twice"
-    assert broker.report("o-1").fills == broker.fills()  # type: ignore[union-attr]
+    repeat = broker.place(_order("o-1"))  #: a repeated id is taken as a new order, as IBKR did
+    assert repeat.reason is None and broker.submitted() == ("o-0", "o-1", "o-1")
+    assert broker.holdings() == (("A", 20),) and broker.report("o-1") == repeat
     with pytest.raises(ValueError, match="Z"):
         Pretend(ARCHIVE, {"Z": Fault.REJECT})
 
@@ -112,7 +111,6 @@ def test_an_order_left_working_fills_at_its_next_market_unless_cancelled_and_sto
             broker.place(_order("o-2", B, 3, "15"))
         working = broker.report("o-2")
         assert working and working.fills == () and "working" in str(working.reason)
-        assert broker.place(_order("o-2", B, 3, "15")).reason, "a working order taken twice"
         assert broker.stops() == (("A", 10),), "a working buy's stop protects nothing yet"
     assert killed.working() == ("o-2",) == killed.cancel(), "the order left working, named"
     assert killed.cancel() == () == killed.working(), "named once, then none left"
