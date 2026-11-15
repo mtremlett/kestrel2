@@ -36,12 +36,12 @@ import hashlib
 import inspect
 import json
 import os
+import sys
 from collections.abc import Iterable, Sequence
 from functools import cache
 from pathlib import Path
 
-from desk import strategy
-from lab import luck
+from lab import luck, rulebook
 from lab.cell import Cell
 from lab.luck import Corrected
 from lab.rung import Verdict
@@ -59,7 +59,8 @@ def name(cell: Cell) -> str:
 @cache
 def rule_hash(rule: str) -> str:
     """The first twelve letters of the hash of the rule's code as this process loaded it."""
-    return code_hash(inspect.getsource(strategy), strategy.STRATEGIES[rule].__name__)
+    made = rulebook.rule(rule)
+    return code_hash(inspect.getsource(sys.modules[made.__module__]), made.__name__)
 
 
 def code_hash(source: str, name: str) -> str:
