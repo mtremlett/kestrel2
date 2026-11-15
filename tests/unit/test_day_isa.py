@@ -1,4 +1,4 @@
-"""day: the book is the ISA's, so a line no ISA is recorded as holding is never bought."""
+"""day: the book is the ISA's, so a line shut out of one is never bought."""
 
 from __future__ import annotations
 
@@ -18,11 +18,11 @@ from desk.store import Bar
 from desk.strategy import Action, Decision
 
 ON = date(2025, 1, 8)
-CASES = [(True, None), (False, "shut out of an ISA"), (None, "not recorded as open to an ISA")]
+CASES = [(True, None), (False, "shut out of an ISA"), (None, None)]
 
 
 @pytest.mark.parametrize(("isa", "said"), CASES)
-def test_a_line_no_isa_is_known_to_hold_is_not_bought(
+def test_a_line_shut_out_of_an_isa_is_not_bought(
     tmp_path: Path, isa: bool | None, said: str | None
 ) -> None:
     line = replace(Line("B", "LSE", "GBP", 1), isa=isa)

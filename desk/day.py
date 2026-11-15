@@ -301,9 +301,10 @@ def _buy(
     if d.symbol in now or d.symbol in sold:
         why = "is held already" if d.symbol in now else "was sold this morning"
         return book.Sent(name, 0, f"{name}: not sent, {d.symbol} {why}", Blocker.HELD)
-    if line.isa is not True:  #: the book is the ISA's: only a line recorded as held by one
-        said = "shut out of" if line.isa is False else "not recorded as open to"
-        return book.Sent(name, 0, f"{name}: not sent, {d.symbol} is {said} an ISA", Blocker.GATE)
+    if line.isa is False:  #: the book is the ISA's: a line shut out of one is not bought
+        return book.Sent(
+            name, 0, f"{name}: not sent, {d.symbol} is shut out of an ISA", Blocker.GATE
+        )
     try:
         order = size(d, line, *price, settings, now)
     except Refused as refused:  #: the gate's answer, kept with the day's others
