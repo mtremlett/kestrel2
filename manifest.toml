@@ -27,7 +27,7 @@ money = ["tests/scenes/test_scenes.py"]
 paper = []
 data = ["tests/scenes/rehearsal.py"]
 grid = []
-rungs = []
+rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 
 # Every module, with the one thing it owns. Add a line here, then write the file.
 # Each lane (docs/PLAN.md) adds its modules under its own heading, so two lanes never
@@ -101,14 +101,18 @@ rungs = []
 "lab/rulebook.py" = "the lab's one list of rules by name: the desk's five and every rule of every eponymous file, found by the folder; only the five are A-GATE candidates"
 "lab/batch.py" = "the ladder's batch service: runs many cells, records a bad one and carries on, and takes up where a stopped run left off"
 "lab/grid.py" = "the fast grid engine: each strategy's position after every bar, on whole arrays; it matches the desk's own decisions or refuses"
-"lab/fast.py" = "the fast engine for spec rows: a row's position after every bar from its blocks worked out on whole arrays, shared between rows of one line, held to the desk's own engine trade for trade or refusing with TooClose"
 "lab/tune.py" = "the pass's auto-tune: the memory ceiling Windows holds on the workers, their number sized to the free cores and backed off under load, each pass's peaks logged"
 "lab/sweep.py" = "the grid's pass: every strategy at every setting on every ticker of a list, a ticker to a worker under the auto-tune, each cell kept by its code and its bars"
 "lab/transfer.py" = "the grid's transfer study: a rule's settings fitted on one line at the centre of a plateau, never a lone peak, and scored on every other line the store holds; the result labelled PRE-REVIEW"
 
 # the rungs lane
+"lab/fast.py" = "the fast engine for spec rows: a row's position after every bar from its blocks worked out on whole arrays, shared between rows of one line, held to the desk's own engine trade for trade or refusing with TooClose"
 "lab/rung.py" = "the ladder's first rung: a cell's trades priced at the desk's fills and the broker's costs, and judged against chance"
+"lab/rung_costs.py" = "the ladder's costs rung: the first rung's priced trades read for how much of the edge the broker's costs took, and passed only if it survives them doubled"
+"lab/rung_ci.py" = "the ladder's confidence-interval rung: the mean gain of a rule's trades with its interval, judged on the whole interval above or below nothing and not on a sign"
+"lab/rung_beta.py" = "the ladder's beta rung: a strategy's days regressed on its benchmark's, and its excess over the market risk it took judged on its whole interval above or below nothing and not on a sign"
 "lab/luck.py" = "the ladder's luck rung: every trial counted, and each verdict's chance corrected for the number of trials it was picked from"
+"lab/rung_sample.py" = "the first rung's stated false-pass rate, taken from its own bar and minimum, and the exact binomial band that many noise cells must fall in"
 "lab/folds.py" = "the ladder's folds rung: a history cut into folds, each judged after costs beside the history before it, and the verdict given on the worst"
 "lab/montecarlo.py" = "the ladder's Monte Carlo rung: a trial's trades resampled, seeded, into the spread of its drawdowns and returns; it measures and never gates"
 "lab/shuffle.py" = "the ladder's shuffle rung: the days of a line put in a random order a hundred times, and a rule that earns as much there has timed nothing"
@@ -123,6 +127,7 @@ rungs = []
 "lab/regime.py" = "periods and regimes: a strategy replayed in each period and each regime of the weather, kept for the regimes it earns in, and its trades outside them tagged"
 "lab/stress.py" = "the stress scenarios: a strategy's trades taken through the flash crashes and the 2020 crash, and what a black swan's overnight gap would cost it at its leverage, in pounds and never a pass"
 "lab/market.py" = "the market's rung: a strategy's days set beside its market's, its beta measured, and its excess over the market risk it took judged by its confidence interval"
+"lab/rung_benchmark.py" = "the benchmark rung: each judged trade set beside what its benchmark made over the same days, and the rule passed only if the whole confidence interval of its excess lies above nothing; proven alone"
 "lab/bets.py" = "the book's concentration: its number of independent bets from how its lines move together, and its profit split by correlated cluster"
 "lab/ladder.py" = "the ladder's first set: one command that takes every published rule on every line through every rung built, keeps each answer with its reason and its count of trials, skips what is kept, and ends with one line of counts"
 "lab/ladder_sets.py" = "the ladder's sets as a command: set EPON, every eponymous rule on every line the store holds, judged by the cell engine of lab/ladder.py, its table written PRE-REVIEW, and the door of `python -m lab.ladder`"

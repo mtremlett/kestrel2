@@ -34,7 +34,7 @@ from decimal import localcontext
 from pathlib import Path
 
 from desk import strategy
-from desk.lines import LINES, Line
+from desk.lines import Line
 from desk.store import Bar
 from desk.strategy import ARITHMETIC, STRATEGIES, Action, _run
 from lab import grid, rulebook
@@ -50,14 +50,9 @@ class Cell:
     start: date  #: the first day whose buys belong to the cell
     end: date  #: the last bar the rule is shown
 
-    def __init__(self, strategy: str, line: Line | str, start: date, end: date) -> None:
-        """A symbol alone names one of the twenty, where no two share one: the rungs lane's
-        cells are still made so, and this door closes when they name a line."""
-        if isinstance(line, str):
-            found = [known for known in LINES if known.symbol == line]
-            if not found:
-                raise ValueError(f"{line!r} is not a line in the instrument master")
-            line = found[0]
+    def __init__(self, strategy: str, line: Line, start: date, end: date) -> None:
+        if not isinstance(line, Line):
+            raise TypeError(f"a cell names a Line, not {type(line).__name__} {line!r}")
         if strategy not in STRATEGIES:
             rulebook.rule(strategy)  #: refuses a name the rule book does not know
         if end < start:
