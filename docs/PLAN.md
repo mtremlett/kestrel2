@@ -853,6 +853,59 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
 
 ---
 
+## The machine, then the desk — his mandate of 15 November
+
+"Do not make the same mistakes as the previous kestrel repo and mark_the_trend repo."
+Reviews of both found the same mechanisms: tools outgrowing the product, activity counted
+as progress, status committed as history, suppressions in bulk, documents breeding. From
+Tuesday 17 November, STOP THE LINE: no feature card starts until the first block below is
+green on main. Designs, pre-mortems and planted breaks: the runner's notes,
+`tuesday-designs.md`. Each box is done only when its planted break is seen failing on main.
+
+**Stop the line (first, in this order)**
+- [ ] R2 outcome contract: a night job's real result, never its exit code; DONE only when proven
+- [ ] R3 the night jobs in the check, on committed real-shaped fixtures, under 60 s together
+- [ ] R5 the READY gate on dependencies: a card starts only when what it needs is on main
+- [ ] R7 a Stop hook with nested goals, one lane first, then every lane and every card
+- [ ] G1 health rules blocking: duplicate bodies, a number with two homes, lines per box
+- [ ] G2 suppressions: never rising from 80, each with its reason; no skip or xfail
+- [ ] G3 the repository root holds only its fixed set
+- [ ] G4 no status-only commits; state lives outside git
+- [ ] G5 the runner into this repository as `ops/`, under its own ceiling (7,668, only down)
+- [ ] G6 strategy scope: the desk trades its five; research rules in one rule book, capped
+- [ ] F4 every pull request title carries its type, so the fix share is honest
+- [ ] F6 a session runs its claim's tests and the fast check; the merge train runs all
+- [ ] F7 a lane writes its own section and one scoreboard line; the shared head generated
+- [ ] F8 a new module names its own concept, never an owner's name plus a suffix
+- [ ] F9 every runner request names the box or scene it serves, or it is not READY
+- [ ] Option C: phases 2 and 3 open, their needs offered, three sessions a lane, no auto-open
+- [ ] CONSOLIDATE: the eponymous files into one template under `lab/`, duplicates and
+  two-homed numbers removed, desk under 8,500 lines, results identical before and after
+
+**Design gates (inside the one check, every change)**
+- [ ] D1 DRY: unique function bodies; numbers in named constants (ratchet)
+- [ ] D2 one contract test per Protocol, run against every implementation
+- [ ] D3 the desk holds only what trades; each module owns one thing, said without "and"
+- [ ] D4 docstrings by convention, ratcheted to none missing
+- [ ] D5 dead code and test-only modules never rise
+- [ ] D7 churn by the same lines changed again, not by titles
+- [ ] D8 nightly deep tier: mutation tests on the money path, long property runs, SimCity
+
+**Keeping it honest, every week**
+- [ ] Every Sunday the runner opens a card to review every document in the fixed set
+  against main (stale facts, lengths, rules with no check); a missed week is a fault
+- [ ] Card time: median under 10 minutes and the slowest tenth under 25, measured in the
+  hourly report; a week above it is a fault with its causes named
+
+**The best small desk (after FIRST-LIGHT, each traced to a scene)**
+- [ ] Q1 each paper day's expected result against the real one, the gap tracked
+- [ ] Q2 trading costs measured from real paper fills against the model
+- [ ] Q3 survivorship: each list as it stood on each past date
+- [ ] Q4 desk-wide risk: a drawdown limit, correlation between lines, sizing by volatility
+- [ ] Q6 each strategy beside simply holding its market
+- [ ] Q7 a one-page runbook: if this happens, do that
+- [ ] Q8 market events in the calendar: no new entry into a known event
+
 ## The requirements
 
 Every requirement of his spec (`DESK_REQUIREMENTS_V2`, 226 rows, ratified 31 October 2026)
