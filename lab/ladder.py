@@ -364,14 +364,17 @@ def code(folder: Path = DESK) -> str:
 CODE = code()  #: the eponymous files as this process loaded them: in every key
 
 
-def eponymous(folder: Path = DESK) -> tuple[str, ...]:
-    """Every rule of every `desk/eponymous_*.py`; a file with no `EPONYMOUS` is refused. A rule that
-    takes data (Zweig's breadth) is left out."""
+def eponymous(folder: Path = DESK, book: Path | None = None) -> tuple[str, ...]:
+    """Every rule of every `desk/eponymous_*.py`, then any the catalogue's specs add; a file with no
+    `EPONYMOUS` is refused. A rule that takes data (Zweig's breadth) is left out. A name in both is
+    one rule, listed once: the specs are read beside the Python rules, so none goes unregistered
+    when the Python ones go."""
     for path in sorted(folder.glob("eponymous_*.py")):
         module = importlib.import_module(f"{desk.__name__}.{path.stem}")
         if not hasattr(module, "EPONYMOUS"):
             raise ValueError(f"{module.__name__} names its rules in no EPONYMOUS mapping")
-    return tuple(n for n, make in rulebook.eponymous(folder).items() if not _needs_data(make))
+    python = tuple(n for n, make in rulebook.eponymous(folder).items() if not _needs_data(make))
+    return python + tuple(n for n in rulebook.specs(book, folder) if n not in python)
 
 
 def _needs_data(make: type[Rule]) -> bool:

@@ -18,7 +18,7 @@ from test_lab_reproduce import _bars as _author
 import desk
 from desk import strategy
 from desk.lines import LINES
-from lab import grid, ladder, ladder_sets, published, reproduce
+from lab import grid, ladder, ladder_sets, published, reproduce, rulebook
 from lab.cell import Cell
 from lab.published_epon import EPONYMOUS_PUBLISHED
 from lab.reproduce import Fill
@@ -82,15 +82,33 @@ def test_the_desks_folder_is_the_one_list_a_new_file_is_taken_and_keyed_a_bare_o
     monkeypatch.setattr(desk, "__path__", [*desk.__path__, str(tmp_path)])
     monkeypatch.setattr(sys, "modules", dict(sys.modules))  #: the planted files leave no trace
     importlib.invalidate_caches()
-    before = ladder.code(tmp_path)
+    before, bare = ladder.code(tmp_path), tmp_path / "empty.toml"
+    bare.write_text("")
     planted = tmp_path / "eponymous_planted.py"
     planted.write_text("class X: ...\nEPONYMOUS = {'planted_x': X}")
-    assert ladder.eponymous(tmp_path) == ("planted_x",) and ladder.code(tmp_path) != before
+    assert ladder.eponymous(tmp_path, bare) == ("planted_x",) and ladder.code(tmp_path) != before
     planted.write_text("class X: ...\nEPONYMOUS = {'planted_x': X}  # 2")
     assert ladder.code(tmp_path) not in (before, ladder.code(Path(desk.__file__).parent))
     (tmp_path / "eponymous_bare.py").write_text("X = 1")
     with pytest.raises(ValueError, match="desk.eponymous_bare names its rules in no EPONYMOUS"):
-        ladder.eponymous(tmp_path)
+        ladder.eponymous(tmp_path, bare)
+
+
+def test_the_set_from_the_catalogues_specs_gives_the_rows_of_the_set_from_the_python_rules(
+    tmp_path: Path,
+) -> None:
+    """The specs are read beside the Python rules: same names, so the same cells and rows."""
+    empty = tmp_path / "empty.toml"
+    empty.write_text("")
+    python, both = ladder.eponymous(book=empty), ladder.eponymous()
+    assert both == python and set(rulebook.specs()) <= set(both)
+    clock = lambda: datetime(2026, 11, 14, tzinfo=UTC)  # noqa: E731
+    rows = []
+    for home, rules in ((tmp_path / "a", python), (tmp_path / "b", both)):
+        todo = [Cell(rule, VUSA, ladder.START, ladder.END) for rule in rules]
+        ladder.run(home, _door({VUSA: EDGE}), {}, todo, clock, ladder_sets.EPON)
+        rows.append((home / "ladder" / "EPON.jsonl").read_text())
+    assert rows[0] == rows[1]
 
 
 def test_every_eponymous_file_of_the_real_desk_gives_a_rule_a_cell_and_a_first_rung_answer(
