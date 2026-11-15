@@ -10,6 +10,7 @@ filter then forbids).
 
 from __future__ import annotations
 
+from collections import deque
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from decimal import Decimal
@@ -88,6 +89,31 @@ class CloseBelowAverage(_Average):
         super().__init__(n, lambda close, mean: close < mean)
 
 
+class CloseBelowCloseAgo(Block):
+    """Fires on a close under the close `n` bars before."""
+
+    def __init__(self, n: int) -> None:
+        self._closes: deque[Decimal] = deque(maxlen=n)
+
+    def see(self, bar: Bar, holding: bool) -> bool:  # noqa: ARG002 - the one interface of every block
+        """Shown the next bar: whether the block fires."""
+        fires = len(self._closes) == self._closes.maxlen and bar.close < self._closes[0]
+        self._closes.append(bar.close)
+        return fires
+
+
+class HeldBars(Block):
+    """Fires once the position has been held `n` bars (the bar of the buy is not counted)."""
+
+    def __init__(self, n: int) -> None:
+        self._n, self._held = n, 0
+
+    def see(self, bar: Bar, holding: bool) -> bool:  # noqa: ARG002 - the one interface of every block
+        """Shown the next bar: whether the block fires."""
+        self._held = self._held + 1 if holding else 0
+        return self._held >= self._n
+
+
 class TrailingStop(Block):
     """Fires on a close `pct` per cent or more under the highest close since the position was
     first seen held. Nothing while the position is not held."""
@@ -144,7 +170,9 @@ _DAYS = Param(int, 2, 400)
 #: The one list of blocks by name; a spec names these and no others.
 BLOCKS: Mapping[str, Spot] = {
     "highest_high": Spot(Kind.ENTRY, HighestHigh, {"n": _DAYS}),
+    "close_below_close_ago": Spot(Kind.ENTRY, CloseBelowCloseAgo, {"n": _DAYS}),
     "lowest_low": Spot(Kind.EXIT, LowestLow, {"n": _DAYS}),
+    "held_bars": Spot(Kind.EXIT, HeldBars, {"n": _DAYS}),
     "close_below_average": Spot(Kind.EXIT, CloseBelowAverage, {"n": _DAYS}),
     "trailing_stop": Spot(Kind.STOP, TrailingStop, {"pct": Param(Decimal, 1, 50)}),
     "no_stop": Spot(Kind.STOP, Never, {}),
