@@ -12,7 +12,8 @@ reached is counted, and every answer is corrected for the whole count.
 
 THE RUNGS RUN, each one's answer in its own words (`rung.Answer`) with its reason: the author's
 own result (`lab/reproduce.py`), the first, luck and yearly rungs (`lab/deflated.py`), the folds
-(`lab/folds.py`) and the market's (`lab/market.py`). The one verdict is the one rule over those
+(`lab/folds.py`: the last five whole years pooled over the rule's lines, one answer on every line;
+a fold is no trial) and the market's (`lab/market.py`). The one verdict is the one rule over those
 six: a cell whose folds could not be run has none, a worst fold too thin to say holds it at THIN
 at best, and a rule whose author's figure is not reproduced has none on the desk's lines. A rung
 not yet runnable is named on every line (UNRUN). Nothing here goes to paper: that takes all
@@ -42,8 +43,8 @@ import json
 import os
 import sys
 from collections import Counter
-from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -88,7 +89,6 @@ FIRST = Plan(1, QUESTION, "set1")
 #: A cell that waits on data is tried again no sooner than this after its last try.
 RETRY = timedelta(minutes=30)
 FAILED = (ValueError, OSError, keeper.Stale)  #: what may leave a cell unjudged; all else is a bug
-Row = Mapping[str, Any]  #: a cell's line in the results file
 
 
 def cells() -> tuple[Cell, ...]:
@@ -101,9 +101,8 @@ def cells() -> tuple[Cell, ...]:
 
 
 def names(c: Cell) -> list[str]:
-    """The trials a cell costs, as the register names them: itself, and each of its folds."""
-    whole = trials.name(c)
-    return [whole, *(f"{whole}, fold {n} of {FOLDS}" for n in range(1, FOLDS + 1))]
+    """The trials a cell costs, as the register names them: itself alone, for a fold is no trial."""
+    return [trials.name(c)]
 
 
 def _whole(results: Path) -> bytes:
@@ -112,7 +111,7 @@ def _whole(results: Path) -> bytes:
     return text[: text.rfind(b"\n") + 1]
 
 
-def _last(whole: bytes) -> dict[tuple[str, ...], Row]:
+def _last(whole: bytes) -> dict[tuple[str, ...], verdict.Row]:
     """Each cell's last line in the results: its answer now."""
     return {tuple(row["cell"]): row for row in map(json.loads, whole.splitlines())}
 
@@ -168,13 +167,13 @@ def run(
     count = trials.enter(register, plan.question, [name for c in todo for name in names(c)])
     whole = _whole(results)
     last = _last(whole)
-    behind: dict[str, tuple[Reproduction, ...]] = {}
+    shared = Shared(todo)
     tally: Counter[str] = Counter()
     with results.open("ab") as out:
         out.truncate(len(whole))
         for c in todo:
             was = last.get(tuple(batch.row(c)))
-            row = _one(c, bars, pounds, (plan.tag, count), was, behind, now())
+            row = _one(c, bars, pounds, (plan.tag, count), was, shared, now())
             if row != was:
                 out.write(json.dumps(row).encode() + b"\n")
                 out.flush()
@@ -193,7 +192,47 @@ def run(
     )
 
 
-def _count(tally: Counter[str], row: Row, was: Row | None) -> None:
+@dataclass
+class Shared:
+    """What the cells of one run hold in common, asked once for each rule."""
+
+    todo: Sequence[Cell]
+    behind: dict[str, tuple[Reproduction, ...]] = field(default_factory=dict)
+    pools: dict[str, verdict.Pool] = field(default_factory=dict)
+
+
+def _resolve(c: Cell, bars: Bars) -> tuple[Cell, Sequence[Bar], Line | None]:
+    """The cell as judged, from its line's first bar so that its years are years it could trade
+    in, with its bars: its proxy's, longer, where one stands in (the third, the proxy)."""
+    own = bars(c.line)
+    if proxy := _proxy(c.line, own, bars):
+        c, own = Cell(c.strategy, proxy, c.start, c.end), bars(proxy)
+    start = max([c.start, *(bar.day for bar in own[:1])])
+    return Cell(c.strategy, c.line, start, c.end), own, proxy
+
+
+def _pool(rule: str, shared: Shared, bars: Bars, pounds: Rates) -> verdict.Pool:
+    """The rule's lines that can be judged: one that waits (on bars, years, units or a rate) is
+    left out of the folds. A proxy is pooled once. Only the rule at hand is kept: its bars are
+    most of the memory, and a set runs a rule's cells together."""
+    if rule not in shared.pools:
+        shared.pools.clear()
+        firsts, lines = {}, {}
+        for c in (one for one in shared.todo if one.strategy == rule):
+            try:
+                made, own, _ = _resolve(c, bars)
+                firsts[made] = verdict.ready(made, own, pounds, shared.behind[rule])
+            except (*FAILED, Refused):  #: a line the sizing refuses is judged alone, as refused
+                continue
+            lines[made] = own
+        dollars = any(c.line.currency != "GBP" for c in lines)
+        data = ";".join(f"{c.line.symbol} {cell.key(c, own).data}" for c, own in lines.items())
+        data = hashlib.sha256(data.encode()).hexdigest()
+        shared.pools[rule] = verdict.Pool(list(lines.items()), firsts, data, dollars)
+    return shared.pools[rule]
+
+
+def _count(tally: Counter[str], row: verdict.Row, was: verdict.Row | None) -> None:
     """Add one cell's line to the counts."""
     fate = next((k for k in ("error", "refused") if k in row), "kept" if row is was else "judged")
     tally[fate] += 1
@@ -204,43 +243,52 @@ def _count(tally: Counter[str], row: Row, was: Row | None) -> None:
     tally["behind"] += row.get("every", False) and "reproduce" in row["rungs"]
 
 
+def _made(rule: str, shared: Shared, bars: Bars) -> tuple[Reproduction, ...]:
+    """The rule's reproductions of its authors' figures, made once for all its cells."""
+    if rule not in shared.behind:
+        owed = [figure for figure in reproduce.FIGURES if figure.strategy == rule]
+        shared.behind[rule] = tuple(reproduce.reproduce(f, bars(f.line)) for f in owed)
+    return shared.behind[rule]
+
+
 def _one(
     c: Cell,
     bars: Bars,
     pounds: Rates,
     tagged: tuple[int | str, int],
-    was: Row | None,
-    behind: dict[str, tuple[Reproduction, ...]],
+    was: verdict.Row | None,
+    shared: Shared,
     now: datetime,
-) -> Row:
-    """The cell's line: the one kept under the key these bars, rates and trials give; else its
-    answers now, or why it could not be judged."""
+) -> verdict.Row:
+    """The cell's line: the one kept, where it is kept under the key these bars, rates and
+    trials give; else its answers now, or why it could not be judged."""
     tag, count = tagged
     head: dict[str, Any] = {"set": tag, "cell": batch.row(c), "trials": count}
     key = None  #: what this try covers, once the cell's bars are read
     try:
-        own = bars(c.line)
-        if proxy := _proxy(c.line, own, bars):  #: its market is the proxy's, not the line's
-            head["proxy"] = f"proxy: {proxy.symbol} for {c.line.symbol}"
-            c, own = Cell(c.strategy, proxy, c.start, c.end), bars(proxy)
-        beside = next(line for line in LINES if line.symbol == MARKETS[c.line.venue])
+        line = c.line
+        c, own, proxy = _resolve(c, bars)
+        head |= {"proxy": f"proxy: {proxy.symbol} for {line.symbol}"} if proxy else {}
+        beside = next(one for one in LINES if one.symbol == MARKETS[c.line.venue])
         held = bars(beside)
-        if c.strategy not in behind:
-            owed = [figure for figure in reproduce.FIGURES if figure.strategy == c.strategy]
-            behind[c.strategy] = tuple(reproduce.reproduce(f, bars(f.line)) for f in owed)
-        made = behind[c.strategy]
-        c = Cell(c.strategy, c.line, max([c.start, *(bar.day for bar in own[:1])]), c.end)
+        made = _made(c.strategy, shared, bars)
+        pool = _pool(c.strategy, shared, bars, pounds)
         mine = cell.key(c, own).rung(ME)
-        days = sorted(day for day in pounds if day <= c.end and c.line.currency != "GBP")
+        days = sorted(
+            day for day in pounds if day <= c.end and (c.line.currency != "GBP" or pool.dollars)
+        )
         market = cell.key(Cell(c.strategy, beside, c.start, c.end), held).data
         rates = (f"{d} {pounds[d]}" for d in days)
-        parts = [mine.code, CODE, mine.data, market, str(count), *rates]
+        parts = [mine.code, CODE, mine.data, market, pool.data, str(count), *rates]
         parts += [one.key.code + one.key.data for one in made]
         head |= {"reproduction": [reproduce.said(one) for one in made]} if made else {}
-        key = hashlib.sha256("\n".join(parts).encode()).hexdigest()
+        key = hashlib.sha256(";".join(parts).encode()).hexdigest()
         if was is not None and was.get("key") == key and not _due(was, now):
             return was  #: kept, or failed on all of this before and tried not long ago
-        judged = verdict.judge(c, own, beside, held, pounds, count, made)
+        folded = lambda: pool.fold(pounds)  # noqa: E731 - asked for only if the folds are read
+        judged = verdict.judge(
+            c, own, beside, held, pounds, count, made, folded, pool.firsts.get(c)
+        )
         return head | {"key": key, "from": c.start.isoformat()} | judged
     except Refused as error:  #: the desk's sizing declines the line at this capital: judged
         reason = f"refused by the desk's sizing: {error}"
@@ -262,7 +310,7 @@ def _proxy(line: Line, own: Sequence[Bar], bars: Bars) -> Line | None:
     return stand if longer and (not own or longer[0].day < own[0].day) else None
 
 
-def _due(was: Row, now: datetime) -> bool:
+def _due(was: verdict.Row, now: datetime) -> bool:
     """A failed cell is tried again once its last try is 30 minutes old."""
     return "error" in was and now - datetime.fromisoformat(was["tried"]) >= RETRY
 

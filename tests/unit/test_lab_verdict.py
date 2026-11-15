@@ -14,13 +14,21 @@ from test_lab_ladder import EDGE, ISF, NOISE, VUSA
 from desk.store import Bar
 from lab import ladder, market, verdict
 from lab.cell import Cell
+from lab.folds import Pooled
 from lab.rung import Answer, Rates
 
 CELL = Cell("breakout_20_10", VUSA, EDGE[0].day, ladder.END)
 
 
-def _judge(bars: Sequence[Bar] = EDGE, pounds: Rates | None = None) -> dict[str, Any]:
-    return verdict.judge(CELL, bars, ISF, NOISE, pounds or {}, 6, ())
+def _judge(
+    bars: Sequence[Bar] = EDGE, pounds: Rates | None = None, sour: bool = False
+) -> dict[str, Any]:
+    """The cell's verdict with the folds of its rule, the one line pooled; `sour` has the
+    worst year fail."""
+    pooled = verdict.pool([(CELL, EDGE)], {})
+    if sour:
+        pooled = replace(pooled, years=(replace(pooled.years[0], answer=Answer.FAIL),))
+    return verdict.judge(CELL, bars, ISF, NOISE, pounds or {}, 6, (), lambda: pooled)
 
 
 @pytest.mark.parametrize("rung_failing", ["folds", "market"])
@@ -28,16 +36,15 @@ def test_a_cell_failing_only_one_rung_is_not_a_pass(
     monkeypatch: pytest.MonkeyPatch, rung_failing: str
 ) -> None:
     real = market.judge
-    if rung_failing == "folds":
-        monkeypatch.setattr(verdict, "_folded", lambda *_: (Answer.FAIL, "a sour year"))
-    else:
+    if rung_failing == "market":
         monkeypatch.setattr(
             market, "judge", lambda *a: replace(real(*a), answer=Answer.FAIL, line=None)
         )
-    rungs = _judge()["rungs"]
+    sour = rung_failing == "folds"
+    rungs = _judge(sour=sour)["rungs"]
     others = {name: answer for name, (answer, _) in rungs.items() if name != rung_failing}
     assert rungs[rung_failing][0] == "FAIL" and others["first"] == "PASS"
-    assert _judge()["every"] is False and _judge()["answer"] == "FAIL"
+    assert _judge(sour=sour)["every"] is False and _judge(sour=sour)["answer"] == "FAIL"
 
 
 def test_a_step_of_units_is_refused_unless_the_master_names_it() -> None:
@@ -67,3 +74,15 @@ def test_resampled_drawdowns_are_parts_of_the_capital_and_drawn_the_same_again()
     assert verdict.drawdowns(both, "a trial") == {"median": 0.05, "p95": 0.1}
     assert verdict.drawdowns(both, "a trial") == verdict.drawdowns(both, "a trial")
     assert verdict.drawdowns([Decimal(-1000)], "x") == {"median": 0.1, "p95": 0.1}
+
+
+def test_folds_that_cannot_be_run_are_a_fault_with_their_reason_and_the_rest_stand() -> None:
+    def short() -> Pooled:
+        raise ValueError("no 5 whole years of history to fold")
+
+    done = verdict.judge(CELL, EDGE, ISF, NOISE, {}, 6, (), short)
+    assert done["rungs"]["folds"] == [
+        "FAULT",
+        "the folds could not be run: no 5 whole years of history to fold",
+    ]
+    assert done["rungs"]["first"][0] == "PASS" and done["answer"] == "FAULT"

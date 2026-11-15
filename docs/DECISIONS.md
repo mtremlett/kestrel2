@@ -1739,6 +1739,44 @@ Its drive evidence, from the pull requests that drove it (each plant reverted):
 The pattern's text could not land from the DATA lane (the lane guard refuses
 `docs/FAILURE_PATTERNS.md`); a non-lane session added it.
 
+## 2026-11-15 — the ladder's folds are the last five whole years, pooled by rule (R-RUNNER-99)
+
+By his ruling of 15 November ~07:50 ("A", relayed by the main coordinator; canon B5): the
+numbers the spec moves are changed, each re-derived by hand. What changed: the ladder's folds
+were two thirds of one line's history, judged on thirty trades in each; they are now the last
+five whole calendar years (2021 to 2025 for a window ending 13 November 2026), the rule's trades
+pooled over all its lines (`folds.pool`, #242), gains taken by the day, and the worst year
+judged. One answer, with one reason, stands on every line of a rule. A line that cannot get
+its own first rung (no bars, too young, a step of units, a day with no rate) is left out of the
+pool, and the lines pooled are part of every cell's key. Years that cannot be had (under five
+whole years of history among the lines) are a FAULT on the folds, with the reason, remembered
+for the rule. A fold is not a trial. Set EPON now runs a rule's lines together, so only one
+rule's bars are held at a time.
+Both thresholds stay at "more than 20".
+
+Pinned numbers moved, each by hand:
+- Trials: a cell was itself and two folds, 3; it is itself, 1. Two cells: 6 became 2 (and
+  `deflated.judge(..., count - 1)` 5 became 1); three cells: 9 became 3; the set EPON test's six
+  cells: 18 became 6. `ladder.FOLDS` is 5 (was 2) and names the years, not trials.
+- Keys: a cell is kept under its rule's lines' bars too, and under the rates when a line in
+  dollars is among them, so a line joining a rule's set judges the rule's other cells again:
+  "1 judged now, 2 kept" became "3 judged now" at the dollar line's arrival and at a dearer
+  dollar; the noise cell is also judged again when the edge cell's bars arrive (its answer is
+  the last row, no longer the edge's).
+- Answers: the planted edge on two lines (VUSA edge, ISF noise) stays THIN on its folds, 6 or 7
+  trades a year pooled, under thirty (hand-derived by `folds.pool`: 6, 6, 7, 7, 6 for 2021 to
+  2025). The trend rule on the same two lines made no trade in 2022, a year with none is a
+  FAULT by the spec, and its worst year is the verdict: THIN became FAULT in set EPON's test.
+- The known answer, new: sixteen lines each with the edge planted, the five yearly folds
+  PASS and the one answer is every line's, where per line the folds were THIN.
+
+Scale, not solved here: pooled over every line of the research store (2,130 at this writing)
+a rule's pool holds all its lines' bars and runs about twelve first-rung runs a line. That is the
+ruling's design; if it proves too heavy for the PC, the pool's universe is the question to put.
+
+Not done, left in the lane's book: a rule with an author's figure still has its folds unrun
+(`NO_FOLDS`); `folds.pool` already takes the reproductions, and wiring them is the next step.
+
 ---
 
 ## MONEY
