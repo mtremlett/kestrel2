@@ -136,7 +136,8 @@ class Pretend:
                 self._reports[order_id] = self._execute(order, None, bar)
 
     def place(self, order: Order | Sale) -> Report:
-        """Receive an order at the market: it fills at the day's open. A buy leaves its stop
+        """Receive an order at the market: it fills at the day's open. A repeated order id is
+        taken as a new order, as IBKR does. A buy leaves its stop
         resting for the shares filled, one stop a line at the newest level; a sale takes its
         shares off the line's stop."""
         bar = None if self._day is None else self._bars.get((order.line.symbol, self._day))
@@ -144,8 +145,6 @@ class Pretend:
         if fault is Fault.DISCONNECT:
             raise Disconnected(f"{order.order_id}: the connection dropped before it was received")
         self._received.append(order.order_id)
-        if order.order_id in self._reports:
-            return Report(order.order_id, (), f"{order.order_id}: a duplicate order id, refused")
         if fault is Fault.STRAND:
             self._working[order.order_id] = order
             report = Report(order.order_id, (), f"{order.order_id}: working, none filled yet")
