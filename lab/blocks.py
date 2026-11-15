@@ -138,10 +138,6 @@ class CloseNearRangeHigh(_RangeEdge):
         super().__init__(n, pct, from_top=True)
 
 
-#: A channel is a range when its width is at most this share of its midpoint.
-RANGE_WIDTH = Decimal("0.10")
-
-
 class _Channel(Block):
     """The channel of the `n` bars before a bar: its highest high and lowest low, taken in
     after the bar is judged. Subclasses say what the bar does against it."""
@@ -167,7 +163,7 @@ class CloseAtRangeLow(_Channel):
 
     def judge(self, bar: Bar, high: Decimal, low: Decimal) -> bool:
         """Whether the close is at the low of a channel narrow enough to be a range."""
-        return high - low <= RANGE_WIDTH * (high + low) / 2 and bar.close <= low
+        return high - low <= (high + low) / 20 and bar.close <= low
 
 
 class CloseAtMidpoint(_Channel):

@@ -89,30 +89,28 @@ def _near_range_low(p: Prices, params: Params) -> Bools:
     return _range_edge(p, params, from_top=False)
 
 
-def _channel(p: Prices, n: int) -> tuple[Floats, Floats]:
-    """The highest high and lowest low of the n bars before each bar from n."""
-    return _windows(p.high, n).max(axis=1)[:-1], _windows(p.low, n).min(axis=1)[:-1]
+def _channel(p: Prices, params: Params) -> tuple[int, Floats, Floats]:
+    """The n of the params, and the highest high and lowest low of the n bars before each bar."""
+    n = int(params["n"])
+    return n, _windows(p.high, n).max(axis=1)[:-1], _windows(p.low, n).min(axis=1)[:-1]
 
 
 def _at_range_low(p: Prices, params: Params) -> Bools:
     """Close at or under the channel's low, the channel a range: 20 * (high - low) is at most
     high + low (a tenth of the midpoint), i.e. 21 * low - 19 * high is not negative."""
-    n = int(params["n"])
-    high, low = _channel(p, n)
+    n, high, low = _channel(p, params)
     ranged = _sure(p, 21 * low - 19 * high, 21 * low + 19 * high, 40 * _top(p)) >= 0
     return _late(n, ranged & (p.close[n:] <= low), len(p.close))
 
 
 def _at_midpoint(p: Prices, params: Params) -> Bools:
-    n = int(params["n"])
-    high, low = _channel(p, n)
+    n, high, low = _channel(p, params)
     over = _sure(p, 2 * p.close[n:] - high - low, high + low + 2 * p.close[n:], 4 * _top(p)) >= 0
     return _late(n, over, len(p.close))
 
 
 def _under_close_ago(p: Prices, params: Params) -> Bools:
-    n = int(params["n"])
-    return _late(n, p.close[n:] < p.close[:-n], len(p.close))
+    return _late(n := int(params["n"]), p.close[n:] < p.close[:-n], len(p.close))
 
 
 def _always(p: Prices, params: Params) -> Bools:  # noqa: ARG001 - the one interface of every block
@@ -124,8 +122,7 @@ def _never(p: Prices, params: Params) -> Bools:  # noqa: ARG001 - the one interf
 
 
 #: The firing of each block of `lab.blocks.BLOCKS` that needs no position, by its name. The
-#: trailing and time stops are not here: they depend on the position, so the walk below
-#: works them out.
+#: trailing and time stops depend on the position, so the walk below works them out.
 FIRES: Mapping[str, Fire] = {
     "highest_high": _highest_high,
     "lowest_low": _lowest_low,
@@ -163,8 +160,8 @@ def _walk(p: Prices, wish: Bools, leave: Bools, pct: Decimal | None, days: int =
     """The position after each bar: out to start; out, it buys on a bar that wishes it; in, it
     sells on a bar that leaves or, given `pct`, on a close at or under the highest close since
     it was first seen held, less that per cent. That test, `close <= peak * (1 - pct / 100)`,
-    is made on whole numbers as `close * a <= peak * b`, and its closeness checked. Given `days`,
-    it also sells on the bar that is its `days`-th held."""
+    is made on whole numbers as `close * a <= peak * b`, and its closeness checked. Given
+    `days`, it also sells on the `days`-th held bar."""
     top, bottom = (pct or Decimal(0)).as_integer_ratio()
     a = 100 * bottom
     b, close = a - top, p.close.tolist()
