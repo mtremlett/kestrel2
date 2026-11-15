@@ -265,12 +265,12 @@ def test_a_rule_with_a_figure_on_file_is_judged_only_behind_its_authors_result(
     (made,) = _rows(tmp_path / "made")
     answer, why = made["rungs"]["reproduce"]
     assert answer == "PASS" and "the author's result, a planted author" in why
-    #: every rung that ran passed it, the author's result behind it; but the folds wait,
-    #: and the one rule reads them: no verdict until they are run
-    assert "folds" in made["unrun"] and "reproduce" not in made["unrun"]
-    assert "answer" not in made and made["every"]
-    assert "1 with no verdict, a named rung not run; 0 not the author's rule; 1 passed" in said
-    assert "every rung run, 1 of them behind" in said
+    #: the folds take the author's result with the rest and are judged: on this one line they
+    #: hold 2 trades a year, too few to say, so the worst fold holds the verdict at THIN
+    assert "folds" in made["rungs"] and not {"folds", "reproduce"} & set(made["unrun"])
+    answer, why = made["rungs"]["folds"]
+    assert answer == made["answer"] == "THIN" and "2 trades" in why
+    assert "every rung run, 0 of them behind" in said
     #: a bar of the author's market mended: another result stands behind it, so judged again
     book[VUSA] = (replace(author[0], volume=7), *author[1:])
     assert "1 judged now, 0 kept" in ladder.run(tmp_path / "made", _door(book), {}, todo)

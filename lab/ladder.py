@@ -285,7 +285,7 @@ def _one(
         key = hashlib.sha256(";".join(parts).encode()).hexdigest()
         if was is not None and was.get("key") == key and not _due(was, now):
             return was  #: kept, or failed on all of this before and tried not long ago
-        folded = lambda: pool.fold(pounds)  # noqa: E731 - asked for only if the folds are read
+        folded = lambda: pool.fold(pounds, made)  # noqa: E731 - asked for only if the folds are read
         judged = verdict.judge(
             c, own, beside, held, pounds, count, made, folded, pool.firsts.get(c)
         )
