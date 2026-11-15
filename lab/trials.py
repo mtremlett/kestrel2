@@ -37,16 +37,26 @@ IS TRIALS ALIKE IN EVERY PAIR: the two groups whose least-alike pair is most ali
 while that pair reaches LINK, so no chain of likenesses joins two strangers and the count errs
 towards more looks, on purpose. A rule run the other way round is another look: its Sharpe is
 as likely to be the lucky best. The paper picks the number of clusters by a score blind to
-how alike the trials are, which calls fifty strangers two clusters and cannot answer on
-copies; the level fixed here answers both. As in the paper, a cluster's returns are its
-trials' weighed by one over each one's variance, THE EFFECTIVE NUMBER OF TRIALS is the
-clusters, and THE SPREAD is the variance of the clusters' Sharpes, restated from a day to the
-picked trial's own trades (the paper's yearly variance over its trades a year).
+how alike the trials are: tried on fifty strangers it most often calls them two clusters, and
+it cannot answer on copies; the level fixed here answers both. (`lab/bets.py` clusters a
+book's lines the other way, by a chain and either sign, towards fewer bets: there the danger
+is a book called more spread than it is; here, a set called fewer looks than it took.) As in
+the paper, a cluster's returns are its trials' weighed by one over each one's variance, THE
+EFFECTIVE NUMBER OF TRIALS is the clusters, and THE SPREAD is the variance of the clusters'
+Sharpes, restated from a day to the picked trial's own trades (the paper's yearly variance
+over its trades a year).
+
+THE PICK INSIDE A CLUSTER IS LUCK TOO. The paper judges a cluster's own returns; the desk
+judges the one trial picked, and the best of fifty near-copies stands above their cluster by
+luck. So each cluster keeps the variance of its own trials' Sharpes (`Clustered.beside`),
+and the bar adds the best that luck gives among so many at that spread: nothing among exact
+copies or for a trial alone, more the less alike the cluster's trials are.
 
 A trial that left no returns (a cell that failed, a rule that never traded) cannot be set
 beside the others: it is counted aloud as a look of its own, as on the luck rung, and
-`clustered` takes that count from the register. Within a cluster the pick among near-copies
-is not counted as luck: at LINK that is at most half the luck of two strangers.
+`clustered` takes that count from the register. THE RETURNS TO HAND IN are each trial's on
+every day of the one window all were judged over, nothing on a day it held nothing: fewer
+days than the window understate the spread among trials whose true Sharpes differ.
 """
 
 from __future__ import annotations
@@ -164,6 +174,7 @@ class Clustered:
 
     clusters: tuple[tuple[str, ...], ...]  #: every trial with returns, by name, in its cluster
     sharpes: tuple[float, ...]  #: each cluster's Sharpe a day, cluster for cluster
+    inside: tuple[float, ...]  #: the variance of the Sharpes a day of each cluster's own trials
     unjudged: int  #: the trials that left no returns, each a look of its own
     days: int  #: the days the returns were given on
 
@@ -171,6 +182,11 @@ class Clustered:
     def trials(self) -> int:
         """The effective number of trials: the clusters, and every trial without returns."""
         return len(self.clusters) + self.unjudged
+
+    @property
+    def held(self) -> int:
+        """Every trial of the set, with returns or without."""
+        return sum(map(len, self.clusters)) + self.unjudged
 
     def spread(self, trades: int) -> float:
         """The variance of the looks' Sharpes, for a trial of so many trades on the set's
@@ -185,6 +201,14 @@ class Clustered:
             )
         return measured * self.days / trades
 
+    def beside(self, cell: Cell, trades: int) -> tuple[float, int]:
+        """The cell's own cluster, for the luck of the pick inside it: the variance of its
+        trials' Sharpes, restated as `spread` is, and how many they are."""
+        for members, inside in zip(self.clusters, self.inside, strict=True):
+            if name(cell) in members:
+                return inside * self.days / trades, len(members)
+        raise ValueError(f"{name(cell)}: not a trial this set was clustered from")
+
 
 def clusters(returns: Mapping[str, Sequence[float]], unjudged: int) -> Clustered:
     """The set as the looks it took: each trial's daily returns by its name, on the same days
@@ -197,17 +221,20 @@ def clusters(returns: Mapping[str, Sequence[float]], unjudged: int) -> Clustered
             f"none: a set is clustered on the same days for every trial, {FEWEST} or more"
         )
     days = np.array([returns[trial] for trial in names], dtype=np.float64)
-    own = days.var(axis=1, ddof=1)
-    if still := [trial for trial, moved in zip(names, own, strict=True) if not 0 < moved < np.inf]:
+    moved = [bool(np.isfinite(row).all() and row.max() > row.min()) for row in days]
+    if still := [trial for trial, it in zip(names, moved, strict=True) if not it]:
         raise ValueError(
             f"{still}: returns that never moved, or are no number: nothing to set beside "
             "the others; a trial that left no returns is counted among the unjudged"
         )
+    own = days.var(axis=1, ddof=1)
+    each = days.mean(axis=1) / np.sqrt(own)
     groups = _groups(np.atleast_2d(np.corrcoef(days)))
     weighed = [(days[group] / own[group, None]).sum(axis=0) for group in groups]
     return Clustered(
         tuple(tuple(names[n] for n in group) for group in groups),
         tuple(float(made.mean() / made.std(ddof=1)) for made in weighed),
+        tuple(float(np.var(each[group], ddof=1)) if len(group) > 1 else 0.0 for group in groups),
         unjudged,
         days.shape[1],
     )

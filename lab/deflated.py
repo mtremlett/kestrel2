@@ -24,8 +24,12 @@ are the plain moments of the gains.
 ONE CLUSTERED SET (L14). Where the set's trials have been clustered by how their returns move
 together (`trials.clusters`), `read` takes both counts from the clusters instead: the number
 of trials is the looks the set truly took, and the spread is the one measured among those
-looks' Sharpes, at the trial's own trades. Fifty copies of one strategy then set the bar of
-one trial, and fifty strangers that of fifty. The luck rung's count is every trial, as before.
+looks' Sharpes, at the trial's own trades. To that the bar adds the luck of the pick inside
+the trial's own cluster: the best among so many trials at the spread measured among theirs.
+Fifty copies of one strategy then set the bar of one trial, and fifty strangers that of
+fifty. The luck rung's count is every trial, as before. That bar is fixed by rule and not by
+number: it is measured on the set's own returns, the trial's among them. Whether the set is
+clustered is said by the caller in so many words, never left out.
 
 THE YEARLY SHARPE. Canon B6: a daily Sharpe above 2 is a red flag, not a win. It is worked
 here from the trades: the Sharpe a trade times the root of the trades a year over the
@@ -111,13 +115,19 @@ class Deflated:
 def judge(verdicts: Sequence[Verdict], unjudged: int) -> tuple[Deflated, ...]:
     """Every verdict judged on the rungs read here, as one set: the verdicts given, and the
     trials tried that left no verdict, which count as much as any."""
-    return read(luck.correct(verdicts, unjudged))
+    return read(luck.correct(verdicts, unjudged), None)
 
 
-def read(corrected: Sequence[Corrected], looks: Clustered | None = None) -> tuple[Deflated, ...]:
+def read(corrected: Sequence[Corrected], looks: Clustered | None) -> tuple[Deflated, ...]:
     """Verdicts already corrected for their count, judged on the rungs read here: the door for
     a count the register of trials keeps from batch to batch (`trials.correct`). Given the
-    set clustered, the deflated Sharpe's bar is set by its looks and their measured spread."""
+    same set clustered, the deflated Sharpe's bar is set by its looks and their measured
+    spread; given None, by every trial as a separate look."""
+    if looks is not None and (odd := {one.trials for one in corrected} - {looks.held}):
+        raise ValueError(
+            f"verdicts corrected for {sorted(odd)} trials, read against a clustered set of "
+            f"{looks.held}: not the one set"
+        )
     return tuple(_deflated(one, looks) for one in corrected)
 
 
@@ -150,6 +160,7 @@ def _deflated(corrected: Corrected, looks: Clustered | None) -> Deflated:
         bar = best_by_luck(1 / (len(gains) - 1), corrected.trials)
     else:
         bar = best_by_luck(looks.spread(len(gains)), looks.trials)
+        bar += best_by_luck(*looks.beside(verdict.key.cell, len(gains)))
     mean = fmean(gains)
     second, third, fourth = (fmean((g - mean) ** power for g in gains) for power in (2, 3, 4))
     chance = deflate(sharpe, bar, len(gains), third / second**1.5, fourth / second**2)

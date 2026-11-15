@@ -70,7 +70,7 @@ def test_a_winner_is_corrected_for_every_trial_the_register_holds(register: Path
     (eight,) = trials.correct(register, ASKED, [WINNER])
     assert eight.passed and eight.trials == 8 and eight == luck.correct([WINNER], 7)[0]
     #: the register's count is the one every named rung is judged on
-    assert deflated.read([eight]) == deflated.judge([WINNER], 7)
+    assert deflated.read([eight], None) == deflated.judge([WINNER], 7)
     #: a later batch tries one more and brings back the same winner alone: the count goes on
     trials.enter(register, ASKED, ["one more idea"])
     (nine,) = trials.correct(register, ASKED, [WINNER])
