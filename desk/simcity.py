@@ -1,7 +1,7 @@
 """simcity - SIMCITY. ONE COMMAND lives the desk's day through a hundred seeded worlds of the saved
 data, at the pretend broker with all its faults, and writes one record of the night. A WORLD is
-the saved lines on their own days, each line's months dealt again by the world's number; by it
-too come the faults and what goes wrong on a real desk: it dies mid-send and is started again,
+the saved lines on their own days, each line's months dealt again by the world's number, which
+also deals the faults and what goes wrong on a real desk: it dies mid-send and is started again,
 a position appears behind its back, a stop is cancelled by hand, the kill switch is pulled. THE
 CENSUS names each part of the money path with the scenarios that ran it. A part none ran, or a
 promise broken in a world, turns the night red and names the world."""
@@ -52,6 +52,7 @@ BEHIND = "a position appears behind the desk's back"
 UNSTOPPED = "a stop is cancelled by hand"
 KILLED = "the kill switch is pulled, released and drilled"
 RECKONING = "the night's reckoning"
+TRIPS = "the round trips are told"
 
 
 @dataclass(frozen=True)
@@ -120,8 +121,7 @@ def parts() -> dict[CodeType, str]:
 
 
 class _Census:
-    """THE CENSUS, MEASURED: which parts ran, and in which scenario. The standard library's
-    profiler sees every call made while a scenario is in force; nothing is claimed by hand."""
+    """THE CENSUS, MEASURED: the profiler sees every call made while a scenario is in force."""
 
     def __init__(self) -> None:
         self._parts = parts()
@@ -143,9 +143,8 @@ class _Census:
 
 
 def _market(archive: Archive, rng: random.Random) -> dict[Line, tuple[Bar, ...]]:
-    """A WORLD'S MARKET: every saved line on its own days, from its own first bar. Each day's
-    bar keeps its shape against the close before it, to the penny, and those days are dealt
-    again a MONTH at a time, each line's in an order of its own; each still ends where it did."""
+    """A WORLD'S MARKET: every saved line on its own days from its own first bar, each bar's shape
+    kept against the close before it, to the penny; the days dealt again a MONTH at a time."""
     market = {}
     for line in sorted(archive, key=lambda line: line.symbol):
         bars = archive[line]
@@ -164,8 +163,7 @@ def _market(archive: Archive, rng: random.Random) -> dict[Line, tuple[Bar, ...]]
 
 
 class _Counted(Pretend):
-    """One world's pretend broker. For one in FAULTY of the orders at its door a fault, drawn
-    by the world's seed, is set waiting on its line; each order is counted by the fault it met."""
+    """One world's pretend broker: one in FAULTY orders finds a seeded fault waiting, counted."""
 
     def __init__(self, archive: Archive, rng: random.Random) -> None:
         super().__init__(archive, {})
@@ -330,9 +328,8 @@ def run(
 
 
 def _live(life: _Life) -> None:
-    """The life, day by day, and its reckoning. Something is done to the desk on one in
-    EVENTFUL of the mornings it holds a line under its stop and its last record was a plain
-    one: each thing in turn, in an order the seed deals and deals again."""
+    """The life, day by day, and its reckoning. On one in EVENTFUL of the mornings it holds a line
+    under its stop after a plain record, a thing is done to it, each in the seed's order."""
     census, pretend, todo = life.census, life.pretend, list[Event]()
     for on in sorted({b.day for bs in life.market.values() for b in bs if b.day > life.began}):
         census.now(DAY)
@@ -359,15 +356,18 @@ def _live(life: _Life) -> None:
     bars = {(line.symbol, bar.day): bar for line, days in life.market.items() for bar in days}
     ranged = (bars[f.symbol, f.day].low <= f.price <= bars[f.symbol, f.day].high for f in fills)
     life.promise("every fill is inside its day's range in its world", all(ranged))
-    life.trips = len(book.round_trips(life.desk, life.market))
+    census.now(TRIPS)
+    trips = book.round_trips(life.desk, life.market)
+    shut = sum(-t.sell.quantity for t in trips) == sum(-f.quantity for f in fills if f.quantity < 0)
+    life.promise("the round trips close every share the fills sold", shut)
+    life.trips = len(trips)
     life.held = {orders.strategy_of(fill.order_id) for fill in fills if fill.quantity > 0}
 
 
 def _night(
     at: datetime, lives: Sequence[_Life], census: _Census, alone: Sequence[strategy.Decision]
 ) -> Night:
-    """What the worlds came to, added up: a promise broken is named once, with how many worlds
-    broke it and the first; a desk that stopped, with what it said in the first."""
+    """What the worlds came to: a promise broken is named once, with its worlds."""
     records = [record for life in lives for record in life.records]
     plain = [record for record in records if record.profit is not None]
     met = {fault: sum(life.pretend.met[fault] for life in lives) for fault in (None, *Fault)}
@@ -383,14 +383,14 @@ def _night(
     asked = {(decision.strategy, decision.action) for decision in alone}
     if not {(r, to) for r in strategy.STRATEGIES for to in (Action.BUY, Action.SELL)} <= asked:
         broken.append("every rule asks to buy and to sell somewhere in the saved data")
-    ever = [(scenario, any(scenario in life.done for life in lives)) for scenario, _ in EVENTS]
-    broken += [f"never happened: {scenario}" for scenario, happened in ever if not happened]
+    done = set().union(*(life.done for life in lives))
+    broken += [f"never happened: {scenario}" for scenario, _ in EVENTS if scenario not in done]
     idle = tuple(r for r in strategy.STRATEGIES if not any(r in life.held for life in lives))
-    deaths = sum(life.deaths for life in lives)
     profit = sum((record.profit or Decimal(0) for record in plain), Decimal(0))
     market = sum((record.market for record in plain), Decimal(0))
     money = (len(records) - len(plain), sum(life.trips for life in lives), profit, market)
     left = tuple(sorted({symbol for life in lives for symbol in life.left}))
+    deaths = sum(life.deaths for life in lives)
     return Night(at, len(lives), len(records), met, deaths, *money, idle, ran, tuple(broken), left)
 
 

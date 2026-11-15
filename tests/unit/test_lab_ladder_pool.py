@@ -3,10 +3,13 @@ worker's break is that cell's row, and the set goes on."""
 
 from __future__ import annotations
 
+import os
 from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
+import pytest
 from test_lab_ladder import AAPL, EDGE, ISF, NOISE, VUSA, _door, _rows
 from test_lab_ladder import _set as _cells
 
@@ -60,3 +63,33 @@ def test_a_unit_is_one_lines_one_fold_so_one_lines_history_spreads_over_the_work
     ladder_pool.run(tmp_path, _book, {}, [one], CLOCK, size=2)
     warmed = len(list((tmp_path / ladder.FOLDER / "tapes").glob("*.tape")))
     assert warmed >= 1 + folds.YEARS  # the whole window and each fold year, kept as tapes
+
+
+def test_a_stop_planted_after_the_first_unit_ends_the_pass_there_and_a_stale_one_changes_nothing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    todo = [
+        *_cells(VUSA, ISF),
+        *(c.__class__("trend_50_200", c.line, c.start, c.end) for c in _cells(VUSA, ISF)),
+    ]
+    serial = tmp_path / "serial"
+    ladder.run(serial, _book(), {}, todo, CLOCK)
+    stop = tmp_path / "pool" / ladder.FOLDER / ladder_pool.STOP
+    stop.parent.mkdir(parents=True)
+    stop.write_text("main moved")
+    os.utime(stop, (1, 1))  # stale: older than the pass's start
+    ladder_pool.run(tmp_path / "pool", _book, {}, todo, CLOCK, size=2)
+    assert not stop.exists() and _rows(tmp_path / "pool") == _rows(serial)
+    count, planted = ladder._count, list[int]()
+    stop = tmp_path / "cut" / ladder.FOLDER / ladder_pool.STOP
+    stop.parent.mkdir(parents=True)
+
+    def plant(*args: Any) -> None:
+        if not planted:
+            planted.append(stop.write_text("main moved"))
+        count(*args)
+
+    monkeypatch.setattr(ladder, "_count", plant)
+    said = ladder_pool.run(tmp_path / "cut", _book, {}, todo, CLOCK, size=2)
+    assert said == "stopped after a unit: main moved" and not stop.exists()
+    assert _rows(tmp_path / "cut") == _rows(serial)[:2]
