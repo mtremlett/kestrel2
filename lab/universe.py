@@ -137,8 +137,11 @@ ETFS = _lines(
     IUSG
     """,
 )
+#: London's yardstick, the iShares FTSE 100, which the ladder sets a London line beside: studied,
+#: never traded here (it is also a trading line, so the instrument master's own line).
+YARDSTICKS = _lines("LSE", "GBP", "ISF")
 #: Every ticker once: a share on two lists (most of the Nasdaq 100) is one line.
-UNIVERSE = tuple(dict.fromkeys(SP500 + NASDAQ100 + FTSE350 + ETFS))
+UNIVERSE = tuple(dict.fromkeys(SP500 + NASDAQ100 + FTSE350 + ETFS + YARDSTICKS))
 
 
 def keep(
