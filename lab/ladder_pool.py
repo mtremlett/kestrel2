@@ -1,11 +1,9 @@
 """ladder_pool - THE LADDER ON ALL THE PC'S CORES (R-RUNNER-110): `lab/ladder.py`'s cells judged
 in a process pool of `os.cpu_count() - 2` workers at below-normal priority. The rows are the
 serial run's rows, in its order, written by the parent alone as each group arrives; a worker
-reads the bars itself, from the picklable `make_bars` it is given.
-
-A GROUP is a run of consecutive cells of one rule: the rule's lines are pooled for its folds,
-so one worker asks for that pool once, as the serial run does. A cell whose judging breaks in a
-worker is that cell's row (`error`, tried again next run), never the set's end.
+reads the bars itself. A GROUP is a run of consecutive cells of one rule, pooled once for its
+folds. A cell whose judging breaks in a worker is that cell's row (`error`), never the set's end.
+Each worker keeps its simulations as tapes (`lab/tape.py`).
 """
 
 from __future__ import annotations
@@ -21,7 +19,7 @@ from itertools import groupby
 from pathlib import Path
 from typing import Any
 
-from lab import batch, cell, ladder, trials, verdict
+from lab import batch, cell, ladder, tape, verdict
 from lab.batch import Bars
 from lab.cell import Cell
 from lab.ladder import FIRST, Plan
@@ -38,8 +36,8 @@ def workers() -> int:
     return max(1, (os.cpu_count() or 1) - SPARE)
 
 
-def _begin(make_bars: Callable[[], Bars], pounds: Rates) -> None:
-    """A worker's start: below normal priority, its own bars."""
+def _begin(make_bars: Callable[[], Bars], pounds: Rates, tapes: Path) -> None:
+    """A worker's start: below normal priority, its own bars, its simulations kept as tapes."""
     if sys.platform == "win32":
         import ctypes
 
@@ -47,7 +45,7 @@ def _begin(make_bars: Callable[[], Bars], pounds: Rates) -> None:
         kernel.SetPriorityClass(kernel.GetCurrentProcess(), BELOW_NORMAL)
     else:
         os.nice(10)
-    _held.update(bars=make_bars(), pounds=pounds)
+    _held.update(bars=make_bars(), pounds=pounds, tapes=tapes)
 
 
 def _group(task: Task) -> list[verdict.Row]:
@@ -55,14 +53,17 @@ def _group(task: Task) -> list[verdict.Row]:
     group, rule_cells, tagged, was, now = task
     shared = ladder.Shared(rule_cells)
     rows: list[verdict.Row] = []
-    for c, before in zip(group, was, strict=True):
-        try:
-            rows.append(ladder._one(c, _held["bars"], _held["pounds"], tagged, before, shared, now))
-        except Exception as error:  # noqa: BLE001 - a cell's break is its row, not the set's end
-            head: dict[str, Any] = {"set": tagged[0], "cell": batch.row(c), "trials": tagged[1]}
-            rows.append(
-                head | {"error": f"{type(error).__name__}: {error}", "tried": now.isoformat()}
-            )
+    with tape.on(_held["tapes"]):
+        for c, before in zip(group, was, strict=True):
+            try:
+                rows.append(
+                    ladder._one(c, _held["bars"], _held["pounds"], tagged, before, shared, now)
+                )
+            except Exception as error:  # noqa: BLE001 - a cell's break is its row, not the set's end
+                head: dict[str, Any] = {"set": tagged[0], "cell": batch.row(c), "trials": tagged[1]}
+                rows.append(
+                    head | {"error": f"{type(error).__name__}: {error}", "tried": now.isoformat()}
+                )
     return rows
 
 
@@ -79,16 +80,7 @@ def run(
     if cell.code_version(module=ladder.ME) != cell.RUNGS[ladder.ME]:
         raise RuntimeError("the code on disk has changed since this process loaded it")
     todo = ladder.cells() if todo is None else todo
-    results, register = (
-        home / ladder.FOLDER / f"{plan.stem}{end}" for end in (".jsonl", ".trials.jsonl")
-    )
-    if not results.exists() and not register.exists():  #: the set's first run, and only that
-        results.parent.mkdir(parents=True, exist_ok=True)
-        (fresh := register.with_suffix(".new")).unlink(missing_ok=True)
-        trials.start(fresh)
-        trials.ask(fresh, plan.question)
-        fresh.replace(register)
-    count = trials.enter(register, plan.question, [n for c in todo for n in ladder.names(c)])
+    results, count = ladder.begun(home, todo, plan)
     whole = ladder._whole(results)
     last = ladder._last(whole)
     stamp = now()
@@ -99,7 +91,11 @@ def run(
         before = [last.get(tuple(batch.row(c))) for c in group]
         tasks.append((group, mine, (plan.tag, count), before, stamp))
     tally: Counter[str] = Counter()
-    pool = ProcessPoolExecutor(size or workers(), initializer=_begin, initargs=(make_bars, pounds))
+    pool = ProcessPoolExecutor(
+        size or workers(),
+        initializer=_begin,
+        initargs=(make_bars, pounds, home / ladder.FOLDER / tape.FOLDER),
+    )
     with pool, results.open("ab") as out:
         out.truncate(len(whole))
         for task, rows in zip(tasks, pool.map(_group, tasks), strict=True):

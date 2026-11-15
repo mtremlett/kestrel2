@@ -1,39 +1,33 @@
 """rung - THE LADDER'S FIRST RUNG: does a strategy earn on a line after the broker's costs, by
 more than chance would give?
 
-A cell's trades (`lab/cell.py`) are priced as the desk trades: the rule decides after a day's
-close and the order fills at the next day's open, sized by the desk's own sizer from the one
-capital number, the line alone in the book. A trade is judged only once both its fills fall
-on bars the rule was shown: one still held, or sold on the window's last day, is not.
+A cell's trades (`lab/cell.py`) are priced as the desk trades: decided after a day's close,
+filled at the next open, sized by the desk's sizer from the one capital number, the line alone in
+the book. A trade is judged only once both fills fall on bars the rule was shown.
 
-ITS COSTS WHOLE. Each leg is charged by the desk's one cost model (`orders.charges`), as the
-desk's own book charges a round trip: the broker's commission, a sale's own fees, half the
-spread and the slippage on both legs (a stop's sale slips further), the conversion on a line
-not in pounds and the UK tax on a purchase. No cost is worked out here. Each fill is turned
-into pounds at its own day's rate of exchange, the order sized at the rate of the morning it
-is sent on, as the desk's day sizes it, so a dollar line's verdict carries the currency's gain
-or loss with the trade's own. A pound is a pound: a pound line reads no rate. A day whose
-rate is needed and is not given, or is not a number above nothing, is refused loudly, never
-filled in from another day. A sale whose morning opens at or under the resting stop is the
-stop's sale, as it is at the broker, and slips as one.
+ITS COSTS WHOLE. Each leg is charged by the desk's one cost model (`orders.charges`), as its own
+book charges a round trip: commission, a sale's fees, half the spread and the slippage on both
+legs (a stop's sale slips further), the conversion on a line not in pounds and the UK tax on a
+purchase. No cost is worked out here. Each fill is turned into pounds at its own day's rate, the
+order sized at the rate of the morning it is sent on, so a dollar line's verdict carries the
+currency's gain or loss. A pound line reads no rate. A day whose rate is needed and is not given,
+or is not a number above nothing, is refused loudly, never filled in from another day. A sale
+whose morning opens at or under the resting stop is the stop's sale, and slips as one.
 
 The rung passes a strategy when it made at least MIN_TRADES judged trades and the mean of
 their returns after costs is at least T_PASS standard errors above nothing. Every verdict
 names the broker whose schedule priced it.
 
 FAILING FAIRLY (LAD-06, STR-12). A strategy is failed only by a test that could have passed
-it. Under MIN_TRADES judged trades there is not enough evidence: the answer is THIN, whatever
-the trades made or lost, and never a fail. No judged trade at all is a FAULT in the test (a
-window too short, the wrong bars, a rule that cannot fire there): it says nothing of the
-rule. And `judge` gives no verdict on code that is not the published rule
-(`lab/published.py`). Gains with no spread at all are still refused loudly, few or many.
+it. Under MIN_TRADES judged trades the answer is THIN, whatever the trades made, never a fail.
+No judged trade at all is a FAULT in the test (a window too short, the wrong bars): it says
+nothing of the rule. `judge` gives no verdict on code that is not the published rule
+(`lab/published.py`), and gains with no spread at all are refused loudly.
 THE AUTHOR'S RESULT FIRST. A rule with an author's figure on file (`lab/reproduce.py`) is given
 no verdict until each figure's reproduction is handed over, made by the code as it now is and
-the same as the author's; the verdict carries them, each saying whether its figure is the
-author's own or a replication standing in for it. With none on file it carries none.
-The trades counted are the effective ones: each judged whole, and each a bet of its own,
-since a rule holds one position on a line at a time. Trades pooled across lines, where two
-held together are one bet, are counted here when pooling is built.
+the same as the author's; the verdict carries them, with none on file it carries none.
+The trades counted are the effective ones: each judged whole, each a bet of its own, since a
+rule holds one position on a line at a time. Pooling across lines is counted when it is built.
 """
 
 from __future__ import annotations
@@ -65,10 +59,8 @@ Rates = Mapping[date, Decimal]
 
 
 class Answer(enum.IntEnum):
-    """A rung's answer on a trial, and the ladder's. Where several are read together (the
-    folds of a history, the named rungs on one trial) the least is the one given: a fault
-    in the test before anything it seemed to show, and a fail on enough trades before what
-    too few could not settle."""
+    """A rung's answer on a trial, and the ladder's. Where several are read together (folds,
+    named rungs) the least is the one given: a fault in the test before a fail before a thin."""
 
     FAULT = 0  #: no trades at all: the test is at fault, and says nothing of the rule
     FAIL = 1  #: enough trades, and it did not earn
@@ -85,8 +77,7 @@ class Priced:
     received: Decimal  #: pounds their value brought at the sale's fill, at its own day's rate
     costs: Charges  #: every cost of both legs, line by line, from the desk's one cost model
     held: tuple[date, date]  #: the day its buy filled, and the day its sale did
-    #: the return had its stop sold it, with a stop's costs (G2, the plant); none for a trade
-    #: built by hand in a test of another rung, which then plants nothing
+    #: the return had its stop sold it, with a stop's costs (G2); none for a hand-built trade
     stopped: Decimal | None = None
 
     @property
@@ -111,9 +102,8 @@ class Verdict:
 
     @property
     def gains(self) -> tuple[Decimal, ...]:
-        """What the standard errors and all read from them are taken over: every judged trade's
-        gain and ONE MORE the rule did not make, the least any would have made at its stop
-        (G2). It is none of the trades counted: not of the 30 asked, not of any sum of pounds."""
+        """What the standard errors are taken over: every judged trade's gain and ONE MORE the
+        rule did not make, the least any would have made at its stop (G2); none of the 30 asked."""
         return planted(self.trades)
 
     @property

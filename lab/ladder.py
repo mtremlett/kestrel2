@@ -1,30 +1,23 @@
 """ladder - THE LADDER'S FIRST SET: every published rule the desk holds, on every one of the
 desk's lines, through every rung that is built, each answer kept with its reason and the
-number of trials it was judged against. It can be stopped at any moment and run again, one
-process at a time, and ends with one line of counts.
+number of trials it was judged against. It can be stopped and run again, and ends with one
+line of counts.
 
-NOTHING IS CHOSEN BY EYE. The set is every rule with a publication on file
-(`lab/published.py`) on every line of its declared universe, over one window fixed before
-any result, judged from the line's first bar; folds, markets and question are fixed too.
-EVERY TRIAL IS COUNTED BEFORE ANYTHING IS RUN: each cell and fold is entered in the set's
-register (`lab/trials.py`) before the first is judged, so a cell that fails or is never
-reached is counted, and every answer is corrected for the whole count.
+NOTHING IS CHOSEN BY EYE. The set is every rule with a publication on file (`lab/published.py`) on
+every line of its declared universe, over one window fixed before any result, from the line's first
+bar. EVERY TRIAL IS COUNTED BEFORE ANYTHING IS RUN: each cell is entered in the set's register
+(`lab/trials.py`) before the first is judged, so a cell that fails or is never reached is
+counted, and every answer is corrected for the whole count.
 
-THE RUNGS RUN, each one's answer in its own words (`rung.Answer`) with its reason: the author's
-own result (`lab/reproduce.py`), the first, luck and yearly rungs (`lab/deflated.py`), the folds
-(`lab/folds.py`: the last five whole years pooled over the rule's lines, one answer on every line;
-a fold is no trial) and the market's (`lab/market.py`). The one verdict is the one rule over those
-six: a cell whose folds could not be run has none, a worst fold too thin to say holds it at THIN
-at best, and a rule whose author's figure is not reproduced has none on the desk's lines. A rung
-not yet runnable is named on every line (UNRUN). Nothing here goes to paper: that takes all
-eleven rungs, each proven.
+THE RUNGS RUN, each answer in its own words (`rung.Answer`) with its reason: the author's result
+(`lab/reproduce.py`), the first, luck and yearly rungs (`lab/deflated.py`), the folds (the last
+five whole years pooled over the rule's lines; a fold is no trial) and the market's. The
+one verdict is the one rule over those six: a cell whose folds could not be run has none, a worst
+fold too thin to say holds it at THIN, a rule whose author's figure is not reproduced has none.
+A rung not yet runnable is named on every line (UNRUN). Nothing goes to paper before all eleven.
 
-RARE LARGE LOSSES (G2, R-RUNNER-103). Nine small wins in ten and a loss at the stop in the tenth,
-worth nothing together, show thirty wins and no loss one time in twenty-four. So wherever the
-first rung judges trades it counts ONE MORE, which the rule did not make: a loss at its own
-stop, the least any judged trade would have made had its stop sold it, with a stop's costs. It
-is a trade in the standard errors and all read from them (the luck's chance; the Sharpe, its
-count, skew and kurtosis), and none of the verdict's trades: in no count of the 30 asked.
+RARE LARGE LOSSES (G2, R-RUNNER-103). The first rung counts ONE MORE trade the rule did not make: a
+loss at its own stop, in the standard errors and all read from them, in no count of the 30 asked.
 
 A PROXY (R-RUNNER-95): a line with less history than its named proxy is judged on the proxy's
 longer bars, labelled `proxy: SPY for VUAG`; the cell stays the real line.
@@ -33,10 +26,9 @@ REFUSED (R-RUNNER-108): a line the desk's sizing refuses at its capital is a jud
 KEPT BY WHAT MADE IT. The results file holds one JSON line per cell as it finishes, forced to
 disk, found again by its key: the code this module reaches, the cell's bars and its market's,
 the rates, the count of trials and the reproductions behind it. A cell kept under that key is
-skipped; change any and it is judged again, the last line its answer now. A cell that could not
-be judged (a line parked or stale, too short a history, a day with no rate) keeps its reason,
-key and time of last try: tried again when the key differs, else after 30 minutes. A cut line
-is cut off.
+skipped; change any and it is judged again. A cell that could not be judged (a line parked or
+stale, too short a history, a day with no rate) keeps its reason and key: tried again when the
+key differs, else after 30 minutes. A cut line is cut off.
 
 The sets as a command - SET EPON and the `python -m lab.ladder` door - are `lab/ladder_sets.py`.
 """
@@ -64,7 +56,7 @@ from desk.lines import LINES, Line
 from desk.orders import Refused
 from desk.store import Bar
 from desk.strategy import STRATEGIES, Rule
-from lab import batch, cell, published, reproduce, rulebook, rung, trials, verdict
+from lab import batch, cell, published, reproduce, rulebook, rung, tape, trials, verdict
 from lab.batch import Bars
 from lab.cell import Cell
 from lab.reproduce import Reproduction
@@ -152,6 +144,18 @@ def rates(
     return {day: rate for day in days if (rate := carry.carried(known, day))}
 
 
+def begun(home: Path, todo: Sequence[Cell], plan: Plan) -> tuple[Path, int]:
+    """The set's results file and its count of trials entered; the register made on a first run."""
+    results, register = (home / FOLDER / (plan.stem + e) for e in (".jsonl", ".trials.jsonl"))
+    if not results.exists() and not register.exists():  #: the set's first run, and only that
+        results.parent.mkdir(parents=True, exist_ok=True)
+        (fresh := register.with_suffix(".new")).unlink(missing_ok=True)
+        trials.start(fresh)
+        trials.ask(fresh, plan.question)
+        fresh.replace(register)  #: whole or not there: a stop before this begins it again
+    return results, trials.enter(register, plan.question, [n for c in todo for n in names(c)])
+
+
 def run(
     home: Path,
     bars: Bars,
@@ -164,19 +168,12 @@ def run(
     if cell.code_version(module=ME) != cell.RUNGS[ME]:
         raise RuntimeError("the code on disk has changed since this process loaded it")
     todo = cells() if todo is None else todo
-    results, register = (home / FOLDER / f"{plan.stem}{end}" for end in (".jsonl", ".trials.jsonl"))
-    if not results.exists() and not register.exists():  #: the set's first run, and only that
-        results.parent.mkdir(parents=True, exist_ok=True)
-        (fresh := register.with_suffix(".new")).unlink(missing_ok=True)
-        trials.start(fresh)
-        trials.ask(fresh, plan.question)
-        fresh.replace(register)  #: whole or not there: a stop before this begins it again
-    count = trials.enter(register, plan.question, [name for c in todo for name in names(c)])
+    results, count = begun(home, todo, plan)
     whole = _whole(results)
     last = _last(whole)
     shared = Shared(todo)
     tally: Counter[str] = Counter()
-    with results.open("ab") as out:
+    with tape.on(home / FOLDER / tape.FOLDER), results.open("ab") as out:
         out.truncate(len(whole))
         for c in todo:
             was = last.get(tuple(batch.row(c)))
