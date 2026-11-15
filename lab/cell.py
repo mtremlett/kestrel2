@@ -58,7 +58,8 @@ class Cell:
             if not found:
                 raise ValueError(f"{line!r} is not a line in the instrument master")
             line = found[0]
-        rulebook.rule(strategy)  #: refuses a name the rule book does not know
+        if strategy not in STRATEGIES:
+            rulebook.rule(strategy)  #: refuses a name the rule book does not know
         if end < start:
             raise ValueError(f"{line.symbol} on {line.venue}: a window that ends before it starts")
         made = (("strategy", strategy), ("line", line), ("start", start), ("end", end))
@@ -178,7 +179,7 @@ def _held(cell: Cell, bars: Sequence[Bar]) -> list[bool]:
     """Whether the rule is in the market after each bar: the grid's answer, and the desk's
     own engine's wherever the grid refuses to give one."""
     if cell.strategy not in STRATEGIES:  #: an eponymous rule has no array form: the desk's engine
-        held = []
+        held: list[bool] = []
         with localcontext(ARITHMETIC):
             for decision in _run(cell.strategy, rulebook.rule(cell.strategy)(), cell.symbol, bars):
                 was = held[-1] if held else False
