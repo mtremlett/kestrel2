@@ -319,8 +319,13 @@ def test_an_old_store_in_adjusted_prices_never_writes_over_the_raw_and_a_real_di
     tmp_path: Path,
 ) -> None:
     store, then = tmp_path / "bars.db", NOON - timedelta(1)
-    raw = lambda start: _five(start)  # noqa: E731  # as traded: 10 11 9 10
-    adjusted = lambda start: _five(start, "9.9 10.89 8.91 9.9")  # noqa: E731  # a dividend's 1%
+
+    def raw(start: datetime) -> Five:  # as traded: 10 11 9 10
+        return _five(start)
+
+    def adjusted(start: datetime) -> Five:  # a dividend's 1%
+        return _five(start, "9.9 10.89 8.91 9.9")
+
     with bars.writing(store) as round_:
         round_.five(UK, [raw(then), raw(NOON), raw(NOON + timedelta(minutes=5))])
     old = [adjusted(then), adjusted(then + timedelta(minutes=5)), raw(NOON)]
