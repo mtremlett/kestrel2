@@ -3,9 +3,11 @@ the golden series, cut short and whole, for each row, or a refusal, never a gues
 
 from __future__ import annotations
 
+import tomllib
 from collections.abc import Sequence
 from datetime import timedelta
 from decimal import Decimal
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -121,3 +123,11 @@ def test_prices_too_close_for_floating_point_are_refused() -> None:
     bars[-1] = Bar(last.day, price, last.high, last.low, price, 1000)
     with pytest.raises(grid.TooClose):
         fast.held(ROWS[3], fast.Shared(bars))
+
+
+def test_every_row_of_the_spec_book_trades_on_the_fast_engine_as_the_desk_trades() -> None:
+    book = tomllib.loads((Path(__file__).parents[2] / "lab" / "catalogue.toml").read_text("utf-8"))
+    bars = next(iter(_series().values()))
+    for name, row in book.items():
+        spec = Spec.parse({"name": name, **row})
+        assert fast.held(spec, fast.Shared(bars)).tolist() == _desk(spec, bars), name
