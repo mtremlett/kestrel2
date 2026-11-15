@@ -1849,3 +1849,29 @@ planted edge) now has its folds judged: the worst of 5 yearly folds (2022) holds
 over 1 line, under the 30 asked, so the folds rung and the verdict are THIN, the row passes not
 every rung, and the summary counts 0 behind an author's result. THIN is the honest answer on
 2 trades a year; no t, Sharpe, trial count or threshold in any other test was touched.
+
+## 15 Nov — R-RUNNER-103: rare large losses (G2), one more trade at the rule's own stop
+
+His ruling "A" of Sun 15 Nov ~07:50. Small wins and a rare loss at the stop, worth nothing
+together, passed the four rungs read from a trial's own trades on 6 of 400 no-edge lines of
+under forty trades (a line in fifty has not yet met its loss). Options: (a) plant the loss in
+the first rung (chosen, the spec's G2); (b) a bar on skew in the deflated rung (a second rule
+for a job the first has); (c) leave it, six false winners in 400. Chosen (a): `rung.planted`
+adds to a verdict's gains one more, the least return any judged trade would have made had its
+stop sold it, with a stop's costs (`Priced.stopped`). `Verdict.gains` is read by the standard
+errors, the luck's chance and the deflated Sharpe's count, skew and kurtosis; `trades` and
+every count of the 30 asked are untouched. Both thresholds stay at "more than 20", never 10.
+
+Known answer: `tests/unit/test_lab_ladder_spec.py` (from #211's branch, shrunk to one world),
+seen failing first with 6 of 400 passing, now 0.
+
+Pinned figures moved, each re-derived by running the first rung on the same seeds:
+- `test_a_planted_edge_passes_and_a_planted_non_edge_does_not`: the bar-straddling pair was
+  seeds 1 and 16 at t 1.99 and 2.02; with the loss planted they read 1.76 and 1.72, so the
+  pair is seeds 12 (1.979, fails) and 40 (2.021, passes), the same claim (the bar sits between
+  them). Seed 0 cut at 29 trades read t above 2.8, now 2.52, so the pin is above 2.5; at 30
+  trades it still passes (2.35) and at 29 is still THIN.
+- No pinned figure in test_lab_luck, test_lab_deflated or test_lab_trials moved: their trades
+  are built by hand without a stop, so `Priced.stopped` is left unset and plants nothing. The
+  default is a cost of keeping to the claim (test_lab_folds and test_lab_plateau build
+  `Priced` too and are another lane's files); the ask to make it required is under Remains.

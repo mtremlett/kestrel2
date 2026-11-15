@@ -19,6 +19,13 @@ at best, and a rule whose author's figure is not reproduced has none on the desk
 not yet runnable is named on every line (UNRUN). Nothing here goes to paper: that takes all
 eleven rungs, each proven.
 
+RARE LARGE LOSSES (G2, R-RUNNER-103). Nine small wins in ten and a loss at the stop in the tenth,
+worth nothing together, show thirty wins and no loss one time in twenty-four. So wherever the
+first rung judges trades it counts ONE MORE, which the rule did not make: a loss at its own
+stop, the least any judged trade would have made had its stop sold it, with a stop's costs. It
+is a trade in the standard errors and all read from them (the luck's chance; the Sharpe, its
+count, skew and kurtosis), and none of the verdict's trades: in no count of the 30 asked.
+
 A PROXY (R-RUNNER-95): a line with less history than its named proxy is judged on the proxy's
 longer bars, labelled `proxy: SPY for VUAG`; the cell stays the real line.
 REFUSED (R-RUNNER-108): a line the desk's sizing refuses at its capital is a judged outcome
