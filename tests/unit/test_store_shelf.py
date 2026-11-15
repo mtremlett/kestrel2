@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import replace
 from pathlib import Path
 
+import pytest
 from test_store import DAY, LONG, UK, US, _bars, _parked
 
 from desk import store
@@ -20,18 +21,18 @@ def test_shelved_older_bars_join_the_archives_and_outlast_every_rebuild(tmp_path
     assert store.prepare(tmp_path, {US: _bars(US, LONG)}, DAY) == ()  # a line with none shelved
 
 
+@pytest.mark.parametrize("shelf", [(8, 20), (12, 15), (0, 5)], ids=["all", "part", "none of it"])
 def test_a_frozen_run_the_archive_filled_is_replaced_by_shelved_bars_never_by_its_own_filler(
-    tmp_path: Path,
+    tmp_path: Path, shelf: tuple[int, int]
 ) -> None:
     """VUAG, 23 May to 18 June 2019: the archive repeats one price for 27 sessions."""
     every = [replace(b, volume=900 + n) for n, b in enumerate(_bars(UK, LONG))]
-    run = range(10, 17)
     c = every[9].close
-    filler = [Bar(every[n].day, c, c, c, c, 0) for n in run]
-    archive = (*every[:10], *filler, *every[17:])
+    archive = (*every[:10], *[Bar(b.day, c, c, c, c, 0) for b in every[10:17]], *every[17:])
     _parked(tmp_path, archive, UK)
-    assert len(store.read(tmp_path, UK.symbol)) == len(every) - 7
-    store.shelve(tmp_path, UK, every[8:20])  # the old desk's bars: its own prices on those days
+    assert store.read(tmp_path, UK.symbol) == (*every[:10], *every[17:])  # dropped, as ever
+    store.shelve(tmp_path, UK, every[shelf[0] : shelf[1]])  # the old desk's own prices
     _parked(tmp_path, archive, UK)
-    assert store.read(tmp_path, UK.symbol) == tuple(every)
-    assert store.faults(tmp_path, UK.symbol) == ()
+    first, last = max(shelf[0], 10), min(shelf[1], 17)
+    assert store.read(tmp_path, UK.symbol) == (*every[:10], *every[first:last], *every[17:])
+    assert bool(store.faults(tmp_path, UK.symbol)) is (shelf != (8, 20))
