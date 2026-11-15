@@ -108,6 +108,7 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 # the rungs lane
 "lab/fast.py" = "the fast engine for spec rows: a row's position after every bar from its blocks worked out on whole arrays, shared between rows of one line, held to the desk's own engine trade for trade or refusing with TooClose"
 "lab/rung.py" = "the ladder's first rung: a cell's trades priced at the desk's fills and the broker's costs, and judged against chance"
+"lab/rung_costs.py" = "the ladder's costs rung: the first rung's priced trades read for how much of the edge the broker's costs took, and passed only if it survives them doubled"
 "lab/rung_ci.py" = "the ladder's confidence-interval rung: the mean gain of a rule's trades with its interval, judged on the whole interval above or below nothing and not on a sign"
 "lab/luck.py" = "the ladder's luck rung: every trial counted, and each verdict's chance corrected for the number of trials it was picked from"
 "lab/rung_sample.py" = "the first rung's stated false-pass rate, taken from its own bar and minimum, and the exact binomial band that many noise cells must fall in"
