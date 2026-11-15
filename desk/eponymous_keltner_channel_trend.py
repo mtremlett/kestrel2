@@ -34,6 +34,7 @@ from desk.strategy import (
     CLOSES,
     Decision,
     Declared,
+    Rule,
     Timeframe,
     _run,
     _Window,
@@ -76,3 +77,6 @@ def decide(bars: Mapping[str, Sequence[Bar]]) -> tuple[Decision, ...]:
             for symbol, series in bars.items()
             for d in _run(NAME, KeltnerChannelTrend(), symbol, series)
         )
+
+
+EPONYMOUS: Mapping[str, type[Rule]] = {NAME: KeltnerChannelTrend}
