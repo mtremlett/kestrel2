@@ -1890,3 +1890,21 @@ of the old eponymous modules.
 His ruling, Sun 15 Nov 2026 ~13:20, in chat with the coordinator. He was offered three
 options: move 400 lines of ceiling from the desk to the lab (recommended), raise the lab by
 400 alone, or wait for Tuesday's consolidation. He chose "Raise research by 400".
+
+## 15 Nov - the lab's ceiling rises from 7,400 to 8,000 lines, by his yes
+
+In `BUDGET.json`, `lab_lines` goes from 7,400 to 8,000 for phases `3-money-paper` and
+`4-ladder`. The desk's ceiling is unchanged at 10,500. The lab is research code; the trading
+path is untouched.
+
+Why: main's lab held 7,391 of 7,400 lines. Five ladder pull requests (#342 rung-regimes, #350
+rung-bootstrap, #351 rung-cpcv, #352 spec-epon slice 3, #354 rung-placebo) were green on every
+check except `test_the_tree_is_inside_this_phases_ceiling`, needing about 595 lines together.
+The 13:20 rise to 7,400 was sized for spec-epon alone and did not count the rungs already
+building; that was the coordinator's error. To stop a repeat, the runner holds a card on the
+ceiling before a session starts, instead of after it has built.
+
+His ruling, Sun 15 Nov 2026 ~16:00, in chat with the coordinator, chosen from three options
+(raise to 8,000; keep 7,400 and cut first, which slips the ladder to Tuesday; hold the ladder
+to Tuesday): "Raise to 8,000". Clean-up cards (the rung registry, consolidation) are expected
+to shrink the lab again.
