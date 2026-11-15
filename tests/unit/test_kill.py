@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 
 from desk import book, kill
-from desk.broker import Crash, Fault, Pretend
+from desk.broker import Crash, Fault, Pretend, Report
 from desk.lines import Line
 from desk.orders import Order, Refused, Sale, Settings
 from desk.store import Bar
@@ -84,7 +84,7 @@ def test_a_place_that_fails_unknown_pulls_the_switch_and_keeps_the_note(
 ) -> None:
     broker = _desk(tmp_path)
 
-    def strange(_: Order | Sale) -> book.Report:
+    def strange(_: Order | Sale) -> Report:
         raise RuntimeError("the gateway sent gibberish")
 
     monkeypatch.setattr(broker, "place", strange)
