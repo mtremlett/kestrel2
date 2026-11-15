@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 
 from desk import book, halt
-from desk.broker import Pretend
+from desk.broker import Pretend, Report
 from desk.halt import Stopped
 from desk.lines import Line
 from desk.orders import Order, Sale, Settings
@@ -29,10 +29,10 @@ def test_a_place_that_disagrees_halts_buying_tells_him_once_and_a_sale_still_goe
     broker.open(MON)
     quiet.open(MON)
 
-    def disagree(broker: Pretend) -> Callable[[Order | Sale], book.Report]:
+    def disagree(broker: Pretend) -> Callable[[Order | Sale], Report]:
         place = broker.place
 
-        def placed(order: Order | Sale) -> book.Report:
+        def placed(order: Order | Sale) -> Report:
             place(order)  #: the order has gone, then the door finds the account does not agree
             raise Unprotected("o-1: these do not agree")
 

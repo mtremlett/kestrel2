@@ -120,26 +120,26 @@ def _place(root: Path, broker: Broker, order: Order | Sale, tell: Tell | None) -
         raise
     except Crash:
         raise
-    except Exception as error:  #: unknown: the desk does not guess, and the note stays
-        if (report := _disagreed(root, broker, order, error, tell)) is None:
-            words = f"{order.order_id}: place failed with {error!r}; the kill switch is on"
-            turn(root, Switch.ON, datetime.now(UTC), words)
-            tuple(broker.cancel())
-            raise Alarm(words) from error
+    except Exception as error:  # noqa: BLE001 - unknown: the desk does not guess; _disagreed alarms
+        report = _disagreed(root, broker, order, error, tell)
     going.unlink()
     return report
 
 
 def _disagreed(
     root: Path, broker: Broker, order: Order | Sale, error: Exception, tell: Tell | None
-) -> Report | None:
+) -> Report:
     """THE BROKER'S WORD, FILLS AND ACCOUNT DO NOT AGREE after the order has gone (R-PAPER-11,
     Unprotected): buying is halted until he lifts it, he is told (tell), and the broker's
-    report is given, so the order is never sent again. Else None; with no one to tell, too."""
+    report is given, so the order is never sent again. Else (or with no one to tell) the kill
+    switch is pulled and Alarm raised."""
     from desk import placing  # noqa: PLC0415 - placing reaches book through paper: a load cycle
 
     if tell is None or not isinstance(error, placing.Unprotected):
-        return None
+        words = f"{order.order_id}: place failed with {error!r}; the kill switch is on"
+        turn(root, Switch.ON, datetime.now(UTC), words)
+        tuple(broker.cancel())
+        raise Alarm(words) from error
     words = f"{order.order_id}: the broker's word, fills and account do not agree: {error}"
     halt.call(root, datetime.now(UTC), f"{words}; no buy goes until he lifts this", by="send path")
     tell(f"disagree {order.order_id}", f"{words}. Buying is halted; sales go on.")
