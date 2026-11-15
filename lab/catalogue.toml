@@ -56,3 +56,40 @@ wants = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0]
 [[williams_r.cases]]
 bars = [[10, 10, 10], [10, 10, 10], [10, 10, 10], [10, 10, 10], [10, 10, 10], [10, 10, 10], [10, 10, 10], [10, 10, 10], [10, 10, 10], [10, 10, 10], [10, 10, 10]]
 wants = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+[donchian_fade_chop]
+entry = "close_at_range_low"
+exit = "close_at_midpoint"
+stop = "no_stop"
+filter = "no_filter"
+source = "Secondary: a practitioner reading of Donchian's channel in a range; buy a close at or under the 20 sessions' lowest low when the channel is a tenth of its midpoint or less, sell at its midpoint"
+
+[donchian_fade_chop.params]
+entry = { n = 20 }
+exit = { n = 20 }
+
+# a narrow channel (a range): a close at its low buys, a close under its midpoint holds, one over it sells
+[[donchian_fade_chop.cases]]
+bars = [[10.4, 10, 10.2], [10.4, 10, 10.2], [10.4, 10, 10.2], [10.4, 10, 10.2], [10.4, 10, 10.2], [10.4, 10, 10.2], [10.4, 10, 10.2], [10.4, 10, 10.2], [10.4, 10, 10.2], [10.4, 10, 10.2], [10.4, 10, 10.2], [10.4, 10, 10.2], [10.4, 10, 10.2], [10.4, 10, 10.2], [10.4, 10, 10.2], [10.4, 10, 10.2], [10.4, 10, 10.2], [10.4, 10, 10.2], [10.4, 10, 10.2], [10.4, 10, 10.2], [10.3, 9.9, 10.0], [10.3, 10.0, 10.1], [10.5, 10.2, 10.4]]
+wants = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0]
+
+# a channel too wide to be a range: a close at its low is not a buy
+[[donchian_fade_chop.cases]]
+bars = [[11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [10, 8, 9]]
+wants = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+[weekly_reversal_jegadeesh]
+entry = "close_under_close_ago"
+exit = "no_exit"
+stop = "time_stop"
+filter = "no_filter"
+source = "Jegadeesh, Journal of Finance 45(3) (1990), in Lehmann's weekly form: buy a close under the close five sessions before, hold five sessions, sell"
+
+[weekly_reversal_jegadeesh.params]
+entry = { n = 5 }
+stop = { n = 5 }
+
+# five flat days, a lower close (buy), five sessions held, then sold; the next lower close buys again
+[[weekly_reversal_jegadeesh.cases]]
+bars = [[10, 10, 10], [10, 10, 10], [10, 10, 10], [10, 10, 10], [10, 10, 10], [9, 9, 9], [9, 9, 9], [9, 9, 9], [9, 9, 9], [9, 9, 9], [9, 9, 9], [9, 9, 8]]
+wants = [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1]
