@@ -117,8 +117,9 @@ def _once(bars: Sequence[Bar], faults: list[Fault]) -> list[Bar]:
 
 def _entered(line: Line, bar: Bar, open_days: set[date], faults: list[Fault]) -> Bar | str:
     """The bar as it enters the store, or why it cannot be true on its own. A bar whose only
-    fault is an impossible high is kept, the high clamped to its open or close and the repair
-    listed: the open, close and volume stand. A deep low is the market's, read as a move."""
+    fault is an impossible high or low is kept, clamped to its open or close and the repair
+    listed: the open, close and volume stand. A deep low with the close falling to it is the
+    market's, read as a move."""
     prices = (bar.open, bar.high, bar.low, bar.close)
     if bar.day in line.suspended:
         return f"{bar.day} has a bar, yet {line.symbol} records it as suspended"
@@ -134,7 +135,11 @@ def _entered(line: Line, bar: Bar, open_days: set[date], faults: list[Fault]) ->
     if high >= JUMP * max(ends):
         faults.append(Fault(bar.day, f"{bar.day} high repaired: was {bar.high}"))
         high = max(ends)
-    return replace(bar, high=high, low=min(bar.low, *ends))
+    low = min(bar.low, *ends)
+    if low <= min(ends) / JUMP:
+        faults.append(Fault(bar.day, f"{bar.day} low repaired: was {bar.low}"))
+        low = min(ends)
+    return replace(bar, high=high, low=low)
 
 
 def _rate(rates: Rates, day: date) -> Decimal | None:

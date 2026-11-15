@@ -38,6 +38,11 @@ RULES: dict[str, tuple[Make, Line, str]] = {  # rule site -> (synthetic archive,
         US,
         "high repaired",
     ),
+    "_entered:6": (
+        lambda b: [*b[:5], replace(b[5], low=b[5].low / 3), *b[6:]],
+        US,
+        "low repaired",
+    ),
     "_priced:1": (lambda b: [*b[:-8], _scaled(b[-8], Decimal(100)), *b[-7:]], US, "wrong unit"),
     "_priced:2": (
         lambda b: [*b[:-8], replace(_scaled(b[-8], Decimal("1.7")), volume=0), *b[-7:]],
@@ -126,18 +131,26 @@ def test_a_wide_day_among_quiet_ones_leaves_no_step_in_its_neighbours(
     assert not any("moved from" in f for f in store.faults(tmp_path, US.symbol))
 
 
-def test_a_bad_high_is_repaired_and_kept_but_a_bad_close_is_refused(tmp_path: Path) -> None:
-    """VUAG 12 and 16 March 2020 (R-RUNNER-175): a bar whose only fault is an impossible high
-    stays, open, close and volume standing, the high clamped and listed; a bad close is
-    still refused."""
+@pytest.mark.parametrize("edge", ["high", "low"])
+def test_a_bad_high_or_low_is_repaired_and_kept_but_a_bad_close_is_refused(
+    tmp_path: Path, edge: str
+) -> None:
+    """VUAG 12 and 16 March 2020 (R-RUNNER-175, R-RUNNER-185): a bar whose only fault is an
+    impossible high or low stays, open, close and volume standing, the edge clamped and listed
+    and the line not parked; a bad close is still refused; a low the close falls with is kept."""
     clean = list(_bars(US, LONG))
     was = clean[5]
-    bad = replace(was, high=was.high * 2)
+    ends = (was.open, was.close)
+    bad = replace(was, high=was.high * 2) if edge == "high" else replace(was, low=was.low / 3)
     store.prepare(tmp_path, {US: [*clean[:5], bad, *clean[6:]]}, DAY)
     kept = {b.day: b for b in store.read(tmp_path, US.symbol)}[was.day]
     assert (kept.open, kept.close, kept.volume) == (was.open, was.close, was.volume)
-    assert kept.high == max(was.open, was.close)
-    assert any("high repaired: was" in f for f in store.faults(tmp_path, US.symbol))
+    assert getattr(kept, edge) == (max(ends) if edge == "high" else min(ends))
+    assert any(f"{edge} repaired: was" in f for f in store.faults(tmp_path, US.symbol))
+    assert not any("moved from" in f for f in store.faults(tmp_path, US.symbol))
     wrong = replace(was, close=was.high * 2)
     store.prepare(tmp_path, {US: [*clean[:5], wrong, *clean[6:]]}, DAY)
     assert was.day not in {b.day for b in store.read(tmp_path, US.symbol)}
+    fell = replace(was, low=was.close / 3, close=was.close / 2)
+    store.prepare(tmp_path, {US: [*clean[:5], fell, *clean[6:]]}, DAY)
+    assert not any("low repaired" in f for f in store.faults(tmp_path, US.symbol))
