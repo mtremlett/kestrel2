@@ -133,3 +133,17 @@ def test_a_venue_is_open_from_its_open_to_its_closing_auction_both_included() ->
     assert venues.open_at("US", datetime(2025, 7, 5, 15, tzinfo=UTC)) is None  # a Saturday
     with pytest.raises(ValueError, match="no time zone"):
         venues.open_at("LSE", datetime(2025, 7, 15, 10))
+
+
+def test_the_uk_clock_time_of_a_moment_either_side_of_both_2026_clock_changes() -> None:
+    # (UTC moment, UK wall clock): the change falls at 01:00 UTC, on the moment, not the day
+    known = [((2026, 3, 29, 0, 59), (0, 59, 0)), ((2026, 3, 29, 1, 0), (2, 0, 1)),
+             ((2026, 10, 25, 0, 59), (1, 59, 1)), ((2026, 10, 25, 1, 0), (1, 0, 0)),
+             ((2026, 7, 1, 12, 0), (13, 0, 1)), ((2026, 12, 1, 12, 0), (12, 0, 0))]  # fmt: skip
+    for utc, (hour, minute, offset) in known:
+        moment = datetime(*utc, tzinfo=UTC)
+        got = venues.uk_time(moment)
+        assert (got.hour, got.minute, got.utcoffset()) == (hour, minute, timedelta(hours=offset))
+        assert got == moment
+    with pytest.raises(ValueError, match="no time zone"):
+        venues.uk_time(datetime(2026, 3, 29, 1, 0))
