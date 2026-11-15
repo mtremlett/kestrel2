@@ -29,12 +29,18 @@ bet, since a rule holds one position on a line at a time.
 from __future__ import annotations
 
 import enum
+import hashlib
+import importlib
+import inspect
 import json
+import pkgutil
+import sys
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal, localcontext
 from pathlib import Path
+from types import ModuleType
 
 from desk import orders
 from desk.broker import Pretend
@@ -237,3 +243,40 @@ def kept_closes(
         (fresh := table.with_suffix(".new")).write_text("\n".join(lines) + "\n", encoding="utf-8")
         fresh.replace(table)
     return held
+
+
+@dataclass(frozen=True)
+class Rung:
+    """A rung as its module declares it, in `RUNG`: its name, its bar in words, and its one
+    judging function, which reads the first rung's verdict (the priced trades) and answers."""
+
+    name: str
+    bar: str
+    judge: Callable[[Verdict], tuple[Answer, str]]
+
+    @property
+    def code(self) -> str:
+        """sha256 of the declaring module's text: part of a cell's key, so a changed rung is
+        judged again."""
+        text = inspect.getsource(sys.modules[self.judge.__module__])
+        return hashlib.sha256(text.encode()).hexdigest()
+
+
+def found(package: str = "lab") -> tuple[tuple[Rung, ...], tuple[str, ...]]:
+    """The rungs the package's `rung_*` modules declare, by name order, and the names of those
+    that declare none (still wired by hand). A new rung needs no edit of the ladder."""
+    root = importlib.import_module(package)
+    modules: list[ModuleType] = [
+        importlib.import_module(f"{package}.{m.name}")
+        for m in sorted(pkgutil.iter_modules(root.__path__), key=lambda m: m.name)
+        if m.name.startswith("rung_")
+    ]
+    declared = [(m, getattr(m, "RUNG", None)) for m in modules]
+    for m, one in declared:
+        if one is not None and not isinstance(one, Rung):
+            raise TypeError(f"{m.__name__}.RUNG is not a rung.Rung: {one!r}")
+    rungs = tuple(one for _, one in declared if one is not None)
+    names = [one.name for one in rungs]
+    if len(set(names)) != len(names):
+        raise ValueError(f"two rung modules declare the same rung name: {sorted(names)}")
+    return rungs, tuple(m.__name__ for m, one in declared if one is None)
