@@ -4,13 +4,15 @@ from __future__ import annotations
 
 import json
 import sys
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
 
 import pytest
 
-from desk import command, simcity, simcitycmd, store
+from desk import command, keeper, simcity, simcitycmd, venues
+from desk.lines import Line
+from desk.store import Bar
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "scenes"))  #: the scenes' rehearsal data
 from rehearsal import CLEAN, SESSIONS  # noqa: E402  the path above comes first
@@ -25,9 +27,9 @@ def saved(monkeypatch: pytest.MonkeyPatch) -> None:
     """The ten weeks of the rehearsal lines stand in for the desk's price store."""
     monkeypatch.setattr(simcitycmd, "LINES", tuple(SHORT))
     monkeypatch.setattr(
-        store,
-        "read",
-        lambda _root, name: next(tuple(b) for x, b in SHORT.items() if x.symbol == name),
+        keeper,
+        "saved",
+        lambda _home, _day, lines: ({x: tuple(SHORT[x]) for x in lines}, frozenset()),
     )
     monkeypatch.setattr(command, "rates", lambda _root, _day: RATES)
 
@@ -60,3 +62,29 @@ def test_a_soak_lives_the_next_unused_block_of_fresh_seeds_and_logs_each_block(
         assert "lived 2 seeded worlds" in printed and f"Soak: seeds {first}-{first + 1}." in printed
     logged = (tmp_path / simcitycmd.SOAKED).read_text(encoding="utf-8").splitlines()
     assert [json.loads(line)["first"] for line in logged] == [100, 102]
+
+
+def test_the_worlds_are_built_from_the_keepers_store_and_not_the_old_desk_store(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A day only the keeper's daily store holds (desk/store is empty) reaches the worlds."""
+    monkeypatch.undo()
+    line, lived = Line("VUAG", "LSE", "GBP", 1), []
+
+    def run(_root: Path, held: dict[Line, tuple[Bar, ...]], *_rest: object) -> simcity.Night:
+        lived.append(held)
+        raise RuntimeError("the worlds were given what the keeper holds")
+
+    days = venues.sessions("LSE", date(2025, 8, 4), date(2025, 11, 17))
+    prices = [Decimal(100 + n % 5) for n in range(len(days))]
+    bars = tuple(
+        Bar(d, p, p + 1, p - 1, p, 1000 + n)
+        for n, (d, p) in enumerate(zip(days, prices, strict=True))
+    )
+    keeper.keep(tmp_path, NOW, (line,), lambda _line, _day: bars, lambda _l, _n: (), lambda: 0.0)
+    monkeypatch.setattr(simcitycmd, "LINES", (line,))
+    monkeypatch.setattr(command, "rates", lambda _root, _day: RATES)
+    monkeypatch.setattr(simcity, "run", run)
+    with pytest.raises(RuntimeError, match="keeper holds"):
+        simcitycmd.main([], {"KESTREL2_DATA": str(tmp_path)}, lambda: NOW)
+    assert lived[0][line][-1].day == date(2025, 11, 14)
