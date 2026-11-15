@@ -19,6 +19,23 @@ at best, and a rule whose author's figure is not reproduced has none on the desk
 not yet runnable is named on every line (UNRUN). Nothing here goes to paper: that takes all
 eleven rungs, each proven.
 
+THE RUNG MAP (L2): the plan's eleven rungs, each `n name: module, test`. They are not a row's
+names: `first` holds 1-3, `market` 4 (against the market) and 6 (against the line held). The
+test is where the rung's own proof goes (L3-L13), no two the same, and every rung owes it; one
+sharing a module changes it only for a defect. A file not yet there is marked (unbuilt); after
+the dash, what else is known to be owed.
+ 1 sample size, effective trades: lab/rung.py, tests/unit/test_lab_rung.py - bets pooled over lines
+ 2 costs charged: lab/rung.py, tests/unit/test_lab_rung_costs.py (unbuilt)
+ 3 a confidence interval: lab/rung.py, tests/unit/test_lab_rung_interval.py (unbuilt)
+ 4 excess after market risk, by size: lab/market.py, tests/unit/test_lab_market.py
+ 5 two regime windows: lab/regime.py, tests/unit/test_lab_regime.py - unrun: no weather (REG-01)
+ 6 benchmark excess by interval: lab/market.py, tests/unit/test_lab_market_line.py (unbuilt)
+ 7 deflated Sharpe: lab/deflated.py, tests/unit/test_lab_deflated.py - one clustered set (L14)
+ 8 purged cross-validation: lab/purged.py (unbuilt), tests/unit/test_lab_purged.py (unbuilt)
+ 9 placebo on blocks of days: lab/shuffle.py, tests/unit/test_lab_shuffle.py - days, not blocks
+10 walk-forward folds: lab/folds.py, tests/unit/test_lab_folds.py - the ladder runs `pool`
+11 block bootstrap: lab/montecarlo.py, tests/unit/test_lab_montecarlo.py - single trades, no gate
+
 RARE LARGE LOSSES (G2, R-RUNNER-103). Nine small wins in ten and a loss at the stop in the tenth,
 worth nothing together, show thirty wins and no loss one time in twenty-four. So wherever the
 first rung judges trades it counts ONE MORE, which the rule did not make: a loss at its own
