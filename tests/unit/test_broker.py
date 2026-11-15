@@ -113,6 +113,7 @@ def test_an_order_left_working_fills_at_its_next_market_unless_cancelled_and_sto
         working = broker.report("o-2")
         assert working and working.fills == () and "working" in str(working.reason)
         assert broker.place(_order("o-2", B, 3, "15")).reason, "a working order taken twice"
+        assert broker.stops() == (("A", 10),), "a working buy's stop protects nothing yet"
     assert killed.working() == ("o-2",) == killed.cancel(), "the order left working, named"
     assert killed.cancel() == () == killed.working(), "named once, then none left"
     assert "cancelled" in str(killed.report("o-2")) and killed.stops() == (("A", 10),)
