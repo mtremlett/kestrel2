@@ -46,6 +46,7 @@ VUSA, ISF, AAPL, SPY = (
 #: a breakout that goes on rising, planted from 2010 to past the window's end; and none
 EDGE, NOISE = _walk(1, 0.012, 0.012, days=3100), _walk(2, 0, 0, days=3100)
 ROOM = Settings(CAPITAL)
+ISF_START = NOISE[0].day
 
 
 def _set(*lines: Line) -> list[Cell]:
@@ -77,25 +78,28 @@ def test_each_cell_is_judged_on_every_rung_and_kept_with_its_reasons_and_trials(
     book, todo = {VUSA: EDGE, ISF: NOISE}, _set(VUSA, ISF)
     said = ladder.run(tmp_path, _door(book), {}, todo)
     assert said.startswith("ladder set 1: 2 cells") and "\n" not in said
-    assert "against 6 trials: 2 judged now, 0 kept from before, 0 could not" in said
+    assert "against 2 trials: 2 judged now, 0 kept from before, 0 could not" in said
     assert "PASS 0, DOUBT 0, THIN 1, FAIL 1, FAULT 0; 0 with no verdict, a named" in said
     won, lost = _rows(tmp_path)
-    #: each rung's answer is that rung's own, the cell and its two folds among six trials,
-    #: priced from the desk's one capital and set beside its venue's market; and the window
-    #: judged begins at the line's first bar, so a yearly figure is of years it had bars in
+    #: each rung's answer is that rung's own, the two cells alone among two trials (a fold is
+    #: no trial), the folds the rule's years pooled over its lines, priced from the desk's one
+    #: capital and set beside its venue's market; and the window judged begins at the line's
+    #: first bar, so a yearly figure is of years it had bars in
     own = Cell("breakout_20_10", VUSA, EDGE[0].day, ladder.END)
     verdict = rung.judge(cell.run(own, EDGE), EDGE, ROOM, {})
-    (one,) = deflated.judge([verdict], 5)
+    (one,) = deflated.judge([verdict], 1)
     assert won["from"] == "2010-01-01" and f"of {one.yearly:.2f};" in won["rungs"]["yearly"][1]
     want = {name: answer.name for name, answer in one.rungs.items()} | {
-        "folds": folds.judge(own, EDGE, ROOM, {}, ladder.FOLDS).answer.name,
+        "folds": folds.pool(
+            [(own, EDGE), (Cell(own.strategy, ISF, ISF_START, own.end), NOISE)], ROOM, {}
+        ).answer.name,
         "market": market.judge(verdict, EDGE, ISF, NOISE, {}).answer.name,
         "shuffle": "THIN",  #: run last, and only on a trial that passed all before it
     }
     assert {name: answer for name, (answer, _) in won["rungs"].items()} == want
-    assert (won["trials"], one.luck.trials, won["trades"]) == (6, 6, len(verdict.trades))
+    assert (won["trials"], one.luck.trials, won["trades"]) == (2, 2, len(verdict.trades))
     assert f"{verdict.t:.2f} standard errors above" in won["rungs"]["first"][1]
-    assert "times 6 trials" in won["rungs"]["luck"][1] and all(w for _, w in won["rungs"].values())
+    assert "times 2 trials" in won["rungs"]["luck"][1] and all(w for _, w in won["rungs"].values())
     #: the planted edge passes every rung but its worst fold, too thin to say: so the one
     #: verdict, over every named rung, is THIN. The noise fails; no rung is left in silence
     assert want == dict.fromkeys(want, "PASS") | {"folds": "THIN", "shuffle": "THIN"}
@@ -103,6 +107,28 @@ def test_each_cell_is_judged_on_every_rung_and_kept_with_its_reasons_and_trials(
     assert lost["rungs"]["first"][0] == lost["rungs"]["market"][0] == "FAIL"
     assert set(won["unrun"]) == {"reproduce", "regime", "plateau", "stress"}
     assert 0 <= won["drawdown"]["median"] <= won["drawdown"]["p95"] < 1, "measured, never gated"
+
+
+def test_a_planted_edge_is_judged_by_its_years_pooled_over_the_rules_lines_not_found_thin(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Sixteen lines with the edge planted in the last 2,400 days of each: a line alone makes
+    two or three trades a year, too few to be heard, and the rule's sixteen together make over
+    thirty. So the fold of each of the five years PASSES, and the one answer is every line's."""
+    monkeypatch.setattr(shuffle, "share", lambda *_: Decimal("0.01"))  #: a hundred runs each
+    names = "3LGO 2MU SMGB IITU VHYG 5QQQ ISF VUSA SGLN VUAG EQQQ IB1T AAPL TSLA NVDA AMD".split()
+    lines = [next(line for line in LINES if line.symbol == name) for name in names]
+    walks = {line: _walk(n, 0.012, 0.012, days=3100)[-2400:] for n, line in enumerate(lines, 1)}
+    pounds = {bar.day: Decimal("0.8") for bar in EDGE}
+    ladder.run(tmp_path, _door(walks | {SPY: NOISE}), pounds, _set(*lines))
+    rows = _rows(tmp_path)
+    assert [row["cell"][1] for row in rows] == list(names) and not [r for r in rows if "error" in r]
+    folded = {tuple(row["rungs"]["folds"]) for row in rows}
+    assert len(folded) == 1 and next(iter(folded))[0] == "PASS", folded
+    assert (
+        "worst of 5 yearly folds" in next(iter(folded))[1]
+        and "over 16 lines" in next(iter(folded))[1]
+    )
 
 
 def test_a_run_skips_what_is_kept_and_judges_again_only_what_has_changed(tmp_path: Path) -> None:
@@ -128,13 +154,13 @@ def test_a_run_skips_what_is_kept_and_judges_again_only_what_has_changed(tmp_pat
     assert (
         rows[0]["key"] != rows[2]["key"] and rows[0]["rungs"]["first"] == rows[2]["rungs"]["first"]
     )
-    #: the set grown by a dollar line with no bars: nine trials now, so all are judged again;
+    #: the set grown by a dollar line with no bars: three trials now, so all are judged again;
     #: the one that cannot be is kept with its reason and its try time, tried an hour on
     more = _set(VUSA, ISF, AAPL)
     said = run(tmp_path, _door(book), {}, more)
-    assert "against 9 trials: 2 judged now, 0 kept from before, 1 could not be judged" in said
+    assert "against 3 trials: 2 judged now, 0 kept from before, 1 could not be judged" in said
     assert "0 judged now, 2 kept from before, 1 could" in run(tmp_path, _door(book), {}, more)
-    assert [row["trials"] for row in _rows(tmp_path)] == [6, 6, 6, 6, 9, 9, 9, 9]
+    assert [row["trials"] for row in _rows(tmp_path)] == [2, 2, 2, 2, 3, 3, 3, 3]
     assert _rows(tmp_path)[-1]["error"].startswith("Stale") and "key" not in _rows(tmp_path)[-1]
     #: its bars found, and no rate of exchange: refused with the day; the rates given, judged
     book |= {AAPL: EDGE, SPY: NOISE}
@@ -145,11 +171,12 @@ def test_a_run_skips_what_is_kept_and_judges_again_only_what_has_changed(tmp_pat
     ladder.run(tmp_path, _door(book), {}, more, lambda: at)  #: nothing changed: it waits
     assert len(_rows(tmp_path)) == 9
     said = ladder.run(tmp_path, _door(book), pounds, more, lambda: at)  #: the rates, at once
-    assert "1 judged now, 2 kept from before, 0 could" in said
-    assert _rows(tmp_path)[-1]["answer"] == "THIN" and len(_rows(tmp_path)) == 10
-    #: a dearer dollar on one day is another price: the dollar line alone is judged again
+    #: the dollar line joins its rule's pooled folds, so the two pound lines are judged again too
+    assert "3 judged now, 0 kept from before, 0 could" in said
+    assert _rows(tmp_path)[-1]["answer"] == "THIN" and len(_rows(tmp_path)) == 12
+    #: a dearer dollar on one day is another price, in the folds of all three
     pounds[EDGE[50].day] = Decimal("0.9")
-    assert "1 judged now, 2 kept" in run(tmp_path, _door(book), pounds, more)
+    assert "3 judged now, 0 kept" in run(tmp_path, _door(book), pounds, more)
 
 
 def test_a_line_the_desks_sizing_refuses_is_a_judged_outcome_and_the_set_carries_on(
@@ -170,7 +197,7 @@ def test_a_line_the_desks_sizing_refuses_is_a_judged_outcome_and_the_set_carries
     assert "1 judged now, 0 kept from before, 0 could not be judged and are tried" in said
     assert "again next run, 1 refused by the desk's sizing;" in said
     assert "0 judged now, 1 kept" in ladder.run(tmp_path, _door(book), pounds, _set(VUSA, ISF))
-    assert ladder_sets._said(refused)[1].startswith("refused by the desk's sizing")
+    assert verdict.cell_line(refused)[1].startswith("refused by the desk's sizing")
 
 
 def test_a_short_line_is_judged_on_its_proxys_longer_bars_and_says_so(tmp_path: Path) -> None:
@@ -185,7 +212,7 @@ def test_a_short_line_is_judged_on_its_proxys_longer_bars_and_says_so(tmp_path: 
     book[vuag] = EDGE  #: no shorter than its proxy: judged on its own bars, no label
     ladder.run(tmp_path / "own", _door(book), pounds, _set(vuag))
     assert "proxy" not in _rows(tmp_path / "own")[0]
-    said = ladder_sets._said(short)[1]
+    said = verdict.cell_line(short)[1]
     assert said.startswith("proxy: SPY for VUAG <br>")
 
 
@@ -197,8 +224,8 @@ def test_every_trial_is_counted_before_any_is_run_and_the_count_never_begins_aga
     register.with_suffix(".new").write_bytes(trials.HEAD)
     clock, todo = [datetime(2026, 11, 14, 12, 0, tzinfo=UTC)], _set(VUSA, ISF)
     said = ladder.run(tmp_path, _door({}), {}, todo, lambda: clock[0])
-    assert "against 6 trials: 0 judged now, 0 kept from before, 2 could not be judged" in said
-    assert trials.count(register, ladder.QUESTION) == 6
+    assert "against 2 trials: 0 judged now, 0 kept from before, 2 could not be judged" in said
+    assert trials.count(register, ladder.QUESTION) == 2
     #: a line too short to have made a trade waits on its history: with nothing changed it is
     #: tried again no sooner than 30 minutes after its last try, and the moment its bars differ
     short = _door({VUSA: EDGE[:1], ISF: NOISE})
@@ -210,7 +237,9 @@ def test_every_trial_is_counted_before_any_is_run_and_the_count_never_begins_aga
     ladder.run(tmp_path, short, {}, todo, lambda: clock[0])
     assert len(_rows(tmp_path)) == 4 and _rows(tmp_path)[2] == waits
     ladder.run(tmp_path, _door({VUSA: EDGE, ISF: NOISE}), {}, todo, lambda: clock[0])
-    assert _rows(tmp_path)[-1]["answer"] == "THIN"
+    #: both are judged again, for their rule's lines are not as they were: the edge, with
+    #: 6 or 7 trades a year pooled over two lines, is too thin to say; the noise fails
+    assert [row["answer"] for row in _rows(tmp_path)[-2:]] == ["THIN", "FAIL"]
     register.unlink()  #: results with no register beside them: refused, never counted anew
     with pytest.raises(FileNotFoundError, match="no register of trials"):
         ladder.run(tmp_path, _door({}), {}, _set(VUSA, ISF))
@@ -254,7 +283,7 @@ def test_the_set_is_every_published_rule_on_every_line_and_its_doors_are_the_des
     assert len(made) == len(set(made)) == len(published.PUBLISHED) * len(LINES)
     assert {(c.start, c.end) for c in made} == {(ladder.START, ladder.END)}
     assert ladder.names(made[0])[0] == trials.name(made[0])
-    assert len(set(ladder.names(made[0]))) == 1 + ladder.FOLDS
+    assert ladder.names(made[0]) == [trials.name(made[0])] and ladder.FOLDS == 5
     #: a day's rate is the desk's one rule (desk/carry.py): one over the pound's last close
     #: before it while fresh, none from a close that is no pound's; 2025-04-22, the day after
     #: Easter Monday, whose last close is five days old, has its rate
