@@ -128,16 +128,29 @@ def _files(root: Path, name: str) -> set[str]:
     return {f for f in found if f is not None}
 
 
-def reached(root: Path, module: str = CELL) -> tuple[str, ...]:
-    """The module's file, its packages', and every file under root they reach through imports."""
-    if _file(root, module) is None:
-        raise ValueError(f"{module}: no module of that name under {root}")
-    seen, waiting = set(), _files(root, module)
+def _closure(root: Path, graph: dict[str, set[str]], start: set[str], out: set[str]) -> set[str]:
+    """The files reachable from start through the graph, never entering a file in `out`."""
+    seen, waiting = set(), set(start)
     while waiting:
         path = waiting.pop()
         seen.add(path)
-        waiting |= _imports(root, path) - seen
-    return tuple(sorted(seen))
+        if path not in graph:
+            graph[path] = _imports(root, path)
+        waiting |= graph[path] - seen - out
+    return seen
+
+
+def reached(root: Path, module: str = CELL) -> tuple[str, ...]:
+    """The module's file, its packages', and every file under root they reach through imports,
+    except the files that reach the module in turn: they run it, they do not judge for it, so
+    a change to a runner of the module is not a change to what it makes."""
+    if (own := _file(root, module)) is None:
+        raise ValueError(f"{module}: no module of that name under {root}")
+    graph: dict[str, set[str]] = {}
+    start = _files(root, module)
+    everything = _closure(root, graph, start, set())
+    runners = {p for p in everything - start if own in _closure(root, graph, {p}, set())}
+    return tuple(sorted(_closure(root, graph, start, runners)))
 
 
 def code_version(root: Path = ROOT, module: str = CELL) -> str:

@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import time
 from collections import Counter
 from collections.abc import Callable, Iterator, Sequence
 from concurrent.futures import Future, ProcessPoolExecutor
@@ -22,7 +23,7 @@ from contextlib import ExitStack
 from datetime import UTC, date, datetime
 from itertools import groupby
 from pathlib import Path
-from typing import Any
+from typing import Any, BinaryIO
 
 from lab import batch, cell, ladder, tape, verdict
 from lab.batch import Bars
@@ -38,6 +39,20 @@ AHEAD = 2  #: rules warmed before the one whose group is being read
 Unit = tuple[Cell, int | None]  #: a line's cell and one fold's year, or None for its whole window
 _held: dict[str, Any] = {}  #: a worker's bars and rates, set once as it starts
 _kept = ExitStack()  #: holds the worker's tape context open
+
+
+STOP = "STOP"  #: the file the runner writes in the ladder's folder to ask a pass to end
+
+
+def _asked(stop: Path, began: float) -> str | None:
+    """Why the runner asked this pass to stop, or None. A STOP older than the pass's start is
+    removed and ignored; one written after it is read and left for the pass to remove."""
+    if not stop.exists():
+        return None
+    if stop.stat().st_mtime < began:
+        stop.unlink()
+        return None
+    return stop.read_text(encoding="utf-8").strip() or "asked to stop"
 
 
 def workers() -> int:
@@ -131,6 +146,31 @@ def _read(
         yield task, asked.result()
 
 
+def _write(
+    pool: ProcessPoolExecutor,
+    tasks: Sequence[Task],
+    out: BinaryIO,
+    tally: Counter[str],
+    asking: tuple[Path, float],
+) -> str | None:
+    """Write each group's new rows as it ends; if the runner has asked, stop after that group
+    (the rows so far written), drop the unstarted warm-ups and the STOP file, and say why."""
+    for task, rows in _read(pool, tasks):
+        for made, was in zip(rows, task[3], strict=True):
+            row = was if made == was else made  #: a row kept comes back a copy: it is `was`
+            if row is not was:
+                out.write(json.dumps(row).encode() + b"\n")
+                out.flush()
+                os.fsync(out.fileno())
+            ladder._count(tally, row, was)
+        why = _asked(*asking)
+        if why:
+            pool.shutdown(wait=False, cancel_futures=True)
+            asking[0].unlink()
+            return why
+    return None
+
+
 def run(
     home: Path,
     make_bars: Callable[[], Bars],
@@ -148,6 +188,8 @@ def run(
     whole = ladder._whole(results)
     last = ladder._last(whole)
     stamp = now()
+    stop, began = home / ladder.FOLDER / STOP, time.time()
+    _asked(stop, began)  #: a stale STOP goes now, before the first unit
     tasks: list[Task] = []
     for rule, run_of in groupby(todo, key=lambda c: c.strategy):
         group = list(run_of)
@@ -161,14 +203,9 @@ def run(
     )
     with pool, results.open("ab") as out:
         out.truncate(len(whole))
-        for task, rows in _read(pool, tasks):
-            for made, was in zip(rows, task[3], strict=True):
-                row = was if made == was else made  #: a row kept comes back a copy: it is `was`
-                if row is not was:
-                    out.write(json.dumps(row).encode() + b"\n")
-                    out.flush()
-                    os.fsync(out.fileno())
-                ladder._count(tally, row, was)
+        why = _write(pool, tasks, out, tally, (stop, began))
+    if why:
+        return f"stopped after a unit: {why}"
     return (
         f"ladder set {plan.tag} on {size or workers()} cores: {len(todo)} cells, judged against "
         f"{count} trials: {tally['judged']} judged now, {tally['kept']} kept from before, "

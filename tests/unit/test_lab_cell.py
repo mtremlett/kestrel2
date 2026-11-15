@@ -231,3 +231,18 @@ def test_a_rungs_key_moves_with_all_its_module_reaches_the_cost_model_too(
         record.rung("lab.grid")
     with pytest.raises(ValueError, match=r"lab\.gone: no module"):
         cell.code_version(tmp_path, "lab.gone")
+
+
+def test_a_rungs_key_ignores_the_modules_that_run_it_and_moves_with_those_that_judge(
+    tmp_path: Path,
+) -> None:
+    ladder = "from lab import cell, cost\ndef go():\n    from lab import pool\n"
+    files = {"lab/__init__.py": "", "lab/cell.py": "", "lab/ladder.py": ladder, "lab/cost.py": ""}
+    pool = "from lab import ladder, sweep"
+    _tree(tmp_path, files | {"lab/pool.py": pool, "lab/sweep.py": ""})
+    before = cell.rungs(tmp_path)["lab.ladder"]
+    for runner, text in (("lab/pool.py", pool), ("lab/sweep.py", "")):
+        _tree(tmp_path, {runner: f"{text}\nZ = 2"})
+        assert cell.rungs(tmp_path)["lab.ladder"] == before, runner
+    _tree(tmp_path, {"lab/cost.py": "C = 2"})
+    assert cell.rungs(tmp_path)["lab.ladder"] != before, "a judge changed"
