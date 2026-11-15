@@ -37,7 +37,7 @@ PRETEND = {
     "a rejection": f"{NO}: 0 of 1 shares done ({NO}: rejected by the broker); {NONE}",
     "a market buy at the open, its stop resting": f"{ID.format(1)}: 1 of 1 shares done; fills: "
     f"{ID.format(1)} +1 at 110; held: VUAG 1; stops: VUAG 1",
-    "a sale, the stop cancelled": f"{ID.format(2)}: 1 of 1 shares done; fills: "
+    "a sale, the stop cancelled first": f"{ID.format(2)}: 1 of 1 shares done; fills: "
     f"{ID.format(2)} -1 at 110; held: none; stops: none",
     "a buy of the desk's size, a part fill if given": f"{ID.format(3)}: 18 of 18 shares done; "
     f"fills: {ID.format(3)} +18 at 110; held: VUAG 18; stops: VUAG 18",
