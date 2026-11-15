@@ -11,8 +11,9 @@ placed it, so neither desk takes the other's fills into its ledger or cancels it
 
 THE STEPS (`_steps`), on the venue's plain line that traded the most money in its last
 session: a rejection (one share of a line the instrument master says no retail customer may
-buy); a market buy of one share, its stop resting; its sale, the stop cancelled; a buy of
-the desk's own size (a part fill, if given, shows in its fills); that buy's stop made to sell
+buy); a market buy of one share, its stop resting; its sale, the stop cancelled first
+(R-MONEY-17: no sale goes while a stop rests); a buy of the desk's own size (a part fill,
+if given, shows in its fills); that buy's stop made to sell
 (the real one is put above the market, `_raised`; the pretend one's market falls to it); and
 the account left as found. A step that fails is recorded as failed, in the error's words;
 none after it is tried but the last, which puts the account back.
@@ -140,7 +141,7 @@ def _steps(run: Plan) -> tuple[tuple[str, Callable[[Side], str | None]], ...]:
     return (
         ("a rejection", lambda side: _send(side, run.refusal)),
         ("a market buy at the open, its stop resting", lambda side: _send(side, run.first)),
-        ("a sale, the stop cancelled", lambda side: _send(side, run.sale)),
+        ("a sale, the stop cancelled first", lambda side: _send(side, run.sale)),
         ("a buy of the desk's size, a part fill if given", lambda side: _send(side, run.second)),
         ("the stop triggered", lambda side: side.fall(run.second)),
         ("the account left as found", lambda side: _leave(side, run)),
