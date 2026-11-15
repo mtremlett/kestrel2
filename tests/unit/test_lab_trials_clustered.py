@@ -4,6 +4,7 @@ learning methods", 2019)."""
 
 from __future__ import annotations
 
+from inspect import Parameter, signature
 from pathlib import Path
 
 import numpy as np
@@ -181,5 +182,7 @@ def test_the_deflated_bar_is_set_by_the_clustered_set() -> None:
         deflated.read(luck.correct([WINNER], 48), fifty)
     with pytest.raises(ValueError, match="VUSA.*not a trial this set was clustered from"):
         deflated.read(corrected, trials.clusters(_set(strangers), 0))
+    #: whether the set is clustered is said by the caller, never left out (LAD-09)
+    assert signature(deflated.read).parameters["looks"].default is Parameter.empty
     #: a trial with no Sharpe has none against any set
     assert deflated.read(luck.correct([_bell(9, 0, 1)], 49), fifty)[0].bar is None
