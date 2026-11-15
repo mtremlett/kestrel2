@@ -3,6 +3,7 @@ not run with theirs, and the one rule over them (`lab/ladder.py` holds the spec 
 
 from __future__ import annotations
 
+import random
 from collections.abc import Sequence
 from decimal import Decimal
 from typing import Any
@@ -11,7 +12,7 @@ from desk.command import CAPITAL
 from desk.lines import Line
 from desk.orders import Settings
 from desk.store import Bar
-from lab import cell, deflated, folds, luck, market, reproduce, rung, shuffle
+from lab import cell, deflated, folds, luck, market, reproduce, rung, shuffle, trials
 from lab.cell import Cell
 from lab.deflated import Deflated
 from lab.reproduce import Reproduction
@@ -20,6 +21,8 @@ from lab.rung import Answer, Rates, Verdict
 #: The rules trade a line five to ten times a year and a fold is asked for thirty trades: so
 #: the window in three parts, two of them folds, each a trial the luck rung counts.
 FOLDS = 2
+#: Draws of the judged trades' pounds for the resampled drawdowns: they measure, never gate.
+RESAMPLES = 1000
 #: Rungs that are built and that this set cannot yet be run through, each with why.
 UNRUN = {
     "regime": "the weather that names each day's regime is not built (REG-01)",
@@ -90,9 +93,34 @@ def judge(
     return {
         "trades": len(verdict.trades),
         "rungs": {name: [answer.name, reason] for name, (answer, reason) in rungs.items()},
+        "drawdown": drawdowns([t.gross - t.costs.total for t in verdict.trades], trials.name(c)),
         "unrun": unrun,
         "every": all(answer is Answer.PASS for answer, _ in rungs.values()),
     } | ({"answer": deflated.rule(named).name} if len(named) == len(deflated.NAMED) else {})
+
+
+def drawdowns(pounds: Sequence[Decimal], name: str) -> dict[str, float]:
+    """The judged trades' pounds drawn again with replacement, as many as were judged,
+    RESAMPLES times from the trial's name; each draw's deepest fall from a high of the
+    capital's pounds is taken as a part of the capital. Their median and 95th percentile,
+    as plain numbers for the results file."""
+    if not pounds:
+        return {}
+    rng = random.Random(name)  # noqa: S311 - a repeatable draw, not a secret
+    falls: list[Decimal] = []
+    for _ in range(RESAMPLES):
+        equity = peak = CAPITAL
+        deepest = Decimal(0)
+        for won in rng.choices(pounds, k=len(pounds)):
+            equity += won
+            peak = max(peak, equity)
+            deepest = max(deepest, peak - equity)
+        falls.append(deepest / CAPITAL)
+    falls.sort()
+    return {
+        "median": float(falls[(RESAMPLES - 1) // 2]),
+        "p95": float(falls[(RESAMPLES - 1) * 95 // 100]),
+    }
 
 
 def _unstepped(line: Line, own: Sequence[Bar], pounds: Rates) -> None:
