@@ -150,6 +150,22 @@ def test_a_run_skips_what_is_kept_and_judges_again_only_what_has_changed(tmp_pat
     assert "1 judged now, 2 kept" in run(tmp_path, _door(book), pounds, more)
 
 
+def test_a_short_line_is_judged_on_its_proxys_longer_bars_and_says_so(tmp_path: Path) -> None:
+    vuag = next(line for line in LINES if line.symbol == "VUAG")
+    pounds = {bar.day: Decimal("0.8") for bar in EDGE}
+    book = {vuag: EDGE[1500:], SPY: EDGE, ISF: NOISE}  #: VUAG began 1,500 days after SPY
+    ladder.run(tmp_path, _door(book), pounds, _set(vuag, VUSA))
+    short, plain = _rows(tmp_path)  #: VUSA has no proxy; VUAG's cell stays VUAG, never SPY
+    assert short["cell"][1] == "VUAG" and short["proxy"] == "proxy: SPY for VUAG"
+    assert short.get("error") is None, short
+    assert short["from"] == EDGE[0].day.isoformat() and "proxy" not in plain
+    book[vuag] = EDGE  #: no shorter than its proxy: judged on its own bars, no label
+    ladder.run(tmp_path / "own", _door(book), pounds, _set(vuag))
+    assert "proxy" not in _rows(tmp_path / "own")[0]
+    said = ladder._said(short)[1]
+    assert said.startswith("proxy: SPY for VUAG <br>")
+
+
 def test_every_trial_is_counted_before_any_is_run_and_the_count_never_begins_again(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
