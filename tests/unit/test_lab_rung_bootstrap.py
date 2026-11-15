@@ -6,6 +6,8 @@ from __future__ import annotations
 
 import math
 from collections.abc import Callable, Sequence
+from dataclasses import replace
+from datetime import timedelta
 from decimal import Decimal
 from pathlib import Path
 
@@ -14,31 +16,29 @@ import pytest
 from numpy.lib.stride_tricks import sliding_window_view
 from test_lab_rung import AAPL, VUSA, _walk
 
+from desk.command import CAPITAL
+from desk.orders import Settings
 from desk.store import Bar
-from lab import cell, rung_bootstrap, tape
+from lab import cell, rung, rung_bootstrap, tape
 from lab.cell import Cell, Record
 from lab.rung import Answer
-from lab.rung_bootstrap import RATE, share
+from lab.rung_bootstrap import RATE, Redrawn, redrawn
 
 DAYS, CELLS = 1500, 500  #: six years of days to a cell, and the cells of noise
 Rung = Callable[[Sequence[float], int], bool]  #: a cell's days and its seed: passed, or not
 #: THE POWER CURVE, recorded: the part passed of 3,000 cells whose mean was planted 1, 2.5 and
-#: 4 of its own standard errors above nothing (0.174, 0.719, 0.978); of 3,000 of plain noise
-#: 0.024 passed, of noise in runs of five days 0.032, and by single days 0.22 of those
+#: 4 of its own standard errors above nothing (0.174, 0.719, 0.978). Of 3,000 cells of plain
+#: noise 0.024 passed; of noise in runs of 5 days 0.032, of 20 days 0.06, of 60 days 0.15
 POWER = {1.0: 0.17, 2.5: 0.72, 4.0: 0.98}
 
 
 def _real(days: Sequence[float], seed: int) -> bool:
-    return share(days, seed) <= RATE
+    """The rung's own decision, the one `judge` gives."""
+    return redrawn(days, seed).answer is Answer.PASS
 
 
 def _inverted(days: Sequence[float], seed: int) -> bool:
     return not _real(days, seed)
-
-
-def _single(days: Sequence[float], seed: int) -> bool:
-    """Blocks of one day: the Monte Carlo rung's single draws, which this rung must not be."""
-    return share(days, seed, block=1) <= RATE
 
 
 def _cells(seed: int, edge: float = 0, run: int = 1, count: int = CELLS) -> list[list[float]]:
@@ -76,25 +76,35 @@ def test_a_planted_edge_passes_and_five_hundred_noise_cells_pass_at_about_the_st
     _proof(_real)
 
 
-@pytest.mark.parametrize(("broken", "caught"), [(_inverted, "planted edge"), (_single, "in runs")])
+@pytest.mark.parametrize(
+    ("broken", "block", "caught"), [(_inverted, 20, "edge"), (_real, 1, "runs")]
+)
 def test_a_broken_copy_of_the_rung_is_caught(
-    broken: Rung, caught: str, monkeypatch: pytest.MonkeyPatch
+    broken: Rung, block: int, caught: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """Its decision inverted; and blocks of one day, the Monte Carlo rung's single draws."""
     monkeypatch.setattr(rung_bootstrap, "DRAWS", 500)  #: enough to catch it, and short
+    monkeypatch.setattr(rung_bootstrap, "BLOCK", block)
     with pytest.raises(AssertionError, match=caught):
         _proof(broken)
-
-
-def test_a_block_that_runs_off_the_end_goes_on_from_the_start() -> None:
-    #: blocks of two of these days make 2, -2, -2 and, round the end, 2: so a history of two
-    #: blocks makes nothing or loses three times in four (were the end to stop it, 15 in 16)
-    assert share([3, -1, -1, -1], seed=1, block=2) == pytest.approx(0.75, abs=0.03)
 
 
 def test_the_power_at_three_sizes_of_edge_is_the_curve_recorded() -> None:
     for edge, part in POWER.items():
         low, high = _about(200, part)
         assert low <= _passed(_real, _cells(4, edge, count=200)) <= high, f"an edge of {edge}"
+
+
+def test_under_thirty_blocks_is_thin_and_a_block_off_the_end_goes_on_from_the_start(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    coin = [0.01, -0.01] * 300
+    assert redrawn(coin[1:], 1) == Redrawn(599, None, Answer.THIN), "a day short of thirty blocks"
+    assert redrawn(coin, 1) == Redrawn(600, 1.0, Answer.FAIL), "making nothing is not earning"
+    monkeypatch.setattr(rung_bootstrap, "BLOCK", 2)
+    #: blocks of two of these days make 2, -2, -2 and, round the end, 2: so a history of two
+    #: blocks makes nothing or loses three times in four (were the end to stop it, 15 in 16)
+    assert rung_bootstrap.share([3, -1, -1, -1], seed=1) == pytest.approx(0.75, abs=0.03)
 
 
 def test_the_rung_reads_the_cells_tape_and_is_keyed_by_the_tape_this_code_and_the_rates(
@@ -109,20 +119,29 @@ def test_the_rung_reads_the_cells_tape_and_is_keyed_by_the_tape_this_code_and_th
 
     won = rung_bootstrap.judge(tape.kept(tmp_path, never)(c, edge), edge, {})
     assert won.answer is Answer.PASS and won.share is not None and won.share <= RATE
+    trades = rung.judge(made, edge, Settings(CAPITAL), {}).trades
+    span = [bar for bar in edge if trades[0].held[0] <= bar.day <= trades[-1].held[1]]
+    assert won.days == len(span), "its days: from its first judged buy's fill to its last sale's"
     none = cell.run(Cell(c.strategy, VUSA, noise[0].day, noise[-1].day), noise)
     lost = rung_bootstrap.judge(none, noise, {})
     assert lost.answer is Answer.FAIL and lost.share is not None and RATE < lost.share < 1
     assert lost == rung_bootstrap.judge(none, noise, {}), "a cell judged again is drawn the same"
+    other = cell.run(Cell(c.strategy, VUSA, noise[0].day - timedelta(1), noise[-1].day), noise)
+    again = rung_bootstrap.judge(other, noise, {})
+    assert (again.days, again.answer) == (lost.days, lost.answer), "the same days, by another name"
+    assert again.share != lost.share, "each cell has a draw of its own"
     young = cell.run(Cell(c.strategy, VUSA, c.start, edge[400].day), edge)
-    assert rung_bootstrap.judge(young, edge, {}) == rung_bootstrap.Redrawn(0, None, Answer.THIN)
+    assert rung_bootstrap.judge(young, edge, {}) == Redrawn(0, None, Answer.THIN)
     key, rate = rung_bootstrap.key, {edge[5].day: Decimal("0.8")}
     dollars = Record(cell.key(Cell(c.strategy, AAPL, c.start, c.end), edge), 0, ())
-    keys = [key(made, {}), key(young, {}), key(dollars, {}), key(dollars, rate)]
-    assert key(made, rate) == keys[0] and len(set(keys)) == 4, "a pound line reads no rate"
+    engine, bars = replace(made.key, code="another engine"), replace(made.key, data="other bars")
+    parts = [made, young, dollars, Record(engine, 0, ()), Record(bars, 0, ())]
+    keys = [key(one, {}) for one in parts] + [key(dollars, rate)]
+    late = rate | {c.end + timedelta(1): Decimal("0.9")}  #: a day after the window prices nothing
+    assert key(made, rate) == keys[0] and key(dollars, late) == keys[-1] and len(set(keys)) == 6
     monkeypatch.setitem(cell.RUNGS, rung_bootstrap.ME, "this module edited")
     keys += [key(made, {})]
     monkeypatch.setattr(tape, "rule_code", lambda _: "the rule edited")
-    assert len({*keys, key(made, {})}) == 6, "this module's code and the tape's parts are in it"
-    monkeypatch.setattr(rung_bootstrap, "BLOCK", 400)
-    thin = rung_bootstrap.judge(made, edge, {})
-    assert (thin.days, thin.share, thin.answer) == (won.days, None, Answer.THIN), "too few blocks"
+    keys += [key(made, {})]
+    monkeypatch.setattr(np, "__version__", "another numpy")  #: whose draws need not be the same
+    assert len({*keys, key(made, {})}) == 9, "this code, the rule's and the drawing's are in it"

@@ -5,16 +5,21 @@ The first rung's standard errors take each trade for a draw of its own. A rule's
 the good and the bad come in runs. This rung keeps the runs. The rule's days (each day's gain
 after every cost, as a part of the pounds its trade took: `market.daily`), from its first
 judged trade's buy to its last one's sale, are taken in blocks of BLOCK days in a row, a block
-that runs off the end going on from the start, and DRAWS histories as long are made of blocks
-drawn with replacement. THE SHARE is the part of those histories that made nothing or lost.
-The rung PASSES a share of at most RATE: of rules with no edge about RATE pass, its stated
-rate. It gates. The Monte Carlo rung (`lab/montecarlo.py`) draws single trades and only
-measures; blocks of one day would be that rung again, and pass noise that comes in runs.
+that runs off the end going on from the start, and DRAWS histories are made of whole blocks
+drawn with replacement, as many as cover the days. THE SHARE is the part of those histories
+that made nothing or lost, and the rung PASSES a share of at most RATE. It gates. The Monte
+Carlo rung (`lab/montecarlo.py`) draws single trades and only measures; blocks of one day
+would be that rung again.
+
+ITS STATED RATE is RATE: of rules with no edge, about that part pass, WHILE THEIR RUNS ARE
+SHORTER THAN A BLOCK. Measured over 3,000 edgeless cells of 1,500 days: 0.024 of plain noise
+passed, 0.03 of noise in runs of five days, 0.06 in runs of twenty, 0.15 in runs of sixty. A
+rule whose luck lasts for months is the folds' and the regimes' to catch, not this rung's.
 
 IT READS THE TAPE (`lab/tape.py`): it is handed a cell's record, the trades a tape holds, and
 simulates nothing. KEYED (`key`) by what keys the tape (the rule's code, the engine's, the
 bars, the window), by this module's code and all it reaches (the cost model and the capital
-with it), and by each day's rate for a line not in pounds: change any and it is drawn again.
+with it), by the numpy that draws, and by each day's rate for a line not in pounds.
 
 FAILING FAIRLY (LAD-06). Where the first rung found too few trades, or none, the answer is the
 first rung's and nothing is drawn; days too few to fill BLOCKS blocks are THIN, never a fail.
@@ -43,7 +48,7 @@ ME = "lab.rung_bootstrap"  #: this module as the cell knows it
 BLOCK = 20  #: days in a row to a block: a month of sessions, longer than most trades are held
 BLOCKS = 30  #: the fewest blocks of days to draw from, as the first rung asks thirty trades
 DRAWS = 5_000
-RATE = 0.025  #: the stated rate, one in forty: the first rung's two standard errors, one side
+RATE = 0.025  #: the stated rate, one in forty: 1.96 standard errors on one side
 
 
 @dataclass(frozen=True)
@@ -55,14 +60,23 @@ class Redrawn:
     answer: Answer  #: PASS or FAIL; THIN or FAULT where there was too little to draw
 
 
-def share(returns: Sequence[float], seed: int, block: int = BLOCK) -> float:
-    """The part of DRAWS histories, each of whole blocks of `block` of the days in a row drawn
+def share(returns: Sequence[float], seed: int) -> float:
+    """The part of DRAWS histories, each of whole blocks of BLOCK of the days in a row drawn
     with replacement, that made nothing or lost."""
     days = np.asarray(returns, dtype=float)
-    wrapped = np.take(days, np.arange(len(days) + block - 1), mode="wrap")
-    sums = sliding_window_view(wrapped, block).sum(axis=1)  #: each block's gain, by its first day
-    drawn = np.random.default_rng(seed).integers(0, len(days), (DRAWS, -(-len(days) // block)))
+    wrapped = np.take(days, np.arange(len(days) + BLOCK - 1), mode="wrap")
+    sums = sliding_window_view(wrapped, BLOCK).sum(axis=1)  #: each block's gain, by its first day
+    drawn = np.random.default_rng(seed).integers(0, len(days), (DRAWS, -(-len(days) // BLOCK)))
     return float((sums[drawn].sum(axis=1) <= 0).mean())
+
+
+def redrawn(returns: Sequence[float], seed: int) -> Redrawn:
+    """THE RUNG'S ONE DECISION, on a rule's days in their order: THIN under BLOCKS blocks of
+    them, else PASS on a share of at most RATE and FAIL on more."""
+    if len(returns) < BLOCKS * BLOCK:
+        return Redrawn(len(returns), None, Answer.THIN)
+    part = share(returns, seed)
+    return Redrawn(len(returns), part, Answer.PASS if part <= RATE else Answer.FAIL)
 
 
 def judge(
@@ -75,19 +89,15 @@ def judge(
     c = record.key.cell
     made = market.daily(first.trades, cell.shown(c, bars), c.line, rates)
     begun, ended = min(made), max(made)  #: its first judged buy's fill, and its last sale's
-    held = [bar.day for bar in bars if begun <= bar.day <= ended]
-    if len(held) < BLOCKS * BLOCK:
-        return Redrawn(len(held), None, Answer.THIN)
-    seed = int(hashlib.sha256(str(c).encode()).hexdigest()[:16], 16)
-    part = share([float(made.get(day, 0)) for day in held], seed)
-    return Redrawn(len(held), part, Answer.PASS if part <= RATE else Answer.FAIL)
+    days = [float(made.get(bar.day, 0)) for bar in bars if begun <= bar.day <= ended]
+    return redrawn(days, int(hashlib.sha256(str(c).encode()).hexdigest()[:16], 16))
 
 
 def key(record: Record, rates: Rates) -> str:
-    """What made the answer: the parts of the tape's key, this module's code with them, and
-    the rates a line not in pounds is priced at."""
+    """What made the answer: the parts of the tape's key, this module's code with them, the
+    numpy whose draws they are, and the rates a line not in pounds is priced at."""
     made, c = record.key, record.key.cell
     days = sorted(day for day in rates if day <= c.end and c.line.currency != "GBP")
-    parts = [tape.rule_code(c.strategy), made.rung(ME).code, made.data, str(c)]
+    parts = [tape.rule_code(c.strategy), made.rung(ME).code, made.data, str(c), np.__version__]
     parts += [f"{day} {rates[day]}" for day in days]
     return hashlib.sha256("\n".join(parts).encode()).hexdigest()
