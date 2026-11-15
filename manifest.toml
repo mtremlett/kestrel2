@@ -125,4 +125,5 @@ rungs = []
 "lab/bets.py" = "the book's concentration: its number of independent bets from how its lines move together, and its profit split by correlated cluster"
 "lab/ladder.py" = "the ladder's first set: one command that takes every published rule on every line through every rung built, keeps each answer with its reason and its count of trials, skips what is kept, and ends with one line of counts"
 "lab/ladder_sets.py" = "the ladder's sets as a command: set EPON, every eponymous rule on every line the store holds, judged by the cell engine of lab/ladder.py, its table written PRE-REVIEW, and the door of `python -m lab.ladder`"
+"lab/ladder_pool.py" = "the ladder on all the PC's cores: its cells judged in a process pool of below-normal workers, grouped by rule, the rows the serial run's rows in its order, written by the parent alone; a worker's break is that cell's row"
 "lab/verdict.py" = "the ladder's verdict on one cell: every rung's answer with its reason, the shuffle run last and only on a trial that passed the rest, and the one rule over them"

@@ -13,12 +13,12 @@ from __future__ import annotations
 import sys
 from collections.abc import Callable, Mapping, Sequence
 from datetime import UTC, datetime
-from functools import cache, lru_cache
+from functools import cache, lru_cache, partial
 from pathlib import Path
 
 from desk.lines import Line
 from desk.store import Bar
-from lab import batch, sweep, trials, universe, verdict
+from lab import batch, ladder, ladder_pool, sweep, trials, universe, verdict
 from lab.batch import Bars
 from lab.cell import Cell
 from lab.ladder import END, FOLDER, START, Plan, _last, _whole, eponymous, rates, run, stored
@@ -34,12 +34,13 @@ def epon(
     lines: Sequence[Line],
     now: Callable[[], datetime] = lambda: datetime.now(UTC),
     rules: Sequence[str] | None = None,
+    go: Callable[..., str] = run,
 ) -> str:
     """Set EPON: each rule on each line, judged and kept, then its table written: the counts
     line and `SET EPON: <n> rules, <passed> passed, table <path>`."""
     rules = eponymous() if rules is None else rules
     todo = tuple(Cell(rule, line, START, END) for rule in rules for line in lines)
-    counts = run(home, bars, pounds, todo, now, EPON)  #: a rule's lines together: its pool once
+    counts = go(home, bars, pounds, todo, now, EPON)  #: a rule's lines together: its pool once
     count = trials.count(home / FOLDER / f"{EPON.stem}.trials.jsonl", EPON.question)
     last = _last(_whole(home / FOLDER / f"{EPON.stem}.jsonl"))
     rows = [last[tuple(batch.row(c))] for c in todo]
@@ -48,22 +49,42 @@ def epon(
     return f"{counts}\nSET {EPON.tag}: {len(rules)} rules, {passed} passed, table {table}"
 
 
+def first_bars(home: Path) -> Bars:
+    """The first set's bars, as a worker makes them for itself."""
+    return cache(stored(home))
+
+
+def store_bars(home: Path) -> Bars:
+    """The research store's bars to the window's end, as a worker makes them for itself."""
+    store = home / "grid" / "store"  #: the research store, one folder to a venue
+
+    def read(line: Line) -> Sequence[Bar]:
+        return [bar for bar in universe.read(store, line).bars if bar.day <= END]
+
+    return lru_cache(maxsize=4)(read)
+
+
+def _pooled(make: Callable[[], Bars]) -> Callable[..., str]:
+    """`run` on the pool, the bars made in each worker by `make`."""
+    return lambda home, _, pounds, todo, now, plan: ladder_pool.run(
+        home, make, pounds, todo, now, plan
+    )
+
+
 def main(env: Mapping[str, str], argv: Sequence[str] = ()) -> int:
-    """Set EPON on every line the research store holds; `first` runs the first set instead."""
+    """Set EPON on every line the research store holds; `first` runs the first set instead.
+    Both run on the pool (R-RUNNER-110): every core but two."""
     if not env.get("KESTREL2_DATA"):
         sys.exit("ladder: KESTREL2_DATA names no data folder, so the set has no home")
     home = Path(env["KESTREL2_DATA"])
     if list(argv) not in ([], ["first"]):
         sys.exit(f"ladder: {list(argv)} is no set; the command takes nothing, or `first`")
     if argv:
-        sys.stdout.write(run(home, cache(stored(home)), rates(home=home)) + "\n")
+        todo, make = ladder.cells(), partial(first_bars, home)
+        sys.stdout.write(ladder_pool.run(home, make, rates(home=home), todo) + "\n")
         return 0
-    store = home / "grid" / "store"  #: the research store, one folder to a venue
-
-    def read(line: Line) -> Sequence[Bar]:  #: the line's bars to the window's end
-        return [bar for bar in universe.read(store, line).bars if bar.day <= END]
-
-    sys.stdout.write(
-        epon(home, lru_cache(maxsize=4)(read), rates(home=home), sweep.held(store)) + "\n"
-    )
+    make = partial(store_bars, home)
+    store = home / "grid" / "store"
+    said = epon(home, make(), rates(home=home), sweep.held(store), go=_pooled(make))
+    sys.stdout.write(said + "\n")
     return 0
