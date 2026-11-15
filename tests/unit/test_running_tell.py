@@ -23,7 +23,7 @@ def test_a_broker_that_disagrees_after_an_order_has_gone_reaches_him_once_naming
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     desk, post = _desk(tmp_path, IITU=DIP)
-    today = Bar(MON.date(), *[Decimal(36)] * 4, 1)
+    today = Bar(MON.date(), Decimal(36), Decimal(36), Decimal(36), Decimal(36), 1)
     broker = Pretend({IITU: (*DIP, today)}, {})
     broker.open(MON.date())
     place = broker.place
