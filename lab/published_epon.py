@@ -1,4 +1,5 @@
-"""published_epon - THE EPONYMOUS RULES' PUBLICATIONS: each rule of `desk/eponymous_*.py` with
+"""published_epon - THE EPONYMOUS RULES' PUBLICATIONS (fifteen of the twenty so far; the other
+five wait on a second step, the size cap): each rule of `desk/eponymous_*.py` with
 its author and work as its module's docstring states them, and its known answers: the series
 and trades its own known-answer test holds, worked by hand from the rule's own words. Held
 to them by `lab.published.proven`, exactly as the desk's five are; a rule with nothing
@@ -49,15 +50,8 @@ _DARVAS = [  #: high, low, close per session
 _QUIET: Spec = [("101", "100", "100", 1000)] * 50  #: Zanger: fifty quiet sessions
 _BREAKS: Spec = [("102", "102", "102", 1000), ("103", "103", "103", 2000)]
 _CLIMB: Spec = [("104", "104", "104", 1000), ("105", "105", "105", 1000), ("90", "90", "90", 1000)]
-_FLAT = ("111", "109", "110", 1)  #: Raschke: a flat session
-_RASCHKE: Spec = [
-    ("101", "99", "100", 1), *[_FLAT] * 19,
-    ("106", "98", "105", 1), ("107", "100", "106", 1), ("98", "96", "97", 1),
-]  # fmt: skip
 _RISE = [str(_D(100) + _D("0.2") * n) for n in range(260)]  #: Minervini's year of climbing
 _AFTER = [str(_D(_RISE[-1]) + _D(x)) for x in ("2", "2.2", "2.4", "2.6", "2.8")]
-_ENDS = [*range(100, 116), 90, 80, *[80] * 10, 95, 95, 95]  #: Antonacci's month-ends
-_WEEK = [*[100] * 5, *[99] * 5, 98, 97, *range(100, 108)]  #: Jegadeesh's losing weeks
 
 EPONYMOUS_PUBLISHED: Mapping[str, Published] = {
     "donchian_channel_breakout": Published(
@@ -261,73 +255,6 @@ EPONYMOUS_PUBLISHED: Mapping[str, Published] = {
                 "265 closes at 100, far under the 50-day average: sell",
                 [*_RISE, *_AFTER, 100],
                 ((260, 265),),
-            ),
-        ),
-    ),
-    "dual_momentum": Published(
-        "Antonacci, Dual Momentum Investing (2014): hold while the trailing 12-month return "
-        "beats the bill rate (absolute momentum), decided at the month-end",
-        (
-            _months(
-                _ENDS,
-                1000,
-                "month k decides on its month-end against that 12 months before: month 13 "
-                "buys (112 over 100), month 17 sells (90 under 104), month 29 buys (95 over "
-                "90); a bar at an absurd price on each first heeds nothing",
-                ((26, 34), (58, None)),
-            ),
-        ),
-    ),
-    "raschke_swing": Published(
-        "Raschke and Connors, Street Smarts (1995): Turtle Soup, a failed new 20-day low "
-        "bought, a close under the buying day's low sold",
-        (
-            _daily(
-                _RASCHKE,
-                ((20, 22),),
-                "day 0 sets the 20-day low of 99; 20 undercuts it (98) and closes back over: "
-                "buy. 21 holds; 22 closes 97, under the buying day's low of 98: sell",
-            ),
-        ),
-    ),
-    "weekly_reversal_jegadeesh": Published(
-        "Jegadeesh, Evidence of Predictable Behavior of Security Returns, Journal of Finance "
-        "45(3) (1990): buy the loser of the week, hold five sessions",
-        (
-            known(
-                "100 five days, then 99: under day 0's 100, a losing week: buy on 5; held five "
-                "sessions, sell on 10; 98 is under 99 but a rule that has just sold waits a "
-                "day: buy on 11 (97 under 99); sell on 16; then closes rise",
-                _WEEK,
-                ((5, 10), (11, 16)),
-                reach="0",
-            ),
-        ),
-    ),
-    "weinstein_stage": Published(
-        "Weinstein, Secrets for Profiting in Bull and Bear Markets (1988): a break above a "
-        "rising 30-week average bought, a close under it sold",
-        (
-            known(
-                "150 flat days fill the 150-day average; 110 to 114 lift it. On 154 it is "
-                "above its value on 149 and the close above it: buy. 115 holds; 50 closes "
-                "under the average: sell on 156",
-                [*[100] * 150, 110, 111, 112, 113, 114, 115, 50],
-                ((154, 156),),
-                reach="1",
-            ),
-        ),
-    ),
-    "williams_r": Published(
-        "Williams, How I Made One Million Dollars Last Year Trading Commodities (1973): %R "
-        "over 10 days at -90 or lower bought, at -10 or higher sold",
-        (
-            known(
-                "nine days at 100 then 90: range 89 to 101, %R -91.7: buy on 9. Then 100: %R "
-                "-8.3: sell on 10",
-                [*[100] * 9, 90, 100, 100],
-                ((9, 10),),
-                reach="1",
             ),
         ),
     ),

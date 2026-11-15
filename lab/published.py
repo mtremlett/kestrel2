@@ -35,7 +35,7 @@ rule's own line works and does not keep (the RSI's last ratio, a band's two devi
 its average) and Supertrend's carried band, which no table here prints, are left to the
 known answers above and the strategies' contract test.
 
-A series is its closes (`lab/published_case.py`); bars are counted from 0. The twenty
+A series is its closes (`lab/published_case.py`); bars are counted from 0. The
 eponymous rules of `desk/eponymous_*.py` are written down the same way in
 `lab/published_epon.py`, their own book: the ladder's first set is the desk's five.
 """
