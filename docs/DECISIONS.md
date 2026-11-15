@@ -1925,3 +1925,23 @@ without a matching desk cut, or a hold to Tuesday: "for research, set to 12000 a
 iteratively refactor later". The refactor is owed: the rung registry, consolidation and the
 fan-in guard's split cards are expected to shrink the lab, and retire-epon deletes 1,593 desk
 lines.
+
+## R-RUNNER-180 - the paper Gateway's wait, measured (Sun 15 Nov 2026, PAPER lane)
+
+`paper.SECONDS` goes from 15 to 30, one constant for the knock and every conversation
+(`desk/paper.py`, its reason beside it). Measured read-only on port 4002 only (the knock, and
+the account read), with the Gateway already logged in and up:
+
+| case | knock | account read |
+|---|---|---|
+| warm, PC at its usual load (36 Python processes), 3 knocks | 0.004-0.013 s | 0.10 s |
+| under load: 24 busy processes (3 per core), 15 rounds | max 0.136 s | max 0.178 s |
+
+No call failed or came near the limit. A truly cold Gateway (just restarted) could not be
+timed without restarting his Gateway, which is his alone; the three step TimeoutErrors seen
+(each beside SimCity or a build) were therefore not reproduced at 15 s. Options: (a) keep 15,
+measured at under 1% of it; (b) 30, matching the Telegram door's 30 (`messenger.SECONDS`), a
+hundredfold on the worst measure; (c) 60 or more. Chosen (b): it gives a stalled PC double the
+time, and a dead Gateway is still called silent after 30 s, far inside one five-minute step,
+with no retry and no sleep. Test: `test_a_slow_first_answer_is_waited_for_and_a_silent_one_is_called_silent`
+(a stand-in answering at 20 s passes; one silent past 31 s is his).
