@@ -59,7 +59,7 @@ def lived(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, simcity.Night
 
     def watched(life: simcity._Life) -> None:
         live(life)
-        seen.extend((life, len(book.round_trips(life.desk, life.market))))
+        seen.extend((life, life.trips))
 
     with pytest.MonkeyPatch.context() as patch:
         patch.setattr(simcity, "_live", watched)
@@ -123,7 +123,7 @@ def test_the_census_names_every_part_of_the_money_path_and_the_scenarios_that_ra
         "kill.pull": simcity.KILLED,
         "kill.Killed.words": simcity.KILLED,
         "orders.Charges.total": simcity.DAY,  #: a property is a part as a method is
-        "book.round_trips": simcity.RECKONING,
+        "book.round_trips": simcity.TRIPS,
         **{f"broker.Fault.{fault.name}": simcity.FAULTS for fault in Fault},
     }
     for part, scenario in ran.items():
