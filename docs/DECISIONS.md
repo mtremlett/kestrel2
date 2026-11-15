@@ -1908,3 +1908,20 @@ His ruling, Sun 15 Nov 2026 ~16:00, in chat with the coordinator, chosen from th
 (raise to 8,000; keep 7,400 and cut first, which slips the ladder to Tuesday; hold the ladder
 to Tuesday): "Raise to 8,000". Clean-up cards (the rung registry, consolidation) are expected
 to shrink the lab again.
+
+## 15 Nov - the lab's ceiling rises from 8,000 to 12,000 lines, by his ruling
+
+In `BUDGET.json`, `lab_lines` goes from 8,000 to 12,000 for phases `3-money-paper` and
+`4-ladder`. The desk's ceiling is unchanged at 10,500. The lab is research code; the trading
+path is untouched.
+
+Why: main's lab held 7,690 lines with about 417 more riding the train, so 8,000 was full
+before the rest of LADDER READY's chain (rung-dsr, rung-folds, rung-trials-cluster,
+ladder-catalogue, spec-variants, ladder-gate, grid-chain, spec-epon's last slices,
+rung-registry, pool-unit; about 900-1,200 lines by their estimates) could land.
+
+His ruling, Sun 15 Nov 2026 ~16:30, in chat with the coordinator, offered 9,500 with or
+without a matching desk cut, or a hold to Tuesday: "for research, set to 12000 and we can
+iteratively refactor later". The refactor is owed: the rung registry, consolidation and the
+fan-in guard's split cards are expected to shrink the lab, and retire-epon deletes 1,593 desk
+lines.
