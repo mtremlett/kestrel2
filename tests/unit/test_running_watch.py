@@ -33,7 +33,7 @@ def test_every_step_looks_at_the_market_first_and_london_waits_for_its_first_bar
     assert not running.notes(tmp_path) and not book.fills(tmp_path)
     (call,) = look.call_args_list
     assert call.args[:2] == (desk.root, desk.hot) and call.args[3:] == (open_, desk.post)
-    assert list(call.args[2]) == list(desk.held.return_value[0])
+    assert list(call.args[2]) == list(desk.held(open_.date())[0])
     # its first bar lands: at the next step the round is made, and the look is made before it
     with writing(desk.hot) as round_:
         round_.five(YARDSTICK, [Five(open_ - timedelta(minutes=5), *(Decimal(40),) * 4, 1)])
