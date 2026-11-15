@@ -1,5 +1,5 @@
-"""published_epon - THE EPONYMOUS RULES' PUBLICATIONS (fifteen of the twenty so far; the other
-five wait on a second step, the size cap): each rule of `desk/eponymous_*.py` with
+"""published_epon - THE EPONYMOUS RULES' PUBLICATIONS (all twenty the ladder judges; Zweig's
+is not among them): each rule of `desk/eponymous_*.py` with
 its author and work as its module's docstring states them, and its known answers: the series
 and trades its own known-answer test holds, worked by hand from the rule's own words. Held
 to them by `lab.published.proven`, exactly as the desk's five are; a rule with nothing
@@ -50,6 +50,8 @@ _DARVAS = [  #: high, low, close per session
 _QUIET: Spec = [("101", "100", "100", 1000)] * 50  #: Zanger: fifty quiet sessions
 _BREAKS: Spec = [("102", "102", "102", 1000), ("103", "103", "103", 2000)]
 _CLIMB: Spec = [("104", "104", "104", 1000), ("105", "105", "105", 1000), ("90", "90", "90", 1000)]
+_ENDS = [*range(100, 116), 90, 80, *[80] * 10, 95, 95, 95]  #: Antonacci: the month-end closes
+_SOUP = [(99, 100), *[(109, 110)] * 19, (98, 105), (100, 106), (96, 97)]  #: low, close
 _RISE = [str(_D(100) + _D("0.2") * n) for n in range(260)]  #: Minervini's year of climbing
 _AFTER = [str(_D(_RISE[-1]) + _D(x)) for x in ("2", "2.2", "2.4", "2.6", "2.8")]
 
@@ -255,6 +257,75 @@ EPONYMOUS_PUBLISHED: Mapping[str, Published] = {
                 "265 closes at 100, far under the 50-day average: sell",
                 [*_RISE, *_AFTER, 100],
                 ((260, 265),),
+            ),
+        ),
+    ),
+    "dual_momentum": Published(
+        "Antonacci, Dual Momentum Investing (2014), the absolute leg: hold while the last "
+        "month-end close beats the one twelve month-ends before, called on the next month's "
+        "first bar",
+        (
+            _months(
+                _ENDS,
+                1000,
+                "month k decides on ends[k-1] against ends[k-13]: k=13 buys (112 over 100) on "
+                "February 2021's first bar (26), k=17 sells (90 under 104) on June's (34), k=29 "
+                "buys (95 over 90) on June 2022's (58); the 1000 opens heed nothing",
+                ((26, 34), (58, None)),
+            ),
+        ),
+    ),
+    "weekly_reversal_jegadeesh": Published(
+        "Jegadeesh, Evidence of Predictable Behavior of Security Returns (1990), with the "
+        "weekly form of Lehmann (1990): a close under the close five sessions before bought, "
+        "sold after five sessions held",
+        (
+            known(
+                "five days at 100, then 99 is a losing week: buy on 5; sold after five held, on "
+                "10; 97 is still under 99: buy on 11, sell on 16; the rise after loses nothing",
+                [*[100] * 5, *[99] * 5, 98, 97, *range(100, 108)],
+                ((5, 10), (11, 16)),
+                reach="0",
+            ),
+        ),
+    ),
+    "williams_r": Published(
+        "Williams, How I Made One Million Dollars Last Year Trading Commodities (1973): %R over "
+        "ten days at -90 or lower bought, at -10 or higher sold",
+        (
+            known(
+                "nine days at 100 then 90: the range is 89 to 101, %R -91.7: buy on 9. 100 gives "
+                "-8.3: sell on 10",
+                [*[100] * 9, 90, 100, 100],
+                ((9, 10),),
+                reach="1",
+            ),
+        ),
+    ),
+    "weinstein_stage": Published(
+        "Weinstein, Secrets for Profiting in Bull and Bear Markets (1988), stage analysis: a "
+        "close over a rising 30-week (150-day) average bought, one under it sold",
+        (
+            known(
+                "150 flat days fill the average; 110 to 114 lift it. On 154 it is over its value "
+                "of a week before and the close is over it: buy. 115 holds; 50 is under it: sell "
+                "on 156",
+                [*[100] * 150, 110, 111, 112, 113, 114, 115, 50],
+                ((154, 156),),
+                reach="1",
+            ),
+        ),
+    ),
+    "raschke_swing": Published(
+        "Raschke and Connors, Street Smarts (1995), Turtle Soup: a new 20-day low set over "
+        "four sessions after the old one, closing back over it, bought; a close under the "
+        "buying day's low sold",
+        (
+            _daily(
+                [(str(c + 1), str(lo), str(c), 1000) for lo, c in _SOUP],
+                ((20, 22),),
+                "day 0 sets the 20-day low 99; day 20 undercuts it at 98 and closes back over "
+                "it: buy. 21 holds; 22 closes 97, under 98: sell",
             ),
         ),
     ),
