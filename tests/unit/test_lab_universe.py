@@ -237,10 +237,8 @@ def test_research_reads_the_longest_run_on_one_scale_and_lists_the_moves_inside_
     tmp_path: Path,
 ) -> None:
     bars = _stepped(Decimal("0.5"), 30, tuple(_stepped(Decimal("0.5"), 10)))
-    bars = _stepped(Decimal("0.5"), 50, tuple(bars))  #: a heavy fall after both, the market's
-    bars[50] = replace(bars[50], open=bars[49].close, volume=_heavy(bars, 50) * 4)
-    days, cuts = (bars[50].day, bars[51].day), (bars[10].day, bars[30].day)
-    assert _read(tmp_path, bars) == universe.History(tuple(bars[30:]), days, cuts)
+    cuts = (bars[10].day, bars[30].day)  #: moves inside a run are the within-day test above
+    assert _read(tmp_path, bars) == universe.History(tuple(bars[30:]), (), cuts)
     even = _stepped(Decimal("0.5"), 43)[1:]  #: two runs as long: the later is read
     assert len(even) == 84
     assert _read(tmp_path, even) == universe.History(tuple(even[42:]), (), (even[42].day,))
