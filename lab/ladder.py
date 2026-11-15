@@ -37,8 +37,8 @@ cell that could not be judged (a line parked or stale, too short a history for a
 day with no rate) keeps its reason, key and time of last try: tried again at once when the key
 differs, else no sooner than 30 minutes after. A line a stop cut short is cut off.
 
-THE RATES are the desk's own until the data lane keeps a rate for every day (R-RUNGS-3): each
-day's pounds per dollar comes from `desk/carry.py`, inside the bounds of `desk/command.py`.
+THE RATES are the desk's own until the data lane keeps one for every day (R-RUNGS-3): each day's
+pounds per dollar is `desk/carry.py`'s, off one table of closes kept in the home, in every key.
 
 SET EPON (R-RUNNER-81) is what `python -m lab.ladder` runs: every rule of every
 `desk/eponymous_*.py` (its code in every key) on every line the research store holds, in the
@@ -72,7 +72,7 @@ from desk.command import DOLLARS, POUND
 from desk.lines import LINES, Line
 from desk.store import Bar
 from desk.strategy import STRATEGIES, Rule
-from lab import batch, cell, published, reproduce, rulebook, sweep, trials, universe, verdict
+from lab import batch, cell, published, reproduce, rulebook, rung, sweep, trials, universe, verdict
 from lab.batch import Bars
 from lab.cell import Cell
 from lab.reproduce import Reproduction
@@ -87,7 +87,7 @@ FOLDS = verdict.FOLDS
 #: The market each venue's lines are set beside: the S&P 500 in New York, the FTSE 100 in London.
 MARKETS = {"US": "SPY", "LSE": "ISF"}
 PROXIES = {"VUAG": "SPY"}  #: a short-history line and the longer series that may stand in for it
-FOLDER, RESULTS = "ladder", "set1.jsonl"
+FOLDER, RESULTS, POUNDS = "ladder", "set1.jsonl", "pound.jsonl"  #: POUNDS: the closes table
 STATUS = "PRE-REVIEW"  #: what every table is until the blind review (R-RUNNER-40) is clean
 DESK = Path(desk.__file__).parent  #: the one list of eponymous files: this folder
 COLUMNS = ("rule", "line", "venue", "answer", "rungs", "trials", "reproduction", "goes forward")
@@ -149,19 +149,17 @@ def stored(home: Path) -> Bars:
     return bars
 
 
-def rates(ask: Callable[[Line, date], Sequence[Bar]] = archive.fetch) -> dict[date, Decimal]:
-    """Pounds per dollar for each day to the window's end, by the desk's one rule
-    (`desk/carry.py`): one over the pound's last close before the day while it is fresh, and
-    across a UK-only holiday the last London session's rate, carried. A day the rule gives
-    none, or whose last close is no pound's, has no rate, and the first rung refuses it."""
-    closes = {
-        bar.day: bar.close
-        for bar in ask(POUND, END + keeper.DAY)
-        if DOLLARS[0] < bar.close < DOLLARS[1]
-    }
-    if not closes:
-        return {}
-    first = min(closes)
+def rates(
+    ask: Callable[[Line, date], Sequence[Bar]] = archive.fetch, home: Path | None = None
+) -> dict[date, Decimal]:
+    """Pounds per dollar for each day to the window's end, by the desk's one rule (`desk/carry.py`):
+    one over the pound's last close before the day while fresh, carried across a UK-only holiday,
+    else none. With a home, asked of the archive only while the kept table lacks END."""
+    held = rung.kept_closes(
+        home and home / FOLDER / POUNDS, END, lambda: ask(POUND, END + keeper.DAY)
+    )
+    closes = {day: close for day, close in held.items() if DOLLARS[0] < close < DOLLARS[1]}
+    first = min(closes, default=END)  #: no closes, no days, no rates
     days = [first + n * keeper.DAY for n in range(1, (END - first).days + 1)]
     known = {day: rate for day in days if (rate := carry.pounds_per_dollar(closes, day))}
     return {day: rate for day in days if (rate := carry.carried(known, day))}
@@ -385,14 +383,16 @@ def main(env: Mapping[str, str], argv: Sequence[str] = ()) -> int:
     if list(argv) not in ([], ["first"]):
         sys.exit(f"ladder: {list(argv)} is no set; the command takes nothing, or `first`")
     if argv:
-        sys.stdout.write(run(home, cache(stored(home)), rates()) + "\n")
+        sys.stdout.write(run(home, cache(stored(home)), rates(home=home)) + "\n")
         return 0
     store = home / "grid" / "store"  #: the research store, one folder to a venue
 
     def read(line: Line) -> Sequence[Bar]:  #: the line's bars to the window's end
         return [bar for bar in universe.read(store, line).bars if bar.day <= END]
 
-    sys.stdout.write(epon(home, lru_cache(maxsize=4)(read), rates(), sweep.held(store)) + "\n")
+    sys.stdout.write(
+        epon(home, lru_cache(maxsize=4)(read), rates(home=home), sweep.held(store)) + "\n"
+    )
     return 0
 
 

@@ -39,10 +39,12 @@ held together are one bet, are counted here when pooling is built.
 from __future__ import annotations
 
 import enum
-from collections.abc import Mapping, Sequence
+import json
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal, localcontext
+from pathlib import Path
 
 from desk import orders
 from desk.broker import Pretend
@@ -213,3 +215,22 @@ def standard_errors(gains: Sequence[Decimal]) -> Decimal | None:
     if not spread:
         raise ValueError(f"{n} gains all of {mean}: no spread to judge them by")
     return mean / (spread / n).sqrt()
+
+
+def kept_closes(
+    table: Path | None, last: date, fetch: Callable[[], Sequence[Bar]]
+) -> dict[date, Decimal]:
+    """A line's closes as one table kept at `table` (none: not kept): `fetch` is asked only
+    while the table lacks the close of `last`, and what it brings is added to what is held."""
+    held: dict[date, Decimal] = {}
+    if table is not None and table.exists():
+        rows = map(json.loads, table.read_text(encoding="utf-8").splitlines())
+        held = {date.fromisoformat(day): Decimal(close) for day, close in rows}
+    if table is None or last not in held:
+        held = {bar.day: bar.close for bar in fetch()} | held
+    if table is not None:
+        table.parent.mkdir(parents=True, exist_ok=True)
+        lines = (json.dumps([day.isoformat(), str(close)]) for day, close in sorted(held.items()))
+        (fresh := table.with_suffix(".new")).write_text("\n".join(lines) + "\n", encoding="utf-8")
+        fresh.replace(table)
+    return held

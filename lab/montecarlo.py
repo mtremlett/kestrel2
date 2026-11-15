@@ -198,7 +198,7 @@ def _out(spread: Spread) -> list[str]:
 
 def priced(home: Path) -> Gains:
     """The gains of a job from its line's bars in the data folder and the ladder's rates."""
-    pounds = cache(ladder.rates)
+    pounds = cache(lambda: ladder.rates(home=home))
     settings = Settings(CAPITAL)
     stores = {"ladder": ladder.stored(home), "grid": batch.stored(home / "grid" / "store")}
 
