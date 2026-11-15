@@ -18,9 +18,12 @@ def test_every_send_of_the_day_carries_the_door(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     doors: list[object] = []
-    monkeypatch.setattr(
-        book, "send", lambda *a: doors.append(a[4]) or book.Sent("x", 0, None, None)
-    )
+
+    def send(*args: object) -> book.Sent:
+        doors.append(args[4])
+        return book.Sent("x", 0, None, None)
+
+    monkeypatch.setattr(book, "send", send)
     on, tell, broker = DAYS[21], print, Pretend(ARCHIVE, {})
     broker.open(on)
     before = {line: tuple(b for b in bars if b.day < on) for line, bars in ARCHIVE.items()}
