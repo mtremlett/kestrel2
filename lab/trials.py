@@ -122,14 +122,20 @@ def count(register: Path, question: str) -> int:
 def correct(register: Path, question: str, verdicts: Sequence[Verdict]) -> tuple[Corrected, ...]:
     """The luck rung's correction of these verdicts, for every trial the register holds on
     the question: the verdicts are among them, and the rest count as trials without one."""
-    known = _asked(_read(register)[0], question)
     names = [name(verdict.key.cell) for verdict in verdicts]
-    if strangers := sorted(set(names) - known):
-        raise ValueError(f"{question!r}: judged but never entered as trials: {strangers}")
+    rest = _rest(register, question, names)
     if len(set(names)) < len(names):
         twice = sorted({trial for trial in names if names.count(trial) > 1})
         raise ValueError(f"{question!r}: one trial judged twice in one set: {twice}")
-    return luck.correct(verdicts, len(known) - len(names))
+    return luck.correct(verdicts, rest)
+
+
+def _rest(register: Path, question: str, names: Iterable[str]) -> int:
+    """How many of the question's trials are not among these, each of which must be one."""
+    known, judged = _asked(_read(register)[0], question), set(names)
+    if strangers := sorted(judged - known):
+        raise ValueError(f"{question!r}: judged but never entered as trials: {strangers}")
+    return len(known) - len(judged)
 
 
 def _asked(entered: dict[str, set[str]], question: str) -> set[str]:
