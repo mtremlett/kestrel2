@@ -135,14 +135,14 @@ def _disagreed(
 ) -> Report | None:
     """THE BROKER'S WORD, FILLS AND ACCOUNT DO NOT AGREE after the order has gone (R-PAPER-11,
     Unprotected): buying is halted until he lifts it, he is told (tell), and the broker's
-    report is given, so the order is never sent again. Else None."""
+    report is given, so the order is never sent again. Else None; with no one to tell, too."""
     from desk import placing  # noqa: PLC0415 - placing reaches book through paper: a load cycle
 
-    if not isinstance(error, placing.Unprotected):
+    if tell is None or not isinstance(error, placing.Unprotected):
         return None
     words = f"{order.order_id}: the broker's word, fills and account do not agree: {error}"
     halt.call(root, datetime.now(UTC), f"{words}; no buy goes until he lifts this", by="send path")
-    tell and tell(f"disagree {order.order_id}", f"{words}. Buying is halted; sales go on.")
+    tell(f"disagree {order.order_id}", f"{words}. Buying is halted; sales go on.")
     return broker.report(order.order_id) or Report(order.order_id, (), words)
 
 
@@ -223,7 +223,7 @@ def fills(root: Path) -> tuple[Fill, ...]:
         return ()
     with path.open(newline="", encoding="utf-8") as ledger:
         rows = csv.reader(ledger)
-        if next(rows) != list(COLUMNS):
+        if next(rows, None) != list(COLUMNS):
             raise ValueError(f"{path}: not the desk's ledger")
         return tuple(
             Fill(e, o, y, int(q), Decimal(p), date.fromisoformat(d)) for e, o, y, q, p, d in rows

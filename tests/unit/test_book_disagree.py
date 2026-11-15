@@ -3,6 +3,7 @@ and the order that has gone is never sent again; a sale still goes."""
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
@@ -24,16 +25,24 @@ def test_a_place_that_disagrees_halts_buying_tells_him_once_and_a_sale_still_goe
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     bar = Bar(MON, Decimal(50), Decimal(51), Decimal(49), Decimal(51), 1)
-    broker, told = Pretend({A: (bar,)}, {}), []
+    broker, quiet, told = Pretend({A: (bar,)}, {}), Pretend({A: (bar,)}, {}), []
     broker.open(MON)
-    place = broker.place
+    quiet.open(MON)
 
-    def disagree(order: Order | Sale) -> book.Report:
-        place(order)  #: the order has gone, then the door finds the account does not agree
-        raise Unprotected("o-1: these do not agree")
+    def disagree(broker: Pretend) -> Callable[[Order | Sale], book.Report]:
+        place = broker.place
 
-    monkeypatch.setattr(broker, "place", disagree)
+        def placed(order: Order | Sale) -> book.Report:
+            place(order)  #: the order has gone, then the door finds the account does not agree
+            raise Unprotected("o-1: these do not agree")
+
+        return placed
+
+    monkeypatch.setattr(broker, "place", disagree(broker))
+    monkeypatch.setattr(quiet, "place", disagree(quiet))
     buy, room = Order("o-1", A, 10, *map(Decimal, (50, 1, 45))), Settings(Decimal(10_000))
+    with pytest.raises(book.Alarm):  #: with no one to tell, the kill switch's alarm stands
+        book.send(tmp_path / "quiet", quiet, buy, room)
     sent = book.send(tmp_path, broker, buy, room, lambda name, words: told.append((name, words)))
     assert sent.filled == 10
     assert len(halt.in_force(tmp_path)) == 1 and book.killed(tmp_path) is None
