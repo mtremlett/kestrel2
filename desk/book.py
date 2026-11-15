@@ -295,7 +295,7 @@ def differences(
     return tuple(
         Difference(name, shares, held.get(name, 0))
         for name, shares in sorted(rows)
-        if shares != held.get(name, 0) or (shares and places[name] > 1)
+        if (shares or not places[name]) and (shares != held.get(name, 0) or places[name] > 1)
     )
 
 

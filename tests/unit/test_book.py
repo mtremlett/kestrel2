@@ -319,7 +319,8 @@ def test_any_broker_stands_behind_the_send_path_its_rows_read_once_and_never_add
         ({}, [("A", Decimal("0.5"))], [("A", Decimal("0.5"), 0)]),
         #: entries that only add up to the book are two places, or a change while it was read
         ({"A": 25}, [("A", 20), ("A", 5)], [("A", 5, 25), ("A", 20, 25)]),
-        ({"A": 25}, [("A", 25), ("A", 0)], [("A", 0, 25)]),
+        ({"A": 25}, [("A", 25), ("A", 0)], []),  #: a zero beside the shares is not a difference
+        ({"A": 25}, [("A", 0), ("A", 20), ("A", 5)], [("A", 5, 25), ("A", 20, 25)]),
         ({}, [("A", 25), ("A", 0), ("A", -25)], [("A", -25, 0), ("A", 25, 0)]),
         ({"A": 25}, [("A", 25), ("A", 25)], [("A", 25, 25)] * 2),  #: fifty, in two places
         ({"A": 25}, [("A", 25), ("A", 5)], [("A", 5, 25), ("A", 25, 25)]),
