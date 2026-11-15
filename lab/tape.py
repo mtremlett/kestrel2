@@ -1,6 +1,11 @@
 """tape - THE LADDER'S EXPENSIVE STAGE, KEPT (R-RUNNER-118): a rule's trades on a line, one file
-each, keyed by what made them (rule's code, engine's, bars, window), so an edited rung runs no
-simulation. Written whole or not at all: aside, forced to disk, renamed."""
+each, keyed by what made them (rule's code, engine's, bars), so an edited rung runs no simulation.
+Written whole or not at all: aside, forced to disk, renamed.
+
+ONE SIMULATION PER LINE (R-RUNNER-169): a rule is run once on a line, from its first bar to its
+last, and every window (the first rung's, each fold's) is cut from that tape by date. A rule sees
+no bar after the one it decides on (the future-blind property test), so the cut is the record the
+window's own run would give: trades bought inside it, one still held at its end unsold."""
 
 from __future__ import annotations
 
@@ -14,7 +19,7 @@ from pathlib import Path
 
 from desk.store import Bar
 from lab import cell, rulebook
-from lab.cell import Cell, Record
+from lab.cell import Cell, Record, Trade
 
 FOLDER = "tapes"
 Run = Callable[[Cell, Sequence[Bar]], Record]
@@ -30,20 +35,38 @@ def kept(folder: Path, run: Run, code_of: Callable[[str], str] = rule_code) -> R
     """`run` with each answer kept as a tape under folder, read back when held."""
 
     def tape(c: Cell, bars: Sequence[Bar]) -> Record:
-        now = cell.key(c, bars)
-        text = f"{code_of(c.strategy)}\n{now.code}\n{now.data}\n{c}"
+        if not bars:
+            return run(c, bars)  #: the cell engine refuses it, in its own words
+        whole = Cell(c.strategy, c.line, bars[0].day, bars[-1].day)
+        now = cell.key(whole, bars)
+        text = "\n".join((code_of(c.strategy), now.code, now.data, str(whole)))
         path = folder / f"{hashlib.sha256(text.encode()).hexdigest()}.tape"
         if path.exists():  # our own file, written whole by this module
-            return Record(now, *pickle.loads(path.read_bytes()))  # noqa: S301
-        record = run(c, bars)
-        folder.mkdir(parents=True, exist_ok=True)
-        with (fresh := path.with_suffix(".new")).open("wb", buffering=0) as out:
-            out.write(pickle.dumps((record.bars, record.trades)))
-            os.fsync(out.fileno())
-        fresh.replace(path)
-        return record
+            held = Record(now, *pickle.loads(path.read_bytes()))  # noqa: S301
+        else:
+            held = run(whole, bars)
+            folder.mkdir(parents=True, exist_ok=True)
+            aside = path.with_suffix(f".{os.getpid()}.new")  #: workers of a pass may share a tape
+            with (fresh := aside).open("wb", buffering=0) as out:
+                out.write(pickle.dumps((held.bars, held.trades)))
+                os.fsync(out.fileno())
+            fresh.replace(path)
+        return _cut(c, held, bars)
 
     return tape
+
+
+def _cut(c: Cell, whole: Record, bars: Sequence[Bar]) -> Record:
+    """The record of the window c from the tape of the whole line."""
+    inside = sum(1 for bar in cell.shown(c, bars) if bar.day >= c.start)
+    if not inside:
+        raise ValueError(f"{c}: no bars in the window")
+    trades = (
+        Trade(t.bought, t.sold if t.sold is not None and t.sold <= c.end else None)
+        for t in whole.trades
+        if c.start <= t.bought <= c.end
+    )
+    return Record(cell.key(c, bars), inside, tuple(trades))
 
 
 @contextmanager
