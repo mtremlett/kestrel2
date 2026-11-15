@@ -37,6 +37,7 @@ from desk.strategy import (
     ZERO,
     Decision,
     Declared,
+    Rule,
     Timeframe,
     _run,
     _Window,
@@ -84,3 +85,6 @@ def decide(bars: Mapping[str, Sequence[Bar]]) -> tuple[Decision, ...]:
             if symbol != INDEX
             for d in _run(NAME, MansfieldRs(), symbol, _ratio_bars(series, index))
         )
+
+
+EPONYMOUS: Mapping[str, type[Rule]] = {NAME: MansfieldRs}

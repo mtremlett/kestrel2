@@ -30,13 +30,14 @@ import hashlib
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from datetime import date
+from decimal import localcontext
 from pathlib import Path
 
 from desk import strategy
 from desk.lines import LINES, Line
 from desk.store import Bar
-from desk.strategy import STRATEGIES, Action
-from lab import grid
+from desk.strategy import ARITHMETIC, STRATEGIES, Action, _run
+from lab import grid, rulebook
 
 ROOT = Path(__file__).parents[1]
 CELL = "lab.cell"  #: this module, the foot of the ladder
@@ -58,7 +59,7 @@ class Cell:
                 raise ValueError(f"{line!r} is not a line in the instrument master")
             line = found[0]
         if strategy not in STRATEGIES:
-            raise ValueError(f"no strategy is called {strategy!r}")
+            rulebook.rule(strategy)  #: refuses a name the rule book does not know
         if end < start:
             raise ValueError(f"{line.symbol} on {line.venue}: a window that ends before it starts")
         made = (("strategy", strategy), ("line", line), ("start", start), ("end", end))
@@ -177,8 +178,15 @@ def _data_version(bars: Sequence[Bar]) -> str:
 def _held(cell: Cell, bars: Sequence[Bar]) -> list[bool]:
     """Whether the rule is in the market after each bar: the grid's answer, and the desk's
     own engine's wherever the grid refuses to give one."""
+    if cell.strategy not in STRATEGIES:  #: an eponymous rule has no array form: the desk's engine
+        held: list[bool] = []
+        with localcontext(ARITHMETIC):
+            for decision in _run(cell.strategy, rulebook.rule(cell.strategy)(), cell.symbol, bars):
+                was = held[-1] if held else False
+                held.append({Action.BUY: True, Action.SELL: False}.get(decision.action, was))
+        return held
     try:
-        held: list[bool] = grid.held(cell.strategy, grid.prices(bars)).tolist()
+        held = grid.held(cell.strategy, grid.prices(bars)).tolist()
     except grid.TooClose:
         held = []
         for decision in strategy.decide({cell.symbol: bars}):
