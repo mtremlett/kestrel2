@@ -108,6 +108,7 @@ rungs = []
 
 # the rungs lane
 "lab/rung.py" = "the ladder's first rung: a cell's trades priced at the desk's fills and the broker's costs, and judged against chance"
+"lab/rung_ci.py" = "the ladder's confidence-interval rung: the mean gain of a rule's trades with its interval, judged on the whole interval above or below nothing and not on a sign"
 "lab/luck.py" = "the ladder's luck rung: every trial counted, and each verdict's chance corrected for the number of trials it was picked from"
 "lab/folds.py" = "the ladder's folds rung: a history cut into folds, each judged after costs beside the history before it, and the verdict given on the worst"
 "lab/montecarlo.py" = "the ladder's Monte Carlo rung: a trial's trades resampled, seeded, into the spread of its drawdowns and returns; it measures and never gates"
