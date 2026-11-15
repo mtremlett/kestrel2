@@ -26,7 +26,7 @@ def test_a_line_shut_out_of_an_isa_is_not_bought(
     tmp_path: Path, isa: bool | None, said: str | None
 ) -> None:
     line = replace(Line("B", "LSE", "GBP", 1), isa=isa)
-    broker = Pretend({line: (Bar(ON, 10, 10, 10, 10, 1),)}, {})
+    broker = Pretend({line: (Bar(ON, Decimal(10), Decimal(10), Decimal(10), Decimal(10), 1),)}, {})
     broker.open(ON)
     want = Decision("bollinger", "B", ON, Action.BUY)
     sent = day._buy(
