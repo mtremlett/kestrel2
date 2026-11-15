@@ -1803,3 +1803,19 @@ This lane's decisions are in `docs/lanes/grid.md`; its scribe writes there (from
 
 This lane's decisions are in `docs/lanes/rungs.md`; its scribe writes there (from
 14 November 2026, 21:04) and moves there any entry that lands below.
+
+### R-RUNNER-106 — wiring tests for the ladder's registries (RUNGS, 15 November 2026)
+
+New tests: `tests/unit/test_lab_published_wiring.py` (every eponymous rule is in the published
+book and every publication has its desk file) and `tests/unit/test_lab_ladder_wiring.py` (every
+yardstick is a line of its venue in the research list; every set names only rules the rule book
+resolves). The eponymous publications live in `lab.published_epon.EPONYMOUS_PUBLISHED`, not in
+`PUBLISHED` (the desk's five); the test reads that book. Each was driven against a planted break,
+then the break was removed:
+
+- Entry `williams_r` renamed in the published book: "in a desk/eponymous_*.py but not in the
+  published book: ['williams_r']".
+- `MARKETS["LSE"]` pointed at "XXX": "yardstick(s) {'LSE': 'XXX'} (venue: symbol) not in the
+  research list".
+- A rule "ghost_rule" added to the EPON set: "set EPON names rules the rule book lacks:
+  ['ghost_rule']" (and the published-book test names it too).

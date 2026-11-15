@@ -255,7 +255,8 @@ def cell_line(row: Row) -> list[str]:
     unrun = [f"{name} UNRUN: {why}" for name, why in row.get("unrun", {}).items()]
     own = " | ".join(row.get("reproduction") or [row.get("unrun", {}).get("reproduce", "")])
     result = f"not judged, tried again next run: {row['error']}" if "error" in row else own
-    text = " <br> ".join(filter(None, [row.get("proxy"), *rungs, *unrun])) or row.get("error", "")
+    text = " <br> ".join(filter(None, [row.get("proxy"), *rungs, *unrun]))
+    text = text or row.get("error", row.get("refused", ""))
     return [
         row.get("answer", "none"),
         text,
@@ -277,7 +278,8 @@ def write_table(
     folder.mkdir(parents=True, exist_ok=True)
     mine = by_rule(rows, rules)
     data: dict[str, object] = {"set": tag, "question": question, "status": STATUS}
-    data |= {"trials": count, "rules": [_rule(r, rs) for r, rs in mine.items()]}
+    data |= {"trials": count, "refused": sum("refused" in row for row in rows)}
+    data |= {"rules": [_rule(r, rs) for r, rs in mine.items()]}
     (folder / f"{tag}.json").write_text(json.dumps(data, indent=1), encoding="utf-8")
     out = [f"# SET {tag} - {STATUS}", "", f"{question} Judged against {count} trials.", ""]
     out += [f"{STATUS}: not final until the blind review (R-RUNNER-40) is clean.", ""]
