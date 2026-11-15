@@ -71,7 +71,7 @@ that session's objective, before its own book. The 07:00 line counts the open re
 and one open for more than a day is sent to the operator.
 
 A new module is registered in `manifest.toml` under its lane's heading. A file no lane owns
-(`check.py`, `announce.py`, the guards, `BUDGET.json`, `CLAUDE.md`, `CANON.md`,
+(`check.py`, the guards, `BUDGET.json`, `CLAUDE.md`, `CANON.md`,
 `docs/SCENES.md`, `docs/FAILURE_PATTERNS.md`, the shared parts of the documents) is changed
 only by a session the operator starts himself. A lane that needs one changed, or finds a
 new recurring failure, writes it in its STATUS section and carries on with what it can.
