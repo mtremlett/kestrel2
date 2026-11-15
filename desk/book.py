@@ -87,7 +87,7 @@ def send(root: Path, broker: Broker, order: Order | Sale, settings: Settings) ->
     report = broker.report(order.order_id)
     if report is None:
         _unless_stopped(root, order)
-        held, differ, unsure, _ = _compare(root, broker)
+        held, differ, unsure, _ = reckon(root, broker)
         if differ and (isinstance(order, Order) or order.line.symbol in unsure):
             words = f"{order.order_id}: not sent, the book is not the broker's on {list(differ)}"
             raise Stopped(Blocker.BOOK, words)
@@ -232,18 +232,27 @@ def _write(path: Path, rows: Iterable[Sequence[object]]) -> None:
     written.replace(path)
 
 
+def _revision(execution_id: str) -> tuple[str, int]:
+    """An execution id as the fill it is and which version of it: the broker corrects a fill
+    by the same id but for its last part (".01" replaced by ".02")."""
+    fill, dot, last = execution_id.rpartition(".")
+    return (fill, int(last)) if dot and last.isdigit() else (execution_id, 0)
+
+
 def _record(root: Path, new: Iterable[Fill]) -> None:
-    """Add the fills not in the ledger, under the broker's execution ids."""
-    ledger = fills(root)
-    known = {fill.execution_id for fill in ledger}
-    added = tuple(fill for fill in new if fill.execution_id not in known)
-    if added:
-        _write(root / LEDGER, [COLUMNS, *(astuple(fill) for fill in ledger + added)])
+    """Add the fills not in the ledger; a fill the broker corrects replaces its earlier version."""
+    kept = {_revision(f.execution_id)[0]: f for f in fills(root)}
+    before = dict(kept)
+    for fill in new:
+        name, version = _revision(fill.execution_id)
+        if name not in kept or version > _revision(kept[name].execution_id)[1]:
+            kept[name] = fill
+    if kept != before:
+        _write(root / LEDGER, [COLUMNS, *(astuple(fill) for fill in kept.values())])
 
 
 def collect(root: Path, broker: Broker) -> None:
-    """Write in the ledger every fill the broker gives that it lacks: a stop the broker sells
-    is in no order's answer."""
+    """Write in the ledger every fill the broker gives that it lacks (a stop sale, a correction)."""
     _record(root, broker.fills())
 
 
@@ -255,12 +264,8 @@ def reconcile(root: Path, broker: Broker) -> tuple[str, ...]:
 
 
 def reckon(root: Path, broker: Broker) -> Reckoning:
-    """The book, the lines that differ, those whose shares do, the stops that do: one reading."""
-    return _compare(root, broker)
-
-
-def _compare(root: Path, broker: Broker) -> Reckoning:
-    """The broker asked once each for its fills, its stops and its holdings, in that order:
+    """The book, the lines that differ, those whose shares do, the stops that do: one reading.
+    The broker asked once each for its fills, its stops and its holdings, in that order:
     the book, the names on which it is not the broker's, those whose shares differ, and the
     stops that are not the book's shares. Stops are read before holdings, so a stop that sells
     between the two shows as shares gone, never as shares still there to be sold."""
@@ -388,13 +393,7 @@ def round_trips(root: Path, lines: Iterable[Line]) -> tuple[RoundTrip, ...]:
                 lots.appendleft((buy, open_shares - shares))
             left -= shares
             (paid, bought), (got, sold) = pounds(buy, shares), pounds(fill, shares)
-            trips.append(
-                RoundTrip(
-                    replace(buy, quantity=shares),
-                    replace(fill, quantity=-shares),
-                    got - paid,
-                    bought + sold,
-                    got - paid - (bought + sold).total,
-                )
-            )
+            costs, gross = bought + sold, got - paid
+            sides = replace(buy, quantity=shares), replace(fill, quantity=-shares)
+            trips.append(RoundTrip(*sides, gross, costs, gross - costs.total))
     return tuple(trips)
