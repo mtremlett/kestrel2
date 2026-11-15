@@ -44,13 +44,13 @@ def test_the_set_reproduces_each_rule_judges_it_on_every_line_and_writes_the_tab
     data = json.loads(table.with_suffix(".json").read_text())
     assert (data["status"], data["trials"], [r["rule"] for r in data["rules"]]) == (
         "PRE-REVIEW",
-        18,  #: six cells, each with its two folds
+        6,  #: six cells, a fold being no trial
         list(RULES),
     )
     made, plain = data["rules"]
     for rule in data["rules"]:  #: every line, the one that cannot yet be judged with its reason
         assert [c["cell"][1] for c in rule["cells"]] == ["VUSA", "ISF", "SGLN"]
-        assert {c["trials"] for c in rule["cells"]} == {18} and "TooYoung" in rule["cells"][2][
+        assert {c["trials"] for c in rule["cells"]} == {6} and "TooYoung" in rule["cells"][2][
             "error"
         ]
     vusa, plain_vusa = made["cells"][0], plain["cells"][0]
@@ -60,7 +60,9 @@ def test_the_set_reproduces_each_rule_judges_it_on_every_line_and_writes_the_tab
         "reproduction" not in plain_vusa
         and "no author's figure" in plain_vusa["unrun"]["reproduce"]
     )
-    assert plain_vusa["answer"] == "THIN" and set(plain_vusa["rungs"]) >= {
+    #: the trend rule made no trade at all in 2022 over the two lines it was pooled on: a
+    #: year with none is a FAULT, and the worst year is the verdict's
+    assert plain_vusa["answer"] == "FAULT" and set(plain_vusa["rungs"]) >= {
         "first",
         "luck",
         "market",

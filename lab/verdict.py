@@ -3,9 +3,12 @@ not run with theirs, and the one rule over them (`lab/ladder.py` holds the spec 
 
 from __future__ import annotations
 
+import json
 import random
-from collections.abc import Sequence
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass
 from decimal import Decimal
+from pathlib import Path
 from typing import Any
 
 from desk.command import CAPITAL
@@ -15,12 +18,14 @@ from desk.store import Bar
 from lab import cell, deflated, folds, luck, market, reproduce, rung, shuffle, trials
 from lab.cell import Cell
 from lab.deflated import Deflated
+from lab.folds import Pooled
 from lab.reproduce import Reproduction
 from lab.rung import Answer, Rates, Verdict
 
 #: The rules trade a line five to ten times a year and a fold is asked for thirty trades: so
-#: the window in three parts, two of them folds, each a trial the luck rung counts.
-FOLDS = 2
+#: the last five whole calendar years are the folds, the rule's trades pooled over its lines.
+#: A fold is not a trial: nothing is picked from it, and the luck rung counts none.
+FOLDS = folds.YEARS
 #: Draws of the judged trades' pounds for the resampled drawdowns: they measure, never gate.
 RESAMPLES = 1000
 #: Rungs that are built and that this set cannot yet be run through, each with why.
@@ -37,6 +42,9 @@ MIN_BARS = 200 + 252
 #: A close that moves in a day by that day's pound, or one over it, to within this, on a line in
 #: pounds, is a part of the line quoted in dollars (M3): a step under the price store's jump.
 STEP = Decimal("0.03")
+STATUS = "PRE-REVIEW"  #: what every table is until the blind review (R-RUNNER-40) is clean
+COLUMNS = ("rule", "line", "venue", "answer", "rungs", "trials", "reproduction", "goes forward")
+Row = Mapping[str, Any]  #: a cell's line in the results file
 Pair = tuple[Answer, str]
 Judged = dict[str, Pair]  #: each rung's answer on a cell, and its reason
 
@@ -57,27 +65,26 @@ def judge(
     pounds: Rates,
     count: int,
     made: Sequence[Reproduction],
+    pooled: Callable[[], Pooled],
+    first: Verdict | None = None,
 ) -> dict[str, Any]:
-    """Every rung's answer with its reason, the rungs not run with theirs, the verdict's."""
+    """Every rung's answer with its reason, the rungs not run with theirs, the verdict's.
+    The folds are the rule's, pooled over its lines: `pooled` is asked only when they are read.
+    `first` is the cell's first rung where the caller has run it already."""
     try:
         reproduce.settled(c.strategy, made)
     except ValueError as missed:  #: the rule as coded is not the author's: no verdict on ours
         return {"rungs": {"reproduce": [Answer.FAIL.name, str(missed)]}, "every": False}
-    _unstepped(c.line, own, pounds)
+    verdict = first or ready(c, own, pounds, made)
     unrun = UNRUN | ({"folds": NO_FOLDS} if made else {"reproduce": NO_FIGURE})
     settings = Settings(CAPITAL)
-    verdict = rung.judge(cell.run(c, own), own, settings, pounds, made)
-    if len(own) < MIN_BARS:  #: whatever it scored, a few trades say nothing of the rule
-        raise TooYoung(f"{c.line.symbol}: {len(own)} bars, no trade yet; waits on {MIN_BARS}")
     (one,) = deflated.judge([verdict], count - 1)  #: every other trial the register holds
     rungs = _named(verdict, one)
     if made:
         said = "; ".join(f"{m.figure.hand.value} result, {m.figure.source}" for m in made)
         rungs["reproduce"] = (Answer.PASS, f"reproduced: {said}")
-    elif verdict.answer is Answer.FAULT:  #: no trade in it, so none in any fold of it
-        rungs["folds"] = rungs["first"]
     else:
-        rungs["folds"] = _folded(c, own, settings, pounds)
+        rungs["folds"] = _folded(pooled)
     against = market.judge(verdict, own, beside, held, pounds)
     said = rungs["first"][1]
     if against.line is not None and against.wide is not None:
@@ -123,6 +130,52 @@ def drawdowns(pounds: Sequence[Decimal], name: str) -> dict[str, float]:
     }
 
 
+@dataclass
+class Pool:
+    """A rule's lines that could be judged, each with its bars and its first rung."""
+
+    lines: list[tuple[Cell, Sequence[Bar]]]
+    firsts: dict[Cell, Verdict]  #: each line's first rung, run once to know it can be
+    data: str  #: the version of every line's bars, in every cell's key
+    dollars: bool  #: a line in dollars is pooled: the rates of exchange are in every cell's key
+    folded: Pooled | None = None  #: pooled once, when first read
+    failed: ValueError | None = None  #: why it could not be, told to every cell of the rule
+
+    def fold(self, pounds: Rates) -> Pooled:
+        """The lines folded by the last five whole years: once, a failure remembered."""
+        if self.failed is not None:
+            raise self.failed
+        try:
+            self.folded = self.folded or pool(self.lines, pounds)
+        except ValueError as cannot:
+            self.failed = cannot
+            raise
+        return self.folded
+
+
+def _folded(pooled: Callable[[], Pooled]) -> Pair:
+    """The folds rung: the rule's worst year, or a FAULT where its years cannot be had."""
+    try:
+        folded = pooled()
+    except ValueError as cannot:  #: a fault in the test, said as one with its reason
+        return Answer.FAULT, f"the folds could not be run: {cannot}"
+    return folded.answer, folded.reason
+
+
+def ready(c: Cell, own: Sequence[Bar], pounds: Rates, made: Sequence[Reproduction]) -> Verdict:
+    """The cell's first rung, or why the line waits: a step of units in it, too few bars for a
+    trade (whatever it scored, a few trades say nothing of the rule), a day with no rate."""
+    _unstepped(c.line, own, pounds)
+    if len(own) < MIN_BARS:
+        raise TooYoung(f"{c.line.symbol}: {len(own)} bars, no trade yet; waits on {MIN_BARS}")
+    return rung.judge(cell.run(c, own), own, Settings(CAPITAL), pounds, made)
+
+
+def pool(lines: Sequence[tuple[Cell, Sequence[Bar]]], pounds: Rates) -> Pooled:
+    """One rule's lines, each with its bars, folded by the last five whole years."""
+    return folds.pool(lines, Settings(CAPITAL), pounds)
+
+
 def _unstepped(line: Line, own: Sequence[Bar], pounds: Rates) -> None:
     """Refuse a line in pounds with a day's step of the pound's rate not named a real move."""
     named = {day for day, _ in line.real_moves}
@@ -158,17 +211,6 @@ def _named(verdict: Verdict, one: Deflated) -> Judged:
     return {name: (answer, why[name]) for name, answer in one.rungs.items()}
 
 
-def _folded(c: Cell, own: Sequence[Bar], settings: Settings, pounds: Rates) -> Pair:
-    """The folds rung: the worst of the folds, its year named in the reason."""
-    worst = (folded := folds.judge(c, own, settings, pounds, FOLDS)).worst
-    return (
-        folded.answer,
-        f"the worst of {FOLDS} folds, from {worst.outside.key.cell.start}: "
-        f"{len(worst.outside.trades)} trades at {_n(worst.outside.t)} standard errors; on "
-        f"the history before it, {len(worst.inside.trades)} at {_n(worst.inside.t)}",
-    )
-
-
 def shuffled(
     c: Cell, own: Sequence[Bar], settings: Settings, pounds: Rates, rungs: Judged
 ) -> Pair | None:
@@ -191,3 +233,62 @@ def shuffled(
 
 def _n(number: Decimal | float | None) -> str:
     return "no" if number is None else f"{number:.2f}"
+
+
+def goes(row: Row) -> bool:
+    """A cell goes forward when its one verdict is PASS and every rung run passed."""
+    return row.get("answer") == Answer.PASS.name and bool(row.get("every"))
+
+
+def by_rule(rows: Sequence[Row], rules: Sequence[str]) -> dict[str, list[Row]]:
+    """The rows of each rule, in the order the rules are given."""
+    return {rule: [row for row in rows if row["cell"][0] == rule] for rule in rules}
+
+
+def _rule(rule: str, rows: Sequence[Row]) -> Row:
+    return {"rule": rule, "passed": any(map(goes, rows)), "cells": rows}
+
+
+def cell_line(row: Row) -> list[str]:
+    """A cell's table line: its answer, each rung's answer and reason, and the author's result."""
+    rungs = [f"{name} {a}: {why}" for name, (a, why) in row.get("rungs", {}).items()]
+    unrun = [f"{name} UNRUN: {why}" for name, why in row.get("unrun", {}).items()]
+    own = " | ".join(row.get("reproduction") or [row.get("unrun", {}).get("reproduce", "")])
+    result = f"not judged, tried again next run: {row['error']}" if "error" in row else own
+    text = " <br> ".join(filter(None, [row.get("proxy"), *rungs, *unrun])) or row.get("error", "")
+    return [
+        row.get("answer", "none"),
+        text,
+        str(row["trials"]),
+        result,
+        "yes" if goes(row) else "no",
+    ]
+
+
+def write_table(
+    folder: Path,
+    tag: int | str,
+    question: str,
+    rows: Sequence[Row],
+    rules: Sequence[str],
+    count: int,
+) -> Path:
+    """The set's results table, `<tag>.md` and `<tag>.json`, labelled PRE-REVIEW."""
+    folder.mkdir(parents=True, exist_ok=True)
+    mine = by_rule(rows, rules)
+    data: dict[str, object] = {"set": tag, "question": question, "status": STATUS}
+    data |= {"trials": count, "rules": [_rule(r, rs) for r, rs in mine.items()]}
+    (folder / f"{tag}.json").write_text(json.dumps(data, indent=1), encoding="utf-8")
+    out = [f"# SET {tag} - {STATUS}", "", f"{question} Judged against {count} trials.", ""]
+    out += [f"{STATUS}: not final until the blind review (R-RUNNER-40) is clean.", ""]
+    for rule, rs in mine.items():
+        out += [f"## {rule}: {sum(map(goes, rs))} of {len(rs)} lines go forward", ""]
+        out += ["| " + " | ".join(COLUMNS) + " |", "|" + "---|" * len(COLUMNS)]
+        for row in rs:
+            cells = [rule, row["cell"][1], row["cell"][2], *cell_line(row)]
+            out.append(
+                "| " + " | ".join(c.replace("|", "/").replace("\n", " ") for c in cells) + " |"
+            )
+        out.append("")
+    (path := folder / f"{tag}.md").write_text("\n".join(out), encoding="utf-8")
+    return path
