@@ -92,8 +92,6 @@ class Desk:
     root: Path  #: where the ledger, the checks, the switch, the records and the messages are
     room: Settings
     post: messenger.Post  #: the door to his phone
-    #: Not read by a step, which reads `held`; command.py still gives it and is to drop it.
-    bars: Callable[[date], Saved]
     #: A day's pounds per unit of each currency: the same answer at every asking.
     rates: Callable[[date], Mapping[str, Decimal]]
     #: The crash watch's two doors: the fast store of five-minute bars, and the daily bars as

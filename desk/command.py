@@ -7,9 +7,8 @@
 
 All is kept in `desk` under the folder the environment names (KESTREL2_DATA); the doors:
 
-THE PRICE STORE'S DOOR (`bars`): each time a round of orders or a record needs them, every
-line's daily bars are asked of the free archive afresh and cleaned into the one store. An
-archive that answers for no line is an error, the step's: a round is made once, never on nothing.
+THE PRICE STORE'S DOOR is the keeper's (`keeper.saved`): a round or a record reads the daily
+bars as the keeper last kept them, and a venue's bars left a session short are refused.
 
 THE DAY'S POUNDS PER DOLLAR (`rates`): the pound's last close in dollars before the day, from
 the same archive, until the data lane's own rate lands; once a day's rate is on the desk's
@@ -52,14 +51,12 @@ from desk import (
     paper,
     placing,
     running,
-    store,
     venues,
 )
 from desk import day as days
 from desk.lines import LINES, Line
 from desk.orders import Settings
-from desk.running import DAY, VENUES, Desk, Saved
-from desk.store import Refused
+from desk.running import DAY, VENUES, Desk
 
 ROOT, STORE, REHEARSALS = "desk", "store", "rehearsals"  #: folders, each inside the one before
 CAPITAL = Decimal(10_000)  #: the paper desk's one capital, in pounds, until he rules another
@@ -76,18 +73,6 @@ GO = (
     "written and none sent to his phone.{}"
 )
 UNSENT = " NO ORDER REACHED THE BROKER: this rehearsal does not prove the sending."
-
-
-def bars(root: Path, day: date) -> Saved:
-    """THE PRICE STORE'S DOOR: every line's bars before a day, asked of the archive now and
-    cleaned into the store at root; and the lines the store parks. A line the archive
-    refuses is parked alone. Refused for every line, nothing is stored: an error."""
-    answers = archive.gather(LINES, day, archive.fetch)
-    refused = [answer.reason for answer in answers.values() if isinstance(answer, Refused)]
-    if len(refused) == len(LINES):
-        raise OSError(f"{day}: the archive gave no line's bars, so none are stored: {refused[0]}")
-    parked = store.prepare(root, answers, day)
-    return {line: store.read(root, line.symbol) for line in LINES}, {p.symbol for p in parked}
 
 
 def rates(root: Path, day: date) -> dict[str, Decimal]:
@@ -124,12 +109,10 @@ def _post(env: Mapping[str, str]) -> messenger.Post:
 
 def _desk(root: Path, post: messenger.Post, home: Path) -> Desk:
     """The real doors, with the desk's records at root; the keeper's stores are in home."""
-    prices = partial(bars, root / STORE)
     return Desk(
         root,
         Settings(CAPITAL),
         post,
-        prices,
         partial(rates, root),
         home / keeper.HOT,
         partial(keeper.saved, home),
@@ -162,7 +145,7 @@ def _account(root: Path, now: datetime) -> str:
 
 def _prices(desk: Desk, today: date) -> str:
     """The lines with a bar of the session before today, on each venue that trades today."""
-    saved = desk.bars(today)
+    saved = desk.held(today)
     fits = [running._fit(saved, v, today) for v in VENUES if venues.sessions(v, today, today)]
     fit, out = sum(len(lines) for lines, _, _ in fits), [s for _, left, _ in fits for s in left]
     if not fits:

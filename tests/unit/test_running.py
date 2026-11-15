@@ -85,7 +85,6 @@ def _desk(root: Path, **bars: Sequence[Bar]) -> tuple[Desk, Mock]:
         root,
         Settings(Decimal(4750)),
         post,
-        saved,
         Mock(return_value=RATES),
         hot,
         saved,
