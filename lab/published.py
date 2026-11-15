@@ -35,75 +35,46 @@ rule's own line works and does not keep (the RSI's last ratio, a band's two devi
 its average) and Supertrend's carried band, which no table here prints, are left to the
 known answers above and the strategies' contract test.
 
-A series is its closes; each bar opens on its close, and its high and low lie `reach` either
-side of it, one bar a day. Bars are counted from 0.
+A series is its closes (`lab/published_case.py`); bars are counted from 0. The twenty
+eponymous rules of `desk/eponymous_*.py` are written down the same way in
+`lab/published_epon.py`, their own book: the ladder's first set is the desk's five.
 """
 
 from __future__ import annotations
 
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import timedelta
 from decimal import Decimal, localcontext
 from functools import cache
 
 from desk import strategy
 from desk.lines import LINES
 from desk.store import Bar
-from desk.strategy import Action, Rule, _Rsi2, _Supertrend, _Wilder, _Window
-from lab import cell
+from desk.strategy import ARITHMETIC, Action, Rule, _Rsi2, _run, _Supertrend, _Wilder, _Window
+from lab import cell, rulebook
 from lab.cell import Cell
-
-Trades = tuple[tuple[int, int | None], ...]  #: each trade's bars: bought, sold (None: held)
-_FIRST = date(2020, 1, 1)
-
-
-@dataclass(frozen=True)
-class Case:
-    why: str  #: the working, by hand, from the rule's own words
-    closes: tuple[Decimal, ...]
-    trades: Trades  #: the bars the published rule buys and sells on, and no other
-    reach: Decimal = Decimal("0.5")
-
-    def bars(self) -> tuple[Bar, ...]:
-        days, r = enumerate(self.closes), self.reach
-        return tuple(Bar(_FIRST + timedelta(n), c, c + r, c - r, c, 1000) for n, c in days)
-
-
-@dataclass(frozen=True)
-class Published:
-    source: str  #: the author and the work the rule is taken from
-    cases: tuple[Case, ...]
-
-    def __post_init__(self) -> None:
-        if not self.source.strip():
-            raise ValueError("a published rule with no source is nobody's rule")
-        if not any(case.trades for case in self.cases):
-            raise ValueError(
-                f"{self.source}: on its known answers it buys nothing, which any code can do"
-            )
-
-
-def _case(why: str, closes: Sequence[int | str], trades: Trades, reach: str = "0.5") -> Case:
-    return Case(why, tuple(Decimal(c) for c in closes), trades, Decimal(reach))
-
+from lab.published_case import FIRST, Trades, known
+from lab.published_case import Case as Case
+from lab.published_case import Published as Published
+from lab.published_epon import EPONYMOUS_PUBLISHED
 
 PUBLISHED: Mapping[str, Published] = {
     "rsi2_pullback": Published(
         "Connors and Alvarez, Short Term Trading Strategies That Work (2008): RSI-2",
         (
-            _case(
+            known(
                 "bar 201: RSI(2) 9.1, not under 5; 202: 3.2 buys; 203: 285 is under its 5-day "
                 "average of 290.8 and holds; 204: 300 is over 291 and sells",
                 [*range(100, 300), 300, 290, 280, 285, 300],
                 ((202, 204),),
             ),
-            _case(
+            known(
                 "the same pullback under a falling 200-day average is never bought",
                 [*range(400, 200, -1), 190, 180, 170, 185, 200],
                 (),
             ),
-            _case(
+            known(
                 "bar 209 falls to 110 with RSI(2) at 2.2, but the 200 days sum to 22,000: a "
                 "close exactly on its average is not above it",
                 [100] * 200 + [150, 200, 250, 300, 350, 410, 410, 410, 410, 110],
@@ -115,7 +86,7 @@ PUBLISHED: Mapping[str, Published] = {
         "Bollinger's bands at his settings, 20 days and 2 deviations (Bollinger on Bollinger "
         "Bands, 2001): a close under the lower band bought, one over the middle sold",
         (
-            _case(
+            known(
                 "bar 20: mean 9.95, two deviations 0.436, so 9 is under 9.514 and buys; 21: "
                 "9.5 is under the mean of 9.925 and holds; 22: 10.5 is over 9.95 and sells",
                 [10] * 20 + [9, "9.5", "10.5"],
@@ -126,7 +97,7 @@ PUBLISHED: Mapping[str, Published] = {
     "breakout_20_10": Published(
         "Faith, Way of the Turtle (2007): the Turtles' system 1, on the close",
         (
-            _case(
+            known(
                 "highs of 10.5 for twenty days: bar 20's 10.4 does not clear them; bar 21's 11 "
                 "clears bar 20's high of 10.9; bar 23's 9.4 is under the lows of 9.5, and sells",
                 [10] * 20 + ["10.4", 11, 11, "9.4", "9.4"],
@@ -137,13 +108,13 @@ PUBLISHED: Mapping[str, Published] = {
     "trend_50_200": Published(
         "the 50-day and 200-day moving-average cross (the golden cross), long only",
         (
-            _case(
+            known(
                 "bar 200: the 50-day at 102 crosses over the 200-day at 100.5; from bar 250 at "
                 "50 the 50-day is 197 - 3j and the 200-day 124.75 - j/4, first under at j = 27",
                 [100] * 200 + [200] * 50 + [50] * 40,
                 ((200, 277),),
             ),
-            _case(
+            known(
                 "a 50-day already above when both averages first exist is no cross it saw",
                 [*range(100, 360)],
                 (),
@@ -154,7 +125,7 @@ PUBLISHED: Mapping[str, Published] = {
         "Seban's Supertrend, 10 days and 3 average true ranges, its bands carried as "
         "KivancOzbilgic's reference script carries them",
         (
-            _case(
+            known(
                 "ten days with a true range of 2: bands 94 and 106. Bar 10 closes 110, over "
                 "106, and buys; its lower band is 110 - 3 x 2.9 = 101.3. Bar 11 closes on it "
                 "exactly and holds; the band is carried, and bar 12's 100 sells",
@@ -162,7 +133,7 @@ PUBLISHED: Mapping[str, Published] = {
                 ((10, 12),),
                 reach="1",
             ),
-            _case(
+            known(
                 "the same with bar 11 at 102, clear of the band of 101.3, and held: no tie, "
                 "so the fast grid answers this one itself and is held to the rule too",
                 [100] * 10 + [110, 102, 100],
@@ -218,7 +189,7 @@ def _fed(make: type[Rule], size: int, part: str, given: Columns) -> list[Decimal
     made = []
     days = zip(given.get("High", closes), given.get("Low", closes), closes, strict=True)
     for n, (high, low, close) in enumerate(days):
-        rule.step(Bar(_FIRST + timedelta(n), close, high, low, close, 1000), False)
+        rule.step(Bar(FIRST + timedelta(n), close, high, low, close, 1000), False)
         made.append(smooth[part].value)
     return [value for value in made if value is not None]
 
@@ -371,9 +342,9 @@ def proven(name: str) -> Published:
     engine and the ladder's cell have both given its known answers on every series; refused,
     and not remembered, when any does not."""
     indicators()
-    if name not in PUBLISHED:
+    rule = PUBLISHED.get(name) or EPONYMOUS_PUBLISHED.get(name)
+    if rule is None:
         raise ValueError(f"{name}: no published rule on file, so no code can be held to it")
-    rule = PUBLISHED[name]
     for case in rule.cases:
         bars = case.bars()
         for whose, made in (
@@ -389,7 +360,11 @@ def proven(name: str) -> Published:
 
 
 def _desk(name: str, bars: Sequence[Bar]) -> Trades:
-    decided = [d.action for d in strategy.decide({LINES[0].symbol: bars}) if d.strategy == name]
+    if name in strategy.STRATEGIES:
+        decided = [d.action for d in strategy.decide({LINES[0].symbol: bars}) if d.strategy == name]
+    else:  #: an eponymous rule is the rule book's class, under the template's one runner
+        with localcontext(ARITHMETIC):
+            decided = [d.action for d in _run(name, rulebook.rule(name)(), LINES[0].symbol, bars)]
     turns = [n for n, action in enumerate(decided) if action is not Action.HOLD]
     return tuple(zip(turns[::2], [*turns[1::2], None], strict=False))
 

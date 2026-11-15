@@ -103,6 +103,5 @@ def test_every_eponymous_file_of_the_real_desk_gives_a_rule_a_cell_and_a_first_r
     ladder.run(tmp_path, _door({VUSA: EDGE, ISF: NOISE}), {}, todo, clock, ladder.EPON)
     rows = [json.loads(x) for x in (tmp_path / "ladder" / "EPON.jsonl").read_text().splitlines()]
     assert [r["cell"][0] for r in rows] == list(found)
-    #: the rung book (lab/rung.py, lab/published.py) holds only the five to a published table: the
-    #: gap that remains, named, until those files take an eponymous rule (R-RUNNER-87 Remains)
-    assert {r["error"].split(": ", 2)[2][:25] for r in rows} == {"no published rule on file"}
+    #: each rule is on file (lab/published_epon.py), so the first rung judges every cell
+    assert not any("error" in r for r in rows)
