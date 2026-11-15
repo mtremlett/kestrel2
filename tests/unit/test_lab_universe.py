@@ -5,11 +5,12 @@ from __future__ import annotations
 
 import re
 from dataclasses import replace
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import ROUND_CEILING, Decimal
 from pathlib import Path
 from statistics import median
 
+import numpy as np
 import pytest
 
 from desk import store, venues
@@ -86,6 +87,37 @@ def test_one_symbol_is_two_companies_so_each_venue_keeps_its_own_folder(tmp_path
 def test_a_refresh_writes_londons_yardstick_where_the_ladder_reads_it(tmp_path: Path) -> None:
     assert universe.keep(tmp_path, DAY, universe.YARDSTICKS, _ask) == {}
     assert (tmp_path / "LSE" / "ISF.csv").is_file()
+
+
+def test_a_yardstick_with_a_missing_day_is_named_and_filled_from_a_second_source(
+    tmp_path: Path,
+) -> None:
+    yard = universe.YARDSTICKS
+    whole = _ask(yard[0], DAY)
+    lost = whole[40].day
+
+    def holed(line: Line, day: date) -> tuple[Bar, ...]:
+        return tuple(b for b in _ask(line, day) if b.day != lost)
+
+    told = universe.refresh(tmp_path, DAY, yard, holed)
+    assert told.endswith(f"1 parked; yardstick ISF has no bar on {lost}")
+    #: the second source is the old desk's Stooq matrices: London, in pence, only that day wanted
+    folder = tmp_path / "matrix"
+    folder.mkdir()
+    rows = np.array([[float(x) * 100 for x in (b.open, b.high, b.low, b.close, 0)] for b in whole])
+    rows[:, 4] = [b.volume for b in whole]
+    stamps = [
+        int(datetime(b.day.year, b.day.month, b.day.day, tzinfo=UTC).timestamp() * 1000)
+        for b in whole
+    ]
+    np.save(folder / "ISF.UK_1d_ohlcv.npy", rows.T)
+    np.save(folder / "ISF.UK_1d_ts.npy", np.array(stamps))
+    second = universe.matrix(folder)
+    assert second(universe.UNIVERSE[0], DAY) == ()
+    assert universe.refresh(tmp_path, DAY, yard, holed, second).endswith("0 parked")
+    assert lost in {b.day for b in store.read(tmp_path / "LSE", "ISF")}
+    #: shelved, so the next refresh with the archive still short keeps the filled day
+    assert universe.refresh(tmp_path, DAY, yard, holed).endswith("0 parked")
 
 
 def test_a_refused_ticker_is_parked_by_line_and_keeps_no_bars_and_the_rest_are_kept(
