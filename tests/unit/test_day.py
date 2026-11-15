@@ -28,7 +28,7 @@ def _line(
     symbol: str, closes: list[int | float], reach: str = "0.5"
 ) -> tuple[Line, tuple[Bar, ...]]:
     half = Decimal(reach)
-    return Line(symbol, "LSE", "GBP", 1), tuple(
+    return Line(symbol, "LSE", "GBP", 1, isa=True), tuple(
         Bar(on, c, c + half, c - half, c, 1)
         for on, c in zip(DAYS, map(Decimal, map(str, closes)), strict=False)
     )
