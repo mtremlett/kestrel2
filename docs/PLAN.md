@@ -736,6 +736,36 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       curve at three effect sizes, a broken copy of the rung caught, and each defect the old
       audit found kept as a case that must fail (LAD-09, LAD-03, LAD-08)
       {id: rungs-trustworthy; files: *; after: rungs-beta}
+- [ ] **LADDER READY, the cards (his ruling, 15 November: "done properly and to elite desk
+      specifications", then the ladder runs 24x7).** Ranked; each card one test and one change:
+  - [ ] L1 TAPE-CACHE: a rule on a line simulated once into a kept tape (trades, daily
+        returns), keyed by the rule, the engine, the bars and the rates; each rung's result
+        keyed by the tape and that rung's own code. Changing a rung re-simulates nothing
+  - [ ] L2 THE RUNG MAP: each of the eleven rungs above named to its module and test, built
+        or not, in `lab/ladder.py`'s docstring; the later cards follow it
+  - [ ] L3-L13 ONE CARD PER RUNG, built or proven to one standard, one module each so they
+        run in parallel: a planted edge passes; five hundred noise cells pass at about the
+        stated rate; a power curve at three effect sizes; a broken copy caught; each defect
+        of the old desk's rung audit kept as a case that must fail
+  - [ ] L14 one clustered set of trials for the deflated Sharpe, its spread measured
+  - [ ] L15 the blind review of the whole ladder (R-RUNNER-40), every blocking finding fixed
+  - [ ] L16 the gate: the runner runs the catalogue 24x7, each change re-running only its
+        own specs, each set's table published with "rungs built: n of 11"
+- [ ] **STRATEGIES AS DATA (his goal: 1,000+ strategies over 1,000+ tickers):**
+  - [ ] B1 building blocks written once, each known-answer tested: indicators, entries,
+        exits, stops, filters (regime filters among them), sizing
+  - [ ] B2 a typed Spec, validated on entry: an unknown block or a bad setting is refused
+  - [ ] B3 the catalogue, one TOML row per strategy with its source and known-answer case;
+        a guard: unique names, known blocks only, a source and a case on every row
+  - [ ] B4 the nineteen eponymous rules as rows, identical trades on the fixture proven,
+        then their Python files deleted
+  - [ ] B5 variants generated from a row's setting ranges, every one counted as a trial
+  - [ ] B6 the old desk's families listed and entered as sets of rows marked QUARRY, their
+        cases derived by hand, never from the old desk's numbers
+  - [ ] P1 a fast engine for rows, vectorised in `lab/`, matching the desk's engine on the
+        golden fixture (canon B2) or removed; indicators computed once per ticker and shared
+  - [ ] GC the grid chained onto each set: rows swept over their ranges and the research
+        universe, through the same tapes and rungs, the plateau's centre reported (canon B6)
 - [ ] Each indicator known-answer tested against a published reference series (STR-14).
       Built: moving average, Bollinger deviation, Wilder smoothing (#145); true range, RSI gains
       and losses, channel (#154): five tables, 250 printed numbers. Remains: RSI ratio and band
