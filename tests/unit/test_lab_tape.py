@@ -5,6 +5,7 @@ were, and a stop takes up from the last tape finished."""
 from __future__ import annotations
 
 import shutil
+from collections import Counter
 from collections.abc import Callable, Sequence
 from contextlib import nullcontext
 from datetime import UTC, datetime
@@ -108,3 +109,15 @@ def test_a_run_stopped_takes_up_from_the_last_tape_written(
         r["cell"] for r in _rows(tmp_path / "whole")
     ]
     assert len(sims) == whole - done
+
+
+def test_a_rule_is_simulated_once_on_a_line_and_each_window_is_cut_from_it(
+    tmp_path: Path, sims: list[Cell]
+) -> None:
+    _judge(tmp_path)
+    assert sorted(Counter((c.strategy, c.line.symbol) for c in sims).values()) == [1] * len(TODO)
+    bars, kept = BOOK[VUSA], tape.kept(tmp_path / "cut", cell.run)
+    days = [bar.day for bar in bars]
+    for start, end in ((0, -1), (0, 300), (100, 400), (len(days) // 2, len(days) // 2 + 90)):
+        window = Cell(RULES[0], VUSA, days[start], days[end])
+        assert kept(window, bars) == cell.run(window, bars)
