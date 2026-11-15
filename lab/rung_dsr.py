@@ -8,21 +8,33 @@ root of the SPREAD of the trials' Sharpes (their variance) times a factor that g
 NUMBER. That is the `bar`. The deflated Sharpe (`chance`) is the chance that the trial's true
 Sharpe is above the bar, given how many trades it stands on and their shape: many small wins and
 a rare large loss make a Sharpe less sure than a bell does (LAD-03). The formula and its bands
-are `lab/deflated.py`'s, read from there and not copied.
+are `lab/deflated.py`'s, read from there. The shape of the gains (their skew and kurtosis) is
+worked here, for any trial's gains and any set's spread; that module works its own for the
+ladder's one reading, at a spread of its own, until it reads this one.
 
 THE ANSWER is on the bands fixed before any result: PASS at nine chances in ten or more, FAIL
 under an even chance (luck is the likelier story), DOUBT between, neither won nor lost (LAD-08).
 
-THE TWO COUNTS ARE THE CALLER'S, AND NEVER LEFT OUT. `trials` is every trial the one judged was
-picked from, itself among them. `spread` is the variance of those trials' Sharpes, each a
-Sharpe A TRADE as `sharpe` gives it: a spread in a year's units against a Sharpe a trade sets a
-bar no edge could reach. A count under one, or more than one trial with no spread measured, is
-refused loudly, so the rung cannot be run with nothing deflated (LAD-09). One trial alone was
-picked from nothing: its bar is nothing and its spread is not read.
+THE TWO COUNTS ARE THE CALLER'S, AND NEITHER HAS A DEFAULT. `trials` is every trial the one
+judged was picked from, itself among them. `spread` is the variance of those trials' Sharpes,
+each a Sharpe A TRADE as `sharpe` gives it: a spread in a year's units against a Sharpe a trade
+sets a bar no edge could reach. A count under one, a spread that is no number, or more than one
+trial with no spread measured, is refused loudly (LAD-09). To deflate by nothing a caller must
+say so in as many words, one trial alone: its bar is nothing whatever its spread.
 
-ITS STATED RATE (RATE) is one in ten: a trial whose true Sharpe is exactly the bar passes that
-often, so noise judged alone (a bar of nothing) does, and the pick of a set of noise, judged
-against the whole set, does no more often: on bell gains, about one in a hundred.
+ITS STATED RATE (RATE) is one in ten, AND IT IS THE RATE OF BELL GAINS. A trial whose true
+Sharpe is exactly the bar passes about that often, so bell noise judged alone (a bar of
+nothing) does; and the pick of a hundred trials of bell noise, judged against the hundred and
+their spread, about one time in a hundred.
+
+IT IS NOT THE RATE OF LOPSIDED GAINS AS SAMPLED. Among noise of many small wins and a rare
+large loss, a trial that happened to meet no loss shows a high Sharpe and nothing lopsided;
+the pick of a set is nearly always such a one, and the bar, which takes the set's Sharpes for a
+bell's, lies far under it. The tests record it: at one loss in twenty, nineteen times a win,
+on sixty trades, nearly every pick of a hundred passes. No sample holds the loss that has not
+come yet: that loss is the first rung's to plant (G2). So THE GAINS TO HAND IN ARE
+`Verdict.gains`, the planted loss among them, and the set's spread is measured on the same;
+with it planted, no pick of that noise passed. No rule passes the ladder by this rung alone.
 
 FAILING FAIRLY (LAD-06). No gain at all is a FAULT in the test; under MIN_TRADES it is THIN, never
 a fail and never a pass; gains with no spread are refused loudly (`rung.standard_errors`).
@@ -39,7 +51,7 @@ from desk.strategy import ARITHMETIC
 from lab.deflated import FAIL, PASS, best_by_luck, deflate
 from lab.rung import MIN_TRADES, Answer, standard_errors
 
-#: The most a trial with no more than luck's best passes at.
+#: About what a trial of bell gains with no more than luck's best passes at.
 RATE = 1 - PASS
 
 
@@ -53,7 +65,7 @@ def bar(trials: int, spread: float) -> float:
     return best_by_luck(spread, trials)
 
 
-def deflated(  # noqa: PLR0913 - the paper's own six figures
+def deflated(
     sharpe: float, trades: int, skew: float, kurtosis: float, trials: int, spread: float
 ) -> float:
     """The paper's figure: the chance that a Sharpe a trade, measured on so many trades of this
