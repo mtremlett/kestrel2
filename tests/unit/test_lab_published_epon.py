@@ -24,7 +24,7 @@ def _fresh() -> None:
 
 def test_each_rule_on_file_is_proven_on_its_cases_and_names_its_source() -> None:
     names = ladder.eponymous()
-    assert len(names) == 20 and set(EPONYMOUS_PUBLISHED) < set(names)
+    assert len(names) == 20 and set(EPONYMOUS_PUBLISHED) == set(names)
     for name in EPONYMOUS_PUBLISHED:
         assert published.proven(name) is EPONYMOUS_PUBLISHED[name]
         assert name not in published.PUBLISHED and EPONYMOUS_PUBLISHED[name].source.strip()
