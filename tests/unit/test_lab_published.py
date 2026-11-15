@@ -15,10 +15,13 @@ import pytest
 from test_lab_rung import POUND, SHAPE, TEN_K, _bars
 
 from desk import strategy
+from desk.lines import LINES
 from desk.store import Bar
 from lab import cell, grid, published, rung
 from lab.cell import Cell
 from lab.published import Published
+
+VUSA = next(line for line in LINES if line.symbol == "VUSA")
 
 BREAKOUT = "breakout_20_10"
 
@@ -65,7 +68,7 @@ def test_code_that_is_not_the_published_rule_is_refused_and_gives_no_verdict(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     bars = _bars(SHAPE)
-    record = cell.run(Cell(BREAKOUT, "VUSA", bars[0].day, bars[24].day), bars)
+    record = cell.run(Cell(BREAKOUT, VUSA, bars[0].day, bars[24].day), bars)
     assert rung.judge(record, bars, TEN_K, POUND).trades, "the published rule is judged"
     rules = cast(MutableMapping[str, Any], strategy.STRATEGIES)
     monkeypatch.setitem(rules, BREAKOUT, _Eager)

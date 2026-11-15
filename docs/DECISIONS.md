@@ -1870,3 +1870,62 @@ planted edge) now has its folds judged: the worst of 5 yearly folds (2022) holds
 over 1 line, under the 30 asked, so the folds rung and the verdict are THIN, the row passes not
 every rung, and the summary counts 0 behind an author's result. THIN is the honest answer on
 2 trades a year; no t, Sharpe, trial count or threshold in any other test was touched.
+
+## 15 Nov — R-RUNNER-103: rare large losses (G2), one more trade at the rule's own stop
+
+His ruling "A" of Sun 15 Nov ~07:50. Small wins and a rare loss at the stop, worth nothing
+together, passed the four rungs read from a trial's own trades on 6 of 400 no-edge lines of
+under forty trades (a line in fifty has not yet met its loss). Options: (a) plant the loss in
+the first rung (chosen, the spec's G2); (b) a bar on skew in the deflated rung (a second rule
+for a job the first has); (c) leave it, six false winners in 400. Chosen (a): `rung.planted`
+adds to a verdict's gains one more, the least return any judged trade would have made had its
+stop sold it, with a stop's costs (`Priced.stopped`). `Verdict.gains` is read by the standard
+errors, the luck's chance and the deflated Sharpe's count, skew and kurtosis; `trades` and
+every count of the 30 asked are untouched. Both thresholds stay at "more than 20", never 10.
+
+Known answer: `tests/unit/test_lab_ladder_spec.py` (from #211's branch, shrunk to one world),
+seen failing first with 6 of 400 passing, now 0.
+
+Pinned figures moved, each re-derived by running the first rung on the same seeds:
+- `test_a_planted_edge_passes_and_a_planted_non_edge_does_not`: the bar-straddling pair was
+  seeds 1 and 16 at t 1.99 and 2.02; with the loss planted they read 1.76 and 1.72, so the
+  pair is seeds 12 (1.979, fails) and 40 (2.021, passes), the same claim (the bar sits between
+  them). Seed 0 cut at 29 trades read t above 2.8, now 2.52, so the pin is above 2.5; at 30
+  trades it still passes (2.35) and at 29 is still THIN.
+- No pinned figure in test_lab_luck, test_lab_deflated or test_lab_trials moved: their trades
+  are built by hand without a stop, so `Priced.stopped` is left unset and plants nothing. The
+  default is a cost of keeping to the claim (test_lab_folds and test_lab_plateau build
+  `Priced` too and are another lane's files); the ask to make it required is under Remains.
+
+## 15 Nov - the lab's ceiling rises by 400 lines, by his yes
+
+In `BUDGET.json`, `lab_lines` goes from 7,000 to 7,400 for phases `3-money-paper` and
+`4-ladder`. The desk's ceiling is unchanged at 10,500.
+
+Why: the lab held 6,976 of its 7,000 lines on main. Moving the twenty eponymous rules into
+the spec book as data rows (R-RUNNER-125, spec-epon) needs about 400 lines of blocks in
+`lab/blocks.py`. Two rules landed as spec rows with parity proven; the other seventeen could
+not fit. Once all twenty are rows, retire-epon (R-RUNNER-127) deletes about 1,600 desk lines
+of the old eponymous modules.
+
+His ruling, Sun 15 Nov 2026 ~13:20, in chat with the coordinator. He was offered three
+options: move 400 lines of ceiling from the desk to the lab (recommended), raise the lab by
+400 alone, or wait for Tuesday's consolidation. He chose "Raise research by 400".
+
+## 15 Nov - the lab's ceiling rises from 7,400 to 8,000 lines, by his yes
+
+In `BUDGET.json`, `lab_lines` goes from 7,400 to 8,000 for phases `3-money-paper` and
+`4-ladder`. The desk's ceiling is unchanged at 10,500. The lab is research code; the trading
+path is untouched.
+
+Why: main's lab held 7,391 of 7,400 lines. Five ladder pull requests (#342 rung-regimes, #350
+rung-bootstrap, #351 rung-cpcv, #352 spec-epon slice 3, #354 rung-placebo) were green on every
+check except `test_the_tree_is_inside_this_phases_ceiling`, needing about 595 lines together.
+The 13:20 rise to 7,400 was sized for spec-epon alone and did not count the rungs already
+building; that was the coordinator's error. To stop a repeat, the runner holds a card on the
+ceiling before a session starts, instead of after it has built.
+
+His ruling, Sun 15 Nov 2026 ~16:00, in chat with the coordinator, chosen from three options
+(raise to 8,000; keep 7,400 and cut first, which slips the ladder to Tuesday; hold the ladder
+to Tuesday): "Raise to 8,000". Clean-up cards (the rung registry, consolidation) are expected
+to shrink the lab again.

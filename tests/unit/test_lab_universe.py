@@ -108,6 +108,18 @@ def test_a_refused_ticker_is_parked_by_line_and_keeps_no_bars_and_the_rest_are_k
     assert all(len(store.read(tmp_path / "US", symbol)) > 60 for symbol in ("BA", "COST"))
 
 
+def test_a_refresh_gives_a_line_with_no_file_one_counts_it_and_adds_nothing_the_second_time(
+    tmp_path: Path,
+) -> None:
+    line = universe.YARDSTICKS
+    bars = len(_ask(line[0], DAY))
+    first = universe.refresh(tmp_path, DAY, line, _ask)
+    assert first == f"research refresh: 1 lines refreshed, {bars} bars added, 0 parked"
+    assert universe.refresh(tmp_path, DAY, line, _ask).endswith(
+        "1 lines refreshed, 0 bars added, 0 parked"
+    )
+
+
 MMM = universe.SP500[0]
 AT = 60
 

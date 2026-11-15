@@ -135,7 +135,7 @@ def _deflated(corrected: Corrected) -> Deflated:
     verdict = corrected.verdict
     if verdict.t is None:
         return Deflated(corrected, None, None, None, 0.0)
-    gains = [float(priced.gain) for priced in verdict.trades]
+    gains = [float(gain) for gain in verdict.gains]
     #: the first rung's standard errors are the Sharpe times the root of the trades
     sharpe = float(verdict.t) / math.sqrt(len(gains))
     bar = best_by_luck(1 / (len(gains) - 1), corrected.trials)

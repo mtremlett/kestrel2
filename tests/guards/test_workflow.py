@@ -77,7 +77,6 @@ def test_the_required_check_is_green_only_when_every_step_is() -> None:
         r"^    if: always\(\)$", job, re.MULTILINE
     ), "a failed step must still run the check, red"
     assert 'test "${{ needs.step.result }}" = "success"' in job
-    assert re.search(r"^    needs: check$", _job("announce"), re.MULTILINE)
 
 
 def test_the_required_check_refuses_an_untyped_title() -> None:

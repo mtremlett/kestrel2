@@ -20,6 +20,8 @@ from lab.cell import Cell
 from lab.published import Case, Published
 from lab.reproduce import Figure, Fill, Hand, Measure, Reproduction, Stated
 
+AAPL = next(line for line in LINES if line.symbol == "AAPL")
+
 VUSA = next(line for line in LINES if line.symbol == "VUSA")
 #: The Turtles' rule, by hand (highs and lows half a point either side of each close): bar
 #: 20's 11 clears the highs of 10.5 and buys; ten days at 20 put the lows at 19.5, so bar 31's
@@ -153,7 +155,7 @@ def test_the_first_rung_waits_for_the_authors_own_result(monkeypatch: pytest.Mon
     with pytest.raises(ValueError, match="no verdict before its published.*a planted author"):
         rung.verdict(record.key, ())
     with pytest.raises(ValueError, match="no verdict before"):  #: said before any price is missed
-        dollars = Cell(figure.strategy, "AAPL", DAYS[0], DAYS[-1])
+        dollars = Cell(figure.strategy, AAPL, DAYS[0], DAYS[-1])
         rung.judge(cell.run(dollars, bars), bars, Settings(Decimal(10_000)), {})
     assert judge(made, made).reproduced == (made,)
     assert rung.verdict(record.key, (), (made,)).reproduced == (made,)

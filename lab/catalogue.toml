@@ -1,0 +1,95 @@
+# The spec book: one table per strategy, named as the rule of desk/eponymous_*.py it re-expresses.
+# Each holds its blocks, their parameters, its source and known answers (lab/spec.py parses it;
+# tests/unit/test_lab_catalogue.py demands the same decisions as the Python rule, day by day).
+# A rule needing a block lab/blocks.py lacks is not here yet: that block is added there, and its firing in lab/fast.py.
+
+[donchian_channel_breakout]
+entry = "highest_high"
+exit = "lowest_low"
+stop = "no_stop"
+filter = "no_filter"
+source = "Faith, Way of the Turtle (2007), the four-week rule: buy over the 20 sessions' highest high, sell under their lowest low"
+
+[donchian_channel_breakout.params]
+entry = { n = 20 }
+exit = { n = 20 }
+
+# twenty flat sessions, a close over their high (buy), then a close under their low (sell)
+[[donchian_channel_breakout.cases]]
+bars = [[11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [13, 11, 12], [10, 7, 8]]
+wants = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0]
+
+[connors_three_day_high_low]
+entry = "lower_run"
+exit = "close_over_average"
+stop = "no_stop"
+filter = "close_above_average"
+source = "Connors and Alvarez, Short Term Trading Strategies That Work (2008): above the 200-day average, buy after three days in a row of a lower high and a lower low; sell on a close over the 5-day average"
+
+[connors_three_day_high_low.params]
+entry = { n = 3 }
+exit = { n = 5 }
+filter = { n = 200 }
+
+# 200 rising days, three lower highs and lows (buy on the third), a drop (held), then a close over the 5-day average (sell)
+[[connors_three_day_high_low.cases]]
+bars = [[101, 99, 100], [102, 100, 101], [103, 101, 102], [104, 102, 103], [105, 103, 104], [106, 104, 105], [107, 105, 106], [108, 106, 107], [109, 107, 108], [110, 108, 109], [111, 109, 110], [112, 110, 111], [113, 111, 112], [114, 112, 113], [115, 113, 114], [116, 114, 115], [117, 115, 116], [118, 116, 117], [119, 117, 118], [120, 118, 119], [121, 119, 120], [122, 120, 121], [123, 121, 122], [124, 122, 123], [125, 123, 124], [126, 124, 125], [127, 125, 126], [128, 126, 127], [129, 127, 128], [130, 128, 129], [131, 129, 130], [132, 130, 131], [133, 131, 132], [134, 132, 133], [135, 133, 134], [136, 134, 135], [137, 135, 136], [138, 136, 137], [139, 137, 138], [140, 138, 139], [141, 139, 140], [142, 140, 141], [143, 141, 142], [144, 142, 143], [145, 143, 144], [146, 144, 145], [147, 145, 146], [148, 146, 147], [149, 147, 148], [150, 148, 149], [151, 149, 150], [152, 150, 151], [153, 151, 152], [154, 152, 153], [155, 153, 154], [156, 154, 155], [157, 155, 156], [158, 156, 157], [159, 157, 158], [160, 158, 159], [161, 159, 160], [162, 160, 161], [163, 161, 162], [164, 162, 163], [165, 163, 164], [166, 164, 165], [167, 165, 166], [168, 166, 167], [169, 167, 168], [170, 168, 169], [171, 169, 170], [172, 170, 171], [173, 171, 172], [174, 172, 173], [175, 173, 174], [176, 174, 175], [177, 175, 176], [178, 176, 177], [179, 177, 178], [180, 178, 179], [181, 179, 180], [182, 180, 181], [183, 181, 182], [184, 182, 183], [185, 183, 184], [186, 184, 185], [187, 185, 186], [188, 186, 187], [189, 187, 188], [190, 188, 189], [191, 189, 190], [192, 190, 191], [193, 191, 192], [194, 192, 193], [195, 193, 194], [196, 194, 195], [197, 195, 196], [198, 196, 197], [199, 197, 198], [200, 198, 199], [201, 199, 200], [202, 200, 201], [203, 201, 202], [204, 202, 203], [205, 203, 204], [206, 204, 205], [207, 205, 206], [208, 206, 207], [209, 207, 208], [210, 208, 209], [211, 209, 210], [212, 210, 211], [213, 211, 212], [214, 212, 213], [215, 213, 214], [216, 214, 215], [217, 215, 216], [218, 216, 217], [219, 217, 218], [220, 218, 219], [221, 219, 220], [222, 220, 221], [223, 221, 222], [224, 222, 223], [225, 223, 224], [226, 224, 225], [227, 225, 226], [228, 226, 227], [229, 227, 228], [230, 228, 229], [231, 229, 230], [232, 230, 231], [233, 231, 232], [234, 232, 233], [235, 233, 234], [236, 234, 235], [237, 235, 236], [238, 236, 237], [239, 237, 238], [240, 238, 239], [241, 239, 240], [242, 240, 241], [243, 241, 242], [244, 242, 243], [245, 243, 244], [246, 244, 245], [247, 245, 246], [248, 246, 247], [249, 247, 248], [250, 248, 249], [251, 249, 250], [252, 250, 251], [253, 251, 252], [254, 252, 253], [255, 253, 254], [256, 254, 255], [257, 255, 256], [258, 256, 257], [259, 257, 258], [260, 258, 259], [261, 259, 260], [262, 260, 261], [263, 261, 262], [264, 262, 263], [265, 263, 264], [266, 264, 265], [267, 265, 266], [268, 266, 267], [269, 267, 268], [270, 268, 269], [271, 269, 270], [272, 270, 271], [273, 271, 272], [274, 272, 273], [275, 273, 274], [276, 274, 275], [277, 275, 276], [278, 276, 277], [279, 277, 278], [280, 278, 279], [281, 279, 280], [282, 280, 281], [283, 281, 282], [284, 282, 283], [285, 283, 284], [286, 284, 285], [287, 285, 286], [288, 286, 287], [289, 287, 288], [290, 288, 289], [291, 289, 290], [292, 290, 291], [293, 291, 292], [294, 292, 293], [295, 293, 294], [296, 294, 295], [297, 295, 296], [298, 296, 297], [299, 297, 298], [300, 298, 299], [297, 295, 296], [295, 293, 294], [293, 291, 292], [280, 270, 275], [310, 300, 305]]
+wants = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0]
+
+[williams_r]
+entry = "close_near_range_low"
+exit = "close_near_range_high"
+stop = "no_stop"
+filter = "no_filter"
+source = "Larry Williams, How I Made One Million Dollars Last Year Trading Commodities (1973): %R over 10 days; buy at -90 or lower (bottom tenth of the range), sell at -10 or higher"
+
+[williams_r.params]
+entry = { n = 10, pct = 10 }
+exit = { n = 10, pct = 10 }
+
+# ten flat days, a close in the range's bottom tenth (buy), a middle close (held), a close in its top tenth (sell)
+[[williams_r.cases]]
+bars = [[11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 9.2], [11, 9, 10], [11, 9, 10.9]]
+wants = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0]
+
+# ten days without a range, so %R is undefined: never a buy
+[[williams_r.cases]]
+bars = [[10, 10, 10], [10, 10, 10], [10, 10, 10], [10, 10, 10], [10, 10, 10], [10, 10, 10], [10, 10, 10], [10, 10, 10], [10, 10, 10], [10, 10, 10], [10, 10, 10]]
+wants = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+[donchian_fade_chop]
+entry = "close_at_range_low"
+exit = "close_at_midpoint"
+stop = "no_stop"
+filter = "no_filter"
+source = "Secondary: a practitioner reading of Donchian's channel in a range; buy a close at or under the 20 sessions' lowest low when the channel is a tenth of its midpoint or less, sell at its midpoint"
+
+[donchian_fade_chop.params]
+entry = { n = 20 }
+exit = { n = 20 }
+
+# a narrow channel (a range): a close at its low buys, a close under its midpoint holds, one over it sells
+[[donchian_fade_chop.cases]]
+bars = [[10.4, 10, 10.2], [10.4, 10, 10.2], [10.4, 10, 10.2], [10.4, 10, 10.2], [10.4, 10, 10.2], [10.4, 10, 10.2], [10.4, 10, 10.2], [10.4, 10, 10.2], [10.4, 10, 10.2], [10.4, 10, 10.2], [10.4, 10, 10.2], [10.4, 10, 10.2], [10.4, 10, 10.2], [10.4, 10, 10.2], [10.4, 10, 10.2], [10.4, 10, 10.2], [10.4, 10, 10.2], [10.4, 10, 10.2], [10.4, 10, 10.2], [10.4, 10, 10.2], [10.3, 9.9, 10.0], [10.3, 10.0, 10.1], [10.5, 10.2, 10.4]]
+wants = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0]
+
+# a channel too wide to be a range: a close at its low is not a buy
+[[donchian_fade_chop.cases]]
+bars = [[11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [10, 8, 9]]
+wants = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+[weekly_reversal_jegadeesh]
+entry = "close_under_close_ago"
+exit = "no_exit"
+stop = "time_stop"
+filter = "no_filter"
+source = "Jegadeesh, Journal of Finance 45(3) (1990), in Lehmann's weekly form: buy a close under the close five sessions before, hold five sessions, sell"
+
+[weekly_reversal_jegadeesh.params]
+entry = { n = 5 }
+stop = { n = 5 }
+
+# five flat days, a lower close (buy), five sessions held, then sold; the next lower close buys again
+[[weekly_reversal_jegadeesh.cases]]
+bars = [[10, 10, 10], [10, 10, 10], [10, 10, 10], [10, 10, 10], [10, 10, 10], [9, 9, 9], [9, 9, 9], [9, 9, 9], [9, 9, 9], [9, 9, 9], [9, 9, 9], [9, 9, 8]]
+wants = [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1]

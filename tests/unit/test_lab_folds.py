@@ -17,11 +17,13 @@ from lab.cell import Cell, Key, Trade
 from lab.folds import Fold, Folded
 from lab.rung import Answer, Priced, Verdict
 
+VUSA = next(line for line in LINES if line.symbol == "VUSA")
+
 EDGE = 0.012
 
 
 def _window(bars: Sequence[Bar]) -> Cell:
-    return Cell("breakout_20_10", "VUSA", bars[0].day, bars[-1].day)
+    return Cell("breakout_20_10", VUSA, bars[0].day, bars[-1].day)
 
 
 def _judge(bars: Sequence[Bar], count: int = 2) -> Folded:
@@ -31,7 +33,7 @@ def _judge(bars: Sequence[Bar], count: int = 2) -> Folded:
 def _verdict(*gains: str) -> Verdict:
     days = (DAY, DAY)
     made = tuple(Priced(Trade(*days), 1, Decimal(1), 1 + Decimal(g), FREE, days) for g in gains)
-    return rung.verdict(Key(Cell("breakout_20_10", "VUSA", DAY, DAY), "code", "data"), made)
+    return rung.verdict(Key(Cell("breakout_20_10", VUSA, DAY, DAY), "code", "data"), made)
 
 
 def _t(verdict: Verdict) -> Decimal:
@@ -44,7 +46,7 @@ def test_a_window_is_cut_into_equal_parts_and_a_trade_across_a_boundary_is_in_ne
     days = [bar.day for bar in bars]  #: cut in five parts of five, each beside all before it
     want = [(days[0], days[5 * n - 1], days[5 * n], days[5 * n + 4]) for n in range(1, 5)]
     assert [(i.start, i.end, o.start, o.end) for i, o in folds.cut(_window(bars), bars, 4)] == want
-    inner = Cell("breakout_20_10", "VUSA", days[2], days[12])  #: its own bars, parts a bar apart
+    inner = Cell("breakout_20_10", VUSA, days[2], days[12])  #: its own bars, parts a bar apart
     ends = [(i.end, o.start, o.end) for i, o in folds.cut(inner, bars, 2)]
     assert ends == [(days[4], days[5], days[8]), (days[8], days[9], days[12])]
     for count, bad in [(0, bars), (25, bars), (1, bars[:1])]:
