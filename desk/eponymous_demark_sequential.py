@@ -28,7 +28,7 @@ from typing import ClassVar
 
 from desk.lines import LINES
 from desk.store import Bar
-from desk.strategy import ARITHMETIC, RANGES, Decision, Declared, Timeframe, _run
+from desk.strategy import ARITHMETIC, RANGES, Decision, Declared, Rule, Timeframe, _run
 
 NAME = "demark_sequential"
 #: the book's setup length, the bars back a setup compares with, the countdown length and its lag
@@ -74,3 +74,6 @@ def decide(bars: Mapping[str, Sequence[Bar]]) -> tuple[Decision, ...]:
             for symbol, series in bars.items()
             for d in _run(NAME, DemarkSequential(), symbol, series)
         )
+
+
+EPONYMOUS: Mapping[str, type[Rule]] = {NAME: DemarkSequential}
