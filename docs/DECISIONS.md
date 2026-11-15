@@ -1834,3 +1834,18 @@ calendar. Each was driven against a planted break, then the break was removed:
   and hours): ['AAPL', 'TSLA', 'NVDA', 'SPCX', 'MSTR', 'AMD', 'MU', 'SPY', 'QQQ']".
 - `simcity._market` made to date its sixth bar 25 December: "world 0: L01 is dated
   2024-12-25, which is no LSE session" (and every line after it).
+
+## 15 Nov - R-RUNNER-100: the author's figure is handed to the folds
+
+A rule with an author's figure on file used to be given no folds ("the folds rung cannot yet
+hand an author's result to its folds"), so its verdict could never be reached. `verdict.judge`
+now runs the folds on every cell and `Pool.fold` hands the reproductions to `folds.pool`, which
+already took them; a fold is not a trial (trials stay one a cell). His ruling of 15 Nov,
+"A" (canon B5): the spec's reading, thresholds staying at "more than 20".
+
+Pinned figure moved, re-derived by hand: `test_a_rule_with_a_figure_on_file_is_judged_only_behind_its_authors_result`
+had "folds" unrun and "1 passed ... 1 of them behind an author's result". Its one line (ISF, a
+planted edge) now has its folds judged: the worst of 5 yearly folds (2022) holds 2 trades pooled
+over 1 line, under the 30 asked, so the folds rung and the verdict are THIN, the row passes not
+every rung, and the summary counts 0 behind an author's result. THIN is the honest answer on
+2 trades a year; no t, Sharpe, trial count or threshold in any other test was touched.
