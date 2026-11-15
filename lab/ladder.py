@@ -222,7 +222,7 @@ def _pool(rule: str, shared: Shared, bars: Bars, pounds: Rates) -> verdict.Pool:
             try:
                 made, own, _ = _resolve(c, bars)
                 firsts[made] = verdict.ready(made, own, pounds, shared.behind[rule])
-            except FAILED:
+            except (*FAILED, Refused):  #: a line the sizing refuses is judged alone, as refused
                 continue
             lines[made] = own
         dollars = any(c.line.currency != "GBP" for c in lines)
