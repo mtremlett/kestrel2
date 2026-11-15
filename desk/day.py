@@ -200,6 +200,7 @@ def trade(
     settings: Settings,
     day: date,
     rates: Mapping[str, Decimal],
+    tell: book.Tell | None = None,
 ) -> tuple[book.Sent, ...]:
     """The day's orders, after the market opens: each rule's decision on the session before,
     its position read from the book; the sales first, then each buy sized from the book after
@@ -209,7 +210,7 @@ def trade(
     Nothing is sent for a day that is over: its record made, or a later fill in the ledger.
     Every buy and sale the rules ask for has its answer, and each not filled whole goes on
     the morning's list as it is answered, under its blocker (halt.morning), with the lines
-    no rule could decide."""
+    no rule could decide. A place the broker disagrees with is told through tell (book.send)."""
     book.collect(root, broker)  #: the stops the open sold
     if later := max((fill.day for fill in book.fills(root) if fill.day > day), default=None):
         raise ValueError(f"{day}: the day is over, the ledger holding a fill of {later}")
@@ -230,11 +231,11 @@ def trade(
     sent: list[book.Sent] = []
     for d in (d for d in decided if d.action is Action.SELL):  #: by the rule that holds it
         sale = Sale(order_id_of(d), due[d.symbol], held[d.symbol])
-        sent.append(_answer(root, day, _send(root, broker, sale, settings)))
+        sent.append(_answer(root, day, _send(root, broker, sale, settings, tell)))
     for d in (d for d in decided if d.action is Action.BUY):
         line = due[d.symbol]
         price = archive[line][-1].close, rates[line.currency]
-        sent.append(_answer(root, day, _buy(root, broker, d, line, price, settings, day)))
+        sent.append(_answer(root, day, _buy(root, broker, d, line, price, settings, day, tell)))
     return tuple(sent)
 
 
@@ -293,6 +294,7 @@ def _buy(
     price: tuple[Decimal, Decimal],
     settings: Settings,
     day: date,
+    tell: book.Tell | None,
 ) -> book.Sent:
     """One rule's buy, sized from the book as the send before it left it, at the line's last
     close and the day's rate. A line held, or sold this morning, is not bought: said so."""
@@ -305,14 +307,16 @@ def _buy(
         order = size(d, line, *price, settings, now)
     except Refused as refused:  #: the gate's answer, kept with the day's others
         return book.Sent(name, 0, str(refused), Blocker.GATE)
-    return _send(root, broker, order, settings)
+    return _send(root, broker, order, settings, tell)
 
 
-def _send(root: Path, broker: Broker, order: Order | Sale, settings: Settings) -> book.Sent:
+def _send(
+    root: Path, broker: Broker, order: Order | Sale, settings: Settings, tell: book.Tell | None
+) -> book.Sent:
     """Send through the one door; its refusal is the order's answer, kept with the day's
     under the blocker the send path names; one it does not name is the broker's own door's."""
     try:
-        return book.send(root, broker, order, settings)
+        return book.send(root, broker, order, settings, tell)
     except Stopped as stopped:
         return book.Sent(order.order_id, 0, str(stopped), stopped.blocker)
     except Refused as refused:
