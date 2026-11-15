@@ -60,17 +60,14 @@ def _by_rule(rows: Sequence[Row], rules: Sequence[str]) -> dict[str, list[Row]]:
     return {rule: [row for row in rows if row["cell"][0] == rule] for rule in rules}
 
 
-def _rule(rule: str, rows: Sequence[Row]) -> Row:
-    return {"rule": rule, "passed": any(map(_goes, rows)), "cells": rows}
-
-
 def _said(row: Row) -> list[str]:
     """A cell's table line: its answer, each rung's answer and reason, and the author's result."""
     rungs = [f"{name} {a}: {why}" for name, (a, why) in row.get("rungs", {}).items()]
     unrun = [f"{name} UNRUN: {why}" for name, why in row.get("unrun", {}).items()]
     own = " | ".join(row.get("reproduction") or [row.get("unrun", {}).get("reproduce", "")])
     result = f"not judged, tried again next run: {row['error']}" if "error" in row else own
-    text = " <br> ".join(filter(None, [row.get("proxy"), *rungs, *unrun])) or row.get("error", "")
+    text = " <br> ".join(filter(None, [row.get("proxy"), *rungs, *unrun]))
+    text = text or row.get("error", row.get("refused", ""))
     return [
         row.get("answer", "none"),
         text,
@@ -85,7 +82,10 @@ def _table(folder: Path, rows: Sequence[Row], rules: Sequence[str], count: int) 
     folder.mkdir(parents=True, exist_ok=True)
     mine = _by_rule(rows, rules)
     data: dict[str, object] = {"set": EPON.tag, "question": EPON.question, "status": STATUS}
-    data |= {"trials": count, "rules": [_rule(r, rs) for r, rs in mine.items()]}
+    data |= {"trials": count, "refused": sum("refused" in row for row in rows)}
+    data |= {
+        "rules": [{"rule": r, "passed": any(map(_goes, rs)), "cells": rs} for r, rs in mine.items()]
+    }
     (folder / f"{EPON.tag}.json").write_text(json.dumps(data, indent=1), encoding="utf-8")
     head = f"{EPON.question} Judged against {count} trials."
     out = [f"# SET {EPON.tag} - {STATUS}", "", head, ""]
