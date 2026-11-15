@@ -262,8 +262,7 @@ class Paper:
         are. Nothing is sent, and the reason raised, unless the order is cleared to go
         (_cleared: Refused, or Disconnected, the order never received) and what the line is
         under is settled (_before: Refused). An error once the order has gone is not
-        Disconnected: the order stands as the broker has it, and the broker is asked
-        (report) before it is ever sent again."""
+        Disconnected: the broker is asked (report) before it is ever sent again."""
         (listed, new), ref = self._cleared(order), order.order_id
         was, before = self._before(listed, order)
         number, last, notices = paper.dial(lambda wire, send: _place(wire, send, listed, order))
@@ -316,8 +315,8 @@ class Paper:
         is not holding; and WHILE ANY OTHER ORDER IS OPEN AT THE BROKER, on any line, anyone's,
         as this reading of the account alone tells: it could fill behind the book's gate.
         A SALE GOES ONLY WHEN NO STOP RESTS UNDER THE SAME SHARES (R-MONEY-17): the line's stop
-        is cancelled first, for the two are not tied at the broker and both could sell; one
-        that ended another way as it was cancelled is Refused, and a later step reads afresh."""
+        is cancelled first, for the two are not tied at the broker and both could sell; if it
+        sold or ended another way meanwhile, the stop is put back for the shares held, Refused."""
         order_id, account = order.order_id, paper.read()
         (held, stops), told = on(account, listed), reports.orders(account.orders, self._listings)
         kept = [o for o in stops if o.state in reports.HELD]
@@ -330,9 +329,10 @@ class Paper:
         if idle:
             raise Refused(f"{order_id}: not sent, orders are still open at the broker: {idle}")
         if isinstance(order, Sale) and kept:
-            said = self._cancelled({o.number: o.ref for o in kept})
-            if odd := {n: word for n, word in said.items() if word not in GONE}:
-                raise Refused(f"{order_id}: not sent, a stop on {listed.line.symbol} ended: {odd}")
+            said, ours = self._cancelled({o.number: o.ref for o in kept}), rests[0]
+            if (now := on(paper.read(), listed)[0]) != held or not GONE.issuperset(said.values()):
+                self.settle(listed, now, [], _due(ours, now, 0, None))  #: put back what is held
+                raise Refused(f"{order_id}: not sent, its stop sold or ended: {said}, {now} held")
         return held, (rests[0] if rests else None)
 
     def settle(

@@ -11,6 +11,7 @@ from test_paper import Said, _but, _gateway, _order
 from test_reports import CUT, END
 
 from desk.broker import Report
+from desk.orders import Refused
 
 
 def test_a_buy_the_broker_refuses_on_entry_is_answered_with_its_reason_and_nothing_is_left(
@@ -39,3 +40,21 @@ def test_a_buy_the_broker_refuses_on_entry_is_answered_with_its_reason_and_nothi
     )
     placed = tp._msg({16: "BUY", 27: "0"}) + tp._msg(tp.AT_STOP | {1: "42", 28: "41"})
     assert sent == [b"", tp.ACCOUNT, placed, tp.CANCEL, tp.ACCOUNT, *tp.ASKED, tp.ACCOUNT]
+
+
+def test_a_stop_that_sold_or_ended_as_it_was_cancelled_stops_the_sale_and_the_line_is_put_back(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    # R-MONEY-17: the stop is cancelled before a sale goes. Sold meanwhile, ended unseen, or
+    # part sold first: the sale is not sent, and the line is left under its stop for what is held
+    broker = tp._paper(tp._ready(tmp_path))
+    ended, bare, rests = _but(tp.ENDED_7, 2, "Filled"), tp.BARE, tp.RESTS
+    for ends in ([[ended], tp.EMPTY], [[_but(tp.UNFOUND, 2, "7")], bare, bare, rests]):
+        sent = _gateway(monkeypatch, [], tp.PROTECTED, *ends)
+        with pytest.raises(Refused, match="not sent, its stop sold or ended"):
+            broker.place(tp.SALE)
+        assert tp.PLACED not in sent
+    sent = _gateway(monkeypatch, [], tp.PROTECTED, [tp.ENDED_7], tp.LEFT, rests)
+    with pytest.raises(Refused, match="16 held"):
+        broker.place(tp.SALE)
+    assert sent[4] == tp.SMALLER and tp.PLACED not in sent

@@ -243,11 +243,13 @@ def test_a_sale_the_broker_falls_silent_on_is_cancelled_and_never_left_working(
     # ten sold before the cancel: the line's stop, cancelled before the sale went, is then
     # put back for the sixteen left, at the level and under the name it had
     then = [*PART, RESTS]
-    sent = _gateway(monkeypatch, [], PROTECTED, [ENDED_7], [*MINE, late], gone, *then, silent=True)
+    sent = _gateway(
+        monkeypatch, [], PROTECTED, [ENDED_7], BARE, [*MINE, late], gone, *then, silent=True
+    )
     told = broker.place(SALE)
     assert told.fills == (replace(OUT, quantity=-10),)
     assert all(s in str(told.reason) for s in ("10 shares filled and 16 not", "399: not placed"))
-    assert sent == [b"", ACCOUNT, CANCEL_7, PLACED, CANCEL, *ASKED, ACCOUNT, SMALLER]
+    assert sent == [b"", ACCOUNT, CANCEL_7, ACCOUNT, PLACED, CANCEL, *ASKED, ACCOUNT, SMALLER]
     # a cancel refused with the sale still working, and a cancel met with silence, are errors:
     # never an answer, whatever the broker would then say it did
     for error, cancel in {placing.NotCancelled: [UNFOUND], TimeoutError: []}.items():
@@ -315,20 +317,14 @@ def test_a_sale_takes_its_shares_off_the_stop_and_a_stop_not_settled_is_an_error
     flat = _account([_but(FLAT, 14, "5")])  # another line's shares, not this one's
     sold: list[Said] = [[_but(MINE[1], 2, "Filled")], flat, [DONE, ("102",)], [SOLD, END], flat]
     # THE STOP IS CANCELLED BEFORE THE SALE GOES (R-MONEY-17), never left resting beside it
-    sent = _gateway(monkeypatch, [], PROTECTED, [ENDED_7], *sold)
+    sent = _gateway(monkeypatch, [], PROTECTED, [ENDED_7], BARE, *sold)
     assert broker.place(SALE) == Report(ID, (OUT,), None)
-    assert sent[:4] == [b"", ACCOUNT, CANCEL_7, PLACED]
+    assert sent[:5] == [b"", ACCOUNT, CANCEL_7, ACCOUNT, PLACED]
     # a cancel the broker refuses, the stop still held there: the sale is never sent
     sent = _gateway(monkeypatch, [], PROTECTED, [_but(UNFOUND, 2, "7")], PROTECTED)
     with pytest.raises(placing.NotCancelled, match="-stop .10147"):
         broker.place(SALE)
     assert sent == [b"", ACCOUNT, CANCEL_7, ACCOUNT]
-    # a stop that sold as it was cancelled, or ended unseen: not sent, a later step reads again
-    for ends in ([[_but(ENDED_7, 2, "Filled")]], [[_but(UNFOUND, 2, "7")], EMPTY]):
-        sent = _gateway(monkeypatch, [], PROTECTED, *ends)
-        with pytest.raises(Refused, match="not sent, a stop on IITU ended"):
-            broker.place(SALE)
-        assert PLACED not in sent
     # the broker's last word, its fills and the account's shares must agree, or the line's stops
     # are left as they are: a buy whose own stop has sold already; a buy told filled, with fills
     # for ten of its 26; and a sale told filled, its fills not yet listed
@@ -339,7 +335,7 @@ def test_a_sale_takes_its_shares_off_the_stop_and_a_stop_not_settled_is_an_error
             broker.place(BUY_IT)
         assert sent[6:] == [ACCOUNT]
     sent = _gateway(
-        monkeypatch, [], PROTECTED, [ENDED_7], sold[0], flat, [("102",)], whole[1:], flat
+        monkeypatch, [], PROTECTED, [ENDED_7], BARE, sold[0], flat, [("102",)], whole[1:], flat
     )
     with pytest.raises(placing.Unprotected, match="went from 26 to 0"):
         broker.place(SALE)
@@ -352,11 +348,11 @@ def test_a_sale_takes_its_shares_off_the_stop_and_a_stop_not_settled_is_an_error
     said = [REJECTED, _but(MINE[1], 2, "Cancelled")]  # refused, then ended; or refused, and silence
     for error, n in {placing.Unprotected: 2, TimeoutError: 1}.items():
         sent = _gateway(
-            monkeypatch, [], PROTECTED, [ENDED_7], [], said[1:], *PART, said[:n], silent=True
+            monkeypatch, [], PROTECTED, [ENDED_7], BARE, [], said[1:], *PART, said[:n], silent=True
         )
         with pytest.raises(error, match="Cancelled; it said: .'201: Order|timed out"):
             broker.place(SALE)
-        assert sent[8:] == [ACCOUNT, SMALLER]
+        assert sent[9:] == [ACCOUNT, SMALLER]
 
 
 def test_nothing_is_sent_without_a_drill_a_clean_day_a_ready_gateway_and_the_stops_settled(
