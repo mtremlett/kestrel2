@@ -1,9 +1,8 @@
 """ladder_pool - THE LADDER ON ALL THE PC'S CORES (R-RUNNER-110): `lab/ladder.py`'s cells judged
-in a process pool of `os.cpu_count() - 2` workers at below-normal priority. The rows are the
-serial run's rows, in its order, written by the parent alone as each group arrives; a worker
-reads the bars itself. A GROUP is a run of consecutive cells of one rule, pooled once for its
+in `os.cpu_count() - 2` workers at below-normal priority. The rows are the serial run's, in its
+order, written by the parent alone; a worker reads the bars itself and keeps its simulations as
+tapes (`lab/tape.py`). A GROUP is a run of consecutive cells of one rule, pooled once for its
 folds. A cell whose judging breaks in a worker is that cell's row (`error`), never the set's end.
-Each worker keeps its simulations as tapes (`lab/tape.py`).
 """
 
 from __future__ import annotations
@@ -14,6 +13,7 @@ import sys
 from collections import Counter
 from collections.abc import Callable, Sequence
 from concurrent.futures import ProcessPoolExecutor
+from contextlib import ExitStack
 from datetime import UTC, datetime
 from itertools import groupby
 from pathlib import Path
@@ -29,6 +29,7 @@ SPARE = 2  #: cores left to the rest of the PC
 BELOW_NORMAL = 0x4000  #: Windows' BELOW_NORMAL_PRIORITY_CLASS
 Task = tuple[list[Cell], list[Cell], tuple[int | str, int], list[verdict.Row | None], datetime]
 _held: dict[str, Any] = {}  #: a worker's bars and rates, set once as it starts
+_kept = ExitStack()  #: holds the worker's tape context open
 
 
 def workers() -> int:
@@ -45,7 +46,8 @@ def _begin(make_bars: Callable[[], Bars], pounds: Rates, tapes: Path) -> None:
         kernel.SetPriorityClass(kernel.GetCurrentProcess(), BELOW_NORMAL)
     else:
         os.nice(10)
-    _held.update(bars=make_bars(), pounds=pounds, tapes=tapes)
+    _held.update(bars=make_bars(), pounds=pounds)
+    _kept.enter_context(tape.on(tapes))  #: for the worker's whole life
 
 
 def _group(task: Task) -> list[verdict.Row]:
@@ -53,17 +55,14 @@ def _group(task: Task) -> list[verdict.Row]:
     group, rule_cells, tagged, was, now = task
     shared = ladder.Shared(rule_cells)
     rows: list[verdict.Row] = []
-    with tape.on(_held["tapes"]):
-        for c, before in zip(group, was, strict=True):
-            try:
-                rows.append(
-                    ladder._one(c, _held["bars"], _held["pounds"], tagged, before, shared, now)
-                )
-            except Exception as error:  # noqa: BLE001 - a cell's break is its row, not the set's end
-                head: dict[str, Any] = {"set": tagged[0], "cell": batch.row(c), "trials": tagged[1]}
-                rows.append(
-                    head | {"error": f"{type(error).__name__}: {error}", "tried": now.isoformat()}
-                )
+    for c, before in zip(group, was, strict=True):
+        try:
+            rows.append(ladder._one(c, _held["bars"], _held["pounds"], tagged, before, shared, now))
+        except Exception as error:  # noqa: BLE001 - a cell's break is its row, not the set's end
+            head: dict[str, Any] = {"set": tagged[0], "cell": batch.row(c), "trials": tagged[1]}
+            rows.append(
+                head | {"error": f"{type(error).__name__}: {error}", "tried": now.isoformat()}
+            )
     return rows
 
 
@@ -91,10 +90,9 @@ def run(
         before = [last.get(tuple(batch.row(c))) for c in group]
         tasks.append((group, mine, (plan.tag, count), before, stamp))
     tally: Counter[str] = Counter()
+    tapes = home / ladder.FOLDER / tape.FOLDER
     pool = ProcessPoolExecutor(
-        size or workers(),
-        initializer=_begin,
-        initargs=(make_bars, pounds, home / ladder.FOLDER / tape.FOLDER),
+        size or workers(), initializer=_begin, initargs=(make_bars, pounds, tapes)
     )
     with pool, results.open("ab") as out:
         out.truncate(len(whole))

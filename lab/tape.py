@@ -1,6 +1,6 @@
-"""tape - THE LADDER'S EXPENSIVE STAGE, KEPT (R-RUNNER-118): a rule's trades on a line, one small
-file each, keyed by what made them alone (the rule's code, the engine's, the bars, the window), so
-a rung edited runs no simulation. Written whole or not at all: aside, forced to disk, renamed."""
+"""tape - THE LADDER'S EXPENSIVE STAGE, KEPT (R-RUNNER-118): a rule's trades on a line, one file
+each, keyed by what made them (rule's code, engine's, bars, window), so an edited rung runs no
+simulation. Written whole or not at all: aside, forced to disk, renamed."""
 
 from __future__ import annotations
 
@@ -16,28 +16,27 @@ from desk.store import Bar
 from lab import cell, rulebook
 from lab.cell import Cell, Record
 
-FOLDER = "tapes"  #: under the ladder's folder in the data home
+FOLDER = "tapes"
 Run = Callable[[Cell, Sequence[Bar]], Record]
 
 
 @cache
 def rule_code(strategy: str) -> str:
-    """sha256 of the code of the rule's module and every file it reaches."""
+    """sha256 of the code of the rule's module and what it reaches."""
     return cell.code_version(module=rulebook.rule(strategy).__module__)
 
 
 def kept(folder: Path, run: Run, code_of: Callable[[str], str] = rule_code) -> Run:
-    """`run` with each answer kept as a tape under folder, and read from it when held."""
+    """`run` with each answer kept as a tape under folder, read back when held."""
 
     def tape(c: Cell, bars: Sequence[Bar]) -> Record:
         now = cell.key(c, bars)
-        parts = (code_of(c.strategy), now.code, now.data, str(c))
-        name = hashlib.sha256("\n".join(parts).encode()).hexdigest()
-        path = folder / name[:2] / f"{name}.tape"
+        text = f"{code_of(c.strategy)}\n{now.code}\n{now.data}\n{c}"
+        path = folder / f"{hashlib.sha256(text.encode()).hexdigest()}.tape"
         if path.exists():  # our own file, written whole by this module
             return Record(now, *pickle.loads(path.read_bytes()))  # noqa: S301
         record = run(c, bars)
-        path.parent.mkdir(parents=True, exist_ok=True)
+        folder.mkdir(parents=True, exist_ok=True)
         with (fresh := path.with_suffix(".new")).open("wb", buffering=0) as out:
             out.write(pickle.dumps((record.bars, record.trades)))
             os.fsync(out.fileno())
