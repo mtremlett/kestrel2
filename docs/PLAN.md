@@ -129,6 +129,8 @@ park for a large one-day move nobody has recorded, most on real days of a real m
 Decide and build how research reads them, without loosening the store the desk trades on.
 The grid lane needs it. The money lane's blocking requests are done: R-MONEY-1 (each line's
 UK tax) and R-MONEY-2 (the scenes on the whole fourteen months).
+Retiring `desk/eponymous_*.py` (R-RUNNER-127) waits until all the rules are spec rows in
+`lab/catalogue.toml` (6 of about 25 on 15 Nov); deleting earlier would delete rules, not copies.
 
 - [x] The rehearsal data in a file of its own (`tests/scenes/rehearsal.py`)
 - [x] The rehearsal data lengthened to about fourteen months, the five rules buying and
