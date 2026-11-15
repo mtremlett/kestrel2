@@ -113,6 +113,8 @@ def test_the_rule_is_read_from_its_tape_and_each_placebo_is_its_window_in_blocks
         assert took[:stay] == [*days[:stay]] and sorted(took) == [*days] != took
         inside = [n for n in days[stay + 1 :] if (n - stay) % BLOCK]
         assert all(took[n] == took[n - 1] + 1 for n in inside), "each block whole, in its order"
+        places = {bar.high.as_tuple().exponent for bar in history[1:]}
+        assert places == {-5}, "rounded as the line's own prices are: its highs have five places"
         for price in ("open", "high", "low", "close"):
             made = [float(getattr(b, price) / last.close) for last, b in pairwise(history)]
             line = [float(getattr(bars[n], price) / bars[n - 1].close) for n in took[1:]]
@@ -139,3 +141,21 @@ def test_a_tape_that_could_not_pass_is_not_judged_and_riding_a_rising_window_mak
     rode = Record(cell.key(window, rising), 100, (Trade(rising[50].day, None),))
     made = rung_placebo.judge(rode, rising).made
     assert made is not None and abs(made) < Decimal("0.001"), "the window's own rise, no more"
+
+
+def test_what_is_ranked_is_the_tapes_own_trade_and_a_price_rounding_to_nothing_is_refused() -> None:
+    bars = _line(3, 0, 750)
+    c = Cell(RULES[0], VUSA, bars[0].day, bars[-1].day)
+    #: decided on bars 100 and 110: in at the open of 101, out at the open of 111, ten days held
+    one = Record(cell.key(c, bars), len(bars), (Trade(bars[100].day, bars[110].day),))
+    ride = (bars[-1].close / bars[0].close).ln() / (len(bars) - 1)
+    assert rung_placebo.judge(one, bars).made == (bars[111].open / bars[101].open).ln() - 10 * ride
+    #: a penny line quoted to two places: five fortnights that each end ten times higher, then
+    #: one that opens at a 200,000th and stays; anywhere but last it falls under half a penny
+    closes = [0.05] + [0.05 * 10 ** (n // 10) for n in range(1, 51)] + [0.03] * 10
+    penny = tuple(replace(b, open=b.close, high=b.close, low=b.close) for b in _bars(closes))
+    c = Cell(RULES[0], VUSA, penny[0].day, penny[-1].day)
+    with pytest.raises(ValueError, match="rounds to nothing"):
+        rung_placebo.judge(
+            Record(cell.key(c, penny), len(penny), (Trade(penny[1].day, None),)), penny
+        )

@@ -14,7 +14,8 @@ log, open after the buy to open after the sale: riding a rising line longer earn
 It is before costs: it ranks orders of one line and reports no profit (costs are the first
 rung's). The share is the placebos that made as much as the rule, itself among them, over
 PLACEBOS + 1; SHARE or under passes, and it stops once a pass is out of reach (the share is
-then a floor). Of noise at most SHARE passes, whatever the rule: each order was as likely.
+then a floor). Of noise tapes, the unjudged counted, at most SHARE pass, whatever the rule:
+each order was as likely as the real one.
 
 FAILING FAIRLY: a tape with no trade, or under FEWEST blocks, has no share: not judged, never
 failed. WHAT IT CANNOT SEE: an edge that lives inside one block is in every placebo, and reads
@@ -56,7 +57,8 @@ class Placebo:
 
     @property
     def passed(self) -> bool:
-        """THE DECISION: at most SHARE of the placebos, itself among them, did as well."""
+        """THE DECISION: at most SHARE of the placebos, itself among them, did as well. A tape
+        not judged has no share and has not passed: read `share` before this."""
         return self.share is not None and self.share <= SHARE
 
 
@@ -82,6 +84,8 @@ def judge(tape: Record, bars: Sequence[Bar]) -> Placebo:
     while run < PLACEBOS and as_good <= SHARE * (PLACEBOS + 1):
         order = (rng.permutation(blocks)[:, None] * BLOCK + np.arange(BLOCK)).ravel()
         made = _history(read, moves, np.r_[:stay, stay + order], places)
+        if min(bar.low for bar in made) <= 0:
+            raise ValueError(f"{c}: a placebo's price rounds to nothing: too near it to shuffle")
         as_good += _made(cell.run(c, made), made, ride) >= own
         run += 1
     return Placebo(key, blocks, run, own, Decimal(as_good) / (PLACEBOS + 1))
