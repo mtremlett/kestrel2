@@ -9,7 +9,7 @@ from itertools import product
 
 import pytest
 from test_lab_luck import DAY
-from test_lab_rung import FREE
+from test_lab_rung import FREE, line_of
 
 from lab import cell, plateau, rung
 from lab.cell import Cell, Key, Trade
@@ -40,7 +40,7 @@ def _verdict(edge: str, rule: str = "r", symbol: str = "VUSA", days: Days = (0, 
     gains = [Decimal(edge) + Decimal("0.02") * (-1) ** n for n in range(30)]
     priced = tuple(Priced(Trade(DAY, DAY), 1, Decimal(1), 1 + g, FREE, (DAY, DAY)) for g in gains)
     start, end = (DAY + timedelta(days=n) for n in days)
-    return rung.verdict(Key(Cell(rule, symbol, start, end), "code", "data"), priced)
+    return rung.verdict(Key(Cell(rule, line_of(symbol), start, end), "code", "data"), priced)
 
 
 def _surface(edge: Edge | str, *axes: tuple[int, ...]) -> dict[Setting, Verdict]:

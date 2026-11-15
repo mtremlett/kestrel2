@@ -20,14 +20,14 @@ VUSA = next(line for line in LINES if line.symbol == "VUSA")
 
 DOLLARS = {date(2010, 1, 1) + timedelta(n): Decimal("0.8") for n in range(4000)}
 _STATED = Stated(Measure.TRADES, Decimal(1), Decimal(0))
-EDGE, YEAR, RULE, LSE = 0.012, 365, "breakout_20_10", tuple(line.symbol for line in LINES)
+EDGE, YEAR, RULE, LSE = 0.012, 365, "breakout_20_10", LINES
 
 
 def _pool(seed: int, *pushes: float, count: int = 5) -> Pooled:
     """Every line of one rule, each a walk with the planted push in each of its years."""
     cells = [
-        (Cell(RULE, symbol, bars[0].day, bars[-1].day), bars)
-        for symbol, bars in ((s, _walk(seed + n, *pushes, days=YEAR)) for n, s in enumerate(LSE))
+        (Cell(RULE, line, bars[0].day, bars[-1].day), bars)
+        for line, bars in ((s, _walk(seed + n, *pushes, days=YEAR)) for n, s in enumerate(LSE))
     ]
     return folds.pool(cells, TEN_K, DOLLARS, count)
 
