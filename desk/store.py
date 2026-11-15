@@ -359,11 +359,17 @@ def shelve(root: Path, line: Line, bars: Iterable[Bar]) -> None:
 
 
 def _joined(root: Path, line: Line, bars: Sequence[Bar]) -> list[Bar]:
-    """The archive's bars and, for each day it gives none, the line's shelved bar."""
+    """The archive's bars and, for each day it gives none, the line's shelved bar. A frozen
+    run in the archive's bars is its filler, not a price it gives: with a shelf, none of it is
+    kept, so a shelved bar fills its days and any day the shelf lacks is a missing session."""
     shelved = root / HISTORY / f"{line.symbol}.csv"
-    given = {bar.day for bar in bars}
-    older = (bar for bar in _load(shelved) if bar.day not in given) if shelved.is_file() else ()
-    return sorted([*older, *bars], key=lambda bar: bar.day)
+    if not shelved.is_file():
+        return list(bars)
+    real = set(_thawed(bars, []))
+    given = [bar for bar in bars if bar in real]
+    held = {bar.day for bar in given}
+    older = (bar for bar in _load(shelved) if bar.day not in held)
+    return sorted([*older, *given], key=lambda bar: bar.day)
 
 
 def read(root: Path, symbol: str) -> tuple[Bar, ...]:
