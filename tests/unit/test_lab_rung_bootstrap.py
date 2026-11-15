@@ -27,8 +27,8 @@ from lab.rung_bootstrap import RATE, Redrawn, redrawn
 DAYS, CELLS = 1500, 500  #: six years of days to a cell, and the cells of noise
 Rung = Callable[[Sequence[float], int], bool]  #: a cell's days and its seed: passed, or not
 #: THE POWER CURVE, recorded: the part passed of 3,000 cells whose mean was planted 1, 2.5 and
-#: 4 of its own standard errors above nothing (0.174, 0.719, 0.978). Of 3,000 cells of plain
-#: noise 0.024 passed; of noise in runs of 5 days 0.032, of 20 days 0.06, of 60 days 0.15
+#: 4 of its own standard errors above nothing (0.174, 0.719, 0.978); what part of noise
+#: passes, plain and in runs, is written once, in the module's own words
 POWER = {1.0: 0.17, 2.5: 0.72, 4.0: 0.98}
 
 
