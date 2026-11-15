@@ -26,6 +26,7 @@ from lab import (
     deflated,
     folds,
     ladder,
+    ladder_sets,
     market,
     published,
     reproduce,
@@ -163,7 +164,7 @@ def test_a_short_line_is_judged_on_its_proxys_longer_bars_and_says_so(tmp_path: 
     book[vuag] = EDGE  #: no shorter than its proxy: judged on its own bars, no label
     ladder.run(tmp_path / "own", _door(book), pounds, _set(vuag))
     assert "proxy" not in _rows(tmp_path / "own")[0]
-    said = ladder._said(short)[1]
+    said = ladder_sets._said(short)[1]
     assert said.startswith("proxy: SPY for VUAG <br>")
 
 
@@ -259,7 +260,7 @@ def test_the_set_is_every_published_rule_on_every_line_and_its_doors_are_the_des
     with pytest.raises(ValueError, match="VUSA: parked"):
         ladder.stored(tmp_path)(VUSA)
     with pytest.raises(SystemExit, match="KESTREL2_DATA names no data folder"):
-        ladder.main({})
+        ladder_sets.main({})
 
 
 def test_the_shuffle_is_run_last_and_only_on_a_trial_that_passed_every_rung_before_it(
