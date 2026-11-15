@@ -185,3 +185,22 @@ def test_nothing_is_asked_on_a_day_no_venue_trades_nor_once_the_calls_time_is_sp
     assert keeper.main(tmp_path / "real", _at(9)) == 1  # the command itself, the archive away
     out, err = capsys.readouterr()
     assert len(out.splitlines()) == 3 and err.count("MISSED: ") == 3 and "MISSED: US: daily" in err
+
+
+def test_the_closes_are_held_within_the_named_figure_after_each_venues_close(
+    tmp_path: Path,
+) -> None:
+    pretend, tue = Archive(), MON + timedelta(1)
+    for venue, line in (("LSE", UK), ("US", US)):
+        auction = venues.hours(venue, MON).auction
+        pretend.keep(tmp_path / venue, _at(6, 5))
+        for minute in range(0, 60, 5):  # the runner's calls, one in five minutes
+            pretend.keep(tmp_path / venue, auction + timedelta(minutes=minute))
+            if keeper.target(venue, auction + timedelta(minutes=minute)) == tue:
+                break
+        assert keeper.saved(tmp_path / venue, tue, [line])[0][line][-1].day == MON
+        assert keeper.SETTLED <= timedelta(minutes=minute) <= keeper.HELD
+    for venue in venues.RULES:  # held before the runner's 22:00, UK time, on every session
+        for day in venues.sessions(venue, date(2026, 11, 16), date(2027, 12, 31)):
+            held = venues.hours(venue, day).auction + keeper.HELD
+            assert held.astimezone(venues.zone("LSE", day)).hour < 22
