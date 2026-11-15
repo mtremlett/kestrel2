@@ -236,7 +236,7 @@ def _revision(execution_id: str) -> tuple[str, int]:
     """An execution id as the fill it is and which version of it: the broker corrects a fill
     by the same id but for its last part (".01" replaced by ".02")."""
     fill, dot, last = execution_id.rpartition(".")
-    return (fill, int(last)) if dot and last.isdigit() else (execution_id, 0)
+    return (fill, int(last)) if dot and last.isdecimal() else (execution_id, 0)
 
 
 def _record(root: Path, new: Iterable[Fill]) -> None:
