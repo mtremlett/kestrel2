@@ -1,0 +1,20 @@
+# The spec book: one table per strategy, named as the rule of desk/eponymous_*.py it re-expresses.
+# Each holds its blocks, their parameters, its source and known answers (lab/spec.py parses it;
+# tests/unit/test_spec_parity.py demands the same decisions as the Python rule, day by day).
+# A rule needing a block lab/blocks.py lacks is not here yet: that block is RUNGS' to add.
+
+[donchian_channel_breakout]
+entry = "highest_high"
+exit = "lowest_low"
+stop = "no_stop"
+filter = "no_filter"
+source = "Faith, Way of the Turtle (2007), the four-week rule: buy over the 20 sessions' highest high, sell under their lowest low"
+
+[donchian_channel_breakout.params]
+entry = { n = 20 }
+exit = { n = 20 }
+
+# twenty flat sessions, a close over their high (buy), then a close under their low (sell)
+[[donchian_channel_breakout.cases]]
+bars = [[11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [13, 11, 12], [10, 7, 8]]
+wants = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0]
