@@ -21,6 +21,12 @@ first rung's least) are not far from it. The trials are taken as separate looks,
 the bar highest. The Sharpe is on the first rung's own deviation; the skew and the kurtosis
 are the plain moments of the gains.
 
+ONE CLUSTERED SET (L14). Where the set's trials have been clustered by how their returns move
+together (`trials.clusters`), `read` takes both counts from the clusters instead: the number
+of trials is the looks the set truly took, and the spread is the one measured among those
+looks' Sharpes, at the trial's own trades. Fifty copies of one strategy then set the bar of
+one trial, and fifty strangers that of fifty. The luck rung's count is every trial, as before.
+
 THE YEARLY SHARPE. Canon B6: a daily Sharpe above 2 is a red flag, not a win. It is worked
 here from the trades: the Sharpe a trade times the root of the trades a year over the
 trial's window, which is what daily accounts come to over a year when one trade's gain tells
@@ -49,6 +55,7 @@ from statistics import NormalDist, fmean
 from lab import luck
 from lab.luck import Corrected
 from lab.rung import Answer, Verdict
+from lab.trials import Clustered
 
 #: The bands of the deflated Sharpe (LAD-03): believed at nine chances in ten that the true
 #: Sharpe beats luck's best; failed under an even chance; in doubt between.
@@ -107,10 +114,11 @@ def judge(verdicts: Sequence[Verdict], unjudged: int) -> tuple[Deflated, ...]:
     return read(luck.correct(verdicts, unjudged))
 
 
-def read(corrected: Sequence[Corrected]) -> tuple[Deflated, ...]:
+def read(corrected: Sequence[Corrected], looks: Clustered | None = None) -> tuple[Deflated, ...]:
     """Verdicts already corrected for their count, judged on the rungs read here: the door for
-    a count the register of trials keeps from batch to batch (`trials.correct`)."""
-    return tuple(_deflated(one) for one in corrected)
+    a count the register of trials keeps from batch to batch (`trials.correct`). Given the
+    set clustered, the deflated Sharpe's bar is set by its looks and their measured spread."""
+    return tuple(_deflated(one, looks) for one in corrected)
 
 
 def best_by_luck(spread: float, trials: int) -> float:
@@ -131,14 +139,17 @@ def deflate(sharpe: float, bar: float, trades: int, skew: float, kurtosis: float
     return _NORMAL.cdf((sharpe - bar) * math.sqrt((trades - 1) / wobble))
 
 
-def _deflated(corrected: Corrected) -> Deflated:
+def _deflated(corrected: Corrected, looks: Clustered | None) -> Deflated:
     verdict = corrected.verdict
     if verdict.t is None:
         return Deflated(corrected, None, None, None, 0.0)
     gains = [float(gain) for gain in verdict.gains]
     #: the first rung's standard errors are the Sharpe times the root of the trades
     sharpe = float(verdict.t) / math.sqrt(len(gains))
-    bar = best_by_luck(1 / (len(gains) - 1), corrected.trials)
+    if looks is None:
+        bar = best_by_luck(1 / (len(gains) - 1), corrected.trials)
+    else:
+        bar = best_by_luck(looks.spread(len(gains)), looks.trials)
     mean = fmean(gains)
     second, third, fourth = (fmean((g - mean) ** power for g in gains) for power in (2, 3, 4))
     chance = deflate(sharpe, bar, len(gains), third / second**1.5, fourth / second**2)
