@@ -3,11 +3,10 @@ source and at least one known answer, built only by `Spec.parse`, which refuses 
 wrong in any way and says which part and why. `SpecRule` runs a spec as the desk's own Rule, so
 the one engine decides on it as it decides on a Python rule.
 
-A row: name, entry, exit, stop, filter (each a block's name), params (per place, per
-parameter), source (where the rule comes from) and cases (known answers, each bars given as
-[high, low, close] and the wish after each bar). A spec that does not give its own cases is
-refused. The rule: out of the market it buys when its entry fires and its filter allows;
-in it, it sells when its exit or its stop fires.
+A row: name, entry, exit, stop, filter (block names), params (per place), source and cases
+(known answers: bars as [high, low, close], the wish after each). A spec with no case is
+refused. Out of the market it buys when its entry fires and its filter allows; in it, it
+sells when its exit or its stop fires.
 """
 
 from __future__ import annotations

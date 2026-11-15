@@ -1,13 +1,11 @@
 """blocks - the building blocks a spec is made of, each written once: a small stateful class
 shown every bar after its close, answering whether it fires. The indicators are the desk's
-own proven parts (`desk.strategy`'s windows and smoothings, the ones `lab.published` holds to
-the published tables), never copied here.
+own proven parts (`desk.strategy`'s windows, held to the published tables), never copied.
 
-Four kinds. An ENTRY fires when the rule should buy; an EXIT when it should sell; a STOP when
+Four kinds: an ENTRY fires when the rule should buy; an EXIT when it should sell; a STOP when
 a held position has lost too much; a FILTER allows or forbids a buy. A block compares the bar
-with what it saw BEFORE the bar, then takes the bar in, as the desk's own rules do. It reads
-the bar only, so it cannot see a later one. A block that has not yet seen enough bars does not
-fire (a filter then forbids).
+with what it saw BEFORE it, then takes it in. One not yet fed enough bars does not fire (a
+filter then forbids).
 """
 
 from __future__ import annotations
@@ -18,7 +16,7 @@ from decimal import Decimal
 from enum import Enum
 
 from desk.store import Bar
-from desk.strategy import ZERO, _Exponential, _Wilder, _Window, rsi
+from desk.strategy import _Window
 
 
 class Kind(Enum):
@@ -90,35 +88,6 @@ class CloseBelowAverage(_Average):
         super().__init__(n, lambda close, mean: close < mean)
 
 
-class RsiBelow(Block):
-    """Fires when Wilder's RSI over `n` bars is under `level`."""
-
-    def __init__(self, n: int, level: int) -> None:
-        self._gain, self._loss, self._level = _Wilder(n), _Wilder(n), level
-        self._last: Decimal | None = None
-
-    def see(self, bar: Bar, holding: bool) -> bool:  # noqa: ARG002 - the one interface of every block
-        """Shown the next bar: whether the block fires."""
-        last, self._last = self._last, bar.close
-        if last is None:
-            return False
-        gain = self._gain.add(max(bar.close - last, ZERO))
-        loss = self._loss.add(max(last - bar.close, ZERO))
-        return gain is not None and loss is not None and rsi(gain, loss) < self._level
-
-
-class FastAboveSlow(Block):
-    """Fires while the `fast`-bar exponential average of the close is over the `slow`-bar one."""
-
-    def __init__(self, fast: int, slow: int) -> None:
-        self._fast, self._slow = _Exponential(fast), _Exponential(slow)
-
-    def see(self, bar: Bar, holding: bool) -> bool:  # noqa: ARG002 - the one interface of every block
-        """Shown the next bar: whether the block fires."""
-        fast, slow = self._fast.add(bar.close), self._slow.add(bar.close)
-        return fast is not None and slow is not None and fast > slow
-
-
 class TrailingStop(Block):
     """Fires on a close `pct` per cent or more under the highest close since the position was
     first seen held. Nothing while the position is not held."""
@@ -175,8 +144,6 @@ _DAYS = Param(int, 2, 400)
 #: The one list of blocks by name; a spec names these and no others.
 BLOCKS: Mapping[str, Spot] = {
     "highest_high": Spot(Kind.ENTRY, HighestHigh, {"n": _DAYS}),
-    "rsi_below": Spot(Kind.ENTRY, RsiBelow, {"n": Param(int, 2, 50), "level": Param(int, 1, 99)}),
-    "fast_above_slow": Spot(Kind.ENTRY, FastAboveSlow, {"fast": _DAYS, "slow": _DAYS}),
     "lowest_low": Spot(Kind.EXIT, LowestLow, {"n": _DAYS}),
     "close_below_average": Spot(Kind.EXIT, CloseBelowAverage, {"n": _DAYS}),
     "trailing_stop": Spot(Kind.STOP, TrailingStop, {"pct": Param(Decimal, 1, 50)}),
