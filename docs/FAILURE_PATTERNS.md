@@ -81,6 +81,10 @@ three lanes (DATA, GRID, RUNGS) halted this way overnight.
 whose wait is unmet, holds back a box its session says `Waits:` for or the doctor finds
 blocked, and offers it again when the request is done or the date comes. The no-progress
 halt stays as the backstop.
+Its twin, seen 15 November: a card re-issued with a claim its fix cannot fit (spec-epon six
+times, cell-line-only four). The runner's READY gate (xiv) refuses to re-issue a card whose
+last run asked another lane for something, or named a file outside its claim, until the
+claim changes or that request is done; it was driven against planted runs.
 
 **13. Tuning the cleaner on live lines.** Each parked line's next odd bar drives another
 rule or exception into `desk/store.py`, and exact real prices get written into
