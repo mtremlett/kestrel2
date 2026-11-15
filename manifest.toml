@@ -41,7 +41,6 @@ rungs = []
 "desk/venues.py" = "the one calendar: the days each venue trades, its own holidays and no other's"
 "desk/archive.py" = "the one client for the free price archive: a line's daily bars, checked on entry"
 "desk/store.py" = "the one price store and its one writer: bars cleaned on entry, bad lines parked"
-"desk/reference.py" = "the reference series: a line's daily bars from before the calendar begins, studied and never traded, kept apart from the traded bars"
 "desk/bars.py" = "the one fast store for hot and deep bars: one SQLite file, the one writer's whole rounds, many readers"
 "desk/compare.py" = "how an old store's bars meet the bars the store holds: agreeing, the adjusted form of the raw as-traded bar (a factor, never written over it), or a real disagreement counted by day"
 "desk/snapshot.py" = "the nightly backup copy: one consistent snapshot of each price database and the ledger in the data folder's backup folder, the last few kept"

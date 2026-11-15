@@ -23,7 +23,7 @@ from decimal import Decimal
 from pathlib import Path
 from statistics import median
 
-from desk import archive, reference, store
+from desk import archive, store
 from desk.lines import LINES, NO_TAX, STAMP_DUTY, Line
 from desk.store import Bar, Fault, Parked
 
@@ -152,7 +152,9 @@ def keep_reference(
     """Fetch each reference series from the archive's reach back to its first session, before
     day, and keep it in its venue's folder at root as traded, with the faults found."""
     return {
-        line: reference.keep(root / line.venue, line, ask(line, day, archive.REFERENCE_SINCE))
+        line: archive.keep_reference(
+            root / line.venue, line, ask(line, day, archive.REFERENCE_SINCE)
+        )
         for line in REFERENCE
     }
 
