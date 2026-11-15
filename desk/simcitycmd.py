@@ -5,10 +5,11 @@
     python -m desk.simcity --soak   the NEXT unused block of a hundred fresh seeds, logged
                                     in KESTREL2_DATA/simcity/seeds.jsonl before it starts
 
-It lives the saved lines of the desk's price store, under the folder the environment names
-(KESTREL2_DATA), with the desk's own capital and the pound's rate of the day, and adds the
-night's one record to the desk's folder. Its answer is the night in words, one message, and
-the code is 0 for a green night, 1 for a red one: the night is kept either way."""
+It lives the saved lines of the desk's price store (the keeper's door), in the folder the
+environment names (KESTREL2_DATA), with the desk's own capital and the pound's rate of the
+day, and adds the night's one record to the desk's folder. Its answer is the night in
+words, one message, and the code is 0 for a green night, 1 for a red
+one: the night is kept either way."""
 
 from __future__ import annotations
 
@@ -19,7 +20,7 @@ from collections.abc import Callable, Mapping, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 
-from desk import command, simcity, store
+from desk import command, keeper, simcity
 from desk.lines import LINES
 from desk.orders import Settings
 
@@ -54,7 +55,7 @@ def main(
     root, now = Path(env["KESTREL2_DATA"]) / command.ROOT, clock()
     if not root.is_absolute():
         raise SystemExit(f"KESTREL2_DATA names no whole path to a folder: {root.parent}")
-    saved = {line: store.read(root / command.STORE, line.symbol) for line in LINES}
+    saved, _parked = keeper.saved(Path(env["KESTREL2_DATA"]), now.date(), LINES)
     room = Settings(command.CAPITAL)
     worlds = soak(Path(env["KESTREL2_DATA"]), now) if argv == ["--soak"] else QUICK
     worlds = simcity.WORLDS if argv == ["--full"] else worlds
