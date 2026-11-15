@@ -24,11 +24,13 @@ from desk import (
     command,
     day,
     halt,
+    keeper,
     listing,
     messenger,
     paper,
     running,
     venues,
+    watch,
 )
 from desk.lines import LINES, Line
 from desk.store import Bar
@@ -66,6 +68,8 @@ def _world(patch: pytest.MonkeyPatch, fetch: Fetch = _fetch) -> dict[bytes, Said
     patch.setattr(archive, "fetch", fetch)
     patch.setattr(paper, "dial", dial)
     patch.setattr(listing, "read", lambda _: LISTED)
+    patch.setattr(keeper, "saved", lambda _home, _day: (dict.fromkeys(LINES, ()), set()))
+    patch.setattr(watch, "look", lambda _r, _h, _d, now, _p: watch.Look(now, (), {}))
     return answers
 
 

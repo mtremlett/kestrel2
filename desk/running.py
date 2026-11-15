@@ -48,7 +48,6 @@ from desk import (
     clearance,
     day,
     gateway,
-    keeper,
     kill,
     listing,
     messenger,
@@ -95,11 +94,10 @@ class Desk:
     bars: Callable[[date], Saved]
     #: A day's pounds per unit of each currency: the same answer at every asking.
     rates: Callable[[date], Mapping[str, Decimal]]
-
-    @property
-    def fast(self) -> Path:
-        """The fast store the crash watch reads: in the data folder, beside the desk's own."""
-        return self.root.parent / keeper.HOT
+    #: The fast store the crash watch reads, and the daily bars the keeper already holds
+    #: (keeper.saved): the watch never asks the archive itself.
+    fast: Path
+    kept: Callable[[date], Saved]
 
 
 class Note(NamedTuple):
@@ -331,7 +329,7 @@ def step(desk: Desk, now: datetime) -> None:
     known = UNASKED
     try:
         known = gateway.known(now)
-        look = watch.look(desk.root, desk.fast, desk.bars(now.date())[0], now, desk.post)
+        look = watch.look(desk.root, desk.fast, desk.kept(now.date())[0], now, desk.post)
         if known:
             _work(desk, now, YARDSTICK in look.unread)
     except Exception as fault:
