@@ -8,7 +8,8 @@
 It lives the saved lines of the desk's price store (the keeper's door), in the folder the
 environment names (KESTREL2_DATA), with the desk's own capital and the pound's rate of the
 day, and adds the night's one record to the desk's folder. Its answer is the night in
-words, one message, and the code is 0 for a green night, 1 for a red one: the night is kept either way."""
+words, one message, and the code is 0 for a green night, 1 for a red
+one: the night is kept either way."""
 
 from __future__ import annotations
 
