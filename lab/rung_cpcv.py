@@ -13,8 +13,9 @@ is CHOSEN there when its trades' mean gain after costs is above nothing. The two
 out-of-sample, where the rule earns or LOSES by the same measure.
 
 PURGED. A trade held across a cut stands on both sides of it, and one bought in the embargo
-after a cut (a hundredth of the days, Lopez de Prado's own figure) follows too closely on the
-stretch before. Both are in no stretch, in every split, so no trade stands on both sides of one.
+after a cut (a hundredth of the days, Lopez de Prado's own figure; none on a history under
+a hundred days) follows too closely on the stretch before. Both are in no stretch, in every
+split, so no trade stands on both sides of one.
 
 THE PROBABILITY OF OVERFITTING is this rung's own figure for one rule, not Bailey's across a
 roster: of the splits the rule was chosen in, the share it then lost out-of-sample. Pooled
@@ -22,34 +23,37 @@ over many rules of noise it is a half, though one tape's own swings from nothing
 an edge that is there throughout it is nothing.
 
 THE RUNG PASSES a rule chosen in every split and losing in none: any two stretches of its
-history earn together. A poor stretch fails it only when it loses more than the next worst
-earns; gains that are all one stretch's always do. Earning on every two held out is being
+history earn together. A poor stretch fails it only when it loses as much as the next worst
+earns, or more; gains that are all one stretch's always do. Earning on every two held out is being
 chosen on every four (two pairs), so the answer is decided out-of-sample: the choosing is in
 the probability reported, not in the pass.
 
-ITS STATED RATE (RATE) is 1 in 32, and exact for gains with no edge that are as likely either
-side of nothing. It passes only when the two worst stretches sum above nothing; where each
+ITS STATED RATE (RATE) is 1 in 32, and exact for gains with no edge that are symmetric about
+nothing. It passes only when the two worst stretches sum above nothing; where each
 stretch's sum is as likely above as below, whatever its size, and independent of the rest,
 that is all six above (1 in 64) or one below and the smallest of the six (1 in 64).
-IT IS NOT THE RATE OF LOPSIDED GAINS. A rule with no edge that makes many small wins and a few
-large losses passes more often wherever a stretch is short enough to hold no large loss: at
-nine wins to each loss nine times the size, about 3 in 32 at six trades a stretch (the tests
-record it) and under 1 in 32 at ten; the mirror shape, few large wins, a third of 1 in 32 at
-six. Gains that each carry on half of the last pass 1.3 in 32 on sixty trades. The rare large
-loss is the first rung's to plant (G2), and no rule passes the ladder by this rung alone.
+IT IS NOT THE RATE OF LOPSIDED GAINS, AND ALONE THIS RUNG PUTS NO CEILING ON THEM. A rule with
+no edge that makes many small wins and a few large losses passes more often, wherever a
+stretch holds no large loss or wins enough to outweigh one, and the rarer the loss the more.
+Measured: at nine wins to each loss nine times the size, 3 in 32 at six trades a stretch (the
+tests record it), under 1 at ten and 3 again at twelve; at ninety-nine to one, 23 in 32 at six
+and 18 at ten. The mirror shape passes a third as often at six a stretch and a little over the
+rate at ten; gains that each carry on half of the last, about 1.2 in 32 on sixty trades.
+No sample holds the loss that has not come yet: that loss is the first rung's to plant (G2),
+and with it planted at the size of the rare loss the two rungs together passed under 1 in 32
+on every shape measured. No rule passes the ladder by this rung alone.
 
 FAILING FAIRLY (LAD-06). No judged trade is a FAULT in the test. Under `rung.MIN_TRADES` left
 in the stretches, or a stretch with none, is THIN: the rung could not have passed it.
 
 READS THE TAPE, KEYED BY IT. It is handed the first rung's verdict on a tape (`lab/tape.py`),
-the tape's trades priced, and runs no simulation. Its result's key is the tape's own (the
-rule's code, the engine's, the bars, the window) and this module's code with all it reaches,
-the cost model among it. The rates and the capital it was priced at are the caller's to key.
+the tape's trades priced, and runs no simulation. Its result's key is the tape's record's,
+made this rung's by this module's code and all it reaches, the cost model among it
+(`Key.rung`). The rates and the capital it was priced at are the caller's to key.
 """
 
 from __future__ import annotations
 
-import hashlib
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import timedelta
@@ -58,7 +62,8 @@ from fractions import Fraction
 from itertools import combinations
 
 from desk.strategy import ARITHMETIC
-from lab import rung, tape
+from lab import rung
+from lab.cell import Key
 from lab.rung import Answer, Priced, Verdict
 
 ME = "lab.rung_cpcv"  #: this module as the cell knows it
@@ -90,7 +95,7 @@ class Split:
 class Crossed:
     """A tape crossed: every split, and the rung's one answer on them."""
 
-    key: str  #: what made it: the tape, and this module's code
+    key: Key  #: the tape's key, made this rung's by its code
     trades: int  #: the judged trades in the stretches
     purged: int  #: the judged trades in no stretch
     splits: tuple[Split, ...]  #: every split; none where the answer is THIN or FAULT
@@ -130,7 +135,7 @@ class Crossed:
         )
 
 
-def cross(verdict: Verdict) -> Crossed:
+def judge(verdict: Verdict) -> Crossed:
     """The first rung's verdict on a tape, crossed: every split's two means, and the answer."""
     stretches = _stretches(verdict.trades)
     kept = sum(map(len, stretches))
@@ -151,15 +156,7 @@ def cross(verdict: Verdict) -> Crossed:
             )
         held = all(split.chosen and not split.lost for split in splits)
         answer = Answer.PASS if held else Answer.FAIL
-    return Crossed(key(verdict), kept, len(verdict.trades) - kept, splits, answer)
-
-
-def key(verdict: Verdict) -> str:
-    """What made a result: the tape's key, its engine's code joined by this rung's and all
-    this rung reaches."""
-    made = verdict.key.rung(ME)
-    text = f"{tape.rule_code(made.cell.strategy)}\n{made.code}\n{made.data}\n{made.cell}"
-    return hashlib.sha256(text.encode()).hexdigest()
+    return Crossed(verdict.key.rung(ME), kept, len(verdict.trades) - kept, splits, answer)
 
 
 def _stretches(priced: Sequence[Priced]) -> list[list[Decimal]]:

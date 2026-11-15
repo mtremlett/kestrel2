@@ -18,7 +18,7 @@ from math import comb, sqrt
 import pytest
 from test_lab_rung import FREE, VUSA
 
-from lab import cell, rung, rung_cpcv, tape
+from lab import cell, rung, rung_cpcv
 from lab.cell import Cell, Key, Trade
 from lab.rung import Answer, Priced, Verdict
 from lab.rung_cpcv import Crossed
@@ -104,7 +104,7 @@ PROOFS = (planted, noise, power)
 
 @pytest.mark.parametrize("proof", PROOFS)
 def test_the_rung_is_proven_alone(proof: Callable[[Rung], None]) -> None:
-    proof(rung_cpcv.cross)
+    proof(rung_cpcv.judge)
 
 
 @pytest.mark.parametrize("proof", PROOFS)
@@ -112,7 +112,7 @@ def test_a_copy_with_its_decision_inverted_is_caught(proof: Callable[[Rung], Non
     inverted = {Answer.PASS: Answer.FAIL, Answer.FAIL: Answer.PASS}
 
     def broken(verdict: Verdict) -> Crossed:
-        got = rung_cpcv.cross(verdict)
+        got = rung_cpcv.judge(verdict)
         return replace(got, answer=inverted.get(got.answer, got.answer))
 
     with pytest.raises(AssertionError):
@@ -125,13 +125,13 @@ def test_no_edge_in_many_small_wins_passes_more_often_than_stated_and_it_is_reco
     def gains() -> list[float]:
         return [rng.uniform(0.005, 0.015) if rng.random() < 0.9 else -0.09 for _ in range(36)]
 
-    passes = sum(rung_cpcv.cross(_tape(_monthly(gains()))).passed for _ in range(CELLS))
+    passes = sum(rung_cpcv.judge(_tape(_monthly(gains()))).passed for _ in range(CELLS))
     assert _interval(CELLS, float(rung_cpcv.RATE))[1] < passes == LOPSIDED
 
 
 def test_each_split_is_counted_as_it_is_known_to_fall() -> None:
     def crossed(*sums: int) -> tuple[Answer, int, int, Fraction | None]:
-        got = rung_cpcv.cross(_tape(_even(*sums)[::-1]))  #: newest first: the order is not read
+        got = rung_cpcv.judge(_tape(_even(*sums)[::-1]))  #: newest first: the order is not read
         return got.answer, got.chosen, got.lost, got.overfit
 
     #: thirty trades are enough, and a poor stretch losing less than the next worst earns passes
@@ -144,43 +144,39 @@ def test_each_split_is_counted_as_it_is_known_to_fall() -> None:
     #: every gain made in one stretch: the first rung passes the total, and this rung fails it
     lucky = _tape(_even(-1, -1, -1, -1, -1, 100))
     assert lucky.passed and crossed(-1, -1, -1, -1, -1, 100) == (Answer.FAIL, 10, 10, Fraction(1))
-    said = rung_cpcv.cross(lucky).reason
+    said = rung_cpcv.judge(lucky).reason
     assert "chosen in-sample in 10, lost out-of-sample in 10 of those" in said
 
 
 def test_a_trade_across_a_cut_or_in_its_embargo_is_in_no_stretch() -> None:
     #: a loss held across the cut on day 100, and one bought on it: either would sink a stretch
     sunk = [(94, 100, -0.9), (100, 102, -0.9)]
-    got = rung_cpcv.cross(_tape(_even(3, 3, 3, 3, 3, 3) + sunk))
+    got = rung_cpcv.judge(_tape(_even(3, 3, 3, 3, 3, 3) + sunk))
     assert (got.trades, got.purged, got.answer, len(got.splits)) == (30, 2, Answer.PASS, 15)
 
 
 def test_it_fails_fairly_too_few_trades_or_an_empty_stretch_is_thin_and_none_a_fault() -> None:
-    assert rung_cpcv.cross(_tape([])).answer is Answer.FAULT
-    few = rung_cpcv.cross(_tape(_monthly(EDGE[:29])))
+    assert rung_cpcv.judge(_tape([])).answer is Answer.FAULT
+    few = rung_cpcv.judge(_tape(_monthly(EDGE[:29])))
     assert (few.answer, few.splits, few.overfit) == (Answer.THIN, (), None)
     #: thirty judged, one bought on the embargo's last day: twenty-nine are left, too few
     short = _even(3, 3, 3, 3, 3, 3)
     short[5] = (105, 107, 0.01)
-    cut = rung_cpcv.cross(_tape(short))
+    cut = rung_cpcv.judge(_tape(short))
     assert (cut.answer, cut.trades, cut.purged) == (Answer.THIN, 29, 1)
     short[5] = (106, 108, 0.01)
-    assert rung_cpcv.cross(_tape(short)).purged == 0, "the day after the embargo is the stretch's"
+    assert rung_cpcv.judge(_tape(short)).purged == 0, "the day after the embargo is the stretch's"
     gap = _monthly(EDGE[:20]) + [(b + 9000, s + 9000, g) for b, s, g in _monthly(EDGE[:20])]
-    idle = rung_cpcv.cross(_tape(gap))
-    assert idle.answer is Answer.THIN and "a trade in every stretch" in idle.reason
+    idle = rung_cpcv.judge(_tape(gap))
+    assert (idle.answer, idle.trades) == (Answer.THIN, 40), "forty trades, and four stretches idle"
+    assert "a trade in every stretch" in idle.reason
 
 
 def test_the_result_is_keyed_by_the_tape_and_this_rungs_code(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     one = _tape(_monthly(EDGE))
-    key = rung_cpcv.cross(one).key
-    assert rung_cpcv.cross(one).key == key
-    assert rung_cpcv.cross(_tape(_monthly(EDGE), name="other bars")).key != key
-    window = replace(one.key, cell=Cell("breakout_20_10", VUSA, START, START))
-    assert rung_cpcv.cross(replace(one, key=window)).key != key, "another window of the line"
+    key = rung_cpcv.judge(one).key
+    assert key == one.key.rung(rung_cpcv.ME) != one.key
     monkeypatch.setitem(cell.RUNGS, rung_cpcv.ME, "this rung edited")
-    edited = rung_cpcv.cross(one).key
-    monkeypatch.setattr(tape, "rule_code", lambda _: "the rule edited")
-    assert len({key, edited, rung_cpcv.cross(one).key}) == 3
+    assert rung_cpcv.judge(one).key not in (key, one.key), "the rung edited: a new key"
