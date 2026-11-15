@@ -1,5 +1,5 @@
 @CANON.md
-
+@docs/FAILURE_PATTERNS.md
 # KESTREL2 — the facts a session needs
 
 The canon above is HOW work is done. This file is WHAT this desk is. Hard limit 80 lines
@@ -76,5 +76,5 @@ dials; a guard reads every line of `desk/` and `lab/`. Prices: one free archive
 
 The first desk is a private repository, stood down: a quarry, never a foundation; proven
 logic is ported piece by piece under its own test, and its numbers are not trusted. Its
-ten failure patterns are in `docs/FAILURE_PATTERNS.md`, each with the check that now
+failure patterns are loaded above from `docs/FAILURE_PATTERNS.md`, each with the check that
 catches it. A new recurring failure is added there with its guard, or it is not finished.
