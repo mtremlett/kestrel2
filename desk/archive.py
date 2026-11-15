@@ -29,6 +29,9 @@ SOURCE = "https://query1.finance.yahoo.com/v8/finance/chart/"
 SUFFIX = {"LSE": ".L", "US": ""}  #: the archive's name for a line is its symbol and this
 PENCE = {"GBP": "GBp"}  #: the archive's name for a hundredth of a currency
 SINCE = date(2010, 1, 1)  #: the first year the calendar knows
+#: The first session of SPY, the reference series (R-RUNGS-5): the archive holds it from here,
+#: and is asked this far back for a reference series only, never for a line the desk trades.
+REFERENCE_SINCE = date(1993, 1, 29)
 FIELDS = ("open", "high", "low", "close", "volume")
 DAILY, FIVE = "1d", "5m"  #: the archive's names for the two spans of bar the desk asks for
 #: How far back five-minute bars are asked for. The archive refuses the whole answer when any
@@ -49,9 +52,9 @@ def _address(line: Line, first: int, end: int, span: str) -> str:
     return f"{SOURCE}{name}?period1={first}&period2={end}&interval={span}"
 
 
-def address(line: Line, day: date) -> str:
-    """Where every bar of a line from 2010 up to, and not including, day is asked for."""
-    return _address(line, _moment(SINCE), _moment(day), DAILY)
+def address(line: Line, day: date, since: date = SINCE) -> str:
+    """Where every bar of a line from since (2010) up to, and not including, day is asked for."""
+    return _address(line, _moment(since), _moment(day), DAILY)
 
 
 def address_five(line: Line, now: datetime, back: timedelta = KEPT) -> str:
@@ -124,9 +127,9 @@ def _ask(address: str) -> bytes:
         return bytes(answer.read())
 
 
-def fetch(line: Line, day: date) -> tuple[Bar, ...]:
-    """Every bar the archive holds for a line before day, read on entry."""
-    return parse(line, _ask(address(line, day)))
+def fetch(line: Line, day: date, since: date = SINCE) -> tuple[Bar, ...]:
+    """Every bar the archive holds for a line from since before day, read on entry."""
+    return parse(line, _ask(address(line, day, since)))
 
 
 def fetch_five(line: Line, now: datetime, back: timedelta = KEPT) -> tuple[Five, ...]:
