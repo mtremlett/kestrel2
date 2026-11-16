@@ -39,7 +39,7 @@ from desk.compare import Verdict, judge
 from desk.lines import Line
 from desk.store import FAR, JUMP, STRETCH, Bar, Refused
 
-DAILY, FIVE = "daily", "five-minute"  #: the two spans of bar the store holds
+DAILY, FIVE, HOURLY = "daily", "five-minute", "1h"  #: the spans of bar the store holds
 HISTORY, LIVE = "market_history.db", "market_live.db"  #: database long, database short (his ruling)
 EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 #: The seconds anyone waits for the file: a writer for the one before it, or SQLite's own log.
@@ -63,6 +63,7 @@ class Source(Enum):
     MATRIX_DAILY = "old desk: Stooq matrices daily rows"  #: its 1d arrays alone
     IBKR_DAILY = "old desk: ibkr_store daily rows"  #: its daily bars alone, the broker's own
     TREND_DAILY = "old desk: mark_the_trend Stooq daily files"  #: its daily files alone
+    STOOQ_HOURLY = "old desk: stooq_store hourly rows"  #: its hourly bars alone
 
     @property
     def fresh(self) -> bool:
@@ -107,7 +108,7 @@ READ = (
 def files(live: Path) -> dict[str, Path]:
     """The store's two databases by the span each holds, given the short one: the long one,
     which holds the daily bars and every span from an hour up, is beside it."""
-    return {DAILY: live.with_name(HISTORY), FIVE: live}
+    return {DAILY: live.with_name(HISTORY), HOURLY: live.with_name(HISTORY), FIVE: live}
 
 
 class NoRound(RuntimeError):
@@ -203,6 +204,12 @@ class Round:
         put = PUT if self._source.fresh else FILL
         return self._write(put, line, FIVE, ((_seconds(b.start), b) for b in bars))
 
+    def hours(self, line: Line, bars: Iterable[Five]) -> int:
+        """More hourly bars (each starting on the hour in UTC, or the half-hour of an Indian
+        venue), and how many landed: as `five`, but for the history database."""
+        put = PUT if self._source.fresh else FILL
+        return self._write(put, line, HOURLY, ((_seconds(b.start), b) for b in bars))
+
     def compare(self, line: Line, bars: Collection[Five]) -> Verdict:
         """How the bars meet the bars held from another source for their own moments (see
         desk.compare): agreeing, the adjusted form of the raw, or a real disagreement."""
@@ -236,26 +243,25 @@ def writing(path: Path, source: Source = Source.ARCHIVE) -> Iterator[Round]:
     lands as the block ends in each database; if the block fails, nothing of it lands."""
     path.parent.mkdir(parents=True, exist_ok=True)
     with ExitStack() as stack:
-        held = {
-            span: stack.enter_context(closing(_open(file))) for span, file in files(path).items()
-        }
+        opened = {f: stack.enter_context(closing(_open(f))) for f in set(files(path).values())}
+        held = {span: opened[file] for span, file in files(path).items()}
         try:
-            for one in held.values():
+            for one in opened.values():
                 one.execute("PRAGMA journal_mode = WAL")
                 one.execute("PRAGMA synchronous = FULL")
                 one.execute("BEGIN IMMEDIATE")
         except sqlite3.OperationalError as refusal:
             raise NoRound(f"{path}: no round begun: {refusal}") from refusal
-        with held[DAILY], held[FIVE]:
-            for one in held.values():
-                for table in SCHEMA:
-                    one.execute(table)
-                if all(c[1] != "source" for c in one.execute("PRAGMA table_info(bar)")):
-                    one.execute(SOURCED)
-            yield Round(held, source)
-            if not all(one.in_transaction for one in held.values()):
-                for one in held.values():  # SQLite dropped one database's round: none lands
-                    one.rollback()
+        for one in opened.values():
+            stack.enter_context(one)  # the round lands, or not, as the block ends
+            for table in SCHEMA:
+                one.execute(table)
+            if all(c[1] != "source" for c in one.execute("PRAGMA table_info(bar)")):
+                one.execute(SOURCED)
+        yield Round(held, source)
+        if not all(one.in_transaction for one in opened.values()):
+            for one in opened.values():  # SQLite dropped one database's round: none lands
+                one.rollback()
 
 
 def _read(
@@ -287,10 +293,13 @@ def daily(path: Path, line: Line) -> tuple[Bar, ...]:
     )
 
 
-def five(path: Path, line: Line, since: datetime, until: datetime) -> tuple[Five, ...]:
+def five(
+    path: Path, line: Line, since: datetime, until: datetime, span: str = FIVE
+) -> tuple[Five, ...]:
     """A line's five-minute bars starting from since up to, not including, until, oldest
-    first: its last week is the seven days up to now."""
-    rows = _read(path, line, FIVE, _seconds(since), _seconds(until))
+    first: its last week is the seven days up to now. A span other than five minutes
+    (HOURLY) is read the same."""
+    rows = _read(path, line, span, _seconds(since), _seconds(until))
     return tuple(
         Five(EPOCH + timedelta(seconds=at), Decimal(o), Decimal(h), Decimal(lo), Decimal(c), v)
         for at, o, h, lo, c, v in rows

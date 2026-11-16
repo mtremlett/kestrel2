@@ -13,7 +13,7 @@ from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 from desk import venues
-from desk.bars import EPOCH, FIVE, LIVE, WAIT, checked, daily, files, five
+from desk.bars import DAILY, EPOCH, LIVE, WAIT, checked, daily, files, five
 from desk.lines import LINES, Line
 from desk.store import _clean as cleaned
 
@@ -25,8 +25,8 @@ def _audited(path: Path, venue: str, symbol: str, span: str) -> tuple[int, list[
         return 0, [f"no calendar for venue {venue}"]
     plain = Line(symbol, venue, "GBP" if venue == "LSE" else "USD", 1)
     line = next((x for x in LINES if (x.venue, x.symbol) == (venue, symbol)), plain)
-    if span == FIVE:
-        every = five(path, line, EPOCH, datetime(9999, 12, 31, tzinfo=UTC))
+    if span != DAILY:
+        every = five(path, line, EPOCH, datetime(9999, 12, 31, tzinfo=UTC), span)
         return len(every), checked(line, every)[1]
     every_day = daily(path, line)
     end = max((b.day for b in every_day), default=date.today()) + timedelta(1)
@@ -37,7 +37,7 @@ def audit(path: Path) -> str:
     """Every line and ticker the store (its short database at path) holds, re-checked
     read-only: one line of counts and faults by kind, the worst three lines named."""
     keys: list[tuple[str, str, str]] = []
-    for file in files(path).values():
+    for file in dict.fromkeys(files(path).values()):
         with closing(sqlite3.connect(f"{file.as_uri()}?mode=ro", uri=True, timeout=WAIT)) as held:
             keys += held.execute("SELECT venue, symbol, span FROM held ORDER BY 1, 2, 3")
     total, kinds, worst = 0, Counter[str](), Counter[str]()

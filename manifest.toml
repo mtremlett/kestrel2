@@ -54,6 +54,7 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "desk/live.py" = "the live session's only source of bars: a line's newest ended five-minute bars from the paper gateway, read-only as its own client, paced; no real-time data is a loud refusal, never a fill from the archive"
 "lab/headstart.py" = "the old desk's stores as a head start: its five-minute bars read, never written, and let into the one fast store under their source's name only where a fresh daily bar vouches for them"
 "lab/headstart_days.py" = "the old database's daily rows as a head start: only its table ohlcv's 1d rows, read-only, cleaned by the one store and let into the fast store under their own source on the days that hold no bar"
+"lab/headstart_hours.py" = "the old Stooq store's hourly bars as a head start: read-only, each named by its start in UTC, vouched for by its day, cleaned by the one store and let into the history database under their own source"
 
 # the money lane
 "lab/slippage.py" = "trading costs measured from the paper broker's real fills: each line's slip against the session's close beside the cost model's spread and slippage, and the gap (Q2)"
