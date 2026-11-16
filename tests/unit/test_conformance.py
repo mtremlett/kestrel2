@@ -190,13 +190,17 @@ def test_the_real_stop_is_put_above_the_price_paid_and_sold_or_not_the_line_is_l
     assert len(settled) == 6
 
 
-def _world(patch: pytest.MonkeyPatch, found: tuple[str, ...] = (), sells: bool = True) -> Pretend:
+def _world(
+    patch: pytest.MonkeyPatch, found: tuple[str, ...] = (), sells: bool = True, late: bool = False
+) -> Pretend:
     """The archive, a Gateway that greets, a check that names what is given, and the pretend
     broker at the paper broker's door, its stop selling when the market is made to reach it."""
     broker = _market(_plan(patch), VUAG, SPY)
 
     def fall(order: Order) -> None:
-        if not sells:
+        if late:  # the stop sold, and the step failed all the same: nothing is left to put back
+            broker.open(MON.date() + timedelta(days=1))
+        if not sells or late:
             raise TimeoutError(f"{order.order_id}-stop: it has not sold")
         broker.open(MON.date() + timedelta(days=1))
 
@@ -296,7 +300,7 @@ def test_a_run_that_failed_is_code_1_and_recorded_and_tried_again_only_on_a_late
     broker = _world(monkeypatch, sells=False)
     assert _run(tmp_path, MON, "london") == 1
     assert "5 of 6 steps done on VUAG" in (said := capsys.readouterr().out)
-    assert "FAILED: the stop triggered. A later day tries again" in said
+    assert "A later day tries again; the last step named, THE ACCOUNT IS NOT AS FOUND." in said
     root, sent = tmp_path / "conformance", broker.submitted()
     with (root / "trades-london-20261116.csv").open(newline="", encoding="utf-8") as kept:
         assert list(csv.reader(kept))[-1][1:3] == ["the run", "FAILED, at: the stop triggered"]
@@ -305,6 +309,16 @@ def test_a_run_that_failed_is_code_1_and_recorded_and_tried_again_only_on_a_late
     (root / "trades-london-20261115.csv").write_text("not,a,record\n", encoding="utf-8")
     with pytest.raises(ValueError, match="not a record of the conformance trades"):
         _run(tmp_path, MON, "london")
+
+
+def test_a_failed_step_whose_last_step_had_nothing_to_put_back_says_the_account_is_as_found(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _world(monkeypatch, late=True)
+    assert _run(tmp_path, MON, "london") == 1
+    said = capsys.readouterr().out
+    assert "FAILED: the stop triggered. A later day tries again; the account left as found." in said
+    assert "NOT AS FOUND" not in said
 
 
 def test_whatever_stops_a_run_outside_its_steps_the_account_is_still_put_back(

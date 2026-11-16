@@ -73,7 +73,12 @@ DONE = "CONFORMANCE {}: {} of {} steps done on {}, each recorded beside the pret
 GIVEN = "the broker gave no reason"  #: an order it cancelled is never recorded with none
 #: A desk round's hours (UK), when the read of the day's cancelled orders is not made.
 ROUNDS = ((hour(8, 0), hour(8, 30)), (hour(14, 30), hour(15, 0)))
-AMISS = " FAILED: {}. A later day tries again; the last step named, THE ACCOUNT IS NOT AS FOUND."
+PUT_BACK = "nothing to put back"  #: what the last step answers when it found the account as it was
+AMISS = " FAILED: {}. A later day tries again; {}."
+AS_FOUND, NOT_AS_FOUND = (
+    "the account left as found",
+    "the last step named, THE ACCOUNT IS NOT AS FOUND",
+)
 
 
 @dataclass(frozen=True)
@@ -150,7 +155,7 @@ def _leave(side: Side, run: Plan) -> str:
     found, held = side.check(), book.positions(side.root)
     if found or held:
         raise ValueError(f"the account is not as found: the book holds {held}; the check: {found}")
-    return "; ".join(did) or "nothing to put back"
+    return "; ".join(did) or PUT_BACK
 
 
 def _steps(run: Plan) -> tuple[tuple[str, Callable[[Side], str | None]], ...]:
@@ -325,7 +330,10 @@ def trade(
         raise
     note(WHOLE, f"{FAILED}at: {'; '.join(failed)}" if failed else "whole")
     counts = (market, len(beside) - len(failed), len(beside), run.second.line.symbol, record)
-    return not failed, DONE.format(*counts) + AMISS.format("; ".join(failed)) * bool(failed)
+    state = (
+        AS_FOUND if rows[-2][2].startswith(PUT_BACK) else NOT_AS_FOUND
+    )  #: the last step's row, before WHOLE's
+    return not failed, DONE.format(*counts) + AMISS.format("; ".join(failed), state) * bool(failed)
 
 
 def main(
