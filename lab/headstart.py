@@ -16,9 +16,9 @@ bar, held or arriving later, wins, and each bar that differs from one held is co
 
 The old stores are read and never written, nor is anything written beside them: every store
 the data register in the desk's notes tags IMPORT, read by its form (`python -m lab.headstart`,
-into market.db in the data folder). Six forms have a reader: the matrices of Stooq's bars, the
-database mark_the_trend.db, the parquet folders of ibkr_store (UTC) and stooq_store, mark_the_
-trend's Stooq files and the raw Stooq zips (Stooq's clock); any other is counted as having
+into the two databases of the data folder). Six forms have a reader: the matrices of Stooq's
+bars, the database mark_the_trend.db, the parquet folders of ibkr_store (UTC) and stooq_store,
+mark_the_trend's Stooq files and the raw Stooq zips (Stooq's clock); any other is counted as having
 none yet. A source held already is not read again. Indicators are not read at all.
 
 A line the archive gives no history of (3LGO) takes its daily history from the matrices
@@ -394,6 +394,6 @@ if __name__ == "__main__":
             ONE = ONE or sys.exit(f"headstart: {sys.argv[2]} is no line of the desk")
             sys.stdout.write(daily(ONE, DATA, olds(REGISTER, ONE), TODAY) + "\n")
         else:
-            main(REGISTER, DATA / "market.db", TODAY)
+            main(REGISTER, DATA / bars.LIVE, TODAY)
     except (OSError, ValueError, sqlite3.Error, bars.NoRound) as reason:  # the one line, then out
         sys.exit(f"headstart: {type(reason).__name__}: {reason}")
