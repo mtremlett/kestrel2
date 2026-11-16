@@ -43,8 +43,9 @@ KEPT BY WHAT MADE IT. The results file holds one JSON line per cell as it finish
 disk, found again by its key: the code this module reaches, the cell's bars and its market's,
 the rates, the count of trials and the reproductions. A cell kept under that key is skipped;
 change any and it is judged again. A cell that could not be judged (a line parked or stale, a
-short history, a day with no rate) keeps its reason and key: tried again when the key differs,
-else after 30 minutes. A cut line is cut off.
+short history, a day with no rate) keeps its reason and key, and is judged again only when the
+key differs; one with no key (its bars could not be read) is tried again after 30 minutes. A
+row is appended only when it differs from the cell's last. A cut line is cut off.
 
 The sets as a command - SET EPON and the `python -m lab.ladder` door - are `lab/ladder_sets.py`.
 """
@@ -309,8 +310,8 @@ def _one(
         parts += [one.name + one.code for one in declared] + list(waiting)
         head |= {"reproduction": [reproduce.said(one) for one in made]} if made else {}
         key = hashlib.sha256(";".join(parts).encode()).hexdigest()
-        if was is not None and was.get("key") == key and not _due(was, now):
-            return was  #: kept, or failed on all of this before and tried not long ago
+        if was is not None and was.get("key") == key:
+            return was  #: kept, or failed on all of this before: it waits for its key to change
         if (first := pool.firsts.get(c)) is not None and first.refusal is not None:
             reason = f"refused by the desk's sizing: {first.refusal}"
             return head | {"key": key, "refused": reason}
