@@ -67,6 +67,7 @@ class Source(Enum):
     MATRIX_DAILY = "old desk: Stooq matrices daily rows"  #: its 1d arrays alone
     IBKR_DAILY = "old desk: ibkr_store daily rows"  #: its daily bars alone, the broker's own
     TREND_DAILY = "old desk: mark_the_trend Stooq daily files"  #: its daily files alone
+    STOOQ_HOURLY = "old desk: stooq_store hourly rows"  #: its hourly bars alone
 
     @property
     def fresh(self) -> bool:
