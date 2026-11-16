@@ -55,7 +55,7 @@ from desk.store import Bar, Parked, Refused
 
 #: In the data folder: each venue's record of its last refresh (no prices: the bars are in the
 #: store's two databases), and the store's short database, its long one beside it.
-DAILY, HOT = "daily", "bars.db"
+DAILY, HOT = "daily", bars.LIVE
 CRLF = bytes((13, 10))  #: a Windows checkout's line ending, not part of the rules
 RECORD = "kept.json"  #: in each venue's folder of the daily store: its last refresh
 #: THE STORE RULES' VERSION: a hash of desk/store.py. A refresh records the version it cleaned
