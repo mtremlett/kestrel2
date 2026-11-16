@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import math
 import random
+import re
 from collections.abc import Sequence
 from dataclasses import replace
 from datetime import date, timedelta
@@ -15,12 +16,14 @@ import pytest
 
 from desk import book
 from desk.broker import Pretend
-from desk.lines import LINES
+from desk.lines import LINES, Line
 from desk.orders import BROKER, Charges, Order, Settings
 from desk.store import Bar
 from lab import cell, rung
 from lab.cell import Cell, Trade
 from lab.rung import Answer
+
+VUSA = next(line for line in LINES if line.symbol == "VUSA")
 
 TEN_K, ZERO = Settings(Decimal(10_000)), Decimal(0)
 POUND: rung.Rates = {}  #: a pound line reads no rate
@@ -29,6 +32,11 @@ AAPL = next(line for line in LINES if line.symbol == "AAPL")
 #: breakout_20_10 buys on the close of bar 20, over bar 19's high of 10.05, and sells on the
 #: close of bar 23, under the low of 9.95 ten days before
 SHAPE = [10] * 20 + [10.4, 11, 11, 9.4, 9.4]
+
+
+def line_of(symbol: str) -> Line:
+    """The desk's line of this symbol."""
+    return next(line for line in LINES if line.symbol == symbol)
 
 
 def _bars(closes: Sequence[float]) -> tuple[Bar, ...]:
@@ -61,7 +69,7 @@ def _judge(
     rates: rung.Rates = POUND,
     room: Settings = TEN_K,
 ) -> rung.Verdict:
-    record = cell.run(Cell("breakout_20_10", symbol, bars[0].day, bars[end].day), bars)
+    record = cell.run(Cell("breakout_20_10", line_of(symbol), bars[0].day, bars[end].day), bars)
     return rung.judge(record, bars, room, rates)
 
 
@@ -136,16 +144,24 @@ def test_a_planted_edge_passes_and_a_planted_non_edge_does_not() -> None:
         few = _judge(_walk(seed, 0)[:1500], -1)
         assert 2 <= len(few.trades) < rung.MIN_TRADES and few.answer is Answer.THIN, seed
         assert not few.passed and few.t is not None and few.t < 1, (seed, few.t)
-    #: the bar sits between these two: 1.99 standard errors fails, 2.02 passes
-    faint, just = _judge(_walk(1, 0.005), -1), _judge(_walk(16, 0.005), -1)
+    #: the bar sits between these two: 1.98 standard errors fails, 2.02 passes
+    faint, just = _judge(_walk(12, 0.005), -1), _judge(_walk(40, 0.005), -1)
     assert faint.t is not None and Decimal("1.9") < faint.t < rung.T_PASS
     assert faint.answer is Answer.FAIL and not faint.passed
     assert just.t is not None and just.t < Decimal("2.03") and just.passed
     #: and between these: 29 trades are not enough evidence, however strong, and 30 are
     short, thirty = _judge(_walk(0, 0.008)[:2400], -1), _judge(_walk(0, 0.008)[:2450], -1)
-    assert len(short.trades) == 29 and short.t is not None and short.t > Decimal("2.8")
+    assert len(short.trades) == 29 and short.t is not None and short.t > Decimal("2.5")
     assert not short.passed and short.answer is Answer.THIN
     assert len(thirty.trades) == 30 and thirty.passed
+
+
+def test_one_more_trade_is_planted_at_the_rules_own_stop_and_is_no_trade_counted() -> None:
+    made = _judge(_walk(0, 0.008), -1)
+    assert all(p.stopped is not None and p.stopped < p.gain for p in made.trades)
+    assert made.gains[-1] == min(p.stopped for p in made.trades if p.stopped is not None)
+    assert made.gains[:-1] == tuple(p.gain for p in made.trades), "the trades' own gains, unmoved"
+    assert len(made.gains) == len(made.trades) + 1 and rung.planted([]) == ()
 
 
 def test_an_edge_the_costs_eat_is_rejected() -> None:
@@ -165,6 +181,24 @@ def test_the_mean_is_judged_in_standard_errors_of_the_sample() -> None:
 
 def test_a_record_is_judged_only_on_the_bars_that_made_it() -> None:
     bars = _bars(SHAPE)
-    record = cell.run(Cell("breakout_20_10", "VUSA", bars[0].day, bars[24].day), bars)
+    record = cell.run(Cell("breakout_20_10", VUSA, bars[0].day, bars[24].day), bars)
     with pytest.raises(ValueError, match="did not make the record"):
         rung.judge(record, (replace(bars[0], close=Decimal(9)),) + bars[1:], TEN_K, POUND)
+
+
+def test_a_share_dearer_than_the_room_is_a_refused_verdict_and_the_only_catch_of_it_in_lab() -> (
+    None
+):
+    bars = _bars([c * 999 for c in SHAPE])  #: one share costs more than the room of 2000 pounds
+    done = _judge(bars, 24, room=Settings(Decimal(2000)))
+    assert done.refused and done.trades == () and done.t is None
+    assert done.refusal is not None and "one share costs more" in done.refusal
+    assert not _judge(_bars(SHAPE), 24).refused, "a share that fits is priced as before"
+    catches = [
+        p.name
+        for p in Path("lab").glob("*.py")
+        if re.search(r"except[^\n]*\bDeclined\b", p.read_text(encoding="utf-8"))
+    ]
+    assert catches == ["rung.py"], "the refusal is judged once, where the verdict is made"
+    fault = r"except[^:]*\bRefused\b"  #: the runner's fault pattern (R-RUNNER-186)
+    assert not re.search(fault, Path("lab/rung.py").read_text(encoding="utf-8"))

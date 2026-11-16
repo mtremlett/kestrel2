@@ -234,7 +234,7 @@ def test_the_door_dials_the_paper_port_on_this_machine_and_no_other(
 
     monkeypatch.setattr(socket, "create_connection", dial)
     assert paper.read() == Account((SMGB,), ())
-    assert dialled == [("127.0.0.1", 4002), 15] and len(sent) == 3
+    assert dialled == [("127.0.0.1", 4002), paper.SECONDS] and len(sent) == 3
 
 
 def test_a_book_that_is_the_brokers_has_no_difference() -> None:

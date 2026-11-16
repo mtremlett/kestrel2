@@ -10,12 +10,15 @@ until it does, and the ladder refuses it loudly, by name, where it lists the epo
 from __future__ import annotations
 
 import importlib
+import tomllib
 from pathlib import Path
 
 import desk
 from desk.strategy import STRATEGIES, Rule
+from lab.spec import Spec
 
 DESK = Path(desk.__file__).parent  #: the folder of eponymous files
+CATALOGUE = Path(__file__).parent / "catalogue.toml"  #: the spec book
 
 
 def eponymous(folder: Path | None = None) -> dict[str, type[Rule]]:
@@ -28,6 +31,17 @@ def eponymous(folder: Path | None = None) -> dict[str, type[Rule]]:
                 raise ValueError(f"{module.__name__}: the rule {name!r} is named twice")
             found[name] = make
     return found
+
+
+def specs(book: Path | None = None, folder: Path | None = None) -> dict[str, Spec]:
+    """Every rule the catalogue names, as a parsed spec (each proven on its own known answers
+    by `Spec.parse`); a name that is no rule of the Python files is refused."""
+    table = tomllib.loads((book or CATALOGUE).read_text(encoding="utf-8"))
+    python = eponymous(folder)
+    unknown = sorted(set(table) - set(python))
+    if unknown:
+        raise ValueError(f"the catalogue names {unknown}, no rule of desk/eponymous_*.py")
+    return {name: Spec.parse({"name": name, **row}) for name, row in table.items()}
 
 
 def rules(folder: Path | None = None) -> dict[str, type[Rule]]:

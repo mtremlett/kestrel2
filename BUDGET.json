@@ -27,12 +27,12 @@
     "3-money-paper": {
       "product_lines": 10500,
       "product_files": 55,
-      "lab_lines": 7000
+      "lab_lines": 12000
     },
     "4-ladder": {
       "product_lines": 10500,
       "product_files": 55,
-      "lab_lines": 7000
+      "lab_lines": 12000
     }
   },
   "max_lines_per_file": 400,

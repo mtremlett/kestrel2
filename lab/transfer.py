@@ -23,7 +23,6 @@ from collections import Counter
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from decimal import Decimal
-from functools import lru_cache
 from itertools import product
 from pathlib import Path
 from typing import Any
@@ -31,9 +30,8 @@ from typing import Any
 from desk.command import CAPITAL
 from desk.lines import Line
 from desk.orders import Settings
-from desk.store import Bar
 from desk.strategy import STRATEGIES
-from lab import batch, ladder, plateau, rung, sweep, universe
+from lab import batch, ladder, plateau, rung, sweep
 from lab.batch import Failed
 from lab.cell import Cell
 from lab.plateau import Grid, Setting
@@ -64,7 +62,8 @@ class Row:
     setting: Setting
     line: str
     t: Decimal | None
-    answer: str | None  #: None where the cell could not be judged
+    answer: str | None  #: None where the cell could not be judged; REFUSED where sizing declined
+    refusal: str | None = None  #: the words of the desk's refusal, for a REFUSED answer
 
 
 @dataclass(frozen=True)
@@ -89,8 +88,10 @@ def _row(family: Family, fitted: Line | None, setting: Setting, line: Line, scor
     found = score(family.named(setting), line)
     on = f"{line.symbol} on {line.venue}"
     at = None if fitted is None else f"{fitted.symbol} on {fitted.venue}"
-    t, answer = (None, None) if found is None else (found.t, found.answer.name)
-    return Row(family.rule, at, setting, on, t, answer)
+    if found is None:
+        return Row(family.rule, at, setting, on, None, None)
+    answer = "REFUSED" if found.refused else found.answer.name
+    return Row(family.rule, at, setting, on, found.t, answer, found.refusal)
 
 
 def study(kinds: Sequence[Family], lines: Sequence[Line], score: Score) -> Study:
@@ -119,9 +120,7 @@ def scorer(root: Path, kept: Path, rates: Rates) -> Score:
     in the sweep's journal of that line under kept, over the ladder's one window."""
     settings = Settings(CAPITAL)
 
-    @lru_cache(maxsize=1)
-    def bars(line: Line) -> tuple[Bar, ...]:
-        return universe.read(root, line).bars
+    bars = sweep.reader(root)
 
     def score(name: str, line: Line) -> Verdict | None:
         try:
@@ -151,7 +150,8 @@ def report(done: Study, lines: int) -> tuple[str, dict[str, Any]]:
     """The study as a page and as data, both labelled."""
     table = ["| rule | fitted on | setting | scored on | t | answer |", "|---|---|---|---|---|---|"]
     for r in done.rows:
-        cells = (r.rule, r.fitted or "as published", r.setting, r.line, r.t, r.answer)
+        answer = f"REFUSED: {r.refusal}" if r.refusal else r.answer
+        cells = (r.rule, r.fitted or "as published", r.setting, r.line, r.t, answer)
         table.append("| " + " | ".join(str(c) for c in cells) + " |")
     head = [f"# Grid transfer study ({LABEL})", "", counts(done, lines), ""]
     rows = [

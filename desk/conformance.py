@@ -32,11 +32,25 @@ from collections.abc import Callable, Mapping, Sequence
 from contextlib import suppress
 from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime
+from datetime import time as hour
 from decimal import Decimal
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import BinaryIO
 
-from desk import archive, book, clearance, command, gateway, kill, listing, paper, placing, venues
+from desk import (
+    archive,
+    book,
+    clearance,
+    command,
+    gateway,
+    kill,
+    listing,
+    paper,
+    placing,
+    reports,
+    venues,
+)
 from desk.broker import Broker, Fault, Pretend
 from desk.command import CAPITAL
 from desk.lines import LINES, Line
@@ -48,7 +62,7 @@ from desk.strategy import Action, Decision
 
 MARKETS = {"london": "LSE", "us": "US"}  #: the command's word for each venue
 CLIENT = 223  #: the conformance desk's own client id at the gateway: the desk's is paper.CLIENT
-ROOT, HEAD = "conformance", ("at", "step", "real", "pretend")
+ROOT, HEAD = "conformance", ("at", "step", "real", "pretend", "it said")
 WHOLE, FAILED, UNTRIED = "the run", "FAILED, ", "not tried: an earlier step failed"
 ROOM = Settings(CAPITAL)  #: the desk's one capital sizes the orders, as on its own day
 ABOVE, WAITS = Decimal("1.05"), 30  #: a stop this far above the price paid; its seconds to sell
@@ -56,7 +70,15 @@ Wait = Callable[[float], None]  #: what lets a second pass
 Fall = Callable[[Order], None]  #: the market made to reach a buy's stop, which then sells
 NOTHING, BARRED = "CONFORMANCE {}: nothing done, {}.", "CONFORMANCE {} NOT BEGUN, nothing sent: "
 DONE = "CONFORMANCE {}: {} of {} steps done on {}, each recorded beside the pretend broker's in {}."
-AMISS = " FAILED: {}. A later day tries again; the last step named, THE ACCOUNT IS NOT AS FOUND."
+GIVEN = "the broker gave no reason"  #: an order it cancelled is never recorded with none
+#: A desk round's hours (UK), when the read of the day's cancelled orders is not made.
+ROUNDS = ((hour(8, 0), hour(8, 30)), (hour(14, 30), hour(15, 0)))
+PUT_BACK = "nothing to put back"  #: what the last step answers when it found the account as it was
+AMISS = " FAILED: {}. A later day tries again; {}."
+AS_FOUND, NOT_AS_FOUND = (
+    "the account left as found",
+    "the last step named, THE ACCOUNT IS NOT AS FOUND",
+)
 
 
 @dataclass(frozen=True)
@@ -133,7 +155,7 @@ def _leave(side: Side, run: Plan) -> str:
     found, held = side.check(), book.positions(side.root)
     if found or held:
         raise ValueError(f"the account is not as found: the book holds {held}; the check: {found}")
-    return "; ".join(did) or "nothing to put back"
+    return "; ".join(did) or PUT_BACK
 
 
 def _steps(run: Plan) -> tuple[tuple[str, Callable[[Side], str | None]], ...]:
@@ -217,12 +239,46 @@ def _raised(side: placing.Paper, root: Path, listed: Listing, wait: Wait) -> Fal
     return fall
 
 
+def _cancelled(wire: BinaryIO, send: paper.Send) -> dict[str, str]:
+    """Ask over an open connection for the day's ended orders, read-only, and give each that
+    was cancelled by the order id it was placed under, with the broker's own words of why it
+    ended: the last field of the list's entry for it ("Cancelled by Trader")."""
+    paper.start(wire, send)
+    send(paper.message(reports.ASK_ENDED, 0))
+    said: dict[str, str] = {}
+    while True:
+        fields = paper.receive(wire)
+        if fields == [reports.ENDED_END]:
+            return said
+        if fields[0] != reports.ENDED:
+            paper.other(fields)
+        elif len(fields) != 101:
+            raise ValueError(f"an ended order of a shape the desk does not read: {fields}")
+        elif fields[77] in placing.GONE:
+            said[fields[22]] = fields[95]
+
+
+def reasons() -> dict[str, str]:
+    """Every order cancelled on the account today, with the broker's words of why."""
+    return paper.dial(_cancelled)
+
+
+def why(now: datetime) -> tuple[bool, str]:
+    """THE READ: each cancelled order of the day and why, as client CLIENT, read-only; never
+    in a desk round's hours."""
+    at = venues.uk_time(now).time()
+    if any(start <= at < end for start, end in ROUNDS):
+        return False, "CONFORMANCE WHY: not read now, a desk round runs 08:00-08:30 and 14:30-15:00"
+    said = [f"{ref}: {words or GIVEN}" for ref, words in reasons().items()]
+    return True, "\n".join(said) or "CONFORMANCE WHY: no order was cancelled today"
+
+
 def _recorded(root: Path, market: str, today: date) -> str | None:
     """Why the market's run is not made again: a whole one is on record, or today's is."""
     for path in sorted(root.glob(f"trades-{market}-*.csv")):
         with path.open(newline="", encoding="utf-8") as kept:
             rows = list(csv.reader(kept))
-        if rows[:1] != [list(HEAD)]:
+        if not rows or rows[0][:4] != list(HEAD[:4]):  #: an earlier record had no "it said"
             raise ValueError(f"{path}: not a record of the conformance trades, so nothing is sent")
         if rows[-1][1:3] == [WHOLE, "whole"] or path.stem.endswith(f"{today:%Y%m%d}"):
             return f"its run is already recorded in {path}"
@@ -263,7 +319,8 @@ def trade(
     record, rows = root / f"trades-{market}-{today:%Y%m%d}.csv", [HEAD]
 
     def note(step: str, real: str) -> None:
-        rows.append((clock().isoformat(), step, real, beside.get(step, "")))
+        cancelled = [f"{ref}: {words or GIVEN}" for ref, words in reasons().items() if ref in real]
+        rows.append((clock().isoformat(), step, real, beside.get(step, ""), "; ".join(cancelled)))
         book._write(record, rows)
 
     try:
@@ -273,7 +330,10 @@ def trade(
         raise
     note(WHOLE, f"{FAILED}at: {'; '.join(failed)}" if failed else "whole")
     counts = (market, len(beside) - len(failed), len(beside), run.second.line.symbol, record)
-    return not failed, DONE.format(*counts) + AMISS.format("; ".join(failed)) * bool(failed)
+    state = (
+        AS_FOUND if rows[-2][2].startswith(PUT_BACK) else NOT_AS_FOUND
+    )  #: the last step's row, before WHOLE's
+    return not failed, DONE.format(*counts) + AMISS.format("; ".join(failed), state) * bool(failed)
 
 
 def main(
@@ -283,9 +343,10 @@ def main(
 ) -> int:
     """THE COMMAND LINE: its one line of answer printed, and 0 when all is well."""
     root = Path(env["KESTREL2_DATA"]) / ROOT
-    if list(argv) not in [["--conformance", m] for m in MARKETS] or not root.is_absolute():
-        raise SystemExit("python -m desk.paper --conformance london|us, KESTREL2_DATA a whole path")
+    asks = list(argv) in [["--conformance", m] for m in MARKETS]
+    if not (asks or list(argv) == ["--conformance-why"]) or not root.is_absolute():
+        raise SystemExit("python -m desk.paper --conformance london|us|-why, KESTREL2_DATA whole")
     paper.CLIENT = CLIENT  #: this process is the conformance desk's, at the door and in readings
-    good, line = trade(root, argv[1], clock)
+    good, line = trade(root, argv[1], clock) if asks else why(clock())
     print(line)  # noqa: T201 - the command's answer to whoever asked
     return int(not good)

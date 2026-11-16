@@ -162,6 +162,19 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-13 | 5 of 7 | - | - | - | 14 of 14 proven | green | The grid's first pass: 5,325 cells (1,065 tickers x 5 strategies) run and kept in 200 s on this PC; a second pass re-runs none, in 45 s (#102). |
 | 2026-11-13 | 5 of 7 | - | - | - | 14 of 14 proven | green | The grid's week built and started: a pass every hour, each in its own process, one at a time, each logged; four real passes 5 minutes apart ran clean, the seven-day run began 23:29 UK (#111). |
 | 2026-11-14 | 5 of 7 | - | - | - | 14 of 14 proven | green | A seven-day week now shows seven days in its log (it would have ended 14 minutes short); the run moved onto the fix with its count unbroken; the midnight pass ran all 5,325 cells clean in 2 minutes (#118). |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #171 R-RUNNER-4: the grid's tests name AAPL and NVDA, so SPY and QQQ can leave the twenty |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #197 R-RUNNER-19: `lab.sweep --held`, one pass over every ticker the store holds |
+| 2026-11-114 | 7 of 7 | - | - | - | 14 of 14 proven | green | #263 R-RUNNER-82: the grid's transfer study command built (`lab.transfer`); the five rules at published settings only until R-GRID-1 |
+| 2026-11-115 | 7 of 7 | - | - | - | 14 of 14 proven | green | #281 R-RUNNER-89: one lab-side rule book; a Cell accepts eponymous rules |
+| 2026-11-115 | 7 of 7 | - | - | - | 14 of 14 proven | green | #330 R-RUNNER-140: a fast engine for spec rows, equal to the desk's engine trade for trade on the golden series, about 30 times faster |
+| 2026-11-115 | 7 of 7 | - | - | - | 14 of 14 proven | green | #335 R-RUNNER-115: a Cell takes a Line only; the string door closed |
+| 2026-11-115 | 7 of 7 | - | - | - | 14 of 14 proven | green | #359 R-RUNNER-167: bars hashed once per (line, end) in `lab/cell.py`, keys identical |
+| 2026-11-116 | 7 of 7 | - | - | - | 14 of 14 proven | green | #360 R-RUNNER-128: the rule book reads the catalogue's specs, each proven |
+| 2026-11-116 | 7 of 7 | - | - | - | 14 of 14 proven | green | #372 R-RUNNER-170: a rung's key names the modules that judge for it, not those that run it |
+| 2026-11-116 | 7 of 7 | - | - | - | 14 of 14 proven | green | #391 R-RUNNER-8: passes leave two threads free in London's session, one otherwise |
+| 2026-11-116 | 7 of 7 | - | - | - | 14 of 14 proven | green | #397 R-RUNNER-164: the transfer study answers a refused line REFUSED and completes |
+| 2026-11-116 | 7 of 7 | - | - | - | 14 of 14 proven | green | #399 grid-declared: the sweep judges each strategy on its declared universe; all-on-all is the `--transfer` study |
+| 2026-11-116 | 7 of 7 | - | - | - | 14 of 14 proven | green | #403 grid-weekend: a pass logs its own time; a cold full sweep took 17 min against the 48 h limit |
 
 ### RUNGS
 
