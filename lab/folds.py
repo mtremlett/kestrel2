@@ -95,8 +95,8 @@ def cut(window: Cell, bars: Sequence[Bar], folds: int) -> tuple[tuple[Cell, Cell
     edges = [n * len(days) // parts for n in range(1, parts + 1)]
     return tuple(
         (
-            Cell(window.strategy, window.symbol, window.start, days[first - 1]),
-            Cell(window.strategy, window.symbol, days[first], days[after - 1]),
+            Cell(window.strategy, window.line, window.start, days[first - 1]),
+            Cell(window.strategy, window.line, days[first], days[after - 1]),
         )
         for first, after in zip(edges, edges[1:], strict=False)
     )

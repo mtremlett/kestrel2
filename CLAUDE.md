@@ -1,5 +1,5 @@
 @CANON.md
-
+@docs/FAILURE_PATTERNS.md
 # KESTREL2 — the facts a session needs
 
 The canon above is HOW work is done. This file is WHAT this desk is. Hard limit 80 lines
@@ -62,7 +62,7 @@ his standing ruling the recommended option is taken without waiting, then told t
 He is not an engineer and does not read code or diffs. Write to him in plain English, in
 terms of business behaviour and risk, with options and a recommendation; never ask him
 to review code. He alone decides going live, entering credentials and spending money.
-Anything else asked of him takes the recommended option without waiting (13 November).
+Whatever a rule, a guard or his ruling settles is decided, not asked; say which rule.
 All of it is paper: no real money moves until he signs for going live.
 
 ## External systems
@@ -70,11 +70,11 @@ All of it is paper: no real money moves until he signs for going live.
 The broker: the pretend one (`desk/broker.py`); the paper one, built by PAPER, on IB Gateway
 on his PC, port 4002 and the old desk's paper account. The live port 4001 this desk NEVER
 dials; a guard reads every line of `desk/` and `lab/`. Prices: one free archive
-(`desk/archive.py`). Messages: one Telegram line per merge (`announce.py`).
+(`desk/archive.py`). Messages: the runner's hourly report to his Telegram.
 
 ## The predecessor, and the failure patterns
 
 The first desk is a private repository, stood down: a quarry, never a foundation; proven
 logic is ported piece by piece under its own test, and its numbers are not trusted. Its
-ten failure patterns are in `docs/FAILURE_PATTERNS.md`, each with the check that now
+failure patterns are loaded above from `docs/FAILURE_PATTERNS.md`, each with the check that
 catches it. A new recurring failure is added there with its guard, or it is not finished.

@@ -1739,6 +1739,44 @@ Its drive evidence, from the pull requests that drove it (each plant reverted):
 The pattern's text could not land from the DATA lane (the lane guard refuses
 `docs/FAILURE_PATTERNS.md`); a non-lane session added it.
 
+## 2026-11-15 — the ladder's folds are the last five whole years, pooled by rule (R-RUNNER-99)
+
+By his ruling of 15 November ~07:50 ("A", relayed by the main coordinator; canon B5): the
+numbers the spec moves are changed, each re-derived by hand. What changed: the ladder's folds
+were two thirds of one line's history, judged on thirty trades in each; they are now the last
+five whole calendar years (2021 to 2025 for a window ending 13 November 2026), the rule's trades
+pooled over all its lines (`folds.pool`, #242), gains taken by the day, and the worst year
+judged. One answer, with one reason, stands on every line of a rule. A line that cannot get
+its own first rung (no bars, too young, a step of units, a day with no rate) is left out of the
+pool, and the lines pooled are part of every cell's key. Years that cannot be had (under five
+whole years of history among the lines) are a FAULT on the folds, with the reason, remembered
+for the rule. A fold is not a trial. Set EPON now runs a rule's lines together, so only one
+rule's bars are held at a time.
+Both thresholds stay at "more than 20".
+
+Pinned numbers moved, each by hand:
+- Trials: a cell was itself and two folds, 3; it is itself, 1. Two cells: 6 became 2 (and
+  `deflated.judge(..., count - 1)` 5 became 1); three cells: 9 became 3; the set EPON test's six
+  cells: 18 became 6. `ladder.FOLDS` is 5 (was 2) and names the years, not trials.
+- Keys: a cell is kept under its rule's lines' bars too, and under the rates when a line in
+  dollars is among them, so a line joining a rule's set judges the rule's other cells again:
+  "1 judged now, 2 kept" became "3 judged now" at the dollar line's arrival and at a dearer
+  dollar; the noise cell is also judged again when the edge cell's bars arrive (its answer is
+  the last row, no longer the edge's).
+- Answers: the planted edge on two lines (VUSA edge, ISF noise) stays THIN on its folds, 6 or 7
+  trades a year pooled, under thirty (hand-derived by `folds.pool`: 6, 6, 7, 7, 6 for 2021 to
+  2025). The trend rule on the same two lines made no trade in 2022, a year with none is a
+  FAULT by the spec, and its worst year is the verdict: THIN became FAULT in set EPON's test.
+- The known answer, new: sixteen lines each with the edge planted, the five yearly folds
+  PASS and the one answer is every line's, where per line the folds were THIN.
+
+Scale, not solved here: pooled over every line of the research store (2,130 at this writing)
+a rule's pool holds all its lines' bars and runs about twelve first-rung runs a line. That is the
+ruling's design; if it proves too heavy for the PC, the pool's universe is the question to put.
+
+Not done, left in the lane's book: a rule with an author's figure still has its folds unrun
+(`NO_FOLDS`); `folds.pool` already takes the reproductions, and wiring them is the next step.
+
 ---
 
 ## MONEY
@@ -1765,3 +1803,145 @@ This lane's decisions are in `docs/lanes/grid.md`; its scribe writes there (from
 
 This lane's decisions are in `docs/lanes/rungs.md`; its scribe writes there (from
 14 November 2026, 21:04) and moves there any entry that lands below.
+
+### R-RUNNER-106 — wiring tests for the ladder's registries (RUNGS, 15 November 2026)
+
+New tests: `tests/unit/test_lab_published_wiring.py` (every eponymous rule is in the published
+book and every publication has its desk file) and `tests/unit/test_lab_ladder_wiring.py` (every
+yardstick is a line of its venue in the research list; every set names only rules the rule book
+resolves). The eponymous publications live in `lab.published_epon.EPONYMOUS_PUBLISHED`, not in
+`PUBLISHED` (the desk's five); the test reads that book. Each was driven against a planted break,
+then the break was removed:
+
+- Entry `williams_r` renamed in the published book: "in a desk/eponymous_*.py but not in the
+  published book: ['williams_r']".
+- `MARKETS["LSE"]` pointed at "XXX": "yardstick(s) {'LSE': 'XXX'} (venue: symbol) not in the
+  research list".
+- A rule "ghost_rule" added to the EPON set: "set EPON names rules the rule book lacks:
+  ['ghost_rule']" (and the published-book test names it too).
+
+### R-RUNNER-107 — the master and the calendars agree (DATA, 15 November 2026)
+
+`tests/unit/test_lines_worlds.py`: every line of `desk.lines` has a rule and a clock in
+`desk.venues`, and every SimCity world (read as `simcity.run` deals them, with `_live`
+replaced so none is lived) is dated only on trading days of its lines' venues. The test
+reads the rehearsal data, which `desk.venues` itself dates, so it is green today; it is
+the net for a line or world that drifts. A line on an unknown venue is already refused when
+the `Line` is built (`__post_init__`), so the test's break is a venue that loses its
+calendar. Each was driven against a planted break, then the break was removed:
+
+- `CLOCKS["US"]` renamed "XX": "lines on a venue with no calendar in desk.venues (holidays
+  and hours): ['AAPL', 'TSLA', 'NVDA', 'SPCX', 'MSTR', 'AMD', 'MU', 'SPY', 'QQQ']".
+- `simcity._market` made to date its sixth bar 25 December: "world 0: L01 is dated
+  2024-12-25, which is no LSE session" (and every line after it).
+
+## 15 Nov - R-RUNNER-100: the author's figure is handed to the folds
+
+A rule with an author's figure on file used to be given no folds ("the folds rung cannot yet
+hand an author's result to its folds"), so its verdict could never be reached. `verdict.judge`
+now runs the folds on every cell and `Pool.fold` hands the reproductions to `folds.pool`, which
+already took them; a fold is not a trial (trials stay one a cell). His ruling of 15 Nov,
+"A" (canon B5): the spec's reading, thresholds staying at "more than 20".
+
+Pinned figure moved, re-derived by hand: `test_a_rule_with_a_figure_on_file_is_judged_only_behind_its_authors_result`
+had "folds" unrun and "1 passed ... 1 of them behind an author's result". Its one line (ISF, a
+planted edge) now has its folds judged: the worst of 5 yearly folds (2022) holds 2 trades pooled
+over 1 line, under the 30 asked, so the folds rung and the verdict are THIN, the row passes not
+every rung, and the summary counts 0 behind an author's result. THIN is the honest answer on
+2 trades a year; no t, Sharpe, trial count or threshold in any other test was touched.
+
+## 15 Nov — R-RUNNER-103: rare large losses (G2), one more trade at the rule's own stop
+
+His ruling "A" of Sun 15 Nov ~07:50. Small wins and a rare loss at the stop, worth nothing
+together, passed the four rungs read from a trial's own trades on 6 of 400 no-edge lines of
+under forty trades (a line in fifty has not yet met its loss). Options: (a) plant the loss in
+the first rung (chosen, the spec's G2); (b) a bar on skew in the deflated rung (a second rule
+for a job the first has); (c) leave it, six false winners in 400. Chosen (a): `rung.planted`
+adds to a verdict's gains one more, the least return any judged trade would have made had its
+stop sold it, with a stop's costs (`Priced.stopped`). `Verdict.gains` is read by the standard
+errors, the luck's chance and the deflated Sharpe's count, skew and kurtosis; `trades` and
+every count of the 30 asked are untouched. Both thresholds stay at "more than 20", never 10.
+
+Known answer: `tests/unit/test_lab_ladder_spec.py` (from #211's branch, shrunk to one world),
+seen failing first with 6 of 400 passing, now 0.
+
+Pinned figures moved, each re-derived by running the first rung on the same seeds:
+- `test_a_planted_edge_passes_and_a_planted_non_edge_does_not`: the bar-straddling pair was
+  seeds 1 and 16 at t 1.99 and 2.02; with the loss planted they read 1.76 and 1.72, so the
+  pair is seeds 12 (1.979, fails) and 40 (2.021, passes), the same claim (the bar sits between
+  them). Seed 0 cut at 29 trades read t above 2.8, now 2.52, so the pin is above 2.5; at 30
+  trades it still passes (2.35) and at 29 is still THIN.
+- No pinned figure in test_lab_luck, test_lab_deflated or test_lab_trials moved: their trades
+  are built by hand without a stop, so `Priced.stopped` is left unset and plants nothing. The
+  default is a cost of keeping to the claim (test_lab_folds and test_lab_plateau build
+  `Priced` too and are another lane's files); the ask to make it required is under Remains.
+
+## 15 Nov - the lab's ceiling rises by 400 lines, by his yes
+
+In `BUDGET.json`, `lab_lines` goes from 7,000 to 7,400 for phases `3-money-paper` and
+`4-ladder`. The desk's ceiling is unchanged at 10,500.
+
+Why: the lab held 6,976 of its 7,000 lines on main. Moving the twenty eponymous rules into
+the spec book as data rows (R-RUNNER-125, spec-epon) needs about 400 lines of blocks in
+`lab/blocks.py`. Two rules landed as spec rows with parity proven; the other seventeen could
+not fit. Once all twenty are rows, retire-epon (R-RUNNER-127) deletes about 1,600 desk lines
+of the old eponymous modules.
+
+His ruling, Sun 15 Nov 2026 ~13:20, in chat with the coordinator. He was offered three
+options: move 400 lines of ceiling from the desk to the lab (recommended), raise the lab by
+400 alone, or wait for Tuesday's consolidation. He chose "Raise research by 400".
+
+## 15 Nov - the lab's ceiling rises from 7,400 to 8,000 lines, by his yes
+
+In `BUDGET.json`, `lab_lines` goes from 7,400 to 8,000 for phases `3-money-paper` and
+`4-ladder`. The desk's ceiling is unchanged at 10,500. The lab is research code; the trading
+path is untouched.
+
+Why: main's lab held 7,391 of 7,400 lines. Five ladder pull requests (#342 rung-regimes, #350
+rung-bootstrap, #351 rung-cpcv, #352 spec-epon slice 3, #354 rung-placebo) were green on every
+check except `test_the_tree_is_inside_this_phases_ceiling`, needing about 595 lines together.
+The 13:20 rise to 7,400 was sized for spec-epon alone and did not count the rungs already
+building; that was the coordinator's error. To stop a repeat, the runner holds a card on the
+ceiling before a session starts, instead of after it has built.
+
+His ruling, Sun 15 Nov 2026 ~16:00, in chat with the coordinator, chosen from three options
+(raise to 8,000; keep 7,400 and cut first, which slips the ladder to Tuesday; hold the ladder
+to Tuesday): "Raise to 8,000". Clean-up cards (the rung registry, consolidation) are expected
+to shrink the lab again.
+
+## 15 Nov - the lab's ceiling rises from 8,000 to 12,000 lines, by his ruling
+
+In `BUDGET.json`, `lab_lines` goes from 8,000 to 12,000 for phases `3-money-paper` and
+`4-ladder`. The desk's ceiling is unchanged at 10,500. The lab is research code; the trading
+path is untouched.
+
+Why: main's lab held 7,690 lines with about 417 more riding the train, so 8,000 was full
+before the rest of LADDER READY's chain (rung-dsr, rung-folds, rung-trials-cluster,
+ladder-catalogue, spec-variants, ladder-gate, grid-chain, spec-epon's last slices,
+rung-registry, pool-unit; about 900-1,200 lines by their estimates) could land.
+
+His ruling, Sun 15 Nov 2026 ~16:30, in chat with the coordinator, offered 9,500 with or
+without a matching desk cut, or a hold to Tuesday: "for research, set to 12000 and we can
+iteratively refactor later". The refactor is owed: the rung registry, consolidation and the
+fan-in guard's split cards are expected to shrink the lab, and retire-epon deletes 1,593 desk
+lines.
+
+## R-RUNNER-180 - the paper Gateway's wait, measured (Sun 15 Nov 2026, PAPER lane)
+
+`paper.SECONDS` goes from 15 to 30, one constant for the knock and every conversation
+(`desk/paper.py`, its reason beside it). Measured read-only on port 4002 only (the knock, and
+the account read), with the Gateway already logged in and up:
+
+| case | knock | account read |
+|---|---|---|
+| warm, PC at its usual load (36 Python processes), 3 knocks | 0.004-0.013 s | 0.10 s |
+| under load: 24 busy processes (3 per core), 15 rounds | max 0.136 s | max 0.178 s |
+
+No call failed or came near the limit. A truly cold Gateway (just restarted) could not be
+timed without restarting his Gateway, which is his alone; the three step TimeoutErrors seen
+(each beside SimCity or a build) were therefore not reproduced at 15 s. Options: (a) keep 15,
+measured at under 1% of it; (b) 30, matching the Telegram door's 30 (`messenger.SECONDS`), a
+hundredfold on the worst measure; (c) 60 or more. Chosen (b): it gives a stalled PC double the
+time, and a dead Gateway is still called silent after 30 s, far inside one five-minute step,
+with no retry and no sleep. Test: `test_a_slow_first_answer_is_waited_for_and_a_silent_one_is_called_silent`
+(a stand-in answering at 20 s passes; one silent past 31 s is his).

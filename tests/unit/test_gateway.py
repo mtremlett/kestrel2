@@ -56,7 +56,7 @@ def test_ready_when_it_answers_and_waited_for_in_its_restart(moment: str, restar
     ("failure", "saw"),
     [
         (ConnectionRefusedError("[WinError 10061]"), "its port is closed"),
-        (TimeoutError("timed out"), "it said nothing for 15 seconds"),
+        (TimeoutError("timed out"), f"it said nothing for {paper.SECONDS} seconds"),
         (ConnectionError("the gateway says 1100: the broker's link is lost"), None),
     ],
 )
@@ -94,7 +94,7 @@ def test_the_knock_only_greets_on_the_paper_port(monkeypatch: pytest.MonkeyPatch
 
     answering(ACCOUNTS, FEED, READY)
     assert gateway.known(noon).ready
-    assert dialled == [(("127.0.0.1", 4002), 15)]
+    assert dialled == [(("127.0.0.1", 4002), paper.SECONDS)]
     assert sent == [b"API\x00\x00\x00\x00\x04v176", b"\x00\x00\x00\x0a71\x002\x00222\x00\x00"]
     answering(ACCOUNTS, TAKEN)  # the desk's own other conversation: no login of his
     assert (taken := gateway.known(noon)).state is State.UNWELL and "326" in taken.words
@@ -122,3 +122,22 @@ def test_the_weekly_reminder_is_due_on_sunday_when_he_wakes(moment: str, due: st
     assert (reminder and (reminder.due, reminder.due.tzinfo)) == (due and (_at(due), UTC))
     asked = ("yours today", "no password", "log in again today", "since 06:00", "may not come")
     assert reminder is None or all(said in reminder.line for said in asked)
+
+
+@pytest.mark.parametrize(("after", "state"), [(20, State.READY), (31, State.HIS)])
+def test_a_slow_first_answer_is_waited_for_and_a_silent_one_is_called_silent(
+    monkeypatch: pytest.MonkeyPatch, after: float, state: State
+) -> None:
+    """A stand-in gateway whose first answer comes `after` seconds (R-RUNNER-180: measured
+    at 0.2 s under load, the limit leaves a hundredfold): the dial's own timeout decides."""
+
+    def dial(_address: tuple[str, int], timeout: float) -> nullcontext[SimpleNamespace]:
+        def slow(_: str) -> object:
+            if after > timeout:
+                raise TimeoutError("timed out")
+            return _wire(HELLO, ACCOUNTS, FEED, READY)
+
+        return nullcontext(SimpleNamespace(makefile=slow, sendall=lambda _: None))
+
+    monkeypatch.setattr(socket, "create_connection", dial)
+    assert gateway.known(_at("2026-11-13 12:00")).state is state

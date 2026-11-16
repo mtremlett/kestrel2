@@ -34,7 +34,7 @@ from decimal import localcontext
 from pathlib import Path
 
 from desk import strategy
-from desk.lines import LINES, Line
+from desk.lines import Line
 from desk.store import Bar
 from desk.strategy import ARITHMETIC, STRATEGIES, Action, _run
 from lab import grid, rulebook
@@ -50,14 +50,9 @@ class Cell:
     start: date  #: the first day whose buys belong to the cell
     end: date  #: the last bar the rule is shown
 
-    def __init__(self, strategy: str, line: Line | str, start: date, end: date) -> None:
-        """A symbol alone names one of the twenty, where no two share one: the rungs lane's
-        cells are still made so, and this door closes when they name a line."""
-        if isinstance(line, str):
-            found = [known for known in LINES if known.symbol == line]
-            if not found:
-                raise ValueError(f"{line!r} is not a line in the instrument master")
-            line = found[0]
+    def __init__(self, strategy: str, line: Line, start: date, end: date) -> None:
+        if not isinstance(line, Line):
+            raise TypeError(f"a cell names a Line, not {type(line).__name__} {line!r}")
         if strategy not in STRATEGIES:
             rulebook.rule(strategy)  #: refuses a name the rule book does not know
         if end < start:
@@ -133,16 +128,29 @@ def _files(root: Path, name: str) -> set[str]:
     return {f for f in found if f is not None}
 
 
-def reached(root: Path, module: str = CELL) -> tuple[str, ...]:
-    """The module's file, its packages', and every file under root they reach through imports."""
-    if _file(root, module) is None:
-        raise ValueError(f"{module}: no module of that name under {root}")
-    seen, waiting = set(), _files(root, module)
+def _closure(root: Path, graph: dict[str, set[str]], start: set[str], out: set[str]) -> set[str]:
+    """The files reachable from start through the graph, never entering a file in `out`."""
+    seen, waiting = set(), set(start)
     while waiting:
         path = waiting.pop()
         seen.add(path)
-        waiting |= _imports(root, path) - seen
-    return tuple(sorted(seen))
+        if path not in graph:
+            graph[path] = _imports(root, path)
+        waiting |= graph[path] - seen - out
+    return seen
+
+
+def reached(root: Path, module: str = CELL) -> tuple[str, ...]:
+    """The module's file, its packages', and every file under root they reach through imports,
+    except the files that reach the module in turn: they run it, they do not judge for it, so
+    a change to a runner of the module is not a change to what it makes."""
+    if (own := _file(root, module)) is None:
+        raise ValueError(f"{module}: no module of that name under {root}")
+    graph: dict[str, set[str]] = {}
+    start = _files(root, module)
+    everything = _closure(root, graph, start, set())
+    runners = {p for p in everything - start if own in _closure(root, graph, {p}, set())}
+    return tuple(sorted(_closure(root, graph, start, runners)))
 
 
 def code_version(root: Path = ROOT, module: str = CELL) -> str:
@@ -173,6 +181,23 @@ def _data_version(bars: Sequence[Bar]) -> str:
         row = (bar.day, bar.open, bar.high, bar.low, bar.close, bar.volume)
         digest.update((",".join(str(field) for field in row) + "\n").encode())
     return digest.hexdigest()
+
+
+#: Each (line, end) hashed once: the bars object it was hashed from, its length, the digest.
+#: Another bars object for the same line (a placebo's) is not the same bars: it is hashed again.
+_HASHED: dict[tuple[Line, date], tuple[Sequence[Bar], int, str]] = {}
+
+
+def _version(cell: Cell, bars: Sequence[Bar], read: Sequence[Bar]) -> str:
+    """The data version of `read`, the bars shown up to the cell's end, hashed once per
+    (line, end) while the same bars are asked about; the digest is the same as hashing anew."""
+    at = (cell.line, cell.end)
+    memo = _HASHED.get(at)
+    if memo is not None and memo[0] is bars and memo[1] == len(bars):
+        return memo[2]
+    version = _data_version(read)
+    _HASHED[at] = (bars, len(bars), version)
+    return version
 
 
 def _held(cell: Cell, bars: Sequence[Bar]) -> list[bool]:
@@ -214,7 +239,7 @@ def shown(cell: Cell, bars: Sequence[Bar]) -> tuple[Bar, ...]:
 
 def key(cell: Cell, bars: Sequence[Bar]) -> Key:
     """The key the cell's record from these bars would carry, without running the rule."""
-    return Key(cell, LOADED, _data_version(shown(cell, bars)))
+    return Key(cell, LOADED, _version(cell, bars, shown(cell, bars)))
 
 
 def run(cell: Cell, bars: Sequence[Bar]) -> Record:
@@ -223,4 +248,4 @@ def run(cell: Cell, bars: Sequence[Bar]) -> Record:
     inside = sum(1 for bar in read if bar.day >= cell.start)
     if not inside:
         raise ValueError(f"{cell}: no bars in the window")
-    return Record(Key(cell, LOADED, _data_version(read)), inside, _trades(cell, read))
+    return Record(Key(cell, LOADED, _version(cell, bars, read)), inside, _trades(cell, read))

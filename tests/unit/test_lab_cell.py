@@ -42,9 +42,9 @@ def _cell(first: int, last: int, name: str = "breakout_20_10") -> Cell:
 
 def test_a_cell_names_a_real_strategy_a_real_line_and_a_window() -> None:
     with pytest.raises(ValueError, match="no strategy"):
-        Cell("best_ever", "AAPL", _day(0), _day(9))
-    with pytest.raises(ValueError, match="instrument master"):
-        Cell("breakout_20_10", "ACME", _day(0), _day(9))
+        Cell("best_ever", AAPL, _day(0), _day(9))
+    with pytest.raises(TypeError, match="str 'AAPL'"):
+        Cell("breakout_20_10", "AAPL", _day(0), _day(9))  # type: ignore[arg-type]
     with pytest.raises(ValueError, match="ends before it starts"):
         _cell(9, 8)
     assert _cell(9, 9).end == _day(9)
@@ -53,8 +53,6 @@ def test_a_cell_names_a_real_strategy_a_real_line_and_a_window() -> None:
     boeing, bae = Line("BA", "US", "USD", 1), Line("BA", "LSE", "GBP", 1, STAMP_DUTY)
     cells = [Cell("breakout_20_10", line, _day(0), _day(9)) for line in (boeing, bae)]
     assert cells[0] != cells[1] and [c.line.venue for c in cells] == ["US", "LSE"]
-    #: by its symbol alone a cell is still one of the twenty, until the rungs name a line
-    assert Cell("breakout_20_10", "AAPL", _day(9), _day(9)) == _cell(9, 9)
     assert replace(cells[1], end=_day(12)) == Cell("breakout_20_10", bae, _day(0), _day(12))
 
 
@@ -141,6 +139,29 @@ def test_the_data_version_moves_with_any_bar_it_read() -> None:
     assert before.code == cell.code_version()
 
 
+def test_a_lines_bars_are_hashed_once_per_end_and_the_keys_are_the_same(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    bars, hashed = _bars(SHAPE), list[int]()
+    cells = [_cell(first, last) for last in (21, 24) for first in (0, 5, 21)]
+    fresh = [cell.key(c, bars) for c in cells]  #: the memo warm
+    cell._HASHED.clear()
+    real = cell._data_version
+
+    def counted(read: Sequence[Bar]) -> str:
+        hashed.append(len(read))
+        return real(read)
+
+    monkeypatch.setattr(cell, "_data_version", counted)
+    assert [cell.key(c, bars) for c in cells] == fresh
+    assert [cell.run(c, bars).key for c in cells] == fresh
+    assert sorted(hashed) == [22, 25]  #: one hash per (line, end), not per cell
+    again = _bars(SHAPE)  #: other bars for the same line are hashed anew, and keyed alike
+    assert [cell.key(c, again) for c in cells] == fresh and len(hashed) == 4
+    moved = tuple(replace(b, close=b.close + 1) for b in bars)
+    assert cell.key(cells[0], moved).data != fresh[0].data
+
+
 def test_a_window_with_no_bars_is_refused() -> None:
     bars = _bars(SHAPE)
     with pytest.raises(ValueError, match="AAPL on US.*no bars"):
@@ -210,3 +231,18 @@ def test_a_rungs_key_moves_with_all_its_module_reaches_the_cost_model_too(
         record.rung("lab.grid")
     with pytest.raises(ValueError, match=r"lab\.gone: no module"):
         cell.code_version(tmp_path, "lab.gone")
+
+
+def test_a_rungs_key_ignores_the_modules_that_run_it_and_moves_with_those_that_judge(
+    tmp_path: Path,
+) -> None:
+    ladder = "from lab import cell, cost\ndef go():\n    from lab import pool\n"
+    files = {"lab/__init__.py": "", "lab/cell.py": "", "lab/ladder.py": ladder, "lab/cost.py": ""}
+    pool = "from lab import ladder, sweep"
+    _tree(tmp_path, files | {"lab/pool.py": pool, "lab/sweep.py": ""})
+    before = cell.rungs(tmp_path)["lab.ladder"]
+    for runner, text in (("lab/pool.py", pool), ("lab/sweep.py", "")):
+        _tree(tmp_path, {runner: f"{text}\nZ = 2"})
+        assert cell.rungs(tmp_path)["lab.ladder"] == before, runner
+    _tree(tmp_path, {"lab/cost.py": "C = 2"})
+    assert cell.rungs(tmp_path)["lab.ladder"] != before, "a judge changed"

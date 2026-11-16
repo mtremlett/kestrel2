@@ -102,7 +102,7 @@ money-restop's put-back (`desk/broker.py`), then the limits, money-stranger, mon
 - R-RUNNER-60: done in #247; R-RUNNER-61: done in #256; R-RUNNER-62: done in #261; R-RUNNER-63: done in #246; R-RUNNER-64: done in #258; R-RUNNER-65: done in #272; R-RUNNER-66: done in #262; R-RUNNER-67: done in #273; R-RUNNER-68: done in #251; R-RUNNER-69: done in #266; R-RUNNER-70: done in #269; R-RUNNER-71: done in #265; R-RUNNER-72: done in #250; R-RUNNER-73: done in #264; R-RUNNER-74: done in #267; R-RUNNER-75: done in #271; R-RUNNER-76: done in #248; R-RUNNER-77: done in #276; R-RUNNER-78: done in #274; R-RUNNER-79: done in #277; R-RUNNER-80: done in #275
 ### Requests to PAPER
 - [ ] R-MONEY-7 (later): a typed command calling `kill.pull`, sending `Killed.words()` to Telegram.
-- [ ] R-MONEY-8 (blocking): the paper day calls `day.trade` and `day.publish`, never `day.run`; the adapter refuses an order not dated the session before the broker's today.
+- [x] R-MONEY-8 (blocking): the paper day calls `day.trade` and `day.publish`, never `day.run`; the adapter refuses an order not dated the session before the broker's today. Done in #152.
 - [ ] R-MONEY-9 (later): a stop's fills get the order's id plus "-stop". R-MONEY-10 (later): in conformance set paper fills beside `orders.charges` and the 0.05% spread. R-MONEY-11 (later): say when you hold `desk/clearance.py`.
 - [ ] R-MONEY-17 (blocking): no paper sale unattended while a stop rests under the same shares, unless tied at the broker (#163); record in conformance what paper does.
 - [ ] R-MONEY-18 (later): the morning message carries `halt.listed(root, day)`, every day's `halt.said(root, day)`. R-MONEY-19 (later): a typed command to call and lift a halt.
@@ -239,53 +239,50 @@ SGLN's off-mark bar refused alone, research-list bars); then data-isa-twins, dat
 
 ## GRID
 
-Last updated: 14 November 2026 (a hung pass of the week is now ended at 48 hours, #125).
+Last updated: 16 November 2026 (declared pass, transfer study, rule book, timing: #399, #263, #281, #403).
 ### Where it is
 
-Built and proven: the cell, the batch, the fast grid engine, a key per rung, the auto-tune
-(`lab/tune.py`), the pass and the hourly week (`lab/sweep.py`). A pass: 5,325 cells in 2 to 4 min.
+Built and proven: the cell (a Line only), batch, fast grid engine and fast spec-row engine (`lab/fast.py`, ~30 times
+the desk's), a key per rung that ignores the modules that run it, auto-tune, the pass and hourly week, `--held`, the rule
+book with the catalogue's specs, the transfer study (`lab/transfer.py`; a refused line answers REFUSED). The default
+pass runs each strategy on its declared universe (22 lines); all-on-all is `--transfer`, never a verdict. A pass reports
+its seconds: cold transfer 5,330 cells in 17 min, declared about 8 min, far inside the 48 h weekend (LAD-10 done).
 
 ### Next step
-
-grid-week: the seven-day run is going (pid in `%KESTREL2_DATA%\grid\week.pid`; moved off C:\tmp at 12:13 on 14 Nov,
-unbroken). Nothing to build. On or after 20 Nov 23:45 UK read `sweep.unbroken(Path(KESTREL2_DATA))`: 7 days ticks it.
-If it died, restart within the hour, at below-normal priority, from `C:\Users\mtrem\PYTHON\kestrel2_lanes\gridweek`:
+grid-week (waits: 2026-11-21): the seven-day run is going (pid in `%KESTREL2_DATA%\grid\week.pid`). Nothing to build.
+On or after 20 Nov 23:45 UK read `sweep.unbroken(Path(KESTREL2_DATA))`: 7 days ticks it. If it died, restart within the
+hour, below-normal priority, from `C:\Users\mtrem\PYTHON\kestrel2_lanes\gridweek`:
 `python -B -m lab.sweep %KESTREL2_DATA%\grid\store %KESTREL2_DATA%\grid\cells %KESTREL2_DATA% --days 7`.
-grid-declared can start now (it waited only on the shared file).
+Every other box is ticked. Open: R-DATA-7, R-RUNGS-2 (declared sweep enters every cell in the register), R-RUNGS-4.
 
 ### Done for other lanes
-- R-DATA-1: done in #73
+- R-DATA-1: done in #73; R-DATA-10: #391; R-RUNNER-4: #171; R-RUNNER-8: #391; R-RUNNER-19: #197; R-RUNNER-82: #263
+- R-RUNNER-89: #281; R-RUNNER-128: #360; R-RUNNER-140: #330; R-RUNNER-164: #397; R-RUNNER-167: #359; R-RUNNER-170: #372
 ### Requests to MONEY
-
-- [ ] R-GRID-1 (later, opened 2026-11-13 18:15): the five rules at other settings in
-  `desk/strategy.py`; the grid runs the published five until then (canon B2).
-
+- [ ] R-GRID-1 (later, 2026-11-13 18:15): the five rules at other settings in `desk/strategy.py`, each with a grid and
+  a name per setting in `transfer.families()`; the grid runs the published five until then.
 ### Requests to RUNGS
-
-- [ ] R-GRID-2 (later, opened 2026-11-13 20:04 UK): make each cell from a Line in
-  `test_lab_rung.py`, `test_lab_luck.py`, and price in `lab/rung.py` with `c.line`. Then GRID drops `Cell.symbol`.
-- [ ] R-GRID-3 (later, opened 2026-11-13 21:10 UK): stamp each verdict with `record.key.rung("lab.rung")`
-  and each luck correction with `.rung("lab.luck")` in `lab/rung.py`; include the capital setting
-  and exchange rate in what a kept verdict is found by. Needed before any verdict is kept.
-
+- [ ] R-GRID-2 (later, 2026-11-13 20:04 UK): make each cell from a Line in `test_lab_rung.py`, `test_lab_luck.py`,
+  and price in `lab/rung.py` with `c.line`. Then GRID drops `Cell.symbol`.
+- [ ] R-GRID-3 (later, 2026-11-13 21:10 UK): stamp each verdict with `record.key.rung("lab.rung")`, each luck
+  correction with `.rung("lab.luck")`; include capital and exchange rate in what a kept verdict is found by.
+- [ ] R-GRID-6 (blocking, 2026-11-14 10:30 UK): the rungs' tests (`test_lab_rung/trials/bets/regime/reproduce.py`) name
+  SPY and QQQ; name lines that stay (AAPL, NVDA) so DATA can take them out of the twenty.
+- [ ] R-GRID-7 (later, 2026-11-16 12:00 UK): `lab/cell.py` `rungs()` stats per candidate per module; cache `_file`
+  so the import takes seconds, not minutes, on the PC.
 ### Requests to DATA
-
-- [ ] R-GRID-4 (later, opened 2026-11-13 21:35 UK): a public "UK clock time of a moment" in
-  `desk/venues.py`, so `lab/tune.py` drops its own summer-time rule.
-- [ ] R-GRID-5 (later, opened 2026-11-13 22:20 UK): the research store's home (data-research-home)
-  built on this PC (the first pass used a scratch copy); R-DATA-7's second half is still owed.
+- [ ] R-GRID-5 (later, 2026-11-13 22:20 UK): the research store's home (data-research-home) built on this PC.
 
 ### Found, not fixed
-
-- **The grid refuses runs of equal closes**; the desk's engine decides them, slower. Not yet counted.
+- **60 of 110 cells failed in the cold declared pass** (#403); cause unread (journals): look first.
+- `lab/cell.py` import takes 1-3 min on a loaded PC (R-GRID-7). The grid refuses runs of equal closes (desk engine decides).
 - Grid breaks no series found can show (Supertrend band, Bollinger past 2**53, Wilder window, band margin).
-- Cell/batch: key leaves out Python version, paths, capital and exchange rate. Unit-test lines equal product lines.
-- Tune: the proof uses one worker; priority and kill-on-exit untested; batch size follows the last batch only.
-- Week: a pass over 48 hours is cut and logged failed, so a sweep needing more fails LAD-10 (grid-weekend); a torn `week.jsonl` line needs hand-mending; results grow ~9 MB a day
-  (pruning owed, R-GRID-1); an outside pass on the same folder, a PC restart not followed within the hour (nothing restarts it),
-  or the copied store `%KESTREL2_DATA%\grid\store` cleared breaks the run (data-research-home fixes the last).
-- Log counts tickers as "cells"; refused cells uncounted; busy flag stale if a pass is killed outright or cut at its limit.
-  Scratch copies owed removal: `.claude/worktrees/` helpers, `C:\tmp\unebreaks`, `C:\tmp\unedriver`.
+- Cell key leaves out Python version, paths, capital and exchange rate. `lab/fast.py` not yet wired into the sweep.
+- Rung key still holds batch, folds, published*, shuffle, desk/*; narrowing needs a per-rung declaration in `lab/ladder.py`.
+- Week: a pass over 48 h is cut and logged failed; a torn `week.jsonl` line needs hand-mending; results grow ~9 MB a day
+  (pruning owed, R-GRID-1); an outside pass, a PC restart, or the copied store cleared breaks the run.
+- Flaky `tests/unit/test_bars.py` once under load (#171). Busy flag stale if a pass is killed outright.
+  Scratch owed removal: `.claude/worktrees/` helpers, `C:\tmp\unebreaks`, `C:\tmp\unedriver`.
 
 ## RUNGS
 

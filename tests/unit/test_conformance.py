@@ -46,6 +46,11 @@ PRETEND = {
 }
 
 
+#: What the broker's list of the day's ended orders says of the two it cancelled: one gives its
+#: words, one gives none.
+WHY = {"20261113-conf0lse-SPY": "Rejected: no retail trading", "20261113-conf1lse-VUAG": ""}
+
+
 @pytest.fixture(autouse=True)
 def _the_desks_own_client_again(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(paper, "CLIENT", paper.CLIENT)  # the command makes it its own: put back
@@ -185,13 +190,17 @@ def test_the_real_stop_is_put_above_the_price_paid_and_sold_or_not_the_line_is_l
     assert len(settled) == 6
 
 
-def _world(patch: pytest.MonkeyPatch, found: tuple[str, ...] = (), sells: bool = True) -> Pretend:
+def _world(
+    patch: pytest.MonkeyPatch, found: tuple[str, ...] = (), sells: bool = True, late: bool = False
+) -> Pretend:
     """The archive, a Gateway that greets, a check that names what is given, and the pretend
     broker at the paper broker's door, its stop selling when the market is made to reach it."""
     broker = _market(_plan(patch), VUAG, SPY)
 
     def fall(order: Order) -> None:
-        if not sells:
+        if late:  # the stop sold, and the step failed all the same: nothing is left to put back
+            broker.open(MON.date() + timedelta(days=1))
+        if not sells or late:
             raise TimeoutError(f"{order.order_id}-stop: it has not sold")
         broker.open(MON.date() + timedelta(days=1))
 
@@ -201,11 +210,16 @@ def _world(patch: pytest.MonkeyPatch, found: tuple[str, ...] = (), sells: bool =
     patch.setattr(clearance, "check", lambda _root, now: clearance.Check(now, found))
     patch.setattr(placing, "Paper", lambda _listings, _root, _clock: broker)
     patch.setattr(conformance, "_raised", lambda *_: fall)
+    patch.setattr(conformance, "reasons", lambda: dict(WHY))
     return broker
 
 
 def _run(root: Path, now: datetime, market: str) -> int:
     return conformance.main(["--conformance", market], {"KESTREL2_DATA": str(root)}, lambda: now)
+
+
+def _at(moment: datetime) -> Callable[[], datetime]:
+    return lambda: moment
 
 
 def _never(_talk: object) -> None:
@@ -224,8 +238,12 @@ def test_the_command_records_each_real_result_beside_the_pretend_brokers_once(
     with record.open(newline="", encoding="utf-8") as kept:
         head, *rows = csv.reader(kept)
     assert head == list(conformance.HEAD)
-    assert [row[1:] for row in rows[:-1]] == [[step, said, said] for step, said in PRETEND.items()]
-    assert rows[-1] == [MON.isoformat(), "the run", "whole", ""]
+    assert [row[1:4] for row in rows[:-1]] == [[step, said, said] for step, said in PRETEND.items()]
+    assert rows[-1] == [MON.isoformat(), "the run", "whole", "", ""]
+    assert [row[4] for row in rows[:2]] == [  # a cancelled order's reason is never left empty
+        f"{NO}: {WHY[NO]}",
+        f"{ID.format(1)}: {conformance.GIVEN}",
+    ]
     assert paper.CLIENT == conformance.CLIENT == 223  # a client of its own, never the desk's 222
     assert book.switch(record.parent)[-1][:2] == (MON, book.Switch.DRILLED)  # the day's own drill
     monkeypatch.setattr(paper, "dial", _never)  # recorded whole: never again, and nothing asked
@@ -235,8 +253,22 @@ def test_the_command_records_each_real_result_beside_the_pretend_brokers_once(
     said = capsys.readouterr().out.splitlines()
     assert f"nothing done, its run is already recorded in {record}." in said[0]
     assert ["New York is shut" in said[1], "London is shut" in said[2]] == [True, True]
-    with pytest.raises(SystemExit, match="--conformance london|us"):
+    with pytest.raises(SystemExit, match="--conformance london"):
         _run(tmp_path, MON, "paris")
+
+
+def test_the_why_read_gives_each_cancelled_order_its_reason_but_not_in_a_desk_rounds_hours(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _world(monkeypatch)
+    env = {"KESTREL2_DATA": str(tmp_path)}
+    for now in (MON.replace(minute=15), MON.replace(hour=14, minute=45), MON.replace(hour=9)):
+        asked = conformance.main(["--conformance-why"], env, _at(now))
+        assert asked == (now.hour != 9)
+    assert paper.CLIENT == 223  # read as the conformance desk, never the desk's 222
+    first, second, said = capsys.readouterr().out.strip().split(chr(10), 2)
+    assert "not read now" in first + second  # 08:15 and 14:45 are a desk round's
+    assert said == f"{NO}: {WHY[NO]}{chr(10)}{ID.format(1)}: {conformance.GIVEN}"
 
 
 def test_nothing_is_sent_unless_the_gateway_is_ready_the_switch_off_and_the_account_quiet(
@@ -268,7 +300,7 @@ def test_a_run_that_failed_is_code_1_and_recorded_and_tried_again_only_on_a_late
     broker = _world(monkeypatch, sells=False)
     assert _run(tmp_path, MON, "london") == 1
     assert "5 of 6 steps done on VUAG" in (said := capsys.readouterr().out)
-    assert "FAILED: the stop triggered. A later day tries again" in said
+    assert "A later day tries again; the last step named, THE ACCOUNT IS NOT AS FOUND." in said
     root, sent = tmp_path / "conformance", broker.submitted()
     with (root / "trades-london-20261116.csv").open(newline="", encoding="utf-8") as kept:
         assert list(csv.reader(kept))[-1][1:3] == ["the run", "FAILED, at: the stop triggered"]
@@ -277,6 +309,16 @@ def test_a_run_that_failed_is_code_1_and_recorded_and_tried_again_only_on_a_late
     (root / "trades-london-20261115.csv").write_text("not,a,record\n", encoding="utf-8")
     with pytest.raises(ValueError, match="not a record of the conformance trades"):
         _run(tmp_path, MON, "london")
+
+
+def test_a_failed_step_whose_last_step_had_nothing_to_put_back_says_the_account_is_as_found(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _world(monkeypatch, late=True)
+    assert _run(tmp_path, MON, "london") == 1
+    said = capsys.readouterr().out
+    assert "FAILED: the stop triggered. A later day tries again; the account left as found." in said
+    assert "NOT AS FOUND" not in said
 
 
 def test_whatever_stops_a_run_outside_its_steps_the_account_is_still_put_back(

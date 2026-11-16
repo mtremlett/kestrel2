@@ -5,19 +5,23 @@ never shown able to trade through untested."""
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import replace
 from datetime import date, timedelta
 from decimal import Decimal
 
 import pytest
-from test_lab_rung import AAPL, POUND, SHAPE, TEN_K, _bars, _walk
+from test_lab_rung import AAPL, POUND, SHAPE, TEN_K, _bars, _walk, line_of
 
 from desk import orders
+from desk.lines import LINES
 from desk.orders import Leg
 from desk.store import Bar
 from lab import market, rung, stress
 from lab.cell import Cell
 from lab.rung import Answer
 from lab.stress import Gap, Stressed
+
+VUSA = next(line for line in LINES if line.symbol == "VUSA")
 
 MAY, AUGUST, CRASH = (episode.name for episode in stress.EPISODES)
 TENTH = Decimal("0.1")
@@ -31,7 +35,7 @@ def _flash(late: int = 0) -> tuple[Bar, ...]:
 
 
 def _stress(bars: Sequence[Bar], symbol: str = "VUSA", rates: rung.Rates = POUND) -> Stressed:
-    window = Cell("breakout_20_10", symbol, bars[0].day, bars[-1].day)
+    window = Cell("breakout_20_10", line_of(symbol), bars[0].day, bars[-1].day)
     return stress.judge(window, bars, TEN_K, rates)
 
 
@@ -105,11 +109,28 @@ def test_an_episode_the_rule_was_not_shown_able_to_trade_through_is_untested() -
     assert (none.verdict.answer, none.gap, none.worst) == (Answer.FAULT, None, None)
     #: a window that starts after the line's first bar could leave out a trade held into it
     for start in (1, 124):
-        cut = Cell("breakout_20_10", "VUSA", bars[start].day, bars[-1].day)
+        cut = Cell("breakout_20_10", VUSA, bars[start].day, bars[-1].day)
         with pytest.raises(ValueError, match="ask of the whole history"):
             stress.judge(cut, bars, TEN_K, POUND)
     with pytest.raises(ValueError, match="no bars in the window"):
         stress.judge(cut, bars[:100], TEN_K, POUND)
+
+
+def test_the_worst_scenario_is_judged_against_a_fifth_of_the_capital() -> None:
+    found = _stress(_flash())
+    assert Decimal("0.2") == stress.STRESS_LIMIT and found.capital == 10_000
+
+    def lose(pounds: int) -> Stressed:
+        crash = replace(found.episodes[2], made=Decimal(-pounds))
+        return replace(found, episodes=(*found.episodes[:2], crash), gap=None)
+
+    assert lose(1900).judged()[0] is Answer.PASS
+    answer, why = lose(2100).judged()
+    assert answer is Answer.FAIL and why == (
+        f"worst: {CRASH} lost 2,100.00 pounds; the limit is 2,000.00"
+    )
+    assert lose(2000).judged()[0] is Answer.PASS
+    assert replace(found, episodes=(), gap=None).judged()[0] is Answer.THIN
 
 
 def test_the_gap_is_a_black_swans_fall_in_a_night_times_the_leverage_on_the_worst_night() -> None:

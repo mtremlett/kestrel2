@@ -14,6 +14,7 @@ from desk.lines import LINES
 from desk.strategy import STRATEGIES
 from lab import rulebook
 from lab.cell import Cell
+from lab.rulebook import CATALOGUE
 
 PLANTED = """
 from desk.strategy import STRATEGIES
@@ -39,3 +40,16 @@ def test_the_book_has_the_five_and_a_planted_files_rules_and_refuses_the_unknown
     assert Cell("planted_rule", line, day, day).strategy == "planted_rule"
     with pytest.raises(ValueError, match="no strategy"):
         Cell("best_ever", line, day, day)
+
+
+def test_the_catalogue_names_only_python_rules_each_proven(tmp_path: Path) -> None:
+    named = rulebook.specs()
+    assert named and set(named) <= set(rulebook.eponymous())
+    assert all(spec.name == name and spec.cases for name, spec in named.items())
+    text, book = CATALOGUE.read_text("utf-8"), tmp_path / "book.toml"
+    book.write_text(text + "\n[no_such_rule]\nx = 1\n", "utf-8")
+    with pytest.raises(ValueError, match="no_such_rule"):
+        rulebook.specs(book)
+    book.write_text(text.replace("wants = [0,", "wants = [1,", 1), "utf-8")
+    with pytest.raises(ValueError, match="case 0 gives"):
+        rulebook.specs(book)

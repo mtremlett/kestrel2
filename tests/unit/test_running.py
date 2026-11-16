@@ -316,6 +316,7 @@ def test_a_step_that_fails_tells_him_once_and_is_an_error_and_a_silent_gateway_i
     trouble, another = running.notes(tmp_path)  # the first of each kind, that day
     assert trouble[:2] == (MON, "trouble ConnectionError") and another.what == "trouble ValueError"
     assert "ConnectionError: the gateway hung up" in trouble.words
+    assert "(in desk.paper.receive)" in trouble.words  # a failure names the call it came from
     morning, *told = _told(post)  # the morning message still goes, and says no order would
     assert "not come back" in morning and told == [trouble.words, another.words]
     assert [check.found for check in clearance.checks(tmp_path)] == [None] * 3

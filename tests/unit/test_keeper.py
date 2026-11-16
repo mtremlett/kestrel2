@@ -115,6 +115,21 @@ def test_a_trading_day_is_kept_each_venue_on_its_own_hours(tmp_path: Path) -> No
     assert pretend.asked == ["BBB", "AAA", "CCC"]
 
 
+def test_a_store_kept_under_older_rules_is_cleaned_again_and_a_current_one_is_not(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    pretend = Archive()
+    pretend.keep(tmp_path, _at(6))
+    assert pretend.keep(tmp_path, _at(6, 5)) == ([], []) and pretend.asked == []  # current
+    monkeypatch.setattr(keeper, "RULES", "an older set of rules")
+    pretend.keep(tmp_path, _at(6, 10))  # the rules changed: every line, from the archive
+    assert pretend.asked == ["BBB", "AAA", "CCC"]
+    monkeypatch.undo()
+    pretend.keep(tmp_path, _at(6, 15))
+    assert pretend.asked == ["BBB", "AAA", "CCC"]  # kept under the other rules: again
+    assert pretend.keep(tmp_path, _at(6, 20)) == ([], []) and pretend.asked == []
+
+
 def test_a_line_unanswered_keeps_what_its_day_holds_is_asked_again_and_a_blind_venue_is_a_miss(
     tmp_path: Path,
 ) -> None:
