@@ -161,6 +161,12 @@ def count(register: Path, question: str) -> int:
     return len(_asked(_read(register)[0], question))
 
 
+def family(register: Path, question: str, rule: str) -> int:
+    """Every trial ever entered under the question for this rule: all its variants, abandoned
+    sets included, whatever line, window or version of its code (a name opens with its rule)."""
+    return sum(t.startswith(rule + " ") for t in _asked(_read(register)[0], question))
+
+
 def correct(register: Path, question: str, verdicts: Sequence[Verdict]) -> tuple[Corrected, ...]:
     """The luck rung's correction of these verdicts, for every trial the register holds on
     the question: the verdicts are among them, and the rest count as trials without one."""

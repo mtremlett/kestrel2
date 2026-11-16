@@ -15,7 +15,7 @@ import pytest
 from test_lab_ladder import EDGE, ISF, NOISE, VUSA
 
 from desk.store import Bar
-from lab import ladder, market, verdict
+from lab import ladder, market, trials, verdict
 from lab.cell import Cell
 from lab.folds import Pooled
 from lab.rung import Answer, Rates
@@ -127,3 +127,25 @@ def test_a_market_with_a_missing_day_is_a_fault_in_its_own_words() -> None:
         "rungs"
     ]["market"]
     assert answer == "FAULT" and f"has no bar on {NOISE[2000].day}" in why, why
+
+
+def test_eased_charges_a_cell_its_rules_family_and_says_the_count(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    register = tmp_path / "t.jsonl"
+    trials.start(register)
+    trials.ask(register, "q")
+    trials.enter(register, "q", [f"{r} h{n}" for r, k in (("a", 3), ("b", 40)) for n in range(k)])
+    assert [trials.family(register, "q", r) for r in "ab"] == [3, 40]
+    pooled = verdict.pool([(CELL, EDGE)], {})
+
+    def luck_said(family: int | None) -> str:
+        done = verdict.judge(CELL, EDGE, ISF, NOISE, {}, 63920, (), lambda: pooled, None, family)
+        return str(done["rungs"]["luck"][1])
+
+    assert "63920 trials, " in luck_said(3)  #: off: the whole register, whatever the family
+    monkeypatch.setattr(verdict, "EASED", True)
+    assert "times 3 trials of the breakout_20_10 family" in luck_said(3)
+    assert "times 40 trials of the breakout_20_10 family" in luck_said(40)
+    with pytest.raises(ValueError, match="family count"):
+        luck_said(None)
