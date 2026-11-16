@@ -23,6 +23,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal, localcontext
+from typing import Generic, Protocol, TypeVar
 
 from desk.strategy import ARITHMETIC
 from lab import rung
@@ -41,26 +42,41 @@ class Stretch:
     answer: Answer
 
 
+class Judged(Protocol):
+    """What a fold's side must show: the t and the answer the worst fold is chosen by."""
+
+    @property
+    def t(self) -> Decimal | None:
+        """The mean gain in standard errors; None under two trades."""
+
+    @property
+    def answer(self) -> Answer:
+        """The first rung's answer."""
+
+
+J = TypeVar("J", bound=Judged)
+
+
 @dataclass(frozen=True)
-class Fold:
-    """One fold, its two stretches side by side."""
+class Fold(Generic[J]):
+    """One fold, its two sides side by side."""
 
-    inside: Stretch  #: in-sample: the history before the fold
-    outside: Stretch  #: out-of-sample: the fold alone
+    inside: J  #: in-sample: the history before the fold
+    outside: J  #: out-of-sample: the fold alone
 
 
 @dataclass(frozen=True)
-class Walked:
+class Walked(Generic[J]):
     """The folds of one window, and the one answer on the worst."""
 
-    folds: tuple[Fold, ...]  #: oldest first
+    folds: tuple[Fold[J], ...]  #: oldest first
 
     def __post_init__(self) -> None:
         if not self.folds:
             raise ValueError("no folds: there is no worst fold to judge on")
 
     @property
-    def worst(self) -> Fold:
+    def worst(self) -> Fold[J]:
         """The fold judged on; of two equally bad, the older."""
         return min(self.folds, key=lambda f: rung.standing(f.outside.answer, f.outside.t))
 
@@ -82,7 +98,7 @@ def stretch(gains: Sequence[Decimal]) -> Stretch:
     return Stretch(len(gains), t, rung.decide(len(gains), t))
 
 
-def judge(trades: Sequence[Gain], start: date, end: date, folds: int) -> Walked:
+def judge(trades: Sequence[Gain], start: date, end: date, folds: int) -> Walked[Stretch]:
     """The trades of the window [start, end] walked forward in `folds` folds."""
     parts, days = folds + 1, (end - start).days + 1
     if folds < 1 or days < parts:

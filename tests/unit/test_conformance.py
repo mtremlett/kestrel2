@@ -250,6 +250,12 @@ def _run(root: Path, now: datetime, market: str) -> int:
     return conformance.main(["--conformance", market], {"KESTREL2_DATA": str(root)}, lambda: now)
 
 
+def _run_soak(root: Path, now: datetime, market: str) -> int:
+    return conformance.main(
+        ["--conformance", market, "--soak"], {"KESTREL2_DATA": str(root)}, lambda: now
+    )
+
+
 def _at(moment: datetime) -> Callable[[], datetime]:
     return lambda: moment
 
