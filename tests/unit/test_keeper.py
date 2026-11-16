@@ -152,7 +152,7 @@ def test_the_reference_series_is_kept_once_a_day_after_the_us_close(tmp_path: Pa
         assert "SPY" not in pretend.asked
     pretend.keep(tmp_path, _at(21, 30), series=(spy,))
     assert pretend.asked.count("SPY") == 1
-    assert len(archive.read_reference(tmp_path / keeper.DAILY / "US", "SPY")) > 50
+    assert len(bars.daily(tmp_path / keeper.HOT, spy)) > 50
     pretend.keep(tmp_path, _at(21, 35), series=(spy,))  # the same day again: nothing new
     assert "SPY" not in pretend.asked
     pretend.refuses = {"SPY"}
