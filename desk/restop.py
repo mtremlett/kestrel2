@@ -35,7 +35,9 @@ def due(root: Path, lines: Mapping[str, Line]) -> dict[str, Decimal]:
         if symbol not in held or name not in kept:
             continue
         bought = [f for f in fills if f.order_id == buy]
-        paid = sum((f.price * f.quantity for f in bought), Decimal(0)) / sum(f.quantity for f in bought)
+        paid = sum((f.price * f.quantity for f in bought), Decimal(0)) / sum(
+            f.quantity for f in bought
+        )
         if (level := stop_under(lines[symbol], paid)) != kept[name]:
             out[name] = level
     return out
