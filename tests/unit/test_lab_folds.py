@@ -26,7 +26,7 @@ def _window(bars: Sequence[Bar]) -> Cell:
     return Cell("breakout_20_10", VUSA, bars[0].day, bars[-1].day)
 
 
-def _judge(bars: Sequence[Bar], count: int = 2) -> Folded:
+def _judge(bars: Sequence[Bar], count: int = 2) -> Folded[Verdict]:
     return folds.judge(_window(bars), bars, TEN_K, POUND, count)
 
 

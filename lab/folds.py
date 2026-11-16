@@ -34,6 +34,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal, localcontext
+from typing import Generic, Protocol, TypeVar
 
 from desk.orders import Settings
 from desk.store import Bar
@@ -46,22 +47,38 @@ from lab.rung import Answer, Rates, Verdict
 YEARS = 5  #: the last whole calendar years of a window are its folds (M6)
 
 
-@dataclass(frozen=True)
-class Fold:
-    inside: Verdict  #: in-sample: the window before the fold, all a chooser had seen
-    outside: Verdict  #: out-of-sample: the fold alone
+class Judged(Protocol):
+    """What a fold's side must give: an answer and the mean gain in standard errors (the first
+    rung's `Verdict`, or `lab/rung_folds.py`'s `Stretch` of gains alone)."""
+
+    @property
+    def answer(self) -> Answer:
+        """The first rung's answer."""
+
+    @property
+    def t(self) -> Decimal | None:
+        """The mean gain in standard errors; None under two trades."""
+
+
+S = TypeVar("S", bound=Judged)
 
 
 @dataclass(frozen=True)
-class Folded:
-    folds: tuple[Fold, ...]  #: oldest first
+class Fold(Generic[S]):
+    inside: S  #: in-sample: the window before the fold, all a chooser had seen
+    outside: S  #: out-of-sample: the fold alone
+
+
+@dataclass(frozen=True)
+class Folded(Generic[S]):
+    folds: tuple[Fold[S], ...]  #: oldest first
 
     def __post_init__(self) -> None:
         if not self.folds:
             raise ValueError("no folds: there is no worst fold to judge on")
 
     @property
-    def worst(self) -> Fold:
+    def worst(self) -> Fold[S]:
         """The fold judged on; of two equally bad, the older."""
         return min(self.folds, key=lambda f: rung.standing(f.outside.answer, f.outside.t))
 
@@ -74,7 +91,7 @@ class Folded:
         return self.answer is Answer.PASS
 
     @property
-    def trials(self) -> tuple[Verdict, ...]:
+    def trials(self) -> tuple[S, ...]:
         """Every fold's out-of-sample verdict: the trials this strategy cost."""
         return tuple(fold.outside for fold in self.folds)
 
@@ -106,7 +123,7 @@ def judge(
     rates: Rates,
     folds: int,
     reproduced: Sequence[Reproduction] = (),
-) -> Folded:
+) -> Folded[Verdict]:
     """The window in folds, each cell run and judged by the first rung on the line's bars;
     each fill at its own day's rate of exchange."""
 

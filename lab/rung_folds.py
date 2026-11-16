@@ -26,6 +26,7 @@ from decimal import Decimal, localcontext
 
 from desk.strategy import ARITHMETIC
 from lab import rung
+from lab.folds import Fold, Folded
 from lab.rung import Answer
 
 #: One trade after costs: the day it was bought, the day it was sold, its gain.
@@ -41,40 +42,6 @@ class Stretch:
     answer: Answer
 
 
-@dataclass(frozen=True)
-class Fold:
-    """One fold, its two stretches side by side."""
-
-    inside: Stretch  #: in-sample: the history before the fold
-    outside: Stretch  #: out-of-sample: the fold alone
-
-
-@dataclass(frozen=True)
-class Walked:
-    """The folds of one window, and the one answer on the worst."""
-
-    folds: tuple[Fold, ...]  #: oldest first
-
-    def __post_init__(self) -> None:
-        if not self.folds:
-            raise ValueError("no folds: there is no worst fold to judge on")
-
-    @property
-    def worst(self) -> Fold:
-        """The fold judged on; of two equally bad, the older."""
-        return min(self.folds, key=lambda f: rung.standing(f.outside.answer, f.outside.t))
-
-    @property
-    def answer(self) -> Answer:
-        """The worst fold's out-of-sample answer: the rung's."""
-        return self.worst.outside.answer
-
-    @property
-    def passed(self) -> bool:
-        """Whether every fold passed."""
-        return self.answer is Answer.PASS
-
-
 def stretch(gains: Sequence[Decimal]) -> Stretch:
     """The first rung's rule (`rung.decide`) on gains; gains with no spread are refused."""
     with localcontext(ARITHMETIC):
@@ -82,7 +49,7 @@ def stretch(gains: Sequence[Decimal]) -> Stretch:
     return Stretch(len(gains), t, rung.decide(len(gains), t))
 
 
-def judge(trades: Sequence[Gain], start: date, end: date, folds: int) -> Walked:
+def judge(trades: Sequence[Gain], start: date, end: date, folds: int) -> Folded[Stretch]:
     """The trades of the window [start, end] walked forward in `folds` folds."""
     parts, days = folds + 1, (end - start).days + 1
     if folds < 1 or days < parts:
@@ -90,7 +57,7 @@ def judge(trades: Sequence[Gain], start: date, end: date, folds: int) -> Walked:
     edges = [start + (end - start + date.resolution) * n // parts for n in range(parts)] + [
         end + date.resolution
     ]
-    return Walked(
+    return Folded(
         tuple(
             Fold(
                 stretch(_within(trades, start, edges[n])),

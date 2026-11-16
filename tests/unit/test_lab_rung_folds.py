@@ -13,10 +13,11 @@ from decimal import Decimal
 import pytest
 
 from lab import rung_folds
+from lab.folds import Folded
 from lab.rung import MIN_TRADES, Answer
-from lab.rung_folds import Gain, Walked
+from lab.rung_folds import Gain, Stretch
 
-Decide = Callable[[Walked], bool]
+Decide = Callable[[Folded[Stretch]], bool]
 START, FOLDS, CELLS, EACH = date(2020, 1, 1), 2, 500, 100
 END = START + timedelta(days=(FOLDS + 1) * 2 * EACH - 1)
 #: the chance one fold's mean sits two standard errors above nothing by luck: 1 - Phi(2); a rung
@@ -38,7 +39,7 @@ def _trades(rng: random.Random, edge: Sequence[float]) -> list[Gain]:
     ]
 
 
-def _walk(edge: Sequence[float], seed: int) -> Walked:
+def _walk(edge: Sequence[float], seed: int) -> Folded[Stretch]:
     return rung_folds.judge(_trades(random.Random(seed), edge), START, END, FOLDS)  # noqa: S311
 
 
@@ -99,13 +100,13 @@ def test_a_broken_copy_is_caught() -> None:
     """Three plausible mistakes fail the same proof: judging on the best fold, on the folds
     pooled, and on the in-sample part."""
 
-    def best(w: Walked) -> bool:
+    def best(w: Folded[Stretch]) -> bool:
         return any(f.outside.answer is Answer.PASS for f in w.folds)
 
-    def inside(w: Walked) -> bool:
+    def inside(w: Folded[Stretch]) -> bool:
         return all(f.inside.answer is Answer.PASS for f in w.folds)
 
-    def pooled(w: Walked) -> bool:
+    def pooled(w: Folded[Stretch]) -> bool:
         return bool(sum(float(f.outside.t or 0) for f in w.folds) / FOLDS**0.5 >= 2)
 
     assert not _sound(best)
