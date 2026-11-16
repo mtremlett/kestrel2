@@ -23,6 +23,12 @@ ASK, BARS, NEWS, ID = 20, "17", "4", 9001
 WIDTH = 8
 #: The primary exchange the broker lists a London line under; a US line is routed by SMART.
 PRIMARY = {"LSE": "LSEETF", "US": ""}
+#: The timeframes the database keeps, each with the bar size IBKR names it by; the gateway serves
+#: all of them, so none is rolled up from a lower one here.
+SIZES = {
+    "1m": "1 min", "2m": "2 mins", "5m": "5 mins", "10m": "10 mins", "15m": "15 mins",
+    "30m": "30 mins", "1h": "1 hour", "4h": "4 hours", "1d": "1 day", "1wk": "1 week",
+}  # fmt: skip
 
 
 class Busy(Exception):
@@ -32,15 +38,18 @@ class Busy(Exception):
 Wait = Callable[[float], object]  #: what lets time pass between asks
 
 
-def request(line: Line, day: date, since: date) -> bytes:
+def request(line: Line, day: date, since: date, timeframe: str = "1d") -> bytes:
     """The ask for a line's daily bars from since to the end of the day before day (every bar
     of a session still open, or not yet begun, is left out), of the trades, in the line's
-    own currency. A year or more is asked in whole years."""
+    own currency, in the bars of the timeframe (daily unless said). A year or more is asked in
+    whole years. A timeframe the database does not keep is a KeyError."""
     span = (day - since).days
     length = f"{span} D" if span <= 365 else f"{span // 365 + 1} Y"
     end = f"{day:%Y%m%d} 00:00:00 UTC"
     contract = (0, line.symbol, "STK", "", 0, "", "", "SMART", PRIMARY[line.venue], line.currency)
-    return paper.message(ASK, ID, *contract, "", "", 0, end, "1 day", length, 1, "TRADES", 1, 0, "")
+    return paper.message(
+        ASK, ID, *contract, "", "", 0, end, SIZES[timeframe], length, 1, "TRADES", 1, 0, ""
+    )
 
 
 def _bars(fields: list[str], day: date, since: date) -> tuple[Bar, ...]:

@@ -15,6 +15,7 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from decimal import Decimal
 from enum import Enum
+from functools import partial
 
 from desk.eponymous_clenow_momentum import YEAR
 from desk.store import Bar
@@ -200,6 +201,23 @@ class CloseAtMidpoint(_Channel):
         return bar.close >= (high + low) / 2
 
 
+class _Keltner(Block):
+    """The band of the last `n` bars, this one's included: the average of the typical price
+    (high, low and close over three) plus or minus the average of the range."""
+
+    def __init__(self, n: int, upper: bool) -> None:
+        self._typical, self._range, self._upper = _Window(n), _Window(n), upper
+
+    def see(self, bar: Bar, holding: bool) -> bool:  # noqa: ARG002 - the one interface of every block
+        """Shown the next bar: whether the close is over the upper band or under the lower."""
+        self._typical.add((bar.high + bar.low + bar.close) / 3)
+        self._range.add(bar.high - bar.low)
+        if not self._typical.full:
+            return False
+        centre, width = self._typical.mean(), self._range.mean()
+        return bar.close > centre + width if self._upper else bar.close < centre - width
+
+
 class CloseUnderCloseAgo(Block):
     """Fires on a close under the close `n` bars before: a loser of the last `n` sessions."""
 
@@ -359,6 +377,8 @@ BLOCKS: Mapping[str, Spot] = {
     ),
     "lower_run": Spot(Kind.ENTRY, LowerRun, {"n": _DAYS}),
     "close_at_range_low": Spot(Kind.ENTRY, CloseAtRangeLow, {"n": _DAYS}),
+    "close_over_keltner_band": Spot(Kind.ENTRY, partial(_Keltner, upper=True), {"n": _DAYS}),
+    "close_under_keltner_band": Spot(Kind.EXIT, partial(_Keltner, upper=False), {"n": _DAYS}),
     "close_under_close_ago": Spot(Kind.ENTRY, CloseUnderCloseAgo, {"n": _DAYS}),
     "close_at_midpoint": Spot(Kind.EXIT, CloseAtMidpoint, {"n": _DAYS}),
     "close_near_range_low": Spot(Kind.ENTRY, CloseNearRangeLow, {"n": _DAYS, "pct": _PCT}),

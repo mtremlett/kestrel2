@@ -50,7 +50,7 @@ from typing import TypeVar
 
 from desk import archive, bars, carry, live, store, venues
 from desk.bars import Five
-from desk.lines import DOLLARS, LINES, POUND, REFERENCE, YARDSTICK, Line
+from desk.lines import ADJUSTED, DOLLARS, LINES, POUND, REFERENCE, YARDSTICK, Line
 from desk.store import Bar, Parked, Refused
 
 #: In the data folder: each venue's record of its last refresh (no prices), and the short database.
@@ -354,7 +354,7 @@ def keep(
     five: Ask[datetime, tuple[Five, ...]] | None = None,
     clock: Callable[[], float] = time.monotonic,
     ancient: Ask[date, tuple[Bar, ...]] = ANCIENT,
-    series: Sequence[Line] = (*REFERENCE, POUND),
+    series: Sequence[Line] = (*REFERENCE, *ADJUSTED, POUND),
     broker: Broker | None = None,
     back: Ask[datetime, tuple[Five, ...]] = _recent,
 ) -> tuple[list[str], list[str]]:

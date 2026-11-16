@@ -1976,3 +1976,88 @@ options (A raise, B keep the ceiling and delete to make room) and a recommendati
 
 The refactor stays owed: rungs-merge-duplicates (R-RUNNER-191) and retire-epon (R-RUNNER-127)
 are expected to shrink the tree, and the size ratchet still holds the new ceilings.
+
+## R-RUNNER-225 - the ladder's easings, pre-registered and frozen (Mon 16 Nov 2026, RUNGS lane)
+
+Why: his question of 18:5x ("can we trust the ladder test? ... I am a single retail trader"). SET EPON
+judged 21,320 cells and passed 0: each cell was charged all 63,920 trials the register ever held,
+each rule was judged line by line (30 trades needed on one line), and the first failed rung stopped
+the line. Zero of twenty is as much a finding about the ladder as about the rules. His rulings, Mon
+~19:15 "Yes, all four" and ~19:20 "YES TO ALL ... I trust your recommendations ... Do it with tests"
+(approved: 1-6 and 8; later: 7 and 9; rejected: 10). The coordinator's conditions: pre-registered and
+frozen before the re-run, per-family trials printed on each verdict, incubation paper only. Review and
+scores: `kestrel2_notes/ladder-easing-16nov.md`. This entry changes no code; the golden verdict in
+`tests/unit/test_lab_verdict.py` is unchanged by it.
+
+THE PRE-REGISTRATION (fixed exactly; the easing numbers are those of the review):
+
+1. **Trials per family.** A cell's luck and deflation count every variant of its rule's family ever
+   run - the rule and its whole parameter grid, abandoned sets included - and not the whole register
+   (63,920 today). The count is printed on each verdict beside the cell.
+2. **The basket.** A rule is judged on all its lines pooled as one portfolio at the desk's sizing.
+   Each line is still reported on its own, but the pooled basket is what is judged.
+3. **Incubation.** A rule whose basket's after-cost mean is at least one standard error above nothing
+   and whose stress stays within 20% is INCUBATE, never PASS: paper only, one fixed small size, its
+   own book line, promoted only on its live paper record and his yes.
+4. **The retail rung.** The basket beats simply holding its market on risk: its after-cost Sharpe is
+   at least the market's, OR it keeps at least 80% of the market's return with at most 60% of its
+   worst fall.
+5. **The full history** in `market_history.db` (under way: tf-rollup, ibkr-history-pull,
+   consolidate-stores) is what the rules are judged on.
+6. **The scorecard.** The hard fails are only a negative after-cost mean, a failed reproduction, or
+   stress over 20%. Every other rung is graded and reported, and none stops the line.
+8. **Costs against real fills.** The cost model is checked against real paper fills (q2-costs,
+   R-RUNNER-145); an overstated cost under-judges every rule.
+
+Kept, unchanged: costs always in (every verdict names the broker whose schedule priced it), the worst
+fold reported and judged on, reproduction, the planted stop trade, and his yes before any rule trades.
+Later, by their own conditions: (7) a one-sided test, after (1) is measured; (9) weather, after
+R-RUNNER-205. Rejected: (10) fewer trades a line - noise without the benefit of pooling.
+
+THE FREEZE. This whole set - the easings above and the switch that turns them on - is FROZEN from this
+entry until the re-run of EPON. A change to it after seeing results is itself a counted trial, and is
+recorded here with its count. The re-run's verdicts are read against this entry and no other.
+
+Options considered for the register-wide trial count: (a) keep 63,920 for every cell - a bar that rises
+forever as research grows; (b) count per family, abandoned variants included (chosen, as the review
+scored it 9.5 and the coordinator required the abandoned sets be counted); (c) count only the variants
+of the set at hand, which would let a family hide its failed grids. Chosen (b).
+
+## The underlying cap: 40% of the capital (R-RUNNER-158, step 1)
+
+`Settings.underlying` (0.40) is the one home of the cap; `risk.underlying_limit` judges it and the
+pre-trade gate refuses a buy that would take one underlying market past it, counting a leveraged
+line at its exposure (3x counts three times its value). Source: the coordinator's card of Sun 15 Nov
+from the colleague-desk extraction, "Card items 1 to 6 for after Monday". Options: (a) cap in the
+gate only; (b) cap in Settings beside the other limits (chosen: one config, one owner).
+The gate takes the book's exposure per underlying as data, like the standing; the send path does
+not yet give it (None checks nothing), so wiring it in is the remaining step. A line with no
+recorded underlying counts as its own market.
+
+## 16 Nov - main-guard allows rebase merges beside squash, for the merge train's batches, by his ruling
+
+The ruleset `main-guard` (GitHub, id 27193932) changes in one parameter: the pull-request
+rule's `allowed_merge_methods` goes from `["squash"]` to `["squash", "rebase"]`. The required
+`check` job, the up-to-date rule (`strict_required_status_checks_policy: true`), the bans on
+deletion and force-push, and the empty bypass list are unchanged. Applied by the coordinator
+at 21:12 UK and read back from the API.
+
+Why: the merge train merged one pull request at a time, about 8 to 15 an hour, and that was
+the ceiling on building all day (one to three of twelve sessions at work). The runner's
+batching (fix-plan F4, his answer "B", no move to an organization) builds one branch from
+several pull requests that touch different files, with ONE COMMIT PER PULL REQUEST (its title,
+its number, its Ticks line, its co-authors), and merges it with `--rebase`, so the check runs
+once on main plus every member, and main still has one commit per change, each revertable on
+its own (canon A6, A8). A squash would have put several changes in one commit. Only the
+runner's batch step asks for `--rebase`; every other merge it sends is `--squash`, which a
+drive in the runner proves.
+
+What this loosens, said plainly: a pull request may now be merged with its own commits kept.
+A lane's pull request with work-in-progress commits could put them on main if merged that
+way. Guard against it: the runner arms lane pull requests with `--squash` only, and a batch
+branch is built by the runner from squashed members.
+
+His ruling, Mon 16 Nov 2026, in chat with the coordinator, answering the question put with
+options ((a) allow rebase for the batches only, recommended; (b) keep squash only, a batch
+becomes one commit; (c) no batching): "i trust your recommendations." The batching is
+switched on (state\train-batch.on) only after the evening's rehearsal is GO.
