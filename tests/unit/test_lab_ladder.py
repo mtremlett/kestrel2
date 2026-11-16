@@ -105,7 +105,9 @@ def test_each_cell_is_judged_on_every_rung_and_kept_with_its_reasons_and_trials(
     assert want == dict.fromkeys(want, "PASS") | {"folds": "THIN", "shuffle": "THIN"}
     assert (won["answer"], won["every"], lost["answer"]) == ("THIN", False, "FAIL")
     assert lost["rungs"]["first"][0] == lost["rungs"]["market"][0] == "FAIL"
-    assert set(won["unrun"]) == {"reproduce", "regime", "plateau", "stress"}
+    assert set(won["unrun"]) == {"reproduce", "regime", "plateau", "stress", "unwired"}
+    #: the rungs built in modules the ladder does not yet judge are named, never left in silence
+    assert "costs" in won["unrun"]["unwired"] and "declare no RUNG" in won["unrun"]["unwired"]
     assert 0 <= won["drawdown"]["median"] <= won["drawdown"]["p95"] < 1, "measured, never gated"
 
 
@@ -322,5 +324,7 @@ def test_the_shuffle_is_run_last_and_only_on_a_trial_that_passed_every_rung_befo
     assert ran is not None and ran[0] is Answer.PASS and "100 shuffles" in ran[1]
     monkeypatch.setattr(shuffle, "share", lambda *_: pytest.fail("shuffled for nothing"))
     doubt = before | {"yearly": (Answer.DOUBT, "too good")}
-    assert verdict.shuffled(own, EDGE, ROOM, {}, doubt) == (Answer.DOUBT, "too good")
+    unrun = verdict.shuffled(own, EDGE, ROOM, {}, doubt)  # its answer the least, its words its own
+    assert unrun is not None and unrun[0] is Answer.DOUBT and "too good" not in unrun[1]
+    assert unrun[1].startswith("not run") and "yearly answered DOUBT" in unrun[1]
     assert verdict.shuffled(own, EDGE, ROOM, {}, {"first": before["first"]}) is None
