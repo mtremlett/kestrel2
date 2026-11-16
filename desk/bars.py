@@ -61,6 +61,7 @@ class Source(Enum):
     MTT_DB = "old desk: mark_the_trend.db daily rows"  #: its daily bars alone
     STOOQ_DAILY = "old desk: stooq_store daily rows"  #: its daily bars alone
     MATRIX_DAILY = "old desk: Stooq matrices daily rows"  #: its 1d arrays alone
+    IBKR_DAILY = "old desk: ibkr_store daily rows"  #: its daily bars alone, the broker's own
 
     @property
     def fresh(self) -> bool:
