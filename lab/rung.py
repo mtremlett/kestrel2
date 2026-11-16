@@ -45,7 +45,7 @@ from types import ModuleType
 from desk import orders
 from desk.broker import Pretend
 from desk.lines import Line
-from desk.orders import Charges, Leg, Settings
+from desk.orders import Charges, Leg, Refused, Settings
 from desk.store import Bar
 from desk.strategy import ARITHMETIC, Action, Decision
 from lab import cell, published, reproduce
@@ -99,6 +99,14 @@ class Verdict:
     t: Decimal | None  #: the mean gain in standard errors; None under two trades
     answer: Answer  #: PASS, FAIL, THIN or FAULT: the first rung never answers DOUBT
     reproduced: tuple[Reproduction, ...]  #: the published results behind it, if on file
+    #: REFUSED: the desk's sizing declined a trade of the record (one share costs more than the
+    #: room); the words of its refusal. A judged outcome with no trades, never an error or a pass.
+    refusal: str | None = None
+
+    @property
+    def refused(self) -> bool:
+        """The desk's sizing declined the line at this capital: nothing was priced."""
+        return self.refusal is not None
 
     @property
     def gains(self) -> tuple[Decimal, ...]:
@@ -119,18 +127,18 @@ def judge(
 ) -> Verdict:
     """The record's trades priced on the bars that made it; none before its reproductions."""
     published.proven(record.key.cell.strategy)
-    reproduce.settled(record.key.cell.strategy, reproduced)  #: before anything is priced
+    behind = reproduce.settled(record.key.cell.strategy, reproduced)  #: before anything is priced
     if cell.key(record.key.cell, bars) != record.key:
         raise ValueError(f"{record.key.cell}: these bars or this code did not make the record")
     read = cell.shown(record.key.cell, bars)
     at = {bar.day: n for n, bar in enumerate(read)}
     done = [t for t in record.trades if t.sold is not None and at[t.sold] + 1 < len(read)]
     with localcontext(ARITHMETIC):
-        return verdict(
-            record.key,
-            tuple(_price(record.key.cell, trade, read, at, settings, rates) for trade in done),
-            reproduced,
-        )
+        try:
+            priced = tuple(_price(record.key.cell, t, read, at, settings, rates) for t in done)
+        except Refused as error:  #: the one place the sizing's refusal is judged: as REFUSED
+            return Verdict(record.key, orders.BROKER, (), None, Answer.FAULT, behind, str(error))
+        return verdict(record.key, priced, reproduced)
 
 
 def planted(priced: Sequence[Priced]) -> tuple[Decimal, ...]:
