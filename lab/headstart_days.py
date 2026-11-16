@@ -5,9 +5,10 @@ Each line's rows pass the one store's checks, joined to the days the fast store 
 under Source.MTT_DB on the days that hold no bar: a fresh bar wins, and each held day that
 differs is said. A line already in is not read again, so a run is resumable (`python -m
 lab.headstart_days`). stooq_store's daily parquet (market=uk|us) enters the same way under
-Source.STOOQ_DAILY, rows it marks OK only. Old rows that are the adjusted form of the as-traded days
-held are refused whole by the one store's check against them, and said. The yardsticks first, then
-the lines, then the research list."""
+Source.STOOQ_DAILY, rows it marks OK only; stooq_store_matrix's 1d arrays likewise, under
+Source.MATRIX_DAILY, a row with a hole left. Old rows that are the adjusted form of the
+as-traded days held are refused whole by the one store's check against them, and said. The
+yardsticks first, then the lines, then the research list."""
 
 from __future__ import annotations
 
@@ -20,6 +21,7 @@ from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
+import numpy as np
 import pyarrow.parquet as pq  # type: ignore[import-untyped]  # ships no stubs
 
 from desk import archive, bars, store
@@ -71,12 +73,41 @@ def stooq_rows(line: Line, folder: Path) -> list[Bar]:
     ]
 
 
+def matrix_rows(line: Line, folder: Path) -> list[Bar]:
+    """A line's daily rows in the old desk's matrices (<SYMBOL>.<UK|US>_1d: an array of day
+    stamps in milliseconds and one of opens, highs, lows, closes, volumes); a day by its stamp."""
+    name = headstart._named(line, "1d")  # noqa: SLF001  # the matrices' one naming
+    if not (folder / f"{name}_ts.npy").is_file():
+        raise ValueError(f"{folder.name} holds no daily matrix of {line.symbol}")
+    stamps = np.load(folder / f"{name}_ts.npy").tolist()
+    table = np.load(folder / f"{name}_ohlcv.npy").T
+    return [
+        Bar(
+            (bars.EPOCH + timedelta(milliseconds=at)).date(),
+            _d(row[0]),
+            _d(row[1]),
+            _d(row[2]),
+            _d(row[3]),
+            int(row[4]),
+        )
+        for at, row in zip(stamps, table, strict=True)
+        if np.isfinite(row).all()
+    ]
+
+
+def _daily(where: Path) -> bool:
+    """A folder of daily rows: stooq_store's or the matrices'."""
+    return (where / "freq=d").is_dir() or next(where.glob("*_1d_ts.npy"), None) is not None
+
+
 def form(where: Path) -> tuple[Source, Rows]:
-    """An old store's daily source and reader by its form: a database, or stooq_store."""
+    """An old store's daily source and reader by its form: a database, stooq_store, or matrices."""
     if where.suffix == ".db":
         return Source.MTT_DB, rows
     if (where / "freq=d").is_dir():
         return Source.STOOQ_DAILY, stooq_rows
+    if _daily(where):
+        return Source.MATRIX_DAILY, matrix_rows
     raise ValueError(f"{where}: no daily reader for a store of this form")
 
 
@@ -160,7 +191,7 @@ if __name__ == "__main__":
     DATA = Path(os.environ.get("KESTREL2_DATA") or sys.exit("headstart_days: no KESTREL2_DATA"))
     try:
         FOUND = headstart.imports(DATA.parent / "kestrel2_notes" / "data_register.md")
-        OLDS = [p for p in FOUND if p.suffix == ".db" or (p / "freq=d").is_dir()]
+        OLDS = [p for p in FOUND if p.suffix == ".db" or _daily(p)]
         OLDS or sys.exit("headstart_days: the register tags no daily store IMPORT")
         for OLD in sorted(OLDS, key=lambda p: p.suffix != ".db"):  # the database first
             main(OLD, DATA / bars.LIVE, order(), datetime.now(UTC).date())
