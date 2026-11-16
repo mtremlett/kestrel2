@@ -101,12 +101,11 @@ class Deflated:
         first = self.luck.verdict.answer
         if first in (Answer.FAULT, Answer.THIN):
             return dict.fromkeys(OWN, first)
-        doubted = Answer.DOUBT if self.deflated >= FAIL else Answer.FAIL
         flagged = self.yearly is not None and self.yearly > FLAG
         return {
             "first": first,
             "luck": Answer.PASS if self.luck.passed else Answer.FAIL,
-            "deflated": Answer.PASS if self.deflated >= PASS else doubted,
+            "deflated": believe(self.deflated),
             "yearly": Answer.DOUBT if flagged else Answer.PASS,
         }
 
@@ -142,6 +141,11 @@ def best_by_luck(spread: float, trials: int) -> float:
         return 0.0
     best = (1 - _EULER) * _NORMAL.inv_cdf(1 / trials)
     return -math.sqrt(spread) * (best + _EULER * _NORMAL.inv_cdf(1 / (trials * math.e)))
+
+
+def believe(chance: float) -> Answer:
+    """The answer on a deflated Sharpe's chance, on the bands fixed beforehand."""
+    return Answer.PASS if chance >= PASS else Answer.DOUBT if chance >= FAIL else Answer.FAIL
 
 
 def shape(values: Sequence[float]) -> tuple[float, float]:

@@ -169,6 +169,12 @@ def decide(trades: int, t: Decimal | None) -> Answer:
     return Answer.PASS if t >= T_PASS else Answer.FAIL
 
 
+def standing(answer: Answer, t: Decimal | None) -> tuple[Answer, bool, Decimal | int]:
+    """The sort key of "worst fold", wherever folds are judged: the worst answer, then the lowest
+    t, a missing t lowest of all; `min` over it gives the fold judged on, the older of equals."""
+    return answer, t is not None, t or 0
+
+
 def _price(
     c: Cell,
     trade: Trade,
