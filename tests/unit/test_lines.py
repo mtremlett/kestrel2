@@ -8,7 +8,16 @@ from decimal import Decimal
 
 import pytest
 
-from desk.lines import LINES, NO_TAX, REFERENCE, STAMP_DUTY, YARDSTICK, Line, require_traded
+from desk.lines import (
+    LINES,
+    NO_TAX,
+    REFERENCE,
+    STAMP_DUTY,
+    YARDSTICK,
+    Line,
+    require_traded,
+    valid_isin,
+)
 
 #: Still in the master only because the ladder's tests name them; they leave when those do not.
 LEAVING = {"SPY", "QQQ"}
@@ -92,3 +101,13 @@ def test_spy_and_qqq_are_read_as_reference_series_and_refused_as_traded_lines() 
                 require_traded(line)
         else:
             assert require_traded(line) is line
+
+
+def test_every_traded_line_has_an_isin_with_a_good_check_digit() -> None:
+    traded = [ln for ln in LINES if ln not in REFERENCE]
+    assert all(ln.isin and len(ln.isin) == 12 and valid_isin(ln.isin) for ln in traded)
+    assert {ln.symbol: ln.isin for ln in LINES}["IDTL"] == "IE00BSKRJX20"
+    assert len({ln.isin for ln in LINES}) == len(LINES)
+    assert not valid_isin("IE00BSKRJX21") and not valid_isin("IE00BSKRJX2")
+    with pytest.raises(ValueError, match="check digit"):
+        Line("X", "LSE", "GBP", 1, isin="IE00BSKRJX21")
