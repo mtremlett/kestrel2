@@ -56,6 +56,7 @@ class Source(Enum):
     STOOQ_STORE = "old desk: stooq_store"
     TREND_STOOQ = "old desk: mark_the_trend Stooq downloads"
     MTT_DB = "old desk: mark_the_trend.db daily rows"  #: its daily bars alone
+    STOOQ_DAILY = "old desk: stooq_store daily rows"  #: its daily bars alone
 
     @property
     def fresh(self) -> bool:
