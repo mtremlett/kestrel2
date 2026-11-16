@@ -98,6 +98,8 @@ def test_a_trading_day_is_kept_each_venue_on_its_own_hours(tmp_path: Path) -> No
     assert [bar.start for bar in bars.five(tmp_path / keeper.HOT, UK, _at(0), _at(9))] == [
         _at(8, 55)
     ]
+    assert keeper.HOT == "market_live.db" and (tmp_path / keeper.HOT).is_file()
+    assert "kestrel" not in keeper.HOT.lower()
     pretend.keep(tmp_path, _at(17))  # London is over; its last bars are still coming in
     assert pretend.asked == ["BBB 5m", "AAA 5m", "CCC 5m"]
     pretend.keep(tmp_path, _at(17, 5))  # its day has settled: the closes, and the last round

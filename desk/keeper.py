@@ -46,7 +46,7 @@ from desk.bars import Five
 from desk.lines import LINES, Line
 from desk.store import Bar, Refused
 
-DAILY, HOT = "daily", "bars.db"  #: in the data folder: the daily store's folder, the fast store
+DAILY, HOT = "daily", bars.LIVE  #: in the data folder: the daily store's folder, database short
 CRLF = bytes((13, 10))  #: a Windows checkout's line ending, not part of the rules
 RECORD = "kept.json"  #: in each venue's folder of the daily store: its last refresh
 #: THE STORE RULES' VERSION: a hash of desk/store.py. A refresh records the version it cleaned
