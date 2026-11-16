@@ -210,3 +210,16 @@ def open_at(venue: str, moment: datetime) -> Hours | None:
         return None
     found = hours(venue, day)
     return found if found.open <= moment <= found.auction else None
+
+
+def uk_time(moment: datetime) -> datetime:
+    """A moment on the UK wall clock: GMT, or BST from 01:00 UTC on March's last Sunday to
+    01:00 UTC on October's last Sunday. The change is by the moment, not the date."""
+    if moment.tzinfo is None:
+        raise ValueError(f"{moment} has no time zone: the UK clock cannot place it")
+    utc = moment.astimezone(UTC)
+    forward, back = (
+        datetime.combine(_sunday(date(utc.year, month, n)), time(1), UTC)
+        for month, n in CLOCKS["LSE"].summer
+    )
+    return utc.astimezone(timezone(timedelta(hours=forward <= utc < back)))

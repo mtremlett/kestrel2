@@ -71,7 +71,7 @@ that session's objective, before its own book. The 07:00 line counts the open re
 and one open for more than a day is sent to the operator.
 
 A new module is registered in `manifest.toml` under its lane's heading. A file no lane owns
-(`check.py`, `announce.py`, the guards, `BUDGET.json`, `CLAUDE.md`, `CANON.md`,
+(`check.py`, the guards, `BUDGET.json`, `CLAUDE.md`, `CANON.md`,
 `docs/SCENES.md`, `docs/FAILURE_PATTERNS.md`, the shared parts of the documents) is changed
 only by a session the operator starts himself. A lane that needs one changed, or finds a
 new recurring failure, writes it in its STATUS section and carries on with what it can.
@@ -129,6 +129,12 @@ park for a large one-day move nobody has recorded, most on real days of a real m
 Decide and build how research reads them, without loosening the store the desk trades on.
 The grid lane needs it. The money lane's blocking requests are done: R-MONEY-1 (each line's
 UK tax) and R-MONEY-2 (the scenes on the whole fourteen months).
+Retiring `desk/eponymous_*.py` (R-RUNNER-127) waits until all the rules are spec rows in
+`lab/catalogue.toml` (6 of about 25 on 15 Nov); deleting earlier would delete rules, not copies.
+R-RUNGS-6 and R-RUNGS-12 (the public `strategy.rsi` and `strategy.lower_band`) were done in #185 and
+are pinned by `tests/unit/test_strategy.py`; the open lines in STATUS are stale.
+Checked again 15 Nov late: still 6 rows of 19 files, so R-RUNNER-127 stays held (it needs spec-epon first).
+Checked 16 Nov: 6 spec rows of 21 rules, 15 rules only in Python; R-RUNNER-127 declined again until the rest are rows.
 
 - [x] The rehearsal data in a file of its own (`tests/scenes/rehearsal.py`)
 - [x] The rehearsal data lengthened to about fourteen months, the five rules buying and
@@ -659,14 +665,13 @@ grid-tune and grid-key side by side; then grid-pass, grid-week, grid-declared, g
       lab/sweep.py, lab/batch.py, lab/tune.py, tests/unit/test_lab_sweep.py,
       tests/unit/test_lab_batch.py, tests/unit/test_lab_tune.py, manifest.toml; after:
       grid-venue, grid-tune, grid-key}
-- [ ] Runs seven days without stopping. Remains: the seven days themselves; the run began 13 Nov 23:29 UK (moved onto the fix 14 Nov 00:41 UTC) and is not on the 48-hour pass limit of #125; on or after 20 Nov 23:45 UK read `sweep.unbroken` and tick if 7 days {id: grid-week; waits: 2026-11-21; files: lab/batch.py, lab/sweep.py,
+- [ ] Runs seven days without stopping. Remains: the seven days themselves; the run began 13 Nov 23:29 UK (moved onto the fix 14 Nov 00:41 UTC) and is not on the 48-hour pass limit of #125; nothing to build meanwhile; on or after 20 Nov 23:45 UK read `sweep.unbroken` and tick if 7 days {id: grid-week; waits: 2026-11-21; files: lab/batch.py, lab/sweep.py,
       lab/tune.py, tests/unit/test_lab_batch.py, tests/unit/test_lab_sweep.py,
       tests/unit/test_lab_tune.py; after: grid-pass}
-- [ ] Each strategy judged on its own declared universe; the everything-on-everything grid
+- [x] Each strategy judged on its own declared universe; the everything-on-everything grid
       kept as a transfer study, never a verdict; sweeps on the declared universe (LAD-01,
       LAD-13) {id: grid-declared; files: lab/sweep.py, tests/unit/test_lab_sweep.py}
-- [ ] A full sweep within a weekend, its time measured (LAD-10) {id: grid-weekend; files: *;
-      after: grid-declared}
+- [x] A full sweep within a weekend, its time measured (LAD-10). Remains: nothing; a cold transfer study took 17 min, the declared pass about 8 min, against 48 h {id: grid-weekend; files: *}
 
 ### The rungs lane's book
 
@@ -736,12 +741,51 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       curve at three effect sizes, a broken copy of the rung caught, and each defect the old
       audit found kept as a case that must fail (LAD-09, LAD-03, LAD-08)
       {id: rungs-trustworthy; files: *; after: rungs-beta}
+- [ ] **LADDER READY, the cards (his ruling, 15 November: "done properly and to elite desk
+      specifications", then the ladder runs 24x7).** Ranked; each card one test and one change:
+  - [ ] L1 TAPE-CACHE: a rule on a line simulated once into a kept tape (trades, daily
+        returns), keyed by the rule, the engine, the bars and the rates; each rung's result
+        keyed by the tape and that rung's own code. Changing a rung re-simulates nothing
+        {id: rungs-tape-cache; files: lab/tape.py, tests/unit/test_lab_tape.py}
+  - [ ] L2 THE RUNG MAP: each of the eleven rungs above named to its module and test, built
+        or not, in `lab/ladder.py`'s docstring; the later cards follow it
+        {id: rungs-rung-map; files: lab/ladder.py, tests/unit/test_lab_ladder_map.py; after: rungs-tape-cache}
+  - [ ] L3-L13 ONE CARD PER RUNG, built or proven to one standard, one module each so they
+        run in parallel: a planted edge passes; five hundred noise cells pass at about the
+        stated rate; a power curve at three effect sizes; a broken copy caught; each defect
+        of the old desk's rung audit kept as a case that must fail
+        {id: rungs-each-rung; files: lab/rung_*.py, tests/unit/test_lab_rung_*.py; after: rungs-rung-map}
+  - [ ] L14 one clustered set of trials for the deflated Sharpe, its spread measured
+        {id: rungs-clustered-trials; files: lab/trials.py, lab/rung_dsr.py, tests/unit/test_lab_trials_clustered.py; after: rungs-rung-map}
+  - [ ] L15 the blind review of the whole ladder (R-RUNNER-40), every blocking finding fixed
+        {id: rungs-blind-review; files: lab/ladder*.py, tests/unit/test_lab_ladder*.py; after: rungs-each-rung, rungs-clustered-trials}
+  - [ ] L16 the gate: the runner runs the catalogue 24x7, each change re-running only its
+        own specs, each set's table published with "rungs built: n of 11"
+        {id: rungs-gate; files: lab/ladder_sets.py, lab/ladder_pool.py, tests/unit/test_lab_ladder_pool.py; after: rungs-blind-review}
+- [ ] **STRATEGIES AS DATA (his goal: 1,000+ strategies over 1,000+ tickers):**
+  - [ ] B1 building blocks written once, each known-answer tested: indicators, entries,
+        exits, stops, filters (regime filters among them), sizing
+        {id: rungs-blocks; files: lab/blocks.py, tests/unit/test_lab_blocks.py}
+  - [ ] B2 a typed Spec, validated on entry: an unknown block or a bad setting is refused
+        {id: rungs-spec; files: lab/spec.py, tests/unit/test_lab_spec.py; after: rungs-blocks}
+  - [ ] B3 the catalogue, one TOML row per strategy with its source and known-answer case;
+        a guard: unique names, known blocks only, a source and a case on every row
+  - [ ] B4 the nineteen eponymous rules as rows, identical trades on the fixture proven,
+        then their Python files deleted
+  - [ ] B5 variants generated from a row's setting ranges, every one counted as a trial
+  - [ ] B6 the old desk's families listed and entered as sets of rows marked QUARRY, their
+        cases derived by hand, never from the old desk's numbers
+  - [ ] P1 a fast engine for rows, vectorised in `lab/`, matching the desk's engine on the
+        golden fixture (canon B2) or removed; indicators computed once per ticker and shared
+  - [ ] GC the grid chained onto each set: rows swept over their ranges and the research
+        universe, through the same tapes and rungs, the plateau's centre reported (canon B6)
 - [ ] Each indicator known-answer tested against a published reference series (STR-14).
       Built: moving average, Bollinger deviation, Wilder smoothing (#145); true range, RSI gains
       and losses, channel (#154): five tables, 250 printed numbers. Remains: RSI ratio and band
-      line (R-RUNGS-6, 12), carried band, a fresh-low table, each table run holding, tables
+      line (public since #185: strategy.rsi, strategy.lower_band; R-RUNGS-6, 12 done), carried band, a fresh-low table, each table run holding, tables
       moved to own module (file at its 400 cap)
-      {id: rungs-indicators; files: lab/published.py, tests/unit/test_lab_published.py}
+      {id: rungs-indicators; files: lab/published.py, lab/published_tables.py, manifest.toml,
+      tests/unit/test_lab_published*.py}
 - [ ] Before paper: a kill condition declared for each strategy; promotion only after at
       least thirty effective paper trades, net positive (STR-17, LAD-11). Built:
       `lab/promotion.py` (#127). Remains: the desk reads it (R-RUNGS-7); each candidate's kill numbers
@@ -750,7 +794,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
 - [ ] At least three ladder-passed strategies and a feasibility number before A-GATE paper
       (NS-04)
       {id: rungs-feasibility; files: lab/feasibility.py, tests/unit/test_lab_feasibility.py,
-      manifest.toml; after: rungs-trustworthy}
+      manifest.toml; after: rungs-trustworthy, rungs-eponymous}
 - [ ] **The eponymous strategies through the ladder first**, before any grid exploration:
       the twenty-one published rules the old desk listed, ported one at a time as rules under
       the one template, each with its author's source, instrument, period and published
@@ -852,6 +896,59 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       BIC-10)
 
 ---
+
+## The machine, then the desk — his mandate of 15 November
+
+"Do not make the same mistakes as the previous kestrel repo and mark_the_trend repo."
+Reviews of both found the same mechanisms: tools outgrowing the product, activity counted
+as progress, status committed as history, suppressions in bulk, documents breeding. From
+Tuesday 17 November, STOP THE LINE: no feature card starts until the first block below is
+green on main. Designs, pre-mortems and planted breaks: the runner's notes,
+`tuesday-designs.md`. Each box is done only when its planted break is seen failing on main.
+
+**Stop the line (first, in this order)**
+- [ ] R2 outcome contract: a night job's real result, never its exit code; DONE only when proven
+- [ ] R3 the night jobs in the check, on committed real-shaped fixtures, under 60 s together
+- [ ] R5 the READY gate on dependencies: a card starts only when what it needs is on main
+- [ ] R7 a Stop hook with nested goals, one lane first, then every lane and every card
+- [ ] G1 health rules blocking: duplicate bodies, a number with two homes, lines per box
+- [ ] G2 suppressions: never rising from 80, each with its reason; no skip or xfail
+- [ ] G3 the repository root holds only its fixed set
+- [ ] G4 no status-only commits; state lives outside git
+- [ ] G5 the runner into this repository as `ops/`, under its own ceiling (7,668, only down)
+- [ ] G6 strategy scope: the desk trades its five; research rules in one rule book, capped
+- [ ] F4 every pull request title carries its type, so the fix share is honest
+- [ ] F6 a session runs its claim's tests and the fast check; the merge train runs all
+- [ ] F7 a lane writes its own section and one scoreboard line; the shared head generated
+- [ ] F8 a new module names its own concept, never an owner's name plus a suffix
+- [ ] F9 every runner request names the box or scene it serves, or it is not READY
+- [ ] Option C: phases 2 and 3 open, their needs offered, three sessions a lane, no auto-open
+- [ ] CONSOLIDATE: the eponymous files into one template under `lab/`, duplicates and
+  two-homed numbers removed, desk under 8,500 lines, results identical before and after
+
+**Design gates (inside the one check, every change)**
+- [ ] D1 DRY: unique function bodies; numbers in named constants (ratchet)
+- [ ] D2 one contract test per Protocol, run against every implementation
+- [ ] D3 the desk holds only what trades; each module owns one thing, said without "and"
+- [ ] D4 docstrings by convention, ratcheted to none missing
+- [ ] D5 dead code and test-only modules never rise
+- [ ] D7 churn by the same lines changed again, not by titles
+- [ ] D8 nightly deep tier: mutation tests on the money path, long property runs, SimCity
+
+**Keeping it honest, every week**
+- [ ] Every Sunday the runner opens a card to review every document in the fixed set
+  against main (stale facts, lengths, rules with no check); a missed week is a fault
+- [ ] Card time: median under 10 minutes and the slowest tenth under 25, measured in the
+  hourly report; a week above it is a fault with its causes named
+
+**The best small desk (after FIRST-LIGHT, each traced to a scene)**
+- [ ] Q1 each paper day's expected result against the real one, the gap tracked
+- [ ] Q2 trading costs measured from real paper fills against the model
+- [ ] Q3 survivorship: each list as it stood on each past date
+- [ ] Q4 desk-wide risk: a drawdown limit, correlation between lines, sizing by volatility
+- [ ] Q6 each strategy beside simply holding its market
+- [ ] Q7 a one-page runbook: if this happens, do that
+- [ ] Q8 market events in the calendar: no new entry into a known event
 
 ## The requirements
 

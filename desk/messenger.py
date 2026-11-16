@@ -43,6 +43,7 @@ from desk import book, clearance, day, gateway, kill, venues
 from desk.gateway import Known
 from desk.lines import LINES
 from desk.orders import Refused
+from desk.supervisor import WAIT
 
 MESSAGES = "messages.db"
 TABLE = "CREATE TABLE IF NOT EXISTS messages (at, name PRIMARY KEY, number, text)"
@@ -51,7 +52,6 @@ ASK = (
     "INSERT INTO messages VALUES (:at, :name, NULL, :text) "
     "ON CONFLICT (name) DO UPDATE SET at = :at, text = :text WHERE number IS NULL"
 )
-WAIT = 5  #: seconds one process waits for the other's write of the record
 HOST = "api.telegram.org"
 #: The bot's key and his chat's id: his alone, kept outside the repository and given to the
 #: desk in its environment. The key's shape is checked on entry, so a bad paste is refused by
@@ -275,6 +275,23 @@ def evening(root: Path, now: datetime, known: Known, post: Post) -> Delivery | N
     stale = "" if known else STALE.format(known.words.rstrip("."))
     told = f"{opens} {stale}The desk's fills today: {dealt or 'none'}. {_state(root)}"
     return send(root, now, name, told, post)
+
+
+def hourly(root: Path, now: datetime, words: Callable[[], str], post: Post) -> Delivery | None:
+    """HIS HOURLY PROFIT AND LOSS (desk/pnl.py), once in each UK hour in which a venue of the
+    desk's is trading, at the hour's first asking. words is asked only for one not yet
+    delivered. None when no venue trades now, and when the hour's has gone."""
+    _sound(now, "pnl", "pnl")
+    if not any(venues.open_at(venue, now) for venue in {line.venue for line in LINES}):
+        return None
+    name = f"pnl {gateway._uk(now):%Y-%m-%d %H}"
+    with _record(root) as record:
+        gone = record.execute(
+            "SELECT 1 FROM messages WHERE name = ? AND number IS NOT NULL", (name,)
+        )
+        if gone.fetchone():
+            return None
+    return send(root, now, name, words(), post)
 
 
 def remind(root: Path, now: datetime, post: Post) -> Delivery | None:

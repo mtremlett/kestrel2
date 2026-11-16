@@ -10,9 +10,12 @@ from decimal import Decimal
 import pytest
 from test_lab_rung import FREE
 
+from desk.lines import LINES
 from lab import luck, rung
 from lab.cell import Cell, Key, Trade
 from lab.rung import Priced, Verdict
+
+VUSA = next(line for line in LINES if line.symbol == "VUSA")
 
 DAY = date(2020, 1, 1)
 
@@ -23,7 +26,7 @@ def _verdict(seed: int, edge: float, trades: int = 40) -> Verdict:
     rng = random.Random(seed)  # noqa: S311 - a repeatable test draw, not a secret
     back = [Decimal(f"{100 * (1 + rng.gauss(edge, 0.02)):.4f}") for _ in range(trades)]
     priced = tuple(Priced(Trade(DAY, DAY), 1, Decimal(100), b, FREE, (DAY, DAY)) for b in back)
-    return rung.verdict(Key(Cell("breakout_20_10", "VUSA", DAY, DAY), "code", str(seed)), priced)
+    return rung.verdict(Key(Cell("breakout_20_10", VUSA, DAY, DAY), "code", str(seed)), priced)
 
 
 def test_the_chance_is_students_published_one() -> None:

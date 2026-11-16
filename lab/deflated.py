@@ -2,7 +2,8 @@
 yearly Sharpe too good to be true, and the one rule that turns the named rungs into a verdict.
 
 Everything here is a constant or a rule with no knob: the bands, the 5%, the flag and the
-list of rungs are written down before any strategy is run, so no result can move its own bar.
+list of rungs are written down before any strategy is run: a bar is set by a rule fixed
+beforehand, never by a look at the result.
 
 THE DEFLATED SHARPE (Bailey and Lopez de Prado, 2014). A trial's Sharpe is its mean gain a
 trade over the spread of its gains. Pick the best of many trials with no edge and its Sharpe
@@ -13,13 +14,26 @@ shape: many small wins and a rare large loss make a Sharpe less sure than a bell
 the luck rung's own chance (`lab/luck.py`) cannot see. At PASS or more the trial is believed;
 under FAIL, luck is the likelier story; between them it is in doubt, neither won nor lost.
 
-The bar is fixed by two counts alone. The number of trials is every trial, as on the luck
+Judged as separate looks, the bar is fixed by two counts alone. The number of trials is
+every trial, as on the luck
 rung. The spread is the one a Sharpe with no edge has by its trades alone, one over the
 trades less one, the trial's own trades standing for every trial's: so no trial's bar moves
 with the company it is judged in, and the trials that can pass (thirty trades or more, the
-first rung's least) are not far from it. The trials are taken as separate looks, which sets
-the bar highest. The Sharpe is on the first rung's own deviation; the skew and the kurtosis
+first rung's least) are not far from it. The trials are taken as separate looks, as many
+as a set can hold. The Sharpe is on the first rung's own deviation; the skew and the kurtosis
 are the plain moments of the gains.
+
+ONE CLUSTERED SET (L14). Where the set's trials have been clustered by how their returns move
+together (`trials.clusters`), `read` takes both counts from the clusters instead: the number
+of trials is the looks the set truly took, and the spread is the one measured among those
+looks' Sharpes, at the trial's own trades. To that the bar adds the luck of the pick inside
+the trial's own cluster: whatever its Sharpe a trade stands above its cluster's restated to a
+trade, so a trial is judged no better than its cluster. Fifty copies of one strategy then
+set the bar of one trial, and
+fifty strangers that of fifty. The luck rung's count is every trial, as before. That bar is
+fixed by rule and not by number: it is measured on the set's own returns, the trial's among
+them, and where the looks' true Sharpes differ it can stand above the bar of as many separate
+looks. Whether the set is clustered is said by the caller in so many words, never left out.
 
 THE YEARLY SHARPE. Canon B6: a daily Sharpe above 2 is a red flag, not a win. It is worked
 here from the trades: the Sharpe a trade times the root of the trades a year over the
@@ -49,6 +63,7 @@ from statistics import NormalDist, fmean
 from lab import luck
 from lab.luck import Corrected
 from lab.rung import Answer, Verdict
+from lab.trials import Clustered
 
 #: The bands of the deflated Sharpe (LAD-03): believed at nine chances in ten that the true
 #: Sharpe beats luck's best; failed under an even chance; in doubt between.
@@ -104,13 +119,20 @@ class Deflated:
 def judge(verdicts: Sequence[Verdict], unjudged: int) -> tuple[Deflated, ...]:
     """Every verdict judged on the rungs read here, as one set: the verdicts given, and the
     trials tried that left no verdict, which count as much as any."""
-    return read(luck.correct(verdicts, unjudged))
+    return read(luck.correct(verdicts, unjudged), None)
 
 
-def read(corrected: Sequence[Corrected]) -> tuple[Deflated, ...]:
+def read(corrected: Sequence[Corrected], looks: Clustered | None) -> tuple[Deflated, ...]:
     """Verdicts already corrected for their count, judged on the rungs read here: the door for
-    a count the register of trials keeps from batch to batch (`trials.correct`)."""
-    return tuple(_deflated(one) for one in corrected)
+    a count the register of trials keeps from batch to batch (`trials.correct`). Given the
+    same set clustered, the deflated Sharpe's bar is set by its looks, their measured spread
+    and the trial's stand above its own cluster; given None, by every trial as a separate look."""
+    if looks is not None and (odd := {one.trials for one in corrected} - {looks.held}):
+        raise ValueError(
+            f"verdicts corrected for {sorted(odd)} trials, read against a clustered set of "
+            f"{looks.held}: not the one set"
+        )
+    return tuple(_deflated(one, looks) for one in corrected)
 
 
 def best_by_luck(spread: float, trials: int) -> float:
@@ -122,6 +144,13 @@ def best_by_luck(spread: float, trials: int) -> float:
     return -math.sqrt(spread) * (best + _EULER * _NORMAL.inv_cdf(1 / (trials * math.e)))
 
 
+def shape(values: Sequence[float]) -> tuple[float, float]:
+    """The skew and kurtosis of values from their plain moments (a bell's are 0 and 3)."""
+    mean = fmean(values)
+    second, third, fourth = (fmean((v - mean) ** power for v in values) for power in (2, 3, 4))
+    return third / second**1.5, fourth / second**2
+
+
 def deflate(sharpe: float, bar: float, trades: int, skew: float, kurtosis: float) -> float:
     """The chance that the true Sharpe is above the bar, for a Sharpe measured on so many
     trades whose gains have this skew and kurtosis (a bell's are 0 and 3)."""
@@ -131,17 +160,19 @@ def deflate(sharpe: float, bar: float, trades: int, skew: float, kurtosis: float
     return _NORMAL.cdf((sharpe - bar) * math.sqrt((trades - 1) / wobble))
 
 
-def _deflated(corrected: Corrected) -> Deflated:
+def _deflated(corrected: Corrected, looks: Clustered | None) -> Deflated:
     verdict = corrected.verdict
     if verdict.t is None:
         return Deflated(corrected, None, None, None, 0.0)
-    gains = [float(priced.gain) for priced in verdict.trades]
+    gains = [float(gain) for gain in verdict.gains]
     #: the first rung's standard errors are the Sharpe times the root of the trades
     sharpe = float(verdict.t) / math.sqrt(len(gains))
-    bar = best_by_luck(1 / (len(gains) - 1), corrected.trials)
-    mean = fmean(gains)
-    second, third, fourth = (fmean((g - mean) ** power for g in gains) for power in (2, 3, 4))
-    chance = deflate(sharpe, bar, len(gains), third / second**1.5, fourth / second**2)
+    if looks is None:
+        bar = best_by_luck(1 / (len(gains) - 1), corrected.trials)
+    else:
+        bar = best_by_luck(looks.spread(len(gains)), looks.trials)
+        bar += looks.above(verdict.key.cell, sharpe, len(gains))
+    chance = deflate(sharpe, bar, len(gains), *shape(gains))
     window = verdict.key.cell
     years = (window.end - window.start).days / _YEAR
     return Deflated(corrected, sharpe, sharpe * math.sqrt(len(gains) / years), bar, chance)

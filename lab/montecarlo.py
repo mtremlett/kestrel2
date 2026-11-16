@@ -29,7 +29,7 @@ from typing import Any, BinaryIO
 
 from desk.command import CAPITAL
 from desk.lines import LINES, Line
-from desk.orders import Refused, Settings
+from desk.orders import Settings
 from lab import batch, cell, ladder, rung, sweep
 from lab.cell import Cell, Record, Trade
 
@@ -102,7 +102,8 @@ class Job:
     trades: tuple[Trade, ...] | None  #: the grid's held trades; None for the ladder's own
 
 
-Gains = Callable[[Job], Sequence[Decimal]]  #: a job's trades, each as its return after costs
+#: a job's trades, each as its return after costs; or, as words, the desk's sizing refusing them
+Gains = Callable[[Job], Sequence[Decimal] | str]
 
 
 def _lines(path: Path) -> Iterator[dict[str, Any]]:
@@ -162,13 +163,12 @@ def run(home: Path, gains: Gains) -> str:
                 tally["before"] += 1
                 continue
             try:
-                try:
-                    made = gains(job)
-                    got = resample(made, int(key[:16], 16))
-                except Refused as error:  # the desk's sizing declined: a fact of the cell
-                    _keep(out, {"id": id_, "key": key, "refused": str(error)})
+                made = gains(job)
+                if isinstance(made, str):  #: the desk's sizing declined: a fact of the cell
+                    _keep(out, {"id": id_, "key": key, "refused": made})
                     tally["refused"] += 1
                     continue
+                got = resample(made, int(key[:16], 16))
             except ladder.FAILED as error:
                 sys.stderr.write(f"montecarlo: {id_}: {error}\n")
                 tally["failed"] += 1
@@ -198,11 +198,11 @@ def _out(spread: Spread) -> list[str]:
 
 def priced(home: Path) -> Gains:
     """The gains of a job from its line's bars in the data folder and the ladder's rates."""
-    pounds = cache(ladder.rates)
+    pounds = cache(lambda: ladder.rates(home=home))
     settings = Settings(CAPITAL)
     stores = {"ladder": ladder.stored(home), "grid": batch.stored(home / "grid" / "store")}
 
-    def gains(job: Job) -> Sequence[Decimal]:
+    def gains(job: Job) -> Sequence[Decimal] | str:
         bars = stores[job.source](job.cell.line)
         if job.trades is None:
             record = cell.run(job.cell, bars)
@@ -211,7 +211,8 @@ def priced(home: Path) -> Gains:
             if now.code + now.data != job.made:
                 raise ValueError(f"{job.cell}: the held trades were not made by this code and bars")
             record = Record(now, len(bars), job.trades)
-        return [p.gain for p in rung.judge(record, bars, settings, pounds(), []).trades]
+        judged = rung.judge(record, bars, settings, pounds(), [])
+        return judged.refusal if judged.refusal is not None else [p.gain for p in judged.trades]
 
     return gains
 

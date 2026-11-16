@@ -26,7 +26,11 @@ from desk.lines import Line
 HOST, PORT = "127.0.0.1", 4002  #: the paper port on this machine: the only door the desk dials
 CLIENT = 222  #: the desk's own client id at the gateway (docs/DECISIONS.md)
 VERSION = "176"  #: the one version of the gateway's language the desk reads
-SECONDS = 15  #: a gateway silent for longer has not answered
+#: How long the knock and every conversation wait at each step; a gateway silent for longer has
+#: not answered. Measured 15 Nov 2026 (docs/DECISIONS.md, R-RUNNER-180): the knock 0.01 s and a
+#: whole account read 0.1 s warm, 0.14 and 0.18 s with 24 busy processes: 30 s is a hundredfold,
+#: and still well inside one five-minute step for a dead gateway.
+SECONDS = 30
 #: The kinds of message, by the gateway's own numbers.
 ACCOUNTS, READY, NEWS, STATUS = "15", "9", "4", "3"
 HOLDING, HOLDINGS_END, ORDER, ORDERS_END = "61", "62", "5", "53"

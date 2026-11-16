@@ -8,7 +8,6 @@ from pathlib import Path
 
 import pytest
 
-from desk.orders import Refused
 from lab import montecarlo
 
 D = Decimal
@@ -93,9 +92,9 @@ def test_a_cell_the_sizing_refuses_is_recorded_with_its_reason_and_the_rest_go_o
 ) -> None:
     home = _home(tmp_path)
 
-    def gains(job: montecarlo.Job) -> list[D]:
+    def gains(job: montecarlo.Job) -> list[D] | str:
         if job.source == "ladder":
-            raise Refused("one share costs more than the room of 2000 pounds")
+            return "one share costs more than the room of 2000 pounds"
         return [D("0.02"), D("-0.01")]
 
     assert montecarlo.run(home, gains) == (

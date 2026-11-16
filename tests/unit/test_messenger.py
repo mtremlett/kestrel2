@@ -297,3 +297,17 @@ def test_his_weekly_login_reminder_is_delivered_once_each_sunday(tmp_path: Path)
     assert messenger.remind(tmp_path, sunday + timedelta(hours=9), post) == sent
     again = messenger.remind(tmp_path, sunday + timedelta(days=7), post)
     assert again and again.name == "login 2026-11-22" and post.call_count == 2
+
+
+def test_the_hourly_pnl_goes_once_an_hour_while_a_market_trades(tmp_path: Path) -> None:
+    post, words = _posts(), Mock(return_value="the day so far")
+    asked = [
+        messenger.hourly(tmp_path, _at(f"2026-11-16T{clock}"), words, post)
+        for clock in ("07:55", "08:00", "08:40", "09:00", "21:00", "21:05", "22:00")
+    ]
+    assert [d and d.name for d in asked] == [
+        None, "pnl 2026-11-16 08", None, "pnl 2026-11-16 09", "pnl 2026-11-16 21", None, None,
+    ]  # fmt: skip
+    assert words.call_count == 3 and post.call_count == 3  # the hour's second asking is not made
+    sunday = messenger.hourly(tmp_path, _at("2026-11-15T14:00"), words, post)
+    assert sunday is None and post.call_count == 3

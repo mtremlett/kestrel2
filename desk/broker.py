@@ -66,7 +66,9 @@ class Broker(Protocol):
     def place(self, order: Order | Sale) -> Report:
         """Receive the order and give its last answer: what it did not fill is cancelled,
         never left working. A buy leaves one stop resting on its line, for all the shares
-        held, at the order's stop; a sale takes its shares off that stop. Disconnected, and
+        held, at the order's stop; once the broker has answered a sale, its shares are off
+        that stop, whether the broker did it in one step or, as the real one does, changed
+        the stop's shares in a step of its own after the sale. Disconnected, and
         nothing else, says the order never arrived: only then is it sent again. Refused is
         the door's own word that it sent nothing. Any other error, and the desk does not know:
         the order may be working, and is cancelled before the desk sends again."""
@@ -82,8 +84,11 @@ class Broker(Protocol):
         anything else held goes under a name of its own."""
 
     def stops(self) -> Iterable[tuple[str, Decimal | int]]:
-        """Every stop resting at the broker to sell, entry by entry: a name, as a
-        holding's, and the shares it would sell."""
+        """Every stop of the desk's own resting at the broker to sell, entry by entry: a
+        name, as a holding's, and the shares it would sell. Only stops resting to sell shares
+        the account holds are listed: a stop attached to a buy still working protects nothing
+        yet and is left out. A stop placed by anyone else is not listed, as no one else's
+        order is touched."""
 
     def cancel(self) -> Iterable[str]:
         """Cancel every order of the desk's own still working at the broker, and name each
@@ -131,7 +136,8 @@ class Pretend:
                 self._reports[order_id] = self._execute(order, None, bar)
 
     def place(self, order: Order | Sale) -> Report:
-        """Receive an order at the market: it fills at the day's open. A buy leaves its stop
+        """Receive an order at the market: it fills at the day's open. A repeated order id is
+        taken as a new order, as IBKR does. A buy leaves its stop
         resting for the shares filled, one stop a line at the newest level; a sale takes its
         shares off the line's stop."""
         bar = None if self._day is None else self._bars.get((order.line.symbol, self._day))
@@ -139,8 +145,6 @@ class Pretend:
         if fault is Fault.DISCONNECT:
             raise Disconnected(f"{order.order_id}: the connection dropped before it was received")
         self._received.append(order.order_id)
-        if order.order_id in self._reports:
-            return Report(order.order_id, (), f"{order.order_id}: a duplicate order id, refused")
         if fault is Fault.STRAND:
             self._working[order.order_id] = order
             report = Report(order.order_id, (), f"{order.order_id}: working, none filled yet")
