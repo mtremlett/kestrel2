@@ -2023,6 +2023,17 @@ forever as research grows; (b) count per family, abandoned variants included (ch
 scored it 9.5 and the coordinator required the abandoned sets be counted); (c) count only the variants
 of the set at hand, which would let a family hide its failed grids. Chosen (b).
 
+## The underlying cap: 40% of the capital (R-RUNNER-158, step 1)
+
+`Settings.underlying` (0.40) is the one home of the cap; `risk.underlying_limit` judges it and the
+pre-trade gate refuses a buy that would take one underlying market past it, counting a leveraged
+line at its exposure (3x counts three times its value). Source: the coordinator's card of Sun 15 Nov
+from the colleague-desk extraction, "Card items 1 to 6 for after Monday". Options: (a) cap in the
+gate only; (b) cap in Settings beside the other limits (chosen: one config, one owner).
+The gate takes the book's exposure per underlying as data, like the standing; the send path does
+not yet give it (None checks nothing), so wiring it in is the remaining step. A line with no
+recorded underlying counts as its own market.
+
 ## 16 Nov - main-guard allows rebase merges beside squash, for the merge train's batches, by his ruling
 
 The ruleset `main-guard` (GitHub, id 27193932) changes in one parameter: the pull-request

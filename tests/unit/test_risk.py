@@ -83,3 +83,37 @@ def test_on_paper_a_drawdown_alerts_and_records_would_have_halted_and_never_halt
     assert "week-loss limit" in str(halt.drawdown(tmp_path, NOW, _standing(week=600), TEN_K))
     assert halt.kept(tmp_path) == halt.in_force(tmp_path) == ()  #: no halt, so it still trades
     orders.gate(_buy("A"), TEN_K, {})  #: and nothing in the gate stopped it
+
+
+def _line(symbol: str, underlying: str, leverage: int) -> Line:
+    return Line(symbol, "LSE", "GBP", leverage, underlying=underlying)
+
+
+def _worth(line: Line, pounds: int) -> Order:
+    return Order("o-" + line.symbol, line, pounds, Decimal(1), Decimal(1), Decimal("0.5"))
+
+
+def test_a_buy_taking_one_underlying_over_40_percent_is_refused_at_its_leverage() -> None:
+    wide = Settings(capital=Decimal(1_000_000))  #: the room of a fifth is not the limit here
+    held = {"SPX": Decimal(350_000)}  #: 35% of the capital in the S&P 500
+    with pytest.raises(Refused, match="SPX exposure"):  #: 2% at 3x is 6%: 41% in all
+        orders.gate(_worth(_line("3SPX", "SPX", 3), 20_000), wide, {}, exposure=held)
+    orders.gate(_worth(_line("3OIL", "OIL", 3), 20_000), wide, {}, exposure=held)
+    orders.gate(_worth(_line("3SPX", "SPX", 3), 16_000), wide, {}, exposure=held)  #: 40.0%
+
+
+def test_no_sequence_of_buys_takes_an_underlying_over_40_percent() -> None:
+    rng = random.Random(158)  # noqa: S311 - a repeatable test walk
+    wide = Settings(capital=Decimal(1_000_000))
+    exposure: dict[str, Decimal] = {}
+    for _ in range(300):
+        line = _line(rng.choice("AB"), rng.choice(["X", "Y"]), rng.randint(1, 3))
+        order = _worth(line, rng.randint(1, 60_000))
+        try:
+            orders.gate(order, wide, {}, exposure=exposure)
+        except Refused:
+            continue
+        exposure[line.underlying] = (
+            exposure.get(line.underlying, Decimal(0)) + order.quantity * line.leverage
+        )
+        assert max(exposure.values()) <= 400_000
