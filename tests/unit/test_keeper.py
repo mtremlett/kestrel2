@@ -26,7 +26,7 @@ LINES = (UK, US, TWIN)
 MON = date(2026, 11, 16)  #: a session of both venues: London to 16:35, New York to 21:00 UTC
 ROUND = (
     "LSE: five-minute round: {} of 1 lines kept, 0 of them with faults listed, {} refused by "
-    "the broker ({}); past days backfilled from the archive for 1 of 1 lines"
+    "the broker ({}); past days backfilled from the archive for 1 of 1 lines; {}"
 )
 SAT, YULE = date(2026, 11, 14), date(2026, 12, 25)  #: no venue trades on either
 
@@ -122,7 +122,7 @@ def test_a_trading_day_is_kept_each_venue_on_its_own_hours(tmp_path: Path) -> No
     assert pretend.keep(tmp_path, _at(6, 5)) == ([], []) and pretend.asked == []
     said, missed = pretend.keep(tmp_path, _at(9))  # London is open, New York is not
     assert (pretend.asked, missed) == (["BBB 5m"], [])
-    assert said == [ROUND.format(1, 0, "none")]
+    assert said == [ROUND.format(1, 0, "none", "newest bar landed 0 minutes after it ended")]
     assert [bar.start for bar in bars.five(tmp_path / keeper.HOT, UK, _at(0), _at(9))] == [
         _at(8, 55)
     ]
@@ -206,13 +206,20 @@ def test_the_live_session_is_the_brokers_alone_and_the_archive_only_backfills_a_
     pretend.silent = {"BBB"}
     said, missed = pretend.keep(tmp_path, _at(9))  # London is open and IBKR gives it nothing
     silence = "ValueError: no IBKR real-time data on paper"
-    assert missed == [ROUND.format(0, 1, silence)] and missed[0] in said
+    assert missed == [ROUND.format(0, 1, silence, "no bar landed")] and missed[0] in said
     today = bars.five(hot, UK, _at(0), _at(10))
     assert today == ()  # the archive's bar of this session never entered it
     assert bars.sources(hot, UK, bars.FIVE) == {Source.BACKFILL: 1}  # yesterday's gap, named
     pretend.silent = set()
     assert pretend.keep(tmp_path, _at(9, 5))[1] == []  # IBKR speaks again: the line comes back
     assert [b.close for b in bars.five(hot, UK, _at(0), _at(10))] == [Decimal(10)]
+
+
+def test_the_yardstick_is_asked_first_in_the_five_minute_round(tmp_path: Path) -> None:
+    pretend = Archive()
+    args = (tmp_path, _at(9), (UK, YARDSTICK), pretend.daily, pretend.five, lambda: 0.0)
+    keeper.keep(*args, series=(), back=pretend.past)
+    assert [a for a in pretend.asked if a.endswith("5m")] == ["VUAG 5m", "BBB 5m"]
 
 
 def test_a_line_unanswered_keeps_what_its_day_holds_is_asked_again_and_a_blind_venue_is_a_miss(
@@ -237,7 +244,10 @@ def test_a_line_unanswered_keeps_what_its_day_holds_is_asked_again_and_a_blind_v
         held, parked = keeper.saved(tmp_path, tue, LINES)
         assert held == {line: _bars(line, tue) for line in LINES} and not parked
     said, missed = pretend.keep(tmp_path, _at(17, 5, tue))  # a new day's bars: none stand for it
-    assert missed == [said[0], ROUND.format(0, 1, "ValueError: no IBKR real-time data on paper")]
+    assert missed == [
+        said[0],
+        ROUND.format(0, 1, "ValueError: no IBKR real-time data on paper", "no bar landed"),
+    ]
     assert keeper.saved(tmp_path, wed, [UK]) == ({UK: ()}, frozenset({"BBB"}))
     pretend.refuses, pretend.short = set(), {"BBB"}
     for call in range(keeper.TRIES + 2):  # answered, yet no line clean: a miss, and never left
