@@ -16,8 +16,8 @@ from desk.store import Bar
 
 MON, FRI = date(2026, 11, 16), date(2026, 11, 13)
 NOW = datetime(2026, 11, 16, 14, tzinfo=UTC)
-VUAG, EQQQ, UNHELD = (
-    next(line for line in LINES if line.symbol == s) for s in ("VUAG", "EQQQ", "3LGO")
+VUAG, EQQQ, UNHELD, IDTL = (
+    next(line for line in LINES if line.symbol == s) for s in ("VUAG", "EQQQ", "3LGO", "IDTL")
 )
 #: Held since Friday: 10 VUAG, 4 EQQQ. Bought today: 2 VUAG at 100.50. Friday's closes 100 and
 #: 300; the newest bars 101 and 297. Day, by hand: 10 x 1 + 4 x (-3) + 2 x 0.50 = -1.00, less
@@ -25,10 +25,10 @@ VUAG, EQQQ, UNHELD = (
 #: all = -4.201, told -4.20. The market: 1,000 x +1% = 10.00.
 BOUGHT = Fill("e1", "o1", "VUAG", 2, Decimal("100.5"), MON)
 TEXT = """📊 Desk 14:00 UK
-🔴 Day -£4.20 after costs
-🔴 EQQQ 4 sh -1.00%
-🟢 VUAG 12 sh +1.00%
-🟢 Holding the market: +£10.00 (+1.00%)
+🔴 Day -£4.20 since Fri close, after costs
+🔴 EQQQ 4 sh -1.00% since Fri close
+🟢 VUAG 12 sh +1.00% since Fri close
+🟢 Holding the market: +£10.00 (+1.00% since Fri close)
 ✅ trading"""
 
 
@@ -36,7 +36,7 @@ def _report(last: dict[str, str], mood: Mood = Mood.TRADING) -> str:
     closes = {"VUAG": Decimal(100), "EQQQ": Decimal(300)}
     now = {symbol: Decimal(price) for symbol, price in last.items()}
     held = {"VUAG": 10, "EQQQ": 4}
-    return pnl.report(NOW, LINES, held, [BOUGHT], closes, now, {}, Decimal(1000), mood)
+    return pnl.report(NOW, FRI, LINES, held, [BOUGHT], closes, now, {}, Decimal(1000), mood)
 
 
 def test_the_report_is_the_hand_worked_day_in_a_few_lines() -> None:
@@ -48,11 +48,32 @@ def test_the_report_is_the_hand_worked_day_in_a_few_lines() -> None:
 def test_a_line_with_no_bar_yet_is_told_so_and_never_calm() -> None:
     # VUAG held at its close: 4 x (-3) + 2 x (100 - 100.50) = -13.00, less 3.201 = -16.201.
     assert _report({"EQQQ": "297"}).splitlines()[1:] == [
-        "🔴 Day -£16.20 after costs",
-        "🔴 EQQQ 4 sh -1.00%",
+        "🔴 Day -£16.20 since Fri close, after costs",
+        "🔴 EQQQ 4 sh -1.00% since Fri close",
         "⚪ VUAG 12 sh no bar yet",
         "⚪ Holding the market: no bar yet",
         "✅ trading",
+    ]
+
+
+def test_each_figure_names_its_base_and_a_dollar_line_is_converted_once() -> None:
+    # EQQQ, flat at Friday's close of 300, bought today at 310 and now 312: the line is measured
+    # from its buy, 312 / 310 - 1 = +0.65%; the day, 1 x (312 - 310) = 2.00 less the buy's costs
+    # (commission 3.00, spread and slippage 0.155 each) = -1.31. IDTL, dollars,
+    # held at a close of 9 and now 11 at 0.8 pounds a dollar:
+    # 10 x 2 x 0.8 = 16.00; the desk's day 14.69.
+    # VUAG, the yardstick, is unmoved.
+    buy = Fill("e3", "o3", "EQQQ", 1, Decimal(310), MON)
+    closes = {"VUAG": Decimal(100), "EQQQ": Decimal(300), "IDTL": Decimal(9)}
+    last = {"VUAG": Decimal(100), "EQQQ": Decimal(312), "IDTL": Decimal(11)}
+    held, rates = {"IDTL": 10}, {"USD": Decimal("0.8")}
+    text = pnl.report(
+        NOW, FRI, LINES, held, [buy], closes, last, rates, Decimal(1000), Mood.TRADING
+    )
+    assert text.splitlines()[1:4] == [
+        "🟢 Day +£14.69 since Fri close, after costs",
+        "🟢 EQQQ 1 sh +0.65% since bought",
+        "🟢 IDTL 10 sh +22.22% since Fri close",
     ]
 
 
