@@ -21,14 +21,15 @@ fault in its bars is asked again for TRIES calls and then left for the next refr
 no line of its venue is clean: then it is asked at every call.
 
 THE FIVE-MINUTE ROUND, at every call from a venue's open until SETTLED after its closing
-auction, for the archive shows a session's last bars late: its lines' bars of the last
-RECENT, through the fast store's checks, so a round missed heals at the next.
+auction: its lines' ended bars of the session under way (the yardstick first) come from IBKR's
+paper gateway alone (`desk/live.py`, his ruling of 16 November), through the fast store's checks,
+so a round missed heals at the next. A line the broker gives nothing for is refused, in words, and
+the round is a miss when no line is heard, and says how late its newest bar landed; no archive bar
+enters the session under way, and the archive's bars of the last RECENT only fill past gaps.
 
-THE REFERENCE SERIES, once a day after the US close: each of `lines.REFERENCE` (SPY) and the pound
-in dollars (`lines.POUND`, read by `pound`) asked of the
-archive from its first session, and kept apart from the traded lines by the one store. A call
-the day's record already covers asks nothing; one the archive refuses is told, not a miss
-(nothing is traded on it), and asked again at the next call.
+THE REFERENCE SERIES, once a day after the US close: `lines.REFERENCE` (SPY) and the pound in
+dollars (`lines.POUND`, read by `pound`), asked of the archive from their first session and kept
+apart from the traded lines by the one store; one the archive refuses is told, not a miss.
 
 A call that left a venue with no line answered, or with no line clean, is a miss: the
 command says so and ends with 1. One call asks the archive for SPENT seconds and no longer;
@@ -48,7 +49,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import TypeVar
 
-from desk import archive, bars, carry, store, venues
+from desk import archive, bars, carry, live, store, venues
 from desk.bars import Five
 from desk.lines import DOLLARS, LINES, POUND, REFERENCE, YARDSTICK, Line
 from desk.store import Bar, Parked, Refused
@@ -65,10 +66,9 @@ RULES = hashlib.sha256(Path(store.__file__).read_bytes().replace(CRLF, b"\n")).h
 #: How long after a venue's closing auction its day's bar is asked for: the archive shows
 #: London a quarter of an hour late, and an official close is printed minutes after its bell.
 SETTLED = timedelta(minutes=30)
-#: THE FIGURE THE DAY'S RECORD WAITS ON: by this long after a venue's closing auction its
-#: day's closes are held, if the archive answers at the first call: the first call after SETTLED
-#: (the runner calls every five minutes) and that call's four minutes. `target` turns to the next
-#: day at SETTLED itself.
+#: THE FIGURE THE DAY'S RECORD WAITS ON: by this long after a venue's closing auction its day's
+#: closes are held, if the archive answers at the first call: the first call after SETTLED (every
+#: five minutes) and that call's four minutes. `target` turns to the next day at SETTLED itself.
 HELD = SETTLED + timedelta(minutes=5 + 4)
 TRIES = 6  #: the calls at which a line parked for a fault is asked again: half an hour's
 RECENT = timedelta(days=7)  #: how far back a five-minute round asks: the week kept hot
@@ -316,16 +316,35 @@ def _told(kept: Kept, mine: Sequence[Line]) -> tuple[str, bool]:
 
 
 def _round(
-    hot: Path, mine: Sequence[Line], now: datetime, ask: Ask[datetime, tuple[Five, ...]]
+    hot: Path,
+    mine: Sequence[Line],
+    now: datetime,
+    ask: Ask[datetime, tuple[Five, ...]],
+    back: Ask[datetime, tuple[Five, ...]],
 ) -> tuple[str, bool]:
     """A venue's five-minute round into the fast store, in words, and whether it was a miss."""
-    answers = archive.gather(mine, now, ask)
-    faults = bars.keep(hot, answers)
+    answers = archive.gather(sorted(mine, key=lambda line: line != YARDSTICK), now, ask)
     refused = sum(isinstance(answer, Refused) for answer in answers.values())
-    faulted = sum(bool(found) for found in faults.values()) - refused
+    faulted = sum(bool(f) for f in bars.keep(hot, answers, bars.Source.IBKR).values()) - refused
+    old = archive.gather(mine, now, back)
+    gaps = sum(isinstance(answer, Refused) for answer in old.values())
+    past = {
+        line: answer
+        if isinstance(answer, Refused)
+        else [b for b in answer if b.start.date() < now.date()]
+        for line, answer in old.items()
+    }
+    bars.keep(hot, past, bars.Source.BACKFILL)
+    ends = [b.start + live.BAR for a in answers.values() if not isinstance(a, Refused) for b in a]
+    late = "no bar landed"
+    if ends:
+        late = f"newest bar landed {(now - max(ends)).seconds // 60} minutes after it ended"
     words = (
         f"{mine[0].venue}: five-minute round: {len(mine) - refused} of {len(mine)} lines "
-        f"kept, {faulted} of them with faults listed, {refused} refused by the archive"
+        f"kept, {faulted} of them with faults listed, {refused} refused by the broker "
+        f"({next((a.reason for a in answers.values() if isinstance(a, Refused)), 'none')}); "
+        f"past days backfilled from the archive for {len(mine) - gaps} of {len(mine)} lines; "
+        f"{late}"
     )
     return words, refused == len(mine)
 
@@ -335,11 +354,12 @@ def keep(
     now: datetime,
     lines: Sequence[Line] = LINES,
     daily: Ask[date, tuple[Bar, ...]] = archive.fetch,
-    five: Ask[datetime, tuple[Five, ...]] = _recent,
+    five: Ask[datetime, tuple[Five, ...]] | None = None,
     clock: Callable[[], float] = time.monotonic,
     ancient: Ask[date, tuple[Bar, ...]] = _ancient,
     series: Sequence[Line] = (*REFERENCE, POUND),
     broker: Broker | None = None,
+    back: Ask[datetime, tuple[Five, ...]] = _recent,
 ) -> tuple[list[str], list[str]]:
     """WHATEVER IS OWED AT NOW, done once: what was done, in words, and of those the misses.
     Nothing is asked, and nothing said, on a day no venue trades and the store is whole."""
@@ -347,6 +367,7 @@ def keep(
         raise ValueError(f"{now!r} is not a moment in UTC")
     idle = not any(venues.sessions(venue, now.date(), now.date()) for venue in venues.RULES)
     ends, told = clock() + SPENT, []
+    five = live.ibkr(home) if five is None else five
     for venue in sorted({line.venue for line in lines}):
         mine = [line for line in lines if line.venue == venue]
         kept = _refresh(
@@ -360,7 +381,11 @@ def keep(
                     (f"FIRST-LIGHT FAULT: the yardstick {YARDSTICK.symbol} is parked: {why}", True)
                 )
         if venues.open_at(venue, now) or venues.open_at(venue, now - SETTLED):
-            told.append(_round(home / HOT, mine, now, _within(five, clock, ends)))
+            told.append(
+                _round(
+                    home / HOT, mine, now, _within(five, clock, ends), _within(back, clock, ends)
+                )
+            )
     spoken = [words for words, _ in told]
     spoken += _reference(home, now, _within(ancient, clock, ends), series)
     return spoken, [words for words, miss in told if miss]
