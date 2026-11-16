@@ -14,11 +14,12 @@ import pytest
 from test_reports import CENT
 
 from desk import archive, book, clearance, command, conformance, listing, paper, placing
-from desk.broker import Fault, Fill, Pretend
+from desk.broker import Fill, Pretend
 from desk.lines import LINES, Line
 from desk.listing import Listing, Unlisted
 from desk.orders import Order, Sale
 from desk.store import Bar
+from desk.strategy import Action, Decision
 
 MON, FRI = datetime(2026, 11, 16, 10, 5, tzinfo=UTC), date(2026, 11, 13)
 ISF, VUAG, SPY = (next(x for x in LINES if x.symbol == s) for s in ("ISF", "VUAG", "SPY"))
@@ -35,7 +36,8 @@ STAMP = "1005"  # an id carries its run's minute: a second run of the day sends 
 ID, NO = "20261113-conf{}lse1005-VUAG", "20261113-conf0lse1005-SPY"
 NONE = "fills: none; held: none; stops: none"
 PRETEND = {
-    "a rejection": f"{NO}: 0 of 1 shares done ({NO}: rejected by the broker); {NONE}",
+    "a refusal": f"{NO}: not sent, SPY is recorded as a line no stocks and shares ISA can hold; "
+    + NONE,
     "a market buy at the open, its stop resting": f"{ID.format(1)}: 1 of 1 shares done; fills: "
     f"{ID.format(1)} +1 at 110; held: VUAG 1; stops: VUAG 1",
     "a sale, the stop cancelled first": f"{ID.format(2)}: 1 of 1 shares done; fills: "
@@ -47,8 +49,8 @@ PRETEND = {
 }
 
 
-#: What the broker's list of the day's ended orders says of the two it cancelled: one gives its
-#: words, one gives none.
+#: What the broker's list of the day's ended orders says of two it cancelled: one gives its
+#: words (Monday's tape: the real broker's rejection of SPY, before the gate refused it), one none.
 WHY = {"20261113-conf0lse1005-SPY": "Rejected: no retail trading", "20261113-conf1lse1005-VUAG": ""}
 
 
@@ -68,15 +70,15 @@ def _plan(patch: pytest.MonkeyPatch) -> conformance.Plan:
     return conformance.plan([ISF, VUAG], SPY, MON.date(), FX, STAMP)
 
 
-def _market(run: conformance.Plan, *lines: Line, reject: bool = True) -> Pretend:
+def _market(run: conformance.Plan, *lines: Line) -> Pretend:
     """A broker at the paper broker's door: today's market in the lines given, at Friday's
-    closes, and tomorrow's, which falls a tenth; SPY refused, or not."""
+    closes, and tomorrow's, which falls a tenth."""
     bars = {}
     for line in lines:
         at = Decimal(LAST[line.symbol][0])
         fallen = Bar(run.today + timedelta(days=1), at, at, at * Decimal("0.9"), at, 0)
         bars[line] = (Bar(run.today, at, at, at, at, 0), fallen)
-    broker = Pretend(bars, {"SPY": Fault.REJECT} if reject and SPY in lines else {})
+    broker = Pretend(bars, {})
     broker.open(run.today)
     return broker
 
@@ -89,7 +91,7 @@ def test_the_runs_orders_are_on_the_line_that_traded_most_sized_by_the_desk_date
     assert run.sale == Sale(ID.format(2), VUAG, 1)
     # a fifth of the desk's 10,000 pounds: 18 shares at 110 and the broker's 3 pounds
     assert run.second == Order(ID.format(3), VUAG, 18, Decimal(110), Decimal(1), Decimal(99))
-    assert run.refusal == Order(NO, SPY, 1, Decimal(750), FX["USD"], Decimal(675))
+    assert run.refusal == Decision("conf0lse1005", "SPY", FRI, Action.BUY)
     with pytest.raises(ValueError, match="no plain line"):
         conformance.plan([], SPY, MON.date(), FX, STAMP)
     with pytest.raises(ValueError, match="VUAG: the archive has no bar of 2026-11-16"):
@@ -105,38 +107,38 @@ def test_the_run_at_the_pretend_broker_word_for_word(monkeypatch: pytest.MonkeyP
 def test_a_step_that_fails_is_named_and_the_account_is_still_put_back(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    # the broker does not refuse SPY, and the stop put above the market never sells: the run
-    # says so, and its last step sells both lines
+    # the stop put above the market never sells: the run says so, and its last step sells
     run, said = _plan(monkeypatch), dict[str, str]()
-    broker = _market(run, VUAG, SPY, reject=False)
+    broker = _market(run, VUAG)
 
     def stuck(order: Order) -> None:
         raise TimeoutError(f"{order.order_id}-stop: it has not sold")
 
     side = conformance.Side(tmp_path, broker, lambda: (), stuck)
     assert conformance.live(side, run, said.__setitem__) == ["the stop triggered"]
-    assert said["a rejection"].startswith(f"{NO}: 1 of 1 shares done; fills")
+    assert said["a refusal"] == PRETEND["a refusal"]  # refused by the gate: sent to no broker
     assert (
         said["the stop triggered"] == f"FAILED, TimeoutError: {ID.format(3)}-stop: it has not sold"
     )
     assert said["the account left as found"] == (
-        f"20261113-conf9lse1005-SPY: 1 of 1 shares done; {ID.format(9)}: 18 of 18 shares done; "
-        "fills: "
-        f"20261113-conf9lse1005-SPY -1 at 750, {ID.format(9)} -18 at 110; held: none; stops: none"
+        f"{ID.format(9)}: 18 of 18 shares done; fills: {ID.format(9)} -18 at 110; "
+        "held: none; stops: none"
     )
     assert (broker.holdings(), broker.stops(), book.positions(tmp_path)) == ((), (), {})
+    assert not any("SPY" in sent for sent in broker.submitted())
 
 
 def test_no_order_goes_while_the_check_names_anything_and_after_a_step_fails_only_the_last_is_tried(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     run, said = _plan(monkeypatch), dict[str, str]()
-    broker, last = _market(run, VUAG, SPY), "the account left as found"
+    broker, last = _market(run, VUAG), "the account left as found"
     side = conformance.Side(tmp_path, broker, lambda: ("ISF: held by a hand",), lambda _: None)
-    assert conformance.live(side, run, said.__setitem__) == ["a rejection", last]
+    first = "a market buy at the open, its stop resting"
+    assert conformance.live(side, run, said.__setitem__) == [first, last]
     named = "not sent, the day's check named: ISF: held by a hand"
-    assert said["a rejection"] == f"FAILED, Refused: {NO}: {named}"
-    assert {said[step] for step in list(said)[1:-1]} == {conformance.UNTRIED}
+    assert said[first] == f"FAILED, Refused: {ID.format(1)}: {named}"
+    assert {said[step] for step in list(said)[2:-1]} == {conformance.UNTRIED}
     assert said[last].startswith("FAILED, ValueError: the account is not as found: the book holds")
     assert "ISF: held by a hand" in said[last] and broker.submitted() == ()
 
@@ -260,6 +262,7 @@ def test_the_command_records_each_real_result_beside_the_pretend_brokers_once(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     _world(monkeypatch)
+    monkeypatch.setattr(conformance, "reasons", lambda: {k: v for k, v in WHY.items() if k != NO})
     assert _run(tmp_path, MON, "london") == 0
     record = tmp_path / "conformance" / "trades-london-20261116-1005.csv"
     assert f"6 of 6 steps done on VUAG, each recorded beside the pretend broker's in {record}." in (
@@ -270,8 +273,8 @@ def test_the_command_records_each_real_result_beside_the_pretend_brokers_once(
     assert head == list(conformance.HEAD)
     assert [row[1:4] for row in rows[:-1]] == [[step, said, said] for step, said in PRETEND.items()]
     assert rows[-1] == [MON.isoformat(), "the run", "whole", "", ""]
-    assert [row[4] for row in rows[:2]] == [  # a cancelled order's reason is never left empty
-        f"{NO}: {WHY[NO]}",
+    assert [row[4] for row in rows[:2]] == [  # nothing was sent to refuse; a reason is never empty
+        "",
         f"{ID.format(1)}: {conformance.GIVEN}",
     ]
     assert paper.CLIENT == conformance.CLIENT == 223  # a client of its own, never the desk's 222
@@ -349,7 +352,6 @@ def test_beside_a_desk_holding_it_trades_another_line_ends_flat_and_names_a_hold
     assert _run(tmp_path, MON, "london") == 0
     assert "on ISF" in capsys.readouterr().out
     assert {i[9:] for i in broker.submitted()} == {
-        "conf0lse1005-SPY",
         "conf1lse1005-ISF",
         "conf2lse1005-ISF",
         "conf3lse1005-ISF",

@@ -344,3 +344,25 @@ def test_a_line_the_archive_refuses_is_kept_from_the_brokers_bars_not_parked(
         broker=lambda lines, day: {line: _bars(line, day) for line in lines},
     )  # fmt: skip
     assert kept[1] == [] and keeper.saved(tmp_path, MON, [UK])[0][UK] == _bars(UK, MON)
+
+
+def test_the_kept_pound_tells_dollars_among_pounds_from_a_move_and_none_kept_parks_the_line(
+    tmp_path: Path,
+) -> None:
+    """R-RUNGS-16 (SGLN, EQQQ): a London bar in dollars among pounds is dropped on the pound
+    the long database holds; with no pound held the same bars are a lasting step, and park."""
+    rate = Decimal("1.65")
+
+    def dollars(bar: Bar) -> Bar:
+        return Bar(bar.day, bar.open * rate, bar.high * rate, bar.low * rate, bar.close * rate, 9)
+
+    tens = tuple(dollars(bar) if n in (3, 8, 12) else bar for n, bar in enumerate(_bars(UK, MON)))
+    pretend = Archive()
+    pretend.daily = lambda *_: tens  # type: ignore[method-assign]  # one canned answer
+    both, bare = tmp_path / "both", tmp_path / "bare"
+    with bars.writing(both / keeper.HOT) as round_:
+        round_.daily(POUND, tuple(Bar(b.day, rate, rate, rate, rate, 0) for b in tens))
+    for home in (both, bare):
+        pretend.keep(home, _at(6))
+    assert not keeper.saved(both, MON, [UK])[1]
+    assert keeper.saved(bare, MON, [UK])[1] == {UK.symbol}
