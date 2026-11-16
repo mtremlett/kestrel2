@@ -10,7 +10,7 @@ from __future__ import annotations
 import csv
 from bisect import bisect_right
 from collections.abc import Iterable, Mapping, Sequence
-from dataclasses import astuple, dataclass, replace
+from dataclasses import astuple, replace
 from datetime import date, timedelta
 from decimal import Decimal
 from itertools import groupby
@@ -19,7 +19,9 @@ from types import MappingProxyType
 
 from desk import venues
 from desk.lines import Line
+from desk.records import Bar, Fault, Parked, Refused
 
+__all__ = ["Bar", "Parked", "Refused"]  # the store's door for its records
 #: Two neighbouring bars whose prices sit further apart than this factor (a fall of 37.5%,
 #: a rise of 60%) are not taken as a market move: a wrong unit (pence among pounds is 100),
 #: a bad print, or a split of 2-for-1 or more that the archive did not adjust. A smaller
@@ -34,9 +36,9 @@ STRETCH = Decimal("0.03")
 #: Only a fault in the last this-many sessions parks a line; an older bad day is dropped and
 #: listed, for the line's history never changes (the operator's ruling of 13 November 2026).
 RECENT = 60
-#: The longest run of bars a hundredfold out of line with the bars either side of it that is
-#: taken as bad days in the wrong unit, not a lasting step. Any other fall and recovery, however
-#: short, may be real - a leveraged line can lose 40% and win it back - and parks as a step.
+#: The longest run of bars a hundredfold out of line with their neighbours that is taken as bad
+#: days in the wrong unit, not a lasting step. Any other fall and recovery may be real (a leveraged
+#: line can lose 40% and win it back) and parks as a step.
 BLIP = 20
 #: A run of this many sessions or more, each repeating the bar before it or flat at its close
 #: with no volume, is a frozen feed, not a market: the twenty lines' longest real run since 2010
@@ -46,56 +48,26 @@ FROZEN = 5
 #: unit (pence among pounds is 100), however far a market moves: a hundredfold, less a jump.
 FAR = 100 / JUMP
 #: A one-for-one line's neighbouring closes in the ratio of that day's pound in dollars, within
-#: this fraction, are one bar quoted in dollars beside one in pounds, not a market move (seen
-#: 14 November 2026: IITU x0.662, VHYG x0.808, VUAG x0.791, IB1T x0.733, each below JUMP). A
-#: leveraged line's real crashes sit as near the rate (5QQQ x0.770, 3 April 2025), so only a
-#: stray bar of one is tested; and a bar already past JUMP is taken so within the wider FX_FAR.
+#: this fraction, are one bar in dollars beside one in pounds, not a market move (14 November
+#: 2026: IITU x0.662, VUAG x0.791, each below JUMP). A leveraged line's real crashes sit as near
+#: the rate, so only its stray bar is tested; a bar past JUMP is so taken within the wider FX_FAR.
 FX_STEP, FX_FAR = Decimal("0.05"), Decimal("0.10")
 #: The newest pound in dollars a day may be judged on is at most this old: a longer silence in
 #: the rate is no rate.
 RATE_AGE = timedelta(days=7)
 #: A recorded split is adopted when the bar's jump is within this fraction of its ratio.
 SPLIT_NEAR = Decimal("0.25")
+#: Yahoo's and Stooq's closes on a session both hold agree within this fraction, once matched in
+#: unit (pence, pounds); else a recorded fault, neither kept (R-RUNNER-189).
+AGREE, UNITS = Decimal("0.05"), (Decimal(1), Decimal(100), Decimal("0.01"))
 Rates = Mapping[date, Decimal]  #: the pound's close in dollars, by day
 NO_RATES: Rates = MappingProxyType({})
 UNRECORDED = "a gap in the archive, or a suspension the line does not record"
 ASTRAY = "is out of line with the days either side: a wrong unit"
 COLUMNS = ("day", "open", "high", "low", "close", "volume")
-#: Where a line's older bars wait, in a folder of their own under the store's: the archive gives
-#: some lines a day or two, and the store is rebuilt from it on every prepare, so bars brought
-#: from elsewhere would be lost. They are joined to the archive's, which wins on any day it gives.
+#: Where a line's older bars wait, in a folder of their own under the store's, joined to the
+#: archive's, which wins on any day it gives (the store is rebuilt from the archive each prepare).
 HISTORY = "history"
-
-
-@dataclass(frozen=True)
-class Bar:
-    day: date
-    open: Decimal
-    high: Decimal
-    low: Decimal
-    close: Decimal
-    volume: int
-
-
-@dataclass(frozen=True)
-class Fault:
-    day: date  #: the session it concerns
-    what: str
-    lasting: bool = False  #: a step in the price: wrong for every bar before it, however old
-
-
-@dataclass(frozen=True)
-class Refused:
-    """The archive's answer for a line it would not, or could not, give."""
-
-    reason: str
-
-
-@dataclass(frozen=True)
-class Parked:
-    symbol: str
-    reason: str
-    day: date
 
 
 def _once(bars: Sequence[Bar], faults: list[Fault]) -> list[Bar]:
@@ -113,6 +85,32 @@ def _once(bars: Sequence[Bar], faults: list[Fault]) -> list[Bar]:
             faults.append(Fault(day, f"{day} given {len(given)} times"))
         once.append(given[0])
     return once
+
+
+def _backed(
+    bars: Sequence[Bar], other: Sequence[Bar], faults: list[Fault]
+) -> tuple[list[Bar], dict[date, Bar]]:
+    """Yahoo's bars first. Stooq's, in the unit that matches most of the closes both hold, fill
+    each session Yahoo has no bar for; where both have it they must agree, else none is kept and
+    the fault is listed. Also Stooq's agreeing bars, for a Yahoo bar the rules drop."""
+    mine, theirs = {b.day: b for b in bars}, {b.day: b for b in other}
+
+    def fits(unit: Decimal, day: date) -> bool:
+        return abs(theirs[day].close * unit / mine[day].close - 1) <= AGREE
+
+    unit = max(UNITS, key=lambda u: sum(fits(u, d) for d in mine.keys() & theirs.keys()))
+    kept, spare = dict(mine), {}
+    for day, theirs_bar in theirs.items():
+        bar = theirs_bar.scaled(unit)
+        if day not in mine:
+            kept[day] = bar
+        elif fits(unit, day):
+            spare[day] = bar
+        else:
+            what = f"{day} Yahoo closed {mine[day].close}, Stooq {bar.close}: the sources disagree"
+            faults.append(Fault(day, f"{what}; none kept"))
+            del kept[day]
+    return [kept[d] for d in sorted(kept)], spare
 
 
 def _entered(line: Line, bar: Bar, open_days: set[date], faults: list[Fault]) -> Bar | str:
@@ -281,19 +279,27 @@ def _thawed(kept: Sequence[Bar], faults: list[Fault]) -> list[Bar]:
 
 
 def _clean(
-    line: Line, bars: Sequence[Bar], day: date, since: date, rates: Rates = NO_RATES
+    line: Line,
+    bars: Sequence[Bar],
+    day: date,
+    since: date,
+    rates: Rates = NO_RATES,
+    second: Sequence[Bar] = (),
 ) -> tuple[list[Bar], list[Fault]]:
     """The bars of one line that can be true, and every fault found on the way."""
     faults: list[Fault] = []
+    once = _once(bars, faults)
+    once, spare = _backed(once, second, faults) if second else (once, {})
     first = min((b.day for b in bars if b.day.year in venues.KNOWN), default=day)
     every = venues.sessions(line.venue, first, day - timedelta(1))
     expected = [d for d in every if d not in line.suspended]
     open_days, sound = set(expected), []
-    for bar in _once(bars, faults):
+    for bar in once:
         entered = _entered(line, bar, open_days, faults)
         if isinstance(entered, str):
             faults.append(Fault(bar.day, entered))
-        else:
+            entered = _entered(line, spare[bar.day], open_days, []) if bar.day in spare else entered
+        if not isinstance(entered, str):
             sound.append(entered)
     for split_day, ratio in sorted(line.splits):
         _split(sound, split_day, ratio, faults)
@@ -323,10 +329,12 @@ def prepare(
     archive: Mapping[Line, Sequence[Bar] | Refused],
     day: date,
     rates: Rates = NO_RATES,
+    second: Mapping[Line, Sequence[Bar]] = MappingProxyType({}),
 ) -> tuple[Parked, ...]:
     """Clean the archive's bars into the store at root, ready to trade on day. A line the
     archive refused keeps no bars, so none from an earlier day can be read as today's. The
-    pound's closes in dollars, when given, tell a change of currency from a market's move."""
+    pound's closes in dollars, when given, tell a change of currency from a market's move. The
+    second source's bars, when given, fill what the archive lacks (see _backed)."""
     root.mkdir(parents=True, exist_ok=True)
     parked = []
     for line, bars in archive.items():
@@ -335,7 +343,8 @@ def prepare(
             kept: list[Bar] = []
             faults = [Fault(day, f"the archive refused it: {bars.reason}")]
         else:
-            kept, faults = _clean(line, _joined(root, line, bars), day, since, rates)
+            joined = _joined(root, line, bars)
+            kept, faults = _clean(line, joined, day, since, rates, second.get(line, ()))
         _write(root / f"{line.symbol}.csv", COLUMNS, (astuple(bar) for bar in kept))
         _write(root / f"{line.symbol}.faults.csv", ("fault",), ((f.what,) for f in faults))
         recent = [f.what for f in faults if f.lasting or f.day >= since]
@@ -360,16 +369,16 @@ def _load(path: Path) -> tuple[Bar, ...]:
 
 
 def shelve(root: Path, line: Line, bars: Iterable[Bar]) -> None:
-    """A line's older bars, kept for every prepare to join to the archive's, replacing any
-    shelved before. They are cleaned as the archive's are, with it, on each prepare."""
+    """A line's older bars, kept for every prepare to join to the archive's and cleaned with them,
+    replacing any shelved before."""
     (root / HISTORY).mkdir(parents=True, exist_ok=True)
     _write(root / HISTORY / f"{line.symbol}.csv", COLUMNS, (astuple(bar) for bar in bars))
 
 
 def _joined(root: Path, line: Line, bars: Sequence[Bar]) -> list[Bar]:
-    """The archive's bars and, for each day it gives none, the line's shelved bar. A frozen
-    run in the archive's bars is its filler, not a price it gives: with a shelf, none of it is
-    kept, so a shelved bar fills its days and any day the shelf lacks is a missing session."""
+    """The archive's bars and, for each day it gives none, the line's shelved bar. A frozen run in
+    the archive's bars is its filler: with a shelf none of it is kept, and a day the shelf lacks
+    is a missing session."""
     shelved = root / HISTORY / f"{line.symbol}.csv"
     if not shelved.is_file():
         return list(bars)
@@ -381,13 +390,11 @@ def _joined(root: Path, line: Line, bars: Sequence[Bar]) -> list[Bar]:
 
 
 def read(root: Path, symbol: str) -> tuple[Bar, ...]:
-    """Every bar the store kept for one line, oldest first. A parked line keeps the bars that
-    can be true, but does not trade."""
+    """Every bar the store kept for one line, oldest first; a parked line keeps its true bars."""
     return _load(root / f"{symbol}.csv")
 
 
 def faults(root: Path, symbol: str) -> tuple[str, ...]:
-    """Every fault found in a line's bars on the last prepare, the old ones that no longer
-    park it included."""
+    """Every fault found in a line's bars on the last prepare, the old ones included."""
     with (root / f"{symbol}.faults.csv").open(newline="", encoding="utf-8") as stored:
         return tuple(row["fault"] for row in csv.DictReader(stored))

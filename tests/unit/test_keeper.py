@@ -11,9 +11,9 @@ from pathlib import Path
 
 import pytest
 
-from desk import archive, bars, keeper, venues
+from desk import archive, bars, keeper, stooq, venues
 from desk.bars import Five
-from desk.lines import Line
+from desk.lines import YARDSTICK, Line
 from desk.store import Bar
 
 UK, US, TWIN = (
@@ -46,7 +46,7 @@ def _bars(line: Line, day: date) -> tuple[Bar, ...]:
 
 class Archive:
     """The archive, pretended: what it was asked, the lines it refuses and those it is a
-    session short on, and a clock that reads seventy seconds more each time it is looked at."""
+    session short on, and a clock that reads fifty seconds more each time it is looked at."""
 
     def __init__(self) -> None:
         self.asked: list[str] = []
@@ -68,7 +68,7 @@ class Archive:
 
     def clock(self) -> float:
         self.looks += 1
-        return 70.0 * self.looks
+        return 50.0 * self.looks
 
     def keep(self, home: Path, now: datetime, slow: bool = False) -> tuple[list[str], list[str]]:
         """One call of the keeper, and what it asked is all that `asked` then holds."""
@@ -197,9 +197,10 @@ def test_nothing_is_asked_on_a_day_no_venue_trades_nor_once_the_calls_time_is_sp
         raise OSError(f"no route to {address[:13]}")
 
     monkeypatch.setattr(archive, "_ask", unreachable)
+    monkeypatch.setattr(stooq, "fetch", lambda *_: unreachable("stooq"))
     assert keeper.main(tmp_path / "real", _at(9)) == 1  # the command itself, the archive away
     out, err = capsys.readouterr()
-    assert len(out.splitlines()) == 3 and err.count("MISSED: ") == 3 and "MISSED: US: daily" in err
+    assert len(out.splitlines()) == 4 and err.count("MISSED: ") == 4 and "MISSED: US: daily" in err
 
 
 def test_the_closes_are_held_within_the_named_figure_after_each_venues_close(
@@ -222,3 +223,14 @@ def test_the_closes_are_held_within_the_named_figure_after_each_venues_close(
         for day in venues.sessions(venue, date(2026, 11, 16), date(2027, 12, 31)):
             done = venues.hours(venue, day).auction + keeper.HELD
             assert done.astimezone(venues.zone("LSE", day)).hour < 22
+
+
+def test_a_parked_yardstick_is_a_first_light_fault_not_a_silent_park(tmp_path: Path) -> None:
+    pretend = Archive()
+    pretend.refuses = {YARDSTICK.symbol}
+    _, missed = keeper.keep(
+        tmp_path, _at(6), (YARDSTICK,), pretend.daily, pretend.five, lambda: 0.0
+    )
+    assert any(
+        f"FIRST-LIGHT FAULT: the yardstick {YARDSTICK.symbol} is parked" in m for m in missed
+    )

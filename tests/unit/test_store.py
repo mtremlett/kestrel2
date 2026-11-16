@@ -375,3 +375,18 @@ def test_a_recorded_split_adjusts_the_older_bars_only_by_the_ratio_the_jump_show
     )
     assert _parked(tmp_path, clean, line) == []  # the archive adjusted it already
     assert store.read(tmp_path, US.symbol) == clean
+
+
+def test_stooq_fills_what_yahoo_lacks_or_the_rules_drop_in_the_unit_the_closes_match(
+    tmp_path: Path,
+) -> None:
+    """R-RUNNER-189: a hole in Yahoo's bars and a bar of it the rules drop are both filled from
+    Stooq, whose London prices are in pence here; the line is not parked, and a bar of Stooq's
+    that the rules would drop is dropped too."""
+    clean = _bars(UK, LONG)
+    pence = [replace(b, open=b.open * 100, high=b.high * 100, low=b.low * 100, close=b.close * 100)
+             for b in clean]  # fmt: skip
+    torn = replace(clean[5], high=clean[5].low - 1)
+    yahoo = [*clean[:3], torn, *clean[5:7], *clean[8:]]
+    assert store.prepare(tmp_path, {UK: yahoo}, DAY, second={UK: pence}) == ()
+    assert store.read(tmp_path, UK.symbol) == clean

@@ -41,9 +41,9 @@ from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import TypeVar
 
-from desk import archive, bars, store, venues
+from desk import archive, bars, stooq, store, venues
 from desk.bars import Five
-from desk.lines import LINES, Line
+from desk.lines import LINES, YARDSTICK, Line
 from desk.store import Bar, Refused
 
 DAILY, HOT = "daily", "bars.db"  #: in the data folder: the daily store's folder, the fast store
@@ -134,7 +134,11 @@ def _short(venue: str, last: Kept | None, day: date) -> bool:
 
 
 def _refresh(
-    folder: Path, lines: Sequence[Line], now: datetime, ask: Ask[date, tuple[Bar, ...]], idle: bool
+    folder: Path,
+    lines: Sequence[Line],
+    now: datetime,
+    ask: tuple[Ask[date, tuple[Bar, ...]], Ask[date, tuple[Bar, ...]]],
+    idle: bool,
 ) -> Kept | None:
     """A venue's daily bars refreshed as far as they are owed at now, and the record of it;
     None when nothing was owed, and nothing asked. On an idle day, when no venue trades,
@@ -156,10 +160,12 @@ def _refresh(
         asked, tries = [line for line in lines if line.symbol in again], last.tries + 1
     if not asked:
         return None
-    answers = archive.gather(asked, readied, ask)
+    answers = archive.gather(asked, readied, ask[0])
+    second = archive.gather(asked, readied, ask[1])  # a line Stooq refuses has no second source
     refused = {line.symbol for line, answer in answers.items() if isinstance(answer, Refused)}
     given = {line: answer for line, answer in answers.items() if line.symbol not in refused}
-    found = store.prepare(folder, given if same else answers, readied)
+    backing = {line: bars for line, bars in second.items() if not isinstance(bars, Refused)}
+    found = store.prepare(folder, given if same else answers, readied, second=backing)
     parked = {symbol: why for symbol, why in before.items() if symbol not in map(_symbol, given)}
     parked |= {line.symbol: line.reason for line in found}
     kept = Kept(readied, now, tries, parked, frozenset(refused), RULES)
@@ -233,6 +239,7 @@ def keep(
     daily: Ask[date, tuple[Bar, ...]] = archive.fetch,
     five: Ask[datetime, tuple[Five, ...]] = _recent,
     clock: Callable[[], float] = time.monotonic,
+    second: Ask[date, tuple[Bar, ...]] = lambda _line, _day: (),
 ) -> tuple[list[str], list[str]]:
     """WHATEVER IS OWED AT NOW, done once: what was done, in words, and of those the misses.
     Nothing is asked, and nothing said, on a day no venue trades and the store is whole."""
@@ -242,9 +249,15 @@ def keep(
     ends, told = clock() + SPENT, []
     for venue in sorted({line.venue for line in lines}):
         mine = [line for line in lines if line.venue == venue]
-        kept = _refresh(home / DAILY / venue, mine, now, _within(daily, clock, ends), idle)
+        asks = (_within(daily, clock, ends), _within(second, clock, ends))
+        kept = _refresh(home / DAILY / venue, mine, now, asks, idle)
         if kept is not None:
             told.append(_told(kept, mine))
+            if YARDSTICK.symbol in kept.parked:
+                why = kept.parked[YARDSTICK.symbol]
+                told.append(
+                    (f"FIRST-LIGHT FAULT: the yardstick {YARDSTICK.symbol} is parked: {why}", True)
+                )
         if venues.open_at(venue, now) or venues.open_at(venue, now - SETTLED):
             told.append(_round(home / HOT, mine, now, _within(five, clock, ends)))
     return [words for words, _ in told], [words for words, miss in told if miss]
@@ -252,7 +265,7 @@ def keep(
 
 def main(home: Path, now: datetime) -> int:
     """THE COMMAND: what was done on one line each, a miss on the error stream, and 1 for it."""
-    done, missed = keep(home, now)
+    done, missed = keep(home, now, second=stooq.fetch)
     sys.stdout.write("".join(f"{line}\n" for line in done))
     sys.stderr.write("".join(f"MISSED: {line}\n" for line in missed))
     return int(bool(missed))
