@@ -9,7 +9,7 @@ move. A line with no bar yet today is told so, never as calm."""
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from datetime import UTC, datetime, time, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from enum import Enum
 from pathlib import Path
@@ -44,31 +44,38 @@ def _move(close: Decimal, now: Decimal | None) -> Decimal | None:
     return None if now is None else now / close - 1
 
 
-def _percent(move: Decimal | None) -> str:
+def _percent(move: Decimal | None, base: str) -> str:
     if move is None:
         return "no bar yet"
     percent = pennies(move * 100)
-    return f"{_sign(percent)}{abs(percent)}%"
+    return f"{_sign(percent)}{abs(percent)}% {base}"
 
 
 def _pounds(amount: Decimal) -> str:
     return f"{_sign(amount)}£{abs(amount):,.2f}"
 
 
-def report(
-    now: datetime,
+def _base(
+    symbol: str, close: Decimal, before: Mapping[str, int], fills: Sequence[Fill], since: str
+) -> tuple[Decimal, str]:
+    """The price a line's move is measured from, and the name of that base: the close (since),
+    or, for a line not held at the close and bought today, its average buy price."""
+    buys = [fill for fill in fills if fill.symbol == symbol and fill.quantity > 0]
+    if before.get(symbol, 0) or not buys:
+        return close, since
+    bought = sum(fill.quantity for fill in buys)
+    return sum((fill.quantity * fill.price for fill in buys), Decimal(0)) / bought, "since bought"
+
+
+def _gain(
     lines: Sequence[Line],
     before: Mapping[str, int],
     fills: Sequence[Fill],
     closes: Mapping[str, Decimal],
     last: Mapping[str, Decimal],
     rates: Mapping[str, Decimal],
-    capital: Decimal,
-    mood: Mood,
-) -> str:
-    """The message: what was held at the last close (before), today's fills, each line's last
-    close and newest bar price (last, absent when it has none today), the day's pounds per
-    unit of currency, the capital, and the desk's state."""
+) -> tuple[dict[str, int], Decimal]:
+    """What is held now, and the day's gain in pounds, exact, after the costs of today's fills."""
     known = {line.symbol: line for line in lines}
     fx = {s: Decimal(1) if known[s].currency == "GBP" else rates[known[s].currency] for s in closes}
     price = {symbol: last.get(symbol, close) for symbol, close in closes.items()}
@@ -80,19 +87,48 @@ def report(
         cost = charges(known[symbol], leg, abs(fill.quantity), fill.price, fx[symbol]).total
         gain += fill.quantity * (price[symbol] - fill.price) * fx[symbol] - cost
         held[symbol] = held.get(symbol, 0) + fill.quantity
+    return held, gain
+
+
+def report(
+    now: datetime,
+    closed: date,
+    lines: Sequence[Line],
+    before: Mapping[str, int],
+    fills: Sequence[Fill],
+    closes: Mapping[str, Decimal],
+    last: Mapping[str, Decimal],
+    rates: Mapping[str, Decimal],
+    capital: Decimal,
+    mood: Mood,
+) -> str:
+    """The message: what was held at the last close (before), today's fills, each line's last
+    close and newest bar price (last, absent when it has none today), the day's pounds per
+    unit of currency, the capital, and the desk's state. Every figure names its base: the day
+    and a line held at the close are since that close (closed); a line bought today is since
+    its average buy price, told "since bought"."""
+    held, gain = _gain(lines, before, fills, closes, last, rates)
     day = pennies(gain)
-    moves = {symbol: _move(close, last.get(symbol)) for symbol, close in closes.items()}
+    since = f"since {closed:%a} close"
+    moves, names = {}, {}
+    for symbol, close in closes.items():
+        start, names[symbol] = _base(symbol, close, before, fills, since)
+        moves[symbol] = _move(start, last.get(symbol))
     rows = [
-        f"{_icon(moves[symbol])} {symbol} {shares} sh {_percent(moves[symbol])}"
+        f"{_icon(moves[symbol])} {symbol} {shares} sh {_percent(moves[symbol], names[symbol])}"
         for symbol, shares in sorted(held.items())
         if shares
     ]
     move = moves[YARDSTICK.symbol]
-    worth = f"{_pounds(pennies(capital * move))} ({_percent(move)})" if move else _percent(move)
+    worth = (
+        f"{_pounds(pennies(capital * move))} ({_percent(move, since)})"
+        if move
+        else _percent(move, since)
+    )
     return "\n".join(
         [
             f"📊 Desk {venues.uk_time(now):%H:%M} UK",
-            f"{_icon(day)} Day {_pounds(day)} after costs",
+            f"{_icon(day)} Day {_pounds(day)} {since}, after costs",
             *rows,
             f"{_icon(move)} Holding the market: {worth}",
             mood.value,
@@ -116,6 +152,7 @@ def told(
     fills = [fill for fill in book.fills(root) if fill.day == today]
     needed = {*before, *(fill.symbol for fill in fills), YARDSTICK.symbol}
     closes, last = {}, {}
+    closed = max(bar.day for history in daily.values() for bar in history if bar.day < today)
     for line, history in daily.items():
         if line.symbol not in needed:
             continue
@@ -130,4 +167,4 @@ def told(
         mood = Mood.HALTED
     if book.killed(root):
         mood = Mood.KILLED
-    return report(now, list(daily), before, fills, closes, last, rates, capital, mood)
+    return report(now, closed, list(daily), before, fills, closes, last, rates, capital, mood)
