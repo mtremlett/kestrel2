@@ -14,7 +14,7 @@ import pytest
 
 from desk import archive, bars, keeper, store, venues
 from desk.bars import Five
-from desk.lines import POUND, Line
+from desk.lines import POUND, YARDSTICK, Line
 from desk.store import Bar
 
 UK, US, TWIN = (
@@ -278,3 +278,11 @@ def test_the_closes_are_held_within_the_named_figure_after_each_venues_close(
         for day in venues.sessions(venue, date(2026, 11, 16), date(2027, 12, 31)):
             done = venues.hours(venue, day).auction + keeper.HELD
             assert done.astimezone(venues.zone("LSE", day)).hour < 22
+
+
+def test_a_parked_yardstick_is_a_first_light_fault_never_silent(tmp_path: Path) -> None:
+    """R-RUNNER-189: VUAG is the measure of everything; parked, the keeper says why and misses."""
+    pretend = Archive()
+    pretend.short = {YARDSTICK.symbol}
+    kept = keeper.keep(tmp_path, _at(6), (YARDSTICK,), pretend.daily, pretend.five, lambda: 0.0)
+    assert kept[1][-1].startswith(f"FIRST-LIGHT FAULT: the yardstick {YARDSTICK.symbol} is parked")

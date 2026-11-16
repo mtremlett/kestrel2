@@ -47,17 +47,42 @@ FULL: list[Step] = [
 
 UNIT_DIR = "tests/unit"
 
+#: Seconds each slow unit file took, measured on 16 Nov (one local run of the whole unit step).
+#: A file not named here weighs its size at 20 KB a second. Split by size alone, three of the
+#: four slowest files shared one share, and the check waited 7 of its 7.5 minutes on it.
+SECONDS = {
+    "test_lab_tune.py": 334,
+    "test_lab_sweep.py": 226,
+    "test_simcity.py": 200,
+    "test_lab_ladder_pool.py": 127,
+    "test_lab_ladder.py": 50,
+    "test_lab_shuffle.py": 49,
+    "test_lab_tape.py": 46,
+    "test_command.py": 44,
+    "test_lab_cell.py": 42,
+    "test_lab_rung_placebo.py": 24,
+    "test_lab_ladder_spec.py": 23,
+    "test_lab_ladder_epon.py": 13,
+    "test_supervisor.py": 12,
+    "test_book_invariants.py": 10,
+    "test_lab_ladder_rates.py": 7,
+}
+
+
+def _weight(f: Path) -> float:
+    return SECONDS.get(f.name, f.stat().st_size / 20_000)
+
 
 def shard(command: list[str], part: int, parts: int) -> list[str]:
     """The unit step's command for the `part`-th of `parts` shares of its test files,
-    heaviest first, each to the lightest share so far: every file in exactly one share."""
-    files = sorted((ROOT / UNIT_DIR).glob("test_*.py"), key=lambda f: (-f.stat().st_size, f.name))
+    slowest first, each to the lightest share so far: every file in exactly one share."""
+    files = sorted((ROOT / UNIT_DIR).glob("test_*.py"), key=lambda f: (-_weight(f), f.name))
     shares: list[list[str]] = [[] for _ in range(parts)]
-    sizes = [0] * parts
+    loads = [0.0] * parts
     for f in files:
-        lightest = sizes.index(min(sizes))
+        lightest = loads.index(min(loads))
         shares[lightest].append(f.relative_to(ROOT).as_posix())
-        sizes[lightest] += f.stat().st_size
+        loads[lightest] += _weight(f)
     return [a for c in command for a in (shares[part - 1] if c == UNIT_DIR else [c])]
 
 
