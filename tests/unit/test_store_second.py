@@ -41,3 +41,15 @@ def test_a_second_source_away_or_in_no_known_unit_parks_nothing_and_says_so(tmp_
     for other in (Refused("no key"), strange):
         assert store.prepare(tmp_path, {UK: YAHOO}, DAY, second={UK: other}) == ()
         assert store.read(tmp_path, "BBB") == YAHOO and len(store.faults(tmp_path, "BBB")) == 1
+
+
+def test_stooq_is_unused_unless_most_shared_closes_agree_and_never_reaches_beyond_yahoos_span(
+    tmp_path: Path,
+) -> None:
+    early = venues.sessions("LSE", date(2025, 10, 1), date(2025, 10, 31))
+    older = tuple(Bar(d, *(Decimal(500),) * 4, 1) for d in early)  # a step Yahoo never saw
+    assert store.prepare(tmp_path, {UK: YAHOO}, DAY, second={UK: older + PENCE}) == ()
+    assert store.read(tmp_path, "BBB") == YAHOO
+    some = PENCE[:2] + tuple(replace(b, close=b.close * 2) for b in PENCE[2:])  # 2 of 10 agree
+    assert store.prepare(tmp_path, {UK: YAHOO}, DAY, second={UK: some}) == ()
+    assert store.read(tmp_path, "BBB") == YAHOO

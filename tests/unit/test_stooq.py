@@ -14,6 +14,14 @@ LINE = Line("VUAG", "LSE", "GBP", 1)
 TABLE = b"Date,Open,High,Low,Close,Volume\n2020-03-02,1,2,0.5,1.5,10\n2020-03-03,1,2,0.5,1.5,\n"
 
 
+def test_no_key_is_refused_by_name_before_anything_is_asked(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv(stooq.KEY, raising=False)
+    with pytest.raises(ValueError, match="STOOQ_API_KEY is not set"):
+        stooq.fetch(LINE, date(2020, 3, 3))
+
+
 def test_a_table_is_read_into_bars_before_the_day_and_a_refusal_names_what_came() -> None:
     bars = stooq.parse(LINE, TABLE, date(2020, 3, 3))
     assert [(b.day, b.close, b.volume) for b in bars] == [(date(2020, 3, 2), Decimal("1.5"), 10)]

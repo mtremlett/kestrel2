@@ -23,10 +23,10 @@ HEADER = ["Date", "Open", "High", "Low", "Close", "Volume"]
 KEY = "STOOQ_API_KEY"
 
 
-def address(line: Line, day: date, key: str | None = None) -> str:
-    """Where every daily bar of a line before day is asked for (the key, if one is held)."""
+def address(line: Line, day: date, key: str) -> str:
+    """Where every daily bar of a line before day is asked for."""
     query = {"s": f"{line.symbol.lower()}.{SUFFIX[line.venue]}", "i": "d", "d2": f"{day:%Y%m%d}"}
-    return f"{SOURCE}?{urlencode(query | ({'apikey': key} if key else {}))}"
+    return f"{SOURCE}?{urlencode(query | {'apikey': key})}"
 
 
 def _prices(row: list[str]) -> tuple[Decimal, Decimal, Decimal, Decimal]:
@@ -54,4 +54,7 @@ def _ask(address: str) -> bytes:
 
 def fetch(line: Line, day: date) -> tuple[Bar, ...]:
     """Every bar Stooq holds for a line before day, read on entry."""
-    return parse(line, _ask(address(line, day, os.environ.get(KEY))), day)
+    key = os.environ.get(KEY)
+    if not key:
+        raise ValueError(f"{line.symbol}: Stooq refuses a download without a key: {KEY} is not set")
+    return parse(line, _ask(address(line, day, key)), day)

@@ -65,6 +65,7 @@ RECENT = timedelta(days=7)  #: how far back a five-minute round asks: the week k
 #: The seconds of one call in which the archive is still asked: an answer then waited for
 #: its thirty seconds, and the bars written, still end within the runner's four minutes.
 SPENT = 150.0
+SECOND = 40.0  #: the seconds of one call in which the second source is asked, from its start
 DAY = timedelta(days=1)
 When = TypeVar("When")
 Read = TypeVar("Read")
@@ -164,7 +165,7 @@ def _refresh(
     answers = archive.gather(asked, readied, ask)
     refused = {line.symbol for line, answer in answers.items() if isinstance(answer, Refused)}
     given = {line: answer for line, answer in answers.items() if line.symbol not in refused}
-    also = archive.gather(asked, readied, second)  # Stooq's: filled in, or a note, by the store
+    also = archive.gather(given, readied, second)  # Stooq's: the store fills or notes
     found = store.prepare(folder, given if same else answers, readied, second=also)
     parked = {symbol: why for symbol, why in before.items() if symbol not in map(_symbol, given)}
     parked |= {line.symbol: line.reason for line in found}
@@ -258,7 +259,7 @@ def keep(
             now,
             _within(daily, clock, ends),
             idle,
-            _within(second, clock, ends),
+            _within(second, clock, ends - SPENT + SECOND),
         )
         if kept is not None:
             told.append(_told(kept, mine))
