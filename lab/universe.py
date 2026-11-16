@@ -16,6 +16,7 @@ loosened: the desk cannot import this module, so the rule can decide no trade.""
 
 from __future__ import annotations
 
+import os
 import sys
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
@@ -29,6 +30,7 @@ import numpy as np
 from desk import archive, bars, store, venues
 from desk.lines import LINES, NO_TAX, STAMP_DUTY, Line
 from desk.store import Bar, Fault, Parked
+from lab import universe_history
 
 
 def _lines(venue: str, currency: str, symbols: str, tax: Decimal = NO_TAX) -> tuple[Line, ...]:
@@ -249,18 +251,22 @@ def refresh(
     lines: Iterable[Line] = UNIVERSE,
     ask: Callable[[Line, date], tuple[Bar, ...]] = archive.fetch,
     second: Callable[[Line, date], tuple[Bar, ...]] | None = None,
+    history: Path | None = None,
 ) -> str:
     """Keep each line through the one store writer, one at a time (a line's file is complete
     before the next is asked for, so a stopped run resumes by running again), and say what
     it did: lines refreshed, bars added (a line's gain on what it held; a bar is never
     invented, so a day's second run adds none) and lines parked. A yardstick with a missing
-    session is a named data fault, filled from the second source when one is given."""
+    session is a named data fault, filled from the second source when one is given. Given the
+    history database's path, each line's bars enter it too, under their source."""
     refreshed = added = parked = 0
     faults = ""
     for line in lines:
         before = _held(root, line)
         more, note = _mended(root, day, line, ask, second)
         parked += more
+        if history is not None:
+            universe_history.enter(root, history, line)
         faults += note
         added += max(0, _held(root, line) - before)
         refreshed += 1
@@ -320,6 +326,26 @@ def read(root: Path, line: Line) -> History:
     return History(bars[start:end], listed, tuple(bars[n].day for n in cuts))
 
 
+def import_history(data: Path, day: date) -> str:
+    """The whole research store and the ladder's pound table under data, let into the history
+    database there; the yardsticks' missing sessions are named."""
+    return universe_history.run(
+        data / "grid" / "store",
+        data / bars.LIVE,
+        data / "ladder" / "pound.jsonl",
+        UNIVERSE,
+        (*YARDSTICKS, *REFERENCE),
+        day,
+    )
+
+
 if __name__ == "__main__":
-    other = matrix(Path(sys.argv[2])) if len(sys.argv) > 2 else None
-    sys.stdout.write(refresh(Path(sys.argv[1]), datetime.now(UTC).date(), second=other) + chr(10))
+    DATA = Path(os.environ.get("KESTREL2_DATA") or sys.exit("universe: no KESTREL2_DATA"))
+    TODAY = datetime.now(UTC).date()
+    if sys.argv[1:] == ["history"]:
+        sys.stdout.write(import_history(DATA, TODAY) + chr(10))
+    else:
+        other = matrix(Path(sys.argv[2])) if len(sys.argv) > 2 else None
+        sys.stdout.write(
+            refresh(Path(sys.argv[1]), TODAY, second=other, history=DATA / bars.LIVE) + chr(10)
+        )
