@@ -89,6 +89,7 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 
 # the paper lane
 "desk/paper.py" = "the one door to the paper broker: the paper account's holdings and resting orders, read and set against the desk's book"
+"desk/t212.py" = "the one client for Trading 212, read-only by construction: an account's cash, holdings and order history, a fixed list of GET messages, no order or write call"
 "desk/listing.py" = "each line as the paper broker knows it: its contract there, its exchange, the unit of its prices and its price steps, asked through the one door"
 "desk/reports.py" = "what the paper broker reports was done: the day's fills on the account, each of the desk's own under the broker's id and priced in its line's currency, and the desk's own fills, orders and stops told from anyone else's"
 "desk/gateway.py" = "the gateway's own week, known before any order: whether it is ready, its daily restart waited out, a gateway from which nothing comes back the operator's to look at, and his weekly login's reminder"
