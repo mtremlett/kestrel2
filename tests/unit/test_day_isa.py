@@ -21,12 +21,18 @@ CLOSES = [Decimal(c) for c in [*[10] * 20, 9, 10, 10]]
 def test_nothing_is_bought_on_a_line_recorded_as_one_no_isa_can_hold(tmp_path: Path) -> None:
     bars = tuple(Bar(on, c, c + 1, c - 1, c, 1) for on, c in zip(DAYS, CLOSES, strict=True))
     lines = [Line("A", "LSE", "GBP", 1, isa=False), Line("B", "LSE", "GBP", 1, isa=True)]
+    lines.append(Line("C", "LSE", "GBP", 1, retail=False))
     archive = {line: bars[:21] for line in lines}
     broker = Pretend({line: bars for line in lines}, {})
     broker.open(DAYS[21])
     sent = day.trade(
         tmp_path, archive, broker, Settings(Decimal(10_000)), DAYS[21], {"GBP": Decimal(1)}
     )
-    assert [(s.order_id[-1], s.blocker) for s in sent] == [("A", Blocker.GATE), ("B", None)]
+    assert [(s.order_id[-1], s.blocker) for s in sent] == [
+        ("A", Blocker.GATE),
+        ("B", None),
+        ("C", Blocker.GATE),
+    ]
     assert "no stocks and shares ISA can hold" in str(sent[0].reason)
+    assert "no UK retail customer may buy" in str(sent[2].reason)
     assert set(book.positions(tmp_path)) == {"B"}

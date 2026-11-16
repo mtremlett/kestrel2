@@ -14,7 +14,7 @@ import pytest
 
 from desk import archive, bars, keeper, store, venues
 from desk.bars import Five
-from desk.lines import YARDSTICK, Line
+from desk.lines import POUND, YARDSTICK, Line
 from desk.store import Bar
 
 UK, US, TWIN = (
@@ -105,7 +105,8 @@ def test_a_trading_day_is_kept_each_venue_on_its_own_hours(tmp_path: Path) -> No
         frozenset(),
     )
     files = {f.name for f in tmp_path.rglob("*") if f.is_file()}
-    assert files == {bars.HISTORY, keeper.HOT, keeper.RECORD}  # two databases, no CSV store
+    assert files == {"market_history.db", "market_live.db", keeper.RECORD}  # two databases, no CSV
+    assert not any("kestrel" in name for name in files)
     with pytest.raises(keeper.Stale, match="BBB: no LSE bars before 2026-11-17 .* for 2026-11-16"):
         keeper.saved(tmp_path, tue, LINES)
     assert pretend.keep(tmp_path, _at(6, 5)) == ([], []) and pretend.asked == []
@@ -149,6 +150,26 @@ def test_the_reference_series_is_kept_once_a_day_after_the_us_close(tmp_path: Pa
     pretend.refuses = set()
     pretend.keep(tmp_path, _at(21, 35, MON + timedelta(1)), series=(spy,))
     assert pretend.asked.count("SPY") == 1
+
+
+def test_the_days_pounds_per_dollar_is_read_for_any_session_and_stale_when_none_is_held(
+    tmp_path: Path,
+) -> None:
+    def pounds(_line: Line, day: date) -> tuple[Bar, ...]:
+        days = venues.sessions("US", date(2026, 9, 1), day - timedelta(1))
+        close = [Decimal("1.25") + Decimal(n % 4) / 100 for n in range(len(days))]
+        return tuple(Bar(d, c, c, c, c, 0) for d, c in zip(days, close, strict=True))
+
+    with pytest.raises(keeper.Stale):
+        keeper.pound(tmp_path, MON)  # nothing kept yet
+    args = (tmp_path, _at(21, 30), (), Archive().daily, Archive().five, lambda: 0.0, pounds)
+    keeper.keep(*args, series=(POUND,))
+    last = venues.sessions("US", date(2026, 9, 1), MON - timedelta(1))  #: the close before MON
+    want = 1 / (Decimal("1.25") + Decimal((len(last) - 1) % 4) / 100)
+    assert keeper.pound(tmp_path, MON) == want.quantize(Decimal("0.000001"))
+    assert keeper.pound(tmp_path, date(2026, 10, 14)) > 0  # a past session reads as well
+    with pytest.raises(keeper.Stale):
+        keeper.pound(tmp_path, MON + timedelta(14))  # a fortnight on, nothing fresh
 
 
 def test_a_store_kept_under_older_rules_is_cleaned_again_and_a_current_one_is_not(

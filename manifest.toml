@@ -40,6 +40,7 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "desk/lines.py" = "the instrument master: the facts about each line"
 "desk/venues.py" = "the one calendar: the days each venue trades, its own holidays and no other's"
 "desk/archive.py" = "the one client for the free price archive: a line's daily bars, checked on entry"
+"desk/history.py" = "the one client for the broker's historical bars: a line's daily bars asked of the paper gateway read-only as its own client, paced inside the broker's limit, never in a desk round"
 "desk/store.py" = "the one price store and its one writer: bars cleaned on entry, bad lines parked"
 "desk/bars.py" = "the one fast store for hot and deep bars: one SQLite file, the one writer's whole rounds, many readers"
 "desk/audit.py" = "the store's read-only audit: every line the two databases hold re-checked through the checks that let its bars in, counts and faults by kind in one line"
@@ -98,9 +99,11 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "desk/messenger.py" = "the desk's one voice: every message to the operator through one door and onto one delivery record, each delivered once under its name; the morning and the evening message of a trading day, his weekly login's reminder, and the alarm when a daily message is not delivered by its hour"
 "desk/pnl.py" = "the hourly profit and loss for his phone: the day's profit after every cost, each holding's move and the market held simply, from the book and the five-minute bars, as a few lines of words"
 "desk/running.py" = "the desk unattended: one step that does what the desk owes at its moment, once, from its records alone (the day's check, each venue's orders, the day's record, what he is told), and what a desk that died part-way left at the broker put right"
+"desk/streak.py" = "FIRST-LIGHT counted by the desk itself: the run of consecutive days whose records count (a day that sent nothing never does), against the ten it takes, in a plain sentence"
 "desk/supervisor.py" = "the desk's processes kept alive: one supervisor that runs each registered job when due in a process of its own, one of each at a time, a dated receipt for every run, the desk's health judged from outside by the receipts, and the ledger of what the operator did with the measure of how long the desk has run without him"
 "desk/command.py" = "the desk's day as the runner asks for it: one step, the morning's pre-flight and the rehearsal of a whole day with the markets shut, each one line and a code; and the real doors a step is given, the price store's and the day's pounds per dollar"
 "desk/conformance.py" = "the conformance trades as a command: one run for each market in its hours on the paper account, a rejection, a buy with its stop, a sale, a buy of the desk's size and its stop made to sell, each real result recorded beside the pretend broker's; nothing sent unless the account is quiet, and the account left as found"
+"desk/ended.py" = "the day's cancelled orders at the paper broker and its own words of why each ended, read-only over an open connection"
 
 # the grid lane
 "lab/cell.py" = "the ladder's unit of work: one strategy on one line over one window, keyed by the code's and the data's versions"
