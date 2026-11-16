@@ -90,7 +90,7 @@ def test_the_lines_record_what_a_second_source_confirmed() -> None:
     held = {line.symbol: line for line in LINES}
     assert held["5QQQ"].splits == {(date(2024, 8, 22), Decimal(500))}
     moves = {sym: len(line.real_moves) for sym, line in held.items() if line.real_moves}
-    assert moves == {"2MU": 4, "SGLN": 1}
+    assert moves == {"2MU": 4, "5QQQ": 2, "SGLN": 1}
 
 
 def test_spy_and_qqq_are_read_as_reference_series_and_refused_as_traded_lines() -> None:
