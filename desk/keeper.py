@@ -78,6 +78,8 @@ DAY = timedelta(days=1)
 When = TypeVar("When")
 Read = TypeVar("Read")
 Ask = Callable[[Line, When], Read]
+#: The broker's daily bars for lines before a day: the store's first source (R-RUNNER-189).
+Broker = Callable[[Sequence[Line], date], Mapping[Line, store.Answer]]
 
 
 class Stale(LookupError):
@@ -153,14 +155,21 @@ def _shelf(folder: Path, line: Line) -> tuple[Bar, ...] | None:
 
 
 def _kept_in(
-    hot: Path, folder: Path, answers: Mapping[Line, store.Answer], day: date
+    hot: Path,
+    folder: Path,
+    answers: Mapping[Line, store.Answer],
+    day: date,
+    first: Mapping[Line, store.Answer],
 ) -> list[Parked]:
     """The answers judged by the one store and kept in its long database as one round; the
     lines parked. A line is kept whole: its archive bars replace those the archive gave before."""
     parked = []
     with bars.writing(hot) as round_:
         for line, answer in answers.items():
-            kept, _faults, park = store.judge(line, answer, day, shelf=_shelf(folder, line))
+            shelf = _shelf(folder, line)
+            kept, _faults, park = store.judge(
+                line, answer, day, shelf=shelf, broker=first.get(line)
+            )
             round_.daily(line, kept)
             parked += [park] if park else []
     return parked
@@ -173,6 +182,7 @@ def _refresh(
     now: datetime,
     ask: Ask[date, tuple[Bar, ...]],
     idle: bool,
+    broker: Broker | None = None,
 ) -> Kept | None:
     """A venue's daily bars refreshed as far as they are owed at now, and the record of it;
     None when nothing was owed, and nothing asked. On an idle day, when no venue trades,
@@ -195,9 +205,14 @@ def _refresh(
     if not asked:
         return None
     answers = archive.gather(asked, readied, ask)
-    refused = {line.symbol for line, answer in answers.items() if isinstance(answer, Refused)}
+    first = broker(asked, readied) if broker else {}
+    refused = {
+        line.symbol
+        for line, answer in answers.items()
+        if isinstance(answer, Refused) and isinstance(first.get(line, answer), Refused)
+    }
     given = {line: answer for line, answer in answers.items() if line.symbol not in refused}
-    found = _kept_in(hot, folder, given if same else answers, readied)
+    found = _kept_in(hot, folder, given if same else answers, readied, first)
     parked = {symbol: why for symbol, why in before.items() if symbol not in map(_symbol, given)}
     parked |= {line.symbol: line.reason for line in found}
     kept = Kept(readied, now, tries, parked, frozenset(refused), RULES)
@@ -321,6 +336,7 @@ def keep(
     clock: Callable[[], float] = time.monotonic,
     ancient: Ask[date, tuple[Bar, ...]] = _ancient,
     series: Sequence[Line] = (*REFERENCE, POUND),
+    broker: Broker | None = None,
 ) -> tuple[list[str], list[str]]:
     """WHATEVER IS OWED AT NOW, done once: what was done, in words, and of those the misses.
     Nothing is asked, and nothing said, on a day no venue trades and the store is whole."""
@@ -331,7 +347,7 @@ def keep(
     for venue in sorted({line.venue for line in lines}):
         mine = [line for line in lines if line.venue == venue]
         kept = _refresh(
-            home / HOT, home / DAILY / venue, mine, now, _within(daily, clock, ends), idle
+            home / HOT, home / DAILY / venue, mine, now, _within(daily, clock, ends), idle, broker
         )
         if kept is not None:
             told.append(_told(kept, mine))
