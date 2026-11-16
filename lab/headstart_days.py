@@ -6,7 +6,8 @@ under Source.MTT_DB on the days that hold no bar: a fresh bar wins, and each hel
 differs is said. A line already in is not read again, so a run is resumable (`python -m
 lab.headstart_days`). stooq_store's daily parquet (market=uk|us) enters the same way under
 Source.STOOQ_DAILY, rows it marks OK only; stooq_store_matrix's 1d arrays likewise, under
-Source.MATRIX_DAILY, a row with a hole left. Old rows that are the adjusted form of the
+Source.MATRIX_DAILY, a row with a hole left; ibkr_store's daily parquet (the same form, a
+fetch record beside each file) under Source.IBKR_DAILY. Old rows that are the adjusted form of the
 as-traded days held are refused whole by the one store's check against them, and said. The
 yardsticks first, then the lines, then the research list."""
 
@@ -101,11 +102,12 @@ def _daily(where: Path) -> bool:
 
 
 def form(where: Path) -> tuple[Source, Rows]:
-    """An old store's daily source and reader by its form: a database, stooq_store, or matrices."""
+    """An old store's daily source and reader by its form (database, Stooq, ibkr, matrices)."""
     if where.suffix == ".db":
         return Source.MTT_DB, rows
-    if (where / "freq=d").is_dir():
-        return Source.STOOQ_DAILY, stooq_rows
+    if (where / "freq=d").is_dir():  # only ibkr_store keeps a fetch record beside its bars
+        found = next((where / "freq=d").glob("*/*/fetch.json"), None)
+        return (Source.IBKR_DAILY if found else Source.STOOQ_DAILY), stooq_rows
     if _daily(where):
         return Source.MATRIX_DAILY, matrix_rows
     raise ValueError(f"{where}: no daily reader for a store of this form")

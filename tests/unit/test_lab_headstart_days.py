@@ -101,6 +101,19 @@ def test_stooq_stores_daily_rows_enter_under_their_source_but_not_adjusted_ones(
     assert DAYS[3] not in {bar.day for bar in bars.daily(path, BA)}  # the spoilt row stays out
 
 
+def test_ibkr_stores_daily_rows_enter_under_the_brokers_source(tmp_path: Path) -> None:
+    folder, path = tmp_path / "ibkr", tmp_path / "market.db"
+    _stooq(folder, 1)
+    (folder / "freq=d/market=us/ticker=BA.US/fetch.json").write_text("{}", encoding="utf-8")
+    with bars.writing(path) as round_:
+        round_.daily(
+            BA, [_fresh(d, str(100 + n)) for n, d in enumerate(DAYS) if n >= len(DAYS) - 5]
+        )
+    assert headstart_days.main(folder, path, [BA], TODAY).startswith("BA: ")
+    assert bars.sources(path, BA, bars.DAILY)[Source.IBKR_DAILY] == len(DAYS) - 6
+    assert headstart_days.main(folder, path, [BA], TODAY) == "BA: already in"
+
+
 def test_the_matrices_daily_arrays_enter_under_their_source_and_a_hole_is_left(
     tmp_path: Path,
 ) -> None:
