@@ -1,4 +1,4 @@
-"""published_epon - THE EPONYMOUS RULES' PUBLICATIONS (all twenty the ladder judges; Zweig's
+"""published_epon - THE EPONYMOUS RULES' PUBLICATIONS (all twenty-one the ladder judges; Zweig's
 is not among them): each rule of `desk/eponymous_*.py` with
 its author and work as its module's docstring states them, and its known answers: the series
 and trades its own known-answer test holds, worked by hand from the rule's own words. Held
@@ -150,6 +150,20 @@ EPONYMOUS_PUBLISHED: Mapping[str, Published] = {
                 "0.824, over 0.8: sell on 205",
                 [*range(100, 300), 280, 275, 270, 285, 295, 300, 310],
                 ((202, 205),),
+                reach="0",
+            ),
+        ),
+    ),
+    "connors_double_7": Published(
+        "Connors and Alvarez, Short Term Trading Strategies That Work (2008): a close that is "
+        "the lowest of 7 days in an uptrend bought, one that is the highest of 7 sold",
+        (
+            known(
+                "200 days up by 1 to 299, then 290: the lowest close of 7 and over the 200-day "
+                "average: buy on 200. 295 is under 299, still in the 7 days; 300 is the highest "
+                "of 7: sell on 202",
+                [*range(100, 300), 290, 295, 300, 301],
+                ((200, 202),),
                 reach="0",
             ),
         ),
