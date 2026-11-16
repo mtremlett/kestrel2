@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
-from desk.rollup import Candle, rollup, weekly
+from desk.rollup import Candle, merged, rollup, weekly
 
 OPEN = datetime(2026, 11, 16, 8, 0, tzinfo=UTC)  # a London Monday in winter: 08:00 to 16:30
 
@@ -67,3 +68,16 @@ def test_weekly_bars_need_every_session_of_the_week() -> None:
         )
     ]
     assert weekly("LSE", week[:3] + week[4:]) == []  # Thursday missing
+
+
+def test_a_pulled_bar_wins_over_a_rolled_one_and_a_disagreement_is_a_fault() -> None:
+    built = rollup("LSE", [minute(n) for n in range(15)], "5m")  # 08:00, 08:05, 08:10
+    same = replace(built[0], source="ibkr")
+    off = Candle(built[1].start, Decimal(5), Decimal(12), Decimal(4), Decimal(10), 50, "yf")
+    kept, faults = merged([same, off], built)
+    assert [(c.start, c.source) for c in kept] == [
+        (OPEN, "ibkr"),
+        (OPEN + timedelta(minutes=5), "yf"),
+        (OPEN + timedelta(minutes=10), "rollup:1m"),
+    ]
+    assert faults == [(off, built[1])]  # the agreeing pulled bar is no fault
