@@ -46,6 +46,11 @@ PRETEND = {
 }
 
 
+#: What the broker's list of the day's ended orders says of the two it cancelled: one gives its
+#: words, one gives none.
+WHY = {"20261113-conf0lse-SPY": "Rejected: no retail trading", "20261113-conf1lse-VUAG": ""}
+
+
 @pytest.fixture(autouse=True)
 def _the_desks_own_client_again(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(paper, "CLIENT", paper.CLIENT)  # the command makes it its own: put back
@@ -201,11 +206,16 @@ def _world(patch: pytest.MonkeyPatch, found: tuple[str, ...] = (), sells: bool =
     patch.setattr(clearance, "check", lambda _root, now: clearance.Check(now, found))
     patch.setattr(placing, "Paper", lambda _listings, _root, _clock: broker)
     patch.setattr(conformance, "_raised", lambda *_: fall)
+    patch.setattr(conformance, "reasons", lambda: dict(WHY))
     return broker
 
 
 def _run(root: Path, now: datetime, market: str) -> int:
     return conformance.main(["--conformance", market], {"KESTREL2_DATA": str(root)}, lambda: now)
+
+
+def _at(moment: datetime) -> Callable[[], datetime]:
+    return lambda: moment
 
 
 def _never(_talk: object) -> None:
@@ -224,8 +234,12 @@ def test_the_command_records_each_real_result_beside_the_pretend_brokers_once(
     with record.open(newline="", encoding="utf-8") as kept:
         head, *rows = csv.reader(kept)
     assert head == list(conformance.HEAD)
-    assert [row[1:] for row in rows[:-1]] == [[step, said, said] for step, said in PRETEND.items()]
-    assert rows[-1] == [MON.isoformat(), "the run", "whole", ""]
+    assert [row[1:4] for row in rows[:-1]] == [[step, said, said] for step, said in PRETEND.items()]
+    assert rows[-1] == [MON.isoformat(), "the run", "whole", "", ""]
+    assert [row[4] for row in rows[:2]] == [  # a cancelled order's reason is never left empty
+        f"{NO}: {WHY[NO]}",
+        f"{ID.format(1)}: {conformance.GIVEN}",
+    ]
     assert paper.CLIENT == conformance.CLIENT == 223  # a client of its own, never the desk's 222
     assert book.switch(record.parent)[-1][:2] == (MON, book.Switch.DRILLED)  # the day's own drill
     monkeypatch.setattr(paper, "dial", _never)  # recorded whole: never again, and nothing asked
@@ -235,8 +249,22 @@ def test_the_command_records_each_real_result_beside_the_pretend_brokers_once(
     said = capsys.readouterr().out.splitlines()
     assert f"nothing done, its run is already recorded in {record}." in said[0]
     assert ["New York is shut" in said[1], "London is shut" in said[2]] == [True, True]
-    with pytest.raises(SystemExit, match="--conformance london|us"):
+    with pytest.raises(SystemExit, match="--conformance london"):
         _run(tmp_path, MON, "paris")
+
+
+def test_the_why_read_gives_each_cancelled_order_its_reason_but_not_in_a_desk_rounds_hours(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _world(monkeypatch)
+    env = {"KESTREL2_DATA": str(tmp_path)}
+    for now in (MON.replace(minute=15), MON.replace(hour=14, minute=45), MON.replace(hour=9)):
+        asked = conformance.main(["--conformance-why"], env, _at(now))
+        assert asked == (now.hour != 9)
+    assert paper.CLIENT == 223  # read as the conformance desk, never the desk's 222
+    first, second, said = capsys.readouterr().out.strip().split(chr(10), 2)
+    assert "not read now" in first + second  # 08:15 and 14:45 are a desk round's
+    assert said == f"{NO}: {WHY[NO]}{chr(10)}{ID.format(1)}: {conformance.GIVEN}"
 
 
 def test_nothing_is_sent_unless_the_gateway_is_ready_the_switch_off_and_the_account_quiet(
