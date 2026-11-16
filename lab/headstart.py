@@ -394,6 +394,6 @@ if __name__ == "__main__":
             ONE = ONE or sys.exit(f"headstart: {sys.argv[2]} is no line of the desk")
             sys.stdout.write(daily(ONE, DATA, olds(REGISTER, ONE), TODAY) + "\n")
         else:
-            main(REGISTER, DATA / "market.db", TODAY)
+            main(REGISTER, DATA / bars.HISTORY, TODAY)
     except (OSError, ValueError, sqlite3.Error, bars.NoRound) as reason:  # the one line, then out
         sys.exit(f"headstart: {type(reason).__name__}: {reason}")

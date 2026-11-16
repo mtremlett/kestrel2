@@ -16,7 +16,7 @@ from pathlib import Path
 
 import pytest
 
-from desk import bars
+from desk import audit, bars
 from desk.bars import Five, Source
 from desk.lines import LINES, Line
 from desk.store import Bar, Refused
@@ -315,7 +315,25 @@ def test_the_audit_rechecks_every_held_line_and_names_its_faults(tmp_path: Path)
         round_.daily(US, good)
         round_.five(US, [stray])  # a Saturday: outside the venue's hours
     before = store.stat().st_mtime_ns
-    said = bars.audit(store)
+    said = audit.audit(store)
     assert said.startswith("bars audit: 3 lines, 11 bars, 3 faults (")
     assert "worst: ZZZ on US (daily) 2, BA on US (five-minute) 1" in said
     assert store.stat().st_mtime_ns == before
+
+
+def test_each_span_lands_in_its_own_database_in_the_data_folder(tmp_path: Path) -> None:
+    """R-RUNNER-11: a one-minute bar goes to market_live.db, any longer span to
+    market_history.db, and nothing it makes is named after the project."""
+    minute = bars.Minute(NOON, *ODD, 4)
+    with bars.writing(bars.database(tmp_path, bars.MINUTE)) as live:
+        live.five(US, [minute], bars.MINUTE)
+    with bars.writing(bars.database(tmp_path, bars.FIVE)) as long:
+        long.five(US, [Five(NOON, *ODD, 5)])
+        long.daily(US, _days(2))
+    assert bars.five(tmp_path / "market_live.db", US, NOON, NEXT, bars.Minute) == (minute,)
+    assert bars.five(tmp_path / "market_history.db", US, NOON, NEXT)[0].volume == 5
+    assert bars.database(tmp_path, bars.DAILY) == tmp_path / "market_history.db"
+    names = sorted(p.name for p in tmp_path.iterdir() if p.suffix == ".db")
+    assert names == ["market_history.db", "market_live.db"]
+    with pytest.raises(ValueError, match="not a one-minute mark"):
+        bars.Minute(NOON + timedelta(seconds=30), *ODD, 1)

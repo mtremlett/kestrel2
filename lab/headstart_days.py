@@ -129,6 +129,6 @@ if __name__ == "__main__":
         FOUND = headstart.imports(DATA.parent / "kestrel2_notes" / "data_register.md")
         OLD = next((p for p in FOUND if p.suffix == ".db"), None)
         OLD = OLD or sys.exit("headstart_days: the register tags no database IMPORT")
-        main(OLD, DATA / "market.db", order(), datetime.now(UTC).date())
+        main(OLD, DATA / bars.HISTORY, order(), datetime.now(UTC).date())
     except (OSError, ValueError, sqlite3.Error, bars.NoRound) as reason:
         sys.exit(f"headstart_days: {type(reason).__name__}: {reason}")

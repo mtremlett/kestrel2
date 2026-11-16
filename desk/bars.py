@@ -21,11 +21,7 @@ wins; where two sources' five-minute bars for one moment differ, that is counted
 
 from __future__ import annotations
 
-import os
-import re
 import sqlite3
-import sys
-from collections import Counter
 from collections.abc import Collection, Iterable, Iterator, Mapping, Sequence
 from contextlib import closing, contextmanager
 from dataclasses import dataclass, replace
@@ -39,11 +35,13 @@ from typing import Any
 from desk import venues
 from desk.compare import AGREE as AGREE
 from desk.compare import Verdict, judge
-from desk.lines import LINES, Line
+from desk.lines import Line
 from desk.store import FAR, JUMP, STRETCH, Bar, Refused
-from desk.store import _clean as cleaned
 
-DAILY, FIVE = "daily", "five-minute"  #: the two spans of bar the store holds
+DAILY, FIVE, MINUTE = "daily", "five-minute", "one-minute"  #: the spans of bar the store holds
+#: The two databases (his ruling, 14 November): long-term, every span from five minutes up
+#: and the old stores' history; and live, the one-minute bars. Both in the data folder.
+HISTORY, LIVE = "market_history.db", "market_live.db"
 EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 #: The seconds anyone waits for the file: a writer for the one before it, or SQLite's own log.
 WAIT = 5.0
@@ -114,6 +112,12 @@ def _seconds(moment: datetime) -> int:
     return -((EPOCH - moment) // timedelta(seconds=1))
 
 
+def database(home: Path, span: str) -> Path:
+    """The database in the data folder that holds bars of one span: live for a minute's,
+    long-term for any other."""
+    return home / (LIVE if span == MINUTE else HISTORY)
+
+
 @dataclass(frozen=True)
 class Five:
     """A five-minute bar, named by the moment it starts."""
@@ -124,10 +128,18 @@ class Five:
     low: Decimal
     close: Decimal
     volume: int
+    STEP, SPAN = 300, FIVE  #: seconds between marks, and the span kept; not fields
 
     def __post_init__(self) -> None:
-        if _seconds(self.start) % 300 or self.start.microsecond:
-            raise ValueError(f"{self.start!r} is not a five-minute mark in UTC")
+        if _seconds(self.start) % self.STEP or self.start.microsecond:
+            raise ValueError(f"{self.start!r} is not a {self.SPAN} mark in UTC")
+
+
+@dataclass(frozen=True)
+class Minute(Five):
+    """A one-minute bar, named by the moment it starts."""
+
+    STEP, SPAN = 60, MINUTE
 
 
 class Round:
@@ -180,12 +192,13 @@ class Round:
         put = PUT if self._source.fresh else FILL
         return self._write(put, line, DAILY, ((bar.day.toordinal(), bar) for bar in bars))
 
-    def five(self, line: Line, bars: Iterable[Five]) -> int:
-        """More of a line's five-minute bars, and how many landed. They only gather: from a
-        fresh source a bar given again for a moment takes the place of the one held for it;
-        from any other a bar lands only on a moment that holds none. No other bar is touched."""
+    def five(self, line: Line, bars: Iterable[Five], span: str = FIVE) -> int:
+        """More of a line's five-minute bars (or, with span MINUTE, its Minute bars), and how
+        many landed. They only gather: from a fresh source a bar given again for a moment takes
+        the place of the one held for it; from any other a bar lands only on a moment that
+        holds none. No other bar is touched."""
         put = PUT if self._source.fresh else FILL
-        return self._write(put, line, FIVE, ((_seconds(b.start), b) for b in bars))
+        return self._write(put, line, span, ((_seconds(b.start), b) for b in bars))
 
     def compare(self, line: Line, bars: Collection[Five]) -> Verdict:
         """How the bars meet the bars held from another source for their own moments (see
@@ -258,12 +271,14 @@ def daily(path: Path, line: Line) -> tuple[Bar, ...]:
     )
 
 
-def five(path: Path, line: Line, since: datetime, until: datetime) -> tuple[Five, ...]:
-    """A line's five-minute bars starting from since up to, not including, until, oldest
-    first: its last week is the seven days up to now."""
-    rows = _read(path, line, FIVE, _seconds(since), _seconds(until))
+def five(
+    path: Path, line: Line, since: datetime, until: datetime, kind: type[Five] = Five
+) -> tuple[Five, ...]:
+    """A line's five-minute bars (or, with kind Minute, its one-minute bars) starting from
+    since up to, not including, until, oldest first: its last week is the seven days up to now."""
+    rows = _read(path, line, kind.SPAN, _seconds(since), _seconds(until))
     return tuple(
-        Five(EPOCH + timedelta(seconds=at), Decimal(o), Decimal(h), Decimal(lo), Decimal(c), v)
+        kind(EPOCH + timedelta(seconds=at), Decimal(o), Decimal(h), Decimal(lo), Decimal(c), v)
         for at, o, h, lo, c, v in rows
     )
 
@@ -355,46 +370,3 @@ def keep(
             gave = [f"{differ} bars held from another source differ, and gave way"] * (differ > 0)
             faults[line] = (*found, *gave)
     return faults
-
-
-def _audited(path: Path, venue: str, symbol: str, span: str) -> tuple[int, list[str]]:
-    """One held line and span through the checks that let its bars in: how many bars, and
-    every fault. A research ticker is no frozen line, so it is checked as a plain one."""
-    if venue not in venues.RULES:
-        return 0, [f"no calendar for venue {venue}"]
-    plain = Line(symbol, venue, "GBP" if venue == "LSE" else "USD", 1)
-    line = next((x for x in LINES if (x.venue, x.symbol) == (venue, symbol)), plain)
-    if span == FIVE:
-        every = five(path, line, EPOCH, datetime(9999, 12, 31, tzinfo=UTC))
-        return len(every), checked(line, every)[1]
-    every_day = daily(path, line)
-    end = max((b.day for b in every_day), default=date.today()) + timedelta(1)
-    return len(every_day), [f.what for f in cleaned(line, every_day, end, end)[1]]
-
-
-def audit(path: Path) -> str:
-    """Every line and ticker the store at path holds, re-checked read-only: one line of counts
-    and faults by kind, the worst three lines named."""
-    with closing(sqlite3.connect(f"{path.as_uri()}?mode=ro", uri=True, timeout=WAIT)) as held:
-        keys = held.execute("SELECT venue, symbol, span FROM held ORDER BY 1, 2, 3").fetchall()
-    total, kinds, worst = 0, Counter[str](), Counter[str]()
-    for venue, symbol, span in keys:
-        count, found = _audited(path, venue, symbol, span)
-        total += count
-        kinds.update(re.sub(r"\s+", " ", re.sub(r"[\d.:-]+", "", what)).strip() for what in found)
-        worst[f"{symbol} on {venue} ({span})"] = len(found)
-    named = ", ".join(f"{k} {n}" for k, n in worst.most_common(3) if n) or "none"
-    by_kind = "; ".join(f"{n} {k}" for k, n in kinds.most_common()) or "none"
-    return (
-        f"bars audit: {len(keys)} lines, {total} bars, {sum(kinds.values())} faults"
-        f" ({by_kind}); worst: {named}"
-    )
-
-
-if __name__ == "__main__":
-    store = Path(os.environ.get("KESTREL2_DATA", "")) / "market.db"
-    if sys.argv[1:] != ["--audit"]:
-        sys.exit("usage: KESTREL2_DATA=<data folder> python -m desk.bars --audit")
-    if not store.is_file():
-        sys.exit(f"bars --audit: no store at {store}")
-    sys.stdout.write(audit(store) + "\n")
