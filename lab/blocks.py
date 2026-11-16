@@ -97,6 +97,24 @@ class CloseAtOrBelowAverage(_Average):
         super().__init__(n, lambda close, mean: close <= mean)
 
 
+class CloseOverRisingAverage(Block):
+    """Fires on a close over its `n`-bar average, this bar's included, when that average is
+    higher than it was `ago` bars before (Weinstein's stage 2)."""
+
+    def __init__(self, n: int, ago: int) -> None:
+        self._closes = _Window(n)
+        self._means: deque[Decimal] = deque(maxlen=ago + 1)
+
+    def see(self, bar: Bar, holding: bool) -> bool:  # noqa: ARG002 - the one interface of every block
+        """Shown the next bar: whether the block fires."""
+        self._closes.add(bar.close)
+        if not self._closes.full:
+            return False
+        mean = self._closes.mean()
+        self._means.append(mean)
+        return len(self._means) == self._means.maxlen and mean > self._means[0] and bar.close > mean
+
+
 class LowerRun(Block):
     """Fires after `n` bars in a row, this one the last, each with a lower high and a lower low
     than the bar before it."""
@@ -332,9 +350,13 @@ class Spot:
 
 _DAYS = Param(int, 2, 400)
 _PCT = Param(int, 1, 50)
+_AGO = Param(int, 1, 50)
 #: The one list of blocks by name; a spec names these and no others.
 BLOCKS: Mapping[str, Spot] = {
     "highest_high": Spot(Kind.ENTRY, HighestHigh, {"n": _DAYS}),
+    "close_over_rising_average": Spot(
+        Kind.ENTRY, CloseOverRisingAverage, {"n": _DAYS, "ago": _AGO}
+    ),
     "lower_run": Spot(Kind.ENTRY, LowerRun, {"n": _DAYS}),
     "close_at_range_low": Spot(Kind.ENTRY, CloseAtRangeLow, {"n": _DAYS}),
     "close_under_close_ago": Spot(Kind.ENTRY, CloseUnderCloseAgo, {"n": _DAYS}),
