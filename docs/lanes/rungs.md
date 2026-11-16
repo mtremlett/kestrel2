@@ -532,3 +532,7 @@ Decided by the PAPER lane as the desk's mentor, no one watching.
 - The missing 12 November. Options: record the line as suspended (false); leave the gap (parks the line for 60 sessions); build it from the archive's five-minute bars of that day. Chosen: the last.
 - Cross-check source. The archive holds nothing of 3LGO before 13 November, so the database's July daily closes are the only independent proof; gate: at least half the overlapping closes agree (7 of 9 did). Units: pence assumed for a pound line, refuted by the store's jump check if wrong.
 - No blind review was run in this unattended session.
+
+### 2026-11-16 — the ladder's churn, mechanism found for R-RUNNER-193 (declined as a lane cannot edit FAILURE_PATTERNS)
+- Four fixes in a row to `lab/verdict.py`, `lab/ladder.py`, `lab/market.py` (#402, #405, #410, #419). Hypothesis from the four diffs: a verdict's reason text is chosen by position (the first rung that answered) rather than carried by the rung that answered, so each blind review finds one more place that names the wrong rung or day (#402 shuffle, #405 market, #419 market again). Evidence: #419 corrects the wording #405 introduced; both change the same reason-selection lines.
+- Wanted pattern for a session the operator starts: "14. A verdict's reason chosen by position" naming `lab/verdict.py`, `lab/ladder.py`, `lab/market.py`; mechanism: each rung returns its own typed answer with its reason, and the ladder only joins them; caught by one contract test per rung that its answer names its own reason.

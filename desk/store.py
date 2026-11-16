@@ -22,36 +22,29 @@ from desk.lines import Line
 
 #: Neighbouring bars further apart than this factor (a fall of 37.5%, a rise of 60%) are not a
 #: market move: a wrong unit (pence among pounds is 100), a bad print, or an unadjusted split of
-#: 2-for-1 or more. A smaller wrong factor (3-for-2, pounds read as dollars) cannot be told from
-#: a real move by price alone, and passes.
+#: 2-for-1 or more. A smaller wrong factor cannot be told from a real move by price alone.
 JUMP = Decimal("1.6")
-#: London records its auctions apart from the day's trading, so an archive's open or close can
-#: sit just outside the day's high and low. Within this fraction of the price it is the official
-#: price and the range stretches to hold it (his ruling of 13 November 2026); further out, the
-#: bar cannot be true.
+#: London records its auctions apart from the day's trading, so an open or close can sit just
+#: outside the day's high and low. Within this fraction the range stretches to hold it (his
+#: ruling of 13 November 2026); further out, the bar cannot be true.
 STRETCH = Decimal("0.03")
 #: Only a fault in the last this-many sessions parks a line; an older bad day is dropped and
 #: listed (his ruling of 13 November 2026).
 RECENT = 60
 #: The longest run of bars a hundredfold out of line with those either side is bad days in the
-#: wrong unit, not a lasting step. Any other fall and recovery may be real (a leveraged line can
-#: lose 40% and win it back) and parks as a step.
+#: wrong unit, not a lasting step. Any other fall and recovery may be real and parks as a step.
 BLIP = 20
 #: A run of this many sessions, each repeating the bar before it or flat at its close with no
-#: volume, is a frozen feed: the longest real run since 2010 is three (2MU, December 2022).
-#: Its bars are dropped and listed.
+#: volume, is a frozen feed (the longest real run since 2010 is three): dropped and listed.
 FROZEN = 5
 #: A price this many times, or this fraction of, its neighbour's close is in another unit
 #: (pence among pounds is 100), however far a market moves: a hundredfold, less a jump.
 FAR = 100 / JUMP
-#: A one-for-one line's neighbouring closes in the ratio of that day's pound in dollars, within
-#: this fraction, are one bar in dollars beside one in pounds, not a market move (14 November
-#: 2026: IITU x0.662, VHYG x0.808, VUAG x0.791, IB1T x0.733, each below JUMP). A leveraged
-#: line's real crashes sit as near the rate (5QQQ x0.770, 3 April 2025), so only a stray bar of
-#: one is tested; a bar already past JUMP is taken so within the wider FX_FAR.
+#: A one-for-one line's closes in the ratio of the day's pound in dollars, within this fraction,
+#: are dollars among pounds if the step lasts (IITU x0.662); a leveraged line's real crashes
+#: sit as near (5QQQ x0.770), so only its stray bar is tested, within FX_FAR.
 FX_STEP, FX_FAR = Decimal("0.05"), Decimal("0.10")
-#: The newest pound in dollars a day may be judged on is at most this old.
-RATE_AGE = timedelta(days=7)
+RATE_AGE = timedelta(days=7)  #: the newest pound in dollars a day is judged on is at most this old
 AGREE = Decimal("0.02")  #: two sources' closes for a session must agree within this (R-RUNNER-189)
 #: A recorded split is adopted when the bar's jump is within this fraction of its ratio.
 SPLIT_NEAR = Decimal("0.25")
@@ -139,21 +132,23 @@ def _entered(line: Line, bar: Bar, open_days: set[date], faults: list[Fault]) ->
     return replace(bar, high=high, low=low)
 
 
-def _rate(rates: Rates, day: date) -> Decimal | None:
+def pound_on(rates: Rates, day: date) -> Decimal | None:
     """The pound's newest close in dollars on or before day, if no older than RATE_AGE."""
     days = sorted(rates)
-    at = bisect_right(days, day)
-    return rates[days[at - 1]] if at and day - days[at - 1] <= RATE_AGE else None
+    last = days[bisect_right(days, day) - 1] if rates and day >= days[0] else None
+    return rates[last] if last and day - last <= RATE_AGE else None
 
 
-def _fx(ratio: Decimal, rate: Decimal | None, near: Decimal) -> bool:
-    """The ratio of two closes is the pound's rate, or one over it, within near."""
-    return rate is not None and any(abs(ratio / r - 1) <= near for r in (rate, 1 / rate))
+def same_as_pound(ratio: Decimal, pound: Decimal | None, within: Decimal) -> bool:
+    """The ratio of two closes is the pound's rate, or one over it, within the given fraction."""
+    return pound is not None and any(abs(ratio / r - 1) <= within for r in (pound, 1 / pound))
 
 
-def _agree(line: Line, before: Bar, after: Bar, rates: Rates) -> bool:
+def _agree(line: Line, before: Bar, onward: Sequence[Bar], rates: Rates) -> bool:
     """Neighbouring bars could both be true: each one's range lies within a market's move of the
-    other's close, or the line records this close. A step as large as the pound's is a currency."""
+    other's close, or the line records this close. A step as large as the pound's that lasts, every
+    close of the next RECENT sessions still in the new unit, is a currency. onward: after, on."""
+    after, ahead = onward[0], onward[1:]
 
     def near(bar: Bar, close: Decimal) -> bool:
         return close / JUMP <= bar.low and bar.high <= close * JUMP
@@ -161,8 +156,10 @@ def _agree(line: Line, before: Bar, after: Bar, rates: Rates) -> bool:
     confirmed = dict(line.real_moves).get(after.day)
     if confirmed is not None:
         return after.close == confirmed and near(after, after.close)
-    if line.leverage == 1 and _fx(after.close / before.close, _rate(rates, after.day), FX_STEP):
-        return False
+    pound = pound_on(rates, after.day)
+    step = line.leverage == 1 and same_as_pound(after.close / before.close, pound, FX_STEP)
+    if step and all(same_as_pound(b.close / before.close, pound, FX_FAR) for b in ahead[:RECENT]):
+        return False  # every close stays in the new unit: a move that came back is the market's
     return near(after, before.close) and near(before, after.close)
 
 
@@ -171,8 +168,8 @@ def moves(line: Line, bars: Sequence[Bar], rates: Rates = NO_RATES) -> tuple[dat
     true, by a move further than the store believes a market makes that the line does not
     record. They are the moves a line is parked for until confirmed, judged on the bars as
     kept: where a frozen run was dropped, the bars either side of it are neighbours here."""
-    pairs = zip(bars, bars[1:], strict=False)
-    return tuple(after.day for before, after in pairs if not _agree(line, before, after, rates))
+    links = [_agree(line, bars[n], bars[n + 1 :], rates) for n in range(len(bars) - 1)]
+    return tuple(bar.day for bar, ok in zip(bars[1:], links, strict=True) if not ok)
 
 
 def _far(bar: Bar, close: Decimal, rate: Decimal | None) -> bool:
@@ -182,7 +179,7 @@ def _far(bar: Bar, close: Decimal, rate: Decimal | None) -> bool:
     hundredfold = any(
         p >= close * FAR or p * FAR <= close for p in (bar.open, bar.high, bar.low, bar.close)
     )
-    return hundredfold or _fx(bar.close / close, rate, FX_FAR)
+    return hundredfold or same_as_pound(bar.close / close, rate, FX_FAR)
 
 
 def _stray(at: int, links: Sequence[bool]) -> bool:
@@ -199,23 +196,23 @@ def _stray(at: int, links: Sequence[bool]) -> bool:
 def _priced(line: Line, sound: Sequence[Bar], faults: list[Fault], rates: Rates) -> list[Bar]:
     """Drop a bar, or a short run, a hundredfold out of line with the days either side or in the
     other currency; keep any other move, a one-day crash too, as a lasting fault until recorded."""
-    links = [_agree(line, a, b, rates) for a, b in zip(sound, sound[1:], strict=False)]
+    links = [_agree(line, sound[n], sound[n + 1 :], rates) for n in range(len(sound) - 1)]
     kept: list[Bar] = []
     resume = 0
     for at, bar in enumerate(sound):
         if at < resume:
             continue
-        rate = _rate(rates, bar.day) if line.leverage == 1 else None
+        rate = pound_on(rates, bar.day) if line.leverage == 1 else None
         if _stray(at, links) and _far(bar, sound[at - 1 if at else 1].close, rate):
             faults.append(Fault(bar.day, f"{bar.day} {ASTRAY}"))
             continue
-        if kept and not _agree(line, kept[-1], bar, rates):
-            back = at + 1 < len(sound) and _agree(line, kept[-1], sound[at + 1], rates)
+        if kept and not _agree(line, kept[-1], sound[at:], rates):
+            back = at + 1 < len(sound) and _agree(line, kept[-1], sound[at + 1 :], rates)
             if bar.volume == 0 and back:  # no trade states no price (2MU, 24 October 2025)
                 faults.append(Fault(bar.day, f"{bar.day} {ASTRAY}: it has no volume"))
                 continue
             unit = _far(bar, kept[-1].close, rate)
-            dollars = _fx(bar.close / kept[-1].close, rate, FX_FAR)  # the pound's rate holds a run
+            dollars = same_as_pound(bar.close / kept[-1].close, rate, FX_FAR)  # a run in dollars
             reach = len(sound) if dollars else min(at + 1 + BLIP, len(sound))
             ahead = range(at + 1, reach if unit else at + 1)
             resume = next((n for n in ahead if not _far(sound[n], kept[-1].close, rate)), at)
@@ -317,17 +314,27 @@ Older = Sequence[Bar] | None  #: a line's older bars
 
 
 def judge(
-    line: Line, answer: Answer, day: date, rates: Rates = NO_RATES, shelf: Older = None
+    line: Line,
+    answer: Answer,
+    day: date,
+    rates: Rates = NO_RATES,
+    shelf: Older = None,
+    broker: Answer | None = None,
 ) -> tuple[list[Bar], list[Fault], Parked | None]:
     """THE ONE JUDGEMENT of a line's bars: those that can be true, every fault found and, if one
-    is recent or lasting, the line parked, ready to trade on day. A line the archive refused
-    keeps no bars, so none from an earlier day can be read as today's."""
+    is recent or lasting, the line parked, ready to trade on day. The broker's bars stand first
+    (his ruling of 16 November), the archive's under them, the shelf's under those. A line none
+    gave bars for keeps none, so none from an earlier day can be read as today's."""
     since = venues.sessions(line.venue, day - timedelta(100), day - timedelta(1))[-RECENT]
-    if isinstance(answer, Refused):
+    top = None if broker is None or isinstance(broker, Refused) else broker
+    if isinstance(answer, Refused) and top is None:
         kept: list[Bar] = []
         faults = [Fault(day, f"the archive refused it: {answer.reason}")]
     else:
-        joined, faults = _joined(shelf, answer)
+        joined, faults = ([], []) if isinstance(answer, Refused) else _joined(shelf, answer)
+        if top is not None:
+            joined, over = _joined(joined, top, "broker", "archive")
+            faults += over
         kept, found = _clean(line, joined, day, since, rates)
         faults = [*faults, *found]
     recent = [f.what for f in faults if f.lasting or f.day >= since]
@@ -341,27 +348,13 @@ def prepare(
     root.mkdir(parents=True, exist_ok=True)
     parked: list[Parked] = []
     for line, answer in archive.items():
-        older = _load(path) if (path := root / HISTORY / f"{line.symbol}.csv").is_file() else None
+        shelved = root / HISTORY / f"{line.symbol}.csv"
+        older = read(root / HISTORY, line.symbol) if shelved.is_file() else None
         kept, faults, park = judge(line, answer, day, rates, older)
         _write(root / f"{line.symbol}.csv", COLUMNS, (astuple(bar) for bar in kept))
         _write(root / f"{line.symbol}.faults.csv", ("fault",), ((f.what,) for f in faults))
         parked += [park] if park else []
     return tuple(parked)
-
-
-def _load(path: Path) -> tuple[Bar, ...]:
-    with path.open(newline="", encoding="utf-8") as stored:
-        return tuple(
-            Bar(
-                date.fromisoformat(row["day"]),
-                Decimal(row["open"]),
-                Decimal(row["high"]),
-                Decimal(row["low"]),
-                Decimal(row["close"]),
-                int(row["volume"]),
-            )
-            for row in csv.DictReader(stored)
-        )
 
 
 def shelve(root: Path, line: Line, bars: Iterable[Bar]) -> None:
@@ -371,9 +364,11 @@ def shelve(root: Path, line: Line, bars: Iterable[Bar]) -> None:
     _write(root / HISTORY / f"{line.symbol}.csv", COLUMNS, (astuple(bar) for bar in bars))
 
 
-def _joined(shelf: Older, bars: Sequence[Bar]) -> tuple[list[Bar], list[Fault]]:
-    """The archive's bars, a shelved bar for each day it gives none; closes both give beyond
-    AGREE are a fault naming both, the archive's standing. A frozen run is dropped."""
+def _joined(
+    shelf: Older, bars: Sequence[Bar], over: str = "archive", under: str = "shelf"
+) -> tuple[list[Bar], list[Fault]]:
+    """The upper source's bars, a lower one's bar for each day it gives none; closes both give
+    beyond AGREE are a fault naming both, the upper's standing. A frozen run is dropped."""
     if shelf is None:
         return list(bars), []
     real = set(_thawed(bars, []))
@@ -381,16 +376,21 @@ def _joined(shelf: Older, bars: Sequence[Bar]) -> tuple[list[Bar], list[Fault]]:
     both = [(b, given[b.day]) for b in shelf if b.day in given]
     fills = (bar for bar in shelf if bar.day not in given)
     return sorted([*fills, *given.values()], key=lambda x: x.day), [
-        Fault(b.day, f"{b.day} close {a.close} (archive), {b.close} (shelf)")
+        Fault(b.day, f"{b.day} close {a.close} ({over}), {b.close} ({under})")
         for b, a in both
         if abs(b.close / a.close - 1) > AGREE
     ]
 
 
+def _bar(r: Mapping[str, str]) -> Bar:
+    o, h, low, c = (Decimal(r[name]) for name in COLUMNS[1:5])
+    return Bar(date.fromisoformat(r["day"]), o, h, low, c, int(r["volume"]))
+
+
 def read(root: Path, symbol: str) -> tuple[Bar, ...]:
-    """Every bar the store kept for one line, oldest first. A parked line keeps the bars that
-    can be true, but does not trade."""
-    return _load(root / f"{symbol}.csv")
+    """Every bar the store kept for one line, oldest first (a parked line's too)."""
+    with (root / f"{symbol}.csv").open(newline="", encoding="utf-8") as stored:
+        return tuple(_bar(r) for r in csv.DictReader(stored))
 
 
 def faults(root: Path, symbol: str) -> tuple[str, ...]:
