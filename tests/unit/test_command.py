@@ -10,6 +10,7 @@ from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 from typing import BinaryIO
+from unittest.mock import Mock
 
 import pytest
 import test_placing as tp
@@ -28,6 +29,7 @@ from desk import (
     listing,
     messenger,
     paper,
+    pnl,
     running,
     venues,
 )
@@ -242,3 +244,16 @@ def test_the_rehearsal_may_begin_on_a_weekday_once_the_markets_are_shut_and_far_
     ):
         _run(tmp_path, MON.replace(hour=hour, minute=minute), "--rehearse")
         assert ("not begun" in capsys.readouterr().out) == (not begins), (hour, minute)
+
+
+def test_a_real_step_is_followed_by_the_hourly_pnl_once_an_hour(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    told, post = Mock(return_value="the day so far"), Mock(side_effect=range(1, 9))
+    monkeypatch.setattr(pnl, "told", told)
+    _world(monkeypatch)
+    desk, open_london = command._desk(tmp_path, post, tmp_path), MON.replace(hour=9, minute=0)
+    for moment in (open_london, open_london + timedelta(minutes=5), open_london.replace(hour=10)):
+        command.hourly(desk, moment)
+    assert [call.args[0] for call in post.call_args_list] == ["the day so far"] * 2
+    assert told.call_args.args[-1] == open_london.replace(hour=10)

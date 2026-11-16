@@ -50,6 +50,7 @@ from desk import (
     messenger,
     paper,
     placing,
+    pnl,
     running,
     venues,
 )
@@ -274,6 +275,18 @@ def rehearse(
     return True, GO.format(*counts)
 
 
+def hourly(desk: Desk, now: datetime) -> None:
+    """His hourly profit and loss (desk/pnl.py), told after a real step: not in a rehearsal,
+    which has no day of its own to tell."""
+    today = now.date()
+
+    def words() -> str:
+        daily = desk.held(today)[0]
+        return pnl.told(desk.root, desk.hot, daily, desk.rates(today), desk.room.capital, now)
+
+    messenger.hourly(desk.root, now, words, desk.post)
+
+
 def main(
     argv: Sequence[str],
     env: Mapping[str, str] = os.environ,
@@ -288,6 +301,7 @@ def main(
     match argv:
         case []:
             running.step(desk, now)
+            hourly(desk, now)
             good, line = True, f"STEP {now:%a %d %b %H:%M} UTC: done."
         case ["--preflight"]:
             good, line = preflight(desk, env, now)
