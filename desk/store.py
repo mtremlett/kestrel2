@@ -7,9 +7,8 @@ in, so a reader never sees half a write."""
 
 from __future__ import annotations
 
-import csv
 from bisect import bisect_right
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import astuple, dataclass, replace
 from datetime import date, timedelta
 from decimal import Decimal
@@ -19,6 +18,10 @@ from types import MappingProxyType
 
 from desk import venues
 from desk.lines import Line
+from desk.shelf import COLUMNS, HISTORY, Bar, faults, load, read, shelve
+from desk.shelf import write as _write
+
+__all__ = ["Bar", "_write", "faults", "read", "shelve"]  # the shelf's, kept here for the readers
 
 #: Two neighbouring bars whose prices sit further apart than this factor (a fall of 37.5%,
 #: a rise of 60%) are not taken as a market move: a wrong unit (pence among pounds is 100),
@@ -58,23 +61,10 @@ RATE_AGE = timedelta(days=7)
 SPLIT_NEAR = Decimal("0.25")
 Rates = Mapping[date, Decimal]  #: the pound's close in dollars, by day
 NO_RATES: Rates = MappingProxyType({})
+NO_SECOND: Mapping[Line, Sequence[Bar]] = MappingProxyType({})  #: no second source's bars
+PRICES = ("open", "high", "low", "close")
 UNRECORDED = "a gap in the archive, or a suspension the line does not record"
 ASTRAY = "is out of line with the days either side: a wrong unit"
-COLUMNS = ("day", "open", "high", "low", "close", "volume")
-#: Where a line's older bars wait, in a folder of their own under the store's: the archive gives
-#: some lines a day or two, and the store is rebuilt from it on every prepare, so bars brought
-#: from elsewhere would be lost. They are joined to the archive's, which wins on any day it gives.
-HISTORY = "history"
-
-
-@dataclass(frozen=True)
-class Bar:
-    day: date
-    open: Decimal
-    high: Decimal
-    low: Decimal
-    close: Decimal
-    volume: int
 
 
 @dataclass(frozen=True)
@@ -82,6 +72,7 @@ class Fault:
     day: date  #: the session it concerns
     what: str
     lasting: bool = False  #: a step in the price: wrong for every bar before it, however old
+    mended: bool = False  #: listed, but mended: the line is not parked for it
 
 
 @dataclass(frozen=True)
@@ -280,14 +271,57 @@ def _thawed(kept: Sequence[Bar], faults: list[Fault]) -> list[Bar]:
     return thawed
 
 
+def _expected(line: Line, bars: Sequence[Bar], day: date) -> list[date]:
+    """Every session the line should hold before day, from its first bar's year."""
+    first = min((b.day for b in bars if b.day.year in venues.KNOWN), default=day)
+    return [
+        d for d in venues.sessions(line.venue, first, day - timedelta(1)) if d not in line.suspended
+    ]
+
+
+def _unit(mine: Mapping[date, Bar], theirs: Mapping[date, Bar]) -> Decimal:
+    """The factor that brings the second source's prices into the store's unit, matched by the
+    closes both hold: the middle ratio, read as 1, 100 or 1/100 (pence among pounds), else 1."""
+    ratios = sorted(theirs[d].close / mine[d].close for d in mine.keys() & theirs.keys())
+    middle = ratios[len(ratios) // 2] if ratios else Decimal(1)
+    return min((Decimal(1), Decimal(100), Decimal(1) / 100), key=lambda k: abs(middle * k - 1))
+
+
+def _differ(first: Bar, second: Bar) -> bool:
+    """Two sources' closes for one session lie further apart than STRETCH."""
+    return abs(second.close - first.close) > STRETCH * first.close
+
+
+def _filled(
+    line: Line, bars: Sequence[Bar], other: Sequence[Bar], day: date, since: date, rates: Rates
+) -> tuple[list[Bar], list[Fault]]:
+    """THE SECOND SOURCE'S RULE. The first source rules: its bars stand. The second's bar fills
+    a session only where the first's kept none. Where both hold a session their closes must
+    agree within STRETCH, else the session is a fault and neither bar is kept."""
+    if not other:
+        return list(bars), []
+    mine = {b.day: b for b in bars if b.close.is_finite() and b.close > 0}
+    theirs = {b.day: b for b in other if b.close.is_finite() and b.close > 0}
+    k = _unit(mine, theirs)
+    theirs = {d: replace(b, **{p: getattr(b, p) * k for p in PRICES}) for d, b in theirs.items()}
+    apart = [d for d in sorted(mine.keys() & theirs.keys()) if _differ(mine[d], theirs[d])]
+    found = [Fault(d, f"{d} the sources disagree: {mine[d].close} and {theirs[d].close}; none kept")
+             for d in apart]  # fmt: skip
+    held = [b for b in bars if b.day not in apart]
+    have = {b.day for b in _clean(line, held, day, since, rates)[0]} | set(apart)
+    owed = set(_expected(line, bars, day)) - have
+    fills = [b for d, b in sorted(theirs.items()) if d in owed]
+    found += [Fault(b.day, f"{b.day} filled from the second source", mended=True) for b in fills]
+    filled = {b.day for b in fills}
+    return sorted([*(b for b in held if b.day not in filled), *fills], key=lambda b: b.day), found
+
+
 def _clean(
     line: Line, bars: Sequence[Bar], day: date, since: date, rates: Rates = NO_RATES
 ) -> tuple[list[Bar], list[Fault]]:
     """The bars of one line that can be true, and every fault found on the way."""
     faults: list[Fault] = []
-    first = min((b.day for b in bars if b.day.year in venues.KNOWN), default=day)
-    every = venues.sessions(line.venue, first, day - timedelta(1))
-    expected = [d for d in every if d not in line.suspended]
+    expected = _expected(line, bars, day)
     open_days, sound = set(expected), []
     for bar in _once(bars, faults):
         entered = _entered(line, bar, open_days, faults)
@@ -309,24 +343,17 @@ def _clean(
     return kept, faults
 
 
-def _write(path: Path, header: Sequence[str], rows: Iterable[Sequence[object]]) -> None:
-    part = path.with_suffix(".part")
-    with part.open("w", newline="", encoding="utf-8") as out:
-        writer = csv.writer(out)
-        writer.writerow(header)
-        writer.writerows(rows)
-    part.replace(path)
-
-
 def prepare(
     root: Path,
     archive: Mapping[Line, Sequence[Bar] | Refused],
     day: date,
     rates: Rates = NO_RATES,
+    second: Mapping[Line, Sequence[Bar]] = NO_SECOND,
 ) -> tuple[Parked, ...]:
     """Clean the archive's bars into the store at root, ready to trade on day. A line the
     archive refused keeps no bars, so none from an earlier day can be read as today's. The
-    pound's closes in dollars, when given, tell a change of currency from a market's move."""
+    pound's closes in dollars, when given, tell a change of currency from a market's move. A
+    line's second source, when given, fills the sessions the archive's bars lack."""
     root.mkdir(parents=True, exist_ok=True)
     parked = []
     for line, bars in archive.items():
@@ -335,35 +362,16 @@ def prepare(
             kept: list[Bar] = []
             faults = [Fault(day, f"the archive refused it: {bars.reason}")]
         else:
-            kept, faults = _clean(line, _joined(root, line, bars), day, since, rates)
+            joined = _joined(root, line, bars)
+            joined, mended = _filled(line, joined, second.get(line, ()), day, since, rates)
+            kept, faults = _clean(line, joined, day, since, rates)
+            faults = [*mended, *faults]
         _write(root / f"{line.symbol}.csv", COLUMNS, (astuple(bar) for bar in kept))
         _write(root / f"{line.symbol}.faults.csv", ("fault",), ((f.what,) for f in faults))
-        recent = [f.what for f in faults if f.lasting or f.day >= since]
+        recent = [f.what for f in faults if f.lasting or (f.day >= since and not f.mended)]
         if recent:
             parked.append(Parked(line.symbol, "; ".join(recent), day))
     return tuple(parked)
-
-
-def _load(path: Path) -> tuple[Bar, ...]:
-    with path.open(newline="", encoding="utf-8") as stored:
-        return tuple(
-            Bar(
-                date.fromisoformat(row["day"]),
-                Decimal(row["open"]),
-                Decimal(row["high"]),
-                Decimal(row["low"]),
-                Decimal(row["close"]),
-                int(row["volume"]),
-            )
-            for row in csv.DictReader(stored)
-        )
-
-
-def shelve(root: Path, line: Line, bars: Iterable[Bar]) -> None:
-    """A line's older bars, kept for every prepare to join to the archive's, replacing any
-    shelved before. They are cleaned as the archive's are, with it, on each prepare."""
-    (root / HISTORY).mkdir(parents=True, exist_ok=True)
-    _write(root / HISTORY / f"{line.symbol}.csv", COLUMNS, (astuple(bar) for bar in bars))
 
 
 def _joined(root: Path, line: Line, bars: Sequence[Bar]) -> list[Bar]:
@@ -376,18 +384,5 @@ def _joined(root: Path, line: Line, bars: Sequence[Bar]) -> list[Bar]:
     real = set(_thawed(bars, []))
     given = [bar for bar in bars if bar in real]
     held = {bar.day for bar in given}
-    older = (bar for bar in _load(shelved) if bar.day not in held)
+    older = (bar for bar in load(shelved) if bar.day not in held)
     return sorted([*older, *given], key=lambda bar: bar.day)
-
-
-def read(root: Path, symbol: str) -> tuple[Bar, ...]:
-    """Every bar the store kept for one line, oldest first. A parked line keeps the bars that
-    can be true, but does not trade."""
-    return _load(root / f"{symbol}.csv")
-
-
-def faults(root: Path, symbol: str) -> tuple[str, ...]:
-    """Every fault found in a line's bars on the last prepare, the old ones that no longer
-    park it included."""
-    with (root / f"{symbol}.faults.csv").open(newline="", encoding="utf-8") as stored:
-        return tuple(row["fault"] for row in csv.DictReader(stored))
