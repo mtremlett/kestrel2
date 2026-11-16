@@ -229,15 +229,20 @@ def test_every_trial_is_counted_before_any_is_run_and_the_count_never_begins_aga
     assert "against 2 trials: 0 judged now, 0 kept from before, 2 could not be judged" in said
     assert trials.count(register, ladder.QUESTION) == 2
     #: a line too short to have made a trade waits on its history: with nothing changed it is
-    #: tried again no sooner than 30 minutes after its last try, and the moment its bars differ
+    #: never appended again, however long on, and the moment its bars differ it is judged
     short = _door({VUSA: EDGE[:1], ISF: NOISE})
     clock[0] += timedelta(minutes=30)
     ladder.run(tmp_path, short, {}, todo, lambda: clock[0])
     waits = _rows(tmp_path)[2]
     assert "waits on 452" in waits["error"] and "answer" not in waits and "key" in waits
-    clock[0] += timedelta(minutes=29)
+    clock[0] += timedelta(hours=2)
+    before = _file(tmp_path).read_bytes()
     ladder.run(tmp_path, short, {}, todo, lambda: clock[0])
-    assert len(_rows(tmp_path)) == 4 and _rows(tmp_path)[2] == waits
+    assert (
+        _file(tmp_path).read_bytes() == before
+        and len(_rows(tmp_path)) == 4
+        and _rows(tmp_path)[2] == waits
+    )
     ladder.run(tmp_path, _door({VUSA: EDGE, ISF: NOISE}), {}, todo, lambda: clock[0])
     #: both are judged again, for their rule's lines are not as they were: the edge, with
     #: 6 or 7 trades a year pooled over two lines, is too thin to say; the noise fails
