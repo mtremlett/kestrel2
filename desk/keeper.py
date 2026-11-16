@@ -48,7 +48,7 @@ from typing import TypeVar
 
 from desk import archive, bars, store, venues
 from desk.bars import Five
-from desk.lines import LINES, REFERENCE, Line
+from desk.lines import LINES, REFERENCE, YARDSTICK, Line
 from desk.store import Bar, Refused
 
 DAILY, HOT = "daily", "bars.db"  #: in the data folder: the daily store's folder, the fast store
@@ -281,6 +281,11 @@ def keep(
         kept = _refresh(home / DAILY / venue, mine, now, _within(daily, clock, ends), idle)
         if kept is not None:
             told.append(_told(kept, mine))
+            if YARDSTICK.symbol in kept.parked and YARDSTICK.symbol not in kept.refused:
+                why = kept.parked[YARDSTICK.symbol]
+                told.append(
+                    (f"FIRST-LIGHT FAULT: the yardstick {YARDSTICK.symbol} is parked: {why}", True)
+                )
         if venues.open_at(venue, now) or venues.open_at(venue, now - SETTLED):
             told.append(_round(home / HOT, mine, now, _within(five, clock, ends)))
     spoken = [words for words, _ in told]

@@ -56,6 +56,8 @@ FX_STEP, FX_FAR = Decimal("0.05"), Decimal("0.10")
 RATE_AGE = timedelta(days=7)
 #: A recorded split is adopted when the bar's jump is within this fraction of its ratio.
 SPLIT_NEAR = Decimal("0.25")
+#: Two sources' closes for one session must agree within this fraction, else a fault (R-RUNNER-189).
+AGREE = Decimal("0.02")
 Rates = Mapping[date, Decimal]  #: the pound's close in dollars, by day
 NO_RATES: Rates = MappingProxyType({})
 UNRECORDED = "a gap in the archive, or a suspension the line does not record"
@@ -335,7 +337,9 @@ def prepare(
             kept: list[Bar] = []
             faults = [Fault(day, f"the archive refused it: {bars.reason}")]
         else:
-            kept, faults = _clean(line, _joined(root, line, bars), day, since, rates)
+            joined, clashes = _joined(root, line, bars)
+            kept, faults = _clean(line, joined, day, since, rates)
+            faults += clashes
         _write(root / f"{line.symbol}.csv", COLUMNS, (astuple(bar) for bar in kept))
         _write(root / f"{line.symbol}.faults.csv", ("fault",), ((f.what,) for f in faults))
         recent = [f.what for f in faults if f.lasting or f.day >= since]
@@ -366,18 +370,21 @@ def shelve(root: Path, line: Line, bars: Iterable[Bar]) -> None:
     _write(root / HISTORY / f"{line.symbol}.csv", COLUMNS, (astuple(bar) for bar in bars))
 
 
-def _joined(root: Path, line: Line, bars: Sequence[Bar]) -> list[Bar]:
-    """The archive's bars and, for each day it gives none, the line's shelved bar. A frozen
-    run in the archive's bars is its filler, not a price it gives: with a shelf, none of it is
-    kept, so a shelved bar fills its days and any day the shelf lacks is a missing session."""
+def _joined(root: Path, line: Line, bars: Sequence[Bar]) -> tuple[list[Bar], list[Fault]]:
+    """The archive's bars, the shelved bar for each day it gives none; closes of a day both give
+    beyond AGREE are a fault naming both, the archive's standing. A frozen run is dropped."""
     shelved = root / HISTORY / f"{line.symbol}.csv"
     if not shelved.is_file():
-        return list(bars)
+        return list(bars), []
     real = set(_thawed(bars, []))
-    given = [bar for bar in bars if bar in real]
-    held = {bar.day for bar in given}
-    older = (bar for bar in _load(shelved) if bar.day not in held)
-    return sorted([*older, *given], key=lambda bar: bar.day)
+    given = {bar.day: bar for bar in bars if bar in real}
+    older, clashes = _load(shelved), []
+    for b in older:
+        mine = given.get(b.day)
+        if mine and abs(b.close / mine.close - 1) > AGREE:
+            clashes.append(Fault(b.day, f"{b.day} close {mine.close} (archive), {b.close} (shelf)"))
+    fills = (bar for bar in older if bar.day not in given)
+    return sorted([*fills, *given.values()], key=lambda bar: bar.day), clashes
 
 
 def read(root: Path, symbol: str) -> tuple[Bar, ...]:

@@ -72,12 +72,17 @@ RULES: dict[str, tuple[Make, Line, str]] = {  # rule site -> (synthetic archive,
     "_clean:1": (lambda b: [*b[:5], replace(b[5], volume=-1), *b[6:]], US, "cannot be"),
     "_clean:2": (lambda _: [], US, "every session missing"),
     "_clean:3": (lambda b: [*b[:-6], *b[-5:]], US, "sessions missing"),
+    "_joined:1": (  # the harness shelves the clean bars first
+        lambda b: [*b[:5], replace(b[5], close=b[5].close * Decimal("1.05")), *b[6:]],
+        US,
+        "(shelf)",
+    ),
     "prepare:1": (lambda _: Refused("HTTP Error 404"), US, "the archive refused it"),
 }
 KNOBS = {  # every tuning constant of the store, with the value it is judged by
     "JUMP": Decimal("1.6"), "STRETCH": Decimal("0.03"), "RECENT": 60, "BLIP": 20, "FROZEN": 5,
     "FX_STEP": Decimal("0.05"), "FX_FAR": Decimal("0.10"), "RATE_AGE": timedelta(days=7),
-    "SPLIT_NEAR": Decimal("0.25"), "HISTORY": "history",
+    "SPLIT_NEAR": Decimal("0.25"), "HISTORY": "history", "AGREE": Decimal("0.02"),
 }  # fmt: skip
 
 
@@ -113,6 +118,8 @@ def test_each_rule_fires_on_its_synthetic_row(tmp_path: Path, site: str) -> None
     make, line, seen = RULES[site]
     clean = list(_bars(US, LONG))
     answer = make(clean)
+    if site == "_joined:1":
+        store.shelve(tmp_path, line, clean)
     store.prepare(tmp_path, {line: answer}, DAY)
     assert any(seen in f for f in store.faults(tmp_path, US.symbol)), site
 
