@@ -40,6 +40,10 @@ def test_the_ask_names_the_line_the_day_before_and_the_trades() -> None:
     deep = history.request(IDTL, DAY, date(2020, 1, 1)).decode()
     assert "7 Y" in deep and "USD" in deep
     assert history.request(AAPL, DAY, SINCE).decode().count("SMART") == 1
+    for frame, size in history.SIZES.items():
+        assert f"\0{size}\0" in history.request(VUAG, DAY, SINCE, frame).decode()
+    with pytest.raises(KeyError):
+        history.request(VUAG, DAY, SINCE, "3m")
 
 
 def test_the_bars_are_those_from_since_and_before_the_day_asked() -> None:
