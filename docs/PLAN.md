@@ -131,6 +131,8 @@ The grid lane needs it. The money lane's blocking requests are done: R-MONEY-1 (
 UK tax) and R-MONEY-2 (the scenes on the whole fourteen months).
 Retiring `desk/eponymous_*.py` (R-RUNNER-127) waits until all the rules are spec rows in
 `lab/catalogue.toml` (6 of about 25 on 15 Nov); deleting earlier would delete rules, not copies.
+Checked again 15 Nov late: still 6 rows of 19 files, so R-RUNNER-127 stays held (it needs spec-epon first).
+`desk.strategy.rsi` and `lower_band` are already public (R-RUNGS-12, #185).
 
 - [x] The rehearsal data in a file of its own (`tests/scenes/rehearsal.py`)
 - [x] The rehearsal data lengthened to about fourteen months, the five rules buying and
