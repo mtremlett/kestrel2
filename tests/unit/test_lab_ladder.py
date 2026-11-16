@@ -325,11 +325,12 @@ def test_the_shuffle_is_run_last_and_only_on_a_trial_that_passed_every_rung_befo
 ) -> None:
     own = Cell("breakout_20_10", VUSA, EDGE[0].day, ladder.END)
     before = {name: (Answer.PASS, "") for name in deflated.NAMED[:-1]}
-    ran = verdict.shuffled(own, EDGE, ROOM, {}, before)  # the only run of a hundred
+    ran = verdict.shuffled(own, EDGE, ROOM, {}, before, ())  # the only run of a hundred
     assert ran is not None and ran[0] is Answer.PASS and "100 shuffles" in ran[1]
     monkeypatch.setattr(shuffle, "share", lambda *_: pytest.fail("shuffled for nothing"))
     doubt = before | {"yearly": (Answer.DOUBT, "too good")}
-    unrun = verdict.shuffled(own, EDGE, ROOM, {}, doubt)  # its answer the least, its words its own
+    #: its answer the least, its words its own
+    unrun = verdict.shuffled(own, EDGE, ROOM, {}, doubt, ())
     assert unrun is not None and unrun[0] is Answer.DOUBT and "too good" not in unrun[1]
     assert unrun[1].startswith("not run") and "yearly answered DOUBT" in unrun[1]
-    assert verdict.shuffled(own, EDGE, ROOM, {}, {"first": before["first"]}) is None
+    assert verdict.shuffled(own, EDGE, ROOM, {}, {"first": before["first"]}, ()) is None
