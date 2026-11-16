@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from desk.backup import FIRST, SECOND, back_up, drill, drill_due, verify
+from desk.records_kept import FIRST, SECOND, back_up, drill, drill_due, verify
 
 NOW = datetime(2026, 11, 16, 3, 0, tzinfo=UTC)
 
