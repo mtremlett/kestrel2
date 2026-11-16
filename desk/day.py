@@ -230,6 +230,7 @@ def trade(
     day: date,
     rates: Mapping[str, Decimal],
     tell: book.Tell | None = None,
+    killed: frozenset[str] = frozenset(),
 ) -> tuple[book.Sent, ...]:
     """The day's orders, after the market opens: each rule's decision on the session before,
     its position read from the book; the sales first, then each buy sized from the book after
@@ -239,7 +240,9 @@ def trade(
     Nothing is sent for a day that is over: its record made, or a later fill in the ledger.
     Every buy and sale the rules ask for has its answer, and each not filled whole goes on
     the morning's list as it is answered, under its blocker (halt.morning), with the lines
-    no rule could decide. A place the broker disagrees with is told through tell (book.send)."""
+    no rule could decide. A place the broker disagrees with is told through tell (book.send).
+    A strategy in killed (its own kill condition met, lab/promotion.py) buys nothing, said so;
+    what it holds is still sold by its rule or its stop."""
     book.collect(root, broker)  #: the stops the open sold
     if later := max((fill.day for fill in book.fills(root) if fill.day > day), default=None):
         raise ValueError(f"{day}: the day is over, the ledger holding a fill of {later}")
@@ -264,8 +267,17 @@ def trade(
     for d in (d for d in decided if d.action is Action.BUY):
         line = due[d.symbol]
         price = archive[line][-1].close, rates[line.currency]
-        sent.append(_answer(root, day, _buy(root, broker, d, line, price, settings, day, tell)))
+        barred = _barred(d) if d.strategy in killed else None
+        bought = barred or _buy(root, broker, d, line, price, settings, day, tell)
+        sent.append(_answer(root, day, bought))
     return tuple(sent)
+
+
+def _barred(d: Decision) -> book.Sent:
+    """The answer for a buy by a strategy that met its kill condition: not sent, and why."""
+    name = order_id_of(d)
+    why = f"{name}: not sent, {d.strategy} met its kill condition and buys nothing"
+    return book.Sent(name, 0, why, Blocker.GATE)
 
 
 def _bare(
@@ -327,10 +339,15 @@ def _buy(
 ) -> book.Sent:
     """One rule's buy, sized from the book as the send before it left it, at the line's last
     close and the day's rate. A line held, or sold this morning, is not bought: said so. Nor is
-    one an ISA is not recorded as able to hold (line.isa no): the ISA buys only those."""
+    one an ISA is not recorded as able to hold (line.isa no): the ISA buys only those; nor one no
+    retail customer may buy (line.retail no), which the broker would only refuse, slowly."""
     now, name = book.positions(root), order_id_of(d)
-    if line.isa is False:
-        why = "is recorded as a line no stocks and shares ISA can hold"
+    if line.isa is False or line.retail is False:
+        why = (
+            "is recorded as a line no stocks and shares ISA can hold"
+            if line.isa is False
+            else "is recorded as a line no UK retail customer may buy"
+        )
         return book.Sent(name, 0, f"{name}: not sent, {d.symbol} {why}", Blocker.GATE)
     sold = {f.symbol for f in book.fills(root) if f.day == day and f.quantity < 0}
     if d.symbol in now or d.symbol in sold:

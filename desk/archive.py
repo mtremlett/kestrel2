@@ -194,4 +194,4 @@ def keep_reference(root: Path, line: Line, bars: Sequence[Bar]) -> tuple[store.F
 
 def read_reference(root: Path, symbol: str) -> tuple[Bar, ...]:
     """Every bar kept for a reference series, oldest first."""
-    return store._load(root / REFERENCE_FOLDER / f"{symbol}.csv")  # noqa: SLF001  # the store's own cleaning, not copied
+    return store.read(root / REFERENCE_FOLDER, symbol)

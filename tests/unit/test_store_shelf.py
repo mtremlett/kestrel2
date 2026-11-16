@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from decimal import Decimal
 from pathlib import Path
 
 import pytest
@@ -36,3 +37,30 @@ def test_a_frozen_run_the_archive_filled_is_replaced_by_shelved_bars_never_by_it
     first, last = max(shelf[0], 10), min(shelf[1], 17)
     assert store.read(tmp_path, UK.symbol) == (*every[:10], *every[first:last], *every[17:])
     assert bool(store.faults(tmp_path, UK.symbol)) is (shelf != (8, 20))
+
+
+def test_a_session_the_archive_lacks_is_filled_and_one_both_hold_must_agree(tmp_path: Path) -> None:
+    """R-RUNNER-189: the archive first; a shelved bar fills a hole (2MU, 8 January 2021) and
+    is no fault; two closes further apart than AGREE are a recorded fault, never settled."""
+    every = list(_bars(UK, LONG))
+    store.shelve(tmp_path, UK, every)
+    assert store.prepare(tmp_path, {UK: [*every[:30], *every[31:]]}, DAY) == ()
+    assert store.read(tmp_path, UK.symbol) == tuple(every) and not store.faults(tmp_path, "BBB")
+    far = replace(every[-10], close=every[-10].close * Decimal("1.05"), high=every[-10].high * 2)
+    parked = _parked(tmp_path, (*every[:-10], far, *every[-9:]), UK)
+    assert len(parked) == 1 and f"{far.day} close" in parked[0] and "(shelf)" in parked[0]
+    assert {b.day: b.close for b in store.read(tmp_path, UK.symbol)}[far.day] == far.close
+
+
+def test_the_brokers_bars_stand_first_over_the_archives_and_a_disagreement_is_a_fault() -> None:
+    """R-RUNNER-189: broker, then archive; the broker fills a hole, names both where they differ."""
+    every = list(_bars(UK, LONG))
+    hole = [*every[:30], *every[31:]]
+    kept, faults, park = store.judge(UK, hole, DAY, broker=every)
+    assert (kept, faults, park) == (every, [], None)
+    far = replace(every[-10], close=every[-10].close * Decimal("1.05"), high=every[-10].high * 2)
+    kept, faults, _ = store.judge(UK, [*every[:-10], far, *every[-9:]], DAY, broker=every)
+    assert kept == every and [
+        f.what for f in faults if "(broker)" in f.what and "(archive)" in f.what
+    ]
+    assert store.judge(UK, store.Refused("no route"), DAY, broker=every)[0] == every

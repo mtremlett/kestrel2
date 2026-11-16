@@ -72,12 +72,17 @@ RULES: dict[str, tuple[Make, Line, str]] = {  # rule site -> (synthetic archive,
     "_clean:1": (lambda b: [*b[:5], replace(b[5], volume=-1), *b[6:]], US, "cannot be"),
     "_clean:2": (lambda _: [], US, "every session missing"),
     "_clean:3": (lambda b: [*b[:-6], *b[-5:]], US, "sessions missing"),
-    "prepare:1": (lambda _: Refused("HTTP Error 404"), US, "the archive refused it"),
+    "_joined:1": (  # the harness shelves the clean bars first
+        lambda b: [*b[:5], replace(b[5], close=b[5].close * Decimal("1.05")), *b[6:]],
+        US,
+        "(shelf)",
+    ),
+    "judge:1": (lambda _: Refused("HTTP Error 404"), US, "the archive refused it"),
 }
 KNOBS = {  # every tuning constant of the store, with the value it is judged by
     "JUMP": Decimal("1.6"), "STRETCH": Decimal("0.03"), "RECENT": 60, "BLIP": 20, "FROZEN": 5,
     "FX_STEP": Decimal("0.05"), "FX_FAR": Decimal("0.10"), "RATE_AGE": timedelta(days=7),
-    "SPLIT_NEAR": Decimal("0.25"), "HISTORY": "history",
+    "SPLIT_NEAR": Decimal("0.25"), "HISTORY": "history", "AGREE": Decimal("0.02"),
 }  # fmt: skip
 
 
@@ -113,6 +118,8 @@ def test_each_rule_fires_on_its_synthetic_row(tmp_path: Path, site: str) -> None
     make, line, seen = RULES[site]
     clean = list(_bars(US, LONG))
     answer = make(clean)
+    if site == "_joined:1":
+        store.shelve(tmp_path, line, clean)
     store.prepare(tmp_path, {line: answer}, DAY)
     assert any(seen in f for f in store.faults(tmp_path, US.symbol)), site
 
@@ -151,7 +158,7 @@ def test_a_bad_high_is_repaired_and_kept_but_a_bad_close_is_refused(tmp_path: Pa
 def test_a_bad_low_is_repaired_and_the_line_not_parked_but_a_fall_the_close_shares_is_kept(
     tmp_path: Path,
 ) -> None:
-    """VUAG 16 March 2020 (R-RUNNER-185): a low far under both open and close is a bad print,
+    """SETTLED (R-RUNNER-175, -185, -194): a low far under both open and close is a bad print,
     clamped and listed, the line not parked; a close that falls with its low is the market's."""
     clean = list(_bars(US, LONG))
     was = clean[5]
