@@ -136,13 +136,24 @@ def _short(venue: str, last: Kept | None, day: date) -> bool:
     return last is None or bool(venues.sessions(venue, last.day, day - DAY))
 
 
-def _kept_in(hot: Path, answers: Mapping[Line, store.Answer], day: date) -> list[Parked]:
+def _shelf(folder: Path, line: Line) -> tuple[Bar, ...] | None:
+    """The older bars the head start shelved for a line, joined to the archive's; none if it
+    never shelved any. They wait in the old daily folder until the import takes them in."""
+    try:
+        return store.read(folder / store.HISTORY, line.symbol)
+    except FileNotFoundError:  # a line the head start never shelved
+        return None
+
+
+def _kept_in(
+    hot: Path, folder: Path, answers: Mapping[Line, store.Answer], day: date
+) -> list[Parked]:
     """The answers judged by the one store and kept in its long database as one round; the
-    lines parked. A line is kept whole: its bars replace those held, none from before stay."""
+    lines parked. A line is kept whole: its archive bars replace those the archive gave before."""
     parked = []
     with bars.writing(hot) as round_:
         for line, answer in answers.items():
-            kept, _faults, park = store.judge(line, answer, day)
+            kept, _faults, park = store.judge(line, answer, day, shelf=_shelf(folder, line))
             round_.daily(line, kept)
             parked += [park] if park else []
     return parked
@@ -179,7 +190,7 @@ def _refresh(
     answers = archive.gather(asked, readied, ask)
     refused = {line.symbol for line, answer in answers.items() if isinstance(answer, Refused)}
     given = {line: answer for line, answer in answers.items() if line.symbol not in refused}
-    found = _kept_in(hot, given if same else answers, readied)
+    found = _kept_in(hot, folder, given if same else answers, readied)
     parked = {symbol: why for symbol, why in before.items() if symbol not in map(_symbol, given)}
     parked |= {line.symbol: line.reason for line in found}
     kept = Kept(readied, now, tries, parked, frozenset(refused), RULES)
@@ -200,7 +211,12 @@ def saved(
         if last is None or _short(line.venue, last, day):
             had = "never refreshed" if last is None else f"last readied for {last.day}"
             raise Stale(f"{line.symbol}: no {line.venue} bars before {day} are held: {had}")
-        held[line] = tuple(bar for bar in bars.daily(home / HOT, line) if bar.day < day)
+        try:
+            held[line] = tuple(bar for bar in bars.daily(home / HOT, line) if bar.day < day)
+        except (LookupError, FileNotFoundError) as gone:  # never held, or no round has landed
+            raise Stale(
+                f"{line.symbol}: the long database holds no {line.venue} bars: {gone}"
+            ) from gone
         parked |= {line.symbol} & set(last.parked)
     return held, frozenset(parked)
 

@@ -5,13 +5,14 @@ a venue the archive answers nothing for is a miss."""
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
 import pytest
 
-from desk import archive, bars, keeper, venues
+from desk import archive, bars, keeper, store, venues
 from desk.bars import Five
 from desk.lines import Line
 from desk.store import Bar
@@ -75,6 +76,18 @@ class Archive:
         self.asked.clear()
         clock = self.clock if slow else lambda: 0.0
         return keeper.keep(home, now, LINES, self.daily, self.five, clock)
+
+
+def test_a_shelved_history_joins_the_archive_and_a_database_not_yet_written_is_stale(
+    tmp_path: Path,
+) -> None:
+    older = tuple(replace(bar, day=bar.day.replace(month=6)) for bar in _bars(UK, MON)[:2])
+    store.shelve(tmp_path / keeper.DAILY / UK.venue, UK, older)
+    Archive().keep(tmp_path, _at(6))
+    assert keeper.saved(tmp_path, MON, [UK])[0][UK][:2] == older  # parked for the gap, kept
+    (tmp_path / bars.HISTORY).unlink()
+    with pytest.raises(keeper.Stale, match="BBB: the long database holds no LSE bars"):
+        keeper.saved(tmp_path, MON, [UK])
 
 
 def test_a_trading_day_is_kept_each_venue_on_its_own_hours(tmp_path: Path) -> None:

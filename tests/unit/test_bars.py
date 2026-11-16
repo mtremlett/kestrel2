@@ -124,6 +124,18 @@ def test_a_bar_is_kept_with_its_source_and_only_a_fresh_source_restates(tmp_path
     assert bars.sources(store, UK, bars.DAILY) == {Source.ARCHIVE: 1}
 
 
+def test_an_archive_restates_its_own_daily_bars_and_another_sources_stand(tmp_path: Path) -> None:
+    store, days = tmp_path / "bars.db", _days(5)
+    with bars.writing(store, Source.MTT_DB) as round_:
+        round_.days(UK, days[:3])
+    with bars.writing(store) as round_:
+        round_.daily(UK, days[2:])  # its bar takes the day it shares with the old database
+    assert bars.sources(store, UK, bars.DAILY) == {Source.MTT_DB: 2, Source.ARCHIVE: 3}
+    with bars.writing(store) as round_:
+        round_.daily(UK, days[3:])  # a day it no longer gives is gone; the old database stands
+    assert bars.daily(store, UK) == (*days[:2], *days[3:])
+
+
 def test_a_reader_sees_only_whole_rounds_and_a_second_writer_is_refused(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
