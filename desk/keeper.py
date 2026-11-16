@@ -24,7 +24,8 @@ THE FIVE-MINUTE ROUND, at every call from a venue's open until SETTLED after its
 auction, for the archive shows a session's last bars late: its lines' bars of the last
 RECENT, through the fast store's checks, so a round missed heals at the next.
 
-THE REFERENCE SERIES, once a day after the US close: each of `lines.REFERENCE` (SPY) asked of the
+THE REFERENCE SERIES, once a day after the US close: each of `lines.REFERENCE` (SPY) and the pound
+in dollars (`lines.POUND`, read by `pound`) asked of the
 archive from its first session, and kept apart from the traded lines by the one store. A call
 the day's record already covers asks nothing; one the archive refuses is told, not a miss
 (nothing is traded on it), and asked again at the next call.
@@ -43,12 +44,13 @@ import time
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
+from decimal import Decimal
 from pathlib import Path
 from typing import TypeVar
 
-from desk import archive, bars, store, venues
+from desk import archive, bars, carry, store, venues
 from desk.bars import Five
-from desk.lines import LINES, REFERENCE, Line
+from desk.lines import DOLLARS, LINES, POUND, REFERENCE, Line
 from desk.store import Bar, Refused
 
 DAILY, HOT = "daily", "bars.db"  #: in the data folder: the daily store's folder, the fast store
@@ -191,6 +193,21 @@ def saved(
     return held, frozenset(parked)
 
 
+def pound(home: Path, day: date) -> Decimal:
+    """THE DAY'S POUNDS PER DOLLAR, for any session, from the pound's closes kept before the day
+    (desk.carry's one rule: one over the last close, carried over a UK-only holiday). Stale where
+    the store holds none fresh enough: no dollar line is priced on it."""
+    folder = home / DAILY / POUND.venue
+    kept = (folder / archive.REFERENCE_FOLDER / f"{POUND.symbol}.csv").is_file()
+    held = archive.read_reference(folder, POUND.symbol) if kept else ()
+    closes = {bar.day: bar.close for bar in held if DOLLARS[0] < bar.close < DOLLARS[1]}
+    last = venues.sessions("LSE", day - 10 * DAY, day - DAY)[-1:]
+    known = {d: r for d in (day, *last) if (r := carry.pounds_per_dollar(closes, d))}
+    if (rate := carry.carried(known, day)) is None:
+        raise Stale(f"no pound in dollars is held fresh for {day}: {len(closes)} closes kept")
+    return rate
+
+
 def _ancient(line: Line, day: date) -> tuple[Bar, ...]:
     return archive.fetch(line, day, since=archive.REFERENCE_SINCE)
 
@@ -268,7 +285,7 @@ def keep(
     five: Ask[datetime, tuple[Five, ...]] = _recent,
     clock: Callable[[], float] = time.monotonic,
     ancient: Ask[date, tuple[Bar, ...]] = _ancient,
-    series: Sequence[Line] = REFERENCE,
+    series: Sequence[Line] = (*REFERENCE, POUND),
 ) -> tuple[list[str], list[str]]:
     """WHATEVER IS OWED AT NOW, done once: what was done, in words, and of those the misses.
     Nothing is asked, and nothing said, on a day no venue trades and the store is whole."""
