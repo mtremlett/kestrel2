@@ -5,15 +5,16 @@ a venue the archive answers nothing for is a miss."""
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
 import pytest
 
-from desk import archive, bars, keeper, venues
+from desk import archive, bars, keeper, stooq, venues
 from desk.bars import Five
-from desk.lines import Line
+from desk.lines import YARDSTICK, Line
 from desk.store import Bar
 
 UK, US, TWIN = (
@@ -46,7 +47,7 @@ def _bars(line: Line, day: date) -> tuple[Bar, ...]:
 
 class Archive:
     """The archive, pretended: what it was asked, the lines it refuses and those it is a
-    session short on, and a clock that reads seventy seconds more each time it is looked at."""
+    session short on, and a clock that reads fifty seconds more each time it is looked at."""
 
     def __init__(self) -> None:
         self.asked: list[str] = []
@@ -66,15 +67,18 @@ class Archive:
             raise OSError("no route to the archive")
         return (Five(now - timedelta(minutes=5), *(Decimal(10),) * 4, 7),)
 
+    def second(self, *_: object) -> tuple[Bar, ...]:
+        raise OSError("no key for the second source")
+
     def clock(self) -> float:
         self.looks += 1
-        return 70.0 * self.looks
+        return 50.0 * self.looks
 
     def keep(self, home: Path, now: datetime, slow: bool = False) -> tuple[list[str], list[str]]:
         """One call of the keeper, and what it asked is all that `asked` then holds."""
         self.asked.clear()
         clock = self.clock if slow else lambda: 0.0
-        return keeper.keep(home, now, LINES, self.daily, self.five, clock)
+        return keeper.keep(home, now, LINES, self.daily, self.five, clock, self.second)
 
 
 def test_a_trading_day_is_kept_each_venue_on_its_own_hours(tmp_path: Path) -> None:
@@ -197,6 +201,7 @@ def test_nothing_is_asked_on_a_day_no_venue_trades_nor_once_the_calls_time_is_sp
         raise OSError(f"no route to {address[:13]}")
 
     monkeypatch.setattr(archive, "_ask", unreachable)
+    monkeypatch.setattr(stooq, "_ask", unreachable)
     assert keeper.main(tmp_path / "real", _at(9)) == 1  # the command itself, the archive away
     out, err = capsys.readouterr()
     assert len(out.splitlines()) == 3 and err.count("MISSED: ") == 3 and "MISSED: US: daily" in err
@@ -222,3 +227,23 @@ def test_the_closes_are_held_within_the_named_figure_after_each_venues_close(
         for day in venues.sessions(venue, date(2026, 11, 16), date(2027, 12, 31)):
             done = venues.hours(venue, day).auction + keeper.HELD
             assert done.astimezone(venues.zone("LSE", day)).hour < 22
+
+
+def test_a_parked_yardstick_is_a_first_light_fault_that_stooq_does_not_cover(
+    tmp_path: Path,
+) -> None:
+    """The archive's bars for the yardstick step by a lasting fault: the keeper names it."""
+    pretend = Archive()
+    wrong = tuple(
+        replace(b, close=b.close * 3) if n == 30 else b for n, b in enumerate(_bars(YARDSTICK, MON))
+    )
+    said, missed = keeper.keep(
+        tmp_path,
+        _at(9, day=SAT),
+        [YARDSTICK],
+        lambda *_: wrong,
+        pretend.five,
+        pretend.clock,
+        pretend.second,
+    )
+    assert missed == said and "FIRST-LIGHT FAULT: the yardstick VUAG is parked" in said[0]

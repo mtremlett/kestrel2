@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 from test_store import DAY, LONG, US, _bars, _scaled
 
-from desk import store
+from desk import second, store
 from desk.lines import Line
 from desk.store import Bar, Refused
 
@@ -73,18 +73,28 @@ RULES: dict[str, tuple[Make, Line, str]] = {  # rule site -> (synthetic archive,
     "_clean:2": (lambda _: [], US, "every session missing"),
     "_clean:3": (lambda b: [*b[:-6], *b[-5:]], US, "sessions missing"),
     "prepare:1": (lambda _: Refused("HTTP Error 404"), US, "the archive refused it"),
+    "blend:1": (lambda b: b, US, "second source unused: HTTP"),
+    "blend:2": (lambda b: b, US, "the two sources disagree"),
+    "blend:3": (lambda b: [*b[:5], *b[6:]], US, "offered by the second source"),
+}
+SECOND: dict[str, Callable[[list[Bar]], Sequence[Bar] | Refused]] = {  # the second source's answer
+    "blend:1": lambda _: Refused("HTTP Error 403"),
+    "blend:2": lambda b: [*b[:5], replace(b[5], close=b[5].close * 2), *b[6:]],
+    "blend:3": lambda b: b,
 }
 KNOBS = {  # every tuning constant of the store, with the value it is judged by
     "JUMP": Decimal("1.6"), "STRETCH": Decimal("0.03"), "RECENT": 60, "BLIP": 20, "FROZEN": 5,
     "FX_STEP": Decimal("0.05"), "FX_FAR": Decimal("0.10"), "RATE_AGE": timedelta(days=7),
-    "SPLIT_NEAR": Decimal("0.25"), "HISTORY": "history",
+    "SPLIT_NEAR": Decimal("0.25"), "HISTORY": "history", "AGREE": Decimal("0.02"),
+    "UNITS": (Decimal(1), Decimal("0.01"), Decimal(100)),
 }  # fmt: skip
 
 
 def _sites() -> set[str]:
     """Every place desk/store.py finds a fault, as function:nth, and every tuning constant."""
-    source = (Path(store.__file__)).read_text(encoding="utf-8")
-    tree = ast.parse(source)
+    tree = ast.parse(
+        "".join(Path(str(m.__file__)).read_text(encoding="utf-8") for m in (store, second))
+    )
     found = set()
     for fn in (n for n in tree.body if isinstance(n, ast.FunctionDef)):
         marks = sorted(
@@ -102,10 +112,10 @@ def test_every_rule_in_the_store_is_pinned_by_a_row_that_fires_it() -> None:
 
 
 def test_every_tuning_constant_of_the_store_is_pinned_to_its_value() -> None:
-    names = {k for k in vars(store) if k.isupper() and not k.startswith("_")}
+    names = {k for k in vars(store) | vars(second) if k.isupper() and not k.startswith("_")}
     names -= {"COLUMNS", "NO_RATES", "UNRECORDED", "ASTRAY", "FAR"}  # derived or wording
     assert names == set(KNOBS), "a constant was added or dropped without a row in KNOBS"
-    assert {k: getattr(store, k) for k in KNOBS} == KNOBS
+    assert {k: (vars(store) | vars(second))[k] for k in KNOBS} == KNOBS
 
 
 @pytest.mark.parametrize("site", sorted(RULES))
@@ -113,7 +123,9 @@ def test_each_rule_fires_on_its_synthetic_row(tmp_path: Path, site: str) -> None
     make, line, seen = RULES[site]
     clean = list(_bars(US, LONG))
     answer = make(clean)
-    store.prepare(tmp_path, {line: answer}, DAY)
+    store.prepare(
+        tmp_path, {line: answer}, DAY, second={line: SECOND[site](clean)} if site in SECOND else {}
+    )
     assert any(seen in f for f in store.faults(tmp_path, US.symbol)), site
 
 

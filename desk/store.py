@@ -61,9 +61,7 @@ NO_RATES: Rates = MappingProxyType({})
 UNRECORDED = "a gap in the archive, or a suspension the line does not record"
 ASTRAY = "is out of line with the days either side: a wrong unit"
 COLUMNS = ("day", "open", "high", "low", "close", "volume")
-#: Where a line's older bars wait, in a folder of their own under the store's: the archive gives
-#: some lines a day or two, and the store is rebuilt from it on every prepare, so bars brought
-#: from elsewhere would be lost. They are joined to the archive's, which wins on any day it gives.
+#: Where a line's older bars wait: each prepare joins them to the archive's, which wins on its days.
 HISTORY = "history"
 
 
@@ -82,6 +80,7 @@ class Fault:
     day: date  #: the session it concerns
     what: str
     lasting: bool = False  #: a step in the price: wrong for every bar before it, however old
+    parks: bool = True  #: a recent one parks the line; a note of a fill or an unused source not
 
 
 @dataclass(frozen=True)
@@ -323,6 +322,7 @@ def prepare(
     archive: Mapping[Line, Sequence[Bar] | Refused],
     day: date,
     rates: Rates = NO_RATES,
+    second: Mapping[Line, Sequence[Bar] | Refused] = MappingProxyType({}),
 ) -> tuple[Parked, ...]:
     """Clean the archive's bars into the store at root, ready to trade on day. A line the
     archive refused keeps no bars, so none from an earlier day can be read as today's. The
@@ -335,10 +335,17 @@ def prepare(
             kept: list[Bar] = []
             faults = [Fault(day, f"the archive refused it: {bars.reason}")]
         else:
-            kept, faults = _clean(line, _joined(root, line, bars), day, since, rates)
+            joined = _joined(root, line, bars)
+            kept, faults = _clean(line, joined, day, since, rates)
+            other = second.get(line)
+            if other is not None:  # the second source's one rule is desk/second.py's
+                from desk import second as rule  # noqa: PLC0415 - second imports this module
+
+                again = lambda b, ln=line, sn=since: _clean(ln, b, day, sn, rates)  # noqa: E731
+                kept, faults = rule.blend(kept, faults, other, joined, day, again)
         _write(root / f"{line.symbol}.csv", COLUMNS, (astuple(bar) for bar in kept))
         _write(root / f"{line.symbol}.faults.csv", ("fault",), ((f.what,) for f in faults))
-        recent = [f.what for f in faults if f.lasting or f.day >= since]
+        recent = [f.what for f in faults if f.parks and (f.lasting or f.day >= since)]
         if recent:
             parked.append(Parked(line.symbol, "; ".join(recent), day))
     return tuple(parked)
