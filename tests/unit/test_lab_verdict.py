@@ -127,3 +127,17 @@ def test_a_market_with_a_missing_day_is_a_fault_in_its_own_words() -> None:
         "rungs"
     ]["market"]
     assert answer == "FAULT" and f"has no bar on {NOISE[2000].day}" in why, why
+
+
+@pytest.mark.parametrize("path", ["whole", "sour folds", "missing market day"])
+def test_every_path_through_the_judge_answers_every_rung_in_its_own_words(path: str) -> None:
+    #: the mechanism of R-RUNNER-193: four fixes in a row were each a path through `judge` no test
+    #: walked; on every path each rung answers, and no non-PASS rung borrows another's reason
+    held = [*NOISE[:2000], *NOISE[2001:]] if path == "missing market day" else NOISE
+    pooled = verdict.pool([(CELL, EDGE)], {})
+    if path == "sour folds":
+        pooled = replace(pooled, years=(replace(pooled.years[0], answer=Answer.FAIL),))
+    rungs = verdict.judge(CELL, EDGE, ISF, held, {}, 6, (), lambda: pooled)["rungs"]
+    assert {"first", "folds", "market", "stress"} <= set(rungs)
+    whys = {name: why for name, (_, why) in rungs.items()}
+    assert all(whys.values()) and len(set(whys.values())) == len(whys), whys
