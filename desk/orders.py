@@ -203,7 +203,10 @@ def order_id_of(decision: Decision) -> str:
 
 def strategy_of(order_id: str) -> str:
     """The strategy whose decision made the order, or the stop it left."""
-    return order_id.split("-")[1]
+    parts = order_id.split("-")
+    if len(parts) < 3 or not all(parts[:3]):
+        raise ValueError(f"order id {order_id!r} is not day-strategy-line; no strategy can be read")
+    return parts[1]
 
 
 def leg_of(order_id: str, shares: int) -> Leg:

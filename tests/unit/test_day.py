@@ -337,7 +337,7 @@ def test_a_record_opens_from_what_the_last_one_closed_on_at_each_days_own_rate(
     broker, at = Pretend(archive, {}), {"USD": Decimal("0.8005"), "GBP": Decimal(1)}
     broker.open(fri)  #: ten bought by hand at the open of 50, through the send path
     book.send(
-        tmp_path, broker, Order("o-1", dollar, 10, Decimal(50), at["USD"], Decimal(45)), capital
+        tmp_path, broker, Order("20260101-r-A", dollar, 10, Decimal(50), at["USD"], Decimal(45)), capital
     )
     first = day.run(tmp_path, archive, broker, capital, fri, at)
     #: 400.25 pounds paid for what closes at 510 dollars, 408.255 pounds: 8.005 gained, 1.321
@@ -353,7 +353,7 @@ def test_a_record_opens_from_what_the_last_one_closed_on_at_each_days_own_rate(
     )
     #: five more bought after Friday's record, and a rate kept on the Saturday: neither is lost
     book.send(
-        tmp_path, broker, Order("o-2", dollar, 5, Decimal(50), at["USD"], Decimal(45)), capital
+        tmp_path, broker, Order("20260102-r-A", dollar, 5, Decimal(50), at["USD"], Decimal(45)), capital
     )
     book.record_rates(tmp_path, date(2025, 2, 1), {"USD": Decimal("0.7")})
     broker.open(mon)
