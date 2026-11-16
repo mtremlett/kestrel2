@@ -39,7 +39,7 @@ from urllib.error import HTTPError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
-from desk import book, clearance, day, gateway, kill, venues
+from desk import book, clearance, day, gateway, kill, pnl, venues
 from desk.gateway import Known
 from desk.lines import LINES
 from desk.orders import Refused
@@ -62,14 +62,13 @@ SECONDS, READ = 30, 65536  #: how long the door waits at each step, the most byt
 LIMIT = 4096  #: the most characters Telegram takes in one message
 CUT = " ... (cut short here: the whole of it is on the desk's delivery record)"
 SILENT = (
-    "THE DESK IS SILENT. Its {} message for {:%a %d %b} was owed by {:%H:%M} UK and is not on "
-    "its delivery record at {:%H:%M}. Please look at the PC: the desk may not be running."
+    "🚨 DESK SILENT\n{} message, {:%a %d %b}: owed by {:%H:%M} UK, not on the delivery record at "
+    "{:%H:%M}.\nPlease look at the PC: the desk may not be running."
 )
 CLEAR = (
-    "As things stand the desk is set for today on paper: the Gateway answered, today's check "
-    "of the account named nothing, and the kill switch is off and drilled."
+    "✅ Ready for today (paper)\nGateway answered · account check clean · kill switch off, drilled"
 )
-STALE = "The paper Gateway was not ready just now, so this is the desk's ledger as last read ({}). "
+STALE = "⚠️ Paper Gateway not ready just now: ledger as last read ({})"
 Post = Callable[[str], int]  #: the door: words to his phone, Telegram's number for them back
 
 
@@ -202,7 +201,9 @@ def _goes(daily: Daily, now: datetime) -> tuple[str | None, str]:
     """The name the daily message goes under now, and how it opens: no name on a day no
     venue trades, before its hour, and once he sleeps."""
     name, local = _today(daily, now)
-    opens = f"{daily.name.capitalize()}, {local:%a %d %b, %H:%M} UK."
+    opens = (
+        f"{'🌅' if daily is MORNING else '🌙'} {daily.name.capitalize()} {local:%a %d %b %H:%M} UK"
+    )
     return (name if daily.start <= local.time() < SLEEPS else None), opens
 
 
@@ -227,22 +228,23 @@ def _state(root: Path) -> str:
     profit is the book's since the record before it that carried one."""
     held = ", ".join(f"{symbol} {shares}" for symbol, shares in book.positions(root).items())
     kept = day.records(root)
+    now = f"📒 Held: {held or 'nothing'}"
     if not kept:
-        return f"Held: {held or 'nothing'}. No day is on the desk's record yet."
+        return f"{now}\n📅 No day on the desk's record yet"
     last, since = kept[-1], ""
     if last.profit is None:
-        told = f"no profit published, the book is not the broker's on {', '.join(last.mismatches)}"
+        told = f"⏸️ No profit published: book differs from broker on {', '.join(last.mismatches)}"
     else:
-        since = ", with the withheld days before it" if any(r.mismatches for r in kept[-2:]) else ""
+        since = " (withheld days before it)" if any(r.mismatches for r in kept[-2:]) else ""
         told = (
-            f"after £{last.costs.total:,.2f} of costs the book {_made(last.profit)}; simply "
-            f"holding the market would have {_made(last.market)}"
+            f"{_made('Book', last.profit)} after £{last.costs.total:,.2f} costs\n"
+            f"{_made('Holding the market', last.market)}"
         )
-    return f"Held: {held or 'nothing'}. The last day on record, {last.day:%a %d %b}{since}: {told}."
+    return f"{now}\n📅 Last day on record {last.day:%a %d %b}{since}\n{told}"
 
 
-def _made(amount: Decimal) -> str:
-    return f"{'lost' if amount < 0 else 'made'} £{abs(amount):,.2f}"
+def _made(who: str, amount: Decimal) -> str:
+    return f"{pnl.icon(amount)} {who} {'lost' if amount < 0 else 'made'} £{abs(amount):,.2f}"
 
 
 def morning(root: Path, now: datetime, known: Known, post: Post) -> Delivery | None:
@@ -253,9 +255,9 @@ def morning(root: Path, now: datetime, known: Known, post: Post) -> Delivery | N
     name, opens = _goes(MORNING, now)
     if name is None:
         return None
-    reasons = "; ".join(reason.rstrip(".") for reason in stops(root, now, known))
-    stopped = f"As things stand the desk would send NO order today: {reasons}."
-    return send(root, now, name, f"{opens} {stopped if reasons else CLEAR} {_state(root)}", post)
+    reasons = "".join(f"\n• {reason.rstrip('.')}" for reason in stops(root, now, known))
+    verdict = f"⛔ NOT ready: the desk would send NO order today{reasons}" if reasons else CLEAR
+    return send(root, now, name, f"{opens}\n{verdict}\n{_state(root)}", post)
 
 
 def evening(root: Path, now: datetime, known: Known, post: Post) -> Delivery | None:
@@ -267,13 +269,13 @@ def evening(root: Path, now: datetime, known: Known, post: Post) -> Delivery | N
     if name is None:
         return None
     today = gateway._uk(now).date()
-    dealt = ", ".join(
-        f"{'bought' if fill.quantity > 0 else 'sold'} {abs(fill.quantity)} {fill.symbol}"
+    dealt = "".join(
+        f"\n{'🟢 bought' if fill.quantity > 0 else '🔴 sold'} {abs(fill.quantity)} {fill.symbol}"
         for fill in book.fills(root)
         if fill.day == today
     )
-    stale = "" if known else STALE.format(known.words.rstrip("."))
-    told = f"{opens} {stale}The desk's fills today: {dealt or 'none'}. {_state(root)}"
+    stale = "" if known else f"\n{STALE.format(known.words.rstrip('.'))}"
+    told = f"{opens}{stale}\n🧾 Fills today{dealt or ': none'}\n{_state(root)}"
     return send(root, now, name, told, post)
 
 
@@ -310,7 +312,13 @@ def watch(root: Path, now: datetime, post: Post) -> tuple[Delivery, ...]:
     with _record(root) as record:
         taken = record.execute("SELECT name FROM messages WHERE number IS NOT NULL").fetchall()
     return tuple(
-        send(root, now, f"silence {name}", SILENT.format(daily.name, at, daily.owed, at), post)
+        send(
+            root,
+            now,
+            f"silence {name}",
+            SILENT.format(daily.name.capitalize(), at, daily.owed, at),
+            post,
+        )
         for daily, name, at in owed
         if name and at.time() >= daily.owed and (name,) not in taken
     )

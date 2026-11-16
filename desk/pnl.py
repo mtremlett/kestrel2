@@ -35,7 +35,8 @@ def _sign(amount: Decimal) -> str:
     return "+" if amount > 0 else "-" if amount < 0 else ""
 
 
-def _icon(amount: Decimal | None) -> str:
+def icon(amount: Decimal | None) -> str:
+    """One icon for a gain, a loss, or nothing."""
     return "⚪" if not amount else "🟢" if amount > 0 else "🔴"
 
 
@@ -51,7 +52,8 @@ def _percent(move: Decimal | None) -> str:
     return f"{_sign(percent)}{abs(percent)}%"
 
 
-def _pounds(amount: Decimal) -> str:
+def pounds(amount: Decimal) -> str:
+    """Signed pounds to the penny."""
     return f"{_sign(amount)}£{abs(amount):,.2f}"
 
 
@@ -83,18 +85,18 @@ def report(
     day = pennies(gain)
     moves = {symbol: _move(close, last.get(symbol)) for symbol, close in closes.items()}
     rows = [
-        f"{_icon(moves[symbol])} {symbol} {shares} sh {_percent(moves[symbol])}"
+        f"{icon(moves[symbol])} {symbol} {shares} sh {_percent(moves[symbol])}"
         for symbol, shares in sorted(held.items())
         if shares
     ]
     move = moves[YARDSTICK.symbol]
-    worth = f"{_pounds(pennies(capital * move))} ({_percent(move)})" if move else _percent(move)
+    worth = f"{pounds(pennies(capital * move))} ({_percent(move)})" if move else _percent(move)
     return "\n".join(
         [
             f"📊 Desk {venues.uk_time(now):%H:%M} UK",
-            f"{_icon(day)} Day {_pounds(day)} after costs",
+            f"{icon(day)} Day {pounds(day)} after costs",
             *rows,
-            f"{_icon(move)} Holding the market: {worth}",
+            f"{icon(move)} Holding the market: {worth}",
             mood.value,
         ]
     )
