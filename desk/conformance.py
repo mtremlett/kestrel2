@@ -75,13 +75,16 @@ WHOLE, FAILED, UNTRIED = "the run", "FAILED, ", "not tried: an earlier step fail
 ROOM = Settings(CAPITAL)  #: the desk's one capital sizes the orders, as on its own day
 ABOVE, WAITS = Decimal("1.05"), 30  #: a stop this far above the price paid; its seconds to sell
 Wait = Callable[[float], None]  #: what lets a second pass
-Fall = Callable[[Order], None]  #: the market made to reach a buy's stop, which then sells
+Fall = Callable[[Order], str | None]  #: the market made to reach a buy's stop: what it found
 NOTHING, BARRED = "CONFORMANCE {}: nothing done, {}.", "CONFORMANCE {} NOT BEGUN, nothing sent: "
 DONE = "CONFORMANCE {}: {} of {} steps done on {}, each recorded beside the pretend broker's in {}."
 GIVEN = "the broker gave no reason"  #: an order it cancelled is never recorded with none
 #: A desk round's hours (UK), when the read of the day's cancelled orders is not made.
 ROUNDS = ((hour(8, 0), hour(8, 30)), (hour(14, 30), hour(15, 0)))
 PUT_BACK = "nothing to put back"  #: what the last step answers when it found the account as it was
+#: Seen 16 November 2026 at the paper broker: a stop put above the market rests PreSubmitted
+#: and does not sell; only a fall to its level fires one. The step records that, it does not fail.
+STILL = "{}: put above the market it rested PreSubmitted, not sold in {} seconds"
 AMISS = " FAILED: {}. A later day tries again; {}."
 AS_FOUND, NOT_AS_FOUND = (
     "the account left as found",
@@ -98,6 +101,7 @@ class Plan:
     first: Order  #: one share of the line
     sale: Sale  #: of that share
     second: Order  #: the line at the desk's own size
+    stamp: str  #: the run's own minute: an id told apart from every earlier run's of the day
 
 
 @dataclass(frozen=True)
@@ -125,14 +129,18 @@ def _last(line: Line, today: date) -> Bar:
     return bars[-1]
 
 
-def plan(lines: Sequence[Line], refused: Line, today: date, fx: Mapping[str, Decimal]) -> Plan:
+def plan(
+    lines: Sequence[Line], refused: Line, today: date, fx: Mapping[str, Decimal], stamp: str
+) -> Plan:
     """The run's orders: on the line given that traded the most money in its last session,
-    sized at its close by the desk's own sizer; and one share of the line to be refused."""
+    sized at its close by the desk's own sizer; and one share of the line to be refused. Every
+    order id carries the stamp: book.send answers an id the broker already knows from the broker's
+    word of it, so a second run of a day on the first's ids would send nothing."""
     if not lines:
         raise ValueError("the broker lists no plain line of the market for the run to trade")
     bars = {line: _last(line, today) for line in lines}
     line = max(bars, key=lambda line: bars[line].close * bars[line].volume * fx[line.currency])
-    its = line.venue.lower()  #: each market's run names its orders its own: the refusal's too
+    its = line.venue.lower() + stamp  #: each run names its orders its own: the refusal's too
 
     def sized(name: str, line: Line, close: Decimal) -> Order:
         return size(_named(line, today, name + its), line, close, fx[line.currency], ROOM, {})
@@ -140,7 +148,7 @@ def plan(lines: Sequence[Line], refused: Line, today: date, fx: Mapping[str, Dec
     first = replace(sized("conf1", line, bars[line].close), quantity=1)
     sale = Sale(order_id_of(_named(line, today, f"conf2{its}")), line, 1)
     refusal = replace(sized("conf0", refused, _last(refused, today).close), quantity=1)
-    return Plan(today, refusal, first, sale, sized("conf3", line, bars[line].close))
+    return Plan(today, refusal, first, sale, sized("conf3", line, bars[line].close), stamp)
 
 
 def _send(side: Side, order: Order | Sale) -> str:
@@ -158,7 +166,7 @@ def _leave(side: Side, run: Plan) -> str:
     book.collect(side.root, side.broker)
     for symbol, shares in book.positions(side.root).items():
         line = next(line for line in LINES if line.symbol == symbol)
-        name = _named(line, run.today, f"conf9{run.second.line.venue.lower()}")
+        name = _named(line, run.today, f"conf9{run.second.line.venue.lower()}{run.stamp}")
         did.append(_send(side, Sale(order_id_of(name), line, shares)))
     found, held = side.check(), book.positions(side.root)
     if found or held:
@@ -225,7 +233,7 @@ def _raised(side: placing.Paper, root: Path, listed: Listing, wait: Wait) -> Fal
     left under the buy's own stop for what is still held, or under none: no stop stays above
     the market for a sale to meet, and none rests with no share behind it."""
 
-    def fall(order: Order) -> None:
+    def fall(order: Order) -> str | None:
         paid = [fill.price for fill in book.fills(root) if fill.order_id == order.order_id]
         held, stops = placing.on(paper.read(), listed)
         if not (paid and held):
@@ -236,9 +244,9 @@ def _raised(side: placing.Paper, root: Path, listed: Listing, wait: Wait) -> Fal
                 side.settle(listed, held, stops, placing.Stop(held, above, name))
             for _ in range(WAITS):
                 if not placing.on(paper.read(), listed)[0]:
-                    return
+                    return None
                 wait(1)
-            raise TimeoutError(f"{name}: put above the market, it has not sold in {WAITS} seconds")
+            return STILL.format(name, WAITS)
         finally:
             held, stops = placing.on(paper.read(), listed)
             back = placing.Stop(held, listed.floor(order.stop), name) if held else None
@@ -339,7 +347,7 @@ def trade(
         if (line.venue, line.leverage, line.retail) == fits
         if listed[line].contract not in busy and paper.own(line) not in held
     ]
-    run = plan(plain, refused, today, command.rates(root, today))
+    run = plan(plain, refused, today, command.rates(root, today), f"{now:%H%M}")
     beside, broker = pretend(run), placing.Paper(listings, root, clock)
     fall = _raised(broker, root, listed[run.second.line], wait)
     side = Side(root, broker, lambda: clearance.check(root, clock()).found, fall)
@@ -358,7 +366,7 @@ def trade(
     note(WHOLE, f"{FAILED}at: {'; '.join(failed)}" if failed else "whole")
     counts = (market, len(beside) - len(failed), len(beside), run.second.line.symbol, record)
     state = (
-        AS_FOUND if rows[-2][2].startswith(PUT_BACK) else NOT_AS_FOUND
+        NOT_AS_FOUND if rows[-2][2].startswith(FAILED) else AS_FOUND
     )  #: the last step's row, before WHOLE's
     fault = _moved(held)
     return not (failed or fault), (
