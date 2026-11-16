@@ -4,6 +4,7 @@ a disagreement is said, and a second run adds nothing."""
 from __future__ import annotations
 
 import sqlite3
+import zipfile
 from contextlib import closing
 from datetime import date, datetime
 from decimal import Decimal
@@ -167,4 +168,25 @@ def test_mark_the_trends_daily_files_enter_under_their_source_and_a_hole_is_left
         Source.ARCHIVE: 5,
         Source.TREND_DAILY: len(DAYS) - 6,
     }
+    assert headstart_days.main(folder, path, [BA], TODAY) == "BA: already in"
+
+
+def test_stooq_raws_daily_zip_enters_under_its_source_and_a_hole_is_left(tmp_path: Path) -> None:
+    folder, path = tmp_path / "raw", tmp_path / "market.db"
+    (folder / "2026-10-24").mkdir(parents=True)
+    head = "<TICKER>,<PER>,<DATE>,<TIME>,<OPEN>,<HIGH>,<LOW>,<CLOSE>,<VOL>,<OPENINT>"
+    rows = [
+        f"BA.US,D,{d:%Y%m%d},000000,{n + 99},{n + 101},{n + 98},{n + 100},9,0"
+        for n, d in enumerate(DAYS)
+    ]
+    rows[3] = f"BA.US,D,{DAYS[3]:%Y%m%d},000000,,,,,,0"  # a hole: that day has no bar
+    with zipfile.ZipFile(folder / "2026-10-24/d_us_txt__24oct26.zip", "w") as made:
+        made.writestr("data/daily/us/nyse stocks/1/ba.us.txt", "\n".join([head, *rows]))
+    with bars.writing(path) as round_:
+        round_.daily(
+            BA, [_fresh(d, str(100 + n)) for n, d in enumerate(DAYS) if n >= len(DAYS) - 5]
+        )
+    said = headstart_days.main(folder, path, [BA], TODAY)
+    assert f"BA: {len(DAYS) - 6} days filled from {DAYS[0]}" in said
+    assert bars.sources(path, BA, bars.DAILY)[Source.STOOQ_RAW] == len(DAYS) - 6
     assert headstart_days.main(folder, path, [BA], TODAY) == "BA: already in"

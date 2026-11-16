@@ -15,6 +15,20 @@ from desk import venues
 NO_TAX, STAMP_DUTY = Decimal(0), Decimal("0.005")
 
 
+def valid_isin(isin: str) -> bool:
+    """Twelve characters, two capital letters first, the last a Luhn digit over the rest."""
+    if len(isin) != 12 or not (isin[:2].isalpha() and isin.isalnum() and isin.upper() == isin):
+        return False
+    if not isin[-1].isdigit():
+        return False
+    digits = "".join(str(int(c, 36)) for c in isin)
+    total = sum(
+        (d := int(c)) * 2 - 9 * (d * 2 > 9) if i % 2 else int(c)
+        for i, c in enumerate(reversed(digits))
+    )
+    return total % 10 == 0
+
+
 @dataclass(frozen=True)
 class Line:
     symbol: str
@@ -37,6 +51,13 @@ class Line:
     #: Sessions of its venue on which the line did not trade, recorded: a suspension,
     #: confirmed, so the store finds no gap there.
     suspended: frozenset[date] = field(default_factory=frozenset)
+    #: The market the line tracks and the reference data that says so (the issuer's factsheet, or
+    #: the company itself): lines on one index share one underlying (R-RUNNER-157, canon B3).
+    underlying: str = ""
+    source: str = ""
+    #: The ISIN, the twelve-character international id the issuer and the broker both give
+    #: (R-PAPER-3); None only for a reference series that is no security.
+    isin: str | None = None
 
     def __post_init__(self) -> None:
         if self.venue not in venues.RULES:
@@ -56,6 +77,8 @@ class Line:
                 f"{self.symbol}: whether an ISA can hold it and a retail customer buy it is"
                 f" yes, no or unrecorded, not {self.isa!r} and {self.retail!r}"
             )
+        if self.isin is not None and not valid_isin(self.isin):
+            raise ValueError(f"{self.symbol}: {self.isin!r} is not an ISIN with a good check digit")
         self._records()
 
     def _records(self) -> None:
@@ -95,7 +118,48 @@ MOVES = {
     ),
     "5QQQ": ((2025, 4, 7, "0.345"), (2025, 4, 8, "0.4295000076293945")),
 }
+#: Each line's ISIN, as the broker's contract details give it (the conformance tapes of 14
+#: November 2026); IDTL's as its issuer lists it.
+ISINS = dict(
+    pair.split(":")
+    for pair in (
+        "3LGO:IE00B8HGT870 2MU:IE00BKT66K01 SMGB:IE00BMC38736 IITU:IE00B3WJKG14"
+        " VHYG:IE00BK5BR626 5QQQ:XS2399364152 ISF:IE0005042456 VUSA:IE00B3XXRP09"
+        " SGLN:IE00B4ND3602 VUAG:IE00BFMXXD54 EQQQ:IE0032077012 IB1T:XS2940466316"
+        " IDTL:IE00BSKRJX20 AAPL:US0378331005 TSLA:US88160R1014 NVDA:US67066G1040"
+        " SPCX:US84615Q1031 MSTR:US5949724083 AMD:US0079031078 MU:US5951121038"
+        " SPY:US78462F1030 QQQ:US46090E1038"
+    ).split()
+)
 SPLITS = {"5QQQ": ((date(2024, 8, 22), Decimal(500)),)}
+#: Each line's underlying market and the factsheet (or company) that names it, never the ticker.
+UNDERLYING = {
+    "3LGO": ("GOLD", "WisdomTree 3x Daily Long Gold factsheet"),
+    "SGLN": ("GOLD", "iShares Physical Gold ETC factsheet"),
+    "2MU": ("MU", "Leverage Shares 2x Long Micron factsheet"),
+    "MU": ("MU", "Micron Technology"),
+    "SMGB": ("MVIS US LISTED SEMICONDUCTOR 25", "VanEck Semiconductor UCITS ETF factsheet"),
+    "IITU": ("S&P 500 INFORMATION TECHNOLOGY", "iShares S&P 500 IT Sector UCITS ETF factsheet"),
+    "VHYG": (
+        "FTSE ALL-WORLD HIGH DIVIDEND YIELD",
+        "Vanguard FTSE All-World High Div Yield factsheet",
+    ),
+    "5QQQ": ("NASDAQ 100", "WisdomTree NASDAQ 100 5x Daily Leveraged factsheet"),
+    "EQQQ": ("NASDAQ 100", "Invesco EQQQ NASDAQ-100 UCITS ETF factsheet"),
+    "QQQ": ("NASDAQ 100", "Invesco QQQ Trust factsheet"),
+    "ISF": ("FTSE 100", "iShares Core FTSE 100 UCITS ETF factsheet"),
+    "VUSA": ("S&P 500", "Vanguard S&P 500 UCITS ETF factsheet"),
+    "VUAG": ("S&P 500", "Vanguard S&P 500 UCITS ETF Accumulating factsheet"),
+    "SPY": ("S&P 500", "SPDR S&P 500 ETF Trust factsheet"),
+    "IB1T": ("BITCOIN", "iShares Bitcoin ETP factsheet"),
+    "IDTL": ("US TREASURIES 20+ YEAR", "iShares USD Treasury Bond 20+yr UCITS ETF factsheet"),
+    "AAPL": ("AAPL", "Apple Inc."),
+    "TSLA": ("TSLA", "Tesla Inc."),
+    "NVDA": ("NVDA", "NVIDIA Corp."),
+    "SPCX": ("SPCX", "Space Exploration Technologies Corp."),
+    "MSTR": ("MSTR", "Strategy Inc."),
+    "AMD": ("AMD", "Advanced Micro Devices Inc."),
+}
 LINES = tuple(
     Line(
         symbol,
@@ -107,6 +171,9 @@ LINES = tuple(
         retail,
         frozenset((date(*day), Decimal(close)) for *day, close in MOVES.get(symbol, ())),
         frozenset(SPLITS.get(symbol, ())),
+        frozenset(),
+        *UNDERLYING[symbol],
+        isin=ISINS[symbol],
     )
     for venue, currency, isa, retail, symbols in (
         ("LSE", "GBP", True, True, "3LGO:3 2MU:2 SMGB:1 IITU:1 VHYG:1 5QQQ:5 ISF:1 VUSA:1 SGLN:1"),
