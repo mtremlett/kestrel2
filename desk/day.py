@@ -327,10 +327,15 @@ def _buy(
 ) -> book.Sent:
     """One rule's buy, sized from the book as the send before it left it, at the line's last
     close and the day's rate. A line held, or sold this morning, is not bought: said so. Nor is
-    one an ISA is not recorded as able to hold (line.isa no): the ISA buys only those."""
+    one an ISA is not recorded as able to hold (line.isa no): the ISA buys only those; nor one no
+    retail customer may buy (line.retail no), which the broker would only refuse, slowly."""
     now, name = book.positions(root), order_id_of(d)
-    if line.isa is False:
-        why = "is recorded as a line no stocks and shares ISA can hold"
+    if line.isa is False or line.retail is False:
+        why = (
+            "is recorded as a line no stocks and shares ISA can hold"
+            if line.isa is False
+            else "is recorded as a line no UK retail customer may buy"
+        )
         return book.Sent(name, 0, f"{name}: not sent, {d.symbol} {why}", Blocker.GATE)
     sold = {f.symbol for f in book.fills(root) if f.day == day and f.quantity < 0}
     if d.symbol in now or d.symbol in sold:
