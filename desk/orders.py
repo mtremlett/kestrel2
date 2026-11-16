@@ -11,6 +11,7 @@ from decimal import ROUND_HALF_EVEN, Decimal
 from enum import Enum
 
 from desk.lines import Line
+from desk.risk import Standing, loss_limit
 from desk.strategy import Action, Decision
 
 #: His ruling of 13 November 2026 (docs/DECISIONS.md): at most five holdings, each a fifth of
@@ -22,10 +23,18 @@ STOP_FALL = Decimal("0.10")
 @dataclass(frozen=True)
 class Settings:
     capital: Decimal  #: pounds the desk may use; nothing else holds this number
+    #: The loss and order-rate limits (R-RUNNER-156, docs/DECISIONS.md): a share of the capital
+    #: lost in a day or in a week, and the new lines entered in a day, each past which the gate
+    #: refuses a new entry.
+    day_loss: Decimal = Decimal("0.02")
+    week_loss: Decimal = Decimal("0.05")
+    new_lines: int = 4
 
     def __post_init__(self) -> None:
         if not self.capital.is_finite() or self.capital <= 0:
             raise ValueError(f"a capital of {self.capital} pounds")
+        if not (0 < self.day_loss <= self.week_loss <= 1) or self.new_lines < 1:
+            raise ValueError(f"limits of {self.day_loss}, {self.week_loss} and {self.new_lines}")
 
 
 @dataclass(frozen=True)
@@ -239,11 +248,18 @@ def cost(order: Order) -> Decimal:
     return value + paid.commission + paid.currency + paid.uk_taxes
 
 
-def gate(order: Order | Sale, settings: Settings, held: Mapping[str, int]) -> None:
+def gate(
+    order: Order | Sale,
+    settings: Settings,
+    held: Mapping[str, int],
+    standing: Standing | None = None,
+) -> None:
     """The one pre-trade gate, on the send path: raises Refused, or lets the order through.
     held is the book (book.positions): a sale needs the shares in it, for the desk is long
     only; a new line needs one of the five holdings free, and a line's shares, held and
-    ordered, are counted together at the order's price and rate."""
+    ordered, are counted together at the order's price and rate. Given the book's standing
+    (risk.Standing), a buy is refused once a loss limit is reached, and a new line once the
+    day's new lines are used up; None checks neither (the send path does not yet give it)."""
     symbol = order.line.symbol
     if isinstance(order, Sale):
         if order.quantity > held.get(symbol, 0):
@@ -252,6 +268,8 @@ def gate(order: Order | Sale, settings: Settings, held: Mapping[str, int]) -> No
                 f"{held.get(symbol, 0)}: the desk is long only"
             )
         return
+    if standing is not None:
+        _within_limits(order, settings, held, standing)
     if symbol not in held and len(held) >= HOLDINGS:
         raise Refused(f"{order.order_id}: {len(held)} holdings already, at most {HOLDINGS}")
     whole = replace(order, quantity=order.quantity + held.get(symbol, 0))
@@ -267,3 +285,17 @@ def _room(line: Line, settings: Settings) -> Decimal:
     """Pounds one holding in the line may cost: a fifth of the capital, counted at what the
     line controls."""
     return settings.capital / HOLDINGS / line.leverage
+
+
+def _within_limits(
+    order: Order, settings: Settings, held: Mapping[str, int], standing: Standing
+) -> None:
+    """Refuses a buy past a loss limit, or a new line past the day's count, naming the limit."""
+    reached = loss_limit(standing, settings.capital, settings.day_loss, settings.week_loss)
+    if reached is not None:
+        raise Refused(f"{order.order_id}: no buy past {reached}")
+    if order.line.symbol not in held and standing.new_lines >= settings.new_lines:
+        raise Refused(
+            f"{order.order_id}: {standing.new_lines} new lines entered today, the limit is "
+            f"{settings.new_lines} a day"
+        )
