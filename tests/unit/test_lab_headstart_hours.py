@@ -42,7 +42,7 @@ def test_hourly_bars_enter_by_their_start_under_their_source_and_a_second_run_ad
     with bars.writing(path) as round_:
         round_.daily(LONDON, [day])
     said = headstart_hours.main(old, path, [LONDON])
-    assert said == "BA: 3 hours filled; 2 not vouched, 0 faults"  # the spoilt row was never read
+    assert said == "BA: 3 1h bars filled; 2 not vouched, 0 faults"  # the spoilt row was never read
     got = bars.timed(
         path, LONDON, "1h", datetime(2026, 10, 20, tzinfo=UTC), datetime(2026, 10, 22, tzinfo=UTC)
     )

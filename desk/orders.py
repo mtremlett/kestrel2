@@ -166,6 +166,15 @@ HALF_SPREAD = SLIPPAGE = Decimal("0.0005")
 STOP_SLIPS = 3
 
 
+def stop_under(line: Line, price: Decimal) -> Decimal:
+    """THE STOP FOR A PRICE: where the line's market has fallen 10% from it. Sizing asks it at
+    the signal close; the stop a fill is to rest at is asked at the fill's price, so a gap
+    down puts it under the fill, never above it, and a gap up keeps it 10% under its own."""
+    if STOP_FALL * line.leverage >= 1:
+        raise ValueError(f"{line.symbol}: at {line.leverage} times, a 10% fall empties the line")
+    return price * (1 - STOP_FALL * line.leverage)
+
+
 def size(
     decision: Decision,
     line: Line,
@@ -179,10 +188,8 @@ def size(
     held is the book (book.positions)."""
     if decision.action is not Action.BUY or decision.symbol != line.symbol:
         raise ValueError(f"{line.symbol}: only a buy for this line is sized, not {decision}")
-    if STOP_FALL * line.leverage >= 1:
-        raise ValueError(f"{line.symbol}: at {line.leverage} times, a 10% fall empties the line")
     order_id = order_id_of(decision)
-    stop = price * (1 - STOP_FALL * line.leverage)
+    stop = stop_under(line, price)
 
     def order(quantity: int) -> Order:
         return Order(order_id, line, quantity, price, fx, stop)
