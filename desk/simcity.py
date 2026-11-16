@@ -21,7 +21,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import ModuleType
 
-from desk import book, book_diff, broker, day, halt, kill, orders, strategy
+from desk import book, broker, day, halt, kill, orders, strategy
 from desk.broker import Crash, Fault, Pretend, Report
 from desk.lines import YARDSTICK, Line
 from desk.orders import HOLDINGS, Order, Sale, Settings, pennies
@@ -38,7 +38,7 @@ HEADER = (
     *("deaths", "withheld", "trips", "profit", "market", "idle", "bare", "broken"),
 )
 #: THE MONEY PATH: the modules an order travels through, from a rule's decision to the record.
-PATH: tuple[ModuleType, ...] = (strategy, orders, broker, book, book_diff, day, kill)
+PATH: tuple[ModuleType, ...] = (strategy, orders, broker, book, day, kill)
 WORLDS = range(100)  #: a night's worlds, each named by the number that seeds its every draw
 MONTH = 20  #: sessions of a line's that stay together, in their saved order, in every world
 FAULTY = 4  #: of the orders at the broker's door, one in so many finds a fault waiting

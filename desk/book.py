@@ -6,15 +6,14 @@ left working. Conformance trades are a cost of their own (_conformance_cost)."""
 from __future__ import annotations
 
 import csv
-from collections import deque
-from collections.abc import Callable, Iterable
+from collections import Counter, deque
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import astuple, dataclass, replace
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
 
 from desk import halt
-from desk.book_diff import Difference, differences
 from desk.book_parts import (
     RATES,
     SWITCH,
@@ -38,8 +37,6 @@ from desk.orders import Charges, Order, Refused, Sale, Settings, charges, gate, 
 
 #: what moved to desk.book_parts and is still given from here, for the callers
 __all__ = (
-    "Difference",
-    "differences",
     "RATES",
     "SWITCH",
     "TURNS",
@@ -85,6 +82,15 @@ class RoundTrip:
     gross: Decimal  #: pounds, before costs
     costs: Charges  #: pounds, every cost of both legs, line by line
     profit: Decimal  #: pounds, gross less every cost
+
+
+@dataclass(frozen=True)
+class Difference:
+    """One entry of a broker's that is not the desk's book."""
+
+    name: str  #: what is held, in the words the book and the broker's entries share
+    broker: Decimal | int  #: the shares the broker's entry gives; 0 when it gives no entry
+    book: int  #: the shares the desk's book holds of it; 0 when it holds none
 
 
 Tell = Callable[[str, str], None]  #: the door to his phone: a message's name, then its words
@@ -245,6 +251,23 @@ def _compare(root: Path, broker: Broker) -> Reckoning:
 def reckon(root: Path, broker: Broker) -> Reckoning:
     """The book, the lines that differ, those whose shares do, the stops that do: one reading."""
     return _compare(root, broker)
+
+
+def differences(
+    held: Mapping[str, int], entries: Iterable[tuple[str, Decimal | int]]
+) -> tuple[Difference, ...]:
+    """THE BOOK AGAINST A BROKER: the one comparison of its holdings or resting stops. held is
+    the book; entries are the broker's (name, shares), which must be the book's own: shares in
+    two entries are never one line. A name the book holds and the broker omits has no shares;
+    one listed at none is not held. None named: they agree."""
+    rows = list(entries)
+    places = Counter(name for name, shares in rows if shares)
+    rows += [(name, 0) for name in held.keys() - {name for name, _ in rows}]
+    return tuple(
+        Difference(name, shares, held.get(name, 0))
+        for name, shares in sorted(rows)
+        if shares != held.get(name, 0) or (shares and places[name] > 1)
+    )
 
 
 def positions(root: Path, upto: date = date.max) -> dict[str, int]:
