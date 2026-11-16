@@ -28,7 +28,7 @@ import numpy as np
 
 from desk import archive, store, venues
 from desk.lines import LINES, NO_TAX, STAMP_DUTY, Line
-from desk.store import Bar, Parked
+from desk.store import Bar, Fault, Parked
 
 
 def _lines(venue: str, currency: str, symbols: str, tax: Decimal = NO_TAX) -> tuple[Line, ...]:
@@ -145,6 +145,24 @@ ETFS = _lines(
 YARDSTICKS = _lines("LSE", "GBP", "ISF")
 #: Every ticker once: a share on two lists (most of the Nasdaq 100) is one line.
 UNIVERSE = tuple(dict.fromkeys(SP500 + NASDAQ100 + FTSE350 + ETFS + YARDSTICKS))
+#: SPY, studied as the S&P 500's own history from its first session, 29 January 1993, and never
+#: traded: a reference series (R-RUNGS-5, R-PAPER-16), kept apart from the traded bars above.
+REFERENCE = tuple(line for line in ETFS if line.symbol == "SPY")
+
+
+def keep_reference(
+    root: Path,
+    day: date,
+    ask: Callable[..., tuple[Bar, ...]] = archive.fetch,
+) -> dict[Line, tuple[Fault, ...]]:
+    """Fetch each reference series from the archive's reach back to its first session, before
+    day, and keep it in its venue's folder at root as traded, with the faults found."""
+    return {
+        line: archive.keep_reference(
+            root / line.venue, line, ask(line, day, since=archive.REFERENCE_SINCE)
+        )
+        for line in REFERENCE
+    }
 
 
 def keep(
