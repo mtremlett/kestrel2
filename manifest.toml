@@ -68,6 +68,7 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "desk/eponymous_keltner_channel_trend.py" = "Keltner's channel trend rule (How to Make Money in Commodities) as a rule under the one template, author, source and published figure written down; not traded by the paper desk"
 "desk/eponymous_raschke_swing.py" = "Linda Raschke's Turtle Soup (Street Smarts) as a rule under the one template, with its author, source and the range of its setting; not traded by the paper desk"
 "desk/eponymous_mansfield_rs_momentum.py" = "Mansfield's relative-strength rule (Weinstein) as a rule under the one template, measured against the SPY line, author, secondary source and published figure written down; not traded by the paper desk"
+"desk/risk.py" = "where the book stands against its loss and order-rate limits: the losses so far today and this week and the new lines entered today, and which loss limit has been reached; the limits themselves are in orders.Settings"
 "desk/orders.py" = "the order, sized from the one capital number, its stop, the pre-trade gate"
 "desk/broker.py" = "the pretend broker the desk trades against in simulation"
 "desk/book.py" = "the ledger of fills under the broker's ids, and the book built from the broker"
