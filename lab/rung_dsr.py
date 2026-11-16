@@ -45,10 +45,9 @@ from __future__ import annotations
 import math
 from collections.abc import Sequence
 from decimal import Decimal, localcontext
-from statistics import fmean
 
 from desk.strategy import ARITHMETIC
-from lab.deflated import FAIL, PASS, best_by_luck, deflate
+from lab.deflated import FAIL, PASS, best_by_luck, deflate, shape
 from lab.rung import MIN_TRADES, Answer, standard_errors
 
 #: About what a trial of bell gains with no more than luck's best passes at.
@@ -84,10 +83,8 @@ def sharpe(gains: Sequence[Decimal]) -> float:
 
 def chance(gains: Sequence[Decimal], trials: int, spread: float) -> float:
     """The deflated Sharpe of these gains, the skew and kurtosis their plain moments."""
-    measured, values = sharpe(gains), [float(gain) for gain in gains]
-    mean = fmean(values)
-    second, third, fourth = (fmean((v - mean) ** power for v in values) for power in (2, 3, 4))
-    return deflated(measured, len(values), third / second**1.5, fourth / second**2, trials, spread)
+    values = [float(gain) for gain in gains]
+    return deflated(sharpe(gains), len(values), *shape(values), trials, spread)
 
 
 def judge(gains: Sequence[Decimal], trials: int, spread: float) -> Answer:
