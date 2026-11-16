@@ -177,11 +177,11 @@ def test_the_rehearsal_lives_the_last_session_again_on_its_own_record_with_no_ma
         answers.update(script.get(now.hour * 100 + now.minute, {}))
         whole(desk, now)
 
-    def rehearse(at: int, **changes: dict[bytes, Said]) -> tuple[int, str]:
+    def rehearse(at: int, when: datetime = SUNDAY, **changes: dict[bytes, Said]) -> tuple[int, str]:
         answers.update({tp.FILLS: [END], tp.ACCOUNT: tp.EMPTY})
         script.clear()
         script.update({int(moment[1:]): change for moment, change in changes.items()})
-        return _run(tmp_path, SUNDAY + timedelta(seconds=at), "--rehearse"), capsys.readouterr().out
+        return _run(tmp_path, when + timedelta(seconds=at), "--rehearse"), capsys.readouterr().out
 
     monkeypatch.setattr(running, "step", step)
     assert rehearse(0) == (
@@ -212,12 +212,19 @@ def test_the_rehearsal_lives_the_last_session_again_on_its_own_record_with_no_ma
     # orders of the desk's own still working at its end are cancelled, and named: NO-GO
     code, line = rehearse(4, _2200={tp.ACCOUNT: tp.WORKING, tp.CANCELS: tp.GONE})
     assert code == 1 and "not as found; left working, now cancelled: ('a', 'f')" in line
-    # not begun: on a day a market trades, with the desk's own kill switch on, or with
-    # anything on the paper account, which the rehearsal's empty book would not hold
+    # begun on a weekday evening, with both markets shut and neither opening for hours
+    code, line = rehearse(5, MON.replace(hour=22, minute=30))
+    assert code == 0 and line.startswith("REHEARSAL GO: Fri 13 Nov lived again")
+    # not begun while a market is open (13:00) or opens within the run and an hour (London at
+    # 08:00, seen from 07:00), with the kill switch on, or with anything on the paper account,
+    # which the rehearsal's empty book would not hold
+    for hour, named in ((13, "London and New York"), (7, "London")):
+        code, line = rehearse(6, MON.replace(hour=hour, minute=0))
+        assert code == 1 and f"not begun: {named} open or about to, and an order" in line
     book.turn(tmp_path / "desk", book.Switch.ON, MON, "his word")
     answers[tp.ACCOUNT] = tp.BARE
     assert _run(tmp_path, MON.replace(hour=22), "--rehearse") == 1
     line = capsys.readouterr().out
-    assert line.startswith("REHEARSAL NO-GO: not begun: London and New York trade today, and an")
-    assert "; the kill switch is on, pulled at 2026-11-16 07:15 UTC: his word; the paper" in line
+    assert line.startswith("REHEARSAL NO-GO: not begun: the kill switch is on, pulled at")
+    assert "07:15 UTC: his word; the paper" in line
     assert "account is not empty, as the rehearsal's book is: ['IITU STK GBP']." in line

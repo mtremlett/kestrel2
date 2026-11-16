@@ -19,8 +19,9 @@ key, the Gateway, the kill switch and today's drill, the paper account against t
 the bars of the session before, the pound, any halt. Its one line names each.
 
 THE REHEARSAL (`rehearse`) lives the last session again, every five minutes of its day, on a
-record of its own and at the real paper Gateway. It begins only on a day no market trades,
-the real desk's kill switch off and the paper account empty: an order it sends cannot fill,
+record of its own and at the real paper Gateway. It begins only while no market is open or
+about to open (an hour and a half clear), the real desk's kill switch off and the paper
+account empty: an order it sends cannot fill,
 and the adapter cancels what the broker did not fill. Its orders carry the ids of the
 session rehearsed, a day that is over, never the next real day's. A step that fails is
 counted and the next carries on, as in the day itself; at the end whatever of the desk's is
@@ -63,6 +64,7 @@ CAPITAL = Decimal(10_000)  #: the paper desk's one capital, in pounds, until he 
 #: The pound in dollars at the archive; no pound closes outside these; the oldest close trusted.
 POUND, DOLLARS, FRESH = Line("GBPUSD=X", "US", "USD", 1), (Decimal(1), Decimal(2)), 4 * DAY
 FIRST, LAST, EVERY = time(5, 30), time(22), timedelta(minutes=5)  #: the runner's day, UK clock
+BARRED = timedelta(minutes=90)  #: a rehearsal's longest run (30) and an hour clear of any open
 NAMED = (OSError, HTTPException, ValueError, kill.Failed, messenger.Undelivered, paper.NotPaper)
 USAGE = "python -m desk.running [--preflight | --rehearse]"
 OPEN = "REHEARSAL NO-GO: not begun: {}."
@@ -191,6 +193,16 @@ def _moments(on: date) -> list[datetime]:
     return [(first + n * EVERY).astimezone(UTC) for n in range((last - first) // EVERY + 1)]
 
 
+def _near(venue: str, now: datetime) -> bool:
+    """Whether the venue's session is open at now, or opens before the rehearsal could end."""
+    days = (now.date(), now.date() + DAY)
+    return any(
+        venues.hours(venue, d).auction >= now and venues.hours(venue, d).open <= now + BARRED
+        for d in days
+        if venues.sessions(venue, d, d)
+    )
+
+
 def _amiss(desk: Desk, on: date, left: Sequence[str], same: bool) -> list[str]:
     """What a rehearsed day left that a good day does not, each thing in words."""
     root, kept = desk.root, running.notes(desk.root)
@@ -215,15 +227,16 @@ def _amiss(desk: Desk, on: date, left: Sequence[str], same: bool) -> list[str]:
 def rehearse(root: Path, now: datetime) -> tuple[bool, str]:
     """THE REHEARSAL: the last session before today lived again, a step at each of its
     moments, on a new record under root and at the real paper Gateway; whether it is GO, and
-    its one line. Not begun on a day a market trades, while the kill switch at root is on,
-    or with anything held or open on the paper account: its book is empty. A step that fails
-    is counted and the next carries on; then the desk's own orders still working are
+    its one line. Not begun while a market is open or about to open, while the kill switch at
+    root is on, or with anything held or open on the paper account: its book is empty. A step
+    that fails is counted and the next carries on; then the desk's own orders still working are
     cancelled and the account is read again, whatever happened."""
     today, before = now.date(), paper.read()
-    trading = [VENUES[venue] for venue in VENUES if venues.sessions(venue, today, today)]
+    trading = [VENUES[venue] for venue in VENUES if _near(venue, now)]
     held = [h.name for h in before.holdings if h.shares] + [o.ref for o in before.orders]
     barred = (
-        f"{' and '.join(trading)} trade today, and an order it sent could fill" * bool(trading),
+        f"{' and '.join(trading)} open or about to, and an order it sent could fill"
+        * bool(trading),
         book.killed(root) or "",
         f"the paper account is not empty, as the rehearsal's book is: {held}" * bool(held),
     )
