@@ -86,9 +86,8 @@ def judge(
         rungs["reproduce"] = (Answer.PASS, f"reproduced: {said}")
     rungs["folds"] = _folded(pooled)
     against = market.judge(verdict, own, beside, held, pounds)
-    said = (
-        against.fault or rungs["first"][1]
-    )  #: its own missing day, or the first rung's THIN or FAULT
+    #: the market's own missing day, or the first rung's THIN or FAULT, which it inherits
+    said = against.fault or rungs["first"][1]
     if against.line is not None and against.wide is not None:
         said = (
             f"over {against.days} days, {against.wide.t:.2f} standard errors beyond "
