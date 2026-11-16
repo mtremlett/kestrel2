@@ -12,7 +12,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from desk import messenger
+from desk import messenger, messenger_mail
 from desk.messenger import Undelivered
 
 ENV = {
@@ -29,7 +29,7 @@ NINE = datetime(2026, 11, 16, 21, 10, tzinfo=UTC)
 def test_two_refusals_in_a_row_and_the_next_line_also_goes_by_email(tmp_path: Path) -> None:
     telegram = Mock(side_effect=[Undelivered("no"), Undelivered("no"), 7, 8])
     mail = Mock()
-    door = messenger.with_mail(tmp_path, NOON, telegram, mail)
+    door = messenger_mail.with_mail(tmp_path, NOON, telegram, mail)
     for _ in range(2):
         with pytest.raises(Undelivered):
             door("a")
@@ -43,7 +43,7 @@ def test_two_refusals_in_a_row_and_the_next_line_also_goes_by_email(tmp_path: Pa
 def test_an_email_the_server_refuses_is_not_kept_and_both_reasons_are_told(tmp_path: Path) -> None:
     telegram = Mock(side_effect=Undelivered("telegram said no"))
     mail = Mock(side_effect=Undelivered("smtp said no"))
-    door = messenger.with_mail(tmp_path, NOON, telegram, mail)
+    door = messenger_mail.with_mail(tmp_path, NOON, telegram, mail)
     for _ in range(3):
         with pytest.raises(Undelivered) as told:
             door("a")
@@ -54,9 +54,9 @@ def test_an_email_the_server_refuses_is_not_kept_and_both_reasons_are_told(tmp_p
 
 def test_the_daily_summary_goes_once_by_email_and_never_before_its_hour(tmp_path: Path) -> None:
     mail = Mock()
-    messenger.summary(tmp_path, NOON, mail)
-    messenger.summary(tmp_path, NINE, mail)
-    messenger.summary(tmp_path, NINE, mail)
+    messenger_mail.summary(tmp_path, NOON, mail)
+    messenger_mail.summary(tmp_path, NINE, mail)
+    messenger_mail.summary(tmp_path, NINE, mail)
     assert mail.call_count == 1 and "Held: nothing" in mail.call_args.args[1]
 
 
@@ -64,15 +64,15 @@ def test_the_smtp_door_takes_its_settings_from_the_environment_and_never_shows_t
     None
 ):
     with pytest.raises(ValueError, match="SMTP_TO"):
-        messenger.smtp({k: v for k, v in ENV.items() if k != "SMTP_TO"})
+        messenger_mail.smtp({k: v for k, v in ENV.items() if k != "SMTP_TO"})
     server = MagicMock()
     with patch("smtplib.SMTP", return_value=server) as dialled:
-        messenger.smtp(ENV)("subject", "words")
+        messenger_mail.smtp(ENV)("subject", "words")
     dialled.assert_called_once_with("mail.example", 587, timeout=messenger.SECONDS)
     login = server.login
     login.assert_called_once_with("desk@example", "hunter2")
     server.send_message.assert_called_once()
     login.side_effect = OSError("bad hunter2")
     with pytest.raises(Undelivered) as refused, patch("smtplib.SMTP", return_value=server):
-        messenger.smtp(ENV)("subject", "words")
+        messenger_mail.smtp(ENV)("subject", "words")
     assert "hunter2" not in str(refused.value) and "(his password)" in str(refused.value)

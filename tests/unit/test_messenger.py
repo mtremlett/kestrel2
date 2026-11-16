@@ -60,11 +60,22 @@ def _refused(code: int, body: bytes) -> HTTPError:
     return HTTPError(URL, code, "", Message(), io.BytesIO(body))
 
 
-def _keep(root: Path, *days: tuple[str | None, str, tuple[str, ...]]) -> None:
+def _keep(
+    root: Path, *days: tuple[str | None, str, tuple[str, ...]], heat: Decimal | None = None
+) -> None:
     """A record for each day from Wednesday 11 November: its profit, the market's, what differs."""
     costs, none = Charges(*map(Decimal, ("1001.25", ".5", "0", "0", ".25"))), Decimal(0)
     kept = [
-        day.Record(date(2026, 11, 11 + n), Decimal(p) if p else None, costs, Decimal(m), d, none, 0)
+        day.Record(
+            date(2026, 11, 11 + n),
+            Decimal(p) if p else None,
+            costs,
+            Decimal(m),
+            d,
+            none,
+            0,
+            heat=heat,
+        )
         for n, (p, m, d) in enumerate(days)
     ]
     book._write(root / day.RECORDS, [day.HEADER, *map(day._row, kept)])
@@ -182,7 +193,8 @@ def test_the_morning_message_says_whether_anything_stops_the_desk_today(tmp_path
         "Morning, Mon 16 Nov, 08:00 UK. As things stand the desk is set for today on paper: the "
         "Gateway answered, today's check of the account named nothing, and the kill switch is "
         "off and drilled. Held: nothing. The last day on record, Fri 13 Nov: after £1,002.00 of "
-        "costs the book made £0.00; simply holding the market would have lost £0.50."
+        "costs the book made £0.00; simply holding the market would have lost £0.50. Book heat "
+        "not recorded."
     )
     sent = messenger.morning(tmp_path, MON, READY, post)
     assert sent == Delivery(MON, "morning 2026-11-16", 1, told)
@@ -198,9 +210,20 @@ def test_the_morning_message_says_whether_anything_stops_the_desk_today(tmp_path
         "23:00 UTC: his word; the kill switch was not drilled in the last 31 days; today's "
         f"orders: not sent, the check at 07:00 UTC today named: {named}; {GONE.words} Held: "
         "nothing. The last day on record, Thu 12 Nov: no profit published, the book is not the "
-        "broker's on AAPL, VUSA."
+        "broker's on AAPL, VUSA. Book heat not recorded."
     )
     assert messenger.morning(stopped, HALF, GONE, post) == Delivery(HALF, sent.name, 2, told)
+
+
+def test_the_morning_message_shows_the_records_heat_in_pounds_and_of_capital(
+    tmp_path: Path,
+) -> None:
+    _keep(tmp_path, ("5", "8", ()), heat=Decimal(230))
+    capital = Decimal(10_000)
+    told = messenger.morning(tmp_path, MON, READY, _posts(), capital)
+    assert told and "heat £230 (2.3%)" in told.text
+    quiet = messenger.morning(tmp_path / "again", MON, READY, _posts())
+    assert quiet and "heat" not in quiet.text.replace("Book heat not recorded", "")
 
 
 @pytest.mark.parametrize(
