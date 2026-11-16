@@ -87,7 +87,7 @@ def test_a_step_does_the_days_work_under_the_data_folder_and_fails_by_name_witho
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     _world(monkeypatch)
-    fast_store(tmp_path / "bars.db", 51)
+    fast_store(tmp_path / keeper.HOT, 51)
     assert _run(tmp_path, MON) == 0  # he sleeps: a knock
     assert capsys.readouterr().out == "STEP Mon 16 Nov 07:15 UTC: done.\n"
     # London open, and no key of his: the round is made on the store's bars at the pound's
@@ -173,7 +173,7 @@ def test_the_rehearsal_lives_the_last_session_again_on_its_own_record_with_no_ma
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     answers, whole, script = _world(monkeypatch), running.step, dict[int, dict[bytes, Said]]()
-    fast_store(tmp_path / "bars.db", 51)
+    fast_store(tmp_path / keeper.HOT, 51)
 
     def step(desk: running.Desk, now: datetime) -> None:
         answers.update(script.get(now.hour * 100 + now.minute, {}))
@@ -231,7 +231,7 @@ def test_the_rehearsal_may_begin_on_a_weekday_once_the_markets_are_shut_and_far_
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     answers = _world(monkeypatch)
-    fast_store(tmp_path / "bars.db", 51)
+    fast_store(tmp_path / keeper.HOT, 51)
     answers.update({tp.FILLS: [END], tp.ACCOUNT: tp.EMPTY})
     monkeypatch.setattr(running, "step", lambda *_: None)
     for hour, minute, begins in (
