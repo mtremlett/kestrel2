@@ -17,6 +17,7 @@ from desk.lines import (
     YARDSTICK,
     Line,
     require_traded,
+    valid_isin,
 )
 
 #: Still in the master only because the ladder's tests name them; they leave when those do not.
@@ -104,3 +105,25 @@ def test_spy_and_qqq_are_read_as_reference_series_and_refused_as_traded_lines() 
     assert [a.symbol for a in ADJUSTED] == [f"{r.symbol}-ADJUSTED" for r in REFERENCE]
     with pytest.raises(ValueError, match="SPY-ADJUSTED: a reference series"):
         require_traded(ADJUSTED[0])
+
+
+def test_every_traded_line_has_an_isin_with_a_good_check_digit() -> None:
+    traded = [ln for ln in LINES if ln not in REFERENCE]
+    assert all(ln.isin and len(ln.isin) == 12 and valid_isin(ln.isin) for ln in traded)
+    assert {ln.symbol: ln.isin for ln in LINES}["IDTL"] == "IE00BSKRJX20"
+    assert len({ln.isin for ln in LINES}) == len(LINES)
+    assert not valid_isin("IE00BSKRJX21") and not valid_isin("IE00BSKRJX2")
+    with pytest.raises(ValueError, match="check digit"):
+        Line("X", "LSE", "GBP", 1, isin="IE00BSKRJX21")
+
+
+def test_every_line_names_its_underlying_market_and_source_and_one_index_is_one_underlying() -> (
+    None
+):
+    assert all(line.underlying and line.source for line in LINES)
+    by_market: dict[str, set[str]] = {}
+    for line in LINES:
+        by_market.setdefault(line.underlying, set()).add(line.symbol)
+    assert by_market["S&P 500"] == {"VUSA", "VUAG", "SPY"}
+    assert by_market["NASDAQ 100"] == {"EQQQ", "QQQ", "5QQQ"}
+    assert by_market["GOLD"] == {"3LGO", "SGLN"} and by_market["MU"] == {"MU", "2MU"}

@@ -18,6 +18,7 @@ import os
 import sqlite3
 import sys
 import tempfile
+import zipfile
 from collections.abc import Callable
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
@@ -46,7 +47,7 @@ def order() -> list[Line]:
     return [*first, *(line for line in every if line not in first)]
 
 
-def _d(x: float) -> Decimal:
+def _d(x: float | str) -> Decimal:
     return Decimal(str(x))
 
 
@@ -112,10 +113,39 @@ def trend_rows(line: Line, folder: Path) -> list[Bar]:
     ]
 
 
+def raw_rows(line: Line, folder: Path) -> list[Bar]:
+    """A line's daily rows in the newest dated folder of Stooq's raw zips under folder: its one
+    text file (<symbol>.uk.txt) of ticker, span, date, time, prices, volume; a row with a hole
+    or a number that is none is left."""
+    market = headstart.MARKET[line.venue].lower()
+    zips = sorted(folder.glob(f"*/d_{market}_txt*.zip"))
+    if not zips:
+        raise ValueError(f"{folder.name} holds no zip of {market} daily bars")
+    with zipfile.ZipFile(zips[-1]) as opened:
+        name = f"/{line.symbol.lower()}.{market}.txt"
+        found = [m for m in opened.namelist() if m.endswith(name)]
+        if len(found) != 1:
+            raise ValueError(f"{zips[-1].name} holds {len(found)} files of {line.symbol}, not one")
+        cells = [row.split(",") for row in opened.read(found[0]).decode().splitlines()[1:]]
+    return [
+        Bar(
+            datetime.strptime(c[2], "%Y%m%d").date(),
+            _d(c[4]),
+            _d(c[5]),
+            _d(c[6]),
+            _d(c[7]),
+            int(float(c[8])),
+        )
+        for c in cells
+        if len(c) > 8 and all(c[2:9])
+    ]
+
+
 def _daily(where: Path) -> bool:
-    """A folder of daily rows: stooq_store's, the matrices' or mark_the_trend's."""
+    """A folder of daily rows: stooq_store's, the matrices', mark_the_trend's or the raw zips'."""
     return (
-        (where / "freq=d").is_dir()
+        next(where.glob("*/d_*_txt*.zip"), None) is not None
+        or (where / "freq=d").is_dir()
         or next(where.glob("*_1d_ts.npy"), None) is not None
         or next(where.glob("*.d.parquet"), None) is not None
     )
@@ -130,6 +160,8 @@ def form(where: Path) -> tuple[Source, Rows]:
         return (Source.IBKR_DAILY if found else Source.STOOQ_DAILY), stooq_rows
     if next(where.glob("*.d.parquet"), None) is not None:
         return Source.TREND_DAILY, trend_rows
+    if next(where.glob("*/d_*_txt*.zip"), None) is not None:
+        return Source.STOOQ_RAW, raw_rows
     if _daily(where):
         return Source.MATRIX_DAILY, matrix_rows
     raise ValueError(f"{where}: no daily reader for a store of this form")
