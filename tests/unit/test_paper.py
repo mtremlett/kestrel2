@@ -296,3 +296,15 @@ def test_each_entry_is_named_once_in_order_by_its_own_name_and_no_order_is() -> 
 def test_a_held_line_the_desk_was_not_given_is_refused() -> None:
     with pytest.raises(ValueError, match="XXXX"):
         paper.differences(Account((), ()), {"XXXX": 1}, LINES)
+
+
+def test_a_process_apart_from_the_desk_reads_the_account_less_the_desks_holdings_and_orders(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    desks, mine = (replace(AAPL_STOP, client=str(paper.DESK + n)) for n in (0, 1))
+    account = Account((SMGB, replace(SMGB, symbol="XYZ")), (desks, mine))
+    monkeypatch.setattr(paper, "dial", lambda _talk: account)
+    assert paper.read() == account  # every other process sees the whole
+    monkeypatch.setattr(paper, "APART", paper.Apart(frozenset({SMGB.name})))
+    assert paper.read() == Account((replace(SMGB, symbol="XYZ"),), (mine,))
+    assert paper.whole() == account
