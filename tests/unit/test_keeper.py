@@ -105,7 +105,8 @@ def test_a_trading_day_is_kept_each_venue_on_its_own_hours(tmp_path: Path) -> No
         frozenset(),
     )
     files = {f.name for f in tmp_path.rglob("*") if f.is_file()}
-    assert files == {bars.HISTORY, keeper.HOT, keeper.RECORD}  # two databases, no CSV store
+    assert files == {"market_history.db", "market_live.db", keeper.RECORD}  # two databases, no CSV
+    assert not any("kestrel" in name for name in files)
     with pytest.raises(keeper.Stale, match="BBB: no LSE bars before 2026-11-17 .* for 2026-11-16"):
         keeper.saved(tmp_path, tue, LINES)
     assert pretend.keep(tmp_path, _at(6, 5)) == ([], []) and pretend.asked == []
