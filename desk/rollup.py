@@ -83,3 +83,25 @@ def weekly(venue: str, candles: list[Candle]) -> list[Candle]:
         for monday, held in sorted(weeks.items())
         if tuple(held) == venues.sessions(venue, monday, monday + timedelta(days=6))
     ]
+
+
+def merged(
+    pulled: list[Candle], built: list[Candle]
+) -> tuple[list[Candle], list[tuple[Candle, Candle]]]:
+    """The bars to keep, in time order, and the faults: a pulled bar wins over a built one of the
+    same start, and where the two differ in any price or the volume the pair (pulled, built)
+    is a recorded fault; a built bar with no pulled twin is kept."""
+    kept = {c.start: c for c in built}
+    faults = []
+    for bar in pulled:
+        twin = kept.get(bar.start)
+        if twin is not None and (bar.open, bar.high, bar.low, bar.close, bar.volume) != (
+            twin.open,
+            twin.high,
+            twin.low,
+            twin.close,
+            twin.volume,
+        ):
+            faults.append((bar, twin))
+        kept[bar.start] = bar
+    return [kept[start] for start in sorted(kept)], faults
