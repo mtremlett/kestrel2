@@ -20,9 +20,9 @@ the bars of the session before, the pound, any halt. Its one line names each.
 
 THE REHEARSAL (`rehearse`) lives the last session again, every five minutes of its day, on a
 record of its own and at the real paper Gateway. It begins only while no market is open or
-about to open (an hour and a half clear), the real desk's kill switch off and the paper
-account empty: an order it sends cannot fill,
-and the adapter cancels what the broker did not fill. Its orders carry the ids of the
+about to open (an hour and a half clear), nor within a quarter-hour of a close, the real
+desk's kill switch off and the paper account empty: an order it sends cannot fill, and the
+adapter cancels what the broker did not fill. Its orders carry the ids of the
 session rehearsed, a day that is over, never the next real day's. A step that fails is
 counted and the next carries on, as in the day itself; at the end whatever of the desk's is
 still working is cancelled. It is GO only if each venue's round and the day's record were
@@ -32,6 +32,7 @@ filled, and the account is as it was found. Its messages go on its own record al
 from __future__ import annotations
 
 import os
+import time as time_
 from collections.abc import Callable, Mapping, Sequence
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
@@ -64,7 +65,8 @@ CAPITAL = Decimal(10_000)  #: the paper desk's one capital, in pounds, until he 
 #: The pound in dollars at the archive; no pound closes outside these; the oldest close trusted.
 POUND, DOLLARS, FRESH = Line("GBPUSD=X", "US", "USD", 1), (Decimal(1), Decimal(2)), 4 * DAY
 FIRST, LAST, EVERY = time(5, 30), time(22), timedelta(minutes=5)  #: the runner's day, UK clock
-BARRED = timedelta(minutes=90)  #: a rehearsal's longest run (30) and an hour clear of any open
+LONGEST, BARRED = timedelta(minutes=30), timedelta(minutes=90)  #: a run's end; no start this near
+AFTER = timedelta(minutes=15)  #: a closing auction's uncrossing and its prints, after its time
 NAMED = (OSError, HTTPException, ValueError, kill.Failed, messenger.Undelivered, paper.NotPaper)
 USAGE = "python -m desk.running [--preflight | --rehearse]"
 OPEN = "REHEARSAL NO-GO: not begun: {}."
@@ -193,11 +195,26 @@ def _moments(on: date) -> list[datetime]:
     return [(first + n * EVERY).astimezone(UTC) for n in range((last - first) // EVERY + 1)]
 
 
+def _live(desk: Desk, moments: Sequence[datetime]) -> tuple[list[str], bool]:
+    """Each moment's step; the ones that failed, named, and whether the run was stopped for
+    taking longer than LONGEST by the real clock, the bar at its start having counted on it."""
+    failed, began = list[str](), time_.monotonic()
+    for at in moments:
+        if time_.monotonic() - began > LONGEST.total_seconds():
+            return failed, True
+        try:
+            running.step(desk, at)
+        except Exception as fault:  # noqa: BLE001 - a failed step is the rehearsal's finding, named
+            failed.append(f"{at:%H:%M} UTC {type(fault).__name__}")
+    return failed, False
+
+
 def _near(venue: str, now: datetime) -> bool:
     """Whether the venue's session is open at now, or opens before the rehearsal could end."""
     days = (now.date(), now.date() + DAY)
     return any(
-        venues.hours(venue, d).auction >= now and venues.hours(venue, d).open <= now + BARRED
+        venues.hours(venue, d).auction + AFTER >= now
+        and venues.hours(venue, d).open <= now + BARRED
         for d in days
         if venues.sessions(venue, d, d)
     )
@@ -250,13 +267,11 @@ def rehearse(root: Path, now: datetime) -> tuple[bool, str]:
         return len(said)
 
     desk = _desk(root / REHEARSALS / f"{now:%Y%m%dT%H%M%S}", post, root.parent)
-    moments, failed = _moments(on), list[str]()
-    for at in moments:
-        try:
-            running.step(desk, at)
-        except Exception as fault:  # noqa: BLE001 - a failed step is the rehearsal's finding, named
-            failed.append(f"{at:%H:%M} UTC {type(fault).__name__}")
+    moments = _moments(on)
+    failed, slow = _live(desk, moments)
     left = placing.Paper(listing.read(LINES), desk.root, lambda: now).cancel()
+    if slow:
+        return False, f"REHEARSAL NO-GO: ran past {LONGEST} and was stopped, the market could open"
     if wrong := _amiss(desk, on, left, paper.read() == before):
         steps = f"; steps that failed: {', '.join(failed)}" * bool(failed)
         return False, f"REHEARSAL NO-GO: {'; '.join(wrong)}{steps}"

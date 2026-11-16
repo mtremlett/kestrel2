@@ -9,6 +9,7 @@ from contextlib import suppress
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
+from types import SimpleNamespace
 from typing import BinaryIO
 
 import pytest
@@ -218,9 +219,18 @@ def test_the_rehearsal_lives_the_last_session_again_on_its_own_record_with_no_ma
     # not begun while a market is open (13:00) or opens within the run and an hour (London at
     # 08:00, seen from 07:00), with the kill switch on, or with anything on the paper account,
     # which the rehearsal's empty book would not hold
-    for hour, named in ((13, "London and New York"), (7, "London")):
-        code, line = rehearse(6, MON.replace(hour=hour, minute=0))
+    for hour, minute, named in (
+        (13, 0, "London and New York"),
+        (7, 0, "London"),
+        (21, 10, "New York"),
+    ):
+        code, line = rehearse(6, MON.replace(hour=hour, minute=minute))
         assert code == 1 and f"not begun: {named} open or about to, and an order" in line
+    # begun but stopped if it runs past its longest by the real clock: then NO-GO
+    ticks = iter((0, 0, 1900))
+    monkeypatch.setattr(command, "time_", SimpleNamespace(monotonic=lambda: next(ticks)))
+    code, line = rehearse(7, MON.replace(hour=22, minute=30))
+    assert code == 1 and "ran past 0:30:00 and was stopped" in line
     book.turn(tmp_path / "desk", book.Switch.ON, MON, "his word")
     answers[tp.ACCOUNT] = tp.BARE
     assert _run(tmp_path, MON.replace(hour=22), "--rehearse") == 1
