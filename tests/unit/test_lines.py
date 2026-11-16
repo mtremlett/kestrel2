@@ -89,11 +89,8 @@ def test_a_line_pays_nil_or_stamp_duty_and_only_a_london_line_can_pay_it() -> No
 def test_the_lines_record_what_a_second_source_confirmed() -> None:
     held = {line.symbol: line for line in LINES}
     assert held["5QQQ"].splits == {(date(2024, 8, 22), Decimal(500))}
-    assert (
-        len(held["2MU"].real_moves) == 4
-        and len(held["SGLN"].real_moves) == 1
-        and not held["VUAG"].real_moves
-    )
+    moves = {sym: len(line.real_moves) for sym, line in held.items() if line.real_moves}
+    assert moves == {"2MU": 4, "SGLN": 1}
 
 
 def test_spy_and_qqq_are_read_as_reference_series_and_refused_as_traded_lines() -> None:
