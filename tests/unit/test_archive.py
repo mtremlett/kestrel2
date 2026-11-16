@@ -7,6 +7,7 @@ from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from http.client import IncompleteRead
+from pathlib import Path
 from urllib.error import URLError
 
 import pytest
@@ -197,3 +198,24 @@ def test_the_pound_stamped_at_londons_summer_midnight_is_dated_by_the_day_it_ope
     fx = Line("GBPUSD=X", "US", "USD", 1)
     days = [bar.day for bar in archive.parse(fx, _payload(rows, "USD", "GBPUSD=X"))]
     assert days == [date(2025, 6, 13), date(2025, 12, 12)]
+
+
+def test_a_kept_answer_is_read_instead_of_asked_again_and_a_refused_one_is_not_kept(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    asked: list[str] = []
+
+    def ask(address: str) -> bytes:
+        asked.append(address)
+        return _payload()
+
+    monkeypatch.setattr(archive, "_ask", ask)
+    day = date(2025, 11, 15)
+    first = archive.fetch(US, day, tmp_path)
+    assert archive.fetch(US, day, tmp_path) == first == archive.fetch(US, day)
+    assert len(asked) == 2  # the kept answer served the second asking; the homeless one asked
+    assert (tmp_path / "archive" / "2025-11-15" / "AAA").read_bytes() == _payload()
+    monkeypatch.setattr(archive, "_ask", lambda _a: _payload(symbol="ZZZ"))
+    with pytest.raises(ValueError, match="ZZZ"):
+        archive.fetch(UK, day, tmp_path)
+    assert not (tmp_path / "archive" / "2025-11-15" / "BBB.L").exists()

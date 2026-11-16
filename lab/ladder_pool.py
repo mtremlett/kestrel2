@@ -1,8 +1,9 @@
 """ladder_pool - THE LADDER ON ALL THE PC'S CORES (R-RUNNER-110): `lab/ladder.py`'s cells judged
-in `os.cpu_count() - 2` workers at below-normal priority. The rows are the serial run's, in its
-order, written by the parent alone; a worker reads the bars itself and keeps its simulations as
-tapes (`lab/tape.py`). A GROUP is a run of consecutive cells of one rule, pooled once for its
-folds. A cell whose judging breaks in a worker is that cell's row (`error`), never the set's end.
+in workers at below-normal priority, as many as the cores and the FREE MEMORY allow
+(R-RUNNER-203). The rows are the serial run's, in its order, written by the parent alone; a
+worker reads the bars itself and keeps its simulations as tapes (`lab/tape.py`). A GROUP is a
+run of consecutive cells of one rule, pooled once for its folds. A cell whose judging breaks in
+a worker is that cell's row (`error`), never the set's end.
 
 THE UNIT OF WORK (R-RUNNER-166) is a rule's line in one fold, never a whole line's history: the
 simulations the folds need are WARMED, one task each (rule, line, fold year), kept as tapes, so
@@ -25,7 +26,7 @@ from itertools import groupby
 from pathlib import Path
 from typing import Any, BinaryIO
 
-from lab import batch, cell, ladder, tape, verdict
+from lab import batch, cell, ladder, tape, tune, verdict
 from lab.batch import Bars
 from lab.cell import Cell
 from lab.folds import YEARS
@@ -33,6 +34,8 @@ from lab.ladder import FIRST, Plan
 from lab.rung import Rates
 
 SPARE = 2  #: cores left to the rest of the PC
+RESERVE = 0.2  #: the share of the PC's memory kept free of the pool
+PEAK = 5 * 2**30  #: bytes one worker reaches at its peak, as measured overnight
 BELOW_NORMAL = 0x4000  #: Windows' BELOW_NORMAL_PRIORITY_CLASS
 Task = tuple[list[Cell], list[Cell], tuple[int | str, int], list[verdict.Row | None], datetime]
 AHEAD = 2  #: rules warmed before the one whose group is being read
@@ -55,9 +58,21 @@ def _asked(stop: Path, began: float) -> str | None:
     return stop.read_text(encoding="utf-8").strip() or "asked to stop"
 
 
-def workers() -> int:
-    """The pool's size: every core but two, and at least one."""
-    return max(1, (os.cpu_count() or 1) - SPARE)
+def workers(total: int, free: int, cores: int | None = None) -> int:
+    """The pool's size: every core but two, or as many as fit in the free memory beyond a
+    reserve of RESERVE of the PC's (for the desk, the Gateway and lane sessions), each taking
+    PEAK bytes; at least one."""
+    room = (free - RESERVE * total) // PEAK
+    return max(1, min((cores or os.cpu_count() or 1) - SPARE, int(room)))
+
+
+def _memory() -> tuple[int, int]:
+    """This PC's memory, in bytes: in all, and free."""
+    machine = tune.windows()
+    try:
+        return machine.memory()
+    finally:
+        machine.close()
 
 
 def _begin(make_bars: Callable[[], Bars], pounds: Rates, tapes: Path) -> None:
@@ -179,6 +194,7 @@ def run(
     now: Callable[[], datetime] = lambda: datetime.now(UTC),
     plan: Plan = FIRST,
     size: int | None = None,
+    memory: Callable[[], tuple[int, int]] = _memory,
 ) -> str:
     """`ladder.run` on the pool: the same register, results file and keys; one line of counts."""
     if cell.code_version(module=ladder.ME) != cell.RUNGS[ladder.ME]:
@@ -198,16 +214,15 @@ def run(
         tasks.append((group, mine, (plan.tag, count), before, stamp))
     tally: Counter[str] = Counter()
     tapes = home / ladder.FOLDER / tape.FOLDER
-    pool = ProcessPoolExecutor(
-        size or workers(), initializer=_begin, initargs=(make_bars, pounds, tapes)
-    )
+    size = size or workers(*memory())
+    pool = ProcessPoolExecutor(size, initializer=_begin, initargs=(make_bars, pounds, tapes))
     with pool, results.open("ab") as out:
         out.truncate(len(whole))
         why = _write(pool, tasks, out, tally, (stop, began))
     if why:
         return f"stopped after a unit: {why}"
     return (
-        f"ladder set {plan.tag} on {size or workers()} cores: {len(todo)} cells, judged against "
+        f"ladder set {plan.tag} on {size} cores: {len(todo)} cells, judged against "
         f"{count} trials: {tally['judged']} judged now, {tally['kept']} kept from before, "
         f"{tally['error']} could not be judged and are tried again next run, "
         f"{tally['refused']} refused by the desk's sizing."

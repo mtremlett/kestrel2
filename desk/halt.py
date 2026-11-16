@@ -19,10 +19,12 @@ from datetime import date, datetime, timedelta
 from enum import Enum
 from pathlib import Path
 
-from desk.orders import Refused
+from desk.orders import Refused, Settings
+from desk.risk import Standing, loss_limit
 from desk.store import _write
 
 HALTS, BLOCKED = "halts.csv", "blocked"  #: the one record of halts; a folder, a list a morning
+WOULD = "would_have_halted.csv"  #: beside it, what a halt would have been on paper: no halt
 COLUMNS = ("called", "why", "by", "may_lift", "lifted", "lifted_why", "lifted_by")
 OPERATOR = "the operator"  #: who calls a halt by hand, and may lift any
 ALONE, EITHER = "the operator alone", "whoever called it, or the operator"  #: who may lift one
@@ -217,6 +219,22 @@ def listed(root: Path, day: date) -> str:
     signals = sum(len(found[b]) for b in Blocker if b is not Blocker.UNREAD)
     said = (f"{b.value}: {', '.join(s.order_id for s in found[b]) or 'none'}." for b in Blocker)
     return f"BLOCKERS, {day}: {signals} signals blocked. {' '.join(said)}"
+
+
+def drawdown(root: Path, at: datetime, standing: Standing, settings: Settings) -> str | None:
+    """ON PAPER A DRAWDOWN PAST ITS LIMIT IS AN ALERT, NEVER A HALT (R-RUNNER-156): past a loss
+    limit it records "would have halted" (once for a moment and reason, in WOULD, beside the
+    record of halts, where it is in force nowhere) and returns the words for the messenger to
+    send to him. None while the book is under both limits."""
+    reached = loss_limit(standing, settings.capital, settings.day_loss, settings.week_loss)
+    if reached is None:
+        return None
+    why = f"would have halted at {reached}; paper, so the desk still trades"
+    path, row = root / WOULD, (at.isoformat(), why)
+    kept_rows = _rows(path, ("at", "why")) if path.exists() else []
+    if list(row) not in kept_rows:
+        _keep(path, ("at", "why"), [*map(tuple, kept_rows), row])
+    return f"DRAWDOWN ALERT: {why}."
 
 
 def _rows(path: Path, names: tuple[str, ...]) -> list[list[str]]:

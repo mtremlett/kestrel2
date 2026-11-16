@@ -117,18 +117,23 @@ def journal(kept: Path, line: Line) -> Path:
     return kept / line.venue / f"{line.symbol}.jsonl"
 
 
+def reader(root: Path) -> Callable[[Line], tuple[Bar, ...]]:
+    """A ticker's bars from the research store at root, one ticker's at a time (a read that
+    fails is tried, and fails, for each cell)."""
+
+    @lru_cache(maxsize=1)
+    def bars(line: Line) -> tuple[Bar, ...]:
+        return universe.read(root, line).bars
+
+    return bars
+
+
 def work(
     root: Path, kept: Path, start: date, end: date, lines: Sequence[Line], transfer: bool = False
 ) -> None:
     """A worker's work: each ticker's bars read once from the research store at root, every
     strategy run on them, each outcome kept in the ticker's journal as it finishes."""
-
-    @lru_cache(
-        maxsize=1
-    )  # one ticker's bars at a time; a read that fails is tried, and fails, for each cell
-    def bars(line: Line) -> tuple[Bar, ...]:
-        return universe.read(root, line).bars
-
+    bars = reader(root)
     for line in lines:
         journal(kept, line).parent.mkdir(parents=True, exist_ok=True)
         batch.run(cells(line, start, end, transfer), bars, journal(kept, line))
