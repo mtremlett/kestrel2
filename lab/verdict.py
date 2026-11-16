@@ -284,17 +284,21 @@ def write_table(
     rows: Sequence[Row],
     rules: Sequence[str],
     count: int,
+    built: tuple[int, int],
 ) -> Path:
-    """The set's results table, `<tag>.md` and `<tag>.json`, labelled PRE-REVIEW."""
+    """The set's results table, `<tag>.md` and `<tag>.json`, labelled PRE-REVIEW, its header
+    saying how many of the ladder's rungs are built: `built` is (built, of)."""
     folder.mkdir(parents=True, exist_ok=True)
     mine = by_rule(rows, rules)
     data: dict[str, object] = {"set": tag, "question": question, "status": STATUS}
     data |= {"cells": len(rows), "trials": count, "refused": sum("refused" in r for r in rows)}
+    data |= {"rungs_built": built[0], "rungs": built[1]}
     data |= {"rules": [_rule(r, rs) for r, rs in mine.items()]}
     (folder / f"{tag}.json").write_text(json.dumps(data, indent=1), encoding="utf-8")
     #: the register is never shortened: a trial an earlier run of the set entered stays counted
     said = f"Cells: {len(rows)}. Each is judged against {count} trials, all its register ever held."
-    out = [f"# SET {tag} - {STATUS}", "", f"{question} {said}", ""]
+    out = [f"# SET {tag} - {STATUS}", "", f"rungs built: {built[0]} of {built[1]}", ""]
+    out += [f"{question} {said}", ""]
     out += [f"{STATUS}: not final until the blind review (R-RUNNER-40) is clean.", ""]
     for rule, rs in mine.items():
         out += [f"## {rule}: {sum(map(goes, rs))} of {len(rs)} lines go forward", ""]

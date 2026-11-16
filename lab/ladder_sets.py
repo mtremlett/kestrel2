@@ -44,7 +44,10 @@ def epon(
     count = trials.count(home / FOLDER / f"{EPON.stem}.trials.jsonl", EPON.question)
     last = _last(_whole(home / FOLDER / f"{EPON.stem}.jsonl"))
     rows = [last[tuple(batch.row(c))] for c in todo]
-    table = verdict.write_table(home / FOLDER / "sets", EPON.tag, EPON.question, rows, rules, count)
+    sets = home / FOLDER / "sets"
+    table = verdict.write_table(
+        sets, EPON.tag, EPON.question, rows, rules, count, ladder.rungs_built()
+    )
     passed = sum(any(map(verdict.goes, mine)) for mine in verdict.by_rule(rows, rules).values())
     return f"{counts}\nSET {EPON.tag}: {len(rules)} rules, {passed} passed, table {table}"
 
