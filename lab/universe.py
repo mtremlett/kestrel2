@@ -153,13 +153,13 @@ REFERENCE = tuple(line for line in ETFS if line.symbol == "SPY")
 def keep_reference(
     root: Path,
     day: date,
-    ask: Callable[[Line, date, date], tuple[Bar, ...]] = archive.fetch,
+    ask: Callable[..., tuple[Bar, ...]] = archive.fetch,
 ) -> dict[Line, tuple[Fault, ...]]:
     """Fetch each reference series from the archive's reach back to its first session, before
     day, and keep it in its venue's folder at root as traded, with the faults found."""
     return {
         line: archive.keep_reference(
-            root / line.venue, line, ask(line, day, archive.REFERENCE_SINCE)
+            root / line.venue, line, ask(line, day, since=archive.REFERENCE_SINCE)
         )
         for line in REFERENCE
     }

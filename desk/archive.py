@@ -132,7 +132,7 @@ def _ask(address: str) -> bytes:
 
 
 def fetch(
-    line: Line, day: date, since: date = SINCE, home: Path | None = None
+    line: Line, day: date, home: Path | None = None, *, since: date = SINCE
 ) -> tuple[Bar, ...]:
     """Every bar the archive holds for a line from since before day, read on entry. With a home, the
     archive's answer is kept raw there, one file to a line and day, and read instead of asked
@@ -182,7 +182,7 @@ def keep_reference(root: Path, line: Line, bars: Sequence[Bar]) -> tuple[store.F
     weekdays = {bar.day for bar in bars if bar.day.weekday() < 5}
     sound = []
     for bar in store._once(bars, faults):  # noqa: SLF001  # the store's own cleaning, not copied
-        entered = store._entered(line, bar, weekdays)  # noqa: SLF001  # the store's own cleaning, not copied
+        entered = store._entered(line, bar, weekdays, faults)  # noqa: SLF001  # the store's own cleaning, not copied
         if isinstance(entered, str):
             faults.append(store.Fault(bar.day, entered))
         else:
