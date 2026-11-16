@@ -31,6 +31,7 @@ from lab import (
     published,
     reproduce,
     rung,
+    rung_costs,
     shuffle,
     trials,
     verdict,
@@ -94,6 +95,7 @@ def test_each_cell_is_judged_on_every_rung_and_kept_with_its_reasons_and_trials(
             [(own, EDGE), (Cell(own.strategy, ISF, ISF_START, own.end), NOISE)], ROOM, {}
         ).answer.name,
         "market": market.judge(verdict, EDGE, ISF, NOISE, {}).answer.name,
+        "costs": rung_costs.judge(verdict).answer.name,
         "shuffle": "THIN",  #: run last, and only on a trial that passed all before it
     }
     assert {name: answer for name, (answer, _) in won["rungs"].items()} == want
@@ -107,7 +109,7 @@ def test_each_cell_is_judged_on_every_rung_and_kept_with_its_reasons_and_trials(
     assert lost["rungs"]["first"][0] == lost["rungs"]["market"][0] == "FAIL"
     assert set(won["unrun"]) == {"reproduce", "regime", "plateau", "stress", "unwired"}
     #: the rungs built in modules the ladder does not yet judge are named, never left in silence
-    assert "rung_costs" in won["unrun"]["unwired"] and "declare no RUNG" in won["unrun"]["unwired"]
+    assert "rung_ci" in won["unrun"]["unwired"] and "declare no RUNG" in won["unrun"]["unwired"]
     assert 0 <= won["drawdown"]["median"] <= won["drawdown"]["p95"] < 1, "measured, never gated"
 
 
