@@ -782,7 +782,8 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       and losses, channel (#154): five tables, 250 printed numbers. Remains: RSI ratio and band
       line (public since #185: strategy.rsi, strategy.lower_band; R-RUNGS-6, 12 done), carried band, a fresh-low table, each table run holding, tables
       moved to own module (file at its 400 cap)
-      {id: rungs-indicators; files: lab/published.py, tests/unit/test_lab_published.py}
+      {id: rungs-indicators; files: lab/published.py, lab/published_tables.py, manifest.toml,
+      tests/unit/test_lab_published*.py}
 - [ ] Before paper: a kill condition declared for each strategy; promotion only after at
       least thirty effective paper trades, net positive (STR-17, LAD-11). Built:
       `lab/promotion.py` (#127). Remains: the desk reads it (R-RUNGS-7); each candidate's kill numbers
@@ -791,7 +792,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
 - [ ] At least three ladder-passed strategies and a feasibility number before A-GATE paper
       (NS-04)
       {id: rungs-feasibility; files: lab/feasibility.py, tests/unit/test_lab_feasibility.py,
-      manifest.toml; after: rungs-trustworthy}
+      manifest.toml; after: rungs-trustworthy, rungs-eponymous}
 - [ ] **The eponymous strategies through the ladder first**, before any grid exploration:
       the twenty-one published rules the old desk listed, ported one at a time as rules under
       the one template, each with its author's source, instrument, period and published
