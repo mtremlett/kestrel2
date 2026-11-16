@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -12,7 +13,7 @@ from test_lab_sweep import BAE, _keep
 from desk import strategy
 from desk.lines import STAMP_DUTY, Line
 from lab import ladder, transfer
-from lab.rung import Verdict
+from lab.rung import Answer, Verdict
 
 pytestmark = pytest.mark.usefixtures(_a_rule_at_every_setting.__name__)
 A, B, C = "VUSA", "ISF", "SPY"
@@ -78,3 +79,24 @@ def test_the_command_writes_the_labelled_page_and_data_and_a_second_run_gives_th
         .out.splitlines()[-1]
         .startswith("grid transfer study PRE-REVIEW: 2 lines")
     )
+
+
+def test_a_line_the_sizing_refuses_is_a_row_answered_refused_naming_why() -> None:
+    why = "one share of AZO costs 2900 pounds, more than the room of 2000"
+    lines = [Line(s, "LSE", "GBP", 1) for s in (A, B)]
+
+    def score(name: str, line: Line) -> Verdict | None:
+        found = _score(name, line)
+        return (
+            found and replace(found, answer=Answer.FAULT, refusal=why)
+            if line.symbol == B
+            else found
+        )
+
+    done = transfer.study(transfer.families(), lines, score)
+    refused = [r for r in done.rows if r.answer == "REFUSED"]
+    assert {r.line for r in refused} == {f"{B} on LSE"} and all(r.refusal == why for r in refused)
+    assert {r.answer for r in done.rows if r.line == f"{A} on LSE"} == {"FAIL"}
+    page, data = transfer.report(done, 2)
+    assert f"REFUSED: {why}" in page and "REFUSED 5" in transfer.counts(done, 2)
+    assert {r["refusal"] for r in data["rows"]} == {None, why}

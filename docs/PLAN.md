@@ -131,6 +131,8 @@ The grid lane needs it. The money lane's blocking requests are done: R-MONEY-1 (
 UK tax) and R-MONEY-2 (the scenes on the whole fourteen months).
 Retiring `desk/eponymous_*.py` (R-RUNNER-127) waits until all the rules are spec rows in
 `lab/catalogue.toml` (6 of about 25 on 15 Nov); deleting earlier would delete rules, not copies.
+Checked again 15 Nov late: still 6 rows of 19 files, so R-RUNNER-127 stays held (it needs spec-epon first).
+`desk.strategy.rsi` and `lower_band` are already public (R-RUNGS-12, #185).
 
 - [x] The rehearsal data in a file of its own (`tests/scenes/rehearsal.py`)
 - [x] The rehearsal data lengthened to about fourteen months, the five rules buying and
@@ -743,20 +745,28 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
   - [ ] L1 TAPE-CACHE: a rule on a line simulated once into a kept tape (trades, daily
         returns), keyed by the rule, the engine, the bars and the rates; each rung's result
         keyed by the tape and that rung's own code. Changing a rung re-simulates nothing
+        {id: rungs-tape-cache; files: lab/tape.py, tests/unit/test_lab_tape.py}
   - [ ] L2 THE RUNG MAP: each of the eleven rungs above named to its module and test, built
         or not, in `lab/ladder.py`'s docstring; the later cards follow it
+        {id: rungs-rung-map; files: lab/ladder.py, tests/unit/test_lab_ladder_map.py; after: rungs-tape-cache}
   - [ ] L3-L13 ONE CARD PER RUNG, built or proven to one standard, one module each so they
         run in parallel: a planted edge passes; five hundred noise cells pass at about the
         stated rate; a power curve at three effect sizes; a broken copy caught; each defect
         of the old desk's rung audit kept as a case that must fail
+        {id: rungs-each-rung; files: lab/rung_*.py, tests/unit/test_lab_rung_*.py; after: rungs-rung-map}
   - [ ] L14 one clustered set of trials for the deflated Sharpe, its spread measured
+        {id: rungs-clustered-trials; files: lab/trials.py, lab/rung_dsr.py, tests/unit/test_lab_trials_clustered.py; after: rungs-rung-map}
   - [ ] L15 the blind review of the whole ladder (R-RUNNER-40), every blocking finding fixed
+        {id: rungs-blind-review; files: lab/ladder*.py, tests/unit/test_lab_ladder*.py; after: rungs-each-rung, rungs-clustered-trials}
   - [ ] L16 the gate: the runner runs the catalogue 24x7, each change re-running only its
         own specs, each set's table published with "rungs built: n of 11"
+        {id: rungs-gate; files: lab/ladder_sets.py, lab/ladder_pool.py, tests/unit/test_lab_ladder_pool.py; after: rungs-blind-review}
 - [ ] **STRATEGIES AS DATA (his goal: 1,000+ strategies over 1,000+ tickers):**
   - [ ] B1 building blocks written once, each known-answer tested: indicators, entries,
         exits, stops, filters (regime filters among them), sizing
+        {id: rungs-blocks; files: lab/blocks.py, tests/unit/test_lab_blocks.py}
   - [ ] B2 a typed Spec, validated on entry: an unknown block or a bad setting is refused
+        {id: rungs-spec; files: lab/spec.py, tests/unit/test_lab_spec.py; after: rungs-blocks}
   - [ ] B3 the catalogue, one TOML row per strategy with its source and known-answer case;
         a guard: unique names, known blocks only, a source and a case on every row
   - [ ] B4 the nineteen eponymous rules as rows, identical trades on the fixture proven,
@@ -771,7 +781,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
 - [ ] Each indicator known-answer tested against a published reference series (STR-14).
       Built: moving average, Bollinger deviation, Wilder smoothing (#145); true range, RSI gains
       and losses, channel (#154): five tables, 250 printed numbers. Remains: RSI ratio and band
-      line (R-RUNGS-6, 12), carried band, a fresh-low table, each table run holding, tables
+      line (public since #185: strategy.rsi, strategy.lower_band; R-RUNGS-6, 12 done), carried band, a fresh-low table, each table run holding, tables
       moved to own module (file at its 400 cap)
       {id: rungs-indicators; files: lab/published.py, tests/unit/test_lab_published.py}
 - [ ] Before paper: a kill condition declared for each strategy; promotion only after at
