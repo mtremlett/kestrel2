@@ -4,7 +4,7 @@ the day's pounds per dollar, with the archive and the Gateway played at their ow
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from contextlib import suppress
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
@@ -14,7 +14,7 @@ from unittest.mock import Mock
 
 import pytest
 import test_placing as tp
-from test_paper import ACCOUNTS, HELLO, NEXT, Said, _wire
+from test_paper import ACCOUNTS, HELLO, NEXT, Said, _account, _but, _order, _wire
 from test_reports import END, LISTED
 from test_running import MADE, fast_store
 
@@ -226,8 +226,8 @@ def test_the_rehearsal_lives_the_last_session_again_on_its_own_record_with_no_ma
     # orders of the desk's own still working at its end are cancelled, and named: NO-GO
     code, line = rehearse(4, _2200={tp.ACCOUNT: tp.WORKING, tp.CANCELS: tp.GONE})
     assert code == 1 and "not as found; left working, now cancelled: ('a', 'f')" in line
-    # not begun: on a day a market trades, with the desk's own kill switch on, or with
-    # anything on the paper account, which the rehearsal's empty book would not hold
+    # not begun: on a day a market trades, or with the desk's own kill switch on; and with
+    # the kill switch on
     book.turn(tmp_path / "desk", book.Switch.ON, MON, "his word")
     answers[tp.ACCOUNT] = tp.BARE
     assert _run(tmp_path, MON.replace(hour=13), "--rehearse") == 1
@@ -235,8 +235,43 @@ def test_the_rehearsal_lives_the_last_session_again_on_its_own_record_with_no_ma
     assert line.startswith(
         "REHEARSAL NO-GO: not begun: London and New York trade now, soon or just"
     )
-    assert "; the kill switch is on, pulled at 2026-11-16 07:15 UTC: his word; the paper" in line
-    assert "account is not empty, as the rehearsal's book is: ['IITU STK GBP']." in line
+    assert "; the kill switch is on, pulled at 2026-11-16 07:15 UTC: his word." in line
+
+
+def test_the_rehearsal_runs_beside_a_held_account_and_leaves_its_holdings_and_stops_as_found(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    answers = _world(monkeypatch)
+    fast_store(tmp_path / keeper.HOT, 51)
+    whole = running.step
+    held = [_but(tp.HELD, 4, name) for name in ("MSTR", "IB1T")]
+
+    def stop(number: str, level: str) -> tuple[Sequence[str], Sequence[str]]:
+        return _order(number, f"SELL STP {level}", f"old-{number}-stop", "PreSubmitted")
+
+    both = (stop("7", "171.5"), stop("8", "30.5"))
+    account = _account(held, *(part for pair in both for part in pair))
+    cases = {  # the account at the rehearsal's end: what it says
+        "REHEARSAL GO": account,
+        "old-8-stop (AAPL) was cancelled": _account(held, *both[0]),
+        "old-8-stop (AAPL) was moved": _account(held, *both[0], *stop("8", "29.5")),
+        "shares held, now 0": _account(held[:1], *both[0], *both[1]),
+        "its own order a-stop (AAPL) is still working": _account(
+            held, *both[0], *both[1], *_order("9", "SELL STP", "a-stop", "PreSubmitted")
+        ),
+    }
+    for said, end in cases.items():
+        answers[tp.ACCOUNT] = account
+
+        def step(desk: running.Desk, now: datetime, end: Said = end) -> None:
+            whole(desk, now)
+            if (now.hour, now.minute) == (22, 0):
+                answers[tp.ACCOUNT] = end
+
+        monkeypatch.setattr(running, "step", step)
+        code = _run(tmp_path, SUNDAY, "--rehearse")
+        out = capsys.readouterr().out
+        assert (said in out, code) == (True, int(said != "REHEARSAL GO")), out
 
 
 def test_the_rehearsal_may_begin_on_a_weekday_once_the_markets_are_shut_and_far_from_the_next_open(
