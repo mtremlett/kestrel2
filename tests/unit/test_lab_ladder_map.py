@@ -36,5 +36,5 @@ def test_the_map_names_eleven_rungs_once_each_to_files_there_or_marked_unbuilt()
 
 
 def test_the_count_of_rungs_built_is_the_map_s_rungs_not_marked_unbuilt() -> None:
-    #: 1, 4, 5, 7, 9, 10 and 11 have both files; 2, 3, 6 and 8 name one not yet there
-    assert ladder.rungs_built() == (7, 11)
+    #: all eleven have both files
+    assert ladder.rungs_built() == (11, 11)
