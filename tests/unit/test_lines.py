@@ -8,7 +8,16 @@ from decimal import Decimal
 
 import pytest
 
-from desk.lines import LINES, NO_TAX, REFERENCE, STAMP_DUTY, YARDSTICK, Line, require_traded
+from desk.lines import (
+    ADJUSTED,
+    LINES,
+    NO_TAX,
+    REFERENCE,
+    STAMP_DUTY,
+    YARDSTICK,
+    Line,
+    require_traded,
+)
 
 #: Still in the master only because the ladder's tests name them; they leave when those do not.
 LEAVING = {"SPY", "QQQ"}
@@ -92,3 +101,6 @@ def test_spy_and_qqq_are_read_as_reference_series_and_refused_as_traded_lines() 
                 require_traded(line)
         else:
             assert require_traded(line) is line
+    assert [a.symbol for a in ADJUSTED] == [f"{r.symbol}-ADJUSTED" for r in REFERENCE]
+    with pytest.raises(ValueError, match="SPY-ADJUSTED: a reference series"):
+        require_traded(ADJUSTED[0])

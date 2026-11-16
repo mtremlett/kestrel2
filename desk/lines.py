@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date
 from decimal import Decimal
 
@@ -129,9 +129,15 @@ REFERENCE = tuple(line for line in LINES if line.retail is False)
 POUND, DOLLARS = Line("GBPUSD=X", "US", "USD", 1), (Decimal(1), Decimal(2))
 
 
+TAG = "-ADJUSTED"  #: ends the symbol of a reference series' dividend-adjusted twin (R-RUNGS-9)
+#: Each reference series again, its prices adjusted for dividends and splits by the archive, kept
+#: beside the as-traded series under its own name, never in place of it.
+ADJUSTED = tuple(replace(line, symbol=line.symbol + TAG) for line in REFERENCE)
+
+
 def require_traded(line: Line) -> Line:
     """The line, if the desk or the lab may trade it; a reference series is refused."""
-    if line in REFERENCE:
+    if line in REFERENCE or line in ADJUSTED:
         raise ValueError(f"{line.symbol}: a reference series, which no retail customer can buy")
     return line
 
