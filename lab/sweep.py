@@ -46,7 +46,7 @@ import tempfile
 import time
 from collections import Counter
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, timedelta
 from functools import lru_cache, partial
 from pathlib import Path
@@ -78,6 +78,7 @@ class Pass:
     kept: int  #: held already under their code and their bars, so not run again
     failed: int  #: recorded with their error, and run again on the next pass
     undone: int  #: on a ticker whose worker died: no outcome in this pass
+    seconds: float = 0.0  #: how long the pass took by the clock: a full sweep fits a weekend
 
 
 def declared() -> tuple[Line, ...]:
@@ -193,10 +194,12 @@ def run(
         raise ValueError(f"listed more than once: {', '.join(twice)}")
     todo = {line: cells(line, start, end, transfer) for line in lines}
     with alone(kept):
+        began = clock()
         before = [len(batch.rows(journal(kept, line))) for line in lines]
         each = partial(work, root, kept, start, end, transfer=transfer)
         report = tune.run(lines, each, machine, data, threads, clock)
-        return _tally(todo, kept, before, report)
+        done = _tally(todo, kept, before, report)
+        return replace(done, seconds=(clock() - began).total_seconds())
 
 
 def fresh(root: Path, kept: Path, data: Path, limit: timedelta = LIMIT) -> dict[str, Any]:
@@ -290,7 +293,7 @@ def main(argv: Sequence[str]) -> None:
     lines = held(args.store) if args.held else universe.UNIVERSE if study else declared()
     done = run(lines, *folders, *window, tune.windows(), args.data, threads, transfer=study)
     died = [f"{line.symbol} on {line.venue}" for line in done.report.died]
-    counts = {name: getattr(done, name) for name in COUNTS}
+    counts = {name: getattr(done, name) for name in (*COUNTS, "seconds")}
     sys.stdout.write(json.dumps({**counts, "died": died}) + "\n")
     return None
 

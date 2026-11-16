@@ -70,7 +70,9 @@ def test_every_strategy_on_every_ticker_is_kept_and_only_what_changed_is_run_aga
     root, kept = tmp_path / "store", tmp_path / "kept"
     _keep(root, BOEING)
     _keep(root, BAE, lift=50, split=30)  # parked by the store, and studied all the same
-    first = _pass(tmp_path)
+    ticks = itertools.count()
+    first = _pass(tmp_path, clock=lambda: SATURDAY + timedelta(seconds=next(ticks)))
+    assert first.seconds > 0, "the pass's own time is measured, for the weekend it must fit"
     assert (first.cells, first.ran, first.failed) == (3 * EACH, 2 * EACH, EACH)
     assert (first.kept, first.undone, first.report.died) == (0, 0, ())
     for line in (BOEING, BAE):  # the two companies called BA, each from its own venue's bars
