@@ -216,8 +216,29 @@ def test_the_rehearsal_lives_the_last_session_again_on_its_own_record_with_no_ma
     # anything on the paper account, which the rehearsal's empty book would not hold
     book.turn(tmp_path / "desk", book.Switch.ON, MON, "his word")
     answers[tp.ACCOUNT] = tp.BARE
-    assert _run(tmp_path, MON.replace(hour=22), "--rehearse") == 1
+    assert _run(tmp_path, MON.replace(hour=13), "--rehearse") == 1
     line = capsys.readouterr().out
-    assert line.startswith("REHEARSAL NO-GO: not begun: London and New York trade today, and an")
+    assert line.startswith(
+        "REHEARSAL NO-GO: not begun: London and New York trade now, soon or just"
+    )
     assert "; the kill switch is on, pulled at 2026-11-16 07:15 UTC: his word; the paper" in line
     assert "account is not empty, as the rehearsal's book is: ['IITU STK GBP']." in line
+
+
+def test_the_rehearsal_may_begin_on_a_weekday_once_the_markets_are_shut_and_far_from_the_next_open(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    answers = _world(monkeypatch)
+    fast_store(tmp_path / "bars.db", 51)
+    answers.update({tp.FILLS: [END], tp.ACCOUNT: tp.EMPTY})
+    monkeypatch.setattr(running, "step", lambda *_: None)
+    for hour, minute, begins in (
+        (13, 0, 0),
+        (6, 31, 0),
+        (8, 0, 0),
+        (21, 15, 0),
+        (22, 30, 1),
+        (6, 30, 1),
+    ):
+        _run(tmp_path, MON.replace(hour=hour, minute=minute), "--rehearse")
+        assert ("not begun" in capsys.readouterr().out) == (not begins), (hour, minute)
