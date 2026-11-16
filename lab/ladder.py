@@ -17,9 +17,8 @@ none; a worst fold too thin to say holds it at THIN. A rung not yet runnable is 
 line (UNRUN). Nothing goes to paper before all eleven.
 
 THE RUNG MAP (L2): the plan's eleven rungs, each `n name: module, test`. A row's names differ:
-`first` holds 1-3, `market` 4 and 6. Each rung's own proof goes in its test (L3-L13), no two
-the same; (unbuilt) marks a file not yet there; after the dash, what else is owed. BUILT is a module
-with its own proof alone; the ones the ladder judges are those declaring a RUNG (`rung.found`).
+`first` holds 1-3, `market` 4 and 6. Each rung's proof is in its own test; (unbuilt) marks a file
+not yet there; after the dash, what is owed. BUILT: the ladder judges by it (it declares a RUNG).
  1 sample size, effective trades: lab/rung_sample.py, tests/unit/test_lab_rung_sample.py
  2 costs charged: lab/rung_costs.py, tests/unit/test_lab_rung_costs.py
  3 a confidence interval: lab/rung_ci.py, tests/unit/test_lab_rung_ci.py
@@ -119,10 +118,11 @@ def cells() -> tuple[Cell, ...]:
 
 
 def rungs_built() -> tuple[int, int]:
-    """The map's rungs built to the end (neither file marked unbuilt), and the map's rungs."""
+    """The map's rungs the ladder judges by (their module declares a RUNG), and the map's rungs."""
     paragraph = (__doc__ or "").split("THE RUNG MAP")[1].split("\n\n")[0]
-    rows = [line.split(" - ")[0] for line in paragraph.splitlines() if line.lstrip()[:1].isdigit()]
-    return sum("(unbuilt)" not in row for row in rows), len(rows)
+    rows = [line for line in paragraph.splitlines() if line.lstrip()[:1].isdigit()]
+    mods = {r.split("lab/")[1].split(".py")[0] for r in rows if "(unbuilt)" not in r}
+    return len(mods - {n.rpartition(".")[2] for n in rung.found(RUNGS)[1]}), len(rows)
 
 
 def names(c: Cell) -> list[str]:
