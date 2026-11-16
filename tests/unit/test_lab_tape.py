@@ -9,13 +9,15 @@ from collections import Counter
 from collections.abc import Callable, Sequence
 from contextlib import nullcontext
 from datetime import UTC, datetime
+from decimal import Decimal
 from pathlib import Path
 
 import pytest
 from test_lab_ladder import EDGE, ISF, NOISE, VUSA, _door, _rows
 
+from desk.orders import Settings
 from desk.store import Bar
-from lab import cell, ladder, ladder_sets, tape
+from lab import cell, ladder, ladder_sets, rung, tape
 from lab.cell import Cell, Record
 
 CLOCK = lambda: datetime(2026, 11, 14, tzinfo=UTC)  # noqa: E731
@@ -121,3 +123,16 @@ def test_a_rule_is_simulated_once_on_a_line_and_each_window_is_cut_from_it(
     for start, end in ((0, -1), (0, 300), (100, 400), (len(days) // 2, len(days) // 2 + 90)):
         window = Cell(RULES[0], VUSA, days[start], days[end])
         assert kept(window, bars) == cell.run(window, bars)
+
+
+def test_a_change_of_settings_prices_the_same_tape_again_and_simulates_nothing(
+    tmp_path: Path, sims: list[Cell]
+) -> None:
+    bars, kept = BOOK[VUSA], tape.kept(tmp_path, cell.run)
+    whole = Cell(RULES[0], VUSA, bars[0].day, bars[-1].day)
+    record = kept(whole, bars)
+    big, small = (
+        rung.judge(record, bars, Settings(c), {}) for c in (Decimal(10_000), Decimal(500))
+    )
+    assert kept(whole, bars) == record and len(sims) == 1, "the tape was read, not run again"
+    assert big.trades != small.trades
