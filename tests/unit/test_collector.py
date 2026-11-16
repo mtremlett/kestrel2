@@ -74,10 +74,12 @@ def test_a_vendor_that_fails_is_told_and_the_others_still_land(
 ) -> None:
     def ask(address: str) -> bytes:
         if "gnews" in address:
-            raise OSError("down")
+            raise OSError(address)
         return _ask(address)
 
     env = {name + "_API_KEY": HIDDEN for name in collector.NAMES}
     assert collector.run(tmp_path, env, NOW, ask) == 1
-    assert "gnews: OSError: down" in capsys.readouterr().err
+    err = capsys.readouterr().err
+    assert "gnews: OSError" in err
+    assert HIDDEN not in err  # a fault's words may hold the address, and so the key
     assert ("macro", "DGS10") in _held(tmp_path)

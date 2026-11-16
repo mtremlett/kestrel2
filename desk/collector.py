@@ -1,5 +1,5 @@
 """collector - THE FREE COLLECTOR: `python -m desk.collector`, run once a day (R-RUNNER-15). It
-asks the free tiers the desk already holds a key for, about three hundred calls, and keeps
+asks the free tiers the desk already holds a key for, a few dozen calls a day, and keeps
 what they say before any use is made of it, because history a free tier does not keep cannot
 be bought back (BIC-06, DAT-01). Four kinds of fact land in the one store (the long database
 of desk.bars): a PRICE second opinion on each US line's last session (Massive, Tiingo), MACRO
@@ -70,7 +70,10 @@ class Source:
 def _utc(moment: str | int) -> str:
     if isinstance(moment, int):
         return datetime.fromtimestamp(moment, UTC).isoformat()
-    return datetime.fromisoformat(moment).astimezone(UTC).isoformat()
+    when = datetime.fromisoformat(moment)
+    if when.tzinfo is None:
+        raise ValueError(f"a moment in no time zone: {moment}")
+    return when.astimezone(UTC).isoformat()
 
 
 def _massive(key: str, day: date) -> Iterator[tuple[str, str]]:
@@ -79,7 +82,7 @@ def _massive(key: str, day: date) -> Iterator[tuple[str, str]]:
 
 
 def _massive_read(_: str, answer: Any, day: date) -> Iterator[Fact]:
-    for row in answer["results"]:
+    for row in answer.get("results", []):  # absent on a day the market was shut
         if row["T"] in US:
             yield Fact(PRICE, row["T"], str(day), str(row["c"]))
 
@@ -174,15 +177,16 @@ def _ask(address: str) -> bytes:
 def _keep(
     store: sqlite3.Connection, source: Source, day: date, key: str, ask: Ask, at: str
 ) -> None:
-    for subject, address in source.asks(key, day):
-        body = ask(address)
-        store.execute("INSERT INTO raw VALUES (?, ?, ?, ?)", (source.name, subject, at, body))
-        answer = json.loads(body, parse_float=Decimal)
-        for fact in source.read(subject, answer, day):
-            store.execute(
-                "INSERT OR IGNORE INTO fact VALUES (?, ?, ?, ?, ?)",
-                (fact.kind, source.name, fact.subject, fact.at, fact.value),
-            )
+    answers = [(subject, ask(address)) for subject, address in source.asks(key, day)]
+    with store:  # the network is done with: one short write, all of a source's answers or none
+        for subject, body in answers:
+            store.execute("INSERT INTO raw VALUES (?, ?, ?, ?)", (source.name, subject, at, body))
+            answer = json.loads(body, parse_float=Decimal)
+            for fact in source.read(subject, answer, day):
+                store.execute(
+                    "INSERT OR IGNORE INTO fact VALUES (?, ?, ?, ?, ?)",
+                    (fact.kind, source.name, fact.subject, fact.at, fact.value),
+                )
 
 
 def run(root: Path, env: Mapping[str, str], now: datetime, ask: Ask = _ask) -> int:
@@ -200,11 +204,18 @@ def run(root: Path, env: Mapping[str, str], now: datetime, ask: Ask = _ask) -> i
                 skipped.append(f"no {source.key}_API_KEY: {source.name} skipped")
                 continue
             try:
-                with store:  # one source's answers land together, or none of them
-                    _keep(store, source, day, key, ask, at)
+                _keep(store, source, day, key, ask, at)
                 kept += 1
-            except (OSError, HTTPException, ValueError, KeyError, TypeError) as fault:
-                failed.append(f"{source.name}: {type(fault).__name__}: {fault}")
+            except (
+                OSError,
+                HTTPException,
+                ValueError,
+                KeyError,
+                TypeError,
+                sqlite3.Error,
+            ) as fault:
+                # the fault's words may hold the address, and so the key: only its kind is told
+                failed.append(f"{source.name}: {type(fault).__name__}")
     sys.stderr.write("".join(f"{line}\n" for line in skipped + failed))
     return int(bool(failed) or not kept)
 
