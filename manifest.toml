@@ -62,6 +62,7 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 # the money lane
 "lab/slippage.py" = "trading costs measured from the paper broker's real fills: each line's slip against the session's close beside the cost model's spread and slippage, and the gap (Q2)"
 "desk/strategy.py" = "the five frozen daily strategies: a decision for every line and day"
+"desk/strategy_parts.py" = "the indicators under the daily strategies: the rolling window, Wilder's and the exponential average, RSI and the lower band; desk.strategy gives them to its callers"
 "desk/eponymous_momentum.py" = "Antonacci's dual momentum, absolute leg, one rule under the strategy template: held while the last month-end close beats the one a year before; not traded by the paper desk"
 "desk/eponymous_swing.py" = "the eponymous rules, one published rule per author under the strategy template: weekly_reversal_jegadeesh; the paper desk does not trade them"
 "desk/eponymous_connors.py" = "Connors' RSI-2 as a rule under the one template, with its author, source and published setting; not traded by the paper desk"
