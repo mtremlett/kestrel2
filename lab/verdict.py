@@ -15,7 +15,7 @@ from desk.command import CAPITAL
 from desk.lines import Line
 from desk.orders import Settings
 from desk.store import Bar
-from lab import cell, deflated, folds, luck, market, reproduce, rung, shuffle, trials
+from lab import cell, deflated, folds, luck, market, reproduce, rung, shuffle, stress, trials
 from lab.cell import Cell
 from lab.deflated import Deflated
 from lab.folds import Pooled
@@ -32,7 +32,6 @@ RESAMPLES = 1000
 UNRUN = {
     "regime": "the weather that names each day's regime is not built (REG-01)",
     "plateau": "the published rules carry no settings to choose among yet",
-    "stress": "it gives pounds lost and never a pass; the loss limit to judge them by is not set",
 }
 NO_FIGURE = "no author's figure is on file for the rule: no published result stands behind it"
 #: A rule trades a line five to ten times a year and wants 200 sessions to warm up: a line of
@@ -40,6 +39,8 @@ NO_FIGURE = "no author's figure is on file for the rule: no published result sta
 MIN_BARS = 200 + 252
 #: A close that moves in a day by that day's pound, or one over it, to within this, on a line in
 #: pounds, is a part of the line quoted in dollars (M3): a step under the price store's jump.
+#: Units change between two sessions, so the day's OPEN stands at the same step: a session that
+#: opens near the close before it and then falls has made its move itself (a crash), and is judged.
 STEP = Decimal("0.03")
 STATUS = "PRE-REVIEW"  #: what every table is until the blind review (R-RUNNER-40) is clean
 COLUMNS = ("rule", "line", "venue", "answer", "rungs", "trials", "reproduction", "goes forward")
@@ -84,7 +85,8 @@ def judge(
         rungs["reproduce"] = (Answer.PASS, f"reproduced: {said}")
     rungs["folds"] = _folded(pooled)
     against = market.judge(verdict, own, beside, held, pounds)
-    said = rungs["first"][1]
+    #: the market's own missing day, or the first rung's THIN or FAULT, which it inherits
+    said = against.fault or rungs["first"][1]
     if against.line is not None and against.wide is not None:
         said = (
             f"over {against.days} days, {against.wide.t:.2f} standard errors beyond "
@@ -92,7 +94,8 @@ def judge(
             f"{against.line.beta:.2f} of its own line's; {rung.T_PASS} asked of both"
         )
     rungs["market"] = (against.answer, said)
-    if (last := shuffled(c, own, settings, pounds, rungs)) is not None:
+    rungs["stress"] = _stressed(c, own, settings, pounds)
+    if (last := shuffled(c, own, settings, pounds, rungs, made)) is not None:
         rungs["shuffle"] = last
     named = {name: rungs[name][0] for name in deflated.NAMED if name in rungs}
     return {
@@ -178,17 +181,19 @@ def pool(
 
 
 def _unstepped(line: Line, own: Sequence[Bar], pounds: Rates) -> None:
-    """Refuse a line in pounds with a day's step of the pound's rate not named a real move."""
+    """Refuse a line in pounds whose open and close both step by the pound's rate in a day, not
+    named a real move."""
     named = {day for day, _ in line.real_moves}
     for before, after in zip(own, own[1:], strict=False):
         rate = pounds.get(after.day)
         if line.currency != "GBP" or rate is None or after.day in named:
             continue
-        if any(abs(after.close / before.close / r - 1) <= STEP for r in (rate, 1 / rate)):
+        moved = [price / before.close for price in (after.open, after.close)]
+        if any(all(abs(m / r - 1) <= STEP for m in moved) for r in (rate, 1 / rate)):
             raise UnitStep(
-                f"{line.symbol}: on {after.day} the close steps by the pound's {rate} or its "
-                "inverse, as a change of units; waits for the data lane to mend the bars or "
-                "the master to name the move"
+                f"{line.symbol}: on {after.day} the open and the close step by the pound's {rate} "
+                "or its inverse, as a change of units; waits for the data lane to mend the bars "
+                "or the master to name the move"
             )
 
 
@@ -213,18 +218,27 @@ def _named(verdict: Verdict, one: Deflated) -> Judged:
 
 
 def shuffled(
-    c: Cell, own: Sequence[Bar], settings: Settings, pounds: Rates, rungs: Judged
+    c: Cell,
+    own: Sequence[Bar],
+    settings: Settings,
+    pounds: Rates,
+    rungs: Judged,
+    made: Sequence[Reproduction],
 ) -> Pair | None:
     """The shuffle rung, run last and only on a trial that passed every rung before it: any
-    other is given the least of their answers, since a shuffle costs a hundred runs. A trial
-    short of a rung before it (the folds, behind an author's result) has no verdict to shuffle."""
-    before = [rungs[name] for name in deflated.NAMED[:-1] if name in rungs]
+    other is given the least of their answers and told it was not run, since a shuffle costs a
+    hundred runs. A trial short of a rung before it (the folds, behind an author's result) has
+    no verdict to shuffle."""
+    before = {name: rungs[name][0] for name in deflated.NAMED[:-1] if name in rungs}
     if len(before) < len(deflated.NAMED) - 1:
         return None
-    least = min(before, key=lambda one: one[0])
-    if least[0] is not Answer.PASS:
-        return least
-    share = shuffle.share(c, own, settings, pounds)
+    name, least = min(before.items(), key=lambda one: one[1])
+    if least is not Answer.PASS:
+        return least, (
+            f"not run: its {shuffle.SHUFFLES} shuffles are kept for a trial that passed every "
+            f"rung before it, and {name} answered {least.name}"
+        )
+    share = shuffle.share(c, own, settings, pounds, made)
     return (
         Answer.PASS if share <= shuffle.SHARE else Answer.FAIL,
         f"{shuffle.SHUFFLES} shuffles of its days, its share among them {share:.3f}; "
@@ -232,13 +246,25 @@ def shuffled(
     )
 
 
+def _stressed(c: Cell, own: Sequence[Bar], settings: Settings, pounds: Rates) -> Pair:
+    """The stress rung on the line's whole history, or a FAULT where it cannot be asked."""
+    try:
+        return stress.judge(
+            Cell(c.strategy, c.line, own[0].day, c.end), own, settings, pounds
+        ).judged()
+    except ValueError as cannot:  #: a fault in the test, said as one with its reason
+        return Answer.FAULT, f"the stress scenarios could not be run: {cannot}"
+
+
 def _n(number: Decimal | float | None) -> str:
     return "no" if number is None else f"{number:.2f}"
 
 
 def goes(row: Row) -> bool:
-    """A cell goes forward when its one verdict is PASS and every rung run passed."""
-    return row.get("answer") == Answer.PASS.name and bool(row.get("every"))
+    """A cell goes forward when its one verdict is PASS, every rung run passed and its row says
+    that no rung is unrun: passing the rungs that happen to be built is not passing the ladder."""
+    passed = row.get("answer") == Answer.PASS.name and bool(row.get("every"))
+    return passed and row.get("unrun") == {}
 
 
 def by_rule(rows: Sequence[Row], rules: Sequence[str]) -> dict[str, list[Row]]:
@@ -274,15 +300,21 @@ def write_table(
     rows: Sequence[Row],
     rules: Sequence[str],
     count: int,
+    built: tuple[int, int],
 ) -> Path:
-    """The set's results table, `<tag>.md` and `<tag>.json`, labelled PRE-REVIEW."""
+    """The set's results table, `<tag>.md` and `<tag>.json`, labelled PRE-REVIEW, its header
+    saying how many of the ladder's rungs are built: `built` is (built, of)."""
     folder.mkdir(parents=True, exist_ok=True)
     mine = by_rule(rows, rules)
     data: dict[str, object] = {"set": tag, "question": question, "status": STATUS}
-    data |= {"trials": count, "refused": sum("refused" in row for row in rows)}
+    data |= {"cells": len(rows), "trials": count, "refused": sum("refused" in r for r in rows)}
+    data |= {"rungs_built": built[0], "rungs": built[1]}
     data |= {"rules": [_rule(r, rs) for r, rs in mine.items()]}
     (folder / f"{tag}.json").write_text(json.dumps(data, indent=1), encoding="utf-8")
-    out = [f"# SET {tag} - {STATUS}", "", f"{question} Judged against {count} trials.", ""]
+    #: the register is never shortened: a trial an earlier run of the set entered stays counted
+    said = f"Cells: {len(rows)}. Each is judged against {count} trials, all its register ever held."
+    out = [f"# SET {tag} - {STATUS}", "", f"rungs built: {built[0]} of {built[1]}", ""]
+    out += [f"{question} {said}", ""]
     out += [f"{STATUS}: not final until the blind review (R-RUNNER-40) is clean.", ""]
     for rule, rs in mine.items():
         out += [f"## {rule}: {sum(map(goes, rs))} of {len(rs)} lines go forward", ""]

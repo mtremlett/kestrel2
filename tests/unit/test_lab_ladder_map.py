@@ -6,7 +6,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from lab import ladder
+from lab import ladder, rung
 
 ROOT = Path(__file__).parents[2]
 MODULE, TEST = r"lab/\w+\.py", r"tests/unit/test_lab_\w+\.py"
@@ -33,3 +33,10 @@ def test_the_map_names_eleven_rungs_once_each_to_files_there_or_marked_unbuilt()
         {path for path, unbuilt in named if not unbuilt and not (ROOT / path).is_file()}
     )
     assert not missing, f"named as built and not there (build it, or mark it unbuilt): {missing}"
+
+
+def test_the_count_of_rungs_built_is_the_rungs_the_ladder_judges_by_not_the_map_s_rows() -> None:
+    """A module with its own proof and no RUNG is not built to the end: the ladder wires none of
+    these (R-RUNNER-192), and the count goes up only when a module declares its RUNG."""
+    built, rungs = ladder.rungs_built()
+    assert rungs == 11 and built == 11 - len(rung.found(ladder.RUNGS)[1])

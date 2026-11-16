@@ -129,6 +129,12 @@ park for a large one-day move nobody has recorded, most on real days of a real m
 Decide and build how research reads them, without loosening the store the desk trades on.
 The grid lane needs it. The money lane's blocking requests are done: R-MONEY-1 (each line's
 UK tax) and R-MONEY-2 (the scenes on the whole fourteen months).
+Retiring `desk/eponymous_*.py` (R-RUNNER-127) waits until all the rules are spec rows in
+`lab/catalogue.toml` (6 of about 25 on 15 Nov); deleting earlier would delete rules, not copies.
+R-RUNGS-6 and R-RUNGS-12 (the public `strategy.rsi` and `strategy.lower_band`) were done in #185 and
+are pinned by `tests/unit/test_strategy.py`; the open lines in STATUS are stale.
+Checked again 15 Nov late: still 6 rows of 19 files, so R-RUNNER-127 stays held (it needs spec-epon first).
+Checked 16 Nov: 6 spec rows of 21 rules, 15 rules only in Python; R-RUNNER-127 declined again until the rest are rows.
 
 - [x] The rehearsal data in a file of its own (`tests/scenes/rehearsal.py`)
 - [x] The rehearsal data lengthened to about fourteen months, the five rules buying and
@@ -659,14 +665,13 @@ grid-tune and grid-key side by side; then grid-pass, grid-week, grid-declared, g
       lab/sweep.py, lab/batch.py, lab/tune.py, tests/unit/test_lab_sweep.py,
       tests/unit/test_lab_batch.py, tests/unit/test_lab_tune.py, manifest.toml; after:
       grid-venue, grid-tune, grid-key}
-- [ ] Runs seven days without stopping. Remains: the seven days themselves; the run began 13 Nov 23:29 UK (moved onto the fix 14 Nov 00:41 UTC) and is not on the 48-hour pass limit of #125; on or after 20 Nov 23:45 UK read `sweep.unbroken` and tick if 7 days {id: grid-week; waits: 2026-11-21; files: lab/batch.py, lab/sweep.py,
+- [ ] Runs seven days without stopping. Remains: the seven days themselves; the run began 13 Nov 23:29 UK (moved onto the fix 14 Nov 00:41 UTC) and is not on the 48-hour pass limit of #125; nothing to build meanwhile; on or after 20 Nov 23:45 UK read `sweep.unbroken` and tick if 7 days {id: grid-week; waits: 2026-11-21; files: lab/batch.py, lab/sweep.py,
       lab/tune.py, tests/unit/test_lab_batch.py, tests/unit/test_lab_sweep.py,
       tests/unit/test_lab_tune.py; after: grid-pass}
-- [ ] Each strategy judged on its own declared universe; the everything-on-everything grid
+- [x] Each strategy judged on its own declared universe; the everything-on-everything grid
       kept as a transfer study, never a verdict; sweeps on the declared universe (LAD-01,
       LAD-13) {id: grid-declared; files: lab/sweep.py, tests/unit/test_lab_sweep.py}
-- [ ] A full sweep within a weekend, its time measured (LAD-10) {id: grid-weekend; files: *;
-      after: grid-declared}
+- [x] A full sweep within a weekend, its time measured (LAD-10). Remains: nothing; a cold transfer study took 17 min, the declared pass about 8 min, against 48 h {id: grid-weekend; files: *}
 
 ### The rungs lane's book
 
@@ -741,20 +746,28 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
   - [ ] L1 TAPE-CACHE: a rule on a line simulated once into a kept tape (trades, daily
         returns), keyed by the rule, the engine, the bars and the rates; each rung's result
         keyed by the tape and that rung's own code. Changing a rung re-simulates nothing
+        {id: rungs-tape-cache; files: lab/tape.py, tests/unit/test_lab_tape.py}
   - [ ] L2 THE RUNG MAP: each of the eleven rungs above named to its module and test, built
         or not, in `lab/ladder.py`'s docstring; the later cards follow it
+        {id: rungs-rung-map; files: lab/ladder.py, tests/unit/test_lab_ladder_map.py; after: rungs-tape-cache}
   - [ ] L3-L13 ONE CARD PER RUNG, built or proven to one standard, one module each so they
         run in parallel: a planted edge passes; five hundred noise cells pass at about the
         stated rate; a power curve at three effect sizes; a broken copy caught; each defect
         of the old desk's rung audit kept as a case that must fail
+        {id: rungs-each-rung; files: lab/rung_*.py, tests/unit/test_lab_rung_*.py; after: rungs-rung-map}
   - [ ] L14 one clustered set of trials for the deflated Sharpe, its spread measured
+        {id: rungs-clustered-trials; files: lab/trials.py, lab/rung_dsr.py, tests/unit/test_lab_trials_clustered.py; after: rungs-rung-map}
   - [ ] L15 the blind review of the whole ladder (R-RUNNER-40), every blocking finding fixed
+        {id: rungs-blind-review; files: lab/ladder*.py, tests/unit/test_lab_ladder*.py; after: rungs-each-rung, rungs-clustered-trials}
   - [ ] L16 the gate: the runner runs the catalogue 24x7, each change re-running only its
         own specs, each set's table published with "rungs built: n of 11"
+        {id: rungs-gate; files: lab/ladder_sets.py, lab/ladder_pool.py, tests/unit/test_lab_ladder_pool.py; after: rungs-blind-review}
 - [ ] **STRATEGIES AS DATA (his goal: 1,000+ strategies over 1,000+ tickers):**
   - [ ] B1 building blocks written once, each known-answer tested: indicators, entries,
         exits, stops, filters (regime filters among them), sizing
+        {id: rungs-blocks; files: lab/blocks.py, tests/unit/test_lab_blocks.py}
   - [ ] B2 a typed Spec, validated on entry: an unknown block or a bad setting is refused
+        {id: rungs-spec; files: lab/spec.py, tests/unit/test_lab_spec.py; after: rungs-blocks}
   - [ ] B3 the catalogue, one TOML row per strategy with its source and known-answer case;
         a guard: unique names, known blocks only, a source and a case on every row
   - [ ] B4 the nineteen eponymous rules as rows, identical trades on the fixture proven,
@@ -769,9 +782,10 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
 - [ ] Each indicator known-answer tested against a published reference series (STR-14).
       Built: moving average, Bollinger deviation, Wilder smoothing (#145); true range, RSI gains
       and losses, channel (#154): five tables, 250 printed numbers. Remains: RSI ratio and band
-      line (R-RUNGS-6, 12), carried band, a fresh-low table, each table run holding, tables
+      line (public since #185: strategy.rsi, strategy.lower_band; R-RUNGS-6, 12 done), carried band, a fresh-low table, each table run holding, tables
       moved to own module (file at its 400 cap)
-      {id: rungs-indicators; files: lab/published.py, tests/unit/test_lab_published.py}
+      {id: rungs-indicators; files: lab/published.py, lab/published_tables.py, manifest.toml,
+      tests/unit/test_lab_published*.py}
 - [ ] Before paper: a kill condition declared for each strategy; promotion only after at
       least thirty effective paper trades, net positive (STR-17, LAD-11). Built:
       `lab/promotion.py` (#127). Remains: the desk reads it (R-RUNGS-7); each candidate's kill numbers
@@ -780,7 +794,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
 - [ ] At least three ladder-passed strategies and a feasibility number before A-GATE paper
       (NS-04)
       {id: rungs-feasibility; files: lab/feasibility.py, tests/unit/test_lab_feasibility.py,
-      manifest.toml; after: rungs-trustworthy}
+      manifest.toml; after: rungs-trustworthy, rungs-eponymous}
 - [ ] **The eponymous strategies through the ladder first**, before any grid exploration:
       the twenty-one published rules the old desk listed, ported one at a time as rules under
       the one template, each with its author's source, instrument, period and published

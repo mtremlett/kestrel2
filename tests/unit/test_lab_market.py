@@ -137,8 +137,10 @@ def test_what_cannot_be_the_market_it_took_is_refused() -> None:
     with pytest.raises(ValueError, match="AAPL trades on US, VUSA on LSE"):
         market.judge(verdict, bars, AAPL, up, POUND)
     hole = bars[2500].day
-    with pytest.raises(ValueError, match=f"VUAG has no bar on {hole}"):
-        market.judge(verdict, bars, YARDSTICK, up[:2500] + up[2501:], POUND)
+    #: a counted day with no bar is a named data fault, not a crash
+    lost = market.judge(verdict, bars, YARDSTICK, up[:2500] + up[2501:], POUND)
+    assert lost.answer is Answer.FAULT and (lost.line, lost.wide, lost.days) == (None, None, 0)
+    assert f"VUAG has no bar on {hole} to set beside it" in lost.fault
     with pytest.raises(ValueError, match="did not make the verdict"):
         market.judge(verdict, bars[:-1], YARDSTICK, up, POUND)
     with pytest.raises(ValueError, match="never moved"):

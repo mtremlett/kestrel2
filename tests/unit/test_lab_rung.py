@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import math
 import random
+import re
 from collections.abc import Sequence
 from dataclasses import replace
 from datetime import date, timedelta
@@ -183,3 +184,21 @@ def test_a_record_is_judged_only_on_the_bars_that_made_it() -> None:
     record = cell.run(Cell("breakout_20_10", VUSA, bars[0].day, bars[24].day), bars)
     with pytest.raises(ValueError, match="did not make the record"):
         rung.judge(record, (replace(bars[0], close=Decimal(9)),) + bars[1:], TEN_K, POUND)
+
+
+def test_a_share_dearer_than_the_room_is_a_refused_verdict_and_the_only_catch_of_it_in_lab() -> (
+    None
+):
+    bars = _bars([c * 999 for c in SHAPE])  #: one share costs more than the room of 2000 pounds
+    done = _judge(bars, 24, room=Settings(Decimal(2000)))
+    assert done.refused and done.trades == () and done.t is None
+    assert done.refusal is not None and "one share costs more" in done.refusal
+    assert not _judge(_bars(SHAPE), 24).refused, "a share that fits is priced as before"
+    catches = [
+        p.name
+        for p in Path("lab").glob("*.py")
+        if re.search(r"except[^\n]*\bDeclined\b", p.read_text(encoding="utf-8"))
+    ]
+    assert catches == ["rung.py"], "the refusal is judged once, where the verdict is made"
+    fault = r"except[^:]*\bRefused\b"  #: the runner's fault pattern (R-RUNNER-186)
+    assert not re.search(fault, Path("lab/rung.py").read_text(encoding="utf-8"))

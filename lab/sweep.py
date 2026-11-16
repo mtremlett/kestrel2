@@ -6,6 +6,12 @@ A setting is a strategy the desk's engine can make (`strategy.STRATEGIES`): the 
 trusted only where it matches that engine, so the pass runs whatever is registered there, the
 published five today, and a setting added there is swept with no change here.
 
+Each strategy is judged on its own declared universe (`Rule.declared.universe`, LAD-01): the
+pass runs a strategy on the lines it declares and on no other, and `declared` lists them. The
+everything-on-everything grid (`--transfer`: every strategy on every ticker of the research
+list, or of the store with `--held`) is a transfer study, never a verdict: it asks whether an
+idea carries over, and no cell of it is judged on a line its strategy did not declare.
+
 The unit handed to the auto-tune (`lab/tune.py`) is a ticker, not a cell: a worker reads one
 ticker's bars once, runs every strategy on them and lets them go, so no worker ever holds the
 universe. The bars are read as research reads them (`universe.read`): a ticker the store has
@@ -19,8 +25,8 @@ One pass at a time works on a folder of journals: a pass holds the folder's lock
 system lets go if the pass dies, and a second pass on it is refused.
 
 The week (`python -m lab.sweep STORE KEPT DATA --days 7`) is pass after pass, one starting
-each hour until one has ended that many days after the first began, each over the research
-list from the archive's first day to that day, and each in a process of its own, so a pass
+each hour until one has ended that many days after the first began, each over the declared
+universe from the archive's first day to that day, and each in a process of its own, so a pass
 runs the code on disk that hour and a pass that dies costs the week only itself. Every pass
 is one line of `week.jsonl` in the data folder, its count or the error that ended it, and
 `unbroken` reads from that log how long the grid has run without stopping: seven days of it
@@ -40,7 +46,7 @@ import tempfile
 import time
 from collections import Counter
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, timedelta
 from functools import lru_cache, partial
 from pathlib import Path
@@ -72,11 +78,24 @@ class Pass:
     kept: int  #: held already under their code and their bars, so not run again
     failed: int  #: recorded with their error, and run again on the next pass
     undone: int  #: on a ticker whose worker died: no outcome in this pass
+    seconds: float = 0.0  #: how long the pass took by the clock: a full sweep fits a weekend
 
 
-def cells(line: Line, start: date, end: date) -> tuple[Cell, ...]:
-    """Every strategy at every setting on one ticker, over one window."""
-    return tuple(Cell(name, line, start, end) for name in STRATEGIES)
+def declared() -> tuple[Line, ...]:
+    """Every line some strategy declares, once, in the order they declare them."""
+    return tuple(
+        dict.fromkeys(line for rule in STRATEGIES.values() for line in rule.declared.universe)
+    )
+
+
+def cells(line: Line, start: date, end: date, transfer: bool = False) -> tuple[Cell, ...]:
+    """The strategies that declare the ticker, each over one window; with transfer, every
+    strategy, for the transfer study."""
+    return tuple(
+        Cell(name, line, start, end)
+        for name, rule in STRATEGIES.items()
+        if transfer or line in rule.declared.universe
+    )
 
 
 def held(root: Path) -> tuple[Line, ...]:
@@ -98,19 +117,26 @@ def journal(kept: Path, line: Line) -> Path:
     return kept / line.venue / f"{line.symbol}.jsonl"
 
 
-def work(root: Path, kept: Path, start: date, end: date, lines: Sequence[Line]) -> None:
-    """A worker's work: each ticker's bars read once from the research store at root, every
-    strategy run on them, each outcome kept in the ticker's journal as it finishes."""
+def reader(root: Path) -> Callable[[Line], tuple[Bar, ...]]:
+    """A ticker's bars from the research store at root, one ticker's at a time (a read that
+    fails is tried, and fails, for each cell)."""
 
-    @lru_cache(
-        maxsize=1
-    )  # one ticker's bars at a time; a read that fails is tried, and fails, for each cell
+    @lru_cache(maxsize=1)
     def bars(line: Line) -> tuple[Bar, ...]:
         return universe.read(root, line).bars
 
+    return bars
+
+
+def work(
+    root: Path, kept: Path, start: date, end: date, lines: Sequence[Line], transfer: bool = False
+) -> None:
+    """A worker's work: each ticker's bars read once from the research store at root, every
+    strategy run on them, each outcome kept in the ticker's journal as it finishes."""
+    bars = reader(root)
     for line in lines:
         journal(kept, line).parent.mkdir(parents=True, exist_ok=True)
-        batch.run(cells(line, start, end), bars, journal(kept, line))
+        batch.run(cells(line, start, end, transfer), bars, journal(kept, line))
 
 
 def _tally(
@@ -161,20 +187,24 @@ def run(
     data: Path,
     threads: int,
     clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+    transfer: bool = False,
 ) -> Pass:
-    """One pass over the lines, whose bars the research store at root holds: every cell from
+    """One pass over the lines, whose bars the research store at root holds: every cell (of
+    the strategies declaring the line, or all of them for a transfer study) from
     start to end run under the auto-tune or found kept, in the journals under kept. The
     auto-tune's flag and log are written in data. A ticker listed twice is refused: two
     workers would hold its one journal; so is a pass on a folder another pass holds."""
     twice = [f"{line.symbol} on {line.venue}" for line, n in Counter(lines).items() if n > 1]
     if twice:
         raise ValueError(f"listed more than once: {', '.join(twice)}")
-    todo = {line: cells(line, start, end) for line in lines}
+    todo = {line: cells(line, start, end, transfer) for line in lines}
     with alone(kept):
+        began = clock()
         before = [len(batch.rows(journal(kept, line))) for line in lines]
-        each = partial(work, root, kept, start, end)
+        each = partial(work, root, kept, start, end, transfer=transfer)
         report = tune.run(lines, each, machine, data, threads, clock)
-        return _tally(todo, kept, before, report)
+        done = _tally(todo, kept, before, report)
+        return replace(done, seconds=(clock() - began).total_seconds())
 
 
 def fresh(root: Path, kept: Path, data: Path, limit: timedelta = LIMIT) -> dict[str, Any]:
@@ -242,24 +272,33 @@ def unbroken(data: Path) -> timedelta:
     return best
 
 
+def workers(now: datetime) -> int:
+    """Threads for a pass: all but one of the PC's while London is shut, all but two while
+    its session is open (one calendar, desk.venues); never fewer than one."""
+    free = 2 if venues.open_at("LSE", now) else 1
+    return max(1, (os.cpu_count() or 2) - free)
+
+
 def main(argv: Sequence[str]) -> None:
-    """One pass over the research list from the archive's first day to today, its count
-    written out; with --held, over every ticker the store holds instead; or, given a number
-    of days, the week."""
+    """One pass over the declared universe from the archive's first day to today, its count
+    written out; with --transfer, the transfer study over the research list, or with --held
+    over every ticker the store holds; or, given a number of days, the week."""
     parser = argparse.ArgumentParser(description="the grid's pass, or its week")
     for name in ("store", "kept", "data"):  # absolute: a pass's process starts elsewhere
         parser.add_argument(name, type=lambda folder: Path(folder).resolve())
     parser.add_argument("--days", type=float, default=0)
-    parser.add_argument("--held", action="store_true", help="every ticker the store holds")
+    parser.add_argument("--held", action="store_true", help="transfer study: all the store holds")
+    parser.add_argument("--transfer", action="store_true", help="transfer study: research list")
     args = parser.parse_args(argv)
     if args.days:
         return week(partial(fresh, args.store, args.kept, args.data), args.data, args.days)
-    window, threads = (archive.SINCE, datetime.now(UTC).date()), os.cpu_count() or 2
+    window, threads = (archive.SINCE, datetime.now(UTC).date()), workers(datetime.now(UTC))
     folders = (args.store, args.kept)
-    lines = held(args.store) if args.held else universe.UNIVERSE
-    done = run(lines, *folders, *window, tune.windows(), args.data, threads)
+    study = args.held or args.transfer
+    lines = held(args.store) if args.held else universe.UNIVERSE if study else declared()
+    done = run(lines, *folders, *window, tune.windows(), args.data, threads, transfer=study)
     died = [f"{line.symbol} on {line.venue}" for line in done.report.died]
-    counts = {name: getattr(done, name) for name in COUNTS}
+    counts = {name: getattr(done, name) for name in (*COUNTS, "seconds")}
     sys.stdout.write(json.dumps({**counts, "died": died}) + "\n")
     return None
 

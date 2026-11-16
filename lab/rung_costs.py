@@ -35,7 +35,7 @@ from decimal import Decimal, localcontext
 from desk.strategy import ARITHMETIC
 from lab import rung
 from lab.cell import Key
-from lab.rung import Answer, Priced
+from lab.rung import Answer, Priced, Rung
 
 #: The costs the schedule states may be this many times as dear and the rule still earns.
 DOUBLED = Decimal(2)
@@ -73,3 +73,17 @@ def judge(first: rung.Verdict) -> Costed:
     if answer is Answer.PASS and multiple < DOUBLED:
         answer = Answer.FAIL
     return Costed(first.key, first.broker, multiple, first.t, answer)
+
+
+def _judged(first: rung.Verdict) -> tuple[Answer, str]:
+    """The costs rung as the ladder reads it: its answer, and the break-even behind it in words."""
+    costed = judge(first)
+    if costed.breakeven is None:
+        return costed.answer, "no trades priced, so no costs to double"
+    return (
+        costed.answer,
+        f"the edge holds to {costed.breakeven:.1f} times the costs; needs {DOUBLED}",
+    )
+
+
+RUNG = Rung("costs", f"the edge survives costs {DOUBLED} times as dear", _judged)

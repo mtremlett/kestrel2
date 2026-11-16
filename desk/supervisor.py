@@ -60,7 +60,7 @@ BAD = (
 HIS = "SELECT COALESCE(MAX(at), '') FROM actions WHERE what != ?"
 RAN = "SELECT job, began FROM receipts WHERE how = ? AND began > ? AND began <= ? ORDER BY 2 DESC"
 WORK = ("-m", "desk.supervisor", "work")  #: a job's own process, as the supervisor starts it
-WAIT = 5  #: seconds one process waits for another's write of the record
+WAIT = 5  #: seconds a process waits for another's write of a record (the messenger's too)
 LOOK = 15  #: seconds between the supervisor's looks at what is due
 GRACE = 2  #: seconds past its time limit a job has to end itself before the supervisor kills it
 OVERRUN = 124  #: the code a job's process ends itself with at its time limit

@@ -10,6 +10,7 @@ from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 from typing import BinaryIO
+from unittest.mock import Mock
 
 import pytest
 import test_placing as tp
@@ -28,6 +29,7 @@ from desk import (
     listing,
     messenger,
     paper,
+    pnl,
     running,
     venues,
 )
@@ -85,7 +87,7 @@ def test_a_step_does_the_days_work_under_the_data_folder_and_fails_by_name_witho
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     _world(monkeypatch)
-    fast_store(tmp_path / "bars.db", 51)
+    fast_store(tmp_path / keeper.HOT, 51)
     assert _run(tmp_path, MON) == 0  # he sleeps: a knock
     assert capsys.readouterr().out == "STEP Mon 16 Nov 07:15 UTC: done.\n"
     # London open, and no key of his: the round is made on the store's bars at the pound's
@@ -183,7 +185,7 @@ def test_the_rehearsal_lives_the_last_session_again_on_its_own_record_with_no_ma
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     answers, whole, script = _world(monkeypatch), running.step, dict[int, dict[bytes, Said]]()
-    fast_store(tmp_path / "bars.db", 51)
+    fast_store(tmp_path / keeper.HOT, 51)
 
     def step(desk: running.Desk, now: datetime) -> None:
         answers.update(script.get(now.hour * 100 + now.minute, {}))
@@ -228,8 +230,42 @@ def test_the_rehearsal_lives_the_last_session_again_on_its_own_record_with_no_ma
     # anything on the paper account, which the rehearsal's empty book would not hold
     book.turn(tmp_path / "desk", book.Switch.ON, MON, "his word")
     answers[tp.ACCOUNT] = tp.BARE
-    assert _run(tmp_path, MON.replace(hour=22), "--rehearse") == 1
+    assert _run(tmp_path, MON.replace(hour=13), "--rehearse") == 1
     line = capsys.readouterr().out
-    assert line.startswith("REHEARSAL NO-GO: not begun: London and New York trade today, and an")
+    assert line.startswith(
+        "REHEARSAL NO-GO: not begun: London and New York trade now, soon or just"
+    )
     assert "; the kill switch is on, pulled at 2026-11-16 07:15 UTC: his word; the paper" in line
     assert "account is not empty, as the rehearsal's book is: ['IITU STK GBP']." in line
+
+
+def test_the_rehearsal_may_begin_on_a_weekday_once_the_markets_are_shut_and_far_from_the_next_open(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    answers = _world(monkeypatch)
+    fast_store(tmp_path / keeper.HOT, 51)
+    answers.update({tp.FILLS: [END], tp.ACCOUNT: tp.EMPTY})
+    monkeypatch.setattr(running, "step", lambda *_: None)
+    for hour, minute, begins in (
+        (13, 0, 0),
+        (6, 31, 0),
+        (8, 0, 0),
+        (21, 15, 0),
+        (22, 30, 1),
+        (6, 30, 1),
+    ):
+        _run(tmp_path, MON.replace(hour=hour, minute=minute), "--rehearse")
+        assert ("not begun" in capsys.readouterr().out) == (not begins), (hour, minute)
+
+
+def test_a_real_step_is_followed_by_the_hourly_pnl_once_an_hour(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    told, post = Mock(return_value="the day so far"), Mock(side_effect=range(1, 9))
+    monkeypatch.setattr(pnl, "told", told)
+    _world(monkeypatch)
+    desk, open_london = command._desk(tmp_path, post, tmp_path), MON.replace(hour=9, minute=0)
+    for moment in (open_london, open_london + timedelta(minutes=5), open_london.replace(hour=10)):
+        command.hourly(desk, moment)
+    assert [call.args[0] for call in post.call_args_list] == ["the day so far"] * 2
+    assert told.call_args.args[-1] == open_london.replace(hour=10)
