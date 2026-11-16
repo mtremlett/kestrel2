@@ -92,3 +92,15 @@ def test_spy_and_qqq_are_read_as_reference_series_and_refused_as_traded_lines() 
                 require_traded(line)
         else:
             assert require_traded(line) is line
+
+
+def test_every_line_names_its_underlying_market_and_source_and_one_index_is_one_underlying() -> (
+    None
+):
+    assert all(line.underlying and line.source for line in LINES)
+    by_market: dict[str, set[str]] = {}
+    for line in LINES:
+        by_market.setdefault(line.underlying, set()).add(line.symbol)
+    assert by_market["S&P 500"] == {"VUSA", "VUAG", "SPY"}
+    assert by_market["NASDAQ 100"] == {"EQQQ", "QQQ", "5QQQ"}
+    assert by_market["GOLD"] == {"3LGO", "SGLN"} and by_market["MU"] == {"MU", "2MU"}

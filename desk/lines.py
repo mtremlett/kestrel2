@@ -37,6 +37,10 @@ class Line:
     #: Sessions of its venue on which the line did not trade, recorded: a suspension,
     #: confirmed, so the store finds no gap there.
     suspended: frozenset[date] = field(default_factory=frozenset)
+    #: The market the line tracks and the reference data that says so (the issuer's factsheet, or
+    #: the company itself): lines on one index share one underlying (R-RUNNER-157, canon B3).
+    underlying: str = ""
+    source: str = ""
 
     def __post_init__(self) -> None:
         if self.venue not in venues.RULES:
@@ -96,6 +100,34 @@ MOVES = {
     "5QQQ": ((2025, 4, 7, "0.345"), (2025, 4, 8, "0.4295000076293945")),
 }
 SPLITS = {"5QQQ": ((date(2024, 8, 22), Decimal(500)),)}
+#: Each line's underlying market and the factsheet (or company) that names it, never the ticker.
+UNDERLYING = {
+    "3LGO": ("GOLD", "WisdomTree 3x Daily Long Gold factsheet"),
+    "SGLN": ("GOLD", "iShares Physical Gold ETC factsheet"),
+    "2MU": ("MU", "Leverage Shares 2x Long Micron factsheet"),
+    "MU": ("MU", "Micron Technology"),
+    "SMGB": ("MVIS US LISTED SEMICONDUCTOR 25", "VanEck Semiconductor UCITS ETF factsheet"),
+    "IITU": ("S&P 500 INFORMATION TECHNOLOGY", "iShares S&P 500 IT Sector UCITS ETF factsheet"),
+    "VHYG": (
+        "FTSE ALL-WORLD HIGH DIVIDEND YIELD",
+        "Vanguard FTSE All-World High Div Yield factsheet",
+    ),
+    "5QQQ": ("NASDAQ 100", "WisdomTree NASDAQ 100 5x Daily Leveraged factsheet"),
+    "EQQQ": ("NASDAQ 100", "Invesco EQQQ NASDAQ-100 UCITS ETF factsheet"),
+    "QQQ": ("NASDAQ 100", "Invesco QQQ Trust factsheet"),
+    "ISF": ("FTSE 100", "iShares Core FTSE 100 UCITS ETF factsheet"),
+    "VUSA": ("S&P 500", "Vanguard S&P 500 UCITS ETF factsheet"),
+    "VUAG": ("S&P 500", "Vanguard S&P 500 UCITS ETF Accumulating factsheet"),
+    "SPY": ("S&P 500", "SPDR S&P 500 ETF Trust factsheet"),
+    "IB1T": ("BITCOIN", "iShares Bitcoin ETP factsheet"),
+    "IDTL": ("US TREASURIES 20+ YEAR", "iShares USD Treasury Bond 20+yr UCITS ETF factsheet"),
+    "AAPL": ("AAPL", "Apple Inc."),
+    "TSLA": ("TSLA", "Tesla Inc."),
+    "NVDA": ("NVDA", "NVIDIA Corp."),
+    "SPCX": ("SPCX", "Space Exploration Technologies Corp."),
+    "MSTR": ("MSTR", "Strategy Inc."),
+    "AMD": ("AMD", "Advanced Micro Devices Inc."),
+}
 LINES = tuple(
     Line(
         symbol,
@@ -107,6 +139,8 @@ LINES = tuple(
         retail,
         frozenset((date(*day), Decimal(close)) for *day, close in MOVES.get(symbol, ())),
         frozenset(SPLITS.get(symbol, ())),
+        frozenset(),
+        *UNDERLYING[symbol],
     )
     for venue, currency, isa, retail, symbols in (
         ("LSE", "GBP", True, True, "3LGO:3 2MU:2 SMGB:1 IITU:1 VHYG:1 5QQQ:5 ISF:1 VUSA:1 SGLN:1"),
