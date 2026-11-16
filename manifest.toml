@@ -53,6 +53,7 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "lab/headstart_days.py" = "the old database's daily rows as a head start: only its table ohlcv's 1d rows, read-only, cleaned by the one store and let into the fast store under their own source on the days that hold no bar"
 
 # the money lane
+"lab/slippage.py" = "trading costs measured from the paper broker's real fills: each line's slip against the session's close beside the cost model's spread and slippage, and the gap (Q2)"
 "desk/strategy.py" = "the five frozen daily strategies: a decision for every line and day"
 "desk/eponymous_momentum.py" = "Antonacci's dual momentum, absolute leg, one rule under the strategy template: held while the last month-end close beats the one a year before; not traded by the paper desk"
 "desk/eponymous_swing.py" = "the eponymous rules, one published rule per author under the strategy template: weekly_reversal_jegadeesh; the paper desk does not trade them"
