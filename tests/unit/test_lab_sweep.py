@@ -116,7 +116,7 @@ def test_a_ticker_whose_worker_dies_is_named_and_the_rest_are_kept(
 
 def test_a_backward_window_or_a_ticker_listed_twice_runs_no_pass(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="ends before it starts"):
-        sweep.run(LINES, tmp_path, tmp_path, DAY, START, Pc(tmp_path), tmp_path, 8)
+        sweep.run(LINES, tmp_path, tmp_path, DAY, START, Pc(tmp_path), tmp_path, 8, transfer=True)
     with pytest.raises(ValueError, match="more than once: BA on LSE"):
         _pass(tmp_path, (BOEING, BAE, BAE))
     assert not (tmp_path / "autotune.json").exists()
