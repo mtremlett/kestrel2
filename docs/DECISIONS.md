@@ -1976,3 +1976,31 @@ options (A raise, B keep the ceiling and delete to make room) and a recommendati
 
 The refactor stays owed: rungs-merge-duplicates (R-RUNNER-191) and retire-epon (R-RUNNER-127)
 are expected to shrink the tree, and the size ratchet still holds the new ceilings.
+
+## 16 Nov - main-guard allows rebase merges beside squash, for the merge train's batches, by his ruling
+
+The ruleset `main-guard` (GitHub, id 27193932) changes in one parameter: the pull-request
+rule's `allowed_merge_methods` goes from `["squash"]` to `["squash", "rebase"]`. The required
+`check` job, the up-to-date rule (`strict_required_status_checks_policy: true`), the bans on
+deletion and force-push, and the empty bypass list are unchanged. Applied by the coordinator
+at 21:12 UK and read back from the API.
+
+Why: the merge train merged one pull request at a time, about 8 to 15 an hour, and that was
+the ceiling on building all day (one to three of twelve sessions at work). The runner's
+batching (fix-plan F4, his answer "B", no move to an organization) builds one branch from
+several pull requests that touch different files, with ONE COMMIT PER PULL REQUEST (its title,
+its number, its Ticks line, its co-authors), and merges it with `--rebase`, so the check runs
+once on main plus every member, and main still has one commit per change, each revertable on
+its own (canon A6, A8). A squash would have put several changes in one commit. Only the
+runner's batch step asks for `--rebase`; every other merge it sends is `--squash`, which a
+drive in the runner proves.
+
+What this loosens, said plainly: a pull request may now be merged with its own commits kept.
+A lane's pull request with work-in-progress commits could put them on main if merged that
+way. Guard against it: the runner arms lane pull requests with `--squash` only, and a batch
+branch is built by the runner from squashed members.
+
+His ruling, Mon 16 Nov 2026, in chat with the coordinator, answering the question put with
+options ((a) allow rebase for the batches only, recommended; (b) keep squash only, a batch
+becomes one commit; (c) no batching): "i trust your recommendations." The batching is
+switched on (state\train-batch.on) only after the evening's rehearsal is GO.
