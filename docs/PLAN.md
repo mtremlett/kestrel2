@@ -135,6 +135,7 @@ R-RUNGS-6 and R-RUNGS-12 (the public `strategy.rsi` and `strategy.lower_band`) w
 are pinned by `tests/unit/test_strategy.py`; the open lines in STATUS are stale.
 Checked again 15 Nov late: still 6 rows of 19 files, so R-RUNNER-127 stays held (it needs spec-epon first).
 Checked 16 Nov: 6 catalogue rows of 21 eponymous rules (15 unexpressed: bollinger_squeeze, connors_*, dan_zanger_breakout, darvas_box, demark_sequential, dual_momentum, faber_tactical, kell_breakout, keltner_channel_trend, mansfield_rs_momentum, minervini_breakout, raschke_swing, weinstein_stage, zweig_breadth_thrust); lab/ladder, rulebook, published, blocks and 8 tests still import the files. Waits: spec-epon.
+Checked again 16 Nov (MONEY session): still 15 unexpressed; R-RUNGS-6 and R-RUNGS-12 re-verified done on main (`tests/unit/test_strategy.py` green).
 
 - [x] The rehearsal data in a file of its own (`tests/scenes/rehearsal.py`)
 - [x] The rehearsal data lengthened to about fourteen months, the five rules buying and

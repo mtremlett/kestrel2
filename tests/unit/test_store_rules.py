@@ -158,7 +158,7 @@ def test_a_bad_high_is_repaired_and_kept_but_a_bad_close_is_refused(tmp_path: Pa
 def test_a_bad_low_is_repaired_and_the_line_not_parked_but_a_fall_the_close_shares_is_kept(
     tmp_path: Path,
 ) -> None:
-    """VUAG 16 March 2020 (R-RUNNER-185): a low far under both open and close is a bad print,
+    """SETTLED (R-RUNNER-175, -185, -194): a low far under both open and close is a bad print,
     clamped and listed, the line not parked; a close that falls with its low is the market's."""
     clean = list(_bars(US, LONG))
     was = clean[5]
