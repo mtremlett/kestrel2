@@ -6,13 +6,14 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, replace
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 from enum import Enum
 from typing import Protocol
 
+from desk import venues
 from desk.lines import Line
-from desk.orders import Order, Sale
+from desk.orders import Order, Refused, Sale
 from desk.store import Bar
 
 
@@ -42,6 +43,16 @@ class Fault(Enum):
     DISCONNECT = "disconnection"
     CRASH = "the desk dies after the broker has the order"
     STRAND = "the desk dies after the broker has the order, which is left working, unfilled"
+
+
+def require_fresh(order: Order | Sale, today: date) -> None:
+    """THE ONE FRESHNESS RULE (R-MONEY-8): an order goes only on the venue's session after
+    the one it is dated, today being that next session. Refused, nothing sent, otherwise; an
+    order dated by no day is refused too. The date is the order's own (order.day)."""
+    last = venues.sessions(order.line.venue, today - timedelta(days=9), today)[-2:]
+    if order.day is None or last != tuple(sorted({order.day, today})):
+        why = f"{today} is not the session of {order.line.venue}'s next after"
+        raise Refused(f"{order.order_id}: not sent, {why} the one it is dated")
 
 
 class Crash(Exception):

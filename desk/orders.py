@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import astuple, dataclass, replace
+from datetime import date, datetime
 from decimal import ROUND_HALF_EVEN, Decimal
 from enum import Enum
 
@@ -57,6 +58,11 @@ class Order:
                 f"order {self.order_id}: {self.line.currency} at an exchange rate of {self.fx}"
             )
 
+    @property
+    def day(self) -> date | None:
+        """The session the order is dated, from its id; None for an id that carries none."""
+        return day_of(self.order_id)
+
 
 @dataclass(frozen=True)
 class Sale:
@@ -69,6 +75,11 @@ class Sale:
     def __post_init__(self) -> None:
         if self.quantity <= 0:
             raise ValueError(f"sale {self.order_id}: needs shares to sell")
+
+    @property
+    def day(self) -> date | None:
+        """The session the sale is dated, from its id; None for an id that carries none."""
+        return day_of(self.order_id)
 
 
 class Refused(Exception):
@@ -199,6 +210,14 @@ def size(
 def order_id_of(decision: Decision) -> str:
     """The id of the order a decision makes: its day, its strategy and its line."""
     return f"{decision.day:%Y%m%d}-{decision.strategy}-{decision.symbol}"
+
+
+def day_of(order_id: str) -> date | None:
+    """THE ONE READER of the day an order id is dated (order_id_of makes it): none if undated."""
+    try:
+        return datetime.strptime(order_id[:8], "%Y%m%d").date() if order_id[8:9] == "-" else None
+    except ValueError:
+        return None
 
 
 def strategy_of(order_id: str) -> str:

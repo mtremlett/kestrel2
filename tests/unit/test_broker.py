@@ -7,9 +7,9 @@ from decimal import Decimal
 
 import pytest
 
-from desk.broker import Crash, Disconnected, Fault, Fill, Pretend
+from desk.broker import Crash, Disconnected, Fault, Fill, Pretend, require_fresh
 from desk.lines import Line
-from desk.orders import Order, Sale
+from desk.orders import Order, Refused, Sale
 from desk.store import Bar
 
 A, B = Line("A", "LSE", "GBP", 1), Line("B", "US", "USD", 1)
@@ -123,3 +123,23 @@ def test_an_order_left_working_fills_at_its_next_market_unless_cancelled_and_sto
     filled = left.report("o-2")
     assert filled and filled.reason is None and filled.fills[0].price == 18 and left.cancel() == ()
     assert killed.holdings() == () and len(killed.fills()) == 2, "a cancelled order filled"
+
+
+@pytest.mark.parametrize("sale", [False, True])
+def test_the_one_freshness_rule_reads_the_orders_own_date_and_refuses_the_rest_by_name(
+    sale: bool,
+) -> None:
+    def make(order_id: str) -> Order | Sale:
+        return Sale(order_id, A, 1) if sale else _order(order_id)
+
+    sat, fri = date(2025, 11, 15), date(2025, 11, 14)
+    require_fresh(make("20251114-rsi2-A"), date(2025, 11, 17))  #: Friday's order goes on Monday
+    for order_id, today in (
+        ("20251114-rsi2-A", date(2025, 11, 18)),  #: stale
+        ("20251114-rsi2-A", fri),  #: not yet
+        ("20251114-rsi2-A", sat),  #: no market today
+        ("o-1", fri),  #: undated
+        ("20251399-x-A", fri),  #: not a day
+    ):
+        with pytest.raises(Refused, match=f"{order_id}: not sent"):
+            require_fresh(make(order_id), today)

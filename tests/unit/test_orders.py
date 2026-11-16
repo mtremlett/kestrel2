@@ -141,3 +141,9 @@ def test_a_sale_passes_the_gate_only_for_shares_the_book_holds() -> None:
     with pytest.raises(ValueError, match="shares"):
         orders.Sale("s", PLAIN, 0)
     assert orders.strategy_of(orders.order_id_of(_buy(PLAIN))) == "rule"
+
+
+def test_the_day_an_order_is_dated_is_read_from_its_id_in_one_place() -> None:
+    made = orders.order_id_of(_buy(PLAIN))
+    assert orders.day_of(made) == ON and orders.Sale(made, PLAIN, 1).day == ON
+    assert [orders.day_of(i) for i in ("o-1", "20251399-x-A", "20251114")] == [None] * 3
