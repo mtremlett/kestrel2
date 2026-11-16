@@ -221,6 +221,7 @@ def writing(path: Path, source: Source = Source.ARCHIVE) -> Iterator[Round]:
     """A source's next round on the store whose short database is at path (its long one beside
     it), made on its first round: the fresh archive's unless an old store is named. The round
     lands as the block ends in each database; if the block fails, nothing of it lands."""
+    path.parent.mkdir(parents=True, exist_ok=True)
     with ExitStack() as stack:
         held = {
             span: stack.enter_context(closing(_open(file))) for span, file in files(path).items()
