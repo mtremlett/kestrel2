@@ -19,7 +19,6 @@ import pytest
 from rehearsal import (
     BAD,
     CLEAN,
-    HISTORY,
     LAST,
     LINES,
     SESSIONS,
@@ -155,10 +154,10 @@ def test_scene_4_the_order_is_sent_and_the_stop_rests_at_the_broker(tmp_path: Pa
 
 def test_scene_5_the_position_is_closed(tmp_path: Path) -> None:
     #: the whole fourteen months: the rules need months of history before they trade
-    broker = Pretend(HISTORY, {})
-    for on in sorted({bar.day for bars in HISTORY.values() for bar in bars})[1:]:
+    broker = Pretend(CLEAN, {})
+    for on in sorted({bar.day for bars in CLEAN.values() for bar in bars})[1:]:
         broker.open(on)
-        day.trade(tmp_path, before(HISTORY, on), broker, SETTINGS, on, RATES)
+        day.trade(tmp_path, before(CLEAN, on), broker, SETTINGS, on, RATES)
 
     trips = book.round_trips(tmp_path, LINES)
     assert any(
