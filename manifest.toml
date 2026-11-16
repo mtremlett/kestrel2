@@ -160,6 +160,7 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "lab/bets.py" = "the book's concentration: its number of independent bets from how its lines move together, and its profit split by correlated cluster"
 "lab/ladder.py" = "the ladder's first set: one command that takes every published rule on every line through every rung built, keeps each answer with its reason and its count of trials, skips what is kept, and ends with one line of counts"
 "lab/ladder_sets.py" = "the ladder's sets as a command: set EPON, every eponymous rule on every line the store holds, judged by the cell engine of lab/ladder.py, its table written PRE-REVIEW, and the door of `python -m lab.ladder`"
+"lab/history_bars.py" = "the ladder's bars from the history database alone: the lines it holds, each line's daily bars and the pound per dollar, a line it lacks named"
 "lab/ladder_pool.py" = "the ladder on all the PC's cores: its cells judged in a process pool of below-normal workers, grouped by rule, the rows the serial run's rows in its order, written by the parent alone; a worker's break is that cell's row"
 "lab/tape.py" = "the ladder's expensive stage, kept: a rule's trades on a line, one small file each on disk, keyed only by the rule's code, the engine's, the bars and the window, so a rung changed runs no simulation again"
 "lab/rung_cpcv.py" = "the ladder's eighth rung: a tape's priced trades cut into six stretches, every two held out in turn, purged at the cuts, and the probability that the rule was overfitted to the stretches it was chosen on"

@@ -42,36 +42,14 @@ from lab import cell, market, rung
 from lab.cell import Cell
 from lab.reproduce import Reproduction
 from lab.rung import Answer, Rates, Verdict
+from lab.rung_folds import Fold, Walked
 
 YEARS = 5  #: the last whole calendar years of a window are its folds (M6)
 
 
 @dataclass(frozen=True)
-class Fold:
-    inside: Verdict  #: in-sample: the window before the fold, all a chooser had seen
-    outside: Verdict  #: out-of-sample: the fold alone
-
-
-@dataclass(frozen=True)
-class Folded:
-    folds: tuple[Fold, ...]  #: oldest first
-
-    def __post_init__(self) -> None:
-        if not self.folds:
-            raise ValueError("no folds: there is no worst fold to judge on")
-
-    @property
-    def worst(self) -> Fold:
-        """The fold judged on; of two equally bad, the older."""
-        return min(self.folds, key=lambda f: rung.standing(f.outside.answer, f.outside.t))
-
-    @property
-    def answer(self) -> Answer:
-        return self.worst.outside.answer
-
-    @property
-    def passed(self) -> bool:
-        return self.answer is Answer.PASS
+class Folded(Walked[Verdict]):
+    """The first rung's folds of a window; each out-of-sample verdict is a trial."""
 
     @property
     def trials(self) -> tuple[Verdict, ...]:
