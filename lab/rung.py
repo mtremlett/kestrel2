@@ -45,7 +45,8 @@ from types import ModuleType
 from desk import orders
 from desk.broker import Pretend
 from desk.lines import Line
-from desk.orders import Charges, Leg, Refused, Settings
+from desk.orders import Charges, Leg, Settings
+from desk.orders import Refused as Declined
 from desk.store import Bar
 from desk.strategy import ARITHMETIC, Action, Decision
 from lab import cell, published, reproduce
@@ -136,7 +137,7 @@ def judge(
     with localcontext(ARITHMETIC):
         try:
             priced = tuple(_price(record.key.cell, t, read, at, settings, rates) for t in done)
-        except Refused as error:  #: the one place the sizing's refusal is judged: as REFUSED
+        except Declined as error:  #: the one place the sizing's refusal is judged: as REFUSED
             return Verdict(record.key, orders.BROKER, (), None, Answer.FAULT, behind, str(error))
         return verdict(record.key, priced, reproduced)
 

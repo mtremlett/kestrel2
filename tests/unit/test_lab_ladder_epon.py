@@ -75,6 +75,22 @@ def test_the_set_reproduces_each_rule_judges_it_on_every_line_and_writes_the_tab
     assert "goes forward" in md and ": 0 of 3 lines go forward" in md
 
 
+def test_set_lev_judges_its_declared_trend_rules_on_the_leveraged_lines_only_in_its_own_register(
+    tmp_path: Path,
+) -> None:
+    assert set(ladder_sets.TREND) <= set(ladder.eponymous()) and len(ladder_sets.TREND) == 6
+    held = ladder_sets.leveraged(LINES)
+    assert {line.symbol for line in held} == {"3LGO", "2MU", "5QQQ"}
+    clock = lambda: datetime(2026, 11, 14, tzinfo=UTC)  # noqa: E731
+    rules = ladder_sets.TREND[:1]
+    said = ladder_sets.epon(tmp_path, _door({}), {}, held[:2], clock, rules, plan=ladder_sets.LEV)
+    table = tmp_path / "ladder" / "sets" / "LEV.md"
+    assert said.splitlines()[-1] == f"SET LEV: 1 rules, 0 passed, table {table}"
+    assert json.loads(table.with_suffix(".json").read_text())["trials"] == 2  #: not EPON's family
+    assert (tmp_path / "ladder" / "LEV.trials.jsonl").is_file()
+    assert not (tmp_path / "ladder" / "EPON.trials.jsonl").exists()
+
+
 def test_the_desks_folder_is_the_one_list_a_new_file_is_taken_and_keyed_a_bare_one_refused(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
