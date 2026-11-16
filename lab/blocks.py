@@ -12,31 +12,13 @@ from __future__ import annotations
 
 from collections import deque
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass
 from decimal import Decimal
-from enum import Enum
 from functools import partial
 
 from desk.eponymous_clenow_momentum import YEAR
 from desk.store import Bar
 from desk.strategy import ZERO, _Window
-
-
-class Kind(Enum):
-    """Where in a rule a block sits."""
-
-    ENTRY = "entry"
-    EXIT = "exit"
-    STOP = "stop"
-    FILTER = "filter"
-
-
-class Block:
-    """Shown each bar with whether the position is held; says whether it fires."""
-
-    def see(self, bar: Bar, holding: bool) -> bool:
-        """Shown the next bar: whether the block fires."""
-        raise NotImplementedError
+from lab.block_base import Block, Kind, Param, Spot
 
 
 class HighestHigh(Block):
@@ -345,25 +327,6 @@ class Never(Block):
     def see(self, bar: Bar, holding: bool) -> bool:  # noqa: ARG002 - the one interface of every block
         """Shown the next bar: whether the block fires."""
         return False
-
-
-@dataclass(frozen=True)
-class Param:
-    """One parameter a block takes: its type and the closed range it must lie in."""
-
-    kind: type[int] | type[Decimal]
-    low: int
-    high: int
-
-
-@dataclass(frozen=True)
-class Spot:
-    """A block as the registry holds it: the kind of place it fits, its class, its parameters
-    in the order its constructor takes them."""
-
-    kind: Kind
-    make: Callable[..., Block]
-    params: Mapping[str, Param]
 
 
 _DAYS = Param(int, 2, 400)

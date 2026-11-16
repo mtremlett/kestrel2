@@ -12,7 +12,8 @@ import pytest
 from desk.eponymous_clenow_momentum import score
 from desk.store import Bar
 from desk.strategy import ARITHMETIC
-from lab.blocks import BLOCKS, Block, Kind, LogSlope
+from lab.block_base import Block, Kind
+from lab.blocks import BLOCKS, LogSlope
 
 
 def _fire(name: str, bars: list[tuple[int, int, int]], holding: bool = False, **params: int) -> str:
