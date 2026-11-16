@@ -153,6 +153,13 @@ def deflate(sharpe: float, bar: float, trades: int, skew: float, kurtosis: float
     return _NORMAL.cdf((sharpe - bar) * math.sqrt((trades - 1) / wobble))
 
 
+def shape(values: Sequence[float]) -> tuple[float, float]:
+    """The skew and kurtosis of the values (a bell's are 0 and 3): the one home of the shape."""
+    mean = fmean(values)
+    second, third, fourth = (fmean((v - mean) ** power for v in values) for power in (2, 3, 4))
+    return third / second**1.5, fourth / second**2
+
+
 def _deflated(corrected: Corrected, looks: Clustered | None) -> Deflated:
     verdict = corrected.verdict
     if verdict.t is None:
@@ -165,9 +172,7 @@ def _deflated(corrected: Corrected, looks: Clustered | None) -> Deflated:
     else:
         bar = best_by_luck(looks.spread(len(gains)), looks.trials)
         bar += looks.above(verdict.key.cell, sharpe, len(gains))
-    mean = fmean(gains)
-    second, third, fourth = (fmean((g - mean) ** power for g in gains) for power in (2, 3, 4))
-    chance = deflate(sharpe, bar, len(gains), third / second**1.5, fourth / second**2)
+    chance = deflate(sharpe, bar, len(gains), *shape(gains))
     window = verdict.key.cell
     years = (window.end - window.start).days / _YEAR
     return Deflated(corrected, sharpe, sharpe * math.sqrt(len(gains) / years), bar, chance)
