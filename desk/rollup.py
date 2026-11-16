@@ -7,7 +7,7 @@ volume the sum; each bar is marked rollup:<from>. Pure: data in, data out."""
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 
 from desk import venues
@@ -65,4 +65,21 @@ def rollup(venue: str, candles: list[Candle], timeframe: str, base: str = "1m") 
         _built(group, start, f"rollup:{base}")
         for start, group in sorted(groups.items())
         if [c.start for c in group] == [start + timedelta(minutes=step * i) for i in range(full)]
+    ]
+
+
+def weekly(venue: str, candles: list[Candle]) -> list[Candle]:
+    """The venue's daily candles (one per session, start on the session's date) as weekly bars,
+    each starting on its Monday: only a week whose every session is held is written."""
+    weeks: dict[date, dict[date, Candle]] = {}
+    for candle in sorted(candles, key=lambda c: c.start):
+        if candle.start.tzinfo is None:
+            raise ValueError(f"{candle.start} has no time zone: the calendar cannot place it")
+        day = candle.start.astimezone(UTC).date()
+        monday = day - timedelta(days=day.weekday())
+        weeks.setdefault(monday, {})[day] = candle
+    return [
+        _built(list(held.values()), datetime.combine(monday, time(), UTC), "rollup:1d")
+        for monday, held in sorted(weeks.items())
+        if tuple(held) == venues.sessions(venue, monday, monday + timedelta(days=6))
     ]

@@ -111,3 +111,15 @@ def test_every_traded_line_has_an_isin_with_a_good_check_digit() -> None:
     assert not valid_isin("IE00BSKRJX21") and not valid_isin("IE00BSKRJX2")
     with pytest.raises(ValueError, match="check digit"):
         Line("X", "LSE", "GBP", 1, isin="IE00BSKRJX21")
+
+
+def test_every_line_names_its_underlying_market_and_source_and_one_index_is_one_underlying() -> (
+    None
+):
+    assert all(line.underlying and line.source for line in LINES)
+    by_market: dict[str, set[str]] = {}
+    for line in LINES:
+        by_market.setdefault(line.underlying, set()).add(line.symbol)
+    assert by_market["S&P 500"] == {"VUSA", "VUAG", "SPY"}
+    assert by_market["NASDAQ 100"] == {"EQQQ", "QQQ", "5QQQ"}
+    assert by_market["GOLD"] == {"3LGO", "SGLN"} and by_market["MU"] == {"MU", "2MU"}
