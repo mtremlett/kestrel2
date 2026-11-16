@@ -66,6 +66,16 @@ def _at_or_below_average(p: Prices, params: Params) -> Bools:
     return _late(n - 1, _against_average(p, n) <= 0, len(p.close))
 
 
+def _over_rising_average(p: Prices, params: Params) -> Bools:
+    """The close over its `n`-bar average, which is over what it was `ago` bars before: the
+    sums of `n` closes compare as the averages do."""
+    n, ago = int(params["n"]), int(params["ago"])
+    total = _windows(p.close, n).sum(axis=1)
+    now, before = total[ago:], total[: len(total) - ago]
+    rising = _sure(p, now - before, now + before, 2.0 * n * _top(p)) > 0
+    return _late(n - 1 + ago, rising & (_against_average(p, n)[ago:] > 0), len(p.close))
+
+
 def _big_moves(p: Prices, params: Params) -> Bools:
     """Whether a move of more than `pct` per cent lies among the last `n` changes of the close:
     `20 * |close - before| - 3 * before` is over nothing for 15 per cent, in whole numbers."""
@@ -147,6 +157,26 @@ def _at_midpoint(p: Prices, params: Params) -> Bools:
     return _late(n, over, len(p.close))
 
 
+def _keltner(p: Prices, params: Params, upper: bool) -> Bools:
+    """Close over the upper band or under the lower, the band the average typical price (high,
+    low and close over three) plus or minus the average range of the last `n` bars: with sums,
+    `3n * close - typical - 3 * range` (upper) or `typical - 3n * close - 3 * range` is over 0."""
+    n = int(params["n"])
+    typical = _windows(p.high + p.low + p.close, n).sum(axis=1)
+    spread, close = _windows(p.high - p.low, n).sum(axis=1), p.close[n - 1 :]
+    side = 3 * n * close - typical if upper else typical - 3 * n * close
+    margin = _sure(p, side - 3 * spread, 3 * n * close + typical + 3 * spread, 9.0 * n * _top(p))
+    return _late(n - 1, margin > 0, len(p.close))
+
+
+def _over_keltner_band(p: Prices, params: Params) -> Bools:
+    return _keltner(p, params, upper=True)
+
+
+def _under_keltner_band(p: Prices, params: Params) -> Bools:
+    return _keltner(p, params, upper=False)
+
+
 def _under_close_ago(p: Prices, params: Params) -> Bools:
     return _late(n := int(params["n"]), p.close[n:] < p.close[:-n], len(p.close))
 
@@ -166,9 +196,12 @@ FIRES: Mapping[str, Fire] = {
     "lowest_low": _lowest_low,
     "close_below_average": _below_average,
     "close_over_average": _above_average,
+    "close_over_rising_average": _over_rising_average,
     "lower_run": _lower_run,
     "close_at_range_low": _at_range_low,
     "close_at_midpoint": _at_midpoint,
+    "close_over_keltner_band": _over_keltner_band,
+    "close_under_keltner_band": _under_keltner_band,
     "close_under_close_ago": _under_close_ago,
     "close_near_range_low": _near_range_low,
     "close_near_range_high": _near_range_high,

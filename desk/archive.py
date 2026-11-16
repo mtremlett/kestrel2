@@ -24,7 +24,7 @@ from urllib.request import Request, urlopen
 
 from desk import store
 from desk.bars import EPOCH, Five, writing
-from desk.lines import Line
+from desk.lines import TAG, Line
 from desk.store import Bar, Refused
 
 SOURCE = "https://query1.finance.yahoo.com/v8/finance/chart/"
@@ -50,8 +50,13 @@ def _moment(day: date) -> int:
     return int(datetime(day.year, day.month, day.day, tzinfo=UTC).timestamp())
 
 
+def _name(line: Line) -> str:
+    """What the archive calls a line: an adjusted twin is asked for by its series' own name."""
+    return line.symbol.removesuffix(TAG) + SUFFIX[line.venue]
+
+
 def _address(line: Line, first: int, end: int, span: str) -> str:
-    name = line.symbol + SUFFIX[line.venue]
+    name = _name(line)
     return f"{SOURCE}{name}?period1={first}&period2={end}&interval={span}"
 
 
@@ -75,6 +80,18 @@ def _unit(line: Line, currency: object) -> Decimal:
     raise ValueError(f"{line.symbol}: the archive prices it in {currency}, not {line.currency}")
 
 
+def _adjust(
+    line: Line, result: dict[str, Any], n: int, row: tuple[Decimal, ...]
+) -> tuple[Decimal, ...]:
+    """A bar's prices as the archive adjusts them for dividends and splits: all four scaled by
+    the bar's adjusted close over its close. An answer with no adjusted close is refused."""
+    try:
+        adjusted = result["indicators"]["adjclose"][0]["adjclose"][n]
+    except (KeyError, IndexError) as gone:
+        raise ValueError(f"{line.symbol}: the archive gave no adjusted close") from gone
+    return tuple(price * adjusted / row[3] for price in row)
+
+
 def _read(line: Line, span: str, payload: bytes) -> tuple[dict[str, Any], list[Row]]:
     """The archive's answer for a line: what it says of the line, and its bars, each with the
     moment it starts, its prices in the line's currency and its volume. A moment it gives
@@ -84,7 +101,7 @@ def _read(line: Line, span: str, payload: bytes) -> tuple[dict[str, Any], list[R
         raise ValueError(f"{line.symbol}: the archive gave no answer: {chart['error']}")
     result: dict[str, Any] = chart["result"][0]
     meta: dict[str, Any] = result["meta"]
-    if meta["symbol"] != line.symbol + SUFFIX[line.venue]:
+    if meta["symbol"] != _name(line):
         raise ValueError(f"{line.symbol}: the archive answered about {meta['symbol']}")
     if meta["dataGranularity"] != span:
         given = meta["dataGranularity"]
@@ -99,7 +116,11 @@ def _read(line: Line, span: str, payload: bytes) -> tuple[dict[str, Any], list[R
             continue
         if not isinstance(volume, int):
             raise ValueError(f"{line.symbol}: the archive gave a volume of {volume} shares")
-        rows.append((stamp, open_ * unit, high * unit, low * unit, close * unit, volume))
+        prices: tuple[Decimal, ...] = (open_, high, low, close)
+        if line.symbol.endswith(TAG):
+            prices = _adjust(line, result, n, prices)
+        o, h, lo, c = (price * unit for price in prices)
+        rows.append((stamp, o, h, lo, c, volume))
     return meta, rows
 
 

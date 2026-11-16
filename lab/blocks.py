@@ -15,6 +15,7 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from decimal import Decimal
 from enum import Enum
+from functools import partial
 
 from desk.eponymous_clenow_momentum import YEAR
 from desk.store import Bar
@@ -95,6 +96,24 @@ class CloseAtOrBelowAverage(_Average):
 
     def __init__(self, n: int) -> None:
         super().__init__(n, lambda close, mean: close <= mean)
+
+
+class CloseOverRisingAverage(Block):
+    """Fires on a close over its `n`-bar average, this bar's included, when that average is
+    higher than it was `ago` bars before (Weinstein's stage 2)."""
+
+    def __init__(self, n: int, ago: int) -> None:
+        self._closes = _Window(n)
+        self._means: deque[Decimal] = deque(maxlen=ago + 1)
+
+    def see(self, bar: Bar, holding: bool) -> bool:  # noqa: ARG002 - the one interface of every block
+        """Shown the next bar: whether the block fires."""
+        self._closes.add(bar.close)
+        if not self._closes.full:
+            return False
+        mean = self._closes.mean()
+        self._means.append(mean)
+        return len(self._means) == self._means.maxlen and mean > self._means[0] and bar.close > mean
 
 
 class LowerRun(Block):
@@ -180,6 +199,23 @@ class CloseAtMidpoint(_Channel):
     def judge(self, bar: Bar, high: Decimal, low: Decimal) -> bool:
         """Whether the close is at or over the channel's midpoint."""
         return bar.close >= (high + low) / 2
+
+
+class _Keltner(Block):
+    """The band of the last `n` bars, this one's included: the average of the typical price
+    (high, low and close over three) plus or minus the average of the range."""
+
+    def __init__(self, n: int, upper: bool) -> None:
+        self._typical, self._range, self._upper = _Window(n), _Window(n), upper
+
+    def see(self, bar: Bar, holding: bool) -> bool:  # noqa: ARG002 - the one interface of every block
+        """Shown the next bar: whether the close is over the upper band or under the lower."""
+        self._typical.add((bar.high + bar.low + bar.close) / 3)
+        self._range.add(bar.high - bar.low)
+        if not self._typical.full:
+            return False
+        centre, width = self._typical.mean(), self._range.mean()
+        return bar.close > centre + width if self._upper else bar.close < centre - width
 
 
 class CloseUnderCloseAgo(Block):
@@ -332,11 +368,17 @@ class Spot:
 
 _DAYS = Param(int, 2, 400)
 _PCT = Param(int, 1, 50)
+_AGO = Param(int, 1, 50)
 #: The one list of blocks by name; a spec names these and no others.
 BLOCKS: Mapping[str, Spot] = {
     "highest_high": Spot(Kind.ENTRY, HighestHigh, {"n": _DAYS}),
+    "close_over_rising_average": Spot(
+        Kind.ENTRY, CloseOverRisingAverage, {"n": _DAYS, "ago": _AGO}
+    ),
     "lower_run": Spot(Kind.ENTRY, LowerRun, {"n": _DAYS}),
     "close_at_range_low": Spot(Kind.ENTRY, CloseAtRangeLow, {"n": _DAYS}),
+    "close_over_keltner_band": Spot(Kind.ENTRY, partial(_Keltner, upper=True), {"n": _DAYS}),
+    "close_under_keltner_band": Spot(Kind.EXIT, partial(_Keltner, upper=False), {"n": _DAYS}),
     "close_under_close_ago": Spot(Kind.ENTRY, CloseUnderCloseAgo, {"n": _DAYS}),
     "close_at_midpoint": Spot(Kind.EXIT, CloseAtMidpoint, {"n": _DAYS}),
     "close_near_range_low": Spot(Kind.ENTRY, CloseNearRangeLow, {"n": _DAYS, "pct": _PCT}),
