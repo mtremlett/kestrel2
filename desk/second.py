@@ -1,9 +1,10 @@
 """second - THE SECOND SOURCE'S ONE RULE, at the store's one writer (desk/store.py calls it).
 Yahoo's bars come first. Stooq's fill a session inside Yahoo's span that its cleaned bars
-lack (cleaned again with them, by every rule of the store), and where both hold a session their closes must agree within
-AGREE, else the session is a recorded fault and kept from neither: never decided silently by
-either. Stooq's prices may be in pence: its unit is the one in which most of the closes both
-hold agree, and none doing so leaves it unused, in a note that parks nothing."""
+lack (cleaned again with them, by every rule of the store), and where both hold a session
+their closes must agree within AGREE, else the session is a recorded fault and kept from
+neither: never decided silently by either. Stooq's prices may be in pence: its unit is the one
+in which most of the closes both hold agree, and none doing so leaves it unused, in a note
+that parks nothing."""
 
 from __future__ import annotations
 
