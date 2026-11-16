@@ -18,7 +18,7 @@ from pathlib import Path
 
 from desk.lines import Line
 from desk.store import Bar
-from lab import batch, ladder, ladder_pool, sweep, trials, universe, verdict
+from lab import batch, ladder, ladder_pool, sweep, tape, trials, universe, verdict
 from lab.batch import Bars
 from lab.cell import Cell
 from lab.ladder import END, FOLDER, START, Plan, _last, _whole, eponymous, rates, run, stored
@@ -44,9 +44,19 @@ def epon(
     count = trials.count(home / FOLDER / f"{EPON.stem}.trials.jsonl", EPON.question)
     last = _last(_whole(home / FOLDER / f"{EPON.stem}.jsonl"))
     rows = [last[tuple(batch.row(c))] for c in todo]
-    table = verdict.write_table(home / FOLDER / "sets", EPON.tag, EPON.question, rows, rules, count)
+    sets = home / FOLDER / "sets"
+    table = verdict.write_table(
+        sets, EPON.tag, EPON.question, rows, rules, count, ladder.rungs_built()
+    )
     passed = sum(any(map(verdict.goes, mine)) for mine in verdict.by_rule(rows, rules).values())
-    return f"{counts}\nSET {EPON.tag}: {len(rules)} rules, {passed} passed, table {table}"
+    last_line = f"SET {EPON.tag}: {len(rules)} rules, {passed} passed, table {table}"
+    return f"{counts}\n{tapes_held(home)}\n{last_line}"
+
+
+def tapes_held(home: Path) -> str:
+    """The tapes the ladder keeps, measured on disk: how many, and their bytes in megabytes."""
+    sizes = [p.stat().st_size for p in (home / FOLDER / tape.FOLDER).glob("*.tape")]
+    return f"tapes on disk: {len(sizes)} files, {sum(sizes) / 2**20:.1f} MB"
 
 
 def first_bars(home: Path) -> Bars:

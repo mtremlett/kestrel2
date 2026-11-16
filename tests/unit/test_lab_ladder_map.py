@@ -33,3 +33,8 @@ def test_the_map_names_eleven_rungs_once_each_to_files_there_or_marked_unbuilt()
         {path for path, unbuilt in named if not unbuilt and not (ROOT / path).is_file()}
     )
     assert not missing, f"named as built and not there (build it, or mark it unbuilt): {missing}"
+
+
+def test_the_count_of_rungs_built_is_the_map_s_rungs_not_marked_unbuilt() -> None:
+    #: all eleven have both files
+    assert ladder.rungs_built() == (11, 11)

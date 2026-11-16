@@ -18,22 +18,24 @@ line (UNRUN). Nothing goes to paper before all eleven.
 
 THE RUNG MAP (L2): the plan's eleven rungs, each `n name: module, test`. A row's names differ:
 `first` holds 1-3, `market` 4 and 6. Each rung's own proof goes in its test (L3-L13), no two
-the same; (unbuilt) marks a file not yet there; after the dash, what else is owed.
- 1 sample size, effective trades: lab/rung.py, tests/unit/test_lab_rung.py - bets pooled over lines
- 2 costs charged: lab/rung.py, tests/unit/test_lab_rung_costs.py (unbuilt)
- 3 a confidence interval: lab/rung.py, tests/unit/test_lab_rung_interval.py (unbuilt)
- 4 excess after market risk, by size: lab/market.py, tests/unit/test_lab_market.py
- 5 two regime windows: lab/regime.py, tests/unit/test_lab_regime.py - unrun: no weather (REG-01)
- 6 benchmark excess by interval: lab/market.py, tests/unit/test_lab_market_line.py (unbuilt)
- 7 deflated Sharpe: lab/deflated.py, tests/unit/test_lab_deflated.py - one clustered set (L14)
- 8 purged cross-validation: lab/purged.py (unbuilt), tests/unit/test_lab_purged.py (unbuilt)
- 9 placebo on blocks of days: lab/shuffle.py, tests/unit/test_lab_shuffle.py - days, not blocks
-10 walk-forward folds: lab/folds.py, tests/unit/test_lab_folds.py - the ladder runs `pool`
-11 block bootstrap: lab/montecarlo.py, tests/unit/test_lab_montecarlo.py - single trades, no gate
+the same; (unbuilt) marks a file not yet there; after the dash, what else is owed. BUILT is a module
+with its own proof alone; the ones the ladder judges are those declaring a RUNG (`rung.found`).
+ 1 sample size, effective trades: lab/rung_sample.py, tests/unit/test_lab_rung_sample.py
+ 2 costs charged: lab/rung_costs.py, tests/unit/test_lab_rung_costs.py
+ 3 a confidence interval: lab/rung_ci.py, tests/unit/test_lab_rung_ci.py
+ 4 excess after market risk, by size: lab/rung_beta.py, tests/unit/test_lab_rung_beta.py
+ 5 two regime windows: lab/rung_regimes.py, tests/unit/test_lab_rung_regimes.py - unrun: no weather
+ 6 benchmark excess by interval: lab/rung_benchmark.py, tests/unit/test_lab_rung_benchmark.py
+ 7 deflated Sharpe: lab/rung_dsr.py, tests/unit/test_lab_rung_dsr.py - one clustered set (L14)
+ 8 purged cross-validation: lab/rung_cpcv.py, tests/unit/test_lab_rung_cpcv.py
+ 9 placebo on blocks of days: lab/rung_placebo.py, tests/unit/test_lab_rung_placebo.py
+10 walk-forward folds: lab/rung_folds.py, tests/unit/test_lab_rung_folds.py - the ladder runs `pool`
+11 block bootstrap: lab/rung_bootstrap.py, tests/unit/test_lab_rung_bootstrap.py - no gate
 
 RARE LARGE LOSSES (G2, R-RUNNER-103). The first rung counts ONE MORE trade the rule did not make: a
 loss at its own stop, the least any judged trade would have made, in the standard errors and all
-read from them and in no count of the 30 asked.
+read from them and in no count of the 30 asked. A loss that GAPS THROUGH the stop is not covered:
+the blind review (R-RUNNER-40) passed such noise at the first rung on up to 19 lines in 100.
 
 A PROXY (R-RUNNER-95): a line with less history than its named proxy is judged on the proxy's
 bars, labelled `proxy: SPY for VUAG`. REFUSED (R-RUNNER-108): a line the desk's sizing refuses
@@ -42,8 +44,9 @@ KEPT BY WHAT MADE IT. The results file holds one JSON line per cell as it finish
 disk, found again by its key: the code this module reaches, the cell's bars and its market's,
 the rates, the count of trials and the reproductions. A cell kept under that key is skipped;
 change any and it is judged again. A cell that could not be judged (a line parked or stale, a
-short history, a day with no rate) keeps its reason and key: tried again when the key differs,
-else after 30 minutes. A cut line is cut off.
+short history, a day with no rate) keeps its reason and key, and is judged again only when the
+key differs; one with no key (its bars could not be read) is tried again after 30 minutes. A
+row is appended only when it differs from the cell's last. A cut line is cut off.
 
 The sets as a command - SET EPON and the `python -m lab.ladder` door - are `lab/ladder_sets.py`.
 """
@@ -103,6 +106,7 @@ FIRST = Plan(1, QUESTION, "set1")
 #: A cell that waits on data is tried again no sooner than this after its last try.
 RETRY = timedelta(minutes=30)
 FAILED = (ValueError, OSError, keeper.Stale)  #: what may leave a cell unjudged; all else is a bug
+UNWIRED = "the ladder does not yet judge by these modules, which declare no RUNG"
 
 
 def cells() -> tuple[Cell, ...]:
@@ -112,6 +116,13 @@ def cells() -> tuple[Cell, ...]:
         for name in published.PUBLISHED
         for line in STRATEGIES[name].declared.universe
     )
+
+
+def rungs_built() -> tuple[int, int]:
+    """The map's rungs built to the end (neither file marked unbuilt), and the map's rungs."""
+    paragraph = (__doc__ or "").split("THE RUNG MAP")[1].split("\n\n")[0]
+    rows = [line.split(" - ")[0] for line in paragraph.splitlines() if line.lstrip()[:1].isdigit()]
+    return sum("(unbuilt)" not in row for row in rows), len(rows)
 
 
 def names(c: Cell) -> list[str]:
@@ -296,11 +307,12 @@ def _one(
         rates = (f"{d} {pounds[d]}" for d in days)
         parts = [mine.code, CODE, mine.data, market, pool.data, str(count), *rates]
         parts += [one.key.code + one.key.data for one in made]
-        parts += [one.name + one.code for one in rung.found(RUNGS)[0]]
+        declared, waiting = rung.found(RUNGS)  #: both are in the row, so both are in its key
+        parts += [one.name + one.code for one in declared] + list(waiting)
         head |= {"reproduction": [reproduce.said(one) for one in made]} if made else {}
         key = hashlib.sha256(";".join(parts).encode()).hexdigest()
-        if was is not None and was.get("key") == key and not _due(was, now):
-            return was  #: kept, or failed on all of this before and tried not long ago
+        if was is not None and was.get("key") == key:
+            return was  #: kept, or failed on all of this before: it waits for its key to change
         if (first := pool.firsts.get(c)) is not None and first.refusal is not None:
             reason = f"refused by the desk's sizing: {first.refusal}"
             return head | {"key": key, "refused": reason}
@@ -327,18 +339,20 @@ def _declared(
     made: Sequence[Reproduction],
 ) -> dict[str, Any]:
     """The cell's answers with each rung that its module declares (`rung.found`) added, judged
-    on the first rung's verdict; the one rule's answer stays the named rungs'. A cell with no
-    first rung (the author's result not reproduced) has none to read."""
-    declared = rung.found(RUNGS)[0]
-    if not declared or "trades" not in judged:
+    on the first rung's verdict; the one rule's answer stays the named rungs'. A rung module
+    that declares none is named unrun. A cell with no first rung (the author's result not
+    reproduced) has none to read."""
+    declared, waiting = rung.found(RUNGS)
+    if "trades" not in judged:
         return judged
-    read = pool.firsts.get(c) or verdict.ready(c, own, pounds, made)
+    modules = ", ".join(name.rpartition(".")[2] for name in waiting)
+    unrun = judged["unrun"] | ({"unwired": f"{UNWIRED}: {modules}"} if waiting else {})
     rungs = dict(judged["rungs"])
     for one in declared:
-        answer, reason = one.judge(read)
+        answer, reason = one.judge(pool.firsts.get(c) or verdict.ready(c, own, pounds, made))
         rungs[one.name] = [answer.name, reason]
     every = judged["every"] and all(a == Answer.PASS.name for a, _ in rungs.values())
-    return judged | {"rungs": rungs, "every": every}
+    return judged | {"rungs": rungs, "unrun": unrun, "every": every}
 
 
 def _proxy(line: Line, own: Sequence[Bar], bars: Bars) -> Line | None:

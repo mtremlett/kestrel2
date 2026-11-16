@@ -105,7 +105,9 @@ def test_each_cell_is_judged_on_every_rung_and_kept_with_its_reasons_and_trials(
     assert want == dict.fromkeys(want, "PASS") | {"folds": "THIN", "shuffle": "THIN"}
     assert (won["answer"], won["every"], lost["answer"]) == ("THIN", False, "FAIL")
     assert lost["rungs"]["first"][0] == lost["rungs"]["market"][0] == "FAIL"
-    assert set(won["unrun"]) == {"reproduce", "regime", "plateau", "stress"}
+    assert set(won["unrun"]) == {"reproduce", "regime", "plateau", "stress", "unwired"}
+    #: the rungs built in modules the ladder does not yet judge are named, never left in silence
+    assert "rung_costs" in won["unrun"]["unwired"] and "declare no RUNG" in won["unrun"]["unwired"]
     assert 0 <= won["drawdown"]["median"] <= won["drawdown"]["p95"] < 1, "measured, never gated"
 
 
@@ -227,15 +229,20 @@ def test_every_trial_is_counted_before_any_is_run_and_the_count_never_begins_aga
     assert "against 2 trials: 0 judged now, 0 kept from before, 2 could not be judged" in said
     assert trials.count(register, ladder.QUESTION) == 2
     #: a line too short to have made a trade waits on its history: with nothing changed it is
-    #: tried again no sooner than 30 minutes after its last try, and the moment its bars differ
+    #: never appended again, however long on, and the moment its bars differ it is judged
     short = _door({VUSA: EDGE[:1], ISF: NOISE})
     clock[0] += timedelta(minutes=30)
     ladder.run(tmp_path, short, {}, todo, lambda: clock[0])
     waits = _rows(tmp_path)[2]
     assert "waits on 452" in waits["error"] and "answer" not in waits and "key" in waits
-    clock[0] += timedelta(minutes=29)
+    clock[0] += timedelta(hours=2)
+    before = _file(tmp_path).read_bytes()
     ladder.run(tmp_path, short, {}, todo, lambda: clock[0])
-    assert len(_rows(tmp_path)) == 4 and _rows(tmp_path)[2] == waits
+    assert (
+        _file(tmp_path).read_bytes() == before
+        and len(_rows(tmp_path)) == 4
+        and _rows(tmp_path)[2] == waits
+    )
     ladder.run(tmp_path, _door({VUSA: EDGE, ISF: NOISE}), {}, todo, lambda: clock[0])
     #: both are judged again, for their rule's lines are not as they were: the edge, with
     #: 6 or 7 trades a year pooled over two lines, is too thin to say; the noise fails
@@ -318,9 +325,12 @@ def test_the_shuffle_is_run_last_and_only_on_a_trial_that_passed_every_rung_befo
 ) -> None:
     own = Cell("breakout_20_10", VUSA, EDGE[0].day, ladder.END)
     before = {name: (Answer.PASS, "") for name in deflated.NAMED[:-1]}
-    ran = verdict.shuffled(own, EDGE, ROOM, {}, before)  # the only run of a hundred
+    ran = verdict.shuffled(own, EDGE, ROOM, {}, before, ())  # the only run of a hundred
     assert ran is not None and ran[0] is Answer.PASS and "100 shuffles" in ran[1]
     monkeypatch.setattr(shuffle, "share", lambda *_: pytest.fail("shuffled for nothing"))
     doubt = before | {"yearly": (Answer.DOUBT, "too good")}
-    assert verdict.shuffled(own, EDGE, ROOM, {}, doubt) == (Answer.DOUBT, "too good")
-    assert verdict.shuffled(own, EDGE, ROOM, {}, {"first": before["first"]}) is None
+    #: its answer the least, its words its own
+    unrun = verdict.shuffled(own, EDGE, ROOM, {}, doubt, ())
+    assert unrun is not None and unrun[0] is Answer.DOUBT and "too good" not in unrun[1]
+    assert unrun[1].startswith("not run") and "yearly answered DOUBT" in unrun[1]
+    assert verdict.shuffled(own, EDGE, ROOM, {}, {"first": before["first"]}, ()) is None

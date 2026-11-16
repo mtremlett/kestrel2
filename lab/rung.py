@@ -175,9 +175,9 @@ def _price(
     pretend broker, where its stop rests; sold by the stop, or at the open after the sell.
     Each leg's value and its every cost in pounds at its own day's rate."""
     if trade.sold is None:
-        raise ValueError(f"{c.symbol}, bought {trade.bought}: still held, so it has no price")
+        raise ValueError(f"{c.line.symbol}, bought {trade.bought}: still held, so it has no price")
     line, decided, out = c.line, at[trade.bought], at[trade.sold] + 1
-    decision = Decision(c.strategy, c.symbol, trade.bought, Action.BUY)
+    decision = Decision(c.strategy, c.line.symbol, trade.bought, Action.BUY)
     held = read[decided + 1 : out]
     sized_at = rate(line, rates, held[0].day)
     order = orders.size(decision, line, read[decided].close, sized_at, settings, {})

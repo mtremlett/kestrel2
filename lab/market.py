@@ -39,9 +39,9 @@ neither are its days: the days counted end on the day it was bought.
 
 WHICH MARKET is the caller's to say, and nothing calls this rung yet (docs/STATUS.md). It
 must trade on the line's own venue: closes hours apart, or sessions one has and the other
-has not, understate the risk taken. Refused loudly: such a market; a counted day the market
-has no bar on, or none the day before; bars that did not make the verdict; a market or a
-line that never moved; days that leave no spread to judge by.
+has not, understate the risk taken. Refused loudly: such a market; bars that did not make the
+verdict; a market or a line that never moved; days that leave no spread to judge by. A counted
+day the market has no bar on is a data fault: the answer is FAULT and `fault` names the day.
 """
 
 from __future__ import annotations
@@ -58,7 +58,6 @@ from desk.lines import Line
 from desk.store import Bar
 from desk.strategy import ARITHMETIC
 from lab import cell, rung
-from lab.cell import Cell
 from lab.rung import Answer, Priced, Rates, Verdict
 
 
@@ -77,6 +76,7 @@ class Against:
     line: Fit | None  #: against its own line simply held
     wide: Fit | None  #: against the market
     answer: Answer  #: this rung's own: PASS or FAIL, or the first rung's THIN or FAULT
+    fault: str = ""  #: where a counted day has no bar to set beside, the data fault, named
 
 
 def judge(
@@ -87,7 +87,7 @@ def judge(
     c = verdict.key.cell
     if market.venue != c.line.venue:
         raise ValueError(
-            f"{market.symbol} trades on {market.venue}, {c.symbol} on {c.line.venue}: not the "
+            f"{market.symbol} trades on {market.venue}, {c.line.symbol} on {c.line.venue}: not the "
             "market it took, day for day"
         )
     if cell.key(c, bars) != verdict.key:
@@ -101,24 +101,24 @@ def judge(
     days = [bar.day for bar in read if bar.day <= last]
     #: the first day counted is the window's first with a close before it to move from
     days = days[max(1, sum(1 for day in days if day < c.start)) - 1 :]
+    seen = {bar.day for bar in held}
+    lost = [day for day in days if day not in seen]
+    if lost:
+        fault = f"{c}: {market.symbol} has no bar on {lost[0]} to set beside it"
+        return Against(verdict, market, 0, None, None, Answer.FAULT, fault)
     with localcontext(ARITHMETIC):
         made = daily(verdict.trades, read, c.line, rates)
         own = [float(made.get(day, Decimal(0))) for day in days[1:]]
-        line = fit(own, _moves(c, c.line, read, rates, days))
-        wide = fit(own, _moves(c, market, held, rates, days))
+        line = fit(own, _moves(c.line, read, rates, days))
+        wide = fit(own, _moves(market, held, rates, days))
     passed = min(line.t, wide.t) >= rung.T_PASS
     return Against(verdict, market, len(own), line, wide, Answer.PASS if passed else Answer.FAIL)
 
 
-def _moves(
-    c: Cell, line: Line, bars: Sequence[Bar], rates: Rates, days: Sequence[date]
-) -> list[float]:
+def _moves(line: Line, bars: Sequence[Bar], rates: Rates, days: Sequence[date]) -> list[float]:
     """The line's move on each of the days after the first: its close on the close of the
     day before, in pounds, each at its own day's rate."""
     marks = {bar.day: bar.close for bar in bars}
-    lost = [day for day in days if day not in marks]
-    if lost:
-        raise ValueError(f"{c}: {line.symbol} has no bar on {lost[0]} to set beside it")
     closes = [marks[day] * rung.rate(line, rates, day) for day in days]
     return [float(now / before - 1) for before, now in zip(closes, closes[1:], strict=False)]
 
