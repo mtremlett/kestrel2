@@ -118,3 +118,12 @@ def test_folds_that_cannot_be_run_are_a_fault_with_their_reason_and_the_rest_sta
         "the folds could not be run: no 5 whole years of history to fold",
     ]
     assert done["rungs"]["first"][0] == "PASS" and done["answer"] == "FAULT"
+
+
+def test_a_market_with_a_missing_day_is_a_fault_in_its_own_words() -> None:
+    #: the blind re-review (R-RUNNER-188): the market rung's FAULT was given the first rung's words
+    held = [*NOISE[:2000], *NOISE[2001:]]
+    answer, why = verdict.judge(CELL, EDGE, ISF, held, {}, 6, (), lambda: verdict.pool([], {}))[
+        "rungs"
+    ]["market"]
+    assert answer == "FAULT" and f"has no bar on {NOISE[2000].day}" in why, why

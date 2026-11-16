@@ -86,7 +86,8 @@ def judge(
         rungs["reproduce"] = (Answer.PASS, f"reproduced: {said}")
     rungs["folds"] = _folded(pooled)
     against = market.judge(verdict, own, beside, held, pounds)
-    said = rungs["first"][1]
+    #: the market's own missing day, or the first rung's THIN or FAULT, which it inherits
+    said = against.fault or rungs["first"][1]
     if against.line is not None and against.wide is not None:
         said = (
             f"over {against.days} days, {against.wide.t:.2f} standard errors beyond "
@@ -94,7 +95,7 @@ def judge(
             f"{against.line.beta:.2f} of its own line's; {rung.T_PASS} asked of both"
         )
     rungs["market"] = (against.answer, said)
-    if (last := shuffled(c, own, settings, pounds, rungs)) is not None:
+    if (last := shuffled(c, own, settings, pounds, rungs, made)) is not None:
         rungs["shuffle"] = last
     named = {name: rungs[name][0] for name in deflated.NAMED if name in rungs}
     return {
@@ -217,7 +218,12 @@ def _named(verdict: Verdict, one: Deflated) -> Judged:
 
 
 def shuffled(
-    c: Cell, own: Sequence[Bar], settings: Settings, pounds: Rates, rungs: Judged
+    c: Cell,
+    own: Sequence[Bar],
+    settings: Settings,
+    pounds: Rates,
+    rungs: Judged,
+    made: Sequence[Reproduction],
 ) -> Pair | None:
     """The shuffle rung, run last and only on a trial that passed every rung before it: any
     other is given the least of their answers and told it was not run, since a shuffle costs a
@@ -232,7 +238,7 @@ def shuffled(
             f"not run: its {shuffle.SHUFFLES} shuffles are kept for a trial that passed every "
             f"rung before it, and {name} answered {least.name}"
         )
-    share = shuffle.share(c, own, settings, pounds)
+    share = shuffle.share(c, own, settings, pounds, made)
     return (
         Answer.PASS if share <= shuffle.SHARE else Answer.FAIL,
         f"{shuffle.SHUFFLES} shuffles of its days, its share among them {share:.3f}; "
