@@ -7,37 +7,53 @@ from __future__ import annotations
 
 import csv
 from collections import Counter, deque
-from collections.abc import Callable, Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import astuple, dataclass, replace
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime
 from decimal import Decimal
-from enum import Enum
 from pathlib import Path
 
 from desk import halt
+from desk.book_parts import (
+    RATES,
+    SWITCH,
+    TURNS,
+    Switch,
+    keep,
+    killed,
+    rate,
+    rates_kept,
+    record_rates,
+    switch,
+    turn,
+    unless_killed,
+)
 from desk.broker import Broker, Crash, Disconnected, Fill, Report
-from desk.carry import carried
 from desk.halt import Blocker, Stopped
 from desk.lines import Line
 from desk.orders import Charges, Order, Refused, Sale, Settings, charges, gate, leg_of
 
-LEDGER, RATES, SWITCH = "ledger.csv", "rates.csv", "switch.csv"
+#: what moved to desk.book_parts and is still given from here, for the callers
+__all__ = (
+    "RATES",
+    "SWITCH",
+    "TURNS",
+    "Switch",
+    "keep",
+    "killed",
+    "rate",
+    "record_rates",
+    "switch",
+    "turn",
+)
+LEDGER = "ledger.csv"
 GOING = "going.csv"  #: the order at the broker's door, until the desk has its answer
 STOPS, LEVELS = "stops.csv", ("stop", "level")  #: each buy's stop level, kept as the buy goes
 COLUMNS = ("execution_id", "order_id", "symbol", "quantity", "price", "day")
-TURNS = ("at", "turn", "why")
 
 
 class Alarm(Exception):
     """The broker's place failed in a way the desk does not know: the kill switch is on."""
-
-
-class Switch(Enum):
-    """A word on the kill switch's record: pulled, released, or drilled on a rehearsal desk."""
-
-    ON = "on"
-    OFF = "off"
-    DRILLED = "drilled"
 
 
 @dataclass(frozen=True)
@@ -163,51 +179,12 @@ def levels(root: Path) -> dict[str, Decimal]:
     return {name: Decimal(level) for name, level in rows[1:]}
 
 
-def turn(root: Path, to: Switch, at: datetime, why: str) -> None:
-    """Write on the kill switch's record what happened to it, when (UTC), and why."""
-    record = (*switch(root), _turn(at, to, why))
-    keep(root / SWITCH, [TURNS, *((t.isoformat(), s.value, w) for t, s, w in record)])
-
-
-def switch(root: Path) -> tuple[tuple[datetime, Switch, str], ...]:
-    """The kill switch's record, oldest first; one not readable whole is an error."""
-    if not (path := root / SWITCH).exists():
-        return ()
-    with path.open(newline="", encoding="utf-8") as record:
-        rows = list(csv.reader(record))
-    if rows[:1] != [list(TURNS)]:
-        raise ValueError(f"{path}: not the kill switch's record, so nothing is sent")
-    return tuple(_turn(datetime.fromisoformat(at), Switch(to), why) for at, to, why in rows[1:])
-
-
-def _turn(at: datetime, to: Switch, why: str) -> tuple[datetime, Switch, str]:
-    """An entry of the kill switch's record: a moment in UTC and a reason, or an error."""
-    if at.utcoffset() != timedelta(0) or not why.strip():
-        raise ValueError(f"the kill switch, {to.value} at {at} for {why!r}: no UTC time or reason")
-    return at, to, why
-
-
-def _unless_killed(root: Path, order_id: str) -> None:
-    """Refuse the order while the kill switch is on, in the switch's own words."""
-    if on := killed(root):
-        raise Stopped(Blocker.KILL, f"{order_id}: not sent, {on}")
-
-
 def _unless_stopped(root: Path, order: Order | Sale) -> None:
     """Refuse the order while the kill switch is on, and a buy while a halt is in force."""
-    _unless_killed(root, order.order_id)
+    unless_killed(root, order.order_id)
     if isinstance(order, Order) and (halts := halt.in_force(root)):
         said = "; ".join(h.since for h in halts)
         raise Stopped(Blocker.HALT, f"{order.order_id}: not sent, a halt is in force, {said}")
-
-
-def killed(root: Path) -> str | None:
-    """The kill switch's word while it is on, when and why; None while off. A drill is neither."""
-    turns = [(at, to, why) for at, to, why in switch(root) if to is not Switch.DRILLED]
-    if not turns or turns[-1][1] is Switch.OFF:
-        return None
-    at, _, why = turns[-1]
-    return f"the kill switch is on, pulled at {at:%Y-%m-%d %H:%M} UTC: {why}"
 
 
 def fills(root: Path) -> tuple[Fill, ...]:
@@ -221,15 +198,6 @@ def fills(root: Path) -> tuple[Fill, ...]:
         return tuple(
             Fill(e, o, y, int(q), Decimal(p), date.fromisoformat(d)) for e, o, y, q, p, d in rows
         )
-
-
-def keep(path: Path, rows: Iterable[Sequence[object]]) -> None:
-    """The desk's one keeper of dated records: written whole, then swapped in."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    written = path.with_suffix(".tmp")
-    with written.open("w", newline="", encoding="utf-8") as out:
-        csv.writer(out).writerows(rows)
-    written.replace(path)
 
 
 _write = keep  # old name, for other lanes' callers until they move
@@ -306,36 +274,6 @@ def positions(root: Path, upto: date = date.max) -> dict[str, int]:
     return {symbol: shares for symbol, shares in sorted(held.items()) if shares}
 
 
-def record_rates(root: Path, day: date, rates: Mapping[str, Decimal]) -> None:
-    """Keep the day's pounds per unit of each currency: fills are priced from this record."""
-    kept = _rates(root)
-    for currency, rate in rates.items():
-        if not (rate.is_finite() and rate > 0) or (currency == "GBP" and rate != 1):
-            raise ValueError(f"{day}: a rate of {rate} pounds per {currency}")
-        if kept.setdefault((day, currency), rate) != rate:
-            raise ValueError(f"{day}: {currency} was kept at {kept[day, currency]}, not {rate}")
-    keep(root / RATES, [("day", "currency", "rate"), *((*key, r) for key, r in kept.items())])
-
-
-def _rates(root: Path) -> dict[tuple[date, str], Decimal]:
-    path = root / RATES
-    if not path.exists():
-        return {}
-    with path.open(newline="", encoding="utf-8") as saved:
-        return {
-            (date.fromisoformat(r["day"]), r["currency"]): Decimal(r["rate"])
-            for r in csv.DictReader(saved)
-        }
-
-
-def rate(root: Path, currency: str, day: date) -> Decimal:
-    """Pounds per unit of a currency kept for a day, carried over a UK-only holiday (desk.carry)."""
-    kept = carried({d: r for (d, c), r in _rates(root).items() if c == currency}, day)
-    if kept is None:
-        raise ValueError(f"no {currency} rate kept for {day}")
-    return kept
-
-
 def dealt(
     root: Path, lines: Iterable[Line], day: date, last: date, counted: int
 ) -> tuple[Decimal, Charges]:
@@ -354,7 +292,7 @@ def dealt(
 
 def _priced(root: Path, lines: Iterable[Line]) -> Callable[[Fill, int], tuple[Decimal, Charges]]:
     """How the ledger's fills are priced in pounds: at the day's kept rate, by the cost model."""
-    known, rates = {line.symbol: line for line in lines}, _rates(root)
+    known, rates = {line.symbol: line for line in lines}, rates_kept(root)
     if unknown := sorted({fill.symbol for fill in fills(root)} - set(known)):
         raise ValueError(f"the ledger trades lines the desk was not given: {unknown}")
 
