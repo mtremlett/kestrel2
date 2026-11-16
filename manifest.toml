@@ -134,6 +134,7 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "lab/stress.py" = "the stress scenarios: a strategy's trades taken through the flash crashes and the 2020 crash, and what a black swan's overnight gap would cost it at its leverage, in pounds and never a pass"
 "lab/market.py" = "the market's rung: a strategy's days set beside its market's, its beta measured, and its excess over the market risk it took judged by its confidence interval"
 "lab/rung_benchmark.py" = "the benchmark rung: each judged trade set beside what its benchmark made over the same days, and the rule passed only if the whole confidence interval of its excess lies above nothing; proven alone"
+"lab/feasibility.py" = "before A-GATE paper: the count of ladder-passed rules (three asked) and the feasibility number, their summed net pounds a day against the A-GATE's hundred, each shortfall named"
 "lab/bets.py" = "the book's concentration: its number of independent bets from how its lines move together, and its profit split by correlated cluster"
 "lab/ladder.py" = "the ladder's first set: one command that takes every published rule on every line through every rung built, keeps each answer with its reason and its count of trials, skips what is kept, and ends with one line of counts"
 "lab/ladder_sets.py" = "the ladder's sets as a command: set EPON, every eponymous rule on every line the store holds, judged by the cell engine of lab/ladder.py, its table written PRE-REVIEW, and the door of `python -m lab.ladder`"
