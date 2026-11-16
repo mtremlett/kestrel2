@@ -9,6 +9,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
 
+import numpy as np
 import pyarrow as pa  # type: ignore[import-untyped]  # ships no stubs
 import pyarrow.parquet as pq  # type: ignore[import-untyped]  # ships no stubs
 import pytest
@@ -98,3 +99,30 @@ def test_stooq_stores_daily_rows_enter_under_their_source_but_not_adjusted_ones(
     assert headstart_days.main(tmp_path / "traded", path, [BA], TODAY).startswith("BA: ")
     assert bars.sources(path, BA, bars.DAILY)[Source.STOOQ_DAILY] == len(DAYS) - 30 - 1
     assert DAYS[3] not in {bar.day for bar in bars.daily(path, BA)}  # the spoilt row stays out
+
+
+def test_the_matrices_daily_arrays_enter_under_their_source_and_a_hole_is_left(
+    tmp_path: Path,
+) -> None:
+    folder, path = tmp_path / "matrix", tmp_path / "market.db"
+    folder.mkdir()
+    stamps = [
+        int((datetime(d.year, d.month, d.day) - datetime(1970, 1, 1)).total_seconds() * 1000)
+        for d in DAYS
+    ]
+    close = np.array([100.0 + n for n in range(len(DAYS))])
+    table = np.array([close - 1, close + 1, close - 2, close, np.full(len(DAYS), 9.0)])
+    table[3, 3] = np.nan  # a hole: that day has no bar
+    np.save(folder / "BA.US_1d_ts.npy", np.array(stamps))
+    np.save(folder / "BA.US_1d_ohlcv.npy", table)
+    with bars.writing(path) as round_:
+        round_.daily(
+            BA, [_fresh(d, str(100 + n)) for n, d in enumerate(DAYS) if n >= len(DAYS) - 5]
+        )
+    said = headstart_days.main(folder, path, [BA], TODAY)
+    assert f"BA: {len(DAYS) - 6} days filled from {DAYS[0]}" in said
+    assert bars.sources(path, BA, bars.DAILY) == {
+        Source.ARCHIVE: 5,
+        Source.MATRIX_DAILY: len(DAYS) - 6,
+    }
+    assert headstart_days.main(folder, path, [BA], TODAY) == "BA: already in"
