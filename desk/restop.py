@@ -8,13 +8,14 @@ from __future__ import annotations
 from collections.abc import Mapping
 from decimal import Decimal
 from pathlib import Path
-from typing import Protocol
+from typing import Protocol, runtime_checkable
 
 from desk import book
 from desk.lines import Line
 from desk.orders import stop_under
 
 
+@runtime_checkable
 class Restops(Protocol):
     """A broker that can move the one stop resting on a line to a new level, for all its shares."""
 

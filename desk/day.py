@@ -10,7 +10,7 @@ from datetime import date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
-from desk import book, halt, strategy, venues
+from desk import book, halt, restop, strategy, venues
 from desk.broker import Broker
 from desk.halt import Blocker, Stopped
 from desk.lines import YARDSTICK, Line
@@ -238,12 +238,13 @@ def trade(
     again today. While the book is not the broker's the send path refuses every buy, and the
     sale of a line whose shares differ. rates are the day's pounds per unit of each currency.
     Nothing is sent for a day that is over: its record made, or a later fill in the ledger.
-    Every buy and sale the rules ask for has its answer, and each not filled whole goes on
-    the morning's list as it is answered, under its blocker (halt.morning), with the lines
-    no rule could decide. A place the broker disagrees with is told through tell (book.send).
-    A strategy in killed (its own kill condition met, lab/promotion.py) buys nothing, said so;
-    what it holds is still sold by its rule or its stop."""
+    Every buy and sale asked for has its answer; each not filled whole goes on the morning's
+    list under its blocker (halt.morning), with the lines no rule could decide; a place the
+    broker disagrees with is told through tell. First each resting stop moves (restop.move).
+    A strategy in killed (lab/promotion.py) buys nothing; what it holds is still sold."""
     book.collect(root, broker)  #: the stops the open sold
+    if isinstance(broker, restop.Restops):  #: a broker that cannot move a stop moves none
+        restop.move(root, broker, {line.symbol: line for line in archive})
     if later := max((fill.day for fill in book.fills(root) if fill.day > day), default=None):
         raise ValueError(f"{day}: the day is over, the ledger holding a fill of {later}")
     if made := [record.day for record in records(root) if record.day >= day]:
