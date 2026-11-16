@@ -45,7 +45,7 @@ def test_the_ten_timeframes_are_held_and_each_round_trips_on_its_mark(tmp_path: 
     assert bars.timed(path, LINE, "1m", day, far) == tuple(one)
     assert bars.timed(path, LINE, "4h", day, far) == (four,)
     assert bars.timed(path, LINE, "1wk", day - timedelta(days=1), far) == (week,)
-    assert [p.name for p in tmp_path.glob("*.db")] == [bars.HISTORY, bars.LIVE]
+    assert sorted(p.name for p in tmp_path.glob("*.db")) == sorted([bars.HISTORY, bars.LIVE])
 
 
 @pytest.mark.parametrize(
