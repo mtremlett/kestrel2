@@ -212,12 +212,31 @@ def test_the_rehearsal_lives_the_last_session_again_on_its_own_record_with_no_ma
     # orders of the desk's own still working at its end are cancelled, and named: NO-GO
     code, line = rehearse(4, _2200={tp.ACCOUNT: tp.WORKING, tp.CANCELS: tp.GONE})
     assert code == 1 and "not as found; left working, now cancelled: ('a', 'f')" in line
-    # not begun: on a day a market trades, with the desk's own kill switch on, or with
-    # anything on the paper account, which the rehearsal's empty book would not hold
+    # a run that outlasts its hour into a market's reach stops, sending no more, and is NO-GO
+    ticks = iter(
+        [MON.replace(hour=4), MON.replace(hour=4), MON.replace(hour=4), MON.replace(hour=7)]
+    )
+    answers.update({tp.FILLS: [END], tp.ACCOUNT: tp.EMPTY})
+    command.main(["--rehearse"], {"KESTREL2_DATA": str(tmp_path)}, lambda: next(ticks))
+    assert "a market came within reach" in capsys.readouterr().out
+    # not begun: while a market is open or opens within two hours, with the desk's own kill
+    # switch on, or with anything on the paper account, which its empty book would not hold
     book.turn(tmp_path / "desk", book.Switch.ON, MON, "his word")
     answers[tp.ACCOUNT] = tp.BARE
-    assert _run(tmp_path, MON.replace(hour=22), "--rehearse") == 1
+    for hour, minute, near in (
+        (13, 0, True),
+        (6, 0, True),
+        (5, 59, False),
+        (21, 30, True),
+        (22, 30, False),
+    ):
+        assert _run(tmp_path, MON.replace(hour=hour, minute=minute), "--rehearse") == 1
+        line = capsys.readouterr().out
+        assert ("open within the rehearsal's reach" in line) is near
+    assert _run(tmp_path, MON.replace(hour=13), "--rehearse") == 1
     line = capsys.readouterr().out
-    assert line.startswith("REHEARSAL NO-GO: not begun: London and New York trade today, and an")
+    assert line.startswith(
+        "REHEARSAL NO-GO: not begun: London Mon 08:00 UTC and New York Mon 14:30"
+    )
     assert "; the kill switch is on, pulled at 2026-11-16 07:15 UTC: his word; the paper" in line
     assert "account is not empty, as the rehearsal's book is: ['IITU STK GBP']." in line
