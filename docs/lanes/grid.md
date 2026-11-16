@@ -208,3 +208,34 @@ quietly taking the trading line of the same symbol. Blind review, nothing blocki
 - *Ticks: none*, as #111 and #118.
 
 **Evidence.** A real pass ended at a 20 s limit (error at 20.0 s, no worker left, lock free); the next pass ran whole (5,325 cells, 115 kept). 11 deliberate breaks, 9 caught; uncaught: the limit multiplied, and the count read from a successful pass's file (the real pass is the evidence). Blind review: nothing blocking; pipes replaced by files so a leftover worker cannot hold the week.
+
+### 2026-11-14 — the week waits; the blocking request first (#171)
+
+**Decided.** By the GRID lane as the desk's mentor, on his standing ruling "always go with recommended".
+- *grid-week waits until 20 November; the lane carries on with the boxes after it.* Options: hold the whole lane; or let the run go on and build grid-declared, then grid-weekend. Chosen the second: the run needs nobody. The running process is left alone.
+- *The blocking request alone.* Options: R-RUNNER-4 alone; or with grid-declared. Chosen alone: another lane was blocked, and the canon allows one objective a session.
+- *AAPL and NVDA stand in for SPY and QQQ*: both US lines in dollars at leverage 1, so no test's meaning moves.
+
+### 2026-11-14 — an unlisted held ticker (R-RUNNER-19, #197)
+
+**Decided.** By the GRID lane as the desk's mentor. Options: (a) skip it; (b) a plain line in its venue's currency, London shares charged stamp duty, US none; (c) look facts up elsewhere. Chosen (b): nothing is dropped and the cost is the cautious one; duty-exempt London funds are slightly over-charged in this study only.
+
+### 2026-11-15 — the transfer study and the rule book (R-RUNNER-82, 89, 128; #263, #281, #360)
+
+**Decided.** By the GRID lane as the desk's mentor.
+- *Transfer study:* own module `lab/transfer.py` rather than a flag on the 268-line sweep. Variants are only the plateau centre of a fitted grid, never by eye. Resumable by kept cells; first-rung judging recomputed on a rerun. Window and rates are set 1's, so a dollar line with no rate is counted as not judged.
+- *Rule book:* a file with no EPONYMOUS is skipped (refusing would fail every Cell, five included, while 14 files lack it); the ladder already refuses such a file by name.
+- *Catalogue specs:* the catalogue is a subset of the Python names, so "exactly the rules it names" is read as: every catalogue name is a Python rule, none invented. Not folded into `rules()` (a SpecRule is not a Rule class; only the five are A-GATE candidates).
+
+### 2026-11-15 — fast engine tested on built rows; the memo keyed by identity (R-RUNNER-140, 167; #330, #359)
+
+**Decided.** By the GRID lane as the desk's mentor.
+- *"EPON rows" read as spec rows* (`lab/spec.py`): the catalogue does not exist yet. Options: wait (blocks the box) or test on built rows now (chosen); the catalogue's rows join by adding them to ROWS.
+- *The data-version memo* is keyed by (line, end) guarded by the identity and length of the bars object, because placebo and shuffle callers pass different bars for the same line. Plain (line, end) would give wrong keys there.
+
+### 2026-11-16 — a rung's key narrowed; the pass declared; time measured (R-RUNNER-170, grid-declared, grid-weekend; #372, #399, #403)
+
+**Decided.** By the GRID lane as the desk's mentor.
+- *Key:* exclude files that themselves reach the rung (no list to keep) rather than a fixed list of orchestration modules (a second home for a fact). Kept rows get a new key once.
+- *Default pass = declared universe*, not the research list with a flag: transfer is never a verdict. Lines matched by full Line, not symbol.
+- *Pass time* is a field on `Pass` (a separate timer script would be forbidden scaffolding).
