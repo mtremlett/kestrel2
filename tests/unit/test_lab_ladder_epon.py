@@ -41,6 +41,7 @@ def test_the_set_reproduces_each_rule_judges_it_on_every_line_and_writes_the_tab
     said = ladder_sets.epon(tmp_path, _door(book), {}, [VUSA, ISF, SGLN], clock, RULES)
     table = tmp_path / "ladder" / "sets" / "EPON.md"
     assert said.splitlines()[-1] == f"SET EPON: 2 rules, 0 passed, table {table}"
+    assert said.splitlines()[-2].startswith("tapes on disk: ") and " 0 files" not in said
     data = json.loads(table.with_suffix(".json").read_text())
     assert (data["status"], data["trials"], [r["rule"] for r in data["rules"]]) == (
         "PRE-REVIEW",
