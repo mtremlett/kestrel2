@@ -132,7 +132,7 @@ UK tax) and R-MONEY-2 (the scenes on the whole fourteen months).
 Retiring `desk/eponymous_*.py` (R-RUNNER-127) waits until all the rules are spec rows in
 `lab/catalogue.toml` (6 of about 25 on 15 Nov); deleting earlier would delete rules, not copies.
 R-RUNGS-6 and R-RUNGS-12 (the public `strategy.rsi` and `strategy.lower_band`) were done in #185 and
-are pinned by `tests/unit/test_strategy.py`; the open lines in STATUS are stale.
+are pinned by `tests/unit/test_strategy.py`; the open lines in STATUS are stale (the scribe ticks them from the Ticks line of #497 and its successor).
 Checked again 15 Nov late: still 6 rows of 19 files, so R-RUNNER-127 stays held (it needs spec-epon first).
 Checked 16 Nov: 6 catalogue rows of 21 eponymous rules (15 unexpressed: bollinger_squeeze, connors_*, dan_zanger_breakout, darvas_box, demark_sequential, dual_momentum, faber_tactical, kell_breakout, keltner_channel_trend, mansfield_rs_momentum, minervini_breakout, raschke_swing, weinstein_stage, zweig_breadth_thrust); lab/ladder, rulebook, published, blocks and 8 tests still import the files. Waits: spec-epon.
 Checked again 16 Nov (MONEY session): still 15 unexpressed; R-RUNGS-6 and R-RUNGS-12 re-verified done on main (`tests/unit/test_strategy.py` green).
@@ -140,6 +140,7 @@ Checked again 16 Nov (MONEY session): still 15 unexpressed; R-RUNGS-6 and R-RUNG
 Checked 16 Nov (MONEY, third session): R-RUNGS-8 (`orders.strategy_of` refuses an unreadable id, pinned in `tests/unit/test_orders.py`) and R-RUNGS-11 (`orders.GAP_LOSS`, one named number) are already on main; no blocking request is open.
 
 Checked 16 Nov (MONEY, later session): R-RUNNER-127 still held (15 rules unexpressed, 19 files); R-RUNGS-6 and R-RUNGS-12 ticked (public `strategy.rsi`, `strategy.lower_band`, `tests/unit/test_strategy.py` green).
+Checked 16 Nov (MONEY, third session): unchanged; the scribe has not yet folded the ticks for R-RUNGS-6 and R-RUNGS-12 (done in #185); R-RUNNER-127 waits on spec-epon.
 
 - [x] The rehearsal data in a file of its own (`tests/scenes/rehearsal.py`)
 - [x] The rehearsal data lengthened to about fourteen months, the five rules buying and
@@ -352,6 +353,10 @@ each line's UK tax on the line: scenes 6 and 7 read the same record, so they pas
 (`docs/DECISIONS.md`, the money lane's). The pretend broker, the send path, the book, the
 day's trading and reconciliation are built, and any broker can stand behind them.
 
+- [ ] Connors' Double 7's as a desk rule (R-RUNGS-10): `desk/eponymous_connors_double_7.py` is a
+      MONEY file, but the ladder finds every `desk/eponymous_*.py` and `lab/published_epon.py` (RUNGS)
+      must name it and `test_lab_published_epon.py` count 21, so neither lane's pull request is green
+      alone. Needs one session claiming both lanes' files (the runner's to grant).
 - [x] The pretend broker: fills at the day's prices, rejects, partial fills, disconnection,
       a crash, resting stops, positions, and a position injected behind the desk's back
 - [x] The send path: every order through the one gate, sent once however often the desk

@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable, Iterable, Sequence
-from dataclasses import astuple
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from http.client import HTTPException
@@ -24,7 +23,7 @@ from typing import Any, TypeVar
 from urllib.request import Request, urlopen
 
 from desk import store
-from desk.bars import EPOCH, Five
+from desk.bars import EPOCH, Five, writing
 from desk.lines import Line
 from desk.store import Bar, Refused
 
@@ -172,12 +171,9 @@ def gather(
     return answers
 
 
-REFERENCE_FOLDER = "reference"
-
-
-def keep_reference(root: Path, line: Line, bars: Sequence[Bar]) -> tuple[store.Fault, ...]:
-    """Clean a line's bars into the reference folder of the store at root, as traded: one
-    bar a day, each sound alone. Those that cannot be true are left out and listed."""
+def keep_reference(live: Path, line: Line, bars: Sequence[Bar]) -> tuple[store.Fault, ...]:
+    """Clean a line's bars and keep them in the long database beside the live file at live, as
+    traded: one bar a day, each sound alone. Those that cannot be true are left out and listed."""
     faults: list[store.Fault] = []
     weekdays = {bar.day for bar in bars if bar.day.weekday() < 5}
     sound = []
@@ -187,11 +183,6 @@ def keep_reference(root: Path, line: Line, bars: Sequence[Bar]) -> tuple[store.F
             faults.append(store.Fault(bar.day, entered))
         else:
             sound.append(entered)
-    (root / REFERENCE_FOLDER).mkdir(parents=True, exist_ok=True)
-    store._write(root / REFERENCE_FOLDER / f"{line.symbol}.csv", store.COLUMNS, map(astuple, sound))  # noqa: SLF001  # the store's own cleaning, not copied
+    with writing(live) as round_:
+        round_.daily(line, sound)
     return tuple(faults)
-
-
-def read_reference(root: Path, symbol: str) -> tuple[Bar, ...]:
-    """Every bar kept for a reference series, oldest first."""
-    return store.read(root / REFERENCE_FOLDER, symbol)

@@ -4,7 +4,13 @@ rows of timeframe 1d are read, opened read-only; its quarantine and unit-drift t
 Each line's rows pass the one store's checks, joined to the days the fast store holds, and enter
 under Source.MTT_DB on the days that hold no bar: a fresh bar wins, and each held day that
 differs is said. A line already in is not read again, so a run is resumable (`python -m
-lab.headstart_days`). The yardsticks first, then the lines, then the research list."""
+lab.headstart_days`). stooq_store's daily parquet (market=uk|us) enters the same way under
+Source.STOOQ_DAILY, rows it marks OK only; stooq_store_matrix's 1d arrays likewise, under
+Source.MATRIX_DAILY, a row with a hole left; ibkr_store's daily parquet (the same form, a
+fetch record beside each file) under Source.IBKR_DAILY; mark_the_trend's Stooq files (a file a
+line, <SYMBOL>.d.parquet or <SYMBOL>.L.parquet) under Source.TREND_DAILY. Old rows that are
+the adjusted form of the as-traded days held are refused whole by the one store's check against
+them, and said. The yardsticks first, then the lines, then the research list."""
 
 from __future__ import annotations
 
@@ -12,9 +18,13 @@ import os
 import sqlite3
 import sys
 import tempfile
+from collections.abc import Callable
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
+
+import numpy as np
+import pyarrow.parquet as pq  # type: ignore[import-untyped]  # ships no stubs
 
 from desk import archive, bars, store
 from desk.bars import Source
@@ -25,6 +35,8 @@ from lab import headstart, universe
 ROWS = "SELECT ts, open, high, low, close, volume FROM ohlcv WHERE ticker = ? AND timeframe = '1d'"
 YARDSTICKS = ("SPY", "QQQ", "ISF", "VUAG")
 PENCE = Decimal("0.01")
+PRICED = ("ts", "open", "high", "low", "close", "volume", "row_state")  #: stooq_store's columns
+Rows = Callable[[Line, Path], list[Bar]]
 
 
 def order() -> list[Line]:
@@ -46,6 +58,81 @@ def rows(line: Line, old: Path) -> list[Bar]:
         for at, o, h, lo, c, v in got
         if None not in (o, h, lo, c, v)
     ]
+
+
+def stooq_rows(line: Line, folder: Path) -> list[Bar]:
+    """A line's daily rows in stooq_store (freq=d/market=../ticker=SYM.MKT/part.parquet): only
+    those it marks OK, a day by its stamp's UTC date; none held is refused."""
+    market = headstart.MARKET[line.venue]
+    file = folder / f"freq=d/market={market.lower()}/ticker={line.symbol}.{market}/part.parquet"
+    if not file.is_file():
+        raise ValueError(f"{file.parent.name} holds no daily row of {line.symbol}")
+    table = pq.ParquetFile(file).read(columns=list(PRICED))
+    return [
+        Bar(at.date(), _d(o), _d(h), _d(lo), _d(c), int(v))
+        for at, o, h, lo, c, v, state in zip(*(table[k].to_pylist() for k in PRICED), strict=True)
+        if state == "OK" and None not in (o, h, lo, c, v)
+    ]
+
+
+def matrix_rows(line: Line, folder: Path) -> list[Bar]:
+    """A line's daily rows in the old desk's matrices (<SYMBOL>.<UK|US>_1d: an array of day
+    stamps in milliseconds and one of opens, highs, lows, closes, volumes); a day by its stamp."""
+    name = headstart._named(line, "1d")  # noqa: SLF001  # the matrices' one naming
+    if not (folder / f"{name}_ts.npy").is_file():
+        raise ValueError(f"{folder.name} holds no daily matrix of {line.symbol}")
+    stamps = np.load(folder / f"{name}_ts.npy").tolist()
+    table = np.load(folder / f"{name}_ohlcv.npy").T
+    return [
+        Bar(
+            (bars.EPOCH + timedelta(milliseconds=at)).date(),
+            _d(row[0]),
+            _d(row[1]),
+            _d(row[2]),
+            _d(row[3]),
+            int(row[4]),
+        )
+        for at, row in zip(stamps, table, strict=True)
+        if np.isfinite(row).all()
+    ]
+
+
+def trend_rows(line: Line, folder: Path) -> list[Bar]:
+    """A line's daily rows in mark_the_trend's Stooq folder (<SYMBOL>.d.parquet, <SYMBOL>.L.parquet
+    in London: Open, High, Low, Close, Volume and the day's DATE); a row with a hole is left."""
+    file = folder / f"{line.symbol}{archive.SUFFIX[line.venue] or '.d'}.parquet"
+    if not file.is_file():
+        raise ValueError(f"{folder.name} holds no daily file of {line.symbol}")
+    columns = ("DATE", "Open", "High", "Low", "Close", "Volume")
+    table = pq.ParquetFile(file).read(columns=list(columns))
+    return [
+        Bar(at.date(), _d(o), _d(h), _d(lo), _d(c), int(v))
+        for at, o, h, lo, c, v in zip(*(table[k].to_pylist() for k in columns), strict=True)
+        if None not in (o, h, lo, c, v)
+    ]
+
+
+def _daily(where: Path) -> bool:
+    """A folder of daily rows: stooq_store's, the matrices' or mark_the_trend's."""
+    return (
+        (where / "freq=d").is_dir()
+        or next(where.glob("*_1d_ts.npy"), None) is not None
+        or next(where.glob("*.d.parquet"), None) is not None
+    )
+
+
+def form(where: Path) -> tuple[Source, Rows]:
+    """An old store's daily source and reader by its form (database, Stooq, ibkr, matrices)."""
+    if where.suffix == ".db":
+        return Source.MTT_DB, rows
+    if (where / "freq=d").is_dir():  # only ibkr_store keeps a fetch record beside its bars
+        found = next((where / "freq=d").glob("*/*/fetch.json"), None)
+        return (Source.IBKR_DAILY if found else Source.STOOQ_DAILY), stooq_rows
+    if next(where.glob("*.d.parquet"), None) is not None:
+        return Source.TREND_DAILY, trend_rows
+    if _daily(where):
+        return Source.MATRIX_DAILY, matrix_rows
+    raise ValueError(f"{where}: no daily reader for a store of this form")
 
 
 def _unit(line: Line, mine: list[Bar], held: list[Bar]) -> Decimal:
@@ -83,15 +170,16 @@ def _differ(kept: list[Bar], held: list[Bar]) -> str:
 def one(line: Line, old: Path, path: Path, day: date) -> str:
     """A line's old daily rows into the store at path, ready to trade on day, and one line
     saying what came of them; the store's checks may refuse it, and nothing is kept."""
+    source, read = form(old)
     try:
-        if Source.MTT_DB in bars.sources(path, line, bars.DAILY):
+        if source in bars.sources(path, line, bars.DAILY):
             return f"{line.symbol}: already in"
         held = list(bars.daily(path, line))
     except LookupError:
         held = []
-    mine = rows(line, old)
+    mine = read(line, old)
     if not mine:
-        raise ValueError(f"{line.symbol}: the old database holds no daily row of it")
+        raise ValueError(f"{line.symbol}: the old store holds no daily row of it")
     unit = _unit(line, mine, held)
     scaled = [
         Bar(b.day, b.open * unit, b.high * unit, b.low * unit, b.close * unit, b.volume)
@@ -105,7 +193,7 @@ def one(line: Line, old: Path, path: Path, day: date) -> str:
             raise ValueError(f"{line.symbol}: the one store would park it: {parked[0].reason}")
         kept = store.read(Path(scratch), line.symbol)
     have = {bar.day for bar in held}
-    with bars.writing(path, Source.MTT_DB) as round_:
+    with bars.writing(path, source) as round_:
         filled = round_.days(line, [bar for bar in kept if bar.day not in have])
     return f"{line.symbol}: {filled} days filled from {kept[0].day}; {_differ(scaled, held)}"
 
@@ -127,8 +215,9 @@ if __name__ == "__main__":
     DATA = Path(os.environ.get("KESTREL2_DATA") or sys.exit("headstart_days: no KESTREL2_DATA"))
     try:
         FOUND = headstart.imports(DATA.parent / "kestrel2_notes" / "data_register.md")
-        OLD = next((p for p in FOUND if p.suffix == ".db"), None)
-        OLD = OLD or sys.exit("headstart_days: the register tags no database IMPORT")
-        main(OLD, DATA / bars.LIVE, order(), datetime.now(UTC).date())
+        OLDS = [p for p in FOUND if p.suffix == ".db" or _daily(p)]
+        OLDS or sys.exit("headstart_days: the register tags no daily store IMPORT")
+        for OLD in sorted(OLDS, key=lambda p: p.suffix != ".db"):  # the database first
+            main(OLD, DATA / bars.LIVE, order(), datetime.now(UTC).date())
     except (OSError, ValueError, sqlite3.Error, bars.NoRound) as reason:
         sys.exit(f"headstart_days: {type(reason).__name__}: {reason}")

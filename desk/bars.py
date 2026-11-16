@@ -15,9 +15,10 @@ one the archive restates replaces the one held only by passing those checks. The
 stays hot with every older bar archived beneath it in the same file.
 
 Every bar is kept with its source, a round being one source's (Source). A fresh source, the
-archive, restates: its bar takes the place of what is held for that moment or day. Any other,
-a store no longer kept, only fills moments and days that hold no bar, so a fresh bar always
-wins; where two sources' five-minute bars for one moment differ, that is counted (`apart`)."""
+archive and the live session's IBKR, restate: a bar takes the place of what is held for that
+moment or day. Any other (a store no longer kept, or the archive's backfill of a past day)
+only fills moments and days that hold no bar, so a fresh bar always wins; where two sources'
+five-minute bars for one moment differ, that is counted (`apart`)."""
 
 from __future__ import annotations
 
@@ -49,6 +50,8 @@ class Source(Enum):
     """Where a bar came from: a bar from anywhere else cannot be written."""
 
     ARCHIVE = "archive"  #: the free price archive; until 14 November 2026 the one source
+    IBKR = "IBKR paper"  #: the live session's only source: the paper gateway's own bars
+    BACKFILL = "archive, backfilled"  #: the archive's bars of a past day, only where none is held
     MATRICES = "old desk: Stooq matrices"  #: the old desk's stores (lab/headstart.py)
     DATABASE = "old desk: mark_the_trend.db"
     STOOQ_RAW = "old desk: raw Stooq downloads"
@@ -56,11 +59,15 @@ class Source(Enum):
     STOOQ_STORE = "old desk: stooq_store"
     TREND_STOOQ = "old desk: mark_the_trend Stooq downloads"
     MTT_DB = "old desk: mark_the_trend.db daily rows"  #: its daily bars alone
+    STOOQ_DAILY = "old desk: stooq_store daily rows"  #: its daily bars alone
+    MATRIX_DAILY = "old desk: Stooq matrices daily rows"  #: its 1d arrays alone
+    IBKR_DAILY = "old desk: ibkr_store daily rows"  #: its daily bars alone, the broker's own
+    TREND_DAILY = "old desk: mark_the_trend Stooq daily files"  #: its daily files alone
 
     @property
     def fresh(self) -> bool:
         """It is still asked, and so may restate a bar; an old store only fills."""
-        return self is Source.ARCHIVE
+        return self in (Source.ARCHIVE, Source.IBKR)
 
 
 #: Each bar under its line, its span and its start: a daily bar's day as its ordinal, a
@@ -356,18 +363,20 @@ def checked(
 
 
 def keep(
-    path: Path, answers: Mapping[Line, Iterable[Five] | Refused]
+    path: Path,
+    answers: Mapping[Line, Iterable[Five] | Refused],
+    source: Source = Source.ARCHIVE,
 ) -> dict[Line, tuple[str, ...]]:
-    """An evening's answers from the archive into the store at path, in one round: each line's
-    bars that pass the checks, their unit judged against the bars held from the same days,
-    and every line's faults. A line the archive refused adds nothing this evening. A bar held
-    stays unless a bar for its own moment passes the checks, and takes its place; where it
+    """A source's answers (the archive's unless named) into the store at path, in one round:
+    each line's bars that pass the checks, their unit judged against the bars held from the
+    same days, and every line's faults. A line the source refused adds nothing this round. A
+    bar held stays unless a bar for its own moment passes the checks, and takes its place; where it
     was held from another source and differs, that is counted among the line's faults."""
     faults: dict[Line, tuple[str, ...]] = {}
-    with writing(path, Source.ARCHIVE) as round_:
+    with writing(path, source) as round_:
         for line, bars in answers.items():
             if isinstance(bars, Refused):
-                faults[line] = (f"the archive refused it: {bars.reason}",)
+                faults[line] = (f"the {source.value} refused it: {bars.reason}",)
                 continue
             given = list(bars)
             since = min((bar.start for bar in given), default=EPOCH)

@@ -19,7 +19,7 @@ from urllib.error import HTTPError, URLError
 
 import pytest
 
-from desk import book, clearance, day, gateway, messenger, venues
+from desk import book, clearance, day, gateway, halt, messenger, venues
 from desk.book import Switch
 from desk.broker import Fill
 from desk.clearance import Check
@@ -40,6 +40,7 @@ HALF, NINE, NAIVE = MON.replace(minute=30), MON.replace(hour=21, minute=5), MON.
 PARIS = datetime(2026, 11, 14, 12, tzinfo=timezone(timedelta(hours=1)))  #: a Saturday, on no UTC
 READY = Known(State.READY, gateway.ANSWERED)
 GONE = gateway.known(MON, Mock(side_effect=ConnectionRefusedError))  #: his to look at
+OFF = "Kill: off; halts: none."
 NOTHING = "Held: nothing. No day is on the desk's record yet."
 STOPPED = "As things stand the desk would send NO order today"
 SILENT = (
@@ -181,8 +182,8 @@ def test_the_morning_message_says_whether_anything_stops_the_desk_today(tmp_path
     told = (
         "Morning, Mon 16 Nov, 08:00 UK. As things stand the desk is set for today on paper: the "
         "Gateway answered, today's check of the account named nothing, and the kill switch is "
-        "off and drilled. Held: nothing. The last day on record, Fri 13 Nov: after £1,002.00 of "
-        "costs the book made £0.00; simply holding the market would have lost £0.50."
+        f"off and drilled. {OFF} Held: nothing. The last day on record, Fri 13 Nov: after "
+        "£1,002.00 of costs the book made £0.00; simply holding the market would have lost £0.50."
     )
     sent = messenger.morning(tmp_path, MON, READY, post)
     assert sent == Delivery(MON, "morning 2026-11-16", 1, told)
@@ -196,9 +197,9 @@ def test_the_morning_message_says_whether_anything_stops_the_desk_today(tmp_path
     told = (
         f"Morning, Mon 16 Nov, 08:30 UK. {STOPPED}: the kill switch is on, pulled at 2026-11-15 "
         "23:00 UTC: his word; the kill switch was not drilled in the last 31 days; today's "
-        f"orders: not sent, the check at 07:00 UTC today named: {named}; {GONE.words} Held: "
-        "nothing. The last day on record, Thu 12 Nov: no profit published, the book is not the "
-        "broker's on AAPL, VUSA."
+        f"orders: not sent, the check at 07:00 UTC today named: {named}; {GONE.words} Kill: on, "
+        "pulled at 2026-11-15 23:00 UTC: his word; halts: none. Held: nothing. The last day on "
+        "record, Thu 12 Nov: no profit published, the book is not the broker's on AAPL, VUSA."
     )
     assert messenger.morning(stopped, HALF, GONE, post) == Delivery(HALF, sent.name, 2, told)
 
@@ -238,7 +239,7 @@ def test_the_evening_message_never_goes_within_five_minutes_of_a_close(tmp_path:
 
 
 def test_the_evening_message_tells_the_fills_the_holdings_and_last_record(tmp_path: Path) -> None:
-    said = f"Evening, Mon 16 Nov, 21:05 UK. The desk's fills today: none. {NOTHING}"
+    said = f"Evening, Mon 16 Nov, 21:05 UK. The desk's fills today: none. {OFF} {NOTHING}"
     quiet = Delivery(NINE, "evening 2026-11-16", 1, said)
     assert messenger.evening(tmp_path / "new" / "desk", NINE, READY, _posts()) == quiet
     traded, fills = tmp_path / "traded", (("VUSA", 10, 13), ("AAPL", 9, 13), ("VUSA", 2, 16))
@@ -248,11 +249,19 @@ def test_the_evening_message_tells_the_fills_the_holdings_and_last_record(tmp_pa
     said = (
         "Evening, Mon 16 Nov, 21:05 UK. The paper Gateway was not ready just now, so this is the "
         f"desk's ledger as last read ({GONE.words[:-1]}). The desk's fills today: bought 2 VUSA, "
-        "sold 4 AAPL. Held: AAPL 5, VUSA 12. The last day on record, Thu 12 Nov, with the withheld "
-        "days before it: after £1,002.00 of costs the book lost £1,234.50; simply holding the "
-        "market would have made £8.00."
+        f"sold 4 AAPL. {OFF} Held: AAPL 5, VUSA 12. The last day on record, Thu 12 Nov, "
+        "with the withheld days before it: after £1,002.00 of costs the book lost £1,234.50; "
+        "simply holding the market would have made £8.00."
     )
     assert messenger.evening(traded, NINE, GONE, _posts()) == Delivery(NINE, quiet.name, 1, said)
+
+
+def test_each_daily_message_names_the_halts_in_force_beside_the_kill_switch(tmp_path: Path) -> None:
+    halt.call(tmp_path, MON - timedelta(hours=2), "his word")
+    morning = messenger.morning(tmp_path, MON, READY, _posts())
+    assert morning and "Kill: off; halts: in force since 2026-11-16 06:00 UTC." in morning.text
+    evening = messenger.evening(tmp_path, NINE, READY, _posts())
+    assert evening and "Kill: off; halts: in force since 2026-11-16 06:00 UTC." in evening.text
 
 
 def test_a_daily_message_not_delivered_by_its_hour_is_told_once(tmp_path: Path) -> None:
@@ -277,7 +286,7 @@ def test_a_daily_message_not_delivered_by_its_hour_is_told_once(tmp_path: Path) 
     told = (
         f"Morning, Wed 01 Jul, 08:29 UK. {STOPPED}: the kill switch was not drilled in the last 31 "
         "days; today's orders: not sent, the paper account has not been checked today, 2026-07-01. "
-        "Held: VUSA 2. No day is on the desk's record yet."
+        f"{OFF} Held: VUSA 2. No day is on the desk's record yet."
     )
     woke = messenger.morning(summer, sunny, READY, post)
     assert woke and (woke.name, woke.number, woke.text) == ("morning 2026-07-01", 4, told)

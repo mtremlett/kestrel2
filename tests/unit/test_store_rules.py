@@ -110,7 +110,7 @@ def test_every_tuning_constant_of_the_store_is_pinned_to_its_value() -> None:
     names = {k for k in vars(store) if k.isupper() and not k.startswith("_")}
     names -= {"COLUMNS", "NO_RATES", "UNRECORDED", "ASTRAY", "FAR"}  # derived or wording
     assert names == set(KNOBS), "a constant was added or dropped without a row in KNOBS"
-    assert {k: getattr(store, k) for k in KNOBS} == KNOBS
+    assert {k: vars(store)[k] for k in KNOBS} == KNOBS
 
 
 @pytest.mark.parametrize("site", sorted(RULES))
