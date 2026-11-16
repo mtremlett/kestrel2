@@ -24,6 +24,11 @@ THE FIVE-MINUTE ROUND, at every call from a venue's open until SETTLED after its
 auction, for the archive shows a session's last bars late: its lines' bars of the last
 RECENT, through the fast store's checks, so a round missed heals at the next.
 
+THE REFERENCE SERIES, once a day after the US close: each of `lines.REFERENCE` (SPY) asked of the
+archive from its first session, and kept apart from the traded lines by the one store. A call
+the day's record already covers asks nothing; one the archive refuses is told, not a miss
+(nothing is traded on it), and asked again at the next call.
+
 A call that left a venue with no line answered, or with no line clean, is a miss: the
 command says so and ends with 1. One call asks the archive for SPENT seconds and no longer;
 a line not reached by then is refused as any other."""
@@ -43,7 +48,7 @@ from typing import TypeVar
 
 from desk import archive, bars, store, venues
 from desk.bars import Five
-from desk.lines import LINES, Line
+from desk.lines import LINES, REFERENCE, Line
 from desk.store import Bar, Parked, Refused
 
 #: In the data folder: each venue's record of its last refresh (no prices: the bars are in the
@@ -221,6 +226,35 @@ def saved(
     return held, frozenset(parked)
 
 
+def _ancient(line: Line, day: date) -> tuple[Bar, ...]:
+    return archive.fetch(line, day, since=archive.REFERENCE_SINCE)
+
+
+def _reference(
+    home: Path, now: datetime, ask: Ask[date, tuple[Bar, ...]], series: Sequence[Line]
+) -> list[str]:
+    """Each reference series kept from its first session once the US day has settled, and told
+    in words; one the record already holds for the day is not asked, nor one refused kept."""
+    day, told = target("US", now), list[str]()
+    if day == now.date() or venues.sessions("US", now.date(), now.date()) != (now.date(),):
+        return told
+    for line in series:
+        folder = home / DAILY / line.venue
+        mark = folder / archive.REFERENCE_FOLDER / f"{line.symbol}.kept"
+        if mark.is_file() and mark.read_text(encoding="utf-8") == day.isoformat():
+            continue
+        answer = archive.gather([line], day, ask)[line]
+        if isinstance(answer, Refused):
+            told.append(f"{line.symbol}: reference series not kept: {answer.reason}")
+            continue
+        faults = archive.keep_reference(folder, line, answer)
+        mark.write_text(day.isoformat(), encoding="utf-8")
+        told.append(
+            f"{line.symbol}: reference series kept before {day}, {len(faults)} faults listed"
+        )
+    return told
+
+
 def _recent(line: Line, now: datetime) -> tuple[Five, ...]:
     return archive.fetch_five(line, now, RECENT)
 
@@ -268,6 +302,8 @@ def keep(
     daily: Ask[date, tuple[Bar, ...]] = archive.fetch,
     five: Ask[datetime, tuple[Five, ...]] = _recent,
     clock: Callable[[], float] = time.monotonic,
+    ancient: Ask[date, tuple[Bar, ...]] = _ancient,
+    series: Sequence[Line] = REFERENCE,
 ) -> tuple[list[str], list[str]]:
     """WHATEVER IS OWED AT NOW, done once: what was done, in words, and of those the misses.
     Nothing is asked, and nothing said, on a day no venue trades and the store is whole."""
@@ -284,7 +320,9 @@ def keep(
             told.append(_told(kept, mine))
         if venues.open_at(venue, now) or venues.open_at(venue, now - SETTLED):
             told.append(_round(home / HOT, mine, now, _within(five, clock, ends)))
-    return [words for words, _ in told], [words for words, miss in told if miss]
+    spoken = [words for words, _ in told]
+    spoken += _reference(home, now, _within(ancient, clock, ends), series)
+    return spoken, [words for words, miss in told if miss]
 
 
 def main(home: Path, now: datetime) -> int:
