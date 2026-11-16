@@ -33,6 +33,7 @@ from lab import (
     rung,
     rung_ci,
     rung_costs,
+    rung_cpcv,
     shuffle,
     trials,
     verdict,
@@ -98,6 +99,7 @@ def test_each_cell_is_judged_on_every_rung_and_kept_with_its_reasons_and_trials(
         "market": market.judge(verdict, EDGE, ISF, NOISE, {}).answer.name,
         "ci": rung_ci.judge(verdict.gains).name,
         "costs": rung_costs.judge(verdict).answer.name,
+        "cpcv": rung_cpcv.judge(verdict).answer.name,
         "shuffle": "THIN",  #: run last, and only on a trial that passed all before it
     }
     assert {name: answer for name, (answer, _) in won["rungs"].items()} == want
@@ -111,7 +113,9 @@ def test_each_cell_is_judged_on_every_rung_and_kept_with_its_reasons_and_trials(
     assert lost["rungs"]["first"][0] == lost["rungs"]["market"][0] == "FAIL"
     assert set(won["unrun"]) == {"reproduce", "regime", "plateau", "stress", "unwired"}
     #: the rungs built in modules the ladder does not yet judge are named, never left in silence
-    assert "rung_beta" in won["unrun"]["unwired"] and "declare no RUNG" in won["unrun"]["unwired"]
+    assert (
+        "rung_bootstrap" in won["unrun"]["unwired"] and "declare no RUNG" in won["unrun"]["unwired"]
+    )
     assert 0 <= won["drawdown"]["median"] <= won["drawdown"]["p95"] < 1, "measured, never gated"
 
 
