@@ -771,7 +771,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
 - [ ] Each indicator known-answer tested against a published reference series (STR-14).
       Built: moving average, Bollinger deviation, Wilder smoothing (#145); true range, RSI gains
       and losses, channel (#154): five tables, 250 printed numbers. Remains: RSI ratio and band
-      line (R-RUNGS-6, 12), carried band, a fresh-low table, each table run holding, tables
+      line (public since #185: strategy.rsi, strategy.lower_band; R-RUNGS-6, 12 done), carried band, a fresh-low table, each table run holding, tables
       moved to own module (file at its 400 cap)
       {id: rungs-indicators; files: lab/published.py, tests/unit/test_lab_published.py}
 - [ ] Before paper: a kill condition declared for each strategy; promotion only after at
