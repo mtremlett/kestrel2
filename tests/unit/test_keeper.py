@@ -287,3 +287,16 @@ def test_a_parked_yardstick_is_a_first_light_fault_never_silent(tmp_path: Path) 
     pretend.short = {YARDSTICK.symbol}
     kept = keeper.keep(tmp_path, _at(6), (YARDSTICK,), pretend.daily, pretend.five, lambda: 0.0)
     assert kept[1][-1].startswith(f"FIRST-LIGHT FAULT: the yardstick {YARDSTICK.symbol} is parked")
+
+
+def test_a_line_the_archive_refuses_is_kept_from_the_brokers_bars_not_parked(
+    tmp_path: Path,
+) -> None:
+    """R-RUNNER-189: the broker is the first source; the archive's refusal is no miss."""
+    pretend = Archive()
+    pretend.refuses = {UK.symbol}
+    kept = keeper.keep(
+        tmp_path, _at(6), (UK,), pretend.daily, pretend.five, lambda: 0.0,
+        broker=lambda lines, day: {line: _bars(line, day) for line in lines},
+    )  # fmt: skip
+    assert kept[1] == [] and keeper.saved(tmp_path, MON, [UK])[0][UK] == _bars(UK, MON)
