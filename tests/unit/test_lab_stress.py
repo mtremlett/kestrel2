@@ -116,6 +116,23 @@ def test_an_episode_the_rule_was_not_shown_able_to_trade_through_is_untested() -
         stress.judge(cut, bars[:100], TEN_K, POUND)
 
 
+def test_the_worst_scenario_is_judged_against_a_fifth_of_the_capital() -> None:
+    found = _stress(_flash())
+    assert Decimal("0.2") == stress.STRESS_LIMIT and found.capital == 10_000
+
+    def lose(pounds: int) -> Stressed:
+        crash = replace(found.episodes[2], made=Decimal(-pounds))
+        return replace(found, episodes=(*found.episodes[:2], crash), gap=None)
+
+    assert lose(1900).judged()[0] is Answer.PASS
+    answer, why = lose(2100).judged()
+    assert answer is Answer.FAIL and why == (
+        f"worst: {CRASH} lost 2,100.00 pounds; the limit is 2,000.00"
+    )
+    assert lose(2000).judged()[0] is Answer.PASS
+    assert replace(found, episodes=(), gap=None).judged()[0] is Answer.THIN
+
+
 def test_the_gap_is_a_black_swans_fall_in_a_night_times_the_leverage_on_the_worst_night() -> None:
     assert TENTH == stress.FALL
     bars = _flash()
@@ -152,16 +169,3 @@ def test_the_gap_is_a_black_swans_fall_in_a_night_times_the_leverage_on_the_wors
             sold = orders.charges(AAPL, Leg.STOP, p.shares, opened, rate).total
             takes.append(p.shares * (walk[n].close * rates[walk[n].day] - opened * rate) + sold)
     assert found.gap is not None and found.gap.lost == max(takes) > 0
-
-
-def test_the_stress_rung_fails_a_worst_scenario_over_a_fifth_of_the_capital() -> None:
-    assert Decimal("0.2") == stress.STRESS_LIMIT
-    found = _stress(_flash())
-    assert found.worst is not None
-    lost = found.worst * found.capital  #: the May flash crash, the worst of the scenarios
-    for part, answer in (("0.19", Answer.PASS), ("0.2", Answer.PASS), ("0.21", Answer.FAIL)):
-        given = replace(found, capital=lost / Decimal(part))
-        said, why = given.answer()
-        assert said is answer and MAY in why and "lost £326.53" in why and "20% allowed" in why
-    nothing = _stress(_bars(SHAPE[:23] + [11, 11])).answer()
-    assert nothing[0] is Answer.THIN and "no scenario" in nothing[1]

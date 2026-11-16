@@ -52,12 +52,11 @@ nights are in the bars only where an episode holds them. On a line not in pounds
 at the night's rate and the open at the morning's, so that night's own move of the currency
 is in the figure, as it would be in the money.
 
-THE LIMIT, SET ONCE (his ruling, Monday 16 November 2026, option (a) of three: "fail a
-strategy whose worst stress-scenario loss exceeds 20% of the capital it is given (a fifth of
-the account)"): `STRESS_LIMIT`, here and nowhere else. The rung passes the line when its
-worst scenario cost no more than that part of the capital, for the line alone in the book as
-the first rung prices it, and fails it above; a scenario the rule gained in reads as a cost
-under nothing. Where no scenario could be tested it is THIN: nothing was shown either way.
+THE BAR, AND ITS ONE HOME. STRESS_LIMIT is the loss the desk will bear in the worst scenario,
+a part of the capital the strategy is given: `Stressed.judged` passes it at or under, fails it
+above, naming the scenario, the pounds and the limit. Nothing tested gives THIN, never a pass.
+The figure is for the line alone in the book as the first rung prices it. Five holdings hit
+together lose as much each. A scenario the rule gained in reads as a cost under nothing.
 """
 
 from __future__ import annotations
@@ -92,11 +91,12 @@ EPISODES = (
     Episode("the flash crash of August 2015", date(2015, 8, 24), date(2015, 8, 24)),
     Episode("the 2020 crash", date(2020, 2, 20), date(2020, 3, 23)),
 )
+#: His ruling, Monday 16 November ~09:50 (option a of three; 10% and his own number were the
+#: others): "fail a strategy whose worst stress-scenario loss exceeds 20% of the capital it is
+#: given (a fifth of the account)".
+STRESS_LIMIT = Decimal("0.20")
 #: The night's fall of the gap, in the market's terms: a black swan's day.
 FALL = Level.BLACK_SWAN.value.day
-#: The most a strategy's worst scenario may cost, as a part of the capital it is given: his
-#: ruling of 16 November 2026, a fifth of the account. The one home of the number.
-STRESS_LIMIT = Decimal("0.2")
 
 
 @dataclass(frozen=True)
@@ -127,10 +127,10 @@ class Stressed:
         return tuple(replay.episode.name for replay in self.episodes if replay.made is None)
 
     def _costs(self) -> list[tuple[str, Decimal]]:
-        """Each scenario tested and the pounds it cost: under nothing where the rule gained."""
+        """Every scenario tested with the pounds it cost, a gain as a cost under nothing."""
         costs = [(r.episode.name, -r.made) for r in self.episodes if r.made is not None]
         if self.gap is not None:
-            costs.append((f"a black swan's night, waking on {self.gap.morning}", self.gap.lost))
+            costs.append((f"a black swan's night, waking {self.gap.morning}", self.gap.lost))
         return costs
 
     @property
@@ -141,20 +141,17 @@ class Stressed:
         with localcontext(ARITHMETIC):
             return max(pounds for _, pounds in costs) / self.capital if costs else None
 
-    def answer(self) -> tuple[Answer, str]:
-        """The stress rung: PASS when the worst scenario cost at most STRESS_LIMIT of the
-        capital, FAIL above it, THIN when none could be tested; with its reason."""
+    def judged(self) -> tuple[Answer, str]:
+        """PASS when the worst scenario cost no more than STRESS_LIMIT of the capital, FAIL
+        above it; THIN when no scenario was tested. The reason names scenario, pounds, limit."""
         costs = self._costs()
         if not costs:
-            return Answer.THIN, "no scenario could be tested on this line: none shows nothing lost"
-        name, pounds = max(costs, key=lambda one: one[1])
+            return Answer.THIN, "no scenario was tested: the line was not shown through one"
+        name, pounds = max(costs, key=lambda cost: cost[1])
         with localcontext(ARITHMETIC):
-            part = max(pounds, Decimal(0)) / self.capital
-        said = (
-            f"the worst scenario, {name}, lost £{max(pounds, Decimal(0)):,.2f}, {part:.1%} of the "
-            f"£{self.capital:,.0f} capital; {STRESS_LIMIT:.0%} allowed"
-        )
-        return (Answer.PASS if part <= STRESS_LIMIT else Answer.FAIL), said
+            limit = STRESS_LIMIT * self.capital
+        answer = Answer.PASS if pounds <= limit else Answer.FAIL
+        return answer, f"worst: {name} lost {pounds:,.2f} pounds; the limit is {limit:,.2f}"
 
 
 def judge(window: Cell, bars: Sequence[Bar], settings: Settings, rates: Rates) -> Stressed:

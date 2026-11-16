@@ -251,7 +251,7 @@ def _stressed(c: Cell, own: Sequence[Bar], settings: Settings, pounds: Rates) ->
     try:
         return stress.judge(
             Cell(c.strategy, c.line, own[0].day, c.end), own, settings, pounds
-        ).answer()
+        ).judged()
     except ValueError as cannot:  #: a fault in the test, said as one with its reason
         return Answer.FAULT, f"the stress scenarios could not be run: {cannot}"
 
