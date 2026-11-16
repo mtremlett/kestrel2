@@ -3,15 +3,20 @@ regime replay."""
 
 from __future__ import annotations
 
+import random
 from datetime import date, timedelta
 from decimal import Decimal
 
 import pytest
+from test_lab_rung import FREE, line_of
 
 from desk.store import Bar
-from lab import regime, weather
+from lab import regime, rung_regimes, weather
+from lab.cell import Cell, Key, Trade
+from lab.rung import Answer, Priced
 
 START = date(2024, 1, 1)
+KEY = Key(Cell("breakout_20_10", line_of("VUSA"), START, START), "tape", "data")
 
 
 def _bars(*closes: int) -> list[Bar]:
@@ -40,3 +45,28 @@ def test_the_regime_replay_reads_the_label_as_one_plain_word() -> None:
     label = weather.trend(_bars(*range(1, 250)))
     assert regime._named(label, day) == "warming"
     assert regime._named(label, START + timedelta(days=248)) == "up"
+
+
+def _gains(rng: random.Random) -> list[Priced]:
+    """Eighty trades of a steady gain: forty bought before START, forty from it."""
+    out = []
+    for n in range(80):
+        bought = START - timedelta(40 - n) if n < 40 else START + timedelta(n)
+        days = (bought, bought)
+        out.append(
+            Priced(Trade(*days), 1, Decimal(1), 1 + Decimal(str(rng.gauss(0.01, 0.01))), FREE, days)
+        )
+    return out
+
+
+def test_the_weather_cuts_trades_by_the_trend_state_they_were_bought_in() -> None:
+    rng = random.Random(3)  # noqa: S311 - a repeatable test sample, not a secret
+    priced = _gains(rng)
+    labels = {p.trade.bought: ("up" if p.trade.bought < START else "down") for p in priced}
+    both = rung_regimes.by_weather(KEY, priced, labels)
+    assert (len(both.up.trades), len(both.down.trades)) == (40, 40) and both.up.key != both.down.key
+    assert both.answer is min(both.up.answer, both.down.answer)
+    warming = {day: "warming" for day in labels}
+    assert rung_regimes.by_weather(KEY, priced, warming).answer is Answer.THIN
+    with pytest.raises(KeyError):
+        rung_regimes.by_weather(KEY, priced, {})
