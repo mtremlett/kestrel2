@@ -43,15 +43,11 @@ def test_hourly_bars_enter_by_their_start_under_their_source_and_a_second_run_ad
         round_.daily(LONDON, [day])
     said = headstart_hours.main(old, path, [LONDON])
     assert said == "BA: 3 hours filled; 2 not vouched, 0 faults"  # the spoilt row was never read
-    got = bars.five(
-        path,
-        LONDON,
-        datetime(2026, 10, 20, tzinfo=UTC),
-        datetime(2026, 10, 22, tzinfo=UTC),
-        bars.HOURLY,
+    got = bars.timed(
+        path, LONDON, "1h", datetime(2026, 10, 20, tzinfo=UTC), datetime(2026, 10, 22, tzinfo=UTC)
     )
     assert [bar.start.hour for bar in got] == [7, 8, 9]
-    assert bars.sources(path, LONDON, bars.HOURLY) == {Source.STOOQ_HOURLY: 3}
+    assert bars.sources(path, LONDON, "1h") == {Source.STOOQ_HOURLY: 3}
     assert bars.sources(path, LONDON, bars.DAILY) == {Source.ARCHIVE: 1}
     assert headstart_hours.main(old, path, [LONDON]) == "BA: already in"
     other = Line("ZZ", "LSE", "GBP", 1)

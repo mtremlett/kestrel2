@@ -11,6 +11,7 @@ from __future__ import annotations
 import os
 import sqlite3
 import sys
+from dataclasses import astuple
 from datetime import timedelta
 from pathlib import Path
 
@@ -19,9 +20,11 @@ import pyarrow.parquet as pq  # type: ignore[import-untyped]  # ships no stubs
 from desk import bars
 from desk.bars import Five, Source
 from desk.lines import Line
+from desk.spans import Timed
 from lab import headstart, headstart_days
 
 HOUR = timedelta(hours=1)
+SPAN = "1h"
 COLUMNS = (*headstart.PARQUET, "row_state")
 
 
@@ -44,7 +47,7 @@ def one(line: Line, old: Path, path: Path) -> str:
     """A line's old hourly bars into the history database at path's side, and one line saying
     what came of them. The line's daily bars must be held: they vouch for the hours."""
     try:
-        if Source.STOOQ_HOURLY in bars.sources(path, line, bars.HOURLY):
+        if Source.STOOQ_HOURLY in bars.sources(path, line, SPAN):
             return f"{line.symbol}: already in"
     except LookupError:
         pass  # the store never held an hourly bar of the line: the first run
@@ -54,7 +57,7 @@ def one(line: Line, old: Path, path: Path) -> str:
     sound = [b for b in judged if isinstance(b, Five)]
     kept, faults = bars.checked(line, sound)
     with bars.writing(path, Source.STOOQ_HOURLY) as round_:
-        filled = round_.hours(line, kept)
+        filled = round_.timed(line, SPAN, [Timed(SPAN, *astuple(b)) for b in kept])
     refused = len(given) - len(sound)
     return f"{line.symbol}: {filled} hours filled; {refused} not vouched, {len(faults)} faults"
 

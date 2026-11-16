@@ -25,8 +25,8 @@ from __future__ import annotations
 import sqlite3
 from collections.abc import Collection, Iterable, Iterator, Mapping, Sequence
 from contextlib import ExitStack, closing, contextmanager
-from dataclasses import dataclass, replace
-from datetime import UTC, date, datetime, timedelta
+from dataclasses import replace
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from enum import Enum
 from pathlib import Path
@@ -37,11 +37,15 @@ from desk import venues
 from desk.compare import AGREE as AGREE
 from desk.compare import Verdict, judge
 from desk.lines import Line
+from desk.spans import DAILY as DAILY
+from desk.spans import EPOCH as EPOCH
+from desk.spans import FIVE as FIVE
+from desk.spans import SPANS, Timed
+from desk.spans import Five as Five
+from desk.spans import _seconds as _seconds
 from desk.store import FAR, JUMP, STRETCH, Bar, Refused
 
-DAILY, FIVE, HOURLY = "daily", "five-minute", "1h"  #: the spans of bar the store holds
 HISTORY, LIVE = "market_history.db", "market_live.db"  #: database long, database short (his ruling)
-EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 #: The seconds anyone waits for the file: a writer for the one before it, or SQLite's own log.
 WAIT = 5.0
 
@@ -108,36 +112,12 @@ READ = (
 def files(live: Path) -> dict[str, Path]:
     """The store's two databases by the span each holds, given the short one: the long one,
     which holds the daily bars and every span from an hour up, is beside it."""
-    return {DAILY: live.with_name(HISTORY), HOURLY: live.with_name(HISTORY), FIVE: live}
+    return {DAILY: live.with_name(HISTORY), FIVE: live}
 
 
 class NoRound(RuntimeError):
     """No round was begun, or the round is lost, for SQLite's own reason: "database is
     locked" is a store that stayed in another's hands for WAIT seconds."""
-
-
-def _seconds(moment: datetime) -> int:
-    """The first whole second since EPOCH at or after a moment in UTC, so that a bar starts at
-    or after a moment exactly when its second does; a moment in no zone, or off UTC, is refused."""
-    if moment.utcoffset() != timedelta(0):
-        raise ValueError(f"{moment!r} is not a moment in UTC")
-    return -((EPOCH - moment) // timedelta(seconds=1))
-
-
-@dataclass(frozen=True)
-class Five:
-    """A five-minute bar, named by the moment it starts."""
-
-    start: datetime
-    open: Decimal
-    high: Decimal
-    low: Decimal
-    close: Decimal
-    volume: int
-
-    def __post_init__(self) -> None:
-        if _seconds(self.start) % 300 or self.start.microsecond:
-            raise ValueError(f"{self.start!r} is not a five-minute mark in UTC")
 
 
 class Round:
@@ -152,14 +132,14 @@ class Round:
         put: str,
         line: Line,
         span: str,
-        bars: Iterable[tuple[int, Bar | Five]],
+        bars: Iterable[tuple[int, Bar | Five | Timed]],
         whole: bool = False,
     ) -> int:
         """One line's bars of one span, all of them or, if any is refused, none: the round is
         then as it was before, whether or not the caller ends it there. A round that SQLite
         itself has dropped (a full disk) takes no more, and nothing of it lands. It says how
         many bars landed. A whole write first clears what this round's source holds of the span."""
-        held = self._held[span]
+        held = self._held[SPANS[span].home]
         if not all(one.in_transaction for one in self._held.values()):
             raise NoRound(f"SQLite dropped this round: nothing of it lands, {line.symbol} too")
         key = (line.venue, line.symbol, span)
@@ -204,11 +184,12 @@ class Round:
         put = PUT if self._source.fresh else FILL
         return self._write(put, line, FIVE, ((_seconds(b.start), b) for b in bars))
 
-    def hours(self, line: Line, bars: Iterable[Five]) -> int:
-        """More hourly bars (each starting on the hour in UTC, or the half-hour of an Indian
-        venue), and how many landed: as `five`, but for the history database."""
+    def timed(self, line: Line, span: str, bars: Iterable[Timed]) -> int:
+        """More of a line's bars of any other span, and how many landed: as `five`."""
         put = PUT if self._source.fresh else FILL
-        return self._write(put, line, HOURLY, ((_seconds(b.start), b) for b in bars))
+        return self._write(
+            put, line, span, ((_seconds(b.start), b) for b in bars if b.span == span)
+        )
 
     def compare(self, line: Line, bars: Collection[Five]) -> Verdict:
         """How the bars meet the bars held from another source for their own moments (see
@@ -243,25 +224,26 @@ def writing(path: Path, source: Source = Source.ARCHIVE) -> Iterator[Round]:
     lands as the block ends in each database; if the block fails, nothing of it lands."""
     path.parent.mkdir(parents=True, exist_ok=True)
     with ExitStack() as stack:
-        opened = {f: stack.enter_context(closing(_open(f))) for f in set(files(path).values())}
-        held = {span: opened[file] for span, file in files(path).items()}
+        held = {
+            span: stack.enter_context(closing(_open(file))) for span, file in files(path).items()
+        }
         try:
-            for one in opened.values():
+            for one in held.values():
                 one.execute("PRAGMA journal_mode = WAL")
                 one.execute("PRAGMA synchronous = FULL")
                 one.execute("BEGIN IMMEDIATE")
         except sqlite3.OperationalError as refusal:
             raise NoRound(f"{path}: no round begun: {refusal}") from refusal
-        for one in opened.values():
-            stack.enter_context(one)  # the round lands, or not, as the block ends
-            for table in SCHEMA:
-                one.execute(table)
-            if all(c[1] != "source" for c in one.execute("PRAGMA table_info(bar)")):
-                one.execute(SOURCED)
-        yield Round(held, source)
-        if not all(one.in_transaction for one in opened.values()):
-            for one in opened.values():  # SQLite dropped one database's round: none lands
-                one.rollback()
+        with held[DAILY], held[FIVE]:
+            for one in held.values():
+                for table in SCHEMA:
+                    one.execute(table)
+                if all(c[1] != "source" for c in one.execute("PRAGMA table_info(bar)")):
+                    one.execute(SOURCED)
+            yield Round(held, source)
+            if not all(one.in_transaction for one in held.values()):
+                for one in held.values():  # SQLite dropped one database's round: none lands
+                    one.rollback()
 
 
 def _read(
@@ -269,7 +251,7 @@ def _read(
 ) -> list[tuple[Any, ...]]:
     """A line's rows of one span from first up to end, oldest first, read at one moment of the
     store: its last whole round."""
-    key, path = (line.venue, line.symbol, span), files(path)[span]
+    key, path = (line.venue, line.symbol, span), files(path)[SPANS[span].home]
     if not path.is_file():
         raise FileNotFoundError(f"{path}: no store has been written there")
     with closing(sqlite3.connect(path, timeout=WAIT, isolation_level=None)) as held:
@@ -293,15 +275,23 @@ def daily(path: Path, line: Line) -> tuple[Bar, ...]:
     )
 
 
-def five(
-    path: Path, line: Line, since: datetime, until: datetime, span: str = FIVE
-) -> tuple[Five, ...]:
+def five(path: Path, line: Line, since: datetime, until: datetime) -> tuple[Five, ...]:
     """A line's five-minute bars starting from since up to, not including, until, oldest
-    first: its last week is the seven days up to now. A span other than five minutes
-    (HOURLY) is read the same."""
-    rows = _read(path, line, span, _seconds(since), _seconds(until))
+    first: its last week is the seven days up to now."""
+    rows = _read(path, line, FIVE, _seconds(since), _seconds(until))
     return tuple(
         Five(EPOCH + timedelta(seconds=at), Decimal(o), Decimal(h), Decimal(lo), Decimal(c), v)
+        for at, o, h, lo, c, v in rows
+    )
+
+
+def timed(path: Path, line: Line, span: str, since: datetime, until: datetime) -> tuple[Timed, ...]:
+    """A line's bars of one span starting from since up to, not including, until, oldest first."""
+    rows = _read(path, line, span, _seconds(since), _seconds(until))
+    return tuple(
+        Timed(
+            span, EPOCH + timedelta(seconds=at), Decimal(o), Decimal(h), Decimal(lo), Decimal(c), v
+        )
         for at, o, h, lo, c, v in rows
     )
 
