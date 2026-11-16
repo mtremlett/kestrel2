@@ -70,9 +70,9 @@ RULES: dict[str, tuple[Make, Line, str]] = {  # rule site -> (synthetic archive,
         US,
         "frozen",
     ),
-    "_clean:1": (lambda b: [*b[:5], replace(b[5], volume=-1), *b[6:]], US, "cannot be"),
-    "_clean:2": (lambda _: [], US, "every session missing"),
-    "_clean:3": (lambda b: [*b[:-6], *b[-5:]], US, "sessions missing"),
+    "_clean:2": (lambda b: [*b[:5], replace(b[5], volume=-1), *b[6:]], US, "cannot be"),
+    "_clean:4": (lambda _: [], US, "every session missing"),
+    "_clean:5": (lambda b: [*b[:-6], *b[-5:]], US, "sessions missing"),
     "prepare:1": (lambda _: Refused("HTTP Error 404"), US, "the archive refused it"),
 }
 KNOBS = {  # every tuning constant of the store, with the value it is judged by
@@ -106,15 +106,7 @@ def test_every_rule_in_the_store_is_pinned_by_a_row_that_fires_it() -> None:
 
 def test_every_tuning_constant_of_the_store_is_pinned_to_its_value() -> None:
     names = {k for k in vars(store) if k.isupper() and not k.startswith("_")}
-    names -= {
-        "COLUMNS",
-        "NO_RATES",
-        "NO_SECOND",
-        "PRICES",
-        "UNRECORDED",
-        "ASTRAY",
-        "FAR",
-    }  # derived or wording
+    names -= {"COLUMNS", "NO_BARS", "NO_RATES", "UNRECORDED", "ASTRAY", "FAR"}  # derived or wording
     assert names == set(KNOBS), "a constant was added or dropped without a row in KNOBS"
     assert {k: getattr(store, k) for k in KNOBS} == KNOBS
 

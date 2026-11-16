@@ -165,7 +165,11 @@ def _refresh(
     refused = {line.symbol for line, answer in answers.items() if isinstance(answer, Refused)}
     given = {line: answer for line, answer in answers.items() if line.symbol not in refused}
     extra = archive.gather(list(given), readied, second) if second else {}
-    others = {line: bars for line, bars in extra.items() if not isinstance(bars, Refused)}
+    others: dict[Line, dict[date, Bar]] = {}
+    for line, other in extra.items():
+        first = given[line]
+        if not isinstance(other, Refused) and not isinstance(first, Refused):
+            others[line] = stooq.matched(first, other)
     found = store.prepare(folder, given if same else answers, readied, second=others)
     parked = {symbol: why for symbol, why in before.items() if symbol not in map(_symbol, given)}
     parked |= {line.symbol: line.reason for line in found}
@@ -253,7 +257,14 @@ def keep(
     ends, told = clock() + SPENT, []
     for venue in sorted({line.venue for line in lines}):
         mine = [line for line in lines if line.venue == venue]
-        kept = _refresh(home / DAILY / venue, mine, now, _within(daily, clock, ends), idle, second)
+        kept = _refresh(
+            home / DAILY / venue,
+            mine,
+            now,
+            _within(daily, clock, ends),
+            idle,
+            second and _within(second, clock, ends),
+        )
         if kept is not None:
             told.append(_told(kept, mine))
         if venues.open_at(venue, now) or venues.open_at(venue, now - SETTLED):

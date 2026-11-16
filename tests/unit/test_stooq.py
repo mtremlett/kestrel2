@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import date
 from decimal import Decimal
 
@@ -33,3 +34,11 @@ def test_the_table_is_read_exactly_and_the_address_asks_for_the_whole_history() 
 def test_anything_but_the_table_is_refused_with_what_was_said(payload: bytes) -> None:
     with pytest.raises(ValueError, match="VUAG"):
         stooq.parse(YARDSTICK, payload)
+
+
+def test_the_unit_is_matched_by_the_closes_both_sources_hold() -> None:
+    first = list(stooq.parse(YARDSTICK, TABLE))
+    pence = [replace(b, **{p: getattr(b, p) * 100 for p in stooq.PRICES}) for b in first]
+    assert stooq.matched(first, pence) == {b.day: b for b in first}
+    odd = [replace(b, close=b.close * 10) for b in first]  # no unit: left as it is
+    assert stooq.matched(first, odd)[first[0].day].close == first[0].close * 10
