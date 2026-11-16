@@ -57,6 +57,7 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "lab/headstart.py" = "the old desk's stores as a head start: its five-minute bars read, never written, and let into the one fast store under their source's name only where a fresh daily bar vouches for them"
 "lab/headstart_days.py" = "the old database's daily rows as a head start: only its table ohlcv's 1d rows, read-only, cleaned by the one store and let into the fast store under their own source on the days that hold no bar"
 "lab/headstart_hours.py" = "the old Stooq store's hourly bars as a head start: read-only, each named by its start in UTC, vouched for by its day, cleaned by the one store and let into the history database under their own source"
+"lab/headstart_matrix.py" = "the old Stooq matrices' 15-minute, 30-minute and hourly arrays as a head start: read-only, named by their start in UTC, vouched for by their day, cleaned by the one store and let into the two databases under their own source"
 
 # the money lane
 "lab/slippage.py" = "trading costs measured from the paper broker's real fills: each line's slip against the session's close beside the cost model's spread and slippage, and the gap (Q2)"
@@ -79,6 +80,7 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "desk/orders.py" = "the order, sized from the one capital number, its stop, the pre-trade gate"
 "desk/broker.py" = "the pretend broker the desk trades against in simulation"
 "desk/book.py" = "the ledger of fills under the broker's ids, and the book built from the broker"
+"desk/book_parts.py" = "the ledger's lower parts: the one keeper of dated records, the kill switch's record and the day's pounds per currency; desk.book gives them to its callers"
 "desk/carry.py" = "the pound's rate on a day London is shut and the US trades: the last London session's carried over, at most three US sessions"
 "desk/eponymous_bands.py" = "the eponymous channel rules (Donchian's four-week breakout), each a rule under the strategy template, authors and sources written down; the paper desk does not trade them"
 "desk/eponymous_minervini_breakout.py" = "Minervini's breakout from a Stage 2 uptrend (his Trend Template and pivot) as a rule under the one template, author, source and setting written down; not traded by the paper desk"
@@ -111,6 +113,7 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "desk/supervisor.py" = "the desk's processes kept alive: one supervisor that runs each registered job when due in a process of its own, one of each at a time, a dated receipt for every run, the desk's health judged from outside by the receipts, and the ledger of what the operator did with the measure of how long the desk has run without him"
 "desk/command.py" = "the desk's day as the runner asks for it: one step, the morning's pre-flight and the rehearsal of a whole day with the markets shut, each one line and a code; and the real doors a step is given, the price store's and the day's pounds per dollar"
 "desk/conformance.py" = "the conformance trades as a command: one run for each market in its hours on the paper account, a rejection, a buy with its stop, a sale, a buy of the desk's size and its stop made to sell, each real result recorded beside the pretend broker's; nothing sent unless the account is quiet, and the account left as found"
+"desk/conformance_tape.py" = "what the conformance run needs of the desk beside it: a desk round's hours, the desk's own share of the account read before a run, and a holding of the desk's found moved after it"
 "desk/ended.py" = "the day's cancelled orders at the paper broker and its own words of why each ended, read-only over an open connection"
 
 # the grid lane
@@ -157,6 +160,7 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "lab/bets.py" = "the book's concentration: its number of independent bets from how its lines move together, and its profit split by correlated cluster"
 "lab/ladder.py" = "the ladder's first set: one command that takes every published rule on every line through every rung built, keeps each answer with its reason and its count of trials, skips what is kept, and ends with one line of counts"
 "lab/ladder_sets.py" = "the ladder's sets as a command: set EPON, every eponymous rule on every line the store holds, judged by the cell engine of lab/ladder.py, its table written PRE-REVIEW, and the door of `python -m lab.ladder`"
+"lab/history_bars.py" = "the ladder's bars from the history database alone: the lines it holds, each line's daily bars and the pound per dollar, a line it lacks named"
 "lab/ladder_pool.py" = "the ladder on all the PC's cores: its cells judged in a process pool of below-normal workers, grouped by rule, the rows the serial run's rows in its order, written by the parent alone; a worker's break is that cell's row"
 "lab/tape.py" = "the ladder's expensive stage, kept: a rule's trades on a line, one small file each on disk, keyed only by the rule's code, the engine's, the bars and the window, so a rung changed runs no simulation again"
 "lab/rung_cpcv.py" = "the ladder's eighth rung: a tape's priced trades cut into six stretches, every two held out in turn, purged at the cuts, and the probability that the rule was overfitted to the stretches it was chosen on"
