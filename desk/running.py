@@ -50,6 +50,7 @@ from desk import (
     clearance,
     day,
     gateway,
+    goflat,
     keeper,
     kill,
     listing,
@@ -299,6 +300,8 @@ def _work(desk: Desk, now: datetime, seen: watch.Look | None) -> None:
     broker = placing.Paper(listings, root, lambda: now)
     book.collect(root, broker)
     _drill(root, now)
+    if sold := goflat.step(root, broker, desk.room, now):
+        _note(root, now, "go flat", f"{goflat.state(root)}: {'; '.join(sold)}")
     if check and not _clean(desk, broker, listings, now):
         rounds = []
     for venue in rounds:
