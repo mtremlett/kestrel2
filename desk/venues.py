@@ -212,6 +212,28 @@ def open_at(venue: str, moment: datetime) -> Hours | None:
     return found if found.open <= moment <= found.auction else None
 
 
+#: Scheduled central-bank decision days, as the banks publish them: the Fed for New York, the
+#: Bank of England for London. A year not listed is refused, never guessed.
+DECISIONS = {
+    ("US", 2026): "01-28 03-18 04-29 06-17 07-29 09-16 10-28 12-09",
+    ("LSE", 2026): "02-05 03-19 04-30 06-18 07-30 09-17 11-05 12-17",
+}
+BANKS = {"US": "FOMC", "LSE": "BoE"}
+
+
+def events(venue: str, day: date) -> tuple[str, ...]:
+    """The known market events of a venue's day: its central bank's decision, and an index
+    rebalance on the third Friday of March, June, September and December. Empty on a plain
+    day. A new entry into a day with any is the desk's to refuse."""
+    if (venue, day.year) not in DECISIONS:
+        raise ValueError(f"no events for venue {venue!r} in {day.year}: known {sorted(DECISIONS)}")
+    decided = {date(day.year, int(d[:2]), int(d[3:])) for d in DECISIONS[venue, day.year].split()}
+    first = date(day.year, day.month, 1)
+    third_friday = first + timedelta((4 - first.weekday()) % 7 + 14)
+    rebalance = day == third_friday and day.month % 3 == 0
+    return (BANKS[venue],) * (day in decided) + ("rebalance",) * rebalance
+
+
 def uk_time(moment: datetime) -> datetime:
     """A moment on the UK wall clock: GMT, or BST from 01:00 UTC on March's last Sunday to
     01:00 UTC on October's last Sunday. The change is by the moment, not the date."""

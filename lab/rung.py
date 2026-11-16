@@ -157,11 +157,16 @@ def verdict(
     behind = reproduce.settled(key.cell.strategy, reproduced)
     with localcontext(ARITHMETIC):
         t = standard_errors(planted(priced)) if len(priced) > 1 else None
-    if t is None or len(priced) < MIN_TRADES:
-        answer = Answer.THIN if priced else Answer.FAULT
-    else:
-        answer = Answer.PASS if t >= T_PASS else Answer.FAIL
-    return Verdict(key, orders.BROKER, priced, t, answer, behind)
+    return Verdict(key, orders.BROKER, priced, t, decide(len(priced), t), behind)
+
+
+def decide(trades: int, t: Decimal | None) -> Answer:
+    """The first rung's one rule, wherever gains are judged: FAULT for none, THIN, PASS, FAIL."""
+    if not trades:
+        return Answer.FAULT
+    if t is None or trades < MIN_TRADES:
+        return Answer.THIN
+    return Answer.PASS if t >= T_PASS else Answer.FAIL
 
 
 def _price(
