@@ -5,6 +5,7 @@ never shown able to trade through untested."""
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import replace
 from datetime import date, timedelta
 from decimal import Decimal
 
@@ -151,3 +152,16 @@ def test_the_gap_is_a_black_swans_fall_in_a_night_times_the_leverage_on_the_wors
             sold = orders.charges(AAPL, Leg.STOP, p.shares, opened, rate).total
             takes.append(p.shares * (walk[n].close * rates[walk[n].day] - opened * rate) + sold)
     assert found.gap is not None and found.gap.lost == max(takes) > 0
+
+
+def test_the_stress_rung_fails_a_worst_scenario_over_a_fifth_of_the_capital() -> None:
+    assert Decimal("0.2") == stress.STRESS_LIMIT
+    found = _stress(_flash())
+    assert found.worst is not None
+    lost = found.worst * found.capital  #: the May flash crash, the worst of the scenarios
+    for part, answer in (("0.19", Answer.PASS), ("0.2", Answer.PASS), ("0.21", Answer.FAIL)):
+        given = replace(found, capital=lost / Decimal(part))
+        said, why = given.answer()
+        assert said is answer and MAY in why and "lost £326.53" in why and "20% allowed" in why
+    nothing = _stress(_bars(SHAPE[:23] + [11, 11])).answer()
+    assert nothing[0] is Answer.THIN and "no scenario" in nothing[1]

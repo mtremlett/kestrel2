@@ -15,7 +15,7 @@ from desk.command import CAPITAL
 from desk.lines import Line
 from desk.orders import Settings
 from desk.store import Bar
-from lab import cell, deflated, folds, luck, market, reproduce, rung, shuffle, trials
+from lab import cell, deflated, folds, luck, market, reproduce, rung, shuffle, stress, trials
 from lab.cell import Cell
 from lab.deflated import Deflated
 from lab.folds import Pooled
@@ -32,7 +32,6 @@ RESAMPLES = 1000
 UNRUN = {
     "regime": "the weather that names each day's regime is not built (REG-01)",
     "plateau": "the published rules carry no settings to choose among yet",
-    "stress": "it gives pounds lost and never a pass; the loss limit to judge them by is not set",
 }
 NO_FIGURE = "no author's figure is on file for the rule: no published result stands behind it"
 #: A rule trades a line five to ten times a year and wants 200 sessions to warm up: a line of
@@ -95,6 +94,7 @@ def judge(
             f"{against.line.beta:.2f} of its own line's; {rung.T_PASS} asked of both"
         )
     rungs["market"] = (against.answer, said)
+    rungs["stress"] = _stressed(c, own, settings, pounds)
     if (last := shuffled(c, own, settings, pounds, rungs, made)) is not None:
         rungs["shuffle"] = last
     named = {name: rungs[name][0] for name in deflated.NAMED if name in rungs}
@@ -244,6 +244,16 @@ def shuffled(
         f"{shuffle.SHUFFLES} shuffles of its days, its share among them {share:.3f}; "
         f"{shuffle.SHARE} or under passes",
     )
+
+
+def _stressed(c: Cell, own: Sequence[Bar], settings: Settings, pounds: Rates) -> Pair:
+    """The stress rung on the line's whole history, or a FAULT where it cannot be asked."""
+    try:
+        return stress.judge(
+            Cell(c.strategy, c.line, own[0].day, c.end), own, settings, pounds
+        ).answer()
+    except ValueError as cannot:  #: a fault in the test, said as one with its reason
+        return Answer.FAULT, f"the stress scenarios could not be run: {cannot}"
 
 
 def _n(number: Decimal | float | None) -> str:
