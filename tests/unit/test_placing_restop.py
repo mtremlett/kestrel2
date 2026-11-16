@@ -19,10 +19,13 @@ from test_placing import (
     _paper,
 )
 
+from desk import paper
+
 
 def test_a_resting_stop_is_moved_with_the_new_one_sent_before_the_old_is_cancelled(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    monkeypatch.setattr(paper, "CLIENT", paper.DESK)  # another test's client may be left set
     old = _account([HELD], *_order("7", "SELL STP 3600.0", f"{ID}-stop", "PreSubmitted"))
     sent = _gateway(monkeypatch, old, RESTS, [ENDED_7])
     _paper().restop("IITU", Decimal("33"))
