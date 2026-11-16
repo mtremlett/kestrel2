@@ -142,6 +142,15 @@ def test_rsi2_buys_a_deep_pullback_above_the_200_day_and_sells_over_the_5_day() 
     assert _trades("rsi2_pullback", bars) == [(202, Action.BUY), (204, Action.SELL)]
 
 
+def test_rsi2_buys_under_10_when_that_setting_is_given_and_not_otherwise() -> None:
+    #: day 201's RSI(2) is 9.1: under 10 buys that day, under the published 5 it waits a day
+    bars = _bars([100 + n for n in range(200)] + [300, 290, 280, 285, 300])
+    with pytest.MonkeyPatch.context() as only:
+        only.setattr(strategy, "STRATEGIES", {"rsi2_pullback": RULES["rsi2_pullback"]})
+        wide = strategy.decide({"X": bars}, {"rsi2_pullback": {"below": Decimal(10)}})
+    assert [n for n, d in enumerate(wide) if d.action is Action.BUY] == [201]
+
+
 def test_rsi2_never_buys_a_pullback_below_the_200_day() -> None:
     bars = _bars([400 - n for n in range(200)] + [190, 180, 170, 185, 200])
     assert _trades("rsi2_pullback", bars) == []
