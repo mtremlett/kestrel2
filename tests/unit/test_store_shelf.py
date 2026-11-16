@@ -50,3 +50,17 @@ def test_a_session_the_archive_lacks_is_filled_and_one_both_hold_must_agree(tmp_
     parked = _parked(tmp_path, (*every[:-10], far, *every[-9:]), UK)
     assert len(parked) == 1 and f"{far.day} close" in parked[0] and "(shelf)" in parked[0]
     assert {b.day: b.close for b in store.read(tmp_path, UK.symbol)}[far.day] == far.close
+
+
+def test_the_brokers_bars_stand_first_over_the_archives_and_a_disagreement_is_a_fault() -> None:
+    """R-RUNNER-189: broker, then archive; the broker fills a hole, names both where they differ."""
+    every = list(_bars(UK, LONG))
+    hole = [*every[:30], *every[31:]]
+    kept, faults, park = store.judge(UK, hole, DAY, broker=every)
+    assert (kept, faults, park) == (every, [], None)
+    far = replace(every[-10], close=every[-10].close * Decimal("1.05"), high=every[-10].high * 2)
+    kept, faults, _ = store.judge(UK, [*every[:-10], far, *every[-9:]], DAY, broker=every)
+    assert kept == every and [
+        f.what for f in faults if "(broker)" in f.what and "(archive)" in f.what
+    ]
+    assert store.judge(UK, store.Refused("no route"), DAY, broker=every)[0] == every
