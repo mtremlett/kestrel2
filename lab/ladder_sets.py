@@ -15,15 +15,14 @@ from __future__ import annotations
 import sys
 from collections.abc import Callable, Mapping, Sequence
 from datetime import UTC, date, datetime, timedelta
-from functools import cache, lru_cache, partial
+from functools import partial
 from pathlib import Path
 
 from desk.lines import Line
-from desk.store import Bar
-from lab import batch, ladder, ladder_pool, members, sweep, tape, trials, universe, verdict
+from lab import batch, history_bars, ladder, ladder_pool, members, tape, trials, verdict
 from lab.batch import Bars
 from lab.cell import Cell
-from lab.ladder import END, FOLDER, START, Plan, _last, _whole, eponymous, rates, run, stored
+from lab.ladder import END, FOLDER, START, Plan, _last, _whole, eponymous, run
 from lab.rung import Rates
 
 EPON = Plan("EPON", "set EPON: does an eponymous rule earn on a line the store holds?", "EPON")
@@ -137,21 +136,6 @@ def tapes_held(home: Path) -> str:
     return f"tapes on disk: {len(sizes)} files, {sum(sizes) / 2**20:.1f} MB"
 
 
-def first_bars(home: Path) -> Bars:
-    """The first set's bars, as a worker makes them for itself."""
-    return cache(stored(home))
-
-
-def store_bars(home: Path) -> Bars:
-    """The research store's bars to the window's end, as a worker makes them for itself."""
-    store = home / "grid" / "store"  #: the research store, one folder to a venue
-
-    def read(line: Line) -> Sequence[Bar]:
-        return [bar for bar in universe.read(store, line).bars if bar.day <= END]
-
-    return lru_cache(maxsize=4)(read)
-
-
 def _pooled(make: Callable[[], Bars]) -> Callable[..., str]:
     """`run` on the pool, the bars made in each worker by `make`."""
     return lambda home, _, pounds, todo, now, plan: ladder_pool.run(
@@ -175,18 +159,14 @@ def main(env: Mapping[str, str], argv: Sequence[str] = ()) -> int:
         sys.exit(
             f"ladder: {list(argv)} is no set; the command takes nothing, `first` or `leveraged`"
         )
+    make = partial(history_bars.reader, home)
+    pounds, held = history_bars.pounds(home), history_bars.lines(home)
     if argv == ["leveraged"]:
-        make = partial(store_bars, home)
-        held = leveraged(sweep.held(home / "grid" / "store"))
-        said = epon(home, make(), rates(home=home), held, rules=TREND, go=_pooled(make), plan=LEV)
-        sys.stdout.write(said + "\n")
-        return 0
-    if argv:
-        todo, make = ladder.cells(), partial(first_bars, home)
-        sys.stdout.write(ladder_pool.run(home, make, rates(home=home), todo) + "\n")
-        return 0
-    make = partial(store_bars, home)
-    store = home / "grid" / "store"
-    said = epon(home, make(), rates(home=home), sweep.held(store), go=_pooled(make))
+        held = leveraged(held)
+        said = epon(home, make(), pounds, held, rules=TREND, go=_pooled(make), plan=LEV)
+    elif argv:
+        said = ladder_pool.run(home, make, pounds, ladder.cells())
+    else:
+        said = epon(home, make(), pounds, held, go=_pooled(make))
     sys.stdout.write(said + "\n")
     return 0

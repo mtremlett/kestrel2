@@ -69,6 +69,14 @@ def test_the_stop_sits_where_the_market_under_the_line_has_fallen_ten_percent() 
     assert plain.order_id == "20251114-rule-P", "the same decision must make the same order"
 
 
+def test_the_stop_of_a_fill_is_ten_percent_under_the_fill_not_the_signal_close() -> None:
+    signal = orders.size(_buy(PLAIN), PLAIN, Decimal("111.62"), Decimal(1), TEN_K, {})
+    assert signal.stop == Decimal("100.458"), "sizing stays on the signal close"
+    assert orders.stop_under(PLAIN, Decimal("104.92")) == Decimal("94.428"), "gap down"
+    assert orders.stop_under(PLAIN, Decimal("120")) == Decimal("108"), "gap up"
+    assert orders.stop_under(THREE_X, Decimal("100")) == Decimal("70")
+
+
 def test_every_cost_of_a_leg_is_charged_line_by_line_from_the_one_model() -> None:
     #: London: 0.05% of the value, at least 3 pounds
     assert orders.cost(_order(PLAIN, 100, "10")) == Decimal(1003)
