@@ -79,12 +79,19 @@ def test_nothing_goes_forward_while_a_rung_is_unrun_and_the_table_says_cells_bes
     row |= {"rungs": passed, "unrun": {"regime": "the weather is not built"}}
     assert not verdict.goes(row) and verdict.goes(row | {"unrun": {}})
     assert not verdict.goes({k: v for k, v in row.items() if k != "unrun"}), "unsaid is not none"
-    table = verdict.write_table(tmp_path, "T", "Does it earn?", [row], ["breakout_20_10"], 3)
+    table = verdict.write_table(
+        tmp_path, "T", "Does it earn?", [row], ["breakout_20_10"], 3, (7, 11)
+    )
     md = table.read_text(encoding="utf-8")
-    assert ": 0 of 1 lines go forward" in md and md.rstrip().endswith("| no |")
+    assert (
+        "\nrungs built: 7 of 11\n" in md
+        and ": 0 of 1 lines go forward" in md
+        and md.rstrip().endswith("| no |")
+    )
     assert "Does it earn? Cells: 1. Each is judged against 3 trials" in md
     data = json.loads(table.with_suffix(".json").read_text(encoding="utf-8"))
     assert (data["cells"], data["trials"], data["rules"][0]["passed"]) == (1, 3, False)
+    assert (data["rungs_built"], data["rungs"]) == (7, 11)
 
 
 def test_a_line_too_young_to_have_traded_is_too_young_and_no_fault() -> None:

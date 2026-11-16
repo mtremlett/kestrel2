@@ -116,6 +116,13 @@ def cells() -> tuple[Cell, ...]:
     )
 
 
+def rungs_built() -> tuple[int, int]:
+    """The map's rungs built to the end (neither file marked unbuilt), and the map's rungs."""
+    paragraph = (__doc__ or "").split("THE RUNG MAP")[1].split("\n\n")[0]
+    rows = [line.split(" - ")[0] for line in paragraph.splitlines() if line.lstrip()[:1].isdigit()]
+    return sum("(unbuilt)" not in row for row in rows), len(rows)
+
+
 def names(c: Cell) -> list[str]:
     """The trials a cell costs, as the register names them: itself alone, for a fold is no trial."""
     return [trials.name(c)]
