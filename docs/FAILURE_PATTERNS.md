@@ -95,3 +95,65 @@ touched within ten landed changes; and `tests/unit/test_store_rules.py` (#225) p
 rule in `desk/store.py` to a row of one synthetic fixture table, so a rule added without a
 row fails. That guard was driven red with an unpinned rule (`docs/DECISIONS.md`,
 R-RUNNER-43, #225 and #227).
+
+**14. The judge fixed from the outside in.** `lab/ladder.py` took four fixes in ten changes
+(#402 and #419, two blind reviews; #405, a missing market day; #410, a failed cell judged
+again; #427, the "rungs built" count read from a docstring). Each review found a new edge
+in the one 400-line module that judges, counts, keeps tapes and writes the table, and each
+fix was true; no rung had a golden verdict pinned, so nothing showed a judgement drift
+until a reviewer read the code.
+→ *Caught by:* the rung registry (a `lab/rung_*.py` module declares its rung, so a new rung
+never edits the judge), the split of the module (`lab/ladder_parts.py`), and the churn
+guard. → *Debt:* a golden verdict per rung on the fixture, before and after every change,
+lands with the easing cards of 16 November (B5).
+
+**15. The broker the pretend never met.** `desk/conformance.py` is the only code that
+cancels, re-sends and trades beside the desk's book at the real broker, so each live run
+found a broker behaviour the pretend broker lacked (a second run's orders refused as
+duplicates, #435's minute; a run line naming the account when it meant the last step,
+#444; a stop "triggered" by cancelling it and selling at the market, compared with a
+pretend fill at the stop level, 16 November).
+→ *Caught by:* every run keeps its tape (real beside pretend, with the broker's own words),
+and a step whose two sides name different actions is a finding, not a pass (#557). The
+module was split (`desk/conformance_parts.py`).
+
+**16. The request rebuilt in parallel.** One piece of work reaches several sessions
+through different doors and is built two to four times: on 16 November R-RUNNER-190 four
+times through the card door, R-RUNNER-209 twice through a serial run, and the stop at the
+fill three ways (its card, a serial run's own `stop_for`, and a book box needing the same
+broker method).
+→ *Caught by:* the runner (outside this repository) never hands out a card or offers a
+serial run a request that an open pull request names or an open card carries, and a
+branch can be held by hand before its pull request exists. → *Debt:* an interface that
+three pieces of work need (here `Broker.move_stop`) is carded first and the rest wait on
+it; on the runner's list.
+
+**17. The decision asked again.** A session asks for approval the operator has already
+given (RUNGS, 16 November: per-rung checks its 15 November ruling allowed), and waits; or
+a runner session asks him a second time. The lane idles for half an hour.
+→ *Caught by:* his rulings are recorded with their words in the coordinator's log and in
+`docs/DECISIONS.md`, and the runner's halt holds the card, never the lane. → *Debt:* no
+check reads a session's question against the recorded rulings.
+
+**18. The hand list beside the code.** A rule kept as a list by hand drifts from what the
+code does: the trading-path merge hold missed `desk/bars.py`, which the trading day
+imports, so a change reached it mid-session (16 November); conformance was scheduled
+inside the desk's rounds, which it rightly refuses; a job pointed at a function that had
+moved; the hourly report repeated a state long past.
+→ *Caught by:* the desk's rounds are kept once in the runner and every schedule and
+restart reads them; the hourly report reads current state. → *Debt:* the trading path
+computed from the desk step's imports instead of listed.
+
+**19. Replaced while read (Windows).** A writer replaces a file while a reader holds it
+open, and Windows refuses ("Access denied", PermissionError): the store's daily files, a
+grid file, the runner's own request list, all on 16 November.
+→ *Caught by:* nothing yet; it is an open debt. The fix is one way to read and write each
+shared file, readers and writer under one lock, in each codebase; never a retry or a sleep.
+
+**20. A gate that can never open.** A rule correct where it was written blocks its own
+purpose where it runs: the rehearsal was barred for the whole of any trading date, so the
+weekday rehearsal could never begin (16 November, 06:30), and then barred whenever the
+account held anything, so once the desk traded no rehearsal could pass.
+→ *Caught by:* the rehearsal is barred only while a market is open or near (#462). →
+*Debt:* a rehearsal beside held lines, never touching them, is being built; until it
+lands, the desk's day runs on the coordinator's recorded go.
