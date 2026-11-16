@@ -87,7 +87,7 @@ def judge(
     c = verdict.key.cell
     if market.venue != c.line.venue:
         raise ValueError(
-            f"{market.symbol} trades on {market.venue}, {c.symbol} on {c.line.venue}: not the "
+            f"{market.symbol} trades on {market.venue}, {c.line.symbol} on {c.line.venue}: not the "
             "market it took, day for day"
         )
     if cell.key(c, bars) != verdict.key:
