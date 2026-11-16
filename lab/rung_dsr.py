@@ -8,9 +8,7 @@ root of the SPREAD of the trials' Sharpes (their variance) times a factor that g
 NUMBER. That is the `bar`. The deflated Sharpe (`chance`) is the chance that the trial's true
 Sharpe is above the bar, given how many trades it stands on and their shape: many small wins and
 a rare large loss make a Sharpe less sure than a bell does (LAD-03). The formula and its bands
-are `lab/deflated.py`'s, read from there. The shape of the gains (their skew and kurtosis) is
-worked here, for any trial's gains and any set's spread; that module works its own for the
-ladder's one reading, at a spread of its own, until it reads this one.
+are `lab/deflated.py`'s, read from there, the bands' answer (`believe`) too.
 
 THE ANSWER is on the bands fixed before any result: PASS at nine chances in ten or more, FAIL
 under an even chance (luck is the likelier story), DOUBT between, neither won nor lost (LAD-08).
@@ -47,7 +45,7 @@ from collections.abc import Sequence
 from decimal import Decimal, localcontext
 
 from desk.strategy import ARITHMETIC
-from lab.deflated import FAIL, PASS, best_by_luck, deflate, shape
+from lab.deflated import PASS, believe, best_by_luck, deflate, shape
 from lab.rung import MIN_TRADES, Answer, standard_errors
 
 #: About what a trial of bell gains with no more than luck's best passes at.
@@ -95,7 +93,4 @@ def judge(gains: Sequence[Decimal], trials: int, spread: float) -> Answer:
         return Answer.FAULT
     if len(gains) < MIN_TRADES:
         return Answer.THIN
-    believed = chance(gains, trials, spread)
-    if believed >= PASS:
-        return Answer.PASS
-    return Answer.DOUBT if believed >= FAIL else Answer.FAIL
+    return believe(chance(gains, trials, spread))

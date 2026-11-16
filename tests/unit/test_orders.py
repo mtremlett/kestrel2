@@ -65,6 +65,7 @@ def test_the_stop_sits_where_the_market_under_the_line_has_fallen_ten_percent() 
     assert [plain.stop, *stops] == [Decimal("45.225"), Decimal("35.175"), Decimal("25.125")]
     with pytest.raises(ValueError, match="empties"):
         orders.size(_buy(PLAIN), replace(PLAIN, leverage=10), Decimal(10), Decimal(1), TEN_K, {})
+    assert orders.STOP_FALL / orders.HOLDINGS < orders.GAP_LOSS, "a gap may cost more than a stop"
     assert plain.order_id == "20251114-rule-P", "the same decision must make the same order"
 
 
@@ -141,3 +142,6 @@ def test_a_sale_passes_the_gate_only_for_shares_the_book_holds() -> None:
     with pytest.raises(ValueError, match="shares"):
         orders.Sale("s", PLAIN, 0)
     assert orders.strategy_of(orders.order_id_of(_buy(PLAIN))) == "rule"
+    for bad in ("", "garbage", "20261116-rule", "20261116--P"):
+        with pytest.raises(ValueError, match="no strategy can be read"):
+            orders.strategy_of(bad)
