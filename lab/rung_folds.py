@@ -62,10 +62,7 @@ class Walked:
     @property
     def worst(self) -> Fold:
         """The fold judged on; of two equally bad, the older."""
-        return min(
-            self.folds,
-            key=lambda f: (f.outside.answer, f.outside.t is not None, f.outside.t or 0),
-        )
+        return min(self.folds, key=lambda f: rung.standing(f.outside.answer, f.outside.t))
 
     @property
     def answer(self) -> Answer:
@@ -79,15 +76,10 @@ class Walked:
 
 
 def stretch(gains: Sequence[Decimal]) -> Stretch:
-    """The first rung's rule on gains: none a FAULT, under MIN_TRADES THIN, else PASS at T_PASS
-    standard errors above nothing and FAIL below; gains with no spread are refused."""
+    """The first rung's rule (`rung.decide`) on gains; gains with no spread are refused."""
     with localcontext(ARITHMETIC):
         t = rung.standard_errors(gains)
-    if not gains:
-        return Stretch(0, None, Answer.FAULT)
-    if t is None or len(gains) < rung.MIN_TRADES:
-        return Stretch(len(gains), t, Answer.THIN)
-    return Stretch(len(gains), t, Answer.PASS if t >= rung.T_PASS else Answer.FAIL)
+    return Stretch(len(gains), t, rung.decide(len(gains), t))
 
 
 def judge(trades: Sequence[Gain], start: date, end: date, folds: int) -> Walked:

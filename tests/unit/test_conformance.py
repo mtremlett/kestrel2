@@ -31,7 +31,8 @@ LISTED: dict[str, Listing | Unlisted] = {
     "VUAG": Listing(VUAG, "3", "LSEETF", 100, CENT),  # priced in pence at the broker
     "SPY": Listing(SPY, "4", "ARCA", 1, CENT),
 }
-ID, NO = "20261113-conf{}lse-VUAG", "20261113-conf0lse-SPY"
+STAMP = "1005"  # an id carries its run's minute: a second run of the day sends afresh
+ID, NO = "20261113-conf{}lse1005-VUAG", "20261113-conf0lse1005-SPY"
 NONE = "fills: none; held: none; stops: none"
 PRETEND = {
     "a rejection": f"{NO}: 0 of 1 shares done ({NO}: rejected by the broker); {NONE}",
@@ -48,7 +49,7 @@ PRETEND = {
 
 #: What the broker's list of the day's ended orders says of the two it cancelled: one gives its
 #: words, one gives none.
-WHY = {"20261113-conf0lse-SPY": "Rejected: no retail trading", "20261113-conf1lse-VUAG": ""}
+WHY = {"20261113-conf0lse1005-SPY": "Rejected: no retail trading", "20261113-conf1lse1005-VUAG": ""}
 
 
 @pytest.fixture(autouse=True)
@@ -64,7 +65,7 @@ def _fetch(line: Line, before: date) -> tuple[Bar, ...]:
 
 def _plan(patch: pytest.MonkeyPatch) -> conformance.Plan:
     patch.setattr(archive, "fetch", _fetch)
-    return conformance.plan([ISF, VUAG], SPY, MON.date(), FX)
+    return conformance.plan([ISF, VUAG], SPY, MON.date(), FX, STAMP)
 
 
 def _market(run: conformance.Plan, *lines: Line, reject: bool = True) -> Pretend:
@@ -90,9 +91,11 @@ def test_the_runs_orders_are_on_the_line_that_traded_most_sized_by_the_desk_date
     assert run.second == Order(ID.format(3), VUAG, 18, Decimal(110), Decimal(1), Decimal(99))
     assert run.refusal == Order(NO, SPY, 1, Decimal(750), FX["USD"], Decimal(675))
     with pytest.raises(ValueError, match="no plain line"):
-        conformance.plan([], SPY, MON.date(), FX)
+        conformance.plan([], SPY, MON.date(), FX, STAMP)
     with pytest.raises(ValueError, match="VUAG: the archive has no bar of 2026-11-16"):
-        conformance.plan([VUAG], SPY, MON.date() + timedelta(days=1), FX)  # Tuesday: Monday's
+        conformance.plan(
+            [VUAG], SPY, MON.date() + timedelta(days=1), FX, STAMP
+        )  # Tuesday: Monday's
 
 
 def test_the_run_at_the_pretend_broker_word_for_word(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -117,8 +120,9 @@ def test_a_step_that_fails_is_named_and_the_account_is_still_put_back(
         said["the stop triggered"] == f"FAILED, TimeoutError: {ID.format(3)}-stop: it has not sold"
     )
     assert said["the account left as found"] == (
-        f"20261113-conf9lse-SPY: 1 of 1 shares done; {ID.format(9)}: 18 of 18 shares done; fills: "
-        f"20261113-conf9lse-SPY -1 at 750, {ID.format(9)} -18 at 110; held: none; stops: none"
+        f"20261113-conf9lse1005-SPY: 1 of 1 shares done; {ID.format(9)}: 18 of 18 shares done; "
+        "fills: "
+        f"20261113-conf9lse1005-SPY -1 at 750, {ID.format(9)} -18 at 110; held: none; stops: none"
     )
     assert (broker.holdings(), broker.stops(), book.positions(tmp_path)) == ((), (), {})
 
@@ -167,8 +171,7 @@ def test_the_real_stop_is_put_above_the_price_paid_and_sold_or_not_the_line_is_l
     monkeypatch.setattr(
         paper, "read", lambda: held
     )  # it never sells: back under the buy's own stop
-    with pytest.raises(TimeoutError, match="has not sold in 30 seconds"):
-        fall(run.second)
+    assert fall(run.second) == conformance.STILL.format(name, conformance.WAITS)  # a finding
     assert len(waited) == 1 + conformance.WAITS
     assert settled[2:] == [
         above,
@@ -329,7 +332,7 @@ def test_a_run_that_failed_is_code_1_and_recorded_and_the_next_run_tries_again_b
     _world(monkeypatch, sells=False)
     assert _run(tmp_path, MON, "london") == 1
     assert "5 of 6 steps done on VUAG" in (said := capsys.readouterr().out)
-    assert "A later day tries again; the last step named, THE ACCOUNT IS NOT AS FOUND." in said
+    assert "A later day tries again; the account left as found." in said
     root = tmp_path / "conformance"
     with (root / "trades-london-20261116-1005.csv").open(newline="", encoding="utf-8") as kept:
         assert list(csv.reader(kept))[-1][1:3] == ["the run", "FAILED, at: the stop triggered"]
@@ -346,10 +349,10 @@ def test_beside_a_desk_holding_it_trades_another_line_ends_flat_and_names_a_hold
     assert _run(tmp_path, MON, "london") == 0
     assert "on ISF" in capsys.readouterr().out
     assert {i[9:] for i in broker.submitted()} == {
-        "conf0lse-SPY",
-        "conf1lse-ISF",
-        "conf2lse-ISF",
-        "conf3lse-ISF",
+        "conf0lse1005-SPY",
+        "conf1lse1005-ISF",
+        "conf2lse1005-ISF",
+        "conf3lse1005-ISF",
     }
     assert (broker.holdings(), book.positions(tmp_path / "conformance")) == ((), {})
     monkeypatch.setattr(paper, "dial", _desk(moves=True, stops=False))  # held; moved at the end

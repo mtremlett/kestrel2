@@ -63,10 +63,7 @@ class Folded:
     @property
     def worst(self) -> Fold:
         """The fold judged on; of two equally bad, the older."""
-        return min(
-            self.folds,
-            key=lambda f: (f.outside.answer, f.outside.t is not None, f.outside.t or 0),
-        )
+        return min(self.folds, key=lambda f: rung.standing(f.outside.answer, f.outside.t))
 
     @property
     def answer(self) -> Answer:
@@ -140,7 +137,7 @@ class Pooled:
     @property
     def worst(self) -> Year:
         """The year judged on; of two equally bad, the older."""
-        return min(self.years, key=lambda y: (y.answer, y.t is not None, y.t or 0))
+        return min(self.years, key=lambda y: rung.standing(y.answer, y.t))
 
     @property
     def answer(self) -> Answer:
