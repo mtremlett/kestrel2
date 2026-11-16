@@ -125,6 +125,7 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "lab/variants.py" = "a row's ranged settings made into variants: every combination counted as a trial before it runs, and the centre of the best plateau reported, never a lone peak"
 "lab/published.py" = "the published rules: each rule's source and known answers, and the refusal of code that does not give them"
 "lab/published_case.py" = "the shape of a known answer: a rule's source and the series, or whole bars, on which it trades on stated bars and no other"
+"lab/published_tables.py" = "the indicator tables: the desk's measurements held to tables printed by StockCharts, each row to the last place printed, and the refusal of a measurement that does not give them"
 "lab/published_epon.py" = "the eponymous rules' publications: each rule's author, work and known answers, a book apart from the ladder's first set"
 "lab/reproduce.py" = "the author's own result: a published rule run on its author's market and period, counted as the author counted, and set beside the figure the author printed"
 "lab/promotion.py" = "before paper and after it: a candidate only with the ladder's pass and its kill condition written first, and promoted only on thirty effective paper trades, net positive"
