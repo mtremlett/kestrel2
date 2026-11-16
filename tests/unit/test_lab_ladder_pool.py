@@ -93,3 +93,13 @@ def test_a_stop_planted_after_the_first_unit_ends_the_pass_there_and_a_stale_one
     said = ladder_pool.run(tmp_path / "cut", _book, {}, todo, CLOCK, size=2)
     assert said == "stopped after a unit: main moved" and not stop.exists()
     assert _rows(tmp_path / "cut") == _rows(serial)[:2]
+
+
+GB = 2**30
+
+
+def test_the_pool_is_sized_by_free_memory_beyond_a_reserve_of_a_fifth_and_never_below_one() -> None:
+    assert ladder_pool.workers(64 * GB, 40 * GB, cores=8) == 5  #: (40 - 12.8) / 5, floored
+    assert ladder_pool.workers(64 * GB, 60 * GB, cores=8) == 6  #: the cores' bound: 8 - 2
+    assert ladder_pool.workers(64 * GB, 15 * GB, cores=8) == 1  #: only 2.2 GB beyond the reserve
+    assert ladder_pool.workers(64 * GB, 2 * GB, cores=8) == 1  #: below the reserve: one
