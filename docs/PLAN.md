@@ -142,6 +142,8 @@ Checked 16 Nov (MONEY, third session): R-RUNGS-8 (`orders.strategy_of` refuses a
 Checked 16 Nov (MONEY, later session): R-RUNNER-127 still held (15 rules unexpressed, 19 files); R-RUNGS-6 and R-RUNGS-12 ticked (public `strategy.rsi`, `strategy.lower_band`, `tests/unit/test_strategy.py` green).
 Checked 16 Nov (MONEY, third session): unchanged; the scribe has not yet folded the ticks for R-RUNGS-6 and R-RUNGS-12 (done in #185); R-RUNNER-127 waits on spec-epon.
 
+Checked 16 Nov (MONEY, fourth session): R-RUNGS-6 and R-RUNGS-12 re-verified on main (`tests/unit/test_strategy.py` green); R-RUNNER-127 is the coordinator's own branch now (ops note 19:3x), declined here.
+
 - [x] The rehearsal data in a file of its own (`tests/scenes/rehearsal.py`)
 - [x] The rehearsal data lengthened to about fourteen months, the five rules buying and
       selling in it on every clean line, its UK and US holidays respected; the spoilt line's
