@@ -197,6 +197,8 @@ def test_a_share_dearer_than_the_room_is_a_refused_verdict_and_the_only_catch_of
     catches = [
         p.name
         for p in Path("lab").glob("*.py")
-        if re.search(r"except[^\n]*\bRefused\b", p.read_text(encoding="utf-8"))
+        if re.search(r"except[^\n]*\bDeclined\b", p.read_text(encoding="utf-8"))
     ]
     assert catches == ["rung.py"], "the refusal is judged once, where the verdict is made"
+    fault = r"except[^:]*\bRefused\b"  #: the runner's fault pattern (R-RUNNER-186)
+    assert not re.search(fault, Path("lab/rung.py").read_text(encoding="utf-8"))
