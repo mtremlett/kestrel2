@@ -141,9 +141,15 @@ def test_the_preflight_says_ready_or_names_each_thing_that_is_not_and_sends_no_o
     assert capsys.readouterr().out == (
         "PREFLIGHT Mon 16 Nov: READY. his phone: its key is set; the Gateway: it answered; the "
         "kill switch: off, and drilled today; the paper account: it is the desk's book; prices: "
-        "22 lines to trade on; the pound: a dollar is £0.800000; halts: none in force.\n"
+        "22 lines to trade on; the pound: a dollar is £0.800000, kept for the day; halts: "
+        "none in force.\n"
     )
     assert clearance.checks(desk)[-1].found == () and not running.notes(desk)
+    # the pound is kept: the US round reads it with the archive unreachable
+    assert book.rate(desk, "USD", MON.date()) == Decimal("0.8")
+    with monkeypatch.context() as down:
+        down.setattr(archive, "fetch", lambda *_: pytest.fail("the archive was asked"))
+        assert command.rates(desk, MON.date())["USD"] == Decimal("0.8")
     called = halt.call(desk, MON, "a crash")  # a halt: ready, and said at the front
     assert _run(tmp_path, MON, "--preflight", **KEYS) == 0
     assert "Nov: READY, BUT NO BUY GOES: a halt is in force. his" in capsys.readouterr().out
@@ -167,6 +173,12 @@ def test_the_preflight_says_ready_or_names_each_thing_that_is_not_and_sends_no_o
     line = capsys.readouterr().out
     assert "the Gateway: ConnectionError: The paper Gateway does not answer: its port" in line
     assert "prices: ValueError: no line has a bar of the session before" in line
+    # an untrusted pound is named in the line and nothing is kept for the day
+    tue = MON + timedelta(days=1)
+    monkeypatch.setattr(archive, "fetch", lambda *_: ())
+    assert _run(tmp_path, tue, "--preflight", **KEYS) == 1
+    assert "the pound: ValueError: " in capsys.readouterr().out
+    assert str(tue.date()) not in (desk / book.RATES).read_text(encoding="utf-8")
 
 
 def test_the_rehearsal_lives_the_last_session_again_on_its_own_record_with_no_market_trading(
