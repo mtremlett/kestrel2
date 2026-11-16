@@ -1,7 +1,7 @@
 """book - THE LEDGER AND THE BOOK. Fills are written under the broker's own ids; the book is
 their sum, and reconciling compares it with the broker's positions. The send path keeps the kill
-switch's record, sends nothing while it is on and no buy in a halt, notes each order, and cancels
-what a dead desk left working. Conformance trades are a cost of their own (conformance_cost)."""
+switch's record, sends nothing while it is on, notes each order, and cancels what a dead desk
+left working. Conformance trades are a cost of their own (_conformance_cost)."""
 
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ from desk.lines import Line
 from desk.orders import Charges, Order, Refused, Sale, Settings, charges, gate, leg_of
 
 LEDGER, RATES, SWITCH = "ledger.csv", "rates.csv", "switch.csv"
-GOING = "going.csv"  #: the order at the broker's door, kept only until the desk has its answer
+GOING = "going.csv"  #: the order at the broker's door, until the desk has its answer
 STOPS, LEVELS = "stops.csv", ("stop", "level")  #: each buy's stop level, kept as the buy goes
 COLUMNS = ("execution_id", "order_id", "symbol", "quantity", "price", "day")
 TURNS = ("at", "turn", "why")
@@ -82,12 +82,12 @@ def send(
     at the broker. Where the book is not the broker's nothing is bought, and a line sells only if
     its shares agree. Kill switch on: nothing is sent; a halt: no buy. Every refusal names its
     blocker (Stopped), as does a short answer. A place that fails unknown pulls the kill switch
-    (Alarm); one that disagrees halts buying and is told (tell). A dead desk's orders go first."""
+    (Alarm); one that disagrees halts buying and is told (tell)."""
     _settle(root, broker)
     report = broker.report(order.order_id)
     if report is None:
         _unless_stopped(root, order)
-        held, differ, unsure, _ = reckon(root, broker)
+        held, differ, unsure, _ = _compare(root, broker)
         if differ and (isinstance(order, Order) or order.line.symbol in unsure):
             words = f"{order.order_id}: not sent, the book is not the broker's on {list(differ)}"
             raise Stopped(Blocker.BOOK, words)
@@ -129,9 +129,8 @@ def _disagreed(
     root: Path, broker: Broker, order: Order | Sale, error: Exception, tell: Tell | None
 ) -> Report:
     """THE BROKER'S WORD, FILLS AND ACCOUNT DO NOT AGREE after the order has gone (R-PAPER-11,
-    Unprotected): buying is halted until he lifts it, he is told (tell), and the broker's
-    report is given, so the order is never sent again. Else (or with no one to tell) the kill
-    switch is pulled and Alarm raised."""
+    Unprotected): buying is halted until he lifts it, he is told (tell), and the broker's report
+    is given, so the order is never sent again. Else the kill switch is pulled, Alarm raised."""
     from desk import placing  # noqa: PLC0415 - placing reaches book through paper: a load cycle
 
     if tell is None or not isinstance(error, placing.Unprotected):
@@ -146,9 +145,8 @@ def _disagreed(
 
 
 def _settle(root: Path, broker: Broker) -> None:
-    """A DESK THAT DIED MID-SEND left its note (_place) and perhaps its order working, to fill
-    behind a gate that counts the book alone: before any send the broker cancels the desk's
-    own working orders, then the note is gone. While the kill switch is on it waits."""
+    """A DESK THAT DIED MID-SEND left its note (_place) and perhaps an order working, to fill
+    behind a gate that counts the book alone: before any send they go. Kill switch on: waits."""
     if (going := root / GOING).exists() and killed(root) is None:
         tuple(broker.cancel())
         going.unlink()
@@ -156,8 +154,7 @@ def _settle(root: Path, broker: Broker) -> None:
 
 def levels(root: Path) -> dict[str, Decimal]:
     """THE STOPS THE DESK RESTED: each buy's stop level under "<buy>-stop", oldest first."""
-    path = root / STOPS
-    if not path.exists():
+    if not (path := root / STOPS).exists():
         return {}
     with path.open(newline="", encoding="utf-8") as kept:
         rows = list(csv.reader(kept))
@@ -173,7 +170,7 @@ def turn(root: Path, to: Switch, at: datetime, why: str) -> None:
 
 
 def switch(root: Path) -> tuple[tuple[datetime, Switch, str], ...]:
-    """The kill switch's record, oldest first; one not readable whole is an error, never off."""
+    """The kill switch's record, oldest first; one not readable whole is an error."""
     if not (path := root / SWITCH).exists():
         return ()
     with path.open(newline="", encoding="utf-8") as record:
@@ -227,7 +224,7 @@ def fills(root: Path) -> tuple[Fill, ...]:
 
 
 def keep(path: Path, rows: Iterable[Sequence[object]]) -> None:
-    """The desk's one keeper of dated records: written whole, then swapped in, never half-read."""
+    """The desk's one keeper of dated records: written whole, then swapped in."""
     path.parent.mkdir(parents=True, exist_ok=True)
     written = path.with_suffix(".tmp")
     with written.open("w", newline="", encoding="utf-8") as out:
@@ -245,7 +242,7 @@ def _revision(execution_id: str) -> tuple[str, int]:
 
 
 def _record(root: Path, new: Iterable[Fill]) -> None:
-    """Add the fills not in the ledger; a fill the broker corrects replaces its earlier version."""
+    """Add the fills not in the ledger; a corrected fill replaces its earlier version."""
     kept = fills(root)
     latest = {_revision(f.execution_id)[0]: f for f in kept}
     for fill in new:
@@ -256,16 +253,16 @@ def _record(root: Path, new: Iterable[Fill]) -> None:
 
 
 def collect(root: Path, broker: Broker) -> None:
-    """Write in the ledger every fill the broker gives that it lacks (a stop sale, a correction)."""
+    """Write in the ledger every fill the broker gives that it lacks."""
     _record(root, broker.fills())
 
 
 def reconcile(root: Path, broker: Broker) -> tuple[str, ...]:
     """The lines on which the book is not the broker's: shares differ, or the stop is not theirs."""
-    return reckon(root, broker)[1]
+    return _compare(root, broker)[1]
 
 
-def reckon(root: Path, broker: Broker) -> Reckoning:
+def _compare(root: Path, broker: Broker) -> Reckoning:
     """One reading: the book, the names it is not the broker's on, those whose shares differ,
     the stops that are not the book's. The broker is asked fills, stops, holdings in that order,
     so a stop that sells between the last two shows as shares gone, never still there."""
@@ -274,6 +271,11 @@ def reckon(root: Path, broker: Broker) -> Reckoning:
     stops = differences(ours, broker.stops())
     shares = {d.name for d in differences(ours, broker.holdings())}
     return ours, tuple(sorted(shares | {d.name for d in stops})), shares, stops
+
+
+def reckon(root: Path, broker: Broker) -> Reckoning:
+    """The book, the lines that differ, those whose shares do, the stops that do: one reading."""
+    return _compare(root, broker)
 
 
 def differences(
@@ -299,8 +301,7 @@ def positions(root: Path, upto: date = date.max) -> dict[str, int]:
     for fill in fills(root):
         if fill.day <= upto:
             held[fill.symbol] = held.get(fill.symbol, 0) + fill.quantity
-    short = sorted(symbol for symbol, shares in held.items() if shares < 0)
-    if short:
+    if short := sorted(symbol for symbol, shares in held.items() if shares < 0):
         raise ValueError(f"the ledger sells more than it bought of {short}: the desk is long only")
     return {symbol: shares for symbol, shares in sorted(held.items()) if shares}
 
@@ -370,9 +371,8 @@ def _priced(root: Path, lines: Iterable[Line]) -> Callable[[Fill, int], tuple[De
     return pounds
 
 
-def conformance_cost(root: Path, lines: Iterable[Line]) -> Decimal:
-    """THE CONFORMANCE COST, its own kind apart from the desk's profit: the pounds the conformance
-    ledger at root moved on the shared paper account, less its costs; negative is paid out."""
+def _conformance_cost(root: Path, lines: Iterable[Line]) -> Decimal:
+    """THE CONFORMANCE COST, apart from the desk's profit: the ledger's money moved, less costs."""
     moved, costs = dealt(root, lines, date.max, date.min, 0)
     return moved - costs.total
 
