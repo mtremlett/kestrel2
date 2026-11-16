@@ -93,6 +93,7 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "desk/eponymous_breakouts.py" = "rules named for their authors, ported one at a time under the strategy template and judged on the ladder, never traded by the paper desk: Darvas's box"
 
 # the paper lane
+"desk/records_kept.py" = "the ledger and day records copied twice, each with its hashes, and a restore drilled each quarter"
 "desk/paper.py" = "the one door to the paper broker: the paper account's holdings and resting orders, read and set against the desk's book"
 "desk/t212.py" = "the one client for Trading 212, read-only by construction: an account's cash, holdings and order history, a fixed list of GET messages, no order or write call"
 "desk/listing.py" = "each line as the paper broker knows it: its contract there, its exchange, the unit of its prices and its price steps, asked through the one door"
