@@ -79,7 +79,7 @@ SOURCED = f"ALTER TABLE bar ADD COLUMN source TEXT NOT NULL DEFAULT '{Source.ARC
 MADE = "SELECT 1 FROM sqlite_master WHERE name = 'held'"
 HOLD = "INSERT OR IGNORE INTO held VALUES (?, ?, ?)"
 HELD = "SELECT 1 FROM held WHERE venue = ? AND symbol = ? AND span = ?"
-CLEAR = "DELETE FROM bar WHERE venue = ? AND symbol = ? AND span = ?"
+CLEAR = "DELETE FROM bar WHERE venue = ? AND symbol = ? AND span = ? AND source = ?"
 ADD = "INSERT INTO bar VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 PUT, FILL = (ADD.replace("INSERT", f"INSERT OR {then}") for then in ("REPLACE", "IGNORE"))
 OTHERS = (
@@ -140,12 +140,17 @@ class Round:
         self._held, self._source = held, source
 
     def _write(
-        self, put: str, line: Line, span: str, bars: Iterable[tuple[int, Bar | Five]]
+        self,
+        put: str,
+        line: Line,
+        span: str,
+        bars: Iterable[tuple[int, Bar | Five]],
+        whole: bool = False,
     ) -> int:
         """One line's bars of one span, all of them or, if any is refused, none: the round is
         then as it was before, whether or not the caller ends it there. A round that SQLite
         itself has dropped (a full disk) takes no more, and nothing of it lands. It says how
-        many bars landed."""
+        many bars landed. A whole write first clears what this round's source holds of the span."""
         held = self._held[span]
         if not all(one.in_transaction for one in self._held.values()):
             raise NoRound(f"SQLite dropped this round: nothing of it lands, {line.symbol} too")
@@ -157,8 +162,8 @@ class Round:
         held.execute("SAVEPOINT line")
         try:
             held.execute(HOLD, key)
-            if put == ADD:
-                held.execute(CLEAR, key)
+            if whole:
+                held.execute(CLEAR, (*key, self._source.value))
             landed = held.executemany(put, rows).rowcount
         except BaseException:
             if held.in_transaction:
@@ -168,15 +173,16 @@ class Round:
         return landed
 
     def daily(self, line: Line, bars: Iterable[Bar]) -> None:
-        """A line's daily history, whole, in place of the one held: an archive restates the
-        past, so only a fresh source gives one. One that gives a day twice is refused."""
+        """A line's daily history from this source, whole, in place of what it held: an archive
+        restates the past, so only a fresh source gives one. Its bar replaces another source's
+        for the same day, and the bars of other sources stand. A day given twice is refused."""
         if not self._source.fresh:
             raise ValueError(f"{self._source.value} is no fresh source: it restates no history")
-        try:
-            self._write(ADD, line, DAILY, ((b.day.toordinal(), b) for b in bars))
-        except sqlite3.IntegrityError as twice:
+        given = [(b.day.toordinal(), b) for b in bars]
+        if len({at for at, _ in given}) < len(given):
             what = f"{line.symbol} on {line.venue}: its history gives a day twice; none kept"
-            raise ValueError(what) from twice
+            raise ValueError(what)
+        self._write(PUT, line, DAILY, given, whole=True)
 
     def days(self, line: Line, bars: Iterable[Bar]) -> int:
         """More daily bars, and how many landed: as `five`, but for days not moments."""
@@ -221,6 +227,7 @@ def writing(path: Path, source: Source = Source.ARCHIVE) -> Iterator[Round]:
     """A source's next round on the store whose short database is at path (its long one beside
     it), made on its first round: the fresh archive's unless an old store is named. The round
     lands as the block ends in each database; if the block fails, nothing of it lands."""
+    path.parent.mkdir(parents=True, exist_ok=True)
     with ExitStack() as stack:
         held = {
             span: stack.enter_context(closing(_open(file))) for span, file in files(path).items()

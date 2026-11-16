@@ -28,8 +28,11 @@ him: back to the last thing he did other than the paper Gateway's weekly login (
 ruling, docs/DECISIONS.md), or to the last hour in which some job had no run that ended
 well, whichever is the later. A desk not running proves nothing. Seven days are owed (NS-01).
 
-Not built (docs/STATUS.md): nobody is told what `health` finds;
-and the supervisor's own start, once, by Windows."""
+TOLD (`tell`): what `health` finds goes to his phone through the messenger's one door, under
+a name of the UTC hour, so a fault is told once an hour and never in a storm. Run from outside
+the supervisor (whatever Windows starts beside it), so a dead supervisor is still told.
+
+Not built (docs/STATUS.md): the supervisor's own start, and `tell`'s, by Windows."""
 
 from __future__ import annotations
 
@@ -75,8 +78,9 @@ NOTHING = "No job is registered with the supervisor: nothing of the desk runs un
 LATE = "No receipt of the desk's {} {}: nothing is running it. Please look at the PC."
 BADLY = "The desk's {} has not ended well since {:%a %d %b %H:%M} UTC ({} in a row). The latest {}."
 ALONE = "The desk has run {} days {} hours without him: {} days are owed (NS-01)."
+NL = chr(10)  #: one fault to a line
 LOGIN = "the paper Gateway's weekly login"
-USAGE = "python -m desk.supervisor run ROOT | health ROOT | login ROOT | acted ROOT WHAT HE DID"
+USAGE = "python -m desk.supervisor run|health|tell|login ROOT | acted ROOT WHAT HE DID"
 Clock = Callable[[], datetime]
 _now: Clock = partial(datetime.now, UTC)
 
@@ -244,6 +248,17 @@ def acted(root: Path, at: datetime, what: str) -> None:
         record.execute("INSERT INTO actions VALUES (?, ?)", (_utc(at).isoformat(), what))
 
 
+def tell(root: Path, now: datetime, jobs: Sequence[Job], say: Callable[[str, str], object]) -> bool:
+    """WHAT HEALTH FINDS, TOLD TO HIM through the messenger, once in each UTC hour it is
+    wrong (the hour is the message's name), by say: the messenger's one door, name and words.
+    Given back: whether anything was wrong. A door
+    that does not deliver is the messenger's error raised, and the fault is told again."""
+    wrong = health(root, now, jobs)
+    if wrong:
+        say(f"health {_utc(now):%Y-%m-%d %H}", NL.join(wrong))
+    return bool(wrong)
+
+
 def unattended(root: Path, now: datetime, jobs: Sequence[Job]) -> timedelta:
     """HOW LONG THE DESK HAS RUN WITHOUT HIM, by the job that says least. For each job: up to
     its last run that ended well, back through such runs for as long as each began within
@@ -297,6 +312,15 @@ def main(argv: Sequence[str], clock: Clock = _now) -> int:
             told = ALONE.format(alone.days, alone.seconds // 3600, OWED.days)
             print(*wrong, told, sep="\n")  # noqa: T201 - the command's answer to whoever typed it
             return int(bool(wrong))
+        case ["tell", root]:
+            from desk import (
+                messenger,  # noqa: PLC0415 - it imports WAIT from here: no cycle at load
+            )
+
+            post, now = messenger.telegram(os.environ), clock()
+            return int(
+                tell(Path(root), now, JOBS, partial(messenger.send, Path(root), now, post=post))
+            )
         case ["acted", root, *words] if words:
             acted(Path(root), clock(), " ".join(words))
         case ["login", root]:

@@ -304,5 +304,18 @@ def test_the_command_line_keeps_his_ledger_and_refuses_a_desk_with_no_job_regist
     assert ledger == [(at.isoformat(), what) for at, what in his]
     # words that are no command are refused, and so is a root that is not there
     for words in (["acted", root], ["health"], ["work", root], ["login", f"{root}/typo"], []):
-        with pytest.raises((SystemExit, sqlite3.OperationalError), match="supervisor run|unable"):
+        with pytest.raises((SystemExit, sqlite3.OperationalError), match="supervisor|unable"):
             supervisor.main(words)
+
+
+def test_what_health_finds_is_told_under_the_hour_s_name_and_nothing_when_all_is_well(
+    tmp_path: Path,
+) -> None:
+    say = Mock()
+    assert supervisor.tell(tmp_path, T0, [STEP], say)  # no receipt: nothing runs it
+    supervisor.attend(tmp_path, [STEP], Mock(return_value=T0), Mock(return_value=DONE))
+    assert not supervisor.tell(tmp_path, T0 + MIN, [STEP], say)  # well: nothing said
+    assert supervisor.tell(tmp_path, T0 + 2 * HOUR + MIN, [STEP], say)
+    told = [call.args for call in say.call_args_list]
+    assert [name for name, _ in told] == ["health 2026-11-16 08", "health 2026-11-16 10"]
+    assert told[1][1] == LATE.format("step", SINCE.format(0))
