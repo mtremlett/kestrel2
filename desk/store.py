@@ -20,40 +20,39 @@ from types import MappingProxyType
 from desk import venues
 from desk.lines import Line
 
-#: Two neighbouring bars whose prices sit further apart than this factor (a fall of 37.5%,
-#: a rise of 60%) are not taken as a market move: a wrong unit (pence among pounds is 100),
-#: a bad print, or a split of 2-for-1 or more that the archive did not adjust. A smaller
-#: wrong factor - a 3-for-2 split, pounds read as dollars - cannot be told from a real move
-#: by price alone, and passes.
+#: Neighbouring bars further apart than this factor (a fall of 37.5%, a rise of 60%) are not a
+#: market move: a wrong unit (pence among pounds is 100), a bad print, or an unadjusted split of
+#: 2-for-1 or more. A smaller wrong factor (3-for-2, pounds read as dollars) cannot be told from
+#: a real move by price alone, and passes.
 JUMP = Decimal("1.6")
-#: London records its opening and closing auctions apart from the day's trading, so an archive's
-#: open or close can sit just outside the day's high and low. Within this fraction of the price
-#: it is taken as the official price and the range stretched to hold it (the operator's ruling of
-#: 13 November 2026); further out, the bar cannot be true.
+#: London records its auctions apart from the day's trading, so an archive's open or close can
+#: sit just outside the day's high and low. Within this fraction of the price it is the official
+#: price and the range stretches to hold it (his ruling of 13 November 2026); further out, the
+#: bar cannot be true.
 STRETCH = Decimal("0.03")
 #: Only a fault in the last this-many sessions parks a line; an older bad day is dropped and
-#: listed, for the line's history never changes (the operator's ruling of 13 November 2026).
+#: listed (his ruling of 13 November 2026).
 RECENT = 60
-#: The longest run of bars a hundredfold out of line with the bars either side of it that is
-#: taken as bad days in the wrong unit, not a lasting step. Any other fall and recovery, however
-#: short, may be real - a leveraged line can lose 40% and win it back - and parks as a step.
+#: The longest run of bars a hundredfold out of line with those either side is bad days in the
+#: wrong unit, not a lasting step. Any other fall and recovery may be real (a leveraged line can
+#: lose 40% and win it back) and parks as a step.
 BLIP = 20
-#: A run of this many sessions or more, each repeating the bar before it or flat at its close
-#: with no volume, is a frozen feed, not a market: the twenty lines' longest real run since 2010
-#: is three sessions (2MU, December 2022). Its bars are dropped and listed.
+#: A run of this many sessions, each repeating the bar before it or flat at its close with no
+#: volume, is a frozen feed: the longest real run since 2010 is three (2MU, December 2022).
+#: Its bars are dropped and listed.
 FROZEN = 5
-#: A price at least this many times, or this fraction of, its neighbour's close is in another
-#: unit (pence among pounds is 100), however far a market moves: a hundredfold, less a jump.
+#: A price this many times, or this fraction of, its neighbour's close is in another unit
+#: (pence among pounds is 100), however far a market moves: a hundredfold, less a jump.
 FAR = 100 / JUMP
 #: A one-for-one line's neighbouring closes in the ratio of that day's pound in dollars, within
-#: this fraction, are one bar quoted in dollars beside one in pounds, not a market move (seen
-#: 14 November 2026: IITU x0.662, VHYG x0.808, VUAG x0.791, IB1T x0.733, each below JUMP). A
-#: leveraged line's real crashes sit as near the rate (5QQQ x0.770, 3 April 2025), so only a
-#: stray bar of one is tested; and a bar already past JUMP is taken so within the wider FX_FAR.
+#: this fraction, are one bar in dollars beside one in pounds, not a market move (14 November
+#: 2026: IITU x0.662, VHYG x0.808, VUAG x0.791, IB1T x0.733, each below JUMP). A leveraged
+#: line's real crashes sit as near the rate (5QQQ x0.770, 3 April 2025), so only a stray bar of
+#: one is tested; a bar already past JUMP is taken so within the wider FX_FAR.
 FX_STEP, FX_FAR = Decimal("0.05"), Decimal("0.10")
-#: The newest pound in dollars a day may be judged on is at most this old: a longer silence in
-#: the rate is no rate.
+#: The newest pound in dollars a day may be judged on is at most this old.
 RATE_AGE = timedelta(days=7)
+AGREE = Decimal("0.02")  #: two sources' closes for a session must agree within this (R-RUNNER-189)
 #: A recorded split is adopted when the bar's jump is within this fraction of its ratio.
 SPLIT_NEAR = Decimal("0.25")
 Rates = Mapping[date, Decimal]  #: the pound's close in dollars, by day
@@ -61,9 +60,8 @@ NO_RATES: Rates = MappingProxyType({})
 UNRECORDED = "a gap in the archive, or a suspension the line does not record"
 ASTRAY = "is out of line with the days either side: a wrong unit"
 COLUMNS = ("day", "open", "high", "low", "close", "volume")
-#: Where a line's older bars wait, in a folder of their own under the store's: the archive gives
-#: some lines a day or two, and the store is rebuilt from it on every prepare, so bars brought
-#: from elsewhere would be lost. They are joined to the archive's, which wins on any day it gives.
+#: Where a line's older bars wait, under the store's: the store is rebuilt from the archive on
+#: every prepare, so bars brought from elsewhere would be lost. Joined to the archive's, which wins.
 HISTORY = "history"
 
 
@@ -154,9 +152,8 @@ def _fx(ratio: Decimal, rate: Decimal | None, near: Decimal) -> bool:
 
 
 def _agree(line: Line, before: Bar, after: Bar, rates: Rates) -> bool:
-    """Two neighbouring bars could both be true: each one's whole range lies within a
-    market's move of the other's close, or the line records this very close as a real move.
-    A plain line's step as large as that day's pound in dollars is a change of currency."""
+    """Neighbouring bars could both be true: each one's range lies within a market's move of the
+    other's close, or the line records this close. A step as large as the pound's is a currency."""
 
     def near(bar: Bar, close: Decimal) -> bool:
         return close / JUMP <= bar.low and bar.high <= close * JUMP
@@ -189,9 +186,8 @@ def _far(bar: Bar, close: Decimal, rate: Decimal | None) -> bool:
 
 
 def _stray(at: int, links: Sequence[bool]) -> bool:
-    """A bar out of line with every neighbour, where links[n] says bars n and n+1 agree. A bar
-    at either end is a stray only if its one neighbour agrees with the bar beyond it; with two
-    bars there is no telling which is wrong, so neither is."""
+    """A bar out of line with every neighbour, where links[n] says bars n and n+1 agree. An end
+    bar is a stray only if its one neighbour agrees with the bar beyond; of two, neither is."""
     left = links[at - 1] if at > 0 else None
     right = links[at] if at < len(links) else None
     if left is None or right is None:
@@ -201,9 +197,8 @@ def _stray(at: int, links: Sequence[bool]) -> bool:
 
 
 def _priced(line: Line, sound: Sequence[Bar], faults: list[Fault], rates: Rates) -> list[Bar]:
-    """Drop a bar, or a short run of bars, a hundredfold out of line with the days either side
-    or in the other currency; keep any other move, a one-day crash too, but as a lasting
-    fault, until the line records it as a real move."""
+    """Drop a bar, or a short run, a hundredfold out of line with the days either side or in the
+    other currency; keep any other move, a one-day crash too, as a lasting fault until recorded."""
     links = [_agree(line, a, b, rates) for a, b in zip(sound, sound[1:], strict=False)]
     kept: list[Bar] = []
     resume = 0
@@ -238,9 +233,8 @@ def _priced(line: Line, sound: Sequence[Bar], faults: list[Fault], rates: Rates)
 
 
 def _split(bars: list[Bar], day: date, ratio: Decimal, faults: list[Fault]) -> None:
-    """Multiply the prices before day by ratio (and divide their volume), if the jump between
-    the bars either side of day is the ratio, within SPLIT_NEAR. A jump of a market's size is
-    a split the archive adjusted already; any other leaves the bars, and a fault."""
+    """Multiply the prices before day by ratio (divide the volume), if the jump across day is the
+    ratio within SPLIT_NEAR; a market-sized jump is adjusted already; any other is a fault."""
     at = next((n for n, bar in enumerate(bars) if bar.day >= day), 0)
     if at == 0:
         return
@@ -283,7 +277,7 @@ def _thawed(kept: Sequence[Bar], faults: list[Fault]) -> list[Bar]:
 def _clean(
     line: Line, bars: Sequence[Bar], day: date, since: date, rates: Rates = NO_RATES
 ) -> tuple[list[Bar], list[Fault]]:
-    """The bars of one line that can be true, and every fault found on the way."""
+    """The bars of one line that can be true, and every fault found."""
     faults: list[Fault] = []
     first = min((b.day for b in bars if b.day.year in venues.KNOWN), default=day)
     every = venues.sessions(line.venue, first, day - timedelta(1))
@@ -319,21 +313,23 @@ def _write(path: Path, header: Sequence[str], rows: Iterable[Sequence[object]]) 
 
 
 Answer = Sequence[Bar] | Refused  #: what the archive gave for a line
-Older = Sequence[Bar] | None  #: a line's older bars, joined to an answer
+Older = Sequence[Bar] | None  #: a line's older bars
 
 
 def judge(
     line: Line, answer: Answer, day: date, rates: Rates = NO_RATES, shelf: Older = None
 ) -> tuple[list[Bar], list[Fault], Parked | None]:
-    """THE ONE JUDGEMENT of a line's bars, wherever they are kept: those that can be true, every
-    fault found and, if one is recent or lasting, the line parked, ready to trade on day. A
-    line the archive refused keeps no bars, so none from an earlier day can be read as today's."""
+    """THE ONE JUDGEMENT of a line's bars: those that can be true, every fault found and, if one
+    is recent or lasting, the line parked, ready to trade on day. A line the archive refused
+    keeps no bars, so none from an earlier day can be read as today's."""
     since = venues.sessions(line.venue, day - timedelta(100), day - timedelta(1))[-RECENT]
     if isinstance(answer, Refused):
         kept: list[Bar] = []
         faults = [Fault(day, f"the archive refused it: {answer.reason}")]
     else:
-        kept, faults = _clean(line, _joined(shelf, answer), day, since, rates)
+        joined, faults = _joined(shelf, answer)
+        kept, found = _clean(line, joined, day, since, rates)
+        faults = [*faults, *found]
     recent = [f.what for f in faults if f.lasting or f.day >= since]
     return kept, faults, Parked(line.symbol, "; ".join(recent), day) if recent else None
 
@@ -375,16 +371,20 @@ def shelve(root: Path, line: Line, bars: Iterable[Bar]) -> None:
     _write(root / HISTORY / f"{line.symbol}.csv", COLUMNS, (astuple(bar) for bar in bars))
 
 
-def _joined(shelf: Older, bars: Sequence[Bar]) -> list[Bar]:
-    """The archive's bars and, for each day it gives none, the line's shelved bar. A frozen
-    run in the archive's bars is its filler, not a price it gives: with a shelf, none of it is
-    kept, so a shelved bar fills its days and any day the shelf lacks is a missing session."""
+def _joined(shelf: Older, bars: Sequence[Bar]) -> tuple[list[Bar], list[Fault]]:
+    """The archive's bars, a shelved bar for each day it gives none; closes both give beyond
+    AGREE are a fault naming both, the archive's standing. A frozen run is dropped."""
     if shelf is None:
-        return list(bars)
+        return list(bars), []
     real = set(_thawed(bars, []))
-    given = [bar for bar in bars if bar in real]
-    held = {bar.day for bar in given}
-    return sorted([*(bar for bar in shelf if bar.day not in held), *given], key=lambda b: b.day)
+    given = {bar.day: bar for bar in bars if bar in real}
+    both = [(b, given[b.day]) for b in shelf if b.day in given]
+    fills = (bar for bar in shelf if bar.day not in given)
+    return sorted([*fills, *given.values()], key=lambda x: x.day), [
+        Fault(b.day, f"{b.day} close {a.close} (archive), {b.close} (shelf)")
+        for b, a in both
+        if abs(b.close / a.close - 1) > AGREE
+    ]
 
 
 def read(root: Path, symbol: str) -> tuple[Bar, ...]:
