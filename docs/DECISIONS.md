@@ -1945,3 +1945,14 @@ hundredfold on the worst measure; (c) 60 or more. Chosen (b): it gives a stalled
 time, and a dead Gateway is still called silent after 30 s, far inside one five-minute step,
 with no retry and no sleep. Test: `test_a_slow_first_answer_is_waited_for_and_a_silent_one_is_called_silent`
 (a stand-in answering at 20 s passes; one silent past 31 s is his).
+
+## R-RUNNER-156 - the loss and order-rate limits of the pre-trade gate (Mon 16 Nov 2026, MONEY lane)
+
+`orders.Settings` holds, beside the capital, the day-loss limit (2%), the week-loss limit (5%) and
+the new lines a day (4); the colleague's range for new lines was 3-5, 4 is its middle. The gate
+(`orders.gate`, given a `risk.Standing`) refuses a buy once a loss reaches a limit (naming it) and a
+new line once four are entered that day. On paper `halt.drawdown` alerts and records "would have
+halted" in `would_have_halted.csv`, beside `halts.csv`, and never halts. Options for the record: (a)
+a row in `halts.csv`, which would read as a halt in force and stop the buying, or change the file's
+columns under the existing record; (b) a file beside it. Chosen (b). Evidence the tests catch it:
+the new-line test failed with the limit's `>=` made `>` (both `test_risk.py` tests red).
