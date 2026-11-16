@@ -46,6 +46,7 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
+from functools import partial
 from pathlib import Path
 from typing import TypeVar
 
@@ -76,6 +77,7 @@ RECENT = timedelta(days=7)  #: how far back a five-minute round asks: the week k
 #: its thirty seconds, and the bars written, still end within the runner's four minutes.
 SPENT = 150.0
 DAY = timedelta(days=1)
+ANCIENT = partial(archive.fetch, since=archive.REFERENCE_SINCE)  #: the reference series' ask
 When = TypeVar("When")
 Read = TypeVar("Read")
 Ask = Callable[[Line, When], Read]
@@ -260,10 +262,6 @@ def pound(home: Path, day: date) -> Decimal:
     return rate
 
 
-def _ancient(line: Line, day: date) -> tuple[Bar, ...]:
-    return archive.fetch(line, day, since=archive.REFERENCE_SINCE)
-
-
 def _reference(
     home: Path, now: datetime, ask: Ask[date, tuple[Bar, ...]], series: Sequence[Line]
 ) -> list[str]:
@@ -284,9 +282,7 @@ def _reference(
         faults = archive.keep_reference(home / HOT, line, answer)
         mark.parent.mkdir(parents=True, exist_ok=True)
         mark.write_text(day.isoformat(), encoding="utf-8")
-        told.append(
-            f"{line.symbol}: reference series kept before {day}, {len(faults)} faults listed"
-        )
+        told.append(f"{line.symbol}: reference kept before {day}, {len(faults)} faults listed")
     return told
 
 
@@ -356,7 +352,7 @@ def keep(
     daily: Ask[date, tuple[Bar, ...]] = archive.fetch,
     five: Ask[datetime, tuple[Five, ...]] | None = None,
     clock: Callable[[], float] = time.monotonic,
-    ancient: Ask[date, tuple[Bar, ...]] = _ancient,
+    ancient: Ask[date, tuple[Bar, ...]] = ANCIENT,
     series: Sequence[Line] = (*REFERENCE, POUND),
     broker: Broker | None = None,
     back: Ask[datetime, tuple[Five, ...]] = _recent,
