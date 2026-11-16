@@ -1,7 +1,6 @@
 """conformance - THE CONFORMANCE TRADES, AS A COMMAND (his request, 14 November 2026):
 
-    python -m desk.paper --conformance london|us
-
+    python -m desk.paper --conformance london|us [--soak]
 One run for each market, in its hours, on the PAPER account, beside the desk's own book:
 the real broker is given the orders the desk's day will give it, through the desk's own send
 path (book.send), and each real result is recorded beside the pretend broker's
@@ -43,6 +42,7 @@ from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, timedelta
 from datetime import time as hour
 from decimal import Decimal
+from functools import partial
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -60,6 +60,7 @@ from desk import (
 )
 from desk.broker import Broker, Fault, Pretend
 from desk.command import CAPITAL
+from desk.conformance_soak import soak
 from desk.ended import action, reasons
 from desk.lines import LINES, Line
 from desk.listing import Listing
@@ -387,10 +388,12 @@ def main(
 ) -> int:
     """THE COMMAND LINE: its one line of answer printed, and 0 when all is well."""
     root = Path(env["KESTREL2_DATA"]) / ROOT
-    asks = list(argv) in [["--conformance", m] for m in MARKETS]
+    soaks = list(argv) in [["--conformance", m, "--soak"] for m in MARKETS]  #: one hourly round
+    asks = soaks or list(argv) in [["--conformance", m] for m in MARKETS]
     if not (asks or list(argv) == ["--conformance-why"]) or not root.is_absolute():
         raise SystemExit("python -m desk.paper --conformance london|us|-why, KESTREL2_DATA whole")
     paper.CLIENT = CLIENT  #: this process is the conformance desk's, at the door and in readings
-    good, line = trade(root, argv[1], clock) if asks else why(clock())
+    go = partial(soak, trade=trade) if soaks else trade  #: a soak records its round
+    good, line = go(root, argv[1], clock) if asks else why(clock())
     print(line)  # noqa: T201 - the command's answer to whoever asked
     return int(not good)
