@@ -1,6 +1,6 @@
 """tape - THE LADDER'S EXPENSIVE STAGE, KEPT (R-RUNNER-118): a rule's trades on a line, one file
-each, keyed by what made them (rule's code, engine's, bars), so an edited rung runs no simulation.
-Written whole or not at all: aside, forced to disk, renamed.
+each, stored compressed, keyed by what made them (rule's code, engine's, bars), so an edited
+rung runs no simulation. Written whole or not at all: aside, forced to disk, renamed.
 
 ONE SIMULATION PER LINE (R-RUNNER-169): a rule is run once on a line, from its first bar to its
 last, and every window (the first rung's, each fold's) is cut from that tape by date. A rule sees
@@ -12,6 +12,7 @@ from __future__ import annotations
 import hashlib
 import os
 import pickle
+import zlib
 from collections.abc import Callable, Iterator, Sequence
 from contextlib import contextmanager
 from functools import cache
@@ -42,13 +43,13 @@ def kept(folder: Path, run: Run, code_of: Callable[[str], str] = rule_code) -> R
         text = "\n".join((code_of(c.strategy), now.code, now.data, str(whole)))
         path = folder / f"{hashlib.sha256(text.encode()).hexdigest()}.tape"
         if path.exists():  # our own file, written whole by this module
-            held = Record(now, *pickle.loads(path.read_bytes()))  # noqa: S301
+            held = Record(now, *pickle.loads(zlib.decompress(path.read_bytes())))  # noqa: S301
         else:
             held = run(whole, bars)
             folder.mkdir(parents=True, exist_ok=True)
             aside = path.with_suffix(f".{os.getpid()}.new")  #: workers of a pass may share a tape
             with (fresh := aside).open("wb", buffering=0) as out:
-                out.write(pickle.dumps((held.bars, held.trades)))
+                out.write(zlib.compress(pickle.dumps((held.bars, held.trades))))
                 os.fsync(out.fileno())
             fresh.replace(path)
         return _cut(c, held, bars)

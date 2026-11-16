@@ -82,6 +82,7 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "desk/eponymous_minervini_breakout.py" = "Minervini's breakout from a Stage 2 uptrend (his Trend Template and pivot) as a rule under the one template, author, source and setting written down; not traded by the paper desk"
 "desk/eponymous_dan_zanger.py" = "Dan Zanger's heavy-volume base breakout as a rule under the one template, with its author, secondary source and published figure range; not traded by the paper desk"
 "desk/eponymous_weinstein_stage.py" = "Stan Weinstein's stage analysis (price above a rising 30-week average) as a rule under the one template, author, source and range of its setting written down; not traded by the paper desk"
+"desk/intraday.py" = "the one engine, intraday: a rule declares its bar span and decides on one session bar at a time; the backtest and the desk's step at a bar agree"
 "desk/day.py" = "the desk's day: run once for a date, publish one record, replay it"
 "desk/kill.py" = "the kill switch: one command stops every new order and cancels the working ones, the desk says so, and its drill"
 "desk/emergency.py" = "the three emergencies in numbers: an emergency, a crash and a black swan, each a measured fall set in advance, each with its action"
@@ -93,6 +94,7 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 
 # the paper lane
 "desk/goflat.py" = "go flat, a second kill level: a flag file halts all buying and each step sells every held line through the one send path until the operator lifts it"
+"desk/records_kept.py" = "the ledger and day records copied twice, each with its hashes, and a restore drilled each quarter"
 "desk/paper.py" = "the one door to the paper broker: the paper account's holdings and resting orders, read and set against the desk's book"
 "desk/t212.py" = "the one client for Trading 212, read-only by construction: an account's cash, holdings and order history, a fixed list of GET messages, no order or write call"
 "desk/listing.py" = "each line as the paper broker knows it: its contract there, its exchange, the unit of its prices and its price steps, asked through the one door"
@@ -142,6 +144,7 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "lab/reproduce.py" = "the author's own result: a published rule run on its author's market and period, counted as the author counted, and set beside the figure the author printed"
 "lab/promotion.py" = "before paper and after it: a candidate only with the ladder's pass and its kill condition written first, and promoted only on thirty effective paper trades, net positive"
 "lab/regime.py" = "periods and regimes: a strategy replayed in each period and each regime of the weather, kept for the regimes it earns in, and its trades outside them tagged"
+"lab/weather.py" = "the market weather: each session's regime named from the closes known at that session's close only; first layer, the trend state against the long average"
 "lab/rung_dsr.py" = "the ladder's seventh rung: the deflated Sharpe of a trial's gains against the best that luck gives among the number of trials it was picked from and their spread, both asked of the caller and never left out; the formula and bands read from lab/deflated.py"
 "lab/rung_regimes.py" = "the ladder's fifth rung: a cell's priced trades judged in two regime windows apart by the first rung's rule, and passed only when both pass; read from the tape"
 "lab/stress.py" = "the stress scenarios: a strategy's trades taken through the flash crashes and the 2020 crash, and what a black swan's overnight gap would cost it at its leverage, in pounds and never a pass"
