@@ -111,8 +111,8 @@ def _place(root: Path, broker: Broker, order: Order | Sale, tell: Tell | None) -
     going = root / GOING
     name, kept = f"{order.order_id}-stop", levels(root)  #: the broker may lose a buy's stop
     if isinstance(order, Order) and name not in kept:
-        _write(root / STOPS, [LEVELS, *kept.items(), (name, order.stop)])
-    _write(going, [(order.order_id,)])
+        keep(root / STOPS, [LEVELS, *kept.items(), (name, order.stop)])
+    keep(going, [(order.order_id,)])
     try:
         report = broker.place(order)
     except (Disconnected, Refused):
@@ -150,8 +150,7 @@ def _settle(root: Path, broker: Broker) -> None:
     """A DESK THAT DIED MID-SEND left its note (_place) and perhaps its order working, to fill
     behind a gate that counts the book alone: before any send the broker cancels the desk's
     own working orders, then the note is gone. While the kill switch is on it waits."""
-    going = root / GOING
-    if going.exists() and killed(root) is None:
+    if (going := root / GOING).exists() and killed(root) is None:
         tuple(broker.cancel())
         going.unlink()
 
@@ -171,13 +170,12 @@ def levels(root: Path) -> dict[str, Decimal]:
 def turn(root: Path, to: Switch, at: datetime, why: str) -> None:
     """Write on the kill switch's record what happened to it, when (UTC), and why."""
     record = (*switch(root), _turn(at, to, why))
-    _write(root / SWITCH, [TURNS, *((t.isoformat(), s.value, w) for t, s, w in record)])
+    keep(root / SWITCH, [TURNS, *((t.isoformat(), s.value, w) for t, s, w in record)])
 
 
 def switch(root: Path) -> tuple[tuple[datetime, Switch, str], ...]:
     """The kill switch's record, oldest first; one not readable whole is an error, never off."""
-    path = root / SWITCH
-    if not path.exists():
+    if not (path := root / SWITCH).exists():
         return ()
     with path.open(newline="", encoding="utf-8") as record:
         rows = list(csv.reader(record))
@@ -218,8 +216,7 @@ def killed(root: Path) -> str | None:
 
 def fills(root: Path) -> tuple[Fill, ...]:
     """Every fill the desk has recorded, in the order it learned of them."""
-    path = root / LEDGER
-    if not path.exists():
+    if not (path := root / LEDGER).exists():
         return ()
     with path.open(newline="", encoding="utf-8") as ledger:
         rows = csv.reader(ledger)
@@ -230,13 +227,16 @@ def fills(root: Path) -> tuple[Fill, ...]:
         )
 
 
-def _write(path: Path, rows: Iterable[Sequence[object]]) -> None:
-    """Written whole, then swapped in, so a desk that dies mid-write leaves the old file."""
+def keep(path: Path, rows: Iterable[Sequence[object]]) -> None:
+    """The desk's one keeper of dated records: written whole, then swapped in, never half-read."""
     path.parent.mkdir(parents=True, exist_ok=True)
     written = path.with_suffix(".tmp")
     with written.open("w", newline="", encoding="utf-8") as out:
         csv.writer(out).writerows(rows)
     written.replace(path)
+
+
+_write = keep  # old name, for other lanes' callers until they move
 
 
 def _revision(execution_id: str) -> tuple[str, int]:
@@ -253,7 +253,7 @@ def _record(root: Path, new: Iterable[Fill]) -> None:
         name = _revision(fill.execution_id)[0]
         latest[name] = max(latest.get(name, fill), fill, key=lambda f: _revision(f.execution_id)[1])
     if tuple(latest.values()) != tuple(kept):
-        _write(root / LEDGER, [COLUMNS, *(astuple(fill) for fill in latest.values())])
+        keep(root / LEDGER, [COLUMNS, *(astuple(fill) for fill in latest.values())])
 
 
 def collect(root: Path, broker: Broker) -> None:
@@ -319,7 +319,7 @@ def record_rates(root: Path, day: date, rates: Mapping[str, Decimal]) -> None:
             raise ValueError(f"{day}: a rate of {rate} pounds per {currency}")
         if kept.setdefault((day, currency), rate) != rate:
             raise ValueError(f"{day}: {currency} was kept at {kept[day, currency]}, not {rate}")
-    _write(root / RATES, [("day", "currency", "rate"), *((*key, r) for key, r in kept.items())])
+    keep(root / RATES, [("day", "currency", "rate"), *((*key, r) for key, r in kept.items())])
 
 
 def _rates(root: Path) -> dict[tuple[date, str], Decimal]:
