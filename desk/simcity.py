@@ -8,7 +8,6 @@ promise broken in a world, turns the night red and names the world."""
 
 from __future__ import annotations
 
-import cProfile
 import csv
 import random
 from collections import Counter
@@ -20,12 +19,13 @@ from decimal import Decimal
 from itertools import chain, pairwise
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from types import CodeType, ModuleType
+from types import ModuleType
 
-from desk import book, broker, day, halt, kill, orders, strategy
+from desk import book, book_diff, broker, day, halt, kill, orders, strategy
 from desk.broker import Crash, Fault, Pretend, Report
 from desk.lines import YARDSTICK, Line
 from desk.orders import HOLDINGS, Order, Sale, Settings, pennies
+from desk.simcity_census import Census
 from desk.store import Bar
 from desk.strategy import Action
 
@@ -38,7 +38,7 @@ HEADER = (
     *("deaths", "withheld", "trips", "profit", "market", "idle", "bare", "broken"),
 )
 #: THE MONEY PATH: the modules an order travels through, from a rule's decision to the record.
-PATH: tuple[ModuleType, ...] = (strategy, orders, broker, book, day, kill)
+PATH: tuple[ModuleType, ...] = (strategy, orders, broker, book, book_diff, day, kill)
 WORLDS = range(100)  #: a night's worlds, each named by the number that seeds its every draw
 MONTH = 20  #: sessions of a line's that stay together, in their saved order, in every world
 FAULTY = 4  #: of the orders at the broker's door, one in so many finds a fault waiting
@@ -101,47 +101,6 @@ class Night:
         )
 
 
-def parts() -> dict[CodeType, str]:
-    """THE PARTS: all a module of the money path offers by name, each function and each method
-    or property of its classes; not an underscore name, nor a Protocol's wording."""
-    found: dict[CodeType, str] = {}
-    for module in PATH:
-        for name, thing in vars(module).items():
-            own = getattr(thing, "__module__", None) == module.__name__
-            if name.startswith("_") or not own or getattr(thing, "_is_protocol", False):
-                continue
-            members = vars(thing).items() if isinstance(thing, type) else ((name, thing),)
-            for inner, member in members:
-                for wrapper in ("fget", "__wrapped__"):  #: a property; a class's or static method
-                    member = getattr(member, wrapper, member)
-                code = getattr(member, "__code__", None)
-                if isinstance(code, CodeType) and not inner.startswith("_"):
-                    found[code] = f"{module.__name__.rpartition('.')[2]}.{code.co_qualname}"
-    return found
-
-
-class _Census:
-    """THE CENSUS, MEASURED: the profiler sees every call made while a scenario is in force."""
-
-    def __init__(self) -> None:
-        self._parts = parts()
-        self.ran: dict[str, set[str]] = {name: set() for name in sorted(self._parts.values())}
-        self._profile = cProfile.Profile(subcalls=False, builtins=False)
-        self.scenario: str | None = None
-
-    def now(self, scenario: str | None) -> None:
-        """From here every call is this scenario's; with none, the watching ends."""
-        if self.scenario is not None:
-            self._profile.disable()
-            for code in (entry.code for entry in self._profile.getstats()):
-                if isinstance(code, CodeType) and code in self._parts:
-                    self.ran[self._parts[code]].add(self.scenario)
-            self._profile.clear()
-        self.scenario = scenario
-        if scenario is not None:
-            self._profile.enable()
-
-
 def _market(archive: Archive, rng: random.Random) -> dict[Line, tuple[Bar, ...]]:
     """A WORLD'S MARKET: every saved line on its own days from its own first bar, each bar's shape
     kept against the close before it, to the penny; the days dealt again a MONTH at a time."""
@@ -191,7 +150,7 @@ class _Life:
     """One desk's life in one world: its market, its broker, and its promises kept or not."""
 
     def __init__(
-        self, desk: Path, archive: Archive, room: Settings, rates: Rates, seed: int, census: _Census
+        self, desk: Path, archive: Archive, room: Settings, rates: Rates, seed: int, census: Census
     ) -> None:
         self.desk, self.room, self.rates, self.seed, self.census = desk, room, rates, seed, census
         self.rng = random.Random(seed)  # noqa: S311 - a repeatable draw, not a secret
@@ -301,7 +260,7 @@ def run(
             rows = list(csv.reader(kept))
         if rows[:1] != [list(HEADER)]:
             raise ValueError(f"{path}: not SimCity's nights")
-    census, lives, seed = _Census(), list[_Life](), None
+    census, lives, seed = Census(PATH), list[_Life](), None
     try:
         census.now(RULES)
         alone = strategy.decide({line.symbol: bars for line, bars in archive.items()})
@@ -365,7 +324,7 @@ def _live(life: _Life) -> None:
 
 
 def _night(
-    at: datetime, lives: Sequence[_Life], census: _Census, alone: Sequence[strategy.Decision]
+    at: datetime, lives: Sequence[_Life], census: Census, alone: Sequence[strategy.Decision]
 ) -> Night:
     """What the worlds came to: a promise broken is named once, with its worlds."""
     records = [record for life in lives for record in life.records]

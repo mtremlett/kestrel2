@@ -81,6 +81,7 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "desk/broker.py" = "the pretend broker the desk trades against in simulation"
 "desk/book.py" = "the ledger of fills under the broker's ids, and the book built from the broker"
 "desk/book_parts.py" = "the ledger's lower parts: the one keeper of dated records, the kill switch's record and the day's pounds per currency; desk.book gives them to its callers"
+"desk/book_diff.py" = "the book against a broker: the one comparison of the book with a broker's holdings or resting stops, and the Difference it names; desk.book gives both to its callers"
 "desk/carry.py" = "the pound's rate on a day London is shut and the US trades: the last London session's carried over, at most three US sessions"
 "desk/eponymous_bands.py" = "the eponymous channel rules (Donchian's four-week breakout), each a rule under the strategy template, authors and sources written down; the paper desk does not trade them"
 "desk/eponymous_minervini_breakout.py" = "Minervini's breakout from a Stage 2 uptrend (his Trend Template and pivot) as a rule under the one template, author, source and setting written down; not traded by the paper desk"
@@ -93,6 +94,7 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "desk/halt.py" = "what stops the desk buying: the halt, a typed record in force until it is lifted and said every day, and the blockers, every one named, with each morning's list of the signals each blocked"
 "desk/watch.py" = "the crash watch: one look every five minutes reads each trading line's newest bar, and a fall that is one of the three emergencies halts all buying at once, tells him and records why; it lifts its own halt when the market ends a day clear"
 "desk/simcity.py" = "SimCity, small: one command lives the desk's whole day over all the saved data at the pretend broker with its faults and writes the night's one record, with the census of the money path's parts and the scenarios that ran them"
+"desk/simcity_census.py" = "SimCity's census: each part of the money path and the scenarios that ran it, measured by a profiler"
 "desk/simcitycmd.py" = "SimCity's command line: the saved store lived in a night of worlds (all with --full) as the runner asks, the night's words printed, the code 1 for a red night"
 "desk/eponymous_breakouts.py" = "rules named for their authors, ported one at a time under the strategy template and judged on the ladder, never traded by the paper desk: Darvas's box"
 
