@@ -18,6 +18,9 @@ from desk.strategy import Action, Decision
 #: the capital counted at what the line controls, and a stop where its market has fallen 10%.
 HOLDINGS = 5
 STOP_FALL = Decimal("0.10")
+#: STP-10, the one home (R-RUNGS-11, docs/DECISIONS.md): the most of the capital one holding may
+#: lose when a gap jumps its stop; the stop alone risks STOP_FALL / HOLDINGS of it (2%).
+GAP_LOSS = Decimal("0.05")
 
 
 @dataclass(frozen=True)
