@@ -46,6 +46,7 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
+from functools import partial
 from pathlib import Path
 from typing import TypeVar
 
@@ -57,6 +58,7 @@ from desk.store import Bar, Parked, Refused
 #: In the data folder: each venue's record of its last refresh (no prices: the bars are in the
 #: store's two databases), and the store's short database, its long one beside it.
 DAILY, HOT = "daily", bars.LIVE
+MARKS = "reference"  #: beside a venue's record, the day each reference series was last kept
 CRLF = bytes((13, 10))  #: a Windows checkout's line ending, not part of the rules
 RECORD = "kept.json"  #: in each venue's folder of the daily store: its last refresh
 #: THE STORE RULES' VERSION: a hash of desk/store.py. A refresh records the version it cleaned
@@ -75,6 +77,7 @@ RECENT = timedelta(days=7)  #: how far back a five-minute round asks: the week k
 #: its thirty seconds, and the bars written, still end within the runner's four minutes.
 SPENT = 150.0
 DAY = timedelta(days=1)
+ANCIENT = partial(archive.fetch, since=archive.REFERENCE_SINCE)  #: the reference series' ask
 When = TypeVar("When")
 Read = TypeVar("Read")
 Ask = Callable[[Line, When], Read]
@@ -247,19 +250,16 @@ def pound(home: Path, day: date) -> Decimal:
     """THE DAY'S POUNDS PER DOLLAR, for any session, from the pound's closes kept before the day
     (desk.carry's one rule: one over the last close, carried over a UK-only holiday). Stale where
     the store holds none fresh enough: no dollar line is priced on it."""
-    folder = home / DAILY / POUND.venue
-    kept = (folder / archive.REFERENCE_FOLDER / f"{POUND.symbol}.csv").is_file()
-    held = archive.read_reference(folder, POUND.symbol) if kept else ()
+    try:
+        held = bars.daily(home / HOT, POUND)
+    except (LookupError, FileNotFoundError):  # never kept: no close is held
+        held = ()
     closes = {bar.day: bar.close for bar in held if DOLLARS[0] < bar.close < DOLLARS[1]}
     last = venues.sessions("LSE", day - 10 * DAY, day - DAY)[-1:]
     known = {d: r for d in (day, *last) if (r := carry.pounds_per_dollar(closes, d))}
     if (rate := carry.carried(known, day)) is None:
         raise Stale(f"no pound in dollars is held fresh for {day}: {len(closes)} closes kept")
     return rate
-
-
-def _ancient(line: Line, day: date) -> tuple[Bar, ...]:
-    return archive.fetch(line, day, since=archive.REFERENCE_SINCE)
 
 
 def _reference(
@@ -272,18 +272,17 @@ def _reference(
         return told
     for line in series:
         folder = home / DAILY / line.venue
-        mark = folder / archive.REFERENCE_FOLDER / f"{line.symbol}.kept"
+        mark = folder / MARKS / f"{line.symbol}.kept"
         if mark.is_file() and mark.read_text(encoding="utf-8") == day.isoformat():
             continue
         answer = archive.gather([line], day, ask)[line]
         if isinstance(answer, Refused):
             told.append(f"{line.symbol}: reference series not kept: {answer.reason}")
             continue
-        faults = archive.keep_reference(folder, line, answer)
+        faults = archive.keep_reference(home / HOT, line, answer)
+        mark.parent.mkdir(parents=True, exist_ok=True)
         mark.write_text(day.isoformat(), encoding="utf-8")
-        told.append(
-            f"{line.symbol}: reference series kept before {day}, {len(faults)} faults listed"
-        )
+        told.append(f"{line.symbol}: reference kept before {day}, {len(faults)} faults listed")
     return told
 
 
@@ -353,7 +352,7 @@ def keep(
     daily: Ask[date, tuple[Bar, ...]] = archive.fetch,
     five: Ask[datetime, tuple[Five, ...]] | None = None,
     clock: Callable[[], float] = time.monotonic,
-    ancient: Ask[date, tuple[Bar, ...]] = _ancient,
+    ancient: Ask[date, tuple[Bar, ...]] = ANCIENT,
     series: Sequence[Line] = (*REFERENCE, POUND),
     broker: Broker | None = None,
     back: Ask[datetime, tuple[Five, ...]] = _recent,

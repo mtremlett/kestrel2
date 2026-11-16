@@ -9,7 +9,7 @@ from urllib.parse import parse_qs, urlparse
 
 import pytest
 
-from desk import archive, store
+from desk import archive, bars, store
 from desk.store import Bar
 from lab import universe
 
@@ -33,7 +33,7 @@ def test_spy_is_kept_from_its_first_session_as_a_reference_and_is_no_traded_line
     assert asked == [(date(2026, 11, 13), date(1993, 1, 29))]
     (line,) = kept
     assert line.symbol == "SPY"
-    assert archive.read_reference(tmp_path / "US", "SPY") == (FIRST, NEXT)
+    assert bars.daily(tmp_path / bars.LIVE, line) == (FIRST, NEXT)
     assert [fault.day for fault in kept[line]] == [SUNDAY.day]
     with pytest.raises(FileNotFoundError):
         store.read(tmp_path / "US", "SPY")  # a traded read finds no such line

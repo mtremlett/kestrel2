@@ -26,7 +26,7 @@ from statistics import median
 
 import numpy as np
 
-from desk import archive, store, venues
+from desk import archive, bars, store, venues
 from desk.lines import LINES, NO_TAX, STAMP_DUTY, Line
 from desk.store import Bar, Fault, Parked
 
@@ -156,10 +156,11 @@ def keep_reference(
     ask: Callable[..., tuple[Bar, ...]] = archive.fetch,
 ) -> dict[Line, tuple[Fault, ...]]:
     """Fetch each reference series from the archive's reach back to its first session, before
-    day, and keep it in its venue's folder at root as traded, with the faults found."""
+    day, and keep it in the long database beside the live file at root as traded, with the
+    faults found."""
     return {
         line: archive.keep_reference(
-            root / line.venue, line, ask(line, day, since=archive.REFERENCE_SINCE)
+            root / bars.LIVE, line, ask(line, day, since=archive.REFERENCE_SINCE)
         )
         for line in REFERENCE
     }
