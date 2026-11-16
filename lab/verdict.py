@@ -245,10 +245,10 @@ def _n(number: Decimal | float | None) -> str:
 
 
 def goes(row: Row) -> bool:
-    """A cell goes forward when its one verdict is PASS, every rung run passed and no rung is
-    named unrun: passing the rungs that happen to be built is not passing the ladder."""
+    """A cell goes forward when its one verdict is PASS, every rung run passed and its row says
+    that no rung is unrun: passing the rungs that happen to be built is not passing the ladder."""
     passed = row.get("answer") == Answer.PASS.name and bool(row.get("every"))
-    return passed and not row.get("unrun")
+    return passed and row.get("unrun") == {}
 
 
 def by_rule(rows: Sequence[Row], rules: Sequence[str]) -> dict[str, list[Row]]:
@@ -293,7 +293,7 @@ def write_table(
     data |= {"rules": [_rule(r, rs) for r, rs in mine.items()]}
     (folder / f"{tag}.json").write_text(json.dumps(data, indent=1), encoding="utf-8")
     #: the register is never shortened: a trial an earlier run of the set entered stays counted
-    said = f"{len(rows)} cells, judged against {count} trials, every one its register ever held."
+    said = f"Cells: {len(rows)}. Each is judged against {count} trials, all its register ever held."
     out = [f"# SET {tag} - {STATUS}", "", f"{question} {said}", ""]
     out += [f"{STATUS}: not final until the blind review (R-RUNNER-40) is clean.", ""]
     for rule, rs in mine.items():

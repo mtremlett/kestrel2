@@ -104,7 +104,7 @@ FIRST = Plan(1, QUESTION, "set1")
 #: A cell that waits on data is tried again no sooner than this after its last try.
 RETRY = timedelta(minutes=30)
 FAILED = (ValueError, OSError, keeper.Stale)  #: what may leave a cell unjudged; all else is a bug
-UNWIRED = "the ladder does not yet judge these rungs, whose modules declare no RUNG"
+UNWIRED = "the ladder does not yet judge by these modules, which declare no RUNG"
 
 
 def cells() -> tuple[Cell, ...]:
@@ -298,7 +298,8 @@ def _one(
         rates = (f"{d} {pounds[d]}" for d in days)
         parts = [mine.code, CODE, mine.data, market, pool.data, str(count), *rates]
         parts += [one.key.code + one.key.data for one in made]
-        parts += [one.name + one.code for one in rung.found(RUNGS)[0]]
+        declared, waiting = rung.found(RUNGS)  #: both are in the row, so both are in its key
+        parts += [one.name + one.code for one in declared] + list(waiting)
         head |= {"reproduction": [reproduce.said(one) for one in made]} if made else {}
         key = hashlib.sha256(";".join(parts).encode()).hexdigest()
         if was is not None and was.get("key") == key and not _due(was, now):
@@ -335,8 +336,8 @@ def _declared(
     declared, waiting = rung.found(RUNGS)
     if "trades" not in judged:
         return judged
-    names = ", ".join(name.rpartition(".rung_")[2] for name in waiting)
-    unrun = judged["unrun"] | ({"unwired": f"{UNWIRED}: {names}"} if waiting else {})
+    modules = ", ".join(name.rpartition(".")[2] for name in waiting)
+    unrun = judged["unrun"] | ({"unwired": f"{UNWIRED}: {modules}"} if waiting else {})
     rungs = dict(judged["rungs"])
     for one in declared:
         answer, reason = one.judge(pool.firsts.get(c) or verdict.ready(c, own, pounds, made))

@@ -1,5 +1,5 @@
 """The rung registry: a `rung_*` module that declares its rung is found by its name and judged
-by the ladder with no edit of `lab/ladder.py`; with none declared its rows are as they were."""
+by the ladder with no edit of `lab/ladder.py`; one that declares none is named unrun."""
 
 from __future__ import annotations
 
