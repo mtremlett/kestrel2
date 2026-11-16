@@ -17,7 +17,7 @@ from functools import partial
 
 from desk.eponymous_clenow_momentum import YEAR
 from desk.store import Bar
-from desk.strategy import ZERO, _Window
+from desk.strategy import ZERO, _Wilder, _Window, rsi
 from lab.block_base import Block, Kind, Param, Spot
 
 
@@ -200,6 +200,24 @@ class _Keltner(Block):
         return bar.close > centre + width if self._upper else bar.close < centre - width
 
 
+class RsiUnder(Block):
+    """Fires when Wilder's `n`-bar RSI of the close, this bar's included, is under `pct`; with
+    no loss in the window it is 100, and an RSI of exactly `pct` is not under."""
+
+    def __init__(self, n: int, pct: int) -> None:
+        self._gain, self._loss, self._under = _Wilder(n), _Wilder(n), Decimal(pct)
+        self._last: Decimal | None = None
+
+    def see(self, bar: Bar, holding: bool) -> bool:  # noqa: ARG002 - the one interface of every block
+        """Shown the next bar: whether the block fires."""
+        last, self._last = self._last, bar.close
+        if last is None:
+            return False
+        gain = self._gain.add(max(bar.close - last, ZERO))
+        loss = self._loss.add(max(last - bar.close, ZERO))
+        return gain is not None and loss is not None and rsi(gain, loss) < self._under
+
+
 class CloseUnderCloseAgo(Block):
     """Fires on a close under the close `n` bars before: a loser of the last `n` sessions."""
 
@@ -342,6 +360,7 @@ BLOCKS: Mapping[str, Spot] = {
     "close_at_range_low": Spot(Kind.ENTRY, CloseAtRangeLow, {"n": _DAYS}),
     "close_over_keltner_band": Spot(Kind.ENTRY, partial(_Keltner, upper=True), {"n": _DAYS}),
     "close_under_keltner_band": Spot(Kind.EXIT, partial(_Keltner, upper=False), {"n": _DAYS}),
+    "rsi_under": Spot(Kind.ENTRY, RsiUnder, {"n": _DAYS, "pct": _PCT}),
     "close_under_close_ago": Spot(Kind.ENTRY, CloseUnderCloseAgo, {"n": _DAYS}),
     "close_at_midpoint": Spot(Kind.EXIT, CloseAtMidpoint, {"n": _DAYS}),
     "close_near_range_low": Spot(Kind.ENTRY, CloseNearRangeLow, {"n": _DAYS, "pct": _PCT}),

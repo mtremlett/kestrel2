@@ -107,6 +107,13 @@ FLAT = [(11, 9, 10)] * 3
             {"n": 3, "pct": 10},
             "0010",
         ),
+        (
+            "rsi_under",
+            [(c, c, c) for c in (10, 11, 12, 9, 8, 5)],
+            False,
+            {"n": 2, "pct": 10},
+            "000001",
+        ),
         ("no_exit", FLAT, True, {}, "000"),
         ("no_filter", FLAT, False, {}, "111"),
     ],
