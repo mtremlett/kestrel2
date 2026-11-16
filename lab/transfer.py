@@ -64,7 +64,8 @@ class Row:
     setting: Setting
     line: str
     t: Decimal | None
-    answer: str | None  #: None where the cell could not be judged
+    answer: str | None  #: None where the cell could not be judged; REFUSED where sizing declined
+    refusal: str | None = None  #: the words of the desk's refusal, for a REFUSED answer
 
 
 @dataclass(frozen=True)
@@ -89,8 +90,10 @@ def _row(family: Family, fitted: Line | None, setting: Setting, line: Line, scor
     found = score(family.named(setting), line)
     on = f"{line.symbol} on {line.venue}"
     at = None if fitted is None else f"{fitted.symbol} on {fitted.venue}"
-    t, answer = (None, None) if found is None else (found.t, found.answer.name)
-    return Row(family.rule, at, setting, on, t, answer)
+    if found is None:
+        return Row(family.rule, at, setting, on, None, None)
+    answer = "REFUSED" if found.refused else found.answer.name
+    return Row(family.rule, at, setting, on, found.t, answer, found.refusal)
 
 
 def study(kinds: Sequence[Family], lines: Sequence[Line], score: Score) -> Study:
@@ -151,7 +154,8 @@ def report(done: Study, lines: int) -> tuple[str, dict[str, Any]]:
     """The study as a page and as data, both labelled."""
     table = ["| rule | fitted on | setting | scored on | t | answer |", "|---|---|---|---|---|---|"]
     for r in done.rows:
-        cells = (r.rule, r.fitted or "as published", r.setting, r.line, r.t, r.answer)
+        answer = f"REFUSED: {r.refusal}" if r.refusal else r.answer
+        cells = (r.rule, r.fitted or "as published", r.setting, r.line, r.t, answer)
         table.append("| " + " | ".join(str(c) for c in cells) + " |")
     head = [f"# Grid transfer study ({LABEL})", "", counts(done, lines), ""]
     rows = [
