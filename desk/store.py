@@ -318,29 +318,38 @@ def _write(path: Path, header: Sequence[str], rows: Iterable[Sequence[object]]) 
     part.replace(path)
 
 
+Answer = Sequence[Bar] | Refused  #: what the archive gave for a line
+Older = Sequence[Bar] | None  #: a line's older bars, joined to an answer
+
+
+def judge(
+    line: Line, answer: Answer, day: date, rates: Rates = NO_RATES, shelf: Older = None
+) -> tuple[list[Bar], list[Fault], Parked | None]:
+    """THE ONE JUDGEMENT of a line's bars, wherever they are kept: those that can be true, every
+    fault found and, if one is recent or lasting, the line parked, ready to trade on day. A
+    line the archive refused keeps no bars, so none from an earlier day can be read as today's."""
+    since = venues.sessions(line.venue, day - timedelta(100), day - timedelta(1))[-RECENT]
+    if isinstance(answer, Refused):
+        kept: list[Bar] = []
+        faults = [Fault(day, f"the archive refused it: {answer.reason}")]
+    else:
+        kept, faults = _clean(line, _joined(shelf, answer), day, since, rates)
+    recent = [f.what for f in faults if f.lasting or f.day >= since]
+    return kept, faults, Parked(line.symbol, "; ".join(recent), day) if recent else None
+
+
 def prepare(
-    root: Path,
-    archive: Mapping[Line, Sequence[Bar] | Refused],
-    day: date,
-    rates: Rates = NO_RATES,
+    root: Path, archive: Mapping[Line, Answer], day: date, rates: Rates = NO_RATES
 ) -> tuple[Parked, ...]:
-    """Clean the archive's bars into the store at root, ready to trade on day. A line the
-    archive refused keeps no bars, so none from an earlier day can be read as today's. The
-    pound's closes in dollars, when given, tell a change of currency from a market's move."""
+    """Clean the archive's bars into the CSV store at root, ready to trade on day."""
     root.mkdir(parents=True, exist_ok=True)
-    parked = []
-    for line, bars in archive.items():
-        since = venues.sessions(line.venue, day - timedelta(100), day - timedelta(1))[-RECENT]
-        if isinstance(bars, Refused):
-            kept: list[Bar] = []
-            faults = [Fault(day, f"the archive refused it: {bars.reason}")]
-        else:
-            kept, faults = _clean(line, _joined(root, line, bars), day, since, rates)
+    parked: list[Parked] = []
+    for line, answer in archive.items():
+        older = _load(path) if (path := root / HISTORY / f"{line.symbol}.csv").is_file() else None
+        kept, faults, park = judge(line, answer, day, rates, older)
         _write(root / f"{line.symbol}.csv", COLUMNS, (astuple(bar) for bar in kept))
         _write(root / f"{line.symbol}.faults.csv", ("fault",), ((f.what,) for f in faults))
-        recent = [f.what for f in faults if f.lasting or f.day >= since]
-        if recent:
-            parked.append(Parked(line.symbol, "; ".join(recent), day))
+        parked += [park] if park else []
     return tuple(parked)
 
 
@@ -366,18 +375,16 @@ def shelve(root: Path, line: Line, bars: Iterable[Bar]) -> None:
     _write(root / HISTORY / f"{line.symbol}.csv", COLUMNS, (astuple(bar) for bar in bars))
 
 
-def _joined(root: Path, line: Line, bars: Sequence[Bar]) -> list[Bar]:
+def _joined(shelf: Older, bars: Sequence[Bar]) -> list[Bar]:
     """The archive's bars and, for each day it gives none, the line's shelved bar. A frozen
     run in the archive's bars is its filler, not a price it gives: with a shelf, none of it is
     kept, so a shelved bar fills its days and any day the shelf lacks is a missing session."""
-    shelved = root / HISTORY / f"{line.symbol}.csv"
-    if not shelved.is_file():
+    if shelf is None:
         return list(bars)
     real = set(_thawed(bars, []))
     given = [bar for bar in bars if bar in real]
     held = {bar.day for bar in given}
-    older = (bar for bar in _load(shelved) if bar.day not in held)
-    return sorted([*older, *given], key=lambda bar: bar.day)
+    return sorted([*(bar for bar in shelf if bar.day not in held), *given], key=lambda b: b.day)
 
 
 def read(root: Path, symbol: str) -> tuple[Bar, ...]:

@@ -72,7 +72,7 @@ RULES: dict[str, tuple[Make, Line, str]] = {  # rule site -> (synthetic archive,
     "_clean:1": (lambda b: [*b[:5], replace(b[5], volume=-1), *b[6:]], US, "cannot be"),
     "_clean:2": (lambda _: [], US, "every session missing"),
     "_clean:3": (lambda b: [*b[:-6], *b[-5:]], US, "sessions missing"),
-    "prepare:1": (lambda _: Refused("HTTP Error 404"), US, "the archive refused it"),
+    "judge:1": (lambda _: Refused("HTTP Error 404"), US, "the archive refused it"),
 }
 KNOBS = {  # every tuning constant of the store, with the value it is judged by
     "JUMP": Decimal("1.6"), "STRETCH": Decimal("0.03"), "RECENT": 60, "BLIP": 20, "FROZEN": 5,
