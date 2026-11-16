@@ -42,7 +42,6 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "desk/archive.py" = "the one client for the free price archive: a line's daily bars, checked on entry"
 "desk/history.py" = "the one client for the broker's historical bars: a line's daily bars asked of the paper gateway read-only as its own client, paced inside the broker's limit, never in a desk round"
 "desk/store.py" = "the one price store and its one writer: bars cleaned on entry, bad lines parked"
-"desk/store_fx.py" = "when a step in a line's close is a change of currency: the pound's rate and a step as large as it that lasts, never a crash that recovers"
 "desk/bars.py" = "the one fast store for hot and deep bars: one SQLite file, the one writer's whole rounds, many readers"
 "desk/audit.py" = "the store's read-only audit: every line the two databases hold re-checked through the checks that let its bars in, counts and faults by kind in one line"
 "desk/compare.py" = "how an old store's bars meet the bars the store holds: agreeing, the adjusted form of the raw as-traded bar (a factor, never written over it), or a real disagreement counted by day"

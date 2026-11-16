@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 from test_store import DAY, LONG, US, _bars, _scaled
 
-from desk import store, store_fx
+from desk import store
 from desk.lines import Line
 from desk.store import Bar, Refused
 
@@ -107,10 +107,10 @@ def test_every_rule_in_the_store_is_pinned_by_a_row_that_fires_it() -> None:
 
 
 def test_every_tuning_constant_of_the_store_is_pinned_to_its_value() -> None:
-    names = {k for k in (*vars(store), *vars(store_fx)) if k.isupper() and not k.startswith("_")}
+    names = {k for k in vars(store) if k.isupper() and not k.startswith("_")}
     names -= {"COLUMNS", "NO_RATES", "UNRECORDED", "ASTRAY", "FAR"}  # derived or wording
     assert names == set(KNOBS), "a constant was added or dropped without a row in KNOBS"
-    assert {k: (vars(store) | vars(store_fx))[k] for k in KNOBS} == KNOBS
+    assert {k: vars(store)[k] for k in KNOBS} == KNOBS
 
 
 @pytest.mark.parametrize("site", sorted(RULES))
