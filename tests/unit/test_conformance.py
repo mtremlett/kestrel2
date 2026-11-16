@@ -20,7 +20,7 @@ from desk.listing import Listing, Unlisted
 from desk.orders import Order, Sale
 from desk.store import Bar
 
-MON, FRI = datetime(2026, 11, 16, 8, 5, tzinfo=UTC), date(2026, 11, 13)
+MON, FRI = datetime(2026, 11, 16, 10, 5, tzinfo=UTC), date(2026, 11, 13)
 ISF, VUAG, SPY = (next(x for x in LINES if x.symbol == s) for s in ("ISF", "VUAG", "SPY"))
 FX = {"GBP": Decimal(1), "USD": Decimal("0.8")}
 #: Friday's close and shares traded: VUAG traded the most money, 44 million pounds to ISF's 30
@@ -54,6 +54,7 @@ WHY = {"20261113-conf0lse-SPY": "Rejected: no retail trading", "20261113-conf1ls
 @pytest.fixture(autouse=True)
 def _the_desks_own_client_again(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(paper, "CLIENT", paper.CLIENT)  # the command makes it its own: put back
+    monkeypatch.setattr(paper, "APART", None)
 
 
 def _fetch(line: Line, before: date) -> tuple[Bar, ...]:
@@ -190,12 +191,38 @@ def test_the_real_stop_is_put_above_the_price_paid_and_sold_or_not_the_line_is_l
     assert len(settled) == 6
 
 
+converse = paper.converse  # the account read, apart from the gateway's knock (gateway.known)
+
+
+def _desk(
+    shares: int = 5, *, moves: bool = False, stops: bool = True, holds: bool = True
+) -> Callable[[object], paper.Account | None]:
+    """The account as the gateway gives it: the desk holds VUAG, and its
+    stop rests; read again after the run, a holding of the desk's has moved, or not."""
+    held = [paper.Holding("DU1", "VUAG", "STK", "GBP", Decimal(shares))][: int(holds)]
+    left, at = Decimal(shares), Decimal(100)
+    stop = paper.Resting(
+        "1", "9", "222", "DU1", "VUAG", "SELL", left, "STP", "3", "d", "P", left, at
+    )
+    reads = iter(
+        [
+            paper.Account(tuple(held), (stop,) * stops),
+            paper.Account(() if moves else tuple(held), ()),
+        ]
+    )
+    return (
+        lambda talk: next(reads, paper.Account(tuple(held), (stop,) * stops))
+        if talk is converse
+        else None
+    )
+
+
 def _world(
     patch: pytest.MonkeyPatch, found: tuple[str, ...] = (), sells: bool = True, late: bool = False
 ) -> Pretend:
     """The archive, a Gateway that greets, a check that names what is given, and the pretend
     broker at the paper broker's door, its stop selling when the market is made to reach it."""
-    broker = _market(_plan(patch), VUAG, SPY)
+    broker = _market(_plan(patch), VUAG, SPY, ISF)
 
     def fall(order: Order) -> None:
         if late:  # the stop sold, and the step failed all the same: nothing is left to put back
@@ -205,7 +232,7 @@ def _world(
         broker.open(MON.date() + timedelta(days=1))
 
     patch.setattr(command, "rates", lambda _root, _day: FX)
-    patch.setattr(paper, "dial", lambda _talk: None)
+    patch.setattr(paper, "dial", lambda _talk: paper.Account((), ()))
     patch.setattr(listing, "read", lambda _lines: LISTED)
     patch.setattr(clearance, "check", lambda _root, now: clearance.Check(now, found))
     patch.setattr(placing, "Paper", lambda _listings, _root, _clock: broker)
@@ -231,7 +258,7 @@ def test_the_command_records_each_real_result_beside_the_pretend_brokers_once(
 ) -> None:
     _world(monkeypatch)
     assert _run(tmp_path, MON, "london") == 0
-    record = tmp_path / "conformance" / "trades-london-20261116.csv"
+    record = tmp_path / "conformance" / "trades-london-20261116-1005.csv"
     assert f"6 of 6 steps done on VUAG, each recorded beside the pretend broker's in {record}." in (
         capsys.readouterr().out
     )
@@ -246,13 +273,15 @@ def test_the_command_records_each_real_result_beside_the_pretend_brokers_once(
     ]
     assert paper.CLIENT == conformance.CLIENT == 223  # a client of its own, never the desk's 222
     assert book.switch(record.parent)[-1][:2] == (MON, book.Switch.DRILLED)  # the day's own drill
-    monkeypatch.setattr(paper, "dial", _never)  # recorded whole: never again, and nothing asked
-    assert _run(tmp_path, MON + timedelta(days=1), "london") == 0
-    assert _run(tmp_path, MON, "us") == 0  # New York is shut at 08:05
+    monkeypatch.setattr(paper, "dial", _never)  # nothing asked when nothing is to be done
+    assert _run(tmp_path, MON, "us") == 0  # New York is shut at 10:05
     assert _run(tmp_path, MON.replace(hour=16, minute=30), "london") == 0  # the closing auction
+    for near in ((14, 26), (14, 40)):  # within five minutes of a desk round, and in one
+        assert _run(tmp_path, MON.replace(hour=near[0], minute=near[1]), "london") == 0
+    assert _run(tmp_path, MON.replace(hour=14, minute=45), "us") == 0
     said = capsys.readouterr().out.splitlines()
-    assert f"nothing done, its run is already recorded in {record}." in said[0]
-    assert ["New York is shut" in said[1], "London is shut" in said[2]] == [True, True]
+    assert ["New York is shut" in said[0], "London is shut" in said[1]] == [True, True]
+    assert ["a desk round runs" in line for line in said[2:]] == [True] * 3
     with pytest.raises(SystemExit, match="--conformance london"):
         _run(tmp_path, MON, "paris")
 
@@ -262,9 +291,9 @@ def test_the_why_read_gives_each_cancelled_order_its_reason_but_not_in_a_desk_ro
 ) -> None:
     _world(monkeypatch)
     env = {"KESTREL2_DATA": str(tmp_path)}
-    for now in (MON.replace(minute=15), MON.replace(hour=14, minute=45), MON.replace(hour=9)):
+    for now in (MON.replace(hour=8, minute=15), MON.replace(hour=14, minute=45), MON):
         asked = conformance.main(["--conformance-why"], env, _at(now))
-        assert asked == (now.hour != 9)
+        assert asked == (now.hour != 10)
     assert paper.CLIENT == 223  # read as the conformance desk, never the desk's 222
     first, second, said = capsys.readouterr().out.strip().split(chr(10), 2)
     assert "not read now" in first + second  # 08:15 and 14:45 are a desk round's
@@ -294,21 +323,39 @@ def test_nothing_is_sent_unless_the_gateway_is_ready_the_switch_off_and_the_acco
     assert (broker.submitted(), list(root.glob("trades-*"))) == ((), [])
 
 
-def test_a_run_that_failed_is_code_1_and_recorded_and_tried_again_only_on_a_later_day(
+def test_a_run_that_failed_is_code_1_and_recorded_and_the_next_run_tries_again_beside_it(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    broker = _world(monkeypatch, sells=False)
+    _world(monkeypatch, sells=False)
     assert _run(tmp_path, MON, "london") == 1
     assert "5 of 6 steps done on VUAG" in (said := capsys.readouterr().out)
     assert "A later day tries again; the last step named, THE ACCOUNT IS NOT AS FOUND." in said
-    root, sent = tmp_path / "conformance", broker.submitted()
-    with (root / "trades-london-20261116.csv").open(newline="", encoding="utf-8") as kept:
+    root = tmp_path / "conformance"
+    with (root / "trades-london-20261116-1005.csv").open(newline="", encoding="utf-8") as kept:
         assert list(csv.reader(kept))[-1][1:3] == ["the run", "FAILED, at: the stop triggered"]
-    assert _run(tmp_path, MON, "london") == 0 and broker.submitted() == sent  # today's is recorded
-    assert conformance._recorded(root, "london", MON.date() + timedelta(days=1)) is None
-    (root / "trades-london-20261115.csv").write_text("not,a,record\n", encoding="utf-8")
-    with pytest.raises(ValueError, match="not a record of the conformance trades"):
-        _run(tmp_path, MON, "london")
+    _run(tmp_path, MON + timedelta(minutes=30), "london")  # the loop's next: a record of its own
+    assert len(list(root.glob("trades-london-*"))) == 2
+
+
+def test_beside_a_desk_holding_it_trades_another_line_ends_flat_and_names_a_holding_moved(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # the desk has an order on VUAG, the line that traded most, then holds it: the run is on ISF
+    broker = _world(monkeypatch)
+    monkeypatch.setattr(paper, "dial", _desk(holds=False))  # an order working, nothing held
+    assert _run(tmp_path, MON, "london") == 0
+    assert "on ISF" in capsys.readouterr().out
+    assert {i[9:] for i in broker.submitted()} == {
+        "conf0lse-SPY",
+        "conf1lse-ISF",
+        "conf2lse-ISF",
+        "conf3lse-ISF",
+    }
+    assert (broker.holdings(), book.positions(tmp_path / "conformance")) == ((), {})
+    monkeypatch.setattr(paper, "dial", _desk(moves=True, stops=False))  # held; moved at the end
+    assert _run(tmp_path, MON + timedelta(minutes=30), "london") == 1
+    assert "on ISF" in (said := capsys.readouterr().out)  # held, though no order of the desk's
+    assert "FIRST-LIGHT FAULT: the desk's holdings changed: VUAG STK GBP 5 -> 0." in said
 
 
 def test_a_failed_step_whose_last_step_had_nothing_to_put_back_says_the_account_is_as_found(

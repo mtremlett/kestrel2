@@ -64,7 +64,7 @@ from itertools import combinations
 from desk.strategy import ARITHMETIC
 from lab import rung
 from lab.cell import Key
-from lab.rung import Answer, Priced, Verdict
+from lab.rung import Answer, Priced, Rung, Verdict
 
 ME = "lab.rung_cpcv"  #: this module as the cell knows it
 STRETCHES, HELD_OUT = 6, 2  #: RATE is this pair's alone: change either and derive it again
@@ -177,3 +177,12 @@ def _stretches(priced: Sequence[Priced]) -> list[list[Decimal]]:
 
 def _mean(gains: Sequence[Decimal]) -> Decimal:
     return sum(gains, Decimal(0)) / len(gains)
+
+
+def _judged(first: Verdict) -> tuple[Answer, str]:
+    """The cross-validation rung as the ladder reads it: its answer, and its reason in words."""
+    crossed = judge(first)
+    return crossed.answer, crossed.reason
+
+
+RUNG = Rung("cpcv", "chosen in-sample in every split and lost out-of-sample in none", _judged)

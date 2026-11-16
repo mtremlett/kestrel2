@@ -118,6 +118,19 @@ LINES = tuple(
     )
     for symbol, leverage in (entry.split(":") for entry in symbols.split())
 )
+#: SPY and QQQ, which a UK retail customer cannot buy (VUAG and EQQQ are their tradeable twins):
+#: readable as reference series, never traded (R-PAPER-16). They sit in LINES only until the
+#: callers that still take them from there (conformance, the Mansfield rule) move to this.
+REFERENCE = tuple(line for line in LINES if line.retail is False)
+
+
+def require_traded(line: Line) -> Line:
+    """The line, if the desk or the lab may trade it; a reference series is refused."""
+    if line in REFERENCE:
+        raise ValueError(f"{line.symbol}: a reference series, which no retail customer can buy")
+    return line
+
+
 #: What "simply holding the market" means, the one yardstick the desk's profit is set beside
 #: (AG-04): VUAG, the S&P 500 in pounds with its dividends kept in, where SPY stood.
 YARDSTICK = next(line for line in LINES if line.symbol == "VUAG")

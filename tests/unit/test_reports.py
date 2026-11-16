@@ -244,3 +244,26 @@ def test_the_fills_are_asked_through_the_one_door(monkeypatch: pytest.MonkeyPatc
     wire = _wire(HELLO, ACCOUNTS, READY, BOUGHT, SOLD, END)
     monkeypatch.setattr(paper, "dial", lambda talk: talk(wire, sent.append))
     assert reports.read() == (BUY, SALE) and len(sent) == 3
+
+
+def test_a_fill_slip_shows_in_the_days_gap_in_pounds() -> None:
+    day = date(2026, 11, 13)
+    lines, closes, rates = (
+        {"IITU": IITU, "AAPL": AAPL},
+        {"IITU": Decimal(40), "AAPL": Decimal(200)},
+        {"USD": Decimal("0.8")},
+    )
+    buy = Fill("e1", "20261113-rsi2-IITU", "IITU", 100, Decimal("37.50"), day)
+    sale = Fill("e2", "20261113-rsi2-AAPL-stop", "AAPL", -10, Decimal("190"), day)
+    slipped = (replace(buy, price=Decimal("37.60")), replace(sale, price=Decimal("189")))
+    same = reports.day_gap((buy, sale), (buy, sale), lines, closes, rates)
+    assert same.gap == 0 and same.expected == same.real
+    gap = reports.day_gap((buy, sale), slipped, lines, closes, rates)
+    # 100 shares bought 10p dearer lose 10.00 and 10 sold $1 lower lose 8.00 pounds; the
+    # costs priced on the fills' values differ by a penny
+    assert gap.gap == gap.real - gap.expected == Decimal("-17.99")
+    assert gap.expected == same.expected
+    missed = reports.day_gap((buy,), (), lines, closes, rates)  # decided, never filled
+    assert missed.real == 0 and missed.gap == -missed.expected
+    with pytest.raises(KeyError):
+        reports.day_gap((replace(buy, symbol="XYZ"),), (), lines, closes, rates)
