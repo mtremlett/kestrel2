@@ -15,6 +15,11 @@ THE TAPE. It reads the tape of R-RUNNER-118 (`lab/tape.py`) through `cell.run`, 
 is keyed by that tape's key plus this module's code (`Key.rung`), so a rung edited prices
 again and simulates nothing.
 
+BY THE WEATHER (REG-01, `lab/weather.py`). `by_weather` cuts the same priced trades not at a
+day but by the trend state of the day each was bought: `up` and `down` are each judged alone,
+by the same rule, and both must pass. A trade bought while the weather is still `warming` has
+no regime yet and is left out; a day the weather never named is a fault, not a guess.
+
 PROVEN ALONE, by `tests/unit/test_lab_rung_regimes.py`: a planted edge passes; noise passes
 at the rate of two windows both clearing the bar by chance; a broken copy is caught.
 """
@@ -22,13 +27,13 @@ at the rate of two windows both clearing the bar by chance; a broken copy is cau
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import date
 
 from desk.orders import Settings
 from desk.store import Bar
-from lab import cell, rung
+from lab import cell, rung, weather
 from lab.cell import Key, Record
 from lab.reproduce import Reproduction
 from lab.rung import Answer, Priced, Rates, Verdict
@@ -96,3 +101,36 @@ def _window(key: Key, name: str, cut: date) -> Key:
     """The key of one window: the result's, with the window and its cut told into the data."""
     told = f"{key.data}\n{name}\n{cut}"
     return replace(key, data=hashlib.sha256(told.encode()).hexdigest())
+
+
+@dataclass(frozen=True)
+class Weathered:
+    """A cell judged in the trend state it was bought in, up and down apart."""
+
+    key: Key
+    up: Verdict
+    down: Verdict
+
+    @property
+    def answer(self) -> Answer:
+        """The same rule over the two states: both must pass. A state the rule never traded in
+        is too thin to say (the weather's fault, not the rule's), never a FAULT."""
+        return decide(*(v.answer if v.trades else Answer.THIN for v in (self.up, self.down)))
+
+
+def by_weather(
+    key: Key,
+    priced: Sequence[Priced],
+    labels: Mapping[date, str],
+    reproduced: Sequence[Reproduction] = (),
+) -> Weathered:
+    """Priced trades judged apart in the up days and the down days they were bought on."""
+    up, down = (
+        rung.verdict(
+            _window(key, name, date.min),
+            tuple(p for p in priced if labels[p.trade.bought] == name),
+            reproduced,
+        )
+        for name in (weather.UP, weather.DOWN)
+    )
+    return Weathered(key, up, down)
