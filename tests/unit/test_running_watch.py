@@ -13,7 +13,7 @@ import test_placing as tp
 from test_paper import Said
 from test_placing import ACCOUNT, FILLS
 from test_reports import END
-from test_running import FLAT_, _desk, _step
+from test_running import FLAT_, _desk, _step, _told
 
 from desk import book, clearance, paper, running, watch
 from desk.bars import Five, writing
@@ -52,3 +52,17 @@ def test_every_step_looks_at_the_market_first_and_london_waits_for_its_first_bar
     monkeypatch.setattr(paper, "dial", Mock(side_effect=ConnectionRefusedError))
     running.step(desk, later + timedelta(days=1, hours=14))
     assert look.call_args.args[3] == later + timedelta(days=1, hours=14)
+
+
+def test_the_kill_switchs_alarm_from_a_send_is_told_to_him_in_its_own_words_once(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    desk, post = _desk(tmp_path, IITU=FLAT_)
+    words = "o-3: place failed with OSError('gibberish'); the kill switch is on"
+    monkeypatch.setattr(running, "_work", Mock(side_effect=book.Alarm(words)))
+    for now in (datetime(2026, 12, 1, 9, tzinfo=UTC), datetime(2026, 12, 1, 9, 5, tzinfo=UTC)):
+        with pytest.raises(book.Alarm, match="kill switch is on"):
+            running.step(desk, now)
+    (alarm,) = running.notes(tmp_path)
+    assert alarm.what == "trouble Alarm" and words in alarm.words
+    assert sum(words in told for told in _told(post)) == 1
