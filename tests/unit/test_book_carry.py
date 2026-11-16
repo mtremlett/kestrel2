@@ -1,5 +1,6 @@
 """The pound's rate across a UK-only holiday (desk.carry), through book.rate."""
 
+from dataclasses import replace
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
@@ -7,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from desk import book
+from desk.broker import Fill
 
 
 def test_the_pound_is_carried_across_a_uk_only_holiday_and_no_further(tmp_path: Path) -> None:
@@ -18,3 +20,26 @@ def test_the_pound_is_carried_across_a_uk_only_holiday_and_no_further(tmp_path: 
     for none in (date(2025, 4, 18), date(2025, 4, 19), date(2025, 4, 22), date(2025, 12, 25)):
         with pytest.raises(ValueError, match="no USD rate kept"):  # both shut, weekend, both open
             book.rate(tmp_path, "USD", none)
+
+
+class _Told:
+    def __init__(self, *told: Fill) -> None:
+        self.told = told
+
+    def fills(self) -> tuple[Fill, ...]:
+        return self.told
+
+
+def test_the_brokers_correction_of_a_fill_is_one_fill_in_the_ledger_never_two(
+    tmp_path: Path,
+) -> None:
+    day = date(2025, 11, 10)
+    one, other = (
+        Fill("0001.65.01", "o-1", "A", 10, Decimal(50), day),
+        Fill("0002.65.01", "o-2", "B", 5, Decimal(9), day),
+    )
+    fixed = replace(one, execution_id="0001.65.02", price=Decimal(51))
+    for told in ((one, other), (one,), (fixed,), (one, fixed), (fixed,), (one,)):  # stale .01 last
+        book.collect(tmp_path, _Told(*told))  # type: ignore[arg-type]  # a stub broker
+    assert book.fills(tmp_path) == (fixed, other)
+    assert book.positions(tmp_path) == {"A": 10, "B": 5}

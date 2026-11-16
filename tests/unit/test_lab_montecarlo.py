@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 
@@ -42,3 +44,68 @@ def test_a_fair_coin_is_centred_on_nothing_with_a_spread_both_sides_and_ordered_
 def test_input_that_cannot_be_resampled_is_refused(trades: list[Decimal], paths: int) -> None:
     with pytest.raises(ValueError, match="montecarlo"):
         montecarlo.resample(trades, seed=1, paths=paths)
+
+
+def _home(tmp_path: Path, key: str = "k1") -> Path:
+    """A data folder with one ladder cell that traded, and one grid cell held."""
+    cell = ["rsi2_pullback", "3IN", "LSE", "2010-01-01", "2026-11-13"]
+    ladder = {"cell": cell, "key": key, "from": "2011-01-03", "trades": 2}
+    held = {"cell": cell, "code": "c", "data": "d", "trades": [["2011-01-13", "2011-01-27"]]}
+    (tmp_path / "grid" / "store" / "LSE").mkdir(parents=True)
+    (tmp_path / "grid" / "store" / "LSE" / "3IN.csv").write_text("")
+    (tmp_path / "ladder").mkdir()
+    (tmp_path / "ladder" / "set1.jsonl").write_text(json.dumps(ladder) + "\n")
+    (tmp_path / "grid" / "held" / "LSE").mkdir(parents=True)
+    (tmp_path / "grid" / "held" / "LSE" / "3IN.jsonl").write_text(json.dumps(held) + "\n")
+    return tmp_path
+
+
+def test_the_command_resamples_each_cell_once_and_again_only_a_changed_one(tmp_path: Path) -> None:
+    home = _home(tmp_path)
+
+    def gains(_job: montecarlo.Job) -> list[D]:
+        return [D("0.02"), D("-0.01"), D("0.03")]
+
+    assert montecarlo.run(home, gains) == "2 resampled now, 0 kept from before"
+    kept = (home / "montecarlo" / "results.jsonl").read_text().splitlines()
+    assert [json.loads(row)["id"][0] for row in kept] == ["ladder", "grid"]
+    assert montecarlo.run(home, gains) == "0 resampled now, 2 kept from before"
+    changed = home / "ladder" / "set1.jsonl"
+    changed.write_text(changed.read_text().replace("k1", "k2"))
+    assert montecarlo.run(home, gains) == "1 resampled now, 1 kept from before"
+    assert montecarlo.run(home, nothing) == "0 resampled now, 2 kept from before"
+
+
+def nothing(_job: montecarlo.Job) -> list[D]:
+    return []
+
+
+def test_a_cell_that_cannot_be_priced_is_told_and_tried_again(tmp_path: Path) -> None:
+    home = _home(tmp_path)
+    assert montecarlo.run(home, nothing) == (
+        "0 resampled now, 0 kept from before, 2 could not be resampled"
+    )
+
+
+def test_a_cell_the_sizing_refuses_is_recorded_with_its_reason_and_the_rest_go_on(
+    tmp_path: Path,
+) -> None:
+    home = _home(tmp_path)
+
+    def gains(job: montecarlo.Job) -> list[D] | str:
+        if job.source == "ladder":
+            return "one share costs more than the room of 2000 pounds"
+        return [D("0.02"), D("-0.01")]
+
+    assert montecarlo.run(home, gains) == (
+        "1 resampled now, 0 kept from before, 1 refused by the desk's sizing"
+    )
+    rows = [json.loads(r) for r in (home / "montecarlo" / "results.jsonl").read_text().splitlines()]
+    assert "one share costs more" in rows[0]["refused"]
+    assert rows[1]["trades"] == 2
+    assert montecarlo.run(home, gains) == "0 resampled now, 2 kept from before"
+
+
+def test_a_run_without_a_data_folder_stops_and_says_why() -> None:
+    with pytest.raises(SystemExit, match="KESTREL2_DATA names no data folder"):
+        montecarlo.main({})

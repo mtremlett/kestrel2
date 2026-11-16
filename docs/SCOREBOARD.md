@@ -59,6 +59,33 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #200 money-simcity-command: `python -m desk.simcity [--full]` runs SimCity as a plain-code job, red night = exit 1; 2 deliberate breaks, 2 caught (R-RUNNER-23). |
 | 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #207 sixth frozen rule `ema_9_21` on main as a WIRING strategy, listed apart from the five, never an A-GATE candidate; tested by hand, future-blind and against a second implementation; 13 breaks caught; not yet run by the desk or the ladder (R-RUNNER-20). |
 | 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #208 carry rule in `desk/carry.py` + `book.rate`: the pound's rate carried over a UK-only holiday, at most 3 US sessions; 2025-04-21 and 2025-12-26 under test (R-RUNNER-26, part). |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #224 R-RUNNER-44 the pound's rate from its closes, one rule in `desk/carry.py`, tested on Easter 2025. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #231 R-RUNNER-48 SimCity worlds start each line at its own first bar; late lines named in the night's words. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #246 R-RUNNER-63 Donchian four-week breakout ported under the template, known-answer tested. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #247 R-RUNNER-60 Connors' RSI-2 ported, known-answer tested (buy day 200, sell day 202). |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #257 R-RUNNER-84 the pound's close stays fresh across one missing shared session; one old assertion flipped by the rule. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #248 R-RUNNER-76 weekly_reversal_jegadeesh, first eponymous swing rule, 4 unit tests. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #256 R-RUNNER-61 Connors %b rule ported and known-answer tested. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #258 R-RUNNER-64 donchian_fade_chop ported, known-answer tested; source not found, labelled secondary. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #265 R-RUNNER-71 Dan Zanger breakout ported, known-answer tested. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #267 R-RUNNER-74 Clenow momentum ported, 3 known-answer tests. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #251 R-RUNNER-68 Darvas box ported under the template; a blind review's stale-top buy fixed with a test. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #261 R-RUNNER-62 Connors three-day high/low ported, known-answer tested. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #269 R-RUNNER-70 Kell base-and-break ported, known-answer tested. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #271 R-RUNNER-75 Mansfield RS momentum ported, known-answer tested; loud error without SPY. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #264 R-RUNNER-73 Faber 10-month trend rule ported, 2 known-answer tests. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #273 R-RUNNER-67 Williams %R ported, known-answer tested. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #275 R-RUNNER-80 Zweig breadth thrust ported, known-answer tested; blocked on breadth data (R-MONEY-35). |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #262 R-RUNNER-66 Bollinger squeeze ported, known-answer tested. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #277 R-RUNNER-79 Weinstein stage rule ported, known-answer tested. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #276 R-RUNNER-77 raschke_swing (Turtle Soup) ported, known-answer tested. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #266 R-RUNNER-69 Minervini breakout ported, known-answer tested. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #250 R-RUNNER-72 Antonacci dual momentum (absolute leg) ported, known-answer tested. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #272 R-RUNNER-65 Keltner channel trend ported, known-answer tested. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #280 R-RUNNER-88 every eponymous module declares EPONYMOUS; registry test added. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #282 R-PAPER-9 done, `Broker.stops` docstring only. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #274 R-RUNNER-78 DeMark's TD Sequential ported, known-answer tested. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #285 R-PAPER-10 unknown place error pulls the kill switch, contract-tested; blind review passed. |
 
 ### DATA
 
@@ -135,6 +162,19 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-13 | 5 of 7 | - | - | - | 14 of 14 proven | green | The grid's first pass: 5,325 cells (1,065 tickers x 5 strategies) run and kept in 200 s on this PC; a second pass re-runs none, in 45 s (#102). |
 | 2026-11-13 | 5 of 7 | - | - | - | 14 of 14 proven | green | The grid's week built and started: a pass every hour, each in its own process, one at a time, each logged; four real passes 5 minutes apart ran clean, the seven-day run began 23:29 UK (#111). |
 | 2026-11-14 | 5 of 7 | - | - | - | 14 of 14 proven | green | A seven-day week now shows seven days in its log (it would have ended 14 minutes short); the run moved onto the fix with its count unbroken; the midnight pass ran all 5,325 cells clean in 2 minutes (#118). |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #171 R-RUNNER-4: the grid's tests name AAPL and NVDA, so SPY and QQQ can leave the twenty |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #197 R-RUNNER-19: `lab.sweep --held`, one pass over every ticker the store holds |
+| 2026-11-114 | 7 of 7 | - | - | - | 14 of 14 proven | green | #263 R-RUNNER-82: the grid's transfer study command built (`lab.transfer`); the five rules at published settings only until R-GRID-1 |
+| 2026-11-115 | 7 of 7 | - | - | - | 14 of 14 proven | green | #281 R-RUNNER-89: one lab-side rule book; a Cell accepts eponymous rules |
+| 2026-11-115 | 7 of 7 | - | - | - | 14 of 14 proven | green | #330 R-RUNNER-140: a fast engine for spec rows, equal to the desk's engine trade for trade on the golden series, about 30 times faster |
+| 2026-11-115 | 7 of 7 | - | - | - | 14 of 14 proven | green | #335 R-RUNNER-115: a Cell takes a Line only; the string door closed |
+| 2026-11-115 | 7 of 7 | - | - | - | 14 of 14 proven | green | #359 R-RUNNER-167: bars hashed once per (line, end) in `lab/cell.py`, keys identical |
+| 2026-11-116 | 7 of 7 | - | - | - | 14 of 14 proven | green | #360 R-RUNNER-128: the rule book reads the catalogue's specs, each proven |
+| 2026-11-116 | 7 of 7 | - | - | - | 14 of 14 proven | green | #372 R-RUNNER-170: a rung's key names the modules that judge for it, not those that run it |
+| 2026-11-116 | 7 of 7 | - | - | - | 14 of 14 proven | green | #391 R-RUNNER-8: passes leave two threads free in London's session, one otherwise |
+| 2026-11-116 | 7 of 7 | - | - | - | 14 of 14 proven | green | #397 R-RUNNER-164: the transfer study answers a refused line REFUSED and completes |
+| 2026-11-116 | 7 of 7 | - | - | - | 14 of 14 proven | green | #399 grid-declared: the sweep judges each strategy on its declared universe; all-on-all is the `--transfer` study |
+| 2026-11-116 | 7 of 7 | - | - | - | 14 of 14 proven | green | #403 grid-weekend: a pass logs its own time; a cold full sweep took 17 min against the 48 h limit |
 
 ### RUNGS
 

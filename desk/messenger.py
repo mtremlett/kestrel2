@@ -43,6 +43,7 @@ from desk import book, clearance, day, gateway, kill, venues
 from desk.gateway import Known
 from desk.lines import LINES
 from desk.orders import Refused
+from desk.supervisor import WAIT
 
 MESSAGES = "messages.db"
 TABLE = "CREATE TABLE IF NOT EXISTS messages (at, name PRIMARY KEY, number, text)"
@@ -51,7 +52,6 @@ ASK = (
     "INSERT INTO messages VALUES (:at, :name, NULL, :text) "
     "ON CONFLICT (name) DO UPDATE SET at = :at, text = :text WHERE number IS NULL"
 )
-WAIT = 5  #: seconds one process waits for the other's write of the record
 HOST = "api.telegram.org"
 #: The bot's key and his chat's id: his alone, kept outside the repository and given to the
 #: desk in its environment. The key's shape is checked on entry, so a bad paste is refused by

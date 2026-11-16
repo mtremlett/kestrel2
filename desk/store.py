@@ -115,8 +115,10 @@ def _once(bars: Sequence[Bar], faults: list[Fault]) -> list[Bar]:
     return once
 
 
-def _entered(line: Line, bar: Bar, open_days: set[date]) -> Bar | str:
-    """The bar as it enters the store, or why it cannot be true on its own."""
+def _entered(line: Line, bar: Bar, open_days: set[date], faults: list[Fault]) -> Bar | str:
+    """The bar as it enters the store, or why it cannot be true on its own. A bar whose only
+    fault is an impossible high or low is kept, clamped to its open or close and the repair
+    listed: the open, close and volume stand. A fall the close shares is the market's."""
     prices = (bar.open, bar.high, bar.low, bar.close)
     if bar.day in line.suspended:
         return f"{bar.day} has a bar, yet {line.symbol} records it as suspended"
@@ -128,9 +130,15 @@ def _entered(line: Line, bar: Bar, open_days: set[date]) -> Bar | str:
     reach = (bar.low * (1 - STRETCH), bar.high * (1 + STRETCH))
     if not bar.low <= bar.high or not reach[0] <= min(ends) <= max(ends) <= reach[1]:
         return f"{bar.day} has an open or close outside its high and low"
-    if bar.high >= JUMP * max(ends):
-        return f"{bar.day} has a high far above its own open and close: a bad print"
-    return replace(bar, high=max(bar.high, *ends), low=min(bar.low, *ends))
+    high = max(bar.high, *ends)
+    if high >= JUMP * max(ends):
+        faults.append(Fault(bar.day, f"{bar.day} high repaired: was {bar.high}"))
+        high = max(ends)
+    low = min(bar.low, *ends)
+    if low <= min(ends) / JUMP:
+        faults.append(Fault(bar.day, f"{bar.day} low repaired: was {bar.low}"))
+        low = min(ends)
+    return replace(bar, high=high, low=low)
 
 
 def _rate(rates: Rates, day: date) -> Decimal | None:
@@ -282,7 +290,7 @@ def _clean(
     expected = [d for d in every if d not in line.suspended]
     open_days, sound = set(expected), []
     for bar in _once(bars, faults):
-        entered = _entered(line, bar, open_days)
+        entered = _entered(line, bar, open_days, faults)
         if isinstance(entered, str):
             faults.append(Fault(bar.day, entered))
         else:
@@ -359,11 +367,17 @@ def shelve(root: Path, line: Line, bars: Iterable[Bar]) -> None:
 
 
 def _joined(root: Path, line: Line, bars: Sequence[Bar]) -> list[Bar]:
-    """The archive's bars and, for each day it gives none, the line's shelved bar."""
+    """The archive's bars and, for each day it gives none, the line's shelved bar. A frozen
+    run in the archive's bars is its filler, not a price it gives: with a shelf, none of it is
+    kept, so a shelved bar fills its days and any day the shelf lacks is a missing session."""
     shelved = root / HISTORY / f"{line.symbol}.csv"
-    given = {bar.day for bar in bars}
-    older = (bar for bar in _load(shelved) if bar.day not in given) if shelved.is_file() else ()
-    return sorted([*older, *bars], key=lambda bar: bar.day)
+    if not shelved.is_file():
+        return list(bars)
+    real = set(_thawed(bars, []))
+    given = [bar for bar in bars if bar in real]
+    held = {bar.day for bar in given}
+    older = (bar for bar in _load(shelved) if bar.day not in held)
+    return sorted([*older, *given], key=lambda bar: bar.day)
 
 
 def read(root: Path, symbol: str) -> tuple[Bar, ...]:

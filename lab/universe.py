@@ -16,14 +16,17 @@ loosened: the desk cannot import this module, so the rule can decide no trade.""
 
 from __future__ import annotations
 
+import sys
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
-from datetime import date
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
 from statistics import median
 
-from desk import archive, store
+import numpy as np
+
+from desk import archive, store, venues
 from desk.lines import LINES, NO_TAX, STAMP_DUTY, Line
 from desk.store import Bar, Parked
 
@@ -137,8 +140,11 @@ ETFS = _lines(
     IUSG
     """,
 )
+#: London's yardstick, the iShares FTSE 100, which the ladder sets a London line beside: studied,
+#: never traded here (it is also a trading line, so the instrument master's own line).
+YARDSTICKS = _lines("LSE", "GBP", "ISF")
 #: Every ticker once: a share on two lists (most of the Nasdaq 100) is one line.
-UNIVERSE = tuple(dict.fromkeys(SP500 + NASDAQ100 + FTSE350 + ETFS))
+UNIVERSE = tuple(dict.fromkeys(SP500 + NASDAQ100 + FTSE350 + ETFS + YARDSTICKS))
 
 
 def keep(
@@ -157,6 +163,90 @@ def keep(
         for found in store.prepare(root / line.venue, archive.gather([line], day, ask), day):
             parked[line] = found
     return parked
+
+
+def _held(root: Path, line: Line) -> int:
+    """How many bars the store holds for the line; none before its first file."""
+    try:
+        return len(store.read(root / line.venue, line.symbol))
+    except FileNotFoundError:
+        return 0
+
+
+def matrix(folder: Path) -> Callable[[Line, date], tuple[Bar, ...]]:
+    """The second source: the old desk's Stooq daily matrices in folder, read only. It knows
+    London lines only, in pence; a line it holds no file for has no bars from it."""
+
+    def second(line: Line, day: date) -> tuple[Bar, ...]:
+        stem = folder / f"{line.symbol}.UK_1d"
+        if line.venue != "LSE" or not stem.with_name(stem.name + "_ts.npy").is_file():
+            return ()
+        rows = np.load(stem.with_name(stem.name + "_ohlcv.npy"))
+        stamps = np.load(stem.with_name(stem.name + "_ts.npy"))
+        bars = []
+        for n, stamp in enumerate(stamps):
+            when = datetime.fromtimestamp(int(stamp) / 1000, UTC).date()
+            o, h, lo, c = (Decimal(str(round(float(rows[k, n]), 3))) / 100 for k in range(4))
+            if when < day:
+                bars.append(Bar(when, o, h, lo, c, int(rows[4, n])))
+        return tuple(bars)
+
+    return second
+
+
+def _lost(root: Path, line: Line) -> tuple[date, ...]:
+    """The sessions between a line's first and last bar that the store holds no bar for."""
+    held = {bar.day for bar in store.read(root / line.venue, line.symbol)}
+    if not held:
+        return ()
+    return tuple(d for d in venues.sessions(line.venue, min(held), max(held)) if d not in held)
+
+
+def _mended(
+    root: Path,
+    day: date,
+    line: Line,
+    ask: Callable[[Line, date], tuple[Bar, ...]],
+    second: Callable[[Line, date], tuple[Bar, ...]] | None,
+) -> tuple[int, str]:
+    """Keep a line; if it is a yardstick missing sessions, name them, and with a second source
+    fill them through the store's one writer (shelved, so every later refresh joins them too)
+    and keep again. Returns the lines parked, and the days that stayed missing, named."""
+    parked = len(keep(root, day, [line], ask))
+    lost = _lost(root, line) if line in YARDSTICKS else ()
+    if lost and second is not None:
+        store.shelve(root / line.venue, line, second(line, day))
+        parked = len(keep(root, day, [line], ask))
+        lost = _lost(root, line)
+    return (
+        parked,
+        f"; yardstick {line.symbol} has no bar on {', '.join(map(str, lost))}" if lost else "",
+    )
+
+
+def refresh(
+    root: Path,
+    day: date,
+    lines: Iterable[Line] = UNIVERSE,
+    ask: Callable[[Line, date], tuple[Bar, ...]] = archive.fetch,
+    second: Callable[[Line, date], tuple[Bar, ...]] | None = None,
+) -> str:
+    """Keep each line through the one store writer, one at a time (a line's file is complete
+    before the next is asked for, so a stopped run resumes by running again), and say what
+    it did: lines refreshed, bars added (a line's gain on what it held; a bar is never
+    invented, so a day's second run adds none) and lines parked. A yardstick with a missing
+    session is a named data fault, filled from the second source when one is given."""
+    refreshed = added = parked = 0
+    faults = ""
+    for line in lines:
+        before = _held(root, line)
+        more, note = _mended(root, day, line, ask, second)
+        parked += more
+        faults += note
+        added += max(0, _held(root, line) - before)
+        refreshed += 1
+    done = f"{refreshed} lines refreshed, {added} bars added, {parked} parked"
+    return f"research refresh: {done}{faults}"
 
 
 #: Research's rule for a move the store parks for (docs/DECISIONS.md, the data lane's). Read
@@ -209,3 +299,8 @@ def read(root: Path, line: Line) -> History:
     start, end = max(zip(edges, edges[1:], strict=False), key=lambda run: (run[1] - run[0], run))
     listed = tuple(bars[n].day for n in moved if start < n < end)
     return History(bars[start:end], listed, tuple(bars[n].day for n in cuts))
+
+
+if __name__ == "__main__":
+    other = matrix(Path(sys.argv[2])) if len(sys.argv) > 2 else None
+    sys.stdout.write(refresh(Path(sys.argv[1]), datetime.now(UTC).date(), second=other) + chr(10))

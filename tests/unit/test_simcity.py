@@ -21,7 +21,7 @@ from typing import Any
 
 import pytest
 
-from desk import book, command, day, orders, simcity, simcitycmd, store, strategy
+from desk import book, day, orders, simcity, strategy
 from desk.broker import Crash, Disconnected, Fault, Pretend
 from desk.lines import YARDSTICK
 from desk.orders import Settings
@@ -59,7 +59,7 @@ def lived(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, simcity.Night
 
     def watched(life: simcity._Life) -> None:
         live(life)
-        seen.extend((life, len(book.round_trips(life.desk, life.market))))
+        seen.extend((life, life.trips))
 
     with pytest.MonkeyPatch.context() as patch:
         patch.setattr(simcity, "_live", watched)
@@ -123,7 +123,7 @@ def test_the_census_names_every_part_of_the_money_path_and_the_scenarios_that_ra
         "kill.pull": simcity.KILLED,
         "kill.Killed.words": simcity.KILLED,
         "orders.Charges.total": simcity.DAY,  #: a property is a part as a method is
-        "book.round_trips": simcity.RECKONING,
+        "book.round_trips": simcity.TRIPS,
         **{f"broker.Fault.{fault.name}": simcity.FAULTS for fault in Fault},
     }
     for part, scenario in ran.items():
@@ -353,32 +353,6 @@ def test_a_promise_the_desk_breaks_in_any_world_turns_the_night_red_and_names_th
         assert promise not in str(sound.broken), "broken on a sound desk"
         assert [b for b in night.broken if promise in b and "the first world" in b], night.broken
     assert not night.green and f"BROKEN: {'; '.join(night.broken)}." in night.words()
-
-
-def test_the_command_lives_the_saved_store_in_a_night_and_its_code_is_zero_only_for_green(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
-) -> None:
-    """The weekday night is a fifth of the worlds and --full all of them; the night's words
-    are the answer, and the record is kept under the desk's folder, red or green."""
-    monkeypatch.setattr(simcitycmd, "LINES", tuple(SHORT))
-    monkeypatch.setattr(
-        store,
-        "read",
-        lambda _root, name: next(
-            tuple(bars) for line, bars in SHORT.items() if line.symbol == name
-        ),
-    )
-    monkeypatch.setattr(command, "rates", lambda _root, _day: RATES)
-    monkeypatch.setattr(simcitycmd, "QUICK", range(1))
-    monkeypatch.setattr(simcity, "WORLDS", range(2))
-    for argv, worlds in (([], 1), (["--full"], 2)):
-        code = simcitycmd.main(argv, {"KESTREL2_DATA": str(tmp_path)}, lambda: NOW)
-        printed = capsys.readouterr().out
-        assert f"lived {worlds} seeded worlds" in printed and code == int("SIMCITY RED" in printed)
-    with (tmp_path / command.ROOT / simcity.NIGHTS).open(encoding="utf-8") as kept:
-        assert len(kept.readlines()) == 3
-    with pytest.raises(SystemExit):
-        simcitycmd.main(["--fast"], {"KESTREL2_DATA": str(tmp_path)}, lambda: NOW)
 
 
 def test_a_line_not_yet_begun_is_left_out_and_named_while_every_day_is_lived(

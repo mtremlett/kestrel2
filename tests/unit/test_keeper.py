@@ -115,6 +115,21 @@ def test_a_trading_day_is_kept_each_venue_on_its_own_hours(tmp_path: Path) -> No
     assert pretend.asked == ["BBB", "AAA", "CCC"]
 
 
+def test_a_store_kept_under_older_rules_is_cleaned_again_and_a_current_one_is_not(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    pretend = Archive()
+    pretend.keep(tmp_path, _at(6))
+    assert pretend.keep(tmp_path, _at(6, 5)) == ([], []) and pretend.asked == []  # current
+    monkeypatch.setattr(keeper, "RULES", "an older set of rules")
+    pretend.keep(tmp_path, _at(6, 10))  # the rules changed: every line, from the archive
+    assert pretend.asked == ["BBB", "AAA", "CCC"]
+    monkeypatch.undo()
+    pretend.keep(tmp_path, _at(6, 15))
+    assert pretend.asked == ["BBB", "AAA", "CCC"]  # kept under the other rules: again
+    assert pretend.keep(tmp_path, _at(6, 20)) == ([], []) and pretend.asked == []
+
+
 def test_a_line_unanswered_keeps_what_its_day_holds_is_asked_again_and_a_blind_venue_is_a_miss(
     tmp_path: Path,
 ) -> None:
@@ -185,3 +200,25 @@ def test_nothing_is_asked_on_a_day_no_venue_trades_nor_once_the_calls_time_is_sp
     assert keeper.main(tmp_path / "real", _at(9)) == 1  # the command itself, the archive away
     out, err = capsys.readouterr()
     assert len(out.splitlines()) == 3 and err.count("MISSED: ") == 3 and "MISSED: US: daily" in err
+
+
+def test_the_closes_are_held_within_the_named_figure_after_each_venues_close(
+    tmp_path: Path,
+) -> None:
+    pretend, tue = Archive(), MON + timedelta(1)
+    for venue, line in (("LSE", UK), ("US", US)):
+        auction = venues.hours(venue, MON).auction
+        pretend.keep(tmp_path / venue, _at(6, 5))
+        start = auction + keeper.SETTLED - timedelta(seconds=1)  # the runner's worst luck
+        for call in range(12):  # its calls, one in five minutes, each taking four to finish
+            at = start + timedelta(minutes=5 * call)
+            pretend.keep(tmp_path / venue, at)
+            if keeper.target(venue, at) == tue:
+                break
+        assert keeper.saved(tmp_path / venue, tue, [line])[0][line][-1].day == MON
+        held = at + timedelta(minutes=4) - auction
+        assert keeper.HELD - timedelta(minutes=1) < held <= keeper.HELD
+    for venue in venues.RULES:  # held before the runner's 22:00, UK time, on every session
+        for day in venues.sessions(venue, date(2026, 11, 16), date(2027, 12, 31)):
+            done = venues.hours(venue, day).auction + keeper.HELD
+            assert done.astimezone(venues.zone("LSE", day)).hour < 22

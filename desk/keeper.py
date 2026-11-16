@@ -30,6 +30,7 @@ a line not reached by then is refused as any other."""
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import sys
@@ -46,10 +47,19 @@ from desk.lines import LINES, Line
 from desk.store import Bar, Refused
 
 DAILY, HOT = "daily", "bars.db"  #: in the data folder: the daily store's folder, the fast store
+CRLF = bytes((13, 10))  #: a Windows checkout's line ending, not part of the rules
 RECORD = "kept.json"  #: in each venue's folder of the daily store: its last refresh
+#: THE STORE RULES' VERSION: a hash of desk/store.py. A refresh records the version it cleaned
+#: under; a record of another version is cleaned again whole from the archive's answers.
+RULES = hashlib.sha256(Path(store.__file__).read_bytes().replace(CRLF, b"\n")).hexdigest()
 #: How long after a venue's closing auction its day's bar is asked for: the archive shows
 #: London a quarter of an hour late, and an official close is printed minutes after its bell.
 SETTLED = timedelta(minutes=30)
+#: THE FIGURE THE DAY'S RECORD WAITS ON: by this long after a venue's closing auction its
+#: day's closes are held, if the archive answers at the first call: the first call after SETTLED
+#: (the runner calls every five minutes) and that call's four minutes. `target` turns to the next
+#: day at SETTLED itself.
+HELD = SETTLED + timedelta(minutes=5 + 4)
 TRIES = 6  #: the calls at which a line parked for a fault is asked again: half an hour's
 RECENT = timedelta(days=7)  #: how far back a five-minute round asks: the week kept hot
 #: The seconds of one call in which the archive is still asked: an answer then waited for
@@ -75,6 +85,7 @@ class Kept:
     tries: int  #: how many calls have asked for this day on this date
     parked: Mapping[str, str]  #: each parked line's symbol, and why
     refused: frozenset[str]  #: those of them the archive would not answer for
+    rules: str = ""  #: the store rules' version it was cleaned under; none in an old record
 
 
 def _kept(folder: Path) -> Kept | None:
@@ -83,13 +94,20 @@ def _kept(folder: Path) -> Kept | None:
         return None
     said = json.loads((folder / RECORD).read_text(encoding="utf-8"))
     day, at = date.fromisoformat(said["day"]), datetime.fromisoformat(said["at"])
-    return Kept(day, at, int(said["tries"]), dict(said["parked"]), frozenset(said["refused"]))
+    return Kept(
+        day,
+        at,
+        int(said["tries"]),
+        dict(said["parked"]),
+        frozenset(said["refused"]),
+        said.get("rules", ""),
+    )
 
 
 def _record(folder: Path, kept: Kept) -> None:
     """The record written whole, then swapped in, after the bars it speaks of."""
     said = {"day": kept.day.isoformat(), "at": kept.at.isoformat(), "tries": kept.tries}
-    said |= {"parked": dict(kept.parked), "refused": sorted(kept.refused)}
+    said |= {"parked": dict(kept.parked), "refused": sorted(kept.refused), "rules": kept.rules}
     part = folder / f"{RECORD}.part"
     part.write_text(json.dumps(said, indent=1), encoding="utf-8")
     part.replace(folder / RECORD)
@@ -124,6 +142,8 @@ def _refresh(
     line, and every line of a venue none of whose lines is clean. A day the store already
     holds is any whose sessions before it are all in the last refresh, across a weekend too."""
     readied, last = target(lines[0].venue, now), _kept(folder)
+    if last is not None and last.rules != RULES:
+        last = None  # kept under other store rules: cleaned again whole, as a first refresh
     same = last is not None and not _short(lines[0].venue, last, readied)
     if idle and same and last and not last.refused and len(last.parked) < len(lines):
         return None
@@ -142,7 +162,7 @@ def _refresh(
     found = store.prepare(folder, given if same else answers, readied)
     parked = {symbol: why for symbol, why in before.items() if symbol not in map(_symbol, given)}
     parked |= {line.symbol: line.reason for line in found}
-    kept = Kept(readied, now, tries, parked, frozenset(refused))
+    kept = Kept(readied, now, tries, parked, frozenset(refused), RULES)
     _record(folder, kept)
     return kept
 

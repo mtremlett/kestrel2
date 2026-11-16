@@ -7,9 +7,8 @@
 
 All is kept in `desk` under the folder the environment names (KESTREL2_DATA); the doors:
 
-THE PRICE STORE'S DOOR (`bars`): each time a round of orders or a record needs them, every
-line's daily bars are asked of the free archive afresh and cleaned into the one store. An
-archive that answers for no line is an error, the step's: a round is made once, never on nothing.
+THE PRICE STORE'S DOOR is the keeper's (`keeper.saved`): a round or a record reads the daily
+bars as the keeper last kept them, and a venue's bars left a session short are refused.
 
 THE DAY'S POUNDS PER DOLLAR (`rates`): the pound's last close in dollars before the day, from
 the same archive, until the data lane's own rate lands; once a day's rate is on the desk's
@@ -45,20 +44,19 @@ from desk import (
     clearance,
     gateway,
     halt,
+    keeper,
     kill,
     listing,
     messenger,
     paper,
     placing,
     running,
-    store,
     venues,
 )
 from desk import day as days
 from desk.lines import LINES, Line
 from desk.orders import Settings
-from desk.running import DAY, VENUES, Desk, Saved
-from desk.store import Refused
+from desk.running import DAY, VENUES, Desk
 
 ROOT, STORE, REHEARSALS = "desk", "store", "rehearsals"  #: folders, each inside the one before
 CAPITAL = Decimal(10_000)  #: the paper desk's one capital, in pounds, until he rules another
@@ -67,6 +65,9 @@ POUND, DOLLARS, FRESH = Line("GBPUSD=X", "US", "USD", 1), (Decimal(1), Decimal(2
 FIRST, LAST, EVERY = time(5, 30), time(22), timedelta(minutes=5)  #: the runner's day, UK clock
 NAMED = (OSError, HTTPException, ValueError, kill.Failed, messenger.Undelivered, paper.NotPaper)
 USAGE = "python -m desk.running [--preflight | --rehearse]"
+RUN = timedelta(minutes=30)  #: the rehearsal's longest run, as the runner allows it
+WINDOW = RUN + timedelta(minutes=60)  #: how near a market's open, or inside it, bars a rehearsal
+AFTER = timedelta(minutes=30)  #: how long past a session's uncrossing a rehearsal still waits
 OPEN = "REHEARSAL NO-GO: not begun: {}."
 GO = (
     "REHEARSAL GO: {:%a %d %b} lived again in {} steps at the paper Gateway ({} failed and the "
@@ -75,18 +76,6 @@ GO = (
     "written and none sent to his phone.{}"
 )
 UNSENT = " NO ORDER REACHED THE BROKER: this rehearsal does not prove the sending."
-
-
-def bars(root: Path, day: date) -> Saved:
-    """THE PRICE STORE'S DOOR: every line's bars before a day, asked of the archive now and
-    cleaned into the store at root; and the lines the store parks. A line the archive
-    refuses is parked alone. Refused for every line, nothing is stored: an error."""
-    answers = archive.gather(LINES, day, archive.fetch)
-    refused = [answer.reason for answer in answers.values() if isinstance(answer, Refused)]
-    if len(refused) == len(LINES):
-        raise OSError(f"{day}: the archive gave no line's bars, so none are stored: {refused[0]}")
-    parked = store.prepare(root, answers, day)
-    return {line: store.read(root, line.symbol) for line in LINES}, {p.symbol for p in parked}
 
 
 def rates(root: Path, day: date) -> dict[str, Decimal]:
@@ -121,8 +110,16 @@ def _post(env: Mapping[str, str]) -> messenger.Post:
     return unsaid
 
 
-def _desk(root: Path, post: messenger.Post) -> Desk:
-    return Desk(root, Settings(CAPITAL), post, partial(bars, root / STORE), partial(rates, root))
+def _desk(root: Path, post: messenger.Post, home: Path) -> Desk:
+    """The real doors, with the desk's records at root; the keeper's stores are in home."""
+    return Desk(
+        root,
+        Settings(CAPITAL),
+        post,
+        partial(rates, root),
+        home / keeper.HOT,
+        partial(keeper.saved, home),
+    )
 
 
 def _phone(env: Mapping[str, str]) -> str:
@@ -151,7 +148,7 @@ def _account(root: Path, now: datetime) -> str:
 
 def _prices(desk: Desk, today: date) -> str:
     """The lines with a bar of the session before today, on each venue that trades today."""
-    saved = desk.bars(today)
+    saved = desk.held(today)
     fits = [running._fit(saved, v, today) for v in VENUES if venues.sessions(v, today, today)]
     fit, out = sum(len(lines) for lines, _, _ in fits), [s for _, left, _ in fits for s in left]
     if not fits:
@@ -218,18 +215,33 @@ def _amiss(desk: Desk, on: date, left: Sequence[str], same: bool) -> list[str]:
     return wrong
 
 
-def rehearse(root: Path, now: datetime) -> tuple[bool, str]:
+def _trading(now: datetime) -> list[str]:
+    """The markets open at now, opening within WINDOW, or ended less than AFTER ago."""
+    return [
+        VENUES[venue]
+        for venue in VENUES
+        for on in venues.sessions(venue, now.date(), now.date())
+        if (hours := venues.hours(venue, on)).open < now + WINDOW and hours.auction + AFTER >= now
+    ]
+
+
+def rehearse(
+    root: Path, now: datetime, clock: Callable[[], datetime] = lambda: datetime.now(UTC)
+) -> tuple[bool, str]:
     """THE REHEARSAL: the last session before today lived again, a step at each of its
     moments, on a new record under root and at the real paper Gateway; whether it is GO, and
-    its one line. Not begun on a day a market trades, while the kill switch at root is on,
-    or with anything held or open on the paper account: its book is empty. A step that fails
-    is counted and the next carries on; then the desk's own orders still working are
+    its one line. Not begun while the kill switch at root is on, or with anything held or open
+    on the paper account: its book is empty. Nor while a market's session is open or opens
+    within the rehearsal's longest run and an hour (WINDOW), or ended just now (AFTER); a run
+    that finds one so stops at once. A step that fails is counted and the next carries on; then
+    the desk's own orders still working are
     cancelled and the account is read again, whatever happened."""
     today, before = now.date(), paper.read()
-    trading = [VENUES[venue] for venue in VENUES if venues.sessions(venue, today, today)]
+    trading = _trading(now)
     held = [h.name for h in before.holdings if h.shares] + [o.ref for o in before.orders]
     barred = (
-        f"{' and '.join(trading)} trade today, and an order it sent could fill" * bool(trading),
+        f"{' and '.join(trading)} trade now, soon or just ended, and an order it sent could fill"
+        * bool(trading),
         book.killed(root) or "",
         f"the paper account is not empty, as the rehearsal's book is: {held}" * bool(held),
     )
@@ -242,9 +254,12 @@ def rehearse(root: Path, now: datetime) -> tuple[bool, str]:
         said.append(text)
         return len(said)
 
-    desk = _desk(root / REHEARSALS / f"{now:%Y%m%dT%H%M%S}", post)
+    desk = _desk(root / REHEARSALS / f"{now:%Y%m%dT%H%M%S}", post, root.parent)
     moments, failed = _moments(on), list[str]()
     for at in moments:
+        if near := _trading(clock()):
+            failed.append(f"{at:%H:%M} UTC stopped, {' and '.join(near)} near")
+            break
         try:
             running.step(desk, at)
         except Exception as fault:  # noqa: BLE001 - a failed step is the rehearsal's finding, named
@@ -269,7 +284,7 @@ def main(
     root, now = Path(env["KESTREL2_DATA"]) / ROOT, clock()
     if not root.is_absolute():
         raise SystemExit(f"KESTREL2_DATA names no whole path to a folder: {root.parent}")
-    desk = _desk(root, _post(env))
+    desk = _desk(root, _post(env), root.parent)
     match argv:
         case []:
             running.step(desk, now)
@@ -277,7 +292,7 @@ def main(
         case ["--preflight"]:
             good, line = preflight(desk, env, now)
         case ["--rehearse"]:
-            good, line = rehearse(root, now)
+            good, line = rehearse(root, now, clock)
         case _:
             raise SystemExit(USAGE)
     print(line)  # noqa: T201 - the command's answer to whoever asked

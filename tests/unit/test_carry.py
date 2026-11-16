@@ -14,7 +14,9 @@ def test_a_long_holiday_weekend_is_fresh_but_two_shared_sessions_missing_is_stal
     assert pounds_per_dollar(closes, date(2025, 4, 22)) == Decimal("0.8")  # after Easter
     assert pounds_per_dollar(closes, date(2025, 1, 1)) is None  # no close before it
     assert pounds_per_dollar({date(2025, 6, 2): Decimal("1.25")}, date(2025, 6, 5)) is None
-    assert pounds_per_dollar({date(2025, 6, 2): Decimal("1.25")}, date(2025, 6, 4)) is None
+    assert pounds_per_dollar({date(2025, 6, 2): Decimal("1.25")}, date(2025, 6, 4)) == Decimal(
+        "0.8"
+    )  # one shared session (3 June) missing is still fresh
     assert pounds_per_dollar({date(2025, 6, 2): Decimal("1.25")}, date(2025, 6, 3)) == Decimal(
         "0.8"
     )

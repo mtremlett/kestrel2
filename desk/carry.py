@@ -12,6 +12,9 @@ from decimal import Decimal
 from desk.venues import sessions
 
 CARRIED = 3  #: the most US sessions one London close is carried over
+SHARED_MISSING = (
+    1  #: the most shared London-New York sessions that may lie between a close and the day
+)
 
 
 def carried(known: Mapping[date, Decimal], day: date) -> Decimal | None:
@@ -28,14 +31,18 @@ def carried(known: Mapping[date, Decimal], day: date) -> Decimal | None:
 
 
 def pounds_per_dollar(closes: Mapping[date, Decimal], day: date) -> Decimal | None:
-    """One over the pound's last close in dollars before the day, to six places; fresh while no
-    session shared by London and New York lies between that close and the day (a long holiday
-    weekend is not a stale rate, a missing week is). None where there is none, or it is stale."""
+    """One over the pound's last close in dollars before the day, to six places; fresh while at
+    most SHARED_MISSING sessions shared by London and New York lie between that close and the day
+    (a long holiday weekend or one missing close is not stale, a missing week is). None where
+    there is none, or it is stale."""
     before = [d for d in closes if d < day]
     if not before:
         return None
     last = max(before)
     gap = timedelta(days=1)
-    if set(sessions("LSE", last + gap, day - gap)) & set(sessions("US", last + gap, day - gap)):
+    shared = set(sessions("LSE", last + gap, day - gap)) & set(
+        sessions("US", last + gap, day - gap)
+    )
+    if len(shared) > SHARED_MISSING:
         return None
     return (1 / closes[last]).quantize(Decimal("0.000001"))

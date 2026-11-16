@@ -46,9 +46,6 @@ BAD_BARS: dict[str, Callable[[Bar], Bar]] = {
     "a price is not positive": lambda b: replace(b, low=Decimal(0)),
     "the volume is negative": lambda b: replace(b, volume=-1),
     "the price is in the wrong unit": lambda b: _scaled(b, Decimal(100)),
-    "only the high is in the wrong unit": lambda b: replace(b, high=b.high * 100),
-    "only the low is in the wrong unit": lambda b: replace(b, low=b.low / 100),
-    "the high is a bad print": lambda b: replace(b, high=b.high * 2),
     "a price is not a number": lambda b: replace(b, high=Decimal("NaN")),
     "a price is infinite": lambda b: replace(b, high=Decimal("Infinity")),
 }
@@ -316,15 +313,6 @@ def test_a_week_of_one_price_and_no_volume_is_a_frozen_feed(
     assert any("frozen feed" in f for f in store.faults(tmp_path, US.symbol)) is frozen
     kept = tuple(b for n, b in enumerate(bars) if not (frozen and n in run))
     assert store.read(tmp_path, US.symbol) == kept
-
-
-def test_shelved_older_bars_join_the_archives_and_outlast_every_rebuild(tmp_path: Path) -> None:
-    every = _bars(UK, LONG)
-    store.shelve(tmp_path, UK, every[:5])
-    for _ in range(2):  # the store is rebuilt from the archive on every prepare
-        assert store.prepare(tmp_path, {UK: every[3:]}, DAY) == ()
-        assert store.read(tmp_path, UK.symbol) == every
-    assert store.prepare(tmp_path, {US: _bars(US, LONG)}, DAY) == ()  # a line with none shelved
 
 
 POUND = Decimal("1.5")

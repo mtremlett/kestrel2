@@ -15,7 +15,7 @@ import pytest
 import test_placing as tp
 from test_paper import ACCOUNTS, HELLO, NEXT, Said, _wire
 from test_reports import END, LISTED
-from test_running import MADE
+from test_running import MADE, fast_store
 
 from desk import (
     archive,
@@ -24,6 +24,7 @@ from desk import (
     command,
     day,
     halt,
+    keeper,
     listing,
     messenger,
     paper,
@@ -37,6 +38,7 @@ MON = datetime(2026, 11, 16, 7, 15, tzinfo=UTC)
 FRI, SUNDAY = date(2026, 11, 13), datetime(2026, 11, 15, 18, tzinfo=UTC)
 KEYS = {"TELEGRAM_BOT_TOKEN": "1:a", "TELEGRAM_CHAT_ID": "5"}
 Fetch = Callable[[Line, date], tuple[Bar, ...]]
+ASKED: list[tuple[Path, date]] = []  #: the keeper's store, each time the desk read it
 
 
 def _flat(on: date, price: str) -> Bar:
@@ -64,6 +66,12 @@ def _world(patch: pytest.MonkeyPatch, fetch: Fetch = _fetch) -> dict[bytes, Said
         return talk(_wire(HELLO, ACCOUNTS, NEXT, *answers[b"".join(asked[2:])]), lambda _: None)
 
     patch.setattr(archive, "fetch", fetch)
+
+    def saved(home: Path, day: date) -> tuple[dict[Line, tuple[Bar, ...]], set[str]]:
+        ASKED.append((home, day))
+        return {n: fetch(n, day) for n in LINES}, set()
+
+    patch.setattr(keeper, "saved", saved)
     patch.setattr(paper, "dial", dial)
     patch.setattr(listing, "read", lambda _: LISTED)
     return answers
@@ -77,6 +85,7 @@ def test_a_step_does_the_days_work_under_the_data_folder_and_fails_by_name_witho
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     _world(monkeypatch)
+    fast_store(tmp_path / "bars.db", 51)
     assert _run(tmp_path, MON) == 0  # he sleeps: a knock
     assert capsys.readouterr().out == "STEP Mon 16 Nov 07:15 UTC: done.\n"
     # London open, and no key of his: the round is made on the store's bars at the pound's
@@ -87,31 +96,16 @@ def test_a_step_does_the_days_work_under_the_data_folder_and_fails_by_name_witho
     (note,) = running.notes(desk)
     assert note.what == "orders LSE" and "none sent in this round" in note.words
     assert book.rate(desk, "USD", MON.date()) == Decimal("0.8") and not messenger.deliveries(desk)
-    assert (desk / "store" / "VUAG.csv").exists()
+    assert ASKED and {home for home, _ in ASKED} == {tmp_path}
     with pytest.raises(SystemExit, match="--preflight"):
         _run(tmp_path, MON, "--now")
 
 
-def test_the_doors_refuse_an_archive_that_answers_for_no_line_and_a_pound_they_cannot_trust(
+def test_the_doors_refuse_a_pound_they_cannot_trust(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    lost, today = set[str](), MON.date()
-
-    def fetch(line: Line, before: date) -> tuple[Bar, ...]:
-        if line.symbol in lost:
-            raise OSError("no network")
-        return _fetch(line, before)
-
-    _world(monkeypatch, fetch)
-    saved, parked = command.bars(tmp_path, today)
-    assert set(saved) == set(LINES) and not parked
-    assert {series[-1].day for series in saved.values()} == {FRI}
-    lost.add("ISF")  # a line the archive cannot be reached for is parked alone, with no bar
-    saved, parked = command.bars(tmp_path, today)
-    assert parked == {"ISF"} and [s for line, s in saved.items() if line.symbol == "ISF"] == [()]
-    lost |= {line.symbol for line in LINES}
-    with pytest.raises(OSError, match="gave no line's bars, so none are stored: OSError: no net"):
-        command.bars(tmp_path, today)
+    today = MON.date()
+    _world(monkeypatch)
     # the pound: a rate on the day's record is the day's, whatever the archive says later
     assert command.rates(tmp_path, today) == {"GBP": 1, "USD": Decimal("0.8")}
     book.record_rates(tmp_path, today, {"USD": Decimal("0.75")})
@@ -166,7 +160,7 @@ def test_the_preflight_says_ready_or_names_each_thing_that_is_not_and_sends_no_o
         raise ConnectionRefusedError
 
     monkeypatch.setattr(paper, "dial", shut)  # a Gateway that does not answer, and no prices
-    monkeypatch.setattr(archive, "fetch", lambda _line, _day: ())
+    monkeypatch.setattr(keeper, "saved", lambda _home, _day: ({n: () for n in LINES}, set()))
     assert _run(tmp_path, MON + timedelta(minutes=2), "--preflight", **KEYS) == 1
     line = capsys.readouterr().out
     assert "the Gateway: ConnectionError: The paper Gateway does not answer: its port" in line
@@ -177,6 +171,7 @@ def test_the_rehearsal_lives_the_last_session_again_on_its_own_record_with_no_ma
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     answers, whole, script = _world(monkeypatch), running.step, dict[int, dict[bytes, Said]]()
+    fast_store(tmp_path / "bars.db", 51)
 
     def step(desk: running.Desk, now: datetime) -> None:
         answers.update(script.get(now.hour * 100 + now.minute, {}))
@@ -221,8 +216,29 @@ def test_the_rehearsal_lives_the_last_session_again_on_its_own_record_with_no_ma
     # anything on the paper account, which the rehearsal's empty book would not hold
     book.turn(tmp_path / "desk", book.Switch.ON, MON, "his word")
     answers[tp.ACCOUNT] = tp.BARE
-    assert _run(tmp_path, MON.replace(hour=22), "--rehearse") == 1
+    assert _run(tmp_path, MON.replace(hour=13), "--rehearse") == 1
     line = capsys.readouterr().out
-    assert line.startswith("REHEARSAL NO-GO: not begun: London and New York trade today, and an")
+    assert line.startswith(
+        "REHEARSAL NO-GO: not begun: London and New York trade now, soon or just"
+    )
     assert "; the kill switch is on, pulled at 2026-11-16 07:15 UTC: his word; the paper" in line
     assert "account is not empty, as the rehearsal's book is: ['IITU STK GBP']." in line
+
+
+def test_the_rehearsal_may_begin_on_a_weekday_once_the_markets_are_shut_and_far_from_the_next_open(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    answers = _world(monkeypatch)
+    fast_store(tmp_path / "bars.db", 51)
+    answers.update({tp.FILLS: [END], tp.ACCOUNT: tp.EMPTY})
+    monkeypatch.setattr(running, "step", lambda *_: None)
+    for hour, minute, begins in (
+        (13, 0, 0),
+        (6, 31, 0),
+        (8, 0, 0),
+        (21, 15, 0),
+        (22, 30, 1),
+        (6, 30, 1),
+    ):
+        _run(tmp_path, MON.replace(hour=hour, minute=minute), "--rehearse")
+        assert ("not begun" in capsys.readouterr().out) == (not begins), (hour, minute)

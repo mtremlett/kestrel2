@@ -5,6 +5,11 @@ supervisor: not built, docs/STATUS.md). A step remembers nothing. What is done i
 desk's records, and what is not is done by the next step: so a desk that died anywhere is
 started again simply by asking for a step.
 
+THE CRASH WATCH'S LOOK (watch.look) is made first at every step, every hour, whatever the
+gateway says: it halts buying on a crash, and while it has not read the market's first bar of
+its session (London's 08:05) it holds that venue's round of orders. A look that fails holds
+every round; the rest of the step is done, and the failure raised after.
+
 What a step owes, in this order, and only of a gateway that says it is ready:
 - THE LEDGER brought up to date with the broker's fills, at every step in which a market is
   open: the broker tells of the day alone.
@@ -19,7 +24,7 @@ What a step owes, in this order, and only of a gateway that says it is ready:
   (day.trade), on the bars saved before today, for that venue's lines. The send path asks
   the broker of every order before it sends, so a round begun twice sends nothing twice. A
   round is made once, whatever was answered: an order refused in it is not sent later.
-- THE DAY'S RECORD (day.publish), once every market that traded has been shut five minutes;
+- THE DAY'S RECORD (day.publish), once every market that traded has its closes kept (keeper.HELD);
   a session the desk missed gets its own first, oldest first, at that day's own rates.
 
 Then, whatever happened, he is told through the desk's one voice (desk/messenger.py): the
@@ -45,16 +50,18 @@ from desk import (
     clearance,
     day,
     gateway,
+    keeper,
     kill,
     listing,
     messenger,
     paper,
     placing,
     venues,
+    watch,
 )
 from desk.book import Switch
 from desk.gateway import Known, State
-from desk.lines import LINES, Line
+from desk.lines import LINES, YARDSTICK, Line
 from desk.listing import Listing, Unlisted
 from desk.orders import Settings
 from desk.paper import Resting
@@ -63,13 +70,14 @@ from desk.store import Bar
 
 NOTES, HEAD = "running.csv", ("at", "what", "words")
 VENUES = {"LSE": "London", "US": "New York"}  #: each venue of the desk's lines, as he is told it
-SHUT = timedelta(minutes=5)  #: how long after a day's last closing auction its record is made
 DAY = timedelta(days=1)
 ORDERS, RECOVERED, UNCLEAN, TROUBLE = "orders {}", "recovered", "unclean", "trouble"
 ONCE = (UNCLEAN, TROUBLE)  #: told once a day, the first: of a failure, the first of its kind
 PUT_RIGHT = "The desk put right what a desk that stopped part-way left at the paper broker: {}."
 NOT_THE_BOOK = "The paper account is not the desk's book, so no order goes. Its check named: {}."
-FAILED = "A step of the desk failed; the next tries again: {}: {}. Its like today is not told."
+FAILED = (
+    "A step of the desk failed; the next tries again: {}: {} (in {}). Its like today is not told."
+)
 UNDRILLED = (
     "today's rehearsal of the kill switch did not pass, so the desk sends no order, checks no "
     "account and makes no record until one does. It was a rehearsal on a pretend desk: no real "
@@ -86,10 +94,12 @@ class Desk:
     root: Path  #: where the ledger, the checks, the switch, the records and the messages are
     room: Settings
     post: messenger.Post  #: the door to his phone
-    #: The price store's door: the bars before a day. The day's record needs its closes there.
-    bars: Callable[[date], Saved]
     #: A day's pounds per unit of each currency: the same answer at every asking.
     rates: Callable[[date], Mapping[str, Decimal]]
+    #: The fast store of five-minute bars for the crash watch, and the one door to the daily
+    #: bars, as last kept by the store's keeper (no archive is asked at a step).
+    hot: Path
+    held: Callable[[date], Saved]
 
 
 class Note(NamedTuple):
@@ -191,15 +201,20 @@ def _clean(
     return not found
 
 
-def _pending(root: Path, now: datetime) -> list[str]:
+def _pending(root: Path, now: datetime, seen: watch.Look | None) -> list[str]:
     """The venues whose round of orders is owed now: in continuous trading, with no round of
-    today's on the record."""
+    today's on the record, and, of the market's own venue, once the look has read a bar of
+    the session (it holds the round till then, see watch.EARLY). A look that failed (None)
+    holds every round: the rest of the step is still done, and the failure raised after."""
+    if seen is None:
+        return []
     done = {note.what for note in notes(root) if note.at.date() == now.date()}
     trading = {venue: venues.open_at(venue, now) for venue in VENUES}
     return [
         venue
         for venue, hours in trading.items()
         if hours and now < hours.close and ORDERS.format(venue) not in done
+        if not (venue == YARDSTICK.venue and seen.unread.get(YARDSTICK) == watch.EARLY)
     ]
 
 
@@ -224,8 +239,14 @@ def _round(desk: Desk, broker: placing.Paper, venue: str, now: datetime) -> None
     out, nothing decided on it, and named: never passed over in silence. A desk that dies
     in the round runs it again: the send path asks the broker of each order first."""
     today = now.date()
-    saved, out, last = _fit(desk.bars(today), venue, today)
-    sent = day.trade(desk.root, saved, broker, desk.room, today, desk.rates(today))
+    saved, out, last = _fit(desk.held(today), venue, today)
+
+    def tell(
+        name: str, words: str
+    ) -> None:  #: kept as a note: told at his next step until delivered
+        _note(desk.root, now, name, words)
+
+    sent = day.trade(desk.root, saved, broker, desk.room, today, desk.rates(today), tell)
     said = [
         f"{s.order_id}, {s.filled} shares done" + f" ({s.reason})" * bool(s.reason) for s in sent
     ]
@@ -237,13 +258,14 @@ def _round(desk: Desk, broker: placing.Paper, venue: str, now: datetime) -> None
 def _owed(root: Path, now: datetime) -> list[date]:
     """The sessions whose record is owed now, oldest first: each since the last record (with
     none yet, since the ledger's first fill, or today), and today's only once every venue
-    that traded today has been shut for SHUT."""
+    that traded today has had time to have its closes kept (keeper.HELD, past the moment
+    keeper.target turns to tomorrow), so the price store's door does not refuse the record."""
     kept, today = day.records(root), now.date()
     first = min((fill.day for fill in book.fills(root)), default=today)
     since = kept[-1].day if kept else min(first, today) - DAY
     traded = {on for venue in VENUES for on in venues.sessions(venue, since + DAY, today)}
     shut = all(
-        now >= venues.hours(venue, today).auction + SHUT
+        now >= venues.hours(venue, today).auction + keeper.HELD
         for venue in VENUES
         if venues.sessions(venue, today, today)
     )
@@ -261,13 +283,13 @@ def _drill(root: Path, now: datetime) -> None:
             raise kill.Failed(UNDRILLED.format(broke)) from broke
 
 
-def _work(desk: Desk, now: datetime) -> None:
+def _work(desk: Desk, now: datetime, seen: watch.Look | None) -> None:
     """What a step owes of a ready gateway, in the module's order; the paper account is
     asked only when something is owed. A round and a record each have the check before
     them, so a desk started again at any hour is recovered before it orders or publishes;
     and the day's drill is before them all, an error raised if it broke a promise."""
     root = desk.root
-    rounds, owed, last = _pending(root, now), _owed(root, now), clearance.checks(root)[-1:]
+    rounds, owed, last = _pending(root, now, seen), _owed(root, now), clearance.checks(root)[-1:]
     checked = bool(last) and last[0].at.date() == now.date() and last[0].found is not None
     awake = gateway._uk(now).time() >= messenger.MORNING.start
     check = bool(rounds or owed) or (awake and not checked)
@@ -283,7 +305,7 @@ def _work(desk: Desk, now: datetime) -> None:
         _round(desk, broker, venue, now)
     for on in owed:  #: a missed session's rates are kept first, as its own day would have
         book.record_rates(root, on, desk.rates(on))
-        day.publish(root, desk.bars(on + DAY)[0], broker, desk.room, on)
+        day.publish(root, desk.held(on + DAY)[0], broker, desk.room, on)
 
 
 def _say(desk: Desk, now: datetime, known: Known) -> None:
@@ -303,6 +325,18 @@ def _say(desk: Desk, now: datetime, known: Known) -> None:
             messenger.send(root, now, f"{note.what} {note.at:%Y-%m-%d %H:%M:%S}", note.words, post)
 
 
+def _where(fault: BaseException) -> str:
+    """The call a failure came from: the innermost desk function on its traceback, as
+    module.function, so that no failure, a timeout included, is anonymous."""
+    where, trace = "outside the desk", fault.__traceback__
+    while trace is not None:
+        module = trace.tb_frame.f_globals.get("__name__", "")
+        if module.startswith("desk."):
+            where = f"{module}.{trace.tb_frame.f_code.co_name}"
+        trace = trace.tb_next
+    return where
+
+
 def step(desk: Desk, now: datetime) -> None:
     """ONE STEP OF THE DESK UNATTENDED, at a moment in UTC: the gateway is asked whether it
     is ready, and of one that is, whatever is owed is done (_work). A step that fails goes
@@ -311,14 +345,20 @@ def step(desk: Desk, now: datetime) -> None:
     that did not say it is ready."""
     if now.utcoffset() != timedelta(0):
         raise ValueError(f"{now} is no moment in UTC: the desk's day is kept in UTC alone")
-    known = UNASKED
+    known, seen, unseen = UNASKED, None, None  #: the look, or the error that it failed with
     try:
         known = gateway.known(now)
+        try:
+            seen = watch.look(desk.root, desk.hot, desk.held(now.date())[0], now, desk.post)
+        except Exception as failed:  # noqa: BLE001 - no round goes unseen; the rest is done
+            unseen = failed
         if known:
-            _work(desk, now)
+            _work(desk, now, seen)
+        if unseen:
+            raise unseen
     except Exception as fault:
         kind = type(fault).__name__
-        _note(desk.root, now, f"{TROUBLE} {kind}", FAILED.format(kind, fault))
+        _note(desk.root, now, f"{TROUBLE} {kind}", FAILED.format(kind, fault, _where(fault)))
         raise
     finally:
         _say(desk, now, known)

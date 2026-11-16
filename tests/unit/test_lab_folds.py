@@ -3,23 +3,27 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import replace
 from decimal import Decimal
 
 import pytest
 from test_lab_luck import DAY
 from test_lab_rung import FREE, POUND, SHAPE, TEN_K, _bars, _walk
 
+from desk.lines import LINES
 from desk.store import Bar
 from lab import cell, folds, luck, rung
 from lab.cell import Cell, Key, Trade
 from lab.folds import Fold, Folded
 from lab.rung import Answer, Priced, Verdict
 
+VUSA = next(line for line in LINES if line.symbol == "VUSA")
+
 EDGE = 0.012
 
 
 def _window(bars: Sequence[Bar]) -> Cell:
-    return Cell("breakout_20_10", "VUSA", bars[0].day, bars[-1].day)
+    return Cell("breakout_20_10", VUSA, bars[0].day, bars[-1].day)
 
 
 def _judge(bars: Sequence[Bar], count: int = 2) -> Folded:
@@ -29,7 +33,7 @@ def _judge(bars: Sequence[Bar], count: int = 2) -> Folded:
 def _verdict(*gains: str) -> Verdict:
     days = (DAY, DAY)
     made = tuple(Priced(Trade(*days), 1, Decimal(1), 1 + Decimal(g), FREE, days) for g in gains)
-    return rung.verdict(Key(Cell("breakout_20_10", "VUSA", DAY, DAY), "code", "data"), made)
+    return rung.verdict(Key(Cell("breakout_20_10", VUSA, DAY, DAY), "code", "data"), made)
 
 
 def _t(verdict: Verdict) -> Decimal:
@@ -42,13 +46,17 @@ def test_a_window_is_cut_into_equal_parts_and_a_trade_across_a_boundary_is_in_ne
     days = [bar.day for bar in bars]  #: cut in five parts of five, each beside all before it
     want = [(days[0], days[5 * n - 1], days[5 * n], days[5 * n + 4]) for n in range(1, 5)]
     assert [(i.start, i.end, o.start, o.end) for i, o in folds.cut(_window(bars), bars, 4)] == want
-    inner = Cell("breakout_20_10", "VUSA", days[2], days[12])  #: its own bars, parts a bar apart
+    inner = Cell("breakout_20_10", VUSA, days[2], days[12])  #: its own bars, parts a bar apart
     ends = [(i.end, o.start, o.end) for i, o in folds.cut(inner, bars, 2)]
     assert ends == [(days[4], days[5], days[8]), (days[8], days[9], days[12])]
     for count, bad in [(0, bars), (25, bars), (1, bars[:1])]:
         with pytest.raises(ValueError, match="cannot be cut"):
             folds.cut(_window(bad), bad, count)
     assert len(folds.cut(_window(bars), bars, 24)) == 24, "a bar a part is the limit"
+    research = replace(LINES[0], symbol="ABBV")  #: a research line the desk does not trade
+    assert research not in LINES
+    wide = Cell("breakout_20_10", research, bars[0].day, bars[-1].day)
+    assert {c.line for pair in folds.cut(wide, bars, 4) for c in pair} == {research}
     (trade,) = rung.judge(cell.run(_window(bars), bars), bars, TEN_K, POUND).trades
     (last,) = _judge(bars, 1).folds  #: bars 12 to 24 hold the whole trade
     assert last.outside.trades == (trade,) and last.inside.trades == ()
