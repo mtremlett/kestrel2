@@ -129,3 +129,28 @@ def test_a_drill_that_keeps_every_promise_is_on_the_record_for_a_month(tmp_path:
     assert [day for day in range(-1, 33) if kill.drilled(tmp_path, MON + timedelta(day))] == list(
         range(32)
     ), "a drill counts from its own day for 31 more"
+
+
+def test_go_flat_sells_every_held_line_and_buys_nothing_until_his_lift(tmp_path: Path) -> None:
+    broker = Pretend(WEEK, {})
+    broker.open(MON)
+    _buy(tmp_path, broker, "o-1", A)
+    _buy(tmp_path, broker, "o-2", B)
+    lines = {line.symbol: line for line in (A, B, C)}
+    noon = datetime(2025, 11, 10, 12, 5, tzinfo=UTC)
+    assert kill.step(tmp_path, broker, lines, ROOM, noon).state is None, "flat unasked"
+
+    (tmp_path / kill.FLAG).write_text("")  #: the flag file appears mid-day
+    flat = kill.step(tmp_path, broker, lines, ROOM, noon + timedelta(minutes=5))
+    assert [s.order_id for s in flat.sent] == ["flat-A-2025-11-10", "flat-B-2025-11-10"]
+    assert broker.holdings() == () == broker.stops(), "a held line was not sold, or its stop left"
+    assert flat.state == "go flat since 12:10", flat.state
+    with pytest.raises(Refused, match="go flat"):
+        _buy(tmp_path, broker, "o-3", C)
+
+    (tmp_path / kill.FLAG).unlink()  #: the flag taken away resumes nothing
+    later = kill.step(tmp_path, broker, lines, ROOM, noon + timedelta(hours=1))
+    assert later.state == "go flat since 12:10"
+    kill.lift(tmp_path, noon + timedelta(hours=2), "his word")
+    assert kill.step(tmp_path, broker, lines, ROOM, noon + timedelta(hours=3)).state is None
+    assert _buy(tmp_path, broker, "o-4", C).filled == 10, "no resume at lift"
