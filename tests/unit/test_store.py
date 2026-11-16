@@ -323,21 +323,35 @@ def _prepared(tmp_path: Path, bars: tuple[Bar, ...], line: Line, rated: bool = T
     return [p.reason for p in store.prepare(tmp_path, {line: bars}, DAY, rates)]
 
 
-@pytest.mark.parametrize("run", [0, 1, 25], ids=["a step", "a stray bar", "a month of them"])
-def test_a_change_of_currency_below_a_jump_is_found_by_the_days_pound(
-    tmp_path: Path, run: int
-) -> None:
-    """IITU x0.662, VUAG x0.791: a step as large as the pound in dollars is no market move;
-    EQQQ's dollar bars of October 2014 ran past BLIP, and the rate still names them."""
-    clean = _bars(US, LONG)
+@pytest.mark.parametrize("run", [0, 25], ids=["a step", "a month of them"])
+def test_a_lasting_change_of_currency_is_found_by_the_days_pound(tmp_path: Path, run: int) -> None:
+    """IITU x0.662, VUAG x0.791: a step as large as the pound in dollars that lasts is no market
+    move; EQQQ's dollar bars of October 2014 ran past BLIP, and the rate still names them."""
+    clean = _bars(UK, LONG)
     mixed = [_scaled(b, 1 / POUND) for b in (clean[30 : 30 + run] if run else clean[30:])]
     bars = (*clean[:30], *mixed, *clean[30 + run :]) if run else (*clean[:30], *mixed)
-    assert _prepared(tmp_path, bars, US, rated=False) == []  # unseen without the rate
-    reasons = _prepared(tmp_path, bars, US)
+    assert _prepared(tmp_path, bars, UK, rated=False) == []  # unseen without the rate
+    reasons = _prepared(tmp_path, bars, UK)
     assert bool(reasons) is not run  # a step is lasting; dollar bars among pounds are dropped
-    assert any(("wrong unit" in f) is bool(run) for f in store.faults(tmp_path, US.symbol))
-    assert len(store.read(tmp_path, US.symbol)) == len(bars) - run
-    assert _prepared(tmp_path, bars, replace(US, leverage=3)) == []  # a real crash is as large
+    assert any(("wrong unit" in f) is bool(run) for f in store.faults(tmp_path, UK.symbol))
+    assert len(store.read(tmp_path, UK.symbol)) == len(bars) - run
+    assert _prepared(tmp_path, bars, replace(UK, leverage=3)) == []  # a real crash is as large
+
+
+@pytest.mark.parametrize("line", [UK, US], ids=["pounds", "dollars"])
+@pytest.mark.parametrize("days", [1, 3], ids=["one day", "three days"])
+def test_a_fall_near_the_pounds_rate_that_recovers_is_the_markets_move(
+    tmp_path: Path, line: Line, days: int
+) -> None:
+    """18 March 2020: closes fell 19% against a rate of 1.2268 and came back. Only a step that
+    lasts is a change of currency; a line quoted in dollars is never judged by the pound."""
+    clean = _bars(line, LONG)
+    fell = tuple(
+        _scaled(b, Decimal("0.815")) if 30 <= n < 30 + days else b for n, b in enumerate(clean)
+    )
+    rates = {b.day: Decimal("1.2268") for b in clean}
+    assert store.prepare(tmp_path, {line: fell}, DAY, rates) == ()
+    assert store.read(tmp_path, line.symbol) == fell
 
 
 def test_a_leveraged_crash_as_large_as_the_pound_is_kept_not_taken_for_dollars(

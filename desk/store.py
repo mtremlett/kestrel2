@@ -8,17 +8,16 @@ in, so a reader never sees half a write."""
 from __future__ import annotations
 
 import csv
-from bisect import bisect_right
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import astuple, dataclass, replace
 from datetime import date, timedelta
 from decimal import Decimal
 from itertools import groupby
 from pathlib import Path
-from types import MappingProxyType
 
 from desk import venues
 from desk.lines import Line
+from desk.store_fx import FX_FAR, FX_LAST, NO_RATES, Rates, lasting_step, near_rate, pound
 
 #: Neighbouring bars further apart than this factor (a fall of 37.5%, a rise of 60%) are not a
 #: market move: a wrong unit (pence among pounds is 100), a bad print, or an unadjusted split of
@@ -40,18 +39,9 @@ FROZEN = 5
 #: A price this many times, or this fraction of, its neighbour's close is in another unit
 #: (pence among pounds is 100), however far a market moves: a hundredfold, less a jump.
 FAR = 100 / JUMP
-#: A one-for-one line's neighbouring closes in the ratio of that day's pound in dollars, within
-#: this fraction, are a bar in dollars beside one in pounds, not a market move (IITU x0.662,
-#: VUAG x0.791, each below JUMP). A leveraged line's real crashes sit as near the rate (5QQQ
-#: x0.770), so only a stray bar of one is tested; one past JUMP is taken so within FX_FAR.
-FX_STEP, FX_FAR = Decimal("0.05"), Decimal("0.10")
-#: The newest pound in dollars a day may be judged on is at most this old.
-RATE_AGE = timedelta(days=7)
 AGREE = Decimal("0.02")  #: two sources' closes for a session must agree within this (R-RUNNER-189)
 #: A recorded split is adopted when the bar's jump is within this fraction of its ratio.
 SPLIT_NEAR = Decimal("0.25")
-Rates = Mapping[date, Decimal]  #: the pound's close in dollars, by day
-NO_RATES: Rates = MappingProxyType({})
 UNRECORDED = "a gap in the archive, or a suspension the line does not record"
 ASTRAY = "is out of line with the days either side: a wrong unit"
 COLUMNS = ("day", "open", "high", "low", "close", "volume")
@@ -134,21 +124,13 @@ def _entered(line: Line, bar: Bar, open_days: set[date], faults: list[Fault]) ->
     return replace(bar, high=high, low=low)
 
 
-def _rate(rates: Rates, day: date) -> Decimal | None:
-    """The pound's newest close in dollars on or before day, if no older than RATE_AGE."""
-    days = sorted(rates)
-    at = bisect_right(days, day)
-    return rates[days[at - 1]] if at and day - days[at - 1] <= RATE_AGE else None
+Around = tuple[Sequence[Bar], Sequence[Bar]]  #: the bars before a pair, and the bars after it
 
 
-def _fx(ratio: Decimal, rate: Decimal | None, near: Decimal) -> bool:
-    """The ratio of two closes is the pound's rate, or one over it, within near."""
-    return rate is not None and any(abs(ratio / r - 1) <= near for r in (rate, 1 / rate))
-
-
-def _agree(line: Line, before: Bar, after: Bar, rates: Rates) -> bool:
+def _agree(line: Line, before: Bar, after: Bar, rates: Rates, around: Around = ((), ())) -> bool:
     """Neighbouring bars could both be true: each one's range lies within a market's move of the
-    other's close, or the line records this close. A step as large as the pound's is a currency."""
+    other's close, or the line records this close. A step as large as the pound's that lasts
+    through the bars after it is a change of currency; a fall that recovers is a move."""
 
     def near(bar: Bar, close: Decimal) -> bool:
         return close / JUMP <= bar.low and bar.high <= close * JUMP
@@ -156,9 +138,18 @@ def _agree(line: Line, before: Bar, after: Bar, rates: Rates) -> bool:
     confirmed = dict(line.real_moves).get(after.day)
     if confirmed is not None:
         return after.close == confirmed and near(after, after.close)
-    if line.leverage == 1 and _fx(after.close / before.close, _rate(rates, after.day), FX_STEP):
+    earlier, later = ([b.close / before.close for b in side] for side in around)
+    if lasting_step(after.close / before.close, earlier, later, pound(line, rates, after.day)):
         return False
     return near(after, before.close) and near(before, after.close)
+
+
+def _links(line: Line, bars: Sequence[Bar], rates: Rates) -> list[bool]:
+    """Whether each bar agrees with the one before it, the bars after it in view."""
+    return [
+        _agree(line, bars[n], bars[n + 1], rates, (bars[max(n - FX_LAST, 0) : n], bars[n + 2 :]))
+        for n in range(len(bars) - 1)
+    ]
 
 
 def moves(line: Line, bars: Sequence[Bar], rates: Rates = NO_RATES) -> tuple[date, ...]:
@@ -166,8 +157,8 @@ def moves(line: Line, bars: Sequence[Bar], rates: Rates = NO_RATES) -> tuple[dat
     true, by a move further than the store believes a market makes that the line does not
     record. They are the moves a line is parked for until confirmed, judged on the bars as
     kept: where a frozen run was dropped, the bars either side of it are neighbours here."""
-    pairs = zip(bars, bars[1:], strict=False)
-    return tuple(after.day for before, after in pairs if not _agree(line, before, after, rates))
+    agreed = _links(line, bars, rates)
+    return tuple(bar.day for bar, agree in zip(bars[1:], agreed, strict=True) if not agree)
 
 
 def _far(bar: Bar, close: Decimal, rate: Decimal | None) -> bool:
@@ -177,7 +168,7 @@ def _far(bar: Bar, close: Decimal, rate: Decimal | None) -> bool:
     hundredfold = any(
         p >= close * FAR or p * FAR <= close for p in (bar.open, bar.high, bar.low, bar.close)
     )
-    return hundredfold or _fx(bar.close / close, rate, FX_FAR)
+    return hundredfold or near_rate(bar.close / close, rate, FX_FAR)
 
 
 def _stray(at: int, links: Sequence[bool]) -> bool:
@@ -194,23 +185,29 @@ def _stray(at: int, links: Sequence[bool]) -> bool:
 def _priced(line: Line, sound: Sequence[Bar], faults: list[Fault], rates: Rates) -> list[Bar]:
     """Drop a bar, or a short run, a hundredfold out of line with the days either side or in the
     other currency; keep any other move, a one-day crash too, as a lasting fault until recorded."""
-    links = [_agree(line, a, b, rates) for a, b in zip(sound, sound[1:], strict=False)]
+    links = _links(line, sound, rates)
     kept: list[Bar] = []
     resume = 0
     for at, bar in enumerate(sound):
         if at < resume:
             continue
-        rate = _rate(rates, bar.day) if line.leverage == 1 else None
+        rate = pound(line, rates, bar.day)
         if _stray(at, links) and _far(bar, sound[at - 1 if at else 1].close, rate):
             faults.append(Fault(bar.day, f"{bar.day} {ASTRAY}"))
             continue
-        if kept and not _agree(line, kept[-1], bar, rates):
-            back = at + 1 < len(sound) and _agree(line, kept[-1], sound[at + 1], rates)
+        if kept and not _agree(
+            line, kept[-1], bar, rates, (kept[-1 - FX_LAST : -1], sound[at + 1 :])
+        ):
+            back = at + 1 < len(sound) and _agree(
+                line, kept[-1], sound[at + 1], rates, (kept[-1 - FX_LAST : -1], sound[at + 2 :])
+            )
             if bar.volume == 0 and back:  # no trade states no price (2MU, 24 October 2025)
                 faults.append(Fault(bar.day, f"{bar.day} {ASTRAY}: it has no volume"))
                 continue
             unit = _far(bar, kept[-1].close, rate)
-            dollars = _fx(bar.close / kept[-1].close, rate, FX_FAR)  # the pound's rate holds a run
+            dollars = near_rate(
+                bar.close / kept[-1].close, rate, FX_FAR
+            )  # the pound's rate holds a run
             reach = len(sound) if dollars else min(at + 1 + BLIP, len(sound))
             ahead = range(at + 1, reach if unit else at + 1)
             resume = next((n for n in ahead if not _far(sound[n], kept[-1].close, rate)), at)
