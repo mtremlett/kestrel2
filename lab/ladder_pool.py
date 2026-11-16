@@ -33,6 +33,8 @@ from lab.ladder import FIRST, Plan
 from lab.rung import Rates
 
 SPARE = 2  #: cores left to the rest of the PC
+RESERVE = 0.2  #: the share of the PC's memory the pool never takes
+PEAK = 5 * 2**30  #: bytes one worker peaks at, measured
 BELOW_NORMAL = 0x4000  #: Windows' BELOW_NORMAL_PRIORITY_CLASS
 Task = tuple[list[Cell], list[Cell], tuple[int | str, int], list[verdict.Row | None], datetime]
 AHEAD = 2  #: rules warmed before the one whose group is being read
@@ -55,9 +57,22 @@ def _asked(stop: Path, began: float) -> str | None:
     return stop.read_text(encoding="utf-8").strip() or "asked to stop"
 
 
+def memory() -> tuple[int, int]:
+    """The PC's memory in bytes: total, then free."""
+    import ctypes
+
+    status = (ctypes.c_uint64 * 8)(64)  # MEMORYSTATUSEX: its length, then the counts
+    if not ctypes.windll.kernel32.GlobalMemoryStatusEx(status):
+        raise OSError("GlobalMemoryStatusEx failed: the PC's free memory is unknown")
+    return status[1], status[2]
+
+
 def workers() -> int:
-    """The pool's size: every core but two, and at least one."""
-    return max(1, (os.cpu_count() or 1) - SPARE)
+    """The pool's size (R-RUNNER-203): every core but two, cut to what FREE memory holds once
+    a fifth of the total is kept for the desk, the Gateway and lane sessions; at least one."""
+    total, free = memory()
+    room = int((free - total * RESERVE) // PEAK)
+    return max(1, min((os.cpu_count() or 1) - SPARE, room))
 
 
 def _begin(make_bars: Callable[[], Bars], pounds: Rates, tapes: Path) -> None:

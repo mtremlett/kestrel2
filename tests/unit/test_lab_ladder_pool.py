@@ -93,3 +93,13 @@ def test_a_stop_planted_after_the_first_unit_ends_the_pass_there_and_a_stale_one
     said = ladder_pool.run(tmp_path / "cut", _book, {}, todo, CLOCK, size=2)
     assert said == "stopped after a unit: main moved" and not stop.exists()
     assert _rows(tmp_path / "cut") == _rows(serial)[:2]
+
+
+@pytest.mark.parametrize(("free_gb", "size"), [(15, 1), (2, 1), (40, 5), (60, 6)])
+def test_the_pool_is_sized_by_free_memory_keeping_a_fifth_back(
+    monkeypatch: pytest.MonkeyPatch, free_gb: int, size: int
+) -> None:
+    gb = 2**30
+    monkeypatch.setattr(ladder_pool, "memory", lambda: (64 * gb, free_gb * gb))
+    monkeypatch.setattr(os, "cpu_count", lambda: 8)
+    assert ladder_pool.workers() == size
