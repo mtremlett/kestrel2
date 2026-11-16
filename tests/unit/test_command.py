@@ -203,6 +203,11 @@ def test_the_rehearsal_lives_the_last_session_again_on_its_own_record_with_no_ma
     assert code == 0 and "199 steps at the paper Gateway (1 failed and the next" in line
     code, line = rehearse(2, _800=bad)
     assert code == 1 and "the day's record was not made; steps that failed: 08:00 UTC Val" in line
+    # a run longer than the bar allowed for stops where it is, cancels, and is NO-GO
+    with monkeypatch.context() as short:
+        short.setattr(command, "LONGEST_RUN", timedelta(0))
+        code, line = rehearse(5)
+    assert code == 1 and "steps that failed: out of time at 0" in line
     # a fill, and shares on the account at its end: each is NO-GO in its own words
     code, line = rehearse(3, _1200={tp.FILLS: [MADE, END], tp.ACCOUNT: tp.BARE})
     assert code == 1 and line.startswith("REHEARSAL NO-GO: New York's round of orders was not")

@@ -38,6 +38,7 @@ from decimal import Decimal
 from functools import partial
 from http.client import HTTPException
 from pathlib import Path
+from time import monotonic
 
 from desk import (
     archive,
@@ -252,7 +253,11 @@ def rehearse(root: Path, now: datetime) -> tuple[bool, str]:
 
     desk = _desk(root / REHEARSALS / f"{now:%Y%m%dT%H%M%S}", post, root.parent)
     moments, failed = _moments(on), list[str]()
+    deadline = monotonic() + LONGEST_RUN.total_seconds()
     for at in moments:
+        if monotonic() > deadline:  # the bar assumed this run's length: stop, cancel, NO-GO
+            failed.append(f"out of time at {at:%H:%M} UTC, after {LONGEST_RUN}")
+            break
         try:
             running.step(desk, at)
         except Exception as fault:  # noqa: BLE001 - a failed step is the rehearsal's finding, named
