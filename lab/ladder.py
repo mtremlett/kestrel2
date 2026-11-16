@@ -33,7 +33,8 @@ the same; (unbuilt) marks a file not yet there; after the dash, what else is owe
 
 RARE LARGE LOSSES (G2, R-RUNNER-103). The first rung counts ONE MORE trade the rule did not make: a
 loss at its own stop, the least any judged trade would have made, in the standard errors and all
-read from them and in no count of the 30 asked.
+read from them and in no count of the 30 asked. A loss that GAPS THROUGH the stop is not covered:
+the blind review (R-RUNNER-40) passed such noise at the first rung on up to 19 lines in 100.
 
 A PROXY (R-RUNNER-95): a line with less history than its named proxy is judged on the proxy's
 bars, labelled `proxy: SPY for VUAG`. REFUSED (R-RUNNER-108): a line the desk's sizing refuses
@@ -103,6 +104,7 @@ FIRST = Plan(1, QUESTION, "set1")
 #: A cell that waits on data is tried again no sooner than this after its last try.
 RETRY = timedelta(minutes=30)
 FAILED = (ValueError, OSError, keeper.Stale)  #: what may leave a cell unjudged; all else is a bug
+UNWIRED = "the ladder does not yet judge by these modules, which declare no RUNG"
 
 
 def cells() -> tuple[Cell, ...]:
@@ -296,7 +298,8 @@ def _one(
         rates = (f"{d} {pounds[d]}" for d in days)
         parts = [mine.code, CODE, mine.data, market, pool.data, str(count), *rates]
         parts += [one.key.code + one.key.data for one in made]
-        parts += [one.name + one.code for one in rung.found(RUNGS)[0]]
+        declared, waiting = rung.found(RUNGS)  #: both are in the row, so both are in its key
+        parts += [one.name + one.code for one in declared] + list(waiting)
         head |= {"reproduction": [reproduce.said(one) for one in made]} if made else {}
         key = hashlib.sha256(";".join(parts).encode()).hexdigest()
         if was is not None and was.get("key") == key and not _due(was, now):
@@ -327,18 +330,20 @@ def _declared(
     made: Sequence[Reproduction],
 ) -> dict[str, Any]:
     """The cell's answers with each rung that its module declares (`rung.found`) added, judged
-    on the first rung's verdict; the one rule's answer stays the named rungs'. A cell with no
-    first rung (the author's result not reproduced) has none to read."""
-    declared = rung.found(RUNGS)[0]
-    if not declared or "trades" not in judged:
+    on the first rung's verdict; the one rule's answer stays the named rungs'. A rung module
+    that declares none is named unrun. A cell with no first rung (the author's result not
+    reproduced) has none to read."""
+    declared, waiting = rung.found(RUNGS)
+    if "trades" not in judged:
         return judged
-    read = pool.firsts.get(c) or verdict.ready(c, own, pounds, made)
+    modules = ", ".join(name.rpartition(".")[2] for name in waiting)
+    unrun = judged["unrun"] | ({"unwired": f"{UNWIRED}: {modules}"} if waiting else {})
     rungs = dict(judged["rungs"])
     for one in declared:
-        answer, reason = one.judge(read)
+        answer, reason = one.judge(pool.firsts.get(c) or verdict.ready(c, own, pounds, made))
         rungs[one.name] = [answer.name, reason]
     every = judged["every"] and all(a == Answer.PASS.name for a, _ in rungs.values())
-    return judged | {"rungs": rungs, "every": every}
+    return judged | {"rungs": rungs, "unrun": unrun, "every": every}
 
 
 def _proxy(line: Line, own: Sequence[Bar], bars: Bars) -> Line | None:

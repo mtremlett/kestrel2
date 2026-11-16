@@ -1,11 +1,14 @@
 """The verdict of one cell (`lab/verdict.py`): the one rule reads the folds and the market, a
-step of units is refused before any rung, and a line too young is its own label."""
+step of units is refused before any rung, a line too young is its own label, and nothing goes
+forward while a rung is unrun."""
 
 from __future__ import annotations
 
+import json
 from collections.abc import Sequence
 from dataclasses import replace
 from decimal import Decimal
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -51,7 +54,9 @@ def test_a_step_of_units_is_refused_unless_the_master_names_it() -> None:
     day = EDGE[300].day
     up = Decimal("1.27")
     stepped = [
-        bar if bar.day < day else replace(bar, close=bar.close * up, high=bar.high * 2)
+        bar
+        if bar.day < day
+        else Bar(bar.day, bar.open * up, bar.high * up, bar.low * up, bar.close * up, bar.volume)
         for bar in EDGE
     ]
     pounds = {bar.day: Decimal("0.79") for bar in EDGE}
@@ -60,6 +65,26 @@ def test_a_step_of_units_is_refused_unless_the_master_names_it() -> None:
     named = replace(VUSA, real_moves=frozenset({(day, stepped[300].close)}))
     verdict._unstepped(named, stepped, pounds)
     verdict._unstepped(VUSA, EDGE, pounds)
+    #: the same rise made inside the session, from an open at the close before: a real move, not
+    #: units (the blind review, R-RUNNER-40: 251 London lines refused, most for a crash day)
+    rose = replace(EDGE[300], open=EDGE[299].close, low=EDGE[299].close, close=stepped[300].close)
+    verdict._unstepped(VUSA, [*EDGE[:300], replace(rose, high=rose.close)], pounds)
+
+
+def test_nothing_goes_forward_while_a_rung_is_unrun_and_the_table_says_cells_beside_trials(
+    tmp_path: Path,
+) -> None:
+    passed = {"first": ["PASS", "passed"]}
+    row = {"cell": ["breakout_20_10", "VUSA", "LSE"], "trials": 3, "answer": "PASS", "every": True}
+    row |= {"rungs": passed, "unrun": {"regime": "the weather is not built"}}
+    assert not verdict.goes(row) and verdict.goes(row | {"unrun": {}})
+    assert not verdict.goes({k: v for k, v in row.items() if k != "unrun"}), "unsaid is not none"
+    table = verdict.write_table(tmp_path, "T", "Does it earn?", [row], ["breakout_20_10"], 3)
+    md = table.read_text(encoding="utf-8")
+    assert ": 0 of 1 lines go forward" in md and md.rstrip().endswith("| no |")
+    assert "Does it earn? Cells: 1. Each is judged against 3 trials" in md
+    data = json.loads(table.with_suffix(".json").read_text(encoding="utf-8"))
+    assert (data["cells"], data["trials"], data["rules"][0]["passed"]) == (1, 3, False)
 
 
 def test_a_line_too_young_to_have_traded_is_too_young_and_no_fault() -> None:
