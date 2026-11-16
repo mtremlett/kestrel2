@@ -277,6 +277,23 @@ def evening(root: Path, now: datetime, known: Known, post: Post) -> Delivery | N
     return send(root, now, name, told, post)
 
 
+def hourly(root: Path, now: datetime, words: Callable[[], str], post: Post) -> Delivery | None:
+    """HIS HOURLY PROFIT AND LOSS (desk/pnl.py), once in each UK hour in which a venue of the
+    desk's is trading, at the hour's first asking. words is asked only for one not yet
+    delivered. None when no venue trades now, and when the hour's has gone."""
+    _sound(now, "pnl", "pnl")
+    if not any(venues.open_at(venue, now) for venue in {line.venue for line in LINES}):
+        return None
+    name = f"pnl {gateway._uk(now):%Y-%m-%d %H}"
+    with _record(root) as record:
+        gone = record.execute(
+            "SELECT 1 FROM messages WHERE name = ? AND number IS NOT NULL", (name,)
+        )
+        if gone.fetchone():
+            return None
+    return send(root, now, name, words(), post)
+
+
 def remind(root: Path, now: datetime, post: Post) -> Delivery | None:
     """His weekly login's reminder (gateway.reminder), delivered once for each Sunday's due."""
     _sound(now, "login", "login")
