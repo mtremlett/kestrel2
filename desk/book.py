@@ -1,7 +1,7 @@
 """book - THE LEDGER AND THE BOOK. Fills are written under the broker's own ids; the book is
-their sum, never the orders the desk meant to send, and reconciling compares it with the
-broker's positions. The send path keeps the kill switch's record, sends nothing while it is on
-and no buy in a halt, notes each order as it goes, and cancels what a dead desk left working."""
+their sum, and reconciling compares it with the broker's positions. The send path keeps the kill
+switch's record, sends nothing while it is on and no buy in a halt, notes each order, and cancels
+what a dead desk left working. Conformance trades are a cost of their own (conformance_cost)."""
 
 from __future__ import annotations
 
@@ -78,17 +78,16 @@ def send(
     root: Path, broker: Broker, order: Order | Sale, settings: Settings, tell: Tell | None = None
 ) -> Sent:
     """Ask the broker what it did with the order's id, so a desk that restarts never sends it
-    twice; if it never received it, pass the pre-trade gate and send it. Fills are recorded and
-    a buy's stop rests at the broker. Where the book (brought up to date) is not the broker's
-    nothing is bought, and a line is sold only if its shares agree. Kill switch on: nothing is
-    sent; a halt in force: no buy. Every refusal names its blocker (Stopped), as does an answer
-    that is not a whole fill. A place that fails unknown pulls the kill switch (Alarm); one
-    that disagrees halts buying and is told (tell). A dead desk's working orders go first."""
+    twice; if it never received it, gate it and send it. Fills are recorded, a buy's stop rests
+    at the broker. Where the book is not the broker's nothing is bought, and a line sells only if
+    its shares agree. Kill switch on: nothing is sent; a halt: no buy. Every refusal names its
+    blocker (Stopped), as does a short answer. A place that fails unknown pulls the kill switch
+    (Alarm); one that disagrees halts buying and is told (tell). A dead desk's orders go first."""
     _settle(root, broker)
     report = broker.report(order.order_id)
     if report is None:
         _unless_stopped(root, order)
-        held, differ, unsure, _ = _compare(root, broker)
+        held, differ, unsure, _ = reckon(root, broker)
         if differ and (isinstance(order, Order) or order.line.symbol in unsure):
             words = f"{order.order_id}: not sent, the book is not the broker's on {list(differ)}"
             raise Stopped(Blocker.BOOK, words)
@@ -263,15 +262,10 @@ def collect(root: Path, broker: Broker) -> None:
 
 def reconcile(root: Path, broker: Broker) -> tuple[str, ...]:
     """The lines on which the book is not the broker's: shares differ, or the stop is not theirs."""
-    return _compare(root, broker)[1]
+    return reckon(root, broker)[1]
 
 
 def reckon(root: Path, broker: Broker) -> Reckoning:
-    """The book, the lines that differ, those whose shares do, the stops that do: one reading."""
-    return _compare(root, broker)
-
-
-def _compare(root: Path, broker: Broker) -> Reckoning:
     """One reading: the book, the names it is not the broker's on, those whose shares differ,
     the stops that are not the book's. The broker is asked fills, stops, holdings in that order,
     so a stop that sells between the last two shows as shares gone, never still there."""
@@ -345,8 +339,7 @@ def dealt(
     root: Path, lines: Iterable[Line], day: date, last: date, counted: int
 ) -> tuple[Decimal, Charges]:
     """A DAY'S DEALING, in pounds: sales less buys and every cost of the fills its record is the
-    first to count: those dated after the last record's day, and any that reached the ledger
-    late."""
+    first to count: those dated after the last record's day, and any that came late."""
     pounds, ledger = _priced(root, lines), fills(root)
     old = [fill for fill in ledger if fill.day <= last]
     if len(old) < counted:
@@ -375,6 +368,13 @@ def _priced(root: Path, lines: Iterable[Line]) -> Callable[[Fill, int], tuple[De
         return fill.price * shares * fx, fee
 
     return pounds
+
+
+def conformance_cost(root: Path, lines: Iterable[Line]) -> Decimal:
+    """THE CONFORMANCE COST, its own kind apart from the desk's profit: the pounds the conformance
+    ledger at root moved on the shared paper account, less its costs; negative is paid out."""
+    moved, costs = dealt(root, lines, date.max, date.min, 0)
+    return moved - costs.total
 
 
 def round_trips(root: Path, lines: Iterable[Line]) -> tuple[RoundTrip, ...]:
