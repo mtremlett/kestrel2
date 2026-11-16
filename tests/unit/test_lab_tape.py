@@ -4,6 +4,7 @@ were, and a stop takes up from the last tape finished."""
 
 from __future__ import annotations
 
+import pickle
 import shutil
 from collections import Counter
 from collections.abc import Callable, Sequence
@@ -136,3 +137,15 @@ def test_a_change_of_settings_prices_the_same_tape_again_and_simulates_nothing(
     )
     assert kept(whole, bars) == record and len(sims) == 1, "the tape was read, not run again"
     assert big.trades != small.trades
+
+
+def test_a_tape_is_stored_compressed_and_reads_back_the_same(tmp_path: Path) -> None:
+    c = TODO[0]
+    bars = BOOK[c.line]
+    whole = cell.run(Cell(c.strategy, c.line, bars[0].day, bars[-1].day), bars)
+    tape.kept(tmp_path, cell.run)(c, bars)
+    (file,) = tmp_path.glob("*.tape")
+    assert file.stat().st_size < len(pickle.dumps((whole.bars, whole.trades)))
+    assert tape.kept(tmp_path, lambda *_: pytest.fail("simulated"))(c, bars) == tape.kept(
+        tmp_path / "cold", cell.run
+    )(c, bars)

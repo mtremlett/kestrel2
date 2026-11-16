@@ -4,11 +4,15 @@ a disagreement is said, and a second run adds nothing."""
 from __future__ import annotations
 
 import sqlite3
+import zipfile
 from contextlib import closing
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
 
+import numpy as np
+import pyarrow as pa  # type: ignore[import-untyped]  # ships no stubs
+import pyarrow.parquet as pq  # type: ignore[import-untyped]  # ships no stubs
 import pytest
 
 from desk import bars, venues
@@ -67,3 +71,122 @@ def test_the_daily_rows_alone_enter_a_fresh_day_wins_and_a_second_run_adds_nothi
     assert "1 of 5 days held differ" in said
     assert headstart_days.main(old, path, [BA], TODAY) == "BA: already in"
     assert capsys.readouterr().out.count("BA:") == 2
+
+
+def _stooq(folder: Path, scale: float) -> None:
+    """stooq_store's daily file of BA: every session, one row spoilt, prices times scale."""
+    file = folder / "freq=d/market=us/ticker=BA.US/part.parquet"
+    file.parent.mkdir(parents=True)
+    at = [datetime(d.year, d.month, d.day) for d in DAYS]
+    close = [(100 + n) * scale for n in range(len(DAYS))]
+    state = ["SPIKE-REVERSAL" if n == 3 else "OK" for n in range(len(DAYS))]
+    prices = dict.fromkeys(("open", "high", "low", "close"), close)
+    cols = {"ts": at, **prices, "volume": [9] * len(at)}
+    pq.write_table(pa.table({**cols, "row_state": state}), file)
+
+
+def test_stooq_stores_daily_rows_enter_under_their_source_but_not_adjusted_ones(
+    tmp_path: Path,
+) -> None:
+    held = [_fresh(day, str(100 + n)) for n, day in enumerate(DAYS) if n >= len(DAYS) - 30]
+    path = tmp_path / "market.db"
+    with bars.writing(path) as round_:
+        round_.daily(BA, held)
+    _stooq(tmp_path / "adjusted", 0.8)
+    _stooq(tmp_path / "traded", 1)
+    said = headstart_days.main(tmp_path / "adjusted", path, [BA], TODAY)
+    assert "refused" in said
+    assert "the one store would park it" in said
+    assert headstart_days.main(tmp_path / "traded", path, [BA], TODAY).startswith("BA: ")
+    assert bars.sources(path, BA, bars.DAILY)[Source.STOOQ_DAILY] == len(DAYS) - 30 - 1
+    assert DAYS[3] not in {bar.day for bar in bars.daily(path, BA)}  # the spoilt row stays out
+
+
+def test_ibkr_stores_daily_rows_enter_under_the_brokers_source(tmp_path: Path) -> None:
+    folder, path = tmp_path / "ibkr", tmp_path / "market.db"
+    _stooq(folder, 1)
+    (folder / "freq=d/market=us/ticker=BA.US/fetch.json").write_text("{}", encoding="utf-8")
+    with bars.writing(path) as round_:
+        round_.daily(
+            BA, [_fresh(d, str(100 + n)) for n, d in enumerate(DAYS) if n >= len(DAYS) - 5]
+        )
+    assert headstart_days.main(folder, path, [BA], TODAY).startswith("BA: ")
+    assert bars.sources(path, BA, bars.DAILY)[Source.IBKR_DAILY] == len(DAYS) - 6
+    assert headstart_days.main(folder, path, [BA], TODAY) == "BA: already in"
+
+
+def test_the_matrices_daily_arrays_enter_under_their_source_and_a_hole_is_left(
+    tmp_path: Path,
+) -> None:
+    folder, path = tmp_path / "matrix", tmp_path / "market.db"
+    folder.mkdir()
+    stamps = [
+        int((datetime(d.year, d.month, d.day) - datetime(1970, 1, 1)).total_seconds() * 1000)
+        for d in DAYS
+    ]
+    close = np.array([100.0 + n for n in range(len(DAYS))])
+    table = np.array([close - 1, close + 1, close - 2, close, np.full(len(DAYS), 9.0)])
+    table[3, 3] = np.nan  # a hole: that day has no bar
+    np.save(folder / "BA.US_1d_ts.npy", np.array(stamps))
+    np.save(folder / "BA.US_1d_ohlcv.npy", table)
+    with bars.writing(path) as round_:
+        round_.daily(
+            BA, [_fresh(d, str(100 + n)) for n, d in enumerate(DAYS) if n >= len(DAYS) - 5]
+        )
+    said = headstart_days.main(folder, path, [BA], TODAY)
+    assert f"BA: {len(DAYS) - 6} days filled from {DAYS[0]}" in said
+    assert bars.sources(path, BA, bars.DAILY) == {
+        Source.ARCHIVE: 5,
+        Source.MATRIX_DAILY: len(DAYS) - 6,
+    }
+    assert headstart_days.main(folder, path, [BA], TODAY) == "BA: already in"
+
+
+def test_mark_the_trends_daily_files_enter_under_their_source_and_a_hole_is_left(
+    tmp_path: Path,
+) -> None:
+    folder, path = tmp_path / "trend", tmp_path / "market.db"
+    folder.mkdir()
+    close = [100.0 + n for n in range(len(DAYS))]
+    close[3] = None  # type: ignore[call-overload]  # a hole: that day has no bar
+    frame = {
+        "Open": [c and c - 1 for c in close],
+        "High": [c and c + 1 for c in close],
+        "Low": [c and c - 2 for c in close],
+        "Close": close,
+        "Volume": [9] * len(DAYS),
+        "DATE": [datetime(d.year, d.month, d.day) for d in DAYS],
+    }
+    pq.write_table(pa.table(frame), folder / "BA.d.parquet")
+    with bars.writing(path) as round_:
+        round_.daily(
+            BA, [_fresh(d, str(100 + n)) for n, d in enumerate(DAYS) if n >= len(DAYS) - 5]
+        )
+    said = headstart_days.main(folder, path, [BA], TODAY)
+    assert f"BA: {len(DAYS) - 6} days filled from {DAYS[0]}" in said
+    assert bars.sources(path, BA, bars.DAILY) == {
+        Source.ARCHIVE: 5,
+        Source.TREND_DAILY: len(DAYS) - 6,
+    }
+    assert headstart_days.main(folder, path, [BA], TODAY) == "BA: already in"
+
+
+def test_stooq_raws_daily_zip_enters_under_its_source_and_a_hole_is_left(tmp_path: Path) -> None:
+    folder, path = tmp_path / "raw", tmp_path / "market.db"
+    (folder / "2026-10-24").mkdir(parents=True)
+    head = "<TICKER>,<PER>,<DATE>,<TIME>,<OPEN>,<HIGH>,<LOW>,<CLOSE>,<VOL>,<OPENINT>"
+    rows = [
+        f"BA.US,D,{d:%Y%m%d},000000,{n + 99},{n + 101},{n + 98},{n + 100},9,0"
+        for n, d in enumerate(DAYS)
+    ]
+    rows[3] = f"BA.US,D,{DAYS[3]:%Y%m%d},000000,,,,,,0"  # a hole: that day has no bar
+    with zipfile.ZipFile(folder / "2026-10-24/d_us_txt__24oct26.zip", "w") as made:
+        made.writestr("data/daily/us/nyse stocks/1/ba.us.txt", "\n".join([head, *rows]))
+    with bars.writing(path) as round_:
+        round_.daily(
+            BA, [_fresh(d, str(100 + n)) for n, d in enumerate(DAYS) if n >= len(DAYS) - 5]
+        )
+    said = headstart_days.main(folder, path, [BA], TODAY)
+    assert f"BA: {len(DAYS) - 6} days filled from {DAYS[0]}" in said
+    assert bars.sources(path, BA, bars.DAILY)[Source.STOOQ_RAW] == len(DAYS) - 6
+    assert headstart_days.main(folder, path, [BA], TODAY) == "BA: already in"

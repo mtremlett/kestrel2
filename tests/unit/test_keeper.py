@@ -12,8 +12,8 @@ from pathlib import Path
 
 import pytest
 
-from desk import archive, bars, keeper, store, venues
-from desk.bars import Five
+from desk import archive, bars, keeper, paper, store, venues
+from desk.bars import Five, Source
 from desk.lines import POUND, YARDSTICK, Line
 from desk.store import Bar
 
@@ -26,7 +26,7 @@ LINES = (UK, US, TWIN)
 MON = date(2026, 11, 16)  #: a session of both venues: London to 16:35, New York to 21:00 UTC
 ROUND = (
     "LSE: five-minute round: {} of 1 lines kept, 0 of them with faults listed, {} refused by "
-    "the archive"
+    "the broker ({}); past days backfilled from the archive for 1 of 1 lines; {}"
 )
 SAT, YULE = date(2026, 11, 14), date(2026, 12, 25)  #: no venue trades on either
 
@@ -53,6 +53,7 @@ class Archive:
         self.asked: list[str] = []
         self.refuses: set[str] = set()
         self.short: set[str] = set()
+        self.silent: set[str] = set()  #: lines the broker gives no bar for
         self.looks = 0
 
     def daily(self, line: Line, day: date) -> tuple[Bar, ...]:
@@ -62,10 +63,17 @@ class Archive:
         return _bars(line, day)[: -1 if line.symbol in self.short else None]
 
     def five(self, line: Line, now: datetime) -> tuple[Five, ...]:
+        """The broker's: the ended bar of the moment, or silence."""
         self.asked.append(f"{line.symbol} 5m")
-        if line.symbol in self.refuses:
-            raise OSError("no route to the archive")
+        if line.symbol in self.refuses | self.silent:
+            raise ValueError("no IBKR real-time data on paper")
         return (Five(now - timedelta(minutes=5), *(Decimal(10),) * 4, 7),)
+
+    def past(self, _line: Line, now: datetime) -> tuple[Five, ...]:
+        """The archive's: a bar of today, which must never land, and one of Friday."""
+        return tuple(
+            Five(now - back, *(Decimal(20),) * 4, 9) for back in (timedelta(0), timedelta(3))
+        )
 
     def clock(self) -> float:
         self.looks += 1
@@ -77,7 +85,9 @@ class Archive:
         """One call of the keeper, and what it asked is all that `asked` then holds."""
         self.asked.clear()
         clock = self.clock if slow else lambda: 0.0
-        return keeper.keep(home, now, LINES, self.daily, self.five, clock, self.daily, series)
+        return keeper.keep(
+            home, now, LINES, self.daily, self.five, clock, self.daily, series, None, self.past
+        )
 
 
 def test_a_shelved_history_joins_the_archive_and_a_database_not_yet_written_is_stale(
@@ -112,10 +122,12 @@ def test_a_trading_day_is_kept_each_venue_on_its_own_hours(tmp_path: Path) -> No
     assert pretend.keep(tmp_path, _at(6, 5)) == ([], []) and pretend.asked == []
     said, missed = pretend.keep(tmp_path, _at(9))  # London is open, New York is not
     assert (pretend.asked, missed) == (["BBB 5m"], [])
-    assert said == [ROUND.format(1, 0)]
+    assert said == [ROUND.format(1, 0, "none", "newest bar landed 0 minutes after it ended")]
     assert [bar.start for bar in bars.five(tmp_path / keeper.HOT, UK, _at(0), _at(9))] == [
         _at(8, 55)
     ]
+    hot = tmp_path / keeper.HOT
+    assert bars.sources(hot, UK, bars.FIVE) == {Source.IBKR: 1, Source.BACKFILL: 1}
     pretend.keep(tmp_path, _at(17))  # London is over; its last bars are still coming in
     assert pretend.asked == ["BBB 5m", "AAA 5m", "CCC 5m"]
     pretend.keep(tmp_path, _at(17, 5))  # its day has settled: the closes, and the last round
@@ -140,7 +152,7 @@ def test_the_reference_series_is_kept_once_a_day_after_the_us_close(tmp_path: Pa
         assert "SPY" not in pretend.asked
     pretend.keep(tmp_path, _at(21, 30), series=(spy,))
     assert pretend.asked.count("SPY") == 1
-    assert len(archive.read_reference(tmp_path / keeper.DAILY / "US", "SPY")) > 50
+    assert len(bars.daily(tmp_path / keeper.HOT, spy)) > 50
     pretend.keep(tmp_path, _at(21, 35), series=(spy,))  # the same day again: nothing new
     assert "SPY" not in pretend.asked
     pretend.refuses = {"SPY"}
@@ -187,6 +199,29 @@ def test_a_store_kept_under_older_rules_is_cleaned_again_and_a_current_one_is_no
     assert pretend.keep(tmp_path, _at(6, 20)) == ([], []) and pretend.asked == []
 
 
+def test_the_live_session_is_the_brokers_alone_and_the_archive_only_backfills_a_past_day(
+    tmp_path: Path,
+) -> None:
+    pretend, hot = Archive(), tmp_path / keeper.HOT
+    pretend.silent = {"BBB"}
+    said, missed = pretend.keep(tmp_path, _at(9))  # London is open and IBKR gives it nothing
+    silence = "ValueError: no IBKR real-time data on paper"
+    assert missed == [ROUND.format(0, 1, silence, "no bar landed")] and missed[0] in said
+    today = bars.five(hot, UK, _at(0), _at(10))
+    assert today == ()  # the archive's bar of this session never entered it
+    assert bars.sources(hot, UK, bars.FIVE) == {Source.BACKFILL: 1}  # yesterday's gap, named
+    pretend.silent = set()
+    assert pretend.keep(tmp_path, _at(9, 5))[1] == []  # IBKR speaks again: the line comes back
+    assert [b.close for b in bars.five(hot, UK, _at(0), _at(10))] == [Decimal(10)]
+
+
+def test_the_yardstick_is_asked_first_in_the_five_minute_round(tmp_path: Path) -> None:
+    pretend = Archive()
+    args = (tmp_path, _at(9), (UK, YARDSTICK), pretend.daily, pretend.five, lambda: 0.0)
+    keeper.keep(*args, series=(), back=pretend.past)
+    assert [a for a in pretend.asked if a.endswith("5m")] == ["VUAG 5m", "BBB 5m"]
+
+
 def test_a_line_unanswered_keeps_what_its_day_holds_is_asked_again_and_a_blind_venue_is_a_miss(
     tmp_path: Path,
 ) -> None:
@@ -209,7 +244,10 @@ def test_a_line_unanswered_keeps_what_its_day_holds_is_asked_again_and_a_blind_v
         held, parked = keeper.saved(tmp_path, tue, LINES)
         assert held == {line: _bars(line, tue) for line in LINES} and not parked
     said, missed = pretend.keep(tmp_path, _at(17, 5, tue))  # a new day's bars: none stand for it
-    assert missed == [said[0], ROUND.format(0, 1)]
+    assert missed == [
+        said[0],
+        ROUND.format(0, 1, "ValueError: no IBKR real-time data on paper", "no bar landed"),
+    ]
     assert keeper.saved(tmp_path, wed, [UK]) == ({UK: ()}, frozenset({"BBB"}))
     pretend.refuses, pretend.short = set(), {"BBB"}
     for call in range(keeper.TRIES + 2):  # answered, yet no line clean: a miss, and never left
@@ -254,6 +292,12 @@ def test_nothing_is_asked_on_a_day_no_venue_trades_nor_once_the_calls_time_is_sp
         raise OSError(f"no route to {address[:13]}")
 
     monkeypatch.setattr(archive, "_ask", unreachable)
+
+    def no_gateway(_talk: object) -> object:
+        raise ConnectionRefusedError("no gateway in a test")
+
+    monkeypatch.setattr(paper, "dial", no_gateway)
+    monkeypatch.setattr(paper, "CLIENT", paper.CLIENT)  # the live ask makes this process its reader
     assert keeper.main(tmp_path / "real", _at(9)) == 1  # the command itself, the archive away
     out, err = capsys.readouterr()
     assert len(out.splitlines()) == 3 and err.count("MISSED: ") == 3 and "MISSED: US: daily" in err
@@ -287,3 +331,16 @@ def test_a_parked_yardstick_is_a_first_light_fault_never_silent(tmp_path: Path) 
     pretend.short = {YARDSTICK.symbol}
     kept = keeper.keep(tmp_path, _at(6), (YARDSTICK,), pretend.daily, pretend.five, lambda: 0.0)
     assert kept[1][-1].startswith(f"FIRST-LIGHT FAULT: the yardstick {YARDSTICK.symbol} is parked")
+
+
+def test_a_line_the_archive_refuses_is_kept_from_the_brokers_bars_not_parked(
+    tmp_path: Path,
+) -> None:
+    """R-RUNNER-189: the broker is the first source; the archive's refusal is no miss."""
+    pretend = Archive()
+    pretend.refuses = {UK.symbol}
+    kept = keeper.keep(
+        tmp_path, _at(6), (UK,), pretend.daily, pretend.five, lambda: 0.0,
+        broker=lambda lines, day: {line: _bars(line, day) for line in lines},
+    )  # fmt: skip
+    assert kept[1] == [] and keeper.saved(tmp_path, MON, [UK])[0][UK] == _bars(UK, MON)

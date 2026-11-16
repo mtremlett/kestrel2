@@ -17,10 +17,12 @@ import sys
 from collections import Counter
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from decimal import Decimal
 from typing import BinaryIO, TypeVar
 
 from desk import book
+from desk.bars import Five
 from desk.lines import Line
 
 HOST, PORT = "127.0.0.1", 4002  #: the paper port on this machine: the only door the desk dials
@@ -36,7 +38,13 @@ SECONDS = 30
 ACCOUNTS, READY, NEWS, STATUS = "15", "9", "4", "3"
 HOLDING, HOLDINGS_END, ORDER, ORDERS_END = "61", "62", "5", "53"
 FILL, FEE = "11", "59"  #: a fill, and the broker's note of its fee (read in desk/reports.py)
-START, ASK_HOLDINGS, ASK_ORDERS = 71, 61, 16  #: what the desk sends: none places an order
+START, ASK_HOLDINGS, ASK_ORDERS, ASK_BARS = (
+    71,
+    61,
+    16,
+    20,
+)  #: what the desk sends: none places an order
+BARS = "17"  #: the answer to a question of bars: one message, the bars all in it
 UNASKED = "-1"  #: the number a fill carries when no question of the desk's asked for it
 #: News of the gateway's price feeds, which this door does not read; any other news stops
 #: it, that it cannot look lines up (2157) included: nothing it then says of a line is sound.
@@ -273,6 +281,40 @@ def read() -> Account:
 def whole() -> Account:
     """The paper account as the gateway gives it now, every holding and every order."""
     return dial(converse)
+
+
+def _five(fields: list[str]) -> Five:
+    """One bar of an answer: the second it starts (UTC), open, high, low, close, volume, and
+    two fields the desk does not read (the average price, the trades). Prices are above nothing."""
+    start, *prices, volume = fields[:6]
+    opened, high, low, close = (number(price, fields) for price in prices)
+    if min(opened, high, low, close) <= 0 or not volume.isascii() or not volume.isdigit():
+        raise ValueError(f"a bar the desk cannot trust: {fields}")
+    at = datetime.fromtimestamp(int(number(start, fields)), UTC)
+    return Five(at, opened, high, low, close, int(volume))
+
+
+def newest(line: Line, contract: str, route: str, count: int) -> tuple[Five, ...]:
+    """THE READ-ONLY QUESTION OF BARS: the line's newest `count` five-minute bars (the last
+    may still be forming) as the paper gateway gives them, oldest first, trades only, outside
+    regular hours too. contract is the broker's number for the line (desk/listing.py), route
+    where it is priced. It places nothing, and it dials the paper port alone (`dial`)."""
+    if not 0 < count <= 288:
+        raise ValueError(f"{line.symbol}: {count} bars is not a day of five-minute bars or less")
+    asked = (contract, line.symbol, "STK", "", "0.0", "", "", route, "", line.currency, "", "", 0)
+    ask = message(ASK_BARS, 1, *asked, "", "5 mins", f"{count * 300} S", 0, "TRADES", 2, 0, "")
+
+    def talk(wire: BinaryIO, send: Send) -> tuple[Five, ...]:
+        start(wire, send)
+        send(ask)
+        while (fields := receive(wire))[:2] != [BARS, "1"]:
+            other(fields)
+        count = fields[4] if len(fields) > 4 else ""  # after the request's number and its span
+        if not (count.isascii() and count.isdigit()) or len(fields) != 5 + 8 * int(count):
+            raise ValueError(f"bars of a shape the desk does not read: {fields}")
+        return tuple(_five(fields[n : n + 6]) for n in range(5, len(fields), 8))
+
+    return dial(talk)
 
 
 def named(
