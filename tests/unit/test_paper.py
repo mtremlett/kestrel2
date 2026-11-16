@@ -308,3 +308,46 @@ def test_a_process_apart_from_the_desk_reads_the_account_less_the_desks_holdings
     monkeypatch.setattr(paper, "APART", paper.Apart(frozenset({SMGB.name})))
     assert paper.read() == Account((replace(SMGB, symbol="XYZ"),), (mine,))
     assert paper.whole() == account
+
+
+def test_the_newest_bars_are_asked_read_only_and_read_whole(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    at = 1_794_000_000  # a five-minute mark
+    bar = (str(at), "171.1", "171.6", "171.0", "171.5", "1200", "171.3", "40")
+    again = (str(at + 300), "171.5", "171.5", "171.2", "171.3", "90", "171.4", "6")
+    sent = _gateway(monkeypatch, [FEED, ("17", "1", "from", "to", "2", *bar, *again)])
+    got = paper.newest(Line("AAPL", "US", "USD", 1, NO_TAX), "265598", "SMART", 2)
+    assert [(b.start.timestamp(), b.close, b.volume) for b in got] == [
+        (at, Decimal("171.5"), 1200),
+        (at + 300, Decimal("171.3"), 90),
+    ]
+    # one message only, a question of bars (20), for 600 seconds: nothing places or cancels
+    told = sent[0][4:].decode().split(chr(0))
+    assert (
+        len(sent) == 1
+        and told[:3] == ["20", "1", "265598"]
+        and told[16:19]
+        == [
+            "5 mins",
+            "600 S",
+            "0",
+        ]
+    )
+
+
+@pytest.mark.parametrize(
+    "answer",
+    [
+        ("17", "1", "a", "b", "1", "1794000000", "171", "172", "170", "171", "1", "1"),  # short
+        ("17", "1", "a", "b", "1", "1794000000", "0", "172", "170", "171", "1", "1", "1"),
+        ("17", "1", "a", "b", "1", "1794000100", "171", "172", "170", "171", "1", "1", "1"),
+        ("4", "2", "1", "162", "Historical Market Data Service error"),
+    ],
+)
+def test_bars_the_desk_cannot_trust_stop_the_reading(
+    monkeypatch: pytest.MonkeyPatch, answer: Sequence[str]
+) -> None:
+    _gateway(monkeypatch, [answer])
+    with pytest.raises((ValueError, ConnectionError)):
+        paper.newest(Line("AAPL", "US", "USD", 1, NO_TAX), "265598", "SMART", 1)
