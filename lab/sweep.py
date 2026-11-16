@@ -242,6 +242,13 @@ def unbroken(data: Path) -> timedelta:
     return best
 
 
+def workers(now: datetime) -> int:
+    """Threads for a pass: all but one of the PC's while London is shut, all but two while
+    its session is open (one calendar, desk.venues); never fewer than one."""
+    free = 2 if venues.open_at("LSE", now) else 1
+    return max(1, (os.cpu_count() or 2) - free)
+
+
 def main(argv: Sequence[str]) -> None:
     """One pass over the research list from the archive's first day to today, its count
     written out; with --held, over every ticker the store holds instead; or, given a number
@@ -254,7 +261,7 @@ def main(argv: Sequence[str]) -> None:
     args = parser.parse_args(argv)
     if args.days:
         return week(partial(fresh, args.store, args.kept, args.data), args.data, args.days)
-    window, threads = (archive.SINCE, datetime.now(UTC).date()), os.cpu_count() or 2
+    window, threads = (archive.SINCE, datetime.now(UTC).date()), workers(datetime.now(UTC))
     folders = (args.store, args.kept)
     lines = held(args.store) if args.held else universe.UNIVERSE
     done = run(lines, *folders, *window, tune.windows(), args.data, threads)

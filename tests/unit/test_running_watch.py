@@ -52,3 +52,18 @@ def test_every_step_looks_at_the_market_first_and_london_waits_for_its_first_bar
     monkeypatch.setattr(paper, "dial", Mock(side_effect=ConnectionRefusedError))
     running.step(desk, later + timedelta(days=1, hours=14))
     assert look.call_args.args[3] == later + timedelta(days=1, hours=14)
+
+
+def test_the_alarm_of_a_send_that_pulled_the_kill_switch_is_told_in_its_words_once(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    desk, post = _desk(tmp_path, IITU=FLAT_)
+    words = "o-3: place failed with OSError(); the kill switch is on"
+    monkeypatch.setattr(watch, "look", Mock(side_effect=book.Alarm(words)))
+    now = datetime(2026, 12, 1, 9, 0, tzinfo=UTC)
+    for later in (now, now + timedelta(minutes=5)):
+        with pytest.raises(book.Alarm, match="kill switch is on"):
+            _step(monkeypatch, desk, later, [END], tp.EMPTY)
+    (note,) = running.notes(tmp_path)
+    assert note.what == "trouble Alarm" and words in note.words
+    assert [c.args[0] for c in post.call_args_list].count(note.words) == 1

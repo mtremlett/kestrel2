@@ -184,3 +184,9 @@ def test_held_is_every_ticker_the_store_has_bars_for_the_list_or_not(tmp_path: P
     (tmp_path / "US" / "ZZZ.faults.csv").write_text("fault\n")  # a note, not a ticker
     assert sweep.held(tmp_path) == (BAE, other, BOEING)
     assert sweep.held(tmp_path)[0] is next(x for x in universe.UNIVERSE if x == BAE)
+
+
+def test_a_pass_leaves_one_thread_free_when_london_is_shut_and_two_in_its_session() -> None:
+    cores = os.cpu_count() or 2
+    assert sweep.workers(SATURDAY) == max(1, cores - 1)
+    assert sweep.workers(datetime(2026, 11, 13, 12, tzinfo=UTC)) == max(1, cores - 2)
