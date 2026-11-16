@@ -3,6 +3,7 @@ five-minute bars too, which it forgets after sixty days (DAT-11)."""
 
 from __future__ import annotations
 
+import json
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
@@ -14,7 +15,7 @@ import pytest
 
 from desk import archive
 from desk.bars import Five
-from desk.lines import Line
+from desk.lines import TAG, Line
 from desk.store import Bar, Refused
 
 US, UK = Line("AAA", "US", "USD", 1), Line("BBB", "LSE", "GBP", 1)
@@ -219,3 +220,22 @@ def test_a_kept_answer_is_read_instead_of_asked_again_and_a_refused_one_is_not_k
     with pytest.raises(ValueError, match="ZZZ"):
         archive.fetch(UK, day, tmp_path)
     assert not (tmp_path / "archive" / "2025-11-15" / "BBB.L").exists()
+
+
+def test_an_adjusted_twin_is_asked_by_its_series_name_and_read_with_adjusted_prices() -> None:
+    twin = replace(US, symbol=US.symbol + TAG)
+    assert archive.address(twin, date(2025, 11, 15)) == archive.address(US, date(2025, 11, 15))
+    answer = json.loads(_payload(symbol="AAA"))
+    quote = answer["chart"]["result"][0]["indicators"]
+    with pytest.raises(ValueError, match=r"AAA-ADJUSTED: the archive gave no adjusted close"):
+        archive.parse(twin, json.dumps(answer).encode())
+    quote["adjclose"] = [{"adjclose": [94.125, 95.25]}]  # half the close: a dividend's worth
+    bars = archive.parse(twin, json.dumps(answer).encode())
+    assert (bars[1].open, bars[1].high, bars[1].low, bars[1].close, bars[1].volume) == (
+        Decimal("94.0"),
+        Decimal("95.375"),
+        Decimal("93.75"),
+        Decimal("95.25"),
+        48_000,
+    )
+    assert archive.parse(US, json.dumps(answer).encode())[1].close == Decimal("190.5")

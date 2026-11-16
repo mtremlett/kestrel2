@@ -21,7 +21,8 @@ from typing import Any, ClassVar
 from desk.lines import LINES
 from desk.store import Bar
 from desk.strategy import ARITHMETIC, RANGES, Declared, Timeframe
-from lab.blocks import BLOCKS, Block, Kind, Param
+from lab.block_base import Block, Kind, Param
+from lab.blocks import BLOCKS
 
 PLACES = tuple(kind.value for kind in Kind)
 _DAY = date(2020, 1, 1)
