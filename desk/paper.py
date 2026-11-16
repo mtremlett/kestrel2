@@ -24,7 +24,8 @@ from desk import book
 from desk.lines import Line
 
 HOST, PORT = "127.0.0.1", 4002  #: the paper port on this machine: the only door the desk dials
-CLIENT = 222  #: the desk's own client id at the gateway (docs/DECISIONS.md)
+DESK = 222  #: the desk's own client id at the gateway (docs/DECISIONS.md)
+CLIENT = DESK  #: the client this process is; conformance's process makes it its own (223)
 VERSION = "176"  #: the one version of the gateway's language the desk reads
 #: How long the knock and every conversation wait at each step; a gateway silent for longer has
 #: not answered. Measured 15 Nov 2026 (docs/DECISIONS.md, R-RUNNER-180): the knock 0.01 s and a
@@ -117,6 +118,22 @@ class Account:
 
     holdings: tuple[Holding, ...]
     orders: tuple[Resting, ...]
+
+
+@dataclass(frozen=True)
+class Apart:
+    """THE DESK'S SHARE of an account that conformance trades beside it: the holdings (by
+    Holding.name) the desk held when the run began, and the desk's own client's orders."""
+
+    holdings: frozenset[str]
+
+    def without(self, account: Account) -> Account:
+        """The account less the desk's share: what is left is the process's own to judge."""
+        orders = tuple(o for o in account.orders if o.client != str(DESK))
+        return Account(tuple(h for h in account.holdings if h.name not in self.holdings), orders)
+
+
+APART: Apart | None = None  #: set by conformance's process alone; every other sees the whole
 
 
 def message(*fields: object) -> bytes:
@@ -248,7 +265,13 @@ def dial(talk: Callable[[BinaryIO, Send], T]) -> T:
 
 
 def read() -> Account:
-    """The paper account as the gateway gives it now."""
+    """The paper account as the gateway gives it now; less the desk's share (APART), in
+    conformance's process."""
+    return whole() if APART is None else APART.without(whole())
+
+
+def whole() -> Account:
+    """The paper account as the gateway gives it now, every holding and every order."""
     return dial(converse)
 
 

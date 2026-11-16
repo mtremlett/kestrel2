@@ -147,3 +147,13 @@ def test_the_uk_clock_time_of_a_moment_either_side_of_both_2026_clock_changes() 
         assert got == moment
     with pytest.raises(ValueError, match="no time zone"):
         venues.uk_time(datetime(2026, 3, 29, 1, 0))
+
+
+def test_the_calendar_names_an_event_day_and_a_plain_day_apart() -> None:
+    assert venues.events("US", date(2026, 9, 16)) == ("FOMC",)
+    assert venues.events("LSE", date(2026, 9, 17)) == ("BoE",)
+    assert venues.events("US", date(2026, 12, 18)) == ("rebalance",)
+    assert venues.events("LSE", date(2026, 9, 16)) == ()
+    assert venues.events("US", date(2026, 9, 15)) == venues.events("US", date(2026, 11, 20)) == ()
+    with pytest.raises(ValueError, match="no events"):
+        venues.events("US", date(2027, 3, 17))
