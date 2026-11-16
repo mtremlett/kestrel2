@@ -163,6 +163,13 @@ HALF_SPREAD = SLIPPAGE = Decimal("0.0005")
 STOP_SLIPS = 3
 
 
+def stop_for(line: Line, price: Decimal) -> Decimal:
+    """THE ONE STOP LEVEL: where the line's market has fallen 10% from price (the signal close
+    for the order's own check, the fill for the stop the broker holds), as its leverage
+    multiplies the fall."""
+    return price * (1 - STOP_FALL * line.leverage)
+
+
 def size(
     decision: Decision,
     line: Line,
@@ -179,7 +186,7 @@ def size(
     if STOP_FALL * line.leverage >= 1:
         raise ValueError(f"{line.symbol}: at {line.leverage} times, a 10% fall empties the line")
     order_id = order_id_of(decision)
-    stop = price * (1 - STOP_FALL * line.leverage)
+    stop = stop_for(line, price)
 
     def order(quantity: int) -> Order:
         return Order(order_id, line, quantity, price, fx, stop)

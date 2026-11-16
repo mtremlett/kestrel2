@@ -66,6 +66,9 @@ def test_the_stop_sits_where_the_market_under_the_line_has_fallen_ten_percent() 
     with pytest.raises(ValueError, match="empties"):
         orders.size(_buy(PLAIN), replace(PLAIN, leverage=10), Decimal(10), Decimal(1), TEN_K, {})
     assert orders.STOP_FALL / orders.HOLDINGS < orders.GAP_LOSS, "a gap may cost more than a stop"
+    gap_down, gap_up = (orders.stop_for(PLAIN, Decimal(p)) for p in ("104.92", "130"))
+    assert (gap_down, gap_up) == (Decimal("94.428"), Decimal("117")), "each fill's own 10%"
+    assert orders.stop_for(THREE_X, Decimal("104.92")) == Decimal("73.444")
     assert plain.order_id == "20251114-rule-P", "the same decision must make the same order"
 
 
