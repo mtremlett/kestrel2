@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import astuple
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
@@ -29,7 +29,7 @@ from rehearsal import (
     before,
 )
 
-from desk import book, day, orders, store, strategy, venues
+from desk import book, day, kill, orders, store, strategy, venues
 from desk.broker import Crash, Fault, Pretend
 from desk.lines import YARDSTICK
 
@@ -227,3 +227,34 @@ def test_scene_7_a_day_that_counts_and_the_same_day_replayed(tmp_path: Path) -> 
     assert again == records, "the same days replayed from the saved data gave other records"
     with pytest.raises(TypeError):
         orders.Charges(Decimal(1), Decimal(1), Decimal(1), Decimal(1))  # type: ignore[call-arg]
+
+
+def test_go_flat_sells_every_held_line_and_buys_nothing_until_his_lift(tmp_path: Path) -> None:
+    broker = Pretend(CLEAN, {})
+    broker.open(LAST)
+    for symbol in ("L01", "L06"):
+        book.send(tmp_path, broker, _order(symbol), SETTINGS)
+    by_symbol = {line.symbol: line for line in LINES}
+    noon = datetime(LAST.year, LAST.month, LAST.day, 12, 5, tzinfo=UTC)
+    assert kill.step(tmp_path, broker, by_symbol, SETTINGS, noon).state is None, "flat unasked"
+
+    (tmp_path / kill.FLAG).write_text("")  #: the flag file appears mid-day
+    flat = kill.step(tmp_path, broker, by_symbol, SETTINGS, noon + timedelta(minutes=5))
+    assert [s.order_id for s in flat.sent] == [
+        "flat-L01-" + LAST.isoformat(),
+        "flat-L06-" + LAST.isoformat(),
+    ]
+    assert broker.holdings() == () == broker.stops(), "a held line was not sold, or its stop left"
+    assert flat.state == "go flat since 12:10", flat.state
+    with pytest.raises(orders.Refused, match="go flat"):
+        book.send(tmp_path, broker, _order("L05"), SETTINGS)  #: and no buy goes
+
+    (tmp_path / kill.FLAG).unlink()  #: the flag taken away resumes nothing
+    assert kill.step(tmp_path, broker, by_symbol, SETTINGS, noon + timedelta(hours=1)).state == (
+        "go flat since 12:10"
+    )
+    with pytest.raises(orders.Refused, match="go flat"):
+        book.send(tmp_path, broker, _order("L05"), SETTINGS)
+    kill.lift(tmp_path, noon + timedelta(hours=2), "his word")
+    assert kill.step(tmp_path, broker, by_symbol, SETTINGS, noon + timedelta(hours=3)).state is None
+    assert book.send(tmp_path, broker, _order("L05"), SETTINGS).filled == 10, "no resume at lift"

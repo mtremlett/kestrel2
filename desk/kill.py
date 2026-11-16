@@ -5,6 +5,7 @@ rehearsal desk at the pretend broker; only one that kept every promise goes on t
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from contextlib import suppress
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
@@ -12,13 +13,16 @@ from decimal import Decimal
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from desk import book
+from desk import book, halt
 from desk.book import Switch
 from desk.broker import Broker, Crash, Fault, Pretend
+from desk.halt import Stopped
 from desk.lines import Line
 from desk.orders import Order, Refused, Sale, Settings
 from desk.store import Bar
 
+FLAG = "GO_FLAT"  #: the flag file in the desk's folder: its presence is the order to go flat
+BY = "go flat"  #: who calls the halt that holds the desk flat
 DRILL_DAYS = 31  #: a drill counts on its own day and this many after: one a month (EMG-02)
 
 
@@ -139,3 +143,53 @@ def _answer(desk: Path, broker: Broker, order: Order | Sale, room: Settings) -> 
     except Refused as refusal:
         return str(refusal)
     return "sent"
+
+
+@dataclass(frozen=True)
+class Flat:
+    """What one step of GO FLAT did."""
+
+    state: str | None  #: "go flat since HH:MM" while in force (UTC); None while not
+    sent: tuple[book.Sent, ...]  #: the sale of each line held, as the send path answered it
+
+
+def step(
+    root: Path, broker: Broker, lines: Mapping[str, Line], settings: Settings, at: datetime
+) -> Flat:
+    """GO FLAT, the kill level beyond the switch: it sells what is held. The flag file (FLAG)
+    calls a halt, so the send path sends no buy, and it stays in force when the flag is
+    taken away: only lift ends it, and his word. While it is in force each step sells every
+    line the book holds through the one send path and its gate, an id for the line and the
+    day so a step run again sends nothing twice. A refusal (the kill switch) is the sale's
+    answer. A line held that the caller has no Line for is an error."""
+    if not (ours := _in_force(root)) and (root / FLAG).exists():
+        ours = halt.call(root, at, "go flat: the flag file", BY)
+    if ours is None:
+        return Flat(None, ())
+    sales = [
+        Sale(f"flat-{symbol}-{at.date().isoformat()}", lines[symbol], shares)
+        for symbol, shares in book.positions(root).items()
+    ]
+    return Flat(
+        f"go flat since {ours.at:%H:%M}", tuple(_sold(root, broker, s, settings) for s in sales)
+    )
+
+
+def lift(root: Path, at: datetime, why: str) -> None:
+    """GO FLAT lifted, the operator's act alone: the desk may buy again from the next step."""
+    if (ours := _in_force(root)) is None:
+        raise ValueError(f"the desk is not flat: nothing to lift at {at} for {why!r}")
+    halt.lift(root, ours, at, why)
+
+
+def _in_force(root: Path) -> halt.Halt | None:
+    """The go-flat halt while it is in force."""
+    return next((h for h in halt.in_force(root) if h.by == BY), None)
+
+
+def _sold(root: Path, broker: Broker, sale: Sale, settings: Settings) -> book.Sent:
+    """The sale through the send path; its refusal, named, is its answer."""
+    try:
+        return book.send(root, broker, sale, settings)
+    except Stopped as stopped:
+        return book.Sent(sale.order_id, 0, str(stopped), stopped.blocker)
