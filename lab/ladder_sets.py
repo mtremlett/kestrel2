@@ -14,12 +14,12 @@ from __future__ import annotations
 
 import sys
 from collections.abc import Callable, Mapping, Sequence
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 from functools import partial
 from pathlib import Path
 
 from desk.lines import Line
-from lab import batch, history_bars, ladder, ladder_pool, tape, trials, verdict
+from lab import batch, history_bars, ladder, ladder_pool, members, tape, trials, verdict
 from lab.batch import Bars
 from lab.cell import Cell
 from lab.ladder import END, FOLDER, START, Plan, _last, _whole, eponymous, run
@@ -40,6 +40,65 @@ TREND = (
 )
 
 
+NOT_CORRECTED = "survivorship: not corrected"
+
+
+def _spells(record: members.Record, line: Line) -> list[tuple[date, date]]:
+    """The runs of days in [START, END] the line was on the list, as first and last days."""
+    mine = [c for c in reversed(record.changes) if c.symbol == line.symbol and c.day > START]
+    open_from = START if line.symbol in record.symbols(START) else None
+    spells = []
+    for change in mine:
+        if change.joined and open_from is None:
+            open_from = change.day
+        elif not change.joined and open_from is not None:
+            spells.append((open_from, change.day - timedelta(days=1)))  #: out on its day
+            open_from = None
+    return spells + ([(open_from, END)] if open_from is not None else [])
+
+
+def window(line: Line, records: Mapping[str, members.Record]) -> tuple[date, date] | None:
+    """The days a line was a member of any list that names it, as one window: its longest
+    run of membership. None when no list's record names the line: it is traded as it is."""
+    named = [
+        r
+        for r in records.values()
+        if any(t.venue == line.venue for t in r.today)
+        and line.symbol in {t.symbol for t in r.today} | {c.symbol for c in r.changes}
+    ]
+    if not named:
+        return None
+    runs = sorted(run for r in named for run in _spells(r, line))
+    merged: list[tuple[date, date]] = []
+    for first, last in runs:
+        if merged and first <= merged[-1][1] + timedelta(days=1):
+            merged[-1] = (merged[-1][0], max(last, merged[-1][1]))
+        else:
+            merged.append((first, last))
+    never = (END, START)  #: no member day: an empty window, which `survivors` leaves out
+    return max(merged, key=lambda w: w[1] - w[0]) if merged else never
+
+
+def survivors(
+    rules: Sequence[str], lines: Sequence[Line], records: Mapping[str, members.Record]
+) -> tuple[tuple[Cell, ...], tuple[str, ...]]:
+    """Each rule's cells, a line only over the days it was a member, and one note for each
+    line saying whether its survivorship was corrected. A line the lists never named is traded
+    over the whole window and its note says so; a line that was never a member is left out."""
+    windows = {line: window(line, records) for line in lines}
+    notes = tuple(
+        f"{line.symbol} ({line.venue}): {NOT_CORRECTED}" for line in lines if windows[line] is None
+    )
+    spans = {line: windows[line] or (START, END) for line in lines}
+    cells = tuple(
+        Cell(rule, line, *spans[line])
+        for rule in rules
+        for line in lines
+        if spans[line][0] <= spans[line][1]
+    )
+    return cells, notes
+
+
 def epon(
     home: Path,
     bars: Bars,
@@ -49,11 +108,12 @@ def epon(
     rules: Sequence[str] | None = None,
     go: Callable[..., str] = run,
     plan: Plan = EPON,
+    records: Mapping[str, members.Record] = members.RECORDS,
 ) -> str:
     """A set: each rule on each line, judged and kept under the plan's own register, then its
     table written: the counts line and `SET <tag>: <n> rules, <passed> passed, table <path>`."""
     rules = eponymous() if rules is None else rules
-    todo = tuple(Cell(rule, line, START, END) for rule in rules for line in lines)
+    todo, notes = survivors(rules, lines, records)
     counts = go(home, bars, pounds, todo, now, plan)  #: a rule's lines together: its pool once
     count = trials.count(home / FOLDER / f"{plan.stem}.trials.jsonl", plan.question)
     last = _last(_whole(home / FOLDER / f"{plan.stem}.jsonl"))
@@ -62,9 +122,12 @@ def epon(
     table = verdict.write_table(
         sets, plan.tag, plan.question, rows, rules, count, ladder.rungs_built()
     )
+    with table.open("a", encoding="utf-8") as out:
+        out.write("\n## Survivorship\n\n" + "".join(f"- {note}\n" for note in notes))
+    said = f"survivorship: {len(notes)} of {len(lines)} lines not corrected, none guessed"
     passed = sum(any(map(verdict.goes, mine)) for mine in verdict.by_rule(rows, rules).values())
     last_line = f"SET {plan.tag}: {len(rules)} rules, {passed} passed, table {table}"
-    return f"{counts}\n{tapes_held(home)}\n{last_line}"
+    return f"{counts}\n{said}\n{tapes_held(home)}\n{last_line}"
 
 
 def tapes_held(home: Path) -> str:
