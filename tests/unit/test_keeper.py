@@ -73,11 +73,13 @@ class Archive:
         self.looks += 1
         return 70.0 * self.looks
 
-    def keep(self, home: Path, now: datetime, slow: bool = False) -> tuple[list[str], list[str]]:
+    def keep(
+        self, home: Path, now: datetime, slow: bool = False, series: tuple[Line, ...] = ()
+    ) -> tuple[list[str], list[str]]:
         """One call of the keeper, and what it asked is all that `asked` then holds."""
         self.asked.clear()
         clock = self.clock if slow else lambda: 0.0
-        return keeper.keep(home, now, LINES, self.daily, self.five, clock)
+        return keeper.keep(home, now, LINES, self.daily, self.five, clock, self.daily, series)
 
 
 def test_a_trading_day_is_kept_each_venue_on_its_own_hours(tmp_path: Path) -> None:
@@ -116,6 +118,25 @@ def test_a_trading_day_is_kept_each_venue_on_its_own_hours(tmp_path: Path) -> No
     assert keeper.saved(tmp_path, MON, LINES)[0][US] == _bars(US, MON)  # a day back: no bar of it
     pretend.keep(tmp_path, _at(6, day=tue))  # the evening's bars are asked again in the morning
     assert pretend.asked == ["BBB", "AAA", "CCC"]
+
+
+def test_the_reference_series_is_kept_once_a_day_after_the_us_close(tmp_path: Path) -> None:
+    pretend, spy = Archive(), Line("SPY", "US", "USD", 1)
+    for early in (_at(6), _at(20, 55), _at(9, day=SAT)):  # no US close yet, or no US day
+        pretend.keep(tmp_path, early, series=(spy,))
+        assert "SPY" not in pretend.asked
+    pretend.keep(tmp_path, _at(21, 30), series=(spy,))
+    assert pretend.asked.count("SPY") == 1
+    assert len(archive.read_reference(tmp_path / keeper.DAILY / "US", "SPY")) > 50
+    pretend.keep(tmp_path, _at(21, 35), series=(spy,))  # the same day again: nothing new
+    assert "SPY" not in pretend.asked
+    pretend.refuses = {"SPY"}
+    pretend.keep(tmp_path, _at(6, day=MON + timedelta(1)), series=(spy,))
+    done, missed = pretend.keep(tmp_path, _at(21, 30, MON + timedelta(1)), series=(spy,))
+    assert missed == [] and "SPY: reference series not kept" in done[-1]  # told, asked again
+    pretend.refuses = set()
+    pretend.keep(tmp_path, _at(21, 35, MON + timedelta(1)), series=(spy,))
+    assert pretend.asked.count("SPY") == 1
 
 
 def test_a_store_kept_under_older_rules_is_cleaned_again_and_a_current_one_is_not(

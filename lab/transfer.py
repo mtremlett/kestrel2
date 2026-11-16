@@ -23,7 +23,6 @@ from collections import Counter
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from decimal import Decimal
-from functools import lru_cache
 from itertools import product
 from pathlib import Path
 from typing import Any
@@ -31,9 +30,8 @@ from typing import Any
 from desk.command import CAPITAL
 from desk.lines import Line
 from desk.orders import Settings
-from desk.store import Bar
 from desk.strategy import STRATEGIES
-from lab import batch, ladder, plateau, rung, sweep, universe
+from lab import batch, ladder, plateau, rung, sweep
 from lab.batch import Failed
 from lab.cell import Cell
 from lab.plateau import Grid, Setting
@@ -122,9 +120,7 @@ def scorer(root: Path, kept: Path, rates: Rates) -> Score:
     in the sweep's journal of that line under kept, over the ladder's one window."""
     settings = Settings(CAPITAL)
 
-    @lru_cache(maxsize=1)
-    def bars(line: Line) -> tuple[Bar, ...]:
-        return universe.read(root, line).bars
+    bars = sweep.reader(root)
 
     def score(name: str, line: Line) -> Verdict | None:
         try:

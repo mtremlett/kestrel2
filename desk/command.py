@@ -50,6 +50,7 @@ from desk import (
     messenger,
     paper,
     placing,
+    pnl,
     running,
     venues,
 )
@@ -65,6 +66,9 @@ POUND, DOLLARS, FRESH = Line("GBPUSD=X", "US", "USD", 1), (Decimal(1), Decimal(2
 FIRST, LAST, EVERY = time(5, 30), time(22), timedelta(minutes=5)  #: the runner's day, UK clock
 NAMED = (OSError, HTTPException, ValueError, kill.Failed, messenger.Undelivered, paper.NotPaper)
 USAGE = "python -m desk.running [--preflight | --rehearse]"
+RUN = timedelta(minutes=30)  #: the rehearsal's longest run, as the runner allows it
+WINDOW = RUN + timedelta(minutes=60)  #: how near a market's open, or inside it, bars a rehearsal
+AFTER = timedelta(minutes=30)  #: how long past a session's uncrossing a rehearsal still waits
 OPEN = "REHEARSAL NO-GO: not begun: {}."
 GO = (
     "REHEARSAL GO: {:%a %d %b} lived again in {} steps at the paper Gateway ({} failed and the "
@@ -156,6 +160,14 @@ def _prices(desk: Desk, today: date) -> str:
     return f"{fit} lines to trade on" + left * bool(out)
 
 
+def _pound(desk: Desk, today: date) -> str:
+    """The day's dollar, kept on the desk's record so the US round reads it, not the archive;
+    a pound that cannot be trusted is an error here and nothing is kept."""
+    rate = desk.rates(today)
+    book.record_rates(desk.root, today, rate)
+    return f"a dollar is £{rate['USD']}, kept for the day"
+
+
 def preflight(desk: Desk, env: Mapping[str, str], now: datetime) -> tuple[bool, str]:
     """THE MORNING'S PRE-FLIGHT: whether the desk is ready for today, and its one line. Each
     thing a morning step leans on is asked in turn and named, ready or not; none stops the
@@ -168,7 +180,7 @@ def preflight(desk: Desk, env: Mapping[str, str], now: datetime) -> tuple[bool, 
         ("the kill switch", lambda: _switch(root, now)),
         ("the paper account", lambda: _account(root, now)),
         ("prices", lambda: _prices(desk, today)),
-        ("the pound", lambda: f"a dollar is £{desk.rates(today)['USD']}"),
+        ("the pound", lambda: _pound(desk, today)),
         ("halts", lambda: halt.said(root, today) or "none in force"),
     )
     ready, wrong = list[str](), list[str]()
@@ -212,18 +224,33 @@ def _amiss(desk: Desk, on: date, left: Sequence[str], same: bool) -> list[str]:
     return wrong
 
 
-def rehearse(root: Path, now: datetime) -> tuple[bool, str]:
+def _trading(now: datetime) -> list[str]:
+    """The markets open at now, opening within WINDOW, or ended less than AFTER ago."""
+    return [
+        VENUES[venue]
+        for venue in VENUES
+        for on in venues.sessions(venue, now.date(), now.date())
+        if (hours := venues.hours(venue, on)).open < now + WINDOW and hours.auction + AFTER >= now
+    ]
+
+
+def rehearse(
+    root: Path, now: datetime, clock: Callable[[], datetime] = lambda: datetime.now(UTC)
+) -> tuple[bool, str]:
     """THE REHEARSAL: the last session before today lived again, a step at each of its
     moments, on a new record under root and at the real paper Gateway; whether it is GO, and
-    its one line. Not begun on a day a market trades, while the kill switch at root is on,
-    or with anything held or open on the paper account: its book is empty. A step that fails
-    is counted and the next carries on; then the desk's own orders still working are
+    its one line. Not begun while the kill switch at root is on, or with anything held or open
+    on the paper account: its book is empty. Nor while a market's session is open or opens
+    within the rehearsal's longest run and an hour (WINDOW), or ended just now (AFTER); a run
+    that finds one so stops at once. A step that fails is counted and the next carries on; then
+    the desk's own orders still working are
     cancelled and the account is read again, whatever happened."""
     today, before = now.date(), paper.read()
-    trading = [VENUES[venue] for venue in VENUES if venues.sessions(venue, today, today)]
+    trading = _trading(now)
     held = [h.name for h in before.holdings if h.shares] + [o.ref for o in before.orders]
     barred = (
-        f"{' and '.join(trading)} trade today, and an order it sent could fill" * bool(trading),
+        f"{' and '.join(trading)} trade now, soon or just ended, and an order it sent could fill"
+        * bool(trading),
         book.killed(root) or "",
         f"the paper account is not empty, as the rehearsal's book is: {held}" * bool(held),
     )
@@ -239,6 +266,9 @@ def rehearse(root: Path, now: datetime) -> tuple[bool, str]:
     desk = _desk(root / REHEARSALS / f"{now:%Y%m%dT%H%M%S}", post, root.parent)
     moments, failed = _moments(on), list[str]()
     for at in moments:
+        if near := _trading(clock()):
+            failed.append(f"{at:%H:%M} UTC stopped, {' and '.join(near)} near")
+            break
         try:
             running.step(desk, at)
         except Exception as fault:  # noqa: BLE001 - a failed step is the rehearsal's finding, named
@@ -251,6 +281,18 @@ def rehearse(root: Path, now: datetime) -> tuple[bool, str]:
     orders, sent = words.count(" shares done"), words.count(": the broker says ")
     counts = (on, len(moments), len(failed), orders, sent, len(said), UNSENT * (not sent))
     return True, GO.format(*counts)
+
+
+def hourly(desk: Desk, now: datetime) -> None:
+    """His hourly profit and loss (desk/pnl.py), told after a real step: not in a rehearsal,
+    which has no day of its own to tell."""
+    today = now.date()
+
+    def words() -> str:
+        daily = desk.held(today)[0]
+        return pnl.told(desk.root, desk.hot, daily, desk.rates(today), desk.room.capital, now)
+
+    messenger.hourly(desk.root, now, words, desk.post)
 
 
 def main(
@@ -267,11 +309,12 @@ def main(
     match argv:
         case []:
             running.step(desk, now)
+            hourly(desk, now)
             good, line = True, f"STEP {now:%a %d %b %H:%M} UTC: done."
         case ["--preflight"]:
             good, line = preflight(desk, env, now)
         case ["--rehearse"]:
-            good, line = rehearse(root, now)
+            good, line = rehearse(root, now, clock)
         case _:
             raise SystemExit(USAGE)
     print(line)  # noqa: T201 - the command's answer to whoever asked

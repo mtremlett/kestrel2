@@ -15,7 +15,8 @@ from collections.abc import Sequence
 from decimal import Decimal, localcontext
 
 from desk.strategy import ARITHMETIC
-from lab.rung import MIN_TRADES, T_PASS, Answer
+from lab import rung
+from lab.rung import MIN_TRADES, T_PASS, Answer, Rung
 
 
 def interval(gains: Sequence[Decimal]) -> tuple[Decimal, Decimal]:
@@ -42,3 +43,15 @@ def judge(gains: Sequence[Decimal]) -> Answer:
     if low > 0:
         return Answer.PASS
     return Answer.FAIL if high < 0 else Answer.DOUBT
+
+
+def _judged(first: rung.Verdict) -> tuple[Answer, str]:
+    """The interval rung as the ladder reads it: its answer, and the interval in words."""
+    answer = judge(first.gains)
+    if answer in (Answer.FAULT, Answer.THIN):
+        return answer, f"{len(first.gains)} gains: under {MIN_TRADES} the interval is not read"
+    low, high = interval(first.gains)
+    return answer, f"the mean gain lies in {low:.4f} to {high:.4f} after costs; needs above nothing"
+
+
+RUNG = Rung("ci", f"the mean gain is clear of nothing by {T_PASS} standard errors", _judged)

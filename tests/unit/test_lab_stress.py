@@ -5,6 +5,7 @@ never shown able to trade through untested."""
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import replace
 from datetime import date, timedelta
 from decimal import Decimal
 
@@ -113,6 +114,23 @@ def test_an_episode_the_rule_was_not_shown_able_to_trade_through_is_untested() -
             stress.judge(cut, bars, TEN_K, POUND)
     with pytest.raises(ValueError, match="no bars in the window"):
         stress.judge(cut, bars[:100], TEN_K, POUND)
+
+
+def test_the_worst_scenario_is_judged_against_a_fifth_of_the_capital() -> None:
+    found = _stress(_flash())
+    assert Decimal("0.2") == stress.STRESS_LIMIT and found.capital == 10_000
+
+    def lose(pounds: int) -> Stressed:
+        crash = replace(found.episodes[2], made=Decimal(-pounds))
+        return replace(found, episodes=(*found.episodes[:2], crash), gap=None)
+
+    assert lose(1900).judged()[0] is Answer.PASS
+    answer, why = lose(2100).judged()
+    assert answer is Answer.FAIL and why == (
+        f"worst: {CRASH} lost 2,100.00 pounds; the limit is 2,000.00"
+    )
+    assert lose(2000).judged()[0] is Answer.PASS
+    assert replace(found, episodes=(), gap=None).judged()[0] is Answer.THIN
 
 
 def test_the_gap_is_a_black_swans_fall_in_a_night_times_the_leverage_on_the_worst_night() -> None:

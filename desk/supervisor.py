@@ -28,8 +28,8 @@ him: back to the last thing he did other than the paper Gateway's weekly login (
 ruling, docs/DECISIONS.md), or to the last hour in which some job had no run that ended
 well, whichever is the later. A desk not running proves nothing. Seven days are owed (NS-01).
 
-Not built (docs/STATUS.md): the register is empty, for the desk's step has no command yet;
-nobody is told what `health` finds; and the supervisor's own start, once, by Windows."""
+Not built (docs/STATUS.md): nobody is told what `health` finds;
+and the supervisor's own start, once, by Windows."""
 
 from __future__ import annotations
 
@@ -60,7 +60,7 @@ BAD = (
 HIS = "SELECT COALESCE(MAX(at), '') FROM actions WHERE what != ?"
 RAN = "SELECT job, began FROM receipts WHERE how = ? AND began > ? AND began <= ? ORDER BY 2 DESC"
 WORK = ("-m", "desk.supervisor", "work")  #: a job's own process, as the supervisor starts it
-WAIT = 5  #: seconds one process waits for another's write of the record
+WAIT = 5  #: seconds a process waits for another's write of a record (the messenger's too)
 LOOK = 15  #: seconds between the supervisor's looks at what is due
 GRACE = 2  #: seconds past its time limit a job has to end itself before the supervisor kills it
 OVERRUN = 124  #: the code a job's process ends itself with at its time limit
@@ -89,11 +89,16 @@ class Job:
     module: str  #: its program, run as `python -m` runs one, the desk's root its one word
     every: timedelta  #: due again this long after its last run began
     limit: timedelta  #: a run still going after this long is ended
+    rooted: bool = (
+        True  #: told the desk's root as its one word; else it finds its own (KESTREL2_DATA)
+    )
 
 
-#: THE ONE REGISTER of what the desk runs unattended. Empty (docs/STATUS.md): the desk's step
-#: has no command yet, and a module that only imports would end "done" with nothing done.
-JOBS: tuple[Job, ...] = ()
+#: THE ONE REGISTER of what the desk runs unattended: the desk's step, `python -m desk.running`,
+#: which finds its own data folder and ends non-zero when the step fails.
+JOBS: tuple[Job, ...] = (
+    Job("step", "desk.running", timedelta(minutes=5), timedelta(minutes=4), False),
+)
 Run = Callable[[Job, Path], str]
 
 
@@ -150,7 +155,15 @@ def _run(job: Job, root: Path) -> str:
     ended itself GRACE after its time limit is killed. Given back: how it ended, as its
     receipt keeps it."""
     limit = job.limit.total_seconds()
-    command = [sys.executable, *WORK, str(root), job.name, job.module, str(limit)]
+    command = [
+        sys.executable,
+        *WORK,
+        str(root),
+        job.name,
+        job.module,
+        str(limit),
+        *([str(root)] * job.rooted),
+    ]
     try:
         ended = subprocess.run(  # noqa: S603 - the desk's own python, on a registered module
             command, capture_output=True, errors=SPELT, timeout=limit + GRACE, creationflags=HIDDEN
@@ -183,17 +196,18 @@ def attend(
     return tuple(kept)
 
 
-def work(root: Path, name: str, module: str, limit: float) -> None:
+def work(root: Path, name: str, module: str, limit: float, *words: str) -> None:
     """A JOB'S OWN PROCESS: the job's lock held for the whole of its life, and its module run
-    as the program, the desk's root its one word. While a run before it holds the lock (one
-    a dead supervisor left running), this one is refused and runs nothing. At its time limit
+    as the program, with the words it is given (the desk's root, or none). While a run before
+    it holds the lock (one a dead supervisor left running), this one is refused and runs
+    nothing. At its time limit
     the process ends itself, watched or not, and the system lets go of its lock."""
     with _only(root, f"job-{name}"):
         code = [OVERRUN]
         ends = Timer(limit, lambda: os._exit(code[0]))
         ends.daemon = True
         ends.start()
-        sys.argv = [module, str(root)]
+        sys.argv = [module, *words]
         runpy.run_module(module, run_name="__main__", alter_sys=True)
         code[0] = 0  #: done: whatever of it lingers still ends at the limit, and as done
 
@@ -276,8 +290,8 @@ def main(argv: Sequence[str], clock: Clock = _now) -> int:
                 supervise(Path(root), JOBS)
             except Held as other:
                 print(other)  # noqa: T201 - the command's answer to whoever typed it
-        case ["work", root, name, module, limit]:
-            work(Path(root), name, module, float(limit))
+        case ["work", root, name, module, limit, *words]:
+            work(Path(root), name, module, float(limit), *words)
         case ["health", root]:
             wrong, alone = health(Path(root), clock(), JOBS), unattended(Path(root), clock(), JOBS)
             told = ALONE.format(alone.days, alone.seconds // 3600, OWED.days)
