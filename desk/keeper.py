@@ -56,6 +56,7 @@ from desk.store import Bar, Parked, Refused
 #: In the data folder: each venue's record of its last refresh (no prices: the bars are in the
 #: store's two databases), and the store's short database, its long one beside it.
 DAILY, HOT = "daily", bars.LIVE
+MARKS = "reference"  #: beside a venue's record, the day each reference series was last kept
 CRLF = bytes((13, 10))  #: a Windows checkout's line ending, not part of the rules
 RECORD = "kept.json"  #: in each venue's folder of the daily store: its last refresh
 #: THE STORE RULES' VERSION: a hash of desk/store.py. A refresh records the version it cleaned
@@ -247,9 +248,10 @@ def pound(home: Path, day: date) -> Decimal:
     """THE DAY'S POUNDS PER DOLLAR, for any session, from the pound's closes kept before the day
     (desk.carry's one rule: one over the last close, carried over a UK-only holiday). Stale where
     the store holds none fresh enough: no dollar line is priced on it."""
-    folder = home / DAILY / POUND.venue
-    kept = (folder / archive.REFERENCE_FOLDER / f"{POUND.symbol}.csv").is_file()
-    held = archive.read_reference(folder, POUND.symbol) if kept else ()
+    try:
+        held = bars.daily(home / HOT, POUND)
+    except (LookupError, FileNotFoundError):  # never kept: no close is held
+        held = ()
     closes = {bar.day: bar.close for bar in held if DOLLARS[0] < bar.close < DOLLARS[1]}
     last = venues.sessions("LSE", day - 10 * DAY, day - DAY)[-1:]
     known = {d: r for d in (day, *last) if (r := carry.pounds_per_dollar(closes, d))}
@@ -272,14 +274,15 @@ def _reference(
         return told
     for line in series:
         folder = home / DAILY / line.venue
-        mark = folder / archive.REFERENCE_FOLDER / f"{line.symbol}.kept"
+        mark = folder / MARKS / f"{line.symbol}.kept"
         if mark.is_file() and mark.read_text(encoding="utf-8") == day.isoformat():
             continue
         answer = archive.gather([line], day, ask)[line]
         if isinstance(answer, Refused):
             told.append(f"{line.symbol}: reference series not kept: {answer.reason}")
             continue
-        faults = archive.keep_reference(folder, line, answer)
+        faults = archive.keep_reference(home / HOT, line, answer)
+        mark.parent.mkdir(parents=True, exist_ok=True)
         mark.write_text(day.isoformat(), encoding="utf-8")
         told.append(
             f"{line.symbol}: reference series kept before {day}, {len(faults)} faults listed"
