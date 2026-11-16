@@ -11,6 +11,7 @@ from __future__ import annotations
 import os
 import sqlite3
 import sys
+from collections.abc import Callable
 from dataclasses import astuple
 from datetime import timedelta
 from pathlib import Path
@@ -43,32 +44,46 @@ def hours(line: Line, folder: Path) -> tuple[Five, ...]:
     )
 
 
-def one(line: Line, old: Path, path: Path) -> str:
-    """A line's old hourly bars into the history database at path's side, and one line saying
-    what came of them. The line's daily bars must be held: they vouch for the hours."""
-    try:
-        if Source.STOOQ_HOURLY in bars.sources(path, line, SPAN):
-            return f"{line.symbol}: already in"
-    except LookupError:
-        pass  # the store never held an hourly bar of the line: the first run
-    given = hours(line, old)
+def enter(line: Line, given: tuple[Five, ...], path: Path, span: str, source: Source) -> str:
+    """A line's old bars of a span into the history database at path's side, each vouched for by
+    its day's fresh daily bar, and one line saying what came of them."""
     days = {bar.day: bar for bar in bars.daily(path, line)}
     judged = [headstart._vouched(line, b, days.get(b.start.date())) for b in given]  # noqa: SLF001
     sound = [b for b in judged if isinstance(b, Five)]
     kept, faults = bars.checked(line, sound)
-    with bars.writing(path, Source.STOOQ_HOURLY) as round_:
-        filled = round_.timed(line, SPAN, [Timed(SPAN, *astuple(b)) for b in kept])
-    refused = len(given) - len(sound)
-    return f"{line.symbol}: {filled} hours filled; {refused} not vouched, {len(faults)} faults"
+    with bars.writing(path, source) as round_:
+        filled = round_.timed(line, span, [Timed(span, *astuple(b)) for b in kept])
+    return (
+        f"{line.symbol}: {filled} {span} bars filled; {len(given) - len(sound)} not vouched,"
+        f" {len(faults)} faults"
+    )
 
 
-def main(old: Path, path: Path, lines: list[Line]) -> str:
+def held(path: Path, line: Line, span: str, source: Source) -> bool:
+    """The line already holds bars of this span from this source: a second run reads nothing."""
+    try:
+        return source in bars.sources(path, line, span)
+    except LookupError:
+        return False  # the store never held a bar of the line's span: the first run
+
+
+def one(line: Line, old: Path, path: Path) -> str:
+    """A line's old hourly bars into the history database at path's side, and one line saying
+    what came of them. The line's daily bars must be held: they vouch for the hours."""
+    if held(path, line, SPAN, Source.STOOQ_HOURLY):
+        return f"{line.symbol}: already in"
+    return enter(line, hours(line, old), path, SPAN, Source.STOOQ_HOURLY)
+
+
+def main(
+    old: Path, path: Path, lines: list[Line], doing: Callable[[Line, Path, Path], str] = one
+) -> str:
     """Every line's old hourly bars in turn, each its own round; one refused is said and the
     rest go on. Every line's fate is written as it is known, and all of it is returned."""
     said = []
     for line in lines:
         try:
-            said.append(one(line, old, path))
+            said.append(doing(line, old, path))
         except (ValueError, LookupError, sqlite3.Error) as reason:
             said.append(f"{line.symbol}: refused: {reason}")
         sys.stdout.write(said[-1] + "\n")
