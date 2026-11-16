@@ -49,9 +49,11 @@ from typing import TypeVar
 from desk import archive, bars, store, venues
 from desk.bars import Five
 from desk.lines import LINES, REFERENCE, Line
-from desk.store import Bar, Refused
+from desk.store import Bar, Parked, Refused
 
-DAILY, HOT = "daily", "bars.db"  #: in the data folder: the daily store's folder, the fast store
+#: In the data folder: each venue's record of its last refresh (no prices: the bars are in the
+#: store's two databases), and the store's short database, its long one beside it.
+DAILY, HOT = "daily", "bars.db"
 CRLF = bytes((13, 10))  #: a Windows checkout's line ending, not part of the rules
 RECORD = "kept.json"  #: in each venue's folder of the daily store: its last refresh
 #: THE STORE RULES' VERSION: a hash of desk/store.py. A refresh records the version it cleaned
@@ -113,6 +115,7 @@ def _record(folder: Path, kept: Kept) -> None:
     """The record written whole, then swapped in, after the bars it speaks of."""
     said = {"day": kept.day.isoformat(), "at": kept.at.isoformat(), "tries": kept.tries}
     said |= {"parked": dict(kept.parked), "refused": sorted(kept.refused), "rules": kept.rules}
+    folder.mkdir(parents=True, exist_ok=True)
     part = folder / f"{RECORD}.part"
     part.write_text(json.dumps(said, indent=1), encoding="utf-8")
     part.replace(folder / RECORD)
@@ -138,8 +141,36 @@ def _short(venue: str, last: Kept | None, day: date) -> bool:
     return last is None or bool(venues.sessions(venue, last.day, day - DAY))
 
 
+def _shelf(folder: Path, line: Line) -> tuple[Bar, ...] | None:
+    """The older bars the head start shelved for a line, joined to the archive's; none if it
+    never shelved any. They wait in the old daily folder until the import takes them in."""
+    try:
+        return store.read(folder / store.HISTORY, line.symbol)
+    except FileNotFoundError:  # a line the head start never shelved
+        return None
+
+
+def _kept_in(
+    hot: Path, folder: Path, answers: Mapping[Line, store.Answer], day: date
+) -> list[Parked]:
+    """The answers judged by the one store and kept in its long database as one round; the
+    lines parked. A line is kept whole: its archive bars replace those the archive gave before."""
+    parked = []
+    with bars.writing(hot) as round_:
+        for line, answer in answers.items():
+            kept, _faults, park = store.judge(line, answer, day, shelf=_shelf(folder, line))
+            round_.daily(line, kept)
+            parked += [park] if park else []
+    return parked
+
+
 def _refresh(
-    folder: Path, lines: Sequence[Line], now: datetime, ask: Ask[date, tuple[Bar, ...]], idle: bool
+    hot: Path,
+    folder: Path,
+    lines: Sequence[Line],
+    now: datetime,
+    ask: Ask[date, tuple[Bar, ...]],
+    idle: bool,
 ) -> Kept | None:
     """A venue's daily bars refreshed as far as they are owed at now, and the record of it;
     None when nothing was owed, and nothing asked. On an idle day, when no venue trades,
@@ -164,7 +195,7 @@ def _refresh(
     answers = archive.gather(asked, readied, ask)
     refused = {line.symbol for line, answer in answers.items() if isinstance(answer, Refused)}
     given = {line: answer for line, answer in answers.items() if line.symbol not in refused}
-    found = store.prepare(folder, given if same else answers, readied)
+    found = _kept_in(hot, folder, given if same else answers, readied)
     parked = {symbol: why for symbol, why in before.items() if symbol not in map(_symbol, given)}
     parked |= {line.symbol: line.reason for line in found}
     kept = Kept(readied, now, tries, parked, frozenset(refused), RULES)
@@ -181,12 +212,16 @@ def saved(
     held: dict[Line, tuple[Bar, ...]] = {}
     parked: set[str] = set()
     for line in lines:
-        folder = home / DAILY / line.venue
-        last = _kept(folder)
+        last = _kept(home / DAILY / line.venue)
         if last is None or _short(line.venue, last, day):
             had = "never refreshed" if last is None else f"last readied for {last.day}"
             raise Stale(f"{line.symbol}: no {line.venue} bars before {day} are held: {had}")
-        held[line] = tuple(bar for bar in store.read(folder, line.symbol) if bar.day < day)
+        try:
+            held[line] = tuple(bar for bar in bars.daily(home / HOT, line) if bar.day < day)
+        except (LookupError, FileNotFoundError) as gone:  # never held, or no round has landed
+            raise Stale(
+                f"{line.symbol}: the long database holds no {line.venue} bars: {gone}"
+            ) from gone
         parked |= {line.symbol} & set(last.parked)
     return held, frozenset(parked)
 
@@ -278,7 +313,9 @@ def keep(
     ends, told = clock() + SPENT, []
     for venue in sorted({line.venue for line in lines}):
         mine = [line for line in lines if line.venue == venue]
-        kept = _refresh(home / DAILY / venue, mine, now, _within(daily, clock, ends), idle)
+        kept = _refresh(
+            home / HOT, home / DAILY / venue, mine, now, _within(daily, clock, ends), idle
+        )
         if kept is not None:
             told.append(_told(kept, mine))
         if venues.open_at(venue, now) or venues.open_at(venue, now - SETTLED):

@@ -142,3 +142,6 @@ def test_a_sale_passes_the_gate_only_for_shares_the_book_holds() -> None:
     with pytest.raises(ValueError, match="shares"):
         orders.Sale("s", PLAIN, 0)
     assert orders.strategy_of(orders.order_id_of(_buy(PLAIN))) == "rule"
+    for bad in ("", "garbage", "20261116-rule", "20261116--P"):
+        with pytest.raises(ValueError, match="no strategy can be read"):
+            orders.strategy_of(bad)
