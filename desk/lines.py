@@ -124,6 +124,11 @@ LINES = tuple(
 REFERENCE = tuple(line for line in LINES if line.retail is False)
 
 
+#: The pound in dollars at the archive, kept as a reference series (never traded), and the band
+#: its close must lie in, in dollars, to be trusted (R-PAPER-22).
+POUND, DOLLARS = Line("GBPUSD=X", "US", "USD", 1), (Decimal(1), Decimal(2))
+
+
 def require_traded(line: Line) -> Line:
     """The line, if the desk or the lab may trade it; a reference series is refused."""
     if line in REFERENCE:
