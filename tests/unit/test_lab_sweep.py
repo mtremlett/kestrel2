@@ -41,22 +41,27 @@ def _keep(root: Path, line: Line, lift: int = 0, split: int = 0) -> None:
     assert bool(store.prepare(root / line.venue, {line: bars}, DAY)) == bool(split)
 
 
-def _dying(root: Path, kept: Path, start: date, end: date, lines: Sequence[Line]) -> None:
+def _dying(
+    root: Path, kept: Path, start: date, end: date, lines: Sequence[Line], transfer: bool
+) -> None:
     """A worker's work, its process ending dead two cells into the fatal ticker."""
     for line in lines:
         if line == FATAL:
             kept.joinpath(line.venue).mkdir(parents=True, exist_ok=True)
             none = dict[Line, Sequence[Bar]]().__getitem__  # no bars: each cell fails
-            batch.run(sweep.cells(line, start, end)[:2], none, sweep.journal(kept, line))
+            batch.run(sweep.cells(line, start, end, transfer)[:2], none, sweep.journal(kept, line))
             os._exit(3)
-        sweep.work(root, kept, start, end, [line])
+        sweep.work(root, kept, start, end, [line], transfer)
 
 
 def _pass(
-    tmp_path: Path, lines: Sequence[Line] = LINES, clock: Any = lambda: SATURDAY
+    tmp_path: Path,
+    lines: Sequence[Line] = LINES,
+    clock: Any = lambda: SATURDAY,
+    transfer: bool = True,
 ) -> sweep.Pass:
     pc, folders = Pc(tmp_path), (tmp_path / "store", tmp_path / "kept")
-    return sweep.run(lines, *folders, START, DAY, pc, tmp_path, 2, clock)
+    return sweep.run(lines, *folders, START, DAY, pc, tmp_path, 2, clock, transfer)
 
 
 def test_every_strategy_on_every_ticker_is_kept_and_only_what_changed_is_run_again(
@@ -71,7 +76,7 @@ def test_every_strategy_on_every_ticker_is_kept_and_only_what_changed_is_run_aga
     for line in (BOEING, BAE):  # the two companies called BA, each from its own venue's bars
         bars = universe.read(root, line).bars  # research's reading: none before a split
         assert len(bars) == len(store.read(root / line.venue, "BA")) - 30 * (line == BAE)
-        cells = sweep.cells(line, START, DAY)
+        cells = sweep.cells(line, START, DAY, transfer=True)
         assert [c.strategy for c in cells] == list(strategy.STRATEGIES)
         held = batch.run(cells, {line: bars}.__getitem__, sweep.journal(kept, line))
         assert held == tuple(cell.run(c, bars) for c in cells)
@@ -111,7 +116,7 @@ def test_a_ticker_whose_worker_dies_is_named_and_the_rest_are_kept(
 
 def test_a_backward_window_or_a_ticker_listed_twice_runs_no_pass(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="ends before it starts"):
-        sweep.run(LINES, tmp_path, tmp_path, DAY, START, Pc(tmp_path), tmp_path, 8)
+        sweep.run(LINES, tmp_path, tmp_path, DAY, START, Pc(tmp_path), tmp_path, 8, transfer=True)
     with pytest.raises(ValueError, match="more than once: BA on LSE"):
         _pass(tmp_path, (BOEING, BAE, BAE))
     assert not (tmp_path / "autotune.json").exists()
@@ -190,3 +195,12 @@ def test_a_pass_leaves_one_thread_free_when_london_is_shut_and_two_in_its_sessio
     cores = os.cpu_count() or 2
     assert sweep.workers(SATURDAY) == max(1, cores - 1)
     assert sweep.workers(datetime(2026, 11, 13, 12, tzinfo=UTC)) == max(1, cores - 2)
+
+
+def test_each_strategy_is_judged_on_its_declared_universe_and_the_transfer_study_on_all() -> None:
+    mine = strategy.STRATEGIES["trend_50_200"].declared.universe[0]
+    assert len(sweep.declared()) == len(set(sweep.declared()))
+    assert mine in sweep.declared() and BOEING not in sweep.declared()
+    assert [c.strategy for c in sweep.cells(mine, START, DAY)] == list(strategy.STRATEGIES)
+    assert sweep.cells(BOEING, START, DAY) == ()  # declared by none: no verdict is made there
+    assert len(sweep.cells(BOEING, START, DAY, transfer=True)) == EACH
