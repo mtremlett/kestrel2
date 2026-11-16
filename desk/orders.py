@@ -11,7 +11,7 @@ from decimal import ROUND_HALF_EVEN, Decimal
 from enum import Enum
 
 from desk.lines import Line
-from desk.risk import Standing, loss_limit
+from desk.risk import Standing, loss_limit, underlying_limit
 from desk.strategy import Action, Decision
 
 #: His ruling of 13 November 2026 (docs/DECISIONS.md): at most five holdings, each a fifth of
@@ -32,6 +32,9 @@ class Settings:
     day_loss: Decimal = Decimal("0.02")
     week_loss: Decimal = Decimal("0.05")
     new_lines: int = 4
+    #: R-RUNNER-158 (docs/DECISIONS.md): the most of the capital one underlying market may
+    #: control, a leveraged line counted at its exposure; past it the gate refuses a buy.
+    underlying: Decimal = Decimal("0.40")
 
     def __post_init__(self) -> None:
         if not self.capital.is_finite() or self.capital <= 0:
@@ -259,13 +262,16 @@ def gate(
     settings: Settings,
     held: Mapping[str, int],
     standing: Standing | None = None,
+    exposure: Mapping[str, Decimal] | None = None,
 ) -> None:
     """The one pre-trade gate, on the send path: raises Refused, or lets the order through.
     held is the book (book.positions): a sale needs the shares in it, for the desk is long
     only; a new line needs one of the five holdings free, and a line's shares, held and
     ordered, are counted together at the order's price and rate. Given the book's standing
     (risk.Standing), a buy is refused once a loss limit is reached, and a new line once the
-    day's new lines are used up; None checks neither (the send path does not yet give it)."""
+    day's new lines are used up; None checks neither (the send path does not yet give it). Given
+    the pounds the book controls per underlying (exposure), a buy is refused that would take
+    its underlying market over its share of the capital; None checks nothing."""
     symbol = order.line.symbol
     if isinstance(order, Sale):
         if order.quantity > held.get(symbol, 0):
@@ -276,6 +282,8 @@ def gate(
         return
     if standing is not None:
         _within_limits(order, settings, held, standing)
+    if exposure is not None:
+        _within_underlying(order, settings, exposure)
     if symbol not in held and len(held) >= HOLDINGS:
         raise Refused(f"{order.order_id}: {len(held)} holdings already, at most {HOLDINGS}")
     whole = replace(order, quantity=order.quantity + held.get(symbol, 0))
@@ -305,3 +313,13 @@ def _within_limits(
             f"{order.order_id}: {standing.new_lines} new lines entered today, the limit is "
             f"{settings.new_lines} a day"
         )
+
+
+def _within_underlying(order: Order, settings: Settings, exposure: Mapping[str, Decimal]) -> None:
+    """Refuses a buy that takes its underlying market past the cap, counted at its leverage."""
+    line = order.line
+    added = order.quantity * order.price * order.fx * line.leverage
+    key = line.underlying or line.symbol
+    over = underlying_limit(exposure, key, added, settings.capital, settings.underlying)
+    if over is not None:
+        raise Refused(f"{order.order_id}: {over}")
