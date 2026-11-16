@@ -5,6 +5,7 @@ The pre-trade gate refuses a new entry past either, and the paper desk alerts on
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from decimal import Decimal
 
@@ -31,6 +32,21 @@ def loss_limit(standing: Standing, capital: Decimal, day: Decimal, week: Decimal
                 f"the {name}-loss limit: {lost} pounds lost this {name}, the limit "
                 f"{share:.0%} of the capital of {capital} ({capital * share} pounds)"
             )
+    return None
+
+
+def underlying_limit(
+    exposure: Mapping[str, Decimal], underlying: str, added: Decimal, capital: Decimal, cap: Decimal
+) -> str | None:
+    """Whether a buy would take one underlying market over its share of the capital, in words,
+    or None. exposure is the pounds the book controls per underlying (a 3x line counts three
+    times its value); added is the buy's own, at its leverage."""
+    total = exposure.get(underlying, Decimal(0)) + added
+    if total > capital * cap:
+        return (
+            f"{total} pounds of {underlying} exposure, over {cap:.0%} of the capital of "
+            f"{capital} ({capital * cap} pounds)"
+        )
     return None
 
 
