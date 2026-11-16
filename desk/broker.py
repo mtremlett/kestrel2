@@ -199,6 +199,12 @@ class Pretend:
             raise ValueError(f"{symbol}: no stop rests to be cancelled")
         del self._stops[symbol]
 
+    def restop(self, symbol: str, level: Decimal) -> None:
+        """The line's resting stop moved to level, for all its shares (desk.restop.Restops)."""
+        if symbol not in self._stops:
+            raise ValueError(f"{symbol}: no stop rests to be moved")
+        self._stops[symbol] = replace(self._stops[symbol], level=level)
+
     def _execute(self, order: Order | Sale, fault: Fault | None, bar: Bar | None) -> Report:
         symbol, wanted = order.line.symbol, order.quantity
         if fault is Fault.REJECT:

@@ -81,6 +81,7 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "desk/broker.py" = "the pretend broker the desk trades against in simulation"
 "desk/book.py" = "the ledger of fills under the broker's ids, and the book built from the broker"
 "desk/book_parts.py" = "the ledger's lower parts: the one keeper of dated records, the kill switch's record and the day's pounds per currency; desk.book gives them to its callers"
+"desk/restop.py" = "the stop set from the fill: each held buy's resting stop moved once to 10% under the price it filled at, and the level kept"
 "desk/carry.py" = "the pound's rate on a day London is shut and the US trades: the last London session's carried over, at most three US sessions"
 "desk/eponymous_bands.py" = "the eponymous channel rules (Donchian's four-week breakout), each a rule under the strategy template, authors and sources written down; the paper desk does not trade them"
 "desk/eponymous_minervini_breakout.py" = "Minervini's breakout from a Stage 2 uptrend (his Trend Template and pivot) as a rule under the one template, author, source and setting written down; not traded by the paper desk"
