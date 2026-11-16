@@ -47,6 +47,7 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "desk/snapshot.py" = "the nightly backup copy: one consistent snapshot of each price database and the ledger in the data folder's backup folder, the last few kept"
 "lab/universe.py" = "the research list: the tickers research may study, none of them traded, and their bars kept by the one store"
 "lab/members.py" = "the lists' past members: who was on a published list on a past day, the ones still listed told from the ones that left"
+"desk/collector.py" = "the free collector: once a day the free vendors' price second opinions, macro series, earnings dates and timestamped news, each answer kept raw and its facts in the one store"
 "desk/keeper.py" = "the store's keeper: one command that does whatever the store is owed when it is called, each venue's daily bars refreshed from the archive and its five-minute round taken in its hours, and the door the daily bars are read through"
 "lab/headstart.py" = "the old desk's stores as a head start: its five-minute bars read, never written, and let into the one fast store under their source's name only where a fresh daily bar vouches for them"
 "lab/headstart_days.py" = "the old database's daily rows as a head start: only its table ohlcv's 1d rows, read-only, cleaned by the one store and let into the fast store under their own source on the days that hold no bar"
