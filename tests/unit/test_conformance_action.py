@@ -23,7 +23,7 @@ def test_a_stop_sold_by_hand_is_no_stop_fill_and_the_pretend_side_is_priced_at_t
     real, said = TAPE
     assert ended.action(real, said) == "stop cancelled, sold at market"
     assert ended.action(real, "") == ended.action(PRETEND["the stop triggered"], "")
-    assert ended.action(PRETEND["a rejection"], "") == "no fill"
+    assert ended.action(PRETEND["a refusal"], "") == "no fill"
     run = _plan(monkeypatch)  # priced from the real fill: above the stop's level it sells at once
     assert conformance.pretend(run, Decimal("159.13"))["the stop triggered"] == (
         f"done; fills: {ID.format(3)}-stop -18 at 159.13; held: none; stops: none"

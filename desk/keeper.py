@@ -9,31 +9,29 @@ Two things are owed on a trading day, each venue's on its own calendar.
 THE DAILY BARS of a venue's lines, asked of the archive whole and cleaned by the one store,
 twice: at the day's first call, before any open, for the day about to trade; and again once
 the venue's session is over and SETTLED has passed (`target`), so that the day's closes are
-held that evening and the day's record can be made. The evening's bars are asked again in
-the morning, for an archive restates a close overnight. What was last held, for which day,
-and who is parked is a record beside the bars, and the door (`saved`) reads no bars it does
-not cover.
+held that evening and the day's record can be made, and again next morning (an archive
+restates a close overnight). What was last held, for which day, and who is parked is a record
+beside the bars, and the door (`saved`) reads no bars it does not cover.
 
-A line the archive would not answer for is asked again at every call. Asked for a day the
-store already holds, it keeps the bars and the standing it has; asked for a new day it is
-parked alone, with no bars, for bars a day short are not that day's. A line parked for a
-fault in its bars is asked again for TRIES calls and then left for the next refresh, unless
-no line of its venue is clean: then it is asked at every call.
+A line the archive would not answer for is asked again at every call: for a day the store
+holds it keeps its bars and standing; for a new day it is parked alone, with no bars. A line
+parked for a fault in its bars is asked again for TRIES calls and then left for the next
+refresh, unless no line of its venue is clean: then it is asked at every call. The pound's
+closes the long database holds judge them (`_rates`).
 
 THE FIVE-MINUTE ROUND, at every call from a venue's open until SETTLED after its closing
 auction: its lines' ended bars of the session under way (the yardstick first) come from IBKR's
-paper gateway alone (`desk/live.py`, his ruling of 16 November), through the fast store's checks,
-so a round missed heals at the next. A line the broker gives nothing for is refused, in words, and
-the round is a miss when no line is heard, and says how late its newest bar landed; no archive bar
-enters the session under way, and the archive's bars of the last RECENT only fill past gaps.
+paper gateway alone (`desk/live.py`, his ruling of 16 November), through the fast store's checks.
+A line the broker gives nothing for is refused, in words; the round is a miss when no line is
+heard, and says how late its newest bar landed; the archive's bars of the last RECENT only fill
+past gaps, none enters the session under way.
 
 THE REFERENCE SERIES, once a day after the US close: `lines.REFERENCE` (SPY) and the pound in
 dollars (`lines.POUND`, read by `pound`), asked of the archive from their first session and kept
-apart from the traded lines by the one store; one the archive refuses is told, not a miss.
+apart from the traded lines; one the archive refuses is told, not a miss.
 
-A call that left a venue with no line answered, or with no line clean, is a miss: the
-command says so and ends with 1. One call asks the archive for SPENT seconds and no longer;
-a line not reached by then is refused as any other."""
+A call that left a venue with no line answered or clean is a miss: the command says so and
+ends with 1. One call asks the archive for SPENT seconds; a line not reached is refused."""
 
 from __future__ import annotations
 
@@ -55,8 +53,7 @@ from desk.bars import Five
 from desk.lines import ADJUSTED, DOLLARS, LINES, POUND, REFERENCE, YARDSTICK, Line
 from desk.store import Bar, Parked, Refused
 
-#: In the data folder: each venue's record of its last refresh (no prices: the bars are in the
-#: store's two databases), and the store's short database, its long one beside it.
+#: In the data folder: each venue's record of its last refresh (no prices), and the short database.
 DAILY, HOT = "daily", bars.LIVE
 MARKS = "reference"  #: beside a venue's record, the day each reference series was last kept
 CRLF = bytes((13, 10))  #: a Windows checkout's line ending, not part of the rules
@@ -64,17 +61,15 @@ RECORD = "kept.json"  #: in each venue's folder of the daily store: its last ref
 #: THE STORE RULES' VERSION: a hash of desk/store.py. A refresh records the version it cleaned
 #: under; a record of another version is cleaned again whole from the archive's answers.
 RULES = hashlib.sha256(Path(store.__file__).read_bytes().replace(CRLF, b"\n")).hexdigest()
-#: How long after a venue's closing auction its day's bar is asked for: the archive shows
-#: London a quarter of an hour late, and an official close is printed minutes after its bell.
+#: How long after a venue's closing auction its day's bar is asked for (London shows late).
 SETTLED = timedelta(minutes=30)
 #: THE FIGURE THE DAY'S RECORD WAITS ON: by this long after a venue's closing auction its day's
 #: closes are held, if the archive answers at the first call: the first call after SETTLED (every
 #: five minutes) and that call's four minutes. `target` turns to the next day at SETTLED itself.
 HELD = SETTLED + timedelta(minutes=5 + 4)
-TRIES = 6  #: the calls at which a line parked for a fault is asked again: half an hour's
+TRIES = 6  #: the calls at which a line parked for a fault is asked again (half an hour)
 RECENT = timedelta(days=7)  #: how far back a five-minute round asks: the week kept hot
-#: The seconds of one call in which the archive is still asked: an answer then waited for
-#: its thirty seconds, and the bars written, still end within the runner's four minutes.
+#: The seconds of one call in which the archive is still asked: the runner allows four minutes.
 SPENT = 150.0
 DAY = timedelta(days=1)
 ANCIENT = partial(archive.fetch, since=archive.REFERENCE_SINCE)  #: the reference series' ask
@@ -157,6 +152,16 @@ def _shelf(folder: Path, line: Line) -> tuple[Bar, ...] | None:
         return None
 
 
+def _rates(hot: Path) -> store.Rates:
+    """The pound's closes in dollars the long database holds (none while it is not yet kept):
+    by them the store tells a bar in dollars among pounds from a move (R-RUNGS-16)."""
+    try:
+        held = bars.daily(hot, POUND)
+    except (LookupError, FileNotFoundError):  # never kept: no close is held
+        held = ()
+    return {bar.day: bar.close for bar in held if DOLLARS[0] < bar.close < DOLLARS[1]}
+
+
 def _kept_in(
     hot: Path,
     folder: Path,
@@ -166,12 +171,12 @@ def _kept_in(
 ) -> list[Parked]:
     """The answers judged by the one store and kept in its long database as one round; the
     lines parked. A line is kept whole: its archive bars replace those the archive gave before."""
-    parked = []
+    parked, rates = [], _rates(hot)
     with bars.writing(hot) as round_:
         for line, answer in answers.items():
             shelf = _shelf(folder, line)
             kept, _faults, park = store.judge(
-                line, answer, day, shelf=shelf, broker=first.get(line)
+                line, answer, day, rates, shelf=shelf, broker=first.get(line)
             )
             round_.daily(line, kept)
             parked += [park] if park else []
@@ -250,11 +255,7 @@ def pound(home: Path, day: date) -> Decimal:
     """THE DAY'S POUNDS PER DOLLAR, for any session, from the pound's closes kept before the day
     (desk.carry's one rule: one over the last close, carried over a UK-only holiday). Stale where
     the store holds none fresh enough: no dollar line is priced on it."""
-    try:
-        held = bars.daily(home / HOT, POUND)
-    except (LookupError, FileNotFoundError):  # never kept: no close is held
-        held = ()
-    closes = {bar.day: bar.close for bar in held if DOLLARS[0] < bar.close < DOLLARS[1]}
+    closes = _rates(home / HOT)
     last = venues.sessions("LSE", day - 10 * DAY, day - DAY)[-1:]
     known = {d: r for d in (day, *last) if (r := carry.pounds_per_dollar(closes, d))}
     if (rate := carry.carried(known, day)) is None:
