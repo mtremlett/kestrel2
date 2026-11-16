@@ -84,6 +84,8 @@ def test_the_lines_record_what_a_second_source_confirmed() -> None:
 
 def test_spy_and_qqq_are_read_as_reference_series_and_refused_as_traded_lines() -> None:
     assert {line.symbol for line in REFERENCE} == LEAVING
+    traded = [require_traded(line) for line in LINES if line not in REFERENCE]
+    assert traded and all(line.retail for line in traded), "a retail customer can buy each"
     for line in LINES:
         if line.symbol in LEAVING:
             with pytest.raises(ValueError, match=f"{line.symbol}: a reference series"):

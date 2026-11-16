@@ -22,7 +22,9 @@ from typing import BinaryIO
 
 from desk import paper
 from desk.broker import Fill
+from desk.lines import Line
 from desk.listing import Listing, Unlisted
+from desk.orders import charges, leg_of, pennies
 from desk.paper import Resting
 
 ASK_FILLS, ASK_ENDED = 7, 99  #: what this module sends: two questions, neither places an order
@@ -240,3 +242,50 @@ def orders(resting: Iterable[Resting], listings: Mapping[str, Listing | Unlisted
         else:
             unsettled.append(order)
     return Orders(tuple(stops), tuple(unsettled), tuple(others))
+
+
+@dataclass(frozen=True)
+class Gap:
+    """One paper day's result as the backtest of its decisions expected it, beside the real
+    one, in pounds, each rounded once (orders.pennies). The gap is real less expected: negative
+    when the broker filled the desk worse than the backtest did."""
+
+    expected: Decimal
+    real: Decimal
+    gap: Decimal
+
+
+def _result(
+    fills: Iterable[Fill],
+    lines: Mapping[str, Line],
+    closes: Mapping[str, Decimal],
+    rates: Mapping[str, Decimal],
+) -> Decimal:
+    """What the day's fills gained marked at the day's closes, after the cost model's charges
+    (orders.charges), in pounds. A symbol with no line or close is an error, not a zero."""
+    total = Decimal(0)
+    for fill in fills:
+        line = lines[fill.symbol]
+        fx = Decimal(1) if line.currency == "GBP" else rates[line.currency]
+        leg, shares = leg_of(fill.order_id, fill.quantity), abs(fill.quantity)
+        paid = charges(line, leg, shares, fill.price, fx).total
+        total += fill.quantity * (closes[fill.symbol] - fill.price) * fx - paid
+    return total
+
+
+def day_gap(
+    expected: Iterable[Fill],
+    real: Iterable[Fill],
+    lines: Mapping[str, Line],
+    closes: Mapping[str, Decimal],
+    rates: Mapping[str, Decimal],
+) -> Gap:
+    """The day's expected result beside the real one. expected is the fills the backtest
+    makes of the day's decisions on the day's bars; real, the desk's own fills the broker
+    made (fills().ours); lines, closes and rates, each symbol's line, the day's close in its
+    currency and the pounds a unit of each foreign currency buys. Both sides are priced by the
+    one cost model and marked at the same closes, so the gap is the fills' prices alone: a
+    decided order that never filled is a gap, as is a fill nobody decided."""
+    want = _result(expected, lines, closes, rates)
+    got = _result(real, lines, closes, rates)
+    return Gap(pennies(want), pennies(got), pennies(got - want))
