@@ -183,13 +183,14 @@ def test_the_days_record_is_the_books_gain_after_every_cost_beside_the_markets(
     #: 221 each of A to D bought at 10.5 and of H at 8.5, where each closes: the costs alone,
     #: and five fills' shares worth 11,160.50 for the next day to open from
     first = (DAYS[21], Decimal("-26.16"), pounds[0], Decimal("200.00"), (), Decimal("11160.5"), 5)
-    assert astuple(_run(tmp_path, broker, DAYS[21])) == (*first, (), 0, True), "no halt: it counts"
+    #: no halt, so it counts; and the heat: 221 each to a stop of 8.1, sized at 9 and bought dearer
+    assert astuple(_run(tmp_path, broker, DAYS[21])) == (*first, (), 0, Decimal("2210"), True)
     with pytest.raises(ValueError, match="the day is over"):  #: the ledger has later fills
         day.run(tmp_path, MARKET, broker, capital, DAYS[19], {"GBP": Decimal(1)})
     assert len(broker.submitted()) == 5, "orders sent on old decisions, for a day that is over"
     #: A to D sold where they closed, and H by its stop at 8: 110.50 lost, and 27.818 of costs
     last = (DAYS[22], Decimal("-138.32"), pounds[1], Decimal("-98.04"), (), Decimal(0), 10)
-    assert astuple(_run(tmp_path, broker, DAYS[22])) == (*last, (), 0, True)
+    assert astuple(_run(tmp_path, broker, DAYS[22])) == (*last, (), 0, 0, True)
     with pytest.raises(ValueError, match="VUAG"):  #: a desk given no yardstick has no record
         bare = Pretend(ARCHIVE, {})
         bare.open(DAYS[21])
@@ -336,7 +337,7 @@ def test_a_record_opens_from_what_the_last_one_closed_on_at_each_days_own_rate(
     broker, at = Pretend(archive, {}), {"USD": Decimal("0.8005"), "GBP": Decimal(1)}
     broker.open(fri)  #: ten bought by hand at the open of 50, through the send path
     book.send(
-        tmp_path, broker, Order("o-1", dollar, 10, Decimal(50), at["USD"], Decimal(45)), capital
+        tmp_path, broker, Order("1-r-A", dollar, 10, Decimal(50), at["USD"], Decimal(45)), capital
     )
     first = day.run(tmp_path, archive, broker, capital, fri, at)
     #: 400.25 pounds paid for what closes at 510 dollars, 408.255 pounds: 8.005 gained, 1.321
@@ -352,7 +353,7 @@ def test_a_record_opens_from_what_the_last_one_closed_on_at_each_days_own_rate(
     )
     #: five more bought after Friday's record, and a rate kept on the Saturday: neither is lost
     book.send(
-        tmp_path, broker, Order("o-2", dollar, 5, Decimal(50), at["USD"], Decimal(45)), capital
+        tmp_path, broker, Order("2-r-B", dollar, 5, Decimal(50), at["USD"], Decimal(45)), capital
     )
     book.record_rates(tmp_path, date(2025, 2, 1), {"USD": Decimal("0.7")})
     broker.open(mon)

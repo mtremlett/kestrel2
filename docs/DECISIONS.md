@@ -1945,3 +1945,34 @@ hundredfold on the worst measure; (c) 60 or more. Chosen (b): it gives a stalled
 time, and a dead Gateway is still called silent after 30 s, far inside one five-minute step,
 with no retry and no sleep. Test: `test_a_slow_first_answer_is_waited_for_and_a_silent_one_is_called_silent`
 (a stand-in answering at 20 s passes; one silent past 31 s is his).
+
+## R-RUNNER-156 - the loss and order-rate limits of the pre-trade gate (Mon 16 Nov 2026, MONEY lane)
+
+`orders.Settings` holds, beside the capital, the day-loss limit (2%), the week-loss limit (5%) and
+the new lines a day (4); the colleague's range for new lines was 3-5, 4 is its middle. The gate
+(`orders.gate`, given a `risk.Standing`) refuses a buy once a loss reaches a limit (naming it) and a
+new line once four are entered that day. On paper `halt.drawdown` alerts and records "would have
+halted" in `would_have_halted.csv`, beside `halts.csv`, and never halts. Options for the record: (a)
+a row in `halts.csv`, which would read as a halt in force and stop the buying, or change the file's
+columns under the existing record; (b) a file beside it. Chosen (b). Evidence the tests catch it:
+the new-line test failed with the limit's `>=` made `>` (both `test_risk.py` tests red).
+
+## 16 Nov - the desk's ceilings rise to 15,000 lines and 80 files, by his rulings
+
+In `BUDGET.json`, `product_lines` goes from 10,500 to 15,000 and `product_files` from 55 to
+80, for phases `3-money-paper` and `4-ladder`. The lab's ceiling (12,000) and every per-file
+and per-function cap are unchanged.
+
+Why: main's desk held about 9,700 counted lines with about 620 more riding the train, so the
+READY gate was refusing cards for want of room (hourly-pnl, heat-report-a, kill-go-flat,
+paper-bars-question), and desk/ stood at 55 of 55 files, so any card adding a desk module
+(desk/pnl.py, the intraday engine and step) would meet the file ceiling next. At the day's
+pace the line ceiling was a day away.
+
+His rulings, Mon 16 Nov 2026, in chat with runner ops, each answering a question put with
+options (A raise, B keep the ceiling and delete to make room) and a recommendation:
+- about 12:30, on the line ceiling (recommended: 11,500): "A - raise to 15,000".
+- about 13:15, on the file ceiling (recommended: 80): "Raise file limit to 80".
+
+The refactor stays owed: rungs-merge-duplicates (R-RUNNER-191) and retire-epon (R-RUNNER-127)
+are expected to shrink the tree, and the size ratchet still holds the new ceilings.

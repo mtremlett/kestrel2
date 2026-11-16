@@ -50,6 +50,7 @@ from desk import (
     messenger,
     paper,
     placing,
+    pnl,
     running,
     venues,
 )
@@ -159,6 +160,14 @@ def _prices(desk: Desk, today: date) -> str:
     return f"{fit} lines to trade on" + left * bool(out)
 
 
+def _pound(desk: Desk, today: date) -> str:
+    """The day's dollar, kept on the desk's record so the US round reads it, not the archive;
+    a pound that cannot be trusted is an error here and nothing is kept."""
+    rate = desk.rates(today)
+    book.record_rates(desk.root, today, rate)
+    return f"a dollar is £{rate['USD']}, kept for the day"
+
+
 def preflight(desk: Desk, env: Mapping[str, str], now: datetime) -> tuple[bool, str]:
     """THE MORNING'S PRE-FLIGHT: whether the desk is ready for today, and its one line. Each
     thing a morning step leans on is asked in turn and named, ready or not; none stops the
@@ -171,7 +180,7 @@ def preflight(desk: Desk, env: Mapping[str, str], now: datetime) -> tuple[bool, 
         ("the kill switch", lambda: _switch(root, now)),
         ("the paper account", lambda: _account(root, now)),
         ("prices", lambda: _prices(desk, today)),
-        ("the pound", lambda: f"a dollar is £{desk.rates(today)['USD']}"),
+        ("the pound", lambda: _pound(desk, today)),
         ("halts", lambda: halt.said(root, today) or "none in force"),
     )
     ready, wrong = list[str](), list[str]()
@@ -274,6 +283,18 @@ def rehearse(
     return True, GO.format(*counts)
 
 
+def hourly(desk: Desk, now: datetime) -> None:
+    """His hourly profit and loss (desk/pnl.py), told after a real step: not in a rehearsal,
+    which has no day of its own to tell."""
+    today = now.date()
+
+    def words() -> str:
+        daily = desk.held(today)[0]
+        return pnl.told(desk.root, desk.hot, daily, desk.rates(today), desk.room.capital, now)
+
+    messenger.hourly(desk.root, now, words, desk.post)
+
+
 def main(
     argv: Sequence[str],
     env: Mapping[str, str] = os.environ,
@@ -288,6 +309,7 @@ def main(
     match argv:
         case []:
             running.step(desk, now)
+            hourly(desk, now)
             good, line = True, f"STEP {now:%a %d %b %H:%M} UTC: done."
         case ["--preflight"]:
             good, line = preflight(desk, env, now)

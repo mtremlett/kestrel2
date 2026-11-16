@@ -29,8 +29,9 @@ from desk.store import Bar
 from desk.strategy import Action, Decision
 
 RECORDS = "records.csv"
-MONEY = ("day", "profit", *Charges.__dataclass_fields__, "market", "worth", "counted")
+MONEY = ("day", "profit", *Charges.__dataclass_fields__, "market", "worth", "counted", "heat")
 HEADER = (*MONEY, "halted", "stopped", "differ")
+BEFORE_HEAT = [name for name in HEADER if name != "heat"]  #: the records' names until the heat
 
 
 @dataclass(frozen=True)
@@ -55,6 +56,10 @@ class Record:
     #: record made without these two says nothing was sent, and does not count
     halted: tuple[datetime, ...] = ()
     stopped: int | None = None  #: signals the kill switch or a halt refused; None, none sent
+    #: THE BOOK'S HEAT, reported only: the pounds lost if every stop held at the day's end were
+    #: hit, each line at its stop or, if worse, its worst recorded overnight gap (_heat). None:
+    #: not recorded (a record made before the heat, or a held line whose stop level was not kept)
+    heat: Decimal | None = None
     counts: bool = field(init=False)  #: the verdict
 
     def __post_init__(self) -> None:
@@ -113,7 +118,8 @@ def publish(
     profit = None if differ else pennies(worth - opened + cash - costs.total)
     held = pennies(settings.capital * market)
     halts = tuple(h.at for h in halt.on(root, day)), halt.stopped(root, day)
-    record = Record(day, profit, costs.published(), held, differ, worth, len(ledger), *halts)
+    heat = _heat(root, archive, day)
+    record = Record(day, profit, costs.published(), held, differ, worth, len(ledger), *halts, heat)
     if record.stopped is not None:  #: a day nobody sent for has no list (halt.morning)
         _bare(root, day, book_held, unsure, stops)
     book._write(root / RECORDS, [HEADER, *(_row(r) for r in (*kept, record))])
@@ -138,7 +144,7 @@ def _kept(root: Path, archive: Mapping[Line, Sequence[Bar]], day: date) -> tuple
 
 def _row(r: Record) -> tuple[object, ...]:
     """A record as it is kept: the lines that differ last, as many as there are."""
-    money = (r.day, r.profit, *astuple(r.costs), r.market, r.worth, r.counted)
+    money = (r.day, r.profit, *astuple(r.costs), r.market, r.worth, r.counted, r.heat)
     return (*money, " ".join(h.isoformat() for h in r.halted), r.stopped, *r.mismatches)
 
 
@@ -151,6 +157,9 @@ def records(root: Path) -> tuple[Record, ...]:
         return ()
     with path.open(newline="", encoding="utf-8") as kept:
         rows = list(csv.reader(kept))
+    if rows[:1] == [BEFORE_HEAT]:  #: records made before the heat have none
+        rows = [rows[0], *(row[:10] + [""] + row[10:] for row in rows[1:])]
+        rows[0] = list(HEADER)
     if rows[:1] != [list(HEADER)]:
         raise ValueError(f"{path}: not the desk's records")
     return tuple(
@@ -159,13 +168,14 @@ def records(root: Path) -> tuple[Record, ...]:
             Decimal(row[1]) if row[1] else None,
             Charges(*map(Decimal, row[2:7])),
             Decimal(row[7]),
-            tuple(row[12:]),
+            tuple(row[13:]),
             Decimal(row[8]),
             int(row[9]),
-            tuple(map(datetime.fromisoformat, row[10].split())),
-            int(row[11]) if row[11] else None,
+            tuple(map(datetime.fromisoformat, row[11].split())),
+            int(row[12]) if row[12] else None,
+            Decimal(row[10]) if row[10] else None,
         )
-        for row in (kept if kept[10:] else [*kept, "", ""] for kept in rows[1:])
+        for row in (kept if kept[10:] else [*kept, "", "", ""] for kept in rows[1:])
     )
 
 
@@ -180,6 +190,25 @@ def _worth(root: Path, archive: Mapping[Line, Sequence[Bar]], upto: date) -> Dec
         ),
         Decimal(0),
     )
+
+
+def _heat(root: Path, archive: Mapping[Line, Sequence[Bar]], upto: date) -> Decimal | None:
+    """The book's heat at a day's end, in pounds: each held line's shares times the larger of
+    what falls from its newest buy's price to the stop kept for it, and the worst overnight
+    gap down (a close to the next open) in its bars since that buy, at the day's rate. None
+    if a held line's stop level was never kept: the heat is then not known."""
+    kept, lines = book.levels(root), {line.symbol: line for line in archive}
+    buys = {f.symbol: f for f in book.fills(root) if f.quantity > 0 and f.day <= upto}
+    heat = Decimal(0)
+    for symbol, shares in book.positions(root, upto).items():
+        buy, line = buys[symbol], lines[symbol]
+        if (stop := kept.get(f"{buy.order_id}-stop")) is None:
+            return None
+        bars = [bar for bar in archive[line] if buy.day <= bar.day <= upto]
+        gaps = (before.close - after.open for before, after in zip(bars, bars[1:], strict=False))
+        fall = max(buy.price - stop, *gaps, Decimal(0))
+        heat += shares * fall * book.rate(root, line.currency, upto)
+    return pennies(heat)
 
 
 def _close(archive: Mapping[Line, Sequence[Bar]], line: Line, upto: date) -> Decimal:
@@ -201,6 +230,7 @@ def trade(
     day: date,
     rates: Mapping[str, Decimal],
     tell: book.Tell | None = None,
+    killed: frozenset[str] = frozenset(),
 ) -> tuple[book.Sent, ...]:
     """The day's orders, after the market opens: each rule's decision on the session before,
     its position read from the book; the sales first, then each buy sized from the book after
@@ -210,7 +240,9 @@ def trade(
     Nothing is sent for a day that is over: its record made, or a later fill in the ledger.
     Every buy and sale the rules ask for has its answer, and each not filled whole goes on
     the morning's list as it is answered, under its blocker (halt.morning), with the lines
-    no rule could decide. A place the broker disagrees with is told through tell (book.send)."""
+    no rule could decide. A place the broker disagrees with is told through tell (book.send).
+    A strategy in killed (its own kill condition met, lab/promotion.py) buys nothing, said so;
+    what it holds is still sold by its rule or its stop."""
     book.collect(root, broker)  #: the stops the open sold
     if later := max((fill.day for fill in book.fills(root) if fill.day > day), default=None):
         raise ValueError(f"{day}: the day is over, the ledger holding a fill of {later}")
@@ -235,8 +267,17 @@ def trade(
     for d in (d for d in decided if d.action is Action.BUY):
         line = due[d.symbol]
         price = archive[line][-1].close, rates[line.currency]
-        sent.append(_answer(root, day, _buy(root, broker, d, line, price, settings, day, tell)))
+        barred = _barred(d) if d.strategy in killed else None
+        bought = barred or _buy(root, broker, d, line, price, settings, day, tell)
+        sent.append(_answer(root, day, bought))
     return tuple(sent)
+
+
+def _barred(d: Decision) -> book.Sent:
+    """The answer for a buy by a strategy that met its kill condition: not sent, and why."""
+    name = order_id_of(d)
+    why = f"{name}: not sent, {d.strategy} met its kill condition and buys nothing"
+    return book.Sent(name, 0, why, Blocker.GATE)
 
 
 def _bare(
@@ -297,8 +338,17 @@ def _buy(
     tell: book.Tell | None,
 ) -> book.Sent:
     """One rule's buy, sized from the book as the send before it left it, at the line's last
-    close and the day's rate. A line held, or sold this morning, is not bought: said so."""
+    close and the day's rate. A line held, or sold this morning, is not bought: said so. Nor is
+    one an ISA is not recorded as able to hold (line.isa no): the ISA buys only those; nor one no
+    retail customer may buy (line.retail no), which the broker would only refuse, slowly."""
     now, name = book.positions(root), order_id_of(d)
+    if line.isa is False or line.retail is False:
+        why = (
+            "is recorded as a line no stocks and shares ISA can hold"
+            if line.isa is False
+            else "is recorded as a line no UK retail customer may buy"
+        )
+        return book.Sent(name, 0, f"{name}: not sent, {d.symbol} {why}", Blocker.GATE)
     sold = {f.symbol for f in book.fills(root) if f.day == day and f.quantity < 0}
     if d.symbol in now or d.symbol in sold:
         why = "is held already" if d.symbol in now else "was sold this morning"

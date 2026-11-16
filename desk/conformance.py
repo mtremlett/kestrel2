@@ -2,41 +2,49 @@
 
     python -m desk.paper --conformance london|us
 
-One run for each market, in its hours, on the PAPER account: the real broker is given the
-orders the desk's day will give it, through the desk's own send path (book.send), and each
-real result is recorded beside the pretend broker's (broker.Pretend) in `conformance` under
-the folder the environment names (KESTREL2_DATA). It is A DESK OF ITS OWN, with a record and
-a client id of its own (CLIENT): whose an order or a fill is, is told by the client that
-placed it, so neither desk takes the other's fills into its ledger or cancels its orders.
+One run for each market, in its hours, on the PAPER account, beside the desk's own book:
+the real broker is given the orders the desk's day will give it, through the desk's own send
+path (book.send), and each real result is recorded beside the pretend broker's
+(broker.Pretend) in `conformance` under the folder the environment names (KESTREL2_DATA).
+It is A DESK OF ITS OWN, with a record and a client id of its own (CLIENT): whose an order
+or a fill is, is told by the client that placed it, so neither desk takes the other's fills
+into its ledger or cancels its orders.
 
 THE STEPS (`_steps`), on the venue's plain line that traded the most money in its last
 session: a rejection (one share of a line the instrument master says no retail customer may
 buy); a market buy of one share, its stop resting; its sale, the stop cancelled first
 (R-MONEY-17: no sale goes while a stop rests); a buy of the desk's own size (a part fill,
 if given, shows in its fills); that buy's stop made to sell
-(the real one is put above the market, `_raised`; the pretend one's market falls to it); and
-the account left as found. A step that fails is recorded as failed, in the error's words;
-none after it is tried but the last, which puts the account back.
+(the real one is put above the market, `_raised`, so IBKR fills it as a stop; the pretend one is
+priced from that fill); and the account left as found. Each step's two sides must name the SAME
+action (a stop fill against a stop fill, never "Cancelled by Trader" against a fill);
+a step whose sides differ fails the run. A step that fails is recorded as failed, in the
+error's words; none after it is tried but the last, which puts the account back.
+
+BESIDE THE DESK (R-RUNNER-201): the run is looped every thirty minutes, each run its own record.
+It trades only a line the desk neither holds nor has an order working on; the desk's holdings
+and its client's orders are not seen by this process (paper.APART), so its day check and its
+quiet read the account as this desk's own; it ends flat in its own lines, and a desk holding
+found changed at its end is named a FIRST-LIGHT FAULT. It never begins within five minutes of
+a desk round, or in one (ROUNDS): the desk's round has the account.
 
 NOTHING IS DONE, code 0: the market is not in continuous trading, or the rejection's is shut
-today; a whole run of the market is on record; or today's is, whole or not (one that failed
-is tried again on a later day). NOTHING IS SENT, code not 0, unless the gateway is ready, both
-desks' kill switches off, this one's drilled, and the account QUIET: nothing held, no order open."""
+today, or a desk round is near. NOTHING IS SENT, code not 0, unless the gateway is ready, both
+desks' kill switches off, this one's drilled, and the account QUIET of this desk's own: nothing
+of its own held, no order of its own open."""
 
 from __future__ import annotations
 
-import csv
 import os
 import time
 from collections.abc import Callable, Mapping, Sequence
 from contextlib import suppress
 from dataclasses import dataclass, replace
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from datetime import time as hour
 from decimal import Decimal
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import BinaryIO
 
 from desk import (
     archive,
@@ -48,11 +56,11 @@ from desk import (
     listing,
     paper,
     placing,
-    reports,
     venues,
 )
 from desk.broker import Broker, Fault, Pretend
 from desk.command import CAPITAL
+from desk.ended import action, reasons
 from desk.lines import LINES, Line
 from desk.listing import Listing
 from desk.orders import Order, Refused, Sale, Settings, order_id_of, size
@@ -63,17 +71,22 @@ from desk.strategy import Action, Decision
 MARKETS = {"london": "LSE", "us": "US"}  #: the command's word for each venue
 CLIENT = 223  #: the conformance desk's own client id at the gateway: the desk's is paper.CLIENT
 ROOT, HEAD = "conformance", ("at", "step", "real", "pretend", "it said")
+LEAD = 5  #: minutes before a desk round's start from which no run begins
+TRIGGER = "the stop triggered"  #: the step whose real side is IBKR's own stop firing
 WHOLE, FAILED, UNTRIED = "the run", "FAILED, ", "not tried: an earlier step failed"
 ROOM = Settings(CAPITAL)  #: the desk's one capital sizes the orders, as on its own day
 ABOVE, WAITS = Decimal("1.05"), 30  #: a stop this far above the price paid; its seconds to sell
 Wait = Callable[[float], None]  #: what lets a second pass
-Fall = Callable[[Order], None]  #: the market made to reach a buy's stop, which then sells
+Fall = Callable[[Order], str | None]  #: the market made to reach a buy's stop: what it found
 NOTHING, BARRED = "CONFORMANCE {}: nothing done, {}.", "CONFORMANCE {} NOT BEGUN, nothing sent: "
 DONE = "CONFORMANCE {}: {} of {} steps done on {}, each recorded beside the pretend broker's in {}."
 GIVEN = "the broker gave no reason"  #: an order it cancelled is never recorded with none
 #: A desk round's hours (UK), when the read of the day's cancelled orders is not made.
 ROUNDS = ((hour(8, 0), hour(8, 30)), (hour(14, 30), hour(15, 0)))
 PUT_BACK = "nothing to put back"  #: what the last step answers when it found the account as it was
+#: Seen 16 November 2026 at the paper broker: a stop put above the market rests PreSubmitted
+#: and does not sell; only a fall to its level fires one. The step records that, it does not fail.
+STILL = "{}: put above the market it rested PreSubmitted, not sold in {} seconds"
 AMISS = " FAILED: {}. A later day tries again; {}."
 AS_FOUND, NOT_AS_FOUND = (
     "the account left as found",
@@ -90,6 +103,7 @@ class Plan:
     first: Order  #: one share of the line
     sale: Sale  #: of that share
     second: Order  #: the line at the desk's own size
+    stamp: str  #: the run's own minute: an id told apart from every earlier run's of the day
 
 
 @dataclass(frozen=True)
@@ -117,14 +131,18 @@ def _last(line: Line, today: date) -> Bar:
     return bars[-1]
 
 
-def plan(lines: Sequence[Line], refused: Line, today: date, fx: Mapping[str, Decimal]) -> Plan:
+def plan(
+    lines: Sequence[Line], refused: Line, today: date, fx: Mapping[str, Decimal], stamp: str
+) -> Plan:
     """The run's orders: on the line given that traded the most money in its last session,
-    sized at its close by the desk's own sizer; and one share of the line to be refused."""
+    sized at its close by the desk's own sizer; and one share of the line to be refused. Every
+    order id carries the stamp: book.send answers an id the broker already knows from the broker's
+    word of it, so a second run of a day on the first's ids would send nothing."""
     if not lines:
         raise ValueError("the broker lists no plain line of the market for the run to trade")
     bars = {line: _last(line, today) for line in lines}
     line = max(bars, key=lambda line: bars[line].close * bars[line].volume * fx[line.currency])
-    its = line.venue.lower()  #: each market's run names its orders its own: the refusal's too
+    its = line.venue.lower() + stamp  #: each run names its orders its own: the refusal's too
 
     def sized(name: str, line: Line, close: Decimal) -> Order:
         return size(_named(line, today, name + its), line, close, fx[line.currency], ROOM, {})
@@ -132,7 +150,7 @@ def plan(lines: Sequence[Line], refused: Line, today: date, fx: Mapping[str, Dec
     first = replace(sized("conf1", line, bars[line].close), quantity=1)
     sale = Sale(order_id_of(_named(line, today, f"conf2{its}")), line, 1)
     refusal = replace(sized("conf0", refused, _last(refused, today).close), quantity=1)
-    return Plan(today, refusal, first, sale, sized("conf3", line, bars[line].close))
+    return Plan(today, refusal, first, sale, sized("conf3", line, bars[line].close), stamp)
 
 
 def _send(side: Side, order: Order | Sale) -> str:
@@ -150,7 +168,7 @@ def _leave(side: Side, run: Plan) -> str:
     book.collect(side.root, side.broker)
     for symbol, shares in book.positions(side.root).items():
         line = next(line for line in LINES if line.symbol == symbol)
-        name = _named(line, run.today, f"conf9{run.second.line.venue.lower()}")
+        name = _named(line, run.today, f"conf9{run.second.line.venue.lower()}{run.stamp}")
         did.append(_send(side, Sale(order_id_of(name), line, shares)))
     found, held = side.check(), book.positions(side.root)
     if found or held:
@@ -165,7 +183,7 @@ def _steps(run: Plan) -> tuple[tuple[str, Callable[[Side], str | None]], ...]:
         ("a market buy at the open, its stop resting", lambda side: _send(side, run.first)),
         ("a sale, the stop cancelled first", lambda side: _send(side, run.sale)),
         ("a buy of the desk's size, a part fill if given", lambda side: _send(side, run.second)),
-        ("the stop triggered", lambda side: side.fall(run.second)),
+        (TRIGGER, lambda side: side.fall(run.second)),
         ("the account left as found", lambda side: _leave(side, run)),
     )
 
@@ -195,18 +213,26 @@ def live(side: Side, run: Plan, note: Callable[[str, str], None]) -> list[str]:
     return failed
 
 
-def pretend(run: Plan) -> dict[str, str]:
-    """The run at the pretend broker: the sizing prices, a refusal, a fall to the stop."""
+def pretend(run: Plan, price: Decimal | None = None) -> dict[str, str]:
+    """The run at the pretend broker: the sizing prices, a refusal, and the stop triggered at
+    the price given, the real stop's fill (a stop put above the market sells at the market, as
+    IBKR's does); without one, a fall to the stop's own level."""
     today, buy, no = run.today, run.second, run.refusal
+    at = buy.stop if price is None else price
     bars: dict[Line, tuple[Bar, ...]]
     bars = {order.line: (Bar(today, *(order.price,) * 4, 0),) for order in (no, buy)}
-    bars[buy.line] += (Bar(today + DAY, buy.price, buy.price, buy.stop, buy.price, 0),)
+    bars[buy.line] += (Bar(today + DAY, *(at,) * 4, 0),)
     broker = Pretend(bars, {no.line.symbol: Fault.REJECT})
     broker.open(today)
     said: dict[str, str] = {}
+
+    def fall(_: Order) -> None:
+        broker.open(today + DAY)
+        if broker.holdings():  #: the stop above the market: it sells at once, at that bar
+            broker.place(Sale(f"{buy.order_id}-stop", buy.line, buy.quantity))
+
     with TemporaryDirectory() as scratch:
-        side = Side(Path(scratch), broker, lambda: (), lambda _: broker.open(today + DAY))
-        live(side, run, said.__setitem__)
+        live(Side(Path(scratch), broker, lambda: (), fall), run, said.__setitem__)
     return said
 
 
@@ -217,7 +243,7 @@ def _raised(side: placing.Paper, root: Path, listed: Listing, wait: Wait) -> Fal
     left under the buy's own stop for what is still held, or under none: no stop stays above
     the market for a sale to meet, and none rests with no share behind it."""
 
-    def fall(order: Order) -> None:
+    def fall(order: Order) -> str | None:
         paid = [fill.price for fill in book.fills(root) if fill.order_id == order.order_id]
         held, stops = placing.on(paper.read(), listed)
         if not (paid and held):
@@ -228,9 +254,9 @@ def _raised(side: placing.Paper, root: Path, listed: Listing, wait: Wait) -> Fal
                 side.settle(listed, held, stops, placing.Stop(held, above, name))
             for _ in range(WAITS):
                 if not placing.on(paper.read(), listed)[0]:
-                    return
+                    return None
                 wait(1)
-            raise TimeoutError(f"{name}: put above the market, it has not sold in {WAITS} seconds")
+            return STILL.format(name, WAITS)
         finally:
             held, stops = placing.on(paper.read(), listed)
             back = placing.Stop(held, listed.floor(order.stop), name) if held else None
@@ -239,50 +265,20 @@ def _raised(side: placing.Paper, root: Path, listed: Listing, wait: Wait) -> Fal
     return fall
 
 
-def _cancelled(wire: BinaryIO, send: paper.Send) -> dict[str, str]:
-    """Ask over an open connection for the day's ended orders, read-only, and give each that
-    was cancelled by the order id it was placed under, with the broker's own words of why it
-    ended: the last field of the list's entry for it ("Cancelled by Trader")."""
-    paper.start(wire, send)
-    send(paper.message(reports.ASK_ENDED, 0))
-    said: dict[str, str] = {}
-    while True:
-        fields = paper.receive(wire)
-        if fields == [reports.ENDED_END]:
-            return said
-        if fields[0] != reports.ENDED:
-            paper.other(fields)
-        elif len(fields) != 101:
-            raise ValueError(f"an ended order of a shape the desk does not read: {fields}")
-        elif fields[77] in placing.GONE:
-            said[fields[22]] = fields[95]
-
-
-def reasons() -> dict[str, str]:
-    """Every order cancelled on the account today, with the broker's words of why."""
-    return paper.dial(_cancelled)
+def _round(now: datetime, lead: int) -> bool:
+    """Whether a desk round runs at the moment, or begins within lead minutes."""
+    at = venues.uk_time(now).time()
+    ahead = (datetime.combine(date.min, at) + timedelta(minutes=lead)).time()
+    return any(start <= ahead < end or start <= at < end for start, end in ROUNDS)
 
 
 def why(now: datetime) -> tuple[bool, str]:
     """THE READ: each cancelled order of the day and why, as client CLIENT, read-only; never
     in a desk round's hours."""
-    at = venues.uk_time(now).time()
-    if any(start <= at < end for start, end in ROUNDS):
+    if _round(now, 0):
         return False, "CONFORMANCE WHY: not read now, a desk round runs 08:00-08:30 and 14:30-15:00"
     said = [f"{ref}: {words or GIVEN}" for ref, words in reasons().items()]
     return True, "\n".join(said) or "CONFORMANCE WHY: no order was cancelled today"
-
-
-def _recorded(root: Path, market: str, today: date) -> str | None:
-    """Why the market's run is not made again: a whole one is on record, or today's is."""
-    for path in sorted(root.glob(f"trades-{market}-*.csv")):
-        with path.open(newline="", encoding="utf-8") as kept:
-            rows = list(csv.reader(kept))
-        if not rows or rows[0][:4] != list(HEAD[:4]):  #: an earlier record had no "it said"
-            raise ValueError(f"{path}: not a record of the conformance trades, so nothing is sent")
-        if rows[-1][1:3] == [WHOLE, "whole"] or path.stem.endswith(f"{today:%Y%m%d}"):
-            return f"its run is already recorded in {path}"
-    return None
 
 
 def _barred(root: Path, market: str, refused: Line, now: datetime) -> tuple[bool, str] | None:
@@ -290,12 +286,52 @@ def _barred(root: Path, market: str, refused: Line, now: datetime) -> tuple[bool
     venue, today, hours = MARKETS[market], now.date(), venues.open_at(MARKETS[market], now)
     if hours is None or now >= hours.close or not venues.sessions(refused.venue, today, today):
         return True, NOTHING.format(market, f"{VENUES[venue]} is shut, or the rejection's market")
-    if why := _recorded(root, market, today):
-        return True, NOTHING.format(market, why)
+    if _round(now, LEAD):
+        return True, NOTHING.format(market, "a desk round runs 08:00-08:30 and 14:30-15:00")
     known, killed = gateway.known(now), book.killed(root) or book.killed(root.parent / command.ROOT)
     if not known or killed:
         return False, BARRED.format(market) + (killed or known.words)
     return None
+
+
+def _share(raw: paper.Account) -> tuple[dict[str, Decimal], set[str]]:
+    """The desk's share of the account, read whole before the run: what it holds, by the
+    broker's name for each, and the lines (contracts) its own client has an order working on."""
+    held = {h.name: h.shares for h in raw.holdings if h.shares}
+    return held, {o.contract for o in raw.orders if o.client == str(paper.DESK)}
+
+
+def _moved(held: Mapping[str, Decimal]) -> str:
+    """Said when a desk holding, as the run began, is not as it was: a FIRST-LIGHT FAULT."""
+    now = {h.name: h.shares for h in paper.whole().holdings}
+    moved = [
+        f"{name} {was} -> {now.get(name, 0)}"
+        for name, was in held.items()
+        if now.get(name, 0) != was
+    ]
+    return f" FIRST-LIGHT FAULT: the desk's holdings changed: {'; '.join(moved)}." * bool(moved)
+
+
+def _noted(
+    root: Path, record: Path, run: Plan, beside: dict[str, str], clock: Callable[[], datetime]
+) -> tuple[list[tuple[str, ...]], list[str], Callable[[str, str], None]]:
+    """The record's rows, the steps whose two sides did different things (the run's fault), and
+    the note that writes a step's row: the pretend side priced at the real stop's fill."""
+    rows, differ = list[tuple[str, ...]]([HEAD]), list[str]()
+
+    def note(step: str, real: str) -> None:
+        cancelled = [f"{ref}: {words or GIVEN}" for ref, words in reasons().items() if ref in real]
+        stopped = [f.price for f in book.fills(root) if f.order_id == f"{run.second.order_id}-stop"]
+        if step == TRIGGER and stopped:
+            beside.update(pretend(run, stopped[-1]))
+        rows.append((clock().isoformat(), step, real, beside.get(step, ""), "; ".join(cancelled)))
+        book._write(record, rows)
+        broken = any(row[2].startswith((FAILED, UNTRIED)) for row in rows[1:])  #: compared only
+        same = action(real, "; ".join(cancelled)) == action(beside.get(step, ""), "")
+        if not (broken or same or step == WHOLE):
+            differ.append(step)
+
+    return rows, differ, note
 
 
 def trade(
@@ -308,32 +344,40 @@ def trade(
     today, fits = now.date(), (MARKETS[market], 1, True)  #: the venue's own, plain, open to retail
     kill.drill(root, now)  #: no order on a day the switch was not seen to work: raised if broken
     listings = listing.read(LINES)
+    held, busy = _share(paper.whole())
+    paper.APART = paper.Apart(frozenset(held))  #: from here the desk's share is not this run's
     if found := (*(clearance.check(root, now).found or ()), *book.positions(root)):
         return False, f"{BARRED.format(market)}the paper account is not quiet: {'; '.join(found)}"
     listed = {x.line: x for x in listings.values() if isinstance(x, Listing)}
-    plain = [line for line in listed if (line.venue, line.leverage, line.retail) == fits]
-    run = plan(plain, refused, today, command.rates(root, today))
+    plain = [
+        line
+        for line in listed
+        if (line.venue, line.leverage, line.retail) == fits
+        if listed[line].contract not in busy and paper.own(line) not in held
+    ]
+    run = plan(plain, refused, today, command.rates(root, today), f"{now:%H%M}")
     beside, broker = pretend(run), placing.Paper(listings, root, clock)
     fall = _raised(broker, root, listed[run.second.line], wait)
     side = Side(root, broker, lambda: clearance.check(root, clock()).found, fall)
-    record, rows = root / f"trades-{market}-{today:%Y%m%d}.csv", [HEAD]
-
-    def note(step: str, real: str) -> None:
-        cancelled = [f"{ref}: {words or GIVEN}" for ref, words in reasons().items() if ref in real]
-        rows.append((clock().isoformat(), step, real, beside.get(step, ""), "; ".join(cancelled)))
-        book._write(record, rows)
-
+    record = root / f"trades-{market}-{now:%Y%m%d-%H%M}.csv"
+    rows, differ, note = _noted(root, record, run, beside, clock)
     try:
         failed = live(side, run, note)
     except BaseException:  #: whatever stopped the run, the account is still put back
         _leave(side, run)
         raise
+    failed += [
+        f"{step} (THE TWO SIDES DID DIFFERENT THINGS)" for step in differ if step not in failed
+    ]
     note(WHOLE, f"{FAILED}at: {'; '.join(failed)}" if failed else "whole")
     counts = (market, len(beside) - len(failed), len(beside), run.second.line.symbol, record)
     state = (
-        AS_FOUND if rows[-2][2].startswith(PUT_BACK) else NOT_AS_FOUND
+        NOT_AS_FOUND if rows[-2][2].startswith(FAILED) else AS_FOUND
     )  #: the last step's row, before WHOLE's
-    return not failed, DONE.format(*counts) + AMISS.format("; ".join(failed), state) * bool(failed)
+    fault = _moved(held)
+    return not (failed or fault), (
+        DONE.format(*counts) + AMISS.format("; ".join(failed), state) * bool(failed) + fault
+    )
 
 
 def main(

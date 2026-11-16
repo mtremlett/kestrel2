@@ -20,19 +20,24 @@ a desk that dies after its morning message is not called silent before the eveni
 And if on a trading day neither the morning message nor the alarm has come by 08:30, that is
 itself the sign: nothing on the PC runs.
 
-Nothing here dials the broker or reads the clock: whoever runs the day gives the moment and
-what the gateway just said, and has brought the ledger up to date first."""
+THE EMAIL FALLBACK (with_mail, summary): after two Telegram refusals in a row every line also
+goes by email; one summary email goes each trading day. Nothing here dials the broker or reads
+the clock: whoever runs the day gives the moment and what the gateway just said."""
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
+import smtplib
 import sqlite3
+import ssl
 from collections.abc import Callable, Iterator, Mapping
 from contextlib import closing, contextmanager
 from dataclasses import dataclass
 from datetime import datetime, time, timedelta
 from decimal import Decimal
+from email.message import EmailMessage
 from http.client import HTTPException
 from pathlib import Path
 from urllib.error import HTTPError
@@ -46,8 +51,11 @@ from desk.orders import Refused
 from desk.supervisor import WAIT
 
 MESSAGES = "messages.db"
-TABLE = "CREATE TABLE IF NOT EXISTS messages (at, name PRIMARY KEY, number, text)"
-#: Asked, before the door: a new name with no number yet; one the door never took, stamped again.
+TABLES = (
+    "CREATE TABLE IF NOT EXISTS messages (at, name PRIMARY KEY, number, text)",
+    "CREATE TABLE IF NOT EXISTS mails (at, name PRIMARY KEY, text)",  #: each email sent
+    "CREATE TABLE IF NOT EXISTS door (id INTEGER PRIMARY KEY CHECK (id = 1), fails)",
+)
 ASK = (
     "INSERT INTO messages VALUES (:at, :name, NULL, :text) "
     "ON CONFLICT (name) DO UPDATE SET at = :at, text = :text WHERE number IS NULL"
@@ -58,8 +66,7 @@ HOST = "api.telegram.org"
 #: name and never reaches an address, where an error could show it.
 SECRETS = ("TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID")
 BOT_KEY = re.compile(r"[0-9]+:[A-Za-z0-9_-]+")
-SECONDS, READ = 30, 65536  #: how long the door waits at each step, the most bytes it reads
-LIMIT = 4096  #: the most characters Telegram takes in one message
+SECONDS, READ, LIMIT = 30, 65536, 4096  #: wait per step, most bytes read, most characters sent
 CUT = " ... (cut short here: the whole of it is on the desk's delivery record)"
 SILENT = (
     "THE DESK IS SILENT. Its {} message for {:%a %d %b} was owed by {:%H:%M} UK and is not on "
@@ -71,6 +78,8 @@ CLEAR = (
 )
 STALE = "The paper Gateway was not ready just now, so this is the desk's ledger as last read ({}). "
 Post = Callable[[str], int]  #: the door: words to his phone, Telegram's number for them back
+Mail = Callable[[str, str], None]  #: the email door: a subject and the words, or Undelivered
+SMTP, DOWN = ("SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASS", "SMTP_TO"), 2  #: DOWN: strikes
 
 
 class Undelivered(Exception):
@@ -155,7 +164,8 @@ def _record(root: Path) -> Iterator[sqlite3.Connection]:
     process at a time. A file there that is no such record is an error raised by SQLite."""
     root.mkdir(parents=True, exist_ok=True)
     with closing(sqlite3.connect(root / MESSAGES, timeout=WAIT, isolation_level=None)) as record:
-        record.execute(TABLE)
+        for table in TABLES:
+            record.execute(table)
         yield record
 
 
@@ -277,6 +287,23 @@ def evening(root: Path, now: datetime, known: Known, post: Post) -> Delivery | N
     return send(root, now, name, told, post)
 
 
+def hourly(root: Path, now: datetime, words: Callable[[], str], post: Post) -> Delivery | None:
+    """HIS HOURLY PROFIT AND LOSS (desk/pnl.py), once in each UK hour in which a venue of the
+    desk's is trading, at the hour's first asking. words is asked only for one not yet
+    delivered. None when no venue trades now, and when the hour's has gone."""
+    _sound(now, "pnl", "pnl")
+    if not any(venues.open_at(venue, now) for venue in {line.venue for line in LINES}):
+        return None
+    name = f"pnl {gateway._uk(now):%Y-%m-%d %H}"
+    with _record(root) as record:
+        gone = record.execute(
+            "SELECT 1 FROM messages WHERE name = ? AND number IS NOT NULL", (name,)
+        )
+        if gone.fetchone():
+            return None
+    return send(root, now, name, words(), post)
+
+
 def remind(root: Path, now: datetime, post: Post) -> Delivery | None:
     """His weekly login's reminder (gateway.reminder), delivered once for each Sunday's due."""
     _sound(now, "login", "login")
@@ -297,3 +324,77 @@ def watch(root: Path, now: datetime, post: Post) -> tuple[Delivery, ...]:
         for daily, name, at in owed
         if name and at.time() >= daily.owed and (name,) not in taken
     )
+
+
+def smtp(env: Mapping[str, str]) -> Mail:
+    """THE EMAIL DOOR, from the five SMTP_ settings of the environment (one missing is refused
+    by name, never shown). A server that refuses is Undelivered, in words that never hold the
+    password. Port 465 speaks TLS from the first byte, any other starts it by STARTTLS."""
+    if missing := [name for name in SMTP if not env.get(name, "").strip()]:
+        raise ValueError(f"no {' or '.join(missing)} in the desk's environment: his to set")
+    host, port, user, secret, to = (env[name].strip() for name in SMTP)
+    tls_first = port == "465"
+
+    def mail(subject: str, text: str) -> None:
+        note, tls = EmailMessage(), ssl.create_default_context()
+        note["Subject"], note["From"], note["To"] = subject, user, to
+        note.set_content(text)
+        try:
+            server = (
+                smtplib.SMTP_SSL(host, 465, timeout=SECONDS, context=tls)
+                if tls_first
+                else (smtplib.SMTP(host, int(port), timeout=SECONDS))
+            )
+            with server:
+                if not tls_first:
+                    server.starttls(context=tls)
+                server.login(user, secret)
+                server.send_message(note)
+        except (OSError, smtplib.SMTPException) as lost:
+            why = f"{type(lost).__name__}: {lost}".replace(secret, "(his password)")
+            raise Undelivered(f"{host} did not take the email: {why[:200]}") from None
+
+    return mail
+
+
+def _mailed(root: Path, now: datetime, name: str, text: str, mail: Mail) -> None:
+    """One email under its name, once, kept on the record only after the server took it."""
+    _sound(now, name, text)
+    with _record(root) as record:
+        if not record.execute("SELECT 1 FROM mails WHERE name = ?", (name,)).fetchone():
+            mail(f"Kestrel desk: {name}", text)
+            record.execute("INSERT INTO mails VALUES (?, ?, ?)", (now.isoformat(), name, text))
+
+
+def with_mail(root: Path, now: datetime, post: Post, mail: Mail) -> Post:
+    """THE FALLBACK: the Telegram door, counted. A refusal is a strike on the record, a taking
+    clears them; from DOWN strikes every line also goes by email, once, before Telegram is
+    tried. A refused email does not stop Telegram; both refusing, both reasons are raised."""
+
+    def go(text: str) -> int:
+        failed, line = "", "line " + hashlib.sha256(text.encode()).hexdigest()[:16]
+        with _record(root) as record:
+            strikes = (record.execute("SELECT fails FROM door").fetchone() or (0,))[0]
+        try:
+            if strikes >= DOWN:
+                _mailed(root, now, line, text, mail)
+        except Undelivered as lost:
+            failed = f"; {lost}"
+        try:
+            number = post(text)
+        except Undelivered as refused:
+            with _record(root) as record:
+                record.execute("INSERT OR REPLACE INTO door VALUES (1, ?)", (strikes + 1,))
+            raise Undelivered(f"{refused}{failed}") from None
+        with _record(root) as record:
+            record.execute("DELETE FROM door")
+        return number
+
+    return go
+
+
+def summary(root: Path, now: datetime, mail: Mail) -> None:
+    """THE DAILY SUMMARY EMAIL, whatever Telegram does: the evening's hour until he sleeps."""
+    name, opens = _goes(EVENING, now)
+    if name:
+        _mailed(root, now, f"summary {name}", f"{opens} {_state(root)}", mail)
