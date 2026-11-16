@@ -7,9 +7,10 @@ differs is said. A line already in is not read again, so a run is resumable (`py
 lab.headstart_days`). stooq_store's daily parquet (market=uk|us) enters the same way under
 Source.STOOQ_DAILY, rows it marks OK only; stooq_store_matrix's 1d arrays likewise, under
 Source.MATRIX_DAILY, a row with a hole left; ibkr_store's daily parquet (the same form, a
-fetch record beside each file) under Source.IBKR_DAILY. Old rows that are the adjusted form of the
-as-traded days held are refused whole by the one store's check against them, and said. The
-yardsticks first, then the lines, then the research list."""
+fetch record beside each file) under Source.IBKR_DAILY; mark_the_trend's Stooq files (a file a
+line, <SYMBOL>.d.parquet or <SYMBOL>.L.parquet) under Source.TREND_DAILY. Old rows that are
+the adjusted form of the as-traded days held are refused whole by the one store's check against
+them, and said. The yardsticks first, then the lines, then the research list."""
 
 from __future__ import annotations
 
@@ -96,9 +97,28 @@ def matrix_rows(line: Line, folder: Path) -> list[Bar]:
     ]
 
 
+def trend_rows(line: Line, folder: Path) -> list[Bar]:
+    """A line's daily rows in mark_the_trend's Stooq folder (<SYMBOL>.d.parquet, <SYMBOL>.L.parquet
+    in London: Open, High, Low, Close, Volume and the day's DATE); a row with a hole is left."""
+    file = folder / f"{line.symbol}{archive.SUFFIX[line.venue] or '.d'}.parquet"
+    if not file.is_file():
+        raise ValueError(f"{folder.name} holds no daily file of {line.symbol}")
+    columns = ("DATE", "Open", "High", "Low", "Close", "Volume")
+    table = pq.ParquetFile(file).read(columns=list(columns))
+    return [
+        Bar(at.date(), _d(o), _d(h), _d(lo), _d(c), int(v))
+        for at, o, h, lo, c, v in zip(*(table[k].to_pylist() for k in columns), strict=True)
+        if None not in (o, h, lo, c, v)
+    ]
+
+
 def _daily(where: Path) -> bool:
-    """A folder of daily rows: stooq_store's or the matrices'."""
-    return (where / "freq=d").is_dir() or next(where.glob("*_1d_ts.npy"), None) is not None
+    """A folder of daily rows: stooq_store's, the matrices' or mark_the_trend's."""
+    return (
+        (where / "freq=d").is_dir()
+        or next(where.glob("*_1d_ts.npy"), None) is not None
+        or next(where.glob("*.d.parquet"), None) is not None
+    )
 
 
 def form(where: Path) -> tuple[Source, Rows]:
@@ -108,6 +128,8 @@ def form(where: Path) -> tuple[Source, Rows]:
     if (where / "freq=d").is_dir():  # only ibkr_store keeps a fetch record beside its bars
         found = next((where / "freq=d").glob("*/*/fetch.json"), None)
         return (Source.IBKR_DAILY if found else Source.STOOQ_DAILY), stooq_rows
+    if next(where.glob("*.d.parquet"), None) is not None:
+        return Source.TREND_DAILY, trend_rows
     if _daily(where):
         return Source.MATRIX_DAILY, matrix_rows
     raise ValueError(f"{where}: no daily reader for a store of this form")

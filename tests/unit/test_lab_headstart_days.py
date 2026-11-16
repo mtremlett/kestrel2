@@ -139,3 +139,32 @@ def test_the_matrices_daily_arrays_enter_under_their_source_and_a_hole_is_left(
         Source.MATRIX_DAILY: len(DAYS) - 6,
     }
     assert headstart_days.main(folder, path, [BA], TODAY) == "BA: already in"
+
+
+def test_mark_the_trends_daily_files_enter_under_their_source_and_a_hole_is_left(
+    tmp_path: Path,
+) -> None:
+    folder, path = tmp_path / "trend", tmp_path / "market.db"
+    folder.mkdir()
+    close = [100.0 + n for n in range(len(DAYS))]
+    close[3] = None  # type: ignore[call-overload]  # a hole: that day has no bar
+    frame = {
+        "Open": [c and c - 1 for c in close],
+        "High": [c and c + 1 for c in close],
+        "Low": [c and c - 2 for c in close],
+        "Close": close,
+        "Volume": [9] * len(DAYS),
+        "DATE": [datetime(d.year, d.month, d.day) for d in DAYS],
+    }
+    pq.write_table(pa.table(frame), folder / "BA.d.parquet")
+    with bars.writing(path) as round_:
+        round_.daily(
+            BA, [_fresh(d, str(100 + n)) for n, d in enumerate(DAYS) if n >= len(DAYS) - 5]
+        )
+    said = headstart_days.main(folder, path, [BA], TODAY)
+    assert f"BA: {len(DAYS) - 6} days filled from {DAYS[0]}" in said
+    assert bars.sources(path, BA, bars.DAILY) == {
+        Source.ARCHIVE: 5,
+        Source.TREND_DAILY: len(DAYS) - 6,
+    }
+    assert headstart_days.main(folder, path, [BA], TODAY) == "BA: already in"
