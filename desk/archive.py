@@ -18,6 +18,7 @@ from collections.abc import Callable, Iterable
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from http.client import HTTPException
+from pathlib import Path
 from typing import Any, TypeVar
 from urllib.request import Request, urlopen
 
@@ -34,6 +35,7 @@ DAILY, FIVE = "1d", "5m"  #: the archive's names for the two spans of bar the de
 #: How far back five-minute bars are asked for. The archive refuses the whole answer when any
 #: of it is over sixty days old (seen 13 November 2026), so the desk asks for a day less.
 KEPT = timedelta(days=59)
+STORE = "archive"  #: the folder of a home that holds the raw answers, a folder to a day
 MIDNIGHT = timedelta(hours=1)  #: London's midnight in summer, behind UTC's by this
 When = TypeVar("When")
 Read = TypeVar("Read")
@@ -124,9 +126,21 @@ def _ask(address: str) -> bytes:
         return bytes(answer.read())
 
 
-def fetch(line: Line, day: date) -> tuple[Bar, ...]:
-    """Every bar the archive holds for a line before day, read on entry."""
-    return parse(line, _ask(address(line, day)))
+def fetch(line: Line, day: date, home: Path | None = None) -> tuple[Bar, ...]:
+    """Every bar the archive holds for a line before day, read on entry. With a home, the
+    archive's answer is kept raw there, one file to a line and day, and read instead of asked
+    again; an answer is kept only once it has been read whole, never a refused one."""
+    kept = None if home is None else home / STORE / str(day) / f"{line.symbol}{SUFFIX[line.venue]}"
+    if kept is not None and kept.exists():
+        return parse(line, kept.read_bytes())
+    payload = _ask(address(line, day))
+    bars = parse(line, payload)
+    if kept is not None:
+        kept.parent.mkdir(parents=True, exist_ok=True)
+        part = kept.with_suffix(".part")
+        part.write_bytes(payload)
+        part.replace(kept)
+    return bars
 
 
 def fetch_five(line: Line, now: datetime, back: timedelta = KEPT) -> tuple[Five, ...]:
