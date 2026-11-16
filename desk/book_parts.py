@@ -35,12 +35,6 @@ def keep(path: Path, rows: Iterable[Sequence[object]]) -> None:
     written.replace(path)
 
 
-def turn(root: Path, to: Switch, at: datetime, why: str) -> None:
-    """Write on the kill switch's record what happened to it, when (UTC), and why."""
-    record = (*switch(root), _turn(at, to, why))
-    keep(root / SWITCH, [TURNS, *((t.isoformat(), s.value, w) for t, s, w in record)])
-
-
 def switch(root: Path) -> tuple[tuple[datetime, Switch, str], ...]:
     """The kill switch's record, oldest first; one not readable whole is an error."""
     if not (path := root / SWITCH).exists():
@@ -49,10 +43,10 @@ def switch(root: Path) -> tuple[tuple[datetime, Switch, str], ...]:
         rows = list(csv.reader(record))
     if rows[:1] != [list(TURNS)]:
         raise ValueError(f"{path}: not the kill switch's record, so nothing is sent")
-    return tuple(_turn(datetime.fromisoformat(at), Switch(to), why) for at, to, why in rows[1:])
+    return tuple(entry(datetime.fromisoformat(at), Switch(to), why) for at, to, why in rows[1:])
 
 
-def _turn(at: datetime, to: Switch, why: str) -> tuple[datetime, Switch, str]:
+def entry(at: datetime, to: Switch, why: str) -> tuple[datetime, Switch, str]:
     """An entry of the kill switch's record: a moment in UTC and a reason, or an error."""
     if at.utcoffset() != timedelta(0) or not why.strip():
         raise ValueError(f"the kill switch, {to.value} at {at} for {why!r}: no UTC time or reason")

@@ -19,14 +19,16 @@ from desk.book_parts import (
     SWITCH,
     TURNS,
     Switch,
+    entry,
     keep,
     killed,
     rate,
     rates_kept,
     record_rates,
     switch,
-    turn,
-    unless_killed,
+)
+from desk.book_parts import (
+    unless_killed as _unless_killed,
 )
 from desk.broker import Broker, Crash, Disconnected, Fill, Report
 from desk.halt import Blocker, Stopped
@@ -44,12 +46,17 @@ __all__ = (
     "rate",
     "record_rates",
     "switch",
-    "turn",
 )
 LEDGER = "ledger.csv"
 GOING = "going.csv"  #: the order at the broker's door, until the desk has its answer
 STOPS, LEVELS = "stops.csv", ("stop", "level")  #: each buy's stop level, kept as the buy goes
 COLUMNS = ("execution_id", "order_id", "symbol", "quantity", "price", "day")
+
+
+def turn(root: Path, to: Switch, at: datetime, why: str) -> None:
+    """Write on the kill switch's record what happened to it, when (UTC), and why."""
+    record = (*switch(root), entry(at, to, why))
+    keep(root / SWITCH, [TURNS, *((t.isoformat(), s.value, w) for t, s, w in record)])
 
 
 class Alarm(Exception):
@@ -181,7 +188,7 @@ def levels(root: Path) -> dict[str, Decimal]:
 
 def _unless_stopped(root: Path, order: Order | Sale) -> None:
     """Refuse the order while the kill switch is on, and a buy while a halt is in force."""
-    unless_killed(root, order.order_id)
+    _unless_killed(root, order.order_id)
     if isinstance(order, Order) and (halts := halt.in_force(root)):
         said = "; ".join(h.since for h in halts)
         raise Stopped(Blocker.HALT, f"{order.order_id}: not sent, a halt is in force, {said}")
