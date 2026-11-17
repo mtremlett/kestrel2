@@ -8,223 +8,8 @@ settled entries into one short summary entry; git keeps every word.
 
 ## Decisions
 
-### 2026-11-13 — how the pretend broker behaves
-
-**Decided**, by the lane as the desk's mentor (no one watching), for scene 4 and after:
-
-1. **A buy fills at the opening price of the day the market is open**, for the whole order.
-   The desk decides after a day's close and its order meets the next open. Options were the
-   open, the close, or the price the order was sized at. The open is what a market order sent
-   overnight gets. The close would be a price the desk had not seen when it sent the order.
-   The sized price would make every gap free.
-2. **A stop is tested on the day of its buy too**, against that day's whole range. Testing
-   it only from the next day would let a buy whose market fell through the stop the same
-   afternoon escape the loss. That is an optimistic fill, and the desk's measurements must
-   err the other way. A day that opens below a stop sells at the open, not at the stop.
-3. **One stop per line.** A second buy of a line held adds its shares to the line's one
-   stop, at the newest order's level. The book is to give each line one fifth (his ruling
-   on sizing), so a line is one holding, with one protection. The other option, a stop per
-   order, could leave two levels on one holding.
-4. **A fault hits a symbol's first order that meets a market.** An order sent before the
-   open, or on a day its line does not trade, is refused with that reason and leaves the
-   fault waiting (the blind review's finding: a fault used up on such an order never
-   happened at all). A partial fill gets half, rounded down, and the rest is cancelled. A
-   dropped connection means the order never reached the broker. A crash means the broker
-   has it, and has filled it, but the desk has no answer.
-5. **The desk asks before it sends again**, as with Interactive Brokers: the broker answers
-   `report(order_id)` with what it did, or nothing if it never received the id. A repeated
-   id is refused with a reason, never filled twice, and still counted as received, so
-   scene 4 sees a desk that sends twice.
-6. **A position planted by hand has no fill and no stop.** The broker reports it among its
-   positions only, as a real account shows a hand trade made elsewhere; scene 6 must find it.
-
-**Evidence.** `tests/unit/test_broker.py` failed first on the unbuilt broker. Thirty
-deliberate breaks of `desk/broker.py` were each caught. Among them: the order's own id
-used as the execution id, no stop left after a fill, a partial fill filling in full or in
-silence, a fault outliving its first order, a disconnected order counted as received, a
-crash losing the broker's record, a duplicate filling again, a gapped stop selling at its
-level, no stop test on the day of the buy, a fill at the close, and a fault spent on no
-market.
-
-### 2026-11-13 — the send path: ask first, gate second, a fill written once
-
-**Decided**, by the lane as the desk's mentor (no one watching), for scene 4:
-
-1. **The desk asks the broker before anything else.** If the broker already has the order's
-   id, the desk records what it did and sends nothing. Only an order the broker never
-   received goes through the pre-trade gate and is sent. The other option, the gate first,
-   would judge an order the broker already holds a second time: after a restart with a
-   changed capital it could be refused, and its fills, real at the broker, never written.
-   Every order the broker receives still passed the gate on the way.
-2. **A dropped connection is a stated answer, not a crash.** The order never arrived, so the
-   desk says so in the order's reason and the same id may be sent again; the broker answers
-   for it then. A crash after the broker has the order is the desk dying: it stops, and the
-   next ask records what the broker did.
-3. **The ledger is one file of fills, keyed by the broker's execution id**, written whole and
-   swapped in, as the price store is, so a desk that dies mid-write keeps the old one. A
-   fill already written is never written again, so asking about an order twice is harmless.
-4. **The ledger learns only what the send path is told.** A stop the broker sells overnight is
-   not in any order's answer; the book built from the broker (the next step) and the day run
-   must collect it, or the ledger and the broker's fills part company.
-
-**Evidence.** `tests/unit/test_book.py` failed first on the unbuilt send path; scene 4 now
-passes. Eleven deliberate breaks of `desk/book.py` were each caught: never asking the
-broker first, gating an order the broker already had (the blind review's one gap), skipping the gate, letting a dropped connection escape, not recording, recording a
-fill twice, overwriting the ledger, counting the order's shares as filled, dropping a
-reason, a silent disconnection, and a price read back rounded.
-
-### 2026-11-13 — the book: the ledger's fills, read by the gate
-
-**Decided**, by the lane as the desk's mentor (no one watching), for the gate and scene 5:
-
-1. **The book is the ledger's fills added up, line by line.** Never the orders meant, and
-   never the broker's own positions: the book is what the desk itself knows, so scene 6 can
-   compare the two. A position bought by hand at the broker is not in the book; finding it
-   is reconciliation's job, not the gate's.
-2. **The send path brings the ledger up to date before the gate looks.** It writes every
-   fill the broker made that the ledger lacks (`book.collect`), so a stop sold overnight,
-   which is in no order's answer, frees its holding before the next buy is judged. The
-   other option, leaving that to the day run, would let a caller that forgot judge a buy
-   against a book that still holds the stopped line.
-3. **A line's shares, held and ordered, are counted together at the order's price and
-   rate** against its one fifth. Options were the price paid, or today's price. Today's is
-   what the line is worth now, which is the risk the fifth limits; the price paid would
-   also need each fill's exchange rate, which the ledger does not keep. So a line that has
-   risen leaves less room for a second buy, and one that has fallen leaves more.
-4. **A sixth line is refused; a second buy of a held line is not a new holding.** The
-   sizer gives a second buy what is left of the fifth and passes it through the same gate,
-   so the rule lives in one place.
-5. **A ledger that sells more of a line than it bought is refused loudly**: the desk is long
-   only, so such a ledger is broken, and the book says which line.
-
-**Evidence.** `tests/unit/test_book.py` and `tests/unit/test_orders.py` failed first on the
-unbuilt book and the one-holding gate. Fifteen deliberate breaks were each caught: no
-collect before the gate, an empty book given to the gate, collect writing nothing, the
-book counting buys only, a line sold out still counted, the long-only check removed, sales
-counted as buys, the five-holding check removed or off by one, a held line counted as a new
-holding, held shares ignored or counted twice, the sizer not subtracting what is held, the
-sizer skipping the gate, and a full line sized to no shares. A blind review found nothing
-blocking: its fix (a stop sold on its buy's own day reached the book only on the next send)
-and its test gap (a crashed order's fill must count as a holding) are taken, the second
-driven by removing the first collect.
-
-### 2026-11-13 — the day run: whose position, which day, which rate
-
-**Decided**, by the lane as the desk's mentor (no one watching), for scene 5 and after:
-
-1. **A rule's position is the book's, not its own idea.** Options were (a) each rule
-   counting its own buys and sells as done, the book only refusing what it cannot do, or
-   (b) each rule told, on the day it decides, whether the book holds the line for it. (a)
-   leaves a rule whose buy was refused, or whose stop sold, believing it holds: it will not
-   buy again while its condition lasts and later says sell to a flat book. Chosen (b)
-   (`strategy.today`). The rules' indicators do not depend on what they hold, so the same
-   history gives the same bands either way.
-2. **A line is one holding, owned by the strategy whose buy opened it** (the strategy in its
-   latest buy's order id). Only that strategy's sell sells it, and it sells the whole of
-   what the book holds. While a line is held, the other four rules' signals on it are not
-   acted on. Of several rules buying one flat line the same day, the first in the
-   operator's list of five buys it. The other option, a position per rule within the
-   line's fifth, needs a stop per rule, which the broker's one stop a line (decided above)
-   does not give.
-3. **Sales first, then buys, each sized from the book after the send before it.** A sixth
-   line is refused by the gate and kept among the day's answers with its reason, never
-   dropped. A line sold that morning, by its rule or by its stop, is not bought again the
-   same day: its stop was judged against the whole day before the new order, and could
-   sell it twice on one bar.
-4. **Only decisions dated the line's venue's session before the day are acted on**, and
-   only on a day its venue trades. A line whose bars stop earlier is left alone that day.
-5. **The day run is given the day's pounds per unit of each currency, and keeps it**
-   (`rates.csv` beside the ledger). Each fill is now dated by the broker, so a round trip
-   prices each leg at its own day's kept rate. Options were a rate in the fill (the broker
-   does not report one), one rate for the whole run (wrong for a trip that spans a move in
-   the pound), or looking it up again later (not the rate of the day). The scenes give 0.79
-   every day; a daily rate in the store is asked of the data lane.
-6. **A round trip pairs each sale with the buys it closes, oldest first**; a fill split
-   between trips shares its commission and conversion by its shares. Spread, slippage and
-   UK tax are not yet charged: they belong to the day record (scene 7), where the spread
-   and slippage of both legs, the stop's sale included, must be added.
-7. **Scene 5 runs on the rehearsal's whole fourteen months** now, since no rule trades in
-   the six weeks the other scenes still see. When the data lane moves the scenes onto the
-   whole history, scene 5 reads the same data as the others.
-8. **Scene 2 counts each line against its own venue's calendar** over the scenes' days:
-   five decisions for every session the line's venue traded. Counting each line's own
-   bars, the first form tried, could not fail (the blind review's finding).
-
-**Evidence.** The new tests in `test_day`, `test_book`, `test_broker`, `test_orders` and
-`test_strategy` failed first on the unbuilt code; scene 5 failed on the six weeks and passes
-on the fourteen months. Twenty-five deliberate breaks were driven. Twenty-two were caught at
-once: the open's stops not collected, buys sized from a stale book, a line sold that morning
-bought again, a stale decision acted on, the book's holding not given to the rules, a sale
-leaving its stop or taking all of it, a sale at the close, the gate letting one share too
-many be sold, conversion on a pound line or on the wrong amount, a split fill's charges not
-shared or its rest forgotten, the wrong day's rate, a sale counted as negative shares, a
-fill's day moved, a missing rate not refused, a kept rate repriced, a zero rate, and a line
-missing a day in scene 2. One, a pound rate other than 1, was missed because its test met
-the "already kept" refusal first; the test now uses a fresh day and catches it. Two were
-missed because the code did nothing (an owner check `strategy.today` already makes, and a
-filter whose result was overwritten); both are removed.
-
-### 2026-11-13 — reconciliation: before every order, shares and stops; and scenes 6 and 7 together
-
-**Decided**, by the lane as the desk's mentor (no one watching):
-
-1. **The book is checked against the broker's on the send path, before every order**
-   (`book.reconcile`, called by `book.send`). Options were (a) once, in the day run after
-   the open; (b) on the send path, the one door every order already passes. Chosen (b): a
-   hand trade made in the middle of a morning is seen before the next order, and any later
-   caller of the send path (the paper lane's) is held by it without being told to. It stays
-   out of `orders.gate`, which is pure and is also the rungs lane's; the refusal is the
-   same `Refused` the gate raises.
-2. **A line differs when its shares differ, or when the stop resting at the broker is not
-   for exactly the shares the book holds.** Every share the desk holds has its stop at the
-   broker; a holding whose stop was cancelled is the most dangerous quiet state there is,
-   so it is named like a wrong position. Shares alone, the scene's own words, would miss it.
-3. **While any line differs the desk buys nothing; it sells a line only if that line's
-   shares agree.** Options were (a) send nothing at all; (b) stop buying only; (c) stop
-   buying, and never sell a line whose shares differ. (a) would hold a rule's sale of a
-   sound line for as long as a person takes to look. (b) would sell the book's ten shares
-   of a line of which the broker holds four, and leave the desk short. Chosen (c), with the
-   blind review's point taken: a line whose shares agree but whose stop is gone may be
-   sold, since that is the protective act. Nothing is remembered from day to day: the two
-   books are compared afresh each time, and buying starts again once they agree.
-4. **The day does not stop.** A refusal on the send path becomes that order's answer, with
-   its reason naming the lines, kept with the day's others. The desk dying, or any other
-   error, still stops the day.
-5. **An order the broker already has is recorded, never refused**, whatever the books say:
-   the broker is asked first, as before.
-6. **Scenes 6 and 7 pass together.** The plan had reconciliation turn scene 6 by itself. It
-   cannot: scene 6 asks that a reconciled day carry a profit, scene 7 reads the same
-   record, and a profit is not published without every cost (canon B4). Spread, slippage
-   and a sale's own cost are not in the cost model, and UK tax needs a fact on each line
-   that the data lane owns. Options were (a) give scene 6 a record with the missing costs
-   at nought; (b) take "a reconciled day has a number" out of scene 6; (c) land
-   reconciliation under its own contract tests and turn both scenes when the record is
-   real. (a) is a made-up number and (b) weakens a scene to count it. Chosen (c). The
-   scenes stay at 5 of 7 for this step; the lane's book says what remains.
-7. **Scene 6's days.** No rule holds a position at the end of the rehearsal data, on its
-   six weeks or its fourteen months, so "the broker holds something" cannot be read after
-   the last day. When the record lands, scene 6 will run the fourteen months and set the
-   book against the broker's on every day, which asks more of the desk, not less.
-8. **The kill switch is the lane's next objective, ahead of the costs.** His ruling of the
-   same day, which reached this branch as it was finishing, puts the kill switch first and
-   holds the paper lane's orders until it is drilled. Options were the costs next, as the
-   scenes' order suggests, or the kill switch next. Chosen the kill switch: it is his word,
-   another lane waits on it, and scenes 6 and 7 wait on the data lane's tax fact in any
-   case, so the scenes lose nothing by it.
-
-**Evidence.** Two contract tests seen failing first (`book.reconcile` did not exist; the day
-sent five buys with a hand-bought line at the broker). Over the fourteen months, with and
-without every line's first order rejected, the desk made the same 68 fills and 34 round
-trips as before the change: in ordinary running the two books never differ. Thirty-one
-deliberate breaks were driven first; twenty-six were caught and five missed, each a gap in
-the tests: a line only the book holds, the names in no order, an order the broker already
-has refused while the books differ, any error at all kept as an answer, and a cancelled
-stop that also emptied the position. Tests were added for each. Thirteen more were then
-driven, those five and eight against the review's fix; twelve were caught at once and the
-thirteenth (a sale allowed when the broker holds more than the book) after its test was
-tightened. The blind review, which ran 400 random runs of its own (20,907 orders, every
-fault) without one false mismatch, found nothing blocking; what it left is in
-`docs/STATUS.md`.
+### 2026-11-13 — summary of the first five decisions (folded 17 November; git keeps every word)
+- Pretend broker: behaves as the paper one will, with its five faults. Send path: ask the broker first, gate second, a fill written once. Book: the ledger's fills, read by the gate. Day run: whose position, which day, which rate. Reconciliation: shares and stops checked before every order; scenes 6 and 7 together.
 
 ### 2026-11-13 — one rule for "is the book the broker's?", for every broker
 
@@ -783,3 +568,20 @@ Decided by the MONEY lane as the desk's mentor, no one watching.
 ### 2026-11-17 — money-restop lands nothing and waits (#617, R-MONEY-30)
 - Putting back a stop needs a way to rest one on a line that has none in `placing.moved`, `Broker` and `Pretend`, all PAPER's.
 - Decided: (a) a duck-typed call around the Broker protocol from day.py (breaks the one-contract rule, A4), (b) widen the claim to PAPER's files, (c) land nothing and wait on the open request (chosen). Box waits: R-MONEY-30.
+
+### 2026-11-17 - the stop from the fill is wired into day.run, not day.trade (#611, R-RUNNER-220 step)
+- (a) call restop in `trade`, which makes test_running (PAPER's file) need extra scripted gateway conversations; (b) call it in `run` and have running.py call `restop.move` after `day.trade`.
+- Decided: (b); (a) leaves the PR red or out of claim. A held line with no stop is skipped, left to the "holding with no stop" list. Kill switch on: nothing moved. Live wiring remains (R-MONEY-49).
+
+### 2026-11-17 - intraday decisions get their own `today` (#649, R-RUNNER-199 step)
+- (a) wire into `strategy.today` (grows strategy.py at 330 lines and mixes day and intraday decisions); (b) a parallel `intraday.today` in the new module.
+- Decided: (b), one engine, daily rules untouched; the registry is empty until a rule passes the ladder.
+
+### 2026-11-17 - the drawdown alert is sent before the day's buys (#661, money-limits)
+- Options: alert after the buys, or before. Chosen before, since the gate then refuses them; told once per call, recorded once. Exposure is counted at the last close, not the fill price.
+
+### 2026-11-17 - a stranger is adopted at the last close and sold (#683, money-stranger)
+- (1) Ledger price: (a) the line's last close, (b) refuse and sell blind. Chose (a): the broker gives no price and the sale needs the book to equal the broker.
+- (2) The stranger's day: (a) clean, (b) mismatch and profit withheld. Chose (b): scene 6 requires it.
+- (3) Unreached signals sit under the BROKER blocker, not a new one, which would change every list's shape. Ruling: his "please always go with recommended".
+
