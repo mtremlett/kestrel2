@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 
 from desk import listing, paper
-from desk.lines import NO_TAX, Line
+from desk.lines import LINES, NO_TAX, Line
 from desk.listing import Listing, Unlisted
 
 IITU, AAPL = Line("IITU", "LSE", "GBP", 1, NO_TAX), Line("AAPL", "US", "USD", 1, NO_TAX)
@@ -68,11 +68,25 @@ def test_each_line_is_read_as_the_gateway_gives_it_and_only_questions_are_sent(
     )
     assert listed == {"IITU": IN_PENCE, "AAPL": replace(IN_CENTS, exchange=exchange)}
     assert sent[2:] == [  # after the greeting and the start: a line, its price steps, the next
-        _frame("9|8|0|0|IITU|STK||0.0|||SMART||GBP|||0|||".split("|")),
+        _frame("9|8|0|0|IITU|STK||0.0|||SMART|LSEETF|GBP|||0|||".split("|")),
         _frame(("91", "984")),
         _frame("9|8|1|0|AAPL|STK||0.0|||SMART||USD|||0|||".split("|")),
         _frame(("91", "4563")),  # the steps where the order will go, not another exchange's
     ]
+
+
+def test_the_request_for_idtl_carries_the_masters_exchange_currency_and_isin() -> None:
+    idtl = next(line for line in LINES if line.symbol == "IDTL")
+    #: the gateway's answer for it: a definition (IITU's, made IDTL's), not a refusal
+    answer = _but(_but(_but(IITU_IS, 2, "IDTL"), 8, "USD"), 17, "1")
+    answer[-6] = "984,984,3051,984"
+    wire = io.BytesIO(_frame(*OPEN, answer, ENDS[0], PENCE))
+    sent: list[bytes] = []
+    listed = listing.converse(wire, sent.append, (idtl,))["IDTL"]
+    assert sent[2] == _frame(
+        "9|8|0|0|IDTL|STK||0.0|||SMART|LSEETF|USD|||0|ISIN|IE00BSKRJX20|".split("|")
+    )
+    assert isinstance(listed, Listing) and listed.exchange == "LSEETF"
 
 
 @pytest.mark.parametrize(
