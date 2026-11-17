@@ -351,8 +351,12 @@ def keep(
 
 def main(home: Path, now: datetime, args: Sequence[str] = ()) -> int:
     """THE COMMAND: what was done on one line each, a miss on the error stream, and 1 for it.
-    `--live` takes one run of one-minute bars instead (R-RUNNER-12; `--roll` is not yet built)."""
-    if args == ["--live"]:
+    `--live` takes one run of one-minute bars instead, `--roll` copies the live day's bars into
+    the long database (R-RUNNER-12)."""
+    missed: list[str] = []
+    if args == ["--roll"]:
+        done = [keeper_live.roll(home / HOT)]
+    elif args == ["--live"]:
         words, missed = keeper_live.minute_round(home / HOT, LINES, now, keeper_live.minutes)
         done = [words]
     else:

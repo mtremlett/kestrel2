@@ -4,7 +4,9 @@ desk.keeper calls it in each venue's hours; the words it returns are the keeper'
 
 from __future__ import annotations
 
+import sqlite3
 from collections.abc import Callable, Sequence
+from contextlib import closing
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -92,3 +94,27 @@ def minute_round(
         elif not answer or now - max(b.start for b in answer) - live.MINUTE > LATE:
             stale.append(f"{line.symbol}: no bar within {LATE.seconds // 60} minutes")
     return f"live: one-minute bars asked for {len(mine)} lines, {len(stale)} stale", stale
+
+
+ROLLED = "SELECT * FROM bar WHERE span IN (?, ?)"
+HELD = "SELECT * FROM held WHERE span IN (?, ?)"
+
+
+def roll(hot: Path) -> str:
+    """One run of `--roll`: the short database's one-minute and five-minute bars copied, source
+    kept and nothing changed, into the long one, which keeps every timeframe; in words."""
+    spans = (MINUTES, bars.FIVE)
+    if not hot.is_file():
+        raise FileNotFoundError(f"{hot}: no live day to roll")
+    with (
+        closing(sqlite3.connect(hot)) as src,
+        closing(sqlite3.connect(bars.files(hot)[bars.DAILY], timeout=bars.WAIT)) as dst,
+    ):
+        rows = src.execute(ROLLED, spans).fetchall()
+        held = src.execute(HELD, spans).fetchall()
+        with dst:
+            for table in bars.SCHEMA:
+                dst.execute(table)
+            dst.executemany(bars.PUT, rows)
+            dst.executemany(bars.HOLD, held)
+    return f"roll: {len(rows)} one-minute and five-minute bars copied to the long database"
