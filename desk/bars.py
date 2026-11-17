@@ -68,6 +68,9 @@ class Source(Enum):
     IBKR_DAILY = "old desk: ibkr_store daily rows"  #: its daily bars alone, the broker's own
     TREND_DAILY = "old desk: mark_the_trend Stooq daily files"  #: its daily files alone
     STOOQ_HOURLY = "old desk: stooq_store hourly rows"  #: its hourly bars alone
+    FED_NOON = (
+        "Federal Reserve noon buying rate, DEXUSUK via FRED"  #: the pound before the archive's
+    )
     MATRIX_INTRADAY = "old desk: Stooq matrices 15m, 30m, 1h rows"  #: its arrays of those spans
 
     @property

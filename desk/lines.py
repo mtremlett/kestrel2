@@ -193,8 +193,10 @@ REFERENCE = tuple(line for line in LINES if line.retail is False)
 
 
 #: The pound in dollars at the archive, kept as a reference series (never traded), and the band
-#: its close must lie in, in dollars, to be trusted (R-PAPER-22).
-POUND, DOLLARS = Line("GBPUSD=X", "US", "USD", 1), (Decimal(1), Decimal(2))
+#: its close must lie in, in dollars, to be trusted (R-PAPER-22). The pound stood above two dollars
+#: in 2007 (the archive's own closes), so the band is one to three: a pence figure or the dollar's
+#: own inverse still lies outside it.
+POUND, DOLLARS = Line("GBPUSD=X", "US", "USD", 1), (Decimal(1), Decimal(3))
 
 
 TAG = "-ADJUSTED"  #: ends the symbol of a reference series' dividend-adjusted twin (R-RUNGS-9)
