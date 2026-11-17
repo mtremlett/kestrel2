@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import UTC, date, datetime
 from decimal import Decimal
+from io import BytesIO
 from pathlib import Path
 
-from desk import backfill, bars, venues
+import pytest
+
+from desk import backfill, bars, history, paper, venues
 from desk.bars import Source
 from desk.lines import LINES
 from desk.store import Bar, Refused
@@ -73,3 +76,30 @@ def test_a_hole_among_years_of_bars_is_judged_beside_both_sides_as_of_today(tmp_
     )
     assert wrote == [f"ISF {LOST}: IBKR paper"] and not named
     assert [b.day for b in bars.daily(path, ISF)] == sorted([*days, LOST])
+
+
+def test_the_brokers_pence_are_turned_into_pounds_on_entry() -> None:
+    pence = Bar(FRIDAY, Decimal("7791"), Decimal("7823"), Decimal("7626"), Decimal("7716"), 9)
+    pounds = Bar(FRIDAY, Decimal("77.91"), Decimal("78.23"), Decimal("76.26"), Decimal("77.16"), 9)
+    assert backfill.in_currency([pence], 100) == [pounds]
+    assert backfill.in_currency([pounds], 1) == [pounds]
+    assert backfill.in_currency(Refused("no data"), 100) == Refused("no data")
+
+
+def test_the_brokers_ask_reaches_the_gateway_as_the_history_reader_and_sets_no_global(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    doors: list[paper.Door] = []
+
+    def start(_wire: object, _send: object, door: paper.Door | None = None) -> int:
+        doors.append(door or paper.current())
+        raise ConnectionRefusedError("the fake gateway has heard the knock")
+
+    monkeypatch.setattr(paper, "dial", lambda talk: talk(BytesIO(), lambda _b: None))
+    monkeypatch.setattr(paper, "start", start)
+    before = (paper.CLIENT, paper.APART)
+    ask = backfill._broker(tmp_path, datetime(2026, 11, 17, 12, tzinfo=UTC))
+    with pytest.raises(ConnectionRefusedError):
+        ask(LINES[0], date(2026, 11, 13))
+    assert doors == [paper.Door(history.CLIENT)]
+    assert before == (paper.CLIENT, paper.APART)

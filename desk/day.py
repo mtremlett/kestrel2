@@ -3,19 +3,23 @@ and publish one record. The same days run again from the same saved data give th
 
 from __future__ import annotations
 
-import csv
 from collections.abc import Mapping, Sequence
-from dataclasses import astuple, dataclass, field
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
 
-from desk import book, halt, strategy, venues
-from desk.broker import Broker
+from desk import book, halt, restop, strategy, venues
+from desk.broker import Broker, Restopping
+from desk.day_parts import BEFORE_HEAT as BEFORE_HEAT
+from desk.day_parts import HEADER as HEADER
+from desk.day_parts import MONEY as MONEY
+from desk.day_parts import RECORDS as RECORDS
+from desk.day_parts import Record as Record
+from desk.day_parts import _row as _row
+from desk.day_parts import records as records
 from desk.halt import Blocker, Stopped
 from desk.lines import YARDSTICK, Line
 from desk.orders import (
-    Charges,
     Order,
     Refused,
     Sale,
@@ -25,65 +29,25 @@ from desk.orders import (
     size,
     strategy_of,
 )
+from desk.risk import Standing
 from desk.store import Bar
 from desk.strategy import Action, Decision
-
-RECORDS = "records.csv"
-MONEY = ("day", "profit", *Charges.__dataclass_fields__, "market", "worth", "counted", "heat")
-HEADER = (*MONEY, "halted", "stopped", "differ")
-BEFORE_HEAT = [name for name in HEADER if name != "heat"]  #: the records' names until the heat
-
-
-@dataclass(frozen=True)
-class Record:
-    """One day, as published: pounds, each amount rounded once, to the penny, where the record
-    is made. A day whose book is not the broker's names the lines and has no profit; no other
-    day lacks one. With it, kept exact, what the next day's record carries on from. A day with
-    a halt in force names it, and keeps its number. THE DAY'S VERDICT (NS-06): it counts only
-    if its book was the broker's, no halt was in force, and its orders were sent, none of
-    them stopped for a halt or the kill switch."""
-
-    day: date
-    #: The book's gain after every cost, since the last record that carried one: the day's
-    #: own, unless days before it were withheld. None when the book is not the broker's.
-    profit: Decimal | None
-    costs: Charges  #: every cost behind that gain, line by line: none can be left out
-    market: Decimal  #: what the capital would have earned simply holding the market those days
-    mismatches: tuple[str, ...]  #: lines where the desk's book and the broker's differ
-    worth: Decimal  #: what the book held at the day's end was worth: the next record opens here
-    counted: int  #: the ledger's fills dated by the day, each counted by a record up to this one
-    #: the halts in force that day, each by the moment it was called, as halt.kept stood. A
-    #: record made without these two says nothing was sent, and does not count
-    halted: tuple[datetime, ...] = ()
-    stopped: int | None = None  #: signals the kill switch or a halt refused; None, none sent
-    #: THE BOOK'S HEAT, reported only: the pounds lost if every stop held at the day's end were
-    #: hit, each line at its stop or, if worse, its worst recorded overnight gap (_heat). None:
-    #: not recorded (a record made before the heat, or a held line whose stop level was not kept)
-    heat: Decimal | None = None
-    counts: bool = field(init=False)  #: the verdict
-
-    def __post_init__(self) -> None:
-        clear = self.profit is not None and not self.halted and self.stopped == 0
-        object.__setattr__(self, "counts", clear)
-        if (self.profit is None) != bool(self.mismatches):
-            raise ValueError(
-                f"{self.day}: a profit of {self.profit} with the book and the broker's "
-                f"differing on {list(self.mismatches)}"
-            )
 
 
 def run(
     root: Path,
     archive: Mapping[Line, Sequence[Bar]],
-    broker: Broker,
+    broker: Restopping,
     settings: Settings,
     day: date,
     rates: Mapping[str, Decimal],
 ) -> Record:
     """A whole day from the data saved by its end, the day's own bars in it: its orders are
-    decided on the bars before the day alone, and then its record is published."""
+    decided on the bars before the day alone, each stop is moved under its fill (restop), and
+    then its record is published."""
     seen = {line: tuple(bar for bar in bars if bar.day < day) for line, bars in archive.items()}
     trade(root, seen, broker, settings, day, rates)
+    restop.move(root, broker, archive)  #: each fill's stop, under the fill (R-RUNNER-220)
     return publish(root, archive, broker, settings, day)
 
 
@@ -140,43 +104,6 @@ def _kept(root: Path, archive: Mapping[Line, Sequence[Bar]], day: date) -> tuple
     if missed := sorted(traded - {since, day}):
         raise ValueError(f"{day}: no record yet for {missed}, and each session has its own")
     return kept
-
-
-def _row(r: Record) -> tuple[object, ...]:
-    """A record as it is kept: the lines that differ last, as many as there are."""
-    money = (r.day, r.profit, *astuple(r.costs), r.market, r.worth, r.counted, r.heat)
-    return (*money, " ".join(h.isoformat() for h in r.halted), r.stopped, *r.mismatches)
-
-
-def records(root: Path) -> tuple[Record, ...]:
-    """Every day's record the desk has published, oldest first, as it was published. A file
-    there whose first line is not the records' own names is an error, never a day short. A
-    row that ends at its money is a record made without its halts: it does not count."""
-    path = root / RECORDS
-    if not path.exists():
-        return ()
-    with path.open(newline="", encoding="utf-8") as kept:
-        rows = list(csv.reader(kept))
-    if rows[:1] == [BEFORE_HEAT]:  #: records made before the heat have none
-        rows = [rows[0], *(row[:10] + [""] + row[10:] for row in rows[1:])]
-        rows[0] = list(HEADER)
-    if rows[:1] != [list(HEADER)]:
-        raise ValueError(f"{path}: not the desk's records")
-    return tuple(
-        Record(
-            date.fromisoformat(row[0]),
-            Decimal(row[1]) if row[1] else None,
-            Charges(*map(Decimal, row[2:7])),
-            Decimal(row[7]),
-            tuple(row[13:]),
-            Decimal(row[8]),
-            int(row[9]),
-            tuple(map(datetime.fromisoformat, row[11].split())),
-            int(row[12]) if row[12] else None,
-            Decimal(row[10]) if row[10] else None,
-        )
-        for row in (kept if kept[10:] else [*kept, "", "", ""] for kept in rows[1:])
-    )
 
 
 def _worth(root: Path, archive: Mapping[Line, Sequence[Bar]], upto: date) -> Decimal:
@@ -263,7 +190,7 @@ def trade(
     sent: list[book.Sent] = []
     for d in (d for d in decided if d.action is Action.SELL):  #: by the rule that holds it
         sale = Sale(order_id_of(d), due[d.symbol], held[d.symbol])
-        sent.append(_answer(root, day, _send(root, broker, sale, settings, tell)))
+        sent.append(_answer(root, day, _send(root, broker, sale, settings, tell, None)))
     for d in (d for d in decided if d.action is Action.BUY):
         line = due[d.symbol]
         price = archive[line][-1].close, rates[line.currency]
@@ -357,16 +284,33 @@ def _buy(
         order = size(d, line, *price, settings, now)
     except Refused as refused:  #: the gate's answer, kept with the day's others
         return book.Sent(name, 0, str(refused), Blocker.GATE)
-    return _send(root, broker, order, settings, tell)
+    return _send(root, broker, order, settings, tell, standing(root, day))
+
+
+def standing(root: Path, day: date) -> Standing:
+    """WHERE THE BOOK STANDS AGAINST ITS LOSS AND ORDER-RATE LIMITS when the day opens
+    (canon B1, risk.loss_limit): the day's loss is the pounds the last published record lost
+    (0 when it gained or was withheld), the week's the net pounds lost over the records of
+    day's own ISO week, and the new lines the lines first bought today."""
+    profits = [(r.day, r.profit or Decimal(0)) for r in records(root)]
+    week = sum((p for d, p in profits if d.isocalendar()[:2] == day.isocalendar()[:2]), Decimal(0))
+    lost = -profits[-1][1] if profits else Decimal(0)
+    bought = {f.symbol for f in book.fills(root) if f.day == day and f.quantity > 0}
+    return Standing(max(lost, Decimal(0)), max(-week, Decimal(0)), len(bought))
 
 
 def _send(
-    root: Path, broker: Broker, order: Order | Sale, settings: Settings, tell: book.Tell | None
+    root: Path,
+    broker: Broker,
+    order: Order | Sale,
+    settings: Settings,
+    tell: book.Tell | None,
+    held: Standing | None,
 ) -> book.Sent:
     """Send through the one door; its refusal is the order's answer, kept with the day's
     under the blocker the send path names; one it does not name is the broker's own door's."""
     try:
-        return book.send(root, broker, order, settings, tell)
+        return book.send(root, broker, order, settings, tell, held)
     except Stopped as stopped:
         return book.Sent(order.order_id, 0, str(stopped), stopped.blocker)
     except Refused as refused:

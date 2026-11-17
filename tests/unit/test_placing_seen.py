@@ -16,6 +16,8 @@ from desk.listing import Listing
 from desk.orders import Refused
 from desk.placing import NotCancelled, Unprotected
 
+DOOR = paper.Door(paper.DESK)
+
 
 def test_a_buy_the_broker_refuses_on_entry_is_answered_with_its_reason_and_nothing_is_left(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
@@ -101,11 +103,11 @@ def test_a_stop_that_sold_or_ended_unseen_as_it_was_cancelled_by_settle_is_unpro
     gone = [_but(tp.UNFOUND, 2, "7")]
     for end in ([[_but(tp.ENDED_7, 2, "Filled")]], [gone, tp.EMPTY, tp.EMPTY]):
         _gateway(monkeypatch, tp.PROTECTED)
-        held, stops = placing.on(paper.read(), listed)
+        held, stops = placing.on(paper.read(DOOR), listed, DOOR)
         _gateway(monkeypatch, *end)
         with pytest.raises(Unprotected, match="ended another way"):
             broker.settle(listed, held, stops, None)
     _gateway(monkeypatch, tp.PROTECTED)
-    held, stops = placing.on(paper.read(), listed)
+    held, stops = placing.on(paper.read(DOOR), listed, DOOR)
     _gateway(monkeypatch, gone, tp.BARE, tp.BARE)
     broker.settle(listed, held, stops, None)

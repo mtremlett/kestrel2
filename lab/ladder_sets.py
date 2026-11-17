@@ -19,10 +19,11 @@ from functools import partial
 from pathlib import Path
 
 from desk.lines import Line
-from lab import batch, history_bars, ladder, ladder_pool, members, tape, trials, verdict
+from lab import basket, batch, history_bars, ladder, ladder_pool, members, tape, trials, verdict
 from lab.batch import Bars
 from lab.cell import Cell
 from lab.ladder import END, FOLDER, START, Plan, _last, _whole, eponymous, run
+from lab.ladder_parts import FAILED, Shared, _made, _resolve
 from lab.rung import Rates
 
 EPON = Plan("EPON", "set EPON: does an eponymous rule earn on a line the store holds?", "EPON")
@@ -118,6 +119,8 @@ def epon(
     count = trials.count(home / FOLDER / f"{plan.stem}.trials.jsonl", plan.question)
     last = _last(_whole(home / FOLDER / f"{plan.stem}.jsonl"))
     rows = [last[tuple(batch.row(c))] for c in todo]
+    if verdict.EASED:  #: easing 2: each rule's lines also judged pooled, one basket a rule
+        rows += baskets(home, bars, pounds, todo, rules, plan)
     sets = home / FOLDER / "sets"
     table = verdict.write_table(
         sets, plan.tag, plan.question, rows, rules, count, ladder.rungs_built()
@@ -128,6 +131,27 @@ def epon(
     passed = sum(any(map(verdict.goes, mine)) for mine in verdict.by_rule(rows, rules).values())
     last_line = f"SET {plan.tag}: {len(rules)} rules, {passed} passed, table {table}"
     return f"{counts}\n{said}\n{tapes_held(home)}\n{last_line}"
+
+
+def baskets(
+    home: Path, bars: Bars, pounds: Rates, todo: Sequence[Cell], rules: Sequence[str], plan: Plan
+) -> list[verdict.Row]:
+    """One basket row for each rule that has a line to pool: the lines' first rungs (a line that
+    cannot be read or that the sizing refuses is left out), charged the rule's family of trials."""
+    shared, rows = Shared(todo), list[verdict.Row]()
+    for rule in rules:
+        firsts = []
+        for c in (one for one in todo if one.strategy == rule):
+            try:
+                made, own, _ = _resolve(c, bars)
+                firsts.append(verdict.ready(made, own, pounds, _made(rule, shared, bars)))
+            except FAILED:
+                continue
+        firsts = [first for first in firsts if not first.refused]
+        if firsts:
+            family = trials.family(home / FOLDER / f"{plan.stem}.trials.jsonl", plan.question, rule)
+            rows.append(basket.row(plan.tag, rule, firsts, family))
+    return rows
 
 
 def tapes_held(home: Path) -> str:

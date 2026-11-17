@@ -10,9 +10,9 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta, timezone
 from functools import cache
 
-KNOWN = range(2010, 2028)  #: the years whose hours below are complete
+KNOWN = range(2010, 2030)  #: the years whose hours below are complete
 #: The years whose closures below are complete: the daily history begins on 29 January 1993.
-SESSION_YEARS = range(1993, 2028)
+SESSION_YEARS = range(1993, 2030)
 
 #: Closures no rule predicts: royal occasions, state funerals, a storm.
 EXTRA = {
