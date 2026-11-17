@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import tomllib
 from collections.abc import Sequence
+from dataclasses import replace
 from datetime import timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -95,7 +96,10 @@ def test_every_row_trades_on_the_golden_series_as_the_desk_trades() -> None:
 
 
 def test_the_fast_engine_has_a_firing_for_every_block_that_needs_no_position() -> None:
-    assert {*fast.FIRES, *fast.DATED} == set(blocks.BLOCKS) - {"trailing_stop", "time_stop"}
+    assert {*fast.FIRES, *fast.DATED, *fast.VOLUMED} == set(blocks.BLOCKS) - {
+        "trailing_stop",
+        "time_stop",
+    }
 
 
 def test_rows_on_one_line_share_one_working_of_a_block() -> None:
@@ -127,7 +131,10 @@ def test_prices_too_close_for_floating_point_are_refused() -> None:
 
 def test_every_row_of_the_spec_book_trades_on_the_fast_engine_as_the_desk_trades() -> None:
     book = tomllib.loads((Path(__file__).parents[2] / "lab" / "catalogue.toml").read_text("utf-8"))
-    bars = next(iter(_series().values()))
+    bars = tuple(  # a swinging volume, so the volume rows trade
+        replace(b, volume=1000 + 900 * (n * 7 % 5 - 2) // 2)
+        for n, b in enumerate(next(iter(_series().values())))
+    )
     for name, row in book.items():
         spec = Spec.parse({"name": name, **row})
         assert fast.held(spec, fast.Shared(bars)).tolist() == _desk(spec, bars), name

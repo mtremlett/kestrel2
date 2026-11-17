@@ -23,12 +23,15 @@ RULES = rulebook.eponymous()
 def _bars(seed: int, days: int = 1500) -> tuple[Bar, ...]:
     """A seeded wandering line with trends and quiet spells, so buys and sells both occur."""
     rng, close, drift, made = random.Random(seed), 100.0, 0.0, []  # noqa: S311 - a test draw
+    crowd = random.Random(seed + 99)  # noqa: S311 - a test draw: the volume, apart so prices stay
     for n in range(days):
         drift = rng.uniform(-0.01, 0.01) if n % 60 == 0 else drift
         close *= 1 + drift + rng.gauss(0, 0.01)
         top, bottom = close * (1 + rng.random() * 0.01), close * (1 - rng.random() * 0.01)
         c, h, lo = (Decimal(f"{x:.4f}") for x in (close, top, bottom))
-        made.append(Bar(date(2010, 1, 1) + timedelta(n), c, h, lo, c, 1000))
+        made.append(
+            Bar(date(2010, 1, 1) + timedelta(n), c, h, lo, c, int(1000 * crowd.uniform(0.5, 2.5)))
+        )
     return tuple(made)
 
 
