@@ -73,6 +73,7 @@ class Fault:
     day: date  #: the session it concerns
     what: str
     lasting: bool = False  #: a step in the price: wrong for every bar before it, however old
+    noted: bool = False  #: a repair kept beside the bar that parks no line, however recent
 
 
 @dataclass(frozen=True)
@@ -107,29 +108,28 @@ def _once(bars: Sequence[Bar], faults: list[Fault]) -> list[Bar]:
 
 
 def _entered(line: Line, bar: Bar, open_days: set[date], faults: list[Fault]) -> Bar | str:
-    """The bar as it enters the store, or why it cannot be true on its own. A bar whose only
-    fault is an impossible high or low is kept, clamped to its open or close and the repair
-    listed: the open, close and volume stand. A fall the close shares is the market's."""
+    """The bar as it enters the store, or why it cannot be true on its own. A wrong high or low
+    is clamped to the open or close and parks the line; a stretch is only noted beside the bar.
+    The open, close and volume stand. A fall the close shares is the market's."""
     prices = (bar.open, bar.high, bar.low, bar.close)
     if bar.day in line.suspended:
         return f"{bar.day} has a bar, yet {line.symbol} records it as suspended"
     if bar.day not in open_days:
-        return f"{bar.day} is not a closed session on the {line.venue} calendar"
+        return f"{bar.day} is not a closed session on the {line.venue} calendar, or too early"
     if not all(p.is_finite() and p > 0 for p in prices) or bar.volume < 0:
         return f"{bar.day} has a price or volume that cannot be"
-    ends = (bar.open, bar.close)
-    reach = (bar.low * (1 - STRETCH), bar.high * (1 + STRETCH))
+    ends, reach = (bar.open, bar.close), (bar.low * (1 - STRETCH), bar.high * (1 + STRETCH))
     if not bar.low <= bar.high or not reach[0] <= min(ends) <= max(ends) <= reach[1]:
         return f"{bar.day} has an open or close outside its high and low"
-    high = max(bar.high, *ends)
-    if high >= JUMP * max(ends):
-        faults.append(Fault(bar.day, f"{bar.day} high repaired: was {bar.high}"))
-        high = max(ends)
-    low = min(bar.low, *ends)
-    if low <= min(ends) / JUMP:
-        faults.append(Fault(bar.day, f"{bar.day} low repaired: was {bar.low}"))
-        low = min(ends)
-    return replace(bar, high=high, low=low)
+    high, low = max(bar.high, *ends), min(bar.low, *ends)
+    bad = (high >= JUMP * max(ends), low <= min(ends) / JUMP)
+    if bad[0] or high != bar.high:
+        what = f"{bar.day} high {'repaired' if bad[0] else 'stretched'}: was {bar.high}"
+        faults.append(Fault(bar.day, what, noted=not bad[0]))
+    if bad[1] or low != bar.low:
+        what = f"{bar.day} low {'repaired' if bad[1] else 'stretched'}: was {bar.low}"
+        faults.append(Fault(bar.day, what, noted=not bad[1]))
+    return replace(bar, high=max(ends) if bad[0] else high, low=min(ends) if bad[1] else low)
 
 
 def pound_on(rates: Rates, day: date) -> Decimal | None:
@@ -277,7 +277,7 @@ def _clean(
     """The bars of one line that can be true, and every fault found."""
     faults: list[Fault] = []
     first = min((b.day for b in bars if b.day.year in venues.KNOWN), default=day)
-    every = venues.sessions(line.venue, first, day - timedelta(1))
+    every = venues.sessions(line.venue, max(first, line.starts or first), day - timedelta(1))
     expected = [d for d in every if d not in line.suspended]
     open_days, sound = set(expected), []
     for bar in _once(bars, faults):
@@ -337,7 +337,7 @@ def judge(
             faults += over
         kept, found = _clean(line, joined, day, since, rates)
         faults = [*faults, *found]
-    recent = [f.what for f in faults if f.lasting or f.day >= since]
+    recent = [f.what for f in faults if not f.noted and (f.lasting or f.day >= since)]
     return kept, faults, Parked(line.symbol, "; ".join(recent), day) if recent else None
 
 
