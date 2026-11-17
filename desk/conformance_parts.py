@@ -158,10 +158,11 @@ def live(side: Side, run: Plan, note: Callable[[str, str], None]) -> list[str]:
     return failed
 
 
-def pretend(run: Plan, price: Decimal | None = None) -> dict[str, str]:
+def pretend(run: Plan, price: Decimal | None = None, rests: bool = False) -> dict[str, str]:
     """The run at the pretend broker: the sizing prices, a refusal, and the stop triggered at
     the price given, the real stop's fill (a stop put above the market sells at the market, as
-    IBKR's does); without one, a fall to the stop's own level."""
+    IBKR's does); without one, a fall to the stop's own level. With rests, the stop is left
+    resting unsold, as London's rested on 16 November: the last step then sells the shares."""
     today, buy = run.today, run.second
     at = buy.stop if price is None else price
     bars = {buy.line: (Bar(today, *(buy.price,) * 4, 0), Bar(today + DAY, *(at,) * 4, 0))}
@@ -170,6 +171,8 @@ def pretend(run: Plan, price: Decimal | None = None) -> dict[str, str]:
     said: dict[str, str] = {}
 
     def fall(_: Order) -> None:
+        if rests:
+            return
         broker.open(today + DAY)
         if broker.holdings():  #: the stop above the market: it sells at once, at that bar
             broker.place(Sale(f"{buy.order_id}-stop", buy.line, buy.quantity))

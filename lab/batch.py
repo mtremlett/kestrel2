@@ -28,10 +28,9 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-from desk import store
 from desk.lines import Line
 from desk.store import Bar
-from lab import cell
+from lab import cell, universe
 from lab.cell import Cell, Key, Record, Trade
 
 
@@ -49,8 +48,8 @@ Kept = dict[tuple[str, ...], tuple[int, tuple[Trade, ...]]]
 
 
 def stored(root: Path) -> Bars:
-    """Each line's bars as the research store at root keeps them: in its venue's folder."""
-    return lambda line: store.read(root / line.venue, line.symbol)
+    """Each line's bars as research reads them (`universe.read`): the longest unscaled run."""
+    return lambda line: universe.read(root, line).bars
 
 
 def run(cells: Sequence[Cell], bars: Bars, journal: Path) -> tuple[Outcome, ...]:
