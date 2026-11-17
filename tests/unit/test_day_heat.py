@@ -5,7 +5,7 @@ from datetime import date
 from decimal import Decimal
 from pathlib import Path
 
-from desk import book, day, venues
+from desk import book, day_money, venues
 from desk.broker import Fill
 from desk.lines import Line
 from desk.store import Bar
@@ -29,6 +29,6 @@ def test_the_heat_is_each_lines_loss_at_its_stop_or_its_worst_gap_if_worse(tmp_p
     book._write(tmp_path / book.STOPS, [book.LEVELS, ("a-stop", 9), ("b-stop", 9)])
     book.record_rates(tmp_path, DAYS[3], {"GBP": Decimal(1)})
     #: CALM: 10 shares to its stop, 1 each = 10; GAP: 5 shares to a gap of 4, past its stop's 1
-    assert day._heat(tmp_path, archive, DAYS[3]) == Decimal("30.00")
+    assert day_money.heat(tmp_path, archive, DAYS[3]) == Decimal("30.00")
     book._write(tmp_path / book.STOPS, [book.LEVELS, ("a-stop", 9)])
-    assert day._heat(tmp_path, archive, DAYS[3]) is None, "a stop never kept: heat unknown"
+    assert day_money.heat(tmp_path, archive, DAYS[3]) is None, "a stop never kept: heat unknown"

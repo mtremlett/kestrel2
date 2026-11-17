@@ -1,14 +1,16 @@
-"""The lines parked live: late, missing or out of line, and back by themselves."""
+"""The lines parked live, back by themselves; the lines staler than a session; the receipt."""
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+import json
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
 from desk import bars, keeper
 from desk.bars import Five, Source
 from desk.lines import Line
+from desk.store import Bar
 
 NOW, LINES = datetime(2026, 11, 16, 10, tzinfo=UTC), [Line(s, "LSE", "GBP", 1) for s in "ABCD"]
 
@@ -30,3 +32,21 @@ def test_a_late_missing_or_out_of_line_line_is_parked_and_comes_back(tmp_path: P
     with bars.writing(hot, Source.IBKR) as kept:
         kept.five(late, [_bar(5, 100)])
     assert "B" not in keeper.parked_live(hot, LINES, NOW) and none.symbol in parked
+    later = NOW + timedelta(minutes=3)  # the source's delay: minutes since a newest bar ended
+    assert keeper.delays(hot, LINES, later) == {"A": 3, "B": 3, "C": 3}
+
+
+def test_a_line_staler_than_a_session_is_a_miss_and_each_call_leaves_a_dated_receipt(
+    tmp_path: Path,
+) -> None:
+    hot, (fresh, old, *_) = tmp_path / keeper.HOT, LINES
+    one = Decimal(1)
+    with bars.writing(hot) as kept:
+        for line, last in ((fresh, date(2026, 11, 13)), (old, date(2026, 11, 12))):
+            kept.daily(line, [Bar(last, one, one, one, one, 1)])
+    told = keeper.stale(hot, LINES, NOW)  # Monday morning: Friday's close is the one owed
+    assert [t.split(":")[0] for t in told] == ["B", "C", "D"] and "None" in told[1]
+    keeper.receipt(tmp_path, NOW, ["done"], [])
+    keeper.receipt(tmp_path, NOW, [], ["missed"])
+    lines = (tmp_path / keeper.RECEIPTS / "2026-11-16.jsonl").read_text("utf-8").splitlines()
+    assert [json.loads(line)["missed"] for line in lines] == [[], ["missed"]]

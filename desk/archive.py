@@ -48,6 +48,7 @@ MIDNIGHT = timedelta(hours=1)  #: London's midnight in summer, behind UTC's by t
 #: of an ask the archive turned away (too many asks, or its own fault) or did not answer.
 PACE = 1.0
 BACKOFF = (5, 30, 120)
+ASKED_TO_WAIT = 300  #: the longest wait the archive's own Retry-After is obeyed for, in seconds
 #: Where the runner reads whether the archive refuses: `{"refusing_since": <time or null>}`.
 STATE = "archive.json"
 When = TypeVar("When")
@@ -183,6 +184,12 @@ def _turned_away(refusal: Exception) -> bool:
     return True
 
 
+def _wait(refusal: Exception, wait: int) -> float:
+    """How long to wait: the back-off, or longer if the archive said how long (Retry-After)."""
+    said = refusal.headers.get("Retry-After", "") if isinstance(refusal, HTTPError) else ""
+    return max(wait, min(int(said), ASKED_TO_WAIT)) if said.isdigit() else wait
+
+
 def _ask(address: str) -> bytes:
     """One ask of the archive, slowly, backing off when it is turned away or does not answer.
     When the last wait is spent the refusal stands, and archive.json says since when."""
@@ -194,13 +201,29 @@ def _ask(address: str) -> bytes:
         except (OSError, HTTPException) as refusal:
             wait = next(waits, None)
             if wait is not None and _turned_away(refusal):
-                time.sleep(wait)
+                time.sleep(_wait(refusal, wait))
                 continue
             if _turned_away(refusal):
                 _record(refusing=True)
             raise
         _record(refusing=False)
         return payload
+
+
+def _kept(kept: Path | None, address: str, read: Callable[[bytes], Read]) -> Read:
+    """The archive's answer at an address, read on entry. With a kept file, the raw answer is
+    read from it instead of asked again, and written there only once read whole, never a
+    refused one."""
+    if kept is not None and kept.exists():
+        return read(kept.read_bytes())
+    payload = _ask(address)
+    bars = read(payload)
+    if kept is not None:
+        kept.parent.mkdir(parents=True, exist_ok=True)
+        part = kept.with_suffix(".part")
+        part.write_bytes(payload)
+        part.replace(kept)
+    return bars
 
 
 def fetch(
@@ -213,22 +236,18 @@ def fetch(
     data = os.environ.get("KESTREL2_DATA")
     home = home or (Path(data) if data else None)
     kept = None if home is None else home / STORE / str(day) / name
-    if kept is not None and kept.exists():
-        return parse(line, kept.read_bytes())
-    payload = _ask(address(line, day, since))
-    bars = parse(line, payload)
-    if kept is not None:
-        kept.parent.mkdir(parents=True, exist_ok=True)
-        part = kept.with_suffix(".part")
-        part.write_bytes(payload)
-        part.replace(kept)
-    return bars
+    return _kept(kept, address(line, day, since), lambda raw: parse(line, raw))
 
 
-def fetch_five(line: Line, now: datetime, back: timedelta = KEPT) -> tuple[Five, ...]:
+def fetch_five(
+    line: Line, now: datetime, back: timedelta = KEPT, home: Path | None = None
+) -> tuple[Five, ...]:
     """A line's five-minute bars up to now, read on entry: every one the archive still keeps,
-    or those of a shorter time back."""
-    return parse_five(line, _ask(address_five(line, now, back)), now)
+    or those of a shorter time back. With a home, the raw answer is kept there (the archive
+    forgets after sixty days), one file to a line and moment, and read instead of asked again."""
+    name = f"{line.symbol}{SUFFIX[line.venue]}-{back.days}d"
+    kept = None if home is None else home / STORE / "five" / now.strftime("%Y%m%dT%H%M") / name
+    return _kept(kept, address_five(line, now, back), lambda raw: parse_five(line, raw, now))
 
 
 def gather(

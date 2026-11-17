@@ -50,6 +50,26 @@ class PercentBUnderRun(_PercentB):
         return self._days >= self._run
 
 
+class CloseOverBandAfterSqueeze(Block):
+    """Bollinger's squeeze: fires on a close over the upper band (2 deviations over the `n`-bar
+    average) when, on the bar before, the band width (4 deviations over the average) was the
+    lowest of the last `look` widths, ties included."""
+
+    def __init__(self, n: int, look: int) -> None:
+        self._closes, self._widths, self._squeezed = _Window(n), _Window(look), False
+
+    def see(self, bar: Bar, holding: bool) -> bool:  # noqa: ARG002 - the one interface of every block
+        """Shown the next bar: whether the block fires."""
+        self._closes.add(bar.close)
+        if not self._closes.full:
+            return False
+        mean, dev = self._closes.mean(), self._closes.deviation()
+        width = 4 * dev / mean
+        self._widths.add(width)
+        squeezed, self._squeezed = self._squeezed, self._widths.full and width <= self._widths.low()
+        return squeezed and bar.close > mean + 2 * dev
+
+
 class CloseOverEmas(Block):
     """Fires on a close over both the `n`-bar and the `slow`-bar exponential average of the
     close, this bar's included; not before both are seeded."""

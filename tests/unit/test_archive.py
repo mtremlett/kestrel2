@@ -257,7 +257,9 @@ def test_a_refusing_archive_is_backed_off_from_and_told_in_archive_json(
     monkeypatch.setenv("KESTREL2_DATA", str(tmp_path))
     waits: list[float] = []
     monkeypatch.setattr("time.sleep", waits.append)
-    turned = [HTTPError("u", 429, "slow", Message(), None), URLError("down")]
+    told = Message()
+    told["Retry-After"] = "9"
+    turned = [HTTPError("u", 429, "slow", told, None), URLError("down")]
 
     def once(_address: str) -> bytes:
         if turned:
@@ -268,7 +270,7 @@ def test_a_refusing_archive_is_backed_off_from_and_told_in_archive_json(
     state = tmp_path / "archive.json"
     assert archive._ask("x") == b"{}"  # noqa: SLF001
     assert json.loads(state.read_text("utf-8")) == {"refusing_since": None}
-    assert waits == [1.0, 5, 1.0, 30, 1.0]  # the pace before each ask, the back-off between
+    assert waits == [1.0, 9, 1.0, 30, 1.0]  # the pace, the back-off (or Retry-After) between
     monkeypatch.setattr(archive, "_once", _fail(URLError("down")))
     with pytest.raises(URLError):
         archive._ask("x")  # noqa: SLF001
@@ -280,3 +282,28 @@ def test_a_refusing_archive_is_backed_off_from_and_told_in_archive_json(
     monkeypatch.setattr(archive, "_once", _fail(HTTPError("u", 404, "", Message(), None)))
     with pytest.raises(HTTPError):
         archive._ask("x")  # noqa: SLF001
+
+
+def test_a_five_minute_answer_is_kept_raw_when_given_a_home_and_a_refused_one_is_not(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    asked: list[str] = []
+
+    def ask(address: str) -> bytes:
+        asked.append(address)
+        return _payload(span="5m")
+
+    monkeypatch.setattr(archive, "_ask", ask)
+    now = MARK + timedelta(hours=7)
+    first = archive.fetch_five(US, now, home=tmp_path)
+    assert archive.fetch_five(US, now, home=tmp_path) == first
+    assert len(asked) == 1  # the kept answer served the second asking
+    assert next((tmp_path / "archive" / "five").rglob("AAA-59d")).read_bytes() == _payload(
+        span="5m"
+    )
+    monkeypatch.setattr(
+        archive, "_ask", lambda _a: _payload(span="1d", symbol="BBB.L", currency="GBp")
+    )
+    with pytest.raises(ValueError, match="bars of 1d"):
+        archive.fetch_five(UK, now, home=tmp_path)
+    assert not list((tmp_path / "archive" / "five").rglob("BBB.L*"))
