@@ -34,10 +34,12 @@ from lab import (
     rung_ci,
     rung_costs,
     rung_cpcv,
+    rung_regimes,
     shuffle,
     stress,
     trials,
     verdict,
+    weather,
 )
 from lab.batch import Bars
 from lab.cell import Cell
@@ -102,6 +104,9 @@ def test_each_cell_is_judged_on_every_rung_and_kept_with_its_reasons_and_trials(
         "stress": stress.judge(own, EDGE, ROOM, {}).judged()[0].name,
         "costs": rung_costs.judge(verdict).answer.name,
         "cpcv": rung_cpcv.judge(verdict).answer.name,
+        "regime": rung_regimes.by_weather(
+            verdict.key.rung(rung_regimes.__name__), verdict.trades, weather.trend(EDGE), ()
+        ).answer.name,
         "shuffle": "THIN",  #: run last, and only on a trial that passed all before it
     }
     assert {name: answer for name, (answer, _) in won["rungs"].items()} == want
@@ -110,10 +115,14 @@ def test_each_cell_is_judged_on_every_rung_and_kept_with_its_reasons_and_trials(
     assert "times 2 trials" in won["rungs"]["luck"][1] and all(w for _, w in won["rungs"].values())
     #: the planted edge passes every rung but its worst fold, too thin to say: so the one
     #: verdict, over every named rung, is THIN. The noise fails; no rung is left in silence
-    assert want == dict.fromkeys(want, "PASS") | {"folds": "THIN", "shuffle": "THIN"}
+    assert want == dict.fromkeys(want, "PASS") | {
+        "folds": "THIN",
+        "regime": "THIN",
+        "shuffle": "THIN",
+    }
     assert (won["answer"], won["every"], lost["answer"]) == ("THIN", False, "FAIL")
     assert lost["rungs"]["first"][0] == lost["rungs"]["market"][0] == "FAIL"
-    assert set(won["unrun"]) == {"reproduce", "regime", "plateau", "unwired"}
+    assert set(won["unrun"]) == {"reproduce", "plateau", "unwired"}
     #: the rungs built in modules the ladder does not yet judge are named, never left in silence
     assert (
         "rung_bootstrap" in won["unrun"]["unwired"] and "declare no RUNG" in won["unrun"]["unwired"]

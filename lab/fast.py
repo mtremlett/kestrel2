@@ -20,7 +20,19 @@ from decimal import Decimal
 import numpy as np
 
 from desk.store import Bar
-from lab.grid import DESK, MARGIN, Bools, Floats, Prices, TooClose, _late, _sure, _windows, prices
+from lab.grid import (
+    DESK,
+    MARGIN,
+    Bools,
+    Floats,
+    Prices,
+    TooClose,
+    _late,
+    _sure,
+    _wilder,
+    _windows,
+    prices,
+)
 from lab.spec import Spec
 
 Params = Mapping[str, int | Decimal]
@@ -177,6 +189,18 @@ def _under_keltner_band(p: Prices, params: Params) -> Bools:
     return _keltner(p, params, upper=False)
 
 
+def _rsi_under(p: Prices, params: Params) -> Bools:
+    """Wilder's `n`-bar RSI of the close under `pct`: a gain over a loss of less than `pct` over
+    `100 - pct`, so `pct * loss - (100 - pct) * gain` is over 0; with no loss the RSI is 100. A
+    change is a close less a close, so it is only as sure as the closes so far are."""
+    n, pct = int(params["n"]), int(params["pct"])
+    change = np.diff(p.close)
+    gain, loss = _wilder(np.maximum(change, 0), n), _wilder(np.maximum(-change, 0), n)
+    low = loss > 0
+    low[low] = _sure(p, (pct * loss - (100 - pct) * gain)[low], p.largest[n:][low], np.inf) > 0
+    return _late(n, low, len(p.close))
+
+
 def _under_close_ago(p: Prices, params: Params) -> Bools:
     return _late(n := int(params["n"]), p.close[n:] < p.close[:-n], len(p.close))
 
@@ -202,6 +226,7 @@ FIRES: Mapping[str, Fire] = {
     "close_at_midpoint": _at_midpoint,
     "close_over_keltner_band": _over_keltner_band,
     "close_under_keltner_band": _under_keltner_band,
+    "rsi_under": _rsi_under,
     "close_under_close_ago": _under_close_ago,
     "close_near_range_low": _near_range_low,
     "close_near_range_high": _near_range_high,
