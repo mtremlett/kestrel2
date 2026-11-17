@@ -9,7 +9,6 @@ from collections.abc import Callable
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
-from typing import TypeVar
 
 import pytest
 from test_reports import CENT
@@ -150,10 +149,9 @@ def test_the_real_stop_is_put_above_the_price_paid_and_sold_or_not_the_line_is_l
     reads, settled, waited = iter([held, held, gone, gone]), list[object](), list[float]()
     monkeypatch.setattr(paper, "read", lambda _door: next(reads))
     monkeypatch.setattr(placing.Paper, "settle", lambda _, *asked: settled.append(asked))
-    adapter = placing.Paper(LISTED, tmp_path, lambda: MON, paper.Door(conformance.CLIENT))
-    fall = conformance._raised(
-        adapter, tmp_path, listed, waited.append, paper.Door(conformance.CLIENT)
-    )
+    door = paper.Door(conformance.CLIENT)
+    adapter = placing.Paper(LISTED, tmp_path, lambda: MON, door)
+    fall = conformance._raised(adapter, tmp_path, listed, waited.append, door)
     fall(run.second)
     # 110.004 and a twentieth, down onto the broker's step, in the broker's pence; once it has
     # sold nothing is held, and the line is left under no stop
@@ -185,9 +183,7 @@ def test_the_real_stop_is_put_above_the_price_paid_and_sold_or_not_the_line_is_l
     monkeypatch.setattr(placing.Paper, "settle", ended)
     fall(run.second)
     assert settled[4:] == [above, (listed, Decimal(0), [], None)]
-    monkeypatch.setattr(
-        paper, "read", lambda _door: gone
-    )  # the buy bought nothing: nothing is sent
+    monkeypatch.setattr(paper, "read", lambda _door: gone)  # the buy bought nothing: no send
     with pytest.raises(ValueError, match="no share of it is held"):
         fall(run.second)
     assert len(settled) == 6
@@ -230,9 +226,9 @@ def _world(
     patch.setattr(paper, "dial", lambda _talk: paper.Account((), ()))
     patch.setattr(listing, "read", lambda _lines, _door: LISTED)
     patch.setattr(
-        clearance, "check", lambda _root, now, door: _checked(door, clearance.Check(now, found))
+        clearance, "check", lambda _root, now, door: _seen(door) or clearance.Check(now, found)
     )
-    patch.setattr(placing, "Paper", lambda _listings, _root, _clock, door: _checked(door, broker))
+    patch.setattr(placing, "Paper", lambda _list, _root, _clock, door: _seen(door) or broker)
     patch.setattr(conformance, "_raised", lambda *_: fall)
     patch.setattr(conformance, "reasons", lambda door: _seen(door) | WHY)
     return broker
@@ -252,22 +248,12 @@ def _at(moment: datetime) -> Callable[[], datetime]:
     return lambda: moment
 
 
-SEEN: list[int] = []  #: the client at the door each time the run asked for the reasons
-
-
-T = TypeVar("T")
-
-
-def _checked(door: paper.Door, answer: T) -> T:
-    """Whatever the fake answers, having noted whose door asked: the run's own, apart."""
-    assert door.apart is not None
-    SEEN.append(door.client)
-    return answer
+SEEN: list[int] = []  #: the client at the door each time the run gave a fake its door
 
 
 def _seen(door: paper.Door) -> dict[str, str]:
     SEEN.append(door.client)
-    return {}
+    return {}  # falsy: a fake that answers `_seen(door) or answer` notes its door and answers
 
 
 def _never(_talk: object) -> None:
