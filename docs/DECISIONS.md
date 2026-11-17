@@ -2045,3 +2045,19 @@ His ruling, Mon 16 Nov 2026, in chat with the coordinator, answering the questio
 options ((a) allow rebase for the batches only, recommended; (b) keep squash only, a batch
 becomes one commit; (c) no batching): "i trust your recommendations." The batching is
 switched on (state\train-batch.on) only after the evening's rehearsal is GO.
+
+## 17 Nov - the desk's file ceiling rises from 80 to 95, by his ruling
+
+In `BUDGET.json`, `product_files` goes from 80 to 95 for phases `3-money-paper` and `4-ladder`.
+`product_lines` stays at 15,000, and every per-file and per-function cap is unchanged.
+
+Why: twelve desk files had reached the 400-line cap (book, conformance, placing, strategy,
+day, bars, running, keeper, command, messenger, simcity, store), and the READY gate creates a
+split card for each, but every split needs one new module and desk/ stood at 80 of 80 files.
+One freed file unblocks one split, and folding enough small modules to free twelve would be
+churn for no gain. Each split is pure restructuring: the file's tests unchanged and no
+behaviour changed.
+
+His ruling, Tue 17 Nov 2026, in chat with runner ops at about 14:20, answering the question
+put by the coordinator with options ((a) raise to 95, recommended; (b) fold small modules to
+make room; (c) leave the twelve waiting): "Option (a)".
