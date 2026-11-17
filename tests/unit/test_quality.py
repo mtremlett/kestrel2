@@ -58,3 +58,14 @@ def test_rolled_bars_are_built_and_a_pulled_bar_that_differs_is_red(tmp_path: Pa
     with bars.writing(path, bars.Source.IBKR) as held:
         held.timed(SPY, "1h", [odd])
     assert "rolled and held differ" in quality.monitor(path, [SPY], refuse, refuse, TODAY)
+
+
+def test_a_session_with_no_30m_bar_between_held_ones_is_named_red(tmp_path: Path) -> None:
+    path = seeded(tmp_path, set())
+    price = Decimal(600)
+    ends = [datetime(2026, 11, d, 15, 0, tzinfo=UTC) for d in (10, 13)]
+    with bars.writing(path, bars.Source.IBKR) as held:
+        held.timed(SPY, "30m", [Timed("30m", t, price, price, price, price, 5) for t in ends])
+    assert quality.thin(path, SPY, TODAY) == [
+        "SPY: 2 sessions with no 30m bar, the first 2026-11-11"
+    ]
