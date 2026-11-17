@@ -9,10 +9,10 @@ from __future__ import annotations
 
 import time
 from collections.abc import Callable, Collection, Sequence
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from typing import BinaryIO, cast
 
-from desk import conformance, paper, venues
+from desk import conformance_tape, paper, venues
 from desk.lines import Line
 from desk.rollup import Candle
 from desk.store import Answer, Bar, Refused
@@ -30,7 +30,12 @@ SIZES = {
     "1m": "1 min", "2m": "2 mins", "5m": "5 mins", "10m": "10 mins", "15m": "15 mins",
     "30m": "30 mins", "1h": "1 hour", "4h": "4 hours", "1d": "1 day", "1wk": "1 week",
 }  # fmt: skip
-
+#: Days back one ask goes, per timeframe: the longest span IBKR gives in one ask for its bar size
+#: (1 min: a day; 2 mins: 2; 5 to 15 mins: a week; 30 mins to 4 hours: a month; daily: a year).
+REACH = {
+    "1m": 1, "2m": 2, "5m": 7, "10m": 7, "15m": 7,
+    "30m": 30, "1h": 30, "4h": 30, "1d": 365, "1wk": 365,
+}  # fmt: skip
 
 #: What an ask gives: a day's bars for the daily and weekly, candles (with their time) for the rest.
 Got = Answer | tuple[Candle, ...]
@@ -127,7 +132,7 @@ def ask(
 def quiet(now: datetime) -> bool:
     """Whether no desk round runs at the moment: the account is the desk's then."""
     at = venues.uk_time(now).time()
-    return not any(start <= at < end for start, end in conformance.ROUNDS)
+    return not any(start <= at < end for start, end in conformance_tape.ROUNDS)
 
 
 def gather(
@@ -149,6 +154,36 @@ def gather(
         return answers
 
     return paper.dial(talk)
+
+
+#: The most lines one call asks the broker for: at PACING, inside the keeper's four minutes.
+MOST = 12
+
+
+def lacks(line: Line, answer: Answer, day: date) -> bool:
+    """The archive gave nothing for a line, or lacks its venue's last session before day."""
+    last = venues.sessions(line.venue, day - timedelta(14), day - timedelta(1))[-1]
+    return isinstance(answer, Refused) or not answer or answer[-1].day < last
+
+
+RECENT = timedelta(days=30)  #: how far back the broker's daily bars are asked to join the archive's
+
+
+def daily(
+    now: datetime, wait: Wait = time.sleep
+) -> Callable[[Sequence[Line], date], dict[Line, Answer]]:
+    """THE KEEPER'S BROKER: the daily bars before a day of the lines (at most MOST) the archive
+    lacks, over one conversation. A broker that cannot be asked (a desk round, no gateway) gives
+    each line a Refused in words, so the line is judged on the archive alone and, if that too
+    lacks it, is parked and named."""
+
+    def ask_all(lines: Sequence[Line], day: date) -> dict[Line, Answer]:
+        try:
+            return gather(lines[:MOST], day, day - RECENT, now, wait)
+        except (Busy, OSError) as err:
+            return {line: Refused(f"the broker was not asked: {err}") for line in lines}
+
+    return ask_all
 
 
 Ask = tuple[Line, str]  #: one line in one timeframe: the unit the pull plans, paces and resumes by
@@ -185,13 +220,13 @@ def run(
     asks: Sequence[Ask],
     keep: Callable[[Line, str, Got], object],
     day: date,
-    since: date,
     now: datetime,
     wait: Wait = time.sleep,
     limit: int | None = None,
 ) -> int:
-    """The pull over the broker's own conversation, as the history reader, paced; not in a desk
-    round (Busy, nothing sent). Returns how many asks were made."""
+    """The pull over the broker's own conversation, as the history reader, paced, each ask going
+    back REACH days of its timeframe; not in a desk round (Busy, nothing sent). Returns how many
+    asks were made."""
     if not quiet(now):
         raise Busy("a desk round runs (08:00-08:30, 14:30-15:00 UK): history is not asked now")
     door = paper.Door(CLIENT)
@@ -200,7 +235,7 @@ def run(
         paper.start(wire, send, door)
 
         def fetch(line: Line, frame: str) -> Got:
-            return ask(wire, send, line, day, since, frame)
+            return ask(wire, send, line, day, day - timedelta(REACH[frame]), frame)
 
         return pull(asks, fetch, keep, wait, limit)
 

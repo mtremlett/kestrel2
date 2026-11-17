@@ -66,6 +66,8 @@ def test_an_auction_price_just_outside_the_range_stretches_it(
     bars = list(_bars(US))
     bars[4] = near(bars[4])
     assert _parked(tmp_path, tuple(bars)) == []
+    noted = [f for f in store.faults(tmp_path, US.symbol) if "stretched" in f]
+    assert len(noted) == 1 and noted[0].startswith(f"{bars[4].day} ")
     kept = store.read(tmp_path, US.symbol)[4]
     assert (kept.open, kept.close) == (bars[4].open, bars[4].close)
     assert (kept.low, kept.high) == (
