@@ -7,7 +7,7 @@ from datetime import timedelta
 from pathlib import Path
 
 import pytest
-from test_conformance import MON, _run_soak, _the_desks_own_client_again, _world  # noqa: F401
+from test_conformance import MON, _run_soak, _world
 
 from desk import conformance_soak
 
