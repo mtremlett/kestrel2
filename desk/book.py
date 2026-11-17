@@ -238,6 +238,21 @@ def _record(root: Path, new: Iterable[Fill]) -> None:
         keep(root / LEDGER, [COLUMNS, *(astuple(fill) for fill in latest.values())])
 
 
+def strangers(root: Path, broker: Broker) -> tuple[tuple[str, int], ...]:
+    """THE POSITIONS THE DESK DID NOT MAKE: each name the broker holds more shares of than
+    the book, and those shares (whole ones; a part share is for a hand to look at)."""
+    more = differences(positions(root), broker.holdings())
+    return tuple((d.name, int(d.broker) - d.book) for d in more if d.broker > d.book)
+
+
+def adopt(root: Path, line: Line, shares: int, price: Decimal, on: date) -> None:
+    """Write a stranger's shares into the ledger as bought on the day at price (the line's last
+    close, the broker having given none) under an order of the stranger's own, so the book is
+    the broker's and a sale of them can be sent."""
+    order_id = f"{on:%Y%m%d}-stranger-{line.symbol}"
+    _record(root, [Fill(f"stranger-{on}-{line.symbol}", order_id, line.symbol, shares, price, on)])
+
+
 def collect(root: Path, broker: Broker) -> None:
     """Write in the ledger every fill the broker gives that it lacks."""
     _record(root, broker.fills())
@@ -259,9 +274,17 @@ def _compare(root: Path, broker: Broker) -> Reckoning:
     return ours, tuple(sorted(shares | {d.name for d in stops})), shares, stops
 
 
-def reckon(root: Path, broker: Broker) -> Reckoning:
-    """The book, the lines that differ, those whose shares do, the stops that do: one reading."""
-    return _compare(root, broker)
+def reckon(root: Path, broker: Broker, on: date | None = None) -> Reckoning:
+    """The book, the lines that differ, those whose shares do, the stops that do: one reading.
+    Given a day, its differing lines also name the strangers the desk met on it (adopted): that
+    day's book was not the broker's this morning, whatever the sale did."""
+    held, differ, unsure, stops = _compare(root, broker)
+    return held, tuple(sorted({*differ, *adopted(root, on)})), unsure, stops
+
+
+def adopted(root: Path, on: date | None) -> set[str]:
+    """The lines on which the desk took in a position it did not make, on that day."""
+    return {f.symbol for f in fills(root) if f.day == on and f.execution_id.startswith("stranger-")}
 
 
 def differences(

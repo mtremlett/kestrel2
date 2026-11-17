@@ -115,6 +115,12 @@ class Line:
 #: are exactly a hundredth of them, pounds where the later ones are pence; the archive's
 #: jump (x489.5) is that hundred and a market that rose fivefold, over a gap of 432 sessions.
 #: Scaled by 500 they stood 5 times too high; so the line starts on 22 August 2024.
+#: SGLN's garbled months of 2011 (17 November 2026): from its listing on 8 April to 10 October
+#: the archive mixes in 20 flat bars of no volume in dollars (29.36 to 33.18), each the pound's
+#: price times that day's pound in dollars, among the pound bars (17.86 to 23.58) that trade;
+#: Stooq's store starts in 2015, so no second source reaches them. With the pound held the
+#: store would keep the first dollar bars and drop the pounds after, so the line starts on
+#: 11 October 2011, the first day after the last of them; the older pound bars are dropped.
 #: 2MU's box (17 November 2026): the four moves below are the only ones the store parks it
 #: for, and each is needed (without one, that day parks it). Stooq's closes of 26 September
 #: and 19 December 2024 and 4 April 2025 are the archive's to the penny. 5 August 2024 is a
@@ -145,7 +151,7 @@ ISINS = dict(
     ).split()
 )
 #: Where each line's bars start, once the archive's older ones are in another unit (above).
-STARTS = {"5QQQ": date(2024, 8, 22)}
+STARTS = {"5QQQ": date(2024, 8, 22), "SGLN": date(2011, 10, 11)}
 #: Each line's underlying market and the factsheet (or company) that names it, never the ticker.
 UNDERLYING = {
     "3LGO": ("GOLD", "WisdomTree 3x Daily Long Gold factsheet"),
