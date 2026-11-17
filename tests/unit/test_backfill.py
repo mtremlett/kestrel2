@@ -86,20 +86,18 @@ def test_the_brokers_pence_are_turned_into_pounds_on_entry() -> None:
     assert backfill.in_currency(Refused("no data"), 100) == Refused("no data")
 
 
-def test_the_brokers_ask_reaches_the_gateway_as_the_history_reader_and_sets_no_global(
+def test_the_brokers_ask_reaches_the_gateway_as_the_history_reader_through_its_own_door(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     doors: list[paper.Door] = []
 
-    def start(_wire: object, _send: object, door: paper.Door | None = None) -> int:
-        doors.append(door or paper.current())
+    def start(_wire: object, _send: object, door: paper.Door) -> int:
+        doors.append(door)
         raise ConnectionRefusedError("the fake gateway has heard the knock")
 
     monkeypatch.setattr(paper, "dial", lambda talk: talk(BytesIO(), lambda _b: None))
     monkeypatch.setattr(paper, "start", start)
-    before = (paper.CLIENT, paper.APART)
     ask = backfill._broker(tmp_path, datetime(2026, 11, 17, 12, tzinfo=UTC))
     with pytest.raises(ConnectionRefusedError):
         ask(LINES[0], date(2026, 11, 13))
     assert doors == [paper.Door(history.CLIENT)]
-    assert before == (paper.CLIENT, paper.APART)
