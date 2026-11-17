@@ -51,7 +51,7 @@ def _surface(edge: Edge | str, *axes: tuple[int, ...]) -> dict[Setting, Verdict]
 def _none(rule: str) -> Verdict:
     """One trade: no standard errors at all, so it fails and stands lowest."""
     whole = _verdict(PASS, rule)
-    return rung.verdict(whole.key, whole.trades[:1])
+    return rung.verdict(Key(whole.key.cell, "code", "data"), whole.trades[:1])
 
 
 def _square(setting: Setting) -> str:
