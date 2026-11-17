@@ -81,21 +81,40 @@ def built(venue: str, candles: Iterable[Candle], frame: str) -> list[Candle]:
     return made
 
 
-def roll(path: Path, line: Line, now: datetime) -> int:
-    """Build the line's 1h, 4h and weekly bars from the 30-minute and daily bars the database
-    holds and add them: a bar already held, pulled or not, stays. Says how many landed."""
+def _made(path: Path, line: Line, now: datetime) -> dict[str, list[Candle]]:
+    """The line's 1h, 4h and weekly bars as built from the 30-minute and daily bars held."""
     halves = [Candle(b.start, b.open, b.high, b.low, b.close, b.volume, "ibkr")
               for b in bars.timed(path, line, "30m", EPOCH, now)]  # fmt: skip
     days = [Candle(datetime.combine(b.day, time(), UTC), b.open, b.high, b.low, b.close, b.volume,
                    "ibkr") for b in bars.daily(path, line)]  # fmt: skip
-    with bars.writing(path, bars.Source.ROLLUP_30M) as hourly:
-        landed = sum(
-            hourly.timed(line, f, (_timed(f, c) for c in built(line.venue, halves, f)))
-            for f in HOURLY
-        )
-    with bars.writing(path, bars.Source.ROLLUP_1D) as weekly:
-        weeks = rollup.weekly(line.venue, days)
-        return landed + weekly.timed(line, "1wk", (_timed("1wk", c) for c in weeks))
+    made = {f: built(line.venue, halves, f) for f in HOURLY}
+    return {**made, "1wk": rollup.weekly(line.venue, days)}
+
+
+def roll(path: Path, line: Line, now: datetime) -> int:
+    """Build the line's 1h, 4h and weekly bars from the 30-minute and daily bars the database
+    holds and add them: a bar already held, pulled or not, stays. Says how many landed."""
+    made = _made(path, line, now)
+    landed = 0
+    for source, frames in ((bars.Source.ROLLUP_30M, HOURLY), (bars.Source.ROLLUP_1D, ("1wk",))):
+        with bars.writing(path, source) as round_:
+            landed += sum(round_.timed(line, f, (_timed(f, c) for c in made[f])) for f in frames)
+    return landed
+
+
+def clashes(path: Path, line: Line, now: datetime) -> list[str]:
+    """A fault for each bar built that a bar already held for its moment does not match in
+    open, high, low or close (a pulled bar stays; the disagreement is recorded)."""
+    faults = []
+    for frame, candles in _made(path, line, now).items():
+        have = {b.start: b for b in bars.timed(path, line, frame, EPOCH, now)}
+        for c in candles:
+            one = have.get(c.start)
+            if one and (one.open, one.high, one.low, one.close) != (c.open, c.high, c.low, c.close):
+                faults.append(
+                    f"{line.symbol} {frame} {c.start:%Y-%m-%d %H:%M}: rolled and held differ"
+                )
+    return faults
 
 
 def held(path: Path, lines: Iterable[Line]) -> set[Ask]:
@@ -124,10 +143,12 @@ def main(home: Path, now: datetime, wanted: Sequence[str]) -> int:
         lines = [line for line in LINES if line.symbol in units]  # else its unit is unknown
         asks = history.plan(lines, held(path, lines))
         made = history.run(asks, keeper(path, units), now.date(), now, limit=limit)
+        faults = [f for line in lines for f in clashes(path, line, now)]
         rolled = sum(roll(path, line, now) for line in lines)
     except history.Busy as busy:
         sys.stderr.write(f"{busy}\n")
         return 1
+    sys.stderr.writelines(f"FAULT {f}\n" for f in faults)
     sys.stdout.write(f"{made} asks made, {len(asks) - made} to go, {rolled} rolled\n")
     return 0
 
