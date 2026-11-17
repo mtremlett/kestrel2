@@ -24,25 +24,24 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-import smtplib
 import sqlite3
-import ssl
 from collections.abc import Callable, Iterator, Mapping
 from contextlib import closing, contextmanager
 from dataclasses import dataclass
 from datetime import datetime, time, timedelta
-from decimal import Decimal
-from email.message import EmailMessage
 from http.client import HTTPException
 from pathlib import Path
 from urllib.error import HTTPError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
-from desk import book, clearance, day, gateway, halt, kill, venues
+from desk import book, gateway, venues
 from desk.gateway import Known
 from desk.lines import LINES
-from desk.orders import Refused
+from desk.messenger_parts import SECONDS as SECONDS
+from desk.messenger_parts import Mail, _gate, _state, stops
+from desk.messenger_parts import Undelivered as Undelivered
+from desk.messenger_parts import smtp as smtp
 from desk.supervisor import WAIT
 
 MESSAGES = "messages.db"
@@ -61,7 +60,7 @@ HOST = "api.telegram.org"
 #: name and never reaches an address, where an error could show it.
 SECRETS = ("TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID")
 BOT_KEY = re.compile(r"[0-9]+:[A-Za-z0-9_-]+")
-SECONDS, READ, LIMIT = 30, 65536, 4096  #: wait per step, most bytes read, most characters sent
+READ, LIMIT = 65536, 4096  #: most bytes read, most characters sent
 CUT = " ... (cut short here: the whole of it is on the desk's delivery record)"
 SILENT = (
     "THE DESK IS SILENT. Its {} message for {:%a %d %b} was owed by {:%H:%M} UK and is not on "
@@ -73,12 +72,7 @@ CLEAR = (
 )
 STALE = "The paper Gateway was not ready just now, so this is the desk's ledger as last read ({}). "
 Post = Callable[[str], int]  #: the door: words to his phone, Telegram's number for them back
-Mail = Callable[[str, str], None]  #: the email door: a subject and the words, or Undelivered
-SMTP, DOWN = ("SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASS", "SMTP_TO"), 2  #: DOWN: strikes
-
-
-class Undelivered(Exception):
-    """The door did not take a message: it has no number on the record, and is asked again."""
+DOWN = 2  #: strikes
 
 
 def _sound(at: datetime, name: str, text: str) -> None:
@@ -208,54 +202,6 @@ def _goes(daily: Daily, now: datetime) -> tuple[str | None, str]:
     return (name if daily.start <= local.time() < SLEEPS else None), opens
 
 
-def stops(root: Path, now: datetime, known: Known) -> tuple[str, ...]:
-    """What the desk can ask before the open that would stop every order today, each in the
-    words of whoever would refuse it: the kill switch on, no drill of it within its month,
-    today's check of the paper account not clean, the gateway not ready. The send path
-    also asks what the broker lists (desk/placing.py)."""
-    try:
-        clearance.require(root, now, "today's orders")
-        unchecked = None
-    except Refused as refusal:
-        unchecked = str(refusal)
-    drilled = kill.drilled(root, now.date())
-    undrilled = f"the kill switch was not drilled in the last {kill.DRILL_DAYS} days"
-    reasons = (book.killed(root), None if drilled else undrilled, unchecked)
-    return (*filter(None, reasons), *(() if known else (known.words,)))
-
-
-def _state(root: Path) -> str:
-    """What the desk holds, by its ledger, and the last day it published a record of."""
-    held = ", ".join(f"{symbol} {shares}" for symbol, shares in book.positions(root).items())
-    kept = day.records(root)
-    if not kept:
-        return f"Held: {held or 'nothing'}. No day is on the desk's record yet."
-    last, since = kept[-1], ""
-    if last.profit is None:
-        told = f"no profit published, the book is not the broker's on {', '.join(last.mismatches)}"
-    else:
-        since = ", with the withheld days before it" if any(r.mismatches for r in kept[-2:]) else ""
-        told = (
-            f"after £{last.costs.total:,.2f} of costs the book {_made(last.profit)}; simply "
-            f"holding the market would have {_made(last.market)}"
-        )
-    return f"Held: {held or 'nothing'}. The last day on record, {last.day:%a %d %b}{since}: {told}."
-
-
-def _gate(root: Path) -> str:
-    """The kill switch's state and the halts in force, read only."""
-    on = (
-        "; ".join(f"in force since {h.at:%Y-%m-%d %H:%M} UTC" for h in halt.in_force(root))
-        or "none"
-    )
-    killed = (book.killed(root) or "off").replace("the kill switch is ", "")
-    return f"Kill: {killed}; halts: {on}."
-
-
-def _made(amount: Decimal) -> str:
-    return f"{'lost' if amount < 0 else 'made'} £{abs(amount):,.2f}"
-
-
 def morning(root: Path, now: datetime, known: Known, post: Post) -> Delivery | None:
     """THE MORNING MESSAGE, once on each day a venue trades, from the hour he wakes: whether
     anything the desk can ask stops today's orders (stops), as of the moment it says; what it
@@ -324,37 +270,6 @@ def watch(root: Path, now: datetime, post: Post) -> tuple[Delivery, ...]:
         for daily, name, at in owed
         if name and at.time() >= daily.owed and (name,) not in taken
     )
-
-
-def smtp(env: Mapping[str, str]) -> Mail:
-    """THE EMAIL DOOR, from the five SMTP_ settings of the environment (one missing is refused
-    by name, never shown). A server that refuses is Undelivered, in words that never hold the
-    password. Port 465 speaks TLS from the first byte, any other starts it by STARTTLS."""
-    if missing := [name for name in SMTP if not env.get(name, "").strip()]:
-        raise ValueError(f"no {' or '.join(missing)} in the desk's environment: his to set")
-    host, port, user, secret, to = (env[name].strip() for name in SMTP)
-    tls_first = port == "465"
-
-    def mail(subject: str, text: str) -> None:
-        note, tls = EmailMessage(), ssl.create_default_context()
-        note["Subject"], note["From"], note["To"] = subject, user, to
-        note.set_content(text)
-        try:
-            server = (
-                smtplib.SMTP_SSL(host, 465, timeout=SECONDS, context=tls)
-                if tls_first
-                else (smtplib.SMTP(host, int(port), timeout=SECONDS))
-            )
-            with server:
-                if not tls_first:
-                    server.starttls(context=tls)
-                server.login(user, secret)
-                server.send_message(note)
-        except (OSError, smtplib.SMTPException) as lost:
-            why = f"{type(lost).__name__}: {lost}".replace(secret, "(his password)")
-            raise Undelivered(f"{host} did not take the email: {why[:200]}") from None
-
-    return mail
 
 
 def _mailed(root: Path, now: datetime, name: str, text: str, mail: Mail) -> None:
