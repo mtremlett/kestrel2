@@ -188,7 +188,8 @@ def _round(desk: Desk, broker: placing.Paper, venue: str, now: datetime) -> None
     resting stop is moved to 10% under its own fill, once (restop). A desk that dies
     in the round runs it again: the send path asks the broker of each order first."""
     today = now.date()
-    saved, out, last = _fit(desk.held(today), venue, today)
+    kept = desk.held(today)
+    saved, out, last = _fit(kept, venue, today)
 
     def tell(
         name: str, words: str
@@ -201,8 +202,28 @@ def _round(desk: Desk, broker: placing.Paper, venue: str, now: datetime) -> None
         f"{s.order_id}, {s.filled} shares done" + f" ({s.reason})" * bool(s.reason) for s in sent
     ]
     words = f"{VENUES[venue]}, today's orders: {'; '.join(said) or 'none sent in this round'}."
+    held = _held_out(desk.root, out, kept[1], last)
+    out = [symbol for symbol in out if symbol not in held]
     left = f" Left out, parked or with no bar of {last:%a %d %b}: {', '.join(out)}."
-    _note(desk.root, now, ORDERS.format(venue), words + left * bool(out))
+    _note(desk.root, now, ORDERS.format(venue), words + left * bool(out) + "".join(held.values()))
+
+
+def _held_out(
+    root: Path, out: Sequence[str], parked: Collection[str], last: date
+) -> dict[str, str]:
+    """Of the lines left out, those the desk HOLDS, each with its sentence: why its sell rule
+    was not checked today, and the level its stop rests at (R-RUNNER-312)."""
+    held, levels, buys = book.positions(root), book.levels(root), dict[str, str]()
+    for fill in book.fills(root):
+        if fill.quantity > 0:
+            buys[fill.symbol] = fill.order_id
+    why = {s: "parked by the store" if s in parked else f"no bar of {last:%a %d %b}" for s in out}
+    return {
+        s: f" {s} held, not judged today: {why[s]}; its stop rests at "
+        f"{levels.get(f'{buys[s]}-stop', 'a level the desk has not kept')}."
+        for s in out
+        if held.get(s)
+    }
 
 
 def _owed(root: Path, now: datetime) -> list[date]:
