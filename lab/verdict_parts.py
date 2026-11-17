@@ -10,6 +10,7 @@ from typing import Any
 
 from lab.rung import Answer
 
+INCUBATE = "INCUBATE"  #: a basket's answer that is paper only, never PASS (`lab/verdict.py`)
 STATUS = "PRE-REVIEW"  #: what every table is until the blind review (R-RUNNER-40) is clean
 COLUMNS = ("rule", "line", "venue", "answer", "rungs", "trials", "reproduction", "goes forward")
 Row = Mapping[str, Any]  #: a cell's line in the results file
@@ -64,7 +65,8 @@ def write_table(
     data: dict[str, object] = {"set": tag, "question": question, "status": STATUS}
     data |= {"cells": len(rows), "trials": count, "refused": sum("refused" in r for r in rows)}
     data |= {"rungs_built": built[0], "rungs": built[1]}
-    data |= {"rules": [_rule(r, rs) for r, rs in mine.items()]}
+    apart = [r["cell"][0] for r in rows if r.get("answer") == INCUBATE]
+    data |= {"incubate": apart, "rules": [_rule(r, rs) for r, rs in mine.items()]}
     (folder / f"{tag}.json").write_text(json.dumps(data, indent=1), encoding="utf-8")
     #: the register is never shortened: a trial an earlier run of the set entered stays counted
     said = f"Cells: {len(rows)}. Each is judged against {count} trials, all its register ever held."
@@ -80,5 +82,8 @@ def write_table(
                 "| " + " | ".join(c.replace("|", "/").replace("\n", " ") for c in cells) + " |"
             )
         out.append("")
+    if apart:
+        out += [f"## {INCUBATE}: paper only, never a PASS, listed apart", ""]
+        out += [f"- {rule}: all lines pooled" for rule in apart] + [""]
     (path := folder / f"{tag}.md").write_text("\n".join(out), encoding="utf-8")
     return path
