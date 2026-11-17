@@ -50,7 +50,7 @@ MARKET = {
 }
 
 ARCHIVE_LINES = {line.symbol: line for line in ARCHIVE}
-FIVE = Settings(Decimal(10_000), new_lines=5)
+FIVE = Settings(Decimal(10_000), new_lines=5, correlation=Decimal(2))  #: A to D, F move alike
 
 
 def _trade(root: Path, broker: Restopping, on: date) -> tuple[book.Sent, ...]:

@@ -30,7 +30,19 @@ SIZES = {
     "1m": "1 min", "2m": "2 mins", "5m": "5 mins", "10m": "10 mins", "15m": "15 mins",
     "30m": "30 mins", "1h": "1 hour", "4h": "4 hours", "1d": "1 day", "1wk": "1 week",
 }  # fmt: skip
-
+#: Days back one ask goes, per timeframe: the longest span IBKR gives in one ask for its bar size
+#: (1 min: a day; 2 mins: 2; 5 to 15 mins: a week; 30 mins to 4 hours: a month; daily: a year).
+REACH = {
+    "1m": 1, "2m": 2, "5m": 7, "10m": 7, "15m": 7,
+    "30m": 30, "1h": 30, "4h": 30, "1d": 365, "1wk": 365,
+}  # fmt: skip
+#: Pages one pull walks back, each REACH days before the one after it, stopping at the first the
+#: broker gives nothing for or refuses: IBKR's deepest history per bar size (1 min: a month;
+#: 2 to 15 mins: half a year; 30 mins to 4 hours: two years; daily and weekly: twenty years).
+PAGES = {
+    "1m": 30, "2m": 90, "5m": 26, "10m": 26, "15m": 26,
+    "30m": 25, "1h": 25, "4h": 25, "1d": 20, "1wk": 20,
+}  # fmt: skip
 
 #: What an ask gives: a day's bars for the daily and weekly, candles (with their time) for the rest.
 Got = Answer | tuple[Candle, ...]
@@ -211,17 +223,35 @@ def pull(
     return made
 
 
+def back(wire: BinaryIO, send: paper.Send, line: Line, frame: str, day: date, wait: Wait) -> Got:
+    """One line's bars of a timeframe as far back as the broker gives: PAGES pages of REACH days,
+    each before the last, PACING apart. The first page refused is the answer; a later page
+    refused or empty ends the walk, the pages already had kept."""
+    found: list[Bar | Candle] = []
+    for page in range(PAGES[frame]):
+        end = day - timedelta(REACH[frame] * page)
+        if page:
+            wait(PACING)
+        got = ask(wire, send, line, end, end - timedelta(REACH[frame]), frame)
+        if not isinstance(got, tuple) and not found:
+            return got
+        if not isinstance(got, tuple) or not got:
+            break
+        found.extend(got)
+    return cast(Got, tuple(found))
+
+
 def run(
     asks: Sequence[Ask],
     keep: Callable[[Line, str, Got], object],
     day: date,
-    since: date,
     now: datetime,
     wait: Wait = time.sleep,
     limit: int | None = None,
 ) -> int:
-    """The pull over the broker's own conversation, as the history reader, paced; not in a desk
-    round (Busy, nothing sent). Returns how many asks were made."""
+    """The pull over the broker's own conversation, as the history reader, paced, each ask going
+    back as far as the broker gives (PAGES); not in a desk round (Busy, nothing sent). Returns
+    how many asks were made."""
     if not quiet(now):
         raise Busy("a desk round runs (08:00-08:30, 14:30-15:00 UK): history is not asked now")
     door = paper.Door(CLIENT)
@@ -230,7 +260,7 @@ def run(
         paper.start(wire, send, door)
 
         def fetch(line: Line, frame: str) -> Got:
-            return ask(wire, send, line, day, since, frame)
+            return back(wire, send, line, frame, day, wait)
 
         return pull(asks, fetch, keep, wait, limit)
 

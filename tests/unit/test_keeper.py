@@ -299,7 +299,6 @@ def test_nothing_is_asked_on_a_day_no_venue_trades_nor_once_the_calls_time_is_sp
         raise ConnectionRefusedError("no gateway in a test")
 
     monkeypatch.setattr(paper, "dial", no_gateway)
-    monkeypatch.setattr(paper, "CLIENT", paper.CLIENT)  # the live ask makes this process its reader
     assert keeper.main(tmp_path / "real", _at(9)) == 1  # the command itself, the archive away
     out, err = capsys.readouterr()
     assert len(out.splitlines()) == 4 and "parked live, not traded" in out
