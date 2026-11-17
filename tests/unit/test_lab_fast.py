@@ -99,6 +99,7 @@ def test_the_fast_engine_has_a_firing_for_every_block_that_needs_no_position() -
     assert {*fast.FIRES, *fast.DATED, *fast.VOLUMED} == set(blocks.BLOCKS) - {
         "trailing_stop",
         "time_stop",
+        "under_entry_low",
     }
 
 

@@ -16,7 +16,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from lab.market import fit
-from lab.rung import MIN_TRADES, T_PASS, Answer
+from lab.rung import MIN_TRADES, Answer, band
 
 
 def judge(own: Sequence[float], market: Sequence[float]) -> Answer:
@@ -25,7 +25,4 @@ def judge(own: Sequence[float], market: Sequence[float]) -> Answer:
         return Answer.FAULT
     if len(own) < MIN_TRADES:
         return Answer.THIN
-    t = fit(own, market).t
-    if t >= T_PASS:
-        return Answer.PASS
-    return Answer.FAIL if t <= -T_PASS else Answer.DOUBT
+    return band(fit(own, market).t)

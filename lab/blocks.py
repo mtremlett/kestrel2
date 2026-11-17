@@ -32,6 +32,7 @@ from lab.block_months import (
     MonthEndOverAgo,
     MonthEndOverAverage,
 )
+from lab.block_swing import TurtleSoup, UnderEntryLow
 from lab.blocks_parts import BigMove, RisingScore
 from lab.blocks_parts import (
     LogSlope as LogSlope,  # noqa: PLC0414 - re-exported: callers import it from here
@@ -357,6 +358,8 @@ BLOCKS: Mapping[str, Spot] = {
     "close_above_average": Spot(Kind.FILTER, CloseAboveAverage, {"n": _DAYS}),
     "close_over_emas": Spot(Kind.FILTER, CloseOverEmas, {"n": _DAYS, "slow": _DAYS}),
     "close_under_ema": Spot(Kind.EXIT, CloseUnderEma, {"n": _DAYS}),
+    "turtle_soup": Spot(Kind.ENTRY, TurtleSoup, {"n": _DAYS, "gap": _AGO}),
+    "under_entry_low": Spot(Kind.STOP, UnderEntryLow, {}),
     "no_filter": Spot(Kind.FILTER, Always, {}),
     "trend_template": Spot(Kind.FILTER, TrendTemplate, {}),
 }
