@@ -143,6 +143,12 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #689 money-restop: no change, waits on R-MONEY-30. |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #683 money-stranger done: strangers sold (TRD-06) and no signal left unlisted at a death (TST-08); scenes 7 of 7, simcity green. |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #700 money-restop: no change, remainder needs messenger.py and broker.py in the claim. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #698 money-limits: correlation cap (0.90) reaches the gate on the send path; one new test. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #711 no step landed; money-restop's remains (the list reaching him) lie outside its claim (messenger.py). |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #720 no change: money-limits gate wiring already on main (#632, #661, #698); volatility sizing waits on the weather box. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #722 money-restop: claim widened to messenger.py and broker.py (R-MONEY-51); no code. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #726 R-RUNGS-12 re-verified met on main (#185); no scene moved. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #728 no change: MONEY has no unclaimed box. |
 
 ### DATA
 
@@ -285,6 +291,16 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #702 stretched bars recorded beside the bar, no new parking (data-stretched) |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #701 R-RUNNER-270 done: keeper command wired to IBKR first, archive fills what the broker lacks. |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #703 history pull asks each timeframe within IBKR's per-ask span (R-RUNNER-216, step 5) |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #691 data-deep-history: daily history asked back to 2000 (SINCE), calendar years confirmed. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #671 data-polite: six-hour refusal alert added to the archive client (DAT-08). |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #710 R-RUNNER-216 step: history pull walks each timeframe back page by page (+31 product lines). |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #715 R-RUNNER-269 done: data-lane tests free of the gateway globals. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #719 R-RUNNER-279 done: broker daily bars reach the keeper in the line's currency. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #721 one rule instead of one start date: SGLN's 2011 filler bars drop by volume, not by symbol (R-RUNNER-274, -275). |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #725 history pull stores prices in the line's currency (R-RUNNER-216, step). |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #727 R-RUNNER-277 done: live keeper starts lines with no one-minute history. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #730 R-RUNNER-280 step 1 of 2: live round helper `keeper_live.rounds` and its test. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #732 data-archive-spared finished: a refusing archive is not re-asked per line; five-minute answers cached in KESTREL2_DATA. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 

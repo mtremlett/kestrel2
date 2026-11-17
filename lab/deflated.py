@@ -143,6 +143,11 @@ def best_by_luck(spread: float, trials: int) -> float:
     return -math.sqrt(spread) * (best + _EULER * _NORMAL.inv_cdf(1 / (trials * math.e)))
 
 
+def per_trade(t: float, trades: int) -> float:
+    """The Sharpe a trade: the first rung's standard errors (its t) over the root of the trades."""
+    return t / math.sqrt(trades)
+
+
 def believe(chance: float) -> Answer:
     """The answer on a deflated Sharpe's chance, on the bands fixed beforehand."""
     return Answer.PASS if chance >= PASS else Answer.DOUBT if chance >= FAIL else Answer.FAIL
@@ -169,8 +174,7 @@ def _deflated(corrected: Corrected, looks: Clustered | None) -> Deflated:
     if verdict.t is None:
         return Deflated(corrected, None, None, None, 0.0)
     gains = [float(gain) for gain in verdict.gains]
-    #: the first rung's standard errors are the Sharpe times the root of the trades
-    sharpe = float(verdict.t) / math.sqrt(len(gains))
+    sharpe = per_trade(float(verdict.t), len(gains))
     if looks is None:
         bar = best_by_luck(1 / (len(gains) - 1), corrected.trials)
     else:

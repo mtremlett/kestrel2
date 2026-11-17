@@ -70,3 +70,17 @@ def test_the_weather_cuts_trades_by_the_trend_state_they_were_bought_in() -> Non
     assert rung_regimes.by_weather(KEY, priced, warming).answer is Answer.THIN
     with pytest.raises(KeyError):
         rung_regimes.by_weather(KEY, priced, {})
+
+
+def test_volatility_labels_are_the_hand_worked_ones_and_future_blind(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(weather, "VOL_WINDOW", 2)
+    monkeypatch.setattr(weather, "VOL_RANK", 2)
+    closes = (100, 100, 100, 100, 110, 100, 100, 100)
+    #: deviations of two returns from day 2: 0, 0, 5%, 9.5%, 4.5%, 0, each against the 2 before
+    by_hand = ["warming"] * 4 + ["stormy", "stormy", "calm", "calm"]
+    labels = weather.volatility(_bars(*closes))
+    assert list(labels.values()) == by_hand
+    for t in range(len(closes)):
+        assert weather.volatility(_bars(*closes[: t + 1])) == dict(list(labels.items())[: t + 1])

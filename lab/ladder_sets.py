@@ -24,7 +24,7 @@ from lab.batch import Bars
 from lab.cell import Cell
 from lab.ladder import END, FOLDER, START, Plan, _last, _whole, eponymous, run
 from lab.ladder_parts import FAILED, Shared, _made, _resolve
-from lab.rung import Rates
+from lab.rung import Answer, Rates
 
 EPON = Plan("EPON", "set EPON: does an eponymous rule earn on a line the store holds?", "EPON")
 LEV = Plan("LEV", "set LEV: does a trend rule earn on a leveraged line the store holds?", "LEV")
@@ -140,17 +140,21 @@ def baskets(
     cannot be read or that the sizing refuses is left out), charged the rule's family of trials."""
     shared, rows = Shared(todo), list[verdict.Row]()
     for rule in rules:
-        firsts = []
+        firsts, stresses = [], []
         for c in (one for one in todo if one.strategy == rule):
             try:
                 made, own, _ = _resolve(c, bars)
-                firsts.append(verdict.ready(made, own, pounds, _made(rule, shared, bars)))
+                first = verdict.ready(made, own, pounds, _made(rule, shared, bars))
+                firsts.append(first)
+                if not first.refused:
+                    stresses.append(verdict.stress_answer(made, own, pounds))
             except FAILED:
                 continue
         firsts = [first for first in firsts if not first.refused]
+        stressed = next((a for a in stresses if a is not Answer.PASS), Answer.PASS)
         if firsts:
             family = trials.family(home / FOLDER / f"{plan.stem}.trials.jsonl", plan.question, rule)
-            rows.append(basket.row(plan.tag, rule, firsts, family))
+            rows.append(basket.row(plan.tag, rule, firsts, family, stressed))
     return rows
 
 
