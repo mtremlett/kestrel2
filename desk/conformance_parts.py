@@ -11,7 +11,7 @@ from decimal import Decimal
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from desk import archive, book, day, venues
+from desk import archive, book, day, keeper, venues
 from desk.broker import Broker, Pretend
 from desk.command import CAPITAL
 from desk.halt import Blocker
@@ -57,17 +57,30 @@ def _named(line: Line, today: date, name: str) -> Decision:
     return Decision(name, line.symbol, before, Action.BUY)
 
 
-def _last(line: Line, today: date) -> Bar:
-    """A line's bar of the session before today, from the archive; none, and nothing is sized."""
+def _last(line: Line, today: date, home: Path | None) -> Bar:
+    """A line's bar of the session before today: from the desk's store (the long database, IBKR
+    first) when a home is given, else the archive; none, and nothing is sized."""
     last = _named(line, today, "bar").day
-    bars = [bar for bar in archive.fetch(line, today) if bar.day == last]
+    if home is None:
+        held, source = archive.fetch(line, today), "the archive"
+    else:
+        try:
+            held, source = keeper.saved(home, today, [line])[0][line], "the store"
+        except keeper.Stale as e:
+            raise ValueError(f"{line.symbol}: the store has no bar of {last}: {e}") from e
+    bars = [bar for bar in held if bar.day == last]
     if not bars:
-        raise ValueError(f"{line.symbol}: the archive has no bar of {last}, the session before")
+        raise ValueError(f"{line.symbol}: {source} has no bar of {last}, the session before")
     return bars[-1]
 
 
 def plan(
-    lines: Sequence[Line], refused: Line, today: date, fx: Mapping[str, Decimal], stamp: str
+    lines: Sequence[Line],
+    refused: Line,
+    today: date,
+    fx: Mapping[str, Decimal],
+    stamp: str,
+    home: Path | None = None,
 ) -> Plan:
     """The run's orders: on the line given that traded the most money in its last session,
     sized at its close by the desk's own sizer; and one share of the line to be refused. Every
@@ -75,7 +88,7 @@ def plan(
     word of it, so a second run of a day on the first's ids would send nothing."""
     if not lines:
         raise ValueError("the broker lists no plain line of the market for the run to trade")
-    bars = {line: _last(line, today) for line in lines}
+    bars = {line: _last(line, today, home) for line in lines}
     line = max(bars, key=lambda line: bars[line].close * bars[line].volume * fx[line.currency])
     its = line.venue.lower() + stamp  #: each run names its orders its own: the refusal's too
 
