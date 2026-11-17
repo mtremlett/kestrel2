@@ -96,3 +96,26 @@ def test_a_window_too_thin_holds_the_whole_at_thin_and_a_cut_is_two_windows() ->
     short = _walk(0, 0)[:1]
     with pytest.raises(ValueError, match="two windows"):
         _cell(short)
+
+
+def test_known_answer_thirty_trades_a_window_worked_by_hand() -> None:
+    #: first window: 15 gains of +2% and 15 of 0, mean 1%, spread 1% * sqrt(30/29), so t = sqrt(29)
+    #: = 5.385: PASS. second window: 15 of +1% and 15 of -1%, mean 0, t = 0: FAIL. A trade bought on
+    #: the cut day itself is the second window's: the whole is the least, FAIL
+    def priced(gains: list[str], start: date) -> list[Priced]:
+        days = [(start + timedelta(n),) * 2 for n in range(len(gains))]
+        return [
+            Priced(Trade(*d), 1, Decimal(1), 1 + Decimal(g), FREE, d)
+            for g, d in zip(gains, days, strict=True)
+        ]
+
+    won = priced(["0.02", "0"] * 15, CUT - timedelta(60))
+    flat = priced(["0.01", "-0.01"] * 15, CUT)
+    done = rung_regimes.apart(KEY, [*won, *flat], CUT)
+    assert (len(done.first.trades), len(done.second.trades)) == (30, 30)
+    assert abs(done.first.t - Decimal(29).sqrt()) < Decimal("1e-9") and done.second.t == 0  # type: ignore[operator]
+    assert (done.first.answer, done.second.answer, done.answer) == (
+        Answer.PASS,
+        Answer.FAIL,
+        Answer.FAIL,
+    )
