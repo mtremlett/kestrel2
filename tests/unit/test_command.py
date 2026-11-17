@@ -76,7 +76,9 @@ def _world(patch: pytest.MonkeyPatch, fetch: Fetch = _fetch) -> dict[bytes, Said
     patch.setattr(archive, "fetch", fetch)
     #: IBKR's answer for the pound, by default none: the gateway of the day says it was not asked
     ibkr = {command.POUND: Refused("the broker was not asked")}
-    patch.setattr(history, "daily", lambda _now, home: lambda lines, _day: {n: ibkr[n] for n in lines})
+    patch.setattr(
+        history, "daily", lambda _now, **_kw: lambda lines, _day: {n: ibkr[n] for n in lines}
+    )
 
     def saved(home: Path, day: date) -> tuple[dict[Line, tuple[Bar, ...]], set[str]]:
         ASKED.append((home, day))
