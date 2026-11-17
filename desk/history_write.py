@@ -9,14 +9,14 @@ from __future__ import annotations
 import os
 import sys
 from collections.abc import Callable, Iterable, Mapping, Sequence
-from datetime import UTC, datetime, time
+from datetime import UTC, datetime, time, timedelta
 from pathlib import Path
 
-from desk import bars, history, listing, paper
+from desk import bars, history, listing, paper, rollup, venues
 from desk.history import Ask, Got
 from desk.lines import LINES, Line
 from desk.rollup import Candle
-from desk.spans import Five, Timed
+from desk.spans import EPOCH, SPANS, Five, Timed
 from desk.store import Bar
 
 Keep = Callable[[Line, str, Got], int]
@@ -58,6 +58,46 @@ def keeper(path: Path, units: Mapping[str, int]) -> Keep:
     return keep
 
 
+HOURLY = ("1h", "4h")  #: the timeframes built from held 30-minute bars, not asked of the broker
+HALF = timedelta(minutes=30)
+
+
+def built(venue: str, candles: Iterable[Candle], frame: str) -> list[Candle]:
+    """The venue's 30-minute candles as bars of frame (1h or 4h) on the store's UTC marks: a bar
+    only where every half hour the session holds in its interval is there; none otherwise."""
+    length = timedelta(seconds=SPANS[frame].seconds)
+    groups: dict[datetime, list[Candle]] = {}
+    for one in sorted(candles, key=lambda c: c.start):
+        if venues.sessions(venue, one.start.date(), one.start.date()):
+            groups.setdefault(EPOCH + (one.start - EPOCH) // length * length, []).append(one)
+    made = []
+    for start, group in groups.items():
+        session = venues.hours(venue, start.date())
+        due = [start + HALF * n for n in range(length // HALF)]
+        if [c.start for c in group] == [t for t in due if session.open <= t < session.close]:
+            made.append(Candle(start, group[0].open, max(c.high for c in group),
+                min(c.low for c in group), group[-1].close, sum(c.volume for c in group),
+                bars.Source.ROLLUP_30M.value))  # fmt: skip
+    return made
+
+
+def roll(path: Path, line: Line, now: datetime) -> int:
+    """Build the line's 1h, 4h and weekly bars from the 30-minute and daily bars the database
+    holds and add them: a bar already held, pulled or not, stays. Says how many landed."""
+    halves = [Candle(b.start, b.open, b.high, b.low, b.close, b.volume, "ibkr")
+              for b in bars.timed(path, line, "30m", EPOCH, now)]  # fmt: skip
+    days = [Candle(datetime.combine(b.day, time(), UTC), b.open, b.high, b.low, b.close, b.volume,
+                   "ibkr") for b in bars.daily(path, line)]  # fmt: skip
+    with bars.writing(path, bars.Source.ROLLUP_30M) as hourly:
+        landed = sum(
+            hourly.timed(line, f, (_timed(f, c) for c in built(line.venue, halves, f)))
+            for f in HOURLY
+        )
+    with bars.writing(path, bars.Source.ROLLUP_1D) as weekly:
+        weeks = rollup.weekly(line.venue, days)
+        return landed + weekly.timed(line, "1wk", (_timed("1wk", c) for c in weeks))
+
+
 def held(path: Path, lines: Iterable[Line]) -> set[Ask]:
     """The asks the database already holds bars of from the broker: what a pull has done."""
     done: set[Ask] = set()
@@ -84,10 +124,11 @@ def main(home: Path, now: datetime, wanted: Sequence[str]) -> int:
         lines = [line for line in LINES if line.symbol in units]  # else its unit is unknown
         asks = history.plan(lines, held(path, lines))
         made = history.run(asks, keeper(path, units), now.date(), now, limit=limit)
+        rolled = sum(roll(path, line, now) for line in lines)
     except history.Busy as busy:
         sys.stderr.write(f"{busy}\n")
         return 1
-    sys.stdout.write(f"{made} asks made, {len(asks) - made} to go\n")
+    sys.stdout.write(f"{made} asks made, {len(asks) - made} to go, {rolled} rolled\n")
     return 0
 
 
