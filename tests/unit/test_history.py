@@ -67,6 +67,12 @@ def test_a_line_the_broker_will_not_give_is_refused_in_its_words() -> None:
     assert got == Refused("the broker's 200: No security definition has been found for the request")
 
 
+@pytest.fixture(autouse=True)
+def _client_restored(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The history calls set the door's client for the process; no other test may see it."""
+    monkeypatch.setattr(paper, "CLIENT", paper.CLIENT)
+
+
 def test_a_count_that_does_not_fit_the_bars_is_refused_loudly() -> None:
     wire = conversation(TAPE.replace("|3|", "|4|"))
     paper.start(wire, lambda _: None)
