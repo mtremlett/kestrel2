@@ -47,17 +47,9 @@ PRETEND = {
     "the stop triggered": f"done; fills: {ID.format(3)}-stop -18 at 99.00; held: none; stops: none",
     "the account left as found": f"nothing to put back; {NONE}",
 }
-
-
 #: What the broker's list of the day's ended orders says of two it cancelled: one gives its
 #: words (Monday's tape: the real broker's rejection of SPY, before the gate refused it), one none.
 WHY = {"20261113-conf0lse1005-SPY": "Rejected: no retail trading", "20261113-conf1lse1005-VUAG": ""}
-
-
-@pytest.fixture(autouse=True)
-def _the_desks_own_client_again(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(paper, "CLIENT", paper.CLIENT)  # the command makes it its own: put back
-    monkeypatch.setattr(paper, "APART", None)
 
 
 def _fetch(line: Line, before: date) -> tuple[Bar, ...]:
@@ -242,7 +234,7 @@ def _world(
     patch.setattr(clearance, "check", lambda _root, now: clearance.Check(now, found))
     patch.setattr(placing, "Paper", lambda _listings, _root, _clock: broker)
     patch.setattr(conformance, "_raised", lambda *_: fall)
-    patch.setattr(conformance, "reasons", lambda: dict(WHY))
+    patch.setattr(conformance, "reasons", lambda: _seen() | WHY)
     return broker
 
 
@@ -260,6 +252,14 @@ def _at(moment: datetime) -> Callable[[], datetime]:
     return lambda: moment
 
 
+SEEN: list[int] = []  #: the client at the door each time the run asked for the reasons
+
+
+def _seen() -> dict[str, str]:
+    SEEN.append(paper.CLIENT)
+    return {}
+
+
 def _never(_talk: object) -> None:
     raise AssertionError("the Gateway was dialled")
 
@@ -268,7 +268,9 @@ def test_the_command_records_each_real_result_beside_the_pretend_brokers_once(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     _world(monkeypatch)
-    monkeypatch.setattr(conformance, "reasons", lambda: {k: v for k, v in WHY.items() if k != NO})
+    monkeypatch.setattr(
+        conformance, "reasons", lambda: _seen() | {k: v for k, v in WHY.items() if k != NO}
+    )
     assert _run(tmp_path, MON, "london") == 0
     record = tmp_path / "conformance" / "trades-london-20261116-1005.csv"
     assert f"6 of 6 steps done on VUAG, each recorded beside the pretend broker's in {record}." in (
@@ -283,7 +285,7 @@ def test_the_command_records_each_real_result_beside_the_pretend_brokers_once(
         "",
         f"{ID.format(1)}: {conformance.GIVEN}",
     ]
-    assert paper.CLIENT == conformance.CLIENT == 223  # a client of its own, never the desk's 222
+    assert set(SEEN) == {223} and paper.CLIENT == paper.DESK  # its own client, for the run alone
     assert book.switch(record.parent)[-1][:2] == (MON, book.Switch.DRILLED)  # the day's own drill
     monkeypatch.setattr(paper, "dial", _never)  # nothing asked when nothing is to be done
     assert _run(tmp_path, MON, "us") == 0  # New York is shut at 10:05
@@ -306,7 +308,7 @@ def test_the_why_read_gives_each_cancelled_order_its_reason_but_not_in_a_desk_ro
     for now in (MON.replace(hour=8, minute=15), MON.replace(hour=14, minute=45), MON):
         asked = conformance.main(["--conformance-why"], env, _at(now))
         assert asked == (now.hour != 10)
-    assert paper.CLIENT == 223  # read as the conformance desk, never the desk's 222
+    assert set(SEEN) == {223}  # read as the conformance desk, never the desk's 222
     first, second, said = capsys.readouterr().out.strip().split(chr(10), 2)
     assert "not read now" in first + second  # 08:15 and 14:45 are a desk round's
     assert said == f"{NO}: {WHY[NO]}{chr(10)}{ID.format(1)}: {conformance.GIVEN}"
