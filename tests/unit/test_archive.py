@@ -4,12 +4,14 @@ five-minute bars too, which it forgets after sixty days (DAT-11)."""
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
+from email.message import Message
 from http.client import IncompleteRead
 from pathlib import Path
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 
 import pytest
 
@@ -204,6 +206,7 @@ def test_the_pound_stamped_at_londons_summer_midnight_is_dated_by_the_day_it_ope
 def test_a_kept_answer_is_read_instead_of_asked_again_and_a_refused_one_is_not_kept(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    monkeypatch.delenv("KESTREL2_DATA", raising=False)
     asked: list[str] = []
 
     def ask(address: str) -> bytes:
@@ -239,3 +242,41 @@ def test_an_adjusted_twin_is_asked_by_its_series_name_and_read_with_adjusted_pri
         48_000,
     )
     assert archive.parse(US, json.dumps(answer).encode())[1].close == Decimal("190.5")
+
+
+def _fail(refusal: Exception) -> Callable[[str], bytes]:
+    def once(_address: str) -> bytes:
+        raise refusal
+
+    return once
+
+
+def test_a_refusing_archive_is_backed_off_from_and_told_in_archive_json(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("KESTREL2_DATA", str(tmp_path))
+    waits: list[float] = []
+    monkeypatch.setattr("time.sleep", waits.append)
+    turned = [HTTPError("u", 429, "slow", Message(), None), URLError("down")]
+
+    def once(_address: str) -> bytes:
+        if turned:
+            raise turned.pop(0)
+        return b"{}"
+
+    monkeypatch.setattr(archive, "_once", once)
+    state = tmp_path / "archive.json"
+    assert archive._ask("x") == b"{}"  # noqa: SLF001
+    assert json.loads(state.read_text("utf-8")) == {"refusing_since": None}
+    assert waits == [1.0, 5, 1.0, 30, 1.0]  # the pace before each ask, the back-off between
+    monkeypatch.setattr(archive, "_once", _fail(URLError("down")))
+    with pytest.raises(URLError):
+        archive._ask("x")  # noqa: SLF001
+    since = json.loads(state.read_text("utf-8"))["refusing_since"]
+    assert since
+    with pytest.raises(URLError):
+        archive._ask("x")  # noqa: SLF001
+    assert json.loads(state.read_text("utf-8"))["refusing_since"] == since  # kept while it lasts
+    monkeypatch.setattr(archive, "_once", _fail(HTTPError("u", 404, "", Message(), None)))
+    with pytest.raises(HTTPError):
+        archive._ask("x")  # noqa: SLF001
