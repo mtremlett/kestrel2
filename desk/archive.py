@@ -33,7 +33,7 @@ from desk.store import Bar, Refused
 SOURCE = "https://query1.finance.yahoo.com/v8/finance/chart/"
 SUFFIX = {"LSE": ".L", "US": ""}  #: the archive's name for a line is its symbol and this
 PENCE = {"GBP": "GBp"}  #: the archive's name for a hundredth of a currency
-SINCE = date(2010, 1, 1)  #: the first year the calendar knows
+SINCE = date(2000, 1, 1)  #: the deep daily history begins here, within the calendar
 #: The first session of SPY, the reference series (R-RUNGS-5): the archive holds it from here,
 #: and is asked this far back for a reference series only, never for a line the desk trades.
 REFERENCE_SINCE = date(1993, 1, 29)
@@ -73,7 +73,7 @@ def _address(line: Line, first: int, end: int, span: str) -> str:
 
 
 def address(line: Line, day: date, since: date = SINCE) -> str:
-    """Where every bar of a line from since (2010) up to, and not including, day is asked for."""
+    """Where every bar of a line from since (2000) up to, and not including, day is asked for."""
     return _address(line, _moment(since), _moment(day), DAILY)
 
 
