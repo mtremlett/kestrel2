@@ -76,7 +76,7 @@ def test_what_is_written_is_read_back_exactly_and_each_line_apart(tmp_path: Path
         assert held.execute("PRAGMA journal_mode").fetchone() == ("wal",)
 
 
-def test_a_history_is_replaced_whole_and_five_minute_bars_gather(tmp_path: Path) -> None:
+def test_a_history_is_joined_by_day_and_five_minute_bars_gather(tmp_path: Path) -> None:
     store, days, fives = tmp_path / "bars.db", _days(30), _fives(30)
     with bars.writing(store, Source.ARCHIVE) as round_:
         round_.daily(US, days)
@@ -87,14 +87,47 @@ def test_a_history_is_replaced_whole_and_five_minute_bars_gather(tmp_path: Path)
     with bars.writing(store, Source.ARCHIVE) as round_:
         round_.daily(US, days[5:])
         round_.five(US, (corrected, *fives[20:]))
-    assert bars.daily(store, US) == days[5:]
+    assert bars.daily(store, US) == days  # the 25 days it no longer gives stand
     assert bars.five(store, US, fives[0].start, NEXT) == (*fives[:19], corrected, *fives[20:])
     assert (bars.daily(store, UK), bars.five(store, UK, fives[0].start, NEXT)) == (days, fives[:20])
     with bars.writing(store, Source.ARCHIVE) as round_:
         with pytest.raises(ValueError, match="BA on US: its history gives a day twice"):
             round_.daily(US, (*days[:9], replace(days[0], volume=1)))
         round_.daily(UK, days[:9])
-    assert (bars.daily(store, US), bars.daily(store, UK)) == (days[5:], days[:9])
+    assert (bars.daily(store, US), bars.daily(store, UK)) == (days, days)
+
+
+def test_a_short_call_never_loses_a_held_day_a_change_is_corrected_and_a_withdrawal_is_marked(
+    tmp_path: Path,
+) -> None:
+    store, days = tmp_path / "bars.db", _days(4000)
+    with bars.writing(store) as round_:
+        round_.daily(US, days)
+    changed = replace(days[-1], close=Decimal("7"))
+    with bars.writing(store, Source.IBKR) as round_:  # the broker's recent 21 days, one changed
+        round_.daily(US, (*days[-21:-1], changed), withdrawn=[days[-2].day, days[5].day])
+    shown = {b.day: b for b in bars.daily(store, US)}
+    assert len(shown) == 3999 and days[5].day not in shown and shown[days[-1].day] == changed
+    assert days[-2].day in shown  # given again in the same call: not withdrawn
+    with closing(sqlite3.connect(tmp_path / bars.HISTORY)) as raw:
+        assert raw.execute("SELECT count(*) FROM bar").fetchone() == (4000,)  # no row deleted
+        assert raw.execute("SELECT close, source, replaced_by FROM correction").fetchall() == [
+            ("0.10", "archive", "IBKR paper")
+        ]
+    with bars.writing(store) as round_:
+        round_.daily(US, days[5:6])  # a bar for a withdrawn day brings it back
+    assert days[5] in bars.daily(store, US)
+
+
+def test_a_store_made_before_withdrawals_is_read_and_gains_the_table(tmp_path: Path) -> None:
+    store, days = tmp_path / "bars.db", _days(5)
+    with bars.writing(store) as round_:
+        round_.daily(US, days)
+    with closing(sqlite3.connect(tmp_path / bars.HISTORY)) as old:
+        old.execute("DROP TABLE withdrawn")
+    assert bars.daily(store, US) == days
+    with closing(sqlite3.connect(tmp_path / bars.HISTORY)) as raw:
+        assert raw.execute("SELECT count(*) FROM withdrawn").fetchone() == (0,)
 
 
 def test_a_bar_is_kept_with_its_source_and_only_a_fresh_source_restates(tmp_path: Path) -> None:
@@ -132,8 +165,8 @@ def test_an_archive_restates_its_own_daily_bars_and_another_sources_stand(tmp_pa
         round_.daily(UK, days[2:])  # its bar takes the day it shares with the old database
     assert bars.sources(store, UK, bars.DAILY) == {Source.MTT_DB: 2, Source.ARCHIVE: 3}
     with bars.writing(store) as round_:
-        round_.daily(UK, days[3:])  # a day it no longer gives is gone; the old database stands
-    assert bars.daily(store, UK) == (*days[:2], *days[3:])
+        round_.daily(UK, days[3:])  # a day it no longer gives stands too
+    assert bars.daily(store, UK) == days
 
 
 def test_a_reader_sees_only_whole_rounds_and_a_second_writer_is_refused(
