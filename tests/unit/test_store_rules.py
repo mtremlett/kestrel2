@@ -44,6 +44,11 @@ RULES: dict[str, tuple[Make, Line, str]] = {  # rule site -> (synthetic archive,
         "low repaired",
     ),
     "_priced:1": (lambda b: [*b[:-8], _scaled(b[-8], Decimal(100)), *b[-7:]], US, "wrong unit"),
+    "_untraded:1": (  # untraded bars in another unit cannot hold it against the traded bars after
+        lambda b: [*(replace(_scaled(x, Decimal(100)), volume=0) for x in b[:2]), *b[2:]],
+        US,
+        "no volume",
+    ),
     "_priced:2": (
         lambda b: [*b[:-8], replace(_scaled(b[-8], Decimal("1.7")), volume=0), *b[-7:]],
         US,
