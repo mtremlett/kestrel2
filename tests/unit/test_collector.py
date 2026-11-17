@@ -4,10 +4,12 @@ only and are never printed, and a source without a key is skipped, saying which.
 
 from __future__ import annotations
 
+import io
 import json
 import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
+from urllib.error import HTTPError
 
 import pytest
 
@@ -78,8 +80,28 @@ def test_a_vendor_that_fails_is_told_and_the_others_still_land(
         return _ask(address)
 
     env = {name + "_API_KEY": HIDDEN for name in collector.NAMES}
-    assert collector.run(tmp_path, env, NOW, ask) == 1
+    assert collector.run(tmp_path, env, NOW, ask) == 0  # the others were kept
     err = capsys.readouterr().err
     assert "gnews: OSError" in err
     assert HIDDEN not in err  # a fault's words may hold the address, and so the key
     assert ("macro", "DGS10") in _held(tmp_path)
+
+
+def _refuse(address: str) -> bytes:
+    raise HTTPError(address, 401, "no", None, io.BytesIO())  # type: ignore[arg-type]
+
+
+def test_a_refusal_is_named_by_status_and_the_rest_is_kept_but_all_refusing_is_a_miss(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    def ask(address: str) -> bytes:
+        return _refuse(address) if "marketaux" in address else _ask(address)
+
+    env = {name + "_API_KEY": HIDDEN for name in collector.NAMES}
+    assert collector.run(tmp_path, env, NOW, ask) == 0
+    err = capsys.readouterr().err
+    assert "marketaux: HTTP 401" in err and HIDDEN not in err
+    assert ("price", "AAPL") in _held(tmp_path)
+    assert collector.run(tmp_path, env, NOW, _refuse) == 1
+    err = capsys.readouterr().err
+    assert "tiingo: HTTP 401" in err and "fred: HTTP 401" in err

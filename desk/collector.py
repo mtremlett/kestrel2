@@ -26,6 +26,7 @@ from decimal import Decimal
 from http.client import HTTPException
 from pathlib import Path
 from typing import Any
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 from desk import bars
@@ -206,6 +207,8 @@ def run(root: Path, env: Mapping[str, str], now: datetime, ask: Ask = _ask) -> i
             try:
                 _keep(store, source, day, key, ask, at)
                 kept += 1
+            except HTTPError as refusal:  # its status only: the url holds the key
+                failed.append(f"{source.name}: HTTP {refusal.code}")
             except (
                 OSError,
                 HTTPException,
@@ -217,7 +220,7 @@ def run(root: Path, env: Mapping[str, str], now: datetime, ask: Ask = _ask) -> i
                 # the fault's words may hold the address, and so the key: only its kind is told
                 failed.append(f"{source.name}: {type(fault).__name__}")
     sys.stderr.write("".join(f"{line}\n" for line in skipped + failed))
-    return int(bool(failed) or not kept)
+    return int(not kept)
 
 
 if __name__ == "__main__":
