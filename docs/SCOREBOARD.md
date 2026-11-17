@@ -265,3 +265,132 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #198 `python -m lab.ladder`: set 1 as one resumable command, 110 cells against 330 trials; on today's prices 48 judged, none passes, 62 wait on data; 25 deliberate breaks caught; a blind review's one blocking finding fixed. |
 | 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #202 R-RUNNER-25: the ladder's waiting cells name their data and are tried again after 30 minutes; a line too short to trade is "waits on history", not a fault. |
 | 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #206 R-RUNNER-33: the one verdict reads the folds and the market (six rungs); a paper candidate takes the ladder's line, never a bare PASS; a blind review, nothing blocking. |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #218 R-RUNNER-39 step 1: lab/shuffle.py, the shuffle rung, the spec's shuffle test passing |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #221 R-RUNNER-39 step 2: lab/verdict.py out of the ladder; the shuffle gates the verdict, last |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #235 R-RUNNER-47 Monte Carlo rung built (lab/montecarlo.py), 5 contract tests |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #239 R-RUNNER-45 ladder rates from desk/carry.py's one rule; 2025-04-22 priced |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #244 R-RUNNER-49 python -m lab.montecarlo built; resumable, measures only |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #242 R-RUNNER-50 folds.pool built and tested over five whole years; ladder wiring open |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #243 R-RUNNER-51 step 1: a trial's name carries its rule's hash (a changed rule is new trials) |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #241 R-RUNNER-52 the verdict refuses a step of units and names TOO YOUNG for any cell under 452 bars |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #252 R-RUNNER-83 the ladder retries a failed cell at once when its key differs |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #253 R-RUNNER-85 montecarlo records refused cells and goes on |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #270 R-RUNNER-81 set EPON built (machinery, planted-rule test, PRE-REVIEW table); real run waited on the cell door |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #279 R-RUNNER-86 ladder takes every desk/eponymous_*.py and folds its code into the keys |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #283 R-RUNNER-87 partly: ladder and trial register resolve rules through the one rule book |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #304 R-RUNNER-95 ladder proxy, SPY for VUAG, labelled |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #307 R-RUNNER-101 the ladder's rates are one kept table; the archive asked once |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #306 R-RUNNER-98 part 1: proven() accepts 15 of 20 eponymous rules |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #308 R-RUNNER-98 complete: 20 of 20 eponymous rules proven |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #309 R-RUNNER-102 resampled drawdowns kept on every ladder row, never gating |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #310 R-RUNNER-106 wiring tests for the ladder's registries; 3 planted breaks caught |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #311 R-RUNNER-108 the ladder carries on past a cell the desk's sizing refuses |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #312 R-RUNNER-109 ladder split, ladder.py 400 to 304 lines |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #313 R-RUNNER-99 folds: last five whole years pooled by rule, a fold is no trial |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #316 R-RUNNER-114 folds.cut passes the window's Line; research-list lines no longer fail at the fold |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #318 R-RUNNER-110 ladder on all cores, rows identical to the serial run |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #319 R-RUNNER-100 the author's figure is handed to the folds |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #322 R-RUNNER-103 one more trade at the rule's own stop in the first rung; 6 of 400 false passes to 0 |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #327 R-RUNNER-124 spec book step 1: 9 blocks, Spec.parse, Donchian parity proven |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #331 R-RUNNER-117 lab tests build every Cell from a Line (15 files) |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #333 R-RUNNER-130 the rung map: eleven rungs named to module and test, held by one test, 13 breaks caught |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #337 R-RUNNER-118 early tape-cache restored: the ladder keeps each simulation as a tape |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #340 R-RUNNER-152 four more lab test files build Cells from Lines |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #343 R-RUNNER-133 rung 3 (confidence interval) built and proven alone |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #345 R-RUNNER-132 rung 2 (costs, break-even at twice the schedule) in its own module, proven alone |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #344 R-RUNNER-131 rung 1 (sample size) proven alone |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #348 R-RUNNER-125 spec book slice 2: 3 of 19 rules, parity-held |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #347 R-RUNNER-134 rung_beta (excess over the benchmark) proven alone |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #346 R-RUNNER-123 the benchmark rung proven alone |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #342 R-RUNNER-122 rung 5 (two regime windows) built and proven alone |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #352 R-RUNNER-125 spec book slice 3: 5 of 21 rules specced and parity-tested |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #350 R-RUNNER-121 rung 11, the block bootstrap, built and proven alone; held at the lab's ceiling |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #351 R-RUNNER-119 rung 8 (purged cross-validation) built and proven alone; 34 of 35 breaks caught; held at the lab's ceiling |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #354 R-RUNNER-120 rung 9, the block placebo, proven alone; 42 breaks caught; held at the lab's ceiling |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #358 R-RUNNER-125 spec book slice 4: clenow_momentum with a rolling ln |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #361 R-RUNNER-136 rung 10 (walk-forward folds) proven alone |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #362 R-RUNNER-154 rung registry by discovery: a new rung needs no edit of the ladder |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #364 R-RUNNER-139 spec variants: ranged settings counted as trials, plateau centre reported |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #363 R-RUNNER-155 pooled-folds test pinned to retail lines |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #365 R-RUNNER-135 the deflated Sharpe as rung 7, proven alone; 12 breaks caught |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #366 R-RUNNER-168 future-blind property test for every rule |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #368 R-RUNNER-166 the pool's unit is a rule's line in one fold year |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #371 R-RUNNER-173 a ladder pass ends cleanly after a unit when asked |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #379 R-RUNNER-137 one clustered set of trials: fifty copies count one, fifty strangers fifty; three blind reviews |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #378 R-RUNNER-169 one simulation per (rule, line), windows cut by date |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #382 R-RUNNER-126 the ladder reads the catalogue's specs beside the Python rules |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #384 R-RUNNER-165 the refused share judged once, as a REFUSED verdict |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #392 R-GRID-2 rung side done; R-DATA-11 and R-MONEY-34 confirmed already done |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #387 notes only: hand-out notes on the ladder cards and building blocks in the plan |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #396 RUNGS B1: every spec-book block known-answer tested; sizing still open |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #398 L1 tape-cache closed: a settings change re-prices the kept tape, simulates nothing |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #400 no change; R-DATA-11 and R-MONEY-34 confirmed already done (#186, #239) |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #401 no change; blockers finished, R-RUNNER-186 declined |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #402 R-RUNNER-40 blind review of the ladder: 5 blocking findings, 4 fixed; nothing goes forward while a rung is unrun |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #405 R-RUNNER-183 the market rung names a missing market day as a data fault |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #406 no change; R-DATA-11, R-GRID-6, R-MONEY-34 met; R-RUNNER-187 declined |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #408 no change; blocking requests already settled; R-GRID-3 left for a planned step |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #407 R-RUNNER-138 part: each set's table says rungs built n of 11 |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #409 R-RUNNER-187 declined again with evidence; no change |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #410 R-RUNNER-174 a failed cell under an unchanged key is not appended again |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #411 R-RUNNER-138 remainder: set EPON reports the tapes on disk |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #412 rungs-trustworthy: the rung map names all eleven proven rung modules |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #413 no change; rungs-promotion waits on R-RUNGS-7 |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #414 no change; R-RUNNER-138 met but for tape compression |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #415 NS-04 feasibility number and passed-rule count built (lab/feasibility.py) |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #416 no change; rungs-feasibility waits on ladder-passed rules |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #417 no change; R-DATA-11, R-GRID-6, R-MONEY-34 already met |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #418 no change; R-RUNNER-186 needs MONEY, R-GRID-2 met |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #419 R-RUNNER-188 blind re-review: 2 blocking findings fixed (author's figure in the shuffle; market fault in its own words) |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #423 STR-18 set LEV: six trend rules on the leveraged lines, own trial count |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #425 R-RUNNER-186 lab/rung.py refusal catch no longer matches the fault pattern |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #427 R-RUNNER-192 rungs built counts the rungs the ladder judges by: 0 of 11 |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #436 no change; three blocking requests already met |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #438 R-RUNNER-191 step 1: the costs rung declares its RUNG; 1 of 11 |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #440 R-RUNNER-191 step 2: the confidence-interval rung declares its RUNG; 2 of 11 |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #451 R-RUNNER-203 the ladder's pool sized by free memory |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #450 R-RUNNER-148 first step: lab/holding.py, each strategy beside holding its market |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #445 R-RUNNER-191 step 3: the cross-validation rung declares its RUNG; 3 of 11 |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #456 R-RUNNER-204 the stress rung judges at 20% of capital |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #457 R-RUNNER-204 the stress rung wired into the verdict; no longer unrun |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #463 R-RUNNER-191 step: one home for the skew and kurtosis of gains |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #485 no change; R-MONEY-34 already met |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #487 R-RUNNER-191 step: rung.decide, the first rung's one decision rule |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #493 R-RUNNER-191 step: one definition of the worst fold |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #498 R-RUNNER-191 step: one home for the deflated Sharpe's bands |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #504 no change; R-GRID-2 met in RUNGS's files |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #489 no change; blocking requests already met |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #491 R-RUNNER-193 churn mechanism written for a session that can record it; no code |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #551 no change; R-DATA-11 and R-GRID-6 already met |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #555 R-RUNNER-213 the ladder's tape stored compressed |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #553 R-RUNNER-205 step: market weather layer 1 (trend state) |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #552 R-RUNNER-219 step: weinstein_stage in the spec book (7 of 20) |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #568 R-RUNNER-219 step: keltner_channel_trend in the spec book (8 of 20) |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #560 R-RUNNER-171 Fold and the worst-fold rule have one home; lab 6 lines smaller |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #562 R-RUNNER-222 the ladder's sets read only market_history.db |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #563 no change; R-DATA-11 and R-GRID-6 already met |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #569 R-RUNNER-146 sets trade a line only while a list member; unrecorded lines marked |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #567 R-RUNNER-225 the ladder's easings pre-registered and frozen |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #581 no change; blocking requests re-verified met |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #597 R-RUNNER-219 step: connors_rsi2 in the spec book (9 of 19) |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #578 R-RUNNER-205 step 2: the regime rung reads the weather |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #589 R-RUNNER-230 easing 6, the scorecard, built behind EASED (off) |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #600 R-MONEY-13 verified already on main; no code |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #622 R-RUNNER-205 step: the regime rung wired into the ladder verdict |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #603 R-RUNNER-237 lab/ladder.py split, 400 to 300 lines |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #613 R-GRID-3 part 1: verdicts stamped by the first rung |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #615 R-RUNNER-219 step: connors_percent_b in the spec book (10 of 21) |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #593 R-RUNNER-193 one contract test walks every path through the judge |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #639 R-RUNNER-219 step: faber_tactical in the spec book via month-end blocks |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #647 R-RUNNER-219 step: kell_breakout in the spec book (12 of 20) |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #596 R-RUNNER-226 trials per family behind EASED (off) |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #635 R-RUNNER-239 lab/blocks.py split, 386 to 318 lines |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #662 R-MONEY-45 step: bollinger_squeeze joins the spec book |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #667 R-GRID-3 part 2: a luck correction is found by its key |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #664 R-RUNNER-227 easing 2, the basket, built behind EASED (off) |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #658 R-RUNNER-260 lab/fast.py split, 391 to 88 lines |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #680 R-RUNNER-267 lab/verdict.py split, 399 to 334 lines |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #675 R-RUNNER-219 step: dan_zanger_breakout in the spec book (14 of 21) |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #693 R-MONEY-43 python -m lab.calibration: each rung's pass rate on noise |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #695 R-RUNNER-228 step 1: INCUBATE rule for a basket behind EASED |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #676 R-MONEY-45 step: dual_momentum in the spec book (14 of 21) |

@@ -295,50 +295,47 @@ Every other box is ticked. Open: R-DATA-7, R-RUNGS-2 (declared sweep enters ever
 
 ## RUNGS
 
-Last updated: 14 November 2026.
+Last updated: 17 November 2026.
 ### Where it is
-Rungs proven on made-up prices only: first, luck, folds, trials, deflated Sharpe, plateaus, regimes; built, not yet
-called: author's result, promotion, bets, stress, indicator tables. `python -m lab.ladder` (#198) runs set 1 (5 rules
-x 22 lines, 330 trials): 48 judged, none passes, 62 wait on data (30 on six parked London lines, 32 on the pound's
-missing April 2025 closes). The one verdict reads six rungs (#206): no verdict if folds did not run; a paper candidate
-comes from the ladder's line, never a bare PASS. Zero trades on a line under 452 bars "waits on history" (#202).
-**No winner on real prices is to be believed yet; no author's or replication's figure is on file.**
+Eleven rungs built, each proven alone (#342-#365, #412). The ladder judges by the first rung, luck, deflated Sharpe, folds (five whole years pooled by
+rule, #313), market, stress (20% of capital, #457), regime on the weather (#622) and the shuffle last; costs, ci and cpcv are declared (#438-#445): "rungs built: 3 of 11".
+Machinery: one compressed tape per (rule, line) (#378, #555); a pool by fold year sized by free memory (#368, #451); sets read market_history.db only (#562), trade list members only (#569);
+EPON (20 rules proven, #308), LEV (#423); the spec book holds 14 of 21 rules as rows with a fast engine. Easings pre-registered (#567) and built behind `verdict.EASED` (False): family
+trials (#596), basket (#664), scorecard (#589), INCUBATE (#695); the golden verdict is untouched. Calibration: `python -m lab.calibration` (#693). Blind reviews: #402, #419; judge walk test (#593).
+**No winner on real prices is to be believed: SET EPON judged 21,320 cells, none goes forward; every table is PRE-REVIEW. A loss gapping through the stop is unplanted (#402, #409 declined): a no-edge gap rule can pass rung 1 up to 18.8%, the later rungs cut it to 0-2.2%.**
 
 ### Next step
-Open: rungs-trustworthy (wire bets, stress), rungs-indicators (R-RUNGS-6, 12).
-**rungs-reproduce is BLOCKED, hand it out no more** (#143, #149, #169, #186, #195): no book is bought (his ruling,
-14 Nov); a replication stands in, labelled second hand (#169); best free figures in DECISIONS, none on file. Waits on
-R-RUNGS-5, 9, 10, 13, 14 (all open); then `folds`/`regime`/`stress` pass reproductions on; a person reopens each page
-before a figure is filed. Ladder wiring left: regime (REG-01), stress (R-RUNGS-11), plateau (settings). `Candidate`
-should also refuse a row listing unrun rungs (recommended: when the first real candidate nears). Ruled 14 Nov:
-concentration on every report. Unit tests stay at the product's size.
+Open: rungs-trustworthy remainder (wire the other eight rungs, R-RUNNER-191; clustered trials (#379) into the verdict; ease-switch-on), rungs-each-rung, rungs-gate, rungs-spec; spec book rows still owed: darvas_box, demark_sequential,
+mansfield_rs_momentum, minervini_breakout, raschke_swing, zweig_breadth_thrust (R-MONEY-45, R-RUNNER-219). Ruled: concentration on every report; unit tests stay at the product's size.
+**Waiting (hand out no more):** rungs-reproduce (R-RUNGS-5, 9, 10, 13, 14; R-RUNGS-13 BLOCKED ON DATA: no store holds the S&P 500 index from 1983; SPY daily from 1993-01-29 in mark_the_trend.db serves, R-RUNNER-37);
+rungs-promotion (R-RUNGS-7; kill numbers need a ladder-passed candidate); rungs-feasibility (needs three ladder-passed rules, from rungs-eponymous); rungs-blocks (sizing blocks, operator); rungs-indicators (operator).
+`Candidate` should also refuse a row listing unrun rungs (recommended: when the first real candidate nears).
 ### Done for other lanes
-- R-DATA-11, R-RUNNER-5, R-RUNNER-3: done in #186; R-RUNNER-25: done in #202; R-RUNNER-33: done in #206
+- R-DATA-11, R-RUNNER-5, R-RUNNER-3: done in #186; R-RUNNER-25: #202; R-RUNNER-33: #206; R-MONEY-34: #239; R-GRID-6: #427; R-GRID-2: #504; R-MONEY-13: #600; R-MONEY-43: #693
+- R-RUNNER-47: done in #235; -45: #239; -49: #244; -52: #241; -83: #252; -85: #253; -86: #279; -95: #304; -101: #307; -98: #308; -102: #309; -106: #310; -108: #311; -109: #312; -99: #313; -114: #316; -110: #318; -100: #319; -103: #322; -124: #327
+- R-RUNNER-117: done in #331; -130: #333; -152: #340; -133: #343; -131: #344; -134: #347; -123: #346; -122: #342; -121: #350; -119: #351; -120: #354; -136: #361; -154: #362; -139: #364; -155: #363; -135: #365; -168: #366; -166: #368; -173: #371; -137: #379; -169: #378; -126: #382; -165: #384
+- R-RUNNER-183: done in #405; -187: #409 (declined); -174: #410; -188: #419; -40: #402; -186: #425; -192: #427; -203: #451; -204: #457; -171: #560; -213: #555; -222: #562; -146: #569; -225: #567; -230: #589; -237: #603; -193: #593; -226: #596; -239: #635; -260: #658; -227: #664; -267: #680
 ### Requests to MONEY
-- [ ] R-RUNGS-6 (blocking, 01:20): the indicators of `desk/strategy.py` public and by name (STR-14).
-- [ ] R-RUNGS-12 (blocking, 07:55): narrows R-RUNGS-6 to a public RSI and Bollinger lower band; keep the private names meanwhile.
+- [x] R-RUNGS-6, 8, 11, 12 met on main (public indicators #185, `strategy_of` refuses, `GAP_LOSS`); [x] R-RUNGS-3, 15 met by the carry rule and the kept table (#239, #307)
 - [ ] R-RUNGS-7 (later, 01:50): the day's run reads each candidate's `promotion.standing`, buys nothing for a killed one.
-- [ ] R-RUNGS-8 (later, 01:50): `orders.strategy_of` refuses an unreadable id, naming it.
-- [ ] R-RUNGS-10 (later, 04:50): Connors' Double 7's as a desk rule (first reproduction's rule).
-- [ ] R-RUNGS-11 (later, 04:48): the gap loss limit (STP-10) one named number in `desk/orders.py`.
-- [ ] R-RUNGS-14 (later, 14 Nov 10:05): RSI-2 able to buy under 10 as well as 5 (a setting), for the one SPY test with exact dates.
-
+- [ ] R-RUNGS-10 (later, 04:50): Connors' Double 7's as a desk rule. [ ] R-RUNGS-14 (later, 14 Nov): RSI-2 able to buy under 10 as well as 5 (a setting).
+- [ ] R-RUNGS-21 (later, 16 Nov 12:00): let a Line state an inverse fund (leverage -1 to -3), sized and stopped by its magnitude.
+- [ ] R-RUNGS-26 (later, 17 Nov): replace the deep run's "Calibration: NOT RUN" with the output of `python -m lab.calibration` (run by the runner, not imported by desk/).
 ### Requests to GRID
-- [ ] R-RUNGS-2 (later, 13 Nov): the declared sweep enters every cell in the register before the batch runs.
-- [ ] R-RUNGS-4 (later, 00:35): a kept verdict's key takes in the rates it was priced with.
+- [ ] R-RUNGS-2 (later, 13 Nov): the declared sweep enters every cell in the register before the batch runs. [ ] R-RUNGS-4 (later): a kept verdict's key takes in the rates it was priced with.
+- [ ] R-RUNGS-19 (later, 16 Nov 15:00): `Cell.symbol` still read in lab/cell.py:65, lab/ladder_sets.py and tests/unit/test_lab_tune.py:210; RUNGS's files are clear: drop it.
+- [ ] R-RUNGS-25 (later, 17 Nov 05:00): capital and the rate table's version into `lab.cell.Key` (R-GRID-3, last part).
 ### Requests to DATA
-- [ ] R-RUNGS-3 (blocking, 00:35): a kept daily pounds-per-dollar rate for every research day.
-- [ ] R-RUNGS-5 (blocking, 01:20): SPY and US sessions back to January 1993, saying if dividend-adjusted.
-- [ ] R-RUNGS-9 (blocking, 04:50): with R-RUNGS-5, SPY from 29 Jan 1993 kept as traded and adjusted, labelled.
-- [ ] R-RUNGS-13 (later, 14 Nov 10:05): the S&P 500 index from 1983 to Feb 2013 as a line with daily closes and US sessions.
-- [ ] R-RUNGS-15 (blocking, 14 Nov 15:30): the pound's closes for 17-20 April 2025 are missing; 32 dollar cells wait (with R-RUNGS-3).
-- [ ] R-RUNGS-16 (blocking, 14 Nov 15:30): six London lines parked for price steps (2MU, 5QQQ, SGLN, VUAG, EQQQ, IDTL), 3LGO one bar: 35 cells wait.
-
+- [ ] R-RUNGS-5 (blocking): SPY and US sessions back to January 1993, saying if dividend-adjusted. [ ] R-RUNGS-9 (blocking): SPY from 29 Jan 1993 kept as traded and adjusted, labelled.
+- [ ] R-RUNGS-13 (later, 14 Nov): the S&P 500 index from 1983 to Feb 2013, daily closes, US sessions (BLOCKED ON DATA).
+- [ ] R-RUNGS-16 (blocking, 14 Nov): six London lines parked for price steps (2MU, 5QQQ, SGLN, VUAG, EQQQ, IDTL), 3LGO one bar.
+- [ ] R-RUNGS-20 (later, 16 Nov 01:45): 24 London lines refused for a day whose open and close both step by the pound's rate; HVPE (2015-09-09), NBPE (2017-05-02), VOF (2016-03-30) changed quote currency and want mending; the rest (AJB, BMY, CMCX, HAS, RMV, BPT, CWR, FOUR) look like real gaps and want naming in the line master.
+- [ ] R-RUNGS-22 (later, 16 Nov 12:00): inverse ETFs (SQQQ, SPXU, SH, SDS) in the research list and store, once R-RUNGS-21 allows.
+### Requests to RUNGS
+- [ ] R-RUNGS-17 (later): lab/transfer.py:170 calls `ladder.rates(home=root)`. [ ] R-RUNGS-18 (later): `Priced.stopped` required; lab/montecarlo.py reads `verdict.gains`.
+- [ ] R-RUNGS-23 (later, 16 Nov 12:00): call `lab.holding.beside` from the table writer so each row shows its holding figure (R-RUNNER-148, second step).
+- [ ] R-RUNGS-27 (blocking, 17 Nov): wire `verdict.basket_answer` into lab/basket.py `row` and list INCUBATE apart in lab/verdict_parts.py (R-RUNNER-228).
 ### Found, not fixed
-- **Ladder:** rates fetched each run, kept nowhere, the rule written twice beside `desk/command.py` (both end with
-  R-RUNGS-3); one run at a time; no settings on rules, no regime weather (REG-01). `test_check.py::test_at_most_n_full_checks_run_at_once`
-  failed once in three (a turn file held). **Reproduction:** Bollinger, 50/200 cross, Supertrend have no author's test (ruling owed).
-- **Promotion:** fall sees sold shares only; `DEEPEST` belongs to the A-GATE. **Market/stress:** calm-storm alternation
-  passes a rider twice as often; "days end at first unjudged trade" lives twice, belongs in `rung.py`. **Bets:** a young
-  line (<120 moves) stops it. **Indicators:** `published.py` at its 400-line cap; RSI ratio, band line, carried band unheld.
-  Scratch owed removal in `C:/tmp`: repro*, promo*, market*, bets*, rungs*, ind*.
+- **Ladder:** one run at a time; no settings on rules; the ladder docstring still says "unrun: no weather" (#622); `ladder.stored` unused since #562; `Cell` key omits capital. **Reproduction:** Bollinger, 50/200 cross, Supertrend have no author's test (ruling owed).
+- **Judge:** the planted loss covers a stop, not a gap (above); `test_lab_headstart.py` fails on a PC with old-desk stooq stores. **Promotion:** fall sees sold shares only; `DEEPEST` belongs to the A-GATE. **Stress:** calm-storm alternation passes a rider twice as often.
+- **Bets:** a young line (<120 moves) stops it. **Indicators:** `published.py` at its 400-line cap. **Clustered trials:** the days of a set must equal the window (#379). Scratch owed removal in `C:/tmp`: repro*, promo*, market*, bets*, rungs*, ind*, rr188*.
