@@ -15,7 +15,7 @@ import pytest
 from numpy.typing import NDArray
 
 from lab import rung_dsr
-from lab.deflated import FAIL, PASS
+from lab.deflated import FAIL, PASS, deflate
 from lab.rung import MIN_TRADES, Answer
 from lab.rung_sample import band
 
@@ -81,15 +81,16 @@ def test_the_deflated_sharpe_is_bailey_and_lopez_de_prados_own_worked_case() -> 
     luck's best is 0.1132 a day and the deflated Sharpe 0.9004; found among 46 trials, 0.9505."""
     sharpe = 2.5 / math.sqrt(250)
     assert rung_dsr.bar(100, 1 / 500) == pytest.approx(0.1132, abs=5e-5)
-    assert rung_dsr.deflated(sharpe, 1250, -3, 10, 100, 1 / 500) == pytest.approx(0.9004, abs=5e-5)
-    assert rung_dsr.deflated(sharpe, 1250, -3, 10, 46, 1 / 500) == pytest.approx(0.9505, abs=5e-5)
+    for trials, paper in ((100, 0.9004), (46, 0.9505)):
+        bar = rung_dsr.bar(trials, 1 / 500)
+        assert deflate(sharpe, bar, 1250, -3, 10) == pytest.approx(paper, abs=5e-5)
     #: by hand: 32 gains of 2% and 8 losses of 3%. Mean 1%; about it the squares average
     #: 0.0004, the cubes -0.000012, the fourth powers 0.00000052: skew -1.5, kurtosis 3.25.
     #: The deviation on 39 is 0.02 * sqrt(40 / 39), so the Sharpe is a half * sqrt(39 / 40)
     gains = [Decimal("0.02")] * 32 + [Decimal("-0.03")] * 8
     assert rung_dsr.sharpe(gains) == pytest.approx(0.5 * math.sqrt(39 / 40))
     assert rung_dsr.chance(gains, 9, 0.01) == pytest.approx(
-        rung_dsr.deflated(0.5 * math.sqrt(39 / 40), 40, -1.5, 3.25, 9, 0.01)
+        deflate(0.5 * math.sqrt(39 / 40), rung_dsr.bar(9, 0.01), 40, -1.5, 3.25)
     )
     assert math.isclose(rung_dsr.RATE, 0.10) and rung_dsr.bar(1, 0.0) == 0, "one trial: no bar"
 
@@ -131,7 +132,7 @@ def test_the_old_audits_defects_must_fail() -> None:
             rung_dsr.judge(wins, trials, spread)
     # LAD-03: many small wins and a rare large loss pass as a bell, and are in doubt here
     lopsided = [Decimal("0.01")] * 57 + [Decimal("-0.10")] * 3
-    as_a_bell = rung_dsr.deflated(rung_dsr.sharpe(lopsided), len(lopsided), 0, 3, 1, 0.0)
+    as_a_bell = deflate(rung_dsr.sharpe(lopsided), 0.0, len(lopsided), 0, 3)
     assert as_a_bell >= PASS > rung_dsr.chance(lopsided, 1, 0.0) > FAIL
     assert rung_dsr.judge(lopsided, 1, 0.0) is Answer.DOUBT
     # LAD-08: the pick of a hundred trials of noise passes alone, and not against its hundred
