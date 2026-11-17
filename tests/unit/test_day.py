@@ -49,13 +49,13 @@ MARKET = {
     ),
 }
 
-
 ARCHIVE_LINES = {line.symbol: line for line in ARCHIVE}
+FIVE = Settings(Decimal(10_000), new_lines=5)
 
 
 def _trade(root: Path, broker: Restopping, on: date) -> tuple[book.Sent, ...]:
     before = {line: tuple(b for b in bars if b.day < on) for line, bars in ARCHIVE.items()}
-    return day.trade(root, before, broker, Settings(Decimal(10_000)), on, {"GBP": Decimal(1)})
+    return day.trade(root, before, broker, FIVE, on, {"GBP": Decimal(1)})
 
 
 class Door:
@@ -173,7 +173,7 @@ def test_a_day_with_the_kill_switch_on_sends_nothing_and_every_order_is_answered
 def _run(root: Path, broker: Pretend, on: date) -> day.Record:
     """The day whole, handed every bar there is: it must use none after the day's own."""
     broker.open(on)
-    return day.run(root, MARKET, broker, Settings(Decimal(10_000)), on, {"GBP": Decimal(1)})
+    return day.run(root, MARKET, broker, FIVE, on, {"GBP": Decimal(1)})
 
 
 def test_the_days_record_is_the_books_gain_after_every_cost_beside_the_markets(
