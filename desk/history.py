@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import BinaryIO, TypeVar, cast
 
 from desk import conformance_tape, listing, paper, venues
-from desk.lines import LINES, Line
+from desk.lines import LINES, POUND, Line
 from desk.rollup import Candle
 from desk.store import Answer, Bar, Refused
 
@@ -28,6 +28,9 @@ ASK, BARS, NEWS, ID = 20, "17", "4", 9001
 WIDTH = 8
 #: The primary exchange the broker lists a London line under; a US line is routed by SMART.
 PRIMARY = {"LSE": "LSEETF", "US": ""}
+#: The pound in dollars is asked as a forex pair (GBP.USD at IDEALPRO), of the midpoint: it has no
+#: trades, and the broker gives its bars no volume (-1), kept as none.
+CASH = (0, "GBP", "CASH", "", 0, "", "", "IDEALPRO", "", "USD")
 #: The timeframes the database keeps, each with the bar size IBKR names it by; the gateway serves
 #: all of them, so none is rolled up from a lower one here.
 SIZES = {
@@ -67,14 +70,16 @@ Wait = Callable[[float], object]  #: what lets time pass between asks
 
 def request(line: Line, day: date, since: date, timeframe: str = "1d") -> bytes:
     """The ask for a line's daily bars from since to the end of the day before day (every bar
-    of a session still open, or not yet begun, is left out), of the trades, in the line's
-    own currency, in the bars of the timeframe (daily unless said), their times as epoch seconds
-    for an intraday one. A year or more is asked in
-    whole years. A timeframe the database does not keep is a KeyError."""
+    of a session still open, or not yet begun, is left out), of the trades (the pound's: a
+    forex pair's midpoint), in the line's own currency, in the bars of the
+    timeframe (daily unless said), their times as epoch seconds for an intraday one. A year or
+    more is asked in whole years. A timeframe the database does not keep is a KeyError."""
     span = (day - since).days
     length = f"{span} D" if span <= 365 else f"{span // 365 + 1} Y"
     end = f"{day:%Y%m%d} 00:00:00 UTC"
     contract = (0, line.symbol, "STK", "", 0, "", "", "SMART", PRIMARY[line.venue], line.currency)
+    if line == POUND:
+        contract = CASH
     return paper.message(
         ASK,
         ID,
@@ -86,7 +91,7 @@ def request(line: Line, day: date, since: date, timeframe: str = "1d") -> bytes:
         SIZES[timeframe],
         length,
         1,
-        "TRADES",
+        "MIDPOINT" if line == POUND else "TRADES",
         1 if timeframe in DAILY else 2,
         0,
         "",
@@ -108,7 +113,7 @@ def _bars(fields: list[str], day: date, since: date) -> tuple[Bar, ...]:
         taken = date(int(stamp[:4]), int(stamp[4:6]), int(stamp[6:8]))
         if since <= taken < day:
             o, h, low, c = (paper.number(p, fields) for p in given)
-            found.append(Bar(taken, o, h, low, c, int(volume)))
+            found.append(Bar(taken, o, h, low, c, max(int(volume), 0)))
     return tuple(found)
 
 
@@ -126,7 +131,7 @@ def _candles(fields: list[str], day: date, since: date) -> tuple[Candle, ...]:
         start = datetime.fromtimestamp(int(stamp), UTC)
         if since <= start.date() < day:
             o, h, low, c = (paper.number(p, fields) for p in given)
-            found.append(Candle(start, o, h, low, c, int(volume), "ibkr"))
+            found.append(Candle(start, o, h, low, c, max(int(volume), 0), "ibkr"))
     return tuple(found)
 
 
