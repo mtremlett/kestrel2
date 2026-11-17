@@ -22,12 +22,10 @@ inverted is caught. The result is keyed by the tape's key and this module's code
 
 from __future__ import annotations
 
-import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
-from statistics import fmean
 
 from desk.lines import Line
 from desk.store import Bar
@@ -81,9 +79,9 @@ def beats(low: float) -> bool:
 
 def interval(excess: Sequence[float]) -> tuple[float, float, float]:
     """The mean and its interval, `rung.T_PASS` sample standard errors either side."""
-    n, mean = len(excess), fmean(excess)
-    spread = sum((x - mean) ** 2 for x in excess) / (n - 1)
-    if not spread:
-        raise ValueError(f"{n} excesses all of {mean}: no spread to judge them by")
-    reach = float(rung.T_PASS) * math.sqrt(spread / n)
+    found = rung.mean_and_error([Decimal(str(x)) for x in excess])
+    if found is None:
+        raise ValueError(f"{len(excess)} excesses: an interval needs two")
+    mean, error = float(found[0]), float(found[1])
+    reach = float(rung.T_PASS) * error
     return mean, mean - reach, mean + reach

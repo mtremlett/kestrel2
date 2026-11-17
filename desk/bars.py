@@ -106,6 +106,10 @@ SOURCES = (
     "SELECT source, count(*) FROM bar"
     " WHERE venue = ? AND symbol = ? AND span = ? AND at >= ? AND at < ? GROUP BY source"
 )
+NEWEST = (
+    "SELECT at, source FROM bar WHERE venue = ? AND symbol = ? AND span = ? AND at >= ? AND at < ?"
+    " ORDER BY at DESC LIMIT 1"
+)
 CLOSES = "SELECT close FROM bar WHERE venue = ? AND symbol = ? AND span = ? AND at >= ?"
 READ = (
     "SELECT at, open, high, low, close, volume FROM bar"
@@ -303,6 +307,13 @@ def timed(path: Path, line: Line, span: str, since: datetime, until: datetime) -
 def sources(path: Path, line: Line, span: str) -> dict[Source, int]:
     """How many of a line's bars of one span the store holds from each source."""
     return {Source(name): count for name, count in _read(path, line, span, 0, 2**62, SOURCES)}
+
+
+def newest(path: Path, line: Line, span: str) -> tuple[int, Source] | None:
+    """A line's newest bar of one span as the store holds it: its moment (a daily bar's day as an
+    ordinal, else seconds since EPOCH) and the source it came from; none if it holds no bar."""
+    got = _read(path, line, span, 0, 2**62, NEWEST)
+    return (got[0][0], Source(got[0][1])) if got else None
 
 
 def keep(

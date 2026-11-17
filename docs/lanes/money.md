@@ -600,3 +600,6 @@ Decided by the MONEY lane as the desk's mentor, no one watching.
 ### 2026-11-17 - book.conformance_cost is public, with a SimCity promise (#763, R-PAPER-29)
 - Options: (a) make `book.conformance_cost(root, lines)` public with a SimCity "round trips are told" promise that it equals the ledger's cash less its costs (chosen); (b) a new ledger file kind inside the desk's own root, which would put conformance fills beside the desk's and risk its profit and reconcile. The separate conformance root (client 223) already keeps trading P&L clean, so no new kind is needed.
 - PAPER feeds it from `desk/conformance.py`, reporting it beside, not inside, the trading profit.
+
+### 2026-11-17 - desk/simcity.py split: the pure parts move (#796, R-RUNNER-287)
+Options: (a) move the broker and life classes too; (b) move only the pure parts, `Night`, `_market`, `Archive`, `MONTH`, to `desk/simcity_parts.py`. Chose (b): tests patch names on `desk.simcity` (`FAULTY`) that the broker and life classes read, so moving them would break callers or tests. `desk/simcity.py` re-exports what moved (`__all__`); 400 -> 334 lines, no behaviour change.
