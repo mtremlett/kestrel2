@@ -7,7 +7,7 @@ from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
-from desk import bars, keeper
+from desk import bars, keeper, venues
 from desk.bars import Five, Source
 from desk.lines import Line
 from desk.store import Bar
@@ -50,3 +50,21 @@ def test_a_line_staler_than_a_session_is_a_miss_and_each_call_leaves_a_dated_rec
     keeper.receipt(tmp_path, NOW, [], ["missed"])
     lines = (tmp_path / keeper.RECEIPTS / "2026-11-16.jsonl").read_text("utf-8").splitlines()
     assert [json.loads(line)["missed"] for line in lines] == [[], ["missed"]]
+
+
+def test_a_session_no_daily_source_holds_is_bridged_from_the_five_minute_bars_held(
+    tmp_path: Path,
+) -> None:
+    """3LGO: the archive lacks Friday, and the store holds that day's five-minute bars."""
+    line, friday, now = LINES[0], date(2026, 11, 13), NOW.replace(hour=6)
+    days = venues.sessions("LSE", date(2026, 8, 3), friday - timedelta(1))
+    flat = tuple(
+        Bar(d, p, p + 1, p - 1, p, 9 + n) for n, d in enumerate(days) if (p := Decimal(100 + n % 5))
+    )
+    o, h, low, c = map(Decimal, (101, 103, 100, 102))
+    with bars.writing(tmp_path / keeper.HOT) as round_:
+        round_.five(line, [Five(datetime(2026, 11, 13, 10, tzinfo=UTC), o, h, low, c, 7)])
+    kept = keeper.keep(tmp_path, now, (line,), lambda *_: flat, lambda *_: (), lambda: 0.0)
+    assert kept[1] == [] and keeper.saved(tmp_path, now.date(), [line])[0][line][-1] == Bar(
+        friday, o, h, low, c, 7
+    )

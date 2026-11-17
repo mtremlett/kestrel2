@@ -109,6 +109,14 @@ def _short(venue: str, last: Kept | None, day: date) -> bool:
     return last is None or bool(venues.sessions(venue, last.day, day - DAY))
 
 
+def _shelf(folder: Path, line: Line) -> tuple[Bar, ...] | None:
+    """The older bars the head start shelved for a line; none if none."""
+    try:
+        return store.read(folder / store.HISTORY, line.symbol)
+    except FileNotFoundError:
+        return None  # a line the head start never shelved
+
+
 def pound_closes(hot: Path) -> store.Rates:
     """The pound's closes in dollars held (R-RUNGS-16): a bar in dollars is told from a move."""
     try:
@@ -140,10 +148,8 @@ def _kept_in(
     parked, rates, named, said = [], pound_closes(hot), dict[str, list[str]](), []
     with bars.writing(hot) as round_:
         for line, answer in answers.items():
-            older, broker = folder / store.HISTORY, first.get(line)  # the head start's shelf
-            shelf = (
-                store.read(older, line.symbol) if (older / f"{line.symbol}.csv").is_file() else None
-            )
+            broker = first.get(line)
+            shelf = bars.bridged(hot, line, day, _shelf(folder, line), answer, broker)
             kept, faults, park = store.judge(line, answer, day, rates, shelf=shelf, broker=broker)
             round_.daily(line, kept)
             parked += [park] if park else []

@@ -119,10 +119,10 @@ class Line:
 #: lives on its shelf: Stooq's daily bars from 4 June 2015, none before in any free source, and
 #: 79 sessions missing in the seven months after (thin trading, volumes of hundreds; no second
 #: source holds a bar on one of them, so none is recorded as a suspension). The shelf ends on the
-#: day it was last made, so each session since parks the line as missing, rightly: nothing
-#: gathers its own bars until the broker's daily bars or the five-minute bridge feed the shelf
-#: each day. Enough has gathered when the archive's own bars alone reach the ladder's
-#: `lab.verdict.MIN_BARS`; the line then needs no shelf, which the store joins harmlessly.
+#: day it was last made; each session since that the broker's and the archive's daily bars lack
+#: is bridged from the five-minute bars the store holds (`bars.bridged`, 30 days back), else
+#: it parks the line as missing, rightly. Enough has gathered when the archive's own bars alone
+#: reach the ladder's `lab.verdict.MIN_BARS`; the line then needs no shelf, joined harmlessly.
 #: 2MU's box (17 November 2026): the four moves below are the only ones the store parks it
 #: for, and each is needed (without one, that day parks it). Stooq's closes of 26 September
 #: and 19 December 2024 and 4 April 2025 are the archive's to the penny. 5 August 2024 is a
