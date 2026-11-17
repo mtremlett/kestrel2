@@ -152,11 +152,11 @@ def trade(
         sale = Sale(order_id_of(d), due[d.symbol], held[d.symbol])
         sent.append(_answer(root, day, _send(root, broker, sale, settings, tell, None)))
     _alert(root, day, settings, tell)
-    exposed = partial(day_money.exposure, root, archive, rates)  #: read again at each buy
+    watch = partial(_watch, root, archive, rates)  #: read again at each buy
     for d in (d for d in decided if d.action is Action.BUY):
         line = due[d.symbol]
         price = archive[line][-1].close, rates[line.currency]
-        args = (root, broker, d, line, price, settings, day, tell, exposed)
+        args = (root, broker, d, line, price, settings, day, tell, watch)
         sent.append(_answer(root, day, _barred(d) if d.strategy in killed else _buy(*args)))
     return tuple(sent)
 
@@ -233,7 +233,7 @@ def _buy(
     settings: Settings,
     day: date,
     tell: book.Tell | None,
-    exposed: Callable[[], dict[str, Decimal]] | None = None,
+    watch: Callable[[str], tuple[dict[str, Decimal], dict[str, tuple[float, ...]]]] | None = None,
 ) -> book.Sent:
     """One rule's buy, sized from the book as the send before it left it, at the line's last
     close and the day's rate. A line held, or sold this morning, is not bought: said so. Nor is
@@ -255,7 +255,10 @@ def _buy(
         order = size(d, line, *price, settings, now)
     except Refused as refused:  #: the gate's answer, kept with the day's others
         return book.Sent(name, 0, str(refused), Blocker.GATE)
-    return _send(root, broker, order, settings, tell, standing(root, day), exposed and exposed())
+    looked = watch and watch(d.symbol)
+    return _send(
+        root, broker, order, settings, tell, standing(root, day), *(looked or (None, None))
+    )
 
 
 def standing(root: Path, day: date) -> Standing:
@@ -278,11 +281,12 @@ def _send(
     tell: book.Tell | None,
     held: Standing | None,
     pounds: Mapping[str, Decimal] | None = None,
+    moves: Mapping[str, tuple[float, ...]] | None = None,
 ) -> book.Sent:
     """Send through the one door; its refusal is the order's answer, kept with the day's
     under the blocker the send path names; one it does not name is the broker's own door's."""
     try:
-        return book.send(root, broker, order, settings, tell, held, pounds)
+        return book.send(root, broker, order, settings, tell, held, pounds, moves)
     except Stopped as stopped:
         return book.Sent(order.order_id, 0, str(stopped), stopped.blocker)
     except Refused as refused:
@@ -293,3 +297,38 @@ def _due(line: Line, bars: Sequence[Bar], day: date) -> bool:
     """The line's venue trades on day and its last bar is the session before: decisions
     dated any other day are not acted on."""
     return bool(bars) and venues.sessions(line.venue, bars[-1].day, day) == (bars[-1].day, day)
+
+
+def _watch(
+    root: Path, archive: Mapping[Line, Sequence[Bar]], rates: Mapping[str, Decimal], symbol: str
+) -> tuple[dict[str, Decimal], dict[str, tuple[float, ...]]]:
+    """What the gate reads of the book before a buy of the symbol: the pounds it controls per
+    underlying, and the daily returns of the symbol and of the lines held."""
+    return day_money.exposure(root, archive, rates), _moves(root, archive, symbol)
+
+
+MOVES_DAYS, MOVES_FROM = 60, 20  #: the daily returns kept for the correlation gate, and the fewest
+
+
+def _moves(
+    root: Path, archive: Mapping[Line, Sequence[Bar]], symbol: str
+) -> dict[str, tuple[float, ...]]:
+    """THE DAILY RETURNS OF A LINE AND OF THE LINES HELD (risk.correlated_with), by symbol, over
+    the last sessions all of them have a bar for. All are left out when the days they share are
+    under MOVES_FROM (nothing to judge by); a line whose price never moved is left out alone."""
+    held = book.positions(root)
+    closes = {
+        line.symbol: {bar.day: bar.close for bar in bars}
+        for line, bars in archive.items()
+        if line.symbol == symbol or line.symbol in held
+    }
+    if symbol not in closes:
+        return {}
+    shared = sorted(set.intersection(*(set(c) for c in closes.values())))[-MOVES_DAYS - 1 :]
+    if len(shared) <= MOVES_FROM:
+        return {}
+    rows = {
+        s: tuple(float(c[b] / c[a] - 1) for a, b in zip(shared, shared[1:], strict=False))
+        for s, c in closes.items()
+    }
+    return {s: r for s, r in rows.items() if len(set(r)) > 1}
