@@ -285,13 +285,13 @@ Last updated: 17 November 2026.
 Eleven rungs built, each proven alone (#342-#365, #412). The ladder judges by the first rung, luck, deflated Sharpe, folds (five whole years pooled by
 rule, #313), market, stress (20% of capital, #457), regime on the weather (#622) and the shuffle last; costs, ci and cpcv are declared (#438-#445): "rungs built: 3 of 11".
 Machinery: one compressed tape per (rule, line) (#378, #555); a pool by fold year sized by free memory (#368, #451); sets read market_history.db only (#562), trade list members only (#569);
-EPON (20 rules proven, #308), LEV (#423); the spec book holds 14 of 21 rules as rows with a fast engine. Easings pre-registered (#567) and built behind `verdict.EASED` (False): family
-trials (#596), basket (#664), scorecard (#589), INCUBATE (#695); the golden verdict is untouched. Calibration: `python -m lab.calibration` (#693). Blind reviews: #402, #419; judge walk test (#593).
+EPON (20 rules proven, #308), LEV (#423); the spec book holds 15 of 21 rules as rows with a fast engine (minervini_breakout via `trend_template`, #704). Easings pre-registered (#567) and built behind `verdict.EASED` (False): family
+trials (#596), basket (#664), scorecard (#589), INCUBATE (#695); the golden verdict is untouched. Calibration: `python -m lab.calibration` (#693). Weather layer 2, realised volatility (`weather.volatility`, #737), is wired into no verdict: it joins the regime rung only after an out-of-sample win against trend alone (open: the scorer, then drawdown, breadth, macro; 1 trial spent). Blind reviews: #402, #419; judge walk test (#593).
 **No winner on real prices is to be believed: SET EPON judged 21,320 cells, none goes forward; every table is PRE-REVIEW. A loss gapping through the stop is unplanted (#402, #409 declined): a no-edge gap rule can pass rung 1 up to 18.8%, the later rungs cut it to 0-2.2%.**
 
 ### Next step
-Open: rungs-trustworthy remainder (wire the other eight rungs, R-RUNNER-191; clustered trials (#379) into the verdict; ease-switch-on), rungs-each-rung, rungs-gate, rungs-spec; spec book rows still owed: darvas_box, demark_sequential,
-mansfield_rs_momentum, minervini_breakout, raschke_swing, zweig_breadth_thrust (R-MONEY-45, R-RUNNER-219). Ruled: concentration on every report; unit tests stay at the product's size.
+Open: rungs-trustworthy remainder (wire the other eight rungs, R-RUNNER-191, which need trials, spread and market bars handed over by the ladder; the Sharpe a trade now has one home, #746; clustered trials (#379) into the verdict; ease-switch-on), rungs-each-rung, rungs-gate, rungs-spec; spec book rows still owed: darvas_box, demark_sequential,
+mansfield_rs_momentum, raschke_swing, zweig_breadth_thrust (R-MONEY-45, R-RUNNER-219). Ruled: concentration on every report; unit tests stay at the product's size.
 **Waiting (hand out no more):** rungs-reproduce (R-RUNGS-5, 9, 10, 13, 14; R-RUNGS-13 BLOCKED ON DATA: no store holds the S&P 500 index from 1983; SPY daily from 1993-01-29 in mark_the_trend.db serves, R-RUNNER-37);
 rungs-promotion (R-RUNGS-7; kill numbers need a ladder-passed candidate); rungs-feasibility (needs three ladder-passed rules, from rungs-eponymous); rungs-blocks (sizing blocks, operator); rungs-indicators (operator).
 `Candidate` should also refuse a row listing unrun rungs (recommended: when the first real candidate nears).
@@ -319,7 +319,7 @@ rungs-promotion (R-RUNGS-7; kill numbers need a ladder-passed candidate); rungs-
 ### Requests to RUNGS
 - [ ] R-RUNGS-17 (later): lab/transfer.py:170 calls `ladder.rates(home=root)`. [ ] R-RUNGS-18 (later): `Priced.stopped` required; lab/montecarlo.py reads `verdict.gains`.
 - [ ] R-RUNGS-23 (later, 16 Nov 12:00): call `lab.holding.beside` from the table writer so each row shows its holding figure (R-RUNNER-148, second step).
-- [ ] R-RUNGS-27 (blocking, 17 Nov): wire `verdict.basket_answer` into lab/basket.py `row` and list INCUBATE apart in lab/verdict_parts.py (R-RUNNER-228).
+- [x] R-RUNGS-27 (17 Nov): `verdict.basket_answer` wired into `basket.row`, INCUBATE listed apart (#742); EASED stays off until card ease-switch-on.
 ### Found, not fixed
 - **Ladder:** one run at a time; no settings on rules; the ladder docstring still says "unrun: no weather" (#622); `ladder.stored` unused since #562; `Cell` key omits capital. **Reproduction:** Bollinger, 50/200 cross, Supertrend have no author's test (ruling owed).
 - **Judge:** the planted loss covers a stop, not a gap (above); `test_lab_headstart.py` fails on a PC with old-desk stooq stores. **Promotion:** fall sees sold shares only; `DEEPEST` belongs to the A-GATE. **Stress:** calm-storm alternation passes a rider twice as often.

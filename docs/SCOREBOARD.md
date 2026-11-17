@@ -574,3 +574,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #693 R-MONEY-43 python -m lab.calibration: each rung's pass rate on noise |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #695 R-RUNNER-228 step 1: INCUBATE rule for a basket behind EASED |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #676 R-MONEY-45 step: dual_momentum in the spec book (14 of 21) |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #704 R-RUNNER-219 step: minervini_breakout as a spec row via trend_template (15 of 21) |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #737 R-RUNNER-205 step: market weather layer 2, realised volatility (not wired) |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #746 R-RUNNER-191 step: one home for the Sharpe a trade (no verdict changed) |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #742 R-RUNGS-27: basket answer wired to basket_answer, INCUBATE listed apart |
