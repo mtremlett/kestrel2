@@ -143,6 +143,12 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #689 money-restop: no change, waits on R-MONEY-30. |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #683 money-stranger done: strangers sold (TRD-06) and no signal left unlisted at a death (TST-08); scenes 7 of 7, simcity green. |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #700 money-restop: no change, remainder needs messenger.py and broker.py in the claim. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #698 money-limits: correlation cap (0.90) reaches the gate on the send path; one new test. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #711 no step landed; money-restop's remains (the list reaching him) lie outside its claim (messenger.py). |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #720 no change: money-limits gate wiring already on main (#632, #661, #698); volatility sizing waits on the weather box. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #722 money-restop: claim widened to messenger.py and broker.py (R-MONEY-51); no code. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #726 R-RUNGS-12 re-verified met on main (#185); no scene moved. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #728 no change: MONEY has no unclaimed box. |
 
 ### DATA
 

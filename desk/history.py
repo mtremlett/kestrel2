@@ -34,6 +34,10 @@ SIZES = {
     "1m": "1 min", "2m": "2 mins", "5m": "5 mins", "10m": "10 mins", "15m": "15 mins",
     "30m": "30 mins", "1h": "1 hour", "4h": "4 hours", "1d": "1 day", "1wk": "1 week",
 }  # fmt: skip
+#: The timeframes a pull asks the broker for. Its 1 hour, 4 hour and weekly bars start on the
+#: venue's session (a US hour at :30 UTC), off the store's marks, which the writer refuses; they are
+#: rolled up locally from the lower timeframes pulled (his ruling of 16 November), not asked.
+PULLED = tuple(frame for frame in SIZES if frame not in ("1h", "4h", "1wk"))
 #: Days back one ask goes, per timeframe: the longest span IBKR gives in one ask for its bar size
 #: (1 min: a day; 2 mins: 2; 5 to 15 mins: a week; 30 mins to 4 hours: a month; daily: a year).
 REACH = {
@@ -244,7 +248,7 @@ Ask = tuple[Line, str]  #: one line in one timeframe: the unit the pull plans, p
 def plan(lines: Sequence[Line], done: Collection[Ask]) -> list[Ask]:
     """Every ask of every line in every timeframe the database keeps that is not yet done, in a
     fixed order, so a pull stopped anywhere takes up where it left off and fills only the gaps."""
-    return [(line, frame) for line in lines for frame in SIZES if (line, frame) not in done]
+    return [(line, frame) for line in lines for frame in PULLED if (line, frame) not in done]
 
 
 def pull(
