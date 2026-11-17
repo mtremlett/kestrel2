@@ -112,7 +112,8 @@ GIVEN = "the broker gave no reason"  #: an order it cancelled is never recorded 
 ROUNDS = tape.ROUNDS  #: a desk round's hours, where history.py reads them
 #: Seen 16 November 2026 at the paper broker: a stop put above the market rests PreSubmitted
 #: and does not sell; only a fall to its level fires one. The step records that, it does not fail.
-STILL = "{}: put above the market it rested PreSubmitted, not sold in {} seconds"
+RESTED = "it rested PreSubmitted"
+STILL = "{}: put above the market " + RESTED + ", not sold in {} seconds"
 AMISS = " FAILED: {}. A later day tries again; {}."
 AS_FOUND, NOT_AS_FOUND = (
     "the account left as found",
@@ -181,8 +182,8 @@ def _noted(
     def note(step: str, real: str) -> None:
         cancelled = [f"{ref}: {words or GIVEN}" for ref, words in reasons().items() if ref in real]
         stopped = [f.price for f in book.fills(root) if f.order_id == f"{run.second.order_id}-stop"]
-        if step == TRIGGER and stopped:
-            beside.update(pretend(run, stopped[-1]))
+        if step == TRIGGER and (stopped or RESTED in real):
+            beside.update(pretend(run, stopped[-1] if stopped else None, not stopped))
         rows.append((clock().isoformat(), step, real, beside.get(step, ""), "; ".join(cancelled)))
         book._write(record, rows)
         broken = any(row[2].startswith((FAILED, UNTRIED)) for row in rows[1:])  #: compared only
