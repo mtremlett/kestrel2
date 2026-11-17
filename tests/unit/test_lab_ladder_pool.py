@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import Sequence
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -103,3 +104,20 @@ def test_the_pool_is_sized_by_free_memory_beyond_a_reserve_of_a_fifth_and_never_
     assert ladder_pool.workers(64 * GB, 60 * GB, cores=8) == 6  #: the cores' bound: 8 - 2
     assert ladder_pool.workers(64 * GB, 15 * GB, cores=8) == 1  #: only 2.2 GB beyond the reserve
     assert ladder_pool.workers(64 * GB, 2 * GB, cores=8) == 1  #: below the reserve: one
+
+
+def test_the_pool_yields_memory_with_fewer_tasks_at_once_down_to_one_and_grows_back() -> None:
+    low = {3, 4, 5, 6}  #: the readings (one per ended task) that find memory short
+    reads, allowed = iter(range(99)), list[int]()
+
+    def memory() -> tuple[int, int]:
+        return 64 * GB, (5 if next(reads) in low else 64) * GB
+
+    with ThreadPoolExecutor(4) as inner:
+        pool = ladder_pool.Yielding(inner, 4, memory)  # type: ignore[arg-type]
+        got = []
+        for n in range(12):
+            got.append(pool.submit(lambda k: k, n).result())
+            allowed.append(pool.allowed)
+    assert got == list(range(12))  #: every result kept
+    assert allowed[0] == 4 and min(allowed) == 1 and allowed[-1] == 4
