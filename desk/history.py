@@ -7,13 +7,17 @@ the broker will not give is Refused, with the broker's own words, for the store 
 
 from __future__ import annotations
 
+import os
 import time
-from collections.abc import Callable, Collection, Sequence
+from collections.abc import Callable, Collection, Mapping, Sequence
+from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
+from decimal import Decimal
+from pathlib import Path
 from typing import BinaryIO, cast
 
-from desk import conformance_tape, paper, venues
-from desk.lines import Line
+from desk import conformance_tape, listing, paper, venues
+from desk.lines import LINES, Line
 from desk.rollup import Candle
 from desk.store import Answer, Bar, Refused
 
@@ -176,17 +180,52 @@ def lacks(line: Line, answer: Answer, day: date) -> bool:
 RECENT = timedelta(days=30)  #: how far back the broker's daily bars are asked to join the archive's
 
 
+def in_currency(answer: Answer, magnifier: int) -> Answer:
+    """THE ONE HOME OF THE UNIT RULE: the broker's bars with their prices turned from its unit
+    (100 is pence) into the line's currency, once, on entry; a refusal is passed on."""
+    if isinstance(answer, Refused):
+        return answer
+    unit = Decimal(magnifier)
+    return [
+        replace(b, open=b.open / unit, high=b.high / unit, low=b.low / unit, close=b.close / unit)
+        for b in answer
+    ]
+
+
+def priced(
+    home: Path, now: datetime, answers: Mapping[Line, Answer], door: paper.Door
+) -> dict[Line, Answer]:
+    """Each line's answer in the line's currency, by the unit the broker lists the line in today;
+    a line the broker does not list is Refused, in its words."""
+    listed = listing.kept(home, now, LINES, door)
+    out: dict[Line, Answer] = {}
+    for line, answer in answers.items():
+        one = listed.get(line.symbol)
+        if one is None:
+            out[line] = Refused(f"{line.symbol}: not a line of the desk, its unit is unknown")
+            continue
+        out[line] = (
+            Refused(one.reason)
+            if isinstance(one, listing.Unlisted)
+            else in_currency(answer, one.magnifier)
+        )
+    return out
+
+
 def daily(
-    now: datetime, wait: Wait = time.sleep
+    now: datetime, wait: Wait = time.sleep, home: Path | None = None
 ) -> Callable[[Sequence[Line], date], dict[Line, Answer]]:
     """THE KEEPER'S BROKER: the daily bars before a day of the lines (at most MOST) the archive
-    lacks, over one conversation. A broker that cannot be asked (a desk round, no gateway) gives
+    lacks, over one conversation, in each line's currency (the desk's root: home, else
+    KESTREL2_DATA). A broker that cannot be asked (a desk round, no gateway) gives
     each line a Refused in words, so the line is judged on the archive alone and, if that too
     lacks it, is parked and named."""
 
     def ask_all(lines: Sequence[Line], day: date) -> dict[Line, Answer]:
         try:
-            return gather(lines[:MOST], day, day - RECENT, now, wait)
+            got = gather(lines[:MOST], day, day - RECENT, now, wait)
+            root = home or Path(os.environ["KESTREL2_DATA"])
+            return priced(root, now, got, paper.Door(CLIENT))
         except (Busy, OSError) as err:
             return {line: Refused(f"the broker was not asked: {err}") for line in lines}
 
