@@ -23,6 +23,7 @@ from lab.block_bands import (
     CloseUnderEma,
     PercentBOver,
     PercentBUnderRun,
+    TrendTemplate,
 )
 from lab.block_base import Block, Kind, Param, Spot
 from lab.block_months import (
@@ -357,4 +358,5 @@ BLOCKS: Mapping[str, Spot] = {
     "close_over_emas": Spot(Kind.FILTER, CloseOverEmas, {"n": _DAYS, "slow": _DAYS}),
     "close_under_ema": Spot(Kind.EXIT, CloseUnderEma, {"n": _DAYS}),
     "no_filter": Spot(Kind.FILTER, Always, {}),
+    "trend_template": Spot(Kind.FILTER, TrendTemplate, {}),
 }
