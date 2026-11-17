@@ -89,7 +89,7 @@ KNOBS = {  # every tuning constant of the store, with the value it is judged by
     "JUMP": Decimal("1.6"), "STRETCH": Decimal("0.03"), "RECENT": 60, "BLIP": 20, "FROZEN": 5,
     "FX_STEP": Decimal("0.05"), "FX_FAR": Decimal("0.10"), "RATE_AGE": timedelta(days=7),
     "SPLIT_NEAR": Decimal("0.25"), "HISTORY": "history", "AGREE": Decimal("0.02"),
-    "PENCE": Decimal(100), "UNIT_DAYS": 5,
+    "PENCE": Decimal(100), "UNIT_DAYS": 5, "UNIT_SHARE": Decimal("0.95"),
 }  # fmt: skip
 
 

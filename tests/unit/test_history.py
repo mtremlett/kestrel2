@@ -14,7 +14,7 @@ import pytest
 from desk import history, live, paper
 from desk.bars import Five
 from desk.history import Busy
-from desk.lines import LINES, Line
+from desk.lines import LINES, POUND, Line
 from desk.listing import Listing
 from desk.rollup import Candle
 from desk.store import Bar, Refused
@@ -50,6 +50,13 @@ def test_the_ask_names_the_line_the_day_before_and_the_trades() -> None:
         assert f"\0{size}\0" in history.request(VUAG, DAY, SINCE, frame).decode()
     with pytest.raises(KeyError):
         history.request(VUAG, DAY, SINCE, "3m")
+    pair = history.request(POUND, DAY, SINCE)[4:].decode().split(chr(0))[:-1]
+    assert pair[3:5] == ["GBP", "CASH"] and pair[9:12] == ["IDEALPRO", "", "USD"]
+    assert pair[19] == "MIDPOINT"
+    forex = conversation("17|9001|a|b|1|20261112|1.3|1.4|1.2|1.3|-1|1.3|-1")
+    paper.start(forex, lambda _: None)
+    got = history.ask(forex, lambda _: None, POUND, DAY, SINCE)
+    assert not isinstance(got, Refused) and [b.volume for b in got if isinstance(b, Bar)] == [0]
 
 
 def test_the_bars_are_those_from_since_and_before_the_day_asked() -> None:

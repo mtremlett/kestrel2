@@ -71,8 +71,23 @@ def _trend_template(p: Prices, params: Params) -> Bools:  # noqa: ARG001 - no se
     return out
 
 
+def _turtle_soup(p: Prices, params: Params) -> Bools:
+    """A low under the n lows before, the lowest of them at least `gap` bars old, the close
+    back above it: whole prices compare exactly."""
+    n, gap = int(params["n"]), int(params["gap"])
+    before = _windows(p.low, n)[:-1]  #: the n lows before each bar from n
+    older = before.min(axis=1)
+    newest = n - 1 - np.argmin(before[:, ::-1], axis=1)  #: where its latest day sits
+    fired = (p.low[n:] < older) & (older < p.close[n:]) & (n - newest >= gap)
+    return _late(n, fired, len(p.close))
+
+
 #: Every block of the fast engine that reads prices alone, by name.
-FIRES: Mapping[str, Fire] = {**_PARTS, "trend_template": _trend_template}
+FIRES: Mapping[str, Fire] = {
+    **_PARTS,
+    "trend_template": _trend_template,
+    "turtle_soup": _turtle_soup,
+}
 
 
 def _highest_high_on_volume(p: Prices, volumes: Floats, params: Params) -> Bools:
@@ -114,26 +129,29 @@ class Shared:
         return self._fired[key]
 
 
-def _walk(p: Prices, wish: Bools, leave: Bools, pct: Decimal | None, days: int = 0) -> Bools:
+def _walk(
+    p: Prices, wish: Bools, leave: Bools, pct: Decimal | None, days: int = 0, floor: bool = False
+) -> Bools:
     """The position after each bar: out to start; out, it buys on a bar that wishes it; in, it
     sells on a bar that leaves or, given `pct`, on a close at or under the highest close since
     it was first seen held, less that per cent. That test, `close <= peak * (1 - pct / 100)`,
     is made on whole numbers as `close * a <= peak * b`, and its closeness checked. Given
-    `days`, it also sells on the `days`-th held bar."""
+    `days`, it also sells on the `days`-th held bar. Given `floor`, it sells on a close under the
+    low of the bar it bought on."""
     top, bottom = (pct or Decimal(0)).as_integer_ratio()
     a = 100 * bottom
-    b, close = a - top, p.close.tolist()
+    b, close, low = a - top, p.close.tolist(), p.low.tolist()
     if _top(p) * a >= DESK:
         raise TooClose("prices too long for the desk's own stop to be exact")
-    out, holding, peak, kept = [], False, None, 0
+    out, holding, peak, kept, level = [], False, None, 0, 0.0
     sides: list[tuple[float, float]] = []
     for n, (buy, sell) in enumerate(zip(wish.tolist(), leave.tolist(), strict=True)):
         if not holding:
-            peak, holding, kept = None, buy, 0
+            peak, holding, kept, level = None, buy, 0, low[n]
         else:
             kept += 1
             peak = close[n] if peak is None else max(peak, close[n])
-            holding = not sell and kept != days
+            holding = not sell and kept != days and not (floor and close[n] < level)
             if pct is not None:
                 sides.append((close[n] * a, peak * b))
                 holding = holding and close[n] * a > peak * b
@@ -153,4 +171,5 @@ def held(spec: Spec, shared: Shared) -> Bools:
     }
     stop = Decimal(spec.params["stop"]["pct"]) if spec.stop == "trailing_stop" else None
     days = int(spec.params["stop"]["n"]) if spec.stop == "time_stop" else 0
-    return _walk(shared.prices, fire["entry"] & fire["filter"], fire["exit"], stop, days)
+    floor = spec.stop == "under_entry_low"
+    return _walk(shared.prices, fire["entry"] & fire["filter"], fire["exit"], stop, days, floor)

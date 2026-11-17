@@ -1,10 +1,9 @@
 """simcity - SIMCITY. ONE COMMAND lives the desk's day through a hundred seeded worlds of the saved
-data, at the pretend broker with all its faults, and writes one record of the night. A WORLD is
-the saved lines on their own days, each line's months dealt again by the world's number, which
-also deals the faults and what goes wrong on a real desk: it dies mid-send and is started again,
-a position appears behind its back, a stop is cancelled by hand, the kill switch is pulled. THE
-CENSUS names each part of the money path with the scenarios that ran it. A part none ran, or a
-promise broken in a world, turns the night red and names the world."""
+data at the pretend broker, and writes one record of the night. A WORLD is the saved lines on their
+own days, each line's months dealt again by the world's number, which also deals the faults and
+what a real desk meets: it dies mid-send and is started again, a position appears behind its back,
+a stop is cancelled by hand, the kill switch is pulled. THE CENSUS names each part of the money
+path with the scenarios that ran it. A part none ran, or a promise broken, turns the night red."""
 
 from __future__ import annotations
 
@@ -106,8 +105,7 @@ def _market(archive: Archive, rng: random.Random) -> dict[Line, tuple[Bar, ...]]
     """A WORLD'S MARKET: every saved line on its own days from its own first bar, each bar's shape
     kept against the close before it, to the penny; the days dealt again a MONTH at a time."""
     market = {}
-    for line in sorted(archive, key=lambda line: line.symbol):
-        bars = archive[line]
+    for line, bars in sorted(archive.items(), key=lambda item: item[0].symbol):
         steps = list(pairwise(bars))
         months = [steps[at : at + MONTH] for at in range(0, len(steps), MONTH)]
         rng.shuffle(months)
@@ -198,8 +196,8 @@ class _Life:
         told = {b.reason.partition(":")[0] for b in halt.morning(self.desk, on)[halt.Blocker.BOOK]}
         untold = {s for s, n in held.items() if s not in stopped and mine.get(s) == n} - told
         self.promise("a line held with no stop is on that day's list, with its stop", not untold)
-        same = held == stopped == mine
-        self.promise("no line is named on a day the book is the broker's", not (same and odd))
+        named = odd and held == stopped == mine
+        self.promise("no line is named on a day the book is the broker's", not named)
         self.records.append(record)
         return record
 
@@ -252,9 +250,8 @@ def _gapped(life: _Life, on: date) -> None:
     paid = {f.symbol: f.price for f in book.fills(life.desk) if f.quantity > 0 and f.day == on}
     due = {s: orders.stop_under(lines[s], p) for s, p in paid.items()}
     rests = {s: level for s, (_, level) in life.pretend.resting_stops().items()}
-    life.promise(
-        "a stop rests where its fill puts it", all(rests[s] == due[s] for s in rests & due.keys())
-    )
+    fits = all(rests[s] == due[s] for s in rests & due.keys())
+    life.promise("a stop rests where its fill puts it", fits)
 
 
 def _killed(life: _Life, on: date) -> None:
@@ -361,6 +358,9 @@ def _live(life: _Life) -> None:
     shut = sum(-t.sell.quantity for t in trips) == sum(-f.quantity for f in fills if f.quantity < 0)
     life.promise("the round trips close every share the fills sold", shut)
     life.trips = len(trips)
+    cash, costs = book.dealt(life.desk, life.market, date.max, date.min, 0)
+    kind = book.conformance_cost(life.desk, life.market)
+    life.promise("the conformance cost is cash less costs", kind == cash - costs.total)
     life.held = {orders.strategy_of(fill.order_id) for fill in fills if fill.quantity > 0}
 
 

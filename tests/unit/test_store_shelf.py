@@ -87,3 +87,21 @@ def test_a_shelf_a_hundredth_of_archive_and_broker_is_a_named_unit_fault_put_rig
         assert len(put) == 40 and all(f.noted for f in put)
     short = store.read(tmp_path / "history", UK.symbol)[:23]  # too few sessions beside the archive
     assert store.judge(UK, every[20:], DAY, shelf=short)[2] is not None
+
+
+def test_a_shelf_a_hundredth_on_the_clear_majority_is_put_right_and_the_odd_days_named() -> None:
+    """R-RUNNER-307, IB1T: 250 of 255 shared days a hundredth, five of the archive's own bad
+    days: put right, five named faults, not parked. Only half the days: not rescaled, parked."""
+    every = list(_bars(UK, LONG))
+    shelf = [replace(b, **{k: getattr(b, k) / 100 for k in _PRICES}) for b in every]
+    odd = {every[-3].day, every[-30].day}
+    archive = [
+        replace(b, **{k: getattr(b, k) * Decimal("1.1") for k in _PRICES}) if b.day in odd else b
+        for b in every
+    ]
+    kept, faults, park = store.judge(UK, archive, DAY, shelf=shelf)
+    assert park is None and len(kept) == len(every)
+    assert sum("(shelf)" in f.what for f in faults) == len(odd)
+    half = [b if n % 2 else replace(b, close=b.close / 7) for n, b in enumerate(shelf)]
+    assert store.judge(UK, every, DAY, shelf=half)[0] == every
+    assert store.judge(UK, every, DAY, shelf=half)[2] is not None

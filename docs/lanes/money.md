@@ -589,3 +589,10 @@ Decided by the MONEY lane as the desk's mentor, no one watching.
 ### 2026-11-17 - correlation cap 0.90 at the gate; volatility sizing not wired (#698, #720, money-limits)
 - (1) Correlation cap: (a) 0.80 (refuses more), (b) 0.90, (c) 0.95 (rarely bites). Chose (b): stops twin lines such as a 3x and a 1x of one index, leaves ordinary same-sector pairs; his 13 November ruling, recommended option. A line with under 20 shared days (of the last 60) or a flat price is not judged.
 - (2) Volatility sizing in `orders.size`: (a) replace the fifth-of-capital room with risk-based sizing now (moves every size and golden number; needs a risk-per-trade number only he owns), (b) wait for the weather box and the golden run. Chose (b): his 16 Nov ruling "record first, prove second, act last" (REG-07); (a) changes what the desk buys. Standing ruling: recommended option taken.
+
+### 2026-11-17 - money-restop's message half stays with PAPER (#717, R-MONEY-18/31)
+- Options: (a) widen the claim to `desk/messenger.py`, (b) a duck-typed hook in `day.py`, (c) land nothing and ask PAPER. Chose (c): one owner per concept (canon A4). Box waits: R-MONEY-18, R-MONEY-31.
+
+### 2026-11-17 - a new Pretend door, `put_stop_back`, not a widened `restop` (#758, R-RUNNER-292)
+- `put_stop_back(symbol, level)` rests a stop at the kept level for all shares held when none rests (error if one rests or none are held); SimCity's by-hand cancel uses it.
+- Options: (a) widen `restop`, which errors on a bare line by contract; (b) a new method. Chose (b) so a move and a put-back stay distinct.

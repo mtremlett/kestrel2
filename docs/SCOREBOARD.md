@@ -149,6 +149,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #722 money-restop: claim widened to messenger.py and broker.py (R-MONEY-51); no code. |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #726 R-RUNGS-12 re-verified met on main (#185); no scene moved. |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #728 no change: MONEY has no unclaimed box. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #717 money-restop: no step landed; put-back already on main, the message part is outside MONEY's claim |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #724 R-RUNGS-6/12 re-verified done (#185); no scene moved |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #758 R-RUNNER-292: Pretend puts a lost stop back at its level (test_broker, test_simcity) |
 
 ### DATA
 

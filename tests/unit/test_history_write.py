@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
 import pytest
 
 from desk import bars, history
-from desk.history_write import held, keeper, main
+from desk.history_write import held, keeper, main, roll
 from desk.lines import LINES
 from desk.rollup import Candle
 from desk.store import Bar, Refused
@@ -57,3 +57,24 @@ def test_a_pulled_bar_is_turned_from_the_brokers_unit_into_the_lines_currency(
     assert bars.daily(tmp_path / bars.LIVE, LINE)[0].close == Decimal("1.105")
     with pytest.raises(KeyError):
         keeper(tmp_path / bars.LIVE, {})(LINE, "1d", (pence,))
+
+
+def test_hourly_four_hourly_and_weekly_bars_are_rolled_never_over_a_pulled_one(
+    tmp_path: Path,
+) -> None:
+    live, keep = tmp_path / bars.LIVE, keeper(tmp_path / bars.LIVE, {"VUAG": 1})
+    open_ = datetime(2026, 11, 12, 8, 0, tzinfo=UTC)  # a London session, 08:00 to 16:30
+    halves = tuple(
+        Candle(open_ + timedelta(minutes=30 * n), PRICE, PRICE, PRICE, PRICE, 1, "ibkr")
+        for n in range(17)
+    )
+    days = tuple(Bar(date(2026, 11, d), PRICE, PRICE, PRICE, PRICE, 5) for d in range(9, 14))
+    keep(LINE, "30m", halves[1:])  # the opening half hour is missing: no 08:00 hour, no 4h bar
+    keep(LINE, "1d", days)
+    assert (
+        roll(live, LINE, open_ + timedelta(days=1)) == 8 + 2 + 1
+    )  # 1h 09-16, 4h 12 and 16, a week
+    keep(LINE, "1h", (Candle(open_ + timedelta(hours=1), PRICE, PRICE, PRICE, PRICE, 99, "ibkr"),))
+    assert roll(live, LINE, open_ + timedelta(days=1)) == 0
+    assert bars.sources(live, LINE, "1h") == {bars.Source.IBKR: 1, bars.Source.ROLLUP_30M: 7}
+    assert bars.sources(live, LINE, "1wk") == {bars.Source.ROLLUP_1D: 1}

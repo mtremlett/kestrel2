@@ -348,6 +348,9 @@ def keep(
     idle = not any(venues.sessions(venue, now.date(), now.date()) for venue in venues.RULES)
     ends, told = clock() + SPENT, []
     five = live.ibkr(home) if five is None else five
+    told += keeper_live.rounds(  # the fast round first, under half the call's time
+        home / HOT, lines, now, _within(five, clock, clock() + SPENT / 2), back, SETTLED
+    )
     for venue in sorted({line.venue for line in lines}):
         mine = [line for line in lines if line.venue == venue]
         ask = _within(daily, clock, ends)
@@ -359,12 +362,6 @@ def keep(
                 told.append(
                     (f"FIRST-LIGHT FAULT: the yardstick {YARDSTICK.symbol} is parked: {why}", True)
                 )
-        if venues.open_at(venue, now) or venues.open_at(venue, now - SETTLED):
-            told.append(
-                keeper_live.round_(
-                    home / HOT, mine, now, _within(five, clock, ends), _within(back, clock, ends)
-                )
-            )
     spoken = [words for words, _ in told]
     spoken += _reference(home, now, _within(ancient, clock, ends), series)
     return spoken, [words for words, miss in told if miss]
@@ -381,7 +378,7 @@ def main(home: Path, now: datetime, args: Sequence[str] = (), broker: Broker | N
         words, missed = keeper_live.minute_round(home / HOT, LINES, now, ask)
         done = [words]
     else:
-        done, missed = keep(home, now, broker=broker or history.daily(now))
+        done, missed = keep(home, now, broker=broker or history.daily(now, home=home))
         if stopped := parked_live(home / HOT, LINES, now):
             done.append(f"parked live, not traded: {stopped}")
         if late := delays(home / HOT, LINES, now):
