@@ -69,7 +69,7 @@ def test_the_set_reproduces_each_rule_judges_it_on_every_line_and_writes_the_tab
         "market",
     }
     md = table.read_text()
-    head = "| rule | line | venue | answer | rungs | trials | reproduction | goes forward |"
+    head = "| rule | line | venue | answer | rungs | trials | holding | reproduction | goes forward |"
     assert md.startswith("# SET EPON - PRE-REVIEW") and md.count(head) == 2
     assert "first PASS:" in md and "plateau UNRUN:" in md and "no author's figure" in md
     assert "goes forward" in md and ": 0 of 3 lines go forward" in md
