@@ -4,14 +4,18 @@ day asked, refused in the broker's words, paced, and never asked in a desk round
 from __future__ import annotations
 
 import io
-from datetime import UTC, date, datetime
+import re
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 
-from desk import history, paper
+from desk import history, live, paper
+from desk.bars import Five
 from desk.history import Busy
 from desk.lines import LINES, Line
+from desk.listing import Listing
 from desk.rollup import Candle
 from desk.store import Bar, Refused
 
@@ -67,12 +71,6 @@ def test_a_line_the_broker_will_not_give_is_refused_in_its_words() -> None:
     assert got == Refused("the broker's 200: No security definition has been found for the request")
 
 
-@pytest.fixture(autouse=True)
-def _client_restored(monkeypatch: pytest.MonkeyPatch) -> None:
-    """The history calls set the door's client for the process; no other test may see it."""
-    monkeypatch.setattr(paper, "CLIENT", paper.CLIENT)
-
-
 def test_a_count_that_does_not_fit_the_bars_is_refused_loudly() -> None:
     wire = conversation(TAPE.replace("|3|", "|4|"))
     paper.start(wire, lambda _: None)
@@ -85,7 +83,7 @@ def test_each_line_is_asked_as_its_own_client_paced_apart(monkeypatch: pytest.Mo
     wire = conversation(TAPE, NONE)
     monkeypatch.setattr(paper, "dial", lambda talk: talk(wire, lambda _: None))
     got = history.gather((VUAG, IDTL), DAY, SINCE, MONDAY_NOON, waits.append)
-    assert waits == [history.PACING] and paper.CLIENT == history.CLIENT == 225
+    assert waits == [history.PACING] and history.CLIENT == 225
     assert isinstance(got[IDTL], Refused) and got[VUAG] != got[IDTL]
 
 
@@ -130,7 +128,6 @@ def test_a_run_asks_each_timeframe_over_one_conversation_and_not_in_a_round(
     keep = lambda line, frame, got: kept.update({(line, frame): got})  # noqa: E731
     assert history.run(asks, keep, DAY, SINCE, MONDAY_NOON, lambda _: None) == 2
     assert isinstance(kept[(VUAG, "1wk")], Refused) and "\0" + "1 week" + "\0" in sent[-1].decode()
-    assert paper.CLIENT == history.CLIENT
     stamp = int(datetime(2026, 11, 12, 9, 30, tzinfo=UTC).timestamp())
     timed = conversation(TAPE.replace("20261112", str(stamp)))
     paper.start(timed, lambda _: None)
@@ -147,3 +144,32 @@ def test_a_run_asks_each_timeframe_over_one_conversation_and_not_in_a_round(
         history.ask(odd, sent.append, VUAG, DAY, SINCE, "5m")
     with pytest.raises(Busy):
         history.run(asks, keep, DAY, SINCE, datetime(2026, 11, 16, 8, 0, tzinfo=UTC))
+
+
+def test_a_pull_and_a_live_round_in_one_process_each_start_as_their_own_client(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    sent: list[bytes] = []
+    five = Five(MONDAY_NOON, *(Decimal(1),) * 4, 1)
+    pence = Listing(VUAG, "1", "LSE", 1, ((Decimal(0), Decimal("0.5")),))
+
+    def newest(_l: Line, _c: str, _r: str, _n: int, door: paper.Door) -> tuple[Five, ...]:
+        paper.start(conversation(), sent.append, door)
+        return (five,)
+
+    monkeypatch.setattr(paper, "dial", lambda talk: talk(conversation(TAPE), sent.append))
+    ask = live.ibkr(tmp_path, lambda _: None, newest, lambda *_: {"VUAG": pence})
+    for first in (history, live):  # both orders
+        sent.clear()
+        for one in (first, live if first is history else history):
+            if one is history:
+                history.gather((VUAG,), DAY, SINCE, MONDAY_NOON, lambda _: None)
+            else:
+                ask(VUAG, MONDAY_NOON + timedelta(minutes=5))
+        ids = [m[4:].decode().split("\0")[2] for m in sent if m[4:6] == b"71"]
+        assert ids == [str(first.CLIENT), str(live.CLIENT if first is history else history.CLIENT)]
+    modules = [
+        (Path(__file__).parents[2] / "desk" / f"{n}.py").read_text("utf-8")
+        for n in ("history", "live")
+    ]
+    assert not any(re.search(r"paper\.(CLIENT|APART)\s*=", text) for text in modules)
