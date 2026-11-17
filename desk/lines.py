@@ -58,6 +58,9 @@ class Line:
     #: The ISIN, the twelve-character international id the issuer and the broker both give
     #: (R-PAPER-3); None only for a reference series that is no security.
     isin: str | None = None
+    #: The first day whose bars the store keeps, where the archive's older ones are in another
+    #: unit than its newer: earlier bars are dropped with one fault, never rescaled by a guess.
+    starts: date | None = None
 
     def __post_init__(self) -> None:
         if self.venue not in venues.RULES:
@@ -106,9 +109,12 @@ class Line:
 #: What a second free source confirms about the archive's bars (14 November 2026): the old
 #: desk's Stooq daily bars (stooq_store_matrix) give the same closes and volumes on each of
 #: these days, the closes exactly as the archive gives them. 2MU's and 5QQQ's days are real
-#: moves of a leveraged line that the one-day range test cannot tell from a bad bar; 5QQQ's
-#: price before 22 August 2024 was in a 500-for-1 consolidation's old shares (the archive's
-#: jump, x489.5, is the ratio within a day's move).
+#: moves of a leveraged line that the one-day range test cannot tell from a bad bar. 5QQQ's
+#: 22 August 2024 is no consolidation (17 November 2026): Stooq's closes run on unbroken
+#: from 28p in December 2022 to 111p in August 2024, and the archive's bars before the day
+#: are exactly a hundredth of them, pounds where the later ones are pence; the archive's
+#: jump (x489.5) is that hundred and a market that rose fivefold, over a gap of 432 sessions.
+#: Scaled by 500 they stood 5 times too high; so the line starts on 22 August 2024.
 #: 2MU's box (17 November 2026): the four moves below are the only ones the store parks it
 #: for, and each is needed (without one, that day parks it). Stooq's closes of 26 September
 #: and 19 December 2024 and 4 April 2025 are the archive's to the penny. 5 August 2024 is a
@@ -138,7 +144,8 @@ ISINS = dict(
         " SPY:US78462F1030 QQQ:US46090E1038"
     ).split()
 )
-SPLITS = {"5QQQ": ((date(2024, 8, 22), Decimal(500)),)}
+#: Where each line's bars start, once the archive's older ones are in another unit (above).
+STARTS = {"5QQQ": date(2024, 8, 22)}
 #: Each line's underlying market and the factsheet (or company) that names it, never the ticker.
 UNDERLYING = {
     "3LGO": ("GOLD", "WisdomTree 3x Daily Long Gold factsheet"),
@@ -177,10 +184,11 @@ LINES = tuple(
         isa,
         retail,
         frozenset((date(*day), Decimal(close)) for *day, close in MOVES.get(symbol, ())),
-        frozenset(SPLITS.get(symbol, ())),
+        frozenset(),
         frozenset(),
         *UNDERLYING[symbol],
         isin=ISINS[symbol],
+        starts=STARTS.get(symbol),
     )
     for venue, currency, isa, retail, symbols in (
         ("LSE", "GBP", True, True, "3LGO:3 2MU:2 SMGB:1 IITU:1 VHYG:1 5QQQ:5 ISF:1 VUSA:1 SGLN:1"),

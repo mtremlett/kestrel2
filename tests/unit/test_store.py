@@ -373,3 +373,13 @@ def test_a_recorded_split_adjusts_the_older_bars_only_by_the_ratio_the_jump_show
     )
     assert _parked(tmp_path, clean, line) == []  # the archive adjusted it already
     assert store.read(tmp_path, US.symbol) == clean
+
+
+def test_bars_before_the_day_a_line_starts_are_dropped_with_a_fault_each(tmp_path: Path) -> None:
+    """5QQQ's archive quotes its first years in pounds, a hundredth of Stooq's pence: not kept."""
+    clean = _bars(US, LONG)
+    old = tuple(_scaled(b, Decimal(100)) for b in clean[:30])
+    line = replace(US, starts=clean[30].day)
+    assert _parked(tmp_path, (*old, *clean[30:]), line) == []
+    assert store.read(tmp_path, US.symbol) == clean[30:]
+    assert len(store.faults(tmp_path, US.symbol)) == 30  # each old bar, with why
