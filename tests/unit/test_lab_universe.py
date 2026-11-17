@@ -152,6 +152,26 @@ def test_a_refresh_gives_a_line_with_no_file_one_counts_it_and_adds_nothing_the_
     )
 
 
+def test_the_nightly_refresh_clears_out_a_ticker_that_left_and_writes_the_day_and_list(
+    tmp_path: Path,
+) -> None:
+    home = tmp_path / "grid" / "store"
+    (home / "US" / "history").mkdir(parents=True)
+    for name in ("OLD.csv", "OLD.faults.csv", "history/OLD.csv"):
+        (home / "US" / name).write_text("x", encoding="utf-8")
+    said = universe.nightly(tmp_path, DAY, (universe.SP500[0],), _ask)
+    assert said.endswith("; 3 cleared out")
+    assert sorted(p.name for p in (home / "US").iterdir()) == [
+        "MMM.csv",
+        "MMM.faults.csv",
+        "history",
+    ]
+    note = (home / "REFLECTS.txt").read_text(encoding="utf-8").splitlines()
+    sizes = " ".join(f"{k}={len(v)}" for k, v in universe.LISTS.items())
+    assert note[:2] == [f"day {DAY}", f"lines 1 {sizes}"]
+    assert note[3] == "cleared US:OLD US:OLD US:OLD"
+
+
 MMM = universe.SP500[0]
 AT = 60
 

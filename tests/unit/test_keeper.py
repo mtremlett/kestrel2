@@ -264,6 +264,7 @@ def test_nothing_is_asked_on_a_day_no_venue_trades_nor_once_the_calls_time_is_sp
     assert pretend.asked == ["BBB", "AAA", "CCC"] and len(said) == 2 and missed == []
     assert keeper.saved(tmp_path, MON, LINES)[0][UK] == _bars(UK, MON)  # ready for Monday
     assert pretend.keep(tmp_path, _at(9, 5, SAT)) == ([], []) and pretend.asked == []
+    monkeypatch.setattr(keeper, "LINES", LINES)  # the command judges these lines
     assert keeper.main(tmp_path, _at(9, day=SAT)) == 0  # held: nothing is owed, nothing asked
     other, pretend.refuses = tmp_path / "other", {"AAA"}
     for minute in (0, 5, 10):  # a line refused at a weekend is asked again, as on any day
@@ -302,7 +303,8 @@ def test_nothing_is_asked_on_a_day_no_venue_trades_nor_once_the_calls_time_is_sp
     assert keeper.main(tmp_path / "real", _at(9)) == 1  # the command itself, the archive away
     out, err = capsys.readouterr()
     assert len(out.splitlines()) == 4 and "parked live, not traded" in out
-    assert err.count("MISSED: ") == 3 and "MISSED: US: daily" in err
+    assert err.count("MISSED: ") == 6 and "MISSED: US: daily" in err
+    assert err.count("MISSED: stale: ") == 3  # nothing held: each line is staler than a session
 
 
 def test_the_closes_are_held_within_the_named_figure_after_each_venues_close(

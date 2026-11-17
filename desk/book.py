@@ -105,6 +105,7 @@ def send(
     settings: Settings,
     tell: Tell | None = None,
     standing: Standing | None = None,
+    exposure: Mapping[str, Decimal] | None = None,
 ) -> Sent:
     """Ask the broker what it did with the order's id, so a desk that restarts never sends it
     twice; if it never received it, gate it and send it. Fills are recorded, a buy's stop rests
@@ -112,7 +113,8 @@ def send(
     its shares agree. Kill switch on: nothing is sent; a halt: no buy. Every refusal names its
     blocker (Stopped), as does a short answer. A place that fails unknown pulls the kill switch
     (Alarm); one that disagrees halts buying and is told (tell). Given the book's standing the gate
-    also refuses a buy past a loss limit or the day's new lines (orders.gate)."""
+    also refuses a buy past a loss limit or the day's new lines, and, given the pounds controlled
+    per underlying (exposure), one past its market's cap (orders.gate)."""
     _settle(root, broker)
     report = broker.report(order.order_id)
     if report is None:
@@ -122,7 +124,7 @@ def send(
             words = f"{order.order_id}: not sent, the book is not the broker's on {list(differ)}"
             raise Stopped(Blocker.BOOK, words)
         try:
-            gate(order, settings, held, standing)
+            gate(order, settings, held, standing, exposure)
         except Refused as refused:
             raise Stopped(Blocker.GATE, str(refused)) from refused
         _unless_stopped(root, order)  #: read again, at the last moment before it goes
