@@ -19,6 +19,8 @@ from desk.lines import LINES
 from desk.orders import Refused
 from desk.paper import Account, Holding
 
+DOOR = paper.Door(paper.DESK)
+
 TEN = Holding("DU0000001", "AAPL", "STK", "USD", Decimal(10))
 QUIET, BARE = Account((), ()), Account((TEN,), ())
 NOW = datetime(2026, 11, 16, 7, 5, tzinfo=UTC)
@@ -34,10 +36,15 @@ BUYING = replace(OURS, broker_id="8", action="BUY", kind="MKT", state="Submitted
 
 
 def test_a_line_held_under_the_desks_own_stop_for_exactly_its_shares_is_no_difference() -> None:
-    assert clearance.differences(Account((TEN,), (OURS,)), LISTED, {"AAPL": 10}, (AAPL, IITU)) == ()
-    assert clearance.differences(QUIET, LISTED, {}, (AAPL, IITU)) == ()
+    assert (
+        clearance.differences(Account((TEN,), (OURS,)), LISTED, {"AAPL": 10}, (AAPL, IITU), DOOR)
+        == ()
+    )
+    assert clearance.differences(QUIET, LISTED, {}, (AAPL, IITU), DOOR) == ()
     with pytest.raises(ValueError, match="999"):  # the desk's own, on no line of the desk's
-        clearance.differences(Account((), (replace(OURS, contract="999"),)), LISTED, {}, (AAPL,))
+        clearance.differences(
+            Account((), (replace(OURS, contract="999"),)), LISTED, {}, (AAPL,), DOOR
+        )
 
 
 @pytest.mark.parametrize(
@@ -64,16 +71,18 @@ def test_every_stop_and_order_that_is_not_the_books_is_named_holdings_first(
     orders: tuple[paper.Resting, ...], held: int, named: tuple[str, ...]
 ) -> None:
     book_ = {"AAPL": held} if held else {}
-    assert clearance.differences(Account((TEN,), orders), LISTED, book_, (AAPL, IITU)) == named
+    assert (
+        clearance.differences(Account((TEN,), orders), LISTED, book_, (AAPL, IITU), DOOR) == named
+    )
 
 
 def _check(patch: pytest.MonkeyPatch, root: Path, at: datetime, account: Account) -> Check:
     """The day's check at a moment: the door lists the desk's lines, then gives the account,
     the newest thing read."""
     answers = iter((LISTED, account))
-    patch.setattr(listing, "read", lambda lines: next(answers) if lines is LINES else {})
-    patch.setattr(paper, "read", lambda: next(answers))
-    return clearance.check(root, at)
+    patch.setattr(listing, "read", lambda lines, _door: next(answers) if lines is LINES else {})
+    patch.setattr(paper, "read", lambda _door: next(answers))
+    return clearance.check(root, at, DOOR)
 
 
 def test_no_order_until_todays_newest_check_came_back_clean(
@@ -94,9 +103,9 @@ def test_no_order_until_todays_newest_check_came_back_clean(
     with pytest.raises(Refused, match="o-2: not sent, .*08:05 UTC.*the broker holds 10"):
         clearance.require(tmp_path, hours[2], "o-2")
     # and so does one whose reading stopped anywhere: it has not come back, and is no clean one
-    monkeypatch.setattr(listing, "read", lambda _: paper.only("U7654321"))
+    monkeypatch.setattr(listing, "read", lambda _, _door: paper.only("U7654321"))
     with pytest.raises(paper.NotPaper):
-        clearance.check(tmp_path, hours[2])
+        clearance.check(tmp_path, hours[2], DOOR)
     with pytest.raises(Refused, match="o-3: not sent, .*09:05 UTC.*not come back"):
         clearance.require(tmp_path, hours[3], "o-3")
     assert clearance.checks(tmp_path) == (Check(NOW, ()), found, Check(hours[2], None))
@@ -105,10 +114,12 @@ def test_no_order_until_todays_newest_check_came_back_clean(
     _check(monkeypatch, tmp_path, hours[3], QUIET)
     clearance.require(tmp_path, hours[4], "o-3")
     # a check that ran beside this one and named something is never written over by it
-    monkeypatch.setattr(listing, "read", lambda _: LISTED)
-    monkeypatch.setattr(paper, "read", lambda: _check(monkeypatch, tmp_path, late, BARE) and QUIET)
+    monkeypatch.setattr(listing, "read", lambda _, _door: LISTED)
+    monkeypatch.setattr(
+        paper, "read", lambda _door: _check(monkeypatch, tmp_path, late, BARE) and QUIET
+    )
     with pytest.raises(ValueError, match="beside"):
-        clearance.check(tmp_path, hours[4])
+        clearance.check(tmp_path, hours[4], DOOR)
     kept = clearance.checks(tmp_path)  # every check is kept, in the order made
     assert kept[3:] == (Check(hours[3], ()), Check(hours[4], None), Check(late, found.found))
 

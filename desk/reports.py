@@ -106,11 +106,11 @@ def _execution(fields: list[str]) -> Execution:
     )
 
 
-def converse(wire: BinaryIO, send: paper.Send) -> tuple[Execution, ...]:
+def converse(wire: BinaryIO, send: paper.Send, door: paper.Door) -> tuple[Execution, ...]:
     """Ask over an open connection for every fill made on the account today, whoever's order
     made it, reading until the gateway says the list is whole. The broker's note of each
     fill's fee is passed over (paper.other)."""
-    paper.start(wire, send)
+    paper.start(wire, send, door)
     send(paper.message(ASK_FILLS, 3, NUMBER, 0, "", "", "", "", "", ""))
     found: list[Execution] = []
     while True:
@@ -123,9 +123,9 @@ def converse(wire: BinaryIO, send: paper.Send) -> tuple[Execution, ...]:
             paper.other(fields)
 
 
-def read() -> tuple[Execution, ...]:
+def read(door: paper.Door) -> tuple[Execution, ...]:
     """Every fill the paper broker made on the account today, as the gateway gives them now."""
-    return paper.dial(converse)
+    return paper.dial(lambda wire, send: converse(wire, send, door))
 
 
 @dataclass(frozen=True)
@@ -142,10 +142,10 @@ class Ended:
     left: Decimal  #: the shares never done: none on one filled whole
 
 
-def finished(wire: BinaryIO, send: paper.Send) -> tuple[Ended, ...]:
+def finished(wire: BinaryIO, send: paper.Send, door: paper.Door) -> tuple[Ended, ...]:
     """Ask over an open connection for every order ended on the account today, whoever
     placed it, reading until the gateway says the list is whole."""
-    paper.start(wire, send)
+    paper.start(wire, send, door)
     send(paper.message(ASK_ENDED, 0))
     found: list[Ended] = []
     while True:
@@ -163,10 +163,10 @@ def finished(wire: BinaryIO, send: paper.Send) -> tuple[Ended, ...]:
             found.append(Ended(ref, state, *done))
 
 
-def ended() -> tuple[Ended, ...]:
+def ended(door: paper.Door) -> tuple[Ended, ...]:
     """Every order ended on the account today, whoever placed it, as the gateway lists them
     now: the filled and the cancelled."""
-    return paper.dial(finished)
+    return paper.dial(lambda wire, send: finished(wire, send, door))
 
 
 def stop_to_sell(order: Resting) -> bool:
@@ -174,11 +174,11 @@ def stop_to_sell(order: Resting) -> bool:
     return (order.action, order.kind) == ("SELL", "STP")
 
 
-def ours(client: str, ref: str) -> bool:
-    """Whether an order, or a fill of one, is the desk's own: placed by the desk's own
-    client, under an order id of the desk's. Anything else on the account is someone
+def ours(door: paper.Door, client: str, ref: str) -> bool:
+    """Whether an order, or a fill of one, is the door's own: placed by its own client,
+    under an order id of the desk's. Anything else on the account is someone
     else's: a hand at the broker's screen, the old desk, another program."""
-    return client == str(paper.CLIENT) and bool(ref.strip())
+    return client == str(door.client) and bool(ref.strip())
 
 
 def _line(contract: str, listings: Mapping[str, Listing | Unlisted], whose: object) -> Listing:
@@ -190,7 +190,9 @@ def _line(contract: str, listings: Mapping[str, Listing | Unlisted], whose: obje
     raise ValueError(f"the desk's own, on no line the broker lists for it ({contract}): {whose}")
 
 
-def fills(executions: Iterable[Execution], listings: Mapping[str, Listing | Unlisted]) -> Fills:
+def fills(
+    executions: Iterable[Execution], listings: Mapping[str, Listing | Unlisted], door: paper.Door
+) -> Fills:
     """The broker's fills told apart: the desk's own as its ledger keeps them, each priced
     in its line's currency, and everyone else's as given. listings is each line as the
     broker lists it now (listing.read). A fill of the desk's own that cannot be given whole
@@ -201,7 +203,7 @@ def fills(executions: Iterable[Execution], listings: Mapping[str, Listing | Unli
     others: list[Execution] = []
     last: dict[str, datetime] = {}
     for e in executions:
-        if not ours(e.client, e.ref):
+        if not ours(door, e.client, e.ref):
             others.append(e)
             continue
         listed = _line(e.contract, listings, e)
@@ -225,15 +227,18 @@ def fills(executions: Iterable[Execution], listings: Mapping[str, Listing | Unli
     return Fills(tuple(own), tuple(others))
 
 
-def orders(resting: Iterable[Resting], listings: Mapping[str, Listing | Unlisted]) -> Orders:
+def orders(
+    resting: Iterable[Resting], listings: Mapping[str, Listing | Unlisted], door: paper.Door
+) -> Orders:
     """The orders the broker lists as open told apart: the desk's own stops resting to
     sell, the desk's own other orders, and everyone else's. resting is the account's open
-    orders (paper.read); listings, each line as the broker lists it now (listing.read)."""
+    orders (paper.read); listings, each line as the broker lists it now (listing.read); door,
+    who is asking."""
     stops: list[tuple[str, Decimal]] = []
     unsettled: list[Resting] = []
     others: list[Resting] = []
     for order in resting:
-        if not ours(order.client, order.ref):
+        if not ours(door, order.client, order.ref):
             others.append(order)
             continue
         line = _line(order.contract, listings, order).line
