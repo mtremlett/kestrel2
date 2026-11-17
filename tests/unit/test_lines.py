@@ -91,7 +91,7 @@ def test_the_lines_record_what_a_second_source_confirmed() -> None:
     assert held["5QQQ"].starts == date(2024, 8, 22)
     assert held["SGLN"].starts is None  #: its 2011 dollar bars are untraded: dropped
     moves = {sym: len(line.real_moves) for sym, line in held.items() if line.real_moves}
-    assert moves == {"2MU": 4, "5QQQ": 2, "SGLN": 1}
+    assert moves == {"2MU": 4, "5QQQ": 2, "SGLN": 1, "AAPL": 1, "NVDA": 2, "AMD": 2}
 
 
 def test_spy_and_qqq_are_read_as_reference_series_and_refused_as_traded_lines() -> None:
