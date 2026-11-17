@@ -14,7 +14,7 @@ from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
-from typing import BinaryIO, cast
+from typing import BinaryIO, TypeVar, cast
 
 from desk import conformance_tape, listing, paper, venues
 from desk.lines import LINES, Line
@@ -51,6 +51,7 @@ PAGES = {
 #: What an ask gives: a day's bars for the daily and weekly, candles (with their time) for the rest.
 Got = Answer | tuple[Candle, ...]
 DAILY = ("1d", "1wk")
+B = TypeVar("B", Bar, Candle)  #: a bar of either kind
 
 
 class Busy(Exception):
@@ -180,16 +181,21 @@ def lacks(line: Line, answer: Answer, day: date) -> bool:
 RECENT = timedelta(days=30)  #: how far back the broker's daily bars are asked to join the archive's
 
 
+def scaled(one: B, magnifier: int) -> B:
+    """One bar of the broker's, its prices turned from its unit (100 is pence) into the line's
+    currency."""
+    unit = Decimal(magnifier)
+    return replace(
+        one, open=one.open / unit, high=one.high / unit, low=one.low / unit, close=one.close / unit
+    )
+
+
 def in_currency(answer: Answer, magnifier: int) -> Answer:
     """THE ONE HOME OF THE UNIT RULE: the broker's bars with their prices turned from its unit
-    (100 is pence) into the line's currency, once, on entry; a refusal is passed on."""
+    into the line's currency, once, on entry (`scaled`); a refusal is passed on."""
     if isinstance(answer, Refused):
         return answer
-    unit = Decimal(magnifier)
-    return [
-        replace(b, open=b.open / unit, high=b.high / unit, low=b.low / unit, close=b.close / unit)
-        for b in answer
-    ]
+    return [scaled(b, magnifier) for b in answer]
 
 
 def priced(
