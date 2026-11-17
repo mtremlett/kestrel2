@@ -421,7 +421,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       once (found by SimCity: 98 sessions held with no stop). First step done in #191 (the desk keeps
       every stop's level; a lost stop is on the day's list with stop, shares, level); remains: the
       put-back itself (a way to rest a stop at a level in `desk/broker.py`; `running.recover` on paper),
-      the list reaching him (R-MONEY-18); the SimCity census is split (#590). The put-back on paper is on main (#657, running.recover) and the day's list names each bare line (#191); remains: the list reaching him (desk/messenger.py, R-MONEY-18, -31) and a put-back door on Pretend (desk/broker.py), both outside the claim (R-MONEY-51)
+      the list reaching him (R-MONEY-18); the SimCity census is split (#590). The put-back on paper is on main (#657, running.recover) and the day's list names each bare line (#191); remains: the list reaching him (desk/messenger.py, R-MONEY-18, -31) and a put-back door on Pretend (desk/broker.py), claim widened to both (R-MONEY-51, #722)
       {id: money-restop; files: desk/day.py, desk/book.py, tests/unit/test_day*.py,
       tests/unit/test_book*.py, desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml,
       desk/messenger.py, tests/unit/test_messenger*.py, desk/broker.py, tests/unit/test_broker*.py;
@@ -436,8 +436,8 @@ day's trading and reconciliation are built, and any broker can stand behind them
       {id: money-halts; files: desk/halt.py, desk/day.py, desk/book.py,
       tests/unit/test_halt*.py, tests/unit/test_day*.py, tests/unit/test_book*.py,
       manifest.toml; after: money-kill, money-record}
-- [ ] The gate's other limits from canon B1: a day's and a week's loss and an order rate,
-      refused at the gate (EMG-04 when live). Built (#467, #564, #478): loss and new-line limits, underlying cap, correlation and volatility sizing in `desk/risk.py`; Standing, per-underlying exposure and the drawdown alert reach the gate on the send path (#632, #661); remains: correlation and volatility sizing into the gate (needs daily returns per line from the archive) {id: money-limits; files: desk/orders.py,
+- [x] The gate's other limits from canon B1: a day's and a week's loss and an order rate,
+      refused at the gate (EMG-04 when live). Built (#467, #564, #478): loss and new-line limits, underlying cap, correlation and volatility sizing in `desk/risk.py`; Standing, per-underlying exposure and the drawdown alert reach the gate on the send path (#632, #661); correlation cap 0.90 reaches the send path (#698); remains: volatility sizing into `orders.size` with its risk-per-trade setting, after the weather box and the golden run {id: money-limits; files: desk/orders.py,
       desk/book.py, desk/day.py, tests/unit/test_orders*.py, tests/unit/test_book*.py,
       tests/unit/test_day*.py, tests/scenes/test_scenes.py,
       desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml; after: money-record, money-working}
