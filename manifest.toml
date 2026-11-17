@@ -93,6 +93,7 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "desk/eponymous_weinstein_stage.py" = "Stan Weinstein's stage analysis (price above a rising 30-week average) as a rule under the one template, author, source and range of its setting written down; not traded by the paper desk"
 "desk/intraday.py" = "the one engine, intraday: a rule declares its bar span and decides on one session bar at a time; the backtest and the desk's step at a bar agree"
 "desk/day.py" = "the desk's day: run once for a date, publish one record, replay it"
+"desk/day_money.py" = "the day's money read at its end: what the book is worth, its heat, and the pounds it controls per underlying market"
 "desk/restop.py" = "the stop set from the fill: a held line's resting stop moved under its fill's own price, once, and the level kept"
 "desk/kill.py" = "the kill switch: one command stops every new order and cancels the working ones, the desk says so, and its drill"
 "desk/emergency.py" = "the three emergencies in numbers: an emergency, a crash and a black swan, each a measured fall set in advance, each with its action"
