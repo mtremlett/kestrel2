@@ -16,7 +16,7 @@ trend alone, with the trial count recorded (canon B6).
 from __future__ import annotations
 
 import statistics
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import date
 from decimal import Decimal
 
@@ -95,3 +95,26 @@ def drawdown(bars: Sequence[Bar]) -> dict[date, str]:
             high = max(closes[n + 1 - DD_WINDOW : n + 1])
             named[bar.day] = DEEP if closes[n] <= high * (1 - DD_LIMIT) else SHALLOW
     return named
+
+
+def followed(
+    labels: Mapping[date, str], bars: Sequence[Bar], folds: int = 1
+) -> list[dict[str, Decimal]]:
+    """What followed each label (canon B6): per fold, the mean next-session return after a day
+    of each label. The sessions are cut into `folds` contiguous slices, oldest first, so the
+    worst fold can be reported beside the whole. A `warming` day has no label to score. The
+    label of day T is paired with the return from T's close to the next close, never earlier."""
+    trend(bars)  # the one check that bars are one per day, oldest first
+    pairs = [
+        (labels[a.day], b.close / a.close - 1)
+        for a, b in zip(bars, bars[1:], strict=False)
+        if labels[a.day] != WARMING
+    ]
+    out = []
+    for k in range(folds):
+        slice_ = pairs[k * len(pairs) // folds : (k + 1) * len(pairs) // folds]
+        by_name: dict[str, list[Decimal]] = {}
+        for name, ret in slice_:
+            by_name.setdefault(name, []).append(ret)
+        out.append({name: Decimal(sum(rets)) / len(rets) for name, rets in by_name.items()})
+    return out
