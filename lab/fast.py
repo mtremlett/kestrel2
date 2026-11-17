@@ -36,7 +36,7 @@ from lab.grid import (
     _windows,
     prices,
 )
-from lab.spec import Spec
+from lab.spec import Spec, SpecRule
 
 __all__ = ["DATED", "FIRES", "Params", "Shared", "held"]  #: the blocks live in lab.fast_parts
 
@@ -114,6 +114,7 @@ class Shared:
     """One line's prices and the firing of every block on them, each worked out once."""
 
     def __init__(self, bars: Sequence[Bar]) -> None:
+        self.bars = bars
         self.prices = prices(bars)
         self._months = np.array([b.day.year * 12 + b.day.month for b in bars])
         self._volumes = np.array([b.volume for b in bars], dtype=np.float64)
@@ -168,6 +169,12 @@ def _walk(
 def held(spec: Spec, shared: Shared) -> Bools:
     """Whether the spec's rule is in the market after each bar of the line, as `SpecRule`
     holds it, or `TooClose` when floating point cannot be sure."""
+    if {"darvas_box", "darvas_stop"} & {spec.entry, spec.stop}:
+        rule, holding, out = SpecRule(spec), False, []  # the boxes depend on the position held
+        for bar in shared.bars:
+            holding = rule.step(bar, holding)
+            out.append(holding)
+        return np.array(out, dtype=np.bool_)
     fire = {
         place: shared.fires(getattr(spec, place), spec.params[place])
         for place in ("entry", "exit", "filter")
