@@ -19,11 +19,11 @@ from desk.store import Bar
 from desk.strategy import ZERO, _Wilder, _Window, rsi
 from lab.block_bands import PercentBOver, PercentBUnderRun
 from lab.block_base import Block, Kind, Param, Spot
+from lab.block_months import MonthEndNotOverAverage, MonthEndOverAverage
 from lab.blocks_parts import BigMove, RisingScore
 from lab.blocks_parts import (
     LogSlope as LogSlope,  # noqa: PLC0414 - re-exported: callers import it from here
 )
-from lab.block_months import MonthEndNotOverAverage, MonthEndOverAverage
 
 
 class HighestHigh(Block):
