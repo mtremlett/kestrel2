@@ -16,7 +16,7 @@ from pathlib import Path
 
 from desk import backfill, bars, history_write, keeper, venues
 from desk.lines import LINES, Line
-from desk.spans import EPOCH
+from desk.spans import EPOCH, FIVE
 from desk.store import Bar
 from desk.store import _clean as cleaned
 
@@ -58,19 +58,42 @@ def rolled(path: Path, line: Line, today: date) -> tuple[int, list[str]]:
     return landed, history_write.clashes(path, line, now)
 
 
-def thin(path: Path, line: Line, today: date) -> list[str]:
-    """The sessions between the first and the last 30-minute bar held on which the line holds
-    none: no finer source is wired in yet to fill them, so they are named red, never hidden."""
+SHORT = (
+    "1m",
+    "2m",
+    FIVE,
+    "10m",
+    "15m",
+    "30m",
+)  #: the intraday timeframes audited for thin sessions
+
+
+def _starts(path: Path, line: Line, span: str, until: datetime) -> list[datetime]:
+    """When the line's bars of one short span start, as held; a span never held has none."""
     try:
-        held = bars.timed(path, line, "30m", EPOCH, datetime.combine(today, time(), UTC))
-    except LookupError:  # the store never held this line's 30-minute bars: nothing to be short of
+        if span == FIVE:
+            return [b.start for b in bars.five(path, line, EPOCH, until)]
+        return [b.start for b in bars.timed(path, line, span, EPOCH, until)]
+    except LookupError:  # the store never held this span for the line: nothing to be short of
         return []
-    days = {b.start.date() for b in held}
-    first, last = min(days), max(days)
-    short = [d for d in venues.sessions(line.venue, first, last) if d not in days]
-    if not short:
-        return []
-    return [f"{line.symbol}: {len(short)} sessions with no 30m bar, the first {short[0]}"]
+
+
+def thin(path: Path, line: Line, today: date) -> list[str]:
+    """For each short timeframe, the sessions between the first and the last bar held on which
+    the line holds none: no finer source is wired in yet to fill them, so they are named red."""
+    until, red = datetime.combine(today, time(), UTC), []
+    for span in SHORT:
+        days = {start.date() for start in _starts(path, line, span, until)}
+        short = (
+            [d for d in venues.sessions(line.venue, min(days), max(days)) if d not in days]
+            if days
+            else []
+        )
+        if short:
+            red.append(
+                f"{line.symbol}: {len(short)} sessions with no {span} bar, the first {short[0]}"
+            )
+    return red
 
 
 def monitor(

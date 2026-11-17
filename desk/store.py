@@ -173,13 +173,26 @@ def _clean(
     return kept, faults
 
 
-def _write(path: Path, header: Sequence[str], rows: Iterable[Sequence[object]]) -> None:
+def _stage(path: Path, header: Sequence[str], rows: Iterable[Sequence[object]]) -> Path:
+    """Write the rows whole to a part file beside path; _swap puts it in place."""
     part = path.with_suffix(".part")
     with part.open("w", newline="", encoding="utf-8") as out:
         writer = csv.writer(out)
         writer.writerow(header)
         writer.writerows(rows)
-    part.replace(path)
+    return part
+
+
+def _swap(*parts: tuple[Path, Path]) -> None:
+    """Swap in every finished part file, one after another with nothing written between: a crash
+    while writing leaves the old pair whole, so bars and faults part only inside these swaps."""
+    for part, path in parts:
+        part.replace(path)
+
+
+def _write(path: Path, header: Sequence[str], rows: Iterable[Sequence[object]]) -> None:
+    """Write a file whole, then swap it in (halt.py writes its record this way too)."""
+    _swap((_stage(path, header, rows), path))
 
 
 Answer = Sequence[Bar] | Refused  #: what the archive gave for a line
@@ -224,8 +237,11 @@ def prepare(
         shelved = (root / HISTORY / f"{line.symbol}.csv").is_file()
         older = read(root / HISTORY, line.symbol) if shelved else None
         kept, faults, park = judge(line, answer, day, rates, older)
-        _write(root / f"{line.symbol}.csv", COLUMNS, (astuple(bar) for bar in kept))
-        _write(root / f"{line.symbol}.faults.csv", ("fault",), ((f.what,) for f in faults))
+        bars, notes = root / f"{line.symbol}.csv", root / f"{line.symbol}.faults.csv"
+        _swap(
+            (_stage(bars, COLUMNS, (astuple(bar) for bar in kept)), bars),
+            (_stage(notes, ("fault",), ((f.what,) for f in faults)), notes),
+        )
         parked += [park] if park else []
     return tuple(parked)
 
@@ -234,7 +250,8 @@ def shelve(root: Path, line: Line, bars: Iterable[Bar]) -> None:
     """A line's older bars, kept for every prepare to join to the archive's, replacing any
     shelved before. They are cleaned as the archive's are, with it, on each prepare."""
     (root / HISTORY).mkdir(parents=True, exist_ok=True)
-    _write(root / HISTORY / f"{line.symbol}.csv", COLUMNS, (astuple(bar) for bar in bars))
+    path = root / HISTORY / f"{line.symbol}.csv"
+    _write(path, COLUMNS, (astuple(bar) for bar in bars))
 
 
 def _joined(
