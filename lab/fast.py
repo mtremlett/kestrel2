@@ -21,7 +21,8 @@ import numpy as np
 
 from desk.store import Bar
 from lab.fast_bands import Params
-from lab.fast_parts import DATED, FIRES, _top
+from lab.fast_parts import DATED, Fire, _top
+from lab.fast_parts import FIRES as _PARTS
 from lab.grid import (
     DESK,
     EXACT,
@@ -37,6 +38,41 @@ from lab.grid import (
 from lab.spec import Spec
 
 __all__ = ["DATED", "FIRES", "Params", "Shared", "held"]  #: the blocks live in lab.fast_parts
+
+
+def _trend_template(p: Prices, params: Params) -> Bools:  # noqa: ARG001 - no settings
+    """Minervini's Trend Template on whole numbers, from the 252nd bar: every comparison of
+    averages is made on their sums (150 * sum50 against 50 * sum150, and so on), each a
+    margin whose sign is checked sure."""
+    first, total = 251, len(p.close)
+    out = np.zeros(total, dtype=np.bool_)
+    if total <= first:
+        return out
+    sums = {n: _windows(p.close, n).sum(axis=1) for n in (50, 150, 200)}
+    s50, s150, s200 = (sums[n][first - n + 1 :] for n in (50, 150, 200))
+    s200_ago = sums[200][first - 220 : total - 220]  #: the 200-day sums 21 bars before
+    close = p.close[first:]
+    bound = 30000.0 * _top(p)
+
+    def sure(margin: Floats, one: Floats, other: Floats) -> Floats:
+        return _sure(p, margin, np.abs(one) + np.abs(other), bound)
+
+    held = (
+        (sure(150 * close - s150, 150 * close, s150) > 0)
+        & (sure(200 * s150 - 150 * s200, 200 * s150, 150 * s200) > 0)
+        & (sure(3 * s50 - s150, 3 * s50, s150) > 0)
+        & (sure(50 * close - s50, 50 * close, s50) > 0)
+        & (sure(s200 - s200_ago, s200, s200_ago) > 0)
+    )
+    low, high = _windows(p.low, 252).min(axis=1), _windows(p.high, 252).max(axis=1)
+    held &= sure(10 * close - 13 * low, 10 * close, 13 * low) >= 0
+    held &= sure(4 * close - 3 * high, 4 * close, 3 * high) >= 0
+    out[first:] = held
+    return out
+
+
+#: Every block of the fast engine that reads prices alone, by name.
+FIRES: Mapping[str, Fire] = {**_PARTS, "trend_template": _trend_template}
 
 
 def _highest_high_on_volume(p: Prices, volumes: Floats, params: Params) -> Bools:

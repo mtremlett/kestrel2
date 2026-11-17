@@ -25,6 +25,7 @@ from desk.orders import (
     Refused,
     Sale,
     Settings,
+    moves,
     order_id_of,
     pennies,
     size,
@@ -181,11 +182,11 @@ def _orders(
         sale = Sale(order_id_of(d), due[d.symbol], held[d.symbol])
         sent.append(_answer(root, day, _send(root, broker, sale, settings, tell, None)))
     _alert(root, day, settings, tell)
-    exposed = partial(day_money.exposure, root, archive, rates)  #: read again at each buy
+    watch = partial(_watch, root, archive, rates)  #: read again at each buy
     for d in (d for d in decided if d.action is Action.BUY):
         line = due[d.symbol]
         price = archive[line][-1].close, rates[line.currency]
-        args = (root, broker, d, line, price, settings, day, tell, exposed)
+        args = (root, broker, d, line, price, settings, day, tell, watch)
         sent.append(_answer(root, day, _barred(d) if d.strategy in killed else _buy(*args)))
 
 
@@ -313,7 +314,7 @@ def _buy(
     settings: Settings,
     day: date,
     tell: book.Tell | None,
-    exposed: Callable[[], dict[str, Decimal]] | None = None,
+    watch: Callable[[str], tuple[dict[str, Decimal], dict[str, tuple[float, ...]]]] | None = None,
 ) -> book.Sent:
     """One rule's buy, sized from the book as the send before it left it, at the line's last
     close and the day's rate. A line held, or sold this morning, is not bought: said so. Nor is
@@ -335,7 +336,10 @@ def _buy(
         order = size(d, line, *price, settings, now)
     except Refused as refused:  #: the gate's answer, kept with the day's others
         return book.Sent(name, 0, str(refused), Blocker.GATE)
-    return _send(root, broker, order, settings, tell, standing(root, day), exposed and exposed())
+    looked = watch and watch(d.symbol)
+    return _send(
+        root, broker, order, settings, tell, standing(root, day), *(looked or (None, None))
+    )
 
 
 def standing(root: Path, day: date) -> Standing:
@@ -358,11 +362,12 @@ def _send(
     tell: book.Tell | None,
     held: Standing | None,
     pounds: Mapping[str, Decimal] | None = None,
+    moves: Mapping[str, tuple[float, ...]] | None = None,
 ) -> book.Sent:
     """Send through the one door; its refusal is the order's answer, kept with the day's
     under the blocker the send path names; one it does not name is the broker's own door's."""
     try:
-        return book.send(root, broker, order, settings, tell, held, pounds)
+        return book.send(root, broker, order, settings, tell, held, pounds, moves)
     except Stopped as stopped:
         return book.Sent(order.order_id, 0, str(stopped), stopped.blocker)
     except Refused as refused:
@@ -373,3 +378,13 @@ def _due(line: Line, bars: Sequence[Bar], day: date) -> bool:
     """The line's venue trades on day and its last bar is the session before: decisions
     dated any other day are not acted on."""
     return bool(bars) and venues.sessions(line.venue, bars[-1].day, day) == (bars[-1].day, day)
+
+
+def _watch(
+    root: Path, archive: Mapping[Line, Sequence[Bar]], rates: Mapping[str, Decimal], symbol: str
+) -> tuple[dict[str, Decimal], dict[str, tuple[float, ...]]]:
+    """What the gate reads of the book before a buy of the symbol: the pounds it controls per
+    underlying, and the daily returns of the symbol and of the lines held."""
+    return day_money.exposure(root, archive, rates), moves(
+        set(book.positions(root)), archive, symbol
+    )

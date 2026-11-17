@@ -135,6 +135,14 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #586 R-RUNNER-238 split desk/strategy.py to 330 lines, no behaviour change. |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #617 money-restop: no step landed, waits on PAPER's R-MONEY-30. |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #592 R-RUNNER-158 not ticked; wiring into book.send needs a book.py claim. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #611 R-RUNNER-220 step: stop from the fill in day.run, pretend broker restop, SimCity gap scenario; live wiring remains. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #649 R-RUNNER-199 step 2: intraday.today over a rule registry, empty until the ladder; tested. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #632 money-limits: loss and order-rate limits reach the gate on the send path. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #653 R-RUNNER-265 done: desk/day.py split, 399 to 323 lines, room for intraday-engine and stop-at-fill. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #661 money-limits: underlying exposure into the gate, drawdown alert told; sizing/correlation remain. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #689 money-restop: no change, waits on R-MONEY-30. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #683 money-stranger done: strangers sold (TRD-06) and no signal left unlisted at a death (TST-08); scenes 7 of 7, simcity green. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #700 money-restop: no change, remainder needs messenger.py and broker.py in the claim. |
 
 ### DATA
 

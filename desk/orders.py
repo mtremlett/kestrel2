@@ -5,13 +5,14 @@ ONE ROUNDING POLICY for what is published of it."""
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import astuple, dataclass, replace
 from decimal import ROUND_HALF_EVEN, Decimal
 from enum import Enum
 
 from desk.lines import Line
-from desk.risk import Standing, loss_limit, underlying_limit
+from desk.risk import Standing, correlated_with, loss_limit, underlying_limit
+from desk.store import Bar
 from desk.strategy import Action, Decision
 
 #: His ruling of 13 November 2026 (docs/DECISIONS.md): at most five holdings, each a fifth of
@@ -35,10 +36,16 @@ class Settings:
     #: R-RUNNER-158 (docs/DECISIONS.md): the most of the capital one underlying market may
     #: control, a leveraged line counted at its exposure; past it the gate refuses a buy.
     underlying: Decimal = Decimal("0.40")
+    #: The most two held lines' daily returns may move together (Pearson, -1 to 1): a buy
+    #: correlated past it with a line held is refused (canon B1, docs/DECISIONS.md); above 1 it
+    #: never refuses.
+    correlation: Decimal = Decimal("0.90")
 
     def __post_init__(self) -> None:
         if not self.capital.is_finite() or self.capital <= 0:
             raise ValueError(f"a capital of {self.capital} pounds")
+        if self.correlation <= 0:
+            raise ValueError(f"a correlation cap of {self.correlation}")
         if not (0 < self.day_loss <= self.week_loss <= 1) or self.new_lines < 1:
             raise ValueError(f"limits of {self.day_loss}, {self.week_loss} and {self.new_lines}")
 
@@ -270,6 +277,7 @@ def gate(
     held: Mapping[str, int],
     standing: Standing | None = None,
     exposure: Mapping[str, Decimal] | None = None,
+    moves: Mapping[str, tuple[float, ...]] | None = None,
 ) -> None:
     """The one pre-trade gate, on the send path: raises Refused, or lets the order through.
     held is the book (book.positions): a sale needs the shares in it, for the desk is long
@@ -278,7 +286,10 @@ def gate(
     (risk.Standing), a buy is refused once a loss limit is reached, and a new line once the
     day's new lines are used up; None checks neither (the send path does not yet give it). Given
     the pounds the book controls per underlying (exposure), a buy is refused that would take
-    its underlying market over its share of the capital; None checks nothing."""
+    its underlying market over its share of the capital; None checks nothing. Given the daily
+    returns of the order's line and of the lines held, over the same days (moves, by symbol), a
+    buy is refused that moves with a held line above the settings' correlation; None checks
+    nothing, as does a line with no returns."""
     symbol = order.line.symbol
     if isinstance(order, Sale):
         if order.quantity > held.get(symbol, 0):
@@ -291,6 +302,8 @@ def gate(
         _within_limits(order, settings, held, standing)
     if exposure is not None:
         _within_underlying(order, settings, exposure)
+    if moves is not None:
+        _apart(order, settings, held, moves)
     if symbol not in held and len(held) >= HOLDINGS:
         raise Refused(f"{order.order_id}: {len(held)} holdings already, at most {HOLDINGS}")
     whole = replace(order, quantity=order.quantity + held.get(symbol, 0))
@@ -330,3 +343,45 @@ def _within_underlying(order: Order, settings: Settings, exposure: Mapping[str, 
     over = underlying_limit(exposure, key, added, settings.capital, settings.underlying)
     if over is not None:
         raise Refused(f"{order.order_id}: {over}")
+
+
+def _apart(
+    order: Order,
+    settings: Settings,
+    held: Mapping[str, int],
+    moves: Mapping[str, tuple[float, ...]],
+) -> None:
+    """Refuses a buy that moves with a line already held above the correlation cap."""
+    symbol = order.line.symbol
+    if symbol not in moves:
+        return
+    others = {s: moves[s] for s in held if s != symbol and s in moves}
+    together = correlated_with(moves[symbol], others, float(settings.correlation))
+    if together is not None:
+        raise Refused(f"{order.order_id}: {symbol} is {together}")
+
+
+MOVES_DAYS, MOVES_FROM = 60, 20  #: the daily returns kept for the correlation gate, and the fewest
+
+
+def moves(
+    held: set[str], archive: Mapping[Line, Sequence[Bar]], symbol: str
+) -> dict[str, tuple[float, ...]]:
+    """THE DAILY RETURNS OF A LINE AND OF THE LINES HELD (risk.correlated_with), by symbol, over
+    the last sessions all of them have a bar for. All are left out when the days they share are
+    under MOVES_FROM (nothing to judge by); a line whose price never moved is left out alone."""
+    closes = {
+        line.symbol: {bar.day: bar.close for bar in bars}
+        for line, bars in archive.items()
+        if line.symbol == symbol or line.symbol in held
+    }
+    if symbol not in closes:
+        return {}
+    shared = sorted(set.intersection(*(set(c) for c in closes.values())))[-MOVES_DAYS - 1 :]
+    if len(shared) <= MOVES_FROM:
+        return {}
+    rows = {
+        s: tuple(float(c[b] / c[a] - 1) for a, b in zip(shared, shared[1:], strict=False))
+        for s, c in closes.items()
+    }
+    return {s: r for s, r in rows.items() if len(set(r)) > 1}
