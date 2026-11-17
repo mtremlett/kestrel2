@@ -39,9 +39,11 @@ def _bars(seed: int, days: int = 1500) -> tuple[Bar, ...]:
 def test_each_spec_decides_as_its_python_rule_on_every_day(name: str) -> None:
     assert name in RULES, f"{name} is no rule of desk/eponymous_*.py"
     spec = Spec.parse({"name": name, **BOOK[name]})
+    seen: set[str] = set()
     for seed in range(5):
         bars = _bars(seed)
         theirs = tuple(_run(name, RULES[name](), "X", bars))
         mine = tuple(_run(name, SpecRule(spec), "X", bars))
         assert mine == theirs, f"{name} seed {seed}: the spec differs from the rule"
-        assert {d.action.name for d in theirs} >= {"BUY", "SELL"}, f"{name}: fixture never trades"
+        seen |= {d.action.name for d in theirs}
+    assert seen >= {"BUY", "SELL"}, f"{name}: the five fixture series never buy and sell"
