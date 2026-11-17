@@ -53,6 +53,7 @@ BACKOFF = (5, 30, 120)
 ASKED_TO_WAIT = 300  #: the longest wait the archive's own Retry-After is obeyed for, in seconds
 #: Where the runner reads whether the archive refuses: `{"refusing_since": <time or null>}`.
 STATE = "archive.json"
+ALERT_AFTER = timedelta(hours=6)  #: how long the archive may refuse before the operator is told
 When = TypeVar("When")
 Read = TypeVar("Read")
 Row = tuple[int, Decimal, Decimal, Decimal, Decimal, int]
@@ -171,6 +172,16 @@ def _record(refusing: bool) -> None:
     part = path.with_suffix(".part")
     part.write_text(json.dumps({"refusing_since": since}), "utf-8")
     part.replace(path)
+
+
+def alert(data: Path, now: datetime) -> str | None:
+    """The line to send the operator once the archive has refused for six hours (DAT-08), read
+    from archive.json in data; None while it answers, or has refused for less."""
+    path = data / STATE
+    since = json.loads(path.read_text("utf-8"))["refusing_since"] if path.exists() else None
+    if since is None or now - datetime.fromisoformat(since) < ALERT_AFTER:
+        return None
+    return f"the price archive has refused every ask since {since}"
 
 
 def _once(address: str) -> bytes:
