@@ -295,3 +295,143 @@ Decided by the PAPER lane as the desk's mentor, no one watching.
 - *Conformance keeps `files: *`:* nobody has seen where real results are recorded; a missed file would stop the session.
 - New modules named before they exist: `desk/messenger.py`, `desk/running.py`, `desk/supervisor.py`. paper-running also holds
   `desk/placing.py` for R-MONEY-8 and waits for paper-messages so there is one messenger.
+
+### 2026-11-14 — a kept listings file naming other lines is read again (R-RUNNER-42, #223)
+
+Options: raise; re-read. Chosen: re-read, because the line set is the desk's own and may change. Unlisted answers are kept too, as the broker's answer for the day. Decided by the lane as the desk's mentor.
+
+### 2026-11-15 — the paper day tells him of a disagreement through the note path (R-RUNNER-91, #295)
+
+Options: a direct `messenger.send` (loses the message if Telegram is down and raises into the money path); the step's note path (sent at every step until delivered, never raises). Chosen: the note path; a blind review found the direct version lost the message.
+
+### 2026-11-15 — a paper sale cancels the line's stop first (R-MONEY-17, #296)
+
+Options for "no sale while a stop rests, unless tied": (a) refuse every such sale (the desk could never exit, every held line has a stop); (b) an OCA group at the broker (new message fields, unprovable on the Gateway that session); (c) cancel the stop and confirm it gone before the sale. Chosen (c); (b) stays the real cure (R-PAPER-25). A stop that ends another way while cancelled gives Refused, not Unprotected: no halt and no message for a benign case. Known risk of (c): a gateway dying after the cancel leaves shares bare until `running.recover` (R-MONEY-30, done in #657).
+
+### 2026-11-15 — the step looks at the market first; the hold is bounded (R-MONEY-25, #300)
+
+Daily bars for the look: the archive (about 4,000 requests a day, and a rehearsal would hit it) or `keeper.saved` (no network, loud `Stale`); chosen `keeper.saved`. The hold lasts only while the reason is EARLY, at most the watch's 20-minute limit; holding forever would stop London for a dead keeper. A look that raises holds the rounds but not the check, recovery or record (failing the whole step was the reviewer's first finding).
+
+### 2026-11-15 — the record waits on `keeper.HELD` (R-DATA-14, #302)
+
+Options: `keeper.target` only; `keeper.HELD`; read `kept.json`. Chosen `keeper.HELD`, the simplest that closes the window (a late keeper still fails loudly as Stale). The evening message therefore reports the previous day until MONEY moves it (R-PAPER-27); left, as messenger was outside the claim.
+
+### 2026-11-15 — a timeout names its call; the limit is raised separately (R-RUNNER-177, #369)
+
+Options: (a) change `paper.SECONDS` and `test_gateway` (outside the claim); (b) a separate longer limit for conversations only (does not help if the knock times out); (c) only name the failing call. Chosen (c) and ask for (a); done as #373.
+
+### 2026-11-15 — the Gateway's wait is 30 s (R-RUNNER-180, #373)
+
+Options 15 / 30 / 60+. Chosen 30: matches `messenger.SECONDS`, doubles a stalled PC's time, far inside one step. Measured read-only on 4002: knock 0.004-0.013 s, account read 0.10 s warm. A true cold start could not be timed without restarting his Gateway. Numbers are in `docs/DECISIONS.md`.
+
+### 2026-11-15 — an Alarm is told by the step's existing trouble note (R-MONEY-36, #385, #483)
+
+Option A: the step's trouble note, which carries the Alarm's words once a day; option B: a separate Alarm handler (a second path for a job that has one). Chosen A under the canon's one-path rule, so no new code. Gap: an Alarm at night is told at 08:00; the kill switch is on by then.
+
+### 2026-11-16 — nothing to change for the opening buy cancelled at 08:06 (R-RUNNER-196, #437)
+
+The conformance buy was cancelled by the desk's own 30 s wait (`Paper.place`), not refused. Options: lengthen the wait for the open; skip rounds before 08:05; leave as is. Chosen: leave. Cancelling is the safe behaviour and waiting longer is a trading-path change with no evidence the order would fill; rounds already start 08:20.
+
+### 2026-11-16 — the rehearsal is barred only near a live market (R-RUNNER-190, #462)
+
+Options: whole-day bar as before; none; a window that fails closed. Chosen the window: barred while a session is open, opens within 90 minutes (a 30-minute run plus an hour), or ended under 30 minutes ago; re-judged before every step. The review found boundaries must fail closed.
+
+### 2026-11-16 — one home for the record's lock wait (R-RUNNER-113, #461)
+
+Same meaning in `messenger.py` and `supervisor.py`, so the messenger imports the supervisor's `WAIT` rather than two renamed constants.
+
+### 2026-11-16 — hourly P&L lives in `command.py` (R-RUNNER-207, #471, #492)
+
+(1) After a real step in `command.py`, not in `running.step` (breaks its test; a rehearsal would send P&L about a past day). (2) A line with no bar yet shows "no bar yet" and counts at its last close. (3) "Holding the market" is the capital times the yardstick's move since its last close. (4) Sent at the first step of each UK hour while a venue is open. Each figure names its base; a line held and added today is measured from the close (simplest), not blended.
+
+### 2026-11-16 — the day's gap uses one cost model on both sides (R-RUNNER-144, #464)
+
+The expected and real fills are marked at the day's close and costed by `orders.charges`, so the gap is the fills' prices alone (the broker's real fees are not read by `reports.py`). Sign: real less expected, negative worse.
+
+### 2026-11-16 — the messenger's email strikes live on its own record (R-RUNNER-16, #484)
+
+Each step is a new process, so the count of Telegram refusals is a counter in the messenger's SQLite record (deriving it from unsent rows misses a retried line). A refused email never stops the Telegram attempt and is tried again on the next line.
+
+### 2026-11-16 — conformance beside the desk's book (R-RUNNER-201, #452)
+
+(a) A lead of 5 minutes before a round (options none/5/15), so a run of about two minutes ends first. (b) A run inside a round is "nothing done", exit 0. (c) The desk's share is every holding on the account when the run begins; the broker has no per-client holdings. (d) One file per run, the once-a-day bar deleted. All on his "always go with recommended". The ledger half (R-PAPER-29) waits on MONEY.
+
+### 2026-11-16 — a stop above the market is a recorded finding; ids carry the minute (#488)
+
+Options for the stop that rests PreSubmitted and never sells: keep it a failure (a red run every 30 minutes, nothing learned) or record it as the finding. Chosen record; loosens no guard. Unique ids by HHMM stamp, not a counter file (no new state).
+
+### 2026-11-16 — the supervisor registers the step at all hours (paper-supervised, #490)
+
+Options: a time window on the Job (more supervisor code); all hours, since the step asks the Gateway first. Chosen all hours; the 03:00 restart may then show as bad receipts, so a window may be needed when the supervisor takes over from the runner.
+
+### 2026-11-16 — health is told from outside the supervisor (paper-supervised, #499)
+
+Options: inside the supervisor's loop (a dead supervisor tells nothing); a separate command run from outside. Chosen outside, since health is judged from outside by ruling. The name is the UTC hour, not the fault text, to avoid storms.
+
+### 2026-11-16 — the Trading 212 client uses urllib (R-RUNNER-17, #495)
+
+Options: `requests`; `urllib`. Chosen `urllib` because a new package is his call; Basic auth with key:secret. Public surface fixed to cash, holdings, fills; any other path is refused.
+
+### 2026-11-16 — conformance step 5 compares IBKR's own stop fill (R-RUNNER-212, #512)
+
+"Same bar" is the real stop fill's price, as intraday bars are not archived. A refused step fails the run (code 1) but later steps and the put-back still run.
+
+### 2026-11-16 — FIRST-LIGHT is read from the end of the records (NS-10, #511)
+
+Not from calendar dates, because `day._kept` guarantees one record per session in order; comparing with the venue calendar would duplicate that guarantee.
+
+### 2026-11-16 — the bars question takes the contract as parameters (R-DATA-9, #509)
+
+`listing` imports `paper`, so importing it back is a cycle and duplicating its lookup is a second path. Chosen: the caller passes the contract number and route.
+
+### 2026-11-16 — the kill and halt line names when, not why (R-RUNNER-161, #502)
+
+Halts are desk-wide. Options: add the reason (rejected: collides with the disagreement-alert test outside the claim); when only (taken).
+
+### 2026-11-16 — backups go to two folders under PYTHON (DQ-05, DQ-09, #515)
+
+"Off the PC": (a) a cloud or network target (credentials, his alone); (b) rely on his automated backup of the PYTHON folder, ruled on 14 November, with two copies in two folders. Chosen (b) on his "go with recommended". E: is never written.
+
+### 2026-11-16 — go flat uses a halt, not the kill switch (R-RUNNER-162, #558)
+
+Options: a new kill-like record (a new part on MONEY's path, forbidden by the request); the existing halt (sales still go, lift is his alone). Chosen the halt. While the kill switch is on, `book.send` refuses sales too, so go flat sells nothing; whether to change that is MONEY's.
+
+### 2026-11-16 — conformance expects the gate's own refusal (R-RUNNER-92, #565)
+
+The gate refuses SPY with its ISA words because that test precedes the retail one in `day._buy`. Options: require the retail wording (a change to `day.py`, outside the claim); accept the gate's refusal in whatever words. Chosen the latter.
+
+### 2026-11-16 — the soak ledger is a new `soak.csv` (R-RUNNER-223, #572)
+
+Options: reuse the per-run csv (no single place to read a day); a new file. Chosen the new file as the lighter. Refusals exit 0 and are logged.
+
+### 2026-11-16 — the paper broker's stop mover is named `restop` (R-RUNNER-250, #584)
+
+Options: `move_stop`; `restop`, matching the pretend broker already in flight (#579). Chosen `restop`. A same-level move sends nothing (`settle`'s existing keep rule). The Broker Protocol declares it (MONEY).
+
+### 2026-11-16 — own orders are told from the account's by the broker's id (R-RUNNER-251, #599)
+
+Options: by ref prefix; by client id (rejected, the held stops are the desk's client too). Chosen the id at the start; the rehearsal beside a held account is GO only if holdings and working orders are as found.
+
+### 2026-11-17 — conformance restores its client for the run (R-RUNNER-256, #623)
+
+The leak was fixed at the source with try/finally; `history.py` and `live.py` set the client the same way but run as their own processes, so the claim was left narrow (superseded by the Door, #651).
+
+### 2026-11-17 — the pretend rests a stop when the real one rested (paper-conformance, #610)
+
+Options: change `Pretend` for LSE lines; price the pretend side from the real result as #512 does. Chosen the latter, smaller and already the pattern.
+
+### 2026-11-17 — R-RUNNER-257 stopped for a wider claim (#628)
+
+Options: (a) land a `Door` beside the globals, deleting nothing; (b) stop and ask for the full claim. Chosen (b): the canon forbids a second path and growing code to work around a known fix. The Door design landed as #651.
+
+### 2026-11-17 — restop is asked for every line of the desk (R-RUNNER-255, #645)
+
+Not only the round's venue, since the book spans both; idempotent through the kept levels.
+
+### 2026-11-17 — a lost stop is put back through `Paper.settle` (R-MONEY-30, #657)
+
+Options: a new `Broker.restop` for no-stop lines; reuse `settle`. Chosen reuse: one path, no second door, rests first so never bare.
+
+### 2026-11-17 — `gateway.known` keeps `ask` second (R-RUNNER-258, #651)
+
+The request settled the design; the one choice was keeping the argument order because the messenger's test calls it that way.

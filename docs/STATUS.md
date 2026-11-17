@@ -137,115 +137,96 @@ money-restop (claim widened to messenger.py and broker.py, #722): the lost-stop 
 
 ## PAPER
 
-Last updated: 14 November 2026 (folds #100, #104, #110, #113, #123, #128, #135, #142, #152, #155, #168, #182, #183, #189, #210).
+Last updated: 17 November 2026 (folds #215 to #686: the 50 landed pull requests of 14-17 November).
 
 ### Where it is
 
-Built: messenger (#142), step (#152), drill (#155), supervisor, register empty (#168), no order while another is open (#182),
-`desk.running` step/--preflight/--rehearse (#189), `desk.paper --conformance london|us` (#210). No fill seen; his Telegram key unset.
+Built: messenger (hourly P&L, kill/halt line, email door not yet wired), step, drill, supervisor (step registered, `tell`), conformance (ids, gate refusal, soak, tape, Door), go flat, streak, records_kept, t212 (read-only), stop moved to the fill each round, recover puts back a lost stop (R-MONEY-30). Conformance Mon 16 Nov: every difference fixed. Unseen: a part fill; a true stop trigger; t212 shapes never met the real service; `paper.newest` (R-DATA-9) never met the Gateway.
 
 ### Next step
 
-Mon 16 Nov: conformance runs 08:05 and 14:35 first, then the desk's day (account empty, never beside a step); compare the files; then supervised.
+R-RUNNER-258 step 2: remove `paper.CLIENT`/`APART` once DATA's live/backfill take a Door (R-PAPER-32). Then R-PAPER-28, -29. paper-supervised, paper-cards, paper-extras, paper-backups wait: operator.
 
 ### Requests to MONEY
 
-- [ ] R-PAPER-4 (later, 2026-11-13 20:05): `book.differences` names an entry at no shares beside another carrying the shares.
-- [ ] R-PAPER-5 (later, 2026-11-13 21:10): the ledger keys a fill by whole id; the broker's ".01" to ".02" would double it.
-- [ ] R-PAPER-7 (later, 2026-11-13 22:45): one public keeper of dated records (the check borrows `book._write`, `_turn`).
-- [ ] R-PAPER-8 (later, 2026-11-13 23:30): the day's run collects fills at day's end too (broker tells today only).
-- [ ] R-PAPER-9 (later, 2026-11-13 23:30): word `Broker.stops` as the desk's own stops only, or say others are needed.
-- [ ] R-PAPER-10 (later, 2026-11-14 00:30): when `place` raises other than "never received"/refusal, pull the kill switch or tell him at once?
-- [ ] R-PAPER-11 (later, 2026-11-14 01:25): `place` can raise "word, fills and account do not agree" after an order has gone; tell him and stop buying?
-- [ ] R-PAPER-12 (later, 2026-11-14 01:25): word "a sale takes its shares off that stop" to allow two steps, or say if pretend must.
-- [ ] R-PAPER-13 (later, 2026-11-14 02:50): the pretend broker refuses a repeated order id; the real one took it as new. Match, or `place` refuses.
-- [ ] R-PAPER-14 (later, 2026-11-14 02:50): no buy on a line with `Line.retail` False (SPY, QQQ); the broker refuses them, 15 s each, daily.
-- [ ] R-PAPER-15 (later, 2026-11-14 02:50): a working buy has its stop listed at the real broker; pretend has none. Match, or `Broker.stops` leaves it out.
-- [ ] R-PAPER-17 (later, 2026-11-14): `book._write` has one temp file and no lock; two writers were driven to an unreadable record. Kill switch (daily drill, his typed command R-MONEY-7) and `running.csv` borrow it. Own temp name or one writer.
-- [ ] R-PAPER-18 (later, 2026-11-14): rule a cut-off for a late buy (desk back at 15:00 sends London's orders); `day.trade` sends sales without buys past it.
-- [ ] R-PAPER-19 (later, 2026-11-14): public "sessions owed a record" in `day.py` and "day an order is dated" in `orders.py`.
-- [ ] R-PAPER-20 (later, 2026-11-14): `kill.py`: public "a drill made this day is on the record"; word `kill.Failed` for him (a rehearsal; promises named NOT kept).
+- [ ] R-PAPER-4, -7, -8, -13, -18, -19, -20 (later, 13-14 Nov): `book.differences` names an entry at no shares beside one with them; one public keeper of dated records (half done, #301); the day's run collects fills at day's end; the pretend broker refuses a repeated order id like the real one; a cut-off for a late buy; public "sessions owed a record" in `day.py`, "day an order is dated" in `orders.py`; `kill.py` public "drill made this day", word `kill.Failed` for him.
+- [ ] R-PAPER-17 (later, 14 Nov): `book._write` has one temp file and no lock; two writers gave an unreadable record (kill switch, `running.csv`). Own temp name or one writer.
+- [ ] R-PAPER-26 (later, opened 15 Nov): `watch.look` returns what it read even if a message is undelivered, so a down phone door holds no round.
+- [ ] R-PAPER-27 (later, opened 15 Nov): move `messenger.EVENING` (21:05) after the day's record (about 21:40 UK) so it tells the day just recorded.
+- [ ] R-PAPER-29 (blocking, opened 16 Nov): ledger kind 'conformance cost' in `desk/book.py` (client 223 commission and spread through the one ledger; trading P&L reported without it); PAPER then feeds it from `desk/conformance.py`.
+- [ ] R-PAPER-30 (later, opened 16 Nov): R-MONEY-10: real VUAG buy filled 0.09 below the pretend close, sale 0.14 below; size the 0.05% spread (Monday's files, #686).
 
 ### Requests to DATA
 
-- [ ] R-PAPER-3 (later, 2026-11-13 18:55): each line's ISIN a fact on `Line`, confirmed from issuer/exchange.
-- [ ] R-PAPER-6 (later, 2026-11-13 22:10): `desk/venues.py` gives a venue's wall clock publicly; `gateway` and `running` drop their copies.
-- [ ] R-PAPER-16 (later, 2026-11-14 02:50): IDTL in dollars is unlisted at the broker (needs name or ISIN, with R-PAPER-3); SPY, QQQ can leave the lines.
-- [ ] R-PAPER-22 (blocking, 2026-11-14 06:50): the day's pounds per dollar, readable before London's open and for any past session (R-MONEY-3's rate); else no dollar line is priced.
-- [ ] R-PAPER-23 (blocking, 2026-11-14 06:50): say by what minute after each close the store holds the twenty closes; the day's record fails without them.
-- [ ] R-PAPER-24 (later, 2026-11-14 13:40): a daily store of the archive's answers kept raw, which `desk/command.py` reads instead of rebuilding the store at each asking; and the pound's rate from it (R-PAPER-22).
+- [ ] R-PAPER-3 (later): each line's ISIN a fact on `Line`. R-PAPER-16 (later): IDTL in dollars unlisted at the broker (needs R-PAPER-3); SPY, QQQ can leave the lines. R-PAPER-23 (blocking): say by what minute after each close the store holds the twenty closes.
+- [ ] R-PAPER-32 (blocking, opened 17 Nov): `desk/live.py` and the backfill set `paper.CLIENT`; they take a `paper.Door` in R-RUNNER-258 step 2 (`history.py` already does, #651).
+
+### Own, to PAPER
+
+- [ ] R-PAPER-25 (later, opened 15 Nov): tie a buy's stop and later sales in one OCA group at the broker once the group fields are proved on the Gateway; then cancel-first (#296) can go.
+- [ ] R-PAPER-28 (blocking, opened 16 Nov): wire `messenger.with_mail` and `messenger.summary` into `desk/running.py`, and the runner hands it SMTP_*; else the email fallback (#484) is never used.
 
 ### Done for other lanes
-- R-DATA-5: done in #53 (first half). Open: what the first London contract note says of stamp duty (conformance).
-- R-RUNNER-1, R-RUNNER-9, R-MONEY-15: done in #182; R-RUNNER-6: done in #189; R-RUNNER-22: done in #210; R-MONEY-4: done in #75; R-MONEY-5: done in #110; R-MONEY-8: done in #152; R-MONEY-6: done in #113 (drill daily, #155)
+- R-RUNNER-26: #215; R-RUNNER-42: #223; R-RUNNER-91: #295; R-MONEY-17: #296; R-MONEY-25: #300; R-DATA-14: #302; R-RUNNER-177: #369; R-RUNNER-180: #373; R-MONEY-36: #385; R-RUNNER-191: #433; R-RUNNER-196: #437; R-RUNNER-197: #444; R-RUNNER-190: #462; R-RUNNER-113: #461 (half); R-RUNNER-207: #471; R-RUNNER-209: #476
+- R-RUNNER-16: #484 (door only); R-RUNNER-93: #393; R-RUNNER-210: #492; R-RUNNER-17: #495; R-RUNNER-212: #512; R-DATA-9: #509; R-RUNNER-161: #502; R-RUNNER-162: #558; R-RUNNER-92: #565; R-RUNNER-223: #572; R-RUNNER-234: #577; R-RUNNER-250: #584; R-RUNNER-251: #599; R-RUNNER-235: #601; R-RUNNER-256: #623; R-RUNNER-255: #645; R-RUNNER-258: #651 (step 1 of 3); R-MONEY-30: #657; R-RUNNER-268: #690
+- R-PAPER-5, -9 to -12, -14, -15, -22, -24 (done, see #288, #282, #285, #290, #289, #516, #291, #215/#393, #302); R-PAPER-6: #175
 
 ### Found, not fixed
 
-- **Unseen at the real Gateway:** a fill, a triggered stop, a sale, a part fill (conformance, Monday). A stop's level is kept only at the broker; a refused order costs 15 s.
-- **Supervisor:** nothing registered, nothing starts it, nobody is told what health finds; `messenger.watch` has no caller; the days-without-him count is strict and only as good as the ledger. Also: the raw bars are overwritten (R-PAPER-24); a failed conformance run cannot mend an account the check names.
-- **Stale words:** `manifest.toml` says placing "is not built"; `desk/running.py` says "the supervisor: not built"; `desk/gateway.py` "nothing calls it yet". `desk/placing.py` and its test sit at the 400-line cap.
+- **Unseen at the real Gateway:** a part fill, a true stop trigger; the 08:05 London opening buy cancelled once by the desk's own 30 s wait (#437). While the kill switch is on, go flat sells nothing (R-RUNNER-162).
+- **Supervisor:** Windows does not yet start it or `tell`; no kill drill on the real step; seven days not counted; the Gateway's 03:00 restart may show as bad receipts (`messenger.watch` has no caller).
+- **Other:** `tape.moved` in `desk/conformance_tape.py` is unused; `desk/messenger.py` is at 400 lines, `desk/` has 92 of 10,500 lines left; a note over 24 h old is no longer re-sent; the rehearsal docstring says "no market trading" (stale); `keeper.saved` is stale for every venue if one is not refreshed.
 
 ## DATA
 
-Last updated: 14 November 2026 (folds #84-#97, #175, #180, #188, #190, #196, #199, #203, #204, #205, #209).
+Last updated: 17 November 2026 (folds #217-#703: the pound, the two databases, broker first, the old stores in).
 ### Where it is
-Twenty lines (22 until SPY and QQQ leave; yardstick VUAG), one archive client, one store, calendars to 2027 (#87).
-Research reads all 1,065 through `universe.read` (#84; grid not yet, R-DATA-7). Fast store `desk/bars.py` (#89).
-Built: keeper `python -m desk.keeper` (#188, archive half; store filled for Monday, 16 of 22 lines clean;
-R-PAPER-23 to confirm on Monday's real closes); `python -m lab.headstart` (#190, 245,593 old five-minute bars
-tried in) and `--daily 3LGO` (#209, 2,816 clean bars); `desk.bars --audit` (#199); `desk.snapshot` (#204); four
-Sources for old stores (#203). The runner has yet to run and schedule these.
+Twenty traded lines (SPY, QQQ reference series with adjusted twins, #455, #544); one archive client, spared
+(#637-#668); calendars 1993-2030; two databases (#442, #510), broker first (#521); the pound from 1993 (#614).
+Keeper: `--live` and five-minute rounds from IBKR (#530, #629), `--roll`, receipts, `parked_live`, delay, broker
+first (#616-#701); backfill (#574, #630); old stores read in (#238-#566). Six London lines clean (#222, #556, #681,
+#694); a stretch is noted, parks nothing (#702). R-RUNNER-216 (history pull, #585-#703), -215 (rollup) unfinished.
 ### Next step
-Keeper's second half (broker's bars as fallback, R-DATA-9); the six London lines parked for old moves (VUAG
-among them); head start's remains (pyarrow pin and parquet readers wait R-RUNNER-24, stooq_raw, old daily bars,
-SGLN's off-mark bar refused alone, research-list bars); then data-isa-twins, data-members, data-research-home.
+R-RUNNER-216 (paging back; daily and up into the long database), R-RUNNER-10 (5-minute parquet, market.db,
+bars.db, per-source counts), the first real `--live` run, 3LGO's daily bars since its shelf ended, data-keeper-receipts.
 ### Done for other lanes
-- R-MONEY-1: done in #47; R-MONEY-2: done in #60; R-PAPER-6: done in #175; R-GRID-4: done in #175
+- R-RUNNER-28 #222, -41 #219, -24 #238, -37 #254, -90 #286, -97 #305, -104 #314, -107 #315, -116 #349, -175 #367,
+  -182 #374, -179 #376, -185 #381, -15 #460, -94 #303, -96 #475, -149 #453, -194 #518, -11 #514, -211 #530,
+  -178 #532, -189 #541, -157 #528, -221 #548, -218 #547, -224 #574, -236 #591, -254 #612, -12 #629, -264 #656,
+  -266 #666, -263 #660, -270 #701; R-PAPER-23 #294, -22 #505, -16 and -3 #543; R-GRID-4 #338; R-MONEY-28 #536;
+  R-RUNGS-3, -5, -15 #537, -9 #544, -16 #630
+- Mine, done by others: R-DATA-1 (#73), -4, -5, -6 (#522), -9, -15 (#517, #530), -17, -25, -26, -27, -28, -31,
+  -35 (#652); own R-DATA-19 to -23, -36, -40, -41 done, -24 superseded by the database
 ### Requests to GRID
-- [x] R-DATA-1: done in #73
-- [ ] R-DATA-7 (later, 2026-11-13 20:20 UK): a cell reads `universe.read(root, line).bars`, not `store.read`,
-  and keeps `History.moves` and `.rescaled`.
-- [ ] R-DATA-10 (blocking, 2026-11-13 21:45 UK): `test_lab_batch.py`, `test_lab_cell.py` look SPY and QQQ up
-  by name; name lines that stay (AAPL, NVDA).
+- [ ] R-DATA-7: a cell reads `universe.read(root, line).bars`, keeps `History.moves`, `.rescaled`. R-DATA-10
+  (blocking): `test_lab_batch.py`, `test_lab_cell.py` name SPY and QQQ; name lines that stay.
 ### Requests to MONEY
-- [x] R-DATA-4: each `Line(...)` in its tests states its UK tax.
-- [ ] R-DATA-3 (later, 2026-11-13 18:15): the day run reads the archive through `archive.gather` and hands
-  `store.prepare` its answers whole, so a refused line parks with its reason.
-- [ ] R-DATA-6 (later, 2026-11-13 19:20 UK): scene 5 reads `CLEAN`; `HISTORY` is the same, and goes.
-- [ ] R-DATA-12 (later, 2026-11-13 21:45 UK): `day.run` reads "simply holding the market" from `lines.YARDSTICK`
-  (VUAG); nothing is bought in the ISA on a line whose `isa` flag is not yes.
-- [ ] R-DATA-13 (later, 2026-11-14 12:25 UK): `test_watch.py` line 58 names its source,
-  `bars.writing(tmp / "bars.db", bars.Source.ARCHIVE)`, so every round must name one.
+- [ ] R-DATA-3: the day run reads the archive through `archive.gather`. R-DATA-12: `day.run` takes "simply holding
+  the market" from `lines.YARDSTICK`; no ISA buy where isa is not yes.
+- [ ] R-DATA-13: `test_watch.py`, `test_pnl.py` name the store "bars.db"; use `keeper.HOT`.
+- [ ] R-DATA-30: `lab/slippage.py` reads `bars.daily(home / keeper.HOT, line)`, not the retired CSVs.
+- [ ] R-DATA-33: `command.rates` calls `keeper.pound(home, day)`; POUND, DOLLARS from `desk.lines`.
+- [ ] R-DATA-45, -47: refuse a buy on a line in `keeper.parked_live(home / keeper.HOT, LINES, now)`; say why.
+- [ ] R-DATA-46: `conformance.py` picks its refused line from `lines.REFERENCE`, so SPY can leave LINES.
+- [ ] R-DATA-48: a per-bar source in the daily store (`store.judge` returns it, `Round.daily` writes it).
 ### Requests to PAPER
-- [x] R-DATA-5: each `Line(...)` in its tests states its UK tax.
-- [ ] R-DATA-9 (later, 2026-11-13 20:20 UK): a read-only question for a line's newest five-minute bars at
-  `desk/paper.py`, and whether the paper account gets live or delayed data.
-- [ ] R-DATA-14 (blocking, 2026-11-14 15:30 UK): wire the door `keeper.saved(home, day)` and the crash watch's
-  store `home / keeper.HOT`; make the day's record only once `keeper.target(venue, now)` is past the day for
-  every venue, or the door refuses 25 minutes every evening.
-- [ ] R-DATA-15 (later, 2026-11-14 15:30 UK): may the keeper ask the Gateway for bars through `paper.dial`, or
-  does PAPER build that question (R-DATA-9)? It is the archive's fallback.
+- [ ] R-DATA-14 (blocking): wire `keeper.saved(home, day)` and the crash watch's `home / keeper.HOT`; the day's
+  record only once `keeper.target(venue, now)` is past, or the door refuses 25 minutes every evening.
+- [ ] R-DATA-37: look IDTL up by `Line.isin`. R-DATA-42: `test_conformance_action.py` restores `paper.CLIENT`,
+  `paper.APART`. R-DATA-44: `command.py` drops its own POUND and DOLLARS.
 ### Requests to RUNGS
-- [ ] R-DATA-8 (later, 2026-11-13 20:20 UK): a verdict states how many trades were held through a day in
-  `History.moves` (about a hundred London bad prints), with and without them.
-- [ ] R-DATA-11 (blocking, 2026-11-13 21:45 UK): `test_lab_rung.py` prices a dollar trade on "SPY"; name a US
-  line that stays (AAPL).
+- [ ] R-DATA-8: a verdict counts trades held through a day in `History.moves`, with and without. R-DATA-11
+  (blocking): `test_lab_rung.py` prices a dollar trade on "SPY"; name a US line that stays.
+- [ ] R-DATA-29, -38, -34, -43: the ladder reads SPY and its sets from `market_history.db`, rates from `keeper.pound`,
+  POUND and DOLLARS from `desk.lines`. R-DATA-39: re-run the 35 waiting cells.
 ### Requests to RUNNER
-- [ ] R-DATA-16 (blocking, 2026-11-14 16:20 UK): `test_check.py::test_at_most_n_full_checks_run_at_once` is
-  flaky on Windows (WinError 32: `check.turn` unlinks its turn file while another thread holds it).
-- [ ] R-DATA-17 (blocking, 2026-11-14 16:00 UK): pin `pyarrow==26.0.1`, add it to manifest `allowed_third_party`,
-  and add requirements.txt to DATA's lane files (the guard refuses it).
-- [ ] R-DATA-18 (later, 2026-11-14 15:30 UK): keeper calls run to 21:40 UK at least, logs kept (stdout,
-  `MISSED:` on stderr); schedule `lab.headstart`, `--daily 3LGO`, audit and snapshot.
+- [ ] R-DATA-16 (blocking): `test_check.py::test_at_most_n_full_checks_run_at_once` flaky on Windows. R-DATA-18: keeper to 21:40 UK with logs; schedule the head start, `lab.universe nightly`, audit, snapshot,
+  `desk.history_write`, `desk.backfill`; the six-hour alert reads `archive.json`. R-DATA-32: READY counts desk/ room.
 ### Found, not fixed
-- **UK tax (NS-05).** Five London products unseen on a contract note; London shares 0.5%, unchecked.
-- **Operator:** IB1T (Bitcoin) is not ISA-holdable (crypto notes shut to new ISA purchases from 6 Apr 2026).
-- **Research:** today's members only (BT-09); scale changes under the store's belief are UNI-07; WWH, SHC, EDV,
-  ROSE read false losses. Member record (#96): one unofficial source; `members.on` raises for FTSE350, ETFS.
-- **The store:** nothing fills `Line.real_moves` or `.suspended`; 6 of 13 London lines parked on the real archive.
-- **Keeper:** a refresh dying between bars and record leaves a stale record (healed next call); keepers not
-  locked apart. **Head start:** SGLN's off-mark bar; stale manifest wording; old daily bars need a fill-only write.
-
+- **UK tax (NS-05).** Five London products unseen on a contract note; London shares 0.5%, unchecked. **Research:**
+  today's members only (BT-09); scale changes under the store's belief are UNI-07.
+- **Operator:** IB1T (Bitcoin) not ISA-holdable; data-members, data-isa-twins wait on him. **Store/keeper:** `history.run` leaves the broker's pence; 5QQQ's 2021-22 lost; `keeper.py` 398 lines; a
+  broker-filled bar is labelled "archive"; the archive's limits unmeasured (#685).
 ## GRID
 
 Last updated: 17 November 2026 (one bars reader #449; batch.stored reads as research does #618; R-DATA-10 confirmed #626).
