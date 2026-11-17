@@ -173,7 +173,7 @@ def _clean(
     return kept, faults
 
 
-def _write(path: Path, header: Sequence[str], rows: Iterable[Sequence[object]]) -> Path:
+def _stage(path: Path, header: Sequence[str], rows: Iterable[Sequence[object]]) -> Path:
     """Write the rows whole to a part file beside path; _swap puts it in place."""
     part = path.with_suffix(".part")
     with part.open("w", newline="", encoding="utf-8") as out:
@@ -188,6 +188,11 @@ def _swap(*parts: tuple[Path, Path]) -> None:
     while writing leaves the old pair whole, so bars and faults part only inside these swaps."""
     for part, path in parts:
         part.replace(path)
+
+
+def _write(path: Path, header: Sequence[str], rows: Iterable[Sequence[object]]) -> None:
+    """Write a file whole, then swap it in (halt.py writes its record this way too)."""
+    _swap((_stage(path, header, rows), path))
 
 
 Answer = Sequence[Bar] | Refused  #: what the archive gave for a line
@@ -234,8 +239,8 @@ def prepare(
         kept, faults, park = judge(line, answer, day, rates, older)
         bars, notes = root / f"{line.symbol}.csv", root / f"{line.symbol}.faults.csv"
         _swap(
-            (_write(bars, COLUMNS, (astuple(bar) for bar in kept)), bars),
-            (_write(notes, ("fault",), ((f.what,) for f in faults)), notes),
+            (_stage(bars, COLUMNS, (astuple(bar) for bar in kept)), bars),
+            (_stage(notes, ("fault",), ((f.what,) for f in faults)), notes),
         )
         parked += [park] if park else []
     return tuple(parked)
@@ -246,7 +251,7 @@ def shelve(root: Path, line: Line, bars: Iterable[Bar]) -> None:
     shelved before. They are cleaned as the archive's are, with it, on each prepare."""
     (root / HISTORY).mkdir(parents=True, exist_ok=True)
     path = root / HISTORY / f"{line.symbol}.csv"
-    _swap((_write(path, COLUMNS, (astuple(bar) for bar in bars)), path))
+    _write(path, COLUMNS, (astuple(bar) for bar in bars))
 
 
 def _joined(
