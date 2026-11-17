@@ -46,6 +46,7 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "desk/rollup.py" = "the one builder of the coarser intraday timeframes from the finest bars: session-aligned per venue, no bar across a session break, a partial interval never written, each bar marked rollup:<from>"
 "desk/store.py" = "the one price store and its one writer: bars cleaned on entry, bad lines parked"
 "desk/store_parts.py" = "what judges a line's neighbouring bars for the one store, split from desk/store.py: the bar and fault types, the limits of a move, and the pass that drops a bar or run out of line with its neighbours or keeps the move as a lasting fault"
+"desk/coverage.py" = "how much history each line holds against twice the longest lookback and the A-GATE's five years, and whether the share of lines parked is within its cap"
 "desk/bars.py" = "the one fast store for hot and deep bars: one SQLite file, the one writer's whole rounds, many readers"
 "desk/bars_parts.py" = "what lets a five-minute bar into the fast store, split from desk/bars.py: each bar judged against its venue's calendar and the line's bars against one another and the closes held"
 "desk/spans.py" = "the timeframes: one Span for each of 1m, 2m, 5m, 10m, 15m, 30m, 1h, 4h, 1d and 1wk with its length and start rule (a bar starts on a whole multiple of its length in UTC), and the bar types that refuse an off-mark start"
