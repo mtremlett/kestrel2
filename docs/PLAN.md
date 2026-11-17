@@ -266,7 +266,7 @@ Checked 17 Nov (MONEY): R-RUNGS-12 re-verified on main (`strategy.rsi`, `strateg
       DQ-12, DQ-05)
       Built: the two databases (#442, #510), the keeper and reference series on them (#486, #524), the
       imports of Stooq, ibkr_store and mark_the_trend daily, hourly and 15/30-minute rows (#527-#566), the
-      history pull and its writer (#636, #674). Remains: the rest of R-RUNNER-10 (5-minute parquet, market.db,
+      history pull and its writer (#636, #674), pages back and keeps the line's currency (#710, #725). Remains: the rest of R-RUNNER-10 (5-minute parquet, market.db,
       bars.db, per-source counts), paging back (R-RUNNER-216), the long database for daily and up
       {id: data-two-stores; files: desk/bars.py, tests/unit/test_bars*.py, desk/keeper.py, tests/unit/test_keeper*.py; after: data-ingest}
 - [ ] **Data in tiers, for 4,000+ tickers** (research of 14 November, kept in the notes
@@ -285,6 +285,8 @@ Checked 17 Nov (MONEY): R-RUNGS-12 re-verified on main (`strategy.rsi`, `strateg
       re-checked on entry (DAT-03, BT-09)
       Built: the calendar reaches 1993 (#594), the archive is spared (#637, #665, #668, #685). Remains: the
       bars before 2010 through the head start, once its remains (data-headstart) are met
+      Built (#691): `archive.SINCE` is 1 January 2000, so the keeper's next daily round asks 2000-2009.
+      Remains: the old Stooq store's daily bars before the archive's first (a head start), then that real fetch
       {id: data-deep-history; files: desk/venues.py, tests/unit/test_venues*.py, lab/headstart.py, tests/unit/test_lab_headstart.py, desk/archive.py, tests/unit/test_archive*.py; after: data-calendar-years, data-polite}
 - [x] A frozen feed: a week of one bar repeated is dropped and parks a recent line
 - [x] A suspension recorded on its line is no gap

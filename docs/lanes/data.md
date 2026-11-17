@@ -747,3 +747,46 @@ and the fixtures were rebuilt. Every break is now caught but two that cannot dif
 2" for "2 or over", and the arithmetic setting). The blind review's two blocking findings
 (the stop left out, the statistic left loose) are fixed; the rest is in `docs/STATUS.md`.
 The tests were written after the module, not seen failing first; the breaks stand in.
+
+### 2026-11-17 — the archive's start moves to 2000; the alert is a line, not a sender (#691, #671)
+
+Daily history (#691): `archive.SINCE` moved from 2010 to 1 January 2000 rather than a second constant (one home for
+the number); the grid sweep's window reads it, so it begins 2000 too. Options: leave 2010 with a second constant;
+one start (taken). The Stooq head start for 2000-2009 waits for data-consolidated. Alert (#671): `alert(data, now)`
+is a pure function of `archive.json` and the clock that returns the operator's line after six hours' refusal; the
+runner sends it. Options: send from the archive; return a line (taken, the archive stays free of messaging).
+
+### 2026-11-17 — page depths and the unlisted line (#710, #725)
+
+History pull (R-RUNNER-216): depths follow IBKR's per-bar-size limits (1m a month, 2-15m half a year, 30m-4h two
+years, daily and weekly twenty years). Options: one deep ask, which IBKR refuses for small bars; pages (taken). A
+page refused after data was had ends the walk quietly with the pages had. A line with no listing is left out of the
+pull rather than written in raw broker prices (options: skip, safe and taken; write raw, 100 times too big in pence).
+
+### 2026-11-17 — one unit rule for broker bars (#719, R-RUNNER-279)
+
+`history.in_currency` is the one place broker pence become the line's currency; `history.priced`, `history.daily` and
+`backfill._broker` call it; an Unlisted line's broker bars are refused (unit unknown) and judged on the archive alone.
+The listing root is `home` if given, else KESTREL2_DATA (options: edit keeper.py to pass home, outside the claim; the
+env, taken). `backfill.in_currency` stays as an alias because `test_backfill.py` calls it (R-DATA-49 retires it).
+
+### 2026-11-17 — who sets a unit in the store: traded bars (#721, R-RUNNER-274, -275)
+
+SGLN's 2011 "dollar bars" were flat bars of no volume, and the store let the first one set the unit, then dropped the
+real pound bars after. Options: (a) judge backward from the newest bar (rewrites the walk, store at its 400-line
+cap); (b) drop all zero-volume flat bars (2MU, 3LGO, IITU hold real untraded quotes and would park); (c) an untraded
+bar cannot hold a unit against a traded one, only where it is the other unit (taken: smallest, per "take recommended").
+The start date for SGLN went; 5QQQ's stays (pence to pounds over a gap). Debt: one designed backward pass, later.
+
+### 2026-11-17 — the live keeper and its round (#727, #730, R-RUNNER-277, -280)
+
+The live round marks each due line as started (an empty write) so a line with no one-minute history begins from IBKR
+(#727; options: mark in `keeper_live`, taken; or catch LookupError in `live.minutes`, outside the claim, recommended if
+the claim widens). The live round gets its own deadline, not a shared one (#730; options: shared order only; own
+share, taken as the request says). Wiring it into `keeper.keep` is R-DATA-49.
+
+### 2026-11-17 — a refusing archive ends the round (#732, data-archive-spared)
+
+Once the archive refuses and every wait is spent, `gather` leaves the rest of that round unasked, refused with the
+reason, so other work goes on (options: keep retrying each line; stop the round, taken). A 404-type answer about one
+line still refuses that line alone. Five-minute answers are now cached in KESTREL2_DATA like daily ones.
