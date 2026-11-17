@@ -30,3 +30,5 @@ def test_a_late_missing_or_out_of_line_line_is_parked_and_comes_back(tmp_path: P
     with bars.writing(hot, Source.IBKR) as kept:
         kept.five(late, [_bar(5, 100)])
     assert "B" not in keeper.parked_live(hot, LINES, NOW) and none.symbol in parked
+    later = NOW + timedelta(minutes=3)  # the source's delay: minutes since a newest bar ended
+    assert keeper.delays(hot, LINES, later) == {"A": 3, "B": 3, "C": 3}
