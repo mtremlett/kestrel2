@@ -65,6 +65,23 @@ def round_(
     return words, refused == len(mine)
 
 
+def rounds(
+    hot: Path,
+    lines: Sequence[Line],
+    now: datetime,
+    ask: Ask,
+    back: Ask,
+    settled: timedelta,
+) -> list[tuple[str, bool]]:
+    """EVERY VENUE'S FIVE-MINUTE ROUND, before any daily ask: the venues in session (or settled
+    within `settled` of closing) each taken whole, under the caller's own deadline."""
+    told = []
+    for venue in sorted({line.venue for line in lines}):
+        if venues.open_at(venue, now) or venues.open_at(venue, now - settled):
+            told.append(round_(hot, [ln for ln in lines if ln.venue == venue], now, ask, back))
+    return told
+
+
 def due(lines: Sequence[Line], now: datetime) -> tuple[Line, ...]:
     """The lines asked this minute: the next PER_RUN of the rota, which turns once a minute."""
     slot = int(now.timestamp()) // 60
