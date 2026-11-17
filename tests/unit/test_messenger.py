@@ -320,3 +320,22 @@ def test_the_hourly_pnl_goes_once_an_hour_while_a_market_trades(tmp_path: Path) 
     assert words.call_count == 3 and post.call_count == 3  # the hour's second asking is not made
     sunday = messenger.hourly(tmp_path, _at("2026-11-15T14:00"), words, post)
     assert sunday is None and post.call_count == 3
+
+
+def test_the_evening_message_names_each_lost_stop_once_and_none_on_a_day_without(
+    tmp_path: Path,
+) -> None:
+    lost = halt.Blocked(
+        "B1-stop",
+        halt.Blocker.BOOK,
+        0,
+        "VUSA: 5 held, 0 under a stop; put back B1-stop, selling 5 at 79",
+    )
+    quiet, loud = tmp_path / "quiet", tmp_path / "loud"
+    halt.note(quiet, MON.date(), [])
+    halt.note(loud, MON.date(), [lost])
+    said = messenger.evening(quiet, NINE, READY, _posts())
+    assert said is not None and "Lost stops" not in said.text
+    tell = messenger.evening(loud, NINE, READY, _posts())
+    assert tell is not None and tell.text.count("B1-stop, selling 5 at 79") == 1
+    assert "Lost stops to put back: B1-stop, selling 5 at 79. " in tell.text
