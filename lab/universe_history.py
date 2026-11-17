@@ -15,6 +15,7 @@ from collections.abc import Iterable
 from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
+from urllib.request import urlopen
 
 from desk import bars, store, venues
 from desk.bars import Source
@@ -33,6 +34,30 @@ def _fill(path: Path, line: Line, source: Source, given: Iterable[Bar]) -> int:
         return 0
     with bars.writing(path, source) as opened:
         return opened.days(line, new)
+
+
+FED = (
+    "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DEXUSUK&cosd=1993-01-01"  #: keyless, public
+)
+
+
+def enter_noon(path: Path, table: str) -> int:
+    """The pound's noon rates (FRED's DEXUSUK, a day a line `date,dollars`, a blank for a day with
+    none) on the days before the archive's first pound, a series of its own kind, labelled as
+    such: the archive gives the pound only from December 2003 (R-RUNGS-3). Nothing after that."""
+    first = min(bar.day for bar in bars.daily(path, POUND))
+    rows = (line.split(",") for line in table.splitlines()[1:])
+    given = [(date.fromisoformat(day), Decimal(rate)) for day, rate in rows if rate]
+    return _fill(
+        path, POUND, Source.FED_NOON, (Bar(d, r, r, r, r, 0) for d, r in given if d < first)
+    )
+
+
+def noon(path: Path) -> str:
+    """The noon rates asked of FRED and let in; one line saying how many days."""
+    with urlopen(FED, timeout=60) as answer:  # noqa: S310 - one fixed public address
+        added = enter_noon(path, answer.read().decode("utf-8"))
+    return f"the pound before the archive's: {added} noon-rate days added"
 
 
 def enter(root: Path, path: Path, line: Line) -> int:

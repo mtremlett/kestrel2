@@ -344,6 +344,8 @@ if __name__ == "__main__":
     TODAY = datetime.now(UTC).date()
     if sys.argv[1:] == ["history"]:
         sys.stdout.write(import_history(DATA, TODAY) + chr(10))
+    elif sys.argv[1:] == ["noon"]:
+        sys.stdout.write(universe_history.noon(DATA / bars.LIVE) + chr(10))
     else:
         other = matrix(Path(sys.argv[2])) if len(sys.argv) > 2 else None
         sys.stdout.write(
