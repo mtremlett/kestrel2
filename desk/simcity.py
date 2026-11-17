@@ -13,7 +13,7 @@ import random
 from collections import Counter
 from collections.abc import Callable, Mapping, Sequence
 from contextlib import suppress
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from itertools import chain, pairwise
@@ -50,6 +50,7 @@ RESTART = "the desk dies mid-send and is started again"
 FAULTS = "the broker's faults"
 BEHIND = "a position appears behind the desk's back"
 UNSTOPPED = "a stop is cancelled by hand"
+GAPPED = "every line opens at its low"
 KILLED = "the kill switch is pulled, released and drilled"
 RECKONING = "the night's reckoning"
 TRIPS = "the round trips are told"
@@ -139,6 +140,12 @@ class _Counted(Pretend):
         finally:  #: counted however the order ended, an error raised to the desk too
             self.met[None if order.line.symbol in self._faults else waiting] += 1
 
+    def reopen(self, on: date, market: Archive) -> None:
+        """The market's bars for the day as the world has made them again."""
+        self._bars.update(
+            {(x.symbol, b.day): b for x, bars in market.items() for b in bars if b.day == on}
+        )
+
     def lose_stop(self, symbol: str) -> Callable[[], None]:
         """Cancel a resting stop by hand; what is given back puts it back as it was."""
         stop = self._stops[symbol]
@@ -222,6 +229,24 @@ def _unstopped(life: _Life, on: date) -> None:
         put_back()
 
 
+def _gapped(life: _Life, on: date) -> None:
+    """Every line opens at the day's low, a gap down from the close before it; the stop under
+    each buy it fills is then moved under that fill, never left where the close put it."""
+    life.market = {
+        x: tuple(replace(b, open=b.low) if b.day == on else b for b in bars)
+        for x, bars in life.market.items()
+    }
+    life.pretend.reopen(on, life.market)
+    life.live(on)
+    lines = {x.symbol: x for x in life.market}
+    paid = {f.symbol: f.price for f in book.fills(life.desk) if f.quantity > 0 and f.day == on}
+    due = {s: orders.stop_under(lines[s], p) for s, p in paid.items()}
+    rests = {s: level for s, (_, level) in life.pretend.resting_stops().items()}
+    life.promise(
+        "a stop rests where its fill puts it", all(rests[s] == due[s] for s in rests & due.keys())
+    )
+
+
 def _killed(life: _Life, on: date) -> None:
     """The switch is pulled before the day and released after its record; then the drill."""
     at, reached = datetime.combine(on, time(7), UTC), life.pretend.submitted()
@@ -236,7 +261,12 @@ def _killed(life: _Life, on: date) -> None:
 
 
 Event = tuple[str, Callable[[_Life, date], object]]
-EVENTS: tuple[Event, ...] = ((BEHIND, _behind), (UNSTOPPED, _unstopped), (KILLED, _killed))
+EVENTS: tuple[Event, ...] = (
+    (BEHIND, _behind),
+    (UNSTOPPED, _unstopped),
+    (GAPPED, _gapped),
+    (KILLED, _killed),
+)
 
 
 def run(
