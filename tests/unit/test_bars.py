@@ -119,6 +119,17 @@ def test_a_short_call_never_loses_a_held_day_a_change_is_corrected_and_a_withdra
     assert days[5] in bars.daily(store, US)
 
 
+def test_a_store_made_before_withdrawals_is_read_and_gains_the_table(tmp_path: Path) -> None:
+    store, days = tmp_path / "bars.db", _days(5)
+    with bars.writing(store) as round_:
+        round_.daily(US, days)
+    with closing(sqlite3.connect(tmp_path / bars.HISTORY)) as old:
+        old.execute("DROP TABLE withdrawn")
+    assert bars.daily(store, US) == days
+    with closing(sqlite3.connect(tmp_path / bars.HISTORY)) as raw:
+        assert raw.execute("SELECT count(*) FROM withdrawn").fetchone() == (0,)
+
+
 def test_a_bar_is_kept_with_its_source_and_only_a_fresh_source_restates(tmp_path: Path) -> None:
     store, fives, one = tmp_path / "bars.db", _fives(2), ("1",) * 4
     with closing(sqlite3.connect(store)) as before:  # a store made before sources were kept

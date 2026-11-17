@@ -241,7 +241,13 @@ class Round:
 
 
 def _open(file: Path) -> sqlite3.Connection:
-    return sqlite3.connect(file, timeout=WAIT, isolation_level=None)
+    """The one opener of a store's database, reader's or writer's: a store already made gains
+    any table a later version added before anything is asked of it."""
+    one = sqlite3.connect(file, timeout=WAIT, isolation_level=None)
+    if one.execute(MADE).fetchone() is not None:
+        for table in SCHEMA:
+            one.execute(table)
+    return one
 
 
 @contextmanager
@@ -281,7 +287,7 @@ def _read(
     key, path = (line.venue, line.symbol, span), files(path)[SPANS[span].home]
     if not path.is_file():
         raise FileNotFoundError(f"{path}: no store has been written there")
-    with closing(sqlite3.connect(path, timeout=WAIT, isolation_level=None)) as held:
+    with closing(_open(path)) as held:
         held.execute("BEGIN")
         if held.execute(MADE).fetchone() is None:
             raise FileNotFoundError(f"{path}: no round of the store has landed there")
