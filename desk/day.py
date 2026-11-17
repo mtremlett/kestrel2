@@ -20,12 +20,12 @@ from desk.day_parts import _row as _row
 from desk.day_parts import records as records
 from desk.halt import Blocker, Stopped
 from desk.lines import YARDSTICK, Line
+from desk.order_reads import moves, traded_value
 from desk.orders import (
     Order,
     Refused,
     Sale,
     Settings,
-    moves,
     order_id_of,
     pennies,
     size,
@@ -186,7 +186,8 @@ def _orders(
     for d in (d for d in decided if d.action is Action.BUY):
         line = due[d.symbol]
         price = archive[line][-1].close, rates[line.currency]
-        args = (root, broker, d, line, price, settings, day, tell, watch)
+        traded = traded_value(archive[line], price[1])
+        args = (root, broker, d, line, price, settings, day, tell, watch, traded)
         sent.append(_answer(root, day, _barred(d) if d.strategy in killed else _buy(*args)))
 
 
@@ -315,6 +316,7 @@ def _buy(
     day: date,
     tell: book.Tell | None,
     watch: Callable[[str], tuple[dict[str, Decimal], dict[str, tuple[float, ...]]]] | None = None,
+    traded: Decimal | None = None,
 ) -> book.Sent:
     """One rule's buy, sized from the book as the send before it left it, at the line's last
     close and the day's rate. A line held, or sold this morning, is not bought: said so. Nor is
@@ -333,7 +335,7 @@ def _buy(
         why = "is held already" if d.symbol in now else "was sold this morning"
         return book.Sent(name, 0, f"{name}: not sent, {d.symbol} {why}", Blocker.HELD)
     try:
-        order = size(d, line, *price, settings, now)
+        order = size(d, line, *price, settings, now, traded)
     except Refused as refused:  #: the gate's answer, kept with the day's others
         return book.Sent(name, 0, str(refused), Blocker.GATE)
     looked = watch and watch(d.symbol)

@@ -5,14 +5,14 @@ ONE ROUNDING POLICY for what is published of it."""
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from dataclasses import astuple, dataclass, replace
 from decimal import ROUND_HALF_EVEN, Decimal
 from enum import Enum
 
 from desk.lines import Line
+from desk.order_reads import TRADED_DAYS
 from desk.risk import Standing, correlated_with, loss_limit, underlying_limit
-from desk.store import Bar
 from desk.strategy import Action, Decision
 
 #: His ruling of 13 November 2026 (docs/DECISIONS.md): at most five holdings, each a fifth of
@@ -22,6 +22,9 @@ STOP_FALL = Decimal("0.10")
 #: STP-10, the one home (R-RUNGS-11, docs/DECISIONS.md): the most of the capital one holding may
 #: lose when a gap jumps its stop; the stop alone risks STOP_FALL / HOLDINGS of it (2%).
 GAP_LOSS = Decimal("0.05")
+#: SIZ-10: no holding is above this share of its line's traded value over the last TRADED_DAYS
+#: sessions (order_reads.traded_value), so the desk never is the market it sells into.
+TRADED_SHARE = Decimal("0.01")
 
 
 @dataclass(frozen=True)
@@ -189,10 +192,11 @@ def size(
     fx: Decimal,
     settings: Settings,
     held: Mapping[str, int],
+    traded: Decimal | None = None,
 ) -> Order:
     """The most whole shares whose cost, with the shares of the line already held, fits the
-    line's room, and the stop, for a buy; fx is pounds per unit of the line's currency, and
-    held is the book (book.positions)."""
+    line's room and its liquidity (traded, below), and the stop, for a buy; fx is pounds per
+    unit of the line's currency, and held is the book (book.positions)."""
     if decision.action is not Action.BUY or decision.symbol != line.symbol:
         raise ValueError(f"{line.symbol}: only a buy for this line is sized, not {decision}")
     order_id = order_id_of(decision)
@@ -208,11 +212,13 @@ def size(
     while over - fits > 1:  #: cost grows with the shares, so halve the gap until it closes
         middle = (fits + over) // 2
         fits, over = (middle, over) if cost(order(middle)) <= room else (fits, middle)
+    if traded is not None:
+        fits = min(fits, int(traded * TRADED_SHARE / (price * fx)))
     already = held.get(line.symbol, 0)
     if fits <= already:
         raise Refused(f"{order_id}: {already} shares held leave no room for more")
     bought = order(fits - already)
-    gate(bought, settings, held)
+    gate(bought, settings, held, traded=traded)
     return bought
 
 
@@ -278,6 +284,7 @@ def gate(
     standing: Standing | None = None,
     exposure: Mapping[str, Decimal] | None = None,
     moves: Mapping[str, tuple[float, ...]] | None = None,
+    traded: Decimal | None = None,
 ) -> None:
     """The one pre-trade gate, on the send path: raises Refused, or lets the order through.
     held is the book (book.positions): a sale needs the shares in it, for the desk is long
@@ -289,7 +296,8 @@ def gate(
     its underlying market over its share of the capital; None checks nothing. Given the daily
     returns of the order's line and of the lines held, over the same days (moves, by symbol), a
     buy is refused that moves with a held line above the settings' correlation; None checks
-    nothing, as does a line with no returns."""
+    nothing, as does a line with no returns. Given the pounds the line traded (traded_value), a buy
+    is refused that takes its shares, held and ordered, over TRADED_SHARE of it."""
     symbol = order.line.symbol
     if isinstance(order, Sale):
         if order.quantity > held.get(symbol, 0):
@@ -307,11 +315,21 @@ def gate(
     if symbol not in held and len(held) >= HOLDINGS:
         raise Refused(f"{order.order_id}: {len(held)} holdings already, at most {HOLDINGS}")
     whole = replace(order, quantity=order.quantity + held.get(symbol, 0))
+    _liquid(whole, traded)
     if cost(whole) > _room(order.line, settings):
         raise Refused(
             f"{order.order_id}: {cost(whole)} pounds for {whole.quantity} shares, counted "
             f"{order.line.leverage} times for what it controls, is over a fifth of the "
             f"capital of {settings.capital}"
+        )
+
+
+def _liquid(whole: Order, traded: Decimal | None) -> None:
+    """Refuses a holding over TRADED_SHARE of what its line traded (None checks nothing)."""
+    if traded is not None and whole.quantity * whole.price * whole.fx > traded * TRADED_SHARE:
+        raise Refused(
+            f"{whole.order_id}: {whole.quantity} shares are over {TRADED_SHARE:.0%} of the "
+            f"{traded:.0f} pounds the line traded in {TRADED_DAYS} days"
         )
 
 
@@ -359,29 +377,3 @@ def _apart(
     together = correlated_with(moves[symbol], others, float(settings.correlation))
     if together is not None:
         raise Refused(f"{order.order_id}: {symbol} is {together}")
-
-
-MOVES_DAYS, MOVES_FROM = 60, 20  #: the daily returns kept for the correlation gate, and the fewest
-
-
-def moves(
-    held: set[str], archive: Mapping[Line, Sequence[Bar]], symbol: str
-) -> dict[str, tuple[float, ...]]:
-    """THE DAILY RETURNS OF A LINE AND OF THE LINES HELD (risk.correlated_with), by symbol, over
-    the last sessions all of them have a bar for. All are left out when the days they share are
-    under MOVES_FROM (nothing to judge by); a line whose price never moved is left out alone."""
-    closes = {
-        line.symbol: {bar.day: bar.close for bar in bars}
-        for line, bars in archive.items()
-        if line.symbol == symbol or line.symbol in held
-    }
-    if symbol not in closes:
-        return {}
-    shared = sorted(set.intersection(*(set(c) for c in closes.values())))[-MOVES_DAYS - 1 :]
-    if len(shared) <= MOVES_FROM:
-        return {}
-    rows = {
-        s: tuple(float(c[b] / c[a] - 1) for a, b in zip(shared, shared[1:], strict=False))
-        for s, c in closes.items()
-    }
-    return {s: r for s, r in rows.items() if len(set(r)) > 1}

@@ -10,8 +10,9 @@ from decimal import Decimal
 
 import pytest
 
-from desk import orders
+from desk import order_reads, orders
 from desk.lines import STAMP_DUTY, Line
+from desk.store import Bar
 from desk.strategy import Action, Decision
 
 PLAIN, THREE_X, FIVE_X = (
@@ -153,3 +154,15 @@ def test_a_sale_passes_the_gate_only_for_shares_the_book_holds() -> None:
     for bad in ("", "garbage", "20261116-rule", "20261116--P"):
         with pytest.raises(ValueError, match="no strategy can be read"):
             orders.strategy_of(bad)
+
+
+def test_no_holding_is_above_a_hundredth_of_what_its_line_traded_in_twenty_days() -> None:
+    bars = [Bar(ON, Decimal(1), Decimal(1), Decimal(1), Decimal(1), 1000)] * 25
+    traded = order_reads.traded_value(bars, Decimal(1))
+    assert traded == 20_000  #: twenty sessions of 1000 shares at one pound
+    capped = orders.size(_buy(PLAIN), PLAIN, Decimal(1), Decimal(1), TEN_K, {}, traded)
+    assert capped.quantity == 200  #: a hundredth, not the 1997 the capital allows
+    with pytest.raises(orders.Refused, match="1%"):
+        orders.gate(replace(capped, quantity=201), TEN_K, {}, traded=traded)
+    with pytest.raises(orders.Refused, match="no room"):
+        orders.size(_buy(PLAIN), PLAIN, Decimal(1), Decimal(1), TEN_K, {"P": 200}, traded)

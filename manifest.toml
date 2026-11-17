@@ -88,6 +88,7 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "desk/eponymous_mansfield_rs_momentum.py" = "Mansfield's relative-strength rule (Weinstein) as a rule under the one template, measured against the SPY line, author, secondary source and published figure written down; not traded by the paper desk"
 "desk/risk.py" = "where the book stands against its loss and order-rate limits: the losses so far today and this week and the new lines entered today, and which loss limit has been reached; the limits themselves are in orders.Settings"
 "desk/orders.py" = "the order, sized from the one capital number, its stop, the pre-trade gate"
+"desk/order_reads.py" = "what the gate reads of the archive's bars: the daily returns of a line and of the lines held, and the pounds a line traded over twenty sessions"
 "desk/broker.py" = "the pretend broker the desk trades against in simulation"
 "desk/book.py" = "the ledger of fills under the broker's ids, and the book built from the broker"
 "desk/book_parts.py" = "the ledger's lower parts: the one keeper of dated records, the kill switch's record and the day's pounds per currency; desk.book gives them to its callers"
