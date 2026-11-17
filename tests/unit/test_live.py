@@ -3,6 +3,7 @@ silence said in words."""
 
 from __future__ import annotations
 
+import io
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
@@ -10,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from desk import listing, live
+from desk import listing, live, paper
 from desk.bars import Five
 from desk.lines import Line
 from desk.spans import Timed
@@ -63,3 +64,27 @@ def test_the_one_minute_question_reaches_back_to_the_last_held_and_keeps_ended_m
         tmp_path, tmp_path / "hot.db", lambda _s: None, newest, lambda *_: {"BBB": PENCE}
     )
     assert [b.close for b in ask(UK, NOW)] == [Decimal("2.5")] * 2 and asked == [live.FIRST]
+
+
+def _answer(*minutes: int) -> io.BytesIO:
+    feeds = (
+        "176|20261117 10:40:00 UTC",
+        "4|2|-1|2104|Market data farm OK:eu",
+        "9|1|7",
+        "15|1|DU0000001",
+    )
+    stamps = [int(datetime(2026, 11, 17, 10, m, tzinfo=UTC).timestamp()) for m in minutes]
+    rows = "|".join(f"{t}|5|6|4|5|9|5|1" for t in stamps)
+    told = [*feeds, f"17|1|20261117 10:30:00 UTC|20261117 10:40:00 UTC|{len(stamps)}|{rows}"]
+    return io.BytesIO(b"".join(paper.message(*m.split("|")) for m in told))
+
+
+def test_one_minute_bars_off_a_five_minute_mark_are_kept_and_the_five_minute_ask_refuses(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(paper, "dial", lambda talk: talk(_answer(30, 31, 32), lambda _: None))
+    got = live.newest_minutes(UK, "123", "LSE", 300, paper.Door(live.CLIENT))
+    assert [(b.span, b.start.minute) for b in got] == [("1m", 30), ("1m", 31), ("1m", 32)]
+    monkeypatch.setattr(paper, "dial", lambda talk: talk(_answer(30, 31), lambda _: None))
+    with pytest.raises(ValueError, match="five-minute mark"):
+        paper.newest(UK, "123", "LSE", 2, paper.Door(live.CLIENT))
