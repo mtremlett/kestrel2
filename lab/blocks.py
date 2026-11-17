@@ -18,6 +18,7 @@ from functools import partial
 from desk.eponymous_clenow_momentum import YEAR
 from desk.store import Bar
 from desk.strategy import ZERO, _Wilder, _Window, rsi
+from lab.block_bands import PercentBOver, PercentBUnder
 from lab.block_base import Block, Kind, Param, Spot
 
 
@@ -361,6 +362,10 @@ BLOCKS: Mapping[str, Spot] = {
     "close_over_keltner_band": Spot(Kind.ENTRY, partial(_Keltner, upper=True), {"n": _DAYS}),
     "close_under_keltner_band": Spot(Kind.EXIT, partial(_Keltner, upper=False), {"n": _DAYS}),
     "rsi_under": Spot(Kind.ENTRY, RsiUnder, {"n": _DAYS, "pct": _PCT}),
+    "percent_b_under": Spot(
+        Kind.ENTRY, PercentBUnder, {"n": _DAYS, "run": _AGO, "pct": Param(int, 1, 50)}
+    ),
+    "percent_b_over": Spot(Kind.EXIT, PercentBOver, {"n": _DAYS, "pct": Param(int, 50, 99)}),
     "close_under_close_ago": Spot(Kind.ENTRY, CloseUnderCloseAgo, {"n": _DAYS}),
     "close_at_midpoint": Spot(Kind.EXIT, CloseAtMidpoint, {"n": _DAYS}),
     "close_near_range_low": Spot(Kind.ENTRY, CloseNearRangeLow, {"n": _DAYS, "pct": _PCT}),

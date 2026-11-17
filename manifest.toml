@@ -173,4 +173,5 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "lab/verdict.py" = "the ladder's verdict on one cell: every rung's answer with its reason, the shuffle run last and only on a trial that passed the rest, and the one rule over them"
 "lab/blocks.py" = "the spec book's building blocks: entries, exits, stops and filters, each written once as a small stateful class over the desk's own proven indicators, and the one list of them by name with their parameters' ranges"
 "lab/block_base.py" = "what every spec block shares: the kinds of place a block fits, the one interface of a block, and how the registry holds a block with its parameters' ranges"
+"lab/block_bands.py" = "the spec book's blocks read from Bollinger's %b: a run of closes under it, and a close over it, kept apart from lab/blocks.py for its 400-line cap"
 "lab/spec.py" = "a strategy as data: a row of named blocks, parameters, source and known answers, built only by Spec.parse which refuses any wrong row, and SpecRule that runs it as the desk's own Rule"

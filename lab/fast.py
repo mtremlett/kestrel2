@@ -205,6 +205,36 @@ def _under_close_ago(p: Prices, params: Params) -> Bools:
     return _late(n := int(params["n"]), p.close[n:] < p.close[:-n], len(p.close))
 
 
+def _percent_b(p: Prices, params: Params, under: bool) -> Bools:
+    """%b of the close over the last `n` bars under `pct` per cent (at most 50) or over (at least
+    50). %b is
+    `(close - mean + 2 dev) / (4 dev)`; with `a = n * close - sum` and `q = n * sum of squares -
+    sum**2` (so `n * dev` is `sqrt(q)`) it is under `pct` when `a` is negative and `(100 a)**2`
+    is over `(4 pct - 200)**2 * q`, and over it when `a` is positive and likewise. A flat window
+    has no %b."""
+    n, pct = int(params["n"]), int(params["pct"])
+    total, close = _windows(p.close, n).sum(axis=1), p.close[n - 1 :]
+    a, q = n * close - total, n * _windows(p.close**2, n).sum(axis=1) - total**2
+    left, right = (100 * a) ** 2, (4 * pct - 200) ** 2 * q
+    reach = 2.0 * (100 * n * _top(p)) ** 2 * max(1, (4 * pct - 200) ** 2)
+    side = _sure(p, left - right, left + right, reach) > 0
+    return _late(n - 1, side & (a < 0 if under else a > 0), len(p.close))
+
+
+def _under_percent_b(p: Prices, params: Params) -> Bools:
+    """%b under `pct` per cent on each of the last `run` bars."""
+    run = int(params["run"])
+    return _late(
+        run - 1,
+        _windows(_percent_b(p, params, True).astype(float), run).min(axis=1) > 0,
+        len(p.close),
+    )
+
+
+def _over_percent_b(p: Prices, params: Params) -> Bools:
+    return _percent_b(p, params, under=False)
+
+
 def _always(p: Prices, params: Params) -> Bools:  # noqa: ARG001 - the one interface of every block
     return np.ones(len(p.close), dtype=np.bool_)
 
@@ -227,6 +257,8 @@ FIRES: Mapping[str, Fire] = {
     "close_over_keltner_band": _over_keltner_band,
     "close_under_keltner_band": _under_keltner_band,
     "rsi_under": _rsi_under,
+    "percent_b_under": _under_percent_b,
+    "percent_b_over": _over_percent_b,
     "close_under_close_ago": _under_close_ago,
     "close_near_range_low": _near_range_low,
     "close_near_range_high": _near_range_high,
