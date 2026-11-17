@@ -5,10 +5,10 @@ asked nothing, unless the store lacks the bars before its venues' next sessions:
 
 THE DAILY BARS of a venue's lines, asked of the archive whole and cleaned by the one store, twice
 a day: at the first call, before any open, and once the venue's session is over and SETTLED has
-passed (`target`), so the closes are held that evening and next morning (an archive restates a
-close overnight). A record beside the bars says what was last held, for which day, and who is
-parked; the door (`saved`) reads no bars it does not cover. A line the archive would not answer
-for is asked again at every call; one parked for a fault in its bars, for TRIES calls.
+passed (`target`; an archive restates a close overnight). A record beside the bars says what was
+held, for which day, and who is parked; the door (`saved`) reads no bars it does not cover. A
+line the archive would not answer for is asked again at every call; one parked, for TRIES calls.
+A day the archive lacks is asked of the broker first (`history.daily`, R-RUNNER-270).
 
 THE FIVE-MINUTE ROUND, at every call from a venue's open until SETTLED after its closing auction:
 its lines' ended bars (the yardstick first) come from IBKR's paper gateway alone (`desk/live.py`,
@@ -16,10 +16,9 @@ his ruling of 16 November), through the fast store's checks; the archive only fi
 line the broker gives nothing for is refused, in words; no line heard is a miss. THE REFERENCE
 SERIES (SPY, the pound in dollars) are kept once a day after the US close, apart from the lines.
 `parked_live` names the lines whose five-minute bars are late or faulty; `delays` the source's.
-
-A call that left a venue with no line answered or clean is a miss: the command ends with 1. KEPT
-HOT: a line whose newest daily bar is older than its venue's last settled session is a miss
-(`stale`); a call that did or missed anything leaves a line in the day's receipt (`receipt`)."""
+A call that left a venue with no line answered or clean is a miss: the command ends with 1. A
+line whose newest daily bar is older than its venue's last settled session is a miss (`stale`);
+a call that did or missed anything leaves a line in the day's receipt (`receipt`)."""
 
 from __future__ import annotations
 
@@ -36,7 +35,7 @@ from functools import partial
 from pathlib import Path
 from typing import TypeVar
 
-from desk import archive, bars, carry, keeper_live, live, store, venues
+from desk import archive, bars, carry, history, keeper_live, live, store, venues
 from desk.bars import Five
 from desk.lines import ADJUSTED, DOLLARS, LINES, POUND, REFERENCE, YARDSTICK, Line
 from desk.store import Bar, Parked, Refused
@@ -126,8 +125,8 @@ def _shelf(folder: Path, line: Line) -> tuple[Bar, ...] | None:
     """The older bars the head start shelved for a line; none if none."""
     try:
         return store.read(folder / store.HISTORY, line.symbol)
-    except FileNotFoundError:  # a line the head start never shelved
-        return None
+    except FileNotFoundError:
+        return None  # a line the head start never shelved
 
 
 def pound_closes(hot: Path) -> store.Rates:
@@ -185,7 +184,8 @@ def _refresh(
     if not asked:
         return None
     answers = archive.gather(asked, readied, ask)
-    first = broker(asked, readied) if broker else {}
+    short = [ln for ln, got in answers.items() if history.lacks(ln, got, readied)]
+    first = broker(short, readied) if broker and short else {}
     refused = {
         line.symbol
         for line, answer in answers.items()
@@ -216,10 +216,8 @@ def saved(
             raise Stale(f"{line.symbol}: no {line.venue} bars before {day} are held: {had}")
         try:
             held[line] = tuple(bar for bar in bars.daily(home / HOT, line) if bar.day < day)
-        except (LookupError, FileNotFoundError) as gone:  # never held, or no round has landed
-            raise Stale(
-                f"{line.symbol}: the long database holds no {line.venue} bars: {gone}"
-            ) from gone
+        except (LookupError, FileNotFoundError) as e:  # never held, or no round has landed
+            raise Stale(f"{line.symbol}: the long database holds no {line.venue} bars: {e}") from e
         parked |= {line.symbol} & set(last.parked)
     return held, frozenset(parked)
 
@@ -372,7 +370,7 @@ def keep(
     return spoken, [words for words, miss in told if miss]
 
 
-def main(home: Path, now: datetime, args: Sequence[str] = ()) -> int:
+def main(home: Path, now: datetime, args: Sequence[str] = (), broker: Broker | None = None) -> int:
     """THE COMMAND: what was done, a line each; a miss on stderr, and exit 1. `--live`: one run of
     one-minute bars; `--roll`: the live day copied to the long database."""
     missed: list[str] = []
@@ -383,7 +381,7 @@ def main(home: Path, now: datetime, args: Sequence[str] = ()) -> int:
         words, missed = keeper_live.minute_round(home / HOT, LINES, now, ask)
         done = [words]
     else:
-        done, missed = keep(home, now)
+        done, missed = keep(home, now, broker=broker or history.daily(now))
         if stopped := parked_live(home / HOT, LINES, now):
             done.append(f"parked live, not traded: {stopped}")
         if late := delays(home / HOT, LINES, now):
