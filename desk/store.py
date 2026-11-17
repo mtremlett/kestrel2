@@ -20,34 +20,27 @@ from types import MappingProxyType
 from desk import venues
 from desk.lines import Line
 
-#: Neighbouring bars further apart than this factor (a fall of 37.5%, a rise of 60%) are not a
-#: market move: a wrong unit (pence among pounds is 100), a bad print, or an unadjusted split of
-#: 2-for-1 or more. A smaller wrong factor cannot be told from a real move by price alone.
+#: Neighbouring bars further apart than this (a fall of 37.5%, a rise of 60%) are no market move:
+#: a wrong unit (pence among pounds), a bad print, or an unadjusted split of 2-for-1 or more.
 JUMP = Decimal("1.6")
 #: London records its auctions apart from the day's trading, so an open or close can sit just
-#: outside the day's high and low. Within this fraction the range stretches to hold it (his
-#: ruling of 13 November 2026); further out, the bar cannot be true.
+#: outside the day's range. Within this fraction the range stretches (his ruling, 13 Nov 2026).
 STRETCH = Decimal("0.03")
-#: Only a fault in the last this-many sessions parks a line; an older bad day is dropped and
-#: listed (his ruling of 13 November 2026).
-RECENT = 60
-#: The longest run of bars a hundredfold out of line with those either side is bad days in the
-#: wrong unit, not a lasting step. Any other fall and recovery may be real and parks as a step.
+RECENT = 60  #: only a fault in the last this-many sessions parks a line; older bad days are listed
+#: The longest run a hundredfold out of line with its neighbours is bad days, not a lasting step.
 BLIP = 20
 #: A run of this many sessions, each repeating the bar before it or flat at its close with no
 #: volume, is a frozen feed (the longest real run since 2010 is three): dropped and listed.
 FROZEN = 5
-#: A price this many times, or this fraction of, its neighbour's close is in another unit
-#: (pence among pounds is 100), however far a market moves: a hundredfold, less a jump.
+#: A price this many times, or this fraction of, its neighbour's close is in another unit.
 FAR = 100 / JUMP
 #: A one-for-one line's closes in the ratio of the day's pound in dollars, within this fraction,
-#: are dollars among pounds if the step lasts (IITU x0.662); a leveraged line's real crashes
-#: sit as near (5QQQ x0.770), so only its stray bar is tested, within FX_FAR.
+#: are dollars among pounds if the step lasts (IITU x0.662); a leveraged line's real crashes sit
+#: as near (5QQQ x0.770), so only its stray bar is tested, within FX_FAR.
 FX_STEP, FX_FAR = Decimal("0.05"), Decimal("0.10")
 RATE_AGE = timedelta(days=7)  #: the newest pound in dollars a day is judged on is at most this old
 AGREE = Decimal("0.02")  #: two sources' closes for a session must agree within this (R-RUNNER-189)
-#: A recorded split is adopted when the bar's jump is within this fraction of its ratio.
-SPLIT_NEAR = Decimal("0.25")
+SPLIT_NEAR = Decimal("0.25")  #: a recorded split is adopted if the jump is this near its ratio
 Rates = Mapping[date, Decimal]  #: the pound's close in dollars, by day
 NO_RATES: Rates = MappingProxyType({})
 UNRECORDED = "a gap in the archive, or a suspension the line does not record"
@@ -108,9 +101,8 @@ def _once(bars: Sequence[Bar], faults: list[Fault]) -> list[Bar]:
 
 
 def _entered(line: Line, bar: Bar, open_days: set[date], faults: list[Fault]) -> Bar | str:
-    """The bar as it enters the store, or why it cannot be true on its own. A wrong high or low
-    is clamped to the open or close and parks the line; a stretch is only noted beside the bar.
-    The open, close and volume stand. A fall the close shares is the market's."""
+    """The bar as it enters the store, or why it cannot be true on its own. A wrong high or low is
+    clamped to the open or close and parks the line; a stretch is only noted beside the bar."""
     prices = (bar.open, bar.high, bar.low, bar.close)
     if bar.day in line.suspended:
         return f"{bar.day} has a bar, yet {line.symbol} records it as suspended"
@@ -193,6 +185,13 @@ def _stray(at: int, links: Sequence[bool]) -> bool:
     return not left and not right
 
 
+def _untraded(kept: list[Bar], bar: Bar, rate: Decimal | None, faults: list[Fault]) -> None:
+    """No trade states no price: kept bars of no volume in another unit give way to a traded bar."""
+    while kept and kept[-1].volume == 0 < bar.volume and _far(bar, kept[-1].close, rate):
+        day = kept.pop().day
+        faults.append(Fault(day, f"{day} {ASTRAY}: it has no volume"))
+
+
 def _priced(line: Line, sound: Sequence[Bar], faults: list[Fault], rates: Rates) -> list[Bar]:
     """Drop a bar, or a short run, a hundredfold out of line with the days either side or in the
     other currency; keep any other move, a one-day crash too, as a lasting fault until recorded."""
@@ -206,6 +205,7 @@ def _priced(line: Line, sound: Sequence[Bar], faults: list[Fault], rates: Rates)
         if _stray(at, links) and _far(bar, sound[at - 1 if at else 1].close, rate):
             faults.append(Fault(bar.day, f"{bar.day} {ASTRAY}"))
             continue
+        _untraded(kept, bar, rate, faults)
         if kept and not _agree(line, kept[-1], sound[at:], rates):
             back = at + 1 < len(sound) and _agree(line, kept[-1], sound[at + 1 :], rates)
             if bar.volume == 0 and back:  # no trade states no price (2MU, 24 October 2025)
