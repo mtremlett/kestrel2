@@ -603,3 +603,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #742 R-RUNGS-27: basket answer wired to basket_answer, INCUBATE listed apart |
 | 2026-11-17 | 7 of 7 | - | +3 | - | 14 of 14 proven | green | #772 R-RUNNER-191 step: the three-band rule of t has one home, rung.band |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #773 R-MONEY-45 step: raschke_swing in the spec book (turtle_soup entry, under_entry_low stop) |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #775 R-RUNGS-23 done: each table row shows its holding figure (R-RUNNER-148, second step) |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #790 R-MONEY-45 step: demark_sequential in the spec book |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #776 R-RUNNER-205 step: market weather layer 3, drawdown depth (not wired) |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #789 R-RUNNER-191 step: one home for a mean and its standard error (no verdict changed) |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #803 R-RUNNER-191 step: rung_folds keeps only the fold's shape; folds.py judges (-184 lab/test lines) |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #799 R-MONEY-45 step: darvas_box in the spec book |
