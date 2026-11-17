@@ -27,9 +27,7 @@ JUMP = Decimal("1.6")
 STRETCH = Decimal("0.03")
 RECENT = 60  #: only a fault in the last this-many sessions parks a line; older bad days are listed
 BLIP = 20  #: the longest run a hundredfold out of line with its neighbours that is bad days
-#: A run this long, each bar repeating the one before or flat with no volume, is a frozen feed (the
-#: longest real run since 2010 is three): dropped and listed.
-FROZEN = 5
+FROZEN = 5  #: a run this long repeating the bar before or flat with no volume is frozen (real: 3)
 FAR = 100 / JUMP  #: a price this many times, or this fraction of, its neighbour's close: a unit
 #: A one-for-one line's closes in the day's pound-in-dollars ratio, within FX_STEP, are dollars
 #: among pounds if the step lasts (IITU x0.662); a leveraged line's real crashes sit as near
@@ -38,6 +36,7 @@ FX_STEP, FX_FAR = Decimal("0.05"), Decimal("0.10")
 RATE_AGE = timedelta(days=7)  #: the newest pound in dollars a day is judged on is at most this old
 AGREE = Decimal("0.02")  #: two sources' closes for a session must agree within this (R-RUNNER-189)
 PENCE, UNIT_DAYS = Decimal(100), 5  #: a hundredth: a shelf this far under, on this many sessions
+UNIT_SHARE = Decimal("0.95")  #: of shared sessions a hundredth under; the rest, its bad days
 SPLIT_NEAR = Decimal("0.25")  #: a recorded split is adopted if the jump is this near its ratio
 Rates = Mapping[date, Decimal]  #: the pound's close in dollars, by day
 NO_RATES: Rates = MappingProxyType({})
@@ -363,18 +362,19 @@ def _joined(
 ) -> tuple[list[Bar], list[Fault]]:
     """The upper source's bars, a lower one's bar for each day it gives none; closes both give
     beyond AGREE are a fault naming both, the upper's standing. A frozen run is dropped. A shelf a
-    hundredth of the upper's on all shared sessions is in the wrong unit: put right, bar by bar."""
+    hundredth of the upper's on UNIT_SHARE of its shared sessions is in the wrong unit (IB1T, 250
+    of 255): put right bar by bar; days still apart are named, the line not parked."""
     if shelf is None:
         return list(bars), []
-    real = set(_thawed(bars, []))
-    given = {bar.day: bar for bar in bars if bar in real}
+    given = {bar.day: bar for bar in _thawed(bars, [])}
     pairs = [(b.close, given[b.day].close) for b in shelf if b.day in given and under == "shelf"]
-    unit = len(pairs) >= UNIT_DAYS and all(abs(PENCE * lo / up - 1) <= AGREE for lo, up in pairs)
+    fits = sum(abs(PENCE * lo / up - 1) <= AGREE for lo, up in pairs) >= UNIT_SHARE * len(pairs)
+    unit = len(pairs) >= UNIT_DAYS and fits
     lower = [replace(b, **{k: getattr(b, k) * PENCE for k in COLUMNS[1:5]}) for b in shelf]
     put = [Fault(b.day, f"{b.day} {under} put right: a unit fault", noted=True) for b in lower]
     lower, put = (lower, put) if unit else (list(shelf), [])
     differ = [
-        Fault(b.day, f"{b.day} close {a.close} ({over}), {b.close} ({under})")
+        Fault(b.day, f"{b.day} close {a.close} ({over}), {b.close} ({under})", noted=unit)
         for b in lower
         if (a := given.get(b.day)) and abs(b.close / a.close - 1) > AGREE
     ]
