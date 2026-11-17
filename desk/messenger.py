@@ -13,11 +13,9 @@ bell, and owed by 21:30: the day's fills, what is held, and the last day on reco
 is late still goes, until 22:00; after that it is not sent.
 
 THE ALARM ON SILENCE (`watch`), judged from outside the desk's process: a daily message not
-delivered by its hour is told to him, once, at any hour. What it misses: docs/STATUS.md. Each
-daily message says, read and never written, the kill switch and halts (_gate). THE EMAIL
-FALLBACK (with_mail, summary): after two Telegram refusals in a row every line also goes by
-email; one summary email goes each trading day. Nothing here dials the broker or reads the
-clock: whoever runs the day gives the moment and what the gateway just said."""
+delivered by its hour is told to him, once, at any hour. Each daily message says the kill
+switch and halts, read and never written (_gate). THE EMAIL FALLBACK (with_mail, summary):
+after two Telegram refusals in a row every line also goes by email; one summary each day."""
 
 from __future__ import annotations
 
