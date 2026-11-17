@@ -7,10 +7,9 @@ is never guessed from less. The label of day T reads bars up to T only, so cutti
 after T changes none of the labels up to T (the future-blind test in
 `tests/unit/test_lab_weather.py`). The names are one plain word each, as `lab/regime.py` asks.
 
-The trend is the baseline. Realised volatility and drawdown depth are built below but wired
-into no verdict;
-breadth comes next, each layer only on an out-of-sample win against
-trend alone, with the trial count recorded (canon B6).
+The trend is the baseline. Realised volatility, drawdown depth and breadth are built below
+but wired into no verdict, each layer only on an out-of-sample win against trend alone, with
+the trial count recorded (canon B6).
 """
 
 from __future__ import annotations
@@ -118,3 +117,22 @@ def followed(
             by_name.setdefault(name, []).append(ret)
         out.append({name: Decimal(sum(rets)) / len(rets) for name, rets in by_name.items()})
     return out
+
+
+BROAD, NARROW = "broad", "narrow"
+
+
+def breadth(lines: Mapping[str, Sequence[Bar]]) -> dict[date, str]:
+    """Each day across the research universe as `broad` when more than half of the lines that
+    have a trend state that day are `up`, else `narrow`; `warming` when no line has one yet.
+    A day's label reads each line's closes up to that day only (canon B3). Built but wired
+    into no verdict until it wins out of sample against trend alone (canon B6)."""
+    states = [trend(bars) for bars in lines.values()]
+    named: dict[date, str] = {}
+    for day in sorted({day for state in states for day in state}):
+        today = [state[day] for state in states if state.get(day, WARMING) != WARMING]
+        if not today:
+            named[day] = WARMING
+        else:
+            named[day] = BROAD if 2 * today.count(UP) > len(today) else NARROW
+    return named
