@@ -239,3 +239,16 @@ then the break was removed:
 
 ### 2026-11-17 — darvas_box and the fast engine (R-MONEY-45, #799)
 - A position-dependent block in the fast engine. Options: (a) a float twin of the box walk (a third copy, own parity); (b) run the same blocks bar by bar through `SpecRule`. Chose (b): less code, no second implementation. The block copies the desk rule's logic on purpose, since R-RUNNER-127 deletes the desk files.
+
+### 2026-11-17 — weather scoring and breadth (R-RUNNER-205, #813, #831)
+- Breadth cut-off. Options: more than half the lines with a trend state up; a tuned share (e.g. 60%). Chose more than half: no tuned number, no trial counted. Per-line state reuses `trend`, one home for the 200-day rule.
+- `followed` pairs a day's label only with the return after that day's close (future-blind); no dependency added.
+
+### 2026-11-17 — rung_ci keeps its own bounds (R-RUNNER-191, #815)
+- Options: fold into `band` and accept a boundary shift in the golden verdict; keep. Chose keep: rung_ci's interval is open at both ends, `band` closed at T_PASS, and the golden verdict is untouched by B5.
+
+### 2026-11-17 — benchmark interval floats (R-RUNNER-191, #827)
+- Floats are handed to `rung.mean_and_error` as Decimal(str(x)). Options: Decimal(x) (exact binary, made equal values spread, rejected); str form (chosen), so the "no spread" refusal holds.
+
+### 2026-11-17 — Mansfield and Zweig rows wait (R-MONEY-45, #809, #823)
+- Mansfield needs the SPY close beside each stock. Options: (a) special-case SPY inside a block (a second home for the index, refused by A2) or add a second-series input to blocks and the fast engine now; (b) widen the Block contract with an optional index series, with its own parity test (a planned step); (c) a ratio line built by the ladder; (d) leave both rules as Python files and let R-RUNNER-127 delete the other 17. Chose (d) for now and (b) for a later session with the whole claim, since no step fits green and small; recommended per his 13 Nov ruling. Zweig waits on breadth data (R-MONEY-35).

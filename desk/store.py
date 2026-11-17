@@ -149,7 +149,7 @@ def _clean(
 ) -> tuple[list[Bar], list[Fault]]:
     """The bars of one line that can be true, and every fault found."""
     faults: list[Fault] = []
-    first = min((b.day for b in bars if b.day.year in venues.KNOWN), default=day)
+    first = min((b.day for b in bars if b.day.year in venues.SESSION_YEARS), default=day)
     every = venues.sessions(line.venue, max(first, line.starts or first), day - timedelta(1))
     expected = [d for d in every if d not in line.suspended]
     open_days, sound = set(expected), []

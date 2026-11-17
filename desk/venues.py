@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta, timezone
 from functools import cache
 
-KNOWN = range(2010, 2030)  #: the years whose hours below are complete
+HOURS_YEARS = range(2010, 2030)  #: the years whose hours below are complete
 #: The years whose closures below are complete: the daily history begins on 29 January 1993.
 SESSION_YEARS = range(1993, 2030)
 
@@ -209,9 +209,9 @@ def hours(venue: str, day: date) -> Hours:
     """The hours of the venue's session on a day; a day it does not trade has none."""
     if sessions(venue, day, day) != (day,):
         raise ValueError(f"{venue} does not trade on {day}: it has no hours")
-    if day.year not in KNOWN:
+    if day.year not in HOURS_YEARS:
         raise ValueError(
-            f"no hours for {venue} in {day.year}: known {KNOWN.start}-{KNOWN.stop - 1}"
+            f"no hours for {venue} in {day.year}: known {HOURS_YEARS.start}-{HOURS_YEARS.stop - 1}"
         )
     clock = CLOCKS[venue]
     early = day in clock.half_days(day.year)
