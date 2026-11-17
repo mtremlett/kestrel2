@@ -182,10 +182,15 @@ class _Life:
         scenario, buys = self.census.scenario, self.pretend.buys
         record = self._run(saved, on)
         self.census.now(scenario)
-        quiet = not (record.mismatches and self.pretend.buys > buys)
+        odd = set(record.mismatches) - book.adopted(self.desk, on)  #: strangers, sold, are none
+        quiet = not (odd and self.pretend.buys > buys)
         self.promise("nothing is bought on a day the book is not the broker's", quiet)
         held, stopped = book.positions(self.desk), dict(self.pretend.stops())
-        self.promise(f"never more than {HOLDINGS} lines are held", len(held) <= HOLDINGS)
+        net = Counter[str]()  #: shares of a stranger's not sold: none of the desk's lines
+        for f in book.fills(self.desk):
+            net[f.symbol] += f.quantity * (orders.strategy_of(f.order_id) == "stranger")
+        own = len(held.keys() - {s for s, n in net.items() if n > 0})
+        self.promise(f"never more than {HOLDINGS} lines are held", own <= HOLDINGS)
         self.promise("no order is left working at a day's end", not self.pretend.working())
         bare = {*held} - {*stopped} - {*record.mismatches}
         self.promise("a line held with no stop at the broker is named that day", not bare)
@@ -194,8 +199,7 @@ class _Life:
         untold = {s for s, n in held.items() if s not in stopped and mine.get(s) == n} - told
         self.promise("a line held with no stop is on that day's list, with its stop", not untold)
         same = held == stopped == mine
-        named = bool(record.mismatches)
-        self.promise("no line is named on a day the book is the broker's", not (same and named))
+        self.promise("no line is named on a day the book is the broker's", not (same and odd))
         self.records.append(record)
         return record
 
@@ -209,14 +213,20 @@ class _Life:
 
 
 def _behind(life: _Life, on: date) -> None:
-    """Shares the desk did not buy are at the broker before the day, and gone after its
-    record: the seed's number of them, on a line of its choosing, held by the desk or not."""
-    symbol = life.rng.choice(sorted(line.symbol for line in life.market))
-    shares = life.rng.randint(1, 50)
-    life.pretend.inject(symbol, shares)
+    """Shares the desk did not buy are at the broker before the day: the seed's number of them,
+    on a line the desk does not hold (a sale beside its own shares takes the pretend broker's
+    stop down with it, desk/broker.py). The desk sells them, or names them."""
+    free = {line.symbol for line in life.market} - set(book.positions(life.desk))
+    symbol = life.rng.choice(sorted(free))
+    life.pretend.inject(symbol, life.rng.randint(1, 50))
     record = life.live(on)
-    life.pretend.inject(symbol, -shares)
-    life.promise("a position the desk did not make is named", record.mismatches == (symbol,))
+    mine = [
+        f.quantity for f in book.fills(life.desk) if f.order_id == f"{on:%Y%m%d}-stranger-{symbol}"
+    ]
+    sold = bool(mine) and sum(mine) == 0
+    life.promise(
+        "a position the desk did not make is sold or named", sold or symbol in record.mismatches
+    )
 
 
 def _unstopped(life: _Life, on: date) -> None:
@@ -340,10 +350,11 @@ def _live(life: _Life) -> None:
     profit = sum((record.profit or 0 for record in plain), Decimal(0))
     near = abs(profit - (worth + cash - costs.total)) <= len(plain) * Decimal("0.005")
     life.promise("the days' profits add up to the ledger's", near)
-    life.promise("the ledger is the broker's own fills", fills == pretend.fills())
+    theirs = tuple(f for f in fills if not f.execution_id.startswith("stranger-"))
+    life.promise("the ledger is the broker's own fills", theirs == pretend.fills())
     life.promise("no order reached the broker twice", len(set(reached)) == len(reached))
     bars = {(line.symbol, bar.day): bar for line, days in life.market.items() for bar in days}
-    ranged = (bars[f.symbol, f.day].low <= f.price <= bars[f.symbol, f.day].high for f in fills)
+    ranged = (bars[f.symbol, f.day].low <= f.price <= bars[f.symbol, f.day].high for f in theirs)
     life.promise("every fill is inside its day's range in its world", all(ranged))
     census.now(TRIPS)
     trips = book.round_trips(life.desk, life.market)
