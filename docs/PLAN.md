@@ -143,6 +143,9 @@ Checked 16 Nov (MONEY, later session): R-RUNNER-127 still held (15 rules unexpre
 Checked 16 Nov (MONEY, third session): unchanged; the scribe has not yet folded the ticks for R-RUNGS-6 and R-RUNGS-12 (done in #185); R-RUNNER-127 waits on spec-epon.
 
 Checked 16 Nov (MONEY, fourth session): R-RUNGS-6 and R-RUNGS-12 re-verified on main (`tests/unit/test_strategy.py` green); R-RUNNER-127 is the coordinator's own branch now (ops note 19:3x), declined here.
+Checked 17 Nov (MONEY, s2): no blocking request to MONEY is open and every unticked box in the book carries an id (other sessions') or waits (money-connors7: operator); nothing built.
+
+Checked 17 Nov (MONEY): R-RUNGS-12 re-verified on main (`strategy.rsi`, `strategy.lower_band` public since #185; `tests/unit/test_strategy.py` green); no code change.
 
 - [x] The rehearsal data in a file of its own (`tests/scenes/rehearsal.py`)
 - [x] The rehearsal data lengthened to about fourteen months, the five rules buying and
@@ -418,10 +421,11 @@ day's trading and reconciliation are built, and any broker can stand behind them
       once (found by SimCity: 98 sessions held with no stop). First step done in #191 (the desk keeps
       every stop's level; a lost stop is on the day's list with stop, shares, level); remains: the
       put-back itself (a way to rest a stop at a level in `desk/broker.py`; `running.recover` on paper),
-      the list reaching him (R-MONEY-18); the SimCity census is split (#590) and the "split first" note is stale (#617); waits on PAPER's put-back
+      the list reaching him (R-MONEY-18); the SimCity census is split (#590). The put-back on paper is on main (#657, running.recover) and the day's list names each bare line (#191); remains: the list reaching him (desk/messenger.py, R-MONEY-18, -31) and a put-back door on Pretend (desk/broker.py), both outside the claim (R-MONEY-51)
       {id: money-restop; files: desk/day.py, desk/book.py, tests/unit/test_day*.py,
-      tests/unit/test_book*.py, desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml;
-      after: money-working; waits: R-MONEY-30}
+      tests/unit/test_book*.py, desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml,
+      desk/messenger.py, tests/unit/test_messenger*.py, desk/broker.py, tests/unit/test_broker*.py;
+      after: money-working}
 - [x] Emergencies in numbers: an emergency, a crash and a black swan each defined by measured
       falls, each with its action (EMG-01) {id: money-emergencies; files: desk/emergency.py,
       tests/unit/test_emergency*.py, manifest.toml}
@@ -433,7 +437,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       tests/unit/test_halt*.py, tests/unit/test_day*.py, tests/unit/test_book*.py,
       manifest.toml; after: money-kill, money-record}
 - [ ] The gate's other limits from canon B1: a day's and a week's loss and an order rate,
-      refused at the gate (EMG-04 when live). Built (#467, #564, #478): loss and new-line limits, underlying cap, correlation and volatility sizing in `desk/risk.py`; remains: `book.send` passes the Standing and per-underlying exposure to the gate, correlation/sizing into the gate, the drawdown alert sent {id: money-limits; files: desk/orders.py,
+      refused at the gate (EMG-04 when live). Built (#467, #564, #478): loss and new-line limits, underlying cap, correlation and volatility sizing in `desk/risk.py`; Standing, per-underlying exposure and the drawdown alert reach the gate on the send path (#632, #661); remains: correlation and volatility sizing into the gate (needs daily returns per line from the archive) {id: money-limits; files: desk/orders.py,
       desk/book.py, desk/day.py, tests/unit/test_orders*.py, tests/unit/test_book*.py,
       tests/unit/test_day*.py, tests/scenes/test_scenes.py,
       desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml; after: money-record, money-working}
@@ -454,8 +458,8 @@ day's trading and reconciliation are built, and any broker can stand behind them
       it once built (EMG-01, EMG-03)
       {id: money-watch; files: desk/watch.py, desk/halt.py, tests/unit/test_watch*.py,
       tests/unit/test_halt*.py, manifest.toml; after: money-halts}
-- [ ] A position the desk did not make is named and then sold on paper (TRD-06); no signal
-      is left half-processed at the day's end (TST-08)
+- [x] A position the desk did not make is named and then sold on paper (TRD-06); no signal
+      is left half-processed at the day's end (TST-08). Done in #683; open: Pretend takes a stranger sale's shares off the line's stop (R-MONEY-50)
       {id: money-stranger; files: desk/day.py, desk/book.py, desk/orders.py,
       tests/unit/test_day*.py, tests/unit/test_book*.py, tests/unit/test_orders*.py,
       desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml; after: money-halts, money-working}
@@ -743,7 +747,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       before the history) (TST-06). Built: `lab/stress.py` (#140). Remains: nothing calls it;
       judged by the loss limit when MONEY sets it (R-RUNGS-11); first run on real bars
       {id: rungs-stress; files: lab/stress.py, tests/unit/test_lab_stress.py, manifest.toml}
-- [ ] **The eleven rungs made trustworthy before any verdict counts**, the old desk's
+- [x] **The eleven rungs made trustworthy before any verdict counts**, the old desk's
       biggest failure (its rung audit of 20 October is the quarry): sample size by effective
       trades; costs charged; a confidence interval; excess over the benchmark after the
       market risk taken, judged by its size and not merely measured; at least two regime
@@ -754,13 +758,17 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       that duplicates no other rung. Each rung proven alone: a planted edge passes it,
       five hundred cells of pure noise pass it at about its stated rate and no more, a power
       curve at three effect sizes, a broken copy of the rung caught, and each defect the old
-      audit found kept as a case that must fail (LAD-09, LAD-03, LAD-08)
+      audit found kept as a case that must fail (LAD-09, LAD-03, LAD-08). Built: all eleven
+      modules, each proven alone (#343-#365, #412). Remains: the ladder judges by three of them
+      (costs #438, ci #440, cpcv #445 declare a RUNG; "rungs built" counts 3 of 11); wiring the rest, the clustered
+      trials (#379 built) into the verdict, the gap-through loss (R-RUNNER-187 declined, #409)
       {id: rungs-trustworthy; files: *; after: rungs-beta}
 - [ ] **LADDER READY, the cards (his ruling, 15 November: "done properly and to elite desk
       specifications", then the ladder runs 24x7).** Ranked; each card one test and one change:
-  - [ ] L1 TAPE-CACHE: a rule on a line simulated once into a kept tape (trades, daily
+  - [x] L1 TAPE-CACHE: a rule on a line simulated once into a kept tape (trades, daily
         returns), keyed by the rule, the engine, the bars and the rates; each rung's result
-        keyed by the tape and that rung's own code. Changing a rung re-simulates nothing
+        keyed by the tape and that rung's own code. Changing a rung re-simulates nothing.
+        Built: one tape per (rule, line) cut by date (#337, #378), compressed (#555), rates priced after it (#398)
         {id: rungs-tape-cache; files: lab/tape.py, tests/unit/test_lab_tape.py}
   - [ ] L2 THE RUNG MAP: each of the eleven rungs above named to its module and test, built
         or not, in `lab/ladder.py`'s docstring; the later cards follow it
@@ -779,8 +787,9 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         {id: rungs-gate; files: lab/ladder_sets.py, lab/ladder_pool.py, tests/unit/test_lab_ladder_pool.py; after: rungs-blind-review}
 - [ ] **STRATEGIES AS DATA (his goal: 1,000+ strategies over 1,000+ tickers):**
   - [ ] B1 building blocks written once, each known-answer tested: indicators, entries,
-        exits, stops, filters (regime filters among them), sizing
-        {id: rungs-blocks; files: lab/blocks.py, tests/unit/test_lab_blocks.py}
+        exits, stops, filters (regime filters among them), sizing. Built: every block has its
+        known answer (#396). Remains: sizing blocks, once the volatility-sizing research settles their form
+        {id: rungs-blocks; files: lab/blocks.py, tests/unit/test_lab_blocks.py; waits: operator}
   - [ ] B2 a typed Spec, validated on entry: an unknown block or a bad setting is refused
         {id: rungs-spec; files: lab/spec.py, tests/unit/test_lab_spec.py; after: rungs-blocks}
   - [ ] B3 the catalogue, one TOML row per strategy with its source and known-answer case;
@@ -798,18 +807,20 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       Built: moving average, Bollinger deviation, Wilder smoothing (#145); true range, RSI gains
       and losses, channel (#154): five tables, 250 printed numbers. Remains: RSI ratio and band
       line (public since #185: strategy.rsi, strategy.lower_band; R-RUNGS-6, 12 done), carried band, a fresh-low table, each table run holding, tables
-      moved to own module (file at its 400 cap)
+      moved to own module (file at its 400 cap). Two sessions in a row landed no change; the doctor asks why
       {id: rungs-indicators; files: lab/published.py, lab/published_tables.py, manifest.toml,
-      tests/unit/test_lab_published*.py}
+      tests/unit/test_lab_published*.py; waits: operator}
 - [ ] Before paper: a kill condition declared for each strategy; promotion only after at
       least thirty effective paper trades, net positive (STR-17, LAD-11). Built:
-      `lab/promotion.py` (#127). Remains: the desk reads it (R-RUNGS-7); each candidate's kill numbers
+      `lab/promotion.py` (#127). Remains: the desk reads it (R-RUNGS-7, MONEY's, open); each candidate's
+      kill numbers need a ladder-passed candidate (#413)
       {id: rungs-promotion; files: lab/promotion.py, tests/unit/test_lab_promotion.py;
-      after: rungs-trustworthy}
+      after: rungs-trustworthy; waits: R-RUNGS-7}
 - [ ] At least three ladder-passed strategies and a feasibility number before A-GATE paper
-      (NS-04)
+      (NS-04). Built: `lab/feasibility.py` (#415); ticking needs three real rules through the ladder (#416),
+      which comes from rungs-eponymous (the wait is a placeholder: the box should be 'after: rungs-eponymous')
       {id: rungs-feasibility; files: lab/feasibility.py, tests/unit/test_lab_feasibility.py,
-      manifest.toml; after: rungs-trustworthy, rungs-eponymous}
+      manifest.toml; after: rungs-trustworthy, rungs-eponymous; waits: operator}
 - [ ] **The eponymous strategies through the ladder first**, before any grid exploration:
       the twenty-one published rules the old desk listed, ported one at a time as rules under
       the one template, each with its author's source, instrument, period and published

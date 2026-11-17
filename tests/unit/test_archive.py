@@ -15,7 +15,7 @@ from urllib.error import HTTPError, URLError
 
 import pytest
 
-from desk import archive
+from desk import archive, venues
 from desk.bars import Five
 from desk.lines import TAG, Line
 from desk.store import Bar, Refused
@@ -125,6 +125,8 @@ def test_the_archive_is_asked_for_nothing_on_or_after_the_day() -> None:
     address = archive.address(UK, date(2025, 11, 17))
     assert "/BBB.L?" in address
     assert f"period2={int(datetime(2025, 11, 17, tzinfo=UTC).timestamp())}&" in address
+    assert f"period1={int(datetime(2000, 1, 1, tzinfo=UTC).timestamp())}&" in address
+    assert archive.SINCE.year in venues.SESSION_YEARS  # the history asked for, the calendar knows
 
 
 def test_a_london_line_priced_in_pounds_is_read_as_given_on_its_summer_session() -> None:
@@ -282,6 +284,12 @@ def test_a_refusing_archive_is_backed_off_from_and_told_in_archive_json(
     monkeypatch.setattr(archive, "_once", _fail(HTTPError("u", 404, "", Message(), None)))
     with pytest.raises(HTTPError):
         archive._ask("x")  # noqa: SLF001
+    began = datetime.fromisoformat(since)
+    assert archive.alert(tmp_path, began + timedelta(hours=5, minutes=59)) is None
+    assert since in str(archive.alert(tmp_path, began + timedelta(hours=6)))
+    state.write_text('{"refusing_since": null}', "utf-8")
+    assert archive.alert(tmp_path, began + timedelta(days=1)) is None
+    assert archive.alert(tmp_path / "none", began) is None
 
 
 def test_a_five_minute_answer_is_kept_raw_when_given_a_home_and_a_refused_one_is_not(
@@ -295,8 +303,9 @@ def test_a_five_minute_answer_is_kept_raw_when_given_a_home_and_a_refused_one_is
 
     monkeypatch.setattr(archive, "_ask", ask)
     now = MARK + timedelta(hours=7)
-    first = archive.fetch_five(US, now, home=tmp_path)
-    assert archive.fetch_five(US, now, home=tmp_path) == first
+    monkeypatch.setenv("KESTREL2_DATA", str(tmp_path))  # the folder it names is the home
+    first = archive.fetch_five(US, now)
+    assert archive.fetch_five(US, now) == first
     assert len(asked) == 1  # the kept answer served the second asking
     assert next((tmp_path / "archive" / "five").rglob("AAA-59d")).read_bytes() == _payload(
         span="5m"
@@ -307,3 +316,20 @@ def test_a_five_minute_answer_is_kept_raw_when_given_a_home_and_a_refused_one_is
     with pytest.raises(ValueError, match="bars of 1d"):
         archive.fetch_five(UK, now, home=tmp_path)
     assert not list((tmp_path / "archive" / "five").rglob("BBB.L*"))
+
+
+def test_once_the_archive_refuses_the_rest_of_the_round_is_not_asked(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("KESTREL2_DATA", raising=False)
+    monkeypatch.setattr("time.sleep", lambda _s: None)
+    monkeypatch.setattr(archive, "_once", _fail(URLError("down")))
+    asked: list[Line] = []
+
+    def ask(line: Line, _: date) -> bytes:
+        asked.append(line)
+        return archive._ask("x")  # noqa: SLF001
+
+    answers = archive.gather((US, UK, Line("CCC", "US", "USD", 1)), date(2025, 11, 17), ask)
+    assert asked == [US]
+    assert all(isinstance(a, Refused) and "Refusing" in a.reason for a in answers.values())

@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
 
-from desk import book, day, day_money
+from desk import book, day, day_money, orders
 from desk.broker import Pretend
 from desk.halt import Blocker, Stopped
 from desk.lines import Line
@@ -14,6 +14,7 @@ from desk.orders import Charges, Order, Settings
 from desk.risk import Standing
 from desk.store import Bar
 
+ROOM = Settings(Decimal(10_000))
 MON, TUE, A = date(2025, 11, 10), date(2025, 11, 11), Line("A", "LSE", "GBP", 1)
 BARS = {A: tuple(Bar(d, Decimal(50), Decimal(51), Decimal(49), Decimal(51), 1) for d in (MON, TUE))}
 
@@ -64,3 +65,50 @@ def test_a_day_that_opens_past_a_loss_limit_tells_him_once_a_drawdown_alert(tmp_
     for _ in range(2):
         day._alert(tmp_path, TUE, Settings(Decimal(10_000)), lambda n, w: told.append((n, w)))
     assert [n for n, _ in told] == ["drawdown 2025-11-11"] * 2 and "DRAWDOWN ALERT" in told[0][1]
+
+
+def test_a_buy_that_moves_with_a_held_line_is_refused_and_one_that_does_not_goes(
+    tmp_path: Path,
+) -> None:
+    days = [date(2025, 9, 1) + timedelta(days=i) for i in range(30)]
+    wiggle = [Decimal(100 + (i * 7) % 5 + i % 3) for i in range(30)]
+    other = [Decimal(100 + (i * 11) % 7 - i % 2) for i in range(30)]
+
+    def line(symbol: str, closes: list[Decimal]) -> tuple[Line, tuple[Bar, ...]]:
+        return Line(symbol, "LSE", "GBP", 1), tuple(
+            Bar(d, c, c, c, c, 1) for d, c in zip(days, closes, strict=True)
+        )
+
+    held, twin, apart = line("H", wiggle), line("T", [c * 2 for c in wiggle]), line("P", other)
+    archive = dict([held, twin, apart])
+    broker = Pretend(archive, {})
+    broker.open(days[-1])
+    book.send(tmp_path, broker, Order("o-1", held[0], 1, *map(Decimal, (100, 1, 90))), ROOM)
+    moves = orders.moves({"H"}, archive, "T")
+    assert set(moves) == {"H", "T"} and orders.moves({"H"}, archive, "P").keys() == {"H", "P"}
+    try:
+        book.send(
+            tmp_path,
+            broker,
+            Order("o-2", twin[0], 1, *map(Decimal, (100, 1, 90))),
+            ROOM,
+            None,
+            None,
+            None,
+            moves,
+        )
+    except Stopped as stopped:
+        assert stopped.blocker is Blocker.GATE and "correlated 1.00 with held H" in str(stopped)
+    else:
+        raise AssertionError("a buy moving with a held line was sent")
+    sent = book.send(
+        tmp_path,
+        broker,
+        Order("o-3", apart[0], 1, *map(Decimal, (100, 1, 90))),
+        ROOM,
+        None,
+        None,
+        None,
+        orders.moves({"H"}, archive, "P"),
+    )
+    assert sent.filled == 1

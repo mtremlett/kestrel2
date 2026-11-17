@@ -22,7 +22,7 @@ from decimal import Decimal
 from http.client import HTTPException
 from pathlib import Path
 from typing import Any, TypeVar
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from desk import store
@@ -33,7 +33,7 @@ from desk.store import Bar, Refused
 SOURCE = "https://query1.finance.yahoo.com/v8/finance/chart/"
 SUFFIX = {"LSE": ".L", "US": ""}  #: the archive's name for a line is its symbol and this
 PENCE = {"GBP": "GBp"}  #: the archive's name for a hundredth of a currency
-SINCE = date(2010, 1, 1)  #: the first year the calendar knows
+SINCE = date(2000, 1, 1)  #: the deep daily history begins here, within the calendar
 #: The first session of SPY, the reference series (R-RUNGS-5): the archive holds it from here,
 #: and is asked this far back for a reference series only, never for a line the desk trades.
 REFERENCE_SINCE = date(1993, 1, 29)
@@ -53,6 +53,7 @@ BACKOFF = (5, 30, 120)
 ASKED_TO_WAIT = 300  #: the longest wait the archive's own Retry-After is obeyed for, in seconds
 #: Where the runner reads whether the archive refuses: `{"refusing_since": <time or null>}`.
 STATE = "archive.json"
+ALERT_AFTER = timedelta(hours=6)  #: how long the archive may refuse before the operator is told
 When = TypeVar("When")
 Read = TypeVar("Read")
 Row = tuple[int, Decimal, Decimal, Decimal, Decimal, int]
@@ -73,7 +74,7 @@ def _address(line: Line, first: int, end: int, span: str) -> str:
 
 
 def address(line: Line, day: date, since: date = SINCE) -> str:
-    """Where every bar of a line from since (2010) up to, and not including, day is asked for."""
+    """Where every bar of a line from since (2000) up to, and not including, day is asked for."""
     return _address(line, _moment(since), _moment(day), DAILY)
 
 
@@ -157,13 +158,23 @@ def parse_five(line: Line, payload: bytes, now: datetime) -> tuple[Five, ...]:
     )
 
 
+class Refusing(URLError):
+    """The archive turned an ask away and every wait is spent: it is not asked again this round."""
+
+
+def _data() -> Path | None:
+    """The folder KESTREL2_DATA names, if it names one."""
+    data = os.environ.get("KESTREL2_DATA")
+    return Path(data) if data else None
+
+
 def _record(refusing: bool) -> None:
     """Write when the archive began refusing (kept while it goes on), or null once it answers,
     to archive.json in the folder KESTREL2_DATA names, if it names one."""
-    data = os.environ.get("KESTREL2_DATA")
-    if not data:
+    data = _data()
+    if data is None:
         return
-    path = Path(data) / STATE
+    path = data / STATE
     since = None
     if refusing:
         since = json.loads(path.read_text("utf-8")).get("refusing_since") if path.exists() else None
@@ -171,6 +182,16 @@ def _record(refusing: bool) -> None:
     part = path.with_suffix(".part")
     part.write_text(json.dumps({"refusing_since": since}), "utf-8")
     part.replace(path)
+
+
+def alert(data: Path, now: datetime) -> str | None:
+    """The line to send the operator once the archive has refused for six hours (DAT-08), read
+    from archive.json in data; None while it answers, or has refused for less."""
+    path = data / STATE
+    since = json.loads(path.read_text("utf-8"))["refusing_since"] if path.exists() else None
+    if since is None or now - datetime.fromisoformat(since) < ALERT_AFTER:
+        return None
+    return f"the price archive has refused every ask since {since}"
 
 
 def _once(address: str) -> bytes:
@@ -207,6 +228,7 @@ def _ask(address: str) -> bytes:
                 continue
             if _turned_away(refusal):
                 _record(refusing=True)
+                raise Refusing(refusal) from refusal
             raise
         _record(refusing=False)
         return payload
@@ -235,8 +257,7 @@ def fetch(
     archive's answer is kept raw there, one file to a line and day, and read instead of asked
     again; an answer is kept only once it has been read whole, never a refused one."""
     name = f"{line.symbol}{SUFFIX[line.venue]}" + ("" if since == SINCE else f"-{since}")
-    data = os.environ.get("KESTREL2_DATA")
-    home = home or (Path(data) if data else None)
+    home = home or _data()
     kept = None if home is None else home / STORE / str(day) / name
     return _kept(kept, address(line, day, since), lambda raw: parse(line, raw))
 
@@ -248,6 +269,7 @@ def fetch_five(
     or those of a shorter time back. With a home, the raw answer is kept there (the archive
     forgets after sixty days), one file to a line and moment, and read instead of asked again."""
     name = f"{line.symbol}{SUFFIX[line.venue]}-{back.days}d"
+    home = home or _data()
     kept = None if home is None else home / STORE / "five" / now.strftime("%Y%m%dT%H%M") / name
     return _kept(kept, address_five(line, now, back), lambda raw: parse_five(line, raw, now))
 
@@ -256,12 +278,18 @@ def gather(
     lines: Iterable[Line], when: When, ask: Callable[[Line, When], Read]
 ) -> dict[Line, Read | Refused]:
     """Every line's bars as ask reads them: `fetch` before a day, `fetch_five` up to a moment.
-    A line the archive cannot be reached for, or whose answer is refused, is refused alone,
-    with the reason, and the others carry on."""
+    A line whose answer is refused is refused alone, with the reason, and the others carry on;
+    once the archive itself refuses (every wait spent) the rest are refused unasked."""
     answers: dict[Line, Read | Refused] = {}
+    spared: Refused | None = None
     for line in lines:
+        if spared is not None:
+            answers[line] = spared
+            continue
         try:
             answers[line] = ask(line, when)
+        except Refusing as refusal:  # the archive refuses: the rest are left, not asked in turn
+            answers[line] = spared = Refused(f"{type(refusal).__name__}: {refusal}")
         except (OSError, HTTPException, ValueError) as refusal:  # the network's or the answer's
             answers[line] = Refused(f"{type(refusal).__name__}: {refusal}")
     return answers

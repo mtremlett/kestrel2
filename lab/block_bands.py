@@ -4,6 +4,7 @@ kept apart from `lab.blocks` (which has no room), each written once over the des
 
 from __future__ import annotations
 
+from collections import deque
 from decimal import Decimal
 
 from desk.store import Bar
@@ -93,3 +94,35 @@ class CloseUnderEma(Block):
         """Shown the next bar: whether the block fires."""
         trail: Decimal | None = self._trail.add(bar.close)
         return trail is not None and bar.close < trail
+
+
+class TrendTemplate(Block):
+    """Fires while Minervini's Trend Template holds, this bar's included: the close over the
+    150- and 200-day averages, the 150 over the 200, the 200 higher than 21 sessions before,
+    the 50 over both, the close over the 50, 30% over the 252-session low and within 25% of
+    its high. Not before the year and the month's averages are seen."""
+
+    def __init__(self) -> None:
+        self._avg = {n: _Window(n) for n in (50, 150, 200)}
+        self._high, self._low = _Window(252), _Window(252)
+        self._slow: deque[Decimal] = deque(maxlen=22)
+
+    def see(self, bar: Bar, holding: bool) -> bool:  # noqa: ARG002 - the one interface of every block
+        """Shown the next bar: whether the block fires."""
+        for window in self._avg.values():
+            window.add(bar.close)
+        if self._avg[200].full:
+            self._slow.append(self._avg[200].mean())
+        self._high.add(bar.high)
+        self._low.add(bar.low)
+        if not (self._high.full and len(self._slow) == self._slow.maxlen):
+            return False
+        fifty, mid, slow = (self._avg[n].mean() for n in (50, 150, 200))
+        return (
+            bar.close > mid > slow
+            and fifty > mid
+            and bar.close > fifty
+            and slow > self._slow[0]
+            and bar.close >= Decimal("1.30") * self._low.low()
+            and bar.close >= Decimal("0.75") * self._high.high()
+        )

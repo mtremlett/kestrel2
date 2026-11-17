@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
 import pytest
 
-from desk import archive, history, keeper, paper, venues
+from desk import archive, history, keeper, listing, paper, venues
 from desk.lines import LINES, Line
 from desk.store import Answer, Bar, Refused
 
@@ -74,3 +75,41 @@ def test_the_broker_is_asked_only_for_lines_the_archive_is_short_of_and_a_closed
     nothing = history.daily(NOW)([UK], MON)  # no gateway here: dial refuses
     refusal = nothing[UK]
     assert isinstance(refusal, Refused) and "not asked" in refusal.reason
+
+
+def test_the_brokers_pence_reach_the_keeper_in_pounds_and_a_dollar_line_is_not_scaled(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    isf, aapl = Line("ISF", "LSE", "GBP", 1), Line("AAPL", "US", "USD", 1)
+    pence = Bar(MON, Decimal("1048.2"), Decimal("1050"), Decimal("1040"), Decimal("1048.2"), 9)
+    dollars = Bar(MON, Decimal("200"), Decimal("201"), Decimal("199"), Decimal("200"), 9)
+    monkeypatch.setattr(history, "gather", lambda *_: {isf: [pence], aapl: [dollars]})
+
+    def listed(*_: object) -> dict[str, listing.Listing | listing.Unlisted]:
+        steps = ((Decimal(0), Decimal("0.01")),)
+        return {
+            "ISF": listing.Listing(isf, "1", "LSE", 100, steps),
+            "AAPL": listing.Unlisted(aapl, "none"),
+        }
+
+    monkeypatch.setattr(listing, "kept", listed)
+    got = history.daily(NOW, home=tmp_path)([isf, aapl], TUE)
+    assert got[isf] == [
+        replace(
+            pence,
+            open=Decimal("10.482"),
+            high=Decimal("10.50"),
+            low=Decimal("10.40"),
+            close=Decimal("10.482"),
+        )
+    ]
+    assert got[aapl] == Refused("none")
+    both = {aapl: [dollars]}
+    monkeypatch.setattr(
+        listing,
+        "kept",
+        lambda *_: {
+            "AAPL": listing.Listing(aapl, "2", "SMART", 1, ((Decimal(0), Decimal("0.01")),))
+        },
+    )
+    assert history.priced(tmp_path, NOW, both, paper.Door(1)) == both
