@@ -97,6 +97,15 @@ class Broker(Protocol):
         kill switch leaves nothing held unprotected. No one else's order is touched."""
 
 
+class Restopping(Broker, Protocol):
+    """A broker that can move the stop resting on a line, as the day's step asks."""
+
+    def restop(self, symbol: str, level: Decimal) -> None:
+        """Move the line's one resting stop to level (the line's currency), for all the shares
+        held: the new one rests before the old is taken off, so the line is never bare. A line
+        with no stop resting is an error raised; one already at that level is left as it is."""
+
+
 @dataclass(frozen=True)
 class _Stop:
     order_id: str  #: the stop's own id: the order that set it, with "-stop"
@@ -192,6 +201,14 @@ class Pretend:
         if quantity == 0:
             raise ValueError(f"{symbol}: a position of no shares injected")
         self._held[symbol] = self._held.get(symbol, 0) + quantity
+
+    def restop(self, symbol: str, level: Decimal) -> None:
+        """Move the line's resting stop to level, its shares as they are; the day's range so
+        far can reach the new level, as it can reach a new stop (_execute)."""
+        if symbol not in self._stops:
+            raise ValueError(f"{symbol}: no stop rests to be moved")
+        self._stops[symbol] = replace(self._stops[symbol], level=level)
+        self._test(symbol, self._bars.get((symbol, self._day)) if self._day else None)
 
     def cancel_stop(self, symbol: str) -> None:
         """A resting stop cancelled behind the desk's back, as if by hand."""
