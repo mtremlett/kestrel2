@@ -93,6 +93,19 @@ def test_a_stop_sells_at_its_level_or_a_gapped_open_even_on_the_day_of_its_buy()
         broker.cancel_stop("A")
 
 
+def test_a_lost_stop_is_put_back_at_its_level_for_the_shares_held() -> None:
+    broker = _broker(None, _order("o-1", A, 10, "45"))
+    broker.cancel_stop("A")
+    broker.put_stop_back("A", Decimal(45))
+    assert broker.resting_stops() == {"A": (10, Decimal(45))}
+    with pytest.raises(ValueError, match="A: a stop already rests"):
+        broker.put_stop_back("A", Decimal(44))
+    with pytest.raises(ValueError, match="B: no shares held"):
+        broker.put_stop_back("B", Decimal(15))
+    broker.open(TUE)  #: the put-back stop works: Tuesday falls through 45
+    assert broker.holdings() == () and broker.fills()[-1].price == Decimal(45)
+
+
 def test_a_sale_fills_at_the_open_and_takes_its_shares_off_the_lines_stop() -> None:
     broker = _broker({"A": Fault.PARTIAL}, _order("o-1", B, 3, "15"), _order("o-2", A, 20))
     (fill,) = broker.place(Sale("s-1", A, 4)).fills  #: the fault was the buy's: half of 20

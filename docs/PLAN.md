@@ -443,10 +443,10 @@ day's trading and reconciliation are built, and any broker can stand behind them
       once (found by SimCity: 98 sessions held with no stop). First step done in #191 (the desk keeps
       every stop's level; a lost stop is on the day's list with stop, shares, level); remains: the
       put-back itself (a way to rest a stop at a level in `desk/broker.py`; `running.recover` on paper),
-      the list reaching him (R-MONEY-18); the SimCity census is split (#590). The put-back on paper is on main (#657, running.recover) and the day's list names each bare line (#191); remains: the list reaching him (desk/messenger.py, R-MONEY-18, -31) and a put-back door on Pretend (desk/broker.py), claim widened to both (R-MONEY-51, #722)
+      the list reaching him (R-MONEY-18); the SimCity census is split (#590). The put-back on paper is on main (#657, running.recover) and the day's list names each bare line (#191); remains: nothing of MONEY's (the Pretend put-back door, `put_stop_back`, is on main; the list reaching him is PAPER's, R-RUNNER-291, which owns desk/messenger.py)
       {id: money-restop; files: desk/day.py, desk/book.py, tests/unit/test_day*.py,
       tests/unit/test_book*.py, desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml,
-      desk/messenger.py, tests/unit/test_messenger*.py, desk/broker.py, tests/unit/test_broker*.py;
+      desk/broker.py, tests/unit/test_broker*.py;
       after: money-working}
 - [x] Emergencies in numbers: an emergency, a crash and a black swan each defined by measured
       falls, each with its action (EMG-01) {id: money-emergencies; files: desk/emergency.py,
