@@ -9,11 +9,12 @@ from __future__ import annotations
 
 import time
 from collections.abc import Callable, Collection, Sequence
-from datetime import date, datetime
-from typing import BinaryIO
+from datetime import UTC, date, datetime
+from typing import BinaryIO, cast
 
 from desk import conformance, paper, venues
 from desk.lines import Line
+from desk.rollup import Candle
 from desk.store import Answer, Bar, Refused
 
 CLIENT = 225  #: the history reader's own client id at the gateway (never 222 or 223)
@@ -31,6 +32,11 @@ SIZES = {
 }  # fmt: skip
 
 
+#: What an ask gives: a day's bars for the daily and weekly, candles (with their time) for the rest.
+Got = Answer | tuple[Candle, ...]
+DAILY = ("1d", "1wk")
+
+
 class Busy(Exception):
     """A desk round runs: the broker's history is not asked, and nothing was sent."""
 
@@ -41,14 +47,28 @@ Wait = Callable[[float], object]  #: what lets time pass between asks
 def request(line: Line, day: date, since: date, timeframe: str = "1d") -> bytes:
     """The ask for a line's daily bars from since to the end of the day before day (every bar
     of a session still open, or not yet begun, is left out), of the trades, in the line's
-    own currency, in the bars of the timeframe (daily unless said). A year or more is asked in
+    own currency, in the bars of the timeframe (daily unless said), their times as epoch seconds
+    for an intraday one. A year or more is asked in
     whole years. A timeframe the database does not keep is a KeyError."""
     span = (day - since).days
     length = f"{span} D" if span <= 365 else f"{span // 365 + 1} Y"
     end = f"{day:%Y%m%d} 00:00:00 UTC"
     contract = (0, line.symbol, "STK", "", 0, "", "", "SMART", PRIMARY[line.venue], line.currency)
     return paper.message(
-        ASK, ID, *contract, "", "", 0, end, SIZES[timeframe], length, 1, "TRADES", 1, 0, ""
+        ASK,
+        ID,
+        *contract,
+        "",
+        "",
+        0,
+        end,
+        SIZES[timeframe],
+        length,
+        1,
+        "TRADES",
+        1 if timeframe in DAILY else 2,
+        0,
+        "",
     )
 
 
@@ -71,16 +91,34 @@ def _bars(fields: list[str], day: date, since: date) -> tuple[Bar, ...]:
     return tuple(found)
 
 
+def _candles(fields: list[str], day: date, since: date) -> tuple[Candle, ...]:
+    """The candles of an intraday answer, each time in epoch seconds, from since and before day;
+    each is named for its source, ibkr."""
+    body = fields[5:]
+    if len(fields) < 5 or not fields[4].isdigit() or len(body) != int(fields[4]) * WIDTH:
+        raise ValueError(f"the broker's bars of a shape the desk does not read: {fields}")
+    found = []
+    for at in range(0, len(body), WIDTH):
+        stamp, *given, volume = body[at : at + 6]
+        if not stamp.isdigit():
+            raise ValueError(f"a bar time that is no epoch seconds ({stamp}): {fields}")
+        start = datetime.fromtimestamp(int(stamp), UTC)
+        if since <= start.date() < day:
+            o, h, low, c = (paper.number(p, fields) for p in given)
+            found.append(Candle(start, o, h, low, c, int(volume), "ibkr"))
+    return tuple(found)
+
+
 def ask(
     wire: BinaryIO, send: paper.Send, line: Line, day: date, since: date, timeframe: str = "1d"
-) -> Answer:
+) -> Got:
     """One line's bars of a timeframe (daily unless said) over an open conversation, or the
     broker's words for refusing."""
     send(request(line, day, since, timeframe))
     while True:
         fields = paper.receive(wire)
         if fields[0] == BARS and fields[1] == str(ID):
-            return _bars(fields, day, since)
+            return (_bars if timeframe in DAILY else _candles)(fields, day, since)
         if fields[0] == NEWS and fields[2] == str(ID):
             return Refused(f"the broker's {fields[3]}: {fields[4]}")
         paper.other(fields)  # news of the feeds is let by; any other stops the read
@@ -107,7 +145,7 @@ def gather(
         for line in lines:
             if answers:
                 wait(PACING)
-            answers[line] = ask(wire, send, line, day, since)
+            answers[line] = cast(Answer, ask(wire, send, line, day, since))  # daily asks give bars
         return answers
 
     return paper.dial(talk)
@@ -124,8 +162,8 @@ def plan(lines: Sequence[Line], done: Collection[Ask]) -> list[Ask]:
 
 def pull(
     asks: Sequence[Ask],
-    fetch: Callable[[Line, str], Answer],
-    keep: Callable[[Line, str, Answer], object],
+    fetch: Callable[[Line, str], Got],
+    keep: Callable[[Line, str, Got], object],
     wait: Wait = time.sleep,
     limit: int | None = None,
 ) -> int:
@@ -145,7 +183,7 @@ def pull(
 
 def run(
     asks: Sequence[Ask],
-    keep: Callable[[Line, str, Answer], object],
+    keep: Callable[[Line, str, Got], object],
     day: date,
     since: date,
     now: datetime,
@@ -161,7 +199,7 @@ def run(
     def talk(wire: BinaryIO, send: paper.Send) -> int:
         paper.start(wire, send)
 
-        def fetch(line: Line, frame: str) -> Answer:
+        def fetch(line: Line, frame: str) -> Got:
             return ask(wire, send, line, day, since, frame)
 
         return pull(asks, fetch, keep, wait, limit)

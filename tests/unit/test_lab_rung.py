@@ -133,6 +133,8 @@ def test_a_trade_is_sized_at_its_close_filled_at_the_next_open_and_stopped_by_th
     assert (_judge(bars, 23).answer, _judge(bars, 23).t) == (Answer.FAULT, None)
     assert (_judge(bars, 24).answer, _judge(bars, 24).t) == (Answer.THIN, None), "one trade"
     assert _judge(bars, 24).broker == BROKER
+    cell_key = cell.key(Cell("breakout_20_10", VUSA, bars[0].day, bars[24].day), bars)
+    assert _judge(bars, 24).key == cell_key.rung("lab.rung") != cell_key, "stamped by this rung"
 
 
 def test_a_planted_edge_passes_and_a_planted_non_edge_does_not() -> None:
