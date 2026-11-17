@@ -71,8 +71,36 @@ def _trend_template(p: Prices, params: Params) -> Bools:  # noqa: ARG001 - no se
     return out
 
 
+def _sequential(p: Prices) -> tuple[Bools, Bools]:
+    """TD Sequential on whole numbers, as `lab.block_demark` keeps it: the bars that are a
+    countdown's thirteenth, and those that end nine closes in a row over the close four back."""
+    close, low = p.close.tolist(), p.low.tolist()
+    bought, sells = np.zeros(len(close), dtype=np.bool_), np.zeros(len(close), dtype=np.bool_)
+    down = up = 0
+    count: int | None = None
+    for n in range(len(close)):
+        if n >= 4:
+            down = down + 1 if close[n] < close[n - 4] else 0
+            up = up + 1 if close[n] > close[n - 4] else 0
+        sells[n] = up == 9
+        if sells[n]:
+            count = None
+        elif down == 9:
+            count = 0
+        elif count is not None and n >= 2 and close[n] <= low[n - 2]:
+            count += 1
+        bought[n] = count == 13
+        count = None if bought[n] else count
+    return bought, sells
+
+
 #: Every block of the fast engine that reads prices alone, by name.
-FIRES: Mapping[str, Fire] = {**_PARTS, "trend_template": _trend_template}
+FIRES: Mapping[str, Fire] = {
+    **_PARTS,
+    "trend_template": _trend_template,
+    "demark_countdown": lambda p, params: _sequential(p)[0],  # noqa: ARG005 - no settings
+    "demark_sell_setup": lambda p, params: _sequential(p)[1],  # noqa: ARG005 - no settings
+}
 
 
 def _highest_high_on_volume(p: Prices, volumes: Floats, params: Params) -> Bools:

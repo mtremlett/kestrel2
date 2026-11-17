@@ -26,6 +26,7 @@ from lab.block_bands import (
     TrendTemplate,
 )
 from lab.block_base import Block, Kind, Param, Spot
+from lab.block_demark import DemarkCountdown, DemarkSellSetup
 from lab.block_months import (
     MonthEndNotOverAgo,
     MonthEndNotOverAverage,
@@ -359,4 +360,6 @@ BLOCKS: Mapping[str, Spot] = {
     "close_under_ema": Spot(Kind.EXIT, CloseUnderEma, {"n": _DAYS}),
     "no_filter": Spot(Kind.FILTER, Always, {}),
     "trend_template": Spot(Kind.FILTER, TrendTemplate, {}),
+    "demark_countdown": Spot(Kind.ENTRY, DemarkCountdown, {}),
+    "demark_sell_setup": Spot(Kind.EXIT, DemarkSellSetup, {}),
 }
