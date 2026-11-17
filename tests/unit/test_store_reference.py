@@ -47,4 +47,4 @@ def test_the_archive_is_asked_back_to_the_first_session_only_when_told_to() -> N
         return int(parse_qs(urlparse(address).query)["period1"][0])
 
     assert starts(archive.address(line, day, archive.REFERENCE_SINCE)) == 728_265_600
-    assert starts(archive.address(line, day)) == 1_262_304_000  # 1 January 2010
+    assert starts(archive.address(line, day)) == 946_684_800  # 1 January 2000

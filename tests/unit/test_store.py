@@ -340,6 +340,18 @@ def test_a_step_as_large_as_the_pound_is_a_currency_only_if_it_lasts(
     assert _prepared(tmp_path, bars, replace(US, leverage=3)) == []  # a real crash is as large
 
 
+def test_untraded_bars_in_another_unit_give_way_to_the_traded_bars(tmp_path: Path) -> None:
+    """SGLN, April to October 2011: flat bars of no volume at the pound's price in dollars, then
+    the traded pound bars; no trade states no price, so the traded ones stand (R-RUNNER-274)."""
+    clean = _bars(US, LONG)
+    filler = tuple(
+        _scaled(Bar(b.day, b.close, b.close, b.close, b.close, 0), POUND) for b in clean[:10]
+    )
+    assert _prepared(tmp_path, (*filler, *clean[10:]), US) == []
+    assert store.read(tmp_path, US.symbol) == clean[10:]
+    assert sum("no volume" in f for f in store.faults(tmp_path, US.symbol)) == 10
+
+
 def test_a_leveraged_crash_as_large_as_the_pound_is_kept_not_taken_for_dollars(
     tmp_path: Path,
 ) -> None:

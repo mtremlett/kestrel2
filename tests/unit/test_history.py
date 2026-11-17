@@ -26,6 +26,7 @@ AAPL = next(line for line in LINES if line.symbol == "AAPL")
 #: last of them 13 November), the dates in its own form; the session of 16 November was open.
 TAPE = "17|9001|20261106 01:00:00 MET|20261116 01:00:00 MET|3|20261112|110.7000|111.8400|110.2600|111.7800|36161|110.994|166|20261113|111.1200|111.6600|109.7400|110.2600|53638|110.947|161|20261116|110.5800|110.7600|109.5000|109.9400|32660|110.343|158"  # noqa: E501
 NONE = "4|2|9001|200|No security definition has been found for the request"
+EMPTY = "17|9001|20261106 01:00:00 MET|20261116 01:00:00 MET|0"
 FEEDS = ("4|2|-1|2104|Market data farm connection is OK:eufarm", "9|1|7", "15|1|DU0000001")
 DAY, SINCE = date(2026, 11, 16), date(2026, 11, 6)
 MONDAY_NOON = datetime(2026, 11, 16, 12, 0, tzinfo=UTC)
@@ -122,7 +123,7 @@ def test_a_run_asks_each_timeframe_over_one_conversation_and_not_in_a_round(
 ) -> None:
     kept: dict[history.Ask, object] = {}
     sent: list[bytes] = []
-    wire = conversation(TAPE, NONE)
+    wire = conversation(TAPE, EMPTY, NONE)
     monkeypatch.setattr(paper, "dial", lambda talk: talk(wire, sent.append))
     asks = [(VUAG, "1d"), (VUAG, "1wk")]
     keep = lambda line, frame, got: kept.update({(line, frame): got})  # noqa: E731
@@ -130,6 +131,8 @@ def test_a_run_asks_each_timeframe_over_one_conversation_and_not_in_a_round(
     assert (
         history.REACH.keys() == history.SIZES.keys() and "\0" + "365 D" + "\0" in sent[-1].decode()
     )
+    first_page = kept[(VUAG, "1d")]
+    assert isinstance(first_page, tuple) and len(first_page) == 2  # the second page was empty
     assert isinstance(kept[(VUAG, "1wk")], Refused) and "\0" + "1 week" + "\0" in sent[-1].decode()
     stamp = int(datetime(2026, 11, 12, 9, 30, tzinfo=UTC).timestamp())
     timed = conversation(TAPE.replace("20261112", str(stamp)))
@@ -176,3 +179,18 @@ def test_a_pull_and_a_live_round_in_one_process_each_start_as_their_own_client(
         for n in ("history", "live")
     ]
     assert not any(re.search(r"paper\.(CLIENT|APART)\s*=", text) for text in modules)
+
+
+def test_a_walk_back_pages_before_each_page_until_one_is_empty(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sent: list[bytes] = []
+    waits: list[float] = []
+    wire = conversation(TAPE, TAPE.replace("202611", "202501"), EMPTY)
+    monkeypatch.setattr(paper, "dial", lambda talk: talk(wire, sent.append))
+    kept: list[object] = []
+    keep = lambda _l, _f, got: kept.append(got)  # noqa: E731
+    assert history.run([(VUAG, "1d")], keep, DAY, MONDAY_NOON, waits.append) == 1
+    ends = [re.search(r"\d{8} 00:00:00 UTC", m.decode()) for m in sent if b"UTC" in m]
+    assert [e.group()[:8] if e else "" for e in ends] == ["20261116", "20251116", "20241116"]
+    assert waits == [history.PACING] * 2 and len(kept[0]) == 5  # type: ignore[arg-type]
