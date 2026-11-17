@@ -50,7 +50,7 @@ def test_a_day_the_archive_lacks_is_filled_from_the_broker_else_the_line_parks_n
     assert [keeper.main(given, NOW, [], _broker) for _ in range(3)][-1] == 0  # ROOM lines a call
     held, parked = keeper.saved(given, TUE, [one])
     assert held[one] == _bars(one, TUE) and not parked
-    assert keeper.main(bare, NOW, [], history.daily(NOW)) == 1  # no broker answer: as before
+    assert keeper.main(bare, NOW, [], history.daily(NOW, bare)) == 1  # no broker answer: as before
     assert keeper.saved(bare, TUE, [one])[1] == {one.symbol}  # parked, and the line is named
 
 
@@ -89,7 +89,7 @@ def test_ibkr_is_asked_first_for_every_line_its_bar_stands_and_each_newest_bar_i
         assert parked or held[UK][-1] == _bars(UK, TUE)[-1], n  # the broker's last bar stands
     assert asked == [[UK]] * 3  # every line asked, though the archive lacked nothing in the first
     monkeypatch.setattr(paper, "dial", _no_gateway)
-    refusal = history.daily(NOW)([UK], MON)[UK]  # no gateway here: dial refuses
+    refusal = history.daily(NOW, tmp_path)([UK], MON)[UK]  # no gateway here: dial refuses
     assert isinstance(refusal, Refused) and "not asked" in refusal.reason
 
 
