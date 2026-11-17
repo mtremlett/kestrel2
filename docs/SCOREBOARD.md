@@ -427,6 +427,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #449 R-RUNNER-112: the duplicated bars reader is one home (`reader` in `lab/sweep.py`) |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #618 `batch.stored` reads each line through `universe.read` as research does (R-DATA-7, step); R-DATA-10 confirmed done |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #626 no change: R-DATA-10 already on main (#391) |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #766 R-RUNNER-285 soak folded into the tape (restructuring only). |
 
 ### RUNGS
 
