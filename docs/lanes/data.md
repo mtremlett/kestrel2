@@ -726,3 +726,24 @@ call (taken; `Kept.unasked`). (3) With no broker passed (tests only) the run lin
 `store.py` (taken). (2) The factor (PENCE) applies only on evidence (5 or more shared sessions, all alike), never by
 venue. (3) The shelf file stays as shelved; the store re-judges it on every prepare through the one writer.
 
+### 2026-11-17 — keeper round first; `home` stays optional until PAPER passes it (#759, #769, R-DATA-49)
+
+(1) Make `history.daily`'s `home` required now: turns PAPER's `desk/command.py` red. (2) Leave it optional for ever.
+(3) Optional for now, ask PAPER to pass `home` (R-DATA-52), then tighten (taken: the only one that keeps main green and the lane wall).
+
+### 2026-11-17 — 1h, 4h, 1wk rolled to the store's UTC marks (#760, R-RUNNER-216)
+
+(1) Align rolled bars to the store's UTC marks, because the writer refuses off-mark bars (#739) (taken); a US first hour
+(14:30) rolls into the 14:00 UTC hour with its one half hour. Re-aligning the writer is bigger and guard-adjacent.
+(2) Base: 30m for 1h and 4h, daily for 1wk. A pulled bar always wins over a rolled one.
+
+### 2026-11-17 — one-minute bars reuse `paper._five` with a placeholder start (#757, R-RUNNER-290)
+
+`paper.py` is outside the claim, so `_five` is reused with a five-minute-mark start (only price and volume judged) rather
+than given a span parameter. The cleaner end state, splitting `_five` in `paper.py`, is left as an optional tidy.
+
+### 2026-11-17 — the unit rule needs 95% of shared days (#768, R-RUNNER-307)
+
+UNIT_SHARE options: 0.9, 0.95, 0.99. Taken 0.95 (the request's wording; IB1T's 250 of 255 = 98% clears it). Days still
+apart are named faults with the upper source's bar standing and do not park the line; the upper source (broker first,
+then archive) still decides the unit.
