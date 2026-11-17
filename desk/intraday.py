@@ -8,7 +8,7 @@ agree bar for bar (the parity test), and no rule here trades until it passes the
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterator, Sequence
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
@@ -97,3 +97,23 @@ def latest(
     """The desk's step at the last bar: a fresh rule worked up the bars to it, the position
     on that bar read from the book (`held`), not from the rule."""
     return [*run(name, make(), venue, symbol, bars, held)][-1]
+
+
+#: The intraday rules the desk may trade: none, until one passes the ladder.
+RULES: Mapping[str, Callable[[], IntradayRule]] = {}
+
+
+def today(
+    venue: str,
+    bars: Mapping[str, Sequence[Candle]],
+    held: Mapping[str, str],
+    rules: Mapping[str, Callable[[], IntradayRule]] = RULES,
+) -> tuple[IntradayDecision, ...]:
+    """Every rule's decision at each line's last bar, as `strategy.today` does for the day:
+    the position read from `held` (line to the rule holding it), a line with no bars skipped."""
+    return tuple(
+        latest(name, make, venue, symbol, series, held.get(symbol) == name)
+        for symbol, series in bars.items()
+        if series
+        for name, make in rules.items()
+    )
