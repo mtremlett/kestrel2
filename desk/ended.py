@@ -9,11 +9,11 @@ from typing import BinaryIO
 from desk import paper, placing, reports
 
 
-def cancelled(wire: BinaryIO, send: paper.Send) -> dict[str, str]:
+def cancelled(wire: BinaryIO, send: paper.Send, door: paper.Door) -> dict[str, str]:
     """Ask over an open connection for the day's ended orders, read-only, and give each that
     was cancelled by the order id it was placed under, with the broker's own words of why it
     ended: the last field of the list's entry for it ("Cancelled by Trader")."""
-    paper.start(wire, send)
+    paper.start(wire, send, door)
     send(paper.message(reports.ASK_ENDED, 0))
     said: dict[str, str] = {}
     while True:
@@ -28,9 +28,9 @@ def cancelled(wire: BinaryIO, send: paper.Send) -> dict[str, str]:
             said[fields[22]] = fields[95]
 
 
-def reasons() -> dict[str, str]:
+def reasons(door: paper.Door) -> dict[str, str]:
     """Every order cancelled on the account today, with the broker's words of why."""
-    return paper.dial(cancelled)
+    return paper.dial(lambda wire, send: cancelled(wire, send, door))
 
 
 def action(said: str, ended: str) -> str:

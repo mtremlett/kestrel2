@@ -35,7 +35,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from functools import partial
@@ -125,6 +125,7 @@ def _desk(root: Path, post: messenger.Post, home: Path) -> Desk:
         partial(rates, root),
         home / keeper.HOT,
         partial(keeper.saved, home),
+        paper.Door(paper.DESK),
     )
 
 
@@ -133,8 +134,8 @@ def _phone(env: Mapping[str, str]) -> str:
     return "its key is set"
 
 
-def _knock(now: datetime) -> str:
-    if not (known := gateway.known(now)):
+def _knock(now: datetime, door: paper.Door) -> str:
+    if not (known := gateway.known(now, door=door)):
         raise ConnectionError(known.words)
     return "it answered"
 
@@ -146,8 +147,8 @@ def _switch(root: Path, now: datetime) -> str:
     return "off, and drilled today"
 
 
-def _account(root: Path, now: datetime) -> str:
-    if found := clearance.check(root, now).found:
+def _account(root: Path, now: datetime, door: paper.Door) -> str:
+    if found := clearance.check(root, now, door).found:
         raise ValueError(f"it is not the desk's book: {'; '.join(found)}")
     return "it is the desk's book"
 
@@ -181,9 +182,9 @@ def preflight(desk: Desk, env: Mapping[str, str], now: datetime) -> tuple[bool, 
     today, root = now.date(), desk.root
     probes: tuple[tuple[str, Callable[[], object]], ...] = (
         ("his phone", lambda: _phone(env)),
-        ("the Gateway", lambda: _knock(now)),
+        ("the Gateway", lambda: _knock(now, desk.door)),
         ("the kill switch", lambda: _switch(root, now)),
-        ("the paper account", lambda: _account(root, now)),
+        ("the paper account", lambda: _account(root, now, desk.door)),
         ("prices", lambda: _prices(desk, today)),
         ("the pound", lambda: _pound(desk, today)),
         ("halts", lambda: halt.said(root, today) or "none in force"),
@@ -233,7 +234,7 @@ def _amiss(desk: Desk, on: date, left: Sequence[str], changes: Sequence[str]) ->
 @dataclass(frozen=True)
 class Found(paper.Apart):
     """THE ACCOUNT AS THE REHEARSAL FOUND IT: its held lines and working orders are the
-    account's, so the rehearsal's steps do not see them and cannot touch them (paper.APART)."""
+    account's, so the rehearsal's steps do not see them and cannot touch them (a Door's apart)."""
 
     orders: frozenset[str] = frozenset()  #: the broker's ids of the orders found working
 
@@ -301,7 +302,7 @@ def rehearse(
     that finds one so stops at once. A step that fails is counted and the next carries on; then
     the desk's own orders still working are
     cancelled and the account is read again, whatever happened."""
-    today, before = now.date(), paper.whole()
+    today, before = now.date(), paper.whole(paper.Door(paper.DESK))
     trading = _trading(now)
     barred = (
         f"{' and '.join(trading)} trade now, soon or just ended, and an order it sent could fill"
@@ -317,19 +318,16 @@ def rehearse(
         said.append(text)
         return len(said)
 
-    desk = _desk(root / REHEARSALS / f"{now:%Y%m%dT%H%M%S}", post, root.parent)
     moments = _moments(on)
     found = Found(
         frozenset(h.name for h in before.holdings if h.shares),
         frozenset(o.broker_id for o in before.orders),
     )
-    paper.APART = found  #: until the run ends, the account is the rehearsal's own alone
-    try:
-        failed = _live(desk, moments, clock)
-        left = placing.Paper(listing.read(LINES), desk.root, lambda: now).cancel()
-    finally:
-        paper.APART = None
-    if wrong := _amiss(desk, on, left, found.changes(before, paper.whole())):
+    door = paper.Door(paper.DESK, found)  #: the account found is not the rehearsal's to see
+    desk = replace(_desk(root / REHEARSALS / f"{now:%Y%m%dT%H%M%S}", post, root.parent), door=door)
+    failed = _live(desk, moments, clock)
+    left = placing.Paper(listing.read(LINES, door), desk.root, lambda: now, door).cancel()
+    if wrong := _amiss(desk, on, left, found.changes(before, paper.whole(door))):
         steps = f"; steps that failed: {', '.join(failed)}" * bool(failed)
         return False, f"REHEARSAL NO-GO: {'; '.join(wrong)}{steps}"
     words = " ".join(note.words for note in running.notes(desk.root))

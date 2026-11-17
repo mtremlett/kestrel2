@@ -7,7 +7,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 from desk.store import Bar
-from desk.strategy import ZERO, _Window, lower_band
+from desk.strategy import ZERO, _Exponential, _Window, lower_band
 from lab.block_base import Block
 
 
@@ -48,3 +48,28 @@ class PercentBUnderRun(_PercentB):
         b = self.percent_b(bar)
         self._days = self._days + 1 if b is not None and b < self._pct else 0
         return self._days >= self._run
+
+
+class CloseOverEmas(Block):
+    """Fires on a close over both the `n`-bar and the `slow`-bar exponential average of the
+    close, this bar's included; not before both are seeded."""
+
+    def __init__(self, n: int, slow: int) -> None:
+        self._fast, self._slow = _Exponential(n), _Exponential(slow)
+
+    def see(self, bar: Bar, holding: bool) -> bool:  # noqa: ARG002 - the one interface of every block
+        """Shown the next bar: whether the block fires."""
+        fast, slow = self._fast.add(bar.close), self._slow.add(bar.close)
+        return fast is not None and slow is not None and bar.close > max(fast, slow)
+
+
+class CloseUnderEma(Block):
+    """Fires on a close under its `n`-bar exponential average, this bar's included."""
+
+    def __init__(self, n: int) -> None:
+        self._trail = _Exponential(n)
+
+    def see(self, bar: Bar, holding: bool) -> bool:  # noqa: ARG002 - the one interface of every block
+        """Shown the next bar: whether the block fires."""
+        trail: Decimal | None = self._trail.add(bar.close)
+        return trail is not None and bar.close < trail

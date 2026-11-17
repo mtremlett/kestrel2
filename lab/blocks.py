@@ -18,7 +18,7 @@ from functools import partial
 from desk.eponymous_clenow_momentum import YEAR
 from desk.store import Bar
 from desk.strategy import ZERO, _Wilder, _Window, rsi
-from lab.block_bands import PercentBOver, PercentBUnderRun
+from lab.block_bands import CloseOverEmas, CloseUnderEma, PercentBOver, PercentBUnderRun
 from lab.block_base import Block, Kind, Param, Spot
 from lab.block_months import MonthEndNotOverAverage, MonthEndOverAverage
 
@@ -385,5 +385,7 @@ BLOCKS: Mapping[str, Spot] = {
     "no_exit": Spot(Kind.EXIT, Never, {}),
     "no_stop": Spot(Kind.STOP, Never, {}),
     "close_above_average": Spot(Kind.FILTER, CloseAboveAverage, {"n": _DAYS}),
+    "close_over_emas": Spot(Kind.FILTER, CloseOverEmas, {"n": _DAYS, "slow": _DAYS}),
+    "close_under_ema": Spot(Kind.EXIT, CloseUnderEma, {"n": _DAYS}),
     "no_filter": Spot(Kind.FILTER, Always, {}),
 }

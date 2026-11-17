@@ -233,7 +233,7 @@ def test_the_door_dials_the_paper_port_on_this_machine_and_no_other(
         return nullcontext(link)
 
     monkeypatch.setattr(socket, "create_connection", dial)
-    assert paper.read() == Account((SMGB,), ())
+    assert paper.read(paper.Door(paper.DESK)) == Account((SMGB,), ())
     assert dialled == [("127.0.0.1", 4002), paper.SECONDS] and len(sent) == 3
 
 
@@ -304,10 +304,10 @@ def test_a_process_apart_from_the_desk_reads_the_account_less_the_desks_holdings
     desks, mine = (replace(AAPL_STOP, client=str(paper.DESK + n)) for n in (0, 1))
     account = Account((SMGB, replace(SMGB, symbol="XYZ")), (desks, mine))
     monkeypatch.setattr(paper, "dial", lambda _talk: account)
-    assert paper.read() == account  # every other process sees the whole
-    monkeypatch.setattr(paper, "APART", paper.Apart(frozenset({SMGB.name})))
-    assert paper.read() == Account((replace(SMGB, symbol="XYZ"),), (mine,))
-    assert paper.whole() == account
+    assert paper.read(paper.Door(paper.DESK)) == account  # every other door sees the whole
+    apart = paper.Door(paper.DESK + 1, paper.Apart(frozenset({SMGB.name})))
+    assert paper.read(apart) == Account((replace(SMGB, symbol="XYZ"),), (mine,))
+    assert paper.whole(apart) == account
 
 
 def test_the_newest_bars_are_asked_read_only_and_read_whole(

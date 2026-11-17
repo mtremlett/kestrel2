@@ -35,7 +35,7 @@ def test_a_run_whose_stop_was_cancelled_by_hand_is_refused_loudly_though_its_fil
 ) -> None:
     _world(monkeypatch)
     ended = {f"{ID.format(3)}-stop": "Cancelled by Trader"}
-    monkeypatch.setattr(conformance, "reasons", lambda: ended)
+    monkeypatch.setattr(conformance, "reasons", lambda _door: ended)
     assert _run(tmp_path, MON, "london") == 1
     assert "the stop triggered (THE TWO SIDES DID DIFFERENT THINGS)" in capsys.readouterr().out
 
