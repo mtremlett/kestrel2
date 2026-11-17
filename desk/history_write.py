@@ -9,7 +9,7 @@ from __future__ import annotations
 import os
 import sys
 from collections.abc import Callable, Iterable, Sequence
-from datetime import UTC, datetime, time, timedelta
+from datetime import UTC, datetime, time
 from pathlib import Path
 
 from desk import bars, history
@@ -20,7 +20,6 @@ from desk.spans import Five, Timed
 from desk.store import Bar
 
 Keep = Callable[[Line, str, Got], int]
-DEPTH = 365  #: days back a pull asks, for every timeframe (the broker's own depth per size: later)
 LIMIT = 50  #: asks in one run: at the pacing, inside the broker's 60 in ten minutes
 
 
@@ -77,7 +76,7 @@ def main(home: Path, now: datetime, wanted: Sequence[str]) -> int:
     asks = history.plan(LINES, held(path, LINES))
     day = now.date()
     try:
-        made = history.run(asks, keeper(path), day, day - timedelta(DEPTH), now, limit=limit)
+        made = history.run(asks, keeper(path), day, now, limit=limit)
     except history.Busy as busy:
         sys.stderr.write(f"{busy}\n")
         return 1
