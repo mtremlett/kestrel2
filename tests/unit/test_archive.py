@@ -257,7 +257,9 @@ def test_a_refusing_archive_is_backed_off_from_and_told_in_archive_json(
     monkeypatch.setenv("KESTREL2_DATA", str(tmp_path))
     waits: list[float] = []
     monkeypatch.setattr("time.sleep", waits.append)
-    turned = [HTTPError("u", 429, "slow", Message(), None), URLError("down")]
+    told = Message()
+    told["Retry-After"] = "9"
+    turned = [HTTPError("u", 429, "slow", told, None), URLError("down")]
 
     def once(_address: str) -> bytes:
         if turned:
@@ -268,7 +270,7 @@ def test_a_refusing_archive_is_backed_off_from_and_told_in_archive_json(
     state = tmp_path / "archive.json"
     assert archive._ask("x") == b"{}"  # noqa: SLF001
     assert json.loads(state.read_text("utf-8")) == {"refusing_since": None}
-    assert waits == [1.0, 5, 1.0, 30, 1.0]  # the pace before each ask, the back-off between
+    assert waits == [1.0, 9, 1.0, 30, 1.0]  # the pace, the back-off (or Retry-After) between
     monkeypatch.setattr(archive, "_once", _fail(URLError("down")))
     with pytest.raises(URLError):
         archive._ask("x")  # noqa: SLF001
