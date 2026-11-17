@@ -641,8 +641,8 @@ his PC with the desk's own client id (222), never 4001.
       Remains: the step is the first registered job (#490) and `python -m desk.supervisor tell` sends what health finds (#499). Still to do: Windows starting the supervisor and `tell` (outside the lane's files), the kill drill on the real step, seven days counted, the overnight-window question (the Gateway's 03:00 restart shows as bad receipts)
       {id: paper-supervised; files: desk/supervisor.py, tests/unit/test_supervisor.py,
       manifest.toml; after: paper-running; waits: operator}
-- [ ] The running process always on main's latest code, and a money-path change reaching
-      it only at a safe point, never mid-send (OPS-05, OPS-16)
+- [x] The running process always on main's latest code, and a money-path change reaching
+      it only at a safe point, never mid-send (OPS-05, OPS-16) (#752: the supervisor pulls main fast-forward only between runs with every job's lock held; a failed pull is a receipt and the old code runs on; remains: Windows starting the supervisor)
       {id: paper-on-main; files: desk/supervisor.py, tests/unit/test_supervisor.py}
 - [ ] The messages: a start-of-day card by 05:40; an end-of-day summary with the profit,
       the streak and the verdict; a line on every change of state and "the desk is not
