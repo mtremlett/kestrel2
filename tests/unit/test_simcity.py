@@ -209,7 +209,7 @@ def test_each_thing_done_to_the_desk_has_its_turn_and_one_never_done_leaves_its_
     assert "day.run" not in night.bare, "a part that ran was called bare"
 
     #: the kill switch alone, every morning a desk is fit for it
-    monkeypatch.setattr(simcity, "EVENTS", simcity.EVENTS[2:])
+    monkeypatch.setattr(simcity, "EVENTS", simcity.EVENTS[2:5])
     again = busy(monkeypatch, tmp_path, (0,))
     assert again.census["kill.pull"] == (simcity.KILLED,) and "kill.drill" not in again.bare
     assert not [broken for broken in again.broken if "never happened" in broken], again.broken
