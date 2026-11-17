@@ -310,6 +310,12 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #744 R-RUNNER-284: collector names a vendor's HTTP refusal and keeps what the others gave. |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #751 R-RUNNER-276: keeper asks IBKR first for every line, sources named, disagreement recorded not parked. |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #753 R-RUNNER-272: shelf unit fault put right in the one store; IB1T no longer parked on a 1/100 shelf. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #757 R-RUNNER-290: 1m bars parsed as one-minute bars.
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #759 R-DATA-49: keeper round first under half the call's time.
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #760 R-RUNNER-216 step: 1h, 4h, 1wk rolled locally as rollup:<from> (+~45 product lines).
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #768 R-RUNNER-307: unit rule on the 95% majority, IB1T no longer parked on archive bad days.
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #769 R-MONEY-28 confirmed built; R-DATA-49 waits on PAPER (no code).
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #770 R-PAPER-33: the pound asked of IBKR as a forex pair.
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
@@ -427,6 +433,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #449 R-RUNNER-112: the duplicated bars reader is one home (`reader` in `lab/sweep.py`) |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #618 `batch.stored` reads each line through `universe.read` as research does (R-DATA-7, step); R-DATA-10 confirmed done |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #626 no change: R-DATA-10 already on main (#391) |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #766 R-RUNNER-285 soak folded into the tape (restructuring only). |
 
 ### RUNGS
 
@@ -593,3 +600,5 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #737 R-RUNNER-205 step: market weather layer 2, realised volatility (not wired) |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #746 R-RUNNER-191 step: one home for the Sharpe a trade (no verdict changed) |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #742 R-RUNGS-27: basket answer wired to basket_answer, INCUBATE listed apart |
+| 2026-11-17 | 7 of 7 | - | +3 | - | 14 of 14 proven | green | #772 R-RUNNER-191 step: the three-band rule of t has one home, rung.band |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #773 R-MONEY-45 step: raschke_swing in the spec book (turtle_soup entry, under_entry_low stop) |

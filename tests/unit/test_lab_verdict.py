@@ -77,6 +77,7 @@ def test_nothing_goes_forward_while_a_rung_is_unrun_and_the_table_says_cells_bes
     passed = {"first": ["PASS", "passed"]}
     row = {"cell": ["breakout_20_10", "VUSA", "LSE"], "trials": 3, "answer": "PASS", "every": True}
     row |= {"rungs": passed, "unrun": {"regime": "the weather is not built"}}
+    row |= {"holding": "+1.00% strategy, +0.50% holding ISF, +0.50% difference"}
     assert not verdict.goes(row) and verdict.goes(row | {"unrun": {}})
     assert not verdict.goes({k: v for k, v in row.items() if k != "unrun"}), "unsaid is not none"
     table = verdict.write_table(
@@ -88,10 +89,16 @@ def test_nothing_goes_forward_while_a_rung_is_unrun_and_the_table_says_cells_bes
         and ": 0 of 1 lines go forward" in md
         and md.rstrip().endswith("| no |")
     )
+    assert "| holding |" in md and "+0.50% holding ISF, +0.50% difference |" in md
     assert "Does it earn? Cells: 1. Each is judged against 3 trials" in md
     data = json.loads(table.with_suffix(".json").read_text(encoding="utf-8"))
     assert (data["cells"], data["trials"], data["rules"][0]["passed"]) == (1, 3, False)
     assert (data["rungs_built"], data["rungs"]) == (7, 11)
+
+
+def test_every_judged_cell_says_what_simply_holding_its_market_made() -> None:
+    said = _judge()["holding"]
+    assert "% strategy, " in said and " holding ISF, " in said and said.endswith(" difference")
 
 
 def test_a_line_too_young_to_have_traded_is_too_young_and_no_fault() -> None:

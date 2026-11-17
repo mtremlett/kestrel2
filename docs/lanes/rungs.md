@@ -220,3 +220,6 @@ then the break was removed:
 - Weather volatility: thresholds are the median of the prior 252 values (options: fixed cut, percentile; the median needs no tuned number, so no trial spent). Trials so far: 1 volatility definition.
 - Sharpe a trade: wired no further rung, since none reads the first rung's verdict alone (options: wire dsr with a stub spread, refused as a default that masks missing data; merge the duplicate, taken).
 - Basket stress: a basket has no stress run of its own (options: (a) stress on pooled trades; (b) stand on its lines' stress). Chose (b), the recommended: any line's non-pass stress stops INCUBATE.
+
+### 2026-11-17 — raschke_swing as a spec row (R-MONEY-45, #773)
+- The stop block `under_entry_low` takes no settings and finds the buying bar from the position turning on (the previous bar's low), so it stays right whatever filter sits beside the entry. Options: a duplicate detector inside the stop (two homes for the 20/4) - declined.
