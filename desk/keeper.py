@@ -30,6 +30,10 @@ THE REFERENCE SERIES, once a day after the US close: `lines.REFERENCE` (SPY) and
 dollars (`lines.POUND`, read by `pound`), asked of the archive from their first session and kept
 apart from the traded lines; one the archive refuses is told, not a miss.
 
+THE LINES PARKED LIVE (`parked_live`), read from the fast store alone at any moment, so a line that
+comes clean is back at the next look: one whose venue has been open for LATE and holds no ended
+five-minute bar of the last LATE, or whose last LATE of bars has a fault (a move out of line).
+
 A call that left a venue with no line answered or clean is a miss: the command says so and
 ends with 1. One call asks the archive for SPENT seconds; a line not reached is refused."""
 
@@ -67,6 +71,7 @@ SETTLED = timedelta(minutes=30)
 #: closes are held, if the archive answers at the first call: the first call after SETTLED (every
 #: five minutes) and that call's four minutes. `target` turns to the next day at SETTLED itself.
 HELD = SETTLED + timedelta(minutes=5 + 4)
+LATE = timedelta(minutes=15)  #: a line's five-minute bars are late, and it is parked, after this
 TRIES = 6  #: the calls at which a line parked for a fault is asked again (half an hour)
 #: The seconds of one call in which the archive is still asked: the runner allows four minutes.
 SPENT = 150.0
@@ -286,6 +291,24 @@ def _reference(
     return told
 
 
+def parked_live(hot: Path, lines: Sequence[Line], now: datetime) -> dict[str, str]:
+    """EACH LINE NOT TO BE TRADED NOW, and why: a line in session for LATE or more with no ended
+    five-minute bar in the last LATE (late or missing), or whose bars there are out of line."""
+    parked = {}
+    for line in lines:
+        session = venues.open_at(line.venue, now)
+        if session is None or now - session.open < LATE:
+            continue
+        try:
+            held = bars.five(hot, line, now - LATE, now)
+        except LookupError:  # the store never held a bar of the line: it is missing
+            held = ()
+        ended = [bar for bar in held if bar.start + live.BAR <= now]
+        if faults := bars.checked(line, ended)[1] if ended else ["no ended bar"]:
+            parked[line.symbol] = f"{faults[0]} in the last {LATE.seconds // 60} minutes"
+    return parked
+
+
 def _within(ask: Ask[When, Read], clock: Callable[[], float], ends: float) -> Ask[When, Read]:
     """The question, asked only while the call's time lasts."""
 
@@ -362,6 +385,8 @@ def main(home: Path, now: datetime, args: Sequence[str] = ()) -> int:
         done = [words]
     else:
         done, missed = keep(home, now)
+        if stopped := parked_live(home / HOT, LINES, now):
+            done.append(f"parked live, not traded: {stopped}")
     sys.stdout.write("".join(f"{line}\n" for line in done))
     sys.stderr.write("".join(f"MISSED: {line}\n" for line in missed))
     return int(bool(missed))

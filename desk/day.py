@@ -10,8 +10,8 @@ from datetime import date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
-from desk import book, halt, strategy, venues
-from desk.broker import Broker
+from desk import book, halt, restop, strategy, venues
+from desk.broker import Broker, Restopping
 from desk.halt import Blocker, Stopped
 from desk.lines import YARDSTICK, Line
 from desk.orders import (
@@ -75,15 +75,17 @@ class Record:
 def run(
     root: Path,
     archive: Mapping[Line, Sequence[Bar]],
-    broker: Broker,
+    broker: Restopping,
     settings: Settings,
     day: date,
     rates: Mapping[str, Decimal],
 ) -> Record:
     """A whole day from the data saved by its end, the day's own bars in it: its orders are
-    decided on the bars before the day alone, and then its record is published."""
+    decided on the bars before the day alone, each stop is moved under its fill (restop), and
+    then its record is published."""
     seen = {line: tuple(bar for bar in bars if bar.day < day) for line, bars in archive.items()}
     trade(root, seen, broker, settings, day, rates)
+    restop.move(root, broker, archive)  #: each fill's stop, under the fill (R-RUNNER-220)
     return publish(root, archive, broker, settings, day)
 
 
