@@ -33,7 +33,7 @@ from desk.store import Bar, Refused
 SOURCE = "https://query1.finance.yahoo.com/v8/finance/chart/"
 SUFFIX = {"LSE": ".L", "US": ""}  #: the archive's name for a line is its symbol and this
 PENCE = {"GBP": "GBp"}  #: the archive's name for a hundredth of a currency
-SINCE = date(2010, 1, 1)  #: the first year the calendar knows
+SINCE = date(2000, 1, 1)  #: the deep daily history begins here, within the calendar
 #: The first session of SPY, the reference series (R-RUNGS-5): the archive holds it from here,
 #: and is asked this far back for a reference series only, never for a line the desk trades.
 REFERENCE_SINCE = date(1993, 1, 29)
@@ -53,6 +53,7 @@ BACKOFF = (5, 30, 120)
 ASKED_TO_WAIT = 300  #: the longest wait the archive's own Retry-After is obeyed for, in seconds
 #: Where the runner reads whether the archive refuses: `{"refusing_since": <time or null>}`.
 STATE = "archive.json"
+ALERT_AFTER = timedelta(hours=6)  #: how long the archive may refuse before the operator is told
 When = TypeVar("When")
 Read = TypeVar("Read")
 Row = tuple[int, Decimal, Decimal, Decimal, Decimal, int]
@@ -73,7 +74,7 @@ def _address(line: Line, first: int, end: int, span: str) -> str:
 
 
 def address(line: Line, day: date, since: date = SINCE) -> str:
-    """Where every bar of a line from since (2010) up to, and not including, day is asked for."""
+    """Where every bar of a line from since (2000) up to, and not including, day is asked for."""
     return _address(line, _moment(since), _moment(day), DAILY)
 
 
@@ -171,6 +172,16 @@ def _record(refusing: bool) -> None:
     part = path.with_suffix(".part")
     part.write_text(json.dumps({"refusing_since": since}), "utf-8")
     part.replace(path)
+
+
+def alert(data: Path, now: datetime) -> str | None:
+    """The line to send the operator once the archive has refused for six hours (DAT-08), read
+    from archive.json in data; None while it answers, or has refused for less."""
+    path = data / STATE
+    since = json.loads(path.read_text("utf-8"))["refusing_since"] if path.exists() else None
+    if since is None or now - datetime.fromisoformat(since) < ALERT_AFTER:
+        return None
+    return f"the price archive has refused every ask since {since}"
 
 
 def _once(address: str) -> bytes:

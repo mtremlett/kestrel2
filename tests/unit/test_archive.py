@@ -15,7 +15,7 @@ from urllib.error import HTTPError, URLError
 
 import pytest
 
-from desk import archive
+from desk import archive, venues
 from desk.bars import Five
 from desk.lines import TAG, Line
 from desk.store import Bar, Refused
@@ -125,6 +125,8 @@ def test_the_archive_is_asked_for_nothing_on_or_after_the_day() -> None:
     address = archive.address(UK, date(2025, 11, 17))
     assert "/BBB.L?" in address
     assert f"period2={int(datetime(2025, 11, 17, tzinfo=UTC).timestamp())}&" in address
+    assert f"period1={int(datetime(2000, 1, 1, tzinfo=UTC).timestamp())}&" in address
+    assert archive.SINCE.year in venues.SESSION_YEARS  # the history asked for, the calendar knows
 
 
 def test_a_london_line_priced_in_pounds_is_read_as_given_on_its_summer_session() -> None:
@@ -282,6 +284,12 @@ def test_a_refusing_archive_is_backed_off_from_and_told_in_archive_json(
     monkeypatch.setattr(archive, "_once", _fail(HTTPError("u", 404, "", Message(), None)))
     with pytest.raises(HTTPError):
         archive._ask("x")  # noqa: SLF001
+    began = datetime.fromisoformat(since)
+    assert archive.alert(tmp_path, began + timedelta(hours=5, minutes=59)) is None
+    assert since in str(archive.alert(tmp_path, began + timedelta(hours=6)))
+    state.write_text('{"refusing_since": null}', "utf-8")
+    assert archive.alert(tmp_path, began + timedelta(days=1)) is None
+    assert archive.alert(tmp_path / "none", began) is None
 
 
 def test_a_five_minute_answer_is_kept_raw_when_given_a_home_and_a_refused_one_is_not(
