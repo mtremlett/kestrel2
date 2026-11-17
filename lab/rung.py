@@ -243,17 +243,20 @@ def rate(line: Line, rates: Rates, day: date) -> Decimal:
     return given
 
 
-def standard_errors(gains: Sequence[Decimal]) -> Decimal | None:
-    """The mean in standard errors, the sample's own deviation estimating the spread; None
-    under two gains."""
-    n = len(gains)
-    if n < 2:
+def mean_and_error(gains: Sequence[Decimal]) -> tuple[Decimal, Decimal] | None:
+    """The mean and its standard error (sample deviation); None under two gains."""
+    if (n := len(gains)) < 2:
         return None
     mean = sum(gains, Decimal(0)) / n
     spread = sum(((g - mean) ** 2 for g in gains), Decimal(0)) / (n - 1)
     if not spread:
         raise ValueError(f"{n} gains all of {mean}: no spread to judge them by")
-    return mean / (spread / n).sqrt()
+    return mean, (spread / n).sqrt()
+
+
+def standard_errors(gains: Sequence[Decimal]) -> Decimal | None:
+    """The mean in standard errors; None under two gains."""
+    return None if (found := mean_and_error(gains)) is None else found[0] / found[1]
 
 
 def kept_closes(

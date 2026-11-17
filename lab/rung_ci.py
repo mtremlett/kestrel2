@@ -21,16 +21,11 @@ from lab.rung import MIN_TRADES, T_PASS, Answer, Rung
 
 def interval(gains: Sequence[Decimal]) -> tuple[Decimal, Decimal]:
     """The mean gain less and plus T_PASS standard errors; at least two gains, with a spread."""
-    n = len(gains)
-    if n < 2:
-        raise ValueError(f"{n} gains: an interval needs two")
     with localcontext(ARITHMETIC):
-        mean = sum(gains, Decimal(0)) / n
-        spread = sum(((g - mean) ** 2 for g in gains), Decimal(0)) / (n - 1)
-        if not spread:
-            raise ValueError(f"{n} gains all of {mean}: no spread to judge them by")
-        reach = T_PASS * (spread / n).sqrt()
-        return mean - reach, mean + reach
+        if (found := rung.mean_and_error(gains)) is None:
+            raise ValueError(f"{len(gains)} gains: an interval needs two")
+        mean, error = found
+        return mean - T_PASS * error, mean + T_PASS * error
 
 
 def judge(gains: Sequence[Decimal]) -> Answer:
