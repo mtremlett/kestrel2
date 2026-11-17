@@ -126,11 +126,9 @@ def judge(
 
 def _charged(c: Cell, count: int, family: int | None) -> int:
     """The trials a cell is charged: the register's, or with EASED its rule's family's."""
-    if not EASED:
-        return count
-    if family is None:
+    if EASED and family is None:
         raise ValueError(f"{c.strategy}: EASED judges by the rule's family count, none given")
-    return family
+    return family if EASED and family is not None else count
 
 
 def _marketed(against: market.Against, beside: Line, rungs: Judged) -> Pair:
