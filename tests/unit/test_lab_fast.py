@@ -95,7 +95,7 @@ def test_every_row_trades_on_the_golden_series_as_the_desk_trades() -> None:
 
 
 def test_the_fast_engine_has_a_firing_for_every_block_that_needs_no_position() -> None:
-    assert set(fast.FIRES) == set(blocks.BLOCKS) - {"trailing_stop", "time_stop"}
+    assert {*fast.FIRES, *fast.DATED} == set(blocks.BLOCKS) - {"trailing_stop", "time_stop"}
 
 
 def test_rows_on_one_line_share_one_working_of_a_block() -> None:

@@ -177,5 +177,6 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "lab/blocks.py" = "the spec book's building blocks: entries, exits, stops and filters, each written once as a small stateful class over the desk's own proven indicators, and the one list of them by name with their parameters' ranges"
 "lab/blocks_parts.py" = "the spec book's blocks over a run of day-to-day moves: the big-move stop and Clenow's rising score with its rolling log-slope, imported by lab/blocks.py"
 "lab/block_bands.py" = "the spec book's Bollinger-band blocks: where the close sits in the bands (%b), an entry on a run of low days and an exit on a high one, over the desk's own window and lower band"
+"lab/block_months.py" = "the spec book's month-end blocks: an entry on a month's first bar when the month before closed over its n-month average, an exit when it did not, over the desk's own window"
 "lab/block_base.py" = "what every spec block shares: the kinds of place a block fits, the one interface of a block, and how the registry holds a block with its parameters' ranges"
 "lab/spec.py" = "a strategy as data: a row of named blocks, parameters, source and known answers, built only by Spec.parse which refuses any wrong row, and SpecRule that runs it as the desk's own Rule"
