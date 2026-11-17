@@ -683,3 +683,103 @@ Decided by the MONEY lane as the desk's mentor, no one watching.
 - An error from `place` other than Disconnected, Refused or Crash turns the kill switch on, cancels the desk's working orders (stops for held shares stay) and raises `book.Alarm`.
 - Decided: (1) `book.Alarm` carries the message (options: post from book, which lacks a clock and messenger; or a typed error for the caller). (2) Crash passes through unchanged. (3) The switch's time is `datetime.now(UTC)`, as `send` has no clock argument. The blind review found the test did not prove the cancel; fixed and seen failing without it.
 - Remains: The Telegram line: R-MONEY-36 to PAPER.
+
+### 2026-11-15 — Broker.place allows a two-step stop change after a sale (#289, R-PAPER-12)
+- Docstring and contract wording only.
+- Decided: (a) allow two steps, as the real broker does (chosen), or (b) force the pretend broker to two steps. The existing test asserts the end state, holdings equal stops after a sale, so it holds for either.
+
+### 2026-11-15 — a corrected fill is one fill (#288, R-PAPER-5)
+- `book._record` keys a fill by its id without the last numeric part and replaces on a higher version; a stale earlier version is ignored.
+- Decided: A correction replaces in place (keeps FIFO order), versus append-and-supersede; replace keeps position = sum of fills with no extra state. Left: `reports.fills` still raises on a fill and its correction in one reading (R-MONEY-38).
+
+### 2026-11-15 — a place that disagrees halts buying and tells him (#290, R-PAPER-11)
+- `book.send` takes an optional `tell`; on a disagreement it halts buying (his alone to lift, kill switch not pulled), writes the fills, sends one message, never re-sends the order.
+- Decided: (1) Detect it with a lazy import of `desk.placing` (claim allowed only book.py; a new module or moving Unprotected were the options). (2) With no `tell` the kill-switch alarm stands (the blind review's blocking finding). (3) The halt is his alone to lift. Remains: `running.py` passes `tell` (R-MONEY-39).
+
+### 2026-11-15 — the pretend broker takes a repeated order id as new (#297, R-PAPER-13 first half)
+- Pretend.place no longer refuses a repeated id, as IBKR did not.
+- Decided: The whole request (desk/sent.py, id written before `place`) made `test_simcity` red (outside the claim): (a) land the broker half alone (chosen) or (b) land all on a red main (refused, canon A4/A1.4). Second half is R-MONEY-40 with the review's fixes: write the id before `place`, withdraw only on Disconnected/Refused, append atomically, check the repeat after the kill switch.
+
+### 2026-11-15 — simcity --soak starts at seed 100 (#332, R-RUNNER-129)
+- Each `--soak` lives the next unused block of 100 seeds, logged in `seeds.jsonl`.
+- Decided: Start at 100 (0-99 are the nightly range and the request wants fresh seeds) rather than 0. Red worlds: only the first per promise is named; naming all needs `Night` changed at the line cap.
+
+### 2026-11-16 — SimCity reads bars before today (#375, R-RUNNER-181)
+- Worlds are built through `keeper.saved`, not the dead `desk/store` folder.
+- Decided: Before today (as the desk's round does; never Stale on a night run) versus through today (as the ladder; would raise Stale before the evening refresh). Chose the first; a stale venue fails loudly.
+
+### 2026-11-16 — R-RUNNER-127 held until every rule is a spec row (#383, #388, #465, #468, #554)
+- Retiring `desk/eponymous_*.py` was declined by seven sessions; 15 of 21 rules are not catalogue rows and ladder, rulebook, blocks and published still read the files.
+- Decided: Delete now (loses 15 rules, canon A3/B6) or hold (chosen, per PLAN). Its own ops note moves the deletion to the coordinator's non-lane branch (a lane cannot remove manifest lines). Requests R-MONEY-45, -46.
+
+### 2026-11-15 — the five rules take settings as arguments (#240, R-GRID-1)
+- `strategy.decide(bars, settings)` and `today` take {rule: {argument: value}}; unknown names or windows under 1 day are refused.
+- Decided: Constructor arguments with the published defaults (one home per number) versus a separate settings table. A rule keeps its published name at other settings; the grid keys cells by settings. `lower_band` gained a width. No blind review (small change).
+
+### 2026-11-16 — the gate's loss and order-rate limits (#467, R-RUNNER-156)
+- Settings hold day_loss 2%, week_loss 5%, new_lines 4; `desk/risk.py` holds `Standing` and `loss_limit`; `halt.drawdown` records "would have halted" without halting.
+- Decided: New lines 4 (middle of the colleague's 3-5); the would-have-halted record is its own file, since a row in halts.csv would read as a halt in force. Remains: `book.send` builds the Standing and the messenger sends the alert (R-MONEY-42).
+
+### 2026-11-16 — heat is per-share fall times shares (#472, R-RUNNER-159)
+- Each record's `heat` column: pounds lost if every held stop were hit, a line at its stop or, if worse, at its worst overnight gap since its newest buy; blank if a stop level is unknown.
+- Decided: Max(buy minus stop, worst gap down) (chosen, his words "at its stop or, if worse, at its gap") versus stop fall plus the gap beyond it. Old records files stay readable with heat blank, not refused.
+
+### 2026-11-16 — slippage is measured per fill against the day's close (#466, R-RUNNER-145)
+- `python -m lab.slippage` sets paper fills beside `orders.charges`.
+- Decided: Unweighted per fill (chosen; the model's charge is a flat fraction per leg) versus weighted by shares. No blind review.
+
+### 2026-11-16 — stress is one true-order replay (#474, R-RUNNER-153)
+- The deep run ends in Stress and Lifecycle lines; Calibration prints "NOT RUN" because desk/ may not import lab/.
+- Decided: One replay of real history through the money path, telling its five worst days (chosen), versus reshuffled windows with events, which could never see every event and would always be red. A made-up rate was refused (R-MONEY-43).
+
+### 2026-11-14 — nothing is bought on a line recorded no-ISA (#278, R-DATA-12 part)
+- `day._buy` refuses a line whose `isa` is recorded no, on the morning's list.
+- Decided: (a) refuse anything not yes (reds scenes 5 and 7 until fixtures carry isa=True), (b) refuse only recorded no (chosen), (c) edit the fixtures outside the claim. End state (a) waits on R-MONEY-44.
+
+### 2026-11-15 — book.keep keeps the `_write` alias (#301, R-PAPER-7 first half)
+- `book._write` became public `book.keep`; a contract test shows a death mid-write leaves the old file.
+- Decided: Keep `_write = keep` (chosen) or break callers in other lanes' files (outside the claim). Remains: move the callers, delete the alias, add a guard.
+
+### 2026-11-16 — correlation and sizing take their limits as arguments (#478, R-RUNNER-147 step)
+- `desk/risk.py` gains volatility, correlation, correlated_with and shares_for_risk; no drawdown refusal (money-limits owns it).
+- Decided: Limits as arguments (chosen) versus Settings fields, which needs `orders.py` next session.
+
+### 2026-11-16 — the gap loss limit is 5% of capital (#506, R-RUNGS-11)
+- `orders.GAP_LOSS`, one home for STP-10, pinned above the stop's own 2% risk; enforced nowhere yet (money-time-gaps).
+- Decided: 3%, 5% or 10%. Chose 5%: above the stop's risk, equal to the week-loss limit, so one gap cannot lose more than a bad week.
+
+### 2026-11-16 — a retail-closed line is refused in the day run (#516, R-PAPER-14)
+- `day.buy` refuses a line with `retail` False beside the ISA rule; the broker is not asked.
+- Decided: The day run, one place beside the ISA rule (chosen), versus the gate, which would need Line on every order path.
+
+### 2026-11-16 — a killed strategy's buys are barred, its sales are not (#519, R-RUNGS-7 desk side)
+- `day.trade` takes `killed` (names), answers "not sent" under the GATE blocker.
+- Decided: Bar both or buys only; buys only, since a bar on sales strands a holding with no exit. Passed as data because desk may not import lab (R-MONEY-47).
+
+### 2026-11-16 — conformance cost is a private kind in the book (#534, R-RUNNER-214)
+- `book._conformance_cost`: what a conformance ledger moved on the shared account, less costs.
+- Decided: Underscored because the SimCity census demands a scenario for every public money-path name; public with a new scenario was outside the claim. Wiring is the remains.
+
+### 2026-11-16 — the intraday bar is rollup.Candle (#557, R-RUNNER-199 step)
+- `desk/intraday.py`: Span, IntradayRule, `run` and `latest`, in parity and future-blind.
+- Decided: Reuse `rollup.Candle` and `strategy.Action` (one home each) versus widening Bar with a timestamp (touches every daily rule; rejected). A bar counts only if it begins in continuous trading and ends by the close.
+
+### 2026-11-16 — the stop under a price has one home (#573, R-RUNNER-220 step)
+- `orders.stop_under(line, price)` is 10% fall times leverage; sizing uses it on the close, a fill's stop on the fill price.
+- Decided: Wait for the broker door and change nothing, or land the pure rule now (chosen) so the door change is small. Resting stops IB1T and MSTR are unchanged; the door is R-MONEY-30.
+
+### 2026-11-16 — book.py split into book.py and book_parts.py (#576, R-RUNNER-233)
+- Switch record, `keep` and the currency rates moved out; re-exported through `__all__`; the `_write` alias stays.
+- Decided: Re-export (one line, chosen) versus touching every caller (outside the claim).
+
+### 2026-11-16 — the underlying cap sits in Settings (#564, #592, R-RUNNER-158 step)
+- The gate refuses a buy taking one underlying over 40% of capital (leverage counted); `risk.underlying_limit` judges it; a line with no underlying is its own market.
+- Decided: Settings beside the other limits (chosen) versus the gate alone; exposure passed as data like the Standing. Not live: `book.send` passes none (R-MONEY-42, needs a book.py claim).
+
+### 2026-11-17 — only the SimCity census split landed (#590)
+- `desk/simcity_census.py` (simcity 400 to about 350); the book split was dropped.
+- Decided: Widen the claim (not allowed in session), move the comparison into a claimed file (wrong owner), or drop the book split (chosen; book.py was at, not over, the cap). By #617 book.py is 345 and simcity 359.
+
+### 2026-11-17 — money-restop lands nothing and waits (#617, R-MONEY-30)
+- Putting back a stop needs a way to rest one on a line that has none in `placing.moved`, `Broker` and `Pretend`, all PAPER's.
+- Decided: (a) a duck-typed call around the Broker protocol from day.py (breaks the one-contract rule, A4), (b) widen the claim to PAPER's files, (c) land nothing and wait on the open request (chosen). Box waits: R-MONEY-30.
