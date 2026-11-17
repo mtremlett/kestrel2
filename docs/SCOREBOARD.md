@@ -600,3 +600,5 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #737 R-RUNNER-205 step: market weather layer 2, realised volatility (not wired) |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #746 R-RUNNER-191 step: one home for the Sharpe a trade (no verdict changed) |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #742 R-RUNGS-27: basket answer wired to basket_answer, INCUBATE listed apart |
+| 2026-11-17 | 7 of 7 | - | +3 | - | 14 of 14 proven | green | #772 R-RUNNER-191 step: the three-band rule of t has one home, rung.band |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #773 R-MONEY-45 step: raschke_swing in the spec book (turtle_soup entry, under_entry_low stop) |
