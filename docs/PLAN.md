@@ -823,7 +823,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         known answer (#396). Remains: sizing blocks, once the volatility-sizing research settles their form
         {id: rungs-blocks; files: lab/blocks.py, tests/unit/test_lab_blocks.py; waits: operator}
   - [ ] B2 a typed Spec, validated on entry: an unknown block or a bad setting is refused
-        {id: rungs-spec; files: lab/spec.py, tests/unit/test_lab_spec.py; after: rungs-blocks}
+        {id: rungs-spec; files: lab/spec.py, tests/unit/test_lab_spec.py; after: rungs-blocks; waits: R-MONEY-35}
   - [ ] B3 the catalogue, one TOML row per strategy with its source and known-answer case;
         a guard: unique names, known blocks only, a source and a case on every row
   - [ ] B4 the nineteen eponymous rules as rows, identical trades on the fixture proven,
