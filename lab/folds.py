@@ -172,9 +172,7 @@ def _answer(trades: int, t: Decimal | None, mean: Decimal) -> Answer:
         return Answer.FAULT
     if t is None or trades < rung.MIN_TRADES:
         return Answer.THIN
-    if mean > 0:
-        return Answer.PASS
-    return Answer.FAIL if t <= -rung.T_PASS else Answer.DOUBT
+    return Answer.PASS if mean > 0 else rung.band(t)
 
 
 def _stretch(
