@@ -11,8 +11,8 @@ THE PRICE STORE'S DOOR is the keeper's (`keeper.saved`): a round or a record rea
 bars as the keeper last kept them, and a venue's bars left a session short are refused.
 
 THE DAY'S POUNDS PER DOLLAR (`rates`): the pound's last close in dollars before the day, from
-the same archive, until the data lane's own rate lands; once a day's rate is on the desk's
-record that one is given, so it is the same at every asking.
+IBKR first, the archive's where IBKR gives none, each told in `pound.log`; once a day's rate
+is on the desk's record that one is given, so it is the same at every asking.
 
 THE PRE-FLIGHT (`preflight`) asks what a morning step would and sends no order: his phone's
 key, the Gateway, the kill switch and today's drill, the paper account against the book,
@@ -21,20 +21,17 @@ the bars of the session before, the pound, any halt. Its one line names each.
 THE REHEARSAL (`rehearse`) lives the last session again, every five minutes of its day, on a
 record of its own and at the real paper Gateway. It begins only on a day no market trades,
 the real desk's kill switch off: an order it sends cannot fill, and the adapter cancels what
-the broker did not fill. Its own book is empty, but the paper account may hold lines and their
-resting stops, as it does since the desk trades: what is found at the start is the account's,
-unseen by the rehearsal's steps and never sold, cancelled or moved by it. Its orders carry the ids
-of the session rehearsed, a day that is over, never the next real day's. A step that fails is
-counted and the next carries on, as in the day itself; at the end whatever of the desk's is
-still working is cancelled. It is GO only if each venue's round and the day's record were
-made, both daily messages written, no check named the account, nothing was left working or
-filled, and the account is as it was found: the same holdings, and the same working orders by
-id and level. Its messages go on its own record alone."""
+the broker did not fill. Its own book is empty: what the paper account holds or has resting
+at the start is the account's, never sold, cancelled or moved. A step that fails is counted
+and the next carries on; at the end whatever of the desk's is still working is cancelled. It
+is GO only if each venue's round and the day's record were made, both daily messages written,
+no check named the account, nothing was left working or filled, and the account is as found."""
 
 from __future__ import annotations
 
 import os
 from collections.abc import Callable, Mapping, Sequence
+from contextlib import suppress
 from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
@@ -48,6 +45,7 @@ from desk import (
     clearance,
     gateway,
     halt,
+    history,
     keeper,
     kill,
     listing,
@@ -59,15 +57,18 @@ from desk import (
     venues,
 )
 from desk import day as days
+from desk.keeper import Broker
 from desk.lines import LINES, Line
 from desk.orders import Settings
 from desk.paper import Account
 from desk.running import DAY, VENUES, Desk
+from desk.store import Answer, Refused
 
 ROOT, STORE, REHEARSALS = "desk", "store", "rehearsals"  #: folders, each inside the one before
 CAPITAL = Decimal(10_000)  #: the paper desk's one capital, in pounds, until he rules another
 #: The pound in dollars at the archive; no pound closes outside these; the oldest close trusted.
 POUND, DOLLARS, FRESH = Line("GBPUSD=X", "US", "USD", 1), (Decimal(1), Decimal(2)), 4 * DAY
+BAND, POUND_LOG = Decimal("0.02"), "pound.log"  #: IBKR and archive may differ by this; the log
 FIRST, LAST, EVERY = time(5, 30), time(22), timedelta(minutes=5)  #: the runner's day, UK clock
 NAMED = (OSError, HTTPException, ValueError, kill.Failed, messenger.Undelivered, paper.NotPaper)
 USAGE = "python -m desk.running [--preflight | --rehearse]"
@@ -84,27 +85,51 @@ GO = (
 UNSENT = " NO ORDER REACHED THE BROKER: this rehearsal does not prove the sending."
 
 
-def rates(root: Path, day: date) -> dict[str, Decimal]:
-    """A DAY'S POUNDS PER UNIT OF EACH CURRENCY: the dollar's as the desk's record at root
-    keeps it for the day, else one over the pound's last close in dollars before the day. A
-    close that is no pound's, or too old for the day, is an error and no rate."""
+def _close(answer: Answer, day: date) -> Decimal | str:
+    """A source's last pound close before the day (its own bar still moves), or why none."""
+    if isinstance(answer, Refused):
+        return answer.reason
+    last = [bar for bar in answer if bar.day < day][-1:]
+    if last and day - last[0].day <= FRESH and DOLLARS[0] < last[0].close < DOLLARS[1]:
+        return last[0].close
+    return f"no pound in dollars to trust: {last}"
+
+
+def _quote(day: date, broker: Broker | None) -> tuple[Decimal, str]:
+    """THE POUND IN DOLLARS, IBKR first (R-RUNNER-282), the archive's where it gives none; the
+    words name the source, a gap beyond BAND a FAULT; neither is an error."""
+    ibkr = _close(broker([POUND], day)[POUND] if broker else Refused("not asked"), day)
+    if not isinstance(ibkr, Decimal):  # the archive is then the only source, and may raise
+        other = _close(archive.fetch(POUND, day), day)
+        if not isinstance(other, Decimal):
+            raise ValueError(f"{day}: no pound in dollars; IBKR: {ibkr}; archive: {other}")
+        return other, f"IBKR gave none ({ibkr}); archive {other}"
     try:
-        kept: Decimal | None = book.rate(root, "USD", day)
-    except ValueError:
-        kept = None
+        other = _close(archive.fetch(POUND, day), day)
+    except (OSError, HTTPException, ValueError) as why:
+        other = f"the archive was not reached: {why}"
+    fault = isinstance(other, Decimal) and abs(other / ibkr - 1) > BAND
+    return ibkr, f"IBKR {ibkr}" + f"; FAULT: the archive's {other} is not within {BAND}" * fault
+
+
+def rates(root: Path, day: date, broker: Broker | None = None) -> dict[str, Decimal]:
+    """A DAY'S POUNDS PER UNIT OF EACH CURRENCY: the dollar's as the desk's record at root
+    keeps it for the day, else one over the pound's `_quote`, its source told in `pound.log`."""
+    kept: Decimal | None = None
+    with suppress(ValueError):  # no rate kept for the day
+        kept = book.rate(root, "USD", day)
     if kept is None:
-        #: the archive adds the day's own bar, still moving (seen 14 November 2026): not before it
-        last = [bar for bar in archive.fetch(POUND, day) if bar.day < day][-1:]
-        if not (last and day - last[0].day <= FRESH and DOLLARS[0] < last[0].close < DOLLARS[1]):
-            raise ValueError(f"{day}: the archive has no pound in dollars to trust: {last}")
-        kept = (1 / last[0].close).quantize(Decimal("0.000001"))
+        close, told = _quote(day, broker)
+        root.mkdir(parents=True, exist_ok=True)
+        kept = (1 / close).quantize(Decimal("0.000001"))
+        with (root / POUND_LOG).open("a", encoding="utf-8") as log:
+            print(f"{day}: {told}", file=log)
     return {"GBP": Decimal(1), "USD": kept}
 
 
 def _post(env: Mapping[str, str]) -> messenger.Post:
-    """His phone. With no key of his in the environment, a door that says so at every
-    message: the desk still does its work, and each step that owes him words then fails,
-    by name, until the key is set. The words wait on the delivery record."""
+    """His phone. With no key in the environment, a door that says so at every message: the
+    desk still works, and each step that owes him words fails, by name, until the key is set."""
     try:
         return messenger.telegram(env)
     except ValueError as missing:
@@ -116,13 +141,13 @@ def _post(env: Mapping[str, str]) -> messenger.Post:
     return unsaid
 
 
-def _desk(root: Path, post: messenger.Post, home: Path) -> Desk:
+def _desk(root: Path, post: messenger.Post, home: Path, broker: Broker | None = None) -> Desk:
     """The real doors, with the desk's records at root; the keeper's stores are in home."""
     return Desk(
         root,
         Settings(CAPITAL),
         post,
-        partial(rates, root),
+        partial(rates, root, broker=broker),
         home / keeper.HOT,
         partial(keeper.saved, home),
         paper.Door(paper.DESK),
@@ -171,7 +196,9 @@ def _pound(desk: Desk, today: date) -> str:
     a pound that cannot be trusted is an error here and nothing is kept."""
     rate = desk.rates(today)
     book.record_rates(desk.root, today, rate)
-    return f"a dollar is £{rate['USD']}, kept for the day"
+    log = desk.root / POUND_LOG
+    how = log.read_text(encoding="utf-8").splitlines()[-1] if log.exists() else "kept before"
+    return f"a dollar is £{rate['USD']}, kept for the day ({how})"
 
 
 def preflight(desk: Desk, env: Mapping[str, str], now: datetime) -> tuple[bool, str]:
@@ -297,11 +324,10 @@ def rehearse(
     moments, on a new record under root and at the real paper Gateway; whether it is GO, and
     its one line. Not begun while the kill switch at root is on. Its book is empty: what the
     paper account holds or has working when it begins is the account's (Found), and is left
-    as found. Not begun, either, while while a market's session is open or opens
-    within the rehearsal's longest run and an hour (WINDOW), or ended just now (AFTER); a run
-    that finds one so stops at once. A step that fails is counted and the next carries on; then
-    the desk's own orders still working are
-    cancelled and the account is read again, whatever happened."""
+    as found. Not begun, either, while a market's session is open or opens within the longest
+    run and an hour (WINDOW), or ended just now (AFTER); a run that finds one so stops at once.
+    A step that fails is counted and the next carries on; then the desk's own orders still
+    working are cancelled and the account is read again, whatever happened."""
     today, before = now.date(), paper.whole(paper.Door(paper.DESK))
     trading = _trading(now)
     barred = (
@@ -358,7 +384,7 @@ def main(
     root, now = Path(env["KESTREL2_DATA"]) / ROOT, clock()
     if not root.is_absolute():
         raise SystemExit(f"KESTREL2_DATA names no whole path to a folder: {root.parent}")
-    desk = _desk(root, _post(env), root.parent)
+    desk = _desk(root, _post(env), root.parent, history.daily(now))
     match argv:
         case []:
             running.step(desk, now)

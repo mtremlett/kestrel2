@@ -303,8 +303,9 @@ def test_a_five_minute_answer_is_kept_raw_when_given_a_home_and_a_refused_one_is
 
     monkeypatch.setattr(archive, "_ask", ask)
     now = MARK + timedelta(hours=7)
-    first = archive.fetch_five(US, now, home=tmp_path)
-    assert archive.fetch_five(US, now, home=tmp_path) == first
+    monkeypatch.setenv("KESTREL2_DATA", str(tmp_path))  # the folder it names is the home
+    first = archive.fetch_five(US, now)
+    assert archive.fetch_five(US, now) == first
     assert len(asked) == 1  # the kept answer served the second asking
     assert next((tmp_path / "archive" / "five").rglob("AAA-59d")).read_bytes() == _payload(
         span="5m"
@@ -315,3 +316,20 @@ def test_a_five_minute_answer_is_kept_raw_when_given_a_home_and_a_refused_one_is
     with pytest.raises(ValueError, match="bars of 1d"):
         archive.fetch_five(UK, now, home=tmp_path)
     assert not list((tmp_path / "archive" / "five").rglob("BBB.L*"))
+
+
+def test_once_the_archive_refuses_the_rest_of_the_round_is_not_asked(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("KESTREL2_DATA", raising=False)
+    monkeypatch.setattr("time.sleep", lambda _s: None)
+    monkeypatch.setattr(archive, "_once", _fail(URLError("down")))
+    asked: list[Line] = []
+
+    def ask(line: Line, _: date) -> bytes:
+        asked.append(line)
+        return archive._ask("x")  # noqa: SLF001
+
+    answers = archive.gather((US, UK, Line("CCC", "US", "USD", 1)), date(2025, 11, 17), ask)
+    assert asked == [US]
+    assert all(isinstance(a, Refused) and "Refusing" in a.reason for a in answers.values())

@@ -36,6 +36,9 @@ from lab.verdict_parts import (
     COLUMNS as COLUMNS,
 )
 from lab.verdict_parts import (
+    INCUBATE as INCUBATE,
+)
+from lab.verdict_parts import (
     STATUS as STATUS,
 )
 from lab.verdict_parts import (
@@ -79,7 +82,6 @@ STEP = Decimal("0.03")
 #: other rung is run and graded PASS, WEAK or FAIL, and none stops it. Off until card
 #: ease-switch-on.
 EASED = False
-INCUBATE = "INCUBATE"  #: easing 3: paper only, never PASS; the set's page lists it apart
 T_INCUBATE = Decimal(1)  #: a basket's mean this many standard errors above nothing, or over
 WEAK = (Answer.THIN, Answer.DOUBT)  #: a scorecard's WEAK: neither a win nor a loss
 Pair = tuple[Answer, str]
@@ -148,6 +150,11 @@ def basket_answer(basket: Verdict, stressed: Answer) -> str:
     passed, is INCUBATE; a PASS stays PASS, and any other stress answer is never INCUBATE."""
     pending = basket.answer is Answer.FAIL and basket.t is not None and basket.t >= T_INCUBATE
     return INCUBATE if EASED and pending and stressed is Answer.PASS else basket.answer.name
+
+
+def stress_answer(c: Cell, own: Sequence[Bar], pounds: Rates) -> Answer:
+    """The stress rung's answer on a line, for a basket: it stands on its lines' stress."""
+    return _stressed(c, own, Settings(CAPITAL), pounds)[0]
 
 
 def _charged(c: Cell, count: int, family: int | None) -> int:

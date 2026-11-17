@@ -10,16 +10,15 @@ from __future__ import annotations
 import os
 import sys
 from collections.abc import Callable, Iterable
-from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
-from decimal import Decimal
 from pathlib import Path
 
-from desk import archive, bars, history, keeper, listing, paper, store
+from desk import archive, bars, history, keeper, paper, store
 from desk.bars import Source
 from desk.lines import LINES, Line
 from desk.store import Bar, Refused
 
+in_currency = history.in_currency  #: the one unit rule lives in desk/history.py
 Ask = Callable[[Line, date], store.Answer]  #: a source's answer for one line's one day
 
 
@@ -66,18 +65,6 @@ def fill(
     return wrote, named
 
 
-def in_currency(answer: store.Answer, magnifier: int) -> store.Answer:
-    """The broker's bars with their prices turned from its unit (100 is pence) into the line's
-    currency, once, on entry; a refusal is passed on."""
-    if isinstance(answer, Refused):
-        return answer
-    unit = Decimal(magnifier)
-    return [
-        replace(b, open=b.open / unit, high=b.high / unit, low=b.low / unit, close=b.close / unit)
-        for b in answer
-    ]
-
-
 def _broker(home: Path, now: datetime) -> Ask:
     """The broker's bar of one day, in the line's currency: its own dial, in the history
     reader's pace and quiet, and the unit it prices the line in, as it lists the line today."""
@@ -85,11 +72,8 @@ def _broker(home: Path, now: datetime) -> Ask:
     door = paper.Door(history.CLIENT)  #: the history reader's own door, passed down
 
     def ask(line: Line, day: date) -> store.Answer:
-        listed = listing.kept(home, now, LINES, door)[line.symbol]
-        if isinstance(listed, listing.Unlisted):
-            return Refused(listed.reason)
-        got = history.gather((line,), day + timedelta(1), day, now)[line]
-        return in_currency(got, listed.magnifier)
+        got = history.gather((line,), day + timedelta(1), day, now)
+        return history.priced(home, now, got, door)[line]
 
     return ask
 

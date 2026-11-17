@@ -8,11 +8,11 @@ from __future__ import annotations
 
 import os
 import sys
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import UTC, datetime, time
 from pathlib import Path
 
-from desk import bars, history
+from desk import bars, history, listing, paper
 from desk.history import Ask, Got
 from desk.lines import LINES, Line
 from desk.rollup import Candle
@@ -31,13 +31,16 @@ def _timed(frame: str, one: Bar | Candle) -> Timed:
     return Timed(frame, one.start, one.open, one.high, one.low, one.close, one.volume)
 
 
-def keeper(path: Path) -> Keep:
-    """The `keep` a pull takes: each answer written to the store at path as it comes, saying how
-    many bars landed (none for a refusal)."""
+def keeper(path: Path, units: Mapping[str, int]) -> Keep:
+    """The `keep` a pull takes: each answer written to the store at path as it comes, its prices
+    turned into the line's currency by the unit the broker lists the line in (units, by symbol;
+    history.scaled), saying how many bars landed (none for a refusal). A line with no unit
+    is a KeyError: its prices are not guessed."""
 
     def keep(line: Line, frame: str, got: Got) -> int:
         if not isinstance(got, tuple):
             return 0
+        got = tuple(history.scaled(b, units[line.symbol]) for b in got)
         with bars.writing(path, bars.Source.IBKR) as round_:
             if frame == "1d":
                 return round_.days(line, (b for b in got if isinstance(b, Bar)))
@@ -59,7 +62,7 @@ def held(path: Path, lines: Iterable[Line]) -> set[Ask]:
     """The asks the database already holds bars of from the broker: what a pull has done."""
     done: set[Ask] = set()
     for line in lines:
-        for frame in history.SIZES:
+        for frame in history.PULLED:
             try:
                 have = bars.sources(path, line, bars.DAILY if frame == "1d" else frame)
             except (FileNotFoundError, LookupError):  # nothing written yet for it: not done
@@ -73,10 +76,14 @@ def main(home: Path, now: datetime, wanted: Sequence[str]) -> int:
     """THE COMMAND: `[ASKS]` (LIMIT unless said) of the asks not yet held are made of the broker
     and written; says how many were made. Not in a desk round (exit 1, nothing sent)."""
     path, limit = home / bars.LIVE, int(wanted[0]) if wanted else LIMIT
-    asks = history.plan(LINES, held(path, LINES))
-    day = now.date()
     try:
-        made = history.run(asks, keeper(path), day, now, limit=limit)
+        if not history.quiet(now):  # the gateway is not dialled, even for the units, in a round
+            raise history.Busy("a desk round runs: history is not asked now")
+        listed = listing.kept(home, now, LINES, paper.Door(history.CLIENT))
+        units = {s: one.magnifier for s, one in listed.items() if isinstance(one, listing.Listing)}
+        lines = [line for line in LINES if line.symbol in units]  # else its unit is unknown
+        asks = history.plan(lines, held(path, lines))
+        made = history.run(asks, keeper(path, units), now.date(), now, limit=limit)
     except history.Busy as busy:
         sys.stderr.write(f"{busy}\n")
         return 1

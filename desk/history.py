@@ -7,13 +7,17 @@ the broker will not give is Refused, with the broker's own words, for the store 
 
 from __future__ import annotations
 
+import os
 import time
-from collections.abc import Callable, Collection, Sequence
+from collections.abc import Callable, Collection, Mapping, Sequence
+from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
-from typing import BinaryIO, cast
+from decimal import Decimal
+from pathlib import Path
+from typing import BinaryIO, TypeVar, cast
 
-from desk import conformance_tape, paper, venues
-from desk.lines import Line
+from desk import conformance_tape, listing, paper, venues
+from desk.lines import LINES, Line
 from desk.rollup import Candle
 from desk.store import Answer, Bar, Refused
 
@@ -30,6 +34,10 @@ SIZES = {
     "1m": "1 min", "2m": "2 mins", "5m": "5 mins", "10m": "10 mins", "15m": "15 mins",
     "30m": "30 mins", "1h": "1 hour", "4h": "4 hours", "1d": "1 day", "1wk": "1 week",
 }  # fmt: skip
+#: The timeframes a pull asks the broker for. Its 1 hour, 4 hour and weekly bars start on the
+#: venue's session (a US hour at :30 UTC), off the store's marks, which the writer refuses; they are
+#: rolled up locally from the lower timeframes pulled (his ruling of 16 November), not asked.
+PULLED = tuple(frame for frame in SIZES if frame not in ("1h", "4h", "1wk"))
 #: Days back one ask goes, per timeframe: the longest span IBKR gives in one ask for its bar size
 #: (1 min: a day; 2 mins: 2; 5 to 15 mins: a week; 30 mins to 4 hours: a month; daily: a year).
 REACH = {
@@ -47,6 +55,7 @@ PAGES = {
 #: What an ask gives: a day's bars for the daily and weekly, candles (with their time) for the rest.
 Got = Answer | tuple[Candle, ...]
 DAILY = ("1d", "1wk")
+B = TypeVar("B", Bar, Candle)  #: a bar of either kind
 
 
 class Busy(Exception):
@@ -176,17 +185,57 @@ def lacks(line: Line, answer: Answer, day: date) -> bool:
 RECENT = timedelta(days=30)  #: how far back the broker's daily bars are asked to join the archive's
 
 
+def scaled(one: B, magnifier: int) -> B:
+    """One bar of the broker's, its prices turned from its unit (100 is pence) into the line's
+    currency."""
+    unit = Decimal(magnifier)
+    return replace(
+        one, open=one.open / unit, high=one.high / unit, low=one.low / unit, close=one.close / unit
+    )
+
+
+def in_currency(answer: Answer, magnifier: int) -> Answer:
+    """THE ONE HOME OF THE UNIT RULE: the broker's bars with their prices turned from its unit
+    into the line's currency, once, on entry (`scaled`); a refusal is passed on."""
+    if isinstance(answer, Refused):
+        return answer
+    return [scaled(b, magnifier) for b in answer]
+
+
+def priced(
+    home: Path, now: datetime, answers: Mapping[Line, Answer], door: paper.Door
+) -> dict[Line, Answer]:
+    """Each line's answer in the line's currency, by the unit the broker lists the line in today;
+    a line the broker does not list is Refused, in its words."""
+    listed = listing.kept(home, now, LINES, door)
+    out: dict[Line, Answer] = {}
+    for line, answer in answers.items():
+        one = listed.get(line.symbol)
+        if one is None:
+            out[line] = Refused(f"{line.symbol}: not a line of the desk, its unit is unknown")
+            continue
+        out[line] = (
+            Refused(one.reason)
+            if isinstance(one, listing.Unlisted)
+            else in_currency(answer, one.magnifier)
+        )
+    return out
+
+
 def daily(
-    now: datetime, wait: Wait = time.sleep
+    now: datetime, wait: Wait = time.sleep, home: Path | None = None
 ) -> Callable[[Sequence[Line], date], dict[Line, Answer]]:
     """THE KEEPER'S BROKER: the daily bars before a day of the lines (at most MOST) the archive
-    lacks, over one conversation. A broker that cannot be asked (a desk round, no gateway) gives
+    lacks, over one conversation, in each line's currency (the desk's root: home, else
+    KESTREL2_DATA). A broker that cannot be asked (a desk round, no gateway) gives
     each line a Refused in words, so the line is judged on the archive alone and, if that too
     lacks it, is parked and named."""
 
     def ask_all(lines: Sequence[Line], day: date) -> dict[Line, Answer]:
         try:
-            return gather(lines[:MOST], day, day - RECENT, now, wait)
+            got = gather(lines[:MOST], day, day - RECENT, now, wait)
+            root = home or Path(os.environ["KESTREL2_DATA"])
+            return priced(root, now, got, paper.Door(CLIENT))
         except (Busy, OSError) as err:
             return {line: Refused(f"the broker was not asked: {err}") for line in lines}
 
@@ -199,7 +248,7 @@ Ask = tuple[Line, str]  #: one line in one timeframe: the unit the pull plans, p
 def plan(lines: Sequence[Line], done: Collection[Ask]) -> list[Ask]:
     """Every ask of every line in every timeframe the database keeps that is not yet done, in a
     fixed order, so a pull stopped anywhere takes up where it left off and fills only the gaps."""
-    return [(line, frame) for line in lines for frame in SIZES if (line, frame) not in done]
+    return [(line, frame) for line in lines for frame in PULLED if (line, frame) not in done]
 
 
 def pull(

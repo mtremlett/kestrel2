@@ -65,6 +65,23 @@ def round_(
     return words, refused == len(mine)
 
 
+def rounds(
+    hot: Path,
+    lines: Sequence[Line],
+    now: datetime,
+    ask: Ask,
+    back: Ask,
+    settled: timedelta,
+) -> list[tuple[str, bool]]:
+    """EVERY VENUE'S FIVE-MINUTE ROUND, before any daily ask: the venues in session (or settled
+    within `settled` of closing) each taken whole, under the caller's own deadline."""
+    told = []
+    for venue in sorted({line.venue for line in lines}):
+        if venues.open_at(venue, now) or venues.open_at(venue, now - settled):
+            told.append(round_(hot, [ln for ln in lines if ln.venue == venue], now, ask, back))
+    return told
+
+
 def due(lines: Sequence[Line], now: datetime) -> tuple[Line, ...]:
     """The lines asked this minute: the next PER_RUN of the rota, which turns once a minute."""
     slot = int(now.timestamp()) // 60
@@ -77,6 +94,9 @@ def minute_round(
     """One run of `--live`: the due lines in session asked for their one-minute bars, kept as
     IBKR's; the words, and each line whose newest bar is later than LATE or was refused."""
     mine = [line for line in due(lines, now) if venues.open_at(line.venue, now)]
+    with bars.writing(hot, bars.Source.IBKR) as started:  # a line with no history is started
+        for line in mine:
+            started.timed(line, MINUTES, ())
     answers = archive.gather(mine, now, ask)
     with bars.writing(hot, bars.Source.IBKR) as kept:
         for line, answer in answers.items():

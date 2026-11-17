@@ -108,8 +108,9 @@ def test_a_pull_fills_the_gaps_only_paced_and_resumes_after_a_stop() -> None:
     def keep(line: Line, frame: str, _: object) -> None:
         done.add((line, frame))
 
-    everything = len(history.SIZES) * 2
+    everything = len(history.PULLED) * 2
     first = history.plan((VUAG, IDTL), done)
+    assert not {f for _, f in first} & {"1h", "4h", "1wk"}  # rolled up locally, not asked
     assert len(first) == everything - 1 and (VUAG, "1d") not in first
     assert history.pull(first, fetch, keep, waits.append, limit=4) == 4
     assert waits == [history.PACING] * 3 and len(done) == 5
