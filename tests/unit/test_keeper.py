@@ -132,14 +132,14 @@ def test_a_trading_day_is_kept_each_venue_on_its_own_hours(tmp_path: Path) -> No
     pretend.keep(tmp_path, _at(17))  # London is over; its last bars are still coming in
     assert pretend.asked == ["BBB 5m", "AAA 5m", "CCC 5m"]
     pretend.keep(tmp_path, _at(17, 5))  # its day has settled: the closes, and the last round
-    assert pretend.asked == ["BBB", "BBB 5m", "AAA 5m", "CCC 5m"]
+    assert pretend.asked == ["BBB 5m", "AAA 5m", "CCC 5m", "BBB"]  # the round first
     pretend.keep(tmp_path, _at(17, 10))
     assert pretend.asked == ["AAA 5m", "CCC 5m"]
     assert keeper.saved(tmp_path, tue, [UK])[0][UK][-1].day == MON  # London's close is held
     with pytest.raises(keeper.Stale, match="AAA: no US bars before 2026-11-17"):
         keeper.saved(tmp_path, tue, LINES)
     pretend.keep(tmp_path, _at(21, 30))
-    assert pretend.asked == ["AAA", "CCC", "AAA 5m", "CCC 5m"]
+    assert pretend.asked == ["AAA 5m", "CCC 5m", "AAA", "CCC"]
     assert keeper.saved(tmp_path, tue, LINES)[0] == {line: _bars(line, tue) for line in LINES}
     assert keeper.saved(tmp_path, MON, LINES)[0][US] == _bars(US, MON)  # a day back: no bar of it
     pretend.keep(tmp_path, _at(6, day=tue))  # the evening's bars are asked again in the morning
@@ -246,14 +246,14 @@ def test_a_line_unanswered_keeps_what_its_day_holds_is_asked_again_and_a_blind_v
         assert held == {line: _bars(line, tue) for line in LINES} and not parked
     said, missed = pretend.keep(tmp_path, _at(17, 5, tue))  # a new day's bars: none stand for it
     assert missed == [
-        said[0],
         ROUND.format(0, 1, "ValueError: no IBKR real-time data on paper", "no bar landed"),
+        said[2],
     ]
     assert keeper.saved(tmp_path, wed, [UK]) == ({UK: ()}, frozenset({"BBB"}))
     pretend.refuses, pretend.short = set(), {"BBB"}
     for call in range(keeper.TRIES + 2):  # answered, yet no line clean: a miss, and never left
         said, missed = pretend.keep(tmp_path, _at(18, 5 * call, tue))
-        assert pretend.asked[0] == "BBB" and missed == [said[0]]
+        assert "BBB" in pretend.asked and missed == [w for w in said if w.startswith("LSE: daily")]
 
 
 def test_nothing_is_asked_on_a_day_no_venue_trades_nor_once_the_calls_time_is_spent(
@@ -279,7 +279,7 @@ def test_nothing_is_asked_on_a_day_no_venue_trades_nor_once_the_calls_time_is_sp
     assert pretend.keep(other, _at(6))[1] == [] and pretend.asked == ["BBB", "AAA", "CCC"]
     assert keeper.saved(other, MON, [US]) == ({US: _bars(US, MON)}, frozenset())
     said, missed = pretend.keep(tmp_path, _at(15), slow=True)  # both open; its time spent in two
-    assert pretend.asked == ["BBB", "BBB 5m"] and missed == said[2:] and len(said) == 4
+    assert pretend.asked == ["BBB 5m"] and missed == said[1:] and len(said) == 4  # the round first
     assert keeper.saved(tmp_path, MON, LINES)[1] == frozenset()  # the weekend's bars stand
     pretend.refuses = set()
     pretend.keep(tmp_path, _at(21, 30, YULE - timedelta(1)))  # Christmas Eve's closes are held
