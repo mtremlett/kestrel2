@@ -46,6 +46,8 @@ STORE = "archive"  #: the folder of a home that holds the raw answers, a folder 
 MIDNIGHT = timedelta(hours=1)  #: London's midnight in summer, behind UTC's by this
 #: Slow: the least gap between two asks. Backing off: the waits, in seconds, before each retry
 #: of an ask the archive turned away (too many asks, or its own fault) or did not answer.
+#: The archive publishes no limit and the desk never probes for one with bursts (a ban would cost
+#: the desk its own data): the pace is a fixed courtesy and the backoff learns from real refusals.
 PACE = 1.0
 BACKOFF = (5, 30, 120)
 ASKED_TO_WAIT = 300  #: the longest wait the archive's own Retry-After is obeyed for, in seconds
