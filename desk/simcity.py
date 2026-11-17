@@ -1,9 +1,8 @@
 """simcity - SIMCITY. ONE COMMAND lives the desk's day through a hundred seeded worlds of the saved
 data at the pretend broker, and writes one record of the night. A WORLD is the saved lines on their
-own days, each line's months dealt again by the world's number, which also deals the faults and
-what a real desk meets: it dies mid-send and is started again, a position appears behind its back,
-a stop is cancelled by hand, the kill switch is pulled. THE CENSUS names each part of the money
-path with the scenarios that ran it. A part none ran, or a promise broken, turns the night red."""
+own days, months dealt again by the world's number, which also deals the faults and the mishaps a
+real desk meets. THE CENSUS names each part of the money path with the scenarios that ran it. A part
+none ran, or a promise broken, turns the night red."""
 
 from __future__ import annotations
 
@@ -25,6 +24,7 @@ from desk.broker import Crash, Fault, Pretend, Report
 from desk.lines import YARDSTICK, Line
 from desk.orders import HOLDINGS, Order, Sale, Settings, pennies
 from desk.simcity_census import Census
+from desk.simcity_incidents import HOLE, hole
 from desk.store import Bar
 from desk.strategy import Action
 
@@ -51,8 +51,7 @@ BEHIND = "a position appears behind the desk's back"
 UNSTOPPED = "a stop is cancelled by hand"
 GAPPED = "every line opens at its low"
 KILLED = "the kill switch is pulled, released and drilled"
-RECKONING = "the night's reckoning"
-TRIPS = "the round trips are told"
+RECKONING, TRIPS = "the night's reckoning", "the round trips are told"
 
 
 @dataclass(frozen=True)
@@ -273,6 +272,7 @@ EVENTS: tuple[Event, ...] = (
     (UNSTOPPED, _unstopped),
     (GAPPED, _gapped),
     (KILLED, _killed),
+    (HOLE, hole),
 )
 
 

@@ -64,7 +64,7 @@ def lived(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, simcity.Night
 
     with pytest.MonkeyPatch.context() as patch:
         patch.setattr(simcity, "_live", watched)
-        return root, simcity.run(root, MARKET, ROOM, RATES, NOW, (1,)), seen
+        return root, simcity.run(root, MARKET, ROOM, RATES, NOW, (4,)), seen
 
 
 @pytest.fixture(scope="module")
@@ -338,7 +338,7 @@ def test_a_part_behind_a_wrapper_is_still_a_part() -> None:
         (day, "pennies", lambda p: orders.pennies(p) + Decimal("0.01"), ["profits add up"], 0),
         (simcity, "HOLDINGS", 3, ["never more than 3 lines are held"], 0),
         (simcity, "_Counted", lambda _, rng: WORLD(SHORT, rng), ["inside its day's range"], 0),
-        (book, "_unless_killed", lambda *_: None, ["nothing reaches the", "drill is on the"], 2),
+        (book, "_unless_killed", lambda *_: None, ["nothing reaches the", "drill is on the"], 3),
     ],
 )
 def test_a_promise_the_desk_breaks_in_any_world_turns_the_night_red_and_names_the_world(
