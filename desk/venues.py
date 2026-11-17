@@ -10,21 +10,36 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta, timezone
 from functools import cache
 
-KNOWN = range(2010, 2028)  #: the years whose closures below are complete
+KNOWN = range(2010, 2028)  #: the years whose hours below are complete
+#: The years whose closures below are complete: the daily history begins on 29 January 1993.
+SESSION_YEARS = range(1993, 2028)
 
 #: Closures no rule predicts: royal occasions, state funerals, a storm.
 EXTRA = {
     "LSE": {
+        date(1999, 12, 31),
+        date(2002, 6, 3),
         date(2011, 4, 29),
         date(2012, 6, 5),
         date(2022, 6, 3),
         date(2022, 9, 19),
         date(2023, 5, 8),
     },
-    "US": {date(2012, 10, 29), date(2012, 10, 30), date(2018, 12, 5), date(2025, 1, 9)},
+    "US": {
+        date(1994, 4, 27),
+        *(date(2001, 9, n) for n in range(11, 15)),
+        date(2004, 6, 11),
+        date(2007, 1, 2),
+        date(2012, 10, 29),
+        date(2012, 10, 30),
+        date(2018, 12, 5),
+        date(2025, 1, 9),
+    },
 }
 #: UK bank holidays moved by proclamation: the rule's day -> the day actually shut.
 MOVED = {
+    date(1995, 5, 1): date(1995, 5, 8),
+    date(2002, 5, 27): date(2002, 6, 4),
     date(2012, 5, 28): date(2012, 6, 4),
     date(2020, 5, 4): date(2020, 5, 8),
     date(2022, 5, 30): date(2022, 6, 2),
@@ -85,7 +100,10 @@ def _thanksgiving(year: int) -> date:
 
 def _us(year: int) -> set[date]:
     thanksgiving = _thanksgiving(year)
-    fixed = {_monday(year, 1, 3), _monday(year, 2, 3), _monday(year, 5, -1), _monday(year, 9, 1)}
+    fixed = {_monday(year, 2, 3), _monday(year, 5, -1), _monday(year, 9, 1)}
+    fixed |= (
+        {_monday(year, 1, 3)} if year >= 1998 else set()
+    )  #: Martin Luther King Day, first kept in 1998
     fixed |= {_easter(year) - timedelta(2), thanksgiving}
     #: A Saturday New Year falls back to the old year's 31 December, which is only ever looked
     #: up in the old year's own list, so the exchange stays open that day, as it does.
@@ -98,10 +116,10 @@ RULES: dict[str, Callable[[int], set[date]]] = {"LSE": _lse, "US": _us}
 
 @cache
 def _shut(venue: str, year: int) -> frozenset[date]:
-    if venue not in RULES or year not in KNOWN:
+    if venue not in RULES or year not in SESSION_YEARS:
         raise ValueError(
             f"no calendar for venue {venue!r} in {year}: known {sorted(RULES)}, "
-            f"{KNOWN.start}-{KNOWN.stop - 1}"
+            f"{SESSION_YEARS.start}-{SESSION_YEARS.stop - 1}"
         )
     extra = {day for day in EXTRA[venue] if day.year == year}
     return frozenset(RULES[venue](year) | extra)
@@ -191,6 +209,10 @@ def hours(venue: str, day: date) -> Hours:
     """The hours of the venue's session on a day; a day it does not trade has none."""
     if sessions(venue, day, day) != (day,):
         raise ValueError(f"{venue} does not trade on {day}: it has no hours")
+    if day.year not in KNOWN:
+        raise ValueError(
+            f"no hours for {venue} in {day.year}: known {KNOWN.start}-{KNOWN.stop - 1}"
+        )
     clock = CLOCKS[venue]
     early = day in clock.half_days(day.year)
     opens, close = (
