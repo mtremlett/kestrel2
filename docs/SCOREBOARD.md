@@ -317,6 +317,13 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #768 R-RUNNER-307: unit rule on the 95% majority, IB1T no longer parked on archive bad days.
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #769 R-MONEY-28 confirmed built; R-DATA-49 waits on PAPER (no code).
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #770 R-PAPER-33: the pound asked of IBKR as a forex pair.
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #764 R-RUNNER-288 store split: desk/store.py 400 to 278 lines, neighbour judging in store_parts.py. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #778 no change; blocking requests already on main, R-DATA-49's required home waits on command.py. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #780 R-RUNNER-216 step: a rolled bar disagreeing with a held one recorded as a fault. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #783 R-MONEY-48 done: unread HISTORY alias deleted from the rehearsal scene. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #784 R-RUNNER-289: lab/universe.py split, 398 to 326 lines. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #797 R-RUNNER-217 step 1: quality monitor, daily timeframe, audit-backfill-reaudit line. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #795 DAT-03, DQ-01 step: coverage and quality measured per line (desk/coverage.py). |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
@@ -404,6 +411,11 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #741 no change; R-MONEY-49 and R-MONEY-36 found already on main. |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #738 R-RUNNER-281 part: conformance sizing reads the store's bar. |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #752 supervisor pulls main at the safe point (OPS-05, OPS-16). |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #779 R-RUNNER-308 conformance stop step judged on fills, not status words.
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #782 R-RUNNER-286 messenger split 400 to 349 lines, pure restructuring.
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #793 R-DATA-9 bars question pinned to port 4002 and the read-only list (1 product line).
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #798 R-DATA-52 home passed to history.daily; R-MONEY-49 declined as already done.
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #805 R-RUNNER-291 lost-stop list reaches him in the evening message.
 
 ### GRID
 
@@ -603,3 +615,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #742 R-RUNGS-27: basket answer wired to basket_answer, INCUBATE listed apart |
 | 2026-11-17 | 7 of 7 | - | +3 | - | 14 of 14 proven | green | #772 R-RUNNER-191 step: the three-band rule of t has one home, rung.band |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #773 R-MONEY-45 step: raschke_swing in the spec book (turtle_soup entry, under_entry_low stop) |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #775 R-RUNGS-23 done: each table row shows its holding figure (R-RUNNER-148, second step) |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #790 R-MONEY-45 step: demark_sequential in the spec book |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #776 R-RUNNER-205 step: market weather layer 3, drawdown depth (not wired) |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #789 R-RUNNER-191 step: one home for a mean and its standard error (no verdict changed) |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #803 R-RUNNER-191 step: rung_folds keeps only the fold's shape; folds.py judges (-184 lab/test lines) |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #799 R-MONEY-45 step: darvas_box in the spec book |

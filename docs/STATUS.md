@@ -135,15 +135,15 @@ money-restop waits on R-MONEY-18, R-MONEY-31 (the lost-stop list in `desk/messen
 
 ## PAPER
 
-Last updated: 17 November 2026 (folds #215 to #686: the 50 landed pull requests of 14-17 November).
+Last updated: 17 November 2026 (folds #215 to #805).
 
 ### Where it is
 
-Built: supervisor pulls main at the safe point (#752), contract request carries exchange, currency, ISIN (#706), pound from IBKR first (#716), `paper.CLIENT`/`APART`/`current` gone (#733), messenger (hourly P&L, kill/halt line, email door not yet wired), step, drill, supervisor (step registered, `tell`), conformance (ids, gate refusal, tape with the soak folded in, #766, Door), go flat, streak, records_kept, t212 (read-only), stop moved to the fill each round, recover puts back a lost stop (R-MONEY-30). Conformance Mon 16 Nov: every difference fixed. Unseen: a part fill; a true stop trigger; t212 shapes never met the real service; `paper.newest` (R-DATA-9) never met the Gateway.
+Built: supervisor pulls main at the safe point (#752), contract request carries exchange, currency, ISIN (#706), pound from IBKR first (#716), `paper.CLIENT`/`APART`/`current` gone (#733), messenger (hourly P&L, kill/halt line, email door not yet wired), step, drill, supervisor (step registered, `tell`), conformance (ids, gate refusal, tape with the soak folded in, #766, Door), go flat, streak, records_kept, t212 (read-only), stop moved to the fill each round, recover puts back a lost stop (R-MONEY-30). Conformance Mon 16 Nov: every difference fixed; the stop step is judged on fills and holdings (#779, needs the next live US run to confirm 6 of 6); evening message names each lost stop (#805); `paper.READ_ONLY` pins the bars question to port 4002 (#793). Unseen: a part fill; a true stop trigger; t212 shapes never met the real service; `paper.newest` (R-DATA-9) never met the Gateway.
 
 ### Next step
 
-R-PAPER-28, -29. Conformance sizing (R-RUNNER-281): `desk/conformance.py:242` must pass `root` to `plan(...)` as `home`, then the archive branch goes (needs a claim naming it). Live check that the gateway answers IDTL (R-RUNNER-278). paper-supervised, paper-cards, paper-extras, paper-backups wait: operator. Coordinator deletes `desk/conformance_soak.py` and its manifest row (non-lane PR, R-RUNNER-285).
+R-PAPER-28, -29. Drop the unused `ended` branch of `action(said, ended)` in `desk/ended.py` (needs a claim). Conformance sizing (R-RUNNER-281): `desk/conformance.py:242` must pass `root` to `plan(...)` as `home`, then the archive branch goes (needs a claim naming it). Live check that the gateway answers IDTL (R-RUNNER-278). paper-supervised, paper-cards, paper-extras, paper-backups wait: operator. Coordinator deletes `desk/conformance_soak.py` and its manifest row (non-lane PR, R-RUNNER-285).
 
 ### Requests to MONEY
 
@@ -166,14 +166,14 @@ R-PAPER-28, -29. Conformance sizing (R-RUNNER-281): `desk/conformance.py:242` mu
 
 ### Done for other lanes
 - R-RUNNER-26: #215; R-RUNNER-42: #223; R-RUNNER-91: #295; R-MONEY-17: #296; R-MONEY-25: #300; R-DATA-14: #302; R-RUNNER-177: #369; R-RUNNER-180: #373; R-MONEY-36: #385; R-RUNNER-191: #433; R-RUNNER-196: #437; R-RUNNER-197: #444; R-RUNNER-190: #462; R-RUNNER-113: #461 (half); R-RUNNER-207: #471; R-RUNNER-209: #476
-- R-RUNNER-16: #484 (door only); R-RUNNER-93: #393; R-RUNNER-210: #492; R-RUNNER-17: #495; R-RUNNER-212: #512; R-DATA-9: #509; R-RUNNER-161: #502; R-RUNNER-162: #558; R-RUNNER-92: #565; R-RUNNER-223: #572; R-RUNNER-234: #577; R-RUNNER-250: #584; R-RUNNER-251: #599; R-RUNNER-235: #601; R-RUNNER-256: #623; R-RUNNER-255: #645; R-RUNNER-258: #651 (step 1 of 3); R-MONEY-30: #657; R-RUNNER-268: #690; R-RUNNER-278: #706; R-RUNNER-282: #716; R-RUNNER-257: #733; R-MONEY-49 and R-MONEY-36: #741 (already on main)
+- R-RUNNER-16: #484 (door only); R-RUNNER-93: #393; R-RUNNER-210: #492; R-RUNNER-17: #495; R-RUNNER-212: #512; R-DATA-9: #509 and #793; R-RUNNER-161: #502; R-RUNNER-162: #558; R-RUNNER-92: #565; R-RUNNER-223: #572; R-RUNNER-234: #577; R-RUNNER-250: #584; R-RUNNER-251: #599; R-RUNNER-235: #601; R-RUNNER-256: #623; R-RUNNER-255: #645; R-RUNNER-258: #651 (step 1 of 3); R-MONEY-30: #657; R-RUNNER-268: #690; R-RUNNER-278: #706; R-RUNNER-282: #716; R-RUNNER-257: #733; R-MONEY-49 and R-MONEY-36: #741 (already on main); R-DATA-52: #798; R-MONEY-49: #798 (declined, already on main); R-RUNNER-286: #782; R-RUNNER-291: #805; R-RUNNER-308: #779
 - R-PAPER-32: #733; R-PAPER-5, -9 to -12, -14, -15, -22, -24 (done, see #288, #282, #285, #290, #289, #516, #291, #215/#393, #302); R-PAPER-6: #175
 
 ### Found, not fixed
 
 - **Unseen at the real Gateway:** a part fill, a true stop trigger; the 08:05 London opening buy cancelled once by the desk's own 30 s wait (#437). While the kill switch is on, go flat sells nothing (R-RUNNER-162).
 - **Supervisor:** Windows does not yet start it or `tell`; no kill drill on the real step; seven days not counted; the Gateway's 03:00 restart may show as bad receipts (`messenger.watch` has no caller).
-- **Other:** `tape.moved` in `desk/conformance_tape.py` is unused; `desk/messenger.py` is at 400 lines, `desk/` has 92 of 10,500 lines left; a note over 24 h old is no longer re-sent; the rehearsal docstring says "no market trading" (stale); the pound's IBKR request asks for a share contract, so the archive fills in (R-PAPER-33); `keeper.saved` is stale for every venue if one is not refreshed.
+- **Other:** `tape.moved` in `desk/conformance_tape.py` is unused; `desk/messenger.py` is at 349 lines after the split (#782) but `desk/` has 92 of 10,500 lines left; a note over 24 h old is no longer re-sent; the rehearsal docstring says "no market trading" (stale); the pound's IBKR request asks for a share contract, so the archive fills in (R-PAPER-33); `keeper.saved` is stale for every venue if one is not refreshed.
 
 ## DATA
 ### Where it is (17 November 2026, folds #217-#770)
@@ -183,18 +183,19 @@ Twenty traded lines (SPY, QQQ reference series, #455, #544); one archive client,
 keeper and history-pull bars keep the line's currency (#719, #725); backfill; old stores in (#238-#566). Six London lines
 clean (#222-#702); an untraded bar gives way to a traded one (#721). Keeper asks IBKR first for every line, a disagreement over 2% recorded not parked (#751); gaps bridged from
 five-minute bars (#747); a shelf a hundredth of the archive's put right in the store (#753); history pull asks only 1m-30m
-and 1d (#739). 1h, 4h, 1wk rolled locally as rollup:<from> (#760); keeper takes the five-minute round first under half its time (#759); 1m bars parsed as Timed (#757); the pound asked as GBP.USD forex (#770); shelf unit rule on a 95% majority of shared days (#768, IB1T; 3LGO and 2MU unseen, to be checked on the next real round). Unfinished: R-RUNNER-216 (a fault where a rolled and a pulled bar disagree, the quality monitor's backfill), -215, R-RUNNER-10 (5-minute
+and 1d (#739). 1h, 4h, 1wk rolled locally as rollup:<from> (#760); keeper takes the five-minute round first under half its time (#759); 1m bars parsed as Timed (#757); the pound asked as GBP.USD forex (#770); shelf unit rule on a 95% majority of shared days (#768, IB1T; 3LGO and 2MU unseen, to be checked on the next real round). `desk/store.py` split, its neighbour judging in `desk/store_parts.py` (#764); `lab/universe.py` split, reading rule in `lab/universe_parts.py` (#784); a rolled bar disagreeing with a held one is a stderr FAULT (#780); `python -m desk.quality` daily audit-backfill-reaudit (#797); `desk/coverage.py` scores coverage per line, not yet wired (#795). Unfinished: R-RUNNER-216 and -217 (other timeframes, market_live.db, the runner job), -215, R-RUNNER-10 (5-minute
 parquet, market.db, bars.db, per-source counts). Next: the first real `--live` run, data-keeper-receipts.
 ### Done for other lanes
 - R-RUNNER-28 #222, -41 #219, -24 #238, -37 #254, -90 #286, -97 #305, -104 #314, -107 #315, -116 #349, -175 #367, -182 #374, -179 #376, -185 #381, -15 #460, -94 #303, -96 #475, -149 #453, -194 #518,
   -11 #514, -211 #530, -178 #532, -189 #541, -157 #528, -221 #548, -218 #547, -224 #574, -236 #591, -254 #612, -12 #629, -264 #656, -266 #666, -263 #660, -270 #701, -269 #715, -279 #719, -274 and -275
-  #721, -277 #727, -284 #744, -276 #751, -272 #753; R-RUNNER-290 #757; R-PAPER-33 #770; R-PAPER-23 #294, -22 #505, -16 and -3 #543; R-GRID-4 #338; R-MONEY-28 #536, #740, #769; R-RUNGS-3, -5, -15 #537, -9 #544, -16 #630, #747
+  #721, -277 #727, -284 #744, -276 #751, -272 #753; R-RUNNER-290 #757; R-PAPER-33 #770; R-RUNNER-288 #764, -289 #784; R-MONEY-48 #783; R-PAPER-23 #294, -22 #505, -16 and -3 #543; R-GRID-4 #338; R-MONEY-28 #536, #740, #769; R-RUNGS-3, -5, -15 #537, -9 #544, -16 #630, #747
 - Mine, done by others: R-DATA-1 (#73), -4, -5, -6 (#522), -9, -15 (#517, #530), -17, -25, -26, -27, -28, -31, -35 (#652); own R-DATA-19 to -23, -36, -40, -41 done, -24 superseded by the database
 ### Requests to DATA
-- [ ] R-DATA-49 (blocking): keeper round first is done (#759). Remains: make `home` required in `history.daily`, once PAPER passes it (R-DATA-52).
+- [ ] R-DATA-49 (blocking): keeper round first is done (#759). Remains: make `home` required in `history.daily`, once PAPER passes it (R-DATA-52; same call as R-DATA-53).
 ### Requests to GRID
 - [ ] R-DATA-7: a cell reads `universe.read(root, line).bars`, keeps `History.moves`, `.rescaled`. R-DATA-10 (blocking): `test_lab_batch.py`, `test_lab_cell.py` name SPY and QQQ; name lines that stay.
 ### Requests to MONEY
+- [ ] R-DATA-53 (blocking, opened 2026-11-17 16:00 UK, #778): `desk/command.py:387` calls `history.daily(now, home=root)`, so DATA can make `home` required (R-DATA-49; same call as R-DATA-52).
 - [ ] R-DATA-3: the day run reads the archive through `archive.gather`. R-DATA-12: `day.run` takes "simply holding the market" from `lines.YARDSTICK`; no ISA buy where isa is not yes. R-DATA-13:
   `test_watch.py`, `test_pnl.py` name the store "bars.db"; use `keeper.HOT`. R-DATA-30: `lab/slippage.py` reads `bars.daily(home / keeper.HOT, line)`, not CSVs.
 - [ ] R-DATA-33: `command.rates` calls `keeper.pound(home, day)`; POUND, DOLLARS from `desk.lines`. R-DATA-45, -47: refuse a buy on a line in `keeper.parked_live(home / keeper.HOT, LINES, now)`; say
@@ -204,7 +205,7 @@ parquet, market.db, bars.db, per-source counts). Next: the first real `--live` r
 ### Requests to PAPER
 - [ ] R-DATA-14 (blocking): wire `keeper.saved(home, day)` and the crash watch's `home / keeper.HOT`; the day's record only once `keeper.target(venue, now)` is past, or the door refuses 25 minutes
   every evening.
-- [ ] R-DATA-52 (blocking, opened 2026-11-17 15:00 UK, #759, #769): `desk/command.py` line 387, `history.daily(now)` becomes `history.daily(now, home=root.parent)`; DATA then makes `home` required (R-DATA-49).
+- [ ] R-DATA-52 (blocking, opened 2026-11-17 15:00 UK, #759, #769, restated 18:00 in #795): `desk/command.py` line 387, `history.daily(now)` becomes `history.daily(now, home=root.parent)`; DATA then makes `home` required (R-DATA-49).
 - [ ] R-DATA-37: look IDTL up by `Line.isin`. R-DATA-42: `test_conformance_action.py` restores `paper.CLIENT`, `paper.APART`. R-DATA-44: `command.py` drops its own POUND and DOLLARS. R-DATA-50 (later,
   #747): IDTL has no security definition at the broker, so the live round refuses it; needs its ISIN/contract.
 ### Requests to RUNGS
@@ -216,7 +217,7 @@ parquet, market.db, bars.db, per-source counts). Next: the first real `--live` r
 ### Found, not fixed
 - **UK tax (NS-05).** Five London products unseen on a contract note; London shares 0.5%, unchecked. **Research:** today's members only (BT-09); scale changes under the store's belief are UNI-07.
 - **Operator:** IB1T not ISA-holdable; data-members, data-isa-twins wait on him. **Store/keeper:** `history.run` checks the desk round once, not per page, its bars not yet re-aligned to the session,
-  no rolled-vs-pulled fault; 5QQQ's 2021-22 lost; `backfill.in_currency` alias awaits `test_backfill.py`; `keeper.py` 400 lines; a broker-filled bar is labelled "archive"; archive limits unmeasured
+  5QQQ's 2021-22 lost; `backfill.in_currency` alias awaits `test_backfill.py`; `keeper.py` 400 lines; `quality` runner job needs its card ticked; a broker-filled bar is labelled "archive"; archive limits unmeasured
   (#685); Stooq head start 2000-09 undone; `history.lacks` unused (#751); IDTL parks on a missing 16 Nov unless its five-minute bars are held; disagreements not in a stored fault file.
 ## GRID
 
@@ -273,13 +274,12 @@ Last updated: 17 November 2026.
 Eleven rungs built, each proven alone (#342-#365, #412). The ladder judges by the first rung, luck, deflated Sharpe, folds (five whole years pooled by
 rule, #313), market, stress (20% of capital, #457), regime on the weather (#622) and the shuffle last; costs, ci and cpcv are declared (#438-#445): "rungs built: 3 of 11".
 Machinery: one compressed tape per (rule, line) (#378, #555); a pool by fold year sized by free memory (#368, #451); sets read market_history.db only (#562), trade list members only (#569);
-EPON (20 rules proven, #308), LEV (#423); the spec book holds 15 of 21 rules as rows with a fast engine (minervini_breakout via `trend_template`, #704). Easings pre-registered (#567) and built behind `verdict.EASED` (False): family
-trials (#596), basket (#664), scorecard (#589), INCUBATE (#695); the golden verdict is untouched. Calibration: `python -m lab.calibration` (#693). Weather layer 2, realised volatility (`weather.volatility`, #737), is wired into no verdict: it joins the regime rung only after an out-of-sample win against trend alone (open: the scorer, then drawdown, breadth, macro; 1 trial spent). Blind reviews: #402, #419; judge walk test (#593).
+EPON (20 rules proven, #308), LEV (#423); the spec book holds rules as rows with a fast engine that also walks position-dependent blocks (darvas_box #799, demark_sequential #790, raschke_swing #773). Easings pre-registered (#567) and built behind `verdict.EASED` (False): family
+trials (#596), basket (#664), scorecard (#589), INCUBATE (#695); the golden verdict is untouched. Calibration: `python -m lab.calibration` (#693). Weather layers 2, realised volatility (`weather.volatility`, #737), and 3, drawdown depth (`weather.drawdown`, 10% under the 252-session high, #776), are wired into no verdict: it joins the regime rung only after an out-of-sample win against trend alone (open: the scorer, then breadth, macro; 1 trial spent). Blind reviews: #402, #419; judge walk test (#593).
 **No winner on real prices is to be believed: SET EPON judged 21,320 cells, none goes forward; every table is PRE-REVIEW. A loss gapping through the stop is unplanted (#402, #409 declined): a no-edge gap rule can pass rung 1 up to 18.8%, the later rungs cut it to 0-2.2%.**
 
 ### Next step
-Open: rungs-trustworthy remainder (wire the other eight rungs, R-RUNNER-191, which need trials, spread and market bars handed over by the ladder; the Sharpe a trade now has one home, #746; the three-band rule of t has one home, `rung.band` (#772), and rung_ci/bootstrap/regimes keep their own bands, so next: check whether rung_regimes and rung_bootstrap can read rung.decide/band, and fold rung_folds.py's stretch into folds.py's pool; clustered trials (#379) into the verdict; ease-switch-on), rungs-each-rung, rungs-gate, rungs-spec; spec book rows still owed: darvas_box, demark_sequential (#718),
-mansfield_rs_momentum (needs the SPY index line), zweig_breadth_thrust (R-MONEY-35); raschke_swing is a row (#773) (R-MONEY-45, R-RUNNER-219). Ruled: concentration on every report; unit tests stay at the product's size.
+Open: rungs-trustworthy remainder (wire the other eight rungs, R-RUNNER-191, which need trials, spread and market bars handed over by the ladder; the Sharpe a trade now has one home, #746; the three-band rule of t has one home, `rung.band` (#772), a mean and its standard error one home, `rung.mean_and_error` (#789), the fold's second judge is gone (#803; Fold/Walked still sit in rung_folds.py, moving them needs a claim with manifest.toml and test_lab_folds.py); next: rung_regimes and rung_bootstrap own bands could read rung.decide/band, rung_dsr.chance vs deflated._deflated, float mean/spread in rung_benchmark.interval and market.py; clustered trials (#379) into the verdict; ease-switch-on), rungs-each-rung, rungs-gate, rungs-spec; spec book rows still owed: mansfield_rs_momentum (needs the SPY index line), zweig_breadth_thrust (waits R-MONEY-35) (R-MONEY-45, R-RUNNER-219). The table's holding column is built (R-RUNGS-23, #775); other rungs' wiring remains. Ruled: concentration on every report; unit tests stay at the product's size.
 **Waiting (hand out no more):** rungs-reproduce (R-RUNGS-5, 9, 10, 13, 14; R-RUNGS-13 BLOCKED ON DATA: no store holds the S&P 500 index from 1983; SPY daily from 1993-01-29 in mark_the_trend.db serves, R-RUNNER-37);
 rungs-promotion (R-RUNGS-7; kill numbers need a ladder-passed candidate); rungs-feasibility (needs three ladder-passed rules, from rungs-eponymous); rungs-blocks (sizing blocks, operator); rungs-indicators (operator).
 `Candidate` should also refuse a row listing unrun rungs (recommended: when the first real candidate nears).
@@ -287,7 +287,7 @@ rungs-promotion (R-RUNGS-7; kill numbers need a ladder-passed candidate); rungs-
 - R-DATA-11, R-RUNNER-5, R-RUNNER-3: done in #186; R-RUNNER-25: #202; R-RUNNER-33: #206; R-MONEY-34: #239; R-GRID-6: #427; R-GRID-2: #504; R-MONEY-13: #600; R-MONEY-43: #693
 - R-RUNNER-47: done in #235; -45: #239; -49: #244; -52: #241; -83: #252; -85: #253; -86: #279; -95: #304; -101: #307; -98: #308; -102: #309; -106: #310; -108: #311; -109: #312; -99: #313; -114: #316; -110: #318; -100: #319; -103: #322; -124: #327
 - R-RUNNER-117: done in #331; -130: #333; -152: #340; -133: #343; -131: #344; -134: #347; -123: #346; -122: #342; -121: #350; -119: #351; -120: #354; -136: #361; -154: #362; -139: #364; -155: #363; -135: #365; -168: #366; -166: #368; -173: #371; -137: #379; -169: #378; -126: #382; -165: #384
-- R-RUNNER-183: done in #405; -187: #409 (declined); -174: #410; -188: #419; -40: #402; -186: #425; -192: #427; -203: #451; -204: #457; -171: #560; -213: #555; -222: #562; -146: #569; -225: #567; -230: #589; -237: #603; -193: #593; -226: #596; -239: #635; -260: #658; -227: #664; -267: #680
+- R-RUNNER-183: done in #405; -187: #409 (declined); -174: #410; -188: #419; -40: #402; -186: #425; -192: #427; -203: #451; -204: #457; -171: #560; -213: #555; -222: #562; -146: #569; -225: #567; -230: #589; -237: #603; -193: #593; -226: #596; -239: #635; -260: #658; -227: #664; -267: #680; R-RUNGS-23: #775
 ### Requests to MONEY
 - [x] R-RUNGS-6, 8, 11, 12 met on main (public indicators #185, `strategy_of` refuses, `GAP_LOSS`); [x] R-RUNGS-3, 15 met by the carry rule and the kept table (#239, #307)
 - [ ] R-RUNGS-7 (later, 01:50): the day's run reads each candidate's `promotion.standing`, buys nothing for a killed one.
@@ -298,6 +298,7 @@ rungs-promotion (R-RUNGS-7; kill numbers need a ladder-passed candidate); rungs-
 - [ ] R-RUNGS-2 (later, 13 Nov): the declared sweep enters every cell in the register before the batch runs. [ ] R-RUNGS-4 (later): a kept verdict's key takes in the rates it was priced with.
 - [ ] R-RUNGS-19 (later, 16 Nov 15:00): `Cell.symbol` still read in lab/cell.py:65, lab/ladder_sets.py and tests/unit/test_lab_tune.py:210; RUNGS's files are clear: drop it.
 - [ ] R-RUNGS-25 (later, 17 Nov 05:00): capital and the rate table's version into `lab.cell.Key` (R-GRID-3, last part).
+- [ ] R-RUNGS-28 (later, 17 Nov 18:00): `lab/transfer.py:170` calls `ladder.rates(home=data)` (the data folder, where the pound's kept closes live), so they are not asked of the archive each run; its test's stub takes `home`. Meets R-RUNGS-17.
 ### Requests to DATA
 - [ ] R-RUNGS-5 (blocking): SPY and US sessions back to January 1993, saying if dividend-adjusted. [ ] R-RUNGS-9 (blocking): SPY from 29 Jan 1993 kept as traded and adjusted, labelled.
 - [ ] R-RUNGS-13 (later, 14 Nov): the S&P 500 index from 1983 to Feb 2013, daily closes, US sessions (BLOCKED ON DATA).
@@ -306,7 +307,7 @@ rungs-promotion (R-RUNGS-7; kill numbers need a ladder-passed candidate); rungs-
 - [ ] R-RUNGS-22 (later, 16 Nov 12:00): inverse ETFs (SQQQ, SPXU, SH, SDS) in the research list and store, once R-RUNGS-21 allows.
 ### Requests to RUNGS
 - [ ] R-RUNGS-17 (later): lab/transfer.py:170 calls `ladder.rates(home=root)`. [ ] R-RUNGS-18 (later): `Priced.stopped` required; lab/montecarlo.py reads `verdict.gains`.
-- [ ] R-RUNGS-23 (later, 16 Nov 12:00): call `lab.holding.beside` from the table writer so each row shows its holding figure (R-RUNNER-148, second step).
+- [x] R-RUNGS-23 (16 Nov 12:00): the table's holding column, `lab.holding.beside` per cell (#775).
 - [x] R-RUNGS-27 (17 Nov): `verdict.basket_answer` wired into `basket.row`, INCUBATE listed apart (#742); EASED stays off until card ease-switch-on.
 ### Found, not fixed
 - **Ladder:** one run at a time; no settings on rules; the ladder docstring still says "unrun: no weather" (#622); `ladder.stored` unused since #562; `Cell` key omits capital. **Reproduction:** Bollinger, 50/200 cross, Supertrend have no author's test (ruling owed).

@@ -6,7 +6,9 @@ The interval is the mean plus and minus T_PASS standard errors (Wasserman, All o
 not on a sign: wholly above nothing PASS, wholly below FAIL, holding nothing DOUBT. Under MIN_TRADES
 gains it is THIN, never a fail; no gain at all is a FAULT in the test (LAD-06, LAD-09); gains
 with no spread are refused loudly. Its two errors and thirty trades are the first rung's own
-(`lab/rung.py`), read from there.
+(`lab/rung.py`), read from there. It does not call `rung.band`: the interval is open at both
+ends (strictly above or below nothing), `band` is closed at T_PASS, so folding would move a
+boundary case.
 """
 
 from __future__ import annotations

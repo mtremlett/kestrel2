@@ -223,3 +223,19 @@ then the break was removed:
 
 ### 2026-11-17 — raschke_swing as a spec row (R-MONEY-45, #773)
 - The stop block `under_entry_low` takes no settings and finds the buying bar from the position turning on (the previous bar's low), so it stays right whatever filter sits beside the entry. Options: a duplicate detector inside the stop (two homes for the 20/4) - declined.
+
+### 2026-11-17 — each ladder row shows what holding its market made (R-RUNGS-23, #775)
+- A market with no bar or rate in the window. Options: fault the cell; say it in words ("not shown: ..."). Chose words, as the market rung does: a missing comparison is not a broken strategy.
+- R-RUNGS-17 (`ladder.rates(home=...)` in `lab/transfer.py`) was not done here: the file is GRID's. Asked of GRID as R-RUNGS-28.
+
+### 2026-11-17 — demark_sequential as a spec row (R-MONEY-45, #790)
+- Where the pound's kept closes live, for the R-RUNGS-17 fix. Options: the store `root` the request names; the data folder (third argument). Chose the data folder, because the pound table is kept at data/ladder/pound.jsonl, as `montecarlo` does.
+
+### 2026-11-17 — weather layer 3, drawdown depth (R-RUNNER-205, #776)
+- Depth threshold and window. Options: 5%, 10%, 20% under the highest close. Chose 10% over 252 sessions, the plain textbook correction level, fixed before any result; no trial counted yet. Built, wired into no verdict until it wins out of sample against trend alone (canon B6). The manifest description was left as is (a lane may only add modules).
+
+### 2026-11-17 — rung_folds shrunk in place (R-RUNNER-191, #803)
+- The fold's second judge (`judge`, `stretch`, `Stretch`, `Gain`) was only called by its own tests; the ladder runs `lab/folds.py`. It was deleted. Options: move Fold/Walked into folds.py and delete rung_folds.py; shrink rung_folds.py in place. Chose in place: test_lab_folds.py is outside the claim and imports Fold from rung_folds, and removing a manifest line is refused by the lane guard.
+
+### 2026-11-17 — darvas_box and the fast engine (R-MONEY-45, #799)
+- A position-dependent block in the fast engine. Options: (a) a float twin of the box walk (a third copy, own parity); (b) run the same blocks bar by bar through `SpecRule`. Chose (b): less code, no second implementation. The block copies the desk rule's logic on purpose, since R-RUNNER-127 deletes the desk files.

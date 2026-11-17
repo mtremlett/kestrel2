@@ -188,6 +188,7 @@ Checked 17 Nov (MONEY): R-RUNGS-12 re-verified on main (`strategy.rsi`, `strateg
       ibkr_store and mark_the_trend (#527-#545). Remains: the catalog_v2 tag in the data register (outside the
       repository); a matching rule for adjusted against as-traded closes, a new module not on its list (headstart.py
       is at 400 lines); the research list's bars
+      Waits on him: its readers are all on main; what remains is the catalog_v2 tag in the data register outside the repository, a matching rule for adjusted against as-traded closes needing a new module off its list since lab/headstart.py is at 400 lines, and the research list's bars
       {id: data-headstart; files: lab/headstart.py, tests/unit/test_lab_headstart.py, desk/bars.py, tests/unit/test_bars*.py, manifest.toml; waits: operator}
 - [x] The archive spared: fetching slow and resumable, with backoff, each raw answer cached
       in the folder `KESTREL2_DATA` names (outside the repository and every worktree); while
@@ -212,6 +213,7 @@ Checked 17 Nov (MONEY): R-RUNGS-12 re-verified on main (`strategy.rsi`, `strateg
       joining the lists' records up, a second source for 2010 to 2014)
       Remains (#638): no free source for the FTSE 350's changes, the funds' records or a 2010-2014 second
       source; needs his choice to buy or supply one (recommendation: defer, the US lists cover the US study)
+      Waits on him: its session said so in #638
       {id: data-members; files: lab/members.py, tests/unit/test_lab_members*.py, manifest.toml; waits: operator}
 - [x] Kept hot, always: the runner runs the store's keeper after the US close and before the
       London open on every trading day, a dated receipt each time; a line staler than one
@@ -235,6 +237,7 @@ Checked 17 Nov (MONEY): R-RUNGS-12 re-verified on main (`strategy.rsi`, `strateg
       IB1T is not ISA-holdable, for the operator)
       Remains (#640): SPY and QQQ leave LINES only when the callers outside the claim read `lines.REFERENCE`
       (the requests to GRID, RUNGS and MONEY) and the tests name lines that stay; they are kept as price references (#455, #543)
+      Waits on him: the last step, removing SPY and QQQ, conflicts with nine other test files and with SPY kept as a price reference; keeping them is a change to his 13 November ruling
       {id: data-isa-twins; files: desk/lines.py, tests/unit/test_lines.py, tests/unit/test_lab_universe.py; waits: operator}
 - [x] A home for the research store on his PC, refreshed nightly, a ticker that left a list
       cleared out, and the day and list it reflects written beside it
@@ -268,7 +271,7 @@ Checked 17 Nov (MONEY): R-RUNGS-12 re-verified on main (`strategy.rsi`, `strateg
       imports of Stooq, ibkr_store and mark_the_trend daily, hourly and 15/30-minute rows (#527-#566), the
       history pull and its writer (#636, #674), pages back and keeps the line's currency (#710, #725). Remains: the rest of R-RUNNER-10 (5-minute parquet, market.db,
       bars.db, per-source counts), paging back (R-RUNNER-216; #739: pull asks only 1m-30m and 1d; remains rollup of 1h, 4h, 1wk
-      into the history database as rollup:<from>, with a fault where rolled and pulled disagree, and the quality monitor's backfill), the long database for daily and up
+      into the history database as rollup:<from>; #780: a rolled bar differing from a held one is a FAULT line on stderr; #797: `python -m desk.quality` audits, backfills and re-audits the daily timeframe; remains the other timeframes, market_live.db, local Stooq and rollup sources, the runner job), the long database for daily and up
       {id: data-two-stores; files: desk/bars.py, tests/unit/test_bars*.py, desk/keeper.py, tests/unit/test_keeper*.py; after: data-ingest}
 - [ ] **Data in tiers, for 4,000+ tickers** (research of 14 November, kept in the notes
       folder as `data_stack_2026-11-14.md`). Tier A: held, signalled and watched names, live
@@ -322,6 +325,8 @@ Checked 17 Nov (MONEY): R-RUNGS-12 re-verified on main (`strategy.rsi`, `strateg
 - [ ] Coverage and quality measured: history at least twice the longest lookback for every
       line, five years by the A-GATE; a quality score per line and desk-wide, and a cap on
       the share of lines parked (DAT-03, DQ-01)
+      Built (#795): `desk/coverage.py`, pure and tested, not yet called by the keeper or the audit. Remains: feed it the store's
+      real counts and parked list; the second-source and per-lookback parts
 - [ ] A second source: a gap filled and a failing feed replaced from a ranked second
       source, with a staleness alarm and a register of sources; the twenty lines' bars
       checked against the broker's price of record each day once PAPER connects (DQ-03,
@@ -632,7 +637,7 @@ his PC with the desk's own client id (222), never 4001.
       a partial fill if the paper broker gives one; a rejection. Each real result recorded
       beside the pretend broker's, and the pretend broker fixed where they differ.
       (Waits for 2026-11-16: the trial trades need London and US markets open, and weekend markets are shut.)
-      Done: Monday 16 Nov's London and US files compared; ids, the stop step, the gate's refusal, the broker's reasons and the soak command landed (#433, #452, #488, #512, #565, #572, #610, #686). Remains: a part fill is unseen (the paper broker gave none at 1, 16 or 18 shares)
+      Done: Monday 16 Nov's London and US files compared; ids, the stop step, the gate's refusal, the broker's reasons and the soak command landed (#433, #452, #488, #512, #565, #572, #610, #686). The stop step is judged on fills and holdings (#779). Remains: a part fill is unseen (the paper broker gave none at 1, 16 or 18 shares); the next live US run to confirm 6 of 6
       {id: paper-conformance; files: *; after: paper-gateway, paper-check, paper-stops,
       paper-drill; waits: 2026-11-16}
 - [ ] The desk's own process supervised: one supervisor, restarts proven by killing it,
@@ -651,7 +656,7 @@ his PC with the desk's own client id (222), never 4001.
       trading" by 09:30 UK; urgency levels without storms; one messenger with a delivery
       record, the merge line and the runner's alerts behind the same door (MSG-02, MSG-03,
       MSG-04, MSG-09, MSG-11)
-      Remains: hourly P&L (#471, #492), the kill and halt line (#502) and the email fallback (#484, not yet wired into desk/running.py) landed; desk/messenger.py is at its 400-line limit and desk/ has 92 of 10,500 lines left, so the new messages need a phase-ceiling raise in BUDGET.json (waits: operator: it needs his approval and is outside every PAPER claim)
+      Remains: hourly P&L (#471, #492), the kill and halt line (#502) and the email fallback (#484, not yet wired into desk/running.py) landed; desk/messenger.py is at its 400-line limit and desk/ has 92 of 10,500 lines left, so the new messages need a phase-ceiling raise in BUDGET.json (waits: operator: it needs his approval and is outside every PAPER claim). The evening message now names each lost stop (#805); messenger split to 349 lines (#782)
       {id: paper-cards; files: desk/messenger.py,
       tests/unit/test_messenger.py; after: paper-messages, paper-running;
       waits: operator}
@@ -818,7 +823,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         known answer (#396). Remains: sizing blocks, once the volatility-sizing research settles their form
         {id: rungs-blocks; files: lab/blocks.py, tests/unit/test_lab_blocks.py; waits: operator}
   - [ ] B2 a typed Spec, validated on entry: an unknown block or a bad setting is refused
-        {id: rungs-spec; files: lab/spec.py, tests/unit/test_lab_spec.py; after: rungs-blocks}
+        {id: rungs-spec; files: lab/spec.py, tests/unit/test_lab_spec.py; after: rungs-blocks; waits: R-MONEY-35}
   - [ ] B3 the catalogue, one TOML row per strategy with its source and known-answer case;
         a guard: unique names, known blocks only, a source and a case on every row
   - [ ] B4 the nineteen eponymous rules as rows, identical trades on the fixture proven,
