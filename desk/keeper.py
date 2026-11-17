@@ -349,13 +349,22 @@ def keep(
     return spoken, [words for words, miss in told if miss]
 
 
-def main(home: Path, now: datetime) -> int:
-    """THE COMMAND: what was done on one line each, a miss on the error stream, and 1 for it."""
-    done, missed = keep(home, now)
+def main(home: Path, now: datetime, args: Sequence[str] = ()) -> int:
+    """THE COMMAND: what was done on one line each, a miss on the error stream, and 1 for it.
+    `--live` takes one run of one-minute bars instead, `--roll` copies the live day's bars into
+    the long database (R-RUNNER-12)."""
+    missed: list[str] = []
+    if args == ["--roll"]:
+        done = [keeper_live.roll(home / HOT)]
+    elif args == ["--live"]:
+        words, missed = keeper_live.minute_round(home / HOT, LINES, now, keeper_live.minutes)
+        done = [words]
+    else:
+        done, missed = keep(home, now)
     sys.stdout.write("".join(f"{line}\n" for line in done))
     sys.stderr.write("".join(f"MISSED: {line}\n" for line in missed))
     return int(bool(missed))
 
 
 if __name__ == "__main__":
-    sys.exit(main(Path(os.environ["KESTREL2_DATA"]), datetime.now(UTC)))
+    sys.exit(main(Path(os.environ["KESTREL2_DATA"]), datetime.now(UTC), sys.argv[1:]))

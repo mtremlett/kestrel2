@@ -23,6 +23,7 @@ PACING = (
 )
 HEAL = 24  #: bars asked, two hours: a round missed heals at the next
 BAR = timedelta(minutes=5)
+MINUTE = timedelta(minutes=1)
 Newest = Callable[[Line, str, str, int], tuple[Five, ...]]
 Wait = Callable[[float], object]  #: what lets time pass between asks
 

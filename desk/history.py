@@ -8,7 +8,7 @@ the broker will not give is Refused, with the broker's own words, for the store 
 from __future__ import annotations
 
 import time
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Collection, Sequence
 from datetime import date, datetime
 from typing import BinaryIO
 
@@ -60,6 +60,10 @@ def _bars(fields: list[str], day: date, since: date) -> tuple[Bar, ...]:
     found = []
     for at in range(0, len(body), WIDTH):
         stamp, *given, volume = body[at : at + 6]
+        if len(stamp) != len("20261112"):
+            raise NotImplementedError(
+                f"a bar that carries its time ({stamp}): Bar holds a day only"
+            )
         taken = date(int(stamp[:4]), int(stamp[4:6]), int(stamp[6:8]))
         if since <= taken < day:
             o, h, low, c = (paper.number(p, fields) for p in given)
@@ -67,9 +71,12 @@ def _bars(fields: list[str], day: date, since: date) -> tuple[Bar, ...]:
     return tuple(found)
 
 
-def ask(wire: BinaryIO, send: paper.Send, line: Line, day: date, since: date) -> Answer:
-    """One line's daily bars over an open conversation, or the broker's words for refusing."""
-    send(request(line, day, since))
+def ask(
+    wire: BinaryIO, send: paper.Send, line: Line, day: date, since: date, timeframe: str = "1d"
+) -> Answer:
+    """One line's bars of a timeframe (daily unless said) over an open conversation, or the
+    broker's words for refusing."""
+    send(request(line, day, since, timeframe))
     while True:
         fields = paper.receive(wire)
         if fields[0] == BARS and fields[1] == str(ID):
@@ -102,5 +109,61 @@ def gather(
                 wait(PACING)
             answers[line] = ask(wire, send, line, day, since)
         return answers
+
+    return paper.dial(talk)
+
+
+Ask = tuple[Line, str]  #: one line in one timeframe: the unit the pull plans, paces and resumes by
+
+
+def plan(lines: Sequence[Line], done: Collection[Ask]) -> list[Ask]:
+    """Every ask of every line in every timeframe the database keeps that is not yet done, in a
+    fixed order, so a pull stopped anywhere takes up where it left off and fills only the gaps."""
+    return [(line, frame) for line in lines for frame in SIZES if (line, frame) not in done]
+
+
+def pull(
+    asks: Sequence[Ask],
+    fetch: Callable[[Line, str], Answer],
+    keep: Callable[[Line, str, Answer], object],
+    wait: Wait = time.sleep,
+    limit: int | None = None,
+) -> int:
+    """Make the asks one at a time, PACING seconds apart (so never over the broker's limit), each
+    answer given to keep as it comes (the caller notes it done), stopping after limit asks.
+    Returns how many were made; the asks not made are what plan gives again."""
+    made = 0
+    for line, frame in asks:
+        if made == limit:
+            break
+        if made:
+            wait(PACING)
+        keep(line, frame, fetch(line, frame))
+        made += 1
+    return made
+
+
+def run(
+    asks: Sequence[Ask],
+    keep: Callable[[Line, str, Answer], object],
+    day: date,
+    since: date,
+    now: datetime,
+    wait: Wait = time.sleep,
+    limit: int | None = None,
+) -> int:
+    """The pull over the broker's own conversation, as the history reader, paced; not in a desk
+    round (Busy, nothing sent). Returns how many asks were made."""
+    if not quiet(now):
+        raise Busy("a desk round runs (08:00-08:30, 14:30-15:00 UK): history is not asked now")
+    paper.CLIENT = CLIENT
+
+    def talk(wire: BinaryIO, send: paper.Send) -> int:
+        paper.start(wire, send)
+
+        def fetch(line: Line, frame: str) -> Answer:
+            return ask(wire, send, line, day, since, frame)
+
+        return pull(asks, fetch, keep, wait, limit)
 
     return paper.dial(talk)

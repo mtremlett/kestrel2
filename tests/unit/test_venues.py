@@ -23,6 +23,11 @@ PUBLISHED = {
     ("US", 2018): "01-01 01-15 02-19 03-30 05-28 07-04 09-03 11-22 12-05 12-25",
     ("US", 2021): "01-01 01-18 02-15 04-02 05-31 07-05 09-06 11-25 12-24",
     ("US", 2022): "01-17 02-21 04-15 05-30 06-20 07-04 09-05 11-24 12-26",
+    ("US", 1997): "01-01 02-17 03-28 05-26 07-04 09-01 11-27 12-25",
+    ("US", 2001): "01-01 01-15 02-19 04-13 05-28 07-04 09-03 09-11 09-12 09-13 09-14 11-22 12-25",
+    ("LSE", 1995): "01-02 04-14 04-17 05-08 05-29 08-28 12-25 12-26",
+    ("LSE", 1999): "01-01 04-02 04-05 05-03 05-31 08-30 12-27 12-28 12-31",
+    ("LSE", 2002): "01-01 03-29 04-01 05-06 06-03 06-04 08-26 12-25 12-26",
     ("US", 2012): "01-02 01-16 02-20 04-06 05-28 07-04 09-03 10-29 10-30 11-22 12-25",
 }
 
@@ -50,11 +55,20 @@ def test_sessions_are_weekdays_in_order_and_inclusive() -> None:
 
 @pytest.mark.parametrize(
     ("venue", "first", "last"),
-    [("LSE", date(2009, 12, 30), date(2010, 1, 5)), ("US", date(2027, 12, 30), date(2028, 1, 4))],
+    [("LSE", date(1992, 12, 30), date(1993, 1, 5)), ("US", date(2027, 12, 30), date(2028, 1, 4))],
 )
 def test_a_year_the_calendar_does_not_know_is_refused(venue: str, first: date, last: date) -> None:
     with pytest.raises(ValueError, match="no calendar"):
         venues.sessions(venue, first, last)
+
+
+def test_hours_before_2010_are_refused_though_the_days_are_known() -> None:
+    assert venues.sessions("US", date(2004, 6, 10), date(2004, 6, 14)) == (
+        date(2004, 6, 10),
+        date(2004, 6, 14),
+    )
+    with pytest.raises(ValueError, match="no hours"):
+        venues.hours("US", date(2004, 6, 10))
 
 
 def test_a_venue_the_calendar_does_not_know_is_refused() -> None:
