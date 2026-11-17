@@ -57,6 +57,7 @@ from desk import (
     messenger,
     paper,
     placing,
+    restop,
     venues,
     watch,
 )
@@ -237,7 +238,8 @@ def _round(desk: Desk, broker: placing.Paper, venue: str, now: datetime) -> None
     """A venue's orders for today, by the money path's own day, on the bars saved before
     today for the venue's lines; then the round goes on the record with the answer to each
     order. A line the store has parked, or with no bar of the session before today, is left
-    out, nothing decided on it, and named: never passed over in silence. A desk that dies
+    out, nothing decided on it, and named: never passed over in silence. Then each held line's
+    resting stop is moved to 10% under its own fill, once (restop). A desk that dies
     in the round runs it again: the send path asks the broker of each order first."""
     today = now.date()
     saved, out, last = _fit(desk.held(today), venue, today)
@@ -248,6 +250,7 @@ def _round(desk: Desk, broker: placing.Paper, venue: str, now: datetime) -> None
         _note(desk.root, now, name, words)
 
     sent = day.trade(desk.root, saved, broker, desk.room, today, desk.rates(today), tell)
+    restop.move(desk.root, broker, LINES)  #: each held line's stop, under its fill (R-RUNNER-220)
     said = [
         f"{s.order_id}, {s.filled} shares done" + f" ({s.reason})" * bool(s.reason) for s in sent
     ]
