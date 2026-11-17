@@ -32,6 +32,14 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
+from desk.bars_parts import CLOSES as CLOSES
+from desk.bars_parts import NEWEST as NEWEST
+from desk.bars_parts import NOTE as NOTE
+from desk.bars_parts import OTHERS as OTHERS
+from desk.bars_parts import READ as READ
+from desk.bars_parts import RESTORE as RESTORE
+from desk.bars_parts import SOURCES as SOURCES
+from desk.bars_parts import WITHDRAW as WITHDRAW
 from desk.bars_parts import checked as checked
 from desk.compare import AGREE as AGREE
 from desk.compare import Verdict, judge
@@ -102,36 +110,8 @@ SOURCED = f"ALTER TABLE bar ADD COLUMN source TEXT NOT NULL DEFAULT '{Source.ARC
 MADE = "SELECT 1 FROM sqlite_master WHERE name = 'held'"
 HOLD = "INSERT OR IGNORE INTO held VALUES (?, ?, ?)"
 HELD = "SELECT 1 FROM held WHERE venue = ? AND symbol = ? AND span = ?"
-#: A held day a fresh bar changes is copied here, with who replaced it, before the bar takes it.
-NOTE = (
-    "INSERT INTO correction SELECT venue, symbol, span, at, open, high, low, close, volume,"
-    " source, ? FROM bar WHERE venue = ? AND symbol = ? AND span = ? AND at = ?"
-    " AND NOT (open = ? AND high = ? AND low = ? AND close = ? AND volume = ?)"
-)
-#: A day the desk judged untrue: its raw row stays in `bar`, but no reader is given it.
-WITHDRAW = "INSERT OR IGNORE INTO withdrawn VALUES (?, ?, ?, ?)"
-RESTORE = "DELETE FROM withdrawn WHERE venue = ? AND symbol = ? AND span = ? AND at = ?"
 ADD = "INSERT INTO bar VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 PUT, FILL = (ADD.replace("INSERT", f"INSERT OR {then}") for then in ("REPLACE", "IGNORE"))
-OTHERS = (
-    "SELECT at, open, high, low, close FROM bar WHERE venue = ? AND symbol = ? AND span = ?"
-    " AND source != ? AND at >= ? AND at <= ?"
-)
-SOURCES = (
-    "SELECT source, count(*) FROM bar"
-    " WHERE venue = ? AND symbol = ? AND span = ? AND at >= ? AND at < ? GROUP BY source"
-)
-NEWEST = (
-    "SELECT at, source FROM bar WHERE venue = ? AND symbol = ? AND span = ? AND at >= ? AND at < ?"
-    " ORDER BY at DESC LIMIT 1"
-)
-CLOSES = "SELECT close FROM bar WHERE venue = ? AND symbol = ? AND span = ? AND at >= ?"
-READ = (
-    "SELECT at, open, high, low, close, volume FROM bar"
-    " WHERE venue = ? AND symbol = ? AND span = ? AND at >= ? AND at < ?"
-    " AND NOT EXISTS (SELECT 1 FROM withdrawn w WHERE w.venue = bar.venue AND"
-    " w.symbol = bar.symbol AND w.span = bar.span AND w.at = bar.at) ORDER BY at"
-)
 
 
 def files(live: Path) -> dict[str, Path]:
