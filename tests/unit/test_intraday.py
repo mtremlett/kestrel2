@@ -64,3 +64,11 @@ def test_the_last_bar_must_end_inside_the_session() -> None:
     late = _candle(close - timedelta(minutes=2), 1)
     with pytest.raises(ValueError, match="5-minute"):
         _backtest([late])
+
+
+def test_today_reads_the_position_from_the_book_and_trades_no_rule_by_default() -> None:
+    bars = {"X": _bars(CLOSES[:3]), "Y": []}
+    assert intraday.today("LSE", bars, {}) == ()
+    rules = {"dip": _Dip}
+    assert [d.action for d in intraday.today("LSE", bars, {}, rules)] == [Action.BUY]
+    assert [d.action for d in intraday.today("LSE", bars, {"X": "dip"}, rules)] == [Action.HOLD]

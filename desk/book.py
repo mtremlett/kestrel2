@@ -34,6 +34,7 @@ from desk.broker import Broker, Crash, Disconnected, Fill, Report
 from desk.halt import Blocker, Stopped
 from desk.lines import Line
 from desk.orders import Charges, Order, Refused, Sale, Settings, charges, gate, leg_of
+from desk.risk import Standing
 
 #: what moved to desk.book_parts and is still given from here, for the callers
 __all__ = (
@@ -98,14 +99,20 @@ Reckoning = tuple[dict[str, int], tuple[str, ...], set[str], tuple[Difference, .
 
 
 def send(
-    root: Path, broker: Broker, order: Order | Sale, settings: Settings, tell: Tell | None = None
+    root: Path,
+    broker: Broker,
+    order: Order | Sale,
+    settings: Settings,
+    tell: Tell | None = None,
+    standing: Standing | None = None,
 ) -> Sent:
     """Ask the broker what it did with the order's id, so a desk that restarts never sends it
     twice; if it never received it, gate it and send it. Fills are recorded, a buy's stop rests
     at the broker. Where the book is not the broker's nothing is bought, and a line sells only if
     its shares agree. Kill switch on: nothing is sent; a halt: no buy. Every refusal names its
     blocker (Stopped), as does a short answer. A place that fails unknown pulls the kill switch
-    (Alarm); one that disagrees halts buying and is told (tell)."""
+    (Alarm); one that disagrees halts buying and is told (tell). Given the book's standing the gate
+    also refuses a buy past a loss limit or the day's new lines (orders.gate)."""
     _settle(root, broker)
     report = broker.report(order.order_id)
     if report is None:
@@ -115,7 +122,7 @@ def send(
             words = f"{order.order_id}: not sent, the book is not the broker's on {list(differ)}"
             raise Stopped(Blocker.BOOK, words)
         try:
-            gate(order, settings, held)
+            gate(order, settings, held, standing)
         except Refused as refused:
             raise Stopped(Blocker.GATE, str(refused)) from refused
         _unless_stopped(root, order)  #: read again, at the last moment before it goes

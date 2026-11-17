@@ -26,9 +26,9 @@ PACING = (
 HEAL = 24  #: bars asked, two hours: a round missed heals at the next
 BAR = timedelta(minutes=5)
 MINUTE = timedelta(minutes=1)
-Newest = Callable[[Line, str, str, int], tuple[Five, ...]]
+Newest = Callable[[Line, str, str, int, paper.Door], tuple[Five, ...]]
 Wait = Callable[[float], object]  #: what lets time pass between asks
-NewestMinutes = Callable[[Line, str, str, int], tuple[Timed, ...]]
+NewestMinutes = Callable[[Line, str, str, int, paper.Door], tuple[Timed, ...]]
 MINUTES = "1m"  #: the span of the one-minute bars
 FIRST = 3600  #: seconds of one-minute bars asked of a line with none held
 MOST = 86400  #: the most one question of one-minute bars may reach back
@@ -43,12 +43,12 @@ def ibkr(
     """The question of a line's ended bars at a moment, in the line's own currency. The broker's
     listings are read once, from the desk's kept ones in home. Its words are the refusal when the
     broker gives no bar: no real-time data on paper is said, never replaced."""
-    door = _door(home, wait, listed)
+    door = _door(home, wait, listed, mine := paper.Door(CLIENT))
 
     def ask(line: Line, now: datetime) -> tuple[Five, ...]:
         one = door(line, now)
         try:
-            got = newest(line, one.contract, one.exchange, HEAL)
+            got = newest(line, one.contract, one.exchange, HEAL, mine)
         except (OSError, ValueError) as fault:
             raise ValueError(
                 f"no IBKR real-time data on paper for {line.symbol}: {fault}"
@@ -77,16 +77,16 @@ def _door(
     home: Path,
     wait: Wait,
     listed: Callable[..., dict[str, listing.Listing | listing.Unlisted]],
+    mine: paper.Door,
 ) -> Callable[[Line, datetime], listing.Listing]:
-    """The one way to the gateway for a line: this process the live reader, the line's listing
+    """The one way to the gateway for a line: the live reader's door, the line's listing
     (read once from home's kept ones) and PACING seconds between one ask and the next."""
     known: dict[str, listing.Listing | listing.Unlisted] = {}
     asked: list[str] = []
 
     def door(line: Line, now: datetime) -> listing.Listing:
-        paper.CLIENT = CLIENT  #: this process is the live reader, at the door
         if not known:
-            known.update(listed(home, now, LINES))
+            known.update(listed(home, now, LINES, mine))
         if (one := known.get(line.symbol)) is None:
             raise ValueError(f"{line.symbol} is not a line of the desk: the broker was not asked")
         if isinstance(one, listing.Unlisted):
@@ -99,7 +99,9 @@ def _door(
     return door
 
 
-def newest_minutes(line: Line, contract: str, route: str, seconds: int) -> tuple[Timed, ...]:
+def newest_minutes(
+    line: Line, contract: str, route: str, seconds: int, mine: paper.Door
+) -> tuple[Timed, ...]:
     """The line's one-minute bars of the last `seconds` (the last may still be forming) from the
     paper gateway, oldest first, trades only: `paper.newest`'s question at a minute's size."""
     asked = (contract, line.symbol, "STK", "", "0.0", "", "", route, "", line.currency, "", "", 0)
@@ -108,7 +110,7 @@ def newest_minutes(line: Line, contract: str, route: str, seconds: int) -> tuple
     )
 
     def talk(wire: BinaryIO, send: paper.Send) -> tuple[Timed, ...]:
-        paper.start(wire, send)
+        paper.start(wire, send, mine)
         send(ask)
         while (fields := paper.receive(wire))[:2] != [paper.BARS, "1"]:
             paper.other(fields)
@@ -132,7 +134,7 @@ def minutes(
 ) -> Callable[[Line, datetime], tuple[Timed, ...]]:
     """The question of a line's ended one-minute bars since the last held in hot (an hour's if
     none), in the line's own currency. Refusals are worded as the five-minute question's."""
-    door = _door(home, wait, listed)
+    door = _door(home, wait, listed, mine := paper.Door(CLIENT))
 
     def ask(line: Line, now: datetime) -> tuple[Timed, ...]:
         one = door(line, now)
@@ -140,7 +142,7 @@ def minutes(
         held = bars.timed(hot, line, MINUTES, back, now) if hot.is_file() else ()
         since = int((now - held[-1].start).total_seconds()) + 60 if held else FIRST
         try:
-            got = newest(line, one.contract, one.exchange, min(max(since, 120), MOST))
+            got = newest(line, one.contract, one.exchange, min(max(since, 120), MOST), mine)
         except (OSError, ValueError) as fault:
             raise ValueError(
                 f"no IBKR real-time data on paper for {line.symbol}: {fault}"
