@@ -324,6 +324,7 @@ def test_the_newest_bars_are_asked_read_only_and_read_whole(
     ]
     # one message only, a question of bars (20), for 600 seconds: nothing places or cancels
     told = sent[0][4:].decode().split(chr(0))
+    assert (paper.HOST, paper.PORT) == ("127.0.0.1", 4002) and int(told[0]) in paper.READ_ONLY
     assert (
         len(sent) == 1
         and told[:3] == ["20", "1", "265598"]
