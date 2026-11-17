@@ -350,15 +350,8 @@ def keep(
     five = live.ibkr(home) if five is None else five
     for venue in sorted({line.venue for line in lines}):
         mine = [line for line in lines if line.venue == venue]
-        kept = _refresh(
-            home / HOT,
-            home / DAILY / venue,
-            mine,
-            now,
-            _within(daily, clock, ends),
-            idle,
-            broker,
-        )
+        ask = _within(daily, clock, ends)
+        kept = _refresh(home / HOT, home / DAILY / venue, mine, now, ask, idle, broker)
         if kept is not None:
             told.append(_told(kept, mine))
             if YARDSTICK.symbol in kept.parked and YARDSTICK.symbol not in kept.refused:
