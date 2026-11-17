@@ -152,6 +152,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #717 money-restop: no step landed; put-back already on main, the message part is outside MONEY's claim |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #724 R-RUNGS-6/12 re-verified done (#185); no scene moved |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #758 R-RUNNER-292: Pretend puts a lost stop back at its level (test_broker, test_simcity) |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #763 R-PAPER-29 ledger half: book.conformance_cost public, SimCity scenario added; PAPER feeds it. |
 
 ### DATA
 
