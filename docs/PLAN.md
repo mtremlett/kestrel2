@@ -639,9 +639,10 @@ his PC with the desk's own client id (222), never 4001.
       health judged from outside by dated receipts, surviving a reboot, a dropped network
       and a broker disconnect; a ledger of operator actions proving seven days without one,
       bar the ruled Gateway re-login (OPS-01, OPS-02, OPS-04, OPS-10, NS-01)
-      Remains: the step is the first registered job (#490) and `python -m desk.supervisor tell` sends what health finds (#499). Still to do: Windows starting the supervisor and `tell` (outside the lane's files), the kill drill on the real step, seven days counted, the overnight-window question (the Gateway's 03:00 restart shows as bad receipts)
+      Remains: the step is the first registered job (#490) and `python -m desk.supervisor tell` sends what health finds (#499). Still to do: Windows starting the supervisor and `tell` (outside the lane's files), the kill drill on the real step, seven days counted, the overnight-window question (the Gateway's 03:00 restart shows as bad receipts) (waits: operator, its session said so in #499)
       {id: paper-supervised; files: desk/supervisor.py, tests/unit/test_supervisor.py,
-      manifest.toml; after: paper-running; waits: operator}
+      manifest.toml; after: paper-running;
+      waits: operator}
 - [x] The running process always on main's latest code, and a money-path change reaching
       it only at a safe point, never mid-send (OPS-05, OPS-16) (#752: the supervisor pulls main fast-forward only between runs with every job's lock held; a failed pull is a receipt and the old code runs on; remains: Windows starting the supervisor)
       {id: paper-on-main; files: desk/supervisor.py, tests/unit/test_supervisor.py}
@@ -650,9 +651,10 @@ his PC with the desk's own client id (222), never 4001.
       trading" by 09:30 UK; urgency levels without storms; one messenger with a delivery
       record, the merge line and the runner's alerts behind the same door (MSG-02, MSG-03,
       MSG-04, MSG-09, MSG-11)
-      Remains: hourly P&L (#471, #492), the kill and halt line (#502) and the email fallback (#484, not yet wired into desk/running.py) landed; desk/messenger.py is at its 400-line limit and desk/ has 92 of 10,500 lines left, so the new messages need a phase-ceiling raise in BUDGET.json
+      Remains: hourly P&L (#471, #492), the kill and halt line (#502) and the email fallback (#484, not yet wired into desk/running.py) landed; desk/messenger.py is at its 400-line limit and desk/ has 92 of 10,500 lines left, so the new messages need a phase-ceiling raise in BUDGET.json (waits: operator: it needs his approval and is outside every PAPER claim)
       {id: paper-cards; files: desk/messenger.py,
-      tests/unit/test_messenger.py; after: paper-messages, paper-running; waits: operator}
+      tests/unit/test_messenger.py; after: paper-messages, paper-running;
+      waits: operator}
 - [x] FIRST-LIGHT counted by the desk itself: ten consecutive clean days, and a day that
       sent nothing cannot be green (NS-10) (#511: `desk/streak.py`; remains: showing the streak in the day's message and the pre-flight line)
       {id: paper-first-light; files: desk/streak.py, tests/unit/test_streak.py,
@@ -661,12 +663,14 @@ his PC with the desk's own client id (222), never 4001.
       {id: paper-watcher; files: desk/watcher.py, tests/unit/test_watcher.py,
       manifest.toml; after: paper-supervised}
 - [x] Backups: the fill ledger and the day records copied twice, one copy off the PC, and a
-      restore drilled every quarter (DQ-05, DQ-09) (#515: `desk/records_kept.py`; remains: the runner calling it nightly)
-      {id: paper-backups; files: desk/backup.py, tests/unit/test_backup.py, manifest.toml; waits: operator}
+      restore drilled every quarter (DQ-05, DQ-09) (#515: `desk/records_kept.py`; remains: the runner calling it nightly) (waits: operator: 2 sessions in a row landed no change, so it is held and the doctor asks why)
+      {id: paper-backups; files: desk/backup.py, tests/unit/test_backup.py, manifest.toml;
+      waits: operator}
 - [ ] The day's extras: missed winners, blocked signals, and the running cost set against
-      net profit each week (MSG-13, NS-14)
+      net profit each week (MSG-13, NS-14) (waits: operator: comes after paper-cards and edits the same full messenger file)
       {id: paper-extras; files: desk/messenger.py, tests/unit/test_messenger.py;
-      after: paper-cards; waits: operator}
+      after: paper-cards;
+      waits: operator}
 
 ## Phase 4 — the ladder
 

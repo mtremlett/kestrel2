@@ -7,8 +7,9 @@ is never guessed from less. The label of day T reads bars up to T only, so cutti
 after T changes none of the labels up to T (the future-blind test in
 `tests/unit/test_lab_weather.py`). The names are one plain word each, as `lab/regime.py` asks.
 
-The trend is the baseline. Realised volatility is built below but wired into no verdict;
-drawdown depth and breadth come one at a time, each only on an out-of-sample win against
+The trend is the baseline. Realised volatility and drawdown depth are built below but wired
+into no verdict;
+breadth comes next, each layer only on an out-of-sample win against
 trend alone, with the trial count recorded (canon B6).
 """
 
@@ -70,4 +71,27 @@ def volatility(bars: Sequence[Bar]) -> dict[date, str]:
             named[bar.day] = WARMING
         else:
             named[bar.day] = STORMY if vols[i] > statistics.median(vols[i - VOL_RANK : i]) else CALM
+    return named
+
+
+#: The drawdown layer: the look-back for the high a close is measured against, and how far
+#: below that high is `deep`.
+DD_WINDOW, DD_LIMIT = 252, Decimal("0.10")
+SHALLOW, DEEP = "shallow", "deep"
+
+
+def drawdown(bars: Sequence[Bar]) -> dict[date, str]:
+    """Each bar's day as `deep` when its close is DD_LIMIT or more below the highest close of
+    the last DD_WINDOW (itself included), else `shallow`; `warming` until DD_WINDOW closes
+    have been seen. Day T reads closes up to T only (canon B3). Built but wired into no
+    verdict until it wins out of sample against trend alone (canon B6)."""
+    trend(bars)  # the one check that bars are one per day, oldest first
+    closes = [bar.close for bar in bars]
+    named: dict[date, str] = {}
+    for n, bar in enumerate(bars):
+        if n + 1 < DD_WINDOW:
+            named[bar.day] = WARMING
+        else:
+            high = max(closes[n + 1 - DD_WINDOW : n + 1])
+            named[bar.day] = DEEP if closes[n] <= high * (1 - DD_LIMIT) else SHALLOW
     return named

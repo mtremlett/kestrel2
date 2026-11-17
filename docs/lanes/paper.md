@@ -455,3 +455,7 @@ The claim excluded desk/conformance.py, so `home` defaults to None (archive). Op
 ### 2026-11-17 — a failed pull is a receipt, the old code runs on (OPS-05, #752)
 
 Options: (a) a failed pull ends the supervisor; (b) it is kept as a receipt of job "update" and the old code runs on. Chose (b): a dropped network must not stop the desk trading.
+
+### 2026-11-17 — the soak moves into the tape; the tape's manifest row is not edited (R-RUNNER-285, #766)
+
+Options: (a) edit the tape's manifest row to name the soak; (b) leave it, since a lane may only add rows (test_lanes), and the coordinator names the soak there. Chose (b).

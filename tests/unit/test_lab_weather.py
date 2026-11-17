@@ -84,3 +84,17 @@ def test_volatility_labels_are_the_hand_worked_ones_and_future_blind(
     assert list(labels.values()) == by_hand
     for t in range(len(closes)):
         assert weather.volatility(_bars(*closes[: t + 1])) == dict(list(labels.items())[: t + 1])
+
+
+def test_drawdown_labels_are_the_hand_worked_ones_and_future_blind(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(weather, "DD_WINDOW", 3)
+    monkeypatch.setattr(weather, "DD_LIMIT", Decimal("0.1"))
+    closes = (10, 12, 11, 10, 9, 12, 12, 10)
+    #: each close against the high of the last three: 11/12, 10/12, 9/11, 12/12, 12/12, 10/12
+    by_hand = ["warming"] * 2 + ["shallow", "deep", "deep", "shallow", "shallow", "deep"]
+    labels = weather.drawdown(_bars(*closes))
+    assert list(labels.values()) == by_hand
+    for t in range(len(closes)):
+        assert weather.drawdown(_bars(*closes[: t + 1])) == dict(list(labels.items())[: t + 1])
