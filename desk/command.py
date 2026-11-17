@@ -62,6 +62,7 @@ from desk import day as days
 from desk.lines import LINES, Line
 from desk.orders import Settings
 from desk.paper import Account
+from desk.rehearsing import Rehearsing
 from desk.running import DAY, VENUES, Desk
 
 ROOT, STORE, REHEARSALS = "desk", "store", "rehearsals"  #: folders, each inside the one before
@@ -324,11 +325,14 @@ def rehearse(
         frozenset(o.broker_id for o in before.orders),
     )
     paper.APART = found  #: until the run ends, the account is the rehearsal's own alone
+    Rehearsing.mark, whole = f"r{now:%d%H%M%S}", placing.Paper
+    setattr(placing, "Paper", Rehearsing)  # noqa: B010 - the day's steps build their own door
     try:
         failed = _live(desk, moments, clock)
-        left = placing.Paper(listing.read(LINES), desk.root, lambda: now).cancel()
+        left = Rehearsing(listing.read(LINES), desk.root, lambda: now).cancel()
     finally:
         paper.APART = None
+        setattr(placing, "Paper", whole)  # noqa: B010 - the real door again
     if wrong := _amiss(desk, on, left, found.changes(before, paper.whole())):
         steps = f"; steps that failed: {', '.join(failed)}" * bool(failed)
         return False, f"REHEARSAL NO-GO: {'; '.join(wrong)}{steps}"

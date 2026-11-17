@@ -218,14 +218,24 @@ def test_the_rehearsal_lives_the_last_session_again_on_its_own_record_with_no_ma
     code, line = rehearse(2, _800=bad)
     assert code == 1 and "the day's record was not made; steps that failed: 08:00 UTC Val" in line
     # a fill, and shares on the account at its end: each is NO-GO in its own words
-    code, line = rehearse(3, _1200={tp.FILLS: [MADE, END], tp.ACCOUNT: tp.BARE})
+    # a real fill of the account's under the very id the rehearsal decides is not its book;
+    # the same fill under the rehearsal's own mark is
+    code, line = rehearse(5, _1200={tp.FILLS: [MADE, END]})
+    assert code == 0 and "REHEARSAL GO" in line, line
+    ref = MADE[26]
+    marked = _but(MADE, 26, ref[:8] + "r15180003" + ref[8:])
+    code, line = rehearse(3, _1200={tp.FILLS: [marked, END], tp.ACCOUNT: tp.BARE})
     assert code == 1 and line.startswith("REHEARSAL NO-GO: New York's round of orders was not")
     for said in ("FILLED, the markets shut: ['20261113-bollinger", "account is not as found"):
         assert said in line
     assert "The paper account is not the desk's book, so no order goes." in line
-    # orders of the desk's own still working at its end are cancelled, and named: NO-GO
+    # orders left working that carry no mark of this run are the account's: not cancelled, NO-GO
     code, line = rehearse(4, _2200={tp.ACCOUNT: tp.WORKING, tp.CANCELS: tp.GONE})
-    assert code == 1 and "not as found; left working, now cancelled: ('a', 'f')" in line
+    assert (
+        code == 1
+        and "now cancelled: (); " in line
+        and "its own order a (AAPL) is still working" in line
+    )
     # not begun: on a day a market trades, or with the desk's own kill switch on; and with
     # the kill switch on
     book.turn(tmp_path / "desk", book.Switch.ON, MON, "his word")
