@@ -282,3 +282,9 @@ def test_a_refusing_archive_is_backed_off_from_and_told_in_archive_json(
     monkeypatch.setattr(archive, "_once", _fail(HTTPError("u", 404, "", Message(), None)))
     with pytest.raises(HTTPError):
         archive._ask("x")  # noqa: SLF001
+    began = datetime.fromisoformat(since)
+    assert archive.alert(tmp_path, began + timedelta(hours=5, minutes=59)) is None
+    assert since in str(archive.alert(tmp_path, began + timedelta(hours=6)))
+    state.write_text('{"refusing_since": null}', "utf-8")
+    assert archive.alert(tmp_path, began + timedelta(days=1)) is None
+    assert archive.alert(tmp_path / "none", began) is None
