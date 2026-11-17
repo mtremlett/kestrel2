@@ -8,6 +8,7 @@ from collections.abc import Callable, Sequence
 from contextlib import suppress
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
+from functools import partial
 from pathlib import Path
 from typing import BinaryIO
 from unittest.mock import Mock
@@ -25,6 +26,7 @@ from desk import (
     command,
     day,
     halt,
+    history,
     keeper,
     listing,
     messenger,
@@ -34,7 +36,7 @@ from desk import (
     venues,
 )
 from desk.lines import LINES, Line
-from desk.store import Bar
+from desk.store import Answer, Bar, Refused
 
 MON = datetime(2026, 11, 16, 7, 15, tzinfo=UTC)
 FRI, SUNDAY = date(2026, 11, 13), datetime(2026, 11, 15, 18, tzinfo=UTC)
@@ -45,6 +47,10 @@ ASKED: list[tuple[Path, date]] = []  #: the keeper's store, each time the desk r
 
 def _flat(on: date, price: str) -> Bar:
     return Bar(on, *(Decimal(price),) * 4, 0)
+
+
+def _ibkr(given: Answer, _lines: object, _day: date) -> dict[Line, Answer]:
+    return {command.POUND: given}
 
 
 def _fetch(line: Line, before: date) -> tuple[Bar, ...]:
@@ -68,6 +74,9 @@ def _world(patch: pytest.MonkeyPatch, fetch: Fetch = _fetch) -> dict[bytes, Said
         return talk(_wire(HELLO, ACCOUNTS, NEXT, *answers[b"".join(asked[2:])]), lambda _: None)
 
     patch.setattr(archive, "fetch", fetch)
+    #: IBKR's answer for the pound, by default none: the gateway of the day says it was not asked
+    ibkr = {command.POUND: Refused("the broker was not asked")}
+    patch.setattr(history, "daily", lambda _now: lambda lines, _day: {n: ibkr[n] for n in lines})
 
     def saved(home: Path, day: date) -> tuple[dict[Line, tuple[Bar, ...]], set[str]]:
         ASKED.append((home, day))
@@ -129,6 +138,20 @@ def test_the_doors_refuse_a_pound_they_cannot_trust(
     ):
         book.record_rates(tmp_path, kept, {"USD": Decimal("0.77")})
         assert command.rates(tmp_path, shut)["USD"] == Decimal("0.77")
+    # IBKR first: its pound is the day's whatever the archive says, a wide gap a fault in the log;
+    # none from IBKR, the archive's, named; none from either, no rate
+    none = {command.POUND: Refused("no quote")}
+    archived = (_flat(old + timedelta(4), "1.25"),)
+    monkeypatch.setattr(archive, "fetch", lambda _line, _day: archived)
+    gives: dict[str, Answer] = {"a": (_flat(today, "1.60"),), "b": Refused("no")}
+    for name, rate in (("a", "0.625"), ("b", "0.8")):
+        broker = partial(_ibkr, gives[name])
+        assert command.rates(tmp_path / name, ask, broker)["USD"] == Decimal(rate)
+    logs = [(tmp_path / n / command.POUND_LOG).read_text(encoding="utf-8") for n in "ab"]
+    assert "IBKR 1.60; FAULT" in logs[0] and "IBKR gave none (no); archive 1.25" in logs[1]
+    monkeypatch.setattr(archive, "fetch", lambda _line, _day: ())
+    with pytest.raises(ValueError, match="IBKR: no quote; archive"):
+        command.rates(tmp_path / "c", ask, lambda _lines, _day: none)
     with pytest.raises(SystemExit, match="KESTREL2_DATA names no whole path to a folder"):
         command.main([], {"KESTREL2_DATA": ""})
 
@@ -141,7 +164,8 @@ def test_the_preflight_says_ready_or_names_each_thing_that_is_not_and_sends_no_o
     assert capsys.readouterr().out == (
         "PREFLIGHT Mon 16 Nov: READY. his phone: its key is set; the Gateway: it answered; the "
         "kill switch: off, and drilled today; the paper account: it is the desk's book; prices: "
-        "22 lines to trade on; the pound: a dollar is £0.800000, kept for the day; halts: "
+        "22 lines to trade on; the pound: a dollar is £0.800000, kept for the day "
+        "(2026-11-16: IBKR gave none (the broker was not asked); archive 1.25); halts: "
         "none in force.\n"
     )
     assert clearance.checks(desk)[-1].found == () and not running.notes(desk)
