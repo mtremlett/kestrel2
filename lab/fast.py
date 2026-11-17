@@ -23,6 +23,7 @@ from desk.store import Bar
 from lab.fast_bands import Params
 from lab.fast_parts import DATED, Fire, _top
 from lab.fast_parts import FIRES as _PARTS
+from lab.fast_sequential import buy_countdown, sell_setup
 from lab.grid import (
     DESK,
     EXACT,
@@ -87,6 +88,8 @@ FIRES: Mapping[str, Fire] = {
     **_PARTS,
     "trend_template": _trend_template,
     "turtle_soup": _turtle_soup,
+    "td_buy_countdown": buy_countdown,
+    "td_sell_setup": sell_setup,
 }
 
 

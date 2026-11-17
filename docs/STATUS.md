@@ -141,11 +141,11 @@ Last updated: 17 November 2026 (folds #215 to #686: the 50 landed pull requests 
 
 ### Where it is
 
-Built: supervisor pulls main at the safe point (#752), contract request carries exchange, currency, ISIN (#706), pound from IBKR first (#716), `paper.CLIENT`/`APART`/`current` gone (#733), messenger (hourly P&L, kill/halt line, email door not yet wired), step, drill, supervisor (step registered, `tell`), conformance (ids, gate refusal, soak, tape, Door), go flat, streak, records_kept, t212 (read-only), stop moved to the fill each round, recover puts back a lost stop (R-MONEY-30). Conformance Mon 16 Nov: every difference fixed. Unseen: a part fill; a true stop trigger; t212 shapes never met the real service; `paper.newest` (R-DATA-9) never met the Gateway.
+Built: supervisor pulls main at the safe point (#752), contract request carries exchange, currency, ISIN (#706), pound from IBKR first (#716), `paper.CLIENT`/`APART`/`current` gone (#733), messenger (hourly P&L, kill/halt line, email door not yet wired), step, drill, supervisor (step registered, `tell`), conformance (ids, gate refusal, tape with the soak folded in, #766, Door), go flat, streak, records_kept, t212 (read-only), stop moved to the fill each round, recover puts back a lost stop (R-MONEY-30). Conformance Mon 16 Nov: every difference fixed. Unseen: a part fill; a true stop trigger; t212 shapes never met the real service; `paper.newest` (R-DATA-9) never met the Gateway.
 
 ### Next step
 
-R-PAPER-28, -29. Conformance sizing (R-RUNNER-281): `desk/conformance.py:242` must pass `root` to `plan(...)` as `home`, then the archive branch goes (needs a claim naming it). Live check that the gateway answers IDTL (R-RUNNER-278). paper-supervised, paper-cards, paper-extras, paper-backups wait: operator.
+R-PAPER-28, -29. Conformance sizing (R-RUNNER-281): `desk/conformance.py:242` must pass `root` to `plan(...)` as `home`, then the archive branch goes (needs a claim naming it). Live check that the gateway answers IDTL (R-RUNNER-278). paper-supervised, paper-cards, paper-extras, paper-backups wait: operator. Coordinator deletes `desk/conformance_soak.py` and its manifest row (non-lane PR, R-RUNNER-285).
 
 ### Requests to MONEY
 
@@ -178,23 +178,22 @@ R-PAPER-28, -29. Conformance sizing (R-RUNNER-281): `desk/conformance.py:242` mu
 - **Other:** `tape.moved` in `desk/conformance_tape.py` is unused; `desk/messenger.py` is at 400 lines, `desk/` has 92 of 10,500 lines left; a note over 24 h old is no longer re-sent; the rehearsal docstring says "no market trading" (stale); the pound's IBKR request asks for a share contract, so the archive fills in (R-PAPER-33); `keeper.saved` is stale for every venue if one is not refreshed.
 
 ## DATA
-### Where it is (17 November 2026, folds #217-#753)
+### Where it is (17 November 2026, folds #217-#770)
 Twenty traded lines (SPY, QQQ reference series, #455, #544); one archive client, spared (#637-#732), its six-hour `alert`
 (#671); calendars 1993-2030; daily asks back to 2000 (`archive.SINCE`, #691); two databases (#442, #510), broker first
 (#521); the pound from 1993 (#614). Keeper: `--live`, five-minute rounds, `--roll`, receipts, `parked_live` (#530-#701);
 keeper and history-pull bars keep the line's currency (#719, #725); backfill; old stores in (#238-#566). Six London lines
 clean (#222-#702); an untraded bar gives way to a traded one (#721). Keeper asks IBKR first for every line, a disagreement over 2% recorded not parked (#751); gaps bridged from
 five-minute bars (#747); a shelf a hundredth of the archive's put right in the store (#753); history pull asks only 1m-30m
-and 1d (#739). Unfinished: R-RUNNER-216 (rollup of 1h, 4h, 1wk), -215, -280 (live round first), R-RUNNER-10 (5-minute
+and 1d (#739). 1h, 4h, 1wk rolled locally as rollup:<from> (#760); keeper takes the five-minute round first under half its time (#759); 1m bars parsed as Timed (#757); the pound asked as GBP.USD forex (#770); shelf unit rule on a 95% majority of shared days (#768, IB1T; 3LGO and 2MU unseen, to be checked on the next real round). Unfinished: R-RUNNER-216 (a fault where a rolled and a pulled bar disagree, the quality monitor's backfill), -215, R-RUNNER-10 (5-minute
 parquet, market.db, bars.db, per-source counts). Next: the first real `--live` run, data-keeper-receipts.
 ### Done for other lanes
 - R-RUNNER-28 #222, -41 #219, -24 #238, -37 #254, -90 #286, -97 #305, -104 #314, -107 #315, -116 #349, -175 #367, -182 #374, -179 #376, -185 #381, -15 #460, -94 #303, -96 #475, -149 #453, -194 #518,
   -11 #514, -211 #530, -178 #532, -189 #541, -157 #528, -221 #548, -218 #547, -224 #574, -236 #591, -254 #612, -12 #629, -264 #656, -266 #666, -263 #660, -270 #701, -269 #715, -279 #719, -274 and -275
-  #721, -277 #727, -284 #744, -276 #751, -272 #753; R-PAPER-23 #294, -22 #505, -16 and -3 #543; R-GRID-4 #338; R-MONEY-28 #536, #740; R-RUNGS-3, -5, -15 #537, -9 #544, -16 #630, #747
+  #721, -277 #727, -284 #744, -276 #751, -272 #753; R-RUNNER-290 #757; R-PAPER-33 #770; R-PAPER-23 #294, -22 #505, -16 and -3 #543; R-GRID-4 #338; R-MONEY-28 #536, #740, #769; R-RUNGS-3, -5, -15 #537, -9 #544, -16 #630, #747
 - Mine, done by others: R-DATA-1 (#73), -4, -5, -6 (#522), -9, -15 (#517, #530), -17, -25, -26, -27, -28, -31, -35 (#652); own R-DATA-19 to -23, -36, -40, -41 done, -24 superseded by the database
 ### Requests to DATA
-- [ ] R-DATA-49 (blocking, #730, #719): `desk/keeper.py` (claim it, `tests/unit/test_keeper.py`): `keep()` calls `keeper_live.rounds` first under its own deadline (about half of SPENT), then the
-  dailies (R-RUNNER-280's last step); and `history.daily(now, home=home)`, home required.
+- [ ] R-DATA-49 (blocking): keeper round first is done (#759). Remains: make `home` required in `history.daily`, once PAPER passes it (R-DATA-52).
 ### Requests to GRID
 - [ ] R-DATA-7: a cell reads `universe.read(root, line).bars`, keeps `History.moves`, `.rescaled`. R-DATA-10 (blocking): `test_lab_batch.py`, `test_lab_cell.py` name SPY and QQQ; name lines that stay.
 ### Requests to MONEY
@@ -207,6 +206,7 @@ parquet, market.db, bars.db, per-source counts). Next: the first real `--live` r
 ### Requests to PAPER
 - [ ] R-DATA-14 (blocking): wire `keeper.saved(home, day)` and the crash watch's `home / keeper.HOT`; the day's record only once `keeper.target(venue, now)` is past, or the door refuses 25 minutes
   every evening.
+- [ ] R-DATA-52 (blocking, opened 2026-11-17 15:00 UK, #759, #769): `desk/command.py` line 387, `history.daily(now)` becomes `history.daily(now, home=root.parent)`; DATA then makes `home` required (R-DATA-49).
 - [ ] R-DATA-37: look IDTL up by `Line.isin`. R-DATA-42: `test_conformance_action.py` restores `paper.CLIENT`, `paper.APART`. R-DATA-44: `command.py` drops its own POUND and DOLLARS. R-DATA-50 (later,
   #747): IDTL has no security definition at the broker, so the live round refuses it; needs its ISIN/contract.
 ### Requests to RUNGS
