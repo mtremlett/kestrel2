@@ -117,6 +117,7 @@ MOVES = {
         (2025, 4, 4, "8.165"),
     ),
     "5QQQ": ((2025, 4, 7, "0.345"), (2025, 4, 8, "0.4295000076293945")),
+    "SGLN": ((2013, 4, 15, "17.870"),),  # gold's crash day: open 18.76, low 17.715, down 8%
 }
 #: Each line's ISIN, as the broker's contract details give it (the conformance tapes of 14
 #: November 2026); IDTL's as its issuer lists it.

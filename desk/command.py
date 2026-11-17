@@ -20,18 +20,22 @@ the bars of the session before, the pound, any halt. Its one line names each.
 
 THE REHEARSAL (`rehearse`) lives the last session again, every five minutes of its day, on a
 record of its own and at the real paper Gateway. It begins only on a day no market trades,
-the real desk's kill switch off and the paper account empty: an order it sends cannot fill,
-and the adapter cancels what the broker did not fill. Its orders carry the ids of the
-session rehearsed, a day that is over, never the next real day's. A step that fails is
+the real desk's kill switch off: an order it sends cannot fill, and the adapter cancels what
+the broker did not fill. Its own book is empty, but the paper account may hold lines and their
+resting stops, as it does since the desk trades: what is found at the start is the account's,
+unseen by the rehearsal's steps and never sold, cancelled or moved by it. Its orders carry the ids
+of the session rehearsed, a day that is over, never the next real day's. A step that fails is
 counted and the next carries on, as in the day itself; at the end whatever of the desk's is
 still working is cancelled. It is GO only if each venue's round and the day's record were
 made, both daily messages written, no check named the account, nothing was left working or
-filled, and the account is as it was found. Its messages go on its own record alone."""
+filled, and the account is as it was found: the same holdings, and the same working orders by
+id and level. Its messages go on its own record alone."""
 
 from __future__ import annotations
 
 import os
 from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from functools import partial
@@ -57,6 +61,7 @@ from desk import (
 from desk import day as days
 from desk.lines import LINES, Line
 from desk.orders import Settings
+from desk.paper import Account
 from desk.running import DAY, VENUES, Desk
 
 ROOT, STORE, REHEARSALS = "desk", "store", "rehearsals"  #: folders, each inside the one before
@@ -203,7 +208,7 @@ def _moments(on: date) -> list[datetime]:
     return [(first + n * EVERY).astimezone(UTC) for n in range((last - first) // EVERY + 1)]
 
 
-def _amiss(desk: Desk, on: date, left: Sequence[str], same: bool) -> list[str]:
+def _amiss(desk: Desk, on: date, left: Sequence[str], changes: Sequence[str]) -> list[str]:
     """What a rehearsed day left that a good day does not, each thing in words."""
     root, kept = desk.root, running.notes(desk.root)
     done, told = {note.what for note in kept}, {d.name for d in messenger.deliveries(desk.root)}
@@ -219,9 +224,44 @@ def _amiss(desk: Desk, on: date, left: Sequence[str], same: bool) -> list[str]:
         wrong.append("the day's record was not made")
     if fills := book.fills(root):
         wrong.append(f"an order FILLED, the markets shut: {[fill.order_id for fill in fills]}")
-    if left or not same:
+    if left or changes:
         wrong.append(f"the paper account is not as found; left working, now cancelled: {left}")
+        wrong += changes
     return wrong
+
+
+@dataclass(frozen=True)
+class Found(paper.Apart):
+    """THE ACCOUNT AS THE REHEARSAL FOUND IT: its held lines and working orders are the
+    account's, so the rehearsal's steps do not see them and cannot touch them (paper.APART)."""
+
+    orders: frozenset[str] = frozenset()  #: the broker's ids of the orders found working
+
+    def without(self, account: Account) -> Account:
+        """The account less what was found: what is left is the rehearsal's own."""
+        gone = [o for o in account.orders if o.broker_id not in self.orders]
+        return Account(
+            tuple(h for h in account.holdings if h.name not in self.holdings), tuple(gone)
+        )
+
+    def changes(self, found: Account, now: Account) -> list[str]:
+        """How the account now differs from found: the same holdings, the same working orders
+        by id and level, and nothing else of the rehearsal's working. Each, named."""
+        kept = {h.name: h.shares for h in now.holdings if h.shares}
+        words = [
+            f"{h.name}: {h.shares} shares held, now {kept.get(h.name, 0)}"
+            for h in found.holdings
+            if h.shares and kept.pop(h.name, 0) != h.shares
+        ]
+        words += [f"{name}: {shares} shares held, found none" for name, shares in kept.items()]
+        listed = {o.broker_id: o for o in now.orders}
+        for old in found.orders:
+            if (new := listed.pop(old.broker_id, None)) is None:
+                words.append(f"a held line's order {old.ref} ({old.symbol}) was cancelled")
+            elif new.level != old.level:
+                words.append(f"a held line's order {old.ref} ({old.symbol}) was moved")
+        words += [f"its own order {o.ref} ({o.symbol}) is still working" for o in listed.values()]
+        return words
 
 
 def _trading(now: datetime) -> list[str]:
@@ -234,25 +274,39 @@ def _trading(now: datetime) -> list[str]:
     ]
 
 
+def _live(desk: Desk, moments: Sequence[datetime], clock: Callable[[], datetime]) -> list[str]:
+    """A step at each moment, as the day's: one that fails is named and the next carries on; the
+    run stops, named, if a market comes near by the clock."""
+    failed = list[str]()
+    for at in moments:
+        if near := _trading(clock()):
+            failed.append(f"{at:%H:%M} UTC stopped, {' and '.join(near)} near")
+            break
+        try:
+            running.step(desk, at)
+        except Exception as fault:  # noqa: BLE001 - a failed step is the rehearsal's finding
+            failed.append(f"{at:%H:%M} UTC {type(fault).__name__}")
+    return failed
+
+
 def rehearse(
     root: Path, now: datetime, clock: Callable[[], datetime] = lambda: datetime.now(UTC)
 ) -> tuple[bool, str]:
     """THE REHEARSAL: the last session before today lived again, a step at each of its
     moments, on a new record under root and at the real paper Gateway; whether it is GO, and
-    its one line. Not begun while the kill switch at root is on, or with anything held or open
-    on the paper account: its book is empty. Nor while a market's session is open or opens
+    its one line. Not begun while the kill switch at root is on. Its book is empty: what the
+    paper account holds or has working when it begins is the account's (Found), and is left
+    as found. Not begun, either, while while a market's session is open or opens
     within the rehearsal's longest run and an hour (WINDOW), or ended just now (AFTER); a run
     that finds one so stops at once. A step that fails is counted and the next carries on; then
     the desk's own orders still working are
     cancelled and the account is read again, whatever happened."""
-    today, before = now.date(), paper.read()
+    today, before = now.date(), paper.whole()
     trading = _trading(now)
-    held = [h.name for h in before.holdings if h.shares] + [o.ref for o in before.orders]
     barred = (
         f"{' and '.join(trading)} trade now, soon or just ended, and an order it sent could fill"
         * bool(trading),
         book.killed(root) or "",
-        f"the paper account is not empty, as the rehearsal's book is: {held}" * bool(held),
     )
     if any(barred):
         return False, OPEN.format("; ".join(filter(None, barred)))
@@ -264,17 +318,18 @@ def rehearse(
         return len(said)
 
     desk = _desk(root / REHEARSALS / f"{now:%Y%m%dT%H%M%S}", post, root.parent)
-    moments, failed = _moments(on), list[str]()
-    for at in moments:
-        if near := _trading(clock()):
-            failed.append(f"{at:%H:%M} UTC stopped, {' and '.join(near)} near")
-            break
-        try:
-            running.step(desk, at)
-        except Exception as fault:  # noqa: BLE001 - a failed step is the rehearsal's finding, named
-            failed.append(f"{at:%H:%M} UTC {type(fault).__name__}")
-    left = placing.Paper(listing.read(LINES), desk.root, lambda: now).cancel()
-    if wrong := _amiss(desk, on, left, paper.read() == before):
+    moments = _moments(on)
+    found = Found(
+        frozenset(h.name for h in before.holdings if h.shares),
+        frozenset(o.broker_id for o in before.orders),
+    )
+    paper.APART = found  #: until the run ends, the account is the rehearsal's own alone
+    try:
+        failed = _live(desk, moments, clock)
+        left = placing.Paper(listing.read(LINES), desk.root, lambda: now).cancel()
+    finally:
+        paper.APART = None
+    if wrong := _amiss(desk, on, left, found.changes(before, paper.whole())):
         steps = f"; steps that failed: {', '.join(failed)}" * bool(failed)
         return False, f"REHEARSAL NO-GO: {'; '.join(wrong)}{steps}"
     words = " ".join(note.words for note in running.notes(desk.root))
