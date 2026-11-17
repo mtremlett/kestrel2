@@ -20,7 +20,12 @@ from decimal import Decimal
 import numpy as np
 
 from desk.store import Bar
-from lab.fast_bands import Params, percent_b_over, percent_b_under_run
+from lab.fast_bands import (
+    Params,
+    close_over_band_after_squeeze,
+    percent_b_over,
+    percent_b_under_run,
+)
 from lab.grid import (
     DESK,
     MARGIN,
@@ -279,6 +284,7 @@ FIRES: Mapping[str, Fire] = {
     "close_over_keltner_band": _over_keltner_band,
     "close_under_keltner_band": _under_keltner_band,
     "rsi_under": _rsi_under,
+    "close_over_band_after_squeeze": close_over_band_after_squeeze,
     "percent_b_over": percent_b_over,
     "percent_b_under_run": percent_b_under_run,
     "close_under_close_ago": _under_close_ago,
