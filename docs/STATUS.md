@@ -178,58 +178,48 @@ R-RUNNER-258 step 2: remove `paper.CLIENT`/`APART` once DATA's live/backfill tak
 - **Other:** `tape.moved` in `desk/conformance_tape.py` is unused; `desk/messenger.py` is at 400 lines, `desk/` has 92 of 10,500 lines left; a note over 24 h old is no longer re-sent; the rehearsal docstring says "no market trading" (stale); `keeper.saved` is stale for every venue if one is not refreshed.
 
 ## DATA
-### Where it is (17 November 2026, folds #217-#732)
+### Where it is (17 November 2026, folds #217-#753)
 Twenty traded lines (SPY, QQQ reference series, #455, #544); one archive client, spared (#637-#732), its six-hour `alert`
 (#671); calendars 1993-2030; daily asks back to 2000 (`archive.SINCE`, #691); two databases (#442, #510), broker first
 (#521); the pound from 1993 (#614). Keeper: `--live`, five-minute rounds, `--roll`, receipts, `parked_live` (#530-#701);
 keeper and history-pull bars keep the line's currency (#719, #725); backfill; old stores in (#238-#566). Six London lines
-clean (#222-#702); an untraded bar gives way to a traded one (#721). Unfinished: R-RUNNER-216 (history pull pages back,
-#585-#725), -215 (rollup), -280 (live round first), R-RUNNER-10 (5-minute parquet, market.db, bars.db, per-source counts).
-Next: the first real `--live` run, 3LGO's daily bars since its shelf ended, data-keeper-receipts.
+clean (#222-#702); an untraded bar gives way to a traded one (#721). Keeper asks IBKR first for every line, a disagreement over 2% recorded not parked (#751); gaps bridged from
+five-minute bars (#747); a shelf a hundredth of the archive's put right in the store (#753); history pull asks only 1m-30m
+and 1d (#739). Unfinished: R-RUNNER-216 (rollup of 1h, 4h, 1wk), -215, -280 (live round first), R-RUNNER-10 (5-minute
+parquet, market.db, bars.db, per-source counts). Next: the first real `--live` run, data-keeper-receipts.
 ### Done for other lanes
-- R-RUNNER-28 #222, -41 #219, -24 #238, -37 #254, -90 #286, -97 #305, -104 #314, -107 #315, -116 #349, -175 #367, -182 #374,
-  -179 #376, -185 #381, -15 #460, -94 #303, -96 #475, -149 #453, -194 #518, -11 #514, -211 #530, -178 #532, -189 #541,
-  -157 #528, -221 #548, -218 #547, -224 #574, -236 #591, -254 #612, -12 #629, -264 #656, -266 #666, -263 #660, -270 #701,
-  -269 #715, -279 #719, -274 and -275 #721, -277 #727; R-PAPER-23 #294, -22 #505, -16 and -3 #543; R-GRID-4 #338;
-  R-MONEY-28 #536; R-RUNGS-3, -5, -15 #537, -9 #544, -16 #630
-- Mine, done by others: R-DATA-1 (#73), -4, -5, -6 (#522), -9, -15 (#517, #530), -17, -25, -26, -27, -28, -31, -35 (#652);
-  own R-DATA-19 to -23, -36, -40, -41 done, -24 superseded by the database
+- R-RUNNER-28 #222, -41 #219, -24 #238, -37 #254, -90 #286, -97 #305, -104 #314, -107 #315, -116 #349, -175 #367, -182 #374, -179 #376, -185 #381, -15 #460, -94 #303, -96 #475, -149 #453, -194 #518,
+  -11 #514, -211 #530, -178 #532, -189 #541, -157 #528, -221 #548, -218 #547, -224 #574, -236 #591, -254 #612, -12 #629, -264 #656, -266 #666, -263 #660, -270 #701, -269 #715, -279 #719, -274 and -275
+  #721, -277 #727, -284 #744, -276 #751, -272 #753; R-PAPER-23 #294, -22 #505, -16 and -3 #543; R-GRID-4 #338; R-MONEY-28 #536, #740; R-RUNGS-3, -5, -15 #537, -9 #544, -16 #630, #747
+- Mine, done by others: R-DATA-1 (#73), -4, -5, -6 (#522), -9, -15 (#517, #530), -17, -25, -26, -27, -28, -31, -35 (#652); own R-DATA-19 to -23, -36, -40, -41 done, -24 superseded by the database
 ### Requests to DATA
-- [ ] R-DATA-49 (blocking, #730, #719): `desk/keeper.py` (claim it, `tests/unit/test_keeper.py`): `keep()` calls
-  `keeper_live.rounds` first under its own deadline (about half of SPENT), then the dailies (R-RUNNER-280's last step);
-  and `history.daily(now, home=home)`, home required.
+- [ ] R-DATA-49 (blocking, #730, #719): `desk/keeper.py` (claim it, `tests/unit/test_keeper.py`): `keep()` calls `keeper_live.rounds` first under its own deadline (about half of SPENT), then the
+  dailies (R-RUNNER-280's last step); and `history.daily(now, home=home)`, home required.
 ### Requests to GRID
-- [ ] R-DATA-7: a cell reads `universe.read(root, line).bars`, keeps `History.moves`, `.rescaled`. R-DATA-10 (blocking):
-  `test_lab_batch.py`, `test_lab_cell.py` name SPY and QQQ; name lines that stay.
+- [ ] R-DATA-7: a cell reads `universe.read(root, line).bars`, keeps `History.moves`, `.rescaled`. R-DATA-10 (blocking): `test_lab_batch.py`, `test_lab_cell.py` name SPY and QQQ; name lines that stay.
 ### Requests to MONEY
-- [ ] R-DATA-3: the day run reads the archive through `archive.gather`. R-DATA-12: `day.run` takes "simply holding the
-  market" from `lines.YARDSTICK`; no ISA buy where isa is not yes. R-DATA-13: `test_watch.py`, `test_pnl.py` name the
-  store "bars.db"; use `keeper.HOT`. R-DATA-30: `lab/slippage.py` reads `bars.daily(home / keeper.HOT, line)`, not CSVs.
-- [ ] R-DATA-33: `command.rates` calls `keeper.pound(home, day)`; POUND, DOLLARS from `desk.lines`. R-DATA-45, -47:
-  refuse a buy on a line in `keeper.parked_live(home / keeper.HOT, LINES, now)`; say why. R-DATA-46: `conformance.py`
-  picks its refused line from `lines.REFERENCE`, so SPY can leave LINES. R-DATA-48: a per-bar source in the daily store
-  (`store.judge` returns it, `Round.daily` writes it).
+- [ ] R-DATA-3: the day run reads the archive through `archive.gather`. R-DATA-12: `day.run` takes "simply holding the market" from `lines.YARDSTICK`; no ISA buy where isa is not yes. R-DATA-13:
+  `test_watch.py`, `test_pnl.py` name the store "bars.db"; use `keeper.HOT`. R-DATA-30: `lab/slippage.py` reads `bars.daily(home / keeper.HOT, line)`, not CSVs.
+- [ ] R-DATA-33: `command.rates` calls `keeper.pound(home, day)`; POUND, DOLLARS from `desk.lines`. R-DATA-45, -47: refuse a buy on a line in `keeper.parked_live(home / keeper.HOT, LINES, now)`; say
+  why. R-DATA-46: `conformance.py` picks its refused line from `lines.REFERENCE`, so SPY can leave LINES. R-DATA-48: a per-bar source in the daily store (`store.judge` returns it, `Round.daily` writes
+  it).
+- [ ] R-DATA-51 (later, #753): the lane owning `desk/lines.py` sets IB1T to USD (dollar-quoted on the LSE); then the store may read the unit from it.
 ### Requests to PAPER
-- [ ] R-DATA-14 (blocking): wire `keeper.saved(home, day)` and the crash watch's `home / keeper.HOT`; the day's record
-  only once `keeper.target(venue, now)` is past, or the door refuses 25 minutes every evening.
-- [ ] R-DATA-37: look IDTL up by `Line.isin`. R-DATA-42: `test_conformance_action.py` restores `paper.CLIENT`, `paper.APART`.
-  R-DATA-44: `command.py` drops its own POUND and DOLLARS.
+- [ ] R-DATA-14 (blocking): wire `keeper.saved(home, day)` and the crash watch's `home / keeper.HOT`; the day's record only once `keeper.target(venue, now)` is past, or the door refuses 25 minutes
+  every evening.
+- [ ] R-DATA-37: look IDTL up by `Line.isin`. R-DATA-42: `test_conformance_action.py` restores `paper.CLIENT`, `paper.APART`. R-DATA-44: `command.py` drops its own POUND and DOLLARS. R-DATA-50 (later,
+  #747): IDTL has no security definition at the broker, so the live round refuses it; needs its ISIN/contract.
 ### Requests to RUNGS
-- [ ] R-DATA-8: a verdict counts trades held through a day in `History.moves`, with and without. R-DATA-11 (blocking):
-  `test_lab_rung.py` prices a dollar trade on "SPY"; name a US line that stays.
-- [ ] R-DATA-29, -38, -34, -43: the ladder reads SPY and its sets from `market_history.db`, rates from `keeper.pound`,
-  POUND and DOLLARS from `desk.lines`. R-DATA-39: re-run the 35 waiting cells.
+- [ ] R-DATA-8: a verdict counts trades held through a day in `History.moves`, with and without. R-DATA-11 (blocking): `test_lab_rung.py` prices a dollar trade on "SPY"; name a US line that stays.
+- [ ] R-DATA-29, -38, -34, -43: the ladder reads SPY and its sets from `market_history.db`, rates from `keeper.pound`, POUND and DOLLARS from `desk.lines`. R-DATA-39: re-run the 35 waiting cells.
 ### Requests to RUNNER
-- [ ] R-DATA-16 (blocking): `test_check.py::test_at_most_n_full_checks_run_at_once` flaky on Windows. R-DATA-18: keeper
-  to 21:40 UK with logs; schedule the head start, `lab.universe nightly`, audit, snapshot, `desk.history_write`,
-  `desk.backfill`; the hourly report calls `desk.archive.alert`, sends its line. R-DATA-32: READY counts desk/ room.
+- [ ] R-DATA-16 (blocking): `test_check.py::test_at_most_n_full_checks_run_at_once` flaky on Windows. R-DATA-18: keeper to 21:40 UK with logs; schedule the head start, `lab.universe nightly`, audit,
+  snapshot, `desk.history_write`, `desk.backfill`; the hourly report calls `desk.archive.alert`, sends its line. R-DATA-32: READY counts desk/ room.
 ### Found, not fixed
-- **UK tax (NS-05).** Five London products unseen on a contract note; London shares 0.5%, unchecked. **Research:**
-  today's members only (BT-09); scale changes under the store's belief are UNI-07.
-- **Operator:** IB1T not ISA-holdable; data-members, data-isa-twins wait on him. **Store/keeper:** `history.run` checks
-  the desk round once, not per page, its bars not yet re-aligned to the session, no rolled-vs-pulled fault; 5QQQ's 2021-22
-  lost; `backfill.in_currency` alias awaits `test_backfill.py`; `keeper.py` 398 lines; a broker-filled bar is labelled
-  "archive"; archive limits unmeasured (#685); Stooq head start 2000-09 undone.
+- **UK tax (NS-05).** Five London products unseen on a contract note; London shares 0.5%, unchecked. **Research:** today's members only (BT-09); scale changes under the store's belief are UNI-07.
+- **Operator:** IB1T not ISA-holdable; data-members, data-isa-twins wait on him. **Store/keeper:** `history.run` checks the desk round once, not per page, its bars not yet re-aligned to the session,
+  no rolled-vs-pulled fault; 5QQQ's 2021-22 lost; `backfill.in_currency` alias awaits `test_backfill.py`; `keeper.py` 400 lines; a broker-filled bar is labelled "archive"; archive limits unmeasured
+  (#685); Stooq head start 2000-09 undone; `history.lacks` unused (#751); IDTL parks on a missing 16 Nov unless its five-minute bars are held; disagreements not in a stored fault file.
 ## GRID
 
 Last updated: 17 November 2026 (one bars reader #449; batch.stored reads as research does #618; R-DATA-10 confirmed #626).

@@ -32,109 +32,14 @@ before this fold: `git log -p docs/lanes/data.md`).
 - *The lists' members* (#96): S&P 500 and Nasdaq 100 by day since 2010; `on` refuses the rest.
 - *Five-minute bars saved for good* (#97): through the daily store's checks, each evening.
 
-### 2026-11-14 — the old desk's five-minute bars as a head start (data-headstart, first step, #175)
+### 2026-11-14 — the head start, currency and store rules, folded (#175-#254)
 
-- **Which objective first.** Options: (a) the keeper (R-RUNNER-7), as the protocol says; (b) the head start, as the runner's first instruction said. Chose (b): the later, more specific word, resting on his ruling "always go with recommended". The keeper is next.
-- **Five-minute before daily.** The archive forgets five-minute bars after sixty days, so the old desk's are the only copy; daily bars can be fetched again any day.
-- **What vouches for an old bar.** Options: (a) the old desk's cleaning; (b) the store's checks alone; (c) also that the bar lies inside its day's fresh daily bar (within the 3% the store allows). Chose (c): (b) cannot see a whole history in a wrong unit where nothing fresh is held.
-- **London pence.** Options: (a) refuse them (loses seven months of six lines); (b) read a bar as pence only when it fits the day's fresh range as pence and not as pounds; (c) try any factor. Chose (b): the readings are a hundredfold apart; no other factor is tried, so bars a hundred times too small are refused.
-- **A line's old bars need proof of their clock.** Options: (a) the daily range alone; (b) also bars already held for some of the same moments, at least half agreeing. Chose (b): the matrices were on Warsaw's clock (1 of 2,184 SPY bars agreed as stamped, 2,170 two hours earlier); aligned sources agreed on 65% to 99.4%, misaligned under 1%. Not tuned further.
-- **"Differs"** means any of the four prices further apart than 0.01%; volumes are not compared (vendors count different venues). Bars already held are recorded as the archive's.
-- **The parquet stores are not read.** They need a parquet reader, a new dependency (his to approve). Options: (a) add one to `lab/`; (b) convert once outside the repository; (c) leave them. Chose (c): the matrices carry Stooq's bars, IBKR's folder holds 24 tickers.
-- **The real store is not changed until this lands and `market.db` exists** (R-RUNNER-10): the store gains a column, so older code could not write to it; the command is one line and safe to repeat.
-- **A round that names no source.** Options: (a) ask MONEY to name the archive in its test and wait; (b) a round is the archive's unless an old store is named. Chose (b); the head start names its source every time. R-DATA-13 lets the default go later.
-- **data-isa-twins waits** until GRID and RUNGS stop naming SPY and QQQ in their tests (the runner's ruling taken on his standing one); the old stores' consolidation comes first (R-RUNNER-10), nothing to E:, no original deleted.
-- **Evidence (A7):** 36 deliberate breaks on scratch copies, 35 caught; the one missed (the order the two old stores are read in) caught since. Blind review: one blocking fault (a read-only open leaves two side files), fixed and tested. `manifest.toml` gains one line registering `lab/headstart.py`; nothing loosened.
-
-### 2026-11-14 — the data lane's open boxes in working order (#180)
-
-- **The keeper before the ISA twins.** Options: (a) twins first, as the book's wording says; (b) the keeper first. Chose (b): the twins wait on other lanes, the keeper is the runner's blocking request and his "paramount" ruling.
-- **The head start second:** his ask says "now", and five-minute bars older than sixty days exist nowhere else.
-- **The single-line findings (2MU, 5QQQ, SGLN, 3LGO) and the three store findings are chained one after another:** they change the same two files (`desk/lines.py`, `desk/store.py`), so only one could run at a time anyway.
-- **data-consolidated carries no "waits: operator".** Options: (a) hold the whole box for his yes; (b) hand it out and let its session stop at the deletion. Chose (b): only deleting the originals is his.
-- **data-tiers names a new module, `desk/tiers.py`:** which tier a name is in is one concept and needs one home; the building session may find a better name.
-- **Nine boxes left un-noted** rather than guessed at: a note naming the wrong files makes a session fail its check.
-
-### 2026-11-14 — currency steps by the day's pound, recorded splits, London-midnight dating (R-RUNNER-28) (#217)
-
-- (1) Pound dating: add one hour to every stamp (options: London zone via zoneinfo, which
-  fails here for want of tzdata; per-line rule for the pound only). Chosen: one rule, no new
-  dependency. (2) Below-JUMP steps in leveraged lines are not tested (option: test all; it
-  would park real crashes). (3) A split is adopted only on a recorded ratio matching the jump
-  within 25%; no recorded ratio, no adjustment.
-
-### 2026-11-14 — a long run of dollar-quoted bars is dropped on the day's pound (R-RUNNER-28) (#220)
-
-- (1) A dollar-quoted run of any length is dropped when each step matches that day's pound
-  within 10% (options: keep BLIP 20 for it, which parks EQQQ; a per-line record). Chosen: the
-  rate is exact evidence, a guess is not needed. (2) 5QQQ is not recorded as a split: the
-  recorded-split rule needs the jump to show the ratio, and a gap of 20 months makes it
-  impossible; I did not loosen SPLIT_NEAR.
-
-### 2026-11-14 — the six parked lines come out clean (R-RUNNER-28) (#222)
-
-- (1) Second source = Stooq daily bars via stooq_store_matrix (options: also a corporate-
-  action notice; chose Stooq alone, matches on close and volume to the cent, as the request
-  allowed "old stores"). (2) Bad high/low is dropped, not clipped (clipping corrects output
-  afterwards). (3) The pound-rate test skips leveraged lines (option: keep it and record every
-  leveraged crash by hand; a stray dollar bar in a leveraged line would now park as a step,
-  which is the safe side).
-
-### 2026-11-14 — every rule and constant of desk/store.py is pinned by a row of one synthetic table (R-RUNNER-43) (#225)
-
-- the guard keys rules by function and order of fault sites, and pins constants by value
-  (options: hash each rule's text, which would force a row edit on every tweak, or only count
-  sites; chose counting plus firing plus value pins as the lightest that makes tuning a
-  deliberate edit). Not loosening the lane guard to write the pattern myself: that is a guard
-  change outside this claim; recommended instead that a session of his (or the coordinator)
-  paste the pattern above.
-
-### 2026-11-14 — R-RUNNER-43 store-rules guard driven red; pattern 13 awaits a guard change (#227)
-
-- left the lane guard alone (touching it is outside the claim, and loosening it is a business
-  question). Options: (a) add FAILURE_PATTERNS.md to SHARED in test_lanes.py; (b) an operator-
-  started session adds the text; (c) leave pattern 13 out. Recommended (a), by his standing
-  ruling, in a session whose claim names `tests/guards/test_lanes.py`.
-
-### 2026-11-14 — the neighbour check's wide-day case pinned by a fixture row (R-RUNNER-46) (#230)
-
-- the rule is not changed. Options: (a) judge neighbours on open and close only (breaks the
-  2MU crash test, loosens a guard); (b) a margin on the range test (an arbitrary constant);
-  (c) leave the rule, pin the shape (taken, since the real cases are already fixed). Review:
-  no blind review, a test-only change of 14 lines.
-
-### 2026-11-14 — the head start reads ibkr_store and stooq_store (R-RUNNER-24, part) (#236)
-
-- Distinguishing ibkr_store from stooq_store (identical layout). Options: by name; by a
-  fetch.json beside the bars; by the source column. Chosen the fetch.json (form, not name, as
-  the earlier ruling; no parquet read to decide). Clock of stooq_store: the same stamps as the
-  matrices for SPY on one day (checked), so Stooq's clock; the store's clock proof still
-  refuses a wrong one.
-
-### 2026-11-14 — the head start reads mark_the_trend's Stooq files and the raw Stooq zips (R-RUNNER-24) (#238)
-
-- (1) No new module: a new file is outside this claim, so the readers were folded together and
-  the docstrings tightened. (2) Of several dated raw-zip folders the newest is read; a venue
-  with no zip is refused alone for that line, not a crash. (3) mark_the_trend's files are
-  taken on Stooq's clock like stooq_store (first bar of SGLN lands at the 08:00 London open);
-  the clock proof by met bars still gates them.
-
-### 2026-11-14 — Source.MTT_DB and daily fill-only in the fast store (R-RUNNER-37, part one) (#245)
-
-- Where the daily history lands: options (a) the CSV history shelf (no source kept), (b)
-  market.db's daily span under Source.MTT_DB, fill-only. Chose (b): the request asks for a
-  Source of its own, and it keeps the archive's day winning by construction. Fresh days are
-  written to market.db first (archive round), then the old database's fill the rest;
-  disagreement days are logged from the store's own held bars. Lines already in are skipped
-  without asking the archive (resumable). The 04:00-stamped "1d" rows in the old database
-  (intraday strays) are dropped: only midnight rows are daily.
-
-### 2026-11-14 — python -m lab.headstart_days reads the old database's daily rows (R-RUNNER-37) (#254)
-
-- A pound-quoted line's old prices may be pounds or pence: options (a) assume, (b) prove from
-  days both hold; took (b), refusing the line if no day proves it. A line the store would park
-  is refused whole (as headstart --daily does), not partly kept. Per-line refusals are printed
-  and the run carries on.
+Settled and folded; git keeps every word. The old desk's five-minute bars, and later ibkr_store, Stooq and
+mark_the_trend files and the old database's daily rows, are read as a head start into the fast store, daily fill-only
+(#175, #236, #238, #245, #254). Currency steps are judged by the day's pound, with recorded splits and London-midnight
+dating; a long run of dollar-quoted bars is dropped (#217, #220); the six parked London lines came out clean (#222).
+Every rule and constant of `desk/store.py` is pinned by a row of one synthetic table, and that guard was driven red
+(#225, #227, #230; R-RUNNER-43, -46). The lane's open boxes were put in working order (#180).
 
 ### 2026-11-15 — the head start recognises adjusted prices against the as-traded store (R-RUNNER-90) (#286)
 
@@ -790,3 +695,34 @@ share, taken as the request says). Wiring it into `keeper.keep` is R-DATA-49.
 Once the archive refuses and every wait is spent, `gather` leaves the rest of that round unasked, refused with the
 reason, so other work goes on (options: keep retrying each line; stop the round, taken). A 404-type answer about one
 line still refuses that line alone. Five-minute answers are now cached in KESTREL2_DATA like daily ones.
+
+### 2026-11-17 — the pull asks only timeframes on the store's marks (#739, R-RUNNER-216)
+
+IBKR's 1h, 4h and weekly bars start on the venue's session (a US hour at :30 UTC), off the store's marks, and the
+writer refuses them, which would stop every run at one place for ever. Options: (a) drop the bars silently
+(forbidden); (b) re-align at write; (c) do not ask, roll up locally (taken: smallest, his 16 Nov ruling).
+
+### 2026-11-17 — a bridge for every line, from five-minute bars (#747, R-RUNGS-16)
+
+`bars.bridged` fills each session of the last 30 days that shelf, archive and broker all lack from held five-minute
+bars, lowest priority. Options: 3LGO only; every line (taken: one code path, A2). A day cut short (Gateway down) would
+give a partial daily bar rather than a park; accepted, the keeper waits SETTLED after the close. The bridged close is
+the last continuous trade, not the closing auction.
+
+### 2026-11-17 — a non-HTTP fault on one vendor no longer fails the collector (#744, R-RUNNER-284)
+
+An OSError on one vendor with others kept exits 0, per the request (non-zero only when no vendor gave anything); it is
+still named on stderr.
+
+### 2026-11-17 — IBKR first for every line (#751, R-RUNNER-276)
+
+(1) IBKR and the archive disagree beyond 2%: park the line, or hold IBKR's bar and record the fault (taken, his
+"Always prefer IBKR"). (2) Lines the broker was not asked for: leave on the archive till tomorrow, or ask again at every
+call (taken; `Kept.unasked`). (3) With no broker passed (tests only) the run line is as before.
+
+### 2026-11-17 — a shelf a hundredth of the archive's is a unit fault (#753, R-RUNNER-272)
+
+(1) No new `desk/units.py`: the desk is at its 80-file ceiling; options raise it (loosening a guard) or fold into
+`store.py` (taken). (2) The factor (PENCE) applies only on evidence (5 or more shared sessions, all alike), never by
+venue. (3) The shelf file stays as shelved; the store re-judges it on every prepare through the one writer.
+
