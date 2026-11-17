@@ -49,7 +49,6 @@ MARKET = {
     ),
 }
 
-
 ARCHIVE_LINES = {line.symbol: line for line in ARCHIVE}
 FIVE = Settings(Decimal(10_000), new_lines=5)
 
