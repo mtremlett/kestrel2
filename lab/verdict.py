@@ -86,10 +86,12 @@ def judge(
     made: Sequence[Reproduction],
     pooled: Callable[[], Pooled],
     first: Verdict | None = None,
+    family: int | None = None,
 ) -> dict[str, Any]:
     """Every rung's answer with its reason, the rungs not run with theirs, the verdict's.
     The folds are the rule's, pooled over its lines: `pooled` is asked only when they are read.
-    `first` is the cell's first rung where the caller has run it already."""
+    `first` is the cell's first rung where the caller has run it already. `family` is the
+    trials of the cell's rule (`trials.family`): asked for, and used, only when EASED."""
     try:
         reproduce.settled(c.strategy, made)
     except ValueError as missed:  #: the rule as coded is not the author's: no verdict on ours
@@ -97,8 +99,8 @@ def judge(
     verdict = first or ready(c, own, pounds, made)
     unrun = UNRUN | ({} if made else {"reproduce": NO_FIGURE})
     settings = Settings(CAPITAL)
-    (one,) = deflated.judge([verdict], count - 1)  #: every other trial the register holds
-    rungs = _named(verdict, one)
+    (one,) = deflated.judge([verdict], _charged(c, count, family) - 1)  #: every other trial
+    rungs = _named(verdict, one, c.strategy if EASED else None)
     if EASED and verdict.answer is Answer.FAIL and verdict.t is not None and verdict.t < 0:
         return _stopped(len(verdict.trades), {"first": rungs["first"]}, unrun)  #: a hard fail
     if made:
@@ -120,6 +122,13 @@ def judge(
         "unrun": unrun,
         "every": all(answer is Answer.PASS for answer, _ in rungs.values()),
     } | ({"answer": deflated.rule(named).name} if len(named) == len(deflated.NAMED) else {})
+
+
+def _charged(c: Cell, count: int, family: int | None) -> int:
+    """The trials a cell is charged: the register's, or with EASED its rule's family's."""
+    if EASED and family is None:
+        raise ValueError(f"{c.strategy}: EASED judges by the rule's family count, none given")
+    return family if EASED and family is not None else count
 
 
 def _marketed(against: market.Against, beside: Line, rungs: Judged) -> Pair:
@@ -240,16 +249,17 @@ def _unstepped(line: Line, own: Sequence[Bar], pounds: Rates) -> None:
             )
 
 
-def _named(verdict: Verdict, one: Deflated) -> Judged:
+def _named(verdict: Verdict, one: Deflated, family: str | None = None) -> Judged:
     """The four rungs read from the trial's trades (`deflated.OWN`), each with its reason."""
     first = (
         f"{len(verdict.trades)} trades judged, their mean gain after every cost "
         f"({verdict.broker}) {_n(verdict.t)} standard errors above nothing; "
         f"{rung.MIN_TRADES} trades and {rung.T_PASS} asked"
     )
+    of = "" if family is None else f" of the {family} family"
     why = {
         "first": first,
-        "luck": f"its chance of {one.luck.chance:.2g}, times {one.luck.trials} trials, is "
+        "luck": f"its chance of {one.luck.chance:.2g}, times {one.luck.trials} trials{of}, is "
         f"{one.luck.corrected:.2g}; {luck.FAMILY} or under asked",
         "deflated": f"a deflated Sharpe of {one.deflated:.2f}; {deflated.PASS} passes and under "
         f"{deflated.FAIL} fails",
