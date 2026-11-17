@@ -382,6 +382,12 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #657 R-MONEY-30: recover restores a lost stop from the book's kept level. |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #690 R-RUNNER-268 desk/running.py split, 392 to 321 lines, no behaviour change. |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #686 paper-conformance: Monday's conformance files compared with the pretend broker; no code change, every difference already fixed. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #706 R-RUNNER-278 IDTL contract request built from the master (listing.py); no scene change. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #716 R-RUNNER-282 pound from IBKR first, archive only where IBKR gives none; scenes 7 of 7. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #733 R-RUNNER-257 done: paper.CLIENT, APART and current deleted; no behaviour change. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #741 no change; R-MONEY-49 and R-MONEY-36 found already on main. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #738 R-RUNNER-281 part: conformance sizing reads the store's bar. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #752 supervisor pulls main at the safe point (OPS-05, OPS-16). |
 
 ### GRID
 
