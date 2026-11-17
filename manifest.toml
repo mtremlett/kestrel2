@@ -180,6 +180,7 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "lab/verdict.py" = "the ladder's verdict on one cell: every rung's answer with its reason, the shuffle run last and only on a trial that passed the rest, and the one rule over them"
 "lab/blocks.py" = "the spec book's building blocks: entries, exits, stops and filters, each written once as a small stateful class over the desk's own proven indicators, and the one list of them by name with their parameters' ranges"
 "lab/blocks_parts.py" = "the spec book's blocks over a run of day-to-day moves: the big-move stop and Clenow's rising score with its rolling log-slope, imported by lab/blocks.py"
+"lab/fast_bands.py" = "the fast engine's firing of the Bollinger-band blocks (%b, the squeeze), on whole arrays, sure of every comparison or refusing with TooClose"
 "lab/block_bands.py" = "the spec book's Bollinger-band blocks: where the close sits in the bands (%b), an entry on a run of low days and an exit on a high one, over the desk's own window and lower band"
 "lab/block_months.py" = "the spec book's month-end blocks: an entry on a month's first bar when the month before closed over its n-month average, an exit when it did not, over the desk's own window"
 "lab/block_base.py" = "what every spec block shares: the kinds of place a block fits, the one interface of a block, and how the registry holds a block with its parameters' ranges"
