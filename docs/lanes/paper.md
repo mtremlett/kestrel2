@@ -459,3 +459,11 @@ Options: (a) a failed pull ends the supervisor; (b) it is kept as a receipt of j
 ### 2026-11-17 — the soak moves into the tape; the tape's manifest row is not edited (R-RUNNER-285, #766)
 
 Options: (a) edit the tape's manifest row to name the soak; (b) leave it, since a lane may only add rows (test_lanes), and the coordinator names the soak there. Chose (b).
+
+### 2026-11-17 — conformance stop step judged on fills and holdings (R-RUNNER-308, #779)
+
+Options: (a) the pretend broker says the same words as the real one; (b) compare fills and holdings. Chose (b): it is the card's own wording and the pretend broker has no cancel reasons. This reverses the 16 Nov rule that cancelled+filled meant sold by hand: the stop was the run's own swap (`_raised` rests the raised stop, then cancels the original under the same reference). The broker's words stay in the "it said" column; a sale not under the stop's name still differs and fails.
+
+### 2026-11-17 — the lost-stop list is read from the day's list, in the evening message (R-RUNNER-291, #805)
+
+Options: (a) widen the claim to change `running.recover`'s words (loosens a claim, more files; its report carries no order id or level); (b) read the day's list (`halt.morning`, entries written by `day._bare`), which already holds id, shares and level. Chose (b), smaller. Evening, not morning: the list is written when the day's record is made, after the close. `messenger.PUT_BACK` repeats `day._bare`'s "; put back " marker, a second home for that phrase; a later change could export it from `day.py`. A morning copy is a follow-up if he wants it.
