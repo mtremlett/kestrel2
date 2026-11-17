@@ -116,11 +116,13 @@ def test_the_census_names_every_part_of_the_money_path_and_the_scenarios_that_ra
     ran = {
         "strategy.decide": simcity.RULES,
         "day.run": simcity.DAY,
+        "day.lost_stops": simcity.DAY,
         "book.send": simcity.RESTART,
         "broker.Pretend.cancel": simcity.RESTART,  #: what a dead desk left working, cancelled
         "broker.Pretend.working": simcity.DAY,
         "broker.Pretend.inject": simcity.BEHIND,
         "broker.Pretend.cancel_stop": simcity.UNSTOPPED,
+        "broker.Pretend.put_stop": simcity.UNSTOPPED,
         "kill.pull": simcity.KILLED,
         "kill.Killed.words": simcity.KILLED,
         "orders.Charges.total": simcity.DAY,  #: a property is a part as a method is

@@ -91,6 +91,13 @@ def test_a_stop_sells_at_its_level_or_a_gapped_open_even_on_the_day_of_its_buy()
         broker.open(TUE)
     with pytest.raises(ValueError, match="A: no stop"):
         broker.cancel_stop("A")
+    with pytest.raises(ValueError, match="A: no stop for 3 shares, 0 held"):
+        broker.put_stop("A", 3, Decimal(1), "x-stop")
+    broker.inject("A", 7)
+    broker.put_stop("A", 7, Decimal(40), "x-stop")
+    assert broker.resting_stops()["A"] == (7, Decimal(40))
+    with pytest.raises(ValueError, match="A: a stop already rests"):
+        broker.put_stop("A", 7, Decimal(40), "x-stop")
 
 
 def test_a_sale_fills_at_the_open_and_takes_its_shares_off_the_lines_stop() -> None:

@@ -216,6 +216,17 @@ class Pretend:
             raise ValueError(f"{symbol}: no stop rests to be cancelled")
         del self._stops[symbol]
 
+    def put_stop(self, symbol: str, shares: int, level: Decimal, order_id: str) -> None:
+        """A stop put back under shares held, resting at level under its own id: the put-back of
+        one cancelled by hand. A line with a stop resting, or fewer shares held, is an error."""
+        if symbol in self._stops:
+            raise ValueError(f"{symbol}: a stop already rests")
+        if not 0 < shares <= self._held.get(symbol, 0):
+            raise ValueError(
+                f"{symbol}: no stop for {shares} shares, {self._held.get(symbol, 0)} held"
+            )
+        self._stops[symbol] = _Stop(order_id, shares, level)
+
     def _execute(self, order: Order | Sale, fault: Fault | None, bar: Bar | None) -> Report:
         symbol, wanted = order.line.symbol, order.quantity
         if fault is Fault.REJECT:

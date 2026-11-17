@@ -256,6 +256,15 @@ def test_the_evening_message_tells_the_fills_the_holdings_and_last_record(tmp_pa
     assert messenger.evening(traded, NINE, GONE, _posts()) == Delivery(NINE, quiet.name, 1, said)
 
 
+def test_the_evening_message_names_a_line_held_with_no_stop_and_the_stop_to_put_back(
+    tmp_path: Path,
+) -> None:
+    why = "VUSA: 5 shares held, 0 under a stop at the broker; put back o-stop, selling 5 at 70"
+    halt.note(tmp_path, date(2026, 11, 16), [halt.Blocked("o-stop", halt.Blocker.BOOK, 0, why)])
+    told = messenger.evening(tmp_path, NINE, READY, _posts())
+    assert told and told.text.endswith(f" HELD WITH NO STOP: {why}.")
+
+
 def test_each_daily_message_names_the_halts_in_force_beside_the_kill_switch(tmp_path: Path) -> None:
     halt.call(tmp_path, MON - timedelta(hours=2), "his word")
     morning = messenger.morning(tmp_path, MON, READY, _posts())

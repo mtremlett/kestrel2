@@ -286,6 +286,15 @@ def _bare(
     halt.note(root, day, bare)
 
 
+def lost_stops(root: Path, on: date) -> str:
+    """The lines held with no stop, from the day's list (_bare), each with the stop to put
+    back, for the evening message; empty when none, or when no list was made for the day."""
+    if not (root / halt.BLOCKED / f"{on}.csv").exists():
+        return ""
+    lost = [b.reason for b in halt.morning(root, on)[Blocker.BOOK] if "under a stop at" in b.reason]
+    return f" HELD WITH NO STOP: {' | '.join(lost)}." if lost else ""
+
+
 def _unread(root: Path, lines: Sequence[Line], due: Mapping[str, Line], day: date) -> None:
     """Open the morning's list with the lines no rule could decide: its venue trades today
     and its bars do not end at the session before. A line read now leaves the list."""

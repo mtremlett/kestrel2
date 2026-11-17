@@ -21,7 +21,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import ModuleType
 
-from desk import book, broker, day, halt, kill, orders, strategy
+from desk import book, broker, day, kill, orders, strategy
 from desk.broker import Crash, Fault, Pretend, Report
 from desk.lines import YARDSTICK, Line
 from desk.orders import HOLDINGS, Order, Sale, Settings, pennies
@@ -150,7 +150,7 @@ class _Counted(Pretend):
         """Cancel a resting stop by hand; what is given back puts it back as it was."""
         stop = self._stops[symbol]
         self.cancel_stop(symbol)
-        return lambda: self._stops.update({symbol: stop})
+        return lambda: self.put_stop(symbol, stop.shares, stop.level, stop.order_id)
 
 
 class _Life:
@@ -195,8 +195,9 @@ class _Life:
         bare = {*held} - {*stopped} - {*record.mismatches}
         self.promise("a line held with no stop at the broker is named that day", not bare)
         mine = dict(self.pretend.holdings())  #: a line whose shares are not the book's is not
-        told = {b.reason.partition(":")[0] for b in halt.morning(self.desk, on)[halt.Blocker.BOOK]}
-        untold = {s for s, n in held.items() if s not in stopped and mine.get(s) == n} - told
+        lost = day.lost_stops(self.desk, on)  #: the lines the evening message carries to him
+        gone = {s for s, n in held.items() if s not in stopped and mine.get(s) == n}
+        untold = {s for s in gone if f" {s}: " not in lost}
         self.promise("a line held with no stop is on that day's list, with its stop", not untold)
         same = held == stopped == mine
         self.promise("no line is named on a day the book is the broker's", not (same and odd))
@@ -252,9 +253,8 @@ def _gapped(life: _Life, on: date) -> None:
     paid = {f.symbol: f.price for f in book.fills(life.desk) if f.quantity > 0 and f.day == on}
     due = {s: orders.stop_under(lines[s], p) for s, p in paid.items()}
     rests = {s: level for s, (_, level) in life.pretend.resting_stops().items()}
-    life.promise(
-        "a stop rests where its fill puts it", all(rests[s] == due[s] for s in rests & due.keys())
-    )
+    fits = (rests[s] == due[s] for s in rests & due.keys())
+    life.promise("a stop rests where its fill puts it", all(fits))
 
 
 def _killed(life: _Life, on: date) -> None:

@@ -285,7 +285,7 @@ def evening(root: Path, now: datetime, known: Known, post: Post) -> Delivery | N
     )
     stale = "" if known else STALE.format(known.words.rstrip("."))
     told = f"{opens} {stale}The desk's fills today: {dealt or 'none'}. {_gate(root)} {_state(root)}"
-    return send(root, now, name, told, post)
+    return send(root, now, name, told + day.lost_stops(root, today), post)
 
 
 def hourly(root: Path, now: datetime, words: Callable[[], str], post: Post) -> Delivery | None:
