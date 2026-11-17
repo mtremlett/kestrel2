@@ -288,12 +288,16 @@ def _run(
     name: str, rule: Rule, symbol: str, bars: Sequence[Bar], last: bool | None = None
 ) -> Iterator[Decision]:
     """The rule's decisions, holding what it last chose; on the last bar, holding `last`
-    instead when it is given."""
-    holding = False
+    instead when it is given. A rule that declares a holding period is sold out of at its end,
+    whatever it answered."""
+    holding, since, limit = False, 0, rule.declared.hold
     for n, bar in enumerate(bars):
         if last is not None and n == len(bars) - 1:
             holding = last
         wants = rule.step(bar, holding)
+        since = since + 1 if holding else 0
+        if limit is not None and since >= limit:  #: STP-11: out after the declared sessions
+            wants = False
         #: a sale only of what is held, a buy only of what is not, whatever the rule answered
         sells, buys = holding and not wants, wants and not holding
         action = Action.SELL if sells else Action.BUY if buys else Action.HOLD
