@@ -8,7 +8,7 @@ the broker will not give is Refused, with the broker's own words, for the store 
 from __future__ import annotations
 
 import time
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Collection, Sequence
 from datetime import date, datetime
 from typing import BinaryIO
 
@@ -104,3 +104,33 @@ def gather(
         return answers
 
     return paper.dial(talk)
+
+
+Ask = tuple[Line, str]  #: one line in one timeframe: the unit the pull plans, paces and resumes by
+
+
+def plan(lines: Sequence[Line], done: Collection[Ask]) -> list[Ask]:
+    """Every ask of every line in every timeframe the database keeps that is not yet done, in a
+    fixed order, so a pull stopped anywhere takes up where it left off and fills only the gaps."""
+    return [(line, frame) for line in lines for frame in SIZES if (line, frame) not in done]
+
+
+def pull(
+    asks: Sequence[Ask],
+    fetch: Callable[[Line, str], Answer],
+    keep: Callable[[Line, str, Answer], object],
+    wait: Wait = time.sleep,
+    limit: int | None = None,
+) -> int:
+    """Make the asks one at a time, PACING seconds apart (so never over the broker's limit), each
+    answer given to keep as it comes (the caller notes it done), stopping after limit asks.
+    Returns how many were made; the asks not made are what plan gives again."""
+    made = 0
+    for line, frame in asks:
+        if made == limit:
+            break
+        if made:
+            wait(PACING)
+        keep(line, frame, fetch(line, frame))
+        made += 1
+    return made

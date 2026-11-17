@@ -17,7 +17,7 @@ A line the archive would not answer for is asked again at every call: for a day 
 holds it keeps its bars and standing; for a new day it is parked alone, with no bars. A line
 parked for a fault in its bars is asked again for TRIES calls and then left for the next
 refresh, unless no line of its venue is clean: then it is asked at every call. The pound's
-closes the long database holds judge them (`_rates`).
+closes the long database holds judge them (`pound_closes`).
 
 THE FIVE-MINUTE ROUND, at every call from a venue's open until SETTLED after its closing
 auction: its lines' ended bars of the session under way (the yardstick first) come from IBKR's
@@ -151,7 +151,7 @@ def _shelf(folder: Path, line: Line) -> tuple[Bar, ...] | None:
         return None
 
 
-def _rates(hot: Path) -> store.Rates:
+def pound_closes(hot: Path) -> store.Rates:
     """The pound's closes in dollars the long database holds (none while it is not yet kept):
     by them the store tells a bar in dollars among pounds from a move (R-RUNGS-16)."""
     try:
@@ -170,7 +170,7 @@ def _kept_in(
 ) -> list[Parked]:
     """The answers judged by the one store and kept in its long database as one round; the
     lines parked. A line is kept whole: its archive bars replace those the archive gave before."""
-    parked, rates = [], _rates(hot)
+    parked, rates = [], pound_closes(hot)
     with bars.writing(hot) as round_:
         for line, answer in answers.items():
             shelf = _shelf(folder, line)
@@ -254,7 +254,7 @@ def pound(home: Path, day: date) -> Decimal:
     """THE DAY'S POUNDS PER DOLLAR, for any session, from the pound's closes kept before the day
     (desk.carry's one rule: one over the last close, carried over a UK-only holiday). Stale where
     the store holds none fresh enough: no dollar line is priced on it."""
-    closes = _rates(home / HOT)
+    closes = pound_closes(home / HOT)
     last = venues.sessions("LSE", day - 10 * DAY, day - DAY)[-1:]
     known = {d: r for d in (day, *last) if (r := carry.pounds_per_dollar(closes, d))}
     if (rate := carry.carried(known, day)) is None:
@@ -349,13 +349,18 @@ def keep(
     return spoken, [words for words, miss in told if miss]
 
 
-def main(home: Path, now: datetime) -> int:
-    """THE COMMAND: what was done on one line each, a miss on the error stream, and 1 for it."""
-    done, missed = keep(home, now)
+def main(home: Path, now: datetime, args: Sequence[str] = ()) -> int:
+    """THE COMMAND: what was done on one line each, a miss on the error stream, and 1 for it.
+    `--live` takes one run of one-minute bars instead (R-RUNNER-12; `--roll` is not yet built)."""
+    if args == ["--live"]:
+        words, missed = keeper_live.minute_round(home / HOT, LINES, now, keeper_live.minutes)
+        done = [words]
+    else:
+        done, missed = keep(home, now)
     sys.stdout.write("".join(f"{line}\n" for line in done))
     sys.stderr.write("".join(f"MISSED: {line}\n" for line in missed))
     return int(bool(missed))
 
 
 if __name__ == "__main__":
-    sys.exit(main(Path(os.environ["KESTREL2_DATA"]), datetime.now(UTC)))
+    sys.exit(main(Path(os.environ["KESTREL2_DATA"]), datetime.now(UTC), sys.argv[1:]))

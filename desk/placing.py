@@ -19,7 +19,7 @@ and of a line's stop before a sale; by `settle`, of a stop only once its replace
 
 from __future__ import annotations
 
-from collections.abc import Callable, Collection, Iterator, Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import replace
 from datetime import datetime, timedelta
 from decimal import Decimal
@@ -32,12 +32,10 @@ from desk.broker import Disconnected, Fill, Report
 from desk.listing import Listing, Unlisted
 from desk.orders import Order, Refused, Sale
 from desk.paper import Resting
+from desk.placing_parts import GONE as GONE
+from desk.placing_parts import OVER
 from desk.placing_parts import Stop as Stop
 
-CANCEL = 4  #: what this module sends that is no question besides an order: a cancel
-#: The broker's words for an order it will not work again: cancelled, or done.
-GONE = frozenset({"Cancelled", "ApiCancelled"})
-OVER = GONE | {"Filled"}
 MARKET = ("MKT", "", "", "DAY")  #: an order's kind: at the market, no price, for the day
 
 
@@ -54,42 +52,6 @@ def _working(order: Resting) -> bool:
     """Whether an order of the desk's own is the kill switch's to cancel: not one that is over,
     nor a stop to sell (reports.stop_to_sell), whose line would be unprotected."""
     return not reports.stop_to_sell(order) and order.state not in OVER
-
-
-def _told(
-    wire: BinaryIO, numbers: Collection[str], states: Collection[str] = OVER
-) -> Iterator[tuple[str, str, str | None]]:
-    """What the gateway says, for as long as it is read, of orders of the desk's own by their
-    numbers: a state one stands in (its number, the state, None), or a notice of one (its
-    number, the words, its code). The rest is passed over (paper.other)."""
-    while True:
-        fields = paper.receive(wire)
-        if fields[0] == paper.STATUS:
-            if len(fields) != 12:
-                raise ValueError(f"an order's state of a shape the desk does not read: {fields}")
-            if fields[1] in numbers and fields[9] == str(paper.CLIENT) and fields[2] in states:
-                yield fields[1], fields[2], None
-        elif fields[0] == paper.NEWS and len(fields) > 4 and fields[2] in numbers:
-            yield fields[2], fields[4], fields[3]
-        else:
-            paper.other(fields)
-
-
-def _cancel(wire: BinaryIO, send: paper.Send, numbers: Collection[str]) -> dict[str, str]:
-    """Ask over an open connection that orders of the desk's own be cancelled, each by its
-    number, and read until the broker has given its last word of every one: the state it is
-    over in, or its notice refusing the cancel. A gateway that hangs up first is an error."""
-    paper.start(wire, send)
-    send(b"".join(paper.message(CANCEL, 1, number, "") for number in numbers))
-    said: dict[str, str] = {}
-    for number, word, code in _told(wire, numbers):
-        if code is None:
-            said[number] = word
-        elif code != paper.CANCELLED:
-            said.setdefault(number, f"{code}: {word}")
-        if len(said) == len(numbers):
-            break
-    return said
 
 
 def _with(listed: Listing, order: Order) -> Stop:
@@ -120,7 +82,7 @@ def _place(
         send(buy + parts.selling(numbers[1], listed, _with(listed, order), "1", number))
     notices: list[str] = []
     try:
-        for told, word, code in _told(wire, numbers):
+        for told, word, code in parts.told(wire, numbers):
             if code is not None:
                 notices.append(f"{code}: {word}")
             elif told == number:
@@ -136,7 +98,7 @@ def _rest(wire: BinaryIO, send: paper.Send, listed: Listing, stop: Stop) -> None
     number = str(paper.start(wire, send))
     send(parts.selling(number, listed, stop))
     notices: list[str] = []
-    for _, word, code in _told(wire, (number,), OVER | reports.HELD):
+    for _, word, code in parts.told(wire, (number,), OVER | reports.HELD):
         if code is not None:
             notices.append(f"{code}: {word}")
         elif word in reports.HELD:
@@ -353,7 +315,7 @@ class Paper:
         """Send a cancel for each of the desk's own orders given, its order id by its number,
         and give the broker's last word of each. A cancel refused is settled by the account
         read again; an order still open there, a stop included, is an error raised."""
-        said = paper.dial(lambda wire, send: _cancel(wire, send, tuple(working)))
+        said = paper.dial(lambda wire, send: parts.cancel(wire, send, tuple(working)))
         refused = {number: word for number, word in said.items() if word not in OVER}
         listed = paper.read().orders if refused else ()
         still = [
