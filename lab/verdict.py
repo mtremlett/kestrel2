@@ -79,6 +79,8 @@ STEP = Decimal("0.03")
 #: other rung is run and graded PASS, WEAK or FAIL, and none stops it. Off until card
 #: ease-switch-on.
 EASED = False
+INCUBATE = "INCUBATE"  #: easing 3: paper only, never PASS; the set's page lists it apart
+T_INCUBATE = Decimal(1)  #: a basket's mean this many standard errors above nothing, or over
 WEAK = (Answer.THIN, Answer.DOUBT)  #: a scorecard's WEAK: neither a win nor a loss
 Pair = tuple[Answer, str]
 Judged = dict[str, Pair]  #: each rung's answer on a cell, and its reason
@@ -138,6 +140,14 @@ def judge(
         "unrun": unrun,
         "every": all(answer is Answer.PASS for answer, _ in rungs.values()),
     } | ({"answer": deflated.rule(read).name} if len(read) == len(deflated.NAMED) else {})
+
+
+def basket_answer(basket: Verdict, stressed: Answer) -> str:
+    """A basket's answer's name. Off: the ladder's own. EASED: a basket the ladder fails on enough
+    trades, whose after-cost mean is T_INCUBATE standard errors above nothing and whose stress
+    passed, is INCUBATE; a PASS stays PASS, and any other stress answer is never INCUBATE."""
+    pending = basket.answer is Answer.FAIL and basket.t is not None and basket.t >= T_INCUBATE
+    return INCUBATE if EASED and pending and stressed is Answer.PASS else basket.answer.name
 
 
 def _charged(c: Cell, count: int, family: int | None) -> int:
