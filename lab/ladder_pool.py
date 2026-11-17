@@ -110,20 +110,23 @@ class Yielding:
                 sent.append(self.queue.pop(0))
                 self.running += 1
         for fn, arg, mine in sent:
-            self.pool.submit(fn, arg).add_done_callback(partial(self._end, mine=mine))
+            try:
+                self.pool.submit(fn, arg).add_done_callback(partial(self._end, mine=mine))
+            except BaseException as error:  # noqa: BLE001 - handed on to the waiting future
+                mine.set_exception(error)
 
     def _end(self, done: Future[Any], mine: Future[Any]) -> None:
         """One task ended: re-read the memory, set the number allowed, pass its result on."""
-        total, free = self.memory()
-        with self.lock:
-            self.running -= 1
-            self.allowed = min(self.size, fits(total, free))
         if done.cancelled():
             mine.cancel()
         elif done.exception() is not None:
             mine.set_exception(done.exception())
         else:
             mine.set_result(done.result())
+        total, free = self.memory()
+        with self.lock:
+            self.running -= 1
+            self.allowed = min(self.size, fits(total, free))
         self._dispatch()
 
     def shutdown(self, wait: bool = True, cancel_futures: bool = False) -> None:
