@@ -16,6 +16,7 @@ loosened: the desk cannot import this module, so the rule can decide no trade.""
 
 from __future__ import annotations
 
+import hashlib
 import os
 import sys
 from collections.abc import Callable, Iterable, Sequence
@@ -326,6 +327,47 @@ def read(root: Path, line: Line) -> History:
     return History(bars[start:end], listed, tuple(bars[n].day for n in cuts))
 
 
+LISTS = {"sp500": SP500, "nasdaq100": NASDAQ100, "ftse350": FTSE350, "funds": ETFS}
+
+
+def _cleared(home: Path, lines: Iterable[Line]) -> list[str]:
+    """Delete the store files (and shelved ones) of every ticker no longer in lines, in a venue
+    folder of the list; name them, venue first."""
+    keep = {(line.venue, line.symbol) for line in lines}
+    gone = []
+    for venue in sorted({line.venue for line in UNIVERSE}):
+        folder = home / venue
+        for path in sorted([*folder.glob("*.csv"), *(folder / store.HISTORY).glob("*.csv")]):
+            symbol = path.name.removesuffix(".csv").removesuffix(".faults")
+            if (venue, symbol) not in keep:
+                path.unlink()
+                gone.append(f"{venue}:{symbol}")
+    return gone
+
+
+def nightly(
+    data: Path,
+    day: date,
+    lines: Sequence[Line] = UNIVERSE,
+    ask: Callable[[Line, date], tuple[Bar, ...]] = archive.fetch,
+    second: Callable[[Line, date], tuple[Bar, ...]] | None = None,
+) -> str:
+    """The night's work on the research store's home, data/grid/store: refresh every line (into
+    the history database too), clear out any ticker that has left the list, and write
+    REFLECTS.txt beside the venue folders: the day, each list's size and a fingerprint of the
+    tickers, so a reader knows which day and which list the store reflects."""
+    home = data / "grid" / "store"
+    said = refresh(home, day, lines, ask, second, data / bars.LIVE)
+    gone = _cleared(home, lines)
+    names = sorted(f"{line.venue}:{line.symbol}" for line in lines)
+    finger = hashlib.sha256(" ".join(names).encode()).hexdigest()[:12]
+    sizes = " ".join(f"{name}={len(found)}" for name, found in LISTS.items())
+    held = (f"day {day}", f"lines {len(names)} {sizes}", f"fingerprint {finger}")
+    note = chr(10).join((*held, f"cleared {' '.join(gone)}", ""))
+    (home / "REFLECTS.txt").write_text(note, encoding="utf-8")
+    return f"{said}; {len(gone)} cleared out"
+
+
 def import_history(data: Path, day: date) -> str:
     """The whole research store and the ladder's pound table under data, let into the history
     database there; the yardsticks' missing sessions are named."""
@@ -344,6 +386,9 @@ if __name__ == "__main__":
     TODAY = datetime.now(UTC).date()
     if sys.argv[1:] == ["history"]:
         sys.stdout.write(import_history(DATA, TODAY) + chr(10))
+    elif sys.argv[1:2] == ["nightly"]:
+        other = matrix(Path(sys.argv[2])) if len(sys.argv) > 2 else None
+        sys.stdout.write(nightly(DATA, TODAY, second=other) + chr(10))
     elif sys.argv[1:] == ["noon"]:
         sys.stdout.write(universe_history.noon(DATA / bars.LIVE) + chr(10))
     else:
