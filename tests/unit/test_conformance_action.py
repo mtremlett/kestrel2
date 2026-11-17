@@ -38,3 +38,14 @@ def test_a_run_whose_stop_was_cancelled_by_hand_is_refused_loudly_though_its_fil
     monkeypatch.setattr(conformance, "reasons", lambda: ended)
     assert _run(tmp_path, MON, "london") == 1
     assert "the stop triggered (THE TWO SIDES DID DIFFERENT THINGS)" in capsys.readouterr().out
+
+
+def test_a_stop_that_rests_unsold_at_the_real_broker_rests_at_the_pretend_one_and_the_run_passes(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    _world(monkeypatch)  # London, 16 November 13:57: the stop put above the market was not sold
+    name = f"{ID.format(3)}-stop"
+    monkeypatch.setattr(
+        conformance, "_raised", lambda *_: lambda _: conformance.STILL.format(name, 30)
+    )
+    assert _run(tmp_path, MON, "london") == 0
