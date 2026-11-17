@@ -191,3 +191,21 @@ def test_the_scorecard_grades_every_rung_after_a_soft_fail_and_stops_at_a_negati
     assert soft["rungs"]["deflated"][0] == ("WEAK" if eased else "DOUBT"), "DOUBT is graded WEAK"
     hard = judged("-0.5")  #: a negative mean: stops at once
     assert (list(hard["rungs"]) == ["first"]) is eased and hard["answer"] == "FAIL"
+
+
+@pytest.mark.parametrize("eased", [False, True])
+def test_a_basket_at_one_standard_error_incubates_and_over_the_stress_limit_never_does(
+    monkeypatch: pytest.MonkeyPatch, eased: bool
+) -> None:
+    monkeypatch.setattr(verdict, "EASED", eased)
+    first = verdict.ready(CELL, EDGE, {}, ())
+
+    def said(t: str, ladders: Answer, stress: Answer = Answer.PASS) -> str:
+        return verdict.basket_answer(replace(first, answer=ladders, t=Decimal(t)), stress)
+
+    assert said("0.9", Answer.FAIL) == "FAIL"
+    assert said("1.0", Answer.FAIL) == ("INCUBATE" if eased else "FAIL")
+    assert said("2.1", Answer.PASS) == "PASS"  #: the ladder's own answer, never demoted
+    for over in (Answer.FAIL, Answer.THIN, Answer.FAULT):  #: stress over its limit or untested
+        assert said("1.5", Answer.FAIL, over) == "FAIL"
+    assert said("1.5", Answer.THIN) == "THIN"  #: too few trades says nothing
