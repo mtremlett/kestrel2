@@ -50,6 +50,7 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "desk/bars.py" = "the one fast store for hot and deep bars: one SQLite file, the one writer's whole rounds, many readers"
 "desk/bars_parts.py" = "what lets a five-minute bar into the fast store, split from desk/bars.py: each bar judged against its venue's calendar and the line's bars against one another and the closes held"
 "desk/spans.py" = "the timeframes: one Span for each of 1m, 2m, 5m, 10m, 15m, 30m, 1h, 4h, 1d and 1wk with its length and start rule (a bar starts on a whole multiple of its length in UTC), and the bar types that refuse an off-mark start"
+"desk/coverage.py" = "how much history the store holds for each line: sessions against twice the longest lookback, a score per line and for the desk, and the cap on the share of lines parked"
 "desk/audit.py" = "the store's read-only audit: every line the two databases hold re-checked through the checks that let its bars in, counts and faults by kind in one line"
 "desk/compare.py" = "how an old store's bars meet the bars the store holds: agreeing, the adjusted form of the raw as-traded bar (a factor, never written over it), or a real disagreement counted by day"
 "desk/snapshot.py" = "the nightly backup copy: one consistent snapshot of each price database and the ledger in the data folder's backup folder, the last few kept"
