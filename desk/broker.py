@@ -210,6 +210,16 @@ class Pretend:
         self._stops[symbol] = replace(self._stops[symbol], level=level)
         self._test(symbol, self._bars.get((symbol, self._day)) if self._day else None)
 
+    def put_stop_back(self, symbol: str, level: Decimal) -> None:
+        """A lost stop rested again at level for all the shares held, as the desk puts one back
+        (R-MONEY-30); the day's range so far can reach it, as it can reach a new stop."""
+        if symbol in self._stops:
+            raise ValueError(f"{symbol}: a stop already rests; it is moved, not put back")
+        if not self._held.get(symbol):
+            raise ValueError(f"{symbol}: no shares held to put a stop under")
+        self._stops[symbol] = _Stop(f"{symbol}-stop-back", self._held[symbol], level)
+        self._test(symbol, self._bars.get((symbol, self._day)) if self._day else None)
+
     def cancel_stop(self, symbol: str) -> None:
         """A resting stop cancelled behind the desk's back, as if by hand."""
         if symbol not in self._stops:
