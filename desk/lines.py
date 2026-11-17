@@ -117,6 +117,7 @@ MOVES = {
         (2025, 4, 4, "8.165"),
     ),
     "5QQQ": ((2025, 4, 7, "0.345"), (2025, 4, 8, "0.4295000076293945")),
+    "SGLN": ((2013, 4, 15, "17.870"),),  # gold's crash day: open 18.76, low 17.715, down 8%
 }
 #: Each line's ISIN, as the broker's contract details give it (the conformance tapes of 14
 #: November 2026); IDTL's as its issuer lists it.
@@ -192,8 +193,10 @@ REFERENCE = tuple(line for line in LINES if line.retail is False)
 
 
 #: The pound in dollars at the archive, kept as a reference series (never traded), and the band
-#: its close must lie in, in dollars, to be trusted (R-PAPER-22).
-POUND, DOLLARS = Line("GBPUSD=X", "US", "USD", 1), (Decimal(1), Decimal(2))
+#: its close must lie in, in dollars, to be trusted (R-PAPER-22). The pound stood above two dollars
+#: in 2007 (the archive's own closes), so the band is one to three: a pence figure or the dollar's
+#: own inverse still lies outside it.
+POUND, DOLLARS = Line("GBPUSD=X", "US", "USD", 1), (Decimal(1), Decimal(3))
 
 
 TAG = "-ADJUSTED"  #: ends the symbol of a reference series' dividend-adjusted twin (R-RUNGS-9)

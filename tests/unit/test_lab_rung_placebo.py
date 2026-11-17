@@ -159,3 +159,21 @@ def test_what_is_ranked_is_the_tapes_own_trade_and_a_price_rounding_to_nothing_i
         rung_placebo.judge(
             Record(cell.key(c, penny), len(penny), (Trade(penny[1].day, None),)), penny
         )
+
+
+def test_known_answer_a_flat_line_and_a_planted_edge_worked_by_hand() -> None:
+    #: a line that never moves: every placebo is the line itself, so the first draw does as well
+    #: as the rule (0 = 0): the share is (1 + 1) / 20, over SHARE, after one placebo, and a fail
+    flat = _bars([100.0] * 150)
+    c = Cell(RULES[0], VUSA, flat[0].day, flat[-1].day)
+    still = rung_placebo.judge(Record(cell.key(c, flat), 150, (Trade(flat[20].day, None),)), flat)
+    assert (still.blocks, still.run, still.made, still.share) == (
+        14,
+        1,
+        Decimal(0),
+        Decimal(2) / 20,
+    )
+    assert not still.passed
+    #: the planted edge beats all 19 placebos, itself the only one as good: 1 / 20 = SHARE: a pass
+    edge = _placebo(1, EDGE)
+    assert (edge.run, edge.share, edge.passed) == (PLACEBOS, Decimal(1) / 20, True)

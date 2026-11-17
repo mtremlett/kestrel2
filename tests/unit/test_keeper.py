@@ -12,9 +12,10 @@ from pathlib import Path
 
 import pytest
 
-from desk import archive, bars, keeper, paper, store, venues
+from desk import archive, bars, keeper, keeper_live, paper, store, venues
 from desk.bars import Five, Source
 from desk.lines import POUND, YARDSTICK, Line
+from desk.spans import Timed
 from desk.store import Bar
 
 UK, US, TWIN = (
@@ -285,7 +286,7 @@ def test_nothing_is_asked_on_a_day_no_venue_trades_nor_once_the_calls_time_is_sp
     with pytest.raises(ValueError, match="not a moment in UTC"):
         keeper.keep(tmp_path, datetime(2026, 11, 16, 6))
 
-    week = int((_at(9) - keeper.RECENT).timestamp())  # a round asks the week kept hot, no more
+    week = int((_at(9) - keeper_live.RECENT).timestamp())  # a round asks the week kept hot, no more
 
     def unreachable(address: str) -> bytes:
         assert ("interval=5m" in address) == (f"period1={week}&" in address)
@@ -366,3 +367,25 @@ def test_the_kept_pound_tells_dollars_among_pounds_from_a_move_and_none_kept_par
         pretend.keep(home, _at(6))
     assert not keeper.saved(both, MON, [UK])[1]
     assert keeper.saved(bare, MON, [UK])[1] == {UK.symbol}
+
+
+def test_a_live_run_asks_the_two_lines_due_keeps_their_minutes_and_names_a_stale_one(
+    tmp_path: Path,
+) -> None:
+    rota = tuple(Line(f"L{n:02}", "LSE", "GBP", 1) for n in range(20))
+    now, asked = _at(10), []
+
+    def ask(line: Line, when: datetime) -> tuple[Timed, ...]:
+        asked.append(line)
+        start = when - timedelta(minutes=1 if line != rota[0] else 9)
+        price = Decimal(5)
+        return (Timed("1m", start, price, price, price, price, 1),)
+
+    words, stale = keeper_live.minute_round(tmp_path / keeper.HOT, rota, now, ask)
+    assert asked == list(keeper_live.due(rota, now)) and len(set(asked)) == 2
+    held = [
+        bars.timed(tmp_path / keeper.HOT, line, "1m", now - timedelta(1), now) for line in asked
+    ]
+    assert [len(h) for h in held] == [1, 1] and words.startswith("live: ")
+    assert asked == [rota[0], rota[1]] and [s.split(":")[0] for s in stale] == ["L00"]
+    assert keeper_live.due(rota, now + timedelta(minutes=10)) == tuple(asked)

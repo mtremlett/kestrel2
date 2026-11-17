@@ -15,7 +15,20 @@ from desk.command import CAPITAL
 from desk.lines import Line
 from desk.orders import Settings
 from desk.store import Bar
-from lab import cell, deflated, folds, luck, market, reproduce, rung, shuffle, stress, trials
+from lab import (
+    cell,
+    deflated,
+    folds,
+    luck,
+    market,
+    reproduce,
+    rung,
+    rung_regimes,
+    shuffle,
+    stress,
+    trials,
+    weather,
+)
 from lab.cell import Cell
 from lab.deflated import Deflated
 from lab.folds import Pooled
@@ -30,7 +43,6 @@ FOLDS = folds.YEARS
 RESAMPLES = 1000
 #: Rungs that are built and that this set cannot yet be run through, each with why.
 UNRUN = {
-    "regime": "the weather that names each day's regime is not built (REG-01)",
     "plateau": "the published rules carry no settings to choose among yet",
 }
 NO_FIGURE = "no author's figure is on file for the rule: no published result stands behind it"
@@ -42,6 +54,13 @@ MIN_BARS = 200 + 252
 #: Units change between two sessions, so the day's OPEN stands at the same step: a session that
 #: opens near the close before it and then falls has made its move itself (a crash), and is judged.
 STEP = Decimal("0.03")
+#: THE LADDER'S ONE SWITCH (R-RUNNER-225, 230; the scorecard, easing 6 of DECISIONS). Off: the first
+#: rung to fail keeps the shuffle unrun and every answer is the rung's own. On: only a hard fail
+#: (a negative after-cost mean, a failed reproduction, stress over its limit) stops a line; every
+#: other rung is run and graded PASS, WEAK or FAIL, and none stops it. Off until card
+#: ease-switch-on.
+EASED = False
+WEAK = (Answer.THIN, Answer.DOUBT)  #: a scorecard's WEAK: neither a win nor a loss
 STATUS = "PRE-REVIEW"  #: what every table is until the blind review (R-RUNNER-40) is clean
 COLUMNS = ("rule", "line", "venue", "answer", "rungs", "trials", "reproduction", "goes forward")
 Row = Mapping[str, Any]  #: a cell's line in the results file
@@ -80,31 +99,55 @@ def judge(
     settings = Settings(CAPITAL)
     (one,) = deflated.judge([verdict], count - 1)  #: every other trial the register holds
     rungs = _named(verdict, one)
+    if EASED and verdict.answer is Answer.FAIL and verdict.t is not None and verdict.t < 0:
+        return _stopped(len(verdict.trades), {"first": rungs["first"]}, unrun)  #: a hard fail
     if made:
         said = "; ".join(f"{m.figure.hand.value} result, {m.figure.source}" for m in made)
         rungs["reproduce"] = (Answer.PASS, f"reproduced: {said}")
     rungs["folds"] = _folded(pooled)
-    against = market.judge(verdict, own, beside, held, pounds)
-    #: the market's own missing day, or the first rung's THIN or FAULT, which it inherits
-    said = against.fault or rungs["first"][1]
-    if against.line is not None and against.wide is not None:
-        said = (
-            f"over {against.days} days, {against.wide.t:.2f} standard errors beyond "
-            f"{against.wide.beta:.2f} of {beside.symbol}'s moves and {against.line.t:.2f} beyond "
-            f"{against.line.beta:.2f} of its own line's; {rung.T_PASS} asked of both"
-        )
-    rungs["market"] = (against.answer, said)
+    rungs["market"] = _marketed(market.judge(verdict, own, beside, held, pounds), beside, rungs)
+    rungs["regime"] = _weathered(own, verdict, made)
     rungs["stress"] = _stressed(c, own, settings, pounds)
-    if (last := shuffled(c, own, settings, pounds, rungs, made)) is not None:
+    if EASED and rungs["stress"][0] is Answer.FAIL:  #: a hard fail: the shuffle is not run
+        return _stopped(len(verdict.trades), rungs, unrun)
+    if (last := shuffled(c, own, settings, pounds, rungs, made, EASED)) is not None:
         rungs["shuffle"] = last
     named = {name: rungs[name][0] for name in deflated.NAMED if name in rungs}
     return {
         "trades": len(verdict.trades),
-        "rungs": {name: [answer.name, reason] for name, (answer, reason) in rungs.items()},
+        "rungs": _reported(rungs),
         "drawdown": drawdowns([t.gross - t.costs.total for t in verdict.trades], trials.name(c)),
         "unrun": unrun,
         "every": all(answer is Answer.PASS for answer, _ in rungs.values()),
     } | ({"answer": deflated.rule(named).name} if len(named) == len(deflated.NAMED) else {})
+
+
+def _marketed(against: market.Against, beside: Line, rungs: Judged) -> Pair:
+    """The market rung's answer with its reason: the market's own missing day, or the first
+    rung's THIN or FAULT, which it inherits, or the two betas."""
+    if against.line is None or against.wide is None:
+        return against.answer, against.fault or rungs["first"][1]
+    return against.answer, (
+        f"over {against.days} days, {against.wide.t:.2f} standard errors beyond "
+        f"{against.wide.beta:.2f} of {beside.symbol}'s moves and {against.line.t:.2f} beyond "
+        f"{against.line.beta:.2f} of its own line's; {rung.T_PASS} asked of both"
+    )
+
+
+def _stopped(trades: int, rungs: Judged, unrun: Mapping[str, str]) -> dict[str, Any]:
+    """A line stopped at a hard fail: the rungs judged so far, the verdict FAIL, no shuffle."""
+    return {"trades": trades, "rungs": _reported(rungs), "unrun": unrun, "every": False} | {
+        "answer": Answer.FAIL.name
+    }
+
+
+def _reported(rungs: Judged) -> dict[str, list[str]]:
+    """Each rung's answer and reason for the results file: its grade where EASED (WEAK is a
+    THIN or a DOUBT), else its answer's name."""
+    return {
+        name: ["WEAK" if EASED and answer in WEAK else answer.name, reason]
+        for name, (answer, reason) in rungs.items()
+    }
 
 
 def drawdowns(pounds: Sequence[Decimal], name: str) -> dict[str, float]:
@@ -224,16 +267,18 @@ def shuffled(
     pounds: Rates,
     rungs: Judged,
     made: Sequence[Reproduction],
+    graded: bool = False,
 ) -> Pair | None:
     """The shuffle rung, run last and only on a trial that passed every rung before it: any
     other is given the least of their answers and told it was not run, since a shuffle costs a
-    hundred runs. A trial short of a rung before it (the folds, behind an author's result) has
-    no verdict to shuffle."""
+    hundred runs; `graded` (EASED) runs it on every trial that reaches it. A trial short of a
+    rung before it (the folds,
+    behind an author's result) has no verdict to shuffle."""
     before = {name: rungs[name][0] for name in deflated.NAMED[:-1] if name in rungs}
     if len(before) < len(deflated.NAMED) - 1:
         return None
     name, least = min(before.items(), key=lambda one: one[1])
-    if least is not Answer.PASS:
+    if least is not Answer.PASS and not graded:
         return least, (
             f"not run: its {shuffle.SHUFFLES} shuffles are kept for a trial that passed every "
             f"rung before it, and {name} answered {least.name}"
@@ -254,6 +299,21 @@ def _stressed(c: Cell, own: Sequence[Bar], settings: Settings, pounds: Rates) ->
         ).judged()
     except ValueError as cannot:  #: a fault in the test, said as one with its reason
         return Answer.FAULT, f"the stress scenarios could not be run: {cannot}"
+
+
+def _weathered(own: Sequence[Bar], verdict: Verdict, made: Sequence[Reproduction]) -> Pair:
+    """The regime rung: the priced trades judged apart in the up and the down days they were
+    bought on, or a FAULT where the weather cannot be named."""
+    try:
+        said = rung_regimes.by_weather(
+            verdict.key.rung(rung_regimes.__name__), verdict.trades, weather.trend(own), made
+        )
+    except ValueError as cannot:  #: a fault in the test, said as one with its reason
+        return Answer.FAULT, f"the weather could not be named: {cannot}"
+    return said.answer, (
+        f"up days {said.up.answer.name} on {len(said.up.trades)} trades, down days "
+        f"{said.down.answer.name} on {len(said.down.trades)}; both must pass"
+    )
 
 
 def _n(number: Decimal | float | None) -> str:

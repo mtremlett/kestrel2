@@ -12,31 +12,13 @@ from __future__ import annotations
 
 from collections import deque
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass
 from decimal import Decimal
-from enum import Enum
 from functools import partial
 
 from desk.eponymous_clenow_momentum import YEAR
 from desk.store import Bar
-from desk.strategy import ZERO, _Window
-
-
-class Kind(Enum):
-    """Where in a rule a block sits."""
-
-    ENTRY = "entry"
-    EXIT = "exit"
-    STOP = "stop"
-    FILTER = "filter"
-
-
-class Block:
-    """Shown each bar with whether the position is held; says whether it fires."""
-
-    def see(self, bar: Bar, holding: bool) -> bool:
-        """Shown the next bar: whether the block fires."""
-        raise NotImplementedError
+from desk.strategy import ZERO, _Wilder, _Window, rsi
+from lab.block_base import Block, Kind, Param, Spot
 
 
 class HighestHigh(Block):
@@ -218,6 +200,24 @@ class _Keltner(Block):
         return bar.close > centre + width if self._upper else bar.close < centre - width
 
 
+class RsiUnder(Block):
+    """Fires when Wilder's `n`-bar RSI of the close, this bar's included, is under `pct`; with
+    no loss in the window it is 100, and an RSI of exactly `pct` is not under."""
+
+    def __init__(self, n: int, pct: int) -> None:
+        self._gain, self._loss, self._under = _Wilder(n), _Wilder(n), Decimal(pct)
+        self._last: Decimal | None = None
+
+    def see(self, bar: Bar, holding: bool) -> bool:  # noqa: ARG002 - the one interface of every block
+        """Shown the next bar: whether the block fires."""
+        last, self._last = self._last, bar.close
+        if last is None:
+            return False
+        gain = self._gain.add(max(bar.close - last, ZERO))
+        loss = self._loss.add(max(last - bar.close, ZERO))
+        return gain is not None and loss is not None and rsi(gain, loss) < self._under
+
+
 class CloseUnderCloseAgo(Block):
     """Fires on a close under the close `n` bars before: a loser of the last `n` sessions."""
 
@@ -347,25 +347,6 @@ class Never(Block):
         return False
 
 
-@dataclass(frozen=True)
-class Param:
-    """One parameter a block takes: its type and the closed range it must lie in."""
-
-    kind: type[int] | type[Decimal]
-    low: int
-    high: int
-
-
-@dataclass(frozen=True)
-class Spot:
-    """A block as the registry holds it: the kind of place it fits, its class, its parameters
-    in the order its constructor takes them."""
-
-    kind: Kind
-    make: Callable[..., Block]
-    params: Mapping[str, Param]
-
-
 _DAYS = Param(int, 2, 400)
 _PCT = Param(int, 1, 50)
 _AGO = Param(int, 1, 50)
@@ -379,6 +360,7 @@ BLOCKS: Mapping[str, Spot] = {
     "close_at_range_low": Spot(Kind.ENTRY, CloseAtRangeLow, {"n": _DAYS}),
     "close_over_keltner_band": Spot(Kind.ENTRY, partial(_Keltner, upper=True), {"n": _DAYS}),
     "close_under_keltner_band": Spot(Kind.EXIT, partial(_Keltner, upper=False), {"n": _DAYS}),
+    "rsi_under": Spot(Kind.ENTRY, RsiUnder, {"n": _DAYS, "pct": _PCT}),
     "close_under_close_ago": Spot(Kind.ENTRY, CloseUnderCloseAgo, {"n": _DAYS}),
     "close_at_midpoint": Spot(Kind.EXIT, CloseAtMidpoint, {"n": _DAYS}),
     "close_near_range_low": Spot(Kind.ENTRY, CloseNearRangeLow, {"n": _DAYS, "pct": _PCT}),

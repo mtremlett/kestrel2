@@ -12,7 +12,8 @@ import pytest
 from desk.eponymous_clenow_momentum import score
 from desk.store import Bar
 from desk.strategy import ARITHMETIC
-from lab.blocks import BLOCKS, Block, Kind, LogSlope
+from lab.block_base import Block, Kind
+from lab.blocks import BLOCKS, LogSlope
 
 
 def _fire(name: str, bars: list[tuple[int, int, int]], holding: bool = False, **params: int) -> str:
@@ -105,6 +106,13 @@ FLAT = [(11, 9, 10)] * 3
             False,
             {"n": 3, "pct": 10},
             "0010",
+        ),
+        (
+            "rsi_under",
+            [(c, c, c) for c in (10, 11, 12, 9, 8, 5)],
+            False,
+            {"n": 2, "pct": 10},
+            "000001",
         ),
         ("no_exit", FLAT, True, {}, "000"),
         ("no_filter", FLAT, False, {}, "111"),

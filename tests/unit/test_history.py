@@ -11,7 +11,7 @@ import pytest
 
 from desk import history, paper
 from desk.history import Busy
-from desk.lines import LINES
+from desk.lines import LINES, Line
 from desk.store import Bar, Refused
 
 VUAG = next(line for line in LINES if line.symbol == "VUAG")
@@ -40,6 +40,10 @@ def test_the_ask_names_the_line_the_day_before_and_the_trades() -> None:
     deep = history.request(IDTL, DAY, date(2020, 1, 1)).decode()
     assert "7 Y" in deep and "USD" in deep
     assert history.request(AAPL, DAY, SINCE).decode().count("SMART") == 1
+    for frame, size in history.SIZES.items():
+        assert f"\0{size}\0" in history.request(VUAG, DAY, SINCE, frame).decode()
+    with pytest.raises(KeyError):
+        history.request(VUAG, DAY, SINCE, "3m")
 
 
 def test_the_bars_are_those_from_since_and_before_the_day_asked() -> None:
@@ -81,3 +85,45 @@ def test_nothing_is_asked_in_a_desk_round(monkeypatch: pytest.MonkeyPatch) -> No
         with pytest.raises(Busy):
             history.gather((VUAG,), DAY, SINCE, datetime(2026, 11, 16, hour, minute, tzinfo=UTC))
     assert history.quiet(datetime(2026, 11, 16, 8, 30, tzinfo=UTC))
+
+
+def test_a_pull_fills_the_gaps_only_paced_and_resumes_after_a_stop() -> None:
+    done: set[history.Ask] = {(VUAG, "1d")}
+    waits: list[float] = []
+    asked: list[history.Ask] = []
+
+    def fetch(line: Line, frame: str) -> Refused:
+        asked.append((line, frame))
+        return Refused("none")
+
+    def keep(line: Line, frame: str, _: object) -> None:
+        done.add((line, frame))
+
+    everything = len(history.SIZES) * 2
+    first = history.plan((VUAG, IDTL), done)
+    assert len(first) == everything - 1 and (VUAG, "1d") not in first
+    assert history.pull(first, fetch, keep, waits.append, limit=4) == 4
+    assert waits == [history.PACING] * 3 and len(done) == 5
+    rest = history.plan((VUAG, IDTL), done)
+    assert history.pull(rest, fetch, keep, waits.append) == everything - 5
+    assert len(set(asked)) == len(asked) == everything - 1 and not history.plan((VUAG, IDTL), done)
+
+
+def test_a_run_asks_each_timeframe_over_one_conversation_and_not_in_a_round(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    kept: dict[history.Ask, object] = {}
+    sent: list[bytes] = []
+    wire = conversation(TAPE, NONE)
+    monkeypatch.setattr(paper, "dial", lambda talk: talk(wire, sent.append))
+    asks = [(VUAG, "1d"), (VUAG, "1wk")]
+    keep = lambda line, frame, got: kept.update({(line, frame): got})  # noqa: E731
+    assert history.run(asks, keep, DAY, SINCE, MONDAY_NOON, lambda _: None) == 2
+    assert isinstance(kept[(VUAG, "1wk")], Refused) and "\0" + "1 week" + "\0" in sent[-1].decode()
+    assert paper.CLIENT == history.CLIENT
+    timed = conversation(TAPE.replace("20261112", "20261112 09:30:00"))
+    paper.start(timed, lambda _: None)
+    with pytest.raises(NotImplementedError, match="carries its time"):
+        history.ask(timed, sent.append, VUAG, DAY, SINCE, "5m")
+    with pytest.raises(Busy):
+        history.run(asks, keep, DAY, SINCE, datetime(2026, 11, 16, 8, 0, tzinfo=UTC))

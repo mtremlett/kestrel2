@@ -25,6 +25,7 @@ from desk import book, day, orders, simcity, strategy
 from desk.broker import Crash, Disconnected, Fault, Pretend
 from desk.lines import YARDSTICK
 from desk.orders import Settings
+from desk.simcity_census import Census, parts
 from desk.store import Bar
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "scenes"))  #: the scenes' rehearsal data
@@ -274,7 +275,10 @@ def test_a_stop_cancelled_by_hand_is_put_back_as_it_was_unless_forgotten_or_its_
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(simcity, "FAULTY", 10**9)
-    life, seen = simcity._Life(tmp_path, SHORT, ROOM, RATES, 0, simcity._Census()), list[object]()
+    life, seen = (
+        simcity._Life(tmp_path, SHORT, ROOM, RATES, 0, Census(simcity.PATH)),
+        list[object](),
+    )
     door, hand = life.pretend, partial(simcity._unstopped, life, SESSIONS[1])
     door.open(SESSIONS[1])
     buy = orders.Order("o-1", LINES[0], 4, Decimal(50), Decimal(1), Decimal(1))
@@ -292,7 +296,7 @@ def test_a_stop_cancelled_by_hand_is_put_back_as_it_was_unless_forgotten_or_its_
     assert not door.stops(), "a stop put back for shares no longer held"
 
 
-def test_a_part_behind_a_wrapper_is_still_a_part(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_a_part_behind_a_wrapper_is_still_a_part() -> None:
     class Offered:
         @classmethod
         def made(cls) -> None: ...
@@ -304,8 +308,7 @@ def test_a_part_behind_a_wrapper_is_still_a_part(monkeypatch: pytest.MonkeyPatch
 
     fake = ModuleType("desk.fake")
     Offered.__module__, fake.Offered = fake.__name__, Offered  # type: ignore[attr-defined]
-    monkeypatch.setattr(simcity, "PATH", (fake,))
-    assert sorted(name.rpartition("Offered.")[2] for name in simcity.parts().values()) == [
+    assert sorted(name.rpartition("Offered.")[2] for name in parts((fake,)).values()) == [
         *("made", "plain")
     ], "a classmethod or a staticmethod passed over, or a private name counted"
 
