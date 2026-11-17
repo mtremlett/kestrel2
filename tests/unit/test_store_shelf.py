@@ -64,3 +64,26 @@ def test_the_brokers_bars_stand_first_over_the_archives_and_a_disagreement_is_a_
         f.what for f in faults if "(broker)" in f.what and "(archive)" in f.what
     ]
     assert store.judge(UK, store.Refused("no route"), DAY, broker=every)[0] == every
+
+
+_PRICES = ("open", "high", "low", "close")
+
+
+def test_a_shelf_a_hundredth_of_archive_and_broker_is_a_named_unit_fault_put_right_once(
+    tmp_path: Path,
+) -> None:
+    """R-RUNNER-272, IB1T: the head start shelved a dollar-quoted line at 1/100 (0.058445 for
+    5.8445 on 2026-08-24). Not parked, no step: put right by the factor, each bar named."""
+    every = list(_bars(UK, LONG))
+    store.shelve(
+        tmp_path, UK, [replace(b, **{k: getattr(b, k) / 100 for k in _PRICES}) for b in every[:40]]
+    )
+    for broker in (None, every[20:]):  # the archive alone, then the broker beside it
+        kept, faults, park = store.judge(
+            UK, every[20:], DAY, shelf=store.read(tmp_path / "history", UK.symbol), broker=broker
+        )
+        assert kept == every and park is None
+        put = [f for f in faults if "unit fault" in f.what]
+        assert len(put) == 40 and all(f.noted for f in put)
+    short = store.read(tmp_path / "history", UK.symbol)[:23]  # too few sessions beside the archive
+    assert store.judge(UK, every[20:], DAY, shelf=short)[2] is not None

@@ -301,6 +301,12 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #727 R-RUNNER-277 done: live keeper starts lines with no one-minute history. |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #730 R-RUNNER-280 step 1 of 2: live round helper `keeper_live.rounds` and its test. |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #732 data-archive-spared finished: a refusing archive is not re-asked per line; five-minute answers cached in KESTREL2_DATA. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #739 R-RUNNER-216 step: history pull no longer stalls on session-aligned timeframes. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #740 R-MONEY-28 confirmed built; last-bar test added. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #747 R-RUNGS-16: 3LGO's missing session bridged from five-minute bars; desk +22, lab -22. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #744 R-RUNNER-284: collector names a vendor's HTTP refusal and keeps what the others gave. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #751 R-RUNNER-276: keeper asks IBKR first for every line, sources named, disagreement recorded not parked. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #753 R-RUNNER-272: shelf unit fault put right in the one store; IB1T no longer parked on a 1/100 shelf. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
@@ -382,6 +388,12 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #657 R-MONEY-30: recover restores a lost stop from the book's kept level. |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #690 R-RUNNER-268 desk/running.py split, 392 to 321 lines, no behaviour change. |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #686 paper-conformance: Monday's conformance files compared with the pretend broker; no code change, every difference already fixed. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #706 R-RUNNER-278 IDTL contract request built from the master (listing.py); no scene change. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #716 R-RUNNER-282 pound from IBKR first, archive only where IBKR gives none; scenes 7 of 7. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #733 R-RUNNER-257 done: paper.CLIENT, APART and current deleted; no behaviour change. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #741 no change; R-MONEY-49 and R-MONEY-36 found already on main. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #738 R-RUNNER-281 part: conformance sizing reads the store's bar. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #752 supervisor pulls main at the safe point (OPS-05, OPS-16). |
 
 ### GRID
 
@@ -574,3 +586,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #693 R-MONEY-43 python -m lab.calibration: each rung's pass rate on noise |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #695 R-RUNNER-228 step 1: INCUBATE rule for a basket behind EASED |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #676 R-MONEY-45 step: dual_momentum in the spec book (14 of 21) |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #704 R-RUNNER-219 step: minervini_breakout as a spec row via trend_template (15 of 21) |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #737 R-RUNNER-205 step: market weather layer 2, realised volatility (not wired) |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #746 R-RUNNER-191 step: one home for the Sharpe a trade (no verdict changed) |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #742 R-RUNGS-27: basket answer wired to basket_answer, INCUBATE listed apart |

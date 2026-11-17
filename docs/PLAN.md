@@ -267,7 +267,8 @@ Checked 17 Nov (MONEY): R-RUNGS-12 re-verified on main (`strategy.rsi`, `strateg
       Built: the two databases (#442, #510), the keeper and reference series on them (#486, #524), the
       imports of Stooq, ibkr_store and mark_the_trend daily, hourly and 15/30-minute rows (#527-#566), the
       history pull and its writer (#636, #674), pages back and keeps the line's currency (#710, #725). Remains: the rest of R-RUNNER-10 (5-minute parquet, market.db,
-      bars.db, per-source counts), paging back (R-RUNNER-216), the long database for daily and up
+      bars.db, per-source counts), paging back (R-RUNNER-216; #739: pull asks only 1m-30m and 1d; remains rollup of 1h, 4h, 1wk
+      into the history database as rollup:<from>, with a fault where rolled and pulled disagree, and the quality monitor's backfill), the long database for daily and up
       {id: data-two-stores; files: desk/bars.py, tests/unit/test_bars*.py, desk/keeper.py, tests/unit/test_keeper*.py; after: data-ingest}
 - [ ] **Data in tiers, for 4,000+ tickers** (research of 14 November, kept in the notes
       folder as `data_stack_2026-11-14.md`). Tier A: held, signalled and watched names, live
@@ -640,8 +641,8 @@ his PC with the desk's own client id (222), never 4001.
       Remains: the step is the first registered job (#490) and `python -m desk.supervisor tell` sends what health finds (#499). Still to do: Windows starting the supervisor and `tell` (outside the lane's files), the kill drill on the real step, seven days counted, the overnight-window question (the Gateway's 03:00 restart shows as bad receipts)
       {id: paper-supervised; files: desk/supervisor.py, tests/unit/test_supervisor.py,
       manifest.toml; after: paper-running; waits: operator}
-- [ ] The running process always on main's latest code, and a money-path change reaching
-      it only at a safe point, never mid-send (OPS-05, OPS-16)
+- [x] The running process always on main's latest code, and a money-path change reaching
+      it only at a safe point, never mid-send (OPS-05, OPS-16) (#752: the supervisor pulls main fast-forward only between runs with every job's lock held; a failed pull is a receipt and the old code runs on; remains: Windows starting the supervisor)
       {id: paper-on-main; files: desk/supervisor.py, tests/unit/test_supervisor.py}
 - [ ] The messages: a start-of-day card by 05:40; an end-of-day summary with the profit,
       the streak and the verdict; a line on every change of state and "the desk is not
@@ -780,7 +781,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       five hundred cells of pure noise pass it at about its stated rate and no more, a power
       curve at three effect sizes, a broken copy of the rung caught, and each defect the old
       audit found kept as a case that must fail (LAD-09, LAD-03, LAD-08). Built: all eleven
-      modules, each proven alone (#343-#365, #412). Remains: the ladder judges by three of them
+      modules, each proven alone (#343-#365, #412). Remains: the Sharpe a trade has one home (#746); the ladder judges by three of them
       (costs #438, ci #440, cpcv #445 declare a RUNG; "rungs built" counts 3 of 11); wiring the rest, the clustered
       trials (#379 built) into the verdict, the gap-through loss (R-RUNNER-187 declined, #409)
       {id: rungs-trustworthy; files: *; after: rungs-beta}
