@@ -747,3 +747,36 @@ than given a span parameter. The cleaner end state, splitting `_five` in `paper.
 UNIT_SHARE options: 0.9, 0.95, 0.99. Taken 0.95 (the request's wording; IB1T's 250 of 255 = 98% clears it). Days still
 apart are named faults with the upper source's bar standing and do not park the line; the upper source (broker first,
 then archive) still decides the unit.
+
+### 2026-11-17 — the store split and the file ceiling (#764, R-RUNNER-288)
+
+`desk/store.py` (400 lines) split: types, move limits and neighbour judging to `desk/store_parts.py`, re-imported so other
+lanes' imports are untouched. It raised desk/ to 81 files against a ceiling of 80. (A) raise `product_files` to 81 in
+`BUDGET.json` (recommended; loosening a guard, taken under his standing ruling of 13 Nov, announced on the pull request);
+(B) merge another desk module, outside the claim. Main now holds the 95-file ceiling (#767).
+
+### 2026-11-17 — the fault is a stderr line (#780, R-RUNNER-216)
+
+A rolled bar disagreeing with a held one: (1) a new faults table, outside the claim; (2) a FAULT line on stderr from the
+command (taken: smallest). The held (pulled) bar stays.
+
+### 2026-11-17 — what moved in `lab/universe.py` (#784, R-RUNNER-289)
+
+Moved the reading rule plus `matrix` (Stooq second source) to `lab/universe_parts.py`, not the ticker lists: the lists are
+the module's identity and the rule stands alone. Options: lists only (too big a move for callers); rule only (350 lines,
+not under 350).
+
+### 2026-11-17 — quality monitor: daily timeframe first (#797, R-RUNNER-217)
+
+Build all timeframes at once (over the 100-line cap) or the daily first, since `backfill.fill` already exists for it
+(taken). No blind review was run (session time cap).
+
+### 2026-11-17 — the parked cap is 10% of lines (#795, DAT-03, DQ-01)
+
+Options 5%, 10%, 20%; 10% taken as the middle: 201 of 1,065 research tickers park today and the twenty trading lines should
+park far fewer. Longest lookback 200 sessions (`desk/strategy.py`), five years 1,260. Taken under his standing ruling.
+
+### 2026-11-17 — `command.py` is asked, not edited (#778, R-DATA-49)
+
+Last piece of R-DATA-49: change `desk/command.py` myself (outside the lane's files, refused) or ask MONEY and PAPER to pass
+`home` first (taken), then make it required.
