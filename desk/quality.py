@@ -14,8 +14,9 @@ from collections.abc import Iterable
 from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
 
-from desk import backfill, history_write, keeper, venues
+from desk import backfill, bars, history_write, keeper, venues
 from desk.lines import LINES, Line
+from desk.spans import EPOCH
 from desk.store import Bar
 from desk.store import _clean as cleaned
 
@@ -57,6 +58,21 @@ def rolled(path: Path, line: Line, today: date) -> tuple[int, list[str]]:
     return landed, history_write.clashes(path, line, now)
 
 
+def thin(path: Path, line: Line, today: date) -> list[str]:
+    """The sessions between the first and the last 30-minute bar held on which the line holds
+    none: no finer source is wired in yet to fill them, so they are named red, never hidden."""
+    try:
+        held = bars.timed(path, line, "30m", EPOCH, datetime.combine(today, time(), UTC))
+    except LookupError:  # the store never held this line's 30-minute bars: nothing to be short of
+        return []
+    days = {b.start.date() for b in held}
+    first, last = min(days), max(days)
+    short = [d for d in venues.sessions(line.venue, first, last) if d not in days]
+    if not short:
+        return []
+    return [f"{line.symbol}: {len(short)} sessions with no 30m bar, the first {short[0]}"]
+
+
 def monitor(
     path: Path, lines: Iterable[Line], broker: backfill.Ask, archived: backfill.Ask, today: date
 ) -> str:
@@ -66,6 +82,7 @@ def monitor(
     built = [rolled(path, line, today) for line in every]
     red = [why for line in every for why in audit(path, line, today)]
     red += [why for _, faults in built for why in faults]
+    red += [why for line in every for why in thin(path, line, today)]
     said = f"{len(wrote)} bars backfilled, {sum(n for n, _ in built)} rolled up"
     if not red:
         return f"quality: green, {len(every)} lines, {said}"
