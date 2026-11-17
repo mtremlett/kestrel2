@@ -15,7 +15,7 @@ from typing import Any
 from desk import keeper
 from desk.lines import LINES, Line
 from desk.store import Bar
-from lab import cell, reproduce, rung, verdict
+from lab import cell, reproduce, verdict
 from lab.batch import Bars
 from lab.cell import Cell
 from lab.reproduce import Reproduction
@@ -94,12 +94,13 @@ def _declared(
     own: Sequence[Bar],
     pounds: Rates,
     made: Sequence[Reproduction],
+    found: tuple[Sequence[Any], Sequence[str]],
 ) -> dict[str, Any]:
     """The cell's answers with each rung that its module declares (`rung.found`) added, judged
     on the first rung's verdict; the one rule's answer stays the named rungs'. A rung module
     that declares none is named unrun. A cell with no first rung (the author's result not
     reproduced) has none to read."""
-    declared, waiting = rung.found(RUNGS)
+    declared, waiting = found
     if "trades" not in judged:
         return judged
     modules = ", ".join(name.rpartition(".")[2] for name in waiting)

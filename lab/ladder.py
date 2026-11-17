@@ -244,7 +244,8 @@ def _one(
         rates = (f"{d} {pounds[d]}" for d in days)
         parts = [mine.code, CODE, mine.data, market, pool.data, str(count), *rates]
         parts += [one.key.code + one.key.data for one in made]
-        declared, waiting = rung.found(RUNGS)  #: both are in the row, so both are in its key
+        found = rung.found(RUNGS)
+        declared, waiting = found  #: both are in the row, so both are in its key
         parts += [one.name + one.code for one in declared] + list(waiting)
         head |= {"reproduction": [reproduce.said(one) for one in made]} if made else {}
         key = hashlib.sha256(";".join(parts).encode()).hexdigest()
@@ -255,7 +256,7 @@ def _one(
             return head | {"key": key, "refused": reason}
         folded = lambda: pool.fold(pounds, made)  # noqa: E731 - asked for only if the folds are read
         judged = verdict.judge(c, own, beside, held, pounds, count, made, folded, first)
-        done = _declared(judged, pool, c, own, pounds, made)
+        done = _declared(judged, pool, c, own, pounds, made, found)
         return head | {"key": key, "from": c.start.isoformat()} | done
     except FAILED as error:
         if was is not None and "error" in was and "key" not in was and not _due(was, now):
