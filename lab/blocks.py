@@ -17,7 +17,13 @@ from functools import partial
 
 from desk.store import Bar
 from desk.strategy import ZERO, _Wilder, _Window, rsi
-from lab.block_bands import CloseOverEmas, CloseUnderEma, PercentBOver, PercentBUnderRun
+from lab.block_bands import (
+    CloseOverBandAfterSqueeze,
+    CloseOverEmas,
+    CloseUnderEma,
+    PercentBOver,
+    PercentBUnderRun,
+)
 from lab.block_base import Block, Kind, Param, Spot
 from lab.block_months import MonthEndNotOverAverage, MonthEndOverAverage
 from lab.blocks_parts import BigMove, RisingScore
@@ -288,6 +294,9 @@ _LOW, _HIGH = Param(int, 1, 49), Param(int, 51, 99)
 #: The one list of blocks by name; a spec names these and no others.
 BLOCKS: Mapping[str, Spot] = {
     "highest_high": Spot(Kind.ENTRY, HighestHigh, {"n": _DAYS}),
+    "close_over_band_after_squeeze": Spot(
+        Kind.ENTRY, CloseOverBandAfterSqueeze, {"n": _DAYS, "look": _DAYS}
+    ),
     "close_over_rising_average": Spot(
         Kind.ENTRY, CloseOverRisingAverage, {"n": _DAYS, "ago": _AGO}
     ),
