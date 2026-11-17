@@ -25,6 +25,7 @@ from desk.orders import (
     Refused,
     Sale,
     Settings,
+    moves,
     order_id_of,
     pennies,
     size,
@@ -384,31 +385,6 @@ def _watch(
 ) -> tuple[dict[str, Decimal], dict[str, tuple[float, ...]]]:
     """What the gate reads of the book before a buy of the symbol: the pounds it controls per
     underlying, and the daily returns of the symbol and of the lines held."""
-    return day_money.exposure(root, archive, rates), _moves(root, archive, symbol)
-
-
-MOVES_DAYS, MOVES_FROM = 60, 20  #: the daily returns kept for the correlation gate, and the fewest
-
-
-def _moves(
-    root: Path, archive: Mapping[Line, Sequence[Bar]], symbol: str
-) -> dict[str, tuple[float, ...]]:
-    """THE DAILY RETURNS OF A LINE AND OF THE LINES HELD (risk.correlated_with), by symbol, over
-    the last sessions all of them have a bar for. All are left out when the days they share are
-    under MOVES_FROM (nothing to judge by); a line whose price never moved is left out alone."""
-    held = book.positions(root)
-    closes = {
-        line.symbol: {bar.day: bar.close for bar in bars}
-        for line, bars in archive.items()
-        if line.symbol == symbol or line.symbol in held
-    }
-    if symbol not in closes:
-        return {}
-    shared = sorted(set.intersection(*(set(c) for c in closes.values())))[-MOVES_DAYS - 1 :]
-    if len(shared) <= MOVES_FROM:
-        return {}
-    rows = {
-        s: tuple(float(c[b] / c[a] - 1) for a, b in zip(shared, shared[1:], strict=False))
-        for s, c in closes.items()
-    }
-    return {s: r for s, r in rows.items() if len(set(r)) > 1}
+    return day_money.exposure(root, archive, rates), moves(
+        set(book.positions(root)), archive, symbol
+    )

@@ -6,7 +6,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
 
-from desk import book, day, day_money
+from desk import book, day, day_money, orders
 from desk.broker import Pretend
 from desk.halt import Blocker, Stopped
 from desk.lines import Line
@@ -84,8 +84,8 @@ def test_a_buy_that_moves_with_a_held_line_is_refused_and_one_that_does_not_goes
     broker = Pretend(archive, {})
     broker.open(days[-1])
     book.send(tmp_path, broker, Order("o-1", held[0], 1, *map(Decimal, (100, 1, 90))), ROOM)
-    moves = day._moves(tmp_path, archive, "T")
-    assert set(moves) == {"H", "T"} and day._moves(tmp_path, archive, "P").keys() == {"H", "P"}
+    moves = orders.moves({"H"}, archive, "T")
+    assert set(moves) == {"H", "T"} and orders.moves({"H"}, archive, "P").keys() == {"H", "P"}
     try:
         book.send(
             tmp_path,
@@ -109,6 +109,6 @@ def test_a_buy_that_moves_with_a_held_line_is_refused_and_one_that_does_not_goes
         None,
         None,
         None,
-        day._moves(tmp_path, archive, "P"),
+        orders.moves({"H"}, archive, "P"),
     )
     assert sent.filled == 1

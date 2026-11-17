@@ -5,13 +5,14 @@ ONE ROUNDING POLICY for what is published of it."""
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import astuple, dataclass, replace
 from decimal import ROUND_HALF_EVEN, Decimal
 from enum import Enum
 
 from desk.lines import Line
 from desk.risk import Standing, correlated_with, loss_limit, underlying_limit
+from desk.store import Bar
 from desk.strategy import Action, Decision
 
 #: His ruling of 13 November 2026 (docs/DECISIONS.md): at most five holdings, each a fifth of
@@ -358,3 +359,29 @@ def _apart(
     together = correlated_with(moves[symbol], others, float(settings.correlation))
     if together is not None:
         raise Refused(f"{order.order_id}: {symbol} is {together}")
+
+
+MOVES_DAYS, MOVES_FROM = 60, 20  #: the daily returns kept for the correlation gate, and the fewest
+
+
+def moves(
+    held: set[str], archive: Mapping[Line, Sequence[Bar]], symbol: str
+) -> dict[str, tuple[float, ...]]:
+    """THE DAILY RETURNS OF A LINE AND OF THE LINES HELD (risk.correlated_with), by symbol, over
+    the last sessions all of them have a bar for. All are left out when the days they share are
+    under MOVES_FROM (nothing to judge by); a line whose price never moved is left out alone."""
+    closes = {
+        line.symbol: {bar.day: bar.close for bar in bars}
+        for line, bars in archive.items()
+        if line.symbol == symbol or line.symbol in held
+    }
+    if symbol not in closes:
+        return {}
+    shared = sorted(set.intersection(*(set(c) for c in closes.values())))[-MOVES_DAYS - 1 :]
+    if len(shared) <= MOVES_FROM:
+        return {}
+    rows = {
+        s: tuple(float(c[b] / c[a] - 1) for a, b in zip(shared, shared[1:], strict=False))
+        for s, c in closes.items()
+    }
+    return {s: r for s, r in rows.items() if len(set(r)) > 1}
