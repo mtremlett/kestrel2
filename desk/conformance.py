@@ -251,8 +251,12 @@ def main(
     asks = soaks or list(argv) in [["--conformance", m] for m in MARKETS]
     if not (asks or list(argv) == ["--conformance-why"]) or not root.is_absolute():
         raise SystemExit("python -m desk.paper --conformance london|us|-why, KESTREL2_DATA whole")
-    paper.CLIENT = CLIENT  #: this process is the conformance desk's, at the door and in readings
     go = partial(soak, trade=trade) if soaks else trade  #: a soak records its round
-    good, line = go(root, argv[1], clock) if asks else why(clock())
+    desk, apart = paper.CLIENT, paper.APART
+    paper.CLIENT = CLIENT  #: for this run alone the conformance desk's, at the door and in readings
+    try:
+        good, line = go(root, argv[1], clock) if asks else why(clock())
+    finally:
+        paper.CLIENT, paper.APART = desk, apart  #: the run owns both
     print(line)  # noqa: T201 - the command's answer to whoever asked
     return int(not good)

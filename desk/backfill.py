@@ -28,20 +28,21 @@ def _held(path: Path, line: Line) -> tuple[Bar, ...]:
         return ()
 
 
-def _accepted(path: Path, line: Line, day: date, answer: store.Answer) -> Bar | str:
-    """The day's bar if the one store lets it in beside the bars held, else why not."""
+def _accepted(path: Path, line: Line, day: date, answer: store.Answer, today: date) -> Bar | str:
+    """The day's bar if the one store lets it in beside the bars held on both sides of it, judged
+    as of today (the keeper's clock), else why not."""
     if isinstance(answer, Refused):
         return answer.reason
     given = [bar for bar in answer if bar.day == day]
     if not given:
         return "it gave no bar for the day"
     rates = keeper.pound_closes(path)
-    kept, faults, _ = store.judge(line, [*_held(path, line), *given], day + timedelta(1), rates)
+    kept, faults, _ = store.judge(line, [*_held(path, line), *given], today, rates)
     return next((bar for bar in kept if bar.day == day), "; ".join(f.what for f in faults))
 
 
 def fill(
-    path: Path, wanted: Iterable[tuple[Line, date]], broker: Ask, archived: Ask
+    path: Path, wanted: Iterable[tuple[Line, date]], broker: Ask, archived: Ask, today: date
 ) -> tuple[list[str], list[str]]:
     """Each wanted day the database at path holds no bar for, filled from the broker, else the
     archive; the lines saying what was written, and what no source gave (with why)."""
@@ -51,7 +52,7 @@ def fill(
             continue
         why = []
         for source, ask in ((Source.IBKR, broker), (Source.BACKFILL, archived)):
-            got = _accepted(path, line, day, ask(line, day))
+            got = _accepted(path, line, day, ask(line, day), today)
             if isinstance(got, Bar):
                 with bars.writing(path, source) as opened:
                     opened.days(line, [got])
@@ -82,7 +83,7 @@ def main(home: Path, now: datetime, wanted: Iterable[str]) -> int:
         raise ValueError(f"SYMBOL DAY pairs are asked for, not {names}")
     pairs = zip(names[::2], names[1::2], strict=True)
     asked = [(lines[symbol], date.fromisoformat(day)) for symbol, day in pairs]
-    wrote, named = fill(home / keeper.HOT, asked, _broker(now), _archive)
+    wrote, named = fill(home / keeper.HOT, asked, _broker(now), _archive, now.date())
     sys.stdout.write("".join(f"{line}\n" for line in wrote))
     sys.stderr.write("".join(f"NOT FILLED: {line}\n" for line in named))
     return int(bool(named))
