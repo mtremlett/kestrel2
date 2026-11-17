@@ -7,7 +7,7 @@ from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
-from desk import bars, keeper, venues
+from desk import bars, keeper, keeper_receipt, venues
 from desk.bars import Five, Source
 from desk.lines import Line
 from desk.store import Bar
@@ -46,10 +46,34 @@ def test_a_line_staler_than_a_session_is_a_miss_and_each_call_leaves_a_dated_rec
             kept.daily(line, [Bar(last, one, one, one, one, 1)])
     told = keeper.stale(hot, LINES, NOW)  # Monday morning: Friday's close is the one owed
     assert [t.split(":")[0] for t in told] == ["B", "C", "D"] and "None" in told[1]
-    keeper.receipt(tmp_path, NOW, ["done"], [])
-    keeper.receipt(tmp_path, NOW, [], ["missed"])
-    lines = (tmp_path / keeper.RECEIPTS / "2026-11-16.jsonl").read_text("utf-8").splitlines()
-    assert [json.loads(line)["missed"] for line in lines] == [[], ["missed"]]
+    keeper_receipt.write(tmp_path, NOW, ["done"], [], {})
+    keeper_receipt.write(tmp_path, NOW, [], ["missed"], {})
+    day = tmp_path / keeper_receipt.RECEIPTS / "2026-11-16.jsonl"
+    assert [json.loads(line)["missed"] for line in day.read_text("utf-8").splitlines()] == [
+        [],
+        ["missed"],
+    ]
+
+
+def test_a_receipt_says_each_newest_bar_that_arrived_once_and_survives_a_kill(
+    tmp_path: Path,
+) -> None:
+    """DQ-10, DQ-12: a bar's source and arrival; a restart drill between line and record."""
+    hot, line, receipt = tmp_path / keeper.HOT, LINES[0], keeper_receipt
+    one = Decimal(1)
+    with bars.writing(hot, Source.IBKR) as kept:
+        kept.daily(line, [Bar(date(2026, 11, 13), one, one, one, one, 1)])
+    held = receipt.newest(hot, LINES)
+    assert held == {"LSE:A daily": f"{date(2026, 11, 13).toordinal()} IBKR paper"}
+    assert receipt.write(tmp_path, NOW, [], [], held) == held  # first sight: arrived
+    assert receipt.write(tmp_path, NOW, [], [], held) == {}  # seen: not again
+    day = tmp_path / receipt.RECEIPTS / "2026-11-16.jsonl"
+    with day.open("a", encoding="utf-8") as out:
+        out.write('{"at": "torn')  # a kill in the middle of a line
+    (tmp_path / receipt.RECEIPTS / receipt.SEEN).unlink()  # a kill before the record was swapped in
+    assert receipt.write(tmp_path, NOW, [], [], held) == held  # said again, never lost
+    rows = day.read_text("utf-8").splitlines()
+    assert json.loads(rows[-1])["arrived"] == held and len(rows) == 4
 
 
 def test_a_session_no_daily_source_holds_is_bridged_from_the_five_minute_bars_held(
