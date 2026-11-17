@@ -7,13 +7,17 @@ the broker will not give is Refused, with the broker's own words, for the store 
 
 from __future__ import annotations
 
+import os
 import time
-from collections.abc import Callable, Collection, Sequence
+from collections.abc import Callable, Collection, Mapping, Sequence
+from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
+from decimal import Decimal
+from pathlib import Path
 from typing import BinaryIO, cast
 
-from desk import conformance_tape, paper, venues
-from desk.lines import Line
+from desk import conformance_tape, listing, paper, venues
+from desk.lines import LINES, Line
 from desk.rollup import Candle
 from desk.store import Answer, Bar, Refused
 
@@ -35,6 +39,13 @@ SIZES = {
 REACH = {
     "1m": 1, "2m": 2, "5m": 7, "10m": 7, "15m": 7,
     "30m": 30, "1h": 30, "4h": 30, "1d": 365, "1wk": 365,
+}  # fmt: skip
+#: Pages one pull walks back, each REACH days before the one after it, stopping at the first the
+#: broker gives nothing for or refuses: IBKR's deepest history per bar size (1 min: a month;
+#: 2 to 15 mins: half a year; 30 mins to 4 hours: two years; daily and weekly: twenty years).
+PAGES = {
+    "1m": 30, "2m": 90, "5m": 26, "10m": 26, "15m": 26,
+    "30m": 25, "1h": 25, "4h": 25, "1d": 20, "1wk": 20,
 }  # fmt: skip
 
 #: What an ask gives: a day's bars for the daily and weekly, candles (with their time) for the rest.
@@ -169,17 +180,52 @@ def lacks(line: Line, answer: Answer, day: date) -> bool:
 RECENT = timedelta(days=30)  #: how far back the broker's daily bars are asked to join the archive's
 
 
+def in_currency(answer: Answer, magnifier: int) -> Answer:
+    """THE ONE HOME OF THE UNIT RULE: the broker's bars with their prices turned from its unit
+    (100 is pence) into the line's currency, once, on entry; a refusal is passed on."""
+    if isinstance(answer, Refused):
+        return answer
+    unit = Decimal(magnifier)
+    return [
+        replace(b, open=b.open / unit, high=b.high / unit, low=b.low / unit, close=b.close / unit)
+        for b in answer
+    ]
+
+
+def priced(
+    home: Path, now: datetime, answers: Mapping[Line, Answer], door: paper.Door
+) -> dict[Line, Answer]:
+    """Each line's answer in the line's currency, by the unit the broker lists the line in today;
+    a line the broker does not list is Refused, in its words."""
+    listed = listing.kept(home, now, LINES, door)
+    out: dict[Line, Answer] = {}
+    for line, answer in answers.items():
+        one = listed.get(line.symbol)
+        if one is None:
+            out[line] = Refused(f"{line.symbol}: not a line of the desk, its unit is unknown")
+            continue
+        out[line] = (
+            Refused(one.reason)
+            if isinstance(one, listing.Unlisted)
+            else in_currency(answer, one.magnifier)
+        )
+    return out
+
+
 def daily(
-    now: datetime, wait: Wait = time.sleep
+    now: datetime, wait: Wait = time.sleep, home: Path | None = None
 ) -> Callable[[Sequence[Line], date], dict[Line, Answer]]:
     """THE KEEPER'S BROKER: the daily bars before a day of the lines (at most MOST) the archive
-    lacks, over one conversation. A broker that cannot be asked (a desk round, no gateway) gives
+    lacks, over one conversation, in each line's currency (the desk's root: home, else
+    KESTREL2_DATA). A broker that cannot be asked (a desk round, no gateway) gives
     each line a Refused in words, so the line is judged on the archive alone and, if that too
     lacks it, is parked and named."""
 
     def ask_all(lines: Sequence[Line], day: date) -> dict[Line, Answer]:
         try:
-            return gather(lines[:MOST], day, day - RECENT, now, wait)
+            got = gather(lines[:MOST], day, day - RECENT, now, wait)
+            root = home or Path(os.environ["KESTREL2_DATA"])
+            return priced(root, now, got, paper.Door(CLIENT))
         except (Busy, OSError) as err:
             return {line: Refused(f"the broker was not asked: {err}") for line in lines}
 
@@ -216,6 +262,24 @@ def pull(
     return made
 
 
+def back(wire: BinaryIO, send: paper.Send, line: Line, frame: str, day: date, wait: Wait) -> Got:
+    """One line's bars of a timeframe as far back as the broker gives: PAGES pages of REACH days,
+    each before the last, PACING apart. The first page refused is the answer; a later page
+    refused or empty ends the walk, the pages already had kept."""
+    found: list[Bar | Candle] = []
+    for page in range(PAGES[frame]):
+        end = day - timedelta(REACH[frame] * page)
+        if page:
+            wait(PACING)
+        got = ask(wire, send, line, end, end - timedelta(REACH[frame]), frame)
+        if not isinstance(got, tuple) and not found:
+            return got
+        if not isinstance(got, tuple) or not got:
+            break
+        found.extend(got)
+    return cast(Got, tuple(found))
+
+
 def run(
     asks: Sequence[Ask],
     keep: Callable[[Line, str, Got], object],
@@ -225,8 +289,8 @@ def run(
     limit: int | None = None,
 ) -> int:
     """The pull over the broker's own conversation, as the history reader, paced, each ask going
-    back REACH days of its timeframe; not in a desk round (Busy, nothing sent). Returns how many
-    asks were made."""
+    back as far as the broker gives (PAGES); not in a desk round (Busy, nothing sent). Returns
+    how many asks were made."""
     if not quiet(now):
         raise Busy("a desk round runs (08:00-08:30, 14:30-15:00 UK): history is not asked now")
     door = paper.Door(CLIENT)
@@ -235,7 +299,7 @@ def run(
         paper.start(wire, send, door)
 
         def fetch(line: Line, frame: str) -> Got:
-            return ask(wire, send, line, day, day - timedelta(REACH[frame]), frame)
+            return back(wire, send, line, frame, day, wait)
 
         return pull(asks, fetch, keep, wait, limit)
 
