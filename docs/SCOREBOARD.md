@@ -153,6 +153,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #724 R-RUNGS-6/12 re-verified done (#185); no scene moved |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #758 R-RUNNER-292: Pretend puts a lost stop back at its level (test_broker, test_simcity) |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #763 R-PAPER-29 ledger half: book.conformance_cost public, SimCity scenario added; PAPER feeds it. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #788 R-RUNNER-191 step: one home for a mean and its standard error (no verdict changed) |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #796 R-RUNNER-287 desk/simcity.py split 400 -> 334 lines, no behaviour change. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #824 no change, two blocking requests (R-DATA-53, R-PAPER-29) verified on main. |
 
 ### DATA
 
