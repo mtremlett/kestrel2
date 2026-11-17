@@ -47,7 +47,7 @@ def test_a_day_the_archive_lacks_is_filled_from_the_broker_else_the_line_parks_n
     monkeypatch.setattr(archive, "_ask", away)
     monkeypatch.setattr(paper, "dial", _no_gateway)
     given, bare, one = tmp_path / "given", tmp_path / "bare", LINES[0]
-    assert keeper.main(given, NOW, [], _broker) == 0
+    assert [keeper.main(given, NOW, [], _broker) for _ in range(3)][-1] == 0  # ROOM lines a call
     held, parked = keeper.saved(given, TUE, [one])
     assert held[one] == _bars(one, TUE) and not parked
     assert keeper.main(bare, NOW, [], history.daily(NOW)) == 1  # no broker answer: as before
