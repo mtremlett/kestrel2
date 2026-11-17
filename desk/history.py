@@ -137,10 +137,10 @@ def gather(
     PACING seconds apart. Not asked in a desk round: it raises Busy, and nothing is sent."""
     if not quiet(now):
         raise Busy("a desk round runs (08:00-08:30, 14:30-15:00 UK): history is not asked now")
-    paper.CLIENT = CLIENT  #: this process is the history reader, at the door
+    door = paper.Door(CLIENT)  #: the history reader's own door, passed down
 
     def talk(wire: BinaryIO, send: paper.Send) -> dict[Line, Answer]:
-        paper.start(wire, send)
+        paper.start(wire, send, door)
         answers: dict[Line, Answer] = {}
         for line in lines:
             if answers:
@@ -194,10 +194,10 @@ def run(
     round (Busy, nothing sent). Returns how many asks were made."""
     if not quiet(now):
         raise Busy("a desk round runs (08:00-08:30, 14:30-15:00 UK): history is not asked now")
-    paper.CLIENT = CLIENT
+    door = paper.Door(CLIENT)
 
     def talk(wire: BinaryIO, send: paper.Send) -> int:
-        paper.start(wire, send)
+        paper.start(wire, send, door)
 
         def fetch(line: Line, frame: str) -> Got:
             return ask(wire, send, line, day, since, frame)
