@@ -75,6 +75,8 @@ def test_hours_before_2010_are_refused_though_the_days_are_known() -> None:
     )
     with pytest.raises(ValueError, match="no hours"):
         venues.hours("US", date(2004, 6, 10))
+    # the archive's SPY holds exactly 2,515 daily bars in 2000-2009 (read 17 Nov 2026)
+    assert len(venues.sessions("US", date(2000, 1, 1), date(2009, 12, 31))) == 2515
 
 
 def test_a_venue_the_calendar_does_not_know_is_refused() -> None:

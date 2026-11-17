@@ -43,6 +43,7 @@ START, ASK_HOLDINGS, ASK_ORDERS, ASK_BARS = (
     16,
     20,
 )  #: what the desk sends: none places an order
+READ_ONLY = frozenset({START, ASK_HOLDINGS, ASK_ORDERS, ASK_BARS})  #: the fixed list of questions
 BARS = "17"  #: the answer to a question of bars: one message, the bars all in it
 UNASKED = "-1"  #: the number a fill carries when no question of the desk's asked for it
 #: News of the gateway's price feeds, which this door does not read; any other news stops

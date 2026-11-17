@@ -26,6 +26,7 @@ from lab.block_bands import (
     TrendTemplate,
 )
 from lab.block_base import Block, Kind, Param, Spot
+from lab.block_box import DarvasBreakout, DarvasStop
 from lab.block_months import (
     MonthEndNotOverAgo,
     MonthEndNotOverAverage,
@@ -363,6 +364,8 @@ BLOCKS: Mapping[str, Spot] = {
     "under_entry_low": Spot(Kind.STOP, UnderEntryLow, {}),
     "td_buy_countdown": Spot(Kind.ENTRY, BuyCountdown, {}),
     "td_sell_setup": Spot(Kind.EXIT, SellSetup, {}),
+    "darvas_box": Spot(Kind.ENTRY, DarvasBreakout, {}),
+    "darvas_stop": Spot(Kind.STOP, DarvasStop, {}),
     "no_filter": Spot(Kind.FILTER, Always, {}),
     "trend_template": Spot(Kind.FILTER, TrendTemplate, {}),
 }
