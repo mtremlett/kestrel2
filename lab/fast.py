@@ -28,6 +28,7 @@ from lab.fast_bands import (
 )
 from lab.grid import (
     DESK,
+    EXACT,
     MARGIN,
     Bools,
     Floats,
@@ -53,6 +54,17 @@ def _highest_high(p: Prices, params: Params) -> Bools:
     n = int(params["n"])
     ceiling = _windows(p.high, n).max(axis=1)[:-1]  #: the n highs before each bar from n
     return _late(n, p.close[n:] > ceiling, len(p.close))
+
+
+def _highest_high_on_volume(p: Prices, volumes: Floats, params: Params) -> Bools:
+    """A new high, the volume at least `pct` per cent of the average of the n before: worked on
+    whole numbers (volume * n * 100 against pct * their sum), so it is exact."""
+    n, pct = int(params["n"]), int(params["pct"])
+    if 500 * n * float(volumes.max(initial=0)) >= EXACT:
+        raise TooClose("volumes too long for the sums to be exact")
+    total = _windows(volumes, n).sum(axis=1)[:-1]  #: the n volumes before each bar from n
+    heavy = 100 * n * volumes[n:] >= pct * total
+    return _highest_high(p, params) & _late(n, heavy, len(p.close))
 
 
 def _lowest_low(p: Prices, params: Params) -> Bools:
@@ -309,23 +321,31 @@ DATED: Mapping[str, Callable[[Prices, Floats, Params], Bools]] = {
 }
 
 
+#: The blocks that need the bars' volumes as well as their prices, by name.
+VOLUMED: Mapping[str, Callable[[Prices, Floats, Params], Bools]] = {
+    "highest_high_on_volume": _highest_high_on_volume,
+}
+
+
 class Shared:
     """One line's prices and the firing of every block on them, each worked out once."""
 
     def __init__(self, bars: Sequence[Bar]) -> None:
         self.prices = prices(bars)
         self._months = np.array([b.day.year * 12 + b.day.month for b in bars])
+        self._volumes = np.array([b.volume for b in bars], dtype=np.float64)
         self._fired: dict[tuple[str, tuple[tuple[str, int | Decimal], ...]], Bools] = {}
 
     def fires(self, block: str, params: Params) -> Bools:
         """Whether the block, with these settings, fires on each bar."""
         key = (block, tuple(sorted(params.items())))
         if key not in self._fired:
-            self._fired[key] = (
-                DATED[block](self.prices, self._months, params)
-                if block in DATED
-                else FIRES[block](self.prices, params)
-            )
+            if block in DATED:
+                self._fired[key] = DATED[block](self.prices, self._months, params)
+            elif block in VOLUMED:
+                self._fired[key] = VOLUMED[block](self.prices, self._volumes, params)
+            else:
+                self._fired[key] = FIRES[block](self.prices, params)
         return self._fired[key]
 
 
