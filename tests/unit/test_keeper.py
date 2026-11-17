@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from desk import archive, bars, keeper, paper, store, venues
+from desk import archive, bars, keeper, keeper_live, paper, store, venues
 from desk.bars import Five, Source
 from desk.lines import POUND, YARDSTICK, Line
 from desk.store import Bar
@@ -285,7 +285,7 @@ def test_nothing_is_asked_on_a_day_no_venue_trades_nor_once_the_calls_time_is_sp
     with pytest.raises(ValueError, match="not a moment in UTC"):
         keeper.keep(tmp_path, datetime(2026, 11, 16, 6))
 
-    week = int((_at(9) - keeper.RECENT).timestamp())  # a round asks the week kept hot, no more
+    week = int((_at(9) - keeper_live.RECENT).timestamp())  # a round asks the week kept hot, no more
 
     def unreachable(address: str) -> bytes:
         assert ("interval=5m" in address) == (f"period1={week}&" in address)
