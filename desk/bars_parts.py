@@ -74,3 +74,33 @@ def checked(
             faults.append(f"{at} moved from {kept[-1].close} to {bar.close}")
         kept.append(bar)
     return kept, faults
+
+
+#: A held day a fresh bar changes is copied here, with who replaced it, before the bar takes it.
+NOTE = (
+    "INSERT INTO correction SELECT venue, symbol, span, at, open, high, low, close, volume,"
+    " source, ? FROM bar WHERE venue = ? AND symbol = ? AND span = ? AND at = ?"
+    " AND NOT (open = ? AND high = ? AND low = ? AND close = ? AND volume = ?)"
+)
+#: A day the desk judged untrue: its raw row stays in `bar`, but no reader is given it.
+WITHDRAW = "INSERT OR IGNORE INTO withdrawn VALUES (?, ?, ?, ?)"
+RESTORE = "DELETE FROM withdrawn WHERE venue = ? AND symbol = ? AND span = ? AND at = ?"
+OTHERS = (
+    "SELECT at, open, high, low, close FROM bar WHERE venue = ? AND symbol = ? AND span = ?"
+    " AND source != ? AND at >= ? AND at <= ?"
+)
+SOURCES = (
+    "SELECT source, count(*) FROM bar"
+    " WHERE venue = ? AND symbol = ? AND span = ? AND at >= ? AND at < ? GROUP BY source"
+)
+NEWEST = (
+    "SELECT at, source FROM bar WHERE venue = ? AND symbol = ? AND span = ? AND at >= ? AND at < ?"
+    " ORDER BY at DESC LIMIT 1"
+)
+CLOSES = "SELECT close FROM bar WHERE venue = ? AND symbol = ? AND span = ? AND at >= ?"
+READ = (
+    "SELECT at, open, high, low, close, volume FROM bar"
+    " WHERE venue = ? AND symbol = ? AND span = ? AND at >= ? AND at < ?"
+    " AND NOT EXISTS (SELECT 1 FROM withdrawn w WHERE w.venue = bar.venue AND"
+    " w.symbol = bar.symbol AND w.span = bar.span AND w.at = bar.at) ORDER BY at"
+)
