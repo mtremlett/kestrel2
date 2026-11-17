@@ -60,8 +60,8 @@ import os
 import sys
 from collections import Counter
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass, field
-from datetime import UTC, date, datetime, timedelta
+from dataclasses import dataclass
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -75,10 +75,10 @@ from desk.strategy import STRATEGIES, Rule
 from lab import batch, cell, published, reproduce, rulebook, rung, tape, trials, verdict
 from lab.batch import Bars
 from lab.cell import Cell
-from lab.reproduce import Reproduction
+from lab.ladder_parts import FAILED, RUNGS, Shared, _count, _declared, _due, _made, _pool, _resolve
 from lab.rung import Answer, Rates
 
-RUNGS = "lab"  #: the package whose `rung_*` modules declare the rungs the ladder runs
+__all__ = ["FAILED", "RUNGS", "Shared", "_count", "_resolve"]  #: what other modules take from here
 ME = "lab.ladder"  #: this module as the cell knows it, however the process was started
 QUESTION = "set 1: does a published rule earn on one of the desk's lines?"
 #: The one window: from where the daily history is carried back to, to the last session
@@ -87,7 +87,6 @@ START, END = date(2000, 1, 1), date(2026, 11, 13)
 FOLDS = verdict.FOLDS
 #: The market each venue's lines are set beside: the S&P 500 in New York, the FTSE 100 in London.
 MARKETS = {"US": "SPY", "LSE": "ISF"}
-PROXIES = {"VUAG": "SPY"}  #: a short-history line and the longer series that may stand in for it
 FOLDER, RESULTS, POUNDS = "ladder", "set1.jsonl", "pound.jsonl"
 DESK = Path(desk.__file__).parent  #: the one list of eponymous files: this folder
 
@@ -102,10 +101,6 @@ class Plan:
 
 
 FIRST = Plan(1, QUESTION, "set1")
-#: A cell that waits on data is tried again no sooner than this after its last try.
-RETRY = timedelta(minutes=30)
-FAILED = (ValueError, OSError, keeper.Stale)  #: what may leave a cell unjudged; all else is a bug
-UNWIRED = "the ladder does not yet judge by these modules, which declare no RUNG"
 
 
 def cells() -> tuple[Cell, ...]:
@@ -221,64 +216,6 @@ def run(
     )
 
 
-@dataclass
-class Shared:
-    """What the cells of one run hold in common, asked once for each rule."""
-
-    todo: Sequence[Cell]
-    behind: dict[str, tuple[Reproduction, ...]] = field(default_factory=dict)
-    pools: dict[str, verdict.Pool] = field(default_factory=dict)
-
-
-def _resolve(c: Cell, bars: Bars) -> tuple[Cell, Sequence[Bar], Line | None]:
-    """The cell as judged from its first bar, with its bars (a proxy's where one stands in)."""
-    own = bars(c.line)
-    if proxy := _proxy(c.line, own, bars):
-        c, own = Cell(c.strategy, proxy, c.start, c.end), bars(proxy)
-    start = max([c.start, *(bar.day for bar in own[:1])])
-    return Cell(c.strategy, c.line, start, c.end), own, proxy
-
-
-def _pool(rule: str, shared: Shared, bars: Bars, pounds: Rates) -> verdict.Pool:
-    """The rule's lines that can be judged; one that waits is left out of the folds. A proxy is
-    pooled once. Only the rule at hand is kept: its bars are most of the memory."""
-    if rule not in shared.pools:
-        shared.pools.clear()
-        firsts, lines = {}, {}
-        for c in (one for one in shared.todo if one.strategy == rule):
-            try:
-                made, own, _ = _resolve(c, bars)
-                firsts[made] = verdict.ready(made, own, pounds, shared.behind[rule])
-            except FAILED:
-                continue
-            if not firsts[made].refused:  #: a line the sizing refuses is judged alone, as refused
-                lines[made] = own
-        dollars = any(c.line.currency != "GBP" for c in lines)
-        data = ";".join(f"{c.line.symbol} {cell.key(c, own).data}" for c, own in lines.items())
-        data = hashlib.sha256(data.encode()).hexdigest()
-        shared.pools[rule] = verdict.Pool(list(lines.items()), firsts, data, dollars)
-    return shared.pools[rule]
-
-
-def _count(tally: Counter[str], row: verdict.Row, was: verdict.Row | None) -> None:
-    """Add one cell's line to the counts."""
-    fate = next((k for k in ("error", "refused") if k in row), "kept" if row is was else "judged")
-    tally[fate] += 1
-    tally[row.get("answer", "none")] += 1
-    tally["missed"] += fate in ("kept", "judged") and "unrun" not in row
-    tally["short"] += "unrun" in row and "answer" not in row
-    tally["every"] += row.get("every", False)
-    tally["behind"] += row.get("every", False) and "reproduce" in row["rungs"]
-
-
-def _made(rule: str, shared: Shared, bars: Bars) -> tuple[Reproduction, ...]:
-    """The rule's reproductions of its authors' figures, made once for all its cells."""
-    if rule not in shared.behind:
-        owed = [figure for figure in reproduce.FIGURES if figure.strategy == rule]
-        shared.behind[rule] = tuple(reproduce.reproduce(f, bars(f.line)) for f in owed)
-    return shared.behind[rule]
-
-
 def _one(
     c: Cell,
     bars: Bars,
@@ -328,43 +265,6 @@ def _one(
             | ({} if key is None else {"key": key})
             | {"error": f"{type(error).__name__}: {error}", "tried": now.isoformat()}
         )
-
-
-def _declared(
-    judged: dict[str, Any],
-    pool: verdict.Pool,
-    c: Cell,
-    own: Sequence[Bar],
-    pounds: Rates,
-    made: Sequence[Reproduction],
-) -> dict[str, Any]:
-    """The cell's answers with each rung that its module declares (`rung.found`) added, judged
-    on the first rung's verdict; the one rule's answer stays the named rungs'. A rung module
-    that declares none is named unrun. A cell with no first rung (the author's result not
-    reproduced) has none to read."""
-    declared, waiting = rung.found(RUNGS)
-    if "trades" not in judged:
-        return judged
-    modules = ", ".join(name.rpartition(".")[2] for name in waiting)
-    unrun = judged["unrun"] | ({"unwired": f"{UNWIRED}: {modules}"} if waiting else {})
-    rungs = dict(judged["rungs"])
-    for one in declared:
-        answer, reason = one.judge(pool.firsts.get(c) or verdict.ready(c, own, pounds, made))
-        rungs[one.name] = [answer.name, reason]
-    every = judged["every"] and all(a == Answer.PASS.name for a, _ in rungs.values())
-    return judged | {"rungs": rungs, "unrun": unrun, "every": every}
-
-
-def _proxy(line: Line, own: Sequence[Bar], bars: Bars) -> Line | None:
-    """The line named to stand in for this one, when its bars begin earlier than the line's own."""
-    stand = next((one for one in LINES if one.symbol == PROXIES.get(line.symbol)), None)
-    longer = bars(stand) if stand else ()
-    return stand if longer and (not own or longer[0].day < own[0].day) else None
-
-
-def _due(was: verdict.Row, now: datetime) -> bool:
-    """A failed cell is tried again once its last try is 30 minutes old."""
-    return "error" in was and now - datetime.fromisoformat(was["tried"]) >= RETRY
 
 
 def code(folder: Path = DESK) -> str:
