@@ -89,13 +89,20 @@ SCHEMA = (
     " source TEXT NOT NULL, PRIMARY KEY (venue, symbol, span, at)) WITHOUT ROWID",
     "CREATE TABLE IF NOT EXISTS held (venue TEXT NOT NULL, symbol TEXT NOT NULL,"
     " span TEXT NOT NULL, PRIMARY KEY (venue, symbol, span)) WITHOUT ROWID",
+    "CREATE TABLE IF NOT EXISTS correction (venue TEXT NOT NULL, symbol TEXT NOT NULL,"
+    " span TEXT NOT NULL, at INTEGER NOT NULL, open TEXT NOT NULL, high TEXT NOT NULL,"
+    " low TEXT NOT NULL, close TEXT NOT NULL, volume INTEGER NOT NULL, source TEXT NOT NULL)",
 )
 #: A store made before sources were kept: every bar in it came from the archive.
 SOURCED = f"ALTER TABLE bar ADD COLUMN source TEXT NOT NULL DEFAULT '{Source.ARCHIVE.value}'"
 MADE = "SELECT 1 FROM sqlite_master WHERE name = 'held'"
 HOLD = "INSERT OR IGNORE INTO held VALUES (?, ?, ?)"
 HELD = "SELECT 1 FROM held WHERE venue = ? AND symbol = ? AND span = ?"
-CLEAR = "DELETE FROM bar WHERE venue = ? AND symbol = ? AND span = ? AND source = ?"
+#: A held day about to be restated with other prices or volume: its old value is kept first.
+CORRECT = (
+    "INSERT INTO correction SELECT * FROM bar WHERE venue = ? AND symbol = ? AND span = ?"
+    " AND at = ? AND NOT (open = ? AND high = ? AND low = ? AND close = ? AND volume = ?)"
+)
 ADD = "INSERT INTO bar VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 PUT, FILL = (ADD.replace("INSERT", f"INSERT OR {then}") for then in ("REPLACE", "IGNORE"))
 OTHERS = (
@@ -137,25 +144,25 @@ class Round:
         line: Line,
         span: str,
         bars: Iterable[tuple[int, Bar | Five | Timed]],
-        whole: bool = False,
     ) -> int:
         """One line's bars of one span, all of them or, if any is refused, none: the round is
         then as it was before, whether or not the caller ends it there. A round that SQLite
         itself has dropped (a full disk) takes no more, and nothing of it lands. It says how
-        many bars landed. A whole write first clears what this round's source holds of the span."""
+        many bars landed. A daily bar that restates a held day with other prices or volume
+        first leaves the old bar in `correction`; no held day is ever removed."""
         held = self._held[SPANS[span].home]
         if not all(one.in_transaction for one in self._held.values()):
             raise NoRound(f"SQLite dropped this round: nothing of it lands, {line.symbol} too")
         key = (line.venue, line.symbol, span)
-        rows = (
+        rows = [
             (*key, at, *map(str, (b.open, b.high, b.low, b.close)), b.volume, self._source.value)
             for at, b in bars
-        )
+        ]
         held.execute("SAVEPOINT line")
         try:
             held.execute(HOLD, key)
-            if whole:
-                held.execute(CLEAR, (*key, self._source.value))
+            if span == DAILY and put == PUT:
+                held.executemany(CORRECT, (row[:9] for row in rows))
             landed = held.executemany(put, rows).rowcount
         except BaseException:
             if held.in_transaction:
@@ -165,16 +172,17 @@ class Round:
         return landed
 
     def daily(self, line: Line, bars: Iterable[Bar]) -> None:
-        """A line's daily history from this source, whole, in place of what it held: an archive
-        restates the past, so only a fresh source gives one. Its bar replaces another source's
-        for the same day, and the bars of other sources stand. A day given twice is refused."""
+        """A line's daily bars from this source, joined by day into what is held: a day given
+        takes the place of the one held for it (the old bar kept as a correction if it
+        differs), and a day not given stays. An archive restates the past, so only a fresh
+        source gives bars here. A day given twice is refused."""
         if not self._source.fresh:
             raise ValueError(f"{self._source.value} is no fresh source: it restates no history")
         given = [(b.day.toordinal(), b) for b in bars]
         if len({at for at, _ in given}) < len(given):
             what = f"{line.symbol} on {line.venue}: its history gives a day twice; none kept"
             raise ValueError(what)
-        self._write(PUT, line, DAILY, given, whole=True)
+        self._write(PUT, line, DAILY, given)
 
     def days(self, line: Line, bars: Iterable[Bar]) -> int:
         """More daily bars, and how many landed: as `five`, but for days not moments."""
