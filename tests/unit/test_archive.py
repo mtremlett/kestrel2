@@ -15,7 +15,7 @@ from urllib.error import HTTPError, URLError
 
 import pytest
 
-from desk import archive
+from desk import archive, venues
 from desk.bars import Five
 from desk.lines import TAG, Line
 from desk.store import Bar, Refused
@@ -125,6 +125,8 @@ def test_the_archive_is_asked_for_nothing_on_or_after_the_day() -> None:
     address = archive.address(UK, date(2025, 11, 17))
     assert "/BBB.L?" in address
     assert f"period2={int(datetime(2025, 11, 17, tzinfo=UTC).timestamp())}&" in address
+    assert f"period1={int(datetime(2000, 1, 1, tzinfo=UTC).timestamp())}&" in address
+    assert archive.SINCE.year in venues.SESSION_YEARS  # the history asked for, the calendar knows
 
 
 def test_a_london_line_priced_in_pounds_is_read_as_given_on_its_summer_session() -> None:
