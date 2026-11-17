@@ -25,7 +25,7 @@ from __future__ import annotations
 import sqlite3
 from collections.abc import Collection, Iterable, Iterator, Mapping
 from contextlib import ExitStack, closing, contextmanager
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from enum import Enum
 from pathlib import Path
@@ -41,7 +41,7 @@ from desk.spans import FIVE as FIVE
 from desk.spans import SPANS, Timed
 from desk.spans import Five as Five
 from desk.spans import _seconds as _seconds
-from desk.store import Bar, Refused
+from desk.store import Answer, Bar, Older, Refused
 
 HISTORY, LIVE = "market_history.db", "market_live.db"  #: database long, database short (his ruling)
 #: The seconds anyone waits for the file: a writer for the one before it, or SQLite's own log.
@@ -327,3 +327,40 @@ def keep(
             gave = [f"{differ} bars held from another source differ, and gave way"] * (differ > 0)
             faults[line] = (*found, *gave)
     return faults
+
+
+def bridge(fives: Iterable[Five], after: date, before: date) -> list[Bar]:
+    """A daily bar for each day between two, of that day's five-minute bars: the first open,
+    the highest high, the lowest low, the last close, the volumes."""
+    days: dict[date, list[Five]] = {}
+    for five_ in sorted(fives, key=lambda bar: bar.start):
+        if after < five_.start.date() < before:
+            days.setdefault(five_.start.date(), []).append(five_)
+    return [
+        Bar(
+            day,
+            got[0].open,
+            max(b.high for b in got),
+            min(b.low for b in got),
+            got[-1].close,
+            sum(b.volume for b in got),
+        )
+        for day, got in days.items()
+    ]
+
+
+def bridged(path: Path, line: Line, day: date, shelf: Older, *given: Answer | None) -> Older:
+    """The shelf with a daily bar bridged from the five-minute bars held, for each session of the
+    thirty days before day that the shelf and every answer given lack (a line that trades too
+    thinly for any daily source to hold each day: 3LGO). Nothing held: the shelf as it was."""
+    held = {b.day for b in shelf or ()}
+    held |= {b.day for one in given if one and not isinstance(one, Refused) for b in one}
+    first = day - timedelta(30)
+    try:
+        fives = five(
+            path, line, datetime.combine(first, time(), UTC), datetime.combine(day, time(), UTC)
+        )
+    except (LookupError, FileNotFoundError):
+        return shelf  # no five-minute bar was ever kept for the line
+    fills = [b for b in bridge(fives, first - timedelta(1), day) if b.day not in held]
+    return [*(shelf or ()), *fills] if fills else shelf
