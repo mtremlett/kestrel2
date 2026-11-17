@@ -7,7 +7,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 from desk.store import Bar
-from desk.strategy import ZERO, _Window, lower_band
+from desk.strategy import ZERO, _Exponential, _Window, lower_band
 from lab.block_base import Block
 
 
@@ -48,3 +48,48 @@ class PercentBUnderRun(_PercentB):
         b = self.percent_b(bar)
         self._days = self._days + 1 if b is not None and b < self._pct else 0
         return self._days >= self._run
+
+
+class CloseOverBandAfterSqueeze(Block):
+    """Bollinger's squeeze: fires on a close over the upper band (2 deviations over the `n`-bar
+    average) when, on the bar before, the band width (4 deviations over the average) was the
+    lowest of the last `look` widths, ties included."""
+
+    def __init__(self, n: int, look: int) -> None:
+        self._closes, self._widths, self._squeezed = _Window(n), _Window(look), False
+
+    def see(self, bar: Bar, holding: bool) -> bool:  # noqa: ARG002 - the one interface of every block
+        """Shown the next bar: whether the block fires."""
+        self._closes.add(bar.close)
+        if not self._closes.full:
+            return False
+        mean, dev = self._closes.mean(), self._closes.deviation()
+        width = 4 * dev / mean
+        self._widths.add(width)
+        squeezed, self._squeezed = self._squeezed, self._widths.full and width <= self._widths.low()
+        return squeezed and bar.close > mean + 2 * dev
+
+
+class CloseOverEmas(Block):
+    """Fires on a close over both the `n`-bar and the `slow`-bar exponential average of the
+    close, this bar's included; not before both are seeded."""
+
+    def __init__(self, n: int, slow: int) -> None:
+        self._fast, self._slow = _Exponential(n), _Exponential(slow)
+
+    def see(self, bar: Bar, holding: bool) -> bool:  # noqa: ARG002 - the one interface of every block
+        """Shown the next bar: whether the block fires."""
+        fast, slow = self._fast.add(bar.close), self._slow.add(bar.close)
+        return fast is not None and slow is not None and bar.close > max(fast, slow)
+
+
+class CloseUnderEma(Block):
+    """Fires on a close under its `n`-bar exponential average, this bar's included."""
+
+    def __init__(self, n: int) -> None:
+        self._trail = _Exponential(n)
+
+    def see(self, bar: Bar, holding: bool) -> bool:  # noqa: ARG002 - the one interface of every block
+        """Shown the next bar: whether the block fires."""
+        trail: Decimal | None = self._trail.add(bar.close)
+        return trail is not None and bar.close < trail

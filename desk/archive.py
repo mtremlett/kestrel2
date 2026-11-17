@@ -14,12 +14,15 @@ dates by the moment the five minutes start, and it keeps them for sixty days onl
 from __future__ import annotations
 
 import json
+import os
+import time
 from collections.abc import Callable, Iterable, Sequence
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from http.client import HTTPException
 from pathlib import Path
 from typing import Any, TypeVar
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 from desk import store
@@ -41,6 +44,13 @@ DAILY, FIVE = "1d", "5m"  #: the archive's names for the two spans of bar the de
 KEPT = timedelta(days=59)
 STORE = "archive"  #: the folder of a home that holds the raw answers, a folder to a day
 MIDNIGHT = timedelta(hours=1)  #: London's midnight in summer, behind UTC's by this
+#: Slow: the least gap between two asks. Backing off: the waits, in seconds, before each retry
+#: of an ask the archive turned away (too many asks, or its own fault) or did not answer.
+PACE = 1.0
+BACKOFF = (5, 30, 120)
+ASKED_TO_WAIT = 300  #: the longest wait the archive's own Retry-After is obeyed for, in seconds
+#: Where the runner reads whether the archive refuses: `{"refusing_since": <time or null>}`.
+STATE = "archive.json"
 When = TypeVar("When")
 Read = TypeVar("Read")
 Row = tuple[int, Decimal, Decimal, Decimal, Decimal, int]
@@ -145,10 +155,75 @@ def parse_five(line: Line, payload: bytes, now: datetime) -> tuple[Five, ...]:
     )
 
 
-def _ask(address: str) -> bytes:
+def _record(refusing: bool) -> None:
+    """Write when the archive began refusing (kept while it goes on), or null once it answers,
+    to archive.json in the folder KESTREL2_DATA names, if it names one."""
+    data = os.environ.get("KESTREL2_DATA")
+    if not data:
+        return
+    path = Path(data) / STATE
+    since = None
+    if refusing:
+        since = json.loads(path.read_text("utf-8")).get("refusing_since") if path.exists() else None
+        since = since or datetime.now(UTC).isoformat()
+    part = path.with_suffix(".part")
+    part.write_text(json.dumps({"refusing_since": since}), "utf-8")
+    part.replace(path)
+
+
+def _once(address: str) -> bytes:
     request = Request(address, headers={"User-Agent": "Mozilla/5.0"})  # noqa: S310
     with urlopen(request, timeout=30) as answer:  # noqa: S310
         return bytes(answer.read())
+
+
+def _turned_away(refusal: Exception) -> bool:
+    """Whether an ask failed in a way a wait may mend: no answer, or a 429 or a server's fault."""
+    if isinstance(refusal, HTTPError):
+        return refusal.code == 429 or refusal.code >= 500
+    return True
+
+
+def _wait(refusal: Exception, wait: int) -> float:
+    """How long to wait: the back-off, or longer if the archive said how long (Retry-After)."""
+    said = refusal.headers.get("Retry-After", "") if isinstance(refusal, HTTPError) else ""
+    return max(wait, min(int(said), ASKED_TO_WAIT)) if said.isdigit() else wait
+
+
+def _ask(address: str) -> bytes:
+    """One ask of the archive, slowly, backing off when it is turned away or does not answer.
+    When the last wait is spent the refusal stands, and archive.json says since when."""
+    waits = iter(BACKOFF)
+    while True:
+        time.sleep(PACE)
+        try:
+            payload = _once(address)
+        except (OSError, HTTPException) as refusal:
+            wait = next(waits, None)
+            if wait is not None and _turned_away(refusal):
+                time.sleep(_wait(refusal, wait))
+                continue
+            if _turned_away(refusal):
+                _record(refusing=True)
+            raise
+        _record(refusing=False)
+        return payload
+
+
+def _kept(kept: Path | None, address: str, read: Callable[[bytes], Read]) -> Read:
+    """The archive's answer at an address, read on entry. With a kept file, the raw answer is
+    read from it instead of asked again, and written there only once read whole, never a
+    refused one."""
+    if kept is not None and kept.exists():
+        return read(kept.read_bytes())
+    payload = _ask(address)
+    bars = read(payload)
+    if kept is not None:
+        kept.parent.mkdir(parents=True, exist_ok=True)
+        part = kept.with_suffix(".part")
+        part.write_bytes(payload)
+        part.replace(kept)
+    return bars
 
 
 def fetch(
@@ -158,23 +233,21 @@ def fetch(
     archive's answer is kept raw there, one file to a line and day, and read instead of asked
     again; an answer is kept only once it has been read whole, never a refused one."""
     name = f"{line.symbol}{SUFFIX[line.venue]}" + ("" if since == SINCE else f"-{since}")
+    data = os.environ.get("KESTREL2_DATA")
+    home = home or (Path(data) if data else None)
     kept = None if home is None else home / STORE / str(day) / name
-    if kept is not None and kept.exists():
-        return parse(line, kept.read_bytes())
-    payload = _ask(address(line, day, since))
-    bars = parse(line, payload)
-    if kept is not None:
-        kept.parent.mkdir(parents=True, exist_ok=True)
-        part = kept.with_suffix(".part")
-        part.write_bytes(payload)
-        part.replace(kept)
-    return bars
+    return _kept(kept, address(line, day, since), lambda raw: parse(line, raw))
 
 
-def fetch_five(line: Line, now: datetime, back: timedelta = KEPT) -> tuple[Five, ...]:
+def fetch_five(
+    line: Line, now: datetime, back: timedelta = KEPT, home: Path | None = None
+) -> tuple[Five, ...]:
     """A line's five-minute bars up to now, read on entry: every one the archive still keeps,
-    or those of a shorter time back."""
-    return parse_five(line, _ask(address_five(line, now, back)), now)
+    or those of a shorter time back. With a home, the raw answer is kept there (the archive
+    forgets after sixty days), one file to a line and moment, and read instead of asked again."""
+    name = f"{line.symbol}{SUFFIX[line.venue]}-{back.days}d"
+    kept = None if home is None else home / STORE / "five" / now.strftime("%Y%m%dT%H%M") / name
+    return _kept(kept, address_five(line, now, back), lambda raw: parse_five(line, raw, now))
 
 
 def gather(

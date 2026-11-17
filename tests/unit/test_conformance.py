@@ -147,10 +147,11 @@ def test_the_real_stop_is_put_above_the_price_paid_and_sold_or_not_the_line_is_l
         paper.Account((), ()),
     )
     reads, settled, waited = iter([held, held, gone, gone]), list[object](), list[float]()
-    monkeypatch.setattr(paper, "read", lambda: next(reads))
+    monkeypatch.setattr(paper, "read", lambda _door: next(reads))
     monkeypatch.setattr(placing.Paper, "settle", lambda _, *asked: settled.append(asked))
-    adapter = placing.Paper(LISTED, tmp_path, lambda: MON)
-    fall = conformance._raised(adapter, tmp_path, listed, waited.append)
+    door = paper.Door(conformance.CLIENT)
+    adapter = placing.Paper(LISTED, tmp_path, lambda: MON, door)
+    fall = conformance._raised(adapter, tmp_path, listed, waited.append, door)
     fall(run.second)
     # 110.004 and a twentieth, down onto the broker's step, in the broker's pence; once it has
     # sold nothing is held, and the line is left under no stop
@@ -163,7 +164,7 @@ def test_the_real_stop_is_put_above_the_price_paid_and_sold_or_not_the_line_is_l
     )
     assert (settled, waited) == ([above, (listed, Decimal(0), [], None)], [1])
     monkeypatch.setattr(
-        paper, "read", lambda: held
+        paper, "read", lambda _door: held
     )  # it never sells: back under the buy's own stop
     assert fall(run.second) == conformance.STILL.format(name, conformance.WAITS)  # a finding
     assert len(waited) == 1 + conformance.WAITS
@@ -178,22 +179,19 @@ def test_the_real_stop_is_put_above_the_price_paid_and_sold_or_not_the_line_is_l
         if len(settled) == 5:
             raise placing.Unprotected("the broker ended the stop, Filled")
 
-    monkeypatch.setattr(paper, "read", lambda: next(reads))
+    monkeypatch.setattr(paper, "read", lambda _door: next(reads))
     monkeypatch.setattr(placing.Paper, "settle", ended)
     fall(run.second)
     assert settled[4:] == [above, (listed, Decimal(0), [], None)]
-    monkeypatch.setattr(paper, "read", lambda: gone)  # the buy bought nothing: nothing is sent
+    monkeypatch.setattr(paper, "read", lambda _door: gone)  # the buy bought nothing: no send
     with pytest.raises(ValueError, match="no share of it is held"):
         fall(run.second)
     assert len(settled) == 6
 
 
-converse = paper.converse  # the account read, apart from the gateway's knock (gateway.known)
-
-
 def _desk(
     shares: int = 5, *, moves: bool = False, stops: bool = True, holds: bool = True
-) -> Callable[[object], paper.Account | None]:
+) -> Callable[[paper.Door], paper.Account]:
     """The account as the gateway gives it: the desk holds VUAG, and its
     stop rests; read again after the run, a holding of the desk's has moved, or not."""
     held = [paper.Holding("DU1", "VUAG", "STK", "GBP", Decimal(shares))][: int(holds)]
@@ -207,11 +205,7 @@ def _desk(
             paper.Account(() if moves else tuple(held), ()),
         ]
     )
-    return (
-        lambda talk: next(reads, paper.Account(tuple(held), (stop,) * stops))
-        if talk is converse
-        else None
-    )
+    return lambda _door: next(reads, paper.Account(tuple(held), (stop,) * stops))
 
 
 def _world(
@@ -230,11 +224,13 @@ def _world(
 
     patch.setattr(command, "rates", lambda _root, _day: FX)
     patch.setattr(paper, "dial", lambda _talk: paper.Account((), ()))
-    patch.setattr(listing, "read", lambda _lines: LISTED)
-    patch.setattr(clearance, "check", lambda _root, now: clearance.Check(now, found))
-    patch.setattr(placing, "Paper", lambda _listings, _root, _clock: broker)
+    patch.setattr(listing, "read", lambda _lines, _door: LISTED)
+    patch.setattr(
+        clearance, "check", lambda _root, now, door: _seen(door) or clearance.Check(now, found)
+    )
+    patch.setattr(placing, "Paper", lambda _list, _root, _clock, door: _seen(door) or broker)
     patch.setattr(conformance, "_raised", lambda *_: fall)
-    patch.setattr(conformance, "reasons", lambda: _seen() | WHY)
+    patch.setattr(conformance, "reasons", lambda door: _seen(door) | WHY)
     return broker
 
 
@@ -252,12 +248,12 @@ def _at(moment: datetime) -> Callable[[], datetime]:
     return lambda: moment
 
 
-SEEN: list[int] = []  #: the client at the door each time the run asked for the reasons
+SEEN: list[int] = []  #: the client at the door each time the run gave a fake its door
 
 
-def _seen() -> dict[str, str]:
-    SEEN.append(paper.CLIENT)
-    return {}
+def _seen(door: paper.Door) -> dict[str, str]:
+    SEEN.append(door.client)
+    return {}  # falsy: a fake that answers `_seen(door) or answer` notes its door and answers
 
 
 def _never(_talk: object) -> None:
@@ -269,7 +265,7 @@ def test_the_command_records_each_real_result_beside_the_pretend_brokers_once(
 ) -> None:
     _world(monkeypatch)
     monkeypatch.setattr(
-        conformance, "reasons", lambda: _seen() | {k: v for k, v in WHY.items() if k != NO}
+        conformance, "reasons", lambda door: _seen(door) | {k: v for k, v in WHY.items() if k != NO}
     )
     assert _run(tmp_path, MON, "london") == 0
     record = tmp_path / "conformance" / "trades-london-20261116-1005.csv"
@@ -285,7 +281,7 @@ def test_the_command_records_each_real_result_beside_the_pretend_brokers_once(
         "",
         f"{ID.format(1)}: {conformance.GIVEN}",
     ]
-    assert set(SEEN) == {223} and paper.CLIENT == paper.DESK  # its own client, for the run alone
+    assert set(SEEN) == {223}  # its own client
     assert book.switch(record.parent)[-1][:2] == (MON, book.Switch.DRILLED)  # the day's own drill
     monkeypatch.setattr(paper, "dial", _never)  # nothing asked when nothing is to be done
     assert _run(tmp_path, MON, "us") == 0  # New York is shut at 10:05
@@ -356,7 +352,7 @@ def test_beside_a_desk_holding_it_trades_another_line_ends_flat_and_names_a_hold
 ) -> None:
     # the desk has an order on VUAG, the line that traded most, then holds it: the run is on ISF
     broker = _world(monkeypatch)
-    monkeypatch.setattr(paper, "dial", _desk(holds=False))  # an order working, nothing held
+    monkeypatch.setattr(paper, "whole", _desk(holds=False))  # an order working, nothing held
     assert _run(tmp_path, MON, "london") == 0
     assert "on ISF" in capsys.readouterr().out
     assert {i[9:] for i in broker.submitted()} == {
@@ -365,7 +361,7 @@ def test_beside_a_desk_holding_it_trades_another_line_ends_flat_and_names_a_hold
         "conf3lse1005-ISF",
     }
     assert (broker.holdings(), book.positions(tmp_path / "conformance")) == ((), {})
-    monkeypatch.setattr(paper, "dial", _desk(moves=True, stops=False))  # held; moved at the end
+    monkeypatch.setattr(paper, "whole", _desk(moves=True, stops=False))  # held; moved at the end
     assert _run(tmp_path, MON + timedelta(minutes=30), "london") == 1
     assert "on ISF" in (said := capsys.readouterr().out)  # held, though no order of the desk's
     assert "FIRST-LIGHT FAULT: the desk's holdings changed: VUAG STK GBP 5 -> 0." in said

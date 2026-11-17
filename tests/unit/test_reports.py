@@ -58,6 +58,7 @@ DONE = (
 CUT = _but(_but(_but(DONE, 13, "16"), 77, "Cancelled"), 87, "10")
 WHOLE = Ended("20261113-rsi2-IITU", "Filled", Decimal(26), Decimal(0))
 DAY = date(2026, 11, 13)
+DOOR = paper.Door(paper.DESK)
 #: Those two fills as the desk should read them: its own client's, on the paper account.
 LONDON = ("212969319", "IITU", Decimal(26), Decimal("3755.00"), datetime(2026, 11, 13, 9, 22, 6))
 NEW_YORK = ("265598", "AAPL", Decimal(-10), Decimal("171.5"), datetime(2026, 11, 13, 9, 30, 11))
@@ -70,7 +71,7 @@ NOT_HELD = "PendingSubmit ApiPending PendingCancel Inactive Cancelled ApiCancell
 
 def _read(*messages: Sequence[str]) -> tuple[tuple[Execution, ...], list[bytes]]:
     sent: list[bytes] = []
-    return reports.converse(_wire(HELLO, ACCOUNTS, READY, *messages), sent.append), sent
+    return reports.converse(_wire(HELLO, ACCOUNTS, READY, *messages), sent.append, DOOR), sent
 
 
 def test_todays_fills_are_read_as_the_gateway_gives_them_and_only_a_question_is_sent() -> None:
@@ -99,8 +100,10 @@ def test_the_desks_own_fills_are_the_ledgers_priced_in_the_lines_currency() -> N
         Fill(later.execution_id, "20261113-rsi2-IITU", "IITU", -26, Decimal("37.55"), DAY),
     )
     # each line's fills in the order made; New York's clock is not London's to be set against
-    assert reports.fills((named, eve, SALE, later), LISTED) == Fills(ledger, ())
-    plain = reports.fills((replace(BUY, execution_id="A"), replace(BUY, execution_id="B")), LISTED)
+    assert reports.fills((named, eve, SALE, later), LISTED, DOOR) == Fills(ledger, ())
+    plain = reports.fills(
+        (replace(BUY, execution_id="A"), replace(BUY, execution_id="B")), LISTED, DOOR
+    )
     assert [fill.execution_id for fill in plain.ours] == ["A", "B"]  # no last part: two fills
 
 
@@ -118,7 +121,9 @@ def test_the_desks_own_fills_are_the_ledgers_priced_in_the_lines_currency() -> N
 )
 def test_a_fill_not_the_desks_own_is_kept_apart_as_the_broker_gave_it(theirs: Execution) -> None:
     late = replace(SALE, client="31")
-    told = reports.fills((theirs, SALE, late, late), LISTED)  # theirs to explain, twice or not
+    told = reports.fills(
+        (theirs, SALE, late, late), LISTED, DOOR
+    )  # theirs to explain, twice or not
     assert told.others == (theirs, late, late) and [fill.symbol for fill in told.ours] == ["AAPL"]
 
 
@@ -144,7 +149,7 @@ def test_a_fill_of_the_desks_own_that_it_cannot_give_whole_and_once_stops_the_re
     fills: tuple[Execution, ...], saying: str
 ) -> None:
     with pytest.raises(ValueError, match=saying):
-        reports.fills((SALE, *fills), LISTED)
+        reports.fills((SALE, *fills), LISTED, DOOR)
 
 
 @pytest.mark.parametrize(
@@ -194,7 +199,7 @@ def test_an_answer_the_desk_cannot_trust_stops_the_reading(
 
 def test_the_days_ended_orders_are_read_as_the_gateway_lists_them() -> None:
     def read(*messages: Sequence[str]) -> tuple[Ended, ...]:
-        return reports.finished(_wire(HELLO, ACCOUNTS, READY, *messages), lambda _: None)
+        return reports.finished(_wire(HELLO, ACCOUNTS, READY, *messages), lambda _: None, DOOR)
 
     cut = Ended(WHOLE.ref, "Cancelled", Decimal(10), Decimal(16))
     assert read(FEED, DONE, CUT, DONE, ("102",)) == (WHOLE, cut, WHOLE)
@@ -226,24 +231,24 @@ def test_the_desks_own_orders_and_stops_are_told_from_anyone_elses() -> None:
     # listed as open, but the broker is not holding it: not yet taken, refused, going or gone
     idle = tuple(replace(OURS, broker_id=s, state=s) for s in (*NOT_HELD.split(), ""))
     resting = (AAPL_STOP, OURS, buying, hand, limit, part, covering, *idle)
-    assert reports.orders(resting, LISTED) == Orders(
+    assert reports.orders(resting, LISTED, DOOR) == Orders(
         # entry by entry, never added up; for the shares still to be sold; known by its number
         stops=(("AAPL", Decimal(10)), ("AAPL", Decimal(4))),
         unsettled=(buying, limit, covering, *idle),
         others=(AAPL_STOP, hand),  # another client's, though under an order id of the desk's
     )
-    assert reports.orders((), LISTED) == Orders((), (), ())
+    assert reports.orders((), LISTED, DOOR) == Orders((), (), ())
     # the desk's own, stop or not, on no line the broker lists for it
     for unknown in (replace(OURS, contract="999"), replace(buying, contract="458512497")):
         with pytest.raises(ValueError, match=unknown.contract):
-            reports.orders((unknown,), LISTED)
+            reports.orders((unknown,), LISTED, DOOR)
 
 
 def test_the_fills_are_asked_through_the_one_door(monkeypatch: pytest.MonkeyPatch) -> None:
     sent: list[bytes] = []
     wire = _wire(HELLO, ACCOUNTS, READY, BOUGHT, SOLD, END)
     monkeypatch.setattr(paper, "dial", lambda talk: talk(wire, sent.append))
-    assert reports.read() == (BUY, SALE) and len(sent) == 3
+    assert reports.read(DOOR) == (BUY, SALE) and len(sent) == 3
 
 
 def test_a_fill_slip_shows_in_the_days_gap_in_pounds() -> None:

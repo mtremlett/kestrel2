@@ -153,19 +153,19 @@ def _listing(wire: BinaryIO, send: paper.Send, number: str, line: Line) -> Listi
 
 
 def converse(
-    wire: BinaryIO, send: paper.Send, lines: Iterable[Line]
+    wire: BinaryIO, send: paper.Send, lines: Iterable[Line], door: paper.Door | None = None
 ) -> dict[str, Listing | Unlisted]:
     """Ask over an open connection how the broker lists each line, one line at a time: the
     line, then the price steps where its orders will go."""
-    paper.start(wire, send)
+    paper.start(wire, send, door)
     return {
         line.symbol: _listing(wire, send, str(number), line) for number, line in enumerate(lines)
     }
 
 
-def read(lines: Iterable[Line]) -> dict[str, Listing | Unlisted]:
-    """Each line as the paper broker lists it now, by its symbol."""
-    return paper.dial(lambda wire, send: converse(wire, send, lines))
+def read(lines: Iterable[Line], door: paper.Door | None = None) -> dict[str, Listing | Unlisted]:
+    """Each line as the paper broker lists it now, by its symbol, asked as the door's client."""
+    return paper.dial(lambda wire, send: converse(wire, send, lines, door))
 
 
 KEPT = "listings"  #: the folder, under the desk's root, of the days' answers: one file a day
@@ -208,7 +208,9 @@ def _load(path: Path, lines: tuple[Line, ...]) -> dict[str, Listing | Unlisted] 
         raise ValueError(f"{path}: a kept listing the desk cannot read: {fault!r}") from fault
 
 
-def kept(root: Path, now: datetime, lines: Iterable[Line]) -> dict[str, Listing | Unlisted]:
+def kept(
+    root: Path, now: datetime, lines: Iterable[Line], door: paper.Door | None = None
+) -> dict[str, Listing | Unlisted]:
     """Each line as the broker lists it, asked of the broker once for the UTC day of now and
     kept whole in the desk's root; later steps of the day use the kept answer. A reading that
     fails keeps nothing, so the next step asks again."""
@@ -217,7 +219,7 @@ def kept(root: Path, now: datetime, lines: Iterable[Line]) -> dict[str, Listing 
     known = _load(path, wanted)
     if known is not None:
         return known
-    answer = read(wanted)
+    answer = read(wanted, door)
     path.parent.mkdir(parents=True, exist_ok=True)
     written = path.with_suffix(".tmp")
     written.write_text(json.dumps({k: _kept_row(v) for k, v in answer.items()}), encoding="utf-8")

@@ -15,12 +15,21 @@ from collections.abc import Callable, Mapping
 from decimal import Decimal
 from functools import partial
 
-from desk.eponymous_clenow_momentum import YEAR
 from desk.store import Bar
 from desk.strategy import ZERO, _Wilder, _Window, rsi
-from lab.block_bands import PercentBOver, PercentBUnderRun
+from lab.block_bands import (
+    CloseOverBandAfterSqueeze,
+    CloseOverEmas,
+    CloseUnderEma,
+    PercentBOver,
+    PercentBUnderRun,
+)
 from lab.block_base import Block, Kind, Param, Spot
 from lab.block_months import MonthEndNotOverAverage, MonthEndOverAverage
+from lab.blocks_parts import BigMove, RisingScore
+from lab.blocks_parts import (
+    LogSlope as LogSlope,  # noqa: PLC0414 - re-exported: callers import it from here
+)
 
 
 class HighestHigh(Block):
@@ -33,6 +42,25 @@ class HighestHigh(Block):
         """Shown the next bar: whether the block fires."""
         fires = self._highs.full and bar.close > self._highs.high()
         self._highs.add(bar.high)
+        return fires
+
+
+class HighestHighOnVolume(Block):
+    """Fires on a close over the highest high of the `n` bars before, the day's volume at least
+    `pct` per cent of the average volume of those bars (Zanger's heavy volume)."""
+
+    def __init__(self, n: int, pct: int) -> None:
+        self._highs, self._volumes, self._heavy = _Window(n), _Window(n), Decimal(pct) / 100
+
+    def see(self, bar: Bar, holding: bool) -> bool:  # noqa: ARG002 - the one interface of every block
+        """Shown the next bar: whether the block fires."""
+        fires = (
+            self._highs.full
+            and bar.close > self._highs.high()
+            and Decimal(bar.volume) >= self._heavy * self._volumes.mean()
+        )
+        self._highs.add(bar.high)
+        self._volumes.add(Decimal(bar.volume))
         return fires
 
 
@@ -233,77 +261,6 @@ class CloseUnderCloseAgo(Block):
         return fires
 
 
-class _Moves:
-    """The big moves among the last `n` day-to-day changes of the close: a change is big when
-    it is more than `pct` per cent of the close before."""
-
-    def __init__(self, n: int, pct: int) -> None:
-        self._limit = Decimal(pct) / 100
-        self._big: deque[bool] = deque(maxlen=n)
-        self._last: Decimal | None = None
-
-    def add(self, close: Decimal) -> bool:
-        """Takes in the close; whether a big move lies among the last `n` changes."""
-        if self._last is not None:
-            self._big.append(abs(close / self._last - 1) > self._limit)
-        self._last = close
-        return any(self._big)
-
-
-class LogSlope:
-    """The annualised slope of the exponential regression of the last `n` closes times its
-    R-squared (Clenow's score). Each close's logarithm is worked out once, as it arrives, and
-    kept in a rolling window, where the desk's own `score` works out all `n` on every bar."""
-
-    def __init__(self, n: int) -> None:
-        self._logs: deque[Decimal] = deque(maxlen=n)
-
-    def add(self, close: Decimal) -> None:
-        """Takes in the next close."""
-        self._logs.append(close.ln())
-
-    @property
-    def full(self) -> bool:
-        """Whether `n` closes have been taken in."""
-        return len(self._logs) == self._logs.maxlen
-
-    def score(self) -> Decimal:
-        """The score of the closes held; the same number, to the digit, as the desk's `score`."""
-        n, ys = len(self._logs), self._logs
-        mx, my = Decimal(n - 1) / 2, sum(ys, ZERO) / n
-        sxx = sum(((x - mx) ** 2 for x in range(n)), ZERO)
-        sxy = sum(((x - mx) * (y - my) for x, y in enumerate(ys)), ZERO)
-        syy = sum(((y - my) ** 2 for y in ys), ZERO)
-        if syy == 0:
-            return ZERO
-        return (((sxy / sxx) * YEAR).exp() - 1) * (sxy * sxy / (sxx * syy))
-
-
-class RisingScore(Block):
-    """Fires when the last `n` closes score above nothing (see `LogSlope`) and none of the last
-    `n` changes was a move of more than `pct` per cent."""
-
-    def __init__(self, n: int, pct: int) -> None:
-        self._slope, self._moves = LogSlope(n), _Moves(n, pct)
-
-    def see(self, bar: Bar, holding: bool) -> bool:  # noqa: ARG002 - the one interface of every block
-        """Shown the next bar: whether the block fires."""
-        self._slope.add(bar.close)
-        big = self._moves.add(bar.close)
-        return self._slope.full and not big and self._slope.score() > 0
-
-
-class BigMove(Block):
-    """Fires while a move of more than `pct` per cent lies among the last `n` changes."""
-
-    def __init__(self, n: int, pct: int) -> None:
-        self._moves = _Moves(n, pct)
-
-    def see(self, bar: Bar, holding: bool) -> bool:  # noqa: ARG002 - the one interface of every block
-        """Shown the next bar: whether the block fires."""
-        return self._moves.add(bar.close)
-
-
 class TimeStop(Block):
     """Fires once the position has been seen held for `n` bars, however it stands."""
 
@@ -352,10 +309,15 @@ class Never(Block):
 _DAYS = Param(int, 2, 400)
 _PCT = Param(int, 1, 50)
 _AGO = Param(int, 1, 50)
+_HEAVY = Param(int, 101, 500)
 _LOW, _HIGH = Param(int, 1, 49), Param(int, 51, 99)
 #: The one list of blocks by name; a spec names these and no others.
 BLOCKS: Mapping[str, Spot] = {
     "highest_high": Spot(Kind.ENTRY, HighestHigh, {"n": _DAYS}),
+    "highest_high_on_volume": Spot(Kind.ENTRY, HighestHighOnVolume, {"n": _DAYS, "pct": _HEAVY}),
+    "close_over_band_after_squeeze": Spot(
+        Kind.ENTRY, CloseOverBandAfterSqueeze, {"n": _DAYS, "look": _DAYS}
+    ),
     "close_over_rising_average": Spot(
         Kind.ENTRY, CloseOverRisingAverage, {"n": _DAYS, "ago": _AGO}
     ),
@@ -385,5 +347,7 @@ BLOCKS: Mapping[str, Spot] = {
     "no_exit": Spot(Kind.EXIT, Never, {}),
     "no_stop": Spot(Kind.STOP, Never, {}),
     "close_above_average": Spot(Kind.FILTER, CloseAboveAverage, {"n": _DAYS}),
+    "close_over_emas": Spot(Kind.FILTER, CloseOverEmas, {"n": _DAYS, "slow": _DAYS}),
+    "close_under_ema": Spot(Kind.EXIT, CloseUnderEma, {"n": _DAYS}),
     "no_filter": Spot(Kind.FILTER, Always, {}),
 }
