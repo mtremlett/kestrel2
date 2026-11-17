@@ -11,7 +11,7 @@ from decimal import Decimal
 
 import pytest
 
-from lab import rung_ci
+from lab import rung, rung_ci
 from lab.rung import MIN_TRADES, Answer
 
 Judge = Callable[[Sequence[Decimal]], Answer]
@@ -53,7 +53,7 @@ def _sound(judge: Judge) -> bool:
 def test_known_answer_from_the_textbook() -> None:
     """Wasserman, All of Statistics, section 6.3.2: the mean plus and minus z times s over root n.
     Gains 1..5: mean 3, s squared 2.5, standard error sqrt(0.5); two errors give 1.5858, 4.4142."""
-    low, high = rung_ci.interval([Decimal(g) for g in range(1, 6)])
+    _, low, high = rung.interval([Decimal(g) for g in range(1, 6)])
     assert (round(low, 4), round(high, 4)) == (Decimal("1.5858"), Decimal("4.4142"))
 
 
