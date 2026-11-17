@@ -109,6 +109,12 @@ class Line:
 #: moves of a leveraged line that the one-day range test cannot tell from a bad bar; 5QQQ's
 #: price before 22 August 2024 was in a 500-for-1 consolidation's old shares (the archive's
 #: jump, x489.5, is the ratio within a day's move).
+#: 2MU's box (17 November 2026): the four moves below are the only ones the store parks it
+#: for, and each is needed (without one, that day parks it). Stooq's closes of 26 September
+#: and 19 December 2024 and 4 April 2025 are the archive's to the penny. 5 August 2024 is a
+#: two-day fall: the archive dropped 2 August as a bad bar, where Stooq has it (close 20.99,
+#: down 26%) and then 19.11 on the 5th. The "fifth" is 24 October 2025: the archive's bar
+#: of no volume, 54% up, is dropped; Stooq has 66.50 that day, so the drop is right.
 MOVES = {
     "2MU": (
         (2024, 8, 5, "19.10699951171875"),
