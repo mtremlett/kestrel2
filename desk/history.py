@@ -12,7 +12,7 @@ from collections.abc import Callable, Collection, Sequence
 from datetime import UTC, date, datetime, timedelta
 from typing import BinaryIO, cast
 
-from desk import conformance, paper, venues
+from desk import conformance_tape, paper, venues
 from desk.lines import Line
 from desk.rollup import Candle
 from desk.store import Answer, Bar, Refused
@@ -127,7 +127,7 @@ def ask(
 def quiet(now: datetime) -> bool:
     """Whether no desk round runs at the moment: the account is the desk's then."""
     at = venues.uk_time(now).time()
-    return not any(start <= at < end for start, end in conformance.ROUNDS)
+    return not any(start <= at < end for start, end in conformance_tape.ROUNDS)
 
 
 def gather(
