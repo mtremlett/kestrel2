@@ -55,9 +55,11 @@ def audit(path: Path) -> str:
 
 
 if __name__ == "__main__":
-    store = Path(os.environ.get("KESTREL2_DATA", "")) / LIVE
+    store = (
+        Path(os.environ.get("KESTREL2_DATA") or sys.exit("audit: KESTREL2_DATA is unset")) / LIVE
+    )
     if sys.argv[1:] != ["--audit"]:
-        sys.exit("usage: KESTREL2_DATA=<data folder> python -m desk.bars --audit")
+        sys.exit("usage: KESTREL2_DATA=<data folder> python -m desk.audit --audit")
     if not all(file.is_file() for file in files(store).values()):
         sys.exit(f"bars --audit: no store at {store}")
     sys.stdout.write(f"{audit(store)}\n")
