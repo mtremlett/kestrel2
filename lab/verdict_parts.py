@@ -12,7 +12,17 @@ from lab.rung import Answer
 
 INCUBATE = "INCUBATE"  #: a basket's answer that is paper only, never PASS (`lab/verdict.py`)
 STATUS = "PRE-REVIEW"  #: what every table is until the blind review (R-RUNNER-40) is clean
-COLUMNS = ("rule", "line", "venue", "answer", "rungs", "trials", "reproduction", "goes forward")
+COLUMNS = (
+    "rule",
+    "line",
+    "venue",
+    "answer",
+    "rungs",
+    "trials",
+    "holding",
+    "reproduction",
+    "goes forward",
+)
 Row = Mapping[str, Any]  #: a cell's line in the results file
 
 
@@ -33,7 +43,8 @@ def _rule(rule: str, rows: Sequence[Row]) -> Row:
 
 
 def cell_line(row: Row) -> list[str]:
-    """A cell's table line: its answer, each rung's answer and reason, and the author's result."""
+    """A cell's table line: its answer, each rung's answer and reason, what holding the market
+    made, and the author's result."""
     rungs = [f"{name} {a}: {why}" for name, (a, why) in row.get("rungs", {}).items()]
     unrun = [f"{name} UNRUN: {why}" for name, why in row.get("unrun", {}).items()]
     own = " | ".join(row.get("reproduction") or [row.get("unrun", {}).get("reproduce", "")])
@@ -44,6 +55,7 @@ def cell_line(row: Row) -> list[str]:
         row.get("answer", "none"),
         text,
         str(row["trials"]),
+        row.get("holding", ""),
         result,
         "yes" if goes(row) else "no",
     ]
