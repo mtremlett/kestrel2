@@ -239,7 +239,6 @@ def _record(root: Path, new: Iterable[Fill]) -> None:
 def strangers(root: Path, broker: Broker) -> tuple[tuple[str, int], ...]:
     """THE POSITIONS THE DESK DID NOT MAKE: each name the broker holds more shares of than
     the book, and those shares (whole ones; a part share is for a hand to look at)."""
-    collect(root, broker)
     more = differences(positions(root), broker.holdings())
     return tuple((d.name, int(d.broker) - d.book) for d in more if d.broker > d.book)
 

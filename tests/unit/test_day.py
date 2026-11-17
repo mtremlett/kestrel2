@@ -55,7 +55,7 @@ FIVE = Settings(Decimal(10_000), new_lines=5)
 
 def _trade(root: Path, broker: Restopping, on: date) -> tuple[book.Sent, ...]:
     before = {line: tuple(b for b in bars if b.day < on) for line, bars in ARCHIVE.items()}
-    return day.trade(root, before, broker, FIVE, on, {"GBP": Decimal(1)})
+    return day.trade(root, before, broker, FIVE, on, {"GBP": Decimal(1)}, strangers=True)
 
 
 class Door:

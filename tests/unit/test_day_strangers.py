@@ -22,7 +22,16 @@ ARCHIVE = {LINE: tuple(Bar(d, TEN, TEN + 1, TEN - 1, TEN, 1) for d in DAYS)}
 def _trade(root: Path, broker: Pretend, on: date, told: list[str]) -> tuple[book.Sent, ...]:
     before = {line: tuple(b for b in bars if b.day < on) for line, bars in ARCHIVE.items()}
     settings, pounds = Settings(Decimal(10_000)), {"GBP": Decimal(1)}
-    return day.trade(root, before, broker, settings, on, pounds, lambda name, _: told.append(name))
+    return day.trade(
+        root,
+        before,
+        broker,
+        settings,
+        on,
+        pounds,
+        lambda name, _: told.append(name),
+        strangers=True,
+    )
 
 
 def test_a_stranger_is_told_taken_into_the_book_and_sold_and_one_with_no_line_is_left_to_a_hand(

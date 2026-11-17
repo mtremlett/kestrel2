@@ -205,7 +205,7 @@ class _Life:
 
     def _run(self, saved: Archive, on: date) -> day.Record:
         try:
-            return day.run(self.desk, saved, self.pretend, self.room, on, self.rates)
+            return day.run(self.desk, saved, self.pretend, self.room, on, self.rates, True)
         except Crash:  #: the desk died mid-send: it is started again, and runs the same day
             self.deaths += 1
             self.census.now(RESTART)

@@ -42,12 +42,13 @@ def run(
     settings: Settings,
     day: date,
     rates: Mapping[str, Decimal],
+    strangers: bool = False,
 ) -> Record:
     """A whole day from the data saved by its end, the day's own bars in it: its orders are
     decided on the bars before the day alone, each stop is moved under its fill (restop), and
     then its record is published."""
     seen = {line: tuple(bar for bar in bars if bar.day < day) for line, bars in archive.items()}
-    trade(root, seen, broker, settings, day, rates)
+    trade(root, seen, broker, settings, day, rates, strangers=strangers)
     restop.move(root, broker, archive)  #: each fill's stop, under the fill (R-RUNNER-220)
     return publish(root, archive, broker, settings, day)
 
@@ -118,6 +119,7 @@ def trade(
     rates: Mapping[str, Decimal],
     tell: book.Tell | None = None,
     killed: frozenset[str] = frozenset(),
+    strangers: bool = False,
 ) -> tuple[book.Sent, ...]:
     """The day's orders, after the market opens: each rule's decision on the session before,
     its position read from the book; the sales first, then each buy sized from the book after
@@ -128,7 +130,8 @@ def trade(
     Every signal has its answer, each not filled whole on the morning's list (halt.morning) under
     its blocker, with the lines no rule could decide; the desk dying leaves none unlisted
     (_unreached). A place the broker disagrees with is told through tell (book.send). A position
-    the desk did not make is sold first (_strangers).
+    the desk did not make is sold first (_strangers), when strangers is set: the step's scripted
+    wire (desk/running.py) has no room yet for the broker's holdings read it needs.
     A strategy in killed (its own kill condition met, lab/promotion.py) buys nothing, said so;
     what it holds is still sold by its rule or its stop."""
     book.collect(root, broker)  #: the stops the open sold
@@ -137,7 +140,7 @@ def trade(
     if made := [record.day for record in records(root) if record.day >= day]:
         raise ValueError(f"{day}: the day is over, the records running to {made[-1]}")
     book.record_rates(root, day, rates)
-    taken = _strangers(root, archive, broker, settings, day, tell)
+    taken = _strangers(root, archive, broker, settings, day, tell) if strangers else []
     held = book.positions(root)
     buys = {f.symbol: strategy_of(f.order_id) for f in book.fills(root) if f.quantity > 0}
     holders = {symbol: h for symbol, h in buys.items() if h != "stranger"}
