@@ -357,7 +357,8 @@ def main(home: Path, now: datetime, args: Sequence[str] = ()) -> int:
     if args == ["--roll"]:
         done = [keeper_live.roll(home / HOT)]
     elif args == ["--live"]:
-        words, missed = keeper_live.minute_round(home / HOT, LINES, now, keeper_live.minutes)
+        ask = live.minutes(home, home / HOT)
+        words, missed = keeper_live.minute_round(home / HOT, LINES, now, ask)
         done = [words]
     else:
         done, missed = keep(home, now)
