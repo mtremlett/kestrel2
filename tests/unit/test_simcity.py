@@ -64,7 +64,7 @@ def lived(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, simcity.Night
 
     with pytest.MonkeyPatch.context() as patch:
         patch.setattr(simcity, "_live", watched)
-        return root, simcity.run(root, MARKET, ROOM, RATES, NOW, (1,)), seen
+        return root, simcity.run(root, MARKET, ROOM, RATES, NOW, (0,)), seen
 
 
 @pytest.fixture(scope="module")
@@ -207,7 +207,7 @@ def test_each_thing_done_to_the_desk_has_its_turn_and_one_never_done_leaves_its_
     assert "day.run" not in night.bare, "a part that ran was called bare"
 
     #: the kill switch alone, every morning a desk is fit for it
-    monkeypatch.setattr(simcity, "EVENTS", simcity.EVENTS[2:])
+    monkeypatch.setattr(simcity, "EVENTS", simcity.EVENTS[3:])
     again = busy(monkeypatch, tmp_path, (0,))
     assert again.census["kill.pull"] == (simcity.KILLED,) and "kill.drill" not in again.bare
     assert not [broken for broken in again.broken if "never happened" in broken], again.broken
@@ -332,11 +332,11 @@ def test_a_part_behind_a_wrapper_is_still_a_part() -> None:
         (book, "reckon", lambda *_: ({}, (), set(), ()), ["with no stop at the broker"], 0),
         (book, "collect", lambda *_: None, ["the ledger is the broker's own fills"], 0),
         (book, "_settle", lambda *_: None, ["left working"], 0),
-        (day, "_bare", lambda *_: None, ["on that day's list"], 1),
+        (day, "_bare", lambda *_: None, ["on that day's list"], 2),
         (day, "pennies", lambda p: orders.pennies(p) + Decimal("0.01"), ["profits add up"], 0),
         (simcity, "HOLDINGS", 3, ["never more than 3 lines are held"], 0),
         (simcity, "_Counted", lambda _, rng: WORLD(SHORT, rng), ["inside its day's range"], 0),
-        (book, "_unless_killed", lambda *_: None, ["nothing reaches the", "drill is on the"], 2),
+        (book, "_unless_killed", lambda *_: None, ["nothing reaches the", "drill is on the"], 3),
     ],
 )
 def test_a_promise_the_desk_breaks_in_any_world_turns_the_night_red_and_names_the_world(

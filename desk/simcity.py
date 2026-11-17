@@ -2,9 +2,9 @@
 data, at the pretend broker with all its faults, and writes one record of the night. A WORLD is
 the saved lines on their own days, each line's months dealt again by the world's number, which
 also deals the faults and what goes wrong on a real desk: it dies mid-send and is started again,
-a position appears behind its back, a stop is cancelled by hand, the kill switch is pulled. THE
-CENSUS names each part of the money path with the scenarios that ran it. A part none ran, or a
-promise broken in a world, turns the night red and names the world."""
+a position appears behind its back, a stop is cancelled by hand, the kill switch is pulled, a
+job runs out of time. THE CENSUS names each part of the money path with the scenarios that ran
+it. A part none ran, or a promise broken in a world, turns the night red and names the world."""
 
 from __future__ import annotations
 
@@ -26,6 +26,7 @@ from desk.broker import Crash, Fault, Pretend, Report
 from desk.lines import YARDSTICK, Line
 from desk.orders import HOLDINGS, Order, Sale, Settings, pennies
 from desk.simcity_census import Census
+from desk.simcity_incidents import RAN_OUT, ran_out
 from desk.store import Bar
 from desk.strategy import Action
 
@@ -223,10 +224,8 @@ def _behind(life: _Life, on: date) -> None:
     mine = [
         f.quantity for f in book.fills(life.desk) if f.order_id == f"{on:%Y%m%d}-stranger-{symbol}"
     ]
-    sold = bool(mine) and sum(mine) == 0
-    life.promise(
-        "a position the desk did not make is sold or named", sold or symbol in record.mismatches
-    )
+    sold = bool(mine) and sum(mine) == 0 or symbol in record.mismatches
+    life.promise("a position the desk did not make is sold or named", sold)
 
 
 def _unstopped(life: _Life, on: date) -> None:
@@ -272,6 +271,7 @@ def _killed(life: _Life, on: date) -> None:
 
 Event = tuple[str, Callable[[_Life, date], object]]
 EVENTS: tuple[Event, ...] = (
+    (RAN_OUT, ran_out),
     (BEHIND, _behind),
     (UNSTOPPED, _unstopped),
     (GAPPED, _gapped),
@@ -384,7 +384,7 @@ def _night(
     if not {(r, to) for r in strategy.STRATEGIES for to in (Action.BUY, Action.SELL)} <= asked:
         broken.append("every rule asks to buy and to sell somewhere in the saved data")
     done = set().union(*(life.done for life in lives))
-    broken += [f"never happened: {scenario}" for scenario, _ in EVENTS if scenario not in done]
+    broken += [f"never happened: {name}" for name, _ in EVENTS if name not in done]
     idle = tuple(r for r in strategy.STRATEGIES if not any(r in life.held for life in lives))
     profit = sum((record.profit or Decimal(0) for record in plain), Decimal(0))
     market = sum((record.market for record in plain), Decimal(0))
