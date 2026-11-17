@@ -80,8 +80,10 @@ def _starts(path: Path, line: Line, span: str, until: datetime) -> list[datetime
 
 def thin(path: Path, line: Line, today: date) -> list[str]:
     """For each short timeframe, the sessions between the first and the last bar held on which
-    the line holds none: no finer source is wired in yet to fill them, so they are named red."""
+    the line holds none, each named red; where a finer span holds bars on all of them the
+    line says it is rollable from that span, else that no source holds them yet."""
     until, red = datetime.combine(today, time(), UTC), []
+    finer: dict[str, set[date]] = {}
     for span in SHORT:
         days = {start.date() for start in _starts(path, line, span, until)}
         short = (
@@ -90,9 +92,12 @@ def thin(path: Path, line: Line, today: date) -> list[str]:
             else []
         )
         if short:
-            red.append(
-                f"{line.symbol}: {len(short)} sessions with no {span} bar, the first {short[0]}"
-            )
+            base = next((f for f, held in finer.items() if set(short) <= held), None)
+            how = f", rollable from {base}" if base else ""
+            first = f"{len(short)} sessions with no {span} bar, the first {short[0]}"
+            red.append(f"{line.symbol}: {first}{how}")
+        if days:
+            finer[span] = days
     return red
 
 
