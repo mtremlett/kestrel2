@@ -29,7 +29,7 @@ from functools import partial
 from pathlib import Path
 from typing import TypeVar
 
-from desk import archive, bars, carry, history, keeper_live, live, store, venues
+from desk import archive, bars, carry, history, keeper_live, keeper_receipt, live, store, venues
 from desk.bars import Five
 from desk.lines import ADJUSTED, DOLLARS, LINES, POUND, REFERENCE, YARDSTICK, Line
 from desk.store import Bar, Parked, Refused
@@ -37,7 +37,6 @@ from desk.store import Bar, Parked, Refused
 #: In the data folder: each venue's record of its last refresh (no prices), and the short database.
 DAILY, HOT = "daily", bars.LIVE
 MARKS = "reference"  #: beside a venue's record, the day each reference series was last kept
-RECEIPTS = "receipts"  #: in the data folder: a file a day, a line for each call that did anything
 RECORD = "kept.json"  #: in each venue's folder of the daily store: its last refresh
 #: THE STORE RULES' VERSION (a hash of desk/store.py): a record of another is cleaned again.
 RULES = hashlib.sha256(Path(store.__file__).read_bytes().replace(b"\r\n", b"\n")).hexdigest()
@@ -301,13 +300,6 @@ def stale(hot: Path, lines: Sequence[Line], now: datetime) -> list[str]:
     return told
 
 
-def receipt(home: Path, now: datetime, done: list[str], missed: list[str]) -> None:
-    """The call's dated receipt: one line appended to the day's file in `receipts`."""
-    (folder := home / RECEIPTS).mkdir(exist_ok=True)
-    with (folder / f"{now.date()}.jsonl").open("a", encoding="utf-8") as out:
-        out.write(json.dumps({"at": now.isoformat(), "done": done, "missed": missed}) + chr(10))
-
-
 def _within(ask: Ask[When, Read], clock: Callable[[], float], ends: float) -> Ask[When, Read]:
     """The question, asked while the call's time lasts."""
 
@@ -385,7 +377,7 @@ def main(home: Path, now: datetime, args: Sequence[str] = (), broker: Broker | N
             done.append(f"five-minute delay in minutes, by line: {late}")
         missed += [f"stale: {words}" for words in stale(home / HOT, LINES, now)]
     if done or missed:
-        receipt(home, now, done, missed)
+        keeper_receipt.write(home, now, done, missed, keeper_receipt.newest(home / HOT, LINES))
     sys.stdout.write("".join(f"{line}\n" for line in done))
     sys.stderr.write("".join(f"MISSED: {line}\n" for line in missed))
     return int(bool(missed))
