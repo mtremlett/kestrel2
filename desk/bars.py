@@ -16,9 +16,10 @@ stays hot with every older bar archived beneath it in the same file.
 
 Every bar is kept with its source, a round being one source's (Source). A fresh source, the
 archive and the live session's IBKR, restate: a bar takes the place of what is held for that
-moment or day. Any other (a store no longer kept, or the archive's backfill of a past day)
-only fills moments and days that hold no bar, so a fresh bar always wins; where two sources'
-five-minute bars for one moment differ, that is counted (`apart`)."""
+moment or day, a changed day's old bar kept as a correction, and no day is ever deleted. Any
+other (a store no longer kept, or the archive's backfill of a past day) only fills moments and
+days that hold no bar, so a fresh bar always wins; where two sources' five-minute bars for
+one moment differ, that is counted (`apart`)."""
 
 from __future__ import annotations
 
@@ -89,13 +90,28 @@ SCHEMA = (
     " source TEXT NOT NULL, PRIMARY KEY (venue, symbol, span, at)) WITHOUT ROWID",
     "CREATE TABLE IF NOT EXISTS held (venue TEXT NOT NULL, symbol TEXT NOT NULL,"
     " span TEXT NOT NULL, PRIMARY KEY (venue, symbol, span)) WITHOUT ROWID",
+    "CREATE TABLE IF NOT EXISTS correction (venue TEXT NOT NULL, symbol TEXT NOT NULL,"
+    " span TEXT NOT NULL, at INTEGER NOT NULL, open TEXT NOT NULL, high TEXT NOT NULL,"
+    " low TEXT NOT NULL, close TEXT NOT NULL, volume INTEGER NOT NULL, source TEXT NOT NULL,"
+    " replaced_by TEXT NOT NULL)",
+    "CREATE TABLE IF NOT EXISTS withdrawn (venue TEXT NOT NULL, symbol TEXT NOT NULL,"
+    " span TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (venue, symbol, span, at))"
+    " WITHOUT ROWID",
 )
 #: A store made before sources were kept: every bar in it came from the archive.
 SOURCED = f"ALTER TABLE bar ADD COLUMN source TEXT NOT NULL DEFAULT '{Source.ARCHIVE.value}'"
 MADE = "SELECT 1 FROM sqlite_master WHERE name = 'held'"
 HOLD = "INSERT OR IGNORE INTO held VALUES (?, ?, ?)"
 HELD = "SELECT 1 FROM held WHERE venue = ? AND symbol = ? AND span = ?"
-CLEAR = "DELETE FROM bar WHERE venue = ? AND symbol = ? AND span = ? AND source = ?"
+#: A held day a fresh bar changes is copied here, with who replaced it, before the bar takes it.
+NOTE = (
+    "INSERT INTO correction SELECT venue, symbol, span, at, open, high, low, close, volume,"
+    " source, ? FROM bar WHERE venue = ? AND symbol = ? AND span = ? AND at = ?"
+    " AND NOT (open = ? AND high = ? AND low = ? AND close = ? AND volume = ?)"
+)
+#: A day the desk judged untrue: its raw row stays in `bar`, but no reader is given it.
+WITHDRAW = "INSERT OR IGNORE INTO withdrawn VALUES (?, ?, ?, ?)"
+RESTORE = "DELETE FROM withdrawn WHERE venue = ? AND symbol = ? AND span = ? AND at = ?"
 ADD = "INSERT INTO bar VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 PUT, FILL = (ADD.replace("INSERT", f"INSERT OR {then}") for then in ("REPLACE", "IGNORE"))
 OTHERS = (
@@ -109,7 +125,9 @@ SOURCES = (
 CLOSES = "SELECT close FROM bar WHERE venue = ? AND symbol = ? AND span = ? AND at >= ?"
 READ = (
     "SELECT at, open, high, low, close, volume FROM bar"
-    " WHERE venue = ? AND symbol = ? AND span = ? AND at >= ? AND at < ? ORDER BY at"
+    " WHERE venue = ? AND symbol = ? AND span = ? AND at >= ? AND at < ?"
+    " AND NOT EXISTS (SELECT 1 FROM withdrawn w WHERE w.venue = bar.venue AND"
+    " w.symbol = bar.symbol AND w.span = bar.span AND w.at = bar.at) ORDER BY at"
 )
 
 
@@ -137,25 +155,24 @@ class Round:
         line: Line,
         span: str,
         bars: Iterable[tuple[int, Bar | Five | Timed]],
-        whole: bool = False,
     ) -> int:
         """One line's bars of one span, all of them or, if any is refused, none: the round is
         then as it was before, whether or not the caller ends it there. A round that SQLite
         itself has dropped (a full disk) takes no more, and nothing of it lands. It says how
-        many bars landed. A whole write first clears what this round's source holds of the span."""
+        many bars landed. A daily bar a fresh source changes leaves its old value in `correction`.
+        """
         held = self._held[SPANS[span].home]
         if not all(one.in_transaction for one in self._held.values()):
             raise NoRound(f"SQLite dropped this round: nothing of it lands, {line.symbol} too")
         key = (line.venue, line.symbol, span)
-        rows = (
-            (*key, at, *map(str, (b.open, b.high, b.low, b.close)), b.volume, self._source.value)
-            for at, b in bars
-        )
+        prices = [(at, (*map(str, (b.open, b.high, b.low, b.close)), b.volume)) for at, b in bars]
+        rows = [(*key, at, *price, self._source.value) for at, price in prices]
         held.execute("SAVEPOINT line")
         try:
             held.execute(HOLD, key)
-            if whole:
-                held.execute(CLEAR, (*key, self._source.value))
+            if span == DAILY and put == PUT:
+                noted = ((self._source.value, *key, at, *price) for at, price in prices)
+                held.executemany(NOTE, noted)
             landed = held.executemany(put, rows).rowcount
         except BaseException:
             if held.in_transaction:
@@ -164,17 +181,23 @@ class Round:
         held.execute("RELEASE line")
         return landed
 
-    def daily(self, line: Line, bars: Iterable[Bar]) -> None:
-        """A line's daily history from this source, whole, in place of what it held: an archive
-        restates the past, so only a fresh source gives one. Its bar replaces another source's
-        for the same day, and the bars of other sources stand. A day given twice is refused."""
+    def daily(self, line: Line, bars: Iterable[Bar], withdrawn: Iterable[date] = ()) -> None:
+        """A line's daily bars from this source, joined by day into what the store holds, and
+        none held is ever deleted (B3): a fresh source's bar takes the day of another's, the old
+        value kept in `correction` if it differs. A day in `withdrawn` is one the desk judged
+        untrue: its row stays, marked, and no reader is given it until a bar is given for it
+        again. A day given twice is refused."""
         if not self._source.fresh:
             raise ValueError(f"{self._source.value} is no fresh source: it restates no history")
         given = [(b.day.toordinal(), b) for b in bars]
         if len({at for at, _ in given}) < len(given):
             what = f"{line.symbol} on {line.venue}: its history gives a day twice; none kept"
             raise ValueError(what)
-        self._write(PUT, line, DAILY, given, whole=True)
+        key, held = (line.venue, line.symbol, DAILY), self._held[DAILY]
+        self._write(PUT, line, DAILY, given)
+        held.executemany(RESTORE, ((*key, at) for at, _ in given))
+        gone = {day.toordinal() for day in withdrawn} - {at for at, _ in given}
+        held.executemany(WITHDRAW, ((*key, at) for at in sorted(gone)))
 
     def days(self, line: Line, bars: Iterable[Bar]) -> int:
         """More daily bars, and how many landed: as `five`, but for days not moments."""
