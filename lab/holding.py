@@ -64,7 +64,7 @@ def beside(
     """The verdict's strategy set beside the market held over the cell's window: the line's
     bars that made the verdict, the market's own, oldest first, the capital the one number."""
     c = verdict.key.cell
-    if cell.key(c, bars) != verdict.key:
+    if cell.key(c, bars).rung(rung.__name__) != verdict.key:
         raise ValueError(f"{c}: these bars or this code did not make the verdict")
     window = [bar for bar in held if c.start <= bar.day <= c.end]
     if not window:

@@ -138,7 +138,9 @@ def judge(
         try:
             priced = tuple(_price(record.key.cell, t, read, at, settings, rates) for t in done)
         except Declined as error:  #: the one place the sizing's refusal is judged: as REFUSED
-            return Verdict(record.key, orders.BROKER, (), None, Answer.FAULT, behind, str(error))
+            return Verdict(
+                record.key.rung(__name__), orders.BROKER, (), None, Answer.FAULT, behind, str(error)
+            )
         return verdict(record.key, priced, reproduced)
 
 
@@ -157,7 +159,7 @@ def verdict(
     behind = reproduce.settled(key.cell.strategy, reproduced)
     with localcontext(ARITHMETIC):
         t = standard_errors(planted(priced)) if len(priced) > 1 else None
-    return Verdict(key, orders.BROKER, priced, t, decide(len(priced), t), behind)
+    return Verdict(key.rung(__name__), orders.BROKER, priced, t, decide(len(priced), t), behind)
 
 
 def decide(trades: int, t: Decimal | None) -> Answer:

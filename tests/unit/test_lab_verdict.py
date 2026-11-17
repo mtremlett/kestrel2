@@ -151,6 +151,20 @@ def test_eased_charges_a_cell_its_rules_family_and_says_the_count(
         luck_said(None)
 
 
+@pytest.mark.parametrize("path", ["whole", "sour folds", "missing market day"])
+def test_every_path_through_the_judge_answers_every_rung_in_its_own_words(path: str) -> None:
+    #: the mechanism of R-RUNNER-193: four fixes in a row were each a path through `judge` no test
+    #: walked; on every path each rung answers, and no non-PASS rung borrows another's reason
+    held = [*NOISE[:2000], *NOISE[2001:]] if path == "missing market day" else NOISE
+    pooled = verdict.pool([(CELL, EDGE)], {})
+    if path == "sour folds":
+        pooled = replace(pooled, years=(replace(pooled.years[0], answer=Answer.FAIL),))
+    rungs = verdict.judge(CELL, EDGE, ISF, held, {}, 6, (), lambda: pooled)["rungs"]
+    assert {"first", "folds", "market", "stress"} <= set(rungs)
+    whys = {name: why for name, (_, why) in rungs.items()}
+    assert all(whys.values()) and len(set(whys.values())) == len(whys), whys
+
+
 @pytest.mark.parametrize("eased", [False, True])
 def test_the_scorecard_grades_every_rung_after_a_soft_fail_and_stops_at_a_negative_mean(
     monkeypatch: pytest.MonkeyPatch, eased: bool

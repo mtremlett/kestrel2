@@ -90,7 +90,7 @@ def judge(
             f"{market.symbol} trades on {market.venue}, {c.line.symbol} on {c.line.venue}: not the "
             "market it took, day for day"
         )
-    if cell.key(c, bars) != verdict.key:
+    if cell.key(c, bars).rung(rung.__name__) != verdict.key:
         raise ValueError(f"{c}: these bars or this code did not make the verdict")
     if verdict.answer in (Answer.FAULT, Answer.THIN):
         return Against(verdict, market, 0, None, None, verdict.answer)

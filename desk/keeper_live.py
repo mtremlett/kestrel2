@@ -71,11 +71,6 @@ def due(lines: Sequence[Line], now: datetime) -> tuple[Line, ...]:
     return tuple(lines[(slot * PER_RUN + k) % len(lines)] for k in range(PER_RUN))
 
 
-def minutes(line: Line, now: datetime) -> tuple[Timed, ...]:
-    """IBKR's one-minute bars of a line since the last held: not yet asked of the gateway."""
-    raise NotImplementedError(f"{line.symbol}: desk/paper.py has no one-minute question yet")
-
-
 def minute_round(
     hot: Path, lines: Sequence[Line], now: datetime, ask: Minutes
 ) -> tuple[str, list[str]]:
@@ -93,7 +88,11 @@ def minute_round(
             stale.append(f"{line.symbol}: {answer.reason}")
         elif not answer or now - max(b.start for b in answer) - live.MINUTE > LATE:
             stale.append(f"{line.symbol}: no bar within {LATE.seconds // 60} minutes")
-    return f"live: one-minute bars asked for {len(mine)} lines, {len(stale)} stale", stale
+    paced = sum("pacing" in words.lower() for words in stale)
+    return (
+        f"live: one-minute bars asked for {len(mine)} lines, {len(stale)} stale, pacing {paced}",
+        stale,
+    )
 
 
 ROLLED = "SELECT * FROM bar WHERE span IN (?, ?)"
