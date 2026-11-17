@@ -40,7 +40,7 @@ LOPSIDED = 47
 def _tape(trades: Sequence[Days], name: str = "a") -> Verdict:
     """A tape priced: the first rung's verdict on these trades, free of costs."""
     at = [(START + timedelta(b), START + timedelta(s), Decimal(f"{g:.6f}")) for b, s, g in trades]
-    priced = tuple(Priced(Trade(b, s), 1, Decimal(1), 1 + g, FREE, (b, s)) for b, s, g in at)
+    priced = tuple(Priced(Trade(b, s), 1, Decimal(1), 1 + g, FREE, (b, s), None) for b, s, g in at)
     window = Cell("breakout_20_10", VUSA, START, START + timedelta(days=36500))
     return rung.verdict(Key(window, "code", name), priced)
 
