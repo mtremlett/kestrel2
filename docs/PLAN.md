@@ -267,7 +267,8 @@ Checked 17 Nov (MONEY): R-RUNGS-12 re-verified on main (`strategy.rsi`, `strateg
       Built: the two databases (#442, #510), the keeper and reference series on them (#486, #524), the
       imports of Stooq, ibkr_store and mark_the_trend daily, hourly and 15/30-minute rows (#527-#566), the
       history pull and its writer (#636, #674), pages back and keeps the line's currency (#710, #725). Remains: the rest of R-RUNNER-10 (5-minute parquet, market.db,
-      bars.db, per-source counts), paging back (R-RUNNER-216), the long database for daily and up
+      bars.db, per-source counts), paging back (R-RUNNER-216; #739: pull asks only 1m-30m and 1d; remains rollup of 1h, 4h, 1wk
+      into the history database as rollup:<from>, with a fault where rolled and pulled disagree, and the quality monitor's backfill), the long database for daily and up
       {id: data-two-stores; files: desk/bars.py, tests/unit/test_bars*.py, desk/keeper.py, tests/unit/test_keeper*.py; after: data-ingest}
 - [ ] **Data in tiers, for 4,000+ tickers** (research of 14 November, kept in the notes
       folder as `data_stack_2026-11-14.md`). Tier A: held, signalled and watched names, live
