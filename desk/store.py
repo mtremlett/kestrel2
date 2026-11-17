@@ -114,7 +114,7 @@ def _entered(line: Line, bar: Bar, open_days: set[date], faults: list[Fault]) ->
     if bar.day in line.suspended:
         return f"{bar.day} has a bar, yet {line.symbol} records it as suspended"
     if bar.day not in open_days:
-        return f"{bar.day} is not a closed session on the {line.venue} calendar"
+        return f"{bar.day} is not a closed session on the {line.venue} calendar, or too early"
     if not all(p.is_finite() and p > 0 for p in prices) or bar.volume < 0:
         return f"{bar.day} has a price or volume that cannot be"
     ends = (bar.open, bar.close)
@@ -277,7 +277,7 @@ def _clean(
     """The bars of one line that can be true, and every fault found."""
     faults: list[Fault] = []
     first = min((b.day for b in bars if b.day.year in venues.KNOWN), default=day)
-    every = venues.sessions(line.venue, first, day - timedelta(1))
+    every = venues.sessions(line.venue, max(first, line.starts or first), day - timedelta(1))
     expected = [d for d in every if d not in line.suspended]
     open_days, sound = set(expected), []
     for bar in _once(bars, faults):
