@@ -25,6 +25,7 @@ from desk.orders import (
     size,
     strategy_of,
 )
+from desk.risk import Standing
 from desk.store import Bar
 from desk.strategy import Action, Decision
 
@@ -263,7 +264,7 @@ def trade(
     sent: list[book.Sent] = []
     for d in (d for d in decided if d.action is Action.SELL):  #: by the rule that holds it
         sale = Sale(order_id_of(d), due[d.symbol], held[d.symbol])
-        sent.append(_answer(root, day, _send(root, broker, sale, settings, tell)))
+        sent.append(_answer(root, day, _send(root, broker, sale, settings, tell, None)))
     for d in (d for d in decided if d.action is Action.BUY):
         line = due[d.symbol]
         price = archive[line][-1].close, rates[line.currency]
@@ -357,16 +358,33 @@ def _buy(
         order = size(d, line, *price, settings, now)
     except Refused as refused:  #: the gate's answer, kept with the day's others
         return book.Sent(name, 0, str(refused), Blocker.GATE)
-    return _send(root, broker, order, settings, tell)
+    return _send(root, broker, order, settings, tell, standing(root, day))
+
+
+def standing(root: Path, day: date) -> Standing:
+    """WHERE THE BOOK STANDS AGAINST ITS LOSS AND ORDER-RATE LIMITS when the day opens
+    (canon B1, risk.loss_limit): the day's loss is the pounds the last published record lost
+    (0 when it gained or was withheld), the week's the net pounds lost over the records of
+    day's own ISO week, and the new lines the lines first bought today."""
+    profits = [(r.day, r.profit or Decimal(0)) for r in records(root)]
+    week = sum((p for d, p in profits if d.isocalendar()[:2] == day.isocalendar()[:2]), Decimal(0))
+    lost = -profits[-1][1] if profits else Decimal(0)
+    bought = {f.symbol for f in book.fills(root) if f.day == day and f.quantity > 0}
+    return Standing(max(lost, Decimal(0)), max(-week, Decimal(0)), len(bought))
 
 
 def _send(
-    root: Path, broker: Broker, order: Order | Sale, settings: Settings, tell: book.Tell | None
+    root: Path,
+    broker: Broker,
+    order: Order | Sale,
+    settings: Settings,
+    tell: book.Tell | None,
+    held: Standing | None,
 ) -> book.Sent:
     """Send through the one door; its refusal is the order's answer, kept with the day's
     under the blocker the send path names; one it does not name is the broker's own door's."""
     try:
-        return book.send(root, broker, order, settings, tell)
+        return book.send(root, broker, order, settings, tell, held)
     except Stopped as stopped:
         return book.Sent(order.order_id, 0, str(stopped), stopped.blocker)
     except Refused as refused:

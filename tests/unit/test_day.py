@@ -17,6 +17,7 @@ from desk.broker import Broker, Crash, Fault, Pretend, Report
 from desk.halt import Blocker
 from desk.lines import YARDSTICK, Line
 from desk.orders import Charges, Order, Refused, Sale, Settings
+from desk.risk import Standing
 from desk.store import Bar
 
 DAYS = venues.sessions("LSE", date(2025, 1, 6), date(2025, 2, 28))[:23]
@@ -55,7 +56,9 @@ ARCHIVE_LINES = {line.symbol: line for line in ARCHIVE}
 
 def _trade(root: Path, broker: Broker, on: date) -> tuple[book.Sent, ...]:
     before = {line: tuple(b for b in bars if b.day < on) for line, bars in ARCHIVE.items()}
-    return day.trade(root, before, broker, Settings(Decimal(10_000)), on, {"GBP": Decimal(1)})
+    return day.trade(
+        root, before, broker, Settings(Decimal(10_000), new_lines=5), on, {"GBP": Decimal(1)}
+    )
 
 
 class Door:
@@ -172,7 +175,9 @@ def test_a_day_with_the_kill_switch_on_sends_nothing_and_every_order_is_answered
 def _run(root: Path, broker: Pretend, on: date) -> day.Record:
     """The day whole, handed every bar there is: it must use none after the day's own."""
     broker.open(on)
-    return day.run(root, MARKET, broker, Settings(Decimal(10_000)), on, {"GBP": Decimal(1)})
+    return day.run(
+        root, MARKET, broker, Settings(Decimal(10_000), new_lines=5), on, {"GBP": Decimal(1)}
+    )
 
 
 def test_the_days_record_is_the_books_gain_after_every_cost_beside_the_markets(
@@ -397,3 +402,24 @@ def test_a_holding_whose_stop_was_lost_is_on_that_days_list_with_the_stop_to_put
     book.record_rates(tmp_path, DAYS[22], {"GBP": Decimal(1)})
     day.publish(tmp_path, MARKET, broker, room, DAYS[22])
     assert halt.stopped(tmp_path, DAYS[22]) is None, "a list for a day whose orders never went"
+
+
+def test_the_send_path_gives_the_gate_the_books_standing_so_a_fifth_new_line_a_day_is_refused(
+    tmp_path: Path,
+) -> None:
+    broker = Pretend(ARCHIVE, {})
+    broker.open(DAYS[21])
+    before = {line: tuple(b for b in bars if b.day < DAYS[21]) for line, bars in ARCHIVE.items()}
+    sent = day.trade(
+        tmp_path, before, broker, Settings(Decimal(10_000)), DAYS[21], {"GBP": Decimal(1)}
+    )
+    assert [s.order_id[-1] for s in sent[:4]] == list("ABCD") and not any(
+        s.reason for s in sent[:4]
+    )
+    assert "4 new lines entered today" in str(sent[4].reason) and sent[4].blocker is Blocker.GATE
+    assert day.standing(tmp_path, DAYS[21]).new_lines == 4
+    lost = day.Record(
+        DAYS[21], Decimal(-300), Charges(*[Decimal(0)] * 5), Decimal(0), (), Decimal(0), 0
+    )
+    book._write(tmp_path / day.RECORDS, [day.HEADER, day._row(lost)])
+    assert day.standing(tmp_path, DAYS[22]) == Standing(Decimal(300), Decimal(300), 0)
