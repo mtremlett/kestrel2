@@ -26,7 +26,7 @@ import sqlite3
 from collections.abc import Callable, Iterator, Mapping
 from contextlib import closing, contextmanager
 from dataclasses import dataclass
-from datetime import datetime, time
+from datetime import date, datetime, time
 from decimal import Decimal
 from http.client import HTTPException
 from pathlib import Path
@@ -36,6 +36,7 @@ from urllib.request import Request, urlopen
 
 from desk import book, clearance, day, gateway, halt, kill, venues
 from desk.gateway import Known
+from desk.halt import Blocker
 from desk.lines import LINES
 from desk.messenger_parts import SECONDS as SECONDS
 from desk.messenger_parts import Daily, Mail, sound
@@ -70,6 +71,7 @@ CLEAR = (
     "As things stand the desk is set for today on paper: the Gateway answered, today's check "
     "of the account named nothing, and the kill switch is off and drilled."
 )
+PUT_BACK = "; put back "  #: where day._bare's reason names the stop to put back
 STALE = "The paper Gateway was not ready just now, so this is the desk's ledger as last read ({}). "
 Post = Callable[[str], int]  #: the door: words to his phone, Telegram's number for them back
 DOWN = 2  #: strikes
@@ -232,6 +234,16 @@ def _gate(root: Path) -> str:
     return f"Kill: {killed}; halts: {on}."
 
 
+def _lost(root: Path, today: date) -> str:
+    """The stops lost today and still to be put back, each once, by order id, shares and level,
+    as the day's list holds them (day._bare); no word at all on a day with none."""
+    if halt.stopped(root, today) is None:
+        return ""
+    found = halt.morning(root, today)[Blocker.BOOK]
+    back = [b.reason.rpartition(PUT_BACK)[2] for b in found if PUT_BACK in b.reason]
+    return f"Lost stops to put back: {'; '.join(back)}. " if back else ""
+
+
 def _made(amount: Decimal) -> str:
     return f"{'lost' if amount < 0 else 'made'} £{abs(amount):,.2f}"
 
@@ -264,7 +276,8 @@ def evening(root: Path, now: datetime, known: Known, post: Post) -> Delivery | N
         if fill.day == today
     )
     stale = "" if known else STALE.format(known.words.rstrip("."))
-    told = f"{opens} {stale}The desk's fills today: {dealt or 'none'}. {_gate(root)} {_state(root)}"
+    fills = f"The desk's fills today: {dealt or 'none'}. {_lost(root, today)}"
+    told = f"{opens} {stale}{fills}{_gate(root)} {_state(root)}"
     return send(root, now, name, told, post)
 
 

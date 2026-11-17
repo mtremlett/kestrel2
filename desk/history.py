@@ -7,7 +7,6 @@ the broker will not give is Refused, with the broker's own words, for the store 
 
 from __future__ import annotations
 
-import os
 import time
 from collections.abc import Callable, Collection, Mapping, Sequence
 from dataclasses import replace
@@ -228,19 +227,18 @@ def priced(
 
 
 def daily(
-    now: datetime, wait: Wait = time.sleep, home: Path | None = None
+    now: datetime, home: Path, wait: Wait = time.sleep
 ) -> Callable[[Sequence[Line], date], dict[Line, Answer]]:
     """THE KEEPER'S BROKER: the daily bars before a day of the lines (at most MOST) the archive
-    lacks, over one conversation, in each line's currency (the desk's root: home, else
-    KESTREL2_DATA). A broker that cannot be asked (a desk round, no gateway) gives
+    lacks, over one conversation, in each line's currency (the desk's root: home, always
+    given). A broker that cannot be asked (a desk round, no gateway) gives
     each line a Refused in words, so the line is judged on the archive alone and, if that too
     lacks it, is parked and named."""
 
     def ask_all(lines: Sequence[Line], day: date) -> dict[Line, Answer]:
         try:
             got = gather(lines[:MOST], day, day - RECENT, now, wait)
-            root = home or Path(os.environ["KESTREL2_DATA"])
-            return priced(root, now, got, paper.Door(CLIENT))
+            return priced(home, now, got, paper.Door(CLIENT))
         except (Busy, OSError) as err:
             return {line: Refused(f"the broker was not asked: {err}") for line in lines}
 
