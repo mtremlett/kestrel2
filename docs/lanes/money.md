@@ -596,3 +596,7 @@ Decided by the MONEY lane as the desk's mentor, no one watching.
 ### 2026-11-17 - a new Pretend door, `put_stop_back`, not a widened `restop` (#758, R-RUNNER-292)
 - `put_stop_back(symbol, level)` rests a stop at the kept level for all shares held when none rests (error if one rests or none are held); SimCity's by-hand cancel uses it.
 - Options: (a) widen `restop`, which errors on a bare line by contract; (b) a new method. Chose (b) so a move and a put-back stay distinct.
+
+### 2026-11-17 - book.conformance_cost is public, with a SimCity promise (#763, R-PAPER-29)
+- Options: (a) make `book.conformance_cost(root, lines)` public with a SimCity "round trips are told" promise that it equals the ledger's cash less its costs (chosen); (b) a new ledger file kind inside the desk's own root, which would put conformance fills beside the desk's and risk its profit and reconcile. The separate conformance root (client 223) already keeps trading P&L clean, so no new kind is needed.
+- PAPER feeds it from `desk/conformance.py`, reporting it beside, not inside, the trading profit.
