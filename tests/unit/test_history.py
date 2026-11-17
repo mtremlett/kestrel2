@@ -11,7 +11,7 @@ import pytest
 
 from desk import history, paper
 from desk.history import Busy
-from desk.lines import LINES
+from desk.lines import LINES, Line
 from desk.store import Bar, Refused
 
 VUAG = next(line for line in LINES if line.symbol == "VUAG")
@@ -85,3 +85,25 @@ def test_nothing_is_asked_in_a_desk_round(monkeypatch: pytest.MonkeyPatch) -> No
         with pytest.raises(Busy):
             history.gather((VUAG,), DAY, SINCE, datetime(2026, 11, 16, hour, minute, tzinfo=UTC))
     assert history.quiet(datetime(2026, 11, 16, 8, 30, tzinfo=UTC))
+
+
+def test_a_pull_fills_the_gaps_only_paced_and_resumes_after_a_stop() -> None:
+    done: set[history.Ask] = {(VUAG, "1d")}
+    waits: list[float] = []
+    asked: list[history.Ask] = []
+
+    def fetch(line: Line, frame: str) -> Refused:
+        asked.append((line, frame))
+        return Refused("none")
+
+    def keep(line: Line, frame: str, _: object) -> None:
+        done.add((line, frame))
+
+    everything = len(history.SIZES) * 2
+    first = history.plan((VUAG, IDTL), done)
+    assert len(first) == everything - 1 and (VUAG, "1d") not in first
+    assert history.pull(first, fetch, keep, waits.append, limit=4) == 4
+    assert waits == [history.PACING] * 3 and len(done) == 5
+    rest = history.plan((VUAG, IDTL), done)
+    assert history.pull(rest, fetch, keep, waits.append) == everything - 5
+    assert len(set(asked)) == len(asked) == everything - 1 and not history.plan((VUAG, IDTL), done)
