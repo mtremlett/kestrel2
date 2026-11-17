@@ -54,7 +54,15 @@ def _gains(rng: random.Random) -> list[Priced]:
         bought = START - timedelta(40 - n) if n < 40 else START + timedelta(n)
         days = (bought, bought)
         out.append(
-            Priced(Trade(*days), 1, Decimal(1), 1 + Decimal(str(rng.gauss(0.01, 0.01))), FREE, days)
+            Priced(
+                Trade(*days),
+                1,
+                Decimal(1),
+                1 + Decimal(str(rng.gauss(0.01, 0.01))),
+                FREE,
+                days,
+                None,
+            )
         )
     return out
 
