@@ -174,6 +174,117 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #204 `python -m desk.snapshot` nightly backup command, R-RUNNER-13 done. |
 | 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #205 R-RUNNER-24 half done: Sources on main, the pyarrow pin blocked by the lane guard (docs only). |
 | 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #209 3LGO's daily history command (R-RUNNER-21): 2,816 clean bars, database cross-check 7 of 9, line unparked. |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #217 R-RUNNER-28 partly: pound-rate unit test, recorded-split adoption and London-midnight dating built and tested; no line's split data recorded yet. |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #219 nightly snapshot takes bars.db and daily\ (R-RUNNER-41). |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #220 R-RUNNER-28 mostly: EQQQ, SGLN unparked by the pound's rate for runs of any length; 5QQQ shown a x100 unit fault, not a split, and left parked; 2MU, VUAG, IDTL named parked. |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #222 R-RUNNER-28: six parked lines (2MU, 5QQQ, SGLN, VUAG, EQQQ, IDTL) clean; 4 store rules, 7 tests. |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #225 R-RUNNER-43 guard on the store landed (tests only); the FAILURE_PATTERNS entry is open. |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #227 R-RUNNER-43 store-rules guard driven red; pattern 13 awaits a guard change |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #230 R-RUNNER-46, store: one fixture row; IDTL and VUAG clean on main since #222; EQQQ and SGLN still park (2014 and 2011 bad data); no rule change. |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #236 R-RUNNER-24 half: parquet readers for ibkr_store and stooq_store; two stores left. |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #238 R-RUNNER-24; head start reads 6 of 6 old-store forms; unit tests +22 lines, product +0. |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #245 R-RUNNER-37 part one: Source.MTT_DB and daily fill-only in the one fast store; reader written, awaits a claim naming a new file. |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #254 R-RUNNER-37 daily reader landed, one scene-less unit test, no change to a guard. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #286 R-RUNNER-90: head start recognises adjusted-form old bars, never overwrites raw; guards and fast check green. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #294 R-PAPER-23 closes held by 39 minutes after each close, tested against venue clocks. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #305 ISF added to the research list, R-RUNNER-97 |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #314 R-RUNNER-104 VUAG's 27-session archive gap filled from a checked shelf; store holds real prices. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #315 R-RUNNER-107; tests for line/venue calendars and SimCity world dates, each driven against a planted break; green |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #338 R-GRID-4 done, venues.uk_time with known-answer test. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #349 R-RUNNER-116 research refresh command built (lab/universe.py). |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #367 a bar with only a bad high or low is kept and repaired (R-RUNNER-175) |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #374 keeper re-cleans kept history when the store rules change (R-RUNNER-182). |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #376 a missing yardstick day is reported by name and filled from a second source (R-RUNNER-179) |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #381 R-RUNNER-185 impossible low repaired in the store; VUAG 2020-03-16 no longer parks the yardstick once the keeper rebuilds. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #424 R-RUNNER-11 not landed: needs a one-line PAPER change to test_command.py. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #442 R-RUNNER-11 first step: the store is two databases, long and short, no other file. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #455 R-PAPER-16 first step: reference series named and refused as traded (SPY, QQQ). |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #460 the free collector built (R-RUNNER-15), 4 kinds of fact into the one store. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #454 no change; R-RUNNER-11 waits on PAPER's two test lines. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #458 R-PAPER-24 archive half: daily raw answer store in archive.fetch, one contract test. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #303 R-RUNNER-94 SPY reference series from 1993-01-29, kept apart from traded bars. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #469 traded-line retail contract test added; R-PAPER-16 partly done. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #475 the keeper keeps SPY's 1993 history daily after the US close (R-RUNNER-96). |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #453 R-RUNNER-149 calendar names event days; refusal itself is MONEY's. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #486 the keeper keeps and reads the daily bars in the long database (R-RUNNER-11, step) |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #500 R-RUNNER-189 step 1, the one source rule at the store's writer and the yardstick fault; no scene moved. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #505 R-PAPER-22, the pound's daily rate kept and readable for any session (keeper.pound). |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #510 live database renamed market_live.db (R-RUNNER-11 step). |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #517 R-RUNNER-189 second step: IBKR history client, 6 tests, tape recorded from the paper gateway |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #518 the cleaner's bad-high/low repair named settled; R-PAPER-22/23 were already built (R-RUNNER-194) |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #520 head start's jobs aim at the two databases, not market.db |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #521 R-RUNNER-189 broker-first rule at the writer, keeper seam; real wiring remains. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #527 stooq_store daily rows enter the history database under their source; adjusted series refused (R-RUNNER-10, step). |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #530 R-RUNNER-211 done, live bars IBKR-only; scene count unchanged. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #531 R-RUNNER-12 no change, claim too narrow (keeper.py only). |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #532 R-RUNNER-178 done: a recovering fall as large as the pound is kept; a lasting step is still caught. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #535 no change, R-RUNNER-12 blocked on claim (bars.py + new modules). |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #536 keeper round yardstick-first with lateness reported (R-MONEY-28). |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #533 stooq_store_matrix daily arrays into market_history.db (R-RUNNER-10, step); fast check, mypy and the module's tests green |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #537 no change in code; pound and SPY reference series kept (5,969 and 8,508 rows). |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #514 R-RUNNER-11 already met, no change. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #538 ibkr_store daily rows enter the history database under their own source (R-RUNNER-10, step); fast check green, headstart_days tests green |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #539 R-RUNNER-215 step 1 - intraday rollup pure builder landed. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #524 reference series SPY and the pound moved into the long database; tests updated, net fewer lines. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #540 mark_the_trend Stooq daily files imported through the one store (R-RUNNER-10, step 4 of the daily sources). |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #541 16 Nov, no change, R-RUNNER-189 already met. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #542 R-RUNNER-215 step: weekly roll-up from daily bars. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #528 R-RUNNER-157 underlying market on every line, tested. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #545 R-RUNNER-10 step: stooq_raw daily zips read in (+25 product lines). |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #543 R-PAPER-16 and R-PAPER-3 done - ISIN on every line, IDTL identified by IE00BSKRJX20. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #546 16 Nov: R-PAPER-22 and R-PAPER-23 verified already on main, no change. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #548 R-RUNNER-221 research bars and the pound enter market_history.db (universe_history), 2 tests. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #547 R-RUNNER-218 done: spans.py with ten timeframes; bars.py writes and reads any span. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #549 stooq_store hourly bars into market_history.db under their own source, a second run adding nothing (R-RUNNER-10, step) |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #556 keeper judges on the kept pound; EQQQ unparked, SGLN down to one unconfirmed move (R-RUNGS-16 step). |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #566 Stooq matrices' 15m, 30m and 1h arrays enter the databases (R-RUNNER-10, step) |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #571 R-RUNNER-215 step: pulled bar wins over rolled, disagreement a fault (+22 product lines). |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #544 R-RUNGS-9: adjusted reference twins, +about 25 product lines. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #585 R-RUNNER-216 step 1: history asks in all ten timeframes. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #582 SGLN clears under the store rules; five blocking requests confirmed already met. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #587 R-RUNNER-12 step 1 of N: keeper.py freed 39 lines for --live and --roll; no scene moved. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #574 desk/backfill.py, the two missing market bars fillable by one command (R-RUNNER-224). |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #591 R-RUNNER-236 lab/headstart.py split 399 -> 328 lines, readers in lab/headstart_parts.py. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #594 calendar sessions back to 1993; SPY 1993+ proven against it; pound rates from 2003 (R-RUNGS-5, 9); +42/-6 lines (test +15) |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #605 R-RUNNER-216 step 2 - history pull plan, pacing and resume, 54 lines. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #606 R-RUNNER-12 step: keeper --live rota, writer and stale check; no scene moved. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #612 R-RUNNER-254 backfill judged as of today, beside both neighbours. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #620 verification only: R-RUNGS-5, 9, 15 done on main; R-RUNGS-16 down to 3LGO's one bar. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #621 R-RUNNER-216 step 2: history.run (paced pull over one conversation), no scene change. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #614 the pound's daily rate now reaches 1993 (2,743 noon-rate days); band bug found. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #616 R-RUNNER-12 `--roll` built; `--live` waits on the gateway's one-minute question. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #604 17 Nov: no change, R-MONEY-28 already on main. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #627 R-RUNNER-216 step: history reads intraday candles from IBKR. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #629 --live one-minute question built in live.py, pacing count added (R-RUNNER-12, step) |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #630 R-RUNGS-16 done: backfill converts the broker's pence; 3LGO's 13 Nov bar filled. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #642 data-keeper: parked_live names late/missing/out-of-line lines each five minutes (producer side only). |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #638 data-members, no change; remainder waits on a members source. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #640 no change; data-isa-twins still waits on R-DATA-10, R-DATA-11 and the callers of REFERENCE (conformance, keeper, ladder). |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #652 R-RUNNER-259 step 2 (data lane's Door) landed, no scene moved. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #636 R-RUNNER-216 step 5: pulled bars now land in market_history.db / market_live.db. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #641 calendars carried to 2030, 2031 refused. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #637 archive spared: backoff, pacing, cached raw answers, refusing_since state. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #650 data-2mu: four moves confirmed by a second source, fifth is a bad bar rightly dropped; no code change. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #656 2026-11-17: R-RUNNER-264 backfill passes a Door. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #665 polite fetching: archive obeys Retry-After. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #659 data-keeper: source delay measured and shown; box complete. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #666 R-RUNNER-266 desk/bars.py split, 391 to 329 lines, tests unchanged. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #660 R-RUNNER-263 met, audit command has no silent data home. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #634 no change, blocking requests R-MONEY-28, R-RUNGS-3, 5, 9, 15 already met on main. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #668 data-polite: five-minute raw answers cacheable; box not finished. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #672 keeper receipts + stale-line alert (data-kept-hot), no scene moved. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #674 R-RUNNER-216 step: history pull command with held-set resume, +40 product lines. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #679 data-research-home: nightly refresh, clear-out and REFLECTS.txt in lab/universe.py (+45 product, +22 test lines). |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #678 data-polite - code parts already on main; measuring the archive's real limits remains. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #648 data-keeper: keeper side complete, day does not yet refuse parked lines (no change, 17 Nov). |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #685 data-polite closed, comment-only change in desk/archive.py. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #681 5QQQ's 22 August 2024 jump explained and handled: line starts that day. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #694 data-sgln done: SGLN's 2011 dollar bars dropped by a start date, 14 years of clean bars remain. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #699 3LGO's history facts and the rule for enough recorded; no scene moved. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #687 data-5qqq closed with no change; the consolidation was already a recorded split. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #702 stretched bars recorded beside the bar, no new parking (data-stretched) |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #701 R-RUNNER-270 done: keeper command wired to IBKR first, archive fills what the broker lacks. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #703 history pull asks each timeframe within IBKR's per-ask span (R-RUNNER-216, step 5) |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
