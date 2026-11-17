@@ -9,6 +9,7 @@ from collections.abc import Callable
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
+from typing import TypeVar
 
 import pytest
 from test_reports import CENT
@@ -228,8 +229,10 @@ def _world(
     patch.setattr(command, "rates", lambda _root, _day: FX)
     patch.setattr(paper, "dial", lambda _talk: paper.Account((), ()))
     patch.setattr(listing, "read", lambda _lines, _door: LISTED)
-    patch.setattr(clearance, "check", lambda _root, now, _door: clearance.Check(now, found))
-    patch.setattr(placing, "Paper", lambda _listings, _root, _clock, _door: broker)
+    patch.setattr(
+        clearance, "check", lambda _root, now, door: _checked(door, clearance.Check(now, found))
+    )
+    patch.setattr(placing, "Paper", lambda _listings, _root, _clock, door: _checked(door, broker))
     patch.setattr(conformance, "_raised", lambda *_: fall)
     patch.setattr(conformance, "reasons", lambda door: _seen(door) | WHY)
     return broker
@@ -250,6 +253,16 @@ def _at(moment: datetime) -> Callable[[], datetime]:
 
 
 SEEN: list[int] = []  #: the client at the door each time the run asked for the reasons
+
+
+T = TypeVar("T")
+
+
+def _checked(door: paper.Door, answer: T) -> T:
+    """Whatever the fake answers, having noted whose door asked: the run's own, apart."""
+    assert door.apart is not None
+    SEEN.append(door.client)
+    return answer
 
 
 def _seen(door: paper.Door) -> dict[str, str]:
