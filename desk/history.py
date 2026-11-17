@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import time
 from collections.abc import Callable, Collection, Sequence
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from typing import BinaryIO, cast
 
 from desk import conformance, paper, venues
@@ -149,6 +149,36 @@ def gather(
         return answers
 
     return paper.dial(talk)
+
+
+#: The most lines one call asks the broker for: at PACING, inside the keeper's four minutes.
+MOST = 12
+
+
+def lacks(line: Line, answer: Answer, day: date) -> bool:
+    """The archive gave nothing for a line, or lacks its venue's last session before day."""
+    last = venues.sessions(line.venue, day - timedelta(14), day - timedelta(1))[-1]
+    return isinstance(answer, Refused) or not answer or answer[-1].day < last
+
+
+RECENT = timedelta(days=30)  #: how far back the broker's daily bars are asked to join the archive's
+
+
+def daily(
+    now: datetime, wait: Wait = time.sleep
+) -> Callable[[Sequence[Line], date], dict[Line, Answer]]:
+    """THE KEEPER'S BROKER: the daily bars before a day of the lines (at most MOST) the archive
+    lacks, over one conversation. A broker that cannot be asked (a desk round, no gateway) gives
+    each line a Refused in words, so the line is judged on the archive alone and, if that too
+    lacks it, is parked and named."""
+
+    def ask_all(lines: Sequence[Line], day: date) -> dict[Line, Answer]:
+        try:
+            return gather(lines[:MOST], day, day - RECENT, now, wait)
+        except (Busy, OSError) as err:
+            return {line: Refused(f"the broker was not asked: {err}") for line in lines}
+
+    return ask_all
 
 
 Ask = tuple[Line, str]  #: one line in one timeframe: the unit the pull plans, paces and resumes by
