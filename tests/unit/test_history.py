@@ -126,7 +126,10 @@ def test_a_run_asks_each_timeframe_over_one_conversation_and_not_in_a_round(
     monkeypatch.setattr(paper, "dial", lambda talk: talk(wire, sent.append))
     asks = [(VUAG, "1d"), (VUAG, "1wk")]
     keep = lambda line, frame, got: kept.update({(line, frame): got})  # noqa: E731
-    assert history.run(asks, keep, DAY, SINCE, MONDAY_NOON, lambda _: None) == 2
+    assert history.run(asks, keep, DAY, MONDAY_NOON, lambda _: None) == 2
+    assert (
+        history.REACH.keys() == history.SIZES.keys() and "\0" + "365 D" + "\0" in sent[-1].decode()
+    )
     assert isinstance(kept[(VUAG, "1wk")], Refused) and "\0" + "1 week" + "\0" in sent[-1].decode()
     stamp = int(datetime(2026, 11, 12, 9, 30, tzinfo=UTC).timestamp())
     timed = conversation(TAPE.replace("20261112", str(stamp)))
@@ -143,7 +146,7 @@ def test_a_run_asks_each_timeframe_over_one_conversation_and_not_in_a_round(
     with pytest.raises(ValueError, match="no epoch seconds"):
         history.ask(odd, sent.append, VUAG, DAY, SINCE, "5m")
     with pytest.raises(Busy):
-        history.run(asks, keep, DAY, SINCE, datetime(2026, 11, 16, 8, 0, tzinfo=UTC))
+        history.run(asks, keep, DAY, datetime(2026, 11, 16, 8, 0, tzinfo=UTC))
 
 
 def test_a_pull_and_a_live_round_in_one_process_each_start_as_their_own_client(
