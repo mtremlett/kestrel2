@@ -14,20 +14,10 @@ boundary case.
 from __future__ import annotations
 
 from collections.abc import Sequence
-from decimal import Decimal, localcontext
+from decimal import Decimal
 
-from desk.strategy import ARITHMETIC
 from lab import rung
 from lab.rung import MIN_TRADES, T_PASS, Answer, Rung
-
-
-def interval(gains: Sequence[Decimal]) -> tuple[Decimal, Decimal]:
-    """The mean gain less and plus T_PASS standard errors; at least two gains, with a spread."""
-    with localcontext(ARITHMETIC):
-        if (found := rung.mean_and_error(gains)) is None:
-            raise ValueError(f"{len(gains)} gains: an interval needs two")
-        mean, error = found
-        return mean - T_PASS * error, mean + T_PASS * error
 
 
 def judge(gains: Sequence[Decimal]) -> Answer:
@@ -36,7 +26,7 @@ def judge(gains: Sequence[Decimal]) -> Answer:
         return Answer.FAULT
     if len(gains) < MIN_TRADES:
         return Answer.THIN
-    low, high = interval(gains)
+    _, low, high = rung.interval(gains)
     if low > 0:
         return Answer.PASS
     return Answer.FAIL if high < 0 else Answer.DOUBT
@@ -47,7 +37,7 @@ def _judged(first: rung.Verdict) -> tuple[Answer, str]:
     answer = judge(first.gains)
     if answer in (Answer.FAULT, Answer.THIN):
         return answer, f"{len(first.gains)} gains: under {MIN_TRADES} the interval is not read"
-    low, high = interval(first.gains)
+    _, low, high = rung.interval(first.gains)
     return answer, f"the mean gain lies in {low:.4f} to {high:.4f} after costs; needs above nothing"
 
 

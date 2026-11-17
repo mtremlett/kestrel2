@@ -259,6 +259,16 @@ def standard_errors(gains: Sequence[Decimal]) -> Decimal | None:
     return None if (found := mean_and_error(gains)) is None else found[0] / found[1]
 
 
+def interval(gains: Sequence[Decimal]) -> tuple[Decimal, Decimal, Decimal]:
+    """The mean and its interval, T_PASS standard errors either side; at least two gains, with a
+    spread."""
+    with localcontext(ARITHMETIC):
+        if (found := mean_and_error(gains)) is None:
+            raise ValueError(f"{len(gains)} gains: an interval needs two")
+        mean, error = found
+        return mean, mean - T_PASS * error, mean + T_PASS * error
+
+
 def kept_closes(
     table: Path | None, last: date, fetch: Callable[[], Sequence[Bar]]
 ) -> dict[date, Decimal]:

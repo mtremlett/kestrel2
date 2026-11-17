@@ -79,9 +79,5 @@ def beats(low: float) -> bool:
 
 def interval(excess: Sequence[float]) -> tuple[float, float, float]:
     """The mean and its interval, `rung.T_PASS` sample standard errors either side."""
-    found = rung.mean_and_error([Decimal(str(x)) for x in excess])
-    if found is None:
-        raise ValueError(f"{len(excess)} excesses: an interval needs two")
-    mean, error = float(found[0]), float(found[1])
-    reach = float(rung.T_PASS) * error
-    return mean, mean - reach, mean + reach
+    mean, low, high = rung.interval([Decimal(str(x)) for x in excess])
+    return float(mean), float(low), float(high)
