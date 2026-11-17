@@ -418,10 +418,10 @@ day's trading and reconciliation are built, and any broker can stand behind them
       once (found by SimCity: 98 sessions held with no stop). First step done in #191 (the desk keeps
       every stop's level; a lost stop is on the day's list with stop, shares, level); remains: the
       put-back itself (a way to rest a stop at a level in `desk/broker.py`; `running.recover` on paper),
-      the list reaching him (R-MONEY-18); the SimCity census is split (#590) and the "split first" note is stale (#617); waits on PAPER's put-back
+      the list reaching him (R-MONEY-18); the SimCity census is split (#590). The put-back on paper is on main (#657, running.recover) and the day's list names each bare line (#191); remains: the list reaching him (desk/messenger.py, R-MONEY-18, -31) and a put-back door on Pretend (desk/broker.py), both outside the claim (R-MONEY-51)
       {id: money-restop; files: desk/day.py, desk/book.py, tests/unit/test_day*.py,
       tests/unit/test_book*.py, desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml;
-      after: money-working; waits: R-MONEY-30}
+      after: money-working}
 - [x] Emergencies in numbers: an emergency, a crash and a black swan each defined by measured
       falls, each with its action (EMG-01) {id: money-emergencies; files: desk/emergency.py,
       tests/unit/test_emergency*.py, manifest.toml}
@@ -433,7 +433,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       tests/unit/test_halt*.py, tests/unit/test_day*.py, tests/unit/test_book*.py,
       manifest.toml; after: money-kill, money-record}
 - [ ] The gate's other limits from canon B1: a day's and a week's loss and an order rate,
-      refused at the gate (EMG-04 when live). Built (#467, #564, #478): loss and new-line limits, underlying cap, correlation and volatility sizing in `desk/risk.py`; remains: `book.send` passes the Standing and per-underlying exposure to the gate, correlation/sizing into the gate, the drawdown alert sent {id: money-limits; files: desk/orders.py,
+      refused at the gate (EMG-04 when live). Built (#467, #564, #478): loss and new-line limits, underlying cap, correlation and volatility sizing in `desk/risk.py`; Standing, per-underlying exposure and the drawdown alert reach the gate on the send path (#632, #661); remains: correlation and volatility sizing into the gate (needs daily returns per line from the archive) {id: money-limits; files: desk/orders.py,
       desk/book.py, desk/day.py, tests/unit/test_orders*.py, tests/unit/test_book*.py,
       tests/unit/test_day*.py, tests/scenes/test_scenes.py,
       desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml; after: money-record, money-working}
@@ -454,8 +454,8 @@ day's trading and reconciliation are built, and any broker can stand behind them
       it once built (EMG-01, EMG-03)
       {id: money-watch; files: desk/watch.py, desk/halt.py, tests/unit/test_watch*.py,
       tests/unit/test_halt*.py, manifest.toml; after: money-halts}
-- [ ] A position the desk did not make is named and then sold on paper (TRD-06); no signal
-      is left half-processed at the day's end (TST-08)
+- [x] A position the desk did not make is named and then sold on paper (TRD-06); no signal
+      is left half-processed at the day's end (TST-08). Done in #683; open: Pretend takes a stranger sale's shares off the line's stop (R-MONEY-50)
       {id: money-stranger; files: desk/day.py, desk/book.py, desk/orders.py,
       tests/unit/test_day*.py, tests/unit/test_book*.py, tests/unit/test_orders*.py,
       desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml; after: money-halts, money-working}
