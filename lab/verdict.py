@@ -17,6 +17,7 @@ from lab import (
     cell,
     deflated,
     folds,
+    holding,
     luck,
     market,
     reproduce,
@@ -139,6 +140,7 @@ def judge(
         "trades": len(verdict.trades),
         "rungs": reported(rungs),
         "drawdown": drawdowns([t.gross - t.costs.total for t in verdict.trades], trials.name(c)),
+        "holding": _held(verdict, own, beside, held, pounds, settings),
         "unrun": unrun,
         "every": all(answer is Answer.PASS for answer, _ in rungs.values()),
     } | ({"answer": deflated.rule(read).name} if len(read) == len(deflated.NAMED) else {})
@@ -162,6 +164,17 @@ def _charged(c: Cell, count: int, family: int | None) -> int:
     if EASED and family is None:
         raise ValueError(f"{c.strategy}: EASED judges by the rule's family count, none given")
     return family if EASED and family is not None else count
+
+
+def _held(
+    one: Verdict, own: Sequence[Bar], beside: Line, held: Sequence[Bar], pounds: Rates, s: Settings
+) -> str:
+    """The strategy's figure beside the market's, held through the same window after the same
+    costs; the market's own missing bar or rate is said in words, as the market rung says it."""
+    try:
+        return holding.beside(one, own, beside, held, pounds, s).row()
+    except ValueError as why:
+        return f"not shown: {why}"
 
 
 def _marketed(against: market.Against, beside: Line, rungs: Judged) -> Pair:
