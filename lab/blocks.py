@@ -25,7 +25,12 @@ from lab.block_bands import (
     PercentBUnderRun,
 )
 from lab.block_base import Block, Kind, Param, Spot
-from lab.block_months import MonthEndNotOverAverage, MonthEndOverAverage
+from lab.block_months import (
+    MonthEndNotOverAgo,
+    MonthEndNotOverAverage,
+    MonthEndOverAgo,
+    MonthEndOverAverage,
+)
 from lab.blocks_parts import BigMove, RisingScore
 from lab.blocks_parts import (
     LogSlope as LogSlope,  # noqa: PLC0414 - re-exported: callers import it from here
@@ -42,6 +47,25 @@ class HighestHigh(Block):
         """Shown the next bar: whether the block fires."""
         fires = self._highs.full and bar.close > self._highs.high()
         self._highs.add(bar.high)
+        return fires
+
+
+class HighestHighOnVolume(Block):
+    """Fires on a close over the highest high of the `n` bars before, the day's volume at least
+    `pct` per cent of the average volume of those bars (Zanger's heavy volume)."""
+
+    def __init__(self, n: int, pct: int) -> None:
+        self._highs, self._volumes, self._heavy = _Window(n), _Window(n), Decimal(pct) / 100
+
+    def see(self, bar: Bar, holding: bool) -> bool:  # noqa: ARG002 - the one interface of every block
+        """Shown the next bar: whether the block fires."""
+        fires = (
+            self._highs.full
+            and bar.close > self._highs.high()
+            and Decimal(bar.volume) >= self._heavy * self._volumes.mean()
+        )
+        self._highs.add(bar.high)
+        self._volumes.add(Decimal(bar.volume))
         return fires
 
 
@@ -290,10 +314,12 @@ class Never(Block):
 _DAYS = Param(int, 2, 400)
 _PCT = Param(int, 1, 50)
 _AGO = Param(int, 1, 50)
+_HEAVY = Param(int, 101, 500)
 _LOW, _HIGH = Param(int, 1, 49), Param(int, 51, 99)
 #: The one list of blocks by name; a spec names these and no others.
 BLOCKS: Mapping[str, Spot] = {
     "highest_high": Spot(Kind.ENTRY, HighestHigh, {"n": _DAYS}),
+    "highest_high_on_volume": Spot(Kind.ENTRY, HighestHighOnVolume, {"n": _DAYS, "pct": _HEAVY}),
     "close_over_band_after_squeeze": Spot(
         Kind.ENTRY, CloseOverBandAfterSqueeze, {"n": _DAYS, "look": _DAYS}
     ),
@@ -303,6 +329,8 @@ BLOCKS: Mapping[str, Spot] = {
     "lower_run": Spot(Kind.ENTRY, LowerRun, {"n": _DAYS}),
     "month_end_over_average": Spot(Kind.ENTRY, MonthEndOverAverage, {"n": _DAYS}),
     "month_end_not_over_average": Spot(Kind.EXIT, MonthEndNotOverAverage, {"n": _DAYS}),
+    "month_end_over_ago": Spot(Kind.ENTRY, MonthEndOverAgo, {"n": _AGO}),
+    "month_end_not_over_ago": Spot(Kind.EXIT, MonthEndNotOverAgo, {"n": _AGO}),
     "close_at_range_low": Spot(Kind.ENTRY, CloseAtRangeLow, {"n": _DAYS}),
     "close_over_keltner_band": Spot(Kind.ENTRY, partial(_Keltner, upper=True), {"n": _DAYS}),
     "close_under_keltner_band": Spot(Kind.EXIT, partial(_Keltner, upper=False), {"n": _DAYS}),

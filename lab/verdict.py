@@ -3,12 +3,10 @@ not run with theirs, and the one rule over them (`lab/ladder.py` holds the spec 
 
 from __future__ import annotations
 
-import json
 import random
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from decimal import Decimal
-from pathlib import Path
 from typing import Any
 
 from desk.command import CAPITAL
@@ -34,6 +32,27 @@ from lab.deflated import Deflated
 from lab.folds import Pooled
 from lab.reproduce import Reproduction
 from lab.rung import Answer, Rates, Verdict
+from lab.verdict_parts import (
+    COLUMNS as COLUMNS,
+)
+from lab.verdict_parts import (
+    STATUS as STATUS,
+)
+from lab.verdict_parts import (
+    Row as Row,
+)
+from lab.verdict_parts import (
+    by_rule as by_rule,
+)
+from lab.verdict_parts import (
+    cell_line as cell_line,
+)
+from lab.verdict_parts import (
+    goes as goes,
+)
+from lab.verdict_parts import (
+    write_table as write_table,
+)
 
 #: The rules trade a line five to ten times a year and a fold is asked for thirty trades: so
 #: the last five whole calendar years are the folds, the rule's trades pooled over its lines.
@@ -60,10 +79,9 @@ STEP = Decimal("0.03")
 #: other rung is run and graded PASS, WEAK or FAIL, and none stops it. Off until card
 #: ease-switch-on.
 EASED = False
+INCUBATE = "INCUBATE"  #: easing 3: paper only, never PASS; the set's page lists it apart
+T_INCUBATE = Decimal(1)  #: a basket's mean this many standard errors above nothing, or over
 WEAK = (Answer.THIN, Answer.DOUBT)  #: a scorecard's WEAK: neither a win nor a loss
-STATUS = "PRE-REVIEW"  #: what every table is until the blind review (R-RUNNER-40) is clean
-COLUMNS = ("rule", "line", "venue", "answer", "rungs", "trials", "reproduction", "goes forward")
-Row = Mapping[str, Any]  #: a cell's line in the results file
 Pair = tuple[Answer, str]
 Judged = dict[str, Pair]  #: each rung's answer on a cell, and its reason
 
@@ -122,6 +140,14 @@ def judge(
         "unrun": unrun,
         "every": all(answer is Answer.PASS for answer, _ in rungs.values()),
     } | ({"answer": deflated.rule(read).name} if len(read) == len(deflated.NAMED) else {})
+
+
+def basket_answer(basket: Verdict, stressed: Answer) -> str:
+    """A basket's answer's name. Off: the ladder's own. EASED: a basket the ladder fails on enough
+    trades, whose after-cost mean is T_INCUBATE standard errors above nothing and whose stress
+    passed, is INCUBATE; a PASS stays PASS, and any other stress answer is never INCUBATE."""
+    pending = basket.answer is Answer.FAIL and basket.t is not None and basket.t >= T_INCUBATE
+    return INCUBATE if EASED and pending and stressed is Answer.PASS else basket.answer.name
 
 
 def _charged(c: Cell, count: int, family: int | None) -> int:
@@ -328,72 +354,3 @@ def _weathered(own: Sequence[Bar], verdict: Verdict, made: Sequence[Reproduction
 
 def _n(number: Decimal | float | None) -> str:
     return "no" if number is None else f"{number:.2f}"
-
-
-def goes(row: Row) -> bool:
-    """A cell goes forward when its one verdict is PASS, every rung run passed and its row says
-    that no rung is unrun: passing the rungs that happen to be built is not passing the ladder."""
-    passed = row.get("answer") == Answer.PASS.name and bool(row.get("every"))
-    return passed and row.get("unrun") == {}
-
-
-def by_rule(rows: Sequence[Row], rules: Sequence[str]) -> dict[str, list[Row]]:
-    """The rows of each rule, in the order the rules are given."""
-    return {rule: [row for row in rows if row["cell"][0] == rule] for rule in rules}
-
-
-def _rule(rule: str, rows: Sequence[Row]) -> Row:
-    return {"rule": rule, "passed": any(map(goes, rows)), "cells": rows}
-
-
-def cell_line(row: Row) -> list[str]:
-    """A cell's table line: its answer, each rung's answer and reason, and the author's result."""
-    rungs = [f"{name} {a}: {why}" for name, (a, why) in row.get("rungs", {}).items()]
-    unrun = [f"{name} UNRUN: {why}" for name, why in row.get("unrun", {}).items()]
-    own = " | ".join(row.get("reproduction") or [row.get("unrun", {}).get("reproduce", "")])
-    result = f"not judged, tried again next run: {row['error']}" if "error" in row else own
-    text = " <br> ".join(filter(None, [row.get("proxy"), *rungs, *unrun]))
-    text = text or row.get("error", row.get("refused", ""))
-    return [
-        row.get("answer", "none"),
-        text,
-        str(row["trials"]),
-        result,
-        "yes" if goes(row) else "no",
-    ]
-
-
-def write_table(
-    folder: Path,
-    tag: int | str,
-    question: str,
-    rows: Sequence[Row],
-    rules: Sequence[str],
-    count: int,
-    built: tuple[int, int],
-) -> Path:
-    """The set's results table, `<tag>.md` and `<tag>.json`, labelled PRE-REVIEW, its header
-    saying how many of the ladder's rungs are built: `built` is (built, of)."""
-    folder.mkdir(parents=True, exist_ok=True)
-    mine = by_rule(rows, rules)
-    data: dict[str, object] = {"set": tag, "question": question, "status": STATUS}
-    data |= {"cells": len(rows), "trials": count, "refused": sum("refused" in r for r in rows)}
-    data |= {"rungs_built": built[0], "rungs": built[1]}
-    data |= {"rules": [_rule(r, rs) for r, rs in mine.items()]}
-    (folder / f"{tag}.json").write_text(json.dumps(data, indent=1), encoding="utf-8")
-    #: the register is never shortened: a trial an earlier run of the set entered stays counted
-    said = f"Cells: {len(rows)}. Each is judged against {count} trials, all its register ever held."
-    out = [f"# SET {tag} - {STATUS}", "", f"rungs built: {built[0]} of {built[1]}", ""]
-    out += [f"{question} {said}", ""]
-    out += [f"{STATUS}: not final until the blind review (R-RUNNER-40) is clean.", ""]
-    for rule, rs in mine.items():
-        out += [f"## {rule}: {sum(map(goes, rs))} of {len(rs)} lines go forward", ""]
-        out += ["| " + " | ".join(COLUMNS) + " |", "|" + "---|" * len(COLUMNS)]
-        for row in rs:
-            cells = [rule, row["cell"][1], row["cell"][2], *cell_line(row)]
-            out.append(
-                "| " + " | ".join(c.replace("|", "/").replace("\n", " ") for c in cells) + " |"
-            )
-        out.append("")
-    (path := folder / f"{tag}.md").write_text("\n".join(out), encoding="utf-8")
-    return path

@@ -3,6 +3,9 @@
 
 from __future__ import annotations
 
+from collections import deque
+from decimal import Decimal
+
 from desk.store import Bar
 from desk.strategy import _Window
 from lab.block_base import Block
@@ -40,6 +43,44 @@ class MonthEndOverAverage(_MonthEnd):
 
 class MonthEndNotOverAverage(_MonthEnd):
     """Fires on a month's first bar when the month before did not close over its average."""
+
+    def see(self, bar: Bar, holding: bool) -> bool:  # noqa: ARG002 - the one interface of every block
+        """Shown the next bar: whether the block fires."""
+        return self.settle(bar) is False
+
+
+class _MonthEndAgo(Block):
+    """The last closes of the last `n + 1` months, judged on each month's first bar: did the
+    month before close over the close `n` month-ends earlier."""
+
+    def __init__(self, n: int) -> None:
+        self._ends: deque[Decimal] = deque(maxlen=n + 1)
+        self._previous: Bar | None = None
+
+    def settle(self, bar: Bar) -> bool | None:
+        """Takes in the bar; on a month's first bar, whether the month before closed over the
+        month-end `n` before it (False while there are not that many); None on any other bar."""
+        previous = self._previous
+        self._previous = bar
+        if previous is None or (previous.day.year, previous.day.month) == (
+            bar.day.year,
+            bar.day.month,
+        ):
+            return None
+        self._ends.append(previous.close)
+        return len(self._ends) == self._ends.maxlen and self._ends[-1] > self._ends[0]
+
+
+class MonthEndOverAgo(_MonthEndAgo):
+    """Fires on a month's first bar when the month before closed over the one `n` months earlier."""
+
+    def see(self, bar: Bar, holding: bool) -> bool:  # noqa: ARG002 - the one interface of every block
+        """Shown the next bar: whether the block fires."""
+        return self.settle(bar) is True
+
+
+class MonthEndNotOverAgo(_MonthEndAgo):
+    """Fires on a month's first bar when the month before did not close over that of `n` earlier."""
 
     def see(self, bar: Bar, holding: bool) -> bool:  # noqa: ARG002 - the one interface of every block
         """Shown the next bar: whether the block fires."""
