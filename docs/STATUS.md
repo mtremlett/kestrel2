@@ -141,11 +141,11 @@ Last updated: 17 November 2026 (folds #215 to #686: the 50 landed pull requests 
 
 ### Where it is
 
-Built: messenger (hourly P&L, kill/halt line, email door not yet wired), step, drill, supervisor (step registered, `tell`), conformance (ids, gate refusal, soak, tape, Door), go flat, streak, records_kept, t212 (read-only), stop moved to the fill each round, recover puts back a lost stop (R-MONEY-30). Conformance Mon 16 Nov: every difference fixed. Unseen: a part fill; a true stop trigger; t212 shapes never met the real service; `paper.newest` (R-DATA-9) never met the Gateway.
+Built: supervisor pulls main at the safe point (#752), contract request carries exchange, currency, ISIN (#706), pound from IBKR first (#716), `paper.CLIENT`/`APART`/`current` gone (#733), messenger (hourly P&L, kill/halt line, email door not yet wired), step, drill, supervisor (step registered, `tell`), conformance (ids, gate refusal, soak, tape, Door), go flat, streak, records_kept, t212 (read-only), stop moved to the fill each round, recover puts back a lost stop (R-MONEY-30). Conformance Mon 16 Nov: every difference fixed. Unseen: a part fill; a true stop trigger; t212 shapes never met the real service; `paper.newest` (R-DATA-9) never met the Gateway.
 
 ### Next step
 
-R-RUNNER-258 step 2: remove `paper.CLIENT`/`APART` once DATA's live/backfill take a Door (R-PAPER-32). Then R-PAPER-28, -29. paper-supervised, paper-cards, paper-extras, paper-backups wait: operator.
+R-PAPER-28, -29. Conformance sizing (R-RUNNER-281): `desk/conformance.py:242` must pass `root` to `plan(...)` as `home`, then the archive branch goes (needs a claim naming it). Live check that the gateway answers IDTL (R-RUNNER-278). paper-supervised, paper-cards, paper-extras, paper-backups wait: operator.
 
 ### Requests to MONEY
 
@@ -159,7 +159,7 @@ R-RUNNER-258 step 2: remove `paper.CLIENT`/`APART` once DATA's live/backfill tak
 ### Requests to DATA
 
 - [ ] R-PAPER-3 (later): each line's ISIN a fact on `Line`. R-PAPER-16 (later): IDTL in dollars unlisted at the broker (needs R-PAPER-3); SPY, QQQ can leave the lines. R-PAPER-23 (blocking): say by what minute after each close the store holds the twenty closes.
-- [ ] R-PAPER-32 (blocking, opened 17 Nov): `desk/live.py` and the backfill set `paper.CLIENT`; they take a `paper.Door` in R-RUNNER-258 step 2 (`history.py` already does, #651).
+- [ ] R-PAPER-33 (blocking, opened 17 Nov): `history.request` builds a stock contract only; let it ask a forex pair (GBP.USD, IDEALPRO, MIDPOINT) so `command.POUND` is answered by IBKR; until then every rate is named as the archive's (#716).
 
 ### Own, to PAPER
 
@@ -168,14 +168,14 @@ R-RUNNER-258 step 2: remove `paper.CLIENT`/`APART` once DATA's live/backfill tak
 
 ### Done for other lanes
 - R-RUNNER-26: #215; R-RUNNER-42: #223; R-RUNNER-91: #295; R-MONEY-17: #296; R-MONEY-25: #300; R-DATA-14: #302; R-RUNNER-177: #369; R-RUNNER-180: #373; R-MONEY-36: #385; R-RUNNER-191: #433; R-RUNNER-196: #437; R-RUNNER-197: #444; R-RUNNER-190: #462; R-RUNNER-113: #461 (half); R-RUNNER-207: #471; R-RUNNER-209: #476
-- R-RUNNER-16: #484 (door only); R-RUNNER-93: #393; R-RUNNER-210: #492; R-RUNNER-17: #495; R-RUNNER-212: #512; R-DATA-9: #509; R-RUNNER-161: #502; R-RUNNER-162: #558; R-RUNNER-92: #565; R-RUNNER-223: #572; R-RUNNER-234: #577; R-RUNNER-250: #584; R-RUNNER-251: #599; R-RUNNER-235: #601; R-RUNNER-256: #623; R-RUNNER-255: #645; R-RUNNER-258: #651 (step 1 of 3); R-MONEY-30: #657; R-RUNNER-268: #690
-- R-PAPER-5, -9 to -12, -14, -15, -22, -24 (done, see #288, #282, #285, #290, #289, #516, #291, #215/#393, #302); R-PAPER-6: #175
+- R-RUNNER-16: #484 (door only); R-RUNNER-93: #393; R-RUNNER-210: #492; R-RUNNER-17: #495; R-RUNNER-212: #512; R-DATA-9: #509; R-RUNNER-161: #502; R-RUNNER-162: #558; R-RUNNER-92: #565; R-RUNNER-223: #572; R-RUNNER-234: #577; R-RUNNER-250: #584; R-RUNNER-251: #599; R-RUNNER-235: #601; R-RUNNER-256: #623; R-RUNNER-255: #645; R-RUNNER-258: #651 (step 1 of 3); R-MONEY-30: #657; R-RUNNER-268: #690; R-RUNNER-278: #706; R-RUNNER-282: #716; R-RUNNER-257: #733; R-MONEY-49 and R-MONEY-36: #741 (already on main)
+- R-PAPER-32: #733; R-PAPER-5, -9 to -12, -14, -15, -22, -24 (done, see #288, #282, #285, #290, #289, #516, #291, #215/#393, #302); R-PAPER-6: #175
 
 ### Found, not fixed
 
 - **Unseen at the real Gateway:** a part fill, a true stop trigger; the 08:05 London opening buy cancelled once by the desk's own 30 s wait (#437). While the kill switch is on, go flat sells nothing (R-RUNNER-162).
 - **Supervisor:** Windows does not yet start it or `tell`; no kill drill on the real step; seven days not counted; the Gateway's 03:00 restart may show as bad receipts (`messenger.watch` has no caller).
-- **Other:** `tape.moved` in `desk/conformance_tape.py` is unused; `desk/messenger.py` is at 400 lines, `desk/` has 92 of 10,500 lines left; a note over 24 h old is no longer re-sent; the rehearsal docstring says "no market trading" (stale); `keeper.saved` is stale for every venue if one is not refreshed.
+- **Other:** `tape.moved` in `desk/conformance_tape.py` is unused; `desk/messenger.py` is at 400 lines, `desk/` has 92 of 10,500 lines left; a note over 24 h old is no longer re-sent; the rehearsal docstring says "no market trading" (stale); the pound's IBKR request asks for a share contract, so the archive fills in (R-PAPER-33); `keeper.saved` is stale for every venue if one is not refreshed.
 
 ## DATA
 ### Where it is (17 November 2026, folds #217-#753)

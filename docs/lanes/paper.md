@@ -435,3 +435,23 @@ Options: a new `Broker.restop` for no-stop lines; reuse `settle`. Chosen reuse: 
 ### 2026-11-17 — `gateway.known` keeps `ask` second (R-RUNNER-258, #651)
 
 The request settled the design; the one choice was keeping the argument order because the messenger's test calls it that way.
+
+### 2026-11-17 — a US line's contract request sends no primary exchange (R-RUNNER-278, #706)
+
+Two exchange names are recorded for US lines (NASDAQ, ARCA). Options: send the first of the set (a guess) or leave it blank. Chosen blank.
+
+### 2026-11-17 — the pound's disagreement is used and faulted, not refused (R-RUNNER-282, #716)
+
+Options: refuse the step, or use IBKR's rate and record a fault. Chosen the latter: IBKR is primary by his ruling and refusing would stop trading on a bad free quote. The band is 2% (a pound moves under 1% a day). The record is a plain `pound.log` in the desk folder, as the claim allowed no other file.
+
+### 2026-11-17 — an Alarm is not caught again in day.py (R-MONEY-36, #741)
+
+Options: (a) catch Alarm in day.py and message separately, a second path for a job that has one (forbidden by the canon); (b) rely on `running.step`'s one failure path. Chose (b).
+
+### 2026-11-17 — conformance's store home is optional for now (R-RUNNER-281, #738)
+
+The claim excluded desk/conformance.py, so `home` defaults to None (archive). Options: required root (needs the file outside the claim); optional (chosen, lands green).
+
+### 2026-11-17 — a failed pull is a receipt, the old code runs on (OPS-05, #752)
+
+Options: (a) a failed pull ends the supervisor; (b) it is kept as a receipt of job "update" and the old code runs on. Chose (b): a dropped network must not stop the desk trading.

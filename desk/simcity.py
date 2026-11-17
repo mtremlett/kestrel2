@@ -150,7 +150,7 @@ class _Counted(Pretend):
         """Cancel a resting stop by hand; what is given back puts it back as it was."""
         stop = self._stops[symbol]
         self.cancel_stop(symbol)
-        return lambda: self._stops.update({symbol: stop})
+        return lambda: self.put_stop_back(symbol, stop.level)
 
 
 class _Life:
