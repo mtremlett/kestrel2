@@ -384,7 +384,7 @@ def main(
     root, now = Path(env["KESTREL2_DATA"]) / ROOT, clock()
     if not root.is_absolute():
         raise SystemExit(f"KESTREL2_DATA names no whole path to a folder: {root.parent}")
-    desk = _desk(root, _post(env), root.parent, history.daily(now))
+    desk = _desk(root, _post(env), root.parent, history.daily(now, home=root.parent))
     match argv:
         case []:
             running.step(desk, now)
