@@ -91,8 +91,13 @@ class Unlisted:
 def _contracts(wire: BinaryIO, send: paper.Send, number: str, line: Line) -> list[list[str]] | str:
     """Every contract the broker lists under the line's name and currency, as it sent them;
     or its own words when it says it lists none."""
-    asked = (number, 0, line.symbol, "STK", "", "0.0", "", "", ROUTE, "", line.currency)
-    send(paper.message(ASK_LINE, 8, *asked, "", "", 0, "", "", ""))
+    #: from the instrument master: the venue's one exchange (none where it has two), the
+    #: currency and the ISIN, so the broker is never left to guess the line from its symbol
+    venue = EXCHANGES[line.venue]
+    primary = next(iter(venue)) if len(venue) == 1 else ""
+    kind, isin = ("ISIN", line.isin) if line.isin else ("", "")
+    asked = (number, 0, line.symbol, "STK", "", "0.0", "", "", ROUTE, primary, line.currency)
+    send(paper.message(ASK_LINE, 8, *asked, "", "", 0, kind, isin, ""))
     found: list[list[str]] = []
     while True:
         fields = paper.receive(wire)
