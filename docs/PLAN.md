@@ -780,7 +780,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       five hundred cells of pure noise pass it at about its stated rate and no more, a power
       curve at three effect sizes, a broken copy of the rung caught, and each defect the old
       audit found kept as a case that must fail (LAD-09, LAD-03, LAD-08). Built: all eleven
-      modules, each proven alone (#343-#365, #412). Remains: the ladder judges by three of them
+      modules, each proven alone (#343-#365, #412). Remains: the Sharpe a trade has one home (#746); the ladder judges by three of them
       (costs #438, ci #440, cpcv #445 declare a RUNG; "rungs built" counts 3 of 11); wiring the rest, the clustered
       trials (#379 built) into the verdict, the gap-through loss (R-RUNNER-187 declined, #409)
       {id: rungs-trustworthy; files: *; after: rungs-beta}

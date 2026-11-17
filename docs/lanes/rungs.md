@@ -214,3 +214,9 @@ then the break was removed:
 ### 2026-11-17 — kept verdicts stamped by their rung, calibration (R-GRID-3, R-MONEY-43, #613, #667, #693)
 - Stamping inside `rung.judge`/`rung.verdict` (one place) rather than in each caller; `Corrected` carries a key stamped `.rung("lab.luck")`. Left for GRID: capital and rates in `Key`.
 - A noise world has gross mean equal to the cost taken, so the net mean is nil (gross-nil makes every rung fail on costs and measures nothing). 500 worlds of 120 trades: first 2.2%, ci 2.2%, costs 1.4%, cpcv 4.2%.
+
+### 2026-11-17 — trend template, volatility weather, basket stress, one Sharpe home (R-RUNNER-219, -205, -191, R-RUNGS-27, #704, #737, #746, #742)
+- minervini_breakout: `trend_template` filter block in `lab/block_bands.py`; manifest.toml may only gain lines for a lane, so block_bands.py's description was left unchanged (options: widen it, refused by guard; leave it; left it).
+- Weather volatility: thresholds are the median of the prior 252 values (options: fixed cut, percentile; the median needs no tuned number, so no trial spent). Trials so far: 1 volatility definition.
+- Sharpe a trade: wired no further rung, since none reads the first rung's verdict alone (options: wire dsr with a stub spread, refused as a default that masks missing data; merge the duplicate, taken).
+- Basket stress: a basket has no stress run of its own (options: (a) stress on pooled trades; (b) stand on its lines' stress). Chose (b), the recommended: any line's non-pass stress stops INCUBATE.
