@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 from desk import bars, history
-from desk.history_write import held, keeper, main, roll
+from desk.history_write import clashes, held, keeper, main, roll
 from desk.lines import LINES
 from desk.rollup import Candle
 from desk.store import Bar, Refused
@@ -75,6 +75,12 @@ def test_hourly_four_hourly_and_weekly_bars_are_rolled_never_over_a_pulled_one(
         roll(live, LINE, open_ + timedelta(days=1)) == 8 + 2 + 1
     )  # 1h 09-16, 4h 12 and 16, a week
     keep(LINE, "1h", (Candle(open_ + timedelta(hours=1), PRICE, PRICE, PRICE, PRICE, 99, "ibkr"),))
+    assert clashes(live, LINE, open_ + timedelta(days=1)) == []  # same prices: no fault
+    other = Candle(open_ + timedelta(hours=2), PRICE, PRICE, PRICE, PRICE + 1, 99, "ibkr")
+    keep(LINE, "1h", (other,))
+    assert clashes(live, LINE, open_ + timedelta(days=1)) == [
+        "VUAG 1h 2026-11-12 10:00: rolled and held differ"
+    ]
     assert roll(live, LINE, open_ + timedelta(days=1)) == 0
-    assert bars.sources(live, LINE, "1h") == {bars.Source.IBKR: 1, bars.Source.ROLLUP_30M: 7}
+    assert bars.sources(live, LINE, "1h") == {bars.Source.IBKR: 2, bars.Source.ROLLUP_30M: 6}
     assert bars.sources(live, LINE, "1wk") == {bars.Source.ROLLUP_1D: 1}
