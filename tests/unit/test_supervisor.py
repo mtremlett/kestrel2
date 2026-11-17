@@ -319,3 +319,33 @@ def test_what_health_finds_is_told_under_the_hour_s_name_and_nothing_when_all_is
     told = [call.args for call in say.call_args_list]
     assert [name for name, _ in told] == ["health 2026-11-16 08", "health 2026-11-16 10"]
     assert told[1][1] == LATE.format("step", SINCE.format(0))
+
+
+def test_main_is_pulled_only_at_the_safe_point_when_no_job_is_running_and_a_failure_is_kept(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    root, mine = tmp_path, tmp_path / "me.py"
+    mine.write_text("one")
+    monkeypatch.setattr(supervisor, "__file__", str(mine))
+    pull, looks = Mock(return_value="no network"), Mock(side_effect=[None, None, _Enough()])
+    ran = Mock(return_value=())
+    monkeypatch.setattr(supervisor, "attend", ran)
+    with pytest.raises(_Enough):  # a failed pull is a receipt; the old code runs on
+        supervisor.supervise(root, [STEP], wait=looks, pull=pull)
+    assert pull.call_count == 3 and ran.call_count == 3
+    assert supervisor.health(root, T0, []) and [r[0] for r in _receipts(root)] == ["update"] * 3
+    with supervisor._only(root, "job-step"):  # noqa: SLF001 - a job mid-send: no pull now
+        pull.reset_mock()
+        looks.side_effect = [None, _Enough()]
+        with pytest.raises(_Enough):
+            supervisor.supervise(root, [STEP], wait=looks, pull=pull)
+        assert pull.call_count == 0
+    pull.side_effect = lambda: mine.write_text("two") or DONE  # its own file changed: it leaves
+    ran.reset_mock()
+    supervisor.supervise(root, [STEP], wait=looks, pull=pull)
+    assert ran.call_count == 0
+
+
+def _receipts(root: Path) -> list[tuple[str, ...]]:
+    with sqlite3.connect(root / supervisor.RECORD) as record:
+        return record.execute(supervisor.READ).fetchall()

@@ -45,7 +45,7 @@ from collections.abc import Sequence
 from decimal import Decimal, localcontext
 
 from desk.strategy import ARITHMETIC
-from lab.deflated import PASS, believe, best_by_luck, deflate, shape
+from lab.deflated import PASS, believe, best_by_luck, deflate, per_trade, shape
 from lab.rung import MIN_TRADES, Answer, standard_errors
 
 #: About what a trial of bell gains with no more than luck's best passes at.
@@ -76,7 +76,7 @@ def sharpe(gains: Sequence[Decimal]) -> float:
         errors = standard_errors(gains)
     if errors is None:
         raise ValueError(f"{len(gains)} gains: a Sharpe needs two")
-    return float(errors) / math.sqrt(len(gains))
+    return per_trade(float(errors), len(gains))
 
 
 def chance(gains: Sequence[Decimal], trials: int, spread: float) -> float:

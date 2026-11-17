@@ -42,7 +42,7 @@ from functools import partial
 from pathlib import Path
 
 from desk import archive, bars, store
-from desk.bars import EPOCH, Five, Source
+from desk.bars import EPOCH, Five, Source, bridge
 from desk.compare import doubt
 from desk.lines import LINES, Line
 from desk.store import STRETCH, Bar, Refused
@@ -96,26 +96,6 @@ DAYS = "SELECT ts, close FROM ohlcv WHERE ticker = ? AND timeframe = '1d'"
 RAW = "*/5_*_txt*.zip"  #: where Stooq's five-minute zips lie: a dated folder each
 _ADJUSTED = "that are the adjusted form of the store's as-traded bars: not taken"
 IMPORT = "| IMPORT |"  #: how a row of the data register naming a store to read in begins
-
-
-def bridge(fives: Iterable[Five], after: date, before: date) -> list[Bar]:
-    """A daily bar for each day between two, of that day's five-minute bars: the first open,
-    the highest high, the lowest low, the last close, the volumes."""
-    days: dict[date, list[Five]] = {}
-    for five in sorted(fives, key=lambda bar: bar.start):
-        if after < five.start.date() < before:
-            days.setdefault(five.start.date(), []).append(five)
-    return [
-        Bar(
-            day,
-            got[0].open,
-            max(b.high for b in got),
-            min(b.low for b in got),
-            got[-1].close,
-            sum(b.volume for b in got),
-        )
-        for day, got in days.items()
-    ]
 
 
 def daily(line: Line, data: Path, stores: tuple[Path, Path], day: date) -> str:
