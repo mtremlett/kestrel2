@@ -42,9 +42,12 @@ def pool(lines: Sequence[Verdict]) -> Verdict:
     return replace(rung.verdict(key, priced), key=key, reproduced=lines[0].reproduced)
 
 
-def row(tag: int | str, rule: str, lines: Sequence[Verdict], family: int) -> dict[str, Any]:
+def row(
+    tag: int | str, rule: str, lines: Sequence[Verdict], family: int, stressed: Answer
+) -> dict[str, Any]:
     """The basket's line of the results file: its answer, the rungs read from its pooled trades
-    and its reasons, charged `family` trials, the rule's variants ever run."""
+    and its reasons, charged `family` trials, the rule's variants ever run. `stressed` is the
+    stress answer the basket stands on: the first line's that is not a pass, else PASS."""
     basket = pool(lines)
     (one,) = deflated.judge([basket], family - 1)  #: every other trial of the family
     rungs = verdict.named(basket, one, rule)
@@ -56,5 +59,5 @@ def row(tag: int | str, rule: str, lines: Sequence[Verdict], family: int) -> dic
         "rungs": verdict.reported(rungs),
         "unrun": verdict.UNRUN,
         "every": all(answer is Answer.PASS for answer, _ in rungs.values()),
-        "answer": basket.answer.name,
+        "answer": verdict.basket_answer(basket, stressed),
     }
