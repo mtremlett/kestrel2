@@ -1,17 +1,22 @@
 """placing_parts - what the paper account's placing is built of, apart from the account: the
-messages that place an order and a stop, the stop a line is due, and the stop moved."""
+messages that place an order and a stop, what the gateway says of orders by their numbers
+(told) and the cancel (cancel), the stop a line is due, and the stop moved."""
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Collection, Iterator, Sequence
 from decimal import Decimal
-from typing import NamedTuple
+from typing import BinaryIO, NamedTuple
 
 from desk import listing, paper, reports
 from desk.listing import Listing
 from desk.paper import Resting
 
 PLACE = 3  #: what is sent that is no question: an order
+CANCEL = 4  #: what is sent that is no question besides an order: a cancel
+#: The broker's words for an order it will not work again: cancelled, or done.
+GONE = frozenset({"Cancelled", "ApiCancelled"})
+OVER = GONE | {"Filled"}
 
 
 class Stop(NamedTuple):
@@ -68,3 +73,39 @@ def moved(listed: Listing, held: Decimal, stops: Sequence[Resting], level: Decim
     if len(rests) != 1 or len(stops) != 1 or held <= 0:
         raise ValueError(f"{listed.line.symbol}: {len(stops)} stops and {held} shares, none moved")
     return Stop(held, listed.floor(level), rests[0].ref)
+
+
+def told(
+    wire: BinaryIO, numbers: Collection[str], states: Collection[str] = OVER
+) -> Iterator[tuple[str, str, str | None]]:
+    """What the gateway says, for as long as it is read, of orders of the desk's own by their
+    numbers: a state one stands in (its number, the state, None), or a notice of one (its
+    number, the words, its code). The rest is passed over (paper.other)."""
+    while True:
+        fields = paper.receive(wire)
+        if fields[0] == paper.STATUS:
+            if len(fields) != 12:
+                raise ValueError(f"an order's state of a shape the desk does not read: {fields}")
+            if fields[1] in numbers and fields[9] == str(paper.CLIENT) and fields[2] in states:
+                yield fields[1], fields[2], None
+        elif fields[0] == paper.NEWS and len(fields) > 4 and fields[2] in numbers:
+            yield fields[2], fields[4], fields[3]
+        else:
+            paper.other(fields)
+
+
+def cancel(wire: BinaryIO, send: paper.Send, numbers: Collection[str]) -> dict[str, str]:
+    """Ask over an open connection that orders of the desk's own be cancelled, each by its
+    number, and read until the broker has given its last word of every one: the state it is
+    over in, or its notice refusing the cancel. A gateway that hangs up first is an error."""
+    paper.start(wire, send)
+    send(b"".join(paper.message(CANCEL, 1, number, "") for number in numbers))
+    said: dict[str, str] = {}
+    for number, word, code in told(wire, numbers):
+        if code is None:
+            said[number] = word
+        elif code != paper.CANCELLED:
+            said.setdefault(number, f"{code}: {word}")
+        if len(said) == len(numbers):
+            break
+    return said

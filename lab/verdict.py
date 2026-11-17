@@ -15,7 +15,20 @@ from desk.command import CAPITAL
 from desk.lines import Line
 from desk.orders import Settings
 from desk.store import Bar
-from lab import cell, deflated, folds, luck, market, reproduce, rung, shuffle, stress, trials
+from lab import (
+    cell,
+    deflated,
+    folds,
+    luck,
+    market,
+    reproduce,
+    rung,
+    rung_regimes,
+    shuffle,
+    stress,
+    trials,
+    weather,
+)
 from lab.cell import Cell
 from lab.deflated import Deflated
 from lab.folds import Pooled
@@ -30,7 +43,6 @@ FOLDS = folds.YEARS
 RESAMPLES = 1000
 #: Rungs that are built and that this set cannot yet be run through, each with why.
 UNRUN = {
-    "regime": "the weather that names each day's regime is not built (REG-01)",
     "plateau": "the published rules carry no settings to choose among yet",
 }
 NO_FIGURE = "no author's figure is on file for the rule: no published result stands behind it"
@@ -94,6 +106,7 @@ def judge(
         rungs["reproduce"] = (Answer.PASS, f"reproduced: {said}")
     rungs["folds"] = _folded(pooled)
     rungs["market"] = _marketed(market.judge(verdict, own, beside, held, pounds), beside, rungs)
+    rungs["regime"] = _weathered(own, verdict, made)
     rungs["stress"] = _stressed(c, own, settings, pounds)
     if EASED and rungs["stress"][0] is Answer.FAIL:  #: a hard fail: the shuffle is not run
         return _stopped(len(verdict.trades), rungs, unrun)
@@ -286,6 +299,21 @@ def _stressed(c: Cell, own: Sequence[Bar], settings: Settings, pounds: Rates) ->
         ).judged()
     except ValueError as cannot:  #: a fault in the test, said as one with its reason
         return Answer.FAULT, f"the stress scenarios could not be run: {cannot}"
+
+
+def _weathered(own: Sequence[Bar], verdict: Verdict, made: Sequence[Reproduction]) -> Pair:
+    """The regime rung: the priced trades judged apart in the up and the down days they were
+    bought on, or a FAULT where the weather cannot be named."""
+    try:
+        said = rung_regimes.by_weather(
+            verdict.key.rung(rung_regimes.__name__), verdict.trades, weather.trend(own), made
+        )
+    except ValueError as cannot:  #: a fault in the test, said as one with its reason
+        return Answer.FAULT, f"the weather could not be named: {cannot}"
+    return said.answer, (
+        f"up days {said.up.answer.name} on {len(said.up.trades)} trades, down days "
+        f"{said.down.answer.name} on {len(said.down.trades)}; both must pass"
+    )
 
 
 def _n(number: Decimal | float | None) -> str:
