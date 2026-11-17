@@ -404,6 +404,11 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #741 no change; R-MONEY-49 and R-MONEY-36 found already on main. |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #738 R-RUNNER-281 part: conformance sizing reads the store's bar. |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #752 supervisor pulls main at the safe point (OPS-05, OPS-16). |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #779 R-RUNNER-308 conformance stop step judged on fills, not status words.
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #782 R-RUNNER-286 messenger split 400 to 349 lines, pure restructuring.
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #793 R-DATA-9 bars question pinned to port 4002 and the read-only list (1 product line).
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #798 R-DATA-52 home passed to history.daily; R-MONEY-49 declined as already done.
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #805 R-RUNNER-291 lost-stop list reaches him in the evening message.
 
 ### GRID
 
