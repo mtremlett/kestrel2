@@ -133,53 +133,45 @@ money-restop waits on R-MONEY-30 (box waits). Then: **R-MONEY-42** pass the book
 
 ## PAPER
 
-Last updated: 14 November 2026 (folds #100, #104, #110, #113, #123, #128, #135, #142, #152, #155, #168, #182, #183, #189, #210).
+Last updated: 17 November 2026 (folds #215 to #686: the 50 landed pull requests of 14-17 November).
 
 ### Where it is
 
-Built: messenger (#142), step (#152), drill (#155), supervisor, register empty (#168), no order while another is open (#182),
-`desk.running` step/--preflight/--rehearse (#189), `desk.paper --conformance london|us` (#210). No fill seen; his Telegram key unset.
+Built: messenger (hourly P&L, kill/halt line, email door not yet wired), step, drill, supervisor (step registered, `tell`), conformance (ids, gate refusal, soak, tape, Door), go flat, streak, records_kept, t212 (read-only), stop moved to the fill each round, recover puts back a lost stop (R-MONEY-30). Conformance Mon 16 Nov: every difference fixed. Unseen: a part fill; a true stop trigger; t212 shapes never met the real service; `paper.newest` (R-DATA-9) never met the Gateway.
 
 ### Next step
 
-Mon 16 Nov: conformance runs 08:05 and 14:35 first, then the desk's day (account empty, never beside a step); compare the files; then supervised.
+R-RUNNER-258 step 2: remove `paper.CLIENT`/`APART` once DATA's live/backfill take a Door (R-PAPER-32). Then R-PAPER-28, -29. paper-supervised, paper-cards, paper-extras, paper-backups wait: operator.
 
 ### Requests to MONEY
 
-- [ ] R-PAPER-4 (later, 2026-11-13 20:05): `book.differences` names an entry at no shares beside another carrying the shares.
-- [ ] R-PAPER-5 (later, 2026-11-13 21:10): the ledger keys a fill by whole id; the broker's ".01" to ".02" would double it.
-- [ ] R-PAPER-7 (later, 2026-11-13 22:45): one public keeper of dated records (the check borrows `book._write`, `_turn`).
-- [ ] R-PAPER-8 (later, 2026-11-13 23:30): the day's run collects fills at day's end too (broker tells today only).
-- [ ] R-PAPER-9 (later, 2026-11-13 23:30): word `Broker.stops` as the desk's own stops only, or say others are needed.
-- [ ] R-PAPER-10 (later, 2026-11-14 00:30): when `place` raises other than "never received"/refusal, pull the kill switch or tell him at once?
-- [ ] R-PAPER-11 (later, 2026-11-14 01:25): `place` can raise "word, fills and account do not agree" after an order has gone; tell him and stop buying?
-- [ ] R-PAPER-12 (later, 2026-11-14 01:25): word "a sale takes its shares off that stop" to allow two steps, or say if pretend must.
-- [ ] R-PAPER-13 (later, 2026-11-14 02:50): the pretend broker refuses a repeated order id; the real one took it as new. Match, or `place` refuses.
-- [ ] R-PAPER-14 (later, 2026-11-14 02:50): no buy on a line with `Line.retail` False (SPY, QQQ); the broker refuses them, 15 s each, daily.
-- [ ] R-PAPER-15 (later, 2026-11-14 02:50): a working buy has its stop listed at the real broker; pretend has none. Match, or `Broker.stops` leaves it out.
-- [ ] R-PAPER-17 (later, 2026-11-14): `book._write` has one temp file and no lock; two writers were driven to an unreadable record. Kill switch (daily drill, his typed command R-MONEY-7) and `running.csv` borrow it. Own temp name or one writer.
-- [ ] R-PAPER-18 (later, 2026-11-14): rule a cut-off for a late buy (desk back at 15:00 sends London's orders); `day.trade` sends sales without buys past it.
-- [ ] R-PAPER-19 (later, 2026-11-14): public "sessions owed a record" in `day.py` and "day an order is dated" in `orders.py`.
-- [ ] R-PAPER-20 (later, 2026-11-14): `kill.py`: public "a drill made this day is on the record"; word `kill.Failed` for him (a rehearsal; promises named NOT kept).
+- [ ] R-PAPER-4, -7, -8, -13, -18, -19, -20 (later, 13-14 Nov): `book.differences` names an entry at no shares beside one with them; one public keeper of dated records (half done, #301); the day's run collects fills at day's end; the pretend broker refuses a repeated order id like the real one; a cut-off for a late buy; public "sessions owed a record" in `day.py`, "day an order is dated" in `orders.py`; `kill.py` public "drill made this day", word `kill.Failed` for him.
+- [ ] R-PAPER-17 (later, 14 Nov): `book._write` has one temp file and no lock; two writers gave an unreadable record (kill switch, `running.csv`). Own temp name or one writer.
+- [ ] R-PAPER-26 (later, opened 15 Nov): `watch.look` returns what it read even if a message is undelivered, so a down phone door holds no round.
+- [ ] R-PAPER-27 (later, opened 15 Nov): move `messenger.EVENING` (21:05) after the day's record (about 21:40 UK) so it tells the day just recorded.
+- [ ] R-PAPER-29 (blocking, opened 16 Nov): ledger kind 'conformance cost' in `desk/book.py` (client 223 commission and spread through the one ledger; trading P&L reported without it); PAPER then feeds it from `desk/conformance.py`.
+- [ ] R-PAPER-30 (later, opened 16 Nov): R-MONEY-10: real VUAG buy filled 0.09 below the pretend close, sale 0.14 below; size the 0.05% spread (Monday's files, #686).
 
 ### Requests to DATA
 
-- [ ] R-PAPER-3 (later, 2026-11-13 18:55): each line's ISIN a fact on `Line`, confirmed from issuer/exchange.
-- [ ] R-PAPER-6 (later, 2026-11-13 22:10): `desk/venues.py` gives a venue's wall clock publicly; `gateway` and `running` drop their copies.
-- [ ] R-PAPER-16 (later, 2026-11-14 02:50): IDTL in dollars is unlisted at the broker (needs name or ISIN, with R-PAPER-3); SPY, QQQ can leave the lines.
-- [ ] R-PAPER-22 (blocking, 2026-11-14 06:50): the day's pounds per dollar, readable before London's open and for any past session (R-MONEY-3's rate); else no dollar line is priced.
-- [ ] R-PAPER-23 (blocking, 2026-11-14 06:50): say by what minute after each close the store holds the twenty closes; the day's record fails without them.
-- [ ] R-PAPER-24 (later, 2026-11-14 13:40): a daily store of the archive's answers kept raw, which `desk/command.py` reads instead of rebuilding the store at each asking; and the pound's rate from it (R-PAPER-22).
+- [ ] R-PAPER-3 (later): each line's ISIN a fact on `Line`. R-PAPER-16 (later): IDTL in dollars unlisted at the broker (needs R-PAPER-3); SPY, QQQ can leave the lines. R-PAPER-23 (blocking): say by what minute after each close the store holds the twenty closes.
+- [ ] R-PAPER-32 (blocking, opened 17 Nov): `desk/live.py` and the backfill set `paper.CLIENT`; they take a `paper.Door` in R-RUNNER-258 step 2 (`history.py` already does, #651).
+
+### Own, to PAPER
+
+- [ ] R-PAPER-25 (later, opened 15 Nov): tie a buy's stop and later sales in one OCA group at the broker once the group fields are proved on the Gateway; then cancel-first (#296) can go.
+- [ ] R-PAPER-28 (blocking, opened 16 Nov): wire `messenger.with_mail` and `messenger.summary` into `desk/running.py`, and the runner hands it SMTP_*; else the email fallback (#484) is never used.
 
 ### Done for other lanes
-- R-DATA-5: done in #53 (first half). Open: what the first London contract note says of stamp duty (conformance).
-- R-RUNNER-1, R-RUNNER-9, R-MONEY-15: done in #182; R-RUNNER-6: done in #189; R-RUNNER-22: done in #210; R-MONEY-4: done in #75; R-MONEY-5: done in #110; R-MONEY-8: done in #152; R-MONEY-6: done in #113 (drill daily, #155)
+- R-RUNNER-26: #215; R-RUNNER-42: #223; R-RUNNER-91: #295; R-MONEY-17: #296; R-MONEY-25: #300; R-DATA-14: #302; R-RUNNER-177: #369; R-RUNNER-180: #373; R-MONEY-36: #385; R-RUNNER-191: #433; R-RUNNER-196: #437; R-RUNNER-197: #444; R-RUNNER-190: #462; R-RUNNER-113: #461 (half); R-RUNNER-207: #471; R-RUNNER-209: #476
+- R-RUNNER-16: #484 (door only); R-RUNNER-93: #393; R-RUNNER-210: #492; R-RUNNER-17: #495; R-RUNNER-212: #512; R-DATA-9: #509; R-RUNNER-161: #502; R-RUNNER-162: #558; R-RUNNER-92: #565; R-RUNNER-223: #572; R-RUNNER-234: #577; R-RUNNER-250: #584; R-RUNNER-251: #599; R-RUNNER-235: #601; R-RUNNER-256: #623; R-RUNNER-255: #645; R-RUNNER-258: #651 (step 1 of 3); R-MONEY-30: #657; R-RUNNER-268: #690
+- R-PAPER-5, -9 to -12, -14, -15, -22, -24 (done, see #288, #282, #285, #290, #289, #516, #291, #215/#393, #302); R-PAPER-6: #175
 
 ### Found, not fixed
 
-- **Unseen at the real Gateway:** a fill, a triggered stop, a sale, a part fill (conformance, Monday). A stop's level is kept only at the broker; a refused order costs 15 s.
-- **Supervisor:** nothing registered, nothing starts it, nobody is told what health finds; `messenger.watch` has no caller; the days-without-him count is strict and only as good as the ledger. Also: the raw bars are overwritten (R-PAPER-24); a failed conformance run cannot mend an account the check names.
-- **Stale words:** `manifest.toml` says placing "is not built"; `desk/running.py` says "the supervisor: not built"; `desk/gateway.py` "nothing calls it yet". `desk/placing.py` and its test sit at the 400-line cap.
+- **Unseen at the real Gateway:** a part fill, a true stop trigger; the 08:05 London opening buy cancelled once by the desk's own 30 s wait (#437). While the kill switch is on, go flat sells nothing (R-RUNNER-162).
+- **Supervisor:** Windows does not yet start it or `tell`; no kill drill on the real step; seven days not counted; the Gateway's 03:00 restart may show as bad receipts (`messenger.watch` has no caller).
+- **Other:** `tape.moved` in `desk/conformance_tape.py` is unused; `desk/messenger.py` is at 400 lines, `desk/` has 92 of 10,500 lines left; a note over 24 h old is no longer re-sent; the rehearsal docstring says "no market trading" (stale); `keeper.saved` is stale for every venue if one is not refreshed.
 
 ## DATA
 
