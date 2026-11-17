@@ -64,7 +64,6 @@ def _bars(n: int, days: Sequence[date]) -> tuple[Bar, ...]:
 CLEAN: Archive = {
     line: _bars(n, venues.sessions(line.venue, FIRST, LAST)) for n, line in enumerate(LINES, 1)
 }
-HISTORY = CLEAN  #: scene 5's name for it, until the money lane reads CLEAN (R-DATA-6)
 SESSIONS = tuple(sorted({bar.day for bars in CLEAN.values() for bar in bars}))
 #: The bad line's three faults, all in its last sixty sessions so that they park it: a price
 #: in pence among pounds, a date given twice, a day missing.
