@@ -15,7 +15,7 @@ import pytest
 from test_lab_ladder import EDGE, ISF, NOISE, VUSA
 
 from desk.store import Bar
-from lab import ladder, market, verdict
+from lab import ladder, market, shuffle, verdict
 from lab.cell import Cell
 from lab.folds import Pooled
 from lab.rung import Answer, Rates
@@ -141,3 +141,31 @@ def test_every_path_through_the_judge_answers_every_rung_in_its_own_words(path: 
     assert {"first", "folds", "market", "stress"} <= set(rungs)
     whys = {name: why for name, (_, why) in rungs.items()}
     assert all(whys.values()) and len(set(whys.values())) == len(whys), whys
+
+
+@pytest.mark.parametrize("eased", [False, True])
+def test_the_scorecard_grades_every_rung_after_a_soft_fail_and_stops_at_a_negative_mean(
+    monkeypatch: pytest.MonkeyPatch, eased: bool
+) -> None:
+    ran: list[int] = []
+
+    def share(*_: object) -> float:
+        ran.append(1)
+        return 0.0
+
+    monkeypatch.setattr(shuffle, "share", share)
+    monkeypatch.setattr(verdict, "EASED", eased)
+    first = verdict.ready(CELL, EDGE, {}, ())
+    pooled = verdict.pool([(CELL, EDGE)], {})
+
+    def judged(t: str) -> dict[str, Any]:
+        failed = replace(first, answer=Answer.FAIL, t=Decimal(t))
+        return verdict.judge(CELL, EDGE, ISF, NOISE, {}, 6, (), lambda: pooled, failed)
+
+    soft = judged("1.5")  #: failing only the confidence interval, its mean above nothing
+    assert soft["rungs"]["first"][0] == "FAIL" and soft["answer"] == "FAIL"
+    assert bool(ran) is eased and ("not run" in soft["rungs"]["shuffle"][1]) is not eased
+    assert soft["rungs"]["stress"][0] == "PASS" and soft["every"] is False
+    assert soft["rungs"]["deflated"][0] == ("WEAK" if eased else "DOUBT"), "DOUBT is graded WEAK"
+    hard = judged("-0.5")  #: a negative mean: stops at once
+    assert (list(hard["rungs"]) == ["first"]) is eased and hard["answer"] == "FAIL"

@@ -24,33 +24,21 @@ from dataclasses import replace
 from datetime import datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
-from typing import BinaryIO, NamedTuple
+from typing import BinaryIO
 
-from desk import clearance, gateway, kill, listing, paper, reports, venues
+from desk import clearance, gateway, kill, paper, reports, venues
+from desk import placing_parts as parts
 from desk.broker import Disconnected, Fill, Report
 from desk.listing import Listing, Unlisted
 from desk.orders import Order, Refused, Sale
 from desk.paper import Resting
+from desk.placing_parts import Stop as Stop
 
-PLACE, CANCEL = 3, 4  #: what this module sends that is no question: an order, and a cancel
-#: The rest of an order's message after its reference: sent at once, under no other order, every
-#: other choice left as the published client (ib_insync 0.9.86, never imported) leaves it.
-PLAIN = (
-    "1|0|0|0|0|0|0|0||0.0||||||||0||-1|0|||0|||0|0||0||||||0|||||0|||||||||||0|||0|0|||0||0|0|0|0"
-    "|||||||0|||||||||0|0|0|0|||0||"
-).split("|")
+CANCEL = 4  #: what this module sends that is no question besides an order: a cancel
 #: The broker's words for an order it will not work again: cancelled, or done.
 GONE = frozenset({"Cancelled", "ApiCancelled"})
 OVER = GONE | {"Filled"}
 MARKET = ("MKT", "", "", "DAY")  #: an order's kind: at the market, no price, for the day
-
-
-class Stop(NamedTuple):
-    """A stop of the desk's own to sell a line's shares, resting at the broker or due there."""
-
-    shares: Decimal
-    level: Decimal  #: the price it goes at, in the broker's unit
-    ref: str  #: the reference it is placed under
 
 
 class NotCancelled(Exception):
@@ -104,26 +92,6 @@ def _cancel(wire: BinaryIO, send: paper.Send, numbers: Collection[str]) -> dict[
     return said
 
 
-def _message(
-    number: str, listed: Listing, deal: Sequence[str], shares: Decimal | int, ref: str, *first: str
-) -> bytes:
-    """The message that places one order under a number: deal is whether it buys or sells,
-    then its kind (MARKET, or a stop's). It goes to the broker's router, the line by the
-    broker's own number, the desk's id its reference. first is how it is sent where not at
-    once and alone (PLAIN's first two): 0, held back until the order that waits on it is
-    sent; 1 and that order's number, to wait on it."""
-    line, (action, *kind) = listed.line, deal
-    there = (listed.contract, line.symbol, "STK", "", "0.0", "", "", listing.ROUTE, "")
-    asks = (action, shares, *kind, "", "", "O", 0, ref, *first, *PLAIN[len(first) :])
-    return paper.message(PLACE, number, *there, line.currency, *[""] * 4, *asks)
-
-
-def _selling(number: str, listed: Listing, stop: Stop, *first: str) -> bytes:
-    """The message that places a stop to sell, at its level in plain digits, until cancelled."""
-    deal = ("SELL", "STP", "", f"{stop.level:f}", "GTC")
-    return _message(number, listed, deal, stop.shares, stop.ref, *first)
-
-
 def _with(listed: Listing, order: Order) -> Stop:
     """The stop a buy goes with: its shares, at the order's stop put onto the broker's step
     and unit, under the order's id and "-stop"."""
@@ -145,11 +113,11 @@ def _place(
     first, ref, shares = paper.start(wire, send), order.order_id, order.quantity
     number, numbers = str(first), [str(first)]
     if isinstance(order, Sale):
-        send(_message(number, listed, ("SELL", *MARKET), shares, ref))
+        send(parts.message(number, listed, ("SELL", *MARKET), shares, ref))
     else:
         numbers.append(str(first + 1))
-        buy = _message(number, listed, ("BUY", *MARKET), shares, ref, "0")
-        send(buy + _selling(numbers[1], listed, _with(listed, order), "1", number))
+        buy = parts.message(number, listed, ("BUY", *MARKET), shares, ref, "0")
+        send(buy + parts.selling(numbers[1], listed, _with(listed, order), "1", number))
     notices: list[str] = []
     try:
         for told, word, code in _told(wire, numbers):
@@ -166,7 +134,7 @@ def _rest(wire: BinaryIO, send: paper.Send, listed: Listing, stop: Stop) -> None
     """Send a stop to sell over an open connection, alone, and read until the broker says it
     holds it. One it ends instead is an error with its notices; so are silence and a hang-up."""
     number = str(paper.start(wire, send))
-    send(_selling(number, listed, stop))
+    send(parts.selling(number, listed, stop))
     notices: list[str] = []
     for _, word, code in _told(wire, (number,), OVER | reports.HELD):
         if code is not None:
@@ -175,16 +143,6 @@ def _rest(wire: BinaryIO, send: paper.Send, listed: Listing, stop: Stop) -> None
             return
         else:
             raise Unprotected(f"{stop.ref}: the broker ended the stop, {word}; it said: {notices}")
-
-
-def _due(before: Stop | None, held: Decimal, moved: int, new: Stop | None) -> Stop | None:
-    """The one stop a line is to be left under once an order has moved shares on it (bought,
-    or sold: negative), or None for none: for all the shares the account then holds of it. A
-    buy that bought puts it at the level and under the reference of the stop it went with
-    (new); a sale, and a buy that bought none, leave it at the level and under the reference
-    of the stop the line was under before, and a line under none before is given none."""
-    kept = new if moved > 0 and new else before
-    return kept._replace(shares=held) if kept and held > 0 else None
 
 
 def on(account: paper.Account, listed: Listing) -> tuple[Decimal, list[Resting]]:
@@ -269,7 +227,7 @@ class Paper:
             if isinstance(order, Sale) and before:
                 self._putback(listed, before)
             raise
-        self.settle(listed, held, stops, _due(before, held, moved, new))
+        self.settle(listed, held, stops, parts.due(before, held, moved, new))
         if report.reason is None or not notices:
             return report
         return replace(report, reason=f"{report.reason}; it said: {'; '.join(notices)}")
@@ -334,7 +292,7 @@ class Paper:
     def _putback(self, listed: Listing, stop: Stop) -> None:
         """Put a line under its stop again, for the shares the account now holds."""
         held, stops = on(paper.read(), listed)
-        self.settle(listed, held, stops, _due(stop, held, 0, None))
+        self.settle(listed, held, stops, parts.due(stop, held, 0, None))
 
     def settle(
         self, listed: Listing, held: Decimal, stops: Sequence[Resting], due: Stop | None
@@ -356,6 +314,15 @@ class Paper:
                 f"a stop of the desk's own on {listed.line.symbol} ended another way as it was "
                 f"being cancelled, sold perhaps: {odd}"
             )
+
+    def restop(self, symbol: str, level: Decimal) -> None:
+        """MOVE A RESTING STOP: the line's one stop is moved to level (the line's currency), for
+        all the shares held, by resting the new one first and cancelling the old one after
+        (settle): never unprotected meanwhile. One already at that level sends nothing."""
+        if not isinstance(listed := self._listings[symbol], Listing):
+            raise ValueError(f"{symbol}: the broker does not list it, no stop is moved")
+        held, stops = on(paper.read(), listed)
+        self.settle(listed, held, stops, parts.moved(listed, held, stops, level))
 
     def fills(self) -> tuple[Fill, ...]:
         """The desk's own fills of today, as its ledger keeps them (reports.fills)."""
