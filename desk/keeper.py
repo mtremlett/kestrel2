@@ -149,7 +149,7 @@ def _kept_in(
     parked, rates = [], pound_closes(hot)
     with bars.writing(hot) as round_:
         for line, answer in answers.items():
-            shelf = _shelf(folder, line)
+            shelf = bars.bridged(hot, line, day, _shelf(folder, line), answer, first.get(line))
             kept, _faults, park = store.judge(
                 line, answer, day, rates, shelf=shelf, broker=first.get(line)
             )
