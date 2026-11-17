@@ -1,7 +1,7 @@
 """book - THE LEDGER AND THE BOOK. Fills are written under the broker's own ids; the book is
 their sum, and reconciling compares it with the broker's positions. The send path keeps the kill
 switch's record, sends nothing while it is on, notes each order, and cancels what a dead desk
-left working. Conformance trades are a cost of their own (_conformance_cost)."""
+left working. Conformance trades are a cost of their own (conformance_cost)."""
 
 from __future__ import annotations
 
@@ -350,7 +350,7 @@ def _priced(root: Path, lines: Iterable[Line]) -> Callable[[Fill, int], tuple[De
     return pounds
 
 
-def _conformance_cost(root: Path, lines: Iterable[Line]) -> Decimal:
+def conformance_cost(root: Path, lines: Iterable[Line]) -> Decimal:
     """THE CONFORMANCE COST, apart from the desk's profit: the ledger's money moved, less costs."""
     moved, costs = dealt(root, lines, date.max, date.min, 0)
     return moved - costs.total

@@ -94,7 +94,6 @@ from desk.conformance_parts import (
 from desk.conformance_parts import (
     pretend as pretend,
 )
-from desk.conformance_soak import soak
 from desk.ended import action, reasons
 from desk.lines import LINES, Line
 from desk.listing import Listing
@@ -275,7 +274,7 @@ def main(
     asks = soaks or list(argv) in [["--conformance", m] for m in MARKETS]
     if not (asks or list(argv) == ["--conformance-why"]) or not root.is_absolute():
         raise SystemExit("python -m desk.paper --conformance london|us|-why, KESTREL2_DATA whole")
-    go = partial(soak, trade=trade) if soaks else trade  #: a soak records its round
+    go = partial(tape.soak, trade=trade) if soaks else trade  #: a soak records its round
     good, line = go(root, argv[1], clock) if asks else why(clock())
     print(line)  # noqa: T201 - the command's answer to whoever asked
     return int(not good)
