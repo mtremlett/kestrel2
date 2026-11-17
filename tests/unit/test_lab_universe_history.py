@@ -64,3 +64,17 @@ def test_a_session_with_no_bar_is_named_never_invented(tmp_path: Path) -> None:
     said = universe_history.run(root, path, table, [LSE], universe.YARDSTICKS, END)
     assert f"ISF has no bar on {DAYS[LSE][4]}" in said
     assert universe_history.missing(path, LSE, DAYS[LSE][-1] + timedelta(1)) == (DAYS[LSE][4],)
+
+
+def test_the_pounds_noon_rates_fill_only_the_days_before_the_archives_first(tmp_path: Path) -> None:
+    path, table = tmp_path / bars.LIVE, tmp_path / "pound.jsonl"
+    table.write_text(json.dumps([DAYS[US][2].isoformat(), "1.30"]) + "\n", encoding="utf-8")
+    universe_history.enter_pound(table, path)
+    given = f"observation_date,DEXUSUK\n{DAYS[US][0]},1.50\n{DAYS[US][1]},\n{DAYS[US][2]},1.99\n"
+    assert universe_history.enter_noon(path, given) == 1  # the blank day and the held day: none
+    assert universe_history.enter_noon(path, given) == 0
+    assert [(b.day, b.close) for b in bars.daily(path, POUND)] == [
+        (DAYS[US][0], Decimal("1.50")),
+        (DAYS[US][2], Decimal("1.30")),
+    ]
+    assert bars.sources(path, POUND, bars.DAILY) == {Source.FED_NOON: 1, Source.ARCHIVE: 1}
