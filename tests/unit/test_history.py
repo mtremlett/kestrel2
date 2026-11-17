@@ -12,6 +12,7 @@ import pytest
 from desk import history, paper
 from desk.history import Busy
 from desk.lines import LINES, Line
+from desk.rollup import Candle
 from desk.store import Bar, Refused
 
 VUAG = next(line for line in LINES if line.symbol == "VUAG")
@@ -51,7 +52,10 @@ def test_the_bars_are_those_from_since_and_before_the_day_asked() -> None:
     paper.start(wire, lambda _: None)
     got = history.ask(wire, lambda _: None, VUAG, DAY, SINCE)
     assert not isinstance(got, Refused)
-    assert [bar.day for bar in got] == [date(2026, 11, 12), date(2026, 11, 13)]
+    assert [bar.day for bar in got if isinstance(bar, Bar)] == [
+        date(2026, 11, 12),
+        date(2026, 11, 13),
+    ]
     prices = [Decimal(p) for p in ("111.12", "111.66", "109.74", "110.26")]
     assert got[1] == Bar(date(2026, 11, 13), prices[0], prices[1], prices[2], prices[3], 53638)
 
@@ -61,6 +65,12 @@ def test_a_line_the_broker_will_not_give_is_refused_in_its_words() -> None:
     paper.start(wire, lambda _: None)
     got = history.ask(wire, lambda _: None, VUAG, DAY, SINCE)
     assert got == Refused("the broker's 200: No security definition has been found for the request")
+
+
+@pytest.fixture(autouse=True)
+def _client_restored(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The history calls set the door's client for the process; no other test may see it."""
+    monkeypatch.setattr(paper, "CLIENT", paper.CLIENT)
 
 
 def test_a_count_that_does_not_fit_the_bars_is_refused_loudly() -> None:
@@ -121,9 +131,19 @@ def test_a_run_asks_each_timeframe_over_one_conversation_and_not_in_a_round(
     assert history.run(asks, keep, DAY, SINCE, MONDAY_NOON, lambda _: None) == 2
     assert isinstance(kept[(VUAG, "1wk")], Refused) and "\0" + "1 week" + "\0" in sent[-1].decode()
     assert paper.CLIENT == history.CLIENT
-    timed = conversation(TAPE.replace("20261112", "20261112 09:30:00"))
+    stamp = int(datetime(2026, 11, 12, 9, 30, tzinfo=UTC).timestamp())
+    timed = conversation(TAPE.replace("20261112", str(stamp)))
     paper.start(timed, lambda _: None)
-    with pytest.raises(NotImplementedError, match="carries its time"):
-        history.ask(timed, sent.append, VUAG, DAY, SINCE, "5m")
+    got = history.ask(timed, sent.append, VUAG, DAY, SINCE, "5m")
+    first = datetime(2026, 11, 12, 9, 30, tzinfo=UTC)
+    prices = [Decimal(p) for p in ("110.70", "111.84", "110.26", "111.78")]
+    assert isinstance(got, tuple) and got[0] == Candle(
+        first, prices[0], prices[1], prices[2], prices[3], 36161, "ibkr"
+    )
+    assert "\0" + "5 mins" + "\0" in sent[-1].decode() and b"TRADES\0" + b"2\0" in sent[-1]
+    odd = conversation(TAPE.replace("20261112", "20261112 09:30:00"))
+    paper.start(odd, lambda _: None)
+    with pytest.raises(ValueError, match="no epoch seconds"):
+        history.ask(odd, sent.append, VUAG, DAY, SINCE, "5m")
     with pytest.raises(Busy):
         history.run(asks, keep, DAY, SINCE, datetime(2026, 11, 16, 8, 0, tzinfo=UTC))
