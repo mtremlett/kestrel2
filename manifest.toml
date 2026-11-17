@@ -168,6 +168,7 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "lab/feasibility.py" = "before A-GATE paper: the count of ladder-passed rules (three asked) and the feasibility number, their summed net pounds a day against the A-GATE's hundred, each shortfall named"
 "lab/bets.py" = "the book's concentration: its number of independent bets from how its lines move together, and its profit split by correlated cluster"
 "lab/ladder.py" = "the ladder's first set: one command that takes every published rule on every line through every rung built, keeps each answer with its reason and its count of trials, skips what is kept, and ends with one line of counts"
+"lab/ladder_parts.py" = "what the ladder's cells hold in common, split from lab/ladder.py: a cell resolved to its bars and proxy, a rule's lines pooled for the folds, the declared rungs added to its answers, its line counted"
 "lab/ladder_sets.py" = "the ladder's sets as a command: set EPON, every eponymous rule on every line the store holds, judged by the cell engine of lab/ladder.py, its table written PRE-REVIEW, and the door of `python -m lab.ladder`"
 "lab/history_bars.py" = "the ladder's bars from the history database alone: the lines it holds, each line's daily bars and the pound per dollar, a line it lacks named"
 "lab/ladder_pool.py" = "the ladder on all the PC's cores: its cells judged in a process pool of below-normal workers, grouped by rule, the rows the serial run's rows in its order, written by the parent alone; a worker's break is that cell's row"
