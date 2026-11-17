@@ -254,6 +254,35 @@ def _under_month_end_average(p: Prices, months: Floats, params: Params) -> Bools
     return _month_ends(p, months, params, over=False)
 
 
+def _ema(values: Floats, n: int) -> Floats:
+    """The exponential average, from the bar that completes its first `n` values on: seeded
+    with their plain average, then each value weighted two parts in `n + 1`."""
+    if len(values) < n:
+        return np.empty(0)
+    out = [float(values[:n].sum()) / n]
+    for value in values[n:].tolist():
+        out.append(out[-1] + (value - out[-1]) * 2 / (n + 1))
+    return np.array(out)
+
+
+def _over_emas(p: Prices, params: Params) -> Bools:
+    """A close over both exponential averages, from the bar that seeds the slower. The averages
+    are worked in floating point, so a close near either is only as sure as it is clear."""
+    n, slow = int(params["n"]), int(params["slow"])
+    first, close = max(n, slow), p.close[max(n, slow) - 1 :]
+    both = np.ones(len(close), dtype=np.bool_)
+    for size in (n, slow):
+        mean = _ema(p.close, size)[first - size :]
+        both &= _sure(p, close - mean, close + mean, np.inf) > 0
+    return _late(first - 1, both, len(p.close))
+
+
+def _under_ema(p: Prices, params: Params) -> Bools:
+    n = int(params["n"])
+    close, mean = p.close[n - 1 :], _ema(p.close, n)
+    return _late(n - 1, _sure(p, mean - close, close + mean, np.inf) > 0, len(p.close))
+
+
 def _always(p: Prices, params: Params) -> Bools:  # noqa: ARG001 - the one interface of every block
     return np.ones(len(p.close), dtype=np.bool_)
 
@@ -285,6 +314,8 @@ FIRES: Mapping[str, Fire] = {
     "close_at_or_under_average": _at_or_below_average,
     "big_move": _big_moves,
     "rising_score": _rising_score,
+    "close_over_emas": _over_emas,
+    "close_under_ema": _under_ema,
     "no_exit": _never,
     "no_stop": _never,
     "no_filter": _always,

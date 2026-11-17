@@ -21,6 +21,7 @@ from desk.strategy import ZERO, _Wilder, _Window, rsi
 from lab.block_bands import PercentBOver, PercentBUnderRun
 from lab.block_base import Block, Kind, Param, Spot
 from lab.block_months import MonthEndNotOverAverage, MonthEndOverAverage
+from lab.block_trails import CloseOverEmas, CloseUnderEma
 
 
 class HighestHigh(Block):
@@ -385,5 +386,7 @@ BLOCKS: Mapping[str, Spot] = {
     "no_exit": Spot(Kind.EXIT, Never, {}),
     "no_stop": Spot(Kind.STOP, Never, {}),
     "close_above_average": Spot(Kind.FILTER, CloseAboveAverage, {"n": _DAYS}),
+    "close_over_emas": Spot(Kind.FILTER, CloseOverEmas, {"n": _DAYS, "slow": _DAYS}),
+    "close_under_ema": Spot(Kind.EXIT, CloseUnderEma, {"n": _DAYS}),
     "no_filter": Spot(Kind.FILTER, Always, {}),
 }
