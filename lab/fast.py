@@ -233,6 +233,27 @@ def _under_month_end_average(p: Prices, months: Floats, params: Params) -> Bools
     return _month_ends(p, months, params, over=False)
 
 
+def _month_ago(p: Prices, months: Floats, params: Params, over: bool) -> Bools:
+    """On each month's first bar, whether the month before closed over the month end `n` before
+    it (or, not `over`, did not); not over until `n` month ends have gone before."""
+    n = int(params["n"])
+    first = np.flatnonzero(months[1:] != months[:-1]) + 1
+    ends = p.close[first - 1]
+    above = np.zeros(len(first), dtype=np.bool_)
+    above[n:] = _sure(p, ends[n:] - ends[:-n], ends[n:] + ends[:-n], 2.0 * _top(p)) > 0
+    out = np.zeros(len(p.close), dtype=np.bool_)
+    out[first] = above if over else ~above
+    return out
+
+
+def _over_month_ago(p: Prices, months: Floats, params: Params) -> Bools:
+    return _month_ago(p, months, params, over=True)
+
+
+def _under_month_ago(p: Prices, months: Floats, params: Params) -> Bools:
+    return _month_ago(p, months, params, over=False)
+
+
 def _ema(values: Floats, n: int) -> Floats:
     """The exponential average, from the bar that completes its first `n` values on: seeded
     with their plain average, then each value weighted two parts in `n + 1`."""
@@ -306,6 +327,8 @@ FIRES: Mapping[str, Fire] = {
 DATED: Mapping[str, Callable[[Prices, Floats, Params], Bools]] = {
     "month_end_over_average": _over_month_end_average,
     "month_end_not_over_average": _under_month_end_average,
+    "month_end_over_ago": _over_month_ago,
+    "month_end_not_over_ago": _under_month_ago,
 }
 
 

@@ -25,7 +25,12 @@ from lab.block_bands import (
     PercentBUnderRun,
 )
 from lab.block_base import Block, Kind, Param, Spot
-from lab.block_months import MonthEndNotOverAverage, MonthEndOverAverage
+from lab.block_months import (
+    MonthEndNotOverAgo,
+    MonthEndNotOverAverage,
+    MonthEndOverAgo,
+    MonthEndOverAverage,
+)
 from lab.blocks_parts import BigMove, RisingScore
 from lab.blocks_parts import (
     LogSlope as LogSlope,  # noqa: PLC0414 - re-exported: callers import it from here
@@ -303,6 +308,8 @@ BLOCKS: Mapping[str, Spot] = {
     "lower_run": Spot(Kind.ENTRY, LowerRun, {"n": _DAYS}),
     "month_end_over_average": Spot(Kind.ENTRY, MonthEndOverAverage, {"n": _DAYS}),
     "month_end_not_over_average": Spot(Kind.EXIT, MonthEndNotOverAverage, {"n": _DAYS}),
+    "month_end_over_ago": Spot(Kind.ENTRY, MonthEndOverAgo, {"n": _AGO}),
+    "month_end_not_over_ago": Spot(Kind.EXIT, MonthEndNotOverAgo, {"n": _AGO}),
     "close_at_range_low": Spot(Kind.ENTRY, CloseAtRangeLow, {"n": _DAYS}),
     "close_over_keltner_band": Spot(Kind.ENTRY, partial(_Keltner, upper=True), {"n": _DAYS}),
     "close_under_keltner_band": Spot(Kind.EXIT, partial(_Keltner, upper=False), {"n": _DAYS}),
