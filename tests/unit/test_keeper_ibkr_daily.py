@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -53,7 +54,7 @@ def test_a_day_the_archive_lacks_is_filled_from_the_broker_else_the_line_parks_n
     assert keeper.saved(bare, TUE, [one])[1] == {one.symbol}  # parked, and the line is named
 
 
-def test_the_broker_is_asked_only_for_lines_the_archive_is_short_of_and_a_closed_door_is_words(
+def test_ibkr_is_asked_first_for_every_line_its_bar_stands_and_each_newest_bar_is_named(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     asked: list[list[Line]] = []
@@ -62,18 +63,33 @@ def test_the_broker_is_asked_only_for_lines_the_archive_is_short_of_and_a_closed
         asked.append(list(lines))
         return _broker(lines, day)
 
-    whole = _bars  # the archive lacks nothing
-    keeper.keep(tmp_path / "a", NOW, (UK,), whole, lambda *_: (), lambda: 0.0, broker=broker)
-    assert asked == []
+    def none(lines: Sequence[Line], _day: date) -> dict[Line, Answer]:
+        return {line: () for line in lines}  # the broker answers, with no bar
 
-    def short(line: Line, day: date) -> tuple[Bar, ...]:
-        return _bars(line, day)[:-1]  # Monday missing
+    def no_friday(line: Line, day: date) -> tuple[Bar, ...]:  # 3LGO: a session missing mid-window
+        return tuple(b for b in _bars(line, day) if b.day != date(2026, 11, 13))
 
-    keeper.keep(tmp_path / "b", NOW, (UK,), short, lambda *_: (), lambda: 0.0, broker=broker)
-    assert asked == [[UK]]
+    def apart(line: Line, day: date) -> tuple[Bar, ...]:  # 2MU: the archive's close is 3% off
+        *rest, last = _bars(line, day)
+        return (*rest, replace(last, close=last.close + 3, high=last.high + 3))
+
+    cases: list[tuple[Callable[[Line, date], tuple[Bar, ...]], Callable[..., Any], bool, str]] = [
+        (_bars, broker, False, "newest bar from IBKR: BBB"),
+        (no_friday, broker, False, "newest bar from IBKR: BBB"),
+        (apart, broker, False, "(archive), held"),
+        (_bars, none, False, "archive (IBKR gave none): BBB"),
+        (lambda ln, d: _bars(ln, d)[:-1], none, True, "0 of 1 lines clean"),
+    ]
+    for n, (got, ibkr, parked, said) in enumerate(cases):
+        words = keeper.keep(
+            tmp_path / str(n), NOW, (UK,), got, lambda *_: (), lambda: 0.0, series=(), broker=ibkr
+        )[0]
+        held, stuck = keeper.saved(tmp_path / str(n), TUE, [UK])
+        assert bool(stuck) == parked and said in words[0], (n, words)
+        assert parked or held[UK][-1] == _bars(UK, TUE)[-1], n  # the broker's last bar stands
+    assert asked == [[UK]] * 3  # every line asked, though the archive lacked nothing in the first
     monkeypatch.setattr(paper, "dial", _no_gateway)
-    nothing = history.daily(NOW)([UK], MON)  # no gateway here: dial refuses
-    refusal = nothing[UK]
+    refusal = history.daily(NOW)([UK], MON)[UK]  # no gateway here: dial refuses
     assert isinstance(refusal, Refused) and "not asked" in refusal.reason
 
 

@@ -334,7 +334,7 @@ def judge(
         joined, faults = ([], []) if isinstance(answer, Refused) else _joined(shelf, answer)
         if top is not None:
             joined, over = _joined(joined, top, "broker", "archive")
-            faults += over
+            faults += [replace(f, noted=True) for f in over]  # the broker's bar stands: no park
         kept, found = _clean(line, joined, day, since, rates)
         faults = [*faults, *found]
     recent = [f.what for f in faults if not f.noted and (f.lasting or f.day >= since)]
