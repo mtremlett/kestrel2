@@ -182,7 +182,7 @@ def test_the_broker_is_asked_once_a_day_and_a_failed_reading_keeps_nothing(
         [TimeoutError("silent"), {"IITU": IN_PENCE, "AAPL": Unlisted(AAPL, "none")}]
     )
 
-    def read(lines: Iterable[Line]) -> dict[str, Listing | Unlisted]:
+    def read(lines: Iterable[Line], _door: paper.Door | None) -> dict[str, Listing | Unlisted]:
         asked.append(len(tuple(lines)))
         answer = next(answers)
         if isinstance(answer, Exception):
@@ -196,7 +196,7 @@ def test_the_broker_is_asked_once_a_day_and_a_failed_reading_keeps_nothing(
     kept = [listing.kept(tmp_path, at + timedelta(minutes=5 * n), (IITU, AAPL)) for n in range(40)]
     assert asked == [2, 2] and all(k == kept[0] for k in kept) and kept[0]["IITU"] == IN_PENCE
     assert kept[0]["AAPL"] == Unlisted(AAPL, "none")
-    monkeypatch.setattr(listing, "read", lambda _: {"IITU": IN_PENCE, "AAPL": IN_CENTS})
+    monkeypatch.setattr(listing, "read", lambda _, _door: {"IITU": IN_PENCE, "AAPL": IN_CENTS})
     assert listing.kept(tmp_path, at + timedelta(days=1), (IITU, AAPL))["AAPL"] == IN_CENTS
     (tmp_path / listing.KEPT / "2026-11-16.json").write_text('{"IITU": {}, "AAPL": {}}')
     with pytest.raises(ValueError, match="cannot read"):

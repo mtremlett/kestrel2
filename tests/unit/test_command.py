@@ -75,7 +75,7 @@ def _world(patch: pytest.MonkeyPatch, fetch: Fetch = _fetch) -> dict[bytes, Said
 
     patch.setattr(keeper, "saved", saved)
     patch.setattr(paper, "dial", dial)
-    patch.setattr(listing, "read", lambda _: LISTED)
+    patch.setattr(listing, "read", lambda _, _door: LISTED)
     return answers
 
 

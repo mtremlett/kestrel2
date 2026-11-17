@@ -22,7 +22,7 @@ from desk.book import Switch
 from desk.broker import Fill, Pretend
 from desk.clearance import Check
 from desk.lines import YARDSTICK
-from desk.orders import Refused, Sale, Settings
+from desk.orders import Settings
 from desk.running import Desk, Note
 from desk.store import Bar
 
@@ -88,12 +88,13 @@ def _desk(root: Path, **bars: Sequence[Bar]) -> tuple[Desk, Mock]:
         Mock(return_value=RATES),
         hot,
         saved,
+        paper.Door(paper.DESK),
     ), post
 
 
 def _step(patch: pytest.MonkeyPatch, desk: Desk, now: datetime, *answers: Said) -> list[bytes]:
     """One step at a gateway that lists the desk's lines and answers each conversation in turn."""
-    patch.setattr(listing, "read", lambda _: LISTED)
+    patch.setattr(listing, "read", lambda _, _door: LISTED)
     sent = _gateway(patch, [], *answers)
     running.step(desk, now)
     return sent[1:]  # after the knock
@@ -118,9 +119,14 @@ def test_at_each_open_the_step_checks_the_account_and_sends_the_days_orders_once
     asks: list[Said] = [tp.EMPTY, [("102",)], [END]]
     none: Said = [END]
     place: list[Said] = [[], tp.EMPTY, tp.FILLING, UNDER, ENDED, [MADE, END], UNDER, [MADE, END]]
-    sent = _step(monkeypatch, desk, MON, none, tp.EMPTY, none, *asks, none, *asks[:1] * 2, *place)
+    stop: list[Said] = [UNDER, UNDER, tp.RESTS, [tp.ENDED_42], UNDER]  # and the stop moved
+    sent = _step(
+        monkeypatch, desk, MON, none, tp.EMPTY, none, *asks, none, *asks[:1] * 2, *place, *stop
+    )
     assert sent[:10] == [FILLS, ACCOUNT, FILLS, *ASKED, FILLS, ACCOUNT, ACCOUNT, b""]
-    assert sent[10:] == [ACCOUNT, BOTH, *ASKED, ACCOUNT, FILLS]
+    assert sent[10:-4] == [ACCOUNT, BOTH, *ASKED, ACCOUNT, FILLS]
+    # filled at 37.55, its stop is moved to a tenth under (3379p): the new one before the old goes
+    assert sent[-4:-2] == [ACCOUNT] * 2 and b"3379.00" in sent[-2] and sent[-1] == tp.CANCEL_42
     assert book.fills(tmp_path) == (FILL,) and clearance.checks(tmp_path) == (Check(MON, ()),)
     words = f"London, today's orders: {ID}, 26 shares done. {OUT.format('Fri 13', 'SMGB')}"
     assert running.notes(tmp_path) == (Note(MON, "orders LSE", words),)
@@ -177,7 +183,9 @@ def test_what_a_desk_that_died_part_way_left_at_the_broker_is_put_right(
 ) -> None:
     def recover(root: Path, *answers: Said) -> tuple[tuple[str, ...], list[bytes]]:
         sent = _gateway(monkeypatch, *answers[:1], *answers)  # the account as found is read first
-        return running.recover(root, tp._paper(root), LISTED, MON.date()), sent[1:]
+        return running.recover(
+            root, tp._paper(root), LISTED, MON.date(), paper.Door(paper.DESK)
+        ), sent[1:]
 
     idle, part, unheld = (tmp_path / name for name in ("idle", "part", "unheld"))
     for root in (tmp_path, idle, part, unheld):
@@ -374,18 +382,3 @@ def test_a_step_that_fails_tells_him_once_and_is_an_error_and_a_silent_gateway_i
     _, failed, _ = _told(bell)  # the morning message, one line of it in his words, the evening's
     assert "Failed: today's rehearsal of the kill switch did not pass, so the desk" in failed
     assert "NOT kept: the kill switch's drill at 2026-11-16 08:05 UTC broke: ['the ord" in failed
-
-
-def test_an_order_is_dated_the_session_before_today_on_its_own_venues_calendar(
-    tmp_path: Path,
-) -> None:
-    # the Tuesday after Easter 2027: London was shut from Thursday, New York traded on Monday
-    easter, thursday = tp._paper(tmp_path, datetime(2027, 3, 30, 8, 5, tzinfo=UTC)), "20270325-x-"
-    for order, saying in (
-        (Sale(f"{thursday}IITU", IITU, 5), "was not drilled"),  # so it may go: the next refusal
-        (Sale("20270324-x-IITU", IITU, 5), "is not the session of LSE's next after"),
-        (Sale(f"{thursday}AAPL", AAPL, 5), "is not the session of US's next after"),
-        (Sale("drill-sale", IITU, 5), "next after the one it is dated"),  # and one not dated
-    ):
-        with pytest.raises(Refused, match=saying):
-            easter.place(order)

@@ -32,7 +32,7 @@ AT = datetime(2026, 11, 16, 8, 5, tzinfo=UTC)
 
 
 def _paper(root: Path = Path("unread"), at: datetime = AT) -> placing.Paper:
-    return placing.Paper(LISTED, root, lambda: at)
+    return placing.Paper(LISTED, root, lambda: at, paper.Door(paper.DESK))
 
 
 def _ready(root: Path) -> Path:

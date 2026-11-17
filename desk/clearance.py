@@ -61,6 +61,7 @@ def differences(
     listings: Mapping[str, Listing | Unlisted],
     held: Mapping[str, int],
     lines: Iterable[Line],
+    door: paper.Door,
 ) -> tuple[str, ...]:
     """Every way the paper account is not the desk's book, each named in words; none, and
     nothing but the desk trades the account and each line held is under the desk's own stop.
@@ -71,7 +72,7 @@ def differences(
     Then every other order: the desk's own that is no stop the broker is holding, and
     anyone else's, which protects nothing of the desk's."""
     holdings = paper.differences(account, held, lines)
-    told = reports.orders(account.orders, listings)
+    told = reports.orders(account.orders, listings, door)
     stops = paper.named(held, told.stops, "the desk's own stop resting at the broker is for")
     idle = (_order(o, "the desk's own, and no stop the broker is holding") for o in told.unsettled)
     return (*holdings, *stops, *idle, *(_order(o, "not the desk's own") for o in told.others))
@@ -122,17 +123,18 @@ def _check(path: Path, row: list[str]) -> Check:
     return check
 
 
-def check(root: Path, now: datetime) -> Check:
+def check(root: Path, now: datetime, door: paper.Door) -> Check:
     """THE DAY'S CHECK, run every day and before any order: each of the desk's lines as the
     broker lists it now, then the account, read through the one door and set against the
-    desk's book, whose ledger whoever runs the day has brought up to date first. The check
+    desk's book, whose ledger whoever runs the day has brought up to date first; the door says
+    who asks and what of the account is its own. The check
     is on the record as begun before anything is asked, and as what it found once it comes
     back; a reading that stops is raised, and leaves it begun. So is a check that finds the
     record changed under it: another ran beside it, and what that one found stays."""
     begun = Check(now, None)
     _keep(root, (*checks(root), begun))
-    listings = listing.kept(root, now, LINES)
-    found = differences(paper.read(), listings, book.positions(root), LINES)
+    listings = listing.kept(root, now, LINES, door)
+    found = differences(paper.read(door), listings, book.positions(root), LINES, door)
     record = checks(root)
     if record[-1:] != (begun,):
         raise ValueError(f"{root / CHECKS}: another check ran beside the one begun at {now}")
