@@ -27,7 +27,7 @@ from desk.lines import Line
 
 HOST, PORT = "127.0.0.1", 4002  #: the paper port on this machine: the only door the desk dials
 DESK = 222  #: the desk's own client id at the gateway (docs/DECISIONS.md)
-CLIENT = DESK  #: the client this process is; conformance's process makes it its own (223)
+CLIENT = DESK  #: what the data lane's history and live code still set (current); step 2 removes it
 VERSION = "176"  #: the one version of the gateway's language the desk reads
 #: How long the knock and every conversation wait at each step; a gateway silent for longer has
 #: not answered. Measured 15 Nov 2026 (docs/DECISIONS.md, R-RUNNER-180): the knock 0.01 s and a
@@ -141,7 +141,22 @@ class Apart:
         return Account(tuple(h for h in account.holdings if h.name not in self.holdings), orders)
 
 
-APART: Apart | None = None  #: set by conformance's process alone; every other sees the whole
+APART: Apart | None = None  #: what the data lane's code still sets (current); step 2 removes it
+
+
+@dataclass(frozen=True)
+class Door:
+    """WHO A CONVERSATION WITH THE GATEWAY IS: the client id it starts as, and the desk's share
+    of the account, if the process has put one apart. Each caller builds its own and passes it
+    down with the connection, so two callers in one process never see each other's."""
+
+    client: int
+    apart: Apart | None = None
+
+
+def current() -> Door:
+    """The door the module's globals make, for the data lane's code that still sets them."""
+    return Door(CLIENT, APART)
 
 
 def message(*fields: object) -> bytes:
@@ -217,8 +232,8 @@ def _state(fields: list[str]) -> tuple[str, tuple[str, Decimal]]:
     return fields[6], (fields[2], number(fields[4], fields))
 
 
-def start(wire: BinaryIO, send: Send) -> int:
-    """Open a conversation: offer the one version, start as the desk's client, and read
+def start(wire: BinaryIO, send: Send, door: Door | None = None) -> int:
+    """Open a conversation: offer the one version, start as the door's client, and read
     until the gateway is ready and has named its accounts, all paper. Nothing is asked
     before. It gives the number the gateway, ready, takes this client's next order under."""
     offer = f"v{VERSION}".encode()
@@ -226,7 +241,7 @@ def start(wire: BinaryIO, send: Send) -> int:
     greeting = receive(wire)
     if len(greeting) != 2 or greeting[0] != VERSION:
         raise ValueError(f"the gateway greeted with {greeting}; the desk reads {VERSION} only")
-    send(message(START, 2, CLIENT, ""))
+    send(message(START, 2, (door or current()).client, ""))
     told: dict[str, list[str]] = {}
     while not {ACCOUNTS, READY} <= told.keys():
         fields = receive(wire)
@@ -237,13 +252,13 @@ def start(wire: BinaryIO, send: Send) -> int:
     return int(ready[2])
 
 
-def converse(wire: BinaryIO, send: Send) -> Account:
+def converse(wire: BinaryIO, send: Send, door: Door | None = None) -> Account:
     """Read the account over an open connection: once it is started, ask for every holding
     and every open order, reading until the gateway says both lists are whole. Each order
     is then read with the state the broker last told of it, wherever in the answer it came.
     One told more than once is one order, by the broker's id for it, as last told: the gateway
     tells an order again, unasked, as it settles it (seen of a real stop, 14 November 2026)."""
-    start(wire, send)
+    start(wire, send, door)
     send(message(ASK_HOLDINGS, 1) + message(ASK_ORDERS, 1))
     holdings: list[Holding] = []
     orders: list[list[str]] = []
@@ -272,15 +287,16 @@ def dial(talk: Callable[[BinaryIO, Send], T]) -> T:
         return talk(wire, link.sendall)
 
 
-def read() -> Account:
-    """The paper account as the gateway gives it now; less the desk's share (APART), in
-    conformance's process."""
-    return whole() if APART is None else APART.without(whole())
+def read(door: Door) -> Account:
+    """The paper account as the gateway gives it now, as the door's client; less the desk's
+    share if the door has put one apart."""
+    account = whole(door)
+    return account if door.apart is None else door.apart.without(account)
 
 
-def whole() -> Account:
+def whole(door: Door | None = None) -> Account:
     """The paper account as the gateway gives it now, every holding and every order."""
-    return dial(converse)
+    return dial(lambda wire, send: converse(wire, send, door))
 
 
 def _five(fields: list[str]) -> Five:
@@ -294,7 +310,9 @@ def _five(fields: list[str]) -> Five:
     return Five(at, opened, high, low, close, int(volume))
 
 
-def newest(line: Line, contract: str, route: str, count: int) -> tuple[Five, ...]:
+def newest(
+    line: Line, contract: str, route: str, count: int, door: Door | None = None
+) -> tuple[Five, ...]:
     """THE READ-ONLY QUESTION OF BARS: the line's newest `count` five-minute bars (the last
     may still be forming) as the paper gateway gives them, oldest first, trades only, outside
     regular hours too. contract is the broker's number for the line (desk/listing.py), route
@@ -305,7 +323,7 @@ def newest(line: Line, contract: str, route: str, count: int) -> tuple[Five, ...
     ask = message(ASK_BARS, 1, *asked, "", "5 mins", f"{count * 300} S", 0, "TRADES", 2, 0, "")
 
     def talk(wire: BinaryIO, send: Send) -> tuple[Five, ...]:
-        start(wire, send)
+        start(wire, send, door)
         send(ask)
         while (fields := receive(wire))[:2] != [BARS, "1"]:
             other(fields)

@@ -24,7 +24,7 @@ error's words; none after it is tried but the last, which puts the account back.
 
 BESIDE THE DESK (R-RUNNER-201): the run is looped every thirty minutes, each run its own record.
 It trades only a line the desk neither holds nor has an order working on; the desk's holdings
-and its client's orders are not seen by this process (paper.APART), so its day check and its
+and its client's orders are not seen by this run's door (its Door's apart), so its day check and its
 quiet read the account as this desk's own; it ends flat in its own lines, and a desk holding
 found changed at its end is named a FIRST-LIGHT FAULT. It never begins within five minutes of
 a desk round, or in one (ROUNDS): the desk's round has the account.
@@ -40,6 +40,7 @@ import os
 import time
 from collections.abc import Callable, Mapping, Sequence
 from contextlib import suppress
+from dataclasses import replace
 from datetime import UTC, datetime
 from decimal import Decimal
 from functools import partial
@@ -101,7 +102,7 @@ from desk.orders import Order
 from desk.running import VENUES
 
 MARKETS = {"london": "LSE", "us": "US"}  #: the command's word for each venue
-CLIENT = 223  #: the conformance desk's own client id at the gateway: the desk's is paper.CLIENT
+CLIENT = 223  #: the conformance desk's own client id at the gateway: the desk's is paper.DESK
 ROOT, HEAD = "conformance", ("at", "step", "real", "pretend", "it said")
 WHOLE = "the run"
 ABOVE, WAITS = Decimal("1.05"), 30  #: a stop this far above the price paid; its seconds to sell
@@ -121,7 +122,7 @@ AS_FOUND, NOT_AS_FOUND = (
 )
 
 
-def _raised(side: placing.Paper, root: Path, listed: Listing, wait: Wait) -> Fall:
+def _raised(side: placing.Paper, root: Path, listed: Listing, wait: Wait, door: paper.Door) -> Fall:
     """THE REAL STOP MADE TO SELL: the line's one stop is put above the price the buy just
     paid (ABOVE), by the adapter's own rule (Paper.settle), and the account read each second
     until the shares are gone; WAITS seconds unsold is an error. SOLD OR NOT, the line is then
@@ -130,7 +131,7 @@ def _raised(side: placing.Paper, root: Path, listed: Listing, wait: Wait) -> Fal
 
     def fall(order: Order) -> str | None:
         paid = [fill.price for fill in book.fills(root) if fill.order_id == order.order_id]
-        held, stops = placing.on(paper.read(), listed)
+        held, stops = placing.on(paper.read(door), listed, door)
         if not (paid and held):
             raise ValueError(f"{order.order_id}: no share of it is held for a stop to sell")
         name, above = f"{order.order_id}-stop", listed.floor(max(paid) * ABOVE)
@@ -138,12 +139,12 @@ def _raised(side: placing.Paper, root: Path, listed: Listing, wait: Wait) -> Fal
             with suppress(placing.Unprotected):  #: ended as it was sent: sold, if the shares go
                 side.settle(listed, held, stops, placing.Stop(held, above, name))
             for _ in range(WAITS):
-                if not placing.on(paper.read(), listed)[0]:
+                if not placing.on(paper.read(door), listed, door)[0]:
                     return None
                 wait(1)
             return STILL.format(name, WAITS)
         finally:
-            held, stops = placing.on(paper.read(), listed)
+            held, stops = placing.on(paper.read(door), listed, door)
             back = placing.Stop(held, listed.floor(order.stop), name) if held else None
             side.settle(listed, held, stops, back)
 
@@ -153,34 +154,47 @@ def _raised(side: placing.Paper, root: Path, listed: Listing, wait: Wait) -> Fal
 def why(now: datetime) -> tuple[bool, str]:
     """THE READ: each cancelled order of the day and why, as client CLIENT, read-only; never
     in a desk round's hours."""
+    door = paper.Door(CLIENT)
     if tape.round_at(now, 0):
         return False, "CONFORMANCE WHY: not read now, a desk round runs 08:00-08:30 and 14:30-15:00"
-    said = [f"{ref}: {words or GIVEN}" for ref, words in reasons().items()]
+    said = [f"{ref}: {words or GIVEN}" for ref, words in reasons(door).items()]
     return True, "\n".join(said) or "CONFORMANCE WHY: no order was cancelled today"
 
 
-def _barred(root: Path, market: str, refused: Line, now: datetime) -> tuple[bool, str] | None:
+def _barred(
+    root: Path, market: str, refused: Line, now: datetime, door: paper.Door
+) -> tuple[bool, str] | None:
     """Why no run is begun now, and whether that is all well; None when one may begin."""
     venue, today, hours = MARKETS[market], now.date(), venues.open_at(MARKETS[market], now)
     if hours is None or now >= hours.close or not venues.sessions(refused.venue, today, today):
         return True, NOTHING.format(market, f"{VENUES[venue]} is shut, or the rejection's market")
     if tape.round_at(now, tape.LEAD):
         return True, NOTHING.format(market, "a desk round runs 08:00-08:30 and 14:30-15:00")
-    known, killed = gateway.known(now), book.killed(root) or book.killed(root.parent / command.ROOT)
+    known, killed = (
+        gateway.known(now, door=door),
+        book.killed(root) or book.killed(root.parent / command.ROOT),
+    )
     if not known or killed:
         return False, BARRED.format(market) + (killed or known.words)
     return None
 
 
 def _noted(
-    root: Path, record: Path, run: Plan, beside: dict[str, str], clock: Callable[[], datetime]
+    root: Path,
+    record: Path,
+    run: Plan,
+    beside: dict[str, str],
+    clock: Callable[[], datetime],
+    door: paper.Door,
 ) -> tuple[list[tuple[str, ...]], list[str], Callable[[str, str], None]]:
     """The record's rows, the steps whose two sides did different things (the run's fault), and
     the note that writes a step's row: the pretend side priced at the real stop's fill."""
     rows, differ = list[tuple[str, ...]]([HEAD]), list[str]()
 
     def note(step: str, real: str) -> None:
-        cancelled = [f"{ref}: {words or GIVEN}" for ref, words in reasons().items() if ref in real]
+        cancelled = [
+            f"{ref}: {words or GIVEN}" for ref, words in reasons(door).items() if ref in real
+        ]
         stopped = [f.price for f in book.fills(root) if f.order_id == f"{run.second.order_id}-stop"]
         if step == TRIGGER and (stopped or RESTED in real):
             beside.update(pretend(run, stopped[-1] if stopped else None, not stopped))
@@ -194,19 +208,29 @@ def _noted(
     return rows, differ, note
 
 
+def _moved(door: paper.Door, held: Mapping[str, Decimal]) -> str:
+    """Said when a desk holding, as the run began, is not as it was: a FIRST-LIGHT FAULT."""
+    now = {h.name: h.shares for h in paper.whole(door).holdings}
+    moved = [f"{n} {was} -> {now.get(n, 0)}" for n, was in held.items() if now.get(n, 0) != was]
+    return f" FIRST-LIGHT FAULT: the desk's holdings changed: {'; '.join(moved)}." * bool(moved)
+
+
 def trade(
     root: Path, market: str, clock: Callable[[], datetime], wait: Wait = time.sleep
 ) -> tuple[bool, str]:
     """THE COMMAND: whether all is well, and its one line (when, the module's words say)."""
     now, refused = clock(), next(line for line in LINES if line.retail is False)
-    if barred := _barred(root, market, refused, now):
+    door = paper.Door(
+        CLIENT
+    )  #: this run's own client; its apart is set once the desk's share is read
+    if barred := _barred(root, market, refused, now, door):
         return barred
     today, fits = now.date(), (MARKETS[market], 1, True)  #: the venue's own, plain, open to retail
     kill.drill(root, now)  #: no order on a day the switch was not seen to work: raised if broken
-    listings = listing.read(LINES)
-    held, busy = tape.share(paper.whole())
-    paper.APART = paper.Apart(frozenset(held))  #: from here the desk's share is not this run's
-    if found := (*(clearance.check(root, now).found or ()), *book.positions(root)):
+    listings = listing.read(LINES, door)
+    held, busy = tape.share(paper.whole(door))
+    door = replace(door, apart=paper.Apart(frozenset(held)))  #: the desk's share is not this run's
+    if found := (*(clearance.check(root, now, door).found or ()), *book.positions(root)):
         return False, f"{BARRED.format(market)}the paper account is not quiet: {'; '.join(found)}"
     listed = {x.line: x for x in listings.values() if isinstance(x, Listing)}
     plain = [
@@ -216,11 +240,11 @@ def trade(
         if listed[line].contract not in busy and paper.own(line) not in held
     ]
     run = plan(plain, refused, today, command.rates(root, today), f"{now:%H%M}")
-    beside, broker = pretend(run), placing.Paper(listings, root, clock)
-    fall = _raised(broker, root, listed[run.second.line], wait)
-    side = Side(root, broker, lambda: clearance.check(root, clock()).found, fall)
+    beside, broker = pretend(run), placing.Paper(listings, root, clock, door)
+    fall = _raised(broker, root, listed[run.second.line], wait, door)
+    side = Side(root, broker, lambda: clearance.check(root, clock(), door).found, fall)
     record = root / f"trades-{market}-{now:%Y%m%d-%H%M}.csv"
-    rows, differ, note = _noted(root, record, run, beside, clock)
+    rows, differ, note = _noted(root, record, run, beside, clock, door)
     try:
         failed = live(side, run, note)
     except BaseException:  #: whatever stopped the run, the account is still put back
@@ -234,7 +258,7 @@ def trade(
     state = (
         NOT_AS_FOUND if rows[-2][2].startswith(FAILED) else AS_FOUND
     )  #: the last step's row, before WHOLE's
-    fault = tape.moved(held)
+    fault = _moved(door, held)
     return not (failed or fault), (
         DONE.format(*counts) + AMISS.format("; ".join(failed), state) * bool(failed) + fault
     )
@@ -252,11 +276,6 @@ def main(
     if not (asks or list(argv) == ["--conformance-why"]) or not root.is_absolute():
         raise SystemExit("python -m desk.paper --conformance london|us|-why, KESTREL2_DATA whole")
     go = partial(soak, trade=trade) if soaks else trade  #: a soak records its round
-    desk, apart = paper.CLIENT, paper.APART
-    paper.CLIENT = CLIENT  #: for this run alone the conformance desk's, at the door and in readings
-    try:
-        good, line = go(root, argv[1], clock) if asks else why(clock())
-    finally:
-        paper.CLIENT, paper.APART = desk, apart  #: the run owns both
+    good, line = go(root, argv[1], clock) if asks else why(clock())
     print(line)  # noqa: T201 - the command's answer to whoever asked
     return int(not good)

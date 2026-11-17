@@ -359,7 +359,8 @@ day's trading and reconciliation are built, and any broker can stand behind them
       MONEY file, but the ladder finds every `desk/eponymous_*.py` and `lab/published_epon.py` (RUNGS)
       must name it and `test_lab_published_epon.py` count 21, so neither lane's pull request is green
       alone. Needs one session claiming both lanes' files (the runner's to grant).
-      {id: money-connors7; files: desk/eponymous_connors_double_7.py, tests/unit/test_eponymous_connors_double_7.py, lab/published_epon.py, tests/unit/test_lab_published_epon.py, manifest.toml}
+      {id: money-connors7; files: desk/eponymous_connors_double_7.py, tests/unit/test_eponymous_connors_double_7.py, lab/published_epon.py, tests/unit/test_lab_published_epon.py, manifest.toml; waits: operator}
+      (Its files span MONEY (desk/eponymous_connors_double_7.py) and RUNGS (lab/published_epon.py and its test); the lane-ownership guard refuses that on a MONEY branch. It needs the coordinator to move the box to the RUNGS lane's book, with the rule file registered under RUNGS in manifest.toml. That loosens no guard. PR 588's branch holds working code to reuse.)
 - [x] The pretend broker: fills at the day's prices, rejects, partial fills, disconnection,
       a crash, resting stops, positions, and a position injected behind the desk's back
 - [x] The send path: every order through the one gate, sent once however often the desk
@@ -417,10 +418,10 @@ day's trading and reconciliation are built, and any broker can stand behind them
       once (found by SimCity: 98 sessions held with no stop). First step done in #191 (the desk keeps
       every stop's level; a lost stop is on the day's list with stop, shares, level); remains: the
       put-back itself (a way to rest a stop at a level in `desk/broker.py`; `running.recover` on paper),
-      the list reaching him (R-MONEY-18); desk/book.py and desk/simcity.py are at 400 of 400 lines: split first
+      the list reaching him (R-MONEY-18); the SimCity census is split (#590) and the "split first" note is stale (#617); waits on PAPER's put-back
       {id: money-restop; files: desk/day.py, desk/book.py, tests/unit/test_day*.py,
       tests/unit/test_book*.py, desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml;
-      after: money-working}
+      after: money-working; waits: R-MONEY-30}
 - [x] Emergencies in numbers: an emergency, a crash and a black swan each defined by measured
       falls, each with its action (EMG-01) {id: money-emergencies; files: desk/emergency.py,
       tests/unit/test_emergency*.py, manifest.toml}
@@ -432,7 +433,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       tests/unit/test_halt*.py, tests/unit/test_day*.py, tests/unit/test_book*.py,
       manifest.toml; after: money-kill, money-record}
 - [ ] The gate's other limits from canon B1: a day's and a week's loss and an order rate,
-      refused at the gate (EMG-04 when live) {id: money-limits; files: desk/orders.py,
+      refused at the gate (EMG-04 when live). Built (#467, #564, #478): loss and new-line limits, underlying cap, correlation and volatility sizing in `desk/risk.py`; remains: `book.send` passes the Standing and per-underlying exposure to the gate, correlation/sizing into the gate, the drawdown alert sent {id: money-limits; files: desk/orders.py,
       desk/book.py, desk/day.py, tests/unit/test_orders*.py, tests/unit/test_book*.py,
       tests/unit/test_day*.py, tests/scenes/test_scenes.py,
       desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml; after: money-record, money-working}

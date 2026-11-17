@@ -25,6 +25,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta, timezone
 from enum import Enum
+from functools import partial
 
 from desk import paper
 from desk.venues import CLOCKS, _sunday
@@ -102,21 +103,21 @@ def _uk(moment: datetime) -> datetime:
     return moment.astimezone(timezone(timedelta(hours=clock.winter + (forward <= day < back))))
 
 
-def knock() -> None:
-    """Knock on the paper door and leave: the gateway must greet the desk's own client in
-    the desk's one version, be ready, and name paper accounts only. Nothing is asked."""
-    paper.dial(paper.start)
+def knock(door: paper.Door | None = None) -> None:
+    """Knock on the paper door and leave: the gateway must greet the door's client in the
+    desk's one version, be ready, and name paper accounts only. Nothing is asked."""
+    paper.dial(lambda wire, send: paper.start(wire, send, door))
 
 
-def known(now: datetime, ask: Knock = knock) -> Known:
-    """The gateway now, asked before any order: ready only if it greets the desk's knock
+def known(now: datetime, ask: Knock | None = None, door: paper.Door | None = None) -> Known:
+    """The gateway now, asked before any order: ready only if it greets the door's knock
     outside its own restart, in which the knock is not made at all. Otherwise, when nothing
     came back (its port closed, or silence), it is his and the words are his line; when it
     said anything else, or broke off, it is unwell and the words say what it said."""
     if FROM <= _uk(now).time() < UNTIL:
         return Known(State.RESTARTING, WAITING)
     try:
-        ask()
+        (ask or partial(knock, door))()
     except ConnectionRefusedError:
         return Known(State.HIS, SILENT.format("its port is closed"))
     except TimeoutError:

@@ -73,3 +73,11 @@ def test_a_hole_among_years_of_bars_is_judged_beside_both_sides_as_of_today(tmp_
     )
     assert wrote == [f"ISF {LOST}: IBKR paper"] and not named
     assert [b.day for b in bars.daily(path, ISF)] == sorted([*days, LOST])
+
+
+def test_the_brokers_pence_are_turned_into_pounds_on_entry() -> None:
+    pence = Bar(FRIDAY, Decimal("7791"), Decimal("7823"), Decimal("7626"), Decimal("7716"), 9)
+    pounds = Bar(FRIDAY, Decimal("77.91"), Decimal("78.23"), Decimal("76.26"), Decimal("77.16"), 9)
+    assert backfill.in_currency([pence], 100) == [pounds]
+    assert backfill.in_currency([pounds], 1) == [pounds]
+    assert backfill.in_currency(Refused("no data"), 100) == Refused("no data")

@@ -57,6 +57,7 @@ from desk import (
     messenger,
     paper,
     placing,
+    restop,
     venues,
     watch,
 )
@@ -101,6 +102,7 @@ class Desk:
     #: bars, as last kept by the store's keeper (no archive is asked at a step).
     hot: Path
     held: Callable[[date], Saved]
+    door: paper.Door  #: who the desk is at the paper Gateway
 
 
 class Note(NamedTuple):
@@ -134,7 +136,11 @@ def _note(root: Path, now: datetime, what: str, words: str) -> None:
 
 
 def recover(
-    root: Path, broker: placing.Paper, listings: Mapping[str, Listing | Unlisted], today: date
+    root: Path,
+    broker: placing.Paper,
+    listings: Mapping[str, Listing | Unlisted],
+    today: date,
+    door: paper.Door,
 ) -> tuple[str, ...]:
     """AFTER A RESTART: what a desk that died part-way through an order left at the broker,
     put right by the order's own rules (desk/placing.py), each thing done named. Every order
@@ -148,14 +154,15 @@ def recover(
     undrilled: the desk sends nothing then."""
     if book.killed(root) or not kill.drilled(root, today):
         return ()
-    before = paper.read()
+    before = paper.read(door)
     did = [f"cancelled {name}, left working" for name in broker.cancel()]
     book.collect(root, broker)
-    held, account = book.positions(root), paper.read()
+    held, account = book.positions(root), paper.read(door)
     bought = {fill.order_id for fill in book.fills(root) if fill.quantity > 0}
     for listed in listings.values():
         if isinstance(listed, Listing):
-            (shares, stops), was = placing.on(account, listed), placing.on(before, listed)[1]
+            shares, stops = placing.on(account, listed, door)
+            was = placing.on(before, listed, door)[1]
             mine = (stops or was) and shares == held.get(listed.line.symbol, 0)
             for due in _due(shares, stops, was, bought) if mine else ():
                 broker.settle(listed, shares, stops, due)
@@ -193,10 +200,10 @@ def _clean(
     """The day's check, run now: whether the paper account is the desk's book. When it names
     anything, what a dead desk left is put right (recover) and, if anything was, the account
     is checked again. What a check still names he is told, and no order goes."""
-    found = clearance.check(desk.root, now).found
-    if found and (did := recover(desk.root, broker, listings, now.date())):
+    found = clearance.check(desk.root, now, desk.door).found
+    if found and (did := recover(desk.root, broker, listings, now.date(), desk.door)):
         _note(desk.root, now, RECOVERED, PUT_RIGHT.format("; ".join(did)))
-        found = clearance.check(desk.root, now).found
+        found = clearance.check(desk.root, now, desk.door).found
     if found:
         _note(desk.root, now, UNCLEAN, NOT_THE_BOOK.format("; ".join(found)))
     return not found
@@ -237,7 +244,8 @@ def _round(desk: Desk, broker: placing.Paper, venue: str, now: datetime) -> None
     """A venue's orders for today, by the money path's own day, on the bars saved before
     today for the venue's lines; then the round goes on the record with the answer to each
     order. A line the store has parked, or with no bar of the session before today, is left
-    out, nothing decided on it, and named: never passed over in silence. A desk that dies
+    out, nothing decided on it, and named: never passed over in silence. Then each held line's
+    resting stop is moved to 10% under its own fill, once (restop). A desk that dies
     in the round runs it again: the send path asks the broker of each order first."""
     today = now.date()
     saved, out, last = _fit(desk.held(today), venue, today)
@@ -248,6 +256,7 @@ def _round(desk: Desk, broker: placing.Paper, venue: str, now: datetime) -> None
         _note(desk.root, now, name, words)
 
     sent = day.trade(desk.root, saved, broker, desk.room, today, desk.rates(today), tell)
+    restop.move(desk.root, broker, LINES)  #: each held line's stop, under its fill (R-RUNNER-220)
     said = [
         f"{s.order_id}, {s.filled} shares done" + f" ({s.reason})" * bool(s.reason) for s in sent
     ]
@@ -296,8 +305,8 @@ def _work(desk: Desk, now: datetime, seen: watch.Look | None) -> None:
     check = bool(rounds or owed) or (awake and not checked)
     if not (check or owed or any(venues.open_at(venue, now) for venue in VENUES)):
         return
-    listings = listing.kept(root, now, LINES)
-    broker = placing.Paper(listings, root, lambda: now)
+    listings = listing.kept(root, now, LINES, desk.door)
+    broker = placing.Paper(listings, root, lambda: now, desk.door)
     book.collect(root, broker)
     _drill(root, now)
     if sold := goflat.step(root, broker, desk.room, now):
@@ -350,7 +359,7 @@ def step(desk: Desk, now: datetime) -> None:
         raise ValueError(f"{now} is no moment in UTC: the desk's day is kept in UTC alone")
     known, seen, unseen = UNASKED, None, None  #: the look, or the error that it failed with
     try:
-        known = gateway.known(now)
+        known = gateway.known(now, door=desk.door)
         try:
             seen = watch.look(desk.root, desk.hot, desk.held(now.date())[0], now, desk.post)
         except Exception as failed:  # noqa: BLE001 - no round goes unseen; the rest is done

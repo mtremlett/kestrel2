@@ -76,7 +76,7 @@ def moved(listed: Listing, held: Decimal, stops: Sequence[Resting], level: Decim
 
 
 def told(
-    wire: BinaryIO, numbers: Collection[str], states: Collection[str] = OVER
+    wire: BinaryIO, numbers: Collection[str], door: paper.Door, states: Collection[str] = OVER
 ) -> Iterator[tuple[str, str, str | None]]:
     """What the gateway says, for as long as it is read, of orders of the desk's own by their
     numbers: a state one stands in (its number, the state, None), or a notice of one (its
@@ -86,7 +86,7 @@ def told(
         if fields[0] == paper.STATUS:
             if len(fields) != 12:
                 raise ValueError(f"an order's state of a shape the desk does not read: {fields}")
-            if fields[1] in numbers and fields[9] == str(paper.CLIENT) and fields[2] in states:
+            if fields[1] in numbers and fields[9] == str(door.client) and fields[2] in states:
                 yield fields[1], fields[2], None
         elif fields[0] == paper.NEWS and len(fields) > 4 and fields[2] in numbers:
             yield fields[2], fields[4], fields[3]
@@ -94,14 +94,16 @@ def told(
             paper.other(fields)
 
 
-def cancel(wire: BinaryIO, send: paper.Send, numbers: Collection[str]) -> dict[str, str]:
+def cancel(
+    wire: BinaryIO, send: paper.Send, numbers: Collection[str], door: paper.Door
+) -> dict[str, str]:
     """Ask over an open connection that orders of the desk's own be cancelled, each by its
     number, and read until the broker has given its last word of every one: the state it is
     over in, or its notice refusing the cancel. A gateway that hangs up first is an error."""
-    paper.start(wire, send)
+    paper.start(wire, send, door)
     send(b"".join(paper.message(CANCEL, 1, number, "") for number in numbers))
     said: dict[str, str] = {}
-    for number, word, code in told(wire, numbers):
+    for number, word, code in told(wire, numbers, door):
         if code is None:
             said[number] = word
         elif code != paper.CANCELLED:
