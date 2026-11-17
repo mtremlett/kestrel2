@@ -62,14 +62,6 @@ def bar(trials: int, spread: float) -> float:
     return best_by_luck(spread, trials)
 
 
-def deflated(
-    sharpe: float, trades: int, skew: float, kurtosis: float, trials: int, spread: float
-) -> float:
-    """The paper's figure: the chance that a Sharpe a trade, measured on so many trades of this
-    skew and kurtosis (a bell's are 0 and 3), is truly above luck's best among the trials."""
-    return deflate(sharpe, bar(trials, spread), trades, skew, kurtosis)
-
-
 def sharpe(gains: Sequence[Decimal]) -> float:
     """The Sharpe a trade: the mean gain over the first rung's own deviation of the gains."""
     with localcontext(ARITHMETIC):
@@ -82,7 +74,7 @@ def sharpe(gains: Sequence[Decimal]) -> float:
 def chance(gains: Sequence[Decimal], trials: int, spread: float) -> float:
     """The deflated Sharpe of these gains, the skew and kurtosis their plain moments."""
     values = [float(gain) for gain in gains]
-    return deflated(sharpe(gains), len(values), *shape(values), trials, spread)
+    return deflate(sharpe(gains), bar(trials, spread), len(values), *shape(values))
 
 
 def judge(gains: Sequence[Decimal], trials: int, spread: float) -> Answer:

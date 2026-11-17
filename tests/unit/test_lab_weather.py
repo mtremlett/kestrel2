@@ -54,7 +54,15 @@ def _gains(rng: random.Random) -> list[Priced]:
         bought = START - timedelta(40 - n) if n < 40 else START + timedelta(n)
         days = (bought, bought)
         out.append(
-            Priced(Trade(*days), 1, Decimal(1), 1 + Decimal(str(rng.gauss(0.01, 0.01))), FREE, days)
+            Priced(
+                Trade(*days),
+                1,
+                Decimal(1),
+                1 + Decimal(str(rng.gauss(0.01, 0.01))),
+                FREE,
+                days,
+                None,
+            )
         )
     return out
 
@@ -98,3 +106,15 @@ def test_drawdown_labels_are_the_hand_worked_ones_and_future_blind(
     assert list(labels.values()) == by_hand
     for t in range(len(closes)):
         assert weather.drawdown(_bars(*closes[: t + 1])) == dict(list(labels.items())[: t + 1])
+
+
+def test_breadth_is_the_share_of_lines_up_and_future_blind(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(weather, "WINDOW", 2)
+    lines = {"a": (10, 12, 14, 8, 8), "b": (10, 9, 8, 9, 10), "c": (5, 6, 5, 4, 3)}
+    #: up/down per line from day 1: a up up down down; b down down up up; c up down down down
+    by_hand = ["warming", "broad", "narrow", "narrow", "narrow"]
+    labels = weather.breadth({k: _bars(*v) for k, v in lines.items()})
+    assert list(labels.values()) == by_hand
+    for t in range(5):
+        cut = {k: _bars(*v[: t + 1]) for k, v in lines.items()}
+        assert weather.breadth(cut) == dict(list(labels.items())[: t + 1])

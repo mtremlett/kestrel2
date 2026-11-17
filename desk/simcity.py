@@ -23,7 +23,7 @@ from desk.broker import Crash, Fault, Pretend, Report
 from desk.lines import YARDSTICK
 from desk.orders import HOLDINGS, Order, Sale, Settings
 from desk.simcity_census import Census
-from desk.simcity_incidents import HOLE, hole
+from desk.simcity_incidents import HOLE, LEFT, beside, hole
 from desk.simcity_parts import MONTH, Archive, Night, _market
 from desk.strategy import Action
 
@@ -207,6 +207,7 @@ EVENTS: tuple[Event, ...] = (
     (GAPPED, _gapped),
     (KILLED, _killed),
     (HOLE, hole),
+    (LEFT, beside),
 )
 
 

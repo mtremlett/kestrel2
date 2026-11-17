@@ -23,7 +23,8 @@ def _line_verdict(symbol: str) -> Verdict:
     """12 trades of a line: gains alternating 5% and 1%, so 6 and 6 after the (nil) costs."""
     gains = [Decimal("0.05"), Decimal("0.01")] * 6
     priced = tuple(
-        Priced(Trade(DAY, DAY), 1, Decimal(100), 100 * (1 + g), FREE, (DAY, DAY)) for g in gains
+        Priced(Trade(DAY, DAY), 1, Decimal(100), 100 * (1 + g), FREE, (DAY, DAY), None)
+        for g in gains
     )
     line = next(one for one in LINES if one.symbol == symbol)
     window = Cell("breakout_20_10", line, DAY, DAY + timedelta(days=3652))

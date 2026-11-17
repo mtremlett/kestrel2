@@ -153,6 +153,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #724 R-RUNGS-6/12 re-verified done (#185); no scene moved |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #758 R-RUNNER-292: Pretend puts a lost stop back at its level (test_broker, test_simcity) |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #763 R-PAPER-29 ledger half: book.conformance_cost public, SimCity scenario added; PAPER feeds it. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #788 R-RUNNER-191 step: one home for a mean and its standard error (no verdict changed) |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #796 R-RUNNER-287 desk/simcity.py split 400 -> 334 lines, no behaviour change. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #824 no change, two blocking requests (R-DATA-53, R-PAPER-29) verified on main. |
 
 ### DATA
 
@@ -627,3 +630,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #789 R-RUNNER-191 step: one home for a mean and its standard error (no verdict changed) |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #803 R-RUNNER-191 step: rung_folds keeps only the fold's shape; folds.py judges (-184 lab/test lines) |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #799 R-MONEY-45 step: darvas_box in the spec book |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #813 R-RUNNER-205 step 4: weather scoring by fold added (`followed`), no scene moved |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #815 band/decide fold-in checked, nothing left to fold; rung_ci docstring only |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #809 R-MONEY-45 checked, 19 of 21 rows, 2 wait on a second data series; no code |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #823 R-MONEY-45 checked, no change; Mansfield needs an index series in the block contract |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #827 R-RUNNER-191 step: rung_benchmark's interval reads rung.mean_and_error (no verdict changed) |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #831 R-RUNNER-205 step: market weather layer 4, breadth (not wired) |

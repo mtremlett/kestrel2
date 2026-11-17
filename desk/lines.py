@@ -138,6 +138,11 @@ MOVES = {
     ),
     "5QQQ": ((2025, 4, 7, "0.345"), (2025, 4, 8, "0.4295000076293945")),
     "SGLN": ((2013, 4, 15, "17.870"),),  # gold's crash day: open 18.76, low 17.715, down 8%
+    # 2000-2009 (17 November 2026), the archive's closes; Stooq has each day too, its closes a
+    # constant factor off (dividend-adjusted: AAPL 1.19, NVDA 1.09; AMD exact): the same moves.
+    "AAPL": ((2000, 9, 29, "0.4598209857940674"),),  # fell 52% on a profit warning
+    "NVDA": ((2000, 4, 5, "0.19101600348949432"), (2004, 8, 6, "0.0785830020904541")),
+    "AMD": ((2008, 9, 29, "4.289999961853027"), (2008, 9, 30, "5.25")),  # range 3 to 6, then up
 }
 #: Each line's ISIN, as the broker's contract details give it (the conformance tapes of 14
 #: November 2026); IDTL's as its issuer lists it.

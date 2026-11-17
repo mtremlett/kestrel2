@@ -16,9 +16,10 @@ stays hot with every older bar archived beneath it in the same file.
 
 Every bar is kept with its source, a round being one source's (Source). A fresh source, the
 archive and the live session's IBKR, restate: a bar takes the place of what is held for that
-moment or day. Any other (a store no longer kept, or the archive's backfill of a past day)
-only fills moments and days that hold no bar, so a fresh bar always wins; where two sources'
-five-minute bars for one moment differ, that is counted (`apart`)."""
+moment or day, a changed day's old bar kept as a correction, and no day is ever deleted. Any
+other (a store no longer kept, or the archive's backfill of a past day) only fills moments and
+days that hold no bar, so a fresh bar always wins; where two sources' five-minute bars for
+one moment differ, that is counted (`apart`)."""
 
 from __future__ import annotations
 
@@ -31,6 +32,14 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
+from desk.bars_parts import CLOSES as CLOSES
+from desk.bars_parts import NEWEST as NEWEST
+from desk.bars_parts import NOTE as NOTE
+from desk.bars_parts import OTHERS as OTHERS
+from desk.bars_parts import READ as READ
+from desk.bars_parts import RESTORE as RESTORE
+from desk.bars_parts import SOURCES as SOURCES
+from desk.bars_parts import WITHDRAW as WITHDRAW
 from desk.bars_parts import checked as checked
 from desk.compare import AGREE as AGREE
 from desk.compare import Verdict, judge
@@ -89,32 +98,20 @@ SCHEMA = (
     " source TEXT NOT NULL, PRIMARY KEY (venue, symbol, span, at)) WITHOUT ROWID",
     "CREATE TABLE IF NOT EXISTS held (venue TEXT NOT NULL, symbol TEXT NOT NULL,"
     " span TEXT NOT NULL, PRIMARY KEY (venue, symbol, span)) WITHOUT ROWID",
+    "CREATE TABLE IF NOT EXISTS correction (venue TEXT NOT NULL, symbol TEXT NOT NULL,"
+    " span TEXT NOT NULL, at INTEGER NOT NULL, open TEXT NOT NULL, high TEXT NOT NULL,"
+    " low TEXT NOT NULL, close TEXT NOT NULL, volume INTEGER NOT NULL, source TEXT NOT NULL,"
+    " replaced_by TEXT NOT NULL)",
+    "CREATE TABLE IF NOT EXISTS withdrawn (venue TEXT NOT NULL, symbol TEXT NOT NULL, span TEXT"
+    " NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (venue, symbol, span, at)) WITHOUT ROWID",
 )
 #: A store made before sources were kept: every bar in it came from the archive.
 SOURCED = f"ALTER TABLE bar ADD COLUMN source TEXT NOT NULL DEFAULT '{Source.ARCHIVE.value}'"
 MADE = "SELECT 1 FROM sqlite_master WHERE name = 'held'"
 HOLD = "INSERT OR IGNORE INTO held VALUES (?, ?, ?)"
 HELD = "SELECT 1 FROM held WHERE venue = ? AND symbol = ? AND span = ?"
-CLEAR = "DELETE FROM bar WHERE venue = ? AND symbol = ? AND span = ? AND source = ?"
 ADD = "INSERT INTO bar VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 PUT, FILL = (ADD.replace("INSERT", f"INSERT OR {then}") for then in ("REPLACE", "IGNORE"))
-OTHERS = (
-    "SELECT at, open, high, low, close FROM bar WHERE venue = ? AND symbol = ? AND span = ?"
-    " AND source != ? AND at >= ? AND at <= ?"
-)
-SOURCES = (
-    "SELECT source, count(*) FROM bar"
-    " WHERE venue = ? AND symbol = ? AND span = ? AND at >= ? AND at < ? GROUP BY source"
-)
-NEWEST = (
-    "SELECT at, source FROM bar WHERE venue = ? AND symbol = ? AND span = ? AND at >= ? AND at < ?"
-    " ORDER BY at DESC LIMIT 1"
-)
-CLOSES = "SELECT close FROM bar WHERE venue = ? AND symbol = ? AND span = ? AND at >= ?"
-READ = (
-    "SELECT at, open, high, low, close, volume FROM bar"
-    " WHERE venue = ? AND symbol = ? AND span = ? AND at >= ? AND at < ? ORDER BY at"
-)
 
 
 def files(live: Path) -> dict[str, Path]:
@@ -141,25 +138,24 @@ class Round:
         line: Line,
         span: str,
         bars: Iterable[tuple[int, Bar | Five | Timed]],
-        whole: bool = False,
     ) -> int:
         """One line's bars of one span, all of them or, if any is refused, none: the round is
         then as it was before, whether or not the caller ends it there. A round that SQLite
         itself has dropped (a full disk) takes no more, and nothing of it lands. It says how
-        many bars landed. A whole write first clears what this round's source holds of the span."""
+        many bars landed. A daily bar a fresh source changes leaves its old value in `correction`.
+        """
         held = self._held[SPANS[span].home]
         if not all(one.in_transaction for one in self._held.values()):
             raise NoRound(f"SQLite dropped this round: nothing of it lands, {line.symbol} too")
         key = (line.venue, line.symbol, span)
-        rows = (
-            (*key, at, *map(str, (b.open, b.high, b.low, b.close)), b.volume, self._source.value)
-            for at, b in bars
-        )
+        prices = [(at, (*map(str, (b.open, b.high, b.low, b.close)), b.volume)) for at, b in bars]
+        rows = [(*key, at, *price, self._source.value) for at, price in prices]
         held.execute("SAVEPOINT line")
         try:
             held.execute(HOLD, key)
-            if whole:
-                held.execute(CLEAR, (*key, self._source.value))
+            if span == DAILY and put == PUT:
+                noted = ((self._source.value, *key, at, *price) for at, price in prices)
+                held.executemany(NOTE, noted)
             landed = held.executemany(put, rows).rowcount
         except BaseException:
             if held.in_transaction:
@@ -168,17 +164,28 @@ class Round:
         held.execute("RELEASE line")
         return landed
 
-    def daily(self, line: Line, bars: Iterable[Bar]) -> None:
-        """A line's daily history from this source, whole, in place of what it held: an archive
-        restates the past, so only a fresh source gives one. Its bar replaces another source's
-        for the same day, and the bars of other sources stand. A day given twice is refused."""
+    def daily(self, line: Line, bars: Iterable[Bar], withdrawn: Iterable[date] = ()) -> None:
+        """A line's daily bars from this source, joined by day into what the store holds, and
+        none held is ever deleted (B3): a fresh source's bar takes the day of another's, the old
+        value kept in `correction` if it differs. A day in `withdrawn` was judged untrue: its row
+        stays, marked, unread until a bar is given for it again. A day given twice is refused."""
         if not self._source.fresh:
-            raise ValueError(f"{self._source.value} is no fresh source: it restates no history")
+            raise ValueError(f"{self._source.value} is no fresh source: it restates nothing")
         given = [(b.day.toordinal(), b) for b in bars]
         if len({at for at, _ in given}) < len(given):
             what = f"{line.symbol} on {line.venue}: its history gives a day twice; none kept"
             raise ValueError(what)
-        self._write(PUT, line, DAILY, given, whole=True)
+        key, held = (line.venue, line.symbol, DAILY), self._held[DAILY]
+        self._write(PUT, line, DAILY, given)
+        held.execute("SAVEPOINT marks")
+        try:
+            held.executemany(RESTORE, ((*key, at) for at, _ in given))
+            gone = {day.toordinal() for day in withdrawn} - {at for at, _ in given}
+            held.executemany(WITHDRAW, ((*key, at) for at in sorted(gone)))
+        except BaseException:
+            held.execute("ROLLBACK TO marks")
+            raise
+        held.execute("RELEASE marks")
 
     def days(self, line: Line, bars: Iterable[Bar]) -> int:
         """More daily bars, and how many landed: as `five`, but for days not moments."""
@@ -222,7 +229,12 @@ class Round:
 
 
 def _open(file: Path) -> sqlite3.Connection:
-    return sqlite3.connect(file, timeout=WAIT, isolation_level=None)
+    """The one opener, reader's or writer's: a store already made gains any newer table."""
+    one = sqlite3.connect(file, timeout=WAIT, isolation_level=None)
+    if one.execute(MADE).fetchone() is not None:
+        for table in SCHEMA:
+            one.execute(table)
+    return one
 
 
 @contextmanager
@@ -262,7 +274,7 @@ def _read(
     key, path = (line.venue, line.symbol, span), files(path)[SPANS[span].home]
     if not path.is_file():
         raise FileNotFoundError(f"{path}: no store has been written there")
-    with closing(sqlite3.connect(path, timeout=WAIT, isolation_level=None)) as held:
+    with closing(_open(path)) as held:
         held.execute("BEGIN")
         if held.execute(MADE).fetchone() is None:
             raise FileNotFoundError(f"{path}: no round of the store has landed there")

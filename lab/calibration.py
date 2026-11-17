@@ -47,6 +47,7 @@ def world(seed: int) -> Verdict:
                 gross,
                 Charges(COST * PAID, ZERO, ZERO, ZERO, ZERO),
                 (bought, bought + timedelta(days=3)),
+                None,
             )
         )
     return rung.verdict(KEY, tuple(trades))

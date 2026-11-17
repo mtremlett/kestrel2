@@ -8,8 +8,8 @@ from pathlib import Path
 import pytest
 from test_simcity import NOW, RATES, ROOM, SHORT
 
-from desk import day_money, simcity
-from desk.simcity_incidents import HOLE, PROMISE, hole
+from desk import book, day_money, simcity
+from desk.simcity_incidents import HOLE, LEFT, PROMISE, SOLD, beside, hole
 
 
 def night(patch: pytest.MonkeyPatch, root: Path) -> simcity.Night:
@@ -31,3 +31,23 @@ def test_without_the_refusal_the_scenario_is_red(
 ) -> None:
     monkeypatch.setattr(day_money, "close", lambda a, line, _upto: a[line][-1].close)
     assert any(PROMISE in broken for broken in night(monkeypatch, tmp_path).broken)
+
+
+def test_shares_beside_the_book_under_a_stop_are_sold_with_it_and_the_census_counts_it(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(simcity, "EVENTS", ((LEFT, beside),))
+    monkeypatch.setattr(simcity, "EVENTFUL", 1)
+    result = simcity.run(tmp_path, SHORT, ROOM, RATES, NOW, (1, 2, 3))
+    assert not any(SOLD in broken for broken in result.broken)
+    assert LEFT in result.census["day.run"]
+
+
+def test_without_taking_the_shares_in_the_scenario_is_red(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(book, "adopt", lambda *_a: None)  #: no sale of shares the book lacks
+    monkeypatch.setattr(simcity, "EVENTS", ((LEFT, beside),))
+    monkeypatch.setattr(simcity, "EVENTFUL", 1)
+    result = simcity.run(tmp_path, SHORT, ROOM, RATES, NOW, (1, 2, 3))
+    assert any(SOLD in broken for broken in result.broken)

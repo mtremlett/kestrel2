@@ -8,7 +8,7 @@ from pathlib import Path
 
 from desk import bars, quality
 from desk.lines import LINES
-from desk.spans import Timed
+from desk.spans import Five, Timed
 from desk.store import Bar, Refused
 
 SPY = next(line for line in LINES if line.symbol == "SPY")
@@ -68,4 +68,29 @@ def test_a_session_with_no_30m_bar_between_held_ones_is_named_red(tmp_path: Path
         held.timed(SPY, "30m", [Timed("30m", t, price, price, price, price, 5) for t in ends])
     assert quality.thin(path, SPY, TODAY) == [
         "SPY: 2 sessions with no 30m bar, the first 2026-11-11"
+    ]
+
+
+def test_every_short_timeframe_is_audited_for_thin_sessions(tmp_path: Path) -> None:
+    path = seeded(tmp_path, set())
+    price = Decimal(600)
+    ends = [datetime(2026, 11, d, 15, 0, tzinfo=UTC) for d in (10, 13)]
+    with bars.writing(path, bars.Source.IBKR) as held:
+        held.timed(SPY, "1m", [Timed("1m", t, price, price, price, price, 5) for t in ends])
+        held.five(SPY, [Five(t, price, price, price, price, 5) for t in ends])
+    assert quality.thin(path, SPY, TODAY) == [
+        "SPY: 2 sessions with no 1m bar, the first 2026-11-11",
+        "SPY: 2 sessions with no five-minute bar, the first 2026-11-11",
+    ]
+
+
+def test_a_thin_session_says_which_finer_span_could_rebuild_it(tmp_path: Path) -> None:
+    path = seeded(tmp_path, set())
+    price = Decimal(600)
+    ends = [datetime(2026, 11, d, 15, 0, tzinfo=UTC) for d in (10, 11, 12, 13)]
+    with bars.writing(path, bars.Source.IBKR) as held:
+        held.timed(SPY, "1m", [Timed("1m", t, price, price, price, price, 5) for t in ends])
+        held.five(SPY, [Five(t, price, price, price, price, 5) for t in ends[::3]])
+    assert quality.thin(path, SPY, TODAY) == [
+        "SPY: 2 sessions with no five-minute bar, the first 2026-11-11, rollable from 1m"
     ]
