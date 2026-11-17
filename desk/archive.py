@@ -210,6 +210,22 @@ def _ask(address: str) -> bytes:
         return payload
 
 
+def _kept(kept: Path | None, address: str, read: Callable[[bytes], Read]) -> Read:
+    """The archive's answer at an address, read on entry. With a kept file, the raw answer is
+    read from it instead of asked again, and written there only once read whole, never a
+    refused one."""
+    if kept is not None and kept.exists():
+        return read(kept.read_bytes())
+    payload = _ask(address)
+    bars = read(payload)
+    if kept is not None:
+        kept.parent.mkdir(parents=True, exist_ok=True)
+        part = kept.with_suffix(".part")
+        part.write_bytes(payload)
+        part.replace(kept)
+    return bars
+
+
 def fetch(
     line: Line, day: date, home: Path | None = None, *, since: date = SINCE
 ) -> tuple[Bar, ...]:
@@ -220,22 +236,18 @@ def fetch(
     data = os.environ.get("KESTREL2_DATA")
     home = home or (Path(data) if data else None)
     kept = None if home is None else home / STORE / str(day) / name
-    if kept is not None and kept.exists():
-        return parse(line, kept.read_bytes())
-    payload = _ask(address(line, day, since))
-    bars = parse(line, payload)
-    if kept is not None:
-        kept.parent.mkdir(parents=True, exist_ok=True)
-        part = kept.with_suffix(".part")
-        part.write_bytes(payload)
-        part.replace(kept)
-    return bars
+    return _kept(kept, address(line, day, since), lambda raw: parse(line, raw))
 
 
-def fetch_five(line: Line, now: datetime, back: timedelta = KEPT) -> tuple[Five, ...]:
+def fetch_five(
+    line: Line, now: datetime, back: timedelta = KEPT, home: Path | None = None
+) -> tuple[Five, ...]:
     """A line's five-minute bars up to now, read on entry: every one the archive still keeps,
-    or those of a shorter time back."""
-    return parse_five(line, _ask(address_five(line, now, back)), now)
+    or those of a shorter time back. With a home, the raw answer is kept there (the archive
+    forgets after sixty days), one file to a line and moment, and read instead of asked again."""
+    name = f"{line.symbol}{SUFFIX[line.venue]}-{back.days}d"
+    kept = None if home is None else home / STORE / "five" / now.strftime("%Y%m%dT%H%M") / name
+    return _kept(kept, address_five(line, now, back), lambda raw: parse_five(line, raw, now))
 
 
 def gather(
