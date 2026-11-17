@@ -88,12 +88,13 @@ def _desk(root: Path, **bars: Sequence[Bar]) -> tuple[Desk, Mock]:
         Mock(return_value=RATES),
         hot,
         saved,
+        paper.Door(paper.DESK),
     ), post
 
 
 def _step(patch: pytest.MonkeyPatch, desk: Desk, now: datetime, *answers: Said) -> list[bytes]:
     """One step at a gateway that lists the desk's lines and answers each conversation in turn."""
-    patch.setattr(listing, "read", lambda _: LISTED)
+    patch.setattr(listing, "read", lambda _, _door: LISTED)
     sent = _gateway(patch, [], *answers)
     running.step(desk, now)
     return sent[1:]  # after the knock
@@ -182,7 +183,9 @@ def test_what_a_desk_that_died_part_way_left_at_the_broker_is_put_right(
 ) -> None:
     def recover(root: Path, *answers: Said) -> tuple[tuple[str, ...], list[bytes]]:
         sent = _gateway(monkeypatch, *answers[:1], *answers)  # the account as found is read first
-        return running.recover(root, tp._paper(root), LISTED, MON.date()), sent[1:]
+        return running.recover(
+            root, tp._paper(root), LISTED, MON.date(), paper.Door(paper.DESK)
+        ), sent[1:]
 
     idle, part, unheld = (tmp_path / name for name in ("idle", "part", "unheld"))
     for root in (tmp_path, idle, part, unheld):
