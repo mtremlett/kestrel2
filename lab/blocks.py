@@ -32,6 +32,7 @@ from lab.block_months import (
     MonthEndOverAgo,
     MonthEndOverAverage,
 )
+from lab.block_sequential import CountdownBuy, SellSetup
 from lab.block_swing import TurtleSoup, UnderEntryLow
 from lab.blocks_parts import BigMove, RisingScore
 from lab.blocks_parts import (
@@ -358,6 +359,8 @@ BLOCKS: Mapping[str, Spot] = {
     "close_above_average": Spot(Kind.FILTER, CloseAboveAverage, {"n": _DAYS}),
     "close_over_emas": Spot(Kind.FILTER, CloseOverEmas, {"n": _DAYS, "slow": _DAYS}),
     "close_under_ema": Spot(Kind.EXIT, CloseUnderEma, {"n": _DAYS}),
+    "td_countdown_buy": Spot(Kind.ENTRY, CountdownBuy, {}),
+    "td_sell_setup": Spot(Kind.EXIT, SellSetup, {}),
     "turtle_soup": Spot(Kind.ENTRY, TurtleSoup, {"n": _DAYS, "gap": _AGO}),
     "under_entry_low": Spot(Kind.STOP, UnderEntryLow, {}),
     "no_filter": Spot(Kind.FILTER, Always, {}),

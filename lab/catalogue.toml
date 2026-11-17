@@ -299,3 +299,22 @@ wants = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0]
 [[raschke_swing.cases]]
 bars = [[11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 8, 10]]
 wants = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+[demark_sequential]
+entry = "td_countdown_buy"
+exit = "td_sell_setup"
+stop = "no_stop"
+filter = "no_filter"
+source = "DeMark, The New Science of Technical Analysis (1994), TD Sequential, long side: buy the thirteenth bar, not necessarily in a row, whose close is at or under the low two bars before, counted from nine closes in a row each under the close four bars before; sell nine closes in a row each over the close four bars before, which also cancels a countdown"
+
+[demark_sequential.params]
+
+# four flat sessions, nine lower closes (the setup), thirteen lower still (buy on the thirteenth), then nine higher closes (sell on the ninth)
+[[demark_sequential.cases]]
+bars = [[101, 99, 100], [101, 99, 100], [101, 99, 100], [101, 99, 100], [99, 97, 98], [97, 95, 96], [95, 93, 94], [93, 91, 92], [91, 89, 90], [89, 87, 88], [87, 85, 86], [85, 83, 84], [83, 81, 82], [82, 80, 81], [81, 79, 80], [80, 78, 79], [79, 77, 78], [78, 76, 77], [77, 75, 76], [76, 74, 75], [75, 73, 74], [74, 72, 73], [73, 71, 72], [72, 70, 71], [71, 69, 70], [70, 68, 69], [80, 78, 79], [82, 80, 81], [84, 82, 83], [86, 84, 85], [88, 86, 87], [90, 88, 89], [92, 90, 91], [94, 92, 93], [96, 94, 95], [98, 96, 97]]
+wants = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0]
+
+# a setup and five countdown bars, then nine higher closes cancel the count (no buy)
+[[demark_sequential.cases]]
+bars = [[101, 99, 100], [101, 99, 100], [101, 99, 100], [101, 99, 100], [99, 97, 98], [97, 95, 96], [95, 93, 94], [93, 91, 92], [91, 89, 90], [89, 87, 88], [87, 85, 86], [85, 83, 84], [83, 81, 82], [82, 80, 81], [81, 79, 80], [80, 78, 79], [79, 77, 78], [78, 76, 77], [83, 81, 82], [85, 83, 84], [87, 85, 86], [89, 87, 88], [91, 89, 90], [93, 91, 92], [95, 93, 94], [97, 95, 96], [99, 97, 98], [101, 99, 100], [48, 46, 47], [47, 45, 46], [46, 44, 45], [45, 43, 44], [44, 42, 43], [43, 41, 42], [42, 40, 41], [41, 39, 40], [40, 38, 39], [39, 37, 38], [38, 36, 37], [37, 35, 36], [36, 34, 35], [35, 33, 34]]
+wants = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]

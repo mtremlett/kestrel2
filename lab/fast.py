@@ -20,6 +20,7 @@ from decimal import Decimal
 import numpy as np
 
 from desk.store import Bar
+from lab.block_sequential import Counts
 from lab.fast_bands import Params
 from lab.fast_parts import DATED, Fire, _top
 from lab.fast_parts import FIRES as _PARTS
@@ -82,11 +83,30 @@ def _turtle_soup(p: Prices, params: Params) -> Bools:
     return _late(n, fired, len(p.close))
 
 
+def _sequential(p: Prices, side: int) -> Bools:
+    """DeMark's counts over whole prices, bar by bar (side 0 the buy, 1 the sell setup)."""
+    seq: Counts[float] = Counts()
+    return np.array(
+        [seq.see(c, low)[side] for c, low in zip(p.close.tolist(), p.low.tolist(), strict=True)],
+        dtype=np.bool_,
+    )
+
+
+def _countdown_buy(p: Prices, params: Params) -> Bools:  # noqa: ARG001 - no settings
+    return _sequential(p, 0)
+
+
+def _sell_setup(p: Prices, params: Params) -> Bools:  # noqa: ARG001 - no settings
+    return _sequential(p, 1)
+
+
 #: Every block of the fast engine that reads prices alone, by name.
 FIRES: Mapping[str, Fire] = {
     **_PARTS,
     "trend_template": _trend_template,
     "turtle_soup": _turtle_soup,
+    "td_countdown_buy": _countdown_buy,
+    "td_sell_setup": _sell_setup,
 }
 
 
