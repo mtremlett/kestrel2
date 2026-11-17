@@ -88,7 +88,7 @@ def test_a_line_pays_nil_or_stamp_duty_and_only_a_london_line_can_pay_it() -> No
 
 def test_the_lines_record_what_a_second_source_confirmed() -> None:
     held = {line.symbol: line for line in LINES}
-    assert held["5QQQ"].splits == {(date(2024, 8, 22), Decimal(500))}
+    assert held["5QQQ"].starts == date(2024, 8, 22)
     moves = {sym: len(line.real_moves) for sym, line in held.items() if line.real_moves}
     assert moves == {"2MU": 4, "5QQQ": 2, "SGLN": 1}
 
