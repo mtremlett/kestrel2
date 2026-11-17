@@ -41,35 +41,10 @@ dating; a long run of dollar-quoted bars is dropped (#217, #220); the six parked
 Every rule and constant of `desk/store.py` is pinned by a row of one synthetic table, and that guard was driven red
 (#225, #227, #230; R-RUNNER-43, -46). The lane's open boxes were put in working order (#180).
 
-### 2026-11-15 — the head start recognises adjusted prices against the as-traded store (R-RUNNER-90) (#286)
+### 2026-11-15 — adjusted against as-traded closes; the 39-minute close rule, folded (#286, #294)
 
-- (1) Dividends are not recorded on Line, so "explained by recorded splits and dividends" is:
-  any product of the line's recorded split ratios (or inverses) times a dividend factor within
-  0.85 to 1 (old stores cover months; an FX rate 0.66 to 0.81 is never taken as dividends).
-  Options: widen the band (risks taking pounds-as-dollars as adjustment), or record dividends
-  on Line (another lane's file). Chose the narrow band; a heavier adjustment is still refused,
-  by line and day. (2) Bars on an adjusted day are not taken at all rather than converted back
-  to raw (conversion would invent as-traded prices from a factor). (3) AGREE stays 0.0001; a
-  factor must hold within 0.001 and differ from 1 by more than that. (4) Operator ruling
-  "always go with recommended": the red was only the Claim line; claim corrected, no code
-  changed. (5) The remaining head-start work is re-cut as a new job, "adjusted vs as-traded
-  matching rule for the old daily bars (SMGB split, SGLN off-mark bar)", in a new module such
-  as lab/headstart_match.py with its test; PLAN.md's stale "waits: R-RUNNER-24" text needs
-  correcting and the DATA lane restarting on data-deep-history or data-two-stores. PLAN.md is
-  outside this claim, so the scribe or next session does it.
-
-### 2026-11-15 — the store holds each venue's closes within 39 minutes of its close (R-PAPER-23) (#294)
-
-- the request names `keeper.target`, but that is already the function giving the day a venue
-  is readied for (used by the keeper); options: rename it, or name the figure beside it. Chose
-  a new constant `HELD`, leaving `target` alone. The test was driven against a deliberate
-  break (target turning at 2x SETTLED): three keeper tests failed.
-- Decisions (DATA lane ruling, his words "always go with recommended"): data-headstart stays
-  held; the lane restarts on data-deep-history or data-two-stores. Options: wait for him, or
-  restart on those two. Chose the restart. The head start's remains are re-cut as a new job,
-  'adjusted vs as-traded matching rule for the old daily bars, SMGB's split, SGLN's off-mark
-  bar' (lab/headstart_match.py plus its test), and PLAN.md's stale 'waits: R-RUNNER-24' text
-  needs correcting; both are for a later pull request, outside this claim.
+The head start recognises a store of adjusted prices beside the as-traded one and never writes over raw (R-RUNNER-90, #286).
+The store holds each venue's closes within 39 minutes of its close (R-PAPER-23, #294). Details are in git history.
 
 ### 2026-11-15 — VUAG's archive gap of May-June 2019 is filled from a checked shelf, never forward-filled (R-RUNNER-104) (#314)
 
@@ -780,3 +755,23 @@ park far fewer. Longest lookback 200 sessions (`desk/strategy.py`), five years 1
 
 Last piece of R-DATA-49: change `desk/command.py` myself (outside the lane's files, refused) or ask MONEY and PAPER to pass
 `home` first (taken), then make it required.
+
+### 2026-11-17 — quality monitor skips a line with no 30-minute bars (#811, R-RUNNER-217)
+
+Options: skip such a line, or report it red as "no 30m". Chose skip, so the daily job is not red in production until every
+timeframe is pulled; coverage per timeframe is the next step. `manifest.toml`'s description of `desk/quality.py` left as it is:
+the lane guard forbids a lane editing existing descriptions.
+
+### 2026-11-17 — deep history: store takes the sessions years (#819, R-DATA-54)
+
+Option A, widen `venues.KNOWN` to 1993 and guard `hours()` separately (touches `bars_parts`' meaning, hides unknown hours);
+option B, `desk/store.py` uses `venues.SESSION_YEARS`, the name the calendar already has for this. Took B, as the wrong value
+arises there. It needs a claim naming `desk/store.py`. Overtaken by the next entry: B alone parks lines.
+
+### 2026-11-17 — deep history: nothing landed without the whole fix (#821, #822)
+
+Options: (a) land the `venues.py` split alone (KNOWN becomes the sessions years, a new HOURS_YEARS for hours, `open_at` None
+before 2010); (b) land nothing and name the whole fix. Chose (b): (a) lets 2000-2009 in, and AAPL (2000-09-29), NVDA (2000-04-05,
+2004-08-06) and AMD (2008-09-29, -30) would park as a lasting fault until recorded in `real_moves` in `desk/lines.py`
+(canon A8, B1: safety before progress). #822 re-checked on main and chose (b) again, adding `desk/bars_parts.py:24`, which reads
+`KNOWN` the same way. The whole fix is R-DATA-54.
