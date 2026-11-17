@@ -27,7 +27,6 @@ from desk.lines import Line
 
 HOST, PORT = "127.0.0.1", 4002  #: the paper port on this machine: the only door the desk dials
 DESK = 222  #: the desk's own client id at the gateway (docs/DECISIONS.md)
-CLIENT = DESK  #: what the data lane's history and live code still set (current); step 2 removes it
 VERSION = "176"  #: the one version of the gateway's language the desk reads
 #: How long the knock and every conversation wait at each step; a gateway silent for longer has
 #: not answered. Measured 15 Nov 2026 (docs/DECISIONS.md, R-RUNNER-180): the knock 0.01 s and a
@@ -141,9 +140,6 @@ class Apart:
         return Account(tuple(h for h in account.holdings if h.name not in self.holdings), orders)
 
 
-APART: Apart | None = None  #: what the data lane's code still sets (current); step 2 removes it
-
-
 @dataclass(frozen=True)
 class Door:
     """WHO A CONVERSATION WITH THE GATEWAY IS: the client id it starts as, and the desk's share
@@ -152,11 +148,6 @@ class Door:
 
     client: int
     apart: Apart | None = None
-
-
-def current() -> Door:
-    """The door the module's globals make, for the data lane's code that still sets them."""
-    return Door(CLIENT, APART)
 
 
 def message(*fields: object) -> bytes:
@@ -241,7 +232,7 @@ def start(wire: BinaryIO, send: Send, door: Door | None = None) -> int:
     greeting = receive(wire)
     if len(greeting) != 2 or greeting[0] != VERSION:
         raise ValueError(f"the gateway greeted with {greeting}; the desk reads {VERSION} only")
-    send(message(START, 2, (door or current()).client, ""))
+    send(message(START, 2, (door or Door(DESK)).client, ""))
     told: dict[str, list[str]] = {}
     while not {ACCOUNTS, READY} <= told.keys():
         fields = receive(wire)

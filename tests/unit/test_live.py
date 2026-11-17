@@ -15,6 +15,7 @@ from desk.bars import Five
 from desk.lines import Line
 from desk.spans import Timed
 
+BAR = live.BAR
 UK, NOW = Line("BBB", "LSE", "GBP", 1), datetime(2026, 11, 16, 9, 10, tzinfo=UTC)
 PENCE = listing.Listing(UK, "123", "LSE", 100, ((Decimal(0), Decimal("0.5")),))
 
@@ -36,10 +37,13 @@ def test_the_brokers_bars_are_ended_ones_in_pounds_and_its_silence_is_said(
     )
     got = ask(UK, NOW)
     assert [b.close for b in got] == [Decimal("2.5"), Decimal("2.6")]
+    close = datetime(2026, 11, 16, 16, 25, tzinfo=UTC)  # London's last bar ends at 16:30
+    given["BBB"] = [Five(close + BAR * i, *(Decimal(250),) * 4, 5) for i in range(2)]
+    assert [b.start for b in ask(UK, close + BAR * 2)] == [close]  # kept; the auction's is not
     given["BBB"] = []
     with pytest.raises(ValueError, match="no IBKR real-time data on paper for BBB: no bars"):
         ask(UK, NOW)
-    assert waits == [live.PACING]  # the second ask waited, the first did not
+    assert waits == [live.PACING] * 2  # the second ask waited, the first did not
 
 
 def test_the_one_minute_question_reaches_back_to_the_last_held_and_keeps_ended_minutes(
