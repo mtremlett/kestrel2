@@ -20,6 +20,7 @@ from desk.store import Bar
 from desk.strategy import ZERO, _Wilder, _Window, rsi
 from lab.block_bands import PercentBOver, PercentBUnderRun
 from lab.block_base import Block, Kind, Param, Spot
+from lab.block_months import MonthEndNotOverAverage, MonthEndOverAverage
 
 
 class HighestHigh(Block):
@@ -359,6 +360,8 @@ BLOCKS: Mapping[str, Spot] = {
         Kind.ENTRY, CloseOverRisingAverage, {"n": _DAYS, "ago": _AGO}
     ),
     "lower_run": Spot(Kind.ENTRY, LowerRun, {"n": _DAYS}),
+    "month_end_over_average": Spot(Kind.ENTRY, MonthEndOverAverage, {"n": _DAYS}),
+    "month_end_not_over_average": Spot(Kind.EXIT, MonthEndNotOverAverage, {"n": _DAYS}),
     "close_at_range_low": Spot(Kind.ENTRY, CloseAtRangeLow, {"n": _DAYS}),
     "close_over_keltner_band": Spot(Kind.ENTRY, partial(_Keltner, upper=True), {"n": _DAYS}),
     "close_under_keltner_band": Spot(Kind.EXIT, partial(_Keltner, upper=False), {"n": _DAYS}),

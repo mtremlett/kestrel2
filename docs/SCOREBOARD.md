@@ -86,6 +86,55 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #282 R-PAPER-9 done, `Broker.stops` docstring only. |
 | 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #274 R-RUNNER-78 DeMark's TD Sequential ported, known-answer tested. |
 | 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #285 R-PAPER-10 unknown place error pulls the kill switch, contract-tested; blind review passed. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #289 R-PAPER-12 done: sale-takes-shares-off-stop worded as an end state. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #288 R-PAPER-5 done: a broker's corrected fill is one fill in the ledger. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #291 R-PAPER-15 contract stated and tested on the pretend broker. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #290 R-PAPER-11 built in book.py; the message is not yet wired to his phone. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #297 R-PAPER-13 half: pretend broker matches IBKR on a repeated order id. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #332 R-RUNNER-129 simcity --soak on fresh seeds, built and tested. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #370 R-RUNNER-176 SimCity census has no bare round_trips part. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #375 R-RUNNER-181 SimCity reads the keeper's store, not a stale folder. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #383 no scene moved; R-RUNGS-6/12 ticked as already done; R-RUNNER-127 declined, waits on spec rows. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #386 blocking requests re-checked, none buildable; docs only. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #390 housekeeping: R-RUNGS-6 and 12 confirmed done (#185); R-RUNNER-127 still waits on the spec rows. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #388 stale RUNGS requests closed; no change. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #439 no change - two stale requests closed, one held. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #443 no change, R-RUNNER-127 held. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #240 R-GRID-1 done: the five rules run at other settings in the desk's engine. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #467 R-RUNNER-156 gate limits built; no scene moved. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #472 R-RUNNER-159 heat on the day's record, report only; scenes 7 of 7 unchanged. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #466 Q2 trading costs measured against the model: command built, first real numbers once paper fills have bars. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #474 R-RUNNER-153 two of three parts of the deep run's end built (stress, lifecycle); calibration waits on RUNGS. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #465 no code; one blocking request declined, two found done. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #278 R-DATA-12 (part): day.trade refuses buys on lines recorded as no-ISA. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #301 R-PAPER-7 first half: one public keeper of dated records, book.keep, with its contract test. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #468 docs only: R-RUNNER-127 waits on spec-epon (15 of 21 rules not yet rows). |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #478 R-RUNNER-147 step 1, pure correlation cap and volatility sizing with test. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #497 no change; R-RUNGS-12 already met on main (#185), ticked. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #506 R-RUNGS-11 done: orders.GAP_LOSS, the gap loss limit as one named number. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #479 R-RUNGS-8 strategy_of refuses an unreadable id. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #508 R-RUNGS-14 pinned by a test, no product change. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #516 R-PAPER-14 retail-closed lines never sent to the broker. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #494 docs only: R-RUNGS-6/12 confirmed done, R-RUNNER-127 held on spec-epon. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #519 day.trade bars a killed strategy's buys (R-RUNGS-7 desk side). |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #523 R-RUNGS-6/12 re-verified; R-RUNNER-127 held. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #522 refactor, scene 5 reads CLEAN (R-DATA-6). |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #525 verified R-RUNGS-8 and R-RUNGS-11 done, docs only. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #526 no code change; two blocking requests ticked, one held. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #501 no code; R-RUNGS-12 confirmed met, ticked. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #513 no code; Double 7's blocked on lane files (R-RUNGS-10). |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #534 R-RUNNER-214 conformance cost recorded as its own kind in book.py, test green. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #550 plan note only (money-connors7). |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #557 R-RUNNER-199 step 1: intraday engine core, parity and future-blind tested; no intraday rule trades. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #554 documentation re-check only; R-RUNNER-127 with the coordinator. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #573 orders.stop_under, one home for the stop level; R-RUNNER-220 step 1 of 2. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #576 R-RUNNER-233 desk/book.py 400 -> 338 lines, new desk/book_parts.py. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #564 R-RUNNER-158 step 1: underlying cap in the gate, tested; not yet wired to the send path. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #559 no change; R-RUNGS-12 re-verified, R-RUNNER-127 declined. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #590 money-restop split of SimCity done (desk/simcity_census.py); book split deferred. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #586 R-RUNNER-238 split desk/strategy.py to 330 lines, no behaviour change. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #617 money-restop: no step landed, waits on PAPER's R-MONEY-30. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #592 R-RUNNER-158 not ticked; wiring into book.send needs a book.py claim. |
 
 ### DATA
 
