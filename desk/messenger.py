@@ -13,26 +13,21 @@ bell, and owed by 21:30: the day's fills, what is held, and the last day on reco
 is late still goes, until 22:00; after that it is not sent.
 
 THE ALARM ON SILENCE (`watch`), judged from outside the desk's process: a daily message not
-delivered by its hour is told to him, once, at any hour. What it misses is in docs/STATUS.md.
-Each daily message says, read and never written, the kill switch and halts (_gate).
-THE EMAIL FALLBACK (with_mail, summary): after two Telegram refusals in a row every line also
-goes by email; one summary email goes each trading day. Nothing here dials the broker or reads
-the clock: whoever runs the day gives the moment and what the gateway just said."""
+delivered by its hour is told to him, once, at any hour. Each daily message says the kill
+switch and halts, read and never written (_gate). THE EMAIL FALLBACK (with_mail, summary):
+after two Telegram refusals in a row every line also goes by email; one summary each day."""
 
 from __future__ import annotations
 
 import hashlib
 import json
 import re
-import smtplib
 import sqlite3
-import ssl
 from collections.abc import Callable, Iterator, Mapping
 from contextlib import closing, contextmanager
 from dataclasses import dataclass
-from datetime import datetime, time, timedelta
+from datetime import datetime, time
 from decimal import Decimal
-from email.message import EmailMessage
 from http.client import HTTPException
 from pathlib import Path
 from urllib.error import HTTPError
@@ -42,6 +37,10 @@ from urllib.request import Request, urlopen
 from desk import book, clearance, day, gateway, halt, kill, venues
 from desk.gateway import Known
 from desk.lines import LINES
+from desk.messenger_parts import SECONDS as SECONDS
+from desk.messenger_parts import Daily, Mail, sound
+from desk.messenger_parts import Undelivered as Undelivered
+from desk.messenger_parts import smtp as smtp
 from desk.orders import Refused
 from desk.supervisor import WAIT
 
@@ -61,7 +60,7 @@ HOST = "api.telegram.org"
 #: name and never reaches an address, where an error could show it.
 SECRETS = ("TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID")
 BOT_KEY = re.compile(r"[0-9]+:[A-Za-z0-9_-]+")
-SECONDS, READ, LIMIT = 30, 65536, 4096  #: wait per step, most bytes read, most characters sent
+READ, LIMIT = 65536, 4096  #: most bytes read, most characters sent
 CUT = " ... (cut short here: the whole of it is on the desk's delivery record)"
 SILENT = (
     "THE DESK IS SILENT. Its {} message for {:%a %d %b} was owed by {:%H:%M} UK and is not on "
@@ -73,17 +72,7 @@ CLEAR = (
 )
 STALE = "The paper Gateway was not ready just now, so this is the desk's ledger as last read ({}). "
 Post = Callable[[str], int]  #: the door: words to his phone, Telegram's number for them back
-Mail = Callable[[str, str], None]  #: the email door: a subject and the words, or Undelivered
-SMTP, DOWN = ("SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASS", "SMTP_TO"), 2  #: DOWN: strikes
-
-
-class Undelivered(Exception):
-    """The door did not take a message: it has no number on the record, and is asked again."""
-
-
-def _sound(at: datetime, name: str, text: str) -> None:
-    if at.utcoffset() != timedelta(0) or not name.strip() or not text.strip():
-        raise ValueError(f"the message {name!r} at {at}: no UTC time, name or words")
+DOWN = 2  #: strikes
 
 
 @dataclass(frozen=True)
@@ -96,18 +85,9 @@ class Delivery:
     text: str  #: every word of it, though the door cuts what Telegram would refuse for length
 
     def __post_init__(self) -> None:
-        _sound(self.at, self.name, self.text)
+        sound(self.at, self.name, self.text)
         if type(self.number) is not int or not 0 < self.number < 2**63:
             raise ValueError(f"the message {self.name!r}: {self.number!r} is not Telegram's number")
-
-
-@dataclass(frozen=True)
-class Daily:
-    """A message owed on every day a venue of the desk's trades, by hours on a UK clock."""
-
-    name: str
-    start: time  #: not sent before: he sleeps, or a market has not closed five minutes since
-    owed: time  #: not delivered by then, and the desk is silent
 
 
 MORNING = Daily("morning", gateway.WAKES, time(8, 30))
@@ -180,7 +160,7 @@ def send(root: Path, now: datetime, name: str, text: str, post: Post) -> Deliver
     asked and goes at the next asking; so does one whose number was never kept (the desk died
     at the door), which he may be told twice, never not at all. A moment not in UTC, or no
     name or words, is refused before anything."""
-    _sound(now, name, text)
+    sound(now, name, text)
     with _record(root) as record:
         record.execute(ASK, {"at": now.isoformat(), "name": name, "text": text})
         kept = "SELECT at, number, text FROM messages WHERE name = ?"
@@ -194,7 +174,7 @@ def send(root: Path, now: datetime, name: str, text: str, post: Post) -> Deliver
 
 def _today(daily: Daily, now: datetime) -> tuple[str | None, datetime]:
     """The daily message's name today, None on a day no venue trades; and the UK moment."""
-    _sound(now, daily.name, daily.name)
+    sound(now, daily.name, daily.name)
     local = gateway._uk(now)
     today = local.date()
     trades = any(venues.sessions(venue, today, today) for venue in {line.venue for line in LINES})
@@ -291,7 +271,7 @@ def evening(root: Path, now: datetime, known: Known, post: Post) -> Delivery | N
 def hourly(root: Path, now: datetime, words: Callable[[], str], post: Post) -> Delivery | None:
     """HIS HOURLY PROFIT AND LOSS (desk/pnl.py), once in each UK hour a venue of the desk's
     trades, at the first asking; words is asked only for one not yet delivered, else None."""
-    _sound(now, "pnl", "pnl")
+    sound(now, "pnl", "pnl")
     if not any(venues.open_at(v, now) for v in {line.venue for line in LINES}):
         return None
     name = f"pnl {gateway._uk(now):%Y-%m-%d %H}"
@@ -306,7 +286,7 @@ def hourly(root: Path, now: datetime, words: Callable[[], str], post: Post) -> D
 
 def remind(root: Path, now: datetime, post: Post) -> Delivery | None:
     """His weekly login's reminder (gateway.reminder), once for each Sunday's due."""
-    _sound(now, "login", "login")
+    sound(now, "login", "login")
     due = gateway.reminder(now)
     return send(root, now, f"login {due.due:%Y-%m-%d}", due.line, post) if due else None
 
@@ -326,40 +306,9 @@ def watch(root: Path, now: datetime, post: Post) -> tuple[Delivery, ...]:
     )
 
 
-def smtp(env: Mapping[str, str]) -> Mail:
-    """THE EMAIL DOOR, from the five SMTP_ settings of the environment (one missing is refused
-    by name, never shown). A server that refuses is Undelivered, in words that never hold the
-    password. Port 465 speaks TLS from the first byte, any other starts it by STARTTLS."""
-    if missing := [name for name in SMTP if not env.get(name, "").strip()]:
-        raise ValueError(f"no {' or '.join(missing)} in the desk's environment: his to set")
-    host, port, user, secret, to = (env[name].strip() for name in SMTP)
-    tls_first = port == "465"
-
-    def mail(subject: str, text: str) -> None:
-        note, tls = EmailMessage(), ssl.create_default_context()
-        note["Subject"], note["From"], note["To"] = subject, user, to
-        note.set_content(text)
-        try:
-            server = (
-                smtplib.SMTP_SSL(host, 465, timeout=SECONDS, context=tls)
-                if tls_first
-                else (smtplib.SMTP(host, int(port), timeout=SECONDS))
-            )
-            with server:
-                if not tls_first:
-                    server.starttls(context=tls)
-                server.login(user, secret)
-                server.send_message(note)
-        except (OSError, smtplib.SMTPException) as lost:
-            why = f"{type(lost).__name__}: {lost}".replace(secret, "(his password)")
-            raise Undelivered(f"{host} did not take the email: {why[:200]}") from None
-
-    return mail
-
-
 def _mailed(root: Path, now: datetime, name: str, text: str, mail: Mail) -> None:
     """One email under its name, once, kept on the record only after the server took it."""
-    _sound(now, name, text)
+    sound(now, name, text)
     with _record(root) as record:
         if not record.execute("SELECT 1 FROM mails WHERE name = ?", (name,)).fetchone():
             mail(f"Kestrel desk: {name}", text)
