@@ -20,6 +20,7 @@ from desk.store import Bar
 from desk.strategy import ZERO, _Wilder, _Window, rsi
 from lab.block_bands import PercentBOver, PercentBUnderRun
 from lab.block_base import Block, Kind, Param, Spot
+from lab.block_ema import CloseOverExponentials, CloseUnderExponential
 from lab.block_months import MonthEndNotOverAverage, MonthEndOverAverage
 
 
@@ -384,6 +385,10 @@ BLOCKS: Mapping[str, Spot] = {
     "time_stop": Spot(Kind.STOP, TimeStop, {"n": _DAYS}),
     "no_exit": Spot(Kind.EXIT, Never, {}),
     "no_stop": Spot(Kind.STOP, Never, {}),
+    "close_under_exponential": Spot(Kind.EXIT, CloseUnderExponential, {"n": _DAYS}),
     "close_above_average": Spot(Kind.FILTER, CloseAboveAverage, {"n": _DAYS}),
+    "close_over_exponentials": Spot(
+        Kind.FILTER, CloseOverExponentials, {"n": _DAYS, "slow": _DAYS}
+    ),
     "no_filter": Spot(Kind.FILTER, Always, {}),
 }

@@ -254,6 +254,35 @@ def _under_month_end_average(p: Prices, months: Floats, params: Params) -> Bools
     return _month_ends(p, months, params, over=False)
 
 
+def _exponential(close: Floats, n: int) -> Floats:
+    """The exponential average from the bar that completes its first `n` closes on: seeded with
+    their plain average, then each close weighted two parts in `n + 1`."""
+    if len(close) < n:
+        return np.empty(0)
+    out = [float(close[:n].sum()) / n]
+    for value in close[n:].tolist():
+        out.append(out[-1] + (value - out[-1]) * 2 / (n + 1))
+    return np.array(out)
+
+
+def _under_exponential(p: Prices, params: Params) -> Bools:
+    n = int(params["n"])
+    close, average = p.close[n - 1 :], _exponential(p.close, n)
+    return _late(n - 1, _sure(p, average - close, average + close, np.inf) > 0, len(p.close))
+
+
+def _over_exponentials(p: Prices, params: Params) -> Bools:
+    """Close over both exponential averages, from the bar that completes the slower; the
+    averages are not whole numbers, so every comparison must be clear of floating point."""
+    n, slow = int(params["n"]), int(params["slow"])
+    first = max(n, slow) - 1
+    close, over = p.close[first:], np.ones(max(len(p.close) - first, 0), dtype=np.bool_)
+    for size in (n, slow):
+        average = _exponential(p.close, size)[first - size + 1 :]
+        over &= _sure(p, close - average, close + average, np.inf) > 0
+    return _late(first, over, len(p.close))
+
+
 def _always(p: Prices, params: Params) -> Bools:  # noqa: ARG001 - the one interface of every block
     return np.ones(len(p.close), dtype=np.bool_)
 
@@ -281,7 +310,9 @@ FIRES: Mapping[str, Fire] = {
     "close_under_close_ago": _under_close_ago,
     "close_near_range_low": _near_range_low,
     "close_near_range_high": _near_range_high,
+    "close_under_exponential": _under_exponential,
     "close_above_average": _above_average,
+    "close_over_exponentials": _over_exponentials,
     "close_at_or_under_average": _at_or_below_average,
     "big_move": _big_moves,
     "rising_score": _rising_score,
