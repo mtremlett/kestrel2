@@ -10,7 +10,7 @@ from __future__ import annotations
 import time
 from collections.abc import Callable
 from dataclasses import replace
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import BinaryIO
 
@@ -99,6 +99,17 @@ def _door(
     return door
 
 
+def _minute(fields: list[str]) -> Timed:
+    """One one-minute bar of an answer, its price and volume checked by the one parser of a bar's
+    fields (`paper._five`, given a start that is a five-minute mark so only the rest is judged);
+    the start is then read as any minute."""
+    checked = paper._five(["0", *fields[1:]])
+    at = datetime.fromtimestamp(int(paper.number(fields[0], fields)), UTC)
+    return Timed(
+        MINUTES, at, checked.open, checked.high, checked.low, checked.close, checked.volume
+    )
+
+
 def newest_minutes(
     line: Line, contract: str, route: str, seconds: int, mine: paper.Door
 ) -> tuple[Timed, ...]:
@@ -117,10 +128,7 @@ def newest_minutes(
         count = fields[4] if len(fields) > 4 else ""
         if not (count.isascii() and count.isdigit()) or len(fields) != 5 + 8 * int(count):
             raise ValueError(f"bars of a shape the desk does not read: {fields}")
-        return tuple(
-            Timed(MINUTES, b.start, b.open, b.high, b.low, b.close, b.volume)
-            for b in (paper._five(fields[n : n + 6]) for n in range(5, len(fields), 8))
-        )
+        return tuple(_minute(fields[n : n + 6]) for n in range(5, len(fields), 8))
 
     return paper.dial(talk)
 
