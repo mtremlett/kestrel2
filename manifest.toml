@@ -179,6 +179,7 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "lab/rung_cpcv.py" = "the ladder's eighth rung: a tape's priced trades cut into six stretches, every two held out in turn, purged at the cuts, and the probability that the rule was overfitted to the stretches it was chosen on"
 "lab/basket.py" = "the ladder's basket (easing 2): a rule's lines pooled as one portfolio, its priced trades judged together on the pooled after-cost gains and charged the rule's family of trials, asked for only by the EASED switch"
 "lab/verdict.py" = "the ladder's verdict on one cell: every rung's answer with its reason, the shuffle run last and only on a trial that passed the rest, and the one rule over them"
+"lab/verdict_parts.py" = "the ladder's table: whether a cell goes forward, its table line, and the set's results file and table, given to its callers by lab/verdict.py"
 "lab/blocks.py" = "the spec book's building blocks: entries, exits, stops and filters, each written once as a small stateful class over the desk's own proven indicators, and the one list of them by name with their parameters' ranges"
 "lab/blocks_parts.py" = "the spec book's blocks over a run of day-to-day moves: the big-move stop and Clenow's rising score with its rolling log-slope, imported by lab/blocks.py"
 "lab/fast_bands.py" = "the fast engine's firing of the Bollinger-band blocks (%b, the squeeze), on whole arrays, sure of every comparison or refusing with TooClose"
