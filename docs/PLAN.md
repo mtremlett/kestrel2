@@ -604,45 +604,46 @@ his PC with the desk's own client id (222), never 4001.
 - [x] **No paper order until the money lane's kill switch has been drilled** (EMG-02) (#155: drilled once each day at the step's first work)
       {id: paper-kill-drilled; files: desk/running.py, tests/unit/test_running.py;
       after: money-kill, paper-drill, paper-running}
-- [ ] Conformance trades, on paper, one London and one US line, each in its market's hours:
+- [x] Conformance trades, on paper, one London and one US line, each in its market's hours:
       a market buy at the open; the resting stop placed, triggered, and cancelled on a sale;
       a partial fill if the paper broker gives one; a rejection. Each real result recorded
       beside the pretend broker's, and the pretend broker fixed where they differ.
       (Waits for 2026-11-16: the trial trades need London and US markets open, and weekend markets are shut.)
-      Remains: the in-hours half (#135 did the dry orders, 59 cancelled). The command `python -m desk.paper --conformance london|us` landed (#210), unproven by any real order; Monday's 08:05 and 14:35 runs are the first. Then this session compares the recorded files and fixes the pretend broker where they differ
+      Done: Monday 16 Nov's London and US files compared; ids, the stop step, the gate's refusal, the broker's reasons and the soak command landed (#433, #452, #488, #512, #565, #572, #610, #686). Remains: a part fill is unseen (the paper broker gave none at 1, 16 or 18 shares)
       {id: paper-conformance; files: *; after: paper-gateway, paper-check, paper-stops,
       paper-drill; waits: 2026-11-16}
 - [ ] The desk's own process supervised: one supervisor, restarts proven by killing it,
       health judged from outside by dated receipts, surviving a reboot, a dropped network
       and a broker disconnect; a ledger of operator actions proving seven days without one,
       bar the ruled Gateway re-login (OPS-01, OPS-02, OPS-04, OPS-10, NS-01)
-      Remains: first step landed (#168, supervisor, receipts, health, ledger; register empty). Still to do: the step as a command (#189 gave `python -m desk.running`) registered as the first job, a job that tells him what health finds, Windows starting it, the kill drill, seven days counted
+      Remains: the step is the first registered job (#490) and `python -m desk.supervisor tell` sends what health finds (#499). Still to do: Windows starting the supervisor and `tell` (outside the lane's files), the kill drill on the real step, seven days counted, the overnight-window question (the Gateway's 03:00 restart shows as bad receipts)
       {id: paper-supervised; files: desk/supervisor.py, tests/unit/test_supervisor.py,
-      manifest.toml; after: paper-running}
+      manifest.toml; after: paper-running; waits: operator}
 - [ ] The running process always on main's latest code, and a money-path change reaching
       it only at a safe point, never mid-send (OPS-05, OPS-16)
-      {id: paper-on-main; files: desk/supervisor.py, tests/unit/test_supervisor.py;
-      after: paper-supervised}
+      {id: paper-on-main; files: desk/supervisor.py, tests/unit/test_supervisor.py}
 - [ ] The messages: a start-of-day card by 05:40; an end-of-day summary with the profit,
       the streak and the verdict; a line on every change of state and "the desk is not
       trading" by 09:30 UK; urgency levels without storms; one messenger with a delivery
       record, the merge line and the runner's alerts behind the same door (MSG-02, MSG-03,
-      MSG-04, MSG-09, MSG-11) {id: paper-cards; files: desk/messenger.py,
-      tests/unit/test_messenger.py; after: paper-messages, paper-running}
-- [ ] FIRST-LIGHT counted by the desk itself: ten consecutive clean days, and a day that
-      sent nothing cannot be green (NS-10)
+      MSG-04, MSG-09, MSG-11)
+      Remains: hourly P&L (#471, #492), the kill and halt line (#502) and the email fallback (#484, not yet wired into desk/running.py) landed; desk/messenger.py is at its 400-line limit and desk/ has 92 of 10,500 lines left, so the new messages need a phase-ceiling raise in BUDGET.json
+      {id: paper-cards; files: desk/messenger.py,
+      tests/unit/test_messenger.py; after: paper-messages, paper-running; waits: operator}
+- [x] FIRST-LIGHT counted by the desk itself: ten consecutive clean days, and a day that
+      sent nothing cannot be green (NS-10) (#511: `desk/streak.py`; remains: showing the streak in the day's message and the pre-flight line)
       {id: paper-first-light; files: desk/streak.py, tests/unit/test_streak.py,
       manifest.toml; after: paper-running}
 - [ ] An independent watcher of the supervisor, which is restarted weekly (OPS-03)
       {id: paper-watcher; files: desk/watcher.py, tests/unit/test_watcher.py,
       manifest.toml; after: paper-supervised}
-- [ ] Backups: the fill ledger and the day records copied twice, one copy off the PC, and a
-      restore drilled every quarter (DQ-05, DQ-09)
-      {id: paper-backups; files: desk/backup.py, tests/unit/test_backup.py, manifest.toml}
+- [x] Backups: the fill ledger and the day records copied twice, one copy off the PC, and a
+      restore drilled every quarter (DQ-05, DQ-09) (#515: `desk/records_kept.py`; remains: the runner calling it nightly)
+      {id: paper-backups; files: desk/backup.py, tests/unit/test_backup.py, manifest.toml; waits: operator}
 - [ ] The day's extras: missed winners, blocked signals, and the running cost set against
       net profit each week (MSG-13, NS-14)
       {id: paper-extras; files: desk/messenger.py, tests/unit/test_messenger.py;
-      after: paper-cards}
+      after: paper-cards; waits: operator}
 
 ## Phase 4 — the ladder
 

@@ -205,6 +205,56 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-14 | 7 of 7 | 5443 | 3926 | 9651 | 14 of 14 proven | green | #155 paper-kill-drilled: the unattended desk drills its kill switch each day before its check, orders and record; a failed drill stops the day and is told to him. Nothing asks for a step; no order sent. |
 | 2026-11-14 | 5 of 7 | 3950 | 2721 | 6938 | 14 of 14 proven | green | The paper adapter is whole: a buy goes to the paper account with its stop (held back until the stop is sent behind it, so the broker holds the stop from the moment it has the buy), and after any order the line is left under one stop of the desk's own for the shares held, the new one resting before any old one is cancelled; a sale takes its shares off the stop. Nothing sent to the real account: questions only, all quiet. A blind review's one blocking finding (the stop sized by the desk's sums alone) fixed: the broker's word, its fills and the account's shares must agree or an error is raised and the stops left alone. Deliberate breaks: 60, then 31 on the final code; the same 2 cannot differ in a test. Next: the conformance trades. |
 | 2026-11-14 | 5 of 7 | unchanged | unchanged | unchanged | unchanged | green | The paper book's next six boxes noted for the runner; nothing built, scenes 7 of 7. |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #215 R-RUNNER-26: command.rates carries the pound across UK-only holidays. |
+| 2026-11-14 | 7 of 7 | - | - | - | 14 of 14 proven | green | #223 R-RUNNER-42 done: listings asked once a day, not ~100 times. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #295 R-RUNNER-91: the paper day tells him of a broker disagreement; tests 2 files. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #296 R-MONEY-17 done: a paper sale cancels the line's stop first, and a stop that moved meanwhile stops the sale. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #300 R-MONEY-25 done: the step looks first and London waits for its 08:05 bar; blind review passed. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #302 R-DATA-14 done: step reads keeper.saved, record waits on keeper.HELD; scenes 7/7. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #369 R-RUNNER-177: a step timeout's note names its call; the limit itself is open. |
+| 2026-11-15 | 7 of 7 | - | - | - | 14 of 14 proven | green | #373 R-RUNNER-180: gateway wait measured (numbers in DECISIONS) and sized at 30 s, one constant. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #385 pins R-MONEY-36 in a test; confirms R-DATA-14, R-MONEY-25 already landed. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #421 no change, R-DATA-14 already on main. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #431 no change, R-DATA-14 already met (#302). |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #433 R-RUNNER-191: conformance records the broker's reason for every cancelled order; --conformance-why reads it. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #437 R-RUNNER-196 investigated, cause named (the desk's own 30 s cancel), no code change. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #444 R-RUNNER-197 done, conformance run line tells the truth. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #446 no change, R-DATA-14 already met. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #462 rehearsal bar narrowed to the open window (R-RUNNER-190), blind-reviewed. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #461 R-RUNNER-113 PAPER half: messenger and supervisor share one WAIT. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #471 R-RUNNER-207 hourly P&L message built and tested; advances no scene (operator visibility). |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #464 R-RUNNER-144 the day's expected result against the real one, as a tested function. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #476 R-RUNNER-209 done, no scene change. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #477 R-RUNNER-209, test_command names its store by keeper.HOT, no scene moved. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #484 R-RUNNER-16 messenger email fallback built; nothing yet calls it. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #483 PAPER cleared its blocking requests: all four were already on main. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #393 R-RUNNER-93 preflight keeps the day's rate; US round independent of the archive. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #452 R-RUNNER-201 half: conformance trades beside the desk's holding, flat, outside rounds; ledger kind open. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #488 paper-conformance: London run read and fixed (ids, stop step); US run not yet seen. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #490 paper-supervised: step registered as first job; remains the job that tells him, Windows start, kill drill, seven days. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #492 R-RUNNER-210 hourly P&L names its base per figure, one base per line. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #499 paper-supervised: tell command added (health told to his phone); not ticked. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #495 R-RUNNER-17 read-only Trading 212 adapter landed (desk/t212.py, 172 lines, 102 test lines). |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #512 R-RUNNER-212 conformance step 5 compares IBKR's stop fill with a pretend fill at the same price, and unlike actions are refused. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #511 paper-first-light: FIRST-LIGHT streak counted by the desk from its records (NS-10). |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #509 R-DATA-9 bars question built and contract-tested (not yet seen on the live paper Gateway). |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #502 R-RUNNER-161 morning/evening messages name the kill and halt state. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #515 paper-backups: ledger and day records copied twice with hashes, quarterly restore drill (DQ-05, DQ-09). |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #558 R-RUNNER-162 go flat: a flag file halts buying and sells every held line. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #565 R-RUNNER-92 done - conformance expects the gate's own refusal for a no-retail line; no order sent to observe the real rejection. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #572 R-RUNNER-223 soak command built; the runner may now run it hourly in each venue's hours. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #577 R-RUNNER-234 desk/conformance.py split to 254 lines, no behaviour change. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #584 R-RUNNER-250 the IB paper broker moves a resting stop, new before old. |
+| 2026-11-16 | 7 of 7 | - | - | - | 14 of 14 proven | green | #599 R-RUNNER-251 rehearsal beside a held account, GO/NO-GO against 'as found'. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #601 R-RUNNER-235 done: placing.py 327 lines, under 350. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #623 R-RUNNER-256 done: the order-dependent restop/conformance failure is gone. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #610 paper-conformance pretend-vs-real compared; London resting stop now agrees. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #628 R-RUNNER-257 not built, claim too narrow (no code). |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #645 R-RUNNER-255 done: the round moves stops to the fill, once. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #651 R-RUNNER-258 step 1 of 3 landed: the paper lane takes a Door; pure restructuring, scenes 7 of 7. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #657 R-MONEY-30: recover restores a lost stop from the book's kept level. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #690 R-RUNNER-268 desk/running.py split, 392 to 321 lines, no behaviour change. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #686 paper-conformance: Monday's conformance files compared with the pretend broker; no code change, every difference already fixed. |
 
 ### GRID
 
