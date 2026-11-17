@@ -107,3 +107,23 @@ def test_a_pull_fills_the_gaps_only_paced_and_resumes_after_a_stop() -> None:
     rest = history.plan((VUAG, IDTL), done)
     assert history.pull(rest, fetch, keep, waits.append) == everything - 5
     assert len(set(asked)) == len(asked) == everything - 1 and not history.plan((VUAG, IDTL), done)
+
+
+def test_a_run_asks_each_timeframe_over_one_conversation_and_not_in_a_round(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    kept: dict[history.Ask, object] = {}
+    sent: list[bytes] = []
+    wire = conversation(TAPE, NONE)
+    monkeypatch.setattr(paper, "dial", lambda talk: talk(wire, sent.append))
+    asks = [(VUAG, "1d"), (VUAG, "1wk")]
+    keep = lambda line, frame, got: kept.update({(line, frame): got})  # noqa: E731
+    assert history.run(asks, keep, DAY, SINCE, MONDAY_NOON, lambda _: None) == 2
+    assert isinstance(kept[(VUAG, "1wk")], Refused) and "\0" + "1 week" + "\0" in sent[-1].decode()
+    assert paper.CLIENT == history.CLIENT
+    timed = conversation(TAPE.replace("20261112", "20261112 09:30:00"))
+    paper.start(timed, lambda _: None)
+    with pytest.raises(NotImplementedError, match="carries its time"):
+        history.ask(timed, sent.append, VUAG, DAY, SINCE, "5m")
+    with pytest.raises(Busy):
+        history.run(asks, keep, DAY, SINCE, datetime(2026, 11, 16, 8, 0, tzinfo=UTC))
