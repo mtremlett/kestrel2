@@ -249,7 +249,8 @@ def test_a_line_unanswered_keeps_what_its_day_holds_is_asked_again_and_a_blind_v
         ROUND.format(0, 1, "ValueError: no IBKR real-time data on paper", "no bar landed"),
         said[2],
     ]
-    assert keeper.saved(tmp_path, wed, [UK]) == ({UK: ()}, frozenset({"BBB"}))
+    held, parked = keeper.saved(tmp_path, wed, [UK])  # refused, it is parked; its past is kept
+    assert (held[UK], parked) == (_bars(UK, tue), frozenset({"BBB"}))
     pretend.refuses, pretend.short = set(), {"BBB"}
     for call in range(keeper.TRIES + 2):  # answered, yet no line clean: a miss, and never left
         said, missed = pretend.keep(tmp_path, _at(18, 5 * call, tue))
