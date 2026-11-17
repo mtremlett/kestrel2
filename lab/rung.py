@@ -171,6 +171,14 @@ def decide(trades: int, t: Decimal | None) -> Answer:
     return Answer.PASS if t >= T_PASS else Answer.FAIL
 
 
+def band(t: Decimal | float) -> Answer:
+    """The three-band rule of t, wherever a judged t has a missing middle: PASS at T_PASS standard
+    errors above nothing, FAIL at that far below, DOUBT between (LAD-08)."""
+    if t >= T_PASS:
+        return Answer.PASS
+    return Answer.FAIL if t <= -T_PASS else Answer.DOUBT
+
+
 def standing(answer: Answer, t: Decimal | None) -> tuple[Answer, bool, Decimal | int]:
     """The sort key of "worst fold", wherever folds are judged: the worst answer, then the lowest
     t, a missing t lowest of all; `min` over it gives the fold judged on, the older of equals."""
