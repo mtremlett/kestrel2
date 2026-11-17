@@ -248,7 +248,7 @@ SGLN's off-mark bar refused alone, research-list bars); then data-isa-twins, dat
 
 ## GRID
 
-Last updated: 16 November 2026 (declared pass, transfer study, rule book, timing: #399, #263, #281, #403).
+Last updated: 17 November 2026 (one bars reader #449; batch.stored reads as research does #618; R-DATA-10 confirmed #626).
 ### Where it is
 
 Built and proven: the cell (a Line only), batch, fast grid engine and fast spec-row engine (`lab/fast.py`, ~30 times
@@ -262,11 +262,12 @@ grid-week (waits: 2026-11-21): the seven-day run is going (pid in `%KESTREL2_DAT
 On or after 20 Nov 23:45 UK read `sweep.unbroken(Path(KESTREL2_DATA))`: 7 days ticks it. If it died, restart within the
 hour, below-normal priority, from `C:\Users\mtrem\PYTHON\kestrel2_lanes\gridweek`:
 `python -B -m lab.sweep %KESTREL2_DATA%\grid\store %KESTREL2_DATA%\grid\cells %KESTREL2_DATA% --days 7`.
-Every other box is ticked. Open: R-DATA-7, R-RUNGS-2 (declared sweep enters every cell in the register), R-RUNGS-4.
+Every other box is ticked. Open: R-DATA-7 (`batch.stored` now reads through `universe.read`, #618; remains: a cell keeping
+`History.moves` and `.rescaled` in its record, which changes the cell's record and key), R-RUNGS-2 (declared sweep enters every cell in the register), R-RUNGS-4.
 
 ### Done for other lanes
 - R-DATA-1: done in #73; R-DATA-10: #391; R-RUNNER-4: #171; R-RUNNER-8: #391; R-RUNNER-19: #197; R-RUNNER-82: #263
-- R-RUNNER-89: #281; R-RUNNER-128: #360; R-RUNNER-140: #330; R-RUNNER-164: #397; R-RUNNER-167: #359; R-RUNNER-170: #372
+- R-RUNNER-89: #281; R-RUNNER-128: #360; R-RUNNER-140: #330; R-RUNNER-164: #397; R-RUNNER-167: #359; R-RUNNER-170: #372; R-RUNNER-112: #449
 ### Requests to MONEY
 - [ ] R-GRID-1 (later, 2026-11-13 18:15): the five rules at other settings in `desk/strategy.py`, each with a grid and
   a name per setting in `transfer.families()`; the grid runs the published five until then.
