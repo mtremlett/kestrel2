@@ -43,6 +43,7 @@ def test_a_winner_is_corrected_for_every_trial_it_was_picked_from() -> None:
     assert winner.passed and winner.t is not None and Decimal("2.6") < winner.t < Decimal("2.7")
     (alone,) = luck.correct([winner], 0)
     assert alone.passed and alone.trials == 1 and alone.verdict is winner
+    assert alone.key == winner.key.rung("lab.luck") != winner.key
     assert alone.chance == alone.corrected == luck.tail(float(winner.t), 39) < 0.006
     #: the same winner picked from eight trials stands, and from nine does not: 5% is the line
     eight, nine = luck.correct([winner], 7)[0], luck.correct([winner], 8)[0]
