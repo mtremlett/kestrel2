@@ -1,0 +1,50 @@
+"""block_bands - the spec book's blocks that read where the close sits in Bollinger's bands,
+kept apart from `lab.blocks` (which has no room), each written once over the desk's own
+`_Window` and `lower_band`."""
+
+from __future__ import annotations
+
+from decimal import Decimal
+
+from desk.store import Bar
+from desk.strategy import ZERO, _Window, lower_band
+from lab.block_base import Block
+
+
+class _PercentB(Block):
+    """Where the close sits in the bands of the last `n` bars (this one's included): %b, 0 at
+    the lower band (2 deviations under the average) and 1 at the upper. A flat window has no
+    bands, so no %b, and the block does not fire."""
+
+    def __init__(self, n: int, pct: int) -> None:
+        self._bands, self._pct = _Window(n), Decimal(pct) / 100
+
+    def percent_b(self, bar: Bar) -> Decimal | None:
+        """Takes in the bar; its %b, or None while the window is not full or is flat."""
+        self._bands.add(bar.close)
+        dev = self._bands.deviation() if self._bands.full else ZERO
+        return (bar.close - lower_band(self._bands.mean(), dev)) / (4 * dev) if dev else None
+
+
+class PercentBOver(_PercentB):
+    """Fires while %b of the last `n` bars is over `pct` per cent."""
+
+    def see(self, bar: Bar, holding: bool) -> bool:  # noqa: ARG002 - the one interface of every block
+        """Shown the next bar: whether the block fires."""
+        b = self.percent_b(bar)
+        return b is not None and b > self._pct
+
+
+class PercentBUnderRun(_PercentB):
+    """Fires once %b of the last `n` bars has been under `pct` per cent on `run` bars in a row,
+    this one the last."""
+
+    def __init__(self, n: int, pct: int, run: int) -> None:
+        super().__init__(n, pct)
+        self._run, self._days = run, 0
+
+    def see(self, bar: Bar, holding: bool) -> bool:  # noqa: ARG002 - the one interface of every block
+        """Shown the next bar: whether the block fires."""
+        b = self.percent_b(bar)
+        self._days = self._days + 1 if b is not None and b < self._pct else 0
+        return self._days >= self._run

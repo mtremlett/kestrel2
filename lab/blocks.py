@@ -18,6 +18,7 @@ from functools import partial
 from desk.eponymous_clenow_momentum import YEAR
 from desk.store import Bar
 from desk.strategy import ZERO, _Wilder, _Window, rsi
+from lab.block_bands import PercentBOver, PercentBUnderRun
 from lab.block_base import Block, Kind, Param, Spot
 
 
@@ -350,6 +351,7 @@ class Never(Block):
 _DAYS = Param(int, 2, 400)
 _PCT = Param(int, 1, 50)
 _AGO = Param(int, 1, 50)
+_LOW, _HIGH = Param(int, 1, 49), Param(int, 51, 99)
 #: The one list of blocks by name; a spec names these and no others.
 BLOCKS: Mapping[str, Spot] = {
     "highest_high": Spot(Kind.ENTRY, HighestHigh, {"n": _DAYS}),
@@ -360,6 +362,10 @@ BLOCKS: Mapping[str, Spot] = {
     "close_at_range_low": Spot(Kind.ENTRY, CloseAtRangeLow, {"n": _DAYS}),
     "close_over_keltner_band": Spot(Kind.ENTRY, partial(_Keltner, upper=True), {"n": _DAYS}),
     "close_under_keltner_band": Spot(Kind.EXIT, partial(_Keltner, upper=False), {"n": _DAYS}),
+    "percent_b_under_run": Spot(
+        Kind.ENTRY, PercentBUnderRun, {"n": _DAYS, "pct": _LOW, "run": _AGO}
+    ),
+    "percent_b_over": Spot(Kind.EXIT, PercentBOver, {"n": _DAYS, "pct": _HIGH}),
     "rsi_under": Spot(Kind.ENTRY, RsiUnder, {"n": _DAYS, "pct": _PCT}),
     "close_under_close_ago": Spot(Kind.ENTRY, CloseUnderCloseAgo, {"n": _DAYS}),
     "close_at_midpoint": Spot(Kind.EXIT, CloseAtMidpoint, {"n": _DAYS}),
