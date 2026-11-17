@@ -149,22 +149,26 @@ def recover(
     a stop of the desk's own open on it, now or before that cancel (the broker ends a buy's
     stop with the buy), if its shares at the broker are the book's, is left under the one
     stop due (_due, Paper.settle). A line whose shares are not the book's is left as it is,
-    for the day's check to name; so is one held under no stop at all, for a stop's level is
-    kept nowhere but at the broker. Nothing is done while the kill switch is on, or
-    undrilled: the desk sends nothing then."""
+    for the day's check to name; so is one held under no stop at all and no level
+    kept in the book; one with a level kept is given its newest buy's stop back. Nothing is
+    done while the kill switch is on, or undrilled: the desk sends nothing then."""
     if book.killed(root) or not kill.drilled(root, today):
         return ()
     before = paper.read(door)
     did = [f"cancelled {name}, left working" for name in broker.cancel()]
     book.collect(root, broker)
     held, account = book.positions(root), paper.read(door)
-    bought = {fill.order_id for fill in book.fills(root) if fill.quantity > 0}
+    newest = {f.symbol: f.order_id for f in book.fills(root) if f.quantity > 0}
+    bought, kept = set(newest.values()), book.levels(root)
     for listed in listings.values():
         if isinstance(listed, Listing):
             shares, stops = placing.on(account, listed, door)
             was = placing.on(before, listed, door)[1]
-            mine = (stops or was) and shares == held.get(listed.line.symbol, 0)
-            for due in _due(shares, stops, was, bought) if mine else ():
+            symbol = listed.line.symbol
+            lost = f"{newest.get(symbol)}-stop"  #: the stop the book kept a level for (R-MONEY-30)
+            back = placing.Stop(shares, listed.floor(kept[lost]), lost) if lost in kept else None
+            mine = (stops or was or back) and shares == held.get(symbol, 0)
+            for due in _due(shares, stops, was, bought, back) if mine else ():
                 broker.settle(listed, shares, stops, due)
                 under = f"one stop for {shares} shares" if due else "no stop, none of it held"
                 did.append(f"{listed.line.symbol} left under {under}")
@@ -172,7 +176,11 @@ def recover(
 
 
 def _due(
-    shares: Decimal, stops: Sequence[Resting], was: Sequence[Resting], bought: Collection[str]
+    shares: Decimal,
+    stops: Sequence[Resting],
+    was: Sequence[Resting],
+    bought: Collection[str],
+    back: placing.Stop | None,
 ) -> tuple[placing.Stop | None, ...]:
     """The one stop a line found after a restart is to be left under, or None for none; and
     nothing at all for a line to be left as it is. The stop is for the shares held, at the
@@ -180,8 +188,10 @@ def _due(
     the dead desk's orders were cancelled (was), whose buy the ledger holds a fill of: a
     stop that came with a buy that bought nothing gives no level, as after any order
     (placing._due). No share held, and no stop is due: one left resting could sell short.
-    Left as it is: a line already under one stop the broker holds for exactly its shares, a
-    line held with no stop to take a level from, and one with no share and no stop."""
+    A line held with no stop at all is given back (back) the stop of its newest buy at the
+    level the book kept (R-MONEY-30). Left as it is: a line already under one stop the broker
+    holds for exactly its shares, a line held with no level kept, and one with no share and no
+    stop."""
     if [(o.left, o.state in HELD) for o in stops] == [(shares, True)]:
         return ()
     levels = [
@@ -191,7 +201,7 @@ def _due(
     ]
     if not shares:
         return (None,) if stops else ()
-    return (max(levels)[1],) if levels else ()
+    return (max(levels)[1],) if levels else (back,) if back and shares else ()
 
 
 def _clean(

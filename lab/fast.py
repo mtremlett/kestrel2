@@ -20,7 +20,8 @@ from decimal import Decimal
 import numpy as np
 
 from desk.store import Bar
-from lab.fast_parts import DATED, FIRES, Params, _top
+from lab.fast_bands import Params
+from lab.fast_parts import DATED, FIRES, _top
 from lab.grid import DESK, Bools, Prices, TooClose, _sure, prices
 from lab.spec import Spec
 

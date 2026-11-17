@@ -82,9 +82,10 @@ def _broker(home: Path, now: datetime) -> Ask:
     """The broker's bar of one day, in the line's currency: its own dial, in the history
     reader's pace and quiet, and the unit it prices the line in, as it lists the line today."""
 
+    door = paper.Door(history.CLIENT)  #: the history reader's own door, passed down
+
     def ask(line: Line, day: date) -> store.Answer:
-        paper.CLIENT = history.CLIENT  #: this process is the history reader at the door
-        listed = listing.kept(home, now, LINES)[line.symbol]
+        listed = listing.kept(home, now, LINES, door)[line.symbol]
         if isinstance(listed, listing.Unlisted):
             return Refused(listed.reason)
         got = history.gather((line,), day + timedelta(1), day, now)[line]

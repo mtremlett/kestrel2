@@ -19,6 +19,7 @@ from test_reports import AAPL, BOUGHT, DONE, END, IITU, LISTED, SMGB
 from desk import book, clearance, day, kill, listing, paper, running, venues
 from desk.bars import Five, writing
 from desk.book import Switch
+from desk.book_parts import keep
 from desk.broker import Fill, Pretend
 from desk.clearance import Check
 from desk.lines import YARDSTICK
@@ -222,6 +223,17 @@ def test_what_a_desk_that_died_part_way_left_at_the_broker_is_put_right(
     did, sent = recover(idle, limbo, [END], limbo, tp.RESTS, [tp.ENDED_7])
     rested = tp._msg(tp.AT_STOP | {20: "171.5", 26: f"{OLD}-stop"})
     assert sent == [ACCOUNT, FILLS, ACCOUNT, rested, tp.CANCEL_7] and len(did) == 1
+    # held with no stop at all, its shares the book's: the newest buy's stop goes back at the
+    # level the book kept for it (R-MONEY-30); with no level kept, it is left as it is
+    lost, bare = tmp_path / "lost", _account([tp.HELD])
+    kill.drill(lost, MON)
+    book._record(lost, [BEFORE])
+    assert recover(lost, bare, [END], bare) == ((), [ACCOUNT, FILLS, ACCOUNT])
+    keep(lost / book.STOPS, [book.LEVELS, (f"{OLD}-stop", Decimal("324"))])
+    did, sent = recover(lost, bare, [END], bare, tp.RESTS)
+    want = tp._msg(tp.AT_STOP | {17: "26", 20: "32400.00", 26: f"{OLD}-stop"})
+    assert want in sent
+    assert did == ("IITU left under one stop for 26 shares",)
     # a line settled is left alone; so is one whose shares are not the book's (here the sale
     # the broker made is in no answer), and one whose only stop is of a buy the ledger lacks
     stranger = _account([tp.HELD], *_order("7", "SELL STP", "x-stop", "PreSubmitted", 20))

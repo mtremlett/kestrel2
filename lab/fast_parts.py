@@ -8,10 +8,15 @@ floating point can call raises `TooClose`, the desk's own engine then deciding.
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
-from decimal import Decimal
 
 import numpy as np
 
+from lab.fast_bands import (
+    Params,
+    close_over_band_after_squeeze,
+    percent_b_over,
+    percent_b_under_run,
+)
 from lab.grid import (
     MARGIN,
     Bools,
@@ -24,7 +29,6 @@ from lab.grid import (
     _windows,
 )
 
-Params = Mapping[str, int | Decimal]
 Fire = Callable[[Prices, Params], Bools]
 
 
@@ -190,32 +194,6 @@ def _rsi_under(p: Prices, params: Params) -> Bools:
     return _late(n, low, len(p.close))
 
 
-def _past_band(p: Prices, params: Params, under: bool) -> Bools:
-    """%b of the last `n` closes under `pct` (the close under the average by more than
-    (50 - pct) / 25 deviations) or over it (above by more than (pct - 50) / 25), from bar
-    n - 1: with `u` = the sum of the n closes less n times this one, the close's side is the
-    sign of `u`, and 625 * n * u^2 over (50 - pct)^2 times the squares about the sum is the
-    deviations. A flat window has no bands and fires nothing."""
-    n, pct = int(params["n"]), int(params["pct"])
-    window = _windows(p.close, n)
-    total, close = window.sum(axis=1), window[:, -1]
-    u = total - n * close
-    side = _sure(p, u if under else -u, total + n * close) > 0
-    left = 625 * n * u * u
-    right = (50 - pct) ** 2 * ((n * window - total[:, None]) ** 2).sum(axis=1)
-    return side & (_sure(p, left - right, left + right, left + right) > 0)
-
-
-def _percent_b_over(p: Prices, params: Params) -> Bools:
-    return _late(int(params["n"]) - 1, _past_band(p, params, under=False), len(p.close))
-
-
-def _percent_b_under_run(p: Prices, params: Params) -> Bools:
-    n, run = int(params["n"]), int(params["run"])
-    days = _windows(_past_band(p, params, under=True).astype(float), run).min(axis=1) > 0
-    return _late(n + run - 2, days, len(p.close))
-
-
 def _under_close_ago(p: Prices, params: Params) -> Bools:
     return _late(n := int(params["n"]), p.close[n:] < p.close[:-n], len(p.close))
 
@@ -294,8 +272,9 @@ FIRES: Mapping[str, Fire] = {
     "close_over_keltner_band": _over_keltner_band,
     "close_under_keltner_band": _under_keltner_band,
     "rsi_under": _rsi_under,
-    "percent_b_over": _percent_b_over,
-    "percent_b_under_run": _percent_b_under_run,
+    "close_over_band_after_squeeze": close_over_band_after_squeeze,
+    "percent_b_over": percent_b_over,
+    "percent_b_under_run": percent_b_under_run,
     "close_under_close_ago": _under_close_ago,
     "close_near_range_low": _near_range_low,
     "close_near_range_high": _near_range_high,
