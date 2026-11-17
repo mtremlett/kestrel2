@@ -94,9 +94,8 @@ SCHEMA = (
     " span TEXT NOT NULL, at INTEGER NOT NULL, open TEXT NOT NULL, high TEXT NOT NULL,"
     " low TEXT NOT NULL, close TEXT NOT NULL, volume INTEGER NOT NULL, source TEXT NOT NULL,"
     " replaced_by TEXT NOT NULL)",
-    "CREATE TABLE IF NOT EXISTS withdrawn (venue TEXT NOT NULL, symbol TEXT NOT NULL,"
-    " span TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (venue, symbol, span, at))"
-    " WITHOUT ROWID",
+    "CREATE TABLE IF NOT EXISTS withdrawn (venue TEXT NOT NULL, symbol TEXT NOT NULL, span TEXT"
+    " NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (venue, symbol, span, at)) WITHOUT ROWID",
 )
 #: A store made before sources were kept: every bar in it came from the archive.
 SOURCED = f"ALTER TABLE bar ADD COLUMN source TEXT NOT NULL DEFAULT '{Source.ARCHIVE.value}'"
@@ -184,20 +183,25 @@ class Round:
     def daily(self, line: Line, bars: Iterable[Bar], withdrawn: Iterable[date] = ()) -> None:
         """A line's daily bars from this source, joined by day into what the store holds, and
         none held is ever deleted (B3): a fresh source's bar takes the day of another's, the old
-        value kept in `correction` if it differs. A day in `withdrawn` is one the desk judged
-        untrue: its row stays, marked, and no reader is given it until a bar is given for it
-        again. A day given twice is refused."""
+        value kept in `correction` if it differs. A day in `withdrawn` was judged untrue: its row
+        stays, marked, unread until a bar is given for it again. A day given twice is refused."""
         if not self._source.fresh:
-            raise ValueError(f"{self._source.value} is no fresh source: it restates no history")
+            raise ValueError(f"{self._source.value} is no fresh source: it restates nothing")
         given = [(b.day.toordinal(), b) for b in bars]
         if len({at for at, _ in given}) < len(given):
             what = f"{line.symbol} on {line.venue}: its history gives a day twice; none kept"
             raise ValueError(what)
         key, held = (line.venue, line.symbol, DAILY), self._held[DAILY]
         self._write(PUT, line, DAILY, given)
-        held.executemany(RESTORE, ((*key, at) for at, _ in given))
-        gone = {day.toordinal() for day in withdrawn} - {at for at, _ in given}
-        held.executemany(WITHDRAW, ((*key, at) for at in sorted(gone)))
+        held.execute("SAVEPOINT marks")
+        try:
+            held.executemany(RESTORE, ((*key, at) for at, _ in given))
+            gone = {day.toordinal() for day in withdrawn} - {at for at, _ in given}
+            held.executemany(WITHDRAW, ((*key, at) for at in sorted(gone)))
+        except BaseException:
+            held.execute("ROLLBACK TO marks")
+            raise
+        held.execute("RELEASE marks")
 
     def days(self, line: Line, bars: Iterable[Bar]) -> int:
         """More daily bars, and how many landed: as `five`, but for days not moments."""
@@ -241,8 +245,7 @@ class Round:
 
 
 def _open(file: Path) -> sqlite3.Connection:
-    """The one opener of a store's database, reader's or writer's: a store already made gains
-    any table a later version added before anything is asked of it."""
+    """The one opener, reader's or writer's: a store already made gains any newer table."""
     one = sqlite3.connect(file, timeout=WAIT, isolation_level=None)
     if one.execute(MADE).fetchone() is not None:
         for table in SCHEMA:
