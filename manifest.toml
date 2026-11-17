@@ -189,6 +189,7 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "lab/blocks_parts.py" = "the spec book's blocks over a run of day-to-day moves: the big-move stop and Clenow's rising score with its rolling log-slope, imported by lab/blocks.py"
 "lab/fast_bands.py" = "the fast engine's firing of the Bollinger-band blocks (%b, the squeeze), on whole arrays, sure of every comparison or refusing with TooClose"
 "lab/block_bands.py" = "the spec book's Bollinger-band blocks: where the close sits in the bands (%b), an entry on a run of low days and an exit on a high one, over the desk's own window and lower band"
+"lab/block_box.py" = "the spec book's blocks for Darvas's box: an entry on a close over a standing box's top and a stop on a close under the stop the boxes raised, one reading of the boxes shared by both"
 "lab/block_swing.py" = "the spec book's blocks for Raschke's Turtle Soup: an entry on a failed breakdown of the n-day low, and a stop under the buying day's low"
 "lab/block_sequential.py" = "the spec book's blocks for DeMark's TD Sequential: an entry on the thirteenth bar of a buy countdown, an exit on a nine-bar sell setup"
 "lab/fast_sequential.py" = "the fast engine's firing of the TD Sequential blocks, bar by bar over whole prices"
