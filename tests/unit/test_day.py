@@ -29,7 +29,7 @@ def _line(
 ) -> tuple[Line, tuple[Bar, ...]]:
     half = Decimal(reach)
     return Line(symbol, "LSE", "GBP", 1), tuple(
-        Bar(on, c, c + half, c - half, c, 1)
+        Bar(on, c, c + half, c - half, c, 10**6)
         for on, c in zip(DAYS, map(Decimal, map(str, closes)), strict=False)
     )
 

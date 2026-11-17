@@ -22,6 +22,9 @@ STOP_FALL = Decimal("0.10")
 #: STP-10, the one home (R-RUNGS-11, docs/DECISIONS.md): the most of the capital one holding may
 #: lose when a gap jumps its stop; the stop alone risks STOP_FALL / HOLDINGS of it (2%).
 GAP_LOSS = Decimal("0.05")
+#: SIZ-10, the one home: no position above this share of its line's average daily traded value
+#: over the last LIQUID_DAYS sessions.
+LIQUID_SHARE, LIQUID_DAYS = Decimal("0.01"), 20
 
 
 @dataclass(frozen=True)
@@ -189,10 +192,12 @@ def size(
     fx: Decimal,
     settings: Settings,
     held: Mapping[str, int],
+    traded: Decimal | None = None,
 ) -> Order:
-    """The most whole shares whose cost, with the shares of the line already held, fits the
-    line's room, and the stop, for a buy; fx is pounds per unit of the line's currency, and
-    held is the book (book.positions)."""
+    """The most whole shares whose cost, with those of the line held, fits the line's room, and
+    the stop, for a buy; fx is pounds per unit of the line's currency, and
+    held is the book (book.positions); given the line's daily pounds (traded_value), the position
+    is kept to LIQUID_SHARE of them too."""
     if decision.action is not Action.BUY or decision.symbol != line.symbol:
         raise ValueError(f"{line.symbol}: only a buy for this line is sized, not {decision}")
     order_id = order_id_of(decision)
@@ -201,19 +206,27 @@ def size(
     def order(quantity: int) -> Order:
         return Order(order_id, line, quantity, price, fx, stop)
 
-    room, one = _room(line, settings), order(1)  #: one share proves the price, rate and stop
+    room, one = _room(line, settings), order(1)  #: one share proves the price, rate, stop
     if cost(one) > room:
         raise Refused(f"{order_id}: one share costs more than the room of {room} pounds")
     fits, over = 1, int(room / (price * fx)) + 1
     while over - fits > 1:  #: cost grows with the shares, so halve the gap until it closes
         middle = (fits + over) // 2
         fits, over = (middle, over) if cost(order(middle)) <= room else (fits, middle)
+    fits = fits if traded is None else min(fits, int(traded * LIQUID_SHARE / (price * fx)))
     already = held.get(line.symbol, 0)
     if fits <= already:
         raise Refused(f"{order_id}: {already} shares held leave no room for more")
     bought = order(fits - already)
     gate(bought, settings, held)
     return bought
+
+
+def traded_value(line: Line, bars: Sequence[Bar], fx: Decimal) -> Decimal:
+    """THE POUNDS A LINE TRADES IN A DAY (SIZ-10): close times volume over its last 20 bars."""
+    if len(bars) < LIQUID_DAYS:
+        raise Refused(f"{line.symbol}: {len(bars)} bars, under {LIQUID_DAYS} to judge its volume")
+    return sum((b.close * b.volume for b in bars[-LIQUID_DAYS:]), Decimal(0)) * fx / LIQUID_DAYS
 
 
 def order_id_of(decision: Decision) -> str:

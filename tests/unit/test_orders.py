@@ -5,13 +5,14 @@ November 2026, docs/DECISIONS.md)."""
 from __future__ import annotations
 
 from dataclasses import replace
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 
 import pytest
 
 from desk import orders
 from desk.lines import STAMP_DUTY, Line
+from desk.store import Bar
 from desk.strategy import Action, Decision
 
 PLAIN, THREE_X, FIVE_X = (
@@ -153,3 +154,16 @@ def test_a_sale_passes_the_gate_only_for_shares_the_book_holds() -> None:
     for bad in ("", "garbage", "20261116-rule", "20261116--P"):
         with pytest.raises(ValueError, match="no strategy can be read"):
             orders.strategy_of(bad)
+
+
+def test_a_position_is_kept_to_a_hundredth_of_what_its_line_trades_in_a_day() -> None:
+    two = Decimal(2)
+    bars = tuple(Bar(date(2025, 10, 1) + timedelta(n), two, two, two, two, 5000) for n in range(20))
+    day = orders.traded_value(PLAIN, bars, Decimal(1))
+    assert day == 10_000, "a pound's worth is the close times the volume, averaged over 20 bars"
+    args = (_buy(PLAIN), PLAIN, Decimal(2), Decimal(1), TEN_K, {"P": 10})
+    assert orders.size(*args, day).quantity == 40, "50 shares are 1%, 10 are held already"
+    with pytest.raises(orders.Refused, match="no room"):
+        orders.size(*args[:5], {"P": 50}, day)
+    with pytest.raises(orders.Refused, match="under 20 to judge"):
+        orders.traded_value(PLAIN, bars[1:], Decimal(1))
