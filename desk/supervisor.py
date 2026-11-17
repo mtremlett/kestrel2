@@ -32,10 +32,18 @@ TOLD (`tell`): what `health` finds goes to his phone through the messenger's one
 a name of the UTC hour, so a fault is told once an hour and never in a storm. Run from outside
 the supervisor (whatever Windows starts beside it), so a dead supervisor is still told.
 
+ON MAIN'S LATEST CODE, AT A SAFE POINT (OPS-05, OPS-16). Each look, before any job is run, the
+supervisor takes every job's lock (so none is mid-send, not even one a dead supervisor left),
+pulls main into the desk's code folder (`pull`, fast-forward only), and lets go. A job is a
+fresh process, so the next run is the new code; a supervisor whose own file changed leaves,
+and whatever started it starts it again. A pull that fails is a receipt of the job "update"
+and the old code runs on.
+
 Not built (docs/STATUS.md): the supervisor's own start, and `tell`'s, by Windows."""
 
 from __future__ import annotations
 
+import contextlib
 import os
 import runpy
 import sqlite3
@@ -43,7 +51,7 @@ import subprocess
 import sys
 import time
 from collections.abc import Callable, Iterator, Sequence
-from contextlib import closing, contextmanager
+from contextlib import ExitStack, closing, contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from functools import partial
@@ -104,6 +112,9 @@ JOBS: tuple[Job, ...] = (
     Job("step", "desk.running", timedelta(minutes=5), timedelta(minutes=4), False),
 )
 Run = Callable[[Job, Path], str]
+Pull = Callable[[], str]  #: brings the code up to main's: DONE, or how it failed
+CODE = Path(__file__).resolve().parents[1]  #: the desk's code folder, a copy of main
+UPDATE, PULLED = "update", ("git", "pull", "--ff-only", "--quiet")
 
 
 class Receipt(NamedTuple):
@@ -177,6 +188,28 @@ def _run(job: Job, root: Path) -> str:
     last = (ended.stderr.strip().splitlines() or ["it said nothing"])[-1][:SAID]
     how = {0: DONE, OVERRUN: OVERRAN.format(job.limit)}
     return how.get(ended.returncode) or ENDED.format(ended.returncode, last)
+
+
+def _pull() -> str:
+    """Main's latest into the code folder, fast-forward only. Given back: DONE, or the words."""
+    ended = subprocess.run(  # noqa: S603 - git, with fixed words, in the desk's own folder
+        PULLED, cwd=CODE, capture_output=True, errors=SPELT, timeout=60, creationflags=HIDDEN
+    )
+    last = (ended.stderr.strip().splitlines() or ["it said nothing"])[-1][:SAID]
+    return DONE if ended.returncode == 0 else ENDED.format(ended.returncode, last)
+
+
+def _update(root: Path, jobs: Sequence[Job], pull: Pull, clock: Clock) -> None:
+    """THE SAFE POINT: with every job's lock held, so none runs, pull; a failure is kept as a
+    receipt of the job "update". A lock held by another job's process is Held: no pull now."""
+    with ExitStack() as locks:
+        for job in jobs:
+            locks.enter_context(_only(root, f"job-{job.name}"))
+        began, how = _utc(clock()), pull()
+        if how != DONE:
+            with _record(root) as record:
+                row = (UPDATE, began.isoformat(), _utc(clock()).isoformat(), how)
+                record.execute("INSERT INTO receipts VALUES (?, ?, ?, ?)", row)
 
 
 def attend(
@@ -279,17 +312,28 @@ def unattended(root: Path, now: datetime, jobs: Sequence[Job]) -> timedelta:
 
 
 def supervise(
-    root: Path, jobs: Sequence[Job], clock: Clock = _now, wait: Callable[[float], None] = time.sleep
+    root: Path,
+    jobs: Sequence[Job],
+    clock: Clock = _now,
+    wait: Callable[[float], None] = time.sleep,
+    pull: Pull | None = None,
 ) -> None:
     """THE ONE SUPERVISOR, for as long as it lives: the supervisor's lock taken (Held, and
     another is alive), then a look at what is due every LOOK seconds. Nothing registered is
-    refused, and so is a name registered twice. An error of its own ends it: whatever
-    started it starts it again."""
+    refused, and so is a name registered twice. With a pull, the code is brought up to main's
+    each look at the safe point, and the supervisor leaves when its own file changed. An error of
+    its own ends it: whatever started it starts it again."""
     names = [job.name for job in jobs]
     if not jobs or len(set(names)) < len(names):
         raise ValueError(NOTHING if not jobs else f"a job is on the register twice: {names}")
+    mine = Path(__file__).read_bytes()
     with _only(root, "supervisor"):
         while True:
+            if pull is not None:
+                with contextlib.suppress(Held):  # a job still running: pull at the next look
+                    _update(root, jobs, pull, clock)
+                if Path(__file__).read_bytes() != mine:
+                    return
             attend(root, jobs, clock)
             wait(LOOK)
 
@@ -302,7 +346,7 @@ def main(argv: Sequence[str], clock: Clock = _now) -> int:
     match argv:
         case ["run", root]:
             try:
-                supervise(Path(root), JOBS)
+                supervise(Path(root), JOBS, pull=_pull)
             except Held as other:
                 print(other)  # noqa: T201 - the command's answer to whoever typed it
         case ["work", root, name, module, limit, *words]:
