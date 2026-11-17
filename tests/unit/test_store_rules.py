@@ -94,9 +94,9 @@ KNOBS = {  # every tuning constant of the store, with the value it is judged by
 
 
 def _sites() -> set[str]:
-    """Every place desk/store.py finds a fault, as function:nth, and every tuning constant."""
-    source = (Path(store.__file__)).read_text(encoding="utf-8")
-    tree = ast.parse(source)
+    """Every place the store (store.py, store_parts.py) finds a fault, as function:nth."""
+    paths = (Path(store.__file__), Path(store.__file__).with_name("store_parts.py"))
+    tree = ast.parse("\n".join(p.read_text(encoding="utf-8") for p in paths))
     found = set()
     for fn in (n for n in tree.body if isinstance(n, ast.FunctionDef)):
         marks = sorted(
