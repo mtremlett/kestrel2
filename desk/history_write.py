@@ -62,7 +62,7 @@ def held(path: Path, lines: Iterable[Line]) -> set[Ask]:
     """The asks the database already holds bars of from the broker: what a pull has done."""
     done: set[Ask] = set()
     for line in lines:
-        for frame in history.SIZES:
+        for frame in history.PULLED:
             try:
                 have = bars.sources(path, line, bars.DAILY if frame == "1d" else frame)
             except (FileNotFoundError, LookupError):  # nothing written yet for it: not done
