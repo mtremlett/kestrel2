@@ -18,9 +18,10 @@ stop cancelled first (R-MONEY-17: no sale goes while a stop rests); a buy of the
 size (a part fill, if given, shows in its fills); that buy's stop made to sell
 (the real one is put above the market, `_raised`, so IBKR fills it as a stop; the pretend one is
 priced from that fill); and the account left as found. Each step's two sides must name the SAME
-action (a stop fill against a stop fill, never "Cancelled by Trader" against a fill);
-a step whose sides differ fails the run. A step that fails is recorded as failed, in the
-error's words; none after it is tried but the last, which puts the account back.
+action, judged on fills and holdings (a stop fill against a stop fill); the broker's status words
+("Cancelled by Trader": the run's own swap of the buy's stop for the raised one) are
+recorded, not judged; a step whose sides differ fails the run. A step that fails is recorded
+as failed, in the error's words; none after it is tried but the last, which puts the account back.
 
 BESIDE THE DESK (R-RUNNER-201): the run is looped every thirty minutes, each run its own record.
 It trades only a line the desk neither holds nor has an order working on; the desk's holdings
@@ -200,7 +201,7 @@ def _noted(
         rows.append((clock().isoformat(), step, real, beside.get(step, ""), "; ".join(cancelled)))
         book._write(record, rows)
         broken = any(row[2].startswith((FAILED, UNTRIED)) for row in rows[1:])  #: compared only
-        same = action(real, "; ".join(cancelled)) == action(beside.get(step, ""), "")
+        same = action(real, "") == action(beside.get(step, ""), "")
         if not (broken or same or step == WHOLE):
             differ.append(step)
 
