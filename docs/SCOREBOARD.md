@@ -317,6 +317,13 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #768 R-RUNNER-307: unit rule on the 95% majority, IB1T no longer parked on archive bad days.
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #769 R-MONEY-28 confirmed built; R-DATA-49 waits on PAPER (no code).
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #770 R-PAPER-33: the pound asked of IBKR as a forex pair.
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #764 R-RUNNER-288 store split: desk/store.py 400 to 278 lines, neighbour judging in store_parts.py. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #778 no change; blocking requests already on main, R-DATA-49's required home waits on command.py. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #780 R-RUNNER-216 step: a rolled bar disagreeing with a held one recorded as a fault. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #783 R-MONEY-48 done: unread HISTORY alias deleted from the rehearsal scene. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #784 R-RUNNER-289: lab/universe.py split, 398 to 326 lines. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #797 R-RUNNER-217 step 1: quality monitor, daily timeframe, audit-backfill-reaudit line. |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #795 DAT-03, DQ-01 step: coverage and quality measured per line (desk/coverage.py). |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
