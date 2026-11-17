@@ -77,6 +77,9 @@ def minute_round(
     """One run of `--live`: the due lines in session asked for their one-minute bars, kept as
     IBKR's; the words, and each line whose newest bar is later than LATE or was refused."""
     mine = [line for line in due(lines, now) if venues.open_at(line.venue, now)]
+    with bars.writing(hot, bars.Source.IBKR) as started:  # a line with no history is started
+        for line in mine:
+            started.timed(line, MINUTES, ())
     answers = archive.gather(mine, now, ask)
     with bars.writing(hot, bars.Source.IBKR) as kept:
         for line, answer in answers.items():
