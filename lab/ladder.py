@@ -23,7 +23,7 @@ not yet there; after the dash, what is owed. BUILT: the ladder judges by it (it 
  2 costs charged: lab/rung_costs.py, tests/unit/test_lab_rung_costs.py
  3 a confidence interval: lab/rung_ci.py, tests/unit/test_lab_rung_ci.py
  4 excess after market risk, by size: lab/rung_beta.py, tests/unit/test_lab_rung_beta.py
- 5 two regime windows: lab/rung_regimes.py, tests/unit/test_lab_rung_regimes.py - unrun: no weather
+ 5 two regime windows: lab/rung_regimes.py, tests/unit/test_lab_rung_regimes.py - no RUNG
  6 benchmark excess by interval: lab/rung_benchmark.py, tests/unit/test_lab_rung_benchmark.py
  7 deflated Sharpe: lab/rung_dsr.py, tests/unit/test_lab_rung_dsr.py - one clustered set (L14)
  8 purged cross-validation: lab/rung_cpcv.py, tests/unit/test_lab_rung_cpcv.py
