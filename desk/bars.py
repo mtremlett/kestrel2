@@ -34,7 +34,7 @@ from pathlib import Path
 from typing import Any
 
 from desk import store_wait
-from desk.bars_form import form, restated
+from desk.bars_form import entered, restated
 from desk.bars_parts import CLOSES as CLOSES
 from desk.bars_parts import NEWEST as NEWEST
 from desk.bars_parts import OTHERS as OTHERS
@@ -150,11 +150,9 @@ class Round:
         if not all(one.in_transaction for one in self._held.values()):
             raise NoRound(f"SQLite dropped this round: nothing of it lands, {line.symbol} too")
         key = (line.venue, line.symbol, span)
-        prices = [
-            (at, (form(b.open), form(b.high), form(b.low), form(b.close), b.volume))
-            for at, b in bars
-        ]
+        prices = [(at, entered(b)) for at, b in bars]
         rows = [(*key, at, *price, self._source.value) for at, price in prices]
+        given = len(rows)
         held.execute("SAVEPOINT line")
         try:
             held.execute(HOLD, key)
@@ -166,7 +164,7 @@ class Round:
                 held.execute("ROLLBACK TO line")
             raise
         held.execute("RELEASE line")
-        return landed
+        return landed + given - len(rows)
 
     def daily(self, line: Line, bars: Iterable[Bar], withdrawn: Iterable[date] = ()) -> None:
         """A line's daily bars from this source, joined by day into what the store holds, and

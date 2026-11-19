@@ -80,10 +80,7 @@ def checked(
 NOTE = (
     "INSERT INTO correction SELECT venue, symbol, span, at, open, high, low, close, volume,"
     " source, ? FROM bar WHERE venue = ? AND symbol = ? AND span = ? AND at = ?"
-)
-HOLDING = (
-    "SELECT at, open, high, low, close, volume, source FROM bar"
-    " WHERE venue = ? AND symbol = ? AND span = ? AND at >= ? AND at <= ?"
+    " AND NOT (open = ? AND high = ? AND low = ? AND close = ? AND volume = ?)"
 )
 #: A day the desk judged untrue: its raw row stays in `bar`, but no reader is given it.
 WITHDRAW = "INSERT OR IGNORE INTO withdrawn VALUES (?, ?, ?, ?)"

@@ -10,8 +10,12 @@ from collections.abc import Sequence
 from decimal import ROUND_HALF_EVEN, Decimal
 from typing import Any
 
-from desk.bars_parts import HOLDING, NOTE
+from desk.bars_parts import NOTE
 
+HOLDING = (
+    "SELECT at, open, high, low, close, volume, source FROM bar"
+    " WHERE venue = ? AND symbol = ? AND span = ? AND at >= ? AND at <= ?"
+)
 PLACES = Decimal("0.0001")  #: the store's one price grid: a ten-thousandth of the currency
 
 Row = tuple[str, str, str, str, int]  #: open, high, low, close as text, and the volume
@@ -20,6 +24,11 @@ Row = tuple[str, str, str, str, int]  #: open, high, low, close as text, and the
 def form(price: Decimal) -> str:
     """A price in the store's one form."""
     return str(price.quantize(PLACES, ROUND_HALF_EVEN))
+
+
+def entered(bar: Any) -> Row:
+    """A bar (daily, five-minute or any span) as it enters: its prices in the one form."""
+    return form(bar.open), form(bar.high), form(bar.low), form(bar.close), bar.volume
 
 
 def same(held: Sequence[str | int], given: Row) -> bool:
@@ -39,6 +48,10 @@ def restated(
     is copied into `correction`; one the same under the same source is not written at all."""
     ats = [at for at, _ in prices]
     now = {r[0]: r for r in held.execute(HOLDING, (*key, min(ats, default=0), max(ats, default=0)))}
-    moved = [at for at, price in prices if at in now and not same(now[at][1:6], price)]
-    held.executemany(NOTE, ((source, *key, at) for at in moved))
-    return [r for r in rows if r[3] in moved or r[3] not in now or now[r[3]][6] != r[-1]]
+    moved = [(at, price) for at, price in prices if at in now and not same(now[at][1:6], price)]
+    held.executemany(NOTE, ((source, *key, at, *price) for at, price in moved))
+    return [
+        r
+        for r in rows
+        if r[3] in {at for at, _ in moved} or r[3] not in now or now[r[3]][6] != r[-1]
+    ]
