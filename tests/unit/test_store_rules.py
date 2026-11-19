@@ -180,3 +180,15 @@ def test_a_bad_low_is_repaired_and_the_line_not_parked_but_a_fall_the_close_shar
     fall = replace(was, close=was.close / 3, low=was.close / 3)
     store.prepare(tmp_path, {US: [*clean[:5], fall, *clean[6:]]}, DAY)
     assert not any("low repaired" in f for f in store.faults(tmp_path, US.symbol))
+
+
+@pytest.mark.parametrize("scale", ["0.6", "0.5"], ids=["a crash", "a step"])
+def test_a_fault_in_deep_history_is_listed_on_its_day_and_never_parks_the_line(
+    tmp_path: Path, scale: str
+) -> None:
+    """R-RUNNER-327: MSTR's 2000 crash was read as an unadjusted split and parked a held line."""
+    clean = _bars(US, LONG)
+    old = tuple(_scaled(b, Decimal(scale)) if n >= 5 else b for n, b in enumerate(clean))
+    assert store.prepare(tmp_path, {US: old}, DAY) == ()
+    assert store.read(tmp_path, US.symbol) == old
+    assert any(str(clean[5].day) in f for f in store.faults(tmp_path, US.symbol))

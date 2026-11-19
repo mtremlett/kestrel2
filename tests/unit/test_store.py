@@ -93,11 +93,11 @@ def test_a_bad_bar_never_enters_and_its_line_is_parked(tmp_path: Path, fault: st
     assert store.read(tmp_path, US.symbol) == tuple(b for b in _bars(US) if b.day != bars[at].day)
 
 
-@pytest.mark.parametrize("first", [date(2025, 11, 3), LONG], ids=["recent", "old"])
 def test_a_step_in_the_price_parks_the_line_and_keeps_every_bar_until_recorded_real(
-    tmp_path: Path, first: date
+    tmp_path: Path,
 ) -> None:
-    """A step parks however old it is, for it makes every bar before it wrong."""
+    """A step in the decision window parks; one in deeper history is only listed (see the rules)."""
+    first = date(2025, 11, 3)
     bars = (*_bars(US, first)[:5], *(_scaled(b, Decimal("0.5")) for b in _bars(US, first)[5:]))
     reasons = _parked(tmp_path, bars)
     assert len(reasons) == 1 and str(bars[5].day) in reasons[0] and "split" in reasons[0]
@@ -252,10 +252,10 @@ def test_the_sixtieth_session_back_is_the_oldest_that_parks(
 
 
 @pytest.mark.parametrize("days", [1, 5], ids=["one day", "a week"])
-@pytest.mark.parametrize("at", [0, 5, -8, -1], ids=["first", "old", "recent", "newest"])
+@pytest.mark.parametrize("at", [-8, -1], ids=["recent", "newest"])
 def test_a_real_crash_is_kept_and_parks_until_recorded(tmp_path: Path, at: int, days: int) -> None:
     """5QQQ's low on 7 April 2025 sat 40% under the close before, and it recovered the next day:
-    only a hundredfold bar is a wrong unit. Any other move parks, however old, until recorded."""
+    only a hundredfold bar is a wrong unit. Any other move in the window parks until recorded."""
     clean, start = _bars(US, LONG), at % len(_bars(US, LONG))
     bars = tuple(
         _scaled(b, Decimal("0.6")) if 0 <= n - start < days else b for n, b in enumerate(clean)
@@ -275,7 +275,7 @@ def test_a_crash_after_days_in_the_wrong_unit_is_kept(tmp_path: Path) -> None:
     """Only the days a hundredfold out are dropped; the real crash after them stays."""
     by = {5: Decimal(100), 6: Decimal(100), 7: Decimal("0.4"), 8: Decimal("0.4")}
     bars = tuple(_scaled(b, by.get(n, Decimal(1))) for n, b in enumerate(_bars(US, LONG)))
-    assert "split" in _parked(tmp_path, bars)[0]
+    assert _parked(tmp_path, bars) == []  # all of it deep history: listed, not parked
     assert bars[7:9] == store.read(tmp_path, US.symbol)[5:7]
 
 
@@ -359,9 +359,9 @@ def test_a_leveraged_crash_as_large_as_the_pound_is_kept_not_taken_for_dollars(
     """2MU, 4 April 2025: a day's high 1.5 times the next close, and the close the pound's step."""
     clean = _bars(US, LONG)
     bars = (
-        *clean[:29],
-        replace(clean[29], high=Decimal(77)),
-        *(_scaled(b, 1 / POUND) for b in clean[30:]),
+        *clean[:-31],
+        replace(clean[-31], high=Decimal(77)),
+        *(_scaled(b, 1 / POUND) for b in clean[-30:]),
     )
     assert "moved" in _prepared(tmp_path, bars, replace(US, leverage=2))[0]
     assert store.read(tmp_path, US.symbol) == bars
@@ -372,15 +372,15 @@ def test_a_recorded_split_adjusts_the_older_bars_only_by_the_ratio_the_jump_show
 ) -> None:
     """5QQQ x489 on 22 August 2024: adjusted only when recorded, never by a guessed ratio."""
     clean = _bars(US, LONG)
-    day, ratio = clean[30].day, Decimal(500)
-    old = tuple(_scaled(b, 1 / ratio) for b in clean[:30])
-    bars = (*old, *clean[30:])
+    day, ratio = clean[-30].day, Decimal(500)
+    old = tuple(_scaled(b, 1 / ratio) for b in clean[:-30])
+    bars = (*old, *clean[-30:])
     assert "moved" in _parked(tmp_path, bars)[0]  # unrecorded: parked, bars untouched
     line = replace(US, splits=frozenset({(day, ratio)}))
     assert _parked(tmp_path, bars, line) == []
     assert store.read(tmp_path, US.symbol) == (
-        *(replace(b, volume=2) for b in clean[:30]),
-        *clean[30:],
+        *(replace(b, volume=2) for b in clean[:-30]),
+        *clean[-30:],
     )
     assert (
         "recorded as a split of 7"

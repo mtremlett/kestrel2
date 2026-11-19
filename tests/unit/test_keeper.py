@@ -350,11 +350,11 @@ def test_a_line_the_archive_refuses_is_kept_from_the_brokers_bars_not_parked(
     assert kept[1] == [] and keeper.saved(tmp_path, MON, [UK])[0][UK] == _bars(UK, MON)
 
 
-def test_the_kept_pound_tells_dollars_among_pounds_from_a_move_and_none_kept_parks_the_line(
+def test_the_kept_pound_tells_dollars_among_pounds_from_a_move_and_none_kept_keeps_them(
     tmp_path: Path,
 ) -> None:
     """R-RUNGS-16 (SGLN, EQQQ): a London bar in dollars among pounds is dropped on the pound
-    the long database holds; with no pound held the same bars are a lasting step, and park."""
+    the long database holds; with no pound held the same bars stay, a step in old history."""
     rate = Decimal("1.65")
 
     def dollars(bar: Bar) -> Bar:
@@ -369,7 +369,8 @@ def test_the_kept_pound_tells_dollars_among_pounds_from_a_move_and_none_kept_par
     for home in (both, bare):
         pretend.keep(home, _at(6))
     assert not keeper.saved(both, MON, [UK])[1]
-    assert keeper.saved(bare, MON, [UK])[1] == {UK.symbol}
+    assert len(bars.daily(both / keeper.HOT, UK)) == len(tens) - 3  # told from the pound: dropped
+    assert bars.daily(bare / keeper.HOT, UK) == tens  # none held: kept as a step, in old history
 
 
 def test_a_live_run_asks_the_two_lines_due_keeps_their_minutes_and_names_a_stale_one(

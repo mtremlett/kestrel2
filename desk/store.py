@@ -208,9 +208,10 @@ def judge(
     broker: Answer | None = None,
 ) -> tuple[list[Bar], list[Fault], Parked | None]:
     """THE ONE JUDGEMENT of a line's bars: those that can be true, every fault found and, if one
-    is recent or lasting, the line parked, ready to trade on day. The broker's bars stand first
-    (his ruling of 16 November), the archive's under them, the shelf's under those. A line none
-    gave bars for keeps none, so none from an earlier day can be read as today's."""
+    is in the window the desk decides on, the line parked, ready to trade on day; a fault in deeper
+    history, a step included, is listed on its day and never parks the line (R-RUNNER-327). The
+    broker's bars stand first (his ruling of 16 November), the archive's under them, the shelf's
+    under those. A line none gave bars for keeps none, none from an earlier day read as today's."""
     since = venues.sessions(line.venue, day - timedelta(100), day - timedelta(1))[-RECENT]
     top = None if broker is None or isinstance(broker, Refused) else broker
     if isinstance(answer, Refused) and top is None:
@@ -223,7 +224,7 @@ def judge(
             faults += [replace(f, noted=True) for f in over]  # the broker's bar stands: no park
         kept, found = _clean(line, joined, day, since, rates)
         faults = [*faults, *found]
-    recent = [f.what for f in faults if not f.noted and (f.lasting or f.day >= since)]
+    recent = [f.what for f in faults if not f.noted and f.day >= since]
     return kept, faults, Parked(line.symbol, "; ".join(recent), day) if recent else None
 
 
