@@ -11,6 +11,24 @@ from decimal import ROUND_HALF_EVEN, Decimal
 from enum import Enum
 
 from desk.lines import Line
+from desk.orders_parts import (
+    BROKER as BROKER,
+)
+from desk.orders_parts import (
+    CONVERSION as CONVERSION,
+)
+from desk.orders_parts import (
+    FEES as FEES,
+)
+from desk.orders_parts import (
+    HALF_SPREAD as HALF_SPREAD,
+)
+from desk.orders_parts import (
+    SLIPPAGE as SLIPPAGE,
+)
+from desk.orders_parts import (
+    STOP_SLIPS as STOP_SLIPS,
+)
 from desk.risk import Standing, correlated_with, loss_limit, underlying_limit
 from desk.store import Bar
 from desk.strategy import Action, Decision
@@ -129,48 +147,37 @@ def pennies(amount: Decimal) -> Decimal:
     return amount.quantize(Decimal("0.01"), ROUND_HALF_EVEN)
 
 
-@dataclass(frozen=True)
-class _Fee:
-    """A venue's commission, in the line's currency: per share plus a share of the value, no
-    less than a minimum, and no more than a share of the value where there is a cap. And a
-    sale's own cost, its regulators' fees: a share of the value, and an amount for each
-    share sold up to the most one sale pays."""
-
-    per_share: Decimal
-    of_value: Decimal
-    minimum: Decimal
-    cap: Decimal | None
-    sold_value: Decimal
-    sold_share: Decimal
-    sold_most: Decimal
+def leg_of(order_id: str, shares: int) -> Leg:
+    """The leg a fill is, from the shares it added to the book and the id it carries: a
+    stop's sale carries the id of the order that left the stop, with "-stop"."""
+    if shares > 0:
+        return Leg.BUY
+    return Leg.STOP if order_id.endswith("-stop") else Leg.SALE
 
 
-#: Interactive Brokers UK, fixed pricing, read from its published schedule on 13 November
-#: 2026. Dollars are bought by its automatic conversion: 0.03% on the rate, no commission.
-#: With every US sale it passes on the regulators' two fees: the SEC's 20.60 dollars a
-#: million sold (since 4 April 2026) and FINRA's 0.0195 cents a share, at most 9.79 dollars
-#: (its 2026 rate), each read in the regulator's own notice. A London sale pays nothing more.
-BROKER = "Interactive Brokers UK, fixed pricing (schedule read 13 November 2026)"
-FEES = {
-    "LSE": _Fee(Decimal(0), Decimal("0.0005"), Decimal(3), None, *(Decimal(0),) * 3),
-    "US": _Fee(
-        Decimal("0.005"),
-        Decimal(0),
-        Decimal(1),
-        Decimal("0.01"),
-        Decimal("0.0000206"),
-        Decimal("0.000195"),
-        Decimal("9.79"),
-    ),
-}
-CONVERSION = Decimal("0.0003")
-#: ASSUMED, not measured (docs/DECISIONS.md), until the paper account's own fills are set
-#: beside them: each leg loses a twentieth of one per cent of its value to half the spread
-#: and as much again to slippage, both times the line's leverage, since a line that moves
-#: that many times its market is quoted that much wider. A stop sells into a falling
-#: market, so its sale slips STOP_SLIPS times as far.
-HALF_SPREAD = SLIPPAGE = Decimal("0.0005")
-STOP_SLIPS = 3
+def charges(line: Line, leg: Leg, shares: int, price: Decimal, fx: Decimal) -> Charges:
+    """THE ONE COST MODEL: every cost of one leg of shares at a price, in pounds at fx. The
+    broker's commission, with the regulators' fees on a sale; the spread and the slippage
+    assumed; the conversion of the money moved, on a line not in pounds; and the UK tax the
+    line states, on a purchase."""
+    if shares <= 0:
+        raise ValueError(f"{line.symbol}: {shares} shares {leg.value}; the leg says which side")
+    value, fee = shares * price, FEES[line.venue]
+    commission = max(fee.minimum, fee.per_share * shares + fee.of_value * value)
+    if fee.cap is not None:
+        commission = min(commission, fee.cap * value)
+    if leg is not Leg.BUY:
+        commission += fee.sold_value * value + min(fee.sold_share * shares, fee.sold_most)
+    tax = line.uk_tax * value if leg is Leg.BUY else Decimal(0)
+    moved = value + commission + tax if leg is Leg.BUY else value - commission
+    slips = SLIPPAGE * (STOP_SLIPS if leg is Leg.STOP else 1)
+    return Charges(
+        commission * fx,
+        HALF_SPREAD * line.leverage * value * fx,
+        slips * line.leverage * value * fx,
+        Decimal(0) if line.currency == "GBP" else moved * fx * CONVERSION,
+        tax * fx,
+    )
 
 
 def stop_under(line: Line, price: Decimal) -> Decimal:
@@ -216,6 +223,19 @@ def size(
     return bought
 
 
+def gap_loss(order: Order, fill: Decimal) -> Decimal:
+    """STP-10: the pounds a stop's sale at `fill` loses against the order's price, charges
+    apart. A gap that jumps the stop sells below it, so this is more than the stop's own."""
+    return max(Decimal(0), (order.price - fill) * order.quantity * order.fx)
+
+
+def gapped(order: Order, fill: Decimal, settings: Settings) -> bool:
+    """Whether a stop's sale at `fill` lost more than GAP_LOSS of the capital: such a gap is
+    held against the limit, and the desk is to stand down (STP-10, SIZ-09: sizing at a fifth
+    of the capital over the leverage keeps a market gap of up to 25% inside it)."""
+    return gap_loss(order, fill) > GAP_LOSS * settings.capital
+
+
 def order_id_of(decision: Decision) -> str:
     """The id of the order a decision makes: its day, its strategy and its line."""
     return f"{decision.day:%Y%m%d}-{decision.strategy}-{decision.symbol}"
@@ -227,39 +247,6 @@ def strategy_of(order_id: str) -> str:
     if len(parts) < 3 or not all(parts[:3]):
         raise ValueError(f"order id {order_id!r} is not day-strategy-line; no strategy can be read")
     return parts[1]
-
-
-def leg_of(order_id: str, shares: int) -> Leg:
-    """The leg a fill is, from the shares it added to the book and the id it carries: a
-    stop's sale carries the id of the order that left the stop, with "-stop"."""
-    if shares > 0:
-        return Leg.BUY
-    return Leg.STOP if order_id.endswith("-stop") else Leg.SALE
-
-
-def charges(line: Line, leg: Leg, shares: int, price: Decimal, fx: Decimal) -> Charges:
-    """THE ONE COST MODEL: every cost of one leg of shares at a price, in pounds at fx. The
-    broker's commission, with the regulators' fees on a sale; the spread and the slippage
-    assumed; the conversion of the money moved, on a line not in pounds; and the UK tax the
-    line states, on a purchase."""
-    if shares <= 0:
-        raise ValueError(f"{line.symbol}: {shares} shares {leg.value}; the leg says which side")
-    value, fee = shares * price, FEES[line.venue]
-    commission = max(fee.minimum, fee.per_share * shares + fee.of_value * value)
-    if fee.cap is not None:
-        commission = min(commission, fee.cap * value)
-    if leg is not Leg.BUY:
-        commission += fee.sold_value * value + min(fee.sold_share * shares, fee.sold_most)
-    tax = line.uk_tax * value if leg is Leg.BUY else Decimal(0)
-    moved = value + commission + tax if leg is Leg.BUY else value - commission
-    slips = SLIPPAGE * (STOP_SLIPS if leg is Leg.STOP else 1)
-    return Charges(
-        commission * fx,
-        HALF_SPREAD * line.leverage * value * fx,
-        slips * line.leverage * value * fx,
-        Decimal(0) if line.currency == "GBP" else moved * fx * CONVERSION,
-        tax * fx,
-    )
 
 
 def cost(order: Order) -> Decimal:

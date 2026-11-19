@@ -126,6 +126,27 @@ def volumes(path: Path, line: Line, today: date) -> list[str]:
     ]
 
 
+BASIS = {  #: sources whose prices are one adjustment basis; any other source is its own
+    bars.Source.IBKR: "IBKR",
+    bars.Source.IBKR_DAILY: "IBKR",
+    bars.Source.BACKFILL: "archive",
+    bars.Source.ARCHIVE: "archive",
+}
+
+
+def basis(path: Path, line: Line) -> list[str]:
+    """Red when the line's daily series is kept from more than one adjustment basis (a rule
+    reading across a basis change sees a false jump); the bases are named, IBKR's first."""
+    try:
+        held = bars.sources(path, line, bars.DAILY)
+    except LookupError:  # the store never held this line's daily bars: no basis to mix
+        return []
+    named = {BASIS.get(source, source.value) for source in held}
+    if len(named) < 2:
+        return []
+    return [f"{line.symbol}: daily series mixes bases: {', '.join(sorted(named))}"]
+
+
 def monitor(
     path: Path, lines: Iterable[Line], broker: backfill.Ask, archived: backfill.Ask, today: date
 ) -> str:
@@ -137,6 +158,7 @@ def monitor(
     red += [why for _, faults in built for why in faults]
     red += [why for line in every for why in thin(path, line, today)]
     red += [why for line in every for why in volumes(path, line, today)]
+    red += [why for line in every for why in basis(path, line)]
     said = f"{len(wrote)} bars backfilled, {sum(n for n, _ in built)} rolled up"
     if not red:
         return f"quality: green, {len(every)} lines, {said}"

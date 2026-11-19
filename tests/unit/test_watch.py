@@ -89,13 +89,16 @@ def test_a_look_reads_each_trading_line_at_its_newest_ended_bar_or_says_why_not(
     assert list(seen.unread) == [TRIPLE] and "no bar" in seen.unread[TRIPLE]
     crash = watch.read(hot, daily, _at("10:10"))  #: ended, and read
     assert crash.falls[-1].level is Level.CRASH and crash.blind is None
-    assert watch.read(hot, daily, _at("10:30")).falls == crash.falls, "twenty minutes is not late"
-    quiet = watch.read(hot, daily, _at("10:31"))  #: nothing from London for over twenty
+    assert watch.read(hot, daily, _at("10:25")).falls == crash.falls, "fifteen minutes is not late"
+    quiet = watch.read(hot, daily, _at("10:26"))  #: nothing from London for over fifteen
     assert quiet.falls == () and set(quiet.unread) == {YARDSTICK, THIN, TRIPLE}
     assert quiet.blind is not None and "nothing heard of VUAG since 10:10 UTC" in quiet.blind
     _trade(tmp_path, THIN, {"10:25": 96})  #: London is heard from, the market itself is not
     deaf = watch.read(hot, daily, _at("10:31"))
     assert [f.line for f in deaf.falls] == [THIN] and deaf.blind == quiet.blind
+    fresh = {f"{h:02}:{m:02}": 99 for h in range(16, 17) for m in range(0, 30, 5)}
+    _trade(tmp_path, YARDSTICK, fresh)  #: bars to the close keep it watched, never blind
+    assert all(watch.read(hot, daily, _at(c)).blind is None for c in ("16:10", "16:25", "16:34"))
     _trade(tmp_path, YARDSTICK, {"16:05": 99})  #: the closing auction makes no bar: none is late
     assert watch.read(hot, daily, _at("16:34")).blind is None, "blind in the closing auction"
     #: London shut and New York open: its line is read, and no market is owed

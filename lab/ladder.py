@@ -23,7 +23,7 @@ not yet there; after the dash, what is owed. BUILT: the ladder judges by it (it 
  2 costs charged: lab/rung_costs.py, tests/unit/test_lab_rung_costs.py
  3 a confidence interval: lab/rung_ci.py, tests/unit/test_lab_rung_ci.py
  4 excess after market risk, by size: lab/rung_beta.py, tests/unit/test_lab_rung_beta.py
- 5 two regime windows: lab/rung_regimes.py, tests/unit/test_lab_rung_regimes.py - unrun: no weather
+ 5 two regime windows: lab/rung_regimes.py, tests/unit/test_lab_rung_regimes.py - no RUNG
  6 benchmark excess by interval: lab/rung_benchmark.py, tests/unit/test_lab_rung_benchmark.py
  7 deflated Sharpe: lab/rung_dsr.py, tests/unit/test_lab_rung_dsr.py - one clustered set (L14)
  8 purged cross-validation: lab/rung_cpcv.py, tests/unit/test_lab_rung_cpcv.py
@@ -59,7 +59,7 @@ import json
 import os
 import sys
 from collections import Counter
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from decimal import Decimal
@@ -75,7 +75,18 @@ from desk.strategy import STRATEGIES, Rule
 from lab import batch, cell, published, reproduce, rulebook, rung, tape, trials, verdict
 from lab.batch import Bars
 from lab.cell import Cell
-from lab.ladder_parts import FAILED, RUNGS, Shared, _count, _declared, _due, _made, _pool, _resolve
+from lab.ladder_parts import (
+    FAILED,
+    RUNGS,
+    Shared,
+    _count,
+    _declared,
+    _due,
+    _made,
+    _pool,
+    _resolve,
+    faults,
+)
 from lab.rung import Answer, Rates
 
 __all__ = ["FAILED", "RUNGS", "Shared", "_count", "_resolve"]  #: what other modules take from here
@@ -295,7 +306,19 @@ def _needs_data(make: type[Rule]) -> bool:
     return any(p.default is p.empty for p in inspect.signature(make).parameters.values())
 
 
-if __name__ == "__main__":
+def door(env: Mapping[str, str], argv: Sequence[str]) -> int:
+    """The command: the set run, then each rung any cell FAULTed on said on its own line with its
+    share and reason; 1 when most cells FAULTed, so a set that judged nothing is never green."""
     from lab import ladder_sets
 
-    sys.exit(ladder_sets.main(os.environ, sys.argv[1:]))
+    code = ladder_sets.main(env, argv)
+    plan = {"first": FIRST, "leveraged": ladder_sets.LEV}.get(argv[0] if argv else "")
+    stem = (plan or ladder_sets.EPON).stem
+    kept = _last(_whole(Path(env["KESTREL2_DATA"]) / FOLDER / f"{stem}.jsonl"))
+    said, mostly = faults(list(kept.values()))
+    sys.stdout.write("".join(f"{line}" + chr(10) for line in said))
+    return code or int(mostly)
+
+
+if __name__ == "__main__":
+    sys.exit(door(os.environ, sys.argv[1:]))

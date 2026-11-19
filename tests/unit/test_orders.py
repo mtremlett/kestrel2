@@ -69,6 +69,15 @@ def test_the_stop_sits_where_the_market_under_the_line_has_fallen_ten_percent() 
     assert plain.order_id == "20251114-rule-P", "the same decision must make the same order"
 
 
+def test_a_gap_that_jumps_the_stop_is_held_against_the_loss_limit() -> None:
+    order = _order(PLAIN, 100, "100")  #: 10,000 pounds bought; capital 10,000, limit 500
+    assert orders.gap_loss(order, Decimal("96")) == 400 and not orders.gapped(
+        order, Decimal(96), TEN_K
+    )
+    assert orders.gapped(order, Decimal("94"), TEN_K), "600 pounds lost is over 5%"
+    assert orders.gap_loss(order, Decimal("105")) == 0, "a sale above the price loses nothing"
+
+
 def test_the_stop_of_a_fill_is_ten_percent_under_the_fill_not_the_signal_close() -> None:
     signal = orders.size(_buy(PLAIN), PLAIN, Decimal("111.62"), Decimal(1), TEN_K, {})
     assert signal.stop == Decimal("100.458"), "sizing stays on the signal close"

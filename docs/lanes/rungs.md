@@ -258,3 +258,6 @@ then the break was removed:
 
 ### 2026-11-17 — no inverse by negated returns (R-RUNGS-21, #833)
 - Inverse leveraged lines for set LEV. Options: negate returns in the lab; wait for a Line type that states an inverse fund. Chose wait: negating is a second path beside the engine's (canon A2, B2), and the sizer and stop need the magnitude anyway.
+
+### 2026-11-19 — a part-year is skipped in pooled folds (R-RUNNER-331, #858)
+- Lines with different ends in one pool. Options: require one common end (old rule); fold a part-year; fold whole calendar years only, each line on its own window. Chose whole years only: it keeps "whole calendar years" (M6) true for every line; a line whose window ends mid-year skips that year.
