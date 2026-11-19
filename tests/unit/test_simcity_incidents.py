@@ -3,13 +3,29 @@ a scenario of its own: green when the desk refuses the day naming the line, red 
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from datetime import date
 from pathlib import Path
+from typing import Any
 
 import pytest
 from test_simcity import NOW, RATES, ROOM, SHORT
 
 from desk import book, day_money, simcity
-from desk.simcity_incidents import HOLE, LEFT, PROMISE, SOLD, beside, hole
+from desk.simcity_incidents import (
+    CANCELLED,
+    HALTED,
+    HOLE,
+    LEFT,
+    OUTSIDE,
+    PROMISE,
+    SOLD,
+    beside,
+    cancelled,
+    halted,
+    hole,
+    outside,
+)
 
 
 def night(patch: pytest.MonkeyPatch, root: Path) -> simcity.Night:
@@ -51,3 +67,20 @@ def test_without_taking_the_shares_in_the_scenario_is_red(
     monkeypatch.setattr(simcity, "EVENTFUL", 1)
     result = simcity.run(tmp_path, SHORT, ROOM, RATES, NOW, (1, 2, 3))
     assert any(SOLD in broken for broken in result.broken)
+
+
+@pytest.mark.parametrize(
+    ("words", "scenario"),
+    [(CANCELLED, cancelled), (HALTED, halted), (OUTSIDE, outside)],
+)
+def test_the_other_trading_path_incidents_are_lived_and_kept(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    words: str,
+    scenario: Callable[[Any, date], object],
+) -> None:
+    monkeypatch.setattr(simcity, "EVENTS", ((words, scenario),))
+    monkeypatch.setattr(simcity, "EVENTFUL", 1)
+    result = simcity.run(tmp_path, SHORT, ROOM, RATES, NOW, (1, 2, 3))
+    assert not any(words in broken for broken in result.broken)
+    assert words in result.census["day.run"]

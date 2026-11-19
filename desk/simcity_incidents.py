@@ -6,10 +6,13 @@ conformance run's), which the desk's sale refused as "the desk is long only"."""
 
 from __future__ import annotations
 
-from datetime import date
+from dataclasses import replace
+from datetime import UTC, date, datetime, time
 from typing import TYPE_CHECKING
 
-from desk import book
+from desk import book, halt
+from desk.broker import Fault
+from desk.lines import YARDSTICK
 
 if TYPE_CHECKING:
     from desk.simcity import _Life
@@ -54,3 +57,44 @@ def beside(life: _Life, on: date) -> None:
     held = dict(life.pretend.holdings()).get(symbol, 0)
     taken = book.positions(life.desk).get(symbol, 0) == held
     life.promise(SOLD, taken and dict(life.pretend.stops()).get(symbol, 0) in (0, held))
+
+
+CANCELLED = "a buy is left working at the broker and cancelled there"
+HALTED = "a halt is in force while the day's buys are asked for"
+KEPT = "a buy the broker cancelled leaves the book with no shares the broker lacks"
+STILL = "with a halt in force nothing is bought"
+OUTSIDE = "a line no ISA can hold is never bought"
+
+
+def cancelled(life: _Life, on: date) -> None:
+    """Every buy is stranded working at the broker (the desk dies, is started, runs the day
+    again) and what is left is cancelled there: the book may hold no share the broker lacks."""
+    for line in life.market:
+        life.pretend._faults[line.symbol] = Fault.STRAND  # noqa: SLF001 - the world's own broker
+    life.live(on)
+    life.pretend.cancel()
+    broker = dict(life.pretend.holdings())
+    life.promise(KEPT, all(broker.get(s) == n for s, n in book.positions(life.desk).items()))
+
+
+def halted(life: _Life, on: date) -> None:
+    """A halt is called before the day: no buy may reach the broker, and the day's list names it."""
+    at, reached = datetime.combine(on, time(7), UTC), life.pretend.buys
+    called = halt.call(life.desk, at, "SimCity halts a day")
+    life.live(on)
+    life.promise(STILL, life.pretend.buys == reached)
+    halt.lift(life.desk, called, at, "SimCity lifts it")
+
+
+def outside(life: _Life, on: date) -> None:
+    """Every line but the yardstick and those held is recorded as outside an ISA for the day: no
+    buy of such a line reaches the broker (the yardstick's own key is the day's, and is kept)."""
+    whole, reached, held = life.market, len(life.pretend.submitted()), book.positions(life.desk)
+    barred = {x.symbol for x in whole if x.symbol not in held and x != YARDSTICK}
+    life.market = {
+        x if x.symbol not in barred else replace(x, isa=False): b for x, b in whole.items()
+    }
+    life.live(on)
+    sent = life.pretend.submitted()[reached:]
+    life.promise(OUTSIDE, not any(i.rpartition("-")[2] in barred for i in sent))
+    life.market = whole
