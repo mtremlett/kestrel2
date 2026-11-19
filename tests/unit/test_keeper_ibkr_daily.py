@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import sqlite3
 from collections.abc import Callable, Sequence
+from contextlib import closing
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
@@ -11,7 +13,7 @@ from typing import Any
 
 import pytest
 
-from desk import archive, history, keeper, listing, paper, venues
+from desk import archive, bars, history, keeper, listing, paper, venues
 from desk.lines import LINES, YARDSTICK, Line
 from desk.store import Answer, Bar, Refused
 
@@ -151,3 +153,37 @@ def test_ibkr_has_every_lines_bar_in_three_calls_the_yardstick_first_a_refusal_s
     named = next(w for w in words if "newest bar from" in w)
     assert refused.symbol not in named.split("IBKR: ")[-1] and len(asked) == 3
     assert refused not in asked[1] and refused in asked[2]  # retried after the lines not yet asked
+
+
+def test_the_same_days_asked_again_are_not_rewritten_whoever_is_asked_first_that_call(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(paper, "dial", _no_gateway)
+
+    def archived(line: Line, day: date) -> tuple[Bar, ...]:  # floats of its own, its own volume
+        return tuple(
+            replace(b, open=b.open + Decimal("0.00001"), volume=b.volume * 3)
+            for b in _bars(line, day)
+        )
+
+    def corrections() -> int:
+        with closing(sqlite3.connect(tmp_path / bars.HISTORY)) as raw:
+            return int(
+                raw.execute(
+                    "SELECT count(*) FROM correction WHERE at < ?", (NOW.toordinal(),)
+                ).fetchone()[0]
+            )
+
+    def recent(lines: Sequence[Line], day: date) -> dict[Line, Answer]:  # the broker's window
+        return {
+            ln: tuple(b for b in _bars(ln, day) if b.day >= day - history.RECENT) for ln in lines
+        }
+
+    for day in (NOW, NOW + timedelta(days=1)):  # the broker reaches ROOM lines a call
+        for _ in range(3):
+            keeper.keep(
+                tmp_path, day, LINES, archived, lambda *_: (), lambda: 0.0, series=(), broker=recent
+            )
+        if day == NOW:
+            first = corrections()
+    assert corrections() == first

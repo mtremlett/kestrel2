@@ -105,12 +105,25 @@ def _dropped(kept: Sequence[Bar], *answers: store.Answer | None) -> set[date]:
     return given - {b.day for b in kept}
 
 
+def _standing(hot: Path, line: Line, day: date, broker: store.Answer | None) -> store.Answer | None:
+    """The bars that stand first for a line: the broker's if it gave any this call, else the days
+    of its window the store already holds, so a call that did not ask the broker leaves its bars
+    as they are and the archive restates none (R-RUNNER-341)."""
+    if isinstance(broker, list | tuple):
+        return broker
+    try:
+        return tuple(b for b in bars.daily(hot, line) if b.day >= day - history.RECENT) or broker
+    except (LookupError, FileNotFoundError):
+        return broker  # the line was never kept: nothing stands over the archive
+
+
 def _kept_in(
     hot: Path,
     folder: Path,
     answers: Mapping[Line, store.Answer],
     day: date,
     first: Mapping[Line, store.Answer],
+    standing: bool = True,
 ) -> tuple[list[Parked], tuple[str, ...]]:
     """The answers judged by the one store and kept as one round, whole; the lines parked, and in
     words each source of a newest bar and each close the broker and the archive differ on."""
@@ -119,7 +132,8 @@ def _kept_in(
         for line, answer in answers.items():
             broker = first.get(line)
             shelf = bars.bridged(hot, line, day, _shelf(folder, line), answer, broker)
-            kept, faults, park = store.judge(line, answer, day, rates, shelf=shelf, broker=broker)
+            stands = _standing(hot, line, day, broker) if standing else broker
+            kept, faults, park = store.judge(line, answer, day, rates, shelf=shelf, broker=stands)
             round_.daily(line, kept, withdrawn=_dropped(kept, answer, broker))
             parked += [park] if park else []
             named.setdefault(_source(kept, answer, broker), []).append(line.symbol)
@@ -167,7 +181,9 @@ def _refresh(
     unasked = frozenset(ln.symbol for ln in asked if broker and ln not in heard)
     refused = {ln.symbol for ln, a in answers.items() if isinstance(a, Refused) and ln not in heard}
     given = {line: answer for line, answer in answers.items() if line.symbol not in refused}
-    found, notes = _kept_in(hot, folder, given if same else answers, readied, first)
+    found, notes = _kept_in(
+        hot, folder, given if same else answers, readied, first, last is not None
+    )
     parked = {
         symbol: why for symbol, why in before.items() if symbol not in {ln.symbol for ln in given}
     }
@@ -233,7 +249,7 @@ def _reference(
         if isinstance(answer, Refused):
             told.append(f"{line.symbol}: reference series not kept: {answer.reason}")
             continue
-        faults = archive.keep_reference(home / HOT, line, answer)
+        faults = archive.keep_reference(home / HOT, line, answer, only_new=line in LINES)
         mark.parent.mkdir(parents=True, exist_ok=True)
         mark.write_text(day.isoformat(), encoding="utf-8")
         told.append(f"{line.symbol}: reference kept before {day}, {len(faults)} faults listed")

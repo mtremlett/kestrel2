@@ -27,6 +27,7 @@ from urllib.request import Request, urlopen
 
 from desk import store
 from desk.bars import EPOCH, Five, writing
+from desk.bars import daily as held_days
 from desk.lines import TAG, Line
 from desk.store import Bar, Refused
 
@@ -295,9 +296,21 @@ def gather(
     return answers
 
 
-def keep_reference(live: Path, line: Line, bars: Sequence[Bar]) -> tuple[store.Fault, ...]:
+def _held(live: Path, line: Line, only_new: bool) -> set[date]:
+    """The days the store holds for a line, if only the new are wanted."""
+    try:
+        return {b.day for b in held_days(live, line)} if only_new else set()
+    except (LookupError, FileNotFoundError):
+        return set()  # never kept: every day is new
+
+
+def keep_reference(
+    live: Path, line: Line, bars: Sequence[Bar], only_new: bool = False
+) -> tuple[store.Fault, ...]:
     """Clean a line's bars and keep them in the long database beside the live file at live, as
-    traded: one bar a day, each sound alone. Those that cannot be true are left out and listed."""
+    traded: one bar a day, each sound alone. Those that cannot be true are left out and listed.
+    A line the keeper also judges (only_new) is given the days it holds none for: its held days
+    are the keeper's, and are not restated here by another path (R-RUNNER-341)."""
     faults: list[store.Fault] = []
     weekdays = {bar.day for bar in bars if bar.day.weekday() < 5}
     sound = []
@@ -307,6 +320,7 @@ def keep_reference(live: Path, line: Line, bars: Sequence[Bar]) -> tuple[store.F
             faults.append(store.Fault(bar.day, entered))
         else:
             sound.append(entered)
+    have = _held(live, line, only_new)
     with writing(live) as round_:
-        round_.daily(line, sound)
+        round_.daily(line, [b for b in sound if b.day not in have])
     return tuple(faults)
