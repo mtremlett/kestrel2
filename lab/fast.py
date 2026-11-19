@@ -86,6 +86,7 @@ def _turtle_soup(p: Prices, params: Params) -> Bools:
 #: Every block of the fast engine that reads prices alone, by name.
 FIRES: Mapping[str, Fire] = {
     **_PARTS,
+    "ratio_over_average": _PARTS["close_over_average"],  #: on ratio bars
     "trend_template": _trend_template,
     "turtle_soup": _turtle_soup,
     "td_buy_countdown": buy_countdown,
