@@ -193,12 +193,12 @@ parquet, market.db, bars.db, per-source counts). Deep history: the store keeps b
 - R-RUNNER-311 #855, -313 #859, -327 #863, -329 #856, -341 #861
 - Mine, done by others: R-DATA-1 (#73), -4, -5, -6 (#522), -9, -15 (#517, #530), -17, -25, -26, -27, -28, -31, -35 (#652); R-DATA-49 (#814); own R-DATA-19 to -23, -36, -40, -41 done, -24 superseded by the database
 ### Requests to DATA
-- [x] R-DATA-49: `history.daily` requires `home` (#814).
-- [x] R-DATA-54: done in #841.
+- [x] R-DATA-49: `history.daily` requires `home` (#814). R-DATA-54: done in #841.
 - [ ] R-DATA-55 (later, #832): widen data-written-together's claim to desk/store.py, tests/unit/test_lab_universe.py and lab/universe.py so bars and faults live in one file.
 - [ ] R-DATA-56 (later, #842): a card claiming desk/bars.py and desk/quality.py to add rollup:<from> sources for short spans and write them where the monitor says "rollable".
-- [ ] R-DATA-57 (later, #825, #836): R-RUNNER-217 left: audit market_live.db; yf.download and local Stooq in the backfill order (desk/backfill.py); an adjustment-basis-per-bar fault (needs a basis column in the store).
-- [ ] R-DATA-58 (blocking, #801): restore the nine US lines through `Round.daily` from backup/20261117T013018Z and lift state/job-keeper.hold (the keeper's withdrawn wiring is done, #855).
+- [ ] R-DATA-57 (later, #825, #836): R-RUNNER-217 left: audit market_live.db; yf.download and local Stooq in the backfill order (desk/backfill.py); an adjustment-basis-per-bar fault (#870: the monitor now names a daily series mixed across bases, judged from each bar's source, no column; open: restating it onto IBKR's basis, 1m-30m gaps from IBKR/yf/Stooq, a separate market_live.db audit).
+- [x] R-DATA-58: declined (#872): the live store holds every backup day; the 20 differing days (20 Oct-16 Nov, nine US lines) are fresh pulls, old values kept in `correction`. Lifting state/job-keeper.hold is the runner's call.
+- [ ] R-DATA-59 (later, #872, waits: operator): decide the daily volume basis for those nine lines (fresh pull about half the old import) by comparing the sum of five-minute volumes to each, then record it in the store.
 ### Requests to GRID
 - [ ] R-DATA-7: a cell reads `universe.read(root, line).bars`, keeps `History.moves`, `.rescaled`. R-DATA-10 (blocking): `test_lab_batch.py`, `test_lab_cell.py` name SPY and QQQ; name lines that stay.
 ### Requests to MONEY

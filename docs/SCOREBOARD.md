@@ -349,6 +349,13 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #859 R-RUNNER-313: every line gets IBKR's bar within ceil(lines/ROOM) calls. |
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #861 R-RUNNER-341: one price form; corrections only on real change. |
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #863 R-RUNNER-327: keeper never parks a line for a fault in deep history. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #870 DATA: quality monitor names mixed-basis daily series (R-RUNNER-217, step 7). |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #883 no change; R-MONEY-28 confirmed on main. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #886 no change; R-PAPER-23 and R-PAPER-33 verified on main. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #891 no change; blocking requests already on main. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #887 no change; blocking requests already on main. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #889 no change; R-RUNGS-5 and R-RUNGS-9 verified already in the store. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #872 no change; R-DATA-58 declined with evidence, fresh pull kept. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
