@@ -69,12 +69,25 @@ def test_the_years_are_whole_and_the_answers_are_fair() -> None:
     cells = [(Cell(RULE, VUSA, bars[0].day, bars[-1].day), bars)]
     with pytest.raises(ValueError, match="no 5 whole years"):
         folds.pool(cells, TEN_K, DOLLARS)
-    other = Cell(RULE, ISF, bars[0].day, date(2012, 6, 1))
-    with pytest.raises(ValueError, match="one common end"):
-        folds.pool([*cells, (other, bars)], TEN_K, DOLLARS)
+    with pytest.raises(ValueError, match="one rule's"):
+        folds.pool(
+            [*cells, (Cell("trend_50_200", ISF, bars[0].day, bars[-1].day), bars)], TEN_K, DOLLARS
+        )
     few = folds.pool(cells, TEN_K, DOLLARS, 1).years[0]  #: a year with under 30 trades is THIN
     assert few.trades < 30 and few.answer is Answer.THIN
     assert folds._answer(0, None, Decimal(0)) is Answer.FAULT
     assert folds._answer(40, Decimal(-3), Decimal(-1)) is Answer.FAIL
     assert folds._answer(40, Decimal(-1), Decimal(-1)) is Answer.DOUBT
     assert folds._answer(40, Decimal("0.5"), Decimal(1)) is Answer.PASS
+
+
+def test_two_lines_with_different_ends_fold_and_give_a_verdict() -> None:
+    bars = _walk(1, *[EDGE] * 8, days=YEAR)
+    short = [b for b in bars if b.day <= date(2014, 12, 31)]
+    cells = [
+        (Cell(RULE, VUSA, bars[0].day, bars[-1].day), bars),
+        (Cell(RULE, ISF, short[0].day, short[-1].day), short),
+    ]
+    pooled = folds.pool(cells, TEN_K, DOLLARS, 4)
+    assert [y.lines for y in pooled.years] == [2, 2, 1, 1]
+    assert pooled.answer is not Answer.FAULT
