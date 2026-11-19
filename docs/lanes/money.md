@@ -603,3 +603,7 @@ Decided by the MONEY lane as the desk's mentor, no one watching.
 
 ### 2026-11-17 - desk/simcity.py split: the pure parts move (#796, R-RUNNER-287)
 Options: (a) move the broker and life classes too; (b) move only the pure parts, `Night`, `_market`, `Archive`, `MONTH`, to `desk/simcity_parts.py`. Chose (b): tests patch names on `desk.simcity` (`FAULTY`) that the broker and life classes read, so moving them would break callers or tests. `desk/simcity.py` re-exports what moved (`__all__`); 400 -> 334 lines, no behaviour change.
+
+### 2026-11-19 - shares beside the book: prove it by the scenario red without the handling (#834, R-RUNNER-247)
+- The desk already handled the 16 November case on main, so the proof is the SimCity scenario `beside` red with the handling removed (`book.adopt` made to do nothing) and green with it, the request's own alternative.
+- The promise is "taken into the book" rather than "sold same day", as a seeded broker fault may refuse the sale.
