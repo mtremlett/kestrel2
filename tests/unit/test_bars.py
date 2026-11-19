@@ -5,6 +5,7 @@ evening's five-minute bars enter through the daily store's checks, for good (DAT
 from __future__ import annotations
 
 import itertools
+import os
 import sqlite3
 import timeit
 from collections.abc import Callable, Iterator
@@ -16,7 +17,7 @@ from pathlib import Path
 
 import pytest
 
-from desk import audit, bars
+from desk import audit, bars, store_wait
 from desk.bars import Five, Source
 from desk.lines import LINES, Line
 from desk.store import Bar, Refused
@@ -208,6 +209,26 @@ def test_a_reader_sees_only_whole_rounds_and_a_second_writer_is_refused(
             round_.five(US, fives)
     with pytest.raises(LookupError, match="five-minute bars for BA on US"):
         bars.five(store, US, fives[0].start, NEXT)
+
+
+def test_a_reader_behind_a_held_write_ends_inside_its_limit_with_a_named_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    store = tmp_path / "bars.db"
+    with bars.writing(store) as round_:
+        round_.daily(US, _days(5))
+    with closing(sqlite3.connect(tmp_path / bars.HISTORY)) as old:
+        old.execute("DROP TABLE withdrawn")  # a reader must now write the table: it waits
+    monkeypatch.setattr(bars, "WAIT", 0.2)
+    with closing(sqlite3.connect(tmp_path / bars.HISTORY, isolation_level=None)) as holder:
+        holder.execute("BEGIN IMMEDIATE")
+        began = timeit.default_timer()
+        with pytest.raises(store_wait.StoreWait) as caught:
+            bars.daily(store, US)
+        assert timeit.default_timer() - began < 2.0
+    named = str(caught.value)
+    assert f"pid {os.getpid()}" in named and bars.HISTORY in named
+    assert "waited 0.2 seconds" in named and "holder unknown" in named
 
 
 def test_a_store_or_a_line_never_written_is_refused_not_read_as_empty(tmp_path: Path) -> None:
