@@ -157,6 +157,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #796 R-RUNNER-287 desk/simcity.py split 400 -> 334 lines, no behaviour change. |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #824 no change, two blocking requests (R-DATA-53, R-PAPER-29) verified on main. |
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #834 R-RUNNER-247 SimCity scenario for the 16 Nov conformance sale failure, red without adoption, green with it. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #845 money-time-gaps first step: time stop built in the one replay, gap loss measured; nothing wired to the broker yet. |
 
 ### DATA
 
@@ -660,3 +661,5 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #848 R-RUNNER-191 step: rung_dsr's wrapper of the paper's formula gone (no verdict changed) |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #846 Priced.stopped required (R-RUNGS-18 half), R-GRID-2 met; no scene moved |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #833 rungs-leveraged waits on R-RUNGS-21 (inverse Line type); no change |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #852 no change; R-RUNGS-18 met, R-RUNGS-17/28 are GRID's file |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #858 pooled folds accept lines with different ends (R-RUNNER-331) |

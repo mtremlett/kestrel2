@@ -607,3 +607,8 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 ### 2026-11-19 - shares beside the book: prove it by the scenario red without the handling (#834, R-RUNNER-247)
 - The desk already handled the 16 November case on main, so the proof is the SimCity scenario `beside` red with the handling removed (`book.adopt` made to do nothing) and green with it, the request's own alternative.
 - The promise is "taken into the book" rather than "sold same day", as a seeded broker fault may refuse the sale.
+
+### 2026-11-19 - time stop in the one replay, gap loss as a pure test (#845, STP-11, STP-10)
+- Options: (a) the time stop in `strategy._run`, the one replay backtest and today share (chosen); (b) in `day.py`, a second path, which canon B2 forbids.
+- Live age comes from the replay's own buy, not the fill date. A gap breach is a pure test (`orders.gapped`) first; acting on it needs the stop fill from book/broker, outside this claim.
+- Choosing each rule's hold limit moves golden days, so it needs his approval (canon B5); the five declare none today.
