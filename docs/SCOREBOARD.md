@@ -656,3 +656,5 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #848 R-RUNNER-191 step: rung_dsr's wrapper of the paper's formula gone (no verdict changed) |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #846 Priced.stopped required (R-RUNGS-18 half), R-GRID-2 met; no scene moved |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #833 rungs-leveraged waits on R-RUNGS-21 (inverse Line type); no change |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #852 no change; R-RUNGS-18 met, R-RUNGS-17/28 are GRID's file |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #858 pooled folds accept lines with different ends (R-RUNNER-331) |
