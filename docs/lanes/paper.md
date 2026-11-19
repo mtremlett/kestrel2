@@ -467,3 +467,20 @@ Options: (a) the pretend broker says the same words as the real one; (b) compare
 ### 2026-11-17 — the lost-stop list is read from the day's list, in the evening message (R-RUNNER-291, #805)
 
 Options: (a) widen the claim to change `running.recover`'s words (loosens a claim, more files; its report carries no order id or level); (b) read the day's list (`halt.morning`, entries written by `day._bare`), which already holds id, shares and level. Chose (b), smaller. Evening, not morning: the list is written when the day's record is made, after the close. `messenger.PUT_BACK` repeats `day._bare`'s "; put back " marker, a second home for that phrase; a later change could export it from `day.py`. A morning copy is a follow-up if he wants it.
+
+### 2026-11-19 — a held line the round cannot judge: say the stop is not kept (R-RUNNER-312, #843)
+
+Where the desk has no kept stop level for a held line, the message says "a level the desk has not kept". Options: omit the stop, or say so. Chose to say so, since silence is the fault being fixed.
+
+### 2026-11-19 — an unfilled market buy: "at the market", withdrawn by the desk (R-RUNNER-326, #854)
+
+Options: invent a limit price for the message, or say "at the market" (the desk sends no limit). Chose the truthful one. "Withdrawn" is judged by the cancel's answer being a real cancel state; a cancel refused because the broker had already ended the order counts as the broker's.
+
+### 2026-11-19 — a market order waits 120 seconds, not 30 (R-RUNNER-339, #860)
+
+Options: keep 30 s (three buys withdrawn on 19 Nov, none filled after the cancel); 120 s (chosen, recommended: inside a five-minute step, four times the old); 240 s (rides near the step's end with the cancel and reads after). Took the recommended, by his standing ruling of 13 Nov. `paper.FILL_SECONDS` = 120; tune from later tapes.
+
+### 2026-11-19 — the order timing record is one long-form CSV (R-RUNNER-342, #862)
+
+Options: one row per order, or one row per event (order_id, event, at, shares). Chose per event: fills repeat and an unaccepted order has no accepted time. Moments are the desk's clock when each message is read, since the gateway sends no status times of its own.
+
