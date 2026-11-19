@@ -795,7 +795,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       audit found kept as a case that must fail (LAD-09, LAD-03, LAD-08). Built: all eleven
       modules, each proven alone (#343-#365, #412). Remains: the Sharpe a trade has one home (#746); the ladder judges by three of them
       (costs #438, ci #440, cpcv #445 declare a RUNG; "rungs built" counts 3 of 11); wiring the rest, the clustered
-      trials (#379 built) into the verdict, the gap-through loss (R-RUNNER-187 declined, #409). Also remains (R-RUNNER-191): market.fit, rung_dsr.chance vs deflated._deflated, rung_regimes/rung_bootstrap bands (rung_ci keeps its own, open at both ends, #815; rung_benchmark reads rung.mean_and_error, #827); Fold/Walked out of rung_folds.py; ease-switch-on
+      trials (#379 built) into the verdict, the gap-through loss (R-RUNNER-187 declined, #409). Also remains (R-RUNNER-191): market.fit, rung_dsr.chance vs deflated._deflated, rung_regimes/rung_bootstrap bands (rung_ci keeps its own, open at both ends, #815; rung_benchmark reads rung.mean_and_error, #827; one home for a mean and its interval, rung.interval, #838; rung_dsr's wrapper of the paper's formula gone, #848); Fold/Walked out of rung_folds.py; ease-switch-on
       {id: rungs-trustworthy; files: *; after: rungs-beta}
 - [ ] **LADDER READY, the cards (his ruling, 15 November: "done properly and to elite desk
       specifications", then the ladder runs 24x7).** Ranked; each card one test and one change:
@@ -881,8 +881,9 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       signature (STR-17, LAD-11, MIG-07)
       {id: rungs-eponymous; files: *; after: rungs-trustworthy, rungs-indicators}
 - [ ] His paramount case: long and inverse leveraged-ETP trend strategies through the ladder
-      (STR-18)
-      {id: rungs-leveraged; files: *; after: rungs-trustworthy}
+      (STR-18). Built: set LEV, six trend rules on the leveraged lines (#423). Remains: inverse
+      leveraged lines, once a Line may state an inverse fund (R-RUNGS-21, R-RUNGS-22); a real run of LEV
+      {id: rungs-leveraged; files: *; after: rungs-trustworthy; waits: R-RUNGS-21}
 
 ## Phase 5 — the edge
 
