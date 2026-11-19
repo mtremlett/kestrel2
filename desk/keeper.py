@@ -135,6 +135,12 @@ def _source(kept: Sequence[Bar], answer: store.Answer, broker: store.Answer | No
     return f"archive (IBKR {why})" if day in (gave[1] or ()) else "the shelf, or none"
 
 
+def _dropped(kept: Sequence[Bar], *answers: store.Answer | None) -> set[date]:
+    """The days the answers gave that the judge did not keep: withdrawn, never deleted."""
+    given = {b.day for a in answers if not isinstance(a, Refused | None) for b in a}
+    return given - {b.day for b in kept}
+
+
 def _kept_in(
     hot: Path,
     folder: Path,
@@ -150,7 +156,7 @@ def _kept_in(
             broker = first.get(line)
             shelf = bars.bridged(hot, line, day, _shelf(folder, line), answer, broker)
             kept, faults, park = store.judge(line, answer, day, rates, shelf=shelf, broker=broker)
-            round_.daily(line, kept)
+            round_.daily(line, kept, withdrawn=_dropped(kept, answer, broker))
             parked += [park] if park else []
             named.setdefault(_source(kept, answer, broker), []).append(line.symbol)
             said += [f"{line.symbol}: {f.what}, held" for f in faults if "(broker)" in f.what]
