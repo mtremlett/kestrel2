@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import statistics
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
 
@@ -152,3 +153,27 @@ def breadth(lines: Mapping[str, Sequence[Bar]]) -> dict[date, str]:
         else:
             named[day] = BROAD if 2 * today.count(UP) > len(today) else NARROW
     return named
+
+
+@dataclass(frozen=True)
+class Contest:
+    """A layer's worst-fold edge against trend alone's, and how many layers were tried."""
+
+    layer: Decimal
+    trend: Decimal
+    trials: int
+
+    @property
+    def wins(self) -> bool:
+        """The layer joins only if its worst fold beats trend alone's worst fold (canon B6)."""
+        return self.layer > self.trend
+
+
+def against_trend(
+    labels: Mapping[date, str], good: str, bars: Sequence[Bar], folds: int, trials: int
+) -> Contest:
+    """The win-against-trend test: the layer's worst fold edge beside trend alone's, over the
+    same bars and folds, with the count of layers tried so the luck can be judged."""
+    return Contest(
+        min(edges(labels, bars, good, folds)), min(edges(trend(bars), bars, UP, folds)), trials
+    )
