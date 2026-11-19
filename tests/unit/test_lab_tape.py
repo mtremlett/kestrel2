@@ -52,7 +52,8 @@ def test_a_rung_changed_runs_no_simulation_and_a_rule_changed_only_its_own(
     _judge(tmp_path)
     made = len(sims)
     assert made and len(list((tmp_path / "ladder" / tape.FOLDER).rglob("*.tape"))) == made
-    monkeypatch.setattr(ladder, "CODE", "a rung edited")  #: every cell's key is new
+    found = rung.found
+    monkeypatch.setattr(rung, "found", lambda r: (found(r)[0], (*found(r)[1], "a rung edited")))
     assert len(_judge(tmp_path)) == 2 * len(TODO) and len(sims) == made, "judged again, not run"
     run: Callable[[str], str] = lambda _: "v1"  # noqa: E731
     kept = tape.kept(tmp_path / "other", cell.run, run)
