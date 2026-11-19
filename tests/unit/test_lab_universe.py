@@ -191,9 +191,11 @@ def _stepped(by: Decimal | int, at: int = AT, bars: tuple[Bar, ...] | None = Non
 def _read(tmp_path: Path, bars: list[Bar], line: Line = MMM) -> universe.History:
     parked = universe.keep(tmp_path, DAY, [line], lambda *_: tuple(bars))
     read = universe.read(tmp_path, line)
-    #: research's rule loosens nothing: the store parks the ticker for every move it finds
-    assert list(parked) == ([line] if read.moves or read.rescaled else [])
-    assert all(f"{day} moved" in parked[line].reason for day in read.moves + read.rescaled)
+    #: the store parks a ticker only for a move inside the last 60 sessions, the desk's window
+    window = {bar.day for bar in bars[-60:]}
+    near = [day for day in read.moves + read.rescaled if day in window]
+    assert list(parked) == ([line] if near else [])
+    assert all(f"{day} moved" in parked[line].reason for day in near)
     return read
 
 
