@@ -18,6 +18,7 @@ sell that any other hand writes is the gate's to refuse (`orders.gate`).
 
 from __future__ import annotations
 
+import inspect
 from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
@@ -270,6 +271,45 @@ STRATEGIES: Mapping[str, type[Rule]] = {
 #: The WIRING strategies, listed apart from the five: rules kept to test the desk's wiring
 #: end to end, tested as the five are, and NEVER A-GATE candidates, whatever they earn.
 WIRING: Mapping[str, type[Rule]] = {"ema_9_21": _EmaCross}
+
+
+#: The settings the grid may try, each rule's published one at the centre, its neighbours beside.
+SWEEPS: Mapping[str, Mapping[str, tuple[int | Decimal, ...]]] = {
+    "rsi2_pullback": {
+        "length": (2, 3, 4),
+        "trend": (150, 200, 250),
+        "exit_length": (4, 5, 6),
+        "below": (Decimal(3), Decimal(5), Decimal(10)),
+    },
+    "bollinger_pullback": {
+        "length": (15, 20, 25),
+        "width": (Decimal("1.5"), Decimal(2), Decimal("2.5")),
+    },
+    "breakout_20_10": {"entry": (15, 20, 25), "exit_length": (8, 10, 12)},
+    "trend_50_200": {"fast": (40, 50, 60), "slow": (150, 200, 250)},
+    "supertrend_10_3": {"length": (8, 10, 12), "multiple": (Decimal(2), Decimal(3), Decimal(4))},
+}
+
+
+def _variant(base: type[Rule], setting: Mapping[str, int | Decimal]) -> type[Rule]:
+    """A no-argument maker of `base` at one setting, carrying its declaration."""
+
+    class Variant(base):  # type: ignore[misc, valid-type]  # a Protocol class, made to be built
+        def __init__(self) -> None:
+            super().__init__(**setting)
+
+    return Variant
+
+
+#: Each rule at one other setting of its sweep, named `breakout_20_10[entry=15]`; listed apart
+#: from STRATEGIES, so nothing here trades. The published setting is the rule's own name.
+VARIANTS: Mapping[str, type[Rule]] = {
+    f"{name}[{key}={value}]": _variant(STRATEGIES[name], {key: value})
+    for name, grid in SWEEPS.items()
+    for key, values in grid.items()
+    for value in values
+    if value != inspect.signature(STRATEGIES[name]).parameters[key].default
+}
 
 
 #: A rule's settings by argument name; any left out keep the published one. Lengths are whole
