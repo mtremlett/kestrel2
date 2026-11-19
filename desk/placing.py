@@ -92,6 +92,20 @@ def _place(
     return number, None, tuple(notices)
 
 
+def _withdrawn(report: Report) -> Report:
+    """An order the desk cancelled after its wait, told as the desk's own act: it went at the
+    market (MARKET) and was not filled within the door's wait. What the broker then says of it
+    follows; an order the broker ends itself keeps the broker's own words (Paper.report)."""
+    if report.reason is None:
+        return report
+    why = f"{report.order_id}: withdrawn by the desk: not filled at the market within "
+    why += f"{paper.SECONDS} seconds"
+    broker = report.reason.removeprefix(f"{report.order_id}: ")
+    if broker.startswith("the broker says "):
+        why += f"; {broker}"
+    return replace(report, reason=why)
+
+
 def _rest(wire: BinaryIO, send: paper.Send, listed: Listing, stop: Stop, door: paper.Door) -> None:
     """Send a stop to sell over an open connection, alone, and read until the broker says it
     holds it. One it ends instead is an error with its notices; so are silence and a hang-up."""
@@ -182,9 +196,14 @@ class Paper:
             number, last, notices = paper.dial(
                 lambda wire, send: _place(wire, send, listed, order, self._door)
             )
-            if last is None:
+            silent = last is None
+            if silent:
                 last = self._cancelled({number: ref})[number]
             report = self.report(ref) or Report(ref, (), f"{ref}: the broker tells nothing of it")
+            if (
+                silent and last in GONE
+            ):  #: the broker found it working, and cancelled it for the desk
+                report = _withdrawn(report)
             moved = sum(fill.quantity for fill in report.fills)
             held, stops = on(paper.read(self._door), listed, self._door)
             if held != was + moved or (last == "Filled" and abs(moved) != order.quantity):
