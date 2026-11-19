@@ -253,8 +253,8 @@ def _one(
         )
         market = cell.key(Cell(c.strategy, beside, c.start, c.end), held).data
         rates = (f"{d} {pounds[d]}" for d in days)
-        parts = [mine.code, CODE, mine.data, market, pool.data, str(count), *rates]
-        parts += [one.key.code + one.key.data for one in made]
+        parts = [mine.code, mine.data, market, pool.data, str(count), *rates]
+        parts += [tape.rule_code(c.strategy)] + [one.key.code + one.key.data for one in made]
         found = rung.found(RUNGS)
         declared, waiting = found  #: both are in the row, so both are in its key
         parts += [one.name + one.code for one in declared] + list(waiting)
@@ -277,15 +277,6 @@ def _one(
             | ({} if key is None else {"key": key})
             | {"error": f"{type(error).__name__}: {error}", "tried": now.isoformat()}
         )
-
-
-def code(folder: Path = DESK) -> str:
-    """sha256 of every eponymous file's text, line endings aside: part of every key."""
-    texts = [p.read_bytes().replace(b"\r\n", b"\n") for p in sorted(folder.glob("eponymous_*.py"))]
-    return hashlib.sha256(b"\0".join(texts)).hexdigest()
-
-
-CODE = code()  #: the eponymous files as this process loaded them: in every key
 
 
 def eponymous(folder: Path = DESK, book: Path | None = None) -> tuple[str, ...]:
