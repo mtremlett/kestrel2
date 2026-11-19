@@ -280,7 +280,7 @@ Last updated: 17 November 2026.
 ### Where it is
 Eleven rungs built, each proven alone (#342-#365, #412). The ladder judges by the first rung, luck, deflated Sharpe, folds (five whole years pooled by
 rule, #313), market, stress (20% of capital, #457), regime on the weather (#622) and the shuffle last; costs, ci and cpcv are declared (#438-#445): "rungs built: 3 of 11".
-Machinery: one compressed tape per (rule, line) (#378, #555); a pool by fold year sized by free memory (#368, #451); sets read market_history.db only (#562), trade list members only (#569);
+Machinery: pooled folds fold each line on its own window, whole years only (#858); one compressed tape per (rule, line) (#378, #555); a pool by fold year sized by free memory (#368, #451); sets read market_history.db only (#562), trade list members only (#569);
 EPON (20 rules proven, #308), LEV (#423); the spec book holds rules as rows with a fast engine that also walks position-dependent blocks (darvas_box #799, demark_sequential #790, raschke_swing #773). Easings pre-registered (#567) and built behind `verdict.EASED` (False): family
 trials (#596), basket (#664), scorecard (#589), INCUBATE (#695); the golden verdict is untouched. Calibration: `python -m lab.calibration` (#693). Weather layers 2, realised volatility (`weather.volatility`, #737), and 3, drawdown depth (`weather.drawdown`, 10% under the 252-session high, #776), and 4, breadth (`weather.breadth`, more than half the lines up, #831), are wired into no verdict; `weather.followed` scores a layer per fold by the next-session return (#813). A layer joins the regime rung only after an out-of-sample win against trend alone (open: run `followed` on the real store with trial count and worst fold, then macro; 1 trial spent). Blind reviews: #402, #419; judge walk test (#593).
 **No winner on real prices is to be believed: SET EPON judged 21,320 cells, none goes forward; every table is PRE-REVIEW. A loss gapping through the stop is unplanted (#402, #409 declined): a no-edge gap rule can pass rung 1 up to 18.8%, the later rungs cut it to 0-2.2%.**
@@ -291,7 +291,7 @@ Open: rungs-trustworthy remainder (wire the other eight rungs, R-RUNNER-191, whi
 rungs-promotion (R-RUNGS-7; kill numbers need a ladder-passed candidate); rungs-leveraged (inverse lines wait R-RUNGS-21, 22; LEV long half built); rungs-feasibility (needs three ladder-passed rules, from rungs-eponymous); rungs-blocks (sizing blocks, operator); rungs-indicators (operator).
 `Candidate` should also refuse a row listing unrun rungs (recommended: when the first real candidate nears).
 ### Done for other lanes
-- R-DATA-11, R-RUNNER-5, R-RUNNER-3: done in #186; R-RUNNER-25: #202; R-RUNNER-33: #206; R-MONEY-34: #239; R-GRID-6: #427; R-GRID-2: #504, #846; R-MONEY-13: #600; R-MONEY-43: #693
+- R-DATA-11, R-RUNNER-5, R-RUNNER-3: done in #186; R-RUNNER-25: #202; R-RUNNER-33: #206; R-MONEY-34: #239; R-GRID-6: #427; R-GRID-2: #504, #846; R-RUNGS-18: #846; R-RUNNER-331: #858; R-MONEY-13: #600; R-MONEY-43: #693
 - R-RUNNER-47: done in #235; -45: #239; -49: #244; -52: #241; -83: #252; -85: #253; -86: #279; -95: #304; -101: #307; -98: #308; -102: #309; -106: #310; -108: #311; -109: #312; -99: #313; -114: #316; -110: #318; -100: #319; -103: #322; -124: #327
 - R-RUNNER-117: done in #331; -130: #333; -152: #340; -133: #343; -131: #344; -134: #347; -123: #346; -122: #342; -121: #350; -119: #351; -120: #354; -136: #361; -154: #362; -139: #364; -155: #363; -135: #365; -168: #366; -166: #368; -173: #371; -137: #379; -169: #378; -126: #382; -165: #384
 - R-RUNNER-183: done in #405; -187: #409 (declined); -174: #410; -188: #419; -40: #402; -186: #425; -192: #427; -203: #451; -204: #457; -171: #560; -213: #555; -222: #562; -146: #569; -225: #567; -230: #589; -237: #603; -193: #593; -226: #596; -239: #635; -260: #658; -227: #664; -267: #680; R-RUNGS-23: #775
@@ -305,7 +305,7 @@ rungs-promotion (R-RUNGS-7; kill numbers need a ladder-passed candidate); rungs-
 - [ ] R-RUNGS-2 (later, 13 Nov): the declared sweep enters every cell in the register before the batch runs. [ ] R-RUNGS-4 (later): a kept verdict's key takes in the rates it was priced with.
 - [ ] R-RUNGS-19 (later, 16 Nov 15:00): `Cell.symbol` still read in lab/cell.py:65, lab/ladder_sets.py and tests/unit/test_lab_tune.py:210; RUNGS's files are clear: drop it.
 - [ ] R-RUNGS-25 (later, 17 Nov 05:00): capital and the rate table's version into `lab.cell.Key` (R-GRID-3, last part).
-- [ ] R-RUNGS-28 (later, 17 Nov 18:00): `lab/transfer.py:170` calls `ladder.rates(home=data)` (the data folder, where the pound's kept closes live), so they are not asked of the archive each run; its test's stub takes `home`. Meets R-RUNGS-17.
+- [ ] R-RUNGS-28 (later, 17 Nov 18:00): `lab/transfer.py:170` calls `ladder.rates(home=data)` (the data folder, where the pound's kept closes live), so they are not asked of the archive each run; its test's stub takes `home`. Meets R-RUNGS-17. RUNGS's own edit was refused by the lane-ownership guard (#852): GRID's file.
 ### Requests to DATA
 - [ ] R-RUNGS-5 (blocking): SPY and US sessions back to January 1993, saying if dividend-adjusted. [ ] R-RUNGS-9 (blocking): SPY from 29 Jan 1993 kept as traded and adjusted, labelled.
 - [ ] R-RUNGS-13 (later, 14 Nov): the S&P 500 index from 1983 to Feb 2013, daily closes, US sessions (BLOCKED ON DATA).
@@ -313,7 +313,7 @@ rungs-promotion (R-RUNGS-7; kill numbers need a ladder-passed candidate); rungs-
 - [ ] R-RUNGS-20 (later, 16 Nov 01:45): 24 London lines refused for a day whose open and close both step by the pound's rate; HVPE (2015-09-09), NBPE (2017-05-02), VOF (2016-03-30) changed quote currency and want mending; the rest (AJB, BMY, CMCX, HAS, RMV, BPT, CWR, FOUR) look like real gaps and want naming in the line master.
 - [ ] R-RUNGS-22 (later, 16 Nov 12:00): inverse ETFs (SQQQ, SPXU, SH, SDS) in the research list and store, once R-RUNGS-21 allows.
 ### Requests to RUNGS
-- [ ] R-RUNGS-17 (later): lab/transfer.py:170 calls `ladder.rates(home=root)`. [ ] R-RUNGS-18 (later): `Priced.stopped` is required (#846); montecarlo reading `verdict.gains` declined (it plants a made-up stop-sold gain).
+- [ ] R-RUNGS-17 (later): lab/transfer.py:170 calls `ladder.rates(home=root)` (GRID's file; see R-RUNGS-28). [x] R-RUNGS-18: `Priced.stopped` is required (#846); montecarlo reading `verdict.gains` declined (it plants a made-up stop-sold gain).
 - [x] R-RUNGS-23 (16 Nov 12:00): the table's holding column, `lab.holding.beside` per cell (#775).
 - [x] R-RUNGS-27 (17 Nov): `verdict.basket_answer` wired into `basket.row`, INCUBATE listed apart (#742); EASED stays off until card ease-switch-on.
 ### Found, not fixed
