@@ -185,6 +185,21 @@ def _gapped(life: _Life, on: date) -> None:
     rests = {s: level for s, (_, level) in life.pretend.resting_stops().items()}
     fits = all(rests[s] == due[s] for s in rests & due.keys())
     life.promise("a stop rests where its fill puts it", fits)
+    held = {f.symbol: f for f in book.fills(life.desk) if f.quantity > 0 and f.day == on}
+    shut = {x.symbol: [b.close for b in bars if b.day < on][-1] for x, bars in life.market.items()}
+    sold = [
+        orders.Order(
+            f"gap-{s}",
+            lines[s],
+            f.quantity,
+            shut[s],
+            life.rates[lines[s].currency],
+            orders.stop_under(lines[s], shut[s]),
+        )
+        for s, f in held.items()
+    ]
+    gone = [o.order_id for o in sold if orders.gapped(o, held[o.line.symbol].price, life.room)]
+    life.promise("a gap down to the low leaves a stop's loss inside the gap limit", not gone)
 
 
 def _killed(life: _Life, on: date) -> None:

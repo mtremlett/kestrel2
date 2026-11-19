@@ -216,6 +216,19 @@ def size(
     return bought
 
 
+def gap_loss(order: Order, fill: Decimal) -> Decimal:
+    """STP-10: the pounds a stop's sale at `fill` loses against the order's price, charges
+    apart. A gap that jumps the stop sells below it, so this is more than the stop's own."""
+    return max(Decimal(0), (order.price - fill) * order.quantity * order.fx)
+
+
+def gapped(order: Order, fill: Decimal, settings: Settings) -> bool:
+    """Whether a stop's sale at `fill` lost more than GAP_LOSS of the capital: such a gap is
+    held against the limit, and the desk is to stand down (STP-10, SIZ-09: sizing at a fifth
+    of the capital over the leverage keeps a market gap of up to 25% inside it)."""
+    return gap_loss(order, fill) > GAP_LOSS * settings.capital
+
+
 def order_id_of(decision: Decision) -> str:
     """The id of the order a decision makes: its day, its strategy and its line."""
     return f"{decision.day:%Y%m%d}-{decision.strategy}-{decision.symbol}"

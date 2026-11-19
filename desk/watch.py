@@ -49,7 +49,7 @@ from desk.store import Bar
 from desk.venues import Hours
 
 BAR = timedelta(minutes=5)
-STALE = timedelta(minutes=20)  #: a venue, or the market, not heard from for longer is not read
+STALE = timedelta(minutes=15)  #: a venue, or the market, not heard from for longer is not read
 BACK = timedelta(days=10)  #: the market's last session is looked for no further back
 WATCH = "the crash watch"  #: who calls the watch's halts, and lifts its own
 EARLY = "no bar of its own has ended this session"

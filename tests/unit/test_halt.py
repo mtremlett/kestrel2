@@ -4,14 +4,21 @@ blocker with the signals it blocked."""
 
 from __future__ import annotations
 
+from contextlib import suppress
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta, timezone
+from decimal import Decimal
 from pathlib import Path
 
 import pytest
 
-from desk import halt
+from desk import book, goflat, halt
+from desk.book import Switch
+from desk.broker import Crash, Fault, Pretend
 from desk.halt import Blocked, Blocker, Halt
+from desk.lines import LINES, Line
+from desk.orders import Order, Settings
+from desk.store import Bar
 
 MON, TUE, WED = (date(2025, 11, day) for day in (10, 11, 12))
 NOW, LATER = (datetime(2025, 11, 10, hour, 30, tzinfo=UTC) for hour in (9, 15))
@@ -181,3 +188,31 @@ def test_each_morning_one_list_names_every_blocker_and_every_signal_it_blocked(
             read(tmp_path, MON)
     with pytest.raises(ValueError, match="blocker"):  #: nor is anything added to such a list
         halt.note(tmp_path, MON, [held])
+
+
+def test_a_halt_cancels_working_buys_keeps_stops_and_go_flat_sells_nothing_under_the_kill_switch(
+    tmp_path: Path,
+) -> None:
+    held, working = (replace(LINES[n], suspended=frozenset()) for n in (0, 1))
+    bar = Bar(NOW.date(), Decimal(50), Decimal(51), Decimal(49), Decimal(51), 1)
+    broker = Pretend({held: (bar,), working: (bar,)}, {working.symbol: Fault.STRAND})
+    room, broker_day = Settings(Decimal(10_000)), NOW.date()
+    broker.open(broker_day)
+
+    def buy(line: Line) -> Order:
+        return Order(f"buy-{line.symbol}", line, 10, Decimal(50), Decimal(1), Decimal(45))
+
+    book.send(tmp_path, broker, buy(held), room)
+    with suppress(Crash):  #: the desk dies with the second buy left working
+        book.send(tmp_path, broker, buy(working), room)
+    assert broker.working() == ("buy-2MU",)
+    said = halt.stop(tmp_path, broker, NOW, "the market fell 5%")
+    assert said.halt in halt.in_force(tmp_path) and said.cancelled == ("buy-2MU",)
+    assert broker.working() == () and broker.stops() == ((held.symbol, 10),)
+    assert "buy-2MU" in said.words() and "stops" in said.words()
+    assert halt.stop(tmp_path, broker, NOW, "the market fell 5%").cancelled == ()
+    #: go flat under the kill switch sells nothing and says so
+    book.turn(tmp_path, Switch.ON, NOW, "his word")
+    (tmp_path / goflat.FLAG).write_text("", "utf-8")
+    answers = goflat.step(tmp_path, broker, room, NOW)
+    assert broker.holdings() == ((held.symbol, 10),) and "kill switch" in " ".join(answers)
