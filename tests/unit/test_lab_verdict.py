@@ -96,6 +96,23 @@ def test_nothing_goes_forward_while_a_rung_is_unrun_and_the_table_says_cells_bes
     assert (data["rungs_built"], data["rungs"]) == (7, 11)
 
 
+def test_the_table_s_path_never_holds_a_partial_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen: list[tuple[str, bool]] = []
+    swap = Path.replace
+
+    def spy(self: Path, target: Any) -> Path:
+        seen.append((Path(target).name, Path(target).exists()))
+        assert self.read_text(encoding="utf-8")
+        return swap(self, target)
+
+    monkeypatch.setattr(Path, "replace", spy)
+    verdict.write_table(tmp_path, "T", "Does it earn?", [], [], 0, (0, 1))
+    assert seen == [("T.json", False), ("T.md", False)], "content appears only by the replace"
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["T.json", "T.md"], "no .tmp left"
+
+
 def test_every_judged_cell_says_what_simply_holding_its_market_made() -> None:
     said = _judge()["holding"]
     assert "% strategy, " in said and " holding ISF, " in said and said.endswith(" difference")
