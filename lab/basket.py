@@ -14,7 +14,7 @@ from collections.abc import Sequence
 from dataclasses import replace
 from typing import Any
 
-from lab import deflated, rung, verdict
+from lab import deflated, rung, rung_retail, verdict
 from lab.cell import Cell
 from lab.rung import Answer, Verdict
 
@@ -43,14 +43,22 @@ def pool(lines: Sequence[Verdict]) -> Verdict:
 
 
 def row(
-    tag: int | str, rule: str, lines: Sequence[Verdict], family: int, stressed: Answer
+    tag: int | str,
+    rule: str,
+    lines: Sequence[Verdict],
+    family: int,
+    stressed: Answer,
+    against: rung_retail.Against | None = None,
 ) -> dict[str, Any]:
     """The basket's line of the results file: its answer, the rungs read from its pooled trades
     and its reasons, charged `family` trials, the rule's variants ever run. `stressed` is the
-    stress answer the basket stands on: the first line's that is not a pass, else PASS."""
+    stress answer the basket stands on: the first line's that is not a pass, else PASS. `against`
+    is the market it is set beside: while EASED the retail rung (`lab/rung_retail.py`) is read."""
     basket = pool(lines)
     (one,) = deflated.judge([basket], family - 1)  #: every other trial of the family
     rungs = verdict.named(basket, one, rule)
+    if against is not None and (retail := rung_retail.grade(basket, against)) is not None:
+        rungs["retail"] = retail
     return {
         "set": tag,
         "cell": [rule, *NAME],
