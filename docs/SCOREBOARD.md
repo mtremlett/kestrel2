@@ -156,6 +156,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #788 R-RUNNER-191 step: one home for a mean and its standard error (no verdict changed) |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #796 R-RUNNER-287 desk/simcity.py split 400 -> 334 lines, no behaviour change. |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #824 no change, two blocking requests (R-DATA-53, R-PAPER-29) verified on main. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #834 R-RUNNER-247 SimCity scenario for the 16 Nov conformance sale failure, red without adoption, green with it. |
 
 ### DATA
 
@@ -636,3 +637,8 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #823 R-MONEY-45 checked, no change; Mansfield needs an index series in the block contract |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #827 R-RUNNER-191 step: rung_benchmark's interval reads rung.mean_and_error (no verdict changed) |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #831 R-RUNNER-205 step: market weather layer 4, breadth (not wired) |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #830 rungs-tape-cache already on main, nothing to add; no change |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #838 R-RUNNER-191 step: one home for a mean and its interval, rung.interval (no verdict changed) |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #848 R-RUNNER-191 step: rung_dsr's wrapper of the paper's formula gone (no verdict changed) |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #846 Priced.stopped required (R-RUNGS-18 half), R-GRID-2 met; no scene moved |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #833 rungs-leveraged waits on R-RUNGS-21 (inverse Line type); no change |
