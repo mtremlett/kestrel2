@@ -8,9 +8,10 @@ and a line whose span is already in is not read again (`python -m lab.headstart_
 from __future__ import annotations
 
 import os
+import re
 import sqlite3
 import sys
-from datetime import timedelta
+from datetime import date, timedelta
 from pathlib import Path
 
 import numpy as np
@@ -53,6 +54,35 @@ def one(line: Line, old: Path, path: Path) -> str:
             headstart_hours.enter(line, given, path, span, Source.MATRIX_INTRADAY).split(": ", 1)[1]
         )
     return f"{line.symbol}: " + "; ".join(said)
+
+
+FILLED = re.compile(r"(\d+) (?:\w+ )*?filled")
+DIFFER = re.compile(r"(\d+) of \d+ days held differ")
+
+
+def whole(register: Path, path: Path, lines: list[Line], day: date) -> str:
+    """The pass after the five-minute one (R-RUNNER-349): each IMPORT store's daily, hourly and
+    matrix rows into the database at path, the database's first; a store already in is skipped
+    by its readers. One line of counts per store: filled, refused, in disagreement."""
+    stores = sorted(headstart.imports(register), key=lambda p: p.suffix != ".db")
+    said = []
+    for old in stores:
+        got = []
+        if old.suffix == ".db" or headstart_days._daily(old):  # noqa: SLF001  # the one test of form
+            got.append(headstart_days.main(old, path, lines, day))
+        if (old / "freq=h").is_dir():
+            got.append(headstart_hours.main(old, path, lines))
+        if old.name == "stooq_store_matrix":
+            got.append(headstart_hours.main(old, path, lines, one))
+        text = "\n".join(got)
+        counts = (
+            sum(int(n) for n in FILLED.findall(text)),
+            text.count(": refused:"),
+            sum(int(n) for n in DIFFER.findall(text)),
+        )
+        said.append(f"{old.name}: filled {counts[0]}, refused {counts[1]}, differ {counts[2]}")
+    sys.stdout.write("\n".join(said) + "\n")
+    return "\n".join(said)
 
 
 if __name__ == "__main__":
