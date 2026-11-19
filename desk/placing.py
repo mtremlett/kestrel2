@@ -69,9 +69,9 @@ def _place(
     the number the gateway gave at the start. A BUY GOES WITH ITS STOP (_with): the buy held
     back, and behind it, under the next number, the stop, which waits on the buy and sends
     both on. The reading ends when the order is over, or when the gateway has said nothing
-    for as long as the door waits (paper.SECONDS): the order is then not over (None), and is
-    the desk's to cancel. A gateway that hangs up first is an error: the order may have
-    arrived."""
+    for as long as an order is given to fill (paper.FILL_SECONDS): the order is then not over
+    (None), and is the desk's to cancel. A gateway that hangs up first is an error: the order
+    may have arrived."""
     first, ref, shares = paper.start(wire, send, door), order.order_id, order.quantity
     number, numbers = str(first), [str(first)]
     if isinstance(order, Sale):
@@ -99,7 +99,7 @@ def _withdrawn(report: Report) -> Report:
     if report.reason is None:
         return report
     why = f"{report.order_id}: withdrawn by the desk: not filled at the market within "
-    why += f"{paper.SECONDS} seconds"
+    why += f"{paper.FILL_SECONDS} seconds"
     broker = report.reason.removeprefix(f"{report.order_id}: ")
     if broker.startswith("the broker says "):
         why += f"; {broker}"
@@ -194,7 +194,8 @@ class Paper:
         ref = order.order_id
         try:
             number, last, notices = paper.dial(
-                lambda wire, send: _place(wire, send, listed, order, self._door)
+                lambda wire, send: _place(wire, send, listed, order, self._door),
+                paper.FILL_SECONDS,
             )
             silent = last is None
             if silent:
