@@ -46,51 +46,9 @@ Every rule and constant of `desk/store.py` is pinned by a row of one synthetic t
 The head start recognises a store of adjusted prices beside the as-traded one and never writes over raw (R-RUNNER-90, #286).
 The store holds each venue's closes within 39 minutes of its close (R-PAPER-23, #294). Details are in git history.
 
-### 2026-11-15 — VUAG's archive gap of May-June 2019 is filled from a checked shelf, never forward-filled (R-RUNNER-104) (#314)
+### 2026-11-15 — nine settled store and keeper rules, folded (#314-#381)
 
-- (1) Real prices from the old desk's Stooq bars via the shelf, vs marking VUAG suspended 23
-  May-18 Jun 2019 (it did trade) vs softening the desk's refusal (forbidden). Chose the shelf:
-  real, sourced, no special case. (2) With a shelf, discard all frozen filler rather than only
-  covered days, so a partial shelf cannot let filler through.
-
-### 2026-11-15 — every line's venue has a calendar and every SimCity world is dated on trading days (R-RUNNER-107) (#315)
-
-- worlds are read through simcity.run (the only public entry) with `_live` swapped for a
-  recorder, as test_simcity already does; simcity.py untouched. Planted breaks and their
-  failing messages are in docs/DECISIONS.md.
-
-### 2026-11-15 — research refresh command, python -m lab.universe (R-RUNNER-116) (#349)
-
-- "lines refreshed" counts every line the run handled, parked or not (options: only lines that
-  gained bars; I chose all handled, so zero means the run handled nothing, which is the fault
-  the night job looks for). "Today" is the UTC date.
-
-### 2026-11-15 — a bar with only a bad high or low is kept and repaired (R-RUNNER-175) (#367)
-
-- Second source — the store has no checked second source per day inside the cleaner (shelf
-  bars are joined before cleaning and win only by archive priority), so options were (a) wire
-  a second source in, (b) clamp. Took (b), the request's stated fallback, with his rule "go
-  with recommended"; (a) would grow the store.
-
-### 2026-11-15 — the keeper cleans kept history again when the store rules change (R-RUNNER-182) (#374)
-
-- version = hash of store.py's whole source (options: hand-kept constant; hash of the rules
-  only). Chose the hash: no one can forget to bump it; cost is that a docstring edit in
-  store.py re-cleans once, which is cheap and safe.
-
-### 2026-11-15 — a missing yardstick day is a named data fault, filled from a second source (R-RUNNER-179) (#376)
-
-- second source = the Stooq matrices (options: market.db five-minute bars, which start Feb
-  2026; the Stooq parquet, which needs pyarrow reads) because the matrices hold the day, are
-  daily and need only numpy. Without a second source the day is reported, never invented.
-
-### 2026-11-15 — an impossible low is repaired like an impossible high (R-RUNNER-185) (#381)
-
-- Requirement change by his ruling 'get to green' (second source: the old Stooq store proves
-  VUAG 2020-03-16 low was 34.72, not 11.64): a one-day low spike with open and close in line
-  is a bad print. Options for a recent repair: park the line (as the high repair already does)
-  or not; chose to keep the existing behaviour (recent repair parks) so recent trading data
-  stays under suspicion; old repairs like VUAG 2020 do not park.
+VUAG's 2019 gap filled from a checked shelf, never forward-filled (R-RUNNER-104); every venue has a calendar and SimCity worlds are dated on trading days (R-RUNNER-107); `python -m lab.universe` refreshes research (R-RUNNER-116); a bar with only a bad high or low is kept and repaired, and an impossible low likewise (R-RUNNER-175, -185); the keeper cleans kept history again when the store rules change (R-RUNNER-182); a missing yardstick day is a named fault filled from a second source (R-RUNNER-179). Each took its recommended option; git keeps the full entries.
 
 ### 2026-11-16 — no change - R-RUNNER-11 waits on a PAPER test edit (closes #422) (#424)
 
@@ -496,6 +454,46 @@ The store holds each venue's closes within 39 minutes of its close (R-PAPER-23, 
 - reach per timeframe taken from IBKR's published duration limits per bar size (options: one
   reach for all, refused by the broker; per-size reach, chosen as it keeps pacing and the plan
   unchanged).
+
+### 2026-11-19 — a refused line is kept and parked, not wiped (#801, R-RUNNER-309)
+
+Options: wipe as before, or keep and park. Chose keep and park: canon B3, raw data immutable; the park already stops trading it. Withdrawal is a table beside `bar`, not a deleted row or a flag column, so existing stores need no rewrite.
+
+### 2026-11-19 — arrival time is recorded in the receipt (#820, DQ-10, DQ-12)
+
+Options: (a) an arrival column in the store, a schema change on 82 GB-scale data; (b) record it in the receipt at first sight. Took (b): no migration; the receipt is the dated record DQ-12 asks for.
+
+### 2026-11-19 — an unfillable short-timeframe gap is named red (#825, #836)
+
+Options: hide until a source exists, or name it red. Chose red: a gap no source can fill is named red.
+
+### 2026-11-19 — bars and faults: narrow the window now, one file next (#832)
+
+Options: (a) one file per line (built, but breaks tests/unit/test_lab_universe.py outside the claim); (b) keep two files, write both whole before either swap. Took (b) now, (a) next with a wider claim (R-DATA-55).
+
+### 2026-11-19 — rolled short bars need their own source (#842)
+
+Options: (a) add a rollup:<from> source in desk/bars.py and write the rolled bars (a wider claim, R-DATA-56); (b) reuse an existing source label, rejected: each bar must name its true source. Chose (a).
+
+### 2026-11-19 — deep history: split KNOWN rather than widen it (#841, R-DATA-54)
+
+Options: A widen KNOWN to 1993 (hides unknown hours); B split into HOURS_YEARS and SESSION_YEARS. Took B (his 13 Nov ruling: go with recommended). Closes recorded are the archive's, since the store compares the archive's close exactly. Supersedes the two 17 Nov entries above on this.
+
+### 2026-11-19 — five-minute against daily volume: 50%, excess only (#853)
+
+Options: two-sided or excess only. A shortfall is a thin session, already named, so one-sided avoids double-naming. Tolerance 50%.
+
+### 2026-11-19 — the lock holder is named "unknown" (#856, R-RUNNER-329)
+
+Option: a lock-file recording pids; more machinery, declined. SQLite does not report the holder, so the error names the waiter, the file and the seconds.
+
+### 2026-11-19 — one price grid, a ten-thousandth, half-even (#861, R-RUNNER-341)
+
+Options: 4 places, 6 places, significant figures; chose 4, the broker's own form and the pence-to-pound grid. The broker's bar stands in its 30-day window, the archive's beyond it; a day leaving the window takes the archive's volume once, a real change recorded once. Not adopted: tagging broker days with their own source (a wider change to receipts).
+
+### 2026-11-19 — the keeper's fault window is 400 sessions (#863, R-RUNNER-327)
+
+Options: 60 sessions (too short, hides a lasting step the strategies still read), 400 sessions (coverage.NEED, what a rule needs before trading), all history (today's fault). Chose 400; lasting faults dated outside it are named only.
 
 ## LADDER (until 13 November; since then GRID and RUNGS)
 
