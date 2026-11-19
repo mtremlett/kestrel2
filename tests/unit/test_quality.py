@@ -26,7 +26,7 @@ def refuse(_line: object, _day: date) -> Refused:
 
 
 def seeded(path: Path, planted: set[date]) -> Path:
-    with bars.writing(path / bars.LIVE) as held:
+    with bars.writing(path / bars.LIVE, bars.Source.IBKR) as held:
         held.days(SPY, [bar(d) for d in DAYS if d not in planted])
     return path / bars.LIVE
 
@@ -110,4 +110,14 @@ def test_a_thin_session_says_which_finer_span_could_rebuild_it(tmp_path: Path) -
         held.five(SPY, [Five(t, price, price, price, price, 5) for t in ends[::3]])
     assert quality.thin(path, SPY, TODAY) == [
         "SPY: 2 sessions with no five-minute bar, the first 2026-11-11, rollable from 1m"
+    ]
+
+
+def test_a_daily_series_mixing_adjustment_bases_is_named_red(tmp_path: Path) -> None:
+    path = seeded(tmp_path, {DAYS[0]})
+    assert quality.basis(path, SPY) == []
+    with bars.writing(path, bars.Source.STOOQ_DAILY) as held:
+        held.days(SPY, [bar(DAYS[0])])
+    assert quality.basis(path, SPY) == [
+        "SPY: daily series mixes bases: IBKR, old desk: stooq_store daily rows"
     ]

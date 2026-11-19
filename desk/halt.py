@@ -6,9 +6,10 @@ sell as ever; every day's record names it, that day does not count, and the desk
 day, counting the days. THE BLOCKERS (FIL-04, TRD-01) are everything that can stand between a
 rule's signal and its whole trade, each named once here; every morning's orders leave one list
 of every blocker with the signals it blocked. Sending what is said to him is the messenger's.
-WHAT A HALT IS NOT. It cancels nothing: a buy a dead desk left working at the broker can still
-fill, and only the kill switch cancels. Its moments are its caller's word, so the day's verdict
-also reads what the send path did (stopped). One process at a time writes or reads these."""
+A HALT CALLED THROUGH `stop` also has the broker cancel every buy of the desk's still working
+(the stops resting stay); `call` alone cancels nothing. Its moments are its caller's word, so
+the day's verdict also reads what the send path did (stopped). One process at a time writes
+or reads these."""
 
 from __future__ import annotations
 
@@ -19,6 +20,7 @@ from datetime import date, datetime, timedelta
 from enum import Enum
 from pathlib import Path
 
+from desk.broker import Broker
 from desk.orders import Refused, Settings
 from desk.risk import Standing, loss_limit
 from desk.store import _write
@@ -116,6 +118,30 @@ def call(root: Path, at: datetime, why: str, by: str = OPERATOR, his: bool = Tru
     if halt not in record:
         _keep(root / HALTS, COLUMNS, map(_row, (*record, halt)))
     return halt
+
+
+@dataclass(frozen=True)
+class Halted:
+    """What a halt did when it was called: the halt, and the working buys the broker cancelled."""
+
+    halt: Halt
+    cancelled: tuple[str, ...]  #: the desk's order ids the broker cancelled
+
+    def words(self) -> str:
+        """In plain English: the halt, and what the broker cancelled."""
+        names = f": {', '.join(self.cancelled)}" if self.cancelled else ""
+        return (
+            f"{self.halt.words(self.halt.at.date())} The broker cancelled "
+            f"{len(self.cancelled)} buy still working{names}; the stops resting stay."
+        )
+
+
+def stop(root: Path, broker: Broker, at: datetime, why: str, by: str = OPERATOR) -> Halted:
+    """A HALT THAT CANCELS: the halt is on the record first, so no buy is sent even if the
+    broker cannot be reached; then the broker cancels every order of the desk's still working
+    (a working order is a buy; the stops resting stay). Called again, it cancels again."""
+    called = call(root, at, why, by)
+    return Halted(called, tuple(broker.cancel()))
 
 
 def lift(root: Path, halt: Halt, at: datetime, why: str, by: str = OPERATOR) -> Halt:

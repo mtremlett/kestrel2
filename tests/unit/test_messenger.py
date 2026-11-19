@@ -24,6 +24,7 @@ from desk.book import Switch
 from desk.broker import Fill
 from desk.clearance import Check
 from desk.gateway import Known, State
+from desk.lines import LINES
 from desk.messenger import Delivery, Undelivered
 from desk.orders import Charges
 
@@ -339,3 +340,28 @@ def test_the_evening_message_names_each_lost_stop_once_and_none_on_a_day_without
     tell = messenger.evening(loud, NINE, READY, _posts())
     assert tell is not None and tell.text.count("B1-stop, selling 5 at 79") == 1
     assert "Lost stops to put back: B1-stop, selling 5 at 79. " in tell.text
+
+
+def test_the_evening_message_tells_a_stops_fill_with_its_buy_and_result_after_costs(
+    tmp_path: Path,
+) -> None:
+    buy, stop = date(2026, 11, 13), MON.date()
+    for on in (buy, stop):
+        book.record_rates(tmp_path, on, {"GBP": Decimal(1)})
+    ledger = [
+        Fill("B1", "o-1", "VUSA", 23, Decimal("104.92"), buy),
+        Fill("S1", "o-1-stop", "VUSA", -20, Decimal("94.38"), stop),
+        Fill("S2", "s-9", "VUSA", -3, Decimal("95"), stop),
+    ]
+    book._record(tmp_path, ledger)
+    told = messenger.evening(tmp_path, NINE, READY, _posts())
+    trip = book.round_trips(tmp_path, LINES)[0]  #: the stop's 20 shares, priced by the cost model
+    assert trip.sell.order_id == "o-1-stop" and trip.profit < 0
+    assert (
+        told
+        and (
+            f"VUSA's stop filled: 20 sold @ 94.38 (bought 104.92), lost £{-trip.profit:,.2f} after "
+            "costs. The desk's fills today: sold 20 VUSA, sold 3 VUSA."
+        )
+        in told.text
+    )

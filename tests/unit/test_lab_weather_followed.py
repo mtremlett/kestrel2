@@ -39,3 +39,20 @@ def test_a_layers_edge_is_good_days_less_the_rest_per_fold_and_refuses_a_one_sid
     assert weather.edges(labels, bars, "up") == [Decimal("0.45")]
     with pytest.raises(ValueError, match="fold 0 of 2"):
         weather.edges(labels, bars, "up", folds=2)
+
+
+def test_a_layer_wins_only_if_its_worst_fold_beats_trends_and_the_trials_are_kept() -> None:
+    bars = _bars(*([100] * 199), 100, 110, 99, 99, 198)
+    days = [bar.day for bar in bars]
+    tail = ["calm", "stormy", "calm", "calm", "stormy"]
+    labels = {d: "warming" for d in days[:-5]} | dict(zip(days[-5:], tail, strict=True))
+    #: calm days are followed by +0.1, 0, +1 (mean 11/30), the stormy day by -0.1: edge 7/15;
+    #: trend's up day (-0.1) trails its down days (mean 11/30): edge -7/15
+    contest = weather.against_trend(labels, "calm", bars, folds=1, trials=3)
+    assert (contest.layer, contest.trend, contest.trials) == (
+        Decimal(7) / 15,
+        -(Decimal(7) / 15),
+        3,
+    )
+    assert contest.wins
+    assert not weather.Contest(contest.trend, contest.layer, 3).wins
