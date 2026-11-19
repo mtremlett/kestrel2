@@ -84,6 +84,23 @@ def test_every_short_timeframe_is_audited_for_thin_sessions(tmp_path: Path) -> N
     ]
 
 
+def test_five_minute_volume_over_the_daily_is_named_red(tmp_path: Path) -> None:
+    path = seeded(tmp_path, set())
+    price = Decimal(600)
+    marks = [datetime(2026, 11, d, 15, 0, tzinfo=UTC) for d in (10, 11)]
+    with bars.writing(path, bars.Source.IBKR) as held:
+        held.five(
+            SPY,
+            [
+                Five(t, price, price, price, price, v)
+                for t, v in zip(marks, (900, 2000), strict=True)
+            ],
+        )
+    assert quality.volumes(path, SPY, TODAY) == [
+        "SPY: 1 days with five-minute volume over the daily, first 2026-11-11"
+    ]
+
+
 def test_a_thin_session_says_which_finer_span_could_rebuild_it(tmp_path: Path) -> None:
     path = seeded(tmp_path, set())
     price = Decimal(600)
