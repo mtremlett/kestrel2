@@ -113,7 +113,7 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "desk/simcity.py" = "SimCity, small: one command lives the desk's whole day over all the saved data at the pretend broker with its faults and writes the night's one record, with the census of the money path's parts and the scenarios that ran them"
 "desk/simcity_census.py" = "SimCity's census: each part of the money path and the scenarios that ran it, measured by a profiler"
 "desk/simcity_parts.py" = "SimCity's night and its worlds: the night's one record with its words, and a world's market dealt again from the saved lines; desk.simcity gives them to its callers"
-"desk/simcity_incidents.py" = "SimCity's scenarios met by a real night, each a morning the desk is put in and the promise it must keep there: a held line with no bar for a session (R-RUNNER-246), shares beside the book (R-RUNNER-247), orders the broker cancels unfilled (R-RUNNER-323)"
+"desk/simcity_incidents.py" = "SimCity's scenarios met by a real night, each a morning the desk is put in and the promise it must keep there: a held line with no bar for a session (R-RUNNER-246)"
 "desk/simcitycmd.py" = "SimCity's command line: the saved store lived in a night of worlds (all with --full) as the runner asks, the night's words printed, the code 1 for a red night"
 "desk/eponymous_breakouts.py" = "rules named for their authors, ported one at a time under the strategy template and judged on the ladder, never traded by the paper desk: Darvas's box"
 
