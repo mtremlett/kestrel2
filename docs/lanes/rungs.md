@@ -261,3 +261,12 @@ then the break was removed:
 
 ### 2026-11-19 — a part-year is skipped in pooled folds (R-RUNNER-331, #858)
 - Lines with different ends in one pool. Options: require one common end (old rule); fold a part-year; fold whole calendar years only, each line on its own window. Chose whole years only: it keeps "whole calendar years" (M6) true for every line; a line whose window ends mid-year skips that year.
+
+### 2026-11-19 — a fold missing one side is refused (R-RUNNER-205, #866)
+- A weather layer's edge per fold with no `good` day or no other day. Options: count its edge as zero; refuse loudly. Chose refuse (canon A2: no defaults that mask missing data).
+
+### 2026-11-19 — Mansfield's second series (R-RUNNER-219, #873)
+- Options: (a) a block that reads the index itself; (b) the row runs on ratio bars the caller builds, as the Python rule does. Chose (b): blocks see one bar stream, the ratio is what the rule consumes, and it adds no code (the block is the existing average block under a new entry name, `ratio_over_average`).
+
+### 2026-11-19 — "mostly FAULT" means over half (R-RUNNER-332, #892)
+- Options: any FAULT ends red; over half of the judged cells; all. Chose over half, since the request says "mostly"; a few faults are said but not fatal.
