@@ -49,11 +49,19 @@ def _ahead(wall: datetime) -> timedelta:
     return WARSAW + venues.zone("LSE", wall.date()).utcoffset(None)
 
 
-def _stamped(rows: Iterable[tuple[Any, ...]], stooq: bool) -> tuple[Five, ...]:
-    """Bars from rows of stamp, prices and volume, the stamp on Stooq's clock or UTC; a row
-    with a hole or a number that is none is dropped."""
+def _stamped(
+    rows: Iterable[tuple[Any, ...]], stooq: bool, venue: str | None = None
+) -> tuple[Five, ...]:
+    """Bars from rows of stamp, prices and volume, the stamp on Stooq's clock, on the wall clock
+    of a venue, or UTC; a row with a hole or a number that is none is dropped."""
+
+    def ahead(at: datetime) -> timedelta:
+        if venue is not None:
+            return venues.zone(venue, at.date()).utcoffset(None)
+        return _ahead(at) * stooq
+
     return tuple(
-        Five(at.replace(tzinfo=UTC) - _ahead(at) * stooq, *_priced(prices, Decimal(1)), int(volume))
+        Five(at.replace(tzinfo=UTC) - ahead(at), *_priced(prices, Decimal(1)), int(volume))
         for at, *prices, volume in rows
         if None not in (at, *prices, volume) and all(math.isfinite(x) for x in (*prices, volume))
     )
@@ -62,7 +70,8 @@ def _stamped(rows: Iterable[tuple[Any, ...]], stooq: bool) -> tuple[Five, ...]:
 def parquet(line: Line, folder: Path, source: Source) -> tuple[Five, ...]:
     """A line's bars from a parquet store of this source: ibkr_store and stooq_store keep
     freq=5/market=../ticker=../part.parquet, mark_the_trend <symbol>.5.parquet (<symbol>.L.5
-    in London). Stamps are UTC in ibkr_store, Stooq's clock elsewhere. None held is refused."""
+    in London). Stamps are the venue's own wall clock in ibkr_store, Stooq's clock elsewhere.
+    None held is refused."""
     market = MARKET[line.venue]
     file = folder / f"freq=5/market={market.lower()}/ticker={line.symbol}.{market}/part.parquet"
     columns = PARQUET
@@ -72,7 +81,9 @@ def parquet(line: Line, folder: Path, source: Source) -> tuple[Five, ...]:
         raise ValueError(f"{file.parent.name} holds no five-minute bar of {line.symbol}")
     table = pq.ParquetFile(file).read(columns=list(columns))
     rows = zip(*(table[column].to_pylist() for column in columns), strict=True)
-    return _stamped(rows, source is not Source.IBKR_STORE)
+    return _stamped(
+        rows, source is not Source.IBKR_STORE, line.venue if source is Source.IBKR_STORE else None
+    )
 
 
 def raw(line: Line, folder: Path) -> tuple[Five, ...]:
