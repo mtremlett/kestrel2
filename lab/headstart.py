@@ -304,5 +304,11 @@ if __name__ == "__main__":
             sys.stdout.write(daily(ONE, DATA, olds(REGISTER, ONE), TODAY) + "\n")
         else:
             main(REGISTER, DATA / bars.LIVE, TODAY)
+            from lab import (
+                headstart_days,
+                headstart_matrix,
+            )  # imports this module: the pass follows the five-minute one
+
+            headstart_matrix.whole(REGISTER, DATA / bars.LIVE, headstart_days.order(), TODAY)
     except (OSError, ValueError, sqlite3.Error, bars.NoRound) as reason:  # the one line, then out
         sys.exit(f"headstart: {type(reason).__name__}: {reason}")
