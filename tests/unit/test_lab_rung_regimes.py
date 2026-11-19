@@ -37,7 +37,7 @@ def _priced(rng: random.Random, edge: float, first: int, second: int) -> list[Pr
         bought = CUT - timedelta(1 + n) if n < first else CUT + timedelta(n)
         gain = Decimal(str(rng.gauss(edge * SD, SD)))
         days = (bought, bought)
-        out.append(Priced(Trade(*days), 1, Decimal(1), 1 + gain, FREE, days))
+        out.append(Priced(Trade(*days), 1, Decimal(1), 1 + gain, FREE, days, None))
     return out
 
 
@@ -105,7 +105,7 @@ def test_known_answer_thirty_trades_a_window_worked_by_hand() -> None:
     def priced(gains: list[str], start: date) -> list[Priced]:
         days = [(start + timedelta(n),) * 2 for n in range(len(gains))]
         return [
-            Priced(Trade(*d), 1, Decimal(1), 1 + Decimal(g), FREE, d)
+            Priced(Trade(*d), 1, Decimal(1), 1 + Decimal(g), FREE, d, None)
             for g, d in zip(gains, days, strict=True)
         ]
 

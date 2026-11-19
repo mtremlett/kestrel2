@@ -29,7 +29,13 @@ def priced(gross: float, cost: float) -> Priced:
     """A trade that made `gross` and was charged `cost`, each a fraction of the £1,000 it took."""
     one, spent = Trade(DAY, DAY), Decimal(str(cost)) * PAID
     return Priced(
-        one, 1, PAID, PAID * (1 + Decimal(str(gross))), Charges(spent, *[ZERO] * 4), (DAY, DAY)
+        one,
+        1,
+        PAID,
+        PAID * (1 + Decimal(str(gross))),
+        Charges(spent, *[ZERO] * 4),
+        (DAY, DAY),
+        None,
     )
 
 

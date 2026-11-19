@@ -21,7 +21,7 @@ def _entered(line: Line, bar: Five) -> Five | str:
     checks, made at five minutes. A bar belongs to a session's continuous trading: one that
     starts before the open, or at the close or after it, is no bar of that session."""
     prices, at = (bar.open, bar.high, bar.low, bar.close), f"{bar.start:%Y-%m-%d %H:%M}"
-    known = bar.start.year in venues.KNOWN
+    known = bar.start.year in venues.HOURS_YEARS
     session = venues.open_at(line.venue, bar.start) if known else None
     if bar.start.date() in line.suspended:
         return f"{at} has a bar, yet {line.symbol} records the day as suspended"

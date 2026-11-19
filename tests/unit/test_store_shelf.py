@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from datetime import date
 from decimal import Decimal
 from pathlib import Path
 
 import pytest
 from test_store import DAY, LONG, UK, US, _bars, _parked
 
-from desk import store
+from desk import store, venues
 from desk.store import Bar
 
 
@@ -105,3 +106,10 @@ def test_a_shelf_a_hundredth_on_the_clear_majority_is_put_right_and_the_odd_days
     half = [b if n % 2 else replace(b, close=b.close / 7) for n, b in enumerate(shelf)]
     assert store.judge(UK, every, DAY, shelf=half)[0] == every
     assert store.judge(UK, every, DAY, shelf=half)[2] is not None
+
+
+def test_bars_from_before_2010_are_kept_for_the_calendar_knows_their_sessions() -> None:
+    days = venues.sessions("US", date(2005, 6, 1), date(2005, 6, 30))
+    old = tuple(replace(_bars(US)[n % 9], day=d) for n, d in enumerate(days))
+    kept, faults, _ = store.judge(US, old, DAY)
+    assert kept == list(old) and not [f for f in faults if f.day < days[-1]]

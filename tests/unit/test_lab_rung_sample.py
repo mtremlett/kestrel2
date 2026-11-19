@@ -24,7 +24,9 @@ def _cell(seed: int, edge: float, trades: int = rung.MIN_TRADES) -> Verdict:
     """One cell of so many trades, each gain drawn around the edge with a spread of 2%."""
     rng = random.Random(seed)  # noqa: S311 - a repeatable test draw, not a secret
     back = [Decimal(f"{100 * (1 + rng.gauss(edge, 0.02)):.4f}") for _ in range(trades)]
-    priced = tuple(Priced(Trade(DAY, DAY), 1, Decimal(100), b, FREE, (DAY, DAY)) for b in back)
+    priced = tuple(
+        Priced(Trade(DAY, DAY), 1, Decimal(100), b, FREE, (DAY, DAY), None) for b in back
+    )
     return rung.verdict(Key(Cell("breakout_20_10", VUSA, DAY, DAY), "code", str(seed)), priced)
 
 

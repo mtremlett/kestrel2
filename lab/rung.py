@@ -78,8 +78,8 @@ class Priced:
     received: Decimal  #: pounds their value brought at the sale's fill, at its own day's rate
     costs: Charges  #: every cost of both legs, line by line, from the desk's one cost model
     held: tuple[date, date]  #: the day its buy filled, and the day its sale did
-    #: the return had its stop sold it, with a stop's costs (G2); none for a hand-built trade
-    stopped: Decimal | None = None
+    #: the return had its stop sold it, with a stop's costs (G2); None for a hand-built trade
+    stopped: Decimal | None
 
     @property
     def gross(self) -> Decimal:
@@ -257,6 +257,16 @@ def mean_and_error(gains: Sequence[Decimal]) -> tuple[Decimal, Decimal] | None:
 def standard_errors(gains: Sequence[Decimal]) -> Decimal | None:
     """The mean in standard errors; None under two gains."""
     return None if (found := mean_and_error(gains)) is None else found[0] / found[1]
+
+
+def interval(gains: Sequence[Decimal]) -> tuple[Decimal, Decimal, Decimal]:
+    """The mean and its interval, T_PASS standard errors either side; at least two gains, with a
+    spread."""
+    with localcontext(ARITHMETIC):
+        if (found := mean_and_error(gains)) is None:
+            raise ValueError(f"{len(gains)} gains: an interval needs two")
+        mean, error = found
+        return mean, mean - T_PASS * error, mean + T_PASS * error
 
 
 def kept_closes(
