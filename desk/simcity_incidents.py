@@ -2,7 +2,8 @@
 desk was put in, a promise it must keep there, and the day it then runs. R-RUNNER-246: a held
 line has no bar for a session (a hole in the saved data), so the day has no record.
 R-RUNNER-247: shares at the broker with a stop resting, bought beside the book (the 16 November
-conformance run's), which the desk's sale refused as "the desk is long only"."""
+conformance run's), which the desk's sale refused as "the desk is long only". R-RUNNER-323: the
+18 November London run, whose buy the broker cancelled with nothing filled, so none were held."""
 
 from __future__ import annotations
 
@@ -20,6 +21,11 @@ if TYPE_CHECKING:
 HOLE = "a held line has no bar for the session"
 LEFT = "shares the book lacks rest at the broker under a stop"
 SOLD = "shares the book lacks, under a stop at the broker, are taken into the book and sold"
+CANCELLED = "the broker cancels every order of the day with nothing filled"
+NAMED = "an order cancelled unfilled is named that day, and the book stays the broker's"
+HALTED = "a halt is in force while the day's buys are asked for"
+STILL = "with a halt in force nothing is bought"
+OUTSIDE = "a line no ISA can hold is never bought"
 PROMISE = "a held line with no bar for a session is named when the day is refused"
 
 
@@ -59,22 +65,23 @@ def beside(life: _Life, on: date) -> None:
     life.promise(SOLD, taken and dict(life.pretend.stops()).get(symbol, 0) in (0, held))
 
 
-CANCELLED = "a buy is left working at the broker and cancelled there"
-HALTED = "a halt is in force while the day's buys are asked for"
-KEPT = "a buy the broker cancelled leaves the book with no shares the broker lacks"
-STILL = "with a halt in force nothing is bought"
-OUTSIDE = "a line no ISA can hold is never bought"
-
-
 def cancelled(life: _Life, on: date) -> None:
-    """Every buy is stranded working at the broker (the desk dies, is started, runs the day
-    again) and what is left is cancelled there: the book may hold no share the broker lacks."""
-    for line in life.market:
-        life.pretend._faults[line.symbol] = Fault.STRAND  # noqa: SLF001 - the world's own broker
+    """The broker cancels, unfilled, the first order it is sent on every line. The desk must name
+    each such order on the morning's list (unless another rule's order then fills its line) and
+    leave the book the broker's: shares never bought are never in it, so no sale is sent."""
+    seen = len(life.pretend.submitted())
+    life.pretend._faults.update(  # noqa: SLF001 - the world's own broker, told what to do
+        {x.symbol: Fault.REJECT for x in life.market}
+    )
     life.live(on)
-    life.pretend.cancel()
-    broker = dict(life.pretend.holdings())
-    life.promise(KEPT, all(broker.get(s) == n for s, n in book.positions(life.desk).items()))
+    life.pretend._faults.clear()  # noqa: SLF001 - what no order met is not left waiting
+    told = {b.order_id for b in halt.morning(life.desk, on)[halt.Blocker.BROKER]}
+    answers = {i: life.pretend.report(i) for i in life.pretend.submitted()[seen:]}
+    bought = {i.rsplit("-", 1)[1] for i, r in answers.items() if r and r.fills}
+    refused = {i for i, r in answers.items() if r and not r.fills} - told
+    named = all(i.rsplit("-", 1)[1] in bought for i in refused)
+    level = dict(book.positions(life.desk)) == dict(life.pretend.holdings())
+    life.promise(NAMED, named and level)
 
 
 def halted(life: _Life, on: date) -> None:
