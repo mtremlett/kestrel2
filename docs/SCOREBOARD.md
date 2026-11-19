@@ -158,6 +158,12 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #824 no change, two blocking requests (R-DATA-53, R-PAPER-29) verified on main. |
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #834 R-RUNNER-247 SimCity scenario for the 16 Nov conformance sale failure, red without adoption, green with it. |
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #845 money-time-gaps first step: time stop built in the one replay, gap loss measured; nothing wired to the broker yet. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #871 R-RUNNER-337 halt cancels working buys: command built and tested; callers not yet switched. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #880 R-RUNNER-338 crash watch blind rule matched to the ask (15 min). |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #881 R-RUNNER-345 done: desk/orders.py 400 -> 315 lines, cost model in desk/orders_parts.py. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #884 R-RUNNER-323 SimCity scenario for the cancelled-buy incident, red without the naming, green with it. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #895 R-RUNNER-335 part: halted and outside incident scenarios built and tested. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #904 R-GRID-1 part 1: sweep settings and named variants of the five on main, nothing new trades. |
 
 ### DATA
 
