@@ -754,7 +754,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       {id: rungs-plateau; files: lab/plateau.py, tests/unit/test_lab_plateau.py, manifest.toml}
 - [x] Periods and regimes: replays across periods and regimes; a strategy never failed for
       working in only one; out-of-regime trades tagged on paper (LAD-05, REG-03, STR-20).
-      Remains: the weather (REG-01) and handing home regimes to the desk (before paper)
+      Remains: the weather (REG-01) and handing home regimes to the desk (before paper). Built: `weather.edges` per fold (#866) and `weather.against_trend` (#875), wired into no verdict; remains (R-RUNNER-205): run volatility, drawdown and breadth through them on the real store with trial count and worst fold, wire the winners into the regime rung, then macro series from the data-collector
       {id: rungs-regimes; files: lab/regime.py, tests/unit/test_lab_regime.py, manifest.toml; after: rungs-folds}
 - [x] Failing fairly: too few effective trades is "not enough evidence", never a fail; a
       check that the code is the published rule; no trades at all is a fault in the test
@@ -827,12 +827,12 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         known answer (#396). Remains: sizing blocks, once the volatility-sizing research settles their form
         {id: rungs-blocks; files: lab/blocks.py, tests/unit/test_lab_blocks.py; waits: operator}
   - [ ] B2 a typed Spec, validated on entry: an unknown block or a bad setting is refused
-        Remains (R-MONEY-45, #809, #823): 19 of 21 rules are rows; mansfield_rs_momentum needs an index series in the Block contract (ladder.MARKETS knows each index), zweig_breadth_thrust needs breadth data (R-MONEY-35)
+        Remains (R-MONEY-45, #809, #823): 20 of 21 rules are rows (mansfield_rs_momentum added, #873, run on the ratio bars the caller builds); zweig_breadth_thrust needs breadth data (R-MONEY-35)
       {id: rungs-spec; files: lab/spec.py, tests/unit/test_lab_spec.py; after: rungs-blocks; waits: R-MONEY-35}
   - [ ] B3 the catalogue, one TOML row per strategy with its source and known-answer case;
         a guard: unique names, known blocks only, a source and a case on every row
   - [ ] B4 the nineteen eponymous rules as rows, identical trades on the fixture proven,
-        then their Python files deleted
+        then their Python files deleted. Built: 20 of 21 in the catalogue (#873); Zweig waits on breadth data
   - [ ] B5 variants generated from a row's setting ranges, every one counted as a trial
   - [ ] B6 the old desk's families listed and entered as sets of rows marked QUARRY, their
         cases derived by hand, never from the old desk's numbers

@@ -670,3 +670,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #833 rungs-leveraged waits on R-RUNGS-21 (inverse Line type); no change |
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #852 no change; R-RUNGS-18 met, R-RUNGS-17/28 are GRID's file |
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #858 pooled folds accept lines with different ends (R-RUNNER-331) |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #866 R-RUNNER-205 step: weather edge per fold (`weather.edges`), no scene moved |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #868 R-RUNNER-340 the set's table is swapped in whole, never half-written |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #873 R-RUNNER-219 part: 20 of 21 eponymous rules in the catalogue (Mansfield added; Zweig waits on breadth data) |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #875 R-RUNNER-205 step: weather win-against-trend test built (`weather.against_trend`) |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #878 rung map corrected (regime rung is judged by the weather); doc line only |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #892 R-RUNNER-332 FAULT said per rung with share; a mostly-FAULT set ends red |
