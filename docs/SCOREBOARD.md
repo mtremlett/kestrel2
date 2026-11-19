@@ -158,6 +158,12 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #824 no change, two blocking requests (R-DATA-53, R-PAPER-29) verified on main. |
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #834 R-RUNNER-247 SimCity scenario for the 16 Nov conformance sale failure, red without adoption, green with it. |
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #845 money-time-gaps first step: time stop built in the one replay, gap loss measured; nothing wired to the broker yet. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #871 R-RUNNER-337 halt cancels working buys: command built and tested; callers not yet switched. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #880 R-RUNNER-338 crash watch blind rule matched to the ask (15 min). |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #881 R-RUNNER-345 done: desk/orders.py 400 -> 315 lines, cost model in desk/orders_parts.py. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #884 R-RUNNER-323 SimCity scenario for the cancelled-buy incident, red without the naming, green with it. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #895 R-RUNNER-335 part: halted and outside incident scenarios built and tested. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #904 R-GRID-1 part 1: sweep settings and named variants of the five on main, nothing new trades. |
 
 ### DATA
 
@@ -452,6 +458,12 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #854 R-RUNNER-326 (a) a buy the desk withdraws is told as withdrawn by the desk; scenes pass. |
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #860 R-RUNNER-339 a market order is given 120 s to fill before the desk withdraws it. |
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #862 R-RUNNER-342 done: market-order wait measured from the broker's own messages (new desk/order_times.py). |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #874 R-RUNNER-330 the evening message tells a stop's fill with buy price and result after costs |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #888 no change; R-MONEY-49 already on main |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #885 R-MONEY-53 the morning message tells him of a stop lost by hand the same day |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #890 no change; R-MONEY-36 already on main |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #893 no change; R-MONEY-49 verified on main |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #909 R-RUNNER-380 the rehearsal does not book a fill on a line the account held |
 
 ### GRID
 
