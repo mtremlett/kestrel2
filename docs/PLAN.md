@@ -508,7 +508,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       (Box money-small: 2 sessions in a row landed no change to the desk, the lab or the tests, so it is held and the doctor asks why.)
 - [ ] Time and gaps: a time stop after the strategy's declared holding period; a gap that
       jumps the stop held against the loss limit; a hold limit and gap sizing for the
-      leveraged lines (STP-11, STP-10, SIZ-09)
+      leveraged lines (STP-11, STP-10, SIZ-09). Step 1 on main (#845): time stop in `strategy._run`, `orders.gap_loss`/`gapped`. Remains: each rule's hold limit (moves golden days, needs his approval, B5); call `gapped` where a stop's fill is read (`book.collect`, outside this claim) and stand the desk down; take the age from the book's fill date.
       {id: money-time-gaps; files: desk/day.py, desk/orders.py, desk/strategy.py,
       tests/unit/test_day*.py, tests/unit/test_orders*.py, tests/unit/test_strategy*.py,
       desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml; after: money-limits}

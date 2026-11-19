@@ -157,6 +157,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #796 R-RUNNER-287 desk/simcity.py split 400 -> 334 lines, no behaviour change. |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #824 no change, two blocking requests (R-DATA-53, R-PAPER-29) verified on main. |
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #834 R-RUNNER-247 SimCity scenario for the 16 Nov conformance sale failure, red without adoption, green with it. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #845 money-time-gaps first step: time stop built in the one replay, gap loss measured; nothing wired to the broker yet. |
 
 ### DATA
 
