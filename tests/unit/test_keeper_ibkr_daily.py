@@ -12,7 +12,7 @@ from typing import Any
 import pytest
 
 from desk import archive, history, keeper, listing, paper, venues
-from desk.lines import LINES, Line
+from desk.lines import LINES, YARDSTICK, Line
 from desk.store import Answer, Bar, Refused
 
 UK = Line("BBB", "LSE", "GBP", 1)
@@ -129,3 +129,25 @@ def test_the_brokers_pence_reach_the_keeper_in_pounds_and_a_dollar_line_is_not_s
         },
     )
     assert history.priced(tmp_path, NOW, both, paper.Door(1)) == both
+
+
+def test_ibkr_has_every_lines_bar_in_three_calls_the_yardstick_first_a_refusal_starves_none(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(paper, "dial", _no_gateway)
+    lines, asked = [ln for ln in LINES if ln.venue == "LSE"], []  # 13 lines, ROOM 6
+    refused = lines[1]
+
+    def broker(wanted: Sequence[Line], day: date) -> dict[Line, Answer]:
+        asked.append(list(wanted))
+        return {ln: Refused("no") if ln == refused else _bars(ln, day) for ln in wanted}
+
+    for _ in range(3):
+        words = keeper.keep(
+            tmp_path, NOW, lines, _bars, lambda *_: (), lambda: 0.0, series=(), broker=broker
+        )[0]
+    assert len(lines) == 13 and lines[9] in asked[0] and asked[0][0] == YARDSTICK
+    assert {ln for call in asked for ln in call} == set(lines)  # all asked within three calls
+    named = next(w for w in words if "newest bar from" in w)
+    assert refused.symbol not in named.split("IBKR: ")[-1] and len(asked) == 3
+    assert refused not in asked[1] and refused in asked[2]  # retried after the lines not yet asked

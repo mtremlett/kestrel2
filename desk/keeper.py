@@ -17,12 +17,10 @@ newest daily bar is older than its venue's last settled session (`stale`)."""
 from __future__ import annotations
 
 import hashlib
-import json
 import os
 import sys
 import time
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from functools import partial
@@ -31,13 +29,15 @@ from typing import TypeVar
 
 from desk import archive, bars, carry, history, keeper_live, keeper_receipt, live, store, venues
 from desk.bars import Five
+from desk.keeper_rotate import Kept, order
+from desk.keeper_rotate import load as _kept
+from desk.keeper_rotate import record as _record
 from desk.lines import ADJUSTED, DOLLARS, LINES, POUND, REFERENCE, YARDSTICK, Line
 from desk.store import Bar, Parked, Refused
 
 #: In the data folder: each venue's record of its last refresh (no prices), and the short database.
 DAILY, HOT = "daily", bars.LIVE
 MARKS = "reference"  #: beside a venue's record, the day each reference series was last kept
-RECORD = "kept.json"  #: in each venue's folder of the daily store: its last refresh
 #: THE STORE RULES' VERSION (a hash of desk/store.py): a record of another is cleaned again.
 RULES = hashlib.sha256(Path(store.__file__).read_bytes().replace(b"\r\n", b"\n")).hexdigest()
 SETTLED = timedelta(minutes=30)
@@ -57,42 +57,6 @@ Broker = Callable[[Sequence[Line], date], Mapping[Line, store.Answer]]
 
 class Stale(LookupError):
     """The daily store lacks what was asked: a venue never refreshed, or a session since."""
-
-
-@dataclass(frozen=True)
-class Kept:
-    """A venue's last refresh of its daily bars, as its record keeps it."""
-
-    day: date  #: the day it readied: every session of the venue before it was asked for
-    at: datetime  #: when the archive was last asked
-    tries: int  #: how many calls have asked for this day on this date
-    parked: Mapping[str, str]  #: each parked line's symbol, and why
-    refused: frozenset[str]  #: those of them the archive would not answer for
-    rules: str = ""  #: the store rules' version it was cleaned under; none in an old record
-    unasked: frozenset[str] = frozenset()  #: lines the broker was not asked or refused: asked again
-    notes: tuple[str, ...] = ()  #: each source of a newest bar, and each disagreement of sources
-
-
-def _kept(folder: Path) -> Kept | None:
-    """A venue's record; none before its first refresh."""
-    if not (folder / RECORD).is_file():
-        return None
-    said = json.loads((folder / RECORD).read_text(encoding="utf-8"))
-    day, at = date.fromisoformat(said.pop("day")), datetime.fromisoformat(said.pop("at"))
-    for names in ("refused", "unasked"):  # an old record has no unasked
-        said[names] = frozenset(said.get(names, ()))
-    return Kept(day, at, **said)
-
-
-def _record(folder: Path, kept: Kept) -> None:
-    """The record written whole, then swapped in, after the bars."""
-    said = {"day": kept.day.isoformat(), "at": kept.at.isoformat(), "tries": kept.tries}
-    said |= {"parked": dict(kept.parked), "refused": sorted(kept.refused), "rules": kept.rules}
-    said["unasked"] = sorted(kept.unasked)
-    folder.mkdir(parents=True, exist_ok=True)
-    part = folder / f"{RECORD}.part"
-    part.write_text(json.dumps(said, indent=1), encoding="utf-8")
-    part.replace(folder / RECORD)
 
 
 def target(venue: str, now: datetime) -> date:
@@ -163,6 +127,17 @@ def _kept_in(
     return parked, (*(f"newest bar from {k}: {', '.join(v)}" for k, v in named.items()), *said)
 
 
+def _due(last: Kept | None, lines: Sequence[Line], now: datetime) -> tuple[list[Line], int]:
+    """The lines asked on this call, and its number: all on a first call of a date, else those
+    refused, not asked, or parked (a parked one for TRIES calls)."""
+    if last is None or last.at.date() != now.date():
+        return list(lines), 1
+    again = last.refused
+    if last.tries < TRIES or len(last.parked) == len(lines):  # as a parked line: TRIES calls
+        again |= last.unasked | set(last.parked)
+    return [line for line in lines if line.symbol in again], last.tries + 1
+
+
 def _refresh(
     hot: Path,
     folder: Path,
@@ -180,17 +155,14 @@ def _refresh(
     if idle and same and last and not last.refused and len(last.parked) < len(lines):
         return None
     before = dict(last.parked) if last is not None and same else {}
-    if last is None or not same or last.at.date() != now.date():
-        asked, tries = list(lines), 1
-    else:
-        again = last.refused
-        if last.tries < TRIES or len(last.parked) == len(lines):  # as a parked line: TRIES calls
-            again |= last.unasked | set(last.parked)
-        asked, tries = [line for line in lines if line.symbol in again], last.tries + 1
+    asked, tries = _due(last if same else None, lines, now)
     if not asked:
         return None
     answers = archive.gather(asked, readied, ask)
-    first = broker(asked[:ROOM], readied) if broker else {}  # IBKR first
+    ordered = order(asked, last.tried if last and same else ())
+    first = (
+        broker(ordered[:ROOM], readied) if broker else {}
+    )  # IBKR first, the yardstick before all
     heard = {ln for ln, got in first.items() if isinstance(got, list | tuple)}
     unasked = frozenset(ln.symbol for ln in asked if broker and ln not in heard)
     refused = {ln.symbol for ln, a in answers.items() if isinstance(a, Refused) and ln not in heard}
@@ -201,7 +173,15 @@ def _refresh(
     }
     parked |= {line.symbol: line.reason for line in found}
     kept = Kept(
-        readied, now, tries, parked, frozenset(refused), RULES, unasked, notes if broker else ()
+        readied,
+        now,
+        tries,
+        parked,
+        frozenset(refused),
+        RULES,
+        unasked,
+        frozenset(ln.symbol for ln in first),
+        notes if broker else (),
     )
     _record(folder, kept)
     return kept
