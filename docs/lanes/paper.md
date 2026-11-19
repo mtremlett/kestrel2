@@ -484,3 +484,10 @@ Options: keep 30 s (three buys withdrawn on 19 Nov, none filled after the cancel
 
 Options: one row per order, or one row per event (order_id, event, at, shares). Chose per event: fills repeat and an unaccepted order has no accepted time. Moments are the desk's clock when each message is read, since the gateway sends no status times of its own.
 
+### 2026-11-19 — the evening stop sentence: pounds after costs (R-RUNNER-330, #874)
+
+Options: show the result in the line's own currency, or in pounds after costs as the request said. Chose pounds after costs, priced by `book.round_trips` so the desk's one cost model is used; prices stay in the line's currency. The stop sentence comes before the unchanged "The desk's fills today" list, and appears only on a day with a stop fill.
+
+### 2026-11-19 — a rehearsal fill is told from the real desk's by held line only (R-RUNNER-380, #909)
+
+Options: match by the line the account held when the rehearsal began (chosen: `Apart` carries the symbol via `Holding.name`); or also check a Found order id in `desk/command.py` (out of claim, not done). So "an order it did not send itself" is not separately checked; a door with no `Apart` is unchanged.
