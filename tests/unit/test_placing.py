@@ -297,12 +297,15 @@ def test_a_buy_goes_with_its_stop_and_the_line_is_left_under_one_stop_for_all_it
     idle = _account([HELD], *CHILD, *old)
     none: list[Said] = [[_but(MINE[1], 2, "Cancelled")], idle, [("102",)], [END], idle, [ENDED_42]]
     sent = _gateway(monkeypatch, [], was, [CHILD[1]], *none, silent=True)
-    assert broker.place(BUY_IT) == Report(ID, (), f"{ID}: the broker tells nothing of it")
+    why = f"{ID}: withdrawn by the desk: not filled at the market within {paper.SECONDS} seconds"
+    assert broker.place(BUY_IT) == Report(ID, (), why)  # told as the desk's, not the broker's
     assert sent[2:] == [both, CANCEL, *ASKED, ACCOUNT, CANCEL_42]
     # a buy cut at ten of 26: its stop is for the ten bought, never the 26 ordered
     cut: list[Said] = [none[0], TEN, PART[1], TENTH, TEN]
     sent = _gateway(monkeypatch, [], EMPTY, [], *cut, RESTS, [ENDED_42], silent=True)
-    assert broker.place(BUY_IT).fills == (replace(FILL, quantity=10),)
+    cut_buy = broker.place(BUY_IT)
+    assert cut_buy.fills == (replace(FILL, quantity=10),)
+    assert "withdrawn by the desk" in str(cut_buy.reason)
     assert sent[7:] == [ACCOUNT, _msg(AT_STOP | {17: "10"}), CANCEL_42]
     # a buy the broker refuses, the stop behind it ended first: the stop's end is not the buy's
     told = [_but(REJECTED, 2, "42"), ENDED_42]
