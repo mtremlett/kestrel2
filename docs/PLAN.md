@@ -503,7 +503,8 @@ day's trading and reconciliation are built, and any broker can stand behind them
       (SIZ-10, TRD-10)
       {id: money-small; files: desk/orders.py, desk/day.py, tests/unit/test_orders*.py,
       tests/unit/test_day*.py, desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml;
-      after: money-limits}
+      after: money-limits; waits: operator}
+      (Box money-small: 2 sessions in a row landed no change to the desk, the lab or the tests, so it is held and the doctor asks why.)
 - [ ] Time and gaps: a time stop after the strategy's declared holding period; a gap that
       jumps the stop held against the loss limit; a hold limit and gap sizing for the
       leveraged lines (STP-11, STP-10, SIZ-09)
@@ -534,7 +535,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       needs `desk/simcity.py, tests/unit/test_simcity*.py` in its files, one session at a time;
       a function no scenario runs turns the check red: halts and limits among them.)
       {id: money-census; files: desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml;
-      after: money-restop, money-watch, money-stranger, money-small, money-time-gaps,
+      after: money-watch, money-stranger, money-time-gaps,
       money-golden, money-story, money-honest}
 
 ## Phase 3 — the money path, on paper
