@@ -119,6 +119,22 @@ def followed(
     return out
 
 
+def edges(
+    labels: Mapping[date, str], bars: Sequence[Bar], good: str, folds: int = 1
+) -> list[Decimal]:
+    """The layer's edge per fold (canon B6): the mean next-session return after days labelled
+    `good` less the mean after every other labelled day. A layer joins the regime rung only
+    if its worst fold beats trend alone's worst fold. A fold with no `good` day, or with only
+    `good` days, has no edge to state and is refused, never read as zero."""
+    out = []
+    for k, fold in enumerate(followed(labels, bars, folds)):
+        if good not in fold or len(fold) < 2:
+            raise ValueError(f"fold {k} of {folds} has no {good!r} day or no other day to compare")
+        rest = [ret for name, ret in fold.items() if name != good]
+        out.append(fold[good] - Decimal(sum(rest)) / len(rest))
+    return out
+
+
 BROAD, NARROW = "broad", "narrow"
 
 
