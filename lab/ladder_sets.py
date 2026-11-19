@@ -1,8 +1,9 @@
 """ladder_sets - THE LADDER'S SETS AS A COMMAND: set EPON (R-RUNNER-81), its table, and the
 `python -m lab.ladder` door. Every rule of every `desk/eponymous_*.py` on every line the
 research store holds, judged by the cell engine of `lab/ladder.py`, in its register and
-results file; it writes `ladder/sets/EPON.md` and `.json` - each rule, line and rung's answer
-with its reason, the trials, the author's result beside the desk's, what goes forward - and
+results file; it writes `ladder/sets/EPON.md` - one row a rule: its furthest rung, why, the
+lines judged, its best line - and `EPON.cells.json`, every cell's rungs, reasons, trials and
+result - and
 ends `SET EPON: <n> rules, <passed> passed, table <path>`. A rule has passed when a line's one
 verdict is PASS and every rung run passed. Every table is PRE-REVIEW until the blind review
 (R-RUNNER-40) is clean. `python -m lab.ladder first` runs the first set instead; `leveraged`
@@ -12,6 +13,7 @@ on their own trial count.
 
 from __future__ import annotations
 
+import json
 import sys
 from collections.abc import Callable, Mapping, Sequence
 from datetime import UTC, date, datetime, timedelta
@@ -122,15 +124,66 @@ def epon(
     if verdict.EASED:  #: easing 2: each rule's lines also judged pooled, one basket a rule
         rows += baskets(home, bars, pounds, todo, rules, plan)
     sets = home / FOLDER / "sets"
-    table = verdict.write_table(
-        sets, plan.tag, plan.question, rows, rules, count, ladder.rungs_built()
-    )
+    table = rule_table(sets, plan, rows, rules, count)
     with table.open("a", encoding="utf-8") as out:
         out.write("\n## Survivorship\n\n" + "".join(f"- {note}\n" for note in notes))
     said = f"survivorship: {len(notes)} of {len(lines)} lines not corrected, none guessed"
     passed = sum(any(map(verdict.goes, mine)) for mine in verdict.by_rule(rows, rules).values())
     last_line = f"SET {plan.tag}: {len(rules)} rules, {passed} passed, table {table}"
     return f"{counts}\n{said}\n{tapes_held(home)}\n{last_line}"
+
+
+def _best(rows: Sequence[verdict.Row]) -> tuple[verdict.Row, int]:
+    """The rule's best line: the one whose leading run of passed rungs is longest, and that run."""
+
+    def passed(row: verdict.Row) -> int:
+        answers = [a for a, _ in row.get("rungs", {}).values()]
+        return next((i for i, a in enumerate(answers) if a != Answer.PASS.name), len(answers))
+
+    best = max(rows, key=passed)
+    return best, passed(best)
+
+
+def rule_table(
+    folder: Path, plan: Plan, rows: Sequence[verdict.Row], rules: Sequence[str], count: int
+) -> Path:
+    """The set's table, `<tag>.md`: one row for each rule - its furthest rung, why it stopped
+    there, the lines judged, its best line - and the cells, whole, in `<tag>.cells.json` beside
+    it. Labelled PRE-REVIEW like every table."""
+    folder.mkdir(parents=True, exist_ok=True)
+    out = [f"# SET {plan.tag} - {verdict.STATUS}", "", plan.question, ""]
+    out += [
+        f"Cells: {len(rows)}, judged against {count} trials, in `{plan.tag}.cells.json`.",
+        "",
+    ]
+    out += [
+        "| rule | furthest rung | why | lines judged | best line | goes forward |",
+        "|---|---|---|---|---|---|",
+    ]
+    for rule, mine in verdict.by_rule(rows, rules).items():
+        if not mine:
+            continue
+        best, far = _best(mine)
+        rungs = list(best.get("rungs", {}).items())
+        reason = rungs[far][1][1] if far < len(rungs) else "every rung run passed"
+        furthest = rungs[far - 1][0] if far else "none"
+        cells = [
+            rule,
+            furthest,
+            reason,
+            str(len(mine)),
+            best["cell"][1],
+            str(any(map(verdict.goes, mine))),
+        ]
+        out.append(
+            "| " + " | ".join(c.replace("|", "/").replace(chr(10), " ") for c in cells) + " |"
+        )
+    path = folder / f"{plan.tag}.md"
+    (folder / f"{plan.tag}.cells.json").write_text(
+        json.dumps(list(rows), indent=1), encoding="utf-8"
+    )
+    path.write_text(chr(10).join(out) + chr(10), encoding="utf-8")
+    return path
 
 
 def baskets(

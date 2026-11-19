@@ -58,3 +58,21 @@ def test_a_set_whose_cells_all_fault_ends_red_naming_the_rung_and_real_fails_end
     assert "FAULT: 3 of 3 cells at rung folds: no years" in capsys.readouterr().out
     assert _door(tmp_path / "b", ["FAIL"] * 3, monkeypatch) == 0
     assert "FAULT" not in capsys.readouterr().out
+
+
+def test_a_set_of_three_rules_writes_three_rows_and_the_cells_file(tmp_path: Path) -> None:
+    def row(rule: str, line: str, rungs: dict[str, list[str]]) -> dict[str, object]:
+        return {"cell": [rule, line], "rungs": rungs, "trials": 1, "unrun": {}}
+
+    rows = [
+        row("a", "L1", {"folds": ["PASS", "ok"], "shuffle": ["FAIL", "luck"]}),
+        row("a", "L2", {"folds": ["FAIL", "loses"]}),
+        row("b", "L3", {"folds": ["FAIL", "loses"]}),
+        row("c", "L4", {"folds": ["PASS", "ok"]}),
+    ]
+    plan = ladder.Plan("T", "Q?", "T")
+    table = ladder_sets.rule_table(tmp_path, plan, rows, ["a", "b", "c"], 3)
+    lines = [x for x in table.read_text(encoding="utf-8").splitlines() if x.startswith("| ")]
+    assert len(lines) == 1 + 3  #: the header and three rows
+    assert "| a | folds | luck | 2 | L1 | False |" in lines
+    assert json.loads((tmp_path / "T.cells.json").read_text(encoding="utf-8")) == rows
