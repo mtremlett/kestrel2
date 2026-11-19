@@ -426,6 +426,10 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #793 R-DATA-9 bars question pinned to port 4002 and the read-only list (1 product line).
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #798 R-DATA-52 home passed to history.daily; R-MONEY-49 declined as already done.
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #805 R-RUNNER-291 lost-stop list reaches him in the evening message.
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #843 R-RUNNER-312 built, a held line the round cannot judge is told with its reason and stop. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #854 R-RUNNER-326 (a) a buy the desk withdraws is told as withdrawn by the desk; scenes pass. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #860 R-RUNNER-339 a market order is given 120 s to fill before the desk withdraws it. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #862 R-RUNNER-342 done: market-order wait measured from the broker's own messages (new desk/order_times.py). |
 
 ### GRID
 
