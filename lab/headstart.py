@@ -17,9 +17,9 @@ bar, held or arriving later, wins, and each bar that differs from one held is co
 The old stores are read and never written, nor is anything written beside them: every store
 the data register in the desk's notes tags IMPORT, read by its form (`python -m lab.headstart`,
 into the two databases of the data folder). Six forms have a reader: the matrices of Stooq's
-bars, the database mark_the_trend.db, the parquet folders of ibkr_store (UTC) and stooq_store,
-mark_the_trend's Stooq files and the raw Stooq zips (Stooq's clock); any other is counted as having
-none yet. A source held already is not read again. Indicators are not read at all.
+bars, the database mark_the_trend.db, the parquet folders of ibkr_store (each venue's own clock) and
+stooq_store, mark_the_trend's Stooq files and the raw Stooq zips (Stooq's clock); any other is
+counted as having none yet. A source held already is not read again. Indicators are not read at all.
 
 A line the archive gives no history of (3LGO) takes its daily history from the matrices
 (`python -m lab.headstart --daily 3LGO`): the database's daily bars must agree on the days both
