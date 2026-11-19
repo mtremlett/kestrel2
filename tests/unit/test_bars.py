@@ -19,6 +19,7 @@ import pytest
 
 from desk import audit, bars, store_wait
 from desk.bars import Five, Source
+from desk.bars_form import form
 from desk.lines import LINES, Line
 from desk.store import Bar, Refused
 
@@ -26,7 +27,7 @@ US, UK = Line("BA", "US", "USD", 1), Line("BA", "LSE", "GBP", 1)  #: one symbol,
 NOON = datetime(2026, 11, 13, 12, 0, tzinfo=UTC)
 NEXT, ELSEWHERE = NOON + timedelta(minutes=5), timezone(timedelta(hours=1))
 TICK = timedelta(microseconds=1)
-ODD = (Decimal("1E+3"), Decimal("123456.789012345678901"), Decimal("0.0001"), Decimal("0.10"))
+ODD = (Decimal("1E+3"), Decimal("123456.7890"), Decimal("0.0001"), Decimal("0.10"))
 #: A daily bar and a five-minute bar that the store keeps under one number, each in its span.
 TWINS = (Bar(date.fromordinal(600), *ODD, 1), Five(bars.EPOCH + timedelta(seconds=600), *ODD, 2))
 #: The benchmarks, in seconds, set on 13 November 2026 before the store was written.
@@ -72,7 +73,7 @@ def test_what_is_written_is_read_back_exactly_and_each_line_apart(tmp_path: Path
     assert bars.five(store, UK, bars.EPOCH, NEXT) == TWINS[1:]
     read = bars.five(store, US, NOON, NEXT)[0]
     assert read.start.utcoffset() == timedelta(0)
-    assert [str(p) for p in (read.open, read.high, read.low, read.close)] == [str(p) for p in ODD]
+    assert [str(p) for p in (read.open, read.high, read.low, read.close)] == [form(p) for p in ODD]
     with closing(sqlite3.connect(store)) as held:
         assert held.execute("PRAGMA journal_mode").fetchone() == ("wal",)
 
@@ -113,7 +114,7 @@ def test_a_short_call_never_loses_a_held_day_a_change_is_corrected_and_a_withdra
     with closing(sqlite3.connect(tmp_path / bars.HISTORY)) as raw:
         assert raw.execute("SELECT count(*) FROM bar").fetchone() == (4000,)  # no row deleted
         assert raw.execute("SELECT close, source, replaced_by FROM correction").fetchall() == [
-            ("0.10", "archive", "IBKR paper")
+            ("0.1000", "archive", "IBKR paper")
         ]
     with bars.writing(store) as round_:
         round_.daily(US, days[5:6])  # a bar for a withdrawn day brings it back
