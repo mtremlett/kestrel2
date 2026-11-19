@@ -275,8 +275,8 @@ def _made(amount: Decimal) -> str:
 def morning(root: Path, now: datetime, known: Known, post: Post) -> Delivery | None:
     """THE MORNING MESSAGE, once on each day a venue trades, from the hour he wakes: whether
     anything the desk can ask stops today's orders (stops), as of the moment it says; what it
-    holds; the stops lost and still to be put back; the last day on record. known is the gateway as it
-    was just asked. None when no message goes now."""
+    holds; the stops lost and still to be put back; the last day on record.
+    known is the gateway as it was just asked. None when no message goes now."""
     name, opens = _goes(MORNING, now)
     if name is None:
         return None
