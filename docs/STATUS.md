@@ -184,15 +184,20 @@ keeper and history-pull bars keep the line's currency (#719, #725); backfill; ol
 clean (#222-#702); an untraded bar gives way to a traded one (#721). Keeper asks IBKR first for every line, a disagreement over 2% recorded not parked (#751); gaps bridged from
 five-minute bars (#747); a shelf a hundredth of the archive's put right in the store (#753); history pull asks only 1m-30m
 and 1d (#739). 1h, 4h, 1wk rolled locally as rollup:<from> (#760); keeper takes the five-minute round first under half its time (#759); 1m bars parsed as Timed (#757); the pound asked as GBP.USD forex (#770); shelf unit rule on a 95% majority of shared days (#768, IB1T; 3LGO and 2MU unseen, to be checked on the next real round). `desk/store.py` split, its neighbour judging in `desk/store_parts.py` (#764); `lab/universe.py` split, reading rule in `lab/universe_parts.py` (#784); a rolled bar disagreeing with a held one is a stderr FAULT (#780); `python -m desk.quality` daily audit-backfill-reaudit (#797); `desk/coverage.py` scores coverage per line, not yet wired (#795). the quality monitor also rolls up 1h, 4h, weekly and reds a clash with a pulled bar (#811; a line with no 30m bars is skipped). Unfinished: R-RUNNER-216 and -217 (gaps per timeframe against the venue calendar, market_live.db, the runner job), -215, R-RUNNER-10 (5-minute
-parquet, market.db, bars.db, per-source counts). Deep history: no bar before 2010 is kept (store.py and bars_parts.py read the hours years as sessions years; five real moves must be recorded first, #819-#822; R-DATA-54). Next: the first real `--live` run, data-keeper-receipts.
+parquet, market.db, bars.db, per-source counts). Deep history: the store keeps bars from 2000, five real moves recorded (#841, R-DATA-54); the first keeper round must fill 2000-2009 and any park be read. Keeper receipts name each newest bar's source and arrival (#820); it withdraws dropped days (#855, R-RUNNER-311); the writer joins by day, deletes no held day, one price form, corrections on real change only (#801, #861); IBKR asked for every line within ceil(lines/ROOM) calls (#859); no park for a fault older than 400 sessions (#863); a store lock wait is named (#856). Quality monitor: thin sessions on all short timeframes, the finer span that could rebuild one, five-minute against daily volume (#825, #836, #842, #853). Paper Gateway five-minute bars proved live, 7 US lines (#844). Bars and faults written whole before either swap (#832). Next: the first real `--live` run.
 ### Done for other lanes
 - R-RUNNER-28 #222, -41 #219, -24 #238, -37 #254, -90 #286, -97 #305, -104 #314, -107 #315, -116 #349, -175 #367, -182 #374, -179 #376, -185 #381, -15 #460, -94 #303, -96 #475, -149 #453, -194 #518,
   -11 #514, -211 #530, -178 #532, -189 #541, -157 #528, -221 #548, -218 #547, -224 #574, -236 #591, -254 #612, -12 #629, -264 #656, -266 #666, -263 #660, -270 #701, -269 #715, -279 #719, -274 and -275
   #721, -277 #727, -284 #744, -276 #751, -272 #753; R-RUNNER-290 #757; R-PAPER-33 #770; R-RUNNER-288 #764, -289 #784; R-MONEY-48 #783; R-PAPER-23 #294, -22 #505, -16 and -3 #543; R-GRID-4 #338; R-MONEY-28 #536, #740, #769; R-RUNGS-3, -5, -15 #537, -9 #544, -16 #630, #747
+- R-RUNNER-311 #855, -313 #859, -327 #863, -329 #856, -341 #861
 - Mine, done by others: R-DATA-1 (#73), -4, -5, -6 (#522), -9, -15 (#517, #530), -17, -25, -26, -27, -28, -31, -35 (#652); R-DATA-49 (#814); own R-DATA-19 to -23, -36, -40, -41 done, -24 superseded by the database
 ### Requests to DATA
 - [x] R-DATA-49: `history.daily` requires `home` (#814).
-- [ ] R-DATA-54 (blocking, opened 2026-11-17 18:30 UK, #819, #821, #822): data-deep-history, one claim naming desk/venues.py, desk/store.py, desk/bars_parts.py, desk/lines.py and their tests: split `venues.KNOWN` into sessions years and hours years, point `store._clean` (line 152) at the sessions years, record five real moves in `real_moves`, then fill 2000-2009.
+- [x] R-DATA-54: done in #841.
+- [ ] R-DATA-55 (later, #832): widen data-written-together's claim to desk/store.py, tests/unit/test_lab_universe.py and lab/universe.py so bars and faults live in one file.
+- [ ] R-DATA-56 (later, #842): a card claiming desk/bars.py and desk/quality.py to add rollup:<from> sources for short spans and write them where the monitor says "rollable".
+- [ ] R-DATA-57 (later, #825, #836): R-RUNNER-217 left: audit market_live.db; yf.download and local Stooq in the backfill order (desk/backfill.py); an adjustment-basis-per-bar fault (needs a basis column in the store).
+- [ ] R-DATA-58 (blocking, #801): restore the nine US lines through `Round.daily` from backup/20261117T013018Z and lift state/job-keeper.hold (the keeper's withdrawn wiring is done, #855).
 ### Requests to GRID
 - [ ] R-DATA-7: a cell reads `universe.read(root, line).bars`, keeps `History.moves`, `.rescaled`. R-DATA-10 (blocking): `test_lab_batch.py`, `test_lab_cell.py` name SPY and QQQ; name lines that stay.
 ### Requests to MONEY
@@ -201,7 +206,7 @@ parquet, market.db, bars.db, per-source counts). Deep history: no bar before 201
   `test_watch.py`, `test_pnl.py` name the store "bars.db"; use `keeper.HOT`. R-DATA-30: `lab/slippage.py` reads `bars.daily(home / keeper.HOT, line)`, not CSVs.
 - [ ] R-DATA-33: `command.rates` calls `keeper.pound(home, day)`; POUND, DOLLARS from `desk.lines`. R-DATA-45, -47: refuse a buy on a line in `keeper.parked_live(home / keeper.HOT, LINES, now)`; say
   why. R-DATA-46: `conformance.py` picks its refused line from `lines.REFERENCE`, so SPY can leave LINES. R-DATA-48: a per-bar source in the daily store (`store.judge` returns it, `Round.daily` writes
-  it).
+  it); #844: carry a bar's own source label (IBKR or archive) to the store's row so the keeper stops inferring it per round.
 - [ ] R-DATA-51 (later, #753): the lane owning `desk/lines.py` sets IB1T to USD (dollar-quoted on the LSE); then the store may read the unit from it.
 ### Requests to PAPER
 - [ ] R-DATA-14 (blocking): wire `keeper.saved(home, day)` and the crash watch's `home / keeper.HOT`; the day's record only once `keeper.target(venue, now)` is past, or the door refuses 25 minutes
@@ -217,9 +222,9 @@ parquet, market.db, bars.db, per-source counts). Deep history: no bar before 201
   snapshot, `desk.history_write`, `desk.backfill`; the hourly report calls `desk.archive.alert`, sends its line. R-DATA-32: READY counts desk/ room.
 ### Found, not fixed
 - **UK tax (NS-05).** Five London products unseen on a contract note; London shares 0.5%, unchecked. **Research:** today's members only (BT-09); scale changes under the store's belief are UNI-07.
-- **Operator:** IB1T not ISA-holdable; data-members, data-isa-twins wait on him. **Store/keeper:** `history.run` checks the desk round once, not per page, its bars not yet re-aligned to the session,
+- **Keeper/collector:** desk/collector.py:199 and desk/keeper_live.py:130 do not yet name a lock wait (#856); IDTL has no security definition at the broker (#844). **Operator:** IB1T not ISA-holdable; data-members, data-isa-twins wait on him. **Store/keeper:** `history.run` checks the desk round once, not per page, its bars not yet re-aligned to the session,
   5QQQ's 2021-22 lost; `backfill.in_currency` alias awaits `test_backfill.py`; `keeper.py` 400 lines; `quality` runner job needs its card ticked; a broker-filled bar is labelled "archive"; archive limits unmeasured
-  (#685); pre-2010 bars blocked outside the DATA claim (R-DATA-54); `history.lacks` unused (#751); IDTL parks on a missing 16 Nov unless its five-minute bars are held; disagreements not in a stored fault file.
+  (#685); `history.lacks` unused (#751); IDTL parks on a missing 16 Nov unless its five-minute bars are held; disagreements not in a stored fault file.
 ## GRID
 
 Last updated: 17 November 2026 (one bars reader #449; batch.stored reads as research does #618; R-DATA-10 confirmed #626).

@@ -225,11 +225,10 @@ Checked 17 Nov (MONEY, s6): R-DATA-53 is on main (`desk/command.py:387` passes `
 - [x] Polite fetching: the archive's limits measured, slow and resumable requests, backing
       off on refusals, raw responses cached, an alert after six hours refused (DAT-08)
       {id: data-polite; files: desk/archive.py, tests/unit/test_archive*.py; after: data-archive-spared}
-- [ ] The store's keeper: its cadence, a dated receipt for each run, a restart drill; each
+- [x] The store's keeper: its cadence, a dated receipt for each run, a restart drill; each
       bar's source and arrival time kept (DQ-12, DQ-10)
-      Remains (#672): the receipt does not yet record each bar's source and arrival time, nor a restart
-      drill; keeper.py is at its cap, so a new module comes first
-      {id: data-keeper-receipts; files: desk/keeper.py, tests/unit/test_keeper*.py, desk/bars.py, tests/unit/test_bars*.py; after: data-kept-hot; waits: operator}
+      Built (#820): desk/keeper_receipt.py; each receipt line names the newest bars that arrived, with moment and source; restart drill pinned.
+      {id: data-keeper-receipts; files: desk/keeper.py, tests/unit/test_keeper*.py, desk/bars.py, tests/unit/test_bars*.py, desk/keeper_receipt.py; after: data-kept-hot}
 - [ ] **First, by his ruling of 13 November:** SPY, QQQ and GLD leave the twenty for their
       UK-listed twins an ISA can hold: VUAG (S&P 500), EQQQ (Nasdaq 100) and IDTL (US
       Treasuries 20+ years), each on the London venue; every line carries an ISA and
@@ -292,7 +291,8 @@ Checked 17 Nov (MONEY, s6): R-DATA-53 is on main (`desk/command.py:387` passes `
       Built: the calendar reaches 1993 (#594), the archive is spared (#637, #665, #668, #685). Remains: the
       bars before 2010 through the head start, once its remains (data-headstart) are met
       Built (#691): `archive.SINCE` is 1 January 2000, so the keeper's next daily round asks 2000-2009.
-      Remains (#819, #821, #822): the old Stooq store holds nothing before the archive's first bar, so no head start is left to write. `desk/store.py:152` and `desk/bars_parts.py:24` read `venues.KNOWN` (hours years, 2010-2029) as the sessions years (`venues.SESSION_YEARS`, 1993-2029), so every bar before 2010 is dropped; the US calendar's 2000-2009 sessions are pinned (#819). One session claiming desk/venues.py, store.py, bars_parts.py, lines.py and their tests: split KNOWN, point store at the sessions years, record five real moves in `real_moves` (AAPL 2000-09-29; NVDA 2000-04-05, 2004-08-06; AMD 2008-09-29, -30; confirm each on the archive's bars), then `python -m lab.headstart_days` and the keeper fill 2000-2009
+      Built (#841): venues.KNOWN split into HOURS_YEARS and SESSION_YEARS, the store keeps bars from 2000, five real moves recorded. Remains: the first keeper round to fill 2000-2009 for all twenty lines and read any park.
+      Earlier (#819, #821, #822): the old Stooq store holds nothing before the archive's first bar, so no head start is left to write. `desk/store.py:152` and `desk/bars_parts.py:24` read `venues.KNOWN` (hours years, 2010-2029) as the sessions years (`venues.SESSION_YEARS`, 1993-2029), so every bar before 2010 is dropped; the US calendar's 2000-2009 sessions are pinned (#819). One session claiming desk/venues.py, store.py, bars_parts.py, lines.py and their tests: split KNOWN, point store at the sessions years, record five real moves in `real_moves` (AAPL 2000-09-29; NVDA 2000-04-05, 2004-08-06; AMD 2008-09-29, -30; confirm each on the archive's bars), then `python -m lab.headstart_days` and the keeper fill 2000-2009
       {id: data-deep-history; files: desk/venues.py, tests/unit/test_venues*.py, lab/headstart.py, tests/unit/test_lab_headstart.py, desk/archive.py, tests/unit/test_archive*.py; after: data-calendar-years, data-polite; waits: operator}
 - [x] A frozen feed: a week of one bar repeated is dropped and parks a recent line
 - [x] A suspension recorded on its line is no gap
@@ -314,7 +314,8 @@ Checked 17 Nov (MONEY, s6): R-DATA-53 is on main (`desk/command.py:387` passes `
 - [x] A stretched bar's changes recorded beside it
       {id: data-stretched; files: desk/store.py, tests/unit/test_store.py; after: data-3lgo}
 - [ ] A line's bars and its fault record written together, so a crash cannot part them
-      {id: data-written-together; files: desk/store.py, tests/unit/test_store.py; after: data-stretched}
+      Built (#832): both files written whole before either is swapped in. Remains: a crash between the two swaps; one file per line, which needs lab/universe.py and tests/unit/test_lab_universe.py in the claim
+      {id: data-written-together; files: desk/store.py, tests/unit/test_store.py; after: data-stretched; waits: operator}
 - [ ] A pence history the archive calls pounds caught
       Remains: backfill converts the broker's pence on entry (#630); history.run and pull return the broker's
       unit unconverted, and nothing calls them yet
