@@ -458,6 +458,12 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #854 R-RUNNER-326 (a) a buy the desk withdraws is told as withdrawn by the desk; scenes pass. |
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #860 R-RUNNER-339 a market order is given 120 s to fill before the desk withdraws it. |
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #862 R-RUNNER-342 done: market-order wait measured from the broker's own messages (new desk/order_times.py). |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #874 R-RUNNER-330 the evening message tells a stop's fill with buy price and result after costs |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #888 no change; R-MONEY-49 already on main |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #885 R-MONEY-53 the morning message tells him of a stop lost by hand the same day |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #890 no change; R-MONEY-36 already on main |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #893 no change; R-MONEY-49 verified on main |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #909 R-RUNNER-380 the rehearsal does not book a fill on a line the account held |
 
 ### GRID
 
