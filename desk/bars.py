@@ -5,9 +5,10 @@ line's last week read in under 50 ms, a line's daily history in under 200 ms.
 
 A writer works in rounds: what is written lands together when the round ends, forced to disk,
 or none of it does. A reader reads the last whole round. A second writer waits its turn, and
-is refused if it has not come within WAIT seconds (NoRound). A line is its venue and its
-symbol: one symbol can be two companies. A daily bar is named by its session's day; a
-five-minute bar by its start, in UTC. Prices are kept as exact decimals.
+is refused if it has not come within WAIT seconds (NoRound); a reader that must write behind
+a held write ends in the named StoreWait (desk/store_wait.py) after WAIT seconds.
+A line is its venue and its symbol: one symbol can be two companies. A daily bar is named by
+its session's day; a five-minute bar by its start, in UTC. Prices: the form of bars_form.py.
 
 Five-minute bars are kept for good (DAT-11): the archive forgets them after sixty days, so
 `keep` saves each evening's through the daily store's checks. No moment's bar is ever removed;
@@ -32,9 +33,10 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
+from desk import store_wait
+from desk.bars_form import entered, restated
 from desk.bars_parts import CLOSES as CLOSES
 from desk.bars_parts import NEWEST as NEWEST
-from desk.bars_parts import NOTE as NOTE
 from desk.bars_parts import OTHERS as OTHERS
 from desk.bars_parts import READ as READ
 from desk.bars_parts import RESTORE as RESTORE
@@ -148,21 +150,21 @@ class Round:
         if not all(one.in_transaction for one in self._held.values()):
             raise NoRound(f"SQLite dropped this round: nothing of it lands, {line.symbol} too")
         key = (line.venue, line.symbol, span)
-        prices = [(at, (*map(str, (b.open, b.high, b.low, b.close)), b.volume)) for at, b in bars]
+        prices = [(at, entered(b)) for at, b in bars]
         rows = [(*key, at, *price, self._source.value) for at, price in prices]
+        given = len(rows)
         held.execute("SAVEPOINT line")
         try:
             held.execute(HOLD, key)
             if span == DAILY and put == PUT:
-                noted = ((self._source.value, *key, at, *price) for at, price in prices)
-                held.executemany(NOTE, noted)
+                rows = restated(held, self._source.value, key, prices, rows)
             landed = held.executemany(put, rows).rowcount
         except BaseException:
             if held.in_transaction:
                 held.execute("ROLLBACK TO line")
             raise
         held.execute("RELEASE line")
-        return landed
+        return landed + given - len(rows)
 
     def daily(self, line: Line, bars: Iterable[Bar], withdrawn: Iterable[date] = ()) -> None:
         """A line's daily bars from this source, joined by day into what the store holds, and
@@ -231,9 +233,14 @@ class Round:
 def _open(file: Path) -> sqlite3.Connection:
     """The one opener, reader's or writer's: a store already made gains any newer table."""
     one = sqlite3.connect(file, timeout=WAIT, isolation_level=None)
-    if one.execute(MADE).fetchone() is not None:
-        for table in SCHEMA:
-            one.execute(table)
+    try:
+        with store_wait.named(file, WAIT):
+            if one.execute(MADE).fetchone() is not None:
+                for table in SCHEMA:
+                    one.execute(table)
+    except BaseException:
+        one.close()
+        raise
     return one
 
 

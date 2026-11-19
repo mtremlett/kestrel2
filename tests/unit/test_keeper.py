@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from desk import archive, bars, keeper, keeper_live, paper, store, venues
+from desk import archive, bars, keeper, keeper_live, keeper_rotate, paper, store, venues
 from desk.bars import Five, Source
 from desk.lines import POUND, YARDSTICK, Line
 from desk.spans import Timed
@@ -116,7 +116,11 @@ def test_a_trading_day_is_kept_each_venue_on_its_own_hours(tmp_path: Path) -> No
         frozenset(),
     )
     files = {f.name for f in tmp_path.rglob("*") if f.is_file()}
-    assert files == {"market_history.db", "market_live.db", keeper.RECORD}  # two databases, no CSV
+    assert files == {
+        "market_history.db",
+        "market_live.db",
+        keeper_rotate.RECORD,
+    }  # two databases, no CSV
     assert not any("kestrel" in name for name in files)
     with pytest.raises(keeper.Stale, match="BBB: no LSE bars before 2026-11-17 .* for 2026-11-16"):
         keeper.saved(tmp_path, tue, LINES)

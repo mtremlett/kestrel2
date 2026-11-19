@@ -2061,3 +2061,22 @@ behaviour changed.
 His ruling, Tue 17 Nov 2026, in chat with runner ops at about 14:20, answering the question
 put by the coordinator with options ((a) raise to 95, recommended; (b) fold small modules to
 make room; (c) leave the twelve waiting): "Option (a)".
+
+## 19 Nov - the desk's file ceiling rises from 95 to 100, repaid by retire-epon
+
+In `BUDGET.json`, `product_files` goes from 95 to 100 for phases `3-money-paper` and `4-ladder`.
+`product_lines` stays at 15,000, and every per-file and per-function cap is unchanged.
+
+Why: desk/ stands at 92 of 95 files. Three desk files at or near the 400-line cap block
+trading-path work until they split (desk/keeper.py, desk/command.py at 400, desk/day.py at
+390: split-desk-keeper, split-desk-command, then z3-own-ids, stop-at-fill, intraday-engine
+and intraday-step), and each split, like each new-module card, needs one file.
+
+REPAYMENT: retire-epon (R-RUNNER-127) deletes 19 desk files once catalogue-epon-rows
+(R-RUNNER-219) gives every eponymous rule its catalogue row (6 of 20 on 19 Nov). Its pull
+request sets `product_files` back to 95 or lower in both phases. R-RUNNER-219 is ranked so
+that the repayment lands this week.
+
+His ruling, Thu 19 Nov 2026, in chat with runner ops at about 19:10, answering the question
+put with options ((a) raise by 5, repaid by retire-epon, recommended; (b) not yet), the
+coordinator backing (a): "Yes, raise by 5".

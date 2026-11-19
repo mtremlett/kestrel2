@@ -145,16 +145,18 @@ def pool(
     reproduced: Sequence[Reproduction] = (),
 ) -> Pooled:
     """One rule's whole-window cells, one a line with its bars (the lines that wait already
-    left out), walked forward over the last `count` whole calendar years before their common
-    end. In each year every line's trades bought and sold inside it are pooled, and its days
-    summed over the lines as the market rung marks them, so trades held together are not bets
-    apart. With 30 judged trades or more a year passes if its mean day earned after costs, fails
-    at 2 standard errors under nothing and is in doubt between; fewer is THIN, none a FAULT."""
-    ends = {c.end for c, _ in cells}
-    if len(ends) != 1 or len({c.strategy for c, _ in cells}) != 1:
-        raise ValueError("pooled cells must be one rule's, to one common end")
-    (end,) = ends
-    last = end.year if end >= date(end.year, 12, 31) else end.year - 1
+    left out), walked forward over the last `count` whole calendar years before the latest
+    line's end. Each line is folded on its own window: it joins a year only if its end is not
+    before that year's close. In each year every line's trades bought and sold inside it are
+    pooled, and its days summed over the lines as the market rung marks them, so trades held
+    together are not bets apart. With 30 judged trades or more a year passes if its mean day
+    earned after costs, fails at 2 standard errors under nothing and is in doubt between;
+    fewer is THIN, none a FAULT."""
+    if len({c.strategy for c, _ in cells}) != 1:
+        raise ValueError("pooled cells must be one rule's")
+    last = max(
+        c.end.year if c.end >= date(c.end.year, 12, 31) else c.end.year - 1 for c, _ in cells
+    )
     first = last - count + 1
     if count < 1 or min(c.start for c, _ in cells) > date(first, 1, 1):
         raise ValueError(f"{cells[0][0].strategy}: no {count} whole years of history to fold")
@@ -189,9 +191,12 @@ def _stretch(
     lines = trades = 0
     for c, bars in cells:
         begin = c.start if start is None else max(start, c.start)
-        if begin > end or not any(begin <= bar.day <= end for bar in bars):
+        stop = min(end, c.end)
+        if (start is not None and stop < end) or begin > stop:
             continue
-        part = Cell(c.strategy, c.line, begin, end)
+        if not any(begin <= bar.day <= stop for bar in bars):
+            continue
+        part = Cell(c.strategy, c.line, begin, stop)
         verdict = rung.judge(cell.run(part, bars), bars, settings, rates, reproduced)
         lines, trades = lines + 1, trades + len(verdict.trades)
         for bar in cell.shown(part, bars):

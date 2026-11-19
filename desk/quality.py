@@ -101,6 +101,31 @@ def thin(path: Path, line: Line, today: date) -> list[str]:
     return red
 
 
+VOLUME_TOLERANCE = 0.5  #: a day's five-minute volume may exceed the daily bar's by this share
+
+
+def volumes(path: Path, line: Line, today: date) -> list[str]:
+    """The days on which the summed five-minute volume exceeds the daily bar's by more than the
+    tolerance (a second feed counted twice). Five-minute bars short of the daily volume are a
+    thin session, not a volume fault."""
+    total: dict[date, int] = {}
+    try:
+        fives = bars.five(path, line, EPOCH, datetime.combine(today, time(), UTC))
+    except LookupError:  # the store never held five-minute bars for the line: nothing to sum
+        return []
+    for five in fives:
+        total[five.start.date()] = total.get(five.start.date(), 0) + five.volume
+    daily = {held.day: held.volume for held in backfill._held(path, line)}
+    off = sorted(
+        d for d, v in total.items() if d in daily and v > daily[d] * (1 + VOLUME_TOLERANCE)
+    )
+    if not off:
+        return []
+    return [
+        f"{line.symbol}: {len(off)} days with five-minute volume over the daily, first {off[0]}"
+    ]
+
+
 def monitor(
     path: Path, lines: Iterable[Line], broker: backfill.Ask, archived: backfill.Ask, today: date
 ) -> str:
@@ -111,6 +136,7 @@ def monitor(
     red = [why for line in every for why in audit(path, line, today)]
     red += [why for _, faults in built for why in faults]
     red += [why for line in every for why in thin(path, line, today)]
+    red += [why for line in every for why in volumes(path, line, today)]
     said = f"{len(wrote)} bars backfilled, {sum(n for n, _ in built)} rolled up"
     if not red:
         return f"quality: green, {len(every)} lines, {said}"

@@ -26,7 +26,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import BinaryIO
 
-from desk import clearance, gateway, kill, paper, reports, venues
+from desk import clearance, gateway, kill, order_times, paper, reports, venues
 from desk import placing_parts as parts
 from desk.broker import Disconnected, Fill, Report
 from desk.listing import Listing, Unlisted
@@ -61,7 +61,12 @@ def _with(listed: Listing, order: Order) -> Stop:
 
 
 def _place(
-    wire: BinaryIO, send: paper.Send, listed: Listing, order: Order | Sale, door: paper.Door
+    wire: BinaryIO,
+    send: paper.Send,
+    listed: Listing,
+    order: Order | Sale,
+    door: paper.Door,
+    times: order_times.Times,
 ) -> tuple[str, str | None, tuple[str, ...]]:
     """Send an order over an open connection, once, and read the broker's word of it: the
     number it went under, the state the broker says it is over in (filled, or cancelled), or
@@ -69,11 +74,13 @@ def _place(
     the number the gateway gave at the start. A BUY GOES WITH ITS STOP (_with): the buy held
     back, and behind it, under the next number, the stop, which waits on the buy and sends
     both on. The reading ends when the order is over, or when the gateway has said nothing
-    for as long as the door waits (paper.SECONDS): the order is then not over (None), and is
-    the desk's to cancel. A gateway that hangs up first is an error: the order may have
-    arrived."""
+    for as long as an order is given to fill (paper.FILL_SECONDS): the order is then not over
+    (None), and is the desk's to cancel. A gateway that hangs up first is an error: the order
+    may have arrived. The moments it was sent, accepted and filled are taken down (times)."""
+    wire = times.watch(wire)
     first, ref, shares = paper.start(wire, send, door), order.order_id, order.quantity
     number, numbers = str(first), [str(first)]
+    times.sent(number)
     if isinstance(order, Sale):
         send(parts.message(number, listed, ("SELL", *MARKET), shares, ref))
     else:
@@ -90,6 +97,20 @@ def _place(
     except TimeoutError:  #: the door's wait ran out in silence: its answer is "not over"
         pass
     return number, None, tuple(notices)
+
+
+def _withdrawn(report: Report) -> Report:
+    """An order the desk cancelled after its wait, told as the desk's own act: it went at the
+    market (MARKET) and was not filled within the door's wait. What the broker then says of it
+    follows; an order the broker ends itself keeps the broker's own words (Paper.report)."""
+    if report.reason is None:
+        return report
+    why = f"{report.order_id}: withdrawn by the desk: not filled at the market within "
+    why += f"{paper.FILL_SECONDS} seconds"
+    broker = report.reason.removeprefix(f"{report.order_id}: ")
+    if broker.startswith("the broker says "):
+        why += f"; {broker}"
+    return replace(report, reason=why)
 
 
 def _rest(wire: BinaryIO, send: paper.Send, listed: Listing, stop: Stop, door: paper.Door) -> None:
@@ -177,14 +198,21 @@ class Paper:
         errs after its stop was cancelled puts the stop back, for the shares held."""
         listed, new = self._cleared(order)
         was, before = self._before(listed, order)
-        ref = order.order_id
+        ref, times = order.order_id, order_times.Times(self._clock, self._door.client)
         try:
             number, last, notices = paper.dial(
-                lambda wire, send: _place(wire, send, listed, order, self._door)
+                lambda wire, send: _place(wire, send, listed, order, self._door, times),
+                paper.FILL_SECONDS,
             )
-            if last is None:
+            silent = last is None
+            if silent:
                 last = self._cancelled({number: ref})[number]
+                times.note("cancelled")
             report = self.report(ref) or Report(ref, (), f"{ref}: the broker tells nothing of it")
+            if (
+                silent and last in GONE
+            ):  #: the broker found it working, and cancelled it for the desk
+                report = _withdrawn(report)
             moved = sum(fill.quantity for fill in report.fills)
             held, stops = on(paper.read(self._door), listed, self._door)
             if held != was + moved or (last == "Filled" and abs(moved) != order.quantity):
@@ -197,6 +225,8 @@ class Paper:
             if isinstance(order, Sale) and before:
                 self._putback(listed, before)
             raise
+        finally:
+            times.keep(self._root, ref)
         self.settle(listed, held, stops, parts.due(before, held, moved, new))
         if report.reason is None or not notices:
             return report
