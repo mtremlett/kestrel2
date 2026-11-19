@@ -98,6 +98,8 @@ class _Fickle:
     """A rule that answers by the toss of a coin, whatever it holds, and not always in the
     words a rule is allowed."""
 
+    declared = replace(strategy.STRATEGIES["rsi2_pullback"].declared, hold=None)
+
     def __init__(self) -> None:
         self._coin = random.Random(7)  # noqa: S311 - a repeatable test coin, not a secret
 
