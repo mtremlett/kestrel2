@@ -5,13 +5,16 @@ from __future__ import annotations
 
 from datetime import date, datetime, timedelta
 from decimal import Decimal
+from pathlib import Path
 from typing import ClassVar
 
 import pytest
 
-from desk import intraday, venues
+from desk import bars, intraday, venues
 from desk.intraday import Span
+from desk.lines import Line
 from desk.rollup import Candle
+from desk.spans import Five
 from desk.strategy import Action
 
 CLOSES = [10, 9, 8, 9, 10, 11, 10, 9, 10, 12, 11, 8]
@@ -72,3 +75,19 @@ def test_today_reads_the_position_from_the_book_and_trades_no_rule_by_default() 
     rules = {"dip": _Dip}
     assert [d.action for d in intraday.today("LSE", bars, {}, rules)] == [Action.BUY]
     assert [d.action for d in intraday.today("LSE", bars, {"X": "dip"}, rules)] == [Action.HOLD]
+
+
+def test_a_session_reads_only_its_own_bars_and_a_span_never_held_is_refused(tmp_path: Path) -> None:
+    day, line, store = date(2026, 11, 16), Line("X", "LSE", "GBP", 1), tmp_path / "bars.db"
+    marks = [venues.hours("LSE", day).open + timedelta(minutes=m) for m in (-5, 0, 5, 10, 1440)]
+    prices = [Decimal(c) for c in CLOSES[:5]]
+    with bars.writing(store) as round_:
+        round_.five(line, [Five(t, p, p, p, p, 1) for t, p in zip(marks, prices, strict=True)])
+    got = intraday.session(store, line, Span.FIVE_MINUTES, day)
+    assert [(c.start, c.close) for c in got] == list(zip(marks[1:4], prices[1:4], strict=True))
+    rules, hand = {"d": _Dip}, _bars(CLOSES[1:4], day)
+    assert intraday.today("LSE", {"X": got}, {}, rules) == intraday.today(
+        "LSE", {"X": hand}, {}, rules
+    )
+    with pytest.raises(LookupError):
+        intraday.session(store, line, Span.ONE_MINUTE, day)
