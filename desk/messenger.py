@@ -42,7 +42,7 @@ from desk.messenger_parts import SECONDS as SECONDS
 from desk.messenger_parts import Daily, Mail, sound
 from desk.messenger_parts import Undelivered as Undelivered
 from desk.messenger_parts import smtp as smtp
-from desk.orders import Refused
+from desk.orders import Leg, Refused, leg_of
 from desk.supervisor import WAIT
 
 MESSAGES = "messages.db"
@@ -244,6 +244,30 @@ def _lost(root: Path, today: date) -> str:
     return f"Lost stops to put back: {'; '.join(back)}. " if back else ""
 
 
+def _stopped(root: Path, today: date) -> str:
+    """Each stop that filled today, told with its money: the shares and price sold, the average
+    price bought, the result in pounds after every cost (book.round_trips); no word, and no
+    pricing asked, on a day with none."""
+    if not any(
+        f.day == today and leg_of(f.order_id, f.quantity) is Leg.STOP for f in book.fills(root)
+    ):
+        return ""
+    by_fill: dict[str, list[book.RoundTrip]] = {}
+    for trip in book.round_trips(root, LINES):
+        if trip.sell.day == today and leg_of(trip.sell.order_id, trip.sell.quantity) is Leg.STOP:
+            by_fill.setdefault(trip.sell.execution_id, []).append(trip)
+    told = []
+    for trips in by_fill.values():
+        sold, shares = trips[0].sell, sum(t.sell.quantity for t in trips)
+        paid = sum(t.buy.price * t.buy.quantity for t in trips) / -shares
+        result = _made(sum((t.profit for t in trips), Decimal(0)))
+        told.append(
+            f"{sold.symbol}'s stop filled: {-shares} sold @ {sold.price:,.2f} "
+            f"(bought {paid:,.2f}), {result} after costs. "
+        )
+    return "".join(told)
+
+
 def _made(amount: Decimal) -> str:
     return f"{'lost' if amount < 0 else 'made'} £{abs(amount):,.2f}"
 
@@ -276,7 +300,9 @@ def evening(root: Path, now: datetime, known: Known, post: Post) -> Delivery | N
         if fill.day == today
     )
     stale = "" if known else STALE.format(known.words.rstrip("."))
-    fills = f"The desk's fills today: {dealt or 'none'}. {_lost(root, today)}"
+    fills = (
+        f"{_stopped(root, today)}The desk's fills today: {dealt or 'none'}. {_lost(root, today)}"
+    )
     told = f"{opens} {stale}{fills}{_gate(root)} {_state(root)}"
     return send(root, now, name, told, post)
 
