@@ -290,7 +290,8 @@ def _run(
     """The rule's decisions, holding what it last chose; on the last bar, holding `last`
     instead when it is given. A rule that declares a holding period is sold out of at its end,
     whatever it answered."""
-    holding, since, limit = False, 0, rule.declared.hold
+    declared = getattr(rule, "declared", None)  #: test doubles of a Rule declare nothing
+    holding, since, limit = False, 0, declared.hold if declared else None
     for n, bar in enumerate(bars):
         if last is not None and n == len(bars) - 1:
             holding = last
