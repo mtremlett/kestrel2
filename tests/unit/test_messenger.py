@@ -340,6 +340,8 @@ def test_the_evening_message_names_each_lost_stop_once_and_none_on_a_day_without
     tell = messenger.evening(loud, NINE, READY, _posts())
     assert tell is not None and tell.text.count("B1-stop, selling 5 at 79") == 1
     assert "Lost stops to put back: B1-stop, selling 5 at 79. " in tell.text
+    early = messenger.morning(loud, _at("2026-11-16T08:05"), READY, _posts())
+    assert early is not None and early.text.count("B1-stop, selling 5 at 79") == 1
 
 
 def test_the_evening_message_tells_a_stops_fill_with_its_buy_and_result_after_costs(
