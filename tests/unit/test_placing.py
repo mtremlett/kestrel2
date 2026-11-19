@@ -12,7 +12,7 @@ from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
-from test_paper import FLAT, Said, _account, _but, _gateway, _order, _wire
+from test_paper import FLAT, WAITS, Said, _account, _but, _gateway, _order, _wire
 from test_reports import AAPL, BOUGHT, BUY, CUT, DONE, END, FEE, IITU, LISTED, SMGB
 
 from desk import book, kill, paper, placing
@@ -274,6 +274,7 @@ def test_a_buy_goes_with_its_stop_and_the_line_is_left_under_one_stop_for_all_it
     did, under = [[DONE, ("102",)], [BOUGHT, END]], _account([HELD], *CHILD)
     sent = _gateway(monkeypatch, [], EMPTY, FILLING, under, *did, under)
     assert broker.place(BUY_IT) == Report(ID, (FILL,), None)
+    assert WAITS[:3] == [30, 30, paper.FILL_SECONDS]
     # the buy is held back until its stop is sent behind it, to wait on it: the stop put down
     # onto the broker's step, in pence. Filled whole, the stop is for the shares held: no more
     both = _msg({16: "BUY", 27: "0"}) + _msg(AT_STOP | {1: "42", 28: "41"})
@@ -297,8 +298,8 @@ def test_a_buy_goes_with_its_stop_and_the_line_is_left_under_one_stop_for_all_it
     idle = _account([HELD], *CHILD, *old)
     none: list[Said] = [[_but(MINE[1], 2, "Cancelled")], idle, [("102",)], [END], idle, [ENDED_42]]
     sent = _gateway(monkeypatch, [], was, [CHILD[1]], *none, silent=True)
-    why = f"{ID}: withdrawn by the desk: not filled at the market within {paper.SECONDS} seconds"
-    assert broker.place(BUY_IT) == Report(ID, (), why)  # told as the desk's, not the broker's
+    w = f"{ID}: withdrawn by the desk: not filled at the market within {paper.FILL_SECONDS} seconds"
+    assert broker.place(BUY_IT) == Report(ID, (), w)  # told as the desk's, not the broker's
     assert sent[2:] == [both, CANCEL, *ASKED, ACCOUNT, CANCEL_42]
     # a buy cut at ten of 26: its stop is for the ten bought, never the 26 ordered
     cut: list[Said] = [none[0], TEN, PART[1], TENTH, TEN]
