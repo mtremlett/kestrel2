@@ -174,10 +174,14 @@ def stop_to_sell(order: Resting) -> bool:
     return (order.action, order.kind) == ("SELL", "STP")
 
 
-def ours(door: paper.Door, client: str, ref: str) -> bool:
+def ours(door: paper.Door, client: str, ref: str, symbol: str = "") -> bool:
     """Whether an order, or a fill of one, is the door's own: placed by its own client,
-    under an order id of the desk's. Anything else on the account is someone
-    else's: a hand at the broker's screen, the old desk, another program."""
+    under an order id of the desk's, and not on a line the account held when the door's
+    process put its share apart (the real desk's, which the door's client only shares a
+    number with). Anything else on the account is someone else's: a hand at the broker's
+    screen, the old desk, another program."""
+    if door.apart and symbol in {name.split()[0] for name in door.apart.holdings}:
+        return False
     return client == str(door.client) and bool(ref.strip())
 
 
@@ -203,7 +207,7 @@ def fills(
     others: list[Execution] = []
     last: dict[str, datetime] = {}
     for e in executions:
-        if not ours(door, e.client, e.ref):
+        if not ours(door, e.client, e.ref, e.symbol):
             others.append(e)
             continue
         listed = _line(e.contract, listings, e)
@@ -238,7 +242,7 @@ def orders(
     unsettled: list[Resting] = []
     others: list[Resting] = []
     for order in resting:
-        if not ours(door, order.client, order.ref):
+        if not ours(door, order.client, order.ref, order.symbol):
             others.append(order)
             continue
         line = _line(order.contract, listings, order).line
