@@ -252,3 +252,9 @@ then the break was removed:
 
 ### 2026-11-17 — Mansfield and Zweig rows wait (R-MONEY-45, #809, #823)
 - Mansfield needs the SPY close beside each stock. Options: (a) special-case SPY inside a block (a second home for the index, refused by A2) or add a second-series input to blocks and the fast engine now; (b) widen the Block contract with an optional index series, with its own parity test (a planned step); (c) a ratio line built by the ladder; (d) leave both rules as Python files and let R-RUNNER-127 delete the other 17. Chose (d) for now and (b) for a later session with the whole claim, since no step fits green and small; recommended per his 13 Nov ruling. Zweig waits on breadth data (R-MONEY-35).
+
+### 2026-11-17 — montecarlo keeps its own gains (R-RUNGS-18, #846)
+- Options: read `verdict.gains`; keep `[p.gain ...]`. Chose keep: `verdict.gains` plants one extra stop-sold gain among the real ones, which would add a made-up trade to the shuffle.
+
+### 2026-11-17 — no inverse by negated returns (R-RUNGS-21, #833)
+- Inverse leveraged lines for set LEV. Options: negate returns in the lab; wait for a Line type that states an inverse fund. Chose wait: negating is a second path beside the engine's (canon A2, B2), and the sizer and stop need the magnitude anyway.

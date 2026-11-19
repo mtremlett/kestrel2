@@ -636,3 +636,8 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #823 R-MONEY-45 checked, no change; Mansfield needs an index series in the block contract |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #827 R-RUNNER-191 step: rung_benchmark's interval reads rung.mean_and_error (no verdict changed) |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #831 R-RUNNER-205 step: market weather layer 4, breadth (not wired) |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #830 rungs-tape-cache already on main, nothing to add; no change |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #838 R-RUNNER-191 step: one home for a mean and its interval, rung.interval (no verdict changed) |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #848 R-RUNNER-191 step: rung_dsr's wrapper of the paper's formula gone (no verdict changed) |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #846 Priced.stopped required (R-RUNGS-18 half), R-GRID-2 met; no scene moved |
+| 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #833 rungs-leveraged waits on R-RUNGS-21 (inverse Line type); no change |
