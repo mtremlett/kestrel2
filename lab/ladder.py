@@ -59,7 +59,7 @@ import json
 import os
 import sys
 from collections import Counter
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from decimal import Decimal
@@ -75,7 +75,18 @@ from desk.strategy import STRATEGIES, Rule
 from lab import batch, cell, published, reproduce, rulebook, rung, tape, trials, verdict
 from lab.batch import Bars
 from lab.cell import Cell
-from lab.ladder_parts import FAILED, RUNGS, Shared, _count, _declared, _due, _made, _pool, _resolve
+from lab.ladder_parts import (
+    FAILED,
+    RUNGS,
+    Shared,
+    _count,
+    _declared,
+    _due,
+    _made,
+    _pool,
+    _resolve,
+    faults,
+)
 from lab.rung import Answer, Rates
 
 __all__ = ["FAILED", "RUNGS", "Shared", "_count", "_resolve"]  #: what other modules take from here
@@ -295,7 +306,19 @@ def _needs_data(make: type[Rule]) -> bool:
     return any(p.default is p.empty for p in inspect.signature(make).parameters.values())
 
 
-if __name__ == "__main__":
+def door(env: Mapping[str, str], argv: Sequence[str]) -> int:
+    """The command: the set run, then each rung any cell FAULTed on said on its own line with its
+    share and reason; 1 when most cells FAULTed, so a set that judged nothing is never green."""
     from lab import ladder_sets
 
-    sys.exit(ladder_sets.main(os.environ, sys.argv[1:]))
+    code = ladder_sets.main(env, argv)
+    plan = {"first": FIRST, "leveraged": ladder_sets.LEV}.get(argv[0] if argv else "")
+    stem = (plan or ladder_sets.EPON).stem
+    kept = _last(_whole(Path(env["KESTREL2_DATA"]) / FOLDER / f"{stem}.jsonl"))
+    said, mostly = faults(list(kept.values()))
+    sys.stdout.write("".join(f"{line}" + chr(10) for line in said))
+    return code or int(mostly)
+
+
+if __name__ == "__main__":
+    sys.exit(door(os.environ, sys.argv[1:]))

@@ -123,3 +123,20 @@ def _proxy(line: Line, own: Sequence[Bar], bars: Bars) -> Line | None:
 def _due(was: verdict.Row, now: datetime) -> bool:
     """A failed cell is tried again once its last try is 30 minutes old."""
     return "error" in was and now - datetime.fromisoformat(was["tried"]) >= RETRY
+
+
+def faults(rows: Sequence[verdict.Row]) -> tuple[list[str], bool]:
+    """One line for each rung that any judged cell FAULTed on: its share of the cells, the rung
+    and the commonest reason; and whether most of the cells did (a set that judged nothing)."""
+    judged = [row["rungs"] for row in rows if "rungs" in row]
+    said, mostly = [], False
+    for name in dict.fromkeys(n for rungs in judged for n in rungs):
+        reasons = Counter(
+            r[name][1] for r in judged if name in r and r[name][0] == Answer.FAULT.name
+        )
+        if reasons:
+            share = sum(reasons.values())
+            why = reasons.most_common(1)[0][0]
+            said.append(f"FAULT: {share} of {len(judged)} cells at rung {name}: {why}")
+            mostly |= 2 * share > len(judged)
+    return said, mostly
