@@ -14,11 +14,13 @@ the trial count recorded (canon B6).
 
 from __future__ import annotations
 
+import json
 import statistics
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
+from pathlib import Path
 
 from desk.store import Bar
 
@@ -177,3 +179,64 @@ def against_trend(
     return Contest(
         min(edges(labels, bars, good, folds)), min(edges(trend(bars), bars, UP, folds)), trials
     )
+
+
+@dataclass(frozen=True)
+class Entry:
+    """One layer's contest, or why it could not be scored (never read as zero)."""
+
+    layer: str
+    contest: Contest | None
+    why: str = ""
+
+
+def contest(
+    market: Sequence[Bar], lines: Mapping[str, Sequence[Bar]], folds: int = 5
+) -> list[Entry]:
+    """Run the win-against-trend test over `market` for each built layer with its good label
+    (volatility calm, drawdown shallow, breadth broad over `lines`); the trials are the layers
+    tried. A fold a layer cannot score is said so in `why`."""
+    layers = [
+        ("volatility", volatility(market), CALM),
+        ("drawdown", drawdown(market), SHALLOW),
+        ("breadth", breadth(lines), BROAD),
+    ]
+    out = []
+    for name, labels, good in layers:
+        try:
+            out.append(Entry(name, against_trend(labels, good, market, folds, len(layers))))
+        except ValueError as refusal:
+            out.append(Entry(name, None, str(refusal)))
+    return out
+
+
+def write(folder: Path, contests: Sequence[Entry]) -> None:
+    """Write weather.md and weather.json into `folder`: each layer's worst fold beside trend's,
+    whether it joins, and the trials. PRE-REVIEW until a reviewer has read the numbers."""
+    rows = []
+    for e in contests:
+        c = e.contest
+        rows.append(
+            {
+                "layer": e.layer,
+                "worst_fold": None if c is None else str(c.layer),
+                "trend_worst_fold": None if c is None else str(c.trend),
+                "joins": None if c is None else c.wins,
+                "trials": None if c is None else c.trials,
+                "unscored": e.why,
+            }
+        )
+    lines = ["# Weather layers against trend (PRE-REVIEW)", ""]
+    lines += ["| layer | worst fold | trend worst fold | joins | trials |", "|---|---|---|---|---|"]
+    for r in rows:
+        if r["joins"] is None:
+            lines.append(f"| {r['layer']} | cannot score: {r['unscored']} | | no | |")
+        else:
+            verdict = "yes" if r["joins"] else "no"
+            lines.append(
+                f"| {r['layer']} | {r['worst_fold']} | {r['trend_worst_fold']} | {verdict} "
+                f"| {r['trials']} |"
+            )
+    (folder / "weather.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    payload = {"status": "PRE-REVIEW", "layers": rows}
+    (folder / "weather.json").write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")

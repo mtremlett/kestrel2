@@ -127,6 +127,15 @@ def test_a_fill_not_the_desks_own_is_kept_apart_as_the_broker_gave_it(theirs: Ex
     assert told.others == (theirs, late, late) and [fill.symbol for fill in told.ours] == ["AAPL"]
 
 
+def test_a_fill_on_a_line_the_account_held_when_the_rehearsal_began_is_not_the_rehearsals() -> None:
+    # 18 Nov 3LGO: the real desk's buy, its client and order id, read by a door with it apart
+    real = replace(BUY, symbol="3LGO", shares=Decimal(9), ref="20261118-bollinger_pullback-3LGO")
+    rehearsal = paper.Door(paper.DESK, paper.Apart(frozenset({"3LGO STK GBP"})))
+    assert reports.fills((real,), LISTED, rehearsal) == Fills((), (real,))
+    assert not reports.ours(rehearsal, real.client, real.ref, real.symbol)
+    assert reports.ours(DOOR, real.client, real.ref, real.symbol)  # no apart: the desk's own
+
+
 @pytest.mark.parametrize(
     ("fills", "saying"),
     [

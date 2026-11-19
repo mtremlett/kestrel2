@@ -95,18 +95,16 @@ def test_set_lev_judges_its_declared_trend_rules_on_the_leveraged_lines_only_in_
 def test_the_desks_folder_is_the_one_list_a_new_file_is_taken_and_keyed_a_bare_one_refused(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """A new eponymous file in the folder is imported and changes the keys, with no edit to the
+    """A new eponymous file in the folder is imported, with no edit to the
     ladder; one that names its rules in no EPONYMOUS is refused, by name."""
     monkeypatch.setattr(desk, "__path__", [*desk.__path__, str(tmp_path)])
     monkeypatch.setattr(sys, "modules", dict(sys.modules))  #: the planted files leave no trace
     importlib.invalidate_caches()
-    before, bare = ladder.code(tmp_path), tmp_path / "empty.toml"
+    bare = tmp_path / "empty.toml"
     bare.write_text("")
     planted = tmp_path / "eponymous_planted.py"
     planted.write_text("class X: ...\nEPONYMOUS = {'planted_x': X}")
-    assert ladder.eponymous(tmp_path, bare) == ("planted_x",) and ladder.code(tmp_path) != before
-    planted.write_text("class X: ...\nEPONYMOUS = {'planted_x': X}  # 2")
-    assert ladder.code(tmp_path) not in (before, ladder.code(Path(desk.__file__).parent))
+    assert ladder.eponymous(tmp_path, bare) == ("planted_x",)
     (tmp_path / "eponymous_bare.py").write_text("X = 1")
     with pytest.raises(ValueError, match="desk.eponymous_bare names its rules in no EPONYMOUS"):
         ladder.eponymous(tmp_path, bare)

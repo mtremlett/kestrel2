@@ -7,11 +7,13 @@ conformance run's), which the desk's sale refused as "the desk is long only". R-
 
 from __future__ import annotations
 
-from datetime import date
+from dataclasses import replace
+from datetime import UTC, date, datetime, time
 from typing import TYPE_CHECKING
 
 from desk import book, halt
 from desk.broker import Fault
+from desk.lines import YARDSTICK
 
 if TYPE_CHECKING:
     from desk.simcity import _Life
@@ -21,6 +23,9 @@ LEFT = "shares the book lacks rest at the broker under a stop"
 SOLD = "shares the book lacks, under a stop at the broker, are taken into the book and sold"
 CANCELLED = "the broker cancels every order of the day with nothing filled"
 NAMED = "an order cancelled unfilled is named that day, and the book stays the broker's"
+HALTED = "a halt is in force while the day's buys are asked for"
+STILL = "with a halt in force nothing is bought"
+OUTSIDE = "a line no ISA can hold is never bought"
 PROMISE = "a held line with no bar for a session is named when the day is refused"
 
 
@@ -77,3 +82,26 @@ def cancelled(life: _Life, on: date) -> None:
     named = all(i.rsplit("-", 1)[1] in bought for i in refused)
     level = dict(book.positions(life.desk)) == dict(life.pretend.holdings())
     life.promise(NAMED, named and level)
+
+
+def halted(life: _Life, on: date) -> None:
+    """A halt is called before the day: no buy may reach the broker, and the day's list names it."""
+    at, reached = datetime.combine(on, time(7), UTC), life.pretend.buys
+    called = halt.call(life.desk, at, "SimCity halts a day")
+    life.live(on)
+    life.promise(STILL, life.pretend.buys == reached)
+    halt.lift(life.desk, called, at, "SimCity lifts it")
+
+
+def outside(life: _Life, on: date) -> None:
+    """Every line but the yardstick and those held is recorded as outside an ISA for the day: no
+    buy of such a line reaches the broker (the yardstick's own key is the day's, and is kept)."""
+    whole, reached, held = life.market, len(life.pretend.submitted()), book.positions(life.desk)
+    barred = {x.symbol for x in whole if x.symbol not in held and x != YARDSTICK}
+    life.market = {
+        x if x.symbol not in barred else replace(x, isa=False): b for x, b in whole.items()
+    }
+    life.live(on)
+    sent = life.pretend.submitted()[reached:]
+    life.promise(OUTSIDE, not any(i.rpartition("-")[2] in barred for i in sent))
+    life.market = whole
