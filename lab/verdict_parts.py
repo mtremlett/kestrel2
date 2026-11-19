@@ -61,6 +61,13 @@ def cell_line(row: Row) -> list[str]:
     ]
 
 
+def _keep(path: Path, text: str) -> None:
+    """Write `text` whole beside `path`, then swap it in, so a reader never meets half a file."""
+    part = path.with_suffix(".tmp")
+    part.write_text(text, encoding="utf-8")
+    part.replace(path)
+
+
 def write_table(
     folder: Path,
     tag: int | str,
@@ -79,7 +86,7 @@ def write_table(
     data |= {"rungs_built": built[0], "rungs": built[1]}
     apart = [r["cell"][0] for r in rows if r.get("answer") == INCUBATE]
     data |= {"incubate": apart, "rules": [_rule(r, rs) for r, rs in mine.items()]}
-    (folder / f"{tag}.json").write_text(json.dumps(data, indent=1), encoding="utf-8")
+    _keep(folder / f"{tag}.json", json.dumps(data, indent=1))
     #: the register is never shortened: a trial an earlier run of the set entered stays counted
     said = f"Cells: {len(rows)}. Each is judged against {count} trials, all its register ever held."
     out = [f"# SET {tag} - {STATUS}", "", f"rungs built: {built[0]} of {built[1]}", ""]
@@ -97,5 +104,5 @@ def write_table(
     if apart:
         out += [f"## {INCUBATE}: paper only, never a PASS, listed apart", ""]
         out += [f"- {rule}: all lines pooled" for rule in apart] + [""]
-    (path := folder / f"{tag}.md").write_text("\n".join(out), encoding="utf-8")
+    _keep(path := folder / f"{tag}.md", "\n".join(out))
     return path

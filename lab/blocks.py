@@ -348,6 +348,7 @@ BLOCKS: Mapping[str, Spot] = {
     "close_near_range_low": Spot(Kind.ENTRY, CloseNearRangeLow, {"n": _DAYS, "pct": _PCT}),
     "close_near_range_high": Spot(Kind.EXIT, CloseNearRangeHigh, {"n": _DAYS, "pct": _PCT}),
     "close_over_average": Spot(Kind.EXIT, CloseAboveAverage, {"n": _DAYS}),
+    "ratio_over_average": Spot(Kind.ENTRY, CloseAboveAverage, {"n": _DAYS}),  #: on ratio bars
     "rising_score": Spot(Kind.ENTRY, RisingScore, {"n": _DAYS, "pct": _PCT}),
     "big_move": Spot(Kind.STOP, BigMove, {"n": _DAYS, "pct": _PCT}),
     "close_at_or_under_average": Spot(Kind.EXIT, CloseAtOrBelowAverage, {"n": _DAYS}),
