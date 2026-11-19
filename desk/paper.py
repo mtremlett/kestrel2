@@ -33,6 +33,14 @@ VERSION = "176"  #: the one version of the gateway's language the desk reads
 #: whole account read 0.1 s warm, 0.14 and 0.18 s with 24 busy processes: 30 s is a hundredfold,
 #: and still well inside one five-minute step for a dead gateway.
 SECONDS = 30
+#: How long an order at the market is given to fill, in silence, once sent (desk/placing.py): it is
+#: cancelled and told as withdrawn only after this. Three market buys in London were cancelled at
+#: 30 s with nothing filled (16 Nov 08:06, 19 Nov 08:10 VHYG, 19 Nov 08:35 VUSA; the tape
+#: conformance/trades-london-20261119-0835.csv: 31 s sent to cancelled, none filled before or after
+#: the cancel, the same buy filled within a second at 09:36). The gateway keeps no API log of
+#: IBKR's own status times, so the fill time is not measured; 120 s is two minutes within one
+#: five-minute step, the cancel and the reads after it still inside it. Tune it from the tapes.
+FILL_SECONDS = 120
 #: The kinds of message, by the gateway's own numbers.
 ACCOUNTS, READY, NEWS, STATUS = "15", "9", "4", "3"
 HOLDING, HOLDINGS_END, ORDER, ORDERS_END = "61", "62", "5", "53"
@@ -270,10 +278,11 @@ def converse(wire: BinaryIO, send: Send, door: Door | None = None) -> Account:
     return Account(tuple(holdings), tuple(told.values()))
 
 
-def dial(talk: Callable[[BinaryIO, Send], T]) -> T:
-    """Hold one conversation with the gateway. It dials the paper port and no other."""
+def dial(talk: Callable[[BinaryIO, Send], T], seconds: float = SECONDS) -> T:
+    """Hold one conversation with the gateway, waiting seconds at each step for it to speak.
+    It dials the paper port and no other."""
     with (
-        socket.create_connection((HOST, PORT), timeout=SECONDS) as link,
+        socket.create_connection((HOST, PORT), timeout=seconds) as link,
         link.makefile("rb") as wire,
     ):
         return talk(wire, link.sendall)

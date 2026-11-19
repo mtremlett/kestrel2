@@ -79,6 +79,9 @@ class _Silent(io.BytesIO):
         return super().read(size)
 
 
+WAITS = list[float]()  #: how long the desk waited at each conversation of the last _gateway
+
+
 def _gateway(
     patch: pytest.MonkeyPatch, *answers: Sequence[Sequence[str]], silent: bool = False
 ) -> list[bytes]:
@@ -86,9 +89,11 @@ def _gateway(
     none after them; what the desk sent in each, after its greeting and its start. Its
     answer given, it hangs up; or, silent, says no more and does not."""
     left, sent = list(answers), list[bytes]()
+    WAITS.clear()
 
-    def dial(talk: Callable[[BinaryIO, paper.Send], object]) -> object:
+    def dial(talk: Callable[[BinaryIO, paper.Send], object], wait: float = paper.SECONDS) -> object:
         said: list[bytes] = []
+        WAITS.append(wait)
         wire = _wire(HELLO, ACCOUNTS, NEXT, *left.pop(0))
         try:
             return talk(_Silent(wire.getvalue()) if silent else wire, said.append)
