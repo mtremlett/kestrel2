@@ -34,6 +34,7 @@ from desk.keeper_rotate import load as _kept
 from desk.keeper_rotate import record as _record
 from desk.lines import ADJUSTED, DOLLARS, LINES, POUND, REFERENCE, YARDSTICK, Line
 from desk.store import Bar, Parked, Refused
+from desk.store_scope import judge as scoped_judge
 
 #: In the data folder: each venue's record of its last refresh (no prices), and the short database.
 DAILY, HOT = "daily", bars.LIVE
@@ -133,7 +134,7 @@ def _kept_in(
             broker = first.get(line)
             shelf = bars.bridged(hot, line, day, _shelf(folder, line), answer, broker)
             stands = _standing(hot, line, day, broker) if standing else broker
-            kept, faults, park = store.judge(line, answer, day, rates, shelf=shelf, broker=stands)
+            kept, faults, park = scoped_judge(line, answer, day, rates, shelf=shelf, broker=stands)
             round_.daily(line, kept, withdrawn=_dropped(kept, answer, broker))
             parked += [park] if park else []
             named.setdefault(_source(kept, answer, broker), []).append(line.symbol)
