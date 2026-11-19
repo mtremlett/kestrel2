@@ -334,6 +334,20 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #821 data-deep-history: found why no bar before 2010 is kept; no change landed (the fix spans store.py and lines.py, outside this claim). |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #800 DATA: no change, blocking requests already on main; R-DATA-49 waits on R-DATA-52. |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #822 data-deep-history: blocker re-confirmed; no change landed (needs store.py and lines.py in the claim). |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #801 R-RUNNER-309: the daily writer joins by day and never deletes a held day; withdrawn table; keeper wiring remained. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #820 data-keeper-receipts: receipt records each newest bar's source and arrival; restart drill pinned. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #825 R-RUNNER-217 step: 30m gap audit in desk/quality.py. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #832 data-written-together: bars and faults written whole before either swap, partly landed. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #836 R-RUNNER-217 step: thin sessions audited on all short timeframes. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #842 R-RUNNER-217 step: quality monitor names the finer span that could rebuild a thin session. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #841 R-DATA-54: store keeps bars from 2000; five real moves recorded. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #844 paper Gateway five-minute bars proved live for 7 US lines, no code. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #855 R-RUNNER-311: keeper withdraws what it drops. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #853 R-RUNNER-217 step: five-minute volume above the daily named red. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #856 R-RUNNER-329: a wait for the store's lock is named. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #859 R-RUNNER-313: every line gets IBKR's bar within ceil(lines/ROOM) calls. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #861 R-RUNNER-341: one price form; corrections only on real change. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #863 R-RUNNER-327: keeper never parks a line for a fault in deep history. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
