@@ -10,7 +10,7 @@ settled entries into one short summary entry; git keeps every word.
 
 ### 2026-11-13 to 14 — the first day's decisions, folded (the oldest settled entries)
 
-Sixteen entries, each settled and built, folded into one; git keeps every word (the file
+Sixteen entries (some bullets since dropped), each settled and built, folded into one; git keeps every word (the file
 before this fold: `git log -p docs/lanes/data.md`).
 - *The fourteen months* (R-MONEY-2): the scenes read the whole rehearsal data, each line
   on its own venue's calendar; the six-week window and the status cut went.
@@ -24,13 +24,10 @@ before this fold: `git log -p docs/lanes/data.md`).
   #84).
 - *UK tax:* two rates (nil for a fund or exchange-traded product, stamp duty for a UK
   share), a fact on each line, with how far each is confirmed.
-- *The next boxes* (#66): their order, the keeper's road and the store's name.
 - *The twins* (#85): VUAG, EQQQ and IDTL in the master with an ISA flag and a retail flag
   on every line, GLD out, the yardstick VUAG.
-- *Hours* (#87): every session's open, close, auction and half-day in UTC from one calendar.
 - *The fast store* (#89): SQLite in WAL mode, whole rounds, exact decimals, benchmarks held.
 - *The lists' members* (#96): S&P 500 and Nasdaq 100 by day since 2010; `on` refuses the rest.
-- *Five-minute bars saved for good* (#97): through the daily store's checks, each evening.
 
 ### 2026-11-14 — the head start, currency and store rules, folded (#175-#254)
 
@@ -50,38 +47,11 @@ The store holds each venue's closes within 39 minutes of its close (R-PAPER-23, 
 
 VUAG's 2019 gap filled from a checked shelf, never forward-filled (R-RUNNER-104); every venue has a calendar and SimCity worlds are dated on trading days (R-RUNNER-107); `python -m lab.universe` refreshes research (R-RUNNER-116); a bar with only a bad high or low is kept and repaired, and an impossible low likewise (R-RUNNER-175, -185); the keeper cleans kept history again when the store rules change (R-RUNNER-182); a missing yardstick day is a named fault filled from a second source (R-RUNNER-179). Each took its recommended option; git keeps the full entries.
 
-### 2026-11-16 — no change - R-RUNNER-11 waits on a PAPER test edit (closes #422) (#424)
-
-- Option A, loosen the guard for one file: refused (guards are not loosened for convenience).
-  Option B, keep the keeper's store named bars.db: refused, it defeats the box. Option C
-  (chosen): ask the owner to make test_command.py name the store through the constant
-  `desk.keeper.HOT` instead of the literal, which works before and after the rename; then DATA
-  re-lands 55977a3.
-
-### 2026-11-16 — the store is two databases, long and short (R-RUNNER-11, first step) (#442)
-
-- the long database is placed beside the short one and named by the writer, not by a setting,
-  so that every existing caller (which passes the short database's path) is unchanged; option
-  B was a data-folder argument, rejected because it edits other lanes' files. Recommended and
-  taken.
-
-### 2026-11-16 — the free collector, once a day: price second opinions, macro series, earnings dates and timestamped news into the one store (R-RUNNER-15) (#460)
-
-- Where to keep it - options: a new database, or tables beside the daily bars; chose tables
-  (raw, fact) in market_history.db, since the order was "the one store". Price day - the last
-  weekday before today (the 22:15 run sees a settled day). A free tier's holiday gives no
-  bars, not a fault.
-
-### 2026-11-16 — no change - R-RUNNER-11 waits on two PAPER test lines (#454)
-
-- Reverted the rename instead of widening my claim, because the lane guard refuses files
-  outside the lane (canon A9; no red merge, A1.4).
-
-### 2026-11-16 — the archive's daily answers kept raw and read instead of asked again (R-PAPER-24) (#458)
-
-- key is (line, day) since the daily question is fixed by those; a kept file is never
-  refreshed within its day folder (a new day is a new folder). Options: a time-to-live, or
-  hash keys; chose the simplest.
+### 2026-11-16 — the first two-database steps and the free collector, folded (#424-#460)
+The store became two databases, long and short (#442); the free collector runs once a day, writing second-opinion prices,
+macro series, earnings dates and timestamped news into the one store (#460); the archive's daily answers are kept raw and
+read instead of asked again (#458). Two no-change sessions (#424, #454) found R-RUNNER-11 waiting on PAPER test lines; it
+landed later. Git keeps each full entry.
 
 ### 2026-11-16 — SPY kept from 29 January 1993 as a reference series (R-RUNNER-94) (#303)
 
@@ -786,3 +756,26 @@ Options: (a) restore the nine US lines from backup/20261117T013018Z, (b) leave t
 basis. Chose (b): the live store already holds every backup day, the 20 differing sessions are fresh pulls with the old values
 kept in `correction`, and (a) would put stale over fresh, undone by the next archive round. His ruling, take recommended. Open
 question: which daily volume is the consolidated figure (R-DATA-59, waits: operator).
+
+### 2026-11-19 — headstart pass takes its lines as a parameter (#901, R-RUNNER-349)
+Options: (a) `whole` reads the line list itself; (b) the command passes `headstart_days.order()` in. Chose (b): the test then
+uses one line, and counts are read from the readers' own lines, not a second tally.
+
+### 2026-11-19 — desk/bars.py split along its schema (#905, R-RUNNER-381)
+Options: (a) move the readers out; (b) move the Source list and the store's table and statement constants to
+`desk/bars_schema.py`. Chose (b): the readers could not move without a circular import. `bars.py` re-exports the names, so
+no caller or test outside the claim needed an edit (398 to 349 lines).
+
+### 2026-11-19 — data-ingest: no separate persisted backfill list (#915)
+Options: (a) add a backfill list beside the park; (b) keep the park (`keeper.parked_live`), which already bounds it. Chose (b):
+keeper.py and bars.py sit at 390 and 398 of 400 lines and the unit tests have no margin. Sealing into compressed files waits
+on a benchmark showing SQLite slowing; it passes today.
+
+### 2026-11-20 — a session of today is closed once its closing auction has ended (#935, R-RUNNER-382)
+Options: (a) the session's close time (rejected, the auction still prints after it); (b) the closing auction's end
+(`venues.hours` `.auction`), the same bound `open_at` uses (chosen). `audit` and `monitor` now take the moment they run.
+
+### 2026-11-20 — the rollup source waits for a claim naming desk/bars_schema.py (#940, R-RUNNER-217)
+Options: (a) edit bars_schema.py anyway (the check refuses); (b) reuse an existing Source for the rollup (wrong provenance,
+rejected); (c) land nothing and ask for the claim to include desk/bars_schema.py (chosen). Adding the member elsewhere would
+make a second home for Source (#930 landed step 1 only).

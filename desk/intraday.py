@@ -10,12 +10,15 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from enum import Enum
+from pathlib import Path
 from typing import ClassVar, Protocol
 
-from desk import venues
+from desk import bars, venues
+from desk.lines import Line
 from desk.rollup import Candle
+from desk.spans import Five, Timed
 from desk.strategy import Action
 
 
@@ -57,6 +60,19 @@ def _checked(venue: str, span: Span, bars: Sequence[Candle]) -> None:
         if last is not None and bar.start <= last:
             raise ValueError(f"{bar.start}: not after the bar before it, {last}")
         last = bar.start
+
+
+def session(path: Path, line: Line, span: Span, day: date) -> tuple[Candle, ...]:
+    """One venue session's bars of the span the store holds for the line, from the open up to
+    the close, as candles in time order; a span the store never held raises its LookupError."""
+    found = venues.hours(line.venue, day)
+    if span is Span.FIVE_MINUTES:
+        held: Sequence[Five | Timed] = bars.five(path, line, found.open, found.close)
+    else:
+        held = bars.timed(path, line, f"{span.value}m", found.open, found.close)
+    made = tuple(Candle(b.start, b.open, b.high, b.low, b.close, b.volume, "store") for b in held)
+    _checked(line.venue, span, made)
+    return made
 
 
 def run(

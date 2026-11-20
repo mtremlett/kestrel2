@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 import sys
+import threading
+import time
 from contextlib import suppress
 from datetime import UTC, date, datetime
 from decimal import Decimal
@@ -114,3 +116,19 @@ def test_a_planted_stuck_order_is_counted_in_the_lifecycle_by_where_it_ended() -
         got = simcitycmd.lifecycle(broker)
         assert got == simcitycmd.Lifecycle(**{k: int(k == ends) for k in vars(got)})
     assert "1 filled" in got.words() and "0 stuck" in got.words()
+
+
+def test_a_night_ends_inside_its_time_and_a_world_blocked_on_its_store_names_it(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The twenty worlds on the fixture end inside a stated time; a read of the price store
+    that never returns ends the night with an error naming the phase and the waiting line."""
+    began = time.monotonic()
+    assert simcitycmd.main([], {"KESTREL2_DATA": str(tmp_path)}, lambda: NOW) in (0, 1)
+    assert time.monotonic() - began < 300
+    gate = threading.Event()
+    monkeypatch.setattr(keeper, "saved", lambda *_: gate.wait())
+    monkeypatch.setattr(simcitycmd, "LIMIT", 0.2)
+    with pytest.raises(TimeoutError, match="stuck in reading the price store.*wait"):
+        simcitycmd.main([], {"KESTREL2_DATA": str(tmp_path)}, lambda: NOW)
+    gate.set()
