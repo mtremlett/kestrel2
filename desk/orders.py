@@ -6,7 +6,8 @@ ONE ROUNDING POLICY for what is published of it."""
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from dataclasses import astuple, dataclass, replace
+from dataclasses import astuple, dataclass, field, replace
+from datetime import date
 from decimal import ROUND_HALF_EVEN, Decimal
 from enum import Enum
 
@@ -79,6 +80,8 @@ class Order:
     price: Decimal  #: in the line's currency
     fx: Decimal  #: pounds per unit of the line's currency
     stop: Decimal
+    #: The session the order is dated (R-PAPER-35); None only until every constructor sets it.
+    session: date | None = field(default=None, kw_only=True)
 
     def __post_init__(self) -> None:
         if self.quantity <= 0 or not 0 < self.stop < self.price:
@@ -96,6 +99,7 @@ class Sale:
     order_id: str
     line: Line
     quantity: int
+    session: date | None = None  #: as Order.session
 
     def __post_init__(self) -> None:
         if self.quantity <= 0:
@@ -206,7 +210,7 @@ def size(
     stop = stop_under(line, price)
 
     def order(quantity: int) -> Order:
-        return Order(order_id, line, quantity, price, fx, stop)
+        return Order(order_id, line, quantity, price, fx, stop, session=decision.day)
 
     room, one = _room(line, settings), order(1)  #: one share proves the price, rate and stop
     if cost(one) > room:

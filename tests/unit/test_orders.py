@@ -135,6 +135,7 @@ def test_only_a_buy_for_its_own_line_is_sized_and_a_share_must_be_affordable() -
     for decision, line in ((sell, PLAIN), (_buy(DOLLAR), PLAIN)):
         with pytest.raises(ValueError, match="buy"):
             orders.size(decision, line, Decimal(10), Decimal(1), TEN_K, {})
+    assert orders.size(_buy(PLAIN), PLAIN, Decimal(10), Decimal(1), TEN_K, {}).session == ON
     with pytest.raises(orders.Refused, match="one share"):
         orders.size(_buy(PLAIN), PLAIN, Decimal(10), Decimal(1), orders.Settings(Decimal(60)), {})
     for line, fx in ((DOLLAR, "0"), (PLAIN, "0.8")):
