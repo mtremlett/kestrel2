@@ -80,9 +80,9 @@ STEP = Decimal("0.03")
 #: THE LADDER'S ONE SWITCH (R-RUNNER-225, 230; the scorecard, easing 6 of DECISIONS). Off: the first
 #: rung to fail keeps the shuffle unrun and every answer is the rung's own. On: only a hard fail
 #: (a negative after-cost mean, a failed reproduction, stress over its limit) stops a line; every
-#: other rung is run and graded PASS, WEAK or FAIL, and none stops it. Off until card
+#: other rung is run and graded PASS, WEAK or FAIL, and none stops it. On by card
 #: ease-switch-on.
-EASED = False
+EASED = True
 T_INCUBATE = Decimal(1)  #: a basket's mean this many standard errors above nothing, or over
 WEAK = (Answer.THIN, Answer.DOUBT)  #: a scorecard's WEAK: neither a win nor a loss
 Pair = tuple[Answer, str]

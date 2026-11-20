@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from test_lab_ladder import (  # noqa: F401 - eased_off is an autouse fixture
+from test_lab_ladder import (
     AAPL,
     EDGE,
     ISF,
@@ -19,14 +19,21 @@ from test_lab_ladder import (  # noqa: F401 - eased_off is an autouse fixture
     VUSA,
     _door,
     _rows,
-    eased_off,
 )
 from test_lab_ladder import _set as _cells
 
 from desk.lines import Line
 from desk.store import Bar
-from lab import folds, ladder, ladder_pool, trials, verdict
+from lab import folds, ladder, ladder_pool, shuffle, trials, verdict
 from lab.batch import Bars
+
+
+@pytest.fixture(autouse=True)
+def eased_on(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The pool's workers are fresh processes that read the shipped switch (on): the serial run
+    they are compared with must read it too, so the switch is set on, not assumed."""
+    monkeypatch.setattr(verdict, "EASED", True)
+
 
 CLOCK = lambda: datetime(2026, 11, 14, tzinfo=UTC)  # noqa: E731
 
@@ -72,7 +79,7 @@ def test_a_unit_is_one_lines_one_fold_so_one_lines_history_spreads_over_the_work
     assert [y for c, y in cut if c == one] == [None, *range(2021, 2026)]  # five folds, one cell
     ladder_pool.run(tmp_path, _book, {}, [one], CLOCK, size=2)
     warmed = len(list((tmp_path / ladder.FOLDER / "tapes").glob("*.tape")))
-    assert 1 <= warmed <= 2  # the line, and its market where reached: never a tape per fold
+    assert 1 <= warmed <= 2 + shuffle.SHUFFLES  # the line, its market, EASED's shuffles: no tape per fold
 
 
 def test_a_stop_planted_after_the_first_unit_ends_the_pass_there_and_a_stale_one_changes_nothing(
