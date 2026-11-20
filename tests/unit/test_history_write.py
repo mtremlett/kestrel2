@@ -84,3 +84,18 @@ def test_hourly_four_hourly_and_weekly_bars_are_rolled_never_over_a_pulled_one(
     assert roll(live, LINE, open_ + timedelta(days=1)) == 0
     assert bars.sources(live, LINE, "1h") == {bars.Source.IBKR: 2, bars.Source.ROLLUP_30M: 6}
     assert bars.sources(live, LINE, "1wk") == {bars.Source.ROLLUP_1D: 1}
+
+
+def test_short_bars_are_rolled_from_held_five_minute_bars_and_a_held_bar_stays(
+    tmp_path: Path,
+) -> None:
+    live, keep = tmp_path / bars.LIVE, keeper(tmp_path / bars.LIVE, {"VUAG": 1})
+    open_ = datetime(2026, 11, 12, 8, 0, tzinfo=UTC)
+    fives = tuple(
+        Candle(open_ + timedelta(minutes=5 * n), PRICE, PRICE, PRICE, PRICE, 1, "ibkr")
+        for n in range(12)
+    )
+    keep(LINE, "5m", fives[:11])  # the last five minutes of the hour is missing
+    keep(LINE, "15m", (Candle(open_, PRICE, PRICE, PRICE, PRICE, 99, "ibkr"),))
+    assert roll(live, LINE, open_ + timedelta(days=1)) == 2 + 1  # 15m 08:15, 08:30 and 30m 08:00
+    assert bars.sources(live, LINE, "15m") == {bars.Source.IBKR: 1, bars.Source.ROLLUP_5M: 2}

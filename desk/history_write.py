@@ -81,22 +81,46 @@ def built(venue: str, candles: Iterable[Candle], frame: str) -> list[Candle]:
     return made
 
 
+SHORT = ("15m", "30m")  #: the timeframes built from held five-minute bars, not asked of the broker
+
+
 def _made(path: Path, line: Line, now: datetime) -> dict[str, list[Candle]]:
-    """The line's 1h, 4h and weekly bars as built from the 30-minute and daily bars held."""
-    halves = [Candle(b.start, b.open, b.high, b.low, b.close, b.volume, "ibkr")
-              for b in bars.timed(path, line, "30m", EPOCH, now)]  # fmt: skip
+    """The line's 15m and 30m bars as built from the five-minute bars held, its 1h, 4h and weekly
+    bars from the 30-minute (held or so built) and daily bars held."""
+    try:
+        fives = [Candle(b.start, b.open, b.high, b.low, b.close, b.volume, "ibkr")
+                 for b in bars.five(path, line, EPOCH, now)]  # fmt: skip
+    except LookupError:  # the store never held this line's five-minute bars: no short span to build
+        fives = []
+    made = {f: rollup.rollup(line.venue, fives, f, base="5m") for f in SHORT}
+    try:
+        held_halves = bars.timed(path, line, "30m", EPOCH, now)
+    except LookupError:  # none held: only the halves built from five-minute bars remain
+        held_halves = ()
+    halves = {b.start: Candle(b.start, b.open, b.high, b.low, b.close, b.volume, "ibkr")
+              for b in held_halves}  # fmt: skip
+    for c in made["30m"]:
+        halves.setdefault(c.start, c)
+    try:
+        held_days = bars.daily(path, line)
+    except LookupError:  # the store never held this line's daily bars: no week to build
+        held_days = ()
     days = [Candle(datetime.combine(b.day, time(), UTC), b.open, b.high, b.low, b.close, b.volume,
-                   "ibkr") for b in bars.daily(path, line)]  # fmt: skip
-    made = {f: built(line.venue, halves, f) for f in HOURLY}
+                   "ibkr") for b in held_days]  # fmt: skip
+    made |= {f: built(line.venue, list(halves.values()), f) for f in HOURLY}
     return {**made, "1wk": rollup.weekly(line.venue, days)}
 
 
 def roll(path: Path, line: Line, now: datetime) -> int:
-    """Build the line's 1h, 4h and weekly bars from the 30-minute and daily bars the database
-    holds and add them: a bar already held, pulled or not, stays. Says how many landed."""
+    """Build the line's 15m, 30m, 1h, 4h and weekly bars from the finer bars the database holds
+    and add them: a bar already held, pulled or not, stays. Says how many landed."""
     made = _made(path, line, now)
     landed = 0
-    for source, frames in ((bars.Source.ROLLUP_30M, HOURLY), (bars.Source.ROLLUP_1D, ("1wk",))):
+    for source, frames in (
+        (bars.Source.ROLLUP_5M, SHORT),
+        (bars.Source.ROLLUP_30M, HOURLY),
+        (bars.Source.ROLLUP_1D, ("1wk",)),
+    ):
         with bars.writing(path, source) as round_:
             landed += sum(round_.timed(line, f, (_timed(f, c) for c in made[f])) for f in frames)
     return landed
