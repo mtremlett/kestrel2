@@ -117,7 +117,7 @@ money-restop waits on R-MONEY-18, R-MONEY-31 (the lost-stop list in `desk/messen
 ### Requests to DATA
 - [ ] R-DATA-60 (blocking, 2026-11-20, #950): add `Source.ROLLUP_5M = 'rollup:5m'` to desk/bars_schema.py (widen the card's claim to it) so R-RUNNER-217 step 2 can be built.
 - [ ] R-MONEY-3 (later): a daily rate, pounds per dollar, in the store. [x] R-MONEY-15, R-MONEY-16: done (#163, #150). R-MONEY-12 (later): on the master, the market's lines: the yardstick's twin (VUSA), one in New York hours.
-- [ ] R-MONEY-28 (blocking): the keeper writes each line's ended five-minute bars to the fast store every five minutes in trading hours, VUAG first, the day's last bar included; and says how late a bar lands (the watch's 20 minutes). R-MONEY-29 (later): the keeper or monitor tells him when a whole venue is not heard from.
+- [x] R-MONEY-28 (done in #536, #740, #769; re-verified 20 Nov): the keeper writes each line's ended five-minute bars to the fast store every five minutes in trading hours, VUAG first, the day's last bar included; and says how late a bar lands (the watch's 20 minutes). R-MONEY-29 (later): the keeper or monitor tells him when a whole venue is not heard from.
 - [ ] R-MONEY-35 (later, opened 14 November 2026): a daily advances/declines series for the US market, so Zweig's breadth thrust (#275) can run on real days. R-MONEY-48 (later): delete `HISTORY = CLEAN` in `tests/scenes/rehearsal.py`; nothing reads it (#522).
 ### Requests to GRID
 - [ ] R-MONEY-41 (later): the engine takes settings (`strategy.decide(bars, settings)`); the grid sweeps them once its cell matches the engine at those settings (#240). R-MONEY-44 (blocking): `tests/scenes/rehearsal.py` Lines need `isa=True`, then `day._buy` refuses any line not recorded yes (#278).
@@ -158,8 +158,8 @@ R-RUNNER-348 (`Paper._cleared` reads the date from `order_id[:8]`) waits on R-PA
 
 ### Requests to DATA
 
-- [ ] R-PAPER-3 (later): each line's ISIN a fact on `Line`. R-PAPER-16 (later): IDTL in dollars unlisted at the broker (needs R-PAPER-3); SPY, QQQ can leave the lines. R-PAPER-23 (blocking): say by what minute after each close the store holds the twenty closes.
-- [ ] R-PAPER-33 (blocking, opened 17 Nov): `history.request` builds a stock contract only; let it ask a forex pair (GBP.USD, IDEALPRO, MIDPOINT) so `command.POUND` is answered by IBKR; until then every rate is named as the archive's (#716).
+- [ ] R-PAPER-3 (later): each line's ISIN a fact on `Line`. R-PAPER-16 (later): IDTL in dollars unlisted at the broker (needs R-PAPER-3); SPY, QQQ can leave the lines. R-PAPER-23 (done in #294; re-verified 20 Nov): say by what minute after each close the store holds the twenty closes.
+- [x] R-PAPER-33 (done in #770; re-verified 20 Nov): `history.request` builds a stock contract only; let it ask a forex pair (GBP.USD, IDEALPRO, MIDPOINT) so `command.POUND` is answered by IBKR; until then every rate is named as the archive's (#716).
 
 ### Own, to PAPER
 
@@ -316,7 +316,7 @@ R-RUNGS-29 (guard, outside RUNGS's claim; Option 1 taken, #951, #949, #952) bloc
 ### Requests to DATA
 - [ ] R-RUNGS-5 (blocking): SPY and US sessions back to January 1993, saying if dividend-adjusted. [ ] R-RUNGS-9 (blocking): SPY from 29 Jan 1993 kept as traded and adjusted, labelled.
 - [ ] R-RUNGS-13 (later, 14 Nov): the S&P 500 index from 1983 to Feb 2013, daily closes, US sessions (BLOCKED ON DATA).
-- [ ] R-RUNGS-16 (blocking, 14 Nov): six London lines parked for price steps (2MU, 5QQQ, SGLN, VUAG, EQQQ, IDTL), 3LGO one bar.
+- [x] R-RUNGS-16 (done in #630, #747; re-verified 20 Nov): six London lines parked for price steps (2MU, 5QQQ, SGLN, VUAG, EQQQ, IDTL), 3LGO one bar.
 - [ ] R-RUNGS-20 (later, 16 Nov 01:45): 24 London lines refused for a day whose open and close both step by the pound's rate; HVPE (2015-09-09), NBPE (2017-05-02), VOF (2016-03-30) changed quote currency and want mending; the rest (AJB, BMY, CMCX, HAS, RMV, BPT, CWR, FOUR) look like real gaps and want naming in the line master.
 - [ ] R-RUNGS-22 (later, 16 Nov 12:00): inverse ETFs (SQQQ, SPXU, SH, SDS) in the research list and store, once R-RUNGS-21 allows.
 ### Requests to RUNGS
