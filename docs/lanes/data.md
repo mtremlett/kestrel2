@@ -29,19 +29,12 @@ before this fold: `git log -p docs/lanes/data.md`).
 - *The fast store* (#89): SQLite in WAL mode, whole rounds, exact decimals, benchmarks held.
 - *The lists' members* (#96): S&P 500 and Nasdaq 100 by day since 2010; `on` refuses the rest.
 
-### 2026-11-14 — the head start, currency and store rules, folded (#175-#254)
+### 2026-11-14 to 15 — the head start, currency, store and close rules, folded (#175-#294)
 
-Settled and folded; git keeps every word. The old desk's five-minute bars, and later ibkr_store, Stooq and
-mark_the_trend files and the old database's daily rows, are read as a head start into the fast store, daily fill-only
-(#175, #236, #238, #245, #254). Currency steps are judged by the day's pound, with recorded splits and London-midnight
-dating; a long run of dollar-quoted bars is dropped (#217, #220); the six parked London lines came out clean (#222).
-Every rule and constant of `desk/store.py` is pinned by a row of one synthetic table, and that guard was driven red
-(#225, #227, #230; R-RUNNER-43, -46). The lane's open boxes were put in working order (#180).
-
-### 2026-11-15 — adjusted against as-traded closes; the 39-minute close rule, folded (#286, #294)
-
-The head start recognises a store of adjusted prices beside the as-traded one and never writes over raw (R-RUNNER-90, #286).
-The store holds each venue's closes within 39 minutes of its close (R-PAPER-23, #294). Details are in git history.
+Settled and folded; git keeps every word. The old desk's bars are read as a head start into the fast store, daily fill-only,
+never over raw (#175-#254, #286). Currency steps are judged by the day's pound; a long run of dollar-quoted bars is dropped
+(#217, #220); the six London lines came out clean (#222). Every rule of `desk/store.py` is pinned by a row of one synthetic
+table, driven red (#225-#230). The store holds each venue's closes within 39 minutes of its close (R-PAPER-23, #294).
 
 ### 2026-11-15 — nine settled store and keeper rules, folded (#314-#381)
 
@@ -792,3 +785,13 @@ Options: report the coverage score only, or go red when more than 10% of lines s
 Options: (a) keep `coverage.LOOKBACK` at a hand-written 200 (rejected: the grid's SWEEPS try settings up to 250, so it would
 trade lines with too little history); (b) read the longest setting from `desk/strategy.py` SWEEPS (chosen): a line now needs 500
 sessions, twice the longest lookback, before a rule may trade it, and the number is written once.
+
+### 2026-11-20 — disk floor as a share of the drive (#1098)
+Options: (a) an absolute floor in gigabytes (rejected: does not follow the drive); (b) 10% free (chosen, recommended): it
+scales with whichever drive holds the store. The check sits in the command's entry, not inside `monitor`, so the monitor's
+tests do not depend on the test machine's disk. #1107 then wired `disk(path.parent)` into `monitor` (tested at 5% and 50%).
+
+### 2026-11-20 — the breadth series is derived from our own bars (R-RUNNER-346, #1104)
+Options: (a) buy a vendor advances/declines series (spend, a hard line); (b) derive it from the store's S&P 500 bars (free,
+survivorship-biased: today's members only); (c) no row. Took (b), per his "go with recommended". Any verdict using it must
+state the survivorship caveat. Not yet persisted nightly or wired into the Zweig rule.
