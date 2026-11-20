@@ -491,3 +491,7 @@ Options: show the result in the line's own currency, or in pounds after costs as
 ### 2026-11-19 — a rehearsal fill is told from the real desk's by held line only (R-RUNNER-380, #909)
 
 Options: match by the line the account held when the rehearsal began (chosen: `Apart` carries the symbol via `Holding.name`); or also check a Found order id in `desk/command.py` (out of claim, not done). So "an order it did not send itself" is not separately checked; a door with no `Apart` is unchanged.
+
+### 2026-11-20 — R-RUNNER-348: ask for an order date field rather than parse the id again (#931, #933)
+
+Options: (a) parse the id elsewhere in `desk/placing.py` (same defect, rejected); (b) wrap Order inside placing.py (a second path for a job that has one, refused by A2); (c) add a session-date field to Order and Sale in `desk/orders.py` and set it at every constructor, then read it in `Paper._cleared` (chosen, but another lane's files, so requested of MONEY as R-PAPER-35). Two sessions reached the same answer and changed nothing.

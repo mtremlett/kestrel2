@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import os
 import sys
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Sequence
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
@@ -20,6 +20,7 @@ from desk.store import Bar, Refused
 
 in_currency = history.in_currency  #: the one unit rule lives in desk/history.py
 Ask = Callable[[Line, date], store.Answer]  #: a source's answer for one line's one day
+Asks = Sequence[tuple[Source, Ask]]  #: the sources in the order they are tried
 
 
 def _held(path: Path, line: Line) -> tuple[Bar, ...]:
@@ -42,17 +43,23 @@ def _accepted(path: Path, line: Line, day: date, answer: store.Answer, today: da
     return next((bar for bar in kept if bar.day == day), "; ".join(f.what for f in faults))
 
 
+def ordered(broker: Ask, archived: Ask) -> Asks:
+    """The two network sources in their order: the broker, then the archive."""
+    return ((Source.IBKR, broker), (Source.BACKFILL, archived))
+
+
 def fill(
-    path: Path, wanted: Iterable[tuple[Line, date]], broker: Ask, archived: Ask, today: date
+    path: Path, wanted: Iterable[tuple[Line, date]], asks: Asks, today: date
 ) -> tuple[list[str], list[str]]:
-    """Each wanted day the database at path holds no bar for, filled from the broker, else the
-    archive; the lines saying what was written, and what no source gave (with why)."""
+    """Each wanted day the database at path holds no bar for, filled from the first of the
+    ordered (source, ask) pairs the one store accepts; the lines saying what was written, and
+    what no source gave (with why)."""
     wrote, named = [], []
     for line, day in wanted:
         if any(bar.day == day for bar in _held(path, line)):
             continue
         why = []
-        for source, ask in ((Source.IBKR, broker), (Source.BACKFILL, archived)):
+        for source, ask in asks:
             got = _accepted(path, line, day, ask(line, day), today)
             if isinstance(got, Bar):
                 with bars.writing(path, source) as opened:
@@ -92,7 +99,7 @@ def main(home: Path, now: datetime, wanted: Iterable[str]) -> int:
         raise ValueError(f"SYMBOL DAY pairs are asked for, not {names}")
     pairs = zip(names[::2], names[1::2], strict=True)
     asked = [(lines[symbol], date.fromisoformat(day)) for symbol, day in pairs]
-    wrote, named = fill(home / keeper.HOT, asked, _broker(home, now), _archive, now.date())
+    wrote, named = fill(home / keeper.HOT, asked, ordered(_broker(home, now), _archive), now.date())
     sys.stdout.write("".join(f"{line}\n" for line in wrote))
     sys.stderr.write("".join(f"NOT FILLED: {line}\n" for line in named))
     return int(bool(named))
