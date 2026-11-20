@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import replace
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 from typing import BinaryIO
@@ -152,12 +152,15 @@ class Paper:
         root: Path,
         clock: Callable[[], datetime],
         door: paper.Door,
+        stamp: Callable[[], datetime] = lambda: datetime.now(UTC),
     ) -> None:
         """listings is each of the desk's lines as the broker lists it now (listing.read): by
         them a fill, an order and a holding are known as a line's. root holds the desk's record,
         the day's checks among it; clock gives the moment, in UTC: read only before a send;
+        stamp is the real moment, taken on each event of an order for its trail;
         door is who the paper broker is spoken to as, and what of the account is its own."""
         self._listings, self._root, self._clock = dict(listings), root, clock
+        self._stamp = stamp
         self._door = door
 
     def _orders(self) -> reports.Orders:
@@ -198,7 +201,7 @@ class Paper:
         errs after its stop was cancelled puts the stop back, for the shares held."""
         listed, new = self._cleared(order)
         was, before = self._before(listed, order)
-        ref, times = order.order_id, order_times.Times(self._clock, self._door.client)
+        ref, times = order.order_id, order_times.Times(self._stamp, self._door.client)
         try:
             number, last, notices = paper.dial(
                 lambda wire, send: _place(wire, send, listed, order, self._door, times),
