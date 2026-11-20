@@ -372,6 +372,15 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #920 no change: three blocking requests already done on main. |
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #915 no change: data-ingest verified already on main. |
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #894 no change: R-PAPER-23 verified already on main (#294). |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #899 no change: R-MONEY-28 verified already on main. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #930 R-RUNNER-217 step 1 of 2: backfill.fill takes one ordered source list; the rollup step needs desk/bars_schema.py. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #934 no change: data-two-stores remainder is outside the claim. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #935 R-RUNNER-382: the quality audit counts a closed session of today, so the job is no longer false-red after keeper-roll. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #938 no change: data-two-stores remainder is outside the claim. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #947 no change: data-two-stores remainder is outside the claim. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #941 no change: four blocking requests (R-MONEY-28, R-PAPER-23, R-PAPER-33, R-RUNGS-16) already done on main. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #940 no change: R-RUNNER-217 rollup step needs desk/bars_schema.py in its claim. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #943 no change: the same four blocking requests found already done. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
@@ -705,3 +714,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #919 R-RUNNER-191 part a: golden ladder test (+ test lines, no product change) |
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #927 R-RUNNER-229 part: retail rung built and wired into the basket row behind EASED |
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #923 no change; R-RUNNER-184 verified mended (#405) |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #937 no change; R-RUNNER-231 EASED not switched, waits on R-RUNGS-30 |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #942 R-RUNNER-384 done: EASED run now reads the retail rung (baskets() passes the market) |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #951 no change; R-RUNGS-29 deletion blocked by the lane guard (outside claim) |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #949 no change; R-RUNGS-30 already on main (#942) |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #952 no change; R-RUNGS-29 ruling taken, guard edit outside RUNGS claim |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #922 no change; R-GRID-2 verified done |
