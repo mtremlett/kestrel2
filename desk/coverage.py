@@ -10,7 +10,10 @@ from collections.abc import Collection, Mapping
 from dataclasses import dataclass
 from decimal import Decimal
 
-LOOKBACK = 200  #: sessions: the longest average any rule in desk/strategy.py uses
+from desk.strategy import SWEEPS
+
+#: sessions: the longest setting the grid may try on any rule (desk/strategy.py's SWEEPS)
+LOOKBACK = max(int(v) for sweep in SWEEPS.values() for vs in sweep.values() for v in vs)
 NEED = 2 * LOOKBACK  #: sessions a line must hold before a rule may trade it
 A_GATE = 5 * 252  #: sessions: five years, the history the A-GATE judges on
 PARKED_CAP = Decimal("0.10")  #: the most of the lines that may stand parked

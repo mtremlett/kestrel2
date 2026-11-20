@@ -171,6 +171,10 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #955 R-RUNNER-314 SimCity stale-store scenario landed. |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #972 R-RUNNER-315 SimCity scenario for the parked yardstick, green and driven red. |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1008 R-RUNNER-389 done, going note kept on disconnect. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1031 R-MONEY-54 part: send path's disagreement halt now cancels working buys. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1000 R-RUNNER-316 SimCity scenario for the live keeper's unheld one-minute bars, green with handling and red without. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1035 R-RUNNER-392 part 1: fault matrix table and the after-accept row for 2110 and 2157 built. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1028 R-RUNNER-318 scenario built and red; no change landed, fix needed in conformance_parts. |
 
 ### DATA
 
@@ -522,6 +526,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #931 no change; R-RUNNER-348 waits on a date field on Order (desk/orders.py).
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #933 no change; R-RUNNER-348 waits on a date field on Order (same request).
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1026 R-RUNNER-393 done: the conformance action names each order once with its total shares |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1024 R-RUNNER-390 done: link news no longer turns the kill switch on. |
 
 ### GRID
 
