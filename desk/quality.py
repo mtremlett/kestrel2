@@ -28,14 +28,28 @@ def _missing(line: Line, held: tuple[Bar, ...], today: date) -> list[date]:
     return [d for d in venues.sessions(line.venue, first, today - timedelta(1)) if d not in days]
 
 
-def audit(path: Path, line: Line, today: date) -> list[str]:
-    """What is red about one line's daily bars as of today: its gaps, then each un-noted fault
-    the store's checks find on a day that is not itself a gap."""
-    held = backfill._held(path, line)
+def _through(line: Line, now: datetime) -> date:
+    """The day before which the store's checks hold sessions closed: today once the venue's
+    session of today has closed (its auction ended) by now, else the day after it is excluded."""
+    today = now.date()
+    traded = venues.sessions(line.venue, today, today) == (today,)
+    return (
+        today + timedelta(1) if traded and venues.hours(line.venue, today).auction <= now else today
+    )
+
+
+def audit(path: Path, line: Line, now: datetime) -> list[str]:
+    """What is red about one line's daily bars as of now: its gaps, then each un-noted fault
+    the store's checks find on a day that is not itself a gap. A session closed by now counts."""
+    today, held = now.date(), backfill._held(path, line)
     if not held:
         return [f"{line.symbol}: holds no daily bar"]
     gaps = _missing(line, held, today)
-    found = [f for f in cleaned(line, held, today, today)[1] if not f.noted and f.day not in gaps]
+    found = [
+        f
+        for f in cleaned(line, held, _through(line, now), today)[1]
+        if not f.noted and f.day not in gaps
+    ]
     red = [f"{line.symbol}: {len(gaps)} sessions missing, the first {gaps[0]}"] if gaps else []
     return red + [f"{line.symbol}: {f.what}" for f in found]
 
@@ -148,13 +162,13 @@ def basis(path: Path, line: Line) -> list[str]:
 
 
 def monitor(
-    path: Path, lines: Iterable[Line], broker: backfill.Ask, archived: backfill.Ask, today: date
+    path: Path, lines: Iterable[Line], broker: backfill.Ask, archived: backfill.Ask, now: datetime
 ) -> str:
     """Audit, backfill every gap, audit again: the one line saying green, or what stays red."""
-    every = list(lines)
+    every, today = list(lines), now.date()
     wrote, named = backfill.fill(path, gaps(path, every, today), broker, archived, today)
     built = [rolled(path, line, today) for line in every]
-    red = [why for line in every for why in audit(path, line, today)]
+    red = [why for line in every for why in audit(path, line, now)]
     red += [why for _, faults in built for why in faults]
     red += [why for line in every for why in thin(path, line, today)]
     red += [why for line in every for why in volumes(path, line, today)]
@@ -167,8 +181,6 @@ def monitor(
 
 if __name__ == "__main__":
     home, now = Path(os.environ["KESTREL2_DATA"]), datetime.now(UTC)
-    said = monitor(
-        home / keeper.HOT, LINES, backfill._broker(home, now), backfill._archive, now.date()
-    )
+    said = monitor(home / keeper.HOT, LINES, backfill._broker(home, now), backfill._archive, now)
     sys.stdout.write(f"{said}\n")
     sys.exit(0 if " green," in said else 1)
