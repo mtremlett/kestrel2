@@ -281,3 +281,13 @@ then the break was removed:
 - Options: a 12th row, or keep eleven and rename the module. Chose the 12th: the card names the file, and `found` counts any `rung_*` module without a RUNG. Built count stays 3 of 12.
 - Days: market day = close over the prior close in pounds; basket day = pounds of trades sold that day after every cost over the 10,000 capital, 0 if none sold (cash between trades). Rejected marking open trades daily (needs every line's bars). Frozen numbers unchanged.
 - With EASED off nothing changes; on, a basket row gains "retail" but its answer is unchanged, so no golden number moves (to confirm at ease-switch-on).
+
+### 2026-11-20 — EASED stays off until the retail rung is read (R-RUNNER-231, #937)
+- Options: (a) flip EASED anyway, spending the one pre-registered re-run without easing 4; (b) refuse and wait for R-RUNGS-30. Chose (b): the pre-registration is frozen and the re-run happens once. R-RUNGS-30 landed in #942, so the flip may now go ahead.
+
+### 2026-11-20 — one market per basket row (R-RUNNER-384, #942)
+- A rule's basket may span venues but `basket.row` takes one market. Options: (a) the first pooled line's venue market; (b) split baskets per venue. Chose (a), the smallest step; per-venue baskets would change the row shape.
+
+### 2026-11-20 — a lane may delete a file it owns (R-RUNGS-29, #951, #949, #952)
+- Options: (1) loosen the lane guard to read ownership from the merge base and allow removing an owned module's manifest line; (2) leave lab/rung_folds.py. Chose 1 by his standing ruling "always go with recommended"; it loosens nothing about other lanes' files. The guard edit (tests/guards/test_lanes.py) is outside RUNGS's claim, so it stays open as R-RUNGS-29; the move of Fold/Walked into lab/folds.py follows it.
+
