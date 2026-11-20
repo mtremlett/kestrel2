@@ -188,6 +188,11 @@ fixed `desk/paper.py` three times in ten changes (#373 the gateway's wait, #860 
 order's wait, #1014 link news mid-send): the paper door learns IBKR's behaviour one live
 fault at a time, never from a table of everything the gateway can say; the matrix is that
 table.
+The send path's side of it has fixed `desk/book.py` twice the same day (#1008 the going note
+kept on a disconnect, #1031 a halt cancelling working buys) with a third change due (an order
+the desk cancelled sent once more, pattern 25): what the desk knows of the orders the broker
+holds (sent, working, cancelled by whom) was built for the day that goes well, and each edge
+was met live. The same matrix, its rows run through `book.send`, is the table for it.
 
 **24. A wait added inside a step, its caller's timeout left.** Each market order came to
 wait 120 seconds for its fill (da70408), while the runner still killed the whole desk step
