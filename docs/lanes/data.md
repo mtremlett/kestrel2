@@ -465,6 +465,12 @@ Options: 4 places, 6 places, significant figures; chose 4, the broker's own form
 
 Options: 60 sessions (too short, hides a lasting step the strategies still read), 400 sessions (coverage.NEED, what a rule needs before trading), all history (today's fault). Chose 400; lasting faults dated outside it are named only.
 
+### 2026-11-20 — disk floor is a share, checked at the command's entry (#1098)
+Options: (a) an absolute floor in gigabytes; (b) a 10% share of the drive (chosen, recommended). The share follows the drive. It is checked in the command's entry, not inside `monitor`, so the monitor's tests do not depend on the test machine's disk (#1107 later wired `disk` into `monitor` itself).
+
+### 2026-11-20 — breadth derived from our own bars (#1104, R-RUNNER-346)
+Options: (a) buy a vendor advance/decline series (spend, a hard line); (b) derive it from the store's own S&P 500 bars (free, survivorship-biased: today's members only); (c) no row. Took (b), per his "go with recommended". Any verdict using it states the survivorship caveat.
+
 ## LADDER (until 13 November; since then GRID and RUNGS)
 
 ### 2026-11-13 — the ladder's unit of work: days only, the whole history, keyed by what it read
