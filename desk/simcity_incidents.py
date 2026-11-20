@@ -6,7 +6,8 @@ conformance run's), which the desk's sale refused as "the desk is long only". R-
 keeper's job failed on 17 November with a venue's daily bars a session short. R-RUNNER-323: the
 18 November London run, whose buy the broker cancelled with nothing filled, so none were held.
 R-RUNNER-315: the 16 November session the yardstick has no bar for, so the line is parked.
-R-RUNNER-248: the 16 November afternoon the crash watch heard nothing of the market."""
+R-RUNNER-248: the 16 November afternoon the crash watch heard nothing of the market.
+R-RUNNER-316: the keeper's live job asked for one-minute bars of lines the store never held."""
 
 from __future__ import annotations
 
@@ -16,11 +17,12 @@ from decimal import Decimal
 from itertools import count
 from typing import TYPE_CHECKING
 
-from desk import bars, book, halt, keeper, messenger, venues, watch
+from desk import bars, book, halt, keeper, keeper_live, messenger, venues, watch
 from desk.bars import Five
 from desk.broker import Fault
 from desk.keeper_rotate import Kept, record
-from desk.lines import YARDSTICK
+from desk.lines import YARDSTICK, Line
+from desk.spans import Timed
 
 if TYPE_CHECKING:
     from desk.simcity import _Life
@@ -37,6 +39,9 @@ PARKED = "a yardstick with a session missing refuses the day by name"
 STALE = "a venue's daily bars are a session short at the keeper's last refresh"
 REFUSED = "the price store's door refuses a venue short of a session, naming its line"
 DEAF = "the market goes unheard for an hour: he is told once in each hour, and nothing is halted"
+UNHELD = (
+    "the live keeper asks for one-minute bars of lines the store never held: each is named stale"
+)
 PROMISE = "a held line with no bar for a session is named when the day is refused"
 
 
@@ -177,4 +182,26 @@ def deaf(life: _Life, on: date) -> None:
     life.promise(
         DEAF, hours <= set(told) and len(told) == len(set(told)) and kept == halt.kept(life.desk)
     )
+    life.live(on)
+
+
+def unheld(life: _Life, on: date) -> None:
+    """The live keeper's store holds five-minute bars but never a one-minute bar of any line, and
+    a venue is in session. The run must finish, never die on the store's LookupError, and name
+    each line it could get no bar for as stale."""
+    session = venues.hours(YARDSTICK.venue, on)
+    lines = sorted((x for x in life.market if x.venue == YARDSTICK.venue), key=lambda x: x.symbol)
+    hot, now = life.desk / "unheld-bars.db", session.open + timedelta(hours=1)
+    with bars.writing(hot) as round_:
+        round_.five(YARDSTICK, [Five(session.open, *(Decimal(1),) * 4, 1)])
+
+    def ask(line: Line, at: datetime) -> tuple[Timed, ...]:
+        return bars.timed(hot, line, keeper_live.MINUTES, at - timedelta(hours=1), at)
+
+    try:
+        _, stale_ = keeper_live.minute_round(hot, lines, now, ask)
+    except LookupError:  #: the store's own word that it never held the span
+        life.promise(UNHELD, False)
+    else:
+        life.promise(UNHELD, bool(stale_))
     life.live(on)
