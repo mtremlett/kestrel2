@@ -166,6 +166,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #904 R-GRID-1 part 1: sweep settings and named variants of the five on main, nothing new trades. |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #916 R-RUNNER-199 intraday reader from the store built; no scene moved (plumbing for the intraday step). |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #936 R-RUNNER-328 fail-fast watchdog landed; root cause awaiting the next named stall. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #924 R-RUNNER-248 done - SimCity scenario for the blind crash watch, red without the telling, green with. |
 
 ### DATA
 
