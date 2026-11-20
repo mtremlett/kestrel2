@@ -780,11 +780,6 @@ Options: (a) edit bars_schema.py anyway (the check refuses); (b) reuse an existi
 rejected); (c) land nothing and ask for the claim to include desk/bars_schema.py (chosen). Adding the member elsewhere would
 make a second home for Source (#930 landed step 1 only).
 
-### 2026-11-20 — no purchase of a breadth feed (#917, R-RUNNER-346, R-MONEY-35)
-Options: buy a feed (NYSE, McClellan; spend is his hard line, refused); use unconfirmed scraped symbols (^ADVN/^DECN, no
-free download, not re-checkable, rejected); leave the Zweig row out of the catalogue (chosen, as the request itself says).
-Waits: operator.
-
 ### 2026-11-20 — the quality monitor goes red past the parked cap (#1037, DQ-01)
 Options: report the coverage score only, or go red when more than 10% of lines stand parked. Chose red: the box asks for "a cap on the share of lines parked" and DQ-01 makes the desk unfit past it. Insufficient history on a line is reported in the score, not red, since new lines (3LGO) would alarm daily.
 
@@ -792,3 +787,12 @@ Options: report the coverage score only, or go red when more than 10% of lines s
 Options: (a) keep `coverage.LOOKBACK` at a hand-written 200 (rejected: the grid's SWEEPS try settings up to 250, so it would
 trade lines with too little history); (b) read the longest setting from `desk/strategy.py` SWEEPS (chosen): a line now needs 500
 sessions, twice the longest lookback, before a rule may trade it, and the number is written once.
+
+### 2026-11-20 — the disk floor is a share of the drive (#1098, OPS-07)
+Options: (a) an absolute floor in gigabytes; (b) 10% free (chosen, recommended). A share follows the drive it runs on. The check
+sits in the command's entry (and, from #1107, in `monitor` through `disk(path.parent)`); the monitor's tests drive it at 5% and 50%
+free. Other monitor tests still read the real drive, so a drive over 90% full turns them red.
+
+### 2026-11-20 — breadth derived from our own bars (#917, #1104, R-RUNNER-346)
+Options: (a) buy a vendor series or scraped symbols (spend is his hard line; scraped is not re-checkable); (b) derive advances and declines from the store's S&P 500 bars (chosen,
+free, today's members only so survivorship-biased: say so on any verdict); (c) no row (the first choice, #917). Took (b), per his "go with recommended".
