@@ -45,6 +45,7 @@ UNIT_SHARE = Decimal("0.95")  #: of shared sessions a hundredth under; the rest,
 SPLIT_NEAR = Decimal("0.25")  #: a recorded split is adopted if the jump is this near its ratio
 UNRECORDED = "a gap in the archive, or a suspension the line does not record"
 COLUMNS = ("day", "open", "high", "low", "close", "volume")
+_FAULT = "fault"  #: last column of a line's file: a fault row has it and no day
 #: Where a line's older bars wait: the store is rebuilt on every prepare, joined to the archive's.
 HISTORY = "history"
 
@@ -173,26 +174,15 @@ def _clean(
     return kept, faults
 
 
-def _stage(path: Path, header: Sequence[str], rows: Iterable[Sequence[object]]) -> Path:
-    """Write the rows whole to a part file beside path; _swap puts it in place."""
+def _write(path: Path, header: Sequence[str], rows: Iterable[Sequence[object]]) -> None:
+    """Write a file whole to a part file beside path, then swap it in in one step, so a crash
+    leaves the old file whole (halt.py writes its record this way too)."""
     part = path.with_suffix(".part")
     with part.open("w", newline="", encoding="utf-8") as out:
         writer = csv.writer(out)
         writer.writerow(header)
         writer.writerows(rows)
-    return part
-
-
-def _swap(*parts: tuple[Path, Path]) -> None:
-    """Swap in every finished part file, one after another with nothing written between: a crash
-    while writing leaves the old pair whole, so bars and faults part only inside these swaps."""
-    for part, path in parts:
-        part.replace(path)
-
-
-def _write(path: Path, header: Sequence[str], rows: Iterable[Sequence[object]]) -> None:
-    """Write a file whole, then swap it in (halt.py writes its record this way too)."""
-    _swap((_stage(path, header, rows), path))
+    part.replace(path)
 
 
 Answer = Sequence[Bar] | Refused  #: what the archive gave for a line
@@ -237,10 +227,11 @@ def prepare(
         shelved = (root / HISTORY / f"{line.symbol}.csv").is_file()
         older = read(root / HISTORY, line.symbol) if shelved else None
         kept, faults, park = judge(line, answer, day, rates, older)
-        bars, notes = root / f"{line.symbol}.csv", root / f"{line.symbol}.faults.csv"
-        _swap(
-            (_stage(bars, COLUMNS, (astuple(bar) for bar in kept)), bars),
-            (_stage(notes, ("fault",), ((f.what,) for f in faults)), notes),
+        blank = ("",) * len(COLUMNS)
+        _write(
+            root / f"{line.symbol}.csv",
+            (*COLUMNS, _FAULT),
+            [*((*astuple(bar), "") for bar in kept), *((*blank, f.what) for f in faults)],
         )
         parked += [park] if park else []
     return tuple(parked)
@@ -287,11 +278,11 @@ def _bar(r: Mapping[str, str]) -> Bar:
 def read(root: Path, symbol: str) -> tuple[Bar, ...]:
     """Every bar the store kept for one line, oldest first (a parked line's too)."""
     with (root / f"{symbol}.csv").open(newline="", encoding="utf-8") as stored:
-        return tuple(_bar(r) for r in csv.DictReader(stored))
+        return tuple(_bar(r) for r in csv.DictReader(stored) if r["day"])
 
 
 def faults(root: Path, symbol: str) -> tuple[str, ...]:
     """Every fault found in a line's bars on the last prepare, the old ones that no longer
     park it included."""
-    with (root / f"{symbol}.faults.csv").open(newline="", encoding="utf-8") as stored:
-        return tuple(row["fault"] for row in csv.DictReader(stored))
+    with (root / f"{symbol}.csv").open(newline="", encoding="utf-8") as stored:
+        return tuple(row[_FAULT] for row in csv.DictReader(stored) if not row["day"])

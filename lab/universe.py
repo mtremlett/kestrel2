@@ -267,7 +267,7 @@ def _cleared(home: Path, lines: Iterable[Line]) -> list[str]:
     for venue in sorted({line.venue for line in UNIVERSE}):
         folder = home / venue
         for path in sorted([*folder.glob("*.csv"), *(folder / store.HISTORY).glob("*.csv")]):
-            symbol = path.name.removesuffix(".csv").removesuffix(".faults")
+            symbol = path.name.removesuffix(".csv")
             if (venue, symbol) not in keep:
                 path.unlink()
                 gone.append(f"{venue}:{symbol}")
