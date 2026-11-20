@@ -148,6 +148,7 @@ Checked 17 Nov (MONEY, s2): no blocking request to MONEY is open and every untic
 Checked 17 Nov (MONEY): R-RUNGS-12 re-verified on main (`strategy.rsi`, `strategy.lower_band` public since #185; `tests/unit/test_strategy.py` green); no code change.
 
 Checked 17 Nov (MONEY, s6): R-DATA-53 is on main (`desk/command.py:387` passes `home=root.parent`, #798) and R-PAPER-29 is on main (`book.conformance_cost`, #763); no blocking request is open; nothing built.
+Checked 20 Nov (MONEY, s2): R-PAPER-35's field is on main (#1102) and set in day, kill, simcity, orders; what is left is PAPER's files (`desk/goflat.py`, `desk/conformance_parts.py`, `desk/placing.py` `_cleared`), outside MONEY's claim; nothing built.
 
 - [x] The rehearsal data in a file of its own (`tests/scenes/rehearsal.py`)
 - [x] The rehearsal data lengthened to about fourteen months, the five rules buying and

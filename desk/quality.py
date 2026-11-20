@@ -201,6 +201,7 @@ def monitor(
     red += [why for line in every for why in thin(path, line, today)]
     red += [why for line in every for why in volumes(path, line, today)]
     red += [why for line in every for why in basis(path, line)]
+    red += disk(path.parent)
     score, within = covered(path, every, now)
     if not within:
         red.append(f"parked lines exceed {coverage.PARKED_CAP:.0%} of the lines")
