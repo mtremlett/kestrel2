@@ -113,6 +113,7 @@ money-restop waits on R-MONEY-18, R-MONEY-31 (the lost-stop list in `desk/messen
 - [ ] R-MONEY-36 (blocking, opened 15 November 2026): catch `book.Alarm` in the day's send path (`desk/day.py` or `desk/messenger.py`) and message him its words once. R-MONEY-38 (later): `reports.fills` collapses a fill and its correction in one reading (keeps the highest version) instead of raising; the ledger now does (#288).
 - [ ] R-MONEY-47 (later): `desk/running.py` passes `killed=` to `day.trade` from `lab.promotion` standings, read outside desk/ (R-RUNGS-7, #519). R-MONEY-39 (later): the same file passes `tell=messenger.send` to `day.trade` so a disagreeing place reaches his phone (#290).
 ### Requests to MONEY
+- [ ] R-RUNGS-29 (blocking, 19 Nov 23:30): let `tests/guards/test_lanes.py` take a lane's owned modules from the merge-base manifest and allow removing a module's own manifest line, so R-RUNNER-191 (b) can delete lab/rung_folds.py (a guard change; recommended, outside RUNGS's claim).
 - [ ] R-MONEY-54 (blocking, opened 2026-11-19 20:10 UK): wire `desk/watch.py`, `desk/goflat.py`, `desk/book.py` to `halt.stop` so a real halt cancels working buys (needs claims on those files; #871).
 ### Requests to DATA
 - [ ] R-MONEY-3 (later): a daily rate, pounds per dollar, in the store. [x] R-MONEY-15, R-MONEY-16: done (#163, #150). R-MONEY-12 (later): on the master, the market's lines: the yardstick's twin (VUSA), one in New York hours.
@@ -277,13 +278,13 @@ Every other box is ticked. Open: R-DATA-7 (`batch.stored` now reads through `uni
 
 ## RUNGS
 
-Last updated: 17 November 2026.
+Last updated: 20 November 2026.
 ### Where it is
 Eleven rungs built, each proven alone (#342-#365, #412). The ladder judges by the first rung, luck, deflated Sharpe, folds (five whole years pooled by
-rule, #313), market, stress (20% of capital, #457), regime on the weather (#622) and the shuffle last; costs, ci and cpcv are declared (#438-#445): "rungs built: 3 of 11".
-Machinery: pooled folds fold each line on its own window, whole years only (#858); one compressed tape per (rule, line) (#378, #555); a pool by fold year sized by free memory (#368, #451); sets read market_history.db only (#562), trade list members only (#569);
+rule, #313), market, stress (20% of capital, #457), regime on the weather (#622) and the shuffle last; costs, ci and cpcv are declared (#438-#445): "rungs built: 3 of 12" (the retail rung, #927, is map row 12, wired into a basket row behind EASED).
+Machinery: a cell's key carries its own rule's code (#912); a golden ladder verdict pins the fixture (#919); pooled folds fold each line on its own window, whole years only (#858); one compressed tape per (rule, line) (#378, #555); a pool by fold year sized by free memory (#368, #451); sets read market_history.db only (#562), trade list members only (#569);
 EPON (20 rules proven, #308), LEV (#423); the spec book holds rules as rows with a fast engine that also walks position-dependent blocks (darvas_box #799, demark_sequential #790, raschke_swing #773). Easings pre-registered (#567) and built behind `verdict.EASED` (False): family
-trials (#596), basket (#664), scorecard (#589), INCUBATE (#695); the golden verdict is untouched. Calibration: `python -m lab.calibration` (#693). Weather layers 2, realised volatility (`weather.volatility`, #737), and 3, drawdown depth (`weather.drawdown`, 10% under the 252-session high, #776), and 4, breadth (`weather.breadth`, more than half the lines up, #831), are wired into no verdict; `weather.followed` scores a layer per fold by the next-session return (#813). `weather.edges` gives a layer's edge per fold (#866) and `weather.against_trend` its worst fold beside trend's (#875); a layer joins the regime rung only if it wins (open, R-RUNNER-205: run both on the real store with trial count, wire winners, then macro; 1 trial spent). `python -m lab.ladder` says FAULT per rung and exits 1 when over half the cells FAULTed (#892); the set's table is swapped in whole (#868). Blind reviews: #402, #419; judge walk test (#593).
+trials (#596), basket (#664), scorecard (#589), INCUBATE (#695); the golden verdict is untouched. Calibration: `python -m lab.calibration` (#693). Weather layers 2, realised volatility (`weather.volatility`, #737), and 3, drawdown depth (`weather.drawdown`, 10% under the 252-session high, #776), and 4, breadth (`weather.breadth`, more than half the lines up, #831), are wired into no verdict; `weather.followed` scores a layer per fold by the next-session return (#813). `weather.edges` gives a layer's edge per fold (#866) and `weather.against_trend` its worst fold beside trend's (#875); a layer joins the regime rung only if it wins (`weather.contest`, #907, scores calm, shallow, broad layers with 3 trials; open, R-RUNNER-205: run it on the real store as a plain-code job, wire winners, then macro). `python -m lab.ladder` says FAULT per rung and exits 1 when over half the cells FAULTed (#892); the set's table is swapped in whole (#868). Blind reviews: #402, #419; judge walk test (#593).
 **No winner on real prices is to be believed: SET EPON judged 21,320 cells, none goes forward; every table is PRE-REVIEW. A loss gapping through the stop is unplanted (#402, #409 declined): a no-edge gap rule can pass rung 1 up to 18.8%, the later rungs cut it to 0-2.2%.**
 
 ### Next step
@@ -295,7 +296,7 @@ rungs-promotion (R-RUNGS-7; kill numbers need a ladder-passed candidate); rungs-
 - R-DATA-11, R-RUNNER-5, R-RUNNER-3: done in #186; R-RUNNER-25: #202; R-RUNNER-33: #206; R-MONEY-34: #239; R-GRID-6: #427; R-GRID-2: #504, #846; R-RUNGS-18: #846; R-RUNNER-331: #858; R-MONEY-13: #600; R-MONEY-43: #693
 - R-RUNNER-47: done in #235; -45: #239; -49: #244; -52: #241; -83: #252; -85: #253; -86: #279; -95: #304; -101: #307; -98: #308; -102: #309; -106: #310; -108: #311; -109: #312; -99: #313; -114: #316; -110: #318; -100: #319; -103: #322; -124: #327
 - R-RUNNER-117: done in #331; -130: #333; -152: #340; -133: #343; -131: #344; -134: #347; -123: #346; -122: #342; -121: #350; -119: #351; -120: #354; -136: #361; -154: #362; -139: #364; -155: #363; -135: #365; -168: #366; -166: #368; -173: #371; -137: #379; -169: #378; -126: #382; -165: #384
-- R-RUNNER-183: done in #405; -187: #409 (declined); -174: #410; -188: #419; -40: #402; -186: #425; -192: #427; -203: #451; -204: #457; -171: #560; -213: #555; -222: #562; -146: #569; -225: #567; -230: #589; -237: #603; -193: #593; -226: #596; -239: #635; -260: #658; -227: #664; -267: #680; R-RUNGS-23: #775; R-RUNNER-340: #868; -332: #892
+- R-RUNNER-183: done in #405; -187: #409 (declined); -174: #410; -188: #419; -40: #402; -186: #425; -192: #427; -203: #451; -204: #457; -171: #560; -213: #555; -222: #562; -146: #569; -225: #567; -230: #589; -237: #603; -193: #593; -226: #596; -239: #635; -260: #658; -227: #664; -267: #680; R-RUNGS-23: #775; R-RUNNER-340: #868; -332: #892; -205: #907 (part 1); -138: #912; -191: #919 (part a)
 ### Requests to MONEY
 - [x] R-RUNGS-6, 8, 11, 12 met on main (public indicators #185, `strategy_of` refuses, `GAP_LOSS`); [x] R-RUNGS-3, 15 met by the carry rule and the kept table (#239, #307)
 - [ ] R-RUNGS-7 (later, 01:50): the day's run reads each candidate's `promotion.standing`, buys nothing for a killed one.
@@ -315,6 +316,7 @@ rungs-promotion (R-RUNGS-7; kill numbers need a ladder-passed candidate); rungs-
 - [ ] R-RUNGS-22 (later, 16 Nov 12:00): inverse ETFs (SQQQ, SPXU, SH, SDS) in the research list and store, once R-RUNGS-21 allows.
 ### Requests to RUNGS
 - [ ] R-RUNGS-17 (later): lab/transfer.py:170 calls `ladder.rates(home=root)` (GRID's file; see R-RUNGS-28). [x] R-RUNGS-18: `Priced.stopped` is required (#846); montecarlo reading `verdict.gains` declined (it plants a made-up stop-sold gain).
+- [ ] R-RUNGS-30 (blocking, 19 Nov 23:59): `ladder_sets.baskets()` passes the market (benchmark line, bars, pounds) to `basket.row` as `against`, so the retail rung is read in a real EASED run.
 - [x] R-RUNGS-23 (16 Nov 12:00): the table's holding column, `lab.holding.beside` per cell (#775).
 - [x] R-RUNGS-27 (17 Nov): `verdict.basket_answer` wired into `basket.row`, INCUBATE listed apart (#742); EASED stays off until card ease-switch-on.
 ### Found, not fixed
