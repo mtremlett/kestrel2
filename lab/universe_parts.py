@@ -89,3 +89,20 @@ def matrix(folder: Path) -> Callable[[Line, date], tuple[Bar, ...]]:
         return tuple(bars)
 
     return second
+
+
+def breadth(root: Path, lines: Sequence[Line]) -> dict[date, tuple[int, int]]:
+    """Each session's advances and declines among the lines (R-RUNNER-346): a line advances
+    when its close is above its previous bar's, declines when below, and is left out when
+    unchanged or first. Read through `read`, so no change of scale counts as a move; a
+    line with no file is left out. Counts only: a day's ratio is the caller's."""
+    tally: dict[date, list[int]] = {}
+    for line in lines:
+        try:
+            held = read(root, line).bars
+        except FileNotFoundError:
+            continue
+        for before, bar in zip(held, held[1:], strict=False):
+            if bar.close != before.close:
+                tally.setdefault(bar.day, [0, 0])[bar.close < before.close] += 1
+    return {day: (up, down) for day, (up, down) in sorted(tally.items())}
