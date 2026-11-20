@@ -380,7 +380,7 @@ Checked 17 Nov (MONEY, s6): R-DATA-53 is on main (`desk/command.py:387` passes `
 > R-MONEY-54 waits on a claim: `watch.look` has no broker, so it needs a broker door from
 > `desk/running.py`, and `desk/goflat.py` must call `halt.stop`; both are PAPER's, not MONEY's.
 > `book.py` already calls `halt.stop`. Plan: `halt.stop` takes `his`; `watch.look` takes a
-> `Callable[[], Broker]` and calls `halt.stop` after `halt.call`.
+> `Callable[[], Broker]` and calls `halt.stop` after `halt.call`. Asked of PAPER as R-MONEY-57.
 
 **Lane objective:** the kill switch, by his ruling of 13 November ("kill switch first"):
 one command stops all new orders and cancels the open ones, the desk says so, and the drill

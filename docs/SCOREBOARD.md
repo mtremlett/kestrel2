@@ -175,6 +175,8 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1000 R-RUNNER-316 SimCity scenario for the live keeper's unheld one-minute bars, green with handling and red without. |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1035 R-RUNNER-392 part 1: fault matrix table and the after-accept row for 2110 and 2157 built. |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1028 R-RUNNER-318 scenario built and red; no change landed, fix needed in conformance_parts. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1046 R-MONEY-54 not done: it needs PAPER's desk/running.py and desk/goflat.py; code reverted, plan recorded, R-MONEY-57 asked.
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1052 R-RUNNER-318 SimCity scenario for the conformance job's missing session bar, green with the refusal kept and red without.
 
 ### DATA
 
