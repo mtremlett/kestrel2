@@ -14,9 +14,8 @@ from desk.lines import LINES
 from desk.store import Bar
 from lab import cell, folds, luck, rung
 from lab.cell import Cell, Key, Trade
-from lab.folds import Folded
+from lab.folds import Fold, Folded
 from lab.rung import Answer, Priced, Verdict
-from lab.rung_folds import Fold
 
 VUSA = next(line for line in LINES if line.symbol == "VUSA")
 
