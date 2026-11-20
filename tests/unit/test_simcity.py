@@ -371,3 +371,19 @@ def test_a_line_not_yet_begun_is_left_out_and_named_while_every_day_is_lived(
     assert late.symbol in night.left and late.symbol in night.words()
     assert not [b for b in night.broken if b.startswith("the desk stops")], night.broken
     assert night.days == len(SESSIONS[1:51])
+
+
+def test_a_gap_on_a_line_with_no_bar_before_it_is_a_fault_by_name_and_other_lines_are_unchanged(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(simcity, "EVENTS", ((simcity.GAPPED, simcity._gapped),))
+    monkeypatch.setattr(simcity, "EVENTFUL", 1)
+    late = LINES[0]
+    young = {**SHORT, late: [bar for bar in SHORT[late] if bar.day >= SESSIONS[30]]}
+    faults = [
+        b for b in simcity.run(tmp_path, young, ROOM, RATES, NOW, (3,)).broken if "FAULT" in b
+    ]
+    assert faults and all(f"line {late.symbol}:" in b and "world 3" in b for b in faults), faults
+    assert not [
+        b for b in simcity.run(tmp_path, SHORT, ROOM, RATES, NOW, (3,)).broken if "FAULT" in b
+    ]

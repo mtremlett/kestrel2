@@ -57,6 +57,12 @@ RULES = ("breakout_20_10", "trend_50_200")
 ISF_START = NOISE[0].day
 
 
+@pytest.fixture(autouse=True)
+def eased_off(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The off assertions of these tests: the ladder's easing switch is set off, not assumed."""
+    monkeypatch.setattr(verdict, "EASED", False)
+
+
 def _set(*lines: Line) -> list[Cell]:
     return [Cell("breakout_20_10", line, ladder.START, ladder.END) for line in lines]
 
