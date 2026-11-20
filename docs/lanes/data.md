@@ -47,38 +47,11 @@ The store holds each venue's closes within 39 minutes of its close (R-PAPER-23, 
 
 VUAG's 2019 gap filled from a checked shelf, never forward-filled (R-RUNNER-104); every venue has a calendar and SimCity worlds are dated on trading days (R-RUNNER-107); `python -m lab.universe` refreshes research (R-RUNNER-116); a bar with only a bad high or low is kept and repaired, and an impossible low likewise (R-RUNNER-175, -185); the keeper cleans kept history again when the store rules change (R-RUNNER-182); a missing yardstick day is a named fault filled from a second source (R-RUNNER-179). Each took its recommended option; git keeps the full entries.
 
-### 2026-11-16 — no change - R-RUNNER-11 waits on a PAPER test edit (closes #422) (#424)
-
-- Option A, loosen the guard for one file: refused (guards are not loosened for convenience).
-  Option B, keep the keeper's store named bars.db: refused, it defeats the box. Option C
-  (chosen): ask the owner to make test_command.py name the store through the constant
-  `desk.keeper.HOT` instead of the literal, which works before and after the rename; then DATA
-  re-lands 55977a3.
-
-### 2026-11-16 — the store is two databases, long and short (R-RUNNER-11, first step) (#442)
-
-- the long database is placed beside the short one and named by the writer, not by a setting,
-  so that every existing caller (which passes the short database's path) is unchanged; option
-  B was a data-folder argument, rejected because it edits other lanes' files. Recommended and
-  taken.
-
-### 2026-11-16 — the free collector, once a day: price second opinions, macro series, earnings dates and timestamped news into the one store (R-RUNNER-15) (#460)
-
-- Where to keep it - options: a new database, or tables beside the daily bars; chose tables
-  (raw, fact) in market_history.db, since the order was "the one store". Price day - the last
-  weekday before today (the 22:15 run sees a settled day). A free tier's holiday gives no
-  bars, not a fault.
-
-### 2026-11-16 — no change - R-RUNNER-11 waits on two PAPER test lines (#454)
-
-- Reverted the rename instead of widening my claim, because the lane guard refuses files
-  outside the lane (canon A9; no red merge, A1.4).
-
-### 2026-11-16 — the archive's daily answers kept raw and read instead of asked again (R-PAPER-24) (#458)
-
-- key is (line, day) since the daily question is fixed by those; a kept file is never
-  refreshed within its day folder (a new day is a new folder). Options: a time-to-live, or
-  hash keys; chose the simplest.
+### 2026-11-16 — the first two-database steps and the free collector, folded (#424-#460)
+The store became two databases, long and short (#442); the free collector runs once a day, writing second-opinion prices,
+macro series, earnings dates and timestamped news into the one store (#460); the archive's daily answers are kept raw and
+read instead of asked again (#458). Two no-change sessions (#424, #454) found R-RUNNER-11 waiting on PAPER test lines; it
+landed later. Git keeps each full entry.
 
 ### 2026-11-16 — SPY kept from 29 January 1993 as a reference series (R-RUNNER-94) (#303)
 
@@ -797,3 +770,12 @@ no caller or test outside the claim needed an edit (398 to 349 lines).
 Options: (a) add a backfill list beside the park; (b) keep the park (`keeper.parked_live`), which already bounds it. Chose (b):
 keeper.py and bars.py sit at 390 and 398 of 400 lines and the unit tests have no margin. Sealing into compressed files waits
 on a benchmark showing SQLite slowing; it passes today.
+
+### 2026-11-20 — a session of today is closed once its closing auction has ended (#935, R-RUNNER-382)
+Options: (a) the session's close time (rejected, the auction still prints after it); (b) the closing auction's end
+(`venues.hours` `.auction`), the same bound `open_at` uses (chosen). `audit` and `monitor` now take the moment they run.
+
+### 2026-11-20 — the rollup source waits for a claim naming desk/bars_schema.py (#940, R-RUNNER-217)
+Options: (a) edit bars_schema.py anyway (the check refuses); (b) reuse an existing Source for the rollup (wrong provenance,
+rejected); (c) land nothing and ask for the claim to include desk/bars_schema.py (chosen). Adding the member elsewhere would
+make a second home for Source (#930 landed step 1 only).
