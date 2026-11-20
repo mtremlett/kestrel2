@@ -149,6 +149,8 @@ Checked 17 Nov (MONEY): R-RUNGS-12 re-verified on main (`strategy.rsi`, `strateg
 
 Checked 17 Nov (MONEY, s6): R-DATA-53 is on main (`desk/command.py:387` passes `home=root.parent`, #798) and R-PAPER-29 is on main (`book.conformance_cost`, #763); no blocking request is open; nothing built.
 
+Checked 20 Nov (DATA): R-GRID-5's code is on main (`universe.nightly` writes `grid/store/REFLECTS.txt`, #832 line) but the real home on this PC holds LSE and US folders with no REFLECTS.txt: the nightly has not run there; it fetches 1,065 tickers, too long for a 10-minute card. Nothing built.
+
 - [x] The rehearsal data in a file of its own (`tests/scenes/rehearsal.py`)
 - [x] The rehearsal data lengthened to about fourteen months, the five rules buying and
       selling in it on every clean line, its UK and US holidays respected; the spoilt line's
