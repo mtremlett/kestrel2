@@ -292,6 +292,7 @@ rungs-promotion (R-RUNGS-7; kill numbers need a ladder-passed candidate); rungs-
 R-RUNGS-29 (guard, outside RUNGS's claim; Option 1 taken, #951, #949, #952) blocks moving Fold/Walked and deleting lab/rung_folds.py.
 `Candidate` should also refuse a row listing unrun rungs (recommended: when the first real candidate nears).
 ### Done for other lanes
+- R-GRID-2: done in #1073 (verified on main; GRID's last uses of `Cell.symbol` remain, R-RUNGS-19)
 - R-RUNGS-31: done in #986 (the pooled run passes the family count; re-verified 20 Nov)
 - R-DATA-11, R-RUNNER-5, R-RUNNER-3: done in #186; R-RUNNER-25: #202; R-RUNNER-33: #206; R-MONEY-34: #239; R-GRID-6: #427; R-GRID-2: #504, #846, #922, #980 (verified); R-RUNGS-18: #846; R-RUNNER-331: #858; R-MONEY-13: #600; R-MONEY-43: #693
 - R-RUNNER-47: done in #235; -45: #239; -49: #244; -52: #241; -83: #252; -85: #253; -86: #279; -95: #304; -101: #307; -98: #308; -102: #309; -106: #310; -108: #311; -109: #312; -99: #313; -114: #316; -110: #318; -100: #319; -103: #322; -124: #327
@@ -305,8 +306,8 @@ R-RUNGS-29 (guard, outside RUNGS's claim; Option 1 taken, #951, #949, #952) bloc
 - [ ] R-RUNGS-26 (later, 17 Nov): replace the deep run's "Calibration: NOT RUN" with the output of `python -m lab.calibration` (run by the runner, not imported by desk/).
 ### Requests to GRID
 - [ ] R-RUNGS-2 (later, 13 Nov): the declared sweep enters every cell in the register before the batch runs. [ ] R-RUNGS-4 (later): a kept verdict's key takes in the rates it was priced with.
-- [ ] R-RUNGS-19 (later, 16 Nov 15:00): `Cell.symbol` still read in lab/cell.py:65, lab/ladder_sets.py and tests/unit/test_lab_tune.py:210; RUNGS's files are clear: drop it.
-- [ ] R-RUNGS-25 (later, 17 Nov 05:00): capital and the rate table's version into `lab.cell.Key` (R-GRID-3, last part).
+- [ ] R-RUNGS-19 (later, 16 Nov 15:00): `Cell.symbol` still read in lab/cell.py and tests/unit/test_lab_tune.py:210 (no RUNGS file reads it, #1073): drop it.
+- [ ] R-RUNGS-25 (later, 17 Nov 05:00): capital and the rate table's version into `lab.cell.Key` (R-GRID-3, last part; verdicts and luck are already stamped with `key.rung`, #1073). Same ask re-opened 20 Nov 16:00.
 - [ ] R-RUNGS-28 (later, 17 Nov 18:00): `lab/transfer.py:170` calls `ladder.rates(home=data)` (the data folder, where the pound's kept closes live), so they are not asked of the archive each run; its test's stub takes `home`. Meets R-RUNGS-17. RUNGS's own edit was refused by the lane-ownership guard (#852): GRID's file.
 ### Requests to DATA
 - [ ] R-RUNGS-5 (blocking): SPY and US sessions back to January 1993, saying if dividend-adjusted. [ ] R-RUNGS-9 (blocking): SPY from 29 Jan 1993 kept as traded and adjusted, labelled.
