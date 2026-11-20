@@ -836,8 +836,9 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
   - [ ] B2 a typed Spec, validated on entry: an unknown block or a bad setting is refused
         Remains (R-MONEY-45, #809, #823): 20 of 21 rules are rows (mansfield_rs_momentum added, #873, run on the ratio bars the caller builds); zweig_breadth_thrust needs breadth data (R-MONEY-35)
       {id: rungs-spec; files: lab/spec.py, tests/unit/test_lab_spec.py; after: rungs-blocks; waits: R-MONEY-35}
-  - [ ] B3 the catalogue, one TOML row per strategy with its source and known-answer case;
+  - [x] B3 the catalogue, one TOML row per strategy with its source and known-answer case;
         a guard: unique names, known blocks only, a source and a case on every row
+        Built: 24 rows in `lab/catalogue.toml`, `Spec.parse` refuses a row without source or case (verified #1078)
   - [ ] B4 the nineteen eponymous rules as rows, identical trades on the fixture proven,
         then their Python files deleted. Built: 20 of 21 in the catalogue (#873); Zweig waits on breadth data
   - [ ] B5 variants generated from a row's setting ranges, every one counted as a trial
