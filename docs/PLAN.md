@@ -318,6 +318,7 @@ Checked 20 Nov (MONEY, s2): R-PAPER-35's field is on main (#1102) and set in day
       {id: data-stretched; files: desk/store.py, tests/unit/test_store.py; after: data-3lgo}
 - [ ] A line's bars and its fault record written together, so a crash cannot part them
       Built (#832): both files written whole before either is swapped in. Remains: a crash between the two swaps; one file per line, which needs lab/universe.py and tests/unit/test_lab_universe.py in the claim
+      Waits on him: 2 sessions in a row landed no change to the desk, the lab or the tests, so it is held and the doctor asks why
       {id: data-written-together; files: desk/store.py, tests/unit/test_store.py; after: data-stretched; waits: operator}
 - [x] A pence history the archive calls pounds caught
       Built (#630, #725): every pull reaches the store through `history_write.keeper`, which turns pence to pounds once on entry; `history.run` and `pull` hand out the broker's unit by design (#1065)
@@ -346,6 +347,7 @@ Checked 20 Nov (MONEY, s2): R-PAPER-35's field is on main (#1102) and set in day
 - [ ] Leveraged-product lifecycle watched: an issuer's closure, a compulsory redemption or
       an ISA eligibility change on any line held or researched raises an alert (BIC-11)
 - [ ] Disk watched; old research files roll off by rule (OPS-07)
+      Built (#1098, #1107): `python -m desk.quality` goes red when the store's drive has under 10% free (`quality.disk`, called by `monitor`). Remains: old research files rolling off by rule (needs his yes before deleting); the runner job reading the red; other monitor tests read the real drive's free space
 - [ ] **IBKR's capacity, no new spend, 10% kept spare** (research of 14 November,
       `free_data_2026-11-14.md` in the notes folder): 90 tickers streamed live, 1-minute bars
       built from quotes; polled 1-minute bars for 27 tickers every 5 minutes, 81 every 15 and
