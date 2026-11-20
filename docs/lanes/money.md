@@ -651,3 +651,15 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 ### 2026-11-20 - parked-yardstick scenario pins the existing refusal (#972, R-RUNNER-315)
 - The right behaviour is the desk's existing refusal (a record needs the yardstick's close for every session since the last record), so the scenario pins it rather than adding handling. Option: also trade the other lines through the gap; rejected, the record would be wrong.
 - An eighth event changed the seeded order and broke two seed-picked tests in tests/unit/test_simcity.py; their worlds (0, 1) became (2, 3). After merging main (ten events) the fourteen-month world moved from seed 4 to seed 6, the first seed meeting every part of the money path (0-5 left parts bare). Nothing loosened.
+
+### 2026-11-20 - send-path halt goes through halt.stop; goflat left alone (#1031, R-MONEY-54)
+- The disagreement halt in desk/book.py now cancels working buys (stops stay). desk/goflat.py is not a MONEY file, so it is left alone and asked of PAPER (R-MONEY-55); desk/watch.py still needs a broker passed in or a cancel after its look.
+
+### 2026-11-20 - unheld one-minute bars scenario; test world seed 1 (#1000, R-RUNNER-316)
+- The desk already behaved rightly (#727), so the scenario is red with that starting removed and green with it. The fourteen-month world moved from seed 6 to seed 1, the smallest seed meeting every scenario (the eleventh scenario changed the draw order). The seed is a fixture, not a threshold.
+
+### 2026-11-20 - fault matrix: one cell per farm code (#1035, R-RUNNER-392)
+- Farm news 2103 to 2158 is one class per code (56); a hang-up is its own class. Options: group the farm codes (fewer cells) or one per code. Chose one per code: each cell is a separately countable promise. 305 cells, 2 built.
+
+### 2026-11-20 - conformance plan skips a line with no bar (#1028, R-RUNNER-318)
+- Options: (a) keep refusing the whole run when one line lacks a bar (the incident repeats daily until the archive fills); (b) leave that line out and plan from the rest. Chose (b): the run needs only the most-traded line, one gap should not stop it. Asked of PAPER (R-MONEY-56); scenario held as a patch until then.
