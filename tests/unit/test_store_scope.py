@@ -16,7 +16,7 @@ def _history(crash_in: date) -> tuple[store.Bar, ...]:
     """MSTR's March 2000 days (226.75 -> 86.75 on the 20th) and a clean recent year, with a real
     crash on crash_in's session if that is inside the recent year."""
     days = [*venues.sessions("US", date(2000, 3, 1), date(2000, 3, 31))]
-    days += venues.sessions("US", date(2024, 1, 2), date(2025, 11, 14))
+    days += venues.sessions("US", date(2022, 1, 3), date(2025, 11, 14))
     out = []
     for n, d in enumerate(days):
         p = Decimal(226 if d < date(2000, 3, 20) else 86) if d.year == 2000 else Decimal(50 + n % 3)
@@ -31,7 +31,7 @@ def test_a_fault_in_deep_history_is_named_not_parked_and_one_in_the_window_parks
     old = _history(date(2000, 1, 1))
     _, faults, park = store_scope.judge(MSTR, old, DAY)
     assert park is None and any(f.day == date(2000, 3, 20) for f in faults)
-    assert all(f.noted for f in faults if f.day < date(2024, 1, 1))
+    assert all(f.noted for f in faults if f.day < date(2022, 1, 1))
     kept = keeper._kept_in(tmp_path / "hot", tmp_path, {MSTR: old}, DAY, {})
     assert kept[0] == [] and bars.daily(tmp_path / "hot", MSTR)[-1].day == date(2025, 11, 14)
     assert f"{date(2000, 3, 20)} moved" in store.prepare(tmp_path / "s", {MSTR: old}, DAY)[0].reason

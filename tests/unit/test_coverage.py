@@ -23,3 +23,7 @@ def test_desk_score_is_the_mean_and_the_parked_cap_binds() -> None:
     assert coverage.desk_score(()) == 0
     assert coverage.parked_within_cap(held, {"L0"})
     assert not coverage.parked_within_cap(held, {"L0", "L1"})
+
+
+def test_the_lookback_is_the_longest_setting_the_grid_may_try() -> None:
+    assert coverage.LOOKBACK == 250 and coverage.NEED == 500
