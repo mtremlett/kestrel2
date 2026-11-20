@@ -38,13 +38,11 @@ dating; a long run of dollar-quoted bars is dropped (#217, #220); the six parked
 Every rule and constant of `desk/store.py` is pinned by a row of one synthetic table, and that guard was driven red
 (#225, #227, #230; R-RUNNER-43, -46). The lane's open boxes were put in working order (#180).
 
-### 2026-11-15 — adjusted against as-traded closes; the 39-minute close rule, folded (#286, #294)
-
+### 2026-11-15 — adjusted closes and the 39-minute close rule, folded (#286, #294)
 The head start recognises a store of adjusted prices beside the as-traded one and never writes over raw (R-RUNNER-90, #286).
 The store holds each venue's closes within 39 minutes of its close (R-PAPER-23, #294). Details are in git history.
 
 ### 2026-11-15 — nine settled store and keeper rules, folded (#314-#381)
-
 VUAG's 2019 gap filled from a checked shelf, never forward-filled (R-RUNNER-104); every venue has a calendar and SimCity worlds are dated on trading days (R-RUNNER-107); `python -m lab.universe` refreshes research (R-RUNNER-116); a bar with only a bad high or low is kept and repaired, and an impossible low likewise (R-RUNNER-175, -185); the keeper cleans kept history again when the store rules change (R-RUNNER-182); a missing yardstick day is a named fault filled from a second source (R-RUNNER-179). Each took its recommended option; git keeps the full entries.
 
 ### 2026-11-16 — the first two-database steps and the free collector, folded (#424-#460)
@@ -792,3 +790,11 @@ Options: report the coverage score only, or go red when more than 10% of lines s
 Options: (a) keep `coverage.LOOKBACK` at a hand-written 200 (rejected: the grid's SWEEPS try settings up to 250, so it would
 trade lines with too little history); (b) read the longest setting from `desk/strategy.py` SWEEPS (chosen): a line now needs 500
 sessions, twice the longest lookback, before a rule may trade it, and the number is written once.
+
+### 2026-11-20 — breadth derived from the store's own bars (#1104, R-RUNNER-346)
+Options: (a) buy a vendor series (spend, a hard line); (b) derive advances and declines from our own S&P 500 bars (free,
+survivorship-biased, chosen, per his "go with recommended"); (c) no row. State the survivorship caveat on any verdict.
+
+### 2026-11-20 — the disk floor is a share, checked at the command (#1098, OPS-07)
+Options: an absolute GB floor, or 10% free (chosen, so it follows the drive). Checked in the command's entry, later in
+`monitor` itself (#1107), the monitor's other tests still read the real drive.
