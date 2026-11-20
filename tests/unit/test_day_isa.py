@@ -53,3 +53,17 @@ def test_a_strategy_that_met_its_kill_condition_buys_nothing(tmp_path: Path) -> 
     assert [(s.blocker, s.filled) for s in barred] == [(Blocker.GATE, 0)]
     assert f"{name} met its kill condition" in str(barred[0].reason)
     assert not book.positions(tmp_path / "b")
+
+
+def test_a_line_parked_by_hand_is_not_bought_until_unparked(tmp_path: Path) -> None:
+    bars = tuple(Bar(on, c, c + 1, c - 1, c, 1) for on, c in zip(DAYS, CLOSES, strict=True))
+    line = Line("B", "LSE", "GBP", 1)
+    (tmp_path / "parked.csv").write_text("symbol,who,why\nB,coordinator,doubtful\n")
+    broker = Pretend({line: bars}, {})
+    broker.open(DAYS[21])
+    args = ({line: bars[:21]}, broker, Settings(Decimal(10_000)), DAYS[21], {"GBP": Decimal(1)})
+    sent = day.trade(tmp_path, *args)
+    assert [(s.blocker, s.filled) for s in sent] == [(Blocker.GATE, 0)]
+    assert "parked by hand: B (coordinator: doubtful)" in str(sent[0].reason)
+    (tmp_path / "parked.csv").unlink()
+    assert [s.blocker for s in day.trade(tmp_path, *args)] == [None]
