@@ -3,7 +3,8 @@ desk was put in, a promise it must keep there, and the day it then runs. R-RUNNE
 line has no bar for a session (a hole in the saved data), so the day has no record.
 R-RUNNER-247: shares at the broker with a stop resting, bought beside the book (the 16 November
 conformance run's), which the desk's sale refused as "the desk is long only". R-RUNNER-323: the
-18 November London run, whose buy the broker cancelled with nothing filled, so none were held."""
+18 November London run, whose buy the broker cancelled with nothing filled, so none were held.
+R-RUNNER-315: the 16 November session the yardstick has no bar for, so the line is parked."""
 
 from __future__ import annotations
 
@@ -26,6 +27,7 @@ NAMED = "an order cancelled unfilled is named that day, and the book stays the b
 HALTED = "a halt is in force while the day's buys are asked for"
 STILL = "with a halt in force nothing is bought"
 OUTSIDE = "a line no ISA can hold is never bought"
+PARKED = "a yardstick with a session missing refuses the day by name"
 PROMISE = "a held line with no bar for a session is named when the day is refused"
 
 
@@ -105,3 +107,24 @@ def outside(life: _Life, on: date) -> None:
     sent = life.pretend.submitted()[reached:]
     life.promise(OUTSIDE, not any(i.rpartition("-")[2] in barred for i in sent))
     life.market = whole
+
+
+def parked(life: _Life, on: date) -> None:
+    """The yardstick's bar for the session before the day is missing (a gap in the archive, the
+    line parked). The desk must refuse the day, naming the line, for the market's gain over the
+    gap cannot be told; when the bar is back the same day runs."""
+    whole = life.market.get(YARDSTICK, ())
+    gone = [b.day for b in whole if b.day < on][-1:]
+    if not gone:
+        life.live(on)
+        return
+    life.market[YARDSTICK] = tuple(b for b in whole if b.day != gone[0])
+    try:
+        life.live(on)
+    except ValueError as refusal:  #: the desk's own word that the day has no record
+        life.promise(PARKED, YARDSTICK.symbol in str(refusal))
+        life.market[YARDSTICK] = whole
+        life.live(on)
+    else:
+        life.market[YARDSTICK] = whole
+        life.promise(PARKED, False)

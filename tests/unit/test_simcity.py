@@ -71,7 +71,7 @@ def lived(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, simcity.Night
 def sound(tmp_path_factory: pytest.TempPathFactory) -> simcity.Night:
     """Two busy worlds of the desk as it stands, nothing in it broken by a test."""
     with pytest.MonkeyPatch.context() as patch:
-        return busy(patch, tmp_path_factory.mktemp("sound"), (0, 1))
+        return busy(patch, tmp_path_factory.mktemp("sound"), (2, 3))
 
 
 def test_a_world_of_the_fourteen_months_is_lived_with_every_fault_and_the_night_is_recorded(
@@ -353,7 +353,7 @@ def test_a_promise_the_desk_breaks_in_any_world_turns_the_night_red_and_names_th
 ) -> None:
     monkeypatch.setattr(owner, name, broken_desk)
     monkeypatch.setattr(simcity, "EVENTS", simcity.EVENTS[first:])
-    night = busy(monkeypatch, tmp_path, (0, 1))
+    night = busy(monkeypatch, tmp_path, (2, 3))
     for promise in promises:
         assert promise not in str(sound.broken), "broken on a sound desk"
         assert [b for b in night.broken if promise in b and "the first world" in b], night.broken
