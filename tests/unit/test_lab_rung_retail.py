@@ -13,6 +13,13 @@ from lab.cell import Cell, Key, Trade
 from lab.rung import Answer, Priced, Verdict
 from lab.rung_retail import Against, Standing, days, standing
 
+
+@pytest.fixture(autouse=True)
+def eased_off(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The off assertions of these tests: the ladder's easing switch is set off, not assumed."""
+    monkeypatch.setattr(verdict, "EASED", False)
+
+
 #: Market [+10%, -20%, +10%]: 1.1, 0.88, 0.968 -> -3.2%, fell 0.2 from 1.1, mean 0 so Sharpe 0.
 MARKET = [0.10, -0.20, 0.10]
 #: Basket [+5%, -10%, +4%]: 1.05, 0.945, 0.9828 -> -1.72%, fell 0.1 from 1.05, mean < 0.

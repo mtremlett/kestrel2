@@ -10,7 +10,16 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from test_lab_ladder import AAPL, EDGE, ISF, NOISE, VUSA, _door, _rows
+from test_lab_ladder import (  # noqa: F401 - eased_off is an autouse fixture
+    AAPL,
+    EDGE,
+    ISF,
+    NOISE,
+    VUSA,
+    _door,
+    _rows,
+    eased_off,
+)
 from test_lab_ladder import _set as _cells
 
 from desk.lines import Line
