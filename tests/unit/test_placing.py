@@ -1,13 +1,14 @@
-"""The paper account behind the send path: the money path's own questions answered from what
-the gateway gives, the desk's own told from anyone else's; and an order sent once, on a clear
-day, a buy with its stop, the line left under one stop of the desk's for the shares held."""
+"""The paper account behind the send path: the money path's questions answered from what the
+gateway gives, the desk's own told from anyone else's; an order sent once, on a clear day, a
+buy with its stop, the line left under one stop for the shares held."""
 
 from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import replace
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
+from functools import partial
 from pathlib import Path
 from unittest.mock import Mock
 
@@ -22,9 +23,8 @@ from desk.orders import Order, Refused, Sale
 ID = "20261113-rsi2-IITU"
 HELD = "61 3 DU0000001 212969319 IITU STK  0.0   LSEETF GBP IITU EUE2 26 37.5".split(" ")
 FILL = Fill(BUY.execution_id, ID, "IITU", 26, Decimal("37.55"), BUY.made.date())
-#: What the desk asks in a conversation, after its greeting and its start: of the account
-#: (its holdings; every open order), of the day's ended orders, of the day's fills.
-ACCOUNT = _wire(("61", "1"), ("16", "1")).getvalue()
+_sale = partial(Sale, ID, session=date(2026, 11, 13))  # dated by its session, not its id
+ACCOUNT = _wire(("61", "1"), ("16", "1")).getvalue()  # what it asks: account, ended, fills
 ENDED, FILLS = _wire(("99", "0")).getvalue(), _wire("7|3|1|0||||||".split("|")).getvalue()
 STOPPED = _but(_but(BOUGHT, 18, "SLD"), 26, f"{ID}-stop")  # the desk's stop on the line, sold
 AFTER = _but(DONE, 22, f"{ID}-stop")  # and that stop's own order, ended: not the order asked of
@@ -165,10 +165,10 @@ def test_a_cancel_not_confirmed_whole_is_an_error(monkeypatch: pytest.MonkeyPatc
     assert sent == [ACCOUNT, CANCELS, ACCOUNT] * 2
 
 
-SALE, SOLD, OUT = Sale(ID, IITU, 26), _but(BOUGHT, 18, "SLD"), replace(FILL, quantity=-26)
-#: A market sale for the day as the published client writes one (ib_insync 0.9.86, its source
-#: read and never imported), under the gateway's next number, 41: the line by the broker's
-#: number for it, on the broker's router, the desk's order id its reference, sent at once.
+SALE, SOLD, OUT = _sale(IITU, 26), _but(BOUGHT, 18, "SLD"), replace(FILL, quantity=-26)
+#: A market sale as the published client writes one (ib_insync 0.9.86, its source read, not
+#: imported), under the gateway's next number, 41: the line by the broker's number, on its
+#: router, the desk's order id its reference, sent at once.
 ORDER = (
     f"3|41|212969319|IITU|STK||0.0|||SMART||GBP|||||SELL|26|MKT|||DAY|||O|0|{ID}|"
     "1|0|0|0|0|0|0|0||0.0||||||||0||-1|0|||0|||0|0||0||||||0|||||0|||||||||||0|||0|0|||0||0|0"
@@ -179,7 +179,7 @@ MINE = _order("41", "SELL MKT", ID, "Submitted")  # the sale as the broker has i
 BARE = _account([HELD])  # the line held, and under no stop of the desk's own
 EMPTY = _account([FLAT])  # and the account with none of the line, and no order
 REJECTED = ("4", "2", "41", "201", "Order rejected - reason: closed", "")
-BUY_IT = Order(ID, IITU, 26, Decimal(40), Decimal(1), Decimal("36.007"))  # its stop off the step
+BUY_IT = Order(ID, IITU, 26, Decimal(40), Decimal(1), Decimal("36.007"), session=date(2026, 11, 13))
 #: The stop that goes with the buy, as the broker lists it; and both as it tells them filling.
 CHILD = _order("42", "SELL STP 3600.0", f"{ID}-stop", "PreSubmitted")
 FILLING = [*_order("41", "BUY MKT", ID, "Submitted"), *CHILD, _but(MINE[1], 2, "Filled")]
@@ -262,7 +262,7 @@ def test_a_sale_the_broker_falls_silent_on_is_cancelled_and_never_left_working(
     # never to have (Disconnected); the next start asks the broker what it did with it
     sent = _gateway(monkeypatch, [], BARE, MINE)
     with pytest.raises(ConnectionError, match="hung up") as lost:
-        broker.place(Sale(ID, AAPL, 10))
+        broker.place(_sale(AAPL, 10))
     assert not isinstance(lost.value, Disconnected)
     assert sent == [b"", ACCOUNT, _msg({2: "265598", 3: "AAPL", 11: "USD", 17: "10"})]
 
@@ -367,8 +367,8 @@ def test_nothing_is_sent_without_a_drill_a_clean_day_a_ready_gateway_and_the_sto
     book.turn(tmp_path / "old", book.Switch.DRILLED, AT - timedelta(days=32), "every promise kept")
     either: tuple[Order | Sale, ...] = (BUY_IT, SALE)  # a buy is held to all a sale is
     refusals: list[tuple[placing.Paper, tuple[Order | Sale, ...], type[Exception], str]] = [
-        (_paper(ready), (Sale(ID, SMGB, 5),), Refused, "does not list SMGB: the broker lists 0"),
-        (_paper(ready), (Sale(ID, replace(SMGB, symbol="VUSA"), 5),), Refused, "VUSA: it was not"),
+        (_paper(ready), (_sale(SMGB, 5),), Refused, "does not list SMGB: the broker lists 0"),
+        (_paper(ready), (_sale(replace(SMGB, symbol="VUSA"), 5),), Refused, "VUSA: it was not"),
         (_paper(ready, AT + timedelta(days=1)), either, Refused, "17 is not the session of"),
         (_paper(ready, AT - timedelta(days=2)), either, Refused, "next after the one it is dated"),
         (_paper(tmp_path / "new"), either, Refused, "was not drilled in the last 31 days"),
