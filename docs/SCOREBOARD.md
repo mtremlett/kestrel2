@@ -390,6 +390,12 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #959 no change: R-PAPER-23 verified on main. |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #957 no change: R-MONEY-28 verified on main. |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #960 no change: R-PAPER-23 verified on main (#294). |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #964 no change: R-PAPER-23 and R-RUNGS-16 verified already on main. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #971 no change: blocking requests verified on main. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #974 no change: R-PAPER-23 and R-RUNGS-16 verified on main. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #975 no change: R-PAPER-23 verified on main (#294). |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #970 no change: R-MONEY-28 verified on main. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #973 no change: R-PAPER-23 verified on main. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
