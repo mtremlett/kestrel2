@@ -53,20 +53,10 @@ macro series, earnings dates and timestamped news into the one store (#460); the
 read instead of asked again (#458). Two no-change sessions (#424, #454) found R-RUNNER-11 waiting on PAPER test lines; it
 landed later. Git keeps each full entry.
 
-### 2026-11-16 — SPY kept from 29 January 1993 as a reference series (R-RUNNER-94) (#303)
+### 2026-11-16 — SPY kept as a reference series, folded (R-RUNNER-94, -96) (#303, #475)
 
-- Where to hold reference bars - (a) store.py (would pass its 400-line cap), (b) new module
-  desk/reference.py (outside the claim, went red), (c) archive.py, chosen. Calendar: the
-  reference series is checked without a calendar (weekday only) rather than extending
-  venues.py back to 1993, which is outside my claim; recommended, taken.
-
-### 2026-11-16 — the keeper keeps SPY's history daily after the US close (R-RUNNER-96) (#475)
-
-- A refused reference fetch is told in words but is not a miss (nothing is traded on it;
-  options: count it as a miss, which would wake the operator over a research series;
-  recommended and taken: not a miss, retried at the next call per his "always go with
-  recommended"). Reference bars are kept under the daily store's US folder (desk cannot import
-  lab; this is the one store's own folder).
+- Held in archive.py (not store.py at its cap), checked weekday-only without a calendar; kept daily after the US close under the
+  daily store's US folder. A refused reference fetch is told, not counted a miss (recommended, taken).
 
 ### 2026-11-16 — the one calendar names market events (R-RUNNER-149) (#453)
 
@@ -792,3 +782,13 @@ Options: report the coverage score only, or go red when more than 10% of lines s
 Options: (a) keep `coverage.LOOKBACK` at a hand-written 200 (rejected: the grid's SWEEPS try settings up to 250, so it would
 trade lines with too little history); (b) read the longest setting from `desk/strategy.py` SWEEPS (chosen): a line now needs 500
 sessions, twice the longest lookback, before a rule may trade it, and the number is written once.
+
+### 2026-11-20 — disk floor as a share of the drive (#1098)
+Options: (a) an absolute floor in gigabytes; (b) a 10% free share (chosen, recommended), so it follows the drive. Checked in the
+command's entry, then wired into `monitor` (#1107), with the test driving it at 5% and 50% free, so the monitor's own tests do not
+depend on the test machine's disk. Old research files rolling off needs his yes before anything is deleted.
+
+### 2026-11-20 — breadth derived from our own bars (#1104, R-RUNNER-346)
+Options: (a) buy a vendor series (spend, a hard line); (b) derive advances and declines from the store's S&P 500 bars (free,
+survivorship-biased, chosen per his "go with recommended"); (c) no Zweig row. Any verdict using it must state that the list is
+today's members only.
