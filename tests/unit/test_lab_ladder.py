@@ -115,6 +115,7 @@ def test_each_cell_is_judged_on_every_rung_and_kept_with_its_reasons_and_trials(
         "regime": rung_regimes.by_weather(
             verdict.key.rung(rung_regimes.__name__), verdict.trades, weather.trend(EDGE), ()
         ).answer.name,
+        "regimes": rung_regimes.RUNG.judge(verdict)[0].name,
         "shuffle": "THIN",  #: run last, and only on a trial that passed all before it
     }
     assert {name: answer for name, (answer, _) in won["rungs"].items()} == want
