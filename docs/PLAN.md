@@ -835,7 +835,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
   - [ ] B2 a typed Spec, validated on entry: an unknown block or a bad setting is refused
         Remains (R-MONEY-45, #809, #823): 20 of 21 rules are rows (mansfield_rs_momentum added, #873, run on the ratio bars the caller builds); zweig_breadth_thrust needs breadth data (R-MONEY-35)
       {id: rungs-spec; files: lab/spec.py, tests/unit/test_lab_spec.py; after: rungs-blocks; waits: R-MONEY-35}
-  - [ ] B3 the catalogue, one TOML row per strategy with its source and known-answer case;
+  - [x] B3 the catalogue, one TOML row per strategy with its source and known-answer case; (built: lab/catalogue.toml, 24 rows, Spec.parse refuses a bad row; verified #1078)
         a guard: unique names, known blocks only, a source and a case on every row
   - [ ] B4 the nineteen eponymous rules as rows, identical trades on the fixture proven,
         then their Python files deleted. Built: 20 of 21 in the catalogue (#873); Zweig waits on breadth data
@@ -858,12 +858,12 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       `lab/promotion.py` (#127). Remains: the desk reads it (R-RUNGS-7, MONEY's, open); each candidate's
       kill numbers need a ladder-passed candidate (#413)
       {id: rungs-promotion; files: lab/promotion.py, tests/unit/test_lab_promotion.py;
-      after: rungs-trustworthy; waits: R-RUNGS-7}
+      waits: R-RUNGS-7}
 - [ ] At least three ladder-passed strategies and a feasibility number before A-GATE paper
       (NS-04). Built: `lab/feasibility.py` (#415); ticking needs three real rules through the ladder (#416),
       which comes from rungs-eponymous (the wait is a placeholder: the box should be 'after: rungs-eponymous')
       {id: rungs-feasibility; files: lab/feasibility.py, tests/unit/test_lab_feasibility.py,
-      manifest.toml; after: rungs-trustworthy, rungs-eponymous; waits: operator}
+      manifest.toml; after: rungs-eponymous; waits: operator}
 - [ ] **The eponymous strategies through the ladder first**, before any grid exploration:
       the twenty-one published rules the old desk listed, ported one at a time as rules under
       the one template, each with its author's source, instrument, period and published
@@ -887,11 +887,11 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       with its kill condition, before its first paper day; it then trades paper side by side
       with up to nine others under the A-GATE terms. Nothing reaches real money without his
       signature (STR-17, LAD-11, MIG-07)
-      {id: rungs-eponymous; files: *; after: rungs-trustworthy, rungs-indicators}
+      {id: rungs-eponymous; files: *}
 - [ ] His paramount case: long and inverse leveraged-ETP trend strategies through the ladder
       (STR-18). Built: set LEV, six trend rules on the leveraged lines (#423). Remains: inverse
       leveraged lines, once a Line may state an inverse fund (R-RUNGS-21, R-RUNGS-22); a real run of LEV
-      {id: rungs-leveraged; files: *; after: rungs-trustworthy; waits: R-RUNGS-21}
+      {id: rungs-leveraged; files: *; waits: R-RUNGS-21}
 
 ## Phase 5 — the edge
 
