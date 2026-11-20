@@ -696,3 +696,8 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #875 R-RUNNER-205 step: weather win-against-trend test built (`weather.against_trend`) |
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #878 rung map corrected (regime rung is judged by the weather); doc line only |
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #892 R-RUNNER-332 FAULT said per rung with share; a mostly-FAULT set ends red |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #907 R-RUNNER-205 part 1: weather contest built and tested |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #912 R-RUNNER-138 part 1: a rule's edit judges again only its own cells |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #919 R-RUNNER-191 part a: golden ladder test (+ test lines, no product change) |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #927 R-RUNNER-229 part: retail rung built and wired into the basket row behind EASED |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #923 no change; R-RUNNER-184 verified mended (#405) |
