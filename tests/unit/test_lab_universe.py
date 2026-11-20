@@ -281,3 +281,15 @@ def test_a_move_the_line_records_as_real_is_no_longer_a_question(tmp_path: Path)
     bars = _stepped(Decimal("0.5"))
     line = replace(MMM, real_moves=frozenset({(bars[AT].day, bars[AT].close)}))
     assert _read(tmp_path, bars, line) == universe.History(tuple(bars), (), ())
+
+
+def test_breadth_counts_each_sessions_advances_and_declines_and_skips_a_line_with_no_file(
+    tmp_path: Path,
+) -> None:
+    kept = universe.SP500[:2]
+    universe.keep(tmp_path, DAY, kept, _ask)
+    held = store.read(tmp_path / "US", MMM.symbol)
+    counted = universe.breadth(tmp_path, [*kept, universe.SP500[2]])
+    assert list(counted) == [b.day for b in held[1:]]
+    for before, bar in zip(held, held[1:], strict=False):
+        assert counted[bar.day] == ((2, 0) if bar.close > before.close else (0, 2))
