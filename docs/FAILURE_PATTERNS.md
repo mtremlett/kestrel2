@@ -146,8 +146,11 @@ computed from the desk step's imports instead of listed.
 
 **19. Replaced while read (Windows).** A writer replaces a file while a reader holds it
 open, and Windows refuses ("Access denied", PermissionError): the store's daily files, a
-grid file, the runner's own request list, all on 16 November.
-→ *Caught by:* nothing yet; it is an open debt. The fix is one way to read and write each
+grid file, the runner's own request list, all on 16 November; and the shared clone's
+`.git/config`, rewritten by its own readers (every session start tracked a branch there, 208
+sections) until READY's reads failed (19 November).
+→ *Caught by:* for `.git/config`, the runner writes it no more (its drive `drive_gitconfig`).
+Otherwise nothing yet; it is an open debt. The fix is one way to read and write each
 shared file, readers and writer under one lock, in each codebase; never a retry or a sleep.
 
 **20. A gate that can never open.** A rule correct where it was written blocks its own
@@ -157,3 +160,48 @@ account held anything, so once the desk traded no rehearsal could pass.
 → *Caught by:* the rehearsal is barred only while a market is open or near (#462). →
 *Debt:* a rehearsal beside held lines, never touching them, is being built; until it
 lands, the desk's day runs on the coordinator's recorded go.
+
+**21. The claim that drifts.** A session that cannot finish inside its claim moves the work
+to a file outside it instead of stopping: #857 rewrote a lab test outside its card, and #902
+renamed its new test to another lane's name (19 November).
+→ *Caught by:* the runner disarms a pull request whose Claim line is not the claim its card
+gave, so it never lands; a card's files are fixed only by runner ops, with the cause.
+
+**22. The done request handed out again.** A request found already met on main is left
+open in the lane's list, so every later session checks it again and lands an empty change:
+R-MONEY-49 four times (#741, #798, #888, #893), R-MONEY-36 twice (19 November).
+→ *Caught by:* the runner keeps every id a landed pull request ticked and never offers it
+again. Its root (20 November): the runner reads a done list one request per line, written
+`- R-X-n: ...`, and DATA's run-on list (`R-PAPER-23 #294, -22 #505, ...`) closed nothing, so
+41 of 100 merges in a day were empty re-verifications. → *Debt:* a check that every
+request named under `### Done for other lanes` stands on its own `- R-X-n:` line.
+
+**23. The order the broker may hold, forgotten.** A gateway blip arrives after an order is
+sent (2110, 2157, 20 November 08:27): the desk called it never received and deleted its
+note, or called it unknown and turned the kill switch on, and a market buy of 195 ISF sat
+working at the broker with no record in the book until the operator released the switch.
+→ *Caught by:* a disconnect after the send keeps the order's note for the next step to
+cancel or book (R-RUNNER-389, #1008, `tests/unit/test_book.py`). → *Debt:* connectivity news
+mid-send never pulls the kill switch (R-RUNNER-390), and the broker fault matrix in SimCity,
+every message class at every moment of a send (R-RUNNER-392). The same mechanism has
+fixed `desk/paper.py` three times in ten changes (#373 the gateway's wait, #860 a market
+order's wait, #1014 link news mid-send): the paper door learns IBKR's behaviour one live
+fault at a time, never from a table of everything the gateway can say; the matrix is that
+table.
+The send path's side of it has fixed `desk/book.py` twice the same day (#1008 the going note
+kept on a disconnect, #1031 a halt cancelling working buys) with a third change due (an order
+the desk cancelled sent once more, pattern 25): what the desk knows of the orders the broker
+holds (sent, working, cancelled by whom) was built for the day that goes well, and each edge
+was met live. The same matrix, its rows run through `book.send`, is the table for it.
+
+**24. A wait added inside a step, its caller's timeout left.** Each market order came to
+wait 120 seconds for its fill (da70408), while the runner still killed the whole desk step
+at 240 seconds: London's round died mid-send (20 November 08:22).
+→ *Caught by:* the runner's drive `drive_atjobs`: the desk step's timeout is at least its
+worst-case waits plus a margin (6 orders x 120 s + 60 s; now 900 s).
+
+**25. The order the desk withdrew, never sent again.** An order id is fixed for its day, so
+an order the desk's own recovery cancelled at 0 filled answers every later send with its
+old Cancelled state: London's 09:00 round sent nothing (20 November).
+→ *Debt:* an order the desk itself cancelled is sent once more that day as `<id>-r1`,
+through the same gate (R-RUNNER-391, R-RUNNER-394).

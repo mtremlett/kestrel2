@@ -169,6 +169,13 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #924 R-RUNNER-248 done - SimCity scenario for the blind crash watch, red without the telling, green with. |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #945 R-RUNNER-377 SimCity gap scenario names a bar-less line as a FAULT, not an IndexError. |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #955 R-RUNNER-314 SimCity stale-store scenario landed. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #972 R-RUNNER-315 SimCity scenario for the parked yardstick, green and driven red. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1008 R-RUNNER-389 done, going note kept on disconnect. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1031 R-MONEY-54 part: send path's disagreement halt now cancels working buys. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1000 R-RUNNER-316 SimCity scenario for the live keeper's unheld one-minute bars, green with handling and red without. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1035 R-RUNNER-392 part 1: fault matrix table and the after-accept row for 2110 and 2157 built. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1028 R-RUNNER-318 scenario built and red; no change landed, fix needed in conformance_parts. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1052 R-RUNNER-318 SimCity scenario for the conformance job's missing session bar |
 
 ### DATA
 
@@ -341,6 +348,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #797 R-RUNNER-217 step 1: quality monitor, daily timeframe, audit-backfill-reaudit line. |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #795 DAT-03, DQ-01 step: coverage and quality measured per line (desk/coverage.py). |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #811 DATA - quality monitor gains rollup and clash faults (R-RUNNER-217, step 2), 57 product lines. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1023 no change; R-MONEY-28 already on main. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1025 no change; R-PAPER-33 already on main (#770). |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1037 DATA: coverage wired into the quality monitor, no scene moved. |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #814 history.daily home required (R-DATA-49). |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #819 data-deep-history: found the one-word block (store.py KNOWN), pinned the 2000-2009 US calendar; box not finished. |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #821 data-deep-history: found why no bar before 2010 is kept; no change landed (the fix spans store.py and lines.py, outside this claim). |
@@ -406,6 +416,20 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #985 no change: R-DATA-60 verified on main. |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #989 no change: blocking requests already on main. |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #992 no change: R-PAPER-23 verified on main. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #996 closed three stale blocking requests by tick, no code (R-RUNNER-387, R-PAPER-23, R-DATA-60) |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #998 no change; blocking requests already on main |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1001 no change; R-DATA-60 verified on main |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1003 no change; blocking requests verified on main |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1004 no change; blocking requests verified on main |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1007 no change; R-PAPER-23, R-RUNGS-16 already on main |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1038 no change; R-PAPER-23 verified on main (#294). |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1040 no change; R-PAPER-23 already on main. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1042 no change; R-PAPER-23 verified on main (#294). |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1043 no change; R-PAPER-23 already on main. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1044 no change; R-PAPER-23 verified on main (#294). |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1059 coverage lookback read from the grid's SWEEPS, one home (500 sessions). |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1062 no change; R-MONEY-48 already met, closed. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1065 DATA: data-pence confirmed done on main, docstring only. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
@@ -510,6 +534,10 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #909 R-RUNNER-380 the rehearsal does not book a fill on a line the account held |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #931 no change; R-RUNNER-348 waits on a date field on Order (desk/orders.py).
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #933 no change; R-RUNNER-348 waits on a date field on Order (same request).
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1026 R-RUNNER-393 done: the conformance action names each order once with its total shares |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1024 R-RUNNER-390 done: link news no longer turns the kill switch on. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1066 R-MONEY-55 done: go flat cancels working buys via halt.stop. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1097 scribe folded #1066; no change. |
 
 ### GRID
 
@@ -753,3 +781,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #954 no change; R-RUNGS-29 waits on the guard change (outside claim) |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #984 R-RUNNER-385 done: serial ladder passes the family count to the judge while EASED |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #966 no change; R-RUNGS-30 verified on main |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #979 no change; EASED cannot be flipped alone (family not passed) |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #986 R-RUNNER-386 built: pooled ladder judges with its family count while EASED |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #993 R-RUNNER-231 EASED switched on, golden fixture verdicts re-pinned |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1070 no change; 1051 superseded by #993 |

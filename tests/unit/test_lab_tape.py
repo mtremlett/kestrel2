@@ -18,13 +18,22 @@ from test_lab_ladder import EDGE, ISF, NOISE, VUSA, _door, _rows
 
 from desk.orders import Settings
 from desk.store import Bar
-from lab import cell, ladder, ladder_sets, rung, tape
+from lab import cell, ladder, ladder_sets, rung, tape, verdict
 from lab.cell import Cell, Record
 
 CLOCK = lambda: datetime(2026, 11, 14, tzinfo=UTC)  # noqa: E731
 BOOK = {VUSA: EDGE, ISF: NOISE}
 RULES = ("breakout_20_10", "trend_50_200")
 TODO = [Cell(rule, line, ladder.START, ladder.END) for rule in RULES for line in BOOK]
+
+
+@pytest.fixture(autouse=True)
+def uneased(monkeypatch: pytest.MonkeyPatch) -> None:
+    """These tests are about tapes, not easing: the ladder runs uneased here (EASED off), so
+    a rule is simulated once and no placebo rung simulates again; with EASED on the cold, warm
+    and tapeless runs take past 15 minutes on GitHub (20 Nov, #993). The eased path has its
+    own tests (test_lab_rung_golden.py)."""
+    monkeypatch.setattr(verdict, "EASED", False)
 
 
 @pytest.fixture

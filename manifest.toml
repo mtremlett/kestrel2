@@ -108,6 +108,7 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "desk/day_money.py" = "the day's money read at its end: what the book is worth, its heat, and the pounds it controls per underlying market"
 "desk/day_parts.py" = "the day's published record: its fields and verdict, and the records file that keeps it, read and written; desk.day gives them to its callers"
 "desk/restop.py" = "the stop set from the fill: a held line's resting stop moved under its fill's own price, once, and the level kept"
+"desk/handpark.py" = "a line parked by hand: a symbol named in a small file of the desk's data folder is never bought while listed, sold and stopped as ever (R-RUNNER-397)"
 "desk/kill.py" = "the kill switch: one command stops every new order and cancels the working ones, the desk says so, and its drill"
 "desk/emergency.py" = "the three emergencies in numbers: an emergency, a crash and a black swan, each a measured fall set in advance, each with its action"
 "desk/halt.py" = "what stops the desk buying: the halt, a typed record in force until it is lifted and said every day, and the blockers, every one named, with each morning's list of the signals each blocked"
@@ -116,6 +117,7 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "desk/simcity_census.py" = "SimCity's census: each part of the money path and the scenarios that ran it, measured by a profiler"
 "desk/simcity_parts.py" = "SimCity's night and its worlds: the night's one record with its words, and a world's market dealt again from the saved lines; desk.simcity gives them to its callers"
 "desk/simcity_incidents.py" = "SimCity's scenarios met by a real night, each a morning the desk is put in and the promise it must keep there: a held line with no bar for a session (R-RUNNER-246)"
+"desk/simcity_faults.py" = "SimCity's broker fault matrix: every IBKR message class crossed with every send moment, each cell with the promise it must keep; a cell is a passing scene or listed as not yet built, counted and printed (R-RUNNER-392)"
 "desk/simcitycmd.py" = "SimCity's command line: the saved store lived in a night of worlds (all with --full) as the runner asks, the night's words printed, the code 1 for a red night"
 "desk/eponymous_breakouts.py" = "rules named for their authors, ported one at a time under the strategy template and judged on the ladder, never traded by the paper desk: Darvas's box"
 

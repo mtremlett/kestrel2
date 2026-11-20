@@ -9,12 +9,13 @@ from a pulled one is a red fault. Exit 0 only when green."""
 from __future__ import annotations
 
 import os
+import shutil
 import sys
 from collections.abc import Iterable
 from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
 
-from desk import backfill, bars, history_write, keeper, venues
+from desk import backfill, bars, coverage, history_write, keeper, venues
 from desk.lines import LINES, Line
 from desk.spans import EPOCH, FIVE
 from desk.store import Bar
@@ -161,6 +162,31 @@ def basis(path: Path, line: Line) -> list[str]:
     return [f"{line.symbol}: daily series mixes bases: {', '.join(sorted(named))}"]
 
 
+def covered(path: Path, lines: list[Line], now: datetime) -> tuple[str, bool]:
+    """The desk's coverage score said in words, and whether the parked share is within its cap."""
+    held = {}
+    for line in lines:
+        try:
+            held[line.symbol] = len(bars.daily(path, line))
+        except LookupError:  # the store never held this line's daily bars: no sessions
+            held[line.symbol] = 0
+    parked = keeper.parked_live(path, lines, now)
+    score = coverage.desk_score(coverage.measure(held, parked))
+    return f"coverage {score:.2f}", coverage.parked_within_cap(held, parked)
+
+
+FREE_FLOOR = 0.10  # the share of its drive the store's folder must leave free (OPS-07)
+
+
+def disk(home: Path) -> list[str]:
+    """Red when the drive holding the store has less than FREE_FLOOR of itself free."""
+    usage = shutil.disk_usage(home)
+    share = usage.free / usage.total
+    if share >= FREE_FLOOR:
+        return []
+    return [f"disk: {share:.0%} free on the drive of {home.name}, floor {FREE_FLOOR:.0%}"]
+
+
 def monitor(
     path: Path, lines: Iterable[Line], broker: backfill.Ask, archived: backfill.Ask, now: datetime
 ) -> str:
@@ -175,7 +201,11 @@ def monitor(
     red += [why for line in every for why in thin(path, line, today)]
     red += [why for line in every for why in volumes(path, line, today)]
     red += [why for line in every for why in basis(path, line)]
-    said = f"{len(wrote)} bars backfilled, {sum(n for n, _ in built)} rolled up"
+    red += disk(path.parent)
+    score, within = covered(path, every, now)
+    if not within:
+        red.append(f"parked lines exceed {coverage.PARKED_CAP:.0%} of the lines")
+    said = f"{len(wrote)} bars backfilled, {sum(n for n, _ in built)} rolled up, {score}"
     if not red:
         return f"quality: green, {len(every)} lines, {said}"
     return f"quality: RED, {said}; {'; '.join(red)}; unfilled {len(named)}"

@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import shutil
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from pathlib import Path
+from types import SimpleNamespace
 
 from desk import bars, quality
 from desk.lines import LINES
@@ -35,14 +37,17 @@ def seeded(path: Path, planted: set[date]) -> Path:
 def test_planted_gaps_are_backfilled_and_the_line_is_green(tmp_path: Path) -> None:
     path = seeded(tmp_path, {DAYS[1], DAYS[3]})
     said = quality.monitor(path, [SPY], lambda _l, d: [bar(d)], lambda _l, _d: Refused("no"), NOW)
-    assert said == "quality: green, 1 lines, 2 bars backfilled, 0 rolled up"
+    assert said == "quality: green, 1 lines, 2 bars backfilled, 0 rolled up, coverage 0.00"
     assert quality.gaps(path, [SPY], TODAY) == []
+    assert quality.covered(path, [SPY], NOW) == ("coverage 0.00", True)
 
 
 def test_a_gap_no_source_fills_is_named_red(tmp_path: Path) -> None:
     path = seeded(tmp_path, {DAYS[2]})
     said = quality.monitor(path, [SPY], refuse, refuse, NOW)
-    assert said.startswith("quality: RED, 0 bars backfilled, 0 rolled up; SPY: 1 sessions missing")
+    assert said.startswith(
+        "quality: RED, 0 bars backfilled, 0 rolled up, coverage 0.00; SPY: 1 ses"
+    )
 
 
 def test_rolled_bars_are_built_and_a_pulled_bar_that_differs_is_red(tmp_path: Path) -> None:
@@ -54,7 +59,7 @@ def test_rolled_bars_are_built_and_a_pulled_bar_that_differs_is_red(tmp_path: Pa
     with bars.writing(path, bars.Source.IBKR) as held:
         held.timed(SPY, "30m", half)
     first = quality.monitor(path, [SPY], refuse, refuse, NOW)
-    assert first == "quality: green, 1 lines, 0 bars backfilled, 2 rolled up"
+    assert first == "quality: green, 1 lines, 0 bars backfilled, 2 rolled up, coverage 0.00"
     odd = Timed("1h", start, price, price + 3, price - 1, price + 2, 10)
     with bars.writing(path, bars.Source.IBKR) as held:
         held.timed(SPY, "1h", [odd])
@@ -133,3 +138,13 @@ def test_todays_bar_is_green_once_its_venue_has_closed_and_named_while_open(tmp_
     assert quality.audit(path, SPY, datetime(2026, 11, 17, 12, 0, tzinfo=UTC)) == [
         "SPY: 2026-11-17 is not a closed session on the US calendar, or too early"
     ]
+
+
+def test_a_drive_with_under_a_tenth_free_turns_the_monitor_red(tmp_path: Path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    path = seeded(tmp_path, set())
+    for free, red in ((5, True), (50, False)):
+        monkeypatch.setattr(
+            shutil, "disk_usage", lambda _p, f=free: SimpleNamespace(total=100, free=f)
+        )
+        said = quality.monitor(path, [SPY], refuse, refuse, NOW)
+        assert ("disk: 5% free" in said) is red

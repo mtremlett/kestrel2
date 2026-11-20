@@ -4,13 +4,25 @@ a scenario of its own: green when the desk refuses the day naming the line, red 
 from __future__ import annotations
 
 from datetime import timedelta
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
 import pytest
 from test_simcity import NOW, RATES, ROOM, SHORT
 
-from desk import bars, book, day, day_money, keeper, keeper_live, simcity, watch
+from desk import (
+    bars,
+    book,
+    conformance_parts,
+    day,
+    day_money,
+    keeper,
+    keeper_live,
+    simcity,
+    store,
+    watch,
+)
 from desk.simcity_incidents import (
     CANCELLED,
     DEAF,
@@ -25,6 +37,8 @@ from desk.simcity_incidents import (
     REFUSED,
     SOLD,
     STALE,
+    UNBARRED,
+    UNHELD,
     beside,
     cancelled,
     deaf,
@@ -34,6 +48,8 @@ from desk.simcity_incidents import (
     outside,
     parked,
     stale,
+    unbarred,
+    unheld,
 )
 
 
@@ -101,7 +117,15 @@ def test_without_naming_the_cancelled_orders_the_scenario_is_red(
 
 @pytest.mark.parametrize(
     ("words", "scenario"),
-    [(HALTED, halted), (OUTSIDE, outside), (PARKED, parked), (STALE, stale)],
+    [
+        (HALTED, halted),
+        (OUTSIDE, outside),
+        (PARKED, parked),
+        (STALE, stale),
+        (UNHELD, unheld),
+        (UNBARRED, unbarred),
+        (LIVE, minutes),
+    ],
 )
 def test_a_halt_a_line_outside_an_isa_and_a_parked_yardstick_are_lived_and_kept(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, words: str, scenario: Any
@@ -160,3 +184,29 @@ def test_lines_whose_minute_just_ended_are_not_stale_and_with_a_zero_grace_all_a
     monkeypatch.setattr(keeper_live, "LATE", timedelta(seconds=-1))
     red = simcity.run(tmp_path / "b", SHORT, ROOM, RATES, NOW, (1, 2, 3))
     assert any(LIVE in b for b in red.broken)
+
+
+def test_unheld_minute_bars_are_named_stale_and_without_starting_the_lines_it_is_red(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(simcity, "EVENTS", ((UNHELD, unheld),))
+    monkeypatch.setattr(simcity, "EVENTFUL", 1)
+    kept = simcity.run(tmp_path / "a", SHORT, ROOM, RATES, NOW, (1, 2, 3))
+    assert not any(UNHELD in broken for broken in kept.broken)
+    monkeypatch.setattr(bars.Round, "timed", lambda *_a: 0)  #: no line is started, none kept
+    red = simcity.run(tmp_path / "b", SHORT, ROOM, RATES, NOW, (1, 2, 3))
+    assert any(UNHELD in broken for broken in red.broken)
+
+
+def test_a_plan_with_no_bar_of_the_session_before_is_red_when_it_sizes_from_an_older_one(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(simcity, "EVENTS", ((UNBARRED, unbarred),))
+    monkeypatch.setattr(simcity, "EVENTFUL", 1)
+    monkeypatch.setattr(
+        conformance_parts,
+        "_last",
+        lambda _x, day_, _h: store.Bar(day_, *(Decimal(1),) * 4, 1),
+    )
+    red = simcity.run(tmp_path, SHORT, ROOM, RATES, NOW, (1, 2, 3))
+    assert any(UNBARRED in broken for broken in red.broken)

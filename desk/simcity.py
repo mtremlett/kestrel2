@@ -31,6 +31,8 @@ from desk.simcity_incidents import (
     LIVE,
     PARKED,
     STALE,
+    UNBARRED,
+    UNHELD,
     beside,
     cancelled,
     deaf,
@@ -38,6 +40,8 @@ from desk.simcity_incidents import (
     minutes,
     parked,
     stale,
+    unbarred,
+    unheld,
 )
 from desk.simcity_parts import MONTH, Archive, Night, _market
 from desk.strategy import Action
@@ -213,6 +217,7 @@ def _gapped(life: _Life, on: date) -> None:
             shut[s],
             life.rates[lines[s].currency],
             orders.stop_under(lines[s], shut[s]),
+            session=on,
         )
         for s, f in held.items()
         if s in shut
@@ -246,6 +251,8 @@ EVENTS: tuple[Event, ...] = (
     (CANCELLED, cancelled),
     (PARKED, parked),
     (DEAF, deaf),
+    (UNHELD, unheld),
+    (UNBARRED, unbarred),
     (LIVE, minutes),
 )
 
