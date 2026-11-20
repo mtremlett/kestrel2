@@ -334,11 +334,11 @@ def test_a_part_behind_a_wrapper_is_still_a_part() -> None:
         (book, "reckon", lambda *_: ({}, (), set(), ()), ["with no stop at the broker"], 0),
         (book, "collect", lambda *_: None, ["the ledger is the broker's own fills"], 0),
         (book, "_settle", lambda *_: None, ["left working"], 0),
-        (day, "_bare", lambda *_: None, ["on that day's list"], 1),
+        (day, "_bare", lambda *_: None, ["on that day's list"], 2),
         (day, "pennies", lambda p: orders.pennies(p) + Decimal("0.01"), ["profits add up"], 0),
         (simcity, "HOLDINGS", 3, ["never more than 3 lines are held"], 0),
         (simcity, "_Counted", lambda _, rng: WORLD(SHORT, rng), ["inside its day's range"], 0),
-        (book, "_unless_killed", lambda *_: None, ["nothing reaches the", "drill is on the"], 3),
+        (book, "_unless_killed", lambda *_: None, ["nothing reaches the", "drill is on the"], 4),
     ],
 )
 def test_a_promise_the_desk_breaks_in_any_world_turns_the_night_red_and_names_the_world(
