@@ -136,7 +136,7 @@ money-restop waits on R-MONEY-18, R-MONEY-31 (the lost-stop list in `desk/messen
 
 ## PAPER
 
-Last updated: 20 November 2026 (folds #215 to #1026, #1024, #1066).
+Last updated: 20 November 2026 (folds #215 to #1026, #1024, #1066, #1097).
 
 ### Where it is
 
