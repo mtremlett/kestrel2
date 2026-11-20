@@ -42,8 +42,11 @@ def test_the_ladders_rows_are_those_the_verdict_gives_while_no_module_declares_a
     ladder.run(tmp_path, _door({VUSA: EDGE, ISF: NOISE}), {}, _set(VUSA, ISF))
     assert all(not ({"planted"} & set(row["rungs"])) for row in _rows(tmp_path))
     rows = _rows(tmp_path)  #: EASED: a hard fail on the first rung stops that line there
-    assert all("first" in row["rungs"] for row in rows)
-    assert any(set(row["rungs"]) >= {"first", "market", "folds"} for row in rows)
+    stopped = [row for row in rows if row["rungs"]["first"][0] == "FAIL"]
+    assert stopped and len(stopped) < len(rows), "one line stopped, one judged on every rung"
+    assert all(
+        set(row["rungs"]) >= {"first", "market", "folds"} for row in rows if row not in stopped
+    )
 
 
 def test_a_planted_rung_module_is_found_and_judged_with_no_edit_of_the_ladder(

@@ -2092,3 +2092,15 @@ options ((a) 16,500 once, recommended; (b) 18,000; (c) keep 15,000), he chose (b
 Conditions kept with it: every growing card names itself in its pull request, and growth,
 bloat, sprawl and doom loops are reviewed in the 21:00 report. The ceiling still ratchets:
 this file is the only place it moves, and only on his word.
+
+## 2026-11-20: the ladder's golden verdict, re-pinned under R-225, and the eased tests restored (R-RUNNER-396, RUNGS lane)
+
+B5: `tests/unit/test_lab_rung_golden.py` was re-pinned by 5ebe658 (#993) under R-RUNNER-225's
+easings. In plain English: with the easings on, a line is graded on every rung (a weak rung is
+WEAK, no longer a fail), is charged only its rule's own family of trials, and a hard fail on
+the first rung stops that line there; so the fixture's two lines now read THIN and FAIL where
+the old table read otherwise. His 16 Nov "YES TO ALL" is the approval.
+Two loosenings that change followed are undone here: the registry test again asserts that
+every line not stopped by a hard fail is judged on first, market and folds, and the blanket
+autouse switch-off in the ladder, retail and tape tests is gone: a test pins the easing off
+only by name, with its reason beside it.
