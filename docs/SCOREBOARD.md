@@ -381,6 +381,14 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #941 no change: four blocking requests (R-MONEY-28, R-PAPER-23, R-PAPER-33, R-RUNGS-16) already done on main. |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #940 no change: R-RUNNER-217 rollup step needs desk/bars_schema.py in its claim. |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #943 no change: the same four blocking requests found already done. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #917 no change: no free breadth series found (R-RUNNER-346, R-MONEY-35); Zweig row stays out. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #950 no change: R-RUNNER-217 needs Source.ROLLUP_5M in desk/bars_schema.py, outside the claim. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #953 no change: R-MONEY-48 already done. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #921 no change: R-PAPER-23 verified on main (#294). |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #961 no change: R-PAPER-23 and R-PAPER-33 verified on main. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #959 no change: R-PAPER-23 verified on main. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #957 no change: R-MONEY-28 verified on main. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #960 no change: R-PAPER-23 verified on main (#294). |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 

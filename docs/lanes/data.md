@@ -779,3 +779,8 @@ Options: (a) the session's close time (rejected, the auction still prints after 
 Options: (a) edit bars_schema.py anyway (the check refuses); (b) reuse an existing Source for the rollup (wrong provenance,
 rejected); (c) land nothing and ask for the claim to include desk/bars_schema.py (chosen). Adding the member elsewhere would
 make a second home for Source (#930 landed step 1 only).
+
+### 2026-11-20 — no purchase of a breadth feed (#917, R-RUNNER-346, R-MONEY-35)
+Options: buy a feed (NYSE, McClellan; spend is his hard line, refused); use unconfirmed scraped symbols (^ADVN/^DECN, no
+free download, not re-checkable, rejected); leave the Zweig row out of the catalogue (chosen, as the request itself says).
+Waits: operator.
