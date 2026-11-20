@@ -631,3 +631,9 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 
 ### 2026-11-19 - sweeps one setting at a time (#904, R-GRID-1)
 - Options: (a) one setting at a time, three values each (published and its neighbours) so cell counts stay small (chosen); (b) a cross product, rejected as too many cells. The published value is the plain rule name, not a variant; rsi2's `length` is 2, 3, 4.
+
+### 2026-11-20 - intraday.session reads the store (#916, R-RUNNER-199)
+- Candle.source is "store" because the store read does not return a bar's source. Options: (a) look the source up per bar (extra reads); (b) a fixed name (chosen, no extra reads).
+
+### 2026-11-20 - SimCity phase limit of two hours (#936, R-RUNNER-328)
+- Each of SimCity's three phases (store read, worlds, stress replay) runs under `LIMIT` in desk/simcitycmd.py. Options: 1 h, 2 h (chosen), none. Monday's full run took 17 min and the hang 6 h, so 2 h is far above normal and well below the kill.
