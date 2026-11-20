@@ -149,6 +149,7 @@ Checked 17 Nov (MONEY): R-RUNGS-12 re-verified on main (`strategy.rsi`, `strateg
 
 Checked 17 Nov (MONEY, s6): R-DATA-53 is on main (`desk/command.py:387` passes `home=root.parent`, #798) and R-PAPER-29 is on main (`book.conformance_cost`, #763); no blocking request is open; nothing built.
 Checked 20 Nov (MONEY, s2): R-PAPER-35's field is on main (#1102) and set in day, kill, simcity, orders; what is left is PAPER's files (`desk/goflat.py`, `desk/conformance_parts.py`, `desk/placing.py` `_cleared`), outside MONEY's claim; nothing built.
+Checked 20 Nov (MONEY, s7): no blocking request is open; R-PAPER-30 (size the 0.05% half-spread, `orders_parts.HALF_SPREAD`/`SLIPPAGE` from one real VUAG buy 0.09 and sale 0.14 below the pretend close) needs a day of fills and moves golden numbers (B5), so it waits for more conformance tapes; nothing built.
 Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half is on main (`day.run(killed=...)` refuses a killed strategy's buys); what is left is reading `promotion.standing` into that set, which `desk/` may not import (lab wall) and whose caller `desk/running.py` is PAPER's; nothing built.
 
 - [x] The rehearsal data in a file of its own (`tests/scenes/rehearsal.py`)
