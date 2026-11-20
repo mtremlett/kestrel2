@@ -406,6 +406,12 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #985 no change: R-DATA-60 verified on main. |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #989 no change: blocking requests already on main. |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #992 no change: R-PAPER-23 verified on main. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #996 closed three stale blocking requests by tick, no code (R-RUNNER-387, R-PAPER-23, R-DATA-60) |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #998 no change; blocking requests already on main |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1001 no change; R-DATA-60 verified on main |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1003 no change; blocking requests verified on main |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1004 no change; blocking requests verified on main |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1007 no change; R-PAPER-23, R-RUNGS-16 already on main |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 

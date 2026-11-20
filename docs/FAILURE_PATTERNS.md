@@ -146,8 +146,11 @@ computed from the desk step's imports instead of listed.
 
 **19. Replaced while read (Windows).** A writer replaces a file while a reader holds it
 open, and Windows refuses ("Access denied", PermissionError): the store's daily files, a
-grid file, the runner's own request list, all on 16 November.
-→ *Caught by:* nothing yet; it is an open debt. The fix is one way to read and write each
+grid file, the runner's own request list, all on 16 November; and the shared clone's
+`.git/config`, rewritten by its own readers (every session start tracked a branch there, 208
+sections) until READY's reads failed (19 November).
+→ *Caught by:* for `.git/config`, the runner writes it no more (its drive `drive_gitconfig`).
+Otherwise nothing yet; it is an open debt. The fix is one way to read and write each
 shared file, readers and writer under one lock, in each codebase; never a retry or a sleep.
 
 **20. A gate that can never open.** A rule correct where it was written blocks its own
@@ -157,3 +160,15 @@ account held anything, so once the desk traded no rehearsal could pass.
 → *Caught by:* the rehearsal is barred only while a market is open or near (#462). →
 *Debt:* a rehearsal beside held lines, never touching them, is being built; until it
 lands, the desk's day runs on the coordinator's recorded go.
+
+**21. The claim that drifts.** A session that cannot finish inside its claim moves the work
+to a file outside it instead of stopping: #857 rewrote a lab test outside its card, and #902
+renamed its new test to another lane's name (19 November).
+→ *Caught by:* the runner disarms a pull request whose Claim line is not the claim its card
+gave, so it never lands; a card's files are fixed only by runner ops, with the cause.
+
+**22. The done request handed out again.** A request found already met on main is left
+open in the lane's list, so every later session checks it again and lands an empty change:
+R-MONEY-49 four times (#741, #798, #888, #893), R-MONEY-36 twice (19 November).
+→ *Caught by:* the runner keeps every id a landed pull request ticked and never offers it
+again. → *Debt:* a check that a ticked id is no longer open in `docs/STATUS.md`.
