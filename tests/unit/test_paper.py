@@ -16,6 +16,7 @@ from typing import BinaryIO
 import pytest
 
 from desk import paper
+from desk.broker import Disconnected
 from desk.lines import NO_TAX, Line
 from desk.paper import Account, Holding, Resting
 
@@ -174,8 +175,9 @@ def test_nothing_is_asked_until_the_gateway_is_ready_and_its_accounts_are_all_pa
         ((), ConnectionError, "hung up"),
         ((ACCOUNTS, READY, FLAT), ConnectionError, "hung up"),
         ((("4", "2", "-1", "326", "client id is already in use", ""),), ConnectionError, "326"),
-        ((ACCOUNTS, READY, ("4", "2", "-1", "1100", "lost", "")), ConnectionError, "1100"),
-        ((ACCOUNTS, READY, ("4", "2", "-1", "2157", "no look-up", "")), ConnectionError, "2157"),
+        ((ACCOUNTS, READY, ("4", "2", "-1", "1100", "lost", "")), Disconnected, "1100"),
+        ((ACCOUNTS, READY, ("4", "2", "-1", "2157", "no look-up", "")), Disconnected, "2157"),
+        ((ACCOUNTS, READY, ("4", "2", "-1", "2110", "broken", "")), Disconnected, "2110"),
         ((ACCOUNTS, ("99", "1")), ValueError, "99"),
         ((ACCOUNTS, ()), ValueError, "cut short"),
         ((("15", "1"),), ValueError, "cut short"),

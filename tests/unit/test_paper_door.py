@@ -12,8 +12,10 @@ from pathlib import Path
 import pytest
 from test_reports import LISTED, OURS
 
-from desk import paper, placing
+from desk import book, paper, placing
+from desk.broker import Disconnected
 from desk.listing import Listing
+from desk.orders import Sale
 
 #: the paper lane's modules but paper itself, which alone still reads them for the data lane
 PAPER_LANE = (
@@ -46,3 +48,15 @@ def test_no_paper_lane_module_reads_the_modules_client_or_apart() -> None:
     for name in PAPER_LANE:
         text = (Path(__file__).parents[2] / "desk" / f"{name}.py").read_text(encoding="utf-8")
         assert not reads.search(text), f"desk/{name}.py reads paper.CLIENT or paper.APART"
+
+
+def test_link_news_after_an_order_is_unknown_not_a_fault_and_the_kill_switch_stays_off(
+    tmp_path: Path,
+) -> None:
+    class Lost:
+        def place(self, _order: object) -> None:
+            paper.other(["4", "2", "-1", "2157", "Sec-def data farm connection is broken", ""])
+
+    with pytest.raises(Disconnected, match="2157"):
+        book._place(tmp_path, Lost(), Sale("a-1", LISTED["IITU"], 1), None)  # type: ignore[arg-type]
+    assert book.killed(tmp_path) is None and (tmp_path / book.GOING).exists()
