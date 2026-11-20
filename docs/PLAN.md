@@ -330,7 +330,7 @@ Checked 17 Nov (MONEY, s6): R-DATA-53 is on main (`desk/command.py:387` passes `
 - [ ] Coverage and quality measured: history at least twice the longest lookback for every
       line, five years by the A-GATE; a quality score per line and desk-wide, and a cap on
       the share of lines parked (DAT-03, DQ-01)
-      Built (#795): `desk/coverage.py`, pure and tested. Built (#1037): `quality.monitor` feeds it the store's real counts and the parked list, prints "coverage 0.xx", and goes red past 10% of lines parked. Remains: the per-lookback and second-source parts
+      Built (#795): `desk/coverage.py`, pure and tested. Built (#1037): `quality.monitor` feeds it the store's real counts and the parked list, prints "coverage 0.xx", and goes red past 10% of lines parked. Built (#1059): `coverage.LOOKBACK` reads the grid's longest setting (500 sessions needed). Remains: the second-source part
 - [ ] A second source: a gap filled and a failing feed replaced from a ranked second
       source, with a staleness alarm and a register of sources; the twenty lines' bars
       checked against the broker's price of record each day once PAPER connects (DQ-03,
