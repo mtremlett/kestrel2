@@ -53,21 +53,9 @@ macro series, earnings dates and timestamped news into the one store (#460); the
 read instead of asked again (#458). Two no-change sessions (#424, #454) found R-RUNNER-11 waiting on PAPER test lines; it
 landed later. Git keeps each full entry.
 
-### 2026-11-16 — SPY kept from 29 January 1993 as a reference series (R-RUNNER-94) (#303)
+### 2026-11-16 — SPY reference series kept daily, folded (#303, #475)
 
-- Where to hold reference bars - (a) store.py (would pass its 400-line cap), (b) new module
-  desk/reference.py (outside the claim, went red), (c) archive.py, chosen. Calendar: the
-  reference series is checked without a calendar (weekday only) rather than extending
-  venues.py back to 1993, which is outside my claim; recommended, taken.
-
-### 2026-11-16 — the keeper keeps SPY's history daily after the US close (R-RUNNER-96) (#475)
-
-- A refused reference fetch is told in words but is not a miss (nothing is traded on it;
-  options: count it as a miss, which would wake the operator over a research series;
-  recommended and taken: not a miss, retried at the next call per his "always go with
-  recommended"). Reference bars are kept under the daily store's US folder (desk cannot import
-  lab; this is the one store's own folder).
-
+Settled: reference bars live in archive.py, checked by weekday only (venues.py back to 1993 is outside the claim); a refused reference fetch is told but is no miss, retried next call (#303, #475).
 ### 2026-11-16 — the one calendar names market events (R-RUNNER-149) (#453)
 
 - Events are read from the calendar by (venue, day) and refused outside 2026 (options: guess
@@ -464,6 +452,17 @@ Options: 4 places, 6 places, significant figures; chose 4, the broker's own form
 ### 2026-11-19 — the keeper's fault window is 400 sessions (#863, R-RUNNER-327)
 
 Options: 60 sessions (too short, hides a lasting step the strategies still read), 400 sessions (coverage.NEED, what a rule needs before trading), all history (today's fault). Chose 400; lasting faults dated outside it are named only.
+
+
+### 2026-11-20 — free disk floor as a share (#1098)
+Options: (a) an absolute floor in gigabytes; (b) 10% of the drive free (chosen, recommended). A share follows the drive. It is
+checked in the command's entry, not inside `monitor`, so the monitor's tests do not depend on the test machine's disk
+(wired into `monitor` afterwards, #1107).
+
+### 2026-11-20 — breadth derived from our own bars (R-RUNNER-346, #1104)
+Options: (a) buy a vendor advances/declines series (spend, a hard line); (b) derive it from the store's S&P 500 bars (free,
+survivorship-biased: today's members only; chosen, per his "go with recommended"); (c) no Zweig row. Any verdict using it
+must state the survivorship caveat.
 
 ## LADDER (until 13 November; since then GRID and RUNGS)
 
