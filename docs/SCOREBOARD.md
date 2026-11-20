@@ -175,6 +175,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1000 R-RUNNER-316 SimCity scenario for the live keeper's unheld one-minute bars, green with handling and red without. |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1035 R-RUNNER-392 part 1: fault matrix table and the after-accept row for 2110 and 2157 built. |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1028 R-RUNNER-318 scenario built and red; no change landed, fix needed in conformance_parts. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1052 R-RUNNER-318 SimCity scenario for the conformance job's missing session bar |
 
 ### DATA
 
@@ -421,6 +422,14 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1003 no change; blocking requests verified on main |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1004 no change; blocking requests verified on main |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1007 no change; R-PAPER-23, R-RUNGS-16 already on main |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1038 no change; R-PAPER-23 verified on main (#294). |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1040 no change; R-PAPER-23 already on main. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1042 no change; R-PAPER-23 verified on main (#294). |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1043 no change; R-PAPER-23 already on main. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1044 no change; R-PAPER-23 verified on main (#294). |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1059 coverage lookback read from the grid's SWEEPS, one home (500 sessions). |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1062 no change; R-MONEY-48 already met, closed. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1065 DATA: data-pence confirmed done on main, docstring only. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
@@ -527,6 +536,8 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #933 no change; R-RUNNER-348 waits on a date field on Order (same request).
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1026 R-RUNNER-393 done: the conformance action names each order once with its total shares |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1024 R-RUNNER-390 done: link news no longer turns the kill switch on. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1066 R-MONEY-55 done: go flat cancels working buys via halt.stop. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1097 scribe folded #1066; no change. |
 
 ### GRID
 

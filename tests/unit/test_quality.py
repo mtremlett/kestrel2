@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import shutil
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from pathlib import Path
+from types import SimpleNamespace
 
 from desk import bars, quality
 from desk.lines import LINES
@@ -136,3 +138,13 @@ def test_todays_bar_is_green_once_its_venue_has_closed_and_named_while_open(tmp_
     assert quality.audit(path, SPY, datetime(2026, 11, 17, 12, 0, tzinfo=UTC)) == [
         "SPY: 2026-11-17 is not a closed session on the US calendar, or too early"
     ]
+
+
+def test_a_drive_with_under_a_tenth_free_turns_the_monitor_red(tmp_path: Path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    path = seeded(tmp_path, set())
+    for free, red in ((5, True), (50, False)):
+        monkeypatch.setattr(
+            shutil, "disk_usage", lambda _p, f=free: SimpleNamespace(total=100, free=f)
+        )
+        said = quality.monitor(path, [SPY], refuse, refuse, NOW)
+        assert ("disk: 5% free" in said) is red

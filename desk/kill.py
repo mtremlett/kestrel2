@@ -106,14 +106,14 @@ def _rehearse(desk: Path, at: datetime) -> dict[str, bool]:
     broker = Pretend({line: bars for line in (held, working, new)}, {working.symbol: Fault.STRAND})
 
     def buy(order_id: str, line: Line) -> Order:
-        return Order(order_id, line, 10, Decimal(50), Decimal(1), Decimal(45))
+        return Order(order_id, line, 10, Decimal(50), Decimal(1), Decimal(45), session=today)
 
     broker.open(today)
     book.send(desk, broker, buy("drill-held", held), room)
     with suppress(Crash):  #: the rehearsal's desk dies here, its order left working
         book.send(desk, broker, buy("drill-working", working), room)
     said = pull(desk, broker, at, "the drill")
-    orders = (buy("drill-buy", new), Sale("drill-sale", held, 10))
+    orders = (buy("drill-buy", new), Sale("drill-sale", held, 10, session=today))
     answers = [_answer(desk, broker, order, room) for order in orders]
     reached = broker.submitted()
     broker.open(days[1])
