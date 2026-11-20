@@ -275,14 +275,15 @@ def _made(amount: Decimal) -> str:
 def morning(root: Path, now: datetime, known: Known, post: Post) -> Delivery | None:
     """THE MORNING MESSAGE, once on each day a venue trades, from the hour he wakes: whether
     anything the desk can ask stops today's orders (stops), as of the moment it says; what it
-    holds; the last day on record. known is the gateway as it was just asked. None when no
-    message goes now."""
+    holds; the stops lost and still to be put back; the last day on record.
+    known is the gateway as it was just asked. None when no message goes now."""
     name, opens = _goes(MORNING, now)
     if name is None:
         return None
     reasons = "; ".join(reason.rstrip(".") for reason in stops(root, now, known))
     said = f"As things stand the desk would send NO order today: {reasons}." if reasons else CLEAR
-    return send(root, now, name, f"{opens} {said} {_gate(root)} {_state(root)}", post)
+    lost = _lost(root, gateway._uk(now).date())
+    return send(root, now, name, f"{opens} {said} {lost}{_gate(root)} {_state(root)}", post)
 
 
 def evening(root: Path, now: datetime, known: Known, post: Post) -> Delivery | None:

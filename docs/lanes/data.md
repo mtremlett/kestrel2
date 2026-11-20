@@ -773,3 +773,16 @@ before 2010); (b) land nothing and name the whole fix. Chose (b): (a) lets 2000-
 2004-08-06) and AMD (2008-09-29, -30) would park as a lasting fault until recorded in `real_moves` in `desk/lines.py`
 (canon A8, B1: safety before progress). #822 re-checked on main and chose (b) again, adding `desk/bars_parts.py:24`, which reads
 `KNOWN` the same way. The whole fix is R-DATA-54.
+
+### 2026-11-19 — a series' adjustment basis is read from its bars' sources (#870, R-RUNNER-217)
+
+Options: add a basis column to the store (outside the claim) or derive the basis from each bar's recorded source (chosen, in
+claim). IBKR and IBKR_DAILY form one basis, ARCHIVE and BACKFILL another, each old-desk source its own; a series mixing bases is
+a named red fault that `monitor` prints. Restating a mixed series onto IBKR's basis is not built.
+
+### 2026-11-19 — R-DATA-58 declined, the fresh pull kept (#872)
+
+Options: (a) restore the nine US lines from backup/20261117T013018Z, (b) leave the fresh pull and open a question on the volume
+basis. Chose (b): the live store already holds every backup day, the 20 differing sessions are fresh pulls with the old values
+kept in `correction`, and (a) would put stale over fresh, undone by the next archive round. His ruling, take recommended. Open
+question: which daily volume is the consolidated figure (R-DATA-59, waits: operator).

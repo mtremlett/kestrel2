@@ -348,3 +348,44 @@ def test_an_old_store_in_adjusted_prices_never_writes_over_the_raw_and_a_real_di
     assert refused.filled == 0
     assert "2 of the 2 bars already held for the same moments differ" in refused.faults[-1]
     assert "(on 2026-11-12, 2026-11-13)" in refused.faults[-1]
+
+
+def test_ibkr_stores_stamps_are_the_venues_wall_clock_read_to_utc_and_adopted_once(
+    tmp_path: Path,
+) -> None:
+    us, uk = next(x for x in LINES if x.venue == "US"), LINES[2]
+    walls = {us: datetime(2025, 12, 30, 9, 30), uk: datetime(2026, 7, 1, 8, 0)}
+    cells = dict(
+        zip(
+            headstart.PARQUET[1:],
+            ([10.0] * 2, [11.0] * 2, [9.0] * 2, [10.0] * 2, [5.0] * 2),
+            strict=True,
+        )
+    )
+    for line, wall in walls.items():
+        market = headstart.MARKET[line.venue]
+        made = tmp_path / f"freq=5/market={market.lower()}/ticker={line.symbol}.{market}"
+        made.mkdir(parents=True)
+        pq.write_table(
+            pa.table({"ts": [wall, wall + timedelta(minutes=5)]} | cells), made / "part.parquet"
+        )
+        (made / "fetch.json").write_text("{}")
+    utc = {
+        us: datetime(2025, 12, 30, 14, 30, tzinfo=UTC),
+        uk: datetime(2026, 7, 1, 7, 0, tzinfo=UTC),
+    }
+    assert {x: headstart.parquet(x, tmp_path, Source.IBKR_STORE)[0].start for x in walls} == utc
+    store = tmp_path / "market.db"
+    answers = {x: headstart.parquet(x, tmp_path, Source.IBKR_STORE) for x in walls}
+    with bars.writing(store) as round_:  # the archive holds the first moment: it proves the clock
+        for x in walls:
+            round_.five(x, [answers[x][0]])
+    daily = {x: [replace(DAY, day=utc[x].date())] for x in walls}
+    first = headstart.adopt(store, Source.IBKR_STORE, answers, daily)
+    assert {x: (got.filled, got.met, got.faults) for x, got in first.items()} == {
+        us: (1, 1, ()),
+        uk: (1, 1, ()),
+    }
+    assert bars.sources(store, uk, bars.FIVE) == {Source.ARCHIVE: 1, Source.IBKR_STORE: 1}
+    again = headstart.adopt(store, Source.IBKR_STORE, answers, daily)
+    assert [got.filled for got in again.values()] == [0, 0]

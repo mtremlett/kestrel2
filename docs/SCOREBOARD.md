@@ -158,6 +158,12 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #824 no change, two blocking requests (R-DATA-53, R-PAPER-29) verified on main. |
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #834 R-RUNNER-247 SimCity scenario for the 16 Nov conformance sale failure, red without adoption, green with it. |
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #845 money-time-gaps first step: time stop built in the one replay, gap loss measured; nothing wired to the broker yet. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #871 R-RUNNER-337 halt cancels working buys: command built and tested; callers not yet switched. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #880 R-RUNNER-338 crash watch blind rule matched to the ask (15 min). |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #881 R-RUNNER-345 done: desk/orders.py 400 -> 315 lines, cost model in desk/orders_parts.py. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #884 R-RUNNER-323 SimCity scenario for the cancelled-buy incident, red without the naming, green with it. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #895 R-RUNNER-335 part: halted and outside incident scenarios built and tested. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #904 R-GRID-1 part 1: sweep settings and named variants of the five on main, nothing new trades. |
 
 ### DATA
 
@@ -349,6 +355,13 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #859 R-RUNNER-313: every line gets IBKR's bar within ceil(lines/ROOM) calls. |
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #861 R-RUNNER-341: one price form; corrections only on real change. |
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #863 R-RUNNER-327: keeper never parks a line for a fault in deep history. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #870 DATA: quality monitor names mixed-basis daily series (R-RUNNER-217, step 7). |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #883 no change; R-MONEY-28 confirmed on main. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #886 no change; R-PAPER-23 and R-PAPER-33 verified on main. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #891 no change; blocking requests already on main. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #887 no change; blocking requests already on main. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #889 no change; R-RUNGS-5 and R-RUNGS-9 verified already in the store. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #872 no change; R-DATA-58 declined with evidence, fresh pull kept. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
@@ -445,6 +458,12 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #854 R-RUNNER-326 (a) a buy the desk withdraws is told as withdrawn by the desk; scenes pass. |
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #860 R-RUNNER-339 a market order is given 120 s to fill before the desk withdraws it. |
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #862 R-RUNNER-342 done: market-order wait measured from the broker's own messages (new desk/order_times.py). |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #874 R-RUNNER-330 the evening message tells a stop's fill with buy price and result after costs |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #888 no change; R-MONEY-49 already on main |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #885 R-MONEY-53 the morning message tells him of a stop lost by hand the same day |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #890 no change; R-MONEY-36 already on main |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #893 no change; R-MONEY-49 verified on main |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #909 R-RUNNER-380 the rehearsal does not book a fill on a line the account held |
 
 ### GRID
 
@@ -663,3 +682,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #833 rungs-leveraged waits on R-RUNGS-21 (inverse Line type); no change |
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #852 no change; R-RUNGS-18 met, R-RUNGS-17/28 are GRID's file |
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #858 pooled folds accept lines with different ends (R-RUNNER-331) |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #866 R-RUNNER-205 step: weather edge per fold (`weather.edges`), no scene moved |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #868 R-RUNNER-340 the set's table is swapped in whole, never half-written |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #873 R-RUNNER-219 part: 20 of 21 eponymous rules in the catalogue (Mansfield added; Zweig waits on breadth data) |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #875 R-RUNNER-205 step: weather win-against-trend test built (`weather.against_trend`) |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #878 rung map corrected (regime rung is judged by the weather); doc line only |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #892 R-RUNNER-332 FAULT said per rung with share; a mostly-FAULT set ends red |

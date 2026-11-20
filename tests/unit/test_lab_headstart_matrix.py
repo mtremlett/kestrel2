@@ -49,3 +49,22 @@ def test_matrix_spans_enter_by_their_start_vouched_by_their_day_and_a_second_run
     assert bars.sources(path, LONDON, "1h") == {Source.MATRIX_INTRADAY: 3}
     again = headstart_hours.main(old, path, [LONDON], headstart_matrix.one)
     assert "15m not held; 30m already in; 1h already in" in again
+
+
+def test_the_whole_pass_lands_the_matrices_daily_and_intraday_bars_each_under_its_source(
+    tmp_path: Path,
+) -> None:
+    old, path = tmp_path / "stooq_store_matrix", tmp_path / "market_live.db"
+    old.mkdir()
+    for span, hours in ("1d", [0]), ("30m", [9]), ("1h", [10]):
+        _write(old, span, hours, [101] * len(hours))
+    with bars.writing(path) as round_:  # the archive's day, which vouches for the hours
+        round_.daily(LONDON, [Bar(DAY, Decimal(100), Decimal(105), Decimal(95), Decimal(100), 9)])
+    register = tmp_path / "register.md"
+    register.write_text(f"| IMPORT | `{old}` |\n", encoding="utf-8")
+    first = headstart_matrix.whole(register, path, [LONDON], DAY)
+    assert first == "stooq_store_matrix: filled 2, refused 1, differ 0"
+    assert bars.sources(path, LONDON, "30m") == {Source.MATRIX_INTRADAY: 1}
+    assert bars.sources(path, LONDON, "1h") == {Source.MATRIX_INTRADAY: 1}
+    again = headstart_matrix.whole(register, path, [LONDON], DAY)
+    assert again == "stooq_store_matrix: filled 0, refused 1, differ 0"

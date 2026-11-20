@@ -16,7 +16,8 @@ verdict is the one rule over those six: no folds, or an author's figure not repr
 none; a worst fold too thin to say holds it at THIN. A rung not yet runnable is named on every
 line (UNRUN). Nothing goes to paper before all eleven.
 
-THE RUNG MAP (L2): the plan's eleven rungs, each `n name: module, test`. A row's names differ:
+THE RUNG MAP (L2): the plan's eleven rungs and easing 4's twelfth, each `n name: module, test`.
+A row's names differ:
 `first` holds 1-3, `market` 4 and 6. Each rung's proof is in its own test; (unbuilt) marks a file
 not yet there; after the dash, what is owed. BUILT: the ladder judges by it (it declares a RUNG).
  1 sample size, effective trades: lab/rung_sample.py, tests/unit/test_lab_rung_sample.py
@@ -30,6 +31,7 @@ not yet there; after the dash, what is owed. BUILT: the ladder judges by it (it 
  9 placebo on blocks of days: lab/rung_placebo.py, tests/unit/test_lab_rung_placebo.py
 10 walk-forward folds: lab/rung_folds.py, tests/unit/test_lab_folds.py - the ladder runs `pool`
 11 block bootstrap: lab/rung_bootstrap.py, tests/unit/test_lab_rung_bootstrap.py - no gate
+12 retail, basket beside market: lab/rung_retail.py, tests/unit/test_lab_rung_retail.py - no RUNG
 
 RARE LARGE LOSSES (G2, R-RUNNER-103). The first rung counts ONE MORE trade the rule did not make: a
 loss at its own stop, the least any judged trade would have made, in the standard errors and all
@@ -59,7 +61,7 @@ import json
 import os
 import sys
 from collections import Counter
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from decimal import Decimal
@@ -75,7 +77,18 @@ from desk.strategy import STRATEGIES, Rule
 from lab import batch, cell, published, reproduce, rulebook, rung, tape, trials, verdict
 from lab.batch import Bars
 from lab.cell import Cell
-from lab.ladder_parts import FAILED, RUNGS, Shared, _count, _declared, _due, _made, _pool, _resolve
+from lab.ladder_parts import (
+    FAILED,
+    RUNGS,
+    Shared,
+    _count,
+    _declared,
+    _due,
+    _made,
+    _pool,
+    _resolve,
+    faults,
+)
 from lab.rung import Answer, Rates
 
 __all__ = ["FAILED", "RUNGS", "Shared", "_count", "_resolve"]  #: what other modules take from here
@@ -242,8 +255,8 @@ def _one(
         )
         market = cell.key(Cell(c.strategy, beside, c.start, c.end), held).data
         rates = (f"{d} {pounds[d]}" for d in days)
-        parts = [mine.code, CODE, mine.data, market, pool.data, str(count), *rates]
-        parts += [one.key.code + one.key.data for one in made]
+        parts = [mine.code, mine.data, market, pool.data, str(count), *rates]
+        parts += [tape.rule_code(c.strategy)] + [one.key.code + one.key.data for one in made]
         found = rung.found(RUNGS)
         declared, waiting = found  #: both are in the row, so both are in its key
         parts += [one.name + one.code for one in declared] + list(waiting)
@@ -268,15 +281,6 @@ def _one(
         )
 
 
-def code(folder: Path = DESK) -> str:
-    """sha256 of every eponymous file's text, line endings aside: part of every key."""
-    texts = [p.read_bytes().replace(b"\r\n", b"\n") for p in sorted(folder.glob("eponymous_*.py"))]
-    return hashlib.sha256(b"\0".join(texts)).hexdigest()
-
-
-CODE = code()  #: the eponymous files as this process loaded them: in every key
-
-
 def eponymous(folder: Path = DESK, book: Path | None = None) -> tuple[str, ...]:
     """Every rule of every `desk/eponymous_*.py`, then any the catalogue's specs add; a file with no
     `EPONYMOUS` is refused. A rule that takes data (Zweig's breadth) is left out. A name in both is
@@ -295,7 +299,19 @@ def _needs_data(make: type[Rule]) -> bool:
     return any(p.default is p.empty for p in inspect.signature(make).parameters.values())
 
 
-if __name__ == "__main__":
+def door(env: Mapping[str, str], argv: Sequence[str]) -> int:
+    """The command: the set run, then each rung any cell FAULTed on said on its own line with its
+    share and reason; 1 when most cells FAULTed, so a set that judged nothing is never green."""
     from lab import ladder_sets
 
-    sys.exit(ladder_sets.main(os.environ, sys.argv[1:]))
+    code = ladder_sets.main(env, argv)
+    plan = {"first": FIRST, "leveraged": ladder_sets.LEV}.get(argv[0] if argv else "")
+    stem = (plan or ladder_sets.EPON).stem
+    kept = _last(_whole(Path(env["KESTREL2_DATA"]) / FOLDER / f"{stem}.jsonl"))
+    said, mostly = faults(list(kept.values()))
+    sys.stdout.write("".join(f"{line}" + chr(10) for line in said))
+    return code or int(mostly)
+
+
+if __name__ == "__main__":
+    sys.exit(door(os.environ, sys.argv[1:]))
