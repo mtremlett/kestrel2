@@ -9,6 +9,7 @@ from a pulled one is a red fault. Exit 0 only when green."""
 from __future__ import annotations
 
 import os
+import shutil
 import sys
 from collections.abc import Iterable
 from datetime import UTC, date, datetime, time, timedelta
@@ -172,6 +173,18 @@ def covered(path: Path, lines: list[Line], now: datetime) -> tuple[str, bool]:
     parked = keeper.parked_live(path, lines, now)
     score = coverage.desk_score(coverage.measure(held, parked))
     return f"coverage {score:.2f}", coverage.parked_within_cap(held, parked)
+
+
+FREE_FLOOR = 0.10  # the share of its drive the store's folder must leave free (OPS-07)
+
+
+def disk(home: Path) -> list[str]:
+    """Red when the drive holding the store has less than FREE_FLOOR of itself free."""
+    usage = shutil.disk_usage(home)
+    share = usage.free / usage.total
+    if share >= FREE_FLOOR:
+        return []
+    return [f"disk: {share:.0%} free on the drive of {home.name}, floor {FREE_FLOOR:.0%}"]
 
 
 def monitor(
