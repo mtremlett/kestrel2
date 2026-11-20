@@ -345,7 +345,7 @@ Checked 20 Nov (MONEY, s2): R-PAPER-35's field is on main (#1102) and set in day
       name, Ireland's 1%, and the default removed (R-DATA-4, R-DATA-5)
 - [ ] Leveraged-product lifecycle watched: an issuer's closure, a compulsory redemption or
       an ISA eligibility change on any line held or researched raises an alert (BIC-11)
-- [ ] Disk watched; old research files roll off by rule (OPS-07)
+- [ ] Disk watched; old research files roll off by rule (OPS-07). Built: the quality monitor goes red under 10% free (#1098, #1107). Remains: old research files rolling off (needs his yes before deleting), the runner job reading the red
 - [ ] **IBKR's capacity, no new spend, 10% kept spare** (research of 14 November,
       `free_data_2026-11-14.md` in the notes folder): 90 tickers streamed live, 1-minute bars
       built from quotes; polled 1-minute bars for 27 tickers every 5 minutes, 81 every 15 and
@@ -833,7 +833,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         known answer (#396). Remains: sizing blocks, once the volatility-sizing research settles their form
         {id: rungs-blocks; files: lab/blocks.py, tests/unit/test_lab_blocks.py; waits: operator}
   - [ ] B2 a typed Spec, validated on entry: an unknown block or a bad setting is refused
-        Remains (R-MONEY-45, #809, #823): 20 of 21 rules are rows (mansfield_rs_momentum added, #873, run on the ratio bars the caller builds); zweig_breadth_thrust needs breadth data (R-MONEY-35)
+        Remains (R-MONEY-45, #809, #823): 20 of 21 rules are rows (mansfield_rs_momentum added, #873, run on the ratio bars the caller builds); zweig_breadth_thrust needs breadth data (R-MONEY-35; `universe.breadth` on main, #1104, not yet taken as its argument)
       {id: rungs-spec; files: lab/spec.py, tests/unit/test_lab_spec.py; after: rungs-blocks; waits: R-MONEY-35}
   - [ ] B3 the catalogue, one TOML row per strategy with its source and known-answer case;
         a guard: unique names, known blocks only, a source and a case on every row
