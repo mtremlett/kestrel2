@@ -421,6 +421,10 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1003 no change; blocking requests verified on main |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1004 no change; blocking requests verified on main |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1007 no change; R-PAPER-23, R-RUNGS-16 already on main |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1040, #1038, #1042, #1043, #1044 no change; R-PAPER-23 verified on main (#294) five times over. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1059 coverage lookback read from the grid's sweeps (500 sessions), no scene moved. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1062 no change; R-MONEY-48 already met. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1065 data-pence confirmed done on main, docstring only. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
