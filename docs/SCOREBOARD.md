@@ -735,3 +735,11 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #949 no change; R-RUNGS-30 already on main (#942) |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #952 no change; R-RUNGS-29 ruling taken, guard edit outside RUNGS claim |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #922 no change; R-GRID-2 verified done |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #962 no change; R-RUNGS-30 verified on main |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #963 no change; R-RUNGS-30 verified done |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #967 R-RUNNER-231 partial: ladder tests set EASED off explicitly; switch held for a ladder gap |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #976 no change; EASED switch-on found to need a three-step split |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #980 no change; R-GRID-2 verified done for RUNGS files |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #954 no change; R-RUNGS-29 waits on the guard change (outside claim) |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #984 R-RUNNER-385 done: serial ladder passes the family count to the judge while EASED |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #966 no change; R-RUNGS-30 verified on main |
