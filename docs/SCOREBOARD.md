@@ -176,6 +176,12 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1035 R-RUNNER-392 part 1: fault matrix table and the after-accept row for 2110 and 2157 built. |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1028 R-RUNNER-318 scenario built and red; no change landed, fix needed in conformance_parts. |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1052 R-RUNNER-318 SimCity scenario for the conformance job's missing session bar |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1102 R-PAPER-35 part: session set in kill and simcity orders |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1108 no change; remainder of R-PAPER-35 is PAPER's |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1117 R-RUNNER-397 built: park one line by hand (desk/handpark.py) |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1119 R-PAPER-17 done: each record writer has its own temp file |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1143 no change; R-RUNGS-7 remainder is PAPER's running.py |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1139 no change; no blocking request open, R-PAPER-30 waits for more tapes |
 
 ### DATA
 
