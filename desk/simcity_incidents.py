@@ -7,7 +7,8 @@ keeper's job failed on 17 November with a venue's daily bars a session short. R-
 18 November London run, whose buy the broker cancelled with nothing filled, so none were held.
 R-RUNNER-315: the 16 November session the yardstick has no bar for, so the line is parked.
 R-RUNNER-248: the 16 November afternoon the crash watch heard nothing of the market.
-R-RUNNER-316: the keeper's live job asked for one-minute bars of lines the store never held."""
+R-RUNNER-316: the keeper's live job asked for one-minute bars of lines the store never held.
+R-RUNNER-318: the 17 November conformance job, a London line with no bar of the session before."""
 
 from __future__ import annotations
 
@@ -17,7 +18,7 @@ from decimal import Decimal
 from itertools import count
 from typing import TYPE_CHECKING
 
-from desk import bars, book, halt, keeper, keeper_live, messenger, venues, watch
+from desk import bars, book, conformance_parts, halt, keeper, keeper_live, messenger, venues, watch
 from desk.bars import Five
 from desk.broker import Fault
 from desk.keeper_rotate import Kept, record
@@ -42,6 +43,7 @@ DEAF = "the market goes unheard for an hour: he is told once in each hour, and n
 UNHELD = (
     "the live keeper asks for one-minute bars of lines the store never held: each is named stale"
 )
+UNBARRED = "a conformance plan with no bar of the session before the day refuses, naming the line"
 PROMISE = "a held line with no bar for a session is named when the day is refused"
 
 
@@ -211,4 +213,24 @@ def unheld(life: _Life, on: date) -> None:
         life.promise(UNHELD, False)
     else:
         life.promise(UNHELD, bool(stale_))
+    life.live(on)
+
+
+def unbarred(life: _Life, on: date) -> None:
+    """The store holds a London line's daily bars but not the session before the day (17 November,
+    the conformance job). The plan of the run must refuse, naming the line and the session, and
+    never size an order from an older close."""
+    line = sorted((x for x in life.market if x.venue == YARDSTICK.venue), key=lambda x: x.symbol)[0]
+    before = venues.sessions(line.venue, on - timedelta(days=9), on)[-2]
+    home = life.desk / "unbarred"
+    with bars.writing(home / keeper.HOT) as round_:
+        round_.daily(line, [b for b in life.market[line] if b.day < before])
+    past = Kept(on, datetime.combine(on, time(), UTC), 1, {}, frozenset())
+    record(home / keeper.DAILY / line.venue, past)
+    try:
+        conformance_parts.plan([line], line, on, {line.currency: Decimal(1)}, "0000", home)
+    except ValueError as refusal:  #: the plan's own word that the session has no bar
+        life.promise(UNBARRED, line.symbol in str(refusal) and f"{before}" in str(refusal))
+    else:
+        life.promise(UNBARRED, False)
     life.live(on)
