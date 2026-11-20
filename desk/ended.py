@@ -34,17 +34,18 @@ def reasons(door: paper.Door) -> dict[str, str]:
 
 
 def action(said: str, ended: str) -> str:
-    """What a step did, in the broker's plain terms: each fill as a buy, a sale or a stop fill.
-    A stop the broker says was cancelled and sold by hand ("Cancelled by Trader") is not a
-    stop fill. No fill at all is 'no fill'."""
-    kinds = []
+    """What a step did, in the broker's plain terms: each ORDER once, as its kind (buy, sale,
+    stop fill) with its total shares, the fills of one order summed (a sale in three parts is
+    one sale). A stop the broker says was cancelled and sold by hand ("Cancelled by Trader")
+    is not a stop fill. Prices are not judged. No fill at all is 'no fill'."""
+    orders: dict[str, int] = {}
+    kinds: dict[str, str] = {}
     for found in re.finditer(r"(\S+) ([+-]\d+) at ", said.split("held:")[0]):
         name, shares = found.groups()
-        stop = name.endswith("-stop")
-        gone = f"{name}:" in ended
-        kinds.append(
-            ("stop cancelled, sold at market" if gone else "stop fill")
-            if stop
-            else ("buy" if shares[0] == "+" else "sale")
-        )
-    return ", ".join(kinds) or "no fill"
+        orders[name] = orders.get(name, 0) + abs(int(shares))
+        if name.endswith("-stop"):
+            kind = "stop cancelled, sold at market" if f"{name}:" in ended else "stop fill"
+        else:
+            kind = "buy" if shares[0] == "+" else "sale"
+        kinds[name] = kind
+    return ", ".join(f"{kinds[n]} {total}" for n, total in orders.items()) or "no fill"
