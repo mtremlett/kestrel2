@@ -218,6 +218,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       Remains (#638): no free source for the FTSE 350's changes, the funds' records or a 2010-2014 second
       source; needs his choice to buy or supply one (recommendation: defer, the US lists cover the US study)
       Waits on him: its session said so in #638
+      Waits on him: its session said so in #638
       {id: data-members; files: lab/members.py, tests/unit/test_lab_members*.py, manifest.toml; waits: operator}
 - [x] Kept hot, always: the runner runs the store's keeper after the US close and before the
       London open on every trading day, a dated receipt each time; a line staler than one
@@ -230,6 +231,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
 - [x] The store's keeper: its cadence, a dated receipt for each run, a restart drill; each
       bar's source and arrival time kept (DQ-12, DQ-10)
       Built (#820): desk/keeper_receipt.py; each receipt line names the newest bars that arrived, with moment and source; restart drill pinned.
+      Waits on him: DATA-s3: card data-keeper-receipts ended red or landed nothing 2 runs in a row; held, its lane goes on (canon A8)
       {id: data-keeper-receipts; files: desk/keeper.py, tests/unit/test_keeper*.py, desk/bars.py, tests/unit/test_bars*.py, desk/keeper_receipt.py; after: data-kept-hot; waits: operator}
 - [ ] **First, by his ruling of 13 November:** SPY, QQQ and GLD leave the twenty for their
       UK-listed twins an ISA can hold: VUAG (S&P 500), EQQQ (Nasdaq 100) and IDTL (US
@@ -241,6 +243,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       Remains (#640): SPY and QQQ leave LINES only when the callers outside the claim read `lines.REFERENCE`
       (the requests to GRID, RUNGS and MONEY) and the tests name lines that stay; they are kept as price references (#455, #543)
       Waits on him: the last step, removing SPY and QQQ, conflicts with nine other test files and with SPY kept as a price reference; keeping them is a change to his 13 November ruling
+      Waits on him: The only step left, removing SPY and QQQ, conflicts with nine other test files and with SPY being kept as a price reference; whether they stay as references is a change to his 13 November ruling.
       {id: data-isa-twins; files: desk/lines.py, tests/unit/test_lines.py, tests/unit/test_lab_universe.py; waits: operator}
 - [x] A home for the research store on his PC, refreshed nightly, a ticker that left a list
       cleared out, and the day and list it reflects written beside it
@@ -277,6 +280,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       history pull and its writer (#636, #674), pages back and keeps the line's currency (#710, #725). Remains: the rest of R-RUNNER-10 (5-minute parquet, market.db,
       bars.db, per-source counts), paging back (R-RUNNER-216; #739: pull asks only 1m-30m and 1d; remains rollup of 1h, 4h, 1wk
       into the history database as rollup:<from>; #780: a rolled bar differing from a held one is a FAULT line on stderr; #797: `python -m desk.quality` audits, backfills and re-audits the daily timeframe; remains the other timeframes, market_live.db, local Stooq and rollup sources, the runner job; #930: backfill.fill takes one ordered source list, the rollup step needs Source.ROLLUP_5M in desk/bars_schema.py, outside the box's claim; #935: the audit counts a closed session of today), the long database for daily and up
+      Waits on him: its session said so in #947
       {id: data-two-stores; files: desk/bars.py, tests/unit/test_bars*.py, desk/keeper.py, tests/unit/test_keeper*.py; after: data-ingest; waits: operator}
 - [ ] **Data in tiers, for 4,000+ tickers** (research of 14 November, kept in the notes
       folder as `data_stack_2026-11-14.md`). Tier A: held, signalled and watched names, live
@@ -297,6 +301,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       Built (#691): `archive.SINCE` is 1 January 2000, so the keeper's next daily round asks 2000-2009.
       Built (#841): venues.KNOWN split into HOURS_YEARS and SESSION_YEARS, the store keeps bars from 2000, five real moves recorded. Remains: the first keeper round to fill 2000-2009 for all twenty lines and read any park.
       Earlier (#819, #821, #822): the old Stooq store holds nothing before the archive's first bar, so no head start is left to write. `desk/store.py:152` and `desk/bars_parts.py:24` read `venues.KNOWN` (hours years, 2010-2029) as the sessions years (`venues.SESSION_YEARS`, 1993-2029), so every bar before 2010 is dropped; the US calendar's 2000-2009 sessions are pinned (#819). One session claiming desk/venues.py, store.py, bars_parts.py, lines.py and their tests: split KNOWN, point store at the sessions years, record five real moves in `real_moves` (AAPL 2000-09-29; NVDA 2000-04-05, 2004-08-06; AMD 2008-09-29, -30; confirm each on the archive's bars), then `python -m lab.headstart_days` and the keeper fill 2000-2009
+      Waits on him: its session said so in #822
       {id: data-deep-history; files: desk/venues.py, tests/unit/test_venues*.py, lab/headstart.py, tests/unit/test_lab_headstart.py, desk/archive.py, tests/unit/test_archive*.py; after: data-calendar-years, data-polite; waits: operator}
 - [x] A frozen feed: a week of one bar repeated is dropped and parks a recent line
 - [x] A suspension recorded on its line is no gap
@@ -319,6 +324,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       {id: data-stretched; files: desk/store.py, tests/unit/test_store.py; after: data-3lgo}
 - [ ] A line's bars and its fault record written together, so a crash cannot part them
       Built (#832): both files written whole before either is swapped in. Remains: a crash between the two swaps; one file per line, which needs lab/universe.py and tests/unit/test_lab_universe.py in the claim
+      Waits on him: box data-written-together: 2 sessions in a row landed no change to the desk, the lab or the tests, so it is held and the doctor asks why
       {id: data-written-together; files: desk/store.py, tests/unit/test_store.py; after: data-stretched; waits: operator}
 - [x] A pence history the archive calls pounds caught
       Built (#630, #725): every pull reaches the store through `history_write.keeper`, which turns pence to pounds once on entry; `history.run` and `pull` hand out the broker's unit by design (#1065)
@@ -346,7 +352,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       name, Ireland's 1%, and the default removed (R-DATA-4, R-DATA-5)
 - [ ] Leveraged-product lifecycle watched: an issuer's closure, a compulsory redemption or
       an ISA eligibility change on any line held or researched raises an alert (BIC-11)
-- [ ] Disk watched; old research files roll off by rule (OPS-07)
+- [ ] Disk watched; old research files roll off by rule (OPS-07). Built (#1098, #1107): the quality monitor goes red under 10% free on the store's drive. Remains: old research files rolling off by rule (needs his yes before deleting anything); the runner job reading the red
 - [ ] **IBKR's capacity, no new spend, 10% kept spare** (research of 14 November,
       `free_data_2026-11-14.md` in the notes folder): 90 tickers streamed live, 1-minute bars
       built from quotes; polled 1-minute bars for 27 tickers every 5 minutes, 81 every 15 and
