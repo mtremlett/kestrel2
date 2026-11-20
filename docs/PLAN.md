@@ -150,6 +150,8 @@ Checked 17 Nov (MONEY): R-RUNGS-12 re-verified on main (`strategy.rsi`, `strateg
 Checked 17 Nov (MONEY, s6): R-DATA-53 is on main (`desk/command.py:387` passes `home=root.parent`, #798) and R-PAPER-29 is on main (`book.conformance_cost`, #763); no blocking request is open; nothing built.
 Checked 20 Nov (MONEY, s2): R-PAPER-35's field is on main (#1102) and set in day, kill, simcity, orders; what is left is PAPER's files (`desk/goflat.py`, `desk/conformance_parts.py`, `desk/placing.py` `_cleared`), outside MONEY's claim; nothing built.
 
+Checked 20 Nov (DATA, s2): no blocking request is open; R-MONEY-48 is on main (no `HISTORY = CLEAN` in `tests/scenes/rehearsal.py`); R-RUNGS-20 needs `lab/verdict.py` (RUNGS's) and R-DATA-59 needs the real store: neither fits a DATA claim of this size; nothing built.
+
 - [x] The rehearsal data in a file of its own (`tests/scenes/rehearsal.py`)
 - [x] The rehearsal data lengthened to about fourteen months, the five rules buying and
       selling in it on every clean line, its UK and US holidays respected; the spoilt line's
