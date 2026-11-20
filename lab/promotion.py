@@ -5,13 +5,13 @@ paper trades, net positive (STR-17, LAD-11).
 BEFORE PAPER. A candidate is a strategy of the desk's with the ladder's own line for it
 (`lab/ladder.py`), never a bare word: every rung the one verdict rule names (`lab/deflated.py`)
 answered on it, the rule read again over those answers a pass, and the line saying the same;
-and with its kill condition: the numbers, written down before
-its first paper trade, at which it is stopped. Written first, because a limit chosen while
-the losses are being watched is always a little further off. A candidate without the pass or
-without the condition cannot be made at all. The condition is two measured things, either
-one enough: its paper profit after every cost fallen so many pounds beneath its highest
-point (nothing made, until it has been ahead), or so many trades lost in a row. A fall deeper
-than the A-GATE's own (AG-05) is no condition, and is refused.
+and no rung of the ladder listed unrun on it; and with its kill condition: the numbers,
+written down before its first paper trade, at which it is stopped. Written first, because a
+limit chosen while the losses are being watched is always a little further off. A candidate
+without the pass or without the condition cannot be made at all. The condition is two
+measured things, either one enough: its paper profit after every cost fallen so many pounds
+beneath its highest point (nothing made, until it has been ahead), or so many trades lost in
+a row. A fall deeper than the A-GATE's own (AG-05) is no condition, and is refused.
 
 ON PAPER. The facts are the desk's own ledger's: its fills (`book.fills`) and the round
 trips made of them (`book.round_trips`), in pounds after every cost of both legs; nothing is
@@ -89,6 +89,10 @@ class Candidate:
     def __post_init__(self) -> None:
         if self.strategy not in STRATEGIES:
             raise ValueError(f"{self.strategy}: no strategy of the desk's to put on paper")
+        if self.ladder.get("unrun"):
+            raise ValueError(
+                f"{self.strategy} has not passed the ladder: unrun {self.ladder['unrun']}"
+            )
         rungs, said = self.ladder.get("rungs", {}), self.ladder.get("answer")
         answers = {name: Answer.__members__.get(str(rungs.get(name, [""])[0])) for name in NAMED}
         if None in answers.values():
