@@ -252,7 +252,7 @@ Checked 20 Nov (MONEY, s2): R-PAPER-35's field is on main (#1102) and set in day
       Built: the broker's daily bars first at the one writer (#517, #521), the keeper asks it for lines the
       archive lacks (#701), one-minute bars from IBKR (#629). Remains: a bar's own source label (a request to MONEY)
       Proved 19 Nov (#903): the paper Gateway serves live, not delayed, bars. Remains: a bar's own source label (MONEY's, #844).
-      {id: data-broker-bars; files: desk/keeper.py, tests/unit/test_keeper*.py; after: data-keeper-receipts; waits: R-DATA-9}
+      {id: data-broker-bars; files: desk/keeper.py, tests/unit/test_keeper*.py; waits: R-DATA-9}
 - [x] **An ingest that cannot pile up, by construction:** one slot per ticker per minute, so a
       round never holds more than its tickers; a late round is replaced by the next, and its
       gap goes to a bounded backfill list; writes are upserts on ticker, bar size and time, so
@@ -260,7 +260,7 @@ Checked 20 Nov (MONEY, s2): R-PAPER-35's field is on main (#1102) and set in day
       Finished months of intraday history are sealed into compressed files for the lab to
       read, when a benchmark shows SQLite slowing (DAT-07, DQ-12)
       Verified on main (#915): slots, upserts, parked list, receipts. Remains: sealing into compressed files, only if the benchmark ever reds.
-      {id: data-ingest; files: desk/keeper.py, tests/unit/test_keeper*.py, desk/bars.py, tests/unit/test_bars*.py; after: data-keeper-receipts}
+      {id: data-ingest; files: desk/keeper.py, tests/unit/test_keeper*.py, desk/bars.py, tests/unit/test_bars*.py}
 - [ ] **Two databases, both owned by the one store** (his ruling, 14 November), in the desk's
       data folder, never in this public repository: `market_history.db`, long-term, every timeframe
       from an hour up plus all imported intraday history; and `market_live.db`, live 1-minute
@@ -285,7 +285,7 @@ Checked 20 Nov (MONEY, s2): R-PAPER-35's field is on main (#1102) and set in day
       without touching a strategy. London breadth beyond IBKR's lines runs at 5 or 15
       minutes. A name moves between tiers as it gains or loses a signal or position (DAT-01,
       DAT-05)
-      {id: data-tiers; files: desk/tiers.py, tests/unit/test_tiers.py, manifest.toml; after: data-two-stores}
+      {id: data-tiers; files: desk/tiers.py, tests/unit/test_tiers.py, manifest.toml}
 - [x] The calendars carried past 2027, before 2027 ends
       {id: data-calendar-years; files: desk/venues.py, tests/unit/test_venues*.py}
 - [ ] Deep history: daily bars back to 2000 wherever the archive has them, the calendars
@@ -305,7 +305,7 @@ Checked 20 Nov (MONEY, s2): R-PAPER-35's field is on main (#1102) and set in day
       are deleted from C: with his explicit yes, asked then (never copied to E:, his backup
       drive). His mark_the_trend programs are retired (his word, 14 November), so
       `C:\mtt_cache` is treated like the other stores (DQ-05, OPS-07)
-      {id: data-consolidated; files: lab/headstart.py, tests/unit/test_lab_headstart.py; after: data-deep-history, data-two-stores}
+      {id: data-consolidated; files: lab/headstart.py, tests/unit/test_lab_headstart.py}
 - [x] 2MU's five real moves recorded from a second source, or its reason confirmed
       {id: data-2mu; files: desk/lines.py, tests/unit/test_lines.py, desk/store.py, tests/unit/test_store.py}
 - [x] 5QQQ's consolidation of 22 August 2024 handled, or its reason confirmed
@@ -321,7 +321,7 @@ Checked 20 Nov (MONEY, s2): R-PAPER-35's field is on main (#1102) and set in day
       {id: data-written-together; files: desk/store.py, tests/unit/test_store.py; after: data-stretched; waits: operator}
 - [x] A pence history the archive calls pounds caught
       Built (#630, #725): every pull reaches the store through `history_write.keeper`, which turns pence to pounds once on entry; `history.run` and `pull` hand out the broker's unit by design (#1065)
-      {id: data-pence; files: desk/store.py, tests/unit/test_store.py; after: data-written-together}
+      {id: data-pence; files: desk/store.py, tests/unit/test_store.py}
 - [ ] The full research universe, 5,000 and more, once the grid's first pass works
 - [x] Each line's UK tax a fact on the line, from one table of two rates: nil for a fund or
       an exchange-traded product, stamp duty for a UK share; the twenty lines each state nil,
@@ -345,7 +345,7 @@ Checked 20 Nov (MONEY, s2): R-PAPER-35's field is on main (#1102) and set in day
       name, Ireland's 1%, and the default removed (R-DATA-4, R-DATA-5)
 - [ ] Leveraged-product lifecycle watched: an issuer's closure, a compulsory redemption or
       an ISA eligibility change on any line held or researched raises an alert (BIC-11)
-- [ ] Disk watched; old research files roll off by rule (OPS-07)
+- [ ] Disk watched; old research files roll off by rule (OPS-07) (the monitor reds under 10% free, #1098, #1107; remains: the roll-off rule, which needs his yes before deleting anything, and the runner job reading the red)
 - [ ] **IBKR's capacity, no new spend, 10% kept spare** (research of 14 November,
       `free_data_2026-11-14.md` in the notes folder): 90 tickers streamed live, 1-minute bars
       built from quotes; polled 1-minute bars for 27 tickers every 5 minutes, 81 every 15 and

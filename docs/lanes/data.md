@@ -38,13 +38,9 @@ dating; a long run of dollar-quoted bars is dropped (#217, #220); the six parked
 Every rule and constant of `desk/store.py` is pinned by a row of one synthetic table, and that guard was driven red
 (#225, #227, #230; R-RUNNER-43, -46). The lane's open boxes were put in working order (#180).
 
-### 2026-11-15 — adjusted against as-traded closes; the 39-minute close rule, folded (#286, #294)
+### 2026-11-15 — twelve settled store and keeper rules, folded (#286-#381)
 
-The head start recognises a store of adjusted prices beside the as-traded one and never writes over raw (R-RUNNER-90, #286).
-The store holds each venue's closes within 39 minutes of its close (R-PAPER-23, #294). Details are in git history.
-
-### 2026-11-15 — nine settled store and keeper rules, folded (#314-#381)
-
+The head start recognises a store of adjusted prices beside the as-traded one and never writes over raw (R-RUNNER-90, #286). The store holds each venue's closes within 39 minutes of its close (R-PAPER-23, #294). Details are in git history. 
 VUAG's 2019 gap filled from a checked shelf, never forward-filled (R-RUNNER-104); every venue has a calendar and SimCity worlds are dated on trading days (R-RUNNER-107); `python -m lab.universe` refreshes research (R-RUNNER-116); a bar with only a bad high or low is kept and repaired, and an impossible low likewise (R-RUNNER-175, -185); the keeper cleans kept history again when the store rules change (R-RUNNER-182); a missing yardstick day is a named fault filled from a second source (R-RUNNER-179). Each took its recommended option; git keeps the full entries.
 
 ### 2026-11-16 — the first two-database steps and the free collector, folded (#424-#460)
@@ -464,6 +460,15 @@ Options: 4 places, 6 places, significant figures; chose 4, the broker's own form
 ### 2026-11-19 — the keeper's fault window is 400 sessions (#863, R-RUNNER-327)
 
 Options: 60 sessions (too short, hides a lasting step the strategies still read), 400 sessions (coverage.NEED, what a rule needs before trading), all history (today's fault). Chose 400; lasting faults dated outside it are named only.
+
+### 2026-11-20 — the disk floor is a share, checked in the command (#1098, OPS-07)
+Options: (a) an absolute floor in gigabytes; (b) a 10% share of the drive (chosen, recommended). A share follows the drive
+it sits on. The check is in the command's entry, not inside `monitor`, so the monitor's tests do not depend on the test
+machine's disk. #1107 then wired `disk(path.parent)` into `monitor` after #1098 left it uncalled.
+
+### 2026-11-20 — breadth derived from our own bars (#1104, R-RUNNER-346)
+Options: (a) buy a vendor series (spend, a hard line); (b) derive advances and declines from the store's S&P 500 bars (free,
+survivorship-biased, chosen per his "go with recommended"); (c) no row. Any verdict must state that the list is today's members only.
 
 ## LADDER (until 13 November; since then GRID and RUNGS)
 
