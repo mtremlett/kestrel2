@@ -640,3 +640,10 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 
 ### 2026-11-20 - SimCity "unheard market" scenario kept out of one test's list (#924, R-RUNNER-248)
 - An eighth scenario reshuffles the seeded order and starved test_a_promise_the_desk_breaks... of its first scenario. Options: (a) more worlds; (b) leave the new scenario out of that test's list (chosen: it uses EVENTS[first:-1], so its worlds are as before; the new scenario has its own test). The manifest line of desk/simcity_incidents.py was not reworded (a lane may only register modules).
+
+### 2026-11-20 - a bar-less line in SimCity's gap is a FAULT (#945, R-RUNNER-377)
+- Options: skip the line silently (hides data holes); a default price (masks); name it and go red (chosen: canon "fail loudly"). That line's gap order is left out, the others unchanged.
+- Note: a real archive with a late-starting line makes any night that draws the gap on it red until that line is handled. The IndexError did not by itself explain R-328's six-hour hang (not proven).
+
+### 2026-11-20 - cause of "job:keeper:failed" taken as a stale venue store (#955, R-RUNNER-314)
+- The request does not give the cause. Options: (a) stale venue store; (b) five-minute delay; (c) archive refusal. Took (a): the only miss the quoted output does not show, and the one the door (keeper.saved) refuses on. If the real cause was other, a follow-up scenario is owed.

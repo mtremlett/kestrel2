@@ -5,6 +5,7 @@ R-RUNNER-247: shares at the broker with a stop resting, bought beside the book (
 conformance run's), which the desk's sale refused as "the desk is long only". R-RUNNER-314: the
 keeper's job failed on 17 November with a venue's daily bars a session short. R-RUNNER-323: the
 18 November London run, whose buy the broker cancelled with nothing filled, so none were held.
+R-RUNNER-315: the 16 November session the yardstick has no bar for, so the line is parked.
 R-RUNNER-248: the 16 November afternoon the crash watch heard nothing of the market.
 R-RUNNER-316: the keeper's live job asked for one-minute bars of lines the store never held."""
 
@@ -34,6 +35,7 @@ NAMED = "an order cancelled unfilled is named that day, and the book stays the b
 HALTED = "a halt is in force while the day's buys are asked for"
 STILL = "with a halt in force nothing is bought"
 OUTSIDE = "a line no ISA can hold is never bought"
+PARKED = "a yardstick with a session missing refuses the day by name"
 STALE = "a venue's daily bars are a session short at the keeper's last refresh"
 REFUSED = "the price store's door refuses a venue short of a session, naming its line"
 DEAF = "the market goes unheard for an hour: he is told once in each hour, and nothing is halted"
@@ -119,6 +121,27 @@ def outside(life: _Life, on: date) -> None:
     sent = life.pretend.submitted()[reached:]
     life.promise(OUTSIDE, not any(i.rpartition("-")[2] in barred for i in sent))
     life.market = whole
+
+
+def parked(life: _Life, on: date) -> None:
+    """The yardstick's bar for the session before the day is missing (a gap in the archive, the
+    line parked). The desk must refuse the day, naming the line, for the market's gain over the
+    gap cannot be told; when the bar is back the same day runs."""
+    whole = life.market.get(YARDSTICK, ())
+    gone = [b.day for b in whole if b.day < on][-1:]
+    if not gone:
+        life.live(on)
+        return
+    life.market[YARDSTICK] = tuple(b for b in whole if b.day != gone[0])
+    try:
+        life.live(on)
+    except ValueError as refusal:  #: the desk's own word that the day has no record
+        life.promise(PARKED, YARDSTICK.symbol in str(refusal))
+        life.market[YARDSTICK] = whole
+        life.live(on)
+    else:
+        life.market[YARDSTICK] = whole
+        life.promise(PARKED, False)
 
 
 def stale(life: _Life, on: date) -> None:
