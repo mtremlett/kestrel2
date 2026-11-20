@@ -771,3 +771,4 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #966 no change; R-RUNGS-30 verified on main |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #979 no change; EASED cannot be flipped alone (family not passed) |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #986 R-RUNNER-386 built: pooled ladder judges with its family count while EASED |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #993 R-RUNNER-231 EASED switched on, golden fixture verdicts re-pinned |
