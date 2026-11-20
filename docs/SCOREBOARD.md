@@ -774,3 +774,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #986 R-RUNNER-386 built: pooled ladder judges with its family count while EASED |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #993 R-RUNNER-231 EASED switched on, golden fixture verdicts re-pinned |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1070 no change; 1051 superseded by #993 |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1038 no change; R-PAPER-23 verified on main (#294) |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1040 no change; R-PAPER-23 verified on main (#294) |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1042 no change; R-PAPER-23 verified on main (#294) |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1043 no change; R-PAPER-23 verified on main (#294) |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1044 no change; R-PAPER-23 verified on main (#294) |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1059 DATA: coverage lookback read from the grid's longest setting, no scene moved |
