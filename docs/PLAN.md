@@ -381,6 +381,9 @@ Checked 17 Nov (MONEY, s6): R-DATA-53 is on main (`desk/command.py:387` passes `
 > `desk/running.py`, and `desk/goflat.py` must call `halt.stop`; both are PAPER's, not MONEY's.
 > `book.py` already calls `halt.stop`. Plan: `halt.stop` takes `his`; `watch.look` takes a
 > `Callable[[], Broker]` and calls `halt.stop` after `halt.call`.
+> Re-checked 20 Nov: `desk/goflat.py` and `desk/running.py` are in PAPER's manifest section, so the
+> watch half alone would leave `running` calling the old signature; MONEY changes `watch.py` the
+> session PAPER's `running.py` passes the door (R-MONEY-55 is PAPER's too).
 
 **Lane objective:** the kill switch, by his ruling of 13 November ("kill switch first"):
 one command stops all new orders and cancels the open ones, the desk says so, and the drill
