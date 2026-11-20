@@ -17,9 +17,10 @@ from test_lab_reproduce import _bars as _author
 
 import desk
 from desk import strategy
-from desk.lines import LINES
+from desk.lines import LINES, YARDSTICK
 from lab import grid, ladder, ladder_sets, published, reproduce, rulebook
 from lab.cell import Cell
+from lab.ladder import END, START
 from lab.published_epon import EPONYMOUS_PUBLISHED
 from lab.reproduce import Fill
 
@@ -144,3 +145,16 @@ def test_every_eponymous_file_of_the_real_desk_gives_a_rule_a_cell_and_a_first_r
     off = {r["cell"][0] for r in rows if "error" in r}
     assert off == set(found) - set(EPONYMOUS_PUBLISHED)
     assert all("no published rule on file" in r["error"] for r in rows if "error" in r)
+
+
+def test_the_basket_of_a_real_eased_run_is_set_beside_the_yardstick_held_for_the_same_days(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen = []
+    monkeypatch.setattr(ladder_sets.trials, "family", lambda *_: 1)
+    monkeypatch.setattr(ladder_sets.basket, "row", lambda *args: seen.append(args[-1]) or {})
+    cell = Cell("breakout_20_10", VUSA, START, END)
+    bars = _door({VUSA: EDGE, YARDSTICK: NOISE})
+    ladder_sets.baskets(tmp_path, bars, {}, [cell], ["breakout_20_10"], ladder_sets.EPON)
+    (against,) = seen
+    assert (against.line, against.bars) == (YARDSTICK, bars(YARDSTICK))

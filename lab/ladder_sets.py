@@ -18,8 +18,19 @@ from datetime import UTC, date, datetime, timedelta
 from functools import partial
 from pathlib import Path
 
-from desk.lines import Line
-from lab import basket, batch, history_bars, ladder, ladder_pool, members, tape, trials, verdict
+from desk.lines import YARDSTICK, Line
+from lab import (
+    basket,
+    batch,
+    history_bars,
+    ladder,
+    ladder_pool,
+    members,
+    rung_retail,
+    tape,
+    trials,
+    verdict,
+)
 from lab.batch import Bars
 from lab.cell import Cell
 from lab.ladder import END, FOLDER, START, Plan, _last, _whole, eponymous, run
@@ -139,6 +150,7 @@ def baskets(
     """One basket row for each rule that has a line to pool: the lines' first rungs (a line that
     cannot be read or that the sizing refuses is left out), charged the rule's family of trials."""
     shared, rows = Shared(todo), list[verdict.Row]()
+    against = rung_retail.Against(YARDSTICK, bars(YARDSTICK), pounds)  #: the market held instead
     for rule in rules:
         firsts, stresses = [], []
         for c in (one for one in todo if one.strategy == rule):
@@ -154,7 +166,7 @@ def baskets(
         stressed = next((a for a in stresses if a is not Answer.PASS), Answer.PASS)
         if firsts:
             family = trials.family(home / FOLDER / f"{plan.stem}.trials.jsonl", plan.question, rule)
-            rows.append(basket.row(plan.tag, rule, firsts, family, stressed))
+            rows.append(basket.row(plan.tag, rule, firsts, family, stressed, against))
     return rows
 
 
