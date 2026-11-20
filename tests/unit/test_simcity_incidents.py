@@ -9,7 +9,7 @@ from typing import Any
 import pytest
 from test_simcity import NOW, RATES, ROOM, SHORT
 
-from desk import book, day, day_money, simcity, watch
+from desk import bars, book, day, day_money, keeper, simcity, watch
 from desk.simcity_incidents import (
     CANCELLED,
     DEAF,
@@ -20,7 +20,9 @@ from desk.simcity_incidents import (
     OUTSIDE,
     PARKED,
     PROMISE,
+    REFUSED,
     SOLD,
+    STALE,
     beside,
     cancelled,
     deaf,
@@ -28,6 +30,7 @@ from desk.simcity_incidents import (
     hole,
     outside,
     parked,
+    stale,
 )
 
 
@@ -94,7 +97,8 @@ def test_without_naming_the_cancelled_orders_the_scenario_is_red(
 
 
 @pytest.mark.parametrize(
-    ("words", "scenario"), [(HALTED, halted), (OUTSIDE, outside), (PARKED, parked)]
+    ("words", "scenario"),
+    [(HALTED, halted), (OUTSIDE, outside), (PARKED, parked), (STALE, stale)],
 )
 def test_a_halt_a_line_outside_an_isa_and_a_parked_yardstick_are_lived_and_kept(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, words: str, scenario: Any
@@ -114,6 +118,20 @@ def test_without_refusing_a_gapped_yardstick_the_scenario_is_red(
     monkeypatch.setattr(simcity, "EVENTFUL", 1)
     result = simcity.run(tmp_path, SHORT, ROOM, RATES, NOW, (1, 2, 3))
     assert any(PARKED in broken for broken in result.broken)
+
+
+def test_a_store_a_session_short_is_refused_and_without_the_refusal_is_red(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(simcity, "EVENTS", ((STALE, stale),))
+    monkeypatch.setattr(simcity, "EVENTFUL", 1)
+    assert not any(
+        REFUSED in b for b in simcity.run(tmp_path, SHORT, ROOM, RATES, NOW, (1,)).broken
+    )
+    monkeypatch.setattr(keeper, "_short", lambda *_a: False)
+    monkeypatch.setattr(bars, "daily", lambda _hot, _line: ())
+    red = simcity.run(tmp_path / "red", SHORT, ROOM, RATES, NOW, (1,))
+    assert any(REFUSED in b for b in red.broken)
 
 
 def test_a_market_unheard_is_told_once_in_each_hour_and_without_the_telling_is_red(

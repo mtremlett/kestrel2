@@ -2,7 +2,8 @@
 desk was put in, a promise it must keep there, and the day it then runs. R-RUNNER-246: a held
 line has no bar for a session (a hole in the saved data), so the day has no record.
 R-RUNNER-247: shares at the broker with a stop resting, bought beside the book (the 16 November
-conformance run's), which the desk's sale refused as "the desk is long only". R-RUNNER-323: the
+conformance run's), which the desk's sale refused as "the desk is long only". R-RUNNER-314: the
+keeper's job failed on 17 November with a venue's daily bars a session short. R-RUNNER-323: the
 18 November London run, whose buy the broker cancelled with nothing filled, so none were held.
 R-RUNNER-315: the 16 November session the yardstick has no bar for, so the line is parked.
 R-RUNNER-248: the 16 November afternoon the crash watch heard nothing of the market."""
@@ -15,9 +16,10 @@ from decimal import Decimal
 from itertools import count
 from typing import TYPE_CHECKING
 
-from desk import bars, book, halt, messenger, venues, watch
+from desk import bars, book, halt, keeper, messenger, venues, watch
 from desk.bars import Five
 from desk.broker import Fault
+from desk.keeper_rotate import Kept, record
 from desk.lines import YARDSTICK
 
 if TYPE_CHECKING:
@@ -32,6 +34,8 @@ HALTED = "a halt is in force while the day's buys are asked for"
 STILL = "with a halt in force nothing is bought"
 OUTSIDE = "a line no ISA can hold is never bought"
 PARKED = "a yardstick with a session missing refuses the day by name"
+STALE = "a venue's daily bars are a session short at the keeper's last refresh"
+REFUSED = "the price store's door refuses a venue short of a session, naming its line"
 DEAF = "the market goes unheard for an hour: he is told once in each hour, and nothing is halted"
 PROMISE = "a held line with no bar for a session is named when the day is refused"
 
@@ -133,6 +137,23 @@ def parked(life: _Life, on: date) -> None:
     else:
         life.market[YARDSTICK] = whole
         life.promise(PARKED, False)
+
+
+def stale(life: _Life, on: date) -> None:
+    """The keeper's last refresh of every venue readied a week before the day, so a session is
+    lacking. The price store's door must refuse, naming a line, never serve the older bars."""
+    lines = sorted(life.market, key=lambda x: x.symbol)
+    stored = life.desk / "keeper"
+    for venue in {x.venue for x in lines}:
+        past = Kept(on - timedelta(days=7), datetime.combine(on, time(), UTC), 1, {}, frozenset())
+        record(stored / keeper.DAILY / venue, past)
+    try:
+        keeper.saved(stored, on, lines)
+    except keeper.Stale as refusal:  #: the keeper's own word that the store is not fresh
+        life.promise(REFUSED, lines[0].symbol in str(refusal))
+    else:
+        life.promise(REFUSED, False)
+    life.live(on)
 
 
 def deaf(life: _Life, on: date) -> None:

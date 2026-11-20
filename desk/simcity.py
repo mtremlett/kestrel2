@@ -29,11 +29,13 @@ from desk.simcity_incidents import (
     HOLE,
     LEFT,
     PARKED,
+    STALE,
     beside,
     cancelled,
     deaf,
     hole,
     parked,
+    stale,
 )
 from desk.simcity_parts import MONTH, Archive, Night, _market
 from desk.strategy import Action
@@ -197,7 +199,10 @@ def _gapped(life: _Life, on: date) -> None:
     fits = all(rests[s] == due[s] for s in rests & due.keys())
     life.promise("a stop rests where its fill puts it", fits)
     held = {f.symbol: f for f in book.fills(life.desk) if f.quantity > 0 and f.day == on}
-    shut = {x.symbol: [b.close for b in bars if b.day < on][-1] for x, bars in life.market.items()}
+    before = {x.symbol: [b.close for b in bars if b.day < on] for x, bars in life.market.items()}
+    for s in sorted(s for s, closes in before.items() if not closes):
+        life.promise(f"FAULT line {s}: no bar before the gap day, its gap is unrunnable", False)
+    shut = {s: closes[-1] for s, closes in before.items() if closes}
     sold = [
         orders.Order(
             f"gap-{s}",
@@ -208,6 +213,7 @@ def _gapped(life: _Life, on: date) -> None:
             orders.stop_under(lines[s], shut[s]),
         )
         for s, f in held.items()
+        if s in shut
     ]
     gone = [o.order_id for o in sold if orders.gapped(o, held[o.line.symbol].price, life.room)]
     life.promise("a gap down to the low leaves a stop's loss inside the gap limit", not gone)
@@ -228,6 +234,7 @@ def _killed(life: _Life, on: date) -> None:
 
 Event = tuple[str, Callable[[_Life, date], object]]
 EVENTS: tuple[Event, ...] = (
+    (STALE, stale),
     (BEHIND, _behind),
     (UNSTOPPED, _unstopped),
     (GAPPED, _gapped),

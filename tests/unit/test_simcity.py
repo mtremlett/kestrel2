@@ -64,7 +64,7 @@ def lived(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, simcity.Night
 
     with pytest.MonkeyPatch.context() as patch:
         patch.setattr(simcity, "_live", watched)
-        return root, simcity.run(root, MARKET, ROOM, RATES, NOW, (4,)), seen
+        return root, simcity.run(root, MARKET, ROOM, RATES, NOW, (6,)), seen
 
 
 @pytest.fixture(scope="module")
@@ -334,11 +334,11 @@ def test_a_part_behind_a_wrapper_is_still_a_part() -> None:
         (book, "reckon", lambda *_: ({}, (), set(), ()), ["with no stop at the broker"], 0),
         (book, "collect", lambda *_: None, ["the ledger is the broker's own fills"], 0),
         (book, "_settle", lambda *_: None, ["left working"], 0),
-        (day, "_bare", lambda *_: None, ["on that day's list"], 1),
+        (day, "_bare", lambda *_: None, ["on that day's list"], 2),
         (day, "pennies", lambda p: orders.pennies(p) + Decimal("0.01"), ["profits add up"], 0),
         (simcity, "HOLDINGS", 3, ["never more than 3 lines are held"], 0),
         (simcity, "_Counted", lambda _, rng: WORLD(SHORT, rng), ["inside its day's range"], 0),
-        (book, "_unless_killed", lambda *_: None, ["nothing reaches the", "drill is on the"], 3),
+        (book, "_unless_killed", lambda *_: None, ["nothing reaches the", "drill is on the"], 4),
     ],
 )
 def test_a_promise_the_desk_breaks_in_any_world_turns_the_night_red_and_names_the_world(
@@ -371,3 +371,19 @@ def test_a_line_not_yet_begun_is_left_out_and_named_while_every_day_is_lived(
     assert late.symbol in night.left and late.symbol in night.words()
     assert not [b for b in night.broken if b.startswith("the desk stops")], night.broken
     assert night.days == len(SESSIONS[1:51])
+
+
+def test_a_gap_on_a_line_with_no_bar_before_it_is_a_fault_by_name_and_other_lines_are_unchanged(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(simcity, "EVENTS", ((simcity.GAPPED, simcity._gapped),))
+    monkeypatch.setattr(simcity, "EVENTFUL", 1)
+    late = LINES[0]
+    young = {**SHORT, late: [bar for bar in SHORT[late] if bar.day >= SESSIONS[30]]}
+    faults = [
+        b for b in simcity.run(tmp_path, young, ROOM, RATES, NOW, (3,)).broken if "FAULT" in b
+    ]
+    assert faults and all(f"line {late.symbol}:" in b and "world 3" in b for b in faults), faults
+    assert not [
+        b for b in simcity.run(tmp_path, SHORT, ROOM, RATES, NOW, (3,)).broken if "FAULT" in b
+    ]
