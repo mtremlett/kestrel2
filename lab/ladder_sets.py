@@ -18,8 +18,19 @@ from datetime import UTC, date, datetime, timedelta
 from functools import partial
 from pathlib import Path
 
-from desk.lines import Line
-from lab import basket, batch, history_bars, ladder, ladder_pool, members, tape, trials, verdict
+from desk.lines import LINES, Line
+from lab import (
+    basket,
+    batch,
+    history_bars,
+    ladder,
+    ladder_pool,
+    members,
+    rung_retail,
+    tape,
+    trials,
+    verdict,
+)
 from lab.batch import Bars
 from lab.cell import Cell
 from lab.ladder import END, FOLDER, START, Plan, _last, _whole, eponymous, run
@@ -154,8 +165,16 @@ def baskets(
         stressed = next((a for a in stresses if a is not Answer.PASS), Answer.PASS)
         if firsts:
             family = trials.family(home / FOLDER / f"{plan.stem}.trials.jsonl", plan.question, rule)
-            rows.append(basket.row(plan.tag, rule, firsts, family, stressed))
+            against = _against(firsts[0].key.cell.line, bars, pounds)
+            rows.append(basket.row(plan.tag, rule, firsts, family, stressed, against))
     return rows
+
+
+def _against(line: Line, bars: Bars, pounds: Rates) -> rung_retail.Against:
+    """The market a basket is set beside: its first line's venue's (`ladder.MARKETS`), its bars
+    and the pound rates."""
+    market = next(one for one in LINES if one.symbol == ladder.MARKETS[line.venue])
+    return rung_retail.Against(market, bars(market), pounds)
 
 
 def tapes_held(home: Path) -> str:
