@@ -10,7 +10,7 @@ settled entries into one short summary entry; git keeps every word.
 
 ### 2026-11-13 to 14 — the first day's decisions, folded (the oldest settled entries)
 
-Sixteen entries, each settled and built, folded into one; git keeps every word (the file
+Sixteen entries (some bullets since dropped), each settled and built, folded into one; git keeps every word (the file
 before this fold: `git log -p docs/lanes/data.md`).
 - *The fourteen months* (R-MONEY-2): the scenes read the whole rehearsal data, each line
   on its own venue's calendar; the six-week window and the status cut went.
@@ -24,13 +24,10 @@ before this fold: `git log -p docs/lanes/data.md`).
   #84).
 - *UK tax:* two rates (nil for a fund or exchange-traded product, stamp duty for a UK
   share), a fact on each line, with how far each is confirmed.
-- *The next boxes* (#66): their order, the keeper's road and the store's name.
 - *The twins* (#85): VUAG, EQQQ and IDTL in the master with an ISA flag and a retail flag
   on every line, GLD out, the yardstick VUAG.
-- *Hours* (#87): every session's open, close, auction and half-day in UTC from one calendar.
 - *The fast store* (#89): SQLite in WAL mode, whole rounds, exact decimals, benchmarks held.
 - *The lists' members* (#96): S&P 500 and Nasdaq 100 by day since 2010; `on` refuses the rest.
-- *Five-minute bars saved for good* (#97): through the daily store's checks, each evening.
 
 ### 2026-11-14 — the head start, currency and store rules, folded (#175-#254)
 
