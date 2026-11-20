@@ -430,6 +430,10 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1059 coverage lookback read from the grid's SWEEPS, one home (500 sessions). |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1062 no change; R-MONEY-48 already met, closed. |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1065 DATA: data-pence confirmed done on main, docstring only. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1098 DATA: disk-space floor in the quality monitor (OPS-07), no scene moved. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1101 DATA s3, verification only, no code, no scene moved. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1104 DATA: breadth counts from the store, pure and tested. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1107 DATA: disk watch wired into the quality monitor (OPS-07 part). |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
