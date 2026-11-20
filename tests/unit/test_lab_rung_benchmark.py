@@ -65,3 +65,11 @@ def test_a_rung_with_its_decision_inverted_is_caught(monkeypatch: pytest.MonkeyP
     monkeypatch.setattr(rb, "beats", lambda low: not low > 0)
     assert _answer(1, 0.008).answer is Answer.FAIL, "the planted edge no longer passes"
     assert _rate(0, 100) > 0.9, "noise passes almost always: far above the stated rate"
+
+
+def test_the_interval_is_a_textbook_case_worked_by_hand() -> None:
+    """Excesses 1..5: mean 3, sample variance 10 / 4 = 2.5, standard error sqrt(2.5 / 5) = 0.7071;
+    T_PASS (2) of them either side: 3 -/+ 1.41421, the textbook t-interval's shape."""
+    mean, low, high = rb.interval([1, 2, 3, 4, 5])
+    assert (mean, low, high) == pytest.approx((3, 3 - 2 * math.sqrt(0.5), 3 + 2 * math.sqrt(0.5)))
+    assert rb.beats(low) and not rb.beats(rb.interval([-1, 0, 1, 2, -2])[1])

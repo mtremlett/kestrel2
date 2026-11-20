@@ -270,3 +270,30 @@ then the break was removed:
 
 ### 2026-11-19 — "mostly FAULT" means over half (R-RUNNER-332, #892)
 - Options: any FAULT ends red; over half of the judged cells; all. Chose over half, since the request says "mostly"; a few faults are said but not fatal.
+
+### 2026-11-19 — an unscorable weather layer reads "no" with its reason (R-RUNNER-205, #907)
+- Options: omit the layer; fail the whole run; list it as "cannot score" with the reason, joins = no. Chose the last, so one thin layer does not hide the others.
+
+### 2026-11-19 — the lane guard blocks moving a module (R-RUNNER-191 b, #919)
+- Options: (1) loosen the lane guard to read ownership from the merge base and allow a lane to remove its own module's manifest line; (2) leave rung_folds.py as is. Recommended 1, a guard change, so announced and left to the guard lane/runner (outside the claim, A8); asked as R-RUNGS-29.
+
+### 2026-11-19 — the retail rung is map row 12 (R-RUNNER-229, #927)
+- Options: a 12th row, or keep eleven and rename the module. Chose the 12th: the card names the file, and `found` counts any `rung_*` module without a RUNG. Built count stays 3 of 12.
+- Days: market day = close over the prior close in pounds; basket day = pounds of trades sold that day after every cost over the 10,000 capital, 0 if none sold (cash between trades). Rejected marking open trades daily (needs every line's bars). Frozen numbers unchanged.
+- With EASED off nothing changes; on, a basket row gains "retail" but its answer is unchanged, so no golden number moves (to confirm at ease-switch-on).
+
+### 2026-11-20 — EASED stays off until the retail rung is read (R-RUNNER-231, #937)
+- Options: (a) flip EASED anyway, spending the one pre-registered re-run without easing 4; (b) refuse and wait for R-RUNGS-30. Chose (b): the pre-registration is frozen and the re-run happens once. R-RUNGS-30 landed in #942, so the flip may now go ahead.
+
+### 2026-11-20 — one market per basket row (R-RUNNER-384, #942)
+- A rule's basket may span venues but `basket.row` takes one market. Options: (a) the first pooled line's venue market; (b) split baskets per venue. Chose (a), the smallest step; per-venue baskets would change the row shape.
+
+### 2026-11-20 — a lane may delete a file it owns (R-RUNGS-29, #951, #949, #952)
+- Options: (1) loosen the lane guard to read ownership from the merge base and allow removing an owned module's manifest line; (2) leave lab/rung_folds.py. Chose 1 by his standing ruling "always go with recommended"; it loosens nothing about other lanes' files. The guard edit (tests/guards/test_lanes.py) is outside RUNGS's claim, so it stays open as R-RUNGS-29; the move of Fold/Walked into lab/folds.py follows it.
+
+### 2026-11-20 — EASED switch-on split in three (R-RUNNER-231, #976, #967)
+- Options: (1) flip and fix everything in one card (mixes tests and callers); (2) split: callers pass the family count, tests pin the state they test, then the flip with the golden verdict updated once. Chose 2 (small reversible steps, stop rule A8). Turning it on made 19-21 unit tests red. Held the flip (#967) because the re-run is single-use and the ladder passed no family, so every cell would read "could not".
+
+### 2026-11-20 — the pooled ladder fails loudly under EASED (R-RUNNER-385, #984)
+- The pool path (`lab/ladder_pool.py`) was outside the claim. Options: leave it passing no family, so with EASED on it fails loudly; or edit the pool now. Chose the first; asked as R-RUNGS-31.
+

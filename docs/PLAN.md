@@ -243,20 +243,22 @@ Checked 17 Nov (MONEY, s6): R-DATA-53 is on main (`desk/command.py:387` passes `
 - [x] A home for the research store on his PC, refreshed nightly, a ticker that left a list
       cleared out, and the day and list it reflects written beside it
       {id: data-research-home; files: lab/universe.py, tests/unit/test_lab_universe*.py; after: data-parked-fifth}
-- [ ] The hot bars' first source is the broker: he already pays for IBKR's market data, so
+- [x] The hot bars' first source is the broker: he already pays for IBKR's market data, so
       the five-minute keeper reads live bars through IB Gateway's paper port, read-only, and
       the free archive is the second source and the check on it; first prove, read-only,
       that the paper account sees his live data and not the delayed kind, and if it does
       not, say which setting he must turn on (DAT-02, DAT-07)
       Built: the broker's daily bars first at the one writer (#517, #521), the keeper asks it for lines the
       archive lacks (#701), one-minute bars from IBKR (#629). Remains: a bar's own source label (a request to MONEY)
+      Proved 19 Nov (#903): the paper Gateway serves live, not delayed, bars. Remains: a bar's own source label (MONEY's, #844).
       {id: data-broker-bars; files: desk/keeper.py, tests/unit/test_keeper*.py; after: data-keeper-receipts; waits: R-DATA-9}
-- [ ] **An ingest that cannot pile up, by construction:** one slot per ticker per minute, so a
+- [x] **An ingest that cannot pile up, by construction:** one slot per ticker per minute, so a
       round never holds more than its tickers; a late round is replaced by the next, and its
       gap goes to a bounded backfill list; writes are upserts on ticker, bar size and time, so
       a retry never duplicates; each round's lag, size and refusals recorded and alerted on.
       Finished months of intraday history are sealed into compressed files for the lab to
       read, when a benchmark shows SQLite slowing (DAT-07, DQ-12)
+      Verified on main (#915): slots, upserts, parked list, receipts. Remains: sealing into compressed files, only if the benchmark ever reds.
       {id: data-ingest; files: desk/keeper.py, tests/unit/test_keeper*.py, desk/bars.py, tests/unit/test_bars*.py; after: data-keeper-receipts}
 - [ ] **Two databases, both owned by the one store** (his ruling, 14 November), in the desk's
       data folder, never in this public repository: `market_history.db`, long-term, every timeframe
@@ -272,8 +274,8 @@ Checked 17 Nov (MONEY, s6): R-DATA-53 is on main (`desk/command.py:387` passes `
       imports of Stooq, ibkr_store and mark_the_trend daily, hourly and 15/30-minute rows (#527-#566), the
       history pull and its writer (#636, #674), pages back and keeps the line's currency (#710, #725). Remains: the rest of R-RUNNER-10 (5-minute parquet, market.db,
       bars.db, per-source counts), paging back (R-RUNNER-216; #739: pull asks only 1m-30m and 1d; remains rollup of 1h, 4h, 1wk
-      into the history database as rollup:<from>; #780: a rolled bar differing from a held one is a FAULT line on stderr; #797: `python -m desk.quality` audits, backfills and re-audits the daily timeframe; remains the other timeframes, market_live.db, local Stooq and rollup sources, the runner job), the long database for daily and up
-      {id: data-two-stores; files: desk/bars.py, tests/unit/test_bars*.py, desk/keeper.py, tests/unit/test_keeper*.py; after: data-ingest}
+      into the history database as rollup:<from>; #780: a rolled bar differing from a held one is a FAULT line on stderr; #797: `python -m desk.quality` audits, backfills and re-audits the daily timeframe; remains the other timeframes, market_live.db, local Stooq and rollup sources, the runner job; #930: backfill.fill takes one ordered source list, the rollup step needs Source.ROLLUP_5M in desk/bars_schema.py, outside the box's claim; #935: the audit counts a closed session of today), the long database for daily and up
+      {id: data-two-stores; files: desk/bars.py, tests/unit/test_bars*.py, desk/keeper.py, tests/unit/test_keeper*.py; after: data-ingest; waits: operator}
 - [ ] **Data in tiers, for 4,000+ tickers** (research of 14 November, kept in the notes
       folder as `data_stack_2026-11-14.md`). Tier A: held, signalled and watched names, live
       1-minute from IBKR within his line allowance (100 now). Tier B: US breadth at 1 minute
@@ -754,7 +756,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       {id: rungs-plateau; files: lab/plateau.py, tests/unit/test_lab_plateau.py, manifest.toml}
 - [x] Periods and regimes: replays across periods and regimes; a strategy never failed for
       working in only one; out-of-regime trades tagged on paper (LAD-05, REG-03, STR-20).
-      Remains: the weather (REG-01) and handing home regimes to the desk (before paper). Built: `weather.edges` per fold (#866) and `weather.against_trend` (#875), wired into no verdict; remains (R-RUNNER-205): run volatility, drawdown and breadth through them on the real store with trial count and worst fold, wire the winners into the regime rung, then macro series from the data-collector
+      Remains: the weather (REG-01) and handing home regimes to the desk (before paper). Built: `weather.edges` per fold (#866) and `weather.against_trend` (#875), wired into no verdict; `weather.contest` and `weather.write` (#907: calm/shallow/broad layers, worst fold beside trend's, 3 trials, an unscorable layer "cannot score") are built; remains (R-RUNNER-205): run the contest as a plain-code job on the real store, run volatility, drawdown and breadth through them on the real store with trial count and worst fold, wire the winners into the regime rung, then macro series from the data-collector
       {id: rungs-regimes; files: lab/regime.py, tests/unit/test_lab_regime.py, manifest.toml; after: rungs-folds}
 - [x] Failing fairly: too few effective trades is "not enough evidence", never a fail; a
       check that the code is the published rule; no trades at all is a fault in the test
@@ -797,7 +799,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       audit found kept as a case that must fail (LAD-09, LAD-03, LAD-08). Built: all eleven
       modules, each proven alone (#343-#365, #412). Remains: the Sharpe a trade has one home (#746); the ladder judges by three of them
       (costs #438, ci #440, cpcv #445 declare a RUNG; "rungs built" counts 3 of 11); wiring the rest, the clustered
-      trials (#379 built) into the verdict, the gap-through loss (R-RUNNER-187 declined, #409). Also remains (R-RUNNER-191): market.fit, rung_dsr.chance vs deflated._deflated, rung_regimes/rung_bootstrap bands (rung_ci keeps its own, open at both ends, #815; rung_benchmark reads rung.mean_and_error, #827; one home for a mean and its interval, rung.interval, #838; rung_dsr's wrapper of the paper's formula gone, #848); Fold/Walked out of rung_folds.py; ease-switch-on
+      trials (#379 built) into the verdict, the gap-through loss (R-RUNNER-187 declined, #409). Also remains (R-RUNNER-191): market.fit, rung_dsr.chance vs deflated._deflated, rung_regimes/rung_bootstrap bands (rung_ci keeps its own, open at both ends, #815; rung_benchmark reads rung.mean_and_error, #827; one home for a mean and its interval, rung.interval, #838; rung_dsr's wrapper of the paper's formula gone, #848); Fold/Walked out of rung_folds.py (R-RUNNER-191 part b, blocked on R-RUNGS-29; part a, the golden ladder verdict test, #919); ease-switch-on (R-RUNGS-30 done, #942; flip EASED once). Built since: a cell's key carries its own rule's code, so an edit re-judges only that rule (#912); the retail rung stands in a basket row behind EASED (#927, map row 12; remains: `ladder_sets.baskets()` passing `against=` to `basket.row`, R-RUNGS-30)
       {id: rungs-trustworthy; files: *; after: rungs-beta}
 - [ ] **LADDER READY, the cards (his ruling, 15 November: "done properly and to elite desk
       specifications", then the ladder runs 24x7).** Ranked; each card one test and one change:

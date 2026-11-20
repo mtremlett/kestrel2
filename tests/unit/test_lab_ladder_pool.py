@@ -6,16 +6,26 @@ from __future__ import annotations
 import os
 from collections.abc import Sequence
 from datetime import UTC, datetime
+from functools import partial
 from pathlib import Path
 from typing import Any
 
 import pytest
-from test_lab_ladder import AAPL, EDGE, ISF, NOISE, VUSA, _door, _rows
+from test_lab_ladder import (  # noqa: F401 - eased_off is an autouse fixture
+    AAPL,
+    EDGE,
+    ISF,
+    NOISE,
+    VUSA,
+    _door,
+    _rows,
+    eased_off,
+)
 from test_lab_ladder import _set as _cells
 
 from desk.lines import Line
 from desk.store import Bar
-from lab import folds, ladder, ladder_pool
+from lab import folds, ladder, ladder_pool, trials, verdict
 from lab.batch import Bars
 
 CLOCK = lambda: datetime(2026, 11, 14, tzinfo=UTC)  # noqa: E731
@@ -103,3 +113,28 @@ def test_the_pool_is_sized_by_free_memory_beyond_a_reserve_of_a_fifth_and_never_
     assert ladder_pool.workers(64 * GB, 60 * GB, cores=8) == 6  #: the cores' bound: 8 - 2
     assert ladder_pool.workers(64 * GB, 15 * GB, cores=8) == 1  #: only 2.2 GB beyond the reserve
     assert ladder_pool.workers(64 * GB, 2 * GB, cores=8) == 1  #: below the reserve: one
+
+
+@pytest.mark.parametrize("eased", [True, False])
+def test_a_pooled_cell_is_judged_with_its_family_count_only_while_eased(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, eased: bool
+) -> None:
+    monkeypatch.setattr(verdict, "EASED", eased)
+    monkeypatch.setitem(ladder_pool._held, "bars", _book())
+    monkeypatch.setitem(ladder_pool._held, "pounds", {})
+    cells = _cells(VUSA)
+    register = tmp_path / "x.trials.jsonl"
+    trials.start(register)
+    trials.ask(register, ladder.FIRST.question)
+    trials.enter(register, ladder.FIRST.question, [trials.name(c) for c in cells])
+    kin = partial(trials.family, register, ladder.FIRST.question)
+    task: ladder_pool.Task = (
+        cells,
+        cells,
+        (ladder.FIRST.tag, 1),
+        [None],
+        datetime(2026, 11, 14, tzinfo=UTC),
+        kin,
+    )
+    (row,) = ladder_pool._group(task)
+    assert "error" not in row and "answer" in row

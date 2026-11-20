@@ -57,6 +57,12 @@ RULES = ("breakout_20_10", "trend_50_200")
 ISF_START = NOISE[0].day
 
 
+@pytest.fixture(autouse=True)
+def eased_off(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The off assertions of these tests: the ladder's easing switch is set off, not assumed."""
+    monkeypatch.setattr(verdict, "EASED", False)
+
+
 def _set(*lines: Line) -> list[Cell]:
     return [Cell("breakout_20_10", line, ladder.START, ladder.END) for line in lines]
 
@@ -317,6 +323,13 @@ def test_a_rule_with_a_figure_on_file_is_judged_only_behind_its_authors_result(
     #: a bar of the author's market mended: another result stands behind it, so judged again
     book[VUSA] = (replace(author[0], volume=7), *author[1:])
     assert "1 judged now, 0 kept" in ladder.run(tmp_path / "made", _door(book), {}, todo)
+
+
+def test_eased_on_a_cell_is_judged_with_its_rules_family_count_not_left_as_could_not(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(verdict, "EASED", True)
+    assert "0 could not" in ladder.run(tmp_path, _door({VUSA: EDGE, ISF: NOISE}), {}, _set(VUSA))
 
 
 def test_the_set_is_every_published_rule_on_every_line_and_its_doors_are_the_desks(

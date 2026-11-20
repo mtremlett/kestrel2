@@ -11,7 +11,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
-from test_lab_ladder import EDGE, ISF, NOISE, VUSA, _door
+from test_lab_ladder import EDGE, ISF, NOISE, VUSA, _door, eased_off  # noqa: F401 - autouse fixture
 from test_lab_reproduce import AT_CLOSE, _figure
 from test_lab_reproduce import _bars as _author
 
