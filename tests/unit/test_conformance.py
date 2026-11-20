@@ -79,14 +79,10 @@ def test_the_runs_orders_are_on_the_line_that_traded_most_sized_by_the_desk_date
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     run = _plan(monkeypatch)
-    assert run.first == Order(
-        ID.format(1), VUAG, 1, Decimal(110), Decimal(1), Decimal(99), session=FRI
-    )
+    assert run.first == Order(ID.format(1), VUAG, 1, Decimal(110), Decimal(1), Decimal(99))
     assert run.sale == Sale(ID.format(2), VUAG, 1)
     # a fifth of the desk's 10,000 pounds: 18 shares at 110 and the broker's 3 pounds
-    assert run.second == Order(
-        ID.format(3), VUAG, 18, Decimal(110), Decimal(1), Decimal(99), session=FRI
-    )
+    assert run.second == Order(ID.format(3), VUAG, 18, Decimal(110), Decimal(1), Decimal(99))
     assert run.refusal == Decision("conf0lse1005", "SPY", FRI, Action.BUY)
     with pytest.raises(ValueError, match="no plain line"):
         conformance.plan([], SPY, MON.date(), FX, STAMP)

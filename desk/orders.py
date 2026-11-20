@@ -80,8 +80,8 @@ class Order:
     price: Decimal  #: in the line's currency
     fx: Decimal  #: pounds per unit of the line's currency
     stop: Decimal
-    #: The session the order is dated (R-PAPER-35); None only until every constructor sets it.
-    session: date | None = field(default=None, kw_only=True)
+    #: The session the order is dated (R-PAPER-35); None until every constructor sets it.
+    session: date | None = field(default=None, kw_only=True, compare=False)
 
     def __post_init__(self) -> None:
         if self.quantity <= 0 or not 0 < self.stop < self.price:
@@ -99,7 +99,7 @@ class Sale:
     order_id: str
     line: Line
     quantity: int
-    session: date | None = None  #: as Order.session
+    session: date | None = field(default=None, compare=False)  #: as Order.session
 
     def __post_init__(self) -> None:
         if self.quantity <= 0:
