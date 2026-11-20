@@ -23,7 +23,18 @@ from desk.broker import Crash, Fault, Pretend, Report
 from desk.lines import YARDSTICK
 from desk.orders import HOLDINGS, Order, Sale, Settings
 from desk.simcity_census import Census
-from desk.simcity_incidents import CANCELLED, DEAF, HOLE, LEFT, beside, cancelled, deaf, hole
+from desk.simcity_incidents import (
+    CANCELLED,
+    DEAF,
+    HOLE,
+    LEFT,
+    STALE,
+    beside,
+    cancelled,
+    deaf,
+    hole,
+    stale,
+)
 from desk.simcity_parts import MONTH, Archive, Night, _market
 from desk.strategy import Action
 
@@ -221,6 +232,7 @@ def _killed(life: _Life, on: date) -> None:
 
 Event = tuple[str, Callable[[_Life, date], object]]
 EVENTS: tuple[Event, ...] = (
+    (STALE, stale),
     (BEHIND, _behind),
     (UNSTOPPED, _unstopped),
     (GAPPED, _gapped),
