@@ -343,6 +343,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #797 R-RUNNER-217 step 1: quality monitor, daily timeframe, audit-backfill-reaudit line. |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #795 DAT-03, DQ-01 step: coverage and quality measured per line (desk/coverage.py). |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #811 DATA - quality monitor gains rollup and clash faults (R-RUNNER-217, step 2), 57 product lines. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1023 no change; R-MONEY-28 already on main. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1025 no change; R-PAPER-33 already on main (#770). |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1037 DATA: coverage wired into the quality monitor, no scene moved. |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #814 history.daily home required (R-DATA-49). |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #819 data-deep-history: found the one-word block (store.py KNOWN), pinned the 2000-2009 US calendar; box not finished. |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #821 data-deep-history: found why no bar before 2010 is kept; no change landed (the fix spans store.py and lines.py, outside this claim). |
