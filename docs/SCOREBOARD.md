@@ -537,6 +537,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1026 R-RUNNER-393 done: the conformance action names each order once with its total shares |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1024 R-RUNNER-390 done: link news no longer turns the kill switch on. |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1066 R-MONEY-55 done: go flat cancels working buys via halt.stop. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1097 scribe folded #1066; no change. |
 
 ### GRID
 
