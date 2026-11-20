@@ -318,9 +318,7 @@ Checked 17 Nov (MONEY, s6): R-DATA-53 is on main (`desk/command.py:387` passes `
 - [ ] A line's bars and its fault record written together, so a crash cannot part them
       Built (#832): both files written whole before either is swapped in. Remains: a crash between the two swaps; one file per line, which needs lab/universe.py and tests/unit/test_lab_universe.py in the claim
       {id: data-written-together; files: desk/store.py, tests/unit/test_store.py; after: data-stretched; waits: operator}
-- [ ] A pence history the archive calls pounds caught
-      Remains: backfill converts the broker's pence on entry (#630); history.run and pull return the broker's
-      unit unconverted, and nothing calls them yet
+- [x] A pence history the archive calls pounds caught (every pull passes `history_write.keeper`, which converts once on entry, #630, #725, #1065)
       {id: data-pence; files: desk/store.py, tests/unit/test_store.py; after: data-written-together}
 - [ ] The full research universe, 5,000 and more, once the grid's first pass works
 - [x] Each line's UK tax a fact on the line, from one table of two rates: nil for a fund or

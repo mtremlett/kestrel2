@@ -421,6 +421,14 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1003 no change; blocking requests verified on main |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1004 no change; blocking requests verified on main |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1007 no change; R-PAPER-23, R-RUNGS-16 already on main |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1040 no change; R-PAPER-23 already on main (#294). |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1042 no change; R-PAPER-23 verified on main (#294). |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1038 no change; R-PAPER-23 verified on main (#294). |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1043 no change; R-PAPER-23 already on main. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1044 no change; R-PAPER-23 verified on main (#294). |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1059 coverage lookback read from the grid's sweeps (500 sessions). |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1062 no change; R-MONEY-48 closed. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1065 data-pence confirmed done on main, docstring only. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
