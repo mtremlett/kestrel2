@@ -792,3 +792,9 @@ Options: report the coverage score only, or go red when more than 10% of lines s
 Options: (a) keep `coverage.LOOKBACK` at a hand-written 200 (rejected: the grid's SWEEPS try settings up to 250, so it would
 trade lines with too little history); (b) read the longest setting from `desk/strategy.py` SWEEPS (chosen): a line now needs 500
 sessions, twice the longest lookback, before a rule may trade it, and the number is written once.
+
+### 2026-11-20 — the disk floor is a share, checked in the command (#1098, OPS-07)
+Options: an absolute floor in gigabytes; a 10% share of the drive (chosen, recommended). The share follows the drive, so it needs no retuning. It is first checked in the `python -m desk.quality` entry, not inside `monitor`, so the monitor's tests do not depend on the test machine's disk. (#1107 then wired `disk(path.parent)` into `monitor` itself, because nothing called it and the monitor never went red on a full drive.)
+
+### 2026-11-20 — breadth derived from our own bars (#1104, R-RUNNER-346)
+Options: (a) buy a vendor series (spend, his hard line); (b) derive advances and declines from the store's S&P 500 bars (free, survivorship-biased, chosen per his "go with recommended"); (c) no row. Caveat to be stated on any verdict: the list is today's members only. This supersedes the #917 leaning to leave the Zweig row out, now that a re-checked series exists.
