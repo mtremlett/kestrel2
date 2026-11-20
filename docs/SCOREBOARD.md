@@ -164,6 +164,8 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #884 R-RUNNER-323 SimCity scenario for the cancelled-buy incident, red without the naming, green with it. |
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #895 R-RUNNER-335 part: halted and outside incident scenarios built and tested. |
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #904 R-GRID-1 part 1: sweep settings and named variants of the five on main, nothing new trades. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #916 R-RUNNER-199 intraday reader from the store built; no scene moved (plumbing for the intraday step). |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #936 R-RUNNER-328 fail-fast watchdog landed; root cause awaiting the next named stall. |
 
 ### DATA
 
@@ -472,6 +474,8 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #890 no change; R-MONEY-36 already on main |
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #893 no change; R-MONEY-49 verified on main |
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #909 R-RUNNER-380 the rehearsal does not book a fill on a line the account held |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #931 no change; R-RUNNER-348 waits on a date field on Order (desk/orders.py).
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #933 no change; R-RUNNER-348 waits on a date field on Order (same request).
 
 ### GRID
 

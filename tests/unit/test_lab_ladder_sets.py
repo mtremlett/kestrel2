@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from datetime import date
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -58,3 +59,28 @@ def test_a_set_whose_cells_all_fault_ends_red_naming_the_rung_and_real_fails_end
     assert "FAULT: 3 of 3 cells at rung folds: no years" in capsys.readouterr().out
     assert _door(tmp_path / "b", ["FAIL"] * 3, monkeypatch) == 0
     assert "FAULT" not in capsys.readouterr().out
+
+
+def test_a_basket_row_carries_the_market_its_lines_venue_is_set_beside(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from test_lab_ladder import EDGE, ISF, VUSA, _door
+
+    from lab import basket, rung_retail, trials
+    from lab.cell import Cell
+
+    monkeypatch.setattr(trials, "family", lambda *_: 1)
+    seen: list[rung_retail.Against | None] = []
+    row = basket.row
+
+    def spy(*a: Any) -> Any:
+        seen.append(a[5])
+        return row(*a)
+
+    monkeypatch.setattr(basket, "row", spy)
+    todo = [Cell("breakout_20_10", VUSA, START, END)]
+    door = _door({VUSA: EDGE, ISF: EDGE})
+    ladder_sets.baskets(tmp_path, door, {}, todo, ["breakout_20_10"], ladder_sets.EPON)
+    (against,) = seen
+    assert against is not None
+    assert (against.line, against.bars, against.rates) == (ISF, EDGE, {})
