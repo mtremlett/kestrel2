@@ -351,6 +351,10 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1023 no change; R-MONEY-28 already on main. |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1025 no change; R-PAPER-33 already on main (#770). |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1037 DATA: coverage wired into the quality monitor, no scene moved. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1098 DATA: disk-space floor in the quality monitor (OPS-07), no scene moved |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1101 DATA s3 20 Nov, verification only, no code, no scene moved |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1104 DATA: breadth counts from the store, pure and tested |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1107 DATA: disk watch wired into the quality monitor (OPS-07 part) |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #814 history.daily home required (R-DATA-49). |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #819 data-deep-history: found the one-word block (store.py KNOWN), pinned the 2000-2009 US calendar; box not finished. |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #821 data-deep-history: found why no bar before 2010 is kept; no change landed (the fix spans store.py and lines.py, outside this claim). |
