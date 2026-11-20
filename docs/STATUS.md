@@ -130,13 +130,13 @@ money-restop waits on R-MONEY-18, R-MONEY-31 (the lost-stop list in `desk/messen
 - [ ] R-MONEY-45 (blocking): the other 15 eponymous rules become catalogue rows so R-RUNNER-127 can delete the files; R-MONEY-46 (later): RUNNER hands spec-epon those 15 (#465, #468).
 ### Found, not fixed
 - Costs: spread and slippage assumed; no clock on the day path (R-MONEY-8); `desk/halt.py` still says only the kill switch cancels. Kill switch time in `book.send` is the wall clock (#285).
-- Watch (#172, blind after 15 min without a bar #880; why VUAG's 17 Nov 09:25 bar was refused is undiagnosed): no market read after London shuts; `halt.lift` defaults to the operator; `halt.stop` cancels working buys (#871) and the send path calls it (#1031); goflat (R-MONEY-55) and watch do not (R-MONEY-54). Lost stop (#191): kept level unrounded; `book.Reckoning` untyped.
+- Watch (#172, blind after 15 min without a bar #880; why VUAG's 17 Nov 09:25 bar was refused is undiagnosed): no market read after London shuts; `halt.lift` defaults to the operator; `halt.stop` cancels working buys (#871) and the send path calls it (#1031); goflat does too (#1066, R-MONEY-55); watch does not (R-MONEY-54). Lost stop (#191): kept level unrounded; `book.Reckoning` untyped.
 - SimCity: the deep run on the real store is unconfirmed after #231; no halted day or overnight death lived. TD Sequential's countdown cancel is untested (#274). Eponymous rules: published figures unchecked, several without a blind review.
 - `day.py` counts the ledger by length: a correction after a day's record is not re-priced. SimCity soak names the first red world per promise, not all. `test_lab_headstart` fails on a PC without tzdata (unrelated). `GAP_LOSS` is measured (`orders.gapped`, #845) but acted on nowhere yet (money-time-gaps).
 
 ## PAPER
 
-Last updated: 20 November 2026 (folds #215 to #1026, #1024).
+Last updated: 20 November 2026 (folds #215 to #1026, #1024, #1066).
 
 ### Where it is
 
@@ -171,6 +171,7 @@ R-RUNNER-348 (`Paper._cleared` reads the date from `order_id[:8]`) waits on R-PA
 - R-RUNNER-26: #215; R-RUNNER-42: #223; R-RUNNER-91: #295; R-MONEY-17: #296; R-MONEY-25: #300; R-DATA-14: #302; R-RUNNER-177: #369; R-RUNNER-180: #373; R-MONEY-36: #385; R-RUNNER-191: #433; R-RUNNER-196: #437; R-RUNNER-197: #444; R-RUNNER-190: #462; R-RUNNER-113: #461 (half); R-RUNNER-207: #471; R-RUNNER-209: #476
 - R-RUNNER-16: #484 (door only); R-RUNNER-93: #393; R-RUNNER-210: #492; R-RUNNER-17: #495; R-RUNNER-212: #512; R-DATA-9: #509 and #793; R-RUNNER-161: #502; R-RUNNER-162: #558; R-RUNNER-92: #565; R-RUNNER-223: #572; R-RUNNER-234: #577; R-RUNNER-250: #584; R-RUNNER-251: #599; R-RUNNER-235: #601; R-RUNNER-256: #623; R-RUNNER-255: #645; R-RUNNER-258: #651 (step 1 of 3); R-MONEY-30: #657; R-RUNNER-268: #690; R-RUNNER-278: #706; R-RUNNER-282: #716; R-RUNNER-257: #733; R-MONEY-49 and R-MONEY-36: #741 (already on main); R-DATA-52: #798; R-MONEY-49: #798 (declined, already on main); R-RUNNER-286: #782; R-RUNNER-291: #805; R-RUNNER-308: #779; R-RUNNER-312: #843; R-RUNNER-339: #860; R-RUNNER-342: #862; R-RUNNER-330: #874; R-MONEY-53: #885; R-MONEY-49: #888 and #893 (already on main); R-MONEY-36: #890 (already on main); R-RUNNER-380: #909; R-RUNNER-390: #1024
 - R-PAPER-32: #733; R-PAPER-5, -9 to -12, -14, -15, -22, -24 (done, see #288, #282, #285, #290, #289, #516, #291, #215/#393, #302); R-PAPER-6: #175
+- R-MONEY-55: done in #1066
 
 ### Found, not fixed
 
