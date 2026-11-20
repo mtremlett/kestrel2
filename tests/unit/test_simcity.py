@@ -54,8 +54,8 @@ def busy(patch: pytest.MonkeyPatch, root: Path, worlds: tuple[int, ...]) -> simc
 @pytest.fixture(scope="module")
 def lived(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, simcity.Night, list[object]]:
     """One world of the fourteen months, lived once for every test here that reads it; with
-    it, its life and its round trips, counted while its book still stood. It is the first
-    world that came to six lines held, before the send path cancelled what a dead desk left."""
+    it, its life and its round trips, counted while its book still stood. It is a
+    world that meets every scenario, before the send path cancelled what a dead desk left."""
     root, live, seen = tmp_path_factory.mktemp("nights"), simcity._live, list[object]()
 
     def watched(life: simcity._Life) -> None:
@@ -64,7 +64,7 @@ def lived(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, simcity.Night
 
     with pytest.MonkeyPatch.context() as patch:
         patch.setattr(simcity, "_live", watched)
-        return root, simcity.run(root, MARKET, ROOM, RATES, NOW, (6,)), seen
+        return root, simcity.run(root, MARKET, ROOM, RATES, NOW, (1,)), seen
 
 
 @pytest.fixture(scope="module")

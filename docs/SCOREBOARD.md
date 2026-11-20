@@ -518,6 +518,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #909 R-RUNNER-380 the rehearsal does not book a fill on a line the account held |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #931 no change; R-RUNNER-348 waits on a date field on Order (desk/orders.py).
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #933 no change; R-RUNNER-348 waits on a date field on Order (same request).
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1026 R-RUNNER-393 done: the conformance action names each order once with its total shares |
 
 ### GRID
 
