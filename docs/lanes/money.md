@@ -612,3 +612,28 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 - Options: (a) the time stop in `strategy._run`, the one replay backtest and today share (chosen); (b) in `day.py`, a second path, which canon B2 forbids.
 - Live age comes from the replay's own buy, not the fill date. A gap breach is a pure test (`orders.gapped`) first; acting on it needs the stop fill from book/broker, outside this claim.
 - Choosing each rule's hold limit moves golden days, so it needs his approval (canon B5); the five declare none today.
+
+### 2026-11-19 - halt cancels working buys (#871, R-RUNNER-337)
+- Options: (a) the halt is recorded before the broker is asked, in a new `halt.stop` (chosen); (b) `halt.call` itself cancels (rejected: it has no broker, and halt.py cannot import book without a cycle).
+- Why: a broker that cannot answer still leaves the desk halted (error raised), the same order as the kill switch. Resting stops stay. Callers still use `halt.call` (R-MONEY-54).
+
+### 2026-11-19 - the watch's blindness stays about the market line (#880, R-RUNNER-338)
+- Options: (a) blind is about the market line (VUAG) and venue-wide hearing, 15 minutes (chosen); (b) per-line staleness, rejected: a thin held line legitimately has no bars for 15 minutes and would cry blind all day.
+
+### 2026-11-19 - cost model moves, not the gate's helpers (#881, R-RUNNER-345)
+- Options: (a) move the cost model to `desk/orders_parts.py` (chosen: one coherent part, no dependence on the sizer or gate); (b) move the gate's helpers, rejected: it splits one rule across files. Charges stays in `orders.py` because SimCity's census names it by module.
+
+### 2026-11-19 - SimCity cancelled-unfilled scenario (#884, R-RUNNER-323)
+- Options: (a) the desk's own handling of an unfilled cancelled buy, naming it on the morning's list (chosen); (b) copying the conformance harness's sale step into the desk, rejected: it is the harness's job. A line another rule's order then fills is rightly off the list.
+
+### 2026-11-19 - SimCity halted and outside-ISA scenarios (#895, R-RUNNER-335)
+- On the merge conflict main's cancelled scenario (#884) stays, since other tests pin it; only halted and outside are added.
+
+### 2026-11-19 - sweeps one setting at a time (#904, R-GRID-1)
+- Options: (a) one setting at a time, three values each (published and its neighbours) so cell counts stay small (chosen); (b) a cross product, rejected as too many cells. The published value is the plain rule name, not a variant; rsi2's `length` is 2, 3, 4.
+
+### 2026-11-20 - intraday.session reads the store (#916, R-RUNNER-199)
+- Candle.source is "store" because the store read does not return a bar's source. Options: (a) look the source up per bar (extra reads); (b) a fixed name (chosen, no extra reads).
+
+### 2026-11-20 - SimCity phase limit of two hours (#936, R-RUNNER-328)
+- Each of SimCity's three phases (store read, worlds, stress replay) runs under `LIMIT` in desk/simcitycmd.py. Options: 1 h, 2 h (chosen), none. Monday's full run took 17 min and the hang 6 h, so 2 h is far above normal and well below the kill.
