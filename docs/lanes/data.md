@@ -53,72 +53,12 @@ macro series, earnings dates and timestamped news into the one store (#460); the
 read instead of asked again (#458). Two no-change sessions (#424, #454) found R-RUNNER-11 waiting on PAPER test lines; it
 landed later. Git keeps each full entry.
 
-### 2026-11-16 — SPY kept from 29 January 1993 as a reference series (R-RUNNER-94) (#303)
-
-- Where to hold reference bars - (a) store.py (would pass its 400-line cap), (b) new module
-  desk/reference.py (outside the claim, went red), (c) archive.py, chosen. Calendar: the
-  reference series is checked without a calendar (weekday only) rather than extending
-  venues.py back to 1993, which is outside my claim; recommended, taken.
-
-### 2026-11-16 — the keeper keeps SPY's history daily after the US close (R-RUNNER-96) (#475)
-
-- A refused reference fetch is told in words but is not a miss (nothing is traded on it;
-  options: count it as a miss, which would wake the operator over a research series;
-  recommended and taken: not a miss, retried at the next call per his "always go with
-  recommended"). Reference bars are kept under the daily store's US folder (desk cannot import
-  lab; this is the one store's own folder).
-
-### 2026-11-16 — the one calendar names market events (R-RUNNER-149) (#453)
-
-- Events are read from the calendar by (venue, day) and refused outside 2026 (options: guess
-  recurring dates / refuse; chose refuse, per the calendar's own rule). ECB left out: no venue
-  of the desk's is Frankfurt.
-
-### 2026-11-16 — the keeper keeps and reads the daily bars in the long database (R-RUNNER-11, step) (#486)
-
-- - Left the fast store's file name "bars.db" (options: rename now to market_live.db, or
-  later). Renaming breaks PAPER's tests (test_command, test_running, test_watch, test_pnl
-  write "bars.db" literally) and the claim forbids touching them. Recommended and taken:
-  later, once PAPER's tests use `keeper.HOT`. - The keeper writes a line whole
-  (`Round.daily`), tagged archive, so an earlier import of lower sources into the long
-  database would be replaced at the next refresh. The multi-source rule (IBKR, Yahoo, Stooq,
-  recorded disagreements) must come first; it is the next step.
-
-### 2026-11-16 — the store's one rule for two sources and the yardstick fault (R-RUNNER-189, first step) (#500)
-
-- (1) A clash is kept as a recorded fault with the archive's bar standing (options: drop both,
-  as `_once` does for a date given twice differently; keep the first source's). Chose the
-  second: "Yahoo first", the fault is told and parks the line while recent, and nothing is
-  dropped silently. (2) Tolerance 2% on the close, since Stooq's daily bars are split-adjusted
-  only and a dividend day is under that; to be tuned only through the pinned constant. (3) No
-  double report: a yardstick whose archive refused is already a miss.
-
-### 2026-11-16 — the day's pounds per dollar, kept and readable for any session (R-PAPER-22) (#505)
-
-- the pound is a reference series, not a traded line (options: a twenty-first line in LINES,
-  or a separate store; chosen the first-existing mechanism so no new store or module:
-  recommended, cheapest). Guard not touched.
-
-### 2026-11-16 — the broker's daily bars as the store's first source, a client of their own (R-RUNNER-189, second step) (#517)
-
-- The contract for London lines is SMART with primary exchange LSEETF (the first try with
-  exchange LSE got "no security definition"); US lines go by SMART alone. Options: a per-line
-  exchange field on Line (PAPER/DATA master change, larger) or one table by venue (taken,
-  smallest).
-
-### 2026-11-16 — the cleaner's bad-high/low repair named settled; R-PAPER-22/23 were already built (R-RUNNER-194) (#518)
-
-- R-RUNNER-194. Options: (a) keep #367's "leave a deep low" - the yardstick parks on a bad
-  print; (b) keep #381's "repair a low like a high" and leave a close-shared fall as the
-  market's. Chose (b): the north star needs the yardstick unparked, and a real crash (close
-  falls with the low) is still kept. No further change to the cleaner's bad-print rule without
-  a failing row in test_store_rules.py.
-
-### 2026-11-16 — the head start's jobs write the two databases (R-RUNNER-10) (#520)
-
-- Five-minute imports stay in the short file (bars.files design, #442); moving imported
-  intraday history to the long file is a design change, left to a later box. Options: leave,
-  or move; chose leave (no behaviour change).
+### 2026-11-16 — reference series, the one calendar, the long database and the broker's daily bars, folded (#303-#520)
+Nine settled entries folded into one: SPY kept from 1993 as a reference series and its history kept daily after the US
+close (#303, #475); the one calendar names market events (#453); daily bars kept and read in the long database (#486);
+one store rule for two sources with a yardstick fault (#500); the day's pounds per dollar kept (#505); the broker's daily
+bars a client of their own (#517); the cleaner's bad-high/low repair settled (#518); head-start jobs write the two
+databases (#520). Git keeps every word: `git log -p docs/lanes/data.md`.
 
 ### 2026-11-16 — the broker's daily bars stand first at the store's one writer (R-RUNNER-189) (#521)
 
@@ -792,3 +732,11 @@ Options: report the coverage score only, or go red when more than 10% of lines s
 Options: (a) keep `coverage.LOOKBACK` at a hand-written 200 (rejected: the grid's SWEEPS try settings up to 250, so it would
 trade lines with too little history); (b) read the longest setting from `desk/strategy.py` SWEEPS (chosen): a line now needs 500
 sessions, twice the longest lookback, before a rule may trade it, and the number is written once.
+
+### 2026-11-20 — the disk floor is a share, checked at the command's entry (#1098, OPS-07)
+Options: (a) an absolute floor in gigabytes; (b) a share, 10% free (chosen, so it follows the drive). Checked in the
+command's entry, then wired into `monitor` (#1107) so the monitor goes red on a full drive.
+
+### 2026-11-20 — breadth derived from our own bars (#1104, R-RUNNER-346)
+Options: (a) buy a vendor series (spend, a hard line); (b) derive advances and declines from the store's S&P 500 bars (free,
+survivorship-biased: today's members only; chosen, per his "go with recommended"); (c) no row. Say the bias on any verdict.
