@@ -148,8 +148,10 @@ def _place(root: Path, broker: Broker, order: Order | Sale, tell: Tell | None) -
     keep(going, [(order.order_id,)])
     try:
         report = broker.place(order)
-    except (Disconnected, Refused):
+    except Refused:
         going.unlink()
+        raise
+    except Disconnected:  #: whether the broker received it is unknown: the note stays for _settle
         raise
     except Crash:
         raise

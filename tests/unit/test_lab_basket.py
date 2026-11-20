@@ -8,10 +8,10 @@ from decimal import Decimal
 from pathlib import Path
 
 import pytest
-from test_lab_rung import FREE
+from test_lab_rung import FREE, POUND, _bars
 
-from desk.lines import LINES
-from lab import basket, rung, verdict
+from desk.lines import LINES, YARDSTICK
+from lab import basket, rung, rung_retail, verdict
 from lab.cell import Cell, Key, Trade
 from lab.rung import Answer, Priced, Verdict
 
@@ -63,3 +63,17 @@ def test_a_failing_basket_over_one_standard_error_is_incubate_listed_apart_and_n
     assert basket.row(7, "breakout_20_10", lines, 50, Answer.FAIL)["answer"] == "FAIL"
     table = verdict.write_table(tmp_path, "T", "Q?", [row], ["breakout_20_10"], 3, (1, 2))
     assert "## INCUBATE: paper only" in table.read_text(encoding="utf-8")
+
+
+def test_the_retail_rung_stands_in_a_basket_row_only_while_eased_and_given_a_market(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    bars = _bars([100] * 40 + [110])
+    against = rung_retail.Against(YARDSTICK, bars, POUND)
+    lines = [replace(_line_verdict(s), trades=()) for s in LINE_NAMES[:1]]
+    monkeypatch.setattr(verdict, "EASED", False)
+    assert "retail" not in basket.row(7, "breakout_20_10", lines, 50, Answer.PASS, against)["rungs"]
+    monkeypatch.setattr(verdict, "EASED", True)
+    assert "retail" not in basket.row(7, "breakout_20_10", lines, 50, Answer.PASS)["rungs"]
+    row = basket.row(7, "breakout_20_10", lines, 50, Answer.PASS, against)
+    assert row["rungs"]["retail"][0] == "FAULT"  #: no trade to set beside the market: inherited

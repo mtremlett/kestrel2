@@ -2,17 +2,24 @@
 desk was put in, a promise it must keep there, and the day it then runs. R-RUNNER-246: a held
 line has no bar for a session (a hole in the saved data), so the day has no record.
 R-RUNNER-247: shares at the broker with a stop resting, bought beside the book (the 16 November
-conformance run's), which the desk's sale refused as "the desk is long only". R-RUNNER-323: the
-18 November London run, whose buy the broker cancelled with nothing filled, so none were held."""
+conformance run's), which the desk's sale refused as "the desk is long only". R-RUNNER-314: the
+keeper's job failed on 17 November with a venue's daily bars a session short. R-RUNNER-323: the
+18 November London run, whose buy the broker cancelled with nothing filled, so none were held.
+R-RUNNER-315: the 16 November session the yardstick has no bar for, so the line is parked.
+R-RUNNER-248: the 16 November afternoon the crash watch heard nothing of the market."""
 
 from __future__ import annotations
 
 from dataclasses import replace
-from datetime import UTC, date, datetime, time
+from datetime import UTC, date, datetime, time, timedelta
+from decimal import Decimal
+from itertools import count
 from typing import TYPE_CHECKING
 
-from desk import book, halt
+from desk import bars, book, halt, keeper, messenger, venues, watch
+from desk.bars import Five
 from desk.broker import Fault
+from desk.keeper_rotate import Kept, record
 from desk.lines import YARDSTICK
 
 if TYPE_CHECKING:
@@ -26,6 +33,10 @@ NAMED = "an order cancelled unfilled is named that day, and the book stays the b
 HALTED = "a halt is in force while the day's buys are asked for"
 STILL = "with a halt in force nothing is bought"
 OUTSIDE = "a line no ISA can hold is never bought"
+PARKED = "a yardstick with a session missing refuses the day by name"
+STALE = "a venue's daily bars are a session short at the keeper's last refresh"
+REFUSED = "the price store's door refuses a venue short of a session, naming its line"
+DEAF = "the market goes unheard for an hour: he is told once in each hour, and nothing is halted"
 PROMISE = "a held line with no bar for a session is named when the day is refused"
 
 
@@ -105,3 +116,65 @@ def outside(life: _Life, on: date) -> None:
     sent = life.pretend.submitted()[reached:]
     life.promise(OUTSIDE, not any(i.rpartition("-")[2] in barred for i in sent))
     life.market = whole
+
+
+def parked(life: _Life, on: date) -> None:
+    """The yardstick's bar for the session before the day is missing (a gap in the archive, the
+    line parked). The desk must refuse the day, naming the line, for the market's gain over the
+    gap cannot be told; when the bar is back the same day runs."""
+    whole = life.market.get(YARDSTICK, ())
+    gone = [b.day for b in whole if b.day < on][-1:]
+    if not gone:
+        life.live(on)
+        return
+    life.market[YARDSTICK] = tuple(b for b in whole if b.day != gone[0])
+    try:
+        life.live(on)
+    except ValueError as refusal:  #: the desk's own word that the day has no record
+        life.promise(PARKED, YARDSTICK.symbol in str(refusal))
+        life.market[YARDSTICK] = whole
+        life.live(on)
+    else:
+        life.market[YARDSTICK] = whole
+        life.promise(PARKED, False)
+
+
+def stale(life: _Life, on: date) -> None:
+    """The keeper's last refresh of every venue readied a week before the day, so a session is
+    lacking. The price store's door must refuse, naming a line, never serve the older bars."""
+    lines = sorted(life.market, key=lambda x: x.symbol)
+    stored = life.desk / "keeper"
+    for venue in {x.venue for x in lines}:
+        past = Kept(on - timedelta(days=7), datetime.combine(on, time(), UTC), 1, {}, frozenset())
+        record(stored / keeper.DAILY / venue, past)
+    try:
+        keeper.saved(stored, on, lines)
+    except keeper.Stale as refusal:  #: the keeper's own word that the store is not fresh
+        life.promise(REFUSED, lines[0].symbol in str(refusal))
+    else:
+        life.promise(REFUSED, False)
+    life.live(on)
+
+
+def deaf(life: _Life, on: date) -> None:
+    """The market's last bar of the session ended an hour ago and no bar since has come. The
+    crash watch looks at three moments (two in one hour, one in the next): it must tell him it
+    is blind once in each of the two hours, and call no halt for that alone."""
+    if YARDSTICK not in life.market:
+        life.live(on)
+        return
+    daily = {x: [b for b in bars_ if b.day < on] for x, bars_ in life.market.items()}
+    session, price = venues.hours(YARDSTICK.venue, on), Decimal(daily[YARDSTICK][-1].close)
+    hot, post = life.desk / "deaf-bars.db", count(1).__next__
+    with bars.writing(hot) as round_:
+        round_.five(YARDSTICK, [Five(session.open + timedelta(hours=1), *(price,) * 4, 1)])
+    first = session.open + timedelta(hours=2)
+    kept = halt.kept(life.desk)
+    for at in (first, first + timedelta(minutes=20), first + timedelta(minutes=65)):
+        watch.look(life.desk, hot, daily, at, lambda _words: post())
+    told = [d.name for d in messenger.deliveries(life.desk) if d.name.endswith("h blind")]
+    hours = {f"watch {on:%Y-%m-%d} {at:%H}h blind" for at in (first, first + timedelta(hours=1))}
+    life.promise(
+        DEAF, hours <= set(told) and len(told) == len(set(told)) and kept == halt.kept(life.desk)
+    )
+    life.live(on)
