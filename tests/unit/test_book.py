@@ -115,8 +115,9 @@ def test_a_desk_that_died_mid_send_has_what_it_left_working_cancelled_before_it_
     assert (stranded.filled, stranded.blocker) == (0, Blocker.BROKER), "its answer: none bought"
     assert "cancelled" in str(stranded.reason) and broker.submitted().count("o-4") == 1
     assert _send(tmp_path, broker, "o-5", SIX[5]).filled == 0, "F's connection drops once"
+    assert (tmp_path / book.GOING).exists(), "a lost connection: received or not is unknown"
     assert _send(tmp_path, broker, "o-5", SIX[5]).filled == 10, "the fifth line, E's never bought"
-    assert len(asked) == 2, "asked again of a desk settled, or one whose order was lost at the door"
+    assert len(asked) == 3, "the lost send's note is settled by a cancel before the next send"
     broker._faults["A"] = Fault.STRAND  #: it dies again, as it sends A's sale: started again,
     with pytest.raises(Crash):  #: the sale is cancelled, or it would sell what A's stop has sold
         book.send(tmp_path, broker, Sale("s-1", A, 10), ROOM)
