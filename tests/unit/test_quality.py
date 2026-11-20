@@ -37,7 +37,7 @@ def seeded(path: Path, planted: set[date]) -> Path:
 def test_planted_gaps_are_backfilled_and_the_line_is_green(tmp_path: Path) -> None:
     path = seeded(tmp_path, {DAYS[1], DAYS[3]})
     said = quality.monitor(path, [SPY], lambda _l, d: [bar(d)], lambda _l, _d: Refused("no"), NOW)
-    assert said == "quality: green, 1 lines, 2 bars backfilled, 0 rolled up, coverage 0.00"
+    assert said == "quality: green, 1 lines, 2 bars backfilled, 1 rolled up, coverage 0.00"
     assert quality.gaps(path, [SPY], TODAY) == []
     assert quality.covered(path, [SPY], NOW) == ("coverage 0.00", True)
 
