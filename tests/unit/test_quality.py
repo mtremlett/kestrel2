@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from pathlib import Path
 
@@ -13,6 +13,7 @@ from desk.store import Bar, Refused
 
 SPY = next(line for line in LINES if line.symbol == "SPY")
 TODAY = date(2026, 11, 17)
+NOW = datetime.combine(TODAY, time(), UTC)
 DAYS = [date(2026, 11, d) for d in (9, 10, 11, 12, 13, 16)]
 
 
@@ -33,14 +34,14 @@ def seeded(path: Path, planted: set[date]) -> Path:
 
 def test_planted_gaps_are_backfilled_and_the_line_is_green(tmp_path: Path) -> None:
     path = seeded(tmp_path, {DAYS[1], DAYS[3]})
-    said = quality.monitor(path, [SPY], lambda _l, d: [bar(d)], lambda _l, _d: Refused("no"), TODAY)
+    said = quality.monitor(path, [SPY], lambda _l, d: [bar(d)], lambda _l, _d: Refused("no"), NOW)
     assert said == "quality: green, 1 lines, 2 bars backfilled, 0 rolled up"
     assert quality.gaps(path, [SPY], TODAY) == []
 
 
 def test_a_gap_no_source_fills_is_named_red(tmp_path: Path) -> None:
     path = seeded(tmp_path, {DAYS[2]})
-    said = quality.monitor(path, [SPY], refuse, refuse, TODAY)
+    said = quality.monitor(path, [SPY], refuse, refuse, NOW)
     assert said.startswith("quality: RED, 0 bars backfilled, 0 rolled up; SPY: 1 sessions missing")
 
 
@@ -52,12 +53,12 @@ def test_rolled_bars_are_built_and_a_pulled_bar_that_differs_is_red(tmp_path: Pa
             for n in range(2)]  # fmt: skip
     with bars.writing(path, bars.Source.IBKR) as held:
         held.timed(SPY, "30m", half)
-    first = quality.monitor(path, [SPY], refuse, refuse, TODAY)
+    first = quality.monitor(path, [SPY], refuse, refuse, NOW)
     assert first == "quality: green, 1 lines, 0 bars backfilled, 2 rolled up"
     odd = Timed("1h", start, price, price + 3, price - 1, price + 2, 10)
     with bars.writing(path, bars.Source.IBKR) as held:
         held.timed(SPY, "1h", [odd])
-    assert "rolled and held differ" in quality.monitor(path, [SPY], refuse, refuse, TODAY)
+    assert "rolled and held differ" in quality.monitor(path, [SPY], refuse, refuse, NOW)
 
 
 def test_a_session_with_no_30m_bar_between_held_ones_is_named_red(tmp_path: Path) -> None:
@@ -120,4 +121,15 @@ def test_a_daily_series_mixing_adjustment_bases_is_named_red(tmp_path: Path) -> 
         held.days(SPY, [bar(DAYS[0])])
     assert quality.basis(path, SPY) == [
         "SPY: daily series mixes bases: IBKR, old desk: stooq_store daily rows"
+    ]
+
+
+def test_todays_bar_is_green_once_its_venue_has_closed_and_named_while_open(tmp_path: Path) -> None:
+    path = seeded(tmp_path, set())
+    with bars.writing(path, bars.Source.IBKR) as held:
+        held.days(SPY, [bar(TODAY)])
+    closed = datetime(2026, 11, 17, 22, 15, tzinfo=UTC)
+    assert quality.audit(path, SPY, closed) == []
+    assert quality.audit(path, SPY, datetime(2026, 11, 17, 12, 0, tzinfo=UTC)) == [
+        "SPY: 2026-11-17 is not a closed session on the US calendar, or too early"
     ]

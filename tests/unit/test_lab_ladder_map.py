@@ -1,5 +1,6 @@
-"""The rung map in `lab/ladder.py`'s docstring (L2): the plan's eleven rungs, each named once
-to its module and its test, and every file named either there or marked unbuilt."""
+"""The rung map in `lab/ladder.py`'s docstring (L2): the plan's eleven rungs and easing 4's
+twelfth, each named once to its module and its test, and every file named either there or
+marked unbuilt."""
 
 from __future__ import annotations
 
@@ -14,7 +15,7 @@ MODULE, TEST = r"lab/\w+\.py", r"tests/unit/test_lab_\w+\.py"
 ENTRY = re.compile(rf" *(\d+) ([^:]+): ({MODULE})( \(unbuilt\))?, ({TEST})( \(unbuilt\))?( - .+)?")
 
 
-def test_the_map_names_eleven_rungs_once_each_to_files_there_or_marked_unbuilt() -> None:
+def test_the_map_names_twelve_rungs_once_each_to_files_there_or_marked_unbuilt() -> None:
     doc = ladder.__doc__ or ""
     assert "THE RUNG MAP" in doc, "lab/ladder.py's docstring holds no rung map"
     paragraph = doc[doc.index("THE RUNG MAP") :].split("\n\n")[0]
@@ -23,7 +24,7 @@ def test_the_map_names_eleven_rungs_once_each_to_files_there_or_marked_unbuilt()
     unread = [line for line, entry in zip(lines, found, strict=True) if entry is None]
     assert not unread, f"not `n name: module, test`: {unread}"
     rungs = [entry.groups() for entry in found if entry is not None]
-    assert [int(rung[0]) for rung in rungs] == list(range(1, 12)), "eleven rungs, 1 to 11, once"
+    assert [int(rung[0]) for rung in rungs] == list(range(1, 13)), "twelve rungs, 1 to 12, once"
     for what, column in (("name", 1), ("test", 4)):
         seen = [rung[column] for rung in rungs]
         twice = sorted({one for one in seen if seen.count(one) > 1})
@@ -39,4 +40,4 @@ def test_the_count_of_rungs_built_is_the_rungs_the_ladder_judges_by_not_the_map_
     """A module with its own proof and no RUNG is not built to the end: the ladder wires none of
     these (R-RUNNER-192), and the count goes up only when a module declares its RUNG."""
     built, rungs = ladder.rungs_built()
-    assert rungs == 11 and built == 11 - len(rung.found(ladder.RUNGS)[1])
+    assert rungs == 12 and built == 12 - len(rung.found(ladder.RUNGS)[1])

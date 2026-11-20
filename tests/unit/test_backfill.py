@@ -41,12 +41,15 @@ def test_the_broker_first_the_archive_for_the_rest_a_second_run_nothing(tmp_path
         return [bar(LOST, "10")] if day == LOST else Refused("empty")
 
     wanted = [(SPY, FRIDAY), (ISF, LOST)]
-    wrote, named = backfill.fill(path, wanted, broker, archived, TODAY)
+    wrote, named = backfill.fill(path, wanted, backfill.ordered(broker, archived), TODAY)
     assert wrote == [f"SPY {FRIDAY}: IBKR paper", f"ISF {LOST}: archive, backfilled"] and not named
     assert bars.sources(path, SPY, bars.DAILY)[Source.IBKR] == 1
     assert [b.day for b in bars.daily(path, ISF)] == [date(2025, 10, 23), LOST]
     asked.clear()
-    assert backfill.fill(path, wanted, broker, archived, TODAY) == ([], []) and not asked
+    assert (
+        backfill.fill(path, wanted, backfill.ordered(broker, archived), TODAY) == ([], [])
+        and not asked
+    )
 
 
 def test_a_day_neither_source_gives_is_named_and_never_filled(tmp_path: Path) -> None:
@@ -54,7 +57,9 @@ def test_a_day_neither_source_gives_is_named_and_never_filled(tmp_path: Path) ->
     with bars.writing(path) as held:
         held.days(ISF, [bar(date(2025, 10, 23), "10")])
     nothing = Refused("no bar")
-    wrote, named = backfill.fill(path, [(ISF, LOST)], lambda *_: nothing, lambda *_: [], TODAY)
+    wrote, named = backfill.fill(
+        path, [(ISF, LOST)], backfill.ordered(lambda *_: nothing, lambda *_: []), TODAY
+    )
     assert wrote == [] and len(named) == 1 and "no source gives it" in named[0]
     assert "no bar" in named[0] and "gave no bar" in named[0]
     assert [b.day for b in bars.daily(path, ISF)] == [date(2025, 10, 23)]
@@ -68,11 +73,11 @@ def test_a_hole_among_years_of_bars_is_judged_beside_both_sides_as_of_today(tmp_
     with bars.writing(path) as held:
         held.days(ISF, [bar(d, str(10 + d.day % 3)) for d in days])
     refusal = backfill.fill(
-        path, [(ISF, LOST)], lambda *_: [bar(LOST, "1100")], lambda *_: [], TODAY
+        path, [(ISF, LOST)], backfill.ordered(lambda *_: [bar(LOST, "1100")], lambda *_: []), TODAY
     )
     assert not refusal[0] and "out of line" in refusal[1][0]
     wrote, named = backfill.fill(
-        path, [(ISF, LOST)], lambda *_: [bar(LOST, "11")], lambda *_: [], TODAY
+        path, [(ISF, LOST)], backfill.ordered(lambda *_: [bar(LOST, "11")], lambda *_: []), TODAY
     )
     assert wrote == [f"ISF {LOST}: IBKR paper"] and not named
     assert [b.day for b in bars.daily(path, ISF)] == sorted([*days, LOST])
