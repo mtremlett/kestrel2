@@ -137,7 +137,7 @@ money-restop waits on R-MONEY-18, R-MONEY-31 (the lost-stop list in `desk/messen
 
 ## PAPER
 
-Last updated: 19 November 2026 (folds #215 to #909).
+Last updated: 20 November 2026 (folds #215 to #933).
 
 ### Where it is
 
@@ -145,10 +145,11 @@ Built: supervisor pulls main at the safe point (#752), contract request carries 
 
 ### Next step
 
-R-PAPER-28, -29. Drop the unused `ended` branch of `action(said, ended)` in `desk/ended.py` (needs a claim). Conformance sizing (R-RUNNER-281): `desk/conformance.py:242` must pass `root` to `plan(...)` as `home`, then the archive branch goes (needs a claim naming it). Live check that the gateway answers IDTL (R-RUNNER-278). paper-supervised, paper-cards, paper-extras, paper-backups wait: operator. Coordinator deletes `desk/conformance_soak.py` and its manifest row (non-lane PR, R-RUNNER-285).
+R-RUNNER-348 (`Paper._cleared` reads the date from `order_id[:8]`) waits on R-PAPER-35: add a date to Order and Sale, then read it, tests first. R-PAPER-28, -29. Drop the unused `ended` branch of `action(said, ended)` in `desk/ended.py` (needs a claim). Conformance sizing (R-RUNNER-281): `desk/conformance.py:242` must pass `root` to `plan(...)` as `home`, then the archive branch goes (needs a claim naming it). Live check that the gateway answers IDTL (R-RUNNER-278). paper-supervised, paper-cards, paper-extras, paper-backups wait: operator. Coordinator deletes `desk/conformance_soak.py` and its manifest row (non-lane PR, R-RUNNER-285).
 
 ### Requests to MONEY
 
+- [ ] R-PAPER-35 (blocking, opened 20 Nov): a session-date field on Order and Sale in `desk/orders.py`, set at every constructor (day, goflat, conformance_parts, simcity, kill), so `Paper._cleared` stops reading `order_id[:8]` (R-RUNNER-348).
 - [ ] R-PAPER-4, -7, -8, -13, -18, -19, -20 (later, 13-14 Nov): `book.differences` names an entry at no shares beside one with them; one public keeper of dated records (half done, #301); the day's run collects fills at day's end; the pretend broker refuses a repeated order id like the real one; a cut-off for a late buy; public "sessions owed a record" in `day.py`, "day an order is dated" in `orders.py`; `kill.py` public "drill made this day", word `kill.Failed` for him.
 - [ ] R-PAPER-17 (later, 14 Nov): `book._write` has one temp file and no lock; two writers gave an unreadable record (kill switch, `running.csv`). Own temp name or one writer.
 - [ ] R-PAPER-26 (later, opened 15 Nov): `watch.look` returns what it read even if a message is undelivered, so a down phone door holds no round.
