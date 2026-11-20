@@ -326,7 +326,7 @@ Checked 20 Nov (MONEY, s2): R-PAPER-35's field is on main (#1102) and set in day
 - [x] Each line's UK tax a fact on the line, from one table of two rates: nil for a fund or
       an exchange-traded product, stamp duty for a UK share; the twenty lines each state nil,
       and one London line of the rehearsal data pays it (R-MONEY-1)
-- [ ] The window before mid-April 2010 prepared
+- [ ] The window before mid-April 2010 prepared (checked on main #1101: calendars 1993-2029, archive since 2000, 91 tests pass; remains the first keeper round filling 2000-2009 on all twenty lines, and reading any park)
 - [ ] Coverage and quality measured: history at least twice the longest lookback for every
       line, five years by the A-GATE; a quality score per line and desk-wide, and a cap on
       the share of lines parked (DAT-03, DQ-01)
@@ -346,6 +346,7 @@ Checked 20 Nov (MONEY, s2): R-PAPER-35's field is on main (#1102) and set in day
 - [ ] Leveraged-product lifecycle watched: an issuer's closure, a compulsory redemption or
       an ISA eligibility change on any line held or researched raises an alert (BIC-11)
 - [ ] Disk watched; old research files roll off by rule (OPS-07)
+      Built (#1098, #1107): `python -m desk.quality` goes red under 10% free on the store's drive. Remains: old research files rolling off by rule (needs his yes before deleting anything); the runner job reading the red; other monitor tests read the real drive's free space.
 - [ ] **IBKR's capacity, no new spend, 10% kept spare** (research of 14 November,
       `free_data_2026-11-14.md` in the notes folder): 90 tickers streamed live, 1-minute bars
       built from quotes; polled 1-minute bars for 27 tickers every 5 minutes, 81 every 15 and

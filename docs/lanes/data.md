@@ -792,3 +792,9 @@ Options: report the coverage score only, or go red when more than 10% of lines s
 Options: (a) keep `coverage.LOOKBACK` at a hand-written 200 (rejected: the grid's SWEEPS try settings up to 250, so it would
 trade lines with too little history); (b) read the longest setting from `desk/strategy.py` SWEEPS (chosen): a line now needs 500
 sessions, twice the longest lookback, before a rule may trade it, and the number is written once.
+
+### 2026-11-20 — free-disk floor is a share, checked in the command (#1098, OPS-07)
+Options: an absolute floor in gigabytes; a 10% share of the drive (chosen, recommended). It follows the drive, and is checked in the command's entry, not inside `monitor`, so the monitor's tests do not depend on the test machine's disk. #1107 then wired `disk(path.parent)` into `monitor` after #1098 left it uncalled.
+
+### 2026-11-20 — breadth derived from our own bars (#1104, R-RUNNER-346)
+Options: (a) buy a vendor series (spend, a hard line); (b) derive advances and declines from our own bars (free, survivorship-biased: today's members only); (c) no row. Chose (b), per his "go with recommended". The caveat is stated on any verdict that uses it; data-members is the remedy.
