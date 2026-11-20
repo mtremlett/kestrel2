@@ -2092,3 +2092,18 @@ options ((a) 16,500 once, recommended; (b) 18,000; (c) keep 15,000), he chose (b
 Conditions kept with it: every growing card names itself in its pull request, and growth,
 bloat, sprawl and doom loops are reviewed in the 21:00 report. The ceiling still ratchets:
 this file is the only place it moves, and only on his word.
+
+## R-RUNNER-408 - the stop-rule rung, pre-registered (Fri 20 Nov 2026, RUNGS lane)
+
+His word, Fri 20 Nov about 18:2x: "ok, go with the ATR stop test". Research only: no live stop changes
+until a winner passes the ladder. Fixed here before any result (`lab/rung_stops.py`):
+
+1. **Rivals (4 trials, the count named for the luck correction).** Today's fixed stop (10% under the
+   fill; 30% on a 3x line); ATR(20) x 2 and ATR(20) x 3, set at the fill from the 20 bars before it; a
+   chandelier trail (ATR(20) x 3, raised, never lowered, to 3 ATR under the highest high since the fill).
+2. **Sizing.** Every rival is sized by risk (size = risk budget / stop distance), so a trade's gain is
+   its R (move over the first stop's distance) after costs; the same trades, entries and exits for all.
+3. **Judging.** On the EPON ladder, after the broker's costs: walk-forward folds, each out-of-sample fold
+   beside the history before it, the WORST fold judged on (`rung_folds`, interval rung); a rival also
+   needs the deflated Sharpe to pass over 4 trials (`rung_dsr`). The winner is the passing rival with the
+   highest worst-fold t; none passing, today's stop stays. Changing this after results is a counted trial.
