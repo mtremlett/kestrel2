@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from test_lab_ladder import EDGE, ISF, NOISE, VUSA
+from test_lab_ladder import EDGE, ISF, NOISE, VUSA, eased_off  # noqa: F401 - autouse fixture
 
 from desk.store import Bar
 from lab import ladder, market, shuffle, trials, verdict
