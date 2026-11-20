@@ -22,6 +22,7 @@ from desk.simcity_incidents import (
     REFUSED,
     SOLD,
     STALE,
+    UNHELD,
     beside,
     cancelled,
     deaf,
@@ -29,6 +30,7 @@ from desk.simcity_incidents import (
     hole,
     outside,
     stale,
+    unheld,
 )
 
 
@@ -95,7 +97,7 @@ def test_without_naming_the_cancelled_orders_the_scenario_is_red(
 
 
 @pytest.mark.parametrize(
-    ("words", "scenario"), [(HALTED, halted), (OUTSIDE, outside), (STALE, stale)]
+    ("words", "scenario"), [(HALTED, halted), (OUTSIDE, outside), (STALE, stale), (UNHELD, unheld)]
 )
 def test_a_halt_and_a_line_outside_an_isa_are_lived_and_kept(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, words: str, scenario: Any
@@ -132,3 +134,15 @@ def test_a_market_unheard_is_told_once_in_each_hour_and_without_the_telling_is_r
     assert any(
         DEAF in b for b in simcity.run(tmp_path / "b", SHORT, ROOM, RATES, NOW, (1, 2, 3)).broken
     )
+
+
+def test_unheld_minute_bars_are_named_stale_and_without_starting_the_lines_it_is_red(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(simcity, "EVENTS", ((UNHELD, unheld),))
+    monkeypatch.setattr(simcity, "EVENTFUL", 1)
+    kept = simcity.run(tmp_path / "a", SHORT, ROOM, RATES, NOW, (1, 2, 3))
+    assert not any(UNHELD in broken for broken in kept.broken)
+    monkeypatch.setattr(bars.Round, "timed", lambda *_a: 0)  #: no line is started, none kept
+    red = simcity.run(tmp_path / "b", SHORT, ROOM, RATES, NOW, (1, 2, 3))
+    assert any(UNHELD in broken for broken in red.broken)
