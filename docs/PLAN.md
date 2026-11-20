@@ -1044,3 +1044,4 @@ the scene it advances. No new capability until every scene passes.
 
 Estimates are from size, not measurement, and are re-made after phase 0 and after the
 first three sessions of phase 2. Actual against estimate is reported every week.
+Checked 20 Nov (MONEY, s4): R-PAPER-35's remainder is still PAPER's files (`desk/goflat.py`, `desk/conformance_parts.py`, `desk/placing.py:248`); R-RUNNER-401 has no R-RUNNER-397 "park one line" file on main to reuse and `desk/book.py` (382 of 400 lines) has no room, so it needs a design card; nothing built.
