@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import Sequence
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from functools import partial
 from pathlib import Path
@@ -138,3 +139,20 @@ def test_a_pooled_cell_is_judged_with_its_family_count_only_while_eased(
     )
     (row,) = ladder_pool._group(task)
     assert "error" not in row and "answer" in row
+
+
+def test_the_pool_yields_memory_with_fewer_tasks_at_once_down_to_one_and_grows_back() -> None:
+    low = {3, 4, 5, 6}  #: the readings (one per ended task) that find memory short
+    reads, allowed = iter(range(99)), list[int]()
+
+    def memory() -> tuple[int, int]:
+        return 64 * GB, (5 if next(reads) in low else 64) * GB
+
+    with ThreadPoolExecutor(4) as inner:
+        pool = ladder_pool.Yielding(inner, 4, memory)  # type: ignore[arg-type]
+        got = []
+        for n in range(12):
+            got.append(pool.submit(lambda k: k, n).result())
+            allowed.append(pool.allowed)
+    assert got == list(range(12))  #: every result kept
+    assert allowed[0] == 4 and min(allowed) == 1 and allowed[-1] == 4

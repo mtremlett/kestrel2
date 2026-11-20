@@ -16,6 +16,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import threading
 import time
 from collections import Counter
 from collections.abc import Callable, Iterator, Sequence
@@ -70,8 +71,12 @@ def workers(total: int, free: int, cores: int | None = None) -> int:
     """The pool's size: every core but two, or as many as fit in the free memory beyond a
     reserve of RESERVE of the PC's (for the desk, the Gateway and lane sessions), each taking
     PEAK bytes; at least one."""
-    room = (free - RESERVE * total) // PEAK
-    return max(1, min((cores or os.cpu_count() or 1) - SPARE, int(room)))
+    return max(1, min((cores or os.cpu_count() or 1) - SPARE, fits(total, free)))
+
+
+def fits(total: int, free: int) -> int:
+    """How many workers the free memory beyond the reserve holds, at PEAK each; at least one."""
+    return max(1, int((free - RESERVE * total) // PEAK))
 
 
 def _memory() -> tuple[int, int]:
@@ -81,6 +86,62 @@ def _memory() -> tuple[int, int]:
         return machine.memory()
     finally:
         machine.close()
+
+
+class Yielding:
+    """The pool that YIELDS MEMORY (R-RUNNER-273): at most `size` tasks run at once, and as each
+    ends the free memory is read again and the number allowed set to what it holds (down to one,
+    up to `size` once it returns). Queued tasks keep their order; every finished task keeps its
+    result. The workers themselves stay up; the work given them is what shrinks."""
+
+    def __init__(
+        self, pool: ProcessPoolExecutor, size: int, memory: Callable[[], tuple[int, int]]
+    ) -> None:
+        self.pool, self.size, self.memory = pool, size, memory
+        self.allowed, self.running = size, 0
+        self.queue: list[tuple[Callable[[Any], Any], Any, Future[Any]]] = []
+        self.lock = threading.Lock()
+
+    def submit(self, fn: Callable[[Any], Any], arg: Any) -> Future[Any]:
+        """Queue one task; its future is set when it ends."""
+        mine: Future[Any] = Future()
+        with self.lock:
+            self.queue.append((fn, arg, mine))
+        self._dispatch()
+        return mine
+
+    def _dispatch(self) -> None:
+        with self.lock:
+            sent = []
+            while self.queue and self.running < self.allowed:
+                sent.append(self.queue.pop(0))
+                self.running += 1
+        for fn, arg, mine in sent:
+            try:
+                self.pool.submit(fn, arg).add_done_callback(partial(self._end, mine=mine))
+            except BaseException as error:  # noqa: BLE001 - handed on to the waiting future
+                mine.set_exception(error)
+
+    def _end(self, done: Future[Any], mine: Future[Any]) -> None:
+        """One task ended: re-read the memory, set the number allowed, pass its result on."""
+        if done.cancelled():
+            mine.cancel()
+        elif done.exception() is not None:
+            mine.set_exception(done.exception())
+        else:
+            mine.set_result(done.result())
+        total, free = self.memory()
+        with self.lock:
+            self.running -= 1
+            self.allowed = min(self.size, fits(total, free))
+        self._dispatch()
+
+    def shutdown(self, wait: bool = True, cancel_futures: bool = False) -> None:
+        """The pool's shutdown; tasks still queued here are dropped when asked to cancel."""
+        if cancel_futures:
+            with self.lock:
+                self.queue.clear()
+        self.pool.shutdown(wait=wait, cancel_futures=cancel_futures)
 
 
 def _begin(make_bars: Callable[[], Bars], pounds: Rates, tapes: Path) -> None:
@@ -150,9 +211,7 @@ def _group(task: Task) -> list[verdict.Row]:
     return rows
 
 
-def _read(
-    pool: ProcessPoolExecutor, tasks: Sequence[Task]
-) -> Iterator[tuple[Task, list[verdict.Row]]]:
+def _read(pool: Yielding, tasks: Sequence[Task]) -> Iterator[tuple[Task, list[verdict.Row]]]:
     """Each task's rows, in the tasks' order, as its group ends: a rule's units are warmed
     `AHEAD` rules early, and its group is asked once all of them are done."""
     warm: dict[int, list[Future[None]]] = {}
@@ -172,7 +231,7 @@ def _read(
 
 
 def _write(
-    pool: ProcessPoolExecutor,
+    pool: Yielding,
     tasks: Sequence[Task],
     out: BinaryIO,
     tally: Counter[str],
@@ -226,10 +285,10 @@ def run(
     tally: Counter[str] = Counter()
     tapes = home / ladder.FOLDER / tape.FOLDER
     size = size or workers(*memory())
-    pool = ProcessPoolExecutor(size, initializer=_begin, initargs=(make_bars, pounds, tapes))
-    with pool, results.open("ab") as out:
+    inner = ProcessPoolExecutor(size, initializer=_begin, initargs=(make_bars, pounds, tapes))
+    with inner, results.open("ab") as out:
         out.truncate(len(whole))
-        why = _write(pool, tasks, out, tally, (stop, began))
+        why = _write(Yielding(inner, size, memory), tasks, out, tally, (stop, began))
     if why:
         return f"stopped after a unit: {why}"
     return (
