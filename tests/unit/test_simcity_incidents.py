@@ -9,9 +9,10 @@ from typing import Any
 import pytest
 from test_simcity import NOW, RATES, ROOM, SHORT
 
-from desk import book, day, day_money, simcity
+from desk import book, day, day_money, simcity, watch
 from desk.simcity_incidents import (
     CANCELLED,
+    DEAF,
     HALTED,
     HOLE,
     LEFT,
@@ -21,6 +22,7 @@ from desk.simcity_incidents import (
     SOLD,
     beside,
     cancelled,
+    deaf,
     halted,
     hole,
     outside,
@@ -98,3 +100,16 @@ def test_a_halt_and_a_line_outside_an_isa_are_lived_and_kept(
     result = simcity.run(tmp_path, SHORT, ROOM, RATES, NOW, (1, 2, 3))
     assert not any(words in broken for broken in result.broken)
     assert words in result.census["day.run"]
+
+
+def test_a_market_unheard_is_told_once_in_each_hour_and_without_the_telling_is_red(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(simcity, "EVENTS", ((DEAF, deaf),))
+    monkeypatch.setattr(simcity, "EVENTFUL", 1)
+    kept = simcity.run(tmp_path / "a", SHORT, ROOM, RATES, NOW, (1, 2, 3))
+    assert not any(DEAF in broken for broken in kept.broken) and DEAF in kept.census["day.run"]
+    monkeypatch.setattr(watch.Look, "blind", property(lambda _self: None))
+    assert any(
+        DEAF in b for b in simcity.run(tmp_path / "b", SHORT, ROOM, RATES, NOW, (1, 2, 3)).broken
+    )
