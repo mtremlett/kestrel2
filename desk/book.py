@@ -175,7 +175,8 @@ def _disagreed(
         tuple(broker.cancel())
         raise Alarm(words) from error
     words = f"{order.order_id}: the broker's word, fills and account do not agree: {error}"
-    halt.call(root, datetime.now(UTC), f"{words}; no buy goes until he lifts this", by="send path")
+    why = f"{words}; no buy goes until he lifts this"
+    halt.stop(root, broker, datetime.now(UTC), why, by="send path")
     tell(f"disagree {order.order_id}", f"{words}. Buying is halted; sales go on.")
     return broker.report(order.order_id) or Report(order.order_id, (), words)
 
