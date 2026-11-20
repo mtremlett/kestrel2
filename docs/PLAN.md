@@ -190,7 +190,7 @@ Checked 17 Nov (MONEY, s6): R-DATA-53 is on main (`desk/command.py:387` passes `
       ibkr_store and mark_the_trend (#527-#545). Remains: the catalog_v2 tag in the data register (outside the
       repository); a matching rule for adjusted against as-traded closes, a new module not on its list (headstart.py
       is at 400 lines); the research list's bars
-      Waits on him: its readers are all on main; what remains is the catalog_v2 tag in the data register outside the repository, a matching rule for adjusted against as-traded closes needing a new module off its list since lab/headstart.py is at 400 lines, and the research list's bars
+      Its readers are all on main (#175, #190, #209, #226, #254); what remains is the catalog_v2 tag in the data register outside the repository, a matching rule for adjusted against as-traded closes needing a new module off its list since lab/headstart.py is at 400 lines, and the research list's bars
       {id: data-headstart; files: lab/headstart.py, tests/unit/test_lab_headstart.py, desk/bars.py, tests/unit/test_bars*.py, manifest.toml; waits: operator}
 - [x] The archive spared: fetching slow and resumable, with backoff, each raw answer cached
       in the folder `KESTREL2_DATA` names (outside the repository and every worktree); while
@@ -318,9 +318,8 @@ Checked 17 Nov (MONEY, s6): R-DATA-53 is on main (`desk/command.py:387` passes `
 - [ ] A line's bars and its fault record written together, so a crash cannot part them
       Built (#832): both files written whole before either is swapped in. Remains: a crash between the two swaps; one file per line, which needs lab/universe.py and tests/unit/test_lab_universe.py in the claim
       {id: data-written-together; files: desk/store.py, tests/unit/test_store.py; after: data-stretched; waits: operator}
-- [ ] A pence history the archive calls pounds caught
-      Remains: backfill converts the broker's pence on entry (#630); history.run and pull return the broker's
-      unit unconverted, and nothing calls them yet
+- [x] A pence history the archive calls pounds caught
+      Built (#630, #725, #1065): every pull reaches the store through `history_write.keeper`, which converts pence once on entry; `history.run` and `pull` hand out the broker's unit by design.
       {id: data-pence; files: desk/store.py, tests/unit/test_store.py; after: data-written-together}
 - [ ] The full research universe, 5,000 and more, once the grid's first pass works
 - [x] Each line's UK tax a fact on the line, from one table of two rates: nil for a fund or
@@ -330,7 +329,7 @@ Checked 17 Nov (MONEY, s6): R-DATA-53 is on main (`desk/command.py:387` passes `
 - [ ] Coverage and quality measured: history at least twice the longest lookback for every
       line, five years by the A-GATE; a quality score per line and desk-wide, and a cap on
       the share of lines parked (DAT-03, DQ-01)
-      Built (#795): `desk/coverage.py`, pure and tested. Built (#1037): `quality.monitor` feeds it the store's real counts and the parked list, prints "coverage 0.xx", and goes red past 10% of lines parked. Remains: the per-lookback and second-source parts
+      Built (#795): `desk/coverage.py`, pure and tested. Built (#1037): `quality.monitor` feeds it the store's real counts and the parked list, prints "coverage 0.xx", and goes red past 10% of lines parked. Built (#1059): the lookback is the grid's longest setting (SWEEPS), a line needs 500 sessions. Remains: the second-source part
 - [ ] A second source: a gap filled and a failing feed replaced from a ranked second
       source, with a staleness alarm and a register of sources; the twenty lines' bars
       checked against the broker's price of record each day once PAPER connects (DQ-03,
