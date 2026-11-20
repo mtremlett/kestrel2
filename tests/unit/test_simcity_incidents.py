@@ -18,6 +18,7 @@ from desk.simcity_incidents import (
     LEFT,
     NAMED,
     OUTSIDE,
+    PARKED,
     PROMISE,
     REFUSED,
     SOLD,
@@ -28,6 +29,7 @@ from desk.simcity_incidents import (
     halted,
     hole,
     outside,
+    parked,
     stale,
 )
 
@@ -95,9 +97,10 @@ def test_without_naming_the_cancelled_orders_the_scenario_is_red(
 
 
 @pytest.mark.parametrize(
-    ("words", "scenario"), [(HALTED, halted), (OUTSIDE, outside), (STALE, stale)]
+    ("words", "scenario"),
+    [(HALTED, halted), (OUTSIDE, outside), (PARKED, parked), (STALE, stale)],
 )
-def test_a_halt_and_a_line_outside_an_isa_are_lived_and_kept(
+def test_a_halt_a_line_outside_an_isa_and_a_parked_yardstick_are_lived_and_kept(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, words: str, scenario: Any
 ) -> None:
     monkeypatch.setattr(simcity, "EVENTS", ((words, scenario),))
@@ -105,6 +108,16 @@ def test_a_halt_and_a_line_outside_an_isa_are_lived_and_kept(
     result = simcity.run(tmp_path, SHORT, ROOM, RATES, NOW, (1, 2, 3))
     assert not any(words in broken for broken in result.broken)
     assert words in result.census["day.run"]
+
+
+def test_without_refusing_a_gapped_yardstick_the_scenario_is_red(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(day_money, "close", lambda a, line, _upto: a[line][-1].close)
+    monkeypatch.setattr(simcity, "EVENTS", ((PARKED, parked),))
+    monkeypatch.setattr(simcity, "EVENTFUL", 1)
+    result = simcity.run(tmp_path, SHORT, ROOM, RATES, NOW, (1, 2, 3))
+    assert any(PARKED in broken for broken in result.broken)
 
 
 def test_a_store_a_session_short_is_refused_and_without_the_refusal_is_red(
