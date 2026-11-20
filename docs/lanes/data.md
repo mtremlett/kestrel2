@@ -53,45 +53,11 @@ macro series, earnings dates and timestamped news into the one store (#460); the
 read instead of asked again (#458). Two no-change sessions (#424, #454) found R-RUNNER-11 waiting on PAPER test lines; it
 landed later. Git keeps each full entry.
 
-### 2026-11-16 — SPY kept from 29 January 1993 as a reference series (R-RUNNER-94) (#303)
-
-- Where to hold reference bars - (a) store.py (would pass its 400-line cap), (b) new module
-  desk/reference.py (outside the claim, went red), (c) archive.py, chosen. Calendar: the
-  reference series is checked without a calendar (weekday only) rather than extending
-  venues.py back to 1993, which is outside my claim; recommended, taken.
-
-### 2026-11-16 — the keeper keeps SPY's history daily after the US close (R-RUNNER-96) (#475)
-
-- A refused reference fetch is told in words but is not a miss (nothing is traded on it;
-  options: count it as a miss, which would wake the operator over a research series;
-  recommended and taken: not a miss, retried at the next call per his "always go with
-  recommended"). Reference bars are kept under the daily store's US folder (desk cannot import
-  lab; this is the one store's own folder).
-
-### 2026-11-16 — the one calendar names market events (R-RUNNER-149) (#453)
-
-- Events are read from the calendar by (venue, day) and refused outside 2026 (options: guess
-  recurring dates / refuse; chose refuse, per the calendar's own rule). ECB left out: no venue
-  of the desk's is Frankfurt.
-
-### 2026-11-16 — the keeper keeps and reads the daily bars in the long database (R-RUNNER-11, step) (#486)
-
-- - Left the fast store's file name "bars.db" (options: rename now to market_live.db, or
-  later). Renaming breaks PAPER's tests (test_command, test_running, test_watch, test_pnl
-  write "bars.db" literally) and the claim forbids touching them. Recommended and taken:
-  later, once PAPER's tests use `keeper.HOT`. - The keeper writes a line whole
-  (`Round.daily`), tagged archive, so an earlier import of lower sources into the long
-  database would be replaced at the next refresh. The multi-source rule (IBKR, Yahoo, Stooq,
-  recorded disagreements) must come first; it is the next step.
-
-### 2026-11-16 — the store's one rule for two sources and the yardstick fault (R-RUNNER-189, first step) (#500)
-
-- (1) A clash is kept as a recorded fault with the archive's bar standing (options: drop both,
-  as `_once` does for a date given twice differently; keep the first source's). Chose the
-  second: "Yahoo first", the fault is told and parks the line while recent, and nothing is
-  dropped silently. (2) Tolerance 2% on the close, since Stooq's daily bars are split-adjusted
-  only and a dividend day is under that; to be tuned only through the pinned constant. (3) No
-  double report: a yardstick whose archive refused is already a miss.
+### 2026-11-16 — SPY's history, the one calendar, the long database and the two-source rule, folded (#303-#500)
+SPY is kept from 29 January 1993 as a reference series and its daily history is kept after the US close (R-RUNNER-94, -96);
+the one calendar names market events (R-RUNNER-149); the keeper keeps and reads daily bars in the long database
+(R-RUNNER-11); the store has one rule for two sources and a yardstick fault (R-RUNNER-189). Each was settled and built;
+git keeps the options.
 
 ### 2026-11-16 — the day's pounds per dollar, kept and readable for any session (R-PAPER-22) (#505)
 
@@ -792,3 +758,12 @@ Options: report the coverage score only, or go red when more than 10% of lines s
 Options: (a) keep `coverage.LOOKBACK` at a hand-written 200 (rejected: the grid's SWEEPS try settings up to 250, so it would
 trade lines with too little history); (b) read the longest setting from `desk/strategy.py` SWEEPS (chosen): a line now needs 500
 sessions, twice the longest lookback, before a rule may trade it, and the number is written once.
+
+### 2026-11-20 — the disk floor is a share of the drive, checked in the command (#1098, OPS-07)
+Options: (a) an absolute floor in gigabytes; (b) 10% free (chosen, follows the drive). Checked in the command's entry, not
+inside `monitor`, so the monitor's tests do not depend on the test machine's disk; #1107 then wired it into `monitor`.
+
+### 2026-11-20 — breadth derived from our own bars (#1104, R-RUNNER-346, R-MONEY-35)
+Options: (a) buy a vendor series (spend, a hard line); (b) derive advances and declines from the store's S&P 500 bars (free,
+survivorship-biased: today's members only; chosen, per his "go with recommended"); (c) no row. This supersedes the
+leave-it-out choice of #917; any verdict using it states the survivorship caveat.
