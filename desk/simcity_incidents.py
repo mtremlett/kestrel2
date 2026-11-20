@@ -89,7 +89,11 @@ def cancelled(life: _Life, on: date) -> None:
     told = {b.order_id for b in halt.morning(life.desk, on)[halt.Blocker.BROKER]}
     answers = {i: life.pretend.report(i) for i in life.pretend.submitted()[seen:]}
     bought = {i.rsplit("-", 1)[1] for i, r in answers.items() if r and r.fills}
-    refused = {i for i, r in answers.items() if r and not r.fills} - told
+    resent = {
+        i.removesuffix("-r1") for i, r in answers.items() if i.endswith("-r1") and r and r.fills
+    }
+    refused = {i for i, r in answers.items() if r and not r.fills and not i.endswith("-r1")}
+    refused -= told | resent
     named = all(i.rsplit("-", 1)[1] in bought for i in refused)
     level = dict(book.positions(life.desk)) == dict(life.pretend.holdings())
     life.promise(NAMED, named and level)
