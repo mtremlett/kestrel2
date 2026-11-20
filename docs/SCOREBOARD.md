@@ -396,6 +396,14 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #975 no change: R-PAPER-23 verified on main (#294). |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #970 no change: R-MONEY-28 verified on main. |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #973 no change: R-PAPER-23 verified on main. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #978 R-DATA-60 done: Source.ROLLUP_5M, one enum member. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #965 no change: R-PAPER-23, -33 verified on main. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #988 no change: R-PAPER-23, -33, R-RUNGS-16 verified on main. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #991 no change: R-PAPER-23, R-RUNGS-16 verified on main. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #990 no change: R-PAPER-23, -33 verified on main. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #985 no change: R-DATA-60 verified on main. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #989 no change: blocking requests already on main. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #992 no change: R-PAPER-23 verified on main. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
