@@ -291,3 +291,9 @@ then the break was removed:
 ### 2026-11-20 — a lane may delete a file it owns (R-RUNGS-29, #951, #949, #952)
 - Options: (1) loosen the lane guard to read ownership from the merge base and allow removing an owned module's manifest line; (2) leave lab/rung_folds.py. Chose 1 by his standing ruling "always go with recommended"; it loosens nothing about other lanes' files. The guard edit (tests/guards/test_lanes.py) is outside RUNGS's claim, so it stays open as R-RUNGS-29; the move of Fold/Walked into lab/folds.py follows it.
 
+### 2026-11-20 — EASED switch-on split in three (R-RUNNER-231, #976, #967)
+- Options: (1) flip and fix everything in one card (mixes tests and callers); (2) split: callers pass the family count, tests pin the state they test, then the flip with the golden verdict updated once. Chose 2 (small reversible steps, stop rule A8). Turning it on made 19-21 unit tests red. Held the flip (#967) because the re-run is single-use and the ladder passed no family, so every cell would read "could not".
+
+### 2026-11-20 — the pooled ladder fails loudly under EASED (R-RUNNER-385, #984)
+- The pool path (`lab/ladder_pool.py`) was outside the claim. Options: leave it passing no family, so with EASED on it fails loudly; or edit the pool now. Chose the first; asked as R-RUNGS-31.
+
