@@ -60,3 +60,16 @@ def test_the_keeper_of_records_writes_whole_and_a_death_mid_write_leaves_the_old
     with pytest.raises(KeyboardInterrupt):
         book.keep(path, dies())
     assert path.read_text(encoding="utf-8").split() == ["a,b", "1,2"]
+
+
+def test_two_writers_of_one_record_each_have_their_own_temp_file(tmp_path: Path) -> None:
+    path = tmp_path / "switch.csv"
+
+    def inner() -> Iterator[tuple[str, ...]]:
+        yield ("a",)
+        book.keep(path, [("b",)])  # a second writer, while the first is mid-write
+        yield ("c",)
+
+    book.keep(path, inner())
+    assert path.read_text(encoding="utf-8").split() == ["a", "c"]
+    assert [p.name for p in tmp_path.iterdir()] == ["switch.csv"]
