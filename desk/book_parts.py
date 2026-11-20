@@ -10,6 +10,7 @@ from datetime import date, datetime, timedelta
 from decimal import Decimal
 from enum import Enum
 from pathlib import Path
+from uuid import uuid4
 
 from desk.carry import carried
 from desk.halt import Blocker, Stopped
@@ -29,10 +30,13 @@ class Switch(Enum):
 def keep(path: Path, rows: Iterable[Sequence[object]]) -> None:
     """The desk's one keeper of dated records: written whole, then swapped in."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    written = path.with_suffix(".tmp")
-    with written.open("w", newline="", encoding="utf-8") as out:
-        csv.writer(out).writerows(rows)
-    written.replace(path)
+    written = path.with_name(f"{path.name}.{uuid4().hex}.tmp")  #: one per writer, never shared
+    try:
+        with written.open("w", newline="", encoding="utf-8") as out:
+            csv.writer(out).writerows(rows)
+        written.replace(path)
+    finally:
+        written.unlink(missing_ok=True)
 
 
 def switch(root: Path) -> tuple[tuple[datetime, Switch, str], ...]:
