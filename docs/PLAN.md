@@ -152,6 +152,8 @@ Checked 20 Nov (MONEY, s2): R-PAPER-35's field is on main (#1102) and set in day
 Checked 20 Nov (MONEY, s7): no blocking request is open; R-PAPER-30 (size the 0.05% half-spread, `orders_parts.HALF_SPREAD`/`SLIPPAGE` from one real VUAG buy 0.09 and sale 0.14 below the pretend close) needs a day of fills and moves golden numbers (B5), so it waits for more conformance tapes; nothing built.
 Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half is on main (`day.run(killed=...)` refuses a killed strategy's buys); what is left is reading `promotion.standing` into that set, which `desk/` may not import (lab wall) and whose caller `desk/running.py` is PAPER's; nothing built.
 
+Checked 20 Nov (DATA, s3): no blocking request is open (R-DATA-60 is on main, #978); the open boxes wait on the operator or need files outside the claim (R-DATA-57's restating of MSTR onto IBKR's basis, R-RUNNER-383, needs a card claiming desk/bars.py and desk/quality.py); nothing built.
+
 - [x] The rehearsal data in a file of its own (`tests/scenes/rehearsal.py`)
 - [x] The rehearsal data lengthened to about fourteen months, the five rules buying and
       selling in it on every clean line, its UK and US holidays respected; the spoilt line's
