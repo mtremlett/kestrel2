@@ -647,3 +647,7 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 
 ### 2026-11-20 - cause of "job:keeper:failed" taken as a stale venue store (#955, R-RUNNER-314)
 - The request does not give the cause. Options: (a) stale venue store; (b) five-minute delay; (c) archive refusal. Took (a): the only miss the quoted output does not show, and the one the door (keeper.saved) refuses on. If the real cause was other, a follow-up scenario is owed.
+
+### 2026-11-20 - parked-yardstick scenario pins the existing refusal (#972, R-RUNNER-315)
+- The right behaviour is the desk's existing refusal (a record needs the yardstick's close for every session since the last record), so the scenario pins it rather than adding handling. Option: also trade the other lines through the gap; rejected, the record would be wrong.
+- An eighth event changed the seeded order and broke two seed-picked tests in tests/unit/test_simcity.py; their worlds (0, 1) became (2, 3). After merging main (ten events) the fourteen-month world moved from seed 4 to seed 6, the first seed meeting every part of the money path (0-5 left parts bare). Nothing loosened.
