@@ -27,7 +27,7 @@ RULES = ("breakout_20_10", "trend_50_200")
 TODO = [Cell(rule, line, ladder.START, ladder.END) for rule in RULES for line in BOOK]
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture
 def uneased(monkeypatch: pytest.MonkeyPatch) -> None:
     """These tests are about tapes, not easing: the ladder runs uneased here (EASED off), so
     a rule is simulated once and no placebo rung simulates again; with EASED on the cold, warm
@@ -55,6 +55,7 @@ def _judge(home: Path) -> list[dict[str, object]]:
     return _rows(home)
 
 
+@pytest.mark.usefixtures("uneased")  #: counts simulations: a placebo rung would add some
 def test_a_rung_changed_runs_no_simulation_and_a_rule_changed_only_its_own(
     tmp_path: Path, sims: list[Cell], monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -76,6 +77,7 @@ def test_a_rung_changed_runs_no_simulation_and_a_rule_changed_only_its_own(
     assert [c.strategy for c in sims[before:]] == [RULES[0]] * 2
 
 
+@pytest.mark.usefixtures("uneased")  #: counts simulations: a placebo rung would add some
 def test_the_rows_are_the_rows_there_were_cold_warm_and_with_no_tapes(
     tmp_path: Path, sims: list[Cell], monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -97,6 +99,7 @@ def test_the_rows_are_the_rows_there_were_cold_warm_and_with_no_tapes(
     assert (tmp_path / "plain" / "ladder" / "EPON.jsonl").read_bytes() == cold
 
 
+@pytest.mark.usefixtures("uneased")  #: counts simulations: a placebo rung would add some
 def test_a_run_stopped_takes_up_from_the_last_tape_written(
     tmp_path: Path, sims: list[Cell], monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -124,6 +127,7 @@ def test_a_run_stopped_takes_up_from_the_last_tape_written(
     assert len(sims) == whole - done
 
 
+@pytest.mark.usefixtures("uneased")  #: counts simulations: a placebo rung would add some
 def test_a_rule_is_simulated_once_on_a_line_and_each_window_is_cut_from_it(
     tmp_path: Path, sims: list[Cell]
 ) -> None:
@@ -136,6 +140,7 @@ def test_a_rule_is_simulated_once_on_a_line_and_each_window_is_cut_from_it(
         assert kept(window, bars) == cell.run(window, bars)
 
 
+@pytest.mark.usefixtures("uneased")  #: counts simulations: a placebo rung would add some
 def test_a_change_of_settings_prices_the_same_tape_again_and_simulates_nothing(
     tmp_path: Path, sims: list[Cell]
 ) -> None:
