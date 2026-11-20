@@ -663,3 +663,9 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 
 ### 2026-11-20 - conformance plan skips a line with no bar (#1028, R-RUNNER-318)
 - Options: (a) keep refusing the whole run when one line lacks a bar (the incident repeats daily until the archive fills); (b) leave that line out and plan from the rest. Chose (b): the run needs only the most-traded line, one gap should not stop it. Asked of PAPER (R-MONEY-56); scenario held as a patch until then.
+
+### 2026-11-20 - R-MONEY-54 reverted, waits on PAPER's files (#1046)
+- The change needs desk/running.py (a broker door for watch.look) and desk/goflat.py (calling halt.stop), both PAPER's; the lane guard refused the edit. Options: widen the claim (loosens a guard) or revert and ask PAPER (R-MONEY-57). Chose the revert: the guard settles it. Plan in docs/PLAN.md: halt.stop takes his; watch.look takes a Callable[[], Broker] and calls halt.call first, then halt.stop.
+
+### 2026-11-20 - conformance plan keeps its refusal (#1052, R-RUNNER-318)
+- Options: (a) keep the refusal, since the job's ValueError is the desk's loud refusal (canon A4); (b) leave such a line out of the plan. Chose (a): the scenes call for no change, and (b) needs desk/conformance_parts.py, outside the claim. This replaces the choice of #1028; R-MONEY-56 is withdrawn.

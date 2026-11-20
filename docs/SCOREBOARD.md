@@ -774,3 +774,5 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #986 R-RUNNER-386 built: pooled ladder judges with its family count while EASED |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #993 R-RUNNER-231 EASED switched on, golden fixture verdicts re-pinned |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1070 no change; 1051 superseded by #993 |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1046 R-MONEY-54 not built, waits on PAPER's files (R-MONEY-57) |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1052 R-RUNNER-318 SimCity scenario for the conformance job's missing session bar |
