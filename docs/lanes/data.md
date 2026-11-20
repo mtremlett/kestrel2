@@ -784,3 +784,6 @@ make a second home for Source (#930 landed step 1 only).
 Options: buy a feed (NYSE, McClellan; spend is his hard line, refused); use unconfirmed scraped symbols (^ADVN/^DECN, no
 free download, not re-checkable, rejected); leave the Zweig row out of the catalogue (chosen, as the request itself says).
 Waits: operator.
+
+### 2026-11-20 — the quality monitor goes red past the parked cap (#1037, DQ-01)
+Options: report the coverage score only, or go red when more than 10% of lines stand parked. Chose red: the box asks for "a cap on the share of lines parked" and DQ-01 makes the desk unfit past it. Insufficient history on a line is reported in the score, not red, since new lines (3LGO) would alarm daily.
