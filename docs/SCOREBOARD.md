@@ -785,3 +785,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #986 R-RUNNER-386 built: pooled ladder judges with its family count while EASED |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #993 R-RUNNER-231 EASED switched on, golden fixture verdicts re-pinned |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1070 no change; 1051 superseded by #993 |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1102 R-PAPER-35 part: session set in kill and simcity. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1108 MONEY s2: nothing built, remainder of R-PAPER-35 is PAPER's. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1117 R-RUNNER-397 park one line by hand built. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1119 R-PAPER-17: keep() uses one temp file per writer. |
