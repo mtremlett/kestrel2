@@ -205,12 +205,14 @@ def run(
     whole = _whole(results)
     last = _last(whole)
     shared = Shared(todo)
+    register = results.with_suffix(".trials.jsonl")
+    kin = lambda rule: trials.family(register, plan.question, rule)  # noqa: E731 - read when EASED
     tally: Counter[str] = Counter()
     with tape.on(home / FOLDER / tape.FOLDER), results.open("ab") as out:
         out.truncate(len(whole))
         for c in todo:
             was = last.get(tuple(batch.row(c)))
-            row = _one(c, bars, pounds, (plan.tag, count), was, shared, now())
+            row = _one(c, bars, pounds, (plan.tag, count), was, shared, now(), kin)
             if row != was:
                 out.write(json.dumps(row).encode() + b"\n")
                 out.flush()
@@ -237,10 +239,12 @@ def _one(
     was: verdict.Row | None,
     shared: Shared,
     now: datetime,
+    kin: Callable[[str], int] | None = None,
 ) -> verdict.Row:
     """The cell's line: the one kept under the key these bars, rates and trials give, else its
     answers now, or why it could not be judged."""
     tag, count = tagged
+    family = kin(c.strategy) if verdict.EASED and kin else None  #: the rule's trials, if EASED
     head: dict[str, Any] = {"set": tag, "cell": batch.row(c), "trials": count}
     key = None  #: what this try covers, once the cell's bars are read
     try:
@@ -251,24 +255,22 @@ def _one(
         pool = _pool(c.strategy, shared, bars, pounds)
         mine = cell.key(c, own).rung(ME)
         days = sorted(
-            day for day in pounds if day <= c.end and (c.line.currency != "GBP" or pool.dollars)
+            d for d in pounds if d <= c.end and (c.line.currency != "GBP" or pool.dollars)
         )
         market = cell.key(Cell(c.strategy, beside, c.start, c.end), held).data
-        rates = (f"{d} {pounds[d]}" for d in days)
-        parts = [mine.code, mine.data, market, pool.data, str(count), *rates]
+        parts = [mine.code, mine.data, market, pool.data, str(count)]
+        parts += [f"{d} {pounds[d]}" for d in days] + ([] if family is None else [f"in {family}"])
         parts += [tape.rule_code(c.strategy)] + [one.key.code + one.key.data for one in made]
         found = rung.found(RUNGS)
-        declared, waiting = found  #: both are in the row, so both are in its key
-        parts += [one.name + one.code for one in declared] + list(waiting)
+        parts += [one.name + one.code for one in found[0]] + list(found[1])  #: both are in its key
         head |= {"reproduction": [reproduce.said(one) for one in made]} if made else {}
         key = hashlib.sha256(";".join(parts).encode()).hexdigest()
         if was is not None and was.get("key") == key:
             return was  #: kept, or failed on all of this before: it waits for its key to change
         if (first := pool.firsts.get(c)) is not None and first.refusal is not None:
-            reason = f"refused by the desk's sizing: {first.refusal}"
-            return head | {"key": key, "refused": reason}
+            return head | {"key": key, "refused": f"refused by the desk's sizing: {first.refusal}"}
         folded = lambda: pool.fold(pounds, made)  # noqa: E731 - asked for only if the folds are read
-        judged = verdict.judge(c, own, beside, held, pounds, count, made, folded, first)
+        judged = verdict.judge(c, own, beside, held, pounds, count, made, folded, first, family)
         done = _declared(judged, pool, c, own, pounds, made, found)
         return head | {"key": key, "from": c.start.isoformat()} | done
     except FAILED as error:
