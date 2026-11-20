@@ -34,6 +34,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal, localcontext
+from typing import Generic, Protocol, TypeVar
 
 from desk.orders import Settings
 from desk.store import Bar
@@ -42,7 +43,56 @@ from lab import cell, market, rung
 from lab.cell import Cell
 from lab.reproduce import Reproduction
 from lab.rung import Answer, Rates, Verdict
-from lab.rung_folds import Fold, Walked
+
+
+class Judged(Protocol):
+    """What a fold's side must show: the t and the answer the worst fold is chosen by."""
+
+    @property
+    def t(self) -> Decimal | None:
+        """The mean gain in standard errors; None under two trades."""
+
+    @property
+    def answer(self) -> Answer:
+        """The first rung's answer."""
+
+
+J = TypeVar("J", bound=Judged)
+
+
+@dataclass(frozen=True)
+class Fold(Generic[J]):
+    """One fold, its two sides side by side."""
+
+    inside: J  #: in-sample: the history before the fold
+    outside: J  #: out-of-sample: the fold alone
+
+
+@dataclass(frozen=True)
+class Walked(Generic[J]):
+    """The folds of one window, and the one answer on the worst."""
+
+    folds: tuple[Fold[J], ...]  #: oldest first
+
+    def __post_init__(self) -> None:
+        if not self.folds:
+            raise ValueError("no folds: there is no worst fold to judge on")
+
+    @property
+    def worst(self) -> Fold[J]:
+        """The fold judged on; of two equally bad, the older."""
+        return min(self.folds, key=lambda f: rung.standing(f.outside.answer, f.outside.t))
+
+    @property
+    def answer(self) -> Answer:
+        """The worst fold's out-of-sample answer: the rung's."""
+        return self.worst.outside.answer
+
+    @property
+    def passed(self) -> bool:
+        """Whether every fold passed."""
+        return self.answer is Answer.PASS
+
 
 YEARS = 5  #: the last whole calendar years of a window are its folds (M6)
 
