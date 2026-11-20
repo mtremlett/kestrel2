@@ -362,6 +362,14 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #887 no change; blocking requests already on main. |
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #889 no change; R-RUNGS-5 and R-RUNGS-9 verified already in the store. |
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #872 no change; R-DATA-58 declined with evidence, fresh pull kept. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #903 data-broker-bars: paper Gateway proved to serve live (not delayed) bars; no code change. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #901 R-RUNNER-349 whole headstart pass on main. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #908 R-RUNNER-10 ibkr_store clock fixed, test first. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #906 no change: R-PAPER-23, R-PAPER-33, R-RUNGS-16 verified on main. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #905 R-RUNNER-381 desk/bars.py split, 398 to 349 lines. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #920 no change: three blocking requests already done on main. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #915 no change: data-ingest verified already on main. |
+| 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #894 no change: R-PAPER-23 verified already on main (#294). |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 

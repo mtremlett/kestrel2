@@ -786,3 +786,17 @@ Options: (a) restore the nine US lines from backup/20261117T013018Z, (b) leave t
 basis. Chose (b): the live store already holds every backup day, the 20 differing sessions are fresh pulls with the old values
 kept in `correction`, and (a) would put stale over fresh, undone by the next archive round. His ruling, take recommended. Open
 question: which daily volume is the consolidated figure (R-DATA-59, waits: operator).
+
+### 2026-11-19 — headstart pass takes its lines as a parameter (#901, R-RUNNER-349)
+Options: (a) `whole` reads the line list itself; (b) the command passes `headstart_days.order()` in. Chose (b): the test then
+uses one line, and counts are read from the readers' own lines, not a second tally.
+
+### 2026-11-19 — desk/bars.py split along its schema (#905, R-RUNNER-381)
+Options: (a) move the readers out; (b) move the Source list and the store's table and statement constants to
+`desk/bars_schema.py`. Chose (b): the readers could not move without a circular import. `bars.py` re-exports the names, so
+no caller or test outside the claim needed an edit (398 to 349 lines).
+
+### 2026-11-19 — data-ingest: no separate persisted backfill list (#915)
+Options: (a) add a backfill list beside the park; (b) keep the park (`keeper.parked_live`), which already bounds it. Chose (b):
+keeper.py and bars.py sit at 390 and 398 of 400 lines and the unit tests have no margin. Sealing into compressed files waits
+on a benchmark showing SQLite slowing; it passes today.

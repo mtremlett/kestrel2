@@ -243,20 +243,22 @@ Checked 17 Nov (MONEY, s6): R-DATA-53 is on main (`desk/command.py:387` passes `
 - [x] A home for the research store on his PC, refreshed nightly, a ticker that left a list
       cleared out, and the day and list it reflects written beside it
       {id: data-research-home; files: lab/universe.py, tests/unit/test_lab_universe*.py; after: data-parked-fifth}
-- [ ] The hot bars' first source is the broker: he already pays for IBKR's market data, so
+- [x] The hot bars' first source is the broker: he already pays for IBKR's market data, so
       the five-minute keeper reads live bars through IB Gateway's paper port, read-only, and
       the free archive is the second source and the check on it; first prove, read-only,
       that the paper account sees his live data and not the delayed kind, and if it does
       not, say which setting he must turn on (DAT-02, DAT-07)
       Built: the broker's daily bars first at the one writer (#517, #521), the keeper asks it for lines the
       archive lacks (#701), one-minute bars from IBKR (#629). Remains: a bar's own source label (a request to MONEY)
+      Proved 19 Nov (#903): the paper Gateway serves live, not delayed, bars. Remains: a bar's own source label (MONEY's, #844).
       {id: data-broker-bars; files: desk/keeper.py, tests/unit/test_keeper*.py; after: data-keeper-receipts; waits: R-DATA-9}
-- [ ] **An ingest that cannot pile up, by construction:** one slot per ticker per minute, so a
+- [x] **An ingest that cannot pile up, by construction:** one slot per ticker per minute, so a
       round never holds more than its tickers; a late round is replaced by the next, and its
       gap goes to a bounded backfill list; writes are upserts on ticker, bar size and time, so
       a retry never duplicates; each round's lag, size and refusals recorded and alerted on.
       Finished months of intraday history are sealed into compressed files for the lab to
       read, when a benchmark shows SQLite slowing (DAT-07, DQ-12)
+      Verified on main (#915): slots, upserts, parked list, receipts. Remains: sealing into compressed files, only if the benchmark ever reds.
       {id: data-ingest; files: desk/keeper.py, tests/unit/test_keeper*.py, desk/bars.py, tests/unit/test_bars*.py; after: data-keeper-receipts}
 - [ ] **Two databases, both owned by the one store** (his ruling, 14 November), in the desk's
       data folder, never in this public repository: `market_history.db`, long-term, every timeframe
