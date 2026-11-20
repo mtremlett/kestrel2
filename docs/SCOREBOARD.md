@@ -169,6 +169,8 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #924 R-RUNNER-248 done - SimCity scenario for the blind crash watch, red without the telling, green with. |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #945 R-RUNNER-377 SimCity gap scenario names a bar-less line as a FAULT, not an IndexError. |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #955 R-RUNNER-314 SimCity stale-store scenario landed. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #972 R-RUNNER-315 SimCity scenario for the parked yardstick, green and driven red. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1008 R-RUNNER-389 done, going note kept on disconnect. |
 
 ### DATA
 
