@@ -785,3 +785,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #986 R-RUNNER-386 built: pooled ladder judges with its family count while EASED |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #993 R-RUNNER-231 EASED switched on, golden fixture verdicts re-pinned |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1070 no change; 1051 superseded by #993 |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1098 DATA: disk-space floor in the quality monitor (OPS-07), no scene moved. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1101 DATA s3, pre-2010 window verified prepared, no code, no scene moved. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1104 DATA: breadth counts from the store, pure and tested (R-RUNNER-346, R-MONEY-35). |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1107 DATA: disk watch wired into the quality monitor (OPS-07 part). |
