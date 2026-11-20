@@ -663,3 +663,9 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 
 ### 2026-11-20 - conformance plan skips a line with no bar (#1028, R-RUNNER-318)
 - Options: (a) keep refusing the whole run when one line lacks a bar (the incident repeats daily until the archive fills); (b) leave that line out and plan from the rest. Chose (b): the run needs only the most-traded line, one gap should not stop it. Asked of PAPER (R-MONEY-56); scenario held as a patch until then.
+
+### 2026-11-20 - R-MONEY-54 reverted, not widened (#1046)
+- Wiring `halt.stop` into `watch.look` and `goflat` needs `desk/running.py` and `desk/goflat.py`, PAPER's files. Options: (a) widen MONEY's claim (loosens the lane guard); (b) revert and ask PAPER. Chose (b): the guard settles it. Asked as R-MONEY-57; plan: `halt.stop` takes his, `watch.look` takes a `Callable[[], Broker]` and calls `halt.call` first (a down broker still halts), then `halt.stop`.
+
+### 2026-11-20 - conformance plan keeps refusing a line with no bar (#1052, R-RUNNER-318)
+- Options: (a) keep the refusal (`conformance_parts._last` raises, naming line and session); (b) leave the line out as the day's rounds do. Chose (a): it is the desk's loud refusal (canon A4), no behaviour change; (b) needs a file outside the claim. This reverses the earlier choice of (b) (#1028, R-MONEY-56), which is withdrawn. SimCity `unbarred` shows green, and red when the handling is replaced by an older bar.
