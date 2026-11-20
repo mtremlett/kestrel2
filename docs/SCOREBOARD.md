@@ -176,6 +176,10 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1035 R-RUNNER-392 part 1: fault matrix table and the after-accept row for 2110 and 2157 built. |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1028 R-RUNNER-318 scenario built and red; no change landed, fix needed in conformance_parts. |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1052 R-RUNNER-318 SimCity scenario for the conformance job's missing session bar |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1102 R-PAPER-35 part: session set in kill and simcity.
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1108 no change: remainder of R-PAPER-35 is PAPER's.
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1117 R-RUNNER-397 park one line by hand built.
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1119 R-PAPER-17: keep() uses one temp file per writer.
 
 ### DATA
 
