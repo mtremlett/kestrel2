@@ -152,7 +152,9 @@ def monitor(
 ) -> str:
     """Audit, backfill every gap, audit again: the one line saying green, or what stays red."""
     every = list(lines)
-    wrote, named = backfill.fill(path, gaps(path, every, today), broker, archived, today)
+    wrote, named = backfill.fill(
+        path, gaps(path, every, today), backfill.ordered(broker, archived), today
+    )
     built = [rolled(path, line, today) for line in every]
     red = [why for line in every for why in audit(path, line, today)]
     red += [why for _, faults in built for why in faults]
