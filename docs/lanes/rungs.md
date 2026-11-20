@@ -270,3 +270,14 @@ then the break was removed:
 
 ### 2026-11-19 — "mostly FAULT" means over half (R-RUNNER-332, #892)
 - Options: any FAULT ends red; over half of the judged cells; all. Chose over half, since the request says "mostly"; a few faults are said but not fatal.
+
+### 2026-11-19 — an unscorable weather layer reads "no" with its reason (R-RUNNER-205, #907)
+- Options: omit the layer; fail the whole run; list it as "cannot score" with the reason, joins = no. Chose the last, so one thin layer does not hide the others.
+
+### 2026-11-19 — the lane guard blocks moving a module (R-RUNNER-191 b, #919)
+- Options: (1) loosen the lane guard to read ownership from the merge base and allow a lane to remove its own module's manifest line; (2) leave rung_folds.py as is. Recommended 1, a guard change, so announced and left to the guard lane/runner (outside the claim, A8); asked as R-RUNGS-29.
+
+### 2026-11-19 — the retail rung is map row 12 (R-RUNNER-229, #927)
+- Options: a 12th row, or keep eleven and rename the module. Chose the 12th: the card names the file, and `found` counts any `rung_*` module without a RUNG. Built count stays 3 of 12.
+- Days: market day = close over the prior close in pounds; basket day = pounds of trades sold that day after every cost over the 10,000 capital, 0 if none sold (cash between trades). Rejected marking open trades daily (needs every line's bars). Frozen numbers unchanged.
+- With EASED off nothing changes; on, a basket row gains "retail" but its answer is unchanged, so no golden number moves (to confirm at ease-switch-on).

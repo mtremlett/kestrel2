@@ -22,6 +22,8 @@ from __future__ import annotations
 import json
 import os
 import sys
+import threading
+import traceback
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -29,6 +31,7 @@ from decimal import Decimal
 from itertools import pairwise
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import TypeVar
 
 from desk import command, day, keeper, simcity
 from desk.broker import Pretend
@@ -40,6 +43,8 @@ USAGE = "python -m desk.simcity [--full | --soak]"
 SOAKED = Path("simcity") / "seeds.jsonl"  #: under KESTREL2_DATA: one line per block lived
 FIRST, BLOCK = 100, 100  #: the first seed a soak may use (0-99 are the nights'), and a block
 QUICK = range(20)  #: the weekdays' night: a fifth of the worlds
+LIMIT = 7200.0  #: seconds a phase may take; the 20 worlds took 17 minutes, the hang six hours
+T = TypeVar("T")
 WORST = 5  #: the yardstick's worst days the stress pass tells
 NO_CALIBRATION = (
     "Calibration: NOT RUN - the rungs' pass rate on noise worlds is lab/ work and the desk "
@@ -125,6 +130,30 @@ def soak(data: Path, now: datetime) -> range:
     return range(start, start + BLOCK)
 
 
+def within(limit: float, phase: str, work: Callable[[], T]) -> T:
+    """THE FAST FAIL: work run in a thread; if it has not ended within limit seconds the night
+    ends with an error naming the phase and the line where the thread waits."""
+    done: list[T] = []
+    failed: list[BaseException] = []
+
+    def target() -> None:
+        try:
+            done.append(work())
+        except BaseException as died:  # noqa: BLE001 - handed to the caller, raised there
+            failed.append(died)
+
+    thread = threading.Thread(target=target, daemon=True)
+    thread.start()
+    thread.join(limit)
+    if thread.is_alive():
+        frame = sys._current_frames()[thread.ident or 0]
+        where = "".join(traceback.format_stack(frame)[-3:]).strip()
+        raise TimeoutError(f"SimCity stuck in {phase}: no end in {limit:g} s, waiting at: {where}")
+    if failed:
+        raise failed[0]
+    return done[0]
+
+
 def main(
     argv: Sequence[str] = sys.argv[1:],
     env: Mapping[str, str] = os.environ,
@@ -136,17 +165,21 @@ def main(
     root, now = Path(env["KESTREL2_DATA"]) / command.ROOT, clock()
     if not root.is_absolute():
         raise SystemExit(f"KESTREL2_DATA names no whole path to a folder: {root.parent}")
-    saved, _parked = keeper.saved(Path(env["KESTREL2_DATA"]), now.date(), LINES)
+    saved, _parked = within(
+        LIMIT,
+        "reading the price store",
+        lambda: keeper.saved(Path(env["KESTREL2_DATA"]), now.date(), LINES),
+    )
     room = Settings(command.CAPITAL)
     worlds = soak(Path(env["KESTREL2_DATA"]), now) if argv == ["--soak"] else QUICK
     worlds = simcity.WORLDS if argv == ["--full"] else worlds
     rates = command.rates(root, now.date())
-    night = simcity.run(root, saved, room, rates, now, worlds)
+    night = within(LIMIT, "the worlds", lambda: simcity.run(root, saved, room, rates, now, worlds))
     block = f" Soak: seeds {worlds[0]}-{worlds[-1]}." if argv == ["--soak"] else ""
     print(night.words() + block)  # noqa: T201 - the command's answer to whoever asked
     if argv == []:
         return int(not night.green)
-    deep, census = stress(saved, room, rates)
+    deep, census = within(LIMIT, "the stress replay", lambda: stress(saved, room, rates))
     lines = (deep, NO_CALIBRATION, census.words())
     print(*lines, sep="\n")  # noqa: T201 - the deep run's last lines
     return int(not night.green or "BROKEN" in deep or census.stuck > 0)
