@@ -21,7 +21,7 @@ ORDER = Order("o-1", A, 10, *map(Decimal, (50, 1, 45)))
 
 
 def _run(cell: faults.Cell, root: Path, plant: str = "") -> list[str]:
-    broker = Pretend({A: (BAR,)}, {"A": faults.BUILT[cell]})
+    broker = Pretend({A: (BAR,)}, {}, link_breaks={"A"})
     broker.open(MON)
     if plant == "resend":
         broker.report = lambda _: None  # type: ignore[method-assign,assignment]

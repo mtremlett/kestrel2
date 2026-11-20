@@ -4,7 +4,7 @@ broker, and faults on request."""
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Collection, Iterable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import date
 from decimal import Decimal
@@ -42,9 +42,6 @@ class Fault(Enum):
     DISCONNECT = "disconnection"
     CRASH = "the desk dies after the broker has the order"
     STRAND = "the desk dies after the broker has the order, which is left working, unfilled"
-    LINK = (
-        "the link breaks after the broker has the order and filled it: the desk hears Disconnected"
-    )
 
 
 class Crash(Exception):
@@ -117,14 +114,21 @@ class _Stop:
 
 
 class Pretend:
-    def __init__(self, archive: Mapping[Line, Sequence[Bar]], faults: Mapping[str, Fault]) -> None:
+    def __init__(
+        self,
+        archive: Mapping[Line, Sequence[Bar]],
+        faults: Mapping[str, Fault],
+        link_breaks: Collection[str] = (),
+    ) -> None:
         """Fills at the archive's prices; a fault applies to a symbol's first order that
-        meets a market."""
+        meets a market. A symbol in link_breaks has its first order filled, then the link
+        breaks: the desk hears Disconnected (the fault matrix, not a random fault)."""
         self._bars = {(line.symbol, bar.day): bar for line, bars in archive.items() for bar in bars}
         unknown = set(faults) - {symbol for symbol, _ in self._bars}
         if unknown:
             raise ValueError(f"faults for symbols the archive does not hold: {sorted(unknown)}")
         self._faults = dict(faults)
+        self._breaks = set(link_breaks)
         self._day: date | None = None
         self._received: list[str] = []
         self._reports: dict[str, Report] = {}
@@ -165,7 +169,8 @@ class Pretend:
         self._reports[order.order_id] = report
         if fault in (Fault.CRASH, Fault.STRAND):
             raise Crash(f"{order.order_id}: the desk died before the broker's answer reached it")
-        if fault is Fault.LINK:
+        if bar is not None and order.line.symbol in self._breaks:
+            self._breaks.discard(order.line.symbol)
             raise Disconnected(f"{order.order_id}: the link broke after the broker had it")
         return report
 

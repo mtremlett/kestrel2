@@ -9,7 +9,7 @@ from dataclasses import replace
 from pathlib import Path
 
 from desk import book
-from desk.broker import Fault, Pretend
+from desk.broker import Pretend
 from desk.halt import Blocker
 from desk.orders import Order, Settings
 
@@ -29,12 +29,9 @@ PROMISES = (
 )
 Cell = tuple[str, str]
 CELLS: tuple[Cell, ...] = tuple((c, m) for c in CLASSES for m in MOMENTS)
-#: the built cells and the fault each injects: the Friday 20 November blip, link news (2110,
-#: 2157) after the broker accepted a buy
-BUILT: dict[Cell, Fault] = {
-    ("2110", "after accept"): Fault.LINK,
-    ("2157", "after accept"): Fault.LINK,
-}
+#: the built cells: the Friday 20 November blip, link news (2110, 2157) after the broker
+#: accepted a buy; the pretend broker breaks the link after filling it (Pretend link_breaks)
+BUILT: frozenset[Cell] = frozenset({("2110", "after accept"), ("2157", "after accept")})
 
 
 def summary() -> str:
