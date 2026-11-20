@@ -23,6 +23,7 @@ from typing import BinaryIO, TypeVar
 
 from desk import book
 from desk.bars import Five
+from desk.broker import Disconnected
 from desk.lines import Line
 
 HOST, PORT = "127.0.0.1", 4002  #: the paper port on this machine: the only door the desk dials
@@ -57,6 +58,8 @@ UNASKED = "-1"  #: the number a fill carries when no question of the desk's aske
 #: News of the gateway's price feeds, which this door does not read; any other news stops
 #: it, that it cannot look lines up (2157) included: nothing it then says of a line is sound.
 FEEDS = frozenset({"2103", "2104", "2105", "2106", "2107", "2108", "2119", "2158"})
+#: connectivity news: an order sent as it came is received-unknown (Disconnected), never a fault
+LINKS = frozenset({"2110", "2157"})
 CANCELLED = "202"  #: its notice that an order was cancelled: news of an order, and no fault
 Send = Callable[[bytes], object]  #: what puts the desk's bytes on the connection
 PLAIN = re.compile("-?[0-9]+([.][0-9]+)?")  #: a number as the gateway writes one
@@ -191,6 +194,8 @@ def other(fields: list[str]) -> str:
     if kind == ACCOUNTS:
         for code in fields[2].split(","):
             only(code)
+    elif kind == NEWS and fields[3] in LINKS:
+        raise Disconnected(f"the gateway says {fields[3]}: {fields[4]}")
     elif kind == NEWS and fields[3] != CANCELLED and fields[3] not in FEEDS:
         raise ConnectionError(f"the gateway says {fields[3]}: {fields[4]}")
     elif kind not in (NEWS, READY, STATUS, HOLDINGS_END, ORDERS_END, ORDER, FEE) and (
