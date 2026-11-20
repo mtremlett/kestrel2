@@ -140,8 +140,11 @@ def test_todays_bar_is_green_once_its_venue_has_closed_and_named_while_open(tmp_
     ]
 
 
-def test_a_drive_with_under_a_tenth_free_is_named_red(tmp_path: Path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
-    monkeypatch.setattr(shutil, "disk_usage", lambda _p: SimpleNamespace(total=100, free=5))
-    assert quality.disk(tmp_path) == [f"disk: 5% free on the drive of {tmp_path.name}, floor 10%"]
-    monkeypatch.setattr(shutil, "disk_usage", lambda _p: SimpleNamespace(total=100, free=50))
-    assert quality.disk(tmp_path) == []
+def test_a_drive_with_under_a_tenth_free_turns_the_monitor_red(tmp_path: Path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    path = seeded(tmp_path, set())
+    for free, red in ((5, True), (50, False)):
+        monkeypatch.setattr(
+            shutil, "disk_usage", lambda _p, f=free: SimpleNamespace(total=100, free=f)
+        )
+        said = quality.monitor(path, [SPY], refuse, refuse, NOW)
+        assert ("disk: 5% free" in said) is red
