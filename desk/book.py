@@ -15,16 +15,19 @@ from pathlib import Path
 
 from desk import halt
 from desk.book_parts import (
+    CANCELS,
     RATES,
     SWITCH,
     TURNS,
     Switch,
+    cancel_all,
     entry,
     keep,
     killed,
     rate,
     rates_kept,
     record_rates,
+    retry_id,
     switch,
 )
 from desk.book_parts import (
@@ -42,6 +45,8 @@ __all__ = (
     "SWITCH",
     "TURNS",
     "Switch",
+    "CANCELS",
+    "cancel_all",
     "keep",
     "killed",
     "rate",
@@ -119,6 +124,8 @@ def send(
     and the lines held (moves), one correlated with a held line past the cap (orders.gate)."""
     _settle(root, broker)
     report = broker.report(order.order_id)
+    if again := retry_id(root, order.order_id, report, datetime.now(UTC).date()):
+        order, report = replace(order, order_id=again), broker.report(again)  #: once, same gate
     if report is None:
         _unless_stopped(root, order)
         held, differ, unsure, _ = _compare(root, broker)
@@ -172,7 +179,7 @@ def _disagreed(
     if tell is None or not isinstance(error, placing.Unprotected):
         words = f"{order.order_id}: place failed with {error!r}; the kill switch is on"
         turn(root, Switch.ON, datetime.now(UTC), words)
-        tuple(broker.cancel())
+        cancel_all(root, broker, datetime.now(UTC).date())
         raise Alarm(words) from error
     words = f"{order.order_id}: the broker's word, fills and account do not agree: {error}"
     why = f"{words}; no buy goes until he lifts this"
@@ -185,7 +192,7 @@ def _settle(root: Path, broker: Broker) -> None:
     """A DESK THAT DIED MID-SEND left its note (_place) and perhaps an order working, to fill
     behind a gate that counts the book alone: before any send they go. Kill switch on: waits."""
     if (going := root / GOING).exists() and killed(root) is None:
-        tuple(broker.cancel())
+        cancel_all(root, broker, datetime.now(UTC).date())
         going.unlink()
 
 
