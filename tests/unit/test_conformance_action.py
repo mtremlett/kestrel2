@@ -11,7 +11,7 @@ from test_conformance import ID, MON, PRETEND, _run, _world
 from desk import conformance, ended
 
 TAPE = (  # step 5 of the 16 November US tape: the real fill and IBKR's reason
-    f"done; fills: {ID.format(3)}-stop -16 at 159.13; held: none; stops: none",
+    f"done; fills: {ID.format(3)}-stop -18 at 159.13; held: none; stops: none",
     f"{ID.format(3)}-stop: Cancelled by Trader",
 )
 
@@ -20,8 +20,20 @@ def test_the_pretend_side_is_priced_at_the_real_stop_fill_and_a_sale_by_hand_dif
     real, _ = TAPE
     assert ended.action(real, "") == ended.action(PRETEND["the stop triggered"], "")
     assert ended.action(PRETEND["a refusal"], "") == "no fill"
-    by_hand = real.replace("-stop -16", " -16")  # not under the stop name
+    by_hand = real.replace("-stop -18", " -16")  # not under the stop name
     assert ended.action(by_hand, "") != ended.action(PRETEND["the stop triggered"], "")
+
+
+def test_fills_of_one_order_are_one_action_of_its_total_and_kind_and_size_still_differ() -> None:
+    one = f"done; fills: {ID.format(1)} -195 at 9.1; held: none"
+    parts = "done; fills: " + ", ".join(f"{ID.format(1)} {n} at 9.1" for n in (-7, -7, -181))
+    assert ended.action(parts, "") == ended.action(one, "")  # the 09:01 rows
+    short = parts.replace("-181", "-180")
+    assert ended.action(short, "") != ended.action(one, "")
+    assert ended.action(one.replace("-195", "+195"), "") != ended.action(one, "")
+    stop = f"fills: {ID.format(3)}-stop -18 at 159.13; held: none"
+    sold = f"{ID.format(3)}-stop: Cancelled by Trader"
+    assert ended.action(stop, sold) != ended.action(stop, "")
 
 
 def test_a_stop_filled_though_the_runs_own_swap_cancelled_the_old_one_passes_with_the_words_kept(

@@ -169,6 +169,8 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #924 R-RUNNER-248 done - SimCity scenario for the blind crash watch, red without the telling, green with. |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #945 R-RUNNER-377 SimCity gap scenario names a bar-less line as a FAULT, not an IndexError. |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #955 R-RUNNER-314 SimCity stale-store scenario landed. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #972 R-RUNNER-315 SimCity scenario for the parked yardstick, green and driven red. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1008 R-RUNNER-389 done, going note kept on disconnect. |
 
 ### DATA
 
@@ -341,6 +343,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #797 R-RUNNER-217 step 1: quality monitor, daily timeframe, audit-backfill-reaudit line. |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #795 DAT-03, DQ-01 step: coverage and quality measured per line (desk/coverage.py). |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #811 DATA - quality monitor gains rollup and clash faults (R-RUNNER-217, step 2), 57 product lines. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1023 no change; R-MONEY-28 already on main. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1025 no change; R-PAPER-33 already on main (#770). |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1037 DATA: coverage wired into the quality monitor, no scene moved. |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #814 history.daily home required (R-DATA-49). |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #819 data-deep-history: found the one-word block (store.py KNOWN), pinned the 2000-2009 US calendar; box not finished. |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #821 data-deep-history: found why no bar before 2010 is kept; no change landed (the fix spans store.py and lines.py, outside this claim). |
@@ -516,6 +521,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-19 | 7 of 7 | - | - | - | 14 of 14 proven | green | #909 R-RUNNER-380 the rehearsal does not book a fill on a line the account held |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #931 no change; R-RUNNER-348 waits on a date field on Order (desk/orders.py).
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #933 no change; R-RUNNER-348 waits on a date field on Order (same request).
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1026 R-RUNNER-393 done: the conformance action names each order once with its total shares |
 
 ### GRID
 
