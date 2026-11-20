@@ -669,3 +669,6 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 
 ### 2026-11-20 - unbarred scenario keeps the refusal (#1052, R-RUNNER-318)
 - Options: (a) keep the refusal when a line has no session bar, (b) leave the line out as the day's rounds do. Chose (a): it is the desk's loud refusal (canon A4), the scenes call for no change, and (b) needs desk/conformance_parts.py, outside the claim.
+
+### 2026-11-20 - park one line by hand is a GATE blocker in its own file (#1117, R-RUNNER-397)
+- Options: (a) reuse `store.Parked` (a data fault, wrong meaning); (b) a new `Blocker` (touches the census and SimCity); (c) the operator's own list `parked.csv` read by `desk/handpark.py`, answered with blocker GATE. Chose (c): no new enum, sales and stops untouched, deleting the row buys again next round. R-RUNNER-401 (auto-park) would write into the same file.
