@@ -7,6 +7,7 @@ keeper's job failed on 17 November with a venue's daily bars a session short. R-
 18 November London run, whose buy the broker cancelled with nothing filled, so none were held.
 R-RUNNER-315: the 16 November session the yardstick has no bar for, so the line is parked.
 R-RUNNER-248: the 16 November afternoon the crash watch heard nothing of the market.
+R-RUNNER-317: the keeper's live job failed on 17 November, its one-minute lines all stale.
 R-RUNNER-316: the keeper's live job asked for one-minute bars of lines the store never held.
 R-RUNNER-318: the 17 November conformance job, a London line with no bar of the session before."""
 
@@ -40,6 +41,7 @@ PARKED = "a yardstick with a session missing refuses the day by name"
 STALE = "a venue's daily bars are a session short at the keeper's last refresh"
 REFUSED = "the price store's door refuses a venue short of a session, naming its line"
 DEAF = "the market goes unheard for an hour: he is told once in each hour, and nothing is halted"
+LIVE = "lines in session whose one-minute bar has just ended are none of them stale"
 UNHELD = (
     "the live keeper asks for one-minute bars of lines the store never held: each is named stale"
 )
@@ -184,6 +186,26 @@ def deaf(life: _Life, on: date) -> None:
     life.promise(
         DEAF, hours <= set(told) and len(told) == len(set(told)) and kept == halt.kept(life.desk)
     )
+    life.live(on)
+
+
+def minutes(life: _Life, on: date) -> None:
+    """Two hours into the session every line of the yardstick's venue is due, and the broker
+    answers each with the one-minute bar that has just ended. The keeper's live run must call
+    none of them stale (else its job fails for a market that is whole), and keep the bars."""
+    if venues.sessions(YARDSTICK.venue, on, on) != (on,):
+        life.live(on)  #: the venue keeps a holiday: it has no hours to be stale in
+        return
+    now = venues.hours(YARDSTICK.venue, on).open + timedelta(hours=2)
+    lines = sorted((x for x in life.market if x.venue == YARDSTICK.venue), key=lambda x: x.symbol)
+    price = Decimal(1)
+
+    def ask(_line: Line, at: datetime) -> tuple[Timed, ...]:
+        return (Timed(keeper_live.MINUTES, at - timedelta(minutes=1), *(price,) * 4, 1),)
+
+    hot = life.desk / "minutes-bars.db"
+    words, missed = keeper_live.minute_round(hot, lines, now, ask)
+    life.promise(LIVE, bool(lines) and not missed and ", 0 stale," in words)
     life.live(on)
 
 

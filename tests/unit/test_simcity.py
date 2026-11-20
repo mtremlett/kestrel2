@@ -64,7 +64,7 @@ def lived(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, simcity.Night
 
     with pytest.MonkeyPatch.context() as patch:
         patch.setattr(simcity, "_live", watched)
-        return root, simcity.run(root, MARKET, ROOM, RATES, NOW, (4,)), seen
+        return root, simcity.run(root, MARKET, ROOM, RATES, NOW, (6,)), seen
 
 
 @pytest.fixture(scope="module")
