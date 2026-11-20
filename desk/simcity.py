@@ -28,11 +28,13 @@ from desk.simcity_incidents import (
     DEAF,
     HOLE,
     LEFT,
+    PARKED,
     STALE,
     beside,
     cancelled,
     deaf,
     hole,
+    parked,
     stale,
 )
 from desk.simcity_parts import MONTH, Archive, Night, _market
@@ -240,6 +242,7 @@ EVENTS: tuple[Event, ...] = (
     (HOLE, hole),
     (LEFT, beside),
     (CANCELLED, cancelled),
+    (PARKED, parked),
     (DEAF, deaf),
 )
 
