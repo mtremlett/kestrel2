@@ -495,3 +495,7 @@ Options: match by the line the account held when the rehearsal began (chosen: `A
 ### 2026-11-20 — R-RUNNER-348: ask for an order date field rather than parse the id again (#931, #933)
 
 Options: (a) parse the id elsewhere in `desk/placing.py` (same defect, rejected); (b) wrap Order inside placing.py (a second path for a job that has one, refused by A2); (c) add a session-date field to Order and Sale in `desk/orders.py` and set it at every constructor, then read it in `Paper._cleared` (chosen, but another lane's files, so requested of MONEY as R-PAPER-35). Two sessions reached the same answer and changed nothing.
+
+### 2026-11-20 — R-RUNNER-390: which gateway link news is Disconnected (#1024)
+
+Options: (a) a wider list of kin of 2110 and 2157, including 1101 and 1102 (connectivity restored), at more risk of masking real faults; (b) 1100 (connectivity lost) with 2110 and 2157, listed once as `LINK` beside `FEEDS` in `desk/paper.py` (chosen, the narrow list). Other unknown news still raises a plain error.

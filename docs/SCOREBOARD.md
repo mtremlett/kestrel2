@@ -526,6 +526,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #931 no change; R-RUNNER-348 waits on a date field on Order (desk/orders.py).
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #933 no change; R-RUNNER-348 waits on a date field on Order (same request).
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1026 R-RUNNER-393 done: the conformance action names each order once with its total shares |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1024 R-RUNNER-390 done: link news no longer turns the kill switch on. |
 
 ### GRID
 
