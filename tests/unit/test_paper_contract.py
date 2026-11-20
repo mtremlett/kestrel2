@@ -12,7 +12,9 @@ import test_placing as tp
 from test_paper import _account, _gateway
 from test_reports import BOUGHT, BUY, DONE, END, IITU
 
-from desk.broker import Broker, Pretend, Report, Restopping
+from desk import book, paper
+from desk.broker import Broker, Disconnected, Pretend, Report, Restopping
+from desk.orders import Settings
 from desk.store import Bar
 
 DAY, LEVEL = BUY.made.date(), Decimal(33)
@@ -74,3 +76,20 @@ def test_a_stop_is_moved_and_none_working_is_cancelled(desk: tuple[Restopping, T
     assert tuple(broker.stops()) == (("IITU", 26),)  # still one stop, for all the shares
     tape("idle")
     assert tuple(broker.cancel()) == ()
+
+
+def test_gateway_news_of_a_broken_link_after_an_order_is_unknown_and_the_kill_switch_stays_off(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    root, none, link = (
+        tp._ready(tmp_path),
+        _account([]),
+        ("4", "2", "-1", "2157", "farm broken", ""),
+    )
+    _gateway(monkeypatch, none, [("102",)], [END], [END], none, none, [], tp.EMPTY, [link])
+    sent = book.send(root, tp._paper(root), tp.BUY_IT, Settings(Decimal(10_000)))
+    assert "2157" in str(sent.reason) and sent.filled == 0
+    assert (root / book.GOING).exists()  # the note stays: the next step's recover settles it
+    assert book.switch(root)[-1][1] is book.Switch.DRILLED  # and the kill switch is not turned on
+    with pytest.raises(Disconnected, match="2110"):
+        paper.other(["4", "2", "-1", "2110", "link broken", ""])
