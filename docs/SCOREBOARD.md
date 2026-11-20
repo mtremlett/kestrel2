@@ -785,3 +785,5 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #986 R-RUNNER-386 built: pooled ladder judges with its family count while EASED |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #993 R-RUNNER-231 EASED switched on, golden fixture verdicts re-pinned |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1070 no change; 1051 superseded by #993 |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1073 no change; R-GRID-2 verified done, R-GRID-3 stamping verified, capital/rate left to GRID's Key (R-RUNGS-25) |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1078 no change; B3 catalogue verified done |
