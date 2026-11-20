@@ -167,6 +167,8 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #916 R-RUNNER-199 intraday reader from the store built; no scene moved (plumbing for the intraday step). |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #936 R-RUNNER-328 fail-fast watchdog landed; root cause awaiting the next named stall. |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #924 R-RUNNER-248 done - SimCity scenario for the blind crash watch, red without the telling, green with. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #945 R-RUNNER-377 SimCity gap scenario names a bar-less line as a FAULT, not an IndexError. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #955 R-RUNNER-314 SimCity stale-store scenario landed. |
 
 ### DATA
 
@@ -396,6 +398,14 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #975 no change: R-PAPER-23 verified on main (#294). |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #970 no change: R-MONEY-28 verified on main. |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #973 no change: R-PAPER-23 verified on main. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #978 R-DATA-60 done: Source.ROLLUP_5M, one enum member. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #965 no change: R-PAPER-23, -33 verified on main. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #988 no change: R-PAPER-23, -33, R-RUNGS-16 verified on main. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #991 no change: R-PAPER-23, R-RUNGS-16 verified on main. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #990 no change: R-PAPER-23, -33 verified on main. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #985 no change: R-DATA-60 verified on main. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #989 no change: blocking requests already on main. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #992 no change: R-PAPER-23 verified on main. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
