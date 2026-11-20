@@ -169,7 +169,7 @@ def deaf(life: _Life, on: date) -> None:
     """The market's last bar of the session ended an hour ago and no bar since has come. The
     crash watch looks at three moments (two in one hour, one in the next): it must tell him it
     is blind once in each of the two hours, and call no halt for that alone."""
-    if YARDSTICK not in life.market:
+    if YARDSTICK not in life.market or on not in venues.sessions(YARDSTICK.venue, on, on):
         life.live(on)
         return
     daily = {x: [b for b in bars_ if b.day < on] for x, bars_ in life.market.items()}
@@ -193,6 +193,9 @@ def unheld(life: _Life, on: date) -> None:
     """The live keeper's store holds five-minute bars but never a one-minute bar of any line, and
     a venue is in session. The run must finish, never die on the store's LookupError, and name
     each line it could get no bar for as stale."""
+    if on not in venues.sessions(YARDSTICK.venue, on, on):
+        life.live(on)
+        return
     session = venues.hours(YARDSTICK.venue, on)
     lines = sorted((x for x in life.market if x.venue == YARDSTICK.venue), key=lambda x: x.symbol)
     hot, now = life.desk / "unheld-bars.db", session.open + timedelta(hours=1)
