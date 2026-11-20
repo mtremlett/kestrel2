@@ -8,10 +8,13 @@ keeper's job failed on 17 November with a venue's daily bars a session short. R-
 R-RUNNER-315: the 16 November session the yardstick has no bar for, so the line is parked.
 R-RUNNER-248: the 16 November afternoon the crash watch heard nothing of the market.
 R-RUNNER-316: the keeper's live job asked for one-minute bars of lines the store never held.
-R-RUNNER-318: the 17 November conformance job, a London line with no bar of the session before."""
+R-RUNNER-318: the 17 November conformance job, a London line with no bar of the session before.
+R-RUNNER-319: the keeper's live job, 17 November, met "database is locked" on its store."""
 
 from __future__ import annotations
 
+import sqlite3
+from contextlib import closing
 from dataclasses import replace
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
@@ -44,6 +47,7 @@ UNHELD = (
     "the live keeper asks for one-minute bars of lines the store never held: each is named stale"
 )
 UNBARRED = "a conformance plan with no bar of the session before the day refuses, naming the line"
+LOCKED = "a store another writer holds refuses the round by name, loses nothing, serves the next"
 PROMISE = "a held line with no bar for a session is named when the day is refused"
 
 
@@ -226,4 +230,33 @@ def unbarred(life: _Life, on: date) -> None:
         life.promise(UNBARRED, line.symbol in str(refusal) and f"{before}" in str(refusal))
     else:
         life.promise(UNBARRED, False)
+    life.live(on)
+
+
+def locked(life: _Life, on: date) -> None:
+    """Another writer holds the live store when the keeper's one-minute round begins (17 November,
+    "database is locked"). The round must be refused by name (NoRound) with nothing of it landed,
+    and the next run, the store free, must go through."""
+    session = venues.hours(YARDSTICK.venue, on)
+    lines = sorted((x for x in life.market if x.venue == YARDSTICK.venue), key=lambda x: x.symbol)
+    hot, now = life.desk / "locked-bars.db", session.open + timedelta(hours=1)
+    with bars.writing(hot) as round_:
+        round_.five(YARDSTICK, [Five(session.open, *(Decimal(1),) * 4, 1)])
+
+    def ask(line: Line, at: datetime) -> tuple[Timed, ...]:
+        return bars.timed(hot, line, keeper_live.MINUTES, at - timedelta(hours=1), at)
+
+    refused, wait = False, bars.WAIT
+    bars.WAIT = 0.05  #: the world will not wait the five seconds a real night does
+    try:
+        with closing(sqlite3.connect(hot, isolation_level=None)) as other:
+            other.execute("BEGIN IMMEDIATE")
+            try:
+                keeper_live.minute_round(hot, lines, now, ask)
+            except bars.NoRound as busy:  #: the store's own word that the round was not begun
+                refused = str(hot) in str(busy)
+    finally:
+        bars.WAIT = wait
+    keeper_live.minute_round(hot, lines, now, ask)
+    life.promise(LOCKED, refused and bool(bars.five(hot, YARDSTICK, session.open, now)))
     life.live(on)

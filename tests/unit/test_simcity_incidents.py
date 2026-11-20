@@ -17,6 +17,7 @@ from desk.simcity_incidents import (
     HALTED,
     HOLE,
     LEFT,
+    LOCKED,
     NAMED,
     OUTSIDE,
     PARKED,
@@ -31,6 +32,7 @@ from desk.simcity_incidents import (
     deaf,
     halted,
     hole,
+    locked,
     outside,
     parked,
     stale,
@@ -110,6 +112,7 @@ def test_without_naming_the_cancelled_orders_the_scenario_is_red(
         (STALE, stale),
         (UNHELD, unheld),
         (UNBARRED, unbarred),
+        (LOCKED, locked),
     ],
 )
 def test_a_halt_a_line_outside_an_isa_and_a_parked_yardstick_are_lived_and_kept(
@@ -183,3 +186,13 @@ def test_a_plan_with_no_bar_of_the_session_before_is_red_when_it_sizes_from_an_o
     )
     red = simcity.run(tmp_path, SHORT, ROOM, RATES, NOW, (1, 2, 3))
     assert any(UNBARRED in broken for broken in red.broken)
+
+
+def test_without_the_refusal_by_name_a_locked_store_scenario_is_red(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(simcity, "EVENTS", ((LOCKED, locked),))
+    monkeypatch.setattr(simcity, "EVENTFUL", 1)
+    monkeypatch.setattr(bars, "NoRound", type("Quiet", (Exception,), {}))
+    red = simcity.run(tmp_path, SHORT, ROOM, RATES, NOW, (1,))
+    assert red.deaths or any(LOCKED in b for b in red.broken)
