@@ -707,8 +707,7 @@ grid-tune and grid-key side by side; then grid-pass, grid-week, grid-declared, g
       (`lab/grid.py`: the same position after every bar, or a refusal, never a guess)
 - [x] The unit of work on the grid, the desk's engine deciding what the grid refuses
 - [x] A cell names its ticker's venue: a `Line` of the research list, its bars read from
-      its venue's folder (R-DATA-1). Remains: a cell can still be made from a symbol alone,
-      only for the rungs lane's files (R-GRID-2) {id: grid-venue; files: lab/cell.py, lab/batch.py,
+      its venue's folder (R-DATA-1). R-GRID-2 verified done (#1073); `Cell.symbol` now read only in GRID's files {id: grid-venue; files: lab/cell.py, lab/batch.py,
       tests/unit/test_lab_cell.py, tests/unit/test_lab_batch.py}
 - [x] Auto-tune, so a pass can never take the PC down: a hard memory ceiling held by
       Windows itself (a Job Object on the workers, about 60% of the 64 GB); workers sized
@@ -720,7 +719,7 @@ grid-tune and grid-key side by side; then grid-pass, grid-week, grid-declared, g
       killed by the ceiling, the PC stays responsive and the batch carries on
       {id: grid-tune; files: lab/tune.py, tests/unit/test_lab_tune.py, manifest.toml}
 - [x] The cell's key carries the cost model's version and the rung's code, so a change to
-      either re-runs what it touches (BT-04). Remains: nothing stamps a verdict with the new key yet (R-GRID-3) {id: grid-key; files: lab/cell.py,
+      either re-runs what it touches (BT-04). Verdicts and luck are stamped with the key (#1073). Remains: capital and rate table in the key (R-RUNGS-32) {id: grid-key; files: lab/cell.py,
       tests/unit/test_lab_cell.py; after: grid-venue}
 - [x] The grid's first pass over the research universe: every strategy at every setting on
       every ticker, each cell kept by code and data version. Remains: a command the runner can start, a lock, a journal per worker (grid-week) {id: grid-pass; files:
@@ -836,8 +835,8 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
   - [ ] B2 a typed Spec, validated on entry: an unknown block or a bad setting is refused
         Remains (R-MONEY-45, #809, #823): 20 of 21 rules are rows (mansfield_rs_momentum added, #873, run on the ratio bars the caller builds); zweig_breadth_thrust needs breadth data (R-MONEY-35)
       {id: rungs-spec; files: lab/spec.py, tests/unit/test_lab_spec.py; after: rungs-blocks; waits: R-MONEY-35}
-  - [ ] B3 the catalogue, one TOML row per strategy with its source and known-answer case;
-        a guard: unique names, known blocks only, a source and a case on every row
+  - [x] B3 the catalogue, one TOML row per strategy with its source and known-answer case;
+        a guard: unique names, known blocks only, a source and a case on every row (24 rows, verified #1078)
   - [ ] B4 the nineteen eponymous rules as rows, identical trades on the fixture proven,
         then their Python files deleted. Built: 20 of 21 in the catalogue (#873); Zweig waits on breadth data
   - [ ] B5 variants generated from a row's setting ranges, every one counted as a trial
