@@ -71,6 +71,7 @@ def test_the_retail_rung_stands_in_a_basket_row_only_while_eased_and_given_a_mar
     bars = _bars([100] * 40 + [110])
     against = rung_retail.Against(YARDSTICK, bars, POUND)
     lines = [replace(_line_verdict(s), trades=()) for s in LINE_NAMES[:1]]
+    monkeypatch.setattr(verdict, "EASED", False)
     assert "retail" not in basket.row(7, "breakout_20_10", lines, 50, Answer.PASS, against)["rungs"]
     monkeypatch.setattr(verdict, "EASED", True)
     assert "retail" not in basket.row(7, "breakout_20_10", lines, 50, Answer.PASS)["rungs"]
