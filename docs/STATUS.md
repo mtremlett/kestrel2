@@ -192,6 +192,10 @@ and 1d (#739). 1h, 4h, 1wk rolled locally as rollup:<from> (#760); keeper takes 
   -11 #514, -211 #530, -178 #532, -189 #541, -157 #528, -221 #548, -218 #547, -224 #574, -236 #591, -254 #612, -12 #629, -264 #656, -266 #666, -263 #660, -270 #701, -269 #715, R-RUNNER-10 #908 (ibkr_store stamps on the venue's clock), -349 #901 (whole headstart pass; -350, -351, -352 remain), -381 #905 (desk/bars.py split to 349 lines), -382 #935, -279 #719, -274 and -275
   #721, -277 #727, -284 #744, -276 #751, -272 #753; R-RUNNER-290 #757; R-PAPER-33 #770; R-RUNNER-288 #764, -289 #784; R-MONEY-48 #783; R-PAPER-23 #294, -22 #505, -16 and -3 #543; R-GRID-4 #338; R-MONEY-28 #536, #740, #769; R-RUNGS-3, -5, -15 #537, -9 #544, -16 #630, #747
 - R-RUNNER-387 #996, R-RUNNER-311 #855, -313 #859, -327 #863, -329 #856, -341 #861
+- R-PAPER-23: done in #294 (re-verified on main 20 Nov)
+- R-PAPER-33: done in #770 (re-verified on main 20 Nov)
+- R-RUNGS-16: done in #630 and #747 (re-verified on main 20 Nov)
+- R-MONEY-28: done in #536, #740 and #769 (re-verified on main 20 Nov)
 - Mine, done by others: R-DATA-1 (#73), -4, -5, -6 (#522), -9, -15 (#517, #530), -17, -25, -26, -27, -28, -31, -35 (#652); R-DATA-49 (#814); own R-DATA-19 to -23, -36, -40, -41 done, -24 superseded by the database
 ### Requests to DATA
 - [x] R-DATA-49: `history.daily` requires `home` (#814). R-DATA-54: done in #841. R-DATA-60: done in #978.
@@ -293,6 +297,7 @@ rungs-promotion (R-RUNGS-7; kill numbers need a ladder-passed candidate); rungs-
 R-RUNGS-29 (guard, outside RUNGS's claim; Option 1 taken, #951, #949, #952) blocks moving Fold/Walked and deleting lab/rung_folds.py.
 `Candidate` should also refuse a row listing unrun rungs (recommended: when the first real candidate nears).
 ### Done for other lanes
+- R-RUNGS-31: done in #986 (the pooled run passes the family count; re-verified 20 Nov)
 - R-DATA-11, R-RUNNER-5, R-RUNNER-3: done in #186; R-RUNNER-25: #202; R-RUNNER-33: #206; R-MONEY-34: #239; R-GRID-6: #427; R-GRID-2: #504, #846, #922, #980 (verified); R-RUNGS-18: #846; R-RUNNER-331: #858; R-MONEY-13: #600; R-MONEY-43: #693
 - R-RUNNER-47: done in #235; -45: #239; -49: #244; -52: #241; -83: #252; -85: #253; -86: #279; -95: #304; -101: #307; -98: #308; -102: #309; -106: #310; -108: #311; -109: #312; -99: #313; -114: #316; -110: #318; -100: #319; -103: #322; -124: #327
 - R-RUNNER-117: done in #331; -130: #333; -152: #340; -133: #343; -131: #344; -134: #347; -123: #346; -122: #342; -121: #350; -119: #351; -120: #354; -136: #361; -154: #362; -139: #364; -155: #363; -135: #365; -168: #366; -166: #368; -173: #371; -137: #379; -169: #378; -126: #382; -165: #384
