@@ -22,11 +22,12 @@ from collections.abc import Callable, Iterator, Sequence
 from concurrent.futures import Future, ProcessPoolExecutor
 from contextlib import ExitStack
 from datetime import UTC, date, datetime
+from functools import partial
 from itertools import groupby
 from pathlib import Path
 from typing import Any, BinaryIO
 
-from lab import batch, cell, ladder, tape, tune, verdict
+from lab import batch, cell, ladder, tape, trials, tune, verdict
 from lab.batch import Bars
 from lab.cell import Cell
 from lab.folds import YEARS
@@ -37,7 +38,14 @@ SPARE = 2  #: cores left to the rest of the PC
 RESERVE = 0.2  #: the share of the PC's memory kept free of the pool
 PEAK = 5 * 2**30  #: bytes one worker reaches at its peak, as measured overnight
 BELOW_NORMAL = 0x4000  #: Windows' BELOW_NORMAL_PRIORITY_CLASS
-Task = tuple[list[Cell], list[Cell], tuple[int | str, int], list[verdict.Row | None], datetime]
+Task = tuple[
+    list[Cell],
+    list[Cell],
+    tuple[int | str, int],
+    list[verdict.Row | None],
+    datetime,
+    Callable[[str], int],
+]
 AHEAD = 2  #: rules warmed before the one whose group is being read
 Unit = tuple[Cell, int | None]  #: a line's cell and one fold's year, or None for its whole window
 _held: dict[str, Any] = {}  #: a worker's bars and rates, set once as it starts
@@ -126,12 +134,14 @@ def _warm(unit: Unit) -> None:
 
 def _group(task: Task) -> list[verdict.Row]:
     """One group's rows, each cell's as `ladder._one` makes it."""
-    group, rule_cells, tagged, was, now = task
+    group, rule_cells, tagged, was, now, kin = task
     shared = ladder.Shared(rule_cells)
     rows: list[verdict.Row] = []
     for c, before in zip(group, was, strict=True):
         try:
-            rows.append(ladder._one(c, _held["bars"], _held["pounds"], tagged, before, shared, now))
+            rows.append(
+                ladder._one(c, _held["bars"], _held["pounds"], tagged, before, shared, now, kin)
+            )
         except Exception as error:  # noqa: BLE001 - a cell's break is its row, not the set's end
             head: dict[str, Any] = {"set": tagged[0], "cell": batch.row(c), "trials": tagged[1]}
             rows.append(
@@ -206,12 +216,13 @@ def run(
     stamp = now()
     stop, began = home / ladder.FOLDER / STOP, time.time()
     _asked(stop, began)  #: a stale STOP goes now, before the first unit
+    kin = partial(trials.family, results.with_suffix(".trials.jsonl"), plan.question)
     tasks: list[Task] = []
     for rule, run_of in groupby(todo, key=lambda c: c.strategy):
         group = list(run_of)
         mine = [c for c in todo if c.strategy == rule]
         before = [last.get(tuple(batch.row(c))) for c in group]
-        tasks.append((group, mine, (plan.tag, count), before, stamp))
+        tasks.append((group, mine, (plan.tag, count), before, stamp, kin))
     tally: Counter[str] = Counter()
     tapes = home / ladder.FOLDER / tape.FOLDER
     size = size or workers(*memory())
