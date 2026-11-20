@@ -293,7 +293,7 @@ R-RUNGS-29 (guard, outside RUNGS's claim; Option 1 taken, #951, #949, #952) bloc
 `Candidate` should also refuse a row listing unrun rungs (recommended: when the first real candidate nears).
 ### Done for other lanes
 - R-RUNGS-31: done in #986 (the pooled run passes the family count; re-verified 20 Nov)
-- R-DATA-11, R-RUNNER-5, R-RUNNER-3: done in #186; R-RUNNER-25: #202; R-RUNNER-33: #206; R-MONEY-34: #239; R-GRID-6: #427; R-GRID-2: #504, #846, #922, #980 (verified); R-RUNGS-18: #846; R-RUNNER-331: #858; R-MONEY-13: #600; R-MONEY-43: #693
+- R-DATA-11, R-RUNNER-5, R-RUNNER-3: done in #186; R-RUNNER-25: #202; R-RUNNER-33: #206; R-MONEY-34: #239; R-GRID-6: #427; R-GRID-2: #504, #846, #922, #980, #1073 (verified); R-RUNGS-18: #846; R-RUNNER-331: #858; R-MONEY-13: #600; R-MONEY-43: #693
 - R-RUNNER-47: done in #235; -45: #239; -49: #244; -52: #241; -83: #252; -85: #253; -86: #279; -95: #304; -101: #307; -98: #308; -102: #309; -106: #310; -108: #311; -109: #312; -99: #313; -114: #316; -110: #318; -100: #319; -103: #322; -124: #327
 - R-RUNNER-117: done in #331; -130: #333; -152: #340; -133: #343; -131: #344; -134: #347; -123: #346; -122: #342; -121: #350; -119: #351; -120: #354; -136: #361; -154: #362; -139: #364; -155: #363; -135: #365; -168: #366; -166: #368; -173: #371; -137: #379; -169: #378; -126: #382; -165: #384
 - R-RUNNER-183: done in #405; -187: #409 (declined); -174: #410; -188: #419; -40: #402; -186: #425; -192: #427; -203: #451; -204: #457; -171: #560; -213: #555; -222: #562; -146: #569; -225: #567; -230: #589; -237: #603; -193: #593; -226: #596; -239: #635; -260: #658; -227: #664; -267: #680; R-RUNGS-23: #775; R-RUNNER-340: #868; -332: #892; -205: #907 (part 1); -138: #912; -191: #919 (part a); -384: #942; R-RUNGS-30: #942; R-RUNNER-385: #984; -386: #986
@@ -306,7 +306,7 @@ R-RUNGS-29 (guard, outside RUNGS's claim; Option 1 taken, #951, #949, #952) bloc
 ### Requests to GRID
 - [ ] R-RUNGS-2 (later, 13 Nov): the declared sweep enters every cell in the register before the batch runs. [ ] R-RUNGS-4 (later): a kept verdict's key takes in the rates it was priced with.
 - [ ] R-RUNGS-19 (later, 16 Nov 15:00): `Cell.symbol` still read in lab/cell.py:65, lab/ladder_sets.py and tests/unit/test_lab_tune.py:210; RUNGS's files are clear: drop it.
-- [ ] R-RUNGS-25 (later, 17 Nov 05:00): capital and the rate table's version into `lab.cell.Key` (R-GRID-3, last part).
+- [ ] R-RUNGS-25 (later, 17 Nov 05:00): capital and the rate table's version into `lab.cell.Key` (R-GRID-3, last part; re-asked #1073: verdicts are stamped by `key.rung`, only capital and rate remain).
 - [ ] R-RUNGS-28 (later, 17 Nov 18:00): `lab/transfer.py:170` calls `ladder.rates(home=data)` (the data folder, where the pound's kept closes live), so they are not asked of the archive each run; its test's stub takes `home`. Meets R-RUNGS-17. RUNGS's own edit was refused by the lane-ownership guard (#852): GRID's file.
 ### Requests to DATA
 - [ ] R-RUNGS-5 (blocking): SPY and US sessions back to January 1993, saying if dividend-adjusted. [ ] R-RUNGS-9 (blocking): SPY from 29 Jan 1993 kept as traded and adjusted, labelled.
