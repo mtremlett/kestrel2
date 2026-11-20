@@ -82,7 +82,7 @@ STEP = Decimal("0.03")
 #: (a negative after-cost mean, a failed reproduction, stress over its limit) stops a line; every
 #: other rung is run and graded PASS, WEAK or FAIL, and none stops it. Off until card
 #: ease-switch-on.
-EASED = False
+EASED = True
 T_INCUBATE = Decimal(1)  #: a basket's mean this many standard errors above nothing, or over
 WEAK = (Answer.THIN, Answer.DOUBT)  #: a scorecard's WEAK: neither a win nor a loss
 Pair = tuple[Answer, str]

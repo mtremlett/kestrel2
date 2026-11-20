@@ -23,6 +23,12 @@ from lab.rung import Answer, Rates
 CELL = Cell("breakout_20_10", VUSA, EDGE[0].day, ladder.END)
 
 
+@pytest.fixture(autouse=True)
+def _switch_off(monkeypatch: pytest.MonkeyPatch) -> None:
+    """These tests judge the ladder's own answers: the EASED switch is set off, explicitly."""
+    monkeypatch.setattr(verdict, "EASED", False)
+
+
 def _judge(
     bars: Sequence[Bar] = EDGE, pounds: Rates | None = None, sour: bool = False
 ) -> dict[str, Any]:

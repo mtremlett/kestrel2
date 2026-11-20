@@ -76,6 +76,7 @@ def test_days_pair_the_sale_days_pounds_with_the_markets_closes_and_grade_waits_
     against = Against(YARDSTICK, bars, POUND)
     #: one sale on the third day: 150 - 100 = 50 pounds of 10,000 capital; none on the second
     assert days(basket, against) == pytest.approx(([0.0, 0.005], [0.1, -0.1]))
+    monkeypatch.setattr(verdict, "EASED", False)
     assert rung_retail.grade(basket, against) is None  #: off: nothing is asked
     monkeypatch.setattr(verdict, "EASED", True)
     assert (rung_retail.grade(basket, against) or (None,))[0] is Answer.THIN
