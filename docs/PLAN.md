@@ -328,10 +328,12 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       an exchange-traded product, stamp duty for a UK share; the twenty lines each state nil,
       and one London line of the rehearsal data pays it (R-MONEY-1)
 - [ ] The window before mid-April 2010 prepared
+      Verified on main (#1101): venues.SESSION_YEARS 1993-2029, archive.SINCE 2000-01-01, 91 tests pass; nothing to build. Remains: the first keeper round for 2000-2009 on all twenty lines (data-deep-history), and reading any park
 - [ ] Coverage and quality measured: history at least twice the longest lookback for every
       line, five years by the A-GATE; a quality score per line and desk-wide, and a cap on
       the share of lines parked (DAT-03, DQ-01)
       Built (#795): `desk/coverage.py`, pure and tested. Built (#1037): `quality.monitor` feeds it the store's real counts and the parked list, prints "coverage 0.xx", and goes red past 10% of lines parked. Built (#1059): `coverage.LOOKBACK` reads the grid's longest setting from SWEEPS (a line needs 500 sessions). Remains: the second-source part
+      Built (#1098, #1107): `python -m desk.quality` goes red (exit 1) when the store's drive has under 10% free (`quality.disk`, `FREE_FLOOR`, OPS-07), wired into `monitor`. Remains: old research files rolling off by rule (needs his yes before deleting); the runner job reading the red
 - [ ] A second source: a gap filled and a failing feed replaced from a ranked second
       source, with a staleness alarm and a register of sources; the twenty lines' bars
       checked against the broker's price of record each day once PAPER connects (DQ-03,
