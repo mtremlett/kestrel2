@@ -179,7 +179,7 @@ def _orders(
     """The sales, then the buys, each answer added to sent as it is given."""
     held = book.positions(root)
     for d in (d for d in decided if d.action is Action.SELL):  #: by the rule that holds it
-        sale = Sale(order_id_of(d), due[d.symbol], held[d.symbol])
+        sale = Sale(order_id_of(d), due[d.symbol], held[d.symbol], session=d.day)
         sent.append(_answer(root, day, _send(root, broker, sale, settings, tell, None)))
     _alert(root, day, settings, tell)
     watch = partial(_watch, root, archive, rates)  #: read again at each buy
@@ -237,7 +237,7 @@ def _strangers(
     mine = [f for f in book.fills(root) if strategy_of(f.order_id) == "stranger"]
     for name in sorted({f.symbol for f in mine} & lines.keys()):  #: those a sale left whole too
         if (shares := sum(f.quantity for f in mine if f.symbol == name)) > 0:
-            sale = Sale(f"{day:%Y%m%d}-stranger-{name}", lines[name], shares)
+            sale = Sale(f"{day:%Y%m%d}-stranger-{name}", lines[name], shares, session=day)
             sold.append(_answer(root, day, _send(root, broker, sale, settings, tell, None)))
     return sold
 
