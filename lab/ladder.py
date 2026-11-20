@@ -16,7 +16,8 @@ verdict is the one rule over those six: no folds, or an author's figure not repr
 none; a worst fold too thin to say holds it at THIN. A rung not yet runnable is named on every
 line (UNRUN). Nothing goes to paper before all eleven.
 
-THE RUNG MAP (L2): the plan's eleven rungs, each `n name: module, test`. A row's names differ:
+THE RUNG MAP (L2): the plan's eleven rungs and easing 4's twelfth, each `n name: module, test`.
+A row's names differ:
 `first` holds 1-3, `market` 4 and 6. Each rung's proof is in its own test; (unbuilt) marks a file
 not yet there; after the dash, what is owed. BUILT: the ladder judges by it (it declares a RUNG).
  1 sample size, effective trades: lab/rung_sample.py, tests/unit/test_lab_rung_sample.py
@@ -30,6 +31,7 @@ not yet there; after the dash, what is owed. BUILT: the ladder judges by it (it 
  9 placebo on blocks of days: lab/rung_placebo.py, tests/unit/test_lab_rung_placebo.py
 10 walk-forward folds: lab/rung_folds.py, tests/unit/test_lab_folds.py - the ladder runs `pool`
 11 block bootstrap: lab/rung_bootstrap.py, tests/unit/test_lab_rung_bootstrap.py - no gate
+12 retail, basket beside market: lab/rung_retail.py, tests/unit/test_lab_rung_retail.py - no RUNG
 
 RARE LARGE LOSSES (G2, R-RUNNER-103). The first rung counts ONE MORE trade the rule did not make: a
 loss at its own stop, the least any judged trade would have made, in the standard errors and all
@@ -253,8 +255,8 @@ def _one(
         )
         market = cell.key(Cell(c.strategy, beside, c.start, c.end), held).data
         rates = (f"{d} {pounds[d]}" for d in days)
-        parts = [mine.code, CODE, mine.data, market, pool.data, str(count), *rates]
-        parts += [one.key.code + one.key.data for one in made]
+        parts = [mine.code, mine.data, market, pool.data, str(count), *rates]
+        parts += [tape.rule_code(c.strategy)] + [one.key.code + one.key.data for one in made]
         found = rung.found(RUNGS)
         declared, waiting = found  #: both are in the row, so both are in its key
         parts += [one.name + one.code for one in declared] + list(waiting)
@@ -277,15 +279,6 @@ def _one(
             | ({} if key is None else {"key": key})
             | {"error": f"{type(error).__name__}: {error}", "tried": now.isoformat()}
         )
-
-
-def code(folder: Path = DESK) -> str:
-    """sha256 of every eponymous file's text, line endings aside: part of every key."""
-    texts = [p.read_bytes().replace(b"\r\n", b"\n") for p in sorted(folder.glob("eponymous_*.py"))]
-    return hashlib.sha256(b"\0".join(texts)).hexdigest()
-
-
-CODE = code()  #: the eponymous files as this process loaded them: in every key
 
 
 def eponymous(folder: Path = DESK, book: Path | None = None) -> tuple[str, ...]:

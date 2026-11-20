@@ -37,6 +37,7 @@ from lab import (
     rung_regimes,
     shuffle,
     stress,
+    tape,
     trials,
     verdict,
     weather,
@@ -52,6 +53,7 @@ VUSA, ISF, AAPL, SPY = (
 #: a breakout that goes on rising, planted from 2010 to past the window's end; and none
 EDGE, NOISE = _walk(1, 0.012, 0.012, days=3100), _walk(2, 0, 0, days=3100)
 ROOM = Settings(CAPITAL)
+RULES = ("breakout_20_10", "trend_50_200")
 ISF_START = NOISE[0].day
 
 
@@ -150,6 +152,21 @@ def test_a_planted_edge_is_judged_by_its_years_pooled_over_the_rules_lines_not_f
         "worst of 5 yearly folds" in next(iter(folded))[1]
         and "over 16 lines" in next(iter(folded))[1]
     )
+
+
+def test_a_rule_edited_judges_again_only_its_own_cells(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    book = {VUSA: EDGE, ISF: NOISE}
+    todo = [Cell(r, line, ladder.START, ladder.END) for r in RULES for line in book]
+    at = datetime(2026, 11, 14, tzinfo=UTC)
+    assert "4 judged now" in ladder.run(tmp_path, _door(book), {}, todo, lambda: at)
+    real = tape.rule_code
+    edited = lambda rule: "edited" if rule == RULES[0] else real(rule)  # noqa: E731
+    monkeypatch.setattr(tape, "rule_code", edited)
+    said = ladder.run(tmp_path, _door(book), {}, todo, lambda: at)
+    assert "2 judged now, 2 kept from before" in said
+    assert [r["cell"][0] for r in _rows(tmp_path)[4:]] == [RULES[0]] * 2
 
 
 def test_a_run_skips_what_is_kept_and_judges_again_only_what_has_changed(tmp_path: Path) -> None:
