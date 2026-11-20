@@ -462,7 +462,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       {id: money-restop; files: desk/day.py, desk/book.py, tests/unit/test_day*.py,
       tests/unit/test_book*.py, desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml,
       desk/broker.py, tests/unit/test_broker*.py;
-      after: money-working; waits: R-MONEY-18, R-MONEY-31}
+      waits: R-MONEY-18, R-MONEY-31}
       (The lost-stop list reaching him is a change to desk/messenger.py, which the paper lane owns; MONEY cannot edit it, and widening MONEY's file list would loosen a guard for no reason.)
 - [x] Emergencies in numbers: an emergency, a crash and a black swan each defined by measured
       falls, each with its action (EMG-01) {id: money-emergencies; files: desk/emergency.py,
@@ -511,7 +511,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       (SIZ-10, TRD-10)
       {id: money-small; files: desk/orders.py, desk/day.py, tests/unit/test_orders*.py,
       tests/unit/test_day*.py, desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml;
-      after: money-limits; waits: operator}
+      waits: operator}
       (Box money-small: 2 sessions in a row landed no change to the desk, the lab or the tests, so it is held and the doctor asks why.)
 - [ ] Time and gaps: a time stop after the strategy's declared holding period; a gap that
       jumps the stop held against the loss limit; a hold limit and gap sizing for the
