@@ -60,3 +60,12 @@ def test_the_keeper_of_records_writes_whole_and_a_death_mid_write_leaves_the_old
     with pytest.raises(KeyboardInterrupt):
         book.keep(path, dies())
     assert path.read_text(encoding="utf-8").split() == ["a,b", "1,2"]
+    assert [p.name for p in path.parent.iterdir()] == ["records.csv"]  # no part file left
+
+    def second_writer() -> Iterator[tuple[str, ...]]:
+        yield ("first",)
+        book.keep(path, [("second",)])  # lands while the first is half written
+        yield ("done",)
+
+    book.keep(path, second_writer())  # two writers, two temp files, no unreadable record
+    assert path.read_text(encoding="utf-8").split() == ["first", "done"]
