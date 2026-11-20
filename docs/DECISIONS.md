@@ -2080,3 +2080,15 @@ that the repayment lands this week.
 His ruling, Thu 19 Nov 2026, in chat with runner ops at about 19:10, answering the question
 put with options ((a) raise by 5, repaid by retire-epon, recommended; (b) not yet), the
 coordinator backing (a): "Yes, raise by 5".
+
+## 2026-11-20: phase 3's product-line ceiling 15,000 -> 18,000 (the operator's ruling)
+
+The desk stood at 14,895 of 15,000 product lines on Fri 20 Nov at about 16:00, so every card
+that grows the desk (the broker fault matrix's behaviour groups, the order's own date, the
+resend of a desk-cancelled order) would stall until it deleted lines elsewhere. Asked with
+options ((a) 16,500 once, recommended; (b) 18,000; (c) keep 15,000), he chose (b): "Raise to
+18,000", Fri 20 Nov 2026 about 15:55, in chat with the coordinator.
+
+Conditions kept with it: every growing card names itself in its pull request, and growth,
+bloat, sprawl and doom loops are reviewed in the 21:00 report. The ceiling still ratchets:
+this file is the only place it moves, and only on his word.
