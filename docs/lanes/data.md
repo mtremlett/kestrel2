@@ -787,3 +787,8 @@ Waits: operator.
 
 ### 2026-11-20 — the quality monitor goes red past the parked cap (#1037, DQ-01)
 Options: report the coverage score only, or go red when more than 10% of lines stand parked. Chose red: the box asks for "a cap on the share of lines parked" and DQ-01 makes the desk unfit past it. Insufficient history on a line is reported in the score, not red, since new lines (3LGO) would alarm daily.
+
+### 2026-11-20 — the coverage lookback has one home, the grid (#1059)
+Options: keep the hand-written 200 (rejected: the grid tries settings up to 250, so a rule would trade lines with too little
+history); read the longest setting from `desk/strategy.py` SWEEPS (chosen: one home for the number, a line now needs 500
+sessions, was 400).
