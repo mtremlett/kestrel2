@@ -297,3 +297,5 @@ then the break was removed:
 ### 2026-11-20 — the pooled ladder fails loudly under EASED (R-RUNNER-385, #984)
 - The pool path (`lab/ladder_pool.py`) was outside the claim. Options: leave it passing no family, so with EASED on it fails loudly; or edit the pool now. Chose the first; asked as R-RUNGS-31.
 
+### 2026-11-20 — EASED flip waits for the family to reach the cell judge (R-RUNNER-231, #979, #986)
+- Trying the flip alone (#979) raised "EASED judges by the rule's family count, none given" in every cell, so it was reverted. Options: flip with the family wired (recommended, taken in steps #984, #986); or flip and fix callers at once. The pool now passes the family too (#986). Left: flip `EASED = True` and re-pin the golden verdict with a plain-English line in DECISIONS (his 16 Nov "YES TO ALL" covers the easings).
