@@ -42,6 +42,9 @@ class Fault(Enum):
     DISCONNECT = "disconnection"
     CRASH = "the desk dies after the broker has the order"
     STRAND = "the desk dies after the broker has the order, which is left working, unfilled"
+    LINK = (
+        "the link breaks after the broker has the order and filled it: the desk hears Disconnected"
+    )
 
 
 class Crash(Exception):
@@ -162,6 +165,8 @@ class Pretend:
         self._reports[order.order_id] = report
         if fault in (Fault.CRASH, Fault.STRAND):
             raise Crash(f"{order.order_id}: the desk died before the broker's answer reached it")
+        if fault is Fault.LINK:
+            raise Disconnected(f"{order.order_id}: the link broke after the broker had it")
         return report
 
     def working(self) -> tuple[str, ...]:
