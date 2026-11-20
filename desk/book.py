@@ -165,8 +165,9 @@ def _disagreed(
     root: Path, broker: Broker, order: Order | Sale, error: Exception, tell: Tell | None
 ) -> Report:
     """THE BROKER'S WORD, FILLS AND ACCOUNT DO NOT AGREE after the order has gone (R-PAPER-11,
-    Unprotected): buying is halted until he lifts it, he is told (tell), and the broker's report
-    is given, so the order is never sent again. Else the kill switch is pulled, Alarm raised."""
+    Unprotected): buying is halted until he lifts it and working buys are cancelled, he is
+    told (tell), and the broker's report is given, so the order is never sent again. Else the
+    kill switch is pulled, Alarm raised."""
     from desk import placing  # noqa: PLC0415 - placing reaches book through paper: a load cycle
 
     if tell is None or not isinstance(error, placing.Unprotected):
@@ -175,8 +176,9 @@ def _disagreed(
         tuple(broker.cancel())
         raise Alarm(words) from error
     words = f"{order.order_id}: the broker's word, fills and account do not agree: {error}"
-    halt.call(root, datetime.now(UTC), f"{words}; no buy goes until he lifts this", by="send path")
-    tell(f"disagree {order.order_id}", f"{words}. Buying is halted; sales go on.")
+    why = f"{words}; no buy goes until he lifts this"
+    halted = halt.stop(root, broker, datetime.now(UTC), why, by="send path")
+    tell(f"disagree {order.order_id}", f"{words}. Buying is halted; sales go on. {halted.words()}")
     return broker.report(order.order_id) or Report(order.order_id, (), words)
 
 

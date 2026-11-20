@@ -50,6 +50,7 @@ def test_a_place_that_disagrees_halts_buying_tells_him_once_and_a_sale_still_goe
         [name for name, _ in told] == ["disagree o-1"]
         and "o-1" in told[0][1]
         and "do not agree" in told[0][1]
+        and "The broker cancelled 0 buy still working" in told[0][1]
     )
     assert book.positions(tmp_path) == {"A": 10}, "fills unwritten"
     assert not (tmp_path / book.GOING).exists(), "the order is recorded as gone"
