@@ -42,10 +42,10 @@ from desk.simcity_incidents import (
     locked,
     minutes,
     parked,
-    shut,
     stale,
     unbarred,
     unheld,
+    unreachable,
 )
 from desk.simcity_parts import MONTH, Archive, Night, _market
 from desk.strategy import Action
@@ -259,7 +259,6 @@ EVENTS: tuple[Event, ...] = (
     (UNBARRED, unbarred),
     (LOCKED, locked),
     (LIVE, minutes),
-    (SHUT, shut),
 )
 
 
@@ -324,6 +323,10 @@ def _live(life: _Life) -> None:
             census.now(scenario)
             happen(life, on)
             life.done.add(scenario)
+        elif SHUT not in life.done:  #: once, on a plain morning; it draws nothing from the seed
+            census.now(SHUT)
+            unreachable(life, on)
+            life.done.add(SHUT)
         else:
             life.live(on)
     census.now(RECKONING)

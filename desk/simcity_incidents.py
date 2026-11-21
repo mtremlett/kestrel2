@@ -301,7 +301,7 @@ def locked(life: _Life, on: date) -> None:
     life.live(on)
 
 
-def shut(life: _Life, on: date) -> None:
+def unreachable(life: _Life, on: date) -> None:
     """The paper Gateway's port is closed in the market's hours, outside its 03:00 restart (18
     November, conformance-us). The run must be refused, nothing sent, in the words that tell
     him the Gateway is his to look at; it asks the Gateway once and the desk goes on."""

@@ -51,7 +51,6 @@ from desk.simcity_incidents import (
     minutes,
     outside,
     parked,
-    shut,
     stale,
     unbarred,
     unheld,
@@ -130,7 +129,6 @@ def test_without_naming_the_cancelled_orders_the_scenario_is_red(
         (UNHELD, unheld),
         (UNBARRED, unbarred),
         (LOCKED, locked),
-        (SHUT, shut),
         (LIVE, minutes),
     ],
 )
@@ -232,8 +230,9 @@ def test_without_the_refusal_by_name_a_locked_store_scenario_is_red(
 def test_a_closed_gateway_port_is_refused_by_name_and_without_the_refusal_is_red(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    monkeypatch.setattr(simcity, "EVENTS", ((SHUT, shut),))
-    monkeypatch.setattr(simcity, "EVENTFUL", 1)
+    monkeypatch.setattr(simcity, "EVENTFUL", 10**9)  #: the closed port is lived beside the draw
+    kept = simcity.run(tmp_path / "a", SHORT, ROOM, RATES, NOW, (1,))
+    assert not any(SHUT in broken for broken in kept.broken) and SHUT in kept.census["day.run"]
     monkeypatch.setattr(gateway, "known", lambda *_a, **_k: gateway.Known(gateway.State.READY, ""))
     with pytest.raises(ConnectionRefusedError, match="4002"):  #: the run goes on to a dead door
         simcity.run(tmp_path, SHORT, ROOM, RATES, NOW, (1,))
