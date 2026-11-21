@@ -693,3 +693,6 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 
 ### 2026-11-21 - gateway-silent-at-the-stop scenario renamed, not replaced (#1302, R-RUNNER-321)
 - Options: (a) replace main's own `silent` scenario (R-RUNNER-324) with the new one; (b) rename the new one (`gateway_silent`, STOP_SILENT) and register both. The first try clobbered main's scenario and failed unit 3/5 (census). Chose (b): keeps both promises. Nothing loosened.
+
+### 2026-11-21 - simcity split keeps `_unstopped` in place (#1357, R-RUNNER-426)
+- Options: (a) move `_unstopped` with `_behind`, `_gapped`, `_killed` to `desk/simcity_parts2.py`; (b) leave it. Chose (b): tests patch `simcity.FORGOTTEN`, which it reads, so moving it would break them or need test edits. No behaviour change.
