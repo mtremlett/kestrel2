@@ -687,3 +687,6 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 
 ### 2026-11-21 - replay of real paper fills compares partial fills (#1279, R-RUNNER-409)
 - Options: skip partial fills, or compare them as a size difference. Chose compare: the desk should size the same whatever the broker filled. Own entry point `python -m desk.simcity_fills` because simcitycmd.py is outside the claim.
+
+### 2026-11-21 - the silent-broker scenario puts the silence at the order send (#1319, R-RUNNER-324)
+- Options: the account read or the order send. The incident's log names no call site. Chose the send: a bare timeout reaches the day only there, and it is where the desk's rule (never guess, kill switch on) matters most. Nothing loosened.
