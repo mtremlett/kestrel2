@@ -856,3 +856,4 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1395 R-RUNNER-310 conformance survives a slow reasons read. |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1414 R-MONEY-54 a halt in force cancels working buys at the step. |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1428 R-MONEY-61 the crash watch gets a paper broker door. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1444 PAPER scribe folds #1393, #1403, #1406, #1395, #1414, #1428; opens R-PAPER-37. |
