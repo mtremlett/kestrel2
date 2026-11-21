@@ -325,16 +325,23 @@ def _make(name: str, settings: Settings) -> Rule:
 
 
 def _run(
-    name: str, rule: Rule, symbol: str, bars: Sequence[Bar], last: bool | None = None
+    name: str,
+    rule: Rule,
+    symbol: str,
+    bars: Sequence[Bar],
+    last: bool | None = None,
+    opened: date | None = None,
 ) -> Iterator[Decision]:
     """The rule's decisions, holding what it last chose; on the last bar, holding `last`
-    instead when it is given. A rule that declares a holding period is sold out of at its end,
-    whatever it answered."""
+    instead when it is given, its age the sessions since `opened`, the book's fill date.
+    A rule that declares a holding period is sold out of at its end, whatever it answered."""
     declared = getattr(rule, "declared", None)  #: test doubles of a Rule declare nothing
     holding, since, limit = False, 0, declared.hold if declared else None
     for n, bar in enumerate(bars):
         if last is not None and n == len(bars) - 1:
             holding = last
+            #: STP-11: the age is the book's, never the replay's
+            since = sum(b.day >= opened for b in bars[:-1]) if last and opened else 0
         wants = rule.step(bar, holding)
         since = since + 1 if holding else 0
         if limit is not None and since >= limit:  #: STP-11: out after the declared sessions
@@ -361,15 +368,28 @@ def decide(
 
 
 def today(
-    bars: Mapping[str, Sequence[Bar]], held: Mapping[str, str], settings: Settings | None = None
+    bars: Mapping[str, Sequence[Bar]],
+    held: Mapping[str, str],
+    settings: Settings | None = None,
+    opened: Mapping[str, date] | None = None,
 ) -> tuple[Decision, ...]:
     """Every strategy's decision on each line's last bar, its position read from the book:
     held names, for each line the book holds, the strategy that holds it. A rule the book
-    holds nothing for may buy again after a stop or a refusal; one it holds for may sell."""
+    holds nothing for may buy again after a stop or a refusal; one it holds for may sell.
+    opened is each held line's fill date, from which a holding period is counted."""
     given = settings or {}
     with localcontext(ARITHMETIC):
         return tuple(
-            [*_run(name, _make(name, given), symbol, series, held.get(symbol) == name)][-1]
+            [
+                *_run(
+                    name,
+                    _make(name, given),
+                    symbol,
+                    series,
+                    held.get(symbol) == name,
+                    (opened or {}).get(symbol),
+                )
+            ][-1]
             for symbol, series in bars.items()
             for name in STRATEGIES
         )

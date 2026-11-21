@@ -151,8 +151,7 @@ def trade(
     book.record_rates(root, day, rates)
     taken = _strangers(root, archive, broker, settings, day, tell) if strangers else []
     held = book.positions(root)
-    buys = {f.symbol: strategy_of(f.order_id) for f in book.fills(root) if f.quantity > 0}
-    holders = {symbol: h for symbol, h in buys.items() if h != "stranger"}
+    holders = _holders(root)
     due = {line.symbol: line for line, bars in archive.items() if _due(line, bars, day)}
     unpriced = sorted({line.currency for line in due.values()} - set(rates))
     if unpriced:
@@ -161,6 +160,7 @@ def trade(
     decided = strategy.today(
         {symbol: archive[line] for symbol, line in due.items()},
         {symbol: holders[symbol] for symbol in held if symbol in due and symbol in holders},
+        opened={f.symbol: f.day for f in book.fills(root) if f.quantity > 0},
     )
     sent = list[book.Sent]()
     try:
@@ -169,6 +169,12 @@ def trade(
         _unreached(root, day, decided, sent, dead)
         raise
     return (*taken, *sent)
+
+
+def _holders(root: Path) -> dict[str, str]:
+    """Each line's last buyer among the desk's strategies; a stranger's buy holds for none."""
+    buys = {f.symbol: strategy_of(f.order_id) for f in book.fills(root) if f.quantity > 0}
+    return {symbol: h for symbol, h in buys.items() if h != "stranger"}
 
 
 def _orders(
