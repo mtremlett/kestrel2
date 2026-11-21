@@ -60,6 +60,7 @@ def keeper(path: Path, units: Mapping[str, int]) -> Keep:
 
 HOURLY = ("1h", "4h")  #: the timeframes built from held 30-minute bars, not asked of the broker
 HALF = timedelta(minutes=30)
+FROM_ONE = ("2m", "10m")  #: the timeframes built from held one-minute bars
 FROM_FIVE = ("15m", "30m")  #: the timeframes built from held five-minute bars
 
 
@@ -97,9 +98,10 @@ def _held(path: Path, line: Line, span: str, now: datetime) -> list[Candle]:
 
 
 def _made(path: Path, line: Line, now: datetime) -> dict[str, list[Candle]]:
-    """The line's 15m, 30m, 1h, 4h and weekly bars as built from the finer bars held."""
-    halves, fives, days = (_held(path, line, s, now) for s in ("30m", "5m", "1d"))
+    """The line's 2m, 10m, 15m, 30m, 1h, 4h and weekly bars as built from the finer bars held."""
+    halves, fives, days, ones = (_held(path, line, s, now) for s in ("30m", "5m", "1d", "1m"))
     made = {f: built(line.venue, halves, f) for f in HOURLY}
+    made |= {f: rollup.rollup(line.venue, ones, f, "1m") for f in FROM_ONE}
     made |= {f: rollup.rollup(line.venue, fives, f, "5m") for f in FROM_FIVE}
     return {**made, "1wk": rollup.weekly(line.venue, days)}
 
@@ -110,6 +112,7 @@ def roll(path: Path, line: Line, now: datetime) -> int:
     made = _made(path, line, now)
     landed = 0
     for source, frames in (
+        (bars.Source.ROLLUP_1M, FROM_ONE),
         (bars.Source.ROLLUP_5M, FROM_FIVE),
         (bars.Source.ROLLUP_30M, HOURLY),
         (bars.Source.ROLLUP_1D, ("1wk",)),
