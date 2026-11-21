@@ -817,3 +817,5 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1165 ladder judges by regimes rung, one more declared rung |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1201 R-GRID-3 capital joins a kept verdict's key |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1256 Candidate refuses unrun rungs; no scene moved |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1307 spec variants as named trials (B5 part); no scene moved |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1315 B5 one home for variants (lab/variants.py), -31 lines net |
