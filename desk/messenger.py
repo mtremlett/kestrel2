@@ -34,7 +34,7 @@ from urllib.error import HTTPError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
-from desk import book, clearance, day, gateway, halt, kill, venues
+from desk import book, clearance, day, gateway, halt, kill, pnl, venues
 from desk.gateway import Known
 from desk.halt import Blocker
 from desk.lines import LINES
@@ -64,15 +64,14 @@ BOT_KEY = re.compile(r"[0-9]+:[A-Za-z0-9_-]+")
 READ, LIMIT = 65536, 4096  #: most bytes read, most characters sent
 CUT = " ... (cut short here: the whole of it is on the desk's delivery record)"
 SILENT = (
-    "THE DESK IS SILENT. Its {} message for {:%a %d %b} was owed by {:%H:%M} UK and is not on "
-    "its delivery record at {:%H:%M}. Please look at the PC: the desk may not be running."
+    "🚨 DESK SILENT\n{} message, {:%a %d %b}: owed by {:%H:%M} UK, not on the delivery record "
+    "at {:%H:%M}\nPlease look at the PC: the desk may not be running"
 )
 CLEAR = (
-    "As things stand the desk is set for today on paper: the Gateway answered, today's check "
-    "of the account named nothing, and the kill switch is off and drilled."
+    "✅ Ready for today (paper)\nGateway answered · account check clean · kill switch off, drilled"
 )
 PUT_BACK = "; put back "  #: where day._bare's reason names the stop to put back
-STALE = "The paper Gateway was not ready just now, so this is the desk's ledger as last read ({}). "
+STALE = "⚠️ Paper Gateway not ready just now: ledger as last read ({})"
 Post = Callable[[str], int]  #: the door: words to his phone, Telegram's number for them back
 DOWN = 2  #: strikes
 
@@ -186,7 +185,8 @@ def _today(daily: Daily, now: datetime) -> tuple[str | None, datetime]:
 def _goes(daily: Daily, now: datetime) -> tuple[str | None, str]:
     """The name the daily message goes under now (none off-day, early, asleep), and its opening."""
     name, local = _today(daily, now)
-    opens = f"{daily.name.capitalize()}, {local:%a %d %b, %H:%M} UK."
+    icon = "🌅" if daily is MORNING else "🌙"
+    opens = f"{icon} {daily.name.capitalize()} {local:%a %d %b %H:%M} UK"
     return (name if daily.start <= local.time() < SLEEPS else None), opens
 
 
@@ -209,19 +209,20 @@ def stops(root: Path, now: datetime, known: Known) -> tuple[str, ...]:
 def _state(root: Path) -> str:
     """What the desk holds, by its ledger, and the last day it published a record of."""
     held = ", ".join(f"{symbol} {shares}" for symbol, shares in book.positions(root).items())
+    now = f"📒 Held: {held or 'nothing'}"
     kept = day.records(root)
     if not kept:
-        return f"Held: {held or 'nothing'}. No day is on the desk's record yet."
+        return f"{now}\n📅 No day on the desk's record yet"
     last, since = kept[-1], ""
     if last.profit is None:
-        told = f"no profit published, the book is not the broker's on {', '.join(last.mismatches)}"
+        told = f"⏸️ No profit published: book differs from broker on {', '.join(last.mismatches)}"
     else:
-        since = ", with the withheld days before it" if any(r.mismatches for r in kept[-2:]) else ""
+        since = " (withheld days before it)" if any(r.mismatches for r in kept[-2:]) else ""
         told = (
-            f"after £{last.costs.total:,.2f} of costs the book {_made(last.profit)}; simply "
-            f"holding the market would have {_made(last.market)}"
+            f"{_made('Book', last.profit)} after £{last.costs.total:,.2f} costs\n"
+            f"{_made('Holding the market', last.market)}"
         )
-    return f"Held: {held or 'nothing'}. The last day on record, {last.day:%a %d %b}{since}: {told}."
+    return f"{now}\n📅 Last day on record {last.day:%a %d %b}{since}\n{told}"
 
 
 def _gate(root: Path) -> str:
@@ -231,7 +232,7 @@ def _gate(root: Path) -> str:
         or "none"
     )
     killed = (book.killed(root) or "off").replace("the kill switch is ", "")
-    return f"Kill: {killed}; halts: {on}."
+    return f"🔌 Kill: {killed} · halts: {on}"
 
 
 def _lost(root: Path, today: date) -> str:
@@ -241,7 +242,7 @@ def _lost(root: Path, today: date) -> str:
         return ""
     found = halt.morning(root, today)[Blocker.BOOK]
     back = [b.reason.rpartition(PUT_BACK)[2] for b in found if PUT_BACK in b.reason]
-    return f"Lost stops to put back: {'; '.join(back)}. " if back else ""
+    return f"🔻 Lost stops to put back: {'; '.join(back)}\n" if back else ""
 
 
 def _stopped(root: Path, today: date) -> str:
@@ -260,16 +261,16 @@ def _stopped(root: Path, today: date) -> str:
     for trips in by_fill.values():
         sold, shares = trips[0].sell, sum(t.sell.quantity for t in trips)
         paid = sum(t.buy.price * t.buy.quantity for t in trips) / -shares
-        result = _made(sum((t.profit for t in trips), Decimal(0)))
+        result = _made("Result", sum((t.profit for t in trips), Decimal(0)))
         told.append(
-            f"{sold.symbol}'s stop filled: {-shares} sold @ {sold.price:,.2f} "
-            f"(bought {paid:,.2f}), {result} after costs. "
+            f"🛑 {sold.symbol}'s stop filled: {-shares} sold @ {sold.price:,.2f} "
+            f"(bought {paid:,.2f})\n{result} after costs\n"
         )
     return "".join(told)
 
 
-def _made(amount: Decimal) -> str:
-    return f"{'lost' if amount < 0 else 'made'} £{abs(amount):,.2f}"
+def _made(who: str, amount: Decimal) -> str:
+    return f"{pnl.icon(amount)} {who} {'lost' if amount < 0 else 'made'} £{abs(amount):,.2f}"
 
 
 def _heat(root: Path, capital: Decimal) -> str:
@@ -278,7 +279,9 @@ def _heat(root: Path, capital: Decimal) -> str:
     kept = day.records(root)
     heat = kept[-1].heat if kept else None
     return (
-        "" if heat is None else f" Stops held at its end: heat £{heat:,.0f} ({heat / capital:.1%})."
+        ""
+        if heat is None
+        else f"\n🔥 Stops held at its end: heat £{heat:,.0f} ({heat / capital:.1%})"
     )
 
 
@@ -292,10 +295,10 @@ def morning(
     name, opens = _goes(MORNING, now)
     if name is None:
         return None
-    reasons = "; ".join(reason.rstrip(".") for reason in stops(root, now, known))
-    said = f"As things stand the desk would send NO order today: {reasons}." if reasons else CLEAR
+    reasons = "".join(f"\n• {reason.rstrip('.')}" for reason in stops(root, now, known))
+    said = f"⛔ NOT ready: the desk would send NO order today{reasons}" if reasons else CLEAR
     lost = _lost(root, gateway._uk(now).date())
-    told = f"{opens} {said} {lost}{_gate(root)} {_state(root)}{_heat(root, capital)}"
+    told = f"{opens}\n{said}\n{lost}{_gate(root)}\n{_state(root)}{_heat(root, capital)}"
     return send(root, now, name, told, post)
 
 
@@ -308,16 +311,14 @@ def evening(root: Path, now: datetime, known: Known, post: Post) -> Delivery | N
     if name is None:
         return None
     today = gateway._uk(now).date()
-    dealt = ", ".join(
-        f"{'bought' if fill.quantity > 0 else 'sold'} {abs(fill.quantity)} {fill.symbol}"
+    dealt = "".join(
+        f"\n{'🟢 bought' if fill.quantity > 0 else '🔴 sold'} {abs(fill.quantity)} {fill.symbol}"
         for fill in book.fills(root)
         if fill.day == today
     )
-    stale = "" if known else STALE.format(known.words.rstrip("."))
-    fills = (
-        f"{_stopped(root, today)}The desk's fills today: {dealt or 'none'}. {_lost(root, today)}"
-    )
-    told = f"{opens} {stale}{fills}{_gate(root)} {_state(root)}"
+    stale = "" if known else f"\n{STALE.format(known.words.rstrip('.'))}"
+    fills = f"{_stopped(root, today)}🧾 Fills today{dealt or ': none'}\n{_lost(root, today)}"
+    told = f"{opens}{stale}\n{fills}{_gate(root)}\n{_state(root)}"
     return send(root, now, name, told, post)
 
 
@@ -353,7 +354,13 @@ def watch(root: Path, now: datetime, post: Post) -> tuple[Delivery, ...]:
     with _record(root) as record:
         taken = record.execute("SELECT name FROM messages WHERE number IS NOT NULL").fetchall()
     return tuple(
-        send(root, now, f"silence {name}", SILENT.format(daily.name, at, daily.owed, at), post)
+        send(
+            root,
+            now,
+            f"silence {name}",
+            SILENT.format(daily.name.capitalize(), at, daily.owed, at),
+            post,
+        )
         for daily, name, at in owed
         if name and at.time() >= daily.owed and (name,) not in taken
     )
@@ -399,4 +406,4 @@ def summary(root: Path, now: datetime, mail: Mail) -> None:
     """THE DAILY SUMMARY EMAIL, whatever Telegram does, from the evening's hour."""
     name, opens = _goes(EVENING, now)
     if name:
-        _mailed(root, now, f"summary {name}", f"{opens} {_state(root)}", mail)
+        _mailed(root, now, f"summary {name}", f"{opens}\n{_state(root)}", mail)
