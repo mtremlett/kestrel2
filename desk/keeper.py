@@ -73,14 +73,6 @@ def _short(venue: str, last: Kept | None, day: date) -> bool:
     return last is None or bool(venues.sessions(venue, last.day, day - DAY))
 
 
-def _shelf(folder: Path, line: Line) -> tuple[Bar, ...] | None:
-    """The older bars the head start shelved for a line; none if none."""
-    try:
-        return store.read(folder / store.HISTORY, line.symbol)
-    except FileNotFoundError:
-        return None  # a line the head start never shelved
-
-
 def pound_closes(hot: Path) -> store.Rates:
     """The pound's closes in dollars held (R-RUNGS-16): a bar in dollars is told from a move."""
     try:
@@ -120,7 +112,6 @@ def _standing(hot: Path, line: Line, day: date, broker: store.Answer | None) -> 
 
 def _kept_in(
     hot: Path,
-    folder: Path,
     answers: Mapping[Line, store.Answer],
     day: date,
     first: Mapping[Line, store.Answer],
@@ -132,7 +123,7 @@ def _kept_in(
     with bars.writing(hot) as round_:
         for line, answer in answers.items():
             broker = first.get(line)
-            shelf = bars.bridged(hot, line, day, _shelf(folder, line), answer, broker)
+            shelf = bars.bridged(hot, line, day, None, answer, broker)
             stands = _standing(hot, line, day, broker) if standing else broker
             kept, faults, park = scoped_judge(line, answer, day, rates, shelf=shelf, broker=stands)
             round_.daily(line, kept, withdrawn=_dropped(kept, answer, broker))
@@ -182,9 +173,7 @@ def _refresh(
     unasked = frozenset(ln.symbol for ln in asked if broker and ln not in heard)
     refused = {ln.symbol for ln, a in answers.items() if isinstance(a, Refused) and ln not in heard}
     given = {line: answer for line, answer in answers.items() if line.symbol not in refused}
-    found, notes = _kept_in(
-        hot, folder, given if same else answers, readied, first, last is not None
-    )
+    found, notes = _kept_in(hot, given if same else answers, readied, first, last is not None)
     parked = {
         symbol: why for symbol, why in before.items() if symbol not in {ln.symbol for ln in given}
     }
