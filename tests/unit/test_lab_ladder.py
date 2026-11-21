@@ -179,6 +179,16 @@ def test_a_rule_edited_judges_again_only_its_own_cells(
     assert [r["cell"][0] for r in _rows(tmp_path)[4:]] == [RULES[0]] * 2
 
 
+def test_a_changed_capital_judges_every_cell_again(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    book, todo = {VUSA: EDGE, ISF: NOISE}, _set(VUSA, ISF)
+    at = datetime(2026, 11, 14, tzinfo=UTC)
+    assert "2 judged now" in ladder.run(tmp_path, _door(book), {}, todo, lambda: at)
+    monkeypatch.setattr(ladder, "CAPITAL", CAPITAL * 2)
+    assert "2 judged now, 0 kept" in ladder.run(tmp_path, _door(book), {}, todo, lambda: at)
+
+
 def test_a_run_skips_what_is_kept_and_judges_again_only_what_has_changed(tmp_path: Path) -> None:
     book, todo = {VUSA: EDGE, ISF: NOISE}, _set(VUSA, ISF)
     start = datetime(2026, 11, 14, tzinfo=UTC)
