@@ -398,7 +398,7 @@ def _say(desk: Desk, now: datetime, known: Known) -> None:
     if known.state is State.HIS:
         since = local - timedelta(hours=gateway.WAKES.hour)
         messenger.send(root, now, f"gateway {since:%Y-%m-%d}", known.words, post)
-    messenger.morning(root, now, known, post)
+    messenger.morning(root, now, known, post, desk.room.capital)
     messenger.evening(root, now, known, post)
     if desk.mail:
         messenger.summary(root, now, desk.mail)
