@@ -805,7 +805,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       audit found kept as a case that must fail (LAD-09, LAD-03, LAD-08). Built: all eleven
       modules, each proven alone (#343-#365, #412). Remains: the Sharpe a trade has one home (#746); the ladder judges by three of them
       (costs #438, ci #440, cpcv #445 declare a RUNG; "rungs built" counts 3 of 11); wiring the rest, the clustered
-      trials (#379 built) into the verdict, the gap-through loss (R-RUNNER-187 declined, #409). Also remains (R-RUNNER-191): market.fit, rung_dsr.chance vs deflated._deflated, rung_regimes/rung_bootstrap bands (rung_ci keeps its own, open at both ends, #815; rung_benchmark reads rung.mean_and_error, #827; one home for a mean and its interval, rung.interval, #838; rung_dsr's wrapper of the paper's formula gone, #848); Fold/Walked out of rung_folds.py (R-RUNNER-191 part b, blocked on R-RUNGS-29; part a, the golden ladder verdict test, #919); ease-switch-on done (R-RUNGS-30 #942; EASED = True, golden verdicts re-pinned, #993). Built since: a cell's key carries its own rule's code, so an edit re-judges only that rule (#912); the retail rung stands in a basket row behind EASED (#927, map row 12; remains: `ladder_sets.baskets()` passing `against=` to `basket.row`, R-RUNGS-30)
+      trials (#379 built) into the verdict, the gap-through loss (R-RUNNER-187 declined, #409). Also remains (R-RUNNER-191): market.fit, rung_dsr.chance vs deflated._deflated, rung_regimes/rung_bootstrap bands (rung_ci keeps its own, open at both ends, #815; rung_benchmark reads rung.mean_and_error, #827; one home for a mean and its interval, rung.interval, #838; rung_dsr's wrapper of the paper's formula gone, #848); Fold/Walked out of rung_folds.py (R-RUNNER-191 part b, blocked on R-RUNGS-29; part a, the golden ladder verdict test, #919); ease-switch-on done (R-RUNGS-30 #942; regimes rung declares RUNG #1165; EASED = True, golden verdicts re-pinned, #993). Built since: a cell's key carries its own rule's code, so an edit re-judges only that rule (#912); the retail rung stands in a basket row behind EASED (#927, map row 12; remains: `ladder_sets.baskets()` passing `against=` to `basket.row`, R-RUNGS-30)
       {id: rungs-trustworthy; files: *; after: rungs-beta}
 - [ ] **LADDER READY, the cards (his ruling, 15 November: "done properly and to elite desk
       specifications", then the ladder runs 24x7).** Ranked; each card one test and one change:
@@ -837,8 +837,8 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
   - [ ] B2 a typed Spec, validated on entry: an unknown block or a bad setting is refused
         Remains (R-MONEY-45, #809, #823): 20 of 21 rules are rows (mansfield_rs_momentum added, #873, run on the ratio bars the caller builds); zweig_breadth_thrust needs breadth data (R-MONEY-35)
       {id: rungs-spec; files: lab/spec.py, tests/unit/test_lab_spec.py; after: rungs-blocks; waits: R-MONEY-35}
-  - [ ] B3 the catalogue, one TOML row per strategy with its source and known-answer case;
-        a guard: unique names, known blocks only, a source and a case on every row
+  - [x] B3 the catalogue, one TOML row per strategy with its source and known-answer case;
+        a guard: unique names, known blocks only, a source and a case on every row (24 rows, #1078)
   - [ ] B4 the nineteen eponymous rules as rows, identical trades on the fixture proven,
         then their Python files deleted. Built: 20 of 21 in the catalogue (#873); Zweig waits on breadth data
   - [ ] B5 variants generated from a row's setting ranges, every one counted as a trial

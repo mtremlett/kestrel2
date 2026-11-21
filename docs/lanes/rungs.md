@@ -302,3 +302,12 @@ then the break was removed:
 
 ### 2026-11-20 — the ladder's easing switched on (R-RUNNER-231, #993)
 - Golden numbers moved (canon B5). Options: (a) leave EASED off; (b) flip `verdict.EASED = True` and re-pin the fixture's verdicts. Chose (b): the 20 Nov ruling allowed the flip once R-RUNGS-30 landed, and his standing "always go with recommended". Weaker rungs no longer stop a line, so the shuffle and regime rows read WEAK/FAIL differently; no pound figure or trade count moved.
+
+### 2026-11-21 — the tape tests stay pinned EASED-off by name (R-RUNNER-396, #1124)
+- The tape tests count simulations, which EASED's placebo rungs would add to. Options: leave them eased (rejected: past 15 minutes on GitHub, 20 Nov #993); pin off by name with the reason beside it (chosen). Recommended and taken per his standing ruling.
+
+### 2026-11-21 — the regimes rung cuts a window at the calendar middle (#1165)
+- Options: the middle bar day (needs bars the rung is not handed); the calendar middle (chosen; the same to within a few days). Recommended and taken per his standing ruling.
+
+### 2026-11-21 — the capital joins the verdict key as its own text (R-GRID-3, #1201)
+- Options: hash all of desk/command.py into the key; add the capital as its own text among the key parts (chosen: one number, not the whole file).
