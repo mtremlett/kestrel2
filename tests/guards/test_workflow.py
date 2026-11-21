@@ -4,6 +4,8 @@ GitHub runs the steps of `python check.py` side by side, the unit tests in share
 job named "check" (the one main's rules require) is green only when every step passed.
 These guards hold the workflow to check.py: a step dropped from the list, a share of the
 unit tests missing, or a "check" that could be green without its steps, is red here.
+The same required job refuses a pull request whose title has no type, so the fix share
+main's history shows (and the churn guard counts) is honest.
 """
 
 from __future__ import annotations
@@ -75,3 +77,19 @@ def test_the_required_check_is_green_only_when_every_step_is() -> None:
         r"^    if: always\(\)$", job, re.MULTILINE
     ), "a failed step must still run the check, red"
     assert 'test "${{ needs.step.result }}" = "success"' in job
+
+
+def test_the_required_check_refuses_an_untyped_title() -> None:
+    """The title is read through the environment, never written into the script (a title
+    is anyone's text), on every event that can change it, and its pattern is the canon's
+    six commit types and revert."""
+    job = _job("check")
+    assert "TITLE: ${{ github.event.pull_request.title }}" in job
+    run = job.split("TITLE: ${{ github.event.pull_request.title }}", 1)[1]
+    assert "github.event" not in run, "the title step's script must read $TITLE, nothing else"
+    typed = re.search(r"^ +typed='(.+)'$", job, re.MULTILINE)
+    assert typed, "the check job has no title pattern"
+    assert typed[1] == r"^(feat|fix|refactor|test|docs|chore|revert)(\(.+\))?: .+"
+    assert '[[ ! "$TITLE" =~ $typed ]]' in job
+    text = WORKFLOW.read_text(encoding="utf-8")
+    assert "types: [opened, synchronize, reopened, edited]" in text, "a retitle must rerun it"

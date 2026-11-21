@@ -1708,6 +1708,27 @@ driven: a capital `Fix:` and a pull request titled `Fix(kill):` failed, the push
 commit passed, a push run still failed a feat after three fixes, and `fixup!` passed. Known gap:
 a pull request's title changed to `fix` after its check ran is not checked again.
 
+## 2026-11-15 — a pull request's title is typed, so the fix share is honest
+
+**Tightening** (gate F4). Main keeps one change per pull request, titled as the pull request
+was, and the churn guard above counts fixes by that title. A title with no type is a fix
+nobody can count. The required `check` job in `.github/workflows/check.yml` now first refuses a
+pull request whose title does not match `^(feat|fix|refactor|test|docs|chore|revert)(\(.+\))?: .+`:
+the canon's six commit types and `revert`, an optional scope, a colon, a space and words. The
+title reaches the script through an environment variable and is never written into it or
+echoed, so no title can run as code. The check now also runs when a pull request is edited,
+which closes the churn guard's known gap: a title changed after its check ran is checked again.
+`tests/guards/test_workflow.py` holds all four (the variable, the pattern, the test, the edited
+trigger). Of main's last 300 changes, all since #159 are typed; 40 older ones are not.
+
+**Driven.** The step's own script, cut from the workflow and run under bash, failed (exit 1)
+`Fix: capital type`, `fixed: not a type`, `feat:no space`, `feat(): empty scope`, `Update the
+plan` and `the plan; feat: buried`, each with "::error title=Untyped pull request title::the
+title must match ..."; it passed `feat: a typed title`, `fix(kill): a scoped fix` and `revert:
+undo #300`, and a title carrying `$(touch PWNED)` and backquotes created no file. The guard
+failed the title written straight into the script ("the title step's script must read $TITLE,
+nothing else") and the edited trigger removed ("a retitle must rerun it"); both were restored.
+
 ## 2026-11-14 — each lane's decisions in its own file
 
 **Approved** in the after-first-light queue (items 3 and 4): one file per lane, `docs/lanes/<lane>.md`;
