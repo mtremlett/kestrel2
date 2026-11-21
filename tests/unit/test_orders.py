@@ -56,6 +56,17 @@ def test_a_holding_is_a_fifth_of_the_capital_counted_at_what_the_line_controls()
             orders.size(_buy(PLAIN), PLAIN, Decimal(1), Decimal(1), TEN_K, full)
 
 
+def test_a_buy_is_refused_when_the_live_price_is_at_or_under_its_stop() -> None:
+    nvda = orders.size(_buy(DOLLAR), DOLLAR, Decimal("145.98"), Decimal("0.79"), TEN_K, {})
+    for live, gone in ((Decimal("130"), True), (nvda.stop, True), (Decimal("131.39"), False)):
+        order = replace(nvda, market=live)
+        if gone:
+            with pytest.raises(orders.Refused, match="emergency rule"):
+                orders.gate(order, TEN_K, {})
+        else:
+            orders.gate(order, TEN_K, {})
+
+
 def test_the_stop_sits_where_the_market_under_the_line_has_fallen_ten_percent() -> None:
     plain = orders.size(_buy(PLAIN), PLAIN, Decimal("50.25"), Decimal(1), TEN_K, {})
     stops = [
