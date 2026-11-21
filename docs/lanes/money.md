@@ -711,3 +711,18 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 
 ### 2026-11-21 - "a gap down past the stop" is a fixed promise, not a random event (#1448, R-RUNNER-407)
 - Options: (a) a promise in the once-per-world `_stops` part; (b) a new random event in `simcity_parts2`, which may not run in every world. Chose (a): no seed decides whether it runs.
+
+### 2026-11-21 - Costs beside the fill price, not inside it (#1457, TRD-09)
+- Options: charge spread and slippage inside the fill price (double counts; every report shifts) or beside it from `orders.charges` (one model, no golden change). Chose beside, per B4 and his standing "go with recommended". Scene 5 pins it.
+
+### 2026-11-21 - Time stop and hold limits (#1449, STP-11)
+- A held line with no known fill date is aged 0 on its last bar, rather than the replay's carried count. Each rule's hold limit moves golden days and needs his approval (B5): left open; money-time-gaps is held (waits: operator).
+
+### 2026-11-21 - Trade story lives in desk/book.py (#1468, TRD-11)
+- Options: raise desk/'s 100-file ceiling, merge a module, or put it in `desk/book.py` (under 800 lines). Took the last: grows nothing, loosens no guard. The gap stand-down stays carded separately per his "always go with recommended".
+
+### 2026-11-21 - SimCity halt scenario built directly (#1455, R-RUNNER-335)
+- Options: wire `dropped` into `simcity.EVENTS` now (simcity.py is outside the claim) or test it directly beside `halted` and wire later. Chose direct; wiring remains.
+
+### 2026-11-21 - Golden run pinned (#1465, TST-21)
+- No new decision. Any later change to a golden figure needs a DECISIONS explanation and his approval (B5).
