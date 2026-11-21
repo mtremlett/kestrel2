@@ -79,7 +79,7 @@ existing one, or becomes a check: the first desk forgot 56 lessons and 64 deny r
   suppression without a reason on the same line. Errors say what failed and with which
   ids.
 - Type annotations everywhere. Typed models instead of loose dictionaries.
-- Small units: functions under 50 lines, files under 400. Both are guarded.
+- Small units: functions under 50 lines, files under 800 (his ruling, 21 Nov). Both guarded.
 - Scripts only call into the package; no business logic lives in them.
 - Optimise only when a benchmark tied to a requirement shows the need.
 - Pin dependencies in `requirements.txt`, the one declared list. Add one only when it
