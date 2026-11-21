@@ -168,7 +168,7 @@ def test_the_preflight_says_ready_or_names_each_thing_that_is_not_and_sends_no_o
     assert capsys.readouterr().out == (
         "PREFLIGHT Mon 16 Nov: READY. his phone: its key is set; the Gateway: it answered; the "
         "kill switch: off, and drilled today; the paper account: it is the desk's book; prices: "
-        "22 lines to trade on; the pound: a dollar is £0.800000, kept for the day "
+        "26 lines to trade on; the pound: a dollar is £0.800000, kept for the day "
         "(2026-11-16: IBKR gave none (the broker was not asked); archive 1.25); halts: "
         "none in force.\n"
     )
