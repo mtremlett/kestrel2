@@ -41,11 +41,13 @@ from desk.simcity_incidents import (
     SLOW,
     SOLD,
     STALE,
+    STOP_SILENT,
     UNBARRED,
     UNHELD,
     beside,
     cancelled,
     deaf,
+    gateway_silent,
     halted,
     hole,
     locked,
@@ -135,6 +137,7 @@ def test_without_naming_the_cancelled_orders_the_scenario_is_red(
         (LIVE, minutes),
         (SILENT, silent),
         (SLOW, slow),
+        (STOP_SILENT, gateway_silent),
     ],
 )
 def test_a_halt_a_line_outside_an_isa_and_a_parked_yardstick_are_lived_and_kept(
@@ -250,3 +253,13 @@ def test_with_each_order_waiting_too_long_the_slow_broker_scenario_is_red(
     monkeypatch.setattr(paper, "FILL_SECONDS", 3600)  #: the 19 November wait, made past the step
     red = simcity.run(tmp_path, SHORT, ROOM, RATES, NOW, (1, 2, 3))
     assert any(SLOW in b for b in red.broken)
+
+
+def test_without_putting_the_account_back_a_silent_gateway_scenario_is_red(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(simcity, "EVENTS", ((STOP_SILENT, gateway_silent),))
+    monkeypatch.setattr(simcity, "EVENTFUL", 1)
+    monkeypatch.setattr(conformance_parts, "_leave", lambda _side, _run: "left")
+    red = simcity.run(tmp_path, SHORT, ROOM, RATES, NOW, (1, 2, 3))
+    assert red.deaths or any(STOP_SILENT in b for b in red.broken)

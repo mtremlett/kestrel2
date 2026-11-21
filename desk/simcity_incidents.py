@@ -38,11 +38,14 @@ from desk import (
     watch,
 )
 from desk.bars import Five
-from desk.broker import Fault, Report
+from desk.broker import Fault, Pretend, Report
+from desk.conformance_parts import Side
 from desk.keeper_rotate import Kept, record
-from desk.lines import YARDSTICK, Line
+from desk.lines import LINES, YARDSTICK, Line
 from desk.orders import Order, Sale
+from desk.running import DAY
 from desk.spans import Timed
+from desk.store import Bar
 
 if TYPE_CHECKING:
     from desk.simcity import _Life
@@ -68,6 +71,9 @@ LOCKED = "a store another writer holds refuses the round by name, loses nothing,
 SILENT = "a broker silent after an order is sent: the kill switch is on, the alarm names the order"
 SLOW = "a broker that fills nothing cannot keep the desk's day past the step's time"
 STEP_SECONDS = 900  #: the runner's time for the desk step (its drive_atjobs): waits plus a margin
+STOP_SILENT = (
+    "a gateway silent when the stop is to fire fails that step by name and puts the account back"
+)
 PROMISE = "a held line with no bar for a session is named when the day is refused"
 
 
@@ -336,3 +342,38 @@ def slow(life: _Life, on: date) -> None:
     life.live(on)
     sent = len(life.pretend.submitted()) - seen
     life.promise(SLOW, sent * paper.FILL_SECONDS + paper.SECONDS <= STEP_SECONDS)
+
+
+def gateway_silent(life: _Life, on: date) -> None:
+    """The gateway says nothing when the conformance run's stop is to fire (17 November,
+    "conformance-us", TimeoutError). The step must be recorded as failed, naming TimeoutError;
+    the last step must still put the account back, so neither the book nor the broker holds a
+    share and no order rests."""
+    held = sorted((x for x in life.market if x.venue == YARDSTICK.venue), key=lambda x: x.symbol)
+    line = next(x for x in LINES if x.retail and x.leverage == 1 and x.venue == YARDSTICK.venue)
+    whole = life.market[held[0]]  #: the world's bars on a line the desk's own list knows
+    home = life.desk / f"silent-{on}"
+    with bars.writing(home / keeper.HOT) as round_:
+        round_.daily(line, [b for b in whole if b.day < on])
+    record(
+        home / keeper.DAILY / line.venue,
+        Kept(on, datetime.combine(on, time(), UTC), 1, {}, frozenset()),
+    )
+    refused = next(x for x in LINES if x.retail is False)
+    run = conformance_parts.plan([line], refused, on, {line.currency: Decimal(1)}, "0000", home)
+    price = run.second.price
+    world = Pretend({line: (Bar(on, *(price,) * 4, 0), Bar(on + DAY, *(price,) * 4, 0))}, {})
+    world.open(on)
+
+    def quiet(_order: Order) -> str:
+        raise TimeoutError("timed out")
+
+    said: dict[str, str] = {}
+    side = Side(home, world, lambda: (), quiet)
+    failed = conformance_parts.live(side, run, said.__setitem__)
+    answer = said.get(conformance_parts.TRIGGER, "")
+    left = book.positions(home) or dict(world.holdings()) or world.stops()
+    life.promise(
+        STOP_SILENT, failed == [conformance_parts.TRIGGER] and "TimeoutError" in answer and not left
+    )
+    life.live(on)

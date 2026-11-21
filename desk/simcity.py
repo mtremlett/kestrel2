@@ -1,7 +1,7 @@
 """simcity - SIMCITY. ONE COMMAND lives the desk's day through a hundred seeded worlds of the saved
 data at the pretend broker, and writes one record of the night. A WORLD is the saved lines on their
-own days, months dealt again by the world's number, which also deals the faults and the mishaps a
-real desk meets. THE CENSUS names each part of the money path with the scenarios that ran it. A part
+own days, months dealt again by the world's number, which also deals the faults and mishaps a real
+desk meets. THE CENSUS names each part of the money path with the scenarios that ran it; a part
 none ran, or a promise broken, turns the night red."""
 
 from __future__ import annotations
@@ -15,7 +15,7 @@ from dataclasses import replace
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from pathlib import Path
-from tempfile import TemporaryDirectory
+from shutil import rmtree
 from types import ModuleType
 
 from desk import book, broker, day, halt, kill, orders, strategy
@@ -34,11 +34,13 @@ from desk.simcity_incidents import (
     SILENT,
     SLOW,
     STALE,
+    STOP_SILENT,
     UNBARRED,
     UNHELD,
     beside,
     cancelled,
     deaf,
+    gateway_silent,
     hole,
     locked,
     minutes,
@@ -179,10 +181,8 @@ def _behind(life: _Life, on: date) -> None:
     mine = [
         f.quantity for f in book.fills(life.desk) if f.order_id == f"{on:%Y%m%d}-stranger-{symbol}"
     ]
-    sold = bool(mine) and sum(mine) == 0
-    life.promise(
-        "a position the desk did not make is sold or named", sold or symbol in record.mismatches
-    )
+    sold = (bool(mine) and sum(mine) == 0) or symbol in record.mismatches
+    life.promise("a position the desk did not make is sold or named", sold)
 
 
 def _unstopped(life: _Life, on: date) -> None:
@@ -196,9 +196,8 @@ def _unstopped(life: _Life, on: date) -> None:
 
 
 def _gapped(life: _Life, on: date) -> bool:
-    """Every line opens at the day's low, a gap down from the close before it; the stop under
-    each buy it fills is then moved under that fill, never left where the close put it. False
-    when no buy filled that day, so nothing was gapped: the scenario is still owed."""
+    """Every line opens at the day's low; the stop under each buy it fills is then moved under
+    that fill, never left where the close put it. False when no buy filled: still owed."""
     life.market = {
         x: tuple(replace(b, open=b.low) if b.day == on else b for b in bars)
         for x, bars in life.market.items()
@@ -211,7 +210,8 @@ def _gapped(life: _Life, on: date) -> bool:
     rests = {s: level for s, (_, level) in life.pretend.resting_stops().items()}
     fits = all(rests[s] == due[s] for s in rests & due.keys())
     life.promise("a stop rests where its fill puts it", fits)
-    held = {f.symbol: f for f in book.fills(life.desk) if f.quantity > 0 and f.day == on}
+    shares = book.positions(life.desk)  #: what is held, bought on the gap day or before it
+    held = {f.symbol: f for f in book.fills(life.desk) if f.quantity > 0 and f.symbol in shares}
     before = {x.symbol: [b.close for b in bars if b.day < on] for x, bars in life.market.items()}
     for s in sorted(s for s, closes in before.items() if not closes):
         life.promise(f"FAULT line {s}: no bar before the gap day, its gap is unrunnable", False)
@@ -220,7 +220,7 @@ def _gapped(life: _Life, on: date) -> bool:
         orders.Order(
             f"gap-{s}",
             lines[s],
-            f.quantity,
+            shares[s],
             shut[s],
             life.rates[lines[s].currency],
             orders.stop_under(lines[s], shut[s]),
@@ -265,6 +265,7 @@ EVENTS: tuple[Event, ...] = (
     (LIVE, minutes),
     (SILENT, silent),
     (SLOW, slow),
+    (STOP_SILENT, gateway_silent),
 )
 
 
@@ -295,12 +296,17 @@ def run(
         alone = strategy.decide({line.symbol: bars for line, bars in archive.items()})
         for seed in worlds:
             census.now(None)  #: the making of a world is SimCity's own work, and no scenario's
-            with TemporaryDirectory() as scratch:
-                lives.append(_Life(Path(scratch), archive, room, rates, seed, census))
-                try:
-                    _live(lives[-1])
-                except ValueError as refusal:  #: the desk's own word that it cannot go on
-                    lives[-1].stopped = f"on day {len(lives[-1].records) + 1}, saying: {refusal}"
+            folder = (
+                root / "worlds" / str(seed)
+            )  #: kept after the night, emptied as its world starts
+            if folder.exists():
+                rmtree(folder)  #: a leftover that cannot go fails loudly, naming its path
+            folder.mkdir(parents=True)
+            lives.append(_Life(folder, archive, room, rates, seed, census))
+            try:
+                _live(lives[-1])
+            except ValueError as refusal:  #: the desk's own word that it cannot go on
+                lives[-1].stopped = f"on day {len(lives[-1].records) + 1}, saying: {refusal}"
     except Exception as died:
         died.add_note(f"SimCity's night died with world {seed} being lived (None: none yet)")
         raise
@@ -327,10 +333,9 @@ def _live(life: _Life) -> None:
             todo = todo or life.rng.sample(EVENTS, len(EVENTS))
             scenario, happen = todo.pop()
             census.now(scenario)
-            if happen(life, on) is False:
-                todo.append((scenario, happen))  #: it could not run today: it is owed
-            else:
-                life.done.add(scenario)
+            ran = happen(life, on) is not False  #: False: it could not run today, still owed
+            todo += [] if ran else [(scenario, happen)]
+            life.done |= {scenario} if ran else set()
         else:
             life.live(on)
     census.now(RECKONING)
