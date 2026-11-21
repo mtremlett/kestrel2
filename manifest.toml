@@ -66,6 +66,7 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "desk/keeper_rotate.py" = "the keeper's record of a venue's last refresh, and the order it asks the broker in: the yardstick before all, then the lines not asked on the last call, so a line the broker refuses never starves the others"
 "desk/keeper_receipt.py" = "the keeper's dated receipt: a file a day, a line for each call that did anything, saying which newest bars arrived, their span, moment and source, and surviving a kill between the line and the record of what was seen"
 "desk/keeper_live.py" = "the keeper's live day: a venue's five-minute round from the paper gateway into the short database, and the archive's past days backfilled beneath it"
+"desk/keeper_parts.py" = "the keeper's judgement of the live day: which lines are not to be traded now, and how late the source runs"
 "desk/live.py" = "the live session's only source of bars: a line's newest ended five-minute bars from the paper gateway, read-only as its own client, paced; no real-time data is a loud refusal, never a fill from the archive"
 "lab/headstart.py" = "the old desk's stores as a head start: its five-minute bars read, never written, and let into the one fast store under their source's name only where a fresh daily bar vouches for them"
 "lab/headstart_parts.py" = "the head start's readers: each old store of five-minute bars, and the matrices' daily bars, read read-only into typed bars, a Stooq stamp put to UTC"
