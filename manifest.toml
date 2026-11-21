@@ -167,6 +167,7 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "lab/rung_costs.py" = "the ladder's costs rung: the first rung's priced trades read for how much of the edge the broker's costs took, and passed only if it survives them doubled"
 "lab/rung_ci.py" = "the ladder's confidence-interval rung: the mean gain of a rule's trades with its interval, judged on the whole interval above or below nothing and not on a sign"
 "lab/rung_beta.py" = "the ladder's beta rung: a strategy's days regressed on its benchmark's, and its excess over the market risk it took judged on its whole interval above or below nothing and not on a sign"
+"lab/rung_stops.py" = "the stop-rule rung (research only): today's fixed stop against ATR(20) stops at k = 2 and 3 and a chandelier trail, each sized by risk, judged after costs in and out of sample on the worst fold; no live stop changes"
 "lab/luck.py" = "the ladder's luck rung: every trial counted, and each verdict's chance corrected for the number of trials it was picked from"
 "lab/calibration.py" = "the deep run's Calibration line: each rung's pass rate on seeded worlds of noise, a command the desk may not compute (R-MONEY-43)"
 "lab/rung_sample.py" = "the first rung's stated false-pass rate, taken from its own bar and minimum, and the exact binomial band that many noise cells must fall in"

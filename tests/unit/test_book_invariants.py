@@ -95,15 +95,22 @@ class World:
         working is cancelled by then, and its answer says so. The answer is the broker's own,
         or for an order lost on the way none filled and why; and the broker's fills are in
         the ledger."""
-        broker = self.broker
-        before, made = broker.report(order.order_id), broker.fills()
+        broker, name = self.broker, order.order_id
+        first, second, made = broker.report(name), broker.report(f"{name}-r1"), broker.fills()
         if order not in self.orders:
             self.orders.append(order)
         try:
             sent = book.send(self.root, broker, order, CAPITAL)
         except (Refused, Crash):
-            assert before is None, f"{order.order_id}: the broker had it, and it was judged again"
+            assert (
+                first is None or not first.fills
+            ), f"{name}: the broker had it, and it was judged again"
             return
+        before = first
+        if sent.order_id != name:  #: R-RUNNER-391: cancelled by the desk, once more as -r1
+            assert sent.order_id == f"{name}-r1" and first and not first.fills, f"{sent}"
+            order, before = replace(order, order_id=sent.order_id), second
+            self.orders.append(order)
         now = broker.report(order.order_id)  #: None: the connection dropped, so never received
         if before is not None:
             left = "working" in str(before.reason)  #: by a desk that died mid-send

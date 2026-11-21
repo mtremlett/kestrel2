@@ -77,6 +77,7 @@ FAULTS = "the broker's faults"
 BEHIND = "a position appears behind the desk's back"
 UNSTOPPED = "a stop is cancelled by hand"
 GAPPED = "every line opens at its low"
+STOPS = "a stop is moved and a sale is weighed against the gap limit"
 KILLED = "the kill switch is pulled, released and drilled"
 RECKONING, TRIPS = "the night's reckoning", "the round trips are told"
 
@@ -255,6 +256,23 @@ def run(
     return night
 
 
+def _stops(life: _Life) -> None:
+    """The first stop resting is moved to the level it has, and a buy sized at that stop is sold
+    at its own price: no scenario's draw decides whether these parts run (R-RUNNER-391)."""
+    symbol, (shares, level) = next(iter(life.pretend.resting_stops().items()))
+    life.pretend.restop(symbol, level)
+    life.promise(
+        "a stop moved to its own level stays there",
+        life.pretend.resting_stops()[symbol][1] == level,
+    )
+    line = next(x for x in life.market if x.symbol == symbol)
+    order = Order(f"stops-{symbol}", line, shares, level * 2, life.rates[line.currency], level)
+    kept = orders.gap_loss(order, order.price) == 0 and not orders.gapped(
+        order, order.price, life.room
+    )
+    life.promise("a sale at the price it was sized at loses nothing to a gap", kept)
+
+
 def _live(life: _Life) -> None:
     """The life, day by day, and its reckoning. On one in EVENTFUL of the mornings it holds a line
     under its stop after a plain record, a thing is done to it, each in the seed's order."""
@@ -263,6 +281,11 @@ def _live(life: _Life) -> None:
         census.now(DAY)
         pretend.open(on)
         fit = life.records and not life.records[-1].mismatches and pretend.stops()
+        if fit and STOPS not in life.done:
+            census.now(STOPS)
+            _stops(life)
+            life.done.add(STOPS)
+            census.now(DAY)
         if fit and life.rng.randrange(EVENTFUL) == 0:
             todo = todo or life.rng.sample(EVENTS, len(EVENTS))
             scenario, happen = todo.pop()
