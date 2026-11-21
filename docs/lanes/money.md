@@ -696,3 +696,6 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 
 ### 2026-11-21 - simcity split keeps `_unstopped` in place (#1357, R-RUNNER-426)
 - Options: (a) move `_unstopped` with `_behind`, `_gapped`, `_killed` to `desk/simcity_parts2.py`; (b) leave it. Chose (b): tests patch `simcity.FORGOTTEN`, which it reads, so moving it would break them or need test edits. No behaviour change.
+
+### 2026-11-21 - SimCity coverage by a fixed, draw-free scenario (#1067, R-RUNNER-391)
+- Options: (a) another seed, (b) reordered draws, (c) a new scenario "a stop is moved and a sale is weighed against the gap limit" (Pretend.restop, orders.gap_loss, orders.gapped once per world on the first fit day, no random draws). (a) and (b) were refused by the request. Chose (c): no change in the draws can lose it. Nothing loosened. `desk/simcity.py` is 397 lines, near the 400 cap; the next change there splits it.

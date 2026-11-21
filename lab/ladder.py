@@ -144,15 +144,36 @@ class Kept:
     line a stop cut short is cut off. No row is held."""
 
     def __init__(self, results: Path) -> None:
-        self.path, self.at, self.end = results, {}, 0
-        if not results.exists():
+        self.path = results
+        self._read()
+
+    def _read(self) -> None:
+        self.at, self.end, self.lines = {}, 0, 0
+        if not self.path.exists():
             return
-        with results.open("rb") as file:
+        with self.path.open("rb") as file:
             for line in file:
                 if not line.endswith(b"\n"):
                     break
                 self.at[tuple(json.loads(line)["cell"])] = (self.end, len(line))
                 self.end += len(line)
+                self.lines += 1
+
+    def compact(self) -> None:
+        """When superseded lines outnumber live cells, the file is rewritten once with each cell's
+        last line only: a temp file beside it, then replaced: a stop leaves it whole."""
+        if self.lines - len(self.at) <= len(self.at):
+            return
+        fresh = self.path.with_suffix(".compact")
+        with fresh.open("wb") as out:
+            for offset, size in sorted(self.at.values()):
+                with self.path.open("rb") as file:
+                    file.seek(offset)
+                    out.write(file.read(size))
+            out.flush()
+            os.fsync(out.fileno())
+        fresh.replace(self.path)
+        self._read()
 
     def get(self, key: tuple[str, ...]) -> verdict.Row | None:
         """The cell's last line, read back from the file, or None."""
@@ -310,8 +331,11 @@ def eponymous(folder: Path = DESK, book: Path | None = None) -> tuple[str, ...]:
         module = importlib.import_module(f"{desk.__name__}.{path.stem}")
         if not hasattr(module, "EPONYMOUS"):
             raise ValueError(f"{module.__name__} names its rules in no EPONYMOUS mapping")
-    python = tuple(n for n, make in rulebook.eponymous(folder).items() if not _needs_data(make))
-    return python + tuple(n for n in rulebook.specs(book, folder) if n not in python)
+    every = rulebook.eponymous(folder)
+    python = tuple(n for n, make in every.items() if not _needs_data(make))
+    return python + tuple(
+        n for n in rulebook.specs(book, folder) if n not in python and not _needs_data(every[n])
+    )
 
 
 def _needs_data(make: type[Rule]) -> bool:
@@ -328,6 +352,7 @@ def door(env: Mapping[str, str], argv: Sequence[str]) -> int:
     plan = {"first": FIRST, "leveraged": ladder_sets.LEV}.get(argv[0] if argv else "")
     stem = (plan or ladder_sets.EPON).stem
     kept = Kept(Path(env["KESTREL2_DATA"]) / FOLDER / f"{stem}.jsonl")
+    kept.compact()  #: once the set is judged, never while a run holds the file
     said, mostly = faults(kept.rows())
     sys.stdout.write("".join(f"{line}" + chr(10) for line in said))
     return code or int(mostly)

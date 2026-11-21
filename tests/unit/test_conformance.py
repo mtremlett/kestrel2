@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 from test_reports import CENT
 
-from desk import archive, book, clearance, command, conformance, listing, paper, placing
+from desk import archive, book, clearance, command, conformance, keeper, listing, paper, placing
 from desk.broker import Fill, Pretend
 from desk.lines import LINES, Line
 from desk.listing import Listing, Unlisted
@@ -223,6 +223,9 @@ def _world(
         broker.open(MON.date() + timedelta(days=1))
 
     patch.setattr(command, "rates", lambda _root, _day: FX)
+    patch.setattr(
+        keeper, "saved", lambda _home, day, lines: ({x: _fetch(x, day) for x in lines}, frozenset())
+    )
     patch.setattr(paper, "dial", lambda _talk: paper.Account((), ()))
     patch.setattr(listing, "read", lambda _lines, _door: LISTED)
     patch.setattr(
@@ -294,6 +297,22 @@ def test_the_command_records_each_real_result_beside_the_pretend_brokers_once(
     assert ["a desk round runs" in line for line in said[2:]] == [True] * 3
     with pytest.raises(SystemExit, match="--conformance london"):
         _run(tmp_path, MON, "paris")
+
+
+def test_a_reasons_read_that_times_out_marks_the_reason_unread_and_the_run_goes_on(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    _world(monkeypatch)
+
+    def slow(_door: paper.Door) -> dict[str, str]:
+        raise TimeoutError("timed out")
+
+    monkeypatch.setattr(conformance, "reasons", slow)
+    assert _run(tmp_path, MON, "london") == 0
+    with (tmp_path / "conformance" / "trades-london-20261116-1005.csv").open(newline="") as kept:
+        rows = list(csv.reader(kept))[1:]
+    assert [row[1] for row in rows[:-1]] == list(PRETEND)
+    assert {row[4] for row in rows[:-1]} == {"reason not read: timed out"}
 
 
 def test_the_why_read_gives_each_cancelled_order_its_reason_but_not_in_a_desk_rounds_hours(

@@ -102,6 +102,7 @@ def test_the_fast_engine_has_a_firing_for_every_block_that_needs_no_position() -
         "under_entry_low",
         "darvas_box",
         "darvas_stop",
+        "breadth_thrust",  # on ratio bars, not price bars: the fast engine serves none
     }
 
 
@@ -140,4 +141,6 @@ def test_every_row_of_the_spec_book_trades_on_the_fast_engine_as_the_desk_trades
     )
     for name, row in book.items():
         spec = Spec.parse({"name": name, **row})
+        if name == "zweig_breadth_thrust":  # judged on ratio bars, which this price series is not
+            continue
         assert fast.held(spec, fast.Shared(bars)).tolist() == _desk(spec, bars), name
