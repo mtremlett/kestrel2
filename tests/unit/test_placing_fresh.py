@@ -6,6 +6,7 @@ from dataclasses import replace
 from pathlib import Path
 
 import pytest
+from test_paper import _gateway
 from test_placing import AT, BUY_IT, DATED, _paper, _ready
 
 from desk.orders import Refused
@@ -13,8 +14,10 @@ from desk.orders import Refused
 
 def test_a_stale_order_is_refused_and_a_fresh_one_clears_whatever_its_id_says(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     root = _ready(tmp_path)
+    _gateway(monkeypatch, [])
     stale = replace(BUY_IT, order_id=f"{AT:%Y%m%d}-rsi2-IITU", session=AT.date())  # id looks fresh
     with pytest.raises(Refused, match="the one it is dated"):
         _paper(root)._cleared(stale)
