@@ -115,6 +115,7 @@ ROUNDS = tape.ROUNDS  #: a desk round's hours, where history.py reads them
 #: and does not sell; only a fall to its level fires one. The step records that, it does not fail.
 RESTED = "it rested PreSubmitted"
 STILL = "{}: put above the market " + RESTED + ", not sold in {} seconds"
+SEEDED = " Its line drawn by seed {}."  #: a soak's round: the seed that drew its line
 AMISS = " FAILED: {}. A later day tries again; {}."
 AS_FOUND, NOT_AS_FOUND = (
     "the account left as found",
@@ -216,13 +217,17 @@ def _moved(door: paper.Door, held: Mapping[str, Decimal]) -> str:
 
 
 def trade(
-    root: Path, market: str, clock: Callable[[], datetime], wait: Wait = time.sleep
+    root: Path,
+    market: str,
+    clock: Callable[[], datetime],
+    wait: Wait = time.sleep,
+    seeded: bool = False,
 ) -> tuple[bool, str]:
-    """THE COMMAND: whether all is well, and its one line (when, the module's words say)."""
+    """THE COMMAND: whether all is well, and its one line (when, the module's words say). A soak's
+    run is SEEDED: its line drawn by its moment in whole seconds, said, so it can be run again."""
     now, refused = clock(), next(line for line in LINES if line.retail is False)
-    door = paper.Door(
-        CLIENT
-    )  #: this run's own client; its apart is set once the desk's share is read
+    seed = int(now.timestamp()) if seeded else None
+    door = paper.Door(CLIENT)  #: this run's own client; its apart set once the desk's share is read
     if barred := _barred(root, market, refused, now, door):
         return barred
     today, fits = now.date(), (MARKETS[market], 1, True)  #: the venue's own, plain, open to retail
@@ -239,7 +244,9 @@ def trade(
         if (line.venue, line.leverage, line.retail) == fits
         if listed[line].contract not in busy and paper.own(line) not in held
     ]
-    run = plan(plain, refused, today, command.rates(root, today), f"{now:%H%M}", root.parent)
+    run = plan(
+        plain, refused, today, command.rates(root, today), f"{now:%H%M}", root.parent, seed
+    )
     beside, broker = pretend(run), placing.Paper(listings, root, clock, door)
     fall = _raised(broker, root, listed[run.second.line], wait, door)
     side = Side(root, broker, lambda: clearance.check(root, clock(), door).found, fall)
@@ -255,13 +262,12 @@ def trade(
     ]
     note(WHOLE, f"{FAILED}at: {'; '.join(failed)}" if failed else "whole")
     counts = (market, len(beside) - len(failed), len(beside), run.second.line.symbol, record)
-    state = (
-        NOT_AS_FOUND if rows[-2][2].startswith(FAILED) else AS_FOUND
-    )  #: the last step's row, before WHOLE's
+    state = NOT_AS_FOUND if rows[-2][2].startswith(FAILED) else AS_FOUND  #: the last step's row
     fault = _moved(door, held)
-    return not (failed or fault), (
-        DONE.format(*counts) + AMISS.format("; ".join(failed), state) * bool(failed) + fault
-    )
+    said = DONE.format(*counts) + SEEDED.format(seed) * seeded
+    return not (failed or fault), said + AMISS.format("; ".join(failed), state) * bool(
+        failed
+    ) + fault
 
 
 def main(
@@ -275,7 +281,9 @@ def main(
     asks = soaks or list(argv) in [["--conformance", m] for m in MARKETS]
     if not (asks or list(argv) == ["--conformance-why"]) or not root.is_absolute():
         raise SystemExit("python -m desk.paper --conformance london|us|-why, KESTREL2_DATA whole")
-    go = partial(tape.soak, trade=trade) if soaks else trade  #: a soak records its round
+    go = (
+        partial(tape.soak, trade=partial(trade, seeded=True)) if soaks else trade
+    )  #: a soak records its round
     good, line = go(root, argv[1], clock) if asks else why(clock())
     print(line)  # noqa: T201 - the command's answer to whoever asked
     return int(not good)

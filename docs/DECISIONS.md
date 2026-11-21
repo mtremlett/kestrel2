@@ -2093,6 +2093,22 @@ Conditions kept with it: every growing card names itself in its pull request, an
 bloat, sprawl and doom loops are reviewed in the 21:00 report. The ceiling still ratchets:
 this file is the only place it moves, and only on his word.
 
+## 2026-11-21: stop-rule rung pre-registered (R-RUNNER-408, `lab/rung_stops.py`)
+
+Written before the rung was run. His word, Fri 20 Nov about 18:2x via the coordinator: "ok, go with
+the ATR stop test". Research only: no live stop changes until a winner passes the ladder.
+
+- **Rivals (4):** today's fixed stop (10% under the market's fall, 30% on a 3x line); ATR(20) stop
+  at k = 2; ATR(20) stop at k = 3 (both set at the fill, from the ATR at the signal close); a
+  chandelier trail (ATR(20), k = 3: the stop rises to the highest close less 3 ATRs, never falls).
+- **Sizing:** shares = risk budget / stop distance, capped at the desk's room; the budget is what
+  today's stop risks (10% times the line's leverage), so the fixed rule is sized as it is today.
+- **Judging:** the EPON ladder's trades, after the desk's one cost model, in-sample and
+  out-of-sample side by side (`lab/folds.py` cuts); the worst fold's answer is the one judged on,
+  by the first rung's bar (30 trades, t >= 2). The same trades judge every rival.
+- **Trials:** 4 rules (`rung_stops.TRIALS`) per line and fold, named for the luck correction. A
+  rival is promoted only if it beats the fixed rule on its worst fold, from the centre of a plateau.
+
 ## 2026-11-20: the ladder's golden verdict, re-pinned under R-225, and the eased tests restored (R-RUNNER-396, RUNGS lane)
 
 B5: `tests/unit/test_lab_rung_golden.py` was re-pinned by 5ebe658 (#993) under R-RUNNER-225's
@@ -2120,3 +2136,19 @@ bound growth; the doom-loop watch is the stall monitor and the recurring-fix rul
 
 Guard proven (A7): an 801-line file under `desk/` made `test_no_file_is_a_monolith` fail
 ("over 800 lines"); an 800-line file passed; both removed.
+
+## 21 Nov - the lab may hold 20,000 lines, not 12,000, by his own words
+
+His words, to the coordinator in chat, Sat 21 Nov ~11:2x (clock-checked 11:32), verbatim:
+"raise the Experimental-code area ceiling to 20,000. we can iteratively refactor in the
+future." The coordinator recorded them (kestrel2_notes HANDOVER-coordinator.md, "HIS WORDS
+11:2x") and ordered this change (order A). `lab_lines` in `BUDGET.json` rises from 12,000
+to 20,000 in phases 3 and 4, as his 15 Nov ruling raised both to 12,000. Unchanged: the
+desk ceilings, the file and function limits.
+
+Why: research cards stood still "waiting for room" with lab/ at 11,951 of 12,000 and more
+riding; building had fallen to 0 of 12. The cleanup he named is a later refactor, not a
+precondition.
+
+Guard proven (A7): lab/ padded to 20,001 lines made `test_the_tree_is_inside_this_phases_ceiling`
+fail ("ceiling 20000"); at 20,000 it passed; the padding removed.
