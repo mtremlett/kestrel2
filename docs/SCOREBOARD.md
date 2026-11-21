@@ -182,6 +182,12 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1119 R-PAPER-17 done: each record writer has its own temp file |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1143 no change; R-RUNGS-7 remainder is PAPER's running.py |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1139 no change; no blocking request open, R-PAPER-30 waits for more tapes |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1255 R-RUNNER-407 part: gate refuses a buy at or under its stop, tested |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1022 R-RUNNER-317 SimCity scenario for one-minute bars not stale, pinned |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1125 no change; R-PAPER-35 is PAPER's files, R-RUNNER-401 awaits a park-file design |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1272 R-RUNNER-414 book side landed; rehearsal fills split out as found, pinned |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1245 R-RUNNER-319 SimCity scenario for a locked live store, lived and counted |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1279 R-RUNNER-409 trade-faithfulness replay built (desk.simcity_fills), one test |
 
 ### DATA
 
