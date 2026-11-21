@@ -12,7 +12,7 @@ sells when its exit or its stop fires.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, timedelta
 from decimal import Decimal, InvalidOperation, localcontext
 from types import MappingProxyType
@@ -127,6 +127,27 @@ class Spec:
                 said.append(holding)
             if tuple(said) != case.wants:
                 raise ValueError(f"spec {self.name}: case {n} gives {said}, not {case.wants}")
+
+
+def variants(spec: Spec, place: str, setting: str, values: tuple[int, ...]) -> tuple[Spec, ...]:
+    """The spec once for each value of one setting, each checked against the block's range
+    and named for its change, so the name is the trial the luck count enters. The known answers
+    belong to the base spec's own settings and are not asked of a variant."""
+    block = BLOCKS[getattr(spec, place)]
+    if setting not in block.params or len(set(values)) != len(values) or not values:
+        raise ValueError(f"spec {spec.name}: {place} takes {sorted(block.params)} once each")
+    made = []
+    for value in values:
+        number = _number(f"{place} {setting}", block.params[setting], value)
+        new = MappingProxyType({**spec.params[place], setting: number})
+        made.append(
+            replace(
+                spec,
+                name=f"{spec.name} {place}.{setting}={number}",
+                params=MappingProxyType({**spec.params, place: new}),
+            )
+        )
+    return tuple(made)
 
 
 class SpecRule:
