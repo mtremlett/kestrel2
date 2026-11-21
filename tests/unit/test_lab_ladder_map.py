@@ -4,6 +4,7 @@ marked unbuilt."""
 
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
@@ -41,3 +42,15 @@ def test_the_count_of_rungs_built_is_the_rungs_the_ladder_judges_by_not_the_map_
     these (R-RUNNER-192), and the count goes up only when a module declares its RUNG."""
     built, rungs = ladder.rungs_built()
     assert rungs == 12 and built == 12 - len(rung.found(ladder.RUNGS)[1])
+
+
+def test_the_index_holds_offsets_only_and_a_cut_line_is_cut_off(tmp_path: Path) -> None:
+    results = tmp_path / "r.jsonl"
+    lines = [{"cell": ["a"], "n": 1}, {"cell": ["b"], "n": 2}, {"cell": ["a"], "n": 3}]
+    body = b"".join(json.dumps(x).encode() + b"\n" for x in lines)
+    results.write_bytes(body + b'{"cell": ["c"')
+    kept = ladder.Kept(results)
+    assert kept.end == len(body)
+    assert [r["n"] for r in kept.rows()] == [3, 2] and kept.get(("c",)) is None
+    assert all(isinstance(v, tuple) for v in kept.at.values())
+    assert ladder.Kept(tmp_path / "none").end == 0
