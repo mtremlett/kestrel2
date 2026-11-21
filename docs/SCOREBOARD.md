@@ -856,3 +856,10 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1395 R-RUNNER-310 conformance survives a slow reasons read. |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1414 R-MONEY-54 a halt in force cancels working buys at the step. |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1428 R-MONEY-61 the crash watch gets a paper broker door. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1429 R-RUNNER-370 regime cut written once, pure restructuring. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1430 R-MONEY-45 all 21 catalogue rows proven to trade as their Python rules. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1439 R-RUNNER-198 opening range breakout built, proven on fixture. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1440 rungs-tape-cache closed: the tape read marked bounded. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1443 R-RUNNER-353 part 2 intraday mean reversion built. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1445 rungs-tape-cache re-issued though done; docstring says why rates aren't keyed. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1447 promotion.killed: the desk's killed set in one call (R-RUNGS-7 lab side). |
