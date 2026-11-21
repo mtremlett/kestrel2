@@ -10,7 +10,7 @@ from typing import Any
 import pytest
 
 from desk.lines import LINES, Line
-from lab import ladder, ladder_sets, members, verdict
+from lab import history_bars, intraday, ladder, ladder_sets, members, verdict
 from lab.ladder import END, START
 from lab.members import Change, Record
 
@@ -127,3 +127,16 @@ def test_the_weather_is_written_beside_the_set_naming_its_three_layers(tmp_path:
     assert all(x["worst_fold"] and x["trend_worst_fold"] and x["trials"] == 3 for x in layers)
     assert said.startswith("weather: volatility ") and said.endswith("; 3 trials")
     assert said.count("against trend's") == 3
+
+
+def test_the_door_takes_intraday_and_refuses_an_unknown_set(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(history_bars, "pounds", lambda _: {})
+    monkeypatch.setattr(history_bars, "lines", lambda _: ())
+    monkeypatch.setattr(intraday, "judge_set", lambda *_: "SET INTRADAY: stub")
+    env = {"KESTREL2_DATA": str(tmp_path)}
+    assert ladder_sets.main(env, ["intraday"]) == 0
+    assert "SET INTRADAY: stub" in capsys.readouterr().out
+    with pytest.raises(SystemExit, match="intraday"):
+        ladder_sets.main(env, ["nonsense"])
