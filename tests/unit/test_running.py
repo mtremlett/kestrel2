@@ -133,8 +133,8 @@ def test_at_each_open_the_step_checks_the_account_and_sends_the_days_orders_once
     words = f"London, today's orders: {ID}, 26 shares done. {OUT.format('Fri 13', 'SMGB')}"
     assert running.notes(tmp_path) == (Note(MON, "orders LSE", words),)
     morning, orders = _told(post)  # he is told, each thing once
-    assert morning.startswith("Morning, Mon 16 Nov, 08:05 UK. As things stand the desk is set")
-    assert "Held: IITU 26." in morning and orders == words
+    assert morning.startswith("🌅 Morning Mon 16 Nov 08:05 UK\n✅ Ready for today (paper)")
+    assert "📒 Held: IITU 26" in morning and orders == words
     # the next step sends nothing: while a market is open the broker's fills are read, no more
     later = MON + timedelta(minutes=5)
     assert _step(monkeypatch, desk, later, [MADE, END]) == [FILLS] and post.call_count == 2
@@ -300,7 +300,7 @@ def test_the_days_record_is_made_once_every_market_is_shut_and_a_missed_session_
     assert _step(monkeypatch, desk, SHUT, *read) == [FILLS, ACCOUNT, FILLS, ACCOUNT, ACCOUNT]
     (record,) = day.records(tmp_path)
     assert (record.day, record.profit, record.market) == (MON.date(), Decimal(0), Decimal("118.75"))
-    assert "No day is on the desk's record yet" in _told(post)[-1]  # the evening, told at 21:05
+    assert "No day on the desk's record yet" in _told(post)[-1]  # the evening, told at 21:05
     assert _step(monkeypatch, desk, SHUT + timedelta(minutes=5)) == []  # made once
     # an account that is not the book does not hold the record back: it is made, the profit
     # withheld (someone's shares on the account: nothing the desk can put right)
@@ -318,7 +318,7 @@ def test_the_days_record_is_made_once_every_market_is_shut_and_a_missed_session_
     assert sent == [FILLS, ACCOUNT, *[FILLS, ACCOUNT, ACCOUNT] * 3]
     days = [date(2026, 11, n) for n in (13, 16, 17)]
     assert [r.day for r in day.records(missed.root)] == days
-    assert "The last day on record, Tue 17 Nov" in _told(tuesday)[-1]
+    assert "📅 Last day on record Tue 17 Nov" in _told(tuesday)[-1]
     assert _told(missed.rates) == days
     assert _told(missed.held)[1:] == [  # after the crash watch's look
         on + timedelta(days=1) for on in days
@@ -350,7 +350,7 @@ def test_a_step_that_fails_tells_him_once_and_is_an_error_and_a_silent_gateway_i
         with pytest.raises(ConnectionError, match="hung up"):
             _step(monkeypatch, night, now, [END], [])
         assert door.call_count == told_by_then
-    assert [words[:6] for words in _told(door)] == ["Mornin", "A step", "A step"]
+    assert [words[:6] for words in _told(door)] == ["🌅 Morn", "A step", "A step"]
     # a gateway the desk cannot trust is an error too, told as one that did not say it is ready
     monkeypatch.setattr(paper, "dial", Mock(side_effect=paper.NotPaper("account 'U1' is live")))
     live, door = _desk(tmp_path / "live")
