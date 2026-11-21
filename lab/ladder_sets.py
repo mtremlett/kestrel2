@@ -32,6 +32,7 @@ from lab import (
     tape,
     trials,
     verdict,
+    weather,
 )
 from lab.batch import Bars
 from lab.cell import Cell
@@ -220,6 +221,25 @@ def tapes_held(home: Path) -> str:
     return f"tapes on disk: {len(sizes)} files, {sum(sizes) / 2**20:.1f} MB"
 
 
+def weather_line(home: Path, bars: Bars, held: Sequence[Line]) -> str:
+    """Run the weather contest (part 1) on the US market line (`ladder.MARKETS`) with breadth
+    over the held lines, write weather.md and .json under ladder/sets, and say it in one line.
+    A layer that joins changes no verdict yet."""
+    market = next(one for one in LINES if one.symbol == ladder.MARKETS["US"])
+    entries = weather.contest(bars(market), {one.symbol: bars(one) for one in held})
+    (sets := home / FOLDER / "sets").mkdir(parents=True, exist_ok=True)
+    weather.write(sets, entries)
+    said = [
+        f"{e.layer} cannot score"
+        if e.contest is None
+        else f"{e.layer} {'joins' if e.contest.wins else 'stays out'}, worst fold "
+        f"{e.contest.layer:.6f} against trend's {e.contest.trend:.6f}"
+        for e in entries
+    ]
+    trials_ = max((e.contest.trials for e in entries if e.contest), default=0)
+    return f"weather: {'; '.join(said)}; {trials_} trials"
+
+
 def _pooled(make: Callable[[], Bars]) -> Callable[..., str]:
     """`run` on the pool, the bars made in each worker by `make`."""
     return lambda home, _, pounds, todo, now, plan: ladder_pool.run(
@@ -252,5 +272,6 @@ def main(env: Mapping[str, str], argv: Sequence[str] = ()) -> int:
         said = ladder_pool.run(home, make, pounds, ladder.cells())
     else:
         said = epon(home, make(), pounds, held, go=_pooled(make))
+        said += "\n" + weather_line(home, make(), held)
     sys.stdout.write(said + "\n")
     return 0

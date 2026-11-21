@@ -106,3 +106,24 @@ def test_a_set_of_three_rules_writes_three_rows_and_the_cells_file(tmp_path: Pat
     assert "| a | cost | FAIL: dear | 2 of 2 | L0 | no |" in text
     assert "- X: not corrected" in text
     assert len(json.loads(table.with_suffix(".cells.json").read_text())) == 6
+
+
+def test_the_weather_is_written_beside_the_set_naming_its_three_layers(tmp_path: Path) -> None:
+    import math
+    from datetime import timedelta
+    from decimal import Decimal
+
+    from desk.store import Bar
+
+    series = []
+    for n in range(1500):
+        wave = 0.1 * math.sin(n / 37) + (0.04 + 0.03 * math.sin(n / 40)) * math.sin(n / 3)
+        close = Decimal(str(round(100 * math.exp(0.0004 * n + wave), 4)))
+        series.append(Bar(date(2015, 1, 1) + timedelta(days=n), close, close, close, close, 1))
+    held = [Line("AAA", "US", "USD", 1), Line("BBB", "US", "USD", 1)]
+    said = ladder_sets.weather_line(tmp_path, lambda _: series, held)
+    layers = json.loads((tmp_path / "ladder" / "sets" / "weather.json").read_text())["layers"]
+    assert [x["layer"] for x in layers] == ["volatility", "drawdown", "breadth"]
+    assert all(x["worst_fold"] and x["trend_worst_fold"] and x["trials"] == 3 for x in layers)
+    assert said.startswith("weather: volatility ") and said.endswith("; 3 trials")
+    assert said.count("against trend's") == 3
