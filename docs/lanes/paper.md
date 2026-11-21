@@ -499,3 +499,11 @@ Options: (a) parse the id elsewhere in `desk/placing.py` (same defect, rejected)
 ### 2026-11-20 — R-RUNNER-390: which gateway link news is Disconnected (#1024)
 
 Options: (a) a wider list of kin of 2110 and 2157, including 1101 and 1102 (connectivity restored), at more risk of masking real faults; (b) 1100 (connectivity lost) with 2110 and 2157, listed once as `LINK` beside `FEEDS` in `desk/paper.py` (chosen, the narrow list). Other unknown news still raises a plain error.
+
+### 2026-11-21 — order times get their own stamp clock (R-RUNNER-400, #1260)
+
+Options: pass a live clock to `Paper` (rejected: the rehearsal needs a fixed decision moment); or `placing.Paper` takes a separate stamp clock, real UTC by default, written to the millisecond (chosen). Old rows stay readable.
+
+### 2026-11-21 — placing reads `order.session`, and an undated order fails loudly (R-RUNNER-410, #1264)
+
+The field is named `session` (in `orders.py`), not `day` as the request said. An order dated no session raises ValueError rather than falling back to the id, as asked.
