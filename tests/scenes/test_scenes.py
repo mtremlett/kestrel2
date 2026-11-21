@@ -164,6 +164,11 @@ def test_scene_5_the_position_is_closed(tmp_path: Path) -> None:
         not trip.sell.order_id.endswith("-stop") for trip in trips
     ), "no round trip closed by the strategy's own rule: a buy and its sale"
     ids = {fill.execution_id for fill in broker.fills()}
+    opens = {(s, bar.day): bar.open for line in CLEAN for s in [line.symbol] for bar in CLEAN[line]}
+    assert all(f.price <= opens[f.symbol, f.day] for f in broker.fills() if f.quantity < 0)
+    assert all(
+        f.price == opens[f.symbol, f.day] for f in broker.fills() if f.quantity > 0
+    ), "a buy filled away from the market's price: the spread and slippage are charged beside it"
     pounds = {line.symbol for line in LINES if line.currency == "GBP"}
     for trip in trips:
         if trip.buy.symbol in pounds:

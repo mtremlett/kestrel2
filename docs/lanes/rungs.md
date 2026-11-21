@@ -338,3 +338,18 @@ then the break was removed:
 ### 2026-11-21 — rung 4's judge moves; the count stays 5 (R-RUNNER-369, #1425)
 - Row 4 now names `lab/market.py`, not a `rung_*` module, so `rungs_built()` would have counted 6 though the ladder still runs `market.judge`, not `banded` (blind review, blocking). Options: (a) accept 6; (b) keep row 4 on the empty rung_beta.py; (c) a row owing `- no RUNG` counts as unbuilt. Chose (c): the published count moves only when the ladder's judging does; the map test pins it at 5 (tightened, not loosened).
 - `market.judge`'s PASS/FAIL rule versus `banded`'s three bands is not unified here (would change verdicts). Found, not fixed.
+
+### 2026-11-21 — Zweig's breadth is one fixed series (R-MONEY-45, #1430)
+- Zweig's blind-test breadth changed from a random series to a fixed one. Options: keep random and add a second fixed walk (more lines, against the unit-test budget), or one fixed series serving both tests (chosen; the future-blind test still cuts it at six random days).
+
+### 2026-11-21 — a done box is closed by a real in-claim change (rungs-tape-cache, #1440, #1445)
+- The box was re-issued though done (pattern 22); an empty pull request is closed by the runner. Options: (a) another empty PR, (b) a real in-claim change landing with the tick, (c) stop. Chose (b): the tape read marked bounded (#1440), the docstring saying why rates are not keyed (#1445).
+
+### 2026-11-21 — opening range breakout sells at the session's last bar (R-RUNNER-198, #1439)
+- A position held at the last bar is sold on that bar (the card's "out at the last bar"), not on the engine's `flat` second-last-bar sale; the rule takes its venue as a constructor argument, default LSE.
+
+### 2026-11-21 — intraday mean reversion band (R-RUNNER-353, #1443)
+- The band includes the current bar, as the daily Bollinger rule does; holding sells when the close is over the middle.
+
+### 2026-11-21 — promotion.killed fails loudly (R-RUNGS-7, #1447)
+- A candidate whose ledger is malformed (a buy before its condition was written) makes `killed` raise. Options: skip it quietly, or fail loudly. Chosen: fail loudly (canon A4); a silent skip would let a killed strategy keep buying.
