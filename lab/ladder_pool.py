@@ -277,8 +277,7 @@ def run(
         raise RuntimeError("the code on disk has changed since this process loaded it")
     todo = ladder.cells() if todo is None else todo
     results, count = ladder.begun(home, todo, plan)
-    whole = ladder._whole(results)
-    last = ladder._last(whole)
+    last = ladder.Kept(results)
     stamp = now()
     stop, began = home / ladder.FOLDER / STOP, time.time()
     _asked(stop, began)  #: a stale STOP goes now, before the first unit
@@ -294,7 +293,7 @@ def run(
     size = size or workers(*memory())
     inner = ProcessPoolExecutor(size, initializer=_begin, initargs=(make_bars, pounds, tapes))
     with inner, results.open("ab") as out:
-        out.truncate(len(whole))
+        out.truncate(last.end)
         why = _write(Yielding(inner, size, memory), tasks, out, tally, (stop, began))
     if why:
         return f"stopped after a unit: {why}"
