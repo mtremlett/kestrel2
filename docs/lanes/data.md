@@ -792,3 +792,6 @@ Options: report the coverage score only, or go red when more than 10% of lines s
 Options: (a) keep `coverage.LOOKBACK` at a hand-written 200 (rejected: the grid's SWEEPS try settings up to 250, so it would
 trade lines with too little history); (b) read the longest setting from `desk/strategy.py` SWEEPS (chosen): a line now needs 500
 sessions, twice the longest lookback, before a rule may trade it, and the number is written once.
+
+### 2026-11-20 — no blocking request; R-DATA-57's local Stooq step needs a move first (DATA, s1)
+Options: (a) add local Stooq to `desk/backfill.py`'s order now (rejected: the Stooq readers live in `lab/headstart*.py`, which `desk/` may not import, so it needs the reader moved into `desk/` first, more than a ten-minute step and over the unit-test line balance); (b) record it and build nothing (chosen). Next step: move the daily Stooq reader into `desk/`, then add it to `backfill.ordered`.

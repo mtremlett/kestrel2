@@ -36,7 +36,7 @@ from desk.store import Bar
 from lab import cell, rung, weather
 from lab.cell import Key, Record
 from lab.reproduce import Reproduction
-from lab.rung import Answer, Priced, Rates, Verdict
+from lab.rung import Answer, Priced, Rates, Rung, Verdict
 
 WINDOWS = 2
 
@@ -134,3 +134,16 @@ def by_weather(
         for name in (weather.UP, weather.DOWN)
     )
     return Weathered(key, up, down)
+
+
+def _judged(first: Verdict) -> tuple[Answer, str]:
+    """The regimes rung as the ladder reads it: the cell's window cut at its middle day, each
+    half judged apart by the first rung's rule; the least answer, both halves in words."""
+    cell_ = first.key.cell
+    cut = cell_.start + (cell_.end - cell_.start) / WINDOWS
+    split = apart(first.key, first.trades, cut, first.reproduced)
+    words = f"first window {split.first.answer.name}, second {split.second.answer.name}"
+    return split.answer, f"{words}, cut at {cut}; both must pass"
+
+
+RUNG = Rung("regimes", "both halves of the window pass the first rung's rule", _judged)

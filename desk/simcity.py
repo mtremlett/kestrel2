@@ -28,6 +28,7 @@ from desk.simcity_incidents import (
     DEAF,
     HOLE,
     LEFT,
+    LIVE,
     LOCKED,
     PARKED,
     STALE,
@@ -38,6 +39,7 @@ from desk.simcity_incidents import (
     deaf,
     hole,
     locked,
+    minutes,
     parked,
     stale,
     unbarred,
@@ -254,6 +256,7 @@ EVENTS: tuple[Event, ...] = (
     (UNHELD, unheld),
     (UNBARRED, unbarred),
     (LOCKED, locked),
+    (LIVE, minutes),
 )
 
 

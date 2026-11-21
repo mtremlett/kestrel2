@@ -3,6 +3,7 @@ a scenario of its own: green when the desk refuses the day naming the line, red 
 
 from __future__ import annotations
 
+from datetime import timedelta
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -10,13 +11,25 @@ from typing import Any
 import pytest
 from test_simcity import NOW, RATES, ROOM, SHORT
 
-from desk import bars, book, conformance_parts, day, day_money, keeper, simcity, store, watch
+from desk import (
+    bars,
+    book,
+    conformance_parts,
+    day,
+    day_money,
+    keeper,
+    keeper_live,
+    simcity,
+    store,
+    watch,
+)
 from desk.simcity_incidents import (
     CANCELLED,
     DEAF,
     HALTED,
     HOLE,
     LEFT,
+    LIVE,
     LOCKED,
     NAMED,
     OUTSIDE,
@@ -33,6 +46,7 @@ from desk.simcity_incidents import (
     halted,
     hole,
     locked,
+    minutes,
     outside,
     parked,
     stale,
@@ -113,6 +127,7 @@ def test_without_naming_the_cancelled_orders_the_scenario_is_red(
         (UNHELD, unheld),
         (UNBARRED, unbarred),
         (LOCKED, locked),
+        (LIVE, minutes),
     ],
 )
 def test_a_halt_a_line_outside_an_isa_and_a_parked_yardstick_are_lived_and_kept(
@@ -160,6 +175,18 @@ def test_a_market_unheard_is_told_once_in_each_hour_and_without_the_telling_is_r
     assert any(
         DEAF in b for b in simcity.run(tmp_path / "b", SHORT, ROOM, RATES, NOW, (1, 2, 3)).broken
     )
+
+
+def test_lines_whose_minute_just_ended_are_not_stale_and_with_a_zero_grace_all_are(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(simcity, "EVENTS", ((LIVE, minutes),))
+    monkeypatch.setattr(simcity, "EVENTFUL", 1)
+    kept = simcity.run(tmp_path / "a", SHORT, ROOM, RATES, NOW, (1, 2, 3))
+    assert not any(LIVE in broken for broken in kept.broken) and LIVE in kept.census["day.run"]
+    monkeypatch.setattr(keeper_live, "LATE", timedelta(seconds=-1))
+    red = simcity.run(tmp_path / "b", SHORT, ROOM, RATES, NOW, (1, 2, 3))
+    assert any(LIVE in b for b in red.broken)
 
 
 def test_unheld_minute_bars_are_named_stale_and_without_starting_the_lines_it_is_red(

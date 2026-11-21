@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from test_lab_ladder import EDGE, ISF, NOISE, VUSA, eased_off  # noqa: F401 - autouse fixture
+from test_lab_ladder import EDGE, ISF, NOISE, VUSA, eased_off  # noqa: F401 - used by name
 
 from desk.store import Bar
 from lab import ladder, market, shuffle, trials, verdict
@@ -20,6 +20,8 @@ from lab.cell import Cell
 from lab.folds import Pooled
 from lab.rung import Answer, Rates
 
+#: EASED refuses a judge asked without the rule's family count: the off path asks by name
+OFF = pytest.mark.usefixtures("eased_off")
 CELL = Cell("breakout_20_10", VUSA, EDGE[0].day, ladder.END)
 
 
@@ -35,6 +37,7 @@ def _judge(
 
 
 @pytest.mark.parametrize("rung_failing", ["folds", "market"])
+@OFF
 def test_a_cell_failing_only_one_rung_is_not_a_pass(
     monkeypatch: pytest.MonkeyPatch, rung_failing: str
 ) -> None:
@@ -113,6 +116,7 @@ def test_the_table_s_path_never_holds_a_partial_file(
     assert sorted(p.name for p in tmp_path.iterdir()) == ["T.json", "T.md"], "no .tmp left"
 
 
+@OFF
 def test_every_judged_cell_says_what_simply_holding_its_market_made() -> None:
     said = _judge()["holding"]
     assert "% strategy, " in said and " holding ISF, " in said and said.endswith(" difference")
@@ -132,6 +136,7 @@ def test_resampled_drawdowns_are_parts_of_the_capital_and_drawn_the_same_again()
     assert verdict.drawdowns([Decimal(-1000)], "x") == {"median": 0.1, "p95": 0.1}
 
 
+@OFF
 def test_folds_that_cannot_be_run_are_a_fault_with_their_reason_and_the_rest_stand() -> None:
     def short() -> Pooled:
         raise ValueError("no 5 whole years of history to fold")
@@ -144,6 +149,7 @@ def test_folds_that_cannot_be_run_are_a_fault_with_their_reason_and_the_rest_sta
     assert done["rungs"]["first"][0] == "PASS" and done["answer"] == "FAULT"
 
 
+@OFF
 def test_a_market_with_a_missing_day_is_a_fault_in_its_own_words() -> None:
     #: the blind re-review (R-RUNNER-188): the market rung's FAULT was given the first rung's words
     held = [*NOISE[:2000], *NOISE[2001:]]
@@ -153,6 +159,7 @@ def test_a_market_with_a_missing_day_is_a_fault_in_its_own_words() -> None:
     assert answer == "FAULT" and f"has no bar on {NOISE[2000].day}" in why, why
 
 
+@OFF
 def test_eased_charges_a_cell_its_rules_family_and_says_the_count(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -176,6 +183,7 @@ def test_eased_charges_a_cell_its_rules_family_and_says_the_count(
 
 
 @pytest.mark.parametrize("path", ["whole", "sour folds", "missing market day"])
+@OFF
 def test_every_path_through_the_judge_answers_every_rung_in_its_own_words(path: str) -> None:
     #: the mechanism of R-RUNNER-193: four fixes in a row were each a path through `judge` no test
     #: walked; on every path each rung answers, and no non-PASS rung borrows another's reason
