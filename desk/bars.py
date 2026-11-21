@@ -348,3 +348,15 @@ def bridged(path: Path, line: Line, day: date, shelf: Older, *given: Answer | No
         return shelf  # no five-minute bar was ever kept for the line
     fills = [b for b in bridge(fives, first - timedelta(1), day) if b.day not in held]
     return [*(shelf or ()), *fills] if fills else shelf
+
+
+def rolled_day(path: Path, line: Line, day: date) -> Answer:
+    """The day's bar built from the five-minute bars held for it, or why none can be."""
+    start = datetime.combine(day, time(), UTC)
+    try:
+        fives = five(path, line, start, start + timedelta(1))
+    except (LookupError, FileNotFoundError):
+        return Refused("no five-minute bar was ever kept for the line")
+    return bridge(fives, day - timedelta(1), day + timedelta(1)) or Refused(
+        "no five-minute bar held for the day"
+    )
