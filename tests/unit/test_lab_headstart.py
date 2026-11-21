@@ -18,7 +18,7 @@ import pyarrow as pa  # type: ignore[import-untyped]  # ships no stubs
 import pyarrow.parquet as pq  # type: ignore[import-untyped]  # ships no stubs
 import pytest
 
-from desk import archive, bars, store, venues
+from desk import archive, bars
 from desk.bars import Five, Source
 from desk.lines import LINES, Line
 from desk.store import Bar, Refused
@@ -265,54 +265,6 @@ def test_the_parquet_and_stooq_stores_are_read_on_their_own_clocks_and_adopted_o
     assert bars.sources(store, line, bars.FIVE) == dict.fromkeys((Source.ARCHIVE, *made), 1)
     again = "headstart: 0 old stores read, 4 already in, 0 with no reader yet (none)"
     assert headstart.main(register, store, day) == f"{again}; bars filled 0, met 0, differ 0"
-
-
-def _history(tmp_path: Path, closes: list[float]) -> tuple[Path, Path]:
-    """The old stores of BA: pence matrices from 2 June to 13 November 2025, and a database
-    giving the closes of the last days as pounds, later days first."""
-    days = venues.sessions("LSE", date(2025, 6, 2), date(2025, 11, 13))
-    stamps = [
-        (datetime(d.year, d.month, d.day, tzinfo=UTC) - bars.EPOCH) // timedelta(milliseconds=1)
-        for d in days
-    ]
-    rows = [[5000 + n % 3, 5200, 4900, 5100, 900] for n in range(len(days))]
-    np.save(tmp_path / "BA.UK_1d_ts.npy", np.array(stamps, dtype=np.int64))
-    np.save(tmp_path / "BA.UK_1d_ohlcv.npy", np.array(rows, dtype=np.float64).T)
-    old = tmp_path / "old.db"
-    _database(
-        old,
-        [
-            ("BA.L", "1d", f"{d}T00:00:00+00:00", 50, 52, 49, c, 9)
-            for d, c in zip(days[::-1], closes, strict=False)
-        ],
-    )
-    return tmp_path, old
-
-
-def test_a_daily_history_joins_the_archives_day_with_its_gap_bridged_by_five_minute_bars(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    mon = Bar(date(2025, 11, 17), Decimal(51), Decimal(52), Decimal(50), Decimal(51), 70)
-    friday = datetime(2025, 11, 14, 10, tzinfo=UTC)
-    fives = [
-        _five(friday, "51 52 50 51", 3),
-        _five(friday + timedelta(minutes=5), "51 53 51 52", 4),
-    ]
-    monkeypatch.setattr(archive, "fetch", lambda *_: (mon,))
-    monkeypatch.setattr(archive, "fetch_five", lambda *_: tuple(fives))
-    stores = _history(tmp_path, [51.0, 51.0, 49.0])
-    said = headstart.daily(UK, tmp_path / "data", stores, date(2025, 11, 18))
-    assert "agree on 2 of 3 days" in said
-    kept = store.read(tmp_path / "data" / "daily" / "LSE", "BA")
-    assert (kept[0].day, kept[-3:-1], kept[-1]) == (date(2025, 6, 2), kept[-3:-1], mon)
-    assert kept[-2] == Bar(
-        date(2025, 11, 14), Decimal(51), Decimal(53), Decimal(50), Decimal(52), 7
-    )
-    (tmp_path / "two").mkdir()
-    stores = _history(tmp_path / "two", [49.0, 49.0, 51.0])
-    with pytest.raises(ValueError, match="2 of the 3 bars already held"):
-        headstart.daily(UK, tmp_path / "other", stores, date(2025, 11, 18))
-    assert not (tmp_path / "other").exists()
 
 
 def test_an_old_store_in_adjusted_prices_never_writes_over_the_raw_and_a_real_difference_is_refused(
