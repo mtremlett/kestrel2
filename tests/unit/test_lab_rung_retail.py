@@ -14,7 +14,7 @@ from lab.rung import Answer, Priced, Verdict
 from lab.rung_retail import Against, Standing, days, standing
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture
 def eased_off(monkeypatch: pytest.MonkeyPatch) -> None:
     """The off assertions of these tests: the ladder's easing switch is set off, not assumed."""
     monkeypatch.setattr(verdict, "EASED", False)
@@ -72,6 +72,7 @@ def test_judge_fails_fairly_and_loudly() -> None:
         standing([0.01] * 30)
 
 
+@pytest.mark.usefixtures("eased_off")  #: the first assert is of the switch off
 def test_days_pair_the_sale_days_pounds_with_the_markets_closes_and_grade_waits_for_the_switch(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

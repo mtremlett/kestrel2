@@ -96,7 +96,8 @@ def plan(
         return size(_named(line, today, name + its), line, close, fx[line.currency], ROOM, {})
 
     first = replace(sized("conf1", line, bars[line].close), quantity=1)
-    sale = Sale(order_id_of(_named(line, today, f"conf2{its}")), line, 1)
+    named = _named(line, today, f"conf2{its}")
+    sale = Sale(order_id_of(named), line, 1, session=named.day)
     refusal = _named(refused, today, "conf0" + its)
     return Plan(today, refusal, first, sale, sized("conf3", line, bars[line].close), stamp)
 
@@ -127,7 +128,7 @@ def _leave(side: Side, run: Plan) -> str:
     for symbol, shares in book.positions(side.root).items():
         line = next(line for line in LINES if line.symbol == symbol)
         name = _named(line, run.today, f"conf9{run.second.line.venue.lower()}{run.stamp}")
-        did.append(_send(side, Sale(order_id_of(name), line, shares)))
+        did.append(_send(side, Sale(order_id_of(name), line, shares, session=name.day)))
     found, held = side.check(), book.positions(side.root)
     if found or held:
         raise ValueError(f"the account is not as found: the book holds {held}; the check: {found}")

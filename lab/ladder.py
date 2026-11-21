@@ -24,12 +24,12 @@ not yet there; after the dash, what is owed. BUILT: the ladder judges by it (it 
  2 costs charged: lab/rung_costs.py, tests/unit/test_lab_rung_costs.py
  3 a confidence interval: lab/rung_ci.py, tests/unit/test_lab_rung_ci.py
  4 excess after market risk, by size: lab/rung_beta.py, tests/unit/test_lab_rung_beta.py
- 5 two regime windows: lab/rung_regimes.py, tests/unit/test_lab_rung_regimes.py - no RUNG
+ 5 two regime windows: lab/rung_regimes.py, tests/unit/test_lab_rung_regimes.py
  6 benchmark excess by interval: lab/rung_benchmark.py, tests/unit/test_lab_rung_benchmark.py
  7 deflated Sharpe: lab/rung_dsr.py, tests/unit/test_lab_rung_dsr.py - one clustered set (L14)
  8 purged cross-validation: lab/rung_cpcv.py, tests/unit/test_lab_rung_cpcv.py
  9 placebo on blocks of days: lab/rung_placebo.py, tests/unit/test_lab_rung_placebo.py
-10 walk-forward folds: lab/rung_folds.py, tests/unit/test_lab_folds.py - the ladder runs `pool`
+10 walk-forward folds: lab/folds.py, tests/unit/test_lab_folds.py - the ladder runs `pool`
 11 block bootstrap: lab/rung_bootstrap.py, tests/unit/test_lab_rung_bootstrap.py - no gate
 12 retail, basket beside market: lab/rung_retail.py, tests/unit/test_lab_rung_retail.py - no RUNG
 
@@ -70,7 +70,7 @@ from typing import Any
 
 import desk
 from desk import archive, carry, keeper
-from desk.command import DOLLARS, POUND
+from desk.command import CAPITAL, DOLLARS, POUND
 from desk.lines import LINES, Line
 from desk.store import Bar
 from desk.strategy import STRATEGIES, Rule
@@ -258,7 +258,7 @@ def _one(
             d for d in pounds if d <= c.end and (c.line.currency != "GBP" or pool.dollars)
         )
         market = cell.key(Cell(c.strategy, beside, c.start, c.end), held).data
-        parts = [mine.code, mine.data, market, pool.data, str(count)]
+        parts = [mine.code, mine.data, market, pool.data, str(count), f"capital {CAPITAL}"]
         parts += [f"{d} {pounds[d]}" for d in days] + ([] if family is None else [f"in {family}"])
         parts += [tape.rule_code(c.strategy)] + [one.key.code + one.key.data for one in made]
         found = rung.found(RUNGS)

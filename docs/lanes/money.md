@@ -663,3 +663,36 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 
 ### 2026-11-20 - conformance plan skips a line with no bar (#1028, R-RUNNER-318)
 - Options: (a) keep refusing the whole run when one line lacks a bar (the incident repeats daily until the archive fills); (b) leave that line out and plan from the rest. Chose (b): the run needs only the most-traded line, one gap should not stop it. Asked of PAPER (R-MONEY-56); scenario held as a patch until then.
+
+### 2026-11-20 - R-MONEY-54 reverted, not widened (#1046)
+- The change needs desk/running.py and desk/goflat.py, both PAPER's; the lane guard refused the edit. Options: widen MONEY's claim (loosens a guard), or ask PAPER. Chose to revert the code and ask PAPER (R-MONEY-57); the guard settles it.
+
+### 2026-11-20 - unbarred scenario keeps the refusal (#1052, R-RUNNER-318)
+- Options: (a) keep the refusal when a line has no session bar, (b) leave the line out as the day's rounds do. Chose (a): it is the desk's loud refusal (canon A4), the scenes call for no change, and (b) needs desk/conformance_parts.py, outside the claim.
+
+### 2026-11-20 - park one line by hand reuses GATE, not a new blocker (#1117, R-RUNNER-397)
+- Options: (a) a new Blocker for a hand-parked line (touches the SimCity census and its tests), (b) reuse the existing GATE blocker. Chose (b): the operator's list is a separate file (`parked.csv`, desk/handpark.py), not `store.Parked`, which means a data fault, and no new enum is added. Sales and stops are untouched; deleting the row buys the line next round.
+
+### 2026-11-21 - refuse a buy at or under its stop in the gate (#1255, R-RUNNER-407 part)
+- Options: (a) the refusal in orders.gate, the one pre-trade gate, with Order.market optional so no caller breaks; (b) a check in day.py, a second path. Chose (a). Nothing sets Order.market yet; wiring it and resting the first stop from the fill are PAPER's files (R-MONEY-60).
+
+### 2026-11-21 - a whole market is not stale (#1022, R-RUNNER-317)
+- The incident log gives no cause and desk/keeper_live.py is outside the claim. Options: (a) pin the right behaviour (a whole venue answering one-minute bars is not stale) and show it red with the grace made negative; (b) guess a cause and change keeper_live. Chose (a). Fourteen-month fixture moved from seed 6 to seed 7 (first green; 11 and 8 left gap parts bare, 12 stopped on a holiday). The real cause of the 17 November stale lines is unreproduced: a thin line with no trade in two minutes, or a venue's first minutes.
+
+### 2026-11-21 - rehearsal fills are found, not traded (#1272, R-RUNNER-414)
+- The one id prefix the desk never makes is "rehearsal-" (desk/handpark.py); book.found() returns those fills, book.fills() does not, and nothing is deleted. Ledger rows 6-7 carry old unprefixed ids and stay counted until a hand marks them (his hard line on deleting data).
+
+### 2026-11-21 - locked live store is refused loudly (#1245, R-RUNNER-319)
+- Options: (a) fail loudly (NoRound naming the store) and run again next minute; (b) swallow it as a "missed" line in desk/keeper.py. Chose (a), canon fail loudly; (b) needs keeper files outside the claim. The seed-picked worlds moved again (world 4 to 1) when the scenario's extra draw shifted the rest. Nothing loosened.
+
+### 2026-11-21 - replay of real paper fills compares partial fills (#1279, R-RUNNER-409)
+- Options: skip partial fills, or compare them as a size difference. Chose compare: the desk should size the same whatever the broker filled. Own entry point `python -m desk.simcity_fills` because simcitycmd.py is outside the claim.
+
+### 2026-11-21 - silent broker scenario sits at the order send (#1319, R-RUNNER-324)
+- Options: the incident's log names no call site, so put the silence at (a) the account read or (b) the order send. Chose (b): a bare timeout reaches the day only there, and the desk's rule (never guess, kill switch) matters most there. Pinned world moved 6 to 7 (precedent #1022). Nothing loosened.
+
+### 2026-11-21 - gateway-silent-at-the-stop scenario renamed, not replaced (#1302, R-RUNNER-321)
+- Options: (a) replace main's own `silent` scenario (R-RUNNER-324) with the new one; (b) rename the new one (`gateway_silent`, STOP_SILENT) and register both. The first try clobbered main's scenario and failed unit 3/5 (census). Chose (b): keeps both promises. Nothing loosened.
+
+### 2026-11-21 - simcity split keeps `_unstopped` in place (#1357, R-RUNNER-426)
+- Options: (a) move `_unstopped` with `_behind`, `_gapped`, `_killed` to `desk/simcity_parts2.py`; (b) leave it. Chose (b): tests patch `simcity.FORGOTTEN`, which it reads, so moving it would break them or need test edits. No behaviour change.

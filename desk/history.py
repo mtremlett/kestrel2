@@ -303,7 +303,8 @@ def run(
 ) -> int:
     """The pull over the broker's own conversation, as the history reader, paced, each ask going
     back as far as the broker gives (PAGES); not in a desk round (Busy, nothing sent). Returns
-    how many asks were made."""
+    how many asks were made. Bars reach keep in the broker's unit (pence for a London line):
+    `history_write.keeper` turns them into the line's currency, once, on entry."""
     if not quiet(now):
         raise Busy("a desk round runs (08:00-08:30, 14:30-15:00 UK): history is not asked now")
     door = paper.Door(CLIENT)

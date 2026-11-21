@@ -157,19 +157,18 @@ def test_the_nightly_refresh_clears_out_a_ticker_that_left_and_writes_the_day_an
 ) -> None:
     home = tmp_path / "grid" / "store"
     (home / "US" / "history").mkdir(parents=True)
-    for name in ("OLD.csv", "OLD.faults.csv", "history/OLD.csv"):
+    for name in ("OLD.csv", "history/OLD.csv"):
         (home / "US" / name).write_text("x", encoding="utf-8")
     said = universe.nightly(tmp_path, DAY, (universe.SP500[0],), _ask)
-    assert said.endswith("; 3 cleared out")
+    assert said.endswith("; 2 cleared out")
     assert sorted(p.name for p in (home / "US").iterdir()) == [
         "MMM.csv",
-        "MMM.faults.csv",
         "history",
     ]
     note = (home / "REFLECTS.txt").read_text(encoding="utf-8").splitlines()
     sizes = " ".join(f"{k}={len(v)}" for k, v in universe.LISTS.items())
     assert note[:2] == [f"day {DAY}", f"lines 1 {sizes}"]
-    assert note[3] == "cleared US:OLD US:OLD US:OLD"
+    assert note[3] == "cleared US:OLD US:OLD"
 
 
 MMM = universe.SP500[0]
@@ -281,3 +280,15 @@ def test_a_move_the_line_records_as_real_is_no_longer_a_question(tmp_path: Path)
     bars = _stepped(Decimal("0.5"))
     line = replace(MMM, real_moves=frozenset({(bars[AT].day, bars[AT].close)}))
     assert _read(tmp_path, bars, line) == universe.History(tuple(bars), (), ())
+
+
+def test_breadth_counts_each_sessions_advances_and_declines_and_skips_a_line_with_no_file(
+    tmp_path: Path,
+) -> None:
+    kept = universe.SP500[:2]
+    universe.keep(tmp_path, DAY, kept, _ask)
+    held = store.read(tmp_path / "US", MMM.symbol)
+    counted = universe.breadth(tmp_path, [*kept, universe.SP500[2]])
+    assert list(counted) == [b.day for b in held[1:]]
+    for before, bar in zip(held, held[1:], strict=False):
+        assert counted[bar.day] == ((2, 0) if bar.close > before.close else (0, 2))

@@ -5,10 +5,9 @@ left working. Conformance trades are a cost of their own (conformance_cost)."""
 
 from __future__ import annotations
 
-import csv
 from collections import Counter, deque
 from collections.abc import Callable, Iterable, Mapping
-from dataclasses import astuple, dataclass, replace
+from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
@@ -33,30 +32,47 @@ from desk.book_parts import (
 from desk.book_parts import (
     unless_killed as _unless_killed,
 )
+from desk.book_parts2 import (
+    COLUMNS,
+    LEDGER,
+    LEVELS,
+    STOPS,
+    _record,
+    adopt,
+    fills,
+    found,
+    levels,
+)
 from desk.broker import Broker, Crash, Disconnected, Fill, Report
 from desk.halt import Blocker, Stopped
 from desk.lines import Line
 from desk.orders import Charges, Order, Refused, Sale, Settings, charges, gate, leg_of
 from desk.risk import Standing
 
-#: what moved to desk.book_parts and is still given from here, for the callers
+#: what moved to desk.book_parts and desk.book_parts2 and is still given from here, for the callers
 __all__ = (
+    "COLUMNS",
+    "LEDGER",
+    "LEVELS",
     "RATES",
+    "STOPS",
     "SWITCH",
     "TURNS",
     "Switch",
     "CANCELS",
     "cancel_all",
+    "_record",
+    "adopt",
+    "fills",
+    "found",
     "keep",
     "killed",
+    "levels",
     "rate",
     "record_rates",
     "switch",
 )
-LEDGER = "ledger.csv"
 GOING = "going.csv"  #: the order at the broker's door, until the desk has its answer
-STOPS, LEVELS = "stops.csv", ("stop", "level")  #: each buy's stop level, kept as the buy goes
-COLUMNS = ("execution_id", "order_id", "symbol", "quantity", "price", "day")
 
 
 def turn(root: Path, to: Switch, at: datetime, why: str) -> None:
@@ -196,17 +212,6 @@ def _settle(root: Path, broker: Broker) -> None:
         going.unlink()
 
 
-def levels(root: Path) -> dict[str, Decimal]:
-    """THE STOPS THE DESK RESTED: each buy's stop level under "<buy>-stop", oldest first."""
-    if not (path := root / STOPS).exists():
-        return {}
-    with path.open(newline="", encoding="utf-8") as kept:
-        rows = list(csv.reader(kept))
-    if rows[:1] != [list(LEVELS)]:
-        raise ValueError(f"{path}: not the desk's stop levels")
-    return {name: Decimal(level) for name, level in rows[1:]}
-
-
 def _unless_stopped(root: Path, order: Order | Sale) -> None:
     """Refuse the order while the kill switch is on, and a buy while a halt is in force."""
     _unless_killed(root, order.order_id)
@@ -215,37 +220,7 @@ def _unless_stopped(root: Path, order: Order | Sale) -> None:
         raise Stopped(Blocker.HALT, f"{order.order_id}: not sent, a halt is in force, {said}")
 
 
-def fills(root: Path) -> tuple[Fill, ...]:
-    """Every fill the desk has recorded, in the order it learned of them."""
-    if not (path := root / LEDGER).exists():
-        return ()
-    with path.open(newline="", encoding="utf-8") as ledger:
-        rows = csv.reader(ledger)
-        if next(rows, None) != list(COLUMNS):
-            raise ValueError(f"{path}: not the desk's ledger")
-        return tuple(
-            Fill(e, o, y, int(q), Decimal(p), date.fromisoformat(d)) for e, o, y, q, p, d in rows
-        )
-
-
 _write = keep  # old name, for other lanes' callers until they move
-
-
-def _revision(execution_id: str) -> tuple[str, int]:
-    """An execution id as its fill and version: a correction changes the last part (.01 to .02)."""
-    fill, _, last = execution_id.rpartition(".")
-    return (fill, int(last)) if last.isdecimal() and fill else (execution_id, 0)
-
-
-def _record(root: Path, new: Iterable[Fill]) -> None:
-    """Add the fills not in the ledger; a corrected fill replaces its earlier version."""
-    kept = fills(root)
-    latest = {_revision(f.execution_id)[0]: f for f in kept}
-    for fill in new:
-        name = _revision(fill.execution_id)[0]
-        latest[name] = max(latest.get(name, fill), fill, key=lambda f: _revision(f.execution_id)[1])
-    if tuple(latest.values()) != tuple(kept):
-        keep(root / LEDGER, [COLUMNS, *(astuple(fill) for fill in latest.values())])
 
 
 def strangers(root: Path, broker: Broker) -> tuple[tuple[str, int], ...]:
@@ -253,14 +228,6 @@ def strangers(root: Path, broker: Broker) -> tuple[tuple[str, int], ...]:
     the book, and those shares (whole ones; a part share is for a hand to look at)."""
     more = differences(positions(root), broker.holdings())
     return tuple((d.name, int(d.broker) - d.book) for d in more if d.broker > d.book)
-
-
-def adopt(root: Path, line: Line, shares: int, price: Decimal, on: date) -> None:
-    """Write a stranger's shares into the ledger as bought on the day at price (the line's last
-    close, the broker having given none) under an order of the stranger's own, so the book is
-    the broker's and a sale of them can be sent."""
-    order_id = f"{on:%Y%m%d}-stranger-{line.symbol}"
-    _record(root, [Fill(f"stranger-{on}-{line.symbol}", order_id, line.symbol, shares, price, on)])
 
 
 def collect(root: Path, broker: Broker) -> None:

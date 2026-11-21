@@ -18,13 +18,22 @@ from test_lab_ladder import EDGE, ISF, NOISE, VUSA, _door, _rows
 
 from desk.orders import Settings
 from desk.store import Bar
-from lab import cell, ladder, ladder_sets, rung, tape
+from lab import cell, ladder, ladder_sets, rung, tape, verdict
 from lab.cell import Cell, Record
 
 CLOCK = lambda: datetime(2026, 11, 14, tzinfo=UTC)  # noqa: E731
 BOOK = {VUSA: EDGE, ISF: NOISE}
 RULES = ("breakout_20_10", "trend_50_200")
 TODO = [Cell(rule, line, ladder.START, ladder.END) for rule in RULES for line in BOOK]
+
+
+@pytest.fixture
+def uneased(monkeypatch: pytest.MonkeyPatch) -> None:
+    """These tests are about tapes, not easing: the ladder runs uneased here (EASED off), so
+    a rule is simulated once and no placebo rung simulates again; with EASED on the cold, warm
+    and tapeless runs take past 15 minutes on GitHub (20 Nov, #993). The eased path has its
+    own tests (test_lab_rung_golden.py)."""
+    monkeypatch.setattr(verdict, "EASED", False)
 
 
 @pytest.fixture
@@ -46,6 +55,7 @@ def _judge(home: Path) -> list[dict[str, object]]:
     return _rows(home)
 
 
+@pytest.mark.usefixtures("uneased")  #: counts simulations: a placebo rung would add some
 def test_a_rung_changed_runs_no_simulation_and_a_rule_changed_only_its_own(
     tmp_path: Path, sims: list[Cell], monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -67,6 +77,7 @@ def test_a_rung_changed_runs_no_simulation_and_a_rule_changed_only_its_own(
     assert [c.strategy for c in sims[before:]] == [RULES[0]] * 2
 
 
+@pytest.mark.usefixtures("uneased")  #: counts simulations: a placebo rung would add some
 def test_the_rows_are_the_rows_there_were_cold_warm_and_with_no_tapes(
     tmp_path: Path, sims: list[Cell], monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -88,6 +99,7 @@ def test_the_rows_are_the_rows_there_were_cold_warm_and_with_no_tapes(
     assert (tmp_path / "plain" / "ladder" / "EPON.jsonl").read_bytes() == cold
 
 
+@pytest.mark.usefixtures("uneased")  #: counts simulations: a placebo rung would add some
 def test_a_run_stopped_takes_up_from_the_last_tape_written(
     tmp_path: Path, sims: list[Cell], monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -115,12 +127,12 @@ def test_a_run_stopped_takes_up_from_the_last_tape_written(
     assert len(sims) == whole - done
 
 
+@pytest.mark.usefixtures("uneased")  #: counts simulations: a placebo rung would add some
 def test_a_rule_is_simulated_once_on_a_line_and_each_window_is_cut_from_it(
     tmp_path: Path, sims: list[Cell]
 ) -> None:
     _judge(tmp_path)
-    kept_once = Counter((c.strategy, c.line.symbol) for c in sims)  #: placebo rungs re-run a cell
-    assert len(kept_once) == len(TODO) and min(kept_once.values()) == 1
+    assert sorted(Counter((c.strategy, c.line.symbol) for c in sims).values()) == [1] * len(TODO)
     bars, kept = BOOK[VUSA], tape.kept(tmp_path / "cut", cell.run)
     days = [bar.day for bar in bars]
     for start, end in ((0, -1), (0, 300), (100, 400), (len(days) // 2, len(days) // 2 + 90)):
@@ -128,6 +140,7 @@ def test_a_rule_is_simulated_once_on_a_line_and_each_window_is_cut_from_it(
         assert kept(window, bars) == cell.run(window, bars)
 
 
+@pytest.mark.usefixtures("uneased")  #: counts simulations: a placebo rung would add some
 def test_a_change_of_settings_prices_the_same_tape_again_and_simulates_nothing(
     tmp_path: Path, sims: list[Cell]
 ) -> None:

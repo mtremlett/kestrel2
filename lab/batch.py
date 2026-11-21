@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import json
 import os
+import traceback
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import date
@@ -38,7 +39,7 @@ from lab.cell import Cell, Key, Record, Trade
 class Failed:
     cell: Cell
     code: str  #: the code version that failed on it
-    error: str  #: the exception's type and message
+    error: str  #: the exception's type, message and the line that raised it
 
 
 Outcome = Record | Failed
@@ -81,7 +82,11 @@ def _one(todo: Cell, bars: Bars, kept: Kept) -> Outcome:
         found = kept.get(_id(key))
         return cell.run(todo, line) if found is None else Record(key, *found)
     except Exception as error:  # noqa: BLE001 - a bad cell is recorded with its error; the rest run
-        return Failed(todo, cell.LOADED, f"{type(error).__name__}: {error}")
+        at = traceback.extract_tb(error.__traceback__)[-1]
+        where = (
+            f"{Path(at.filename).name}:{at.lineno} in {at.name}"  # the cause, found in the journal
+        )
+        return Failed(todo, cell.LOADED, f"{type(error).__name__}: {error} [{where}]")
 
 
 def _whole(journal: Path) -> bytes:

@@ -1,5 +1,6 @@
 """goflat - GO FLAT (R-RUNNER-162), a second kill level: a flag file in the desk's folder
-halts all buying (halt.call, by "go flat", the operator's alone to lift), and each step then
+halts all buying and cancels the buys working (halt.stop, by "go flat", the operator's alone
+to lift), and each step then
 sells every line held, on a venue that is open, through the one send path and its gate. Taking
 the flag away resumes nothing: only the operator's lift of that halt does. Paper only."""
 
@@ -37,14 +38,15 @@ def step(root: Path, broker: Broker, room: Settings, now: datetime) -> list[str]
     """One step: a flag with no go-flat halt calls one; while one is in force a sale of all
     that is held goes for every line whose venue is open. Each answer is a line of words."""
     if (root / FLAG).exists() and called(root) is None:
-        halt.call(root, now, f"the {FLAG} flag appeared", BY)
+        halt.stop(root, broker, now, f"the {FLAG} flag appeared", BY)
     if called(root) is None:
         return []
     lines, said = {line.symbol: line for line in LINES}, []
     for symbol, shares in sorted(book.positions(root).items()):
         line = lines[symbol]
         if shares > 0 and venues.open_at(line.venue, now):
-            sale = Sale(f"{_before(line.venue, now.date()):%Y%m%d}-goflat-{symbol}", line, shares)
+            before = _before(line.venue, now.date())
+            sale = Sale(f"{before:%Y%m%d}-goflat-{symbol}", line, shares, session=before)
             try:
                 sent = book.send(root, broker, sale, room)
                 said.append(f"{sale.order_id}: {sent.filled} of {shares} shares sold")

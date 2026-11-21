@@ -2080,3 +2080,43 @@ that the repayment lands this week.
 His ruling, Thu 19 Nov 2026, in chat with runner ops at about 19:10, answering the question
 put with options ((a) raise by 5, repaid by retire-epon, recommended; (b) not yet), the
 coordinator backing (a): "Yes, raise by 5".
+
+## 2026-11-20: phase 3's product-line ceiling 15,000 -> 18,000 (the operator's ruling)
+
+The desk stood at 14,895 of 15,000 product lines on Fri 20 Nov at about 16:00, so every card
+that grows the desk (the broker fault matrix's behaviour groups, the order's own date, the
+resend of a desk-cancelled order) would stall until it deleted lines elsewhere. Asked with
+options ((a) 16,500 once, recommended; (b) 18,000; (c) keep 15,000), he chose (b): "Raise to
+18,000", Fri 20 Nov 2026 about 15:55, in chat with the coordinator.
+
+Conditions kept with it: every growing card names itself in its pull request, and growth,
+bloat, sprawl and doom loops are reviewed in the 21:00 report. The ceiling still ratchets:
+this file is the only place it moves, and only on his word.
+
+## 2026-11-20: the ladder's golden verdict, re-pinned under R-225, and the eased tests restored (R-RUNNER-396, RUNGS lane)
+
+B5: `tests/unit/test_lab_rung_golden.py` was re-pinned by 5ebe658 (#993) under R-RUNNER-225's
+easings. In plain English: with the easings on, a line is graded on every rung (a weak rung is
+WEAK, no longer a fail), is charged only its rule's own family of trials, and a hard fail on
+the first rung stops that line there; so the fixture's two lines now read THIN and FAIL where
+the old table read otherwise. His 16 Nov "YES TO ALL" is the approval.
+Two loosenings that change followed are undone here: the registry test again asserts that
+every line not stopped by a hard fail is judged on first, market and folds, and the blanket
+autouse switch-off in the ladder, retail and tape tests is gone: a test pins the easing off
+only by name, with its reason beside it.
+
+## 21 Nov - a file may hold 800 lines, not 400, by his own words
+
+His words, to the coordinator in chat, Sat 21 Nov ~09:10, verbatim: "whilst we are in
+development then relax these rules to allow natural file growth. but please monitor doom
+loops." The coordinator recorded them (kestrel2_notes after-first-light.md, "Sat 21 Nov
+09:3x HIS WORDS") and ruled them his plain-English yes to loosen one guard:
+`max_lines_per_file` in `BUDGET.json` rises from 400 to 800 (order S). Unchanged: functions
+stay under 50 lines, and the desk and lab package ceilings stay as they are.
+
+Why: sessions were splitting files only to stay under 400 (simcity, store, orders), each
+split a pull request that moved lines without adding behaviour. The package ceilings still
+bound growth; the doom-loop watch is the stall monitor and the recurring-fix rule (A2).
+
+Guard proven (A7): an 801-line file under `desk/` made `test_no_file_is_a_monolith` fail
+("over 800 lines"); an 800-line file passed; both removed.

@@ -31,6 +31,7 @@ from lab import universe_history
 from lab.universe_parts import HEAVY as HEAVY
 from lab.universe_parts import USUAL as USUAL
 from lab.universe_parts import History as History
+from lab.universe_parts import breadth as breadth
 from lab.universe_parts import matrix as matrix
 from lab.universe_parts import read as read
 
@@ -266,7 +267,7 @@ def _cleared(home: Path, lines: Iterable[Line]) -> list[str]:
     for venue in sorted({line.venue for line in UNIVERSE}):
         folder = home / venue
         for path in sorted([*folder.glob("*.csv"), *(folder / store.HISTORY).glob("*.csv")]):
-            symbol = path.name.removesuffix(".csv").removesuffix(".faults")
+            symbol = path.name.removesuffix(".csv")
             if (venue, symbol) not in keep:
                 path.unlink()
                 gone.append(f"{venue}:{symbol}")

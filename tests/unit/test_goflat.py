@@ -45,3 +45,21 @@ def test_the_flag_sells_every_held_line_and_the_lift_alone_resumes(tmp_path: Pat
     assert (calling := goflat.called(tmp_path))
     halt.lift(tmp_path, calling, NOON, "his lift", OPERATOR)
     assert goflat.state(tmp_path) is None
+
+
+class Spy(Pretend):
+    """A pretend broker that counts the cancels asked of it."""
+
+    asked = 0
+
+    def cancel(self) -> tuple[str, ...]:
+        """Count the ask."""
+        self.asked += 1
+        return super().cancel()
+
+
+def test_the_flag_also_asks_the_broker_to_cancel_working_buys(tmp_path: Path) -> None:
+    broker = Spy({}, {})
+    (tmp_path / goflat.FLAG).touch()
+    goflat.step(tmp_path, broker, ROOM, NOON)
+    assert broker.asked == 1

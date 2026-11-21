@@ -37,7 +37,7 @@ def test_a_clean_line_is_stored_exactly_and_not_parked(tmp_path: Path) -> None:
     assert store.faults(tmp_path, US.symbol) == ()
     assert store.read(tmp_path, US.symbol) == _bars(US, LONG)
     assert store.read(tmp_path, UK.symbol) == _bars(UK)
-    assert not list(tmp_path.glob("*.part"))  # both files of a line are swapped in, none left over
+    assert not list(tmp_path.glob("*.part"))  # a line is one file, swapped in whole, none left over
 
 
 BAD_BARS: dict[str, Callable[[Bar], Bar]] = {
