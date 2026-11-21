@@ -140,6 +140,17 @@ def test_a_crash_halts_all_buying_at_once_tells_him_once_and_the_halt_says_why(
     assert _names(tmp_path) == [told.name, "watch 2025-11-12 11:05 CRASH"]
 
 
+def test_a_crash_halt_cancels_the_working_buys_at_the_broker_once(tmp_path: Path) -> None:
+    _trade(tmp_path, YARDSTICK, {"10:00": 95, "10:05": 97, "11:00": 94, "16:25": 94})
+    broker = Mock(cancel=Mock(return_value=("b1",)))
+    for clock in ("10:05", "10:10"):
+        post = Mock(side_effect=count(1))
+        watch.look(
+            tmp_path / "desk", tmp_path / "bars.db", _daily(), _at(clock), post, lambda: broker
+        )
+    assert len(halt.in_force(tmp_path / "desk")) == 1 and broker.cancel.call_count == 1
+
+
 def test_a_crash_the_desk_slept_through_is_halted_whenever_it_next_looks(
     tmp_path: Path,
 ) -> None:
