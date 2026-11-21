@@ -518,4 +518,4 @@ Options: (a) refuse the step when no SMTP_ setting is set; (b) stay silent and r
 
 ### 2026-11-21 — R-RUNNER-253: rehearsal order ids not stamped (#1362)
 
-Options: (a) mark the rehearsal's own order ids with its run stamp (needs `desk/placing.py` and `desk/orders.py`, outside the claim, and `strategy_of` parses the id); (b) leave the held-line separation as is (chosen: the stated test passes without it). (a) would still cover a collision on a line sold since, where no holding matches; it remains for a wider claim.
+Options: (a) mark the rehearsal's order ids with its run stamp (needs `desk/placing.py` and `desk/orders.py`, outside the claim; `strategy_of` parses the id); (b) leave the held-line separation as is (chosen: the stated test passes without it). (a) would still cover a collision on a line sold since, where there is no holding to match.
