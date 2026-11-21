@@ -202,6 +202,11 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1442 R-RUNNER-252 SimCity worlds gap overnight, scenario in the census. |
 
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1448 R-RUNNER-407 SimCity scene 'a gap down past the stop' added. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1449 money-time-gaps step 2: time stop ages from the book's fill date (STP-11). |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1455 SimCity halt-with-working-buy scenario built (R-RUNNER-335 part). |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1457 money-fills closed by verification; scene 5 pins price-plus-costs, no double count. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1465 golden reference run pinned (TST-21, GOV-09); no scene change. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1468 money-story first step: trades and their profit attribution from the ledger. |
 
 
 ### DATA
