@@ -111,6 +111,9 @@ money-restop waits on R-MONEY-18, R-MONEY-31 (the lost-stop list in `desk/messen
 - [ ] R-MONEY-55 (blocking, opened 2026-11-20 12:00 UK): in `desk/goflat.py` replace `halt.call` with `halt.stop(root, broker, now, why, BY)`; step already holds the broker. [ ] R-MONEY-56 (blocking, opened 2026-11-20 11:00 UK): `desk/conformance_parts.py` `_last`/`plan` raises for the whole run when one line has no bar of the session before (17 Nov SMGB); leave that line out and plan from the rest, so the plan survives one bar-less line (#1052 kept the refusal; his option b). [ ] R-MONEY-57 (blocking, opened 2026-11-20 13:00 UK): claim `desk/running.py` and `desk/goflat.py` with R-MONEY-54 so `watch.look` gets a broker door (`running._paper`) and goflat calls `halt.stop` (with R-MONEY-55).
 - [ ] R-MONEY-32 (later): `desk/command.py` rates use `book.rate(root, "USD", day)`, falling back to the archive on ValueError; or move onto `carry.pounds_per_dollar` (#224). [ ] R-MONEY-36 (blocking, opened 15 November 2026): catch `book.Alarm` in the day's send path (`desk/day.py` or `desk/messenger.py`) and message him its words once. R-MONEY-38 (later): `reports.fills` collapses a fill and its correction in one reading (keeps the highest version) instead of raising; the ledger now does (#288).
 - [ ] R-MONEY-47 (later): `desk/running.py` passes `killed=` to `day.trade` from `lab.promotion` standings, read outside desk/ (R-RUNGS-7, #519). R-MONEY-39 (later): the same file passes `tell=messenger.send` to `day.trade` so a disagreeing place reaches his phone (#290).
+### Requests to RUNNER
+- [ ] R-GRID-8 (blocking, 2026-11-21 11:00 UK): bring the clone running the grid week (`python -m lab.sweep ... --days`) to
+  current main, each hourly pass on current main; keep the week's stdout/stderr files (empty now) so a stop leaves a cause.
 ### Requests to MONEY
 - [ ] R-RUNGS-29 (blocking, 19 Nov 23:30): let `tests/guards/test_lanes.py` take a lane's owned modules from the merge-base manifest and allow removing a module's own manifest line, so R-RUNNER-191 (b) can delete lab/rung_folds.py (a guard change; recommended, outside RUNGS's claim).
 - [ ] R-MONEY-54 (blocking, opened 2026-11-19 20:10 UK): wire `desk/watch.py`, `desk/goflat.py`, `desk/book.py` to `halt.stop` so a real halt cancels working buys (send path done #1031; `desk/goflat.py` is R-MONEY-55, `desk/watch.py` looks before the broker exists in `running._work`, so it needs a broker passed in or a cancel after the look; #871).
@@ -234,7 +237,7 @@ and 1d (#739). 1h, 4h, 1wk rolled locally as rollup:<from> (#760); keeper takes 
   (#685); `history.lacks` unused (#751); IDTL parks on a missing 16 Nov unless its five-minute bars are held; disagreements not in a stored fault file.
 ## GRID
 
-Last updated: 17 November 2026 (one bars reader #449; batch.stored reads as research does #618; R-DATA-10 confirmed #626).
+Last updated: 21 November 2026 (#1370).
 ### Where it is
 
 Built and proven: the cell (a Line only), batch, fast grid engine and fast spec-row engine (`lab/fast.py`, ~30 times
@@ -244,10 +247,10 @@ pass runs each strategy on its declared universe (22 lines); all-on-all is `--tr
 its seconds: cold transfer 5,330 cells in 17 min, declared about 8 min, far inside the 48 h weekend (LAD-10 done).
 
 ### Next step
-grid-week (waits: 2026-11-21): the seven-day run is going (pid in `%KESTREL2_DATA%\grid\week.pid`). Nothing to build.
-On or after 20 Nov 23:45 UK read `sweep.unbroken(Path(KESTREL2_DATA))`: 7 days ticks it. If it died, restart within the
-hour, below-normal priority, from `C:\Users\mtrem\PYTHON\kestrel2_lanes\gridweek`:
-`python -B -m lab.sweep %KESTREL2_DATA%\grid\store %KESTREL2_DATA%\grid\cells %KESTREL2_DATA% --days 7`.
+grid-week (waits: 2026-11-28): the run is going (pid in `%KESTREL2_DATA%\grid\week.pid`) but every hourly pass since 21 Nov 03:21 UTC
+fails 2,810 cells: the pass runs pre-#1210 code against the research store rewritten in the new format (#1370; a failure's
+journal line now names the file, line and function). The week's log files are empty, so its 15-21 Nov stop has no proven cause.
+Needs R-GRID-8; the seven days restart unbroken, so not 7 before 28 Nov; then read `sweep.unbroken(Path(KESTREL2_DATA))`.
 Every other box is ticked. Open: R-DATA-7 (`batch.stored` now reads through `universe.read`, #618; remains: a cell keeping
 `History.moves` and `.rescaled` in its record, which changes the cell's record and key), R-RUNGS-2 (declared sweep enters every cell in the register), R-RUNGS-4.
 
