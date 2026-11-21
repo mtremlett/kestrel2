@@ -31,9 +31,16 @@ from lab import (
     published,
     reproduce,
     rung,
+    rung_ci,
+    rung_costs,
+    rung_cpcv,
+    rung_regimes,
     shuffle,
+    stress,
+    tape,
     trials,
     verdict,
+    weather,
 )
 from lab.batch import Bars
 from lab.cell import Cell
@@ -46,7 +53,14 @@ VUSA, ISF, AAPL, SPY = (
 #: a breakout that goes on rising, planted from 2010 to past the window's end; and none
 EDGE, NOISE = _walk(1, 0.012, 0.012, days=3100), _walk(2, 0, 0, days=3100)
 ROOM = Settings(CAPITAL)
+RULES = ("breakout_20_10", "trend_50_200")
 ISF_START = NOISE[0].day
+
+
+@pytest.fixture
+def eased_off(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The off assertions of these tests: the ladder's easing switch is set off, not assumed."""
+    monkeypatch.setattr(verdict, "EASED", False)
 
 
 def _set(*lines: Line) -> list[Cell]:
@@ -72,6 +86,9 @@ def _rows(home: Path) -> list[dict[str, Any]]:
     return [json.loads(line) for line in _file(home).read_text().splitlines()]
 
 
+@pytest.mark.usefixtures(
+    "eased_off"
+)  #: its want is the off ladder's own answers, not the graded ones
 def test_each_cell_is_judged_on_every_rung_and_kept_with_its_reasons_and_trials(
     tmp_path: Path,
 ) -> None:
@@ -94,6 +111,14 @@ def test_each_cell_is_judged_on_every_rung_and_kept_with_its_reasons_and_trials(
             [(own, EDGE), (Cell(own.strategy, ISF, ISF_START, own.end), NOISE)], ROOM, {}
         ).answer.name,
         "market": market.judge(verdict, EDGE, ISF, NOISE, {}).answer.name,
+        "ci": rung_ci.judge(verdict.gains).name,
+        "stress": stress.judge(own, EDGE, ROOM, {}).judged()[0].name,
+        "costs": rung_costs.judge(verdict).answer.name,
+        "cpcv": rung_cpcv.judge(verdict).answer.name,
+        "regime": rung_regimes.by_weather(
+            verdict.key.rung(rung_regimes.__name__), verdict.trades, weather.trend(EDGE), ()
+        ).answer.name,
+        "regimes": rung_regimes.RUNG.judge(verdict)[0].name,
         "shuffle": "THIN",  #: run last, and only on a trial that passed all before it
     }
     assert {name: answer for name, (answer, _) in won["rungs"].items()} == want
@@ -102,10 +127,18 @@ def test_each_cell_is_judged_on_every_rung_and_kept_with_its_reasons_and_trials(
     assert "times 2 trials" in won["rungs"]["luck"][1] and all(w for _, w in won["rungs"].values())
     #: the planted edge passes every rung but its worst fold, too thin to say: so the one
     #: verdict, over every named rung, is THIN. The noise fails; no rung is left in silence
-    assert want == dict.fromkeys(want, "PASS") | {"folds": "THIN", "shuffle": "THIN"}
+    assert want == dict.fromkeys(want, "PASS") | {
+        "folds": "THIN",
+        "regime": "THIN",
+        "shuffle": "THIN",
+    }
     assert (won["answer"], won["every"], lost["answer"]) == ("THIN", False, "FAIL")
     assert lost["rungs"]["first"][0] == lost["rungs"]["market"][0] == "FAIL"
-    assert set(won["unrun"]) == {"reproduce", "regime", "plateau", "stress"}
+    assert set(won["unrun"]) == {"reproduce", "plateau", "unwired"}
+    #: the rungs built in modules the ladder does not yet judge are named, never left in silence
+    assert (
+        "rung_bootstrap" in won["unrun"]["unwired"] and "declare no RUNG" in won["unrun"]["unwired"]
+    )
     assert 0 <= won["drawdown"]["median"] <= won["drawdown"]["p95"] < 1, "measured, never gated"
 
 
@@ -131,7 +164,24 @@ def test_a_planted_edge_is_judged_by_its_years_pooled_over_the_rules_lines_not_f
     )
 
 
-def test_a_run_skips_what_is_kept_and_judges_again_only_what_has_changed(tmp_path: Path) -> None:
+def test_a_rule_edited_judges_again_only_its_own_cells(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    book = {VUSA: EDGE, ISF: NOISE}
+    todo = [Cell(r, line, ladder.START, ladder.END) for r in RULES for line in book]
+    at = datetime(2026, 11, 14, tzinfo=UTC)
+    assert "4 judged now" in ladder.run(tmp_path, _door(book), {}, todo, lambda: at)
+    real = tape.rule_code
+    edited = lambda rule: "edited" if rule == RULES[0] else real(rule)  # noqa: E731
+    monkeypatch.setattr(tape, "rule_code", edited)
+    said = ladder.run(tmp_path, _door(book), {}, todo, lambda: at)
+    assert "2 judged now, 2 kept from before" in said
+    assert [r["cell"][0] for r in _rows(tmp_path)[4:]] == [RULES[0]] * 2
+
+
+def test_a_run_skips_what_is_kept_and_judges_again_only_what_has_changed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     book, todo = {VUSA: EDGE, ISF: NOISE}, _set(VUSA, ISF)
     start = datetime(2026, 11, 14, tzinfo=UTC)
     tick = iter(start + timedelta(hours=n) for n in range(100))  #: each run an hour on
@@ -176,6 +226,9 @@ def test_a_run_skips_what_is_kept_and_judges_again_only_what_has_changed(tmp_pat
     assert _rows(tmp_path)[-1]["answer"] == "THIN" and len(_rows(tmp_path)) == 12
     #: a dearer dollar on one day is another price, in the folds of all three
     pounds[EDGE[50].day] = Decimal("0.9")
+    assert "3 judged now, 0 kept" in run(tmp_path, _door(book), pounds, more)
+    assert "0 judged now, 3 kept" in run(tmp_path, _door(book), pounds, more)
+    monkeypatch.setattr(ladder, "CAPITAL", CAPITAL * 2)  #: a bigger pot is another key
     assert "3 judged now, 0 kept" in run(tmp_path, _door(book), pounds, more)
 
 
@@ -227,15 +280,20 @@ def test_every_trial_is_counted_before_any_is_run_and_the_count_never_begins_aga
     assert "against 2 trials: 0 judged now, 0 kept from before, 2 could not be judged" in said
     assert trials.count(register, ladder.QUESTION) == 2
     #: a line too short to have made a trade waits on its history: with nothing changed it is
-    #: tried again no sooner than 30 minutes after its last try, and the moment its bars differ
+    #: never appended again, however long on, and the moment its bars differ it is judged
     short = _door({VUSA: EDGE[:1], ISF: NOISE})
     clock[0] += timedelta(minutes=30)
     ladder.run(tmp_path, short, {}, todo, lambda: clock[0])
     waits = _rows(tmp_path)[2]
     assert "waits on 452" in waits["error"] and "answer" not in waits and "key" in waits
-    clock[0] += timedelta(minutes=29)
+    clock[0] += timedelta(hours=2)
+    before = _file(tmp_path).read_bytes()
     ladder.run(tmp_path, short, {}, todo, lambda: clock[0])
-    assert len(_rows(tmp_path)) == 4 and _rows(tmp_path)[2] == waits
+    assert (
+        _file(tmp_path).read_bytes() == before
+        and len(_rows(tmp_path)) == 4
+        and _rows(tmp_path)[2] == waits
+    )
     ladder.run(tmp_path, _door({VUSA: EDGE, ISF: NOISE}), {}, todo, lambda: clock[0])
     #: both are judged again, for their rule's lines are not as they were: the edge, with
     #: 6 or 7 trades a year pooled over two lines, is too thin to say; the noise fails
@@ -248,6 +306,7 @@ def test_every_trial_is_counted_before_any_is_run_and_the_count_never_begins_aga
         ladder.run(tmp_path, _door({}), {}, _set(VUSA))
 
 
+@pytest.mark.usefixtures("eased_off")  #: its want is the off ladder's rows, with no placebo rung
 def test_a_rule_with_a_figure_on_file_is_judged_only_behind_its_authors_result(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -274,6 +333,13 @@ def test_a_rule_with_a_figure_on_file_is_judged_only_behind_its_authors_result(
     #: a bar of the author's market mended: another result stands behind it, so judged again
     book[VUSA] = (replace(author[0], volume=7), *author[1:])
     assert "1 judged now, 0 kept" in ladder.run(tmp_path / "made", _door(book), {}, todo)
+
+
+def test_eased_on_a_cell_is_judged_with_its_rules_family_count_not_left_as_could_not(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(verdict, "EASED", True)
+    assert "0 could not" in ladder.run(tmp_path, _door({VUSA: EDGE, ISF: NOISE}), {}, _set(VUSA))
 
 
 def test_the_set_is_every_published_rule_on_every_line_and_its_doors_are_the_desks(
@@ -318,9 +384,12 @@ def test_the_shuffle_is_run_last_and_only_on_a_trial_that_passed_every_rung_befo
 ) -> None:
     own = Cell("breakout_20_10", VUSA, EDGE[0].day, ladder.END)
     before = {name: (Answer.PASS, "") for name in deflated.NAMED[:-1]}
-    ran = verdict.shuffled(own, EDGE, ROOM, {}, before)  # the only run of a hundred
+    ran = verdict.shuffled(own, EDGE, ROOM, {}, before, ())  # the only run of a hundred
     assert ran is not None and ran[0] is Answer.PASS and "100 shuffles" in ran[1]
     monkeypatch.setattr(shuffle, "share", lambda *_: pytest.fail("shuffled for nothing"))
     doubt = before | {"yearly": (Answer.DOUBT, "too good")}
-    assert verdict.shuffled(own, EDGE, ROOM, {}, doubt) == (Answer.DOUBT, "too good")
-    assert verdict.shuffled(own, EDGE, ROOM, {}, {"first": before["first"]}) is None
+    #: its answer the least, its words its own
+    unrun = verdict.shuffled(own, EDGE, ROOM, {}, doubt, ())
+    assert unrun is not None and unrun[0] is Answer.DOUBT and "too good" not in unrun[1]
+    assert unrun[1].startswith("not run") and "yearly answered DOUBT" in unrun[1]
+    assert verdict.shuffled(own, EDGE, ROOM, {}, {"first": before["first"]}, ()) is None

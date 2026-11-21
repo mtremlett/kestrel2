@@ -10,9 +10,12 @@ from decimal import Decimal
 import pytest
 from test_lab_rung import FREE
 
+from desk.lines import LINES
 from lab import luck, rung
 from lab.cell import Cell, Key, Trade
 from lab.rung import Priced, Verdict
+
+VUSA = next(line for line in LINES if line.symbol == "VUSA")
 
 DAY = date(2020, 1, 1)
 
@@ -22,8 +25,10 @@ def _verdict(seed: int, edge: float, trades: int = 40) -> Verdict:
     by the first rung's own rule."""
     rng = random.Random(seed)  # noqa: S311 - a repeatable test draw, not a secret
     back = [Decimal(f"{100 * (1 + rng.gauss(edge, 0.02)):.4f}") for _ in range(trades)]
-    priced = tuple(Priced(Trade(DAY, DAY), 1, Decimal(100), b, FREE, (DAY, DAY)) for b in back)
-    return rung.verdict(Key(Cell("breakout_20_10", "VUSA", DAY, DAY), "code", str(seed)), priced)
+    priced = tuple(
+        Priced(Trade(DAY, DAY), 1, Decimal(100), b, FREE, (DAY, DAY), None) for b in back
+    )
+    return rung.verdict(Key(Cell("breakout_20_10", VUSA, DAY, DAY), "code", str(seed)), priced)
 
 
 def test_the_chance_is_students_published_one() -> None:
@@ -40,6 +45,7 @@ def test_a_winner_is_corrected_for_every_trial_it_was_picked_from() -> None:
     assert winner.passed and winner.t is not None and Decimal("2.6") < winner.t < Decimal("2.7")
     (alone,) = luck.correct([winner], 0)
     assert alone.passed and alone.trials == 1 and alone.verdict is winner
+    assert alone.key == winner.key.rung("lab.luck") != winner.key
     assert alone.chance == alone.corrected == luck.tail(float(winner.t), 39) < 0.006
     #: the same winner picked from eight trials stands, and from nine does not: 5% is the line
     eight, nine = luck.correct([winner], 7)[0], luck.correct([winner], 8)[0]

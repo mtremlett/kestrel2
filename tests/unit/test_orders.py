@@ -56,6 +56,17 @@ def test_a_holding_is_a_fifth_of_the_capital_counted_at_what_the_line_controls()
             orders.size(_buy(PLAIN), PLAIN, Decimal(1), Decimal(1), TEN_K, full)
 
 
+def test_a_buy_is_refused_when_the_live_price_is_at_or_under_its_stop() -> None:
+    nvda = orders.size(_buy(DOLLAR), DOLLAR, Decimal("145.98"), Decimal("0.79"), TEN_K, {})
+    for live, gone in ((Decimal("130"), True), (nvda.stop, True), (Decimal("131.39"), False)):
+        order = replace(nvda, market=live)
+        if gone:
+            with pytest.raises(orders.Refused, match="emergency rule"):
+                orders.gate(order, TEN_K, {})
+        else:
+            orders.gate(order, TEN_K, {})
+
+
 def test_the_stop_sits_where_the_market_under_the_line_has_fallen_ten_percent() -> None:
     plain = orders.size(_buy(PLAIN), PLAIN, Decimal("50.25"), Decimal(1), TEN_K, {})
     stops = [
@@ -65,7 +76,25 @@ def test_the_stop_sits_where_the_market_under_the_line_has_fallen_ten_percent() 
     assert [plain.stop, *stops] == [Decimal("45.225"), Decimal("35.175"), Decimal("25.125")]
     with pytest.raises(ValueError, match="empties"):
         orders.size(_buy(PLAIN), replace(PLAIN, leverage=10), Decimal(10), Decimal(1), TEN_K, {})
+    assert orders.STOP_FALL / orders.HOLDINGS < orders.GAP_LOSS, "a gap may cost more than a stop"
     assert plain.order_id == "20251114-rule-P", "the same decision must make the same order"
+
+
+def test_a_gap_that_jumps_the_stop_is_held_against_the_loss_limit() -> None:
+    order = _order(PLAIN, 100, "100")  #: 10,000 pounds bought; capital 10,000, limit 500
+    assert orders.gap_loss(order, Decimal("96")) == 400 and not orders.gapped(
+        order, Decimal(96), TEN_K
+    )
+    assert orders.gapped(order, Decimal("94"), TEN_K), "600 pounds lost is over 5%"
+    assert orders.gap_loss(order, Decimal("105")) == 0, "a sale above the price loses nothing"
+
+
+def test_the_stop_of_a_fill_is_ten_percent_under_the_fill_not_the_signal_close() -> None:
+    signal = orders.size(_buy(PLAIN), PLAIN, Decimal("111.62"), Decimal(1), TEN_K, {})
+    assert signal.stop == Decimal("100.458"), "sizing stays on the signal close"
+    assert orders.stop_under(PLAIN, Decimal("104.92")) == Decimal("94.428"), "gap down"
+    assert orders.stop_under(PLAIN, Decimal("120")) == Decimal("108"), "gap up"
+    assert orders.stop_under(THREE_X, Decimal("100")) == Decimal("70")
 
 
 def test_every_cost_of_a_leg_is_charged_line_by_line_from_the_one_model() -> None:
@@ -117,6 +146,7 @@ def test_only_a_buy_for_its_own_line_is_sized_and_a_share_must_be_affordable() -
     for decision, line in ((sell, PLAIN), (_buy(DOLLAR), PLAIN)):
         with pytest.raises(ValueError, match="buy"):
             orders.size(decision, line, Decimal(10), Decimal(1), TEN_K, {})
+    assert orders.size(_buy(PLAIN), PLAIN, Decimal(10), Decimal(1), TEN_K, {}).session == ON
     with pytest.raises(orders.Refused, match="one share"):
         orders.size(_buy(PLAIN), PLAIN, Decimal(10), Decimal(1), orders.Settings(Decimal(60)), {})
     for line, fx in ((DOLLAR, "0"), (PLAIN, "0.8")):
@@ -141,3 +171,6 @@ def test_a_sale_passes_the_gate_only_for_shares_the_book_holds() -> None:
     with pytest.raises(ValueError, match="shares"):
         orders.Sale("s", PLAIN, 0)
     assert orders.strategy_of(orders.order_id_of(_buy(PLAIN))) == "rule"
+    for bad in ("", "garbage", "20261116-rule", "20261116--P"):
+        with pytest.raises(ValueError, match="no strategy can be read"):
+            orders.strategy_of(bad)

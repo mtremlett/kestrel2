@@ -98,6 +98,8 @@ class _Fickle:
     """A rule that answers by the toss of a coin, whatever it holds, and not always in the
     words a rule is allowed."""
 
+    declared = replace(strategy.STRATEGIES["rsi2_pullback"].declared, hold=None)
+
     def __init__(self) -> None:
         self._coin = random.Random(7)  # noqa: S311 - a repeatable test coin, not a secret
 
@@ -142,6 +144,15 @@ def test_rsi2_buys_a_deep_pullback_above_the_200_day_and_sells_over_the_5_day() 
     assert _trades("rsi2_pullback", bars) == [(202, Action.BUY), (204, Action.SELL)]
 
 
+def test_rsi2_buys_under_10_when_that_setting_is_given_and_not_otherwise() -> None:
+    #: day 201's RSI(2) is 9.1: under 10 buys that day, under the published 5 it waits a day
+    bars = _bars([100 + n for n in range(200)] + [300, 290, 280, 285, 300])
+    with pytest.MonkeyPatch.context() as only:
+        only.setattr(strategy, "STRATEGIES", {"rsi2_pullback": RULES["rsi2_pullback"]})
+        wide = strategy.decide({"X": bars}, {"rsi2_pullback": {"below": Decimal(10)}})
+    assert [n for n, d in enumerate(wide) if d.action is Action.BUY] == [201]
+
+
 def test_rsi2_never_buys_a_pullback_below_the_200_day() -> None:
     bars = _bars([400 - n for n in range(200)] + [190, 180, 170, 185, 200])
     assert _trades("rsi2_pullback", bars) == []
@@ -156,7 +167,7 @@ def test_the_rsi_and_the_lower_band_have_one_named_home_the_rules_trade_on(
     assert strategy.lower_band(Decimal("9.95"), Decimal("0.218")) == Decimal("9.514")
     #: shown another number at that name, each rule no longer makes the trade pinned above
     monkeypatch.setattr(strategy, "rsi", lambda _gain, _loss: Decimal(50))
-    monkeypatch.setattr(strategy, "lower_band", lambda mean, _deviation: mean - 5)
+    monkeypatch.setattr(strategy, "lower_band", lambda mean, *_: mean - 5)
     pullback = _bars([100 + n for n in range(200)] + [300, 290, 280, 285, 300])
     assert _trades("rsi2_pullback", pullback) == []
     assert _trades("bollinger_pullback", _bars([10] * 20 + [9, 9.5, 10.5])) == []
@@ -365,3 +376,20 @@ def test_each_strategy_moves_on_the_days_a_second_implementation_found() -> None
             ends = [*found[1::2], len(bars) - 1]  #: one still held is held to the last bar
             held = [sold - bought for bought, sold in zip(found[::2], ends, strict=False)]
             assert limit is None or max(held) <= limit, f"{name} outstays {limit} on {series}"
+
+
+def test_the_five_run_at_other_settings_and_refuse_what_they_do_not_have() -> None:
+    #: a 5-day breakout buys the new high of day 6 and sells under the 3 days' low, where the
+    #: published 20/10 has not yet 20 days to look back on
+    bars = _bars([10] * 5 + [11, 11, 8, 8])
+    one = {"breakout_20_10": {"entry": 5, "exit_length": 3}}
+    seen = [d for d in strategy.decide({"A": bars}, one) if d.strategy == "breakout_20_10"]
+    assert [d.action for d in seen if d.action is not Action.HOLD] == [Action.BUY, Action.SELL]
+    assert strategy.decide({"A": bars}, {"rsi2_pullback": {}}) == strategy.decide({"A": bars})
+    assert strategy.today({"A": bars[:6]}, {}, one) != strategy.today({"A": bars[:6]}, {})
+    with pytest.raises(ValueError, match="rules the desk does not have"):
+        strategy.decide({"A": bars}, {"nothing": {}})
+    with pytest.raises(ValueError, match="a window of 0"):
+        strategy.decide({"A": bars}, {"trend_50_200": {"slow": 0}})
+    with pytest.raises(TypeError):
+        strategy.decide({"A": bars}, {"trend_50_200": {"quick": 5}})

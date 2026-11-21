@@ -17,25 +17,50 @@ import sys
 from collections import Counter
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from decimal import Decimal
 from typing import BinaryIO, TypeVar
 
 from desk import book
+from desk.bars import Five
+from desk.broker import Disconnected
 from desk.lines import Line
 
 HOST, PORT = "127.0.0.1", 4002  #: the paper port on this machine: the only door the desk dials
-CLIENT = 222  #: the desk's own client id at the gateway (docs/DECISIONS.md)
+DESK = 222  #: the desk's own client id at the gateway (docs/DECISIONS.md)
 VERSION = "176"  #: the one version of the gateway's language the desk reads
-SECONDS = 15  #: a gateway silent for longer has not answered
+#: How long the knock and every conversation wait at each step; a gateway silent for longer has
+#: not answered. Measured 15 Nov 2026 (docs/DECISIONS.md, R-RUNNER-180): the knock 0.01 s and a
+#: whole account read 0.1 s warm, 0.14 and 0.18 s with 24 busy processes: 30 s is a hundredfold,
+#: and still well inside one five-minute step for a dead gateway.
+SECONDS = 30
+#: How long an order at the market is given to fill, in silence, once sent (desk/placing.py): it is
+#: cancelled and told as withdrawn only after this. Three market buys in London were cancelled at
+#: 30 s with nothing filled (16 Nov 08:06, 19 Nov 08:10 VHYG, 19 Nov 08:35 VUSA; the tape
+#: conformance/trades-london-20261119-0835.csv: 31 s sent to cancelled, none filled before or after
+#: the cancel, the same buy filled within a second at 09:36). The gateway keeps no API log of
+#: IBKR's own status times, so the fill time is not measured; 120 s is two minutes within one
+#: five-minute step, the cancel and the reads after it still inside it. Tune it from the tapes.
+FILL_SECONDS = 120
 #: The kinds of message, by the gateway's own numbers.
 ACCOUNTS, READY, NEWS, STATUS = "15", "9", "4", "3"
 HOLDING, HOLDINGS_END, ORDER, ORDERS_END = "61", "62", "5", "53"
 FILL, FEE = "11", "59"  #: a fill, and the broker's note of its fee (read in desk/reports.py)
-START, ASK_HOLDINGS, ASK_ORDERS = 71, 61, 16  #: what the desk sends: none places an order
+START, ASK_HOLDINGS, ASK_ORDERS, ASK_BARS = (
+    71,
+    61,
+    16,
+    20,
+)  #: what the desk sends: none places an order
+READ_ONLY = frozenset({START, ASK_HOLDINGS, ASK_ORDERS, ASK_BARS})  #: the fixed list of questions
+BARS = "17"  #: the answer to a question of bars: one message, the bars all in it
 UNASKED = "-1"  #: the number a fill carries when no question of the desk's asked for it
 #: News of the gateway's price feeds, which this door does not read; any other news stops
 #: it, that it cannot look lines up (2157) included: nothing it then says of a line is sound.
 FEEDS = frozenset({"2103", "2104", "2105", "2106", "2107", "2108", "2119", "2158"})
+#: News that the gateway's own link broke (1100, 2110, 2157): what it did with an order sent just
+#: before is unknown, so it is Disconnected, never a plain error (that turns the kill switch on).
+LINK = frozenset({"1100", "2110", "2157"})
 CANCELLED = "202"  #: its notice that an order was cancelled: news of an order, and no fault
 Send = Callable[[bytes], object]  #: what puts the desk's bytes on the connection
 PLAIN = re.compile("-?[0-9]+([.][0-9]+)?")  #: a number as the gateway writes one
@@ -115,6 +140,29 @@ class Account:
     orders: tuple[Resting, ...]
 
 
+@dataclass(frozen=True)
+class Apart:
+    """THE DESK'S SHARE of an account that conformance trades beside it: the holdings (by
+    Holding.name) the desk held when the run began, and the desk's own client's orders."""
+
+    holdings: frozenset[str]
+
+    def without(self, account: Account) -> Account:
+        """The account less the desk's share: what is left is the process's own to judge."""
+        orders = tuple(o for o in account.orders if o.client != str(DESK))
+        return Account(tuple(h for h in account.holdings if h.name not in self.holdings), orders)
+
+
+@dataclass(frozen=True)
+class Door:
+    """WHO A CONVERSATION WITH THE GATEWAY IS: the client id it starts as, and the desk's share
+    of the account, if the process has put one apart. Each caller builds its own and passes it
+    down with the connection, so two callers in one process never see each other's."""
+
+    client: int
+    apart: Apart | None = None
+
+
 def message(*fields: object) -> bytes:
     """One message for the gateway: its length, then each field ended by a zero byte."""
     body = "".join(f"{field}\0" for field in fields).encode()
@@ -147,6 +195,8 @@ def other(fields: list[str]) -> str:
     if kind == ACCOUNTS:
         for code in fields[2].split(","):
             only(code)
+    elif kind == NEWS and fields[3] in LINK:
+        raise Disconnected(f"the gateway says {fields[3]}: {fields[4]}")
     elif kind == NEWS and fields[3] != CANCELLED and fields[3] not in FEEDS:
         raise ConnectionError(f"the gateway says {fields[3]}: {fields[4]}")
     elif kind not in (NEWS, READY, STATUS, HOLDINGS_END, ORDERS_END, ORDER, FEE) and (
@@ -188,8 +238,8 @@ def _state(fields: list[str]) -> tuple[str, tuple[str, Decimal]]:
     return fields[6], (fields[2], number(fields[4], fields))
 
 
-def start(wire: BinaryIO, send: Send) -> int:
-    """Open a conversation: offer the one version, start as the desk's client, and read
+def start(wire: BinaryIO, send: Send, door: Door | None = None) -> int:
+    """Open a conversation: offer the one version, start as the door's client, and read
     until the gateway is ready and has named its accounts, all paper. Nothing is asked
     before. It gives the number the gateway, ready, takes this client's next order under."""
     offer = f"v{VERSION}".encode()
@@ -197,7 +247,7 @@ def start(wire: BinaryIO, send: Send) -> int:
     greeting = receive(wire)
     if len(greeting) != 2 or greeting[0] != VERSION:
         raise ValueError(f"the gateway greeted with {greeting}; the desk reads {VERSION} only")
-    send(message(START, 2, CLIENT, ""))
+    send(message(START, 2, (door or Door(DESK)).client, ""))
     told: dict[str, list[str]] = {}
     while not {ACCOUNTS, READY} <= told.keys():
         fields = receive(wire)
@@ -208,13 +258,13 @@ def start(wire: BinaryIO, send: Send) -> int:
     return int(ready[2])
 
 
-def converse(wire: BinaryIO, send: Send) -> Account:
+def converse(wire: BinaryIO, send: Send, door: Door | None = None) -> Account:
     """Read the account over an open connection: once it is started, ask for every holding
     and every open order, reading until the gateway says both lists are whole. Each order
     is then read with the state the broker last told of it, wherever in the answer it came.
     One told more than once is one order, by the broker's id for it, as last told: the gateway
     tells an order again, unasked, as it settles it (seen of a real stop, 14 November 2026)."""
-    start(wire, send)
+    start(wire, send, door)
     send(message(ASK_HOLDINGS, 1) + message(ASK_ORDERS, 1))
     holdings: list[Holding] = []
     orders: list[list[str]] = []
@@ -234,18 +284,66 @@ def converse(wire: BinaryIO, send: Send) -> Account:
     return Account(tuple(holdings), tuple(told.values()))
 
 
-def dial(talk: Callable[[BinaryIO, Send], T]) -> T:
-    """Hold one conversation with the gateway. It dials the paper port and no other."""
+def dial(talk: Callable[[BinaryIO, Send], T], seconds: float = SECONDS) -> T:
+    """Hold one conversation with the gateway, waiting seconds at each step for it to speak.
+    It dials the paper port and no other."""
     with (
-        socket.create_connection((HOST, PORT), timeout=SECONDS) as link,
+        socket.create_connection((HOST, PORT), timeout=seconds) as link,
         link.makefile("rb") as wire,
     ):
-        return talk(wire, link.sendall)
+        try:
+            return talk(wire, link.sendall)
+        except TimeoutError as silent:
+            name = getattr(talk, "__qualname__", repr(talk))
+            raise TimeoutError(f"{name} waited {seconds:g} s at each step: {silent}") from silent
 
 
-def read() -> Account:
-    """The paper account as the gateway gives it now."""
-    return dial(converse)
+def read(door: Door) -> Account:
+    """The paper account as the gateway gives it now, as the door's client; less the desk's
+    share if the door has put one apart."""
+    account = whole(door)
+    return account if door.apart is None else door.apart.without(account)
+
+
+def whole(door: Door | None = None) -> Account:
+    """The paper account as the gateway gives it now, every holding and every order."""
+    return dial(lambda wire, send: converse(wire, send, door))
+
+
+def _five(fields: list[str]) -> Five:
+    """One bar of an answer: the second it starts (UTC), open, high, low, close, volume, and
+    two fields the desk does not read (the average price, the trades). Prices are above nothing."""
+    start, *prices, volume = fields[:6]
+    opened, high, low, close = (number(price, fields) for price in prices)
+    if min(opened, high, low, close) <= 0 or not volume.isascii() or not volume.isdigit():
+        raise ValueError(f"a bar the desk cannot trust: {fields}")
+    at = datetime.fromtimestamp(int(number(start, fields)), UTC)
+    return Five(at, opened, high, low, close, int(volume))
+
+
+def newest(
+    line: Line, contract: str, route: str, count: int, door: Door | None = None
+) -> tuple[Five, ...]:
+    """THE READ-ONLY QUESTION OF BARS: the line's newest `count` five-minute bars (the last
+    may still be forming) as the paper gateway gives them, oldest first, trades only, outside
+    regular hours too. contract is the broker's number for the line (desk/listing.py), route
+    where it is priced. It places nothing, and it dials the paper port alone (`dial`)."""
+    if not 0 < count <= 288:
+        raise ValueError(f"{line.symbol}: {count} bars is not a day of five-minute bars or less")
+    asked = (contract, line.symbol, "STK", "", "0.0", "", "", route, "", line.currency, "", "", 0)
+    ask = message(ASK_BARS, 1, *asked, "", "5 mins", f"{count * 300} S", 0, "TRADES", 2, 0, "")
+
+    def talk(wire: BinaryIO, send: Send) -> tuple[Five, ...]:
+        start(wire, send, door)
+        send(ask)
+        while (fields := receive(wire))[:2] != [BARS, "1"]:
+            other(fields)
+        count = fields[4] if len(fields) > 4 else ""  # after the request's number and its span
+        if not (count.isascii() and count.isdigit()) or len(fields) != 5 + 8 * int(count):
+            raise ValueError(f"bars of a shape the desk does not read: {fields}")
+        return tuple(_five(fields[n : n + 6]) for n in range(5, len(fields), 8))
+
+    return dial(talk)
 
 
 def named(

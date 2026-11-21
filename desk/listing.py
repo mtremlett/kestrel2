@@ -91,8 +91,13 @@ class Unlisted:
 def _contracts(wire: BinaryIO, send: paper.Send, number: str, line: Line) -> list[list[str]] | str:
     """Every contract the broker lists under the line's name and currency, as it sent them;
     or its own words when it says it lists none."""
-    asked = (number, 0, line.symbol, "STK", "", "0.0", "", "", ROUTE, "", line.currency)
-    send(paper.message(ASK_LINE, 8, *asked, "", "", 0, "", "", ""))
+    #: from the instrument master: the venue's one exchange (none where it has two), the
+    #: currency and the ISIN, so the broker is never left to guess the line from its symbol
+    venue = EXCHANGES[line.venue]
+    primary = next(iter(venue)) if len(venue) == 1 else ""
+    kind, isin = ("ISIN", line.isin) if line.isin else ("", "")
+    asked = (number, 0, line.symbol, "STK", "", "0.0", "", "", ROUTE, primary, line.currency)
+    send(paper.message(ASK_LINE, 8, *asked, "", "", 0, kind, isin, ""))
     found: list[list[str]] = []
     while True:
         fields = paper.receive(wire)
@@ -153,19 +158,19 @@ def _listing(wire: BinaryIO, send: paper.Send, number: str, line: Line) -> Listi
 
 
 def converse(
-    wire: BinaryIO, send: paper.Send, lines: Iterable[Line]
+    wire: BinaryIO, send: paper.Send, lines: Iterable[Line], door: paper.Door | None = None
 ) -> dict[str, Listing | Unlisted]:
     """Ask over an open connection how the broker lists each line, one line at a time: the
     line, then the price steps where its orders will go."""
-    paper.start(wire, send)
+    paper.start(wire, send, door)
     return {
         line.symbol: _listing(wire, send, str(number), line) for number, line in enumerate(lines)
     }
 
 
-def read(lines: Iterable[Line]) -> dict[str, Listing | Unlisted]:
-    """Each line as the paper broker lists it now, by its symbol."""
-    return paper.dial(lambda wire, send: converse(wire, send, lines))
+def read(lines: Iterable[Line], door: paper.Door | None = None) -> dict[str, Listing | Unlisted]:
+    """Each line as the paper broker lists it now, by its symbol, asked as the door's client."""
+    return paper.dial(lambda wire, send: converse(wire, send, lines, door))
 
 
 KEPT = "listings"  #: the folder, under the desk's root, of the days' answers: one file a day
@@ -208,7 +213,9 @@ def _load(path: Path, lines: tuple[Line, ...]) -> dict[str, Listing | Unlisted] 
         raise ValueError(f"{path}: a kept listing the desk cannot read: {fault!r}") from fault
 
 
-def kept(root: Path, now: datetime, lines: Iterable[Line]) -> dict[str, Listing | Unlisted]:
+def kept(
+    root: Path, now: datetime, lines: Iterable[Line], door: paper.Door | None = None
+) -> dict[str, Listing | Unlisted]:
     """Each line as the broker lists it, asked of the broker once for the UTC day of now and
     kept whole in the desk's root; later steps of the day use the kept answer. A reading that
     fails keeps nothing, so the next step asks again."""
@@ -217,7 +224,7 @@ def kept(root: Path, now: datetime, lines: Iterable[Line]) -> dict[str, Listing 
     known = _load(path, wanted)
     if known is not None:
         return known
-    answer = read(wanted)
+    answer = read(wanted, door)
     path.parent.mkdir(parents=True, exist_ok=True)
     written = path.with_suffix(".tmp")
     written.write_text(json.dumps({k: _kept_row(v) for k, v in answer.items()}), encoding="utf-8")

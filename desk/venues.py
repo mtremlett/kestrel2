@@ -10,21 +10,36 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta, timezone
 from functools import cache
 
-KNOWN = range(2010, 2028)  #: the years whose closures below are complete
+HOURS_YEARS = range(2010, 2030)  #: the years whose hours below are complete
+#: The years whose closures below are complete: the daily history begins on 29 January 1993.
+SESSION_YEARS = range(1993, 2030)
 
 #: Closures no rule predicts: royal occasions, state funerals, a storm.
 EXTRA = {
     "LSE": {
+        date(1999, 12, 31),
+        date(2002, 6, 3),
         date(2011, 4, 29),
         date(2012, 6, 5),
         date(2022, 6, 3),
         date(2022, 9, 19),
         date(2023, 5, 8),
     },
-    "US": {date(2012, 10, 29), date(2012, 10, 30), date(2018, 12, 5), date(2025, 1, 9)},
+    "US": {
+        date(1994, 4, 27),
+        *(date(2001, 9, n) for n in range(11, 15)),
+        date(2004, 6, 11),
+        date(2007, 1, 2),
+        date(2012, 10, 29),
+        date(2012, 10, 30),
+        date(2018, 12, 5),
+        date(2025, 1, 9),
+    },
 }
 #: UK bank holidays moved by proclamation: the rule's day -> the day actually shut.
 MOVED = {
+    date(1995, 5, 1): date(1995, 5, 8),
+    date(2002, 5, 27): date(2002, 6, 4),
     date(2012, 5, 28): date(2012, 6, 4),
     date(2020, 5, 4): date(2020, 5, 8),
     date(2022, 5, 30): date(2022, 6, 2),
@@ -85,7 +100,10 @@ def _thanksgiving(year: int) -> date:
 
 def _us(year: int) -> set[date]:
     thanksgiving = _thanksgiving(year)
-    fixed = {_monday(year, 1, 3), _monday(year, 2, 3), _monday(year, 5, -1), _monday(year, 9, 1)}
+    fixed = {_monday(year, 2, 3), _monday(year, 5, -1), _monday(year, 9, 1)}
+    fixed |= (
+        {_monday(year, 1, 3)} if year >= 1998 else set()
+    )  #: Martin Luther King Day, first kept in 1998
     fixed |= {_easter(year) - timedelta(2), thanksgiving}
     #: A Saturday New Year falls back to the old year's 31 December, which is only ever looked
     #: up in the old year's own list, so the exchange stays open that day, as it does.
@@ -98,10 +116,10 @@ RULES: dict[str, Callable[[int], set[date]]] = {"LSE": _lse, "US": _us}
 
 @cache
 def _shut(venue: str, year: int) -> frozenset[date]:
-    if venue not in RULES or year not in KNOWN:
+    if venue not in RULES or year not in SESSION_YEARS:
         raise ValueError(
             f"no calendar for venue {venue!r} in {year}: known {sorted(RULES)}, "
-            f"{KNOWN.start}-{KNOWN.stop - 1}"
+            f"{SESSION_YEARS.start}-{SESSION_YEARS.stop - 1}"
         )
     extra = {day for day in EXTRA[venue] if day.year == year}
     return frozenset(RULES[venue](year) | extra)
@@ -191,6 +209,10 @@ def hours(venue: str, day: date) -> Hours:
     """The hours of the venue's session on a day; a day it does not trade has none."""
     if sessions(venue, day, day) != (day,):
         raise ValueError(f"{venue} does not trade on {day}: it has no hours")
+    if day.year not in HOURS_YEARS:
+        raise ValueError(
+            f"no hours for {venue} in {day.year}: known {HOURS_YEARS.start}-{HOURS_YEARS.stop - 1}"
+        )
     clock = CLOCKS[venue]
     early = day in clock.half_days(day.year)
     opens, close = (
@@ -210,3 +232,38 @@ def open_at(venue: str, moment: datetime) -> Hours | None:
         return None
     found = hours(venue, day)
     return found if found.open <= moment <= found.auction else None
+
+
+#: Scheduled central-bank decision days, as the banks publish them: the Fed for New York, the
+#: Bank of England for London. A year not listed is refused, never guessed.
+DECISIONS = {
+    ("US", 2026): "01-28 03-18 04-29 06-17 07-29 09-16 10-28 12-09",
+    ("LSE", 2026): "02-05 03-19 04-30 06-18 07-30 09-17 11-05 12-17",
+}
+BANKS = {"US": "FOMC", "LSE": "BoE"}
+
+
+def events(venue: str, day: date) -> tuple[str, ...]:
+    """The known market events of a venue's day: its central bank's decision, and an index
+    rebalance on the third Friday of March, June, September and December. Empty on a plain
+    day. A new entry into a day with any is the desk's to refuse."""
+    if (venue, day.year) not in DECISIONS:
+        raise ValueError(f"no events for venue {venue!r} in {day.year}: known {sorted(DECISIONS)}")
+    decided = {date(day.year, int(d[:2]), int(d[3:])) for d in DECISIONS[venue, day.year].split()}
+    first = date(day.year, day.month, 1)
+    third_friday = first + timedelta((4 - first.weekday()) % 7 + 14)
+    rebalance = day == third_friday and day.month % 3 == 0
+    return (BANKS[venue],) * (day in decided) + ("rebalance",) * rebalance
+
+
+def uk_time(moment: datetime) -> datetime:
+    """A moment on the UK wall clock: GMT, or BST from 01:00 UTC on March's last Sunday to
+    01:00 UTC on October's last Sunday. The change is by the moment, not the date."""
+    if moment.tzinfo is None:
+        raise ValueError(f"{moment} has no time zone: the UK clock cannot place it")
+    utc = moment.astimezone(UTC)
+    forward, back = (
+        datetime.combine(_sunday(date(utc.year, month, n)), time(1), UTC)
+        for month, n in CLOCKS["LSE"].summer
+    )
+    return utc.astimezone(timezone(timedelta(hours=forward <= utc < back)))

@@ -79,7 +79,7 @@ existing one, or becomes a check: the first desk forgot 56 lessons and 64 deny r
   suppression without a reason on the same line. Errors say what failed and with which
   ids.
 - Type annotations everywhere. Typed models instead of loose dictionaries.
-- Small units: functions under 50 lines, files under 400. Both are guarded.
+- Small units: functions under 50 lines, files under 800 (his ruling, 21 Nov). Both guarded.
 - Scripts only call into the package; no business logic lives in them.
 - Optimise only when a benchmark tied to a requirement shows the need.
 - Pin dependencies in `requirements.txt`, the one declared list. Add one only when it
@@ -125,6 +125,8 @@ against a deliberate violation before it is called a guard**, and the evidence â
 mistake, the test that caught it â€” is recorded in `docs/DECISIONS.md`. On the first day
 the guard that keeps this desk from live money passed green while doing nothing: it excused
 any file holding the word "never". **A whole-file escape hatch is not a guard.**
+**Rules reach a session by load, never by request:** CLAUDE.md's imports and the start-up
+hook carry them through every summary; "read this file" fades. What must never fail is a check.
 
 ## A8. Stop rules
 - **Two failed attempts at one problem: stop**, and never retry a failing command

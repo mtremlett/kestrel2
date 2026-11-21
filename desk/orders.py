@@ -6,26 +6,72 @@ ONE ROUNDING POLICY for what is published of it."""
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import astuple, dataclass, replace
+from dataclasses import astuple, dataclass, field, replace
+from datetime import date
 from decimal import ROUND_HALF_EVEN, Decimal
 from enum import Enum
 
 from desk.lines import Line
+from desk.orders_parts import (
+    BROKER as BROKER,
+)
+from desk.orders_parts import (
+    CONVERSION as CONVERSION,
+)
+from desk.orders_parts import (
+    FEES as FEES,
+)
+from desk.orders_parts import (
+    HALF_SPREAD as HALF_SPREAD,
+)
+from desk.orders_parts import (
+    SLIPPAGE as SLIPPAGE,
+)
+from desk.orders_parts import (
+    STOP_SLIPS as STOP_SLIPS,
+)
+from desk.orders_parts2 import MOVES_DAYS as MOVES_DAYS
+from desk.orders_parts2 import MOVES_FROM as MOVES_FROM
+from desk.orders_parts2 import Refused as Refused
+from desk.orders_parts2 import _apart, _within_limits, _within_underlying, daily_moves
+from desk.risk import Standing
 from desk.strategy import Action, Decision
+
+moves = daily_moves  #: the daily returns the correlation gate reads (orders_parts2)
 
 #: His ruling of 13 November 2026 (docs/DECISIONS.md): at most five holdings, each a fifth of
 #: the capital counted at what the line controls, and a stop where its market has fallen 10%.
 HOLDINGS = 5
 STOP_FALL = Decimal("0.10")
+#: STP-10, the one home (R-RUNGS-11, docs/DECISIONS.md): the most of the capital one holding may
+#: lose when a gap jumps its stop; the stop alone risks STOP_FALL / HOLDINGS of it (2%).
+GAP_LOSS = Decimal("0.05")
 
 
 @dataclass(frozen=True)
 class Settings:
     capital: Decimal  #: pounds the desk may use; nothing else holds this number
+    #: The loss and order-rate limits (R-RUNNER-156, docs/DECISIONS.md): a share of the capital
+    #: lost in a day or in a week, and the new lines entered in a day, each past which the gate
+    #: refuses a new entry.
+    day_loss: Decimal = Decimal("0.02")
+    week_loss: Decimal = Decimal("0.05")
+    new_lines: int = 4
+    #: R-RUNNER-158 (docs/DECISIONS.md): the most of the capital one underlying market may
+    #: control, a leveraged line counted at its exposure; past it the gate refuses a buy.
+    underlying: Decimal = Decimal("0.40")
+    #: The most two held lines' daily returns may move together (Pearson, -1 to 1): a buy
+    #: correlated past it with a line held is refused (canon B1, docs/DECISIONS.md); above 1 it
+    #: never refuses.
+    correlation: Decimal = Decimal("0.90")
 
     def __post_init__(self) -> None:
         if not self.capital.is_finite() or self.capital <= 0:
             raise ValueError(f"a capital of {self.capital} pounds")
+        if self.correlation <= 0:
+            raise ValueError(f"a correlation cap of {self.correlation}")
+        if not (0 < self.day_loss <= self.week_loss <= 1) or self.new_lines < 1:
+            raise ValueError(f"limits of {self.day_loss}, {self.week_loss} and {self.new_lines}")
 
 
 @dataclass(frozen=True)
@@ -39,6 +85,10 @@ class Order:
     price: Decimal  #: in the line's currency
     fx: Decimal  #: pounds per unit of the line's currency
     stop: Decimal
+    #: The session the order is dated (R-PAPER-35); None until every constructor sets it.
+    session: date | None = field(default=None, kw_only=True, compare=False)
+    #: The live price when the order is sent (R-RUNNER-407); None where none was read.
+    market: Decimal | None = field(default=None, kw_only=True, compare=False)
 
     def __post_init__(self) -> None:
         if self.quantity <= 0 or not 0 < self.stop < self.price:
@@ -56,15 +106,11 @@ class Sale:
     order_id: str
     line: Line
     quantity: int
+    session: date | None = field(default=None, compare=False)  #: as Order.session
 
     def __post_init__(self) -> None:
         if self.quantity <= 0:
             raise ValueError(f"sale {self.order_id}: needs shares to sell")
-
-
-class Refused(Exception):
-    """The desk refused an order before sending it, saying why: the pre-trade gate, or the
-    send path while the book is not the broker's."""
 
 
 class Leg(Enum):
@@ -107,96 +153,6 @@ def pennies(amount: Decimal) -> Decimal:
     return amount.quantize(Decimal("0.01"), ROUND_HALF_EVEN)
 
 
-@dataclass(frozen=True)
-class _Fee:
-    """A venue's commission, in the line's currency: per share plus a share of the value, no
-    less than a minimum, and no more than a share of the value where there is a cap. And a
-    sale's own cost, its regulators' fees: a share of the value, and an amount for each
-    share sold up to the most one sale pays."""
-
-    per_share: Decimal
-    of_value: Decimal
-    minimum: Decimal
-    cap: Decimal | None
-    sold_value: Decimal
-    sold_share: Decimal
-    sold_most: Decimal
-
-
-#: Interactive Brokers UK, fixed pricing, read from its published schedule on 13 November
-#: 2026. Dollars are bought by its automatic conversion: 0.03% on the rate, no commission.
-#: With every US sale it passes on the regulators' two fees: the SEC's 20.60 dollars a
-#: million sold (since 4 April 2026) and FINRA's 0.0195 cents a share, at most 9.79 dollars
-#: (its 2026 rate), each read in the regulator's own notice. A London sale pays nothing more.
-BROKER = "Interactive Brokers UK, fixed pricing (schedule read 13 November 2026)"
-FEES = {
-    "LSE": _Fee(Decimal(0), Decimal("0.0005"), Decimal(3), None, *(Decimal(0),) * 3),
-    "US": _Fee(
-        Decimal("0.005"),
-        Decimal(0),
-        Decimal(1),
-        Decimal("0.01"),
-        Decimal("0.0000206"),
-        Decimal("0.000195"),
-        Decimal("9.79"),
-    ),
-}
-CONVERSION = Decimal("0.0003")
-#: ASSUMED, not measured (docs/DECISIONS.md), until the paper account's own fills are set
-#: beside them: each leg loses a twentieth of one per cent of its value to half the spread
-#: and as much again to slippage, both times the line's leverage, since a line that moves
-#: that many times its market is quoted that much wider. A stop sells into a falling
-#: market, so its sale slips STOP_SLIPS times as far.
-HALF_SPREAD = SLIPPAGE = Decimal("0.0005")
-STOP_SLIPS = 3
-
-
-def size(
-    decision: Decision,
-    line: Line,
-    price: Decimal,
-    fx: Decimal,
-    settings: Settings,
-    held: Mapping[str, int],
-) -> Order:
-    """The most whole shares whose cost, with the shares of the line already held, fits the
-    line's room, and the stop, for a buy; fx is pounds per unit of the line's currency, and
-    held is the book (book.positions)."""
-    if decision.action is not Action.BUY or decision.symbol != line.symbol:
-        raise ValueError(f"{line.symbol}: only a buy for this line is sized, not {decision}")
-    if STOP_FALL * line.leverage >= 1:
-        raise ValueError(f"{line.symbol}: at {line.leverage} times, a 10% fall empties the line")
-    order_id = order_id_of(decision)
-    stop = price * (1 - STOP_FALL * line.leverage)
-
-    def order(quantity: int) -> Order:
-        return Order(order_id, line, quantity, price, fx, stop)
-
-    room, one = _room(line, settings), order(1)  #: one share proves the price, rate and stop
-    if cost(one) > room:
-        raise Refused(f"{order_id}: one share costs more than the room of {room} pounds")
-    fits, over = 1, int(room / (price * fx)) + 1
-    while over - fits > 1:  #: cost grows with the shares, so halve the gap until it closes
-        middle = (fits + over) // 2
-        fits, over = (middle, over) if cost(order(middle)) <= room else (fits, middle)
-    already = held.get(line.symbol, 0)
-    if fits <= already:
-        raise Refused(f"{order_id}: {already} shares held leave no room for more")
-    bought = order(fits - already)
-    gate(bought, settings, held)
-    return bought
-
-
-def order_id_of(decision: Decision) -> str:
-    """The id of the order a decision makes: its day, its strategy and its line."""
-    return f"{decision.day:%Y%m%d}-{decision.strategy}-{decision.symbol}"
-
-
-def strategy_of(order_id: str) -> str:
-    """The strategy whose decision made the order, or the stop it left."""
-    return order_id.split("-")[1]
-
-
 def leg_of(order_id: str, shares: int) -> Leg:
     """The leg a fill is, from the shares it added to the book and the id it carries: a
     stop's sale carries the id of the order that left the stop, with "-stop"."""
@@ -230,6 +186,75 @@ def charges(line: Line, leg: Leg, shares: int, price: Decimal, fx: Decimal) -> C
     )
 
 
+def stop_under(line: Line, price: Decimal) -> Decimal:
+    """THE STOP FOR A PRICE: where the line's market has fallen 10% from it. Sizing asks it at
+    the signal close; the stop a fill is to rest at is asked at the fill's price, so a gap
+    down puts it under the fill, never above it, and a gap up keeps it 10% under its own."""
+    if STOP_FALL * line.leverage >= 1:
+        raise ValueError(f"{line.symbol}: at {line.leverage} times, a 10% fall empties the line")
+    return price * (1 - STOP_FALL * line.leverage)
+
+
+def size(
+    decision: Decision,
+    line: Line,
+    price: Decimal,
+    fx: Decimal,
+    settings: Settings,
+    held: Mapping[str, int],
+) -> Order:
+    """The most whole shares whose cost, with the shares of the line already held, fits the
+    line's room, and the stop, for a buy; fx is pounds per unit of the line's currency, and
+    held is the book (book.positions)."""
+    if decision.action is not Action.BUY or decision.symbol != line.symbol:
+        raise ValueError(f"{line.symbol}: only a buy for this line is sized, not {decision}")
+    order_id = order_id_of(decision)
+    stop = stop_under(line, price)
+
+    def order(quantity: int) -> Order:
+        return Order(order_id, line, quantity, price, fx, stop, session=decision.day)
+
+    room, one = _room(line, settings), order(1)  #: one share proves the price, rate and stop
+    if cost(one) > room:
+        raise Refused(f"{order_id}: one share costs more than the room of {room} pounds")
+    fits, over = 1, int(room / (price * fx)) + 1
+    while over - fits > 1:  #: cost grows with the shares, so halve the gap until it closes
+        middle = (fits + over) // 2
+        fits, over = (middle, over) if cost(order(middle)) <= room else (fits, middle)
+    already = held.get(line.symbol, 0)
+    if fits <= already:
+        raise Refused(f"{order_id}: {already} shares held leave no room for more")
+    bought = order(fits - already)
+    gate(bought, settings, held)
+    return bought
+
+
+def gap_loss(order: Order, fill: Decimal) -> Decimal:
+    """STP-10: the pounds a stop's sale at `fill` loses against the order's price, charges
+    apart. A gap that jumps the stop sells below it, so this is more than the stop's own."""
+    return max(Decimal(0), (order.price - fill) * order.quantity * order.fx)
+
+
+def gapped(order: Order, fill: Decimal, settings: Settings) -> bool:
+    """Whether a stop's sale at `fill` lost more than GAP_LOSS of the capital: such a gap is
+    held against the limit, and the desk is to stand down (STP-10, SIZ-09: sizing at a fifth
+    of the capital over the leverage keeps a market gap of up to 25% inside it)."""
+    return gap_loss(order, fill) > GAP_LOSS * settings.capital
+
+
+def order_id_of(decision: Decision) -> str:
+    """The id of the order a decision makes: its day, its strategy and its line."""
+    return f"{decision.day:%Y%m%d}-{decision.strategy}-{decision.symbol}"
+
+
+def strategy_of(order_id: str) -> str:
+    """The strategy whose decision made the order, or the stop it left."""
+    parts = order_id.split("-")
+    if len(parts) < 3 or not all(parts[:3]):
+        raise ValueError(f"order id {order_id!r} is not day-strategy-line; no strategy can be read")
+    return parts[1]
+
+
 def cost(order: Order) -> Decimal:
     """The pounds the order takes at its price: its value, the broker's commission, the UK
     tax, and on a line not in pounds the conversion of them all. The spread and the slippage
@@ -239,11 +264,25 @@ def cost(order: Order) -> Decimal:
     return value + paid.commission + paid.currency + paid.uk_taxes
 
 
-def gate(order: Order | Sale, settings: Settings, held: Mapping[str, int]) -> None:
+def gate(
+    order: Order | Sale,
+    settings: Settings,
+    held: Mapping[str, int],
+    standing: Standing | None = None,
+    exposure: Mapping[str, Decimal] | None = None,
+    moves: Mapping[str, tuple[float, ...]] | None = None,
+) -> None:
     """The one pre-trade gate, on the send path: raises Refused, or lets the order through.
     held is the book (book.positions): a sale needs the shares in it, for the desk is long
     only; a new line needs one of the five holdings free, and a line's shares, held and
-    ordered, are counted together at the order's price and rate."""
+    ordered, are counted together at the order's price and rate. Given the book's standing
+    (risk.Standing), a buy is refused once a loss limit is reached, and a new line once the
+    day's new lines are used up; None checks neither (the send path does not yet give it). Given
+    the pounds the book controls per underlying (exposure), a buy is refused that would take
+    its underlying market over its share of the capital; None checks nothing. Given the daily
+    returns of the order's line and of the lines held, over the same days (moves, by symbol), a
+    buy is refused that moves with a held line above the settings' correlation; None checks
+    nothing, as does a line with no returns."""
     symbol = order.line.symbol
     if isinstance(order, Sale):
         if order.quantity > held.get(symbol, 0):
@@ -252,6 +291,13 @@ def gate(order: Order | Sale, settings: Settings, held: Mapping[str, int]) -> No
                 f"{held.get(symbol, 0)}: the desk is long only"
             )
         return
+    _above_stop(order)
+    if standing is not None:
+        _within_limits(order, settings, held, standing)
+    if exposure is not None:
+        _within_underlying(order, settings, exposure)
+    if moves is not None:
+        _apart(order, settings, held, moves)
     if symbol not in held and len(held) >= HOLDINGS:
         raise Refused(f"{order.order_id}: {len(held)} holdings already, at most {HOLDINGS}")
     whole = replace(order, quantity=order.quantity + held.get(symbol, 0))
@@ -260,6 +306,15 @@ def gate(order: Order | Sale, settings: Settings, held: Mapping[str, int]) -> No
             f"{order.order_id}: {cost(whole)} pounds for {whole.quantity} shares, counted "
             f"{order.line.leverage} times for what it controls, is over a fifth of the "
             f"capital of {settings.capital}"
+        )
+
+
+def _above_stop(order: Order) -> None:
+    """Refuses a buy whose live price is at or under its stop: it would be sold at once."""
+    if order.market is not None and order.market <= order.stop:
+        raise Refused(
+            f"{order.order_id}: the emergency rule: {order.line.symbol} trades at {order.market}, "
+            f"at or under the stop of {order.stop}; bought, it would be sold at once"
         )
 
 

@@ -79,6 +79,9 @@ class _Silent(io.BytesIO):
         return super().read(size)
 
 
+WAITS = list[float]()  #: how long the desk waited at each conversation of the last _gateway
+
+
 def _gateway(
     patch: pytest.MonkeyPatch, *answers: Sequence[Sequence[str]], silent: bool = False
 ) -> list[bytes]:
@@ -86,9 +89,11 @@ def _gateway(
     none after them; what the desk sent in each, after its greeting and its start. Its
     answer given, it hangs up; or, silent, says no more and does not."""
     left, sent = list(answers), list[bytes]()
+    WAITS.clear()
 
-    def dial(talk: Callable[[BinaryIO, paper.Send], object]) -> object:
+    def dial(talk: Callable[[BinaryIO, paper.Send], object], wait: float = paper.SECONDS) -> object:
         said: list[bytes] = []
+        WAITS.append(wait)
         wire = _wire(HELLO, ACCOUNTS, NEXT, *left.pop(0))
         try:
             return talk(_Silent(wire.getvalue()) if silent else wire, said.append)
@@ -233,8 +238,8 @@ def test_the_door_dials_the_paper_port_on_this_machine_and_no_other(
         return nullcontext(link)
 
     monkeypatch.setattr(socket, "create_connection", dial)
-    assert paper.read() == Account((SMGB,), ())
-    assert dialled == [("127.0.0.1", 4002), 15] and len(sent) == 3
+    assert paper.read(paper.Door(paper.DESK)) == Account((SMGB,), ())
+    assert dialled == [("127.0.0.1", 4002), paper.SECONDS] and len(sent) == 3
 
 
 def test_a_book_that_is_the_brokers_has_no_difference() -> None:
@@ -296,3 +301,72 @@ def test_each_entry_is_named_once_in_order_by_its_own_name_and_no_order_is() -> 
 def test_a_held_line_the_desk_was_not_given_is_refused() -> None:
     with pytest.raises(ValueError, match="XXXX"):
         paper.differences(Account((), ()), {"XXXX": 1}, LINES)
+
+
+def test_a_process_apart_from_the_desk_reads_the_account_less_the_desks_holdings_and_orders(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    desks, mine = (replace(AAPL_STOP, client=str(paper.DESK + n)) for n in (0, 1))
+    account = Account((SMGB, replace(SMGB, symbol="XYZ")), (desks, mine))
+    monkeypatch.setattr(paper, "dial", lambda _talk: account)
+    assert paper.read(paper.Door(paper.DESK)) == account  # every other door sees the whole
+    apart = paper.Door(paper.DESK + 1, paper.Apart(frozenset({SMGB.name})))
+    assert paper.read(apart) == Account((replace(SMGB, symbol="XYZ"),), (mine,))
+    assert paper.whole(apart) == account
+
+
+def test_the_newest_bars_are_asked_read_only_and_read_whole(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    at = 1_794_000_000  # a five-minute mark
+    bar = (str(at), "171.1", "171.6", "171.0", "171.5", "1200", "171.3", "40")
+    again = (str(at + 300), "171.5", "171.5", "171.2", "171.3", "90", "171.4", "6")
+    sent = _gateway(monkeypatch, [FEED, ("17", "1", "from", "to", "2", *bar, *again)])
+    got = paper.newest(Line("AAPL", "US", "USD", 1, NO_TAX), "265598", "SMART", 2)
+    assert [(b.start.timestamp(), b.close, b.volume) for b in got] == [
+        (at, Decimal("171.5"), 1200),
+        (at + 300, Decimal("171.3"), 90),
+    ]
+    # one message only, a question of bars (20), for 600 seconds: nothing places or cancels
+    told = sent[0][4:].decode().split(chr(0))
+    assert (paper.HOST, paper.PORT) == ("127.0.0.1", 4002) and int(told[0]) in paper.READ_ONLY
+    assert (
+        len(sent) == 1
+        and told[:3] == ["20", "1", "265598"]
+        and told[16:19]
+        == [
+            "5 mins",
+            "600 S",
+            "0",
+        ]
+    )
+
+
+@pytest.mark.parametrize(
+    "answer",
+    [
+        ("17", "1", "a", "b", "1", "1794000000", "171", "172", "170", "171", "1", "1"),  # short
+        ("17", "1", "a", "b", "1", "1794000000", "0", "172", "170", "171", "1", "1", "1"),
+        ("17", "1", "a", "b", "1", "1794000100", "171", "172", "170", "171", "1", "1", "1"),
+        ("4", "2", "1", "162", "Historical Market Data Service error"),
+    ],
+)
+def test_bars_the_desk_cannot_trust_stop_the_reading(
+    monkeypatch: pytest.MonkeyPatch, answer: Sequence[str]
+) -> None:
+    _gateway(monkeypatch, [answer])
+    with pytest.raises((ValueError, ConnectionError)):
+        paper.newest(Line("AAPL", "US", "USD", 1, NO_TAX), "265598", "SMART", 1)
+
+
+def test_a_wait_that_runs_out_names_the_call_and_its_seconds(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    link = SimpleNamespace(makefile=lambda _mode: nullcontext(None), sendall=print)
+    monkeypatch.setattr(socket, "create_connection", lambda *_a, **_k: nullcontext(link))
+
+    def silent(_wire: object, _send: object) -> None:
+        raise TimeoutError("timed out")
+
+    with pytest.raises(TimeoutError, match=r"silent waited 7 s at each step: timed out"):
+        paper.dial(silent, 7)

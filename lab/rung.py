@@ -1,74 +1,67 @@
 """rung - THE LADDER'S FIRST RUNG: does a strategy earn on a line after the broker's costs, by
 more than chance would give?
 
-A cell's trades (`lab/cell.py`) are priced as the desk trades: the rule decides after a day's
-close and the order fills at the next day's open, sized by the desk's own sizer from the one
-capital number, the line alone in the book. A trade is judged only once both its fills fall
-on bars the rule was shown: one still held, or sold on the window's last day, is not.
+A cell's trades (`lab/cell.py`) are priced as the desk trades: decided after a close, filled at the
+next open, sized by the desk's sizer from the one capital number, the line alone in the book.
+A trade is judged only once both fills fall on bars the rule was shown.
 
-ITS COSTS WHOLE. Each leg is charged by the desk's one cost model (`orders.charges`), as the
-desk's own book charges a round trip: the broker's commission, a sale's own fees, half the
-spread and the slippage on both legs (a stop's sale slips further), the conversion on a line
-not in pounds and the UK tax on a purchase. No cost is worked out here. Each fill is turned
-into pounds at its own day's rate of exchange, the order sized at the rate of the morning it
-is sent on, as the desk's day sizes it, so a dollar line's verdict carries the currency's gain
-or loss with the trade's own. A pound is a pound: a pound line reads no rate. A day whose
-rate is needed and is not given, or is not a number above nothing, is refused loudly, never
-filled in from another day. A sale whose morning opens at or under the resting stop is the
-stop's sale, as it is at the broker, and slips as one.
+ITS COSTS WHOLE, by the desk's one cost model (`orders.charges`), none worked out here: commission,
+a sale's fees, half the spread and slippage on both legs (a stop's sale slips further), the
+conversion on a line not in pounds and the UK tax on a purchase. Each fill is in pounds at its own
+day's rate, the order sized at the morning's, so a dollar line carries the currency's gain or
+loss; a pound line reads no rate. A day whose rate is needed and is missing or not above nothing
+is refused loudly. A sale whose morning opens at or under the resting stop is the stop's sale.
 
 The rung passes a strategy when it made at least MIN_TRADES judged trades and the mean of
 their returns after costs is at least T_PASS standard errors above nothing. Every verdict
 names the broker whose schedule priced it.
 
 FAILING FAIRLY (LAD-06, STR-12). A strategy is failed only by a test that could have passed
-it. Under MIN_TRADES judged trades there is not enough evidence: the answer is THIN, whatever
-the trades made or lost, and never a fail. No judged trade at all is a FAULT in the test (a
-window too short, the wrong bars, a rule that cannot fire there): it says nothing of the
-rule. And `judge` gives no verdict on code that is not the published rule
-(`lab/published.py`). Gains with no spread at all are still refused loudly, few or many.
+it. Under MIN_TRADES judged trades the answer is THIN, never a fail. No judged trade at all is a
+FAULT in the test: it says nothing of the rule. `judge` gives no verdict on code that is not the
+published rule (`lab/published.py`); gains with no spread at all are refused loudly.
 THE AUTHOR'S RESULT FIRST. A rule with an author's figure on file (`lab/reproduce.py`) is given
-no verdict until each figure's reproduction is handed over, made by the code as it now is and
-the same as the author's; the verdict carries them, each saying whether its figure is the
-author's own or a replication standing in for it. With none on file it carries none.
-The trades counted are the effective ones: each judged whole, and each a bet of its own,
-since a rule holds one position on a line at a time. Trades pooled across lines, where two
-held together are one bet, are counted here when pooling is built.
+no verdict until each figure's reproduction is handed over, made by the code as it now is; the
+verdict carries them. The trades counted are the effective ones: each judged whole, each its own
+bet, since a rule holds one position on a line at a time.
 """
 
 from __future__ import annotations
 
 import enum
+import hashlib
+import importlib
+import inspect
 import json
+import pkgutil
+import sys
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal, localcontext
 from pathlib import Path
+from types import ModuleType
 
 from desk import orders
 from desk.broker import Pretend
 from desk.lines import Line
 from desk.orders import Charges, Leg, Settings
+from desk.orders import Refused as Declined
 from desk.store import Bar
 from desk.strategy import ARITHMETIC, Action, Decision
 from lab import cell, published, reproduce
 from lab.cell import Cell, Key, Record, Trade
 from lab.reproduce import Reproduction
 
-#: His A-GATE (AG-01) asks for years of history; thirty trades is the fewest whose mean
-#: return a t-statistic can fairly judge, and two standard errors is the textbook bar.
+#: A-GATE (AG-01): thirty trades is the fewest a t-statistic can fairly judge; two errors the bar.
 MIN_TRADES = 30
 T_PASS = Decimal(2)
-#: Pounds per unit of a line's currency at each day: the day's rate, for the days it trades.
+#: Pounds per unit of a line's currency, for each day it trades.
 Rates = Mapping[date, Decimal]
 
 
 class Answer(enum.IntEnum):
-    """A rung's answer on a trial, and the ladder's. Where several are read together (the
-    folds of a history, the named rungs on one trial) the least is the one given: a fault
-    in the test before anything it seemed to show, and a fail on enough trades before what
-    too few could not settle."""
+    """A rung's answer. Read together (folds, rungs), the least is given: fault, fail, thin."""
 
     FAULT = 0  #: no trades at all: the test is at fault, and says nothing of the rule
     FAIL = 1  #: enough trades, and it did not earn
@@ -85,6 +78,8 @@ class Priced:
     received: Decimal  #: pounds their value brought at the sale's fill, at its own day's rate
     costs: Charges  #: every cost of both legs, line by line, from the desk's one cost model
     held: tuple[date, date]  #: the day its buy filled, and the day its sale did
+    #: the return had its stop sold it, with a stop's costs (G2); None for a hand-built trade
+    stopped: Decimal | None
 
     @property
     def gross(self) -> Decimal:
@@ -105,6 +100,19 @@ class Verdict:
     t: Decimal | None  #: the mean gain in standard errors; None under two trades
     answer: Answer  #: PASS, FAIL, THIN or FAULT: the first rung never answers DOUBT
     reproduced: tuple[Reproduction, ...]  #: the published results behind it, if on file
+    #: REFUSED: the desk's sizing declined a trade of the record (one share costs more than the
+    #: room); the words of its refusal. A judged outcome with no trades, never an error or a pass.
+    refusal: str | None = None
+
+    @property
+    def refused(self) -> bool:
+        """The desk's sizing declined the line at this capital: nothing was priced."""
+        return self.refusal is not None
+
+    @property
+    def gains(self) -> tuple[Decimal, ...]:
+        """For the standard errors: each judged gain and ONE MORE planted at a stop (G2)."""
+        return planted(self.trades)
 
     @property
     def passed(self) -> bool:
@@ -118,21 +126,29 @@ def judge(
     rates: Rates,
     reproduced: Sequence[Reproduction] = (),
 ) -> Verdict:
-    """The verdict on the record's trades, priced on the bars that made it, each fill at its
-    own day's rate of exchange; none before the reproductions its rule waits for."""
+    """The record's trades priced on the bars that made it; none before its reproductions."""
     published.proven(record.key.cell.strategy)
-    reproduce.settled(record.key.cell.strategy, reproduced)  #: before anything is priced
+    behind = reproduce.settled(record.key.cell.strategy, reproduced)  #: before anything is priced
     if cell.key(record.key.cell, bars) != record.key:
         raise ValueError(f"{record.key.cell}: these bars or this code did not make the record")
     read = cell.shown(record.key.cell, bars)
     at = {bar.day: n for n, bar in enumerate(read)}
     done = [t for t in record.trades if t.sold is not None and at[t.sold] + 1 < len(read)]
     with localcontext(ARITHMETIC):
-        return verdict(
-            record.key,
-            tuple(_price(record.key.cell, trade, read, at, settings, rates) for trade in done),
-            reproduced,
-        )
+        try:
+            priced = tuple(_price(record.key.cell, t, read, at, settings, rates) for t in done)
+        except Declined as error:  #: the one place the sizing's refusal is judged: as REFUSED
+            return Verdict(
+                record.key.rung(__name__), orders.BROKER, (), None, Answer.FAULT, behind, str(error)
+            )
+        return verdict(record.key, priced, reproduced)
+
+
+def planted(priced: Sequence[Priced]) -> tuple[Decimal, ...]:
+    """The gains of the judged trades and the one more that is planted among them (G2)."""
+    gains = tuple(p.gain for p in priced)
+    stops = [p.stopped for p in priced if p.stopped is not None]
+    return (*gains, min(stops)) if stops else gains
 
 
 def verdict(
@@ -142,12 +158,31 @@ def verdict(
     result is reproduced."""
     behind = reproduce.settled(key.cell.strategy, reproduced)
     with localcontext(ARITHMETIC):
-        t = standard_errors([p.gain for p in priced])
-    if t is None or len(priced) < MIN_TRADES:
-        answer = Answer.THIN if priced else Answer.FAULT
-    else:
-        answer = Answer.PASS if t >= T_PASS else Answer.FAIL
-    return Verdict(key, orders.BROKER, priced, t, answer, behind)
+        t = standard_errors(planted(priced)) if len(priced) > 1 else None
+    return Verdict(key.rung(__name__), orders.BROKER, priced, t, decide(len(priced), t), behind)
+
+
+def decide(trades: int, t: Decimal | None) -> Answer:
+    """The first rung's one rule, wherever gains are judged: FAULT for none, THIN, PASS, FAIL."""
+    if not trades:
+        return Answer.FAULT
+    if t is None or trades < MIN_TRADES:
+        return Answer.THIN
+    return Answer.PASS if t >= T_PASS else Answer.FAIL
+
+
+def band(t: Decimal | float) -> Answer:
+    """The three-band rule of t, wherever a judged t has a missing middle: PASS at T_PASS standard
+    errors above nothing, FAIL at that far below, DOUBT between (LAD-08)."""
+    if t >= T_PASS:
+        return Answer.PASS
+    return Answer.FAIL if t <= -T_PASS else Answer.DOUBT
+
+
+def standing(answer: Answer, t: Decimal | None) -> tuple[Answer, bool, Decimal | int]:
+    """The sort key of "worst fold", wherever folds are judged: the worst answer, then the lowest
+    t, a missing t lowest of all; `min` over it gives the fold judged on, the older of equals."""
+    return answer, t is not None, t or 0
 
 
 def _price(
@@ -162,9 +197,9 @@ def _price(
     pretend broker, where its stop rests; sold by the stop, or at the open after the sell.
     Each leg's value and its every cost in pounds at its own day's rate."""
     if trade.sold is None:
-        raise ValueError(f"{c.symbol}, bought {trade.bought}: still held, so it has no price")
+        raise ValueError(f"{c.line.symbol}, bought {trade.bought}: still held, so it has no price")
     line, decided, out = c.line, at[trade.bought], at[trade.sold] + 1
-    decision = Decision(c.strategy, c.symbol, trade.bought, Action.BUY)
+    decision = Decision(c.strategy, c.line.symbol, trade.bought, Action.BUY)
     held = read[decided + 1 : out]
     sized_at = rate(line, rates, held[0].day)
     order = orders.size(decision, line, read[decided].close, sized_at, settings, {})
@@ -181,7 +216,11 @@ def _price(
         sale = (Leg.STOP if gapped else Leg.SALE, read[out].open, read[out].day)
     paid, buying = _leg(line, rates, order.quantity, Leg.BUY, bought.price, bought.day)
     received, selling = _leg(line, rates, order.quantity, *sale)
-    return Priced(trade, order.quantity, paid, received, buying + selling, (bought.day, sale[2]))
+    at_stop, stopping = _leg(line, rates, order.quantity, Leg.STOP, order.stop, sale[2])
+    ifstopped = (at_stop - paid - (buying + stopping).total) / paid
+    return Priced(
+        trade, order.quantity, paid, received, buying + selling, (bought.day, sale[2]), ifstopped
+    )
 
 
 def _leg(
@@ -204,17 +243,30 @@ def rate(line: Line, rates: Rates, day: date) -> Decimal:
     return given
 
 
-def standard_errors(gains: Sequence[Decimal]) -> Decimal | None:
-    """The mean in standard errors, the sample's own deviation estimating the spread; None
-    under two gains."""
-    n = len(gains)
-    if n < 2:
+def mean_and_error(gains: Sequence[Decimal]) -> tuple[Decimal, Decimal] | None:
+    """The mean and its standard error (sample deviation); None under two gains."""
+    if (n := len(gains)) < 2:
         return None
     mean = sum(gains, Decimal(0)) / n
     spread = sum(((g - mean) ** 2 for g in gains), Decimal(0)) / (n - 1)
     if not spread:
         raise ValueError(f"{n} gains all of {mean}: no spread to judge them by")
-    return mean / (spread / n).sqrt()
+    return mean, (spread / n).sqrt()
+
+
+def standard_errors(gains: Sequence[Decimal]) -> Decimal | None:
+    """The mean in standard errors; None under two gains."""
+    return None if (found := mean_and_error(gains)) is None else found[0] / found[1]
+
+
+def interval(gains: Sequence[Decimal]) -> tuple[Decimal, Decimal, Decimal]:
+    """The mean and its interval, T_PASS standard errors either side; at least two gains, with a
+    spread."""
+    with localcontext(ARITHMETIC):
+        if (found := mean_and_error(gains)) is None:
+            raise ValueError(f"{len(gains)} gains: an interval needs two")
+        mean, error = found
+        return mean, mean - T_PASS * error, mean + T_PASS * error
 
 
 def kept_closes(
@@ -234,3 +286,40 @@ def kept_closes(
         (fresh := table.with_suffix(".new")).write_text("\n".join(lines) + "\n", encoding="utf-8")
         fresh.replace(table)
     return held
+
+
+@dataclass(frozen=True)
+class Rung:
+    """A rung as its module declares it, in `RUNG`: its name, its bar in words, and its one
+    judging function, which reads the first rung's verdict (the priced trades) and answers."""
+
+    name: str
+    bar: str
+    judge: Callable[[Verdict], tuple[Answer, str]]
+
+    @property
+    def code(self) -> str:
+        """sha256 of the declaring module's text: part of a cell's key, so a changed rung is
+        judged again."""
+        text = inspect.getsource(sys.modules[self.judge.__module__])
+        return hashlib.sha256(text.encode()).hexdigest()
+
+
+def found(package: str = "lab") -> tuple[tuple[Rung, ...], tuple[str, ...]]:
+    """The rungs the package's `rung_*` modules declare, by name order, and the names of those
+    that declare none (still wired by hand). A new rung needs no edit of the ladder."""
+    root = importlib.import_module(package)
+    modules: list[ModuleType] = [
+        importlib.import_module(f"{package}.{m.name}")
+        for m in sorted(pkgutil.iter_modules(root.__path__), key=lambda m: m.name)
+        if m.name.startswith("rung_")
+    ]
+    declared = [(m, getattr(m, "RUNG", None)) for m in modules]
+    for m, one in declared:
+        if one is not None and not isinstance(one, Rung):
+            raise TypeError(f"{m.__name__}.RUNG is not a rung.Rung: {one!r}")
+    rungs = tuple(one for _, one in declared if one is not None)
+    names = [one.name for one in rungs]
+    if len(set(names)) != len(names):
+        raise ValueError(f"two rung modules declare the same rung name: {sorted(names)}")
+    return rungs, tuple(m.__name__ for m, one in declared if one is None)

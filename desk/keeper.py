@@ -1,153 +1,205 @@
-"""keeper - THE STORE'S KEEPER: one command, `python -m desk.keeper`, that does whatever the
-store is owed at the moment it is called, and ends. The runner calls it every five minutes
-of a weekday. It reads the calendars itself: on a day no venue trades it ends at once, and
-well, having asked nothing, unless the store does not hold the bars before its venues' next
-sessions (it was never filled, or an evening was missed): those are then asked for, once.
+"""keeper - THE STORE'S KEEPER: one command, `python -m desk.keeper`, that does whatever the store
+is owed when called, and ends; the runner calls it every five minutes of a weekday. On a day no
+venue trades it ends at once, unless the store lacks bars before a venue's next session.
 
-Two things are owed on a trading day, each venue's on its own calendar.
+THE DAILY BARS of a venue's lines, cleaned by the one store, at the first call before any open and
+once its session is over and SETTLED has passed (`target`). IBKR is asked first, ROOM lines a call
+(`history.daily`, R-RUNNER-276, his ruling of 17 November); the archive fills what it gives none,
+each line's newest bar named by its source, a close the two differ on recorded and the broker's
+held. A record says what was held and who is parked; the door (`saved`) reads no bars it does not
+cover. A line refused, or the broker not asked, is asked again; one parked, for TRIES calls.
 
-THE DAILY BARS of a venue's lines, asked of the archive whole and cleaned by the one store,
-twice: at the day's first call, before any open, for the day about to trade; and again once
-the venue's session is over and SETTLED has passed (`target`), so that the day's closes are
-held that evening and the day's record can be made. The evening's bars are asked again in
-the morning, for an archive restates a close overnight. What was last held, for which day,
-and who is parked is a record beside the bars, and the door (`saved`) reads no bars it does
-not cover.
-
-A line the archive would not answer for is asked again at every call. Asked for a day the
-store already holds, it keeps the bars and the standing it has; asked for a new day it is
-parked alone, with no bars, for bars a day short are not that day's. A line parked for a
-fault in its bars is asked again for TRIES calls and then left for the next refresh, unless
-no line of its venue is clean: then it is asked at every call.
-
-THE FIVE-MINUTE ROUND, at every call from a venue's open until SETTLED after its closing
-auction, for the archive shows a session's last bars late: its lines' bars of the last
-RECENT, through the fast store's checks, so a round missed heals at the next.
-
-A call that left a venue with no line answered, or with no line clean, is a miss: the
-command says so and ends with 1. One call asks the archive for SPENT seconds and no longer;
-a line not reached by then is refused as any other."""
+THE FIVE-MINUTE ROUND, in each venue's hours, comes from IBKR's paper gateway alone (`live`); the
+archive only fills past gaps. THE REFERENCE SERIES (SPY, the pound in dollars) are kept once a day
+after the US close. A venue with no line answered or clean is a miss (exit 1), as is a line whose
+newest daily bar is older than its venue's last settled session (`stale`)."""
 
 from __future__ import annotations
 
-import json
+import hashlib
 import os
 import sys
 import time
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
+from decimal import Decimal
+from functools import partial
 from pathlib import Path
 from typing import TypeVar
 
-from desk import archive, bars, store, venues
+from desk import archive, bars, carry, history, keeper_live, keeper_receipt, live, store, venues
 from desk.bars import Five
-from desk.lines import LINES, Line
-from desk.store import Bar, Refused
+from desk.keeper_rotate import Kept, order
+from desk.keeper_rotate import load as _kept
+from desk.keeper_rotate import record as _record
+from desk.lines import ADJUSTED, DOLLARS, LINES, POUND, REFERENCE, YARDSTICK, Line
+from desk.store import Bar, Parked, Refused
+from desk.store_scope import judge as scoped_judge
 
-DAILY, HOT = "daily", "bars.db"  #: in the data folder: the daily store's folder, the fast store
-RECORD = "kept.json"  #: in each venue's folder of the daily store: its last refresh
-#: How long after a venue's closing auction its day's bar is asked for: the archive shows
-#: London a quarter of an hour late, and an official close is printed minutes after its bell.
+#: In the data folder: each venue's record of its last refresh (no prices), and the short database.
+DAILY, HOT = "daily", bars.LIVE
+MARKS = "reference"  #: beside a venue's record, the day each reference series was last kept
+#: THE STORE RULES' VERSION (a hash of desk/store.py): a record of another is cleaned again.
+RULES = hashlib.sha256(Path(store.__file__).read_bytes().replace(b"\r\n", b"\n")).hexdigest()
 SETTLED = timedelta(minutes=30)
-#: THE FIGURE THE DAY'S RECORD WAITS ON: by this long after a venue's closing auction its
-#: day's closes are held, if the archive answers at the first call: the first call after SETTLED
-#: (the runner calls every five minutes) and that call's four minutes. `target` turns to the next
-#: day at SETTLED itself.
-HELD = SETTLED + timedelta(minutes=5 + 4)
-TRIES = 6  #: the calls at which a line parked for a fault is asked again: half an hour's
-RECENT = timedelta(days=7)  #: how far back a five-minute round asks: the week kept hot
-#: The seconds of one call in which the archive is still asked: an answer then waited for
-#: its thirty seconds, and the bars written, still end within the runner's four minutes.
-SPENT = 150.0
+HELD = SETTLED + timedelta(minutes=5 + 4)  #: by this long after the auction the closes are held
+LATE = timedelta(minutes=15)  #: a line's five-minute bars are late, and it is parked, after this
+ROOM = 6  #: lines one call asks the broker for, per venue: at its pacing, two venues fit in SPENT
+TRIES = 6  #: the calls at which a line parked for a fault is asked again (half an hour)
+SPENT = 150.0  #: seconds of a call in which the archive is still asked (runner: 240)
 DAY = timedelta(days=1)
+ANCIENT = partial(archive.fetch, since=archive.REFERENCE_SINCE)  #: the reference series
 When = TypeVar("When")
 Read = TypeVar("Read")
 Ask = Callable[[Line, When], Read]
+#: The broker's daily bars for lines before a day: the store's first source (R-RUNNER-189).
+Broker = Callable[[Sequence[Line], date], Mapping[Line, store.Answer]]
 
 
 class Stale(LookupError):
-    """The daily store does not hold what was asked of it: a venue never refreshed, or one
-    with a session since its last refresh."""
-
-
-@dataclass(frozen=True)
-class Kept:
-    """A venue's last refresh of its daily bars, as its record keeps it."""
-
-    day: date  #: the day it readied: every session of the venue before it was asked for
-    at: datetime  #: when the archive was last asked
-    tries: int  #: how many calls have asked for this day on this date
-    parked: Mapping[str, str]  #: each parked line's symbol, and why
-    refused: frozenset[str]  #: those of them the archive would not answer for
-
-
-def _kept(folder: Path) -> Kept | None:
-    """A venue's record, read on entry; none before its first refresh."""
-    if not (folder / RECORD).is_file():
-        return None
-    said = json.loads((folder / RECORD).read_text(encoding="utf-8"))
-    day, at = date.fromisoformat(said["day"]), datetime.fromisoformat(said["at"])
-    return Kept(day, at, int(said["tries"]), dict(said["parked"]), frozenset(said["refused"]))
-
-
-def _record(folder: Path, kept: Kept) -> None:
-    """The record written whole, then swapped in, after the bars it speaks of."""
-    said = {"day": kept.day.isoformat(), "at": kept.at.isoformat(), "tries": kept.tries}
-    said |= {"parked": dict(kept.parked), "refused": sorted(kept.refused)}
-    part = folder / f"{RECORD}.part"
-    part.write_text(json.dumps(said, indent=1), encoding="utf-8")
-    part.replace(folder / RECORD)
-
-
-def _symbol(line: Line) -> str:
-    return line.symbol
+    """The daily store lacks what was asked: a venue never refreshed, or a session since."""
 
 
 def target(venue: str, now: datetime) -> date:
-    """The day a venue's daily bars are readied for at a moment: today, until its session is
-    over and SETTLED has passed; from then, and all through a day it does not trade, tomorrow."""
+    """The day a venue's bars are readied for: today until its session is over and SETTLED has
+    passed, else tomorrow."""
     day = now.date()
     trades = venues.sessions(venue, day, day) == (day,)
-    if trades and now < venues.hours(venue, day).auction + SETTLED:
-        return day
-    return day + DAY
+    return day if trades and now < venues.hours(venue, day).auction + SETTLED else day + DAY
 
 
 def _short(venue: str, last: Kept | None, day: date) -> bool:
-    """The venue's last refresh does not hold every session before a day: there was none, or
-    the venue has traded since the day it readied."""
+    """The venue's last refresh lacks a session before a day: none was made, or it traded since."""
     return last is None or bool(venues.sessions(venue, last.day, day - DAY))
 
 
+def _shelf(folder: Path, line: Line) -> tuple[Bar, ...] | None:
+    """The older bars the head start shelved for a line; none if none."""
+    try:
+        return store.read(folder / store.HISTORY, line.symbol)
+    except FileNotFoundError:
+        return None  # a line the head start never shelved
+
+
+def pound_closes(hot: Path) -> store.Rates:
+    """The pound's closes in dollars held (R-RUNGS-16): a bar in dollars is told from a move."""
+    try:
+        held = bars.daily(hot, POUND)
+    except (LookupError, FileNotFoundError):  # never kept: no close is held
+        held = ()
+    return {bar.day: bar.close for bar in held if DOLLARS[0] < bar.close < DOLLARS[1]}
+
+
+def _source(kept: Sequence[Bar], answer: store.Answer, broker: store.Answer | None) -> str:
+    """Who gave a line's newest kept bar: the broker, else the archive (and why not the broker)."""
+    gave = [{b.day for b in a} if isinstance(a, list | tuple) else None for a in (broker, answer)]
+    day = kept[-1].day if kept else None
+    if day in (gave[0] or ()):
+        return "IBKR"
+    why = "not asked" if gave[0] is None else "gave none"
+    return f"archive (IBKR {why})" if day in (gave[1] or ()) else "the shelf, or none"
+
+
+def _dropped(kept: Sequence[Bar], *answers: store.Answer | None) -> set[date]:
+    """The days the answers gave that the judge did not keep: withdrawn, never deleted."""
+    given = {b.day for a in answers if not isinstance(a, Refused | None) for b in a}
+    return given - {b.day for b in kept}
+
+
+def _standing(hot: Path, line: Line, day: date, broker: store.Answer | None) -> store.Answer | None:
+    """The bars that stand first for a line: the broker's if it gave any this call, else the days
+    of its window the store already holds, so a call that did not ask the broker leaves its bars
+    as they are and the archive restates none (R-RUNNER-341)."""
+    if isinstance(broker, list | tuple):
+        return broker
+    try:
+        return tuple(b for b in bars.daily(hot, line) if b.day >= day - history.RECENT) or broker
+    except (LookupError, FileNotFoundError):
+        return broker  # the line was never kept: nothing stands over the archive
+
+
+def _kept_in(
+    hot: Path,
+    folder: Path,
+    answers: Mapping[Line, store.Answer],
+    day: date,
+    first: Mapping[Line, store.Answer],
+    standing: bool = True,
+) -> tuple[list[Parked], tuple[str, ...]]:
+    """The answers judged by the one store and kept as one round, whole; the lines parked, and in
+    words each source of a newest bar and each close the broker and the archive differ on."""
+    parked, rates, named, said = [], pound_closes(hot), dict[str, list[str]](), []
+    with bars.writing(hot) as round_:
+        for line, answer in answers.items():
+            broker = first.get(line)
+            shelf = bars.bridged(hot, line, day, _shelf(folder, line), answer, broker)
+            stands = _standing(hot, line, day, broker) if standing else broker
+            kept, faults, park = scoped_judge(line, answer, day, rates, shelf=shelf, broker=stands)
+            round_.daily(line, kept, withdrawn=_dropped(kept, answer, broker))
+            parked += [park] if park else []
+            named.setdefault(_source(kept, answer, broker), []).append(line.symbol)
+            said += [f"{line.symbol}: {f.what}, held" for f in faults if "(broker)" in f.what]
+    return parked, (*(f"newest bar from {k}: {', '.join(v)}" for k, v in named.items()), *said)
+
+
+def _due(last: Kept | None, lines: Sequence[Line], now: datetime) -> tuple[list[Line], int]:
+    """The lines asked on this call, and its number: all on a first call of a date, else those
+    refused, not asked, or parked (a parked one for TRIES calls)."""
+    if last is None or last.at.date() != now.date():
+        return list(lines), 1
+    again = last.refused
+    if last.tries < TRIES or len(last.parked) == len(lines):  # as a parked line: TRIES calls
+        again |= last.unasked | set(last.parked)
+    return [line for line in lines if line.symbol in again], last.tries + 1
+
+
 def _refresh(
-    folder: Path, lines: Sequence[Line], now: datetime, ask: Ask[date, tuple[Bar, ...]], idle: bool
+    hot: Path,
+    folder: Path,
+    lines: Sequence[Line],
+    now: datetime,
+    ask: Ask[date, tuple[Bar, ...]],
+    idle: bool,
+    broker: Broker | None = None,
 ) -> Kept | None:
-    """A venue's daily bars refreshed as far as they are owed at now, and the record of it;
-    None when nothing was owed, and nothing asked. On an idle day, when no venue trades,
-    only what the store does not yet hold is owed: bars before the next session, a refused
-    line, and every line of a venue none of whose lines is clean. A day the store already
-    holds is any whose sessions before it are all in the last refresh, across a weekend too."""
+    """A venue's daily bars refreshed as far as owed, and the record; None when nothing was owed."""
     readied, last = target(lines[0].venue, now), _kept(folder)
+    if last is not None and last.rules != RULES:
+        last = None  # kept under other store rules: cleaned again whole, as a first refresh
     same = last is not None and not _short(lines[0].venue, last, readied)
     if idle and same and last and not last.refused and len(last.parked) < len(lines):
         return None
     before = dict(last.parked) if last is not None and same else {}
-    if last is None or not same or last.at.date() != now.date():
-        asked, tries = list(lines), 1
-    else:
-        blind = len(last.parked) == len(lines)
-        again = last.refused | (set(last.parked) if last.tries < TRIES or blind else set())
-        asked, tries = [line for line in lines if line.symbol in again], last.tries + 1
+    asked, tries = _due(last if same else None, lines, now)
     if not asked:
         return None
     answers = archive.gather(asked, readied, ask)
-    refused = {line.symbol for line, answer in answers.items() if isinstance(answer, Refused)}
+    ordered = order(asked, last.tried if last and same else ())
+    first = (
+        broker(ordered[:ROOM], readied) if broker else {}
+    )  # IBKR first, the yardstick before all
+    heard = {ln for ln, got in first.items() if isinstance(got, list | tuple)}
+    unasked = frozenset(ln.symbol for ln in asked if broker and ln not in heard)
+    refused = {ln.symbol for ln, a in answers.items() if isinstance(a, Refused) and ln not in heard}
     given = {line: answer for line, answer in answers.items() if line.symbol not in refused}
-    found = store.prepare(folder, given if same else answers, readied)
-    parked = {symbol: why for symbol, why in before.items() if symbol not in map(_symbol, given)}
+    found, notes = _kept_in(
+        hot, folder, given if same else answers, readied, first, last is not None
+    )
+    parked = {
+        symbol: why for symbol, why in before.items() if symbol not in {ln.symbol for ln in given}
+    }
     parked |= {line.symbol: line.reason for line in found}
-    kept = Kept(readied, now, tries, parked, frozenset(refused))
+    kept = Kept(
+        readied,
+        now,
+        tries,
+        parked,
+        frozenset(refused),
+        RULES,
+        unasked,
+        frozenset(ln.symbol for ln in first),
+        notes if broker else (),
+    )
     _record(folder, kept)
     return kept
 
@@ -155,28 +207,104 @@ def _refresh(
 def saved(
     home: Path, day: date, lines: Sequence[Line] = LINES
 ) -> tuple[dict[Line, tuple[Bar, ...]], frozenset[str]]:
-    """THE PRICE STORE'S DOOR: every line's daily bars before a day, as last refreshed, and
-    the symbols of the lines parked. A line whose venue has had a session before that day
-    which its last refresh did not ask for is refused (Stale), never read a day short."""
+    """THE PRICE STORE'S DOOR: every line's daily bars before a day, as last refreshed, and the
+    symbols parked. A venue with a session its last refresh did not ask for is Stale."""
     held: dict[Line, tuple[Bar, ...]] = {}
     parked: set[str] = set()
     for line in lines:
-        folder = home / DAILY / line.venue
-        last = _kept(folder)
+        last = _kept(home / DAILY / line.venue)
         if last is None or _short(line.venue, last, day):
             had = "never refreshed" if last is None else f"last readied for {last.day}"
             raise Stale(f"{line.symbol}: no {line.venue} bars before {day} are held: {had}")
-        held[line] = tuple(bar for bar in store.read(folder, line.symbol) if bar.day < day)
+        try:
+            held[line] = tuple(bar for bar in bars.daily(home / HOT, line) if bar.day < day)
+        except (LookupError, FileNotFoundError) as e:  # never held, or no round has landed
+            raise Stale(f"{line.symbol}: the long database holds no {line.venue} bars: {e}") from e
         parked |= {line.symbol} & set(last.parked)
     return held, frozenset(parked)
 
 
-def _recent(line: Line, now: datetime) -> tuple[Five, ...]:
-    return archive.fetch_five(line, now, RECENT)
+def pound(home: Path, day: date) -> Decimal:
+    """THE DAY'S POUNDS PER DOLLAR from the closes kept (desk.carry's rule); Stale if none."""
+    closes = pound_closes(home / HOT)
+    last = venues.sessions("LSE", day - 10 * DAY, day - DAY)[-1:]
+    known = {d: r for d in (day, *last) if (r := carry.pounds_per_dollar(closes, d))}
+    if (rate := carry.carried(known, day)) is None:
+        raise Stale(f"no pound in dollars is held fresh for {day}: {len(closes)} closes kept")
+    return rate
+
+
+def _reference(
+    home: Path, now: datetime, ask: Ask[date, tuple[Bar, ...]], series: Sequence[Line]
+) -> list[str]:
+    """Each reference series kept once the US day has settled, in words; not asked twice a day."""
+    day, told = target("US", now), list[str]()
+    if day == now.date() or venues.sessions("US", now.date(), now.date()) != (now.date(),):
+        return told
+    for line in series:
+        folder = home / DAILY / line.venue
+        mark = folder / MARKS / f"{line.symbol}.kept"
+        if mark.is_file() and mark.read_text(encoding="utf-8") == day.isoformat():
+            continue
+        answer = archive.gather([line], day, ask)[line]
+        if isinstance(answer, Refused):
+            told.append(f"{line.symbol}: reference series not kept: {answer.reason}")
+            continue
+        faults = archive.keep_reference(home / HOT, line, answer, only_new=line in LINES)
+        mark.parent.mkdir(parents=True, exist_ok=True)
+        mark.write_text(day.isoformat(), encoding="utf-8")
+        told.append(f"{line.symbol}: reference kept before {day}, {len(faults)} faults listed")
+    return told
+
+
+def _ended(hot: Path, line: Line, now: datetime) -> list[Five] | None:
+    """A line's ended bars of the last LATE; none until its venue has been open for LATE."""
+    session = venues.open_at(line.venue, now)
+    if session is None or now - session.open < LATE:
+        return None
+    try:
+        held = bars.five(hot, line, now - LATE, now)
+    except LookupError:  # the store never held a bar of the line: it is missing
+        return []
+    return [bar for bar in held if bar.start + live.BAR <= now]
+
+
+def parked_live(hot: Path, lines: Sequence[Line], now: datetime) -> dict[str, str]:
+    """EACH LINE NOT TO BE TRADED NOW, and why: in session for LATE with no ended bar in the last
+    LATE, or whose bars there are out of line."""
+    parked = {}
+    for line in lines:
+        ended = _ended(hot, line, now)
+        if ended is not None and (
+            faults := bars.checked(line, ended)[1] if ended else ["no ended bar"]
+        ):
+            parked[line.symbol] = f"{faults[0]} in the last {LATE.seconds // 60} minutes"
+    return parked
+
+
+def delays(hot: Path, lines: Sequence[Line], now: datetime) -> dict[str, int]:
+    """THE SOURCE'S DELAY: minutes since each line's newest ended bar ended; parked lines absent."""
+    found = {line.symbol: _ended(hot, line, now) for line in lines}
+    return {s: (now - (e[-1].start + live.BAR)).seconds // 60 for s, e in found.items() if e}
+
+
+def stale(hot: Path, lines: Sequence[Line], now: datetime) -> list[str]:
+    """EACH LINE STALER THAN ONE SESSION: its newest daily bar precedes its venue's last session."""
+    told = []
+    for line in lines:
+        ready = target(line.venue, now)
+        due = venues.sessions(line.venue, ready - 10 * DAY, ready - DAY)[-1:]
+        try:
+            last = bars.daily(hot, line)[-1].day
+        except (LookupError, FileNotFoundError, IndexError):  # none held: stale
+            last = None
+        if due and (last is None or last < due[0]):
+            told.append(f"{line.symbol}: daily bars end {last}, not the {line.venue} {due[0]}")
+    return told
 
 
 def _within(ask: Ask[When, Read], clock: Callable[[], float], ends: float) -> Ask[When, Read]:
-    """The question, asked only while the call's time lasts."""
+    """The question, asked while the call's time lasts."""
 
     def asking(line: Line, when: When) -> Read:
         if clock() > ends:
@@ -192,23 +320,9 @@ def _told(kept: Kept, mine: Sequence[Line]) -> tuple[str, bool]:
     words = (
         f"{venue}: daily bars before {kept.day}: {clean} of {len(mine)} lines clean, "
         f"{len(kept.refused)} refused by the archive (asked {kept.tries} times today)"
+        f"{''.join('; ' + note for note in kept.notes)}"
     )
     return words, len(mine) in (len(kept.refused), len(kept.parked))
-
-
-def _round(
-    hot: Path, mine: Sequence[Line], now: datetime, ask: Ask[datetime, tuple[Five, ...]]
-) -> tuple[str, bool]:
-    """A venue's five-minute round into the fast store, in words, and whether it was a miss."""
-    answers = archive.gather(mine, now, ask)
-    faults = bars.keep(hot, answers)
-    refused = sum(isinstance(answer, Refused) for answer in answers.values())
-    faulted = sum(bool(found) for found in faults.values()) - refused
-    words = (
-        f"{mine[0].venue}: five-minute round: {len(mine) - refused} of {len(mine)} lines "
-        f"kept, {faulted} of them with faults listed, {refused} refused by the archive"
-    )
-    return words, refused == len(mine)
 
 
 def keep(
@@ -216,32 +330,61 @@ def keep(
     now: datetime,
     lines: Sequence[Line] = LINES,
     daily: Ask[date, tuple[Bar, ...]] = archive.fetch,
-    five: Ask[datetime, tuple[Five, ...]] = _recent,
+    five: Ask[datetime, tuple[Five, ...]] | None = None,
     clock: Callable[[], float] = time.monotonic,
+    ancient: Ask[date, tuple[Bar, ...]] = ANCIENT,
+    series: Sequence[Line] = (*REFERENCE, *ADJUSTED, POUND),
+    broker: Broker | None = None,
+    back: Ask[datetime, tuple[Five, ...]] = keeper_live.recent,
 ) -> tuple[list[str], list[str]]:
-    """WHATEVER IS OWED AT NOW, done once: what was done, in words, and of those the misses.
-    Nothing is asked, and nothing said, on a day no venue trades and the store is whole."""
+    """WHATEVER IS OWED AT NOW, done once: what was done, in words, and the misses among it."""
     if now.utcoffset() != timedelta(0):
         raise ValueError(f"{now!r} is not a moment in UTC")
     idle = not any(venues.sessions(venue, now.date(), now.date()) for venue in venues.RULES)
     ends, told = clock() + SPENT, []
+    five = live.ibkr(home) if five is None else five
+    told += keeper_live.rounds(  # the fast round first, under half the call's time
+        home / HOT, lines, now, _within(five, clock, clock() + SPENT / 2), back, SETTLED
+    )
     for venue in sorted({line.venue for line in lines}):
         mine = [line for line in lines if line.venue == venue]
-        kept = _refresh(home / DAILY / venue, mine, now, _within(daily, clock, ends), idle)
+        ask = _within(daily, clock, ends)
+        kept = _refresh(home / HOT, home / DAILY / venue, mine, now, ask, idle, broker)
         if kept is not None:
             told.append(_told(kept, mine))
-        if venues.open_at(venue, now) or venues.open_at(venue, now - SETTLED):
-            told.append(_round(home / HOT, mine, now, _within(five, clock, ends)))
-    return [words for words, _ in told], [words for words, miss in told if miss]
+            if YARDSTICK.symbol in kept.parked and YARDSTICK.symbol not in kept.refused:
+                why = kept.parked[YARDSTICK.symbol]
+                told.append(
+                    (f"FIRST-LIGHT FAULT: the yardstick {YARDSTICK.symbol} is parked: {why}", True)
+                )
+    spoken = [words for words, _ in told]
+    spoken += _reference(home, now, _within(ancient, clock, ends), series)
+    return spoken, [words for words, miss in told if miss]
 
 
-def main(home: Path, now: datetime) -> int:
-    """THE COMMAND: what was done on one line each, a miss on the error stream, and 1 for it."""
-    done, missed = keep(home, now)
+def main(home: Path, now: datetime, args: Sequence[str] = (), broker: Broker | None = None) -> int:
+    """THE COMMAND: what was done, a line each; a miss on stderr, and exit 1. `--live`: one run of
+    one-minute bars; `--roll`: the live day copied to the long database."""
+    missed: list[str] = []
+    if args == ["--roll"]:
+        done = [keeper_live.roll(home / HOT)]
+    elif args == ["--live"]:
+        ask = live.minutes(home, home / HOT)
+        words, missed = keeper_live.minute_round(home / HOT, LINES, now, ask)
+        done = [words]
+    else:
+        done, missed = keep(home, now, broker=broker or history.daily(now, home=home))
+        if stopped := parked_live(home / HOT, LINES, now):
+            done.append(f"parked live, not traded: {stopped}")
+        if late := delays(home / HOT, LINES, now):
+            done.append(f"five-minute delay in minutes, by line: {late}")
+        missed += [f"stale: {words}" for words in stale(home / HOT, LINES, now)]
+    if done or missed:
+        keeper_receipt.write(home, now, done, missed, keeper_receipt.newest(home / HOT, LINES))
     sys.stdout.write("".join(f"{line}\n" for line in done))
     sys.stderr.write("".join(f"MISSED: {line}\n" for line in missed))
     return int(bool(missed))
 
 
 if __name__ == "__main__":
-    sys.exit(main(Path(os.environ["KESTREL2_DATA"]), datetime.now(UTC)))
+    sys.exit(main(Path(os.environ["KESTREL2_DATA"]), datetime.now(UTC), sys.argv[1:]))

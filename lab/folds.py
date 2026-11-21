@@ -34,6 +34,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal, localcontext
+from typing import Generic, Protocol, TypeVar
 
 from desk.orders import Settings
 from desk.store import Bar
@@ -43,38 +44,62 @@ from lab.cell import Cell
 from lab.reproduce import Reproduction
 from lab.rung import Answer, Rates, Verdict
 
-YEARS = 5  #: the last whole calendar years of a window are its folds (M6)
+
+class Judged(Protocol):
+    """What a fold's side must show: the t and the answer the worst fold is chosen by."""
+
+    @property
+    def t(self) -> Decimal | None:
+        """The mean gain in standard errors; None under two trades."""
+
+    @property
+    def answer(self) -> Answer:
+        """The first rung's answer."""
+
+
+J = TypeVar("J", bound=Judged)
 
 
 @dataclass(frozen=True)
-class Fold:
-    inside: Verdict  #: in-sample: the window before the fold, all a chooser had seen
-    outside: Verdict  #: out-of-sample: the fold alone
+class Fold(Generic[J]):
+    """One fold, its two sides side by side."""
+
+    inside: J  #: in-sample: the history before the fold
+    outside: J  #: out-of-sample: the fold alone
 
 
 @dataclass(frozen=True)
-class Folded:
-    folds: tuple[Fold, ...]  #: oldest first
+class Walked(Generic[J]):
+    """The folds of one window, and the one answer on the worst."""
+
+    folds: tuple[Fold[J], ...]  #: oldest first
 
     def __post_init__(self) -> None:
         if not self.folds:
             raise ValueError("no folds: there is no worst fold to judge on")
 
     @property
-    def worst(self) -> Fold:
+    def worst(self) -> Fold[J]:
         """The fold judged on; of two equally bad, the older."""
-        return min(
-            self.folds,
-            key=lambda f: (f.outside.answer, f.outside.t is not None, f.outside.t or 0),
-        )
+        return min(self.folds, key=lambda f: rung.standing(f.outside.answer, f.outside.t))
 
     @property
     def answer(self) -> Answer:
+        """The worst fold's out-of-sample answer: the rung's."""
         return self.worst.outside.answer
 
     @property
     def passed(self) -> bool:
+        """Whether every fold passed."""
         return self.answer is Answer.PASS
+
+
+YEARS = 5  #: the last whole calendar years of a window are its folds (M6)
+
+
+@dataclass(frozen=True)
+class Folded(Walked[Verdict]):
+    """The first rung's folds of a window; each out-of-sample verdict is a trial."""
 
     @property
     def trials(self) -> tuple[Verdict, ...]:
@@ -140,7 +165,7 @@ class Pooled:
     @property
     def worst(self) -> Year:
         """The year judged on; of two equally bad, the older."""
-        return min(self.years, key=lambda y: (y.answer, y.t is not None, y.t or 0))
+        return min(self.years, key=lambda y: rung.standing(y.answer, y.t))
 
     @property
     def answer(self) -> Answer:
@@ -170,16 +195,18 @@ def pool(
     reproduced: Sequence[Reproduction] = (),
 ) -> Pooled:
     """One rule's whole-window cells, one a line with its bars (the lines that wait already
-    left out), walked forward over the last `count` whole calendar years before their common
-    end. In each year every line's trades bought and sold inside it are pooled, and its days
-    summed over the lines as the market rung marks them, so trades held together are not bets
-    apart. With 30 judged trades or more a year passes if its mean day earned after costs, fails
-    at 2 standard errors under nothing and is in doubt between; fewer is THIN, none a FAULT."""
-    ends = {c.end for c, _ in cells}
-    if len(ends) != 1 or len({c.strategy for c, _ in cells}) != 1:
-        raise ValueError("pooled cells must be one rule's, to one common end")
-    (end,) = ends
-    last = end.year if end >= date(end.year, 12, 31) else end.year - 1
+    left out), walked forward over the last `count` whole calendar years before the latest
+    line's end. Each line is folded on its own window: it joins a year only if its end is not
+    before that year's close. In each year every line's trades bought and sold inside it are
+    pooled, and its days summed over the lines as the market rung marks them, so trades held
+    together are not bets apart. With 30 judged trades or more a year passes if its mean day
+    earned after costs, fails at 2 standard errors under nothing and is in doubt between;
+    fewer is THIN, none a FAULT."""
+    if len({c.strategy for c, _ in cells}) != 1:
+        raise ValueError("pooled cells must be one rule's")
+    last = max(
+        c.end.year if c.end >= date(c.end.year, 12, 31) else c.end.year - 1 for c, _ in cells
+    )
     first = last - count + 1
     if count < 1 or min(c.start for c, _ in cells) > date(first, 1, 1):
         raise ValueError(f"{cells[0][0].strategy}: no {count} whole years of history to fold")
@@ -197,9 +224,7 @@ def _answer(trades: int, t: Decimal | None, mean: Decimal) -> Answer:
         return Answer.FAULT
     if t is None or trades < rung.MIN_TRADES:
         return Answer.THIN
-    if mean > 0:
-        return Answer.PASS
-    return Answer.FAIL if t <= -rung.T_PASS else Answer.DOUBT
+    return Answer.PASS if mean > 0 else rung.band(t)
 
 
 def _stretch(
@@ -216,9 +241,12 @@ def _stretch(
     lines = trades = 0
     for c, bars in cells:
         begin = c.start if start is None else max(start, c.start)
-        if begin > end or not any(begin <= bar.day <= end for bar in bars):
+        stop = min(end, c.end)
+        if (start is not None and stop < end) or begin > stop:
             continue
-        part = Cell(c.strategy, c.line, begin, end)
+        if not any(begin <= bar.day <= stop for bar in bars):
+            continue
+        part = Cell(c.strategy, c.line, begin, stop)
         verdict = rung.judge(cell.run(part, bars), bars, settings, rates, reproduced)
         lines, trades = lines + 1, trades + len(verdict.trades)
         for bar in cell.shown(part, bars):

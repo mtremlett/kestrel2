@@ -6,20 +6,20 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import replace
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
-from test_paper import FLAT, Said, _account, _but, _gateway, _order, _wire
+from test_paper import FLAT, WAITS, Said, _account, _but, _gateway, _order, _wire
 from test_reports import AAPL, BOUGHT, BUY, CUT, DONE, END, FEE, IITU, LISTED, SMGB
 
 from desk import book, kill, paper, placing
 from desk.broker import Broker, Disconnected, Fill, Report
 from desk.orders import Order, Refused, Sale
 
-ID = "20261113-rsi2-IITU"
+ID, DATED, VUSA = "20261113-rsi2-IITU", date(2026, 11, 13), replace(SMGB, symbol="VUSA")
 HELD = "61 3 DU0000001 212969319 IITU STK  0.0   LSEETF GBP IITU EUE2 26 37.5".split(" ")
 FILL = Fill(BUY.execution_id, ID, "IITU", 26, Decimal("37.55"), BUY.made.date())
 #: What the desk asks in a conversation, after its greeting and its start: of the account
@@ -32,7 +32,7 @@ AT = datetime(2026, 11, 16, 8, 5, tzinfo=UTC)
 
 
 def _paper(root: Path = Path("unread"), at: datetime = AT) -> placing.Paper:
-    return placing.Paper(LISTED, root, lambda: at)
+    return placing.Paper(LISTED, root, lambda: at, paper.Door(paper.DESK))
 
 
 def _ready(root: Path) -> Path:
@@ -165,7 +165,7 @@ def test_a_cancel_not_confirmed_whole_is_an_error(monkeypatch: pytest.MonkeyPatc
     assert sent == [ACCOUNT, CANCELS, ACCOUNT] * 2
 
 
-SALE, SOLD, OUT = Sale(ID, IITU, 26), _but(BOUGHT, 18, "SLD"), replace(FILL, quantity=-26)
+SALE, SOLD, OUT = Sale(ID, IITU, 26, DATED), _but(BOUGHT, 18, "SLD"), replace(FILL, quantity=-26)
 #: A market sale for the day as the published client writes one (ib_insync 0.9.86, its source
 #: read and never imported), under the gateway's next number, 41: the line by the broker's
 #: number for it, on the broker's router, the desk's order id its reference, sent at once.
@@ -176,10 +176,9 @@ ORDER = (
 ).split("|")
 PLACED, CANCEL = _wire(ORDER).getvalue(), _wire(("4", "1", "41", "")).getvalue()
 MINE = _order("41", "SELL MKT", ID, "Submitted")  # the sale as the broker has it, and its state
-BARE = _account([HELD])  # the line held, and under no stop of the desk's own
-EMPTY = _account([FLAT])  # and the account with none of the line, and no order
+BARE, EMPTY = _account([HELD]), _account([FLAT])  # held under no stop of the desk's own; none
 REJECTED = ("4", "2", "41", "201", "Order rejected - reason: closed", "")
-BUY_IT = Order(ID, IITU, 26, Decimal(40), Decimal(1), Decimal("36.007"))  # its stop off the step
+BUY_IT = Order(ID, IITU, 26, Decimal(40), Decimal(1), Decimal("36.007"), session=DATED)
 #: The stop that goes with the buy, as the broker lists it; and both as it tells them filling.
 CHILD = _order("42", "SELL STP 3600.0", f"{ID}-stop", "PreSubmitted")
 FILLING = [*_order("41", "BUY MKT", ID, "Submitted"), *CHILD, _but(MINE[1], 2, "Filled")]
@@ -262,7 +261,7 @@ def test_a_sale_the_broker_falls_silent_on_is_cancelled_and_never_left_working(
     # never to have (Disconnected); the next start asks the broker what it did with it
     sent = _gateway(monkeypatch, [], BARE, MINE)
     with pytest.raises(ConnectionError, match="hung up") as lost:
-        broker.place(Sale(ID, AAPL, 10))
+        broker.place(Sale(ID, AAPL, 10, DATED))
     assert not isinstance(lost.value, Disconnected)
     assert sent == [b"", ACCOUNT, _msg({2: "265598", 3: "AAPL", 11: "USD", 17: "10"})]
 
@@ -274,6 +273,7 @@ def test_a_buy_goes_with_its_stop_and_the_line_is_left_under_one_stop_for_all_it
     did, under = [[DONE, ("102",)], [BOUGHT, END]], _account([HELD], *CHILD)
     sent = _gateway(monkeypatch, [], EMPTY, FILLING, under, *did, under)
     assert broker.place(BUY_IT) == Report(ID, (FILL,), None)
+    assert WAITS[:3] == [30, 30, paper.FILL_SECONDS]
     # the buy is held back until its stop is sent behind it, to wait on it: the stop put down
     # onto the broker's step, in pence. Filled whole, the stop is for the shares held: no more
     both = _msg({16: "BUY", 27: "0"}) + _msg(AT_STOP | {1: "42", 28: "41"})
@@ -297,12 +297,15 @@ def test_a_buy_goes_with_its_stop_and_the_line_is_left_under_one_stop_for_all_it
     idle = _account([HELD], *CHILD, *old)
     none: list[Said] = [[_but(MINE[1], 2, "Cancelled")], idle, [("102",)], [END], idle, [ENDED_42]]
     sent = _gateway(monkeypatch, [], was, [CHILD[1]], *none, silent=True)
-    assert broker.place(BUY_IT) == Report(ID, (), f"{ID}: the broker tells nothing of it")
+    w = f"{ID}: withdrawn by the desk: not filled at the market within {paper.FILL_SECONDS} seconds"
+    assert broker.place(BUY_IT) == Report(ID, (), w)  # told as the desk's, not the broker's
     assert sent[2:] == [both, CANCEL, *ASKED, ACCOUNT, CANCEL_42]
     # a buy cut at ten of 26: its stop is for the ten bought, never the 26 ordered
     cut: list[Said] = [none[0], TEN, PART[1], TENTH, TEN]
     sent = _gateway(monkeypatch, [], EMPTY, [], *cut, RESTS, [ENDED_42], silent=True)
-    assert broker.place(BUY_IT).fills == (replace(FILL, quantity=10),)
+    cut_buy = broker.place(BUY_IT)
+    assert cut_buy.fills == (replace(FILL, quantity=10),)
+    assert "withdrawn by the desk" in str(cut_buy.reason)
     assert sent[7:] == [ACCOUNT, _msg(AT_STOP | {17: "10"}), CANCEL_42]
     # a buy the broker refuses, the stop behind it ended first: the stop's end is not the buy's
     told = [_but(REJECTED, 2, "42"), ENDED_42]
@@ -363,8 +366,9 @@ def test_nothing_is_sent_without_a_drill_a_clean_day_a_ready_gateway_and_the_sto
     book.turn(tmp_path / "old", book.Switch.DRILLED, AT - timedelta(days=32), "every promise kept")
     either: tuple[Order | Sale, ...] = (BUY_IT, SALE)  # a buy is held to all a sale is
     refusals: list[tuple[placing.Paper, tuple[Order | Sale, ...], type[Exception], str]] = [
-        (_paper(ready), (Sale(ID, SMGB, 5),), Refused, "does not list SMGB: the broker lists 0"),
-        (_paper(ready), (Sale(ID, replace(SMGB, symbol="VUSA"), 5),), Refused, "VUSA: it was not"),
+        (_paper(ready), (replace(SALE, line=SMGB),), Refused, "does not list SMGB: the"),
+        (_paper(ready), (replace(SALE, line=VUSA),), Refused, "VUSA: it was not"),
+        (_paper(ready), (replace(SALE, session=AT.date()),), Refused, "the one it is dated"),
         (_paper(ready, AT + timedelta(days=1)), either, Refused, "17 is not the session of"),
         (_paper(ready, AT - timedelta(days=2)), either, Refused, "next after the one it is dated"),
         (_paper(tmp_path / "new"), either, Refused, "was not drilled in the last 31 days"),

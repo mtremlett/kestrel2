@@ -21,10 +21,11 @@ from typing import Any
 
 import pytest
 
-from desk import book, command, day, orders, simcity, simcitycmd, store, strategy
+from desk import book, day, orders, simcity, strategy
 from desk.broker import Crash, Disconnected, Fault, Pretend
 from desk.lines import YARDSTICK
 from desk.orders import Settings
+from desk.simcity_census import Census, parts
 from desk.store import Bar
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "scenes"))  #: the scenes' rehearsal data
@@ -53,24 +54,24 @@ def busy(patch: pytest.MonkeyPatch, root: Path, worlds: tuple[int, ...]) -> simc
 @pytest.fixture(scope="module")
 def lived(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, simcity.Night, list[object]]:
     """One world of the fourteen months, lived once for every test here that reads it; with
-    it, its life and its round trips, counted while its book still stood. It is the first
-    world that came to six lines held, before the send path cancelled what a dead desk left."""
+    it, its life and its round trips, counted while its book still stood. It is a
+    world that meets every scenario, before the send path cancelled what a dead desk left."""
     root, live, seen = tmp_path_factory.mktemp("nights"), simcity._live, list[object]()
 
     def watched(life: simcity._Life) -> None:
         live(life)
-        seen.extend((life, len(book.round_trips(life.desk, life.market))))
+        seen.extend((life, life.trips))
 
     with pytest.MonkeyPatch.context() as patch:
         patch.setattr(simcity, "_live", watched)
-        return root, simcity.run(root, MARKET, ROOM, RATES, NOW, (1,)), seen
+        return root, simcity.run(root, MARKET, ROOM, RATES, NOW, (7,)), seen
 
 
 @pytest.fixture(scope="module")
 def sound(tmp_path_factory: pytest.TempPathFactory) -> simcity.Night:
     """Two busy worlds of the desk as it stands, nothing in it broken by a test."""
     with pytest.MonkeyPatch.context() as patch:
-        return busy(patch, tmp_path_factory.mktemp("sound"), (0, 1))
+        return busy(patch, tmp_path_factory.mktemp("sound"), (2, 3))
 
 
 def test_a_world_of_the_fourteen_months_is_lived_with_every_fault_and_the_night_is_recorded(
@@ -120,10 +121,15 @@ def test_the_census_names_every_part_of_the_money_path_and_the_scenarios_that_ra
         "broker.Pretend.working": simcity.DAY,
         "broker.Pretend.inject": simcity.BEHIND,
         "broker.Pretend.cancel_stop": simcity.UNSTOPPED,
+        "broker.Pretend.put_stop_back": simcity.UNSTOPPED,
+        "broker.Pretend.restop": simcity.STOPS,
+        "orders.gap_loss": simcity.STOPS,
+        "orders.gapped": simcity.STOPS,
         "kill.pull": simcity.KILLED,
         "kill.Killed.words": simcity.KILLED,
         "orders.Charges.total": simcity.DAY,  #: a property is a part as a method is
-        "book.round_trips": simcity.RECKONING,
+        "book.round_trips": simcity.TRIPS,
+        "book.conformance_cost": simcity.TRIPS,
         **{f"broker.Fault.{fault.name}": simcity.FAULTS for fault in Fault},
     }
     for part, scenario in ran.items():
@@ -206,7 +212,7 @@ def test_each_thing_done_to_the_desk_has_its_turn_and_one_never_done_leaves_its_
     assert "day.run" not in night.bare, "a part that ran was called bare"
 
     #: the kill switch alone, every morning a desk is fit for it
-    monkeypatch.setattr(simcity, "EVENTS", simcity.EVENTS[2:])
+    monkeypatch.setattr(simcity, "EVENTS", simcity.EVENTS[2:5])
     again = busy(monkeypatch, tmp_path, (0,))
     assert again.census["kill.pull"] == (simcity.KILLED,) and "kill.drill" not in again.bare
     assert not [broken for broken in again.broken if "never happened" in broken], again.broken
@@ -247,7 +253,16 @@ def test_a_desk_that_stops_is_a_red_night_and_a_night_that_dies_is_an_error_and_
     probe = cProfile.Profile()  #: and where a profiler left on refuses a second, none does
     probe.enable()
     probe.disable()
-    assert not list(tmp_path.iterdir()), "a night that died was kept"
+    assert [p.name for p in tmp_path.iterdir()] == ["worlds"], "a night that died was kept"
+    assert (tmp_path / "worlds" / "4").is_dir(), "a world's folder is root/worlds/<seed>"
+    (tmp_path / "worlds" / "4" / "old").write_text("last night", encoding="utf-8")
+    probe_seen = list[bool]()
+    monkeypatch.setattr(
+        simcity, "_live", lambda life: probe_seen.append(not (life.desk / "old").exists())
+    )
+    simcity.run(tmp_path, SHORT, ROOM, RATES, NOW, (4,))
+    assert probe_seen == [True], "last night's leftover was still there as the world began"
+    (tmp_path / simcity.NIGHTS).unlink()
     (tmp_path / simcity.NIGHTS).write_text("something else\n", encoding="utf-8")
     monkeypatch.setattr(simcity, "_live", None)  #: refused before the night is lived at all
     with pytest.raises(ValueError, match="not SimCity's nights"):
@@ -274,7 +289,10 @@ def test_a_stop_cancelled_by_hand_is_put_back_as_it_was_unless_forgotten_or_its_
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(simcity, "FAULTY", 10**9)
-    life, seen = simcity._Life(tmp_path, SHORT, ROOM, RATES, 0, simcity._Census()), list[object]()
+    life, seen = (
+        simcity._Life(tmp_path, SHORT, ROOM, RATES, 0, Census(simcity.PATH)),
+        list[object](),
+    )
     door, hand = life.pretend, partial(simcity._unstopped, life, SESSIONS[1])
     door.open(SESSIONS[1])
     buy = orders.Order("o-1", LINES[0], 4, Decimal(50), Decimal(1), Decimal(1))
@@ -292,7 +310,7 @@ def test_a_stop_cancelled_by_hand_is_put_back_as_it_was_unless_forgotten_or_its_
     assert not door.stops(), "a stop put back for shares no longer held"
 
 
-def test_a_part_behind_a_wrapper_is_still_a_part(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_a_part_behind_a_wrapper_is_still_a_part() -> None:
     class Offered:
         @classmethod
         def made(cls) -> None: ...
@@ -304,8 +322,7 @@ def test_a_part_behind_a_wrapper_is_still_a_part(monkeypatch: pytest.MonkeyPatch
 
     fake = ModuleType("desk.fake")
     Offered.__module__, fake.Offered = fake.__name__, Offered  # type: ignore[attr-defined]
-    monkeypatch.setattr(simcity, "PATH", (fake,))
-    assert sorted(name.rpartition("Offered.")[2] for name in simcity.parts().values()) == [
+    assert sorted(name.rpartition("Offered.")[2] for name in parts((fake,)).values()) == [
         *("made", "plain")
     ], "a classmethod or a staticmethod passed over, or a private name counted"
 
@@ -329,11 +346,11 @@ def test_a_part_behind_a_wrapper_is_still_a_part(monkeypatch: pytest.MonkeyPatch
         (book, "reckon", lambda *_: ({}, (), set(), ()), ["with no stop at the broker"], 0),
         (book, "collect", lambda *_: None, ["the ledger is the broker's own fills"], 0),
         (book, "_settle", lambda *_: None, ["left working"], 0),
-        (day, "_bare", lambda *_: None, ["on that day's list"], 1),
+        (day, "_bare", lambda *_: None, ["on that day's list"], 2),
         (day, "pennies", lambda p: orders.pennies(p) + Decimal("0.01"), ["profits add up"], 0),
         (simcity, "HOLDINGS", 3, ["never more than 3 lines are held"], 0),
         (simcity, "_Counted", lambda _, rng: WORLD(SHORT, rng), ["inside its day's range"], 0),
-        (book, "_unless_killed", lambda *_: None, ["nothing reaches the", "drill is on the"], 2),
+        (book, "_unless_killed", lambda *_: None, ["nothing reaches the", "drill is on the"], 4),
     ],
 )
 def test_a_promise_the_desk_breaks_in_any_world_turns_the_night_red_and_names_the_world(
@@ -347,38 +364,14 @@ def test_a_promise_the_desk_breaks_in_any_world_turns_the_night_red_and_names_th
     first: int,
 ) -> None:
     monkeypatch.setattr(owner, name, broken_desk)
-    monkeypatch.setattr(simcity, "EVENTS", simcity.EVENTS[first:])
+    monkeypatch.setattr(
+        simcity, "EVENTS", simcity.EVENTS[first:-6]
+    )  #: not the unheard hour nor the parked yardstick: each has its own test
     night = busy(monkeypatch, tmp_path, (0, 1))
     for promise in promises:
         assert promise not in str(sound.broken), "broken on a sound desk"
         assert [b for b in night.broken if promise in b and "the first world" in b], night.broken
     assert not night.green and f"BROKEN: {'; '.join(night.broken)}." in night.words()
-
-
-def test_the_command_lives_the_saved_store_in_a_night_and_its_code_is_zero_only_for_green(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
-) -> None:
-    """The weekday night is a fifth of the worlds and --full all of them; the night's words
-    are the answer, and the record is kept under the desk's folder, red or green."""
-    monkeypatch.setattr(simcitycmd, "LINES", tuple(SHORT))
-    monkeypatch.setattr(
-        store,
-        "read",
-        lambda _root, name: next(
-            tuple(bars) for line, bars in SHORT.items() if line.symbol == name
-        ),
-    )
-    monkeypatch.setattr(command, "rates", lambda _root, _day: RATES)
-    monkeypatch.setattr(simcitycmd, "QUICK", range(1))
-    monkeypatch.setattr(simcity, "WORLDS", range(2))
-    for argv, worlds in (([], 1), (["--full"], 2)):
-        code = simcitycmd.main(argv, {"KESTREL2_DATA": str(tmp_path)}, lambda: NOW)
-        printed = capsys.readouterr().out
-        assert f"lived {worlds} seeded worlds" in printed and code == int("SIMCITY RED" in printed)
-    with (tmp_path / command.ROOT / simcity.NIGHTS).open(encoding="utf-8") as kept:
-        assert len(kept.readlines()) == 3
-    with pytest.raises(SystemExit):
-        simcitycmd.main(["--fast"], {"KESTREL2_DATA": str(tmp_path)}, lambda: NOW)
 
 
 def test_a_line_not_yet_begun_is_left_out_and_named_while_every_day_is_lived(
@@ -390,3 +383,19 @@ def test_a_line_not_yet_begun_is_left_out_and_named_while_every_day_is_lived(
     assert late.symbol in night.left and late.symbol in night.words()
     assert not [b for b in night.broken if b.startswith("the desk stops")], night.broken
     assert night.days == len(SESSIONS[1:51])
+
+
+def test_a_gap_on_a_line_with_no_bar_before_it_is_a_fault_by_name_and_other_lines_are_unchanged(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(simcity, "EVENTS", ((simcity.GAPPED, simcity._gapped),))
+    monkeypatch.setattr(simcity, "EVENTFUL", 1)
+    late = LINES[0]
+    young = {**SHORT, late: [bar for bar in SHORT[late] if bar.day >= SESSIONS[30]]}
+    faults = [
+        b for b in simcity.run(tmp_path, young, ROOM, RATES, NOW, (3,)).broken if "FAULT" in b
+    ]
+    assert faults and all(f"line {late.symbol}:" in b and "world 3" in b for b in faults), faults
+    assert not [
+        b for b in simcity.run(tmp_path, SHORT, ROOM, RATES, NOW, (3,)).broken if "FAULT" in b
+    ]

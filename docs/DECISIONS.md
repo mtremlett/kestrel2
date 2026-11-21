@@ -1822,22 +1822,6 @@ This lane's decisions are in `docs/lanes/grid.md`; its scribe writes there (from
 This lane's decisions are in `docs/lanes/rungs.md`; its scribe writes there (from
 14 November 2026, 21:04) and moves there any entry that lands below.
 
-### R-RUNNER-106 — wiring tests for the ladder's registries (RUNGS, 15 November 2026)
-
-New tests: `tests/unit/test_lab_published_wiring.py` (every eponymous rule is in the published
-book and every publication has its desk file) and `tests/unit/test_lab_ladder_wiring.py` (every
-yardstick is a line of its venue in the research list; every set names only rules the rule book
-resolves). The eponymous publications live in `lab.published_epon.EPONYMOUS_PUBLISHED`, not in
-`PUBLISHED` (the desk's five); the test reads that book. Each was driven against a planted break,
-then the break was removed:
-
-- Entry `williams_r` renamed in the published book: "in a desk/eponymous_*.py but not in the
-  published book: ['williams_r']".
-- `MARKETS["LSE"]` pointed at "XXX": "yardstick(s) {'LSE': 'XXX'} (venue: symbol) not in the
-  research list".
-- A rule "ghost_rule" added to the EPON set: "set EPON names rules the rule book lacks:
-  ['ghost_rule']" (and the published-book test names it too).
-
 ### R-RUNNER-107 — the master and the calendars agree (DATA, 15 November 2026)
 
 `tests/unit/test_lines_worlds.py`: every line of `desk.lines` has a rule and a clock in
@@ -1867,3 +1851,339 @@ planted edge) now has its folds judged: the worst of 5 yearly folds (2022) holds
 over 1 line, under the 30 asked, so the folds rung and the verdict are THIN, the row passes not
 every rung, and the summary counts 0 behind an author's result. THIN is the honest answer on
 2 trades a year; no t, Sharpe, trial count or threshold in any other test was touched.
+
+## 15 Nov — R-RUNNER-103: rare large losses (G2), one more trade at the rule's own stop
+
+His ruling "A" of Sun 15 Nov ~07:50. Small wins and a rare loss at the stop, worth nothing
+together, passed the four rungs read from a trial's own trades on 6 of 400 no-edge lines of
+under forty trades (a line in fifty has not yet met its loss). Options: (a) plant the loss in
+the first rung (chosen, the spec's G2); (b) a bar on skew in the deflated rung (a second rule
+for a job the first has); (c) leave it, six false winners in 400. Chosen (a): `rung.planted`
+adds to a verdict's gains one more, the least return any judged trade would have made had its
+stop sold it, with a stop's costs (`Priced.stopped`). `Verdict.gains` is read by the standard
+errors, the luck's chance and the deflated Sharpe's count, skew and kurtosis; `trades` and
+every count of the 30 asked are untouched. Both thresholds stay at "more than 20", never 10.
+
+Known answer: `tests/unit/test_lab_ladder_spec.py` (from #211's branch, shrunk to one world),
+seen failing first with 6 of 400 passing, now 0.
+
+Pinned figures moved, each re-derived by running the first rung on the same seeds:
+- `test_a_planted_edge_passes_and_a_planted_non_edge_does_not`: the bar-straddling pair was
+  seeds 1 and 16 at t 1.99 and 2.02; with the loss planted they read 1.76 and 1.72, so the
+  pair is seeds 12 (1.979, fails) and 40 (2.021, passes), the same claim (the bar sits between
+  them). Seed 0 cut at 29 trades read t above 2.8, now 2.52, so the pin is above 2.5; at 30
+  trades it still passes (2.35) and at 29 is still THIN.
+- No pinned figure in test_lab_luck, test_lab_deflated or test_lab_trials moved: their trades
+  are built by hand without a stop, so `Priced.stopped` is left unset and plants nothing. The
+  default is a cost of keeping to the claim (test_lab_folds and test_lab_plateau build
+  `Priced` too and are another lane's files); the ask to make it required is under Remains.
+
+## 15 Nov - the lab's ceiling rises by 400 lines, by his yes
+
+In `BUDGET.json`, `lab_lines` goes from 7,000 to 7,400 for phases `3-money-paper` and
+`4-ladder`. The desk's ceiling is unchanged at 10,500.
+
+Why: the lab held 6,976 of its 7,000 lines on main. Moving the twenty eponymous rules into
+the spec book as data rows (R-RUNNER-125, spec-epon) needs about 400 lines of blocks in
+`lab/blocks.py`. Two rules landed as spec rows with parity proven; the other seventeen could
+not fit. Once all twenty are rows, retire-epon (R-RUNNER-127) deletes about 1,600 desk lines
+of the old eponymous modules.
+
+His ruling, Sun 15 Nov 2026 ~13:20, in chat with the coordinator. He was offered three
+options: move 400 lines of ceiling from the desk to the lab (recommended), raise the lab by
+400 alone, or wait for Tuesday's consolidation. He chose "Raise research by 400".
+
+## 15 Nov - the lab's ceiling rises from 7,400 to 8,000 lines, by his yes
+
+In `BUDGET.json`, `lab_lines` goes from 7,400 to 8,000 for phases `3-money-paper` and
+`4-ladder`. The desk's ceiling is unchanged at 10,500. The lab is research code; the trading
+path is untouched.
+
+Why: main's lab held 7,391 of 7,400 lines. Five ladder pull requests (#342 rung-regimes, #350
+rung-bootstrap, #351 rung-cpcv, #352 spec-epon slice 3, #354 rung-placebo) were green on every
+check except `test_the_tree_is_inside_this_phases_ceiling`, needing about 595 lines together.
+The 13:20 rise to 7,400 was sized for spec-epon alone and did not count the rungs already
+building; that was the coordinator's error. To stop a repeat, the runner holds a card on the
+ceiling before a session starts, instead of after it has built.
+
+His ruling, Sun 15 Nov 2026 ~16:00, in chat with the coordinator, chosen from three options
+(raise to 8,000; keep 7,400 and cut first, which slips the ladder to Tuesday; hold the ladder
+to Tuesday): "Raise to 8,000". Clean-up cards (the rung registry, consolidation) are expected
+to shrink the lab again.
+
+## 15 Nov - the lab's ceiling rises from 8,000 to 12,000 lines, by his ruling
+
+In `BUDGET.json`, `lab_lines` goes from 8,000 to 12,000 for phases `3-money-paper` and
+`4-ladder`. The desk's ceiling is unchanged at 10,500. The lab is research code; the trading
+path is untouched.
+
+Why: main's lab held 7,690 lines with about 417 more riding the train, so 8,000 was full
+before the rest of LADDER READY's chain (rung-dsr, rung-folds, rung-trials-cluster,
+ladder-catalogue, spec-variants, ladder-gate, grid-chain, spec-epon's last slices,
+rung-registry, pool-unit; about 900-1,200 lines by their estimates) could land.
+
+His ruling, Sun 15 Nov 2026 ~16:30, in chat with the coordinator, offered 9,500 with or
+without a matching desk cut, or a hold to Tuesday: "for research, set to 12000 and we can
+iteratively refactor later". The refactor is owed: the rung registry, consolidation and the
+fan-in guard's split cards are expected to shrink the lab, and retire-epon deletes 1,593 desk
+lines.
+
+## R-RUNNER-180 - the paper Gateway's wait, measured (Sun 15 Nov 2026, PAPER lane)
+
+`paper.SECONDS` goes from 15 to 30, one constant for the knock and every conversation
+(`desk/paper.py`, its reason beside it). Measured read-only on port 4002 only (the knock, and
+the account read), with the Gateway already logged in and up:
+
+| case | knock | account read |
+|---|---|---|
+| warm, PC at its usual load (36 Python processes), 3 knocks | 0.004-0.013 s | 0.10 s |
+| under load: 24 busy processes (3 per core), 15 rounds | max 0.136 s | max 0.178 s |
+
+No call failed or came near the limit. A truly cold Gateway (just restarted) could not be
+timed without restarting his Gateway, which is his alone; the three step TimeoutErrors seen
+(each beside SimCity or a build) were therefore not reproduced at 15 s. Options: (a) keep 15,
+measured at under 1% of it; (b) 30, matching the Telegram door's 30 (`messenger.SECONDS`), a
+hundredfold on the worst measure; (c) 60 or more. Chosen (b): it gives a stalled PC double the
+time, and a dead Gateway is still called silent after 30 s, far inside one five-minute step,
+with no retry and no sleep. Test: `test_a_slow_first_answer_is_waited_for_and_a_silent_one_is_called_silent`
+(a stand-in answering at 20 s passes; one silent past 31 s is his).
+
+## R-RUNNER-156 - the loss and order-rate limits of the pre-trade gate (Mon 16 Nov 2026, MONEY lane)
+
+`orders.Settings` holds, beside the capital, the day-loss limit (2%), the week-loss limit (5%) and
+the new lines a day (4); the colleague's range for new lines was 3-5, 4 is its middle. The gate
+(`orders.gate`, given a `risk.Standing`) refuses a buy once a loss reaches a limit (naming it) and a
+new line once four are entered that day. On paper `halt.drawdown` alerts and records "would have
+halted" in `would_have_halted.csv`, beside `halts.csv`, and never halts. Options for the record: (a)
+a row in `halts.csv`, which would read as a halt in force and stop the buying, or change the file's
+columns under the existing record; (b) a file beside it. Chosen (b). Evidence the tests catch it:
+the new-line test failed with the limit's `>=` made `>` (both `test_risk.py` tests red).
+
+## 16 Nov - the desk's ceilings rise to 15,000 lines and 80 files, by his rulings
+
+In `BUDGET.json`, `product_lines` goes from 10,500 to 15,000 and `product_files` from 55 to
+80, for phases `3-money-paper` and `4-ladder`. The lab's ceiling (12,000) and every per-file
+and per-function cap are unchanged.
+
+Why: main's desk held about 9,700 counted lines with about 620 more riding the train, so the
+READY gate was refusing cards for want of room (hourly-pnl, heat-report-a, kill-go-flat,
+paper-bars-question), and desk/ stood at 55 of 55 files, so any card adding a desk module
+(desk/pnl.py, the intraday engine and step) would meet the file ceiling next. At the day's
+pace the line ceiling was a day away.
+
+His rulings, Mon 16 Nov 2026, in chat with runner ops, each answering a question put with
+options (A raise, B keep the ceiling and delete to make room) and a recommendation:
+- about 12:30, on the line ceiling (recommended: 11,500): "A - raise to 15,000".
+- about 13:15, on the file ceiling (recommended: 80): "Raise file limit to 80".
+
+The refactor stays owed: rungs-merge-duplicates (R-RUNNER-191) and retire-epon (R-RUNNER-127)
+are expected to shrink the tree, and the size ratchet still holds the new ceilings.
+
+## R-RUNNER-225 - the ladder's easings, pre-registered and frozen (Mon 16 Nov 2026, RUNGS lane)
+
+Why: his question of 18:5x ("can we trust the ladder test? ... I am a single retail trader"). SET EPON
+judged 21,320 cells and passed 0: each cell was charged all 63,920 trials the register ever held,
+each rule was judged line by line (30 trades needed on one line), and the first failed rung stopped
+the line. Zero of twenty is as much a finding about the ladder as about the rules. His rulings, Mon
+~19:15 "Yes, all four" and ~19:20 "YES TO ALL ... I trust your recommendations ... Do it with tests"
+(approved: 1-6 and 8; later: 7 and 9; rejected: 10). The coordinator's conditions: pre-registered and
+frozen before the re-run, per-family trials printed on each verdict, incubation paper only. Review and
+scores: `kestrel2_notes/ladder-easing-16nov.md`. This entry changes no code; the golden verdict in
+`tests/unit/test_lab_verdict.py` is unchanged by it.
+
+THE PRE-REGISTRATION (fixed exactly; the easing numbers are those of the review):
+
+1. **Trials per family.** A cell's luck and deflation count every variant of its rule's family ever
+   run - the rule and its whole parameter grid, abandoned sets included - and not the whole register
+   (63,920 today). The count is printed on each verdict beside the cell.
+2. **The basket.** A rule is judged on all its lines pooled as one portfolio at the desk's sizing.
+   Each line is still reported on its own, but the pooled basket is what is judged.
+3. **Incubation.** A rule whose basket's after-cost mean is at least one standard error above nothing
+   and whose stress stays within 20% is INCUBATE, never PASS: paper only, one fixed small size, its
+   own book line, promoted only on its live paper record and his yes.
+4. **The retail rung.** The basket beats simply holding its market on risk: its after-cost Sharpe is
+   at least the market's, OR it keeps at least 80% of the market's return with at most 60% of its
+   worst fall.
+5. **The full history** in `market_history.db` (under way: tf-rollup, ibkr-history-pull,
+   consolidate-stores) is what the rules are judged on.
+6. **The scorecard.** The hard fails are only a negative after-cost mean, a failed reproduction, or
+   stress over 20%. Every other rung is graded and reported, and none stops the line.
+8. **Costs against real fills.** The cost model is checked against real paper fills (q2-costs,
+   R-RUNNER-145); an overstated cost under-judges every rule.
+
+Kept, unchanged: costs always in (every verdict names the broker whose schedule priced it), the worst
+fold reported and judged on, reproduction, the planted stop trade, and his yes before any rule trades.
+Later, by their own conditions: (7) a one-sided test, after (1) is measured; (9) weather, after
+R-RUNNER-205. Rejected: (10) fewer trades a line - noise without the benefit of pooling.
+
+THE FREEZE. This whole set - the easings above and the switch that turns them on - is FROZEN from this
+entry until the re-run of EPON. A change to it after seeing results is itself a counted trial, and is
+recorded here with its count. The re-run's verdicts are read against this entry and no other.
+
+Options considered for the register-wide trial count: (a) keep 63,920 for every cell - a bar that rises
+forever as research grows; (b) count per family, abandoned variants included (chosen, as the review
+scored it 9.5 and the coordinator required the abandoned sets be counted); (c) count only the variants
+of the set at hand, which would let a family hide its failed grids. Chosen (b).
+
+## The underlying cap: 40% of the capital (R-RUNNER-158, step 1)
+
+`Settings.underlying` (0.40) is the one home of the cap; `risk.underlying_limit` judges it and the
+pre-trade gate refuses a buy that would take one underlying market past it, counting a leveraged
+line at its exposure (3x counts three times its value). Source: the coordinator's card of Sun 15 Nov
+from the colleague-desk extraction, "Card items 1 to 6 for after Monday". Options: (a) cap in the
+gate only; (b) cap in Settings beside the other limits (chosen: one config, one owner).
+The gate takes the book's exposure per underlying as data, like the standing; the send path does
+not yet give it (None checks nothing), so wiring it in is the remaining step. A line with no
+recorded underlying counts as its own market.
+
+## 16 Nov - main-guard allows rebase merges beside squash, for the merge train's batches, by his ruling
+
+The ruleset `main-guard` (GitHub, id 27193932) changes in one parameter: the pull-request
+rule's `allowed_merge_methods` goes from `["squash"]` to `["squash", "rebase"]`. The required
+`check` job, the up-to-date rule (`strict_required_status_checks_policy: true`), the bans on
+deletion and force-push, and the empty bypass list are unchanged. Applied by the coordinator
+at 21:12 UK and read back from the API.
+
+Why: the merge train merged one pull request at a time, about 8 to 15 an hour, and that was
+the ceiling on building all day (one to three of twelve sessions at work). The runner's
+batching (fix-plan F4, his answer "B", no move to an organization) builds one branch from
+several pull requests that touch different files, with ONE COMMIT PER PULL REQUEST (its title,
+its number, its Ticks line, its co-authors), and merges it with `--rebase`, so the check runs
+once on main plus every member, and main still has one commit per change, each revertable on
+its own (canon A6, A8). A squash would have put several changes in one commit. Only the
+runner's batch step asks for `--rebase`; every other merge it sends is `--squash`, which a
+drive in the runner proves.
+
+What this loosens, said plainly: a pull request may now be merged with its own commits kept.
+A lane's pull request with work-in-progress commits could put them on main if merged that
+way. Guard against it: the runner arms lane pull requests with `--squash` only, and a batch
+branch is built by the runner from squashed members.
+
+His ruling, Mon 16 Nov 2026, in chat with the coordinator, answering the question put with
+options ((a) allow rebase for the batches only, recommended; (b) keep squash only, a batch
+becomes one commit; (c) no batching): "i trust your recommendations." The batching is
+switched on (state\train-batch.on) only after the evening's rehearsal is GO.
+
+## 17 Nov - the desk's file ceiling rises from 80 to 95, by his ruling
+
+In `BUDGET.json`, `product_files` goes from 80 to 95 for phases `3-money-paper` and `4-ladder`.
+`product_lines` stays at 15,000, and every per-file and per-function cap is unchanged.
+
+Why: twelve desk files had reached the 400-line cap (book, conformance, placing, strategy,
+day, bars, running, keeper, command, messenger, simcity, store), and the READY gate creates a
+split card for each, but every split needs one new module and desk/ stood at 80 of 80 files.
+One freed file unblocks one split, and folding enough small modules to free twelve would be
+churn for no gain. Each split is pure restructuring: the file's tests unchanged and no
+behaviour changed.
+
+His ruling, Tue 17 Nov 2026, in chat with runner ops at about 14:20, answering the question
+put by the coordinator with options ((a) raise to 95, recommended; (b) fold small modules to
+make room; (c) leave the twelve waiting): "Option (a)".
+
+## 19 Nov - the desk's file ceiling rises from 95 to 100, repaid by retire-epon
+
+In `BUDGET.json`, `product_files` goes from 95 to 100 for phases `3-money-paper` and `4-ladder`.
+`product_lines` stays at 15,000, and every per-file and per-function cap is unchanged.
+
+Why: desk/ stands at 92 of 95 files. Three desk files at or near the 400-line cap block
+trading-path work until they split (desk/keeper.py, desk/command.py at 400, desk/day.py at
+390: split-desk-keeper, split-desk-command, then z3-own-ids, stop-at-fill, intraday-engine
+and intraday-step), and each split, like each new-module card, needs one file.
+
+REPAYMENT: retire-epon (R-RUNNER-127) deletes 19 desk files once catalogue-epon-rows
+(R-RUNNER-219) gives every eponymous rule its catalogue row (6 of 20 on 19 Nov). Its pull
+request sets `product_files` back to 95 or lower in both phases. R-RUNNER-219 is ranked so
+that the repayment lands this week.
+
+His ruling, Thu 19 Nov 2026, in chat with runner ops at about 19:10, answering the question
+put with options ((a) raise by 5, repaid by retire-epon, recommended; (b) not yet), the
+coordinator backing (a): "Yes, raise by 5".
+
+## 2026-11-20: phase 3's product-line ceiling 15,000 -> 18,000 (the operator's ruling)
+
+The desk stood at 14,895 of 15,000 product lines on Fri 20 Nov at about 16:00, so every card
+that grows the desk (the broker fault matrix's behaviour groups, the order's own date, the
+resend of a desk-cancelled order) would stall until it deleted lines elsewhere. Asked with
+options ((a) 16,500 once, recommended; (b) 18,000; (c) keep 15,000), he chose (b): "Raise to
+18,000", Fri 20 Nov 2026 about 15:55, in chat with the coordinator.
+
+Conditions kept with it: every growing card names itself in its pull request, and growth,
+bloat, sprawl and doom loops are reviewed in the 21:00 report. The ceiling still ratchets:
+this file is the only place it moves, and only on his word.
+
+## 2026-11-21: stop-rule rung pre-registered (R-RUNNER-408, `lab/rung_stops.py`)
+
+Written before the rung was run. His word, Fri 20 Nov about 18:2x via the coordinator: "ok, go with
+the ATR stop test". Research only: no live stop changes until a winner passes the ladder.
+
+- **Rivals (4):** today's fixed stop (10% under the market's fall, 30% on a 3x line); ATR(20) stop
+  at k = 2; ATR(20) stop at k = 3 (both set at the fill, from the ATR at the signal close); a
+  chandelier trail (ATR(20), k = 3: the stop rises to the highest close less 3 ATRs, never falls).
+- **Sizing:** shares = risk budget / stop distance, capped at the desk's room; the budget is what
+  today's stop risks (10% times the line's leverage), so the fixed rule is sized as it is today.
+- **Judging:** the EPON ladder's trades, after the desk's one cost model, in-sample and
+  out-of-sample side by side (`lab/folds.py` cuts); the worst fold's answer is the one judged on,
+  by the first rung's bar (30 trades, t >= 2). The same trades judge every rival.
+- **Trials:** 4 rules (`rung_stops.TRIALS`) per line and fold, named for the luck correction. A
+  rival is promoted only if it beats the fixed rule on its worst fold, from the centre of a plateau.
+
+## 2026-11-20: the ladder's golden verdict, re-pinned under R-225, and the eased tests restored (R-RUNNER-396, RUNGS lane)
+
+B5: `tests/unit/test_lab_rung_golden.py` was re-pinned by 5ebe658 (#993) under R-RUNNER-225's
+easings. In plain English: with the easings on, a line is graded on every rung (a weak rung is
+WEAK, no longer a fail), is charged only its rule's own family of trials, and a hard fail on
+the first rung stops that line there; so the fixture's two lines now read THIN and FAIL where
+the old table read otherwise. His 16 Nov "YES TO ALL" is the approval.
+Two loosenings that change followed are undone here: the registry test again asserts that
+every line not stopped by a hard fail is judged on first, market and folds, and the blanket
+autouse switch-off in the ladder, retail and tape tests is gone: a test pins the easing off
+only by name, with its reason beside it.
+
+## 2026-11-21: whole-file reads may fall and never rise (failure pattern 26), his ask in chat
+
+His words, Sat 21 Nov ~10:40: "can we mechanically never forget this? do not just write this
+down, please build it and then verify." EPON's 1.2 GB results file, read and parsed whole on
+every start, held 12.8 GB and judged nothing for nine hours. A new ratchet in
+`tests/guards/test_ratchets.py` counts `read_bytes()`, `read_text()`, `readlines()` and a bare
+`read()` in `desk/` and `lab/` against main: 37 today, and the count may only fall. A read of
+a file that cannot grow is not counted when its own line says why (`# bounded: <why>`, words
+required). Driven (A7) by appending one line to `desk/command.py` and running the ratchet:
+`Path("big.jsonl").read_text()` FAILED (37 -> 38); `open("big.jsonl").read()` FAILED;
+`read_text()  # bounded:` with no reason FAILED; `read_text()  # bounded: one-line marker
+file` passed; a line-at-a-time loop over the file passed. After a blind review it counts
+calls, not lines, and a mark on any line of a call that spans lines counts; driven again on
+main at 39: a new `p.read_text()` in `desk/__init__.py` FAILED (39 -> 40); the same call
+split over two lines with the mark on its second passed. A tightening: it adds a guard and
+loosens none.
+
+## 21 Nov - a file may hold 800 lines, not 400, by his own words
+
+His words, to the coordinator in chat, Sat 21 Nov ~09:10, verbatim: "whilst we are in
+development then relax these rules to allow natural file growth. but please monitor doom
+loops." The coordinator recorded them (kestrel2_notes after-first-light.md, "Sat 21 Nov
+09:3x HIS WORDS") and ruled them his plain-English yes to loosen one guard:
+`max_lines_per_file` in `BUDGET.json` rises from 400 to 800 (order S). Unchanged: functions
+stay under 50 lines, and the desk and lab package ceilings stay as they are.
+
+Why: sessions were splitting files only to stay under 400 (simcity, store, orders), each
+split a pull request that moved lines without adding behaviour. The package ceilings still
+bound growth; the doom-loop watch is the stall monitor and the recurring-fix rule (A2).
+
+Guard proven (A7): an 801-line file under `desk/` made `test_no_file_is_a_monolith` fail
+("over 800 lines"); an 800-line file passed; both removed.
+
+## 21 Nov - the lab may hold 20,000 lines, not 12,000, by his own words
+
+His words, to the coordinator in chat, Sat 21 Nov ~11:2x (clock-checked 11:32), verbatim:
+"raise the Experimental-code area ceiling to 20,000. we can iteratively refactor in the
+future." The coordinator recorded them (kestrel2_notes HANDOVER-coordinator.md, "HIS WORDS
+11:2x") and ordered this change (order A). `lab_lines` in `BUDGET.json` rises from 12,000
+to 20,000 in phases 3 and 4, as his 15 Nov ruling raised both to 12,000. Unchanged: the
+desk ceilings, the file and function limits.
+
+Why: research cards stood still "waiting for room" with lab/ at 11,951 of 12,000 and more
+riding; building had fallen to 0 of 12. The cleanup he named is a later refactor, not a
+precondition.
+
+Guard proven (A7): lab/ padded to 20,001 lines made `test_the_tree_is_inside_this_phases_ceiling`
+fail ("ceiling 20000"); at 20,000 it passed; the padding removed.

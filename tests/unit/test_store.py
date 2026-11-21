@@ -37,6 +37,7 @@ def test_a_clean_line_is_stored_exactly_and_not_parked(tmp_path: Path) -> None:
     assert store.faults(tmp_path, US.symbol) == ()
     assert store.read(tmp_path, US.symbol) == _bars(US, LONG)
     assert store.read(tmp_path, UK.symbol) == _bars(UK)
+    assert not list(tmp_path.glob("*.part"))  # a line is one file, swapped in whole, none left over
 
 
 BAD_BARS: dict[str, Callable[[Bar], Bar]] = {
@@ -46,9 +47,6 @@ BAD_BARS: dict[str, Callable[[Bar], Bar]] = {
     "a price is not positive": lambda b: replace(b, low=Decimal(0)),
     "the volume is negative": lambda b: replace(b, volume=-1),
     "the price is in the wrong unit": lambda b: _scaled(b, Decimal(100)),
-    "only the high is in the wrong unit": lambda b: replace(b, high=b.high * 100),
-    "only the low is in the wrong unit": lambda b: replace(b, low=b.low / 100),
-    "the high is a bad print": lambda b: replace(b, high=b.high * 2),
     "a price is not a number": lambda b: replace(b, high=Decimal("NaN")),
     "a price is infinite": lambda b: replace(b, high=Decimal("Infinity")),
 }
@@ -69,6 +67,8 @@ def test_an_auction_price_just_outside_the_range_stretches_it(
     bars = list(_bars(US))
     bars[4] = near(bars[4])
     assert _parked(tmp_path, tuple(bars)) == []
+    noted = [f for f in store.faults(tmp_path, US.symbol) if "stretched" in f]
+    assert len(noted) == 1 and noted[0].startswith(f"{bars[4].day} ")
     kept = store.read(tmp_path, US.symbol)[4]
     assert (kept.open, kept.close) == (bars[4].open, bars[4].close)
     assert (kept.low, kept.high) == (
@@ -326,21 +326,31 @@ def _prepared(tmp_path: Path, bars: tuple[Bar, ...], line: Line, rated: bool = T
     return [p.reason for p in store.prepare(tmp_path, {line: bars}, DAY, rates)]
 
 
-@pytest.mark.parametrize("run", [0, 1, 25], ids=["a step", "a stray bar", "a month of them"])
-def test_a_change_of_currency_below_a_jump_is_found_by_the_days_pound(
+@pytest.mark.parametrize("run", [0, 1, 25], ids=["a step", "a fall that recovers", "a month of it"])
+def test_a_step_as_large_as_the_pound_is_a_currency_only_if_it_lasts(
     tmp_path: Path, run: int
 ) -> None:
-    """IITU x0.662, VUAG x0.791: a step as large as the pound in dollars is no market move;
-    EQQQ's dollar bars of October 2014 ran past BLIP, and the rate still names them."""
+    """IITU x0.662, VUAG x0.791: a lasting step as large as the pound in dollars is a change of
+    currency; 18 March 2020, a fall of 19% that recovers, is the market's move and is kept."""
     clean = _bars(US, LONG)
     mixed = [_scaled(b, 1 / POUND) for b in (clean[30 : 30 + run] if run else clean[30:])]
     bars = (*clean[:30], *mixed, *clean[30 + run :]) if run else (*clean[:30], *mixed)
     assert _prepared(tmp_path, bars, US, rated=False) == []  # unseen without the rate
-    reasons = _prepared(tmp_path, bars, US)
-    assert bool(reasons) is not run  # a step is lasting; dollar bars among pounds are dropped
-    assert any(("wrong unit" in f) is bool(run) for f in store.faults(tmp_path, US.symbol))
-    assert len(store.read(tmp_path, US.symbol)) == len(bars) - run
+    assert bool(_prepared(tmp_path, bars, US)) is not run
+    assert store.read(tmp_path, US.symbol) == bars  # nothing dropped: no wrong unit is claimed
     assert _prepared(tmp_path, bars, replace(US, leverage=3)) == []  # a real crash is as large
+
+
+def test_untraded_bars_in_another_unit_give_way_to_the_traded_bars(tmp_path: Path) -> None:
+    """SGLN, April to October 2011: flat bars of no volume at the pound's price in dollars, then
+    the traded pound bars; no trade states no price, so the traded ones stand (R-RUNNER-274)."""
+    clean = _bars(US, LONG)
+    filler = tuple(
+        _scaled(Bar(b.day, b.close, b.close, b.close, b.close, 0), POUND) for b in clean[:10]
+    )
+    assert _prepared(tmp_path, (*filler, *clean[10:]), US) == []
+    assert store.read(tmp_path, US.symbol) == clean[10:]
+    assert sum("no volume" in f for f in store.faults(tmp_path, US.symbol)) == 10
 
 
 def test_a_leveraged_crash_as_large_as_the_pound_is_kept_not_taken_for_dollars(
@@ -378,3 +388,13 @@ def test_a_recorded_split_adjusts_the_older_bars_only_by_the_ratio_the_jump_show
     )
     assert _parked(tmp_path, clean, line) == []  # the archive adjusted it already
     assert store.read(tmp_path, US.symbol) == clean
+
+
+def test_bars_before_the_day_a_line_starts_are_dropped_with_a_fault_each(tmp_path: Path) -> None:
+    """5QQQ's archive quotes its first years in pounds, a hundredth of Stooq's pence: not kept."""
+    clean = _bars(US, LONG)
+    old = tuple(_scaled(b, Decimal(100)) for b in clean[:30])
+    line = replace(US, starts=clean[30].day)
+    assert _parked(tmp_path, (*old, *clean[30:]), line) == []
+    assert store.read(tmp_path, US.symbol) == clean[30:]
+    assert len(store.faults(tmp_path, US.symbol)) == 30  # each old bar, with why

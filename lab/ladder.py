@@ -1,35 +1,53 @@
 """ladder - THE LADDER'S FIRST SET: every published rule the desk holds, on every one of the
 desk's lines, through every rung that is built, each answer kept with its reason and the
-number of trials it was judged against. It can be stopped at any moment and run again, one
-process at a time, and ends with one line of counts.
+number of trials it was judged against. It can be stopped and run again, and ends with one
+line of counts.
 
-NOTHING IS CHOSEN BY EYE. The set is every rule with a publication on file
-(`lab/published.py`) on every line of its declared universe, over one window fixed before
-any result, judged from the line's first bar; folds, markets and question are fixed too.
-EVERY TRIAL IS COUNTED BEFORE ANYTHING IS RUN: each cell and fold is entered in the set's
-register (`lab/trials.py`) before the first is judged, so a cell that fails or is never
-reached is counted, and every answer is corrected for the whole count.
+NOTHING IS CHOSEN BY EYE. The set is every rule with a publication on file (`lab/published.py`) on
+every line of its declared universe, over one window fixed before any result, from the line's first
+bar. EVERY TRIAL IS COUNTED BEFORE ANYTHING IS RUN: each cell is entered in the set's register
+(`lab/trials.py`) before the first is judged, so a cell that fails or is never reached is
+counted, and every answer is corrected for the whole count.
 
-THE RUNGS RUN, each one's answer in its own words (`rung.Answer`) with its reason: the author's
-own result (`lab/reproduce.py`), the first, luck and yearly rungs (`lab/deflated.py`), the folds
-(`lab/folds.py`: the last five whole years pooled over the rule's lines, one answer on every line;
-a fold is no trial) and the market's (`lab/market.py`). The one verdict is the one rule over those
-six: a cell whose folds could not be run has none, a worst fold too thin to say holds it at THIN
-at best, and a rule whose author's figure is not reproduced has none on the desk's lines. A rung
-not yet runnable is named on every line (UNRUN). Nothing here goes to paper: that takes all
-eleven rungs, each proven.
+THE RUNGS RUN, each answer in its own words (`rung.Answer`): the author's result
+(`lab/reproduce.py`), the first, luck and yearly rungs (`lab/deflated.py`), the folds (the last
+five whole years pooled over the rule's lines; a fold is no trial) and the market's. The one
+verdict is the one rule over those six: no folds, or an author's figure not reproduced, gives
+none; a worst fold too thin to say holds it at THIN. A rung not yet runnable is named on every
+line (UNRUN). Nothing goes to paper before all eleven.
+
+THE RUNG MAP (L2): the plan's eleven rungs and easing 4's twelfth, each `n name: module, test`.
+A row's names differ:
+`first` holds 1-3, `market` 4 and 6. Each rung's proof is in its own test; (unbuilt) marks a file
+not yet there; after the dash, what is owed. BUILT: the ladder judges by it (it declares a RUNG).
+ 1 sample size, effective trades: lab/rung_sample.py, tests/unit/test_lab_rung_sample.py
+ 2 costs charged: lab/rung_costs.py, tests/unit/test_lab_rung_costs.py
+ 3 a confidence interval: lab/rung_ci.py, tests/unit/test_lab_rung_ci.py
+ 4 excess after market risk, by size: lab/rung_beta.py, tests/unit/test_lab_rung_beta.py
+ 5 two regime windows: lab/rung_regimes.py, tests/unit/test_lab_rung_regimes.py
+ 6 benchmark excess by interval: lab/rung_benchmark.py, tests/unit/test_lab_rung_benchmark.py
+ 7 deflated Sharpe: lab/rung_dsr.py, tests/unit/test_lab_rung_dsr.py - one clustered set (L14)
+ 8 purged cross-validation: lab/rung_cpcv.py, tests/unit/test_lab_rung_cpcv.py
+ 9 placebo on blocks of days: lab/rung_placebo.py, tests/unit/test_lab_rung_placebo.py
+10 walk-forward folds: lab/folds.py, tests/unit/test_lab_folds.py - the ladder runs `pool`
+11 block bootstrap: lab/rung_bootstrap.py, tests/unit/test_lab_rung_bootstrap.py - no gate
+12 retail, basket beside market: lab/rung_retail.py, tests/unit/test_lab_rung_retail.py - no RUNG
+
+RARE LARGE LOSSES (G2, R-RUNNER-103). The first rung counts ONE MORE trade the rule did not make: a
+loss at its own stop, the least any judged trade would have made, in the standard errors and all
+read from them and in no count of the 30 asked. A loss that GAPS THROUGH the stop is not covered:
+the blind review (R-RUNNER-40) passed such noise at the first rung on up to 19 lines in 100.
 
 A PROXY (R-RUNNER-95): a line with less history than its named proxy is judged on the proxy's
-longer bars, labelled `proxy: SPY for VUAG`; the cell stays the real line.
-REFUSED (R-RUNNER-108): a line the desk's sizing refuses at its capital is a judged outcome
-(`refused by the desk's sizing: <reason>`), kept, counted apart from errors, not forward.
+bars, labelled `proxy: SPY for VUAG`. REFUSED (R-RUNNER-108): a line the desk's sizing refuses
+is a judged outcome (`refused by the desk's sizing: <reason>`), kept, counted apart from errors.
 KEPT BY WHAT MADE IT. The results file holds one JSON line per cell as it finishes, forced to
 disk, found again by its key: the code this module reaches, the cell's bars and its market's,
-the rates, the count of trials and the reproductions behind it. A cell kept under that key is
-skipped; change any and it is judged again, the last line its answer now. A cell that could not
-be judged (a line parked or stale, too short a history, a day with no rate) keeps its reason,
-key and time of last try: tried again when the key differs, else after 30 minutes. A cut line
-is cut off.
+the rates, the count of trials and the reproductions. A cell kept under that key is skipped;
+change any and it is judged again. A cell that could not be judged (a line parked or stale, a
+short history, a day with no rate) keeps its reason and key, and is judged again only when the
+key differs; one with no key (its bars could not be read) is tried again after 30 minutes. A
+row is appended only when it differs from the cell's last. A cut line is cut off.
 
 The sets as a command - SET EPON and the `python -m lab.ladder` door - are `lab/ladder_sets.py`.
 """
@@ -43,26 +61,37 @@ import json
 import os
 import sys
 from collections import Counter
-from collections.abc import Callable, Sequence
-from dataclasses import dataclass, field
-from datetime import UTC, date, datetime, timedelta
+from collections.abc import Callable, Iterator, Mapping, Sequence
+from dataclasses import dataclass
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import desk
 from desk import archive, carry, keeper
-from desk.command import DOLLARS, POUND
+from desk.command import CAPITAL, DOLLARS, POUND
 from desk.lines import LINES, Line
-from desk.orders import Refused
 from desk.store import Bar
 from desk.strategy import STRATEGIES, Rule
-from lab import batch, cell, published, reproduce, rulebook, rung, trials, verdict
+from lab import batch, cell, published, reproduce, rulebook, rung, tape, trials, verdict
 from lab.batch import Bars
 from lab.cell import Cell
-from lab.reproduce import Reproduction
+from lab.ladder_parts import (
+    FAILED,
+    RUNGS,
+    Shared,
+    _count,
+    _declared,
+    _due,
+    _made,
+    _pool,
+    _resolve,
+    faults,
+)
 from lab.rung import Answer, Rates
 
+__all__ = ["FAILED", "RUNGS", "Shared", "_count", "_resolve"]  #: what other modules take from here
 ME = "lab.ladder"  #: this module as the cell knows it, however the process was started
 QUESTION = "set 1: does a published rule earn on one of the desk's lines?"
 #: The one window: from where the daily history is carried back to, to the last session
@@ -71,7 +100,6 @@ START, END = date(2000, 1, 1), date(2026, 11, 13)
 FOLDS = verdict.FOLDS
 #: The market each venue's lines are set beside: the S&P 500 in New York, the FTSE 100 in London.
 MARKETS = {"US": "SPY", "LSE": "ISF"}
-PROXIES = {"VUAG": "SPY"}  #: a short-history line and the longer series that may stand in for it
 FOLDER, RESULTS, POUNDS = "ladder", "set1.jsonl", "pound.jsonl"
 DESK = Path(desk.__file__).parent  #: the one list of eponymous files: this folder
 
@@ -86,9 +114,6 @@ class Plan:
 
 
 FIRST = Plan(1, QUESTION, "set1")
-#: A cell that waits on data is tried again no sooner than this after its last try.
-RETRY = timedelta(minutes=30)
-FAILED = (ValueError, OSError, keeper.Stale)  #: what may leave a cell unjudged; all else is a bug
 
 
 def cells() -> tuple[Cell, ...]:
@@ -100,25 +125,51 @@ def cells() -> tuple[Cell, ...]:
     )
 
 
+def rungs_built() -> tuple[int, int]:
+    """The map's rungs the ladder judges by (their module declares a RUNG), and the map's rungs."""
+    paragraph = (__doc__ or "").split("THE RUNG MAP")[1].split("\n\n")[0]
+    rows = [line for line in paragraph.splitlines() if line.lstrip()[:1].isdigit()]
+    mods = {r.split("lab/")[1].split(".py")[0] for r in rows if "(unbuilt)" not in r}
+    return len(mods - {n.rpartition(".")[2] for n in rung.found(RUNGS)[1]}), len(rows)
+
+
 def names(c: Cell) -> list[str]:
     """The trials a cell costs, as the register names them: itself alone, for a fold is no trial."""
     return [trials.name(c)]
 
 
-def _whole(results: Path) -> bytes:
-    """The results file as far as its last whole line: a line a stop cut short is cut off."""
-    text = results.read_bytes() if results.exists() else b""
-    return text[: text.rfind(b"\n") + 1]
+class Kept:
+    """The results file read line by line into an index of offsets only: each cell's last whole
+    line (its answer now) is found by seek, and `end` is where the last whole line ends, so a
+    line a stop cut short is cut off. No row is held."""
 
+    def __init__(self, results: Path) -> None:
+        self.path, self.at, self.end = results, {}, 0
+        if not results.exists():
+            return
+        with results.open("rb") as file:
+            for line in file:
+                if not line.endswith(b"\n"):
+                    break
+                self.at[tuple(json.loads(line)["cell"])] = (self.end, len(line))
+                self.end += len(line)
 
-def _last(whole: bytes) -> dict[tuple[str, ...], verdict.Row]:
-    """Each cell's last line in the results: its answer now."""
-    return {tuple(row["cell"]): row for row in map(json.loads, whole.splitlines())}
+    def get(self, key: tuple[str, ...]) -> verdict.Row | None:
+        """The cell's last line, read back from the file, or None."""
+        if key not in self.at:
+            return None
+        offset, size = self.at[key]
+        with self.path.open("rb") as file:
+            file.seek(offset)
+            return cast(verdict.Row, json.loads(file.read(size)))
+
+    def rows(self) -> Iterator[verdict.Row]:
+        """Every cell's last line, one at a time."""
+        return (cast(verdict.Row, self.get(key)) for key in self.at)
 
 
 def stored(home: Path) -> Bars:
-    """Each line's daily bars to the window's end, through the keeper's door: a line parked or
-    not refreshed that far is refused."""
+    """Each line's daily bars to the window's end, by the keeper; a stale line is refused."""
 
     def bars(line: Line) -> Sequence[Bar]:
         held, parked = keeper.saved(home, END + keeper.DAY, [line])
@@ -145,6 +196,18 @@ def rates(
     return {day: rate for day in days if (rate := carry.carried(known, day))}
 
 
+def begun(home: Path, todo: Sequence[Cell], plan: Plan) -> tuple[Path, int]:
+    """The set's results file and its count of trials entered; the register made on a first run."""
+    results, register = (home / FOLDER / (plan.stem + e) for e in (".jsonl", ".trials.jsonl"))
+    if not results.exists() and not register.exists():  #: the set's first run, and only that
+        results.parent.mkdir(parents=True, exist_ok=True)
+        (fresh := register.with_suffix(".new")).unlink(missing_ok=True)
+        trials.start(fresh)
+        trials.ask(fresh, plan.question)
+        fresh.replace(register)  #: whole or not there: a stop before this begins it again
+    return results, trials.enter(register, plan.question, [n for c in todo for n in names(c)])
+
+
 def run(
     home: Path,
     bars: Bars,
@@ -157,23 +220,17 @@ def run(
     if cell.code_version(module=ME) != cell.RUNGS[ME]:
         raise RuntimeError("the code on disk has changed since this process loaded it")
     todo = cells() if todo is None else todo
-    results, register = (home / FOLDER / f"{plan.stem}{end}" for end in (".jsonl", ".trials.jsonl"))
-    if not results.exists() and not register.exists():  #: the set's first run, and only that
-        results.parent.mkdir(parents=True, exist_ok=True)
-        (fresh := register.with_suffix(".new")).unlink(missing_ok=True)
-        trials.start(fresh)
-        trials.ask(fresh, plan.question)
-        fresh.replace(register)  #: whole or not there: a stop before this begins it again
-    count = trials.enter(register, plan.question, [name for c in todo for name in names(c)])
-    whole = _whole(results)
-    last = _last(whole)
+    results, count = begun(home, todo, plan)
+    last = Kept(results)
     shared = Shared(todo)
+    register = results.with_suffix(".trials.jsonl")
+    kin = lambda rule: trials.family(register, plan.question, rule)  # noqa: E731 - read when EASED
     tally: Counter[str] = Counter()
-    with results.open("ab") as out:
-        out.truncate(len(whole))
+    with tape.on(home / FOLDER / tape.FOLDER), results.open("ab") as out:
+        out.truncate(last.end)
         for c in todo:
             was = last.get(tuple(batch.row(c)))
-            row = _one(c, bars, pounds, (plan.tag, count), was, shared, now())
+            row = _one(c, bars, pounds, (plan.tag, count), was, shared, now(), kin)
             if row != was:
                 out.write(json.dumps(row).encode() + b"\n")
                 out.flush()
@@ -192,65 +249,6 @@ def run(
     )
 
 
-@dataclass
-class Shared:
-    """What the cells of one run hold in common, asked once for each rule."""
-
-    todo: Sequence[Cell]
-    behind: dict[str, tuple[Reproduction, ...]] = field(default_factory=dict)
-    pools: dict[str, verdict.Pool] = field(default_factory=dict)
-
-
-def _resolve(c: Cell, bars: Bars) -> tuple[Cell, Sequence[Bar], Line | None]:
-    """The cell as judged, from its line's first bar so that its years are years it could trade
-    in, with its bars: its proxy's, longer, where one stands in (the third, the proxy)."""
-    own = bars(c.line)
-    if proxy := _proxy(c.line, own, bars):
-        c, own = Cell(c.strategy, proxy, c.start, c.end), bars(proxy)
-    start = max([c.start, *(bar.day for bar in own[:1])])
-    return Cell(c.strategy, c.line, start, c.end), own, proxy
-
-
-def _pool(rule: str, shared: Shared, bars: Bars, pounds: Rates) -> verdict.Pool:
-    """The rule's lines that can be judged: one that waits (on bars, years, units or a rate) is
-    left out of the folds. A proxy is pooled once. Only the rule at hand is kept: its bars are
-    most of the memory, and a set runs a rule's cells together."""
-    if rule not in shared.pools:
-        shared.pools.clear()
-        firsts, lines = {}, {}
-        for c in (one for one in shared.todo if one.strategy == rule):
-            try:
-                made, own, _ = _resolve(c, bars)
-                firsts[made] = verdict.ready(made, own, pounds, shared.behind[rule])
-            except (*FAILED, Refused):  #: a line the sizing refuses is judged alone, as refused
-                continue
-            lines[made] = own
-        dollars = any(c.line.currency != "GBP" for c in lines)
-        data = ";".join(f"{c.line.symbol} {cell.key(c, own).data}" for c, own in lines.items())
-        data = hashlib.sha256(data.encode()).hexdigest()
-        shared.pools[rule] = verdict.Pool(list(lines.items()), firsts, data, dollars)
-    return shared.pools[rule]
-
-
-def _count(tally: Counter[str], row: verdict.Row, was: verdict.Row | None) -> None:
-    """Add one cell's line to the counts."""
-    fate = next((k for k in ("error", "refused") if k in row), "kept" if row is was else "judged")
-    tally[fate] += 1
-    tally[row.get("answer", "none")] += 1
-    tally["missed"] += fate in ("kept", "judged") and "unrun" not in row
-    tally["short"] += "unrun" in row and "answer" not in row
-    tally["every"] += row.get("every", False)
-    tally["behind"] += row.get("every", False) and "reproduce" in row["rungs"]
-
-
-def _made(rule: str, shared: Shared, bars: Bars) -> tuple[Reproduction, ...]:
-    """The rule's reproductions of its authors' figures, made once for all its cells."""
-    if rule not in shared.behind:
-        owed = [figure for figure in reproduce.FIGURES if figure.strategy == rule]
-        shared.behind[rule] = tuple(reproduce.reproduce(f, bars(f.line)) for f in owed)
-    return shared.behind[rule]
-
-
 def _one(
     c: Cell,
     bars: Bars,
@@ -259,40 +257,40 @@ def _one(
     was: verdict.Row | None,
     shared: Shared,
     now: datetime,
+    kin: Callable[[str], int] | None = None,
 ) -> verdict.Row:
-    """The cell's line: the one kept, where it is kept under the key these bars, rates and
-    trials give; else its answers now, or why it could not be judged."""
+    """The cell's line: the one kept under the key these bars, rates and trials give, else its
+    answers now, or why it could not be judged."""
     tag, count = tagged
+    family = kin(c.strategy) if verdict.EASED and kin else None  #: the rule's trials, if EASED
     head: dict[str, Any] = {"set": tag, "cell": batch.row(c), "trials": count}
     key = None  #: what this try covers, once the cell's bars are read
     try:
-        line = c.line
         c, own, proxy = _resolve(c, bars)
-        head |= {"proxy": f"proxy: {proxy.symbol} for {line.symbol}"} if proxy else {}
-        beside = next(one for one in LINES if one.symbol == MARKETS[c.line.venue])
-        held = bars(beside)
+        head |= {"proxy": f"proxy: {proxy.symbol} for {head['cell'][1]}"} if proxy else {}
+        held = bars(beside := next(one for one in LINES if one.symbol == MARKETS[c.line.venue]))
         made = _made(c.strategy, shared, bars)
         pool = _pool(c.strategy, shared, bars, pounds)
         mine = cell.key(c, own).rung(ME)
         days = sorted(
-            day for day in pounds if day <= c.end and (c.line.currency != "GBP" or pool.dollars)
+            d for d in pounds if d <= c.end and (c.line.currency != "GBP" or pool.dollars)
         )
         market = cell.key(Cell(c.strategy, beside, c.start, c.end), held).data
-        rates = (f"{d} {pounds[d]}" for d in days)
-        parts = [mine.code, CODE, mine.data, market, pool.data, str(count), *rates]
-        parts += [one.key.code + one.key.data for one in made]
+        parts = [mine.code, mine.data, market, pool.data, str(count), f"capital {CAPITAL}"]
+        parts += [f"{d} {pounds[d]}" for d in days] + ([] if family is None else [f"in {family}"])
+        parts += [tape.rule_code(c.strategy)] + [one.key.code + one.key.data for one in made]
+        found = rung.found(RUNGS)
+        parts += [one.name + one.code for one in found[0]] + list(found[1])  #: both are in its key
         head |= {"reproduction": [reproduce.said(one) for one in made]} if made else {}
         key = hashlib.sha256(";".join(parts).encode()).hexdigest()
-        if was is not None and was.get("key") == key and not _due(was, now):
-            return was  #: kept, or failed on all of this before and tried not long ago
+        if was is not None and was.get("key") == key:
+            return was  #: kept, or failed on all of this before: it waits for its key to change
+        if (first := pool.firsts.get(c)) is not None and first.refusal is not None:
+            return head | {"key": key, "refused": f"refused by the desk's sizing: {first.refusal}"}
         folded = lambda: pool.fold(pounds, made)  # noqa: E731 - asked for only if the folds are read
-        judged = verdict.judge(
-            c, own, beside, held, pounds, count, made, folded, pool.firsts.get(c)
-        )
-        return head | {"key": key, "from": c.start.isoformat()} | judged
-    except Refused as error:  #: the desk's sizing declines the line at this capital: judged
-        reason = f"refused by the desk's sizing: {error}"
-        return head | ({} if key is None else {"key": key}) | {"refused": reason}
+        judged = verdict.judge(c, own, beside, held, pounds, count, made, folded, first, family)
+        done = _declared(judged, pool, c, own, pounds, made, found)
+        return head | {"key": key, "from": c.start.isoformat()} | done
     except FAILED as error:
         if was is not None and "error" in was and "key" not in was and not _due(was, now):
             return was  #: its bars could not be read, and it was tried not long ago
@@ -303,36 +301,17 @@ def _one(
         )
 
 
-def _proxy(line: Line, own: Sequence[Bar], bars: Bars) -> Line | None:
-    """The line named to stand in for this one, when its bars begin earlier than the line's own."""
-    stand = next((one for one in LINES if one.symbol == PROXIES.get(line.symbol)), None)
-    longer = bars(stand) if stand else ()
-    return stand if longer and (not own or longer[0].day < own[0].day) else None
-
-
-def _due(was: verdict.Row, now: datetime) -> bool:
-    """A failed cell is tried again once its last try is 30 minutes old."""
-    return "error" in was and now - datetime.fromisoformat(was["tried"]) >= RETRY
-
-
-def code(folder: Path = DESK) -> str:
-    """sha256 of the text of every eponymous file, a Windows line ending not a change: part of
-    every key, so no rule is judged on code the keys do not reach."""
-    texts = [p.read_bytes().replace(b"\r\n", b"\n") for p in sorted(folder.glob("eponymous_*.py"))]
-    return hashlib.sha256(b"\0".join(texts)).hexdigest()
-
-
-CODE = code()  #: the eponymous files as this process loaded them: in every key
-
-
-def eponymous(folder: Path = DESK) -> tuple[str, ...]:
-    """The name of every rule of every `desk/eponymous_*.py`, by the rule book; a file with no
-    `EPONYMOUS` is refused, by name. A rule that takes data (Zweig's breadth) is left out."""
+def eponymous(folder: Path = DESK, book: Path | None = None) -> tuple[str, ...]:
+    """Every rule of every `desk/eponymous_*.py`, then any the catalogue's specs add; a file with no
+    `EPONYMOUS` is refused. A rule that takes data (Zweig's breadth) is left out. A name in both is
+    one rule, listed once: the specs are read beside the Python rules, so none goes unregistered
+    when the Python ones go."""
     for path in sorted(folder.glob("eponymous_*.py")):
         module = importlib.import_module(f"{desk.__name__}.{path.stem}")
         if not hasattr(module, "EPONYMOUS"):
             raise ValueError(f"{module.__name__} names its rules in no EPONYMOUS mapping")
-    return tuple(n for n, make in rulebook.eponymous(folder).items() if not _needs_data(make))
+    python = tuple(n for n, make in rulebook.eponymous(folder).items() if not _needs_data(make))
+    return python + tuple(n for n in rulebook.specs(book, folder) if n not in python)
 
 
 def _needs_data(make: type[Rule]) -> bool:
@@ -340,7 +319,19 @@ def _needs_data(make: type[Rule]) -> bool:
     return any(p.default is p.empty for p in inspect.signature(make).parameters.values())
 
 
-if __name__ == "__main__":
+def door(env: Mapping[str, str], argv: Sequence[str]) -> int:
+    """The command: the set run, then each rung any cell FAULTed on said on its own line with its
+    share and reason; 1 when most cells FAULTed, so a set that judged nothing is never green."""
     from lab import ladder_sets
 
-    sys.exit(ladder_sets.main(os.environ, sys.argv[1:]))
+    code = ladder_sets.main(env, argv)
+    plan = {"first": FIRST, "leveraged": ladder_sets.LEV}.get(argv[0] if argv else "")
+    stem = (plan or ladder_sets.EPON).stem
+    kept = Kept(Path(env["KESTREL2_DATA"]) / FOLDER / f"{stem}.jsonl")
+    said, mostly = faults(kept.rows())
+    sys.stdout.write("".join(f"{line}" + chr(10) for line in said))
+    return code or int(mostly)
+
+
+if __name__ == "__main__":
+    sys.exit(door(os.environ, sys.argv[1:]))

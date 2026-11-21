@@ -24,6 +24,7 @@ import math
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+from lab.cell import Key
 from lab.rung import Verdict
 
 #: One combined 5% test across the set (LAD-08): of twenty sets with no edge in any trial,
@@ -33,6 +34,7 @@ FAMILY = 0.05
 
 @dataclass(frozen=True)
 class Corrected:
+    key: Key  #: what this correction is found by: the verdict's key, stamped by this rung
     verdict: Verdict
     trials: int  #: every trial the verdict was picked from, itself included
     chance: float  #: of its standard errors or more from no edge; 1 with under two trades
@@ -50,9 +52,10 @@ def correct(verdicts: Sequence[Verdict], unjudged: int) -> tuple[Corrected, ...]
 
 
 def _corrected(verdict: Verdict, trials: int) -> Corrected:
-    chance = 1.0 if verdict.t is None else tail(float(verdict.t), len(verdict.trades) - 1)
+    chance = 1.0 if verdict.t is None else tail(float(verdict.t), len(verdict.gains) - 1)
     corrected = min(1.0, chance * trials)
-    return Corrected(verdict, trials, chance, corrected, verdict.passed and corrected <= FAMILY)
+    stands = verdict.passed and corrected <= FAMILY
+    return Corrected(verdict.key.rung(__name__), verdict, trials, chance, corrected, stands)
 
 
 def tail(t: float, freedom: int) -> float:

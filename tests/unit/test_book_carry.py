@@ -1,5 +1,6 @@
 """The pound's rate across a UK-only holiday (desk.carry), through book.rate."""
 
+from collections.abc import Iterator
 from dataclasses import replace
 from datetime import date
 from decimal import Decimal
@@ -43,3 +44,28 @@ def test_the_brokers_correction_of_a_fill_is_one_fill_in_the_ledger_never_two(
         book.collect(tmp_path, _Told(*told))  # type: ignore[arg-type]  # a stub broker
     assert book.fills(tmp_path) == (fixed, other)
     assert book.positions(tmp_path) == {"A": 10, "B": 5}
+
+
+def test_the_keeper_of_records_writes_whole_and_a_death_mid_write_leaves_the_old_file(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "sub" / "records.csv"
+    book.keep(path, [("a", "b"), ("1", "2")])
+    assert path.read_text(encoding="utf-8").split() == ["a,b", "1,2"]
+
+    def dies() -> Iterator[tuple[str, ...]]:
+        yield ("x", "y")
+        raise KeyboardInterrupt
+
+    with pytest.raises(KeyboardInterrupt):
+        book.keep(path, dies())
+    assert path.read_text(encoding="utf-8").split() == ["a,b", "1,2"]
+    assert [p.name for p in path.parent.iterdir()] == ["records.csv"]  # no part file left
+
+    def second_writer() -> Iterator[tuple[str, ...]]:
+        yield ("first",)
+        book.keep(path, [("second",)])  # lands while the first is half written
+        yield ("done",)
+
+    book.keep(path, second_writer())  # two writers, two temp files, no unreadable record
+    assert path.read_text(encoding="utf-8").split() == ["first", "done"]

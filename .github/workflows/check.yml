@@ -6,14 +6,14 @@ name: check
 
 on:
   push:
-    branches: ["**"]
+    branches: [main]
   pull_request:
     branches: [main]
 
 permissions:
   contents: read
 
-# Two pushes to one branch: the older run gives way (never on main, whose run announces).
+# Two pushes to one branch: the older run gives way (never on main).
 concurrency:
   group: check-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
@@ -21,7 +21,7 @@ concurrency:
 jobs:
   step:
     # THE ONE CHECK, ITS STEPS SIDE BY SIDE: each runs `python check.py --only <step>`, the
-    # unit tests in three shares. tests/guards/test_workflow.py holds this list to check.py's.
+    # unit tests in five shares. tests/guards/test_workflow.py holds this list to check.py's.
     name: step (${{ matrix.step }}${{ matrix.shard && format(' {0}', matrix.shard) || '' }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -34,11 +34,15 @@ jobs:
           - step: guards
           - step: types
           - step: unit
-            shard: 1/3
+            shard: 1/5
           - step: unit
-            shard: 2/3
+            shard: 2/5
           - step: unit
-            shard: 3/3
+            shard: 3/5
+          - step: unit
+            shard: 4/5
+          - step: unit
+            shard: 5/5
           - step: scenes
     steps:
       - uses: actions/checkout@v4
@@ -66,31 +70,6 @@ jobs:
     steps:
       - name: every step passed
         run: test "${{ needs.step.result }}" = "success"
-
-  announce:
-    # ONE LINE TO THE OPERATOR'S TELEGRAM for each change that lands on main, once the
-    # check has passed there. The key and chat id are secrets he set himself; a missing
-    # one turns this job red, it never skips. docs/DECISIONS.md, 13 November 2026.
-    needs: check
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: read
-      pull-requests: read
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: send the operator one line
-        env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          GITHUB_TOKEN: ${{ github.token }}
-        run: python announce.py
 
   guards-cannot-be-loosened:
     # A change to a guard, a budget or the manifest is allowed, but it is never quiet:

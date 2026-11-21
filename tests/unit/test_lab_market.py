@@ -76,7 +76,7 @@ def test_a_trade_not_judged_ends_the_days_counted_on_the_day_it_was_bought() -> 
     bars, up = _walk(0, 0.008), _rising(100)
 
     def trades(n: int, start: int = 0) -> tuple[cell.Trade, ...]:
-        return cell.run(Cell("breakout_20_10", "VUSA", bars[start].day, bars[n].day), bars).trades
+        return cell.run(Cell("breakout_20_10", VUSA, bars[start].day, bars[n].day), bars).trades
 
     #: still held at the window's end, and sold on its last day with no morning after to fill
     held = next(n for n in range(4000, 5000) if trades(n)[-1].sold is None)
@@ -86,7 +86,7 @@ def test_a_trade_not_judged_ends_the_days_counted_on_the_day_it_was_bought() -> 
         assert cut.verdict.trades[-1].trade == trades(end)[-2], "the last trade is not judged"
         assert bars[cut.days].day == trades(end)[-1].bought, "bar 0 moves from nothing"
     #: the days before a window's start warm the rule, and are not counted
-    late = cell.run(Cell("breakout_20_10", "VUSA", bars[1000].day, bars[sold].day), bars)
+    late = cell.run(Cell("breakout_20_10", VUSA, bars[1000].day, bars[sold].day), bars)
     after = market.judge(rung.judge(late, bars, ROOM, POUND), bars, YARDSTICK, up, POUND)
     assert after.answer is Answer.PASS and cut.days - after.days == 999
 
@@ -137,8 +137,10 @@ def test_what_cannot_be_the_market_it_took_is_refused() -> None:
     with pytest.raises(ValueError, match="AAPL trades on US, VUSA on LSE"):
         market.judge(verdict, bars, AAPL, up, POUND)
     hole = bars[2500].day
-    with pytest.raises(ValueError, match=f"VUAG has no bar on {hole}"):
-        market.judge(verdict, bars, YARDSTICK, up[:2500] + up[2501:], POUND)
+    #: a counted day with no bar is a named data fault, not a crash
+    lost = market.judge(verdict, bars, YARDSTICK, up[:2500] + up[2501:], POUND)
+    assert lost.answer is Answer.FAULT and (lost.line, lost.wide, lost.days) == (None, None, 0)
+    assert f"VUAG has no bar on {hole} to set beside it" in lost.fault
     with pytest.raises(ValueError, match="did not make the verdict"):
         market.judge(verdict, bars[:-1], YARDSTICK, up, POUND)
     with pytest.raises(ValueError, match="never moved"):

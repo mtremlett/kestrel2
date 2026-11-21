@@ -28,11 +28,22 @@ him: back to the last thing he did other than the paper Gateway's weekly login (
 ruling, docs/DECISIONS.md), or to the last hour in which some job had no run that ended
 well, whichever is the later. A desk not running proves nothing. Seven days are owed (NS-01).
 
-Not built (docs/STATUS.md): the register is empty, for the desk's step has no command yet;
-nobody is told what `health` finds; and the supervisor's own start, once, by Windows."""
+TOLD (`tell`): what `health` finds goes to his phone through the messenger's one door, under
+a name of the UTC hour, so a fault is told once an hour and never in a storm. Run from outside
+the supervisor (whatever Windows starts beside it), so a dead supervisor is still told.
+
+ON MAIN'S LATEST CODE, AT A SAFE POINT (OPS-05, OPS-16). Each look, before any job is run, the
+supervisor takes every job's lock (so none is mid-send, not even one a dead supervisor left),
+pulls main into the desk's code folder (`pull`, fast-forward only), and lets go. A job is a
+fresh process, so the next run is the new code; a supervisor whose own file changed leaves,
+and whatever started it starts it again. A pull that fails is a receipt of the job "update"
+and the old code runs on.
+
+Not built (docs/STATUS.md): the supervisor's own start, and `tell`'s, by Windows."""
 
 from __future__ import annotations
 
+import contextlib
 import os
 import runpy
 import sqlite3
@@ -40,7 +51,7 @@ import subprocess
 import sys
 import time
 from collections.abc import Callable, Iterator, Sequence
-from contextlib import closing, contextmanager
+from contextlib import ExitStack, closing, contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from functools import partial
@@ -60,7 +71,7 @@ BAD = (
 HIS = "SELECT COALESCE(MAX(at), '') FROM actions WHERE what != ?"
 RAN = "SELECT job, began FROM receipts WHERE how = ? AND began > ? AND began <= ? ORDER BY 2 DESC"
 WORK = ("-m", "desk.supervisor", "work")  #: a job's own process, as the supervisor starts it
-WAIT = 5  #: seconds one process waits for another's write of the record
+WAIT = 5  #: seconds a process waits for another's write of a record (the messenger's too)
 LOOK = 15  #: seconds between the supervisor's looks at what is due
 GRACE = 2  #: seconds past its time limit a job has to end itself before the supervisor kills it
 OVERRUN = 124  #: the code a job's process ends itself with at its time limit
@@ -75,8 +86,9 @@ NOTHING = "No job is registered with the supervisor: nothing of the desk runs un
 LATE = "No receipt of the desk's {} {}: nothing is running it. Please look at the PC."
 BADLY = "The desk's {} has not ended well since {:%a %d %b %H:%M} UTC ({} in a row). The latest {}."
 ALONE = "The desk has run {} days {} hours without him: {} days are owed (NS-01)."
+NL = chr(10)  #: one fault to a line
 LOGIN = "the paper Gateway's weekly login"
-USAGE = "python -m desk.supervisor run ROOT | health ROOT | login ROOT | acted ROOT WHAT HE DID"
+USAGE = "python -m desk.supervisor run|health|tell|login ROOT | acted ROOT WHAT HE DID"
 Clock = Callable[[], datetime]
 _now: Clock = partial(datetime.now, UTC)
 
@@ -89,12 +101,20 @@ class Job:
     module: str  #: its program, run as `python -m` runs one, the desk's root its one word
     every: timedelta  #: due again this long after its last run began
     limit: timedelta  #: a run still going after this long is ended
+    rooted: bool = (
+        True  #: told the desk's root as its one word; else it finds its own (KESTREL2_DATA)
+    )
 
 
-#: THE ONE REGISTER of what the desk runs unattended. Empty (docs/STATUS.md): the desk's step
-#: has no command yet, and a module that only imports would end "done" with nothing done.
-JOBS: tuple[Job, ...] = ()
+#: THE ONE REGISTER of what the desk runs unattended: the desk's step, `python -m desk.running`,
+#: which finds its own data folder and ends non-zero when the step fails.
+JOBS: tuple[Job, ...] = (
+    Job("step", "desk.running", timedelta(minutes=5), timedelta(minutes=4), False),
+)
 Run = Callable[[Job, Path], str]
+Pull = Callable[[], str]  #: brings the code up to main's: DONE, or how it failed
+CODE = Path(__file__).resolve().parents[1]  #: the desk's code folder, a copy of main
+UPDATE, PULLED = "update", ("git", "pull", "--ff-only", "--quiet")
 
 
 class Receipt(NamedTuple):
@@ -150,7 +170,15 @@ def _run(job: Job, root: Path) -> str:
     ended itself GRACE after its time limit is killed. Given back: how it ended, as its
     receipt keeps it."""
     limit = job.limit.total_seconds()
-    command = [sys.executable, *WORK, str(root), job.name, job.module, str(limit)]
+    command = [
+        sys.executable,
+        *WORK,
+        str(root),
+        job.name,
+        job.module,
+        str(limit),
+        *([str(root)] * job.rooted),
+    ]
     try:
         ended = subprocess.run(  # noqa: S603 - the desk's own python, on a registered module
             command, capture_output=True, errors=SPELT, timeout=limit + GRACE, creationflags=HIDDEN
@@ -160,6 +188,28 @@ def _run(job: Job, root: Path) -> str:
     last = (ended.stderr.strip().splitlines() or ["it said nothing"])[-1][:SAID]
     how = {0: DONE, OVERRUN: OVERRAN.format(job.limit)}
     return how.get(ended.returncode) or ENDED.format(ended.returncode, last)
+
+
+def _pull() -> str:
+    """Main's latest into the code folder, fast-forward only. Given back: DONE, or the words."""
+    ended = subprocess.run(  # noqa: S603 - git, with fixed words, in the desk's own folder
+        PULLED, cwd=CODE, capture_output=True, errors=SPELT, timeout=60, creationflags=HIDDEN
+    )
+    last = (ended.stderr.strip().splitlines() or ["it said nothing"])[-1][:SAID]
+    return DONE if ended.returncode == 0 else ENDED.format(ended.returncode, last)
+
+
+def _update(root: Path, jobs: Sequence[Job], pull: Pull, clock: Clock) -> None:
+    """THE SAFE POINT: with every job's lock held, so none runs, pull; a failure is kept as a
+    receipt of the job "update". A lock held by another job's process is Held: no pull now."""
+    with ExitStack() as locks:
+        for job in jobs:
+            locks.enter_context(_only(root, f"job-{job.name}"))
+        began, how = _utc(clock()), pull()
+        if how != DONE:
+            with _record(root) as record:
+                row = (UPDATE, began.isoformat(), _utc(clock()).isoformat(), how)
+                record.execute("INSERT INTO receipts VALUES (?, ?, ?, ?)", row)
 
 
 def attend(
@@ -183,17 +233,18 @@ def attend(
     return tuple(kept)
 
 
-def work(root: Path, name: str, module: str, limit: float) -> None:
+def work(root: Path, name: str, module: str, limit: float, *words: str) -> None:
     """A JOB'S OWN PROCESS: the job's lock held for the whole of its life, and its module run
-    as the program, the desk's root its one word. While a run before it holds the lock (one
-    a dead supervisor left running), this one is refused and runs nothing. At its time limit
+    as the program, with the words it is given (the desk's root, or none). While a run before
+    it holds the lock (one a dead supervisor left running), this one is refused and runs
+    nothing. At its time limit
     the process ends itself, watched or not, and the system lets go of its lock."""
     with _only(root, f"job-{name}"):
         code = [OVERRUN]
         ends = Timer(limit, lambda: os._exit(code[0]))
         ends.daemon = True
         ends.start()
-        sys.argv = [module, str(root)]
+        sys.argv = [module, *words]
         runpy.run_module(module, run_name="__main__", alter_sys=True)
         code[0] = 0  #: done: whatever of it lingers still ends at the limit, and as done
 
@@ -230,6 +281,17 @@ def acted(root: Path, at: datetime, what: str) -> None:
         record.execute("INSERT INTO actions VALUES (?, ?)", (_utc(at).isoformat(), what))
 
 
+def tell(root: Path, now: datetime, jobs: Sequence[Job], say: Callable[[str, str], object]) -> bool:
+    """WHAT HEALTH FINDS, TOLD TO HIM through the messenger, once in each UTC hour it is
+    wrong (the hour is the message's name), by say: the messenger's one door, name and words.
+    Given back: whether anything was wrong. A door
+    that does not deliver is the messenger's error raised, and the fault is told again."""
+    wrong = health(root, now, jobs)
+    if wrong:
+        say(f"health {_utc(now):%Y-%m-%d %H}", NL.join(wrong))
+    return bool(wrong)
+
+
 def unattended(root: Path, now: datetime, jobs: Sequence[Job]) -> timedelta:
     """HOW LONG THE DESK HAS RUN WITHOUT HIM, by the job that says least. For each job: up to
     its last run that ended well, back through such runs for as long as each began within
@@ -250,17 +312,28 @@ def unattended(root: Path, now: datetime, jobs: Sequence[Job]) -> timedelta:
 
 
 def supervise(
-    root: Path, jobs: Sequence[Job], clock: Clock = _now, wait: Callable[[float], None] = time.sleep
+    root: Path,
+    jobs: Sequence[Job],
+    clock: Clock = _now,
+    wait: Callable[[float], None] = time.sleep,
+    pull: Pull | None = None,
 ) -> None:
     """THE ONE SUPERVISOR, for as long as it lives: the supervisor's lock taken (Held, and
     another is alive), then a look at what is due every LOOK seconds. Nothing registered is
-    refused, and so is a name registered twice. An error of its own ends it: whatever
-    started it starts it again."""
+    refused, and so is a name registered twice. With a pull, the code is brought up to main's
+    each look at the safe point, and the supervisor leaves when its own file changed. An error of
+    its own ends it: whatever started it starts it again."""
     names = [job.name for job in jobs]
     if not jobs or len(set(names)) < len(names):
         raise ValueError(NOTHING if not jobs else f"a job is on the register twice: {names}")
+    mine = Path(__file__).read_bytes()
     with _only(root, "supervisor"):
         while True:
+            if pull is not None:
+                with contextlib.suppress(Held):  # a job still running: pull at the next look
+                    _update(root, jobs, pull, clock)
+                if Path(__file__).read_bytes() != mine:
+                    return
             attend(root, jobs, clock)
             wait(LOOK)
 
@@ -273,16 +346,25 @@ def main(argv: Sequence[str], clock: Clock = _now) -> int:
     match argv:
         case ["run", root]:
             try:
-                supervise(Path(root), JOBS)
+                supervise(Path(root), JOBS, pull=_pull)
             except Held as other:
                 print(other)  # noqa: T201 - the command's answer to whoever typed it
-        case ["work", root, name, module, limit]:
-            work(Path(root), name, module, float(limit))
+        case ["work", root, name, module, limit, *words]:
+            work(Path(root), name, module, float(limit), *words)
         case ["health", root]:
             wrong, alone = health(Path(root), clock(), JOBS), unattended(Path(root), clock(), JOBS)
             told = ALONE.format(alone.days, alone.seconds // 3600, OWED.days)
             print(*wrong, told, sep="\n")  # noqa: T201 - the command's answer to whoever typed it
             return int(bool(wrong))
+        case ["tell", root]:
+            from desk import (
+                messenger,  # noqa: PLC0415 - it imports WAIT from here: no cycle at load
+            )
+
+            post, now = messenger.telegram(os.environ), clock()
+            return int(
+                tell(Path(root), now, JOBS, partial(messenger.send, Path(root), now, post=post))
+            )
         case ["acted", root, *words] if words:
             acted(Path(root), clock(), " ".join(words))
         case ["login", root]:

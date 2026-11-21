@@ -86,7 +86,15 @@ def test_a_job_runs_when_due_in_a_process_of_its_own_and_every_run_leaves_a_date
     assert time.monotonic() - began < 30  # a run that is done does not wait out its time limit
     assert len(_ran(root)) == 1 and _ran(root) != [os.getpid()]  # its own process, given the root
     hidden = getattr(subprocess, "CREATE_NO_WINDOW", 0)  # on Windows, in a window nobody sees
-    assert spy.call_args.kwargs["creationflags"] == hidden and spy.call_args.args[0][-1] == "60.0"
+    assert spy.call_args.kwargs["creationflags"] == hidden and spy.call_args.args[0][-2:] == [
+        "60.0",
+        str(root),
+    ]
+    # a job that finds its own root is told none: the command ends at its time limit
+    monkeypatch.setattr(subprocess, "run", Mock(return_value=Mock(returncode=0, stderr="")))
+    assert supervisor._run(replace(STEP, rooted=False), root) == DONE  # noqa: SLF001
+    assert subprocess.run.call_args.args[0][-1] == "60.0"  # type: ignore[attr-defined]
+    monkeypatch.setattr(subprocess, "run", spy)
     clock.return_value += 4 * MIN  # due again in a minute: nothing is run, and all is well
     assert supervisor.attend(root, [STEP], clock) == () and len(_ran(root)) == 1
     assert supervisor.health(root, clock(), [STEP]) == ()
@@ -118,7 +126,7 @@ def test_a_job_killed_from_outside_or_still_running_at_its_time_limit_is_run_aga
     assert killed.how in {ENDED.format(code, "it said nothing") for code in (15, -15)}
     assert supervisor.health(root, T0, [STEP]) == (BADLY.format("step", "08:00", 1, killed.how),)
     # stuck again, with nobody watching it at all: at its time limit the process ends itself
-    alone = [sys.executable, *supervisor.WORK, str(root), "step", "the_job", "0.5"]
+    alone = [sys.executable, *supervisor.WORK, str(root), "step", "the_job", "0.5", str(root)]
     assert subprocess.run(alone, cwd=REPO, check=False).returncode == supervisor.OVERRUN  # noqa: S603
     # and under the supervisor the receipt says so; one too far gone even for that is killed
     # by the supervisor soon after, and its receipt says the same
@@ -269,8 +277,12 @@ def test_the_command_line_keeps_his_ledger_and_refuses_a_desk_with_no_job_regist
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     root, clock, run = str(tmp_path), Mock(return_value=T0), Mock(return_value=DONE)
-    # nothing is registered yet, and the desk is not well
-    assert supervisor.JOBS == () and supervisor.main(["health", root], clock) == 1
+    # the register holds the desk's step, run as its own command with no root told; with
+    # nothing registered the desk is not well
+    (step,) = supervisor.JOBS
+    assert (step.module, step.rooted, step.every) == ("desk.running", False, 5 * MIN)
+    monkeypatch.setattr(supervisor, "JOBS", ())
+    assert supervisor.main(["health", root], clock) == 1
     alone = "The desk has run {} days {} hours without him: 7 days are owed (NS-01).\n"
     assert capsys.readouterr().out == f"{NOTHING}\n{alone.format(0, 0)}"
     # his login goes on the ledger in its own words, and anything else he did in his: after
@@ -292,5 +304,48 @@ def test_the_command_line_keeps_his_ledger_and_refuses_a_desk_with_no_job_regist
     assert ledger == [(at.isoformat(), what) for at, what in his]
     # words that are no command are refused, and so is a root that is not there
     for words in (["acted", root], ["health"], ["work", root], ["login", f"{root}/typo"], []):
-        with pytest.raises((SystemExit, sqlite3.OperationalError), match="supervisor run|unable"):
+        with pytest.raises((SystemExit, sqlite3.OperationalError), match="supervisor|unable"):
             supervisor.main(words)
+
+
+def test_what_health_finds_is_told_under_the_hour_s_name_and_nothing_when_all_is_well(
+    tmp_path: Path,
+) -> None:
+    say = Mock()
+    assert supervisor.tell(tmp_path, T0, [STEP], say)  # no receipt: nothing runs it
+    supervisor.attend(tmp_path, [STEP], Mock(return_value=T0), Mock(return_value=DONE))
+    assert not supervisor.tell(tmp_path, T0 + MIN, [STEP], say)  # well: nothing said
+    assert supervisor.tell(tmp_path, T0 + 2 * HOUR + MIN, [STEP], say)
+    told = [call.args for call in say.call_args_list]
+    assert [name for name, _ in told] == ["health 2026-11-16 08", "health 2026-11-16 10"]
+    assert told[1][1] == LATE.format("step", SINCE.format(0))
+
+
+def test_main_is_pulled_only_at_the_safe_point_when_no_job_is_running_and_a_failure_is_kept(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    root, mine = tmp_path, tmp_path / "me.py"
+    mine.write_text("one")
+    monkeypatch.setattr(supervisor, "__file__", str(mine))
+    pull, looks = Mock(return_value="no network"), Mock(side_effect=[None, None, _Enough()])
+    ran = Mock(return_value=())
+    monkeypatch.setattr(supervisor, "attend", ran)
+    with pytest.raises(_Enough):  # a failed pull is a receipt; the old code runs on
+        supervisor.supervise(root, [STEP], wait=looks, pull=pull)
+    assert pull.call_count == 3 and ran.call_count == 3
+    assert supervisor.health(root, T0, []) and [r[0] for r in _receipts(root)] == ["update"] * 3
+    with supervisor._only(root, "job-step"):  # noqa: SLF001 - a job mid-send: no pull now
+        pull.reset_mock()
+        looks.side_effect = [None, _Enough()]
+        with pytest.raises(_Enough):
+            supervisor.supervise(root, [STEP], wait=looks, pull=pull)
+        assert pull.call_count == 0
+    pull.side_effect = lambda: mine.write_text("two") or DONE  # its own file changed: it leaves
+    ran.reset_mock()
+    supervisor.supervise(root, [STEP], wait=looks, pull=pull)
+    assert ran.call_count == 0
+
+
+def _receipts(root: Path) -> list[tuple[str, ...]]:
+    with sqlite3.connect(root / supervisor.RECORD) as record:
+        return record.execute(supervisor.READ).fetchall()

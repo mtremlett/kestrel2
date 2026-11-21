@@ -4,7 +4,7 @@ broker, and faults on request."""
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Collection, Iterable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import date
 from decimal import Decimal
@@ -97,6 +97,15 @@ class Broker(Protocol):
         kill switch leaves nothing held unprotected. No one else's order is touched."""
 
 
+class Restopping(Broker, Protocol):
+    """A broker that can move the stop resting on a line, as the day's step asks."""
+
+    def restop(self, symbol: str, level: Decimal) -> None:
+        """Move the line's one resting stop to level (the line's currency), for all the shares
+        held: the new one rests before the old is taken off, so the line is never bare. A line
+        with no stop resting is an error raised; one already at that level is left as it is."""
+
+
 @dataclass(frozen=True)
 class _Stop:
     order_id: str  #: the stop's own id: the order that set it, with "-stop"
@@ -105,14 +114,21 @@ class _Stop:
 
 
 class Pretend:
-    def __init__(self, archive: Mapping[Line, Sequence[Bar]], faults: Mapping[str, Fault]) -> None:
+    def __init__(
+        self,
+        archive: Mapping[Line, Sequence[Bar]],
+        faults: Mapping[str, Fault],
+        link_breaks: Collection[str] = (),
+    ) -> None:
         """Fills at the archive's prices; a fault applies to a symbol's first order that
-        meets a market."""
+        meets a market. A symbol in link_breaks has its first order filled, then the link
+        breaks: the desk hears Disconnected (the fault matrix, not a random fault)."""
         self._bars = {(line.symbol, bar.day): bar for line, bars in archive.items() for bar in bars}
         unknown = set(faults) - {symbol for symbol, _ in self._bars}
         if unknown:
             raise ValueError(f"faults for symbols the archive does not hold: {sorted(unknown)}")
         self._faults = dict(faults)
+        self._breaks = set(link_breaks)
         self._day: date | None = None
         self._received: list[str] = []
         self._reports: dict[str, Report] = {}
@@ -153,6 +169,9 @@ class Pretend:
         self._reports[order.order_id] = report
         if fault in (Fault.CRASH, Fault.STRAND):
             raise Crash(f"{order.order_id}: the desk died before the broker's answer reached it")
+        if bar is not None and order.line.symbol in self._breaks:
+            self._breaks.discard(order.line.symbol)
+            raise Disconnected(f"{order.order_id}: the link broke after the broker had it")
         return report
 
     def working(self) -> tuple[str, ...]:
@@ -192,6 +211,24 @@ class Pretend:
         if quantity == 0:
             raise ValueError(f"{symbol}: a position of no shares injected")
         self._held[symbol] = self._held.get(symbol, 0) + quantity
+
+    def restop(self, symbol: str, level: Decimal) -> None:
+        """Move the line's resting stop to level, its shares as they are; the day's range so
+        far can reach the new level, as it can reach a new stop (_execute)."""
+        if symbol not in self._stops:
+            raise ValueError(f"{symbol}: no stop rests to be moved")
+        self._stops[symbol] = replace(self._stops[symbol], level=level)
+        self._test(symbol, self._bars.get((symbol, self._day)) if self._day else None)
+
+    def put_stop_back(self, symbol: str, level: Decimal) -> None:
+        """A lost stop rested again at level for all the shares held, as the desk puts one back
+        (R-MONEY-30); the day's range so far can reach it, as it can reach a new stop."""
+        if symbol in self._stops:
+            raise ValueError(f"{symbol}: a stop already rests; it is moved, not put back")
+        if not self._held.get(symbol):
+            raise ValueError(f"{symbol}: no shares held to put a stop under")
+        self._stops[symbol] = _Stop(f"{symbol}-stop-back", self._held[symbol], level)
+        self._test(symbol, self._bars.get((symbol, self._day)) if self._day else None)
 
     def cancel_stop(self, symbol: str) -> None:
         """A resting stop cancelled behind the desk's back, as if by hand."""

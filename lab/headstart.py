@@ -16,10 +16,10 @@ bar, held or arriving later, wins, and each bar that differs from one held is co
 
 The old stores are read and never written, nor is anything written beside them: every store
 the data register in the desk's notes tags IMPORT, read by its form (`python -m lab.headstart`,
-into market.db in the data folder). Six forms have a reader: the matrices of Stooq's bars, the
-database mark_the_trend.db, the parquet folders of ibkr_store (UTC) and stooq_store, mark_the_
-trend's Stooq files and the raw Stooq zips (Stooq's clock); any other is counted as having
-none yet. A source held already is not read again. Indicators are not read at all.
+into the two databases of the data folder). Six forms have a reader: the matrices of Stooq's
+bars, the database mark_the_trend.db, the parquet folders of ibkr_store (each venue's own clock) and
+stooq_store, mark_the_trend's Stooq files and the raw Stooq zips (Stooq's clock); any other is
+counted as having none yet. A source held already is not read again. Indicators are not read at all.
 
 A line the archive gives no history of (3LGO) takes its daily history from the matrices
 (`python -m lab.headstart --daily 3LGO`): the database's daily bars must agree on the days both
@@ -28,159 +28,74 @@ one store's checks with the archive's, else nothing is kept. It is shelved in th
 
 from __future__ import annotations
 
-import math
 import os
 import sqlite3
 import sys
 import tempfile
-import zipfile
 from collections import Counter
 from collections.abc import Callable, Iterable, Mapping, Sequence
-from contextlib import closing, suppress
+from contextlib import suppress
 from dataclasses import dataclass
-from datetime import UTC, date, datetime, time, timedelta
+from datetime import UTC, date, datetime, time
 from decimal import Decimal
 from functools import partial
 from pathlib import Path
-from typing import Any
 
-import numpy as np
-import pyarrow.parquet as pq  # type: ignore[import-untyped]  # ships no stubs
-
-from desk import archive, bars, store, venues
-from desk.bars import EPOCH, Five, Source
+from desk import archive, bars, store
+from desk.bars import EPOCH, Five, Source, bridge
 from desk.compare import doubt
 from desk.lines import LINES, Line
 from desk.store import STRETCH, Bar, Refused
+from lab.headstart_parts import (  # noqa: F401  # the readers, still reached as lab.headstart.<name>
+    MARKET as MARKET,
+)
+from lab.headstart_parts import (
+    PARQUET as PARQUET,
+)
+from lab.headstart_parts import (
+    PENCE as PENCE,
+)
+from lab.headstart_parts import (
+    TREND as TREND,
+)
+from lab.headstart_parts import (
+    WARSAW as WARSAW,
+)
+from lab.headstart_parts import (
+    _ahead as _ahead,
+)
+from lab.headstart_parts import (
+    _named as _named,
+)
+from lab.headstart_parts import (
+    _priced as _priced,
+)
+from lab.headstart_parts import (
+    _stamped as _stamped,
+)
+from lab.headstart_parts import (
+    asked as asked,
+)
+from lab.headstart_parts import (
+    database as database,
+)
+from lab.headstart_parts import (
+    matrices as matrices,
+)
+from lab.headstart_parts import (
+    matrix_days as matrix_days,
+)
+from lab.headstart_parts import (
+    parquet as parquet,
+)
+from lab.headstart_parts import (
+    raw as raw,
+)
 
-MARKET = {"LSE": "UK", "US": "US"}  #: the matrices' name for a line is its symbol and this
-#: Stooq stamps a bar's start on Warsaw's clock, kept in the matrices as if UTC (14 November
-#: 2026: SPY's bars agreed with the archive's two hours earlier, in summer): London's and an hour.
-WARSAW, PENCE = timedelta(hours=1), Decimal("0.01")
 DAYS = "SELECT ts, close FROM ohlcv WHERE ticker = ? AND timeframe = '1d'"
-BARS = "SELECT ts, open, high, low, close, volume FROM ohlcv WHERE ticker = ? AND timeframe = '5m'"
-PARQUET = ("ts", "open", "high", "low", "close", "volume")
-TREND = ("DATE", "Open", "High", "Low", "Close", "Volume")  #: mark_the_trend's columns
 RAW = "*/5_*_txt*.zip"  #: where Stooq's five-minute zips lie: a dated folder each
 _ADJUSTED = "that are the adjusted form of the store's as-traded bars: not taken"
 IMPORT = "| IMPORT |"  #: how a row of the data register naming a store to read in begins
-
-
-def _named(line: Line, span: str = "5m") -> str:
-    """The matrices' name for a line's bars of a span."""
-    return f"{line.symbol}.{MARKET[line.venue]}_{span}"
-
-
-def matrices(line: Line, folder: Path) -> tuple[Five, ...]:
-    """A line's five-minute bars from the old desk's matrices in folder: an array of moments and
-    one of opens, highs, lows, closes and volumes. A moment without five numbers has no bar."""
-    name = _named(line)
-    stamps = np.load(folder / f"{name}_ts.npy").tolist()
-    rows = zip(stamps, np.load(folder / f"{name}_ohlcv.npy").T, strict=True)
-    return _stamped(((EPOCH + timedelta(milliseconds=at), *row) for at, row in rows), True)
-
-
-def _ahead(wall: datetime) -> timedelta:
-    """How far Stooq's clock is ahead of UTC at wall."""
-    return WARSAW + venues.zone("LSE", wall.date()).utcoffset(None)
-
-
-def _stamped(rows: Iterable[tuple[Any, ...]], stooq: bool) -> tuple[Five, ...]:
-    """Bars from rows of stamp, prices and volume, the stamp on Stooq's clock or UTC; a row
-    with a hole or a number that is none is dropped."""
-    return tuple(
-        Five(at.replace(tzinfo=UTC) - _ahead(at) * stooq, *_priced(prices, Decimal(1)), int(volume))
-        for at, *prices, volume in rows
-        if None not in (at, *prices, volume) and all(math.isfinite(x) for x in (*prices, volume))
-    )
-
-
-def parquet(line: Line, folder: Path, source: Source) -> tuple[Five, ...]:
-    """A line's bars from a parquet store of this source: ibkr_store and stooq_store keep
-    freq=5/market=../ticker=../part.parquet, mark_the_trend <symbol>.5.parquet (<symbol>.L.5
-    in London). Stamps are UTC in ibkr_store, Stooq's clock elsewhere. None held is refused."""
-    market = MARKET[line.venue]
-    file = folder / f"freq=5/market={market.lower()}/ticker={line.symbol}.{market}/part.parquet"
-    columns = PARQUET
-    if source is Source.TREND_STOOQ:
-        file, columns = folder / f"{line.symbol}{archive.SUFFIX[line.venue]}.5.parquet", TREND
-    if not file.is_file():
-        raise ValueError(f"{file.parent.name} holds no five-minute bar of {line.symbol}")
-    table = pq.ParquetFile(file).read(columns=list(columns))
-    rows = zip(*(table[column].to_pylist() for column in columns), strict=True)
-    return _stamped(rows, source is not Source.IBKR_STORE)
-
-
-def raw(line: Line, folder: Path) -> tuple[Five, ...]:
-    """A line's bars from the newest dated folder of Stooq's raw zips under folder: its one text
-    file (<symbol>.uk.txt), rows of ticker, span, date, time, prices, volume, open interest."""
-    market = MARKET[line.venue].lower()
-    zips = sorted(folder.glob(f"*/5_{market}_txt*.zip"))
-    if not zips:
-        raise ValueError(f"{folder.name} holds no zip of {market} five-minute bars")
-    with zipfile.ZipFile(zips[-1]) as opened:
-        found = [m for m in opened.namelist() if m.endswith(f"/{line.symbol.lower()}.{market}.txt")]
-        if len(found) != 1:
-            raise ValueError(f"{zips[-1].name} holds {len(found)} files of {line.symbol}, not one")
-        cells = [row.split(",") for row in opened.read(found[0]).decode().splitlines()[1:]]
-    return _stamped(
-        ((datetime.strptime(c[2] + c[3], "%Y%m%d%H%M%S"), *map(float, c[4:9])) for c in cells), True
-    )
-
-
-def asked(path: Path, ask: str, ticker: str) -> list[tuple[Any, ...]]:
-    """What the old desk's database at path answers to a question about one ticker, opened
-    read-only: nothing is written to it or beside it, and one not there is not made. One whose
-    log still holds changes is being written, and is refused."""
-    log = path.with_name(f"{path.name}-wal")
-    if log.exists() and log.stat().st_size:
-        raise ValueError(f"{path.name} is still being written: its log holds changes")
-    with closing(sqlite3.connect(f"{path.as_uri()}?mode=ro&immutable=1", uri=True)) as old:
-        return old.execute(ask, (ticker,)).fetchall()
-
-
-def database(line: Line, path: Path) -> tuple[Five, ...]:
-    """A line's five-minute bars from the old desk's database at path, which names a line as
-    the archive does and stamps a bar with the moment it starts, in UTC. A line it holds no
-    bar of is refused."""
-    ticker = line.symbol + archive.SUFFIX[line.venue]
-    rows = asked(path, BARS, ticker)
-    if not rows:
-        raise ValueError(f"{path.name} holds no five-minute bar of {ticker}")
-    return _stamped(((datetime.fromisoformat(at), *rest) for at, *rest in rows), False)
-
-
-def matrix_days(line: Line, folder: Path) -> tuple[Bar, ...]:
-    """A line's daily bars from the old desk's matrices in folder, a day stamped as itself. A
-    line quoted in pounds is read as pence, which the junction with the archive's proves."""
-    name = _named(line, "1d")
-    stamps = np.load(folder / f"{name}_ts.npy").tolist()
-    unit = PENCE if line.currency in archive.PENCE else Decimal(1)
-    return tuple(
-        Bar((EPOCH + timedelta(milliseconds=stamp)).date(), *_priced(row[:4], unit), int(row[4]))
-        for stamp, row in zip(stamps, np.load(folder / f"{name}_ohlcv.npy").T, strict=True)
-        if np.isfinite(row).all()
-    )
-
-
-def bridge(fives: Iterable[Five], after: date, before: date) -> list[Bar]:
-    """A daily bar for each day between two, of that day's five-minute bars: the first open,
-    the highest high, the lowest low, the last close, the volumes."""
-    days: dict[date, list[Five]] = {}
-    for five in sorted(fives, key=lambda bar: bar.start):
-        if after < five.start.date() < before:
-            days.setdefault(five.start.date(), []).append(five)
-    return [
-        Bar(
-            day,
-            got[0].open,
-            max(b.high for b in got),
-            min(b.low for b in got),
-            got[-1].close,
-            sum(b.volume for b in got),
-        )
-        for day, got in days.items()
-    ]
 
 
 def daily(line: Line, data: Path, stores: tuple[Path, Path], day: date) -> str:
@@ -211,12 +126,6 @@ def daily(line: Line, data: Path, stores: tuple[Path, Path], day: date) -> str:
     kept = store.read(store_, line.symbol)
     said = f"headstart: {line.symbol} daily: {len(kept)} bars from {kept[0].day}"
     return f"{said}; the database's closes agree on {len(met) - len(differ)} of {len(met)} days"
-
-
-def _priced(prices: Iterable[object], unit: Decimal) -> tuple[Decimal, Decimal, Decimal, Decimal]:
-    """A bar's open, high, low and close as exact decimals, in the line's currency."""
-    open_, high, low, close = (Decimal(str(price)) * unit for price in prices)
-    return open_, high, low, close
 
 
 def _vouched(line: Line, bar: Five, day: Bar | None) -> Five | str:
@@ -394,6 +303,12 @@ if __name__ == "__main__":
             ONE = ONE or sys.exit(f"headstart: {sys.argv[2]} is no line of the desk")
             sys.stdout.write(daily(ONE, DATA, olds(REGISTER, ONE), TODAY) + "\n")
         else:
-            main(REGISTER, DATA / "market.db", TODAY)
+            main(REGISTER, DATA / bars.LIVE, TODAY)
+            from lab import (
+                headstart_days,
+                headstart_matrix,
+            )  # imports this module: the pass follows the five-minute one
+
+            headstart_matrix.whole(REGISTER, DATA / bars.LIVE, headstart_days.order(), TODAY)
     except (OSError, ValueError, sqlite3.Error, bars.NoRound) as reason:  # the one line, then out
         sys.exit(f"headstart: {type(reason).__name__}: {reason}")

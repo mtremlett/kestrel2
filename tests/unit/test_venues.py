@@ -23,6 +23,17 @@ PUBLISHED = {
     ("US", 2018): "01-01 01-15 02-19 03-30 05-28 07-04 09-03 11-22 12-05 12-25",
     ("US", 2021): "01-01 01-18 02-15 04-02 05-31 07-05 09-06 11-25 12-24",
     ("US", 2022): "01-17 02-21 04-15 05-30 06-20 07-04 09-05 11-24 12-26",
+    ("US", 1997): "01-01 02-17 03-28 05-26 07-04 09-01 11-27 12-25",
+    ("LSE", 2027): "01-01 03-26 03-29 05-03 05-31 08-30 12-27 12-28",
+    ("LSE", 2028): "01-03 04-14 04-17 05-01 05-29 08-28 12-25 12-26",
+    ("LSE", 2029): "01-01 03-30 04-02 05-07 05-28 08-27 12-25 12-26",
+    ("US", 2027): "01-01 01-18 02-15 03-26 05-31 06-18 07-05 09-06 11-25 12-24",
+    ("US", 2028): "01-17 02-21 04-14 05-29 06-19 07-04 09-04 11-23 12-25",
+    ("US", 2029): "01-01 01-15 02-19 03-30 05-28 06-19 07-04 09-03 11-22 12-25",
+    ("US", 2001): "01-01 01-15 02-19 04-13 05-28 07-04 09-03 09-11 09-12 09-13 09-14 11-22 12-25",
+    ("LSE", 1995): "01-02 04-14 04-17 05-08 05-29 08-28 12-25 12-26",
+    ("LSE", 1999): "01-01 04-02 04-05 05-03 05-31 08-30 12-27 12-28 12-31",
+    ("LSE", 2002): "01-01 03-29 04-01 05-06 06-03 06-04 08-26 12-25 12-26",
     ("US", 2012): "01-02 01-16 02-20 04-06 05-28 07-04 09-03 10-29 10-30 11-22 12-25",
 }
 
@@ -50,11 +61,22 @@ def test_sessions_are_weekdays_in_order_and_inclusive() -> None:
 
 @pytest.mark.parametrize(
     ("venue", "first", "last"),
-    [("LSE", date(2009, 12, 30), date(2010, 1, 5)), ("US", date(2027, 12, 30), date(2028, 1, 4))],
+    [("LSE", date(1992, 12, 30), date(1993, 1, 5)), ("US", date(2029, 12, 30), date(2030, 1, 4))],
 )
 def test_a_year_the_calendar_does_not_know_is_refused(venue: str, first: date, last: date) -> None:
     with pytest.raises(ValueError, match="no calendar"):
         venues.sessions(venue, first, last)
+
+
+def test_hours_before_2010_are_refused_though_the_days_are_known() -> None:
+    assert venues.sessions("US", date(2004, 6, 10), date(2004, 6, 14)) == (
+        date(2004, 6, 10),
+        date(2004, 6, 14),
+    )
+    with pytest.raises(ValueError, match="no hours"):
+        venues.hours("US", date(2004, 6, 10))
+    # the archive's SPY holds exactly 2,515 daily bars in 2000-2009 (read 17 Nov 2026)
+    assert len(venues.sessions("US", date(2000, 1, 1), date(2009, 12, 31))) == 2515
 
 
 def test_a_venue_the_calendar_does_not_know_is_refused() -> None:
@@ -75,6 +97,10 @@ EARLY = {
     ("US", 2025): "07-03 11-28 12-24",
     ("US", 2026): "11-27 12-24",
     ("US", 2027): "11-26",
+    ("US", 2028): "07-03 11-24",
+    ("US", 2029): "07-03 11-23 12-24",
+    ("LSE", 2027): "12-24 12-31",
+    ("LSE", 2028): "12-22 12-29",
 }
 #: venue, day, then in UTC: the open, the end of continuous trading, the closing auction. Each
 #: side of every clock change of 2025, and of 2021's, when the two countries are weeks apart;
@@ -133,3 +159,27 @@ def test_a_venue_is_open_from_its_open_to_its_closing_auction_both_included() ->
     assert venues.open_at("US", datetime(2025, 7, 5, 15, tzinfo=UTC)) is None  # a Saturday
     with pytest.raises(ValueError, match="no time zone"):
         venues.open_at("LSE", datetime(2025, 7, 15, 10))
+
+
+def test_the_uk_clock_time_of_a_moment_either_side_of_both_2026_clock_changes() -> None:
+    # (UTC moment, UK wall clock): the change falls at 01:00 UTC, on the moment, not the day
+    known = [((2026, 3, 29, 0, 59), (0, 59, 0)), ((2026, 3, 29, 1, 0), (2, 0, 1)),
+             ((2026, 10, 25, 0, 59), (1, 59, 1)), ((2026, 10, 25, 1, 0), (1, 0, 0)),
+             ((2026, 7, 1, 12, 0), (13, 0, 1)), ((2026, 12, 1, 12, 0), (12, 0, 0))]  # fmt: skip
+    for utc, (hour, minute, offset) in known:
+        moment = datetime(*utc, tzinfo=UTC)
+        got = venues.uk_time(moment)
+        assert (got.hour, got.minute, got.utcoffset()) == (hour, minute, timedelta(hours=offset))
+        assert got == moment
+    with pytest.raises(ValueError, match="no time zone"):
+        venues.uk_time(datetime(2026, 3, 29, 1, 0))
+
+
+def test_the_calendar_names_an_event_day_and_a_plain_day_apart() -> None:
+    assert venues.events("US", date(2026, 9, 16)) == ("FOMC",)
+    assert venues.events("LSE", date(2026, 9, 17)) == ("BoE",)
+    assert venues.events("US", date(2026, 12, 18)) == ("rebalance",)
+    assert venues.events("LSE", date(2026, 9, 16)) == ()
+    assert venues.events("US", date(2026, 9, 15)) == venues.events("US", date(2026, 11, 20)) == ()
+    with pytest.raises(ValueError, match="no events"):
+        venues.events("US", date(2027, 3, 17))

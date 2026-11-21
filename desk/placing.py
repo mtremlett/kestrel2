@@ -19,38 +19,24 @@ and of a line's stop before a sale; by `settle`, of a stop only once its replace
 
 from __future__ import annotations
 
-from collections.abc import Callable, Collection, Iterator, Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import replace
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
-from typing import BinaryIO, NamedTuple
+from typing import BinaryIO
 
-from desk import clearance, gateway, kill, listing, paper, reports, venues
+from desk import clearance, gateway, kill, order_times, paper, reports, venues
+from desk import placing_parts as parts
 from desk.broker import Disconnected, Fill, Report
 from desk.listing import Listing, Unlisted
 from desk.orders import Order, Refused, Sale
 from desk.paper import Resting
+from desk.placing_parts import GONE as GONE
+from desk.placing_parts import OVER
+from desk.placing_parts import Stop as Stop
 
-PLACE, CANCEL = 3, 4  #: what this module sends that is no question: an order, and a cancel
-#: The rest of an order's message after its reference: sent at once, under no other order, every
-#: other choice left as the published client (ib_insync 0.9.86, never imported) leaves it.
-PLAIN = (
-    "1|0|0|0|0|0|0|0||0.0||||||||0||-1|0|||0|||0|0||0||||||0|||||0|||||||||||0|||0|0|||0||0|0|0|0"
-    "|||||||0|||||||||0|0|0|0|||0||"
-).split("|")
-#: The broker's words for an order it will not work again: cancelled, or done.
-GONE = frozenset({"Cancelled", "ApiCancelled"})
-OVER = GONE | {"Filled"}
 MARKET = ("MKT", "", "", "DAY")  #: an order's kind: at the market, no price, for the day
-
-
-class Stop(NamedTuple):
-    """A stop of the desk's own to sell a line's shares, resting at the broker or due there."""
-
-    shares: Decimal
-    level: Decimal  #: the price it goes at, in the broker's unit
-    ref: str  #: the reference it is placed under
 
 
 class NotCancelled(Exception):
@@ -68,62 +54,6 @@ def _working(order: Resting) -> bool:
     return not reports.stop_to_sell(order) and order.state not in OVER
 
 
-def _told(
-    wire: BinaryIO, numbers: Collection[str], states: Collection[str] = OVER
-) -> Iterator[tuple[str, str, str | None]]:
-    """What the gateway says, for as long as it is read, of orders of the desk's own by their
-    numbers: a state one stands in (its number, the state, None), or a notice of one (its
-    number, the words, its code). The rest is passed over (paper.other)."""
-    while True:
-        fields = paper.receive(wire)
-        if fields[0] == paper.STATUS:
-            if len(fields) != 12:
-                raise ValueError(f"an order's state of a shape the desk does not read: {fields}")
-            if fields[1] in numbers and fields[9] == str(paper.CLIENT) and fields[2] in states:
-                yield fields[1], fields[2], None
-        elif fields[0] == paper.NEWS and len(fields) > 4 and fields[2] in numbers:
-            yield fields[2], fields[4], fields[3]
-        else:
-            paper.other(fields)
-
-
-def _cancel(wire: BinaryIO, send: paper.Send, numbers: Collection[str]) -> dict[str, str]:
-    """Ask over an open connection that orders of the desk's own be cancelled, each by its
-    number, and read until the broker has given its last word of every one: the state it is
-    over in, or its notice refusing the cancel. A gateway that hangs up first is an error."""
-    paper.start(wire, send)
-    send(b"".join(paper.message(CANCEL, 1, number, "") for number in numbers))
-    said: dict[str, str] = {}
-    for number, word, code in _told(wire, numbers):
-        if code is None:
-            said[number] = word
-        elif code != paper.CANCELLED:
-            said.setdefault(number, f"{code}: {word}")
-        if len(said) == len(numbers):
-            break
-    return said
-
-
-def _message(
-    number: str, listed: Listing, deal: Sequence[str], shares: Decimal | int, ref: str, *first: str
-) -> bytes:
-    """The message that places one order under a number: deal is whether it buys or sells,
-    then its kind (MARKET, or a stop's). It goes to the broker's router, the line by the
-    broker's own number, the desk's id its reference. first is how it is sent where not at
-    once and alone (PLAIN's first two): 0, held back until the order that waits on it is
-    sent; 1 and that order's number, to wait on it."""
-    line, (action, *kind) = listed.line, deal
-    there = (listed.contract, line.symbol, "STK", "", "0.0", "", "", listing.ROUTE, "")
-    asks = (action, shares, *kind, "", "", "O", 0, ref, *first, *PLAIN[len(first) :])
-    return paper.message(PLACE, number, *there, line.currency, *[""] * 4, *asks)
-
-
-def _selling(number: str, listed: Listing, stop: Stop, *first: str) -> bytes:
-    """The message that places a stop to sell, at its level in plain digits, until cancelled."""
-    deal = ("SELL", "STP", "", f"{stop.level:f}", "GTC")
-    return _message(number, listed, deal, stop.shares, stop.ref, *first)
-
-
 def _with(listed: Listing, order: Order) -> Stop:
     """The stop a buy goes with: its shares, at the order's stop put onto the broker's step
     and unit, under the order's id and "-stop"."""
@@ -131,7 +61,12 @@ def _with(listed: Listing, order: Order) -> Stop:
 
 
 def _place(
-    wire: BinaryIO, send: paper.Send, listed: Listing, order: Order | Sale
+    wire: BinaryIO,
+    send: paper.Send,
+    listed: Listing,
+    order: Order | Sale,
+    door: paper.Door,
+    times: order_times.Times,
 ) -> tuple[str, str | None, tuple[str, ...]]:
     """Send an order over an open connection, once, and read the broker's word of it: the
     number it went under, the state the broker says it is over in (filled, or cancelled), or
@@ -139,20 +74,22 @@ def _place(
     the number the gateway gave at the start. A BUY GOES WITH ITS STOP (_with): the buy held
     back, and behind it, under the next number, the stop, which waits on the buy and sends
     both on. The reading ends when the order is over, or when the gateway has said nothing
-    for as long as the door waits (paper.SECONDS): the order is then not over (None), and is
-    the desk's to cancel. A gateway that hangs up first is an error: the order may have
-    arrived."""
-    first, ref, shares = paper.start(wire, send), order.order_id, order.quantity
+    for as long as an order is given to fill (paper.FILL_SECONDS): the order is then not over
+    (None), and is the desk's to cancel. A gateway that hangs up first is an error: the order
+    may have arrived. The moments it was sent, accepted and filled are taken down (times)."""
+    wire = times.watch(wire)
+    first, ref, shares = paper.start(wire, send, door), order.order_id, order.quantity
     number, numbers = str(first), [str(first)]
+    times.sent(number)
     if isinstance(order, Sale):
-        send(_message(number, listed, ("SELL", *MARKET), shares, ref))
+        send(parts.message(number, listed, ("SELL", *MARKET), shares, ref))
     else:
         numbers.append(str(first + 1))
-        buy = _message(number, listed, ("BUY", *MARKET), shares, ref, "0")
-        send(buy + _selling(numbers[1], listed, _with(listed, order), "1", number))
+        buy = parts.message(number, listed, ("BUY", *MARKET), shares, ref, "0")
+        send(buy + parts.selling(numbers[1], listed, _with(listed, order), "1", number))
     notices: list[str] = []
     try:
-        for told, word, code in _told(wire, numbers):
+        for told, word, code in parts.told(wire, numbers, door):
             if code is not None:
                 notices.append(f"{code}: {word}")
             elif told == number:
@@ -162,13 +99,27 @@ def _place(
     return number, None, tuple(notices)
 
 
-def _rest(wire: BinaryIO, send: paper.Send, listed: Listing, stop: Stop) -> None:
+def _withdrawn(report: Report) -> Report:
+    """An order the desk cancelled after its wait, told as the desk's own act: it went at the
+    market (MARKET) and was not filled within the door's wait. What the broker then says of it
+    follows; an order the broker ends itself keeps the broker's own words (Paper.report)."""
+    if report.reason is None:
+        return report
+    why = f"{report.order_id}: withdrawn by the desk: not filled at the market within "
+    why += f"{paper.FILL_SECONDS} seconds"
+    broker = report.reason.removeprefix(f"{report.order_id}: ")
+    if broker.startswith("the broker says "):
+        why += f"; {broker}"
+    return replace(report, reason=why)
+
+
+def _rest(wire: BinaryIO, send: paper.Send, listed: Listing, stop: Stop, door: paper.Door) -> None:
     """Send a stop to sell over an open connection, alone, and read until the broker says it
     holds it. One it ends instead is an error with its notices; so are silence and a hang-up."""
-    number = str(paper.start(wire, send))
-    send(_selling(number, listed, stop))
+    number = str(paper.start(wire, send, door))
+    send(parts.selling(number, listed, stop))
     notices: list[str] = []
-    for _, word, code in _told(wire, (number,), OVER | reports.HELD):
+    for _, word, code in parts.told(wire, (number,), door, OVER | reports.HELD):
         if code is not None:
             notices.append(f"{code}: {word}")
         elif word in reports.HELD:
@@ -177,26 +128,16 @@ def _rest(wire: BinaryIO, send: paper.Send, listed: Listing, stop: Stop) -> None
             raise Unprotected(f"{stop.ref}: the broker ended the stop, {word}; it said: {notices}")
 
 
-def _due(before: Stop | None, held: Decimal, moved: int, new: Stop | None) -> Stop | None:
-    """The one stop a line is to be left under once an order has moved shares on it (bought,
-    or sold: negative), or None for none: for all the shares the account then holds of it. A
-    buy that bought puts it at the level and under the reference of the stop it went with
-    (new); a sale, and a buy that bought none, leave it at the level and under the reference
-    of the stop the line was under before, and a line under none before is given none."""
-    kept = new if moved > 0 and new else before
-    return kept._replace(shares=held) if kept and held > 0 else None
-
-
-def on(account: paper.Account, listed: Listing) -> tuple[Decimal, list[Resting]]:
+def on(account: paper.Account, listed: Listing, door: paper.Door) -> tuple[Decimal, list[Resting]]:
     """A line in one reading of the account: the shares the account holds of it, and the
-    desk's own stops to sell open on it, held by the broker or not yet."""
+    door's own stops to sell open on it, held by the broker or not yet."""
     name = paper.own(listed.line)
     held = sum((h.shares for h in account.holdings if h.name == name), Decimal(0))
     stops = [
         o
         for o in account.orders
         if o.contract == listed.contract and o.state not in OVER
-        if reports.ours(o.client, o.ref) and reports.stop_to_sell(o)
+        if reports.ours(door, o.client, o.ref) and reports.stop_to_sell(o)
     ]
     return held, stops
 
@@ -206,15 +147,24 @@ class Paper:
     stand on."""
 
     def __init__(
-        self, listings: Mapping[str, Listing | Unlisted], root: Path, clock: Callable[[], datetime]
+        self,
+        listings: Mapping[str, Listing | Unlisted],
+        root: Path,
+        clock: Callable[[], datetime],
+        door: paper.Door,
+        stamp: Callable[[], datetime] = lambda: datetime.now(UTC),
     ) -> None:
         """listings is each of the desk's lines as the broker lists it now (listing.read): by
         them a fill, an order and a holding are known as a line's. root holds the desk's record,
-        the day's checks among it; clock gives the moment, in UTC: read only before a send."""
+        the day's checks among it; clock gives the moment, in UTC: read only before a send;
+        stamp is the real moment, taken on each event of an order for its trail;
+        door is who the paper broker is spoken to as, and what of the account is its own."""
         self._listings, self._root, self._clock = dict(listings), root, clock
+        self._stamp = stamp
+        self._door = door
 
     def _orders(self) -> reports.Orders:
-        return reports.orders(paper.read().orders, self._listings)
+        return reports.orders(paper.read(self._door).orders, self._listings, self._door)
 
     def report(self, order_id: str) -> Report | None:
         """What the broker did today with an order id, or None if it tells nothing of it. Its
@@ -226,7 +176,7 @@ class Paper:
         the broker lists once, ended and filled whole, with fills that come to the shares it
         says were filled; otherwise it is everything the broker says of it."""
         listed = [o for o in self._orders().unsettled if o.ref == order_id]
-        ended = [e for e in reports.ended() if e.ref == order_id]
+        ended = [e for e in reports.ended(self._door) if e.ref == order_id]
         fills = tuple(fill for fill in self.fills() if fill.order_id == order_id)
         if not (listed or ended or fills):
             return None
@@ -251,14 +201,23 @@ class Paper:
         errs after its stop was cancelled puts the stop back, for the shares held."""
         listed, new = self._cleared(order)
         was, before = self._before(listed, order)
-        ref = order.order_id
+        ref, times = order.order_id, order_times.Times(self._stamp, self._door.client)
         try:
-            number, last, notices = paper.dial(lambda wire, send: _place(wire, send, listed, order))
-            if last is None:
+            number, last, notices = paper.dial(
+                lambda wire, send: _place(wire, send, listed, order, self._door, times),
+                paper.FILL_SECONDS,
+            )
+            silent = last is None
+            if silent:
                 last = self._cancelled({number: ref})[number]
+                times.note("cancelled")
             report = self.report(ref) or Report(ref, (), f"{ref}: the broker tells nothing of it")
+            if (
+                silent and last in GONE
+            ):  #: the broker found it working, and cancelled it for the desk
+                report = _withdrawn(report)
             moved = sum(fill.quantity for fill in report.fills)
-            held, stops = on(paper.read(), listed)
+            held, stops = on(paper.read(self._door), listed, self._door)
             if held != was + moved or (last == "Filled" and abs(moved) != order.quantity):
                 raise Unprotected(
                     f"{ref}: the broker's last word of it was {last}, its fills come to {moved} "
@@ -269,7 +228,9 @@ class Paper:
             if isinstance(order, Sale) and before:
                 self._putback(listed, before)
             raise
-        self.settle(listed, held, stops, _due(before, held, moved, new))
+        finally:
+            times.keep(self._root, ref)
+        self.settle(listed, held, stops, parts.due(before, held, moved, new))
         if report.reason is None or not notices:
             return report
         return replace(report, reason=f"{report.reason}; it said: {'; '.join(notices)}")
@@ -277,7 +238,7 @@ class Paper:
     def _cleared(self, order: Order | Sale) -> tuple[Listing, Stop | None]:
         """The line as the broker lists it, and the stop a buy goes with (_with), for an order
         cleared to go: the broker lists the line and its price is above the buy's stop (an
-        error raised), the order's id is dated the venue's session before today's, the kill
+        error raised), the order is dated (its session) the venue's session before today's, the kill
         switch was drilled within its month and today's check came back clean (Refused, all),
         and the gateway says it is ready: Disconnected, the order never received."""
         symbol, now = order.line.symbol, self._clock()
@@ -286,15 +247,17 @@ class Paper:
             why = listed.reason if listed else "it was not asked for the line"
             raise Refused(f"{order.order_id}: not sent, the broker does not list {symbol}: {why}")
         new = _with(listed, order) if isinstance(order, Order) else None
+        if order.session is None:
+            raise ValueError(f"{order.order_id}: not sent, the order is dated no session")
         last = venues.sessions(order.line.venue, now.date() - timedelta(days=9), now.date())[-2:]
-        if [f"{day:%Y%m%d}" for day in last] != [order.order_id[:8], f"{now:%Y%m%d}"]:
+        if last != (order.session, now.date()):
             why = f"{now:%Y-%m-%d} is not the session of {order.line.venue}'s next after"
             raise Refused(f"{order.order_id}: not sent, {why} the one it is dated")
         if not kill.drilled(self._root, now.date()):
             why = f"the kill switch was not drilled in the last {kill.DRILL_DAYS} days"
             raise Refused(f"{order.order_id}: not sent, {why}")
         clearance.require(self._root, now, order.order_id)
-        if not (known := gateway.known(now)):
+        if not (known := gateway.known(now, door=self._door)):
             raise Disconnected(f"{order.order_id}: not sent, {known.words}")
         return listed, new
 
@@ -305,8 +268,11 @@ class Paper:
         A SALE GOES ONLY WHEN NO STOP RESTS UNDER THE SAME SHARES (R-MONEY-17): the line's stop
         is cancelled first (not tied at the broker, both could sell); if it ended another way
         meanwhile, the stop is put back for the shares held, Refused; if it sold, Unprotected."""
-        order_id, account = order.order_id, paper.read()
-        (held, stops), told = on(account, listed), reports.orders(account.orders, self._listings)
+        order_id, account = order.order_id, paper.read(self._door)
+        (held, stops), told = (
+            on(account, listed, self._door),
+            reports.orders(account.orders, self._listings, self._door),
+        )
         kept = [o for o in stops if o.state in reports.HELD]
         rests = [Stop(o.left, o.level, o.ref) for o in kept if o.level is not None]
         if len(stops) > 1 or len(rests) != len(stops):
@@ -320,7 +286,7 @@ class Paper:
             ours = rests[0]
             try:
                 ends = self._cancelled({o.number: o.ref for o in kept})
-                now = on(paper.read(), listed)[0]
+                now = on(paper.read(self._door), listed, self._door)[0]
             except Exception:  #: silent, hung up or unread: the stop may be gone
                 self._putback(listed, ours)
                 raise
@@ -333,8 +299,8 @@ class Paper:
 
     def _putback(self, listed: Listing, stop: Stop) -> None:
         """Put a line under its stop again, for the shares the account now holds."""
-        held, stops = on(paper.read(), listed)
-        self.settle(listed, held, stops, _due(stop, held, 0, None))
+        held, stops = on(paper.read(self._door), listed, self._door)
+        self.settle(listed, held, stops, parts.due(stop, held, 0, None))
 
     def settle(
         self, listed: Listing, held: Decimal, stops: Sequence[Resting], due: Stop | None
@@ -347,25 +313,36 @@ class Paper:
         resting = (o for o in stops if o.state in reports.HELD)
         kept = next((o for o in resting if due and (o.left, o.level) == due[:2]), None)
         if due is not None and kept is None:
-            paper.dial(lambda wire, send: _rest(wire, send, listed, due))
+            paper.dial(lambda wire, send: _rest(wire, send, listed, due, self._door))
         spare = {o.number: o.ref for o in stops if o is not kept}
         said = self._cancelled(spare) if spare else {}
         odd = {spare[number]: word for number, word in said.items() if word not in GONE}
-        if odd and ("Filled" in odd.values() or on(paper.read(), listed)[0] != held):
+        if odd and (
+            "Filled" in odd.values() or on(paper.read(self._door), listed, self._door)[0] != held
+        ):
             raise Unprotected(
                 f"a stop of the desk's own on {listed.line.symbol} ended another way as it was "
                 f"being cancelled, sold perhaps: {odd}"
             )
 
+    def restop(self, symbol: str, level: Decimal) -> None:
+        """MOVE A RESTING STOP: the line's one stop is moved to level (the line's currency), for
+        all the shares held, by resting the new one first and cancelling the old one after
+        (settle): never unprotected meanwhile. One already at that level sends nothing."""
+        if not isinstance(listed := self._listings[symbol], Listing):
+            raise ValueError(f"{symbol}: the broker does not list it, no stop is moved")
+        held, stops = on(paper.read(self._door), listed, self._door)
+        self.settle(listed, held, stops, parts.moved(listed, held, stops, level))
+
     def fills(self) -> tuple[Fill, ...]:
         """The desk's own fills of today, as its ledger keeps them (reports.fills)."""
-        return reports.fills(reports.read(), self._listings).ours
+        return reports.fills(reports.read(self._door), self._listings, self._door).ours
 
     def holdings(self) -> tuple[tuple[str, Decimal], ...]:
         """Every holding of the account, entry by entry: one of a line of the desk's under
         the line's symbol, anything else under its own name (paper.Holding.name)."""
         lines = {paper.own(listed.line): symbol for symbol, listed in self._listings.items()}
-        return tuple((lines.get(h.name, h.name), h.shares) for h in paper.read().holdings)
+        return tuple((lines.get(h.name, h.name), h.shares) for h in paper.read(self._door).holdings)
 
     def stops(self) -> tuple[tuple[str, Decimal], ...]:
         """The desk's own stops the broker is holding to sell, entry by entry."""
@@ -386,13 +363,13 @@ class Paper:
         """Send a cancel for each of the desk's own orders given, its order id by its number,
         and give the broker's last word of each. A cancel refused is settled by the account
         read again; an order still open there, a stop included, is an error raised."""
-        said = paper.dial(lambda wire, send: _cancel(wire, send, tuple(working)))
+        said = paper.dial(lambda wire, send: parts.cancel(wire, send, tuple(working), self._door))
         refused = {number: word for number, word in said.items() if word not in OVER}
-        listed = paper.read().orders if refused else ()
+        listed = paper.read(self._door).orders if refused else ()
         still = [
             f"{o.ref} ({refused[o.number]})"
             for o in listed
-            if o.number in refused and o.client == str(paper.CLIENT) and o.state not in OVER
+            if o.number in refused and o.client == str(self._door.client) and o.state not in OVER
         ]
         if still:
             raise NotCancelled(f"the broker still lists as working, its cancel refused: {still}")

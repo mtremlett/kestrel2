@@ -8,7 +8,17 @@ from decimal import Decimal
 
 import pytest
 
-from desk.lines import LINES, NO_TAX, STAMP_DUTY, YARDSTICK, Line
+from desk.lines import (
+    ADJUSTED,
+    LINES,
+    NO_TAX,
+    REFERENCE,
+    STAMP_DUTY,
+    YARDSTICK,
+    Line,
+    require_traded,
+    valid_isin,
+)
 
 #: Still in the master only because the ladder's tests name them; they leave when those do not.
 LEAVING = {"SPY", "QQQ"}
@@ -78,5 +88,44 @@ def test_a_line_pays_nil_or_stamp_duty_and_only_a_london_line_can_pay_it() -> No
 
 def test_the_lines_record_what_a_second_source_confirmed() -> None:
     held = {line.symbol: line for line in LINES}
-    assert held["5QQQ"].splits == {(date(2024, 8, 22), Decimal(500))}
-    assert len(held["2MU"].real_moves) == 4 and not held["VUAG"].real_moves
+    assert held["5QQQ"].starts == date(2024, 8, 22)
+    assert held["SGLN"].starts is None  #: its 2011 dollar bars are untraded: dropped
+    moves = {sym: len(line.real_moves) for sym, line in held.items() if line.real_moves}
+    assert moves == {"2MU": 4, "5QQQ": 2, "SGLN": 1, "AAPL": 1, "NVDA": 2, "AMD": 2}
+
+
+def test_spy_and_qqq_are_read_as_reference_series_and_refused_as_traded_lines() -> None:
+    assert {line.symbol for line in REFERENCE} == LEAVING
+    traded = [require_traded(line) for line in LINES if line not in REFERENCE]
+    assert traded and all(line.retail for line in traded), "a retail customer can buy each"
+    for line in LINES:
+        if line.symbol in LEAVING:
+            with pytest.raises(ValueError, match=f"{line.symbol}: a reference series"):
+                require_traded(line)
+        else:
+            assert require_traded(line) is line
+    assert [a.symbol for a in ADJUSTED] == [f"{r.symbol}-ADJUSTED" for r in REFERENCE]
+    with pytest.raises(ValueError, match="SPY-ADJUSTED: a reference series"):
+        require_traded(ADJUSTED[0])
+
+
+def test_every_traded_line_has_an_isin_with_a_good_check_digit() -> None:
+    traded = [ln for ln in LINES if ln not in REFERENCE]
+    assert all(ln.isin and len(ln.isin) == 12 and valid_isin(ln.isin) for ln in traded)
+    assert {ln.symbol: ln.isin for ln in LINES}["IDTL"] == "IE00BSKRJX20"
+    assert len({ln.isin for ln in LINES}) == len(LINES)
+    assert not valid_isin("IE00BSKRJX21") and not valid_isin("IE00BSKRJX2")
+    with pytest.raises(ValueError, match="check digit"):
+        Line("X", "LSE", "GBP", 1, isin="IE00BSKRJX21")
+
+
+def test_every_line_names_its_underlying_market_and_source_and_one_index_is_one_underlying() -> (
+    None
+):
+    assert all(line.underlying and line.source for line in LINES)
+    by_market: dict[str, set[str]] = {}
+    for line in LINES:
+        by_market.setdefault(line.underlying, set()).add(line.symbol)
+    assert by_market["S&P 500"] == {"VUSA", "VUAG", "SPY"}
+    assert by_market["NASDAQ 100"] == {"EQQQ", "QQQ", "5QQQ"}
+    assert by_market["GOLD"] == {"3LGO", "SGLN"} and by_market["MU"] == {"MU", "2MU"}

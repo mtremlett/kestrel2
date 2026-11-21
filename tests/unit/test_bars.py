@@ -5,6 +5,7 @@ evening's five-minute bars enter through the daily store's checks, for good (DAT
 from __future__ import annotations
 
 import itertools
+import os
 import sqlite3
 import timeit
 from collections.abc import Callable, Iterator
@@ -16,8 +17,9 @@ from pathlib import Path
 
 import pytest
 
-from desk import bars
+from desk import audit, bars
 from desk.bars import Five, Source
+from desk.bars_form import form
 from desk.lines import LINES, Line
 from desk.store import Bar, Refused
 
@@ -25,7 +27,7 @@ US, UK = Line("BA", "US", "USD", 1), Line("BA", "LSE", "GBP", 1)  #: one symbol,
 NOON = datetime(2026, 11, 13, 12, 0, tzinfo=UTC)
 NEXT, ELSEWHERE = NOON + timedelta(minutes=5), timezone(timedelta(hours=1))
 TICK = timedelta(microseconds=1)
-ODD = (Decimal("1E+3"), Decimal("123456.789012345678901"), Decimal("0.0001"), Decimal("0.10"))
+ODD = (Decimal("1E+3"), Decimal("123456.7890"), Decimal("0.0001"), Decimal("0.10"))
 #: A daily bar and a five-minute bar that the store keeps under one number, each in its span.
 TWINS = (Bar(date.fromordinal(600), *ODD, 1), Five(bars.EPOCH + timedelta(seconds=600), *ODD, 2))
 #: The benchmarks, in seconds, set on 13 November 2026 before the store was written.
@@ -45,6 +47,17 @@ def _fives(count: int) -> tuple[Five, ...]:
     return tuple(Five(start, *ODD, 7 + n) for n, start in enumerate(starts))
 
 
+def test_the_store_is_two_databases_long_and_short_and_no_other_file(tmp_path: Path) -> None:
+    store = tmp_path / bars.LIVE
+    with bars.writing(store) as round_:
+        round_.daily(US, _days(3))
+        round_.five(US, _fives(3))
+    assert sorted(file.name for file in tmp_path.iterdir()) == [bars.HISTORY, bars.LIVE]
+    for name, span in ((bars.HISTORY, bars.DAILY), (bars.LIVE, bars.FIVE)):
+        with closing(sqlite3.connect(tmp_path / name)) as held:
+            assert held.execute("SELECT DISTINCT span FROM bar").fetchall() == [(span,)]
+
+
 def test_what_is_written_is_read_back_exactly_and_each_line_apart(tmp_path: Path) -> None:
     store, days, fives = tmp_path / "bars.db", _days(30), _fives(30)
     with bars.writing(store, Source.ARCHIVE) as round_:
@@ -60,12 +73,12 @@ def test_what_is_written_is_read_back_exactly_and_each_line_apart(tmp_path: Path
     assert bars.five(store, UK, bars.EPOCH, NEXT) == TWINS[1:]
     read = bars.five(store, US, NOON, NEXT)[0]
     assert read.start.utcoffset() == timedelta(0)
-    assert [str(p) for p in (read.open, read.high, read.low, read.close)] == [str(p) for p in ODD]
+    assert [str(p) for p in (read.open, read.high, read.low, read.close)] == [form(p) for p in ODD]
     with closing(sqlite3.connect(store)) as held:
         assert held.execute("PRAGMA journal_mode").fetchone() == ("wal",)
 
 
-def test_a_history_is_replaced_whole_and_five_minute_bars_gather(tmp_path: Path) -> None:
+def test_a_history_is_joined_by_day_and_five_minute_bars_gather(tmp_path: Path) -> None:
     store, days, fives = tmp_path / "bars.db", _days(30), _fives(30)
     with bars.writing(store, Source.ARCHIVE) as round_:
         round_.daily(US, days)
@@ -76,14 +89,47 @@ def test_a_history_is_replaced_whole_and_five_minute_bars_gather(tmp_path: Path)
     with bars.writing(store, Source.ARCHIVE) as round_:
         round_.daily(US, days[5:])
         round_.five(US, (corrected, *fives[20:]))
-    assert bars.daily(store, US) == days[5:]
+    assert bars.daily(store, US) == days  # the 25 days it no longer gives stand
     assert bars.five(store, US, fives[0].start, NEXT) == (*fives[:19], corrected, *fives[20:])
     assert (bars.daily(store, UK), bars.five(store, UK, fives[0].start, NEXT)) == (days, fives[:20])
     with bars.writing(store, Source.ARCHIVE) as round_:
         with pytest.raises(ValueError, match="BA on US: its history gives a day twice"):
             round_.daily(US, (*days[:9], replace(days[0], volume=1)))
         round_.daily(UK, days[:9])
-    assert (bars.daily(store, US), bars.daily(store, UK)) == (days[5:], days[:9])
+    assert (bars.daily(store, US), bars.daily(store, UK)) == (days, days)
+
+
+def test_a_short_call_never_loses_a_held_day_a_change_is_corrected_and_a_withdrawal_is_marked(
+    tmp_path: Path,
+) -> None:
+    store, days = tmp_path / "bars.db", _days(4000)
+    with bars.writing(store) as round_:
+        round_.daily(US, days)
+    changed = replace(days[-1], close=Decimal("7"))
+    with bars.writing(store, Source.IBKR) as round_:  # the broker's recent 21 days, one changed
+        round_.daily(US, (*days[-21:-1], changed), withdrawn=[days[-2].day, days[5].day])
+    shown = {b.day: b for b in bars.daily(store, US)}
+    assert len(shown) == 3999 and days[5].day not in shown and shown[days[-1].day] == changed
+    assert days[-2].day in shown  # given again in the same call: not withdrawn
+    with closing(sqlite3.connect(tmp_path / bars.HISTORY)) as raw:
+        assert raw.execute("SELECT count(*) FROM bar").fetchone() == (4000,)  # no row deleted
+        assert raw.execute("SELECT close, source, replaced_by FROM correction").fetchall() == [
+            ("0.1000", "archive", "IBKR paper")
+        ]
+    with bars.writing(store) as round_:
+        round_.daily(US, days[5:6])  # a bar for a withdrawn day brings it back
+    assert days[5] in bars.daily(store, US)
+
+
+def test_a_store_made_before_withdrawals_is_read_and_gains_the_table(tmp_path: Path) -> None:
+    store, days = tmp_path / "bars.db", _days(5)
+    with bars.writing(store) as round_:
+        round_.daily(US, days)
+    with closing(sqlite3.connect(tmp_path / bars.HISTORY)) as old:
+        old.execute("DROP TABLE withdrawn")
+    assert bars.daily(store, US) == days
+    with closing(sqlite3.connect(tmp_path / bars.HISTORY)) as raw:
+        assert raw.execute("SELECT count(*) FROM withdrawn").fetchone() == (0,)
 
 
 def test_a_bar_is_kept_with_its_source_and_only_a_fresh_source_restates(tmp_path: Path) -> None:
@@ -113,6 +159,18 @@ def test_a_bar_is_kept_with_its_source_and_only_a_fresh_source_restates(tmp_path
     assert bars.sources(store, UK, bars.DAILY) == {Source.ARCHIVE: 1}
 
 
+def test_an_archive_restates_its_own_daily_bars_and_another_sources_stand(tmp_path: Path) -> None:
+    store, days = tmp_path / "bars.db", _days(5)
+    with bars.writing(store, Source.MTT_DB) as round_:
+        round_.days(UK, days[:3])
+    with bars.writing(store) as round_:
+        round_.daily(UK, days[2:])  # its bar takes the day it shares with the old database
+    assert bars.sources(store, UK, bars.DAILY) == {Source.MTT_DB: 2, Source.ARCHIVE: 3}
+    with bars.writing(store) as round_:
+        round_.daily(UK, days[3:])  # a day it no longer gives stands too
+    assert bars.daily(store, UK) == days
+
+
 def test_a_reader_sees_only_whole_rounds_and_a_second_writer_is_refused(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -135,13 +193,13 @@ def test_a_reader_sees_only_whole_rounds_and_a_second_writer_is_refused(
         round_.daily(US, days)
         round_.five(US, fives)
         assert bars.daily(store, US) == days[:5]
-        with pytest.raises(bars.NoRound, match="bars.db: no round begun: database is locked"):
+        with pytest.raises(bars.NoRound, match="no round begun: database is locked"):
             bars.writing(store, Source.ARCHIVE).__enter__()
         raise RuntimeError("the round fails")
     assert bars.daily(store, US) == days[:5]
 
     def dropped(_bar: Bar) -> Bar:
-        round_._held.rollback()  # as SQLite itself does to a round when the disk fills
+        round_._held[bars.DAILY].rollback()  # as SQLite itself does to a round when the disk fills
         raise OSError("the disk is full")
 
     with bars.writing(store, Source.ARCHIVE) as round_:
@@ -154,9 +212,29 @@ def test_a_reader_sees_only_whole_rounds_and_a_second_writer_is_refused(
         bars.five(store, US, fives[0].start, NEXT)
 
 
+def test_a_reader_behind_a_held_write_ends_inside_its_limit_with_a_named_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    store = tmp_path / "bars.db"
+    with bars.writing(store) as round_:
+        round_.daily(US, _days(5))
+    with closing(sqlite3.connect(tmp_path / bars.HISTORY)) as old:
+        old.execute("DROP TABLE withdrawn")  # a reader must now write the table: it waits
+    monkeypatch.setattr(bars, "WAIT", 0.2)
+    with closing(sqlite3.connect(tmp_path / bars.HISTORY, isolation_level=None)) as holder:
+        holder.execute("BEGIN IMMEDIATE")
+        began = timeit.default_timer()
+        with pytest.raises(bars.StoreWait) as caught:
+            bars.daily(store, US)
+        assert timeit.default_timer() - began < 2.0
+    named = str(caught.value)
+    assert f"pid {os.getpid()}" in named and bars.HISTORY in named
+    assert "waited 0.2 seconds" in named and "holder unknown" in named
+
+
 def test_a_store_or_a_line_never_written_is_refused_not_read_as_empty(tmp_path: Path) -> None:
     store = tmp_path / "bars.db"
-    with pytest.raises(FileNotFoundError, match="bars.db"):
+    with pytest.raises(FileNotFoundError, match="market_history.db"):
         bars.daily(store, US)
     assert not store.exists()
     with bars.writing(store, Source.ARCHIVE) as round_:
@@ -315,7 +393,7 @@ def test_the_audit_rechecks_every_held_line_and_names_its_faults(tmp_path: Path)
         round_.daily(US, good)
         round_.five(US, [stray])  # a Saturday: outside the venue's hours
     before = store.stat().st_mtime_ns
-    said = bars.audit(store)
+    said = audit.audit(store)
     assert said.startswith("bars audit: 3 lines, 11 bars, 3 faults (")
     assert "worst: ZZZ on US (daily) 2, BA on US (five-minute) 1" in said
     assert store.stat().st_mtime_ns == before

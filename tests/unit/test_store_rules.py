@@ -33,8 +33,22 @@ RULES: dict[str, tuple[Make, Line, str]] = {  # rule site -> (synthetic archive,
     "_entered:2": (lambda b: [*b, replace(b[0], day=SATURDAY)], US, "not a closed session"),
     "_entered:3": (lambda b: [*b[:5], replace(b[5], low=Decimal(0)), *b[6:]], US, "cannot be"),
     "_entered:4": (lambda b: [*b[:5], replace(b[5], high=b[5].low - 1), *b[6:]], US, "outside its"),
-    "_entered:5": (lambda b: [*b[:5], replace(b[5], high=b[5].high * 2), *b[6:]], US, "bad print"),
+    "_entered:5": (
+        lambda b: [*b[:5], replace(b[5], high=b[5].high * 2), *b[6:]],
+        US,
+        "high repaired",
+    ),
+    "_entered:6": (
+        lambda b: [*b[:5], replace(b[5], low=b[5].low / 2), *b[6:]],
+        US,
+        "low repaired",
+    ),
     "_priced:1": (lambda b: [*b[:-8], _scaled(b[-8], Decimal(100)), *b[-7:]], US, "wrong unit"),
+    "_untraded:1": (  # untraded bars in another unit cannot hold it against the traded bars after
+        lambda b: [*(replace(_scaled(x, Decimal(100)), volume=0) for x in b[:2]), *b[2:]],
+        US,
+        "no volume",
+    ),
     "_priced:2": (
         lambda b: [*b[:-8], replace(_scaled(b[-8], Decimal("1.7")), volume=0), *b[-7:]],
         US,
@@ -63,19 +77,26 @@ RULES: dict[str, tuple[Make, Line, str]] = {  # rule site -> (synthetic archive,
     "_clean:1": (lambda b: [*b[:5], replace(b[5], volume=-1), *b[6:]], US, "cannot be"),
     "_clean:2": (lambda _: [], US, "every session missing"),
     "_clean:3": (lambda b: [*b[:-6], *b[-5:]], US, "sessions missing"),
-    "prepare:1": (lambda _: Refused("HTTP Error 404"), US, "the archive refused it"),
+    "_joined:2": (  # the harness shelves the clean bars first
+        lambda b: [*b[:5], replace(b[5], close=b[5].close * Decimal("1.05")), *b[6:]],
+        US,
+        "(shelf)",
+    ),
+    "_joined:1": (lambda b: b, US, "unit fault"),  # the harness shelves them a hundredth
+    "judge:1": (lambda _: Refused("HTTP Error 404"), US, "the archive refused it"),
 }
 KNOBS = {  # every tuning constant of the store, with the value it is judged by
     "JUMP": Decimal("1.6"), "STRETCH": Decimal("0.03"), "RECENT": 60, "BLIP": 20, "FROZEN": 5,
     "FX_STEP": Decimal("0.05"), "FX_FAR": Decimal("0.10"), "RATE_AGE": timedelta(days=7),
-    "SPLIT_NEAR": Decimal("0.25"), "HISTORY": "history",
+    "SPLIT_NEAR": Decimal("0.25"), "HISTORY": "history", "AGREE": Decimal("0.02"),
+    "PENCE": Decimal(100), "UNIT_DAYS": 5, "UNIT_SHARE": Decimal("0.95"),
 }  # fmt: skip
 
 
 def _sites() -> set[str]:
-    """Every place desk/store.py finds a fault, as function:nth, and every tuning constant."""
-    source = (Path(store.__file__)).read_text(encoding="utf-8")
-    tree = ast.parse(source)
+    """Every place the store (store.py, store_parts.py) finds a fault, as function:nth."""
+    paths = (Path(store.__file__), Path(store.__file__).with_name("store_parts.py"))
+    tree = ast.parse("\n".join(p.read_text(encoding="utf-8") for p in paths))
     found = set()
     for fn in (n for n in tree.body if isinstance(n, ast.FunctionDef)):
         marks = sorted(
@@ -96,7 +117,7 @@ def test_every_tuning_constant_of_the_store_is_pinned_to_its_value() -> None:
     names = {k for k in vars(store) if k.isupper() and not k.startswith("_")}
     names -= {"COLUMNS", "NO_RATES", "UNRECORDED", "ASTRAY", "FAR"}  # derived or wording
     assert names == set(KNOBS), "a constant was added or dropped without a row in KNOBS"
-    assert {k: getattr(store, k) for k in KNOBS} == KNOBS
+    assert {k: vars(store)[k] for k in KNOBS} == KNOBS
 
 
 @pytest.mark.parametrize("site", sorted(RULES))
@@ -104,6 +125,9 @@ def test_each_rule_fires_on_its_synthetic_row(tmp_path: Path, site: str) -> None
     make, line, seen = RULES[site]
     clean = list(_bars(US, LONG))
     answer = make(clean)
+    if site.startswith("_joined"):
+        shelf = [_scaled(x, Decimal(1) / 100) for x in clean] if site == "_joined:1" else clean
+        store.shelve(tmp_path, line, shelf)
     store.prepare(tmp_path, {line: answer}, DAY)
     assert any(seen in f for f in store.faults(tmp_path, US.symbol)), site
 
@@ -120,3 +144,39 @@ def test_a_wide_day_among_quiet_ones_leaves_no_step_in_its_neighbours(
     odd = replace(clean[-8], high=clean[-8].close * spike)
     store.prepare(tmp_path, {US: [*clean[:-8], odd, *clean[-7:]]}, DAY)
     assert not any("moved from" in f for f in store.faults(tmp_path, US.symbol))
+
+
+def test_a_bad_high_is_repaired_and_kept_but_a_bad_close_is_refused(tmp_path: Path) -> None:
+    """VUAG 12 and 16 March 2020 (R-RUNNER-175): a bar whose only fault is an impossible high
+    stays, open, close and volume standing, the high clamped and listed; a bad close is
+    still refused."""
+    clean = list(_bars(US, LONG))
+    was = clean[5]
+    bad = replace(was, high=was.high * 2)
+    store.prepare(tmp_path, {US: [*clean[:5], bad, *clean[6:]]}, DAY)
+    kept = {b.day: b for b in store.read(tmp_path, US.symbol)}[was.day]
+    assert (kept.open, kept.close, kept.volume) == (was.open, was.close, was.volume)
+    assert kept.high == max(was.open, was.close)
+    assert any("high repaired: was" in f for f in store.faults(tmp_path, US.symbol))
+    wrong = replace(was, close=was.high * 2)
+    store.prepare(tmp_path, {US: [*clean[:5], wrong, *clean[6:]]}, DAY)
+    assert was.day not in {b.day for b in store.read(tmp_path, US.symbol)}
+
+
+def test_a_bad_low_is_repaired_and_the_line_not_parked_but_a_fall_the_close_shares_is_kept(
+    tmp_path: Path,
+) -> None:
+    """SETTLED (R-RUNNER-175, -185, -194): a low far under both open and close is a bad print,
+    clamped and listed, the line not parked; a close that falls with its low is the market's."""
+    clean = list(_bars(US, LONG))
+    was = clean[5]
+    bad = replace(was, low=min(was.open, was.close) / 3)
+    store.prepare(tmp_path, {US: [*clean[:5], bad, *clean[6:]]}, DAY)
+    kept = {b.day: b for b in store.read(tmp_path, US.symbol)}[was.day]
+    assert (kept.open, kept.close, kept.volume) == (was.open, was.close, was.volume)
+    assert kept.low == min(was.open, was.close)
+    assert any("low repaired: was" in f for f in store.faults(tmp_path, US.symbol))
+    assert not any("moved" in f for f in store.faults(tmp_path, US.symbol))
+    fall = replace(was, close=was.close / 3, low=was.close / 3)
+    store.prepare(tmp_path, {US: [*clean[:5], fall, *clean[6:]]}, DAY)
+    assert not any("low repaired" in f for f in store.faults(tmp_path, US.symbol))

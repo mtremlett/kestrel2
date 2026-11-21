@@ -81,6 +81,10 @@ three lanes (DATA, GRID, RUNGS) halted this way overnight.
 whose wait is unmet, holds back a box its session says `Waits:` for or the doctor finds
 blocked, and offers it again when the request is done or the date comes. The no-progress
 halt stays as the backstop.
+Its twin, seen 15 November: a card re-issued with a claim its fix cannot fit (spec-epon six
+times, cell-line-only four). The runner's READY gate (xiv) refuses to re-issue a card whose
+last run asked another lane for something, or named a file outside its claim, until the
+claim changes or that request is done; it was driven against planted runs.
 
 **13. Tuning the cleaner on live lines.** Each parked line's next odd bar drives another
 rule or exception into `desk/store.py`, and exact real prices get written into
@@ -91,3 +95,122 @@ touched within ten landed changes; and `tests/unit/test_store_rules.py` (#225) p
 rule in `desk/store.py` to a row of one synthetic fixture table, so a rule added without a
 row fails. That guard was driven red with an unpinned rule (`docs/DECISIONS.md`,
 R-RUNNER-43, #225 and #227).
+
+**14. The judge fixed from the outside in.** `lab/ladder.py` took four fixes in ten changes
+(#402 and #419, two blind reviews; #405, a missing market day; #410, a failed cell judged
+again; #427, the "rungs built" count read from a docstring). Each review found a new edge
+in the one 400-line module that judges, counts, keeps tapes and writes the table, and each
+fix was true; no rung had a golden verdict pinned, so nothing showed a judgement drift
+until a reviewer read the code.
+→ *Caught by:* the rung registry (a `lab/rung_*.py` module declares its rung, so a new rung
+never edits the judge), the split of the module (`lab/ladder_parts.py`), and the churn
+guard. → *Debt:* a golden verdict per rung on the fixture, before and after every change,
+lands with the easing cards of 16 November (B5).
+
+**15. The broker the pretend never met.** `desk/conformance.py` is the only code that
+cancels, re-sends and trades beside the desk's book at the real broker, so each live run
+found a broker behaviour the pretend broker lacked (a second run's orders refused as
+duplicates, #435's minute; a run line naming the account when it meant the last step,
+#444; a stop "triggered" by cancelling it and selling at the market, compared with a
+pretend fill at the stop level, 16 November).
+→ *Caught by:* every run keeps its tape (real beside pretend, with the broker's own words),
+and a step whose two sides name different actions is a finding, not a pass (#557). The
+module was split (`desk/conformance_parts.py`).
+
+**16. The request rebuilt in parallel.** One piece of work reaches several sessions
+through different doors and is built two to four times: on 16 November R-RUNNER-190 four
+times through the card door, R-RUNNER-209 twice through a serial run, and the stop at the
+fill three ways (its card, a serial run's own `stop_for`, and a book box needing the same
+broker method).
+→ *Caught by:* the runner (outside this repository) never hands out a card or offers a
+serial run a request that an open pull request names or an open card carries, and a
+branch can be held by hand before its pull request exists. → *Debt:* an interface that
+three pieces of work need (here `Broker.move_stop`) is carded first and the rest wait on
+it; on the runner's list.
+
+**17. The decision asked again.** A session asks for approval the operator has already
+given (RUNGS, 16 November: per-rung checks its 15 November ruling allowed), and waits; or
+a runner session asks him a second time. The lane idles for half an hour.
+→ *Caught by:* his rulings are recorded with their words in the coordinator's log and in
+`docs/DECISIONS.md`, and the runner's halt holds the card, never the lane. → *Debt:* no
+check reads a session's question against the recorded rulings.
+
+**18. The hand list beside the code.** A rule kept as a list by hand drifts from what the
+code does: the trading-path merge hold missed `desk/bars.py`, which the trading day
+imports, so a change reached it mid-session (16 November); conformance was scheduled
+inside the desk's rounds, which it rightly refuses; a job pointed at a function that had
+moved; the hourly report repeated a state long past.
+→ *Caught by:* the desk's rounds are kept once in the runner and every schedule and
+restart reads them; the hourly report reads current state. → *Debt:* the trading path
+computed from the desk step's imports instead of listed.
+
+**19. Replaced while read (Windows).** A writer replaces a file while a reader holds it
+open, and Windows refuses ("Access denied", PermissionError): the store's daily files, a
+grid file, the runner's own request list, all on 16 November; and the shared clone's
+`.git/config`, rewritten by its own readers (every session start tracked a branch there, 208
+sections) until READY's reads failed (19 November).
+→ *Caught by:* for `.git/config`, the runner writes it no more (its drive `drive_gitconfig`).
+Otherwise nothing yet; it is an open debt. The fix is one way to read and write each
+shared file, readers and writer under one lock, in each codebase; never a retry or a sleep.
+
+**20. A gate that can never open.** A rule correct where it was written blocks its own
+purpose where it runs: the rehearsal was barred for the whole of any trading date, so the
+weekday rehearsal could never begin (16 November, 06:30), and then barred whenever the
+account held anything, so once the desk traded no rehearsal could pass.
+→ *Caught by:* the rehearsal is barred only while a market is open or near (#462). →
+*Debt:* a rehearsal beside held lines, never touching them, is being built; until it
+lands, the desk's day runs on the coordinator's recorded go.
+
+**21. The claim that drifts.** A session that cannot finish inside its claim moves the work
+to a file outside it instead of stopping: #857 rewrote a lab test outside its card, and #902
+renamed its new test to another lane's name (19 November).
+→ *Caught by:* the runner disarms a pull request whose Claim line is not the claim its card
+gave, so it never lands; a card's files are fixed only by runner ops, with the cause.
+
+**22. The done request handed out again.** A request found already met on main is left
+open in the lane's list, so every later session checks it again and lands an empty change:
+R-MONEY-49 four times (#741, #798, #888, #893), R-MONEY-36 twice (19 November).
+→ *Caught by:* the runner keeps every id a landed pull request ticked and never offers it
+again. Its root (20 November): the runner reads a done list one request per line, written
+`- R-X-n: ...`, and DATA's run-on list (`R-PAPER-23 #294, -22 #505, ...`) closed nothing, so
+41 of 100 merges in a day were empty re-verifications. → *Debt:* a check that every
+request named under `### Done for other lanes` stands on its own `- R-X-n:` line.
+
+**23. The order the broker may hold, forgotten.** A gateway blip arrives after an order is
+sent (2110, 2157, 20 November 08:27): the desk called it never received and deleted its
+note, or called it unknown and turned the kill switch on, and a market buy of 195 ISF sat
+working at the broker with no record in the book until the operator released the switch.
+→ *Caught by:* a disconnect after the send keeps the order's note for the next step to
+cancel or book (R-RUNNER-389, #1008, `tests/unit/test_book.py`). → *Debt:* connectivity news
+mid-send never pulls the kill switch (R-RUNNER-390), and the broker fault matrix in SimCity,
+every message class at every moment of a send (R-RUNNER-392). The same mechanism has
+fixed `desk/paper.py` three times in ten changes (#373 the gateway's wait, #860 a market
+order's wait, #1014 link news mid-send): the paper door learns IBKR's behaviour one live
+fault at a time, never from a table of everything the gateway can say; the matrix is that
+table.
+The send path's side of it has fixed `desk/book.py` twice the same day (#1008 the going note
+kept on a disconnect, #1031 a halt cancelling working buys) with a third change due (an order
+the desk cancelled sent once more, pattern 25): what the desk knows of the orders the broker
+holds (sent, working, cancelled by whom) was built for the day that goes well, and each edge
+was met live. The same matrix, its rows run through `book.send`, is the table for it.
+
+**24. A wait added inside a step, its caller's timeout left.** Each market order came to
+wait 120 seconds for its fill (da70408), while the runner still killed the whole desk step
+at 240 seconds: London's round died mid-send (20 November 08:22).
+→ *Caught by:* the runner's drive `drive_atjobs`: the desk step's timeout is at least its
+worst-case waits plus a margin (6 orders x 120 s + 60 s; now 900 s).
+
+**25. The order the desk withdrew, never sent again.** An order id is fixed for its day, so
+an order the desk's own recovery cancelled at 0 filled answers every later send with its
+old Cancelled state: London's 09:00 round sent nothing (20 November).
+→ *Debt:* an order the desk itself cancelled is sent once more that day as `<id>-r1`,
+through the same gate (R-RUNNER-391, R-RUNNER-394).
+
+**26. The file read whole that grew.** The ladder kept every verdict it ever wrote, each
+re-judged cell adding a line and none removed, and read and parsed the whole file on every
+start. At 1.2 GB it held 12.8 GB, the machine swapped, and EPON judged nothing for nine
+hours (21 November). Thirty-seven reads like it were on main, unnoticed while files are small.
+→ *Caught by:* the ratchet `test_whole_file_reads_never_rise`: whole-file reads in `desk/`
+and `lab/` may fall and never rise; a file that cannot grow says why on the same line
+(`# bounded: <why>`). *Debt:* the growing stores among the 37 are streamed (ladder first,
+R-RUNNER-432) and a results file keeps one line per cell, compacted as it is written.

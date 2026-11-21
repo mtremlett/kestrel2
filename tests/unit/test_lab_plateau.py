@@ -9,7 +9,7 @@ from itertools import product
 
 import pytest
 from test_lab_luck import DAY
-from test_lab_rung import FREE
+from test_lab_rung import FREE, line_of
 
 from lab import cell, plateau, rung
 from lab.cell import Cell, Key, Trade
@@ -38,9 +38,11 @@ def _a_rule_at_every_setting(monkeypatch: pytest.MonkeyPatch) -> None:
 def _verdict(edge: str, rule: str = "r", symbol: str = "VUSA", days: Days = (0, 9)) -> Verdict:
     """Thirty trades around this mean gain, judged by the first rung's own rule."""
     gains = [Decimal(edge) + Decimal("0.02") * (-1) ** n for n in range(30)]
-    priced = tuple(Priced(Trade(DAY, DAY), 1, Decimal(1), 1 + g, FREE, (DAY, DAY)) for g in gains)
+    priced = tuple(
+        Priced(Trade(DAY, DAY), 1, Decimal(1), 1 + g, FREE, (DAY, DAY), None) for g in gains
+    )
     start, end = (DAY + timedelta(days=n) for n in days)
-    return rung.verdict(Key(Cell(rule, symbol, start, end), "code", "data"), priced)
+    return rung.verdict(Key(Cell(rule, line_of(symbol), start, end), "code", "data"), priced)
 
 
 def _surface(edge: Edge | str, *axes: tuple[int, ...]) -> dict[Setting, Verdict]:
@@ -51,7 +53,7 @@ def _surface(edge: Edge | str, *axes: tuple[int, ...]) -> dict[Setting, Verdict]
 def _none(rule: str) -> Verdict:
     """One trade: no standard errors at all, so it fails and stands lowest."""
     whole = _verdict(PASS, rule)
-    return rung.verdict(whole.key, whole.trades[:1])
+    return rung.verdict(Key(whole.key.cell, "code", "data"), whole.trades[:1])
 
 
 def _square(setting: Setting) -> str:

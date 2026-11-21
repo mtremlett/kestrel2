@@ -16,16 +16,24 @@ loosened: the desk cannot import this module, so the rule can decide no trade.""
 
 from __future__ import annotations
 
+import hashlib
+import os
+import sys
 from collections.abc import Callable, Iterable, Sequence
-from dataclasses import dataclass
-from datetime import date
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
-from statistics import median
 
-from desk import archive, store
+from desk import archive, bars, store, venues
 from desk.lines import LINES, NO_TAX, STAMP_DUTY, Line
-from desk.store import Bar, Parked
+from desk.store import Bar, Fault, Parked
+from lab import universe_history
+from lab.universe_parts import HEAVY as HEAVY
+from lab.universe_parts import USUAL as USUAL
+from lab.universe_parts import History as History
+from lab.universe_parts import breadth as breadth
+from lab.universe_parts import matrix as matrix
+from lab.universe_parts import read as read
 
 
 def _lines(venue: str, currency: str, symbols: str, tax: Decimal = NO_TAX) -> tuple[Line, ...]:
@@ -142,6 +150,25 @@ ETFS = _lines(
 YARDSTICKS = _lines("LSE", "GBP", "ISF")
 #: Every ticker once: a share on two lists (most of the Nasdaq 100) is one line.
 UNIVERSE = tuple(dict.fromkeys(SP500 + NASDAQ100 + FTSE350 + ETFS + YARDSTICKS))
+#: SPY, studied as the S&P 500's own history from its first session, 29 January 1993, and never
+#: traded: a reference series (R-RUNGS-5, R-PAPER-16), kept apart from the traded bars above.
+REFERENCE = tuple(line for line in ETFS if line.symbol == "SPY")
+
+
+def keep_reference(
+    root: Path,
+    day: date,
+    ask: Callable[..., tuple[Bar, ...]] = archive.fetch,
+) -> dict[Line, tuple[Fault, ...]]:
+    """Fetch each reference series from the archive's reach back to its first session, before
+    day, and keep it in the long database beside the live file at root as traded, with the
+    faults found."""
+    return {
+        line: archive.keep_reference(
+            root / bars.LIVE, line, ask(line, day, since=archive.REFERENCE_SINCE)
+        )
+        for line in REFERENCE
+    }
 
 
 def keep(
@@ -162,53 +189,139 @@ def keep(
     return parked
 
 
-#: Research's rule for a move the store parks for (docs/DECISIONS.md, the data lane's). Read
-#: on the list's 406 such moves of 13 November 2026: a fall made wholly between two sessions
-#: on under this many times the usual value traded looks each time like a change of scale (a
-#: split the archive did not adjust, a demerger, a special payment: fifteen, the heaviest on
-#: 2.3 times, none confirmed from a second source); the lightest real fall came on 2.8. Two
-#: that look like changes of scale, on 2.5 and 4.4 times, are read as losses. The usual is
-#: the median of the USUAL sessions before. The number was chosen looking at that one list.
-HEAVY, USUAL = Decimal("2.5"), 20
+def _held(root: Path, line: Line) -> int:
+    """How many bars the store holds for the line; none before its first file."""
+    try:
+        return len(store.read(root / line.venue, line.symbol))
+    except FileNotFoundError:
+        return 0
 
 
-@dataclass(frozen=True)
-class History:
-    """A ticker's bars as research reads them: its longest run on one scale of price. It
-    stops short of the store's last day when a day of `rescaled` is later than its last bar:
-    it is then no guide to today. Which run is longest can change as sessions gather."""
-
-    bars: tuple[Bar, ...]  #: oldest first, none either side of a change of scale
-    #: The days among them of an unconfirmed move, read as the market's. One made within a
-    #: day is named on that day and on the next, whose bar sits far from where the day began.
-    moves: tuple[date, ...]
-    rescaled: tuple[date, ...]  #: every change of scale in what the store keeps for it
+def _lost(root: Path, line: Line) -> tuple[date, ...]:
+    """The sessions between a line's first and last bar that the store holds no bar for."""
+    held = {bar.day for bar in store.read(root / line.venue, line.symbol)}
+    if not held:
+        return ()
+    return tuple(d for d in venues.sessions(line.venue, min(held), max(held)) if d not in held)
 
 
-def _rescaled(before: Sequence[Bar], bar: Bar) -> bool:
-    """An unconfirmed move is a change of the price's scale, not a move a holder lived
-    through, when it was made wholly between two sessions and it is a rise, or a fall on
-    ordinary trading. A rise is never believed unconfirmed: the desk only buys, so counting
-    a false windfall flatters a study and disbelieving a real one cannot. A fall is
-    disbelieved only on trading under HEAVY times a usual that is known: forgetting a real
-    loss flatters every strategy, so a fall with no usual volume to judge it by is believed.
-    The price of disbelief is the bars on the shorter side of the move, which go unread."""
-    last = before[-1].close
-    usual = median(b.close * b.volume for b in before[-USUAL:])
-    quiet = bar.close * bar.volume < HEAVY * usual
-    return bar.low > last * store.JUMP or (bar.high * store.JUMP < last and quiet)
+def _mended(
+    root: Path,
+    day: date,
+    line: Line,
+    ask: Callable[[Line, date], tuple[Bar, ...]],
+    second: Callable[[Line, date], tuple[Bar, ...]] | None,
+) -> tuple[int, str]:
+    """Keep a line; if it is a yardstick missing sessions, name them, and with a second source
+    fill them through the store's one writer (shelved, so every later refresh joins them too)
+    and keep again. Returns the lines parked, and the days that stayed missing, named."""
+    parked = len(keep(root, day, [line], ask))
+    lost = _lost(root, line) if line in YARDSTICKS else ()
+    if lost and second is not None:
+        store.shelve(root / line.venue, line, second(line, day))
+        parked = len(keep(root, day, [line], ask))
+        lost = _lost(root, line)
+    return (
+        parked,
+        f"; yardstick {line.symbol} has no bar on {', '.join(map(str, lost))}" if lost else "",
+    )
 
 
-def read(root: Path, line: Line) -> History:
-    """A ticker's bars from the research store at root, parked or not. No trade is priced
-    across a change of scale: the bars are the longest run between two (the later of two as
-    long), and the unconfirmed moves inside it are named, so that a verdict can say how many
-    it was held through. A ticker the archive refused has no bars to read."""
-    bars = store.read(root / line.venue, line.symbol)
-    at = {bar.day: n for n, bar in enumerate(bars)}
-    moved = [at[day] for day in store.moves(line, bars)]
-    cuts = [n for n in moved if _rescaled(bars[:n], bars[n])]
-    edges = [0, *cuts, len(bars)]
-    start, end = max(zip(edges, edges[1:], strict=False), key=lambda run: (run[1] - run[0], run))
-    listed = tuple(bars[n].day for n in moved if start < n < end)
-    return History(bars[start:end], listed, tuple(bars[n].day for n in cuts))
+def refresh(
+    root: Path,
+    day: date,
+    lines: Iterable[Line] = UNIVERSE,
+    ask: Callable[[Line, date], tuple[Bar, ...]] = archive.fetch,
+    second: Callable[[Line, date], tuple[Bar, ...]] | None = None,
+    history: Path | None = None,
+) -> str:
+    """Keep each line through the one store writer, one at a time (a line's file is complete
+    before the next is asked for, so a stopped run resumes by running again), and say what
+    it did: lines refreshed, bars added (a line's gain on what it held; a bar is never
+    invented, so a day's second run adds none) and lines parked. A yardstick with a missing
+    session is a named data fault, filled from the second source when one is given. Given the
+    history database's path, each line's bars enter it too, under their source."""
+    refreshed = added = parked = 0
+    faults = ""
+    for line in lines:
+        before = _held(root, line)
+        more, note = _mended(root, day, line, ask, second)
+        parked += more
+        if history is not None:
+            universe_history.enter(root, history, line)
+        faults += note
+        added += max(0, _held(root, line) - before)
+        refreshed += 1
+    done = f"{refreshed} lines refreshed, {added} bars added, {parked} parked"
+    return f"research refresh: {done}{faults}"
+
+
+LISTS = {"sp500": SP500, "nasdaq100": NASDAQ100, "ftse350": FTSE350, "funds": ETFS}
+
+
+def _cleared(home: Path, lines: Iterable[Line]) -> list[str]:
+    """Delete the store files (and shelved ones) of every ticker no longer in lines, in a venue
+    folder of the list; name them, venue first."""
+    keep = {(line.venue, line.symbol) for line in lines}
+    gone = []
+    for venue in sorted({line.venue for line in UNIVERSE}):
+        folder = home / venue
+        for path in sorted([*folder.glob("*.csv"), *(folder / store.HISTORY).glob("*.csv")]):
+            symbol = path.name.removesuffix(".csv")
+            if (venue, symbol) not in keep:
+                path.unlink()
+                gone.append(f"{venue}:{symbol}")
+    return gone
+
+
+def nightly(
+    data: Path,
+    day: date,
+    lines: Sequence[Line] = UNIVERSE,
+    ask: Callable[[Line, date], tuple[Bar, ...]] = archive.fetch,
+    second: Callable[[Line, date], tuple[Bar, ...]] | None = None,
+) -> str:
+    """The night's work on the research store's home, data/grid/store: refresh every line (into
+    the history database too), clear out any ticker that has left the list, and write
+    REFLECTS.txt beside the venue folders: the day, each list's size and a fingerprint of the
+    tickers, so a reader knows which day and which list the store reflects."""
+    home = data / "grid" / "store"
+    said = refresh(home, day, lines, ask, second, data / bars.LIVE)
+    gone = _cleared(home, lines)
+    names = sorted(f"{line.venue}:{line.symbol}" for line in lines)
+    finger = hashlib.sha256(" ".join(names).encode()).hexdigest()[:12]
+    sizes = " ".join(f"{name}={len(found)}" for name, found in LISTS.items())
+    held = (f"day {day}", f"lines {len(names)} {sizes}", f"fingerprint {finger}")
+    note = chr(10).join((*held, f"cleared {' '.join(gone)}", ""))
+    (home / "REFLECTS.txt").write_text(note, encoding="utf-8")
+    return f"{said}; {len(gone)} cleared out"
+
+
+def import_history(data: Path, day: date) -> str:
+    """The whole research store and the ladder's pound table under data, let into the history
+    database there; the yardsticks' missing sessions are named."""
+    return universe_history.run(
+        data / "grid" / "store",
+        data / bars.LIVE,
+        data / "ladder" / "pound.jsonl",
+        UNIVERSE,
+        (*YARDSTICKS, *REFERENCE),
+        day,
+    )
+
+
+if __name__ == "__main__":
+    DATA = Path(os.environ.get("KESTREL2_DATA") or sys.exit("universe: no KESTREL2_DATA"))
+    TODAY = datetime.now(UTC).date()
+    if sys.argv[1:] == ["history"]:
+        sys.stdout.write(import_history(DATA, TODAY) + chr(10))
+    elif sys.argv[1:2] == ["nightly"]:
+        other = matrix(Path(sys.argv[2])) if len(sys.argv) > 2 else None
+        sys.stdout.write(nightly(DATA, TODAY, second=other) + chr(10))
+    elif sys.argv[1:] == ["noon"]:
+        sys.stdout.write(universe_history.noon(DATA / bars.LIVE) + chr(10))
+    else:
+        other = matrix(Path(sys.argv[2])) if len(sys.argv) > 2 else None
+        sys.stdout.write(
+            refresh(Path(sys.argv[1]), TODAY, second=other, history=DATA / bars.LIVE) + chr(10)
+        )
