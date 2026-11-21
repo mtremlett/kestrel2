@@ -25,6 +25,7 @@ def test_twelve_variants_all_counted_and_the_pick_is_the_plateau_centre(
     assert len(made) == 12 and len({v.spec.name for v in made}) == 12
     assert made[0].spec.params["entry"] == {"n": 10} and made[0].spec.params["exit"] == {"n": 10}
     assert made[-1].setting == (40, 80) and ROW.params["entry"] == {"n": 20}
+    assert not made[0].spec.ranges
 
     register = tmp_path / "trials.jsonl"
     trials.start(register)
@@ -48,6 +49,10 @@ def test_twelve_variants_all_counted_and_the_pick_is_the_plateau_centre(
         {"entry": {"n": [10, 5000]}},
         {"entry": {"n": [10, 20, 10]}},
         {"entry": {"n": []}},
+        {"entry": {"n": 10}},
+        {"entry": {"n": [40, 10, 20]}},
+        {"bogus": {}},
+        5,
     ],
 )
 def test_a_range_off_the_row_or_outside_its_block_is_refused(ranges: object) -> None:

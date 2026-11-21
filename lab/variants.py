@@ -48,7 +48,8 @@ def variants(spec: Spec) -> tuple[Variant, ...]:
             f"{place}.{param}={v}" for (place, param), v in zip(spec.ranges, setting, strict=True)
         )
         frozen = MappingProxyType({place: MappingProxyType(p) for place, p in params.items()})
-        made.append(Variant(setting, replace(spec, name=f"{spec.name}[{label}]", params=frozen)))
+        named = f"{spec.name}[{label}]"  # a variant is tried as written: no ranges of its own
+        made.append(Variant(setting, replace(spec, name=named, params=frozen, ranges={})))
     return tuple(made)
 
 
