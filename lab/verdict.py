@@ -375,7 +375,7 @@ def _weathered(own: Sequence[Bar], verdict: Verdict, made: Sequence[Reproduction
     bought on, or a FAULT where the weather cannot be named."""
     try:
         said = rung_regimes.by_weather(
-            verdict.key.rung(rung_regimes.__name__), verdict.trades, weather.trend(own), made
+            verdict.key.rung(rung_regimes.__name__), verdict.trades, weather.named(own), made
         )
     except ValueError as cannot:  #: a fault in the test, said as one with its reason
         return Answer.FAULT, f"the weather could not be named: {cannot}"
