@@ -5,7 +5,11 @@ rung runs no simulation. Written whole or not at all: aside, forced to disk, ren
 ONE SIMULATION PER LINE (R-RUNNER-169): a rule is run once on a line, from its first bar to its
 last, and every window (the first rung's, each fold's) is cut from that tape by date. A rule sees
 no bar after the one it decides on (the future-blind property test), so the cut is the record the
-window's own run would give: trades bought inside it, one still held at its end unsold."""
+window's own run would give: trades bought inside it, one still held at its end unsold.
+
+THE RATES ARE NOT IN THE KEY (#398): a tape holds trades, not money; costs, capital and rates
+price it afterwards in the rungs, so a change of settings re-prices the kept tape and simulates
+nothing."""
 
 from __future__ import annotations
 
