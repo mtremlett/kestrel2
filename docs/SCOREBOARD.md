@@ -436,6 +436,13 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1059 coverage lookback read from the grid's SWEEPS, one home (500 sessions). |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1062 no change; R-MONEY-48 already met, closed. |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1065 DATA: data-pence confirmed done on main, docstring only. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1098 disk-space floor in the quality monitor (OPS-07), no scene moved. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1101 verification only, pre-2010 window prepared on main, no code. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1104 breadth counts (advances and declines) from the store, pure and tested (R-RUNNER-346). |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1107 disk watch wired into the quality monitor (OPS-07 part). |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1262 no change; R-DATA-57 local Stooq step needs the reader moved into desk/ first. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1210 data-written-together remainder built, one file per line (R-DATA-55). |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1243 15m and 30m rolled from 5m (R-DATA-56 part). |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
