@@ -2116,5 +2116,8 @@ a file that cannot grow is not counted when its own line says why (`# bounded: <
 required). Driven (A7) by appending one line to `desk/command.py` and running the ratchet:
 `Path("big.jsonl").read_text()` FAILED (37 -> 38); `open("big.jsonl").read()` FAILED;
 `read_text()  # bounded:` with no reason FAILED; `read_text()  # bounded: one-line marker
-file` passed; a line-at-a-time loop over the file passed. A tightening: it adds a guard and
+file` passed; a line-at-a-time loop over the file passed. After a blind review it counts
+calls, not lines, and a mark on any line of a call that spans lines counts; driven again on
+main at 39: a new `p.read_text()` in `desk/__init__.py` FAILED (39 -> 40); the same call
+split over two lines with the mark on its second passed. A tightening: it adds a guard and
 loosens none.

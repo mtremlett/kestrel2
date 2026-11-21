@@ -76,11 +76,7 @@ BOUNDED = re.compile(r"#\s*bounded:\s*\S+\s+\S+")
 def _whole_reads(source: str) -> list[tuple[int, int]]:
     """Each call that reads a whole file at once, by (line, column), with no reason on
     any of its lines that the file is bounded."""
-    lines = source.replace("
-", "
-").replace("", "
-").split("
-")
+    lines = source.replace("\r\n", "\n").replace("\r", "\n").split("\n")
     return sorted(
         (node.lineno, node.col_offset)
         for node in ast.walk(ast.parse(source))
