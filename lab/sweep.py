@@ -55,7 +55,7 @@ from typing import IO, Any
 from desk import archive, venues
 from desk.lines import NO_TAX, STAMP_DUTY, Line
 from desk.store import Bar
-from desk.strategy import STRATEGIES
+from desk.strategy import STRATEGIES, VARIANTS
 from lab import batch, tune, universe
 from lab.cell import Cell
 
@@ -89,12 +89,22 @@ def declared() -> tuple[Line, ...]:
 
 
 def cells(line: Line, start: date, end: date, transfer: bool = False) -> tuple[Cell, ...]:
-    """The strategies that declare the ticker, each over one window; with transfer, every
-    strategy, for the transfer study."""
-    return tuple(
+    """The strategies that declare the ticker, then their variants, each over one window; with
+    transfer, the five alone, for the transfer study."""
+    made = tuple(
         Cell(name, line, start, end)
         for name, rule in STRATEGIES.items()
         if transfer or line in rule.declared.universe
+    )
+    return (
+        made
+        if transfer
+        else made
+        + tuple(
+            Cell(name, line, start, end)
+            for name, rule in VARIANTS.items()
+            if line in rule.declared.universe
+        )
     )
 
 

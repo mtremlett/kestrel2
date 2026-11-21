@@ -1,6 +1,6 @@
-"""rulebook - THE LAB'S ONE LIST OF RULES BY NAME: the desk's five (`desk.strategy.STRATEGIES`)
-and every rule of every `desk/eponymous_*.py`, found by the folder, each file naming its rules
-in an `EPONYMOUS` mapping of name to class.
+"""rulebook - THE LAB'S ONE LIST OF RULES BY NAME: the desk's five (`desk.strategy.STRATEGIES`),
+their variants (`desk.strategy.VARIANTS`) and every rule of every `desk/eponymous_*.py`,
+found by the folder, each file naming its rules in an `EPONYMOUS` mapping of name to class.
 
 Only the five are the A-GATE's candidates: promotion, sweep and transfer stay on `STRATEGIES`.
 A file that names its rules in no `EPONYMOUS` is not read here: its rules are not in the book
@@ -14,7 +14,7 @@ import tomllib
 from pathlib import Path
 
 import desk
-from desk.strategy import STRATEGIES, Rule
+from desk.strategy import STRATEGIES, VARIANTS, Rule
 from lab.spec import Spec
 
 DESK = Path(desk.__file__).parent  #: the folder of eponymous files
@@ -27,7 +27,7 @@ def eponymous(folder: Path | None = None) -> dict[str, type[Rule]]:
     for path in sorted((folder or DESK).glob("eponymous_*.py")):
         module = importlib.import_module(f"{desk.__name__}.{path.stem}")
         for name, make in getattr(module, "EPONYMOUS", {}).items():
-            if name in found or name in STRATEGIES:
+            if name in found or name in STRATEGIES or name in VARIANTS:
                 raise ValueError(f"{module.__name__}: the rule {name!r} is named twice")
             found[name] = make
     return found
@@ -45,8 +45,8 @@ def specs(book: Path | None = None, folder: Path | None = None) -> dict[str, Spe
 
 
 def rules(folder: Path | None = None) -> dict[str, type[Rule]]:
-    """The desk's five, then the eponymous rules, by name."""
-    return {**STRATEGIES, **eponymous(folder)}
+    """The desk's five, their variants, then the eponymous rules, by name."""
+    return {**STRATEGIES, **VARIANTS, **eponymous(folder)}
 
 
 def rule(name: str, folder: Path | None = None) -> type[Rule]:
