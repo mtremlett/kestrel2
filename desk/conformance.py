@@ -239,7 +239,7 @@ def trade(
         if (line.venue, line.leverage, line.retail) == fits
         if listed[line].contract not in busy and paper.own(line) not in held
     ]
-    run = plan(plain, refused, today, command.rates(root, today), f"{now:%H%M}")
+    run = plan(plain, refused, today, command.rates(root, today), f"{now:%H%M}", root.parent)
     beside, broker = pretend(run), placing.Paper(listings, root, clock, door)
     fall = _raised(broker, root, listed[run.second.line], wait, door)
     side = Side(root, broker, lambda: clearance.check(root, clock(), door).found, fall)
