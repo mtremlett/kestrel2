@@ -145,7 +145,6 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "desk/trading_hours.py" = "when a real market could fill an order: the regular session, New York's pre-market and after-hours and London's auctions, from the one calendar, so a rehearsal never sends into a fill"
 "desk/conformance.py" = "the conformance trades as a command: one run for each market in its hours on the paper account, a rejection, a buy with its stop, a sale, a buy of the desk's size and its stop made to sell, each real result recorded beside the pretend broker's; nothing sent unless the account is quiet, and the account left as found"
 "desk/conformance_parts.py" = "a conformance run at one broker: the run's orders sized and named, each step (refusal, buys, sale, stop triggered, account put back) noted as it is done, and the pretend broker's run of the same steps"
-"desk/conformance_soak.py" = "the conformance soak: one conformance round of one share on demand, hourly in a venue's hours, each round's order ids its own and each round, done or refused, its own line in the soak ledger"
 "desk/conformance_tape.py" = "what the conformance run needs of the desk beside it: a desk round's hours, the desk's own share of the account read before a run, and a holding of the desk's found moved after it"
 "desk/ended.py" = "the day's cancelled orders at the paper broker and its own words of why each ended, read-only over an open connection"
 
