@@ -45,7 +45,8 @@ def step(root: Path, broker: Broker, room: Settings, now: datetime) -> list[str]
     for symbol, shares in sorted(book.positions(root).items()):
         line = lines[symbol]
         if shares > 0 and venues.open_at(line.venue, now):
-            sale = Sale(f"{_before(line.venue, now.date()):%Y%m%d}-goflat-{symbol}", line, shares)
+            before = _before(line.venue, now.date())
+            sale = Sale(f"{before:%Y%m%d}-goflat-{symbol}", line, shares, session=before)
             try:
                 sent = book.send(root, broker, sale, room)
                 said.append(f"{sale.order_id}: {sent.filled} of {shares} shares sold")
