@@ -100,3 +100,17 @@ def test_fifteen_and_thirty_minute_bars_are_rolled_from_whole_five_minute_runs(
     assert roll(live, LINE, open_ + timedelta(days=1)) == 3 + 1  # quarters 08:00 30 45; half 08:30
     assert bars.sources(live, LINE, "15m") == {bars.Source.ROLLUP_5M: 3}
     assert bars.timed(live, LINE, "30m", open_, open_ + timedelta(hours=1))[0].volume == 6
+
+
+def test_two_and_ten_minute_bars_are_rolled_from_whole_one_minute_runs(tmp_path: Path) -> None:
+    live, keep = tmp_path / bars.LIVE, keeper(tmp_path / bars.LIVE, {"VUAG": 1})
+    open_ = datetime(2026, 11, 12, 8, 0, tzinfo=UTC)
+    ones = tuple(
+        Candle(open_ + timedelta(minutes=n), PRICE, PRICE, PRICE, PRICE, 1, "ibkr")
+        for n in range(10)
+        if n != 3  # 08:03 is missing: no 08:02 pair, no 08:00 ten
+    )
+    keep(LINE, "1m", ones)
+    roll(live, LINE, open_ + timedelta(days=1))
+    assert bars.sources(live, LINE, "2m") == {bars.Source.ROLLUP_1M: 4}
+    assert not bars.sources(live, LINE, "10m")
