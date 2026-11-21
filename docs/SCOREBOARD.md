@@ -791,3 +791,10 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #986 R-RUNNER-386 built: pooled ladder judges with its family count while EASED |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #993 R-RUNNER-231 EASED switched on, golden fixture verdicts re-pinned |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1070 no change; 1051 superseded by #993 |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1073 no change; R-GRID-2 verified done, R-GRID-3 stamping verified, capital/rate left to GRID's Key |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1078 no change; B3 the catalogue verified done (24 rows, Spec.parse refuses a bad row) |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1124 R-RUNNER-396 strict registry assertion restored, per-test EASED pins, B5 line for the re-pin |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1082 R-RUNNER-273 ladder pool yields memory, built |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1165 ladder judges by 4 declared rungs more (regimes rung declares RUNG) |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1201 capital joins a kept verdict's key (R-GRID-3) |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1256 Candidate refuses unrun rungs; no scene moved |
