@@ -44,9 +44,11 @@ def variants(spec: Spec, ranges: Ranges) -> tuple[Variant, ...]:
     outside what its block allows, is refused."""
     if not ranges:
         raise ValueError(f"spec {spec.name}: no ranges, so no variants")
-    for place, param in ranges:
+    for (place, param), values in ranges.items():
         if place not in PLACES or param not in spec.params[place]:
             raise ValueError(f"spec {spec.name}: no setting {param!r} at {place!r} to range over")
+        if len(set(values)) != len(values):
+            raise ValueError(f"spec {spec.name} {place} {param}: a repeated value in {values}")
     made = []
     for setting in product(*ranges.values()):
         params = {place: dict(spec.params[place]) for place in PLACES}
