@@ -844,7 +844,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         Built: `lab/catalogue.toml` 24 rows, `Spec.parse` refuses any without (#1078, verified)
   - [ ] B4 the nineteen eponymous rules as rows, identical trades on the fixture proven,
         then their Python files deleted. Built: 20 of 21 in the catalogue (#873); Zweig waits on breadth data
-  - [ ] B5 variants generated from a row's setting ranges, every one counted as a trial
+  - [ ] B5 variants generated from a row's setting ranges, every one counted as a trial. Built: `lab/variants.py` (#364) makes every combination and counts trials; one home after #1307/#1315. Remains: wiring variants into the grid chain (GC); multi-setting ranges; entering them in the register from a caller; `variants.variants` does not yet refuse a repeated value
   - [ ] B6 the old desk's families listed and entered as sets of rows marked QUARRY, their
         cases derived by hand, never from the old desk's numbers
   - [ ] P1 a fast engine for rows, vectorised in `lab/`, matching the desk's engine on the
