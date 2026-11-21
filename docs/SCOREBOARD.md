@@ -834,3 +834,6 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1321 B5 variants refuses a repeated value; no scene moved |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1334 montecarlo streams its files, no MemoryError (R-RUNNER-425) |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1360 R-RUNNER-334 the EPON table is one row per rule, cells in a data file; no scene moved |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1373 R-RUNNER-432 the ladder's results file streamed, no row held in memory; no scene moved |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1367 R-RUNNER-344 lab owns its YEAR; behaviour unchanged |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1277 R-RUNNER-408 stop-rule rung built and pre-registered, not yet run on EPON |
