@@ -192,9 +192,12 @@ def _noted(
     rows, differ = list[tuple[str, ...]]([HEAD]), list[str]()
 
     def note(step: str, real: str) -> None:
-        cancelled = [
-            f"{ref}: {words or GIVEN}" for ref, words in reasons(door).items() if ref in real
-        ]
+        try:
+            cancelled = [
+                f"{ref}: {words or GIVEN}" for ref, words in reasons(door).items() if ref in real
+            ]
+        except TimeoutError as slow:  # the reason is a note; a slow answer never ends the round
+            cancelled = [f"reason not read: {slow}"]
         stopped = [f.price for f in book.fills(root) if f.order_id == f"{run.second.order_id}-stop"]
         if step == TRIGGER and (stopped or RESTED in real):
             beside.update(pretend(run, stopped[-1] if stopped else None, not stopped))
