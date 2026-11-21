@@ -354,3 +354,14 @@ def round_trips(root: Path, lines: Iterable[Line]) -> tuple[RoundTrip, ...]:
             bought_leg, sold_leg = replace(buy, quantity=shares), replace(fill, quantity=-shares)
             trips.append(RoundTrip(bought_leg, sold_leg, gross, costs, gross - costs.total))
     return tuple(trips)
+
+
+def attributed(
+    trips: Iterable[RoundTrip], by: Callable[[RoundTrip], object]
+) -> dict[object, Decimal]:
+    """THE PROFIT TOLD APART (TRD-12): pounds after every cost summed under what the key says of a
+    trip: its strategy (the buy's order id), its line, the days it was held, its costs."""
+    total: dict[object, Decimal] = {}
+    for trip in trips:
+        total[by(trip)] = total.get(by(trip), Decimal(0)) + trip.profit
+    return total
