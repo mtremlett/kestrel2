@@ -211,6 +211,7 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "lab/block_bands.py" = "the spec book's Bollinger-band blocks: where the close sits in the bands (%b), an entry on a run of low days and an exit on a high one, over the desk's own window and lower band"
 "lab/block_box.py" = "the spec book's blocks for Darvas's box: an entry on a close over a standing box's top and a stop on a close under the stop the boxes raised, one reading of the boxes shared by both"
 "lab/block_swing.py" = "the spec book's blocks for Raschke's Turtle Soup: an entry on a failed breakdown of the n-day low, and a stop under the buying day's low"
+"lab/block_breadth.py" = "the spec book's block for Zweig's breadth thrust: an entry when the 10-day average of the day's advancing share climbs from under 0.40 to over 0.615 inside 10 sessions, read on ratio bars the caller builds"
 "lab/block_sequential.py" = "the spec book's blocks for DeMark's TD Sequential: an entry on the thirteenth bar of a buy countdown, an exit on a nine-bar sell setup"
 "lab/fast_sequential.py" = "the fast engine's firing of the TD Sequential blocks, bar by bar over whole prices"
 "lab/block_months.py" = "the spec book's month-end blocks: an entry on a month's first bar when the month before closed over its n-month average, an exit when it did not, over the desk's own window"
