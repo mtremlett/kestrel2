@@ -32,7 +32,7 @@ def test_a_fault_in_deep_history_is_named_not_parked_and_one_in_the_window_parks
     _, faults, park = store_scope.judge(MSTR, old, DAY)
     assert park is None and any(f.day == date(2000, 3, 20) for f in faults)
     assert all(f.noted for f in faults if f.day < date(2022, 1, 1))
-    kept = keeper._kept_in(tmp_path / "hot", tmp_path, {MSTR: old}, DAY, {})
+    kept = keeper._kept_in(tmp_path / "hot", {MSTR: old}, DAY, {})
     assert kept[0] == [] and bars.daily(tmp_path / "hot", MSTR)[-1].day == date(2025, 11, 14)
     assert f"{date(2000, 3, 20)} moved" in store.prepare(tmp_path / "s", {MSTR: old}, DAY)[0].reason
     recent = _history(date(2025, 10, 1))

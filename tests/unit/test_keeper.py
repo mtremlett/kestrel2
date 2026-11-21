@@ -91,13 +91,13 @@ class Archive:
         )
 
 
-def test_a_shelved_history_joins_the_archive_and_a_database_not_yet_written_is_stale(
+def test_a_shelf_file_is_never_read_and_a_database_not_yet_written_is_stale(
     tmp_path: Path,
 ) -> None:
     older = tuple(replace(bar, day=bar.day.replace(month=6)) for bar in _bars(UK, MON)[:2])
     store.shelve(tmp_path / keeper.DAILY / UK.venue, UK, older)
     Archive().keep(tmp_path, _at(6))
-    assert keeper.saved(tmp_path, MON, [UK])[0][UK][:2] == older  # parked for the gap, kept
+    assert keeper.saved(tmp_path, MON, [UK])[0][UK] == _bars(UK, MON)  # the shelf's days never join
     (tmp_path / bars.HISTORY).unlink()
     with pytest.raises(keeper.Stale, match="BBB: the long database holds no LSE bars"):
         keeper.saved(tmp_path, MON, [UK])
