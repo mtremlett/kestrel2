@@ -1,5 +1,6 @@
 # The spec book: one table per strategy, named as the rule of desk/eponymous_*.py it re-expresses.
-# Each holds its blocks, their parameters, its source and known answers (lab/spec.py parses it;
+# Each holds its blocks, their parameters, its source and known answers, and may hold the ranges
+# its variants try (lab/variants.py), lowest first (lab/spec.py parses it;
 # tests/unit/test_lab_catalogue.py demands the same decisions as the Python rule, day by day).
 # A rule needing a block lab/blocks.py lacks is not here yet: that block is added there, and its firing in lab/fast.py.
 
@@ -13,6 +14,10 @@ source = "Faith, Way of the Turtle (2007), the four-week rule: buy over the 20 s
 [donchian_channel_breakout.params]
 entry = { n = 20 }
 exit = { n = 20 }
+
+[donchian_channel_breakout.ranges]
+entry = { n = [10, 20, 40] }
+exit = { n = [10, 20, 40, 80] }
 
 # twenty flat sessions, a close over their high (buy), then a close under their low (sell)
 [[donchian_channel_breakout.cases]]
