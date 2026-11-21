@@ -250,7 +250,16 @@ def test_a_desk_that_stops_is_a_red_night_and_a_night_that_dies_is_an_error_and_
     probe = cProfile.Profile()  #: and where a profiler left on refuses a second, none does
     probe.enable()
     probe.disable()
-    assert not list(tmp_path.iterdir()), "a night that died was kept"
+    assert [p.name for p in tmp_path.iterdir()] == ["worlds"], "a night that died was kept"
+    assert (tmp_path / "worlds" / "4").is_dir(), "a world's folder is root/worlds/<seed>"
+    (tmp_path / "worlds" / "4" / "old").write_text("last night", encoding="utf-8")
+    probe_seen = list[bool]()
+    monkeypatch.setattr(
+        simcity, "_live", lambda life: probe_seen.append(not (life.desk / "old").exists())
+    )
+    simcity.run(tmp_path, SHORT, ROOM, RATES, NOW, (4,))
+    assert probe_seen == [True], "last night's leftover was still there as the world began"
+    (tmp_path / simcity.NIGHTS).unlink()
     (tmp_path / simcity.NIGHTS).write_text("something else\n", encoding="utf-8")
     monkeypatch.setattr(simcity, "_live", None)  #: refused before the night is lived at all
     with pytest.raises(ValueError, match="not SimCity's nights"):

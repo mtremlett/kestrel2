@@ -15,7 +15,7 @@ from dataclasses import replace
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from pathlib import Path
-from tempfile import TemporaryDirectory
+from shutil import rmtree
 from types import ModuleType
 
 from desk import book, broker, day, halt, kill, orders, strategy
@@ -290,12 +290,17 @@ def run(
         alone = strategy.decide({line.symbol: bars for line, bars in archive.items()})
         for seed in worlds:
             census.now(None)  #: the making of a world is SimCity's own work, and no scenario's
-            with TemporaryDirectory() as scratch:
-                lives.append(_Life(Path(scratch), archive, room, rates, seed, census))
-                try:
-                    _live(lives[-1])
-                except ValueError as refusal:  #: the desk's own word that it cannot go on
-                    lives[-1].stopped = f"on day {len(lives[-1].records) + 1}, saying: {refusal}"
+            folder = (
+                root / "worlds" / str(seed)
+            )  #: kept after the night, emptied as its world starts
+            if folder.exists():
+                rmtree(folder)  #: a leftover that cannot go fails loudly, naming its path
+            folder.mkdir(parents=True)
+            lives.append(_Life(folder, archive, room, rates, seed, census))
+            try:
+                _live(lives[-1])
+            except ValueError as refusal:  #: the desk's own word that it cannot go on
+                lives[-1].stopped = f"on day {len(lives[-1].records) + 1}, saying: {refusal}"
     except Exception as died:
         died.add_note(f"SimCity's night died with world {seed} being lived (None: none yet)")
         raise
