@@ -29,6 +29,7 @@ import pyarrow.parquet as pq  # type: ignore[import-untyped]  # ships no stubs
 
 from desk import archive, bars, store
 from desk.bars import Source
+from desk.daily_local import stooq_rows
 from desk.lines import LINES, Line
 from desk.store import STRETCH, Bar
 from lab import headstart, universe
@@ -36,7 +37,6 @@ from lab import headstart, universe
 ROWS = "SELECT ts, open, high, low, close, volume FROM ohlcv WHERE ticker = ? AND timeframe = '1d'"
 YARDSTICKS = ("SPY", "QQQ", "ISF", "VUAG")
 PENCE = Decimal("0.01")
-PRICED = ("ts", "open", "high", "low", "close", "volume", "row_state")  #: stooq_store's columns
 Rows = Callable[[Line, Path], list[Bar]]
 
 
@@ -58,21 +58,6 @@ def rows(line: Line, old: Path) -> list[Bar]:
         Bar(date.fromisoformat(at[:10]), _d(o), _d(h), _d(lo), _d(c), int(v))
         for at, o, h, lo, c, v in got
         if None not in (o, h, lo, c, v)
-    ]
-
-
-def stooq_rows(line: Line, folder: Path) -> list[Bar]:
-    """A line's daily rows in stooq_store (freq=d/market=../ticker=SYM.MKT/part.parquet): only
-    those it marks OK, a day by its stamp's UTC date; none held is refused."""
-    market = headstart.MARKET[line.venue]
-    file = folder / f"freq=d/market={market.lower()}/ticker={line.symbol}.{market}/part.parquet"
-    if not file.is_file():
-        raise ValueError(f"{file.parent.name} holds no daily row of {line.symbol}")
-    table = pq.ParquetFile(file).read(columns=list(PRICED))
-    return [
-        Bar(at.date(), _d(o), _d(h), _d(lo), _d(c), int(v))
-        for at, o, h, lo, c, v, state in zip(*(table[k].to_pylist() for k in PRICED), strict=True)
-        if state == "OK" and None not in (o, h, lo, c, v)
     ]
 
 

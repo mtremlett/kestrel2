@@ -52,6 +52,23 @@ def test_the_broker_first_the_archive_for_the_rest_a_second_run_nothing(tmp_path
     )
 
 
+def test_local_stooq_gives_a_day_the_broker_lacks_before_the_archive(tmp_path: Path) -> None:
+    path = tmp_path / bars.LIVE
+    with bars.writing(path) as held:
+        held.days(SPY, [bar(date(2026, 11, 6), "600")])
+    day = date(2026, 11, 9)
+    folder = Path(__file__).parents[1] / "fixtures" / "stooq"
+    asked: list[str] = []
+
+    def archived(_line: object, _day: date) -> list[Bar]:
+        asked.append("a")
+        return []
+
+    asks = backfill.ordered(lambda *_: Refused("no data"), archived, backfill.local_stooq(folder))
+    wrote, named = backfill.fill(path, [(SPY, day)], asks, TODAY)
+    assert wrote == [f"SPY {day}: {Source.STOOQ_DAILY.value}"] and not named and not asked
+
+
 def test_a_day_neither_source_gives_is_named_and_never_filled(tmp_path: Path) -> None:
     path = tmp_path / bars.LIVE
     with bars.writing(path) as held:

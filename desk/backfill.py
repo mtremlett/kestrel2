@@ -13,12 +13,13 @@ from collections.abc import Callable, Iterable, Sequence
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
-from desk import archive, bars, history, keeper, paper, store
+from desk import archive, bars, daily_local, history, keeper, paper, store
 from desk.bars import Source
 from desk.lines import LINES, Line
 from desk.store import Bar, Refused
 
 in_currency = history.in_currency  #: the one unit rule lives in desk/history.py
+STOOQ = "KESTREL2_STOOQ_STORE"  #: where the old stooq_store lies
 Ask = Callable[[Line, date], store.Answer]  #: a source's answer for one line's one day
 Asks = Sequence[tuple[Source, Ask]]  #: the sources in the order they are tried
 
@@ -43,9 +44,22 @@ def _accepted(path: Path, line: Line, day: date, answer: store.Answer, today: da
     return next((bar for bar in kept if bar.day == day), "; ".join(f.what for f in faults))
 
 
-def ordered(broker: Ask, archived: Ask) -> Asks:
-    """The two network sources in their order: the broker, then the archive."""
-    return ((Source.IBKR, broker), (Source.BACKFILL, archived))
+def ordered(broker: Ask, archived: Ask, local: Ask | None = None) -> Asks:
+    """The sources in their order: the broker, local Stooq if given, then the archive."""
+    middle = ((Source.STOOQ_DAILY, local),) if local else ()
+    return ((Source.IBKR, broker), *middle, (Source.BACKFILL, archived))
+
+
+def local_stooq(folder: Path) -> Ask:
+    """The local Stooq store's bar of one day; a line it holds none of is a refusal."""
+
+    def ask(line: Line, _day: date) -> store.Answer:
+        try:
+            return daily_local.stooq_rows(line, folder)
+        except ValueError as why:
+            return Refused(str(why))
+
+    return ask
 
 
 def fill(
@@ -99,7 +113,12 @@ def main(home: Path, now: datetime, wanted: Iterable[str]) -> int:
         raise ValueError(f"SYMBOL DAY pairs are asked for, not {names}")
     pairs = zip(names[::2], names[1::2], strict=True)
     asked = [(lines[symbol], date.fromisoformat(day)) for symbol, day in pairs]
-    wrote, named = fill(home / keeper.HOT, asked, ordered(_broker(home, now), _archive), now.date())
+    wrote, named = fill(
+        home / keeper.HOT,
+        asked,
+        ordered(_broker(home, now), _archive, local_stooq(Path(os.environ[STOOQ]))),
+        now.date(),
+    )
     sys.stdout.write("".join(f"{line}\n" for line in wrote))
     sys.stderr.write("".join(f"NOT FILLED: {line}\n" for line in named))
     return int(bool(named))
