@@ -2136,3 +2136,19 @@ bound growth; the doom-loop watch is the stall monitor and the recurring-fix rul
 
 Guard proven (A7): an 801-line file under `desk/` made `test_no_file_is_a_monolith` fail
 ("over 800 lines"); an 800-line file passed; both removed.
+
+## 21 Nov - the lab may hold 20,000 lines, not 12,000, by his own words
+
+His words, to the coordinator in chat, Sat 21 Nov ~11:2x (clock-checked 11:32), verbatim:
+"raise the Experimental-code area ceiling to 20,000. we can iteratively refactor in the
+future." The coordinator recorded them (kestrel2_notes HANDOVER-coordinator.md, "HIS WORDS
+11:2x") and ordered this change (order A). `lab_lines` in `BUDGET.json` rises from 12,000
+to 20,000 in phases 3 and 4, as his 15 Nov ruling raised both to 12,000. Unchanged: the
+desk ceilings, the file and function limits.
+
+Why: research cards stood still "waiting for room" with lab/ at 11,951 of 12,000 and more
+riding; building had fallen to 0 of 12. The cleanup he named is a later refactor, not a
+precondition.
+
+Guard proven (A7): lab/ padded to 20,001 lines made `test_the_tree_is_inside_this_phases_ceiling`
+fail ("ceiling 20000"); at 20,000 it passed; the padding removed.
