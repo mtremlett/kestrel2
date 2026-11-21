@@ -29,6 +29,7 @@ from desk.simcity_incidents import (
     LIVE,
     LOCKED,
     PARKED,
+    SHUT,
     SILENT,
     SLOW,
     STALE,
@@ -48,6 +49,7 @@ from desk.simcity_incidents import (
     stale,
     unbarred,
     unheld,
+    unreachable,
 )
 from desk.simcity_parts import MONTH, Archive, Night, _market
 from desk.simcity_parts2 import _behind, _gapped, _killed
@@ -291,6 +293,10 @@ def _live(life: _Life) -> None:
             ran = happen(life, on) is not False  #: False: it could not run today, still owed
             todo += [] if ran else [(scenario, happen)]
             life.done |= {scenario} if ran else set()
+        elif SHUT not in life.done:  #: once, on a plain morning; it draws nothing from the seed
+            census.now(SHUT)
+            unreachable(life, on)
+            life.done.add(SHUT)
         else:
             life.live(on)
     census.now(RECKONING)
