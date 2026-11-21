@@ -67,6 +67,19 @@ def test_a_buy_is_refused_when_the_live_price_is_at_or_under_its_stop() -> None:
             orders.gate(order, TEN_K, {})
 
 
+def test_the_first_stop_is_under_the_live_price_and_a_gap_past_the_signals_is_refused() -> None:
+    def sized(live: str | None) -> orders.Order:
+        market = None if live is None else Decimal(live)
+        return orders.size(
+            _buy(DOLLAR), DOLLAR, Decimal("145.98"), Decimal("0.79"), TEN_K, {}, market
+        )
+
+    assert sized("140").stop == Decimal("126.0")
+    assert sized("150").stop == sized(None).stop
+    with pytest.raises(orders.Refused, match="emergency rule"):
+        sized("130")
+
+
 def test_the_stop_sits_where_the_market_under_the_line_has_fallen_ten_percent() -> None:
     plain = orders.size(_buy(PLAIN), PLAIN, Decimal("50.25"), Decimal(1), TEN_K, {})
     stops = [
