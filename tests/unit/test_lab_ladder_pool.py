@@ -30,6 +30,7 @@ from lab import folds, ladder, ladder_pool, trials, verdict
 from lab.batch import Bars
 
 CLOCK = lambda: datetime(2026, 11, 14, tzinfo=UTC)  # noqa: E731
+PLENTY = lambda: (2**36, 2**36)  # noqa: E731  #: free memory read at every ended task
 
 
 def _book() -> Bars:
@@ -53,12 +54,14 @@ def test_the_pool_writes_the_serial_runs_rows_in_its_order_and_a_workers_break_i
     ]
     serial, pooled = tmp_path / "serial", tmp_path / "pool"
     ladder.run(serial, _book(), {}, todo, CLOCK)
-    said = ladder_pool.run(pooled, _book, {}, todo, CLOCK, size=2)
+    said = ladder_pool.run(pooled, _book, {}, todo, CLOCK, size=2, memory=PLENTY)
     assert _rows(pooled) == _rows(serial) and "on 2 cores: 4 cells" in said
-    again = ladder_pool.run(pooled, _book, {}, todo, CLOCK, size=2)
+    again = ladder_pool.run(pooled, _book, {}, todo, CLOCK, size=2, memory=PLENTY)
     assert "0 judged now, 4 kept from before" in again
     bug = [c.__class__("trend_50_200", AAPL, c.start, c.end) for c in _cells(AAPL)]
-    broken = ladder_pool.run(tmp_path / "broken", _book, {}, [*bug, *_cells(VUSA)], CLOCK, size=2)
+    broken = ladder_pool.run(
+        tmp_path / "broken", _book, {}, [*bug, *_cells(VUSA)], CLOCK, size=2, memory=PLENTY
+    )
     bad, fine = _rows(tmp_path / "broken")
     assert bad["error"] == "RuntimeError: a bug in the worker" and "answer" in fine
     assert "1 judged now" in broken and "1 could not be judged" in broken
@@ -71,7 +74,7 @@ def test_a_unit_is_one_lines_one_fold_so_one_lines_history_spreads_over_the_work
     cut = ladder_pool.units([one, *_cells(ISF)])
     assert len(cut) == 2 * (1 + folds.YEARS) and len({u for u in cut}) == len(cut)
     assert [y for c, y in cut if c == one] == [None, *range(2021, 2026)]  # five folds, one cell
-    ladder_pool.run(tmp_path, _book, {}, [one], CLOCK, size=2)
+    ladder_pool.run(tmp_path, _book, {}, [one], CLOCK, size=2, memory=PLENTY)
     warmed = len(list((tmp_path / ladder.FOLDER / "tapes").glob("*.tape")))
     assert 1 <= warmed <= 2  # the line, and its market where reached: never a tape per fold
 
@@ -89,7 +92,7 @@ def test_a_stop_planted_after_the_first_unit_ends_the_pass_there_and_a_stale_one
     stop.parent.mkdir(parents=True)
     stop.write_text("main moved")
     os.utime(stop, (1, 1))  # stale: older than the pass's start
-    ladder_pool.run(tmp_path / "pool", _book, {}, todo, CLOCK, size=2)
+    ladder_pool.run(tmp_path / "pool", _book, {}, todo, CLOCK, size=2, memory=PLENTY)
     assert not stop.exists() and _rows(tmp_path / "pool") == _rows(serial)
     count, planted = ladder._count, list[int]()
     stop = tmp_path / "cut" / ladder.FOLDER / ladder_pool.STOP
@@ -101,7 +104,7 @@ def test_a_stop_planted_after_the_first_unit_ends_the_pass_there_and_a_stale_one
         count(*args)
 
     monkeypatch.setattr(ladder, "_count", plant)
-    said = ladder_pool.run(tmp_path / "cut", _book, {}, todo, CLOCK, size=2)
+    said = ladder_pool.run(tmp_path / "cut", _book, {}, todo, CLOCK, size=2, memory=PLENTY)
     assert said == "stopped after a unit: main moved" and not stop.exists()
     assert _rows(tmp_path / "cut") == _rows(serial)[:2]
 

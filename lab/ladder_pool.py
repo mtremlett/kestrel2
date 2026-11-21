@@ -130,7 +130,14 @@ class Yielding:
             mine.set_exception(done.exception())
         else:
             mine.set_result(done.result())
-        total, free = self.memory()
+        try:
+            total, free = self.memory()
+        except OSError as error:  # the queued tasks are told, never left waiting for a read
+            with self.lock:
+                waiting, self.queue = self.queue, []
+            for _, _, queued in waiting:
+                queued.set_exception(error)
+            return
         with self.lock:
             self.running -= 1
             self.allowed = min(self.size, fits(total, free))
