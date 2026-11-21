@@ -312,7 +312,8 @@ def test_the_rehearsal_may_begin_on_a_weekday_once_the_markets_are_shut_and_far_
         (6, 31, 0),
         (8, 0, 0),
         (21, 15, 0),
-        (22, 30, 1),
+        (22, 30, 0),
+        (23, 30, 0),
         (6, 30, 1),
     ):
         _run(tmp_path, MON.replace(hour=hour, minute=minute), "--rehearse")
