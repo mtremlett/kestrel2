@@ -4,7 +4,7 @@ and publish one record. The same days run again from the same saved data give th
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
-from datetime import UTC, date, datetime, time, timedelta
+from datetime import date, timedelta
 from decimal import Decimal
 from functools import partial
 from pathlib import Path
@@ -16,8 +16,16 @@ from desk.day_parts import HEADER as HEADER
 from desk.day_parts import MONEY as MONEY
 from desk.day_parts import RECORDS as RECORDS
 from desk.day_parts import Record as Record
+from desk.day_parts import _alert as _alert
+from desk.day_parts import _bare as _bare
+from desk.day_parts import _barred as _barred
+from desk.day_parts import _due as _due
 from desk.day_parts import _row as _row
+from desk.day_parts import _unreached as _unreached
+from desk.day_parts import _unread as _unread
+from desk.day_parts import _watch as _watch
 from desk.day_parts import records as records
+from desk.day_parts import standing as standing
 from desk.halt import Blocker, Stopped
 from desk.lines import YARDSTICK, Line
 from desk.orders import (
@@ -25,7 +33,6 @@ from desk.orders import (
     Refused,
     Sale,
     Settings,
-    moves,
     order_id_of,
     pennies,
     size,
@@ -190,21 +197,6 @@ def _orders(
         sent.append(_answer(root, day, _barred(d) if d.strategy in killed else _buy(*args)))
 
 
-def _unreached(
-    root: Path, day: date, decided: Sequence[Decision], sent: Sequence[book.Sent], dead: Exception
-) -> None:
-    """NO SIGNAL HALF-PROCESSED (TST-08): each signal still without an answer when the desk died
-    goes on the morning's list, saying so; it is decided again when the desk starts."""
-    answered = {s.order_id for s in sent}
-    why = f"not reached, the desk stopped on {type(dead).__name__}: {dead}"
-    names = (order_id_of(d) for d in decided if d.action is not Action.HOLD)
-    halt.note(
-        root,
-        day,
-        [halt.Blocked(n, Blocker.BROKER, 0, f"{n}: {why}") for n in names if n not in answered],
-    )
-
-
 def _strangers(
     root: Path,
     archive: Mapping[Line, Sequence[Bar]],
@@ -240,59 +232,6 @@ def _strangers(
             sale = Sale(f"{day:%Y%m%d}-stranger-{name}", lines[name], shares, session=day)
             sold.append(_answer(root, day, _send(root, broker, sale, settings, tell, None)))
     return sold
-
-
-def _alert(root: Path, day: date, settings: Settings, tell: book.Tell | None) -> None:
-    """ON PAPER A LOSS LIMIT REACHED IS TOLD TO HIM (halt.drawdown): the buys still go, the gate
-    having refused them if the limit is past; recorded once for the day."""
-    at = datetime.combine(day, time(), UTC)
-    words = halt.drawdown(root, at, standing(root, day), settings)
-    if words and tell is not None:
-        tell(f"drawdown {day}", words)
-
-
-def _barred(d: Decision) -> book.Sent:
-    """The answer for a buy by a strategy that met its kill condition: not sent, and why."""
-    name = order_id_of(d)
-    why = f"{name}: not sent, {d.strategy} met its kill condition and buys nothing"
-    return book.Sent(name, 0, why, Blocker.GATE)
-
-
-def _bare(
-    root: Path,
-    day: date,
-    held: Mapping[str, int],
-    unsure: set[str],
-    stops: Sequence[book.Difference],
-) -> None:
-    """A HOLDING WITH NO STOP: each line whose shares the broker holds as the book does, with
-    fewer of them under a stop resting there, goes on the day's list under the stop it is due
-    (its newest buy's, at the level kept for it, book.levels), saying what to put back."""
-    kept = book.levels(root)
-    due = {f.symbol: f"{f.order_id}-stop" for f in book.fills(root) if f.quantity > 0}
-    resting = {d.name: d.broker for d in stops}
-    level = {s: kept.get(due[s], "a level never kept, so set one by hand") for s in held}
-    bare = [
-        halt.Blocked(
-            due[s],
-            Blocker.BOOK,
-            0,
-            f"{s}: {n} shares held, {resting[s]} under a stop at"
-            f" the broker; put back {due[s]}, selling {n} at {level[s]}",
-        )
-        for s, n in held.items()
-        if s in resting and s not in unsure and resting[s] < n
-    ]
-    halt.note(root, day, bare)
-
-
-def _unread(root: Path, lines: Sequence[Line], due: Mapping[str, Line], day: date) -> None:
-    """Open the morning's list with the lines no rule could decide: its venue trades today
-    and its bars do not end at the session before. A line read now leaves the list."""
-    late = [s.symbol for s in lines if s.symbol not in due and venues.sessions(s.venue, day, day)]
-    why = f"no bar for the session before {day}, so no rule decided"
-    unread = [halt.Blocked(symbol, Blocker.UNREAD, 0, f"{symbol}: {why}") for symbol in late]
-    halt.note(root, day, unread, (line.symbol for line in lines))
 
 
 def _answer(root: Path, day: date, sent: book.Sent) -> book.Sent:
@@ -346,18 +285,6 @@ def _buy(
     )
 
 
-def standing(root: Path, day: date) -> Standing:
-    """WHERE THE BOOK STANDS AGAINST ITS LOSS AND ORDER-RATE LIMITS when the day opens
-    (canon B1, risk.loss_limit): the day's loss is the pounds the last published record lost
-    (0 when it gained or was withheld), the week's the net pounds lost over the records of
-    day's own ISO week, and the new lines the lines first bought today."""
-    profits = [(r.day, r.profit or Decimal(0)) for r in records(root)]
-    week = sum((p for d, p in profits if d.isocalendar()[:2] == day.isocalendar()[:2]), Decimal(0))
-    lost = -profits[-1][1] if profits else Decimal(0)
-    bought = {f.symbol for f in book.fills(root) if f.day == day and f.quantity > 0}
-    return Standing(max(lost, Decimal(0)), max(-week, Decimal(0)), len(bought))
-
-
 def _send(
     root: Path,
     broker: Broker,
@@ -376,19 +303,3 @@ def _send(
         return book.Sent(order.order_id, 0, str(stopped), stopped.blocker)
     except Refused as refused:
         return book.Sent(order.order_id, 0, str(refused), Blocker.BROKER)
-
-
-def _due(line: Line, bars: Sequence[Bar], day: date) -> bool:
-    """The line's venue trades on day and its last bar is the session before: decisions
-    dated any other day are not acted on."""
-    return bool(bars) and venues.sessions(line.venue, bars[-1].day, day) == (bars[-1].day, day)
-
-
-def _watch(
-    root: Path, archive: Mapping[Line, Sequence[Bar]], rates: Mapping[str, Decimal], symbol: str
-) -> tuple[dict[str, Decimal], dict[str, tuple[float, ...]]]:
-    """What the gate reads of the book before a buy of the symbol: the pounds it controls per
-    underlying, and the daily returns of the symbol and of the lines held."""
-    return day_money.exposure(root, archive, rates), moves(
-        set(book.positions(root)), archive, symbol
-    )
