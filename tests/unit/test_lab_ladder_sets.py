@@ -10,7 +10,7 @@ from typing import Any
 import pytest
 
 from desk.lines import LINES, Line
-from lab import ladder, ladder_sets, members
+from lab import ladder, ladder_sets, members, verdict
 from lab.ladder import END, START
 from lab.members import Change, Record
 
@@ -84,3 +84,25 @@ def test_a_basket_row_carries_the_market_its_lines_venue_is_set_beside(
     (against,) = seen
     assert against is not None
     assert (against.line, against.bars, against.rates) == (ISF, EDGE, {})
+
+
+def test_a_set_of_three_rules_writes_three_rows_and_the_cells_file(tmp_path: Path) -> None:
+    rules = ["a", "b", "c"]
+    rows = [
+        {
+            "cell": [r, f"L{i}", "US"],
+            "trials": 3,
+            "rungs": {"folds": ["PASS", "ok"], "cost": ["FAIL", "dear"]},
+        }
+        for r in rules
+        for i in range(2)
+    ]
+    table = verdict.write_table(tmp_path, "T", "q?", rows, rules, 3, (2, 5))
+    ladder_sets.condense(table, rows, rules, ("X: not corrected",))
+    text = table.read_text(encoding="utf-8")
+    assert (
+        sum(ln.startswith("| ") for ln in text.splitlines()) == 4
+    )  #: the header and one row for each of 3 rules
+    assert "| a | cost | FAIL: dear | 2 of 2 | L0 | no |" in text
+    assert "- X: not corrected" in text
+    assert len(json.loads(table.with_suffix(".cells.json").read_text())) == 6

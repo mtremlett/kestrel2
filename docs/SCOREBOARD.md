@@ -832,3 +832,4 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1315 B5 one home for variants (lab/variants.py), -31 lines net |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1321 B5 variants refuses a repeated value; no scene moved |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1334 montecarlo streams its files, no MemoryError (R-RUNNER-425) |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1360 R-RUNNER-334 the EPON table is one row per rule, cells in a data file; no scene moved |
