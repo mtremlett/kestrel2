@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import hashlib
 from collections import Counter
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any
@@ -125,7 +125,7 @@ def _due(was: verdict.Row, now: datetime) -> bool:
     return "error" in was and now - datetime.fromisoformat(was["tried"]) >= RETRY
 
 
-def faults(rows: Sequence[verdict.Row]) -> tuple[list[str], bool]:
+def faults(rows: Iterable[verdict.Row]) -> tuple[list[str], bool]:
     """One line for each rung that any judged cell FAULTed on: its share of the cells, the rung
     and the commonest reason; and whether most of the cells did (a set that judged nothing)."""
     judged = [row["rungs"] for row in rows if "rungs" in row]
