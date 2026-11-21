@@ -148,6 +148,10 @@ source = "Keltner, How to Make Money in Commodities (1960), the channel trend: b
 entry = { n = 10 }
 exit = { n = 10 }
 
+[keltner_channel_trend.ranges]
+entry = { n = [5, 10, 20] }
+exit = { n = [5, 10, 20] }
+
 # ten quiet sessions, a close over the upper band (buy), held between the bands, then a close under the lower (sell)
 [[keltner_channel_trend.cases]]
 bars = [[11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [14, 12, 13], [14, 12, 13], [9, 6, 7], [9, 6, 7], [8, 6, 7]]
