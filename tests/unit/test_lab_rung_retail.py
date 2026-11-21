@@ -87,3 +87,11 @@ def test_days_pair_the_sale_days_pounds_with_the_markets_closes_and_grade_waits_
     assert rung_retail.grade(basket, against) is None  #: off: nothing is asked
     monkeypatch.setattr(verdict, "EASED", True)
     assert (rung_retail.grade(basket, against) or (None,))[0] is Answer.THIN
+
+
+def test_the_scorecard_rule_over_the_rungs() -> None:
+    weak, ok = Answer.THIN, Answer.PASS
+    assert verdict.scorecard([ok, weak, Answer.DOUBT], 1.0) == "PASS"
+    assert verdict.scorecard([weak, weak, weak], 1.0) == "FAIL"
+    assert verdict.scorecard([ok, Answer.FAIL], 1.0) == "FAIL"
+    assert verdict.scorecard([ok], 2.1) == "STOP"
