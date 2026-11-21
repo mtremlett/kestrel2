@@ -136,7 +136,7 @@ money-restop waits on R-MONEY-18, R-MONEY-31 (the lost-stop list in `desk/messen
 
 ## PAPER
 
-Last updated: 21 November 2026 (folds #215 to #1097, #1264, #1267, #1260, #1278, #1280, #1309, #1350).
+Last updated: 21 November 2026 (folds #215 to #1097, #1264, #1267, #1260, #1278, #1280, #1309, #1350, #1362).
 
 ### Where it is
 
@@ -144,7 +144,7 @@ Built: supervisor pulls main at the safe point (#752), contract request carries 
 
 ### Next step
 
-R-RUNNER-348 is unblocked (R-PAPER-35 done). R-MONEY-59: reword the `desk/watch.py` PARK text (the desk can park, `desk/handpark.py`). R-RUNNER-402 remains: a test that the desk step's timeout is at least its worst-case waits plus a margin (runner holds 900 s). A gate on real orders outside the regular session in running/placing, if wanted (R-RUNNER-415 only barred the rehearsal). R-PAPER-28 remains: the runner hands the five SMTP_ settings to the step (outside this lane) and a preflight line for the mail door. R-PAPER-29. Drop the unused `ended` branch of `action(said, ended)` in `desk/ended.py` (needs a claim). Conformance sizing (R-RUNNER-281): `desk/conformance.py:242` must pass `root` to `plan(...)` as `home`, then the archive branch goes (needs a claim naming it). Live check that the gateway answers IDTL (R-RUNNER-278). paper-supervised, paper-cards, paper-extras, paper-backups wait: operator.
+R-RUNNER-348 is unblocked (R-PAPER-35 done). R-MONEY-59: reword the `desk/watch.py` PARK text (the desk can park, `desk/handpark.py`). R-RUNNER-402 remains: a test that the desk step's timeout is at least its worst-case waits plus a margin (runner holds 900 s). R-RUNNER-253 (remains): stamp the rehearsal's own order ids on lines not held at the start (needs `desk/placing.py`, `desk/orders.py`; claim must widen); the held-line case is pinned by test (#1362). A gate on real orders outside the regular session in running/placing, if wanted (R-RUNNER-415 only barred the rehearsal). R-PAPER-28 remains: the runner hands the five SMTP_ settings to the step (outside this lane) and a preflight line for the mail door. R-PAPER-29. Drop the unused `ended` branch of `action(said, ended)` in `desk/ended.py` (needs a claim). Conformance sizing (R-RUNNER-281): `desk/conformance.py:242` must pass `root` to `plan(...)` as `home`, then the archive branch goes (needs a claim naming it). Live check that the gateway answers IDTL (R-RUNNER-278). paper-supervised, paper-cards, paper-extras, paper-backups wait: operator.
 
 ### Requests to MONEY
 
