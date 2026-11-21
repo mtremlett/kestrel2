@@ -9,7 +9,9 @@ from __future__ import annotations
 import os
 import sys
 from collections.abc import Callable, Iterable, Mapping, Sequence
+from dataclasses import astuple
 from datetime import UTC, datetime, time, timedelta
+from functools import partial
 from pathlib import Path
 
 from desk import bars, history, listing, paper, rollup, venues
@@ -60,7 +62,7 @@ def keeper(path: Path, units: Mapping[str, int]) -> Keep:
 
 HOURLY = ("1h", "4h")  #: the timeframes built from held 30-minute bars, not asked of the broker
 HALF = timedelta(minutes=30)
-FROM_ONE = ("2m", "10m")  #: the timeframes built from held one-minute bars
+FROM_ONE = ("2m", "5m", "10m")  #: the timeframes built from held one-minute bars
 FROM_FIVE = ("15m", "30m")  #: the timeframes built from held five-minute bars
 
 
@@ -98,7 +100,7 @@ def _held(path: Path, line: Line, span: str, now: datetime) -> list[Candle]:
 
 
 def _made(path: Path, line: Line, now: datetime) -> dict[str, list[Candle]]:
-    """The line's 2m, 10m, 15m, 30m, 1h, 4h and weekly bars as built from the finer bars held."""
+    """The line's 2m to 4h and weekly bars as built from the finer bars held."""
     halves, fives, days, ones = (_held(path, line, s, now) for s in ("30m", "5m", "1d", "1m"))
     made = {f: built(line.venue, halves, f) for f in HOURLY}
     made |= {f: rollup.rollup(line.venue, ones, f, "1m") for f in FROM_ONE}
@@ -118,7 +120,11 @@ def roll(path: Path, line: Line, now: datetime) -> int:
         (bars.Source.ROLLUP_1D, ("1wk",)),
     ):
         with bars.writing(path, source) as round_:
-            landed += sum(round_.timed(line, f, (_timed(f, c) for c in made[f])) for f in frames)
+            for f in frames:
+                if f == "5m":  # the store keeps five-minute bars apart from the other spans
+                    landed += round_.five(line, [Five(*astuple(c)[:6]) for c in made[f]])
+                else:
+                    landed += round_.timed(line, f, (_timed(f, c) for c in made[f]))
     return landed
 
 
@@ -127,7 +133,8 @@ def clashes(path: Path, line: Line, now: datetime) -> list[str]:
     open, high, low or close (a pulled bar stays; the disagreement is recorded)."""
     faults = []
     for frame, candles in _made(path, line, now).items():
-        have = {b.start: b for b in bars.timed(path, line, frame, EPOCH, now)}
+        read = bars.five if frame == "5m" else partial(bars.timed, span=frame)
+        have = {b.start: b for b in read(path, line, since=EPOCH, until=now)}
         for c in candles:
             one = have.get(c.start)
             if one and (one.open, one.high, one.low, one.close) != (c.open, c.high, c.low, c.close):

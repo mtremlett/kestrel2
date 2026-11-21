@@ -28,7 +28,7 @@ class Source(Enum):
         "Federal Reserve noon buying rate, DEXUSUK via FRED"  #: the pound before the archive's
     )
     MATRIX_INTRADAY = "old desk: Stooq matrices 15m, 30m, 1h rows"  #: its arrays of those spans
-    ROLLUP_1M = "rollup:1m"  #: 2m and 10m bars built here from held one-minute bars
+    ROLLUP_1M = "rollup:1m"  #: 2m, 5m and 10m bars built here from held one-minute bars
     ROLLUP_5M = "rollup:5m"  #: 15m and 30m bars built here from held five-minute bars
     ROLLUP_30M = "rollup:30m"  #: 1h and 4h bars built here from held 30-minute bars
     ROLLUP_1D = "rollup:1d"  #: weekly bars built here from held daily bars
