@@ -126,7 +126,11 @@ def cancelled(life: _Life, on: date) -> None:
     told = {b.order_id for b in halt.morning(life.desk, on)[halt.Blocker.BROKER]}
     answers = {i: life.pretend.report(i) for i in life.pretend.submitted()[seen:]}
     bought = {i.rsplit("-", 1)[1] for i, r in answers.items() if r and r.fills}
-    refused = {i for i, r in answers.items() if r and not r.fills} - told
+    resent = {
+        i.removesuffix("-r1") for i, r in answers.items() if i.endswith("-r1") and r and r.fills
+    }
+    refused = {i for i, r in answers.items() if r and not r.fills and not i.endswith("-r1")}
+    refused -= told | resent
     named = all(i.rsplit("-", 1)[1] in bought for i in refused)
     level = dict(book.positions(life.desk)) == dict(life.pretend.holdings())
     life.promise(NAMED, named and level)
@@ -197,7 +201,7 @@ def deaf(life: _Life, on: date) -> None:
     """The market's last bar of the session ended an hour ago and no bar since has come. The
     crash watch looks at three moments (two in one hour, one in the next): it must tell him it
     is blind once in each of the two hours, and call no halt for that alone."""
-    if YARDSTICK not in life.market:
+    if YARDSTICK not in life.market or on not in venues.sessions(YARDSTICK.venue, on, on):
         life.live(on)
         return
     daily = {x: [b for b in bars_ if b.day < on] for x, bars_ in life.market.items()}
@@ -242,6 +246,9 @@ def unheld(life: _Life, on: date) -> None:
     """The live keeper's store holds five-minute bars but never a one-minute bar of any line, and
     a venue is in session. The run must finish, never die on the store's LookupError, and name
     each line it could get no bar for as stale."""
+    if on not in venues.sessions(YARDSTICK.venue, on, on):
+        life.live(on)
+        return
     session = venues.hours(YARDSTICK.venue, on)
     lines = sorted((x for x in life.market if x.venue == YARDSTICK.venue), key=lambda x: x.symbol)
     hot, now = life.desk / "unheld-bars.db", session.open + timedelta(hours=1)
