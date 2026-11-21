@@ -41,9 +41,13 @@ def test_the_count_of_rungs_built_is_the_rungs_the_ladder_judges_by_not_the_map_
     """A module with its own proof and no RUNG is not built to the end: the ladder wires none of
     these (R-RUNNER-192), and the count goes up only when a module declares its RUNG."""
     built, rungs = ladder.rungs_built()
-    listed = set(re.findall(r"lab/(\w+)\.py", (ladder.__doc__ or "").split("THE RUNG MAP")[1]))
-    unwired = [n for n in rung.found(ladder.RUNGS)[1] if n.rpartition(".")[2] in listed]
-    assert rungs == 12 and built == 12 - len(unwired)  #: research rungs off the map count for none
+    doc = (ladder.__doc__ or "").split("THE RUNG MAP")[1]
+    listed = set(re.findall(r"lab/(\w+)\.py", doc))
+    unwired = {n.rpartition(".")[2] for n in rung.found(ladder.RUNGS)[1]} & listed
+    unwired |= set(re.findall(r"lab/(\w+)\.py, \S+ - no RUNG", doc))  #: market: `banded` unrun
+    assert (
+        rungs == 12 and built == 12 - len(unwired) == 5
+    )  #: research rungs off the map count for none
 
 
 def test_the_index_holds_offsets_only_and_a_cut_line_is_cut_off(tmp_path: Path) -> None:

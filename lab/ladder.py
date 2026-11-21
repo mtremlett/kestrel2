@@ -19,11 +19,12 @@ line (UNRUN). Nothing goes to paper before all eleven.
 THE RUNG MAP (L2): the plan's eleven rungs and easing 4's twelfth, each `n name: module, test`.
 A row's names differ:
 `first` holds 1-3, `market` 4 and 6. Each rung's proof is in its own test; (unbuilt) marks a file
-not yet there; after the dash, what is owed. BUILT: the ladder judges by it (it declares a RUNG).
+not yet there; after the dash, what is owed. BUILT: the ladder judges by it (it declares a RUNG;
+a row owing `no RUNG` is not built).
  1 sample size, effective trades: lab/rung_sample.py, tests/unit/test_lab_rung_sample.py
  2 costs charged: lab/rung_costs.py, tests/unit/test_lab_rung_costs.py
  3 a confidence interval: lab/rung_ci.py, tests/unit/test_lab_rung_ci.py
- 4 excess after market risk, by size: lab/rung_beta.py, tests/unit/test_lab_rung_beta.py
+ 4 excess after market risk, by size: lab/market.py, tests/unit/test_lab_rung_beta.py - no RUNG
  5 two regime windows: lab/rung_regimes.py, tests/unit/test_lab_rung_regimes.py
  6 benchmark excess by interval: lab/rung_benchmark.py, tests/unit/test_lab_rung_benchmark.py
  7 deflated Sharpe: lab/rung_dsr.py, tests/unit/test_lab_rung_dsr.py - one clustered set (L14)
@@ -129,7 +130,11 @@ def rungs_built() -> tuple[int, int]:
     """The map's rungs the ladder judges by (their module declares a RUNG), and the map's rungs."""
     paragraph = (__doc__ or "").split("THE RUNG MAP")[1].split("\n\n")[0]
     rows = [line for line in paragraph.splitlines() if line.lstrip()[:1].isdigit()]
-    mods = {r.split("lab/")[1].split(".py")[0] for r in rows if "(unbuilt)" not in r}
+    mods = {
+        r.split("lab/")[1].split(".py")[0]
+        for r in rows
+        if "(unbuilt)" not in r and "- no RUNG" not in r
+    }
     return len(mods - {n.rpartition(".")[2] for n in rung.found(RUNGS)[1]}), len(rows)
 
 
