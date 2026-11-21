@@ -10,16 +10,18 @@ import csv
 import random
 from collections import Counter
 from collections.abc import Callable, Mapping, Sequence
+from dataclasses import replace
 from datetime import date, datetime, timedelta
 from decimal import Decimal
+from itertools import pairwise
 from pathlib import Path
 from shutil import rmtree
 from types import ModuleType
 
 from desk import book, broker, day, halt, kill, orders, strategy
 from desk.broker import Crash, Fault, Pretend, Report
-from desk.lines import YARDSTICK
-from desk.orders import HOLDINGS, Order, Sale, Settings
+from desk.lines import YARDSTICK, Line
+from desk.orders import HOLDINGS, Order, Sale, Settings, pennies
 from desk.simcity_census import Census
 from desk.simcity_incidents import (
     CANCELLED,
@@ -51,13 +53,15 @@ from desk.simcity_incidents import (
     unheld,
     unreachable,
 )
-from desk.simcity_parts import MONTH, Archive, Night, _market
+from desk.simcity_parts import MONTH, Archive, Night
+from desk.simcity_parts import _market as dealt
 from desk.simcity_parts2 import _behind, _gapped, _killed
+from desk.store import Bar
 from desk.strategy import Action
 
 Rates = Mapping[str, Decimal]  #: the pounds per unit of each currency, every day of the night
 
-__all__ = ["MONTH", "Archive", "Night", "_gapped", "_market"]  #: given on from simcity_parts, 2
+__all__ = ["MONTH", "Archive", "Night", "_gapped"]  #: given on from simcity_parts, 2
 
 NIGHTS = "simcity.csv"
 HEADER = (
@@ -105,6 +109,10 @@ class _Counted(Pretend):
         self._bars.update(
             {(x.symbol, b.day): b for x, bars in market.items() for b in bars if b.day == on}
         )
+
+    def retest(self, symbol: str, on: date) -> None:
+        """The day's bar as the world made it again is tried against the line's resting stop."""
+        self._test(symbol, self._bars.get((symbol, on)))
 
     def lose_stop(self, symbol: str) -> Callable[[], None]:
         """Cancel a resting stop by hand; what is given back puts it back as it was."""
@@ -172,6 +180,62 @@ class _Life:
             return self._run(saved, on)
 
 
+THROUGH = "a gap opens below a resting stop"
+BELOW = Decimal("0.9")  #: the gap scenario's open, against the stop it jumps
+
+
+def history(bars: Sequence[Bar]) -> list[Decimal]:
+    """The line's own gaps in the saved days: each open over the close before it."""
+    return [b.open / a.close for a, b in pairwise(bars)]
+
+
+def _market(archive: Archive, rng: random.Random) -> dict[Line, tuple[Bar, ...]]:
+    """A WORLD'S MARKET with its overnight gaps: the days dealt again (simcity_parts), then each
+    day opened away from the world's close before it by a gap drawn from the line's own saved
+    history before that day, point-in-time; a copy of the world's draw does it, so no other
+    draw moves. A line's first day, with no history before it, keeps the open it was dealt."""
+    market, draw = dealt(archive, rng), random.Random()  # noqa: S311 - a repeatable draw
+    draw.setstate(rng.getstate())
+    for line, bars in market.items():
+        gaps = history(archive[line])
+        for at in range(1, len(bars)):
+            if gaps[: at - 1]:
+                start = pennies(bars[at - 1].close * draw.choice(gaps[: at - 1]))
+                bars = (*bars[:at], widen(bars[at], start), *bars[at + 1 :])
+        market[line] = tuple(bars)
+    return market
+
+
+def widen(bar: Bar, start: Decimal) -> Bar:
+    """The bar opened at start, its range stretched to hold the open."""
+    return replace(bar, open=start, high=max(bar.high, start), low=min(bar.low, start))
+
+
+def _through(life: _Life, on: date) -> bool:
+    """A held line opens below its resting stop: the stop sells at the open, not at its level,
+    and the day's record counts the loss beyond the stop. False when no stop rests: still owed."""
+    stops = life.pretend.resting_stops()
+    if not stops:
+        return False
+    symbol, (shares, level) = next(iter(stops.items()))
+    start = pennies(level * BELOW)
+    life.market = {
+        x: tuple(widen(b, start) if x.symbol == symbol and b.day == on else b for b in bars)
+        for x, bars in life.market.items()
+    }
+    life.pretend.reopen(on, life.market)
+    life.pretend.retest(symbol, on)
+    record = life.live(on)
+    sold = [
+        f for f in book.fills(life.desk) if f.symbol == symbol and f.day == on and f.quantity < 0
+    ]
+    life.promise(
+        "a gap through a stop sells at the open below it", [f.price for f in sold] == [start]
+    )
+    life.promise("the day of a gap through a stop is recorded", record.profit is not None)
+    return True
+
+
 def _unstopped(life: _Life, on: date) -> None:
     """The stop under a holding of the seed's choosing is cancelled by hand, and put back after
     the day's record if the same shares are still held; one time in FORGOTTEN it never is."""
@@ -189,6 +253,7 @@ EVENTS: tuple[Event, ...] = (
     (UNSTOPPED, _unstopped),
     (GAPPED, _gapped),
     (KILLED, _killed),
+    (THROUGH, _through),
     (HOLE, hole),
     (LEFT, beside),
     (CANCELLED, cancelled),

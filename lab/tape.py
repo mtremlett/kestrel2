@@ -43,7 +43,8 @@ def kept(folder: Path, run: Run, code_of: Callable[[str], str] = rule_code) -> R
         text = "\n".join((code_of(c.strategy), now.code, now.data, str(whole)))
         path = folder / f"{hashlib.sha256(text.encode()).hexdigest()}.tape"
         if path.exists():  # our own file, written whole by this module
-            held = Record(now, *pickle.loads(zlib.decompress(path.read_bytes())))  # noqa: S301
+            raw = path.read_bytes()  # bounded: one rule on one line, written once, never added to
+            held = Record(now, *pickle.loads(zlib.decompress(raw)))  # noqa: S301
         else:
             held = run(whole, bars)
             folder.mkdir(parents=True, exist_ok=True)
