@@ -5,11 +5,19 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 from decimal import Decimal
+from typing import ClassVar
 
-from desk import intraday, venues
+import pytest
+
+import lab.intraday as lab_intraday
+from desk import intraday, orders, venues
+from desk.lines import LINES
+from desk.orders import Leg, Settings
 from desk.rollup import Candle
 from desk.strategy import Action
+from lab import rung
 from lab.intraday import IntradayMeanReversion, OpeningRangeBreakout
+from lab.rung import Answer
 
 
 def _session(
@@ -83,3 +91,57 @@ def test_the_band_buys_under_sells_over_the_middle_and_is_out_at_the_close() -> 
     }
     for k in (5, 19, 20, 121, 122, 223, 306):  # future-blind
         assert _revert(REVERT[:k]) == _revert(REVERT)[:k]
+
+
+class _Hold:
+    """A stub rule: in the market on the bars numbered `wanted`."""
+
+    span: ClassVar[intraday.Span] = intraday.Span.FIVE_MINUTES
+
+    def __init__(self, wanted: range) -> None:
+        self.wanted, self.n = wanted, -1
+
+    def step(self, bar: Candle, holding: bool) -> bool:
+        del bar, holding  # a stub rule reads neither
+        self.n += 1
+        return self.n in self.wanted
+
+
+def _ramp(day: date) -> list[Candle]:
+    """An LSE day whose bar n opens at 100 + n and closes half a point above."""
+    t = venues.hours("LSE", day).open
+    return [
+        Candle(t + timedelta(minutes=5 * n), o, o + 1, o, o + Decimal("0.5"), 1, "x")
+        for n, o in ((n, Decimal(100 + n)) for n in range(102))
+    ]
+
+
+def _priced(wanted: range) -> tuple[rung.Priced, ...]:
+    bars, isf = _ramp(date(2026, 11, 16)), next(x for x in LINES if x.symbol == "ISF")
+    got = intraday.run("t", _Hold(wanted), "LSE", "ISF", bars)
+    return lab_intraday.priced(isf, [*got], bars, {}, Settings(Decimal(10000)))
+
+
+def test_each_fill_is_the_next_opens_costed_by_orders_charges_and_a_last_bar_is_forced() -> None:
+    isf = next(x for x in LINES if x.symbol == "ISF")
+    sold, forced = _priced(range(2, 5))[0], _priced(range(98, 102))[0]
+    # bought at bar 3's open (103), the sale decided on bar 5 filling at bar 6's open (106)
+    n = sold.shares
+    cost = orders.charges(isf, Leg.BUY, n, Decimal(103), Decimal(1)) + orders.charges(
+        isf, Leg.SALE, n, Decimal(106), Decimal(1)
+    )
+    assert (sold.paid, sold.received, sold.costs) == (Decimal(103 * n), Decimal(106 * n), cost)
+    assert sold.gain == (3 * n - cost.total) / (103 * n)
+    # bought at 199 (bar 99's open); no bar follows bar 101, so out at its close, 201.5
+    assert (forced.paid, forced.received) == (
+        Decimal(199 * forced.shares),
+        Decimal("201.5") * forced.shares,
+    )
+
+
+def test_the_gains_are_judged_by_the_rungs_rule_thin_and_refused_without_spread() -> None:
+    two = (*_priced(range(2, 5)), *_priced(range(98, 102)))
+    assert len(two) == 2
+    assert lab_intraday.judged(two) is Answer.THIN
+    with pytest.raises(ValueError, match="no spread"):
+        lab_intraday.judged((two[0], two[0]))
