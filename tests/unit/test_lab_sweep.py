@@ -203,6 +203,21 @@ def test_each_strategy_is_judged_on_its_declared_universe_and_the_transfer_study
     mine = strategy.STRATEGIES["trend_50_200"].declared.universe[0]
     assert len(sweep.declared()) == len(set(sweep.declared()))
     assert mine in sweep.declared() and BOEING not in sweep.declared()
-    assert [c.strategy for c in sweep.cells(mine, START, DAY)] == list(strategy.STRATEGIES)
+    names = [c.strategy for c in sweep.cells(mine, START, DAY)]
+    assert names == [*strategy.STRATEGIES, *strategy.VARIANTS]
     assert sweep.cells(BOEING, START, DAY) == ()  # declared by none: no verdict is made there
     assert len(sweep.cells(BOEING, START, DAY, transfer=True)) == EACH
+
+
+def test_a_variants_held_positions_are_the_desks_decisions_at_its_settings(
+    tmp_path: Path,
+) -> None:
+    _keep(tmp_path, BOEING)
+    bars = universe.read(tmp_path, BOEING).bars
+    name = "bollinger_pullback[width=1.5]"
+    said = strategy.decide({BOEING.symbol: bars}, {"bollinger_pullback": {"width": Decimal("1.5")}})
+    held: list[bool] = []
+    for d in (d for d in said if d.strategy == "bollinger_pullback"):
+        was = held[-1] if held else False
+        held.append({strategy.Action.BUY: True, strategy.Action.SELL: False}.get(d.action, was))
+    assert any(held) and cell._held(cell.Cell(name, BOEING, START, DAY), bars) == held
