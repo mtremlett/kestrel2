@@ -29,7 +29,7 @@ not yet there; after the dash, what is owed. BUILT: the ladder judges by it (it 
  7 deflated Sharpe: lab/rung_dsr.py, tests/unit/test_lab_rung_dsr.py - one clustered set (L14)
  8 purged cross-validation: lab/rung_cpcv.py, tests/unit/test_lab_rung_cpcv.py
  9 placebo on blocks of days: lab/rung_placebo.py, tests/unit/test_lab_rung_placebo.py
-10 walk-forward folds: lab/rung_folds.py, tests/unit/test_lab_folds.py - the ladder runs `pool`
+10 walk-forward folds: lab/folds.py, tests/unit/test_lab_folds.py - the ladder runs `pool`
 11 block bootstrap: lab/rung_bootstrap.py, tests/unit/test_lab_rung_bootstrap.py - no gate
 12 retail, basket beside market: lab/rung_retail.py, tests/unit/test_lab_rung_retail.py - no RUNG
 
