@@ -523,3 +523,19 @@ Options: (a) mark the rehearsal's order ids with its run stamp (needs `desk/plac
 ### 2026-11-21 — R-RUNNER-202: where the intraday round lives (#1371)
 
 Options: (a) a new module (refused by the 100-file desk ceiling); (b) `desk/command.py` (wrong home); (c) `desk/running.py`, docstrings trimmed to 397 lines (chosen). Order id = day-rule-symbol-HHMM+side, so a bar's buy and sale differ and a bar seen twice sends nothing twice.
+
+### 2026-11-21 — R-RUNNER-281: first buildable blocking request (#1393)
+
+Options: take R-RUNNER-394/395 (they wait on R-RUNNER-391) or 281 (buildable now). Chose 281: `trade()` passes the data home to `plan()`.
+
+### 2026-11-21 — R-RUNNER-394: stops-not-recorded left to the file's owner (#1403)
+
+Options: filter "-stop" ids in `cancel_all` (chosen, as request R-PAPER-37 to MONEY, whose file it is); wrap the broker in `recover` (rejected, a second path).
+
+### 2026-11-21 — R-RUNNER-395: refused orders excluded by choosing the lines (#1406)
+
+Options: filter in `day.trade`; filter the lines handed to it (chosen: only lines whose cancels are on the desk's record; no change to `day.trade`).
+
+### 2026-11-21 — R-MONEY-54: cancel on any halt in force (#1414)
+
+Options: only the watch's halts (narrower, needs a second halt query); any halt, his or the watch's (chosen: every halt means no buys, simpler).

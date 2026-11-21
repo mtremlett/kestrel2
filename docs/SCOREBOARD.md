@@ -850,3 +850,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1411 R-RUNNER-435 scorecard rule as named constants, 1 test |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1420 R-RUNNER-434 ladder results file compacted, cannot grow without bound |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1425 R-RUNNER-369 rung 4's judge has one home in lab/market.py; rungs built still 5 of 12 |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1393 R-RUNNER-281 conformance sized from the desk's store, IBKR first |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1403 R-RUNNER-394 recover records its own cancels (3 lines) |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1406 R-RUNNER-395 round owed once more for desk-cancelled orders, unit-tested; not yet driven end to end |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1395 R-RUNNER-310 conformance survives a slow cancel-reason read |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1414 R-MONEY-54 a halt in force cancels working buys at the step |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1428 R-MONEY-61 crash watch gets a paper-broker door |
