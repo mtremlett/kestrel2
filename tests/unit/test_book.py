@@ -397,3 +397,8 @@ def test_a_round_trip_pairs_each_sale_with_the_buys_it_closes_in_pounds_after_ev
     for wrong in ({"GBP": Decimal("0.9")}, {"USD": Decimal(0)}):
         with pytest.raises(ValueError, match="a rate of"):
             book.record_rates(tmp_path, date(2025, 11, 12), wrong)
+    told = book.attributed(trips, lambda t: t.buy.symbol)
+    assert sum(told.values(), Decimal(0)) == sum(t.profit for t in trips) and set(told) == {
+        "A",
+        "U",
+    }

@@ -272,10 +272,22 @@ def _made(amount: Decimal) -> str:
     return f"{'lost' if amount < 0 else 'made'} £{abs(amount):,.2f}"
 
 
-def morning(root: Path, now: datetime, known: Known, post: Post) -> Delivery | None:
+def _heat(root: Path, capital: Decimal) -> str:
+    """The last day's heat (the pounds lost were every stop it held hit), told in pounds and as
+    a share of the capital; reported only. No word when the record holds none."""
+    kept = day.records(root)
+    heat = kept[-1].heat if kept else None
+    return (
+        "" if heat is None else f" Stops held at its end: heat £{heat:,.0f} ({heat / capital:.1%})."
+    )
+
+
+def morning(
+    root: Path, now: datetime, known: Known, post: Post, capital: Decimal
+) -> Delivery | None:
     """THE MORNING MESSAGE, once on each day a venue trades, from the hour he wakes: whether
     anything the desk can ask stops today's orders (stops), as of the moment it says; what it
-    holds; the stops lost and still to be put back; the last day on record.
+    holds; the stops lost and still to be put back; the last day on record and its heat.
     known is the gateway as it was just asked. None when no message goes now."""
     name, opens = _goes(MORNING, now)
     if name is None:
@@ -283,7 +295,8 @@ def morning(root: Path, now: datetime, known: Known, post: Post) -> Delivery | N
     reasons = "; ".join(reason.rstrip(".") for reason in stops(root, now, known))
     said = f"As things stand the desk would send NO order today: {reasons}." if reasons else CLEAR
     lost = _lost(root, gateway._uk(now).date())
-    return send(root, now, name, f"{opens} {said} {lost}{_gate(root)} {_state(root)}", post)
+    told = f"{opens} {said} {lost}{_gate(root)} {_state(root)}{_heat(root, capital)}"
+    return send(root, now, name, told, post)
 
 
 def evening(root: Path, now: datetime, known: Known, post: Post) -> Delivery | None:
