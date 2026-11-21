@@ -114,3 +114,16 @@ def test_two_and_ten_minute_bars_are_rolled_from_whole_one_minute_runs(tmp_path:
     roll(live, LINE, open_ + timedelta(days=1))
     assert bars.sources(live, LINE, "2m") == {bars.Source.ROLLUP_1M: 4}
     assert not bars.sources(live, LINE, "10m")
+
+
+def test_five_minute_bars_are_rolled_from_whole_one_minute_runs_and_a_held_one_stays(
+    tmp_path: Path,
+) -> None:
+    live, keep = tmp_path / bars.LIVE, keeper(tmp_path / bars.LIVE, {"VUAG": 1})
+    open_ = datetime(2026, 11, 12, 8, 0, tzinfo=UTC)
+    keep(LINE, "1m", tuple(
+        Candle(open_ + timedelta(minutes=n), PRICE, PRICE, PRICE, PRICE, 1, "ibkr")
+        for n in range(10) if n != 7))  # fmt: skip
+    roll(live, LINE, open_ + timedelta(days=1))
+    fives = bars.five(live, LINE, open_, open_ + timedelta(hours=1))
+    assert [(b.start, b.volume) for b in fives] == [(open_, 5)]
