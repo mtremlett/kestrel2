@@ -271,6 +271,15 @@ def _stops(life: _Life) -> None:
         order, order.price, life.room
     )
     life.promise("a sale at the price it was sized at loses nothing to a gap", kept)
+    buy = strategy.Decision("rule", symbol, life.records[-1].day, strategy.Action.BUY)
+    price, fx, held = Decimal(100), life.rates[line.currency], book.positions(life.desk)
+    gap = orders.stop_under(line, price) - 1  #: the live price gaps under the signal's stop
+    try:
+        orders.size(buy, line, price, fx, life.room, held, gap)
+        refused = False
+    except orders.Refused:
+        refused = True
+    life.promise("a gap down past the stop refuses the buy", refused)
 
 
 def _live(life: _Life) -> None:
