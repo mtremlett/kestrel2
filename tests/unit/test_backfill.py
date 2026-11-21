@@ -106,3 +106,18 @@ def test_the_brokers_ask_reaches_the_gateway_as_the_history_reader_through_its_o
     with pytest.raises(ConnectionRefusedError):
         ask(LINES[0], date(2026, 11, 13))
     assert doors == [paper.Door(history.CLIENT)]
+
+
+def test_a_day_the_broker_lacks_is_taken_from_local_stooq_before_the_archive(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / bars.LIVE
+    with bars.writing(path) as held:
+        held.days(ISF, [bar(date(2025, 10, 23), "10")])
+    asks = backfill.ordered(
+        lambda *_: Refused("no data"),
+        lambda *_: pytest.fail("archive asked"),
+        lambda *_: [bar(LOST, "10")],
+    )
+    wrote, named = backfill.fill(path, [(ISF, LOST)], asks, TODAY)
+    assert wrote == [f"ISF {LOST}: old desk: stooq_store daily rows"] and not named

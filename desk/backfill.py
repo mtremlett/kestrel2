@@ -43,9 +43,10 @@ def _accepted(path: Path, line: Line, day: date, answer: store.Answer, today: da
     return next((bar for bar in kept if bar.day == day), "; ".join(f.what for f in faults))
 
 
-def ordered(broker: Ask, archived: Ask) -> Asks:
-    """The two network sources in their order: the broker, then the archive."""
-    return ((Source.IBKR, broker), (Source.BACKFILL, archived))
+def ordered(broker: Ask, archived: Ask, local: Ask | None = None) -> Asks:
+    """The sources in their order: the broker, local Stooq (when a folder is given), the archive."""
+    near = ((Source.STOOQ_DAILY, local),) if local else ()
+    return ((Source.IBKR, broker), *near, (Source.BACKFILL, archived))
 
 
 def fill(

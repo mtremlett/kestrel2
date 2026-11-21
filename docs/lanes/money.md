@@ -690,3 +690,6 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 
 ### 2026-11-21 - silent broker scenario sits at the order send (#1319, R-RUNNER-324)
 - Options: the incident's log names no call site, so put the silence at (a) the account read or (b) the order send. Chose (b): a bare timeout reaches the day only there, and the desk's rule (never guess, kill switch) matters most there. Pinned world moved 6 to 7 (precedent #1022). Nothing loosened.
+
+### 2026-11-21 - gateway-silent-at-the-stop scenario renamed, not replaced (#1302, R-RUNNER-321)
+- Options: (a) replace main's own `silent` scenario (R-RUNNER-324) with the new one; (b) rename the new one (`gateway_silent`, STOP_SILENT) and register both. The first try clobbered main's scenario and failed unit 3/5 (census). Chose (b): keeps both promises. Nothing loosened.
