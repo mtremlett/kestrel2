@@ -12,10 +12,11 @@ from enum import Enum
 from pathlib import Path
 from uuid import uuid4
 
+from desk.broker import Broker, Report
 from desk.carry import carried
 from desk.halt import Blocker, Stopped
 
-RATES, SWITCH = "rates.csv", "switch.csv"
+RATES, SWITCH, CANCELS = "rates.csv", "switch.csv", "cancels.csv"
 TURNS = ("at", "turn", "why")
 
 
@@ -101,3 +102,26 @@ def rate(root: Path, currency: str, day: date) -> Decimal:
     if kept is None:
         raise ValueError(f"no {currency} rate kept for {day}")
     return kept
+
+
+def cancel_all(root: Path, broker: Broker, day: date) -> tuple[str, ...]:
+    """The desk's one way to cancel: the broker cancels what is working, and each order id the
+    desk itself cancelled is kept by day, so a send can tell it from a broker-side cancel."""
+    ids = tuple(broker.cancel())
+    path = root / CANCELS
+    kept: list[list[str]] = []
+    if path.exists():
+        with path.open(newline="", encoding="utf-8") as rows:
+            kept = list(csv.reader(rows))
+    keep(path, [*kept, *((i, day.isoformat()) for i in ids)])
+    return ids
+
+
+def retry_id(root: Path, order_id: str, report: Report | None, day: date) -> str | None:
+    """The id an order is sent again under (<id>-r1), only when the broker shows it cancelled
+    with nothing filled and the desk itself cancelled that id today; never an -r2."""
+    if report is None or report.fills or order_id.endswith("-r1") or not (root / CANCELS).exists():
+        return None
+    with (root / CANCELS).open(newline="", encoding="utf-8") as kept:
+        mine = (order_id, day.isoformat()) in {tuple(row) for row in csv.reader(kept)}
+    return f"{order_id}-r1" if mine else None
