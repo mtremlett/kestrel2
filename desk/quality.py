@@ -78,6 +78,8 @@ SHORT = (
     "10m",
     "15m",
     "30m",
+    "1h",
+    "4h",
 )  #: the intraday timeframes audited for thin sessions
 
 
@@ -106,7 +108,7 @@ def thin(path: Path, line: Line, today: date) -> list[str]:
         )
         if short:
             base = next((f for f, held in finer.items() if set(short) <= held), None)
-            how = f", rollable from {base}" if base else ""
+            how = f", rollable from {base}" if base else ", no source holds them yet"
             first = f"{len(short)} sessions with no {span} bar, the first {short[0]}"
             red.append(f"{line.symbol}: {first}{how}")
         if days:
