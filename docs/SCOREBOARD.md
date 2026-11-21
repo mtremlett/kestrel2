@@ -182,6 +182,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1119 R-PAPER-17 done: each record writer has its own temp file |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1143 no change; R-RUNGS-7 remainder is PAPER's running.py |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1139 no change; no blocking request open, R-PAPER-30 waits for more tapes |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1255 R-RUNNER-407 part: refusal rule in the gate, tested. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1022 R-RUNNER-317 SimCity scenario, one-minute bars not stale. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1125 MONEY s4, checked, no code. |
 
 ### DATA
 

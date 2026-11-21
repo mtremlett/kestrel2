@@ -672,3 +672,9 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 
 ### 2026-11-20 - park one line by hand reuses GATE, not a new blocker (#1117, R-RUNNER-397)
 - Options: (a) a new Blocker for a hand-parked line (touches the SimCity census and its tests), (b) reuse the existing GATE blocker. Chose (b): the operator's list is a separate file (`parked.csv`, desk/handpark.py), not `store.Parked`, which means a data fault, and no new enum is added. Sales and stops are untouched; deleting the row buys the line next round.
+
+### 2026-11-21 - the buy-under-stop refusal sits in the gate (#1255, R-RUNNER-407)
+- Options: (a) refuse in `orders.gate`, the one pre-trade gate, with `Order.market` optional so no caller breaks; (b) a check in `day.py`, a second path. Chose (a). Nothing sets `Order.market` yet; the wiring is R-MONEY-60 (PAPER's files).
+
+### 2026-11-21 - SimCity `minutes` pins right behaviour; seed 7 (#1022, R-RUNNER-317)
+- The incident log gives only "N lines, N stale, pacing 0", not its cause, and `desk/keeper_live.py` is outside the claim. Options: (a) pin the right behaviour (a whole market is not stale), shown red with the handling removed; (b) guess a cause and change keeper_live. Chose (a). The new event shifted seed 6's draws, so the fixture uses seed 7: first green; 11 and 8 left gap parts uncovered, 12 stopped on a holiday.
