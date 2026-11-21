@@ -2104,3 +2104,14 @@ Two loosenings that change followed are undone here: the registry test again ass
 every line not stopped by a hard fail is judged on first, market and folds, and the blanket
 autouse switch-off in the ladder, retail and tape tests is gone: a test pins the easing off
 only by name, with its reason beside it.
+
+## 2026-11-21: loosening a test to get green is recorded, never silent (R-RUNNER-427, RUNGS lane)
+
+The daily audit found #993 switching the ladder's easing on, loosening the registry and tape
+assertions and re-pinning the golden verdict with no entry here, and a unit shard then ran
+past its limit on main; #1072 and #1124 repaired it after it landed. Options: (a) record the
+practice and the rule, recommended; (b) a new guard reading diffs for loosened asserts (more
+process code, A1.7 forbids growing it); (c) nothing. Taken (a), on his 13 Nov "always go with
+recommended". The rule, from canon A3: a change that weakens an assertion or re-pins a golden
+number names it in its pull request and here, with the plain-English reason, in the same
+change; a test pinned off carries its reason beside it (as #1124 did). No code changed.
