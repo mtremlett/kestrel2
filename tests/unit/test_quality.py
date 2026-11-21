@@ -8,6 +8,8 @@ from decimal import Decimal
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 from desk import bars, quality
 from desk.lines import LINES
 from desk.spans import Five, Timed
@@ -17,6 +19,12 @@ SPY = next(line for line in LINES if line.symbol == "SPY")
 TODAY = date(2026, 11, 17)
 NOW = datetime.combine(TODAY, time(), UTC)
 DAYS = [date(2026, 11, d) for d in (9, 10, 11, 12, 13, 16)]
+
+
+@pytest.fixture(autouse=True)
+def roomy_drive(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The monitor's disk check never reads this PC's real drive."""
+    monkeypatch.setattr(shutil, "disk_usage", lambda _p: SimpleNamespace(total=100, free=50))
 
 
 def bar(day: date) -> Bar:
