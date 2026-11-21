@@ -1,6 +1,7 @@
 """Future-blind, for every rule (canon B3): the decisions up to day T are the same with and
 without the bars after T, for every rule of the book and every building block, over random T
-on a seeded fixture - and the same test catches a planted rule that peeks one bar ahead."""
+on a seeded fixture - and the same test catches a planted rule that peeks one bar ahead.
+And every catalogue row decides as its Python rule does (B4), so the files can go."""
 
 from __future__ import annotations
 
@@ -9,13 +10,14 @@ import random
 from collections.abc import Callable, Sequence
 from datetime import date, timedelta
 from decimal import Decimal
+from itertools import chain
 from typing import Any
 
 import pytest
 
 from desk.eponymous_zweig_breadth_thrust import Breadth
 from desk.store import Bar
-from desk.strategy import Decision, Rule, _run
+from desk.strategy import Action, Decision, Rule, _run
 from lab import rulebook
 from lab.blocks import BLOCKS
 from lab.spec import Spec, SpecRule
@@ -63,13 +65,24 @@ def _spec_rule(spec: Spec) -> Make:
     return lambda _: SpecRule(spec)
 
 
+#: Zweig's case, then a flat year: the thrust buys on day 23 and its 230-session hold sells
+BREADTH = {
+    date(2020, 1, 1) + timedelta(n): Breadth(
+        *(30, 70) if n < 20 else (90, 10) if n < 24 else (1, 1)
+    )
+    for n in range(DAYS)
+}
+
+
+def _breadth(make: type[Rule]) -> bool:
+    return "breadth" in inspect.signature(make).parameters
+
+
 def _rule(make: type[Rule]) -> Make:
     """A rule of the book; one that takes the market's breadth is given a day-by-day series."""
-    if "breadth" not in inspect.signature(make).parameters:
+    if not _breadth(make):
         return lambda _: make()
-    rng = random.Random(7)  # noqa: S311 - seeded, a fixture
-    breadth = {b.day: Breadth(rng.randint(1, 99), rng.randint(1, 99)) for b in _bars()}
-    return lambda _: make(breadth)  # type: ignore[call-arg]
+    return lambda _: make(BREADTH)  # type: ignore[call-arg]
 
 
 class _OneBlock:
@@ -106,3 +119,26 @@ def test_every_rule_and_block_decides_the_same_without_the_later_bars(name: str)
 def test_a_rule_that_peeks_one_bar_ahead_is_caught() -> None:
     bars = _bars()
     assert _blind(_Peeker, bars, seed=1), "the planted peeker went unseen"
+
+
+@pytest.mark.parametrize("name", sorted(rulebook.specs()))
+def test_every_catalogue_row_decides_as_its_python_rule(name: str) -> None:
+    """On the fixture and on the row's own cases (R-MONEY-45); a breadth rule's row reads
+    ratio bars (close = the day's advances over advances plus declines), its file the breadth."""
+    spec, python = rulebook.specs()[name], rulebook.rules()[name]
+    if _breadth(python):
+        walks = [[_case_bar(k, r, r, r) for k, r in enumerate(_ratios())]]
+    else:
+        cases = [[_case_bar(k, *bar) for k, bar in enumerate(case.bars)] for case in spec.cases]
+        walks = [list(_bars()), *cases]
+    said = [_decisions(_spec_rule(spec), walk) for walk in walks]
+    assert [_decisions(_rule(python), walk) for walk in walks] == said
+    assert {d.action for d in chain(*said)} == set(Action), f"{name}: no buy and sale compared"
+
+
+def _ratios() -> list[Decimal]:
+    return [BREADTH[day].ratio for day in sorted(BREADTH)]
+
+
+def _case_bar(k: int, high: Decimal, low: Decimal, close: Decimal) -> Bar:
+    return Bar(date(2020, 1, 1) + timedelta(k), close, high, low, close, 1000)
