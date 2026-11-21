@@ -65,6 +65,7 @@ from desk.book import Switch
 from desk.gateway import Known, State
 from desk.lines import LINES, YARDSTICK, Line
 from desk.listing import Listing, Unlisted
+from desk.messenger_parts import Mail
 from desk.orders import Settings
 from desk.running_parts import PUT_RIGHT
 from desk.running_parts import recover as recover
@@ -102,6 +103,7 @@ class Desk:
     hot: Path
     held: Callable[[date], Saved]
     door: paper.Door  #: who the desk is at the paper Gateway
+    mail: Mail | None = None  #: the email door, if his SMTP_ settings are set
 
 
 class Note(NamedTuple):
@@ -292,6 +294,8 @@ def _say(desk: Desk, now: datetime, known: Known) -> None:
         messenger.send(root, now, f"gateway {since:%Y-%m-%d}", known.words, post)
     messenger.morning(root, now, known, post)
     messenger.evening(root, now, known, post)
+    if desk.mail:
+        messenger.summary(root, now, desk.mail)
     if messenger.MORNING.start <= local.time() < messenger.SLEEPS:
         messenger.remind(root, now, post)
         for note in (n for n in notes(root) if now - n.at < DAY):
