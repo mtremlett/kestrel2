@@ -239,3 +239,8 @@ quietly taking the trading line of the same symbol. Blind review, nothing blocki
 - *Key:* exclude files that themselves reach the rung (no list to keep) rather than a fixed list of orchestration modules (a second home for a fact). Kept rows get a new key once.
 - *Default pass = declared universe*, not the research list with a flag: transfer is never a verdict. Lines matched by full Line, not symbol.
 - *Pass time* is a field on `Pass` (a separate timer script would be forbidden scaffolding).
+
+### 2026-11-21 — why the week's cells fail, and who fixes it (grid-week, #1370)
+Finding: 2,810 of 5,325 cells failed every hourly pass since 03:21 UTC because the pass ran code from before #1210 against a research store the nightly refresh rewrote in the new format at 02:56. Proved: the old code cannot read the new file; today's code runs every cell. The week job was also stopped 15 Nov 11:22 to 21 Nov 00:21; its log files are empty, so the cause is unprovable.
+Options: (a) make `lab/sweep.py` refuse a store newer than its code; (b) the runner updates the week's clone before each pass; (c) wait. Taken: (b), as a request (R-GRID-8): the code a pass runs is the runner's to supply, and (a) guards a symptom. Under his standing ruling to take the recommended option.
+Wait: grid-week waits until 2026-11-28, since failed passes break the unbroken count and seven days must restart.
