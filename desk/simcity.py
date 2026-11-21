@@ -402,6 +402,8 @@ def _live(life: _Life) -> None:
     life.promise("the round trips close every share the fills sold", shut)
     life.trips = len(trips)
     life.promise("profit told by line and by days held adds up to the trips'", _told(trips))
+    stories = book.told(trips, life.market)
+    life.promise("every trade is told with the bar its signal read", len(stories) == len(trips))
     cash, costs = book.dealt(life.desk, life.market, date.max, date.min, 0)
     kind = book.conformance_cost(life.desk, life.market)
     life.promise("the conformance cost is cash less costs", kind == cash - costs.total)
