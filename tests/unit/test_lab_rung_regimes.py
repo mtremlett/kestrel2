@@ -30,6 +30,12 @@ def _cell(bars: Sequence[Bar]) -> Regimes:
     return rung_regimes.judge(cell.run(window, bars), bars, TEN_K, POUND)
 
 
+def _declared(bars: Sequence[Bar]) -> Answer:
+    """The answer of the rung as the ladder reads it (`RUNG`), over the window's calendar middle."""
+    window = Cell("breakout_20_10", line_of("VUSA"), bars[0].day, bars[-1].day)
+    return rung_regimes.RUNG.judge(rung.judge(cell.run(window, bars), bars, TEN_K, POUND))[0]
+
+
 def _priced(rng: random.Random, edge: float, first: int, second: int) -> list[Priced]:
     """Trades of mean `edge` standard deviations: `first` bought before the cut, `second` after."""
     out = []
@@ -55,12 +61,14 @@ def _proven() -> None:
     for seed in range(3):
         edge = _cell(_walk(seed, 0.008, days=10_000))
         assert edge.passed and edge.first.passed and edge.second.passed, (seed, edge.answer)
+        assert _declared(_walk(seed, 0.008, days=10_000)) is Answer.PASS, seed
         assert edge.key == cell.key(edge.first.key.cell, _walk(seed, 0.008, days=10_000)).rung(
             rung_regimes.__name__
         )
         #: an edge in one window alone is a stretch's luck: it does not pass
         one = _cell(_walk(seed, 0.008, 0, days=5000))
         assert one.first.passed and not one.second.passed and not one.passed, seed
+        assert _declared(_walk(seed, 0.008, 0, days=5000)) is not Answer.PASS, seed
     rng = random.Random(7)  # noqa: S311 - a repeatable test sample, not a secret
     noise = [rung_regimes.apart(KEY, _priced(rng, 0, 40, 40), CUT) for _ in range(500)]
     windows = sum(r.first.passed + r.second.passed for r in noise)

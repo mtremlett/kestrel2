@@ -46,6 +46,10 @@ GOLDEN = [
                 "beyond 0.42 of its own line's; 2 asked of both",
             ),
             "regime": ("WEAK", "up days THIN on 20 trades, down days PASS on 39; both must pass"),
+            "regimes": (
+                "PASS",
+                "first window PASS, second PASS, cut at 2018-06-08; both must pass",
+            ),
             "shuffle": (
                 "PASS",
                 "100 shuffles of its days, its share among them 0.010; 0.05 or under passes",
@@ -77,6 +81,10 @@ GOLDEN = [
                 "96 trades judged, their mean gain after every cost (Interactive Brokers UK, "
                 "fixed pricing (schedule read 13 November 2026)) -0.10 standard errors above "
                 "nothing; 30 trades and 2 asked",
+            ),
+            "regimes": (
+                "FAIL",
+                "first window FAIL, second FAIL, cut at 2018-06-08; both must pass",
             ),
         },
     ),
