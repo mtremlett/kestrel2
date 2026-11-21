@@ -3,6 +3,7 @@ vouched for by their day, under their own source; a second run adds nothing."""
 
 from __future__ import annotations
 
+import sqlite3
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
@@ -68,3 +69,24 @@ def test_the_whole_pass_lands_the_matrices_daily_and_intraday_bars_each_under_it
     assert bars.sources(path, LONDON, "1h") == {Source.MATRIX_INTRADAY: 1}
     again = headstart_matrix.whole(register, path, [LONDON], DAY)
     assert again == "stooq_store_matrix: filled 0, refused 1, differ 0"
+
+
+def test_the_old_database_timeframes_enter_on_their_marks_and_the_rest_are_refused(
+    tmp_path: Path,
+) -> None:
+    old, path = tmp_path / "old.db", tmp_path / "market_live.db"
+    with sqlite3.connect(old) as db:
+        db.execute("CREATE TABLE ohlcv (ticker, timeframe, ts, open, high, low, close, volume)")
+        for span, at in ("1h", "07:00"), ("1h", "07:30"), ("1wk", "00:00"):
+            day = "2026-10-23" if span == "1wk" else "2026-10-20"  # a Friday week
+            db.execute(
+                "INSERT INTO ohlcv VALUES ('BA.L', ?, ?, 100, 101, 99, 100, 9)",
+                (span, f"{day}T{at}:00+00:00"),
+            )
+    with bars.writing(path) as round_:
+        round_.daily(LONDON, [Bar(DAY, Decimal(100), Decimal(105), Decimal(95), Decimal(100), 9)])
+    said = headstart_hours.main(old, path, [LONDON], headstart_matrix.trend)
+    assert "1h 1 bars filled" not in said and "1 1h bars filled" in said
+    assert said.count("1 off its marks refused") == 2  # the :30 hour and the Friday week
+    assert bars.sources(path, LONDON, "1h") == {Source.DATABASE: 1}
+    assert "1h already in" in headstart_hours.main(old, path, [LONDON], headstart_matrix.trend)
