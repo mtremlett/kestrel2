@@ -458,6 +458,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1301 DATA: 2m/10m rollups from 1m (R-DATA-56 part). |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1305 DATA: 5m rolled from 1m (R-DATA-56). |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1324 DATA: monitor tests made machine-independent. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1365 DATA: R-RUNNER-217 rollup step in backfill order. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
