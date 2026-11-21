@@ -59,6 +59,7 @@ from desk import (
 from desk import day as days
 from desk.keeper import Broker
 from desk.lines import LINES, Line
+from desk.messenger_parts import SMTP, Mail
 from desk.orders import Settings
 from desk.paper import Account
 from desk.running import DAY, VENUES, Desk
@@ -138,6 +139,15 @@ def _post(env: Mapping[str, str]) -> messenger.Post:
         raise messenger.Undelivered(why)
 
     return unsaid
+
+
+def _doors(env: Mapping[str, str], root: Path, now: datetime) -> tuple[messenger.Post, Mail | None]:
+    """His phone, and (R-PAPER-28) behind it the email door if any SMTP_ setting is set."""
+    post = _post(env)
+    if not any(env.get(name, "").strip() for name in SMTP):
+        return post, None
+    mail = messenger.smtp(env)
+    return messenger.with_mail(root, now, post, mail), mail
 
 
 def _desk(root: Path, post: messenger.Post, home: Path, broker: Broker | None = None) -> Desk:
@@ -353,8 +363,7 @@ def rehearse(
 
 
 def hourly(desk: Desk, now: datetime) -> None:
-    """His hourly profit and loss (desk/pnl.py), told after a real step: not in a rehearsal,
-    which has no day of its own to tell."""
+    """His hourly profit and loss (desk/pnl.py), told after a real step, not in a rehearsal."""
     today = now.date()
 
     def words() -> str:
@@ -374,7 +383,8 @@ def main(
     root, now = Path(env["KESTREL2_DATA"]) / ROOT, clock()
     if not root.is_absolute():
         raise SystemExit(f"KESTREL2_DATA names no whole path to a folder: {root.parent}")
-    desk = _desk(root, _post(env), root.parent, history.daily(now, home=root.parent))
+    post, mail = _doors(env, root, now)
+    desk = replace(_desk(root, post, root.parent, history.daily(now, home=root.parent)), mail=mail)
     match argv:
         case []:
             running.step(desk, now)
