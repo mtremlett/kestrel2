@@ -193,6 +193,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1302 R-RUNNER-321 SimCity scenario gateway silent at the stop, TimeoutError recorded and account put back; green, red with the put-back removed |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1338 R-RUNNER-422 SimCity worlds live in root/worlds/<seed>, emptied as each starts |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1357 R-RUNNER-426 simcity split, 396 to 327 lines |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1067 R-RUNNER-391 resend of a desk-cancelled order as -r1, SimCity coverage held by a fixed scenario |
 
 ### DATA
 
