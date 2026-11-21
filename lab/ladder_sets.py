@@ -12,6 +12,7 @@ on their own trial count.
 
 from __future__ import annotations
 
+import json
 import sys
 from collections.abc import Callable, Mapping, Sequence
 from datetime import UTC, date, datetime, timedelta
@@ -52,6 +53,7 @@ TREND = (
 )
 
 
+NL = chr(10)
 NOT_CORRECTED = "survivorship: not corrected"
 
 
@@ -142,6 +144,40 @@ def epon(
     passed = sum(any(map(verdict.goes, mine)) for mine in verdict.by_rule(rows, rules).values())
     last_line = f"SET {plan.tag}: {len(rules)} rules, {passed} passed, table {table}"
     return f"{counts}\n{said}\n{tapes_held(home)}\n{last_line}"
+
+
+def _furthest(rows: Sequence[verdict.Row]) -> tuple[verdict.Row, str, str]:
+    """The rule's best line (one that goes forward, else the one that ran the most rungs), the
+    last rung it ran and that rung's answer with its reason."""
+    best = max(rows, key=lambda r: (verdict.goes(r), len(r.get("rungs", {}))))
+    rungs = best.get("rungs", {})
+    if not rungs:
+        return best, "none", str(best.get("error", best.get("refused", "no rung run")))
+    name, (answer, why) = list(rungs.items())[-1]
+    return best, name, f"{answer}: {why}"
+
+
+def condense(
+    table: Path, rows: Sequence[verdict.Row], rules: Sequence[str], notes: Sequence[str]
+) -> None:
+    """Rewrite the set's table as one row per rule (furthest rung, why, lines judged, best line)
+    and keep every cell, whole, in `<tag>.cells.json` beside it."""
+    cells = table.with_suffix(".cells.json")
+    cells.write_text(json.dumps(list(rows), indent=1), encoding="utf-8")
+    head = table.read_text(encoding="utf-8").split(NL + "## ")[0].rstrip()
+    out = [head, "", f"Every cell, whole, is in `{cells.name}`.", ""]
+    out += ["| rule | furthest rung | why | lines judged | best line | goes forward |"]
+    out += ["|---|---|---|---|---|---|"]
+    for rule, mine in verdict.by_rule(rows, rules).items():
+        if not mine:
+            continue
+        best, rung, why = _furthest(mine)
+        judged = sum("rungs" in r for r in mine)
+        fields = [rule, rung, why, f"{judged} of {len(mine)}", best["cell"][1]]
+        fields.append("yes" if any(map(verdict.goes, mine)) else "no")
+        out.append("| " + " | ".join(f.replace("|", "/").replace(NL, " ") for f in fields) + " |")
+    out += ["", "## Survivorship", ""] + [f"- {note}" for note in notes]
+    table.write_text(NL.join(out) + NL, encoding="utf-8")
 
 
 def baskets(
