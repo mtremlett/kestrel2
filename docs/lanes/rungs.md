@@ -318,3 +318,7 @@ then the break was removed:
 ### 2026-11-21 — spec variants: one home, lab/variants.py (B5, #1307, #1315)
 - #1307 added `lab.spec.variants`; a variant is not asked the base spec's known answers (they are for the base settings). Options: re-prove them (always fails) or skip; chose skip, settings are range-checked instead.
 - #1315 found `lab/variants.py` (#364) already makes every combination, counts trials and reports the plateau centre, so the duplicate was deleted. Options: keep both (a second code path, canon A2), merge into spec (spec would import plateau/trials); chose keep `lab/variants.py`.
+
+### 2026-11-21 — the EPON table: one row per rule (R-RUNNER-334, #1360)
+- `ladder_sets.condense` rewrites ladder/sets/<tag>.md after write_table: one row per rule, every cell kept whole in <tag>.cells.json. Furthest rung = the last rung run by the rule's best line (one that goes forward, else the one that ran most rungs); a rule with no line judged shows its error or refusal as the reason.
+- Options: change `verdict.write_table` itself (declined: outside the claim); condense after it (chosen).
