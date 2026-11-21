@@ -188,6 +188,8 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1272 R-RUNNER-414 book side landed; rehearsal fills split out as found, pinned |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1245 R-RUNNER-319 SimCity scenario for a locked live store, lived and counted |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1279 R-RUNNER-409 trade-faithfulness replay built (desk.simcity_fills), one test |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1303 R-RUNNER-420 desk/book.py split (394 to 349 lines), no behaviour change |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1319 R-RUNNER-324 SimCity scenario for a broker silent after an order is sent |
 
 ### DATA
 
