@@ -74,6 +74,7 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "lab/headstart_matrix.py" = "the old Stooq matrices' 15-minute, 30-minute and hourly arrays as a head start: read-only, named by their start in UTC, vouched for by their day, cleaned by the one store and let into the two databases under their own source"
 
 # the money lane
+"desk/incubation.py" = "a rule the ladder calls INCUBATE, on paper only: one fixed small size (250 pounds), at most two open, on its own book line apart from the desk's rules, through the same gate and stops; promoted only on its paper record and his yes"
 "lab/slippage.py" = "trading costs measured from the paper broker's real fills: each line's slip against the session's close beside the cost model's spread and slippage, and the gap (Q2)"
 "desk/strategy.py" = "the five frozen daily strategies: a decision for every line and day"
 "desk/strategy_parts.py" = "the indicators under the daily strategies: the rolling window, Wilder's and the exponential average, RSI and the lower band; desk.strategy gives them to its callers"
