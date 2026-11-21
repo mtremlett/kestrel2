@@ -53,66 +53,8 @@ macro series, earnings dates and timestamped news into the one store (#460); the
 read instead of asked again (#458). Two no-change sessions (#424, #454) found R-RUNNER-11 waiting on PAPER test lines; it
 landed later. Git keeps each full entry.
 
-### 2026-11-16 — SPY kept from 29 January 1993 as a reference series (R-RUNNER-94) (#303)
-
-- Where to hold reference bars - (a) store.py (would pass its 400-line cap), (b) new module
-  desk/reference.py (outside the claim, went red), (c) archive.py, chosen. Calendar: the
-  reference series is checked without a calendar (weekday only) rather than extending
-  venues.py back to 1993, which is outside my claim; recommended, taken.
-
-### 2026-11-16 — the keeper keeps SPY's history daily after the US close (R-RUNNER-96) (#475)
-
-- A refused reference fetch is told in words but is not a miss (nothing is traded on it;
-  options: count it as a miss, which would wake the operator over a research series;
-  recommended and taken: not a miss, retried at the next call per his "always go with
-  recommended"). Reference bars are kept under the daily store's US folder (desk cannot import
-  lab; this is the one store's own folder).
-
-### 2026-11-16 — the one calendar names market events (R-RUNNER-149) (#453)
-
-- Events are read from the calendar by (venue, day) and refused outside 2026 (options: guess
-  recurring dates / refuse; chose refuse, per the calendar's own rule). ECB left out: no venue
-  of the desk's is Frankfurt.
-
-### 2026-11-16 — the keeper keeps and reads the daily bars in the long database (R-RUNNER-11, step) (#486)
-
-- - Left the fast store's file name "bars.db" (options: rename now to market_live.db, or
-  later). Renaming breaks PAPER's tests (test_command, test_running, test_watch, test_pnl
-  write "bars.db" literally) and the claim forbids touching them. Recommended and taken:
-  later, once PAPER's tests use `keeper.HOT`. - The keeper writes a line whole
-  (`Round.daily`), tagged archive, so an earlier import of lower sources into the long
-  database would be replaced at the next refresh. The multi-source rule (IBKR, Yahoo, Stooq,
-  recorded disagreements) must come first; it is the next step.
-
-### 2026-11-16 — the store's one rule for two sources and the yardstick fault (R-RUNNER-189, first step) (#500)
-
-- (1) A clash is kept as a recorded fault with the archive's bar standing (options: drop both,
-  as `_once` does for a date given twice differently; keep the first source's). Chose the
-  second: "Yahoo first", the fault is told and parks the line while recent, and nothing is
-  dropped silently. (2) Tolerance 2% on the close, since Stooq's daily bars are split-adjusted
-  only and a dividend day is under that; to be tuned only through the pinned constant. (3) No
-  double report: a yardstick whose archive refused is already a miss.
-
-### 2026-11-16 — the day's pounds per dollar, kept and readable for any session (R-PAPER-22) (#505)
-
-- the pound is a reference series, not a traded line (options: a twenty-first line in LINES,
-  or a separate store; chosen the first-existing mechanism so no new store or module:
-  recommended, cheapest). Guard not touched.
-
-### 2026-11-16 — the broker's daily bars as the store's first source, a client of their own (R-RUNNER-189, second step) (#517)
-
-- The contract for London lines is SMART with primary exchange LSEETF (the first try with
-  exchange LSE got "no security definition"); US lines go by SMART alone. Options: a per-line
-  exchange field on Line (PAPER/DATA master change, larger) or one table by venue (taken,
-  smallest).
-
-### 2026-11-16 — the cleaner's bad-high/low repair named settled; R-PAPER-22/23 were already built (R-RUNNER-194) (#518)
-
-- R-RUNNER-194. Options: (a) keep #367's "leave a deep low" - the yardstick parks on a bad
-  print; (b) keep #381's "repair a low like a high" and leave a close-shared fall as the
-  market's. Chose (b): the north star needs the yardstick unparked, and a real crash (close
-  falls with the low) is still kept. No further change to the cleaner's bad-print rule without
-  a failing row in test_store_rules.py.
+### 2026-11-16 — reference series, keeper reads and first broker source, folded (#303-#518)
+SPY is kept from 29 January 1993 as a reference series, checked weekday-only without a calendar (a new module and venues.py were outside the claim) (#303). The keeper keeps SPY's history daily after the US close (#475). The one calendar names market events (#453). The keeper keeps and reads the daily bars in the long database (#486). The store has one rule for two sources and a yardstick fault (#500). The pound's daily rate is kept and readable for any session (#505). The broker's daily bars are the store's first source, through a client of their own (#517). The cleaner's bad-high/low repair was named settled and R-PAPER-22/23 were found already built (#518). All recommended options taken; git holds the full texts.
 
 ### 2026-11-16 — the head start's jobs write the two databases (R-RUNNER-10) (#520)
 
@@ -798,3 +740,18 @@ Options: (a) add local Stooq to `desk/backfill.py`'s order now (rejected: the St
 
 ### 2026-11-21 — no blocking request; nothing in the book fits ten minutes (DATA, s3)
 Options: (a) build the disk roll-off (OPS-07) now (rejected: the disk watch is built in `desk/quality.py`; roll-off needs a rule on which research files age out, a business choice with no scene behind it); (b) start the pre-2010 window or survivorship boxes (rejected: each is a multi-module build, and the lane's open requests are all `later`); (c) note it and land nothing else (chosen). Every open request to DATA is `later` or waits on the operator (R-DATA-57, -59), so none was taken.
+
+### 2026-11-21 — disk floor is a share, checked in the command (#1098, OPS-07)
+Options: (a) an absolute gigabyte floor; (b) a 10% share of the drive (chosen, recommended: it follows the drive). Checked in the command's entry, not inside `monitor`, so the monitor's tests do not depend on the test machine's disk (#1107 later wired `disk(path.parent)` into `monitor` after #1098 left it uncalled).
+
+### 2026-11-21 — breadth derived from our own bars (#1104, R-RUNNER-346)
+Options: (a) buy a vendor series (spend, a hard line); (b) derive from our own S&P 500 bars (chosen, per his "go with recommended"; free, survivorship-biased: today's members only, to be stated on any verdict); (c) no row.
+
+### 2026-11-21 — bars and faults in one file per line (#1210, R-DATA-55)
+Options: (a) one CSV with a `fault` column, swapped in with one replace (chosen); (b) a second table or sidecar kept in step (rejected: two files can part). `lab/sweep.py`'s `.faults` filter left, since it is GRID's file and harmless.
+
+### 2026-11-21 — roll is tolerant of a never-held span (#1243, R-DATA-56)
+Options: (a) keep the LookupError and skip all rolling; (b) a span the store never held is none to build from (chosen: each frame is independent), so weekly bars are built from daily alone.
+
+### 2026-11-21 — no ten-minute box; nothing built (#1262, #1268)
+Build nothing rather than a half move of the Stooq daily reader out of `lab/headstart*.py` (#1262, R-DATA-57). #1268 chose, over building the disk roll-off or starting pre-2010/survivorship, to note and land nothing else: roll-off needs a business rule on which files age out; the others are too big for ten minutes.

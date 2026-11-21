@@ -318,8 +318,8 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       {id: data-3lgo; files: desk/lines.py, tests/unit/test_lines.py, desk/store.py, tests/unit/test_store.py; after: data-sgln}
 - [x] A stretched bar's changes recorded beside it
       {id: data-stretched; files: desk/store.py, tests/unit/test_store.py; after: data-3lgo}
-- [ ] A line's bars and its fault record written together, so a crash cannot part them
-      Built (#832): both files written whole before either is swapped in. Remains: a crash between the two swaps; one file per line, which needs lab/universe.py and tests/unit/test_lab_universe.py in the claim
+- [x] A line's bars and its fault record written together, so a crash cannot part them
+      Built (#832, #1210): one CSV per line holds bars and fault rows, swapped in with a single replace. Remains: `lab/sweep.py`'s dead `.faults` filter (GRID may delete)
       {id: data-written-together; files: desk/store.py, tests/unit/test_store.py; after: data-stretched; waits: operator}
 - [x] A pence history the archive calls pounds caught
       Built (#630, #725): every pull reaches the store through `history_write.keeper`, which turns pence to pounds once on entry; `history.run` and `pull` hand out the broker's unit by design (#1065)
