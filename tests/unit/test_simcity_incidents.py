@@ -28,6 +28,7 @@ from desk import (
 from desk.simcity_incidents import (
     CANCELLED,
     DEAF,
+    DROPPED,
     HALTED,
     HOLE,
     LEFT,
@@ -49,6 +50,7 @@ from desk.simcity_incidents import (
     beside,
     cancelled,
     deaf,
+    dropped,
     gateway_silent,
     halted,
     hole,
@@ -130,6 +132,7 @@ def test_without_naming_the_cancelled_orders_the_scenario_is_red(
     ("words", "scenario"),
     [
         (HALTED, halted),
+        (DROPPED, dropped),
         (OUTSIDE, outside),
         (PARKED, parked),
         (STALE, stale),
