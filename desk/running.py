@@ -48,6 +48,7 @@ from desk import (
     day,
     gateway,
     goflat,
+    halt,
     intraday,
     keeper,
     kill,
@@ -360,6 +361,8 @@ def _work(desk: Desk, now: datetime, seen: watch.Look | None) -> None:
     listings = listing.kept(root, now, LINES, desk.door)
     broker = placing.Paper(listings, root, lambda: now, desk.door)
     book.collect(root, broker)
+    if halt.in_force(root):  #: a halt called by the look (or by hand) takes the working buys down
+        broker.cancel()
     _drill(root, now)
     if sold := goflat.step(root, broker, desk.room, now):
         _note(root, now, "go flat", f"{goflat.state(root)}: {'; '.join(sold)}")
