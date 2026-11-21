@@ -172,6 +172,39 @@ def _pending(root: Path, now: datetime, seen: watch.Look | None, once: bool = Tr
     ]
 
 
+def _again(root: Path, now: datetime, seen: watch.Look | None) -> dict[str, set[str]]:
+    """THE ROUND OWED ONCE MORE (R-RUNNER-395): of a venue still trading whose round is on the
+    record and not yet made again, the symbols of today's orders the desk ITSELF cancelled (the
+    cancel record) with nothing filled under the id or its -r1. A refusal, a fill and a
+    broker-side cancel stand: only the desk's own cancels go again, as <id>-r1."""
+    path = root / book.CANCELS
+    if seen is None or not path.exists():
+        return {}
+    with path.open(newline="", encoding="utf-8") as rows:
+        mine = {row[0] for row in csv.reader(rows) if row[1:] == [now.date().isoformat()]}
+    done = {note.what for note in notes(root) if note.at.date() == now.date()}
+    filled = {fill.order_id for fill in book.fills(root) if fill.day == now.date()}
+    out = dict[str, set[str]]()
+    for venue in VENUES:
+        hours = venues.open_at(venue, now)
+        if not hours or now >= hours.close or ORDERS.format(venue) not in done:
+            continue
+        if f"{ORDERS.format(venue)} again" in done:
+            continue
+        stamp = f"{now:%Y%m%d}-"
+        cut = {
+            line.symbol
+            for line in LINES
+            if line.venue == venue
+            for oid in mine
+            if oid.startswith(stamp) and oid.endswith(f"-{line.symbol}")
+            if not {oid, f"{oid}-r1"} & filled
+        }
+        if cut:
+            out[venue] = cut
+    return out
+
+
 def _fit(
     saved: Saved, venue: str, today: date
 ) -> tuple[dict[Line, Sequence[Bar]], list[str], date]:
@@ -185,7 +218,9 @@ def _fit(
     return {line: series for line, series in mine.items() if line.symbol not in out}, out, last
 
 
-def _round(desk: Desk, broker: placing.Paper, venue: str, now: datetime) -> None:
+def _round(
+    desk: Desk, broker: placing.Paper, venue: str, now: datetime, only: Collection[str] = ()
+) -> None:
     """A venue's orders for today, by the money path's own day, on the bars saved before
     today for the venue's lines; the round goes on the record with the answer to each order.
     A line parked by the store, or with no bar of the session before, is left out and named,
@@ -194,6 +229,8 @@ def _round(desk: Desk, broker: placing.Paper, venue: str, now: datetime) -> None
     today = now.date()
     kept = desk.held(today)
     saved, out, last = _fit(kept, venue, today)
+    if only:  #: the round again: just the lines whose orders the desk cancelled
+        saved, out = {ln: s for ln, s in saved.items() if ln.symbol in only}, []
 
     def tell(
         name: str, words: str
@@ -209,7 +246,8 @@ def _round(desk: Desk, broker: placing.Paper, venue: str, now: datetime) -> None
     held = _held_out(desk.root, out, kept[1], last)
     out = [symbol for symbol in out if symbol not in held]
     left = f" Left out, parked or with no bar of {last:%a %d %b}: {', '.join(out)}."
-    _note(desk.root, now, ORDERS.format(venue), words + left * bool(out) + "".join(held.values()))
+    name = ORDERS.format(venue) + " again" * bool(only)
+    _note(desk.root, now, name, words + left * bool(out) + "".join(held.values()))
 
 
 def _latest(
@@ -316,7 +354,8 @@ def _work(desk: Desk, now: datetime, seen: watch.Look | None) -> None:
     checked = bool(last) and last[0].at.date() == now.date() and last[0].found is not None
     awake = gateway._uk(now).time() >= messenger.MORNING.start
     live = _pending(root, now, seen, False) if desk.rules else []
-    check = bool(rounds or owed or live) or (awake and not checked)
+    again = _again(root, now, seen)
+    check = bool(rounds or owed or live or again) or (awake and not checked)
     if not (check or owed or any(venues.open_at(venue, now) for venue in VENUES)):
         return
     listings = listing.kept(root, now, LINES, desk.door)
@@ -328,9 +367,11 @@ def _work(desk: Desk, now: datetime, seen: watch.Look | None) -> None:
     if sold := goflat.step(root, broker, desk.room, now):
         _note(root, now, "go flat", f"{goflat.state(root)}: {'; '.join(sold)}")
     if check and not _clean(desk, broker, listings, now):
-        rounds, live = [], []
+        rounds, live, again = [], [], {}
     for venue in rounds:
         _round(desk, broker, venue, now)
+    for venue, symbols in again.items():  #: once more, the same check, gate and send
+        _round(desk, broker, venue, now, symbols)
     for venue in live:  #: the intraday rounds, after the day's own
         _intraday(desk, broker, venue, now)
     for on in owed:  #: a missed session's rates are kept first, as its own day would have

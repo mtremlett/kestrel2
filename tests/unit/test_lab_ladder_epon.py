@@ -118,7 +118,8 @@ def test_the_set_from_the_catalogues_specs_gives_the_rows_of_the_set_from_the_py
     empty = tmp_path / "empty.toml"
     empty.write_text("")
     python, both = ladder.eponymous(book=empty), ladder.eponymous()
-    assert both == python and set(rulebook.specs()) <= set(both)
+    assert both == python  #: the one spec left out takes a breadth, run on ratio bars by a caller
+    assert set(rulebook.specs()) - set(both) == {"zweig_breadth_thrust"}
     clock = lambda: datetime(2026, 11, 14, tzinfo=UTC)  # noqa: E731
     rows = []
     for home, rules in ((tmp_path / "a", python), (tmp_path / "b", both)):

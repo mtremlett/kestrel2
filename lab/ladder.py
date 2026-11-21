@@ -310,8 +310,11 @@ def eponymous(folder: Path = DESK, book: Path | None = None) -> tuple[str, ...]:
         module = importlib.import_module(f"{desk.__name__}.{path.stem}")
         if not hasattr(module, "EPONYMOUS"):
             raise ValueError(f"{module.__name__} names its rules in no EPONYMOUS mapping")
-    python = tuple(n for n, make in rulebook.eponymous(folder).items() if not _needs_data(make))
-    return python + tuple(n for n in rulebook.specs(book, folder) if n not in python)
+    every = rulebook.eponymous(folder)
+    python = tuple(n for n, make in every.items() if not _needs_data(make))
+    return python + tuple(
+        n for n in rulebook.specs(book, folder) if n not in python and not _needs_data(every[n])
+    )
 
 
 def _needs_data(make: type[Rule]) -> bool:

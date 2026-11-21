@@ -85,6 +85,10 @@ STEP = Decimal("0.03")
 EASED = True
 T_INCUBATE = Decimal(1)  #: a basket's mean this many standard errors above nothing, or over
 WEAK = (Answer.THIN, Answer.DOUBT)  #: a scorecard's WEAK: neither a win nor a loss
+#: THE RULE OVER THE RUNGS, once (R-RUNNER-435): a cell passes with no FAIL and at most MAX_WEAK
+#: WEAK; a yearly Sharpe above SHARPE_STOP is a hard stop, whatever the rungs say.
+MAX_WEAK = 2
+SHARPE_STOP = 2.0
 Pair = tuple[Answer, str]
 Judged = dict[str, Pair]  #: each rung's answer on a cell, and its reason
 
@@ -95,6 +99,15 @@ class TooYoung(ValueError):
 
 class UnitStep(ValueError):
     """A line in pounds that steps by the pound's rate in a day: part of it is in dollars."""
+
+
+def scorecard(answers: Sequence[Answer], yearly_sharpe: float) -> str:
+    """STOP, PASS or FAIL over the rungs' answers: the one rule (MAX_WEAK, SHARPE_STOP)."""
+    if yearly_sharpe > SHARPE_STOP:
+        return "STOP"
+    weak = sum(a in WEAK for a in answers)
+    fails = any(a in (Answer.FAIL, Answer.FAULT) for a in answers)
+    return "PASS" if not fails and weak <= MAX_WEAK else "FAIL"
 
 
 def judge(

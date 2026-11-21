@@ -3,6 +3,7 @@ every fixture series, exactly as the Python rule of the same name in `desk/epony
 
 from __future__ import annotations
 
+import inspect
 import random
 import tomllib
 from datetime import date, timedelta
@@ -11,6 +12,7 @@ from pathlib import Path
 
 import pytest
 
+from desk.eponymous_zweig_breadth_thrust import Breadth
 from desk.store import Bar
 from desk.strategy import _run
 from lab import rulebook
@@ -41,9 +43,15 @@ def test_each_spec_decides_as_its_python_rule_on_every_day(name: str) -> None:
     spec = Spec.parse({"name": name, **BOOK[name]})
     seen: set[str] = set()
     for seed in range(5):
-        bars = _bars(seed)
-        theirs = tuple(_run(name, RULES[name](), "X", bars))
-        mine = tuple(_run(name, SpecRule(spec), "X", bars))
+        bars, ratio = _bars(seed), _bars(seed)
+        if "breadth" in inspect.signature(RULES[name]).parameters:  # reads the market's breadth
+            draw = random.Random(seed)  # noqa: S311 - a test draw
+            made = {b.day: Breadth(draw.randint(1, 99), draw.randint(1, 99)) for b in bars}
+            theirs = tuple(_run(name, RULES[name](made), "X", bars))  # type: ignore[call-arg]
+            ratio = tuple(Bar(b.day, r, r, r, r, 1) for b in bars for r in [made[b.day].ratio])
+        else:
+            theirs = tuple(_run(name, RULES[name](), "X", bars))
+        mine = tuple(_run(name, SpecRule(spec), "X", ratio))
         assert mine == theirs, f"{name} seed {seed}: the spec differs from the rule"
         seen |= {d.action.name for d in theirs}
     assert seen >= {"BUY", "SELL"}, f"{name}: the five fixture series never buy and sell"
