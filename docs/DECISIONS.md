@@ -2093,6 +2093,22 @@ Conditions kept with it: every growing card names itself in its pull request, an
 bloat, sprawl and doom loops are reviewed in the 21:00 report. The ceiling still ratchets:
 this file is the only place it moves, and only on his word.
 
+## 2026-11-21: stop-rule rung pre-registered (R-RUNNER-408, `lab/rung_stops.py`)
+
+Written before the rung was run. His word, Fri 20 Nov about 18:2x via the coordinator: "ok, go with
+the ATR stop test". Research only: no live stop changes until a winner passes the ladder.
+
+- **Rivals (4):** today's fixed stop (10% under the market's fall, 30% on a 3x line); ATR(20) stop
+  at k = 2; ATR(20) stop at k = 3 (both set at the fill, from the ATR at the signal close); a
+  chandelier trail (ATR(20), k = 3: the stop rises to the highest close less 3 ATRs, never falls).
+- **Sizing:** shares = risk budget / stop distance, capped at the desk's room; the budget is what
+  today's stop risks (10% times the line's leverage), so the fixed rule is sized as it is today.
+- **Judging:** the EPON ladder's trades, after the desk's one cost model, in-sample and
+  out-of-sample side by side (`lab/folds.py` cuts); the worst fold's answer is the one judged on,
+  by the first rung's bar (30 trades, t >= 2). The same trades judge every rival.
+- **Trials:** 4 rules (`rung_stops.TRIALS`) per line and fold, named for the luck correction. A
+  rival is promoted only if it beats the fixed rule on its worst fold, from the centre of a plateau.
+
 ## 2026-11-20: the ladder's golden verdict, re-pinned under R-225, and the eased tests restored (R-RUNNER-396, RUNGS lane)
 
 B5: `tests/unit/test_lab_rung_golden.py` was re-pinned by 5ebe658 (#993) under R-RUNNER-225's
