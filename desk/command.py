@@ -63,6 +63,7 @@ from desk.orders import Settings
 from desk.paper import Account
 from desk.running import DAY, VENUES, Desk
 from desk.store import Answer, Refused
+from desk.trading_hours import trading
 
 ROOT, STORE, REHEARSALS = "desk", "store", "rehearsals"  #: folders, each inside the one before
 CAPITAL = Decimal(10_000)  #: the paper desk's one capital, in pounds, until he rules another
@@ -73,8 +74,6 @@ FIRST, LAST, EVERY = time(5, 30), time(22), timedelta(minutes=5)  #: the runner'
 NAMED = (OSError, HTTPException, ValueError, kill.Failed, messenger.Undelivered, paper.NotPaper)
 USAGE = "python -m desk.running [--preflight | --rehearse]"
 RUN = timedelta(minutes=30)  #: the rehearsal's longest run, as the runner allows it
-WINDOW = RUN + timedelta(minutes=60)  #: how near a market's open, or inside it, bars a rehearsal
-AFTER = timedelta(minutes=30)  #: how long past a session's uncrossing a rehearsal still waits
 OPEN = "REHEARSAL NO-GO: not begun: {}."
 GO = (
     "REHEARSAL GO: {:%a %d %b} lived again in {} steps at the paper Gateway ({} failed and the "
@@ -292,22 +291,12 @@ class Found(paper.Apart):
         return words
 
 
-def _trading(now: datetime) -> list[str]:
-    """The markets open at now, opening within WINDOW, or ended less than AFTER ago."""
-    return [
-        VENUES[venue]
-        for venue in VENUES
-        for on in venues.sessions(venue, now.date(), now.date())
-        if (hours := venues.hours(venue, on)).open < now + WINDOW and hours.auction + AFTER >= now
-    ]
-
-
 def _live(desk: Desk, moments: Sequence[datetime], clock: Callable[[], datetime]) -> list[str]:
     """A step at each moment, as the day's: one that fails is named and the next carries on; the
     run stops, named, if a market comes near by the clock."""
     failed = list[str]()
     for at in moments:
-        if near := _trading(clock()):
+        if near := trading(clock()):
             failed.append(f"{at:%H:%M} UTC stopped, {' and '.join(near)} near")
             break
         try:
@@ -325,14 +314,15 @@ def rehearse(
     its one line. Not begun while the kill switch at root is on. Its book is empty: what the
     paper account holds or has working when it begins is the account's (Found), and is left
     as found. Not begun, either, while a market's session is open or opens within the longest
-    run and an hour (WINDOW), or ended just now (AFTER); a run that finds one so stops at once.
+    run and an hour, or in its extended hours (desk.trading_hours); a run that finds one so
+    stops at once.
     A step that fails is counted and the next carries on; then the desk's own orders still
     working are cancelled and the account is read again, whatever happened."""
     today, before = now.date(), paper.whole(paper.Door(paper.DESK))
-    trading = _trading(now)
+    open_now = trading(now)
     barred = (
-        f"{' and '.join(trading)} trade now, soon or just ended, and an order it sent could fill"
-        * bool(trading),
+        f"{' and '.join(open_now)} trade now, soon or just ended, and an order it sent could fill"
+        * bool(open_now),
         book.killed(root) or "",
     )
     if any(barred):
