@@ -31,3 +31,4 @@ def test_two_rounds_of_a_day_send_distinct_ids_and_both_are_recorded_and_a_desk_
         (MON + timedelta(hours=1)).isoformat(),
     ]
     assert len(rows) == 4 and tuple(rows[0]) == conformance_tape.HEAD
+    assert rows[1][2].endswith(f"Its line drawn by seed {int(MON.timestamp())}.")

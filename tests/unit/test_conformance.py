@@ -92,6 +92,18 @@ def test_the_runs_orders_are_on_the_line_that_traded_most_sized_by_the_desk_date
         )  # Tuesday: Monday's
 
 
+def test_a_seed_draws_the_same_line_again_and_its_draws_reach_every_plain_line(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    run = _plan(monkeypatch)  #: no seed: the line that traded the most money, VUAG
+    drawn = {
+        s: conformance.plan([ISF, VUAG], SPY, MON.date(), FX, STAMP, seed=s) for s in range(12)
+    }
+    assert {plan.second.line for plan in drawn.values()} == {ISF, VUAG}
+    assert drawn[7] == conformance.plan([VUAG, ISF], SPY, MON.date(), FX, STAMP, seed=7)
+    assert run.second.line == VUAG
+
+
 def test_the_run_at_the_pretend_broker_word_for_word(monkeypatch: pytest.MonkeyPatch) -> None:
     assert conformance.pretend(_plan(monkeypatch)) == PRETEND
 

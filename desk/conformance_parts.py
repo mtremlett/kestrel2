@@ -4,6 +4,7 @@ R-RUNNER-234; that module imports what is here and is the command)."""
 
 from __future__ import annotations
 
+import random
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import date
@@ -81,8 +82,10 @@ def plan(
     fx: Mapping[str, Decimal],
     stamp: str,
     home: Path | None = None,
+    seed: int | None = None,
 ) -> Plan:
-    """The run's orders: on the line given that traded the most money in its last session,
+    """The run's orders: on the line given that traded the most money in its last session (or,
+    given a seed, the line that seed draws of them, the same line for the same seed and lines),
     sized at its close by the desk's own sizer; and one share of the line to be refused. Every
     order id carries the stamp: book.send answers an id the broker already knows from the broker's
     word of it, so a second run of a day on the first's ids would send nothing."""
@@ -90,6 +93,8 @@ def plan(
         raise ValueError("the broker lists no plain line of the market for the run to trade")
     bars = {line: _last(line, today, home) for line in lines}
     line = max(bars, key=lambda line: bars[line].close * bars[line].volume * fx[line.currency])
+    if seed is not None:  #: a soak's round, drawn so the rounds reach every plain line
+        line = random.Random(seed).choice(sorted(bars, key=lambda line: line.symbol))  # noqa: S311 - a drawn line, no secret
     its = line.venue.lower() + stamp  #: each run names its orders its own: the refusal's too
 
     def sized(name: str, line: Line, close: Decimal) -> Order:
