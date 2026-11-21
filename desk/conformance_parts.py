@@ -194,7 +194,7 @@ def pretend(run: Plan, price: Decimal | None = None, rests: bool = False) -> dic
             return
         broker.open(today + DAY)
         if broker.holdings():  #: the stop above the market: it sells at once, at that bar
-            broker.place(Sale(f"{buy.order_id}-stop", buy.line, buy.quantity))
+            broker.place(Sale(f"{buy.order_id}-stop", buy.line, buy.quantity, session=today))
 
     with TemporaryDirectory() as scratch:
         live(Side(Path(scratch), broker, lambda: (), fall), run, said.__setitem__)
