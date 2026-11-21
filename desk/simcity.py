@@ -33,11 +33,13 @@ from desk.simcity_incidents import (
     PARKED,
     SILENT,
     STALE,
+    STOP_SILENT,
     UNBARRED,
     UNHELD,
     beside,
     cancelled,
     deaf,
+    gateway_silent,
     hole,
     locked,
     minutes,
@@ -208,7 +210,8 @@ def _gapped(life: _Life, on: date) -> None:
     rests = {s: level for s, (_, level) in life.pretend.resting_stops().items()}
     fits = all(rests[s] == due[s] for s in rests & due.keys())
     life.promise("a stop rests where its fill puts it", fits)
-    held = {f.symbol: f for f in book.fills(life.desk) if f.quantity > 0 and f.day == on}
+    shares = book.positions(life.desk)  #: what is held, bought on the gap day or before it
+    held = {f.symbol: f for f in book.fills(life.desk) if f.quantity > 0 and f.symbol in shares}
     before = {x.symbol: [b.close for b in bars if b.day < on] for x, bars in life.market.items()}
     for s in sorted(s for s, closes in before.items() if not closes):
         life.promise(f"FAULT line {s}: no bar before the gap day, its gap is unrunnable", False)
@@ -217,7 +220,7 @@ def _gapped(life: _Life, on: date) -> None:
         orders.Order(
             f"gap-{s}",
             lines[s],
-            f.quantity,
+            shares[s],
             shut[s],
             life.rates[lines[s].currency],
             orders.stop_under(lines[s], shut[s]),
@@ -260,6 +263,7 @@ EVENTS: tuple[Event, ...] = (
     (LOCKED, locked),
     (LIVE, minutes),
     (SILENT, silent),
+    (STOP_SILENT, gateway_silent),
 )
 
 

@@ -353,7 +353,7 @@ def test_a_promise_the_desk_breaks_in_any_world_turns_the_night_red_and_names_th
 ) -> None:
     monkeypatch.setattr(owner, name, broken_desk)
     monkeypatch.setattr(
-        simcity, "EVENTS", simcity.EVENTS[first:-4]
+        simcity, "EVENTS", simcity.EVENTS[first:-5]
     )  #: not the unheard hour nor the parked yardstick: each has its own test
     night = busy(monkeypatch, tmp_path, (0, 1))
     for promise in promises:
