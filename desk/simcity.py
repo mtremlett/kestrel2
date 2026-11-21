@@ -31,6 +31,7 @@ from desk.simcity_incidents import (
     LIVE,
     LOCKED,
     PARKED,
+    SHUT,
     STALE,
     UNBARRED,
     UNHELD,
@@ -41,6 +42,7 @@ from desk.simcity_incidents import (
     locked,
     minutes,
     parked,
+    shut,
     stale,
     unbarred,
     unheld,
@@ -257,6 +259,7 @@ EVENTS: tuple[Event, ...] = (
     (UNBARRED, unbarred),
     (LOCKED, locked),
     (LIVE, minutes),
+    (SHUT, shut),
 )
 
 

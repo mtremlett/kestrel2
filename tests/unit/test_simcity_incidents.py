@@ -17,6 +17,7 @@ from desk import (
     conformance_parts,
     day,
     day_money,
+    gateway,
     keeper,
     keeper_live,
     simcity,
@@ -36,6 +37,7 @@ from desk.simcity_incidents import (
     PARKED,
     PROMISE,
     REFUSED,
+    SHUT,
     SOLD,
     STALE,
     UNBARRED,
@@ -49,6 +51,7 @@ from desk.simcity_incidents import (
     minutes,
     outside,
     parked,
+    shut,
     stale,
     unbarred,
     unheld,
@@ -127,6 +130,7 @@ def test_without_naming_the_cancelled_orders_the_scenario_is_red(
         (UNHELD, unheld),
         (UNBARRED, unbarred),
         (LOCKED, locked),
+        (SHUT, shut),
         (LIVE, minutes),
     ],
 )
@@ -223,3 +227,13 @@ def test_without_the_refusal_by_name_a_locked_store_scenario_is_red(
     monkeypatch.setattr(bars, "NoRound", type("Quiet", (Exception,), {}))
     red = simcity.run(tmp_path, SHORT, ROOM, RATES, NOW, (1,))
     assert red.deaths or any(LOCKED in b for b in red.broken)
+
+
+def test_a_closed_gateway_port_is_refused_by_name_and_without_the_refusal_is_red(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(simcity, "EVENTS", ((SHUT, shut),))
+    monkeypatch.setattr(simcity, "EVENTFUL", 1)
+    monkeypatch.setattr(gateway, "known", lambda *_a, **_k: gateway.Known(gateway.State.READY, ""))
+    with pytest.raises(ConnectionRefusedError, match="4002"):  #: the run goes on to a dead door
+        simcity.run(tmp_path, SHORT, ROOM, RATES, NOW, (1,))
