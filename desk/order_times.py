@@ -1,9 +1,10 @@
 """order_times - WHEN THE BROKER DID WHAT WITH AN ORDER AT THE MARKET: for each order the desk
 sends, the moment it was sent, the moment the broker first reports it PreSubmitted or
-Submitted, each fill's moment and size, and the moment the desk cancelled it, all UTC. They
-are read off the messages the desk already reads (the wire is watched, nothing is asked) and
-kept beside the day's orders, in `order_times.csv` under the desk's root, one row per event
-under the order's id, so the wait an order is given (paper.FILL_SECONDS) is set from them."""
+Submitted, each fill's moment and size, and the moment the desk cancelled it, all UTC to the
+millisecond. They are read off the messages the desk already reads (the wire is watched,
+nothing is asked) and kept beside the day's orders, in `order_times.csv` under the desk's
+root, one row per event under the order's id, so the wait an order is given
+(paper.FILL_SECONDS) is set from them."""
 
 from __future__ import annotations
 
@@ -31,7 +32,7 @@ class Times:
 
     def note(self, event: str, shares: str = "") -> None:
         """Take down an event at this moment."""
-        self.rows.append((event, self._clock().isoformat(), shares))
+        self.rows.append((event, self._clock().isoformat(timespec="milliseconds"), shares))
 
     def sent(self, number: str) -> None:
         """The order goes now, under this number at the gateway: its messages are heeded."""
