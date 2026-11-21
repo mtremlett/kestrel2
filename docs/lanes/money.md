@@ -672,3 +672,18 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 
 ### 2026-11-20 - park one line by hand reuses GATE, not a new blocker (#1117, R-RUNNER-397)
 - Options: (a) a new Blocker for a hand-parked line (touches the SimCity census and its tests), (b) reuse the existing GATE blocker. Chose (b): the operator's list is a separate file (`parked.csv`, desk/handpark.py), not `store.Parked`, which means a data fault, and no new enum is added. Sales and stops are untouched; deleting the row buys the line next round.
+
+### 2026-11-20 - a buy at or under its stop is refused in the one gate (#1255, R-RUNNER-407 part)
+- Options: (a) the refusal in `orders.gate`, the one pre-trade gate, with the live price optional so no caller breaks; (b) a check in `day.py`, a second path. Chose (a) (canon A4, one owner per rule). Nothing sets `Order.market` yet, so behaviour is unchanged until the wiring (R-MONEY-60).
+
+### 2026-11-21 - a whole market is not stale; seed 7 (#1022, R-RUNNER-317)
+- Options: (a) pin the right behaviour (a venue whose every line has a fresh one-minute bar is not stale) and show it red with the handling removed; (b) guess the cause of the 17 November stale lines and change `desk/keeper_live.py`, outside the claim. Chose (a), as the request allows when the desk already behaves rightly. The new event shifted seed 6's draws; the fourteen-month fixture uses seed 7, the first green (8-12: 11 and 8 left gap parts uncovered, 12 stopped on a holiday). The real cause is unreproduced.
+
+### 2026-11-21 - a locked live store fails loudly (#1245, R-RUNNER-319)
+- Options: (a) the keeper's round is refused by name (`NoRound`, naming the store) and runs again next minute; (b) swallow it as a MISSED line in `desk/keeper.py`. Chose (a), canon "fail loudly", his 13 Nov "always go with recommended"; (b) needs keeper files outside the claim. Restore note: the scenario first asked for a closed day (Easter Monday), fixed; its extra draw moved the deaf scenario onto a real crash, so world 1 is used, as in #1052 and #972.
+
+### 2026-11-21 - the book splits rehearsal fills by id prefix (#1272, R-RUNNER-414)
+- Chose the prefix `rehearsal-`, the one id the desk never makes, over a flag in the ledger; `book.found()` returns them, `book.fills()` does not, rows are kept (nothing deleted). Rows 6-7 of the real ledger carry old unprefixed ids and stay counted until marked by hand or a later change.
+
+### 2026-11-21 - the replay compares partial fills (#1279, R-RUNNER-409)
+- Options: skip partial fills, or compare them as a size difference. Chose compare: the desk should size the same whatever the broker filled. Its own entry point `python -m desk.simcity_fills`, because `simcitycmd.py` is outside the claim.

@@ -463,7 +463,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       {id: money-restop; files: desk/day.py, desk/book.py, tests/unit/test_day*.py,
       tests/unit/test_book*.py, desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml,
       desk/broker.py, tests/unit/test_broker*.py;
-      after: money-working; waits: R-MONEY-18, R-MONEY-31}
+      waits: R-MONEY-18, R-MONEY-31}
       (The lost-stop list reaching him is a change to desk/messenger.py, which the paper lane owns; MONEY cannot edit it, and widening MONEY's file list would loosen a guard for no reason.)
 - [x] Emergencies in numbers: an emergency, a crash and a black swan each defined by measured
       falls, each with its action (EMG-01) {id: money-emergencies; files: desk/emergency.py,
