@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from contextlib import suppress
+from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from functools import partial
@@ -36,6 +37,7 @@ from desk import (
     venues,
 )
 from desk.lines import LINES, Line
+from desk.messenger_parts import SMTP
 from desk.store import Answer, Bar, Refused
 
 MON = datetime(2026, 11, 16, 7, 15, tzinfo=UTC)
@@ -331,3 +333,23 @@ def test_a_real_step_is_followed_by_the_hourly_pnl_once_an_hour(
         command.hourly(desk, moment)
     assert [call.args[0] for call in post.call_args_list] == ["the day so far"] * 2
     assert told.call_args.args[-1] == open_london.replace(hour=10)
+
+
+def test_the_email_fallback_is_wired_only_when_his_smtp_settings_are_set(tmp_path: Path) -> None:
+    now = MON.replace(hour=21)
+    env = {"TELEGRAM_BOT_TOKEN": "t", "TELEGRAM_CHAT_ID": "1"}
+    assert command._doors(env, tmp_path, now)[1] is None
+    smtp = dict(zip(SMTP, ("h", "465", "u", "p", "to"), strict=True))
+    assert command._doors(env | smtp, tmp_path, now)[1] is not None
+    with pytest.raises(ValueError, match="SMTP_TO"):
+        command._doors(env | smtp | {"SMTP_TO": ""}, tmp_path, now)
+
+
+def test_the_evening_summary_goes_by_email_once_when_the_desk_has_a_mail_door(
+    tmp_path: Path,
+) -> None:
+    desk, mail = command._desk(tmp_path, Mock(side_effect=range(1, 9)), tmp_path), Mock()
+    for moment in (MON.replace(hour=21, minute=40), MON.replace(hour=21, minute=45)):
+        running._say(replace(desk, mail=mail), moment, running.UNASKED)
+    (call,) = mail.call_args_list
+    assert call.args[0].startswith("Kestrel desk: summary")
