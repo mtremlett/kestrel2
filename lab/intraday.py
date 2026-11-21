@@ -7,22 +7,34 @@ It also prices the intraday engine's trades for the ladder's rule (R-RUNNER-354)
 a session's decisions, fills each at the NEXT bar's open (a decision on the session's last bar
 fills nowhere: the position is forced out at that bar's close), sizes a buy as the first rung
 does, and charges both legs by `orders.charges` in pounds; `judged` is rung.decide on
-rung.standard_errors. No cost or verdict rule is written here."""
+rung.standard_errors. No cost or verdict rule is written here.
+
+SET INTRADAY (R-RUNNER-355): `judge_set` runs both rules on every line the store holds
+five-minute bars for (the `held` table of market_live.db), every session it holds, enters every
+trial in the register (lab/trials.py) before the first is judged, and writes
+`ladder/sets/INTRADAY.md`, PRE-REVIEW until the blind review (R-RUNNER-40) is clean."""
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-from datetime import datetime, timedelta
+import hashlib
+import inspect
+import sqlite3
+from collections.abc import Callable, Sequence
+from contextlib import closing
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from pathlib import Path
 from typing import ClassVar
 
-from desk import orders, venues
-from desk.intraday import IntradayDecision, Span
-from desk.lines import Line
+from desk import bars as store
+from desk import intraday, orders, venues
+from desk.command import CAPITAL
+from desk.intraday import IntradayDecision, IntradayRule, Span
+from desk.lines import LINES, Line
 from desk.orders import Leg, Settings
 from desk.rollup import Candle
 from desk.strategy import Action, Decision, _Window, lower_band
-from lab import rung
+from lab import history_bars, ladder, rung, trials, universe, verdict_parts
 from lab.cell import Trade
 from lab.rung import Answer, Priced, Rates
 
@@ -127,3 +139,84 @@ def priced(
 def judged(trades: Sequence[Priced]) -> Answer:
     """The first rung's one rule on the trades' gains: THIN under MIN_TRADES; no spread refused."""
     return rung.decide(len(trades), rung.standard_errors([p.gain for p in trades]))
+
+
+TAG = "INTRADAY"
+QUESTION = (
+    "set INTRADAY: does an intraday rule earn on a line the store holds five-minute bars for?"
+)
+HELD = "SELECT venue, symbol FROM held WHERE span = ?"
+FAR = datetime(2100, 1, 1, tzinfo=UTC)
+RULES: dict[str, Callable[[str], IntradayRule]] = {
+    "opening_range_breakout": OpeningRangeBreakout,
+    "intraday_mean_reversion": IntradayMeanReversion,
+}
+
+
+def lines(home: Path) -> tuple[Line, ...]:
+    """The lines the store holds five-minute bars for, the desk's own first, then the research
+    list's, as `history_bars.lines` reads the daily ones."""
+    file = history_bars.database(home)
+    if not file.is_file():
+        raise FileNotFoundError(f"{file}: no live database to take the intraday set's lines from")
+    with closing(sqlite3.connect(file)) as held:
+        kept = set(held.execute(HELD, (store.FIVE,)).fetchall())
+    both = dict.fromkeys((*LINES, *universe.UNIVERSE))
+    return tuple(line for line in both if (line.venue, line.symbol) in kept)
+
+
+def trial(rule: str, line: Line) -> str:
+    """A trial's name: the rule, the line and venue, and the hash of the rule's code, so a rule
+    that is changed is new trials, never a free second look."""
+    code = hashlib.sha256(inspect.getsource(RULES[rule]).encode()).hexdigest()[:12]
+    return f"{rule} {line.symbol} {line.venue} five-minute {code}"
+
+
+def _register(home: Path, todo: Sequence[str]) -> Path:
+    """The set's register, begun on its first run, with every trial of this run entered."""
+    register = home / ladder.FOLDER / f"{TAG}.trials.jsonl"
+    if not register.exists():
+        register.parent.mkdir(parents=True, exist_ok=True)
+        trials.start(register)
+        trials.ask(register, QUESTION)
+    trials.enter(register, QUESTION, todo)
+    return register
+
+
+def _line_trades(
+    path: Path, rule: str, line: Line, rates: Rates, settings: Settings
+) -> tuple[Priced, ...]:
+    """Every session the store holds for the line, the rule run on each and its trades priced."""
+    held = store.five(path, line, store.EPOCH, FAR)
+    made: list[Priced] = []
+    for day in sorted({b.start.date() for b in held}):
+        session = intraday.session(path, line, Span.FIVE_MINUTES, day)
+        got = intraday.run(rule, RULES[rule](line.venue), line.venue, line.symbol, session)
+        made += priced(line, [*got], session, rates, settings)
+    return tuple(made)
+
+
+def judge_set(home: Path, rates: Rates) -> str:
+    """Set INTRADAY: both rules on each line, the trials entered first, the table written and
+    `SET INTRADAY: <n> rules, <passed> passed, table <path>` said. A line the store cannot
+    serve whole is a row that says why, never a guess."""
+    held = lines(home)
+    todo = [(rule, line) for rule in RULES for line in held]
+    register = _register(home, [trial(rule, line) for rule, line in todo])
+    path, settings, rows = history_bars.database(home), Settings(CAPITAL), []
+    for rule, line in todo:
+        try:
+            trades = _line_trades(path, rule, line, rates, settings)
+            answer = judged(trades)
+            rows.append((rule, line, f"{len(trades)} trades", answer.name))
+        except (ValueError, LookupError) as refusal:
+            rows.append((rule, line, "refused", str(refusal).replace("|", "/")))
+    table = home / ladder.FOLDER / "sets" / f"{TAG}.md"
+    table.parent.mkdir(parents=True, exist_ok=True)
+    out = [f"# SET {TAG} - {verdict_parts.STATUS}", "", QUESTION]
+    out += [f"Each is judged against {trials.count(register, QUESTION)} trials.", ""]
+    out += ["| rule | line | trades | answer |", "|---|---|---|---|"]
+    out += [f"| {r} | {ln.symbol} ({ln.venue}) | {t} | {a} |" for r, ln, t, a in rows]
+    table.write_text(chr(10).join(out) + chr(10), encoding="utf-8")
+    passed = sum(a == "PASS" for *_, a in rows)
+    return f"SET {TAG}: {len(RULES)} rules, {passed} passed, table {table}"

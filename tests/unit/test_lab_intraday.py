@@ -3,19 +3,22 @@ actions, and the rule future-blind (decisions on the first k bars are the first 
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import date, timedelta
 from decimal import Decimal
+from pathlib import Path
 from typing import ClassVar
 
 import pytest
 
 import lab.intraday as lab_intraday
-from desk import intraday, orders, venues
+from desk import bars, intraday, orders, venues
 from desk.lines import LINES
 from desk.orders import Leg, Settings
 from desk.rollup import Candle
+from desk.spans import Five
 from desk.strategy import Action
-from lab import rung
+from lab import rung, trials
 from lab.intraday import IntradayMeanReversion, OpeningRangeBreakout
 from lab.rung import Answer
 
@@ -145,3 +148,32 @@ def test_the_gains_are_judged_by_the_rungs_rule_thin_and_refused_without_spread(
     assert lab_intraday.judged(two) is Answer.THIN
     with pytest.raises(ValueError, match="no spread"):
         lab_intraday.judged((two[0], two[0]))
+
+
+def test_the_set_runs_two_rules_on_two_lines_and_counts_every_trial_before_judging(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    one, two = LINES[0], LINES[1]
+    with bars.writing(tmp_path / bars.LIVE) as opened:
+        for line in (one, two):
+            opened.five(
+                line, [Five(c.start, c.open, c.high, c.low, c.close, 1) for c in BARS[:102]]
+            )
+    register = tmp_path / "ladder" / "INTRADAY.trials.jsonl"
+    counted: list[int] = []
+    real = lab_intraday.judged
+
+    def spy(trades: Sequence[rung.Priced]) -> Answer:
+        counted.append(trials.count(register, lab_intraday.QUESTION))
+        return real(trades)
+
+    monkeypatch.setattr(lab_intraday, "judged", spy)
+    said = lab_intraday.judge_set(tmp_path, {})
+    assert counted == [4] * 4  # all four trials were entered before the first was judged
+    table = (tmp_path / "ladder" / "sets" / "INTRADAY.md").read_text(encoding="utf-8")
+    assert "PRE-REVIEW" in table and said.startswith("SET INTRADAY: 2 rules, 0 passed")
+    assert (
+        sum(f"| {r} | {x.symbol} (LSE) |" in table for r in lab_intraday.RULES for x in (one, two))
+        == 4
+    )
+    assert (table.count("THIN"), table.count("FAULT")) == (2, 2)  # the band never trades a day
