@@ -699,3 +699,9 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 
 ### 2026-11-21 - SimCity coverage by a fixed, draw-free scenario (#1067, R-RUNNER-391)
 - Options: (a) another seed, (b) reordered draws, (c) a new scenario "a stop is moved and a sale is weighed against the gap limit" (Pretend.restop, orders.gap_loss, orders.gapped once per world on the first fit day, no random draws). (a) and (b) were refused by the request. Chose (c): no change in the draws can lose it. Nothing loosened. `desk/simcity.py` is 397 lines, near the 400 cap; the next change there splits it.
+
+### 2026-11-21 - the watch's broker door is optional (#1405, R-MONEY-54)
+- Options: (a) `watch.look` takes an optional door (`Callable[[], Broker]`), the old call still works; (b) a required door, which breaks PAPER's caller in `desk/running.py` in the same change. Chose (a): the broker there is built in `_work`, after the look, so PAPER's side needs a lazily built Paper broker; asked of PAPER as R-MONEY-61.
+
+### 2026-11-21 - day.py's small steps join day_parts, not a new file (#1417, R-RUNNER-418)
+- Options: (1) the requested new `desk/day_steps.py` (desk/ is at its 100-file ceiling, so BUDGET.json's guard goes red at 101); (2) fold into `desk/day_parts.py`, chosen; (3) raise the ceiling, a guard loosening and not needed. A pure move, day.py re-exports so callers and tests are unchanged. R-RUNGS-29 declined: it changes `tests/guards/test_lanes.py`, outside MONEY's claim, a loosening for the runner/coordinator.
