@@ -36,13 +36,14 @@ remembers nothing, and is one of the desk's steps: one process at a time."""
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from pathlib import Path
 
 from desk import bars, emergency, halt, messenger, venues
 from desk.bars import Five
+from desk.broker import Broker
 from desk.emergency import Fall, Level, Unread
 from desk.lines import YARDSTICK, Line
 from desk.store import Bar
@@ -84,6 +85,7 @@ UNENDED = (
     "and one is called only if a bar of that day in the store read a crash. Told once."
 )
 Owed = list[tuple[str, str]]  #: messages he is owed: each one's name, and its words
+Door = Callable[[], Broker]  #: opens the broker only when a halt has to cancel its working buys
 
 
 @dataclass(frozen=True)
@@ -212,15 +214,20 @@ def _lift(root: Path, end: Fall, session: Hours, now: datetime) -> Owed:
     return told
 
 
-def _call(root: Path, fall: Fall, now: datetime) -> None:
+def _call(root: Path, fall: Fall, now: datetime, door: Door | None) -> None:
     """THE MARKET'S FALL HALTS ALL BUYING: a halt of the watch's is called, his alone to lift
-    for a black swan, unless one of its kind stands already."""
+    for a black swan, unless one of its kind stands already. Given a door to the broker, the
+    halt also cancels the buys working there (halt.stop, R-MONEY-54)."""
     his = fall.level is Level.BLACK_SWAN
-    if not any(h.by == WATCH and h.his == his for h in halt.in_force(root)):
+    if any(h.by == WATCH and h.his == his for h in halt.in_force(root)):
+        return
+    if door is None:
         halt.call(root, now, fall.words(), by=WATCH, his=his)
+    else:
+        halt.stop(root, door(), now, fall.words(), by=WATCH, his=his)
 
 
-def _halts(root: Path, hot: Path, market: Sequence[Bar], now: datetime) -> Owed:
+def _halts(root: Path, hot: Path, market: Sequence[Bar], now: datetime, door: Door | None) -> Owed:
     """THE MARKET'S HALTS, PUT RIGHT: a last session that ended clear lifts, an end unread
     is said, and what raises a halt calls one. Given back: what he is owed for it."""
     owed: Owed = []
@@ -232,7 +239,7 @@ def _halts(root: Path, hot: Path, market: Sequence[Bar], now: datetime) -> Owed:
         day = last[0].close.date()
         owed.append((f"watch {day} end unread", UNENDED.format(day)))
     for fall in _raised(hot, market, now):
-        _call(root, fall, now)
+        _call(root, fall, now, door)
     return owed
 
 
@@ -242,13 +249,15 @@ def look(
     daily: Mapping[Line, Sequence[Bar]],
     now: datetime,
     post: messenger.Post,
+    door: Door | None = None,
 ) -> Look:
     """ONE LOOK, AND WHAT IT CALLS FOR, DONE AT ONCE: the desk's records at root, the fast
     store at hot, each line's daily bars, the moment in UTC and the door to his phone. The
     halts are lifted and called before he is told anything, so a door that is down stops no
-    halt; a message it did not take is an error raised."""
+    halt; a message it did not take is an error raised. A door to the broker, if given, lets a
+    halt called cancel the buys working there."""
     seen = read(hot, daily, now)
-    owed = _halts(root, hot, daily[YARDSTICK], now)
+    owed = _halts(root, hot, daily[YARDSTICK], now, door)
     standing = [called for called in halt.in_force(root) if called.by == WATCH]
     for called in standing:
         level = Level.BLACK_SWAN if called.his else Level.CRASH
