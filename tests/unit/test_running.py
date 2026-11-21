@@ -4,6 +4,7 @@ is told what was done, and of a step that failed."""
 
 from __future__ import annotations
 
+import csv
 from collections.abc import Sequence
 from datetime import UTC, date, datetime, timedelta, timezone
 from decimal import Decimal
@@ -208,6 +209,7 @@ def test_what_a_desk_that_died_part_way_left_at_the_broker_is_put_right(
     did, sent = recover(idle, working, gone, [END], left, [tp.ENDED_42])
     assert did == (f"cancelled {ID}, left working", "IITU left under one stop for 26 shares")
     assert sent == [ACCOUNT, tp.CANCEL, FILLS, ACCOUNT, tp.CANCEL_42]
+    assert [row[0] for row in csv.reader((idle / book.CANCELS).open())] == [ID]  # R-RUNNER-394
     # that buy had bought ten, and the broker ended its stop with it: the ten are given a stop
     # at the level the buy's own had, known from the account as it was found
     ten = [_but(tp.HELD, 14, "10")]
