@@ -122,6 +122,9 @@ def test_the_census_names_every_part_of_the_money_path_and_the_scenarios_that_ra
         "broker.Pretend.inject": simcity.BEHIND,
         "broker.Pretend.cancel_stop": simcity.UNSTOPPED,
         "broker.Pretend.put_stop_back": simcity.UNSTOPPED,
+        "broker.Pretend.restop": simcity.STOPS,
+        "orders.gap_loss": simcity.STOPS,
+        "orders.gapped": simcity.STOPS,
         "kill.pull": simcity.KILLED,
         "kill.Killed.words": simcity.KILLED,
         "orders.Charges.total": simcity.DAY,  #: a property is a part as a method is
