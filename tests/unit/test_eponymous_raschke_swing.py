@@ -29,4 +29,12 @@ def test_the_older_low_must_be_four_sessions_old_and_the_close_back_over_it() ->
     assert _trades([*[FLAT] * 16, (99, 100), *[FLAT] * 3, (98, 105)]) == {20: Action.BUY}
     assert _trades([*[FLAT] * 17, (99, 100), *[FLAT] * 2, (98, 105)]) == {}  # three sessions old
     assert _trades([(99, 100), *[FLAT] * 19, (97, 98)]) == {}  # no close back over 99
+    assert _trades([(99, 100), *[FLAT] * 19, (97, 98), (97, 98)]) == {}  # nor the day after
     assert _trades([(99, 100), *[FLAT] * 18, (98, 105)]) == {}  # under twenty days of history
+
+
+def test_the_buy_stop_over_the_older_low_fills_the_day_after_a_new_low() -> None:
+    # the book places its buy stop over the older low for the next day: day 20 undercuts 99 and
+    # closes under it, day 21 closes back over it: BUY on 21, stop under day 20's low (97).
+    days = [(99, 100), *[FLAT] * 19, (97, 98), (98, 105), (96, 96)]
+    assert _trades(days) == {21: Action.BUY, 22: Action.SELL}

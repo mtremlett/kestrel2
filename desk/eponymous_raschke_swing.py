@@ -10,7 +10,9 @@ stop sits just under the new low.
 
 THIS PORT, on daily bars: buy at the close of a day whose low is under the lowest low of the
 twenty days before it, when that older low was set four or more sessions before, and the close
-is back above it. Sell at the first close under the low of the buying day. The book's stop
+is back above it; or, the book's buy stop over the older low, on the day after such a new low
+that closed under it, the close is over the older low.
+Sell at the first close under the low of the buying day. The book's stop
 trails and takes profit by discretion; no mechanical exit is published, so the port takes the
 book's stop alone.
 
@@ -48,19 +50,34 @@ class RaschkeTurtleSoup:
     def __init__(self) -> None:
         self._lows: deque[Decimal] = deque(maxlen=LOOKBACK)  #: the days before today
         self._stop: Decimal | None = None  #: the buying day's low
+        self._armed: tuple[Decimal, Decimal] | None = None  #: older low, new low of the setup day
 
-    def _fails_breakdown(self, bar: Bar) -> bool:
+    def _older_low(self) -> Decimal | None:
+        """The lowest low of the twenty days before today, when it is four sessions old."""
         if len(self._lows) < LOOKBACK:
-            return False
+            return None
         older = min(self._lows)
         newest = LOOKBACK - 1 - list(reversed(self._lows)).index(older)  #: its latest day
-        return bar.low < older < bar.close and LOOKBACK - newest >= GAP
+        return older if LOOKBACK - newest >= GAP else None
+
+    def _entry(self, bar: Bar) -> bool:
+        """Whether to buy at this close; a new low that has not turned back arms the next day."""
+        armed, self._armed = self._armed, None
+        older = self._older_low()
+        if armed is not None and bar.close > armed[0]:  #: the book's buy stop over the older low
+            self._stop = min(armed[1], bar.low)
+            return True
+        if older is None or bar.low >= older:
+            return False
+        if bar.close > older:
+            self._stop = bar.low
+            return True
+        self._armed = (older, bar.low)
+        return False
 
     def step(self, bar: Bar, holding: bool) -> bool:
         """Shown the next bar after its close: whether to be in the market from here."""
-        buys = not holding and self._fails_breakdown(bar)
-        if buys:
-            self._stop = bar.low
+        buys = not holding and self._entry(bar)
         self._lows.append(bar.low)
         if holding:
             return self._stop is not None and bar.close >= self._stop
