@@ -17,7 +17,7 @@ from unittest.mock import Mock
 import pytest
 import test_placing as tp
 from test_paper import ACCOUNTS, HELLO, NEXT, Said, _account, _but, _order, _wire
-from test_reports import END, LISTED
+from test_reports import BOUGHT, END, LISTED
 from test_running import MADE, fast_store
 
 from desk import (
@@ -288,8 +288,15 @@ def test_the_rehearsal_runs_beside_a_held_account_and_leaves_its_holdings_and_st
             held, *both[0], *both[1], *_order("9", "SELL STP", "a-stop", "PreSubmitted")
         ),
     }
+    # Fri 13 Nov: the real desk's buys of the held lines, under the ids the rehearsal decides
+    real = [
+        _but(
+            _but(_but(BOUGHT, 4, n), 14, f"e859.{n}.01.01"), 26, f"20261113-bollinger_pullback-{n}"
+        )
+        for n in ("IB1T", "MSTR")
+    ]
     for said, end in cases.items():
-        answers[tp.ACCOUNT] = account
+        answers[tp.ACCOUNT], answers[tp.FILLS] = account, [*real, END]
 
         def step(desk: running.Desk, now: datetime, end: Said = end) -> None:
             whole(desk, now)

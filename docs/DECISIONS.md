@@ -2104,3 +2104,35 @@ Two loosenings that change followed are undone here: the registry test again ass
 every line not stopped by a hard fail is judged on first, market and folds, and the blanket
 autouse switch-off in the ladder, retail and tape tests is gone: a test pins the easing off
 only by name, with its reason beside it.
+
+## 21 Nov - a file may hold 800 lines, not 400, by his own words
+
+His words, to the coordinator in chat, Sat 21 Nov ~09:10, verbatim: "whilst we are in
+development then relax these rules to allow natural file growth. but please monitor doom
+loops." The coordinator recorded them (kestrel2_notes after-first-light.md, "Sat 21 Nov
+09:3x HIS WORDS") and ruled them his plain-English yes to loosen one guard:
+`max_lines_per_file` in `BUDGET.json` rises from 400 to 800 (order S). Unchanged: functions
+stay under 50 lines, and the desk and lab package ceilings stay as they are.
+
+Why: sessions were splitting files only to stay under 400 (simcity, store, orders), each
+split a pull request that moved lines without adding behaviour. The package ceilings still
+bound growth; the doom-loop watch is the stall monitor and the recurring-fix rule (A2).
+
+Guard proven (A7): an 801-line file under `desk/` made `test_no_file_is_a_monolith` fail
+("over 800 lines"); an 800-line file passed; both removed.
+
+## 21 Nov - the lab may hold 20,000 lines, not 12,000, by his own words
+
+His words, to the coordinator in chat, Sat 21 Nov ~11:2x (clock-checked 11:32), verbatim:
+"raise the Experimental-code area ceiling to 20,000. we can iteratively refactor in the
+future." The coordinator recorded them (kestrel2_notes HANDOVER-coordinator.md, "HIS WORDS
+11:2x") and ordered this change (order A). `lab_lines` in `BUDGET.json` rises from 12,000
+to 20,000 in phases 3 and 4, as his 15 Nov ruling raised both to 12,000. Unchanged: the
+desk ceilings, the file and function limits.
+
+Why: research cards stood still "waiting for room" with lab/ at 11,951 of 12,000 and more
+riding; building had fallen to 0 of 12. The cleanup he named is a later refactor, not a
+precondition.
+
+Guard proven (A7): lab/ padded to 20,001 lines made `test_the_tree_is_inside_this_phases_ceiling`
+fail ("ceiling 20000"); at 20,000 it passed; the padding removed.
