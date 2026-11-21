@@ -276,7 +276,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       Built: the two databases (#442, #510), the keeper and reference series on them (#486, #524), the
       imports of Stooq, ibkr_store and mark_the_trend daily, hourly and 15/30-minute rows (#527-#566), the
       history pull and its writer (#636, #674), pages back and keeps the line's currency (#710, #725). Remains: the rest of R-RUNNER-10 (5-minute parquet, market.db,
-      bars.db, per-source counts), paging back (R-RUNNER-216; #739: pull asks only 1m-30m and 1d; remains rollup of 1h, 4h, 1wk
+      bars.db, per-source counts), paging back (R-RUNNER-216; #739: pull asks only 1m-30m and 1d; remains rollup of 1h, 4h, 1wk (#1243 15m/30m from 5m; #1301, #1305 2m/5m/10m from 1m; remains the monitor's filler writing them)
       into the history database as rollup:<from>; #780: a rolled bar differing from a held one is a FAULT line on stderr; #797: `python -m desk.quality` audits, backfills and re-audits the daily timeframe; remains the other timeframes, market_live.db, local Stooq and rollup sources, the runner job; #930: backfill.fill takes one ordered source list, the rollup step needs Source.ROLLUP_5M in desk/bars_schema.py, outside the box's claim; #935: the audit counts a closed session of today), the long database for daily and up
       {id: data-two-stores; files: desk/bars.py, tests/unit/test_bars*.py, desk/keeper.py, tests/unit/test_keeper*.py; after: data-ingest; waits: operator}
 - [ ] **Data in tiers, for 4,000+ tickers** (research of 14 November, kept in the notes
@@ -296,6 +296,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       Built: the calendar reaches 1993 (#594), the archive is spared (#637, #665, #668, #685). Remains: the
       bars before 2010 through the head start, once its remains (data-headstart) are met
       Built (#691): `archive.SINCE` is 1 January 2000, so the keeper's next daily round asks 2000-2009.
+      Checked on main (#1101): venues.SESSION_YEARS 1993-2029, archive.SINCE 2000-01-01; nothing left to build.
       Built (#841): venues.KNOWN split into HOURS_YEARS and SESSION_YEARS, the store keeps bars from 2000, five real moves recorded. Remains: the first keeper round to fill 2000-2009 for all twenty lines and read any park.
       Earlier (#819, #821, #822): the old Stooq store holds nothing before the archive's first bar, so no head start is left to write. `desk/store.py:152` and `desk/bars_parts.py:24` read `venues.KNOWN` (hours years, 2010-2029) as the sessions years (`venues.SESSION_YEARS`, 1993-2029), so every bar before 2010 is dropped; the US calendar's 2000-2009 sessions are pinned (#819). One session claiming desk/venues.py, store.py, bars_parts.py, lines.py and their tests: split KNOWN, point store at the sessions years, record five real moves in `real_moves` (AAPL 2000-09-29; NVDA 2000-04-05, 2004-08-06; AMD 2008-09-29, -30; confirm each on the archive's bars), then `python -m lab.headstart_days` and the keeper fill 2000-2009
       {id: data-deep-history; files: desk/venues.py, tests/unit/test_venues*.py, lab/headstart.py, tests/unit/test_lab_headstart.py, desk/archive.py, tests/unit/test_archive*.py; after: data-calendar-years, data-polite; waits: operator}
@@ -318,8 +319,8 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       {id: data-3lgo; files: desk/lines.py, tests/unit/test_lines.py, desk/store.py, tests/unit/test_store.py; after: data-sgln}
 - [x] A stretched bar's changes recorded beside it
       {id: data-stretched; files: desk/store.py, tests/unit/test_store.py; after: data-3lgo}
-- [ ] A line's bars and its fault record written together, so a crash cannot part them
-      Built (#832): both files written whole before either is swapped in. Remains: a crash between the two swaps; one file per line, which needs lab/universe.py and tests/unit/test_lab_universe.py in the claim
+- [x] A line's bars and its fault record written together, so a crash cannot part them
+      Built (#832, #1210): one CSV per line, fault rows in a `fault` column, swapped in with one replace. Older stores keep an orphan `*.faults.csv` until the next nightly prepare.
       {id: data-written-together; files: desk/store.py, tests/unit/test_store.py; after: data-stretched; waits: operator}
 - [x] A pence history the archive calls pounds caught
       Built (#630, #725): every pull reaches the store through `history_write.keeper`, which turns pence to pounds once on entry; `history.run` and `pull` hand out the broker's unit by design (#1065)
@@ -348,6 +349,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
 - [ ] Leveraged-product lifecycle watched: an issuer's closure, a compulsory redemption or
       an ISA eligibility change on any line held or researched raises an alert (BIC-11)
 - [ ] Disk watched; old research files roll off by rule (OPS-07)
+      Built (#1098, #1107): `python -m desk.quality` goes red under 10% free on the store's drive (`quality.disk`, called from `monitor`). Remains: the roll-off rule for old research files (needs his yes before deleting); the runner job reading the red; other monitor tests read the real drive's free space.
 - [ ] **IBKR's capacity, no new spend, 10% kept spare** (research of 14 November,
       `free_data_2026-11-14.md` in the notes folder): 90 tickers streamed live, 1-minute bars
       built from quotes; polled 1-minute bars for 27 tickers every 5 minutes, 81 every 15 and
@@ -668,7 +670,7 @@ his PC with the desk's own client id (222), never 4001.
       trading" by 09:30 UK; urgency levels without storms; one messenger with a delivery
       record, the merge line and the runner's alerts behind the same door (MSG-02, MSG-03,
       MSG-04, MSG-09, MSG-11)
-      Remains: hourly P&L (#471, #492), the kill and halt line (#502) and the email fallback (#484, not yet wired into desk/running.py) landed; desk/messenger.py is at its 400-line limit and desk/ has 92 of 10,500 lines left, so the new messages need a phase-ceiling raise in BUDGET.json (waits: operator: it needs his approval and is outside every PAPER claim). The evening message now names each lost stop (#805); messenger split to 349 lines (#782)
+      Remains: hourly P&L (#471, #492), the kill and halt line (#502) and the email fallback (#484, wired into the step in #1309; the runner must hand SMTP_*, a preflight line is owed) landed; desk/messenger.py is at its 400-line limit and desk/ has 92 of 10,500 lines left, so the new messages need a phase-ceiling raise in BUDGET.json (waits: operator: it needs his approval and is outside every PAPER claim). The evening message now names each lost stop (#805); messenger split to 349 lines (#782)
       {id: paper-cards; files: desk/messenger.py,
       tests/unit/test_messenger.py; after: paper-messages, paper-running;
       waits: operator}
@@ -804,8 +806,8 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       curve at three effect sizes, a broken copy of the rung caught, and each defect the old
       audit found kept as a case that must fail (LAD-09, LAD-03, LAD-08). Built: all eleven
       modules, each proven alone (#343-#365, #412). Remains: the Sharpe a trade has one home (#746); the ladder judges by three of them
-      (costs #438, ci #440, cpcv #445 declare a RUNG; "rungs built" counts 3 of 11); wiring the rest, the clustered
-      trials (#379 built) into the verdict, the gap-through loss (R-RUNNER-187 declined, #409). Also remains (R-RUNNER-191): market.fit, rung_dsr.chance vs deflated._deflated, rung_regimes/rung_bootstrap bands (rung_ci keeps its own, open at both ends, #815; rung_benchmark reads rung.mean_and_error, #827; one home for a mean and its interval, rung.interval, #838; rung_dsr's wrapper of the paper's formula gone, #848); Fold/Walked out of rung_folds.py (R-RUNNER-191 part b, blocked on R-RUNGS-29; part a, the golden ladder verdict test, #919); ease-switch-on done (R-RUNGS-30 #942; EASED = True, golden verdicts re-pinned, #993). Built since: a cell's key carries its own rule's code, so an edit re-judges only that rule (#912); the retail rung stands in a basket row behind EASED (#927, map row 12; remains: `ladder_sets.baskets()` passing `against=` to `basket.row`, R-RUNGS-30)
+      (costs #438, ci #440, cpcv #445 declare a RUNG; "rungs built" counts 3 of 11; regimes #1165 now declares one too; rungs 7, 10, 11, 12 still undeclared or gate-less); wiring the rest, the clustered
+      trials (#379 built) into the verdict, the gap-through loss (R-RUNNER-187 declined, #409). Also remains (R-RUNNER-191): market.fit, rung_dsr.chance vs deflated._deflated, rung_regimes/rung_bootstrap bands (rung_ci keeps its own, open at both ends, #815; rung_benchmark reads rung.mean_and_error, #827; one home for a mean and its interval, rung.interval, #838; rung_dsr's wrapper of the paper's formula gone, #848); Fold/Walked out of rung_folds.py (R-RUNNER-191 part b, blocked on R-RUNGS-29; part a, the golden ladder verdict test, #919); ease-switch-on done (R-RUNGS-30 #942; EASED = True, golden verdicts re-pinned, #993); the ladder pool yields memory (#1082); EASED tests pinned per test, registry strict again (#1124); the key carries the capital (#1201); rung 5 regimes declares its RUNG (#1165); `Candidate` refuses any unrun rung (#1256). Built since: a cell's key carries its own rule's code, so an edit re-judges only that rule (#912); the retail rung stands in a basket row behind EASED (#927, map row 12; remains: `ladder_sets.baskets()` passing `against=` to `basket.row`, R-RUNGS-30)
       {id: rungs-trustworthy; files: *; after: rungs-beta}
 - [ ] **LADDER READY, the cards (his ruling, 15 November: "done properly and to elite desk
       specifications", then the ladder runs 24x7).** Ranked; each card one test and one change:
@@ -837,11 +839,12 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
   - [ ] B2 a typed Spec, validated on entry: an unknown block or a bad setting is refused
         Remains (R-MONEY-45, #809, #823): 20 of 21 rules are rows (mansfield_rs_momentum added, #873, run on the ratio bars the caller builds); zweig_breadth_thrust needs breadth data (R-MONEY-35)
       {id: rungs-spec; files: lab/spec.py, tests/unit/test_lab_spec.py; after: rungs-blocks; waits: R-MONEY-35}
-  - [ ] B3 the catalogue, one TOML row per strategy with its source and known-answer case;
-        a guard: unique names, known blocks only, a source and a case on every row
+  - [x] B3 the catalogue, one TOML row per strategy with its source and known-answer case;
+        a guard: unique names, known blocks only, a source and a case on every row.
+        Built: `lab/catalogue.toml` 24 rows, `Spec.parse` refuses any without (#1078, verified)
   - [ ] B4 the nineteen eponymous rules as rows, identical trades on the fixture proven,
         then their Python files deleted. Built: 20 of 21 in the catalogue (#873); Zweig waits on breadth data
-  - [ ] B5 variants generated from a row's setting ranges, every one counted as a trial
+  - [ ] B5 variants generated from a row's setting ranges, every one counted as a trial. Built: `lab/variants.py` (#364) makes every combination and counts trials; one home after #1307/#1315; a repeated value in a range is refused (#1321). Remains: wiring variants into the grid chain (GC); multi-setting ranges; entering them in the register from a caller
   - [ ] B6 the old desk's families listed and entered as sets of rows marked QUARRY, their
         cases derived by hand, never from the old desk's numbers
   - [ ] P1 a fast engine for rows, vectorised in `lab/`, matching the desk's engine on the
@@ -1046,3 +1049,5 @@ the scene it advances. No new capability until every scene passes.
 
 Estimates are from size, not measurement, and are re-made after phase 0 and after the
 first three sessions of phase 2. Actual against estimate is reported every week.
+Checked 20 Nov (MONEY, s4): R-PAPER-35's remainder is still PAPER's files (`desk/goflat.py`, `desk/conformance_parts.py`, `desk/placing.py:248`); R-RUNNER-401 has no R-RUNNER-397 "park one line" file on main to reuse and `desk/book.py` (382 of 400 lines) has no room, so it needs a design card; nothing built.
+Checked 21 Nov (MONEY, scribe): R-RUNNER-407 part is on main (#1255, the gate refuses a buy at or under its stop); remains the live price into Order.market and the first stop from the fill (PAPER, R-MONEY-60), then the SimCity scene 'a gap down past the stop'. R-RUNNER-317, 319, 409 built (#1022, #1245, #1279); R-RUNNER-414 book side built (#1272), the prefix at order-id creation and the MSTR rows 6-7 remain.

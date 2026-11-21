@@ -7,23 +7,45 @@ keeper's job failed on 17 November with a venue's daily bars a session short. R-
 18 November London run, whose buy the broker cancelled with nothing filled, so none were held.
 R-RUNNER-315: the 16 November session the yardstick has no bar for, so the line is parked.
 R-RUNNER-248: the 16 November afternoon the crash watch heard nothing of the market.
+R-RUNNER-317: the keeper's live job failed on 17 November, its one-minute lines all stale.
 R-RUNNER-316: the keeper's live job asked for one-minute bars of lines the store never held.
-R-RUNNER-318: the 17 November conformance job, a London line with no bar of the session before."""
+R-RUNNER-318: the 17 November conformance job, a London line with no bar of the session before.
+R-RUNNER-319: the keeper's live job, 17 November, met "database is locked" on its store.
+R-RUNNER-324: the desk's day job, 18 November, met "TimeoutError: timed out" from the broker.
+R-RUNNER-347: the desk's day job, 19 November, had no end after 240 seconds (120 s a order)."""
 
 from __future__ import annotations
 
+import sqlite3
+from contextlib import closing
 from dataclasses import replace
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from itertools import count
 from typing import TYPE_CHECKING
 
-from desk import bars, book, conformance_parts, halt, keeper, keeper_live, messenger, venues, watch
+from desk import (
+    bars,
+    book,
+    conformance_parts,
+    halt,
+    keeper,
+    keeper_live,
+    kill,
+    messenger,
+    paper,
+    venues,
+    watch,
+)
 from desk.bars import Five
-from desk.broker import Fault
+from desk.broker import Fault, Pretend, Report
+from desk.conformance_parts import Side
 from desk.keeper_rotate import Kept, record
-from desk.lines import YARDSTICK, Line
+from desk.lines import LINES, YARDSTICK, Line
+from desk.orders import Order, Sale
+from desk.running import DAY
 from desk.spans import Timed
+from desk.store import Bar
 
 if TYPE_CHECKING:
     from desk.simcity import _Life
@@ -40,10 +62,18 @@ PARKED = "a yardstick with a session missing refuses the day by name"
 STALE = "a venue's daily bars are a session short at the keeper's last refresh"
 REFUSED = "the price store's door refuses a venue short of a session, naming its line"
 DEAF = "the market goes unheard for an hour: he is told once in each hour, and nothing is halted"
+LIVE = "lines in session whose one-minute bar has just ended are none of them stale"
 UNHELD = (
     "the live keeper asks for one-minute bars of lines the store never held: each is named stale"
 )
 UNBARRED = "a conformance plan with no bar of the session before the day refuses, naming the line"
+LOCKED = "a store another writer holds refuses the round by name, loses nothing, serves the next"
+SILENT = "a broker silent after an order is sent: the kill switch is on, the alarm names the order"
+SLOW = "a broker that fills nothing cannot keep the desk's day past the step's time"
+STEP_SECONDS = 900  #: the runner's time for the desk step (its drive_atjobs): waits plus a margin
+STOP_SILENT = (
+    "a gateway silent when the stop is to fire fails that step by name and puts the account back"
+)
 PROMISE = "a held line with no bar for a session is named when the day is refused"
 
 
@@ -171,6 +201,7 @@ def deaf(life: _Life, on: date) -> None:
         life.live(on)
         return
     daily = {x: [b for b in bars_ if b.day < on] for x, bars_ in life.market.items()}
+    daily[YARDSTICK] = daily[YARDSTICK][-1:]  #: a calm month, so only the deafness can halt
     session, price = venues.hours(YARDSTICK.venue, on), Decimal(daily[YARDSTICK][-1].close)
     hot, post = life.desk / "deaf-bars.db", count(1).__next__
     with bars.writing(hot) as round_:
@@ -184,6 +215,26 @@ def deaf(life: _Life, on: date) -> None:
     life.promise(
         DEAF, hours <= set(told) and len(told) == len(set(told)) and kept == halt.kept(life.desk)
     )
+    life.live(on)
+
+
+def minutes(life: _Life, on: date) -> None:
+    """Two hours into the session every line of the yardstick's venue is due, and the broker
+    answers each with the one-minute bar that has just ended. The keeper's live run must call
+    none of them stale (else its job fails for a market that is whole), and keep the bars."""
+    if venues.sessions(YARDSTICK.venue, on, on) != (on,):
+        life.live(on)  #: the venue keeps a holiday: it has no hours to be stale in
+        return
+    now = venues.hours(YARDSTICK.venue, on).open + timedelta(hours=2)
+    lines = sorted((x for x in life.market if x.venue == YARDSTICK.venue), key=lambda x: x.symbol)
+    price = Decimal(1)
+
+    def ask(_line: Line, at: datetime) -> tuple[Timed, ...]:
+        return (Timed(keeper_live.MINUTES, at - timedelta(minutes=1), *(price,) * 4, 1),)
+
+    hot = life.desk / "minutes-bars.db"
+    words, missed = keeper_live.minute_round(hot, lines, now, ask)
+    life.promise(LIVE, bool(lines) and not missed and ", 0 stale," in words)
     life.live(on)
 
 
@@ -226,4 +277,103 @@ def unbarred(life: _Life, on: date) -> None:
         life.promise(UNBARRED, line.symbol in str(refusal) and f"{before}" in str(refusal))
     else:
         life.promise(UNBARRED, False)
+    life.live(on)
+
+
+def locked(life: _Life, on: date) -> None:
+    """Another writer holds the live store when the keeper's one-minute round begins (17 November,
+    "database is locked"). The round must be refused by name (NoRound) with nothing of it landed,
+    and the next run, the store free, must go through."""
+    lines = sorted((x for x in life.market if x.venue == YARDSTICK.venue), key=lambda x: x.symbol)
+    opened = datetime.combine(on, time(9), UTC)  #: any day will do; the store ignores the calendar
+    hot, now = life.desk / "locked-bars.db", opened + timedelta(hours=1)
+    with bars.writing(hot) as round_:
+        round_.five(YARDSTICK, [Five(opened, *(Decimal(1),) * 4, 1)])
+
+    def ask(line: Line, at: datetime) -> tuple[Timed, ...]:
+        return bars.timed(hot, line, keeper_live.MINUTES, at - timedelta(hours=1), at)
+
+    refused, wait = False, bars.WAIT
+    bars.WAIT = 0.05  #: the world will not wait the five seconds a real night does
+    try:
+        with closing(sqlite3.connect(hot, isolation_level=None)) as other:
+            other.execute("BEGIN IMMEDIATE")
+            try:
+                keeper_live.minute_round(hot, lines, now, ask)
+            except bars.NoRound as busy:  #: the store's own word that the round was not begun
+                refused = str(hot) in str(busy)
+    finally:
+        bars.WAIT = wait
+    keeper_live.minute_round(hot, lines, now, ask)
+    life.promise(LOCKED, refused and bool(bars.five(hot, YARDSTICK, opened, now)))
+    life.live(on)
+
+
+def silent(life: _Life, on: date) -> None:
+    """The broker says nothing to the first order it is sent (18 November, "timed out"). The
+    desk must not guess what became of it: the kill switch goes on, the day ends in the alarm
+    naming the order and the silence, nothing is booked; released, the same day then runs."""
+    at = datetime.combine(on, time(7), UTC)
+    failed = list[str]()
+
+    def mute(order: Order | Sale) -> Report:
+        failed.append(order.order_id)
+        raise TimeoutError("timed out")
+
+    life.pretend.place = mute  # type: ignore[method-assign]  # the world's broker, told to go quiet
+    try:
+        life.live(on)
+    except book.Alarm as alarm:  #: the send path's own word that it does not know the order
+        named = bool(failed) and failed[0] in str(alarm) and "timed out" in str(alarm)
+        life.promise(SILENT, named and book.killed(life.desk) is not None)
+        kill.release(life.desk, at, "SimCity releases it")
+        del life.pretend.place  # the world's broker speaks again
+        life.live(on)
+    else:
+        del life.pretend.place
+        life.promise(SILENT, not failed)  #: no order was sent: nothing to be silent to
+
+
+def slow(life: _Life, on: date) -> None:
+    """The broker fills nothing, so each order sent is given the whole wait (19 November: 120 s
+    each, the step killed at 240 s). The day's worst case, every order waiting out its time
+    (paper.FILL_SECONDS) and the knock (paper.SECONDS), must end inside the step's time."""
+    seen = len(life.pretend.submitted())
+    life.live(on)
+    sent = len(life.pretend.submitted()) - seen
+    life.promise(SLOW, sent * paper.FILL_SECONDS + paper.SECONDS <= STEP_SECONDS)
+
+
+def gateway_silent(life: _Life, on: date) -> None:
+    """The gateway says nothing when the conformance run's stop is to fire (17 November,
+    "conformance-us", TimeoutError). The step must be recorded as failed, naming TimeoutError;
+    the last step must still put the account back, so neither the book nor the broker holds a
+    share and no order rests."""
+    held = sorted((x for x in life.market if x.venue == YARDSTICK.venue), key=lambda x: x.symbol)
+    line = next(x for x in LINES if x.retail and x.leverage == 1 and x.venue == YARDSTICK.venue)
+    whole = life.market[held[0]]  #: the world's bars on a line the desk's own list knows
+    home = life.desk / f"silent-{on}"
+    with bars.writing(home / keeper.HOT) as round_:
+        round_.daily(line, [b for b in whole if b.day < on])
+    record(
+        home / keeper.DAILY / line.venue,
+        Kept(on, datetime.combine(on, time(), UTC), 1, {}, frozenset()),
+    )
+    refused = next(x for x in LINES if x.retail is False)
+    run = conformance_parts.plan([line], refused, on, {line.currency: Decimal(1)}, "0000", home)
+    price = run.second.price
+    world = Pretend({line: (Bar(on, *(price,) * 4, 0), Bar(on + DAY, *(price,) * 4, 0))}, {})
+    world.open(on)
+
+    def quiet(_order: Order) -> str:
+        raise TimeoutError("timed out")
+
+    said: dict[str, str] = {}
+    side = Side(home, world, lambda: (), quiet)
+    failed = conformance_parts.live(side, run, said.__setitem__)
+    answer = said.get(conformance_parts.TRIGGER, "")
+    left = book.positions(home) or dict(world.holdings()) or world.stops()
+    life.promise(
+        STOP_SILENT, failed == [conformance_parts.TRIGGER] and "TimeoutError" in answer and not left
+    )
     life.live(on)

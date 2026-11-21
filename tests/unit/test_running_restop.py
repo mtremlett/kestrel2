@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
 
@@ -57,12 +57,12 @@ def test_an_order_is_dated_the_session_before_today_on_its_own_venues_calendar(
     tmp_path: Path,
 ) -> None:
     # the Tuesday after Easter 2027: London was shut from Thursday, New York traded on Monday
-    easter, thursday = tp._paper(tmp_path, datetime(2027, 3, 30, 8, 5, tzinfo=UTC)), "20270325-x-"
+    easter, thu = tp._paper(tmp_path, datetime(2027, 3, 30, 8, 5, tzinfo=UTC)), date(2027, 3, 25)
+    wed = date(2027, 3, 24)
     for order, saying in (
-        (Sale(f"{thursday}IITU", IITU, 5), "was not drilled"),  # so it may go: the next refusal
-        (Sale("20270324-x-IITU", IITU, 5), "is not the session of LSE's next after"),
-        (Sale(f"{thursday}AAPL", AAPL, 5), "is not the session of US's next after"),
-        (Sale("drill-sale", IITU, 5), "next after the one it is dated"),  # and one not dated
+        (Sale("20270325-x-IITU", IITU, 5, thu), "was not drilled"),  # it may go
+        (Sale("20270324-x-IITU", IITU, 5, wed), "is not the session of LSE's next after"),
+        (Sale("20270325-x-AAPL", AAPL, 5, thu), "is not the session of US's next after"),
     ):
         with pytest.raises(Refused, match=saying):
             easter.place(order)

@@ -17,7 +17,7 @@ from pathlib import Path
 
 import pytest
 
-from desk import audit, bars, store_wait
+from desk import audit, bars
 from desk.bars import Five, Source
 from desk.bars_form import form
 from desk.lines import LINES, Line
@@ -224,7 +224,7 @@ def test_a_reader_behind_a_held_write_ends_inside_its_limit_with_a_named_error(
     with closing(sqlite3.connect(tmp_path / bars.HISTORY, isolation_level=None)) as holder:
         holder.execute("BEGIN IMMEDIATE")
         began = timeit.default_timer()
-        with pytest.raises(store_wait.StoreWait) as caught:
+        with pytest.raises(bars.StoreWait) as caught:
             bars.daily(store, US)
         assert timeit.default_timer() - began < 2.0
     named = str(caught.value)

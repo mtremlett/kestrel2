@@ -57,7 +57,7 @@ RULES = ("breakout_20_10", "trend_50_200")
 ISF_START = NOISE[0].day
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture
 def eased_off(monkeypatch: pytest.MonkeyPatch) -> None:
     """The off assertions of these tests: the ladder's easing switch is set off, not assumed."""
     monkeypatch.setattr(verdict, "EASED", False)
@@ -86,6 +86,9 @@ def _rows(home: Path) -> list[dict[str, Any]]:
     return [json.loads(line) for line in _file(home).read_text().splitlines()]
 
 
+@pytest.mark.usefixtures(
+    "eased_off"
+)  #: its want is the off ladder's own answers, not the graded ones
 def test_each_cell_is_judged_on_every_rung_and_kept_with_its_reasons_and_trials(
     tmp_path: Path,
 ) -> None:
@@ -115,6 +118,7 @@ def test_each_cell_is_judged_on_every_rung_and_kept_with_its_reasons_and_trials(
         "regime": rung_regimes.by_weather(
             verdict.key.rung(rung_regimes.__name__), verdict.trades, weather.trend(EDGE), ()
         ).answer.name,
+        "regimes": rung_regimes.RUNG.judge(verdict)[0].name,
         "shuffle": "THIN",  #: run last, and only on a trial that passed all before it
     }
     assert {name: answer for name, (answer, _) in won["rungs"].items()} == want
@@ -175,7 +179,9 @@ def test_a_rule_edited_judges_again_only_its_own_cells(
     assert [r["cell"][0] for r in _rows(tmp_path)[4:]] == [RULES[0]] * 2
 
 
-def test_a_run_skips_what_is_kept_and_judges_again_only_what_has_changed(tmp_path: Path) -> None:
+def test_a_run_skips_what_is_kept_and_judges_again_only_what_has_changed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     book, todo = {VUSA: EDGE, ISF: NOISE}, _set(VUSA, ISF)
     start = datetime(2026, 11, 14, tzinfo=UTC)
     tick = iter(start + timedelta(hours=n) for n in range(100))  #: each run an hour on
@@ -220,6 +226,9 @@ def test_a_run_skips_what_is_kept_and_judges_again_only_what_has_changed(tmp_pat
     assert _rows(tmp_path)[-1]["answer"] == "THIN" and len(_rows(tmp_path)) == 12
     #: a dearer dollar on one day is another price, in the folds of all three
     pounds[EDGE[50].day] = Decimal("0.9")
+    assert "3 judged now, 0 kept" in run(tmp_path, _door(book), pounds, more)
+    assert "0 judged now, 3 kept" in run(tmp_path, _door(book), pounds, more)
+    monkeypatch.setattr(ladder, "CAPITAL", CAPITAL * 2)  #: a bigger pot is another key
     assert "3 judged now, 0 kept" in run(tmp_path, _door(book), pounds, more)
 
 
@@ -297,6 +306,7 @@ def test_every_trial_is_counted_before_any_is_run_and_the_count_never_begins_aga
         ladder.run(tmp_path, _door({}), {}, _set(VUSA))
 
 
+@pytest.mark.usefixtures("eased_off")  #: its want is the off ladder's rows, with no placebo rung
 def test_a_rule_with_a_figure_on_file_is_judged_only_behind_its_authors_result(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

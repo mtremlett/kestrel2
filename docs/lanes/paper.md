@@ -499,3 +499,23 @@ Options: (a) parse the id elsewhere in `desk/placing.py` (same defect, rejected)
 ### 2026-11-20 — R-RUNNER-390: which gateway link news is Disconnected (#1024)
 
 Options: (a) a wider list of kin of 2110 and 2157, including 1101 and 1102 (connectivity restored), at more risk of masking real faults; (b) 1100 (connectivity lost) with 2110 and 2157, listed once as `LINK` beside `FEEDS` in `desk/paper.py` (chosen, the narrow list). Other unknown news still raises a plain error.
+
+### 2026-11-21 — R-RUNNER-410: placing reads `order.session` (#1264)
+
+The field is named `session` (orders.py), not `day`. An unset session fails loudly (ValueError) rather than defaulting, as the request asked.
+
+### 2026-11-21 — R-RUNNER-400: a separate stamp clock for order times (#1260)
+
+Options: (a) pass a live clock to `Paper` (rejected: the rehearsal needs a fixed decision moment); (b) `placing.Paper` takes a separate stamp clock, real UTC by default, written to the millisecond (chosen). Old rows stay readable.
+
+### 2026-11-21 — R-RUNNER-415: widen the rehearsal bar (#1280)
+
+The card's "15:00 UTC passes" fits an order gate, but the send path (running/placing) is outside the claim. Options: (a) widen the rehearsal bar to New York pre-market (from 04:00 NY) and after-hours (to 20:00 NY) in `desk/trading_hours.py` (chosen, fits the claim; 15:00 UTC is barred, a market is open); (b) gate every real order by session (needs other files, left as a remaining item).
+
+### 2026-11-21 — R-PAPER-28: no SMTP settings, no fallback (#1309)
+
+Options: (a) refuse the step when no SMTP_ setting is set; (b) stay silent and run on Telegram alone (chosen: the desk works on Telegram alone, and a partly set group still fails loudly, by name).
+
+### 2026-11-21 — R-RUNNER-253: rehearsal order ids not stamped (#1362)
+
+Options: (a) mark the rehearsal's order ids with its run stamp (needs `desk/placing.py` and `desk/orders.py`, outside the claim; `strategy_of` parses the id); (b) leave the held-line separation as is (chosen: the stated test passes without it). (a) would still cover a collision on a line sold since, where there is no holding to match.

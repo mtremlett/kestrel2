@@ -108,8 +108,26 @@ Gains = Callable[[Job], Sequence[Decimal] | str]
 
 def _lines(path: Path) -> Iterator[dict[str, Any]]:
     """The whole lines of a results file, a last line cut short by a stop left out."""
-    text = path.read_bytes() if path.exists() else b""
-    yield from map(json.loads, text[: text.rfind(b"\n") + 1].splitlines())
+    if not path.exists():
+        return
+    with path.open("rb") as stream:
+        for line in stream:
+            if line.endswith(b"\n"):
+                yield json.loads(line)
+
+
+def _whole(path: Path) -> int:
+    """The length of a results file up to its last newline, found from the end, unread whole."""
+    with path.open("rb") as stream:
+        end = stream.seek(0, os.SEEK_END)
+        while end > 0:
+            start = max(0, end - 65536)
+            stream.seek(start)
+            cut = stream.read(end - start).rfind(b"\n")
+            if cut >= 0:
+                return start + cut + 1
+            end = start
+    return 0
 
 
 def _cell(lines: Mapping[tuple[str, str], Line], row: Mapping[str, Any], start: str) -> Cell:
@@ -119,8 +137,13 @@ def _cell(lines: Mapping[tuple[str, str], Line], row: Mapping[str, Any], start: 
     return Cell(strategy, line, date.fromisoformat(start), date.fromisoformat(end))
 
 
-def jobs(home: Path) -> list[Job]:
-    """Every ladder cell that traded and every grid cell held, the latest line of each."""
+def jobs(home: Path, kept: Mapping[tuple[str, ...], str] | None = None) -> list[Job]:
+    """Every ladder cell that traded and every grid cell held, the latest line of each.
+
+    A grid row whose resampling is in `kept` (same id and key) has its trades left unparsed
+    (None): `run` counts it kept and never asks for its gains.
+    """
+    kept = kept or {}
     found: dict[tuple[str, ...], Job] = {}
     stored = sweep.held(
         home / "grid" / "store"
@@ -133,19 +156,21 @@ def jobs(home: Path) -> list[Job]:
             )
     for path in sorted((home / "grid" / "held").glob("*/*.jsonl")):
         for row in _lines(path):
-            trades = tuple(
-                Trade(date.fromisoformat(b), s and date.fromisoformat(s)) for b, s in row["trades"]
-            )
             made = row["code"] + row["data"]
-            found[("grid", *row["cell"])] = Job(
-                "grid", _cell(lines, row, row["cell"][3]), made, trades
-            )
+            id_ = ("grid", *row["cell"])
+            held = None if kept.get(id_) == _key(made) else row["trades"]
+            trades = None
+            if held is not None:
+                trades = tuple(
+                    Trade(date.fromisoformat(b), s and date.fromisoformat(s)) for b, s in held
+                )
+            found[id_] = Job("grid", _cell(lines, row, row["cell"][3]), made, trades)
     return [job for job in found.values() if job.trades is None or job.trades]
 
 
-def _key(job: Job) -> str:
+def _key(made: str) -> str:
     """What made the resampling: its source's key and the code of this rung and all it reaches."""
-    return hashlib.sha256(f"{job.made}\n{cell.RUNGS[ME]}\n{PATHS}".encode()).hexdigest()
+    return hashlib.sha256(f"{made}\n{cell.RUNGS[ME]}\n{PATHS}".encode()).hexdigest()
 
 
 def run(home: Path, gains: Gains) -> str:
@@ -153,12 +178,12 @@ def run(home: Path, gains: Gains) -> str:
     results = home / FOLDER / RESULTS
     results.parent.mkdir(parents=True, exist_ok=True)
     kept = {tuple(row["id"]): row["key"] for row in _lines(results)}
-    text = results.read_bytes() if results.exists() else b""
     tally = {"now": 0, "before": 0, "refused": 0, "failed": 0}
+    size = results.exists() and results.stat().st_size
     with results.open("ab") as out:
-        out.truncate(text.rfind(b"\n") + 1)
-        for job in jobs(home):
-            id_, key = [job.source, *batch.row(job.cell)], _key(job)
+        out.truncate(_whole(results) if size else 0)
+        for job in jobs(home, kept):
+            id_, key = [job.source, *batch.row(job.cell)], _key(job.made)
             if kept.get(tuple(id_)) == key:
                 tally["before"] += 1
                 continue

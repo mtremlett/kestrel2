@@ -1,7 +1,7 @@
 """simcity - SIMCITY. ONE COMMAND lives the desk's day through a hundred seeded worlds of the saved
 data at the pretend broker, and writes one record of the night. A WORLD is the saved lines on their
-own days, months dealt again by the world's number, which also deals the faults and the mishaps a
-real desk meets. THE CENSUS names each part of the money path with the scenarios that ran it. A part
+own days, months dealt again by the world's number, which also deals the faults and mishaps a real
+desk meets. THE CENSUS names each part of the money path with the scenarios that ran it; a part
 none ran, or a promise broken, turns the night red."""
 
 from __future__ import annotations
@@ -10,12 +10,10 @@ import csv
 import random
 from collections import Counter
 from collections.abc import Callable, Mapping, Sequence
-from contextlib import suppress
-from dataclasses import replace
-from datetime import UTC, date, datetime, time, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
-from tempfile import TemporaryDirectory
+from shutil import rmtree
 from types import ModuleType
 
 from desk import book, broker, day, halt, kill, orders, strategy
@@ -28,25 +26,36 @@ from desk.simcity_incidents import (
     DEAF,
     HOLE,
     LEFT,
+    LIVE,
+    LOCKED,
     PARKED,
+    SILENT,
+    SLOW,
     STALE,
+    STOP_SILENT,
     UNBARRED,
     UNHELD,
     beside,
     cancelled,
     deaf,
+    gateway_silent,
     hole,
+    locked,
+    minutes,
     parked,
+    silent,
+    slow,
     stale,
     unbarred,
     unheld,
 )
 from desk.simcity_parts import MONTH, Archive, Night, _market
+from desk.simcity_parts2 import _behind, _gapped, _killed
 from desk.strategy import Action
 
 Rates = Mapping[str, Decimal]  #: the pounds per unit of each currency, every day of the night
 
-__all__ = ["MONTH", "Archive", "Night", "_market"]  #: what desk.simcity gives from simcity_parts
+__all__ = ["MONTH", "Archive", "Night", "_gapped", "_market"]  #: given on from simcity_parts, 2
 
 NIGHTS = "simcity.csv"
 HEADER = (
@@ -160,23 +169,6 @@ class _Life:
             return self._run(saved, on)
 
 
-def _behind(life: _Life, on: date) -> None:
-    """Shares the desk did not buy are at the broker before the day: the seed's number of them,
-    on a line the desk does not hold (a sale beside its own shares takes the pretend broker's
-    stop down with it, desk/broker.py). The desk sells them, or names them."""
-    free = {line.symbol for line in life.market} - set(book.positions(life.desk))
-    symbol = life.rng.choice(sorted(free))
-    life.pretend.inject(symbol, life.rng.randint(1, 50))
-    record = life.live(on)
-    mine = [
-        f.quantity for f in book.fills(life.desk) if f.order_id == f"{on:%Y%m%d}-stranger-{symbol}"
-    ]
-    sold = bool(mine) and sum(mine) == 0
-    life.promise(
-        "a position the desk did not make is sold or named", sold or symbol in record.mismatches
-    )
-
-
 def _unstopped(life: _Life, on: date) -> None:
     """The stop under a holding of the seed's choosing is cancelled by hand, and put back after
     the day's record if the same shares are still held; one time in FORGOTTEN it never is."""
@@ -185,56 +177,6 @@ def _unstopped(life: _Life, on: date) -> None:
     life.live(on)
     if life.rng.randrange(FORGOTTEN) and held in life.pretend.holdings():
         put_back()
-
-
-def _gapped(life: _Life, on: date) -> None:
-    """Every line opens at the day's low, a gap down from the close before it; the stop under
-    each buy it fills is then moved under that fill, never left where the close put it."""
-    life.market = {
-        x: tuple(replace(b, open=b.low) if b.day == on else b for b in bars)
-        for x, bars in life.market.items()
-    }
-    life.pretend.reopen(on, life.market)
-    life.live(on)
-    lines = {x.symbol: x for x in life.market}
-    paid = {f.symbol: f.price for f in book.fills(life.desk) if f.quantity > 0 and f.day == on}
-    due = {s: orders.stop_under(lines[s], p) for s, p in paid.items()}
-    rests = {s: level for s, (_, level) in life.pretend.resting_stops().items()}
-    fits = all(rests[s] == due[s] for s in rests & due.keys())
-    life.promise("a stop rests where its fill puts it", fits)
-    held = {f.symbol: f for f in book.fills(life.desk) if f.quantity > 0 and f.day == on}
-    before = {x.symbol: [b.close for b in bars if b.day < on] for x, bars in life.market.items()}
-    for s in sorted(s for s, closes in before.items() if not closes):
-        life.promise(f"FAULT line {s}: no bar before the gap day, its gap is unrunnable", False)
-    shut = {s: closes[-1] for s, closes in before.items() if closes}
-    sold = [
-        orders.Order(
-            f"gap-{s}",
-            lines[s],
-            f.quantity,
-            shut[s],
-            life.rates[lines[s].currency],
-            orders.stop_under(lines[s], shut[s]),
-            session=on,
-        )
-        for s, f in held.items()
-        if s in shut
-    ]
-    gone = [o.order_id for o in sold if orders.gapped(o, held[o.line.symbol].price, life.room)]
-    life.promise("a gap down to the low leaves a stop's loss inside the gap limit", not gone)
-
-
-def _killed(life: _Life, on: date) -> None:
-    """The switch is pulled before the day and released after its record; then the drill."""
-    at, reached = datetime.combine(on, time(7), UTC), life.pretend.submitted()
-    said = kill.pull(life.desk, life.pretend, at, "SimCity pulls it for a day")
-    life.live(on)
-    quiet = life.pretend.submitted() == reached and "KILL SWITCH ON" in said.words()
-    life.promise("with the kill switch on nothing reaches the broker, and the desk says so", quiet)
-    kill.release(life.desk, at, "SimCity releases it")
-    with suppress(kill.Failed):  #: a drill that failed is not on the record: said below
-        kill.drill(life.desk, at)
-    life.promise("the kill switch's drill is on the record", kill.drilled(life.desk, on))
 
 
 Event = tuple[str, Callable[[_Life, date], object]]
@@ -251,6 +193,11 @@ EVENTS: tuple[Event, ...] = (
     (DEAF, deaf),
     (UNHELD, unheld),
     (UNBARRED, unbarred),
+    (LOCKED, locked),
+    (LIVE, minutes),
+    (SILENT, silent),
+    (SLOW, slow),
+    (STOP_SILENT, gateway_silent),
 )
 
 
@@ -281,12 +228,17 @@ def run(
         alone = strategy.decide({line.symbol: bars for line, bars in archive.items()})
         for seed in worlds:
             census.now(None)  #: the making of a world is SimCity's own work, and no scenario's
-            with TemporaryDirectory() as scratch:
-                lives.append(_Life(Path(scratch), archive, room, rates, seed, census))
-                try:
-                    _live(lives[-1])
-                except ValueError as refusal:  #: the desk's own word that it cannot go on
-                    lives[-1].stopped = f"on day {len(lives[-1].records) + 1}, saying: {refusal}"
+            folder = (
+                root / "worlds" / str(seed)
+            )  #: kept after the night, emptied as its world starts
+            if folder.exists():
+                rmtree(folder)  #: a leftover that cannot go fails loudly, naming its path
+            folder.mkdir(parents=True)
+            lives.append(_Life(folder, archive, room, rates, seed, census))
+            try:
+                _live(lives[-1])
+            except ValueError as refusal:  #: the desk's own word that it cannot go on
+                lives[-1].stopped = f"on day {len(lives[-1].records) + 1}, saying: {refusal}"
     except Exception as died:
         died.add_note(f"SimCity's night died with world {seed} being lived (None: none yet)")
         raise
@@ -313,8 +265,9 @@ def _live(life: _Life) -> None:
             todo = todo or life.rng.sample(EVENTS, len(EVENTS))
             scenario, happen = todo.pop()
             census.now(scenario)
-            happen(life, on)
-            life.done.add(scenario)
+            ran = happen(life, on) is not False  #: False: it could not run today, still owed
+            todo += [] if ran else [(scenario, happen)]
+            life.done |= {scenario} if ran else set()
         else:
             life.live(on)
     census.now(RECKONING)

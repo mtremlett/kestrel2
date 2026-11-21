@@ -2108,3 +2108,31 @@ the ATR stop test". Research only: no live stop changes until a winner passes th
   by the first rung's bar (30 trades, t >= 2). The same trades judge every rival.
 - **Trials:** 4 rules (`rung_stops.TRIALS`) per line and fold, named for the luck correction. A
   rival is promoted only if it beats the fixed rule on its worst fold, from the centre of a plateau.
+
+## 2026-11-20: the ladder's golden verdict, re-pinned under R-225, and the eased tests restored (R-RUNNER-396, RUNGS lane)
+
+B5: `tests/unit/test_lab_rung_golden.py` was re-pinned by 5ebe658 (#993) under R-RUNNER-225's
+easings. In plain English: with the easings on, a line is graded on every rung (a weak rung is
+WEAK, no longer a fail), is charged only its rule's own family of trials, and a hard fail on
+the first rung stops that line there; so the fixture's two lines now read THIN and FAIL where
+the old table read otherwise. His 16 Nov "YES TO ALL" is the approval.
+Two loosenings that change followed are undone here: the registry test again asserts that
+every line not stopped by a hard fail is judged on first, market and folds, and the blanket
+autouse switch-off in the ladder, retail and tape tests is gone: a test pins the easing off
+only by name, with its reason beside it.
+
+## 21 Nov - a file may hold 800 lines, not 400, by his own words
+
+His words, to the coordinator in chat, Sat 21 Nov ~09:10, verbatim: "whilst we are in
+development then relax these rules to allow natural file growth. but please monitor doom
+loops." The coordinator recorded them (kestrel2_notes after-first-light.md, "Sat 21 Nov
+09:3x HIS WORDS") and ruled them his plain-English yes to loosen one guard:
+`max_lines_per_file` in `BUDGET.json` rises from 400 to 800 (order S). Unchanged: functions
+stay under 50 lines, and the desk and lab package ceilings stay as they are.
+
+Why: sessions were splitting files only to stay under 400 (simcity, store, orders), each
+split a pull request that moved lines without adding behaviour. The package ceilings still
+bound growth; the doom-loop watch is the stall monitor and the recurring-fix rule (A2).
+
+Guard proven (A7): an 801-line file under `desk/` made `test_no_file_is_a_monolith` fail
+("over 800 lines"); an 800-line file passed; both removed.
