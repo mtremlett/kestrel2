@@ -7,10 +7,11 @@ from __future__ import annotations
 from collections import deque
 from decimal import Decimal
 
-from desk.eponymous_clenow_momentum import YEAR
 from desk.store import Bar
 from desk.strategy import ZERO
 from lab.block_base import Block
+
+YEAR = 250  #: trading days in the year the rolling log-slope is annualised over
 
 
 class _Moves:
