@@ -672,3 +672,18 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 
 ### 2026-11-20 - park one line by hand reuses GATE, not a new blocker (#1117, R-RUNNER-397)
 - Options: (a) a new Blocker for a hand-parked line (touches the SimCity census and its tests), (b) reuse the existing GATE blocker. Chose (b): the operator's list is a separate file (`parked.csv`, desk/handpark.py), not `store.Parked`, which means a data fault, and no new enum is added. Sales and stops are untouched; deleting the row buys the line next round.
+
+### 2026-11-21 - refuse a buy at or under its stop in the gate (#1255, R-RUNNER-407 part)
+- Options: (a) the refusal in orders.gate, the one pre-trade gate, with Order.market optional so no caller breaks; (b) a check in day.py, a second path. Chose (a). Nothing sets Order.market yet; wiring it and resting the first stop from the fill are PAPER's files (R-MONEY-60).
+
+### 2026-11-21 - a whole market is not stale (#1022, R-RUNNER-317)
+- The incident log gives no cause and desk/keeper_live.py is outside the claim. Options: (a) pin the right behaviour (a whole venue answering one-minute bars is not stale) and show it red with the grace made negative; (b) guess a cause and change keeper_live. Chose (a). Fourteen-month fixture moved from seed 6 to seed 7 (first green; 11 and 8 left gap parts bare, 12 stopped on a holiday). The real cause of the 17 November stale lines is unreproduced: a thin line with no trade in two minutes, or a venue's first minutes.
+
+### 2026-11-21 - rehearsal fills are found, not traded (#1272, R-RUNNER-414)
+- The one id prefix the desk never makes is "rehearsal-" (desk/foreign.py); book.found() returns those fills, book.fills() does not, and nothing is deleted. Ledger rows 6-7 carry old unprefixed ids and stay counted until a hand marks them (his hard line on deleting data).
+
+### 2026-11-21 - locked live store is refused loudly (#1245, R-RUNNER-319)
+- Options: (a) fail loudly (NoRound naming the store) and run again next minute; (b) swallow it as a "missed" line in desk/keeper.py. Chose (a), canon fail loudly; (b) needs keeper files outside the claim. The seed-picked worlds moved again (world 4 to 1) when the scenario's extra draw shifted the rest. Nothing loosened.
+
+### 2026-11-21 - replay of real paper fills compares partial fills (#1279, R-RUNNER-409)
+- Options: skip partial fills, or compare them as a size difference. Chose compare: the desk should size the same whatever the broker filled. Own entry point `python -m desk.simcity_fills` because simcitycmd.py is outside the claim.
