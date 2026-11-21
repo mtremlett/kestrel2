@@ -6,7 +6,7 @@ line's last week read in under 50 ms, a line's daily history in under 200 ms.
 A writer works in rounds: what is written lands together when the round ends, forced to disk,
 or none of it does. A reader reads the last whole round. A second writer waits its turn, and
 is refused if it has not come within WAIT seconds (NoRound); a reader that must write behind
-a held write ends in the named StoreWait (desk/store_wait.py) after WAIT seconds.
+a held write ends in the named StoreWait (desk/bars_parts.py) after WAIT seconds.
 A line is its venue and its symbol: one symbol can be two companies. A daily bar is named by
 its session's day; a five-minute bar by its start, in UTC. Prices: the form of bars_form.py.
 
@@ -32,7 +32,6 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
-from desk import store_wait
 from desk.bars_form import entered, restated
 from desk.bars_parts import CLOSES as CLOSES
 from desk.bars_parts import NEWEST as NEWEST
@@ -41,7 +40,9 @@ from desk.bars_parts import READ as READ
 from desk.bars_parts import RESTORE as RESTORE
 from desk.bars_parts import SOURCES as SOURCES
 from desk.bars_parts import WITHDRAW as WITHDRAW
+from desk.bars_parts import StoreWait as StoreWait
 from desk.bars_parts import checked as checked
+from desk.bars_parts import named
 from desk.bars_schema import ADD as ADD
 from desk.bars_schema import FILL as FILL
 from desk.bars_schema import HELD as HELD
@@ -185,7 +186,7 @@ def _open(file: Path) -> sqlite3.Connection:
     """The one opener, reader's or writer's: a store already made gains any newer table."""
     one = sqlite3.connect(file, timeout=WAIT, isolation_level=None)
     try:
-        with store_wait.named(file, WAIT):
+        with named(file, WAIT):
             if one.execute(MADE).fetchone() is not None:
                 for table in SCHEMA:
                     one.execute(table)
