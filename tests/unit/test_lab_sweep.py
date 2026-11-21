@@ -214,10 +214,10 @@ def test_a_variants_held_positions_are_the_desks_decisions_at_its_settings(
 ) -> None:
     _keep(tmp_path, BOEING)
     bars = universe.read(tmp_path, BOEING).bars
-    name = "breakout_20_10[entry=15]"
-    said = strategy.decide({BOEING.symbol: bars}, {"breakout_20_10": {"entry": 15}})
+    name = "bollinger_pullback[width=1.5]"
+    said = strategy.decide({BOEING.symbol: bars}, {"bollinger_pullback": {"width": Decimal("1.5")}})
     held: list[bool] = []
-    for d in (d for d in said if d.strategy == "breakout_20_10"):
+    for d in (d for d in said if d.strategy == "bollinger_pullback"):
         was = held[-1] if held else False
         held.append({strategy.Action.BUY: True, strategy.Action.SELL: False}.get(d.action, was))
     assert any(held) and cell._held(cell.Cell(name, BOEING, START, DAY), bars) == held
