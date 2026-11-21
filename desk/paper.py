@@ -291,7 +291,11 @@ def dial(talk: Callable[[BinaryIO, Send], T], seconds: float = SECONDS) -> T:
         socket.create_connection((HOST, PORT), timeout=seconds) as link,
         link.makefile("rb") as wire,
     ):
-        return talk(wire, link.sendall)
+        try:
+            return talk(wire, link.sendall)
+        except TimeoutError as silent:
+            name = getattr(talk, "__qualname__", repr(talk))
+            raise TimeoutError(f"{name} waited {seconds:g} s at each step: {silent}") from silent
 
 
 def read(door: Door) -> Account:
