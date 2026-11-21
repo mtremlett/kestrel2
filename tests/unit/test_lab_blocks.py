@@ -6,6 +6,7 @@ from __future__ import annotations
 import random
 from datetime import date, timedelta
 from decimal import Decimal, localcontext
+from pathlib import Path
 
 import pytest
 
@@ -144,3 +145,8 @@ def test_the_rolling_log_slope_scores_exactly_as_the_desks_clenow_score() -> Non
             slope.add(closes[-1])
             if slope.full:
                 assert slope.score() == score(closes[-90:])
+
+
+def test_no_lab_module_imports_the_retiring_clenow_desk_module() -> None:
+    for path in Path("lab").glob("*.py"):
+        assert "desk.eponymous_clenow_momentum" not in path.read_text(encoding="utf-8"), path
