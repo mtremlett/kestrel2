@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from test_lab_ladder import (  # noqa: F401 - eased_off is an autouse fixture
+from test_lab_ladder import (  # noqa: F401 - eased_off is used by name
     AAPL,
     EDGE,
     ISF,
@@ -67,6 +67,7 @@ def test_the_pool_writes_the_serial_runs_rows_in_its_order_and_a_workers_break_i
     assert "1 judged now" in broken and "1 could not be judged" in broken
 
 
+@pytest.mark.usefixtures("eased_off")  #: its units are the off ladder's, with no placebo rung
 def test_a_unit_is_one_lines_one_fold_so_one_lines_history_spreads_over_the_workers(
     tmp_path: Path,
 ) -> None:

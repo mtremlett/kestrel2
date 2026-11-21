@@ -57,7 +57,7 @@ RULES = ("breakout_20_10", "trend_50_200")
 ISF_START = NOISE[0].day
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture
 def eased_off(monkeypatch: pytest.MonkeyPatch) -> None:
     """The off assertions of these tests: the ladder's easing switch is set off, not assumed."""
     monkeypatch.setattr(verdict, "EASED", False)
@@ -86,6 +86,9 @@ def _rows(home: Path) -> list[dict[str, Any]]:
     return [json.loads(line) for line in _file(home).read_text().splitlines()]
 
 
+@pytest.mark.usefixtures(
+    "eased_off"
+)  #: its want is the off ladder's own answers, not the graded ones
 def test_each_cell_is_judged_on_every_rung_and_kept_with_its_reasons_and_trials(
     tmp_path: Path,
 ) -> None:
@@ -297,6 +300,7 @@ def test_every_trial_is_counted_before_any_is_run_and_the_count_never_begins_aga
         ladder.run(tmp_path, _door({}), {}, _set(VUSA))
 
 
+@pytest.mark.usefixtures("eased_off")  #: its want is the off ladder's rows, with no placebo rung
 def test_a_rule_with_a_figure_on_file_is_judged_only_behind_its_authors_result(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

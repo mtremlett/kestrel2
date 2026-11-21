@@ -89,3 +89,12 @@ def test_the_ladder_answers_on_the_fixture_book_are_pinned(tmp_path: Path) -> No
         (row["answer"], {k: tuple(v) for k, v in row["rungs"].items()}) for row in _rows(tmp_path)
     ]
     assert got == GOLDEN
+
+
+def test_one_line_through_the_eased_ladder_end_to_end_is_graded_on_every_rung(
+    tmp_path: Path,
+) -> None:
+    """A tiny fixture (one cell, its market beside), EASED on: the row is graded, not unrun."""
+    ladder.run(tmp_path, _door({VUSA: EDGE, ISF: NOISE}), {}, _set(VUSA))
+    (row,) = _rows(tmp_path)
+    assert {"first", "folds", "market", "stress"} <= set(row["rungs"])
