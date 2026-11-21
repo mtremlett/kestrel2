@@ -70,7 +70,7 @@ from typing import Any
 
 import desk
 from desk import archive, carry, keeper
-from desk.command import DOLLARS, POUND
+from desk.command import CAPITAL, DOLLARS, POUND
 from desk.lines import LINES, Line
 from desk.store import Bar
 from desk.strategy import STRATEGIES, Rule
@@ -258,7 +258,7 @@ def _one(
             d for d in pounds if d <= c.end and (c.line.currency != "GBP" or pool.dollars)
         )
         market = cell.key(Cell(c.strategy, beside, c.start, c.end), held).data
-        parts = [mine.code, mine.data, market, pool.data, str(count)]
+        parts = [mine.code, mine.data, market, pool.data, str(count), f"capital {CAPITAL}"]
         parts += [f"{d} {pounds[d]}" for d in days] + ([] if family is None else [f"in {family}"])
         parts += [tape.rule_code(c.strategy)] + [one.key.code + one.key.data for one in made]
         found = rung.found(RUNGS)
