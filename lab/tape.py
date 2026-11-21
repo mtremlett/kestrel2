@@ -13,6 +13,7 @@ nothing."""
 
 from __future__ import annotations
 
+import ast
 import hashlib
 import os
 import pickle
@@ -30,10 +31,41 @@ FOLDER = "tapes"
 Run = Callable[[Cell, Sequence[Bar]], Record]
 
 
+def _own_text(source: bytes, mine: type, others: set[str]) -> bytes:
+    """The module's source with the top-level classes of the other rules cut out; a rule class
+    not defined at the top level (made at run time) keys by the whole module."""
+    tree = ast.parse(source)
+    top = {n.name: n for n in tree.body if isinstance(n, ast.ClassDef)}
+    if mine.__name__ not in top:
+        return source
+    lines = source.splitlines(keepends=True)
+    for name in others & top.keys():
+        node = top[name]
+        last = node.end_lineno or node.lineno
+        first = min([node.lineno, *(d.lineno for d in node.decorator_list)])
+        lines[first - 1 : last] = [b""] * (last - first + 1)
+    return b"".join(lines)
+
+
+def code_of_rule(strategy: str, root: Path = cell.ROOT, folder: Path | None = None) -> str:
+    """sha256 of the files the rule's module reaches, its own file without the other rules'
+    classes; a Windows line ending is not a change."""
+    book, mine = rulebook.rules(folder), rulebook.rule(strategy, folder)
+    module = mine.__module__
+    others = {c.__name__ for c in book.values() if c.__module__ == module and c is not mine}
+    digest = hashlib.sha256()
+    for path in cell.reached(root, module):
+        data = (root / path).read_bytes()  # bounded: one source file of the code
+        if path == module.replace(".", "/") + ".py":
+            data = _own_text(data, mine, others)
+        digest.update(data.replace(b"\r\n", b"\n") + b"\0")
+    return digest.hexdigest()
+
+
 @cache
 def rule_code(strategy: str) -> str:
-    """sha256 of the code of the rule's module and what it reaches."""
-    return cell.code_version(module=rulebook.rule(strategy).__module__)
+    """sha256 of the code of the rule's module (its siblings' classes cut) and what it reaches."""
+    return code_of_rule(strategy)
 
 
 def kept(folder: Path, run: Run, code_of: Callable[[str], str] = rule_code) -> Run:

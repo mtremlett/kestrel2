@@ -4,8 +4,10 @@ were, and a stop takes up from the last tape finished."""
 
 from __future__ import annotations
 
+import importlib
 import pickle
 import shutil
+import sys
 from collections import Counter
 from collections.abc import Callable, Sequence
 from contextlib import nullcontext
@@ -16,6 +18,7 @@ from pathlib import Path
 import pytest
 from test_lab_ladder import EDGE, ISF, NOISE, VUSA, _door, _rows
 
+import desk
 from desk.orders import Settings
 from desk.store import Bar
 from lab import cell, ladder, ladder_sets, rung, tape, verdict
@@ -164,3 +167,28 @@ def test_a_tape_is_stored_compressed_and_reads_back_the_same(tmp_path: Path) -> 
     assert tape.kept(tmp_path, lambda *_: pytest.fail("simulated"))(c, bars) == tape.kept(
         tmp_path / "cold", cell.run
     )(c, bars)
+
+
+def test_editing_one_rule_of_a_file_leaves_its_sibling_keyed_as_it_was(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A shared helper moves both keys; a Windows line ending moves neither."""
+    home = tmp_path / "desk"
+    home.mkdir()
+    monkeypatch.setattr(desk, "__path__", [*desk.__path__, str(home)])
+    monkeypatch.setattr(sys, "modules", dict(sys.modules))  #: the planted file leaves no trace
+    importlib.invalidate_caches()
+    (home / "__init__.py").write_text("")
+    text = "H = 1\n\n\nclass A: ...\n\n\nclass B:\n    n = 1\n\n\nEPONYMOUS = {'pa': A, 'pb': B}\n"
+    path = home / "eponymous_planted.py"
+
+    def keys(source: str | bytes) -> list[str]:
+        path.write_bytes(source if isinstance(source, bytes) else source.encode())
+        return [tape.code_of_rule(n, tmp_path, home) for n in ("pa", "pb")]
+
+    a, b = keys(text)
+    edited = keys(text.replace("n = 1", "n = 2"))
+    assert edited[0] == a and edited[1] != b
+    moved = keys(text.replace("H = 1", "H = 2"))
+    assert moved[0] != a and moved[1] != b
+    assert keys(text.replace("\n", "\r\n").encode()) == [a, b]
