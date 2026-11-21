@@ -1681,6 +1681,24 @@ it is counted now, and undocumented ones under an `if`, an `except` and a `match
 failed, while one nested inside a function passed. The count is of the total, as approved: a
 change that documents one old definition may add one new undocumented one.
 
+## 2026-11-15 — the suppression ratchet: set-aside rules never rise, and each says why
+
+**Tightening** (gate G2). A `noqa` tells the linter to look away and a `type: ignore` tells the
+type checker to; each is a rule set aside on one line. On main today the tracked Python holds
+82 of them, and 32 give no reason on their line after the codes they name (`# noqa: S603`, as
+against `# noqa: S311 - a repeatable draw, not a secret`). `tests/guards/test_ratchets.py` counts
+both at main's commit the change starts from and in the change itself, and fails if either
+rises, as the docstring ratchet does: no number is kept by hand, so both can only fall. Only
+comments count (read with Python's own tokenizer), so a string naming one is not one. Skipped
+and expected-to-fail tests were already refused by `test_no_test_is_skipped_or_expected_to_fail`
+in `tests/guards/test_guards.py`; that was confirmed and not repeated.
+
+**Driven.** A bare `# noqa` planted on a line of `desk/archive.py` failed: "suppressions rise
+from 82 on main to 83; files that grew (main, now): {'desk/archive.py': (2, 3)}". The reason
+stripped from `desk/conformance.py`'s `# noqa: BLE001 - a step that fails is the run's finding,
+named` failed with the total unchanged: "suppressions with no reason after their codes rise from
+32 on main to 33". A string `"# noqa"` added to a product file passed. Each break was removed.
+
 ## 2026-11-14 — the churn guard: a third fix to one file waits for its mechanism
 
 **His yes**, 14 November about 18:30 ("Yes, Tuesday", gate G-B): a file fixed three or more times
