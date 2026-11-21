@@ -10,7 +10,8 @@ R-RUNNER-248: the 16 November afternoon the crash watch heard nothing of the mar
 R-RUNNER-317: the keeper's live job failed on 17 November, its one-minute lines all stale.
 R-RUNNER-316: the keeper's live job asked for one-minute bars of lines the store never held.
 R-RUNNER-318: the 17 November conformance job, a London line with no bar of the session before.
-R-RUNNER-319: the keeper's live job, 17 November, met "database is locked" on its store."""
+R-RUNNER-319: the keeper's live job, 17 November, met "database is locked" on its store.
+R-RUNNER-324: the desk's day job, 18 November, met "TimeoutError: timed out" from the broker."""
 
 from __future__ import annotations
 
@@ -22,11 +23,23 @@ from decimal import Decimal
 from itertools import count
 from typing import TYPE_CHECKING
 
-from desk import bars, book, conformance_parts, halt, keeper, keeper_live, messenger, venues, watch
+from desk import (
+    bars,
+    book,
+    conformance_parts,
+    halt,
+    keeper,
+    keeper_live,
+    kill,
+    messenger,
+    venues,
+    watch,
+)
 from desk.bars import Five
-from desk.broker import Fault
+from desk.broker import Fault, Report
 from desk.keeper_rotate import Kept, record
 from desk.lines import YARDSTICK, Line
+from desk.orders import Order, Sale
 from desk.spans import Timed
 
 if TYPE_CHECKING:
@@ -50,6 +63,7 @@ UNHELD = (
 )
 UNBARRED = "a conformance plan with no bar of the session before the day refuses, naming the line"
 LOCKED = "a store another writer holds refuses the round by name, loses nothing, serves the next"
+SILENT = "a broker silent after an order is sent: the kill switch is on, the alarm names the order"
 PROMISE = "a held line with no bar for a session is named when the day is refused"
 
 
@@ -283,3 +297,28 @@ def locked(life: _Life, on: date) -> None:
     keeper_live.minute_round(hot, lines, now, ask)
     life.promise(LOCKED, refused and bool(bars.five(hot, YARDSTICK, opened, now)))
     life.live(on)
+
+
+def silent(life: _Life, on: date) -> None:
+    """The broker says nothing to the first order it is sent (18 November, "timed out"). The
+    desk must not guess what became of it: the kill switch goes on, the day ends in the alarm
+    naming the order and the silence, nothing is booked; released, the same day then runs."""
+    at = datetime.combine(on, time(7), UTC)
+    failed = list[str]()
+
+    def mute(order: Order | Sale) -> Report:
+        failed.append(order.order_id)
+        raise TimeoutError("timed out")
+
+    life.pretend.place = mute  # type: ignore[method-assign]  # the world's broker, told to go quiet
+    try:
+        life.live(on)
+    except book.Alarm as alarm:  #: the send path's own word that it does not know the order
+        named = bool(failed) and failed[0] in str(alarm) and "timed out" in str(alarm)
+        life.promise(SILENT, named and book.killed(life.desk) is not None)
+        kill.release(life.desk, at, "SimCity releases it")
+        del life.pretend.place  # the world's broker speaks again
+        life.live(on)
+    else:
+        del life.pretend.place
+        life.promise(SILENT, not failed)  #: no order was sent: nothing to be silent to
