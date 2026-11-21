@@ -136,11 +136,13 @@ class Halted:
         )
 
 
-def stop(root: Path, broker: Broker, at: datetime, why: str, by: str = OPERATOR) -> Halted:
+def stop(
+    root: Path, broker: Broker, at: datetime, why: str, by: str = OPERATOR, his: bool = True
+) -> Halted:
     """A HALT THAT CANCELS: the halt is on the record first, so no buy is sent even if the
     broker cannot be reached; then the broker cancels every order of the desk's still working
     (a working order is a buy; the stops resting stay). Called again, it cancels again."""
-    called = call(root, at, why, by)
+    called = call(root, at, why, by, his)
     return Halted(called, tuple(broker.cancel()))
 
 
