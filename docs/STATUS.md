@@ -234,7 +234,7 @@ and 1d (#739). 1h, 4h, 1wk rolled locally as rollup:<from> (#760); keeper takes 
   (#685); `history.lacks` unused (#751); IDTL parks on a missing 16 Nov unless its five-minute bars are held; disagreements not in a stored fault file.
 ## GRID
 
-Last updated: 17 November 2026 (one bars reader #449; batch.stored reads as research does #618; R-DATA-10 confirmed #626).
+Last updated: 21 November 2026 (grid-week cause found #1370; one bars reader #449; batch.stored reads as research does #618; R-DATA-10 confirmed #626).
 ### Where it is
 
 Built and proven: the cell (a Line only), batch, fast grid engine and fast spec-row engine (`lab/fast.py`, ~30 times
@@ -244,9 +244,10 @@ pass runs each strategy on its declared universe (22 lines); all-on-all is `--tr
 its seconds: cold transfer 5,330 cells in 17 min, declared about 8 min, far inside the 48 h weekend (LAD-10 done).
 
 ### Next step
-grid-week (waits: 2026-11-21): the seven-day run is going (pid in `%KESTREL2_DATA%\grid\week.pid`). Nothing to build.
-On or after 20 Nov 23:45 UK read `sweep.unbroken(Path(KESTREL2_DATA))`: 7 days ticks it. If it died, restart within the
-hour, below-normal priority, from `C:\Users\mtrem\PYTHON\kestrel2_lanes\gridweek`:
+grid-week (waits: 2026-11-28): the week's pass ran pre-#1210 code against the research store the nightly refresh rewrote
+in the new format (21 Nov 02:56), so 2,810 cells failed each hour (#1370; a failure now names its file, line and function).
+It needs the week's clone on current main (R-GRID-8), then seven unbroken days: no tick before 28 Nov. Restart, if it died,
+within the hour, below-normal priority, from `C:\Users\mtrem\PYTHON\kestrel2_lanes\gridweek`:
 `python -B -m lab.sweep %KESTREL2_DATA%\grid\store %KESTREL2_DATA%\grid\cells %KESTREL2_DATA% --days 7`.
 Every other box is ticked. Open: R-DATA-7 (`batch.stored` now reads through `universe.read`, #618; remains: a cell keeping
 `History.moves` and `.rescaled` in its record, which changes the cell's record and key), R-RUNGS-2 (declared sweep enters every cell in the register), R-RUNGS-4.
@@ -266,6 +267,8 @@ Every other box is ticked. Open: R-DATA-7 (`batch.stored` now reads through `uni
   SPY and QQQ; name lines that stay (AAPL, NVDA) so DATA can take them out of the twenty.
 - [ ] R-GRID-7 (later, 2026-11-16 12:00 UK): `lab/cell.py` `rungs()` stats per candidate per module; cache `_file`
   so the import takes seconds, not minutes, on the PC.
+### Requests to RUNNER
+- [ ] R-GRID-8 (blocking, 21 Nov 11:00 UK): the week's clone to current main, each pass on it; keep its stdout/stderr (empty today).
 ### Requests to DATA
 - [ ] R-GRID-5 (later, 2026-11-13 22:20 UK): the research store's home (data-research-home) built on this PC.
 
@@ -277,8 +280,7 @@ Every other box is ticked. Open: R-DATA-7 (`batch.stored` now reads through `uni
 - Rung key still holds batch, folds, published*, shuffle, desk/*; narrowing needs a per-rung declaration in `lab/ladder.py`.
 - Week: a pass over 48 h is cut and logged failed; a torn `week.jsonl` line needs hand-mending; results grow ~9 MB a day
   (pruning owed, R-GRID-1); an outside pass, a PC restart, or the copied store cleared breaks the run.
-- Flaky `tests/unit/test_bars.py` once under load (#171). Busy flag stale if a pass is killed outright.
-  Scratch owed removal: `.claude/worktrees/` helpers, `C:\tmp\unebreaks`, `C:\tmp\unedriver`.
+- Flaky `tests/unit/test_bars.py` once under load (#171). Busy flag stale if a pass is killed outright. Scratch owed removal: `.claude/worktrees/` helpers, `C:\tmp\unebreaks`, `C:\tmp\unedriver`.
 
 ## RUNGS
 
