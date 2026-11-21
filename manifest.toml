@@ -94,6 +94,7 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "desk/risk.py" = "where the book stands against its loss and order-rate limits: the losses so far today and this week and the new lines entered today, and which loss limit has been reached; the limits themselves are in orders.Settings"
 "desk/orders.py" = "the order, sized from the one capital number, its stop, the pre-trade gate"
 "desk/orders_parts.py" = "the order's lower part: the legs of a trade, the one cost model and the broker's schedule that prices it, and the one rounding policy; desk.orders gives them to its callers"
+"desk/orders_parts2.py" = "the order gate's lower part: the refusal, the loss-limit, underlying-market and correlation checks it runs, and the daily returns the correlation check reads; desk.orders gives them to its callers"
 "desk/broker.py" = "the pretend broker the desk trades against in simulation"
 "desk/book.py" = "the ledger of fills under the broker's ids, and the book built from the broker"
 "desk/book_parts.py" = "the ledger's lower parts: the one keeper of dated records, the kill switch's record and the day's pounds per currency; desk.book gives them to its callers"
