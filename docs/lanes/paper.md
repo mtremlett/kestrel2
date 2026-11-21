@@ -515,3 +515,7 @@ The card's "15:00 UTC passes" fits an order gate, but the send path (running/pla
 ### 2026-11-21 — R-PAPER-28: no SMTP settings, no fallback (#1309)
 
 Options: (a) refuse the step when no SMTP_ setting is set; (b) stay silent and run on Telegram alone (chosen: the desk works on Telegram alone, and a partly set group still fails loudly, by name).
+
+### 2026-11-21 — R-RUNNER-253: rehearsal order ids not stamped (#1362)
+
+Options: (a) mark the rehearsal's order ids with its run stamp (needs `desk/placing.py` and `desk/orders.py`, outside the claim; `strategy_of` parses the id); (b) leave the held-line separation as is (chosen: the stated test passes without it). (a) would still cover a collision on a line sold since, where there is no holding to match.
