@@ -12,9 +12,10 @@ sells when its exit or its stop fires.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, timedelta
 from decimal import Decimal, InvalidOperation, localcontext
+from itertools import product
 from types import MappingProxyType
 from typing import Any, ClassVar
 
@@ -127,6 +128,25 @@ class Spec:
                 said.append(holding)
             if tuple(said) != case.wants:
                 raise ValueError(f"spec {self.name}: case {n} gives {said}, not {case.wants}")
+
+
+def variants(spec: Spec, place: str, ranges: Mapping[str, tuple[Any, ...]]) -> dict[str, Spec]:
+    """Every setting of `ranges` (a parameter of `place`, the values to try) on a row, keyed by the
+    trial name `trials.enter` counts. Each is checked as `parse` checks a parameter; none carries
+    the row's known answers, which belong to its own settings."""
+    if set(ranges) != set(spec.params[place]):
+        raise ValueError(f"spec {spec.name} {place}: ranges for {sorted(spec.params[place])} only")
+    keys, made = sorted(ranges), {}
+    for values in product(*(ranges[k] for k in keys)):
+        block = BLOCKS[getattr(spec, place)]
+        got = {
+            k: _number(f"{place} {k}", block.params[k], v)
+            for k, v in zip(keys, values, strict=False)
+        }
+        label = ",".join(f"{k}={got[k]}" for k in keys)
+        params = MappingProxyType({**spec.params, place: MappingProxyType(got)})
+        made[f"{spec.name}[{place}:{label}]"] = replace(spec, params=params, cases=())
+    return made
 
 
 class SpecRule:

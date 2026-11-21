@@ -12,7 +12,7 @@ import pytest
 
 from desk.eponymous_bands import DonchianChannelBreakout
 from desk.store import Bar
-from lab.spec import Spec, SpecRule
+from lab.spec import Spec, SpecRule, variants
 
 CASE = {"bars": [[11, 9, 10]] * 3 + [[13, 11, 12], [10, 7, 8]], "wants": [0, 0, 0, 1, 0]}
 ROW: dict[str, Any] = {
@@ -96,3 +96,14 @@ def test_spec_rule_decides_as_the_donchian_rule_on_a_walk() -> None:
         held_a, held_b = mine.step(bar, held_a), theirs.step(bar, held_b)
         seen.append((held_a, held_b))
     assert all(a == b for a, b in seen) and any(a for a, _ in seen) and not all(a for a, _ in seen)
+
+
+def test_variants_are_every_setting_named_as_a_trial_and_refuse_a_bad_one() -> None:
+    made = variants(Spec.parse(ROW), "entry", {"n": (3, 4, 5)})
+    assert list(made) == [f"donchian3[entry:n={n}]" for n in (3, 4, 5)]
+    assert made["donchian3[entry:n=4]"].params["entry"]["n"] == 4
+    assert made["donchian3[entry:n=4]"].params["exit"]["n"] == 3
+    with pytest.raises(ValueError, match="outside"):
+        variants(Spec.parse(ROW), "entry", {"n": (1,)})
+    with pytest.raises(ValueError, match="ranges for"):
+        variants(Spec.parse(ROW), "entry", {"m": (3,)})
