@@ -450,6 +450,8 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1210 DATA: bars and faults in one file per line (R-DATA-55). |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1243 DATA: 15m/30m rolled from 5m (R-DATA-56 part). |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1268 DATA s3: nothing built, decision noted in docs/lanes/data.md. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1301 DATA: 2m/10m rollups from 1m (R-DATA-56 part). |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1305 DATA: 5m rolled from 1m (R-DATA-56). |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
