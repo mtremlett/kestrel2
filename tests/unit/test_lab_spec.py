@@ -1,18 +1,15 @@
-"""A spec as data: Spec.parse refuses each kind of bad row by name, and a SpecRule of
-Donchian's entry and exit decides as the desk's own DonchianChannelBreakout does."""
+"""A spec as data: Spec.parse refuses each kind of bad row by name; a decimal parameter and a
+filter are read. (Each catalogue row against its Python rule: test_lab_spec_blind.py.)"""
 
 from __future__ import annotations
 
 import copy
-from datetime import date, timedelta
 from decimal import Decimal
 from typing import Any
 
 import pytest
 
-from desk.eponymous_bands import DonchianChannelBreakout
-from desk.store import Bar
-from lab.spec import Spec, SpecRule
+from lab.spec import Spec
 
 CASE = {"bars": [[11, 9, 10]] * 3 + [[13, 11, 12], [10, 7, 8]], "wants": [0, 0, 0, 1, 0]}
 ROW: dict[str, Any] = {
@@ -80,19 +77,3 @@ def test_the_filter_forbids_a_buy() -> None:
     row = _row(filter="close_above_average", params={**ROW["params"], "filter": {"n": 400}})
     row["cases"] = [CASE | {"wants": [0, 0, 0, 0, 0]}]
     Spec.parse(row)
-
-
-def test_spec_rule_decides_as_the_donchian_rule_on_a_walk() -> None:
-    twenty = {"bars": [[11, 9, 10]] * 20 + [[13, 11, 12]], "wants": [0] * 20 + [1]}
-    spec = Spec.parse(_row(params={"entry": {"n": 20}, "exit": {"n": 20}}, cases=[twenty]))
-    walk = []
-    closes = [100 + ((n * 7) % 13) + n // 9 * (-1) ** (n // 30) * 3 for n in range(240)]
-    for n, close in enumerate(closes):
-        c = Decimal(close)
-        walk.append(Bar(date(2020, 1, 1) + timedelta(n), c, c + 1, c - 1, c, 1000))
-    mine, theirs, held_a, held_b = SpecRule(spec), DonchianChannelBreakout(), False, False
-    seen = []
-    for bar in walk:
-        held_a, held_b = mine.step(bar, held_a), theirs.step(bar, held_b)
-        seen.append((held_a, held_b))
-    assert all(a == b for a, b in seen) and any(a for a, _ in seen) and not all(a for a, _ in seen)
