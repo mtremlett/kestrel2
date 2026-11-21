@@ -25,15 +25,13 @@ def _behind(life: _Life, on: date) -> None:
     mine = [
         f.quantity for f in book.fills(life.desk) if f.order_id == f"{on:%Y%m%d}-stranger-{symbol}"
     ]
-    sold = bool(mine) and sum(mine) == 0
-    life.promise(
-        "a position the desk did not make is sold or named", sold or symbol in record.mismatches
-    )
+    sold = (bool(mine) and sum(mine) == 0) or symbol in record.mismatches
+    life.promise("a position the desk did not make is sold or named", sold)
 
 
-def _gapped(life: _Life, on: date) -> None:
-    """Every line opens at the day's low, a gap down from the close before it; the stop under
-    each buy it fills is then moved under that fill, never left where the close put it."""
+def _gapped(life: _Life, on: date) -> bool:
+    """Every line opens at the day's low; the stop under each buy it fills is then moved under
+    that fill, never left where the close put it. False when no buy filled: still owed."""
     life.market = {
         x: tuple(replace(b, open=b.low) if b.day == on else b for b in bars)
         for x, bars in life.market.items()
@@ -67,6 +65,7 @@ def _gapped(life: _Life, on: date) -> None:
     ]
     gone = [o.order_id for o in sold if orders.gapped(o, held[o.line.symbol].price, life.room)]
     life.promise("a gap down to the low leaves a stop's loss inside the gap limit", not gone)
+    return bool(held)
 
 
 def _killed(life: _Life, on: date) -> None:

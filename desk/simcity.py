@@ -1,7 +1,7 @@
 """simcity - SIMCITY. ONE COMMAND lives the desk's day through a hundred seeded worlds of the saved
 data at the pretend broker, and writes one record of the night. A WORLD is the saved lines on their
-own days, months dealt again by the world's number, which also deals the faults and the mishaps a
-real desk meets. THE CENSUS names each part of the money path with the scenarios that ran it. A part
+own days, months dealt again by the world's number, which also deals the faults and mishaps a real
+desk meets. THE CENSUS names each part of the money path with the scenarios that ran it; a part
 none ran, or a promise broken, turns the night red."""
 
 from __future__ import annotations
@@ -30,6 +30,7 @@ from desk.simcity_incidents import (
     LOCKED,
     PARKED,
     SILENT,
+    SLOW,
     STALE,
     STOP_SILENT,
     UNBARRED,
@@ -43,6 +44,7 @@ from desk.simcity_incidents import (
     minutes,
     parked,
     silent,
+    slow,
     stale,
     unbarred,
     unheld,
@@ -194,6 +196,7 @@ EVENTS: tuple[Event, ...] = (
     (LOCKED, locked),
     (LIVE, minutes),
     (SILENT, silent),
+    (SLOW, slow),
     (STOP_SILENT, gateway_silent),
 )
 
@@ -262,8 +265,9 @@ def _live(life: _Life) -> None:
             todo = todo or life.rng.sample(EVENTS, len(EVENTS))
             scenario, happen = todo.pop()
             census.now(scenario)
-            happen(life, on)
-            life.done.add(scenario)
+            ran = happen(life, on) is not False  #: False: it could not run today, still owed
+            todo += [] if ran else [(scenario, happen)]
+            life.done |= {scenario} if ran else set()
         else:
             life.live(on)
     census.now(RECKONING)
