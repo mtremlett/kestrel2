@@ -245,10 +245,9 @@ pass runs each strategy on its declared universe (22 lines); all-on-all is `--tr
 its seconds: cold transfer 5,330 cells in 17 min, declared about 8 min, far inside the 48 h weekend (LAD-10 done).
 
 ### Next step
-grid-week (waits: 2026-11-21): the seven-day run is going (pid in `%KESTREL2_DATA%\grid\week.pid`). Nothing to build.
-On or after 20 Nov 23:45 UK read `sweep.unbroken(Path(KESTREL2_DATA))`: 7 days ticks it. If it died, restart within the
-hour, below-normal priority, from `C:\Users\mtrem\PYTHON\kestrel2_lanes\gridweek`:
-`python -B -m lab.sweep %KESTREL2_DATA%\grid\store %KESTREL2_DATA%\grid\cells %KESTREL2_DATA% --days 7`.
+grid-week (waits: 2026-11-28): the pass runs old code (pre-#1210) on the new-format store, so 2,810 of 5,325 cells fail
+each hour (#1370; a failure now names its file, line and function). The week must restart unbroken once the runner updates
+its clone (R-GRID-8): 7 days not before 28 Nov, then read `sweep.unbroken(Path(KESTREL2_DATA))`.
 Every other box is ticked. Open: R-DATA-7 (`batch.stored` now reads through `universe.read`, #618; remains: a cell keeping
 `History.moves` and `.rescaled` in its record, which changes the cell's record and key), R-RUNGS-2 (declared sweep enters every cell in the register), R-RUNGS-4.
 
@@ -267,6 +266,8 @@ Every other box is ticked. Open: R-DATA-7 (`batch.stored` now reads through `uni
   SPY and QQQ; name lines that stay (AAPL, NVDA) so DATA can take them out of the twenty.
 - [ ] R-GRID-7 (later, 2026-11-16 12:00 UK): `lab/cell.py` `rungs()` stats per candidate per module; cache `_file`
   so the import takes seconds, not minutes, on the PC.
+### Requests to RUNNER
+- [ ] R-GRID-8 (blocking, 21 Nov 11:00 UK): bring the week's clone up to current main, each hourly pass on current main; keep its stdout/stderr files.
 ### Requests to DATA
 - [ ] R-GRID-5 (later, 2026-11-13 22:20 UK): the research store's home (data-research-home) built on this PC.
 
