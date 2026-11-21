@@ -11,7 +11,8 @@ R-RUNNER-317: the keeper's live job failed on 17 November, its one-minute lines 
 R-RUNNER-316: the keeper's live job asked for one-minute bars of lines the store never held.
 R-RUNNER-318: the 17 November conformance job, a London line with no bar of the session before.
 R-RUNNER-319: the keeper's live job, 17 November, met "database is locked" on its store.
-R-RUNNER-324: the desk's day job, 18 November, met "TimeoutError: timed out" from the broker."""
+R-RUNNER-324: the desk's day job, 18 November, met "TimeoutError: timed out" from the broker.
+R-RUNNER-347: the desk's day job, 19 November, had no end after 240 seconds (120 s a order)."""
 
 from __future__ import annotations
 
@@ -32,6 +33,7 @@ from desk import (
     keeper_live,
     kill,
     messenger,
+    paper,
     venues,
     watch,
 )
@@ -64,6 +66,8 @@ UNHELD = (
 UNBARRED = "a conformance plan with no bar of the session before the day refuses, naming the line"
 LOCKED = "a store another writer holds refuses the round by name, loses nothing, serves the next"
 SILENT = "a broker silent after an order is sent: the kill switch is on, the alarm names the order"
+SLOW = "a broker that fills nothing cannot keep the desk's day past the step's time"
+STEP_SECONDS = 900  #: the runner's time for the desk step (its drive_atjobs): waits plus a margin
 PROMISE = "a held line with no bar for a session is named when the day is refused"
 
 
@@ -322,3 +326,13 @@ def silent(life: _Life, on: date) -> None:
     else:
         del life.pretend.place
         life.promise(SILENT, not failed)  #: no order was sent: nothing to be silent to
+
+
+def slow(life: _Life, on: date) -> None:
+    """The broker fills nothing, so each order sent is given the whole wait (19 November: 120 s
+    each, the step killed at 240 s). The day's worst case, every order waiting out its time
+    (paper.FILL_SECONDS) and the knock (paper.SECONDS), must end inside the step's time."""
+    seen = len(life.pretend.submitted())
+    life.live(on)
+    sent = len(life.pretend.submitted()) - seen
+    life.promise(SLOW, sent * paper.FILL_SECONDS + paper.SECONDS <= STEP_SECONDS)

@@ -19,6 +19,7 @@ from desk import (
     day_money,
     keeper,
     keeper_live,
+    paper,
     simcity,
     store,
     watch,
@@ -37,6 +38,7 @@ from desk.simcity_incidents import (
     PROMISE,
     REFUSED,
     SILENT,
+    SLOW,
     SOLD,
     STALE,
     UNBARRED,
@@ -51,6 +53,7 @@ from desk.simcity_incidents import (
     outside,
     parked,
     silent,
+    slow,
     stale,
     unbarred,
     unheld,
@@ -131,6 +134,7 @@ def test_without_naming_the_cancelled_orders_the_scenario_is_red(
         (LOCKED, locked),
         (LIVE, minutes),
         (SILENT, silent),
+        (SLOW, slow),
     ],
 )
 def test_a_halt_a_line_outside_an_isa_and_a_parked_yardstick_are_lived_and_kept(
@@ -236,3 +240,13 @@ def test_without_the_kill_switch_a_silent_broker_scenario_is_red(
     monkeypatch.setattr(book, "turn", lambda *_a: None)  #: the switch is never written
     red = simcity.run(tmp_path, SHORT, ROOM, RATES, NOW, (1, 2, 3))
     assert any(SILENT in b for b in red.broken)
+
+
+def test_with_each_order_waiting_too_long_the_slow_broker_scenario_is_red(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(simcity, "EVENTS", ((SLOW, slow),))
+    monkeypatch.setattr(simcity, "EVENTFUL", 1)
+    monkeypatch.setattr(paper, "FILL_SECONDS", 3600)  #: the 19 November wait, made past the step
+    red = simcity.run(tmp_path, SHORT, ROOM, RATES, NOW, (1, 2, 3))
+    assert any(SLOW in b for b in red.broken)
