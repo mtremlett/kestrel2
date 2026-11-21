@@ -182,6 +182,12 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1119 R-PAPER-17 done: each record writer has its own temp file |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1143 no change; R-RUNGS-7 remainder is PAPER's running.py |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1139 no change; no blocking request open, R-PAPER-30 waits for more tapes |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1255 R-RUNNER-407 part: gate refuses a buy at or under its stop, tested |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1022 R-RUNNER-317 SimCity scenario for one-minute bars not stale, pinned |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1125 no change; R-PAPER-35 is PAPER's files, R-RUNNER-401 awaits a park-file design |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1272 R-RUNNER-414 book side landed; rehearsal fills split out as found, pinned |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1245 R-RUNNER-319 SimCity scenario for a locked live store, lived and counted |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1279 R-RUNNER-409 trade-faithfulness replay built (desk.simcity_fills), one test |
 
 ### DATA
 
@@ -436,6 +442,14 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1059 coverage lookback read from the grid's SWEEPS, one home (500 sessions). |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1062 no change; R-MONEY-48 already met, closed. |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1065 DATA: data-pence confirmed done on main, docstring only. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1098 DATA: disk-space floor in the quality monitor (OPS-07), no scene moved. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1101 DATA s3: pre-2010 window verified prepared, no code, no scene moved. |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1104 DATA: breadth counts from the store, pure and tested (R-RUNNER-346). |
+| 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1107 DATA: disk watch wired into the quality monitor (OPS-07 part). |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1262 no change; R-DATA-57 local Stooq step needs the reader moved into desk/ first. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1210 DATA: bars and faults in one file per line (R-DATA-55). |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1243 DATA: 15m/30m rolled from 5m (R-DATA-56 part). |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1268 DATA s3: nothing built, decision noted in docs/lanes/data.md. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
@@ -544,6 +558,11 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1024 R-RUNNER-390 done: link news no longer turns the kill switch on. |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1066 R-MONEY-55 done: go flat cancels working buys via halt.stop. |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1097 scribe folded #1066; no change. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1264 R-RUNNER-410 done, placing reads the order's session not its id. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1267 R-MONEY-58 done, an order's date is read from its session field, not its name. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1260 R-RUNNER-400 order_times carry real timestamps. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1278 a door wait that runs out names its call. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1280 R-RUNNER-415 rehearsal can no longer send into New York's extended hours. |
 
 ### GRID
 
