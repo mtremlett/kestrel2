@@ -322,3 +322,6 @@ then the break was removed:
 ### 2026-11-21 — the EPON table: one row per rule (R-RUNNER-334, #1360)
 - `ladder_sets.condense` rewrites ladder/sets/<tag>.md after write_table: one row per rule, every cell kept whole in <tag>.cells.json. Furthest rung = the last rung run by the rule's best line (one that goes forward, else the one that ran most rungs); a rule with no line judged shows its error or refusal as the reason.
 - Options: change `verdict.write_table` itself (declined: outside the claim); condense after it (chosen).
+
+### 2026-11-21 — the stop-rule rung sizes every rival by today's risk (R-RUNNER-408, #1277)
+- Options: a flat risk budget for all rivals; or the budget today's stop risks (10% x leverage). Chose the second so the fixed-stop baseline is unchanged. Trades lacking 21 bars of history, or where any rival buys no share, are dropped for all rivals so the same trades judge every rule. Pre-registration: docs/DECISIONS.md, 21 Nov.
