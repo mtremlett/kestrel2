@@ -574,6 +574,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1309 PAPER s2 — email fallback wired (R-PAPER-28). |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1350 R-RUNNER-283 done: desk/command.py split (400 to 321 lines), no behaviour change |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1362 R-RUNNER-253 pinned by a test; no product change. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1371 R-RUNNER-202 intraday step round built and tested; no rule trades yet. |
 
 ### GRID
 

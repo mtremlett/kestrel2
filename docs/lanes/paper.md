@@ -519,3 +519,7 @@ Options: (a) refuse the step when no SMTP_ setting is set; (b) stay silent and r
 ### 2026-11-21 — R-RUNNER-253: rehearsal order ids not stamped (#1362)
 
 Options: (a) mark the rehearsal's order ids with its run stamp (needs `desk/placing.py` and `desk/orders.py`, outside the claim; `strategy_of` parses the id); (b) leave the held-line separation as is (chosen: the stated test passes without it). (a) would still cover a collision on a line sold since, where there is no holding to match.
+
+### 2026-11-21 — R-RUNNER-202: the intraday round lives in `desk/running.py` (#1371)
+
+Options: (a) a new module (refused by the 100-file desk ceiling); (b) `desk/command.py` (wrong home); (c) `desk/running.py` (chosen, docstrings trimmed to stay under 400 lines). Order id is day-rule-symbol-HHMM+side so a bar's buy and sale differ and a bar seen twice sends nothing twice. Latent while `intraday.RULES` is empty; the open refusals and caps are R-PAPER-36.

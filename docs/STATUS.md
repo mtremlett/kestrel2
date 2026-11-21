@@ -114,6 +114,10 @@ money-restop waits on R-MONEY-18, R-MONEY-31 (the lost-stop list in `desk/messen
 ### Requests to MONEY
 - [ ] R-RUNGS-29 (blocking, 19 Nov 23:30): let `tests/guards/test_lanes.py` take a lane's owned modules from the merge-base manifest and allow removing a module's own manifest line, so R-RUNNER-191 (b) can delete lab/rung_folds.py (a guard change; recommended, outside RUNGS's claim).
 - [ ] R-MONEY-54 (blocking, opened 2026-11-19 20:10 UK): wire `desk/watch.py`, `desk/goflat.py`, `desk/book.py` to `halt.stop` so a real halt cancels working buys (send path done #1031; `desk/goflat.py` is R-MONEY-55, `desk/watch.py` looks before the broker exists in `running._work`, so it needs a broker passed in or a cancel after the look; #871).
+### Requests to RUNGS
+
+- [ ] R-PAPER-36 (later, opened 21 Nov): before any rule joins `intraday.RULES`, its buy needs the day's held/ISA/hand-park refusals and exposure and correlation caps.
+
 ### Requests to DATA
 - [ ] R-DATA-60 (blocking, 2026-11-20, #950): add `Source.ROLLUP_5M = 'rollup:5m'` to desk/bars_schema.py (widen the card's claim to it) so R-RUNNER-217 step 2 can be built.
 - [ ] R-MONEY-3 (later): a daily rate, pounds per dollar, in the store. [x] R-MONEY-15, R-MONEY-16: done (#163, #150). R-MONEY-12 (later): on the master, the market's lines: the yardstick's twin (VUSA), one in New York hours.
@@ -136,7 +140,7 @@ money-restop waits on R-MONEY-18, R-MONEY-31 (the lost-stop list in `desk/messen
 
 ## PAPER
 
-Last updated: 21 November 2026 (folds #215 to #1097, #1264, #1267, #1260, #1278, #1280, #1309, #1350, #1362).
+Last updated: 21 November 2026 (folds #215 to #1097, #1264, #1267, #1260, #1278, #1280, #1309, #1350, #1362, #1371).
 
 ### Where it is
 
@@ -144,7 +148,7 @@ Built: supervisor pulls main at the safe point (#752), contract request carries 
 
 ### Next step
 
-R-RUNNER-348 is unblocked (R-PAPER-35 done). R-MONEY-59: reword the `desk/watch.py` PARK text (the desk can park, `desk/handpark.py`). R-RUNNER-402 remains: a test that the desk step's timeout is at least its worst-case waits plus a margin (runner holds 900 s). R-RUNNER-253 (remains): stamp the rehearsal's own order ids on lines not held at the start (needs `desk/placing.py`, `desk/orders.py`; claim must widen); the held-line case is pinned by test (#1362). A gate on real orders outside the regular session in running/placing, if wanted (R-RUNNER-415 only barred the rehearsal). R-PAPER-28 remains: the runner hands the five SMTP_ settings to the step (outside this lane) and a preflight line for the mail door. R-PAPER-29. Drop the unused `ended` branch of `action(said, ended)` in `desk/ended.py` (needs a claim). Conformance sizing (R-RUNNER-281): `desk/conformance.py:242` must pass `root` to `plan(...)` as `home`, then the archive branch goes (needs a claim naming it). Live check that the gateway answers IDTL (R-RUNNER-278). paper-supervised, paper-cards, paper-extras, paper-backups wait: operator.
+R-RUNNER-348 is unblocked (R-PAPER-35 done). R-MONEY-59: reword the `desk/watch.py` PARK text (the desk can park, `desk/handpark.py`). R-RUNNER-402 remains: a test that the desk step's timeout is at least its worst-case waits plus a margin (runner holds 900 s). R-RUNNER-253 (remains): stamp the rehearsal's own order ids on lines not held at the start (needs `desk/placing.py`, `desk/orders.py`; claim must widen); the held-line case is pinned by test (#1362). Intraday round built in `desk/running.py` (`_intraday`, R-RUNNER-202, #1371; `intraday.RULES` empty, nothing trades yet): still owed a step-level test, one note per bar for a refused buy, and the day's refusals and caps on the intraday buy (R-PAPER-36; needs `desk/day.py` or a split of `running.py`, 397 lines). A gate on real orders outside the regular session in running/placing, if wanted (R-RUNNER-415 only barred the rehearsal). R-PAPER-28 remains: the runner hands the five SMTP_ settings to the step (outside this lane) and a preflight line for the mail door. R-PAPER-29. Drop the unused `ended` branch of `action(said, ended)` in `desk/ended.py` (needs a claim). Conformance sizing (R-RUNNER-281): `desk/conformance.py:242` must pass `root` to `plan(...)` as `home`, then the archive branch goes (needs a claim naming it). Live check that the gateway answers IDTL (R-RUNNER-278). paper-supervised, paper-cards, paper-extras, paper-backups wait: operator.
 
 ### Requests to MONEY
 
