@@ -101,7 +101,7 @@ def _made(path: Path, line: Line, now: datetime) -> dict[str, list[Candle]]:
     """The line's 2m, 10m, 15m, 30m, 1h, 4h and weekly bars as built from the finer bars held."""
     halves, fives, days, ones = (_held(path, line, s, now) for s in ("30m", "5m", "1d", "1m"))
     made = {f: built(line.venue, halves, f) for f in HOURLY}
-    made |= {f: rollup.rollup(line.venue, ones, f, "1m") for f in FROM_ONE}
+    made |= {f: rollup.rollup(line.venue, ones, f, "1m") for f in (*FROM_ONE, "5m")}
     made |= {f: rollup.rollup(line.venue, fives, f, "5m") for f in FROM_FIVE}
     return {**made, "1wk": rollup.weekly(line.venue, days)}
 
@@ -119,6 +119,9 @@ def roll(path: Path, line: Line, now: datetime) -> int:
     ):
         with bars.writing(path, source) as round_:
             landed += sum(round_.timed(line, f, (_timed(f, c) for c in made[f])) for f in frames)
+    with bars.writing(path, bars.Source.ROLLUP_1M) as round_:
+        landed += round_.five(line, (Five(c.start, c.open, c.high, c.low, c.close, c.volume)
+                                     for c in made["5m"]))  # fmt: skip
     return landed
 
 
@@ -127,7 +130,9 @@ def clashes(path: Path, line: Line, now: datetime) -> list[str]:
     open, high, low or close (a pulled bar stays; the disagreement is recorded)."""
     faults = []
     for frame, candles in _made(path, line, now).items():
-        have = {b.start: b for b in bars.timed(path, line, frame, EPOCH, now)}
+        got = bars.five(path, line, EPOCH, now) if frame == "5m" else bars.timed(
+            path, line, frame, EPOCH, now)  # fmt: skip
+        have = {b.start: b for b in got}
         for c in candles:
             one = have.get(c.start)
             if one and (one.open, one.high, one.low, one.close) != (c.open, c.high, c.low, c.close):
