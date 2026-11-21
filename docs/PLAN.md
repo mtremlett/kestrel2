@@ -318,8 +318,8 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       {id: data-3lgo; files: desk/lines.py, tests/unit/test_lines.py, desk/store.py, tests/unit/test_store.py; after: data-sgln}
 - [x] A stretched bar's changes recorded beside it
       {id: data-stretched; files: desk/store.py, tests/unit/test_store.py; after: data-3lgo}
-- [ ] A line's bars and its fault record written together, so a crash cannot part them
-      Built (#832): both files written whole before either is swapped in. Remains: a crash between the two swaps; one file per line, which needs lab/universe.py and tests/unit/test_lab_universe.py in the claim
+- [x] A line's bars and its fault record written together, so a crash cannot part them
+      Built (#832, #1210): one CSV per line holds bars and fault rows, swapped in with one replace. Older stores keep an orphan `*.faults.csv` until the next nightly prepare.
       {id: data-written-together; files: desk/store.py, tests/unit/test_store.py; after: data-stretched; waits: operator}
 - [x] A pence history the archive calls pounds caught
       Built (#630, #725): every pull reaches the store through `history_write.keeper`, which turns pence to pounds once on entry; `history.run` and `pull` hand out the broker's unit by design (#1065)
@@ -348,6 +348,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
 - [ ] Leveraged-product lifecycle watched: an issuer's closure, a compulsory redemption or
       an ISA eligibility change on any line held or researched raises an alert (BIC-11)
 - [ ] Disk watched; old research files roll off by rule (OPS-07)
+      Built (#1098, #1107): the quality monitor goes red under 10% free. Remains: the roll-off rule (needs his yes before deleting anything) and the runner job reading the red
 - [ ] **IBKR's capacity, no new spend, 10% kept spare** (research of 14 November,
       `free_data_2026-11-14.md` in the notes folder): 90 tickers streamed live, 1-minute bars
       built from quotes; polled 1-minute bars for 27 tickers every 5 minutes, 81 every 15 and
