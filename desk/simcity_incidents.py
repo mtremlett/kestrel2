@@ -12,7 +12,8 @@ R-RUNNER-316: the keeper's live job asked for one-minute bars of lines the store
 R-RUNNER-318: the 17 November conformance job, a London line with no bar of the session before.
 R-RUNNER-319: the keeper's live job, 17 November, met "database is locked" on its store.
 R-RUNNER-324: the desk's day job, 18 November, met "TimeoutError: timed out" from the broker.
-R-RUNNER-347: the desk's day job, 19 November, had no end after 240 seconds (120 s a order)."""
+R-RUNNER-347: the desk's day job, 19 November, had no end after 240 seconds (120 s a order).
+R-RUNNER-325: 18 November, the paper Gateway's port closed outside its restart: conformance-us."""
 
 from __future__ import annotations
 
@@ -27,6 +28,7 @@ from typing import TYPE_CHECKING
 from desk import (
     bars,
     book,
+    conformance,
     conformance_parts,
     halt,
     keeper,
@@ -73,6 +75,9 @@ SLOW = "a broker that fills nothing cannot keep the desk's day past the step's t
 STEP_SECONDS = 900  #: the runner's time for the desk step (its drive_atjobs): waits plus a margin
 STOP_SILENT = (
     "a gateway silent when the stop is to fire fails that step by name and puts the account back"
+)
+SHUT = (
+    "a closed Gateway port outside its restart: the run is not begun, nothing sent, his to look at"
 )
 PROMISE = "a held line with no bar for a session is named when the day is refused"
 
@@ -375,5 +380,31 @@ def gateway_silent(life: _Life, on: date) -> None:
     left = book.positions(home) or dict(world.holdings()) or world.stops()
     life.promise(
         STOP_SILENT, failed == [conformance_parts.TRIGGER] and "TimeoutError" in answer and not left
+    )
+    life.live(on)
+
+
+def unreachable(life: _Life, on: date) -> None:
+    """The paper Gateway's port is closed in the market's hours, outside its 03:00 restart (18
+    November, conformance-us). The run must be refused, nothing sent, in the words that tell
+    him the Gateway is his to look at; it asks the Gateway once and the desk goes on."""
+    market, asked = "us", []
+    if venues.sessions(conformance.MARKETS[market], on, on) != (on,):
+        life.live(on)  #: the venue keeps a holiday: no run is due
+        return
+    now = venues.hours(conformance.MARKETS[market], on).open + timedelta(hours=2)
+
+    def refused(talk: object, *_seconds: float) -> None:
+        asked.append(talk)
+        raise ConnectionRefusedError(f"port {paper.PORT} is closed")
+
+    dial, paper.dial = paper.dial, refused  # type: ignore[assignment]
+    try:
+        well, words = conformance.trade(life.desk, market, lambda: now)
+    finally:
+        paper.dial = dial
+    head = f"CONFORMANCE {market} NOT BEGUN, nothing sent: The paper Gateway does not answer: "
+    life.promise(
+        SHUT, not well and words.startswith(head + "its port is closed") and len(asked) == 1
     )
     life.live(on)
