@@ -25,7 +25,7 @@ from desk.strategy import ARITHMETIC
 from lab import cell, folds, rung
 from lab.cell import Cell, Trade
 from lab.rung import Answer, Rates
-from lab.rung_folds import Fold, Walked
+from lab.folds import Fold, Walked
 
 WINDOW = 20  #: the ATR's days, and the history a trade needs before its fill to be judged
 CAPITAL = Decimal(10_000)  #: pounds a trade's full room; every rule's gain is on it

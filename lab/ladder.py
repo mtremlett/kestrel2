@@ -61,12 +61,12 @@ import json
 import os
 import sys
 from collections import Counter
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import desk
 from desk import archive, carry, keeper
@@ -138,15 +138,34 @@ def names(c: Cell) -> list[str]:
     return [trials.name(c)]
 
 
-def _whole(results: Path) -> bytes:
-    """The results file as far as its last whole line: a line a stop cut short is cut off."""
-    text = results.read_bytes() if results.exists() else b""
-    return text[: text.rfind(b"\n") + 1]
+class Kept:
+    """The results file read line by line into an index of offsets only: each cell's last whole
+    line (its answer now) is found by seek, and `end` is where the last whole line ends, so a
+    line a stop cut short is cut off. No row is held."""
 
+    def __init__(self, results: Path) -> None:
+        self.path, self.at, self.end = results, {}, 0
+        if not results.exists():
+            return
+        with results.open("rb") as file:
+            for line in file:
+                if not line.endswith(b"\n"):
+                    break
+                self.at[tuple(json.loads(line)["cell"])] = (self.end, len(line))
+                self.end += len(line)
 
-def _last(whole: bytes) -> dict[tuple[str, ...], verdict.Row]:
-    """Each cell's last line in the results: its answer now."""
-    return {tuple(row["cell"]): row for row in map(json.loads, whole.splitlines())}
+    def get(self, key: tuple[str, ...]) -> verdict.Row | None:
+        """The cell's last line, read back from the file, or None."""
+        if key not in self.at:
+            return None
+        offset, size = self.at[key]
+        with self.path.open("rb") as file:
+            file.seek(offset)
+            return cast(verdict.Row, json.loads(file.read(size)))
+
+    def rows(self) -> Iterator[verdict.Row]:
+        """Every cell's last line, one at a time."""
+        return (cast(verdict.Row, self.get(key)) for key in self.at)
 
 
 def stored(home: Path) -> Bars:
@@ -202,14 +221,13 @@ def run(
         raise RuntimeError("the code on disk has changed since this process loaded it")
     todo = cells() if todo is None else todo
     results, count = begun(home, todo, plan)
-    whole = _whole(results)
-    last = _last(whole)
+    last = Kept(results)
     shared = Shared(todo)
     register = results.with_suffix(".trials.jsonl")
     kin = lambda rule: trials.family(register, plan.question, rule)  # noqa: E731 - read when EASED
     tally: Counter[str] = Counter()
     with tape.on(home / FOLDER / tape.FOLDER), results.open("ab") as out:
-        out.truncate(len(whole))
+        out.truncate(last.end)
         for c in todo:
             was = last.get(tuple(batch.row(c)))
             row = _one(c, bars, pounds, (plan.tag, count), was, shared, now(), kin)
@@ -309,8 +327,8 @@ def door(env: Mapping[str, str], argv: Sequence[str]) -> int:
     code = ladder_sets.main(env, argv)
     plan = {"first": FIRST, "leveraged": ladder_sets.LEV}.get(argv[0] if argv else "")
     stem = (plan or ladder_sets.EPON).stem
-    kept = _last(_whole(Path(env["KESTREL2_DATA"]) / FOLDER / f"{stem}.jsonl"))
-    said, mostly = faults(list(kept.values()))
+    kept = Kept(Path(env["KESTREL2_DATA"]) / FOLDER / f"{stem}.jsonl")
+    said, mostly = faults(kept.rows())
     sys.stdout.write("".join(f"{line}" + chr(10) for line in said))
     return code or int(mostly)
 
