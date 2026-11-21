@@ -175,6 +175,7 @@ def deaf(life: _Life, on: date) -> None:
         life.live(on)
         return
     daily = {x: [b for b in bars_ if b.day < on] for x, bars_ in life.market.items()}
+    daily[YARDSTICK] = daily[YARDSTICK][-1:]  #: a calm month, so only the deafness can halt
     session, price = venues.hours(YARDSTICK.venue, on), Decimal(daily[YARDSTICK][-1].close)
     hot, post = life.desk / "deaf-bars.db", count(1).__next__
     with bars.writing(hot) as round_:
@@ -237,11 +238,11 @@ def locked(life: _Life, on: date) -> None:
     """Another writer holds the live store when the keeper's one-minute round begins (17 November,
     "database is locked"). The round must be refused by name (NoRound) with nothing of it landed,
     and the next run, the store free, must go through."""
-    session = venues.hours(YARDSTICK.venue, on)
     lines = sorted((x for x in life.market if x.venue == YARDSTICK.venue), key=lambda x: x.symbol)
-    hot, now = life.desk / "locked-bars.db", session.open + timedelta(hours=1)
+    opened = datetime.combine(on, time(9), UTC)  #: any day will do; the store ignores the calendar
+    hot, now = life.desk / "locked-bars.db", opened + timedelta(hours=1)
     with bars.writing(hot) as round_:
-        round_.five(YARDSTICK, [Five(session.open, *(Decimal(1),) * 4, 1)])
+        round_.five(YARDSTICK, [Five(opened, *(Decimal(1),) * 4, 1)])
 
     def ask(line: Line, at: datetime) -> tuple[Timed, ...]:
         return bars.timed(hot, line, keeper_live.MINUTES, at - timedelta(hours=1), at)
@@ -258,5 +259,5 @@ def locked(life: _Life, on: date) -> None:
     finally:
         bars.WAIT = wait
     keeper_live.minute_round(hot, lines, now, ask)
-    life.promise(LOCKED, refused and bool(bars.five(hot, YARDSTICK, session.open, now)))
+    life.promise(LOCKED, refused and bool(bars.five(hot, YARDSTICK, opened, now)))
     life.live(on)
