@@ -402,3 +402,16 @@ def test_a_round_trip_pairs_each_sale_with_the_buys_it_closes_in_pounds_after_ev
         "A",
         "U",
     }
+
+
+def test_a_trade_is_told_with_its_strategy_and_the_bar_its_signal_read(tmp_path: Path) -> None:
+    broker = Pretend(WEEK, {})
+    broker.open(MON)
+    book.record_rates(tmp_path, MON, {"GBP": Decimal(1)})
+    _send(tmp_path, broker, "20251107-rsi-A")
+    book.send(tmp_path, broker, Sale("20251107-rsi-A-s", A, 10), ROOM)
+    trips, friday = book.round_trips(tmp_path, (A,)), _bar(date(2025, 11, 7), 48)
+    (story,) = book.told(trips, {A: (friday, *WEEK[A])})
+    assert (story.strategy, story.held, story.bar) == ("rsi", 0, friday)
+    with pytest.raises(ValueError, match="no bar before"):
+        book.told(trips, {A: WEEK[A]})
