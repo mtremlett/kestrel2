@@ -36,6 +36,7 @@ from desk.simcity_incidents import (
     PARKED,
     PROMISE,
     REFUSED,
+    SILENT,
     SOLD,
     STALE,
     UNBARRED,
@@ -49,6 +50,7 @@ from desk.simcity_incidents import (
     minutes,
     outside,
     parked,
+    silent,
     stale,
     unbarred,
     unheld,
@@ -127,6 +129,7 @@ def test_without_naming_the_cancelled_orders_the_scenario_is_red(
         (UNHELD, unheld),
         (UNBARRED, unbarred),
         (LOCKED, locked),
+        (SILENT, silent),
         (LIVE, minutes),
     ],
 )
@@ -223,3 +226,13 @@ def test_without_the_refusal_by_name_a_locked_store_scenario_is_red(
     monkeypatch.setattr(bars, "NoRound", type("Quiet", (Exception,), {}))
     red = simcity.run(tmp_path, SHORT, ROOM, RATES, NOW, (1,))
     assert red.deaths or any(LOCKED in b for b in red.broken)
+
+
+def test_without_putting_the_account_back_a_silent_gateway_scenario_is_red(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(simcity, "EVENTS", ((SILENT, silent),))
+    monkeypatch.setattr(simcity, "EVENTFUL", 1)
+    monkeypatch.setattr(conformance_parts, "_leave", lambda _side, _run: "left")
+    red = simcity.run(tmp_path, SHORT, ROOM, RATES, NOW, (1, 2, 3))
+    assert red.deaths or any(SILENT in b for b in red.broken)
