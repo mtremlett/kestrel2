@@ -84,3 +84,19 @@ def test_hourly_four_hourly_and_weekly_bars_are_rolled_never_over_a_pulled_one(
     assert roll(live, LINE, open_ + timedelta(days=1)) == 0
     assert bars.sources(live, LINE, "1h") == {bars.Source.IBKR: 2, bars.Source.ROLLUP_30M: 6}
     assert bars.sources(live, LINE, "1wk") == {bars.Source.ROLLUP_1D: 1}
+
+
+def test_fifteen_and_thirty_minute_bars_are_rolled_from_whole_five_minute_runs(
+    tmp_path: Path,
+) -> None:
+    live, keep = tmp_path / bars.LIVE, keeper(tmp_path / bars.LIVE, {"VUAG": 1})
+    open_ = datetime(2026, 11, 12, 8, 0, tzinfo=UTC)
+    fives = tuple(
+        Candle(open_ + timedelta(minutes=5 * n), PRICE, PRICE, PRICE, PRICE, 1, "ibkr")
+        for n in range(12)
+        if n != 4  # 08:20 is missing: no 08:15 quarter, no 08:00 half hour
+    )
+    keep(LINE, "5m", fives)
+    assert roll(live, LINE, open_ + timedelta(days=1)) == 3 + 1  # quarters 08:00 30 45; half 08:30
+    assert bars.sources(live, LINE, "15m") == {bars.Source.ROLLUP_5M: 3}
+    assert bars.timed(live, LINE, "30m", open_, open_ + timedelta(hours=1))[0].volume == 6

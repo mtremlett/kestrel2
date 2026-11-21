@@ -66,11 +66,7 @@ def rolled(path: Path, line: Line, today: date) -> tuple[int, list[str]]:
     """The line's coarser bars built from its finer ones, and how many landed, with the faults
     where a built bar differs from one held. A line holding no finer bars has nothing to build."""
     now = datetime.combine(today, time(), UTC)
-    try:
-        landed = history_write.roll(path, line, now)
-    except LookupError:  # the store never held this line's 30-minute bars: no rollup to make
-        return 0, []
-    return landed, history_write.clashes(path, line, now)
+    return history_write.roll(path, line, now), history_write.clashes(path, line, now)
 
 
 SHORT = (
