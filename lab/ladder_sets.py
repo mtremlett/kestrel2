@@ -18,6 +18,7 @@ from collections.abc import Callable, Mapping, Sequence
 from datetime import UTC, date, datetime, timedelta
 from functools import partial
 from pathlib import Path
+from typing import cast
 
 from desk.lines import LINES, Line
 from lab import (
@@ -34,7 +35,7 @@ from lab import (
 )
 from lab.batch import Bars
 from lab.cell import Cell
-from lab.ladder import END, FOLDER, START, Plan, _last, _whole, eponymous, run
+from lab.ladder import END, FOLDER, START, Kept, Plan, eponymous, run
 from lab.ladder_parts import FAILED, Shared, _made, _resolve
 from lab.rung import Answer, Rates
 
@@ -130,8 +131,8 @@ def epon(
     todo, notes = survivors(rules, lines, records)
     counts = go(home, bars, pounds, todo, now, plan)  #: a rule's lines together: its pool once
     count = trials.count(home / FOLDER / f"{plan.stem}.trials.jsonl", plan.question)
-    last = _last(_whole(home / FOLDER / f"{plan.stem}.jsonl"))
-    rows = [last[tuple(batch.row(c))] for c in todo]
+    last = Kept(home / FOLDER / f"{plan.stem}.jsonl")
+    rows = [cast(verdict.Row, last.get(tuple(batch.row(c)))) for c in todo]
     if verdict.EASED:  #: easing 2: each rule's lines also judged pooled, one basket a rule
         rows += baskets(home, bars, pounds, todo, rules, plan)
     sets = home / FOLDER / "sets"
