@@ -60,7 +60,7 @@ def keeper(path: Path, units: Mapping[str, int]) -> Keep:
 
 HOURLY = ("1h", "4h")  #: the timeframes built from held 30-minute bars, not asked of the broker
 HALF = timedelta(minutes=30)
-FROM_ONE = ("2m", "10m")  #: the timeframes built from held one-minute bars
+FROM_ONE = ("2m", "5m", "10m")  #: the timeframes built from held one-minute bars
 FROM_FIVE = ("15m", "30m")  #: the timeframes built from held five-minute bars
 
 
@@ -106,6 +106,15 @@ def _made(path: Path, line: Line, now: datetime) -> dict[str, list[Candle]]:
     return {**made, "1wk": rollup.weekly(line.venue, days)}
 
 
+def _write(round_: bars.Round, line: Line, frame: str, candles: list[Candle]) -> int:
+    """The built candles of frame into the round: five-minute bars have a table of their own."""
+    if frame == "5m":
+        return round_.five(
+            line, (Five(c.start, c.open, c.high, c.low, c.close, c.volume) for c in candles)
+        )
+    return round_.timed(line, frame, (_timed(frame, c) for c in candles))
+
+
 def roll(path: Path, line: Line, now: datetime) -> int:
     """Build the line's 1h, 4h and weekly bars from the 30-minute and daily bars the database
     holds and add them: a bar already held, pulled or not, stays. Says how many landed."""
@@ -118,7 +127,8 @@ def roll(path: Path, line: Line, now: datetime) -> int:
         (bars.Source.ROLLUP_1D, ("1wk",)),
     ):
         with bars.writing(path, source) as round_:
-            landed += sum(round_.timed(line, f, (_timed(f, c) for c in made[f])) for f in frames)
+            for f in frames:
+                landed += _write(round_, line, f, made[f])
     return landed
 
 
@@ -127,7 +137,9 @@ def clashes(path: Path, line: Line, now: datetime) -> list[str]:
     open, high, low or close (a pulled bar stays; the disagreement is recorded)."""
     faults = []
     for frame, candles in _made(path, line, now).items():
-        have = {b.start: b for b in bars.timed(path, line, frame, EPOCH, now)}
+        got = bars.five(path, line, EPOCH, now) if frame == "5m" else bars.timed(
+            path, line, frame, EPOCH, now)  # fmt: skip
+        have = {b.start: b for b in got}
         for c in candles:
             one = have.get(c.start)
             if one and (one.open, one.high, one.low, one.close) != (c.open, c.high, c.low, c.close):
