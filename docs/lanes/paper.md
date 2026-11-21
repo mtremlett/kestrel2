@@ -499,3 +499,15 @@ Options: (a) parse the id elsewhere in `desk/placing.py` (same defect, rejected)
 ### 2026-11-20 — R-RUNNER-390: which gateway link news is Disconnected (#1024)
 
 Options: (a) a wider list of kin of 2110 and 2157, including 1101 and 1102 (connectivity restored), at more risk of masking real faults; (b) 1100 (connectivity lost) with 2110 and 2157, listed once as `LINK` beside `FEEDS` in `desk/paper.py` (chosen, the narrow list). Other unknown news still raises a plain error.
+
+### 2026-11-21 — R-RUNNER-410: placing reads `order.session`, not the id (#1264)
+
+The field is named `session` (orders.py), not `day` as the request called it. An unset session fails loudly (ValueError) rather than defaulting, as asked.
+
+### 2026-11-21 — order times get their own stamp clock (R-RUNNER-400, #1260)
+
+Options: pass a live clock to `Paper` (rejected: the rehearsal needs a fixed decision moment); a separate stamp clock, real UTC by default, written to the millisecond (chosen). Old rows stay readable.
+
+### 2026-11-21 — the rehearsal bar widens to New York's extended hours (R-RUNNER-415, #1280)
+
+The card's "15:00 UTC passes" fits an order gate, but the send path (running/placing) is outside this claim; `_trading` is the rehearsal's gate and 15:00 UTC is barred (a market is open). Options: widen the rehearsal bar to NY 04:00 to 20:00 (chosen, recommended, fits the claim); gate every real order by session (needs other files, left open).
