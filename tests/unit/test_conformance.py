@@ -299,6 +299,22 @@ def test_the_command_records_each_real_result_beside_the_pretend_brokers_once(
         _run(tmp_path, MON, "paris")
 
 
+def test_a_reasons_read_that_times_out_marks_the_reason_unread_and_the_run_goes_on(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    _world(monkeypatch)
+
+    def slow(_door: paper.Door) -> dict[str, str]:
+        raise TimeoutError("timed out")
+
+    monkeypatch.setattr(conformance, "reasons", slow)
+    assert _run(tmp_path, MON, "london") == 0
+    with (tmp_path / "conformance" / "trades-london-20261116-1005.csv").open(newline="") as kept:
+        rows = list(csv.reader(kept))[1:]
+    assert [row[1] for row in rows[:-1]] == list(PRETEND)
+    assert {row[4] for row in rows[:-1]} == {"reason not read: timed out"}
+
+
 def test_the_why_read_gives_each_cancelled_order_its_reason_but_not_in_a_desk_rounds_hours(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:

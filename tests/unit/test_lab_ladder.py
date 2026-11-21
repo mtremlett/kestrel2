@@ -393,3 +393,27 @@ def test_the_shuffle_is_run_last_and_only_on_a_trial_that_passed_every_rung_befo
     assert unrun is not None and unrun[0] is Answer.DOUBT and "too good" not in unrun[1]
     assert unrun[1].startswith("not run") and "yearly answered DOUBT" in unrun[1]
     assert verdict.shuffled(own, EDGE, ROOM, {}, {"first": before["first"]}, ()) is None
+
+
+def test_superseded_lines_compact_to_one_per_cell_and_a_stop_mid_rewrite_leaves_the_file_whole(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    file = tmp_path / "set.jsonl"
+    old = [{"cell": [k], "n": n} for n, k in enumerate("abaab")]
+    file.write_bytes(b"".join(json.dumps(r).encode() + b"\n" for r in old))
+    before = ladder.Kept(file)
+    last = {k: before.get(k) for k in before.at}
+    whole = file.read_bytes()
+
+    def stopped(*_: object) -> Path:
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(Path, "replace", stopped)
+    with pytest.raises(KeyboardInterrupt):
+        before.compact()
+    assert file.read_bytes() == whole  #: a stop mid-rewrite: the old file whole
+    monkeypatch.undo()
+    before.compact()
+    after = ladder.Kept(file)
+    assert after.lines == 2 and {k: after.get(k) for k in after.at} == last
+    assert file.read_bytes().count(b"\n") == 2
