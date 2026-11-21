@@ -119,6 +119,13 @@ def roll(path: Path, line: Line, now: datetime) -> int:
     ):
         with bars.writing(path, source) as round_:
             landed += sum(round_.timed(line, f, (_timed(f, c) for c in made[f])) for f in frames)
+            if (
+                source is bars.Source.ROLLUP_1M
+            ):  # the five-minute table, which `timed` does not reach
+                ones = rollup.rollup(line.venue, _held(path, line, "1m", now), "5m", "1m")
+                landed += round_.five(
+                    line, (Five(c.start, c.open, c.high, c.low, c.close, c.volume) for c in ones)
+                )
     return landed
 
 

@@ -114,3 +114,6 @@ def test_two_and_ten_minute_bars_are_rolled_from_whole_one_minute_runs(tmp_path:
     roll(live, LINE, open_ + timedelta(days=1))
     assert bars.sources(live, LINE, "2m") == {bars.Source.ROLLUP_1M: 4}
     assert not bars.sources(live, LINE, "10m")
+    assert [f.start for f in bars.five(live, LINE, open_, open_ + timedelta(hours=1))] == [
+        open_ + timedelta(minutes=5)
+    ]
