@@ -60,7 +60,7 @@ def pull(root: Path, broker: Broker, at: datetime, why: str) -> Killed:
     reason it still stops the desk, and says none was given."""
     why = why.strip() or "no reason given"
     book.turn(root, Switch.ON, at, why)
-    cancelled = tuple(broker.cancel())
+    cancelled = book.cancel_all(root, broker, at.date())
     differ = book.reconcile(root, broker)
     return Killed(at, why, cancelled, tuple(book.positions(root).items()), differ)
 
