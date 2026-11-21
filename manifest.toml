@@ -117,6 +117,7 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "desk/simcity.py" = "SimCity, small: one command lives the desk's whole day over all the saved data at the pretend broker with its faults and writes the night's one record, with the census of the money path's parts and the scenarios that ran them"
 "desk/simcity_census.py" = "SimCity's census: each part of the money path and the scenarios that ran it, measured by a profiler"
 "desk/simcity_parts.py" = "SimCity's night and its worlds: the night's one record with its words, and a world's market dealt again from the saved lines; desk.simcity gives them to its callers"
+"desk/simcity_parts2.py" = "SimCity's mishaps done to a desk's morning: shares behind its back, every line opening at its low, the kill switch pulled; desk.simcity deals them out"
 "desk/simcity_incidents.py" = "SimCity's scenarios met by a real night, each a morning the desk is put in and the promise it must keep there: a held line with no bar for a session (R-RUNNER-246)"
 "desk/simcity_faults.py" = "SimCity's broker fault matrix: every IBKR message class crossed with every send moment, each cell with the promise it must keep; a cell is a passing scene or listed as not yet built, counted and printed (R-RUNNER-392)"
 "desk/simcity_fills.py" = "SimCity's trade-faithfulness replay: each real paper buy decided again from the bars saved before its day by the desk's own code, and a signal, size, stop or refusal that differs fails naming the fill and the field (R-RUNNER-409)"
