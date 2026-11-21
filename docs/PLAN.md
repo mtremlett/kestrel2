@@ -276,7 +276,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       Built: the two databases (#442, #510), the keeper and reference series on them (#486, #524), the
       imports of Stooq, ibkr_store and mark_the_trend daily, hourly and 15/30-minute rows (#527-#566), the
       history pull and its writer (#636, #674), pages back and keeps the line's currency (#710, #725). Remains: the rest of R-RUNNER-10 (5-minute parquet, market.db,
-      bars.db, per-source counts), paging back (R-RUNNER-216; #739: pull asks only 1m-30m and 1d; remains rollup of 1h, 4h, 1wk
+      bars.db, per-source counts), paging back (R-RUNNER-216; #739: pull asks only 1m-30m and 1d; remains rollup of 1h, 4h, 1wk (#1243 15m/30m from 5m; #1301, #1305 2m/5m/10m from 1m; remains the monitor's filler writing them)
       into the history database as rollup:<from>; #780: a rolled bar differing from a held one is a FAULT line on stderr; #797: `python -m desk.quality` audits, backfills and re-audits the daily timeframe; remains the other timeframes, market_live.db, local Stooq and rollup sources, the runner job; #930: backfill.fill takes one ordered source list, the rollup step needs Source.ROLLUP_5M in desk/bars_schema.py, outside the box's claim; #935: the audit counts a closed session of today), the long database for daily and up
       {id: data-two-stores; files: desk/bars.py, tests/unit/test_bars*.py, desk/keeper.py, tests/unit/test_keeper*.py; after: data-ingest; waits: operator}
 - [ ] **Data in tiers, for 4,000+ tickers** (research of 14 November, kept in the notes
