@@ -8,11 +8,13 @@ the market makes a new 20-day low, and the 20-day low it undercuts was set at le
 sessions earlier, buy as it turns back above that older low (a failed breakdown); the protective
 stop sits just under the new low.
 
-THIS PORT, on daily bars: buy at the close of a day whose low is under the lowest low of the
-twenty days before it, when that older low was set four or more sessions before, and the close
-is back above it. Sell at the first close under the low of the buying day. The book's stop
-trails and takes profit by discretion; no mechanical exit is published, so the port takes the
-book's stop alone.
+THIS PORT, on daily bars: a day whose low is under the lowest low of the twenty days before
+it, when that older low was set four or more sessions before, is the setup. The NEXT day buys
+at its close when it trades no lower than the setup day's low and closes back above the older
+low (the book's buy stop just over the old low). Sell at the first close under the setup low.
+The book's stop trails and takes profit by discretion; no mechanical exit is published, so the
+port takes the book's stop alone. (Until 21 Nov the port demanded the setup day itself close
+back above the older low, a one-day reversal the book never asks for: 239 lines never traded.)
 
 AUTHOR'S TEST: futures and stocks, intraday and daily, early 1990s. The author's published
 figure is NOT written here: the book's cases are chart examples, and this session had no copy
@@ -47,20 +49,22 @@ class RaschkeTurtleSoup:
 
     def __init__(self) -> None:
         self._lows: deque[Decimal] = deque(maxlen=LOOKBACK)  #: the days before today
-        self._stop: Decimal | None = None  #: the buying day's low
+        self._setup: tuple[Decimal, Decimal] | None = None  #: (older low, setup day's low)
+        self._stop: Decimal | None = None  #: the setup day's low, once bought
 
-    def _fails_breakdown(self, bar: Bar) -> bool:
+    def _undercut(self, bar: Bar) -> tuple[Decimal, Decimal] | None:
         if len(self._lows) < LOOKBACK:
-            return False
+            return None
         older = min(self._lows)
         newest = LOOKBACK - 1 - list(reversed(self._lows)).index(older)  #: its latest day
-        return bar.low < older < bar.close and LOOKBACK - newest >= GAP
+        return (older, bar.low) if bar.low < older and LOOKBACK - newest >= GAP else None
 
     def step(self, bar: Bar, holding: bool) -> bool:
         """Shown the next bar after its close: whether to be in the market from here."""
-        buys = not holding and self._fails_breakdown(bar)
-        if buys:
-            self._stop = bar.low
+        setup, self._setup = self._setup, None if holding else self._undercut(bar)
+        buys = not holding and setup is not None and bar.low >= setup[1] and bar.close > setup[0]
+        if buys and setup is not None:
+            self._stop = setup[1]
         self._lows.append(bar.low)
         if holding:
             return self._stop is not None and bar.close >= self._stop

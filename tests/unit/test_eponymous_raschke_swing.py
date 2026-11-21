@@ -19,14 +19,15 @@ def _trades(days: list[tuple[int, int]]) -> dict[int, Action]:
 
 
 def test_buys_a_failed_new_low_and_sells_under_the_buying_days_low() -> None:
-    # day 0 sets the 20-day low 99; day 20 undercuts it (98) and closes back over it: BUY.
-    # day 21 holds; day 22 closes 97, under the buying day's low 98: SELL. Nothing else.
-    days = [(99, 100), *[FLAT] * 19, (98, 105), (100, 106), (96, 97)]
-    assert _trades(days) == {20: Action.BUY, 22: Action.SELL}
+    # day 0 sets the 20-day low 99; day 20 undercuts it (98): the setup. Day 21 holds 98 and
+    # closes back over 99: BUY. Day 22 closes 97, under the setup low 98: SELL. Nothing else.
+    days = [(99, 100), *[FLAT] * 19, (98, 100), (99, 106), (96, 97)]
+    assert _trades(days) == {21: Action.BUY, 22: Action.SELL}
 
 
 def test_the_older_low_must_be_four_sessions_old_and_the_close_back_over_it() -> None:
-    assert _trades([*[FLAT] * 16, (99, 100), *[FLAT] * 3, (98, 105)]) == {20: Action.BUY}
-    assert _trades([*[FLAT] * 17, (99, 100), *[FLAT] * 2, (98, 105)]) == {}  # three sessions old
-    assert _trades([(99, 100), *[FLAT] * 19, (97, 98)]) == {}  # no close back over 99
-    assert _trades([(99, 100), *[FLAT] * 18, (98, 105)]) == {}  # under twenty days of history
+    assert _trades([*[FLAT] * 16, (99, 100), *[FLAT] * 3, (98, 105), (99, 106)]) == {21: Action.BUY}
+    assert _trades([*[FLAT] * 17, (99, 100), *[FLAT] * 2, (98, 105), (99, 106)]) == {}  # 3 old
+    assert _trades([(99, 100), *[FLAT] * 19, (97, 98), (96, 97)]) == {}  # new low, stop hit
+    assert _trades([(99, 100), *[FLAT] * 19, (97, 98), (97, 98)]) == {}  # no close over 99
+    assert _trades([(99, 100), *[FLAT] * 18, (98, 105), (99, 106)]) == {}  # under 20 days
