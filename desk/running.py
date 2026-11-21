@@ -353,6 +353,12 @@ def _stand(root: Path, broker: placing.Paper, now: datetime) -> None:
     _drill(root, now)
 
 
+def _door(desk: Desk, now: datetime) -> placing.Paper:
+    """The paper broker, opened only when a halt called by the look must cancel working buys."""
+    listings = listing.kept(desk.root, now, LINES, desk.door)
+    return placing.Paper(listings, desk.root, lambda: now, desk.door)
+
+
 def _work(desk: Desk, now: datetime, seen: watch.Look | None) -> None:
     """What a step owes of a ready gateway, in the module's order; the paper account is asked
     only when something is owed. Each round and record has the check before it, and the day's
@@ -426,7 +432,8 @@ def step(desk: Desk, now: datetime) -> None:
     try:
         known = gateway.known(now, door=desk.door)
         try:
-            seen = watch.look(desk.root, desk.hot, desk.held(now.date())[0], now, desk.post)
+            held, door = desk.held(now.date())[0], lambda: _door(desk, now)
+            seen = watch.look(desk.root, desk.hot, held, now, desk.post, door)
         except Exception as failed:  # noqa: BLE001 - no round goes unseen; the rest is done
             unseen = failed
         if known:
