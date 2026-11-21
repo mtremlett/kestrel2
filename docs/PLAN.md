@@ -1047,3 +1047,4 @@ the scene it advances. No new capability until every scene passes.
 Estimates are from size, not measurement, and are re-made after phase 0 and after the
 first three sessions of phase 2. Actual against estimate is reported every week.
 Checked 20 Nov (MONEY, s4): R-PAPER-35's remainder is still PAPER's files (`desk/goflat.py`, `desk/conformance_parts.py`, `desk/placing.py:248`); R-RUNNER-401 has no R-RUNNER-397 "park one line" file on main to reuse and `desk/book.py` (382 of 400 lines) has no room, so it needs a design card; nothing built.
+Checked 21 Nov (MONEY, scribe): R-RUNNER-407 part is on main (#1255, the gate refuses a buy at or under its stop); remains the live price into Order.market and the first stop from the fill (PAPER, R-MONEY-60), then the SimCity scene 'a gap down past the stop'. R-RUNNER-317, 319, 409 built (#1022, #1245, #1279); R-RUNNER-414 book side built (#1272), the prefix at order-id creation and the MSTR rows 6-7 remain.
