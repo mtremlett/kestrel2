@@ -136,7 +136,7 @@ money-restop waits on R-MONEY-18, R-MONEY-31 (the lost-stop list in `desk/messen
 
 ## PAPER
 
-Last updated: 21 November 2026 (folds #215 to #1097, #1264, #1267, #1260, #1278, #1280, #1309, #1350, #1362).
+Last updated: 21 November 2026 (folds #215 to #1097, #1264, #1267, #1260, #1278, #1280, #1309, #1350, #1362, #1366, #1371).
 
 ### Where it is
 
@@ -144,11 +144,10 @@ Built: supervisor pulls main at the safe point (#752), contract request carries 
 
 ### Next step
 
-R-RUNNER-348 is unblocked (R-PAPER-35 done). R-MONEY-59: reword the `desk/watch.py` PARK text (the desk can park, `desk/handpark.py`). R-RUNNER-402 remains: a test that the desk step's timeout is at least its worst-case waits plus a margin (runner holds 900 s). R-RUNNER-253 (remains): stamp the rehearsal's own order ids on lines not held at the start (needs `desk/placing.py`, `desk/orders.py`; claim must widen); the held-line case is pinned by test (#1362). A gate on real orders outside the regular session in running/placing, if wanted (R-RUNNER-415 only barred the rehearsal). R-PAPER-28 remains: the runner hands the five SMTP_ settings to the step (outside this lane) and a preflight line for the mail door. R-PAPER-29. Drop the unused `ended` branch of `action(said, ended)` in `desk/ended.py` (needs a claim). Conformance sizing (R-RUNNER-281): `desk/conformance.py:242` must pass `root` to `plan(...)` as `home`, then the archive branch goes (needs a claim naming it). Live check that the gateway answers IDTL (R-RUNNER-278). paper-supervised, paper-cards, paper-extras, paper-backups wait: operator.
+Intraday round built (#1371, `running._intraday`, `Desk.rules` empty): before any rule joins `intraday.RULES` the intraday buy needs `_buy`'s held/ISA/hand-park refusals, exposure and correlation caps, one note per bar for a refused buy, and a step-level test (needs `desk/day.py` or a split of running.py; R-PAPER-36). R-MONEY-59: reword the `desk/watch.py` PARK text (the desk can park, `desk/handpark.py`). R-RUNNER-402 remains: a test that the desk step's timeout is at least its worst-case waits plus a margin (runner holds 900 s). R-RUNNER-253 (remains): stamp the rehearsal's own order ids on lines not held at the start (needs `desk/placing.py`, `desk/orders.py`; claim must widen); the held-line case is pinned by test (#1362). A gate on real orders outside the regular session in running/placing, if wanted (R-RUNNER-415 only barred the rehearsal). R-PAPER-28 remains: the runner hands the five SMTP_ settings to the step (outside this lane) and a preflight line for the mail door. R-PAPER-29. Drop the unused `ended` branch of `action(said, ended)` in `desk/ended.py` (needs a claim). Conformance sizing (R-RUNNER-281): `desk/conformance.py:242` must pass `root` to `plan(...)` as `home`, then the archive branch goes (needs a claim naming it). Live check that the gateway answers IDTL (R-RUNNER-278). paper-supervised, paper-cards, paper-extras, paper-backups wait: operator.
 
 ### Requests to MONEY
 
-- [x] R-PAPER-35 (done in #1267, with #1102 and #1264): Order and Sale carry `session`; `Paper._cleared` reads it.
 - [ ] R-PAPER-4, -7, -8, -13, -18, -19, -20 (later, 13-14 Nov): `book.differences` names an entry at no shares beside one with them; one public keeper of dated records (half done, #301); the day's run collects fills at day's end; the pretend broker refuses a repeated order id like the real one; a cut-off for a late buy; public "sessions owed a record" in `day.py`, "day an order is dated" in `orders.py`; `kill.py` public "drill made this day", word `kill.Failed` for him.
 - [ ] R-PAPER-17 (later, 14 Nov): `book._write` has one temp file and no lock; two writers gave an unreadable record (kill switch, `running.csv`). Own temp name or one writer.
 - [ ] R-PAPER-26 (later, opened 15 Nov): `watch.look` returns what it read even if a message is undelivered, so a down phone door holds no round.
@@ -156,27 +155,29 @@ R-RUNNER-348 is unblocked (R-PAPER-35 done). R-MONEY-59: reword the `desk/watch.
 - [ ] R-PAPER-29 (blocking, opened 16 Nov): ledger kind 'conformance cost' in `desk/book.py` (client 223 commission and spread through the one ledger; trading P&L reported without it); PAPER then feeds it from `desk/conformance.py`.
 - [ ] R-PAPER-30 (later, opened 16 Nov): R-MONEY-10: real VUAG buy filled 0.09 below the pretend close, sale 0.14 below; size the 0.05% spread (Monday's files, #686).
 
+### Requests to RUNGS
+- [ ] R-PAPER-36 (later, opened 21 Nov): before any intraday rule is added to `intraday.RULES`, the intraday buy needs the day's held/ISA/hand-park refusals and exposure caps (see Next step).
+
 ### Requests to DATA
 
 - [ ] R-PAPER-3 (later): each line's ISIN a fact on `Line`. R-PAPER-16 (later): IDTL in dollars unlisted at the broker (needs R-PAPER-3); SPY, QQQ can leave the lines. R-PAPER-23 (done in #294; re-verified 20 Nov): say by what minute after each close the store holds the twenty closes.
-- [x] R-PAPER-33 (done in #770; re-verified 20 Nov): `history.request` builds a stock contract only; let it ask a forex pair (GBP.USD, IDEALPRO, MIDPOINT) so `command.POUND` is answered by IBKR; until then every rate is named as the archive's (#716).
 
 ### Own, to PAPER
 
 - [ ] R-PAPER-25 (later, opened 15 Nov): tie a buy's stop and later sales in one OCA group at the broker once the group fields are proved on the Gateway; then cancel-first (#296) can go.
 - [ ] R-PAPER-34 (later, opened 19 Nov): set `paper.FILL_SECONDS` from the measured `order_times.csv` (broker's first accepted time and fill time), once some mornings are kept; why IBKR gave no fill in 30 s (auction?) is uninvestigated.
-- [x] R-PAPER-28 (wired in #1309): the runner still must hand the step SMTP_*, and a preflight line for the mail door is owed; until then nothing changes.
 
 ### Done for other lanes
 - R-RUNNER-26: #215; R-RUNNER-42: #223; R-RUNNER-91: #295; R-MONEY-17: #296; R-MONEY-25: #300; R-DATA-14: #302; R-RUNNER-177: #369; R-RUNNER-180: #373; R-MONEY-36: #385; R-RUNNER-191: #433; R-RUNNER-196: #437; R-RUNNER-197: #444; R-RUNNER-190: #462; R-RUNNER-113: #461 (half); R-RUNNER-207: #471; R-RUNNER-209: #476
 - R-RUNNER-16: #484 (door only); R-RUNNER-93: #393; R-RUNNER-210: #492; R-RUNNER-17: #495; R-RUNNER-212: #512; R-DATA-9: #509 and #793; R-RUNNER-161: #502; R-RUNNER-162: #558; R-RUNNER-92: #565; R-RUNNER-223: #572; R-RUNNER-234: #577; R-RUNNER-250: #584; R-RUNNER-251: #599; R-RUNNER-235: #601; R-RUNNER-256: #623; R-RUNNER-255: #645; R-RUNNER-258: #651 (step 1 of 3); R-MONEY-30: #657; R-RUNNER-268: #690; R-RUNNER-278: #706; R-RUNNER-282: #716; R-RUNNER-257: #733; R-MONEY-49 and R-MONEY-36: #741 (already on main); R-DATA-52: #798; R-MONEY-49: #798 (declined, already on main); R-RUNNER-286: #782; R-RUNNER-291: #805; R-RUNNER-308: #779; R-RUNNER-312: #843; R-RUNNER-339: #860; R-RUNNER-342: #862; R-RUNNER-330: #874; R-MONEY-53: #885; R-MONEY-49: #888 and #893 (already on main); R-MONEY-36: #890 (already on main); R-RUNNER-380: #909; R-RUNNER-390: #1024
-- R-PAPER-32: #733; R-PAPER-5, -9 to -12, -14, -15, -22, -24 (done, see #288, #282, #285, #290, #289, #516, #291, #215/#393, #302); R-PAPER-6: #175
 - R-MONEY-55: done in #1066
 - R-RUNNER-410: done in #1264
 - R-MONEY-58: done in #1267
 - R-RUNNER-400: done in #1260
 - R-RUNNER-415: done in #1280
 - R-RUNNER-283: done in #1350
+- R-RUNNER-348: done in #1366
+- R-RUNNER-202: done in #1371
 
 ### Found, not fixed
 
