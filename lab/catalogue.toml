@@ -52,6 +52,10 @@ source = "Larry Williams, How I Made One Million Dollars Last Year Trading Commo
 entry = { n = 10, pct = 10 }
 exit = { n = 10, pct = 10 }
 
+[williams_r.ranges]
+entry = { pct = [5, 10, 15] }
+exit = { pct = [5, 10, 15] }
+
 # ten flat days, a close in the range's bottom tenth (buy), a middle close (held), a close in its top tenth (sell)
 [[williams_r.cases]]
 bars = [[11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 9.2], [11, 9, 10], [11, 9, 10.9]]
