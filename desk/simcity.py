@@ -1,7 +1,7 @@
 """simcity - SIMCITY. ONE COMMAND lives the desk's day through a hundred seeded worlds of the saved
 data at the pretend broker, and writes one record of the night. A WORLD is the saved lines on their
-own days, months dealt again by the world's number, which also deals the faults and the mishaps a
-real desk meets. THE CENSUS names each part of the money path with the scenarios that ran it. A part
+own days, months dealt again by the world's number, which also deals the faults and mishaps a real
+desk meets. THE CENSUS names each part of the money path with the scenarios that ran it; a part
 none ran, or a promise broken, turns the night red."""
 
 from __future__ import annotations
@@ -32,6 +32,7 @@ from desk.simcity_incidents import (
     LOCKED,
     PARKED,
     SILENT,
+    SLOW,
     STALE,
     STOP_SILENT,
     UNBARRED,
@@ -45,6 +46,7 @@ from desk.simcity_incidents import (
     minutes,
     parked,
     silent,
+    slow,
     stale,
     unbarred,
     unheld,
@@ -179,10 +181,8 @@ def _behind(life: _Life, on: date) -> None:
     mine = [
         f.quantity for f in book.fills(life.desk) if f.order_id == f"{on:%Y%m%d}-stranger-{symbol}"
     ]
-    sold = bool(mine) and sum(mine) == 0
-    life.promise(
-        "a position the desk did not make is sold or named", sold or symbol in record.mismatches
-    )
+    sold = (bool(mine) and sum(mine) == 0) or symbol in record.mismatches
+    life.promise("a position the desk did not make is sold or named", sold)
 
 
 def _unstopped(life: _Life, on: date) -> None:
@@ -195,9 +195,9 @@ def _unstopped(life: _Life, on: date) -> None:
         put_back()
 
 
-def _gapped(life: _Life, on: date) -> None:
-    """Every line opens at the day's low, a gap down from the close before it; the stop under
-    each buy it fills is then moved under that fill, never left where the close put it."""
+def _gapped(life: _Life, on: date) -> bool:
+    """Every line opens at the day's low; the stop under each buy it fills is then moved under
+    that fill, never left where the close put it. False when no buy filled: still owed."""
     life.market = {
         x: tuple(replace(b, open=b.low) if b.day == on else b for b in bars)
         for x, bars in life.market.items()
@@ -231,6 +231,7 @@ def _gapped(life: _Life, on: date) -> None:
     ]
     gone = [o.order_id for o in sold if orders.gapped(o, held[o.line.symbol].price, life.room)]
     life.promise("a gap down to the low leaves a stop's loss inside the gap limit", not gone)
+    return bool(held)
 
 
 def _killed(life: _Life, on: date) -> None:
@@ -263,6 +264,7 @@ EVENTS: tuple[Event, ...] = (
     (LOCKED, locked),
     (LIVE, minutes),
     (SILENT, silent),
+    (SLOW, slow),
     (STOP_SILENT, gateway_silent),
 )
 
@@ -331,8 +333,9 @@ def _live(life: _Life) -> None:
             todo = todo or life.rng.sample(EVENTS, len(EVENTS))
             scenario, happen = todo.pop()
             census.now(scenario)
-            happen(life, on)
-            life.done.add(scenario)
+            ran = happen(life, on) is not False  #: False: it could not run today, still owed
+            todo += [] if ran else [(scenario, happen)]
+            life.done |= {scenario} if ran else set()
         else:
             life.live(on)
     census.now(RECKONING)
