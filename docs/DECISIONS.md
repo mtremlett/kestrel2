@@ -1662,6 +1662,22 @@ review found "never declare done without the check's output" dropped, and it is 
 failed; a budget that forgot CLAUDE.md's cap failed; a cap of 150 under the canon
 failed. Each named the file and its count.
 
+## 2026-11-15 — the root is a fixed set
+
+**Tightening** (gate G3). The repository root holds exactly the 15 entries it holds today:
+`.github`, `.gitignore`, `BUDGET.json`, `CANON.md`, `CLAUDE.md`, `README.md`, `announce.py`,
+`check.py`, `desk`, `docs`, `lab`, `manifest.toml`, `pyproject.toml`, `requirements.txt`, `tests`.
+The set has one home, `ROOT_ENTRIES` in `tests/guards/test_guards.py`, beside the fixed document
+set it resembles (`BUDGET.json` holds numbers, not names). Any tracked file at the root outside
+it fails, and the message says where the file belongs instead: product code in `desk/`, research
+in `lab/`, tests in `tests/`, documents in the fixed set, notes in `docs/STATUS.md`, a one-off
+script outside the repository. An entry of the set that disappears fails too, so the set never
+goes stale.
+
+**Driven.** A scratch file `scratch_note.txt` tracked at the root failed: "at the root but not in
+the fixed set: ['scratch_note.txt']; in the set but gone: []", followed by where files belong.
+The file was untracked and deleted, and the guard passed.
+
 ## 2026-11-14 — the docstring ratchet: undocumented public definitions never rise
 
 **Approved** in the after-first-light queue (item 9): undocumented public definitions may fall,
