@@ -357,3 +357,16 @@ def test_bars_the_desk_cannot_trust_stop_the_reading(
     _gateway(monkeypatch, [answer])
     with pytest.raises((ValueError, ConnectionError)):
         paper.newest(Line("AAPL", "US", "USD", 1, NO_TAX), "265598", "SMART", 1)
+
+
+def test_a_wait_that_runs_out_names_the_call_and_its_seconds(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    link = SimpleNamespace(makefile=lambda _mode: nullcontext(None), sendall=print)
+    monkeypatch.setattr(socket, "create_connection", lambda *_a, **_k: nullcontext(link))
+
+    def silent(_wire: object, _send: object) -> None:
+        raise TimeoutError("timed out")
+
+    with pytest.raises(TimeoutError, match=r"silent waited 7 s at each step: timed out"):
+        paper.dial(silent, 7)
