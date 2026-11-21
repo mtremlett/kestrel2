@@ -50,6 +50,17 @@ def test_planted_gaps_are_backfilled_and_the_line_is_green(tmp_path: Path) -> No
     assert quality.covered(path, [SPY], NOW) == ("coverage 0.00", True)
 
 
+def test_a_gap_with_five_minute_bars_is_rolled_up_from_them(tmp_path: Path) -> None:
+    path = seeded(tmp_path, {DAYS[2]})
+    start = datetime.combine(DAYS[2], time(14), UTC)
+    price = Decimal(600)
+    with bars.writing(path, bars.Source.IBKR) as held:
+        held.five(SPY, [Five(start, price, price + 1, price - 1, price, 10)])
+    said = quality.monitor(path, [SPY], refuse, refuse, NOW)
+    assert "1 bars backfilled" in said
+    assert bars.sources(path, SPY, "daily")[bars.Source.ROLLUP_5M] == 1
+
+
 def test_a_gap_no_source_fills_is_named_red(tmp_path: Path) -> None:
     path = seeded(tmp_path, {DAYS[2]})
     said = quality.monitor(path, [SPY], refuse, refuse, NOW)
