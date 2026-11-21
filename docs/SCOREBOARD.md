@@ -194,6 +194,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1338 R-RUNNER-422 SimCity worlds live in root/worlds/<seed>, emptied as each starts |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1357 R-RUNNER-426 simcity split, 396 to 327 lines |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1067 R-RUNNER-391 resend of a desk-cancelled order as -r1, SimCity coverage held by a fixed scenario |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1330 R-RUNNER-325 SimCity gateway-down scenario: conformance-us refused NOT BEGUN, port closed.
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1405 R-MONEY-54 watch half: crash halt cancels working buys given a door.
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1417 R-RUNNER-418 refactor: day.py 305 lines, small steps in day_parts.
 
 ### DATA
 

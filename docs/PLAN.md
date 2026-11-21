@@ -381,10 +381,9 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
 
 ### The money lane's book — scenes 4 to 7, in order
 
-> R-MONEY-54 waits on a claim: `watch.look` has no broker, so it needs a broker door from
-> `desk/running.py`, and `desk/goflat.py` must call `halt.stop`; both are PAPER's, not MONEY's.
-> `book.py` already calls `halt.stop`. Plan: `halt.stop` takes `his`; `watch.look` takes a
-> `Callable[[], Broker]` and calls `halt.stop` after `halt.call`.
+> R-MONEY-54 half done (#1405): `halt.stop` takes `his`; `watch.look` takes an optional broker
+> door and cancels working buys through `halt.stop` on a crash halt. Remains: PAPER passes the
+> door in `desk/running.py` (R-MONEY-61). `book.py` and `desk/goflat.py` already call `halt.stop`.
 
 **Lane objective:** the kill switch, by his ruling of 13 November ("kill switch first"):
 one command stops all new orders and cancels the open ones, the desk says so, and the drill
