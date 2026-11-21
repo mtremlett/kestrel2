@@ -235,7 +235,7 @@ class Paper:
     def _cleared(self, order: Order | Sale) -> tuple[Listing, Stop | None]:
         """The line as the broker lists it, and the stop a buy goes with (_with), for an order
         cleared to go: the broker lists the line and its price is above the buy's stop (an
-        error raised), the order's id is dated the venue's session before today's, the kill
+        error raised), the order is dated (its session) the venue's session before today's, the kill
         switch was drilled within its month and today's check came back clean (Refused, all),
         and the gateway says it is ready: Disconnected, the order never received."""
         symbol, now = order.line.symbol, self._clock()
@@ -244,8 +244,10 @@ class Paper:
             why = listed.reason if listed else "it was not asked for the line"
             raise Refused(f"{order.order_id}: not sent, the broker does not list {symbol}: {why}")
         new = _with(listed, order) if isinstance(order, Order) else None
+        if order.session is None:
+            raise ValueError(f"{order.order_id}: not sent, the order is dated no session")
         last = venues.sessions(order.line.venue, now.date() - timedelta(days=9), now.date())[-2:]
-        if list(last) != [order.session, now.date()]:
+        if last != (order.session, now.date()):
             why = f"{now:%Y-%m-%d} is not the session of {order.line.venue}'s next after"
             raise Refused(f"{order.order_id}: not sent, {why} the one it is dated")
         if not kill.drilled(self._root, now.date()):

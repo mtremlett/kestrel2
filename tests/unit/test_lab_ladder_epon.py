@@ -11,7 +11,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
-from test_lab_ladder import EDGE, ISF, NOISE, VUSA, _door, eased_off  # noqa: F401 - autouse fixture
+from test_lab_ladder import EDGE, ISF, NOISE, VUSA, _door, eased_off  # noqa: F401 - used by name
 from test_lab_reproduce import AT_CLOSE, _figure
 from test_lab_reproduce import _bars as _author
 
@@ -27,6 +27,7 @@ SGLN = next(line for line in LINES if line.symbol == "SGLN")  #: the planted aut
 RULES = ("planted_breakout", "planted_trend")  #: two rules planted, each an old one by a new name
 
 
+@pytest.mark.usefixtures("eased_off")  #: its want is the off ladder's rows, with no placebo rung
 def test_the_set_reproduces_each_rule_judges_it_on_every_line_and_writes_the_table(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
