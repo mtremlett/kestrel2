@@ -39,6 +39,7 @@ STALLED = Mock(read=Mock(side_effect=TimeoutError("it stalled")))
 MON = datetime(2026, 11, 16, 8, tzinfo=UTC)  #: a Monday both venues trade; a UK clock is UTC
 HALF, NINE, NAIVE = MON.replace(minute=30), MON.replace(hour=21, minute=5), MON.replace(tzinfo=None)
 PARIS = datetime(2026, 11, 14, 12, tzinfo=timezone(timedelta(hours=1)))  #: a Saturday, on no UTC
+CAP = Decimal(10_000)
 READY = Known(State.READY, gateway.ANSWERED)
 GONE = gateway.known(MON, Mock(side_effect=ConnectionRefusedError))  #: his to look at
 OFF = "Kill: off; halts: none."
@@ -186,9 +187,9 @@ def test_the_morning_message_says_whether_anything_stops_the_desk_today(tmp_path
         f"off and drilled. {OFF} Held: nothing. The last day on record, Fri 13 Nov: after "
         "£1,002.00 of costs the book made £0.00; simply holding the market would have lost £0.50."
     )
-    sent = messenger.morning(tmp_path, MON, READY, post)
+    sent = messenger.morning(tmp_path, MON, READY, post, CAP)
     assert sent == Delivery(MON, "morning 2026-11-16", 1, told)
-    assert messenger.morning(tmp_path, HALF, GONE, post) == sent  # one a day, as first told
+    assert messenger.morning(tmp_path, HALF, GONE, post, CAP) == sent  # one a day, as first told
     # each thing that would refuse every order today, in the refuser's own words
     stopped, named = tmp_path / "stopped", "AAPL: the broker holds 10, the desk's book 0"
     book.turn(stopped, Switch.DRILLED, MON - timedelta(days=32), "the drill")
@@ -202,7 +203,17 @@ def test_the_morning_message_says_whether_anything_stops_the_desk_today(tmp_path
         "pulled at 2026-11-15 23:00 UTC: his word; halts: none. Held: nothing. The last day on "
         "record, Thu 12 Nov: no profit published, the book is not the broker's on AAPL, VUSA."
     )
-    assert messenger.morning(stopped, HALF, GONE, post) == Delivery(HALF, sent.name, 2, told)
+    assert messenger.morning(stopped, HALF, GONE, post, CAP) == Delivery(HALF, sent.name, 2, told)
+
+
+def test_the_morning_message_tells_the_heat_of_the_last_day_in_pounds_and_share(
+    tmp_path: Path,
+) -> None:
+    costs, none = Charges(*map(Decimal, ("1", "0", "0", "0", "0"))), Decimal(0)
+    kept = day.Record(date(2026, 11, 13), none, costs, none, (), none, 0, heat=Decimal(230))
+    book._write(tmp_path / day.RECORDS, [day.HEADER, day._row(kept)])
+    sent = messenger.morning(tmp_path, MON, READY, _posts(), CAP)
+    assert sent and "heat £230 (2.3%)" in sent.text
 
 
 @pytest.mark.parametrize(
@@ -224,7 +235,7 @@ def test_a_daily_message_is_owed_on_each_day_a_venue_trades_and_never_in_his_nig
     tmp_path: Path, moment: str, owed: bool, trades: bool
 ) -> None:
     now = _at(moment)
-    sent, uk = messenger.morning(tmp_path, now, READY, _posts()), gateway._uk(now)
+    sent, uk = messenger.morning(tmp_path, now, READY, _posts(), CAP), gateway._uk(now)
     assert (sent and (sent.name, sent.at)) == ((f"morning {uk.date()}", now) if owed else None)
     early = now.replace(hour=21, minute=4, second=59) + (now - uk.replace(tzinfo=UTC))
     assert messenger.evening(tmp_path, early, READY, _posts()) is None
@@ -259,7 +270,7 @@ def test_the_evening_message_tells_the_fills_the_holdings_and_last_record(tmp_pa
 
 def test_each_daily_message_names_the_halts_in_force_beside_the_kill_switch(tmp_path: Path) -> None:
     halt.call(tmp_path, MON - timedelta(hours=2), "his word")
-    morning = messenger.morning(tmp_path, MON, READY, _posts())
+    morning = messenger.morning(tmp_path, MON, READY, _posts(), CAP)
     assert morning and "Kill: off; halts: in force since 2026-11-16 06:00 UTC." in morning.text
     evening = messenger.evening(tmp_path, NINE, READY, _posts())
     assert evening and "Kill: off; halts: in force since 2026-11-16 06:00 UTC." in evening.text
@@ -268,7 +279,7 @@ def test_each_daily_message_names_the_halts_in_force_beside_the_kill_switch(tmp_
 def test_a_daily_message_not_delivered_by_its_hour_is_told_once(tmp_path: Path) -> None:
     post, late, nearly = _posts(), NINE.replace(minute=47), NINE.replace(minute=29, second=59)
     with pytest.raises(Undelivered):  # asked, and the door did not take it: that is silence too
-        messenger.morning(tmp_path, MON, READY, Mock(side_effect=Undelivered("no network")))
+        messenger.morning(tmp_path, MON, READY, Mock(side_effect=Undelivered("no network")), CAP)
     assert messenger.watch(tmp_path, HALF - timedelta(seconds=1), post) == ()
     assert messenger.watch(tmp_path, _at("2026-11-14 12:00"), post) == ()  # a Saturday owes none
     (alarm,) = messenger.watch(tmp_path, HALF, post)
@@ -279,7 +290,7 @@ def test_a_daily_message_not_delivered_by_its_hour_is_told_once(tmp_path: Path) 
     missed = Delivery(late, "silence evening 2026-11-16", 2, words)
     assert messenger.watch(tmp_path, late, post) == (alarm, missed)
     # the desk back: its late morning message is delivered, and the morning is silent no more
-    assert messenger.morning(tmp_path, late, READY, post) and post.call_count == 3
+    assert messenger.morning(tmp_path, late, READY, post, CAP) and post.call_count == 3
     assert messenger.watch(tmp_path, late, post) == (missed,)
     # a desk whose messages came by their hours is never called silent, summer or winter
     summer, sunny = tmp_path / "summer", _at("2026-07-01 07:29:59")
@@ -289,7 +300,7 @@ def test_a_daily_message_not_delivered_by_its_hour_is_told_once(tmp_path: Path) 
         "days; today's orders: not sent, the paper account has not been checked today, 2026-07-01. "
         f"{OFF} Held: VUSA 2. No day is on the desk's record yet."
     )
-    woke = messenger.morning(summer, sunny, READY, post)
+    woke = messenger.morning(summer, sunny, READY, post, CAP)
     assert woke and (woke.name, woke.number, woke.text) == ("morning 2026-07-01", 4, told)
     assert messenger.watch(summer, sunny + timedelta(hours=13), post) == ()  # 21:29:59 there
     (missed,) = messenger.watch(summer, sunny + timedelta(hours=13, seconds=1), post)
@@ -340,7 +351,7 @@ def test_the_evening_message_names_each_lost_stop_once_and_none_on_a_day_without
     tell = messenger.evening(loud, NINE, READY, _posts())
     assert tell is not None and tell.text.count("B1-stop, selling 5 at 79") == 1
     assert "Lost stops to put back: B1-stop, selling 5 at 79. " in tell.text
-    early = messenger.morning(loud, _at("2026-11-16T08:05"), READY, _posts())
+    early = messenger.morning(loud, _at("2026-11-16T08:05"), READY, _posts(), CAP)
     assert early is not None and early.text.count("B1-stop, selling 5 at 79") == 1
 
 
