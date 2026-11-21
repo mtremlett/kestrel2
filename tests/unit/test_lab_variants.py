@@ -41,7 +41,13 @@ def test_twelve_variants_all_counted_and_the_pick_is_the_plateau_centre(
 
 @pytest.mark.parametrize(
     "ranges",
-    [{}, {("entry", "x"): (10, 20)}, {("stop", "n"): (10, 20)}, {("entry", "n"): (10, 5000)}],
+    [
+        {},
+        {("entry", "x"): (10, 20)},
+        {("stop", "n"): (10, 20)},
+        {("entry", "n"): (10, 5000)},
+        {("entry", "n"): (10, 20, 10)},
+    ],
 )
 def test_a_range_off_the_row_or_outside_its_block_is_refused(ranges: variants.Ranges) -> None:
     with pytest.raises(ValueError, match="spec donchian"):
