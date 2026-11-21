@@ -118,3 +118,20 @@ def test_breadth_is_the_share_of_lines_up_and_future_blind(monkeypatch: pytest.M
     for t in range(5):
         cut = {k: _bars(*v[: t + 1]) for k, v in lines.items()}
         assert weather.breadth(cut) == dict(list(labels.items())[: t + 1])
+
+
+def test_a_joined_layer_moves_its_bad_days_out_of_up_and_stays_future_blind(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(weather, "WINDOW", 3)
+    monkeypatch.setattr(weather, "VOL_WINDOW", 2)
+    monkeypatch.setattr(weather, "VOL_RANK", 2)
+    bars = _bars(100, 100, 100, 100, 110, 100, 100, 100, 101, 102)
+    assert weather.named(bars) == weather.trend(bars)  # JOINED empty: today's names exactly
+    monkeypatch.setattr(weather, "JOINED", ("volatility",))
+    joined = weather.named(bars)
+    stormy = [d for d, v in weather.volatility(bars).items() if v == weather.STORMY]
+    assert stormy and all(weather.trend(bars)[d] == "up" for d in stormy[:1])
+    assert all(joined[d] != "up" for d in stormy) and joined != weather.trend(bars)
+    for t in range(len(bars)):
+        assert weather.named(bars[: t + 1]) == dict(list(joined.items())[: t + 1])

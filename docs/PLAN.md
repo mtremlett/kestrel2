@@ -517,21 +517,22 @@ day's trading and reconciliation are built, and any broker can stand behind them
       (Box money-small: 2 sessions in a row landed no change to the desk, the lab or the tests, so it is held and the doctor asks why.)
 - [ ] Time and gaps: a time stop after the strategy's declared holding period; a gap that
       jumps the stop held against the loss limit; a hold limit and gap sizing for the
-      leveraged lines (STP-11, STP-10, SIZ-09). Step 1 on main (#845): time stop in `strategy._run`, `orders.gap_loss`/`gapped`. Remains: each rule's hold limit (moves golden days, needs his approval, B5); call `gapped` where a stop's fill is read (`book.collect`, outside this claim) and stand the desk down; take the age from the book's fill date.
+      leveraged lines (STP-11, STP-10, SIZ-09). Step 1 on main (#845): time stop in `strategy._run`, `orders.gap_loss`/`gapped`. Step 2 on main (#1449): the time stop ages from the book's fill date. Remains: each rule's hold limit (moves golden days, needs his approval, B5); call `gapped` where a stop's fill is read (`book.collect`, outside this claim) and stand the desk down.
       {id: money-time-gaps; files: desk/day.py, desk/orders.py, desk/strategy.py,
       tests/unit/test_day*.py, tests/unit/test_orders*.py, tests/unit/test_strategy*.py,
-      desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml; after: money-limits}
-- [ ] Fills realistic: spread and slippage in every fill, from the one cost model (TRD-09)
+      desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml; after: money-limits; waits: operator}
+      (Box money-time-gaps: 3 sessions in a row landed no change to the desk, the lab or the tests, so it is held and the doctor asks why.)
+- [x] Fills realistic: spread and slippage in every fill, from the one cost model (TRD-09)
       {id: money-fills; files: desk/broker.py, desk/orders.py, desk/book.py,
       tests/unit/test_broker*.py, tests/unit/test_orders*.py, tests/unit/test_book*.py,
       tests/unit/test_day*.py, tests/scenes/test_scenes.py,
       desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml; after: money-invariants, money-working}
-- [ ] The golden reference run committed; a change to a size, a stop or a threshold is
+- [x] The golden reference run committed; a change to a size, a stop or a threshold is
       replayed on it before it lands (TST-21, GOV-09, canon B5)
       {id: money-golden; files: *; after: money-fills, money-limits, money-halts}
 - [ ] Every trade's whole story: signal, intent, risk decision, order, fill and the bar it
       read, linked by ids; profit attributed by strategy, line, holding time and cost
-      (TRD-11, TRD-12, DQ-08)
+      (TRD-11, TRD-12, DQ-08) First step on main (#1468): `book.story` closed trades, `book.attributed` profit by any key. Remains: the id chain from signal, intent and risk decision to order and fill, and the bar read, written at decision time in `desk/day.py`; a scene for the profit table; a SimCity scenario running `book.story`.
       {id: money-story; files: desk/story.py, desk/book.py, desk/day.py,
       tests/unit/test_story*.py, tests/unit/test_book*.py, tests/unit/test_day*.py,
       desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml; after: money-fills, money-limits}
@@ -843,7 +844,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         Built: `lab/catalogue.toml` 24 rows, `Spec.parse` refuses any without (#1078, verified)
   - [ ] B4 the nineteen eponymous rules as rows, identical trades on the fixture proven,
         then their Python files deleted. Built: 20 of 21 in the catalogue (#873); Zweig waits on breadth data
-  - [ ] B5 variants generated from a row's setting ranges, every one counted as a trial. Built: `lab/variants.py` (#364) makes every combination and counts trials; one home after #1307/#1315; a repeated value in a range is refused (#1321). Remains: wiring variants into the grid chain (GC); multi-setting ranges; entering them in the register from a caller
+  - [ ] B5 variants generated from a row's setting ranges, every one counted as a trial. Built: `lab/variants.py` (#364) makes every combination and counts trials; one home after #1307/#1315; a repeated value in a range is refused (#1321). Rows with ranges: Donchian 3x4 (#1459), RSI-2 3x3 (#1469), Williams %R 3x3 (#1473), validated on entry by `Spec.parse`; a test holds each to the plateau's rules with the published setting at the centre. Remains: wiring variants into the grid chain (GC); multi-setting ranges (tied settings, then Faber, Weinstein, dual momentum); other rows' ranges; entering them in the register from a caller
   - [ ] B6 the old desk's families listed and entered as sets of rows marked QUARRY, their
         cases derived by hand, never from the old desk's numbers
   - [ ] P1 a fast engine for rows, vectorised in `lab/`, matching the desk's engine on the

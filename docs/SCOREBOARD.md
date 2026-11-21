@@ -202,6 +202,11 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1442 R-RUNNER-252 SimCity worlds gap overnight, scenario in the census. |
 
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1448 R-RUNNER-407 SimCity scene 'a gap down past the stop' added. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1449 money-time-gaps step 2: time stop ages from the book's fill date (STP-11). |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1455 SimCity halt-with-working-buy scenario built (R-RUNNER-335 part). |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1457 money-fills closed by verification; scene 5 pins price-plus-costs, no double count. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1465 golden reference run pinned (TST-21, GOV-09); no scene change. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1468 money-story first step: trades and their profit attribution from the ledger. |
 
 
 ### DATA
@@ -870,3 +875,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1443 R-RUNNER-353 part 2 intraday mean reversion built. |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1445 rungs-tape-cache re-issued though done; docstring says why rates aren't keyed. |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1447 promotion.killed: the desk's killed set in one call (R-RUNGS-7 lab side). |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1459 B5 a catalogue row carries the ranges its variants try (Donchian 3 x 4), refused on entry if malformed or unsorted. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1464 R-MONEY-45 closed: every eponymous rule is a spec row, pinned both ways. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1469 B5 RSI-2's row carries its variants' ranges (3 x 3), published setting proven the plateau's centre. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1473 B5 Williams %R row ranged, 9 variants centred on its published setting; no scene moved. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1479 R-RUNNER-363 part 2 built (tape key per rule, not per module). |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1481 R-RUNNER-371 weather table written by the ladder job. |

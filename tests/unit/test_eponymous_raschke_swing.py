@@ -30,3 +30,10 @@ def test_the_older_low_must_be_four_sessions_old_and_the_close_back_over_it() ->
     assert _trades([*[FLAT] * 17, (99, 100), *[FLAT] * 2, (98, 105)]) == {}  # three sessions old
     assert _trades([(99, 100), *[FLAT] * 19, (97, 98)]) == {}  # no close back over 99
     assert _trades([(99, 100), *[FLAT] * 18, (98, 105)]) == {}  # under twenty days of history
+
+
+def test_a_falling_market_with_failed_breakdowns_buys_each_time() -> None:
+    # the rule is not too strict: five stepped-down copies of the book's setup, five buys
+    block = [(99, 100), *[FLAT] * 19, (98, 105), (100, 106), (96, 97)]
+    days = [(lo - 10 * k, c - 10 * k) for k in range(5) for lo, c in block]
+    assert list(_trades(days).values()).count(Action.BUY) == 5

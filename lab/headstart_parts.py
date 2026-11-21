@@ -19,6 +19,7 @@ import pyarrow.parquet as pq  # type: ignore[import-untyped]  # ships no stubs
 from desk import archive, venues
 from desk.bars import EPOCH, Five, Source
 from desk.lines import Line
+from desk.spans import SPANS
 from desk.store import Bar
 
 MARKET = {"LSE": "UK", "US": "US"}  #: the matrices' name for a line is its symbol and this
@@ -26,6 +27,7 @@ MARKET = {"LSE": "UK", "US": "US"}  #: the matrices' name for a line is its symb
 #: 2026: SPY's bars agreed with the archive's two hours earlier, in summer): London's and an hour.
 WARSAW, PENCE = timedelta(hours=1), Decimal("0.01")
 BARS = "SELECT ts, open, high, low, close, volume FROM ohlcv WHERE ticker = ? AND timeframe = '5m'"
+SPAN_ROWS = BARS.replace("= '5m'", "= ?")  #: the same question asked of any timeframe
 PARQUET = ("ts", "open", "high", "low", "close", "volume")
 TREND = ("DATE", "Open", "High", "Low", "Close", "Volume")  #: mark_the_trend's columns
 
@@ -103,15 +105,15 @@ def raw(line: Line, folder: Path) -> tuple[Five, ...]:
     )
 
 
-def asked(path: Path, ask: str, ticker: str) -> list[tuple[Any, ...]]:
-    """What the old desk's database at path answers to a question about one ticker, opened
+def asked(path: Path, ask: str, *given: str) -> list[tuple[Any, ...]]:
+    """What the old desk's database at path answers to a question about a ticker and span, opened
     read-only: nothing is written to it or beside it, and one not there is not made. One whose
     log still holds changes is being written, and is refused."""
     log = path.with_name(f"{path.name}-wal")
     if log.exists() and log.stat().st_size:
         raise ValueError(f"{path.name} is still being written: its log holds changes")
     with closing(sqlite3.connect(f"{path.as_uri()}?mode=ro&immutable=1", uri=True)) as old:
-        return old.execute(ask, (ticker,)).fetchall()
+        return old.execute(ask, given).fetchall()
 
 
 def database(line: Line, path: Path) -> tuple[Five, ...]:
@@ -123,6 +125,19 @@ def database(line: Line, path: Path) -> tuple[Five, ...]:
     if not rows:
         raise ValueError(f"{path.name} holds no five-minute bar of {ticker}")
     return _stamped(((datetime.fromisoformat(at), *rest) for at, *rest in rows), False)
+
+
+def timeframe(line: Line, path: Path, span: str) -> tuple[tuple[Five, ...], int]:
+    """A line's bars of one timeframe from the old desk's database at path, and how many rows
+    were refused: a bar off its span's marks (mark_the_trend's :30 hours, its Friday weeks) is
+    counted, never re-stamped. None held is refused."""
+    ticker = line.symbol + archive.SUFFIX[line.venue]
+    rows = asked(path, SPAN_ROWS, ticker, span)
+    if not rows:
+        raise ValueError(f"{path.name} holds no {span} bar of {ticker}")
+    given = [(datetime.fromisoformat(at), *rest) for at, *rest in rows]
+    on = [row for row in given if SPANS[span].marks(row[0])]
+    return _stamped(on, False), len(given) - len(on)
 
 
 def matrix_days(line: Line, folder: Path) -> tuple[Bar, ...]:

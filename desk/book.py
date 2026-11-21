@@ -6,7 +6,7 @@ left working. Conformance trades are a cost of their own (conformance_cost)."""
 from __future__ import annotations
 
 from collections import Counter, deque
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime
 from decimal import Decimal
@@ -46,8 +46,9 @@ from desk.book_parts2 import (
 from desk.broker import Broker, Crash, Disconnected, Fill, Report
 from desk.halt import Blocker, Stopped
 from desk.lines import Line
-from desk.orders import Charges, Order, Refused, Sale, Settings, charges, gate, leg_of
+from desk.orders import Charges, Order, Refused, Sale, Settings, charges, gate, leg_of, strategy_of
 from desk.risk import Standing
+from desk.store import Bar
 
 #: what moved to desk.book_parts and desk.book_parts2 and is still given from here, for the callers
 __all__ = (
@@ -365,3 +366,26 @@ def attributed(
     for trip in trips:
         total[by(trip)] = total.get(by(trip), Decimal(0)) + trip.profit
     return total
+
+
+@dataclass(frozen=True)
+class Story:
+    """A TRADE'S WHOLE STORY (TRD-11, DQ-08): the trip, its signal's strategy and session, read
+    from the buy's order id, and the bar that signal read: the line's last bar before the buy."""
+
+    strategy: str
+    bar: Bar
+    trip: RoundTrip
+    held: int  #: calendar days from the buy to the sale
+
+
+def told(trips: Iterable[RoundTrip], archive: Mapping[Line, Sequence[Bar]]) -> tuple[Story, ...]:
+    """Each trip's story, in the ledger's order; a buy whose line has no earlier bar is refused."""
+    bars, stories = {line.symbol: days for line, days in archive.items()}, []
+    for trip in trips:
+        buy = trip.buy
+        if not (read := [bar for bar in bars.get(buy.symbol, ()) if bar.day < buy.day]):
+            raise ValueError(f"{buy.order_id}: {buy.symbol} has no bar before {buy.day}")
+        held = (trip.sell.day - buy.day).days
+        stories.append(Story(strategy_of(buy.order_id), read[-1], trip, held))
+    return tuple(stories)

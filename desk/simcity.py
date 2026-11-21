@@ -347,13 +347,15 @@ def _stops(life: _Life) -> None:
     life.promise("a gap down past the stop refuses the buy", refused)
 
 
-def _told(trips: tuple[book.RoundTrip, ...]) -> bool:
-    """The profit attributed by line, and by days held, is each the trips' own total."""
+def _told(life: _Life, trips: tuple[book.RoundTrip, ...]) -> bool:
+    """Each trip has its story, and the profit attributed by line, and by days held, is each the
+    trips' own total."""
     totals = (
         sum(book.attributed(trips, by).values(), Decimal(0))
         for by in (lambda t: t.buy.symbol, lambda t: (t.sell.day - t.buy.day).days)
     )
-    return all(total == sum((t.profit for t in trips), Decimal(0)) for total in totals)
+    whole = len(book.told(trips, life.market)) == len(trips)
+    return whole and all(total == sum((t.profit for t in trips), Decimal(0)) for total in totals)
 
 
 def _live(life: _Life) -> None:
@@ -401,7 +403,7 @@ def _live(life: _Life) -> None:
     shut = sum(-t.sell.quantity for t in trips) == sum(-f.quantity for f in fills if f.quantity < 0)
     life.promise("the round trips close every share the fills sold", shut)
     life.trips = len(trips)
-    life.promise("profit told by line and by days held adds up to the trips'", _told(trips))
+    life.promise("each trade is told, its profit by line and days adding up", _told(life, trips))
     cash, costs = book.dealt(life.desk, life.market, date.max, date.min, 0)
     kind = book.conformance_cost(life.desk, life.market)
     life.promise("the conformance cost is cash less costs", kind == cash - costs.total)
