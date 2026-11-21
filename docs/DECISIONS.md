@@ -2104,3 +2104,17 @@ Two loosenings that change followed are undone here: the registry test again ass
 every line not stopped by a hard fail is judged on first, market and folds, and the blanket
 autouse switch-off in the ladder, retail and tape tests is gone: a test pins the easing off
 only by name, with its reason beside it.
+
+## 2026-11-21: whole-file reads may fall and never rise (failure pattern 26), his ask in chat
+
+His words, Sat 21 Nov ~10:40: "can we mechanically never forget this? do not just write this
+down, please build it and then verify." EPON's 1.2 GB results file, read and parsed whole on
+every start, held 12.8 GB and judged nothing for nine hours. A new ratchet in
+`tests/guards/test_ratchets.py` counts `read_bytes()`, `read_text()`, `readlines()` and a bare
+`read()` in `desk/` and `lab/` against main: 37 today, and the count may only fall. A read of
+a file that cannot grow is not counted when its own line says why (`# bounded: <why>`, words
+required). Driven (A7) by appending one line to `desk/command.py` and running the ratchet:
+`Path("big.jsonl").read_text()` FAILED (37 -> 38); `open("big.jsonl").read()` FAILED;
+`read_text()  # bounded:` with no reason FAILED; `read_text()  # bounded: one-line marker
+file` passed; a line-at-a-time loop over the file passed. A tightening: it adds a guard and
+loosens none.
