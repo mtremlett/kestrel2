@@ -27,7 +27,7 @@ at the rate of two windows both clearing the bar by chance; a broken copy is cau
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import date
 
@@ -125,15 +125,38 @@ def by_weather(
     reproduced: Sequence[Reproduction] = (),
 ) -> Weathered:
     """Priced trades judged apart in the up days and the down days they were bought on."""
-    up, down = (
-        rung.verdict(
-            _window(key, name, date.min),
-            tuple(p for p in priced if labels[p.trade.bought] == name),
+    up, down = in_regimes(
+        key,
+        priced,
+        (weather.UP, weather.DOWN),
+        labels.__getitem__,
+        dict.fromkeys((weather.UP, weather.DOWN), str(date.min)),
+        reproduced,
+    ).values()
+    return Weathered(key, up, down)
+
+
+def in_regimes(
+    key: Key,
+    priced: Sequence[Priced],
+    names: Sequence[str],
+    label: Callable[[date], str],
+    told: Mapping[str, str],
+    reproduced: Sequence[Reproduction] = (),
+) -> dict[str, Verdict]:
+    """The one regime cut: each named regime's priced trades, those bought on a day `label`
+    gives that name, judged apart by the first rung. Each verdict's key is the result's with
+    the regime and `told[name]` told into the data."""
+    return {
+        name: rung.verdict(
+            replace(
+                key, data=hashlib.sha256(f"{key.data}\n{name}\n{told[name]}".encode()).hexdigest()
+            ),
+            tuple(p for p in priced if label(p.trade.bought) == name),
             reproduced,
         )
-        for name in (weather.UP, weather.DOWN)
-    )
-    return Weathered(key, up, down)
+        for name in names
+    }
 
 
 def _judged(first: Verdict) -> tuple[Answer, str]:
