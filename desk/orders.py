@@ -202,17 +202,22 @@ def size(
     fx: Decimal,
     settings: Settings,
     held: Mapping[str, int],
+    market: Decimal | None = None,
 ) -> Order:
     """The most whole shares whose cost, with the shares of the line already held, fits the
     line's room, and the stop, for a buy; fx is pounds per unit of the line's currency, and
-    held is the book (book.positions)."""
+    held is the book (book.positions). Given the live price (market), the stop rests 10% under
+    it, never above the signal's, and a buy is refused that the signal's stop would sell at once."""
     if decision.action is not Action.BUY or decision.symbol != line.symbol:
         raise ValueError(f"{line.symbol}: only a buy for this line is sized, not {decision}")
     order_id = order_id_of(decision)
-    stop = stop_under(line, price)
+    stop = stop_under(line, price if market is None else min(price, market))
 
     def order(quantity: int) -> Order:
-        return Order(order_id, line, quantity, price, fx, stop, session=decision.day)
+        return Order(order_id, line, quantity, price, fx, stop, session=decision.day, market=market)
+
+    if market is not None:
+        _above_stop(replace(order(1), stop=stop_under(line, price)))
 
     room, one = _room(line, settings), order(1)  #: one share proves the price, rate and stop
     if cost(one) > room:
