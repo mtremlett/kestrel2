@@ -39,7 +39,8 @@ from desk.gateway import Known
 from desk.halt import Blocker
 from desk.lines import LINES
 from desk.messenger_parts import SECONDS as SECONDS
-from desk.messenger_parts import Daily, Mail, sound
+from desk.messenger_parts import Daily, sound
+from desk.messenger_parts import Mail as Mail
 from desk.messenger_parts import Undelivered as Undelivered
 from desk.messenger_parts import smtp as smtp
 from desk.orders import Leg, Refused, leg_of

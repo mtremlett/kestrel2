@@ -102,6 +102,7 @@ class Desk:
     hot: Path
     held: Callable[[date], Saved]
     door: paper.Door  #: who the desk is at the paper Gateway
+    mail: messenger.Mail | None = None  #: the email door, when set up: the evening's summary
 
 
 class Note(NamedTuple):
@@ -292,6 +293,8 @@ def _say(desk: Desk, now: datetime, known: Known) -> None:
         messenger.send(root, now, f"gateway {since:%Y-%m-%d}", known.words, post)
     messenger.morning(root, now, known, post)
     messenger.evening(root, now, known, post)
+    if desk.mail:
+        messenger.summary(root, now, desk.mail)
     if messenger.MORNING.start <= local.time() < messenger.SLEEPS:
         messenger.remind(root, now, post)
         for note in (n for n in notes(root) if now - n.at < DAY):

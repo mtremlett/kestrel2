@@ -3,6 +3,7 @@ the daily bars, and London's morning round waits for the market's first bar."""
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -13,7 +14,7 @@ import test_placing as tp
 from test_paper import Said
 from test_placing import ACCOUNT, FILLS
 from test_reports import END
-from test_running import FLAT_, _desk, _step
+from test_running import FLAT_, SHUT, _desk, _step
 
 from desk import book, clearance, paper, running, watch
 from desk.bars import Five, writing
@@ -67,3 +68,15 @@ def test_the_alarm_of_a_send_that_pulled_the_kill_switch_is_told_in_its_words_on
     (note,) = running.notes(tmp_path)
     assert note.what == "trouble Alarm" and words in note.words
     assert [c.args[0] for c in post.call_args_list].count(note.words) == 1
+
+
+def test_the_evenings_summary_goes_by_email_once_when_the_email_door_is_set(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    desk, _ = _desk(tmp_path, VUAG=FLAT_)
+    mail = Mock()
+    monkeypatch.setattr(paper, "dial", Mock(side_effect=ConnectionRefusedError))
+    for at in (SHUT, SHUT + timedelta(minutes=5)):
+        running.step(replace(desk, mail=mail), at)
+    mail.assert_called_once()
+    assert mail.call_args.args[0].startswith("Kestrel desk: summary")

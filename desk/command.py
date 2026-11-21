@@ -140,7 +140,13 @@ def _post(env: Mapping[str, str]) -> messenger.Post:
     return unsaid
 
 
-def _desk(root: Path, post: messenger.Post, home: Path, broker: Broker | None = None) -> Desk:
+def _desk(
+    root: Path,
+    post: messenger.Post,
+    home: Path,
+    broker: Broker | None = None,
+    mail: messenger.Mail | None = None,
+) -> Desk:
     """The real doors, with the desk's records at root; the keeper's stores are in home."""
     return Desk(
         root,
@@ -150,6 +156,7 @@ def _desk(root: Path, post: messenger.Post, home: Path, broker: Broker | None = 
         home / keeper.HOT,
         partial(keeper.saved, home),
         paper.Door(paper.DESK),
+        mail,
     )
 
 
@@ -374,7 +381,10 @@ def main(
     root, now = Path(env["KESTREL2_DATA"]) / ROOT, clock()
     if not root.is_absolute():
         raise SystemExit(f"KESTREL2_DATA names no whole path to a folder: {root.parent}")
-    desk = _desk(root, _post(env), root.parent, history.daily(now, home=root.parent))
+    mail = messenger.smtp(env) if "SMTP_HOST" in env else None  #: the email fallback, if set up
+    post = _post(env)
+    post = messenger.with_mail(root, now, post, mail) if mail else post
+    desk = _desk(root, post, root.parent, history.daily(now, home=root.parent), mail)
     match argv:
         case []:
             running.step(desk, now)
