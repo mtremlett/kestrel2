@@ -11,7 +11,7 @@ import pytest
 
 import desk
 from desk.lines import LINES
-from desk.strategy import STRATEGIES
+from desk.strategy import STRATEGIES, VARIANTS
 from lab import rulebook
 from lab.cell import Cell
 from lab.rulebook import CATALOGUE
@@ -31,7 +31,12 @@ def test_the_book_has_the_five_and_a_planted_files_rules_and_refuses_the_unknown
     monkeypatch.setattr(sys, "modules", dict(sys.modules))  #: the planted file leaves no trace
     importlib.invalidate_caches()
     book = rulebook.rules(tmp_path)
-    assert set(book) == {*STRATEGIES, "planted_rule"}
+    assert set(book) == {*STRATEGIES, *VARIANTS, "planted_rule"}
+    clash = next(iter(VARIANTS))
+    (tmp_path / "eponymous_planted.py").write_text(PLANTED.replace("planted_rule", clash))
+    with pytest.raises(ValueError, match="named twice"):
+        rulebook.eponymous(tmp_path)
+    (tmp_path / "eponymous_planted.py").write_text(PLANTED)
     assert rulebook.rule("planted_rule", tmp_path) is STRATEGIES["breakout_20_10"]
     with pytest.raises(ValueError, match="no strategy is called 'best_ever'"):
         rulebook.rule("best_ever", tmp_path)
