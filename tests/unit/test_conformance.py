@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 from test_reports import CENT
 
-from desk import archive, book, clearance, command, conformance, listing, paper, placing
+from desk import archive, book, clearance, command, conformance, keeper, listing, paper, placing
 from desk.broker import Fill, Pretend
 from desk.lines import LINES, Line
 from desk.listing import Listing, Unlisted
@@ -223,6 +223,9 @@ def _world(
         broker.open(MON.date() + timedelta(days=1))
 
     patch.setattr(command, "rates", lambda _root, _day: FX)
+    patch.setattr(
+        keeper, "saved", lambda _home, day, lines: ({x: _fetch(x, day) for x in lines}, frozenset())
+    )
     patch.setattr(paper, "dial", lambda _talk: paper.Account((), ()))
     patch.setattr(listing, "read", lambda _lines, _door: LISTED)
     patch.setattr(
