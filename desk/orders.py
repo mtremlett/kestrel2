@@ -82,6 +82,8 @@ class Order:
     stop: Decimal
     #: The session the order is dated (R-PAPER-35); None until every constructor sets it.
     session: date | None = field(default=None, kw_only=True, compare=False)
+    #: The live price when the order is sent (R-RUNNER-407); None where none was read.
+    market: Decimal | None = field(default=None, kw_only=True, compare=False)
 
     def __post_init__(self) -> None:
         if self.quantity <= 0 or not 0 < self.stop < self.price:
@@ -289,6 +291,7 @@ def gate(
                 f"{held.get(symbol, 0)}: the desk is long only"
             )
         return
+    _above_stop(order)
     if standing is not None:
         _within_limits(order, settings, held, standing)
     if exposure is not None:
@@ -303,6 +306,15 @@ def gate(
             f"{order.order_id}: {cost(whole)} pounds for {whole.quantity} shares, counted "
             f"{order.line.leverage} times for what it controls, is over a fifth of the "
             f"capital of {settings.capital}"
+        )
+
+
+def _above_stop(order: Order) -> None:
+    """Refuses a buy whose live price is at or under its stop: it would be sold at once."""
+    if order.market is not None and order.market <= order.stop:
+        raise Refused(
+            f"{order.order_id}: the emergency rule: {order.line.symbol} trades at {order.market}, "
+            f"at or under the stop of {order.stop}; bought, it would be sold at once"
         )
 
 
