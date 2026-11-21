@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 from test_paper import ACCOUNTS, HELLO, NEXT, Said, _account, _but, _gateway, _order, _wire
-from test_placing import AT, BUY_IT, CHILD, ENDED_42, HELD, ID, MINE, SALE, _paper, _ready
+from test_placing import AT, BUY_IT, CHILD, ENDED_42, HELD, ID, MINE, SALE, _ready
 from test_reports import END, LISTED
 
 from desk import order_times, paper, placing
@@ -47,7 +47,7 @@ def _rows(root: Path) -> list[tuple[str, str, str]]:
 
 
 def _at(seconds: int) -> str:
-    return (T0 + timedelta(seconds=seconds)).isoformat()
+    return (T0 + timedelta(seconds=seconds)).isoformat(timespec="milliseconds")
 
 
 def test_a_trail_holds_when_it_was_sent_accepted_and_filled(tmp_path: Path) -> None:
@@ -84,5 +84,10 @@ def test_an_order_the_broker_never_accepts_records_sent_and_the_cancel(
     gone = [_but(MINE[1], 2, "Cancelled")]
     answers: list[Said] = [[CHILD[1]], gone, idle, [("102",)], [END], idle, [ENDED_42]]
     _gateway(monkeypatch, [], was, *answers, silent=True)
-    _paper(_ready(tmp_path)).place(BUY_IT)
-    assert _rows(tmp_path) == [("sent", AT.isoformat(), ""), ("cancelled", AT.isoformat(), "")]
+    stamps = iter(T0 + timedelta(milliseconds=ms) for ms in (5, 1250))
+    door = paper.Door(paper.DESK)
+    placing.Paper(LISTED, _ready(tmp_path), lambda: AT, door, lambda: next(stamps)).place(BUY_IT)
+    assert [(e, a) for e, a, _ in _rows(tmp_path)] == [
+        ("sent", "2026-11-19T08:10:00.005+00:00"),
+        ("cancelled", "2026-11-19T08:10:01.250+00:00"),
+    ]

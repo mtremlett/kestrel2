@@ -32,3 +32,13 @@ def test_a_conformance_round_trip_moves_cash_but_not_the_desks_dealing(tmp_path:
     assert 1000 + cash - costs.total + cost == Decimal(
         "491.4190"
     ), "the broker's cash, to the penny"
+
+
+def test_a_rehearsals_fills_are_found_on_the_account_never_the_desks_trades(tmp_path: Path) -> None:
+    mine = Fill("e-1", "20261119-rule-A", "A", 10, Decimal(50), DAY)
+    buy = Fill("e-2", "rehearsal-20261119-rule-M", "M", 5, Decimal(100), DAY)
+    stop = Fill("e-3", "rehearsal-20261119-rule-M-stop", "M", -5, Decimal(47), DAY)
+    book._record(tmp_path, [mine, buy, stop])
+    book._record(tmp_path, [buy])  #: a later write keeps the found rows
+    assert book.fills(tmp_path) == (mine,) and book.found(tmp_path) == (buy, stop)
+    assert book.positions(tmp_path) == {"A": 10}, "a found fill counted as a position"

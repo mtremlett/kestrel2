@@ -31,6 +31,7 @@ from desk.book_parts import (
     unless_killed as _unless_killed,
 )
 from desk.broker import Broker, Crash, Disconnected, Fill, Report
+from desk.foreign import is_foreign
 from desk.halt import Blocker, Stopped
 from desk.lines import Line
 from desk.orders import Charges, Order, Refused, Sale, Settings, charges, gate, leg_of
@@ -209,7 +210,18 @@ def _unless_stopped(root: Path, order: Order | Sale) -> None:
 
 
 def fills(root: Path) -> tuple[Fill, ...]:
-    """Every fill the desk has recorded, in the order it learned of them."""
+    """Every fill the desk has recorded, in the order it learned of them; found ones are apart."""
+    apart = {fill.execution_id for fill in found(root)}
+    return tuple(fill for fill in _ledger(root) if fill.execution_id not in apart)
+
+
+def found(root: Path) -> tuple[Fill, ...]:
+    """THE FILLS FOUND, not traded: on the account under an order id that is not the desk's own."""
+    return tuple(fill for fill in _ledger(root) if is_foreign(fill.order_id))
+
+
+def _ledger(root: Path) -> tuple[Fill, ...]:
+    """Every row of the ledger file, the desk's and the found."""
     if not (path := root / LEDGER).exists():
         return ()
     with path.open(newline="", encoding="utf-8") as ledger:
@@ -232,7 +244,7 @@ def _revision(execution_id: str) -> tuple[str, int]:
 
 def _record(root: Path, new: Iterable[Fill]) -> None:
     """Add the fills not in the ledger; a corrected fill replaces its earlier version."""
-    kept = fills(root)
+    kept = _ledger(root)
     latest = {_revision(f.execution_id)[0]: f for f in kept}
     for fill in new:
         name = _revision(fill.execution_id)[0]
