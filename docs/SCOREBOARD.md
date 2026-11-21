@@ -544,6 +544,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1024 R-RUNNER-390 done: link news no longer turns the kill switch on. |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1066 R-MONEY-55 done: go flat cancels working buys via halt.stop. |
 | 2026-11-20 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1097 scribe folded #1066; no change. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1260 R-RUNNER-400 done: order times carry real moments. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1264 R-RUNNER-410 done: placing reads order.session, not the id. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1267 R-MONEY-58 done: an order's date is read from its session field, not its name. |
 
 ### GRID
 
