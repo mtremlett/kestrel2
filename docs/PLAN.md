@@ -517,21 +517,22 @@ day's trading and reconciliation are built, and any broker can stand behind them
       (Box money-small: 2 sessions in a row landed no change to the desk, the lab or the tests, so it is held and the doctor asks why.)
 - [ ] Time and gaps: a time stop after the strategy's declared holding period; a gap that
       jumps the stop held against the loss limit; a hold limit and gap sizing for the
-      leveraged lines (STP-11, STP-10, SIZ-09). Step 1 on main (#845): time stop in `strategy._run`, `orders.gap_loss`/`gapped`. Remains: each rule's hold limit (moves golden days, needs his approval, B5); call `gapped` where a stop's fill is read (`book.collect`, outside this claim) and stand the desk down; take the age from the book's fill date.
+      leveraged lines (STP-11, STP-10, SIZ-09). Step 1 on main (#845): time stop in `strategy._run`, `orders.gap_loss`/`gapped`. Step 2 on main (#1449): the time stop ages from the book's fill date. Remains: each rule's hold limit (moves golden days, needs his approval, B5); call `gapped` where a stop's fill is read (`book.collect`, outside this claim) and stand the desk down.
       {id: money-time-gaps; files: desk/day.py, desk/orders.py, desk/strategy.py,
       tests/unit/test_day*.py, tests/unit/test_orders*.py, tests/unit/test_strategy*.py,
-      desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml; after: money-limits}
-- [ ] Fills realistic: spread and slippage in every fill, from the one cost model (TRD-09)
+      desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml; after: money-limits; waits: operator}
+      (Box money-time-gaps: 3 sessions in a row landed no change to the desk, the lab or the tests, so it is held and the doctor asks why.)
+- [x] Fills realistic: spread and slippage in every fill, from the one cost model (TRD-09)
       {id: money-fills; files: desk/broker.py, desk/orders.py, desk/book.py,
       tests/unit/test_broker*.py, tests/unit/test_orders*.py, tests/unit/test_book*.py,
       tests/unit/test_day*.py, tests/scenes/test_scenes.py,
       desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml; after: money-invariants, money-working}
-- [ ] The golden reference run committed; a change to a size, a stop or a threshold is
+- [x] The golden reference run committed; a change to a size, a stop or a threshold is
       replayed on it before it lands (TST-21, GOV-09, canon B5)
       {id: money-golden; files: *; after: money-fills, money-limits, money-halts}
 - [ ] Every trade's whole story: signal, intent, risk decision, order, fill and the bar it
       read, linked by ids; profit attributed by strategy, line, holding time and cost
-      (TRD-11, TRD-12, DQ-08)
+      (TRD-11, TRD-12, DQ-08) First step on main (#1468): `book.story` closed trades, `book.attributed` profit by any key. Remains: the id chain from signal, intent and risk decision to order and fill, and the bar read, written at decision time in `desk/day.py`; a scene for the profit table; a SimCity scenario running `book.story`.
       {id: money-story; files: desk/story.py, desk/book.py, desk/day.py,
       tests/unit/test_story*.py, tests/unit/test_book*.py, tests/unit/test_day*.py,
       desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml; after: money-fills, money-limits}
