@@ -36,7 +36,7 @@ def recover(
     if book.killed(root) or not kill.drilled(root, today):
         return ()
     before = paper.read(door)
-    did = [f"cancelled {name}, left working" for name in broker.cancel()]
+    did = [f"cancelled {name}, left working" for name in book.cancel_all(root, broker, today)]
     book.collect(root, broker)
     held, account = book.positions(root), paper.read(door)
     newest = {f.symbol: f.order_id for f in book.fills(root) if f.quantity > 0}
