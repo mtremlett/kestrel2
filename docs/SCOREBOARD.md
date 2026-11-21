@@ -464,6 +464,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1324 DATA: monitor tests made machine-independent. |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1365 DATA: R-RUNNER-217 rollup step in backfill order. |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1379 DATA: R-RUNNER-352 thin sessions rolled, 1h/4h audited. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1396 R-RUNNER-351: the keeper reads no shelf CSV; `headstart.daily` removed. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
@@ -845,3 +846,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1373 R-RUNNER-432 the ladder's results file streamed, no row held in memory; no scene moved |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1367 R-RUNNER-344 lab owns its YEAR; behaviour unchanged |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1277 R-RUNNER-408 stop-rule rung built and pre-registered, not yet run on EPON |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1382 R-MONEY-45 Zweig is a spec row, 21 of 21 rules in the catalogue; no scene moved |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1411 R-RUNNER-435 scorecard rule as named constants, 1 test |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1420 R-RUNNER-434 ladder results file compacted, cannot grow without bound |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1425 R-RUNNER-369 rung 4's judge has one home in lab/market.py; rungs built still 5 of 12 |

@@ -325,3 +325,16 @@ then the break was removed:
 
 ### 2026-11-21 — the stop-rule rung sizes every rival by today's risk (R-RUNNER-408, #1277)
 - Options: a flat risk budget for all rivals; or the budget today's stop risks (10% x leverage). Chose the second so the fixed-stop baseline is unchanged. Trades lacking 21 bars of history, or where any rival buys no share, are dropped for all rivals so the same trades judge every rule. Pre-registration: docs/DECISIONS.md, 21 Nov.
+
+### 2026-11-21 — Zweig's marks are constants (R-MONEY-45, #1382)
+- Zweig's marks (0.40, 0.615, 10 days) are the book's own, not settings, as in the DeMark blocks. Options: params with a Decimal range (needs a new range kind); constants (chosen, smaller).
+
+### 2026-11-21 — the scorecard rule as constants (R-RUNNER-435, #1411)
+- `scorecard` returns PASS, FAIL or STOP; FAULT counts as FAIL. Options: ignore a FAULT; count it as FAIL (chosen: a faulted rung proves nothing). Not yet wired into `judge()`.
+
+### 2026-11-21 — the results file is compacted by the command (R-RUNNER-434, #1420)
+- `Kept.compact()` runs in `door` after the set is judged, not inside `run()`. Options: inside `run` (would erase superseded history an existing test reads, and a run's own file handle); in the command (chosen, safer).
+
+### 2026-11-21 — rung 4's judge moves; the count stays 5 (R-RUNNER-369, #1425)
+- Row 4 now names `lab/market.py`, not a `rung_*` module, so `rungs_built()` would have counted 6 though the ladder still runs `market.judge`, not `banded` (blind review, blocking). Options: (a) accept 6; (b) keep row 4 on the empty rung_beta.py; (c) a row owing `- no RUNG` counts as unbuilt. Chose (c): the published count moves only when the ladder's judging does; the map test pins it at 5 (tightened, not loosened).
+- `market.judge`'s PASS/FAIL rule versus `banded`'s three bands is not unified here (would change verdicts). Found, not fixed.

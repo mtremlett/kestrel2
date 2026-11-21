@@ -706,3 +706,6 @@ Options: (a) one CSV with fault rows in a `fault` column (chosen: a single repla
 
 ### 2026-11-21 — 15m and 30m bars rolled from five-minute bars; a never-held span is nothing to build (DATA, #1243, R-DATA-56 part)
 Options: keep `LookupError` and skip all rolling; or tolerate a never-held span (chosen: each timeframe is independent, so weekly bars now build from daily alone). Whole runs only, a held bar stays, clashes recorded. Remains: 1m to 2m/5m/10m (needs a `rollup:1m` Source in `bars_schema.py`) and the filler writing them.
+
+### 2026-11-21 — R-RUNNER-419 (desk/daily_local.py) not built (DATA, #1396, R-RUNNER-351)
+desk/ is at its 100-file cap and stays stdlib (no pyarrow, his rulings 13/14 Nov), so moving the local-Stooq daily reader into desk/ needs a loosening of one of them. Options: (a) raise the desk file cap; (b) allow pyarrow in desk/; (c) keep the reader in lab/ and let backfill take a local-Stooq `Ask` passed in (already supported by `ordered`, #1356). Chosen: (c), nothing to build. data-headstart stays held (waits: operator): the catalog_v2 register tag (outside the repository) and the research list's bars remain.
