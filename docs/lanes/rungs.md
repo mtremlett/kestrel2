@@ -353,3 +353,16 @@ then the break was removed:
 
 ### 2026-11-21 — promotion.killed fails loudly (R-RUNGS-7, #1447)
 - A candidate whose ledger is malformed (a buy before its condition was written) makes `killed` raise. Options: skip it quietly, or fail loudly. Chosen: fail loudly (canon A4); a silent skip would let a killed strategy keep buying.
+
+### 2026-11-21 — where a row's variant ranges live (B5, #1459)
+- Options: (a) each caller passes ranges to `variants`, as before; (b) the row holds them and `Spec.parse` checks them. Chosen (b): the box asks for variants from a row's ranges, and validation happens once at the boundary (canon A2). Plateau's finer rules (three values or more, neighbours a tenth apart) stay in `lab/plateau.py` and bite at `centre`; moving them to entry would make spec import the ladder's chain.
+
+### 2026-11-21 — proving every rule is a row (R-MONEY-45, #1464)
+- Options: (a) a new test (adds unit-test lines, main has no margin); (b) widen the existing parity test to rows and rules together. Chosen (b): zero net lines, one test, the failure names the rule.
+
+### 2026-11-21 — which rows get ranges now (B5, #1469, #1473)
+- RSI-2: options (a) every row whose entry and exit have their own settings; (b) also Faber, Weinstein, dual momentum. Chosen (a): those three publish one lookback shared by entry and exit, so ranging them apart makes six of nine variants rules nobody published and triples the luck count. They wait until `lab/variants.py` can tie two settings to one value.
+- Williams %R: options (a) lookback, (b) the two thresholds, (c) both. Chosen (b): entry and exit share one %R window and ranges allow one setting per block, so varying n in one block would split the window; (c) needs multi-setting ranges.
+
+### 2026-11-21 — one market for the weather table (R-RUNNER-371, #1481)
+- `weather.write` keeps one table, so the ladder job runs it on the US line (SPY) only. Options: SPY only, or a table per venue. Chosen SPY only (smallest step). The test drives `weather_line` directly, since a fixture database is heavy.
