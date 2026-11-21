@@ -2105,6 +2105,23 @@ every line not stopped by a hard fail is judged on first, market and folds, and 
 autouse switch-off in the ladder, retail and tape tests is gone: a test pins the easing off
 only by name, with its reason beside it.
 
+## 2026-11-21: whole-file reads may fall and never rise (failure pattern 26), his ask in chat
+
+His words, Sat 21 Nov ~10:40: "can we mechanically never forget this? do not just write this
+down, please build it and then verify." EPON's 1.2 GB results file, read and parsed whole on
+every start, held 12.8 GB and judged nothing for nine hours. A new ratchet in
+`tests/guards/test_ratchets.py` counts `read_bytes()`, `read_text()`, `readlines()` and a bare
+`read()` in `desk/` and `lab/` against main: 37 today, and the count may only fall. A read of
+a file that cannot grow is not counted when its own line says why (`# bounded: <why>`, words
+required). Driven (A7) by appending one line to `desk/command.py` and running the ratchet:
+`Path("big.jsonl").read_text()` FAILED (37 -> 38); `open("big.jsonl").read()` FAILED;
+`read_text()  # bounded:` with no reason FAILED; `read_text()  # bounded: one-line marker
+file` passed; a line-at-a-time loop over the file passed. After a blind review it counts
+calls, not lines, and a mark on any line of a call that spans lines counts; driven again on
+main at 39: a new `p.read_text()` in `desk/__init__.py` FAILED (39 -> 40); the same call
+split over two lines with the mark on its second passed. A tightening: it adds a guard and
+loosens none.
+
 ## 21 Nov - a file may hold 800 lines, not 400, by his own words
 
 His words, to the coordinator in chat, Sat 21 Nov ~09:10, verbatim: "whilst we are in

@@ -205,3 +205,12 @@ an order the desk's own recovery cancelled at 0 filled answers every later send 
 old Cancelled state: London's 09:00 round sent nothing (20 November).
 → *Debt:* an order the desk itself cancelled is sent once more that day as `<id>-r1`,
 through the same gate (R-RUNNER-391, R-RUNNER-394).
+
+**26. The file read whole that grew.** The ladder kept every verdict it ever wrote, each
+re-judged cell adding a line and none removed, and read and parsed the whole file on every
+start. At 1.2 GB it held 12.8 GB, the machine swapped, and EPON judged nothing for nine
+hours (21 November). Thirty-seven reads like it were on main, unnoticed while files are small.
+→ *Caught by:* the ratchet `test_whole_file_reads_never_rise`: whole-file reads in `desk/`
+and `lab/` may fall and never rise; a file that cannot grow says why on the same line
+(`# bounded: <why>`). *Debt:* the growing stores among the 37 are streamed (ladder first,
+R-RUNNER-432) and a results file keeps one line per cell, compacted as it is written.
