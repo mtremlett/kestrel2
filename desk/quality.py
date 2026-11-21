@@ -13,9 +13,11 @@ import shutil
 import sys
 from collections.abc import Iterable
 from datetime import UTC, date, datetime, time, timedelta
+from functools import partial
 from pathlib import Path
 
 from desk import backfill, bars, coverage, history_write, keeper, venues
+from desk.bars import Source
 from desk.lines import LINES, Line
 from desk.spans import EPOCH, FIVE
 from desk.store import Bar
@@ -188,9 +190,11 @@ def monitor(
 ) -> str:
     """Audit, backfill every gap, audit again: the one line saying green, or what stays red."""
     every, today = list(lines), now.date()
-    wrote, named = backfill.fill(
-        path, gaps(path, every, today), backfill.ordered(broker, archived), today
+    asks: backfill.Asks = (
+        *backfill.ordered(broker, archived),
+        (Source.ROLLUP_5M, partial(bars.rolled_day, path)),
     )
+    wrote, named = backfill.fill(path, gaps(path, every, today), asks, today)
     built = [rolled(path, line, today) for line in every]
     red = [why for line in every for why in audit(path, line, now)]
     red += [why for _, faults in built for why in faults]

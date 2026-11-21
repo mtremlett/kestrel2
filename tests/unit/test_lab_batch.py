@@ -79,8 +79,9 @@ def test_a_bad_cell_is_recorded_and_the_rest_carry_on(tmp_path: Path) -> None:
     assert outcomes[::3] == (cell.run(CELLS[0], BARS), cell.run(CELLS[1], BARS))
     with pytest.raises(ValueError) as raised:
         cell.run(EMPTY, BARS)
-    assert outcomes[1] == Failed(EMPTY, cell.LOADED, f"ValueError: {raised.value}")
-    assert outcomes[2] == Failed(UNREAD, cell.LOADED, "KeyError: 'NVDA'")
+    assert isinstance(outcomes[1], Failed) and isinstance(outcomes[2], Failed)
+    assert outcomes[1].error.startswith(f"ValueError: {raised.value} [cell.py:")  # and its line
+    assert outcomes[2].error.startswith("KeyError: 'NVDA' [")
     assert batch.run(cells, _reader(), journal) == outcomes
     assert len(_lines(journal)) == 4, "a failure the journal holds was written again"
     for _ in range(2):  # no bars to read at all: each cell's new failure is written, once
