@@ -58,6 +58,7 @@ SOLD = "shares the book lacks, under a stop at the broker, are taken into the bo
 CANCELLED = "the broker cancels every order of the day with nothing filled"
 NAMED = "an order cancelled unfilled is named that day, and the book stays the broker's"
 HALTED = "a halt is in force while the day's buys are asked for"
+DROPPED = "a halt takes down a buy still working at the broker, and leaves every stop resting"
 STILL = "with a halt in force nothing is bought"
 OUTSIDE = "a line no ISA can hold is never bought"
 PARKED = "a yardstick with a session missing refuses the day by name"
@@ -148,6 +149,21 @@ def halted(life: _Life, on: date) -> None:
     life.live(on)
     life.promise(STILL, life.pretend.buys == reached)
     halt.lift(life.desk, called, at, "SimCity lifts it")
+
+
+def dropped(life: _Life, on: date) -> None:
+    """A buy is working at the broker when a halt is called (the 19 November VHYG buy). The halt
+    must cancel it by its id and leave the stops resting; the day then runs, no order left."""
+    held = book.positions(life.desk)
+    line = next(x for x in sorted(life.market, key=lambda x: x.symbol) if x.symbol not in held)
+    price = life.market[line][-1].close
+    order = Order(f"drop-{line.symbol}", line, 1, price, life.rates[line.currency], price / 2)
+    life.pretend._working[order.order_id] = order  # noqa: SLF001 - a buy the world's broker holds
+    stops, at = life.pretend.stops(), datetime.combine(on, time(7), UTC)
+    stopped = halt.stop(life.desk, life.pretend, at, "SimCity halts a working buy")
+    life.promise(DROPPED, stopped.cancelled == (order.order_id,) and life.pretend.stops() == stops)
+    halt.lift(life.desk, stopped.halt, at, "SimCity lifts it")
+    life.live(on)
 
 
 def outside(life: _Life, on: date) -> None:
