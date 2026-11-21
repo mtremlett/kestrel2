@@ -709,3 +709,6 @@ Options: keep `LookupError` and skip all rolling; or tolerate a never-held span 
 
 ### 2026-11-21 — R-RUNNER-419 (desk/daily_local.py) not built (DATA, #1396, R-RUNNER-351)
 desk/ is at its 100-file cap and stays stdlib (no pyarrow, his rulings 13/14 Nov), so moving the local-Stooq daily reader into desk/ needs a loosening of one of them. Options: (a) raise the desk file cap; (b) allow pyarrow in desk/; (c) keep the reader in lab/ and let backfill take a local-Stooq `Ask` passed in (already supported by `ordered`, #1356). Chosen: (c), nothing to build. data-headstart stays held (waits: operator): the catalog_v2 register tag (outside the repository) and the research list's bars remain.
+
+### 2026-11-21 — old database's 1m rows left out (DATA, #1480, R-RUNNER-350)
+Options: (a) carry 1m rows through the five-minute bar type, losing most of them; (b) leave 1m until the store's checks take any span's bar. Took (b): the store's checks (`desk/bars_parts.checked`) accept only five-minute bars, outside the claim. Remains: the 1m rows (11,699 for SPY); asked as R-DATA-62.
