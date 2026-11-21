@@ -9,7 +9,7 @@ from decimal import Decimal
 from desk import intraday, venues
 from desk.rollup import Candle
 from desk.strategy import Action
-from lab.intraday import OpeningRangeBreakout
+from lab.intraday import IntradayMeanReversion, OpeningRangeBreakout
 
 
 def _session(
@@ -54,3 +54,32 @@ def test_decisions_on_the_first_k_bars_are_the_first_k_decisions() -> None:
     every = _run(BARS)
     for k in (1, 6, 7, 9, 11, 102, 105, 110, 150, 204):
         assert _run(BARS[:k]) == every[:k]
+
+
+def _flat(day: date, closes: dict[int, float]) -> list[Candle]:
+    """The 102 bars of an LSE day, flat at 100 but for the closes given by bar number."""
+    t, c = venues.hours("LSE", day).open, [Decimal(str(closes.get(n, 100))) for n in range(102)]
+    return [Candle(t + timedelta(minutes=5 * n), x, x, x, x, 1, "x") for n, x in enumerate(c)]
+
+
+REVERT = (
+    _flat(date(2026, 11, 16), {5: 50})  # a dip before the band is full: nothing to buy under
+    + _flat(date(2026, 11, 17), {19: 90})  # 90 under 99.5 less two deviations of 2.18
+    + _flat(date(2026, 11, 18), dict.fromkeys(range(19, 102), 90))
+)
+
+
+def _revert(bars: list[Candle]) -> list[Action]:
+    return [d.action for d in intraday.run("mr", IntradayMeanReversion(), "LSE", "X", bars)]
+
+
+def test_the_band_buys_under_sells_over_the_middle_and_is_out_at_the_close() -> None:
+    got = {n: a for n, a in enumerate(_revert(REVERT)) if a is not Action.HOLD}
+    assert got == {
+        102 + 19: Action.BUY,
+        102 + 20: Action.SELL,  # 100 over the middle, 99.5
+        204 + 19: Action.BUY,
+        204 + 101: Action.SELL,  # held at 90 (never over the middle) to the last bar
+    }
+    for k in (5, 19, 20, 121, 122, 223, 306):  # future-blind
+        assert _revert(REVERT[:k]) == _revert(REVERT)[:k]
