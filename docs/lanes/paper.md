@@ -511,3 +511,7 @@ Options: (a) pass a live clock to `Paper` (rejected: the rehearsal needs a fixed
 ### 2026-11-21 — R-RUNNER-415: widen the rehearsal bar (#1280)
 
 The card's "15:00 UTC passes" fits an order gate, but the send path (running/placing) is outside the claim. Options: (a) widen the rehearsal bar to New York pre-market (from 04:00 NY) and after-hours (to 20:00 NY) in `desk/trading_hours.py` (chosen, fits the claim; 15:00 UTC is barred, a market is open); (b) gate every real order by session (needs other files, left as a remaining item).
+
+### 2026-11-21 — R-PAPER-28: no SMTP settings means no fallback, silently (#1309)
+
+Options: (a) refuse the step when no SMTP_ settings are set; (b) stay silent and use Telegram alone (chosen: the desk works on Telegram alone, and a partly set group still fails loudly, by name).
