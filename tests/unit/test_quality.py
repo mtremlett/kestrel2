@@ -10,9 +10,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from desk import bars, quality
+from desk import bars, quality, venues
 from desk.lines import LINES
-from desk.spans import Five, Timed
+from desk.spans import FIVE, Five, Timed
 from desk.store import Bar, Refused
 
 SPY = next(line for line in LINES if line.symbol == "SPY")
@@ -92,7 +92,7 @@ def test_a_session_with_no_30m_bar_between_held_ones_is_named_red(tmp_path: Path
     with bars.writing(path, bars.Source.IBKR) as held:
         held.timed(SPY, "30m", [Timed("30m", t, price, price, price, price, 5) for t in ends])
     assert quality.thin(path, SPY, TODAY) == [
-        "SPY: 2 sessions with no 30m bar, the first 2026-11-11"
+        "SPY: 2 sessions with no 30m bar, the first 2026-11-11, no source holds them yet"
     ]
 
 
@@ -104,8 +104,8 @@ def test_every_short_timeframe_is_audited_for_thin_sessions(tmp_path: Path) -> N
         held.timed(SPY, "1m", [Timed("1m", t, price, price, price, price, 5) for t in ends])
         held.five(SPY, [Five(t, price, price, price, price, 5) for t in ends])
     assert quality.thin(path, SPY, TODAY) == [
-        "SPY: 2 sessions with no 1m bar, the first 2026-11-11",
-        "SPY: 2 sessions with no five-minute bar, the first 2026-11-11",
+        "SPY: 2 sessions with no 1m bar, the first 2026-11-11, no source holds them yet",
+        "SPY: 2 sessions with no five-minute bar, the first 2026-11-11, no source holds them yet",
     ]
 
 
@@ -167,3 +167,27 @@ def test_a_drive_with_under_a_tenth_free_turns_the_monitor_red(tmp_path: Path, m
         )
         said = quality.monitor(path, [SPY], refuse, refuse, NOW)
         assert ("disk: 5% free" in said) is red
+
+
+def _minutes(day: date, price: Decimal) -> list[Timed]:
+    """Ten one-minute bars from the session's open."""
+    open_ = venues.hours(SPY.venue, day).open
+    return [Timed("1m", open_ + timedelta(minutes=n), price, price + 1, price - 1, price, 5)
+            for n in range(10)]  # fmt: skip
+
+
+def test_thin_five_minute_sessions_are_built_from_one_minute_bars(tmp_path: Path) -> None:
+    path = seeded(tmp_path, set())
+    sessions, price = DAYS[:4], Decimal(600)
+    with bars.writing(path, bars.Source.IBKR) as held:
+        held.timed(SPY, "1m", [m for d in sessions for m in _minutes(d, price)])
+        pulled = [m for d in (sessions[0], sessions[3]) for m in _minutes(d, price)[::5]]
+        held.five(SPY, [Five(m.start, price, price + 1, price - 1, price, 25) for m in pulled])
+    said = quality.monitor(path, [SPY], refuse, refuse, NOW)
+    assert "no five-minute bar" not in said and "rolled and held differ" not in said
+    assert bars.sources(path, SPY, FIVE)[bars.Source.ROLLUP_1M] == 4
+    odd = _minutes(DAYS[4], price)
+    with bars.writing(path, bars.Source.IBKR) as held:
+        held.timed(SPY, "1m", odd)
+        held.five(SPY, [Five(odd[0].start, price, price + 7, price - 1, price, 25)])
+    assert "rolled and held differ" in quality.monitor(path, [SPY], refuse, refuse, NOW)
