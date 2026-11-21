@@ -705,3 +705,9 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 
 ### 2026-11-21 - day.py's small steps join day_parts, not a new file (#1417, R-RUNNER-418)
 - Options: (1) the requested new `desk/day_steps.py` (desk/ is at its 100-file ceiling, so BUDGET.json's guard goes red at 101); (2) fold into `desk/day_parts.py`, chosen; (3) raise the ceiling, a guard loosening and not needed. A pure move, day.py re-exports so callers and tests are unchanged. R-RUNGS-29 declined: it changes `tests/guards/test_lanes.py`, outside MONEY's claim, a loosening for the runner/coordinator.
+
+### 2026-11-21 - SimCity gap size and where the code lives (#1442, R-RUNNER-252)
+- Options for the gap under a resting stop: 5%, 10%, 25%. Chose 10%: inside the gap limit's 25% and well past the stop. New file vs existing: kept in `desk/simcity.py` because desk/ is at its 100-file ceiling. Nothing loosened.
+
+### 2026-11-21 - "a gap down past the stop" is a fixed promise, not a random event (#1448, R-RUNNER-407)
+- Options: (a) a promise in the once-per-world `_stops` part; (b) a new random event in `simcity_parts2`, which may not run in every world. Chose (a): no seed decides whether it runs.

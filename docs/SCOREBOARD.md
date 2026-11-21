@@ -197,6 +197,12 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1330 R-RUNNER-325 SimCity gateway-down scenario: conformance-us refused NOT BEGUN, port closed.
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1405 R-MONEY-54 watch half: crash halt cancels working buys given a door.
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1417 R-RUNNER-418 refactor: day.py 305 lines, small steps in day_parts.
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1437 R-RUNNER-407 part 2, size takes the live price; wiring remains. |
+
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1442 R-RUNNER-252 SimCity worlds gap overnight, scenario in the census. |
+
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1448 R-RUNNER-407 SimCity scene 'a gap down past the stop' added. |
+
 
 ### DATA
 
