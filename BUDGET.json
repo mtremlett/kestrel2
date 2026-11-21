@@ -35,7 +35,7 @@
       "lab_lines": 12000
     }
   },
-  "max_lines_per_file": 400,
+  "max_lines_per_file": 800,
   "max_lines_per_lane_doc": 800,
   "max_lines_per_rulebook": {"CLAUDE.md": 80, "CANON.md": 200},
   "max_lines_per_function": 50,
