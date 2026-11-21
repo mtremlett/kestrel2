@@ -166,8 +166,14 @@ def test_the_kill_condition_written_first_kills_and_nothing_after_revives() -> N
         assert dead.answer is Answer.FAIL and dead.killed is not None
         assert str(DAY + timedelta(2)) in dead.killed
     #: four losers in a row kill; three, a flat trade, and three more do not
-    row = _stand(_run("-1", "-1", "-1", "-1", "900"))
+    losers = _run("-1", "-1", "-1", "-1", "900")
+    row = _stand(losers)
     assert row.answer is Answer.FAIL
+    #: the day's run is given the killed strategies, the living left out
+    alive = Candidate(_row("trend_50_200"), DAY, ON_PAPER.kill)
+    fills = [trip.buy for trip in losers]
+    assert promotion.killed([ON_PAPER, alive], fills, losers) == {RULE}
+    assert promotion.killed([TWO, alive], fills, losers[4:]) == frozenset()
     assert row.killed == f"by {DAY + timedelta(11)} it had lost 4 trades in a row"
     assert _stand(_run(*["-1"] * 3, "0", *["-1"] * 3)).killed is None
     #: the row is read in the order the ledger sold them, within a day too, and a part
