@@ -41,6 +41,17 @@ def test_twelve_variants_all_counted_and_the_pick_is_the_plateau_centre(
     assert max(surface, key=lambda s: surface[s].t or 0) == (40, 80), "the best is a lone peak"
 
 
+@pytest.mark.parametrize("name", [name for name, row in BOOK.items() if "ranges" in row])
+def test_every_ranged_row_centres_on_a_plateau(name: str, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(cell, "STRATEGIES", _AnyRule())
+    row = Spec.parse({"name": name, **BOOK[name]})
+    made = variants.variants(row)
+    chosen = variants.centre(row, {v.setting: _verdict(PASS, v.spec.name) for v in made})
+    assert chosen.passed, f"{name}: an all-passing surface shows no plateau"
+    own = tuple(row.params[place][param] for place, param in row.ranges)
+    assert chosen.setting == own, f"{name}: its published setting is not its ranges' centre"
+
+
 @pytest.mark.parametrize(
     "ranges",
     [
