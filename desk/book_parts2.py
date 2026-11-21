@@ -13,7 +13,7 @@ from pathlib import Path
 
 from desk.book_parts import keep
 from desk.broker import Fill
-from desk.foreign import is_foreign
+from desk.handpark import is_foreign
 from desk.lines import Line
 
 LEDGER = "ledger.csv"

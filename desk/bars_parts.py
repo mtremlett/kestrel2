@@ -1,13 +1,24 @@
 """bars_parts - what lets a five-minute bar into the fast store, split from desk/bars.py: each
 bar judged on its own against its venue's calendar, then the line's bars against one another
-and the closes held (DAT-11). desk/bars.py imports `checked` and passes it on."""
+and the closes held (DAT-11). desk/bars.py imports `checked` and passes it on.
+
+A WAIT FOR THE STORE'S LOCK IS NAMED (R-RUNNER-329). SQLite's busy timeout (bars.WAIT, 5
+seconds, far below the 240 a job is given) ends a wait for a file another holds; what it raises
+says only "database is locked". `named` tells that end as it was: who waited, for which
+database, how long. SQLite does not say who holds a lock, so the holder is named as unknown.
+No retry: the one wait ends in the one error."""
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
+import os
+import sqlite3
+import sys
+from collections.abc import Iterable, Iterator, Sequence
+from contextlib import contextmanager
 from dataclasses import replace
 from datetime import datetime
 from decimal import Decimal
+from pathlib import Path
 from statistics import median_low
 
 from desk import venues
@@ -104,3 +115,23 @@ READ = (
     " AND NOT EXISTS (SELECT 1 FROM withdrawn w WHERE w.venue = bar.venue AND"
     " w.symbol = bar.symbol AND w.span = bar.span AND w.at = bar.at) ORDER BY at"
 )
+
+
+class StoreWait(sqlite3.OperationalError):
+    """A wait for a store's lock reached its limit: the waiter, the database, the seconds."""
+
+
+@contextmanager
+def named(file: Path, seconds: float) -> Iterator[None]:
+    """Run a block that opens or reads the store at file, whose waits SQLite ends after
+    `seconds`: if it ends in a locked database, raise StoreWait saying so."""
+    try:
+        yield
+    except sqlite3.OperationalError as refusal:
+        if "locked" not in str(refusal) and "busy" not in str(refusal):
+            raise
+        waiter = f"pid {os.getpid()} ({Path(sys.argv[0]).name or 'python'})"
+        raise StoreWait(
+            f"{waiter} waited {seconds} seconds for {file}, held by another (holder unknown): "
+            f"{refusal}"
+        ) from refusal

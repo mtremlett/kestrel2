@@ -670,7 +670,7 @@ his PC with the desk's own client id (222), never 4001.
       trading" by 09:30 UK; urgency levels without storms; one messenger with a delivery
       record, the merge line and the runner's alerts behind the same door (MSG-02, MSG-03,
       MSG-04, MSG-09, MSG-11)
-      Remains: hourly P&L (#471, #492), the kill and halt line (#502) and the email fallback (#484, not yet wired into desk/running.py) landed; desk/messenger.py is at its 400-line limit and desk/ has 92 of 10,500 lines left, so the new messages need a phase-ceiling raise in BUDGET.json (waits: operator: it needs his approval and is outside every PAPER claim). The evening message now names each lost stop (#805); messenger split to 349 lines (#782)
+      Remains: hourly P&L (#471, #492), the kill and halt line (#502) and the email fallback (#484, wired into the step in #1309; the runner must hand SMTP_*, a preflight line is owed) landed; desk/messenger.py is at its 400-line limit and desk/ has 92 of 10,500 lines left, so the new messages need a phase-ceiling raise in BUDGET.json (waits: operator: it needs his approval and is outside every PAPER claim). The evening message now names each lost stop (#805); messenger split to 349 lines (#782)
       {id: paper-cards; files: desk/messenger.py,
       tests/unit/test_messenger.py; after: paper-messages, paper-running;
       waits: operator}
