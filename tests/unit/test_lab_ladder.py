@@ -179,7 +179,9 @@ def test_a_rule_edited_judges_again_only_its_own_cells(
     assert [r["cell"][0] for r in _rows(tmp_path)[4:]] == [RULES[0]] * 2
 
 
-def test_a_run_skips_what_is_kept_and_judges_again_only_what_has_changed(tmp_path: Path) -> None:
+def test_a_run_skips_what_is_kept_and_judges_again_only_what_has_changed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     book, todo = {VUSA: EDGE, ISF: NOISE}, _set(VUSA, ISF)
     start = datetime(2026, 11, 14, tzinfo=UTC)
     tick = iter(start + timedelta(hours=n) for n in range(100))  #: each run an hour on
@@ -224,6 +226,9 @@ def test_a_run_skips_what_is_kept_and_judges_again_only_what_has_changed(tmp_pat
     assert _rows(tmp_path)[-1]["answer"] == "THIN" and len(_rows(tmp_path)) == 12
     #: a dearer dollar on one day is another price, in the folds of all three
     pounds[EDGE[50].day] = Decimal("0.9")
+    assert "3 judged now, 0 kept" in run(tmp_path, _door(book), pounds, more)
+    assert "0 judged now, 3 kept" in run(tmp_path, _door(book), pounds, more)
+    monkeypatch.setattr(ladder, "CAPITAL", CAPITAL * 2)  #: a bigger pot is another key
     assert "3 judged now, 0 kept" in run(tmp_path, _door(book), pounds, more)
 
 

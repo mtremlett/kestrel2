@@ -20,6 +20,7 @@ from desk import (
     gateway,
     keeper,
     keeper_live,
+    paper,
     simcity,
     store,
     watch,
@@ -38,19 +39,25 @@ from desk.simcity_incidents import (
     PROMISE,
     REFUSED,
     SHUT,
+    SILENT,
+    SLOW,
     SOLD,
     STALE,
+    STOP_SILENT,
     UNBARRED,
     UNHELD,
     beside,
     cancelled,
     deaf,
+    gateway_silent,
     halted,
     hole,
     locked,
     minutes,
     outside,
     parked,
+    silent,
+    slow,
     stale,
     unbarred,
     unheld,
@@ -130,6 +137,9 @@ def test_without_naming_the_cancelled_orders_the_scenario_is_red(
         (UNBARRED, unbarred),
         (LOCKED, locked),
         (LIVE, minutes),
+        (SILENT, silent),
+        (SLOW, slow),
+        (STOP_SILENT, gateway_silent),
     ],
 )
 def test_a_halt_a_line_outside_an_isa_and_a_parked_yardstick_are_lived_and_kept(
@@ -225,6 +235,36 @@ def test_without_the_refusal_by_name_a_locked_store_scenario_is_red(
     monkeypatch.setattr(bars, "NoRound", type("Quiet", (Exception,), {}))
     red = simcity.run(tmp_path, SHORT, ROOM, RATES, NOW, (1,))
     assert red.deaths or any(LOCKED in b for b in red.broken)
+
+
+def test_without_the_kill_switch_a_silent_broker_scenario_is_red(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(simcity, "EVENTS", ((SILENT, silent),))
+    monkeypatch.setattr(simcity, "EVENTFUL", 1)
+    monkeypatch.setattr(book, "turn", lambda *_a: None)  #: the switch is never written
+    red = simcity.run(tmp_path, SHORT, ROOM, RATES, NOW, (1, 2, 3))
+    assert any(SILENT in b for b in red.broken)
+
+
+def test_with_each_order_waiting_too_long_the_slow_broker_scenario_is_red(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(simcity, "EVENTS", ((SLOW, slow),))
+    monkeypatch.setattr(simcity, "EVENTFUL", 1)
+    monkeypatch.setattr(paper, "FILL_SECONDS", 3600)  #: the 19 November wait, made past the step
+    red = simcity.run(tmp_path, SHORT, ROOM, RATES, NOW, (1, 2, 3))
+    assert any(SLOW in b for b in red.broken)
+
+
+def test_without_putting_the_account_back_a_silent_gateway_scenario_is_red(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(simcity, "EVENTS", ((STOP_SILENT, gateway_silent),))
+    monkeypatch.setattr(simcity, "EVENTFUL", 1)
+    monkeypatch.setattr(conformance_parts, "_leave", lambda _side, _run: "left")
+    red = simcity.run(tmp_path, SHORT, ROOM, RATES, NOW, (1, 2, 3))
+    assert red.deaths or any(STOP_SILENT in b for b in red.broken)
 
 
 def test_a_closed_gateway_port_is_refused_by_name_and_without_the_refusal_is_red(

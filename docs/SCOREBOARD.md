@@ -188,6 +188,11 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1272 R-RUNNER-414 book side landed; rehearsal fills split out as found, pinned |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1245 R-RUNNER-319 SimCity scenario for a locked live store, lived and counted |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1279 R-RUNNER-409 trade-faithfulness replay built (desk.simcity_fills), one test |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1303 R-RUNNER-420 desk/book.py split (394 to 349 lines), no behaviour change |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1319 R-RUNNER-324 SimCity scenario for a broker silent after an order is sent |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1302 R-RUNNER-321 SimCity scenario gateway silent at the stop, TimeoutError recorded and account put back; green, red with the put-back removed |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1338 R-RUNNER-422 SimCity worlds live in root/worlds/<seed>, emptied as each starts |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1357 R-RUNNER-426 simcity split, 396 to 327 lines |
 
 ### DATA
 
@@ -450,6 +455,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1210 DATA: bars and faults in one file per line (R-DATA-55). |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1243 DATA: 15m/30m rolled from 5m (R-DATA-56 part). |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1268 DATA s3: nothing built, decision noted in docs/lanes/data.md. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1301 DATA: 2m/10m rollups from 1m (R-DATA-56 part). |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1305 DATA: 5m rolled from 1m (R-DATA-56). |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1324 DATA: monitor tests made machine-independent. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
@@ -563,6 +571,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1260 R-RUNNER-400 order_times carry real timestamps. |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1278 a door wait that runs out names its call. |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1280 R-RUNNER-415 rehearsal can no longer send into New York's extended hours. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1309 PAPER s2 — email fallback wired (R-PAPER-28). |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1350 R-RUNNER-283 done: desk/command.py split (400 to 321 lines), no behaviour change |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1362 R-RUNNER-253 pinned by a test; no product change. |
 
 ### GRID
 
@@ -819,3 +830,6 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1256 Candidate refuses unrun rungs; no scene moved |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1307 spec variants as named trials (B5 part); no scene moved |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1315 B5 one home for variants (lab/variants.py), -31 lines net |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1321 B5 variants refuses a repeated value; no scene moved |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1334 montecarlo streams its files, no MemoryError (R-RUNNER-425) |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1360 R-RUNNER-334 the EPON table is one row per rule, cells in a data file; no scene moved |

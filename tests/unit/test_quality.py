@@ -8,6 +8,8 @@ from decimal import Decimal
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 from desk import bars, quality
 from desk.lines import LINES
 from desk.spans import Five, Timed
@@ -17,6 +19,12 @@ SPY = next(line for line in LINES if line.symbol == "SPY")
 TODAY = date(2026, 11, 17)
 NOW = datetime.combine(TODAY, time(), UTC)
 DAYS = [date(2026, 11, d) for d in (9, 10, 11, 12, 13, 16)]
+
+
+@pytest.fixture(autouse=True)
+def roomy_drive(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The monitor's disk check never reads this PC's real drive."""
+    monkeypatch.setattr(shutil, "disk_usage", lambda _p: SimpleNamespace(total=100, free=50))
 
 
 def bar(day: date) -> Bar:
@@ -40,6 +48,17 @@ def test_planted_gaps_are_backfilled_and_the_line_is_green(tmp_path: Path) -> No
     assert said == "quality: green, 1 lines, 2 bars backfilled, 1 rolled up, coverage 0.00"
     assert quality.gaps(path, [SPY], TODAY) == []
     assert quality.covered(path, [SPY], NOW) == ("coverage 0.00", True)
+
+
+def test_a_gap_with_five_minute_bars_is_rolled_up_from_them(tmp_path: Path) -> None:
+    path = seeded(tmp_path, {DAYS[2]})
+    start = datetime.combine(DAYS[2], time(14), UTC)
+    price = Decimal(600)
+    with bars.writing(path, bars.Source.IBKR) as held:
+        held.five(SPY, [Five(start, price, price + 1, price - 1, price, 10)])
+    said = quality.monitor(path, [SPY], refuse, refuse, NOW)
+    assert "1 bars backfilled" in said
+    assert bars.sources(path, SPY, "daily")[bars.Source.ROLLUP_5M] == 1
 
 
 def test_a_gap_no_source_fills_is_named_red(tmp_path: Path) -> None:

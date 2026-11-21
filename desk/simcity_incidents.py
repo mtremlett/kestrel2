@@ -11,6 +11,8 @@ R-RUNNER-317: the keeper's live job failed on 17 November, its one-minute lines 
 R-RUNNER-316: the keeper's live job asked for one-minute bars of lines the store never held.
 R-RUNNER-318: the 17 November conformance job, a London line with no bar of the session before.
 R-RUNNER-319: the keeper's live job, 17 November, met "database is locked" on its store.
+R-RUNNER-324: the desk's day job, 18 November, met "TimeoutError: timed out" from the broker.
+R-RUNNER-347: the desk's day job, 19 November, had no end after 240 seconds (120 s a order).
 R-RUNNER-325: 18 November, the paper Gateway's port closed outside its restart: conformance-us."""
 
 from __future__ import annotations
@@ -31,16 +33,21 @@ from desk import (
     halt,
     keeper,
     keeper_live,
+    kill,
     messenger,
     paper,
     venues,
     watch,
 )
 from desk.bars import Five
-from desk.broker import Fault
+from desk.broker import Fault, Pretend, Report
+from desk.conformance_parts import Side
 from desk.keeper_rotate import Kept, record
-from desk.lines import YARDSTICK, Line
+from desk.lines import LINES, YARDSTICK, Line
+from desk.orders import Order, Sale
+from desk.running import DAY
 from desk.spans import Timed
+from desk.store import Bar
 
 if TYPE_CHECKING:
     from desk.simcity import _Life
@@ -63,6 +70,12 @@ UNHELD = (
 )
 UNBARRED = "a conformance plan with no bar of the session before the day refuses, naming the line"
 LOCKED = "a store another writer holds refuses the round by name, loses nothing, serves the next"
+SILENT = "a broker silent after an order is sent: the kill switch is on, the alarm names the order"
+SLOW = "a broker that fills nothing cannot keep the desk's day past the step's time"
+STEP_SECONDS = 900  #: the runner's time for the desk step (its drive_atjobs): waits plus a margin
+STOP_SILENT = (
+    "a gateway silent when the stop is to fire fails that step by name and puts the account back"
+)
 SHUT = (
     "a closed Gateway port outside its restart: the run is not begun, nothing sent, his to look at"
 )
@@ -298,6 +311,76 @@ def locked(life: _Life, on: date) -> None:
         bars.WAIT = wait
     keeper_live.minute_round(hot, lines, now, ask)
     life.promise(LOCKED, refused and bool(bars.five(hot, YARDSTICK, opened, now)))
+    life.live(on)
+
+
+def silent(life: _Life, on: date) -> None:
+    """The broker says nothing to the first order it is sent (18 November, "timed out"). The
+    desk must not guess what became of it: the kill switch goes on, the day ends in the alarm
+    naming the order and the silence, nothing is booked; released, the same day then runs."""
+    at = datetime.combine(on, time(7), UTC)
+    failed = list[str]()
+
+    def mute(order: Order | Sale) -> Report:
+        failed.append(order.order_id)
+        raise TimeoutError("timed out")
+
+    life.pretend.place = mute  # type: ignore[method-assign]  # the world's broker, told to go quiet
+    try:
+        life.live(on)
+    except book.Alarm as alarm:  #: the send path's own word that it does not know the order
+        named = bool(failed) and failed[0] in str(alarm) and "timed out" in str(alarm)
+        life.promise(SILENT, named and book.killed(life.desk) is not None)
+        kill.release(life.desk, at, "SimCity releases it")
+        del life.pretend.place  # the world's broker speaks again
+        life.live(on)
+    else:
+        del life.pretend.place
+        life.promise(SILENT, not failed)  #: no order was sent: nothing to be silent to
+
+
+def slow(life: _Life, on: date) -> None:
+    """The broker fills nothing, so each order sent is given the whole wait (19 November: 120 s
+    each, the step killed at 240 s). The day's worst case, every order waiting out its time
+    (paper.FILL_SECONDS) and the knock (paper.SECONDS), must end inside the step's time."""
+    seen = len(life.pretend.submitted())
+    life.live(on)
+    sent = len(life.pretend.submitted()) - seen
+    life.promise(SLOW, sent * paper.FILL_SECONDS + paper.SECONDS <= STEP_SECONDS)
+
+
+def gateway_silent(life: _Life, on: date) -> None:
+    """The gateway says nothing when the conformance run's stop is to fire (17 November,
+    "conformance-us", TimeoutError). The step must be recorded as failed, naming TimeoutError;
+    the last step must still put the account back, so neither the book nor the broker holds a
+    share and no order rests."""
+    held = sorted((x for x in life.market if x.venue == YARDSTICK.venue), key=lambda x: x.symbol)
+    line = next(x for x in LINES if x.retail and x.leverage == 1 and x.venue == YARDSTICK.venue)
+    whole = life.market[held[0]]  #: the world's bars on a line the desk's own list knows
+    home = life.desk / f"silent-{on}"
+    with bars.writing(home / keeper.HOT) as round_:
+        round_.daily(line, [b for b in whole if b.day < on])
+    record(
+        home / keeper.DAILY / line.venue,
+        Kept(on, datetime.combine(on, time(), UTC), 1, {}, frozenset()),
+    )
+    refused = next(x for x in LINES if x.retail is False)
+    run = conformance_parts.plan([line], refused, on, {line.currency: Decimal(1)}, "0000", home)
+    price = run.second.price
+    world = Pretend({line: (Bar(on, *(price,) * 4, 0), Bar(on + DAY, *(price,) * 4, 0))}, {})
+    world.open(on)
+
+    def quiet(_order: Order) -> str:
+        raise TimeoutError("timed out")
+
+    said: dict[str, str] = {}
+    side = Side(home, world, lambda: (), quiet)
+    failed = conformance_parts.live(side, run, said.__setitem__)
+    answer = said.get(conformance_parts.TRIGGER, "")
+    left = book.positions(home) or dict(world.holdings()) or world.stops()
+    life.promise(
+        STOP_SILENT, failed == [conformance_parts.TRIGGER] and "TimeoutError" in answer and not left
+    )
     life.live(on)
 
 

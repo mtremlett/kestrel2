@@ -64,7 +64,7 @@ def lived(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, simcity.Night
 
     with pytest.MonkeyPatch.context() as patch:
         patch.setattr(simcity, "_live", watched)
-        return root, simcity.run(root, MARKET, ROOM, RATES, NOW, (6,)), seen
+        return root, simcity.run(root, MARKET, ROOM, RATES, NOW, (7,)), seen
 
 
 @pytest.fixture(scope="module")
@@ -250,7 +250,16 @@ def test_a_desk_that_stops_is_a_red_night_and_a_night_that_dies_is_an_error_and_
     probe = cProfile.Profile()  #: and where a profiler left on refuses a second, none does
     probe.enable()
     probe.disable()
-    assert not list(tmp_path.iterdir()), "a night that died was kept"
+    assert [p.name for p in tmp_path.iterdir()] == ["worlds"], "a night that died was kept"
+    assert (tmp_path / "worlds" / "4").is_dir(), "a world's folder is root/worlds/<seed>"
+    (tmp_path / "worlds" / "4" / "old").write_text("last night", encoding="utf-8")
+    probe_seen = list[bool]()
+    monkeypatch.setattr(
+        simcity, "_live", lambda life: probe_seen.append(not (life.desk / "old").exists())
+    )
+    simcity.run(tmp_path, SHORT, ROOM, RATES, NOW, (4,))
+    assert probe_seen == [True], "last night's leftover was still there as the world began"
+    (tmp_path / simcity.NIGHTS).unlink()
     (tmp_path / simcity.NIGHTS).write_text("something else\n", encoding="utf-8")
     monkeypatch.setattr(simcity, "_live", None)  #: refused before the night is lived at all
     with pytest.raises(ValueError, match="not SimCity's nights"):
@@ -353,7 +362,7 @@ def test_a_promise_the_desk_breaks_in_any_world_turns_the_night_red_and_names_th
 ) -> None:
     monkeypatch.setattr(owner, name, broken_desk)
     monkeypatch.setattr(
-        simcity, "EVENTS", simcity.EVENTS[first:-3]
+        simcity, "EVENTS", simcity.EVENTS[first:-6]
     )  #: not the unheard hour nor the parked yardstick: each has its own test
     night = busy(monkeypatch, tmp_path, (0, 1))
     for promise in promises:
