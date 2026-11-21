@@ -573,6 +573,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1280 R-RUNNER-415 rehearsal can no longer send into New York's extended hours. |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1309 PAPER s2 — email fallback wired (R-PAPER-28). |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1350 R-RUNNER-283 done: desk/command.py split (400 to 321 lines), no behaviour change |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1362 R-RUNNER-253 pinned by a test; no product change. |
 
 ### GRID
 
