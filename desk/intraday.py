@@ -180,7 +180,9 @@ class Regime(Enum):
 class _Day:
     """A day-trading rule: five-minute bars, sold before the close (`flat`), its memory reset
     each session but for the last close of the session before, so a backtest over many days
-    and the desk's step over the day before and this one decide alike."""
+    and the desk's step over the day before and this one decide alike. A session whose first
+    bar is not its venue's opening one is not `whole`, and the session before counts only if
+    it was the venue's last: a gap in the store never passes for the open or a gap up."""
 
     span: ClassVar[Span] = Span.FIVE_MINUTES
     flat: ClassVar[bool] = True
@@ -188,20 +190,31 @@ class _Day:
     def __init__(self) -> None:
         self.day: date | None = None
         self.before: Decimal | None = None  #: the session before's last close
+        self.whole = False  #: whether this session's first bar is its venue's opening bar
         self.last: Decimal | None = None
         self.first = Candle(datetime.min, ZERO, ZERO, ZERO, ZERO, 0, "")  #: each session's first
 
     def see(self, bar: Candle) -> bool:
         """Take the bar in; whether it opens a session (and the rule's memory is reset)."""
-        fresh = bar.start.date() != self.day
+        day, fresh = bar.start.date(), bar.start.date() != self.day
         if fresh:
-            self.day, self.before, self.first = bar.start.date(), self.last, bar
+            venue = next((v for v in venues.RULES if _opens(v, bar.start)), "")
+            past = venue and venues.sessions(venue, day - timedelta(14), day - timedelta(1))
+            self.whole = bool(venue)
+            self.before = self.last if past and past[-1] == self.day else None
+            self.day, self.first = day, bar
             self.reset()
         self.last = bar.close
         return fresh
 
     def reset(self) -> None:
         """Forget the last session's indicators; the rules that keep none keep this."""
+
+
+def _opens(venue: str, start: datetime) -> bool:
+    """Whether a bar starting then is the venue's opening bar of a day it trades."""
+    day = start.date()
+    return venues.sessions(venue, day, day) == (day,) and venues.hours(venue, day).open == start
 
 
 class _OpeningRange(_Day):
@@ -211,7 +224,7 @@ class _OpeningRange(_Day):
     span: ClassVar[Span] = Span.FIFTEEN_MINUTES
 
     def step(self, bar: Candle, holding: bool) -> bool:
-        if self.see(bar):
+        if self.see(bar) or not self.whole:
             return False
         return bar.close >= self.first.low if holding else bar.close > self.first.high
 
@@ -233,7 +246,7 @@ class _GapFade(_Day):
     def step(self, bar: Candle, holding: bool) -> bool:
         fresh, before, first = self.see(bar), self.before, self.first
         if before is None or first.open > before * (1 - GAP) or first.close <= first.open:
-            return False
+            return False  #: `before` is None too when the session is not whole
         return before > bar.close >= first.low if holding else fresh
 
 
@@ -249,7 +262,7 @@ class _VwapReversion(_Day):
         self._paid += (bar.high + bar.low + bar.close) / 3 * bar.volume
         self._volume += bar.volume
         if not self._volume:
-            return holding
+            return False
         vwap = self._paid / self._volume
         return bar.close < vwap if holding else bar.close <= vwap * (1 - STRETCH)
 
@@ -288,7 +301,7 @@ class _Rsi2Scalp(_Day):
         if gain is None or loss is None:
             return False
         index = rsi(gain, loss)
-        return index <= 70 if holding else index < 10 and bar.close > self.first.open
+        return index <= 70 if holding else index < 10 and self.whole and bar.close > self.first.open
 
 
 class _EmaCross(_Day):

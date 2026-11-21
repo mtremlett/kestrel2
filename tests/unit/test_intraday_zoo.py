@@ -156,3 +156,35 @@ def test_every_intraday_machine_runs_through_the_one_engine_on_a_fixture_session
         if m.span is not None:
             candles = _session(DAY, [_flat(100 + n % 3) for n in range(20)], m.span.value)
             assert len(_actions(m.name, candles)) == 20
+
+
+def test_a_session_missing_its_opening_bar_or_its_day_before_is_never_traded_as_one() -> None:
+    rows = [(10, 10.5, 9.5, 10), _flat(10.2), _flat(10.6), _flat(10.4)]
+    late = _session(DAY, rows, 15)[1:]  #: the store lost 08:00: 08:15 is not the open
+    assert Action.BUY not in _actions("zoo_opening_range_15m", late)
+    up = _session(NEXT, [(102, 103, 101.5, 102.5), _flat(103.5)])
+    assert Action.BUY not in _actions("zoo_gap_and_go_5m", _session(DAY, [_flat(100)])[:1] + up[1:])
+    friday = _session(date(2026, 11, 13), [_flat(100)])  #: Monday 16th lost: not the day before
+    assert Action.BUY not in _actions("zoo_gap_and_go_5m", friday + up)
+
+
+def test_each_day_trader_decides_today_alike_whatever_older_days_it_saw() -> None:
+    older = _session(date(2026, 11, 13), [_flat(90 + n % 7) for n in range(30)])
+    before = _session(DAY, [_flat(100 - n % 5) for n in range(30)])
+    today = _session(NEXT, [(97, 99, 96, 98)] + [_flat(98 + (n * 7) % 9) for n in range(40)])
+    for m in (m for m in ZOO if m.span is Span.FIVE_MINUTES):
+        assert (
+            _actions(m.name, older + before + today)[-41:] == _actions(m.name, before + today)[-41:]
+        )
+
+
+def test_a_us_half_day_sells_a_day_trader_before_its_early_close() -> None:
+    hours = venues.hours("US", date(2026, 11, 27))  #: the day after Thanksgiving, shut early
+    assert hours.early
+    marks = [hours.close - timedelta(minutes=m) for m in (15, 10, 5)]
+    late = [Candle(t, Decimal(1), Decimal(1), Decimal(1), Decimal(1), 1, "ibkr") for t in marks]
+    assert [d.action for d in intraday.run("in", _AlwaysIn(), "US", "X", late)] == [
+        Action.BUY,
+        Action.SELL,
+        Action.HOLD,
+    ]
