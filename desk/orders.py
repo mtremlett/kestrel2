@@ -6,8 +6,8 @@ ONE ROUNDING POLICY for what is published of it."""
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from dataclasses import replace
-from decimal import Decimal
+from dataclasses import astuple, dataclass, replace
+from decimal import ROUND_HALF_EVEN, Decimal
 
 from desk.lines import Line
 from desk.orders_parts import (
@@ -29,9 +29,6 @@ from desk.orders_parts import (
     STOP_SLIPS as STOP_SLIPS,
 )
 from desk.orders_parts2 import (
-    Charges as Charges,
-)
-from desk.orders_parts2 import (
     Leg as Leg,
 )
 from desk.orders_parts2 import (
@@ -45,9 +42,6 @@ from desk.orders_parts2 import (
 )
 from desk.orders_parts2 import (
     Settings as Settings,
-)
-from desk.orders_parts2 import (
-    pennies as pennies,
 )
 from desk.risk import Standing, correlated_with, loss_limit, underlying_limit
 from desk.store import Bar
@@ -68,6 +62,38 @@ def leg_of(order_id: str, shares: int) -> Leg:
     if shares > 0:
         return Leg.BUY
     return Leg.STOP if order_id.endswith("-stop") else Leg.SALE
+
+
+@dataclass(frozen=True)
+class Charges:
+    """Every cost of a leg, or of legs added together, in pounds: none can be left out."""
+
+    commission: Decimal  #: the broker's, and the regulators' fees it passes on with a US sale
+    spread: Decimal  #: half of it, lost at each leg against the price the market showed
+    slippage: Decimal  #: what the fill loses beyond the spread; more when a stop sells
+    currency: Decimal  #: the conversion of the money moved, on a line not in pounds
+    uk_taxes: Decimal  #: on a purchase, the part of its value the line states (Line.uk_tax)
+
+    @property
+    def total(self) -> Decimal:
+        return sum(astuple(self), Decimal(0))
+
+    def __add__(self, other: Charges) -> Charges:
+        return Charges(*(a + b for a, b in zip(astuple(self), astuple(other), strict=True)))
+
+    def part(self, shares: int, of: int) -> Charges:
+        """The share of a fill's costs that some of its shares carry."""
+        return Charges(*(a * shares / of for a in astuple(self)))
+
+    def published(self) -> Charges:
+        """Each line as it is published: rounded once, by the one policy (pennies)."""
+        return Charges(*map(pennies, astuple(self)))
+
+
+def pennies(amount: Decimal) -> Decimal:
+    """THE ONE ROUNDING POLICY. Money is carried exact and rounded once, where it is
+    published: to the penny, a half going to the even penny so that many days lean no way."""
+    return amount.quantize(Decimal("0.01"), ROUND_HALF_EVEN)
 
 
 def charges(line: Line, leg: Leg, shares: int, price: Decimal, fx: Decimal) -> Charges:

@@ -1,12 +1,12 @@
 """orders_parts2 - the order's types: the settings, the order and the sale, the refusal, the legs
-of a trade, the charges of a leg, and the one rounding policy. desk.orders gives them to its
+of a trade. desk.orders gives them to its
 callers."""
 
 from __future__ import annotations
 
-from dataclasses import astuple, dataclass, field
+from dataclasses import dataclass, field
 from datetime import date
-from decimal import ROUND_HALF_EVEN, Decimal
+from decimal import Decimal
 from enum import Enum
 
 from desk.lines import Line
@@ -88,35 +88,3 @@ class Leg(Enum):
     BUY = "bought"
     SALE = "sold at the market"
     STOP = "sold by the stop resting at the broker"
-
-
-@dataclass(frozen=True)
-class Charges:
-    """Every cost of a leg, or of legs added together, in pounds: none can be left out."""
-
-    commission: Decimal  #: the broker's, and the regulators' fees it passes on with a US sale
-    spread: Decimal  #: half of it, lost at each leg against the price the market showed
-    slippage: Decimal  #: what the fill loses beyond the spread; more when a stop sells
-    currency: Decimal  #: the conversion of the money moved, on a line not in pounds
-    uk_taxes: Decimal  #: on a purchase, the part of its value the line states (Line.uk_tax)
-
-    @property
-    def total(self) -> Decimal:
-        return sum(astuple(self), Decimal(0))
-
-    def __add__(self, other: Charges) -> Charges:
-        return Charges(*(a + b for a, b in zip(astuple(self), astuple(other), strict=True)))
-
-    def part(self, shares: int, of: int) -> Charges:
-        """The share of a fill's costs that some of its shares carry."""
-        return Charges(*(a * shares / of for a in astuple(self)))
-
-    def published(self) -> Charges:
-        """Each line as it is published: rounded once, by the one policy (pennies)."""
-        return Charges(*map(pennies, astuple(self)))
-
-
-def pennies(amount: Decimal) -> Decimal:
-    """THE ONE ROUNDING POLICY. Money is carried exact and rounded once, where it is
-    published: to the penny, a half going to the even penny so that many days lean no way."""
-    return amount.quantize(Decimal("0.01"), ROUND_HALF_EVEN)
