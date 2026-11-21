@@ -99,6 +99,29 @@ def drawdown(bars: Sequence[Bar]) -> dict[date, str]:
     return named
 
 
+#: The layers that won on database long (canon B6), by name; empty until a recorded win, and a
+#: layer is added only with its DECISIONS entry and trial count. Only the layers read from a
+#: line's own bars may be named; breadth and macro are market-wide and are handed in, never
+#: read from the cell's line.
+JOINED: tuple[str, ...] = ()
+_OWN_LAYERS = {"volatility": (volatility, CALM), "drawdown": (drawdown, SHALLOW)}
+
+
+def named(bars: Sequence[Bar]) -> dict[date, str]:
+    """Each day as `up` only when the trend is up and every JOINED layer reads its good label,
+    `warming` when the trend or a joined layer is still warming, else `down`. Day T reads bars
+    up to T only (canon B3)."""
+    out = trend(bars)
+    for layer in JOINED:
+        read, good = _OWN_LAYERS[layer]
+        for day, label in read(bars).items():
+            if out[day] == WARMING or label == WARMING:
+                out[day] = WARMING
+            elif label != good:
+                out[day] = DOWN
+    return out
+
+
 def followed(
     labels: Mapping[date, str], bars: Sequence[Bar], folds: int = 1
 ) -> list[dict[str, Decimal]]:
