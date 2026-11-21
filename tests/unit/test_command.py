@@ -190,7 +190,7 @@ def test_the_preflight_says_ready_or_names_each_thing_that_is_not_and_sends_no_o
     assert line.startswith("PREFLIGHT Mon 16 Nov: NOT READY. his phone: ValueError: no TELEGRAM")
     assert "the kill switch: ValueError: the kill switch is on, pulled at" in line
     assert "the paper account: ValueError: it is not the desk's book: IITU" in line
-    assert ". Ready: the Gateway: it answered; prices: 22 lines to trade on; the pound" in line
+    assert ". Ready: the Gateway: it answered; prices: 26 lines to trade on; the pound" in line
 
     def shut(_talk: object) -> object:
         raise ConnectionRefusedError
