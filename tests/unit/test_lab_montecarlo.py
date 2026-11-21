@@ -109,3 +109,16 @@ def test_a_cell_the_sizing_refuses_is_recorded_with_its_reason_and_the_rest_go_o
 def test_a_run_without_a_data_folder_stops_and_says_why() -> None:
     with pytest.raises(SystemExit, match="KESTREL2_DATA names no data folder"):
         montecarlo.main({})
+
+
+def test_a_cut_short_last_line_is_left_out_and_a_kept_row_is_never_parsed(tmp_path: Path) -> None:
+    home = _home(tmp_path)
+    assert montecarlo.run(home, lambda _job: [D("0.02"), D("-0.01")]) == (
+        "2 resampled now, 0 kept from before"
+    )
+    results = home / "montecarlo" / "results.jsonl"
+    results.write_bytes(results.read_bytes() + b'{"id": ["gr')
+    held = home / "grid" / "held" / "LSE" / "3IN.jsonl"
+    held.write_text(held.read_text().replace("2011-01-13", "not a date"))  # parsing would raise
+    assert montecarlo.run(home, nothing) == "0 resampled now, 2 kept from before"
+    assert results.read_bytes().endswith(b"}\n")
