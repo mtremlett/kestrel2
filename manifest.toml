@@ -98,6 +98,7 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "desk/broker.py" = "the pretend broker the desk trades against in simulation"
 "desk/book.py" = "the ledger of fills under the broker's ids, and the book built from the broker"
 "desk/book_parts.py" = "the ledger's lower parts: the one keeper of dated records, the kill switch's record and the day's pounds per currency; desk.book gives them to its callers"
+"desk/book_parts2.py" = "the ledger file: the fills the desk has recorded under the broker's ids, read and added to, the found ones apart, and the stop levels it rested; desk.book gives them to its callers"
 "desk/foreign.py" = "what is not the desk's own: the rehearsal's order-id prefix, so the book shows its fills as found, never traded"
 "desk/carry.py" = "the pound's rate on a day London is shut and the US trades: the last London session's carried over, at most three US sessions"
 "desk/eponymous_bands.py" = "the eponymous channel rules (Donchian's four-week breakout), each a rule under the strategy template, authors and sources written down; the paper desk does not trade them"

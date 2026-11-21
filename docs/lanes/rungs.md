@@ -314,3 +314,7 @@ then the break was removed:
 
 ### 2026-11-21 — Candidate refuses unrun rungs now (#1256)
 - Options: now, or when the first real candidate nears. Chose now: one line, tightens a guard-like rule, cannot loosen anything.
+
+### 2026-11-21 — spec variants: one home, lab/variants.py (B5, #1307, #1315)
+- #1307 added `lab.spec.variants`; a variant is not asked the base spec's known answers (they are for the base settings). Options: re-prove them (always fails) or skip; chose skip, settings are range-checked instead.
+- #1315 found `lab/variants.py` (#364) already makes every combination, counts trials and reports the plateau centre, so the duplicate was deleted. Options: keep both (a second code path, canon A2), merge into spec (spec would import plateau/trials); chose keep `lab/variants.py`.
