@@ -4,7 +4,7 @@ and publish one record. The same days run again from the same saved data give th
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from functools import partial
 from pathlib import Path
@@ -33,9 +33,11 @@ from desk.orders import (
     Refused,
     Sale,
     Settings,
+    gapped,
     order_id_of,
     pennies,
     size,
+    stop_under,
     strategy_of,
 )
 from desk.risk import Standing
@@ -142,7 +144,7 @@ def trade(
     wire (desk/running.py) has no room yet for the broker's holdings read it needs.
     A strategy in killed (its own kill condition met, lab/promotion.py) buys nothing, said so;
     what it holds is still sold by its rule or its stop."""
-    book.collect(root, broker)  #: the stops the open sold
+    _stand_down(root, archive, broker, settings, tell)
     if later := max((fill.day for fill in book.fills(root) if fill.day > day), default=None):
         raise ValueError(f"{day}: the day is over, the ledger holding a fill of {later}")
     if made := [record.day for record in records(root) if record.day >= day]:
@@ -168,6 +170,42 @@ def trade(
         _unreached(root, day, decided, sent, dead)
         raise
     return (*taken, *sent)
+
+
+def _stand_down(
+    root: Path,
+    archive: Mapping[Line, Sequence[Bar]],
+    broker: Broker,
+    settings: Settings,
+    tell: book.Tell | None,
+) -> None:
+    """STP-10: a stop that sold, since the last record, at a loss past GAP_LOSS of the capital
+    (orders.gapped) halts buying, once for each such sale, until he lifts it. The loss is read
+    from the stop's fill against its buy's price, in the pounds of the buy's day."""
+    book.collect(root, broker)  #: the stops the open sold
+    lines, fills = {line.symbol: line for line in archive}, book.fills(root)
+    buys, since = (
+        {f.order_id: f for f in fills if f.quantity > 0},
+        max((r.day for r in records(root)), default=date.min),
+    )
+    for sale in fills:
+        buy = buys.get(sale.order_id.removesuffix("-stop"))
+        if sale.quantity >= 0 or sale.day <= since or buy is None or sale.symbol not in lines:
+            continue
+        line = lines[sale.symbol]
+        priced = Order(
+            buy.order_id,
+            line,
+            -sale.quantity,
+            buy.price,
+            book.rate(root, line.currency, buy.day),
+            stop_under(line, buy.price),
+        )
+        why = f"{sale.order_id}: the stop sold at {sale.price}, a gap past the loss limit"
+        if gapped(priced, sale.price, settings) and why not in {h.why for h in halt.kept(root)}:
+            halt.stop(root, broker, datetime.now(UTC), why, by="gap")
+            if tell:
+                tell(f"gap {sale.order_id}", f"{why}. Buying is halted until he lifts it.")
 
 
 def _holders(root: Path) -> dict[str, str]:
