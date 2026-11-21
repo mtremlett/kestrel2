@@ -795,3 +795,6 @@ sessions, twice the longest lookback, before a rule may trade it, and the number
 
 ### 2026-11-20 — no blocking request; R-DATA-57's local Stooq step needs a move first (DATA, s1)
 Options: (a) add local Stooq to `desk/backfill.py`'s order now (rejected: the Stooq readers live in `lab/headstart*.py`, which `desk/` may not import, so it needs the reader moved into `desk/` first, more than a ten-minute step and over the unit-test line balance); (b) record it and build nothing (chosen). Next step: move the daily Stooq reader into `desk/`, then add it to `backfill.ordered`.
+
+### 2026-11-21 — no blocking request; nothing built (DATA, s2)
+All open requests are `later`. R-DATA-59 waits on the operator and needs the real stores, which this run's scratch data folder does not hold. R-DATA-57's local Stooq step still needs the Stooq reader moved from `lab/headstart*.py` into `desk/` first (see 2026-11-20). Options: (a) start the move in a ten-minute session (rejected: it exceeds the step and the unit-test line balance), (b) record and build nothing (chosen).
