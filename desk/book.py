@@ -211,7 +211,8 @@ def _unless_stopped(root: Path, order: Order | Sale) -> None:
 
 def fills(root: Path) -> tuple[Fill, ...]:
     """Every fill the desk has recorded, in the order it learned of them; found ones are apart."""
-    return tuple(fill for fill in _ledger(root) if not is_foreign(fill.order_id))
+    apart = {fill.execution_id for fill in found(root)}
+    return tuple(fill for fill in _ledger(root) if fill.execution_id not in apart)
 
 
 def found(root: Path) -> tuple[Fill, ...]:
