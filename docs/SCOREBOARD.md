@@ -845,3 +845,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1373 R-RUNNER-432 the ladder's results file streamed, no row held in memory; no scene moved |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1367 R-RUNNER-344 lab owns its YEAR; behaviour unchanged |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1277 R-RUNNER-408 stop-rule rung built and pre-registered, not yet run on EPON |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1393 R-RUNNER-281 conformance sized from the desk's store. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1403 R-RUNNER-394 recover records its own cancels (3 lines). |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1406 R-RUNNER-395 round-again built, unit-tested; end-to-end test remains. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1395 R-RUNNER-310 conformance survives a slow reasons read. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1414 R-MONEY-54 a halt in force cancels working buys at the step. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1428 R-MONEY-61 the crash watch gets a paper broker door. |
