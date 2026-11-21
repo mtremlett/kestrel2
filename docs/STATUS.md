@@ -136,7 +136,7 @@ money-restop waits on R-MONEY-18, R-MONEY-31 (the lost-stop list in `desk/messen
 
 ## PAPER
 
-Last updated: 21 November 2026 (folds #215 to #1097, #1264, #1267, #1260, #1278, #1280, #1309).
+Last updated: 21 November 2026 (folds #215 to #1097, #1264, #1267, #1260, #1278, #1280, #1309, #1350).
 
 ### Where it is
 
@@ -176,6 +176,7 @@ R-RUNNER-348 is unblocked (R-PAPER-35 done). R-MONEY-59: reword the `desk/watch.
 - R-MONEY-58: done in #1267
 - R-RUNNER-400: done in #1260
 - R-RUNNER-415: done in #1280
+- R-RUNNER-283: done in #1350
 
 ### Found, not fixed
 
