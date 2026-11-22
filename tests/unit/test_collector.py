@@ -26,6 +26,11 @@ ANSWERS = {
     "api.bls.gov": {
         "Results": {"series": [{"data": [{"year": "2026", "period": "M10", "value": "3"}]}]}
     },
+    "apps.bea.gov": {
+        "BEAAPI": {
+            "Results": {"Data": [{"LineNumber": "1", "TimePeriod": "2026Q3", "DataValue": "2.1"}]}
+        }
+    },
     "api.eia.gov": {"response": {"data": [{"period": "2026-11-13", "value": 60.5}]}},
     "finnhub.io/api/v1/calendar": {"earningsCalendar": [{"date": "2026-11-19", "symbol": "NVDA"}]},
     "finnhub.io/api/v1/news": [{"datetime": 1763280000, "headline": "Markets rally"}],
@@ -66,6 +71,7 @@ def test_one_run_writes_the_four_kinds_and_never_prints_a_key(
     assert held[("macro", "DGS10")] == [("2026-11-13", "4.1")]
     assert held[("macro", "UNRATE")] == [("2026-11-13", "4.1")]
     assert held[("macro", "LNS14000000")] == [("2026-10", "3")]
+    assert held[("macro", "T10101-GDP")] == [("2026Q3", "2.1")]
     assert held[("macro", "RWTC")] == [("2026-11-13", "60.5")]
     assert held[("earnings", "NVDA")] == [("2026-11-19", "")]
     assert ("2025-11-16T08:00:00+00:00", "Markets rally") in held[("news", "finnhub")]

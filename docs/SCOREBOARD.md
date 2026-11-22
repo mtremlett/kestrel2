@@ -502,6 +502,12 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1653 data-door-bars: `read_db`, research bars from the history database. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1654 data-monitor first step: HOVER freshness line and alarm logic, tested. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1663 data-collector: EODHD London audit; collector now 8 sources of the planned set. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1658 the monitor turns red on a six-hour archive outage (DAT-08, DQ-03). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1689 HOVER alarm state persists across runs. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1712 collector adds BLS and EIA. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1715 survivors' share measured for the two US lists, no box ticked (BT-09). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1728 collector adds Alpha Vantage London sample; 9 of the planned sources. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1699 data-second-source step 1: register of sources, replaced newest bars named. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
@@ -626,6 +632,10 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1631 PAPER paper-supervised: supervised step has hours; Gateway night restart is no fault; box open. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1636 PAPER paper-cards: verdict and streak in the daily messages (MSG-03), partial. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1639 PAPER paper-supervised: restart window no longer a false alarm; box still open. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1665 PAPER paper-cards: streak shown as N of 10 in the day message; one home for the count. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1674 PAPER paper-door-pound: the pound and conformance bars read from the store alone, archive and broker stubbed to fail in tests. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1675 PAPER paper-cards: streak-above-0 test landed; 05:40 card and 09:30 alarm wait on a wider claim. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1698 PAPER paper-cards: messenger.py 395 lines, room made for the three owed messages; box stays open. |
 
 ### GRID
 

@@ -2300,6 +2300,17 @@ paper door refuses an order not dated the session before (`placing.py`; the pret
 failure pattern 15), so no zoo sale would ever have filled. Now dated as the desk's own; the test records
 every placed order's session and failed (dated Wednesday) before the fix.
 
+## 22 Nov - the one-price-door guard, the last condition on the price-one-door hold
+
+His ruling (~10:00, "paramount"): every price is read from market_history.db or market_live.db.
+The hold on the ladder and grid jobs (runner ops 69) asked for all five doors AND
+`tests/guards/test_one_price_door.py`; the five doors are on main (#1672, #1674, #1683, #1697,
+money-door-slippage), but no card ever built the guard, so the hold could never lift (pattern 20).
+The guard: outside seven writers named in the manifest as letting outside prices in, no line in
+desk/ or lab/ asks the archive or reads a price file. Driven (A7) on a scratch worktree: green on
+main; red naming `lab/ladder.py:354` for a planted `archive.fetch`, and `desk/day.py:525` for a
+planted `read_csv`; green again with both removed.
+
 ## 22 Nov - a wait names a real request (guard), and four waits that could never lift
 
 `tests/guards/test_waits.py`: every request an open box waits on is a request line in STATUS.

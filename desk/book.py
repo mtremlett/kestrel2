@@ -24,6 +24,7 @@ from desk.book_parts import (
     entry,
     keep,
     killed,
+    pounds_per,
     rate,
     record_rates,
     retry_id,
@@ -63,7 +64,6 @@ from desk.orders import (
 )
 from desk.risk import Standing
 from desk.store import Bar
-from desk.strategy import Decision
 
 #: what moved to desk.book_parts and desk.book_parts2 and is still given from here, for the callers
 __all__ = (
@@ -84,6 +84,7 @@ __all__ = (
     "keep",
     "killed",
     "levels",
+    "pounds_per",
     "rate",
     "record_rates",
     "switch",
@@ -397,15 +398,12 @@ def currency_gain(root: Path, lines: Iterable[Line], trips: Iterable[RoundTrip])
     """CURRENCY APART FROM TRADING (BIC-04): the pounds the trips gained or lost because the
     currency moved between the buy's day and the sale's, the shares sold at the sale's price
     times the change in the day's rate. A trip's gross less this is its trading profit."""
-    currency = {line.symbol: line.currency for line in lines}
+    currency, rate = {line.symbol: line.currency for line in lines}, pounds_per(root)
     return sum(
         (
             -t.sell.quantity
             * t.sell.price
-            * (
-                rate(root, currency[t.sell.symbol], t.sell.day)
-                - rate(root, currency[t.buy.symbol], t.buy.day)
-            )
+            * (rate(currency[t.sell.symbol], t.sell.day) - rate(currency[t.buy.symbol], t.buy.day))
             for t in trips
         ),
         Decimal(0),
@@ -418,11 +416,16 @@ def open_currency_gain(
     """CURRENCY ON OPEN HOLDINGS (BIC-04): what the shares still held, the newest buys (sales
     close the oldest), have gained or lost at today's price from the currency's move since the
     buy's day, apart from the price's own."""
-    money, total = {line.symbol: line.currency for line in lines}, Decimal(0)
+    money, total, rate, ledger = (
+        {x.symbol: x.currency for x in lines},
+        Decimal(0),
+        pounds_per(root),
+        fills(root),
+    )
     for symbol, held in positions(root, day).items():
-        for buy in (f for f in reversed(fills(root)) if f.symbol == symbol and f.quantity > 0):
+        for buy in (f for f in reversed(ledger) if f.symbol == symbol and f.quantity > 0):
             shares, held = min(held, buy.quantity), held - min(held, buy.quantity)
-            move = rate(root, money[symbol], day) - rate(root, money[symbol], buy.day)
+            move = rate(money[symbol], day) - rate(money[symbol], buy.day)
             total += shares * prices[symbol] * move
     return total
 
@@ -498,22 +501,35 @@ class Link:
     blocker: str  #: what stood in its way; empty when nothing did
 
 
-def chain(root: Path, d: Decision, bar: Bar, answer: Sent) -> Link:
-    """Keep the decision's chain on a line of its own, after those already kept."""
-    blocker = answer.blocker.name if answer.blocker else ""
-    made = Link(
-        answer.order_id, d.strategy, d.symbol, d.day, bar.day, bar.close, answer.filled, blocker
-    )
+SENDING = "SENDING"  #: a chain's blocker from before the send until its answer completes it
+
+
+def _keep(root: Path, made: Link) -> Link:
     with (root / STORY).open("a", newline="", encoding="utf-8") as out:
         csv.writer(out).writerow(astuple(made))
     return made
 
 
+def intend(root: Path, order_id: str, signal: tuple[str, str, date], bar: Bar) -> Link:
+    """Keep a decision's chain BEFORE its order is sent (B5), still unanswered (SENDING), so a
+    send that raises leaves the order traceable. The signal: strategy, symbol, session; a
+    stranger's sale has the strategy "stranger"."""
+    return _keep(root, Link(order_id, *signal, bar.day, bar.close, 0, SENDING))
+
+
+def chain(root: Path, made: Link, answer: Sent) -> Link:
+    """Complete a kept chain with the send path's answer, on a line after the first."""
+    blocker = answer.blocker.name if answer.blocker else ""
+    return _keep(root, replace(made, filled=answer.filled, blocker=blocker))
+
+
 def chains(root: Path) -> Iterator[Link]:
-    """The chains kept, oldest first, streamed; none if no decision has been kept."""
+    """The chains kept, one per order id, in the order first kept, each as last written."""
     if not (root / STORY).exists():
         return
+    last: dict[str, Link] = {}
     with (root / STORY).open(newline="", encoding="utf-8") as kept:
         for r in csv.reader(kept):
             sees, read = date.fromisoformat(r[3]), date.fromisoformat(r[4])
-            yield Link(r[0], r[1], r[2], sees, read, Decimal(r[5]), int(r[6]), r[7])
+            last[r[0]] = Link(r[0], r[1], r[2], sees, read, Decimal(r[5]), int(r[6]), r[7])
+    yield from last.values()

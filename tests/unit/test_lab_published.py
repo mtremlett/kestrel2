@@ -134,6 +134,13 @@ def test_no_rule_is_proven_on_an_indicator_that_does_not_give_its_published_tabl
     with pytest.raises(ValueError, match=r"true range, its TR, is not.*0\.4200 at row 8"):
         published_tables.indicators()
     monkeypatch.undo()
+    #: and a rule that stops feeding its lines while it holds: right flat, wrong once in
+    rsi_step = strategy._Rsi2.step
+    lazy = lambda r, bar, held: held or rsi_step(r, bar, held)  # noqa: E731 - one line
+    monkeypatch.setattr(strategy._Rsi2, "step", lazy)
+    with pytest.raises(ValueError, match=r"its Gain, while holding, is not.*0\.0000 at row 1"):
+        published_tables.indicators()
+    monkeypatch.undo()
     #: every row of every column is held, to the last place printed: any one of them out by
     #: one in that place, or a column a row short, is refused, and named
     held = cast(MutableMapping[str, Any], published_tables.INDICATORS)
