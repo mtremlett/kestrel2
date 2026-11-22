@@ -544,6 +544,13 @@ day's trading and reconciliation are built, and any broker can stand behind them
       {id: money-honest; files: desk/day.py, desk/book.py, tests/unit/test_day*.py,
       tests/unit/test_book*.py, desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml;
       after: money-fills}
+- [ ] Currency and interest kept in the day's saved record, beside profit, so a later day
+      reads them back unchanged; no golden day's numbers move (R-MONEY-66, split from
+      money-honest by runner ops Sun 22 Nov 08:5x: that box's claim lacked these files and
+      ended red twice; its other remains wait on the operator's golden ruling and on lab/).
+      {id: money-saved-fx; files: desk/day.py, desk/day_parts.py, desk/day_money.py,
+      tests/unit/test_day*.py, desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml;
+      after: money-fills}
 - [ ] (Every box adding a public function to strategy, orders, broker, book, day or kill also
       needs `desk/simcity.py, tests/unit/test_simcity*.py` in its files, one session at a time;
       a function no scenario runs turns the check red: halts and limits among them.)
