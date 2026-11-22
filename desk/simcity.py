@@ -355,7 +355,12 @@ def _told(life: _Life, trips: tuple[book.RoundTrip, ...]) -> bool:
         for by in (lambda t: t.buy.symbol, lambda t: (t.sell.day - t.buy.day).days)
     )
     whole = len(book.told(trips, life.market)) == len(trips)
-    return whole and all(total == sum((t.profit for t in trips), Decimal(0)) for total in totals)
+    chained = all(c.order_id and c.bar_day <= c.session for c in book.chains(life.desk))
+    return (
+        whole
+        and chained
+        and all(total == sum((t.profit for t in trips), Decimal(0)) for total in totals)
+    )
 
 
 def _live(life: _Life) -> None:

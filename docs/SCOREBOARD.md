@@ -476,6 +476,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1365 DATA: R-RUNNER-217 rollup step in backfill order. |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1379 DATA: R-RUNNER-352 thin sessions rolled, 1h/4h audited. |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1396 R-RUNNER-351: the keeper reads no shelf CSV; `headstart.daily` removed. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1480 DATA R-RUNNER-350 part 3: five timeframes of the old database enter by their marks. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
@@ -594,6 +595,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1362 R-RUNNER-253 pinned by a test; no product change. |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1371 R-RUNNER-202 intraday step round built and tested; no rule trades yet. |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1366 R-RUNNER-348 test pinning placing freshness by session; no product change. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1478 R-RUNNER-160 morning heat line. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1482 R-RUNNER-208 compact messages landed; no scene changes. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1472 R-MONEY-58 closed; session set on every Sale. |
 
 ### GRID
 
@@ -882,3 +886,10 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1473 B5 Williams %R row ranged, 9 variants centred on its published setting; no scene moved. |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1479 R-RUNNER-363 part 2 built (tape key per rule, not per module). |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1481 R-RUNNER-371 weather table written by the ladder job. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1488 R-RUNNER-354 intraday trades priced by the first rung's rule. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1489 B5 Keltner's row ranged, 4 of 24 rows carry variants. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1494 R-RUNNER-372 built, weather.named joins winning layers; none joined yet. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1496 B5 Connors three-day row carries its variants' ranges; scenes unchanged. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1505 R-RUNNER-355 set INTRADAY built and reachable by the ladder's door. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1503 B5 Connors %b ranges, 5 rows ranged, two settings in one place; scenes unchanged. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1510 R-RUNNER-373 macro weather layer built, contested beside the others. |

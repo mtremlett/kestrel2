@@ -92,6 +92,13 @@ def test_the_runs_orders_are_on_the_line_that_traded_most_sized_by_the_desk_date
         )  # Tuesday: Monday's
 
 
+def test_one_line_without_a_bar_is_left_out_of_the_plan(monkeypatch: pytest.MonkeyPatch) -> None:
+    run = _plan(monkeypatch)
+    real = archive.fetch
+    monkeypatch.setattr(archive, "fetch", lambda line, day: () if line is ISF else real(line, day))
+    assert conformance.plan([ISF, VUAG], SPY, MON.date(), FX, STAMP).first == run.first
+
+
 def test_the_run_at_the_pretend_broker_word_for_word(monkeypatch: pytest.MonkeyPatch) -> None:
     assert conformance.pretend(_plan(monkeypatch)) == PRETEND
 
