@@ -87,6 +87,7 @@ def test_every_strategy_on_every_ticker_is_kept_and_only_what_changed_is_run_aga
     errors = {row["error"] for row in batch.rows(sweep.journal(kept, ABSENT))}
     assert len(errors) == 1 and errors.pop().startswith("FileNotFoundError")
     assert [(why.split(":")[0], n) for why, n in first.why] == [("FileNotFoundError", EACH)]
+    assert sweep.summary(first)["why"] == [list(pair) for pair in first.why]  # the log names it
 
     with sweep.journal(kept, BOEING).open("ab") as cut:
         cut.write(b'{"cell": ["breakout_20_10", "BA')  # a line a stop cut short

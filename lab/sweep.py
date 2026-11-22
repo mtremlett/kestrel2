@@ -296,6 +296,14 @@ def workers(now: datetime) -> int:
     return max(1, (os.cpu_count() or 2) - free)
 
 
+def summary(done: Pass) -> dict[str, Any]:
+    """A pass's log line: its counts, the tickers whose worker died, and the commonest
+    errors of its failed cells, so a cell failing every pass says why in the log."""
+    died = [f"{line.symbol} on {line.venue}" for line in done.report.died]
+    counts = {name: getattr(done, name) for name in (*COUNTS, "seconds")}
+    return {**counts, "died": died, "why": [list(pair) for pair in done.why]}
+
+
 def main(argv: Sequence[str]) -> None:
     """One pass over the declared universe from the archive's first day to today, its count
     written out; with --transfer, the transfer study over the research list, or with --held
