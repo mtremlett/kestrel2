@@ -15,7 +15,7 @@ from lab import ladder, rung
 #: The gate (rungs-each-rung): the rung modules off the ladder's path may only fall, never rise.
 OFF_PATH = tuple(
     f"lab.rung_{m}"
-    for m in ("benchmark", "beta", "bootstrap", "dsr", "placebo", "retail", "sample", "stops")
+    for m in ("benchmark", "bootstrap", "dsr", "placebo", "retail", "sample", "stops")
 )
 PLANTED = """
 from lab.rung import Answer, Rung
