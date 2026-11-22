@@ -66,10 +66,9 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from statistics import NormalDist, fmean
 
-from lab import luck
+from lab import luck, trials
 from lab.luck import Corrected
 from lab.rung import Answer, Verdict
-from lab.trials import Clustered
 
 #: The bands of the deflated Sharpe (LAD-03): believed at nine chances in ten that the true
 #: Sharpe beats luck's best; failed under an even chance; in doubt between.
@@ -129,7 +128,7 @@ def judge(verdicts: Sequence[Verdict], unjudged: int) -> tuple[Deflated, ...]:
     return read(luck.correct(verdicts, unjudged), None)
 
 
-def read(corrected: Sequence[Corrected], looks: Clustered | None) -> tuple[Deflated, ...]:
+def read(corrected: Sequence[Corrected], looks: trials.Clustered | None) -> tuple[Deflated, ...]:
     """Verdicts already corrected for their count, judged on the rungs read here: the door for
     a count the register of trials keeps from batch to batch (`trials.correct`). Given the
     same set clustered, the deflated Sharpe's bar is set by its looks, their measured spread
@@ -140,6 +139,24 @@ def read(corrected: Sequence[Corrected], looks: Clustered | None) -> tuple[Defla
             f"{looks.held}: not the one set"
         )
     return tuple(_deflated(one, looks) for one in corrected)
+
+
+def judge_lines(verdicts: Sequence[Verdict]) -> tuple[Deflated, ...]:
+    """A RULE JUDGED ON ITS OWN LINES (L18): the set's lines of one rule are its family, never
+    every line the register ever held. The luck rung, reported, counts them all; the deflated
+    Sharpe's bar is set by the looks of those that traded, clustered on their daily returns
+    (`trials.daily`). A line whose returns never moved has no Sharpe to be picked: no look."""
+    if len({v.key.cell.strategy for v in verdicts}) != 1:
+        raise ValueError(f"{len(verdicts)} lines of more than one rule, or none: one rule's")
+    returns = trials.daily(verdicts)
+    moved = {trial: row for trial, row in returns.items() if max(row) > min(row)}
+    looks = trials.clusters(moved, 0) if moved else None
+    judged = []
+    for one in luck.correct(verdicts, 0):
+        if (trial := trials.name(one.verdict.key.cell)) not in moved and one.verdict.t is not None:
+            raise ValueError(f"{trial}: a t of {one.verdict.t} on returns that never moved")
+        judged.append(_deflated(one, looks if trial in moved else None))
+    return tuple(judged)
 
 
 def best_by_luck(spread: float, trials: int) -> float:
@@ -177,7 +194,7 @@ def deflate(sharpe: float, bar: float, trades: int, skew: float, kurtosis: float
     return _NORMAL.cdf((sharpe - bar) * math.sqrt((trades - 1) / wobble))
 
 
-def _deflated(corrected: Corrected, looks: Clustered | None) -> Deflated:
+def _deflated(corrected: Corrected, looks: trials.Clustered | None) -> Deflated:
     verdict = corrected.verdict
     if verdict.t is None:
         return Deflated(corrected, None, None, None, 0.0)
