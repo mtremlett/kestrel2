@@ -205,7 +205,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       repository); a matching rule for adjusted against as-traded closes, a new module not on its list (headstart.py
       is at 400 lines); the research list's bars
       Settled (coordinator 54, 22 Nov: not his: the catalog_v2 tag is runner-side notes work; the matching rule is a new lab module registered in manifest.toml inside the lab/ ceiling; the research list's bars come from the keeper)
-      {id: data-headstart; files: lab/headstart.py, tests/unit/test_lab_headstart.py, desk/bars.py, tests/unit/test_bars*.py, manifest.toml; waits: operator}
+      {id: data-headstart; files: lab/headstart.py, tests/unit/test_lab_headstart.py, desk/bars.py, tests/unit/test_bars*.py, manifest.toml}
 - [x] The archive spared: fetching slow and resumable, with backoff, each raw answer cached
       in the folder `KESTREL2_DATA` names (outside the repository and every worktree); while
       the archive refuses, `{"refusing_since": <time>}` written to `KESTREL2_DATA/archive.json`
@@ -387,7 +387,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       Built (#630, #725): every pull reaches the store through `history_write.keeper`, which turns pence to pounds once on entry; `history.run` and `pull` hand out the broker's unit by design (#1065)
       {id: data-pence; files: desk/store.py, tests/unit/test_store.py; after: data-written-together}
 - [ ] The full research universe, 5,000 and more, once the grid's first pass works
-      {id: data-full-universe; files: lab/universe.py, tests/unit/test_lab_universe*.py; after: data-research-home; waits: operator}
+      {id: data-full-universe; files: lab/universe.py, tests/unit/test_lab_universe*.py; after: data-research-home}
 - [x] Each line's UK tax a fact on the line, from one table of two rates: nil for a fund or
       an exchange-traded product, stamp duty for a UK share; the twenty lines each state nil,
       and one London line of the rehearsal data pays it (R-MONEY-1)
