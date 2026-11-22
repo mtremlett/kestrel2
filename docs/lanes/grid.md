@@ -270,3 +270,11 @@ format (rejected: a second path). **Decided (b)**, wait stays 2026-11-28, on his
 a pass that raises as an error row and carries on (an unlogged exception was one route to the 15 Nov stop); each pass line
 carries `why`, its three commonest errors with counts. The stop's exact trigger is unproven.
 
+
+### 2026-11-22 — old .faults notes skipped in held() (grid-week; #1612)
+
+2,810 cells (7,650 in the held folder) failed because #1555 dropped `held()`'s `.faults` filter, believing the store no
+longer wrote those notes; 348 LSE and as many US `*.faults.csv` notes still sit beside the bars and were swept as tickers
+(`KeyError: 'day'`). Options: (A) delete the old files (deletes data, not GRID's to do); (B) skip them in `held()`.
+**Decided (B)**, recommended, on his "always go with recommended". Remains: the runner restarts the week job on current
+code; the grid-week wait stays 2026-11-28; old rows of the phantom journals in grid/held are inert.

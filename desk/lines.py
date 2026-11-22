@@ -98,8 +98,9 @@ class Line:
 #: The frozen lines, by the operator's rulings of 13 November 2026 (docs/DECISIONS.md). SPY,
 #: QQQ and GLD, US funds a UK ISA cannot buy, leave for VUAG (the S&P 500), EQQQ (the Nasdaq
 #: 100) and IDTL (US Treasuries of twenty years and more, which London prices in dollars):
-#: thirteen in London and seven in the US. GLD is gone; SPY and QQQ stay, recorded as lines
-#: no ISA holds, only until the ladder's tests stop naming them (docs/PLAN.md).
+#: thirteen in London and seven in the US. GLD is gone; SPY and QQQ stay only as price
+#: references (REFERENCE below), never traded, until the callers outside this module read
+#: REFERENCE instead of LINES (docs/PLAN.md, data-isa-twins).
 #: Each row records whether an ISA can hold its lines and whether a retail customer can buy
 #: them. IB1T, a note on bitcoin, has been open to retail since 8 October 2025 and shut out
 #: of a stocks and shares ISA since 6 April 2026. The leveraged three are as their issuers

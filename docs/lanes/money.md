@@ -753,3 +753,8 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 - Open-holding currency is told only when every currency's rate for the day is kept; carrying the last rate was rejected as a silent default.
 - Currency on paper is a tell, not a new record column: the record's shape lives in `desk/day_parts.py`, outside the claim (R-MONEY-66).
 - money-time-gaps: released by his "i agree to this" (each rule's own hold limit from its own sell logic), taken as ruled; the work is in strategy files outside these claims, carded as R-MONEY-62, R-MONEY-63, R-MONEY-64.
+
+### 2026-11-22 - Slippage reads the daily database (#1641, money-door-slippage)
+- The card named `keeper.HOT`; the daily bars live in the long database `bars.files` names beside it (`market_history.db`), so that is read: `bars.files` is the one owner of that rule.
+- Options: (a) read `keeper.HOT` as carded (it holds no daily bars); (b) read the long database through `bars.files` (taken).
+- money-connors7 held off MONEY and handed to RUNGS as a re-carded box (his "always go with recommended"); MONEY goes on with money-saved-fx and money-time-gaps.
