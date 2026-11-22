@@ -213,8 +213,82 @@ def monitor(
     return f"quality: RED, {said}; {'; '.join(red)}; unfilled {len(named)}"
 
 
+GOLDEN = ("SPY", "QQQ", "VUAG", "IITU")  #: always green, or the table says why (his 22 Nov)
+OFFERED = {"VUAG": ("1m", "15m", "30m", "4h")}  #: spans a line's venue never supplies: not a gap
+HOVER_SPANS = ("5m", "15m", "30m", "1h", "4h", "daily", "1wk", "1m")  #: every span, as stored
+REMIND = timedelta(minutes=30)  #: while red, one reminder this often
+
+
+def _last_session(line: Line, now: datetime) -> date:
+    """The last session of the line's venue that had ended by now."""
+    for back in range(10):
+        day = now.date() - timedelta(back)
+        if venues.sessions(line.venue, day, day) and venues.hours(line.venue, day).auction <= now:
+            return day
+    raise LookupError(f"{line.venue}: no session ended in the ten days to {now}")
+
+
+def cell(path: Path, line: Line, span: str, now: datetime) -> str | None:
+    """None when the line's newest bar of one span is of its venue's last ended session (a
+    week's: of that week or the one before); else why: the span holds no bar, or how far behind."""
+    name = FIVE if span == "5m" else span
+    try:
+        got = bars.newest(path, line, name)
+    except LookupError:  # the store never held this span for the line: a gap, said in words
+        got = None
+    if got is None:
+        return "holds no bar"
+    due = _last_session(line, now)
+    at = date.fromordinal(got[0]) if name == "daily" else (EPOCH + timedelta(seconds=got[0])).date()
+    if name == "1wk":
+        due -= timedelta(due.weekday() + 7)
+    return None if at >= due else f"newest {at}, last session {due}"
+
+
+def hover(path: Path, lines: Iterable[Line], now: datetime) -> tuple[str, bool]:
+    """Every line x span judged against the venue's last ended session: the one line saying the
+    share fresh, the faults (held but behind), the gaps (no bar) and the worst cell, and whether
+    it is green: every golden line fresh at every span its venue supplies."""
+    cells = [
+        (f"{line.symbol}/{span}", line, cell(path, line, span, now))
+        for line in lines
+        for span in HOVER_SPANS
+        if span not in OFFERED.get(line.symbol, ())
+    ]
+    bad = [(name, line, why) for name, line, why in cells if why]
+    gap = sum(why == "holds no bar" for _, _, why in bad)
+    worst = (bad[0][0] + ": " + bad[0][2]) if bad else "none"
+    share = 100 * (len(cells) - len(bad)) // max(len(cells), 1)
+    said = f"data quality: {share}% fresh, {len(bad) - gap} faults, {gap} gaps, worst {worst}"
+    return said, not any(line.symbol in GOLDEN for _, line, _ in bad)
+
+
+def alarm(
+    since: datetime | None, sent: datetime | None, green: bool, why: str, now: datetime
+) -> tuple[datetime | None, datetime | None, str | None]:
+    """The alarm that tells only of change, from when red began and when it last spoke: the first
+    red names why, a reminder follows every REMIND while red, the first green says how long it was
+    red and falls silent. It returns the new (since, sent) and the message to send, if any."""
+    if green:
+        told = (
+            None
+            if since is None
+            else f"back to green, red for {(now - since) // timedelta(minutes=1)} minutes"
+        )
+        return None, None, told
+    if since is None or sent is None:
+        return now, now, f"data quality RED: {why}"
+    if now - sent >= REMIND:
+        return since, now, f"data quality still RED: {why}"
+    return since, sent, None
+
+
 if __name__ == "__main__":
     home, now = Path(os.environ["KESTREL2_DATA"]), datetime.now(UTC)
+    if sys.argv[1:] == ["hover"]:
+        said, ok = hover(home / keeper.HOT, LINES, now)
+        sys.stdout.write(f"{said}\n")
+        sys.exit(0 if ok else 1)
     said = monitor(home / keeper.HOT, LINES, backfill._broker(home, now), backfill._archive, now)
     sys.stdout.write(f"{said}\n")
     sys.exit(0 if " green," in said else 1)
