@@ -26,6 +26,10 @@ def test_twelve_variants_all_counted_and_the_pick_is_the_plateau_centre(
     assert made[0].spec.params["entry"] == {"n": 10} and made[0].spec.params["exit"] == {"n": 10}
     assert made[-1].setting == (40, 80) and ROW.params["entry"] == {"n": 20}
     assert not made[0].spec.ranges
+    assert all(variants.find({ROW.name: ROW}, v.spec.name) == v.spec for v in made)
+    for stray in (ROW.name, f"{ROW.name}[entry.n=30,exit.n=10]", "nobody[entry.n=10]"):
+        with pytest.raises(ValueError, match="no variant"):
+            variants.find({ROW.name: ROW}, stray)
 
     register = tmp_path / "trials.jsonl"
     trials.start(register)

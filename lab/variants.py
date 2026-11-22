@@ -9,8 +9,9 @@ the order of the ranges given, and the range's order is the plateau grid's (`lab
 
 A variant is its row with other settings, so the row's known answers, which hold only at
 the row's own, are not asked of it. Its name carries its settings and so tells it apart as a
-trial; `enter` counts them all under the question, and a variant never run counts as much as
-one that won. The pick is `lab.plateau`'s: the deepest setting of the passing surface.
+trial; `find` makes it again from that name alone, and `enter` counts them all under the
+question, and a variant never run counts as much as one that won. The pick is `lab.plateau`'s:
+the deepest setting of the passing surface.
 """
 
 from __future__ import annotations
@@ -56,6 +57,16 @@ def variants(spec: Spec) -> tuple[Variant, ...]:
 def family(book: Mapping[str, Spec]) -> tuple[Variant, ...]:
     """Every variant of every ranged row of the book, row by row in the book's order."""
     return tuple(made for spec in book.values() if spec.ranges for made in variants(spec))
+
+
+def find(specs: Mapping[str, Spec], name: str) -> Spec:
+    """The variant of that name made again from its row, so a cell named by it can be run; a
+    name no row's ranges make is refused."""
+    row = specs.get(name.rpartition("[")[0])
+    made = {v.spec.name: v.spec for v in variants(row)} if row and row.ranges else {}
+    if name not in made:
+        raise ValueError(f"no variant is called {name!r}")
+    return made[name]
 
 
 def enter(register: Path, question: str, made: Sequence[Variant]) -> int:
