@@ -12,7 +12,7 @@ from desk import bars, store, venues
 from desk.bars import Source
 from desk.lines import POUND, Line
 from desk.store import Bar
-from lab import universe, universe_history
+from lab import universe, universe_history, universe_parts
 
 END = date(2026, 11, 2)
 US, LSE = Line("AAPL", "US", "USD", 1), Line("ISF", "LSE", "GBP", 1)
@@ -78,3 +78,15 @@ def test_the_pounds_noon_rates_fill_only_the_days_before_the_archives_first(tmp_
         (DAYS[US][2], Decimal("1.30")),
     ]
     assert bars.sources(path, POUND, bars.DAILY) == {Source.FED_NOON: 1, Source.ARCHIVE: 1}
+
+
+def test_research_reads_the_database_and_never_a_bar_held_only_in_a_csv(tmp_path: Path) -> None:
+    root, path = tmp_path / "store", tmp_path / bars.LIVE
+    held = _bars(US)
+    store.prepare(
+        root / "US", {US: held}, END
+    )  # the CSV holds every day, the database all but the last
+    with bars.writing(path, Source.ARCHIVE) as opened:
+        opened.days(US, held[:-1])
+    assert universe_parts.read(root, US).bars == held
+    assert universe_parts.read_db(path, US).bars == held[:-1]
