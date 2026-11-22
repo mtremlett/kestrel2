@@ -8,12 +8,12 @@ answers row by row (`INDICATORS`), at the tables' own lengths of 10, 20 and 14 d
 desk's parts are one piece of code at any length. Held by name: the moving average, the
 deviation of Bollinger's bands, the breakout's highest high and lowest low. Held as the
 rule's own lines work them, the rule shown the table's days and its smoothing read after
-each: the RSI's gains and losses, and the true range and its average, from prices alone.
-No rule is proven while one of them gives another number. The tables show a rule only days
-on which it holds nothing, and none has a day whose own low is its lowest of 14. What a
-rule's own line works and does not keep (the RSI's last ratio, a band's two deviations from
-its average) and Supertrend's carried band, which no table here prints, are left to the
-known answers of `lab/published.py` and the strategies' contract test.
+each: the RSI's gains and losses and the index `strategy.rsi` makes of them, and the true
+range and its average, from prices alone. No rule is proven while one of them gives another
+number. The tables show a rule only days on which it holds nothing, and none has a day whose
+own low is its lowest of 14. What a rule's own line works and does not keep (a band's two
+deviations from its average) and Supertrend's carried band, which no table here prints, are
+left to the known answers of `lab/published.py` and the strategies' contract test.
 """
 
 from __future__ import annotations
@@ -135,12 +135,17 @@ INDICATORS: Mapping[str, Table] = {
             "0.2123 0.1971 0.1831 0.1807 0.1706 0.1833 0.1703 0.1581 0.1803",
             "Avg Loss: 0.0996 0.1124 0.1044 0.0969 0.1035 0.1375 0.1276 0.1185 0.1485 0.1379 "
             "0.1758 0.1938 0.2747 0.2551 0.2369 0.2199 0.2861 0.3198 0.2970",
+            "RSI: 70.53 66.32 66.55 69.41 66.36 57.97 62.93 63.26 56.06 62.38 54.71 50.42 39.99 "
+            "41.46 41.87 45.46 37.30 33.08 37.77",
         ),
         lambda given: {
             "Gain": _fed(_Rsi2, 1, "_gain", given),
             "Loss": _fed(_Rsi2, 1, "_loss", given),
             "Avg Gain": _fed(_Rsi2, 14, "_gain", given),
             "Avg Loss": _fed(_Rsi2, 14, "_loss", given),
+            "RSI": list(
+                map(strategy.rsi, _fed(_Rsi2, 14, "_gain", given), _fed(_Rsi2, 14, "_loss", given))
+            ),
         },
     ),
     "true range": Table(
