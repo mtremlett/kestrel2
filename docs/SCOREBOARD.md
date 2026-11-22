@@ -207,6 +207,11 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1457 money-fills closed by verification; scene 5 pins price-plus-costs, no double count. |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1465 golden reference run pinned (TST-21, GOV-09); no scene change. |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1468 money-story first step: trades and their profit attribution from the ledger. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1471 R-RUNNER-333 raschke_swing checked against the author's setup, no rule bug, repeat-entry test added. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1486 trade stories (signal strategy and bar read) on the ledger's round trips, in SimCity. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1504 gapped stop halts buying (STP-10); hold limits and money-honest remain. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1509 money-story: decision-time id chain kept per decision; story.csv. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1516 BIC-05 paper alert on a £1,500 fall from the highest point. |
 
 
 ### DATA
