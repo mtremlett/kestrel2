@@ -118,7 +118,6 @@ def held(root: Path) -> tuple[Line, ...]:
         known.get((path.stem, venue), Line(path.stem, venue, *money[venue][:1], 1, money[venue][1]))
         for venue in sorted(venues.RULES)
         for path in sorted((root / venue).glob("*.csv"))
-        if not path.stem.endswith(".faults")
     )
 
 
