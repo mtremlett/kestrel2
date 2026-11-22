@@ -78,7 +78,7 @@ def test_a_planted_rung_module_is_found_and_judged_with_no_edit_of_the_ladder(
     assert {k: v for k, v in now["rungs"].items() if k != "planted"} == {
         k: v
         for k, v in was["rungs"].items()
-        if k not in ("costs", "ci", "cpcv", "regimes")  #: the real package's own rung
+        if k not in {one.name for one in rung.found()[0]}  #: the real package's own rungs
     }
     assert now["key"] != was["key"], "a declared rung is part of what keeps a cell"
     assert now["answer"] == was["answer"] and now["trials"] == was["trials"]
