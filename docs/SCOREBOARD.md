@@ -920,3 +920,8 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1546 Donchian fade row carries 3x3 variant ranges (B5); scenes unchanged. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1544 R-RUNNER-358 set SCALP and its door built (restored after a conflict with set VAR). |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1551 Minervini's row has variant ranges, 3x3, centred on the published setting (B5). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1564 Clenow momentum row carries 3x3 variant ranges (B5); scenes unchanged. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1570 Weinstein's row carries variant ranges (ago 3x1), B5. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1578 B5 Mansfield RS row carries variant ranges (9 variants), scenes unchanged. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1582 the ladder's door no longer reports EPON's faults after an intraday or scalping run (+1 test case). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1587 Faber and dual momentum variant ranges (B5), 18 more trials in set VAR. |
