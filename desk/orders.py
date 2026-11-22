@@ -5,7 +5,7 @@ ONE ROUNDING POLICY for what is published of it."""
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import astuple, dataclass, field, replace
 from datetime import date
 from decimal import ROUND_HALF_EVEN, Decimal
@@ -35,6 +35,7 @@ from desk.orders_parts2 import MOVES_FROM as MOVES_FROM
 from desk.orders_parts2 import Refused as Refused
 from desk.orders_parts2 import _apart, _within_limits, _within_underlying, daily_moves
 from desk.risk import Standing
+from desk.store import Bar
 from desk.strategy import Action, Decision
 
 moves = daily_moves  #: the daily returns the correlation gate reads (orders_parts2)
@@ -46,6 +47,9 @@ STOP_FALL = Decimal("0.10")
 #: STP-10, the one home (R-RUNGS-11, docs/DECISIONS.md): the most of the capital one holding may
 #: lose when a gap jumps its stop; the stop alone risks STOP_FALL / HOLDINGS of it (2%).
 GAP_LOSS = Decimal("0.05")
+#: SIZ-10, the one home: no position above this share of its line's average daily traded value
+#: over the last LIQUID_DAYS bars.
+LIQUID_SHARE, LIQUID_DAYS = Decimal("0.01"), 20
 
 
 @dataclass(frozen=True)
@@ -203,11 +207,13 @@ def size(
     settings: Settings,
     held: Mapping[str, int],
     market: Decimal | None = None,
+    traded: Decimal | None = None,
 ) -> Order:
     """The most whole shares whose cost, with the shares of the line already held, fits the
     line's room, and the stop, for a buy; fx is pounds per unit of the line's currency, and
     held is the book (book.positions). Given the live price (market), the stop rests 10% under
-    it, never above the signal's, and a buy is refused that the signal's stop would sell at once."""
+    it, never above the signal's, and a buy is refused that the signal's stop would sell at once.
+    Given the line's daily pounds (traded_value), the position is kept to LIQUID_SHARE of them."""
     if decision.action is not Action.BUY or decision.symbol != line.symbol:
         raise ValueError(f"{line.symbol}: only a buy for this line is sized, not {decision}")
     order_id = order_id_of(decision)
@@ -226,12 +232,20 @@ def size(
     while over - fits > 1:  #: cost grows with the shares, so halve the gap until it closes
         middle = (fits + over) // 2
         fits, over = (middle, over) if cost(order(middle)) <= room else (fits, middle)
+    fits = fits if traded is None else min(fits, int(traded * LIQUID_SHARE / (price * fx)))
     already = held.get(line.symbol, 0)
     if fits <= already:
         raise Refused(f"{order_id}: {already} shares held leave no room for more")
     bought = order(fits - already)
     gate(bought, settings, held)
     return bought
+
+
+def traded_value(line: Line, bars: Sequence[Bar], fx: Decimal) -> Decimal:
+    """THE POUNDS A LINE TRADES IN A DAY (SIZ-10): close times volume over its last 20 bars."""
+    if len(bars) < LIQUID_DAYS:
+        raise Refused(f"{line.symbol}: {len(bars)} bars, under {LIQUID_DAYS} to judge its volume")
+    return sum((b.close * b.volume for b in bars[-LIQUID_DAYS:]), Decimal(0)) * fx / LIQUID_DAYS
 
 
 def gap_loss(order: Order, fill: Decimal) -> Decimal:
