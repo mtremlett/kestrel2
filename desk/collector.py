@@ -2,9 +2,10 @@
 asks the free tiers the desk already holds a key for, a few dozen calls a day, and keeps
 what they say before any use is made of it, because history a free tier does not keep cannot
 be bought back (BIC-06, DAT-01). Four kinds of fact land in the one store (the long database
-of desk.bars): a PRICE second opinion on each US line's last session (Massive, Tiingo), MACRO
-series (FRED), EARNINGS dates (Finnhub) and NEWS with the moment each was published (Finnhub,
-Marketaux, GNews). Every answer is also kept raw and timestamped, under its source and subject.
+of desk.bars): a PRICE second opinion on each US line's last session (Massive, Tiingo; EODHD one
+London line a day), MACRO series (FRED), EARNINGS dates (Finnhub) and NEWS with the moment
+each was published (Finnhub, Marketaux, GNews). Every answer is also kept raw and timestamped,
+under its source and subject.
 
 A key is read from the environment as <NAME>_API_KEY and goes into an address and nowhere
 else: nothing prints or stores an address. A source with no key is skipped, saying which; one
@@ -44,6 +45,7 @@ SCHEMA = (
 SERIES = ("DGS10", "DGS2", "T10Y2Y", "VIXCLS", "BAMLH0A0HYM2", "FEDFUNDS", "CPIAUCSL", "UNRATE")
 AHEAD = timedelta(days=14)  #: how far ahead earnings dates are asked for
 US = tuple(line.symbol for line in LINES if line.venue == "US")
+LONDON = tuple(line.symbol for line in LINES if line.venue == "LSE")
 
 
 @dataclass(frozen=True)
@@ -97,6 +99,18 @@ def _tiingo(key: str, day: date) -> Iterator[tuple[str, str]]:
 def _tiingo_read(symbol: str, answer: Any, _: date) -> Iterator[Fact]:
     for row in answer:
         yield Fact(PRICE, symbol, row["date"][:10], str(row["close"]))
+
+
+def _eodhd(key: str, day: date) -> Iterator[tuple[str, str]]:
+    """The London audit sample: one line a day, the lines taking turns, so all are audited."""
+    symbol = LONDON[day.toordinal() % len(LONDON)]
+    address = f"https://eodhd.com/api/eod/{symbol}.LSE?fmt=json&from={day}&to={day}"
+    yield symbol, f"{address}&api_token={key}"
+
+
+def _eodhd_read(symbol: str, answer: Any, _: date) -> Iterator[Fact]:
+    for row in answer:
+        yield Fact(PRICE, symbol, row["date"], str(row["close"]))
 
 
 def _fred(key: str, _: date) -> Iterator[tuple[str, str]]:
@@ -153,6 +167,7 @@ def _gnews_read(_: str, answer: Any, _day: date) -> Iterator[Fact]:
 SOURCES = (
     Source("massive", "MASSIVE", _massive, _massive_read),
     Source("tiingo", "TIINGO", _tiingo, _tiingo_read),
+    Source("eodhd", "EODHD", _eodhd, _eodhd_read),
     Source("fred", "FRED", _fred, _fred_read),
     Source("finnhub", "FINNHUB", _earnings, _earnings_read),
     Source("finnhub-news", "FINNHUB", _finnhub_news, _finnhub_news_read),
