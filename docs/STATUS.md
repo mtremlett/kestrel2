@@ -238,7 +238,7 @@ Last updated: 17 November 2026 (one bars reader #449; batch.stored reads as rese
 
 Built and proven: the cell (a Line only), batch, fast grid engine and fast spec-row engine (`lab/fast.py`, ~30 times
 the desk's), a key per rung that ignores the modules that run it, auto-tune, the pass and hourly week, `--held`, the rule
-book with the catalogue's specs, the transfer study (`lab/transfer.py`; a refused line answers REFUSED). The default
+book (with each rule's variants swept as cells, #1487) with the catalogue's specs, the transfer study (`lab/transfer.py`; a refused line answers REFUSED). The default
 pass runs each strategy on its declared universe (22 lines); all-on-all is `--transfer`, never a verdict. A pass reports
 its seconds: cold transfer 5,330 cells in 17 min, declared about 8 min, far inside the 48 h weekend (LAD-10 done).
 
@@ -251,6 +251,7 @@ Every other box is ticked. Open: R-DATA-7 (`batch.stored` now reads through `uni
 
 ### Done for other lanes
 - R-DATA-1: done in #73; R-DATA-10: #391; R-RUNNER-4: #171; R-RUNNER-8: #391; R-RUNNER-19: #197; R-RUNNER-82: #263
+- R-RUNNER-362: done in #1487
 - R-RUNNER-89: #281; R-RUNNER-128: #360; R-RUNNER-140: #330; R-RUNNER-164: #397; R-RUNNER-167: #359; R-RUNNER-170: #372; R-RUNNER-112: #449
 ### Requests to MONEY
 - [ ] R-GRID-1 (later, 2026-11-13 18:15): the five rules at other settings in `desk/strategy.py`, each with a grid and
