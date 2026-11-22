@@ -280,11 +280,13 @@ def nightly(
     lines: Sequence[Line] = UNIVERSE,
     ask: Callable[[Line, date], tuple[Bar, ...]] = archive.fetch,
     second: Callable[[Line, date], tuple[Bar, ...]] | None = None,
+    noon: Callable[[Path], str] | None = None,
 ) -> str:
     """The night's work on the research store's home, data/grid/store: refresh every line (into
     the history database too), clear out any ticker that has left the list, and write
     REFLECTS.txt beside the venue folders: the day, each list's size and a fingerprint of the
-    tickers, so a reader knows which day and which list the store reflects."""
+    tickers, so a reader knows which day and which list the store reflects. Given `noon`, the
+    pound's noon rates are let into the history database last, and its one line is said."""
     home = data / "grid" / "store"
     said = refresh(home, day, lines, ask, second, data / bars.LIVE)
     gone = _cleared(home, lines)
@@ -294,7 +296,8 @@ def nightly(
     held = (f"day {day}", f"lines {len(names)} {sizes}", f"fingerprint {finger}")
     note = chr(10).join((*held, f"cleared {' '.join(gone)}", ""))
     (home / "REFLECTS.txt").write_text(note, encoding="utf-8")
-    return f"{said}; {len(gone)} cleared out"
+    rates = f"; {noon(data / bars.LIVE)}" if noon else ""
+    return f"{said}; {len(gone)} cleared out{rates}"
 
 
 def import_history(data: Path, day: date) -> str:
@@ -317,7 +320,7 @@ if __name__ == "__main__":
         sys.stdout.write(import_history(DATA, TODAY) + chr(10))
     elif sys.argv[1:2] == ["nightly"]:
         other = matrix(Path(sys.argv[2])) if len(sys.argv) > 2 else None
-        sys.stdout.write(nightly(DATA, TODAY, second=other) + chr(10))
+        sys.stdout.write(nightly(DATA, TODAY, second=other, noon=universe_history.noon) + chr(10))
     elif sys.argv[1:] == ["noon"]:
         sys.stdout.write(universe_history.noon(DATA / bars.LIVE) + chr(10))
     else:

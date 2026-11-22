@@ -160,8 +160,8 @@ def test_the_nightly_refresh_clears_out_a_ticker_that_left_and_writes_the_day_an
     (home / "US" / "history").mkdir(parents=True)
     for name in ("OLD.csv", "history/OLD.csv"):
         (home / "US" / name).write_text("x", encoding="utf-8")
-    said = universe.nightly(tmp_path, DAY, (universe.SP500[0],), _ask)
-    assert said.endswith("; 2 cleared out")
+    said = universe.nightly(tmp_path, DAY, (universe.SP500[0],), _ask, noon=lambda _: "noon")
+    assert said.endswith("; 2 cleared out; noon")
     assert sorted(p.name for p in (home / "US").iterdir()) == [
         "MMM.csv",
         "history",
