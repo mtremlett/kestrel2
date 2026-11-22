@@ -261,3 +261,12 @@ the published five and transfer is on STRATEGIES; variants go through the desk e
 (a) change `lab/` to guard against a stale clone (growing process code, refused by A1.7); (b) leave it to the runner's clone
 update (R-GRID-8). **Decided (b)**, on his words "always go with recommended". The 15 Nov 11:22 to 21 Nov 00:21 stop left no
 record (week-out/err empty); consistent with the week job being down until restarted.
+
+### 2026-11-22 — a raising pass is logged; failures name their causes (grid-week; #1562, #1563)
+
+2,810 cells failed each pass with `Invalid isoformat string: ''`, no location: pre-#1370 code in the week's stale clone.
+Options: (a) restart the seven days now; (b) wait for the clone to reach current main; (c) make cell code tolerate the old
+format (rejected: a second path). **Decided (b)**, wait stays 2026-11-28, on his "always go with recommended". Also: `week` logs
+a pass that raises as an error row and carries on (an unlogged exception was one route to the 15 Nov stop); each pass line
+carries `why`, its three commonest errors with counts. The stop's exact trigger is unproven.
+
