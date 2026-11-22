@@ -15,7 +15,7 @@ import pytest
 from test_strategy import GOLDEN, START, _bars, _jumpy, _walk
 
 from desk.store import Bar
-from lab import blocks, fast, grid
+from lab import blocks, fast, grid, variants
 from lab.spec import Spec, SpecRule
 
 #: Either side of the warm-ups, and the middle of a walk.
@@ -143,4 +143,6 @@ def test_every_row_of_the_spec_book_trades_on_the_fast_engine_as_the_desk_trades
         spec = Spec.parse({"name": name, **row})
         if name == "zweig_breadth_thrust":  # judged on ratio bars, which this price series is not
             continue
-        assert fast.held(spec, fast.Shared(bars)).tolist() == _desk(spec, bars), name
+        made = variants.variants(spec) if spec.ranges else ()  # the settings the grid sweeps too
+        for each in (spec, *(variant.spec for variant in made)):
+            assert fast.held(each, fast.Shared(bars)).tolist() == _desk(each, bars), each.name
