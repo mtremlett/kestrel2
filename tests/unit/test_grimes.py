@@ -8,7 +8,7 @@ from decimal import Decimal
 
 import pytest
 
-from desk.grimes import GRIMES, Chart, Mark, Trade
+from desk.grimes import GRIMES, Chart, Mark, Trade, diverged
 from desk.store import Bar
 from desk.strategy import Action, _run
 
@@ -175,6 +175,18 @@ def test_mgmt_time_stop_partials_breakeven_chandelier_and_never_widening() -> No
     assert not run.step(_mark(9, 100.9, 102, 101)) and run.stopped
 
 
+def test_a_trade_opened_re_entry_included_starts_its_rule_state_afresh() -> None:
+    ag04, ag05, ag06 = (
+        GRIMES[n]() for n in ("ag04_first_pullback", "ag05_base_spring", "ag06_failure_test")
+    )
+    ag04._run = (Decimal(1), Decimal(2), 3)  # type: ignore[attr-defined]
+    ag05._base = (Decimal(1), Decimal(2))  # type: ignore[attr-defined]
+    ag06._near = 1  # type: ignore[attr-defined]
+    for rule in (ag04, ag05, ag06):
+        rule.open(Decimal(90))
+    assert ag04._run is None and ag05._base is None and ag06._near == 0  # type: ignore[attr-defined]
+
+
 def test_mgmt_parabolic_stop_follows_each_bar_after_two_free_bars() -> None:
     trade = Trade(Decimal(95), limit=5)  #: entry 103, risk 8
     assert trade.step(_mark(0, 102.5, 104, 103.5, 103))  #: wholly over 102.25: a free bar
@@ -191,3 +203,15 @@ def test_the_chart_confirms_a_swing_only_on_its_reversal() -> None:
     assert [p.price for p in chart.pivots][-1:] == [Decimal("95.6")]  #: under 2 ATRb: not yet
     chart.add(_bars([*rise, ("bar", 102.8, 103, 99.8, 100)])[-1])  #: 4.6 off it: confirmed
     assert [p.price for p in chart.pivots][-2:] == [Decimal("95.6"), Decimal("104.4")]
+
+
+def test_a_long_grind_keeps_every_pivot_on_a_kept_bar_and_div_never_raises() -> None:
+    grind: list[Leg] = [(112, 4), (104, 3), (108, 12), (103, 3)]
+    grind += [(103 + 0.8 * k, 1) if k % 5 < 2 else (103 + 0.8 * k - 0.7, 1) for k in range(320)]
+    chart = Chart()
+    for bar in _bars(grind):
+        if (mark := chart.add(bar)) is None:
+            continue
+        assert all(p.n >= chart.marks[0].n for p in chart.pivots)
+        for k in range(len(chart.pivots)):
+            diverged(chart, k, mark.n)  #: never "min() arg is an empty sequence"
