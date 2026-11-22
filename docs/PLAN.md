@@ -299,14 +299,18 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       and IITU (LSE) for QQQ, in both databases at every span (measured 09:5x: all four present, daily and
       five-minute fresh, other spans stale like the rest; VUAG has no 15m, 30m, 1m or 4h). Daily bars are read
       from ONE store: the ladder's daily files miss SPY 2022-09-28 that market_history.db holds
+      wire: a runner job every 5 minutes, 7 days, and the hourly Telegram table; gate: a contract test where a
+      planted stale span, missing day and stale golden line each turn the line red, and the alarm sends red once and green once
       {id: data-monitor; files: desk/quality.py, tests/unit/test_quality.py}
 - [ ] Derived spans rolled, never fetched: 15m, 30m, 1h and 4h rolled from five-minute bars and 1wk from daily,
       into the history database as `rollup:<from>` on every keeper round, so they are as fresh as their base;
       a rolled bar that differs from a held one is a FAULT, never a silent overwrite (canon B3)
+      wire: every keeper round; gate: a rolled hour equals its twelve five-minute bars, and a differing held bar is a FAULT
       {id: data-rollup-hot; files: desk/rollup.py, tests/unit/test_rollup.py; after: data-monitor}
 - [ ] No missing trading day: a line's gap on a day its venue traded (SPY 2022-09-28, ISF 2012-05-28 among
       6,788 market FAULTs in the ladder) is filled from IBKR, then Yahoo, or the one calendar names it a
       holiday; a line's audit lists no unnamed gap
+      wire: HOVER's filler; gate: SPY's 2022-09-28 planted missing is filled, and a named holiday stays empty
       {id: data-no-missing-day; files: desk/backfill.py, desk/venues.py, tests/unit/test_backfill.py, tests/unit/test_venues*.py; after: data-monitor}
 - [ ] One pounds-per-dollar history back to the earliest bar held, so no fold reads FAULT for a missing rate
       (about 5,300 in the ladder); conversion stays in its one place
