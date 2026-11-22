@@ -187,7 +187,8 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
 - [ ] One door, one writer: `universe.nightly` and the Stooq files write into the history database through
       `bars.writing`, never the CSV store; `store.read`, `faults`, `shelve` and the CSV half of `prepare` are
       deleted with their tests; wire: the research refresh job; gate: the deleted names import nowhere
-      {id: data-door-writer; files: lab/universe.py, lab/universe_parts.py, lab/universe_history.py, desk/store.py, tests/unit/test_lab_universe*.py, tests/unit/test_store*.py; after: data-door-bars, money-door-slippage}
+      {id: data-door-writer; files: lab/universe.py, lab/universe_parts.py, lab/universe_history.py, lab/headstart.py, lab/headstart_days.py, desk/store.py, desk/store_scope.py,
+      tests/unit/test_lab_universe*.py, tests/unit/test_store*.py, tests/unit/test_lab_headstart*.py, tests/unit/test_keeper.py, tests/unit/test_lab_batch.py, tests/unit/test_lab_sweep.py, tests/scenes/test_scenes.py; after: data-door-bars, money-door-slippage}
 - [ ] **The old desk's stores as a head start, now** (his ask, 14 November): its daily and
       five-minute bars (Stooq and IBKR stores, and its per-ticker matrices) read in through
       the one store's checks, every bar re-checked, each kept with its source; where a fresh
