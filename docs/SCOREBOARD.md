@@ -644,6 +644,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1674 PAPER paper-door-pound: the pound and conformance bars read from the store alone, archive and broker stubbed to fail in tests. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1675 PAPER paper-cards: streak-above-0 test landed; 05:40 card and 09:30 alarm wait on a wider claim. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1698 PAPER paper-cards: messenger.py 395 lines, room made for the three owed messages; box stays open. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1753 PAPER messages: "desk is not trading" alarm built and tested (not yet called by the step). |
 
 ### GRID
 
