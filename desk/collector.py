@@ -3,7 +3,7 @@ asks the free tiers the desk already holds a key for, a few dozen calls a day, a
 what they say before any use is made of it, because history a free tier does not keep cannot
 be bought back (BIC-06, DAT-01). Four kinds of fact land in the one store (the long database
 of desk.bars): a PRICE second opinion on each US line's last session (Massive, Tiingo; EODHD one
-London line a day), MACRO series (FRED), EARNINGS dates (Finnhub) and NEWS with the moment
+London line a day), MACRO series (FRED, BLS, EIA), EARNINGS dates (Finnhub) and NEWS with the moment
 each was published (Finnhub, Marketaux, GNews). Every answer is also kept raw and timestamped,
 under its source and subject.
 
@@ -43,6 +43,7 @@ SCHEMA = (
     " PRIMARY KEY (kind, source, subject, at, value)) WITHOUT ROWID",
 )
 SERIES = ("DGS10", "DGS2", "T10Y2Y", "VIXCLS", "BAMLH0A0HYM2", "FEDFUNDS", "CPIAUCSL", "UNRATE")
+BLS_SERIES = ("CUUR0000SA0", "LNS14000000", "CES0000000001")  #: CPI, unemployment, payrolls
 AHEAD = timedelta(days=14)  #: how far ahead earnings dates are asked for
 US = tuple(line.symbol for line in LINES if line.venue == "US")
 LONDON = tuple(line.symbol for line in LINES if line.venue == "LSE")
@@ -113,6 +114,19 @@ def _eodhd_read(symbol: str, answer: Any, _: date) -> Iterator[Fact]:
         yield Fact(PRICE, symbol, row["date"], str(row["close"]))
 
 
+def _alpha(key: str, day: date) -> Iterator[tuple[str, str]]:
+    """A second London audit line a day, the turn after EODHD's, so each day two are audited."""
+    symbol = LONDON[(day.toordinal() + 1) % len(LONDON)]
+    address = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&outputsize=compact"
+    yield symbol, f"{address}&symbol={symbol}.LON&apikey={key}"
+
+
+def _alpha_read(symbol: str, answer: Any, day: date) -> Iterator[Fact]:
+    row = answer["Time Series (Daily)"].get(str(day))  # absent on a day the exchange was shut
+    if row:
+        yield Fact(PRICE, symbol, str(day), row["4. close"])
+
+
 def _fred(key: str, _: date) -> Iterator[tuple[str, str]]:
     address = "https://api.stlouisfed.org/fred/series/observations?file_type=json&limit=5"
     for series in SERIES:
@@ -123,6 +137,29 @@ def _fred_read(series: str, answer: Any, _: date) -> Iterator[Fact]:
     for row in answer["observations"]:
         if row["value"] != ".":  # FRED's mark for a day with no figure
             yield Fact(MACRO, series, row["date"], row["value"])
+
+
+def _bls(key: str, _: date) -> Iterator[tuple[str, str]]:
+    for series in BLS_SERIES:
+        address = "https://api.bls.gov/publicAPI/v2/timeseries/data/"
+        yield series, f"{address}{series}?registrationkey={key}"
+
+
+def _bls_read(series: str, answer: Any, _: date) -> Iterator[Fact]:
+    for row in answer["Results"]["series"][0]["data"]:
+        if row["period"] != "M13":  # the year's average, not a month
+            yield Fact(MACRO, series, f"{row['year']}-{row['period'][1:]}", row["value"])
+
+
+def _eia(key: str, _: date) -> Iterator[tuple[str, str]]:
+    address = "https://api.eia.gov/v2/petroleum/pri/spt/data/?frequency=daily&data[0]=value"
+    sort = "sort[0][column]=period&sort[0][direction]=desc&length=5"
+    yield "RWTC", f"{address}&facets[series][]=RWTC&{sort}&api_key={key}"
+
+
+def _eia_read(series: str, answer: Any, _: date) -> Iterator[Fact]:
+    for row in answer["response"]["data"]:
+        yield Fact(MACRO, series, row["period"], str(row["value"]))
 
 
 def _earnings(key: str, day: date) -> Iterator[tuple[str, str]]:
@@ -168,7 +205,10 @@ SOURCES = (
     Source("massive", "MASSIVE", _massive, _massive_read),
     Source("tiingo", "TIINGO", _tiingo, _tiingo_read),
     Source("eodhd", "EODHD", _eodhd, _eodhd_read),
+    Source("alphavantage", "ALPHAVANTAGE", _alpha, _alpha_read),
     Source("fred", "FRED", _fred, _fred_read),
+    Source("bls", "BLS", _bls, _bls_read),
+    Source("eia", "EIA", _eia, _eia_read),
     Source("finnhub", "FINNHUB", _earnings, _earnings_read),
     Source("finnhub-news", "FINNHUB", _finnhub_news, _finnhub_news_read),
     Source("marketaux", "MARKETAUX", _marketaux, _marketaux_read),

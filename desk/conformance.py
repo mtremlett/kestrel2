@@ -229,7 +229,7 @@ def trade(
     """THE COMMAND: whether all is well, and its one line (when, the module's words say). A soak's
     run is SEEDED: its line drawn by its moment in whole seconds, said, so it can be run again."""
     now, refused = clock(), next(line for line in LINES if line.retail is False)
-    seed = int(now.timestamp()) if seeded else None
+    seed, home = (int(now.timestamp()) if seeded else None), root.parent
     door = paper.Door(CLIENT)  #: this run's own client; its apart set once the desk's share is read
     if barred := _barred(root, market, refused, now, door):
         return barred
@@ -247,7 +247,7 @@ def trade(
         if (line.venue, line.leverage, line.retail) == fits
         if listed[line].contract not in busy and paper.own(line) not in held
     ]
-    run = plan(plain, refused, today, command.rates(root, today), f"{now:%H%M}", root.parent, seed)
+    run = plan(plain, refused, today, command.rates(home, today), f"{now:%H%M}", home, seed)
     beside, broker = pretend(run), placing.Paper(listings, root, clock, door)
     fall = _raised(broker, root, listed[run.second.line], wait, door)
     side = Side(root, broker, lambda: clearance.check(root, clock(), door).found, fall)

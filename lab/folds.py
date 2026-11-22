@@ -44,6 +44,8 @@ from lab.cell import Cell
 from lab.reproduce import Reproduction
 from lab.rung import Answer, Rates, Verdict
 
+FAULTS_PUBLISHED = Decimal("0.01")  #: the most of a set's answers FAULT with its table published
+
 
 class Judged(Protocol):
     """What a fold's side must show: the t and the answer the worst fold is chosen by."""
@@ -217,6 +219,27 @@ def pool(
         return Year(y, out[0], out[1], out[2], inside[2], _answer(out[1], out[2], out[3]))
 
     return Pooled(tuple(year(y) for y in range(first, last + 1)))
+
+
+def gaps(cells: Sequence[tuple[Cell, Sequence[Bar]]], rates: Rates) -> tuple[str, ...]:
+    """Every gap in the pooled lines' inputs over each one's whole window (`market.gaps`), the
+    span every rung reads, not the folded years alone: a set with one refuses to start, never a
+    FAULT counted as an answer (L20)."""
+    return tuple(g for c, bars in cells for g in market.gaps(c.line, bars, rates, c.start, c.end))
+
+
+def preflight(cells: Sequence[tuple[Cell, Sequence[Bar]]], rates: Rates) -> None:
+    """The set runner's pre-flight (L20): a set whose inputs have a gap refuses to start, naming
+    how many and the first, so the gap is mended at entry by the one writer, never in a rung."""
+    if found := gaps(cells, rates):
+        many = f"{len(found)} gap" + ("s" if len(found) > 1 else "")
+        raise ValueError(f"{many} in the set's inputs: the set refuses to start, first {found[0]}")
+
+
+def published(answers: Sequence[Answer]) -> bool:
+    """Whether a set's table may be published (L20): FAULT in at most `FAULTS_PUBLISHED` of its
+    answers. Over it, the faults are the table's news and its passes are not believed."""
+    return answers.count(Answer.FAULT) <= FAULTS_PUBLISHED * len(answers)
 
 
 def _answer(trades: int, t: Decimal | None, mean: Decimal) -> Answer:

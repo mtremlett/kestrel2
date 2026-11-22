@@ -229,6 +229,28 @@ def test_today_decides_each_lines_last_bar_holding_what_the_book_holds_for_each_
     assert flat.action is Action.HOLD, "a rule sold what the book does not hold for it"
 
 
+def test_today_steps_only_the_bars_since_yesterday_and_answers_as_a_fresh_replay(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    #: SimCity shows today each day the bars of the day before and one more: the rules step only
+    #: the new bars, yet answer exactly as a replay of the whole history (other bars, same prices)
+    steps, step = [0], strategy._Bollinger.step
+
+    def counted(*shown: Any) -> bool:
+        steps.append(1)
+        return step(*shown)
+
+    monkeypatch.setattr(strategy._Bollinger, "step", counted)
+    bars = {"A": _walk(3, 400), "B": _walk(4, 400)}
+    for cut in range(300, 330):
+        held, steps[:] = {"A": "bollinger_pullback"} if cut % 3 else {}, []
+        resumed = strategy.today({s: b[:cut] for s, b in bars.items()}, held)
+        assert cut == 300 or len(steps) <= 2 * len(bars), f"day {cut}: {len(steps)} bars stepped"
+        anew = {f"{s}'": tuple(replace(x) for x in b[:cut]) for s, b in bars.items()}
+        fresh = strategy.today(anew, {f"{s}'": rule for s, rule in held.items()})
+        assert [replace(d, symbol=d.symbol[0]) for d in fresh] == list(resumed)
+
+
 def test_the_callers_arithmetic_cannot_move_a_decision() -> None:
     bars = {"A": _walk(5, 1200)}
     with localcontext(Context(prec=3, rounding=ROUND_FLOOR)):
