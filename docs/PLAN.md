@@ -205,7 +205,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       repository); a matching rule for adjusted against as-traded closes, a new module not on its list (headstart.py
       is at 400 lines); the research list's bars
       Settled (coordinator 54, 22 Nov: not his: the catalog_v2 tag is runner-side notes work; the matching rule is a new lab module registered in manifest.toml inside the lab/ ceiling; the research list's bars come from the keeper)
-      {id: data-headstart; files: lab/headstart.py, tests/unit/test_lab_headstart.py, desk/bars.py, tests/unit/test_bars*.py, manifest.toml; waits: operator}
+      {id: data-headstart; files: lab/headstart.py, tests/unit/test_lab_headstart.py, desk/bars.py, tests/unit/test_bars*.py, manifest.toml}
 - [x] The archive spared: fetching slow and resumable, with backoff, each raw answer cached
       in the folder `KESTREL2_DATA` names (outside the repository and every worktree); while
       the archive refuses, `{"refusing_since": <time>}` written to `KESTREL2_DATA/archive.json`
@@ -387,7 +387,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       Built (#630, #725): every pull reaches the store through `history_write.keeper`, which turns pence to pounds once on entry; `history.run` and `pull` hand out the broker's unit by design (#1065)
       {id: data-pence; files: desk/store.py, tests/unit/test_store.py; after: data-written-together}
 - [ ] The full research universe, 5,000 and more, once the grid's first pass works
-      {id: data-full-universe; files: lab/universe.py, tests/unit/test_lab_universe*.py; after: data-research-home; waits: operator}
+      {id: data-full-universe; files: lab/universe.py, tests/unit/test_lab_universe*.py; after: data-research-home}
 - [x] Each line's UK tax a fact on the line, from one table of two rates: nil for a fund or
       an exchange-traded product, stamp duty for a UK share; the twenty lines each state nil,
       and one London line of the rehearsal data pays it (R-MONEY-1)
@@ -478,7 +478,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       must name it and `test_lab_published_epon.py` count 21, so neither lane's pull request is green
       alone. Needs one session claiming both lanes' files (the runner's to grant; coordinator 54, 22 Nov: not his)
       {id: money-connors7; waits: R-RUNGS-10; files: desk/eponymous_connors_double_7.py, tests/unit/test_eponymous_connors_double_7.py, lab/published_epon.py, tests/unit/test_lab_published_epon.py, manifest.toml}
-      (Its files span MONEY (desk/eponymous_connors_double_7.py) and RUNGS (lab/published_epon.py and its test); the lane-ownership guard refuses that on a MONEY branch. It needs the coordinator to move the box to the RUNGS lane's book, with the rule file registered under RUNGS in manifest.toml. That loosens no guard. PR 588's branch holds working code to reuse.)
+      (desk/ holds 100 of its 100 allowed files and the box adds a new desk file; lab/published_epon.py and its test are RUNGS files that the lane-ownership guard refuses on a MONEY branch. Re-card it in the RUNGS book with Double 7's folded into desk/eponymous_connors.py (131 lines, already holds %B and RSI-2), reusing commit 35158bb6, and drop R-MONEY-67 rather than raise the ceiling.) (Its files span MONEY (desk/eponymous_connors_double_7.py) and RUNGS (lab/published_epon.py and its test); the lane-ownership guard refuses that on a MONEY branch. It needs the coordinator to move the box to the RUNGS lane's book, with the rule file registered under RUNGS in manifest.toml. That loosens no guard. PR 588's branch holds working code to reuse.)
 - [x] The pretend broker: fills at the day's prices, rejects, partial fills, disconnection,
       a crash, resting stops, positions, and a position injected behind the desk's back
 - [x] The send path: every order through the one gate, sent once however often the desk
@@ -540,7 +540,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       {id: money-restop; files: desk/day.py, desk/book.py, tests/unit/test_day*.py,
       tests/unit/test_book*.py, desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml,
       desk/broker.py, tests/unit/test_broker*.py;
-      after: money-working; waits: R-MONEY-18, R-MONEY-31}
+      after: money-working; waits: R-MONEY-18, R-MONEY-53}
       (The lost-stop list reaching him is a change to desk/messenger.py, which the paper lane owns; MONEY cannot edit it, and widening MONEY's file list would loosen a guard for no reason.)
 - [x] Emergencies in numbers: an emergency, a crash and a black swan each defined by measured
       falls, each with its action (EMG-01) {id: money-emergencies; files: desk/emergency.py,
@@ -586,7 +586,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       after: money-simcity}
 - [ ] Small and illiquid trades: a trade whose expected gain is under twice its round-trip
       cost is flagged, and no position is above 1% of its line's twenty-day traded value
-      (SIZ-10, TRD-10)
+      (SIZ-10, TRD-10). On main (#1690): the 1% cap in `orders.size` (`orders.traded_value`, `LIQUIDITY`), fed by nothing yet. Remains: `day._buy` feeding it (restore 3bf88fa2's day.py change; fixtures volume 10**7 in test_restop, test_running, test_running_tell, which needs a card claiming them); the expected-gain flag (TRD-10); the cap in `orders.gate`
       {id: money-small; files: desk/orders.py, desk/day.py, tests/unit/test_orders*.py,
       tests/unit/test_day*.py, desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml;
       after: money-limits}
@@ -608,7 +608,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       {id: money-golden; files: *; after: money-fills, money-limits, money-halts}
 - [ ] Every trade's whole story: signal, intent, risk decision, order, fill and the bar it
       read, linked by ids; profit attributed by strategy, line, holding time and cost
-      (TRD-11, TRD-12, DQ-08) On main: `book.story`/`attributed` (#1468); `book.told` trade stories with strategy, bar read and days held, run in SimCity (#1486); `book.chain` decision-time id chain in story.csv (#1509). Remains (re-read on main Sun 22 Nov 04:2x; the gate verdict is already `Link.blocker`): (1) the chain is kept BEFORE the order is sent and completed with the answer after: today `desk/day.py` writes `book.chain` only after `_send`/`_buy` return, so a send that raises leaves an order at the broker with no chain (B5); the contract test, written first, sends through a broker that raises and finds a chain row naming the order id and its intent, never a try/except around the send; a stranger sale (`day.py`, no strategy signal) keeps a chain too, its signal the stranger reason, by the same write-before-send rule (coordinator 54, 22 Nov: canon B5, every order traceable); (2) the sized shares the intent asked for as a `Link` field beside `filled`; (3) a scene for the profit table (`book.attributed`).
+      (TRD-11, TRD-12, DQ-08) On main: `book.story`/`attributed` (#1468); `book.told` trade stories with strategy, bar read and days held, run in SimCity (#1486); `book.chain` decision-time id chain in story.csv (#1509). Step 1 on main (#1716): chain kept before the send (`book.intend`), strangers chained. Remains (2) and (3) below; (1) was: the chain is kept BEFORE the order is sent and completed with the answer after: today `desk/day.py` writes `book.chain` only after `_send`/`_buy` return, so a send that raises leaves an order at the broker with no chain (B5); the contract test, written first, sends through a broker that raises and finds a chain row naming the order id and its intent, never a try/except around the send; a stranger sale (`day.py`, no strategy signal) keeps a chain too, its signal the stranger reason, by the same write-before-send rule (coordinator 54, 22 Nov: canon B5, every order traceable); (2) the sized shares the intent asked for as a `Link` field beside `filled`; (3) a scene for the profit table (`book.attributed`).
       {id: money-story; files: desk/story.py, desk/book.py, desk/day.py,
       tests/unit/test_story*.py, tests/unit/test_book*.py, tests/unit/test_day*.py,
       desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml; after: money-fills, money-limits}
