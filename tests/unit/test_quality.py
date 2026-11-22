@@ -219,6 +219,8 @@ def test_hover_judges_every_span_and_the_alarm_tells_only_of_change(tmp_path: Pa
     said, ok = quality.hover(path, [SPY], NOW)
     assert said.startswith("data quality: 75% fresh, 1 faults, 1 gaps, worst SPY/")
     assert not ok
+    other = next(line for line in LINES if line.symbol not in quality.GOLDEN)
+    assert quality.hover(path, [other, SPY], NOW)[0].count("worst SPY/") == 1
     with bars.writing(path, bars.Source.IBKR) as held:
         held.timed(SPY, "1h", [Timed("1h", last, price, price, price, price, 5)])
         held.timed(

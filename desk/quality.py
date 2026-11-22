@@ -291,7 +291,8 @@ def hover(path: Path, lines: Iterable[Line], now: datetime) -> tuple[str, bool]:
     cells = _cells(path, lines, now)
     bad = [(name, line, why) for name, line, why in cells if why]
     gap = sum(why == "holds no bar" for _, _, why in bad)
-    worst = (bad[0][0] + ": " + bad[0][2]) if bad else "none"
+    first = sorted(bad, key=lambda b: b[1].symbol not in GOLDEN)  # a golden fault names the red
+    worst = (first[0][0] + ": " + first[0][2]) if bad else "none"
     share = 100 * (len(cells) - len(bad)) // max(len(cells), 1)
     said = f"data quality: {share}% fresh, {len(bad) - gap} faults, {gap} gaps, worst {worst}"
     return said, not any(line.symbol in GOLDEN for _, line, _ in bad)
