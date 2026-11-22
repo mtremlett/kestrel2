@@ -235,7 +235,12 @@ def test_today_steps_only_the_bars_since_yesterday_and_answers_as_a_fresh_replay
     #: SimCity shows today each day the bars of the day before and one more: the rules step only
     #: the new bars, yet answer exactly as a replay of the whole history (other bars, same prices)
     steps, step = [0], strategy._Bollinger.step
-    monkeypatch.setattr(strategy._Bollinger, "step", lambda *a: steps.append(1) or step(*a))
+
+    def counted(*shown: Any) -> bool:
+        steps.append(1)
+        return step(*shown)
+
+    monkeypatch.setattr(strategy._Bollinger, "step", counted)
     bars = {"A": _walk(3, 400), "B": _walk(4, 400)}
     for cut in range(300, 330):
         held, steps[:] = {"A": "bollinger_pullback"} if cut % 3 else {}, []
