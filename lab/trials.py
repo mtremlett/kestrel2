@@ -257,6 +257,24 @@ def clustered(register: Path, question: str, returns: Mapping[str, Sequence[floa
     return clusters(returns, _rest(register, question, returns))
 
 
+def daily(verdicts: Sequence[Verdict]) -> dict[str, list[float]]:
+    """THE RETURNS TO HAND IN from a set's own lines: each trial's gain after costs on the day
+    its sale filled, nothing on any other day of the one window all were judged over."""
+    windows = {(v.key.cell.start, v.key.cell.end) for v in verdicts}
+    if len(windows) != 1 or len({name(v.key.cell) for v in verdicts}) < len(verdicts):
+        raise ValueError(f"{len(verdicts)} lines on windows {sorted(windows)}: not one set")
+    ((first, last),) = windows
+    out: dict[str, list[float]] = {}
+    for verdict in verdicts:
+        row = [0.0] * ((last - first).days + 1)
+        for trade in verdict.trades:
+            if not first <= (sold := trade.held[1]) <= last:
+                raise ValueError(f"{name(verdict.key.cell)}: sold {sold}, outside its window")
+            row[(sold - first).days] += float(trade.gain)
+        out[name(verdict.key.cell)] = row
+    return out
+
+
 def _groups(alike: NDArray[np.float64]) -> list[list[int]]:
     """The trials, by their place, in groups alike by LINK or more in every pair."""
     least = alike.copy()  #: group against group, the correlation of their least-alike pair
