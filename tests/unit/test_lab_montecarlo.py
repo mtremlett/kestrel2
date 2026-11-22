@@ -122,3 +122,13 @@ def test_a_cut_short_last_line_is_left_out_and_a_kept_row_is_never_parsed(tmp_pa
     held.write_text(held.read_text().replace("2011-01-13", "not a date"))  # parsing would raise
     assert montecarlo.run(home, nothing) == "0 resampled now, 2 kept from before"
     assert results.read_bytes().endswith(b"}\n")
+
+
+def test_a_held_error_row_is_passed_over_counted_and_the_good_rows_measured(tmp_path: Path) -> None:
+    home = _home(tmp_path)
+    error = {"cell": ["rsi2_pullback", "3IN.faults", "LSE", "2010-01-01", "2026-11-13"]}
+    with (home / "grid" / "held" / "LSE" / "3IN.jsonl").open("a") as held:
+        held.write(json.dumps(error | {"code": "c", "error": "no bars"}) + "\n")
+    assert montecarlo.run(home, lambda _job: [D("0.02")]) == (
+        "2 resampled now, 0 kept from before, 1 grid error row passed over"
+    )
