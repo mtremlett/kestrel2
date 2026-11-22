@@ -8,6 +8,7 @@ from a pulled one is a red fault. Exit 0 only when green."""
 
 from __future__ import annotations
 
+import json
 import os
 import shutil
 import sys
@@ -284,8 +285,27 @@ def alarm(
     return since, sent, None
 
 
+def watch(home: Path, lines: Iterable[Line], now: datetime) -> tuple[str, str | None]:
+    """One HOVER check, the alarm's memory kept in the store's folder between runs: the freshness
+    line and the message to send, if any. The state is replaced whole, never half written."""
+    said, ok = hover(home / keeper.HOT, lines, now)
+    state = home / "hover_alarm.json"
+    kept = json.loads(state.read_text("utf-8")) if state.exists() else {}  # bounded: two timestamps
+    when = [datetime.fromisoformat(kept[k]) if kept.get(k) else None for k in ("since", "sent")]
+    since, sent, told = alarm(when[0], when[1], ok, said, now)
+    fresh = {k: v.isoformat() if v else None for k, v in (("since", since), ("sent", sent))}
+    temp = state.with_suffix(".tmp")
+    temp.write_text(json.dumps(fresh), "utf-8")
+    temp.replace(state)
+    return said, told
+
+
 if __name__ == "__main__":
     home, now = Path(os.environ["KESTREL2_DATA"]), datetime.now(UTC)
+    if sys.argv[1:] == ["watch"]:
+        said, told = watch(home, LINES, now)
+        sys.stdout.write(f"{said}\n" + (f"TELL: {told}\n" if told else ""))
+        sys.exit(0)
     if sys.argv[1:] == ["hover"]:
         said, ok = hover(home / keeper.HOT, LINES, now)
         sys.stdout.write(f"{said}\n")

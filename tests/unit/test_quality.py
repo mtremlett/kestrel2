@@ -242,3 +242,11 @@ def test_hover_judges_every_span_and_the_alarm_tells_only_of_change(tmp_path: Pa
         "back to green, red for 40 minutes",
     )
     assert quality.alarm(None, None, True, "", later) == (None, None, None)
+
+
+def test_watch_keeps_the_alarm_between_runs(tmp_path: Path) -> None:
+    seeded(tmp_path, set())
+    first = quality.watch(tmp_path, [SPY], NOW)[1]
+    assert first is not None and first.startswith("data quality RED")
+    assert quality.watch(tmp_path, [SPY], NOW + timedelta(minutes=5))[1] is None
+    assert quality.watch(tmp_path, [SPY], NOW + timedelta(minutes=31))[1] is not None
