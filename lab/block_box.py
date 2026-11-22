@@ -21,31 +21,33 @@ class _Box:
 class _Formation:
     """A box in the making: a top no later high passes, and the lowest low since it."""
 
-    def __init__(self, bar: Bar) -> None:
-        self.top, self.low, self.low_age = bar.high, bar.low, 0
+    def __init__(self, bar: Bar, n: int) -> None:
+        self.top, self.low, self.low_age, self.n = bar.high, bar.low, 0, n
 
     def add(self, bar: Bar) -> _Box | None:
-        """The box once 3 sessions have not undercut its bottom; None while it forms."""
+        """The box once `n` sessions have not undercut its bottom; None while it forms."""
         if bar.low < self.low:
             self.low, self.low_age = bar.low, 0
         else:
             self.low_age += 1
-        return _Box(self.top, self.low) if self.low_age >= 3 else None
+        return _Box(self.top, self.low) if self.low_age >= self.n else None
 
 
 class _Boxes(Block):
     """Darvas's boxes (How I Made $2,000,000 in the Stock Market, 1960) read bar by bar: what
     happened on the bar, `breakout` (a close over a standing box's top) or `stopped` (held, and
-    a close under the stop, the highest bottom of the boxes held through)."""
+    a close under the stop, the highest bottom of the boxes held through). A box stands once
+    `n` sessions (his 3) have not undercut its bottom."""
 
-    def __init__(self) -> None:
+    def __init__(self, n: int) -> None:
+        self._n = n
         self._form: _Formation | None = None
         self._box: _Box | None = None
         self._stop: Decimal | None = None
         self.breakout = self.stopped = False
 
     def _restart(self, bar: Bar) -> None:
-        self._form, self._box = _Formation(bar), None
+        self._form, self._box = _Formation(bar, self._n), None
 
     def _raise_stop(self, bottom: Decimal) -> None:
         self._stop = bottom if self._stop is None else max(self._stop, bottom)

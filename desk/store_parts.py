@@ -71,6 +71,8 @@ def _agree(line: Line, before: Bar, onward: Sequence[Bar], rates: Rates) -> bool
     confirmed = dict(line.real_moves).get(after.day)
     if confirmed is not None:
         return after.close == confirmed and near(after, after.close)
+    if after.day in line.requoted:
+        return True  # a dated change of quote currency: the unit changed, the market did not
     pound = pound_on(rates, after.day)
     step = line.leverage == 1 and same_as_pound(after.close / before.close, pound, FX_STEP)
     if step and all(same_as_pound(b.close / before.close, pound, FX_FAR) for b in ahead[:RECENT]):

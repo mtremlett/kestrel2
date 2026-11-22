@@ -364,11 +364,11 @@ BLOCKS: Mapping[str, Spot] = {
     "close_under_ema": Spot(Kind.EXIT, CloseUnderEma, {"n": _DAYS}),
     "turtle_soup": Spot(Kind.ENTRY, TurtleSoup, {"n": _DAYS, "gap": _AGO}),
     "under_entry_low": Spot(Kind.STOP, UnderEntryLow, {}),
-    "td_buy_countdown": Spot(Kind.ENTRY, BuyCountdown, {}),
-    "td_sell_setup": Spot(Kind.EXIT, SellSetup, {}),
+    "td_buy_countdown": Spot(Kind.ENTRY, BuyCountdown, {"n": _DAYS}),
+    "td_sell_setup": Spot(Kind.EXIT, SellSetup, {"n": _DAYS}),
     "breadth_thrust": Spot(Kind.ENTRY, BreadthThrust, {}),  #: on ratio bars
-    "darvas_box": Spot(Kind.ENTRY, DarvasBreakout, {}),
-    "darvas_stop": Spot(Kind.STOP, DarvasStop, {}),
+    "darvas_box": Spot(Kind.ENTRY, DarvasBreakout, {"n": _DAYS}),
+    "darvas_stop": Spot(Kind.STOP, DarvasStop, {"n": _DAYS}),
     "no_filter": Spot(Kind.FILTER, Always, {}),
     "trend_template": Spot(Kind.FILTER, TrendTemplate, {}),
 }

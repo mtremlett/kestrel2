@@ -15,7 +15,7 @@ import pytest
 from test_strategy import GOLDEN, START, _bars, _jumpy, _walk
 
 from desk.store import Bar
-from lab import blocks, fast, grid
+from lab import blocks, fast, grid, variants
 from lab.spec import Spec, SpecRule
 
 #: Either side of the warm-ups, and the middle of a walk.
@@ -144,3 +144,8 @@ def test_every_row_of_the_spec_book_trades_on_the_fast_engine_as_the_desk_trades
         if name == "zweig_breadth_thrust":  # judged on ratio bars, which this price series is not
             continue
         assert fast.held(spec, fast.Shared(bars)).tolist() == _desk(spec, bars), name
+    demark = {"name": "demark_sequential", **book["demark_sequential"]}
+    for one in (v.spec for v in variants.variants(Spec.parse(demark))):  # its setup, both engines
+        assert fast.held(one, fast.Shared(bars)).tolist() == _desk(one, bars), one.name
+    with pytest.raises(ValueError, match="case 0 gives"):  # a setting, not the book's constant
+        Spec.parse({**demark, "params": {"entry": {"n": 7}, "exit": {"n": 7}}})

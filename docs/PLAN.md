@@ -533,14 +533,14 @@ day's trading and reconciliation are built, and any broker can stand behind them
       {id: money-golden; files: *; after: money-fills, money-limits, money-halts}
 - [ ] Every trade's whole story: signal, intent, risk decision, order, fill and the bar it
       read, linked by ids; profit attributed by strategy, line, holding time and cost
-      (TRD-11, TRD-12, DQ-08) On main: `book.story`/`attributed` (#1468); `book.told` trade stories with strategy, bar read and days held, run in SimCity (#1486); `book.chain` decision-time id chain in story.csv (#1509). Remains (re-read on main Sun 22 Nov 04:2x; the gate verdict is already `Link.blocker`): (1) the chain is kept BEFORE the order is sent and completed with the answer after: today `desk/day.py` writes `book.chain` only after `_send`/`_buy` return, so a send that raises leaves an order at the broker with no chain (B5); the contract test, written first, sends through a broker that raises and finds a chain row naming the order id and its intent, never a try/except around the send; decide whether a stranger sale (`day.py`, no strategy signal) keeps a chain too; (2) the sized shares the intent asked for as a `Link` field beside `filled`; (3) a scene for the profit table (`book.attributed`).
+      (TRD-11, TRD-12, DQ-08) On main: `book.story`/`attributed` (#1468); `book.told` trade stories with strategy, bar read and days held, run in SimCity (#1486); `book.chain` decision-time id chain in story.csv (#1509). Remains (re-read on main Sun 22 Nov 04:2x; the gate verdict is already `Link.blocker`): (1) the chain is kept BEFORE the order is sent and completed with the answer after: today `desk/day.py` writes `book.chain` only after `_send`/`_buy` return, so a send that raises leaves an order at the broker with no chain (B5); the contract test, written first, sends through a broker that raises and finds a chain row naming the order id and its intent, never a try/except around the send; a stranger sale (`day.py`, no strategy signal) keeps a chain too, its signal the stranger reason, by the same write-before-send rule (coordinator 54, 22 Nov: canon B5, every order traceable); (2) the sized shares the intent asked for as a `Link` field beside `filled`; (3) a scene for the profit table (`book.attributed`).
       {id: money-story; files: desk/story.py, desk/book.py, desk/day.py,
       tests/unit/test_story*.py, tests/unit/test_book*.py, tests/unit/test_day*.py,
       desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml; after: money-fills, money-limits; waits: operator}
       (Box money-story: card money-story ended red or landed nothing 2 runs in a row; held, its lane goes on.)
 - [ ] Money honestly counted: interest on idle cash, with the risk-free rate in every
       Sharpe; currency gains and losses on dollar holdings reported apart from trading
-      profit; a fall from the book's highest point alerted on paper (BIC-03, BIC-04, BIC-05). BIC-05 on main (#1516); BIC-04 first step on main (#1542, `book.currency_gain`). Remains: BIC-03 (moves golden days, B5); BIC-04 for open holdings and the day's record
+      profit; a fall from the book's highest point alerted on paper (BIC-03, BIC-04, BIC-05). BIC-05 on main (#1516); BIC-04 on main for closed trades (#1542, #1569) and open holdings (#1596); BIC-03 interest told daily at `RISK_FREE` beside profit (#1560, #1584). Remains: interest inside the day's profit (moves golden days, B5); `RISK_FREE` in every Sharpe (lab, R-MONEY-65); currency and interest in the saved record (R-MONEY-66)
       {id: money-honest; files: desk/day.py, desk/book.py, tests/unit/test_day*.py,
       tests/unit/test_book*.py, desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml;
       after: money-fills}
@@ -732,9 +732,9 @@ grid-tune and grid-key side by side; then grid-pass, grid-week, grid-declared, g
       lab/sweep.py, lab/batch.py, lab/tune.py, tests/unit/test_lab_sweep.py,
       tests/unit/test_lab_batch.py, tests/unit/test_lab_tune.py, manifest.toml; after:
       grid-venue, grid-tune, grid-key}
-- [ ] Runs seven days without stopping. Remains: the week's clone runs pre-#1210 code against the new-format store (2,810 cells fail each hour since 21 Nov 03:21 UTC, #1370), so the seven days restart unbroken once the runner brings it to current main; read `sweep.unbroken` on or after 28 Nov and tick if 7 days {id: grid-week; waits: 2026-11-28; files: lab/batch.py, lab/sweep.py,
+- [ ] Runs seven days without stopping. Remains: the week's clone runs pre-#1210 code against the new-format store (2,810 cells fail each hour since 21 Nov 03:21 UTC, #1370), so the seven days restart unbroken once the runner brings it to current main; read `sweep.unbroken` on or after 28 Nov and tick if 7 days. A pass that raises is now logged and the week carries on (#1562); each pass line names its commonest failure causes (`why`, #1563); the 15 Nov stop's trigger is unproven {id: grid-week; waits: 2026-11-28; files: lab/batch.py, lab/sweep.py,
       lab/tune.py, tests/unit/test_lab_batch.py, tests/unit/test_lab_sweep.py,
-      tests/unit/test_lab_tune.py; after: grid-pass}
+      tests/unit/test_lab_tune.py}
 - [x] Each strategy judged on its own declared universe; the everything-on-everything grid
       kept as a transfer study, never a verdict; sweeps on the declared universe (LAD-01,
       LAD-13) {id: grid-declared; files: lab/sweep.py, tests/unit/test_lab_sweep.py}

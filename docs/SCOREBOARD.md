@@ -213,6 +213,10 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1509 money-story: decision-time id chain kept per decision; story.csv. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1516 BIC-05 paper alert on a £1,500 fall from the highest point. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1542 money-honest step 1: currency gain apart from trading profit (BIC-04), SimCity-proven. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1560 BIC-03 first step: interest on idle cash in the book. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1569 BIC-04 told on paper (day._currency); interest and Sharpe risk-free rate remain. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1584 money-honest step 2: day tells interest on idle cash at the risk-free rate (BIC-03). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1596 money-honest step: currency on open holdings told (BIC-04), SimCity-checked. |
 
 
 ### DATA
@@ -641,6 +645,8 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1370 grid-week not ticked; a failed cell now names the line that raised it, and the cause of the 2,810 failures is found (old code, new store). |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1487 R-RUNNER-362 variants swept as cells. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1555 R-DATA-61 done; grid-week cause traced to a stale clone (R-GRID-8). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1562 grid-week: failure cause found (stale clone), week survives a raising pass. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1563 grid-week: pass log names its failure causes; restart waits on the runner. |
 
 ### RUNGS
 
