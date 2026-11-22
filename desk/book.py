@@ -380,6 +380,21 @@ def currency_gain(root: Path, lines: Iterable[Line], trips: Iterable[RoundTrip])
     )
 
 
+def open_currency_gain(
+    root: Path, lines: Iterable[Line], prices: Mapping[str, Decimal], day: date
+) -> Decimal:
+    """CURRENCY ON OPEN HOLDINGS (BIC-04): what the shares still held, the newest buys (sales
+    close the oldest), have gained or lost at today's price from the currency's move since the
+    buy's day, apart from the price's own."""
+    money, total = {line.symbol: line.currency for line in lines}, Decimal(0)
+    for symbol, held in positions(root, day).items():
+        for buy in (f for f in reversed(fills(root)) if f.symbol == symbol and f.quantity > 0):
+            shares, held = min(held, buy.quantity), held - min(held, buy.quantity)
+            move = rate(root, money[symbol], day) - rate(root, money[symbol], buy.day)
+            total += shares * prices[symbol] * move
+    return total
+
+
 def interest(
     root: Path, lines: Iterable[Line], capital: Decimal, annual: Decimal, first: date, last: date
 ) -> Decimal:
