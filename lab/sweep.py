@@ -249,13 +249,16 @@ def week(
     """Pass after pass, one starting each PAUSE, or as the last ends if that is later, until
     one has ended that many days after the first began: so a week nothing stops shows its
     whole length in its log, from its first pass's start to its last one's end. Each pass
-    is a line of that log in data, with its count or its error. A pass that fails is logged
-    and the week carries on."""
+    is a line of that log in data, with its count or its error. A pass that fails, or raises
+    (the week stopped unlogged between 15 and 21 November), is logged and the week carries on."""
     end: datetime | None = None
     while True:
         started = clock()
         end = end or started + timedelta(days=days)
-        counts = once()
+        try:
+            counts = once()
+        except Exception as error:  # noqa: BLE001 - a pass that raises is logged, not the week's end
+            counts = {"error": f"{type(error).__name__}: {error}"}
         ended = clock()
         times = {"started": started.isoformat(), "ended": ended.isoformat()}
         with (data / WEEK).open("a", encoding="utf-8") as log:

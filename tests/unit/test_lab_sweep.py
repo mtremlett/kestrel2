@@ -152,9 +152,9 @@ def test_a_week_is_pass_after_pass_and_its_log_shows_how_long_without_stopping(
         n = len(batch.rows(tmp_path / sweep.WEEK))
         now[0] += timedelta(minutes=200 if n == 9 else 5)  # one pass takes over three hours
         idle = {"ran": 0, "kept": 0, "failed": 9}  # a pass that ends holding no cell
-        return (
-            {"error": "OSError: no store"} if n == 100 else idle if n == 30 else {**idle, "ran": 1}
-        )
+        if n == 100:  # a pass that raises is logged, and the week carries on
+            raise OSError("no store")
+        return idle if n == 30 else {**idle, "ran": 1}
 
     def wait(seconds: float) -> None:
         waits.append(seconds)
