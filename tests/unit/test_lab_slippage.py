@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from datetime import date
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 
-from desk import orders
+from desk import bars, keeper, orders
 from desk.broker import Fill
 from desk.lines import LINES
 from desk.store import Bar
@@ -52,3 +53,9 @@ def test_a_fill_of_no_line_is_refused() -> None:
     odd = Fill("z", "o-x-1", "NOSUCH", 1, CLOSE, DAY)
     with pytest.raises(ValueError, match="NOSUCH"):
         slippage.measure([odd], _bars)
+
+
+def test_the_closes_are_read_from_the_daily_database(tmp_path: Path) -> None:
+    with bars.writing(tmp_path / keeper.HOT) as round_:
+        round_.daily(LINE, _bars(LINE))
+    assert slippage.stored(tmp_path)(LINE) == tuple(_bars(LINE))

@@ -14,7 +14,7 @@ from desk.eponymous_clenow_momentum import score
 from desk.store import Bar
 from desk.strategy import ARITHMETIC
 from lab.block_base import Block, Kind
-from lab.blocks import BLOCKS, LogSlope
+from lab.blocks import BLOCKS, LogSlope, VolatilitySize
 
 
 def _fire(name: str, bars: list[tuple[int, int, int]], holding: bool = False, **params: int) -> str:
@@ -145,6 +145,23 @@ def test_the_rolling_log_slope_scores_exactly_as_the_desks_clenow_score() -> Non
             slope.add(closes[-1])
             if slope.full:
                 assert slope.score() == score(closes[-90:])
+
+
+def test_the_sizing_block_sizes_by_the_desks_volatility_rule() -> None:
+    def size(n: int, closes: tuple[int, ...]) -> list[int]:
+        sizer, sized = VolatilitySize(n), []
+        for close in closes:
+            c = Decimal(close)
+            sizer.see(Bar(date(2020, 1, 1), c, c, c, c, 1000))
+            sized.append(sizer.shares(Decimal(1000)))
+        return sized
+
+    assert size(2, (100, 110, 99)) == [0, 0, 71]  # +10%, -10%: 1000 / (99 x 0.1414)
+    assert size(2, (50, 100, 110, 99)) == [0, 0, 14, 71]  # the oldest close drops out
+    with pytest.raises(ValueError, match="positive risk, price and volatility"):
+        size(2, (100, 100, 100))  # a line that never moved has no risk to size by
+    with pytest.raises(ValueError, match="two or more"):
+        VolatilitySize(1)
 
 
 def test_no_lab_module_imports_the_retiring_clenow_desk_module() -> None:
