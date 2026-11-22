@@ -48,9 +48,10 @@ Bars = Callable[[Line], Sequence[Bar]]  #: a line's bars, oldest first
 Kept = dict[tuple[str, ...], tuple[int, tuple[Trade, ...]]]
 
 
-def stored(root: Path) -> Bars:
-    """Each line's bars as research reads them (`universe.read`): the longest unscaled run."""
-    return lambda line: universe.read(root, line).bars
+def stored(path: Path) -> Bars:
+    """Each line's bars as research reads them (`universe.read`) from the history database
+    beside the live file at path: the longest unscaled run."""
+    return lambda line: universe.read(path, line).bars
 
 
 def run(cells: Sequence[Cell], bars: Bars, journal: Path) -> tuple[Outcome, ...]:

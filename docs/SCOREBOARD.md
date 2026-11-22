@@ -973,3 +973,4 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1673 RUNGS L14: rung 7 judges on one clustered set, same answer as deflated.read (copies PASS, strangers DOUBT). |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1676 RUNGS gate pinned: 8 rung modules off the verdict's path may only fall (0 of 8 wired this change). |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1680 RUNGS L20 step 1: market and folds rungs name their input gaps (calendar and rates) before a set runs; wiring next. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | data-door-bars: grid, sweep, batch, transfer, montecarlo, breadth read prices only from the history database; CSV reader deleted. |

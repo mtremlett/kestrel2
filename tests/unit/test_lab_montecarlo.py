@@ -3,12 +3,19 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
+from datetime import timedelta
 from decimal import Decimal
 from pathlib import Path
 
 import pytest
+from test_lab_sweep import BOEING, DAY, START, _keep
 
-from lab import montecarlo
+from desk import bars
+from desk.bars import Source
+from desk.lines import POUND
+from desk.store import Bar
+from lab import cell, ladder, montecarlo, universe
 
 D = Decimal
 
@@ -132,3 +139,20 @@ def test_a_held_error_row_is_passed_over_counted_and_the_good_rows_measured(tmp_
     assert montecarlo.run(home, lambda _job: [D("0.02")]) == (
         "2 resampled now, 0 kept from before, 1 grid error row passed over"
     )
+
+
+def test_a_grid_cell_is_priced_from_the_database_never_a_bar_held_only_in_a_csv(
+    tmp_path: Path,
+) -> None:
+    path, one = tmp_path / bars.LIVE, Decimal("1.3")
+    _keep(tmp_path / "grid" / "store", BOEING, path=path)  # the CSV holds one bar more
+    with bars.writing(path, Source.ARCHIVE) as opened:
+        days = [START - timedelta(n) for n in range(-200, 30)]
+        opened.daily(POUND, [Bar(d, one, one, one, one, 0) for d in days])
+    todo = cell.Cell("breakout_20_10", BOEING, START, DAY)
+    made = cell.run(todo, universe.read(path, BOEING).bars)
+    job = montecarlo.Job("grid", todo, made.key.code + made.key.data, made.trades)
+    priced = montecarlo.priced(tmp_path)
+    assert priced(job) == priced(replace(job, trades=None)), "its trades were made on these bars"
+    with pytest.raises(ladder.FAILED, match="NONE on US"):  # counted as one failure, never a stop
+        priced(replace(job, cell=replace(todo, line=replace(BOEING, symbol="NONE"))))

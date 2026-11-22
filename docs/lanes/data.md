@@ -748,3 +748,6 @@ BLS through its GET endpoint with the key (option: POST body; GET keeps one aski
 
 ### 2026-11-22 — register is a report, not a red (DATA, #1699)
 Options: (a) red when a newest bar came from a replacement, rejected: the archive filling a gap is the design working, red would be noise; (b) report only, chosen.
+
+### 2026-11-22 — one price reader; breadth kept, moved (data-door-bars, non-lane PR)
+Options: (a) delete `breadth` with the CSV reader, as the box said; (b) keep it, read through the door. Chose (b): R-RUNGS-32 owes it a caller, and moving it costs no new code. A line the database lacks raises FileNotFoundError, as a missing CSV did, so the ladder counts the cell as failed (`ladder.FAILED`; widening FAILED to LookupError would swallow KeyError bugs; blind review finding), and breadth leaves such a line out, as before.
