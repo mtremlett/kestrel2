@@ -45,9 +45,10 @@ def test_the_count_of_rungs_built_is_the_rungs_the_ladder_judges_by_not_the_map_
     listed = set(re.findall(r"lab/(\w+)\.py", doc))
     unwired = {n.rpartition(".")[2] for n in rung.found(ladder.RUNGS)[1]} & listed
     unwired |= set(re.findall(r"lab/(\w+)\.py, \S+ - no RUNG", doc))  #: market: `banded` unrun
-    assert (
-        rungs == 12 and built == 12 - len(unwired) == 5
-    )  #: research rungs off the map count for none
+    rows = re.findall(r"^ *(\d+) [^:]+: lab/(\w+)\.py", doc, re.M)
+    judged = {int(n) for n, module in rows if module not in unwired}  #: off-map rungs count none
+    assert judged == {int(n) for n in re.findall(r"Built: ([\d ]+)\.", doc)[0].split()}
+    assert rungs == 12 and built == len(judged)
 
 
 def test_the_index_holds_offsets_only_and_a_cut_line_is_cut_off(tmp_path: Path) -> None:

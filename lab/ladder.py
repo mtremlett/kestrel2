@@ -19,8 +19,8 @@ line (UNRUN). Nothing goes to paper before all eleven.
 THE RUNG MAP (L2): the plan's eleven rungs and easing 4's twelfth, each `n name: module, test`.
 A row's names differ:
 `first` holds 1-3, `market` 4 and 6. Each rung's proof is in its own test; (unbuilt) marks a file
-not yet there; after the dash, what is owed. BUILT: the ladder judges by it (it declares a RUNG;
-a row owing `no RUNG` is not built).
+not yet there; after the dash, what is owed. BUILT, the ladder judges by it: its module declares
+a RUNG, or the ladder runs it by hand (row 10's `pool`); no row owing `no RUNG`. Built: 2 3 5 8 10.
  1 sample size, effective trades: lab/rung_sample.py, tests/unit/test_lab_rung_sample.py
  2 costs charged: lab/rung_costs.py, tests/unit/test_lab_rung_costs.py
  3 a confidence interval: lab/rung_ci.py, tests/unit/test_lab_rung_ci.py
@@ -127,7 +127,7 @@ def cells() -> tuple[Cell, ...]:
 
 
 def rungs_built() -> tuple[int, int]:
-    """The map's rungs the ladder judges by (their module declares a RUNG), and the map's rungs."""
+    """The map's rungs the ladder judges by (a RUNG, or run by hand), and the map's rungs."""
     paragraph = (__doc__ or "").split("THE RUNG MAP")[1].split("\n\n")[0]
     rows = [line for line in paragraph.splitlines() if line.lstrip()[:1].isdigit()]
     mods = {
