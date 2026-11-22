@@ -371,8 +371,13 @@ def test_a_round_trip_pairs_each_sale_with_the_buys_it_closes_in_pounds_after_ev
     assert book.currency_gain(tmp_path, (share, dollar), trips) == Decimal(-25)
     #: the rates are read once for all the trips, never once a trip: SimCity asks every day,
     #: and its deep run hung two hours on one read per trip (22 Nov 19:29, book.py:406)
-    kept, rates_read = book_parts.rates_kept, []
-    monkeypatch.setattr(book_parts, "rates_kept", lambda root: rates_read.append(1) or kept(root))
+    kept, rates_read = book_parts.rates_kept, list[Path]()
+
+    def counted_rates(root: Path) -> dict[tuple[date, str], Decimal]:
+        rates_read.append(root)
+        return kept(root)
+
+    monkeypatch.setattr(book_parts, "rates_kept", counted_rates)
     assert book.currency_gain(tmp_path, (share, dollar), trips * 20) == Decimal(-500)
     assert (
         book.open_currency_gain(tmp_path, (share, dollar), dict.fromkeys("AU", Decimal(50)), MON)
