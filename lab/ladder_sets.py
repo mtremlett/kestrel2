@@ -43,6 +43,7 @@ from lab.batch import Bars
 from lab.cell import Cell
 from lab.ladder import END, FOLDER, START, Kept, Plan, eponymous, run
 from lab.ladder_parts import FAILED, Shared, _made, _resolve
+from lab.published_epon import TESTED
 from lab.rung import Answer, Rates
 
 EPON = Plan("EPON", "set EPON: does an eponymous rule earn on a line the store holds?", "EPON")
@@ -148,6 +149,8 @@ def epon(
     )
     with table.open("a", encoding="utf-8") as out:
         out.write("\n## Survivorship\n\n" + "".join(f"- {note}\n" for note in notes))
+        tested = [f"- {r}: {TESTED[r].said()}\n" for r in rules if r in TESTED]
+        out.write("\n## The authors' tests, none yet reproduced\n\n" + "".join(tested))
     said = f"survivorship: {len(notes)} of {len(lines)} lines not corrected, none guessed"
     passed = sum(any(map(verdict.goes, mine)) for mine in verdict.by_rule(rows, rules).values())
     last_line = f"SET {plan.tag}: {len(rules)} rules, {passed} passed, table {table}"

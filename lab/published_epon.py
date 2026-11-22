@@ -5,11 +5,19 @@ and trades its own known-answer test holds, worked by hand from the rule's own w
 to them by `lab.published.proven`, exactly as the desk's five are; a rule with nothing
 written here is refused. They are a book apart from `published.PUBLISHED`, which is the
 ladder's first set. Zweig's breadth thrust takes data the store does not hold: it is not here.
+
+THE AUTHOR'S TEST (`TESTED`), written down before any run so reproduction can be held to it:
+each rule's market, period and numbers printed, word for word, from the page named, read on
+22 November 2026 and never from memory. What was found is said plainly: the author's own test,
+a replication of the rule as coded (his ruling, 14 November), a test of a different rule (its
+numbers kept, never reproduced), or nothing free, with where it was looked for.
 """
 
 from __future__ import annotations
 
+import enum
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from datetime import date, timedelta
 from decimal import Decimal
 
@@ -330,3 +338,131 @@ EPONYMOUS_PUBLISHED: Mapping[str, Published] = {
         ),
     ),
 }
+
+
+class Found(enum.Enum):
+    """What the search for a rule's published test found."""
+
+    AUTHOR = "the author's own test"
+    SECOND = "a replication of the rule as coded"
+    OTHER = "a test of a different rule, not reproducible"
+    NONE = "no test found free"
+
+
+@dataclass(frozen=True)
+class Printed:
+    """A rule's published test as its page prints it; with none found, where it was looked for."""
+
+    found: Found
+    page: str  #: the address read, or, with nothing found, where it was looked for
+    market: str = ""
+    period: str = ""
+    numbers: str = ""  #: every number, word for word
+
+    def __post_init__(self) -> None:
+        if not self.page.strip():
+            raise ValueError(f"{self.found.value}: no page read and nowhere looked")
+        whole = self.page.startswith("https://") and self.market and self.period and self.numbers
+        if self.found is not Found.NONE and not whole:
+            raise ValueError(f"{self.page}: a test with no address, market, period or numbers")
+
+    @property
+    def reproducible(self) -> bool:
+        """Whether the desk's code can be held to it: the rule as coded, with numbers printed."""
+        return self.found in (Found.AUTHOR, Found.SECOND)
+
+    def said(self) -> str:
+        """The test in one line, for a results table."""
+        if self.found is Found.NONE:
+            return f"{self.found.value} (looked: {self.page})"
+        return f"{self.found.value}: {self.market}, {self.period}: {self.numbers} ({self.page})"
+
+
+_QS = "https://quantifiedstrategies.substack.com/p/"
+_OXFORD = "https://oxfordstrat.com/"
+_NOWHERE = "web search: no rules-based test of this rule published"
+TESTED: Mapping[str, Printed] = {
+    "donchian_channel_breakout": Printed(
+        Found.OTHER,
+        _QS + "donchian-breakout-strategy",
+        "SPY, EFA, EEM, GLD, TLT, DBC on monthly bars (rules paywalled, not Faith's)",
+        "from 2004 (QuantifiedStrategies, 10 August 2026)",
+        "No. of trades: 78; Average gain per trade: 4.9%; Win ratio: 51%; CAGR: 7.5%; "
+        "Max drawdown: -18%",
+    ),
+    "donchian_fade_chop": Printed(Found.NONE, _NOWHERE + " (searches find breakouts only)"),
+    "bollinger_squeeze": Printed(
+        Found.OTHER,
+        "https://articles.stockcharts.com/article/articles-arthurhill-2017-03-systemtrader---"
+        "testing-a-bollinger-band-squeeze-system-for-stocks-in-the-sp-1500-",
+        "S&P 1500 historical members (Arthur Hill: BandWidth under 6%, StochRSI in, RSI out)",
+        "1-January-2000 to 1-March-2017, filled at the next open",
+        "the Win% is below 50% (47%); average gain is more than twice the average loss",
+    ),
+    "darvas_box": Printed(Found.NONE, _NOWHERE + " (educational pages only)"),
+    "clenow_momentum": Printed(
+        Found.OTHER,
+        "https://www.quantconnect.com/forum/discussion/16578/"
+        "quot-stocks-on-the-move-quot-momentum-strategy-by-cabedovestment/",
+        "S&P 500 members ranked by 90-day regression slope times R2, the book's ranking",
+        "2009 until 2024-01-16 (CabedoVestment; the book's own test ran 1994 to 2015)",
+        "CAGR of 8.79% with a maximum drawdown of 24.1%; Win rate 59%",
+    ),
+    "connors_rsi2": Printed(
+        Found.OTHER,
+        "https://backtest.substack.com/p/the-2-period-rsi-a-simple-system",
+        "Nasdaq 100 members, also requiring a close under the 5-day average",
+        "December 2006 through late 2025, filled at the next open (Dave Johnson, March 2026)",
+        "Annual return: 17.84%; Win rate: 64.33%; Average winner: +2.33%; Average loser: "
+        "-3.02%; Max drawdown: 29.15%",
+    ),
+    "connors_percent_b": Printed(
+        Found.NONE, _QS + "larry-connors-b-strategy-bollinger-eb7 (rules and numbers paywalled)"
+    ),
+    "connors_three_day_high_low": Printed(
+        Found.NONE, _QS + "larry-connors-3-day-highlow-method-4f3 (rules and numbers paywalled)"
+    ),
+    "dan_zanger_breakout": Printed(Found.NONE, _NOWHERE + " (interviews only)"),
+    "demark_sequential": Printed(
+        Found.NONE, _OXFORD + "indicators/td-sequential-2/ (a futures test, numbers in images)"
+    ),
+    "faber_tactical": Printed(
+        Found.AUTHOR,
+        "https://mebfaber.com/wp-content/uploads/2016/05/SSRN-id962461.pdf",
+        "S&P 500 total return (Cowles Commission and S&P data before 1971)",
+        "1901-2012, filled at the month's last close (the February 2013 update)",
+        "invested in the market approximately 70% of the time and making less than one "
+        "round-trip trade per year; timing the S&P 500 returned 11.22%; compounded returns "
+        "9.32% and 10.18%; drawdown from 83.66% to 42.24%; Taxes, commissions, and slippage "
+        "are excluded",
+    ),
+    "kell_breakout": Printed(Found.NONE, _NOWHERE + " (interviews only)"),
+    "keltner_channel_trend": Printed(Found.NONE, _NOWHERE + " (the 1960 rule defined only)"),
+    "mansfield_rs_momentum": Printed(Found.NONE, _NOWHERE + " (indicator pages only)"),
+    "minervini_breakout": Printed(
+        Found.OTHER,
+        "https://www.marketinout.com/blog/minervini-trend-template-backtest-markets",
+        "the Trend Template alone on S&P 500 members, sold under the 200-day average",
+        "from 2000 to 19 October 2026, at the close (MarketInOut, October 2026)",
+        "max drawdown: S&P 500 members: 48% against 54% (SPY)",
+    ),
+    "dual_momentum": Printed(
+        Found.NONE,
+        "Antonacci, Absolute Momentum (2014): MSCI US, not the S&P 500, its rows unreadable",
+    ),
+    "weekly_reversal_jegadeesh": Printed(
+        Found.OTHER,
+        "https://econpapers.repec.org/RePEc:bla:jfinan:v:45:y:1990:i:3:p:881-98",
+        "US stocks in decile portfolios on monthly forecasts, not the weekly rule",
+        "1934-87 (Jegadeesh's abstract)",
+        "The difference between the abnormal returns on the extreme decile portfolios over the "
+        "period 1934-87 is 2.49 percent per month",
+    ),
+    "williams_r": Printed(Found.NONE, _NOWHERE + " at -90 and -10"),
+    "weinstein_stage": Printed(Found.NONE, _NOWHERE + " (the method described only)"),
+    "raschke_swing": Printed(
+        Found.NONE, _OXFORD + "?p=5513 (42 futures 1980-2011, numbers in images only)"
+    ),
+}
+"""Each rule's published test as found on 22 November 2026: Faber's alone is its author's own;
+reproduction is held only to a test that is `reproducible`."""
