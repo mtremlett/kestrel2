@@ -8,6 +8,15 @@ settled entries into one short summary entry; git keeps every word.
 
 ## Decisions
 
+### 2026-11-22 — more B5 ranges; the ladder's door (#1564, #1570, #1578, #1582, #1587)
+- His standing ruling ("always go with recommended") keeps rungs-promotion held until R-RUNGS-7 is ticked and a rule has passed the ladder; B5 variants were worked instead, and #1582 fixed the ladder's door (options: change nothing; the owed door fix; touch GRID's or held files, refused by the claim; chose the door fix, a real defect in a RUNGS file).
+- Clenow (#1564): every setting is shared by two blocks. Options: range none; range the score window (60/90/120) and the selling average (50/100/200); range all four (81 variants). Chose the middle: each variant is still a statable rule, nine trials, no change to `lab/variants.py`.
+- Weinstein (#1570): range only `entry.ago` (3/5/10), not the shared 150-day lookback, which would buy over one average and sell under another.
+- Mansfield (#1578): 26/52/78 weeks around the published 52 (13/26/39 would leave 52 off-centre; 78 weeks, 390 sessions, fits the 400-day bound); entry and exit ranged apart.
+- Faber and dual momentum (#1587): entry and exit lookbacks ranged apart (8/10/12 months; 9/12/15), as Mansfield; a mismatched pair is a fair hysteresis variant, counted as a trial.
+- #1582: intraday and scalping keep no results file, so the door hands back their run's code and reads nothing; EPON, first, LEV, VAR unchanged.
+- Blind review skipped on the data-only rows (held by the plateau test); #1570 and #1582 reviewed, nothing blocking.
+
 ### 2026-11-13 to 14 Nov — folded: the first rungs and the lane's early boxes (#65-#206)
 Settled entries folded by the scribe (git keeps every word); each is one decision per box, all taken as the recommended option under his standing ruling of 13 November:
 - **Luck, trials, deflated Sharpe (#98, #91):** a chance multiplied by every trial, one 5% test across the set, bands 0.90 and 0.50, a yearly Sharpe above 2 flagged, one register of every trial ever tried (a dropped candidate stays counted); the test is fixed before any result.
