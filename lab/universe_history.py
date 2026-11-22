@@ -11,6 +11,7 @@ in is never restated. A session with no bar is named, for quality-backfill, neve
 from __future__ import annotations
 
 import json
+import os
 from collections.abc import Iterable
 from datetime import date, timedelta
 from decimal import Decimal
@@ -36,28 +37,28 @@ def fill(path: Path, line: Line, source: Source, given: Iterable[Bar]) -> int:
         return opened.days(line, new)
 
 
-FED = (
-    "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DEXUSUK&cosd=1993-01-01"  #: keyless, public
-)
+FED = "https://api.stlouisfed.org/fred/series/observations?series_id=DEXUSUK&file_type=json"
+KEY = "FRED_API_KEY"  #: handed to the job by the runner's session environment alone
 
 
-def enter_noon(path: Path, table: str) -> int:
-    """The pound's noon rates (FRED's DEXUSUK, a day a line `date,dollars`, a blank for a day with
-    none) on the days before the archive's first pound, a series of its own kind, labelled as
-    such: the archive gives the pound only from December 2003 (R-RUNGS-3). Nothing after that."""
-    first = min(bar.day for bar in bars.daily(path, POUND))
-    rows = (line.split(",") for line in table.splitlines()[1:])
-    given = [(date.fromisoformat(day), Decimal(rate)) for day, rate in rows if rate]
-    return fill(
-        path, POUND, Source.FED_NOON, (Bar(d, r, r, r, r, 0) for d, r in given if d < first)
-    )
+def enter_noon(path: Path, answer: str) -> int:
+    """The pound's noon rates (FRED's DEXUSUK observations as JSON, "." for a day with none) on
+    every day the database holds no pound for: before the archive's first (December 2003), and a
+    day it lacks since, a series of its own kind and label. A day the Fed gave none stays a gap."""
+    rows = json.loads(answer)["observations"]
+    given = [
+        (date.fromisoformat(r["date"]), Decimal(r["value"])) for r in rows if r["value"] != "."
+    ]
+    return fill(path, POUND, Source.FED_NOON, (Bar(d, r, r, r, r, 0) for d, r in given))
 
 
 def noon(path: Path) -> str:
     """The noon rates asked of FRED and let in; one line saying how many days."""
-    with urlopen(FED, timeout=60) as answer:  # noqa: S310 - one fixed public address
+    if not (key := os.environ.get(KEY)):
+        raise KeyError(f"universe_history.noon: {KEY} is not in the session environment")
+    with urlopen(f"{FED}&observation_start=1993-01-01&api_key={key}", timeout=60) as answer:  # noqa: S310 - one fixed public address
         added = enter_noon(path, answer.read().decode("utf-8"))
-    return f"the pound before the archive's: {added} noon-rate days added"
+    return f"the pound's noon rates: {added} days added"
 
 
 def enter_pound(table: Path, path: Path) -> int:

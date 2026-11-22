@@ -46,18 +46,31 @@ def test_the_pound_enters_and_a_second_import_adds_nothing_and_a_missing_session
     assert universe_history.run(path, table, [], END) == "research history: 0 pound days added"
 
 
-def test_the_pounds_noon_rates_fill_only_the_days_before_the_archives_first(tmp_path: Path) -> None:
+def test_the_pounds_noon_rates_fill_every_day_the_archive_lacks_and_a_blank_stays_a_gap(
+    tmp_path: Path,
+) -> None:
     path, table = tmp_path / bars.LIVE, tmp_path / "pound.jsonl"
     table.write_text(json.dumps([DAYS[US][2].isoformat(), "1.30"]) + "\n", encoding="utf-8")
     universe_history.enter_pound(table, path)
-    given = f"observation_date,DEXUSUK\n{DAYS[US][0]},1.50\n{DAYS[US][1]},\n{DAYS[US][2]},1.99\n"
-    assert universe_history.enter_noon(path, given) == 1  # the blank day and the held day: none
+    rows = [(DAYS[US][0], "1.50"), (DAYS[US][1], "."), (DAYS[US][2], "1.99"), (DAYS[US][3], "1.40")]
+    given = json.dumps({"observations": [{"date": str(d), "value": v} for d, v in rows]})
+    assert universe_history.enter_noon(path, given) == 2  # the blank day and the held day: none
     assert universe_history.enter_noon(path, given) == 0
     assert [(b.day, b.close) for b in bars.daily(path, POUND)] == [
         (DAYS[US][0], Decimal("1.50")),
         (DAYS[US][2], Decimal("1.30")),
+        (DAYS[US][3], Decimal("1.40")),
     ]
-    assert bars.sources(path, POUND, bars.DAILY) == {Source.FED_NOON: 1, Source.ARCHIVE: 1}
+    assert bars.sources(path, POUND, bars.DAILY) == {Source.FED_NOON: 2, Source.ARCHIVE: 1}
+    assert universe_history.missing(path, POUND, DAYS[US][3])[:1] == (DAYS[US][1],)
+
+
+def test_the_noon_rates_need_the_key_from_the_session_environment(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv(universe_history.KEY, raising=False)
+    with pytest.raises(KeyError, match="FRED_API_KEY"):
+        universe_history.noon(tmp_path / bars.LIVE)
 
 
 def test_research_reads_the_database_and_names_a_line_it_lacks(tmp_path: Path) -> None:
