@@ -97,7 +97,13 @@ def publish(
     held = pennies(settings.capital * market)
     halts = tuple(h.at for h in halt.on(root, day)), halt.stopped(root, day)
     heat = day_money.heat(root, archive, day)
-    record = Record(day, profit, costs.published(), held, differ, worth, len(ledger), *halts, heat)
+    split = day_money.fx_split(root, archive, day)
+    earned = day_money.idle_interest(root, archive, day, settings.capital, RISK_FREE)
+    fx = None if split is None else pennies(split[0] + split[2])
+    interest = None if earned is None else pennies(earned)
+    record = Record(
+        day, profit, costs.published(), held, differ, worth, len(ledger), *halts, heat, fx, interest
+    )
     if record.stopped is not None:  #: a day nobody sent for has no list (halt.morning)
         _bare(root, day, book_held, unsure, stops)
     book._write(root / RECORDS, [HEADER, *(_row(r) for r in (*kept, record))])
@@ -237,19 +243,11 @@ def _currency(
 ) -> None:
     """BIC-04: what the closed trades so far owe to the currency's move, told apart from what
     they made by trading, and what the open holdings owe it; told only when there is some."""
-    ledger, lines = book.fills(root), tuple(archive)
-    kept, currency = book.rates_kept(root), {line.symbol: line.currency for line in lines}
-    if tell is None or not ledger:
-        return  #: nothing has traded
-    if any((f.day, currency.get(f.symbol)) not in kept for f in ledger):
-        return  #: a fill whose day's rate was never kept cannot be told apart
-    trips = book.round_trips(root, lines)
-    gain = book.currency_gain(root, lines, trips)
-    last = {line.symbol: bars[-1].close for line, bars in archive.items()}
-    today = all((day, money) in kept for money in set(currency.values()))
-    held = book.open_currency_gain(root, lines, last, day) if today else 0
+    split = day_money.fx_split(root, archive, day)
+    if tell is None or split is None:
+        return  #: nothing has traded, or a fill's day's rate was never kept
+    gain, trading, held = split
     if gain or held:
-        trading = sum((t.gross for t in trips), Decimal(0)) - gain
         tell(
             f"currency {day}",
             f"CURRENCY: £{gain} of the gross is the currency, £{trading} trading; "
@@ -270,15 +268,9 @@ def _interest(
 ) -> None:
     """BIC-03: what the capital's idle cash earned at RISK_FREE from the first fill to this day,
     told once a day beside the profit, not in it (golden days stand), only when positive."""
-    ledger, lines = book.fills(root), tuple(archive)
-    kept, currency = book.rates_kept(root), {line.symbol: line.currency for line in lines}
-    first = min((f.day for f in ledger), default=None)
-    if tell is None or first is None:
-        return  #: nothing traded, no idle cash to count
-    if any((f.day, currency.get(f.symbol)) not in kept for f in ledger):
-        return  #: a fill whose day's rate was never kept cannot be priced
-    earned = book.interest(root, lines, settings.capital, RISK_FREE, first, day)
-    if earned > 0:
+    earned = day_money.idle_interest(root, archive, day, settings.capital, RISK_FREE)
+    if tell is not None and earned:
+        first = min(f.day for f in book.fills(root))
         tell(f"interest {day}", f"INTEREST: £{earned:.2f} earned on idle cash since {first}.")
 
 

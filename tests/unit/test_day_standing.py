@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -161,3 +162,29 @@ def test_the_interest_on_idle_cash_is_told_once_a_fill_has_begun_it(tmp_path: Pa
     book.send(tmp_path, broker, Order("o-4", A, 1, *map(Decimal, (50, 1, 45))), ROOM)
     day._interest(tmp_path, BARS, TUE, ROOM, lambda n, w: told.append((n, w)))
     assert [n for n, _ in told] == ["interest 2025-11-11"] and "£2.18" in told[0][1]
+
+
+def test_currency_and_interest_are_read_back_unchanged_and_older_files_still_read(
+    tmp_path: Path,
+) -> None:
+    free = Charges(*[Decimal(0)] * 5)
+    kept = day.Record(MON, Decimal(5), free, Decimal(0), (), Decimal(0), 0, (), 0, None)
+    both = day.Record(
+        TUE,
+        Decimal(7),
+        free,
+        Decimal(0),
+        (),
+        Decimal(0),
+        0,
+        (),
+        0,
+        None,
+        *map(Decimal, ("1.50", "0.25")),
+    )
+    book._write(tmp_path / day.RECORDS, [day.HEADER, *(day._row(r) for r in (kept, both))])
+    assert day.records(tmp_path) == (kept, both)
+    old = [n for n in day.HEADER if n not in ("currency", "interest")]
+    rows: list[Sequence[object]] = [old, [*day._row(kept)[:11], *day._row(kept)[13:]]]
+    book._write(tmp_path / day.RECORDS, rows)
+    assert day.records(tmp_path) == (kept,)
