@@ -9,7 +9,7 @@ beside it: the close is no commission.
 
 A fill of a symbol the desk has no line for is refused; a fill whose session has no bar yet is
 counted as waiting, never dropped silently. Prints one line per line and a line of counts.
-    python -m lab.slippage            reads KESTREL2_DATA's ledger and daily store
+    python -m lab.slippage            reads KESTREL2_DATA's ledger and daily database
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 from pathlib import Path
 
-from desk import book, keeper, orders, store
+from desk import bars, book, keeper, orders
 from desk.broker import Fill
 from desk.lines import LINES, Line
 from desk.store import Bar
@@ -95,14 +95,19 @@ def report(rows: Sequence[Slip], waiting: int) -> str:
     return "\n".join([*lines, f"slippage: {total} fills on {len(rows)} lines, {waiting} waiting"])
 
 
+def stored(home: Path) -> Bars:
+    """A line's daily bars from the store's one daily database, read once per line."""
+    path = bars.files(home / keeper.HOT)[bars.DAILY]
+    return lambda line: bars.daily(path, line)
+
+
 def main(env: Mapping[str, str]) -> int:
     """Measure the ledger under KESTREL2_DATA and print the report."""
     if not env.get("KESTREL2_DATA"):
         sys.exit("slippage: KESTREL2_DATA names no data folder, so there are no fills to read")
     home = Path(env["KESTREL2_DATA"])
     fills = book.fills(home / "desk")
-    read = lambda line: store.read(home / keeper.DAILY / line.venue, line.symbol)  # noqa: E731
-    sys.stdout.write(report(*measure(fills, read)) + "\n")
+    sys.stdout.write(report(*measure(fills, stored(home))) + "\n")
     return 0
 
 
