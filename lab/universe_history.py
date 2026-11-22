@@ -17,13 +17,13 @@ from decimal import Decimal
 from pathlib import Path
 from urllib.request import urlopen
 
-from desk import bars, store, venues
+from desk import bars, venues
 from desk.bars import Source
 from desk.lines import POUND, Line
 from desk.store import Bar
 
 
-def _fill(path: Path, line: Line, source: Source, given: Iterable[Bar]) -> int:
+def fill(path: Path, line: Line, source: Source, given: Iterable[Bar]) -> int:
     """The given bars on days the database holds none for, kept under the source; how many."""
     try:
         held = {bar.day for bar in bars.daily(path, line)}
@@ -48,7 +48,7 @@ def enter_noon(path: Path, table: str) -> int:
     first = min(bar.day for bar in bars.daily(path, POUND))
     rows = (line.split(",") for line in table.splitlines()[1:])
     given = [(date.fromisoformat(day), Decimal(rate)) for day, rate in rows if rate]
-    return _fill(
+    return fill(
         path, POUND, Source.FED_NOON, (Bar(d, r, r, r, r, 0) for d, r in given if d < first)
     )
 
@@ -60,28 +60,12 @@ def noon(path: Path) -> str:
     return f"the pound before the archive's: {added} noon-rate days added"
 
 
-def enter(root: Path, path: Path, line: Line) -> int:
-    """The line's bars in the research store at root into the database at path: those the
-    store's shelf holds as Stooq's, the rest as Yahoo's. A line with no file enters nothing."""
-    folder = root / line.venue
-    if not (folder / f"{line.symbol}.csv").is_file():
-        return 0
-    kept = store.read(folder, line.symbol)
-    shelf = folder / store.HISTORY
-    stooq = (
-        set(store.read(shelf, line.symbol)) if (shelf / f"{line.symbol}.csv").is_file() else set()
-    )
-    return _fill(path, line, Source.ARCHIVE, (b for b in kept if b not in stooq)) + _fill(
-        path, line, Source.MATRIX_DAILY, (b for b in kept if b in stooq)
-    )
-
-
 def enter_pound(table: Path, path: Path) -> int:
     """The ladder's table of the pound's daily closes (one [day, close] a line) into the
     database as its own series, a bar of one price and no volume."""
     rows = map(json.loads, table.read_text(encoding="utf-8").splitlines())
     closes = [(date.fromisoformat(day), Decimal(close)) for day, close in rows]
-    return _fill(path, POUND, Source.ARCHIVE, (Bar(d, c, c, c, c, 0) for d, c in closes))
+    return fill(path, POUND, Source.ARCHIVE, (Bar(d, c, c, c, c, 0) for d, c in closes))
 
 
 def missing(path: Path, line: Line, until: date) -> tuple[date, ...]:
@@ -98,16 +82,13 @@ def missing(path: Path, line: Line, until: date) -> tuple[date, ...]:
     )
 
 
-def run(
-    root: Path, path: Path, table: Path, lines: Iterable[Line], named: Iterable[Line], day: date
-) -> str:
-    """Every line, then the pound, imported; one line saying the bars added and, for the named
-    lines (the yardsticks), the sessions missing before day."""
-    added = sum(enter(root, path, line) for line in lines)
+def run(path: Path, table: Path, named: Iterable[Line], day: date) -> str:
+    """The pound imported; one line saying the days added and, for the named lines (the
+    yardsticks), the sessions missing before day."""
     pounds = enter_pound(table, path)
     gaps = "".join(
         f"; {line.symbol} has no bar on {', '.join(map(str, lost))}"
         for line in named
         if (lost := missing(path, line, day))
     )
-    return f"research history: {added} bars added, {pounds} pound days added{gaps}"
+    return f"research history: {pounds} pound days added{gaps}"
