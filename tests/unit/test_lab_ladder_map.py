@@ -6,9 +6,10 @@ from __future__ import annotations
 
 import json
 import re
+from importlib import import_module
 from pathlib import Path
 
-from lab import ladder, rung
+from lab import ladder
 
 ROOT = Path(__file__).parents[2]
 MODULE, TEST = r"lab/\w+\.py", r"tests/unit/test_lab_\w+\.py"
@@ -37,17 +38,15 @@ def test_the_map_names_twelve_rungs_once_each_to_files_there_or_marked_unbuilt()
     assert not missing, f"named as built and not there (build it, or mark it unbuilt): {missing}"
 
 
-def test_the_count_of_rungs_built_is_the_rungs_the_ladder_judges_by_not_the_map_s_rows() -> None:
-    """A module with its own proof and no RUNG is not built to the end: the ladder wires none of
-    these (R-RUNNER-192), and the count goes up only when a module declares its RUNG."""
-    built, rungs = ladder.rungs_built()
-    doc = (ladder.__doc__ or "").split("THE RUNG MAP")[1]
-    listed = set(re.findall(r"lab/(\w+)\.py", doc))
-    unwired = {n.rpartition(".")[2] for n in rung.found(ladder.RUNGS)[1]} & listed
-    unwired |= set(re.findall(r"lab/(\w+)\.py, \S+ - no RUNG", doc))  #: market: `banded` unrun
-    assert (
-        rungs == 12 and built == 12 - len(unwired) == 5
-    )  #: research rungs off the map count for none
+def test_a_row_is_built_exactly_when_its_module_declares_a_rung_and_the_count_reads_that() -> None:
+    """A row owes `no RUNG` exactly when its module declares none, so the map says built or not
+    as the code does; the count is the modules that declare one (`lab/folds.py` counted as built
+    while declaring none until 22 November)."""
+    doc = (ladder.__doc__ or "").split("THE RUNG MAP")[1].split("\n\n")[0]
+    rows = re.findall(r"lab/(\w+)\.py, \S+( - no RUNG)?", doc)
+    wrong = [m for m, owed in rows if hasattr(import_module(f"lab.{m}"), "RUNG") == bool(owed)]
+    assert not wrong, f"the map's built-or-not disagrees with the module's RUNG: {wrong}"
+    assert ladder.rungs_built() == (4, 12)  #: costs, ci, regimes, cpcv
 
 
 def test_the_index_holds_offsets_only_and_a_cut_line_is_cut_off(tmp_path: Path) -> None:
