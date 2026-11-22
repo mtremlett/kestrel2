@@ -257,6 +257,7 @@ def test_one_weak_soft_rung_no_longer_kills_a_cell_and_one_failed_hard_gate_alwa
     assert said(passes | {"first": Answer.THIN}, 1.0) == "THIN" and said(passes, 2.5) == "STOP"
     assert said({name: a for name, a in passes.items() if name != "shuffle"}, 1.0) is None
     assert said(passes | {"stress": Answer.FAULT}, 1.0) == "FAULT", "a fault in the test"
+    assert said(passes | {"stress": Answer.FAULT, "folds": Answer.THIN}, 1.0) == "THIN"
     weak = dict.fromkeys(verdict.HARD + verdict.SOFT + ("luck",), (Answer.PASS, "")) | {
         "regime": (Answer.DOUBT, ""),
         "luck": (Answer.FAIL, ""),

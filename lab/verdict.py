@@ -117,13 +117,15 @@ def scorecard(answers: Sequence[Answer], yearly_sharpe: float) -> str:
 
 
 def one_answer(rungs: Mapping[str, Answer], yearly_sharpe: float | None) -> str | None:
-    """The cell's one answer: the least HARD gate short of PASS (a soft rung's FAULT is a fault
-    in the test, said as one), else the SOFT rungs' `scorecard`; None while one is unanswered."""
+    """The cell's one answer: the least HARD gate short of PASS, else a SOFT rung's FAULT (a
+    fault in the test, said as one), else the SOFT rungs' `scorecard`; None while unanswered."""
     if not set(HARD + SOFT) <= set(rungs):
         return None
-    least = min(rungs[name] for name in (*HARD, *(n for n in SOFT if rungs[n] is Answer.FAULT)))
+    least = min(rungs[name] for name in HARD)
     if least is not Answer.PASS:
         return least.name
+    if any(rungs[name] is Answer.FAULT for name in SOFT):
+        return Answer.FAULT.name
     return scorecard([rungs[name] for name in SOFT], yearly_sharpe or 0.0)
 
 
