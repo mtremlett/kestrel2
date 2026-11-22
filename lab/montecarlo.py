@@ -30,7 +30,7 @@ from typing import Any, BinaryIO
 from desk.command import CAPITAL
 from desk.lines import LINES, Line
 from desk.orders import Settings
-from lab import batch, cell, ladder, rung, sweep
+from lab import batch, cell, history_bars, ladder, rung, sweep
 from lab.cell import Cell, Record, Trade
 
 ME = "lab.montecarlo"  #: this module as the cell knows it
@@ -229,13 +229,16 @@ def _out(spread: Spread) -> list[str]:
 
 
 def priced(home: Path) -> Gains:
-    """The gains of a job from its line's bars in the data folder and the ladder's rates."""
-    pounds = cache(lambda: ladder.rates(home=home))
-    settings = Settings(CAPITAL)
-    stores = {"ladder": ladder.stored(home), "grid": batch.stored(home / "grid" / "store")}
+    """The gains of a job from its line's bars and the pound, both from the history database alone
+    (`lab/history_bars.py`), whichever source judged it."""
+    pounds = cache(lambda: history_bars.pounds(home))
+    settings, read = Settings(CAPITAL), history_bars.reader(home)
 
     def gains(job: Job) -> Sequence[Decimal] | str:
-        bars = stores[job.source](job.cell.line)
+        try:
+            bars = read(job.cell.line)
+        except LookupError as error:  #: a line the database lacks fails its cell, not the run
+            raise ValueError(f"{job.cell}: {error}") from error
         if job.trades is None:
             record = cell.run(job.cell, bars)
         else:
