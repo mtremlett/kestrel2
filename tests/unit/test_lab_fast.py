@@ -146,3 +146,6 @@ def test_every_row_of_the_spec_book_trades_on_the_fast_engine_as_the_desk_trades
         made = variants.variants(spec) if spec.ranges else ()  # the settings the grid sweeps too
         for each in (spec, *(variant.spec for variant in made)):
             assert fast.held(each, fast.Shared(bars)).tolist() == _desk(each, bars), each.name
+    demark = {"name": "demark_sequential", **book["demark_sequential"]}
+    with pytest.raises(ValueError, match="case 0 gives"):  # a setting, not the book's constant
+        Spec.parse({**demark, "params": {"entry": {"n": 7}, "exit": {"n": 7}}})
