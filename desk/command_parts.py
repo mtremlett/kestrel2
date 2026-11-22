@@ -18,13 +18,14 @@ DOLLARS = (Decimal(1), Decimal(2))  #: the ladder's band for a pound close (desk
 POUND_LOG = "pound.log"  #: the log the preflight reads
 
 
-def rates(root: Path, day: date, broker: Broker | None = None) -> dict[str, Decimal]:  # noqa: ARG001 - command._desk still passes it
+def rates(home: Path, day: date, broker: Broker | None = None) -> dict[str, Decimal]:  # noqa: ARG001 - command._desk still passes it
     """A DAY'S POUNDS PER UNIT OF EACH CURRENCY: the dollar's from the one door for prices, the
-    keeper's store (market_history.db, market_live.db), never the IBKR, the archive or a file
-    asked first; `broker` is no longer asked, and a pound not held fresh is a ValueError (the
-    preflight names it)."""
+    keeper's store in home (market_history.db, market_live.db), never the IBKR, the archive or a
+    file asked first; `broker` is no longer asked, and a pound not held fresh is a ValueError (the
+    preflight names it). Home is named, never guessed from the desk's records: a rehearsal's
+    records sit deeper than the store (Sun 22 Nov 18:00 NO-GO)."""
     try:
-        return {"GBP": Decimal(1), "USD": keeper.pound(root.parent, day)}
+        return {"GBP": Decimal(1), "USD": keeper.pound(home, day)}
     except keeper.Stale as e:
         raise ValueError(str(e)) from e
 

@@ -173,7 +173,7 @@ def main(
     room = Settings(command.CAPITAL)
     worlds = soak(Path(env["KESTREL2_DATA"]), now) if argv == ["--soak"] else QUICK
     worlds = simcity.WORLDS if argv == ["--full"] else worlds
-    rates = command.rates(root, now.date())
+    rates = command.rates(Path(env["KESTREL2_DATA"]), now.date())
     night = within(LIMIT, "the worlds", lambda: simcity.run(root, saved, room, rates, now, worlds))
     block = f" Soak: seeds {worlds[0]}-{worlds[-1]}." if argv == ["--soak"] else ""
     print(night.words() + block)  # noqa: T201 - the command's answer to whoever asked

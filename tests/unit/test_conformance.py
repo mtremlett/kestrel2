@@ -237,7 +237,13 @@ def _world(
             raise TimeoutError(f"{order.order_id}-stop: it has not sold")
         broker.open(MON.date() + timedelta(days=1))
 
-    patch.setattr(command, "rates", lambda _root, _day: FX)
+    patch.setattr(
+        command,
+        "rates",
+        lambda home, _day: FX
+        if home.name not in ("desk", "conformance")
+        else pytest.fail(f"rates given a records folder, not the store's home: {home}"),
+    )
     patch.setattr(
         keeper, "saved", lambda _home, day, lines: ({x: _fetch(x, day) for x in lines}, frozenset())
     )

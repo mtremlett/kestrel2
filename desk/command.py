@@ -112,7 +112,7 @@ def _desk(root: Path, post: messenger.Post, home: Path, broker: Broker | None = 
         root,
         Settings(CAPITAL),
         post,
-        partial(rates, root, broker=broker),
+        partial(rates, home, broker=broker),
         home / keeper.HOT,
         partial(keeper.saved, home),
         paper.Door(paper.DESK),
