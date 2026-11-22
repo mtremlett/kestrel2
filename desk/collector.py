@@ -3,8 +3,8 @@ asks the free tiers the desk already holds a key for, a few dozen calls a day, a
 what they say before any use is made of it, because history a free tier does not keep cannot
 be bought back (BIC-06, DAT-01). Four kinds of fact land in the one store (the long database
 of desk.bars): a PRICE second opinion on each US line's last session (Massive, Tiingo; EODHD one
-London line a day), MACRO series (FRED, BLS, EIA), EARNINGS dates (Finnhub) and NEWS with the moment
-each was published (Finnhub, Marketaux, GNews). Every answer is also kept raw and timestamped,
+London line a day), MACRO series (FRED, BLS, BEA, EIA), EARNINGS dates (Finnhub) and NEWS with
+the moment each was published (Finnhub, Marketaux, GNews). Every answer is also kept raw and timestamped,
 under its source and subject.
 
 A key is read from the environment as <NAME>_API_KEY and goes into an address and nowhere
@@ -162,6 +162,18 @@ def _eia_read(series: str, answer: Any, _: date) -> Iterator[Fact]:
         yield Fact(MACRO, series, row["period"], str(row["value"]))
 
 
+def _bea(key: str, day: date) -> Iterator[tuple[str, str]]:
+    address = "https://apps.bea.gov/api/data/?method=GetData&datasetname=NIPA&TableName=T10101"
+    years = f"{day.year - 1},{day.year}"
+    yield "T10101", f"{address}&Frequency=Q&Year={years}&ResultFormat=JSON&UserID={key}"
+
+
+def _bea_read(table: str, answer: Any, _: date) -> Iterator[Fact]:
+    for row in answer["BEAAPI"]["Results"]["Data"]:
+        if row["LineNumber"] == "1":  # real GDP, percent change on the quarter
+            yield Fact(MACRO, f"{table}-GDP", row["TimePeriod"], row["DataValue"])
+
+
 def _earnings(key: str, day: date) -> Iterator[tuple[str, str]]:
     address = "https://finnhub.io/api/v1/calendar/earnings"
     yield "calendar", f"{address}?from={day}&to={day + AHEAD}&token={key}"
@@ -209,6 +221,7 @@ SOURCES = (
     Source("fred", "FRED", _fred, _fred_read),
     Source("bls", "BLS", _bls, _bls_read),
     Source("eia", "EIA", _eia, _eia_read),
+    Source("bea", "BEA", _bea, _bea_read),
     Source("finnhub", "FINNHUB", _earnings, _earnings_read),
     Source("finnhub-news", "FINNHUB", _finnhub_news, _finnhub_news_read),
     Source("marketaux", "MARKETAUX", _marketaux, _marketaux_read),
