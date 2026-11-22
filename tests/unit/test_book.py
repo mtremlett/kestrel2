@@ -4,7 +4,7 @@ the gate reads, built from every fill. Scene 4 holds the gate's refusal and a cr
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
-from dataclasses import replace
+from dataclasses import astuple, replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -87,6 +87,23 @@ def test_the_book_is_every_fill_the_broker_made_and_the_gate_reads_it(tmp_path: 
     )
     with pytest.raises(ValueError, match="A"):
         book.positions(tmp_path)
+
+
+def test_the_ledger_is_opened_once_until_it_is_written_never_twice_a_call(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """SimCity asks for the fills some forty times a simulated day: a ledger of 2,000 is opened
+    once until it is written, by the desk or anyone else (the deep run's 7200 s, 22 Nov 22:37)."""
+    planted = [Fill(f"x-{n}", f"o-{n}", "A", 1, Decimal(50), MON) for n in range(2000)]
+    book_parts.keep(tmp_path / book.LEDGER, [book.COLUMNS, *map(astuple, planted)])
+    log, was = list[str](), Path.open
+    monkeypatch.setattr(Path, "open", lambda *a, **k: log.__iadd__([a[0].name]) and was(*a, **k))
+    assert all(book.fills(tmp_path) == tuple(planted) for _ in range(40))
+    assert log.count(book.LEDGER) == 1, f"{log.count(book.LEDGER)} opens for 40 asks"
+    book._record(tmp_path, [replace(planted[0], execution_id="y-0")])
+    assert len(book.fills(tmp_path)) == 2001 and log.count(book.LEDGER) == 2, "its write unseen"
+    book_parts.keep(tmp_path / book.LEDGER, [book.COLUMNS, astuple(planted[1])])
+    assert book.fills(tmp_path) == (planted[1],) and log.count(book.LEDGER) == 3, "another's"
 
 
 def test_a_desk_that_died_mid_send_has_what_it_left_working_cancelled_before_it_sends_again(
