@@ -185,13 +185,29 @@ def test_the_days_record_is_the_books_gain_after_every_cost_beside_the_markets(
     #: and five fills' shares worth 11,271.00 for the next day to open from
     first = (DAYS[21], Decimal("-26.27"), pounds[0], Decimal("200.00"), (), Decimal("11271.0"), 5)
     #: no halt, so it counts; and the heat: 221 each to a stop under its fill: A to D 1.05, H 0.9
-    assert astuple(_run(tmp_path, broker, DAYS[21])) == (*first, (), 0, Decimal("1127.10"), True)
+    assert astuple(_run(tmp_path, broker, DAYS[21])) == (
+        *first,
+        (),
+        0,
+        Decimal("1127.10"),
+        Decimal("0.00"),
+        Decimal("0.00"),
+        True,
+    )  #: the currency and the idle cash's interest, kept beside the profit
     with pytest.raises(ValueError, match="the day is over"):  #: the ledger has later fills
         day.run(tmp_path, MARKET, broker, capital, DAYS[19], {"GBP": Decimal(1)})
     assert len(broker.submitted()) == 5, "orders sent on old decisions, for a day that is over"
     #: A to D sold where they closed, and H by its stop at 8: 221 lost, and 27.818 of costs
     last = (DAYS[22], Decimal("-248.82"), pounds[1], Decimal("-98.04"), (), Decimal(0), 10)
-    assert astuple(_run(tmp_path, broker, DAYS[22])) == (*last, (), 0, 0, True)
+    assert astuple(_run(tmp_path, broker, DAYS[22])) == (
+        *last,
+        (),
+        0,
+        0,
+        Decimal("0.00"),
+        Decimal("1.07"),
+        True,
+    )
     with pytest.raises(ValueError, match="VUAG"):  #: a desk given no yardstick has no record
         bare = Pretend(ARCHIVE, {})
         bare.open(DAYS[21])

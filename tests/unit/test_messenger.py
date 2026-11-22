@@ -270,6 +270,12 @@ def test_the_evening_message_tells_the_fills_the_holdings_and_last_record(tmp_pa
         "0 of 10 clean days in a row, since 2026-11-12 did not count."
     )
     assert messenger.evening(traded, NINE, GONE, _posts()) == Delivery(NINE, quiet.name, 1, said)
+    clean = tmp_path / "clean"  # a clean last day: the streak is above 0
+    zero, costs = Decimal(0), Charges(*[Decimal(0)] * 5)
+    kept = [day.Record(date(2026, 11, 12), Decimal(5), costs, zero, (), zero, 0, (), 0)]
+    book._write(clean / day.RECORDS, [day.HEADER, *map(day._row, kept)])
+    told = messenger.evening(clean, NINE, READY, _posts())
+    assert told and "Verdict: counts · 1 of 10 clean days in a row." in told.text
 
 
 def test_each_daily_message_names_the_halts_in_force_beside_the_kill_switch(tmp_path: Path) -> None:
