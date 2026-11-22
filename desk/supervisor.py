@@ -54,6 +54,7 @@ from collections.abc import Callable, Iterator, Sequence
 from contextlib import ExitStack, closing, contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from datetime import time as hhmm
 from functools import partial
 from pathlib import Path
 from threading import Timer
@@ -78,6 +79,7 @@ OVERRUN = 124  #: the code a job's process ends itself with at its time limit
 SAID = 200  #: the most of a job's last words its receipt keeps
 SPELT = "backslashreplace"  #: what of a job's words cannot be read is spelt out, never dropped
 SILENCE = timedelta(hours=1)  #: this long with no job ending well, and the desk was not running
+GATEWAY = (hhmm(1, 55), hhmm(3, 35))  #: UTC, 03:00 in London in either season: bad runs expected
 OWED = timedelta(days=7)  #: how long the desk is to run without him (NS-01)
 HIDDEN = getattr(subprocess, "CREATE_NO_WINDOW", 0)  #: on Windows, no window for a process
 DONE, ENDED = "done", "ended {}: {}"
@@ -159,6 +161,11 @@ def _record(root: Path) -> Iterator[sqlite3.Connection]:
         for table in TABLES:
             record.execute(f"CREATE TABLE IF NOT EXISTS {table}")
         yield record
+
+
+def _restarting(moment: datetime) -> bool:
+    """Whether a run began while the Gateway restarts itself (GATEWAY): a bad one is no fault."""
+    return GATEWAY[0] <= _utc(moment).time() <= GATEWAY[1]
 
 
 def _receipt(row: tuple[str, str, str, str]) -> Receipt:
@@ -254,14 +261,16 @@ def health(root: Path, now: datetime, jobs: Sequence[Job]) -> tuple[str, ...]:
     wrong, in words for him; nothing, and all is well. A job is not being run when its last
     receipt ended longer ago than its interval, every job's time limit and a minute, the
     longest a supervisor that lives can leave it; or ended well after now. A job that is run
-    is named while its last receipt ended badly, with how many have since it last ended well."""
+    is named while its last receipt ended badly, with how many have since it last ended well;
+    runs that began in the Gateway's nightly restart (GATEWAY) are not counted."""
     if not jobs:
         return (NOTHING,)
     patience, now = sum((job.limit for job in jobs), timedelta(seconds=4 * LOOK)), _utc(now)
     wrong = []
     with _record(root) as record:
         for job in jobs:
-            bad = [*map(_receipt, record.execute(BAD, {"job": job.name, "done": DONE}))]
+            ended = map(_receipt, record.execute(BAD, {"job": job.name, "done": DONE}))
+            bad = [run for run in ended if not _restarting(run.began)]
             last = [*map(_receipt, record.execute(LAST, (job.name,)))]
             if not last or not -patience <= now - last[0].ended <= job.every + patience:
                 since = f"since {last[0].ended:%a %d %b %H:%M} UTC" if last else "at all"
