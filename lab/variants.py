@@ -53,6 +53,11 @@ def variants(spec: Spec) -> tuple[Variant, ...]:
     return tuple(made)
 
 
+def family(book: Mapping[str, Spec]) -> tuple[Variant, ...]:
+    """Every variant of every ranged row of the book, row by row in the book's order."""
+    return tuple(made for spec in book.values() if spec.ranges for made in variants(spec))
+
+
 def enter(register: Path, question: str, made: Sequence[Variant]) -> int:
     """All the variants counted as trials under the question, before any is run; the
     question's count after them."""

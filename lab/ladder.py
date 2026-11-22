@@ -354,7 +354,8 @@ def door(env: Mapping[str, str], argv: Sequence[str]) -> int:
     from lab import ladder_sets
 
     code = ladder_sets.main(env, argv)
-    plan = {"first": FIRST, "leveraged": ladder_sets.LEV}.get(argv[0] if argv else "")
+    sets = {"first": FIRST, "leveraged": ladder_sets.LEV, "variants": ladder_sets.VAR}
+    plan = sets.get(argv[0] if argv else "")
     stem = (plan or ladder_sets.EPON).stem
     kept = Kept(Path(env["KESTREL2_DATA"]) / FOLDER / f"{stem}.jsonl")
     kept.compact()  #: once the set is judged, never while a run holds the file
