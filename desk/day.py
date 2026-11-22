@@ -10,7 +10,7 @@ from decimal import Decimal, localcontext
 from functools import partial
 from pathlib import Path
 
-from desk import book, day_money, halt, handpark, intraday, restop, strategy, venues
+from desk import book, day_money, halt, handpark, intraday, paper, restop, strategy, venues
 from desk.broker import Broker, Crash, Restopping
 from desk.day_parts import BEFORE_HEAT as BEFORE_HEAT
 from desk.day_parts import HEADER as HEADER
@@ -47,6 +47,11 @@ from desk.orders import (
 from desk.risk import Standing
 from desk.store import Bar
 from desk.strategy import Action, Decision
+
+#: The runner's time for the desk step (its drive_atjobs) and the margin kept of it: a round sends
+#: at most MAX_ORDERS market orders, each waiting paper.FILL_SECONDS (failure pattern 24).
+STEP_SECONDS, STEP_MARGIN = 900, 60
+MAX_ORDERS = (STEP_SECONDS - STEP_MARGIN) // paper.FILL_SECONDS
 
 
 def run(
@@ -175,7 +180,7 @@ def trade(
     sent = list[book.Sent]()
     try:
         _orders(root, broker, settings, day, tell, killed, decided, due, archive, rates, sent)
-        sent += _zoo(root, broker, day, tell, due, archive, rates) if zoo else []
+        sent += _zoo(root, broker, day, tell, due, archive, rates, sent) if zoo else []
     except (Crash, book.Alarm) as dead:
         _unreached(root, day, decided, sent, dead)
         raise
@@ -481,11 +486,15 @@ def _zoo(
     due: Mapping[str, Line],
     archive: Mapping[Line, Sequence[Bar]],
     rates: Mapping[str, Decimal],
+    desks: Sequence[book.Sent],
 ) -> list[book.Sent]:
     """THE ZOO'S DAILY ROUND, A MACHINERY TEST, NOT EVIDENCE OF AN EDGE (his 22 Nov ruling): after
     the desk's own orders, each zoo daily rule (intraday.ZOO_DAILY) decides on each zoo line due
     today, holding what it bought; a sale sells it, a buy is one share, refused as the desk's are,
-    through the one gate on the zoo's own allowance (ZOO_ROOM, standing of the zoo alone)."""
+    through the one gate on the zoo's own allowance (ZOO_ROOM, standing of the zoo alone). Only
+    MAX_ORDERS in all go to the broker, the desk's own (desks) first; the rest are kept in the
+    day's answers as carried to the next step, never sent."""
+    room = MAX_ORDERS - sum(1 for s in desks if s.asked)
     lines = sorted({ln.symbol for ln in intraday.zoo_lines()} & due.keys())
     held, holders, sent = book.positions(root), _holders(root), list[book.Sent]()
     opened = {f.symbol: f.day for f in book.fills(root) if f.quantity > 0}
@@ -495,6 +504,10 @@ def _zoo(
             with localcontext(strategy.ARITHMETIC):
                 *_, d = strategy._run(name, rule(), symbol, archive[line], last, opened.get(symbol))
             if d.action is Action.HOLD:
+                continue
+            if room <= 0:
+                words = f"{order_id_of(d)}: not sent, carried to the next step (the step's time)"
+                sent.append(book.Sent(order_id_of(d), 0, words, Blocker.BROKER))
                 continue
             made = book.intend(
                 root, order_id_of(d), (d.strategy, d.symbol, d.day), archive[line][-1]
@@ -507,6 +520,7 @@ def _zoo(
                 answer = _zoo_buy(root, broker, d, line, close, day, tell)
             book.chain(root, made, answer)
             sent.append(answer)
+            room -= 1 if answer.asked else 0
     return sent
 
 
