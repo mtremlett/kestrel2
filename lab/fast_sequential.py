@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from lab.block_sequential import BACK, COUNTDOWN, LAG, SETUP
+from lab.block_sequential import BACK, COUNTDOWN, LAG
 from lab.fast_bands import Params
 from lab.grid import Bools, Prices
 
@@ -21,20 +21,21 @@ def _runs(close: list[float], over: bool) -> list[int]:
     return out
 
 
-def sell_setup(p: Prices, params: Params) -> Bools:  # noqa: ARG001 - no settings
-    """Whether the close is the ninth in a row over the close four bars back."""
-    return np.array([run == SETUP for run in _runs(p.close.tolist(), True)], dtype=np.bool_)
+def sell_setup(p: Prices, params: Params) -> Bools:
+    """Whether the close is the `n`th in a row over the close four bars back."""
+    setup = int(params["n"])
+    return np.array([run == setup for run in _runs(p.close.tolist(), True)], dtype=np.bool_)
 
 
-def buy_countdown(p: Prices, params: Params) -> Bools:  # noqa: ARG001 - no settings
-    """Whether the bar is the thirteenth of a buy countdown."""
-    close, low = p.close.tolist(), p.low.tolist()
+def buy_countdown(p: Prices, params: Params) -> Bools:
+    """Whether the bar is the thirteenth of a buy countdown after an `n`-bar buy setup."""
+    close, low, setup = p.close.tolist(), p.low.tolist(), int(params["n"])
     up, down = _runs(close, True), _runs(close, False)
     out, count = [], None
     for n, (rise, fall) in enumerate(zip(up, down, strict=True)):
-        if rise == SETUP:
+        if rise == setup:
             count = None
-        elif fall == SETUP:
+        elif fall == setup:
             count = 0
         elif count is not None and n >= LAG and close[n] <= low[n - LAG]:
             count += 1
