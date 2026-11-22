@@ -21,7 +21,7 @@ from desk import archive, backfill, bars, coverage, history_write, keeper, venue
 from desk.bars import Source
 from desk.lines import LINES, Line
 from desk.spans import EPOCH, FIVE
-from desk.store import Bar
+from desk.store import AGREE, Bar
 from desk.store import _clean as cleaned
 
 
@@ -225,6 +225,18 @@ def register(path: Path, lines: Iterable[Line]) -> tuple[str, list[str]]:
         src.value: sum(s is src for _, s in held) for src in dict.fromkeys(s for _, s in held)
     }
     return ", ".join(f"{name} {n}" for name, n in sorted(counts.items())), replaced
+
+
+def against_record(path: Path, line: Line, record: Bar) -> list[str]:
+    """Red when the store's close for the broker's bar day differs from the broker's close (the
+    price of record) by more than the sources' agreement (store.AGREE),
+    or the store holds no bar for that day."""
+    held = {bar.day: bar for bar in bars.daily(path, line)}.get(record.day)
+    if held is None:
+        return [f"{line.symbol}: no daily bar held for {record.day}, the broker has one"]
+    if abs(held.close - record.close) <= record.close * AGREE:
+        return []
+    return [f"{line.symbol} {record.day}: held close {held.close}, broker's {record.close}"]
 
 
 GOLDEN = ("SPY", "QQQ", "VUAG", "IITU")  #: always green, or the table says why (his 22 Nov)

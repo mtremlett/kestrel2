@@ -261,3 +261,12 @@ def test_the_register_names_the_source_of_each_newest_bar(tmp_path: Path) -> Non
     with bars.writing(path, bars.Source.BACKFILL) as held:
         held.days(SPY, [bar(date(2026, 11, 17))])
     assert quality.register(path, [SPY]) == ("archive, backfilled 1", ["SPY: archive, backfilled"])
+
+
+def test_a_held_close_is_checked_against_the_brokers_price_of_record(tmp_path: Path) -> None:
+    path = seeded(tmp_path, set())
+    held = bar(DAYS[0])
+    assert quality.against_record(path, SPY, held) == []
+    off = Bar(held.day, held.open, held.high, held.low, held.close + 20, 1)
+    assert "held close" in quality.against_record(path, SPY, off)[0]
+    assert "no daily bar" in quality.against_record(path, SPY, bar(date(2026, 11, 20)))[0]
