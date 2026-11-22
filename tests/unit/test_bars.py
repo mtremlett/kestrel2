@@ -20,7 +20,7 @@ import pytest
 from desk import audit, bars
 from desk.bars import Five, Source
 from desk.bars_form import form
-from desk.lines import LINES, Line
+from desk.lines import LINES, REFERENCE, Line
 from desk.spans import Timed
 from desk.store import Bar, Refused
 
@@ -62,7 +62,7 @@ def test_the_store_is_two_databases_long_and_short_and_no_other_file(tmp_path: P
 def test_total_return_is_the_adjusted_twin_of_a_reference_series_else_the_line(
     tmp_path: Path,
 ) -> None:
-    store, ref = tmp_path / "bars.db", next(line for line in LINES if not line.retail)
+    store, ref = tmp_path / "bars.db", REFERENCE[0]
     twin = replace(ref, symbol=ref.symbol + "-ADJUSTED")
     with bars.writing(store) as round_:
         round_.daily(ref, _days(3))
