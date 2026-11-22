@@ -222,7 +222,9 @@ def _state(root: Path) -> str:
             f"{_made('Book', last.profit)} after £{last.costs.total:,.2f} costs\n"
             f"{_made('Holding the market', last.market)}"
         )
-    return f"{now}\n📅 Last day on record {last.day:%a %d %b}{since}\n{told}"
+    run = next((i for i, r in enumerate(reversed(kept)) if not r.counts), len(kept))
+    verdict = f"counts · streak {run}" if last.counts else f"does not count · streak {run}"
+    return f"{now}\n📅 Last day on record {last.day:%a %d %b}{since}\n{told}\n🏁 Verdict: {verdict}"
 
 
 def _gate(root: Path) -> str:
