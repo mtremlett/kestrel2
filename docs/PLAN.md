@@ -226,6 +226,28 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       session raises an alert, and a keeper that misses its slot raises one too (DQ-12,
       DAT-07)
       {id: data-kept-hot; files: desk/keeper.py, tests/unit/test_keeper*.py; after: data-keeper}
+- [ ] **ONE DOOR FOR PRICES, URGENT (his 22 Nov ~10:00, "paramount"; asked before):** every price, close, volume,
+      rate or index level is READ from market_history.db or market_live.db alone, through desk/bars.py (the lab
+      through lab/history_bars.py). A scan of main on 22 Nov found readers of other stores: the grid, sweep, batch,
+      transfer, montecarlo and the research refresh read the `grid/store` CSV files (lab/universe_parts.py:63
+      `store.read`); lab/slippage.py:104 reads `daily/*.csv` (R-DATA-30); the pound comes from `ladder.rates()`'s
+      default `archive.fetch` (lab/ladder.py:209, transfer.py:170), a `ladder/pound.jsonl` table (rung.py:272) and,
+      on the desk, `rates.csv` then IBKR and the archive directly (desk/command_parts.py:36-64). The ladder's own
+      sets already read the database. Card 1, bars: `universe_parts.read` reads `bars.daily` of the history
+      database, keeping its rescale cut, so sweep, batch, transfer and montecarlo follow; slippage reads the database
+      {id: data-door-bars; files: lab/universe_parts.py, lab/slippage.py, tests/unit/test_lab_universe*.py, tests/unit/test_lab_slippage*.py}
+  - [ ] Card 2, the pound: `keeper.pound` is the desk's one rate and `history_bars.pounds` the lab's; `ladder.rates`
+        loses its archive default and its kept table, so every caller passes the database's pounds;
+        `command_parts.rates` asks `keeper.pound`, `rates.csv` stays an audit record and is never read as a source
+        {id: data-door-pound; files: lab/ladder.py, lab/transfer.py, lab/montecarlo.py, lab/rung.py, desk/command_parts.py, tests/unit/test_lab_ladder*.py, tests/unit/test_lab_transfer*.py, tests/unit/test_lab_montecarlo*.py, tests/unit/test_command*.py}
+  - [ ] Card 3, one writer: `universe.nightly` writes into the history database through `bars.writing`, never the
+        CSV store; the Stooq files enter the same way; `store.read`, `faults`, `shelve` and the CSV half of `prepare`
+        are deleted with their tests
+        {id: data-door-writer; files: lab/universe.py, lab/universe_parts.py, lab/universe_history.py, desk/store.py, tests/unit/test_lab_universe*.py, tests/unit/test_store*.py; after: data-door-bars}
+  - [ ] Card 4, the guard: a guard fails when any module outside desk/bars.py, lab/history_bars.py and the named
+        writers (keeper, backfill, archive, collector, history_write) opens a price CSV, JSON table or another
+        database, or calls `archive.fetch` or the broker's history, proven against a planted violation (canon A7)
+        {id: data-door-guard; files: tests/guards/test_one_price_door.py; after: data-door-bars, data-door-pound, data-door-writer}
 - [x] Polite fetching: the archive's limits measured, slow and resumable requests, backing
       off on refusals, raw responses cached, an alert after six hours refused (DAT-08)
       {id: data-polite; files: desk/archive.py, tests/unit/test_archive*.py; after: data-archive-spared}
