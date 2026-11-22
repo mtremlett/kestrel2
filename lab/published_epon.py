@@ -371,8 +371,8 @@ class Printed:
 
     @property
     def candidate(self) -> bool:
-        """Whether reproduction may be held to it: the rule as coded, its numbers printed. It
-        waits for `lab/reproduce.py` to take an eponymous rule and the numbers it prints."""
+        """Whether reproduction may be held to it: the rule as coded, its numbers printed. Its
+        figure goes on file in `lab/reproduce.py` once the desk holds its market and period."""
         return self.found in (Search.AUTHOR, Search.SECOND)
 
     def said(self) -> str:
