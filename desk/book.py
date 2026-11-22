@@ -328,8 +328,18 @@ def dealt(
     old = [fill for fill in ledger if fill.day <= last]
     if len(old) < counted:
         raise ValueError(f"the ledger holds {len(old)} fills by {last}, fewer than the {counted}")
-    cash, costs = Decimal(0), Charges(*(Decimal(0),) * 5)
-    for fill in old[counted:] + [fill for fill in ledger if last < fill.day <= day]:
+    fresh = old[counted:] + [fill for fill in ledger if last < fill.day <= day]
+    return _moved(pounds, fresh, Decimal(0), Charges(*(Decimal(0),) * 5))
+
+
+def _moved(
+    pounds: Callable[[Fill, int], tuple[Decimal, Charges]],
+    ledger: Iterable[Fill],
+    cash: Decimal,
+    costs: Charges,
+) -> tuple[Decimal, Charges]:
+    """The fills' sales less buys and every cost, in pounds, added to cash and costs so far."""
+    for fill in ledger:
         value, fee = pounds(fill, abs(fill.quantity))
         cash, costs = cash + (value if fill.quantity < 0 else -value), costs + fee
     return cash, costs
@@ -421,10 +431,16 @@ def interest(
     root: Path, lines: Iterable[Line], capital: Decimal, annual: Decimal, first: date, last: date
 ) -> Decimal:
     """INTEREST ON IDLE CASH (BIC-03): each day from first to last, the capital less what the
-    ledger has spent by its end (costs too), if positive, earns annual / 365 of itself."""
-    held, total, day = tuple(lines), Decimal(0), first
+    ledger has spent by its end (costs too), if positive, earns annual / 365 of itself. The ledger
+    is read once and its fills added up as the days pass them (#1628: SimCity asks every day)."""
+    pounds, dated = _priced(root, lines), dict[date, list[Fill]]()
+    for fill in fills(root):
+        dated.setdefault(fill.day, []).append(fill)
+    before = (fill for d in sorted(dated) if d < first for fill in dated[d])
+    cash, costs = _moved(pounds, before, Decimal(0), Charges(*(Decimal(0),) * 5))
+    total, day = Decimal(0), first
     while day <= last:
-        cash, costs = dealt(root, held, day, date.min, 0)
+        cash, costs = _moved(pounds, dated.get(day, ()), cash, costs)
         total += max(capital + cash - costs.total, Decimal(0)) * annual / 365
         day += timedelta(days=1)
     return total
