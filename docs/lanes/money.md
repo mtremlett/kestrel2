@@ -726,3 +726,17 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 
 ### 2026-11-21 - Golden run pinned (#1465, TST-21)
 - No new decision. Any later change to a golden figure needs a DECISIONS explanation and his approval (B5).
+
+### 2026-11-22 - Raschke swing kept to the book's rule (#1471, R-RUNNER-333)
+- Options: (a) loosen the rule (close need not be back above, gap 3) to force trades; (b) keep the book's rule and prove it fires. Chose (b): a rule changed to make trades appear is fitting, not fixing. The 239 no-trade lines are most likely short histories.
+
+### 2026-11-22 - Trade story and id chain live in desk/book.py (#1486, #1509)
+- Options: ask for desk/'s 100-file ceiling to rise, or place `told` and `chain` in book.py. Chose book.py (a separate desk/story.py was refused at 101 files): less code, no guard loosened. `chain` keeps one line per decision in story.csv at decision time.
+
+### 2026-11-22 - Gapped stop halts buying (#1504, STP-10)
+- His ruling (Sat 21 Nov 21:33): "Each rule's limit would come from how that rule already decides to sell, not from one number for all five.....i agree to this." Taken as given.
+- Options for the stand-down: (a) halt buying until he lifts it, (b) kill switch, (c) tell only. Chose (a): sales and stops go on; a halt is already the desk's tool. Read in `day._stand_down`, told once per sale. Per-rule hold limits are in strategy files outside the claim, so carded (#1486, #1509, #1516 chose the same: land the piece, card the gap work).
+
+### 2026-11-22 - Peak-fall alert is a constant, alert only (#1516, BIC-05)
+- His words: "a £1,500 (Recommended)". `PEAK_FALL = 1500` in day.py from AG-05; told once per day's orders; buys still go; no WOULD-record in the halt file.
+
