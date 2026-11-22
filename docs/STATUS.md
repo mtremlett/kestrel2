@@ -175,7 +175,7 @@ Intraday round built (#1371, `running._intraday`, `Desk.rules` empty): before an
 - R-RUNNER-410: done in #1264; R-MONEY-58: done in #1267; R-RUNNER-400: done in #1260; R-RUNNER-415: done in #1280
 - R-RUNNER-283: done in #1350; R-RUNNER-348: done in #1366; R-RUNNER-202: done in #1371; R-RUNNER-281: done in #1393
 - R-RUNNER-310: done in #1395; R-RUNNER-394: done in #1403 (stops half is R-PAPER-37); R-RUNNER-395: done in #1406
-- R-MONEY-54: done in #1414; R-MONEY-61: done in #1428
+- R-MONEY-54: done in #1414; R-MONEY-61: done in #1428; R-RUNNER-160: done in #1478 (morning message tells the heat); R-RUNNER-208: done in #1482 (compact phone layout, `pnl.icon` public); R-MONEY-58: last Sale carries `session` in #1472
 
 ### Found, not fixed
 
