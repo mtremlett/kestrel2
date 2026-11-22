@@ -934,7 +934,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         Decision e: no dead rungs; dsr merges into deflated, placebo into shuffle, bootstrap into ci, sample into rung
         1's trade minimum, benchmark into market; wire: each on verdict.judge's path; gate: a ladder test fails when
         any lab/rung_*.py is off that path (rungs_built equals the map)
-        Gate done (#1676): the registry test pins the eight rung modules off the path (benchmark, beta, bootstrap, dsr, placebo, retail, sample, stops); it may only fall.
+        Gate done (#1676): the registry test pins the rung modules off the path, now seven after empty rung_beta.py was folded away (#1740) (benchmark, bootstrap, dsr, placebo, retail, sample, stops); it may only fall.
         Remains: wire or merge each (each needs lab/ladder.py, manifest.toml and its target in the claim; merges need R-RUNGS-29), then pin 'waiting is empty'
         {id: rungs-each-rung; files: lab/rung_*.py, tests/unit/test_lab_rung_*.py; after: rungs-rung-map; waits: R-RUNGS-29}
   - [x] L14 one clustered set of trials for the deflated Sharpe, its spread measured
@@ -949,12 +949,13 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         (the centre of a plateau, canon B6), so a cell with a real edge can pass; a planted edge goes forward
         A rule with no settings is declared NOT APPLICABLE for plateau, reviewed, never UNRUN by default (decision a);
         wire: verdict.judge on every cell; gate: a planted edge goes forward and a no-settings rule is not blocked
-        Step 1 landed (#1660): plateau.Surface and plateau.judged, verdict.judge(surface=); no surface stays UNRUN.
-        Remains: lab/ladder.py and lab/ladder_sets.py build each variant cell's Surface; a rule with no ranges is NOT APPLICABLE (changes test_lab_ladder.py and test_lab_ladder_epon.py, which the claim must name)
+        Step 1 landed (#1660): plateau.Surface and plateau.judged, verdict.judge(surface=); no surface stays UNRUN. Built: `plateau.Fixed` (#1702) and `plateau.of(rule, book, firsts)` builds a cell's Surface or FIXED (#1742).
+        Remains: wire it: lab/ladder.py and lab/ladder_sets.py pass `surface=plateau.of(c.strategy, rulebook.specs(), firsts)` into verdict.judge (changes test_lab_ladder.py and test_lab_ladder_epon.py; the claim must name those four files)
         {id: rungs-plateau-wired; files: lab/plateau.py, lab/verdict.py, tests/unit/test_lab_plateau.py, tests/unit/test_lab_verdict.py}
   - [ ] L18 TRIALS COUNTED HONESTLY: `trials.family` counts every line ever entered and never shrinks (3,435 per
         rule against ~1,017 judged), luck then needs t>=4.6 and no line reaches it (highest 4.36). The family is
         the set's own lines, clustered (L14) and passed into `deflated.read`; a known-answer case pins both bars
+        Step 1 landed (#1714): the luck rung is report-only (`deflated.OWN`), the deflated Sharpe the gate. Remains: lab/verdict.py `every`/`goes` still count the luck rung, the set runners pass clustered trials into `deflated.read`, a known-answer case
         One correction, not two (decision b): the deflated Sharpe on clustered effective trials is the gate, the
         Bonferroni luck rung is report-only, and a rule is also judged on its pooled basket of lines;
         wire: verdict.judge and the set runner; gate: a known-answer case pins the effective trial count and both bars
@@ -971,18 +972,18 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         the rate table, and a fault count over 1% of a set stops its table being published
         Faults are fixed at entry, never in a rung (decision d, the data cards and one door for prices); wire: the
         set runner's pre-flight; gate: a set whose inputs have gaps refuses to start.
-        Step 1 built (#1680): `market.gaps`, `folds.gaps`. Remains: wire them into the set runner's pre-flight
-        (lab/ladder.py) and the 1% publishing stop (lab/ladder_parts.py); claim widened to them (runner ops 92, 22 Nov)
-        {id: rungs-faults-not-answers; files: lab/ladder.py, lab/ladder_parts.py, lab/market.py, lab/folds.py, tests/unit/test_lab_ladder.py, tests/unit/test_lab_market.py, tests/unit/test_lab_folds.py; after: rungs-rung-map}
+        Step 1 built (#1680): `market.gaps`, `folds.gaps`. Step 2 built (#1706): `folds.preflight` (refuses a set with input gaps) and `folds.published` (1% FAULT), both uncalled. Remains: wire them into the set runner's pre-flight
+        and the 1% publishing stop, both in lab/ladder_sets.py (claim must widen to it and its test), then rerun EPON; the gaps themselves are DATA's; claim widened to them (runner ops 92, 22 Nov)
+        {id: rungs-faults-not-answers; files: lab/ladder.py, lab/ladder_parts.py, lab/market.py, lab/folds.py, tests/unit/test_lab_ladder.py, tests/unit/test_lab_market.py, tests/unit/test_lab_folds.py; after: rungs-rung-map; waits: 2026-11-23}
 - [ ] **STRATEGIES AS DATA (his goal: 1,000+ strategies over 1,000+ tickers):**
   - [ ] B1 building blocks written once, each known-answer tested: indicators, entries,
         exits, stops, filters (regime filters among them), sizing. Built: every block has its
-        known answer (#396). Built: the sizing block `VolatilitySize(n)`, by the desk's own `desk.risk.volatility` (#1637). Remains: register it (a SIZE kind in lab/block_base.py, `volatility_size` in `BLOCKS`, the spec and simulator reading it; the claim must widen to those files; manifest line for lab/blocks.py to name sizing). Was: sizing blocks, once the volatility-sizing research settles their form
+        known answer (#396). Built: the sizing block `VolatilitySize(n)`, by the desk's own `desk.risk.volatility` (#1637), now on the one `Block` interface (#1711). Remains: register it (a SIZE kind in lab/block_base.py, `volatility_size` in `BLOCKS`, the spec and simulator reading it; the claim must widen to those files; manifest line for lab/blocks.py to name sizing). Was: sizing blocks, once the volatility-sizing research settles their form
         (coordinator 54, 22 Nov: a research wait, not his: the volatility-sizing contest table is written, R-RUNNER-205, #1481; the session reads it to settle the sizing blocks' form)
-        {id: rungs-blocks; files: lab/blocks.py, tests/unit/test_lab_blocks.py}
+        {id: rungs-blocks; files: lab/blocks.py, tests/unit/test_lab_blocks.py; waits: operator}
   - [ ] B2 a typed Spec, validated on entry: an unknown block or a bad setting is refused
         Remains (R-MONEY-45, #809, #823, #1382): 21 of 21 rules are rows (mansfield_rs_momentum #873, zweig breadth_thrust #1382, both run on ratio bars the caller builds); remains: a caller building Zweig's ratio bars from `lab.universe.breadth` (R-MONEY-35 wiring)
-      {id: rungs-spec; files: lab/spec.py, tests/unit/test_lab_spec.py; after: rungs-blocks; waits: R-MONEY-35}
+      {id: rungs-spec; files: lab/spec.py, tests/unit/test_lab_spec.py; waits: R-MONEY-35}
   - [x] B3 the catalogue, one TOML row per strategy with its source and known-answer case;
         a guard: unique names, known blocks only, a source and a case on every row.
         Built: `lab/catalogue.toml` 24 rows, `Spec.parse` refuses any without (#1078, verified)
@@ -1002,8 +1003,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         {id: rungs-grid-chain; files: lab/ladder_sets.py, lab/ladder_pool.py, tests/unit/test_lab_ladder_pool.py; after: rungs-gate, rungs-b5}
 - [ ] Each indicator known-answer tested against a published reference series (STR-14).
       Built: moving average, Bollinger deviation, Wilder smoothing (#145); true range, RSI gains
-      and losses, channel (#154): five tables, 250 printed numbers; the tables now in lab/published_tables.py and the RSI held to cs-rsi.xls's 19 printed rows (#1640). Remains: the band
-      line (strategy.lower_band, against a printed lower-band column), Supertrend's carried band, a fresh-low table, each table run while a rule is holding. Settled (coordinator 54, 22 Nov: no spend: the published worked examples come from the books already held locally, kestrel2_research/grimes/book_text, as fixtures)
+      and losses, channel (#154): five tables, 250 printed numbers; the tables now in lab/published_tables.py and the RSI held to cs-rsi.xls's 19 printed rows (#1640). Built: the band line held to StockCharts' printed Lower Band, 23 rows (#1707); every table also run while a rule is holding (#1749). Remains: Supertrend's carried band and a fresh-low table, each against a printed worked example from a free source or a book held locally. Settled (coordinator 54, 22 Nov: no spend: the published worked examples come from the books already held locally, kestrel2_research/grimes/book_text, as fixtures)
       {id: rungs-indicators; files: lab/published.py, lab/published_tables.py, manifest.toml,
       tests/unit/test_lab_published*.py}
 - [ ] Before paper: a kill condition declared for each strategy; promotion only after at
@@ -1023,7 +1023,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       figure written down, so that reproduction can run (the old desk's never did, for want
       of the figures); each reproduced on its author's own market first, and only then judged
       on ours. The bar for twenty-one trials is high and most are expected to fail: that is
-      the information (BT-15, STR-14)
+      the information (BT-15, STR-14). Step 1 built (#1721): each rule's published test written down in `published_epon.TESTED` (only Faber has an author's own test); remains: reproduction (`lab/reproduce.py` taking an eponymous rule and CAGR, drawdown, time invested; S&P 500 total-return monthly from 1901)
       {id: rungs-epon-first; files: lab/ladder_sets.py, lab/published_epon.py, tests/unit/test_lab_published_epon.py; after: rungs-trustworthy}
 - [ ] **Published figures without buying books** (his ruling, 14 November): where an
       author's own table is not to be had free, the best published replication found on the
