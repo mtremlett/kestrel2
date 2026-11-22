@@ -14,18 +14,20 @@ Opening range: the session's first OPENING bars of time (30 minutes from its fir
 exceeds EXPANSION times the mean high-low of the session's EARLIER bars, `narrow` otherwise,
 `warming` until MIN_BARS earlier bars of the session exist. Volatility: the deviation of the
 session's returns to date against the earlier sessions' at the same time of day, in thirds.
-No layer feeds any verdict.
+No layer feeds any verdict, and each wins only against the daily label alone (see `contest`).
 """
 
 from __future__ import annotations
 
 import statistics
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import datetime, time, timedelta
 from decimal import Decimal
 
 from desk.rollup import Candle
-from lab.weather import DOWN, UP, WARMING
+from desk.store import Bar
+from lab import weather
+from lab.weather import DOWN, UP, WARMING, Contest, Entry
 
 #: The trend's look-back in bars of the session.
 WINDOW = 20
@@ -138,3 +140,79 @@ def volatility(bars: Sequence[Candle]) -> dict[datetime, str]:
             QUIET if below < len(earlier) else NORMAL if below < 2 * len(earlier) else WILD
         )
     return named
+
+
+def prior(daily: Sequence[Bar], bars: Sequence[Candle]) -> dict[datetime, str]:
+    """Each bar's start under the daily weather of the sessions BEFORE its own: the trend label
+    of the latest daily bar dated before the bar's session, `warming` when there is none. The
+    session's own daily bar is never read (canon B3)."""
+    labels = weather.trend(daily)
+    named: dict[datetime, str] = {}
+    for bar in bars:
+        before = [day for day in labels if day < bar.start.date()]
+        named[bar.start] = labels[max(before)] if before else WARMING
+    return named
+
+
+def _edges(
+    labels: Mapping[datetime, str],
+    bars: Sequence[Candle],
+    good: str,
+    scored: set[datetime],
+    folds: int,
+) -> list[Decimal]:
+    """`weather.edges` on bars: per fold, the mean next-bar return (same session) after `good`
+    bars less the mean of the other labels' means, over the `scored` bars cut into `folds`
+    contiguous slices. A fold with no `good` bar or no other label is refused, never zero."""
+    pairs = [
+        (labels[a.start], b.close / a.close - 1)
+        for a, b in zip(bars, bars[1:], strict=False)
+        if a.start in scored and a.start.date() == b.start.date()
+    ]
+    out = []
+    for k in range(folds):
+        by_name: dict[str, list[Decimal]] = {}
+        for name, ret in pairs[k * len(pairs) // folds : (k + 1) * len(pairs) // folds]:
+            by_name.setdefault(name, []).append(ret)
+        means = {name: Decimal(sum(rets)) / len(rets) for name, rets in by_name.items()}
+        if good not in means or len(means) < 2:
+            raise ValueError(f"fold {k} of {folds} has no {good!r} bar or no other bar to compare")
+        rest = [m for name, m in means.items() if name != good]
+        out.append(means[good] - Decimal(sum(rest)) / len(rest))
+    return out
+
+
+def against_prior(
+    labels: Mapping[datetime, str],
+    good: str,
+    daily: Sequence[Bar],
+    bars: Sequence[Candle],
+    folds: int,
+    trials: int,
+) -> Contest:
+    """A layer's worst fold edge beside the daily label alone's (`up` against the rest), both
+    over the same bars, those where the layer and the daily label are both named."""
+    base = prior(daily, bars)
+    scored = {s for s, name in labels.items() if name != WARMING and base[s] != WARMING}
+    return Contest(
+        min(_edges(labels, bars, good, scored, folds)),
+        min(_edges(base, bars, UP, scored, folds)),
+        trials,
+    )
+
+
+#: The layers contested and each one's good label.
+_LAYERS = (("trend", UP), ("opening range", ABOVE), ("expansion", NARROW), ("volatility", QUIET))
+_READ = (trend, opening_range, expansion, volatility)
+
+
+def contest(daily: Sequence[Bar], bars: Sequence[Candle], folds: int = 5) -> list[Entry]:
+    """Every intraday layer against the daily label alone, the trials the layers tried, a
+    layer that cannot be scored said so in `why` and never read as a loss or a win."""
+    out = []
+    for (name, good), read in zip(_LAYERS, _READ, strict=True):
+        try:
+            out.append(Entry(name, against_prior(read(bars), good, daily, bars, folds, len(_READ))))
+        except ValueError as refusal:
+            out.append(Entry(name, None, str(refusal)))
+    return out
