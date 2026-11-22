@@ -12,7 +12,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from desk import book, halt
+from desk import book, book_parts, halt
 from desk.broker import Broker, Crash, Fault, Fill, Pretend
 from desk.halt import Blocker, Stopped
 from desk.lines import STAMP_DUTY, Line
@@ -369,6 +369,21 @@ def test_a_round_trip_pairs_each_sale_with_the_buys_it_closes_in_pounds_after_ev
     ]
     #: the 10 dollar shares bought at 50 and 0.8 sold at 50 and 0.75: 25 pounds lost to the currency
     assert book.currency_gain(tmp_path, (share, dollar), trips) == Decimal(-25)
+    #: the rates are read once for all the trips, never once a trip: SimCity asks every day,
+    #: and its deep run hung two hours on one read per trip (22 Nov 19:29, book.py:406)
+    kept, rates_read = book_parts.rates_kept, list[Path]()
+
+    def counted_rates(root: Path) -> dict[tuple[date, str], Decimal]:
+        rates_read.append(root)
+        return kept(root)
+
+    monkeypatch.setattr(book_parts, "rates_kept", counted_rates)
+    assert book.currency_gain(tmp_path, (share, dollar), trips * 20) == Decimal(-500)
+    assert (
+        book.open_currency_gain(tmp_path, (share, dollar), dict.fromkeys("AU", Decimal(50)), MON)
+        == 0
+    )
+    assert len(rates_read) == 2, f"{len(rates_read)} reads of the rates, not one a call"
     #: BIC-03: before any fill the whole 3650 pounds is idle, a tenth a year is a pound a day
     early = trips[0].buy.day - timedelta(days=2)
     assert (
