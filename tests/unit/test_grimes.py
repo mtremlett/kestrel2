@@ -179,12 +179,13 @@ def test_a_trade_opened_re_entry_included_starts_its_rule_state_afresh() -> None
     ag04, ag05, ag06 = (
         GRIMES[n]() for n in ("ag04_first_pullback", "ag05_base_spring", "ag06_failure_test")
     )
-    ag04._run = (Decimal(1), Decimal(2), 3)  # type: ignore[attr-defined]
-    ag05._base = (Decimal(1), Decimal(2))  # type: ignore[attr-defined]
-    ag06._near = 1  # type: ignore[attr-defined]
+    vars(ag04)["_run"] = (Decimal(1), Decimal(2), 3)
+    vars(ag05)["_base"] = (Decimal(1), Decimal(2))
+    vars(ag06)["_near"] = 1
     for rule in (ag04, ag05, ag06):
         rule.open(Decimal(90))
-    assert ag04._run is None and ag05._base is None and ag06._near == 0  # type: ignore[attr-defined]
+    left = [vars(ag04)["_run"], vars(ag05)["_base"], vars(ag06)["_near"]]
+    assert left == [None, None, 0]
 
 
 def test_mgmt_parabolic_stop_follows_each_bar_after_two_free_bars() -> None:
