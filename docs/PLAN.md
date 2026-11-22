@@ -832,6 +832,9 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         run in parallel: a planted edge passes; five hundred noise cells pass at about the
         stated rate; a power curve at three effect sizes; a broken copy caught; each defect
         of the old desk's rung audit kept as a case that must fail
+        Decision e: no dead rungs; dsr merges into deflated, placebo into shuffle, bootstrap into ci, sample into rung
+        1's trade minimum, benchmark into market; wire: each on verdict.judge's path; gate: a ladder test fails when
+        any lab/rung_*.py is off that path (rungs_built equals the map)
         {id: rungs-each-rung; files: lab/rung_*.py, tests/unit/test_lab_rung_*.py; after: rungs-rung-map}
   - [ ] L14 one clustered set of trials for the deflated Sharpe, its spread measured
         {id: rungs-clustered-trials; files: lab/trials.py, lab/rung_dsr.py, tests/unit/test_lab_trials_clustered.py; after: rungs-rung-map}
@@ -843,18 +846,28 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
   - [ ] L17 A PASS CAN EXIST: `verdict.UNRUN` names plateau on every cell and `goes()` needs no rung unrun, so
         no cell could ever go forward (blind review 22 Nov 09:2x). Plateau judged on each rule's B5 variants
         (the centre of a plateau, canon B6), so a cell with a real edge can pass; a planted edge goes forward
+        A rule with no settings is declared NOT APPLICABLE for plateau, reviewed, never UNRUN by default (decision a);
+        wire: verdict.judge on every cell; gate: a planted edge goes forward and a no-settings rule is not blocked
         {id: rungs-plateau-wired; files: lab/plateau.py, lab/verdict.py, tests/unit/test_lab_plateau.py, tests/unit/test_lab_verdict.py}
   - [ ] L18 TRIALS COUNTED HONESTLY: `trials.family` counts every line ever entered and never shrinks (3,435 per
         rule against ~1,017 judged), luck then needs t>=4.6 and no line reaches it (highest 4.36). The family is
         the set's own lines, clustered (L14) and passed into `deflated.read`; a known-answer case pins both bars
+        One correction, not two (decision b): the deflated Sharpe on clustered effective trials is the gate, the
+        Bonferroni luck rung is report-only, and a rule is also judged on its pooled basket of lines;
+        wire: verdict.judge and the set runner; gate: a known-answer case pins the effective trial count and both bars
         {id: rungs-trials-live; files: lab/trials.py, lab/deflated.py, tests/unit/test_lab_trials.py, tests/unit/test_lab_deflated.py; after: rungs-clustered-trials}
   - [ ] L19 ONE VERDICT RULE: the eased scorecard (`verdict.scorecard`, MAX_WEAK) is built but never called, so one
         WEAK kills a cell; it is wired as the one answer or deleted, and regime's 30 trades in each half is
         proven fair by a power case (a t=3 edge over 60 trades)
+        Hard gates pre-registered before a run (costs, deflated Sharpe, out-of-sample folds, shuffle) must PASS; regime,
+        market and stress are scored with MAX_WEAK; "lowest of NAMED" is deleted (decision c); wire: verdict.judge;
+        gate: one WEAK soft rung no longer kills a cell, one failed hard gate always does
         {id: rungs-scorecard; files: lab/verdict.py, lab/rung_regimes.py, tests/unit/test_lab_verdict.py, tests/unit/test_lab_rung_regimes.py; after: rungs-plateau-wired}
   - [ ] L20 FAULTS ARE NOT ANSWERS: 6,788 lines read FAULT at market (SPY has no bar on a day, e.g. 2022-09-28) and
         ~5,300 at folds (no pounds-per-USD rate): each rung reads its missing day from the one store's calendar and
         the rate table, and a fault count over 1% of a set stops its table being published
+        Faults are fixed at entry, never in a rung (decision d, the data cards and one door for prices); wire: the
+        set runner's pre-flight; gate: a set whose inputs have gaps refuses to start
         {id: rungs-faults-not-answers; files: lab/market.py, lab/folds.py, tests/unit/test_lab_market.py, tests/unit/test_lab_folds.py; after: rungs-rung-map}
 - [ ] **STRATEGIES AS DATA (his goal: 1,000+ strategies over 1,000+ tickers):**
   - [ ] B1 building blocks written once, each known-answer tested: indicators, entries,
