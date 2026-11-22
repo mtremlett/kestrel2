@@ -221,6 +221,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1628 R-MONEY-66 done: currency and interest kept in the day's record, profit untouched. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1690 money-small step 1: SIZ-10 cap built in the sizer, one test; not yet fed by the day. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1716 money-story part 1 of 3: chain written before send, strangers chained. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1777 money-story: chain now carries asked beside filled. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1796 money-small: gate cap on traded value (SIZ-10) landed, feed and TRD-10 flag open. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1805 money-story done: profit table scene covers all four cuts. |
 
 
 ### DATA
