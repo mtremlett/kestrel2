@@ -10,7 +10,7 @@ from typing import Any
 import pytest
 
 from desk.lines import LINES, Line
-from lab import history_bars, intraday, ladder, ladder_sets, members, verdict
+from lab import history_bars, intraday, ladder, ladder_sets, members, scalping, verdict
 from lab.ladder import END, START
 from lab.members import Change, Record
 
@@ -138,5 +138,8 @@ def test_the_door_takes_intraday_and_refuses_an_unknown_set(
     env = {"KESTREL2_DATA": str(tmp_path)}
     assert ladder_sets.main(env, ["intraday"]) == 0
     assert "SET INTRADAY: stub" in capsys.readouterr().out
-    with pytest.raises(SystemExit, match="intraday"):
+    monkeypatch.setattr(scalping, "judge_set", lambda *_: "SET SCALP: stub")
+    assert ladder_sets.main(env, ["scalping"]) == 0
+    assert "SET SCALP: stub" in capsys.readouterr().out
+    with pytest.raises(SystemExit, match="scalping"):
         ladder_sets.main(env, ["nonsense"])

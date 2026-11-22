@@ -30,6 +30,7 @@ from lab import (
     ladder_pool,
     members,
     rung_retail,
+    scalping,
     tape,
     trials,
     verdict,
@@ -256,19 +257,22 @@ def leveraged(lines: Sequence[Line]) -> tuple[Line, ...]:
 def main(env: Mapping[str, str], argv: Sequence[str] = ()) -> int:
     """Set EPON on every line the research store holds; `first` runs the first set instead and
     `leveraged` set LEV, the trend rules on the leveraged lines; `intraday` set
-    INTRADAY (five-minute rules). All run on the pool (R-RUNNER-110): every core but two."""
+    INTRADAY (five-minute rules), `scalping` set SCALP (one-minute rules). All run on the pool
+    (R-RUNNER-110): every core but two."""
     if not env.get("KESTREL2_DATA"):
         sys.exit("ladder: KESTREL2_DATA names no data folder, so the set has no home")
     home = Path(env["KESTREL2_DATA"])
-    if list(argv) not in ([], ["first"], ["leveraged"], ["intraday"]):
+    if list(argv) not in ([], ["first"], ["leveraged"], ["intraday"], ["scalping"]):
         sys.exit(
             f"ladder: {list(argv)} is no set; the command takes nothing, `first`, `leveraged` "
-            "or `intraday`"
+            "`intraday` or `scalping`"
         )
     make = partial(history_bars.reader, home)
     pounds, held = history_bars.pounds(home), history_bars.lines(home)
     if argv == ["intraday"]:
         said = intraday.judge_set(home, pounds)
+    elif argv == ["scalping"]:
+        said = scalping.judge_set(home, pounds)
     elif argv == ["leveraged"]:
         held = leveraged(held)
         said = epon(home, make(), pounds, held, rules=TREND, go=_pooled(make), plan=LEV)
