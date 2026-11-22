@@ -618,7 +618,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       {id: money-honest; waits: operator; files: desk/day.py, desk/book.py, tests/unit/test_day*.py,
       tests/unit/test_book*.py, desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml;
       after: money-fills}
-- [ ] Currency and interest kept in the day's saved record, beside profit, so a later day
+- [x] Currency and interest kept in the day's saved record, beside profit, so a later day
       reads them back unchanged; no golden day's numbers move (R-MONEY-66, split from
       money-honest by runner ops Sun 22 Nov 08:5x: that box's claim lacked these files and
       ended red twice; its other remains wait on the operator's golden ruling and on lab/).
@@ -969,7 +969,9 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         ~5,300 at folds (no pounds-per-USD rate): each rung reads its missing day from the one store's calendar and
         the rate table, and a fault count over 1% of a set stops its table being published
         Faults are fixed at entry, never in a rung (decision d, the data cards and one door for prices); wire: the
-        set runner's pre-flight; gate: a set whose inputs have gaps refuses to start
+        set runner's pre-flight; gate: a set whose inputs have gaps refuses to start.
+        Step 1 built (#1680): `market.gaps`, `folds.gaps`. Remains: wire them into the set runner's pre-flight
+        (lab/ladder.py) and the 1% publishing stop (lab/ladder_parts.py); needs a card claiming those and test_lab_ladder.py
         {id: rungs-faults-not-answers; files: lab/market.py, lab/folds.py, tests/unit/test_lab_market.py, tests/unit/test_lab_folds.py; after: rungs-rung-map}
 - [ ] **STRATEGIES AS DATA (his goal: 1,000+ strategies over 1,000+ tickers):**
   - [ ] B1 building blocks written once, each known-answer tested: indicators, entries,

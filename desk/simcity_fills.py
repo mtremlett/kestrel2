@@ -108,7 +108,7 @@ def main(env: Mapping[str, str] = os.environ) -> int:
         book.fills(root),
         book.levels(root),
         Settings(command.CAPITAL),
-        command.rates(root, now.date()),
+        command.rates(data, now.date()),
     )
     print(*(m.words() for m in found) or ("every fill replays the same",), sep="\n")  # noqa: T201 - the answer
     return int(bool(found))
