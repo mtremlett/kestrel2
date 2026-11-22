@@ -187,3 +187,14 @@ def test_a_sale_passes_the_gate_only_for_shares_the_book_holds() -> None:
     for bad in ("", "garbage", "20261116-rule", "20261116--P"):
         with pytest.raises(ValueError, match="no strategy can be read"):
             orders.strategy_of(bad)
+
+
+def test_a_holding_stops_at_one_percent_of_traded_value_and_a_thin_gain_is_flagged() -> None:
+    def sized(traded: Decimal | None) -> orders.Order:
+        return orders.size(_buy(PLAIN), PLAIN, Decimal(1), Decimal(1), TEN_K, {}, traded=traded)
+
+    assert sized(Decimal(50_000)).quantity == 500
+    with pytest.raises(orders.Refused):
+        sized(Decimal(50))
+    order = sized(None)
+    assert orders.thin(order, Decimal(10)) and not orders.thin(order, Decimal(1000))

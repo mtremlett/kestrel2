@@ -16,7 +16,7 @@ BUY = DAYS[0]
 
 def _bars(opens: list[int], closes: list[int]) -> tuple[Bar, ...]:
     return tuple(
-        Bar(d, Decimal(o), Decimal(9), Decimal(1), Decimal(c), 1)
+        Bar(d, Decimal(o), Decimal(9), Decimal(1), Decimal(c), 10**9)
         for d, o, c in zip(DAYS, opens, closes, strict=True)
     )
 
