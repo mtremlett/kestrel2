@@ -8,6 +8,15 @@ settled entries into one short summary entry; git keeps every word.
 
 ## Decisions
 
+### 2026-11-22 — more B5 ranges; the ladder's door (#1564, #1570, #1578, #1582, #1587)
+- His standing ruling ("always go with recommended") keeps rungs-promotion held until R-RUNGS-7 is ticked and a rule has passed the ladder; B5 variants were worked instead, and #1582 fixed the ladder's door (options: change nothing; the owed door fix; touch GRID's or held files, refused by the claim; chose the door fix, a real defect in a RUNGS file).
+- Clenow (#1564): every setting is shared by two blocks. Options: range none; range the score window (60/90/120) and the selling average (50/100/200); range all four (81 variants). Chose the middle: each variant is still a statable rule, nine trials, no change to `lab/variants.py`.
+- Weinstein (#1570): range only `entry.ago` (3/5/10), not the shared 150-day lookback, which would buy over one average and sell under another.
+- Mansfield (#1578): 26/52/78 weeks around the published 52 (13/26/39 would leave 52 off-centre; 78 weeks, 390 sessions, fits the 400-day bound); entry and exit ranged apart.
+- Faber and dual momentum (#1587): entry and exit lookbacks ranged apart (8/10/12 months; 9/12/15), as Mansfield; a mismatched pair is a fair hysteresis variant, counted as a trial.
+- #1582: intraday and scalping keep no results file, so the door hands back their run's code and reads nothing; EPON, first, LEV, VAR unchanged.
+- Blind review skipped on the data-only rows (held by the plateau test); #1570 and #1582 reviewed, nothing blocking.
+
 ### 2026-11-13 to 14 Nov — folded: the first rungs and the lane's early boxes (#65-#206)
 Settled entries folded by the scribe (git keeps every word); each is one decision per box, all taken as the recommended option under his standing ruling of 13 November:
 - **Luck, trials, deflated Sharpe (#98, #91):** a chance multiplied by every trial, one 5% test across the set, bands 0.90 and 0.50, a yearly Sharpe above 2 flagged, one register of every trial ever tried (a dropped candidate stays counted); the test is fixed before any result.
@@ -325,3 +334,114 @@ then the break was removed:
 
 ### 2026-11-21 — the stop-rule rung sizes every rival by today's risk (R-RUNNER-408, #1277)
 - Options: a flat risk budget for all rivals; or the budget today's stop risks (10% x leverage). Chose the second so the fixed-stop baseline is unchanged. Trades lacking 21 bars of history, or where any rival buys no share, are dropped for all rivals so the same trades judge every rule. Pre-registration: docs/DECISIONS.md, 21 Nov.
+
+### 2026-11-21 — Zweig's marks are constants (R-MONEY-45, #1382)
+- Zweig's marks (0.40, 0.615, 10 days) are the book's own, not settings, as in the DeMark blocks. Options: params with a Decimal range (needs a new range kind); constants (chosen, smaller).
+
+### 2026-11-21 — the scorecard rule as constants (R-RUNNER-435, #1411)
+- `scorecard` returns PASS, FAIL or STOP; FAULT counts as FAIL. Options: ignore a FAULT; count it as FAIL (chosen: a faulted rung proves nothing). Not yet wired into `judge()`.
+
+### 2026-11-21 — the results file is compacted by the command (R-RUNNER-434, #1420)
+- `Kept.compact()` runs in `door` after the set is judged, not inside `run()`. Options: inside `run` (would erase superseded history an existing test reads, and a run's own file handle); in the command (chosen, safer).
+
+### 2026-11-21 — rung 4's judge moves; the count stays 5 (R-RUNNER-369, #1425)
+- Row 4 now names `lab/market.py`, not a `rung_*` module, so `rungs_built()` would have counted 6 though the ladder still runs `market.judge`, not `banded` (blind review, blocking). Options: (a) accept 6; (b) keep row 4 on the empty rung_beta.py; (c) a row owing `- no RUNG` counts as unbuilt. Chose (c): the published count moves only when the ladder's judging does; the map test pins it at 5 (tightened, not loosened).
+- `market.judge`'s PASS/FAIL rule versus `banded`'s three bands is not unified here (would change verdicts). Found, not fixed.
+
+### 2026-11-21 — Zweig's breadth is one fixed series (R-MONEY-45, #1430)
+- Zweig's blind-test breadth changed from a random series to a fixed one. Options: keep random and add a second fixed walk (more lines, against the unit-test budget), or one fixed series serving both tests (chosen; the future-blind test still cuts it at six random days).
+
+### 2026-11-21 — a done box is closed by a real in-claim change (rungs-tape-cache, #1440, #1445)
+- The box was re-issued though done (pattern 22); an empty pull request is closed by the runner. Options: (a) another empty PR, (b) a real in-claim change landing with the tick, (c) stop. Chose (b): the tape read marked bounded (#1440), the docstring saying why rates are not keyed (#1445).
+
+### 2026-11-21 — opening range breakout sells at the session's last bar (R-RUNNER-198, #1439)
+- A position held at the last bar is sold on that bar (the card's "out at the last bar"), not on the engine's `flat` second-last-bar sale; the rule takes its venue as a constructor argument, default LSE.
+
+### 2026-11-21 — intraday mean reversion band (R-RUNNER-353, #1443)
+- The band includes the current bar, as the daily Bollinger rule does; holding sells when the close is over the middle.
+
+### 2026-11-21 — promotion.killed fails loudly (R-RUNGS-7, #1447)
+- A candidate whose ledger is malformed (a buy before its condition was written) makes `killed` raise. Options: skip it quietly, or fail loudly. Chosen: fail loudly (canon A4); a silent skip would let a killed strategy keep buying.
+
+### 2026-11-21 — where a row's variant ranges live (B5, #1459)
+- Options: (a) each caller passes ranges to `variants`, as before; (b) the row holds them and `Spec.parse` checks them. Chosen (b): the box asks for variants from a row's ranges, and validation happens once at the boundary (canon A2). Plateau's finer rules (three values or more, neighbours a tenth apart) stay in `lab/plateau.py` and bite at `centre`; moving them to entry would make spec import the ladder's chain.
+
+### 2026-11-21 — proving every rule is a row (R-MONEY-45, #1464)
+- Options: (a) a new test (adds unit-test lines, main has no margin); (b) widen the existing parity test to rows and rules together. Chosen (b): zero net lines, one test, the failure names the rule.
+
+### 2026-11-21 — which rows get ranges now (B5, #1469, #1473)
+- RSI-2: options (a) every row whose entry and exit have their own settings; (b) also Faber, Weinstein, dual momentum. Chosen (a): those three publish one lookback shared by entry and exit, so ranging them apart makes six of nine variants rules nobody published and triples the luck count. They wait until `lab/variants.py` can tie two settings to one value.
+- Williams %R: options (a) lookback, (b) the two thresholds, (c) both. Chosen (b): entry and exit share one %R window and ranges allow one setting per block, so varying n in one block would split the window; (c) needs multi-setting ranges.
+
+### 2026-11-21 — one market for the weather table (R-RUNNER-371, #1481)
+- `weather.write` keeps one table, so the ladder job runs it on the US line (SPY) only. Options: SPY only, or a table per venue. Chosen SPY only (smallest step). The test drives `weather_line` directly, since a fixture database is heavy.
+
+### 2026-11-22 — intraday pricing lives beside the rules (R-RUNNER-354, #1488)
+- lab/intraday.py already held the rules and the claim named only it. Options: a new module (outside the claim) or add beside the rules. Chose the second; a later card may split it. No stop is modelled intraday: a 10% stop cannot be reached within a session.
+
+### 2026-11-22 — Keltner's ranges (B5, #1489)
+- Options: (a) 5/10/20 on both bands, as Donchian's row; (b) finer 8/10/12; (c) one band. Chose (a): meaningful spread, published 10 at the centre, nine trials keep the luck bar modest.
+
+### 2026-11-22 — weather names stay up/down (R-RUNNER-372, #1494)
+- `weather.named` keeps up/down so `by_weather` is unchanged. Rejected a new good/bad pair: it touches rung_regimes and verdict for nothing.
+
+### 2026-11-22 — Connors three-day ranges (B5, #1496)
+- Options: (a) entry run 2/3/4 and exit average 3/5/8, nine variants; (b) the 200-day filter too, 27. Chose (a): fewer trials for the luck test, same shape as ranged rows.
+
+### 2026-11-22 — a refused line is a row, not a crash (R-RUNNER-355, #1505)
+- A line whose bars the store cannot serve whole is a row saying "refused" and why. Options: crash the set, skip silently, refuse in the table. Chose the table, so nothing is hidden. Capital is the desk's CAPITAL as in other sets.
+
+### 2026-11-22 — Connors %b ranges (B5, #1503)
+- Options: (a) buy threshold only; (b) buy threshold, run and sale threshold together; (c) every setting incl. band and filter. Chose (b): 27 variants, published 20/3/80 centred; (c) would be 81+ trials and raise the luck bar for nothing.
+
+### 2026-11-22 — manifest line left alone (R-RUNNER-373, #1510)
+- The lanes guard allows only added manifest lines, so lab/history_bars.py's purpose line was not widened. Options: leave it, or loosen the guard. Taken (recommended): leave it; no guard loosened.
+
+### 2026-11-22 — momentum burst source (R-RUNNER-200, #1513)
+- Source: Bonde's momentum burst (a daily-bar idea, adapted to one-minute bars, stated in the docstring). Options: Crabel or Raschke patterns, but none is a one-minute burst. lab/ is 12,531 lines, under the 20,000 phase ceiling in BUDGET.json (the request's 12,000 is stale).
+
+### 2026-11-22 — variants count in the family first (B5, #1507)
+- Options: (a) enter the catalogue's variants into the EPON register now; (b) first make the count read `rule[settings]` names; (c) promotion. Chose (b): (a) would charge four ranged rules for trials never run and change eased verdicts before the grid chain runs them; (c) is held until R-RUNGS-7.
+
+### 2026-11-22 — Turtle Soup ranges (B5, #1521)
+- Lookback 10/20/40 (doubles and halves around 20, as Donchian), age 2/4/6; every age is below the shortest lookback so no variant is empty. Options: rungs-eponymous (needs a passed rule) or a B5 row; chose the row.
+
+### 2026-11-22 — intraday session is the UTC day (R-RUNNER-206, #1520)
+- Options: venue sessions via desk/venues, or the UTC calendar day of bar starts. Chose UTC day (simplest, matches the fixture); window 20 bars (card gave N only). Venue-aware sessions can follow. Promotion held until R-RUNGS-7.
+
+### 2026-11-22 — VWAP distance a fraction (R-RUNNER-356, #1523)
+- Options: fixed price distance, a fraction of VWAP, an ATR multiple. Chose 1% of VWAP: price-scale-free. Source: Berkowitz, Logue and Noser 1988 for VWAP; the rule is ours.
+
+### 2026-11-22 — Jegadeesh ranges, GRID asked for the rule book (B5, #1529)
+- Options: (a) wire variants into the ladder now (needs GRID's `lab/rulebook.py`); (b) enter variants in the register without running them (charges trials never run, breaks B6); (c) range more rows and ask GRID. Chose (c) (R-RUNGS-33). Clash with #1521 on Turtle Soup: kept main's gap [2, 4, 6] (landed, reviewed, passes the plateau test).
+
+### 2026-11-22 — Zanger and Bollinger ranges; rungs-promotion stays held (B5, #1527, #1538)
+- His ruling ("please always go with recommended to avoid waiting for me to attend"): rungs-promotion waits on R-RUNGS-7, so B5 was worked. Options for the next step: (a) wire variants into the grid chain (beyond a card, touches GRID's chain), (b) enter variants in a register now (charges trials never run), (c) one more row's ranges. Chose (c).
+- Zanger: its 50 days and 1.5x volume are the port's own reading, so it most needs neighbours tried; Faber, Weinstein and dual momentum need tied settings, passed over. Bollinger: options (a) its 20 days and 2 deviations, (b) the port's six months and exit, (c) all four. Chose (b): published settings fixed, 9 trials not 81.
+
+### 2026-11-22 — variants counted in their own set (B5, #1530)
+- Options: (a) enter every variant in EPON's register now; (b) a variants set of its own, run by the ladder. Chose (b): the plan names variants as their own family, and charging EPON for unrun variants would change its golden verdicts. Needs the ladder to run a variant cell, so `variants.find` is built here and GRID asked for the rule book half (R-RUNGS-33).
+
+### 2026-11-22 — scalping edge needed is gross of cost (R-RUNNER-357, #1532)
+- `edge_needed` = cost + T_PASS x standard error of the gains, as the request asks the edge needed to pass the cost.
+
+### 2026-11-22 — intraday layers (R-RUNNER-359, R-RUNNER-360, #1531, #1541)
+- Expansion compares a bar with EARLIER bars only (options: include itself; chosen: exclude, so a wide bar cannot dampen its own test). Opening range is time-based (30 min from the session's first bar), so a missing bar cannot shift it.
+- Volatility: MIN_SESSIONS=5, MIN_RETURNS=2; thirds by count of earlier values strictly below (options: interpolated percentiles; chose counts, no interpolation to hide).
+
+### 2026-11-22 — B5 variants, SCALP, intraday contest (#1535, #1543, #1544, #1546, #1550, #1551)
+- Promotion held: his standing ruling ("always go with recommended") keeps rungs-promotion back until R-RUNGS-7 is ticked and a rule has passed the ladder. Options: promotion anyway, B5 variants, rungs-eponymous. Took B5 variants (smallest step, no other lane's file); #1544 only restored SCALP after a conflict.
+- Set VAR has its own register, not EPON's (#1535): 84 extra trials in EPON's would change its luck-corrected verdicts mid-run. Own register keeps EPON's golden verdicts and names the family before it runs (B6).
+- Which settings to range: Kell the breakout length and exit (the 10/20-day averages define the setup); Bollinger squeeze the six-month look-back and exit (this port's reading); Minervini the pivot lookback and exit average, not the trend template (a definition, not a knob); Donchian fade 10/20/40 on both channels, the exit not 80 (a midpoint exit that long is another range). Fewer trials keep the luck bar honest.
+- Blind review skipped on #1543, #1546, #1551 (four to eight lines of data, held by the plateau test, seen failing; ten-minute cards) and on #1550 (card under ten minutes).
+- SCALP (#1544): a rule with no trades on a line shows FAULT (no spread), as INTRADAY does; cost column a dash.
+- Intraday contest (#1550): edges scored on bars where both layer and daily label are named (same bars, a fair contest); scoring is `lab.weather.edges`' rule restated on bar starts; folds are contiguous slices of bar pairs.
+
+### 2026-11-22 — B5 ranges finished, bracket refused (#1591, #1574, #1595, #1604, #1615)
+- Promotion held: his standing ruling ("please always go with recommended to avoid waiting for me to attend") keeps rungs-promotion back until R-RUNGS-7 is ticked and a rule has passed the ladder; B5 was worked instead.
+- Bracket in a row name (#1591): refuse in `Spec.parse` (A2: the bad state cannot be built) rather than a cleverer `variants.find` or leaving it.
+- A setting two places share (#1574): (a) range each place apart (9 trials, six of rules nobody published); (b) a joined key `entry+exit` moving one value in both; (c) leave unranged. Chose (b). On conflicts with #1578 and #1587 it kept the joined key and main's values (Mansfield 130/260/390).
+- Zweig (#1595): range the port's 230-session hold (115/230/345), not Zweig's published thresholds. Blind review skipped (3-line data change under the plateau test).
+- Darvas (#1604): `n` ranged 2/3/4 jointly over entry and stop, both read one set of boxes.
+- DeMark (#1615): range the setup length 9 (7/9/11) shared by entry and exit, not the countdown 13 (nine variants for little gain).
+- Montecarlo (#1597): an error row is skipped before its keys are read, no try/except; a later error row keeps the same cell's earlier good row, since `priced` refuses stale trades.

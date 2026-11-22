@@ -143,6 +143,15 @@ def standing(candidate: Candidate, fills: Iterable[Fill], trips: Iterable[RoundT
     return Standing(candidate, len(trades), bets, profit, killed, answer)
 
 
+def killed(
+    candidates: Iterable[Candidate], fills: Sequence[Fill], trips: Sequence[RoundTrip]
+) -> frozenset[str]:
+    """The strategies whose own kill condition is met on the desk's ledger: the set the day's
+    run is given (`day.trade`'s `killed`), so none of them buys again (R-RUNGS-7)."""
+    standings = (standing(candidate, fills, trips) for candidate in candidates)
+    return frozenset(s.candidate.strategy for s in standings if s.answer is Answer.FAIL)
+
+
 def effective(trades: Sequence[Trade]) -> int:
     """The most trades that can be chosen with no two held on the same day."""
     count, last = 0, date.min

@@ -39,14 +39,15 @@ STALLED = Mock(read=Mock(side_effect=TimeoutError("it stalled")))
 MON = datetime(2026, 11, 16, 8, tzinfo=UTC)  #: a Monday both venues trade; a UK clock is UTC
 HALF, NINE, NAIVE = MON.replace(minute=30), MON.replace(hour=21, minute=5), MON.replace(tzinfo=None)
 PARIS = datetime(2026, 11, 14, 12, tzinfo=timezone(timedelta(hours=1)))  #: a Saturday, on no UTC
+CAP = Decimal(10_000)
 READY = Known(State.READY, gateway.ANSWERED)
 GONE = gateway.known(MON, Mock(side_effect=ConnectionRefusedError))  #: his to look at
-OFF = "Kill: off; halts: none."
-NOTHING = "Held: nothing. No day is on the desk's record yet."
-STOPPED = "As things stand the desk would send NO order today"
+OFF = "🔌 Kill: off · halts: none"
+NOTHING = "📒 Held: nothing\n📅 No day on the desk's record yet"
+STOPPED = "⛔ NOT ready: the desk would send NO order today"
 SILENT = (
-    "THE DESK IS SILENT. Its {} message for {} was owed by {} UK and is not on its delivery "
-    "record at {}. Please look at the PC: the desk may not be running."
+    "🚨 DESK SILENT\n{} message, {}: owed by {} UK, not on the delivery record at {}\n"
+    "Please look at the PC: the desk may not be running"
 )
 
 
@@ -181,14 +182,14 @@ def test_the_morning_message_says_whether_anything_stops_the_desk_today(tmp_path
     clearance._keep(tmp_path, (Check(MON - timedelta(minutes=55), ()),))
     _keep(tmp_path, (None, "8", ("VUSA",)), ("5", "8", ()), ("0", "-0.5", ()))
     told = (
-        "Morning, Mon 16 Nov, 08:00 UK. As things stand the desk is set for today on paper: the "
-        "Gateway answered, today's check of the account named nothing, and the kill switch is "
-        f"off and drilled. {OFF} Held: nothing. The last day on record, Fri 13 Nov: after "
-        "£1,002.00 of costs the book made £0.00; simply holding the market would have lost £0.50."
+        f"🌅 Morning Mon 16 Nov 08:00 UK\n✅ Ready for today (paper)\nGateway answered · account "
+        f"check clean · kill switch off, drilled\n{OFF}\n📒 Held: nothing\n📅 Last day on "
+        f"record Fri 13 Nov\n⚪ Book made £0.00 after £1,002.00 costs\n🔴 Holding the market "
+        "lost £0.50\n🏁 Verdict: does not count · streak 0"
     )
-    sent = messenger.morning(tmp_path, MON, READY, post)
+    sent = messenger.morning(tmp_path, MON, READY, post, CAP)
     assert sent == Delivery(MON, "morning 2026-11-16", 1, told)
-    assert messenger.morning(tmp_path, HALF, GONE, post) == sent  # one a day, as first told
+    assert messenger.morning(tmp_path, HALF, GONE, post, CAP) == sent  # one a day, as first told
     # each thing that would refuse every order today, in the refuser's own words
     stopped, named = tmp_path / "stopped", "AAPL: the broker holds 10, the desk's book 0"
     book.turn(stopped, Switch.DRILLED, MON - timedelta(days=32), "the drill")
@@ -196,13 +197,24 @@ def test_the_morning_message_says_whether_anything_stops_the_desk_today(tmp_path
     clearance._keep(stopped, (Check(MON - timedelta(hours=1), (named,)),))
     _keep(stopped, ("5", "8", ()), (None, "8", ("AAPL", "VUSA")))
     told = (
-        f"Morning, Mon 16 Nov, 08:30 UK. {STOPPED}: the kill switch is on, pulled at 2026-11-15 "
-        "23:00 UTC: his word; the kill switch was not drilled in the last 31 days; today's "
-        f"orders: not sent, the check at 07:00 UTC today named: {named}; {GONE.words} Kill: on, "
-        "pulled at 2026-11-15 23:00 UTC: his word; halts: none. Held: nothing. The last day on "
-        "record, Thu 12 Nov: no profit published, the book is not the broker's on AAPL, VUSA."
+        f"🌅 Morning Mon 16 Nov 08:30 UK\n{STOPPED}\n• the kill switch is on, pulled at "
+        f"2026-11-15 23:00 UTC: his word\n• the kill switch was not drilled in the last 31 days"
+        f"\n• today's orders: not sent, the check at 07:00 UTC today named: {named}"
+        f"\n• {GONE.words.rstrip('.')}\n🔌 Kill: on, pulled at 2026-11-15 23:00 UTC: his word "
+        f"· halts: none\n📒 Held: nothing\n📅 Last day on record Thu 12 Nov\n⏸️ No profit "
+        "published: book differs from broker on AAPL, VUSA\n🏁 Verdict: does not count · streak 0"
     )
-    assert messenger.morning(stopped, HALF, GONE, post) == Delivery(HALF, sent.name, 2, told)
+    assert messenger.morning(stopped, HALF, GONE, post, CAP) == Delivery(HALF, sent.name, 2, told)
+
+
+def test_the_morning_message_tells_the_heat_of_the_last_day_in_pounds_and_share(
+    tmp_path: Path,
+) -> None:
+    costs, none = Charges(*map(Decimal, ("1", "0", "0", "0", "0"))), Decimal(0)
+    kept = day.Record(date(2026, 11, 13), none, costs, none, (), none, 0, heat=Decimal(230))
+    book._write(tmp_path / day.RECORDS, [day.HEADER, day._row(kept)])
+    sent = messenger.morning(tmp_path, MON, READY, _posts(), CAP)
+    assert sent and "heat £230 (2.3%)" in sent.text
 
 
 @pytest.mark.parametrize(
@@ -224,7 +236,7 @@ def test_a_daily_message_is_owed_on_each_day_a_venue_trades_and_never_in_his_nig
     tmp_path: Path, moment: str, owed: bool, trades: bool
 ) -> None:
     now = _at(moment)
-    sent, uk = messenger.morning(tmp_path, now, READY, _posts()), gateway._uk(now)
+    sent, uk = messenger.morning(tmp_path, now, READY, _posts(), CAP), gateway._uk(now)
     assert (sent and (sent.name, sent.at)) == ((f"morning {uk.date()}", now) if owed else None)
     early = now.replace(hour=21, minute=4, second=59) + (now - uk.replace(tzinfo=UTC))
     assert messenger.evening(tmp_path, early, READY, _posts()) is None
@@ -240,7 +252,7 @@ def test_the_evening_message_never_goes_within_five_minutes_of_a_close(tmp_path:
 
 
 def test_the_evening_message_tells_the_fills_the_holdings_and_last_record(tmp_path: Path) -> None:
-    said = f"Evening, Mon 16 Nov, 21:05 UK. The desk's fills today: none. {OFF} {NOTHING}"
+    said = f"🌙 Evening Mon 16 Nov 21:05 UK\n🧾 Fills today: none\n{OFF}\n{NOTHING}"
     quiet = Delivery(NINE, "evening 2026-11-16", 1, said)
     assert messenger.evening(tmp_path / "new" / "desk", NINE, READY, _posts()) == quiet
     traded, fills = tmp_path / "traded", (("VUSA", 10, 13), ("AAPL", 9, 13), ("VUSA", 2, 16))
@@ -248,52 +260,52 @@ def test_the_evening_message_tells_the_fills_the_holdings_and_last_record(tmp_pa
     book._record(traded, [*ledger, Fill("X4", "o", "AAPL", -4, Decimal(81), MON.date())])
     _keep(traded, (None, "8", ("VUSA",)), ("-1234.5", "8", ()))
     said = (
-        "Evening, Mon 16 Nov, 21:05 UK. The paper Gateway was not ready just now, so this is the "
-        f"desk's ledger as last read ({GONE.words[:-1]}). The desk's fills today: bought 2 VUSA, "
-        f"sold 4 AAPL. {OFF} Held: AAPL 5, VUSA 12. The last day on record, Thu 12 Nov, "
-        "with the withheld days before it: after £1,002.00 of costs the book lost £1,234.50; "
-        "simply holding the market would have made £8.00."
+        f"🌙 Evening Mon 16 Nov 21:05 UK\n⚠️ Paper Gateway not ready just now: ledger as last "
+        f"read ({GONE.words[:-1]})\n🧾 Fills today\n🟢 bought 2 VUSA\n🔴 sold 4 AAPL\n"
+        f"{OFF}\n📒 Held: AAPL 5, VUSA 12\n📅 Last day on record Thu 12 Nov (withheld days "
+        f"before it)\n🔴 Book lost £1,234.50 after £1,002.00 costs\n🟢 Holding the market "
+        "made £8.00\n🏁 Verdict: does not count · streak 0"
     )
     assert messenger.evening(traded, NINE, GONE, _posts()) == Delivery(NINE, quiet.name, 1, said)
 
 
 def test_each_daily_message_names_the_halts_in_force_beside_the_kill_switch(tmp_path: Path) -> None:
     halt.call(tmp_path, MON - timedelta(hours=2), "his word")
-    morning = messenger.morning(tmp_path, MON, READY, _posts())
-    assert morning and "Kill: off; halts: in force since 2026-11-16 06:00 UTC." in morning.text
+    morning = messenger.morning(tmp_path, MON, READY, _posts(), CAP)
+    assert morning and "🔌 Kill: off · halts: in force since 2026-11-16 06:00 UTC" in morning.text
     evening = messenger.evening(tmp_path, NINE, READY, _posts())
-    assert evening and "Kill: off; halts: in force since 2026-11-16 06:00 UTC." in evening.text
+    assert evening and "🔌 Kill: off · halts: in force since 2026-11-16 06:00 UTC" in evening.text
 
 
 def test_a_daily_message_not_delivered_by_its_hour_is_told_once(tmp_path: Path) -> None:
     post, late, nearly = _posts(), NINE.replace(minute=47), NINE.replace(minute=29, second=59)
     with pytest.raises(Undelivered):  # asked, and the door did not take it: that is silence too
-        messenger.morning(tmp_path, MON, READY, Mock(side_effect=Undelivered("no network")))
+        messenger.morning(tmp_path, MON, READY, Mock(side_effect=Undelivered("no network")), CAP)
     assert messenger.watch(tmp_path, HALF - timedelta(seconds=1), post) == ()
     assert messenger.watch(tmp_path, _at("2026-11-14 12:00"), post) == ()  # a Saturday owes none
     (alarm,) = messenger.watch(tmp_path, HALF, post)
-    words = SILENT.format("morning", "Mon 16 Nov", "08:30", "08:30")
+    words = SILENT.format("Morning", "Mon 16 Nov", "08:30", "08:30")
     assert alarm == Delivery(HALF, "silence morning 2026-11-16", 1, words)
     assert messenger.watch(tmp_path, nearly, post) == (alarm,)  # no storm
-    words = SILENT.format("evening", "Mon 16 Nov", "21:30", "21:47")
+    words = SILENT.format("Evening", "Mon 16 Nov", "21:30", "21:47")
     missed = Delivery(late, "silence evening 2026-11-16", 2, words)
     assert messenger.watch(tmp_path, late, post) == (alarm, missed)
     # the desk back: its late morning message is delivered, and the morning is silent no more
-    assert messenger.morning(tmp_path, late, READY, post) and post.call_count == 3
+    assert messenger.morning(tmp_path, late, READY, post, CAP) and post.call_count == 3
     assert messenger.watch(tmp_path, late, post) == (missed,)
     # a desk whose messages came by their hours is never called silent, summer or winter
     summer, sunny = tmp_path / "summer", _at("2026-07-01 07:29:59")
     book._record(summer, [Fill("X1", "o", "VUSA", 2, Decimal(80), date(2026, 6, 30))])
     told = (
-        f"Morning, Wed 01 Jul, 08:29 UK. {STOPPED}: the kill switch was not drilled in the last 31 "
-        "days; today's orders: not sent, the paper account has not been checked today, 2026-07-01. "
-        f"{OFF} Held: VUSA 2. No day is on the desk's record yet."
+        f"🌅 Morning Wed 01 Jul 08:29 UK\n{STOPPED}\n• the kill switch was not drilled in the "
+        f"last 31 days\n• today's orders: not sent, the paper account has not been checked "
+        f"today, 2026-07-01\n{OFF}\n📒 Held: VUSA 2\n📅 No day on the desk's record yet"
     )
-    woke = messenger.morning(summer, sunny, READY, post)
+    woke = messenger.morning(summer, sunny, READY, post, CAP)
     assert woke and (woke.name, woke.number, woke.text) == ("morning 2026-07-01", 4, told)
     assert messenger.watch(summer, sunny + timedelta(hours=13), post) == ()  # 21:29:59 there
     (missed,) = messenger.watch(summer, sunny + timedelta(hours=13, seconds=1), post)
-    assert missed.text == SILENT.format("evening", "Wed 01 Jul", "21:30", "21:30")
+    assert missed.text == SILENT.format("Evening", "Wed 01 Jul", "21:30", "21:30")
     assert messenger.watch(summer, sunny + timedelta(hours=15), post) == (missed,)  # at any hour
     assert messenger.evening(summer, sunny + timedelta(hours=13, minutes=30), READY, post)
     assert messenger.watch(summer, sunny + timedelta(hours=15), post) == () and post.call_count == 6
@@ -339,8 +351,8 @@ def test_the_evening_message_names_each_lost_stop_once_and_none_on_a_day_without
     assert said is not None and "Lost stops" not in said.text
     tell = messenger.evening(loud, NINE, READY, _posts())
     assert tell is not None and tell.text.count("B1-stop, selling 5 at 79") == 1
-    assert "Lost stops to put back: B1-stop, selling 5 at 79. " in tell.text
-    early = messenger.morning(loud, _at("2026-11-16T08:05"), READY, _posts())
+    assert "🔻 Lost stops to put back: B1-stop, selling 5 at 79" in tell.text
+    early = messenger.morning(loud, _at("2026-11-16T08:05"), READY, _posts(), CAP)
     assert early is not None and early.text.count("B1-stop, selling 5 at 79") == 1
 
 
@@ -362,8 +374,8 @@ def test_the_evening_message_tells_a_stops_fill_with_its_buy_and_result_after_co
     assert (
         told
         and (
-            f"VUSA's stop filled: 20 sold @ 94.38 (bought 104.92), lost £{-trip.profit:,.2f} after "
-            "costs. The desk's fills today: sold 20 VUSA, sold 3 VUSA."
+            f"🛑 VUSA's stop filled: 20 sold @ 94.38 (bought 104.92)\n🔴 Result lost "
+            f"£{-trip.profit:,.2f} after costs\n🧾 Fills today\n🔴 sold 20 VUSA\n🔴 sold 3 VUSA"
         )
         in told.text
     )

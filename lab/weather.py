@@ -76,6 +76,24 @@ def volatility(bars: Sequence[Bar]) -> dict[date, str]:
     return named
 
 
+def macro(series: Mapping[date, Decimal], days: Sequence[date]) -> dict[date, str]:
+    """Each of `days` as `stormy` when the latest observation of `series` (VIXCLS) before it is
+    above the median of the VOL_RANK observations before that one, else `calm`; `warming` until
+    that many earlier observations exist. An observation is published the day after its day, so
+    day T reads observations dated before T only (canon B3)."""
+    dated = sorted(series)
+    named: dict[date, str] = {}
+    for day in days:
+        known = [series[d] for d in dated if d < day]
+        if len(known) <= VOL_RANK:
+            named[day] = WARMING
+        else:
+            named[day] = (
+                STORMY if known[-1] > statistics.median(known[-VOL_RANK - 1 : -1]) else CALM
+            )
+    return named
+
+
 #: The drawdown layer: the look-back for the high a close is measured against, and how far
 #: below that high is `deep`.
 DD_WINDOW, DD_LIMIT = 252, Decimal("0.10")
@@ -97,6 +115,29 @@ def drawdown(bars: Sequence[Bar]) -> dict[date, str]:
             high = max(closes[n + 1 - DD_WINDOW : n + 1])
             named[bar.day] = DEEP if closes[n] <= high * (1 - DD_LIMIT) else SHALLOW
     return named
+
+
+#: The layers that won on database long (canon B6), by name; empty until a recorded win, and a
+#: layer is added only with its DECISIONS entry and trial count. Only the layers read from a
+#: line's own bars may be named; breadth and macro are market-wide and are handed in, never
+#: read from the cell's line.
+JOINED: tuple[str, ...] = ()
+_OWN_LAYERS = {"volatility": (volatility, CALM), "drawdown": (drawdown, SHALLOW)}
+
+
+def named(bars: Sequence[Bar]) -> dict[date, str]:
+    """Each day as `up` only when the trend is up and every JOINED layer reads its good label,
+    `warming` when the trend or a joined layer is still warming, else `down`. Day T reads bars
+    up to T only (canon B3)."""
+    out = trend(bars)
+    for layer in JOINED:
+        read, good = _OWN_LAYERS[layer]
+        for day, label in read(bars).items():
+            if out[day] == WARMING or label == WARMING:
+                out[day] = WARMING
+            elif label != good:
+                out[day] = DOWN
+    return out
 
 
 def followed(
@@ -191,18 +232,27 @@ class Entry:
 
 
 def contest(
-    market: Sequence[Bar], lines: Mapping[str, Sequence[Bar]], folds: int = 5
+    market: Sequence[Bar],
+    lines: Mapping[str, Sequence[Bar]],
+    folds: int = 5,
+    vix: Mapping[date, Decimal] | None = None,
 ) -> list[Entry]:
     """Run the win-against-trend test over `market` for each built layer with its good label
     (volatility calm, drawdown shallow, breadth broad over `lines`); the trials are the layers
-    tried. A fold a layer cannot score is said so in `why`."""
+    tried. A fold a layer cannot score is said so in `why`; macro (VIXCLS `vix`, stormy against
+    calm) is contested only when handed in, and says `too short` while it is all warming."""
     layers = [
         ("volatility", volatility(market), CALM),
         ("drawdown", drawdown(market), SHALLOW),
         ("breadth", breadth(lines), BROAD),
     ]
+    if vix is not None:
+        layers.append(("macro", macro(vix, [bar.day for bar in market]), CALM))
     out = []
     for name, labels, good in layers:
+        if set(labels.values()) == {WARMING}:
+            out.append(Entry(name, None, "too short"))
+            continue
         try:
             out.append(Entry(name, against_trend(labels, good, market, folds, len(layers))))
         except ValueError as refusal:

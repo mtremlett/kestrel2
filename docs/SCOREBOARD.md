@@ -194,6 +194,30 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1338 R-RUNNER-422 SimCity worlds live in root/worlds/<seed>, emptied as each starts |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1357 R-RUNNER-426 simcity split, 396 to 327 lines |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1067 R-RUNNER-391 resend of a desk-cancelled order as -r1, SimCity coverage held by a fixed scenario |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1330 R-RUNNER-325 SimCity gateway-down scenario: conformance-us refused NOT BEGUN, port closed.
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1405 R-MONEY-54 watch half: crash halt cancels working buys given a door.
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1417 R-RUNNER-418 refactor: day.py 305 lines, small steps in day_parts.
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1437 R-RUNNER-407 part 2, size takes the live price; wiring remains. |
+
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1442 R-RUNNER-252 SimCity worlds gap overnight, scenario in the census. |
+
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1448 R-RUNNER-407 SimCity scene 'a gap down past the stop' added. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1449 money-time-gaps step 2: time stop ages from the book's fill date (STP-11). |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1455 SimCity halt-with-working-buy scenario built (R-RUNNER-335 part). |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1457 money-fills closed by verification; scene 5 pins price-plus-costs, no double count. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1465 golden reference run pinned (TST-21, GOV-09); no scene change. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1468 money-story first step: trades and their profit attribution from the ledger. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1471 R-RUNNER-333 raschke_swing checked against the author's setup, no rule bug, repeat-entry test added. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1486 trade stories (signal strategy and bar read) on the ledger's round trips, in SimCity. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1504 gapped stop halts buying (STP-10); hold limits and money-honest remain. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1509 money-story: decision-time id chain kept per decision; story.csv. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1516 BIC-05 paper alert on a £1,500 fall from the highest point. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1542 money-honest step 1: currency gain apart from trading profit (BIC-04), SimCity-proven. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1560 BIC-03 first step: interest on idle cash in the book. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1569 BIC-04 told on paper (day._currency); interest and Sharpe risk-free rate remain. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1584 money-honest step 2: day tells interest on idle cash at the risk-free rate (BIC-03). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1596 money-honest step: currency on open holdings told (BIC-04), SimCity-checked. |
+
 
 ### DATA
 
@@ -459,6 +483,13 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1301 DATA: 2m/10m rollups from 1m (R-DATA-56 part). |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1305 DATA: 5m rolled from 1m (R-DATA-56). |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1324 DATA: monitor tests made machine-independent. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1365 DATA: R-RUNNER-217 rollup step in backfill order. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1379 DATA: R-RUNNER-352 thin sessions rolled, 1h/4h audited. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1396 R-RUNNER-351: the keeper reads no shelf CSV; `headstart.daily` removed. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1480 DATA R-RUNNER-350 part 3: five timeframes of the old database enter by their marks. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1568 DATA: R-DATA-62, the old desk's 1m rows can enter the store's checks. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1590 docs only: store_scope fold into coverage requested (runner ops, R-DATA-63); no scene moved. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1592 docs only: the same fold request written in STATUS; no scene moved. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
@@ -575,6 +606,11 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1309 PAPER s2 — email fallback wired (R-PAPER-28). |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1350 R-RUNNER-283 done: desk/command.py split (400 to 321 lines), no behaviour change |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1362 R-RUNNER-253 pinned by a test; no product change. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1371 R-RUNNER-202 intraday step round built and tested; no rule trades yet. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1366 R-RUNNER-348 test pinning placing freshness by session; no product change. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1478 R-RUNNER-160 morning heat line. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1482 R-RUNNER-208 compact messages landed; no scene changes. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1472 R-MONEY-58 closed; session set on every Sale. |
 
 ### GRID
 
@@ -606,6 +642,12 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #618 `batch.stored` reads each line through `universe.read` as research does (R-DATA-7, step); R-DATA-10 confirmed done |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #626 no change: R-DATA-10 already on main (#391) |
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #766 R-RUNNER-285 soak folded into the tape (restructuring only). |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1370 grid-week not ticked; a failed cell now names the line that raised it, and the cause of the 2,810 failures is found (old code, new store). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1487 R-RUNNER-362 variants swept as cells. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1555 R-DATA-61 done; grid-week cause traced to a stale clone (R-GRID-8). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1562 grid-week: failure cause found (stale clone), week survives a raising pass. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1563 grid-week: pass log names its failure causes; restart waits on the runner. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1612 grid-week: stale .faults notes swept as phantom tickers, held() filter restored. |
 
 ### RUNGS
 
@@ -837,3 +879,64 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1373 R-RUNNER-432 the ladder's results file streamed, no row held in memory; no scene moved |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1367 R-RUNNER-344 lab owns its YEAR; behaviour unchanged |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1277 R-RUNNER-408 stop-rule rung built and pre-registered, not yet run on EPON |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1382 R-MONEY-45 Zweig is a spec row, 21 of 21 rules in the catalogue; no scene moved |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1411 R-RUNNER-435 scorecard rule as named constants, 1 test |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1420 R-RUNNER-434 ladder results file compacted, cannot grow without bound |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1425 R-RUNNER-369 rung 4's judge has one home in lab/market.py; rungs built still 5 of 12 |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1393 R-RUNNER-281 conformance sized from the desk's store. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1403 R-RUNNER-394 recover records its own cancels (3 lines). |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1406 R-RUNNER-395 round-again built, unit-tested; end-to-end test remains. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1395 R-RUNNER-310 conformance survives a slow reasons read. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1414 R-MONEY-54 a halt in force cancels working buys at the step. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1428 R-MONEY-61 the crash watch gets a paper broker door. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1444 PAPER scribe folds six changes (#1393 to #1428); opens R-PAPER-37. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1429 R-RUNNER-370 regime cut written once, pure restructuring. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1430 R-MONEY-45 all 21 catalogue rows proven to trade as their Python rules. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1439 R-RUNNER-198 opening range breakout built, proven on fixture. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1440 rungs-tape-cache closed: the tape read marked bounded. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1443 R-RUNNER-353 part 2 intraday mean reversion built. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1445 rungs-tape-cache re-issued though done; docstring says why rates aren't keyed. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1447 promotion.killed: the desk's killed set in one call (R-RUNGS-7 lab side). |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1459 B5 a catalogue row carries the ranges its variants try (Donchian 3 x 4), refused on entry if malformed or unsorted. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1464 R-MONEY-45 closed: every eponymous rule is a spec row, pinned both ways. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1469 B5 RSI-2's row carries its variants' ranges (3 x 3), published setting proven the plateau's centre. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1473 B5 Williams %R row ranged, 9 variants centred on its published setting; no scene moved. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1479 R-RUNNER-363 part 2 built (tape key per rule, not per module). |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1481 R-RUNNER-371 weather table written by the ladder job. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1488 R-RUNNER-354 intraday trades priced by the first rung's rule. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1489 B5 Keltner's row ranged, 4 of 24 rows carry variants. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1494 R-RUNNER-372 built, weather.named joins winning layers; none joined yet. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1496 B5 Connors three-day row carries its variants' ranges; scenes unchanged. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1505 R-RUNNER-355 set INTRADAY built and reachable by the ladder's door. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1503 B5 Connors %b ranges, 5 rows ranged, two settings in one place; scenes unchanged. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1510 R-RUNNER-373 macro weather layer built, contested beside the others. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1513 R-RUNNER-200 part 1 of 4 built (momentum burst scalping rule, pure, fixture only). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1507 B5: a rule's variants count in its luck family (trials.family reads `rule[...]` names). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1521 B5: Turtle Soup's row carries 3x3 variant ranges (seven ranged rows). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1520 R-RUNNER-206 part 1 intraday trend layer landed. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1523 R-RUNNER-356 VWAP reversion rule built. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1529 B5: Jegadeesh weekly reversal row ranged; variants still not run (needs R-RUNGS-33). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1527 B5: Zanger's row carries 3x3 variant ranges centred on its published setting (7 ranged rows). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1531 R-RUNNER-359 intraday opening-range and expansion layers built. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1530 B5: a variant's name resolves back to its spec (variants.find), the step the grid chain needs; scenes unchanged. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1532 R-RUNNER-357 round-trip cost and needed edge built. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1538 B5: Bollinger squeeze row carries 3x3 variant ranges, scenes unchanged. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1541 R-RUNNER-360 intraday volatility layer built. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1514 PAPER s2 R-MONEY-56 conformance plan survives one bar-less line. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1535 set VAR's 84 variant trials entered before any runs (B5 caller); scenes unchanged. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1550 intraday layers contested against the daily label, R-RUNNER-361. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1543 B5 ranges on Kell and Bollinger squeeze rows (3x3 each), plateau-centred; scenes unchanged. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1546 Donchian fade row carries 3x3 variant ranges (B5); scenes unchanged. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1544 R-RUNNER-358 set SCALP and its door built (restored after a conflict with set VAR). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1551 Minervini's row has variant ranges, 3x3, centred on the published setting (B5). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1564 Clenow momentum row carries 3x3 variant ranges (B5); scenes unchanged. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1570 Weinstein's row carries variant ranges (ago 3x1), B5. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1578 B5 Mansfield RS row carries variant ranges (9 variants), scenes unchanged. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1582 the ladder's door no longer reports EPON's faults after an intraday or scalping run (+1 test case). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1587 Faber and dual momentum variant ranges (B5), 18 more trials in set VAR. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1591 B5: a catalogue row may not carry a variant's bracket name, so every trial has one name; scenes unchanged. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1574 shared-setting ranges (`entry+exit`); Faber, dual momentum, Mansfield ranged (B5). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1595 Zweig's row carries variant ranges (B5); scenes unchanged. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1597 R-RUNNER-441: montecarlo measures held journals past their error rows and counts them. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1604 Darvas's box ranges its sessions 2/3/4 (B5), 3 more VAR trials. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1615 DeMark's TD Sequential ranges its setup length 7/9/11 in both engines (B5); no scene moved. |

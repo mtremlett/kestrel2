@@ -10,7 +10,18 @@ from typing import Any
 import pytest
 
 from desk.lines import LINES, Line
-from lab import ladder, ladder_sets, members, verdict
+from lab import (
+    history_bars,
+    intraday,
+    ladder,
+    ladder_sets,
+    members,
+    rulebook,
+    scalping,
+    trials,
+    variants,
+    verdict,
+)
 from lab.ladder import END, START
 from lab.members import Change, Record
 
@@ -41,15 +52,17 @@ def test_the_real_lists_trade_a_leaver_only_up_to_its_leaving() -> None:
     assert cell.end < gone.day
 
 
-def _door(home: Path, answers: list[str], monkeypatch: pytest.MonkeyPatch) -> int:
-    """The command on a set whose cells each hold one folds answer."""
+def _door(
+    home: Path, answers: list[str], monkeypatch: pytest.MonkeyPatch, argv: tuple[str, ...] = ()
+) -> int:
+    """The command, given argv, after set EPON's cells each hold one folds answer."""
     rows = [
         {"cell": ["r", f"L{i}"], "rungs": {"folds": [a, "no years"]}} for i, a in enumerate(answers)
     ]
     (home / "ladder").mkdir(parents=True)
     (home / "ladder" / "EPON.jsonl").write_text("".join(json.dumps(r) + chr(10) for r in rows))
     monkeypatch.setattr(ladder_sets, "main", lambda *_: 0)
-    return ladder.door({"KESTREL2_DATA": str(home)}, [])
+    return ladder.door({"KESTREL2_DATA": str(home)}, argv)
 
 
 def test_a_set_whose_cells_all_fault_ends_red_naming_the_rung_and_real_fails_end_green(
@@ -59,6 +72,9 @@ def test_a_set_whose_cells_all_fault_ends_red_naming_the_rung_and_real_fails_end
     assert "FAULT: 3 of 3 cells at rung folds: no years" in capsys.readouterr().out
     assert _door(tmp_path / "b", ["FAIL"] * 3, monkeypatch) == 0
     assert "FAULT" not in capsys.readouterr().out
+    for i, own in enumerate(("intraday", "scalping")):  #: a set with its own table: EPON unread
+        assert _door(tmp_path / f"c{i}", ["FAULT"] * 3, monkeypatch, (own,)) == 0
+        assert "FAULT" not in capsys.readouterr().out
 
 
 def test_a_basket_row_carries_the_market_its_lines_venue_is_set_beside(
@@ -106,3 +122,48 @@ def test_a_set_of_three_rules_writes_three_rows_and_the_cells_file(tmp_path: Pat
     assert "| a | cost | FAIL: dear | 2 of 2 | L0 | no |" in text
     assert "- X: not corrected" in text
     assert len(json.loads(table.with_suffix(".cells.json").read_text())) == 6
+
+
+def test_the_weather_is_written_beside_the_set_naming_its_three_layers(tmp_path: Path) -> None:
+    import math
+    from datetime import timedelta
+    from decimal import Decimal
+
+    from desk.store import Bar
+
+    series = []
+    for n in range(1500):
+        wave = 0.1 * math.sin(n / 37) + (0.04 + 0.03 * math.sin(n / 40)) * math.sin(n / 3)
+        close = Decimal(str(round(100 * math.exp(0.0004 * n + wave), 4)))
+        series.append(Bar(date(2015, 1, 1) + timedelta(days=n), close, close, close, close, 1))
+    held = [Line("AAA", "US", "USD", 1), Line("BBB", "US", "USD", 1)]
+    said = ladder_sets.weather_line(tmp_path, lambda _: series, held)
+    layers = json.loads((tmp_path / "ladder" / "sets" / "weather.json").read_text())["layers"]
+    assert [x["layer"] for x in layers] == ["volatility", "drawdown", "breadth"]
+    assert all(x["worst_fold"] and x["trend_worst_fold"] and x["trials"] == 3 for x in layers)
+    assert said.startswith("weather: volatility ") and said.endswith("; 3 trials")
+    assert said.count("against trend's") == 3
+
+
+def test_the_door_takes_intraday_and_variants_and_refuses_an_unknown_set(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(history_bars, "pounds", lambda _: {})
+    monkeypatch.setattr(history_bars, "lines", lambda _: ())
+    monkeypatch.setattr(intraday, "judge_set", lambda *_: "SET INTRADAY: stub")
+    env = {"KESTREL2_DATA": str(tmp_path)}
+    assert ladder_sets.main(env, ["intraday"]) == 0
+    assert "SET INTRADAY: stub" in capsys.readouterr().out
+    monkeypatch.setattr(scalping, "judge_set", lambda *_: "SET SCALP: stub")
+    assert ladder_sets.main(env, ["scalping"]) == 0
+    assert "SET SCALP: stub" in capsys.readouterr().out
+    made = variants.family(rulebook.specs())  #: every ranged row's variants, each a trial
+    assert len(made) > 12 and len({v.spec.name for v in made}) == len(made)
+    for _ in range(2):  #: entered again, counted once
+        assert ladder.door(env, ["variants"]) == 0  #: VAR's own results, never EPON's
+        said = capsys.readouterr().out
+        assert f"SET VAR: {len(made)} variants entered, {len(made)} trials" in said
+    register = tmp_path / "ladder" / "VAR.trials.jsonl"
+    assert trials.family(register, ladder_sets.VAR.question, "donchian_channel_breakout") == 12
+    with pytest.raises(SystemExit, match="intraday"):
+        ladder_sets.main(env, ["nonsense"])

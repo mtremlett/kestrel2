@@ -15,7 +15,7 @@ from test_placing import ACCOUNT, FILLS
 from test_reports import END
 from test_running import FLAT_, _desk, _step
 
-from desk import book, clearance, paper, running, watch
+from desk import book, clearance, halt, paper, placing, running, watch
 from desk.bars import Five, writing
 from desk.lines import YARDSTICK
 
@@ -34,6 +34,8 @@ def test_every_step_looks_at_the_market_first_and_london_waits_for_its_first_bar
     (call,) = look.call_args_list
     assert call.args[:2] == (desk.root, desk.hot) and call.args[3:] == (open_, desk.post)
     assert list(call.args[2]) == list(desk.held(open_.date())[0])
+    broker = call.kwargs["door"]()  # a crash halt's door builds the paper broker on demand
+    assert isinstance(broker, placing.Paper)
     # its first bar lands: at the next step the round is made, and the look is made before it
     with writing(desk.hot) as round_:
         round_.five(YARDSTICK, [Five(open_ - timedelta(minutes=5), *(Decimal(40),) * 4, 1)])
@@ -67,3 +69,17 @@ def test_the_alarm_of_a_send_that_pulled_the_kill_switch_is_told_in_its_words_on
     (note,) = running.notes(tmp_path)
     assert note.what == "trouble Alarm" and words in note.words
     assert [c.args[0] for c in post.call_args_list].count(note.words) == 1
+
+
+def test_a_halt_in_force_takes_the_working_buys_down_at_the_step(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    desk, _ = _desk(tmp_path, IITU=FLAT_)
+    now = datetime(2026, 12, 1, 8, 1, tzinfo=UTC)
+    cancel = Mock(return_value=())
+    monkeypatch.setattr(placing.Paper, "cancel", cancel)
+    _step(monkeypatch, desk, now, [END], tp.EMPTY)
+    cancel.assert_not_called()  # no halt: nothing is cancelled
+    halt.call(tmp_path, now, "a crash", by=watch.WATCH, his=False)
+    _step(monkeypatch, desk, now + timedelta(minutes=5), [END], tp.EMPTY)
+    cancel.assert_called_once_with()

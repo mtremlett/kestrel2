@@ -699,3 +699,57 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 
 ### 2026-11-21 - SimCity coverage by a fixed, draw-free scenario (#1067, R-RUNNER-391)
 - Options: (a) another seed, (b) reordered draws, (c) a new scenario "a stop is moved and a sale is weighed against the gap limit" (Pretend.restop, orders.gap_loss, orders.gapped once per world on the first fit day, no random draws). (a) and (b) were refused by the request. Chose (c): no change in the draws can lose it. Nothing loosened. `desk/simcity.py` is 397 lines, near the 400 cap; the next change there splits it.
+
+### 2026-11-21 - the watch's broker door is optional (#1405, R-MONEY-54)
+- Options: (a) `watch.look` takes an optional door (`Callable[[], Broker]`), the old call still works; (b) a required door, which breaks PAPER's caller in `desk/running.py` in the same change. Chose (a): the broker there is built in `_work`, after the look, so PAPER's side needs a lazily built Paper broker; asked of PAPER as R-MONEY-61.
+
+### 2026-11-21 - day.py's small steps join day_parts, not a new file (#1417, R-RUNNER-418)
+- Options: (1) the requested new `desk/day_steps.py` (desk/ is at its 100-file ceiling, so BUDGET.json's guard goes red at 101); (2) fold into `desk/day_parts.py`, chosen; (3) raise the ceiling, a guard loosening and not needed. A pure move, day.py re-exports so callers and tests are unchanged. R-RUNGS-29 declined: it changes `tests/guards/test_lanes.py`, outside MONEY's claim, a loosening for the runner/coordinator.
+
+### 2026-11-21 - SimCity gap size and where the code lives (#1442, R-RUNNER-252)
+- Options for the gap under a resting stop: 5%, 10%, 25%. Chose 10%: inside the gap limit's 25% and well past the stop. New file vs existing: kept in `desk/simcity.py` because desk/ is at its 100-file ceiling. Nothing loosened.
+
+### 2026-11-21 - "a gap down past the stop" is a fixed promise, not a random event (#1448, R-RUNNER-407)
+- Options: (a) a promise in the once-per-world `_stops` part; (b) a new random event in `simcity_parts2`, which may not run in every world. Chose (a): no seed decides whether it runs.
+
+### 2026-11-21 - Costs beside the fill price, not inside it (#1457, TRD-09)
+- Options: charge spread and slippage inside the fill price (double counts; every report shifts) or beside it from `orders.charges` (one model, no golden change). Chose beside, per B4 and his standing "go with recommended". Scene 5 pins it.
+
+### 2026-11-21 - Time stop and hold limits (#1449, STP-11)
+- A held line with no known fill date is aged 0 on its last bar, rather than the replay's carried count. Each rule's hold limit moves golden days and needs his approval (B5): left open; money-time-gaps is held (waits: operator).
+
+### 2026-11-21 - Trade story lives in desk/book.py (#1468, TRD-11)
+- Options: raise desk/'s 100-file ceiling, merge a module, or put it in `desk/book.py` (under 800 lines). Took the last: grows nothing, loosens no guard. The gap stand-down stays carded separately per his "always go with recommended".
+
+### 2026-11-21 - SimCity halt scenario built directly (#1455, R-RUNNER-335)
+- Options: wire `dropped` into `simcity.EVENTS` now (simcity.py is outside the claim) or test it directly beside `halted` and wire later. Chose direct; wiring remains.
+
+### 2026-11-21 - Golden run pinned (#1465, TST-21)
+- No new decision. Any later change to a golden figure needs a DECISIONS explanation and his approval (B5).
+
+### 2026-11-22 - Raschke swing kept to the book's rule (#1471, R-RUNNER-333)
+- Options: (a) loosen the rule (close need not be back above, gap 3) to force trades; (b) keep the book's rule and prove it fires. Chose (b): a rule changed to make trades appear is fitting, not fixing. The 239 no-trade lines are most likely short histories.
+
+### 2026-11-22 - Trade story and id chain live in desk/book.py (#1486, #1509)
+- Options: ask for desk/'s 100-file ceiling to rise, or place `told` and `chain` in book.py. Chose book.py (a separate desk/story.py was refused at 101 files): less code, no guard loosened. `chain` keeps one line per decision in story.csv at decision time.
+
+### 2026-11-22 - Gapped stop halts buying (#1504, STP-10)
+- His ruling (Sat 21 Nov 21:33): "Each rule's limit would come from how that rule already decides to sell, not from one number for all five.....i agree to this." Taken as given.
+- Options for the stand-down: (a) halt buying until he lifts it, (b) kill switch, (c) tell only. Chose (a): sales and stops go on; a halt is already the desk's tool. Read in `day._stand_down`, told once per sale. Per-rule hold limits are in strategy files outside the claim, so carded (#1486, #1509, #1516 chose the same: land the piece, card the gap work).
+
+### 2026-11-22 - Peak-fall alert is a constant, alert only (#1516, BIC-05)
+- His words: "a £1,500 (Recommended)". `PEAK_FALL = 1500` in day.py from AG-05; told once per day's orders; buys still go; no WOULD-record in the halt file.
+
+
+### 2026-11-22 - Hold limit per rule, not one number (#1542, money-time-gaps)
+- His words: "Each rule's limit would come from how that rule already decides to sell, not from one number for all five.....i agree to this."
+- Options: (a) one hold limit for all five rules (declined by him); (b) a limit per rule from its own sell logic (taken).
+- Not done in #1542: it needs the strategy files, outside that claim; carded as R-MONEY-64. Golden days may move (B5): explain in DECISIONS.
+- Currency split (BIC-04) is measured at the sale's price, so trading profit is valued at the buy's rate.
+
+### 2026-11-22 - Interest at 4%, currency told beside profit (#1560, #1569, #1584, #1596, BIC-03, BIC-04)
+- Risk-free rate options: 3%, 4%, or a per-day Bank Rate series. Took 4% as one constant `day.RISK_FREE` (his "always go with recommended"); a series needs a data owner. `book.interest` takes the rate as an argument, so no number is fixed in the book.
+- Interest and currency are told beside the day's profit, not in it, so golden days do not move (B5); moving them needs his words in DECISIONS.
+- Open-holding currency is told only when every currency's rate for the day is kept; carrying the last rate was rejected as a silent default.
+- Currency on paper is a tell, not a new record column: the record's shape lives in `desk/day_parts.py`, outside the claim (R-MONEY-66).
+- money-time-gaps: released by his "i agree to this" (each rule's own hold limit from its own sell logic), taken as ruled; the work is in strategy files outside these claims, carded as R-MONEY-62, R-MONEY-63, R-MONEY-64.

@@ -519,3 +519,31 @@ Options: (a) refuse the step when no SMTP_ setting is set; (b) stay silent and r
 ### 2026-11-21 — R-RUNNER-253: rehearsal order ids not stamped (#1362)
 
 Options: (a) mark the rehearsal's order ids with its run stamp (needs `desk/placing.py` and `desk/orders.py`, outside the claim; `strategy_of` parses the id); (b) leave the held-line separation as is (chosen: the stated test passes without it). (a) would still cover a collision on a line sold since, where there is no holding to match.
+
+### 2026-11-21 — R-RUNNER-202: where the intraday round lives (#1371)
+
+Options: (a) a new module (refused by the 100-file desk ceiling); (b) `desk/command.py` (wrong home); (c) `desk/running.py`, docstrings trimmed to 397 lines (chosen). Order id = day-rule-symbol-HHMM+side, so a bar's buy and sale differ and a bar seen twice sends nothing twice.
+
+### 2026-11-21 — R-RUNNER-281: first buildable blocking request (#1393)
+
+Took 281 first because 394 and 395 waited on R-RUNNER-391.
+
+### 2026-11-21 — R-RUNNER-394: stops-not-recorded left to MONEY (#1403)
+
+Options: (a) filter "-stop" ids in `cancel_all` (chosen, as request R-PAPER-37, since `desk/book_parts.py` is MONEY's); (b) wrap the broker in `recover` (rejected: a second path).
+
+### 2026-11-21 — R-RUNNER-395: which lines are sent again (#1406)
+
+Options: (a) filter in `day.trade`; (b) filter the lines handed to it (chosen: only lines whose cancels are on the desk's record, so a refused order is never sent again; no change to `day.trade`).
+
+### 2026-11-21 — R-MONEY-54: cancel on any halt in force (#1414)
+
+Options: (a) only the watch's halt (narrower, needs a second halt query); (b) any halt, his or the watch's (chosen: every halt means no buys, simpler).
+
+### 2026-11-22 — morning heat shown only when recorded (#1478)
+
+Options: say "not known" when the record holds no heat; omit the line (chosen: old records read as before). Report only.
+
+### 2026-11-22 — compact message layout kept in messenger.py (#1482)
+
+Options: a new `desk/layout.py` as the old pre-mortem said; in place (chosen: the 400-line cap it feared is now 800, and less code is progress).

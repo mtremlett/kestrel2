@@ -67,6 +67,24 @@ def test_a_day_that_opens_past_a_loss_limit_tells_him_once_a_drawdown_alert(tmp_
     assert [n for n, _ in told] == ["drawdown 2025-11-11"] * 2 and "DRAWDOWN ALERT" in told[0][1]
 
 
+def test_a_fall_past_1500_from_the_highest_point_tells_him_and_a_smaller_one_does_not(
+    tmp_path: Path,
+) -> None:
+    free = Charges(*[Decimal(0)] * 5)
+    told: list[tuple[str, str]] = []
+    for profit in (2_000, -1_500, -1):
+        n = len(day.records(tmp_path))
+        rows = [day.HEADER, *(day._row(r) for r in day.records(tmp_path))]
+        rows.append(
+            day._row(
+                day.Record(MON + timedelta(n), Decimal(profit), free, Decimal(0), (), Decimal(0), 0)
+            )
+        )
+        book._write(tmp_path / day.RECORDS, rows)
+        day._peak_fall(tmp_path, TUE, lambda n, w: told.append((n, w)))
+    assert [w for _, w in told] == ["DRAWDOWN ALERT: £1501 below its highest; paper, trading on."]
+
+
 def test_a_buy_that_moves_with_a_held_line_is_refused_and_one_that_does_not_goes(
     tmp_path: Path,
 ) -> None:
@@ -112,3 +130,34 @@ def test_a_buy_that_moves_with_a_held_line_is_refused_and_one_that_does_not_goes
         orders.moves({"H"}, archive, "P"),
     )
     assert sent.filled == 1
+
+
+def test_the_currency_apart_from_trading_is_told_once_a_trade_has_closed(tmp_path: Path) -> None:
+    dollar, told = Line("U", "US", "USD", 1), list[tuple[str, str]]()
+    broker = Pretend({dollar: BARS[A]}, {})
+    for on, rate in ((MON, "0.8"), (TUE, "0.75")):
+        broker.open(on)
+        book.record_rates(tmp_path, on, {"GBP": Decimal(1), "USD": Decimal(rate)})
+        if on == MON:
+            book.send(
+                tmp_path, broker, Order("o-2", dollar, 10, *map(Decimal, (50, 0.8, 45))), ROOM
+            )
+    day._currency(tmp_path, {dollar: BARS[A]}, TUE, lambda n, w: told.append((n, w)))
+    assert [n for n, _ in told] == ["currency 2025-11-11"] and "£-25.50 on open holdings" in told[
+        0
+    ][1]
+    told.clear()
+    book.send(tmp_path, broker, orders.Sale("s-2", dollar, 10), ROOM)
+    day._currency(tmp_path, {dollar: BARS[A]}, TUE, lambda n, w: told.append((n, w)))
+    assert [n for n, _ in told] == ["currency 2025-11-11"] and "£-25" in told[0][1]
+
+
+def test_the_interest_on_idle_cash_is_told_once_a_fill_has_begun_it(tmp_path: Path) -> None:
+    told, broker = list[tuple[str, str]](), Pretend(BARS, {})
+    day._interest(tmp_path, BARS, TUE, ROOM, lambda n, w: told.append((n, w)))
+    assert told == []
+    broker.open(MON)
+    book.record_rates(tmp_path, MON, {"GBP": Decimal(1)})
+    book.send(tmp_path, broker, Order("o-4", A, 1, *map(Decimal, (50, 1, 45))), ROOM)
+    day._interest(tmp_path, BARS, TUE, ROOM, lambda n, w: told.append((n, w)))
+    assert [n for n, _ in told] == ["interest 2025-11-11"] and "£2.18" in told[0][1]

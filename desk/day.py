@@ -4,7 +4,7 @@ and publish one record. The same days run again from the same saved data give th
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
-from datetime import UTC, date, datetime, time, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from functools import partial
 from pathlib import Path
@@ -16,8 +16,16 @@ from desk.day_parts import HEADER as HEADER
 from desk.day_parts import MONEY as MONEY
 from desk.day_parts import RECORDS as RECORDS
 from desk.day_parts import Record as Record
+from desk.day_parts import _alert as _alert
+from desk.day_parts import _bare as _bare
+from desk.day_parts import _barred as _barred
+from desk.day_parts import _due as _due
 from desk.day_parts import _row as _row
+from desk.day_parts import _unreached as _unreached
+from desk.day_parts import _unread as _unread
+from desk.day_parts import _watch as _watch
 from desk.day_parts import records as records
+from desk.day_parts import standing as standing
 from desk.halt import Blocker, Stopped
 from desk.lines import YARDSTICK, Line
 from desk.orders import (
@@ -25,10 +33,11 @@ from desk.orders import (
     Refused,
     Sale,
     Settings,
-    moves,
+    gapped,
     order_id_of,
     pennies,
     size,
+    stop_under,
     strategy_of,
 )
 from desk.risk import Standing
@@ -135,7 +144,7 @@ def trade(
     wire (desk/running.py) has no room yet for the broker's holdings read it needs.
     A strategy in killed (its own kill condition met, lab/promotion.py) buys nothing, said so;
     what it holds is still sold by its rule or its stop."""
-    book.collect(root, broker)  #: the stops the open sold
+    _stand_down(root, archive, broker, settings, tell)
     if later := max((fill.day for fill in book.fills(root) if fill.day > day), default=None):
         raise ValueError(f"{day}: the day is over, the ledger holding a fill of {later}")
     if made := [record.day for record in records(root) if record.day >= day]:
@@ -143,8 +152,7 @@ def trade(
     book.record_rates(root, day, rates)
     taken = _strangers(root, archive, broker, settings, day, tell) if strangers else []
     held = book.positions(root)
-    buys = {f.symbol: strategy_of(f.order_id) for f in book.fills(root) if f.quantity > 0}
-    holders = {symbol: h for symbol, h in buys.items() if h != "stranger"}
+    holders = _holders(root)
     due = {line.symbol: line for line, bars in archive.items() if _due(line, bars, day)}
     unpriced = sorted({line.currency for line in due.values()} - set(rates))
     if unpriced:
@@ -153,6 +161,7 @@ def trade(
     decided = strategy.today(
         {symbol: archive[line] for symbol, line in due.items()},
         {symbol: holders[symbol] for symbol in held if symbol in due and symbol in holders},
+        opened={f.symbol: f.day for f in book.fills(root) if f.quantity > 0},
     )
     sent = list[book.Sent]()
     try:
@@ -161,6 +170,116 @@ def trade(
         _unreached(root, day, decided, sent, dead)
         raise
     return (*taken, *sent)
+
+
+def _stand_down(
+    root: Path,
+    archive: Mapping[Line, Sequence[Bar]],
+    broker: Broker,
+    settings: Settings,
+    tell: book.Tell | None,
+) -> None:
+    """STP-10: a stop that sold, since the last record, at a loss past GAP_LOSS of the capital
+    (orders.gapped) halts buying, once for each such sale, until he lifts it. The loss is read
+    from the stop's fill against its buy's price, in the pounds of the buy's day."""
+    book.collect(root, broker)  #: the stops the open sold
+    lines, fills = {line.symbol: line for line in archive}, book.fills(root)
+    buys, since = (
+        {f.order_id: f for f in fills if f.quantity > 0},
+        max((r.day for r in records(root)), default=date.min),
+    )
+    for sale in fills:
+        buy = buys.get(sale.order_id.removesuffix("-stop"))
+        if sale.quantity >= 0 or sale.day <= since or buy is None or sale.symbol not in lines:
+            continue
+        line = lines[sale.symbol]
+        priced = Order(
+            buy.order_id,
+            line,
+            -sale.quantity,
+            buy.price,
+            book.rate(root, line.currency, buy.day),
+            stop_under(line, buy.price),
+        )
+        why = f"{sale.order_id}: the stop sold at {sale.price}, a gap past the loss limit"
+        if gapped(priced, sale.price, settings) and why not in {h.why for h in halt.kept(root)}:
+            halt.stop(root, broker, datetime.now(UTC), why, by="gap")
+            if tell:
+                tell(f"gap {sale.order_id}", f"{why}. Buying is halted until he lifts it.")
+
+
+def _holders(root: Path) -> dict[str, str]:
+    """Each line's last buyer among the desk's strategies; a stranger's buy holds for none."""
+    buys = {f.symbol: strategy_of(f.order_id) for f in book.fills(root) if f.quantity > 0}
+    return {symbol: h for symbol, h in buys.items() if h != "stranger"}
+
+
+#: BIC-05, AG-05: the pounds the book may stand below its highest point (his "£1,500").
+PEAK_FALL = Decimal(1500)
+
+
+def _peak_fall(root: Path, day: date, tell: book.Tell | None) -> None:
+    """ON PAPER A FALL FROM THE BOOK'S HIGHEST POINT PAST PEAK_FALL IS TOLD TO HIM (BIC-05): the
+    profits of the records so far, summed, against their highest running total. Alert only."""
+    total = peak = Decimal(0)
+    for record in records(root):
+        total += record.profit or Decimal(0)
+        peak = max(peak, total)
+    if tell is not None and peak - total > PEAK_FALL:
+        tell(
+            f"peak fall {day}",
+            f"DRAWDOWN ALERT: £{peak - total} below its highest; paper, trading on.",
+        )
+
+
+def _currency(
+    root: Path, archive: Mapping[Line, Sequence[Bar]], day: date, tell: book.Tell | None
+) -> None:
+    """BIC-04: what the closed trades so far owe to the currency's move, told apart from what
+    they made by trading, and what the open holdings owe it; told only when there is some."""
+    ledger, lines = book.fills(root), tuple(archive)
+    kept, currency = book.rates_kept(root), {line.symbol: line.currency for line in lines}
+    if tell is None or not ledger:
+        return  #: nothing has traded
+    if any((f.day, currency.get(f.symbol)) not in kept for f in ledger):
+        return  #: a fill whose day's rate was never kept cannot be told apart
+    trips = book.round_trips(root, lines)
+    gain = book.currency_gain(root, lines, trips)
+    last = {line.symbol: bars[-1].close for line, bars in archive.items()}
+    today = all((day, money) in kept for money in set(currency.values()))
+    held = book.open_currency_gain(root, lines, last, day) if today else 0
+    if gain or held:
+        trading = sum((t.gross for t in trips), Decimal(0)) - gain
+        tell(
+            f"currency {day}",
+            f"CURRENCY: £{gain} of the gross is the currency, £{trading} trading; "
+            f"£{held:.2f} on open holdings.",
+        )
+
+
+#: BIC-03: the yearly rate idle cash is told to earn, and the Sharpe's risk-free rate (4%).
+RISK_FREE = Decimal("0.04")
+
+
+def _interest(
+    root: Path,
+    archive: Mapping[Line, Sequence[Bar]],
+    day: date,
+    settings: Settings,
+    tell: book.Tell | None,
+) -> None:
+    """BIC-03: what the capital's idle cash earned at RISK_FREE from the first fill to this day,
+    told once a day beside the profit, not in it (golden days stand), only when positive."""
+    ledger, lines = book.fills(root), tuple(archive)
+    kept, currency = book.rates_kept(root), {line.symbol: line.currency for line in lines}
+    first = min((f.day for f in ledger), default=None)
+    if tell is None or first is None:
+        return  #: nothing traded, no idle cash to count
+    if any((f.day, currency.get(f.symbol)) not in kept for f in ledger):
+        return  #: a fill whose day's rate was never kept cannot be priced
+    earned = book.interest(root, lines, settings.capital, RISK_FREE, first, day)
+    if earned > 0:
+        tell(f"interest {day}", f"INTEREST: £{earned:.2f} earned on idle cash since {first}.")
 
 
 def _orders(
@@ -180,29 +299,21 @@ def _orders(
     held = book.positions(root)
     for d in (d for d in decided if d.action is Action.SELL):  #: by the rule that holds it
         sale = Sale(order_id_of(d), due[d.symbol], held[d.symbol], session=d.day)
-        sent.append(_answer(root, day, _send(root, broker, sale, settings, tell, None)))
+        answer = _answer(root, day, _send(root, broker, sale, settings, tell, None))
+        book.chain(root, d, archive[due[d.symbol]][-1], answer)
+        sent.append(answer)
     _alert(root, day, settings, tell)
+    _peak_fall(root, day, tell)
+    _currency(root, archive, day, tell)
+    _interest(root, archive, day, settings, tell)
     watch = partial(_watch, root, archive, rates)  #: read again at each buy
     for d in (d for d in decided if d.action is Action.BUY):
         line = due[d.symbol]
         price = archive[line][-1].close, rates[line.currency]
         args = (root, broker, d, line, price, settings, day, tell, watch)
-        sent.append(_answer(root, day, _barred(d) if d.strategy in killed else _buy(*args)))
-
-
-def _unreached(
-    root: Path, day: date, decided: Sequence[Decision], sent: Sequence[book.Sent], dead: Exception
-) -> None:
-    """NO SIGNAL HALF-PROCESSED (TST-08): each signal still without an answer when the desk died
-    goes on the morning's list, saying so; it is decided again when the desk starts."""
-    answered = {s.order_id for s in sent}
-    why = f"not reached, the desk stopped on {type(dead).__name__}: {dead}"
-    names = (order_id_of(d) for d in decided if d.action is not Action.HOLD)
-    halt.note(
-        root,
-        day,
-        [halt.Blocked(n, Blocker.BROKER, 0, f"{n}: {why}") for n in names if n not in answered],
-    )
+        answer = _answer(root, day, _barred(d) if d.strategy in killed else _buy(*args))
+        book.chain(root, d, archive[line][-1], answer)
+        sent.append(answer)
 
 
 def _strangers(
@@ -240,59 +351,6 @@ def _strangers(
             sale = Sale(f"{day:%Y%m%d}-stranger-{name}", lines[name], shares, session=day)
             sold.append(_answer(root, day, _send(root, broker, sale, settings, tell, None)))
     return sold
-
-
-def _alert(root: Path, day: date, settings: Settings, tell: book.Tell | None) -> None:
-    """ON PAPER A LOSS LIMIT REACHED IS TOLD TO HIM (halt.drawdown): the buys still go, the gate
-    having refused them if the limit is past; recorded once for the day."""
-    at = datetime.combine(day, time(), UTC)
-    words = halt.drawdown(root, at, standing(root, day), settings)
-    if words and tell is not None:
-        tell(f"drawdown {day}", words)
-
-
-def _barred(d: Decision) -> book.Sent:
-    """The answer for a buy by a strategy that met its kill condition: not sent, and why."""
-    name = order_id_of(d)
-    why = f"{name}: not sent, {d.strategy} met its kill condition and buys nothing"
-    return book.Sent(name, 0, why, Blocker.GATE)
-
-
-def _bare(
-    root: Path,
-    day: date,
-    held: Mapping[str, int],
-    unsure: set[str],
-    stops: Sequence[book.Difference],
-) -> None:
-    """A HOLDING WITH NO STOP: each line whose shares the broker holds as the book does, with
-    fewer of them under a stop resting there, goes on the day's list under the stop it is due
-    (its newest buy's, at the level kept for it, book.levels), saying what to put back."""
-    kept = book.levels(root)
-    due = {f.symbol: f"{f.order_id}-stop" for f in book.fills(root) if f.quantity > 0}
-    resting = {d.name: d.broker for d in stops}
-    level = {s: kept.get(due[s], "a level never kept, so set one by hand") for s in held}
-    bare = [
-        halt.Blocked(
-            due[s],
-            Blocker.BOOK,
-            0,
-            f"{s}: {n} shares held, {resting[s]} under a stop at"
-            f" the broker; put back {due[s]}, selling {n} at {level[s]}",
-        )
-        for s, n in held.items()
-        if s in resting and s not in unsure and resting[s] < n
-    ]
-    halt.note(root, day, bare)
-
-
-def _unread(root: Path, lines: Sequence[Line], due: Mapping[str, Line], day: date) -> None:
-    """Open the morning's list with the lines no rule could decide: its venue trades today
-    and its bars do not end at the session before. A line read now leaves the list."""
-    late = [s.symbol for s in lines if s.symbol not in due and venues.sessions(s.venue, day, day)]
-    why = f"no bar for the session before {day}, so no rule decided"
-    unread = [halt.Blocked(symbol, Blocker.UNREAD, 0, f"{symbol}: {why}") for symbol in late]
-    halt.note(root, day, unread, (line.symbol for line in lines))
 
 
 def _answer(root: Path, day: date, sent: book.Sent) -> book.Sent:
@@ -346,18 +404,6 @@ def _buy(
     )
 
 
-def standing(root: Path, day: date) -> Standing:
-    """WHERE THE BOOK STANDS AGAINST ITS LOSS AND ORDER-RATE LIMITS when the day opens
-    (canon B1, risk.loss_limit): the day's loss is the pounds the last published record lost
-    (0 when it gained or was withheld), the week's the net pounds lost over the records of
-    day's own ISO week, and the new lines the lines first bought today."""
-    profits = [(r.day, r.profit or Decimal(0)) for r in records(root)]
-    week = sum((p for d, p in profits if d.isocalendar()[:2] == day.isocalendar()[:2]), Decimal(0))
-    lost = -profits[-1][1] if profits else Decimal(0)
-    bought = {f.symbol for f in book.fills(root) if f.day == day and f.quantity > 0}
-    return Standing(max(lost, Decimal(0)), max(-week, Decimal(0)), len(bought))
-
-
 def _send(
     root: Path,
     broker: Broker,
@@ -376,19 +422,3 @@ def _send(
         return book.Sent(order.order_id, 0, str(stopped), stopped.blocker)
     except Refused as refused:
         return book.Sent(order.order_id, 0, str(refused), Blocker.BROKER)
-
-
-def _due(line: Line, bars: Sequence[Bar], day: date) -> bool:
-    """The line's venue trades on day and its last bar is the session before: decisions
-    dated any other day are not acted on."""
-    return bool(bars) and venues.sessions(line.venue, bars[-1].day, day) == (bars[-1].day, day)
-
-
-def _watch(
-    root: Path, archive: Mapping[Line, Sequence[Bar]], rates: Mapping[str, Decimal], symbol: str
-) -> tuple[dict[str, Decimal], dict[str, tuple[float, ...]]]:
-    """What the gate reads of the book before a buy of the symbol: the pounds it controls per
-    underlying, and the daily returns of the symbol and of the lines held."""
-    return day_money.exposure(root, archive, rates), moves(
-        set(book.positions(root)), archive, symbol
-    )

@@ -51,9 +51,8 @@ fewer than two periods, or more periods than the window has bars.
 
 from __future__ import annotations
 
-import hashlib
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from datetime import date
 
 from desk.orders import Settings
@@ -61,6 +60,7 @@ from desk.store import Bar
 from lab import cell, folds, rung, trials
 from lab.cell import Cell
 from lab.rung import Rates, Verdict
+from lab.rung_regimes import in_regimes
 
 #: Each day's regime by name, as known at that day's close.
 Weather = Mapping[date, str]
@@ -144,7 +144,7 @@ def judge(
     return Replayed(
         whole,
         tuple(_period(part, bars, settings, rates) for part in parts),
-        tuple(_regime(whole, name, under[name]) for name in sorted(under)),
+        _regimes(whole, under),
     )
 
 
@@ -155,14 +155,15 @@ def _period(part: Cell, bars: Sequence[Bar], settings: Settings, rates: Rates) -
     return Replay(name, record.bars, rung.judge(record, bars, settings, rates))
 
 
-def _regime(whole: Verdict, name: str, days: Sequence[date]) -> Replay:
-    """The whole window's trades bought on the regime's days, judged alone. Its key is the
+def _regimes(whole: Verdict, under: dict[str, list[date]]) -> tuple[Replay, ...]:
+    """The whole window's trades bought on each regime's days, judged alone. Each key is the
     whole's with the regime and its days told in, so each replay is a result of its own."""
-    told = "\n".join([whole.key.data, name, *(day.isoformat() for day in days)])
-    key = replace(whole.key, data=hashlib.sha256(told.encode()).hexdigest())
-    bought = set(days)
-    priced = tuple(p for p in whole.trades if p.trade.bought in bought)
-    return Replay(name, len(days), rung.verdict(key, priced))
+    where = {day: name for name, days in under.items() for day in days}
+
+    told = {name: "\n".join(day.isoformat() for day in days) for name, days in under.items()}
+    names = sorted(under)
+    judged = in_regimes(whole.key, whole.trades, names, lambda day: where.get(day, ""), told)
+    return tuple(Replay(name, len(under[name]), judged[name]) for name in names)
 
 
 def _named(weather: Weather, day: date) -> str:

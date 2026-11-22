@@ -349,3 +349,24 @@ def test_main_is_pulled_only_at_the_safe_point_when_no_job_is_running_and_a_fail
 def _receipts(root: Path) -> list[tuple[str, ...]]:
     with sqlite3.connect(root / supervisor.RECORD) as record:
         return record.execute(supervisor.READ).fetchall()
+
+
+def _at(hour: int, minute: int = 0) -> datetime:
+    return T0.replace(hour=hour, minute=minute)
+
+
+def test_a_job_with_hours_is_not_run_judged_or_missed_in_the_night_the_gateway_restarts(
+    tmp_path: Path,
+) -> None:
+    day = Job("day", "x", 5 * MIN, MIN, awake=range(5 * 60 + 30, 22 * 60 + 1))
+    run = Mock(return_value=DONE)
+    for hour in (3, 22):  # due, but asleep from 22:01 and until 05:30: nothing is run
+        asleep = _at(hour, 1)
+        assert supervisor.attend(tmp_path, [day], Mock(return_value=asleep), run) == ()
+    assert len(supervisor.attend(tmp_path, [day], Mock(return_value=_at(21, 59)), run)) == 1
+    assert supervisor.health(tmp_path, _at(3) + 24 * HOUR, [day]) == ()
+    assert supervisor.health(tmp_path, _at(5, 35) + 24 * HOUR, [day]) == ()
+    assert supervisor.health(tmp_path, _at(7) + 24 * HOUR, [day]) != ()
+    morning = _at(5, 30) + 24 * HOUR  # the night is no break in the desk's running
+    assert supervisor.attend(tmp_path, [day], Mock(return_value=morning), run)
+    assert supervisor.unattended(tmp_path, morning + MIN, [day]) == morning - _at(21, 59)

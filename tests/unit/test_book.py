@@ -367,6 +367,13 @@ def test_a_round_trip_pairs_each_sale_with_the_buys_it_closes_in_pounds_after_ev
         (Decimal(0), Charges(*map(Decimal, ("4.2", "0.2", "0.2", "0", "1")))),
         (Decimal(-30), Charges(*map(Decimal, ("4.8", "0.285", "0.555", "0", "1.5")))),
     ]
+    #: the 10 dollar shares bought at 50 and 0.8 sold at 50 and 0.75: 25 pounds lost to the currency
+    assert book.currency_gain(tmp_path, (share, dollar), trips) == Decimal(-25)
+    #: BIC-03: before any fill the whole 3650 pounds is idle, a tenth a year is a pound a day
+    early = trips[0].buy.day - timedelta(days=2)
+    assert (
+        book.interest(tmp_path, (share, dollar), Decimal(3650), Decimal("0.1"), early, early) == 1
+    )
     #: 500 dollars at 0.8, back at 0.75: a dollar's commission each way and the regulators'
     #: 1.225 cents on the sale; 0.03% conversion on the dollars moved each way
     conversion = Decimal("0.0003") * (501 * Decimal("0.8") + Decimal("498.98775") * Decimal("0.75"))
@@ -397,3 +404,21 @@ def test_a_round_trip_pairs_each_sale_with_the_buys_it_closes_in_pounds_after_ev
     for wrong in ({"GBP": Decimal("0.9")}, {"USD": Decimal(0)}):
         with pytest.raises(ValueError, match="a rate of"):
             book.record_rates(tmp_path, date(2025, 11, 12), wrong)
+    told = book.attributed(trips, lambda t: t.buy.symbol)
+    assert sum(told.values(), Decimal(0)) == sum(t.profit for t in trips) and set(told) == {
+        "A",
+        "U",
+    }
+
+
+def test_a_trade_is_told_with_its_strategy_and_the_bar_its_signal_read(tmp_path: Path) -> None:
+    broker = Pretend(WEEK, {})
+    broker.open(MON)
+    book.record_rates(tmp_path, MON, {"GBP": Decimal(1)})
+    _send(tmp_path, broker, "20251107-rsi-A")
+    book.send(tmp_path, broker, Sale("20251107-rsi-A-s", A, 10), ROOM)
+    trips, friday = book.round_trips(tmp_path, (A,)), _bar(date(2025, 11, 7), 48)
+    (story,) = book.told(trips, {A: (friday, *WEEK[A])})
+    assert (story.strategy, story.held, story.bar) == ("rsi", 0, friday)
+    with pytest.raises(ValueError, match="no bar before"):
+        book.told(trips, {A: WEEK[A]})

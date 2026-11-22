@@ -19,18 +19,19 @@ line (UNRUN). Nothing goes to paper before all eleven.
 THE RUNG MAP (L2): the plan's eleven rungs and easing 4's twelfth, each `n name: module, test`.
 A row's names differ:
 `first` holds 1-3, `market` 4 and 6. Each rung's proof is in its own test; (unbuilt) marks a file
-not yet there; after the dash, what is owed. BUILT: the ladder judges by it (it declares a RUNG).
- 1 sample size, effective trades: lab/rung_sample.py, tests/unit/test_lab_rung_sample.py
+not yet there; after the dash, what is owed. BUILT: its module declares a RUNG, so the ladder
+judges by it; every other row owes `no RUNG` first (the test holds the two to agree).
+ 1 sample size, effective trades: lab/rung_sample.py, tests/unit/test_lab_rung_sample.py - no RUNG
  2 costs charged: lab/rung_costs.py, tests/unit/test_lab_rung_costs.py
  3 a confidence interval: lab/rung_ci.py, tests/unit/test_lab_rung_ci.py
- 4 excess after market risk, by size: lab/rung_beta.py, tests/unit/test_lab_rung_beta.py
+ 4 excess after market risk, by size: lab/market.py, tests/unit/test_lab_rung_beta.py - no RUNG
  5 two regime windows: lab/rung_regimes.py, tests/unit/test_lab_rung_regimes.py
- 6 benchmark excess by interval: lab/rung_benchmark.py, tests/unit/test_lab_rung_benchmark.py
- 7 deflated Sharpe: lab/rung_dsr.py, tests/unit/test_lab_rung_dsr.py - one clustered set (L14)
+ 6 benchmark excess: lab/rung_benchmark.py, tests/unit/test_lab_rung_benchmark.py - no RUNG
+ 7 deflated Sharpe: lab/rung_dsr.py, tests/unit/test_lab_rung_dsr.py - no RUNG; L14's clustered set
  8 purged cross-validation: lab/rung_cpcv.py, tests/unit/test_lab_rung_cpcv.py
- 9 placebo on blocks of days: lab/rung_placebo.py, tests/unit/test_lab_rung_placebo.py
-10 walk-forward folds: lab/folds.py, tests/unit/test_lab_folds.py - the ladder runs `pool`
-11 block bootstrap: lab/rung_bootstrap.py, tests/unit/test_lab_rung_bootstrap.py - no gate
+ 9 placebo on blocks of days: lab/rung_placebo.py, tests/unit/test_lab_rung_placebo.py - no RUNG
+10 walk-forward folds: lab/folds.py, tests/unit/test_lab_folds.py - no RUNG; the ladder runs `pool`
+11 block bootstrap: lab/rung_bootstrap.py, tests/unit/test_lab_rung_bootstrap.py - no RUNG, no gate
 12 retail, basket beside market: lab/rung_retail.py, tests/unit/test_lab_rung_retail.py - no RUNG
 
 RARE LARGE LOSSES (G2, R-RUNNER-103). The first rung counts ONE MORE trade the rule did not make: a
@@ -129,8 +130,8 @@ def rungs_built() -> tuple[int, int]:
     """The map's rungs the ladder judges by (their module declares a RUNG), and the map's rungs."""
     paragraph = (__doc__ or "").split("THE RUNG MAP")[1].split("\n\n")[0]
     rows = [line for line in paragraph.splitlines() if line.lstrip()[:1].isdigit()]
-    mods = {r.split("lab/")[1].split(".py")[0] for r in rows if "(unbuilt)" not in r}
-    return len(mods - {n.rpartition(".")[2] for n in rung.found(RUNGS)[1]}), len(rows)
+    mods = {r.split("lab/")[1].split(".py")[0] for r in rows if ".py (unbuilt)" not in r}
+    return sum(hasattr(importlib.import_module(f"lab.{m}"), "RUNG") for m in mods), len(rows)
 
 
 def names(c: Cell) -> list[str]:
@@ -144,15 +145,36 @@ class Kept:
     line a stop cut short is cut off. No row is held."""
 
     def __init__(self, results: Path) -> None:
-        self.path, self.at, self.end = results, {}, 0
-        if not results.exists():
+        self.path = results
+        self._read()
+
+    def _read(self) -> None:
+        self.at, self.end, self.lines = {}, 0, 0
+        if not self.path.exists():
             return
-        with results.open("rb") as file:
+        with self.path.open("rb") as file:
             for line in file:
                 if not line.endswith(b"\n"):
                     break
                 self.at[tuple(json.loads(line)["cell"])] = (self.end, len(line))
                 self.end += len(line)
+                self.lines += 1
+
+    def compact(self) -> None:
+        """When superseded lines outnumber live cells, the file is rewritten once with each cell's
+        last line only: a temp file beside it, then replaced: a stop leaves it whole."""
+        if self.lines - len(self.at) <= len(self.at):
+            return
+        fresh = self.path.with_suffix(".compact")
+        with fresh.open("wb") as out:
+            for offset, size in sorted(self.at.values()):
+                with self.path.open("rb") as file:
+                    file.seek(offset)
+                    out.write(file.read(size))
+            out.flush()
+            os.fsync(out.fileno())
+        fresh.replace(self.path)
+        self._read()
 
     def get(self, key: tuple[str, ...]) -> verdict.Row | None:
         """The cell's last line, read back from the file, or None."""
@@ -324,13 +346,18 @@ def _needs_data(make: type[Rule]) -> bool:
 
 def door(env: Mapping[str, str], argv: Sequence[str]) -> int:
     """The command: the set run, then each rung any cell FAULTed on said on its own line with its
-    share and reason; 1 when most cells FAULTed, so a set that judged nothing is never green."""
+    share and reason; 1 when most cells FAULTed, so a set that judged nothing is never green.
+    The intraday and scalping sets keep no results file (their table is all), so none is read."""
     from lab import ladder_sets
 
     code = ladder_sets.main(env, argv)
-    plan = {"first": FIRST, "leveraged": ladder_sets.LEV}.get(argv[0] if argv else "")
-    stem = (plan or ladder_sets.EPON).stem
-    kept = Kept(Path(env["KESTREL2_DATA"]) / FOLDER / f"{stem}.jsonl")
+    sets = {"": ladder_sets.EPON, "first": FIRST}
+    sets |= {"leveraged": ladder_sets.LEV, "variants": ladder_sets.VAR}
+    plan = sets.get(argv[0] if argv else "")
+    if plan is None:
+        return code
+    kept = Kept(Path(env["KESTREL2_DATA"]) / FOLDER / f"{plan.stem}.jsonl")
+    kept.compact()  #: once the set is judged, never while a run holds the file
     said, mostly = faults(kept.rows())
     sys.stdout.write("".join(f"{line}" + chr(10) for line in said))
     return code or int(mostly)

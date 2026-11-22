@@ -5,7 +5,7 @@ own proven parts (`desk.strategy`'s windows, held to the published tables), neve
 Four kinds: an ENTRY fires when the rule should buy; an EXIT when it should sell; a STOP when
 a held position has lost too much; a FILTER allows or forbids a buy. A block compares the bar
 with what it saw BEFORE it, then takes it in. One not yet fed enough bars does not fire (a
-filter then forbids).
+filter then forbids). Apart from these, `VolatilitySize` says how many shares to buy.
 """
 
 from __future__ import annotations
@@ -14,7 +14,9 @@ from collections import deque
 from collections.abc import Callable, Mapping
 from decimal import Decimal
 from functools import partial
+from itertools import pairwise
 
+from desk.risk import shares_for_risk, volatility
 from desk.store import Bar
 from desk.strategy import ZERO, _Wilder, _Window, rsi
 from lab.block_bands import (
@@ -316,6 +318,29 @@ class Never(Block):
         return False
 
 
+class VolatilitySize:
+    """The SIZING block: shares whose one-day typical move is the pounds of risk allowed, the
+    move read from the last n close-to-close returns. The desk's own rule (`desk.risk`), never
+    a copy, so the lab sizes as the desk will: before n returns are seen it sizes nothing, and a
+    window that never moved has no risk to size by, so it refuses (ValueError), as the desk does."""
+
+    def __init__(self, n: int) -> None:
+        if n < 2:
+            raise ValueError(f"volatility sizing needs a window of two or more returns, got {n}")
+        self.n, self.closes = n, deque[Decimal](maxlen=n + 1)
+
+    def see(self, bar: Bar) -> None:
+        """Takes in the next bar's close."""
+        self.closes.append(bar.close)
+
+    def shares(self, risk: Decimal) -> int:
+        """Shares to buy at the last close for this much risk; 0 until n returns are seen."""
+        if len(self.closes) <= self.n:
+            return 0
+        moves = tuple(float(b / a - 1) for a, b in pairwise(self.closes))
+        return shares_for_risk(risk, self.closes[-1], volatility(moves))
+
+
 _DAYS = Param(int, 2, 400)
 _PCT = Param(int, 1, 50)
 _AGO = Param(int, 1, 50)
@@ -364,11 +389,11 @@ BLOCKS: Mapping[str, Spot] = {
     "close_under_ema": Spot(Kind.EXIT, CloseUnderEma, {"n": _DAYS}),
     "turtle_soup": Spot(Kind.ENTRY, TurtleSoup, {"n": _DAYS, "gap": _AGO}),
     "under_entry_low": Spot(Kind.STOP, UnderEntryLow, {}),
-    "td_buy_countdown": Spot(Kind.ENTRY, BuyCountdown, {}),
-    "td_sell_setup": Spot(Kind.EXIT, SellSetup, {}),
+    "td_buy_countdown": Spot(Kind.ENTRY, BuyCountdown, {"n": _DAYS}),
+    "td_sell_setup": Spot(Kind.EXIT, SellSetup, {"n": _DAYS}),
     "breadth_thrust": Spot(Kind.ENTRY, BreadthThrust, {}),  #: on ratio bars
-    "darvas_box": Spot(Kind.ENTRY, DarvasBreakout, {}),
-    "darvas_stop": Spot(Kind.STOP, DarvasStop, {}),
+    "darvas_box": Spot(Kind.ENTRY, DarvasBreakout, {"n": _DAYS}),
+    "darvas_stop": Spot(Kind.STOP, DarvasStop, {"n": _DAYS}),
     "no_filter": Spot(Kind.FILTER, Always, {}),
     "trend_template": Spot(Kind.FILTER, TrendTemplate, {}),
 }

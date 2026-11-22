@@ -163,8 +163,9 @@ def count(register: Path, question: str) -> int:
 
 def family(register: Path, question: str, rule: str) -> int:
     """Every trial ever entered under the question for this rule: all its variants, abandoned
-    sets included, whatever line, window or version of its code (a name opens with its rule)."""
-    return sum(t.startswith(rule + " ") for t in _asked(_read(register)[0], question))
+    sets included, whatever line, window or version of its code (a cell's name opens with its
+    rule and a space, a variant's, `lab.variants`, with its rule and its settings in brackets)."""
+    return sum(t.startswith((rule + " ", rule + "[")) for t in _asked(_read(register)[0], question))
 
 
 def correct(register: Path, question: str, verdicts: Sequence[Verdict]) -> tuple[Corrected, ...]:

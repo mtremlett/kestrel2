@@ -130,6 +130,8 @@ def test_the_census_names_every_part_of_the_money_path_and_the_scenarios_that_ra
         "orders.Charges.total": simcity.DAY,  #: a property is a part as a method is
         "book.round_trips": simcity.TRIPS,
         "book.conformance_cost": simcity.TRIPS,
+        "book.told": simcity.TRIPS,
+        "book.currency_gain": simcity.TRIPS,
         **{f"broker.Fault.{fault.name}": simcity.FAULTS for fault in Fault},
     }
     for part, scenario in ran.items():

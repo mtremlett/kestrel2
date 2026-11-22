@@ -154,3 +154,14 @@ def fit(own: Sequence[float], market: Sequence[float]) -> Fit:
     if not left:
         raise ValueError(f"{n} days all on one line: no spread to judge the excess by")
     return Fit(beta, excess, excess / math.sqrt(left * (1 / n + level**2 / swing)))
+
+
+def banded(own: Sequence[float], market: Sequence[float]) -> Answer:
+    """Rung 4 alone, on the strategy's days and the benchmark's, paired and oldest first: the
+    excess of `fit` in its standard errors banded by the first rung's bar (`rung.band`), never
+    by its sign. Under MIN_TRADES days THIN, never a fail; no day at all a FAULT (LAD-06)."""
+    if not own:
+        return Answer.FAULT
+    if len(own) < rung.MIN_TRADES:
+        return Answer.THIN
+    return rung.band(fit(own, market).t)

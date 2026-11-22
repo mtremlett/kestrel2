@@ -164,6 +164,11 @@ def test_scene_5_the_position_is_closed(tmp_path: Path) -> None:
         not trip.sell.order_id.endswith("-stop") for trip in trips
     ), "no round trip closed by the strategy's own rule: a buy and its sale"
     ids = {fill.execution_id for fill in broker.fills()}
+    opens = {(s, bar.day): bar.open for line in CLEAN for s in [line.symbol] for bar in CLEAN[line]}
+    assert all(f.price <= opens[f.symbol, f.day] for f in broker.fills() if f.quantity < 0)
+    assert all(
+        f.price == opens[f.symbol, f.day] for f in broker.fills() if f.quantity > 0
+    ), "a buy filled away from the market's price: the spread and slippage are charged beside it"
     pounds = {line.symbol for line in LINES if line.currency == "GBP"}
     for trip in trips:
         if trip.buy.symbol in pounds:
@@ -226,3 +231,21 @@ def test_scene_7_a_day_that_counts_and_the_same_day_replayed(tmp_path: Path) -> 
     assert again == records, "the same days replayed from the saved data gave other records"
     with pytest.raises(TypeError):
         orders.Charges(Decimal(1), Decimal(1), Decimal(1), Decimal(1))  # type: ignore[call-arg]
+
+
+def test_golden_run_replays_the_fourteen_months_to_the_penny(tmp_path: Path) -> None:
+    """The reference run (TST-21, GOV-09, canon B5): a size, stop or threshold that moves a
+    figure here fails until the new figures are explained in docs/DECISIONS.md and re-pinned."""
+    broker = Pretend(MARKET, {})
+    records = _run_days(tmp_path, broker, SESSIONS[1:])
+    trips = book.round_trips(tmp_path, MARKET)
+    penny = Decimal("0.01")
+    golden = (
+        len(records),
+        len(broker.fills()),
+        len(trips),
+        sum((r.profit for r in records if r.profit is not None), Decimal(0)),
+        sum((t.costs.total for t in trips), Decimal(0)).quantize(penny),
+        sum((r.market for r in records), Decimal(0)),
+    )
+    assert golden == (310, 68, 34, Decimal("1098.41"), Decimal("368.78"), Decimal("783.73"))

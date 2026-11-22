@@ -31,3 +31,17 @@ def test_a_declared_holding_period_ends_in_a_sale(monkeypatch: pytest.MonkeyPatc
     )
     acts = [d.action for d in strategy.decide({"A": bars})]
     assert acts == [Action.BUY, *[Action.HOLD] * 2, Action.SELL] * 2 + [Action.BUY]
+
+
+def test_the_age_of_a_held_line_is_counted_from_the_books_fill_date(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(strategy, "STRATEGIES", {"eager": _Eager})
+    price = Decimal(10)
+    bars = tuple(
+        Bar(date(2020, 1, 1) + timedelta(n), price, price, price, price, 1) for n in range(5)
+    )
+    held = {"A": "eager"}
+    assert strategy.today({"A": bars}, held)[0].action is Action.HOLD
+    filled = {"A": date(2020, 1, 3)}  #: sessions 3, 4, 5 of the hold: out on the third
+    assert strategy.today({"A": bars}, held, opened=filled)[0].action is Action.SELL

@@ -58,6 +58,10 @@ def _named(line: Line, today: date, name: str) -> Decision:
     return Decision(name, line.symbol, before, Action.BUY)
 
 
+class Barless(ValueError):
+    """A line with no bar of the session before: the plan leaves it out."""
+
+
 def _last(line: Line, today: date, home: Path | None) -> Bar:
     """A line's bar of the session before today: from the desk's store (the long database, IBKR
     first) when a home is given, else the archive; none, and nothing is sized."""
@@ -68,10 +72,10 @@ def _last(line: Line, today: date, home: Path | None) -> Bar:
         try:
             held, source = keeper.saved(home, today, [line])[0][line], "the store"
         except keeper.Stale as e:
-            raise ValueError(f"{line.symbol}: the store has no bar of {last}: {e}") from e
+            raise Barless(f"{line.symbol}: the store has no bar of {last}: {e}") from e
     bars = [bar for bar in held if bar.day == last]
     if not bars:
-        raise ValueError(f"{line.symbol}: {source} has no bar of {last}, the session before")
+        raise Barless(f"{line.symbol}: {source} has no bar of {last}, the session before")
     return bars[-1]
 
 
@@ -86,12 +90,20 @@ def plan(
 ) -> Plan:
     """The run's orders: on the line given that traded the most money in its last session (or,
     given a seed, the line that seed draws of them, the same line for the same seed and lines),
-    sized at its close by the desk's own sizer; and one share of the line to be refused. Every
-    order id carries the stamp: book.send answers an id the broker already knows from the broker's
-    word of it, so a second run of a day on the first's ids would send nothing."""
+    sized at its close by the desk's own sizer (a line with no bar of the session before is left
+    out); and one share of the line to be refused. Every order id carries the stamp:
+    book.send answers an id the broker already knows from the broker's word of it,
+    so a second run of a day on the first's ids would send nothing."""
     if not lines:
         raise ValueError("the broker lists no plain line of the market for the run to trade")
-    bars = {line: _last(line, today, home) for line in lines}
+    bars, gaps = dict[Line, Bar](), list[Barless]()
+    for each in lines:  #: one bar-less line is left out, the plan made of the rest
+        try:
+            bars[each] = _last(each, today, home)
+        except Barless as e:
+            gaps.append(e)
+    if not bars:
+        raise gaps[0]
     line = max(bars, key=lambda line: bars[line].close * bars[line].volume * fx[line.currency])
     if seed is not None:  #: a soak's round, drawn so the rounds reach every plain line
         line = random.Random(seed).choice(sorted(bars, key=lambda line: line.symbol))  # noqa: S311 - a drawn line, no secret
@@ -194,7 +206,7 @@ def pretend(run: Plan, price: Decimal | None = None, rests: bool = False) -> dic
             return
         broker.open(today + DAY)
         if broker.holdings():  #: the stop above the market: it sells at once, at that bar
-            broker.place(Sale(f"{buy.order_id}-stop", buy.line, buy.quantity))
+            broker.place(Sale(f"{buy.order_id}-stop", buy.line, buy.quantity, session=today))
 
     with TemporaryDirectory() as scratch:
         live(Side(Path(scratch), broker, lambda: (), fall), run, said.__setitem__)

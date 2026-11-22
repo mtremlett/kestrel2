@@ -55,7 +55,7 @@ from typing import IO, Any
 from desk import archive, venues
 from desk.lines import NO_TAX, STAMP_DUTY, Line
 from desk.store import Bar
-from desk.strategy import STRATEGIES
+from desk.strategy import STRATEGIES, VARIANTS
 from lab import batch, tune, universe
 from lab.cell import Cell
 
@@ -79,6 +79,7 @@ class Pass:
     failed: int  #: recorded with their error, and run again on the next pass
     undone: int  #: on a ticker whose worker died: no outcome in this pass
     seconds: float = 0.0  #: how long the pass took by the clock: a full sweep fits a weekend
+    why: tuple[tuple[str, int], ...] = ()  #: the commonest errors of the failed cells, each counted
 
 
 def declared() -> tuple[Line, ...]:
@@ -89,12 +90,22 @@ def declared() -> tuple[Line, ...]:
 
 
 def cells(line: Line, start: date, end: date, transfer: bool = False) -> tuple[Cell, ...]:
-    """The strategies that declare the ticker, each over one window; with transfer, every
-    strategy, for the transfer study."""
-    return tuple(
+    """The strategies that declare the ticker, then their variants, each over one window; with
+    transfer, the five alone, for the transfer study."""
+    made = tuple(
         Cell(name, line, start, end)
         for name, rule in STRATEGIES.items()
         if transfer or line in rule.declared.universe
+    )
+    return (
+        made
+        if transfer
+        else made
+        + tuple(
+            Cell(name, line, start, end)
+            for name, rule in VARIANTS.items()
+            if line in rule.declared.universe
+        )
     )
 
 
@@ -108,7 +119,7 @@ def held(root: Path) -> tuple[Line, ...]:
         known.get((path.stem, venue), Line(path.stem, venue, *money[venue][:1], 1, money[venue][1]))
         for venue in sorted(venues.RULES)
         for path in sorted((root / venue).glob("*.csv"))
-        if not path.stem.endswith(".faults")
+        if not path.stem.endswith(".faults")  # an old note beside the bars, never a ticker
     )
 
 
@@ -146,6 +157,7 @@ def _tally(
     now: failed, or a record, run in this pass unless the journal held it before. A cell the
     pass wrote no line for, on a ticker whose worker died, is undone; so is one with no line."""
     fates: Counter[str] = Counter()
+    why: Counter[str] = Counter()
     for (line, group), had in zip(todo.items(), before, strict=True):
         rows = batch.rows(journal(kept, line))
         held = {(*row["cell"], row["code"], row.get("data")) for row in rows[:had]}
@@ -156,10 +168,12 @@ def _tally(
                 fates["undone"] += 1
             elif "error" in row:
                 fates["failed"] += 1
+                why[row["error"]] += 1
             else:
                 known = (*name, row["code"], row["data"]) in held
                 fates["kept" if known else "ran"] += 1
-    return Pass(report, sum(map(len, todo.values())), *(fates[name] for name in COUNTS[1:]))
+    counts = {name: fates[name] for name in COUNTS[1:]}
+    return Pass(report, sum(map(len, todo.values())), **counts, why=tuple(why.most_common(3)))
 
 
 def alone(kept: Path) -> IO[bytes]:
@@ -239,13 +253,16 @@ def week(
     """Pass after pass, one starting each PAUSE, or as the last ends if that is later, until
     one has ended that many days after the first began: so a week nothing stops shows its
     whole length in its log, from its first pass's start to its last one's end. Each pass
-    is a line of that log in data, with its count or its error. A pass that fails is logged
-    and the week carries on."""
+    is a line of that log in data, with its count or its error. A pass that fails, or raises
+    (the week stopped unlogged between 15 and 21 November), is logged and the week carries on."""
     end: datetime | None = None
     while True:
         started = clock()
         end = end or started + timedelta(days=days)
-        counts = once()
+        try:
+            counts = once()
+        except Exception as error:  # noqa: BLE001 - a pass that raises is logged, not the week's end
+            counts = {"error": f"{type(error).__name__}: {error}"}
         ended = clock()
         times = {"started": started.isoformat(), "ended": ended.isoformat()}
         with (data / WEEK).open("a", encoding="utf-8") as log:

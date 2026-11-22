@@ -9,17 +9,19 @@ from __future__ import annotations
 import csv
 import random
 from collections import Counter
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
+from dataclasses import replace
 from datetime import date, datetime, timedelta
 from decimal import Decimal
+from itertools import pairwise
 from pathlib import Path
 from shutil import rmtree
 from types import ModuleType
 
 from desk import book, broker, day, halt, kill, orders, strategy
 from desk.broker import Crash, Fault, Pretend, Report
-from desk.lines import YARDSTICK
-from desk.orders import HOLDINGS, Order, Sale, Settings
+from desk.lines import YARDSTICK, Line
+from desk.orders import HOLDINGS, Order, Sale, Settings, pennies
 from desk.simcity_census import Census
 from desk.simcity_incidents import (
     CANCELLED,
@@ -51,13 +53,15 @@ from desk.simcity_incidents import (
     unheld,
     unreachable,
 )
-from desk.simcity_parts import MONTH, Archive, Night, _market
+from desk.simcity_parts import MONTH, Archive, Night
+from desk.simcity_parts import _market as dealt
 from desk.simcity_parts2 import _behind, _gapped, _killed
+from desk.store import Bar
 from desk.strategy import Action
 
 Rates = Mapping[str, Decimal]  #: the pounds per unit of each currency, every day of the night
 
-__all__ = ["MONTH", "Archive", "Night", "_gapped", "_market"]  #: given on from simcity_parts, 2
+__all__ = ["MONTH", "Archive", "Night", "_gapped"]  #: given on from simcity_parts, 2
 
 NIGHTS = "simcity.csv"
 HEADER = (
@@ -105,6 +109,10 @@ class _Counted(Pretend):
         self._bars.update(
             {(x.symbol, b.day): b for x, bars in market.items() for b in bars if b.day == on}
         )
+
+    def retest(self, symbol: str, on: date) -> None:
+        """The day's bar as the world made it again is tried against the line's resting stop."""
+        self._test(symbol, self._bars.get((symbol, on)))
 
     def lose_stop(self, symbol: str) -> Callable[[], None]:
         """Cancel a resting stop by hand; what is given back puts it back as it was."""
@@ -172,6 +180,62 @@ class _Life:
             return self._run(saved, on)
 
 
+THROUGH = "a gap opens below a resting stop"
+BELOW = Decimal("0.9")  #: the gap scenario's open, against the stop it jumps
+
+
+def history(bars: Sequence[Bar]) -> list[Decimal]:
+    """The line's own gaps in the saved days: each open over the close before it."""
+    return [b.open / a.close for a, b in pairwise(bars)]
+
+
+def _market(archive: Archive, rng: random.Random) -> dict[Line, tuple[Bar, ...]]:
+    """A WORLD'S MARKET with its overnight gaps: the days dealt again (simcity_parts), then each
+    day opened away from the world's close before it by a gap drawn from the line's own saved
+    history before that day, point-in-time; a copy of the world's draw does it, so no other
+    draw moves. A line's first day, with no history before it, keeps the open it was dealt."""
+    market, draw = dealt(archive, rng), random.Random()  # noqa: S311 - a repeatable draw
+    draw.setstate(rng.getstate())
+    for line, bars in market.items():
+        gaps = history(archive[line])
+        for at in range(1, len(bars)):
+            if gaps[: at - 1]:
+                start = pennies(bars[at - 1].close * draw.choice(gaps[: at - 1]))
+                bars = (*bars[:at], widen(bars[at], start), *bars[at + 1 :])
+        market[line] = tuple(bars)
+    return market
+
+
+def widen(bar: Bar, start: Decimal) -> Bar:
+    """The bar opened at start, its range stretched to hold the open."""
+    return replace(bar, open=start, high=max(bar.high, start), low=min(bar.low, start))
+
+
+def _through(life: _Life, on: date) -> bool:
+    """A held line opens below its resting stop: the stop sells at the open, not at its level,
+    and the day's record counts the loss beyond the stop. False when no stop rests: still owed."""
+    stops = life.pretend.resting_stops()
+    if not stops:
+        return False
+    symbol, (shares, level) = next(iter(stops.items()))
+    start = pennies(level * BELOW)
+    life.market = {
+        x: tuple(widen(b, start) if x.symbol == symbol and b.day == on else b for b in bars)
+        for x, bars in life.market.items()
+    }
+    life.pretend.reopen(on, life.market)
+    life.pretend.retest(symbol, on)
+    record = life.live(on)
+    sold = [
+        f for f in book.fills(life.desk) if f.symbol == symbol and f.day == on and f.quantity < 0
+    ]
+    life.promise(
+        "a gap through a stop sells at the open below it", [f.price for f in sold] == [start]
+    )
+    life.promise("the day of a gap through a stop is recorded", record.profit is not None)
+    return True
+
+
 def _unstopped(life: _Life, on: date) -> None:
     """The stop under a holding of the seed's choosing is cancelled by hand, and put back after
     the day's record if the same shares are still held; one time in FORGOTTEN it never is."""
@@ -189,6 +253,7 @@ EVENTS: tuple[Event, ...] = (
     (UNSTOPPED, _unstopped),
     (GAPPED, _gapped),
     (KILLED, _killed),
+    (THROUGH, _through),
     (HOLE, hole),
     (LEFT, beside),
     (CANCELLED, cancelled),
@@ -271,6 +336,55 @@ def _stops(life: _Life) -> None:
         order, order.price, life.room
     )
     life.promise("a sale at the price it was sized at loses nothing to a gap", kept)
+    buy = strategy.Decision("rule", symbol, life.records[-1].day, strategy.Action.BUY)
+    price, fx, held = Decimal(100), life.rates[line.currency], book.positions(life.desk)
+    gap = orders.stop_under(line, price) - 1  #: the live price gaps under the signal's stop
+    try:
+        orders.size(buy, line, price, fx, life.room, held, gap)
+        refused = False
+    except orders.Refused:
+        refused = True
+    life.promise("a gap down past the stop refuses the buy", refused)
+
+
+def _apart(life: _Life, trips: tuple[book.RoundTrip, ...]) -> bool:
+    """BIC-04: the trips' gross is their trading at the buy's rate plus the currency's move."""
+    money = {line.symbol: line.currency for line in life.market}
+    traded = sum(
+        (
+            -t.sell.quantity
+            * (t.sell.price - t.buy.price)
+            * book.rate(life.desk, money[t.buy.symbol], t.buy.day)
+            for t in trips
+        ),
+        Decimal(0),
+    )
+    gross = sum((t.gross for t in trips), Decimal(0))
+    unit = {line.symbol: Decimal(1) for line in life.market}
+    open_gain = (
+        book.open_currency_gain(life.desk, life.market, {k: v * 2 for k, v in unit.items()}, d)
+        == 2 * book.open_currency_gain(life.desk, life.market, unit, d)
+        for d in {t.sell.day for t in trips}
+    )
+    return traded + book.currency_gain(life.desk, life.market, trips) == gross and all(open_gain)
+
+
+def _told(life: _Life, trips: tuple[book.RoundTrip, ...]) -> bool:
+    """Each trip has its story, and the profit attributed by line, and by days held, is each the
+    trips' own total; currency and trading add up to the gross (BIC-04)."""
+    totals = (
+        sum(book.attributed(trips, by).values(), Decimal(0))
+        for by in (lambda t: t.buy.symbol, lambda t: (t.sell.day - t.buy.day).days)
+    )
+    whole = len(book.told(trips, life.market)) == len(trips)
+    chained = all(c.order_id and c.bar_day <= c.session for c in book.chains(life.desk))
+    return (
+        whole
+        and chained
+        and _apart(life, trips)
+        and _earns(life, trips)
+        and all(total == sum((t.profit for t in trips), Decimal(0)) for total in totals)
+    )
 
 
 def _live(life: _Life) -> None:
@@ -318,10 +432,22 @@ def _live(life: _Life) -> None:
     shut = sum(-t.sell.quantity for t in trips) == sum(-f.quantity for f in fills if f.quantity < 0)
     life.promise("the round trips close every share the fills sold", shut)
     life.trips = len(trips)
+    life.promise("each trade is told, its profit by line and days adding up", _told(life, trips))
     cash, costs = book.dealt(life.desk, life.market, date.max, date.min, 0)
     kind = book.conformance_cost(life.desk, life.market)
     life.promise("the conformance cost is cash less costs", kind == cash - costs.total)
     life.held = {orders.strategy_of(fill.order_id) for fill in fills if fill.quantity > 0}
+
+
+def _earns(life: _Life, trips: Iterable[book.RoundTrip]) -> bool:
+    """BIC-03: on the first fill day no rate pays nothing, and a rate pays on idle cash."""
+    day = min((t.buy.day for t in trips), default=None)
+    if day is None:
+        return True
+    args = (life.desk, life.market, Decimal(10_000))
+    return 0 < book.interest(*args, Decimal("0.0365"), day, day) < 2 and not book.interest(
+        *args, Decimal(0), day, day
+    )
 
 
 def _night(

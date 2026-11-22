@@ -86,6 +86,7 @@ def test_every_strategy_on_every_ticker_is_kept_and_only_what_changed_is_run_aga
         assert len(batch.rows(sweep.journal(kept, line))) == EACH, "a kept cell was run again"
     errors = {row["error"] for row in batch.rows(sweep.journal(kept, ABSENT))}
     assert len(errors) == 1 and errors.pop().startswith("FileNotFoundError")
+    assert [(why.split(":")[0], n) for why, n in first.why] == [("FileNotFoundError", EACH)]
 
     with sweep.journal(kept, BOEING).open("ab") as cut:
         cut.write(b'{"cell": ["breakout_20_10", "BA')  # a line a stop cut short
@@ -152,9 +153,9 @@ def test_a_week_is_pass_after_pass_and_its_log_shows_how_long_without_stopping(
         n = len(batch.rows(tmp_path / sweep.WEEK))
         now[0] += timedelta(minutes=200 if n == 9 else 5)  # one pass takes over three hours
         idle = {"ran": 0, "kept": 0, "failed": 9}  # a pass that ends holding no cell
-        return (
-            {"error": "OSError: no store"} if n == 100 else idle if n == 30 else {**idle, "ran": 1}
-        )
+        if n == 100:  # a pass that raises is logged, and the week carries on
+            raise OSError("no store")
+        return idle if n == 30 else {**idle, "ran": 1}
 
     def wait(seconds: float) -> None:
         waits.append(seconds)
@@ -188,7 +189,7 @@ def test_held_is_every_ticker_the_store_has_bars_for_the_list_or_not(tmp_path: P
     other = Line("ZZZZ", "LSE", "GBP", 1, STAMP_DUTY)
     for line in (BOEING, BAE, other):
         _keep(tmp_path, line)
-    (tmp_path / "US" / "ZZZ.faults.csv").write_text("fault\n")  # a note, not a ticker
+    (tmp_path / "US" / "ZZZ.faults.csv").write_text("fault\n")  # an old note, not a ticker
     assert sweep.held(tmp_path) == (BAE, other, BOEING)
     assert sweep.held(tmp_path)[0] is next(x for x in universe.UNIVERSE if x == BAE)
 
@@ -203,6 +204,21 @@ def test_each_strategy_is_judged_on_its_declared_universe_and_the_transfer_study
     mine = strategy.STRATEGIES["trend_50_200"].declared.universe[0]
     assert len(sweep.declared()) == len(set(sweep.declared()))
     assert mine in sweep.declared() and BOEING not in sweep.declared()
-    assert [c.strategy for c in sweep.cells(mine, START, DAY)] == list(strategy.STRATEGIES)
+    names = [c.strategy for c in sweep.cells(mine, START, DAY)]
+    assert names == [*strategy.STRATEGIES, *strategy.VARIANTS]
     assert sweep.cells(BOEING, START, DAY) == ()  # declared by none: no verdict is made there
     assert len(sweep.cells(BOEING, START, DAY, transfer=True)) == EACH
+
+
+def test_a_variants_held_positions_are_the_desks_decisions_at_its_settings(
+    tmp_path: Path,
+) -> None:
+    _keep(tmp_path, BOEING)
+    bars = universe.read(tmp_path, BOEING).bars
+    name = "bollinger_pullback[width=1.5]"
+    said = strategy.decide({BOEING.symbol: bars}, {"bollinger_pullback": {"width": Decimal("1.5")}})
+    held: list[bool] = []
+    for d in (d for d in said if d.strategy == "bollinger_pullback"):
+        was = held[-1] if held else False
+        held.append({strategy.Action.BUY: True, strategy.Action.SELL: False}.get(d.action, was))
+    assert any(held) and cell._held(cell.Cell(name, BOEING, START, DAY), bars) == held

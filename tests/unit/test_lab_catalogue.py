@@ -1,5 +1,5 @@
-"""Spec parity: every strategy of the spec book (`lab/catalogue.toml`) decides, on every day of
-every fixture series, exactly as the Python rule of the same name in `desk/eponymous_*.py`."""
+"""Spec parity: every row of `lab/catalogue.toml` decides, on every day of every fixture series,
+exactly as its Python rule in `desk/eponymous_*.py`, and every such rule has a row (R-MONEY-45)."""
 
 from __future__ import annotations
 
@@ -37,9 +37,9 @@ def _bars(seed: int, days: int = 1500) -> tuple[Bar, ...]:
     return tuple(made)
 
 
-@pytest.mark.parametrize("name", sorted(BOOK))
+@pytest.mark.parametrize("name", sorted(BOOK.keys() | RULES))
 def test_each_spec_decides_as_its_python_rule_on_every_day(name: str) -> None:
-    assert name in RULES, f"{name} is no rule of desk/eponymous_*.py"
+    assert name in RULES and name in BOOK, f"{name}: not both a catalogue row and a desk rule"
     spec = Spec.parse({"name": name, **BOOK[name]})
     seen: set[str] = set()
     for seed in range(5):

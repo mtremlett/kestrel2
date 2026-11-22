@@ -58,6 +58,9 @@ class Line:
     #: The ISIN, the twelve-character international id the issuer and the broker both give
     #: (R-PAPER-3); None only for a reference series that is no security.
     isin: str | None = None
+    #: The first day of each change of the currency its prices are quoted in, recorded from the
+    #: issuer's notice, never inferred from the bars: the step that day is the unit, not a move.
+    requoted: frozenset[date] = field(default_factory=frozenset)
     #: The first day whose bars the store keeps, where the archive's older ones are in another
     #: unit than its newer: earlier bars are dropped with one fault, never rescaled by a guess.
     starts: date | None = None
@@ -95,8 +98,9 @@ class Line:
 #: The frozen lines, by the operator's rulings of 13 November 2026 (docs/DECISIONS.md). SPY,
 #: QQQ and GLD, US funds a UK ISA cannot buy, leave for VUAG (the S&P 500), EQQQ (the Nasdaq
 #: 100) and IDTL (US Treasuries of twenty years and more, which London prices in dollars):
-#: thirteen in London and seven in the US. GLD is gone; SPY and QQQ stay, recorded as lines
-#: no ISA holds, only until the ladder's tests stop naming them (docs/PLAN.md).
+#: thirteen in London and seven in the US. GLD is gone; SPY and QQQ stay only as price
+#: references (REFERENCE below), never traded, until the callers outside this module read
+#: REFERENCE instead of LINES (docs/PLAN.md, data-isa-twins).
 #: Four inverse London funds join by his words of 21 November 2026 (XSPS, SUK1, 1MCS, LQQS):
 #: each moves against its index, so a purchase is the long-only desk's short of that market;
 #: seventeen lines in London now. Their ISA and retail facts are not yet recorded.

@@ -5,10 +5,11 @@ left working. Conformance trades are a cost of their own (conformance_cost)."""
 
 from __future__ import annotations
 
+import csv
 from collections import Counter, deque
-from collections.abc import Callable, Iterable, Mapping
-from dataclasses import dataclass, replace
-from datetime import UTC, date, datetime
+from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
+from dataclasses import astuple, dataclass, replace
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
@@ -24,10 +25,12 @@ from desk.book_parts import (
     keep,
     killed,
     rate,
-    rates_kept,
     record_rates,
     retry_id,
     switch,
+)
+from desk.book_parts import (
+    rates_kept as rates_kept,
 )
 from desk.book_parts import (
     unless_killed as _unless_killed,
@@ -46,8 +49,10 @@ from desk.book_parts2 import (
 from desk.broker import Broker, Crash, Disconnected, Fill, Report
 from desk.halt import Blocker, Stopped
 from desk.lines import Line
-from desk.orders import Charges, Order, Refused, Sale, Settings, charges, gate, leg_of
+from desk.orders import Charges, Order, Refused, Sale, Settings, charges, gate, leg_of, strategy_of
 from desk.risk import Standing
+from desk.store import Bar
+from desk.strategy import Decision
 
 #: what moved to desk.book_parts and desk.book_parts2 and is still given from here, for the callers
 __all__ = (
@@ -354,3 +359,123 @@ def round_trips(root: Path, lines: Iterable[Line]) -> tuple[RoundTrip, ...]:
             bought_leg, sold_leg = replace(buy, quantity=shares), replace(fill, quantity=-shares)
             trips.append(RoundTrip(bought_leg, sold_leg, gross, costs, gross - costs.total))
     return tuple(trips)
+
+
+def currency_gain(root: Path, lines: Iterable[Line], trips: Iterable[RoundTrip]) -> Decimal:
+    """CURRENCY APART FROM TRADING (BIC-04): the pounds the trips gained or lost because the
+    currency moved between the buy's day and the sale's, the shares sold at the sale's price
+    times the change in the day's rate. A trip's gross less this is its trading profit."""
+    currency = {line.symbol: line.currency for line in lines}
+    return sum(
+        (
+            -t.sell.quantity
+            * t.sell.price
+            * (
+                rate(root, currency[t.sell.symbol], t.sell.day)
+                - rate(root, currency[t.buy.symbol], t.buy.day)
+            )
+            for t in trips
+        ),
+        Decimal(0),
+    )
+
+
+def open_currency_gain(
+    root: Path, lines: Iterable[Line], prices: Mapping[str, Decimal], day: date
+) -> Decimal:
+    """CURRENCY ON OPEN HOLDINGS (BIC-04): what the shares still held, the newest buys (sales
+    close the oldest), have gained or lost at today's price from the currency's move since the
+    buy's day, apart from the price's own."""
+    money, total = {line.symbol: line.currency for line in lines}, Decimal(0)
+    for symbol, held in positions(root, day).items():
+        for buy in (f for f in reversed(fills(root)) if f.symbol == symbol and f.quantity > 0):
+            shares, held = min(held, buy.quantity), held - min(held, buy.quantity)
+            move = rate(root, money[symbol], day) - rate(root, money[symbol], buy.day)
+            total += shares * prices[symbol] * move
+    return total
+
+
+def interest(
+    root: Path, lines: Iterable[Line], capital: Decimal, annual: Decimal, first: date, last: date
+) -> Decimal:
+    """INTEREST ON IDLE CASH (BIC-03): each day from first to last, the capital less what the
+    ledger has spent by its end (costs too), if positive, earns annual / 365 of itself."""
+    held, total, day = tuple(lines), Decimal(0), first
+    while day <= last:
+        cash, costs = dealt(root, held, day, date.min, 0)
+        total += max(capital + cash - costs.total, Decimal(0)) * annual / 365
+        day += timedelta(days=1)
+    return total
+
+
+def attributed(
+    trips: Iterable[RoundTrip], by: Callable[[RoundTrip], object]
+) -> dict[object, Decimal]:
+    """THE PROFIT TOLD APART (TRD-12): pounds after every cost summed under what the key says of a
+    trip: its strategy (the buy's order id), its line, the days it was held, its costs."""
+    total: dict[object, Decimal] = {}
+    for trip in trips:
+        total[by(trip)] = total.get(by(trip), Decimal(0)) + trip.profit
+    return total
+
+
+@dataclass(frozen=True)
+class Story:
+    """A TRADE'S WHOLE STORY (TRD-11, DQ-08): the trip, its signal's strategy and session, read
+    from the buy's order id, and the bar that signal read: the line's last bar before the buy."""
+
+    strategy: str
+    bar: Bar
+    trip: RoundTrip
+    held: int  #: calendar days from the buy to the sale
+
+
+def told(trips: Iterable[RoundTrip], archive: Mapping[Line, Sequence[Bar]]) -> tuple[Story, ...]:
+    """Each trip's story, in the ledger's order; a buy whose line has no earlier bar is refused."""
+    bars, stories = {line.symbol: days for line, days in archive.items()}, []
+    for trip in trips:
+        buy = trip.buy
+        if not (read := [bar for bar in bars.get(buy.symbol, ()) if bar.day < buy.day]):
+            raise ValueError(f"{buy.order_id}: {buy.symbol} has no bar before {buy.day}")
+        held = (trip.sell.day - buy.day).days
+        stories.append(Story(strategy_of(buy.order_id), read[-1], trip, held))
+    return tuple(stories)
+
+
+STORY = "story.csv"
+
+
+@dataclass(frozen=True)
+class Link:
+    """THE ID CHAIN AT DECISION TIME (TRD-11, DQ-08): one decision's signal (strategy, line,
+    session), the bar it read, and the send path's answer, under the id its order and fills have."""
+
+    order_id: str
+    strategy: str
+    symbol: str
+    session: date
+    bar_day: date
+    bar_close: Decimal
+    filled: int  #: shares the order filled at once
+    blocker: str  #: what stood in its way; empty when nothing did
+
+
+def chain(root: Path, d: Decision, bar: Bar, answer: Sent) -> Link:
+    """Keep the decision's chain on a line of its own, after those already kept."""
+    blocker = answer.blocker.name if answer.blocker else ""
+    made = Link(
+        answer.order_id, d.strategy, d.symbol, d.day, bar.day, bar.close, answer.filled, blocker
+    )
+    with (root / STORY).open("a", newline="", encoding="utf-8") as out:
+        csv.writer(out).writerow(astuple(made))
+    return made
+
+
+def chains(root: Path) -> Iterator[Link]:
+    """The chains kept, oldest first, streamed; none if no decision has been kept."""
+    if not (root / STORY).exists():
+        return
+    with (root / STORY).open(newline="", encoding="utf-8") as kept:
+        for r in csv.reader(kept):
+            sees, read = date.fromisoformat(r[3]), date.fromisoformat(r[4])
+            yield Link(r[0], r[1], r[2], sees, read, Decimal(r[5]), int(r[6]), r[7])

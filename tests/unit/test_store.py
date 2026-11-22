@@ -32,7 +32,9 @@ def _parked(tmp_path: Path, bars: tuple[Bar, ...], line: Line = US) -> list[str]
 
 
 def test_a_clean_line_is_stored_exactly_and_not_parked(tmp_path: Path) -> None:
+    (tmp_path / f"{US.symbol}.faults.csv").write_text("old")  # the old format's orphan
     assert store.prepare(tmp_path, {US: _bars(US), UK: _bars(UK)}, DAY) == ()
+    assert not list(tmp_path.glob("*.faults.csv"))  # a line is its one file, nothing beside it
     assert store.prepare(tmp_path, {US: _bars(US, LONG)}, DAY) == ()
     assert store.faults(tmp_path, US.symbol) == ()
     assert store.read(tmp_path, US.symbol) == _bars(US, LONG)
@@ -339,6 +341,15 @@ def test_a_step_as_large_as_the_pound_is_a_currency_only_if_it_lasts(
     assert bool(_prepared(tmp_path, bars, US)) is not run
     assert store.read(tmp_path, US.symbol) == bars  # nothing dropped: no wrong unit is claimed
     assert _prepared(tmp_path, bars, replace(US, leverage=3)) == []  # a real crash is as large
+
+
+def test_a_dated_change_of_quote_currency_is_kept_not_refused(tmp_path: Path) -> None:
+    """HVPE, NBPE, VOF: the line master dates the change (R-RUNGS-20); the step day is kept."""
+    clean = _bars(US, LONG)
+    bars = (*clean[:30], *(_scaled(b, 1 / POUND) for b in clean[30:]))
+    assert _prepared(tmp_path, bars, US)
+    assert _prepared(tmp_path, bars, replace(US, requoted=frozenset({bars[30].day}))) == []
+    assert store.read(tmp_path, US.symbol) == bars
 
 
 def test_untraded_bars_in_another_unit_give_way_to_the_traded_bars(tmp_path: Path) -> None:

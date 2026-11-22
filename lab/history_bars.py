@@ -19,6 +19,7 @@ from desk.store import Bar
 from lab import ladder, universe
 from lab.batch import Bars
 
+FACTS = "SELECT at, value FROM fact WHERE kind = 'macro' AND subject = ? ORDER BY at"
 HELD = "SELECT venue, symbol FROM held WHERE span = ?"
 
 
@@ -47,6 +48,20 @@ def reader(home: Path) -> Bars:
         return [bar for bar in bars.daily(path, line) if bar.day <= ladder.END]
 
     return lru_cache(maxsize=4)(read)
+
+
+def facts(home: Path, series: str) -> dict[date, Decimal]:
+    """One macro series' observations from the history database's facts, by day. Read only; a
+    database without facts, or a day holding two values, raises naming the series."""
+    file = bars.files(database(home))[bars.DAILY]
+    if not file.is_file():
+        raise FileNotFoundError(f"{file}: no history database to take {series} from")
+    with closing(sqlite3.connect(f"{file.as_uri()}?mode=ro", uri=True)) as held:
+        rows = held.execute(FACTS, (series,)).fetchall()
+    found = {date.fromisoformat(at): Decimal(value) for at, value in rows}
+    if len(found) != len(rows):
+        raise ValueError(f"{series}: a day holds two values in the history database")
+    return found
 
 
 def pounds(home: Path) -> dict[date, Decimal]:

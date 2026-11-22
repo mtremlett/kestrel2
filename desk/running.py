@@ -48,6 +48,7 @@ from desk import (
     day,
     gateway,
     goflat,
+    halt,
     intraday,
     keeper,
     kill,
@@ -344,6 +345,19 @@ def _drill(root: Path, now: datetime) -> None:
             raise kill.Failed(UNDRILLED.format(broke)) from broke
 
 
+def _stand(root: Path, broker: placing.Paper, now: datetime) -> None:
+    """The step's first duties at a ready gateway: a halt in force (the look's or his) takes
+    the working buys down, then the day's drill."""
+    if halt.in_force(root):
+        broker.cancel()
+    _drill(root, now)
+
+
+def _paper(desk: Desk, listings: Mapping[str, Listing | Unlisted], now: datetime) -> placing.Paper:
+    """The desk's one broker at the paper Gateway, for a moment."""
+    return placing.Paper(listings, desk.root, lambda: now, desk.door)
+
+
 def _work(desk: Desk, now: datetime, seen: watch.Look | None) -> None:
     """What a step owes of a ready gateway, in the module's order; the paper account is asked
     only when something is owed. Each round and record has the check before it, and the day's
@@ -358,9 +372,9 @@ def _work(desk: Desk, now: datetime, seen: watch.Look | None) -> None:
     if not (check or owed or any(venues.open_at(venue, now) for venue in VENUES)):
         return
     listings = listing.kept(root, now, LINES, desk.door)
-    broker = placing.Paper(listings, root, lambda: now, desk.door)
+    broker = _paper(desk, listings, now)
     book.collect(root, broker)
-    _drill(root, now)
+    _stand(root, broker, now)
     if sold := goflat.step(root, broker, desk.room, now):
         _note(root, now, "go flat", f"{goflat.state(root)}: {'; '.join(sold)}")
     if check and not _clean(desk, broker, listings, now):
@@ -384,7 +398,7 @@ def _say(desk: Desk, now: datetime, known: Known) -> None:
     if known.state is State.HIS:
         since = local - timedelta(hours=gateway.WAKES.hour)
         messenger.send(root, now, f"gateway {since:%Y-%m-%d}", known.words, post)
-    messenger.morning(root, now, known, post)
+    messenger.morning(root, now, known, post, desk.room.capital)
     messenger.evening(root, now, known, post)
     if desk.mail:
         messenger.summary(root, now, desk.mail)
@@ -417,7 +431,14 @@ def step(desk: Desk, now: datetime) -> None:
     try:
         known = gateway.known(now, door=desk.door)
         try:
-            seen = watch.look(desk.root, desk.hot, desk.held(now.date())[0], now, desk.post)
+            seen = watch.look(
+                desk.root,
+                desk.hot,
+                desk.held(now.date())[0],
+                now,
+                desk.post,
+                door=lambda: _paper(desk, listing.kept(desk.root, now, LINES, desk.door), now),
+            )
         except Exception as failed:  # noqa: BLE001 - no round goes unseen; the rest is done
             unseen = failed
         if known:

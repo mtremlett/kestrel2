@@ -2169,3 +2169,18 @@ precondition.
 
 Guard proven (A7): lab/ padded to 20,001 lines made `test_the_tree_is_inside_this_phases_ceiling`
 fail ("ceiling 20000"); at 20,000 it passed; the padding removed.
+
+## 21 Nov - a '*' session's own check holds it to the files it named in .claim
+
+A session holding '*' (a serial run, or a box noted `files: *`) now names its files in
+`.claim` at its worktree's top before any edit, and the runner holds only those, so the
+rest of its lane can run beside it (runner item 7, coordinator 40, Sat 19:5x). Until now its
+local check still read '*' and allowed any file of the lane. `tests/guards/test_lanes.py`
+now reads `.claim` when the claim it is given holds '*', so the session's check and the
+runner's hold read one claim. This narrows what a session may change: a tightening. A pull
+request's own Claim line on GitHub is read as before.
+
+Guard proven (A7): in a scratch clone, on a `lane/money-...` branch changing
+`desk/orders.py` with `KESTREL_CLAIM='*'`: no `.claim` passed; `.claim` naming
+`desk/day.py` made `test_a_lane_changes_only_what_it_claimed` fail; `.claim` naming
+`desk/orders.py` passed. On main's guard all three passed (the hole).

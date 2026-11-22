@@ -239,3 +239,42 @@ quietly taking the trading line of the same symbol. Blind review, nothing blocki
 - *Key:* exclude files that themselves reach the rung (no list to keep) rather than a fixed list of orchestration modules (a second home for a fact). Kept rows get a new key once.
 - *Default pass = declared universe*, not the research list with a flag: transfer is never a verdict. Lines matched by full Line, not symbol.
 - *Pass time* is a field on `Pass` (a separate timer script would be forbidden scaffolding).
+
+### 2026-11-21 — the week's failing cells: ask the runner for fresh code, not a guard in the sweep
+
+2,810 cells failed each hourly pass because the week's clone ran pre-#1210 code on a store the nightly refresh had
+rewritten in the new format. Options: (a) make `lab/sweep.py` refuse a store newer than its code, (b) have the runner
+update the week's clone before each pass, (c) wait. **Decided (b)**, as R-GRID-8: the code a pass runs is the runner's to
+supply, and (a) would guard a symptom; (c) loses days. The grid-week wait is 2026-11-28 (seven unbroken days from the restart).
+
+### 2026-11-22 — variants run as cells; the transfer study stays on the five
+
+R-RUNNER-362: `sweep.cells()` now adds a cell per variant of each rule declaring the line (`desk.strategy.VARIANTS` joins the
+rule book; a variant named like an existing rule is refused). Question: should `transfer=True` include the variants?
+Options: (a) include them; (b) keep transfer on the published five. **Decided (b)**: the request says the fast grid stays on
+the published five and transfer is on STRATEGIES; variants go through the desk engine unchanged (no edit to `lab/cell.py`).
+
+### 2026-11-22 — the grid-week wait stays 2026-11-28; no stale-clone guard in lab/
+
+#1555 traced the 2,810 failing cells (`ValueError: Invalid isoformat string: ''`) to the week's own clone, frozen at 6793651f
+(14 Nov, before #1210); main's code reads the new store's blank-day fault rows and the same cells do not fail there. Options:
+(a) change `lab/` to guard against a stale clone (growing process code, refused by A1.7); (b) leave it to the runner's clone
+update (R-GRID-8). **Decided (b)**, on his words "always go with recommended". The 15 Nov 11:22 to 21 Nov 00:21 stop left no
+record (week-out/err empty); consistent with the week job being down until restarted.
+
+### 2026-11-22 — a raising pass is logged; failures name their causes (grid-week; #1562, #1563)
+
+2,810 cells failed each pass with `Invalid isoformat string: ''`, no location: pre-#1370 code in the week's stale clone.
+Options: (a) restart the seven days now; (b) wait for the clone to reach current main; (c) make cell code tolerate the old
+format (rejected: a second path). **Decided (b)**, wait stays 2026-11-28, on his "always go with recommended". Also: `week` logs
+a pass that raises as an error row and carries on (an unlogged exception was one route to the 15 Nov stop); each pass line
+carries `why`, its three commonest errors with counts. The stop's exact trigger is unproven.
+
+
+### 2026-11-22 — old .faults notes skipped in held() (grid-week; #1612)
+
+2,810 cells (7,650 in the held folder) failed because #1555 dropped `held()`'s `.faults` filter, believing the store no
+longer wrote those notes; 348 LSE and as many US `*.faults.csv` notes still sit beside the bars and were swept as tickers
+(`KeyError: 'day'`). Options: (A) delete the old files (deletes data, not GRID's to do); (B) skip them in `held()`.
+**Decided (B)**, recommended, on his "always go with recommended". Remains: the runner restarts the week job on current
+code; the grid-week wait stays 2026-11-28; old rows of the phantom journals in grid/held are inert.

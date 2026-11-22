@@ -35,7 +35,8 @@ def _sign(amount: Decimal) -> str:
     return "+" if amount > 0 else "-" if amount < 0 else ""
 
 
-def _icon(amount: Decimal | None) -> str:
+def icon(amount: Decimal | None) -> str:
+    """One icon for a gain, a loss, or nothing."""
     return "⚪" if not amount else "🟢" if amount > 0 else "🔴"
 
 
@@ -115,7 +116,7 @@ def report(
         start, names[symbol] = _base(symbol, close, before, fills, since)
         moves[symbol] = _move(start, last.get(symbol))
     rows = [
-        f"{_icon(moves[symbol])} {symbol} {shares} sh {_percent(moves[symbol], names[symbol])}"
+        f"{icon(moves[symbol])} {symbol} {shares} sh {_percent(moves[symbol], names[symbol])}"
         for symbol, shares in sorted(held.items())
         if shares
     ]
@@ -128,9 +129,9 @@ def report(
     return "\n".join(
         [
             f"📊 Desk {venues.uk_time(now):%H:%M} UK",
-            f"{_icon(day)} Day {_pounds(day)} {since}, after costs",
+            f"{icon(day)} Day {_pounds(day)} {since}, after costs",
             *rows,
-            f"{_icon(move)} Holding the market: {worth}",
+            f"{icon(move)} Holding the market: {worth}",
             mood.value,
         ]
     )

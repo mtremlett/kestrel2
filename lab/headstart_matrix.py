@@ -20,7 +20,7 @@ from desk import bars
 from desk.bars import Five, Source
 from desk.lines import Line
 from desk.spans import EPOCH
-from lab import headstart, headstart_days, headstart_hours
+from lab import headstart, headstart_days, headstart_hours, headstart_parts
 
 #: Each span the arrays keep for the history, and how far Stooq's stamp lies after a bar's start.
 ENDS = {"15m": timedelta(0), "30m": timedelta(0), "1h": timedelta(hours=1)}
@@ -56,6 +56,28 @@ def one(line: Line, old: Path, path: Path) -> str:
     return f"{line.symbol}: " + "; ".join(said)
 
 
+#: Each span the database keeps that the store can check (a one-minute bar is no five-minute mark).
+TREND = ("1m", "15m", "30m", "1h", "4h", "1wk")
+
+
+def trend(line: Line, old: Path, path: Path) -> str:
+    """A line's rows of each timeframe in the old database into the history, under its own
+    source, said in one line: a span already in is left, off-mark rows are counted refused."""
+    said = []
+    for span in TREND:
+        if headstart_hours.held(path, line, span, Source.DATABASE):
+            said.append(f"{span} already in")
+            continue
+        try:
+            given, off = headstart_parts.timeframe(line, old, span)
+        except ValueError:
+            said.append(f"{span} not held")
+            continue
+        text = headstart_hours.enter(line, given, path, span, Source.DATABASE).split(": ", 1)[1]
+        said.append(f"{text}; {off} off its marks refused")
+    return f"{line.symbol}: " + "; ".join(said)
+
+
 FILLED = re.compile(r"(\d+) (?:\w+ )*?filled")
 DIFFER = re.compile(r"(\d+) of \d+ days held differ")
 
@@ -72,6 +94,8 @@ def whole(register: Path, path: Path, lines: list[Line], day: date) -> str:
             got.append(headstart_days.main(old, path, lines, day))
         if (old / "freq=h").is_dir():
             got.append(headstart_hours.main(old, path, lines))
+        if old.suffix == ".db":
+            got.append(headstart_hours.main(old, path, lines, trend))
         if old.name == "stooq_store_matrix":
             got.append(headstart_hours.main(old, path, lines, one))
         text = "\n".join(got)
