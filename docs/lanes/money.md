@@ -746,3 +746,10 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 - Options: (a) one hold limit for all five rules (declined by him); (b) a limit per rule from its own sell logic (taken).
 - Not done in #1542: it needs the strategy files, outside that claim; carded as R-MONEY-64. Golden days may move (B5): explain in DECISIONS.
 - Currency split (BIC-04) is measured at the sale's price, so trading profit is valued at the buy's rate.
+
+### 2026-11-22 - Interest at 4%, currency told beside profit (#1560, #1569, #1584, #1596, BIC-03, BIC-04)
+- Risk-free rate options: 3%, 4%, or a per-day Bank Rate series. Took 4% as one constant `day.RISK_FREE` (his "always go with recommended"); a series needs a data owner. `book.interest` takes the rate as an argument, so no number is fixed in the book.
+- Interest and currency are told beside the day's profit, not in it, so golden days do not move (B5); moving them needs his words in DECISIONS.
+- Open-holding currency is told only when every currency's rate for the day is kept; carrying the last rate was rejected as a silent default.
+- Currency on paper is a tell, not a new record column: the record's shape lives in `desk/day_parts.py`, outside the claim (R-MONEY-66).
+- money-time-gaps: released by his "i agree to this" (each rule's own hold limit from its own sell logic), taken as ruled; the work is in strategy files outside these claims, carded as R-MONEY-62, R-MONEY-63, R-MONEY-64.

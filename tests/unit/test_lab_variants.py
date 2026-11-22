@@ -27,6 +27,14 @@ def test_twelve_variants_all_counted_and_the_pick_is_the_plateau_centre(
     assert made[-1].setting == (40, 80) and ROW.params["entry"] == {"n": 20}
     assert not made[0].spec.ranges
     assert all(variants.find({ROW.name: ROW}, v.spec.name) == v.spec for v in made)
+    shared = {**ROW_RAW, "ranges": {"entry+exit": {"n": [10, 20]}}}
+    assert variants.variants(Spec.parse(shared))[0].spec.params["exit"] == {"n": 10}
+    with pytest.raises(ValueError, match="one setting"):  # the places disagree: two settings
+        Spec.parse({**shared, "params": {**ROW_RAW["params"], "exit": {"n": 40}}})
+    four = {"entry": {"n": 4}, "stop": {"n": 4}}
+    box = {"name": "darvas_box", **BOOK["darvas_box"], "params": four}
+    with pytest.raises(ValueError, match="case 0 gives"):  # the box's sessions reach its blocks
+        Spec.parse(box)
     for stray in (ROW.name, f"{ROW.name}[entry.n=30,exit.n=10]", "nobody[entry.n=10]"):
         with pytest.raises(ValueError, match="no variant"):
             variants.find({ROW.name: ROW}, stray)
@@ -53,7 +61,7 @@ def test_every_ranged_row_centres_on_a_plateau(name: str, monkeypatch: pytest.Mo
     made = variants.variants(row)
     chosen = variants.centre(row, {v.setting: _verdict(PASS, v.spec.name) for v in made})
     assert chosen.passed, f"{name}: an all-passing surface shows no plateau"
-    own = tuple(row.params[place][param] for place, param in row.ranges)
+    own = tuple(row.params[place.split("+")[0]][param] for place, param in row.ranges)
     assert chosen.setting == own, f"{name}: its published setting is not its ranges' centre"
 
 
@@ -68,6 +76,9 @@ def test_every_ranged_row_centres_on_a_plateau(name: str, monkeypatch: pytest.Mo
         {"entry": {"n": 10}},
         {"entry": {"n": [40, 10, 20]}},
         {"bogus": {}},
+        {"entry+entry": {"n": [10, 20]}},
+        {"entry+stop": {"n": [10, 20]}},
+        {"entry": {"n": [10, 20]}, "entry+exit": {"n": [10, 20]}},
         5,
     ],
 )

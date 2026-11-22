@@ -350,14 +350,17 @@ def _needs_data(make: type[Rule]) -> bool:
 
 def door(env: Mapping[str, str], argv: Sequence[str]) -> int:
     """The command: the set run, then each rung any cell FAULTed on said on its own line with its
-    share and reason; 1 when most cells FAULTed, so a set that judged nothing is never green."""
+    share and reason; 1 when most cells FAULTed, so a set that judged nothing is never green.
+    The intraday and scalping sets keep no results file (their table is all), so none is read."""
     from lab import ladder_sets
 
     code = ladder_sets.main(env, argv)
-    sets = {"first": FIRST, "leveraged": ladder_sets.LEV, "variants": ladder_sets.VAR}
+    sets = {"": ladder_sets.EPON, "first": FIRST}
+    sets |= {"leveraged": ladder_sets.LEV, "variants": ladder_sets.VAR}
     plan = sets.get(argv[0] if argv else "")
-    stem = (plan or ladder_sets.EPON).stem
-    kept = Kept(Path(env["KESTREL2_DATA"]) / FOLDER / f"{stem}.jsonl")
+    if plan is None:
+        return code
+    kept = Kept(Path(env["KESTREL2_DATA"]) / FOLDER / f"{plan.stem}.jsonl")
     kept.compact()  #: once the set is judged, never while a run holds the file
     said, mostly = faults(kept.rows())
     sys.stdout.write("".join(f"{line}" + chr(10) for line in said))

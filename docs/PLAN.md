@@ -147,6 +147,7 @@ Checked 17 Nov (MONEY, s2): no blocking request to MONEY is open and every untic
 
 Checked 17 Nov (MONEY): R-RUNGS-12 re-verified on main (`strategy.rsi`, `strategy.lower_band` public since #185; `tests/unit/test_strategy.py` green); no code change.
 
+Fold request (DATA, 22 Nov, Coordinator 33's ruling: a lane may not delete its own module or manifest line; runner ops folds on a non-lane branch, test first): `desk/store_scope.py` (41 lines) folds into `desk/coverage.py`: `window_start` and `judge` move over, `keeper.py` imports `coverage.judge`, `tests/unit/test_store_scope.py` moves into `tests/unit/test_coverage.py`, and the `desk/store_scope.py` manifest line goes. Its behaviour is already pinned by that test.
 Checked 17 Nov (MONEY, s6): R-DATA-53 is on main (`desk/command.py:387` passes `home=root.parent`, #798) and R-PAPER-29 is on main (`book.conformance_cost`, #763); no blocking request is open; nothing built.
 Checked 20 Nov (MONEY, s2): R-PAPER-35's field is on main (#1102) and set in day, kill, simcity, orders; what is left is PAPER's files (`desk/goflat.py`, `desk/conformance_parts.py`, `desk/placing.py` `_cleared`), outside MONEY's claim; nothing built.
 Checked 20 Nov (MONEY, s7): no blocking request is open; R-PAPER-30 (size the 0.05% half-spread, `orders_parts.HALF_SPREAD`/`SLIPPAGE` from one real VUAG buy 0.09 and sale 0.14 below the pretend close) needs a day of fills and moves golden numbers (B5), so it waits for more conformance tapes; nothing built.
@@ -539,7 +540,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       (Box money-story: card money-story ended red or landed nothing 2 runs in a row; held, its lane goes on.)
 - [ ] Money honestly counted: interest on idle cash, with the risk-free rate in every
       Sharpe; currency gains and losses on dollar holdings reported apart from trading
-      profit; a fall from the book's highest point alerted on paper (BIC-03, BIC-04, BIC-05). BIC-05 on main (#1516); BIC-04 first step on main (#1542, `book.currency_gain`). Remains: BIC-03 (moves golden days, B5); BIC-04 for open holdings and the day's record
+      profit; a fall from the book's highest point alerted on paper (BIC-03, BIC-04, BIC-05). BIC-05 on main (#1516); BIC-04 on main for closed trades (#1542, #1569) and open holdings (#1596); BIC-03 interest told daily at `RISK_FREE` beside profit (#1560, #1584). Remains: interest inside the day's profit (moves golden days, B5); `RISK_FREE` in every Sharpe (lab, R-MONEY-65); currency and interest in the saved record (R-MONEY-66)
       {id: money-honest; files: desk/day.py, desk/book.py, tests/unit/test_day*.py,
       tests/unit/test_book*.py, desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml;
       after: money-fills}
@@ -731,9 +732,9 @@ grid-tune and grid-key side by side; then grid-pass, grid-week, grid-declared, g
       lab/sweep.py, lab/batch.py, lab/tune.py, tests/unit/test_lab_sweep.py,
       tests/unit/test_lab_batch.py, tests/unit/test_lab_tune.py, manifest.toml; after:
       grid-venue, grid-tune, grid-key}
-- [ ] Runs seven days without stopping. Remains: the week's clone runs pre-#1210 code against the new-format store (2,810 cells fail each hour since 21 Nov 03:21 UTC, #1370), so the seven days restart unbroken once the runner brings it to current main; read `sweep.unbroken` on or after 28 Nov and tick if 7 days {id: grid-week; waits: 2026-11-28; files: lab/batch.py, lab/sweep.py,
+- [ ] Runs seven days without stopping. Remains: the week's clone runs pre-#1210 code against the new-format store (2,810 cells fail each hour since 21 Nov 03:21 UTC, #1370), so the seven days restart unbroken once the runner brings it to current main; read `sweep.unbroken` on or after 28 Nov and tick if 7 days. A pass that raises is now logged and the week carries on (#1562); each pass line names its commonest failure causes (`why`, #1563); the 15 Nov stop's trigger is unproven {id: grid-week; waits: 2026-11-28; files: lab/batch.py, lab/sweep.py,
       lab/tune.py, tests/unit/test_lab_batch.py, tests/unit/test_lab_sweep.py,
-      tests/unit/test_lab_tune.py; after: grid-pass}
+      tests/unit/test_lab_tune.py}
 - [x] Each strategy judged on its own declared universe; the everything-on-everything grid
       kept as a transfer study, never a verdict; sweeps on the declared universe (LAD-01,
       LAD-13) {id: grid-declared; files: lab/sweep.py, tests/unit/test_lab_sweep.py}
@@ -845,7 +846,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         Built: `lab/catalogue.toml` 24 rows, `Spec.parse` refuses any without (#1078, verified)
   - [ ] B4 the nineteen eponymous rules as rows, identical trades on the fixture proven,
         then their Python files deleted. Built: 20 of 21 in the catalogue (#873); Zweig waits on breadth data
-  - [ ] B5 variants generated from a row's setting ranges, every one counted as a trial. Built: `lab/variants.py` (#364) makes every combination and counts trials; one home after #1307/#1315; a repeated value in a range is refused (#1321). Rows with ranges: Donchian 3x4 (#1459), RSI-2 3x3 (#1469), Williams %R 3x3 (#1473), Keltner 3x3 (#1489), Connors three-day 3x3 (#1496), Connors %b 3x3x3 (#1503; first row ranging two settings in one place), Turtle Soup 3x3 (#1521), Jegadeesh 3x3 (#1529), Zanger (#1527), Bollinger squeeze 3x3 (#1538), Kell 3x3 (#1543), Donchian fade 3x3 (#1546), Minervini 3x3 (#1551); set VAR enters all 84 variants as trials before any run (#1535); a rule's variants count in its trials family (#1507), validated on entry by `Spec.parse`; a test holds each to the plateau's rules with the published setting at the centre. Remains: judging the variants through the grid chain (GC; needs R-RUNGS-33, `lab/rulebook.rule` resolving a variant's name; settle one trial name per judged variant); other rows' ranges (Clenow, Mansfield; Faber, Weinstein, dual momentum share one lookback)
+  - [ ] B5 variants generated from a row's setting ranges, every one counted as a trial. Built: `lab/variants.py` (#364) makes every combination and counts trials; one home after #1307/#1315; a repeated value in a range is refused (#1321). Rows with ranges: Donchian 3x4 (#1459), RSI-2 3x3 (#1469), Williams %R 3x3 (#1473), Keltner 3x3 (#1489), Connors three-day 3x3 (#1496), Connors %b 3x3x3 (#1503; first row ranging two settings in one place), Turtle Soup 3x3 (#1521), Jegadeesh 3x3 (#1529), Zanger (#1527), Bollinger squeeze 3x3 (#1538), Kell 3x3 (#1543), Donchian fade 3x3 (#1546), Minervini 3x3 (#1551), Clenow 3x3 (#1564), Weinstein ago 3x1 (#1570), Mansfield 3x3 (#1578), Faber and dual momentum 3x3 each (#1587); set VAR enters all 84 variants as trials before any run (#1535); a rule's variants count in its trials family (#1507), validated on entry by `Spec.parse`; a test holds each to the plateau's rules with the published setting at the centre. Remains: judging the variants through the grid chain (GC; needs R-RUNGS-33, `lab/rulebook.rule` resolving a variant's name; settle one trial name per judged variant); entering the new rows' variants in the register from a caller; rows without ranges: DeMark, Darvas, Zweig (Weinstein's shared 150-day lookback is deliberately not ranged)
   - [ ] B6 the old desk's families listed and entered as sets of rows marked QUARRY, their
         cases derived by hand, never from the old desk's numbers
   - [ ] P1 a fast engine for rows, vectorised in `lab/`, matching the desk's engine on the
