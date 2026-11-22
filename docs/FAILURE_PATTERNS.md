@@ -175,6 +175,11 @@ again. Its root (20 November): the runner reads a done list one request per line
 `- R-X-n: ...`, and DATA's run-on list (`R-PAPER-23 #294, -22 #505, ...`) closed nothing, so
 41 of 100 merges in a day were empty re-verifications. → *Debt:* a check that every
 request named under `### Done for other lanes` stands on its own `- R-X-n:` line.
+A third root (22 November): a request written inside another's box, with no checkbox
+of its own (R-DATA-60 in R-DATA-62, R-MONEY-48 in R-MONEY-35), rode into the host's text,
+so DATA was handed it and answered it met 13 times in an hour, each answer dropped because
+it was not itself open. → *Caught by:* the runner ends a request's text at the next
+request, boxed or not (drive `drive_runon`).
 
 **23. The order the broker may hold, forgotten.** A gateway blip arrives after an order is
 sent (2110, 2157, 20 November 08:27): the desk called it never received and deleted its
