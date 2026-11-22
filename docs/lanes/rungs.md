@@ -387,3 +387,21 @@ then the break was removed:
 
 ### 2026-11-22 — manifest line left alone (R-RUNNER-373, #1510)
 - The lanes guard allows only added manifest lines, so lab/history_bars.py's purpose line was not widened. Options: leave it, or loosen the guard. Taken (recommended): leave it; no guard loosened.
+
+### 2026-11-22 — momentum burst source (R-RUNNER-200, #1513)
+- Source: Bonde's momentum burst (a daily-bar idea, adapted to one-minute bars, stated in the docstring). Options: Crabel or Raschke patterns, but none is a one-minute burst. lab/ is 12,531 lines, under the 20,000 phase ceiling in BUDGET.json (the request's 12,000 is stale).
+
+### 2026-11-22 — variants count in the family first (B5, #1507)
+- Options: (a) enter the catalogue's variants into the EPON register now; (b) first make the count read `rule[settings]` names; (c) promotion. Chose (b): (a) would charge four ranged rules for trials never run and change eased verdicts before the grid chain runs them; (c) is held until R-RUNGS-7.
+
+### 2026-11-22 — Turtle Soup ranges (B5, #1521)
+- Lookback 10/20/40 (doubles and halves around 20, as Donchian), age 2/4/6; every age is below the shortest lookback so no variant is empty. Options: rungs-eponymous (needs a passed rule) or a B5 row; chose the row.
+
+### 2026-11-22 — intraday session is the UTC day (R-RUNNER-206, #1520)
+- Options: venue sessions via desk/venues, or the UTC calendar day of bar starts. Chose UTC day (simplest, matches the fixture); window 20 bars (card gave N only). Venue-aware sessions can follow. Promotion held until R-RUNGS-7.
+
+### 2026-11-22 — VWAP distance a fraction (R-RUNNER-356, #1523)
+- Options: fixed price distance, a fraction of VWAP, an ATR multiple. Chose 1% of VWAP: price-scale-free. Source: Berkowitz, Logue and Noser 1988 for VWAP; the rule is ours.
+
+### 2026-11-22 — Jegadeesh ranges, GRID asked for the rule book (B5, #1529)
+- Options: (a) wire variants into the ladder now (needs GRID's `lab/rulebook.py`); (b) enter variants in the register without running them (charges trials never run, breaks B6); (c) range more rows and ask GRID. Chose (c) (R-RUNGS-33). Clash with #1521 on Turtle Soup: kept main's gap [2, 4, 6] (landed, reviewed, passes the plateau test).
