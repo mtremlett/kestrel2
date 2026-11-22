@@ -26,8 +26,10 @@ securities, so two classes of one company's shares count twice. Four rules name 
   days out, and now and then weeks;
 - changes of one day are undone in the order written.
 
-Still owed: the FTSE 350, whose changes no free page lists, and the funds, a list this desk
-measured itself on one day. Asked for either, `on` refuses."""
+Still owed: the FTSE 350 and the funds, a list this desk measured itself on one day. Asked
+for either, `on` refuses. The FTSE's free route is two sources joined by `reconcile`: a
+quarterly review's announced joiners and leavers, and the members of the page's revision
+either side of it; where they differ the fault is named, never guessed."""
 
 from __future__ import annotations
 
@@ -107,6 +109,30 @@ def changes(text: str) -> tuple[Change, ...]:
         else:
             made.append(Change(day, word[1:], word[0] == "+"))
     return tuple(made)
+
+
+class Disagreement(ValueError):
+    """The announcement and the page's revisions name different joiners or leavers."""
+
+
+def _named(some: set[Change]) -> list[str]:
+    return sorted(f"{'+' if c.joined else '-'}{c.symbol}" for c in some)
+
+
+def reconcile(
+    day: date, announced: tuple[Change, ...], before: frozenset[str], after: frozenset[str]
+) -> tuple[Change, ...]:
+    """A review's changes, once its announcement and the page's members before and after agree
+    on every joiner and leaver; else a Disagreement naming each one only a source saw."""
+    seen = {Change(day, s, joined=True) for s in after - before}
+    seen |= {Change(day, s, joined=False) for s in before - after}
+    said = set(announced)
+    if said != seen:
+        raise Disagreement(
+            f"{day}: only the announcement has {_named(said - seen)}, "
+            f"only the page has {_named(seen - said)}"
+        )
+    return tuple(sorted(said, key=lambda c: (not c.joined, c.symbol)))
 
 
 RECORDS = {

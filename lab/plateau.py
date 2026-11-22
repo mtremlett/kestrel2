@@ -41,17 +41,25 @@ twice, and a plateau of them is a peak: neighbouring values are at least STEP ap
 share of the lower, so whole numbers above ten cannot be tried one by one. A parameter is
 above nothing. A parameter with under three values has no setting with a neighbour on both
 sides. Values are whole numbers or exact decimals, compared exactly.
+
+THE RUNG (L17). A cell tried at its settings passes when its own setting is DEPTH deep, inside
+a plateau of its rule's variants (`lab/variants.py`), and fails on a peak or an edge. A rule
+with no settings to try (no ranges) is FIXED: plateau is NOT APPLICABLE to it, said in the
+rung's reason where it is reviewed, and never blocks it (decision a). A cell judged with
+neither handed in keeps plateau UNRUN (`verdict.UNRUN`).
 """
 
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from decimal import Decimal
 from fractions import Fraction
 from itertools import product
 
-from lab.rung import Verdict
+from lab import variants
+from lab.rung import Answer, Verdict
+from lab.spec import Spec
 
 Value = int | Decimal
 #: A setting: one value of each parameter, in the grid's order.
@@ -63,6 +71,49 @@ Place = tuple[int, ...]  #: a setting's rank along each parameter of the grid
 DEPTH = 2
 #: The least step between neighbouring values of a parameter, as a share of the lower.
 STEP = Decimal("0.1")
+
+
+@dataclass(frozen=True)
+class Surface:
+    """A cell's rule tried at its grid's settings, and the cell's own setting among them."""
+
+    grid: Grid
+    tried: Mapping[Setting, Verdict]
+    own: Setting
+
+
+@dataclass(frozen=True)
+class Fixed:
+    """A rule with no settings to choose among: no setting was picked, so no peak was. A
+    ranged row of the spec book, or a variant of one, is refused: its surface is judged."""
+
+    rule: str
+    book: Mapping[str, Spec] = field(repr=False, compare=False)
+
+    def __post_init__(self) -> None:
+        row = self.book.get(self.rule)
+        made = {v.spec.name for v in variants.family(self.book)}
+        if (row is not None and row.ranges) or self.rule in made:
+            raise ValueError(f"{self.rule}: it has settings to choose among, never FIXED")
+
+
+def judged(surface: Surface | Fixed) -> tuple[Answer, str]:
+    """The plateau rung on a cell: PASS where its own setting is DEPTH deep, else FAIL; a
+    FIXED rule passes as NOT APPLICABLE, its reason saying so for the review."""
+    if isinstance(surface, Fixed):
+        return Answer.PASS, (
+            f"NOT APPLICABLE: {surface.rule} carries no settings to choose among, so none was "
+            "picked from a peak (decision a)"
+        )
+    deep = depths(surface.grid, surface.tried)
+    if surface.own not in deep:
+        raise ValueError(f"{surface.own!r}: the cell's own setting was not tried")
+    centre = choose(surface.grid, surface.tried)
+    said = (
+        f"its setting {deep[surface.own]} steps deep among {len(deep)} tried, the centre "
+        f"{centre.setting} {centre.depth} deep; {DEPTH} asked"
+    )
+    return (Answer.PASS if deep[surface.own] >= DEPTH else Answer.FAIL), said
 
 
 @dataclass(frozen=True)

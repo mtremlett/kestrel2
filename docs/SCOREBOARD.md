@@ -217,6 +217,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1569 BIC-04 told on paper (day._currency); interest and Sharpe risk-free rate remain. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1584 money-honest step 2: day tells interest on idle cash at the risk-free rate (BIC-03). |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1596 money-honest step: currency on open holdings told (BIC-04), SimCity-checked. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1641 money-door-slippage done: slippage reads the two databases only. |
 
 
 ### DATA
@@ -490,6 +491,16 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1568 DATA: R-DATA-62, the old desk's 1m rows can enter the store's checks. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1590 docs only: store_scope fold into coverage requested (runner ops, R-DATA-63); no scene moved. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1592 docs only: the same fold request written in STATUS; no scene moved. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1594 R-RUNNER-440: the store clears a line's orphan faults file when it writes the line's one file. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1609 line master carries dated quote-currency changes; the store keeps the step day (R-RUNGS-20a). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1634 data-isa-twins: SPY and QQQ worded as price references only; removal waits on callers outside the claim. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1623 DATA notes added to 12 boxes; no scene moved. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1649 the pound history box carries its note; no scene moved. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1659 data-dividends step 1: `bars.total_return`, the total-return reader in the one store. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1651 data-members: FTSE reconcile rule and its fault built; feeds not yet wired. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1653 data-door-bars: `read_db`, research bars from the history database. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1654 data-monitor first step: HOVER freshness line and alarm logic, tested. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1663 data-collector: EODHD London audit; collector now 8 sources of the planned set. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
@@ -611,6 +622,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1478 R-RUNNER-160 morning heat line. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1482 R-RUNNER-208 compact messages landed; no scene changes. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1472 R-MONEY-58 closed; session set on every Sale. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1631 PAPER paper-supervised: supervised step has hours; Gateway night restart is no fault; box open. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1636 PAPER paper-cards: verdict and streak in the daily messages (MSG-03), partial. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1639 PAPER paper-supervised: restart window no longer a false alarm; box still open. |
 
 ### GRID
 
@@ -940,3 +954,14 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1597 R-RUNNER-441: montecarlo measures held journals past their error rows and counts them. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1604 Darvas's box ranges its sessions 2/3/4 (B5), 3 more VAR trials. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1615 DeMark's TD Sequential ranges its setup length 7/9/11 in both engines (B5); no scene moved. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1625 L2 the rung map says built or not for every row, held to the code; rungs built corrected to 4 of 12. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1620 B5's import cycle broken (variants reads lab.spec alone); R-RUNGS-33 unblocked for GRID, no scene moved. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1621 plan notes for seven RUNGS boxes (B4, B6, P1, GC and the three eponymous boxes), restored twice. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1637 rungs-blocks: the sizing block, sized by the desk's own volatility rule, known-answer tested. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1640 rungs-indicators: tables moved to their own module; the RSI ratio held to 19 printed rows. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1616 RUNGS: the fast engine sells on a firing stop like the desk; every variant held to the desk (P1, B5). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1655 R-RUNGS-33 half landed: a variant's name makes a runnable rule (lab.variants.rule); the rule book's call is GRID's. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1660 RUNGS L17 step 1: plateau judged per cell where its surface is handed in; the box stays open. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1672 rungs-door-pound: ladder and montecarlo read the pound only from the history database; -49 lines. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1673 RUNGS L14: rung 7 judges on one clustered set, same answer as deflated.read (copies PASS, strangers DOUBT). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1676 RUNGS gate pinned: 8 rung modules off the verdict's path may only fall (0 of 8 wired this change). |

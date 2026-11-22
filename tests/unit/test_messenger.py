@@ -185,7 +185,8 @@ def test_the_morning_message_says_whether_anything_stops_the_desk_today(tmp_path
         f"🌅 Morning Mon 16 Nov 08:00 UK\n✅ Ready for today (paper)\nGateway answered · account "
         f"check clean · kill switch off, drilled\n{OFF}\n📒 Held: nothing\n📅 Last day on "
         f"record Fri 13 Nov\n⚪ Book made £0.00 after £1,002.00 costs\n🔴 Holding the market "
-        "lost £0.50\n🏁 Verdict: does not count · streak 0"
+        "lost £0.50\n🏁 Verdict: does not count · "
+        "0 of 10 clean days in a row, since 2026-11-13 did not count."
     )
     sent = messenger.morning(tmp_path, MON, READY, post, CAP)
     assert sent == Delivery(MON, "morning 2026-11-16", 1, told)
@@ -202,7 +203,8 @@ def test_the_morning_message_says_whether_anything_stops_the_desk_today(tmp_path
         f"\n• today's orders: not sent, the check at 07:00 UTC today named: {named}"
         f"\n• {GONE.words.rstrip('.')}\n🔌 Kill: on, pulled at 2026-11-15 23:00 UTC: his word "
         f"· halts: none\n📒 Held: nothing\n📅 Last day on record Thu 12 Nov\n⏸️ No profit "
-        "published: book differs from broker on AAPL, VUSA\n🏁 Verdict: does not count · streak 0"
+        "published: book differs from broker on AAPL, VUSA\n🏁 Verdict: does not count · "
+        "0 of 10 clean days in a row, since 2026-11-12 did not count."
     )
     assert messenger.morning(stopped, HALF, GONE, post, CAP) == Delivery(HALF, sent.name, 2, told)
 
@@ -264,9 +266,16 @@ def test_the_evening_message_tells_the_fills_the_holdings_and_last_record(tmp_pa
         f"read ({GONE.words[:-1]})\n🧾 Fills today\n🟢 bought 2 VUSA\n🔴 sold 4 AAPL\n"
         f"{OFF}\n📒 Held: AAPL 5, VUSA 12\n📅 Last day on record Thu 12 Nov (withheld days "
         f"before it)\n🔴 Book lost £1,234.50 after £1,002.00 costs\n🟢 Holding the market "
-        "made £8.00\n🏁 Verdict: does not count · streak 0"
+        "made £8.00\n🏁 Verdict: does not count · "
+        "0 of 10 clean days in a row, since 2026-11-12 did not count."
     )
     assert messenger.evening(traded, NINE, GONE, _posts()) == Delivery(NINE, quiet.name, 1, said)
+    clean = tmp_path / "clean"  # a clean last day: the streak is above 0
+    zero, costs = Decimal(0), Charges(*[Decimal(0)] * 5)
+    kept = [day.Record(date(2026, 11, 12), Decimal(5), costs, zero, (), zero, 0, (), 0)]
+    book._write(clean / day.RECORDS, [day.HEADER, *map(day._row, kept)])
+    told = messenger.evening(clean, NINE, READY, _posts())
+    assert told and "Verdict: counts · 1 of 10 clean days in a row." in told.text
 
 
 def test_each_daily_message_names_the_halts_in_force_beside_the_kill_switch(tmp_path: Path) -> None:

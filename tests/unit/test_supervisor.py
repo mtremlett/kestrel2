@@ -222,6 +222,9 @@ def test_health_is_judged_by_the_receipts_alone_whatever_the_clock_has_done(tmp_
         clock.return_value, run.return_value = T0 + minute * MIN, how
         supervisor.attend(tmp_path, both, clock, run)
     assert supervisor.health(tmp_path, clock(), both) == (BADLY.format("keeper", "08:08", 1, GONE),)
+    clock.return_value, run.return_value = T0 + 19 * HOUR, GONE  # the Gateway's 03:00 restart
+    supervisor.attend(tmp_path, [STEP], clock, run)
+    assert supervisor.health(tmp_path, clock(), [STEP]) == ()  # is not a fault in the receipts
     naive = datetime(2026, 11, 17, 8)  # noqa: DTZ001 - a clock not UTC judges and runs nothing
     with pytest.raises(ValueError, match="no moment in UTC"):
         supervisor.health(tmp_path / "new", naive, [STEP])

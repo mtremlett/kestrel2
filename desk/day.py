@@ -97,7 +97,13 @@ def publish(
     held = pennies(settings.capital * market)
     halts = tuple(h.at for h in halt.on(root, day)), halt.stopped(root, day)
     heat = day_money.heat(root, archive, day)
-    record = Record(day, profit, costs.published(), held, differ, worth, len(ledger), *halts, heat)
+    split = day_money.fx_split(root, archive, day)
+    earned = day_money.idle_interest(root, archive, day, settings.capital, RISK_FREE)
+    fx = None if split is None else pennies(split[0] + split[2])
+    interest = None if earned is None else pennies(earned)
+    record = Record(
+        day, profit, costs.published(), held, differ, worth, len(ledger), *halts, heat, fx, interest
+    )
     if record.stopped is not None:  #: a day nobody sent for has no list (halt.morning)
         _bare(root, day, book_held, unsure, stops)
     book._write(root / RECORDS, [HEADER, *(_row(r) for r in (*kept, record))])
@@ -237,19 +243,13 @@ def _currency(
 ) -> None:
     """BIC-04: what the closed trades so far owe to the currency's move, told apart from what
     they made by trading, and what the open holdings owe it; told only when there is some."""
-    ledger, lines = book.fills(root), tuple(archive)
-    kept, currency = book.rates_kept(root), {line.symbol: line.currency for line in lines}
-    if tell is None or not ledger:
-        return  #: nothing has traded
-    if any((f.day, currency.get(f.symbol)) not in kept for f in ledger):
-        return  #: a fill whose day's rate was never kept cannot be told apart
-    trips = book.round_trips(root, lines)
-    gain = book.currency_gain(root, lines, trips)
-    last = {line.symbol: bars[-1].close for line, bars in archive.items()}
-    today = all((day, money) in kept for money in set(currency.values()))
-    held = book.open_currency_gain(root, lines, last, day) if today else 0
+    if tell is None:
+        return
+    split = day_money.fx_split(root, archive, day)
+    if split is None:
+        return  #: nothing has traded, or a fill's day's rate was never kept
+    gain, trading, held = split
     if gain or held:
-        trading = sum((t.gross for t in trips), Decimal(0)) - gain
         tell(
             f"currency {day}",
             f"CURRENCY: £{gain} of the gross is the currency, £{trading} trading; "
@@ -270,15 +270,11 @@ def _interest(
 ) -> None:
     """BIC-03: what the capital's idle cash earned at RISK_FREE from the first fill to this day,
     told once a day beside the profit, not in it (golden days stand), only when positive."""
-    ledger, lines = book.fills(root), tuple(archive)
-    kept, currency = book.rates_kept(root), {line.symbol: line.currency for line in lines}
-    first = min((f.day for f in ledger), default=None)
-    if tell is None or first is None:
-        return  #: nothing traded, no idle cash to count
-    if any((f.day, currency.get(f.symbol)) not in kept for f in ledger):
-        return  #: a fill whose day's rate was never kept cannot be priced
-    earned = book.interest(root, lines, settings.capital, RISK_FREE, first, day)
-    if earned > 0:
+    if tell is None:
+        return  #: nobody to tell: the sum (a read of every fill's day) is not made
+    earned = day_money.idle_interest(root, archive, day, settings.capital, RISK_FREE)
+    if earned is not None and earned > 0:
+        first = min(f.day for f in book.fills(root))
         tell(f"interest {day}", f"INTEREST: £{earned:.2f} earned on idle cash since {first}.")
 
 
@@ -363,6 +359,26 @@ def _answer(root: Path, day: date, sent: book.Sent) -> book.Sent:
     return sent
 
 
+def refusal(
+    root: Path, name: str, line: Line, held: Mapping[str, int]
+) -> tuple[str, Blocker] | None:
+    """THE ONE HOME of a buy's refusals before sizing, daily or intraday (R-RUNNER-436): a line
+    no ISA can hold (line.isa no) or no retail customer may buy (line.retail no), one parked by
+    hand, or one held already; each said with its blocker. None: the buy may be sized."""
+    if line.isa is False or line.retail is False:
+        why = (
+            "is recorded as a line no stocks and shares ISA can hold"
+            if line.isa is False
+            else "is recorded as a line no UK retail customer may buy"
+        )
+        return f"{name}: not sent, {line.symbol} {why}", Blocker.GATE
+    if hand := handpark.parked(root).get(line.symbol):
+        return f"{name}: not sent, parked by hand: {line.symbol} ({hand})", Blocker.GATE
+    if held.get(line.symbol):
+        return f"{name}: not sent, {line.symbol} is held already", Blocker.HELD
+    return None
+
+
 def _buy(
     root: Path,
     broker: Broker,
@@ -379,21 +395,12 @@ def _buy(
     one an ISA is not recorded as able to hold (line.isa no): the ISA buys only those; nor one no
     retail customer may buy (line.retail no), which the broker would only refuse, slowly."""
     now, name = book.positions(root), order_id_of(d)
-    if line.isa is False or line.retail is False:
-        why = (
-            "is recorded as a line no stocks and shares ISA can hold"
-            if line.isa is False
-            else "is recorded as a line no UK retail customer may buy"
-        )
-        return book.Sent(name, 0, f"{name}: not sent, {d.symbol} {why}", Blocker.GATE)
-    if hand := handpark.parked(root).get(d.symbol):
+    if no := refusal(root, name, line, now):
+        return book.Sent(name, 0, *no)
+    if d.symbol in {f.symbol for f in book.fills(root) if f.day == day and f.quantity < 0}:
         return book.Sent(
-            name, 0, f"{name}: not sent, parked by hand: {d.symbol} ({hand})", Blocker.GATE
+            name, 0, f"{name}: not sent, {d.symbol} was sold this morning", Blocker.HELD
         )
-    sold = {f.symbol for f in book.fills(root) if f.day == day and f.quantity < 0}
-    if d.symbol in now or d.symbol in sold:
-        why = "is held already" if d.symbol in now else "was sold this morning"
-        return book.Sent(name, 0, f"{name}: not sent, {d.symbol} {why}", Blocker.HELD)
     try:
         order = size(d, line, *price, settings, now)
     except Refused as refused:  #: the gate's answer, kept with the day's others

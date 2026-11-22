@@ -11,10 +11,10 @@ import pytest
 from test_lab_luck import DAY
 from test_lab_rung import FREE, line_of
 
-from lab import cell, plateau, rung
+from lab import cell, plateau, rulebook, rung, verdict
 from lab.cell import Cell, Key, Trade
 from lab.plateau import Grid, Setting
-from lab.rung import Priced, Verdict
+from lab.rung import Answer, Priced, Verdict
 
 PASS, FAIL, PEAK = "0.010", "0.005", "0.030"  #: mean gains: 2.7, 1.3 and 8 standard errors
 FIVE = (10, 20, 30, 40, 50)
@@ -172,3 +172,31 @@ def test_a_grid_or_a_surface_that_cannot_show_a_true_plateau_is_refused() -> Non
         key = Key(line[30,].key.cell, **{"code": "code", "data": "data", field: "other"})
         with pytest.raises(ValueError, match="one code and bars"):
             plateau.choose((FIVE,), line | {(30,): rung.verdict(key, line[30,].trades)})
+
+
+def test_the_rung_passes_a_setting_inside_a_plateau_and_stays_unrun_with_no_surface() -> None:
+    #: L17: plateau judged on a rule's variants, a FIXED rule NOT APPLICABLE; neither: UNRUN
+    tried = _surface(_square, SEVEN, SEVEN)
+    inside, peak = (plateau.Surface((SEVEN, SEVEN), tried, own) for own in ((30, 30), (60, 60)))
+    assert plateau.judged(inside)[0] is Answer.PASS and plateau.judged(peak)[0] is Answer.FAIL
+    assert "1 steps deep among 49 tried, the centre (30, 30) 2 deep" in plateau.judged(peak)[1]
+    with pytest.raises(ValueError, match="not tried"):
+        plateau.judged(plateau.Surface((SEVEN, SEVEN), tried, (15, 30)))
+    rungs: dict[str, tuple[Answer, str]] = {}
+    owed = verdict.UNRUN | {"reproduce": verdict.NO_FIGURE}
+    assert verdict._plateaued(None, rungs, owed) == owed and not rungs
+    assert verdict._plateaued(inside, rungs, owed) == {"reproduce": verdict.NO_FIGURE}
+    assert rungs == {"plateau": plateau.judged(inside)}
+    book = rulebook.specs()
+    for ranged in ("donchian_channel_breakout", "donchian_channel_breakout[entry.n=40,exit.n=80]"):
+        with pytest.raises(ValueError, match="never FIXED"):
+            plateau.Fixed(ranged, book)  #: a ranged row, or one setting of it: a lone peak
+    fixed = plateau.judged(plateau.Fixed("breakout_20_10", book))
+    assert fixed[0] is Answer.PASS and fixed[1].startswith("NOT APPLICABLE: breakout_20_10")
+    row: dict[str, object] = {"answer": "PASS"}
+    fixed_r = plateau.Fixed("r", {})
+    for given, goes in ((None, False), (inside, True), (peak, False), (fixed_r, True)):
+        rungs = {}
+        row["unrun"] = verdict._plateaued(given, rungs, verdict.UNRUN)
+        row["every"] = all(a is Answer.PASS for a, _ in rungs.values())
+        assert verdict.goes(row) is goes, f"an edge or a fixed rule goes forward: {given}"

@@ -715,3 +715,24 @@ Options for the 1m rows: (a) carry them through the five-minute bar type, losing
 
 ### 2026-11-22 — store_scope fold into coverage routed through runner ops (DATA, #1590, #1592)
 Options: (1) raise the desk/ file cap to 101: loosens a guard, NO (hard lines default NO). (2) Delete `desk/store_scope.py` and its manifest line from the lane: NO, `test_lanes` refuses removed manifest lines. (3) Write the fold as a request (R-DATA-63) for runner ops to carry out on a non-lane branch, test first. Chosen: (3), on Coordinator 33's ruling and his "always go with recommended". Remains: the fold itself (waits: R-RUNNER-419).
+
+### 2026-11-22 — a quote-currency change is dated on its line (DATA, #1609, R-RUNGS-20a)
+Options: (a) infer the change from the bars (a step by the pound's rate): rejected, B3 says facts about a ticker come from reference data; (b) record the first day on the line as `requoted` and let the store's neighbour test keep that day (chosen); (c) leave the step refused and park the line. Chosen (b) because a real re-quoting is not a fault and an undated step still is: the contract test shows it refused undated and kept dated. Not done: the dates for HVPE (2015-09-09), NBPE (2017-05-02), VOF (2016-03-30) need a named home in the line master, as they are research-list members outside the twenty in `desk/lines.py` (R-RUNGS-20 remains); nor the eight real gaps. The fold of store_scope into coverage stays Coordinator 33's ruling, written as R-DATA-63; nothing here deletes a module.
+
+### 2026-11-22 — SPY and QQQ stay in LINES only as price references (DATA, #1634, data-isa-twins)
+Coordinator 54's ruling, honoured as written: his 13 November ruling is that SPY and QQQ leave the twenty traded lines; they stay only as price references (`lines.REFERENCE`), never traded. Options: remove them now (breaks `desk/keeper.py`, conformance, the Mansfield rule and ladder tests, all outside the claim) or reword and wait (chosen). Requests R-DATA-64 (GRID), -65 (RUNGS), -66 (MONEY) ask those callers to read `lines.REFERENCE`.
+
+### 2026-11-22 — total return is the archive's adjusted twin (DATA, #1659, data-dividends)
+Options: (a) the adjusted twin the keeper already holds, no new schema (chosen: smallest, uses data kept); (b) store dividend events beside bars, which needs `desk/bars_schema.py`, outside the claim. `bars.total_return(path, line)` gives a reference series' twin and any other line as held (VUAG, the yardstick, accumulates). Readers in RUNGS, PAPER and MONEY are not yet filed.
+
+### 2026-11-22 — HOVER counts cells, not sessions (DATA, #1654, data-monitor)
+Options: count sessions missing, or count cells (chosen: cheaper at a five-minute cadence). A fault is a cell held but behind the last session; a gap is a cell holding no bar. VUAG's unsupplied spans (1m, 15m, 30m, 4h) are exempt, per his note; each span is read from the database that holds it, so both databases are covered.
+
+### 2026-11-22 — two research readers for one step (DATA, #1653, data-door-bars)
+Callers (sweep, batch, grid, research refresh) pass the CSV root, so swapping `read` needs files outside the claim. Chosen: keep both readers for one step rather than derive the database path from the root by a hack.
+
+### 2026-11-22 — EODHD first, rotated by day (DATA, #1663, data-collector)
+EODHD answers plain JSON; rotation by day ordinal audits all 13 London lines in turn. Alpha Vantage earnings come as CSV and need their own reader, left for the next step.
+
+### 2026-11-22 — note files chosen from each box's subject (DATA, #1623, #1649)
+Files and ordering for the unnoted boxes chosen from each box's subject and wiring; boxes needing deletion or new spend are marked waits: operator.

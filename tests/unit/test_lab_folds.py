@@ -8,7 +8,7 @@ from decimal import Decimal
 
 import pytest
 from test_lab_luck import DAY
-from test_lab_rung import FREE, POUND, SHAPE, TEN_K, _bars, _walk
+from test_lab_rung import AAPL, FREE, POUND, SHAPE, TEN_K, _bars, _walk
 
 from desk.lines import LINES
 from desk.store import Bar
@@ -115,3 +115,17 @@ def test_the_worst_fold_is_the_fewest_standard_errors_up_and_too_few_trades_is_l
     assert fair.worst.outside is failed and fair.answer is Answer.FAIL and _t(lost) < _t(failed)
     faulty = Folded((Fold(many, failed), Fold(many, empty), Fold(empty, many)))
     assert faulty.worst.outside is empty and faulty.answer is Answer.FAULT and not faulty.passed
+
+
+def test_a_dollar_line_with_a_day_unrated_is_a_gap_before_the_folds_start() -> None:
+    bars = _bars(SHAPE)[4:7]  #: Tuesday to Thursday, 5 to 7 January 2010
+    usd = (Cell("breakout_20_10", AAPL, bars[0].day, bars[-1].day), bars)
+    rated = {bar.day: Decimal("0.6") for bar in bars}
+    assert folds.gaps([usd, (_window(bars), bars)], rated) == ()
+    (unrated,) = folds.gaps([usd], rated | {bars[1].day: Decimal(0)})
+    assert unrated == f"AAPL: no rate of pounds per USD to price {bars[1].day} by: 0"
+    folds.preflight([usd], rated)  #: whole: the set starts
+    with pytest.raises(ValueError, match=f"^1 gap in the set's inputs.* {bars[1].day}"):
+        folds.preflight([usd], rated | {bars[1].day: Decimal(0)})
+    one = [Answer.PASS] * 99 + [Answer.FAULT]  #: 1% FAULT is published; over 1% is not
+    assert folds.published(one) and not folds.published(one[1:]) and folds.published([])

@@ -14,16 +14,18 @@ from pathlib import Path
 
 from desk import book, day_money, halt, venues
 from desk.halt import Blocker
-from desk.lines import Line
-from desk.orders import Charges, Settings, moves, order_id_of
+from desk.lines import LINES, Line
+from desk.orders import Charges, Settings, is_zoo, moves, order_id_of
 from desk.risk import Standing
 from desk.store import Bar
 from desk.strategy import Action, Decision
 
 RECORDS = "records.csv"
-MONEY = ("day", "profit", *Charges.__dataclass_fields__, "market", "worth", "counted", "heat")
+FX = ("currency", "interest")
+MONEY = ("day", "profit", *Charges.__dataclass_fields__, "market", "worth", "counted", "heat", *FX)
 HEADER = (*MONEY, "halted", "stopped", "differ")
-BEFORE_HEAT = [name for name in HEADER if name != "heat"]  #: the records' names until the heat
+BEFORE_FX = [name for name in HEADER if name not in FX]  #: the records' names until currency
+BEFORE_HEAT = [name for name in BEFORE_FX if name != "heat"]  #: and until the heat
 
 
 @dataclass(frozen=True)
@@ -52,6 +54,11 @@ class Record:
     #: hit, each line at its stop or, if worse, its worst recorded overnight gap (_heat). None:
     #: not recorded (a record made before the heat, or a held line whose stop level was not kept)
     heat: Decimal | None = None
+    #: KEPT BESIDE THE PROFIT, NOT IN IT (BIC-03, BIC-04): the pounds the currency's move gave the
+    #: closed trades and the open holdings, and the interest idle cash earned since the first fill,
+    #: as the day ended. None: not recorded (a record before them, or a fill's day's rate unkept)
+    currency: Decimal | None = None
+    interest: Decimal | None = None
     counts: bool = field(init=False)  #: the verdict
 
     def __post_init__(self) -> None:
@@ -66,7 +73,17 @@ class Record:
 
 def _row(r: Record) -> tuple[object, ...]:
     """A record as it is kept: the lines that differ last, as many as there are."""
-    money = (r.day, r.profit, *astuple(r.costs), r.market, r.worth, r.counted, r.heat)
+    money = (
+        r.day,
+        r.profit,
+        *astuple(r.costs),
+        r.market,
+        r.worth,
+        r.counted,
+        r.heat,
+        r.currency,
+        r.interest,
+    )
     return (*money, " ".join(h.isoformat() for h in r.halted), r.stopped, *r.mismatches)
 
 
@@ -80,8 +97,9 @@ def records(root: Path) -> tuple[Record, ...]:
     with path.open(newline="", encoding="utf-8") as kept:
         rows = list(csv.reader(kept))
     if rows[:1] == [BEFORE_HEAT]:  #: records made before the heat have none
-        rows = [rows[0], *(row[:10] + [""] + row[10:] for row in rows[1:])]
-        rows[0] = list(HEADER)
+        rows = [BEFORE_FX, *(row[:10] + [""] + row[10:] for row in rows[1:])]
+    if rows[:1] == [BEFORE_FX]:  #: records made before currency and interest have none
+        rows = [list(HEADER), *(row[:11] + ["", ""] + row[11:] for row in rows[1:])]
     if rows[:1] != [list(HEADER)]:
         raise ValueError(f"{path}: not the desk's records")
     return tuple(
@@ -90,14 +108,14 @@ def records(root: Path) -> tuple[Record, ...]:
             Decimal(row[1]) if row[1] else None,
             Charges(*map(Decimal, row[2:7])),
             Decimal(row[7]),
-            tuple(row[13:]),
+            tuple(row[15:]),
             Decimal(row[8]),
             int(row[9]),
-            tuple(map(datetime.fromisoformat, row[11].split())),
-            int(row[12]) if row[12] else None,
-            Decimal(row[10]) if row[10] else None,
+            tuple(map(datetime.fromisoformat, row[13].split())),
+            int(row[14]) if row[14] else None,
+            *(Decimal(row[i]) if row[i] else None for i in (10, 11, 12)),
         )
-        for row in (kept if kept[10:] else [*kept, "", "", ""] for kept in rows[1:])
+        for row in (kept + [""] * (15 - len(kept)) for kept in rows[1:])
     )
 
 
@@ -169,16 +187,35 @@ def _unread(root: Path, lines: Sequence[Line], due: Mapping[str, Line], day: dat
     halt.note(root, day, unread, (line.symbol for line in lines))
 
 
-def standing(root: Path, day: date) -> Standing:
+def standing(root: Path, day: date, zoo: bool = False) -> Standing:
     """WHERE THE BOOK STANDS AGAINST ITS LOSS AND ORDER-RATE LIMITS when the day opens
     (canon B1, risk.loss_limit): the day's loss is the pounds the last published record lost
     (0 when it gained or was withheld), the week's the net pounds lost over the records of
-    day's own ISO week, and the new lines the lines first bought today."""
-    profits = [(r.day, r.profit or Decimal(0)) for r in records(root)]
+    day's own ISO week, and the new lines the lines first bought today. THE ZOO STANDS APART
+    (orders.is_zoo, his 22 Nov ruling): the desk's standing leaves out its round trips' pounds
+    and its lines, and the zoo's own (zoo) counts them alone, so neither spends the other's."""
+    fills = book.fills(root)
+    made = _zoo_made(root) if any(is_zoo(f.order_id) for f in fills) else {}
+    profits = list[tuple[date, Decimal]]()
+    for r in records(root):
+        theirs = made.get(r.day, Decimal(0))  #: a withheld record (no profit) counts 0 for both
+        ours = Decimal(0) if r.profit is None else r.profit - theirs
+        profits.append((r.day, theirs if zoo else ours))
     week = sum((p for d, p in profits if d.isocalendar()[:2] == day.isocalendar()[:2]), Decimal(0))
     lost = -profits[-1][1] if profits else Decimal(0)
-    bought = {f.symbol for f in book.fills(root) if f.day == day and f.quantity > 0}
+    bought = {
+        f.symbol for f in fills if f.day == day and f.quantity > 0 and is_zoo(f.order_id) == zoo
+    }
     return Standing(max(lost, Decimal(0)), max(-week, Decimal(0)), len(bought))
+
+
+def _zoo_made(root: Path) -> dict[date, Decimal]:
+    """The zoo's pounds after every cost by the day each of its round trips closed."""
+    made = dict[date, Decimal]()
+    for trip in book.round_trips(root, LINES):
+        if is_zoo(trip.buy.order_id):
+            made[trip.sell.day] = made.get(trip.sell.day, Decimal(0)) + trip.profit
+    return made
 
 
 def _due(line: Line, bars: Sequence[Bar], day: date) -> bool:

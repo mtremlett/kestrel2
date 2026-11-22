@@ -20,6 +20,7 @@ from lab import (
     holding,
     luck,
     market,
+    plateau,
     reproduce,
     rung,
     rung_regimes,
@@ -66,7 +67,7 @@ FOLDS = folds.YEARS
 RESAMPLES = 1000
 #: Rungs that are built and that this set cannot yet be run through, each with why.
 UNRUN = {
-    "plateau": "the published rules carry no settings to choose among yet",
+    "plateau": "neither its rule's variants nor its rule declared fixed were handed in",
 }
 NO_FIGURE = "no author's figure is on file for the rule: no published result stands behind it"
 #: A rule trades a line five to ten times a year and wants 200 sessions to warm up: a line of
@@ -121,11 +122,13 @@ def judge(
     pooled: Callable[[], Pooled],
     first: Verdict | None = None,
     family: int | None = None,
+    surface: plateau.Surface | plateau.Fixed | None = None,
 ) -> dict[str, Any]:
     """Every rung's answer with its reason, the rungs not run with theirs, the verdict's.
     The folds are the rule's, pooled over its lines: `pooled` is asked only when they are read.
-    `first` is the cell's first rung where the caller has run it already. `family` is the
-    trials of the cell's rule (`trials.family`): asked for, and used, only when EASED."""
+    `first` is the cell's first rung where the caller has run it already; `family` the trials
+    of its rule, used only when EASED; `surface` its rule at its settings, or FIXED where it
+    has none (`_plateaued`)."""
     try:
         reproduce.settled(c.strategy, made)
     except ValueError as missed:  #: the rule as coded is not the author's: no verdict on ours
@@ -148,6 +151,7 @@ def judge(
         return _stopped(len(verdict.trades), rungs, unrun)
     if (last := shuffled(c, own, settings, pounds, rungs, made, EASED)) is not None:
         rungs["shuffle"] = last
+    unrun = _plateaued(surface, rungs, unrun)
     read = {name: rungs[name][0] for name in deflated.NAMED if name in rungs}
     return {
         "trades": len(verdict.trades),
@@ -157,6 +161,17 @@ def judge(
         "unrun": unrun,
         "every": all(answer is Answer.PASS for answer, _ in rungs.values()),
     } | ({"answer": deflated.rule(read).name} if len(read) == len(deflated.NAMED) else {})
+
+
+def _plateaued(
+    surface: plateau.Surface | plateau.Fixed | None, rungs: Judged, unrun: Mapping[str, str]
+) -> dict[str, str]:
+    """The rungs left unrun once plateau is judged into `rungs` where the cell's surface, or
+    its rule FIXED, is handed in; with neither, plateau stays UNRUN, with why."""
+    if surface is None:
+        return dict(unrun)
+    rungs["plateau"] = plateau.judged(surface)
+    return {name: why for name, why in unrun.items() if name != "plateau"}
 
 
 def basket_answer(basket: Verdict, stressed: Answer) -> str:
