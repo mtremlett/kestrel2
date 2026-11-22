@@ -9,7 +9,7 @@ import csv
 from collections import Counter, deque
 from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from dataclasses import astuple, dataclass, replace
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
@@ -25,10 +25,12 @@ from desk.book_parts import (
     keep,
     killed,
     rate,
-    rates_kept,
     record_rates,
     retry_id,
     switch,
+)
+from desk.book_parts import (
+    rates_kept as rates_kept,
 )
 from desk.book_parts import (
     unless_killed as _unless_killed,
@@ -376,6 +378,19 @@ def currency_gain(root: Path, lines: Iterable[Line], trips: Iterable[RoundTrip])
         ),
         Decimal(0),
     )
+
+
+def interest(
+    root: Path, lines: Iterable[Line], capital: Decimal, annual: Decimal, first: date, last: date
+) -> Decimal:
+    """INTEREST ON IDLE CASH (BIC-03): each day from first to last, the capital less what the
+    ledger has spent by its end (costs too), if positive, earns annual / 365 of itself."""
+    held, total, day = tuple(lines), Decimal(0), first
+    while day <= last:
+        cash, costs = dealt(root, held, day, date.min, 0)
+        total += max(capital + cash - costs.total, Decimal(0)) * annual / 365
+        day += timedelta(days=1)
+    return total
 
 
 def attributed(

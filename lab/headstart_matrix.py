@@ -57,7 +57,7 @@ def one(line: Line, old: Path, path: Path) -> str:
 
 
 #: Each span the database keeps that the store can check (a one-minute bar is no five-minute mark).
-TREND = ("15m", "30m", "1h", "4h", "1wk")
+TREND = ("1m", "15m", "30m", "1h", "4h", "1wk")
 
 
 def trend(line: Line, old: Path, path: Path) -> str:
