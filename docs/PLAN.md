@@ -655,7 +655,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       one-share orders sends only the cap and names the rest carried
       {id: money-round-cap; files: desk/day.py, desk/paper.py, desk/simcity_incidents.py, tests/unit/test_day*.py,
       tests/unit/test_paper*.py, tests/unit/test_simcity*.py}
-- [ ] **Fault, the deep run (A3: a red deep test is a fault):** deep SimCity on 067062cd ended 22 Nov 22:37
+- [x] **Fault, the deep run (A3: a red deep test is a fault):** (#1813: ledger opened once per change, 50,412 -> 228 opens on the fixture night) deep SimCity on 067062cd ended 22 Nov 22:37
       "stuck in the worlds: no end in 7200 s" at `desk/book_parts2.py:48` (`_ledger`). The ledger file is read and
       parsed whole on every `book.fills` and `book.found` call, and the day and the book call them about twenty
       times a simulated day (desk/day.py:94-491, desk/book.py:145-441, desk/day_money.py:36, 79), so a world's
