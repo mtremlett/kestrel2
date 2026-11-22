@@ -388,6 +388,22 @@ ZOO: tuple[Machine, ...] = (
 )
 
 
+#: The zoo's day-trading rules, which the desk trades on PAPER only behind its one switch
+#: (desk/running.py ZOO_ON), one share each, as a MACHINERY TEST: never in RULES, never judged.
+ZOO_RULES: Mapping[str, Callable[[], IntradayRule]] = {
+    m.name: m.rule  # type: ignore[misc]  # each zoo _Day defines step: test_intraday_zoo runs it
+    for m in ZOO
+    if m.span and issubclass(m.rule, _Day)
+}
+#: The zoo's daily rules, which the desk's morning round trades on PAPER behind the same switch
+#: (desk/day.py _zoo), one share each, as a MACHINERY TEST: never in STRATEGIES, never judged.
+ZOO_DAILY: Mapping[str, type[Rule]] = {
+    m.name: m.rule  # type: ignore[misc]  # span None: a daily Rule (Machine.__post_init__)
+    for m in ZOO
+    if m.span is None
+}
+
+
 def zoo_lines() -> tuple[Line, ...]:
     """The zoo's fixed lines, by the master's facts: London's plain (unleveraged) lines and every
     US security; the operator's ten US lines wait on a tenth in the master."""
