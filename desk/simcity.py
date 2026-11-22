@@ -360,7 +360,13 @@ def _apart(life: _Life, trips: tuple[book.RoundTrip, ...]) -> bool:
         Decimal(0),
     )
     gross = sum((t.gross for t in trips), Decimal(0))
-    return traded + book.currency_gain(life.desk, life.market, trips) == gross
+    unit = {line.symbol: Decimal(1) for line in life.market}
+    open_gain = (
+        book.open_currency_gain(life.desk, life.market, {k: v * 2 for k, v in unit.items()}, d)
+        == 2 * book.open_currency_gain(life.desk, life.market, unit, d)
+        for d in {t.sell.day for t in trips}
+    )
+    return traded + book.currency_gain(life.desk, life.market, trips) == gross and all(open_gain)
 
 
 def _told(life: _Life, trips: tuple[book.RoundTrip, ...]) -> bool:
