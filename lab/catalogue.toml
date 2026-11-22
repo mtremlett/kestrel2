@@ -230,9 +230,9 @@ source = "Faber, A Quantitative Approach to Tactical Asset Allocation (2007): at
 entry = { n = 10 }
 exit = { n = 10 }
 
+# entry and exit read one line, the 10-month average, so it ranges in both at once
 [faber_tactical.ranges]
-entry = { n = [8, 10, 12] }
-exit = { n = [8, 10, 12] }
+"entry+exit" = { n = [8, 10, 12] }
 
 # a 2020 climb through ten month ends (buy on 1 November), then a collapse in November (sell on 1 December)
 [[faber_tactical.cases]]
@@ -291,9 +291,9 @@ source = "Antonacci, Dual Momentum Investing (2014), the absolute leg: hold whil
 entry = { n = 12 }
 exit = { n = 12 }
 
+# entry and exit read one line, the twelve-month look back, so it ranges in both at once
 [dual_momentum.ranges]
-entry = { n = [9, 12, 15] }
-exit = { n = [9, 12, 15] }
+"entry+exit" = { n = [9, 12, 15] }
 
 # twelve flat months, a month ending 110 over the first (buy on 1 February 2021), one at 90 under 100 (sell on 1 March), then 120 over 100 (buy on 1 April)
 [[dual_momentum.cases]]
@@ -407,9 +407,9 @@ source = "Weinstein, Secrets for Profiting in Bull and Bear Markets (1988), Mans
 entry = { n = 260 }
 exit = { n = 260 }
 
+# entry and exit read one line, the 52-week ratio average, so it ranges in both at once
 [mansfield_rs_momentum.ranges]
-entry = { n = [130, 260, 390] }
-exit = { n = [130, 260, 390] }
+"entry+exit" = { n = [130, 260, 390] }
 
 # 260 flat ratio days: RS is zero, not above it. 101 lifts the ratio over its average (buy); 99 puts it under (sell)
 [[mansfield_rs_momentum.cases]]

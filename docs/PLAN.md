@@ -147,6 +147,7 @@ Checked 17 Nov (MONEY, s2): no blocking request to MONEY is open and every untic
 
 Checked 17 Nov (MONEY): R-RUNGS-12 re-verified on main (`strategy.rsi`, `strategy.lower_band` public since #185; `tests/unit/test_strategy.py` green); no code change.
 
+Fold request (DATA, 22 Nov, Coordinator 33's ruling: a lane may not delete its own module or manifest line; runner ops folds on a non-lane branch, test first): `desk/store_scope.py` (41 lines) folds into `desk/coverage.py`: `window_start` and `judge` move over, `keeper.py` imports `coverage.judge`, `tests/unit/test_store_scope.py` moves into `tests/unit/test_coverage.py`, and the `desk/store_scope.py` manifest line goes. Its behaviour is already pinned by that test.
 Checked 17 Nov (MONEY, s6): R-DATA-53 is on main (`desk/command.py:387` passes `home=root.parent`, #798) and R-PAPER-29 is on main (`book.conformance_cost`, #763); no blocking request is open; nothing built.
 Checked 20 Nov (MONEY, s2): R-PAPER-35's field is on main (#1102) and set in day, kill, simcity, orders; what is left is PAPER's files (`desk/goflat.py`, `desk/conformance_parts.py`, `desk/placing.py` `_cleared`), outside MONEY's claim; nothing built.
 Checked 20 Nov (MONEY, s7): no blocking request is open; R-PAPER-30 (size the 0.05% half-spread, `orders_parts.HALF_SPREAD`/`SLIPPAGE` from one real VUAG buy 0.09 and sale 0.14 below the pretend close) needs a day of fills and moves golden numbers (B5), so it waits for more conformance tapes; nothing built.
