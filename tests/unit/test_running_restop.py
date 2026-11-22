@@ -20,7 +20,7 @@ from desk.orders import Refused, Sale
 def test_a_round_moves_each_held_lines_stop_under_its_fill_once(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    monkeypatch.setattr(day, "trade", lambda *_: ())
+    monkeypatch.setattr(day, "trade", lambda *_, **__: ())
     held = {"IB1T": ("4.8825", "4.6602"), "MSTR": ("104.92", "100.458")}
     fills = [Fill(f"x{s}", f"o-{s}", s, 1, Decimal(p), MON.date()) for s, (p, _) in held.items()]
     book._record(tmp_path, fills)
@@ -39,7 +39,7 @@ def test_a_round_moves_each_held_lines_stop_under_its_fill_once(
 def test_a_held_line_left_out_of_a_round_is_told_apart_with_its_stop(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    monkeypatch.setattr(day, "trade", lambda *_: ())
+    monkeypatch.setattr(day, "trade", lambda *_, **__: ())
     monkeypatch.setattr(restop, "move", lambda *_: {})
     book._record(tmp_path, [Fill("x", "o-IITU", "IITU", 1, Decimal(36), MON.date())])
     keep(tmp_path / book.STOPS, [book.LEVELS, ("o-IITU-stop", "32.4")])
