@@ -539,3 +539,11 @@ Options: (a) filter in `day.trade`; (b) filter the lines handed to it (chosen: o
 ### 2026-11-21 — R-MONEY-54: cancel on any halt in force (#1414)
 
 Options: (a) only the watch's halt (narrower, needs a second halt query); (b) any halt, his or the watch's (chosen: every halt means no buys, simpler).
+
+### 2026-11-22 — morning heat shown only when recorded (#1478)
+
+Options: say "not known" when the record holds no heat; omit the line (chosen: old records read as before). Report only.
+
+### 2026-11-22 — compact message layout kept in messenger.py (#1482)
+
+Options: a new `desk/layout.py` as the old pre-mortem said; in place (chosen: the 400-line cap it feared is now 800, and less code is progress).
