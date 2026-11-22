@@ -343,6 +343,15 @@ def test_a_step_as_large_as_the_pound_is_a_currency_only_if_it_lasts(
     assert _prepared(tmp_path, bars, replace(US, leverage=3)) == []  # a real crash is as large
 
 
+def test_a_dated_change_of_quote_currency_is_kept_not_refused(tmp_path: Path) -> None:
+    """HVPE, NBPE, VOF: the line master dates the change (R-RUNGS-20); the step day is kept."""
+    clean = _bars(US, LONG)
+    bars = (*clean[:30], *(_scaled(b, 1 / POUND) for b in clean[30:]))
+    assert _prepared(tmp_path, bars, US)
+    assert _prepared(tmp_path, bars, replace(US, requoted=frozenset({bars[30].day}))) == []
+    assert store.read(tmp_path, US.symbol) == bars
+
+
 def test_untraded_bars_in_another_unit_give_way_to_the_traded_bars(tmp_path: Path) -> None:
     """SGLN, April to October 2011: flat bars of no volume at the pound's price in dollars, then
     the traded pound bars; no trade states no price, so the traded ones stand (R-RUNNER-274)."""
