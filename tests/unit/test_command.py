@@ -129,11 +129,13 @@ def test_the_pound_is_read_from_the_price_store_alone_the_broker_and_archive_nev
     with bars.writing(tmp_path / keeper.HOT) as round_:
         round_.daily(command.POUND, [_flat(FRI, "1.25")])
     desk = tmp_path / "desk"
-    assert command.rates(desk, today, broker) == {"GBP": 1, "USD": Decimal("0.8")}
+    assert command.rates(tmp_path, today, broker) == {"GBP": 1, "USD": Decimal("0.8")}
     book.record_rates(desk, today, {"USD": Decimal("0.75")})  # a file's rate is not asked first
-    assert command.rates(desk, today)["USD"] == Decimal("0.8")
+    assert command.rates(tmp_path, today)["USD"] == Decimal("0.8")
+    rehearsal = desk / command.REHEARSALS / "20261122T180044"  # records deeper than the store
+    assert command._desk(rehearsal, Mock(), tmp_path).rates(today)["USD"] == Decimal("0.8")
     with pytest.raises(ValueError, match="no pound in dollars is held fresh"):
-        command.rates(desk, today + timedelta(days=30))
+        command.rates(tmp_path, today + timedelta(days=30))
     with pytest.raises(SystemExit, match="KESTREL2_DATA names no whole path to a folder"):
         command.main([], {"KESTREL2_DATA": ""})
 
