@@ -143,7 +143,21 @@ def test_the_currency_apart_from_trading_is_told_once_a_trade_has_closed(tmp_pat
                 tmp_path, broker, Order("o-2", dollar, 10, *map(Decimal, (50, 0.8, 45))), ROOM
             )
     day._currency(tmp_path, {dollar: BARS[A]}, TUE, lambda n, w: told.append((n, w)))
-    assert told == []
+    assert [n for n, _ in told] == ["currency 2025-11-11"] and "£-25.50 on open holdings" in told[
+        0
+    ][1]
+    told.clear()
     book.send(tmp_path, broker, orders.Sale("s-2", dollar, 10), ROOM)
     day._currency(tmp_path, {dollar: BARS[A]}, TUE, lambda n, w: told.append((n, w)))
     assert [n for n, _ in told] == ["currency 2025-11-11"] and "£-25" in told[0][1]
+
+
+def test_the_interest_on_idle_cash_is_told_once_a_fill_has_begun_it(tmp_path: Path) -> None:
+    told, broker = list[tuple[str, str]](), Pretend(BARS, {})
+    day._interest(tmp_path, BARS, TUE, ROOM, lambda n, w: told.append((n, w)))
+    assert told == []
+    broker.open(MON)
+    book.record_rates(tmp_path, MON, {"GBP": Decimal(1)})
+    book.send(tmp_path, broker, Order("o-4", A, 1, *map(Decimal, (50, 1, 45))), ROOM)
+    day._interest(tmp_path, BARS, TUE, ROOM, lambda n, w: told.append((n, w)))
+    assert [n for n, _ in told] == ["interest 2025-11-11"] and "£2.18" in told[0][1]
