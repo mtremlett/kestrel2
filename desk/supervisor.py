@@ -104,12 +104,34 @@ class Job:
     rooted: bool = (
         True  #: told the desk's root as its one word; else it finds its own (KESTREL2_DATA)
     )
+    awake: range | None = None  #: the minutes of each UTC day it is due in; none, all of them
+
+    def opened(self, now: datetime) -> datetime | None:
+        """When the waking now going on began; none when asleep, or never asleep."""
+        if self.awake is None or now.hour * 60 + now.minute not in self.awake:
+            return None
+        return now.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(
+            minutes=self.awake.start
+        )
+
+    def waking(self, since: datetime, until: datetime) -> timedelta:
+        """How much of the time between two moments (in UTC) the job is due in."""
+        if self.awake is None:
+            return until - since
+        total, day = timedelta(0), since.replace(hour=0, minute=0, second=0, microsecond=0)
+        while day < until:
+            opens, shuts = (day + timedelta(minutes=m) for m in (self.awake.start, self.awake.stop))
+            total += max(min(shuts, until) - max(opens, since), timedelta(0))
+            day += timedelta(days=1)
+        return total
 
 
+#: The step's hours, 05:30 to 22:00 UTC: the Gateway's 03:00 UK restart and the night are no fault.
+WAKING = range(5 * 60 + 30, 22 * 60 + 1)
 #: THE ONE REGISTER of what the desk runs unattended: the desk's step, `python -m desk.running`,
 #: which finds its own data folder and ends non-zero when the step fails.
 JOBS: tuple[Job, ...] = (
-    Job("step", "desk.running", timedelta(minutes=5), timedelta(minutes=4), False),
+    Job("step", "desk.running", timedelta(minutes=5), timedelta(minutes=4), False, WAKING),
 )
 Run = Callable[[Job, Path], str]
 Pull = Callable[[], str]  #: brings the code up to main's: DONE, or how it failed
@@ -223,7 +245,8 @@ def attend(
         began = _utc(clock())
         with _record(root) as record:
             last = record.execute(LAST, (job.name,)).fetchone()
-        if last is None or abs(began - _receipt(last).began) >= job.every:
+        due = last is None or abs(began - _receipt(last).began) >= job.every
+        if due and (job.awake is None or job.opened(began)):
             how = run(job, root)
             receipt = Receipt(job.name, began, _utc(clock()), how)
             row = (job.name, began.isoformat(), receipt.ended.isoformat(), how)
@@ -249,6 +272,17 @@ def work(root: Path, name: str, module: str, limit: float, *words: str) -> None:
         code[0] = 0  #: done: whatever of it lingers still ends at the limit, and as done
 
 
+def _late(job: Job, last: Receipt | None, now: datetime, patience: timedelta) -> bool:
+    """Whether nothing is running the job: no receipt, one from the future, or one older than
+    its interval and the patience, counted from the job's waking when it is asleep or just woken."""
+    if last is None or last.ended > now + patience:
+        return True
+    opened = job.opened(now)
+    if job.awake is not None and opened is None:
+        return False  # asleep: no run is due
+    return now - max(last.ended, opened or last.ended) > job.every + patience
+
+
 def health(root: Path, now: datetime, jobs: Sequence[Job]) -> tuple[str, ...]:
     """THE DESK'S HEALTH, JUDGED FROM OUTSIDE its processes by the receipts alone: what is
     wrong, in words for him; nothing, and all is well. A job is not being run when its last
@@ -263,7 +297,7 @@ def health(root: Path, now: datetime, jobs: Sequence[Job]) -> tuple[str, ...]:
         for job in jobs:
             bad = [*map(_receipt, record.execute(BAD, {"job": job.name, "done": DONE}))]
             last = [*map(_receipt, record.execute(LAST, (job.name,)))]
-            if not last or not -patience <= now - last[0].ended <= job.every + patience:
+            if _late(job, last[0] if last else None, now, patience):
                 since = f"since {last[0].ended:%a %d %b %H:%M} UTC" if last else "at all"
                 wrong.append(LATE.format(job.name, since))
             elif bad:
@@ -304,7 +338,7 @@ def unattended(root: Path, now: datetime, jobs: Sequence[Job]) -> timedelta:
     for job in jobs:
         marks, since = [datetime.fromisoformat(at) for name, at in ran if name == job.name], now
         for mark in marks:
-            if since - mark > SILENCE:
+            if job.waking(mark, since) > SILENCE:
                 break
             since = mark
         spans.append(marks[0] - since if since != now else timedelta(0))
