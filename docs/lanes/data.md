@@ -751,3 +751,12 @@ Options: (a) red when a newest bar came from a replacement, rejected: the archiv
 
 ### 2026-11-22 — one price reader; breadth kept, moved (data-door-bars, non-lane PR)
 Options: (a) delete `breadth` with the CSV reader, as the box said; (b) keep it, read through the door. Chose (b): R-RUNGS-32 owes it a caller, and moving it costs no new code. A line the database lacks raises FileNotFoundError, as a missing CSV did, so the ladder counts the cell as failed (`ladder.FAILED`; widening FAILED to LookupError would swallow KeyError bugs; blind review finding), and breadth leaves such a line out, as before.
+
+### 2026-11-22 — span table and alarm line; the runner sends (DATA, #1736)
+Options: a Telegram client in `desk/quality.py` (rejected: outside the claim, one client per external system) vs printing `ALARM <message>` and the `table` text for the runner to send (chosen). Supersedes #1689's `SEND:` wording.
+
+### 2026-11-22 — survivorship bias stated, not full point-in-time lists (DATA, #1750)
+Options: full past lists for FTSE 350 (no record exists) vs measuring and stating the bias per verdict (chosen, his standing ruling to take the recommended). `lab.members.bias` builds the line; verdict writers in RUNGS must print it (R-DATA-68).
+
+### 2026-11-22 — BEA added, earnings CSV left to a later card (DATA, #1752)
+Options: a CSV parse hook in the collector now vs a later card (chosen, smallest green step). Collector at 11 sources.

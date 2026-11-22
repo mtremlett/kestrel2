@@ -317,6 +317,12 @@ def alarm(
     return since, sent, None
 
 
+def announce(said: str, told: str | None) -> str:
+    """What `hover` prints: the freshness line, then `SEND: <message>` when the alarm speaks, the
+    line the runner's job posts to Telegram."""
+    return f"{said}\n" + (f"SEND: {told}\n" if told else "")
+
+
 def watch(state: Path, said: str, green: bool, now: datetime) -> str | None:
     """One check of the alarm with its state (since, sent) kept in a file between runs, replaced
     whole; returns the message to send, if any."""
