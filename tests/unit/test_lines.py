@@ -20,7 +20,7 @@ from desk.lines import (
     valid_isin,
 )
 
-#: Still in the master only because the ladder's tests name them; they leave when those do not.
+#: Still in LINES only as price references (REFERENCE), never traded.
 LEAVING = {"SPY", "QQQ"}
 
 
