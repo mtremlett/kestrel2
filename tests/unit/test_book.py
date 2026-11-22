@@ -13,7 +13,7 @@ from unittest.mock import Mock
 import pytest
 
 from desk import book, halt
-from desk.broker import Broker, Crash, Fault, Pretend
+from desk.broker import Broker, Crash, Fault, Fill, Pretend
 from desk.halt import Blocker, Stopped
 from desk.lines import STAMP_DUTY, Line
 from desk.orders import Charges, Order, Refused, Sale, Settings
@@ -340,7 +340,7 @@ def test_every_entry_of_the_brokers_is_the_books_own_shares_or_it_is_named(
 
 
 def test_a_round_trip_pairs_each_sale_with_the_buys_it_closes_in_pounds_after_every_cost(
-    tmp_path: Path,
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     dollar, share = Line("U", "US", "USD", 1), replace(A, uk_tax=STAMP_DUTY)
     broker = Pretend({**WEEK, dollar: WEEK[SIX[1]]}, {})
@@ -374,6 +374,21 @@ def test_a_round_trip_pairs_each_sale_with_the_buys_it_closes_in_pounds_after_ev
     assert (
         book.interest(tmp_path, (share, dollar), Decimal(3650), Decimal("0.1"), early, early) == 1
     )
+    #: over forty days it is those days asked one by one, and the ledger is read no more often
+    #: for them than for one day: SimCity asks it every day, from the first fill on (#1628)
+    span, read, fills = [early + timedelta(days=n) for n in range(40)], [], book.fills
+
+    def counted(root: Path) -> tuple[Fill, ...]:
+        read.append(1)
+        return fills(root)
+
+    monkeypatch.setattr(book, "fills", counted)
+    one = [
+        book.interest(tmp_path, (share, dollar), Decimal(3650), Decimal("0.1"), d, d) for d in span
+    ]
+    each, read[:] = len(read) // len(span), []
+    whole = book.interest(tmp_path, (share, dollar), Decimal(3650), Decimal("0.1"), *span[::39])
+    assert whole == sum(one, Decimal(0)) and len(read) <= each, f"{len(read)} reads, not {each}"
     #: 500 dollars at 0.8, back at 0.75: a dollar's commission each way and the regulators'
     #: 1.225 cents on the sale; 0.03% conversion on the dollars moved each way
     conversion = Decimal("0.0003") * (501 * Decimal("0.8") + Decimal("498.98775") * Decimal("0.75"))
