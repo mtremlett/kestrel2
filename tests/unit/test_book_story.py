@@ -28,6 +28,7 @@ def test_every_decision_of_the_day_is_chained_to_its_order_and_the_bar_it_read(
     for chain in chains:
         assert chain.bar_day < on
         assert (chain.filled > 0) == (chain.order_id in bought)
+        assert chain.asked >= chain.filled
 
 
 class _Raises(Pretend):
