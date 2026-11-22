@@ -971,8 +971,8 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         Faults are fixed at entry, never in a rung (decision d, the data cards and one door for prices); wire: the
         set runner's pre-flight; gate: a set whose inputs have gaps refuses to start.
         Step 1 built (#1680): `market.gaps`, `folds.gaps`. Remains: wire them into the set runner's pre-flight
-        (lab/ladder.py) and the 1% publishing stop (lab/ladder_parts.py); needs a card claiming those and test_lab_ladder.py
-        {id: rungs-faults-not-answers; files: lab/market.py, lab/folds.py, tests/unit/test_lab_market.py, tests/unit/test_lab_folds.py; after: rungs-rung-map}
+        (lab/ladder.py) and the 1% publishing stop (lab/ladder_parts.py); claim widened to them (runner ops 92, 22 Nov)
+        {id: rungs-faults-not-answers; files: lab/ladder.py, lab/ladder_parts.py, lab/market.py, lab/folds.py, tests/unit/test_lab_ladder.py, tests/unit/test_lab_market.py, tests/unit/test_lab_folds.py; after: rungs-rung-map}
 - [ ] **STRATEGIES AS DATA (his goal: 1,000+ strategies over 1,000+ tickers):**
   - [ ] B1 building blocks written once, each known-answer tested: indicators, entries,
         exits, stops, filters (regime filters among them), sizing. Built: every block has its
