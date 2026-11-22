@@ -83,7 +83,9 @@ def test_the_pounds_noon_rates_fill_only_the_days_before_the_archives_first(tmp_
 def test_research_reads_the_database_and_never_a_bar_held_only_in_a_csv(tmp_path: Path) -> None:
     root, path = tmp_path / "store", tmp_path / bars.LIVE
     held = _bars(US)
-    store.prepare(root / "US", {US: held}, END)  # the CSV holds every day, the database all but the last
+    store.prepare(
+        root / "US", {US: held}, END
+    )  # the CSV holds every day, the database all but the last
     with bars.writing(path, Source.ARCHIVE) as opened:
         opened.days(US, held[:-1])
     assert universe_parts.read(root, US).bars == held
