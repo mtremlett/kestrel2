@@ -310,7 +310,18 @@ def _orders(
     for d in (d for d in decided if d.action is Action.BUY):
         line = due[d.symbol]
         price = archive[line][-1].close, rates[line.currency]
-        args = (root, broker, d, line, price, settings, day, tell, watch)
+        args = (
+            root,
+            broker,
+            d,
+            line,
+            price,
+            settings,
+            day,
+            tell,
+            watch,
+            _traded(archive[line], price[1]),
+        )
         answer = _answer(root, day, _barred(d) if d.strategy in killed else _buy(*args))
         book.chain(root, d, archive[line][-1], answer)
         sent.append(answer)
@@ -363,6 +374,11 @@ def _answer(root: Path, day: date, sent: book.Sent) -> book.Sent:
     return sent
 
 
+def _traded(bars: Sequence[Bar], fx: Decimal) -> Decimal:
+    """The pounds a line traded over its last twenty sessions: close times volume, at the rate."""
+    return sum((b.close * b.volume for b in bars[-20:]), Decimal(0)) * fx
+
+
 def _buy(
     root: Path,
     broker: Broker,
@@ -373,6 +389,7 @@ def _buy(
     day: date,
     tell: book.Tell | None,
     watch: Callable[[str], tuple[dict[str, Decimal], dict[str, tuple[float, ...]]]] | None = None,
+    traded: Decimal | None = None,
 ) -> book.Sent:
     """One rule's buy, sized from the book as the send before it left it, at the line's last
     close and the day's rate. A line held, or sold this morning, is not bought: said so. Nor is
@@ -395,7 +412,7 @@ def _buy(
         why = "is held already" if d.symbol in now else "was sold this morning"
         return book.Sent(name, 0, f"{name}: not sent, {d.symbol} {why}", Blocker.HELD)
     try:
-        order = size(d, line, *price, settings, now)
+        order = size(d, line, *price, settings, now, traded=traded)
     except Refused as refused:  #: the gate's answer, kept with the day's others
         return book.Sent(name, 0, str(refused), Blocker.GATE)
     looked = watch and watch(d.symbol)

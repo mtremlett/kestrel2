@@ -187,3 +187,13 @@ def test_a_sale_passes_the_gate_only_for_shares_the_book_holds() -> None:
     for bad in ("", "garbage", "20261116-rule", "20261116--P"):
         with pytest.raises(ValueError, match="no strategy can be read"):
             orders.strategy_of(bad)
+
+
+def test_a_position_is_no_more_than_one_percent_of_the_lines_twenty_day_traded_value() -> None:
+    traded = Decimal(50_000)  #: a cap of 500 pounds: 50 shares at ten pounds, held ones counted
+    args = (_buy(PLAIN), PLAIN, Decimal(10), Decimal(1), TEN_K)
+    assert orders.size(*args, {}, traded=traded).quantity == 50
+    assert orders.size(*args, {"P": 20}, traded=traded).quantity == 30
+    assert orders.size(*args, {}).quantity > 50, "no traded value, no cap"
+    with pytest.raises(orders.Refused, match="no room"):
+        orders.size(*args, {}, traded=Decimal(900))

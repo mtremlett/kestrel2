@@ -46,6 +46,9 @@ STOP_FALL = Decimal("0.10")
 #: STP-10, the one home (R-RUNGS-11, docs/DECISIONS.md): the most of the capital one holding may
 #: lose when a gap jumps its stop; the stop alone risks STOP_FALL / HOLDINGS of it (2%).
 GAP_LOSS = Decimal("0.05")
+#: TRD-10 (coordinator 54, docs/PLAN.md money-small): no position above this share of its
+#: line's traded value over the last twenty sessions, in pounds.
+TRADED_SHARE = Decimal("0.01")
 
 
 @dataclass(frozen=True)
@@ -203,11 +206,14 @@ def size(
     settings: Settings,
     held: Mapping[str, int],
     market: Decimal | None = None,
+    traded: Decimal | None = None,
 ) -> Order:
     """The most whole shares whose cost, with the shares of the line already held, fits the
     line's room, and the stop, for a buy; fx is pounds per unit of the line's currency, and
     held is the book (book.positions). Given the live price (market), the stop rests 10% under
-    it, never above the signal's, and a buy is refused that the signal's stop would sell at once."""
+    it, never above the signal's, and a buy is refused that the signal's stop would sell at once.
+    Given the pounds the line traded over twenty sessions (traded), the holding, held and bought,
+    stays within TRADED_SHARE of it (TRD-10); None caps nothing."""
     if decision.action is not Action.BUY or decision.symbol != line.symbol:
         raise ValueError(f"{line.symbol}: only a buy for this line is sized, not {decision}")
     order_id = order_id_of(decision)
@@ -226,6 +232,8 @@ def size(
     while over - fits > 1:  #: cost grows with the shares, so halve the gap until it closes
         middle = (fits + over) // 2
         fits, over = (middle, over) if cost(order(middle)) <= room else (fits, middle)
+    if traded is not None:
+        fits = min(fits, int(traded * TRADED_SHARE / (price * fx)))
     already = held.get(line.symbol, 0)
     if fits <= already:
         raise Refused(f"{order_id}: {already} shares held leave no room for more")

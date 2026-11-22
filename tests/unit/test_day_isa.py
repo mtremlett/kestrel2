@@ -19,7 +19,7 @@ CLOSES = [Decimal(c) for c in [*[10] * 20, 9, 10, 10]]
 
 
 def test_nothing_is_bought_on_a_line_recorded_as_one_no_isa_can_hold(tmp_path: Path) -> None:
-    bars = tuple(Bar(on, c, c + 1, c - 1, c, 1) for on, c in zip(DAYS, CLOSES, strict=True))
+    bars = tuple(Bar(on, c, c + 1, c - 1, c, 10**9) for on, c in zip(DAYS, CLOSES, strict=True))
     lines = [Line("A", "LSE", "GBP", 1, isa=False), Line("B", "LSE", "GBP", 1, isa=True)]
     lines.append(Line("C", "LSE", "GBP", 1, retail=False))
     archive = {line: bars[:21] for line in lines}
@@ -39,7 +39,7 @@ def test_nothing_is_bought_on_a_line_recorded_as_one_no_isa_can_hold(tmp_path: P
 
 
 def test_a_strategy_that_met_its_kill_condition_buys_nothing(tmp_path: Path) -> None:
-    bars = tuple(Bar(on, c, c + 1, c - 1, c, 1) for on, c in zip(DAYS, CLOSES, strict=True))
+    bars = tuple(Bar(on, c, c + 1, c - 1, c, 10**9) for on, c in zip(DAYS, CLOSES, strict=True))
     line = Line("B", "LSE", "GBP", 1)
     room, rates = Settings(Decimal(10_000)), {"GBP": Decimal(1)}
 
@@ -56,7 +56,7 @@ def test_a_strategy_that_met_its_kill_condition_buys_nothing(tmp_path: Path) -> 
 
 
 def test_a_line_parked_by_hand_is_not_bought_until_unparked(tmp_path: Path) -> None:
-    bars = tuple(Bar(on, c, c + 1, c - 1, c, 1) for on, c in zip(DAYS, CLOSES, strict=True))
+    bars = tuple(Bar(on, c, c + 1, c - 1, c, 10**9) for on, c in zip(DAYS, CLOSES, strict=True))
     line = Line("B", "LSE", "GBP", 1)
     (tmp_path / "parked.csv").write_text("symbol,who,why\nB,coordinator,doubtful\n")
     broker = Pretend({line: bars}, {})
