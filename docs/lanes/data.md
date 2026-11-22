@@ -712,3 +712,6 @@ desk/ is at its 100-file cap and stays stdlib (no pyarrow, his rulings 13/14 Nov
 
 ### 2026-11-22 — old database timeframes enter by their marks; 1m left out (DATA, #1480, R-RUNNER-350 part 3)
 Options for the 1m rows: (a) carry them through the five-minute bar type, losing most of them; (b) leave 1m until the store's checks take any span's bar. Chosen: (b), because `desk/bars_parts.checked` accepts only five-minute bars and lies outside the claim. 15m, 30m, 1h, 4h and 1wk rows enter through the existing vouch-and-check path as `Source.DATABASE`; off-mark rows (:30 hours, Friday weeks) are counted as refused, never re-stamped. Remains: the 1m rows (11,699 for SPY), asked as the next R-DATA request.
+
+### 2026-11-22 — store_scope fold into coverage routed through runner ops (DATA, #1590, #1592)
+Options: (1) raise the desk/ file cap to 101: loosens a guard, NO (hard lines default NO). (2) Delete `desk/store_scope.py` and its manifest line from the lane: NO, `test_lanes` refuses removed manifest lines. (3) Write the fold as a request (R-DATA-63) for runner ops to carry out on a non-lane branch, test first. Chosen: (3), on Coordinator 33's ruling and his "always go with recommended". Remains: the fold itself (waits: R-RUNNER-419).
