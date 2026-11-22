@@ -226,6 +226,7 @@ def test_hover_judges_every_span_and_the_alarm_tells_only_of_change(tmp_path: Pa
             "1wk",
             [Timed("1wk", datetime(2026, 11, 9, tzinfo=UTC), price, price, price, price, 5)],
         )
+    assert "1h: 100% fresh, 0 faults, 0 gaps" in quality.table(path, [SPY], NOW)
     assert quality.hover(path, [SPY], NOW) == (
         "data quality: 100% fresh, 0 faults, 0 gaps, worst none",
         True,
