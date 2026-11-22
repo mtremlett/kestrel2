@@ -494,6 +494,13 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1594 R-RUNNER-440: the store clears a line's orphan faults file when it writes the line's one file. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1609 line master carries dated quote-currency changes; the store keeps the step day (R-RUNGS-20a). |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1634 data-isa-twins: SPY and QQQ worded as price references only; removal waits on callers outside the claim. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1623 DATA notes added to 12 boxes; no scene moved. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1649 the pound history box carries its note; no scene moved. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1659 data-dividends step 1: `bars.total_return`, the total-return reader in the one store. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1651 data-members: FTSE reconcile rule and its fault built; feeds not yet wired. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1653 data-door-bars: `read_db`, research bars from the history database. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1654 data-monitor first step: HOVER freshness line and alarm logic, tested. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1663 data-collector: EODHD London audit; collector now 8 sources of the planned set. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
