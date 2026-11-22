@@ -10,10 +10,11 @@ the range's order is the plateau grid's (`lab.plateau`).
 
 A variant is its row with other settings, so the row's known answers, which hold only at
 the row's own, are not asked of it. Its name carries its settings and so tells it apart as a
-trial; `find` makes it again from that name alone. `lab.trials.enter` counts them all under
-the question, a variant never run as much as one that won, and the pick is `lab.plateau`'s,
-the deepest setting of the passing surface. This module reads `lab.spec` alone, so the rule
-book can make a variant from its name without a cycle back through the rungs (#1608).
+trial; `find` makes it again from that name alone, and `rule` a rule a cell can run.
+`lab.trials.enter` counts them all under the question, a variant never run as much as one
+that won, and the pick is `lab.plateau`'s, the deepest setting of the passing surface.
+This module reads `lab.spec` alone, so the rule book can make a variant from its name
+without a cycle back through the rungs (#1608).
 """
 
 from __future__ import annotations
@@ -24,7 +25,8 @@ from decimal import Decimal
 from itertools import product
 from types import MappingProxyType
 
-from lab.spec import PLACES, Spec
+from desk.strategy import Rule
+from lab.spec import PLACES, Spec, SpecRule
 
 
 @dataclass(frozen=True)
@@ -69,3 +71,20 @@ def find(specs: Mapping[str, Spec], name: str) -> Spec:
     if name not in made:
         raise ValueError(f"no variant is called {name!r}")
     return made[name]
+
+
+def rule(specs: Mapping[str, Spec], name: str) -> type[Rule]:
+    """The variant of that name as a rule made with no arguments, as a cell makes one; it is
+    `SpecRule` by module and name, so the code key is that of the engine reading rows."""
+    spec = find(specs, name)
+
+    class Bound(SpecRule):
+        def __init__(self) -> None:
+            super().__init__(spec)
+
+    Bound.__module__, Bound.__name__, Bound.__qualname__ = (
+        SpecRule.__module__,
+        "SpecRule",
+        "SpecRule",
+    )
+    return Bound

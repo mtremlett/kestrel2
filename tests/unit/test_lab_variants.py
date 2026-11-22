@@ -4,13 +4,17 @@ from __future__ import annotations
 
 import ast
 import tomllib
+from datetime import date
+from decimal import Decimal
 from pathlib import Path
 
 import pytest
 from test_lab_plateau import FAIL, PASS, PEAK, _AnyRule, _verdict
 
+from desk.store import Bar
+from desk.strategy import Rule
 from lab import cell, plateau, trials, variants
-from lab.spec import Spec
+from lab.spec import Spec, SpecRule
 
 BOOK = tomllib.loads((Path(__file__).parents[2] / "lab" / "catalogue.toml").read_text("utf-8"))
 ROW_RAW = {"name": "donchian_channel_breakout", **BOOK["donchian_channel_breakout"]}
@@ -28,6 +32,14 @@ def test_twelve_variants_all_counted_and_the_pick_is_the_plateau_centre(
     assert made[-1].setting == (40, 80) and ROW.params["entry"] == {"n": 20}
     assert not made[0].spec.ranges
     assert all(variants.find({ROW.name: ROW}, v.spec.name) == v.spec for v in made)
+    made_rule = variants.rule({ROW.name: ROW}, made[0].spec.name)  #: a cell runs it bare
+    assert made_rule.__module__ == "lab.spec" and made_rule.__name__ == "SpecRule"
+    rising = [Bar(date(2026, 1, 1 + k), *(Decimal(k + 1),) * 4, 1) for k in range(15)]
+
+    def said(rule: Rule) -> list[bool]:
+        return [rule.step(bar, False) for bar in rising]
+
+    assert said(made_rule()) == said(SpecRule(made[0].spec)) != said(SpecRule(ROW))
     shared = {**ROW_RAW, "ranges": {"entry+exit": {"n": [10, 20]}}}
     assert variants.variants(Spec.parse(shared))[0].spec.params["exit"] == {"n": 10}
     with pytest.raises(ValueError, match="one setting"):  # the places disagree: two settings
