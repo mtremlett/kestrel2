@@ -567,3 +567,7 @@ Options: keep the message's own 'streak N' (a second home for the count, failure
 ### 2026-11-22 — the pound is read from the price store alone (#1674)
 
 (1) The day's recorded rate is no longer read first. Options: keep it first, or the store alone (chosen: his ruling "every price is read from the database alone"; the store gives the same rate per day). (2) A stale pound becomes a ValueError inside `rates`, because `command.NAMED` (outside the claim) does not name `keeper.Stale`. Options: widen NAMED, or translate in `rates` (chosen).
+
+### 2026-11-22 — "the desk is not trading" means no fill today (#1753)
+
+Options for "not trading" by 09:30 UK: no order sent; no fill; no step run. Chosen: no fill on the ledger dated today, because the ledger is the one record `desk/messenger.py` already reads, and an order that never fills is also not trading. Telegram only, once a day, never in his night (09:30 to 22:00). Remains: call `messenger.idle` from `desk/running.py` (outside the claim, R-PAPER-38).
