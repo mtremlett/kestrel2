@@ -281,6 +281,44 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       into the history database as rollup:<from>; #780: a rolled bar differing from a held one is a FAULT line on stderr; #797: `python -m desk.quality` audits, backfills and re-audits the daily timeframe; remains the other timeframes, market_live.db, local Stooq and rollup sources, the runner job; #930: backfill.fill takes one ordered source list, the rollup step needs Source.ROLLUP_5M in desk/bars_schema.py, outside the box's claim; #935: the audit counts a closed session of today), the long database for daily and up
       Re-carded (coordinator 54, 22 Nov: claim scope, not his: the claim now holds desk/bars_schema.py, which the rollup step's Source.ROLLUP_5M needs; inside the desk/ ceiling)
       {id: data-two-stores; files: desk/bars.py, tests/unit/test_bars*.py, desk/keeper.py, tests/unit/test_keeper*.py, desk/bars_schema.py; after: data-ingest}
+- [ ] **THE DATA MONITOR, FIRST (his priority, 22 Nov: "data quality needs to be top priority"; "the data monitor
+      should always be running"):** measured 22 Nov 09:4x, both databases: daily 1,083 of 1,084 lines fresh and
+      five-minute 43 of 44, but every other span stale: 1h 0 of 1,074 (newest 23 Oct), 4h 0 of 546 (29 Jul), 1wk
+      none, live 15m/30m/1m 4 of 2,097. `desk.quality` audits the daily span alone, once a night, weekdays.
+      It becomes the one monitor: every database x span (5m, 15m, 30m, 1h, 4h, 1d, 1wk) x line judged against the
+      venue calendar's last ended session, each gap filled (IBKR, then Yahoo named, then rollup), audited again, and
+      one line printed: `data quality: <fresh>% fresh, <faults> faults, <gaps> gaps, worst <db/span/line>`
+      Named HOVER (a kestrel hovers over the field watching). His 22 Nov 09:5x terms: HOVER checks every 5
+      minutes, 7 days, as plain code that spends no tokens; green means no action. Only red wakes a model,
+      cheapest first: Haiku reads the fault and names its kind, Sonnet fixes a kind already seen, Opus only a
+      new kind. Every hour a Telegram table: both databases x every span (1m to 1wk), % fresh, faults, gaps.
+      And an alarm that tells only of change (his 22 Nov ~10:00): the first red check sends one Telegram
+      naming the database, span, line and why; while red, one reminder every 30 minutes; the first green
+      check after it sends one "back to green, red for <minutes>" and the alarm falls silent
+      The golden lines are always green or the table says why: SPY and QQQ, with VUAG (LSE) standing in for SPY
+      and IITU (LSE) for QQQ, in both databases at every span (measured 09:5x: all four present, daily and
+      five-minute fresh, other spans stale like the rest; VUAG has no 15m, 30m, 1m or 4h). Daily bars are read
+      from ONE store: the ladder's daily files miss SPY 2022-09-28 that market_history.db holds
+      wire: a runner job every 5 minutes, 7 days, and the hourly Telegram table; gate: a contract test where a
+      planted stale span, missing day and stale golden line each turn the line red, and the alarm sends red once and green once
+      {id: data-monitor; files: desk/quality.py, tests/unit/test_quality.py}
+- [ ] Derived spans rolled, never fetched: 15m, 30m, 1h and 4h rolled from five-minute bars and 1wk from daily,
+      into the history database as `rollup:<from>` on every keeper round, so they are as fresh as their base;
+      a rolled bar that differs from a held one is a FAULT, never a silent overwrite (canon B3)
+      wire: every keeper round; gate: a rolled hour equals its twelve five-minute bars, and a differing held bar is a FAULT
+      {id: data-rollup-hot; files: desk/rollup.py, tests/unit/test_rollup.py; after: data-monitor}
+- [ ] No missing trading day: a line's gap on a day its venue traded (SPY 2022-09-28, ISF 2012-05-28 among
+      6,788 market FAULTs in the ladder) is filled from IBKR, then Yahoo, or the one calendar names it a
+      holiday; a line's audit lists no unnamed gap
+      wire: HOVER's filler; gate: SPY's 2022-09-28 planted missing is filled, and a named holiday stays empty
+      {id: data-no-missing-day; files: desk/backfill.py, desk/venues.py, tests/unit/test_backfill.py, tests/unit/test_venues*.py; after: data-monitor}
+- [ ] One pounds-per-dollar history back to the earliest bar held, so no fold reads FAULT for a missing rate
+      (about 5,300 in the ladder); conversion stays in its one place
+      Source (his ruling 22 Nov ~10:05, free data only): FRED's DEXUSUK daily series (US dollars to one pound),
+      fetched with the FRED key handed to the job by the runner's session environment alone, stored in
+      market_history.db as a reference series beside the bars, through the one writer and its checks
+      wire: the nightly research refresh and HOVER's filler; gate: a fold whose rate was missing reads it
+      from the stored series, and a planted missing day is a named gap, never a FAULT
 - [ ] **Data in tiers, for 4,000+ tickers** (research of 14 November, kept in the notes
       folder as `data_stack_2026-11-14.md`). Tier A: held, signalled and watched names, live
       1-minute from IBKR within his line allowance (100 now). Tier B: US breadth at 1 minute
@@ -690,10 +728,9 @@ his PC with the desk's own client id (222), never 4001.
       Remains: the step is the first registered job (#490) and `python -m desk.supervisor tell` sends what health finds (#499). Still to do: the kill drill on the real step, seven days counted, the overnight-window question (the Gateway's 03:00 restart shows as bad receipts). Windows starting the supervisor is its own box below, which waits on him (coordinator 54, 22 Nov: a new Windows task is persistent config on his machine; the rest is not his)
       {id: paper-supervised; files: desk/supervisor.py, tests/unit/test_supervisor.py,
       manifest.toml; after: paper-running}
-- [ ] Windows starts the supervisor and `tell` at boot: a new Windows task on his PC, so it is his (coordinator 54, 22 Nov: persistent config on his machine)
+- [ ] Windows starts the supervisor and `tell` at boot: a new Windows task on his PC (his yes in chat, Sun 22 Nov 09:5x: "Yes, add it")
       {id: paper-supervisor-windows; files: desk/supervisor.py, tests/unit/test_supervisor.py;
-      after: paper-supervised;
-      waits: operator}
+      after: paper-supervised}
 - [x] The running process always on main's latest code, and a money-path change reaching
       it only at a safe point, never mid-send (OPS-05, OPS-16) (#752: the supervisor pulls main fast-forward only between runs with every job's lock held; a failed pull is a receipt and the old code runs on; remains: Windows starting the supervisor)
       {id: paper-on-main; files: desk/supervisor.py, tests/unit/test_supervisor.py}
@@ -863,6 +900,9 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         run in parallel: a planted edge passes; five hundred noise cells pass at about the
         stated rate; a power curve at three effect sizes; a broken copy caught; each defect
         of the old desk's rung audit kept as a case that must fail
+        Decision e: no dead rungs; dsr merges into deflated, placebo into shuffle, bootstrap into ci, sample into rung
+        1's trade minimum, benchmark into market; wire: each on verdict.judge's path; gate: a ladder test fails when
+        any lab/rung_*.py is off that path (rungs_built equals the map)
         {id: rungs-each-rung; files: lab/rung_*.py, tests/unit/test_lab_rung_*.py; after: rungs-rung-map}
   - [ ] L14 one clustered set of trials for the deflated Sharpe, its spread measured
         {id: rungs-clustered-trials; files: lab/trials.py, lab/rung_dsr.py, tests/unit/test_lab_trials_clustered.py; after: rungs-rung-map}
@@ -871,6 +911,32 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
   - [ ] L16 the gate: the runner runs the catalogue 24x7, each change re-running only its
         own specs, each set's table published with "rungs built: n of 11"
         {id: rungs-gate; files: lab/ladder_sets.py, lab/ladder_pool.py, tests/unit/test_lab_ladder_pool.py; after: rungs-blind-review}
+  - [ ] L17 A PASS CAN EXIST: `verdict.UNRUN` names plateau on every cell and `goes()` needs no rung unrun, so
+        no cell could ever go forward (blind review 22 Nov 09:2x). Plateau judged on each rule's B5 variants
+        (the centre of a plateau, canon B6), so a cell with a real edge can pass; a planted edge goes forward
+        A rule with no settings is declared NOT APPLICABLE for plateau, reviewed, never UNRUN by default (decision a);
+        wire: verdict.judge on every cell; gate: a planted edge goes forward and a no-settings rule is not blocked
+        {id: rungs-plateau-wired; files: lab/plateau.py, lab/verdict.py, tests/unit/test_lab_plateau.py, tests/unit/test_lab_verdict.py}
+  - [ ] L18 TRIALS COUNTED HONESTLY: `trials.family` counts every line ever entered and never shrinks (3,435 per
+        rule against ~1,017 judged), luck then needs t>=4.6 and no line reaches it (highest 4.36). The family is
+        the set's own lines, clustered (L14) and passed into `deflated.read`; a known-answer case pins both bars
+        One correction, not two (decision b): the deflated Sharpe on clustered effective trials is the gate, the
+        Bonferroni luck rung is report-only, and a rule is also judged on its pooled basket of lines;
+        wire: verdict.judge and the set runner; gate: a known-answer case pins the effective trial count and both bars
+        {id: rungs-trials-live; files: lab/trials.py, lab/deflated.py, tests/unit/test_lab_trials.py, tests/unit/test_lab_deflated.py; after: rungs-clustered-trials}
+  - [ ] L19 ONE VERDICT RULE: the eased scorecard (`verdict.scorecard`, MAX_WEAK) is built but never called, so one
+        WEAK kills a cell; it is wired as the one answer or deleted, and regime's 30 trades in each half is
+        proven fair by a power case (a t=3 edge over 60 trades)
+        Hard gates pre-registered before a run (costs, deflated Sharpe, out-of-sample folds, shuffle) must PASS; regime,
+        market and stress are scored with MAX_WEAK; "lowest of NAMED" is deleted (decision c); wire: verdict.judge;
+        gate: one WEAK soft rung no longer kills a cell, one failed hard gate always does
+        {id: rungs-scorecard; files: lab/verdict.py, lab/rung_regimes.py, tests/unit/test_lab_verdict.py, tests/unit/test_lab_rung_regimes.py; after: rungs-plateau-wired}
+  - [ ] L20 FAULTS ARE NOT ANSWERS: 6,788 lines read FAULT at market (SPY has no bar on a day, e.g. 2022-09-28) and
+        ~5,300 at folds (no pounds-per-USD rate): each rung reads its missing day from the one store's calendar and
+        the rate table, and a fault count over 1% of a set stops its table being published
+        Faults are fixed at entry, never in a rung (decision d, the data cards and one door for prices); wire: the
+        set runner's pre-flight; gate: a set whose inputs have gaps refuses to start
+        {id: rungs-faults-not-answers; files: lab/market.py, lab/folds.py, tests/unit/test_lab_market.py, tests/unit/test_lab_folds.py; after: rungs-rung-map}
 - [ ] **STRATEGIES AS DATA (his goal: 1,000+ strategies over 1,000+ tickers):**
   - [ ] B1 building blocks written once, each known-answer tested: indicators, entries,
         exits, stops, filters (regime filters among them), sizing. Built: every block has its
