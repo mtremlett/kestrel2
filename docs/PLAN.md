@@ -292,6 +292,9 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       minutes, 7 days, as plain code that spends no tokens; green means no action. Only red wakes a model,
       cheapest first: Haiku reads the fault and names its kind, Sonnet fixes a kind already seen, Opus only a
       new kind. Every hour a Telegram table: both databases x every span (1m to 1wk), % fresh, faults, gaps.
+      And an alarm that tells only of change (his 22 Nov ~10:00): the first red check sends one Telegram
+      naming the database, span, line and why; while red, one reminder every 30 minutes; the first green
+      check after it sends one "back to green, red for <minutes>" and the alarm falls silent
       The golden lines are always green or the table says why: SPY and QQQ, with VUAG (LSE) standing in for SPY
       and IITU (LSE) for QQQ, in both databases at every span (measured 09:5x: all four present, daily and
       five-minute fresh, other spans stale like the rest; VUAG has no 15m, 30m, 1m or 4h). Daily bars are read
