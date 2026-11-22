@@ -15,7 +15,8 @@ from pathlib import Path
 
 import desk
 from desk.strategy import STRATEGIES, VARIANTS, Rule
-from lab.spec import Spec
+from lab import variants
+from lab.spec import Spec, SpecRule
 
 DESK = Path(desk.__file__).parent  #: the folder of eponymous files
 CATALOGUE = Path(__file__).parent / "catalogue.toml"  #: the spec book
@@ -50,8 +51,25 @@ def rules(folder: Path | None = None) -> dict[str, type[Rule]]:
 
 
 def rule(name: str, folder: Path | None = None) -> type[Rule]:
-    """The class of the rule of that name; a name the book does not know is refused."""
+    """The class of the rule of that name: a book rule, or a catalogue variant by its name
+    (`<row>[<place>.<param>=<v>,...]`), a `SpecRule` on that variant's spec; any other name
+    is refused."""
     book = rules(folder)
-    if name not in book:
-        raise ValueError(f"no strategy is called {name!r}")
-    return book[name]
+    if name in book:
+        return book[name]
+    if "[" in name:
+        try:
+            return _variant(variants.find(specs(folder=folder), name))
+        except ValueError as error:
+            raise ValueError(f"no strategy is called {name!r}: {error}") from error
+    raise ValueError(f"no strategy is called {name!r}")
+
+
+def _variant(spec: Spec) -> type[Rule]:
+    """A rule class that makes the spec's rule with no arguments, as every book rule does."""
+
+    class VariantRule(SpecRule):
+        def __init__(self) -> None:
+            super().__init__(spec)
+
+    return VariantRule

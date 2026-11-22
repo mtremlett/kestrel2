@@ -12,9 +12,10 @@ import pytest
 import desk
 from desk.lines import LINES
 from desk.strategy import STRATEGIES, VARIANTS
-from lab import rulebook
+from lab import rulebook, variants
 from lab.cell import Cell
 from lab.rulebook import CATALOGUE
+from lab.spec import SpecRule
 
 PLANTED = """
 from desk.strategy import STRATEGIES
@@ -40,6 +41,10 @@ def test_the_book_has_the_five_and_a_planted_files_rules_and_refuses_the_unknown
     assert rulebook.rule("planted_rule", tmp_path) is STRATEGIES["breakout_20_10"]
     with pytest.raises(ValueError, match="no strategy is called 'best_ever'"):
         rulebook.rule("best_ever", tmp_path)
+    named = next(v.spec.name for v in variants.family(rulebook.specs()))
+    assert isinstance(rulebook.rule(named)(), SpecRule)  #: a variant's name is a rule, made bare
+    with pytest.raises(ValueError, match=r"no strategy is called 'zweig_breadth_thrust\[x=1\]'"):
+        rulebook.rule("zweig_breadth_thrust[x=1]")
     monkeypatch.setattr(rulebook, "DESK", tmp_path)
     line, day = LINES[0], date(2026, 1, 5)
     assert Cell("planted_rule", line, day, day).strategy == "planted_rule"
