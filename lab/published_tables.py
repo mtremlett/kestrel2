@@ -7,13 +7,13 @@ StockCharts' ChartSchool, whose spreadsheets give what each is worked from exact
 answers row by row (`INDICATORS`), at the tables' own lengths of 10, 20 and 14 days: the
 desk's parts are one piece of code at any length. Held by name: the moving average, the
 deviation of Bollinger's bands, the breakout's highest high and lowest low, and the RSI
-`strategy.rsi` makes of the averages below. Held as the rule's own lines work them, the rule
+`strategy.rsi` makes of the averages below, and the band line `strategy.lower_band` draws two
+deviations under the average. Held as the rule's own lines work them, the rule
 shown the table's days and its smoothing read after each: the RSI's gains and losses, and
 the true range and its average, from prices alone. No rule is proven while one of them
 gives another number. The tables show a rule only days on which it holds nothing, and none
-has a day whose own low is its lowest of 14. What a rule's own line works and does not keep
-(a band's two deviations from its average) and Supertrend's carried band, which no table
-here prints, are left to the known answers of `lab/published.py` and the strategies' contract test.
+has a day whose own low is its lowest of 14. Supertrend's carried band, which no table here
+prints, is left to the known answers of `lab/published.py` and the strategies' contract test.
 """
 
 from __future__ import annotations
@@ -110,10 +110,16 @@ INDICATORS: Mapping[str, Table] = {
             "Standard Deviation: 1.2920 1.4521 1.6864 1.7717 1.9021 2.0199 2.0765 2.1766 2.2419 "
             "2.2024 2.1922 2.0218 2.0094 1.9951 1.9360 1.7601 1.6828 1.7791 1.7041 1.6420 1.6451 "
             "1.6013 1.5492",
+            "Lower Band: 86.1240 86.1411 85.8669 85.8472 85.7037 85.6489 85.5934 85.5600 85.5974 "
+            "85.9775 86.2743 86.8204 86.8653 86.9150 87.1168 87.6331 87.8256 87.5622 87.7595 "
+            "87.9663 87.9520 87.9639 87.9519",
         ),
         lambda given: {
             "Middle Band": [w.mean() for w in _windows(20, given["Price"])],
             "Standard Deviation": [w.deviation() for w in _windows(20, given["Price"])],
+            "Lower Band": [
+                strategy.lower_band(w.mean(), w.deviation()) for w in _windows(20, given["Price"])
+            ],
         },
     ),
     "gains and losses under the RSI": Table(
