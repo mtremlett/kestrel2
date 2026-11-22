@@ -105,11 +105,11 @@ def _declared(
         return judged
     modules = ", ".join(name.rpartition(".")[2] for name in waiting)
     unrun = judged["unrun"] | ({"unwired": f"{UNWIRED}: {modules}"} if waiting else {})
-    rungs = dict(judged["rungs"])
+    rungs, added = dict(judged["rungs"]), {}
     for one in declared:
-        answer, reason = one.judge(pool.firsts.get(c) or verdict.ready(c, own, pounds, made))
-        rungs[one.name] = [answer.name, reason]
-    every = judged["every"] and all(a == Answer.PASS.name for a, _ in rungs.values())
+        added[one.name] = one.judge(pool.firsts.get(c) or verdict.ready(c, own, pounds, made))
+        rungs[one.name] = [added[one.name][0].name, added[one.name][1]]
+    every = judged["every"] and verdict.every(added)
     return judged | {"rungs": rungs, "unrun": unrun, "every": every}
 
 

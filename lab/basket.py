@@ -66,6 +66,6 @@ def row(
         "trades": len(basket.trades),
         "rungs": verdict.reported(rungs),
         "unrun": verdict.UNRUN,
-        "every": all(answer is Answer.PASS for answer, _ in rungs.values()),
+        "every": verdict.every(rungs),
         "answer": verdict.basket_answer(basket, stressed),
     }
