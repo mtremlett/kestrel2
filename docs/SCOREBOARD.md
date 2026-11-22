@@ -974,3 +974,12 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1676 RUNGS gate pinned: 8 rung modules off the verdict's path may only fall (0 of 8 wired this change). |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1680 RUNGS L20 step 1: market and folds rungs name their input gaps (calendar and rates) before a set runs; wiring next. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | data-door-bars: grid, sweep, batch, transfer, montecarlo, breadth read prices only from the history database; CSV reader deleted. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1658 DATA: the monitor turns red on a six-hour archive outage (DAT-08, DQ-03). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1689 DATA: HOVER alarm state persists across runs. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1712 DATA: collector +BLS +EIA; fast check green, collector tests pass. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1715 DATA: survivors' share measured for the two US lists, no box ticked (BT-09). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1728 DATA: collector sources 8 -> 9 (Alpha Vantage London sample). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1699 DATA: data-second-source step 1: register of sources, replaced newest bars named; no scene moved. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1736 DATA: data-monitor: span table and persisted alarm; box stays open. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1750 DATA: data-survivorship, measure and statement line built; not wired into verdicts. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1752 DATA: collector now 11 of the planned sources (+BEA). |

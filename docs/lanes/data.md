@@ -361,6 +361,18 @@ Options: 4 places, 6 places, significant figures; chose 4, the broker's own form
 
 Options: 60 sessions (too short, hides a lasting step the strategies still read), 400 sessions (coverage.NEED, what a rule needs before trading), all history (today's fault). Chose 400; lasting faults dated outside it are named only.
 
+### 2026-11-22 — alarm wired into the monitor; its state kept; sending left to the runner (DATA, #1658, #1689, #1736, data-monitor)
+Options: a new alarm path or read the existing `archive.alert` in `quality.monitor` (chosen: one home per rule, #1658). The hover alarm's state (since, last sent) is kept in hover_alarm.json in KESTREL2_DATA, replaced whole (#1689, #1736); the command prints SEND/ALARM only when it speaks (first red, 30-minute reminder, one green). A Telegram client in desk code was rejected: one client per external system, and the runner owns Telegram. Filed as R-DATA-68.
+
+### 2026-11-22 — the register of sources is a report, not a red (DATA, #1699, data-second-source)
+Options: (a) turn the monitor red when a newest bar came from a replacement; (b) report only (chosen). The archive filling a gap is the design working, so red would be noise.
+
+### 2026-11-22 — collector: BLS by GET, EIA starts with WTI, earnings CSV later (DATA, #1712, #1728, #1752, data-collector)
+BLS through its GET endpoint with the key (option: POST body; GET keeps one asking path). EIA limited to WTI spot first (a series is one tuple). Alpha Vantage earnings come as CSV, not JSON: options were bending the one reader or a separate source kind; took the separate kind, later card (smallest green step; his 13 Nov ruling to take the recommended). BEA real GDP quarterly change added with its own key.
+
+### 2026-11-22 — survivorship measured and stated, not full point-in-time lists (DATA, #1715, #1750, data-survivorship)
+`Members.survived` is a property of Members, not a new module (fewest lines); `members.bias` gives the verdict line ("279 of 500 members still listed, 221 left"). Full past lists for FTSE 350 were not chosen (no record exists). Box left unticked: FTSE 350 and funds owed, verdict wiring is RUNGS' (R-DATA-67).
+
 ## LADDER (until 13 November; since then GRID and RUNGS)
 
 ### 2026-11-13 — the ladder's unit of work: days only, the whole history, keyed by what it read
