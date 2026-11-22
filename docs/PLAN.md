@@ -230,7 +230,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       rate or index level is READ from market_history.db or market_live.db alone, through desk/bars.py (the lab
       through lab/history_bars.py). A scan of main on 22 Nov found readers of other stores: the grid, sweep, batch,
       transfer, montecarlo and the research refresh read the `grid/store` CSV files (lab/universe_parts.py:63
-      `store.read`); lab/slippage.py:104 reads `daily/*.csv` (R-DATA-30); the pound comes from `ladder.rates()`'s
+      `store.read`); lab/slippage.py:104 reads `daily/*.csv` (STATUS has asked this before); the pound comes from `ladder.rates()`'s
       default `archive.fetch` (lab/ladder.py:209, transfer.py:170), a `ladder/pound.jsonl` table (rung.py:272) and,
       on the desk, `rates.csv` then IBKR and the archive directly (desk/command_parts.py:36-64). The ladder's own
       sets already read the database. Card 1, bars: `universe_parts.read` reads `bars.daily` of the history
