@@ -10,7 +10,17 @@ from typing import Any
 import pytest
 
 from desk.lines import LINES, Line
-from lab import history_bars, intraday, ladder, ladder_sets, members, verdict
+from lab import (
+    history_bars,
+    intraday,
+    ladder,
+    ladder_sets,
+    members,
+    rulebook,
+    trials,
+    variants,
+    verdict,
+)
 from lab.ladder import END, START
 from lab.members import Change, Record
 
@@ -129,7 +139,7 @@ def test_the_weather_is_written_beside_the_set_naming_its_three_layers(tmp_path:
     assert said.count("against trend's") == 3
 
 
-def test_the_door_takes_intraday_and_refuses_an_unknown_set(
+def test_the_door_takes_intraday_and_variants_and_refuses_an_unknown_set(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     monkeypatch.setattr(history_bars, "pounds", lambda _: {})
@@ -138,5 +148,13 @@ def test_the_door_takes_intraday_and_refuses_an_unknown_set(
     env = {"KESTREL2_DATA": str(tmp_path)}
     assert ladder_sets.main(env, ["intraday"]) == 0
     assert "SET INTRADAY: stub" in capsys.readouterr().out
+    made = variants.family(rulebook.specs())  #: every ranged row's variants, each a trial
+    assert len(made) > 12 and len({v.spec.name for v in made}) == len(made)
+    for _ in range(2):  #: entered again, counted once
+        assert ladder.door(env, ["variants"]) == 0  #: VAR's own results, never EPON's
+        said = capsys.readouterr().out
+        assert f"SET VAR: {len(made)} variants entered, {len(made)} trials" in said
+    register = tmp_path / "ladder" / "VAR.trials.jsonl"
+    assert trials.family(register, ladder_sets.VAR.question, "donchian_channel_breakout") == 12
     with pytest.raises(SystemExit, match="intraday"):
         ladder_sets.main(env, ["nonsense"])

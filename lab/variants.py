@@ -54,6 +54,11 @@ def variants(spec: Spec) -> tuple[Variant, ...]:
     return tuple(made)
 
 
+def family(book: Mapping[str, Spec]) -> tuple[Variant, ...]:
+    """Every variant of every ranged row of the book, row by row in the book's order."""
+    return tuple(made for spec in book.values() if spec.ranges for made in variants(spec))
+
+
 def find(specs: Mapping[str, Spec], name: str) -> Spec:
     """The variant of that name made again from its row, so a cell named by it can be run; a
     name no row's ranges make is refused."""

@@ -904,3 +904,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1520 R-RUNNER-206 part 1 intraday trend layer landed. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1523 R-RUNNER-356 VWAP reversion rule built. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1529 B5: Jegadeesh weekly reversal row ranged; variants still not run (needs R-RUNGS-33). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1527 B5: Zanger's row carries 3x3 variant ranges centred on its published setting (7 ranged rows). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1531 R-RUNNER-359 intraday opening-range and expansion layers built. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1530 B5: a variant's name resolves back to its spec (variants.find), the step the grid chain needs; scenes unchanged. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1532 R-RUNNER-357 round-trip cost and needed edge built. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1538 B5: Bollinger squeeze row carries 3x3 variant ranges, scenes unchanged. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1541 R-RUNNER-360 intraday volatility layer built. |

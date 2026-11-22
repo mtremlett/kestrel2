@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
 import pytest
 
 from desk.rollup import Candle
+from desk.store import Bar
+from lab import weather
 from lab import weather_intraday as wi
 
 
@@ -68,3 +70,70 @@ def test_opening_range_and_expansion_hand_worked_and_future_blind(
             assert list(fn(bars[: k + 1]).values()) == got[: k + 1]
         with pytest.raises(ValueError):
             fn(bars[::-1])
+
+
+def test_volatility_thirds_hand_worked_and_future_blind(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(wi, "MIN_SESSIONS", 2)
+    big, flat, mid = (100, 200, 100, 200), (100, 100, 100, 100), (100, 150, 100, 150)
+    # a bar's volatility needs 2 returns (bars 3, 4); sessions: big .75/.707, flat 0, mid .42/.39
+    bars = _bars(big, flat, flat, big, mid)
+    got = list(wi.volatility(bars).values())
+    w = ["warming"] * 2
+    # sessions 1-2 hold under 2 earlier; 3: 0 under [.75, 0]; 4: .75 over [.75, 0, 0] (2 of 3
+    # below); 5: .42 and .39 between 0 and .75
+    assert got == w * 4 + w + ["quiet"] * 2 + w + ["wild"] * 2 + w + ["normal"] * 2
+    for k in range(len(bars)):
+        assert list(wi.volatility(bars[: k + 1]).values()) == got[: k + 1]
+    with pytest.raises(ValueError):
+        wi.volatility(bars[::-1])
+
+
+def _day(day: date, px: Decimal | int) -> Bar:
+    return Bar(day, Decimal(px), Decimal(px), Decimal(px), Decimal(px), 1)
+
+
+def _planted() -> tuple[list[Bar], list[Candle], dict[datetime, str]]:
+    """Daily closes that alternate up/down by day; 12 sessions of 10 bars each, a bar rising
+    1% after a `good` bar and falling 1% after a `bad` one, whatever the day's label."""
+    daily = [_day(date(2024, 1, 1 + i), 10 + 10 * (i % 2)) for i in range(24)]
+    bars, labels = [], {}
+    for d in range(12):
+        px = Decimal(100)
+        for n in range(10):
+            t = datetime(2024, 1, 10 + d, 14, 30, tzinfo=UTC) + timedelta(minutes=5 * n)
+            bars.append(Candle(t, px, px, px, px, 1, "x"))
+            labels[t] = "good" if n % 2 == 0 else "bad"
+            px *= Decimal("1.01") if n % 2 == 0 else Decimal("0.99")
+    return daily, bars, labels
+
+
+def test_a_layer_wins_only_where_it_adds_to_the_daily_label(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(weather, "WINDOW", 2)
+    daily, bars, labels = _planted()
+    won = wi.against_prior(labels, "good", daily, bars, folds=2, trials=4)
+    assert won.wins and won.trials == 4 and won.trend == 0 and won.layer > Decimal("0.01")
+    # labelled by session instead of by bar, the layer says nothing of what follows
+    by_day = {t: "good" if t.day % 2 else "bad" for t in labels}
+    lost = wi.against_prior(by_day, "good", daily, bars, 2, 4)
+    assert abs(lost.layer) < Decimal("1e-9") and lost.layer - lost.trend < Decimal("1e-9")
+    with pytest.raises(ValueError):
+        wi.against_prior(labels, "absent", daily, bars, 2, 4)
+
+
+def test_the_prior_never_reads_the_sessions_own_daily_bar(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(weather, "WINDOW", 2)
+    daily, bars, _ = _planted()
+    first = bars[:10]  # the session of 10 January, whose own daily bar is the 10th
+    wild = [_day(b.day, b.close * 100) if b.day.day == 10 else b for b in daily]
+    assert (
+        wi.prior(wild, first)
+        == wi.prior(daily, first)
+        == dict.fromkeys(
+            (b.start for b in first),
+            "down",  # 9 January closed at 10, under its mean of 15
+        )
+    )
+    assert {wi.prior(daily[:1], first)[first[0].start]} == {"warming"}
+    assert [e.layer for e in wi.contest(daily, bars, 2)][:2] == ["trend", "opening range"]
