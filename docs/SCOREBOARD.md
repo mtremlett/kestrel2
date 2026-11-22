@@ -663,6 +663,8 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1562 grid-week: failure cause found (stale clone), week survives a raising pass. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1563 grid-week: pass log names its failure causes; restart waits on the runner. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1612 grid-week: stale .faults notes swept as phantom tickers, held() filter restored. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1683 grid-door-pound done; transfer study reads prices from the one door. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1700 R-RUNGS-34 rule half met (rulebook.rule makes a variant from its row), 1 test. |
 
 ### RUNGS
 
