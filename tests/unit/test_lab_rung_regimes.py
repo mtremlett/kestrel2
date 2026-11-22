@@ -108,8 +108,9 @@ def test_a_window_too_thin_holds_the_whole_at_thin_and_a_cut_is_two_windows() ->
 
 def test_known_answer_thirty_trades_a_window_worked_by_hand() -> None:
     #: first window: 15 gains of +2% and 15 of 0, mean 1%, spread 1% * sqrt(30/29), so t = sqrt(29)
-    #: = 5.385: PASS. second window: 15 of +1% and 15 of -1%, mean 0, t = 0: FAIL. A trade bought on
-    #: the cut day itself is the second window's: the whole is the least, FAIL
+    #: = 5.385: PASS. second window: 15 of +1% and 15 of -1%, mean 0, t = 0: short of T_PASS, so
+    #: DOUBT on the three bands (L19). A trade bought on the cut day itself is the second window's:
+    #: the whole is the least, DOUBT; a second window that LOST (the first's gains negated) FAILS
     def priced(gains: list[str], start: date) -> list[Priced]:
         days = [(start + timedelta(n),) * 2 for n in range(len(gains))]
         return [
@@ -125,5 +126,17 @@ def test_known_answer_thirty_trades_a_window_worked_by_hand() -> None:
     assert (done.first.answer, done.second.answer, done.answer) == (
         Answer.PASS,
         Answer.FAIL,
-        Answer.FAIL,
+        Answer.DOUBT,
     )
+    lost = priced(["-0.02", "0"] * 15, CUT)
+    assert rung_regimes.apart(KEY, [*won, *lost], CUT).answer is Answer.FAIL
+
+
+def test_power_case_a_real_edge_over_sixty_trades_is_never_failed_by_its_halves() -> None:
+    #: a t=3 edge over 60 trades is about 2.1 standard errors a half of 30: a coin toss to pass
+    #: both, so a half short of T_PASS is DOUBT (soft, MAX_WEAK), and only a half that lost fails
+    rng = random.Random(11)  # noqa: S311 - a repeatable test sample, not a secret
+    edge = 3 / 60**0.5
+    said = [rung_regimes.apart(KEY, _priced(rng, edge, 30, 30), CUT).answer for _ in range(300)]
+    #: recorded: about a third PASS, the rest DOUBT, no FAIL
+    assert said.count(Answer.FAIL) <= 3 and 0.15 <= said.count(Answer.PASS) / 300 <= 0.6, said

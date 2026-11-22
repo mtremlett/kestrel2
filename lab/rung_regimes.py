@@ -8,8 +8,11 @@ MIN_TRADES and its own T_PASS standard errors. A trade held across the cut belon
 window it was bought in.
 THE RULE: a rule passes only when BOTH windows pass. One strong window is not enough: an
 edge that earned in one stretch alone, and bled in the other, is a stretch's luck. Otherwise
-the answer is the first rung's least of the two, so a window too thin to say holds the whole
-at THIN and never fails it.
+the answer is the least of the two windows GRADED (`graded`, L19): a window of enough trades
+short of T_PASS is DOUBT, a FAIL only T_PASS standard errors below nothing, and a window too
+thin to say holds the whole at THIN. Thirty trades a half cannot prove a real edge in both
+(a t of 3 over 60 trades is about 2.1 a half), so only a half that lost fails the rung; the
+power case in its tests holds that fair, and the verdict scores this rung soft (MAX_WEAK).
 
 THE TAPE. It reads the tape of R-RUNNER-118 (`lab/tape.py`) through `cell.run`, and its result
 is keyed by that tape's key plus this module's code (`Key.rung`), so a rung edited prices
@@ -53,7 +56,7 @@ class Regimes:
     @property
     def answer(self) -> Answer:
         """The one rule over the two windows' answers."""
-        return decide(self.first.answer, self.second.answer)
+        return decide(graded(self.first), graded(self.second))
 
     @property
     def passed(self) -> bool:
@@ -64,6 +67,13 @@ class Regimes:
 def decide(first: Answer, second: Answer) -> Answer:
     """The rung's one rule: the least of the two windows' answers, so both must pass."""
     return min(first, second)
+
+
+def graded(window: Verdict) -> Answer:
+    """A window's answer on the three bands (`rung.band`): enough trades short of T_PASS is a
+    DOUBT, and only a window T_PASS standard errors below nothing FAILS."""
+    failed = window.answer is Answer.FAIL
+    return rung.band(window.t) if failed and window.t is not None else window.answer
 
 
 def judge(
@@ -115,7 +125,7 @@ class Weathered:
     def answer(self) -> Answer:
         """The same rule over the two states: both must pass. A state the rule never traded in
         is too thin to say (the weather's fault, not the rule's), never a FAULT."""
-        return decide(*(v.answer if v.trades else Answer.THIN for v in (self.up, self.down)))
+        return decide(*(graded(v) if v.trades else Answer.THIN for v in (self.up, self.down)))
 
 
 def by_weather(
