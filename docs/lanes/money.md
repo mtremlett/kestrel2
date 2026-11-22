@@ -772,3 +772,13 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 ### 2026-11-22 - Decision chain written before the send (#1716, money-story)
 - Options: rewrite the chain file in place after the answer; wrap the send in a try/except (refused by canon A2); write a pending row first and append a second row on the answer (taken). `book.chains` gives the last row per order id.
 - money-connors7 held off MONEY and handed to RUNGS per his standing "always go with recommended"; no file of this change touched it.
+
+### 2026-11-22 - The chain file gains an `asked` column (#1777, money-story)
+- Options: tolerate old 8-column story.csv rows with a fallback (refused by canon A2); read only new files (taken). The chain file is per desk run and nothing live reads it but SimCity.
+
+### 2026-11-22 - Gate cap landed before its feed; Double 7's re-carded (#1796, money-small)
+- Options: feed `orders.gate` from `day._buy` now, which turns test_restop, test_running and test_running_tell red (their bars have volume 1; outside the claim); or land the gate cap alone (taken, the largest green step).
+- money-connors7: wait for R-RUNGS-10, or re-card in the RUNGS book (taken on his "always go with recommended", the runner's ruling); re-card keeps both lanes moving.
+
+### 2026-11-22 - Profit table scene is SimCity's trips scenario (#1805, money-story)
+- Options: a new unit scene file (adds test lines, and main has no margin); extend SimCity's existing trips scenario, which already runs every money-path part in order (taken). The census requires `book.attributed` to be run by it.
