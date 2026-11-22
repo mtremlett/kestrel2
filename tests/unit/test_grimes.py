@@ -8,7 +8,7 @@ from decimal import Decimal
 
 import pytest
 
-from desk.grimes import GRIMES, Chart, Mark, Trade
+from desk.grimes import GRIMES, Chart, Mark, Trade, diverged
 from desk.store import Bar
 from desk.strategy import Action, _run
 
@@ -158,3 +158,15 @@ def test_the_chart_confirms_a_swing_only_on_its_reversal() -> None:
     assert [p.price for p in chart.pivots][-1:] == [Decimal("95.6")]  #: under 2 ATRb: not yet
     chart.add(_bars([*rise, ("bar", 102.8, 103, 99.8, 100)])[-1])  #: 4.6 off it: confirmed
     assert [p.price for p in chart.pivots][-2:] == [Decimal("95.6"), Decimal("104.4")]
+
+
+def test_a_long_grind_keeps_every_pivot_on_a_kept_bar_and_div_never_raises() -> None:
+    grind: list[Leg] = [(112, 4), (104, 3), (108, 12), (103, 3)]
+    grind += [(103 + 0.8 * k, 1) if k % 5 < 2 else (103 + 0.8 * k - 0.7, 1) for k in range(320)]
+    chart = Chart()
+    for bar in _bars(grind):
+        if (mark := chart.add(bar)) is None:
+            continue
+        assert all(p.n >= chart.marks[0].n for p in chart.pivots)
+        for k in range(len(chart.pivots)):
+            diverged(chart, k, mark.n)  #: never "min() arg is an empty sequence"
