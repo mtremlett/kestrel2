@@ -4,8 +4,9 @@ a plateau reported, never a lone peak (canon B6).
 
 A row's ranges (`Spec.ranges`, written in the catalogue and held to each block's declaration
 by `Spec.parse`) each name one setting (its place and parameter) and the values to try,
-lowest first. The variants are every combination of the ranges, 3 values and 4 make 12, in
-the order of the ranges given, and the range's order is the plateau grid's (`lab.plateau`).
+lowest first; places joined by "+" share one setting, moved together. The variants are every
+combination of the ranges, 3 values and 4 make 12, in the order of the ranges given, and
+the range's order is the plateau grid's (`lab.plateau`).
 
 A variant is its row with other settings, so the row's known answers, which hold only at
 the row's own, are not asked of it. Its name carries its settings and so tells it apart as a
@@ -43,8 +44,9 @@ def variants(spec: Spec) -> tuple[Variant, ...]:
     made = []
     for setting in product(*spec.ranges.values()):
         params = {place: dict(spec.params[place]) for place in PLACES}
-        for (place, param), value in zip(spec.ranges, setting, strict=True):
-            params[place][param] = value
+        for (places, param), value in zip(spec.ranges, setting, strict=True):
+            for place in places.split("+"):  # a shared setting moves in every place it is
+                params[place][param] = value
         label = ",".join(
             f"{place}.{param}={v}" for (place, param), v in zip(spec.ranges, setting, strict=True)
         )

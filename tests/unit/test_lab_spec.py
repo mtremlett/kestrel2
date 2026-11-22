@@ -59,6 +59,7 @@ def test_a_good_row_is_a_frozen_spec_holding_its_parameters() -> None:
         (_row(cases=[{"bars": [[1, 1, 1]], "wants": []}]), "one wish for each"),
         (_row(cases=[{"bars": [[1, 1]], "wants": [0]}]), "[high, low, close]"),
         (_row(source=" "), "a name and a source"),
+        (_row(name="r[entry.n=3]"), "a variant's"),
     ],
 )
 def test_parse_refuses_each_bad_row_by_name(row: dict[str, Any], why: str) -> None:
