@@ -100,8 +100,8 @@ def test_every_strategy_on_every_ticker_is_kept_and_only_what_changed_is_run_aga
     assert (again.ran, again.kept, again.failed, again.undone) == (0, 2 * EACH, EACH, 0)
     _keep(root, BAE, lift=60)  # one ticker's bars mended: its cells alone are run again
     with database.writing(tmp_path / database.LIVE, Source.ARCHIVE) as opened:
-        held = [b.day for b in database.daily(tmp_path / database.LIVE, BOEING)]
-        opened.daily(BOEING, (), withdrawn=held)  # and another's cannot be read
+        gone = [b.day for b in database.daily(tmp_path / database.LIVE, BOEING)]
+        opened.daily(BOEING, (), withdrawn=gone)  # and another's cannot be read
     third = _pass(tmp_path)
     assert (third.ran, third.kept, third.failed, third.undone) == (EACH, 0, 2 * EACH, 0)
     _keep(root, BOEING)  # back as they were: found kept
