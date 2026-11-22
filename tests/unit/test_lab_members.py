@@ -129,3 +129,10 @@ def test_the_survivors_share_of_a_past_day_is_the_bias_a_study_of_todays_list_ca
     """On 1 January 2010 279 of the S&P 500's 500 were still members; today, all of them."""
     assert members.on("SP500", date(2010, 1, 1)).survived == 279 / 500
     assert members.on("SP500", members.LAST).survived == 1.0
+
+
+def test_the_bias_is_stated_as_a_line_a_verdict_can_carry() -> None:
+    """A verdict says how many of the day's members a study of today's list leaves out."""
+    assert members.bias("SP500", date(2010, 1, 1)) == (
+        "survivorship: SP500 on 2010-01-01: 279 of 500 members still listed, 221 left"
+    )

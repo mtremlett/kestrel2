@@ -11,7 +11,7 @@ import pytest
 from test_lab_luck import DAY
 from test_lab_rung import FREE, line_of
 
-from lab import cell, plateau, rulebook, rung, verdict
+from lab import cell, plateau, rulebook, rung, variants, verdict
 from lab.cell import Cell, Key, Trade
 from lab.plateau import Grid, Setting
 from lab.rung import Answer, Priced, Verdict
@@ -191,6 +191,16 @@ def test_the_rung_passes_a_setting_inside_a_plateau_and_stays_unrun_with_no_surf
     for ranged in ("donchian_channel_breakout", "donchian_channel_breakout[entry.n=40,exit.n=80]"):
         with pytest.raises(ValueError, match="never FIXED"):
             plateau.Fixed(ranged, book)  #: a ranged row, or one setting of it: a lone peak
+    rule = "donchian_channel_breakout"  #: built from the variants: a planted edge goes forward
+    firsts = {v.spec.name: _verdict(PASS, v.spec.name) for v in variants.variants(book[rule])}
+    edge, corner = (plateau.of(r, book, firsts) for r in (rule, f"{rule}[entry.n=40,exit.n=80]"))
+    assert isinstance(edge, plateau.Surface) and isinstance(corner, plateau.Surface)
+    assert (edge.own, corner.own, len(edge.tried)) == ((20, 20), (40, 80), 12)
+    assert [plateau.judged(s)[0] for s in (edge, corner)] == [Answer.PASS, Answer.FAIL]
+    assert plateau.of("breakout_20_10", book, {}) == plateau.Fixed("breakout_20_10", book)
+    for unmade in (f"{rule}[entry.n=41,exit.n=80]", "nosuch[entry.n=1]"):
+        with pytest.raises(ValueError, match="no variant is called"):
+            plateau.of(unmade, book, firsts)
     fixed = plateau.judged(plateau.Fixed("breakout_20_10", book))
     assert fixed[0] is Answer.PASS and fixed[1].startswith("NOT APPLICABLE: breakout_20_10")
     row: dict[str, object] = {"answer": "PASS"}

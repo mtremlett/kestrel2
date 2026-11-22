@@ -178,11 +178,11 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       2.5 times re-measured on the full universe; WWH, SHC and three windfalls settled by a
       second source; a home for the research store)
       {id: data-parked-fifth; files: lab/universe.py, tests/unit/test_lab_universe_parked.py}
-- [ ] **ONE DOOR FOR PRICES, bars** (his 22 Nov ~10:00, "paramount": every price is read from market_history.db or market_live.db alone): `lab/universe_parts.read` reads `bars.daily` of the history database,
+- [x] **ONE DOOR FOR PRICES, bars** (his 22 Nov ~10:00, "paramount": every price is read from market_history.db or market_live.db alone): `lab/universe_parts.read` reads `bars.daily` of the history database,
       keeping its rescale cut, never the `grid/store` CSV files (`store.read`, line 63), so the grid, sweep, batch,
       transfer, montecarlo and the research refresh read the database; wire: the research refresh and the grid
       job; gate: a contract test where a bar present only in a CSV is never read
-      Built (#1653): `universe_parts.read_db(path, line)` reads bars.daily of the history database; `read` still reads CSV. Remains: wire sweep, batch, transfer, montecarlo, the research refresh and the grid job to read_db, then delete read and the CSV path (and breadth).
+      Built (#1653, then one non-lane PR, 22 Nov): `universe_parts.read(path, line)` is the one reader (CSV `read` deleted, a line the database lacks raises LookupError); batch.stored, sweep (the grid job reads DATA/market_live.db's history beside it), transfer, montecarlo's grid jobs and breadth read it. store.read stays only in the CSV writer, its importer and headstart: data-door-writer deletes them.
       {id: data-door-bars; files: lab/universe_parts.py, tests/unit/test_lab_universe*.py}
 - [ ] One door, one writer: `universe.nightly` and the Stooq files write into the history database through
       `bars.writing`, never the CSV store; `store.read`, `faults`, `shelve` and the CSV half of `prepare` are
@@ -593,7 +593,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
 - [ ] Time and gaps: a time stop after the strategy's declared holding period; a gap that
       jumps the stop held against the loss limit; a hold limit and gap sizing for the
       leveraged lines (STP-11, STP-10, SIZ-09). Step 1 on main (#845): time stop in `strategy._run`, `orders.gap_loss`/`gapped`. Step 2 on main (#1449): the time stop ages from the book's fill date. Step 3 on main (#1504): a gapped stop halts buying (`day._stand_down`). Remains: each rule's hold limit from its own sell logic (his ruling Sat 21 Nov 21:33; moves golden days, strategy files outside this claim, B5), then `orders.gapped` at `book.collect`.
-      {id: money-time-gaps; waits: operator; files: desk/day.py, desk/orders.py, desk/strategy.py,
+      {id: money-time-gaps; files: desk/day.py, desk/orders.py, desk/strategy.py,
       tests/unit/test_day*.py, tests/unit/test_orders*.py, tests/unit/test_strategy*.py,
       desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml; after: money-limits}
       (coordinator 54, 22 Nov: settled: his yes to the golden days moving is recorded in STATUS, R-MONEY-62)
@@ -615,7 +615,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
 - [ ] Money honestly counted: interest on idle cash, with the risk-free rate in every
       Sharpe; currency gains and losses on dollar holdings reported apart from trading
       profit; a fall from the book's highest point alerted on paper (BIC-03, BIC-04, BIC-05). BIC-05 on main (#1516); BIC-04 on main for closed trades (#1542, #1569) and open holdings (#1596); BIC-03 interest told daily at `RISK_FREE` beside profit (#1560, #1584). Remains: interest inside the day's profit (moves golden days, B5); `RISK_FREE` in every Sharpe (lab, R-MONEY-65); currency and interest in the saved record (R-MONEY-66)
-      {id: money-honest; waits: operator; files: desk/day.py, desk/book.py, tests/unit/test_day*.py,
+      {id: money-honest; files: desk/day.py, desk/book.py, tests/unit/test_day*.py,
       tests/unit/test_book*.py, desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml;
       after: money-fills}
 - [x] Currency and interest kept in the day's saved record, beside profit, so a later day
@@ -764,7 +764,7 @@ his PC with the desk's own client id (222), never 4001.
       trading" by 09:30 UK; urgency levels without storms; one messenger with a delivery
       record, the merge line and the runner's alerts behind the same door (MSG-02, MSG-03,
       MSG-04, MSG-09, MSG-11)
-      Remains: hourly P&L (#471, #492), the kill and halt line (#502) and the email fallback (#484, wired into the step in #1309; the runner must hand SMTP_*, a preflight line is owed) landed; desk/messenger.py is at its 400-line limit and desk/ has 92 of 10,500 lines left, so the new messages are a fold inside the desk/ ceiling: shrink or merge messenger code first, as split-desk-keeper did, never a ceiling raise (coordinator 54, 22 Nov: re-carded so it is not blocked; a raise would be his). The daily messages end the last-day lines with the verdict and streak (#1636, MSG-03); still owed: the 05:40 start-of-day card, "the desk is not trading" by 09:30 UK, the SMTP preflight line, a streak-above-0 test (shrink messenger.py, 411 lines, first). The evening message now names each lost stop (#805); messenger split to 349 lines (#782)
+      Remains: hourly P&L (#471, #492), the kill and halt line (#502) and the email fallback (#484, wired into the step in #1309; the runner must hand SMTP_*, a preflight line is owed) landed; desk/messenger.py is at its 400-line limit and desk/ has 92 of 10,500 lines left, so the new messages are a fold inside the desk/ ceiling: shrink or merge messenger code first, as split-desk-keeper did, never a ceiling raise (coordinator 54, 22 Nov: re-carded so it is not blocked; a raise would be his). The daily messages end the last-day lines with the verdict and streak (#1636, MSG-03); still owed: the 05:40 start-of-day card, "the desk is not trading" by 09:30 UK, the SMTP preflight line (the streak shows as N of 10, #1665; the streak-above-0 test landed, #1675; messenger.py shrunk to 395 lines, #1698). The 05:40 card and 09:30 alarm need MORNING changed, which desk/running.py reads as "he is awake", so that card's claim adds desk/running.py, tests/unit/test_running.py, tests/unit/test_command.py (#1675). The evening message now names each lost stop (#805); messenger split to 349 lines (#782)
       {id: paper-cards; files: desk/messenger.py,
       tests/unit/test_messenger.py; after: paper-messages, paper-running}
 - [x] FIRST-LIGHT counted by the desk itself: ten consecutive clean days, and a day that
@@ -782,10 +782,10 @@ his PC with the desk's own client id (222), never 4001.
       {id: paper-extras; files: desk/messenger.py, tests/unit/test_messenger.py;
       after: paper-cards}
 
-- [ ] **ONE DOOR FOR PRICES, the command's pound** (his 22 Nov ~10:00, "paramount": every price is read from market_history.db or market_live.db alone): `command_parts.rates` asks `keeper.pound`, never
+- [x] **ONE DOOR FOR PRICES, the command's pound** (his 22 Nov ~10:00, "paramount": every price is read from market_history.db or market_live.db alone): `command_parts.rates` asks `keeper.pound`, never
       `rates.csv` first nor IBKR or the archive directly (desk/command_parts.py:36-64); conformance never falls back
       to `archive.fetch` (conformance_parts.py:70); wire: running and the command; gate: a test with the broker and
-      archive stubbed to fail, the rate still read from the database
+      archive stubbed to fail, the rate still read from the database (#1674; remains: `desk/command.py` still passes `broker=` to `rates` as an ignored parameter and its preflight text says "kept before"; a later card removes both and `pound.log`)
       {id: paper-door-pound; files: desk/command_parts.py, desk/conformance_parts.py, tests/unit/test_command*.py, tests/unit/test_conformance*.py}
 
 ## Phase 4 — the ladder
@@ -835,10 +835,10 @@ grid-tune and grid-key side by side; then grid-pass, grid-week, grid-declared, g
       LAD-13) {id: grid-declared; files: lab/sweep.py, tests/unit/test_lab_sweep.py}
 - [x] A full sweep within a weekend, its time measured (LAD-10). Remains: nothing; a cold transfer study took 17 min, the declared pass about 8 min, against 48 h {id: grid-weekend; files: *}
 
-- [ ] **ONE DOOR FOR PRICES, the transfer study's pound** (his 22 Nov ~10:00, "paramount": every price is read from market_history.db or market_live.db alone): `lab/transfer.py:170` passes
+- [x] **ONE DOOR FOR PRICES, the transfer study's pound** (his 22 Nov ~10:00, "paramount": every price is read from market_history.db or market_live.db alone): `lab/transfer.py:170` passes
       `history_bars.pounds(home)` to `ladder.rates`, never the archive; wire: the grid-transfer job; gate: its test
       with the archive stubbed to fail
-      {id: grid-door-pound; files: lab/transfer.py, tests/unit/test_lab_transfer*.py; after: rungs-door-pound}
+      Remains: nothing (#1683: `lab/transfer.py` takes the pound from `history_bars.pounds`) {id: grid-door-pound; files: lab/transfer.py, tests/unit/test_lab_transfer*.py; after: rungs-door-pound}
 
 ### The rungs lane's book
 
@@ -971,8 +971,8 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         Faults are fixed at entry, never in a rung (decision d, the data cards and one door for prices); wire: the
         set runner's pre-flight; gate: a set whose inputs have gaps refuses to start.
         Step 1 built (#1680): `market.gaps`, `folds.gaps`. Remains: wire them into the set runner's pre-flight
-        (lab/ladder.py) and the 1% publishing stop (lab/ladder_parts.py); needs a card claiming those and test_lab_ladder.py
-        {id: rungs-faults-not-answers; files: lab/market.py, lab/folds.py, tests/unit/test_lab_market.py, tests/unit/test_lab_folds.py; after: rungs-rung-map}
+        (lab/ladder.py) and the 1% publishing stop (lab/ladder_parts.py); claim widened to them (runner ops 92, 22 Nov)
+        {id: rungs-faults-not-answers; files: lab/ladder.py, lab/ladder_parts.py, lab/market.py, lab/folds.py, tests/unit/test_lab_ladder.py, tests/unit/test_lab_market.py, tests/unit/test_lab_folds.py; after: rungs-rung-map}
 - [ ] **STRATEGIES AS DATA (his goal: 1,000+ strategies over 1,000+ tickers):**
   - [ ] B1 building blocks written once, each known-answer tested: indicators, entries,
         exits, stops, filters (regime filters among them), sizing. Built: every block has its

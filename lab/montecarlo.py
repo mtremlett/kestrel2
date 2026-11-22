@@ -27,6 +27,7 @@ from functools import cache
 from pathlib import Path
 from typing import Any, BinaryIO
 
+from desk.bars import LIVE
 from desk.command import CAPITAL
 from desk.lines import LINES, Line
 from desk.orders import Settings
@@ -230,10 +231,10 @@ def _out(spread: Spread) -> list[str]:
 
 def priced(home: Path) -> Gains:
     """The gains of a job from its line's bars and the pound, both from the history database (the
-    one door for prices); a grid job's bars from the grid's own store, which made its trades."""
+    one door for prices); a grid job's bars as the grid reads them there (`batch.stored`)."""
     pounds = cache(lambda: history_bars.pounds(home))
     settings = Settings(CAPITAL)
-    stores = {"ladder": history_bars.reader(home), "grid": batch.stored(home / "grid" / "store")}
+    stores = {"ladder": history_bars.reader(home), "grid": batch.stored(home / LIVE)}
 
     def gains(job: Job) -> Sequence[Decimal] | str:
         bars = stores[job.source](job.cell.line)

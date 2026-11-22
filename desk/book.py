@@ -63,7 +63,6 @@ from desk.orders import (
 )
 from desk.risk import Standing
 from desk.store import Bar
-from desk.strategy import Decision
 
 #: what moved to desk.book_parts and desk.book_parts2 and is still given from here, for the callers
 __all__ = (
@@ -498,22 +497,35 @@ class Link:
     blocker: str  #: what stood in its way; empty when nothing did
 
 
-def chain(root: Path, d: Decision, bar: Bar, answer: Sent) -> Link:
-    """Keep the decision's chain on a line of its own, after those already kept."""
-    blocker = answer.blocker.name if answer.blocker else ""
-    made = Link(
-        answer.order_id, d.strategy, d.symbol, d.day, bar.day, bar.close, answer.filled, blocker
-    )
+SENDING = "SENDING"  #: a chain's blocker from before the send until its answer completes it
+
+
+def _keep(root: Path, made: Link) -> Link:
     with (root / STORY).open("a", newline="", encoding="utf-8") as out:
         csv.writer(out).writerow(astuple(made))
     return made
 
 
+def intend(root: Path, order_id: str, signal: tuple[str, str, date], bar: Bar) -> Link:
+    """Keep a decision's chain BEFORE its order is sent (B5), still unanswered (SENDING), so a
+    send that raises leaves the order traceable. The signal: strategy, symbol, session; a
+    stranger's sale has the strategy "stranger"."""
+    return _keep(root, Link(order_id, *signal, bar.day, bar.close, 0, SENDING))
+
+
+def chain(root: Path, made: Link, answer: Sent) -> Link:
+    """Complete a kept chain with the send path's answer, on a line after the first."""
+    blocker = answer.blocker.name if answer.blocker else ""
+    return _keep(root, replace(made, filled=answer.filled, blocker=blocker))
+
+
 def chains(root: Path) -> Iterator[Link]:
-    """The chains kept, oldest first, streamed; none if no decision has been kept."""
+    """The chains kept, one per order id, in the order first kept, each as last written."""
     if not (root / STORY).exists():
         return
+    last: dict[str, Link] = {}
     with (root / STORY).open(newline="", encoding="utf-8") as kept:
         for r in csv.reader(kept):
             sees, read = date.fromisoformat(r[3]), date.fromisoformat(r[4])
-            yield Link(r[0], r[1], r[2], sees, read, Decimal(r[5]), int(r[6]), r[7])
+            last[r[0]] = Link(r[0], r[1], r[2], sees, read, Decimal(r[5]), int(r[6]), r[7])
+    yield from last.values()

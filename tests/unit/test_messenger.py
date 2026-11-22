@@ -320,6 +320,19 @@ def test_a_daily_message_not_delivered_by_its_hour_is_told_once(tmp_path: Path) 
     assert messenger.watch(summer, sunny + timedelta(hours=15), post) == () and post.call_count == 6
 
 
+def test_the_desk_not_trading_is_told_once_from_half_past_nine_on_a_day_with_no_fill(
+    tmp_path: Path,
+) -> None:
+    post, half = _posts(), MON.replace(hour=9, minute=30)
+    assert messenger.idle(tmp_path, half - timedelta(seconds=1), post) is None
+    assert messenger.idle(tmp_path, _at("2026-11-14 10:00"), post) is None  # a Saturday
+    told = messenger.idle(tmp_path, half, post)
+    assert told and told.name == "idle morning 2026-11-16" and "not trading" in told.text
+    assert messenger.idle(tmp_path, half, post) == told and post.call_count == 1
+    book._record(tmp_path, [Fill("X1", "o", "VUSA", 2, Decimal(80), date(2026, 11, 16))])
+    assert messenger.idle(tmp_path, half.replace(hour=11), post) is None
+
+
 def test_his_weekly_login_reminder_is_delivered_once_each_sunday(tmp_path: Path) -> None:
     post, sunday = _posts(), _at("2026-11-15 08:00")
     assert messenger.remind(tmp_path, sunday - timedelta(seconds=1), post) is None
