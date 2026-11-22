@@ -34,3 +34,37 @@ def test_labels_are_hand_worked_per_session_and_future_blind(
         assert list(wi.trend(bars[: k + 1]).values()) == got[: k + 1]
     with pytest.raises(ValueError):
         wi.trend(bars[::-1])
+
+
+def _ohlc(*rows: tuple[int, int, int], day: int = 2) -> list[Candle]:
+    t0 = datetime(2024, 1, day, 14, 30, tzinfo=UTC)
+    return [
+        Candle(
+            t0 + timedelta(minutes=10 * n), Decimal(c), Decimal(h), Decimal(lo), Decimal(c), 1, "x"
+        )
+        for n, (h, lo, c) in enumerate(rows)
+    ]
+
+
+def test_opening_range_and_expansion_hand_worked_and_future_blind(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(wi, "MIN_BARS", 2)
+    # range of the first 30 min (3 bars): high 12, low 8; later closes 13, 10, 7
+    bars = _ohlc((10, 9, 9), (12, 10, 11), (11, 8, 9), (17, 12, 13), (11, 9, 10), (8, 6, 7))
+    bars += _ohlc((5, 4, 4), (5, 4, 5), (5, 4, 5), (5, 4, 5), (9, 4, 5), (5, 4, 5), day=3)
+    inside = list(wi.opening_range(bars).values())
+    assert (
+        inside == ["forming"] * 3 + ["above", "inside", "below"] + ["forming"] * 3 + ["inside"] * 3
+    )
+    # ranges 1,2,3,5,2,2: 3 vs mean 1.5 narrow, 5 vs mean 2 wide, then narrow; day 2 restarts:
+    # 1,1,1,1,5,1: warming x2, narrow x2, 5 vs mean 1 wide, 1 vs mean 1.8 narrow
+    wide = list(wi.expansion(bars).values())
+    assert wide == ["warming", "warming", "narrow", "wide", "narrow", "narrow"] + [
+        "warming", "warming", "narrow", "narrow", "wide", "narrow",
+    ]  # fmt: skip
+    for fn, got in ((wi.opening_range, inside), (wi.expansion, wide)):
+        for k in range(len(bars)):
+            assert list(fn(bars[: k + 1]).values()) == got[: k + 1]
+        with pytest.raises(ValueError):
+            fn(bars[::-1])
