@@ -893,3 +893,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1505 R-RUNNER-355 set INTRADAY built and reachable by the ladder's door. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1503 B5 Connors %b ranges, 5 rows ranged, two settings in one place; scenes unchanged. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1510 R-RUNNER-373 macro weather layer built, contested beside the others. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1513 R-RUNNER-200 part 1 of 4 built (momentum burst scalping rule, pure, fixture only). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1507 B5: a rule's variants count in its luck family (trials.family reads `rule[...]` names). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1521 B5: Turtle Soup's row carries 3x3 variant ranges (seven ranged rows). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1520 R-RUNNER-206 part 1 intraday trend layer landed. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1523 R-RUNNER-356 VWAP reversion rule built. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1529 B5: Jegadeesh weekly reversal row ranged; variants still not run (needs R-RUNGS-33). |
