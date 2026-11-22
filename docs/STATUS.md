@@ -136,7 +136,7 @@ money-restop waits on R-MONEY-18, R-MONEY-31 (the lost-stop list in `desk/messen
 
 ## PAPER
 
-Last updated: 21 November 2026 (folds #215 to #1097, #1260-#1428).
+Last updated: 22 November 2026 (folds #215 to #1097, #1260-#1428, #1631-#1639).
 
 ### Where it is
 
@@ -144,7 +144,7 @@ Built: supervisor pulls main at the safe point (#752), contract request carries 
 
 ### Next step
 
-Intraday round built (#1371, `running._intraday`, `Desk.rules` empty): before any rule joins `intraday.RULES` the intraday buy needs `_buy`'s held/ISA/hand-park refusals, exposure and correlation caps, one note per bar for a refused buy, and a step-level test (needs `desk/day.py` or a split of running.py; R-PAPER-36). R-MONEY-59: reword the `desk/watch.py` PARK text (the desk can park, `desk/handpark.py`). R-RUNNER-402 remains: a test that the desk step's timeout is at least its worst-case waits plus a margin (runner holds 900 s). R-RUNNER-253 (remains): stamp the rehearsal's own order ids on lines not held at the start (needs `desk/placing.py`, `desk/orders.py`; claim must widen); the held-line case is pinned by test (#1362). A gate on real orders outside the regular session in running/placing, if wanted (R-RUNNER-415 only barred the rehearsal). R-PAPER-28 remains: the runner hands the five SMTP_ settings to the step (outside this lane) and a preflight line for the mail door. R-PAPER-29. Drop the unused `ended` branch of `action(said, ended)` in `desk/ended.py` (needs a claim). Conformance now sizes from the store (#1393); the archive branch in `plan` can go (needs a claim). Round-again (#1406, `running._again`): an end-to-end test that its `-r1` orders go through `book.send` (R-RUNNER-395). A halt in force cancels working buys at the step (#1414) and the crash watch has a paper door (#1428). Live check that the gateway answers IDTL (R-RUNNER-278). paper-supervised, paper-cards, paper-extras, paper-backups wait: operator.
+Intraday round built (#1371, `running._intraday`, `Desk.rules` empty): before any rule joins `intraday.RULES` the intraday buy needs `_buy`'s held/ISA/hand-park refusals, exposure and correlation caps, one note per bar for a refused buy, and a step-level test (needs `desk/day.py` or a split of running.py; R-PAPER-36). R-MONEY-59: reword the `desk/watch.py` PARK text (the desk can park, `desk/handpark.py`). R-RUNNER-402 remains: a test that the desk step's timeout is at least its worst-case waits plus a margin (runner holds 900 s). R-RUNNER-253 (remains): stamp the rehearsal's own order ids on lines not held at the start (needs `desk/placing.py`, `desk/orders.py`; claim must widen); the held-line case is pinned by test (#1362). A gate on real orders outside the regular session in running/placing, if wanted (R-RUNNER-415 only barred the rehearsal). R-PAPER-28 remains: the runner hands the five SMTP_ settings to the step (outside this lane) and a preflight line for the mail door. R-PAPER-29. Drop the unused `ended` branch of `action(said, ended)` in `desk/ended.py` (needs a claim). Conformance now sizes from the store (#1393); the archive branch in `plan` can go (needs a claim). Round-again (#1406, `running._again`): an end-to-end test that its `-r1` orders go through `book.send` (R-RUNNER-395). A halt in force cancels working buys at the step (#1414) and the crash watch has a paper door (#1428). Live check that the gateway answers IDTL (R-RUNNER-278). Messages (#1636): verdict and streak shown; owed the 05:40 card, the "not trading" line by 09:30, the SMTP preflight line, a streak-above-0 test (messenger.py is 411 lines: shrink first). paper-supervised waits: 2026-11-29 (hours #1631, restart window #1639; kill drill and seven days remain). paper-cards, paper-extras, paper-backups wait: operator.
 
 ### Requests to MONEY
 
@@ -180,8 +180,8 @@ Intraday round built (#1371, `running._intraday`, `Desk.rules` empty): before an
 ### Found, not fixed
 
 - **Unseen at the real Gateway:** a part fill, a true stop trigger; the 08:05 London opening buy cancelled once by the desk's own 30 s wait (#437; now 120 s, #860). While the kill switch is on, go flat sells nothing (R-RUNNER-162).
-- **Supervisor:** Windows does not yet start it or `tell`; no kill drill on the real step; seven days not counted; the Gateway's 03:00 restart may show as bad receipts (`messenger.watch` has no caller).
-- **Other:** `tape.moved` in `desk/conformance_tape.py` is unused; `desk/messenger.py` is at 349 lines after the split (#782) but `desk/` has 92 of 10,500 lines left; a note over 24 h old is no longer re-sent; the rehearsal docstring says "no market trading" (stale); the pound's IBKR request asks for a share contract, so the archive fills in (R-PAPER-33); `keeper.saved` is stale for every venue if one is not refreshed.
+- **Supervisor:** Windows does not yet start it or `tell`; no kill drill on the real step; seven days not counted; `messenger.watch` has no caller.
+- **Other:** `tape.moved` in `desk/conformance_tape.py` is unused; `desk/messenger.py` is at 411 lines but `desk/` has 92 of 10,500 lines left; a note over 24 h old is no longer re-sent; the rehearsal docstring says "no market trading" (stale); the pound's IBKR request asks for a share contract, so the archive fills in (R-PAPER-33); `keeper.saved` is stale for every venue if one is not refreshed.
 
 ## DATA
 ### Where it is (17 November 2026, folds #217-#770)

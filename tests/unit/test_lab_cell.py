@@ -5,11 +5,13 @@ move, and only then."""
 
 from __future__ import annotations
 
+import ast
 from collections.abc import Mapping, Sequence
 from dataclasses import replace
 from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
+from typing import Any
 
 import pytest
 from test_strategy import GOLDEN, _jumpy, _walk
@@ -246,3 +248,20 @@ def test_a_rungs_key_ignores_the_modules_that_run_it_and_moves_with_those_that_j
         assert cell.rungs(tmp_path)["lab.ladder"] == before, runner
     _tree(tmp_path, {"lab/cost.py": "C = 2"})
     assert cell.rungs(tmp_path)["lab.ladder"] != before, "a judge changed"
+
+
+def test_the_code_versions_read_each_file_once(monkeypatch: pytest.MonkeyPatch) -> None:
+    """R-GRID-7: loading took 9.4 minutes on a busy PC, as each rung's version parsed the lab again
+    (5,822 parses of about 80 files). The versions are unchanged; each file is parsed once."""
+    parsed: list[str] = []
+    real = ast.parse
+
+    def counting(source: str | bytes, filename: str = "<unknown>", *more: Any, **named: Any) -> Any:
+        parsed.extend(
+            [filename] if filename.endswith(".py") else []
+        )  # pytest's own reports parse too
+        return real(source, filename, *more, **named)
+
+    monkeypatch.setattr(ast, "parse", counting)
+    assert cell.rungs() == cell.RUNGS
+    assert len(parsed) == len(set(parsed)), f"{len(parsed)} parses of {len(set(parsed))} files"

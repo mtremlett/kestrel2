@@ -16,7 +16,7 @@ from datetime import UTC, date, datetime, time, timedelta
 from functools import partial
 from pathlib import Path
 
-from desk import backfill, bars, coverage, history_write, keeper, venues
+from desk import archive, backfill, bars, coverage, history_write, keeper, venues
 from desk.bars import Source
 from desk.lines import LINES, Line
 from desk.spans import EPOCH, FIVE
@@ -204,6 +204,7 @@ def monitor(
     red += [why for line in every for why in volumes(path, line, today)]
     red += [why for line in every for why in basis(path, line)]
     red += disk(path.parent)
+    red += [stale] if (stale := archive.alert(path.parent, now)) else []
     score, within = covered(path, every, now)
     if not within:
         red.append(f"parked lines exceed {coverage.PARKED_CAP:.0%} of the lines")
