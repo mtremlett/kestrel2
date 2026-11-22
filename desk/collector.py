@@ -4,8 +4,8 @@ what they say before any use is made of it, because history a free tier does not
 be bought back (BIC-06, DAT-01). Four kinds of fact land in the one store (the long database
 of desk.bars): a PRICE second opinion on each US line's last session (Massive, Tiingo; EODHD one
 London line a day), MACRO series (FRED, BLS, BEA, EIA), EARNINGS dates (Finnhub) and NEWS with
-the moment each was published (Finnhub, Marketaux, GNews). Every answer is also kept raw and timestamped,
-under its source and subject.
+the moment each was published (Finnhub, Marketaux, GNews). Every answer is also kept raw and
+timestamped, under its source and subject.
 
 A key is read from the environment as <NAME>_API_KEY and goes into an address and nowhere
 else: nothing prints or stores an address. A source with no key is skipped, saying which; one
