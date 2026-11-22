@@ -169,6 +169,15 @@ def test_a_drive_with_under_a_tenth_free_turns_the_monitor_red(tmp_path: Path, m
         assert ("disk: 5% free" in said) is red
 
 
+def test_an_archive_refusing_for_six_hours_turns_the_monitor_red(tmp_path: Path) -> None:
+    path = seeded(tmp_path, set())
+    state = tmp_path / "archive.json"
+    for since, red in ((NOW - timedelta(hours=7), True), (NOW - timedelta(hours=1), False)):
+        state.write_text(f'{{"refusing_since": "{since.isoformat()}"}}', "utf-8")
+        said = quality.monitor(path, [SPY], refuse, refuse, NOW)
+        assert ("the price archive has refused every ask since" in said) is red
+
+
 def _minutes(day: date, price: Decimal) -> list[Timed]:
     """Ten one-minute bars from the session's open."""
     open_ = venues.hours(SPY.venue, day).open
