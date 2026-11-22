@@ -21,6 +21,7 @@ from desk import audit, bars
 from desk.bars import Five, Source
 from desk.bars_form import form
 from desk.lines import LINES, Line
+from desk.spans import Timed
 from desk.store import Bar, Refused
 
 US, UK = Line("BA", "US", "USD", 1), Line("BA", "LSE", "GBP", 1)  #: one symbol, two companies
@@ -328,6 +329,19 @@ def test_a_five_minute_bar_enters_through_the_checks_the_daily_store_makes() -> 
     kept, faults = bars.checked(line, given[::-1])
     assert kept == good
     assert faults == sorted([*odd.values(), "2026-11-13 12:35 given 2 ways; none kept"])
+
+
+def test_a_one_minute_bar_meets_the_same_checks_as_a_five_minute_one() -> None:
+    one = [
+        Timed(
+            "1m", NOON + timedelta(minutes=m), Decimal(10), Decimal(11), Decimal(9), Decimal(10), 5
+        )
+        for m in (0, 1)
+    ]
+    wrong = replace(one[1], high=Decimal(8))
+    kept, faults = bars.checked(LINES[0], [*one[:1], wrong])
+    assert (kept, len(faults)) == (one[:1], 1)
+    assert bars.checked(LINES[0], one) == (one, [])
 
 
 def test_a_wrong_unit_is_not_kept_and_any_other_far_move_is_kept_as_a_fault() -> None:
