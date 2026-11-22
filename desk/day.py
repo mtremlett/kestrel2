@@ -236,20 +236,24 @@ def _currency(
     root: Path, archive: Mapping[Line, Sequence[Bar]], day: date, tell: book.Tell | None
 ) -> None:
     """BIC-04: what the closed trades so far owe to the currency's move, told apart from what
-    they made by trading; told only when there is some."""
+    they made by trading, and what the open holdings owe it; told only when there is some."""
     ledger, lines = book.fills(root), tuple(archive)
     kept, currency = book.rates_kept(root), {line.symbol: line.currency for line in lines}
-    if tell is None or not any(f.quantity < 0 for f in ledger):
-        return  #: no trade has closed
+    if tell is None or not ledger:
+        return  #: nothing has traded
     if any((f.day, currency.get(f.symbol)) not in kept for f in ledger):
         return  #: a fill whose day's rate was never kept cannot be told apart
     trips = book.round_trips(root, lines)
     gain = book.currency_gain(root, lines, trips)
-    if tell is not None and gain:
+    last = {line.symbol: bars[-1].close for line, bars in archive.items()}
+    today = all((day, money) in kept for money in set(currency.values()))
+    held = book.open_currency_gain(root, lines, last, day) if today else 0
+    if gain or held:
         trading = sum((t.gross for t in trips), Decimal(0)) - gain
         tell(
             f"currency {day}",
-            f"CURRENCY: £{gain} of the gross is the currency, £{trading} trading.",
+            f"CURRENCY: £{gain} of the gross is the currency, £{trading} trading; "
+            f"£{held:.2f} on open holdings.",
         )
 
 

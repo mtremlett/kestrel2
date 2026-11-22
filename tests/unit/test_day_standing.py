@@ -143,7 +143,10 @@ def test_the_currency_apart_from_trading_is_told_once_a_trade_has_closed(tmp_pat
                 tmp_path, broker, Order("o-2", dollar, 10, *map(Decimal, (50, 0.8, 45))), ROOM
             )
     day._currency(tmp_path, {dollar: BARS[A]}, TUE, lambda n, w: told.append((n, w)))
-    assert told == []
+    assert [n for n, _ in told] == ["currency 2025-11-11"] and "£-25.50 on open holdings" in told[
+        0
+    ][1]
+    told.clear()
     book.send(tmp_path, broker, orders.Sale("s-2", dollar, 10), ROOM)
     day._currency(tmp_path, {dollar: BARS[A]}, TUE, lambda n, w: told.append((n, w)))
     assert [n for n, _ in told] == ["currency 2025-11-11"] and "£-25" in told[0][1]
