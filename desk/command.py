@@ -273,7 +273,8 @@ def rehearse(
         frozenset(o.broker_id for o in before.orders),
     )
     door = paper.Door(paper.DESK, found)  #: the account found is not the rehearsal's to see
-    desk = replace(_desk(root / REHEARSALS / f"{now:%Y%m%dT%H%M%S}", post, root.parent), door=door)
+    desk = _desk(root / REHEARSALS / f"{now:%Y%m%dT%H%M%S}", post, root.parent)
+    desk = replace(desk, door=door, zoo=(root / ZOO_ON).exists())  #: the desk's switch, rehearsed
     failed = _live(desk, moments, clock)
     left = placing.Paper(listing.read(LINES, door), desk.root, lambda: now, door).cancel()
     if wrong := _amiss(desk, on, left, found.changes(before, paper.whole(door))):
