@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import replace
 from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -10,7 +11,7 @@ from pathlib import Path
 import pytest
 
 from desk import book, day, day_money, intraday, orders, strategy
-from desk.broker import Pretend
+from desk.broker import Pretend, Report
 from desk.halt import Blocker, Stopped
 from desk.lines import LINES, YARDSTICK, Line
 from desk.orders import Charges, Order, Settings
@@ -226,15 +227,12 @@ def test_the_daily_zoo_buys_one_share_a_rule_only_when_on_and_yields_the_desks_l
         n.startswith(orders.ZOO) for n in intraday.ZOO_DAILY
     )
     wed, a, b = date(2025, 11, 12), YARDSTICK, next(ln for ln in LINES if ln.symbol == "ISF")
-    bars = {
-        ln: tuple(Bar(d, *map(Decimal, (50, 51, 49, 51)), 1) for d in (MON, TUE, wed))
-        for ln in (a, b)
-    }
-    broker, rates, upto = (
-        Pretend(bars, {}),
-        {"GBP": Decimal(1)},
-        lambda d: {a: bars[a][: d.day - 10]},
-    )
+    bars = {ln: tuple(replace(BARS[A][0], day=d) for d in (MON, TUE, wed)) for ln in (a, b)}
+    broker, rates = Pretend(bars, {}), {"GBP": Decimal(1)}
+
+    def upto(on: date) -> dict[Line, tuple[Bar, ...]]:  # the bars saved before the day
+        return {a: tuple(bar for bar in bars[a] if bar.day < on)}
+
     monkeypatch.setattr(strategy, "STRATEGIES", {})
     monkeypatch.setattr(intraday, "ZOO_DAILY", {"zoo_in": _In})
     monkeypatch.setattr(intraday, "zoo_lines", lambda: (a,))
@@ -254,7 +252,15 @@ def test_the_daily_zoo_buys_one_share_a_rule_only_when_on_and_yields_the_desks_l
     monkeypatch.setattr(orders, "HOLDINGS", 5)
     monkeypatch.setattr(strategy, "STRATEGIES", {"desk_in": _In})
     broker.open(wed)
+    sessions, place = list[date | None](), broker.place
+
+    def placed(order: Order | orders.Sale) -> Report:  # the session each order is dated
+        sessions.append(order.session)
+        return place(order)
+
+    monkeypatch.setattr(broker, "place", placed)
     day.trade(tmp_path, upto(wed), broker, ROOM, wed, rates, zoo=True)
+    assert set(sessions) == {TUE}  # dated the session it was decided on, as the paper door demands
     assert book.positions(tmp_path)["VUAG"] > 1  # the zoo yielded the line the desk's rule bought
     assert [f.order_id.split("-")[1] for f in book.fills(tmp_path) if f.day == wed] == [
         "zoo_in",

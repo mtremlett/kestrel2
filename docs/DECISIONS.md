@@ -2260,3 +2260,7 @@ Check: `tests/unit/test_day_standing.py::test_the_daily_zoo_buys_one_share_a_rul
 Guard proven (A7): it failed first (no `intraday.ZOO_DAILY`); then with the gate given the whole book
 ("1 holdings already, at most 1"), with no yield (1 share, not more), and with the desk's "sold this
 morning" reading the zoo's sales too (no VUAG bought).
+Blind review (CANON A6.6) found one blocking fault, fixed: the zoo's sales were dated today, and the
+paper door refuses an order not dated the session before (`placing.py`; the pretend broker never checks,
+failure pattern 15), so no zoo sale would ever have filled. Now dated as the desk's own; the test records
+every placed order's session and failed (dated Wednesday) before the fix.

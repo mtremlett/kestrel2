@@ -302,7 +302,7 @@ def _orders(
         answer = _answer(root, day, _send(root, broker, sale, settings, tell, None))
         book.chain(root, d, archive[due[d.symbol]][-1], answer)
         sent.append(answer)
-    sent += _yields(root, broker, settings, day, tell, decided, due)  #: none without the zoo
+    sent += _yields(root, broker, settings, tell, decided, due)  #: none without the zoo
     _alert(root, day, settings, tell)
     _peak_fall(root, day, tell)
     _currency(root, archive, day, tell)
@@ -449,7 +449,6 @@ def _yields(
     root: Path,
     broker: Broker,
     settings: Settings,
-    day: date,
     tell: book.Tell | None,
     decided: Sequence[Decision],
     due: Mapping[str, Line],
@@ -458,10 +457,11 @@ def _yields(
     holds is sold out of the zoo first, under the zoo rule's own id, so the desk's five trade as
     if the zoo were not there. No zoo holding: nothing is sent."""
     held, holders, sold = book.positions(root), _holders(root), list[book.Sent]()
-    for d in (d for d in decided if d.action is Action.BUY and d.symbol in held):
-        if (holder := holders.get(d.symbol, "")).startswith(ZOO):
-            zoo = order_id_of(Decision(holder, d.symbol, d.day, Action.SELL))
-            sale = Sale(zoo, due[d.symbol], held[d.symbol], session=day)
+    wanted = {d.symbol: d.day for d in decided if d.action is Action.BUY and d.symbol in held}
+    for symbol, on in wanted.items():  #: once a line, dated as the buy: the paper door's session
+        if (holder := holders.get(symbol, "")).startswith(ZOO):
+            zoo = order_id_of(Decision(holder, symbol, on, Action.SELL))
+            sale = Sale(zoo, due[symbol], held[symbol], session=on)
             sold.append(_send(root, broker, sale, settings, tell, None))
     return sold
 
@@ -490,7 +490,7 @@ def _zoo(
             if d.action is Action.HOLD:
                 continue
             if d.action is Action.SELL:
-                sale = Sale(order_id_of(d), line, held[symbol], session=day)
+                sale = Sale(order_id_of(d), line, held[symbol], session=d.day)
                 answer = _send(root, broker, sale, ZOO_ROOM, tell, None)
             else:
                 close = archive[line][-1].close, rates[line.currency]
