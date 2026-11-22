@@ -212,6 +212,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1504 gapped stop halts buying (STP-10); hold limits and money-honest remain. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1509 money-story: decision-time id chain kept per decision; story.csv. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1516 BIC-05 paper alert on a £1,500 fall from the highest point. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1542 money-honest step 1: currency gain apart from trading profit (BIC-04), SimCity-proven. |
 
 
 ### DATA

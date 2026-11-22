@@ -740,3 +740,9 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 ### 2026-11-22 - Peak-fall alert is a constant, alert only (#1516, BIC-05)
 - His words: "a £1,500 (Recommended)". `PEAK_FALL = 1500` in day.py from AG-05; told once per day's orders; buys still go; no WOULD-record in the halt file.
 
+
+### 2026-11-22 - Hold limit per rule, not one number (#1542, money-time-gaps)
+- His words: "Each rule's limit would come from how that rule already decides to sell, not from one number for all five.....i agree to this."
+- Options: (a) one hold limit for all five rules (declined by him); (b) a limit per rule from its own sell logic (taken).
+- Not done in #1542: it needs the strategy files, outside that claim; carded as R-MONEY-64. Golden days may move (B5): explain in DECISIONS.
+- Currency split (BIC-04) is measured at the sale's price, so trading profit is valued at the buy's rate.
