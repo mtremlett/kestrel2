@@ -219,6 +219,13 @@ def pool(
     return Pooled(tuple(year(y) for y in range(first, last + 1)))
 
 
+def gaps(cells: Sequence[tuple[Cell, Sequence[Bar]]], rates: Rates) -> tuple[str, ...]:
+    """Every gap in the pooled lines' inputs over each one's whole window (`market.gaps`), the
+    span every rung reads, not the folded years alone: a set with one refuses to start, never a
+    FAULT counted as an answer (L20)."""
+    return tuple(g for c, bars in cells for g in market.gaps(c.line, bars, rates, c.start, c.end))
+
+
 def _answer(trades: int, t: Decimal | None, mean: Decimal) -> Answer:
     if not trades:
         return Answer.FAULT
