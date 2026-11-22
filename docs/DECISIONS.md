@@ -2242,3 +2242,29 @@ Scope for Mon 23 Nov: the zoo's seven day-trading rules (5- and 15-minute bars) 
 the zoo's thirteen daily rules (they need the daily round, `desk/day.py`), and the Grimes AG catalogue
 (no AG rule exists as code yet). Guard proven (A7): with `zoo` defaulting to True the test failed at its
 first assert; with the one-share cap removed it failed (23 shares bought, not 1).
+
+## 22 Nov - a lane may fold away its own module (R-RUNGS-29), by his own words
+
+**His words** (chat seat 44, Sun 22 Nov ~18:1x), asked whether lanes may remove their own
+modules' lines from the manifest so the ladder's eight owed rungs can be wired and merged:
+"Yes / I trust your recommendations / Do what is required to speed up". Loosening a guard
+is his alone (CLAUDE.md); this is that yes.
+
+**What changed.** `tests/guards/test_lanes.py`: a lane branch may now also *remove* the
+manifest line of a module it owned on main (the merge-base manifest), and change that
+module's files and tests while folding it away. Nothing else moves: removing or adding
+another lane's line, editing any non-module line, and touching another lane's files are
+refused as before. Before, `rungs-each-rung` waited on this since 19 Nov (R-RUNGS-29:
+five of the eight owed rungs fold into another module), and MONEY rightly declined it
+(#1417): a guard no lane owns.
+
+**Driven (A7)**, on scratch clones whose main held the guard, each scenario on a
+`lane/rungs-...` branch, `test_a_lane_changes_only_its_own_files`:
+
+| scenario | old guard | new guard |
+|---|---|---|
+| fold own: remove `lab/rung_ci.py`'s line, delete it and its tests | FAIL | pass |
+| remove MONEY's `desk/orders.py` line | FAIL | FAIL |
+| add a planted `desk/zzz.py` line under MONEY's heading | FAIL | FAIL |
+| edit a non-module line (MONEY's heading) | FAIL | FAIL |
+| delete MONEY's `desk/orders.py` | FAIL | FAIL |
