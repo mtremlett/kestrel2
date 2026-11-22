@@ -13,8 +13,9 @@ import pytest
 from numpy.typing import NDArray
 from test_lab_deflated import _bell
 
-from lab import deflated, luck, trials
+from lab import deflated, luck, rung_dsr, trials
 from lab.cell import Cell
+from lab.rung import Answer
 
 DAYS = 500
 Rows = NDArray[np.float64]
@@ -208,6 +209,14 @@ def test_the_deflated_bar_is_set_by_the_clustered_set() -> None:
     assert among_fifty.bar == plain and fifty.above(WINNER.key.cell, 9.0, trades) == 0
     assert among_fifty.deflated < deflated.PASS < among_copies.deflated
     assert (among_copies.least.name, among_fifty.least.name) == ("PASS", "DOUBT")
+    #: the seventh rung on the same set answers as the deflated Sharpe read here, every one
+    for looks, read in ((copies, among_copies), (five, among_five), (fifty, among_fifty)):
+        assert rung_dsr.chance_set(WINNER.gains, looks, _C) == pytest.approx(read.deflated)
+        assert rung_dsr.judge_set(WINNER.gains, looks, _C) is deflated.believe(read.deflated)
+    assert rung_dsr.judge_set(WINNER.gains[:9], five, _C) is Answer.THIN
+    assert rung_dsr.judge_set((), five, _C) is Answer.FAULT
+    with pytest.raises(ValueError, match="not a trial this set was clustered from"):
+        rung_dsr.judge_set(WINNER.gains[:9], trials.clusters(_set(strangers), 0), _C)
     #: which, for strangers of plain noise, is about the bar fifty separate looks are given
     assert plain == pytest.approx(separate.bar or 0, rel=0.15)
     #: a set that is not the verdict's own is refused: another count, or the trial not in it
