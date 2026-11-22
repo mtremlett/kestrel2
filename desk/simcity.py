@@ -9,7 +9,7 @@ from __future__ import annotations
 import csv
 import random
 from collections import Counter
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import replace
 from datetime import date, datetime, timedelta
 from decimal import Decimal
@@ -360,7 +360,13 @@ def _apart(life: _Life, trips: tuple[book.RoundTrip, ...]) -> bool:
         Decimal(0),
     )
     gross = sum((t.gross for t in trips), Decimal(0))
-    return traded + book.currency_gain(life.desk, life.market, trips) == gross
+    unit = {line.symbol: Decimal(1) for line in life.market}
+    open_gain = (
+        book.open_currency_gain(life.desk, life.market, {k: v * 2 for k, v in unit.items()}, d)
+        == 2 * book.open_currency_gain(life.desk, life.market, unit, d)
+        for d in {t.sell.day for t in trips}
+    )
+    return traded + book.currency_gain(life.desk, life.market, trips) == gross and all(open_gain)
 
 
 def _told(life: _Life, trips: tuple[book.RoundTrip, ...]) -> bool:
@@ -376,6 +382,7 @@ def _told(life: _Life, trips: tuple[book.RoundTrip, ...]) -> bool:
         whole
         and chained
         and _apart(life, trips)
+        and _earns(life, trips)
         and all(total == sum((t.profit for t in trips), Decimal(0)) for total in totals)
     )
 
@@ -430,6 +437,17 @@ def _live(life: _Life) -> None:
     kind = book.conformance_cost(life.desk, life.market)
     life.promise("the conformance cost is cash less costs", kind == cash - costs.total)
     life.held = {orders.strategy_of(fill.order_id) for fill in fills if fill.quantity > 0}
+
+
+def _earns(life: _Life, trips: Iterable[book.RoundTrip]) -> bool:
+    """BIC-03: on the first fill day no rate pays nothing, and a rate pays on idle cash."""
+    day = min((t.buy.day for t in trips), default=None)
+    if day is None:
+        return True
+    args = (life.desk, life.market, Decimal(10_000))
+    return 0 < book.interest(*args, Decimal("0.0365"), day, day) < 2 and not book.interest(
+        *args, Decimal(0), day, day
+    )
 
 
 def _night(

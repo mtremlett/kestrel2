@@ -79,6 +79,7 @@ class Pass:
     failed: int  #: recorded with their error, and run again on the next pass
     undone: int  #: on a ticker whose worker died: no outcome in this pass
     seconds: float = 0.0  #: how long the pass took by the clock: a full sweep fits a weekend
+    why: tuple[tuple[str, int], ...] = ()  #: the commonest errors of the failed cells, each counted
 
 
 def declared() -> tuple[Line, ...]:
@@ -155,6 +156,7 @@ def _tally(
     now: failed, or a record, run in this pass unless the journal held it before. A cell the
     pass wrote no line for, on a ticker whose worker died, is undone; so is one with no line."""
     fates: Counter[str] = Counter()
+    why: Counter[str] = Counter()
     for (line, group), had in zip(todo.items(), before, strict=True):
         rows = batch.rows(journal(kept, line))
         held = {(*row["cell"], row["code"], row.get("data")) for row in rows[:had]}
@@ -165,10 +167,12 @@ def _tally(
                 fates["undone"] += 1
             elif "error" in row:
                 fates["failed"] += 1
+                why[row["error"]] += 1
             else:
                 known = (*name, row["code"], row["data"]) in held
                 fates["kept" if known else "ran"] += 1
-    return Pass(report, sum(map(len, todo.values())), *(fates[name] for name in COUNTS[1:]))
+    counts = {name: fates[name] for name in COUNTS[1:]}
+    return Pass(report, sum(map(len, todo.values())), **counts, why=tuple(why.most_common(3)))
 
 
 def alone(kept: Path) -> IO[bytes]:

@@ -212,6 +212,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1504 gapped stop halts buying (STP-10); hold limits and money-honest remain. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1509 money-story: decision-time id chain kept per decision; story.csv. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1516 BIC-05 paper alert on a £1,500 fall from the highest point. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1542 money-honest step 1: currency gain apart from trading profit (BIC-04), SimCity-proven. |
 
 
 ### DATA
@@ -482,6 +483,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1379 DATA: R-RUNNER-352 thin sessions rolled, 1h/4h audited. |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1396 R-RUNNER-351: the keeper reads no shelf CSV; `headstart.daily` removed. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1480 DATA R-RUNNER-350 part 3: five timeframes of the old database enter by their marks. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1568 DATA: R-DATA-62, the old desk's 1m rows can enter the store's checks. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
@@ -636,6 +638,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #766 R-RUNNER-285 soak folded into the tape (restructuring only). |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1370 grid-week not ticked; a failed cell now names the line that raised it, and the cause of the 2,810 failures is found (old code, new store). |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1487 R-RUNNER-362 variants swept as cells. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1555 R-DATA-61 done; grid-week cause traced to a stale clone (R-GRID-8). |
 
 ### RUNGS
 
@@ -911,3 +914,14 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1538 B5: Bollinger squeeze row carries 3x3 variant ranges, scenes unchanged. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1541 R-RUNNER-360 intraday volatility layer built. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1514 PAPER s2 R-MONEY-56 conformance plan survives one bar-less line. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1535 set VAR's 84 variant trials entered before any runs (B5 caller); scenes unchanged. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1550 intraday layers contested against the daily label, R-RUNNER-361. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1543 B5 ranges on Kell and Bollinger squeeze rows (3x3 each), plateau-centred; scenes unchanged. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1546 Donchian fade row carries 3x3 variant ranges (B5); scenes unchanged. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1544 R-RUNNER-358 set SCALP and its door built (restored after a conflict with set VAR). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1551 Minervini's row has variant ranges, 3x3, centred on the published setting (B5). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1564 Clenow momentum row carries 3x3 variant ranges (B5); scenes unchanged. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1570 Weinstein's row carries variant ranges (ago 3x1), B5. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1578 B5 Mansfield RS row carries variant ranges (9 variants), scenes unchanged. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1582 the ladder's door no longer reports EPON's faults after an intraday or scalping run (+1 test case). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1587 Faber and dual momentum variant ranges (B5), 18 more trials in set VAR. |

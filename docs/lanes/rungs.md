@@ -8,6 +8,15 @@ settled entries into one short summary entry; git keeps every word.
 
 ## Decisions
 
+### 2026-11-22 — more B5 ranges; the ladder's door (#1564, #1570, #1578, #1582, #1587)
+- His standing ruling ("always go with recommended") keeps rungs-promotion held until R-RUNGS-7 is ticked and a rule has passed the ladder; B5 variants were worked instead, and #1582 fixed the ladder's door (options: change nothing; the owed door fix; touch GRID's or held files, refused by the claim; chose the door fix, a real defect in a RUNGS file).
+- Clenow (#1564): every setting is shared by two blocks. Options: range none; range the score window (60/90/120) and the selling average (50/100/200); range all four (81 variants). Chose the middle: each variant is still a statable rule, nine trials, no change to `lab/variants.py`.
+- Weinstein (#1570): range only `entry.ago` (3/5/10), not the shared 150-day lookback, which would buy over one average and sell under another.
+- Mansfield (#1578): 26/52/78 weeks around the published 52 (13/26/39 would leave 52 off-centre; 78 weeks, 390 sessions, fits the 400-day bound); entry and exit ranged apart.
+- Faber and dual momentum (#1587): entry and exit lookbacks ranged apart (8/10/12 months; 9/12/15), as Mansfield; a mismatched pair is a fair hysteresis variant, counted as a trial.
+- #1582: intraday and scalping keep no results file, so the door hands back their run's code and reads nothing; EPON, first, LEV, VAR unchanged.
+- Blind review skipped on the data-only rows (held by the plateau test); #1570 and #1582 reviewed, nothing blocking.
+
 ### 2026-11-13 to 14 Nov — folded: the first rungs and the lane's early boxes (#65-#206)
 Settled entries folded by the scribe (git keeps every word); each is one decision per box, all taken as the recommended option under his standing ruling of 13 November:
 - **Luck, trials, deflated Sharpe (#98, #91):** a chance multiplied by every trial, one 5% test across the set, bands 0.90 and 0.50, a yearly Sharpe above 2 flagged, one register of every trial ever tried (a dropped candidate stays counted); the test is fixed before any result.
@@ -419,3 +428,11 @@ then the break was removed:
 ### 2026-11-22 — intraday layers (R-RUNNER-359, R-RUNNER-360, #1531, #1541)
 - Expansion compares a bar with EARLIER bars only (options: include itself; chosen: exclude, so a wide bar cannot dampen its own test). Opening range is time-based (30 min from the session's first bar), so a missing bar cannot shift it.
 - Volatility: MIN_SESSIONS=5, MIN_RETURNS=2; thirds by count of earlier values strictly below (options: interpolated percentiles; chose counts, no interpolation to hide).
+
+### 2026-11-22 — B5 variants, SCALP, intraday contest (#1535, #1543, #1544, #1546, #1550, #1551)
+- Promotion held: his standing ruling ("always go with recommended") keeps rungs-promotion back until R-RUNGS-7 is ticked and a rule has passed the ladder. Options: promotion anyway, B5 variants, rungs-eponymous. Took B5 variants (smallest step, no other lane's file); #1544 only restored SCALP after a conflict.
+- Set VAR has its own register, not EPON's (#1535): 84 extra trials in EPON's would change its luck-corrected verdicts mid-run. Own register keeps EPON's golden verdicts and names the family before it runs (B6).
+- Which settings to range: Kell the breakout length and exit (the 10/20-day averages define the setup); Bollinger squeeze the six-month look-back and exit (this port's reading); Minervini the pivot lookback and exit average, not the trend template (a definition, not a knob); Donchian fade 10/20/40 on both channels, the exit not 80 (a midpoint exit that long is another range). Fewer trials keep the luck bar honest.
+- Blind review skipped on #1543, #1546, #1551 (four to eight lines of data, held by the plateau test, seen failing; ten-minute cards) and on #1550 (card under ten minutes).
+- SCALP (#1544): a rule with no trades on a line shows FAULT (no spread), as INTRADAY does; cost column a dash.
+- Intraday contest (#1550): edges scored on bars where both layer and daily label are named (same bars, a fair contest); scoring is `lab.weather.edges`' rule restated on bar starts; folds are contiguous slices of bar pairs.

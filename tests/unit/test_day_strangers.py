@@ -29,7 +29,7 @@ def _trade(root: Path, broker: Pretend, on: date, told: list[str]) -> tuple[book
         settings,
         on,
         pounds,
-        lambda name, _: told.append(name),
+        lambda name, _: told.append(name) if not name.startswith("interest") else None,
         strangers=True,
     )
 
