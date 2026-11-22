@@ -69,3 +69,32 @@ def exposure(
             value = held[line.symbol] * bars[-1].close * rates[line.currency] * line.leverage
             total[key] = total.get(key, Decimal(0)) + value
     return total
+
+
+def fx_split(
+    root: Path, archive: Mapping[Line, Sequence[Bar]], day: date
+) -> tuple[Decimal, Decimal, Decimal] | None:
+    """BIC-04: the closed trades' gross owed to the currency, the rest of it trading, and what
+    the open holdings owe the currency. None when nothing traded or a fill's day has no rate."""
+    ledger, lines = book.fills(root), tuple(archive)
+    kept, money = book.rates_kept(root), {line.symbol: line.currency for line in lines}
+    if not ledger or any((f.day, money.get(f.symbol)) not in kept for f in ledger):
+        return None
+    trips = book.round_trips(root, lines)
+    gain = book.currency_gain(root, lines, trips)
+    last = {line.symbol: bars[-1].close for line, bars in archive.items()}
+    today = all((day, m) in kept for m in set(money.values()))
+    held = book.open_currency_gain(root, lines, last, day) if today else Decimal(0)
+    return gain, sum((t.gross for t in trips), Decimal(0)) - gain, held
+
+
+def idle_interest(
+    root: Path, archive: Mapping[Line, Sequence[Bar]], day: date, capital: Decimal, annual: Decimal
+) -> Decimal | None:
+    """BIC-03: what idle cash earned at the yearly rate from the first fill to day. None when
+    nothing traded or a fill's day has no rate."""
+    ledger, lines = book.fills(root), tuple(archive)
+    kept, money = book.rates_kept(root), {line.symbol: line.currency for line in lines}
+    if not ledger or any((f.day, money.get(f.symbol)) not in kept for f in ledger):
+        return None
+    return book.interest(root, lines, capital, annual, min(f.day for f in ledger), day)

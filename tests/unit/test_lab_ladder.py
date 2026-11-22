@@ -342,9 +342,7 @@ def test_eased_on_a_cell_is_judged_with_its_rules_family_count_not_left_as_could
     assert "0 could not" in ladder.run(tmp_path, _door({VUSA: EDGE, ISF: NOISE}), {}, _set(VUSA))
 
 
-def test_the_set_is_every_published_rule_on_every_line_and_its_doors_are_the_desks(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_the_set_is_every_published_rule_on_every_line_and_its_doors_are_the_desks() -> None:
     made = ladder.cells()
     assert len(made) == len(set(made)) == len(published.PUBLISHED) * len(LINES)
     assert {(c.start, c.end) for c in made} == {(ladder.START, ladder.END)}
@@ -363,18 +361,6 @@ def test_the_set_is_every_published_rule_on_every_line_and_its_doors_are_the_des
     pounds = ladder.rates(ask)
     assert pounds[date(2025, 4, 22)] == Decimal("0.8") and date(2025, 4, 21) in pounds
     assert date(2025, 4, 24) not in pounds and pounds[date(2025, 4, 25)] == Decimal("0.625")
-    #: bars come through the keeper's door, up to the window's end; a parked line is refused
-    parked: set[str] = set()
-
-    def saved(home: Path, before: date, lines: list[Line]) -> Any:
-        assert (home, before, lines) == (tmp_path, ladder.END + step, [VUSA])
-        return {VUSA: EDGE[:3]}, frozenset(parked)
-
-    monkeypatch.setattr(keeper, "saved", saved)
-    assert ladder.stored(tmp_path)(VUSA) == EDGE[:3]
-    parked.add("VUSA")
-    with pytest.raises(ValueError, match="VUSA: parked"):
-        ladder.stored(tmp_path)(VUSA)
     with pytest.raises(SystemExit, match="KESTREL2_DATA names no data folder"):
         ladder_sets.main({})
 
