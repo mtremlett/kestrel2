@@ -17,7 +17,6 @@ from __future__ import annotations
 import os
 import sqlite3
 import sys
-import tempfile
 import zipfile
 from collections.abc import Callable
 from datetime import UTC, date, datetime, timedelta
@@ -217,13 +216,10 @@ def one(line: Line, old: Path, path: Path, day: date) -> str:
         Bar(b.day, b.open * unit, b.high * unit, b.low * unit, b.close * unit, b.volume)
         for b in mine
     ]
-    with tempfile.TemporaryDirectory() as scratch:
-        store.shelve(Path(scratch), line, scaled)
-        ready = day if held else scaled[-1].day + timedelta(1)
-        parked = store.prepare(Path(scratch), {line: held}, ready)
-        if parked:
-            raise ValueError(f"{line.symbol}: the one store would park it: {parked[0].reason}")
-        kept = store.read(Path(scratch), line.symbol)
+    ready = day if held else scaled[-1].day + timedelta(1)
+    kept, _, parked = store.judge(line, held, ready, shelf=scaled)
+    if parked:
+        raise ValueError(f"{line.symbol}: the one store would park it: {parked.reason}")
     have = {bar.day for bar in held}
     with bars.writing(path, source) as round_:
         filled = round_.days(line, [bar for bar in kept if bar.day not in have])
