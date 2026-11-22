@@ -944,3 +944,8 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1597 R-RUNNER-441: montecarlo measures held journals past their error rows and counts them. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1604 Darvas's box ranges its sessions 2/3/4 (B5), 3 more VAR trials. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1615 DeMark's TD Sequential ranges its setup length 7/9/11 in both engines (B5); no scene moved. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1625 L2 the rung map says built or not for every row, held to the code; rungs built corrected to 4 of 12. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1620 B5's import cycle broken (variants reads lab.spec alone); R-RUNGS-33 unblocked for GRID, no scene moved. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1621 plan notes for seven RUNGS boxes (B4, B6, P1, GC and the three eponymous boxes), restored twice. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1637 rungs-blocks: the sizing block, sized by the desk's own volatility rule, known-answer tested. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1640 rungs-indicators: tables moved to their own module; the RSI ratio held to 19 printed rows. |
