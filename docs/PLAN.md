@@ -183,7 +183,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       transfer, montecarlo and the research refresh read the database; wire: the research refresh and the grid
       job; gate: a contract test where a bar present only in a CSV is never read
       Built (#1653): `universe_parts.read_db(path, line)` reads bars.daily of the history database; `read` still reads CSV. Remains: wire sweep, batch, transfer, montecarlo, the research refresh and the grid job to read_db, then delete read and the CSV path (and breadth).
-      {id: data-door-bars; files: lab/universe_parts.py, tests/unit/test_lab_universe*.py}
+      {id: data-door-bars; files: lab/universe_parts.py, tests/unit/test_lab_universe*.py; waits: 2026-11-24}
 - [ ] One door, one writer: `universe.nightly` and the Stooq files write into the history database through
       `bars.writing`, never the CSV store; `store.read`, `faults`, `shelve` and the CSV half of `prepare` are
       deleted with their tests; wire: the research refresh job; gate: the deleted names import nowhere
@@ -237,7 +237,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       fixture of one review's announcement and the page revision either side finds the joiners and leavers, and a
       planted disagreement is a named fault
       Built (#1651): `lab/members.reconcile` joins one FTSE review's announced changes to the page revisions either side; disagreement is a named `Disagreement`; feeds not wired. Remains: a fetcher module (FTSE Russell announcements, MediaWiki API) outside the claim, the funds and 2010-2014 source, the nightly refresh reading members by date.
-      {id: data-members; files: lab/members.py, tests/unit/test_lab_members*.py, manifest.toml}
+      {id: data-members; files: lab/members.py, tests/unit/test_lab_members*.py, manifest.toml; waits: 2026-11-23}
 - [x] Kept hot, always: the runner runs the store's keeper after the US close and before the
       London open on every trading day, a dated receipt each time; a line staler than one
       session raises an alert, and a keeper that misses its slot raises one too (DQ-12,
@@ -321,6 +321,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       wire: a runner job every 5 minutes, 7 days, and the hourly Telegram table; gate: a contract test where a
       planted stale span, missing day and stale golden line each turn the line red, and the alarm sends red once and green once
       Built (#1654): `desk.quality.hover` (freshness line, exit 0/1) and `alarm` (red once, 30-minute reminder, one green). Remains: the 5-minute runner job, the hourly Telegram table, alarm state kept between runs and sent, the Haiku/Sonnet/Opus escalation, gap filling for 15m-1wk, the two-store daily read.
+      Built (#1658): the nightly quality line is RED and names the outage when `archive.alert` fires (six hours of refused asks). Remains: a register of sources (which source each line's newest bar came from, by rank) and the twenty lines checked against the broker's price of record each day once PAPER connects (DAT-07).
       {id: data-monitor; files: desk/quality.py, tests/unit/test_quality.py}
 - [ ] Derived spans rolled, never fetched: 15m, 30m, 1h and 4h rolled from five-minute bars and 1wk from daily,
       into the history database as `rollup:<from>` on every keeper round, so they are as fresh as their base;
@@ -409,7 +410,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       {id: data-dividends; files: desk/bars.py, tests/unit/test_bars*.py; waits: 2026-11-23}
 - [ ] Survivorship: the research list taken as it stood on each past date, with the names
       that left it, or the bias measured and stated on every verdict (BT-09)
-      {id: data-survivorship; files: lab/members.py, tests/unit/test_lab_members*.py; after: data-members}
+      {id: data-survivorship; files: lab/members.py, tests/unit/test_lab_members*.py}
 - [ ] UK stamp duty and taxes confirmed line by line, in one table by instrument type
       (NS-05): the table is built and the five London funds confirmed; still owed, the five
       London products seen on a contract note, the research list's London shares name by
@@ -427,7 +428,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       324 hourly as the guaranteed floor, rising toward 270, 810 and 3,240 only as far as a
       measured ramp on the paper port allows (every request counted with its error codes;
       any pacing refusal halves the rate); daily bars for every ticker (DAT-01, DAT-05)
-      {id: data-ibkr-capacity; files: desk/keeper.py, tests/unit/test_keeper*.py; after: data-broker-bars; waits: operator}
+      {id: data-ibkr-capacity; files: desk/keeper.py, tests/unit/test_keeper*.py; after: data-broker-bars; waits: 2026-11-23}
 - [ ] **A free collector, started now, before anything uses it:** once a day, about 300 calls
       across the free tiers he already has, each response kept raw and timestamped: a US
       second opinion on every bar (Massive's whole-market daily), a third (Tiingo), a rotating
