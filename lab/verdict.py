@@ -125,9 +125,8 @@ def judge(
 ) -> dict[str, Any]:
     """Every rung's answer with its reason, the rungs not run with theirs, the verdict's.
     The folds are the rule's, pooled over its lines: `pooled` is asked only when they are read.
-    `first` is the cell's first rung where the caller has run it already. `family` is the
-    trials of the cell's rule (`trials.family`): asked for, and used, only when EASED. `surface`
-    is the cell's rule tried at its settings, for the plateau rung (`_plateaued`)."""
+    `first` is the cell's first rung where the caller has run it already; `family` the trials
+    of its rule, used only when EASED; `surface` its rule at its settings (`_plateaued`)."""
     try:
         reproduce.settled(c.strategy, made)
     except ValueError as missed:  #: the rule as coded is not the author's: no verdict on ours
@@ -154,7 +153,8 @@ def judge(
     read = {name: rungs[name][0] for name in deflated.NAMED if name in rungs}
     return {
         "trades": len(verdict.trades),
-        "rungs": reported(rungs) | _inapplicable(c, surface),
+        "rungs": reported(rungs),
+        "inapplicable": _inapplicable(c, surface),
         "drawdown": drawdowns([t.gross - t.costs.total for t in verdict.trades], trials.name(c)),
         "holding": _held(verdict, own, beside, held, pounds, settings),
         "unrun": unrun,
@@ -171,11 +171,12 @@ def _plateaued(c: Cell, surface: plateau.Surface | None, rungs: Judged) -> dict[
     return {"plateau": plateau.WANTED} if plateau.RANGED in c.strategy else {}
 
 
-def _inapplicable(c: Cell, surface: plateau.Surface | None) -> dict[str, list[str]]:
-    """Plateau said NOT APPLICABLE, with why, on a rule with no settings: reviewed, never UNRUN."""
+def _inapplicable(c: Cell, surface: plateau.Surface | None) -> dict[str, str]:
+    """Plateau said NOT APPLICABLE, with why, on a rule with no settings: reviewed, never UNRUN,
+    and kept beside the rungs, never among them, where every answer must PASS (`ladder_parts`)."""
     if surface is not None or plateau.RANGED in c.strategy:
         return {}
-    return {"plateau": [plateau.NOT_APPLICABLE, plateau.SETTLED]}
+    return {"plateau": f"{plateau.NOT_APPLICABLE}: {plateau.SETTLED}"}
 
 
 def basket_answer(basket: Verdict, stressed: Answer) -> str:

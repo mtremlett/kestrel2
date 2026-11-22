@@ -123,7 +123,8 @@ def test_a_planted_edge_goes_forward_and_plateau_blocks_no_rule_without_settings
     #: L17 (blind review 22 Nov): plateau UNRUN on every cell kept every cell back for good
     monkeypatch.setattr(verdict, "_weathered", lambda *_: (Answer.PASS, "planted: both passed"))
     done = _judge(worst=Answer.PASS)  #: a planted edge: enough trades pooled in every year
-    assert done["rungs"]["plateau"] == [plateau.NOT_APPLICABLE, plateau.SETTLED]
+    assert done["inapplicable"] == {"plateau": f"{plateau.NOT_APPLICABLE}: {plateau.SETTLED}"}
+    assert "plateau" not in done["rungs"] and done["every"], "NOT APPLICABLE is no answer to hold"
     assert done["unrun"] == {"reproduce": verdict.NO_FIGURE}, "only the author's figure is owed"
     assert verdict.goes(done | {"unrun": {}}), done["rungs"]
 
