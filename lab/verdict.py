@@ -65,9 +65,10 @@ from lab.verdict_parts import (
 FOLDS = folds.YEARS
 #: Draws of the judged trades' pounds for the resampled drawdowns: they measure, never gate.
 RESAMPLES = 1000
-#: Rungs that are built and that no cell can yet be run through, each with why: none since L17,
-#: when plateau was judged on every cell (`_plateaued`); a rung named here keeps every cell back.
-UNRUN: dict[str, str] = {}
+#: Rungs that are built and that this set cannot yet be run through, each with why.
+UNRUN = {
+    "plateau": "the published rules carry no settings to choose among yet",
+}
 NO_FIGURE = "no author's figure is on file for the rule: no published result stands behind it"
 #: A rule trades a line five to ten times a year and wants 200 sessions to warm up: a line of
 #: fewer bars than those and a year's trading has made no trade yet, which says nothing of the rule.
@@ -149,12 +150,11 @@ def judge(
         return _stopped(len(verdict.trades), rungs, unrun)
     if (last := shuffled(c, own, settings, pounds, rungs, made, EASED)) is not None:
         rungs["shuffle"] = last
-    unrun |= _plateaued(c, surface, rungs)
+    unrun = _plateaued(surface, rungs, unrun)
     read = {name: rungs[name][0] for name in deflated.NAMED if name in rungs}
     return {
         "trades": len(verdict.trades),
         "rungs": reported(rungs),
-        "inapplicable": _inapplicable(c, surface),
         "drawdown": drawdowns([t.gross - t.costs.total for t in verdict.trades], trials.name(c)),
         "holding": _held(verdict, own, beside, held, pounds, settings),
         "unrun": unrun,
@@ -162,21 +162,15 @@ def judge(
     } | ({"answer": deflated.rule(read).name} if len(read) == len(deflated.NAMED) else {})
 
 
-def _plateaued(c: Cell, surface: plateau.Surface | None, rungs: Judged) -> dict[str, str]:
-    """The plateau rung into `rungs` where the cell's surface is handed in; else what is unrun:
-    a variant's plateau, owed and not asked, or nothing for a rule with no settings."""
-    if surface is not None:
-        rungs["plateau"] = plateau.judged(surface)
-        return {}
-    return {"plateau": plateau.WANTED} if plateau.RANGED in c.strategy else {}
-
-
-def _inapplicable(c: Cell, surface: plateau.Surface | None) -> dict[str, str]:
-    """Plateau said NOT APPLICABLE, with why, on a rule with no settings: reviewed, never UNRUN,
-    and kept beside the rungs, never among them, where every answer must PASS (`ladder_parts`)."""
-    if surface is not None or plateau.RANGED in c.strategy:
-        return {}
-    return {"plateau": f"{plateau.NOT_APPLICABLE}: {plateau.SETTLED}"}
+def _plateaued(
+    surface: plateau.Surface | None, rungs: Judged, unrun: Mapping[str, str]
+) -> dict[str, str]:
+    """The rungs left unrun once plateau is judged into `rungs` where the cell's surface is
+    handed in; with none, plateau stays UNRUN, with why."""
+    if surface is None:
+        return dict(unrun)
+    rungs["plateau"] = plateau.judged(surface)
+    return {name: why for name, why in unrun.items() if name != "plateau"}
 
 
 def basket_answer(basket: Verdict, stressed: Answer) -> str:

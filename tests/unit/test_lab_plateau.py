@@ -174,17 +174,16 @@ def test_a_grid_or_a_surface_that_cannot_show_a_true_plateau_is_refused() -> Non
             plateau.choose((FIVE,), line | {(30,): rung.verdict(key, line[30,].trades)})
 
 
-def test_the_rung_passes_a_setting_inside_a_plateau_and_owes_a_variant_its_surface() -> None:
-    #: L17: plateau judged on a rule's variants; a variant handed no surface is UNRUN, owed
+def test_the_rung_passes_a_setting_inside_a_plateau_and_stays_unrun_with_no_surface() -> None:
+    #: L17: plateau judged on a rule's variants; a cell handed no surface keeps it UNRUN
     tried = _surface(_square, SEVEN, SEVEN)
     inside, peak = (plateau.Surface((SEVEN, SEVEN), tried, own) for own in ((30, 30), (60, 60)))
     assert plateau.judged(inside)[0] is Answer.PASS and plateau.judged(peak)[0] is Answer.FAIL
     assert "1 steps deep among 49 tried, the centre (30, 30) 2 deep" in plateau.judged(peak)[1]
     with pytest.raises(ValueError, match="not tried"):
         plateau.judged(plateau.Surface((SEVEN, SEVEN), tried, (15, 30)))
-    variant, rungs = _verdict(PASS, "r[a=1]").key.cell, {}  # type: ignore[var-annotated]
-    assert verdict._plateaued(variant, None, rungs) == {"plateau": plateau.WANTED} and not rungs
-    assert verdict._plateaued(variant, inside, rungs) == {} and rungs == {
-        "plateau": plateau.judged(inside)
-    }
-    assert verdict._inapplicable(variant, None) == {}, "a variant is never NOT APPLICABLE"
+    rungs: dict[str, tuple[Answer, str]] = {}
+    owed = verdict.UNRUN | {"reproduce": verdict.NO_FIGURE}
+    assert verdict._plateaued(None, rungs, owed) == owed and not rungs
+    assert verdict._plateaued(inside, rungs, owed) == {"reproduce": verdict.NO_FIGURE}
+    assert rungs == {"plateau": plateau.judged(inside)}

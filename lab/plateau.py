@@ -43,10 +43,8 @@ above nothing. A parameter with under three values has no setting with a neighbo
 sides. Values are whole numbers or exact decimals, compared exactly.
 
 THE RUNG (L17). A cell tried at its settings passes when its own setting is DEPTH deep, inside
-a plateau of its rule's variants (`lab/variants.py`), and fails on a peak or an edge. A rule
-with no settings to choose among has no surface: plateau is NOT APPLICABLE to it, said so, and
-never UNRUN, so it never blocks a cell. A variant, named by its settings (RANGED), judged with
-no surface handed in, is UNRUN (WANTED): its plateau was owed and not asked.
+a plateau of its rule's variants (`lab/variants.py`), and fails on a peak or an edge. A cell
+judged with no surface handed in keeps plateau UNRUN (`verdict.UNRUN`).
 """
 
 from __future__ import annotations
@@ -69,10 +67,6 @@ Place = tuple[int, ...]  #: a setting's rank along each parameter of the grid
 DEPTH = 2
 #: The least step between neighbouring values of a parameter, as a share of the lower.
 STEP = Decimal("0.1")
-NOT_APPLICABLE = "NOT APPLICABLE"  #: the rung's word for a rule with no settings
-SETTLED = "the rule carries no settings to choose among: one setting is no surface"
-WANTED = "a variant tried at its settings, judged without its rule's surface"
-RANGED = "["  #: a variant's name carries its settings in brackets (`lab/variants.py`)
 
 
 @dataclass(frozen=True)
