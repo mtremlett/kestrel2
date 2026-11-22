@@ -835,10 +835,10 @@ grid-tune and grid-key side by side; then grid-pass, grid-week, grid-declared, g
       LAD-13) {id: grid-declared; files: lab/sweep.py, tests/unit/test_lab_sweep.py}
 - [x] A full sweep within a weekend, its time measured (LAD-10). Remains: nothing; a cold transfer study took 17 min, the declared pass about 8 min, against 48 h {id: grid-weekend; files: *}
 
-- [ ] **ONE DOOR FOR PRICES, the transfer study's pound** (his 22 Nov ~10:00, "paramount": every price is read from market_history.db or market_live.db alone): `lab/transfer.py:170` passes
+- [x] **ONE DOOR FOR PRICES, the transfer study's pound** (his 22 Nov ~10:00, "paramount": every price is read from market_history.db or market_live.db alone): `lab/transfer.py:170` passes
       `history_bars.pounds(home)` to `ladder.rates`, never the archive; wire: the grid-transfer job; gate: its test
       with the archive stubbed to fail
-      {id: grid-door-pound; files: lab/transfer.py, tests/unit/test_lab_transfer*.py; after: rungs-door-pound}
+      Remains: nothing (#1683: `lab/transfer.py` takes the pound from `history_bars.pounds`) {id: grid-door-pound; files: lab/transfer.py, tests/unit/test_lab_transfer*.py; after: rungs-door-pound}
 
 ### The rungs lane's book
 

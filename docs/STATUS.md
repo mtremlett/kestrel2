@@ -248,14 +248,14 @@ its seconds: cold transfer 5,330 cells in 17 min, declared about 8 min, far insi
 ### Next step
 grid-week (waits: 2026-11-28): the pass runs old code (pre-#1210) on the new-format store, so 2,810 of 5,325 cells fail
 each hour (#1370, and 348 LSE/US stale `*.faults.csv` notes swept as phantom tickers until `held()` skipped them again, #1612; a failure now names its file, line and function; each pass line carries `why`, its three commonest errors, #1563; a raising pass is logged and the week carries on, #1562). The week must restart unbroken once the runner updates
-its clone (R-GRID-8; frozen at 6793651f of 14 Nov, main's code runs these cells fine, #1555): 7 days not before 28 Nov, then read `sweep.unbroken(Path(KESTREL2_DATA))`.
+its clone (R-GRID-8; frozen at 6793651f of 14 Nov, main's code runs these cells fine, #1555, #1700): 7 days not before 28 Nov, then read `sweep.unbroken(Path(KESTREL2_DATA))`.
 Every other box is ticked. Open: R-DATA-7 (`batch.stored` now reads through `universe.read`, #618; remains: a cell keeping
 `History.moves` and `.rescaled` in its record, which changes the cell's record and key), R-RUNGS-2 (declared sweep enters every cell in the register), R-RUNGS-4.
 
 ### Done for other lanes
 - R-DATA-1: done in #73; R-DATA-10: #391; R-RUNNER-4: #171; R-RUNNER-8: #391; R-RUNNER-19: #197; R-RUNNER-82: #263
 - R-RUNNER-362: done in #1487
-- R-DATA-61: done in #1555
+- R-DATA-61: done in #1555; R-RUNGS-34 rule half met in #1700, pound half in #1683
 - R-RUNNER-89: #281; R-RUNNER-128: #360; R-RUNNER-140: #330; R-RUNNER-164: #397; R-RUNNER-167: #359; R-RUNNER-170: #372; R-RUNNER-112: #449
 ### Requests to MONEY
 - [ ] R-GRID-1 (later, 2026-11-13 18:15): the five rules at other settings in `desk/strategy.py`, each with a grid and
