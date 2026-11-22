@@ -59,6 +59,19 @@ def test_the_store_is_two_databases_long_and_short_and_no_other_file(tmp_path: P
             assert held.execute("SELECT DISTINCT span FROM bar").fetchall() == [(span,)]
 
 
+def test_total_return_is_the_adjusted_twin_of_a_reference_series_else_the_line(
+    tmp_path: Path,
+) -> None:
+    store, ref = tmp_path / "bars.db", next(line for line in LINES if not line.retail)
+    twin = replace(ref, symbol=ref.symbol + "-ADJUSTED")
+    with bars.writing(store) as round_:
+        round_.daily(ref, _days(3))
+        round_.daily(twin, _days(2))
+        round_.daily(US, _days(1))
+    assert bars.total_return(store, ref) == bars.daily(store, twin) == _days(2)
+    assert bars.total_return(store, US) == _days(1)
+
+
 def test_what_is_written_is_read_back_exactly_and_each_line_apart(tmp_path: Path) -> None:
     store, days, fives = tmp_path / "bars.db", _days(30), _fives(30)
     with bars.writing(store, Source.ARCHIVE) as round_:
