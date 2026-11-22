@@ -254,3 +254,10 @@ rule book; a variant named like an existing rule is refused). Question: should `
 Options: (a) include them; (b) keep transfer on the published five. **Decided (b)**: the request says the fast grid stays on
 the published five and transfer is on STRATEGIES; variants go through the desk engine unchanged (no edit to `lab/cell.py`).
 
+### 2026-11-22 — the grid-week wait stays 2026-11-28; no stale-clone guard in lab/
+
+#1555 traced the 2,810 failing cells (`ValueError: Invalid isoformat string: ''`) to the week's own clone, frozen at 6793651f
+(14 Nov, before #1210); main's code reads the new store's blank-day fault rows and the same cells do not fail there. Options:
+(a) change `lab/` to guard against a stale clone (growing process code, refused by A1.7); (b) leave it to the runner's clone
+update (R-GRID-8). **Decided (b)**, on his words "always go with recommended". The 15 Nov 11:22 to 21 Nov 00:21 stop left no
+record (week-out/err empty); consistent with the week job being down until restarted.

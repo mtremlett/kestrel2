@@ -246,13 +246,14 @@ its seconds: cold transfer 5,330 cells in 17 min, declared about 8 min, far insi
 ### Next step
 grid-week (waits: 2026-11-28): the pass runs old code (pre-#1210) on the new-format store, so 2,810 of 5,325 cells fail
 each hour (#1370; a failure now names its file, line and function). The week must restart unbroken once the runner updates
-its clone (R-GRID-8): 7 days not before 28 Nov, then read `sweep.unbroken(Path(KESTREL2_DATA))`.
+its clone (R-GRID-8; frozen at 6793651f of 14 Nov, main's code runs these cells fine, #1555): 7 days not before 28 Nov, then read `sweep.unbroken(Path(KESTREL2_DATA))`.
 Every other box is ticked. Open: R-DATA-7 (`batch.stored` now reads through `universe.read`, #618; remains: a cell keeping
 `History.moves` and `.rescaled` in its record, which changes the cell's record and key), R-RUNGS-2 (declared sweep enters every cell in the register), R-RUNGS-4.
 
 ### Done for other lanes
 - R-DATA-1: done in #73; R-DATA-10: #391; R-RUNNER-4: #171; R-RUNNER-8: #391; R-RUNNER-19: #197; R-RUNNER-82: #263
 - R-RUNNER-362: done in #1487
+- R-DATA-61: done in #1555
 - R-RUNNER-89: #281; R-RUNNER-128: #360; R-RUNNER-140: #330; R-RUNNER-164: #397; R-RUNNER-167: #359; R-RUNNER-170: #372; R-RUNNER-112: #449
 ### Requests to MONEY
 - [ ] R-GRID-1 (later, 2026-11-13 18:15): the five rules at other settings in `desk/strategy.py`, each with a grid and
@@ -279,8 +280,7 @@ Every other box is ticked. Open: R-DATA-7 (`batch.stored` now reads through `uni
 - Rung key still holds batch, folds, published*, shuffle, desk/*; narrowing needs a per-rung declaration in `lab/ladder.py`.
 - Week: a pass over 48 h is cut and logged failed; a torn `week.jsonl` line needs hand-mending; results grow ~9 MB a day
   (pruning owed, R-GRID-1); an outside pass, a PC restart, or the copied store cleared breaks the run.
-- Flaky `tests/unit/test_bars.py` once under load (#171). Busy flag stale if a pass is killed outright.
-  Scratch owed removal: `.claude/worktrees/` helpers, `C:\tmp\unebreaks`, `C:\tmp\unedriver`.
+- Flaky `tests/unit/test_bars.py` once under load (#171). Busy flag stale if a pass is killed outright. Scratch owed removal: `.claude/worktrees/`, `C:\tmp\unebreaks`, `C:\tmp\unedriver`.
 
 ## RUNGS
 
