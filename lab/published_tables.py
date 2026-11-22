@@ -9,11 +9,11 @@ desk's parts are one piece of code at any length. Held by name: the moving avera
 deviation of Bollinger's bands, the breakout's highest high and lowest low, and the RSI
 `strategy.rsi` makes of the averages below. Held as the rule's own lines work them, the rule
 shown the table's days and its smoothing read after each: the RSI's gains and losses, and
-the true range and its average, from prices alone. No rule is proven while one of them gives another
-number. The tables show a rule only days on which it holds nothing, and none has a day whose
-own low is its lowest of 14. What a rule's own line works and does not keep (a band's two
-deviations from its average) and Supertrend's carried band, which no table here prints, are
-left to the known answers of `lab/published.py` and the strategies' contract test.
+the true range and its average, from prices alone. No rule is proven while one of them
+gives another number. The tables show a rule only days on which it holds nothing, and none
+has a day whose own low is its lowest of 14. What a rule's own line works and does not keep
+(a band's two deviations from its average) and Supertrend's carried band, which no table
+here prints, are left to the known answers of `lab/published.py` and the strategies' contract test.
 """
 
 from __future__ import annotations
