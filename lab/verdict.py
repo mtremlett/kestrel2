@@ -67,7 +67,7 @@ FOLDS = folds.YEARS
 RESAMPLES = 1000
 #: Rungs that are built and that this set cannot yet be run through, each with why.
 UNRUN = {
-    "plateau": "the published rules carry no settings to choose among yet",
+    "plateau": "no surface of its rule's settings was handed in, nor the rule declared unranged",
 }
 NO_FIGURE = "no author's figure is on file for the rule: no published result stands behind it"
 #: A rule trades a line five to ten times a year and wants 200 sessions to warm up: a line of
@@ -150,7 +150,7 @@ def judge(
         return _stopped(len(verdict.trades), rungs, unrun)
     if (last := shuffled(c, own, settings, pounds, rungs, made, EASED)) is not None:
         rungs["shuffle"] = last
-    unrun = _plateaued(surface, rungs, unrun)
+    unrun, bare = _plateaued(surface, rungs, unrun)
     read = {name: rungs[name][0] for name in deflated.NAMED if name in rungs}
     return {
         "trades": len(verdict.trades),
@@ -158,19 +158,24 @@ def judge(
         "drawdown": drawdowns([t.gross - t.costs.total for t in verdict.trades], trials.name(c)),
         "holding": _held(verdict, own, beside, held, pounds, settings),
         "unrun": unrun,
+        **({"inapplicable": bare} if bare else {}),
         "every": all(answer is Answer.PASS for answer, _ in rungs.values()),
     } | ({"answer": deflated.rule(read).name} if len(read) == len(deflated.NAMED) else {})
 
 
 def _plateaued(
     surface: plateau.Surface | None, rungs: Judged, unrun: Mapping[str, str]
-) -> dict[str, str]:
-    """The rungs left unrun once plateau is judged into `rungs` where the cell's surface is
-    handed in; with none, plateau stays UNRUN, with why."""
+) -> tuple[dict[str, str], dict[str, str]]:
+    """The rungs left unrun, and those not applicable, once plateau is judged into `rungs`
+    where the cell's surface is handed in; a rule UNRANGED has plateau NOT APPLICABLE, and with
+    no surface plateau stays UNRUN, with why."""
     if surface is None:
-        return dict(unrun)
+        return dict(unrun), {}
+    left = {name: why for name, why in unrun.items() if name != "plateau"}
+    if not surface.grid:  #: UNRANGED, or any surface of no parameters
+        return left, {"plateau": plateau.NOT_APPLICABLE}
     rungs["plateau"] = plateau.judged(surface)
-    return {name: why for name, why in unrun.items() if name != "plateau"}
+    return left, {}
 
 
 def basket_answer(basket: Verdict, stressed: Answer) -> str:

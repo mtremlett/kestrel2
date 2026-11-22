@@ -175,7 +175,8 @@ def test_a_grid_or_a_surface_that_cannot_show_a_true_plateau_is_refused() -> Non
 
 
 def test_the_rung_passes_a_setting_inside_a_plateau_and_stays_unrun_with_no_surface() -> None:
-    #: L17: plateau judged on a rule's variants; a cell handed no surface keeps it UNRUN
+    #: L17: plateau judged on a rule's variants; a cell handed no surface keeps it UNRUN; a rule
+    #: with no settings is NOT APPLICABLE, so nothing unrun blocks its cell going forward
     tried = _surface(_square, SEVEN, SEVEN)
     inside, peak = (plateau.Surface((SEVEN, SEVEN), tried, own) for own in ((30, 30), (60, 60)))
     assert plateau.judged(inside)[0] is Answer.PASS and plateau.judged(peak)[0] is Answer.FAIL
@@ -184,6 +185,10 @@ def test_the_rung_passes_a_setting_inside_a_plateau_and_stays_unrun_with_no_surf
         plateau.judged(plateau.Surface((SEVEN, SEVEN), tried, (15, 30)))
     rungs: dict[str, tuple[Answer, str]] = {}
     owed = verdict.UNRUN | {"reproduce": verdict.NO_FIGURE}
-    assert verdict._plateaued(None, rungs, owed) == owed and not rungs
-    assert verdict._plateaued(inside, rungs, owed) == {"reproduce": verdict.NO_FIGURE}
+    assert verdict._plateaued(None, rungs, owed) == (owed, {}) and not rungs
+    assert verdict._plateaued(inside, rungs, owed) == ({"reproduce": verdict.NO_FIGURE}, {})
     assert rungs == {"plateau": plateau.judged(inside)}
+    bare = verdict._plateaued(plateau.UNRANGED, {}, verdict.UNRUN)
+    assert bare == ({}, {"plateau": plateau.NOT_APPLICABLE})
+    row = {"answer": "PASS", "every": True, "unrun": bare[0], "inapplicable": bare[1]}
+    assert verdict.goes(row) and not verdict.goes(row | {"unrun": verdict.UNRUN})

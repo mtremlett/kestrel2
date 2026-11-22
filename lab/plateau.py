@@ -43,8 +43,10 @@ above nothing. A parameter with under three values has no setting with a neighbo
 sides. Values are whole numbers or exact decimals, compared exactly.
 
 THE RUNG (L17). A cell tried at its settings passes when its own setting is DEPTH deep, inside
-a plateau of its rule's variants (`lab/variants.py`), and fails on a peak or an edge. A cell
-judged with no surface handed in keeps plateau UNRUN (`verdict.UNRUN`).
+a plateau of its rule's variants (`lab/variants.py`), and fails on a peak or an edge. A rule
+tried as written, with no ranges, is handed UNRANGED: it has no settings to choose among, so
+plateau is NOT APPLICABLE to it, said so, never UNRUN (decision a). A cell judged with no
+surface handed in keeps plateau UNRUN (`verdict.UNRUN`).
 """
 
 from __future__ import annotations
@@ -76,6 +78,11 @@ class Surface:
     grid: Grid
     tried: Mapping[Setting, Verdict]
     own: Setting
+
+
+#: A rule with no ranges (`Spec.ranges`): no grid, nothing tried, so no plateau to be inside.
+UNRANGED = Surface((), {}, ())
+NOT_APPLICABLE = "NOT APPLICABLE: the rule is tried as written, with no settings to choose among"
 
 
 def judged(surface: Surface) -> tuple[Answer, str]:
