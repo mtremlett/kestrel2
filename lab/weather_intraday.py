@@ -115,7 +115,8 @@ def volatility(bars: Sequence[Candle]) -> dict[datetime, str]:
     _check_order(bars)
     named: dict[datetime, str] = {}
     held: dict[time, list[Decimal]] = {}
-    session, closes = None, []
+    session = None
+    closes: list[Decimal] = []
     today: list[tuple[time, Decimal]] = []
     for bar in bars:
         if bar.start.date() != session:
