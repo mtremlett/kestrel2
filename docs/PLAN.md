@@ -371,6 +371,16 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       but acting only once each passes REG-07; news for event awareness, never a signal until
       proven (REG-01, REG-07, STR-20)
 
+- [ ] **ONE DOOR FOR PRICES, bars** (his 22 Nov ~10:00, "paramount": every price is read from market_history.db or market_live.db alone): `lab/universe_parts.read` reads `bars.daily` of the history database,
+      keeping its rescale cut, never the `grid/store` CSV files (`store.read`, line 63), so the grid, sweep, batch,
+      transfer, montecarlo and the research refresh read the database; wire: the research refresh and the grid
+      job; gate: a contract test where a bar present only in a CSV is never read
+      {id: data-door-bars; files: lab/universe_parts.py, tests/unit/test_lab_universe*.py}
+- [ ] One door, one writer: `universe.nightly` and the Stooq files write into the history database through
+      `bars.writing`, never the CSV store; `store.read`, `faults`, `shelve` and the CSV half of `prepare` are
+      deleted with their tests; wire: the research refresh job; gate: the deleted names import nowhere
+      {id: data-door-writer; files: lab/universe.py, lab/universe_parts.py, lab/universe_history.py, desk/store.py, tests/unit/test_lab_universe*.py, tests/unit/test_store*.py; after: data-door-bars, money-door-slippage}
+
 ## Phase 2 — the money path, in simulation
 
 - [x] One strategy template; the five frozen daily strategies (his choice: five textbook
@@ -559,6 +569,15 @@ day's trading and reconciliation are built, and any broker can stand behind them
       after: money-watch, money-stranger, money-time-gaps,
       money-golden, money-story, money-honest}
 
+- [ ] **ONE DOOR FOR PRICES, slippage** (his 22 Nov ~10:00, "paramount": every price is read from market_history.db or market_live.db alone): `lab/slippage.py:104` reads `bars.daily(home / keeper.HOT, line)`,
+      not the `daily/*.csv` files nothing writes any more; wire: its study; gate: its contract test on a database fixture
+      {id: money-door-slippage; files: lab/slippage.py, tests/unit/test_lab_slippage*.py}
+- [ ] One door, the desk's pound: the day, its money, the book and SimCity take the rate from `keeper.pound`
+      (desk/day.py:201, 241, 274; day_money.py:23; book.py:318; simcitycmd.py:176; simcity_fills.py:111);
+      `rates.csv` stays an audit record and is never read as a source; wire: the trading day and SimCity;
+      gate: a test where `rates.csv` disagrees with the database and the database wins
+      {id: money-door-pound; files: desk/day.py, desk/day_money.py, desk/book.py, desk/simcitycmd.py, desk/simcity_fills.py, tests/unit/test_day*.py, tests/unit/test_book*.py, tests/unit/test_simcity*.py; after: paper-door-pound}
+
 ## Phase 3 — the money path, on paper
 
 Begun alongside phase 2 by his ruling of 13 November: "Five lanes, phase 3 now".
@@ -701,6 +720,12 @@ his PC with the desk's own client id (222), never 4001.
       {id: paper-extras; files: desk/messenger.py, tests/unit/test_messenger.py;
       after: paper-cards}
 
+- [ ] **ONE DOOR FOR PRICES, the command's pound** (his 22 Nov ~10:00, "paramount": every price is read from market_history.db or market_live.db alone): `command_parts.rates` asks `keeper.pound`, never
+      `rates.csv` first nor IBKR or the archive directly (desk/command_parts.py:36-64); conformance never falls back
+      to `archive.fetch` (conformance_parts.py:70); wire: running and the command; gate: a test with the broker and
+      archive stubbed to fail, the rate still read from the database
+      {id: paper-door-pound; files: desk/command_parts.py, desk/conformance_parts.py, tests/unit/test_command*.py, tests/unit/test_conformance*.py}
+
 ## Phase 4 — the ladder
 
 Runs now as two lanes, GRID and RUNGS, by his ruling of 13 November. `lab/` may use numpy
@@ -747,6 +772,11 @@ grid-tune and grid-key side by side; then grid-pass, grid-week, grid-declared, g
       kept as a transfer study, never a verdict; sweeps on the declared universe (LAD-01,
       LAD-13) {id: grid-declared; files: lab/sweep.py, tests/unit/test_lab_sweep.py}
 - [x] A full sweep within a weekend, its time measured (LAD-10). Remains: nothing; a cold transfer study took 17 min, the declared pass about 8 min, against 48 h {id: grid-weekend; files: *}
+
+- [ ] **ONE DOOR FOR PRICES, the transfer study's pound** (his 22 Nov ~10:00, "paramount": every price is read from market_history.db or market_live.db alone): `lab/transfer.py:170` passes
+      `history_bars.pounds(home)` to `ladder.rates`, never the archive; wire: the grid-transfer job; gate: its test
+      with the archive stubbed to fail
+      {id: grid-door-pound; files: lab/transfer.py, tests/unit/test_lab_transfer*.py; after: rungs-door-pound}
 
 ### The rungs lane's book
 
@@ -938,6 +968,12 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       (STR-18). Built: set LEV, six trend rules on the leveraged lines (#423). Remains: inverse
       leveraged lines, once a Line may state an inverse fund (R-RUNGS-21, R-RUNGS-22); a real run of LEV
       {id: rungs-leveraged; files: *; after: rungs-trustworthy; waits: R-RUNGS-21}
+
+- [ ] **ONE DOOR FOR PRICES, the ladder's pound** (his 22 Nov ~10:00, "paramount": every price is read from market_history.db or market_live.db alone): `ladder.rates` loses its `archive.fetch` default and the
+      `ladder/pound.jsonl` table (`rung.kept_closes`), so every caller passes `history_bars.pounds`; montecarlo's
+      pound and bars come from the database; wire: the ladder sets and montecarlo; gate: `ladder.rates()` with no
+      source fails loudly
+      {id: rungs-door-pound; files: lab/ladder.py, lab/rung.py, lab/montecarlo.py, tests/unit/test_lab_ladder*.py, tests/unit/test_lab_rung*.py, tests/unit/test_lab_montecarlo*.py}
 
 ## Phase 5 — the edge
 
