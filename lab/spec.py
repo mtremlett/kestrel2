@@ -83,19 +83,24 @@ def _case(n: int, raw: Any) -> Case:
 
 def _ranges(row: Mapping[str, Any], params: Mapping[str, Mapping[str, Any]]) -> Ranges:
     """A row's ranges as ((place, setting), values), each value held to its block; a range
-    off the row, of no values, or not rising (lowest first) is refused."""
+    off the row, of no values, or not rising (lowest first) is refused. Places joined by "+"
+    ("entry+exit") range one setting they share, moved together; their own values must agree."""
     made: dict[tuple[str, str], tuple[int | Decimal, ...]] = {}
     given = row.get("ranges", {})
     places = given.items() if isinstance(given, Mapping) else [("ranges", given)]
     for place, settings in places:
-        if place not in PLACES or not isinstance(settings, Mapping) or not settings:
+        spots = str(place).split("+")
+        alone = set(spots) <= set(PLACES) and len(set(spots)) == len(spots)
+        if not alone or not isinstance(settings, Mapping) or not settings:
             raise ValueError(f"spec {row['name']} ranges: {place!r} is no place with settings")
         for param, values in settings.items():
             where = f"spec {row['name']} {place} {param}"
-            if param not in params[place] or not isinstance(values, list) or not values:
+            if any(param not in params[s] for s in spots) or not isinstance(values, list):
                 raise ValueError(f"{where}: {values!r} is no list of values for a setting")
-            spot = BLOCKS[row[place]].params[param]
-            tried = tuple(_number(where, spot, v) for v in values)
+            if not values or len({params[s][param] for s in spots}) > 1:
+                raise ValueError(f"{where}: {values!r} is no list of values for one setting")
+            for spot in spots:
+                tried = tuple(_number(where, BLOCKS[row[spot]].params[param], v) for v in values)
             if any(low >= high for low, high in zip(tried, tried[1:], strict=False)):
                 raise ValueError(f"{where}: {values} is not lowest first, each value once")
             made[(place, param)] = tried
