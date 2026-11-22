@@ -74,6 +74,7 @@ def test_every_ranged_row_centres_on_a_plateau(name: str, monkeypatch: pytest.Mo
         {"bogus": {}},
         {"entry+entry": {"n": [10, 20]}},
         {"entry+stop": {"n": [10, 20]}},
+        {"entry": {"n": [10, 20]}, "entry+exit": {"n": [10, 20]}},
         5,
     ],
 )

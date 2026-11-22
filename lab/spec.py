@@ -86,6 +86,7 @@ def _ranges(row: Mapping[str, Any], params: Mapping[str, Mapping[str, Any]]) -> 
     off the row, of no values, or not rising (lowest first) is refused. Places joined by "+"
     ("entry+exit") range one setting they share, moved together; their own values must agree."""
     made: dict[tuple[str, str], tuple[int | Decimal, ...]] = {}
+    seen: set[tuple[str, str]] = set()  # each place's setting ranged once
     given = row.get("ranges", {})
     places = given.items() if isinstance(given, Mapping) else [("ranges", given)]
     for place, settings in places:
@@ -97,7 +98,9 @@ def _ranges(row: Mapping[str, Any], params: Mapping[str, Mapping[str, Any]]) -> 
             where = f"spec {row['name']} {place} {param}"
             if any(param not in params[s] for s in spots) or not isinstance(values, list):
                 raise ValueError(f"{where}: {values!r} is no list of values for a setting")
-            if not values or len({params[s][param] for s in spots}) > 1:
+            twice = any((s, param) in seen for s in spots)
+            seen.update((s, param) for s in spots)
+            if not values or twice or len({params[s][param] for s in spots}) > 1:
                 raise ValueError(f"{where}: {values!r} is no list of values for one setting")
             for spot in spots:
                 tried = tuple(_number(where, BLOCKS[row[spot]].params[param], v) for v in values)
