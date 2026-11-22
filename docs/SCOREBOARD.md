@@ -636,6 +636,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #766 R-RUNNER-285 soak folded into the tape (restructuring only). |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1370 grid-week not ticked; a failed cell now names the line that raised it, and the cause of the 2,810 failures is found (old code, new store). |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1487 R-RUNNER-362 variants swept as cells. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1555 R-DATA-61 done; grid-week cause traced to a stale clone (R-GRID-8). |
 
 ### RUNGS
 
