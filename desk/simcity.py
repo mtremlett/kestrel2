@@ -356,12 +356,10 @@ def _stops(life: _Life) -> None:
 
 def _apart(life: _Life, trips: tuple[book.RoundTrip, ...]) -> bool:
     """BIC-04: the trips' gross is their trading at the buy's rate plus the currency's move."""
-    money = {line.symbol: line.currency for line in life.market}
+    money, rate = {line.symbol: line.currency for line in life.market}, book.pounds_per(life.desk)
     traded = sum(
         (
-            -t.sell.quantity
-            * (t.sell.price - t.buy.price)
-            * book.rate(life.desk, money[t.buy.symbol], t.buy.day)
+            -t.sell.quantity * (t.sell.price - t.buy.price) * rate(money[t.buy.symbol], t.buy.day)
             for t in trips
         ),
         Decimal(0),

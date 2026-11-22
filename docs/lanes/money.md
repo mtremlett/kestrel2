@@ -763,3 +763,12 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 - Options: a second file for currency and interest, or columns appended after heat in records.csv. Took columns: one record per day. Older files (before heat, before these) read with blanks as None.
 - Currency is stored as pennies: closed-trade gain plus open-holding gain. Interest is idle-cash interest at RISK_FREE since the first fill. Each is None when no fill traded or a day's rate was never kept. Profit and golden days are unchanged.
 - money-connors7 held off MONEY and goes to RUNGS (his "always go with recommended"); MONEY goes to money-time-gaps.
+
+### 2026-11-22 - Liquidity cap landed alone (#1690, money-small)
+- Options: widen the claim (runner ops only) so the day feed and the five tests that build bars with volume 1 could land together; or land the sizer alone (taken, his "always go with recommended"). The cap is `None` until fed, so no desk path changes.
+- The day feed was taken out because it turned test_restop, test_running and test_running_tell red outside the claim; it returns with a card claiming them.
+- money-connors7 is held off MONEY and handed to RUNGS per the runner's ruling (R-MONEY-68).
+
+### 2026-11-22 - Decision chain written before the send (#1716, money-story)
+- Options: rewrite the chain file in place after the answer; wrap the send in a try/except (refused by canon A2); write a pending row first and append a second row on the answer (taken). `book.chains` gives the last row per order id.
+- money-connors7 held off MONEY and handed to RUNGS per his standing "always go with recommended"; no file of this change touched it.

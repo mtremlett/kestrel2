@@ -737,5 +737,26 @@ EODHD answers plain JSON; rotation by day ordinal audits all 13 London lines in 
 ### 2026-11-22 — note files chosen from each box's subject (DATA, #1623, #1649)
 Files and ordering for the unnoted boxes chosen from each box's subject and wiring; boxes needing deletion or new spend are marked waits: operator.
 
+### 2026-11-22 — alarm wired into the monitor, state kept, sending left to the runner (DATA, #1658, #1689)
+Options: a new alarm path vs reading the existing `archive.alert` in `quality.monitor`; chosen the second (one home per rule). Hover state lives in KESTREL2_DATA, replaced whole; sending from desk code rejected because the runner owns Telegram (one client per external system).
+
+### 2026-11-22 — collector: BLS by GET, EIA starts with WTI, earnings CSV deferred (DATA, #1712, #1728)
+BLS through its GET endpoint with the key (option: POST body; GET keeps one asking path). EIA limited to WTI spot first (a series is one tuple). Alpha Vantage earnings come as CSV: bend the one reader or add a separate source kind; recommended the second, left for a later step.
+
+### 2026-11-22 — survivorship measured on Members, no new module (DATA, #1715)
+`Members.survived` is a property of the existing class (fewest lines). data-members box not ticked: FTSE 350 and the funds are still owed.
+
+### 2026-11-22 — register is a report, not a red (DATA, #1699)
+Options: (a) red when a newest bar came from a replacement, rejected: the archive filling a gap is the design working, red would be noise; (b) report only, chosen.
+
 ### 2026-11-22 — one price reader; breadth kept, moved (data-door-bars, non-lane PR)
 Options: (a) delete `breadth` with the CSV reader, as the box said; (b) keep it, read through the door. Chose (b): R-RUNGS-32 owes it a caller, and moving it costs no new code. A line the database lacks raises FileNotFoundError, as a missing CSV did, so the ladder counts the cell as failed (`ladder.FAILED`; widening FAILED to LookupError would swallow KeyError bugs; blind review finding), and breadth leaves such a line out, as before.
+
+### 2026-11-22 — span table and alarm line; the runner sends (DATA, #1736)
+Options: a Telegram client in `desk/quality.py` (rejected: outside the claim, one client per external system) vs printing `ALARM <message>` and the `table` text for the runner to send (chosen). Supersedes #1689's `SEND:` wording.
+
+### 2026-11-22 — survivorship bias stated, not full point-in-time lists (DATA, #1750)
+Options: full past lists for FTSE 350 (no record exists) vs measuring and stating the bias per verdict (chosen, his standing ruling to take the recommended). `lab.members.bias` builds the line; verdict writers in RUNGS must print it (R-DATA-68).
+
+### 2026-11-22 — BEA added, earnings CSV left to a later card (DATA, #1752)
+Options: a CSV parse hook in the collector now vs a later card (chosen, smallest green step). Collector at 11 sources.

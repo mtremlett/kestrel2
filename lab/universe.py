@@ -24,7 +24,9 @@ from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
 
-from desk import archive, bars, store, venues
+from desk import archive, bars, store
+from desk import bars as database
+from desk.bars import Source
 from desk.lines import LINES, NO_TAX, STAMP_DUTY, Line
 from desk.store import Bar, Fault, Parked
 from lab import universe_history
@@ -171,56 +173,63 @@ def keep_reference(
     }
 
 
+def _older(path: Path, line: Line) -> tuple[Bar, ...]:
+    """The bars the database holds for the line, to stand under the archive's: a day the
+    archive no longer gives, or never did, keeps the bar it entered with."""
+    try:
+        return database.daily(path, line)
+    except (LookupError, FileNotFoundError):
+        return ()
+
+
 def keep(
-    root: Path,
+    path: Path,
     day: date,
     lines: Iterable[Line] = UNIVERSE,
     ask: Callable[[Line, date], tuple[Bar, ...]] = archive.fetch,
+    second: Callable[[Line, date], tuple[Bar, ...]] | None = None,
 ) -> dict[Line, Parked]:
-    """Fetch each ticker's bars before day and clean them into the research store at root, in
-    its venue's folder: one ticker at a time, so the whole list is never held at once. A
-    ticker whose bars hold a fault the store parks for is parked with its reason, its sound
-    bars kept; one the archive refuses today keeps no bars, as in the desk's own store, so
-    none from an earlier day is read as today's. The rest carry on."""
+    """Fetch each ticker's bars before day, judge them by the one store's checks and let the
+    sound ones into the history database at path through its one writer, one ticker at a time,
+    so the whole list is never held at once. A day only the second source gives enters under
+    its own source. A ticker whose bars hold a fault the store parks for is parked with its
+    reason, its sound bars kept; one the archive refuses today adds nothing, so none from an
+    earlier day is read as today's. The rest carry on."""
     parked: dict[Line, Parked] = {}
     for line in lines:
-        for found in store.prepare(root / line.venue, archive.gather([line], day, ask), day):
-            parked[line] = found
+        answer = archive.gather([line], day, ask)[line]
+        given = set() if isinstance(answer, store.Refused) else {bar.day for bar in answer}
+        shelf = _older(path, line) if second is None else second(line, day)
+        under = [bar for bar in shelf if bar.day not in given]
+        kept, _, park = store.judge(line, answer, day, shelf=under)
+        lower = [bar for bar in kept if bar.day not in given]
+        universe_history.fill(path, line, Source.MATRIX_DAILY, lower)
+        universe_history.fill(path, line, Source.ARCHIVE, (b for b in kept if b.day in given))
+        if park:
+            parked[line] = park
     return parked
 
 
-def _held(root: Path, line: Line) -> int:
-    """How many bars the store holds for the line; none before its first file."""
-    try:
-        return len(store.read(root / line.venue, line.symbol))
-    except FileNotFoundError:
-        return 0
-
-
-def _lost(root: Path, line: Line) -> tuple[date, ...]:
-    """The sessions between a line's first and last bar that the store holds no bar for."""
-    held = {bar.day for bar in store.read(root / line.venue, line.symbol)}
-    if not held:
-        return ()
-    return tuple(d for d in venues.sessions(line.venue, min(held), max(held)) if d not in held)
+def _held(path: Path, line: Line) -> int:
+    """How many bars the database holds for the line; none before its first."""
+    return len(_older(path, line))
 
 
 def _mended(
-    root: Path,
+    path: Path,
     day: date,
     line: Line,
     ask: Callable[[Line, date], tuple[Bar, ...]],
     second: Callable[[Line, date], tuple[Bar, ...]] | None,
 ) -> tuple[int, str]:
     """Keep a line; if it is a yardstick missing sessions, name them, and with a second source
-    fill them through the store's one writer (shelved, so every later refresh joins them too)
-    and keep again. Returns the lines parked, and the days that stayed missing, named."""
-    parked = len(keep(root, day, [line], ask))
-    lost = _lost(root, line) if line in YARDSTICKS else ()
+    fill them (they enter the database, so every later refresh finds them held) and keep
+    again. Returns the lines parked, and the days that stayed missing, named."""
+    parked = len(keep(path, day, [line], ask))
+    lost = universe_history.missing(path, line, day) if line in YARDSTICKS else ()
     if lost and second is not None:
-        store.shelve(root / line.venue, line, second(line, day))
-        parked = len(keep(root, day, [line], ask))
-        lost = _lost(root, line)
+        parked = len(keep(path, day, [line], ask, second))
+        lost = universe_history.missing(path, line, day)
     return (
         parked,
         f"; yardstick {line.symbol} has no bar on {', '.join(map(str, lost))}" if lost else "",
@@ -228,29 +237,25 @@ def _mended(
 
 
 def refresh(
-    root: Path,
+    path: Path,
     day: date,
     lines: Iterable[Line] = UNIVERSE,
     ask: Callable[[Line, date], tuple[Bar, ...]] = archive.fetch,
     second: Callable[[Line, date], tuple[Bar, ...]] | None = None,
-    history: Path | None = None,
 ) -> str:
-    """Keep each line through the one store writer, one at a time (a line's file is complete
-    before the next is asked for, so a stopped run resumes by running again), and say what
-    it did: lines refreshed, bars added (a line's gain on what it held; a bar is never
-    invented, so a day's second run adds none) and lines parked. A yardstick with a missing
-    session is a named data fault, filled from the second source when one is given. Given the
-    history database's path, each line's bars enter it too, under their source."""
+    """Keep each line into the history database at path through the one writer, one at a time
+    (a stopped run resumes by running again), and say what it did: lines refreshed, bars added
+    (a line's gain on what it held; a bar is never invented or restated, so a day's second run
+    adds none) and lines parked. A yardstick with a missing session is a named data fault,
+    filled from the second source when one is given."""
     refreshed = added = parked = 0
     faults = ""
     for line in lines:
-        before = _held(root, line)
-        more, note = _mended(root, day, line, ask, second)
+        before = _held(path, line)
+        more, note = _mended(path, day, line, ask, second)
         parked += more
-        if history is not None:
-            universe_history.enter(root, history, line)
         faults += note
-        added += max(0, _held(root, line) - before)
+        added += max(0, _held(path, line) - before)
         refreshed += 1
     done = f"{refreshed} lines refreshed, {added} bars added, {parked} parked"
     return f"research refresh: {done}{faults}"
@@ -259,52 +264,35 @@ def refresh(
 LISTS = {"sp500": SP500, "nasdaq100": NASDAQ100, "ftse350": FTSE350, "funds": ETFS}
 
 
-def _cleared(home: Path, lines: Iterable[Line]) -> list[str]:
-    """Delete the store files (and shelved ones) of every ticker no longer in lines, in a venue
-    folder of the list; name them, venue first."""
-    keep = {(line.venue, line.symbol) for line in lines}
-    gone = []
-    for venue in sorted({line.venue for line in UNIVERSE}):
-        folder = home / venue
-        for path in sorted([*folder.glob("*.csv"), *(folder / store.HISTORY).glob("*.csv")]):
-            symbol = path.name.removesuffix(".csv")
-            if (venue, symbol) not in keep:
-                path.unlink()
-                gone.append(f"{venue}:{symbol}")
-    return gone
-
-
 def nightly(
     data: Path,
     day: date,
     lines: Sequence[Line] = UNIVERSE,
     ask: Callable[[Line, date], tuple[Bar, ...]] = archive.fetch,
     second: Callable[[Line, date], tuple[Bar, ...]] | None = None,
+    noon: Callable[[Path], str] | None = None,
 ) -> str:
-    """The night's work on the research store's home, data/grid/store: refresh every line (into
-    the history database too), clear out any ticker that has left the list, and write
-    REFLECTS.txt beside the venue folders: the day, each list's size and a fingerprint of the
-    tickers, so a reader knows which day and which list the store reflects."""
+    """The night's work: refresh every line into the history database under data, and write
+    REFLECTS.txt in data/grid/store: the day, each list's size and a fingerprint of the
+    tickers, so a reader knows which day and which list the database reflects. Given `noon`, the
+    pound's noon rates are let in last, and its one line is said."""
     home = data / "grid" / "store"
-    said = refresh(home, day, lines, ask, second, data / bars.LIVE)
-    gone = _cleared(home, lines)
+    said = refresh(data / bars.LIVE, day, lines, ask, second)
     names = sorted(f"{line.venue}:{line.symbol}" for line in lines)
     finger = hashlib.sha256(" ".join(names).encode()).hexdigest()[:12]
     sizes = " ".join(f"{name}={len(found)}" for name, found in LISTS.items())
     held = (f"day {day}", f"lines {len(names)} {sizes}", f"fingerprint {finger}")
-    note = chr(10).join((*held, f"cleared {' '.join(gone)}", ""))
-    (home / "REFLECTS.txt").write_text(note, encoding="utf-8")
-    return f"{said}; {len(gone)} cleared out"
+    home.mkdir(parents=True, exist_ok=True)
+    (home / "REFLECTS.txt").write_text(chr(10).join((*held, "")), encoding="utf-8")
+    return f"{said}; {noon(data / bars.LIVE)}" if noon else said
 
 
 def import_history(data: Path, day: date) -> str:
-    """The whole research store and the ladder's pound table under data, let into the history
-    database there; the yardsticks' missing sessions are named."""
+    """The ladder's pound table under data, let into the history database there; the
+    yardsticks' missing sessions are named."""
     return universe_history.run(
-        data / "grid" / "store",
         data / bars.LIVE,
         data / "ladder" / "pound.jsonl",
-        UNIVERSE,
         (*YARDSTICKS, *REFERENCE),
         day,
     )
@@ -317,11 +305,9 @@ if __name__ == "__main__":
         sys.stdout.write(import_history(DATA, TODAY) + chr(10))
     elif sys.argv[1:2] == ["nightly"]:
         other = matrix(Path(sys.argv[2])) if len(sys.argv) > 2 else None
-        sys.stdout.write(nightly(DATA, TODAY, second=other) + chr(10))
+        sys.stdout.write(nightly(DATA, TODAY, second=other, noon=universe_history.noon) + chr(10))
     elif sys.argv[1:] == ["noon"]:
         sys.stdout.write(universe_history.noon(DATA / bars.LIVE) + chr(10))
     else:
         other = matrix(Path(sys.argv[2])) if len(sys.argv) > 2 else None
-        sys.stdout.write(
-            refresh(Path(sys.argv[1]), TODAY, second=other, history=DATA / bars.LIVE) + chr(10)
-        )
+        sys.stdout.write(refresh(Path(sys.argv[1]), TODAY, second=other) + chr(10))
