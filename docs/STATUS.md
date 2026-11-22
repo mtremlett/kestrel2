@@ -186,7 +186,7 @@ Intraday round built (#1371, `running._intraday`, `Desk.rules` empty); its buy n
 ## DATA
 ### Where it is (17 November 2026, folds #217-#770)
 Twenty traded lines (SPY, QQQ reference series, #455, #544); one archive client, spared (#637-#732), its six-hour `alert`
-(#671); calendars 1993-2030; daily asks back to 2000 (`archive.SINCE`, #691); two databases (#442, #510), broker first
+(#671, read by the quality monitor, RED on an outage, #1658; open: a register of each line's newest-bar source and the twenty lines against the broker's price of record, DAT-07); calendars 1993-2030; daily asks back to 2000 (`archive.SINCE`, #691); two databases (#442, #510), broker first
 (#521); the pound from 1993 (#614). Keeper: `--live`, five-minute rounds, `--roll`, receipts, `parked_live` (#530-#701);
 keeper and history-pull bars keep the line's currency (#719, #725); backfill; old stores in (#238-#566). Six London lines
 clean (#222-#702); an untraded bar gives way to a traded one (#721). Keeper asks IBKR first for every line, a disagreement over 2% recorded not parked (#751); gaps bridged from

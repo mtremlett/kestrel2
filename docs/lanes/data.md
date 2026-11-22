@@ -736,3 +736,6 @@ EODHD answers plain JSON; rotation by day ordinal audits all 13 London lines in 
 
 ### 2026-11-22 — note files chosen from each box's subject (DATA, #1623, #1649)
 Files and ordering for the unnoted boxes chosen from each box's subject and wiring; boxes needing deletion or new spend are marked waits: operator.
+
+### 2026-11-22 — the quality monitor reads the archive alarm (DATA, #1658, DAT-08, DQ-03)
+Options: wire the existing `archive.alert` (six hours of refusals) into `quality.monitor` (chosen: one home per rule), or add a second alarm path. The nightly line is RED and names the outage. Remains: a register of each line's newest-bar source by rank, and the twenty lines checked against the broker's price of record once PAPER connects (DAT-07).
