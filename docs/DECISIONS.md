@@ -2184,3 +2184,19 @@ Guard proven (A7): in a scratch clone, on a `lane/money-...` branch changing
 `desk/orders.py` with `KESTREL_CLAIM='*'`: no `.claim` passed; `.claim` naming
 `desk/day.py` made `test_a_lane_changes_only_what_it_claimed` fail; `.claim` naming
 `desk/orders.py` passed. On main's guard all three passed (the hole).
+
+## 22 Nov - the rulebooks rewritten so seats, cards and memory are rules with checks, and the failure patterns capped
+
+His order in chat (Sun 22 Nov ~12:00): an independent (Fable) review of CLAUDE.md, CANON.md and the
+notes' LESSONS.md, then best-in-class versions that stop doom loops, bloat and sprawl and keep work as
+code, not prose. The review found the canon governed lanes only while every recent failure was in the
+seats; four progress numbers (scenes, cards, boxes, commits); CLAUDE.md's false "a guard is owed";
+self-approved loosening of guards against his hard lines; and FAILURE_PATTERNS.md imported into every
+session with no cap. Changes: CANON.md gains Part C (seats, cards and memory: every rule names its check
+or is marked OWED), A6 Ready holds a card to ten minutes with its exact files and failing test, A8 decides
+by rule and absorbs A9; CLAUDE.md names one outcome number (plan boxes ticked on main per 24 h), the seats,
+the 70% handover, IBKR first for prices, and makes loosening a guard his alone, default no. No rule was
+dropped to make room: each was merged or moved (A7's story is failure pattern 1).
+
+The failure patterns are capped at today's 221 lines, down-only (a tightening). Guard proven (A7):
+with the cap at 220, `test_the_rulebooks_stay_short` failed; at 221 it passed.
