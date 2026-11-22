@@ -204,7 +204,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       repository); a matching rule for adjusted against as-traded closes, a new module not on its list (headstart.py
       is at 400 lines); the research list's bars
       Settled (coordinator 54, 22 Nov: not his: the catalog_v2 tag is runner-side notes work; the matching rule is a new lab module registered in manifest.toml inside the lab/ ceiling; the research list's bars come from the keeper)
-      {id: data-headstart; files: lab/headstart.py, tests/unit/test_lab_headstart.py, desk/bars.py, tests/unit/test_bars*.py, manifest.toml}
+      {id: data-headstart; files: lab/headstart.py, tests/unit/test_lab_headstart.py, desk/bars.py, tests/unit/test_bars*.py, manifest.toml; waits: operator}
 - [x] The archive spared: fetching slow and resumable, with backoff, each raw answer cached
       in the folder `KESTREL2_DATA` names (outside the repository and every worktree); while
       the archive refuses, `{"refusing_since": <time>}` written to `KESTREL2_DATA/archive.json`
@@ -743,9 +743,9 @@ his PC with the desk's own client id (222), never 4001.
       health judged from outside by dated receipts, surviving a reboot, a dropped network
       and a broker disconnect; a ledger of operator actions proving seven days without one,
       bar the ruled Gateway re-login (OPS-01, OPS-02, OPS-04, OPS-10, NS-01)
-      Remains: the step is the first registered job (#490) and `python -m desk.supervisor tell` sends what health finds (#499). Still to do: the kill drill on the real step, seven days counted, the overnight-window question (the Gateway's 03:00 restart shows as bad receipts). Windows starting the supervisor is its own box below, which waits on him (coordinator 54, 22 Nov: a new Windows task is persistent config on his machine; the rest is not his)
+      Remains: the step is the first registered job (#490) and `python -m desk.supervisor tell` sends what health finds (#499). The hours (05:30-22:00 UTC) and the 03:00 restart window are done (#1631, #1639). Still to do: the kill drill on the real step, seven days counted (time, not code). Windows starting the supervisor is its own box below, which waits on him (coordinator 54, 22 Nov: a new Windows task is persistent config on his machine; the rest is not his)
       {id: paper-supervised; files: desk/supervisor.py, tests/unit/test_supervisor.py,
-      manifest.toml; after: paper-running}
+      manifest.toml; after: paper-running; waits: 2026-11-29}
 - [ ] Windows starts the supervisor and `tell` at boot: a new Windows task on his PC (his yes in chat, Sun 22 Nov 09:5x: "Yes, add it")
       {id: paper-supervisor-windows; files: desk/supervisor.py, tests/unit/test_supervisor.py;
       after: paper-supervised}
@@ -757,7 +757,7 @@ his PC with the desk's own client id (222), never 4001.
       trading" by 09:30 UK; urgency levels without storms; one messenger with a delivery
       record, the merge line and the runner's alerts behind the same door (MSG-02, MSG-03,
       MSG-04, MSG-09, MSG-11)
-      Remains: hourly P&L (#471, #492), the kill and halt line (#502) and the email fallback (#484, wired into the step in #1309; the runner must hand SMTP_*, a preflight line is owed) landed; desk/messenger.py is at its 400-line limit and desk/ has 92 of 10,500 lines left, so the new messages are a fold inside the desk/ ceiling: shrink or merge messenger code first, as split-desk-keeper did, never a ceiling raise (coordinator 54, 22 Nov: re-carded so it is not blocked; a raise would be his). The evening message now names each lost stop (#805); messenger split to 349 lines (#782)
+      Remains: hourly P&L (#471, #492), the kill and halt line (#502) and the email fallback (#484, wired into the step in #1309; the runner must hand SMTP_*, a preflight line is owed) landed; desk/messenger.py is at its 400-line limit and desk/ has 92 of 10,500 lines left, so the new messages are a fold inside the desk/ ceiling: shrink or merge messenger code first, as split-desk-keeper did, never a ceiling raise (coordinator 54, 22 Nov: re-carded so it is not blocked; a raise would be his). The daily messages end the last-day lines with the verdict and streak (#1636, MSG-03); still owed: the 05:40 start-of-day card, "the desk is not trading" by 09:30 UK, the SMTP preflight line, a streak-above-0 test (shrink messenger.py, 411 lines, first). The evening message now names each lost stop (#805); messenger split to 349 lines (#782)
       {id: paper-cards; files: desk/messenger.py,
       tests/unit/test_messenger.py; after: paper-messages, paper-running}
 - [x] FIRST-LIGHT counted by the desk itself: ten consecutive clean days, and a day that
@@ -906,7 +906,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       curve at three effect sizes, a broken copy of the rung caught, and each defect the old
       audit found kept as a case that must fail (LAD-09, LAD-03, LAD-08). Built: all eleven
       modules, each proven alone (#343-#365, #412). Remains: the Sharpe a trade has one home (#746); the ladder judges by three of them
-      (costs #438, ci #440, cpcv #445 declare a RUNG; "rungs built" counts 3 of 11; regimes #1165 now declares one too; rungs 7, 10, 11, 12 still undeclared or gate-less); wiring the rest, the clustered
+      (costs #438, ci #440, cpcv #445 declare a RUNG; "rungs built" counts 4 of 12 (the map names twelve, each row marked built or `no RUNG`, #1625); regimes #1165 now declares one too; rungs 7, 10, 11, 12 still undeclared or gate-less); wiring the rest, the clustered
       trials (#379 built) into the verdict, the gap-through loss (R-RUNNER-187 declined, #409). Also remains (R-RUNNER-191): market.fit, rung_dsr.chance vs deflated._deflated, rung_regimes/rung_bootstrap bands (rung_ci keeps its own, open at both ends, #815; rung_benchmark reads rung.mean_and_error, #827; one home for a mean and its interval, rung.interval, #838; rung_dsr's wrapper of the paper's formula gone, #848); Fold/Walked out of rung_folds.py (R-RUNNER-191 part b, blocked on R-RUNGS-29; part a, the golden ladder verdict test, #919); ease-switch-on done (R-RUNGS-30 #942; EASED = True, golden verdicts re-pinned, #993); the ladder pool yields memory (#1082); EASED tests pinned per test, registry strict again (#1124); the key carries the capital (#1201); rung 5 regimes declares its RUNG (#1165); `Candidate` refuses any unrun rung (#1256); the scorecard rule is named constants in lab/verdict.py, not yet wired into judge() (#1411); the results file is compacted by `Kept.compact()` in `door` (#1420); rung 4's judge `banded` lives in lab/market.py, lab/rung_beta.py is an empty docstring awaiting deletion by the coordinator, the map counts rungs built at 5 (#1425). Built since: a cell's key carries its own rule's code, so an edit re-judges only that rule (#912); the retail rung stands in a basket row behind EASED (#927, map row 12; remains: `ladder_sets.baskets()` passing `against=` to `basket.row`, R-RUNGS-30)
       {id: rungs-trustworthy; files: *; after: rungs-beta}
 - [ ] **LADDER READY, the cards (his ruling, 15 November: "done properly and to elite desk
@@ -916,7 +916,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         keyed by the tape and that rung's own code. Changing a rung re-simulates nothing.
         Built: one tape per (rule, line) cut by date (#337, #378), compressed (#555), rates priced after it (#398)
         {id: rungs-tape-cache; files: lab/tape.py, tests/unit/test_lab_tape.py}
-  - [ ] L2 THE RUNG MAP: each of the eleven rungs above named to its module and test, built
+  - [x] L2 THE RUNG MAP: each of the eleven rungs above named to its module and test, built
         or not, in `lab/ladder.py`'s docstring; the later cards follow it
         {id: rungs-rung-map; files: lab/ladder.py, tests/unit/test_lab_ladder_map.py; after: rungs-tape-cache}
   - [ ] L3-L13 ONE CARD PER RUNG, built or proven to one standard, one module each so they
@@ -932,7 +932,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
   - [ ] L15 the blind review of the whole ladder (R-RUNNER-40), every blocking finding fixed
         {id: rungs-blind-review; files: lab/ladder*.py, tests/unit/test_lab_ladder*.py; after: rungs-each-rung, rungs-clustered-trials}
   - [ ] L16 the gate: the runner runs the catalogue 24x7, each change re-running only its
-        own specs, each set's table published with "rungs built: n of 11"
+        own specs, each set's table published with "rungs built: n of 12"
         {id: rungs-gate; files: lab/ladder_sets.py, lab/ladder_pool.py, tests/unit/test_lab_ladder_pool.py; after: rungs-blind-review}
   - [ ] L17 A PASS CAN EXIST: `verdict.UNRUN` names plateau on every cell and `goes()` needs no rung unrun, so
         no cell could ever go forward (blind review 22 Nov 09:2x). Plateau judged on each rule's B5 variants
@@ -963,7 +963,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
 - [ ] **STRATEGIES AS DATA (his goal: 1,000+ strategies over 1,000+ tickers):**
   - [ ] B1 building blocks written once, each known-answer tested: indicators, entries,
         exits, stops, filters (regime filters among them), sizing. Built: every block has its
-        known answer (#396). Remains: sizing blocks, once the volatility-sizing research settles their form
+        known answer (#396). Built: the sizing block `VolatilitySize(n)`, by the desk's own `desk.risk.volatility` (#1637). Remains: register it (a SIZE kind in lab/block_base.py, `volatility_size` in `BLOCKS`, the spec and simulator reading it; the claim must widen to those files; manifest line for lab/blocks.py to name sizing). Was: sizing blocks, once the volatility-sizing research settles their form
         (coordinator 54, 22 Nov: a research wait, not his: the volatility-sizing contest table is written, R-RUNNER-205, #1481; the session reads it to settle the sizing blocks' form)
         {id: rungs-blocks; files: lab/blocks.py, tests/unit/test_lab_blocks.py}
   - [ ] B2 a typed Spec, validated on entry: an unknown block or a bad setting is refused
@@ -975,7 +975,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
   - [ ] B4 the nineteen eponymous rules as rows, identical trades on the fixture proven,
         then their Python files deleted. Built: 20 of 21 in the catalogue (#873); Zweig waits on breadth data
         {id: rungs-rows-as-rules; files: lab/catalogue.toml, desk/eponymous_*.py, tests/unit/test_eponymous_*.py, tests/unit/test_lab_catalogue*.py; after: rungs-spec}
-  - [ ] B5 variants generated from a row's setting ranges, every one counted as a trial. Built: `lab/variants.py` (#364) makes every combination and counts trials; one home after #1307/#1315; a repeated value in a range is refused (#1321). Rows with ranges: Donchian 3x4 (#1459), RSI-2 3x3 (#1469), Williams %R 3x3 (#1473), Keltner 3x3 (#1489), Connors three-day 3x3 (#1496), Connors %b 3x3x3 (#1503; first row ranging two settings in one place), Turtle Soup 3x3 (#1521), Jegadeesh 3x3 (#1529), Zanger (#1527), Bollinger squeeze 3x3 (#1538), Kell 3x3 (#1543), Donchian fade 3x3 (#1546), Minervini 3x3 (#1551), Clenow 3x3 (#1564), Weinstein ago 3x1 (#1570), Mansfield 3x3 (#1578), Faber and dual momentum 3x3 each (#1587, joined key `entry+exit` in #1574), Zweig's hold 115/230/345 (#1595), Darvas's box sessions 2/3/4 (#1604), DeMark's setup length 7/9/11 (#1615); a row's name may not carry `[` (#1591); set VAR enters all 84 variants as trials before any run (#1535); a rule's variants count in its trials family (#1507), validated on entry by `Spec.parse`; a test holds each to the plateau's rules with the published setting at the centre. Remains: judging the variants through the grid chain (GC; needs R-RUNGS-33, `lab/rulebook.rule` resolving a variant's name; settle one trial name per judged variant); entering the new rows' variants in the register from a caller; every row with a setting is ranged (Weinstein's shared 150-day lookback is deliberately not ranged); fast and desk engines disagree on `clenow_momentum[entry.n=60,exit.n=50]` (bar 830), so hold every variant to parity, quicker than 80 s, before judging through the fast grid
+  - [ ] B5 variants generated from a row's setting ranges, every one counted as a trial. Built: `lab/variants.py` (#364) makes every combination and counts trials; one home after #1307/#1315; a repeated value in a range is refused (#1321). Rows with ranges: Donchian 3x4 (#1459), RSI-2 3x3 (#1469), Williams %R 3x3 (#1473), Keltner 3x3 (#1489), Connors three-day 3x3 (#1496), Connors %b 3x3x3 (#1503; first row ranging two settings in one place), Turtle Soup 3x3 (#1521), Jegadeesh 3x3 (#1529), Zanger (#1527), Bollinger squeeze 3x3 (#1538), Kell 3x3 (#1543), Donchian fade 3x3 (#1546), Minervini 3x3 (#1551), Clenow 3x3 (#1564), Weinstein ago 3x1 (#1570), Mansfield 3x3 (#1578), Faber and dual momentum 3x3 each (#1587, joined key `entry+exit` in #1574), Zweig's hold 115/230/345 (#1595), Darvas's box sessions 2/3/4 (#1604), DeMark's setup length 7/9/11 (#1615); a row's name may not carry `[` (#1591); set VAR enters all 84 variants as trials before any run (#1535); a rule's variants count in its trials family (#1507), validated on entry by `Spec.parse`; a test holds each to the plateau's rules with the published setting at the centre. `lab/variants.py` reads `lab.spec` alone (#1620), so R-RUNGS-33 is unblocked for GRID. Remains: judging the variants through the grid chain (GC; needs R-RUNGS-33, `lab/rulebook.rule` resolving a variant's name; settle one trial name per judged variant); entering the new rows' variants in the register from a caller; every row with a setting is ranged (Weinstein's shared 150-day lookback is deliberately not ranged); fast and desk engines disagree on `clenow_momentum[entry.n=60,exit.n=50]` (bar 830), so hold every variant to parity, quicker than 80 s, before judging through the fast grid
         {id: rungs-b5; files: lab/spec.py, lab/variants.py, lab/catalogue.toml, tests/unit/test_lab_variants.py; waits: R-RUNGS-33}
   - [ ] B6 the old desk's families listed and entered as sets of rows marked QUARRY, their
         cases derived by hand, never from the old desk's numbers
@@ -988,9 +988,8 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         {id: rungs-grid-chain; files: lab/ladder_sets.py, lab/ladder_pool.py, tests/unit/test_lab_ladder_pool.py; after: rungs-gate, rungs-b5}
 - [ ] Each indicator known-answer tested against a published reference series (STR-14).
       Built: moving average, Bollinger deviation, Wilder smoothing (#145); true range, RSI gains
-      and losses, channel (#154): five tables, 250 printed numbers. Remains: RSI ratio and band
-      line (public since #185: strategy.rsi, strategy.lower_band; R-RUNGS-6, 12 done), carried band, a fresh-low table, each table run holding, tables
-      moved to own module (file at its 400 cap). Settled (coordinator 54, 22 Nov: no spend: the published worked examples come from the books already held locally, kestrel2_research/grimes/book_text, as fixtures)
+      and losses, channel (#154): five tables, 250 printed numbers; the tables now in lab/published_tables.py and the RSI held to cs-rsi.xls's 19 printed rows (#1640). Remains: the band
+      line (strategy.lower_band, against a printed lower-band column), Supertrend's carried band, a fresh-low table, each table run while a rule is holding. Settled (coordinator 54, 22 Nov: no spend: the published worked examples come from the books already held locally, kestrel2_research/grimes/book_text, as fixtures)
       {id: rungs-indicators; files: lab/published.py, lab/published_tables.py, manifest.toml,
       tests/unit/test_lab_published*.py}
 - [ ] Before paper: a kill condition declared for each strategy; promotion only after at
@@ -998,7 +997,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       `lab/promotion.py` (#127). Remains: the desk reads it (R-RUNGS-7, MONEY's, open); each candidate's
       kill numbers need a ladder-passed candidate (#413)
       {id: rungs-promotion; files: lab/promotion.py, tests/unit/test_lab_promotion.py;
-      after: rungs-trustworthy; waits: R-RUNGS-7}
+      waits: R-RUNGS-7}
 - [ ] At least three ladder-passed strategies and a feasibility number before A-GATE paper
       (NS-04). Built: `lab/feasibility.py` (#415); ticking needs three real rules through the ladder (#416),
       which comes from rungs-eponymous (coordinator 54, 22 Nov: its wait was a placeholder; 'after: rungs-eponymous' holds it)

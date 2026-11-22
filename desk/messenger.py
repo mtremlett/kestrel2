@@ -34,7 +34,7 @@ from urllib.error import HTTPError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
-from desk import book, clearance, day, gateway, halt, kill, pnl, venues
+from desk import book, clearance, day, gateway, halt, kill, pnl, streak, venues
 from desk.gateway import Known
 from desk.halt import Blocker
 from desk.lines import LINES
@@ -222,8 +222,7 @@ def _state(root: Path) -> str:
             f"{_made('Book', last.profit)} after £{last.costs.total:,.2f} costs\n"
             f"{_made('Holding the market', last.market)}"
         )
-    run = next((i for i, r in enumerate(reversed(kept)) if not r.counts), len(kept))
-    verdict = f"counts · streak {run}" if last.counts else f"does not count · streak {run}"
+    verdict = f"{'counts' if last.counts else 'does not count'} · {streak.count(kept).says()}"
     return f"{now}\n📅 Last day on record {last.day:%a %d %b}{since}\n{told}\n🏁 Verdict: {verdict}"
 
 

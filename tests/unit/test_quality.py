@@ -169,6 +169,15 @@ def test_a_drive_with_under_a_tenth_free_turns_the_monitor_red(tmp_path: Path, m
         assert ("disk: 5% free" in said) is red
 
 
+def test_an_archive_refusing_for_six_hours_turns_the_monitor_red(tmp_path: Path) -> None:
+    path = seeded(tmp_path, set())
+    state = tmp_path / "archive.json"
+    for since, red in ((NOW - timedelta(hours=7), True), (NOW - timedelta(hours=1), False)):
+        state.write_text(f'{{"refusing_since": "{since.isoformat()}"}}', "utf-8")
+        said = quality.monitor(path, [SPY], refuse, refuse, NOW)
+        assert ("the price archive has refused every ask since" in said) is red
+
+
 def _minutes(day: date, price: Decimal) -> list[Timed]:
     """Ten one-minute bars from the session's open."""
     open_ = venues.hours(SPY.venue, day).open
@@ -191,3 +200,45 @@ def test_thin_five_minute_sessions_are_built_from_one_minute_bars(tmp_path: Path
         held.timed(SPY, "1m", odd)
         held.five(SPY, [Five(odd[0].start, price, price + 7, price - 1, price, 25)])
     assert "rolled and held differ" in quality.monitor(path, [SPY], refuse, refuse, NOW)
+
+
+def test_hover_judges_every_span_and_the_alarm_tells_only_of_change(tmp_path: Path) -> None:
+    path = seeded(tmp_path, set())
+    price, last = Decimal(600), datetime(2026, 11, 16, 15, tzinfo=UTC)
+    spans = {
+        "1m": last,
+        "15m": last,
+        "30m": last,
+        "4h": last.replace(hour=12),
+        "1h": last - timedelta(6),
+    }
+    with bars.writing(path, bars.Source.IBKR) as held:
+        held.five(SPY, [Five(last, price, price, price, price, 5)])
+        for span, at in spans.items():
+            held.timed(SPY, span, [Timed(span, at, price, price, price, price, 5)])
+    said, ok = quality.hover(path, [SPY], NOW)
+    assert said.startswith("data quality: 75% fresh, 1 faults, 1 gaps, worst SPY/")
+    assert not ok
+    with bars.writing(path, bars.Source.IBKR) as held:
+        held.timed(SPY, "1h", [Timed("1h", last, price, price, price, price, 5)])
+        held.timed(
+            SPY,
+            "1wk",
+            [Timed("1wk", datetime(2026, 11, 9, tzinfo=UTC), price, price, price, price, 5)],
+        )
+    assert quality.hover(path, [SPY], NOW) == (
+        "data quality: 100% fresh, 0 faults, 0 gaps, worst none",
+        True,
+    )
+    first = quality.alarm(None, None, False, "SPY/1h", NOW)
+    assert first == (NOW, NOW, "data quality RED: SPY/1h")
+    soon = NOW + timedelta(minutes=10)
+    assert quality.alarm(*first[:2], False, "SPY/1h", soon) == (NOW, NOW, None)
+    later = NOW + timedelta(minutes=31)
+    assert quality.alarm(NOW, NOW, False, "x", later)[2] == "data quality still RED: x"
+    assert quality.alarm(NOW, later, True, "", later + timedelta(minutes=9)) == (
+        None,
+        None,
+        "back to green, red for 40 minutes",
+    )
+    assert quality.alarm(None, None, True, "", later) == (None, None, None)
