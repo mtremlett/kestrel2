@@ -5,30 +5,35 @@ from __future__ import annotations
 
 import math
 import random
+from dataclasses import replace
 from datetime import date, timedelta
 from decimal import Decimal
 
 import pytest
 from test_lab_rung import FREE
 
-from desk.lines import LINES
-from lab import deflated, luck, rung
+from desk.lines import LINES, Line
+from lab import deflated, luck, rung, trials
 from lab.cell import Cell, Key, Trade
 from lab.rung import Answer, Priced, Verdict
 
-VUSA = next(line for line in LINES if line.symbol == "VUSA")
+VUSA, AAPL, NVDA = (next(n for n in LINES if n.symbol == s) for s in ("VUSA", "AAPL", "NVDA"))
 
 DAY = date(2010, 1, 1)
 
 
-def _verdict(gains: list[float], years: float = 10, name: str = "a") -> Verdict:
-    """A trial with these gains, one per trade, over a window of so many years, judged by
-    the first rung's own rule."""
+def _verdict(
+    gains: list[float], years: float = 10, name: str = "a", line: Line = VUSA, every: int = 0
+) -> Verdict:
+    """A trial with these gains, one per trade sold `every` days apart, over a window of so
+    many years, judged by the first rung's own rule."""
     back = [Decimal(f"{100 * (1 + gain):.4f}") for gain in gains]
+    days = [DAY + timedelta(days=every * n) for n in range(len(back))]
     priced = tuple(
-        Priced(Trade(DAY, DAY), 1, Decimal(100), b, FREE, (DAY, DAY), None) for b in back
+        Priced(Trade(d, d), 1, Decimal(100), b, FREE, (d, d), None)
+        for b, d in zip(back, days, strict=True)
     )
-    window = Cell("breakout_20_10", VUSA, DAY, DAY + timedelta(days=round(365.25 * years)))
+    window = Cell("breakout_20_10", line, DAY, DAY + timedelta(days=round(365.25 * years)))
     return rung.verdict(Key(window, "code", name), priced)
 
 
@@ -152,3 +157,32 @@ def test_among_noise_chance_winners_do_not_survive_and_a_real_edge_does() -> Non
     assert fooled <= 2, "forty sets of forty trials with no edge in any: 5% is the most"
     found = [deflated.judge([*family, _bell(7, 0.015)], 0)[-1] for family in families]
     assert all(j.least is Answer.PASS for j in found), "a real edge is not thrown out"
+
+
+def test_a_rule_is_judged_on_its_own_lines_clustered_and_one_correction_gates() -> None:
+    #: L18's known answer: two lines trading as one and a stranger are two looks, three lines
+    rng = random.Random(5)  # noqa: S311 - a repeatable test draw, not a secret
+    twin, other = ([rng.gauss(0.006, 0.02) for _ in range(40)] for _ in "ab")
+    lines = [
+        _verdict(g, 0.33, n, line, 3)
+        for g, n, line in ((twin, "1", VUSA), (twin, "2", AAPL), (other, "3", NVDA))
+    ]
+    judged = deflated.judge_lines(lines)
+    looks = trials.clusters(trials.daily(lines), 0)
+    assert (looks.trials, looks.held, looks.days) == (2, 3, 122)
+    assert [j.luck.trials for j in judged] == [3, 3, 3], "the set's own lines, not 3,435"
+    above = looks.above(lines[0].key.cell, judged[0].sharpe or 0, 40)
+    assert judged[0].bar == pytest.approx(deflated.best_by_luck(looks.spread(40), 2) + above)
+    bars = [n for j in judged[1:] for n in (j.bar, j.deflated, j.luck.corrected)]
+    assert bars == pytest.approx([0.1166, 0.7602, 0.2354, 0.1145, 0.9971, 0.0008], abs=1e-4)
+    assert judged[2].luck.chance * 3435 > luck.FAMILY, "charged every line ever, it would fail"
+    *both, idle = deflated.judge_lines([*lines[:2], _verdict([], 0.33, "4", NVDA)])
+    assert (idle.least, idle.luck.trials) == (Answer.FAULT, 3) and (both[0].bar or 1) < (
+        bars[0] or 0
+    )
+    rsi = rung.verdict(Key(replace(lines[2].key.cell, strategy="rsi2_pullback"), "", ""), ())
+    for odd in ([], [*lines[:2], rsi]):
+        with pytest.raises(ValueError, match="one rule's"):
+            deflated.judge_lines(odd)
+    with pytest.raises(ValueError, match="not one set"):
+        trials.daily([lines[0], _verdict(twin, 1, "5", NVDA, 3)])
