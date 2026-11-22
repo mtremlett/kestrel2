@@ -12,6 +12,7 @@ import pytest
 
 from desk import orders
 from desk.lines import STAMP_DUTY, Line
+from desk.store import Bar
 from desk.strategy import Action, Decision
 
 PLAIN, THREE_X, FIVE_X = (
@@ -187,3 +188,17 @@ def test_a_sale_passes_the_gate_only_for_shares_the_book_holds() -> None:
     for bad in ("", "garbage", "20261116-rule", "20261116--P"):
         with pytest.raises(ValueError, match="no strategy can be read"):
             orders.strategy_of(bad)
+
+
+def test_a_position_is_kept_to_a_hundredth_of_the_lines_daily_traded_value() -> None:
+    bars = [
+        Bar(date(2025, 1, 1), Decimal(10), Decimal(10), Decimal(10), Decimal(10), 1000)
+    ] * 20  #: 10,000 pounds a day
+    pounds = orders.traded_value(PLAIN, bars, Decimal(1))
+    assert pounds == 10000
+    assert (
+        orders.size(_buy(PLAIN), PLAIN, Decimal(10), Decimal(1), TEN_K, {}, traded=pounds).quantity
+        == 10
+    )
+    with pytest.raises(orders.Refused, match="19 bars"):
+        orders.traded_value(PLAIN, bars[1:], Decimal(1))
