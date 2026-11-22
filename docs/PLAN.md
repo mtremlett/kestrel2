@@ -642,6 +642,17 @@ day's trading and reconciliation are built, and any broker can stand behind them
       `rates.csv` stays an audit record and is never read as a source; wire: the trading day and SimCity;
       gate: a test where `rates.csv` disagrees with the database and the database wins
       {id: money-door-pound; files: desk/day.py, desk/day_money.py, desk/book.py, desk/simcitycmd.py, desk/simcity_fills.py, tests/unit/test_day*.py, tests/unit/test_book*.py, tests/unit/test_simcity*.py; after: paper-door-pound}
+- [ ] A round never sends more orders than its step's time allows (coordinator 93's 20:5x ruling, option 2):
+      each market order waits `paper.FILL_SECONDS` (120 s) and the runner ends the desk step at 900 s, so a zoo
+      round of many one-share orders died mid-send (20 Nov, failure pattern 24). The step's time moves from
+      `desk/simcity_incidents.py:76` (STEP_SECONDS) to `desk/paper.py` beside FILL_SECONDS, one home, never a copy;
+      a round sends at most (STEP_SECONDS - margin) // FILL_SECONDS orders, the desk's own first, and the rest are
+      not sent, each kept in the day's record as carried to the next step. Opus, A6 blind review (money path).
+      Rejected: zoo orders that do not wait (a second send path), a longer timeout. The zoo goes back on only
+      after this lands and a zoo-on rehearsal says GO; gate: a test, written first, where a planted round of 20
+      one-share orders sends only the cap and names the rest carried
+      {id: money-round-cap; files: desk/day.py, desk/paper.py, desk/simcity_incidents.py, tests/unit/test_day*.py,
+      tests/unit/test_paper*.py, tests/unit/test_simcity*.py}
 
 ## Phase 3 — the money path, on paper
 
