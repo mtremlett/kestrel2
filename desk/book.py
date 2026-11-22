@@ -108,6 +108,7 @@ class Sent:
     filled: int
     reason: str | None  #: why it did not fill completely; None only when it did
     blocker: Blocker | None = None  #: what stood in its way: named with the reason, or neither
+    asked: int = 0  #: the shares its order asked for once sized; 0 where it never was
 
     def __post_init__(self) -> None:
         if (self.reason is None) != (self.blocker is None):
@@ -498,6 +499,7 @@ class Link:
     bar_day: date
     bar_close: Decimal
     filled: int  #: shares the order filled at once
+    asked: int  #: shares its intent was sized to ask for; 0 where it was never sized
     blocker: str  #: what stood in its way; empty when nothing did
 
 
@@ -514,13 +516,13 @@ def intend(root: Path, order_id: str, signal: tuple[str, str, date], bar: Bar) -
     """Keep a decision's chain BEFORE its order is sent (B5), still unanswered (SENDING), so a
     send that raises leaves the order traceable. The signal: strategy, symbol, session; a
     stranger's sale has the strategy "stranger"."""
-    return _keep(root, Link(order_id, *signal, bar.day, bar.close, 0, SENDING))
+    return _keep(root, Link(order_id, *signal, bar.day, bar.close, 0, 0, SENDING))
 
 
 def chain(root: Path, made: Link, answer: Sent) -> Link:
     """Complete a kept chain with the send path's answer, on a line after the first."""
     blocker = answer.blocker.name if answer.blocker else ""
-    return _keep(root, replace(made, filled=answer.filled, blocker=blocker))
+    return _keep(root, replace(made, filled=answer.filled, asked=answer.asked, blocker=blocker))
 
 
 def chains(root: Path) -> Iterator[Link]:
@@ -531,5 +533,7 @@ def chains(root: Path) -> Iterator[Link]:
     with (root / STORY).open(newline="", encoding="utf-8") as kept:
         for r in csv.reader(kept):
             sees, read = date.fromisoformat(r[3]), date.fromisoformat(r[4])
-            last[r[0]] = Link(r[0], r[1], r[2], sees, read, Decimal(r[5]), int(r[6]), r[7])
+            last[r[0]] = Link(
+                r[0], r[1], r[2], sees, read, Decimal(r[5]), int(r[6]), int(r[7]), r[8]
+            )
     yield from last.values()

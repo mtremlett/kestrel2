@@ -435,11 +435,12 @@ def _send(
     """Send through the one door; its refusal is the order's answer, kept with the day's
     under the blocker the send path names; one it does not name is the broker's own door's."""
     try:
-        return book.send(root, broker, order, settings, tell, held, pounds, moves)
+        sent = book.send(root, broker, order, settings, tell, held, pounds, moves)
     except Stopped as stopped:
-        return book.Sent(order.order_id, 0, str(stopped), stopped.blocker)
+        sent = book.Sent(order.order_id, 0, str(stopped), stopped.blocker)
     except Refused as refused:
-        return book.Sent(order.order_id, 0, str(refused), Blocker.BROKER)
+        sent = book.Sent(order.order_id, 0, str(refused), Blocker.BROKER)
+    return replace(sent, asked=order.quantity)
 
 
 def _sold(root: Path, day: date, zoo: bool) -> set[str]:
