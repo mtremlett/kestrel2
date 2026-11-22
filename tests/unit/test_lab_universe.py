@@ -156,8 +156,9 @@ def test_a_refresh_gives_a_line_with_no_file_one_counts_it_and_adds_nothing_the_
 def test_the_nightly_refresh_enters_the_database_and_writes_the_day_and_list(
     tmp_path: Path,
 ) -> None:
-    said = universe.nightly(tmp_path, DAY, (universe.SP500[0],), _ask)
+    said = universe.nightly(tmp_path, DAY, (universe.SP500[0],), _ask, noon=lambda _: "noon")
     assert said.startswith("research refresh: 1 lines refreshed")
+    assert said.endswith("; noon")
     assert database.daily(tmp_path / database.LIVE, MMM) == _ask(MMM, DAY)
     note = (tmp_path / "grid" / "store" / "REFLECTS.txt").read_text(encoding="utf-8").splitlines()
     sizes = " ".join(f"{k}={len(v)}" for k, v in universe.LISTS.items())
