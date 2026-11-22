@@ -8,11 +8,8 @@ MIN_TRADES and its own T_PASS standard errors. A trade held across the cut belon
 window it was bought in.
 THE RULE: a rule passes only when BOTH windows pass. One strong window is not enough: an
 edge that earned in one stretch alone, and bled in the other, is a stretch's luck. Otherwise
-the answer is the least of the two windows GRADED (`graded`, L19): a window of enough trades
-short of T_PASS is DOUBT, a FAIL only T_PASS standard errors below nothing, and a window too
-thin to say holds the whole at THIN. Thirty trades a half cannot prove a real edge in both
-(a t of 3 over 60 trades is about 2.1 a half), so only a half that lost fails the rung; the
-power case in its tests holds that fair, and the verdict scores this rung soft (MAX_WEAK).
+the answer is the first rung's least of the two, so a window too thin to say holds the whole
+at THIN and never fails it.
 
 THE TAPE. It reads the tape of R-RUNNER-118 (`lab/tape.py`) through `cell.run`, and its result
 is keyed by that tape's key plus this module's code (`Key.rung`), so a rung edited prices
@@ -21,7 +18,11 @@ again and simulates nothing.
 BY THE WEATHER (REG-01, `lab/weather.py`). `by_weather` cuts the same priced trades not at a
 day but by the trend state of the day each was bought: `up` and `down` are each judged alone,
 by the same rule, and both must pass. A trade bought while the weather is still `warming` has
-no regime yet and is left out; a day the weather never named is a fault, not a guess.
+no regime yet and is left out; a day the weather never named is a fault, not a guess. Each
+state is GRADED (`graded`, L19): thirty trades a state cannot prove a real edge in both (a t of
+3 over 60 trades is about 2.1 in each), so a state of enough trades short of T_PASS is DOUBT,
+and only one T_PASS standard errors below nothing FAILS; the verdict scores the rung soft
+(MAX_WEAK), and a power case in its tests holds that fair.
 
 PROVEN ALONE, by `tests/unit/test_lab_rung_regimes.py`: a planted edge passes; noise passes
 at the rate of two windows both clearing the bar by chance; a broken copy is caught.
@@ -56,7 +57,7 @@ class Regimes:
     @property
     def answer(self) -> Answer:
         """The one rule over the two windows' answers."""
-        return decide(graded(self.first), graded(self.second))
+        return decide(self.first.answer, self.second.answer)
 
     @property
     def passed(self) -> bool:

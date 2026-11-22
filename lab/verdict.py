@@ -117,11 +117,11 @@ def scorecard(answers: Sequence[Answer], yearly_sharpe: float) -> str:
 
 
 def one_answer(rungs: Mapping[str, Answer], yearly_sharpe: float | None) -> str | None:
-    """The cell's one answer: the least HARD gate short of PASS, else the SOFT rungs'
-    `scorecard`; None while a gate or a soft rung is not yet answered."""
+    """The cell's one answer: the least HARD gate short of PASS (a soft rung's FAULT is a fault
+    in the test, said as one), else the SOFT rungs' `scorecard`; None while one is unanswered."""
     if not set(HARD + SOFT) <= set(rungs):
         return None
-    least = min(rungs[name] for name in HARD)
+    least = min(rungs[name] for name in (*HARD, *(n for n in SOFT if rungs[n] is Answer.FAULT)))
     if least is not Answer.PASS:
         return least.name
     return scorecard([rungs[name] for name in SOFT], yearly_sharpe or 0.0)
@@ -175,8 +175,14 @@ def judge(
         "drawdown": drawdowns([t.gross - t.costs.total for t in verdict.trades], trials.name(c)),
         "holding": _held(verdict, own, beside, held, pounds, settings),
         "unrun": unrun,
-        "every": all(answer is Answer.PASS for answer, _ in rungs.values()),
+        "every": answer == Answer.PASS.name and all(passed for name, passed in ruled(rungs)),
     } | ({} if answer is None else {"answer": answer})
+
+
+def ruled(rungs: Judged) -> list[tuple[str, bool]]:
+    """Each rung the one answer does not grade (the luck rung is never ruled), and whether it
+    passed: a SOFT rung's WEAK is the scorecard's, and never stops a cell going forward."""
+    return [(n, a is Answer.PASS) for n, (a, _) in rungs.items() if n not in (*SOFT, "luck")]
 
 
 def _plateaued(
