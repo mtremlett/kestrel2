@@ -25,10 +25,12 @@ from desk.book_parts import (
     keep,
     killed,
     rate,
-    rates_kept,
     record_rates,
     retry_id,
     switch,
+)
+from desk.book_parts import (
+    rates_kept as rates_kept,
 )
 from desk.book_parts import (
     unless_killed as _unless_killed,

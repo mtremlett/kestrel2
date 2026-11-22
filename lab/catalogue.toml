@@ -409,7 +409,7 @@ exit = { n = 260 }
 
 # entry and exit read one line, the 52-week ratio average, so it ranges in both at once
 [mansfield_rs_momentum.ranges]
-"entry+exit" = { n = [200, 260, 320] }
+"entry+exit" = { n = [130, 260, 390] }
 
 # 260 flat ratio days: RS is zero, not above it. 101 lifts the ratio over its average (buy); 99 puts it under (sell)
 [[mansfield_rs_momentum.cases]]
