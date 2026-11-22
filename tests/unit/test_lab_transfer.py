@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 from dataclasses import replace
+from datetime import date
+from decimal import Decimal
 from pathlib import Path
 
 import pytest
@@ -12,7 +14,7 @@ from test_lab_sweep import BAE, _keep
 
 from desk import strategy
 from desk.lines import STAMP_DUTY, Line
-from lab import ladder, transfer
+from lab import history_bars, ladder, transfer
 from lab.rung import Answer, Verdict
 
 pytestmark = pytest.mark.usefixtures(_a_rule_at_every_setting.__name__)
@@ -62,7 +64,14 @@ def test_a_rule_with_only_its_published_setting_is_scored_as_published_on_every_
 def test_the_command_writes_the_labelled_page_and_data_and_a_second_run_gives_the_same(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    monkeypatch.setattr(ladder, "rates", lambda: {})
+    asked: list[Path] = []
+
+    def door(home: Path) -> dict[date, Decimal]:
+        asked.append(home)
+        return {}
+
+    monkeypatch.setattr(history_bars, "pounds", door)
+    monkeypatch.setattr(ladder, "rates", pytest.fail)  # the archive's door is never opened
     other = Line("VOD", "LSE", "GBP", 1, STAMP_DUTY)
     for line, lift in ((BAE, 0), (other, 5)):
         _keep(tmp_path / "store", line, lift)
@@ -71,6 +80,7 @@ def test_the_command_writes_the_labelled_page_and_data_and_a_second_run_gives_th
     first = (tmp_path / transfer.FOLDER / "grid-transfer.json").read_text(encoding="utf-8")
     transfer.main(argv)
     sets = tmp_path / transfer.FOLDER
+    assert asked == [tmp_path.resolve()] * 2  # the pound comes from the data folder's history
     assert (sets / "grid-transfer.json").read_text(encoding="utf-8") == first
     assert transfer.LABEL in (sets / "grid-transfer.md").read_text(encoding="utf-8")
     assert len(json.loads(first)["rows"]) == len(strategy.STRATEGIES) * 2
