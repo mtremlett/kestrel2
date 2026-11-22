@@ -18,7 +18,9 @@ judged was picked from, itself among them. `spread` is the variance of those tri
 each a Sharpe A TRADE as `sharpe` gives it: a spread in a year's units against a Sharpe a trade
 sets a bar no edge could reach. A count under one, a spread that is no number, or more than one
 trial with no spread measured, is refused loudly (LAD-09). To deflate by nothing a caller must
-say so in as many words, one trial alone: its bar is nothing whatever its spread.
+say so in as many words, one trial alone: its bar is nothing whatever its spread. Or both
+come from ONE CLUSTERED SET (L14, `trials.clusters`), handed to `judge_set`: the looks the set
+truly took, their spread measured, and the pick's luck inside its own cluster added to the bar.
 
 ITS STATED RATE (RATE) is one in ten, AND IT IS THE RATE OF BELL GAINS. A trial whose true
 Sharpe is exactly the bar passes about that often, so bell noise judged alone (a bar of
@@ -41,12 +43,14 @@ a fail and never a pass; gains with no spread are refused loudly (`rung.standard
 from __future__ import annotations
 
 import math
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from decimal import Decimal, localcontext
 
 from desk.strategy import ARITHMETIC
+from lab.cell import Cell
 from lab.deflated import PASS, believe, best_by_luck, deflate, per_trade, shape
 from lab.rung import MIN_TRADES, Answer, standard_errors
+from lab.trials import Clustered
 
 #: About what a trial of bell gains with no more than luck's best passes at.
 RATE = 1 - PASS
@@ -73,16 +77,38 @@ def sharpe(gains: Sequence[Decimal]) -> float:
 
 def chance(gains: Sequence[Decimal], trials: int, spread: float) -> float:
     """The deflated Sharpe of these gains, the skew and kurtosis their plain moments."""
-    values = [float(gain) for gain in gains]
-    return deflate(sharpe(gains), bar(trials, spread), len(values), *shape(values))
+    return _chance(gains, lambda _: bar(trials, spread))
 
 
 def judge(gains: Sequence[Decimal], trials: int, spread: float) -> Answer:
     """The rung's answer on the gains of a trial picked from `trials`, their Sharpes' variance
     `spread`."""
     bar(trials, spread)  #: the two counts are refused before anything is answered
+    return _answer(gains, lambda _: bar(trials, spread))
+
+
+def judge_set(gains: Sequence[Decimal], cell: Cell, looks: Clustered) -> Answer:
+    """The rung's answer on the gains of the cell's trial, picked from one clustered set: the
+    bar its looks set at their measured spread, raised by the trial's stand above its own
+    cluster (`lab/trials.py`), as the deflated rung reads the same set."""
+    trades = len(gains)
+    looks.spread(max(trades, 1))  #: refused first: more looks than one and no spread measured
+    looks.above(cell, 0.0, 1)  #: refused first: a trial this set was not clustered from
+    return _answer(
+        gains, lambda one: bar(looks.trials, looks.spread(trades)) + looks.above(cell, one, trades)
+    )
+
+
+def _answer(gains: Sequence[Decimal], raised: Callable[[float], float]) -> Answer:
+    """FAULT on no gain, THIN under MIN_TRADES, else the bands on the chance above the bar."""
     if not gains:
         return Answer.FAULT
     if len(gains) < MIN_TRADES:
         return Answer.THIN
-    return believe(chance(gains, trials, spread))
+    return believe(_chance(gains, raised))
+
+
+def _chance(gains: Sequence[Decimal], raised: Callable[[float], float]) -> float:
+    """The deflated Sharpe of the gains against the bar `raised` sets on their Sharpe."""
+    one, values = sharpe(gains), [float(gain) for gain in gains]
+    return deflate(one, raised(one), len(values), *shape(values))

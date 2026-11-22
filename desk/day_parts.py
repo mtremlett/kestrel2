@@ -21,9 +21,11 @@ from desk.store import Bar
 from desk.strategy import Action, Decision
 
 RECORDS = "records.csv"
-MONEY = ("day", "profit", *Charges.__dataclass_fields__, "market", "worth", "counted", "heat")
+FX = ("currency", "interest")
+MONEY = ("day", "profit", *Charges.__dataclass_fields__, "market", "worth", "counted", "heat", *FX)
 HEADER = (*MONEY, "halted", "stopped", "differ")
-BEFORE_HEAT = [name for name in HEADER if name != "heat"]  #: the records' names until the heat
+BEFORE_FX = [name for name in HEADER if name not in FX]  #: the records' names until currency
+BEFORE_HEAT = [name for name in BEFORE_FX if name != "heat"]  #: and until the heat
 
 
 @dataclass(frozen=True)
@@ -52,6 +54,11 @@ class Record:
     #: hit, each line at its stop or, if worse, its worst recorded overnight gap (_heat). None:
     #: not recorded (a record made before the heat, or a held line whose stop level was not kept)
     heat: Decimal | None = None
+    #: KEPT BESIDE THE PROFIT, NOT IN IT (BIC-03, BIC-04): the pounds the currency's move gave the
+    #: closed trades and the open holdings, and the interest idle cash earned since the first fill,
+    #: as the day ended. None: not recorded (a record before them, or a fill's day's rate unkept)
+    currency: Decimal | None = None
+    interest: Decimal | None = None
     counts: bool = field(init=False)  #: the verdict
 
     def __post_init__(self) -> None:
@@ -66,7 +73,17 @@ class Record:
 
 def _row(r: Record) -> tuple[object, ...]:
     """A record as it is kept: the lines that differ last, as many as there are."""
-    money = (r.day, r.profit, *astuple(r.costs), r.market, r.worth, r.counted, r.heat)
+    money = (
+        r.day,
+        r.profit,
+        *astuple(r.costs),
+        r.market,
+        r.worth,
+        r.counted,
+        r.heat,
+        r.currency,
+        r.interest,
+    )
     return (*money, " ".join(h.isoformat() for h in r.halted), r.stopped, *r.mismatches)
 
 
@@ -80,8 +97,9 @@ def records(root: Path) -> tuple[Record, ...]:
     with path.open(newline="", encoding="utf-8") as kept:
         rows = list(csv.reader(kept))
     if rows[:1] == [BEFORE_HEAT]:  #: records made before the heat have none
-        rows = [rows[0], *(row[:10] + [""] + row[10:] for row in rows[1:])]
-        rows[0] = list(HEADER)
+        rows = [BEFORE_FX, *(row[:10] + [""] + row[10:] for row in rows[1:])]
+    if rows[:1] == [BEFORE_FX]:  #: records made before currency and interest have none
+        rows = [list(HEADER), *(row[:11] + ["", ""] + row[11:] for row in rows[1:])]
     if rows[:1] != [list(HEADER)]:
         raise ValueError(f"{path}: not the desk's records")
     return tuple(
@@ -90,14 +108,14 @@ def records(root: Path) -> tuple[Record, ...]:
             Decimal(row[1]) if row[1] else None,
             Charges(*map(Decimal, row[2:7])),
             Decimal(row[7]),
-            tuple(row[13:]),
+            tuple(row[15:]),
             Decimal(row[8]),
             int(row[9]),
-            tuple(map(datetime.fromisoformat, row[11].split())),
-            int(row[12]) if row[12] else None,
-            Decimal(row[10]) if row[10] else None,
+            tuple(map(datetime.fromisoformat, row[13].split())),
+            int(row[14]) if row[14] else None,
+            *(Decimal(row[i]) if row[i] else None for i in (10, 11, 12)),
         )
-        for row in (kept if kept[10:] else [*kept, "", "", ""] for kept in rows[1:])
+        for row in (kept + [""] * (15 - len(kept)) for kept in rows[1:])
     )
 
 
