@@ -44,10 +44,10 @@ tries to fix the symptom; the fix needs its own fix.
 → *Caught by:* the stop rules. A passing scene that fails stops all other work, and if one
 attempt does not restore it the commit is reverted, never patched over.
 
-**8. Two homes for one fact.** The same number, list or rule written down in two places,
-which then disagree. The predecessor had three stop levels per position and two different
-figures for the pot.
-→ *Caught by:* the manifest names one owner per concept; duplicates are merged on sight.
+**8. Two homes for one fact.** The same number, list or rule in two places, which then
+disagree: the predecessor's three stop levels per position; `desk/command.py` guessing the
+price store's home from the records folder (#798, then #1733: a rehearsal's sit deeper).
+→ *Caught by:* one owner per concept, merged on sight; the store's home is passed, never guessed.
 → *Debt:* no automatic check finds two homes. Human discipline, for now.
 
 **9. Documents breeding.** Summaries, notes, handovers and reports accumulate until no
