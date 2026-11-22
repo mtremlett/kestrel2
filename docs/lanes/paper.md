@@ -547,3 +547,11 @@ Options: say "not known" when the record holds no heat; omit the line (chosen: o
 ### 2026-11-22 — compact message layout kept in messenger.py (#1482)
 
 Options: a new `desk/layout.py` as the old pre-mortem said; in place (chosen: the 400-line cap it feared is now 800, and less code is progress).
+
+### 2026-11-22 — the supervisor's overnight window: hours for the job, and a UTC restart window (#1631, #1639)
+
+Options: (a) leave the step running round the clock and forgive bad receipts at night; (b) give each job hours and do not run it asleep (chosen in #1631: 05:30 to 22:00 UTC, one `awake` field; simpler, matches the runner's day, a night fault cannot wake him). For receipts, #1639 chose a UTC window 01:55-03:35 whose bad receipts do not count (covers 03:00 London in both seasons; it also forgives about an hour in winter, late or missing receipts still fault) over London time via zoneinfo (no time-zone data on this Windows Python, a dependency not worth it) and over leaving the false alarm nightly.
+
+### 2026-11-22 — the streak is shown beside the verdict (#1636)
+
+Options: a separate message (more lines; desk ceiling has 92 left) or the last-day lines carrying it (3 lines, chosen). The streak is the run of newest records whose verdict counts.
