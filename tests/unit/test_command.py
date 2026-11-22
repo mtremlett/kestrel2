@@ -9,7 +9,6 @@ from contextlib import suppress
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
-from functools import partial
 from pathlib import Path
 from typing import BinaryIO
 from unittest.mock import Mock
@@ -87,6 +86,7 @@ def _world(patch: pytest.MonkeyPatch, fetch: Fetch = _fetch) -> dict[bytes, Said
         return {n: fetch(n, day) for n in LINES}, set()
 
     patch.setattr(keeper, "saved", saved)
+    patch.setattr(keeper, "pound", lambda _home, _day: Decimal("0.8"))  #: the database's pound
     patch.setattr(paper, "dial", dial)
     patch.setattr(listing, "read", lambda _, _door: LISTED)
     return answers
@@ -116,46 +116,30 @@ def test_a_step_does_the_days_work_under_the_data_folder_and_fails_by_name_witho
         _run(tmp_path, MON, "--now")
 
 
-def test_the_doors_refuse_a_pound_they_cannot_trust(
+def test_the_pound_is_read_from_the_database_alone_and_kept_for_the_day(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    today = MON.date()
+    today, desk = MON.date(), tmp_path / "desk"
     _world(monkeypatch)
-    # the pound: a rate on the day's record is the day's, whatever the archive says later
-    assert command.rates(tmp_path, today) == {"GBP": 1, "USD": Decimal("0.8")}
-    book.record_rates(tmp_path, today, {"USD": Decimal("0.75")})
-    assert command.rates(tmp_path, today)["USD"] == Decimal("0.75")
-    old, ask = today - timedelta(days=5), today + timedelta(days=1)
-    # no close; one too old; the day's own, still moving; and one in pounds per dollar
-    for given in ((), (_flat(old, "1.25"),), (_flat(ask, "1.25"),), (_flat(today, "0.8"),)):
-        monkeypatch.setattr(archive, "fetch", lambda _line, _day, given=given: given)
-        with pytest.raises(ValueError, match="no pound in dollars to trust"):
-            command.rates(tmp_path, ask)
-    moving = (_flat(today, "1.25"), _flat(ask, "1.3"))  # the day's own bar is passed over
-    monkeypatch.setattr(archive, "fetch", lambda _line, _day: moving)
-    assert command.rates(tmp_path, ask)["USD"] == Decimal("0.8")
-    # London shut, New York open: the last pound is carried, with no archive asked
+    # the broker and the archive both fail: the rate is still the database's, told in the log
     monkeypatch.setattr(archive, "fetch", lambda *_: pytest.fail("the archive was asked"))
-    for kept, shut in (
-        (date(2025, 4, 17), date(2025, 4, 21)),
-        (date(2025, 12, 24), date(2025, 12, 26)),
-    ):
-        book.record_rates(tmp_path, kept, {"USD": Decimal("0.77")})
-        assert command.rates(tmp_path, shut)["USD"] == Decimal("0.77")
-    # IBKR first: its pound is the day's whatever the archive says, a wide gap a fault in the log;
-    # none from IBKR, the archive's, named; none from either, no rate
-    none = {command.POUND: Refused("no quote")}
-    archived = (_flat(old + timedelta(4), "1.25"),)
-    monkeypatch.setattr(archive, "fetch", lambda _line, _day: archived)
-    gives: dict[str, Answer] = {"a": (_flat(today, "1.60"),), "b": Refused("no")}
-    for name, rate in (("a", "0.625"), ("b", "0.8")):
-        broker = partial(_ibkr, gives[name])
-        assert command.rates(tmp_path / name, ask, broker)["USD"] == Decimal(rate)
-    logs = [(tmp_path / n / command.POUND_LOG).read_text(encoding="utf-8") for n in "ab"]
-    assert "IBKR 1.60; FAULT" in logs[0] and "IBKR gave none (no); archive 1.25" in logs[1]
-    monkeypatch.setattr(archive, "fetch", lambda _line, _day: ())
-    with pytest.raises(ValueError, match="IBKR: no quote; archive"):
-        command.rates(tmp_path / "c", ask, lambda _lines, _day: none)
+
+    def broker(*_: object) -> None:
+        pytest.fail("the broker was asked")
+
+    monkeypatch.setattr(keeper, "pound", lambda home, _day: Decimal("0.8") * (home == tmp_path))
+    assert command.rates(desk, today, broker) == {"GBP": 1, "USD": Decimal("0.8")}  # type: ignore[arg-type]
+    assert "the database's pound, 0.8" in (desk / command.POUND_LOG).read_text(encoding="utf-8")
+    # a rate on the day's record is the day's, whatever the database says later
+    book.record_rates(desk, today, {"USD": Decimal("0.75")})
+    assert command.rates(desk, today)["USD"] == Decimal("0.75")
+
+    def stale(_home: Path, day: date) -> Decimal:
+        raise keeper.Stale(f"no pound in dollars is held fresh for {day}")
+
+    monkeypatch.setattr(keeper, "pound", stale)  # none held fresh: no rate, none made up
+    with pytest.raises(ValueError, match="no pound in dollars to trust"):
+        command.rates(desk, today + timedelta(days=1))
     with pytest.raises(SystemExit, match="KESTREL2_DATA names no whole path to a folder"):
         command.main([], {"KESTREL2_DATA": ""})
 
@@ -168,8 +152,8 @@ def test_the_preflight_says_ready_or_names_each_thing_that_is_not_and_sends_no_o
     assert capsys.readouterr().out == (
         "PREFLIGHT Mon 16 Nov: READY. his phone: its key is set; the Gateway: it answered; the "
         "kill switch: off, and drilled today; the paper account: it is the desk's book; prices: "
-        "22 lines to trade on; the pound: a dollar is £0.800000, kept for the day "
-        "(2026-11-16: IBKR gave none (the broker was not asked); archive 1.25); halts: "
+        "22 lines to trade on; the pound: a dollar is £0.8, kept for the day "
+        "(2026-11-16: the database's pound, 0.8 pounds a dollar); halts: "
         "none in force.\n"
     )
     assert clearance.checks(desk)[-1].found == () and not running.notes(desk)
@@ -203,7 +187,7 @@ def test_the_preflight_says_ready_or_names_each_thing_that_is_not_and_sends_no_o
     assert "prices: ValueError: no line has a bar of the session before" in line
     # an untrusted pound is named in the line and nothing is kept for the day
     tue = MON + timedelta(days=1)
-    monkeypatch.setattr(archive, "fetch", lambda *_: ())
+    monkeypatch.setattr(keeper, "pound", lambda _h, _d: (_ for _ in ()).throw(keeper.Stale("none")))
     assert _run(tmp_path, tue, "--preflight", **KEYS) == 1
     assert "the pound: ValueError: " in capsys.readouterr().out
     assert str(tue.date()) not in (desk / book.RATES).read_text(encoding="utf-8")

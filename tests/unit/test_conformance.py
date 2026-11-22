@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 from test_reports import CENT
 
-from desk import archive, book, clearance, command, conformance, keeper, listing, paper, placing
+from desk import book, clearance, command, conformance, keeper, listing, paper, placing
 from desk.broker import Fill, Pretend
 from desk.lines import LINES, Line
 from desk.listing import Listing, Unlisted
@@ -23,6 +23,7 @@ from desk.strategy import Action, Decision
 
 MON, FRI = datetime(2026, 11, 16, 10, 5, tzinfo=UTC), date(2026, 11, 13)
 ISF, VUAG, SPY = (next(x for x in LINES if x.symbol == s) for s in ("ISF", "VUAG", "SPY"))
+HOME = Path("home")  #: the store's folder, its reads stubbed
 FX = {"GBP": Decimal(1), "USD": Decimal("0.8")}
 #: Friday's close and shares traded: VUAG traded the most money, 44 million pounds to ISF's 30
 LAST = {"ISF": (10, 3_000_000), "VUAG": (110, 400_000), "SPY": (750, 9)}
@@ -57,9 +58,20 @@ def _fetch(line: Line, before: date) -> tuple[Bar, ...]:
     return (Bar(FRI, *(Decimal(close),) * 4, traded),) if before > FRI else ()
 
 
+def _store(patch: pytest.MonkeyPatch, gaps: tuple[Line, ...] = ()) -> None:
+    """The desk's store at the one door: the bars of `_fetch`, but none for the lines in gaps."""
+
+    def saved(
+        _home: Path, day: date, lines: list[Line]
+    ) -> tuple[dict[Line, tuple[Bar, ...]], set[str]]:
+        return {x: () if x in gaps else _fetch(x, day) for x in lines}, set()
+
+    patch.setattr(keeper, "saved", saved)
+
+
 def _plan(patch: pytest.MonkeyPatch) -> conformance.Plan:
-    patch.setattr(archive, "fetch", _fetch)
-    return conformance.plan([ISF, VUAG], SPY, MON.date(), FX, STAMP)
+    _store(patch)
+    return conformance.plan([ISF, VUAG], SPY, MON.date(), FX, STAMP, HOME)
 
 
 def _market(run: conformance.Plan, *lines: Line) -> Pretend:
@@ -85,18 +97,17 @@ def test_the_runs_orders_are_on_the_line_that_traded_most_sized_by_the_desk_date
     assert run.second == Order(ID.format(3), VUAG, 18, Decimal(110), Decimal(1), Decimal(99))
     assert run.refusal == Decision("conf0lse1005", "SPY", FRI, Action.BUY)
     with pytest.raises(ValueError, match="no plain line"):
-        conformance.plan([], SPY, MON.date(), FX, STAMP)
-    with pytest.raises(ValueError, match="VUAG: the archive has no bar of 2026-11-16"):
+        conformance.plan([], SPY, MON.date(), FX, STAMP, HOME)
+    with pytest.raises(ValueError, match="VUAG: the store has no bar of 2026-11-16"):
         conformance.plan(
-            [VUAG], SPY, MON.date() + timedelta(days=1), FX, STAMP
+            [VUAG], SPY, MON.date() + timedelta(days=1), FX, STAMP, HOME
         )  # Tuesday: Monday's
 
 
 def test_one_line_without_a_bar_is_left_out_of_the_plan(monkeypatch: pytest.MonkeyPatch) -> None:
     run = _plan(monkeypatch)
-    real = archive.fetch
-    monkeypatch.setattr(archive, "fetch", lambda line, day: () if line is ISF else real(line, day))
-    assert conformance.plan([ISF, VUAG], SPY, MON.date(), FX, STAMP).first == run.first
+    _store(monkeypatch, (ISF,))
+    assert conformance.plan([ISF, VUAG], SPY, MON.date(), FX, STAMP, HOME).first == run.first
 
 
 def test_the_run_at_the_pretend_broker_word_for_word(monkeypatch: pytest.MonkeyPatch) -> None:

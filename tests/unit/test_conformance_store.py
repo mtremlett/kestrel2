@@ -18,13 +18,10 @@ def test_a_run_is_sized_from_the_stores_bar_when_the_archive_lacks_it(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     held: dict[Line, tuple[Bar, ...]] = {VUAG: (Bar(FRI, *(Decimal(110),) * 4, 400_000),)}
-    monkeypatch.setattr(archive, "fetch", lambda _line, _before: ())  # Yahoo has a gap
     monkeypatch.setattr(keeper, "saved", lambda _home, _day, _lines: (held, frozenset()))
     run = conformance.plan([VUAG], SPY, MON.date(), FX, STAMP, tmp_path)
     assert run.first.price == Decimal(110)
     held[VUAG] = ()  # the store lacks it too: refused, named
-    with pytest.raises(ValueError, match="VUAG: the archive has no bar"):
-        conformance.plan([VUAG], SPY, MON.date(), FX, STAMP)  # no store given: the archive
     with pytest.raises(ValueError, match="VUAG: the store has no bar of 2026-11-13"):
         conformance.plan([VUAG], SPY, MON.date(), FX, STAMP, tmp_path)
 
