@@ -17,10 +17,13 @@ from collections import deque
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from decimal import Decimal
+from hashlib import sha256
 from itertools import pairwise
+from typing import ClassVar
 
+from desk.lines import LINES
 from desk.store import Bar
-from desk.strategy import RANGES, Field
+from desk.strategy import RANGES, Declared, Field, Timeframe
 from desk.strategy_parts import ZERO, _Exponential, _Wilder, _Window
 
 WIDTH = Decimal("2.25")  #: K: the bands sit this many ATRb either side of the EMA20 [ch3] [ch7]
@@ -286,3 +289,221 @@ def shared(marks: Sequence[Mark]) -> Decimal | None:
     atr, ref = last[-1].atr, last[-1].bar.high
     group = [m.bar.high for m in last if abs(m.bar.high - ref) <= SHARED * atr]
     return max(group) + OVER * atr if len(group) >= 2 else None
+
+
+@dataclass
+class Trade:
+    """MGMT (section 2), long: one position from the open after its signal to its exit. A stop
+    never widens; the stop counts first when a bar reaches both it and a target."""
+
+    stop: Decimal
+    limit: int  #: T: out if +1R is not touched by the close of bar T after entry
+    first: Decimal = FIRST  #: partial 1, at +1R
+    floor: Decimal | None = None  #: a close under it is out (AG-04: the breakout failed)
+    start: Decimal | None = None  #: AG-05: no time stop until a close over this level
+    back: Decimal | None = None  #: the fakeout re-entry's level: a close back over it
+    entry: Decimal | None = None
+    risk: Decimal = ZERO
+    best: Decimal = ZERO
+    bars: int = 0
+    left: Decimal = Decimal(1)
+    touched: bool = False
+    stopped: bool = False
+    free: int = 0
+
+    def step(self, mark: Mark) -> bool:
+        """The next bar after its close: whether the position is still held."""
+        bar = mark.bar
+        if self.entry is None:
+            self.entry, self.best, self.risk = bar.open, bar.open, bar.open - self.stop
+        if self.risk <= 0 or bar.low <= self.stop:
+            self.stopped = True
+            return False
+        self.bars += 1
+        if self.start is not None and bar.close > self.start:
+            self.start, self.bars = None, 0
+        self._manage(mark)
+        out = self.floor is not None and bar.close < self.floor
+        late = self.start is None and not self.touched and self.bars >= self.limit
+        return not (out or late)
+
+    def _manage(self, mark: Mark) -> None:
+        """Partials, breakeven, the chandelier on the remainder and the parabolic stop."""
+        bar, entry = mark.bar, self.entry or ZERO
+        if not self.touched and bar.high > entry + self.risk:
+            self.touched, self.left = True, self.left - self.first
+            self._raise(entry - JITTER * mark.atr)
+        if bar.high > entry + 2 * self.risk:
+            self.left = min(self.left, THIRD)
+        self.best = max(self.best, bar.close)
+        if self.left <= THIRD:
+            self._raise(self.best - CHANDELIER * mark.atr)
+        self.free += mark.free(1)
+        if self.free >= 2:
+            self._raise(bar.low)
+
+    def _raise(self, level: Decimal) -> None:
+        """Move the stop up to the level, never down."""
+        self.stop = max(self.stop, level)
+
+
+class Grimes:
+    """The template of the ten: a chart worked every bar, a setup's Trade when it fires, MGMT
+    until it ends. A line the book holds that this replay never bought is sold (`holding` with
+    no trade); a trade the book never took (not `holding`) is forgotten."""
+
+    declared: ClassVar[Declared] = Declared(Timeframe.DAILY, None, LINES, BARS)
+    code: ClassVar[str] = ""
+    limit: ClassVar[int] = 5
+    first: ClassVar[Decimal] = FIRST
+    narrow: ClassVar[bool] = False  #: whether the min-stop filter applies
+
+    def __init__(self) -> None:
+        self.chart = Chart()
+        self.trade: Trade | None = None
+        self._armed: tuple[Decimal, Decimal] | None = None
+        self._back: tuple[Decimal, int] | None = None
+
+    def step(self, bar: Bar, holding: bool) -> bool:
+        """Shown the next bar after its close: whether to be in the market from here."""
+        mark = self.chart.add(bar)
+        if mark is None:
+            return False
+        if holding and self.trade is None:
+            return False
+        if holding and self.trade is not None:
+            if self.trade.step(mark) and self.keep(mark):
+                return True
+            if self.trade.stopped and self.trade.back is not None:
+                self._back = (self.trade.back, mark.n)
+        self.trade = self._again(mark) or self.signal(mark)
+        return self.trade is not None
+
+    def _again(self, mark: Mark) -> Trade | None:
+        """MGMT's fakeout re-entry, once: a close back over the level on the stop's bar or the
+        next, its stop beyond the new extreme."""
+        back, self._back = self._back, None
+        if back is None or mark.n - back[1] > 1:
+            return None
+        if mark.bar.close <= back[0]:
+            self._back = back if mark.n == back[1] else None
+            return None
+        low = min(m.bar.low for m in self.chart.since(back[1] - 1))
+        return self.open(self.stop(low, mark))
+
+    def keep(self, _mark: Mark) -> bool:
+        """A rule's own exit beside MGMT's; none unless it says."""
+        return True
+
+    def signal(self, mark: Mark) -> Trade | None:
+        """A trade from the order armed at the bar before, when this bar trades through it; then
+        the order for the next bar armed."""
+        armed, self._armed = self._armed, self.arm(mark)
+        if armed is None or mark.bar.high <= armed[0] or mark.bar.low <= armed[1]:
+            return None
+        self._armed = None
+        return self.open(armed[1])
+
+    def arm(self, _mark: Mark) -> tuple[Decimal, Decimal] | None:
+        """The buy-stop for the next bar and its stop, if the setup holds at this one."""
+        return None
+
+    def open(self, stop: Decimal, **more: Decimal | None) -> Trade:
+        """MGMT's trade for this rule from its stop."""
+        return Trade(stop, self.limit, self.first, **more)  # type: ignore[arg-type]
+
+    def stop(self, level: Decimal, mark: Mark) -> Decimal:
+        """The initial stop beyond a structural low: BUFFER ATRb and a jitter of up to JITTER ATRb,
+        seeded from the rule's code and the day, so runs reproduce."""
+        seed = int(sha256(f"{self.code}{mark.bar.day}".encode()).hexdigest()[:8], 16) % 1001
+        return level - (BUFFER + JITTER * seed / 1000) * mark.atr
+
+    def room(self, entry: Decimal, stop: Decimal, mark: Mark) -> bool:
+        """The min-stop filter, where the rule applies it: a stop under MIN_STOP ATRb skips."""
+        return not self.narrow or entry - stop >= MIN_STOP * mark.atr
+
+
+def _pivot(chart: Chart, side: int, back: int = 0) -> Setup | None:
+    """The setup whose leg ends at the latest pivot on that side (`back` more before it)."""
+    k = chart.last(side, back)
+    return None if k is None else Setup(chart, k)
+
+
+def _anchor(chart: Chart) -> Setup | None:
+    """The setup whose leg ends at the latest higher high: a pullback's own bounces skipped."""
+    p = chart.pivots
+    highs = [i for i, pivot in enumerate(p) if pivot.side > 0]
+    found = [b for a, b in pairwise(highs) if p[b].price > p[a].price]
+    return Setup(chart, found[-1]) if found else None
+
+
+class _Ag01(Grimes):
+    """AG-01, the pullback bought on a breakout [ch6] [ch10]: PQ holds on a simple pullback (no
+    high pivot inside it); a buy-stop OVER ATRb above a high 2-3 pullback bars share (trigger a);
+    the stop beyond the pullback's low; the min-stop filter on; T = 5."""
+
+    code, narrow = "AG-01", True
+
+    def arm(self, mark: Mark) -> tuple[Decimal, Decimal] | None:
+        """AG-01(a)'s buy-stop while PQ holds."""
+        setup = _pivot(self.chart, 1)
+        if setup is None or not setup.quality(mark.n):
+            return None
+        trigger = shared(setup.pullback(mark.n))
+        stop = self.stop(setup.low(mark.n), mark)
+        return (trigger, stop) if trigger and self.room(trigger, stop, mark) else None
+
+
+class _Ag02(Grimes):
+    """AG-02, a wash-out of the pullback's support bought [ch6] [ch3]: PQ holds at the bar before;
+    the boundary is the last confirmed pivot low inside the pullback (a bounce made it); a bar
+    trading under it and closing back over it (w = 1) buys at the next open; the stop beyond the
+    wash-out's low; a boundary tested 3 times or more is skipped; the min-stop filter on; T = 5."""
+
+    code, narrow = "AG-02", True
+
+    def signal(self, mark: Mark) -> Trade | None:
+        """The wash-out's close back over the boundary."""
+        setup, k = _anchor(self.chart), self.chart.last(-1)
+        if setup is None or k is None or k < setup.k or not setup.quality(mark.n - 1):
+            return None
+        boundary = self.chart.pivots[k]
+        before = self.chart.since(boundary.n, mark.n - 1)
+        if tested(before, boundary.price, 1) >= 3:
+            return None
+        if not mark.bar.low < boundary.price < mark.bar.close:
+            return None
+        stop = self.stop(mark.bar.low, mark)
+        return self.open(stop) if self.room(mark.bar.close, stop, mark) else None
+
+
+class _Ag03(Grimes):
+    """AG-03, the complex (two-legged) pullback [ch6] [ch10]: legs AB down, BC up, CD down; PQ
+    items 0-2, 4, 7 and 8 at A with LEG <= 5, a climax allowed; in the D zone (CD/AB in 0.8 to
+    1.25) AG-01(a)'s buy-stop; the stop just beyond D; no min-stop filter; partial 1 is 25%."""
+
+    code, first = "AG-03", Decimal("0.25")
+
+    def arm(self, mark: Mark) -> tuple[Decimal, Decimal] | None:
+        """AG-01(a)'s buy-stop in the D zone of a complex pullback."""
+        setup, last = _pivot(self.chart, 1, 1), _pivot(self.chart, 1)
+        if setup is None or last is None or last.k != setup.k + 2:
+            return None
+        a, b, c = setup.end, self.chart.pivots[setup.k + 1], last.end
+        if c.price >= a.price or not last.live(mark.n):
+            return None
+        d = last.low(mark.n)
+        if not Decimal("0.8") <= (c.price - d) / (a.price - b.price) <= Decimal("1.25"):
+            return None
+        if not setup.quality(mark.n, 5, frozenset({5, 6})):
+            return None
+        trigger = shared(last.pullback(mark.n))
+        return (trigger, self.stop(d, mark)) if trigger else None
+
+
+#: The coded setups by name: the zoo's names are `zoo_<name>` (desk/intraday.py ZOO).
+GRIMES: dict[str, type[Grimes]] = {
+    "ag01_pullback_breakout": _Ag01,
+    "ag02_washout": _Ag02,
+    "ag03_complex_pullback": _Ag03,
+}
