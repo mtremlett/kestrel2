@@ -243,8 +243,10 @@ def _currency(
 ) -> None:
     """BIC-04: what the closed trades so far owe to the currency's move, told apart from what
     they made by trading, and what the open holdings owe it; told only when there is some."""
+    if tell is None:
+        return
     split = day_money.fx_split(root, archive, day)
-    if tell is None or split is None:
+    if split is None:
         return  #: nothing has traded, or a fill's day's rate was never kept
     gain, trading, held = split
     if gain or held:
@@ -268,8 +270,10 @@ def _interest(
 ) -> None:
     """BIC-03: what the capital's idle cash earned at RISK_FREE from the first fill to this day,
     told once a day beside the profit, not in it (golden days stand), only when positive."""
+    if tell is None:
+        return  #: nobody to tell: the sum (a read of every fill's day) is not made
     earned = day_money.idle_interest(root, archive, day, settings.capital, RISK_FREE)
-    if tell is not None and earned:
+    if earned is not None and earned > 0:
         first = min(f.day for f in book.fills(root))
         tell(f"interest {day}", f"INTEREST: £{earned:.2f} earned on idle cash since {first}.")
 
