@@ -998,3 +998,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1736 data-monitor: per-span table and persisted alarm; box stays open. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1750 data-survivorship: bias measured and stated as a line; not yet wired into verdicts. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1752 collector adds BEA; 11 of the planned sources. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1767 data-door-writer: research refresh on the one writer; CSV half of lab/universe deleted. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1769 DATA: HOVER's alarm line prints SEND: for the runner (announce added). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1774 data-pound-history: nightly refresh wires the pound's noon rates; box open. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1782 DATA: hover command prints through announce, SEND: reaches the runner. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1790 data-pound-history: stored, read by the ladder, gaps named nightly; HOVER's filler remains. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1775 DATA scribe: folds #1736, #1750, #1752 (three lines). |
