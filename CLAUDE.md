@@ -29,7 +29,7 @@ only editor). A chat seat answers the operator. Seats hand over at 70% context a
    `python check.py --fast`. If main is red, restoring green IS the objective.
 2. **During.** Your one card only, test first, inside its files. Stop rules: canon A8.
 3. **End.** Update your sections of STATUS and PLAN, tick the box only when its check
-   passes, one line to your SCOREBOARD table, push, open the PR with auto-merge armed.
+   passes, one line to your SCOREBOARD table, push, open the PR; the train lands it.
 
 **No one watches a lane.** A question of intended behaviour is decided by the session
 from the north star, the scenes and his rulings, written with its options and reason in
@@ -43,9 +43,9 @@ its lane's part of `docs/DECISIONS.md`. Only his hard lines (below) wait for him
 
 ## How code reaches main
 
-Branch, push, open a PR, arm auto-merge (`gh pr merge --squash --auto`). GitHub merges it
-when `check` is green on its last commit and the branch holds all of main; the merge
-train brings it up to date. The operator does not approve merges. Main refuses a direct
+Branch, push, open a PR. Only the merge train arms and merges: a `train` label queues a
+PR, the train brings it up to date, and GitHub merges it when `check` is green on its
+last commit. The operator does not approve merges. Main refuses a direct
 push, a force-push, a red merge and a stale branch; each was driven to prove it.
 
 **A guard** (`BUDGET.json`, `manifest.toml`, `tests/guards/`, `check.py`, `.github/`) may
