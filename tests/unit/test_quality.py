@@ -248,3 +248,11 @@ def test_hover_judges_every_span_and_the_alarm_tells_only_of_change(tmp_path: Pa
     ]
     assert sent == ["data quality RED: x", None, "back to green, red for 31 minutes"]
     assert quality.watch(state, "", True, later) is None
+
+
+def test_the_register_names_the_source_of_each_newest_bar(tmp_path: Path) -> None:
+    path = seeded(tmp_path, set())
+    assert quality.register(path, [SPY]) == ("IBKR paper 1", [])
+    with bars.writing(path, bars.Source.BACKFILL) as held:
+        held.days(SPY, [bar(date(2026, 11, 17))])
+    assert quality.register(path, [SPY]) == ("archive, backfilled 1", ["SPY: archive, backfilled"])
