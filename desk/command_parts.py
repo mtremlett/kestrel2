@@ -1,68 +1,32 @@
 """command_parts - THE DESK'S POUND PER DOLLAR, moved out of desk/command.py to keep it under its
-cap: the pound's last close in dollars from IBKR first, the archive's where IBKR gives none, each
-told in `pound.log`, the day's rate kept; and the account a rehearsal found (Found)."""
+cap: the pound's last close in dollars as the price store holds it (the one door, keeper.pound);
+and the account a rehearsal found (Found)."""
 
 from __future__ import annotations
 
-from contextlib import suppress
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
-from http.client import HTTPException
 from pathlib import Path
 
-from desk import archive, book
+from desk import keeper
 from desk.keeper import Broker
-from desk.lines import Line
+from desk.lines import DOLLARS as DOLLARS
+from desk.lines import POUND as POUND
 from desk.paper import Account, Apart
-from desk.running import DAY
-from desk.store import Answer, Refused
 
-#: The pound in dollars at the archive; no pound closes outside these; the oldest close trusted.
-POUND, DOLLARS, FRESH = Line("GBPUSD=X", "US", "USD", 1), (Decimal(1), Decimal(2)), 4 * DAY
-BAND, POUND_LOG = Decimal("0.02"), "pound.log"  #: IBKR and archive may differ by this; the log
+POUND_LOG = "pound.log"  #: the log the preflight reads
 
 
-def _close(answer: Answer, day: date) -> Decimal | str:
-    """A source's last pound close before the day (its own bar still moves), or why none."""
-    if isinstance(answer, Refused):
-        return answer.reason
-    last = [bar for bar in answer if bar.day < day][-1:]
-    if last and day - last[0].day <= FRESH and DOLLARS[0] < last[0].close < DOLLARS[1]:
-        return last[0].close
-    return f"no pound in dollars to trust: {last}"
-
-
-def _quote(day: date, broker: Broker | None) -> tuple[Decimal, str]:
-    """THE POUND IN DOLLARS, IBKR first (R-RUNNER-282), the archive's where it gives none; the
-    words name the source, a gap beyond BAND a FAULT; neither is an error."""
-    ibkr = _close(broker([POUND], day)[POUND] if broker else Refused("not asked"), day)
-    if not isinstance(ibkr, Decimal):  # the archive is then the only source, and may raise
-        other = _close(archive.fetch(POUND, day), day)
-        if not isinstance(other, Decimal):
-            raise ValueError(f"{day}: no pound in dollars; IBKR: {ibkr}; archive: {other}")
-        return other, f"IBKR gave none ({ibkr}); archive {other}"
+def rates(root: Path, day: date, broker: Broker | None = None) -> dict[str, Decimal]:  # noqa: ARG001 - command._desk still passes it
+    """A DAY'S POUNDS PER UNIT OF EACH CURRENCY: the dollar's from the one door for prices, the
+    keeper's store (market_history.db, market_live.db), never the IBKR, the archive or a file
+    asked first; `broker` is no longer asked, and a pound not held fresh is a ValueError (the
+    preflight names it)."""
     try:
-        other = _close(archive.fetch(POUND, day), day)
-    except (OSError, HTTPException, ValueError) as why:
-        other = f"the archive was not reached: {why}"
-    fault = isinstance(other, Decimal) and abs(other / ibkr - 1) > BAND
-    return ibkr, f"IBKR {ibkr}" + f"; FAULT: the archive's {other} is not within {BAND}" * fault
-
-
-def rates(root: Path, day: date, broker: Broker | None = None) -> dict[str, Decimal]:
-    """A DAY'S POUNDS PER UNIT OF EACH CURRENCY: the dollar's as the desk's record at root
-    keeps it for the day, else one over the pound's `_quote`, its source told in `pound.log`."""
-    kept: Decimal | None = None
-    with suppress(ValueError):  # no rate kept for the day
-        kept = book.rate(root, "USD", day)
-    if kept is None:
-        close, told = _quote(day, broker)
-        root.mkdir(parents=True, exist_ok=True)
-        kept = (1 / close).quantize(Decimal("0.000001"))
-        with (root / POUND_LOG).open("a", encoding="utf-8") as log:
-            print(f"{day}: {told}", file=log)
-    return {"GBP": Decimal(1), "USD": kept}
+        return {"GBP": Decimal(1), "USD": keeper.pound(root.parent, day)}
+    except keeper.Stale as e:
+        raise ValueError(str(e)) from e
 
 
 @dataclass(frozen=True)

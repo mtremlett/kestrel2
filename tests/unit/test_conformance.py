@@ -32,6 +32,7 @@ LISTED: dict[str, Listing | Unlisted] = {
     "VUAG": Listing(VUAG, "3", "LSEETF", 100, CENT),  # priced in pence at the broker
     "SPY": Listing(SPY, "4", "ARCA", 1, CENT),
 }
+HOME = Path("data")
 STAMP = "1005"  # an id carries its run's minute: a second run of the day sends afresh
 ID, NO = "20261113-conf{}lse1005-VUAG", "20261113-conf0lse1005-SPY"
 NONE = "fills: none; held: none; stops: none"
@@ -57,9 +58,17 @@ def _fetch(line: Line, before: date) -> tuple[Bar, ...]:
     return (Bar(FRI, *(Decimal(close),) * 4, traded),) if before > FRI else ()
 
 
+def _store(patch: pytest.MonkeyPatch, fetch: Callable[[Line, date], tuple[Bar, ...]]) -> None:
+    """The desk's store holds what fetch says; the archive is never asked."""
+    patch.setattr(archive, "fetch", lambda *_: pytest.fail("the archive was asked"))
+    patch.setattr(
+        keeper, "saved", lambda _h, day, lines: ({x: fetch(x, day) for x in lines}, set())
+    )
+
+
 def _plan(patch: pytest.MonkeyPatch) -> conformance.Plan:
-    patch.setattr(archive, "fetch", _fetch)
-    return conformance.plan([ISF, VUAG], SPY, MON.date(), FX, STAMP)
+    _store(patch, _fetch)
+    return conformance.plan([ISF, VUAG], SPY, MON.date(), FX, STAMP, HOME)
 
 
 def _market(run: conformance.Plan, *lines: Line) -> Pretend:
@@ -85,18 +94,17 @@ def test_the_runs_orders_are_on_the_line_that_traded_most_sized_by_the_desk_date
     assert run.second == Order(ID.format(3), VUAG, 18, Decimal(110), Decimal(1), Decimal(99))
     assert run.refusal == Decision("conf0lse1005", "SPY", FRI, Action.BUY)
     with pytest.raises(ValueError, match="no plain line"):
-        conformance.plan([], SPY, MON.date(), FX, STAMP)
-    with pytest.raises(ValueError, match="VUAG: the archive has no bar of 2026-11-16"):
+        conformance.plan([], SPY, MON.date(), FX, STAMP, HOME)
+    with pytest.raises(ValueError, match="VUAG: the store has no bar of 2026-11-16"):
         conformance.plan(
-            [VUAG], SPY, MON.date() + timedelta(days=1), FX, STAMP
+            [VUAG], SPY, MON.date() + timedelta(days=1), FX, STAMP, HOME
         )  # Tuesday: Monday's
 
 
 def test_one_line_without_a_bar_is_left_out_of_the_plan(monkeypatch: pytest.MonkeyPatch) -> None:
     run = _plan(monkeypatch)
-    real = archive.fetch
-    monkeypatch.setattr(archive, "fetch", lambda line, day: () if line is ISF else real(line, day))
-    assert conformance.plan([ISF, VUAG], SPY, MON.date(), FX, STAMP).first == run.first
+    _store(monkeypatch, lambda line, day: () if line is ISF else _fetch(line, day))
+    assert conformance.plan([ISF, VUAG], SPY, MON.date(), FX, STAMP, HOME).first == run.first
 
 
 def test_the_run_at_the_pretend_broker_word_for_word(monkeypatch: pytest.MonkeyPatch) -> None:
