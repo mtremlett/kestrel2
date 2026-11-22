@@ -128,6 +128,8 @@ class Spec:
         name = row["name"]
         if not isinstance(name, str) or not name.strip() or not str(row["source"]).strip():
             raise ValueError(f"spec {name!r}: a name and a source are written")
+        if "[" in name:  # `lab.variants` names a variant `row[settings]`: one trial, one name
+            raise ValueError(f"spec {name!r}: a bracket is a variant's name, never a row's")
         if not isinstance(row["params"], Mapping) or set(row["params"]) - set(PLACES):
             raise ValueError(f"spec {name}: params are given for the places {PLACES} only")
         if not row["cases"]:
