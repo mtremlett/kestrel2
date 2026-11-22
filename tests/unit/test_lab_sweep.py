@@ -16,7 +16,9 @@ from typing import Any
 import pytest
 from test_lab_tune import Pc
 
+from desk import bars as database
 from desk import store, strategy, venues
+from desk.bars import Source
 from desk.lines import STAMP_DUTY, Line
 from desk.store import Bar
 from lab import batch, cell, sweep, universe
@@ -31,14 +33,17 @@ LINES = (BOEING, ABSENT, BAE)
 EACH = len(strategy.STRATEGIES)
 
 
-def _keep(root: Path, line: Line, lift: int = 0, split: int = 0) -> None:
-    """A line's bars cleaned into the store at root: a slow wave, so rules trade on it, its
-    first `split` bars at ten times the price, as before a split nobody adjusted."""
+def _keep(root: Path, line: Line, lift: int = 0, split: int = 0, path: Path | None = None) -> None:
+    """A line's bars cleaned into the store at root, and all but the last into the history
+    database beside it (or at path): a slow wave, so rules trade on it, its first `split`
+    bars at ten times the price, as before a split nobody adjusted."""
     days = venues.sessions(line.venue, START, DAY - timedelta(1))
     up = [n % 40 if n % 80 < 40 else 40 - n % 40 for n in range(len(days))]
     wave = [Decimal(100 + lift + step) * (10 if n < split else 1) for n, step in enumerate(up)]
     bars = [Bar(d, p, p + 1, p - 1, p, 9) for d, p in zip(days, wave, strict=True)]
     assert bool(store.prepare(root / line.venue, {line: bars}, DAY)) == bool(split)
+    with database.writing(path or root.parent / database.LIVE, Source.ARCHIVE) as opened:
+        opened.daily(line, bars[:-1])
 
 
 def _dying(
@@ -60,7 +65,7 @@ def _pass(
     clock: Any = lambda: SATURDAY,
     transfer: bool = True,
 ) -> sweep.Pass:
-    pc, folders = Pc(tmp_path), (tmp_path / "store", tmp_path / "kept")
+    pc, folders = Pc(tmp_path), (tmp_path / database.LIVE, tmp_path / "kept")
     return sweep.run(lines, *folders, START, DAY, pc, tmp_path, 2, clock, transfer)
 
 
@@ -76,8 +81,9 @@ def test_every_strategy_on_every_ticker_is_kept_and_only_what_changed_is_run_aga
     assert (first.cells, first.ran, first.failed) == (3 * EACH, 2 * EACH, EACH)
     assert (first.kept, first.undone, first.report.died) == (0, 0, ())
     for line in (BOEING, BAE):  # the two companies called BA, each from its own venue's bars
-        bars = universe.read(root, line).bars  # research's reading: none before a split
-        assert len(bars) == len(store.read(root / line.venue, "BA")) - 30 * (line == BAE)
+        bars = universe.read(tmp_path / database.LIVE, line).bars  # none before a split
+        csv = len(store.read(root / line.venue, "BA"))  # its last bar is held only there
+        assert len(bars) == csv - 1 - 30 * (line == BAE)
         cells = sweep.cells(line, START, DAY, transfer=True)
         assert [c.strategy for c in cells] == list(strategy.STRATEGIES)
         held = batch.run(cells, {line: bars}.__getitem__, sweep.journal(kept, line))
@@ -93,10 +99,12 @@ def test_every_strategy_on_every_ticker_is_kept_and_only_what_changed_is_run_aga
     again = _pass(tmp_path)  # nothing changed: only the failed cells are tried again
     assert (again.ran, again.kept, again.failed, again.undone) == (0, 2 * EACH, EACH, 0)
     _keep(root, BAE, lift=60)  # one ticker's bars mended: its cells alone are run again
-    (root / "US" / "BA.csv").rename(root / "US" / "away")  # and another's cannot be read
+    with database.writing(tmp_path / database.LIVE, Source.ARCHIVE) as opened:
+        gone = [b.day for b in database.daily(tmp_path / database.LIVE, BOEING)]
+        opened.daily(BOEING, (), withdrawn=gone)  # and another's cannot be read
     third = _pass(tmp_path)
     assert (third.ran, third.kept, third.failed, third.undone) == (EACH, 0, 2 * EACH, 0)
-    (root / "US" / "away").rename(root / "US" / "BA.csv")  # back as they were: found kept
+    _keep(root, BOEING)  # back as they were: found kept
     fourth = _pass(tmp_path)
     assert (fourth.ran, fourth.kept, fourth.failed, fourth.undone) == (0, 2 * EACH, EACH, 0)
     assert len(batch.rows(sweep.journal(kept, ABSENT))) == EACH, "a failure was written again"
@@ -187,11 +195,12 @@ def test_a_week_is_pass_after_pass_and_its_log_shows_how_long_without_stopping(
 
 def test_held_is_every_ticker_the_store_has_bars_for_the_list_or_not(tmp_path: Path) -> None:
     other = Line("ZZZZ", "LSE", "GBP", 1, STAMP_DUTY)
+    root = tmp_path / "store"
     for line in (BOEING, BAE, other):
-        _keep(tmp_path, line)
-    (tmp_path / "US" / "ZZZ.faults.csv").write_text("fault\n")  # an old note, not a ticker
-    assert sweep.held(tmp_path) == (BAE, other, BOEING)
-    assert sweep.held(tmp_path)[0] is next(x for x in universe.UNIVERSE if x == BAE)
+        _keep(root, line)
+    (root / "US" / "ZZZ.faults.csv").write_text("fault\n")  # an old note, not a ticker
+    assert sweep.held(root) == (BAE, other, BOEING)
+    assert sweep.held(root)[0] is next(x for x in universe.UNIVERSE if x == BAE)
 
 
 def test_a_pass_leaves_one_thread_free_when_london_is_shut_and_two_in_its_session() -> None:
@@ -213,8 +222,8 @@ def test_each_strategy_is_judged_on_its_declared_universe_and_the_transfer_study
 def test_a_variants_held_positions_are_the_desks_decisions_at_its_settings(
     tmp_path: Path,
 ) -> None:
-    _keep(tmp_path, BOEING)
-    bars = universe.read(tmp_path, BOEING).bars
+    _keep(tmp_path / "store", BOEING)
+    bars = universe.read(tmp_path / database.LIVE, BOEING).bars
     name = "bollinger_pullback[width=1.5]"
     said = strategy.decide({BOEING.symbol: bars}, {"bollinger_pullback": {"width": Decimal("1.5")}})
     held: list[bool] = []
