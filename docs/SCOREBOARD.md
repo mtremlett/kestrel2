@@ -490,6 +490,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1568 DATA: R-DATA-62, the old desk's 1m rows can enter the store's checks. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1590 docs only: store_scope fold into coverage requested (runner ops, R-DATA-63); no scene moved. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1592 docs only: the same fold request written in STATUS; no scene moved. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1594 R-RUNNER-440: the store clears a line's orphan faults file when it writes the line's one file. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1609 line master carries dated quote-currency changes; the store keeps the step day (R-RUNGS-20a). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1634 data-isa-twins: SPY and QQQ worded as price references only; removal waits on callers outside the claim. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
