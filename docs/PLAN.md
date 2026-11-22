@@ -281,6 +281,24 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       into the history database as rollup:<from>; #780: a rolled bar differing from a held one is a FAULT line on stderr; #797: `python -m desk.quality` audits, backfills and re-audits the daily timeframe; remains the other timeframes, market_live.db, local Stooq and rollup sources, the runner job; #930: backfill.fill takes one ordered source list, the rollup step needs Source.ROLLUP_5M in desk/bars_schema.py, outside the box's claim; #935: the audit counts a closed session of today), the long database for daily and up
       Re-carded (coordinator 54, 22 Nov: claim scope, not his: the claim now holds desk/bars_schema.py, which the rollup step's Source.ROLLUP_5M needs; inside the desk/ ceiling)
       {id: data-two-stores; files: desk/bars.py, tests/unit/test_bars*.py, desk/keeper.py, tests/unit/test_keeper*.py, desk/bars_schema.py; after: data-ingest}
+- [ ] **THE DATA MONITOR, FIRST (his priority, 22 Nov: "data quality needs to be top priority"; "the data monitor
+      should always be running"):** measured 22 Nov 09:4x, both databases: daily 1,083 of 1,084 lines fresh and
+      five-minute 43 of 44, but every other span stale: 1h 0 of 1,074 (newest 23 Oct), 4h 0 of 546 (29 Jul), 1wk
+      none, live 15m/30m/1m 4 of 2,097. `desk.quality` audits the daily span alone, once a night, weekdays.
+      It becomes the one monitor: every database x span (5m, 15m, 30m, 1h, 4h, 1d, 1wk) x line judged against the
+      venue calendar's last ended session, each gap filled (IBKR, then Yahoo named, then rollup), audited again, and
+      one line printed: `data quality: <fresh>% fresh, <faults> faults, <gaps> gaps, worst <db/span/line>`
+      {id: data-monitor; files: desk/quality.py, tests/unit/test_quality.py}
+- [ ] Derived spans rolled, never fetched: 15m, 30m, 1h and 4h rolled from five-minute bars and 1wk from daily,
+      into the history database as `rollup:<from>` on every keeper round, so they are as fresh as their base;
+      a rolled bar that differs from a held one is a FAULT, never a silent overwrite (canon B3)
+      {id: data-rollup-hot; files: desk/rollup.py, tests/unit/test_rollup.py; after: data-monitor}
+- [ ] No missing trading day: a line's gap on a day its venue traded (SPY 2022-09-28, ISF 2012-05-28 among
+      6,788 market FAULTs in the ladder) is filled from IBKR, then Yahoo, or the one calendar names it a
+      holiday; a line's audit lists no unnamed gap
+      {id: data-no-missing-day; files: desk/backfill.py, desk/venues.py, tests/unit/test_backfill.py, tests/unit/test_venues*.py; after: data-monitor}
+- [ ] One pounds-per-dollar history back to the earliest bar held, so no fold reads FAULT for a missing rate
+      (about 5,300 in the ladder); conversion stays in its one place
 - [ ] **Data in tiers, for 4,000+ tickers** (research of 14 November, kept in the notes
       folder as `data_stack_2026-11-14.md`). Tier A: held, signalled and watched names, live
       1-minute from IBKR within his line allowance (100 now). Tier B: US breadth at 1 minute
