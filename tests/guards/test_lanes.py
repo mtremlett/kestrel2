@@ -162,6 +162,12 @@ def _claim() -> list[str] | None:
         text = lines[0]
     elif os.environ.get("KESTREL_CLAIM", "").strip():
         text = os.environ["KESTREL_CLAIM"]
+        named = ROOT / ".claim"  # a '*' session names its files here; the runner is its last writer
+        if WHOLE_LANE in [part.strip() for part in text.split(",")] and named.exists():
+            text = ",".join(
+                [p for p in text.split(",") if p.strip() != WHOLE_LANE]
+                + named.read_text(encoding="utf-8").splitlines()
+            )
     else:
         return None
     return [part.strip() for part in text.split(",") if part.strip()]
