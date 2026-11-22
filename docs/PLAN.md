@@ -204,7 +204,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       repository); a matching rule for adjusted against as-traded closes, a new module not on its list (headstart.py
       is at 400 lines); the research list's bars
       Settled (coordinator 54, 22 Nov: not his: the catalog_v2 tag is runner-side notes work; the matching rule is a new lab module registered in manifest.toml inside the lab/ ceiling; the research list's bars come from the keeper)
-      {id: data-headstart; files: lab/headstart.py, tests/unit/test_lab_headstart.py, desk/bars.py, tests/unit/test_bars*.py, manifest.toml}
+      {id: data-headstart; files: lab/headstart.py, tests/unit/test_lab_headstart.py, desk/bars.py, tests/unit/test_bars*.py, manifest.toml; waits: operator}
 - [x] The archive spared: fetching slow and resumable, with backoff, each raw answer cached
       in the folder `KESTREL2_DATA` names (outside the repository and every worktree); while
       the archive refuses, `{"refusing_since": <time>}` written to `KESTREL2_DATA/archive.json`
