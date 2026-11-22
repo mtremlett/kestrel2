@@ -41,7 +41,7 @@ FAST: list[Step] = [
 FULL: list[Step] = [
     *FAST,
     ("types", ["mypy"]),
-    ("unit", ["pytest", "tests/unit", "-q"]),
+    ("unit", ["pytest", "tests/unit", "-v", "--durations=30"]),
     ("scenes", ["pytest", "tests/scenes", "-q"]),
 ]
 
