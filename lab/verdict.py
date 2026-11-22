@@ -159,8 +159,14 @@ def judge(
         "drawdown": drawdowns([t.gross - t.costs.total for t in verdict.trades], trials.name(c)),
         "holding": _held(verdict, own, beside, held, pounds, settings),
         "unrun": unrun,
-        "every": all(answer is Answer.PASS for answer, _ in rungs.values()),
+        "every": every(rungs),
     } | ({"answer": deflated.rule(read).name} if len(read) == len(deflated.NAMED) else {})
+
+
+def every(rungs: Judged) -> bool:
+    """Every rung that gates passed: a rung only reported (`deflated.REPORTED`, the luck rung
+    since L18) holds nothing back."""
+    return all(a is Answer.PASS for n, (a, _) in rungs.items() if n not in deflated.REPORTED)
 
 
 def _plateaued(
