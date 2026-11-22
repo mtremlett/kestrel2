@@ -405,3 +405,17 @@ then the break was removed:
 
 ### 2026-11-22 — Jegadeesh ranges, GRID asked for the rule book (B5, #1529)
 - Options: (a) wire variants into the ladder now (needs GRID's `lab/rulebook.py`); (b) enter variants in the register without running them (charges trials never run, breaks B6); (c) range more rows and ask GRID. Chose (c) (R-RUNGS-33). Clash with #1521 on Turtle Soup: kept main's gap [2, 4, 6] (landed, reviewed, passes the plateau test).
+
+### 2026-11-22 — Zanger and Bollinger ranges; rungs-promotion stays held (B5, #1527, #1538)
+- His ruling ("please always go with recommended to avoid waiting for me to attend"): rungs-promotion waits on R-RUNGS-7, so B5 was worked. Options for the next step: (a) wire variants into the grid chain (beyond a card, touches GRID's chain), (b) enter variants in a register now (charges trials never run), (c) one more row's ranges. Chose (c).
+- Zanger: its 50 days and 1.5x volume are the port's own reading, so it most needs neighbours tried; Faber, Weinstein and dual momentum need tied settings, passed over. Bollinger: options (a) its 20 days and 2 deviations, (b) the port's six months and exit, (c) all four. Chose (b): published settings fixed, 9 trials not 81.
+
+### 2026-11-22 — variants counted in their own set (B5, #1530)
+- Options: (a) enter every variant in EPON's register now; (b) a variants set of its own, run by the ladder. Chose (b): the plan names variants as their own family, and charging EPON for unrun variants would change its golden verdicts. Needs the ladder to run a variant cell, so `variants.find` is built here and GRID asked for the rule book half (R-RUNGS-33).
+
+### 2026-11-22 — scalping edge needed is gross of cost (R-RUNNER-357, #1532)
+- `edge_needed` = cost + T_PASS x standard error of the gains, as the request asks the edge needed to pass the cost.
+
+### 2026-11-22 — intraday layers (R-RUNNER-359, R-RUNNER-360, #1531, #1541)
+- Expansion compares a bar with EARLIER bars only (options: include itself; chosen: exclude, so a wide bar cannot dampen its own test). Opening range is time-based (30 min from the session's first bar), so a missing bar cannot shift it.
+- Volatility: MIN_SESSIONS=5, MIN_RETURNS=2; thirds by count of earlier values strictly below (options: interpolated percentiles; chose counts, no interpolation to hide).

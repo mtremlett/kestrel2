@@ -7,7 +7,8 @@ ends `SET EPON: <n> rules, <passed> passed, table <path>`. A rule has passed whe
 verdict is PASS and every rung run passed. Every table is PRE-REVIEW until the blind review
 (R-RUNNER-40) is clean. `python -m lab.ladder first` runs the first set instead; `leveraged`
 runs set LEV (STR-18): six trend rules, named in `TREND`, on the leveraged lines only, judged
-on their own trial count.
+on their own trial count. `variants` names set VAR before any result (canon B6): every variant
+of every ranged catalogue row entered as a trial in its own register; none is judged yet (GC).
 """
 
 from __future__ import annotations
@@ -29,10 +30,12 @@ from lab import (
     ladder,
     ladder_pool,
     members,
+    rulebook,
     rung_retail,
     scalping,
     tape,
     trials,
+    variants,
     verdict,
     weather,
 )
@@ -44,6 +47,7 @@ from lab.rung import Answer, Rates
 
 EPON = Plan("EPON", "set EPON: does an eponymous rule earn on a line the store holds?", "EPON")
 LEV = Plan("LEV", "set LEV: does a trend rule earn on a leveraged line the store holds?", "LEV")
+VAR = Plan("VAR", "set VAR: does a variant of a ranged catalogue row earn on a line?", "VAR")
 #: Set LEV's family, named before any result (STR-18): the eponymous rules that follow a trend,
 #: none that fades one. Adding a rule is a new set. Its trials are its rules times its lines,
 #: not the 63,920 of EPON, whose family is every rule on every line.
@@ -249,6 +253,14 @@ def _pooled(make: Callable[[], Bars]) -> Callable[..., str]:
     )
 
 
+def entered(home: Path) -> str:
+    """Set VAR's family entered before any of it runs: each variant a trial, run or not."""
+    made = variants.family(rulebook.specs())
+    register = ladder.begun(home, (), VAR)[0].with_suffix(".trials.jsonl")
+    count = variants.enter(register, VAR.question, made)
+    return f"SET VAR: {len(made)} variants entered, {count} trials counted; none judged yet (GC)"
+
+
 def leveraged(lines: Sequence[Line]) -> tuple[Line, ...]:
     """The lines that make more than their market's daily move."""
     return tuple(line for line in lines if line.leverage > 1)
@@ -256,17 +268,21 @@ def leveraged(lines: Sequence[Line]) -> tuple[Line, ...]:
 
 def main(env: Mapping[str, str], argv: Sequence[str] = ()) -> int:
     """Set EPON on every line the research store holds; `first` runs the first set instead and
-    `leveraged` set LEV, the trend rules on the leveraged lines; `intraday` set
-    INTRADAY (five-minute rules), `scalping` set SCALP (one-minute rules). All run on the pool
-    (R-RUNNER-110): every core but two."""
+    `leveraged` set LEV, the trend rules on the leveraged lines; `intraday` set INTRADAY
+    (five-minute rules), `scalping` set SCALP (one-minute rules); `variants` only enters set
+    VAR's trials. The sets run on the pool (R-RUNNER-110): every core but two."""
     if not env.get("KESTREL2_DATA"):
         sys.exit("ladder: KESTREL2_DATA names no data folder, so the set has no home")
     home = Path(env["KESTREL2_DATA"])
-    if list(argv) not in ([], ["first"], ["leveraged"], ["intraday"], ["scalping"]):
+    sets = ([], ["first"], ["leveraged"], ["intraday"], ["scalping"], ["variants"])
+    if list(argv) not in sets:
         sys.exit(
-            f"ladder: {list(argv)} is no set; the command takes nothing, `first`, `leveraged` "
-            "`intraday` or `scalping`"
+            f"ladder: {list(argv)} is no set; the command takes nothing, `first`, `leveraged`, "
+            "`intraday`, `scalping` or `variants`"
         )
+    if argv == ["variants"]:  #: names a family; reads no bars
+        sys.stdout.write(entered(home) + NL)
+        return 0
     make = partial(history_bars.reader, home)
     pounds, held = history_bars.pounds(home), history_bars.lines(home)
     if argv == ["intraday"]:

@@ -68,3 +68,19 @@ def test_opening_range_and_expansion_hand_worked_and_future_blind(
             assert list(fn(bars[: k + 1]).values()) == got[: k + 1]
         with pytest.raises(ValueError):
             fn(bars[::-1])
+
+
+def test_volatility_thirds_hand_worked_and_future_blind(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(wi, "MIN_SESSIONS", 2)
+    big, flat, mid = (100, 200, 100, 200), (100, 100, 100, 100), (100, 150, 100, 150)
+    # a bar's volatility needs 2 returns (bars 3, 4); sessions: big .75/.707, flat 0, mid .42/.39
+    bars = _bars(big, flat, flat, big, mid)
+    got = list(wi.volatility(bars).values())
+    w = ["warming"] * 2
+    # sessions 1-2 hold under 2 earlier; 3: 0 under [.75, 0]; 4: .75 over [.75, 0, 0] (2 of 3
+    # below); 5: .42 and .39 between 0 and .75
+    assert got == w * 4 + w + ["quiet"] * 2 + w + ["wild"] * 2 + w + ["normal"] * 2
+    for k in range(len(bars)):
+        assert list(wi.volatility(bars[: k + 1]).values()) == got[: k + 1]
+    with pytest.raises(ValueError):
+        wi.volatility(bars[::-1])

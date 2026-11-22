@@ -207,6 +207,11 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1457 money-fills closed by verification; scene 5 pins price-plus-costs, no double count. |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1465 golden reference run pinned (TST-21, GOV-09); no scene change. |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1468 money-story first step: trades and their profit attribution from the ledger. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1471 R-RUNNER-333 raschke_swing checked against the author's setup, no rule bug, repeat-entry test added. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1486 trade stories (signal strategy and bar read) on the ledger's round trips, in SimCity. |
+| 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1504 gapped stop halts buying (STP-10); hold limits and money-honest remain. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1509 money-story: decision-time id chain kept per decision; story.csv. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1516 BIC-05 paper alert on a £1,500 fall from the highest point. |
 
 
 ### DATA
@@ -899,3 +904,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1520 R-RUNNER-206 part 1 intraday trend layer landed. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1523 R-RUNNER-356 VWAP reversion rule built. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1529 B5: Jegadeesh weekly reversal row ranged; variants still not run (needs R-RUNGS-33). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1527 B5: Zanger's row carries 3x3 variant ranges centred on its published setting (7 ranged rows). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1531 R-RUNNER-359 intraday opening-range and expansion layers built. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1530 B5: a variant's name resolves back to its spec (variants.find), the step the grid chain needs; scenes unchanged. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1532 R-RUNNER-357 round-trip cost and needed edge built. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1538 B5: Bollinger squeeze row carries 3x3 variant ranges, scenes unchanged. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1541 R-RUNNER-360 intraday volatility layer built. |
