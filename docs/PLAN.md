@@ -288,6 +288,14 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       It becomes the one monitor: every database x span (5m, 15m, 30m, 1h, 4h, 1d, 1wk) x line judged against the
       venue calendar's last ended session, each gap filled (IBKR, then Yahoo named, then rollup), audited again, and
       one line printed: `data quality: <fresh>% fresh, <faults> faults, <gaps> gaps, worst <db/span/line>`
+      Named HOVER (a kestrel hovers over the field watching). His 22 Nov 09:5x terms: HOVER checks every 5
+      minutes, 7 days, as plain code that spends no tokens; green means no action. Only red wakes a model,
+      cheapest first: Haiku reads the fault and names its kind, Sonnet fixes a kind already seen, Opus only a
+      new kind. Every hour a Telegram table: both databases x every span (1m to 1wk), % fresh, faults, gaps.
+      The golden lines are always green or the table says why: SPY and QQQ, with VUAG (LSE) standing in for SPY
+      and IITU (LSE) for QQQ, in both databases at every span (measured 09:5x: all four present, daily and
+      five-minute fresh, other spans stale like the rest; VUAG has no 15m, 30m, 1m or 4h). Daily bars are read
+      from ONE store: the ladder's daily files miss SPY 2022-09-28 that market_history.db holds
       {id: data-monitor; files: desk/quality.py, tests/unit/test_quality.py}
 - [ ] Derived spans rolled, never fetched: 15m, 30m, 1h and 4h rolled from five-minute bars and 1wk from daily,
       into the history database as `rollup:<from>` on every keeper round, so they are as fresh as their base;
