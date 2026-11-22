@@ -2200,3 +2200,27 @@ dropped to make room: each was merged or moved (A7's story is failure pattern 1)
 
 The failure patterns are capped at today's 221 lines, down-only (a tightening). Guard proven (A7):
 with the cap at 220, `test_the_rulebooks_stay_short` failed; at 221 it passed.
+
+## 22 Nov - Grimes's ten setups join the zoo as a paper MACHINERY TEST (his "both now")
+
+His words in chat (Sun 22 Nov 15:3x, via the coordinator): "both now": build the ten AG strategies now, beside
+the ladder, to trade on paper as a test of the desk; the ladder stays the only gate for edge and money (CANON
+B6, his 22 Nov ruling on zoo machinery above, PR #1682). Decided, with options:
+- WHERE: desk/ may never import lab/, so rules the desk runs live in desk/; an `eponymous_*` file would put them
+  in the ladder's rule book and its published-figure checks, so they get their own `desk/grimes.py`; desk/ held
+  100 of 100 files, so `desk/simcity_parts2.py` was folded into `simcity_parts.py` first (#1691, a pure move).
+- WHAT: the catalogue (kestrel2_research/grimes/catalogue.md v3, review 9.8) at its defaults, long only, on the
+  daily bar (the intraday round shows a rule one session, under the 60-bar warm-up the blocks need), one share.
+  Left to the ladder: sweeps, sizing by risk, shorts through inverse ETFs, the weekly (HTF) contexts, the MGMT
+  study. A resting order becomes a bar trading through its level, filled at the next open (the engine's fill).
+- HOW IT TRADES: as daily zoo machines `zoo_ag01_...` to `zoo_ag10_...` in `desk/intraday.py` ZOO, so the zoo's
+  switch, its own allowance, its one-share cap and its MACHINERY TEST label apply; they trade only when the
+  zoo's daily round (zoo-daily) reads ZOO's daily machines, behind the `zoo-on-paper` file. Never in STRATEGIES,
+  never A-GATE (`test_intraday_zoo.py`).
+Guard proven (A7): the tests were written after the code, so each was driven red by a planted mutation of the
+condition it names, 13 of 13 caught: AG-01 shared high not needed, AG-02 close back over the boundary dropped,
+AG-03 CD/AB band widened, AG-04 reaction limit 50% to 80%, AG-05 spring's close inside dropped, AG-06 context
+always true, AG-07 retrace 62% to 80%, AG-08 pierce of K by any bar, AG-09 weak thrust under 2x mean, AG-10 top
+third to two thirds, MGMT breakeven dropped, MGMT parabolic stop dropped, SW confirming at a third of z. The drive
+first found three near-misses blocked by a second condition (AG-01, AG-02, AG-08) and a swing test passing on a
+tie; each was rebuilt until the named condition alone decided it.
