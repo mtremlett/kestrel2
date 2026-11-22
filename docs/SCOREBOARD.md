@@ -217,6 +217,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1569 BIC-04 told on paper (day._currency); interest and Sharpe risk-free rate remain. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1584 money-honest step 2: day tells interest on idle cash at the risk-free rate (BIC-03). |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1596 money-honest step: currency on open holdings told (BIC-04), SimCity-checked. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1641 money-door-slippage done: slippage reads the two databases only. |
 
 
 ### DATA
