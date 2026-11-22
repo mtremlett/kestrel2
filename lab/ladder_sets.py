@@ -43,6 +43,7 @@ from lab.batch import Bars
 from lab.cell import Cell
 from lab.ladder import END, FOLDER, START, Kept, Plan, eponymous, run
 from lab.ladder_parts import FAILED, Shared, _made, _resolve
+from lab.published_epon import TESTED
 from lab.rung import Answer, Rates
 
 EPON = Plan("EPON", "set EPON: does an eponymous rule earn on a line the store holds?", "EPON")
@@ -148,10 +149,17 @@ def epon(
     )
     with table.open("a", encoding="utf-8") as out:
         out.write("\n## Survivorship\n\n" + "".join(f"- {note}\n" for note in notes))
+        out.write(NL.join(_authors(rules)) + NL)
     said = f"survivorship: {len(notes)} of {len(lines)} lines not corrected, none guessed"
     passed = sum(any(map(verdict.goes, mine)) for mine in verdict.by_rule(rows, rules).values())
     last_line = f"SET {plan.tag}: {len(rules)} rules, {passed} passed, table {table}"
     return f"{counts}\n{said}\n{tapes_held(home)}\n{last_line}"
+
+
+def _authors(rules: Sequence[str]) -> list[str]:
+    """The table's lines for each rule's published test (`published_epon.TESTED`)."""
+    tested = [f"- {rule}: {TESTED[rule].said()}" for rule in rules if rule in TESTED]
+    return ["", "## The authors' tests, none yet reproduced", "", *tested]
 
 
 def _furthest(rows: Sequence[verdict.Row]) -> tuple[verdict.Row, str, str]:
@@ -184,7 +192,7 @@ def condense(
         fields = [rule, rung, why, f"{judged} of {len(mine)}", best["cell"][1]]
         fields.append("yes" if any(map(verdict.goes, mine)) else "no")
         out.append("| " + " | ".join(f.replace("|", "/").replace(NL, " ") for f in fields) + " |")
-    out += ["", "## Survivorship", ""] + [f"- {note}" for note in notes]
+    out += ["", "## Survivorship", ""] + [f"- {note}" for note in notes] + _authors(rules)
     table.write_text(NL.join(out) + NL, encoding="utf-8")
 
 
