@@ -594,6 +594,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1362 R-RUNNER-253 pinned by a test; no product change. |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1371 R-RUNNER-202 intraday step round built and tested; no rule trades yet. |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1366 R-RUNNER-348 test pinning placing freshness by session; no product change. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1478 R-RUNNER-160 morning heat line. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1482 R-RUNNER-208 compact messages landed; no scene changes. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1472 R-MONEY-58 closed; session set on every Sale. |
 
 ### GRID
 
