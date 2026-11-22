@@ -259,16 +259,36 @@ def cell(path: Path, line: Line, span: str, now: datetime) -> str | None:
     return None if at >= due else f"newest {at}, last session {due}"
 
 
+def _cells(
+    path: Path, lines: Iterable[Line], now: datetime, spans: Iterable[str] = HOVER_SPANS
+) -> list[tuple[str, Line, str | None]]:
+    """Every line x span the venue supplies, judged: (name, line, why not fresh or None)."""
+    return [
+        (f"{line.symbol}/{span}", line, cell(path, line, span, now))
+        for line in lines
+        for span in spans
+        if span not in OFFERED.get(line.symbol, ())
+    ]
+
+
+def table(path: Path, lines: Iterable[Line], now: datetime) -> str:
+    """The hourly table of one database: per span, the share fresh, the faults and the gaps."""
+    held, rows = list(lines), []
+    for span in HOVER_SPANS:
+        why = [w for _, _, w in _cells(path, held, now, (span,))]
+        gap = sum(w == "holds no bar" for w in why)
+        fresh = 100 * (len(why) - sum(w is not None for w in why)) // max(len(why), 1)
+        rows.append(
+            f"{span}: {fresh}% fresh, {sum(w is not None for w in why) - gap} faults, {gap} gaps"
+        )
+    return "\n".join(rows)
+
+
 def hover(path: Path, lines: Iterable[Line], now: datetime) -> tuple[str, bool]:
     """Every line x span judged against the venue's last ended session: the one line saying the
     share fresh, the faults (held but behind), the gaps (no bar) and the worst cell, and whether
     it is green: every golden line fresh at every span its venue supplies."""
-    cells = [
-        (f"{line.symbol}/{span}", line, cell(path, line, span, now))
-        for line in lines
-        for span in HOVER_SPANS
-        if span not in OFFERED.get(line.symbol, ())
-    ]
+    cells = _cells(path, lines, now)
     bad = [(name, line, why) for name, line, why in cells if why]
     gap = sum(why == "holds no bar" for _, _, why in bad)
     worst = (bad[0][0] + ": " + bad[0][2]) if bad else "none"
@@ -316,9 +336,13 @@ def watch(state: Path, said: str, green: bool, now: datetime) -> str | None:
 
 if __name__ == "__main__":
     home, now = Path(os.environ["KESTREL2_DATA"]), datetime.now(UTC)
+    if sys.argv[1:] == ["table"]:
+        sys.stdout.write(table(home / keeper.HOT, LINES, now) + "\n")
+        sys.exit(0)
     if sys.argv[1:] == ["hover"]:
         said, ok = hover(home / keeper.HOT, LINES, now)
-        sys.stdout.write(f"{said}\n")
+        told = watch(home / "hover_alarm.json", said, ok, now)
+        sys.stdout.write(f"{said}\n" + (f"ALARM {told}\n" if told else ""))
         sys.exit(0 if ok else 1)
     if sys.argv[1:] == ["register"]:
         counts, replaced = register(home / keeper.HOT, LINES)

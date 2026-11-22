@@ -53,16 +53,15 @@ def test_the_deflated_sharpe_is_the_published_one() -> None:
 
 
 def test_one_rule_reads_every_named_rung_and_gives_the_worst() -> None:
-    assert deflated.NAMED == ("first", "luck", "deflated", "yearly", "folds", "market", "shuffle")
-    assert deflated.NAMED[:4] == deflated.OWN
+    assert deflated.NAMED == ("first", "deflated", "yearly", "folds", "market", "shuffle")
+    assert set(deflated.OWN) - set(deflated.NAMED) == {"luck"}, "one correction, not two"
     passes = dict.fromkeys(deflated.NAMED, Answer.PASS)
     assert deflated.rule(passes) is Answer.PASS
     assert deflated.rule(passes | {"yearly": Answer.DOUBT}) is Answer.DOUBT
     assert deflated.rule(passes | {"folds": Answer.THIN}) is Answer.THIN, "a thin fold: no pass"
     assert deflated.rule(passes | {"market": Answer.FAIL}) is Answer.FAIL
-    assert deflated.rule(passes | {"yearly": Answer.DOUBT, "luck": Answer.FAIL}) is Answer.FAIL
     without = {name: Answer.PASS for name in deflated.NAMED if name != "folds"}
-    for rungs in (without, passes | {"another": Answer.PASS}):
+    for rungs in (without, passes | {"another": Answer.PASS}, passes | {"luck": Answer.FAIL}):
         with pytest.raises(ValueError, match="the rule reads"):
             deflated.rule(rungs)
 
@@ -91,10 +90,11 @@ def test_a_winner_falls_through_the_bands_as_the_trials_it_was_picked_from_grow(
     #: the bar is the count's alone: a trial's company, even its own twin, does not move it
     twin, _ = deflated.judge([winner, winner], 103)
     assert twin.deflated == chances[1] and twin.bar == pytest.approx(0.408, abs=5e-4)
-    #: the luck rung fails a weaker winner the first rung passed and the Sharpe left in doubt
+    #: the luck rung fails a weaker winner the Sharpe left in doubt: reported, it bounds nothing
     weak = deflated.judge([*noise, _bell(9, 0.008)], 5)[-1]
     answers = (Answer.PASS, Answer.FAIL, Answer.DOUBT, Answer.PASS)
     assert weak.rungs == dict(zip(deflated.OWN, answers, strict=True))
+    assert weak.least is Answer.DOUBT
     #: failing fairly: a trial with one trade has no Sharpe and one with no trades nothing at
     #: all; neither has failed, on any rung, and both still count
     single, none, counted = deflated.judge([_verdict([0.5]), _verdict([]), winner], 102)

@@ -47,6 +47,12 @@ be left out after its answer is seen. Four are read here from the trial's trades
 folds (`lab/folds.py`) and the market (`lab/market.py`) are read where they are run, and a
 trial short of any one has no verdict. A later rung joins by being named here.
 
+ONE CORRECTION, NOT TWO (L18, decision b). The luck rung multiplies a trial's chance by every
+trial ever entered (3,435 a rule against about 1,017 judged), asking a t of 4.6 no line has
+reached, and the deflated Sharpe corrects the same pick for luck again. Charged twice, a real
+edge cannot pass. So the deflated Sharpe, on the set's clustered looks, is the gate; the luck
+rung is read and reported (OWN) and is no rung of the rule (NAMED), so it bounds no verdict.
+
 FAILING FAIRLY (LAD-06). Every rung here reads the one trial's trades, so where the first
 rung found too few of them, or none, no rung has anything more to judge: each gives the
 first rung's own answer, not enough evidence or a fault in the test, and none a fail. Such
@@ -71,9 +77,10 @@ PASS = 0.90
 FAIL = 0.50
 #: The yearly Sharpe above which a result is flagged (canon B6).
 FLAG = 2.0
-#: The rungs the one rule reads (LAD-09), each trial judged on every one; the first four here.
-NAMED = ("first", "luck", "deflated", "yearly", "folds", "market", "shuffle")
-OWN = NAMED[:4]
+#: The rungs the one rule reads (LAD-09), each trial judged on every one.
+NAMED = ("first", "deflated", "yearly", "folds", "market", "shuffle")
+#: The rungs read here from the trial's trades: the luck rung reported, the rest in NAMED.
+OWN = ("first", "luck", "deflated", "yearly")
 
 _NORMAL = NormalDist()
 _EULER = 0.5772156649015329
@@ -111,8 +118,9 @@ class Deflated:
 
     @property
     def least(self) -> Answer:
-        """The least of the rungs read here: a bound on the verdict, never the verdict."""
-        return min(self.rungs.values())
+        """The least of the named rungs read here: a bound on the verdict, never the verdict;
+        the luck rung, reported only, bounds nothing."""
+        return min(answer for name, answer in self.rungs.items() if name in NAMED)
 
 
 def judge(verdicts: Sequence[Verdict], unjudged: int) -> tuple[Deflated, ...]:
