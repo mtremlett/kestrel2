@@ -33,11 +33,12 @@ def _ask(line: Line, day: date) -> tuple[Bar, ...]:
     )
 
 
-def test_the_research_list_is_the_four_lists_of_the_ruling_each_on_its_own_venue() -> None:
-    parts = (universe.SP500, universe.NASDAQ100, universe.FTSE350, universe.ETFS)
+def test_the_research_list_is_the_six_lists_each_on_its_own_venue() -> None:
+    mid, small = universe.MIDCAP400, universe.SMALLCAP600
+    parts = (universe.SP500, universe.NASDAQ100, universe.FTSE350, universe.ETFS, mid, small)
     sizes = [len(part) for part in parts]
-    assert sizes == [len(set(part)) for part in parts] == [503, 101, 347, 200]
-    american = universe.SP500 + universe.NASDAQ100 + universe.ETFS
+    assert sizes == [len(set(part)) for part in parts] == [503, 101, 347, 200, 400, 603]
+    american = universe.SP500 + universe.NASDAQ100 + universe.ETFS + mid + small
     assert {(line.venue, line.currency) for line in american} == {("US", "USD")}
     assert {line.venue for line in universe.FTSE350} == {"LSE"}
     #: a London share pays stamp duty on a purchase; no US ticker, share or fund, pays UK tax
@@ -46,7 +47,7 @@ def test_the_research_list_is_the_four_lists_of_the_ruling_each_on_its_own_venue
     dollars = {line.symbol for line in universe.FTSE350 if line.currency == "USD"}
     assert dollars == {"BPCR", "CPG", "IHG", "MNTN", "RTW"}
     named = [(line.symbol, line.venue) for line in universe.UNIVERSE]
-    assert len(named) == len(set(named)) == len(set(american + universe.FTSE350)) + 1 == 1066
+    assert len(named) == len(set(named)) == len(set(american + universe.FTSE350)) + 1 == 2065
     #: ISF, London's yardstick, is studied so that the store holds LSE/ISF.csv for the ladder
     assert [x.symbol for x in universe.YARDSTICKS] == ["ISF"]
     assert all(re.fullmatch("[A-Z0-9]+(-[A-Z])?", symbol) for symbol, _ in named)
