@@ -751,3 +751,6 @@ Options: (a) red when a newest bar came from a replacement, rejected: the archiv
 
 ### 2026-11-22 — one price reader; breadth kept, moved (data-door-bars, non-lane PR)
 Options: (a) delete `breadth` with the CSV reader, as the box said; (b) keep it, read through the door. Chose (b): R-RUNGS-32 owes it a caller, and moving it costs no new code. A line the database lacks raises FileNotFoundError, as a missing CSV did, so the ladder counts the cell as failed (`ladder.FAILED`; widening FAILED to LookupError would swallow KeyError bugs; blind review finding), and breadth leaves such a line out, as before.
+
+### 2026-11-22 — survivorship stated, not rebuilt; Telegram stays with the runner; earnings CSV later (DATA, #1750, #1736, #1752)
+Survivorship: state the measured bias (`members.bias`) rather than build point-in-time FTSE 350 lists that lack a record. Alarm: the runner sends Telegram from the ALARM line, not `desk.quality` (one client per external system). Collector: BEA added; the Alpha Vantage earnings CSV needs its own parse hook, left to a later card.

@@ -989,3 +989,6 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1740 rungs-each-rung step: empty rung_beta.py folded away, off-path rung modules 8 -> 7. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1742 RUNGS: plateau.of builds each cell's plateau surface or FIXED; one call left to wire it in the ladder (L17 step 2). |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1749 RUNGS: indicator tables also held while holding (STR-14), net +17 lines. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1736 data-monitor: per-span table and persisted alarm; box stays open. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1750 data-survivorship: bias measured and stated as a line; not yet wired into verdicts. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1752 collector adds BEA; 11 of the planned sources. |
