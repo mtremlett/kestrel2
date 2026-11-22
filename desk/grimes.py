@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 from hashlib import sha256
 from itertools import pairwise
+from statistics import median
 from typing import ClassVar
 
 from desk.lines import LINES
@@ -500,9 +501,185 @@ class _Ag03(Grimes):
         return (trigger, self.stop(d, mark)) if trigger else None
 
 
+def level(chart: Chart, side: int, mark: Mark) -> tuple[Decimal, int] | None:
+    """AG-04's level (side +1: a resistance) at a bar, from the bars before it: the latest swing
+    price tested twice or more within NEAR ATRb (its run of matching pivots) over 20 bars or more,
+    with 2 closes or fewer beyond it; and the bar of its first test."""
+    ends = [p for p in chart.pivots if p.side == side]
+    if not ends:
+        return None
+    tests = [p for p in ends if abs(p.price - ends[-1].price) <= NEAR * mark.atr]
+    first = tests[0].n
+    beyond = sum(
+        _x(m.bar.close, side) > _x(ends[-1].price, side) for m in chart.since(first, mark.n - 1)
+    )
+    if len(tests) < 2 or mark.n - first < 20 or beyond > 2:
+        return None
+    return ends[-1].price, first
+
+
+def thrust(chart: Chart, side: int, mark: Mark) -> Decimal | None:
+    """The first close beyond AG-04's level toward the side: the level it broke, else None."""
+    found, before = level(chart, side, mark), chart.since(mark.n - 2, mark.n - 1)
+    if found is None or not before or _x(mark.bar.close, side) <= _x(found[0], side):
+        return None
+    return None if _x(before[0].bar.close, side) > _x(found[0], side) else found[0]
+
+
+def _wide(chart: Chart, mark: Mark) -> Decimal:
+    """The bar's range over the mean range of the 10 bars before it."""
+    before = chart.since(mark.n - 11, mark.n - 1)
+    return mark.range() / (_mean(m.range() for m in before) or Decimal(1))
+
+
+class _Ag04(Grimes):
+    """AG-04, the first pullback after a breakout [ch5] [ch6]: a close over AG-04's level on a bar
+    1.25 times the mean range (r); the first reaction retracing 50% (x) or less of the thrust, then
+    AG-01(a)'s buy-stop; the stop beyond the reaction's low; out on a close under the base's last
+    pivot low (the breakout failed); the min-stop filter on; T = 5."""
+
+    code, narrow = "AG-04", True
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._run: tuple[Decimal, Decimal, int] | None = None  #: the base's floor, low, top bar
+
+    def arm(self, mark: Mark) -> tuple[Decimal, Decimal] | None:
+        """The breakout's first reaction's buy-stop."""
+        k = self.chart.last(-1)
+        wide = _wide(self.chart, mark) >= Decimal("1.25")
+        if thrust(self.chart, 1, mark) and wide and k is not None:
+            self._run = (self.chart.pivots[k].price, mark.bar.low, mark.n)
+            return None
+        if self._run is None:
+            return None
+        floor, low, top = self._run
+        after = self.chart.since(top - 1, mark.n)
+        high = max(after, key=lambda m: m.bar.high)
+        reaction = self.chart.since(high.n, mark.n)
+        dip = min((m.bar.low for m in reaction), default=high.bar.high)
+        if high.bar.high - dip > (high.bar.high - low) / 2:
+            self._run = None
+            return None
+        trigger = shared(reaction)
+        stop = self.stop(dip, mark)
+        return (trigger, stop) if trigger and self.room(trigger, stop, mark) else None
+
+    def open(self, stop: Decimal, **more: Decimal | None) -> Trade:
+        """MGMT's trade, out on a close under the base's last pivot low; the first reaction only."""
+        floor, self._run = (self._run or (None,))[0], None
+        return super().open(stop, floor=floor, **more)
+
+
+def tight(chart: Chart, mark: Mark) -> tuple[Decimal, Decimal] | None:
+    """AG-05's tight base at a bar: a run of 3 bars or more [P] whose lows sit in the top quarter
+    of the 20-bar range, under a top the range's first half touched; 2 closes or fewer over the
+    top. Its low and the top (the level)."""
+    marks = chart.since(mark.n - 20, mark.n)
+    if len(marks) < 20:
+        return None
+    top, bottom = max(m.bar.high for m in marks), min(m.bar.low for m in marks)
+    edge = top - (top - bottom) / 4
+    run = [m for m in marks if m.n > max((x.n for x in marks if x.bar.low < edge), default=-1)]
+    early = any(m.bar.high >= edge for m in marks[:10])
+    over = sum(m.bar.close > top for m in marks)
+    if len(run) < 3 or not early or over > 2:
+        return None
+    return min(m.bar.low for m in run), top
+
+
+class _Ag05(Grimes):
+    """AG-05, the breakout entered in its base [ch5] [ch6]: a tight base; a spring (a probe under
+    its low closing back inside, trigger a) buys at the next open; stop plan A, BUFFER ATRb under
+    the base low, with MGMT's fakeout re-entry; no time stop until a close over the level, then
+    T = 5."""
+
+    code = "AG-05"
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._base: tuple[Decimal, Decimal] | None = None
+
+    def signal(self, mark: Mark) -> Trade | None:
+        """The spring under the base standing at the bar before."""
+        base, self._base = self._base, tight(self.chart, mark)
+        if base is None or not mark.bar.low < base[0] < mark.bar.close:
+            return None
+        return self.open(self.stop(base[0], mark), start=base[1], back=base[0])
+
+    def open(self, stop: Decimal, **more: Decimal | None) -> Trade:
+        """MGMT's trade; the base it came from is spent, so none stands when it ends."""
+        self._base = None
+        return super().open(stop, **more)
+
+
+def ncl(chart: Chart) -> int:
+    """NCL: the median length in bars of the last 5 swings [P: the book's pullbacks, any swing]."""
+    lengths = [bars for _, bars, _ in chart.swings()][-6:-1]
+    return int(median(lengths)) if lengths else KEEP
+
+
+def context(chart: Chart, k: int, mark: Mark) -> bool:
+    """AG-06's context at the low pivot k, any of: (i) LEG 3 or more down with DIV; (ii) a
+    consolidation just over it (closes within REACH + 1 ATRb) for 3 NCL bars or more; (iii) it
+    is a CLX's extreme; (iv) a CoC up since it. The higher timeframe's (v, vi) are the ladder's."""
+    low, setup = chart.pivots[k], Setup(chart, k)
+    after = chart.since(low.n, mark.n - 1)
+    just = all(m.bar.close - low.price <= (REACH + 1) * m.atr for m in after)
+    held = all(m.bar.low >= low.price for m in after) and len(after) >= 3 * ncl(chart)
+    return (
+        (setup.legs >= 3 and diverged(chart, k, mark.n - 1))
+        or (just and held)
+        or climax(chart, -1, low.n)
+        or (chart.last(1) is not None and chart.last(1) > k and coc(chart, 1))  # type: ignore[operator]
+    )
+
+
+class _Ag06(Grimes):
+    """AG-06, the failure test (spring, the "2B") [ch6] [ch10]: at the latest confirmed swing low in
+    one of the contexts, a bar trading under it and closing back over it buys at the next open;
+    the stop BUFFER ATRb beyond the probe; out after 2 closes running within 0.5 ATRb of the level
+    before +0.5R; MGMT's fakeout re-entry always on; T = 3."""
+
+    code, limit = "AG-06", 3
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._level, self._near = ZERO, 0
+
+    def signal(self, mark: Mark) -> Trade | None:
+        """The probe under the level that closes back over it, in context."""
+        k = self.chart.last(-1)
+        if k is None or not context(self.chart, k, mark):
+            return None
+        price = self.chart.pivots[k].price
+        if not mark.bar.low < price < mark.bar.close:
+            return None
+        self._level = price
+        return self.open(self.stop(mark.bar.low, mark), back=price)
+
+    def open(self, stop: Decimal, **more: Decimal | None) -> Trade:
+        """MGMT's trade, the fakeout re-entry's too, its count of closes near the level at 0."""
+        self._near = 0
+        return super().open(stop, **more)
+
+    def keep(self, mark: Mark) -> bool:
+        """Out on 2 closes running near the level before +0.5R: it must work fast."""
+        trade = self.trade
+        if trade is None or trade.entry is None:
+            return True
+        reached = trade.best >= trade.entry + trade.risk / 2
+        near = abs(mark.bar.close - self._level) <= mark.atr / 2
+        self._near = self._near + 1 if near and not reached else 0
+        return self._near < 2
+
+
 #: The coded setups by name: the zoo's names are `zoo_<name>` (desk/intraday.py ZOO).
 GRIMES: dict[str, type[Grimes]] = {
     "ag01_pullback_breakout": _Ag01,
     "ag02_washout": _Ag02,
     "ag03_complex_pullback": _Ag03,
+    "ag04_first_pullback": _Ag04,
+    "ag05_base_spring": _Ag05,
+    "ag06_failure_test": _Ag06,
 }

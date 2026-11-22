@@ -27,7 +27,7 @@ from pathlib import Path
 from desk import archive, bars, store
 from desk import bars as database
 from desk.bars import Source
-from desk.lines import LINES, NO_TAX, STAMP_DUTY, Line
+from desk.lines import LINES, NO_TAX, POUND, STAMP_DUTY, Line
 from desk.store import Bar, Fault, Parked
 from lab import universe_history
 from lab.universe_parts import HEAVY as HEAVY
@@ -339,6 +339,14 @@ LISTS = {
 }
 
 
+def pound_gaps(path: Path, day: date) -> str:
+    """The pound's sessions with no rate held, named: their count and the latest three (a day the
+    Fed gave none; the ladder carries a UK-only holiday); empty when none."""
+    lost = universe_history.missing(path, POUND, day)
+    last = ", ".join(map(str, lost[-3:]))
+    return f"; the pound has no rate on {len(lost)} sessions, last {last}" if lost else ""
+
+
 def nightly(
     data: Path,
     day: date,
@@ -359,7 +367,7 @@ def nightly(
     held = (f"day {day}", f"lines {len(names)} {sizes}", f"fingerprint {finger}")
     home.mkdir(parents=True, exist_ok=True)
     (home / "REFLECTS.txt").write_text(chr(10).join((*held, "")), encoding="utf-8")
-    return f"{said}; {noon(data / bars.LIVE)}" if noon else said
+    return f"{said}; {noon(data / bars.LIVE)}{pound_gaps(data / bars.LIVE, day)}" if noon else said
 
 
 def import_history(data: Path, day: date) -> str:

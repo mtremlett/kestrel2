@@ -272,7 +272,8 @@ def _cells(
 
 
 def table(path: Path, lines: Iterable[Line], now: datetime) -> str:
-    """The hourly table of one database: per span, the share fresh, the faults and the gaps."""
+    """The hourly table of one database: per span, the share fresh, the faults and the gaps, then
+    the register of sources (each newest daily bar's source, and the lines on a replacement)."""
     held, rows = list(lines), []
     for span in HOVER_SPANS:
         why = [w for _, _, w in _cells(path, held, now, (span,))]
@@ -281,6 +282,8 @@ def table(path: Path, lines: Iterable[Line], now: datetime) -> str:
         rows.append(
             f"{span}: {fresh}% fresh, {sum(w is not None for w in why) - gap} faults, {gap} gaps"
         )
+    counts, replaced = register(path, held)
+    rows.append(f"sources: {counts}; replaced: {', '.join(replaced) or 'none'}")
     return "\n".join(rows)
 
 
@@ -348,7 +351,7 @@ if __name__ == "__main__":
     if sys.argv[1:] == ["hover"]:
         said, ok = hover(home / keeper.HOT, LINES, now)
         told = watch(home / "hover_alarm.json", said, ok, now)
-        sys.stdout.write(f"{said}\n" + (f"ALARM {told}\n" if told else ""))
+        sys.stdout.write(announce(said, told))
         sys.exit(0 if ok else 1)
     if sys.argv[1:] == ["register"]:
         counts, replaced = register(home / keeper.HOT, LINES)

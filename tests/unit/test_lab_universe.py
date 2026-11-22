@@ -16,7 +16,7 @@ import pytest
 from desk import bars as database
 from desk import store, venues
 from desk.bars import Source
-from desk.lines import LINES, NO_TAX, STAMP_DUTY, Line
+from desk.lines import LINES, NO_TAX, POUND, STAMP_DUTY, Line
 from desk.store import Bar
 from lab import universe
 
@@ -159,7 +159,13 @@ def test_the_nightly_refresh_enters_the_database_and_writes_the_day_and_list(
 ) -> None:
     said = universe.nightly(tmp_path, DAY, (universe.SP500[0],), _ask, noon=lambda _: "noon")
     assert said.startswith("research refresh: 1 lines refreshed")
-    assert said.endswith("; noon")
+    assert said.endswith("; noon")  # the pound is not held: no gap to name
+    ONE = Decimal("1.3")
+    days = venues.sessions("US", DAY - timedelta(10), DAY - timedelta(1))
+    with database.writing(tmp_path / database.LIVE, Source.ARCHIVE) as opened:
+        opened.days(POUND, [Bar(d, ONE, ONE, ONE, ONE, 0) for d in days if d != days[3]])
+    gap = universe.nightly(tmp_path, DAY, (universe.SP500[0],), _ask, noon=lambda _: "noon")
+    assert gap.endswith(f"; noon; the pound has no rate on 1 sessions, last {days[3]}")
     assert database.daily(tmp_path / database.LIVE, MMM) == _ask(MMM, DAY)
     note = (tmp_path / "grid" / "store" / "REFLECTS.txt").read_text(encoding="utf-8").splitlines()
     sizes = " ".join(f"{k}={len(v)}" for k, v in universe.LISTS.items())
