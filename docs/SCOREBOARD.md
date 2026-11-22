@@ -931,3 +931,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1578 B5 Mansfield RS row carries variant ranges (9 variants), scenes unchanged. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1582 the ladder's door no longer reports EPON's faults after an intraday or scalping run (+1 test case). |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1587 Faber and dual momentum variant ranges (B5), 18 more trials in set VAR. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1591 B5: a catalogue row may not carry a variant's bracket name, so every trial has one name; scenes unchanged. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1574 shared-setting ranges (`entry+exit`); Faber, dual momentum, Mansfield ranged (B5). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1595 Zweig's row carries variant ranges (B5); scenes unchanged. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1597 R-RUNNER-441: montecarlo measures held journals past their error rows and counts them. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1604 Darvas's box ranges its sessions 2/3/4 (B5), 3 more VAR trials. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1615 DeMark's TD Sequential ranges its setup length 7/9/11 in both engines (B5); no scene moved. |
