@@ -53,9 +53,8 @@ from desk.simcity_incidents import (
     unheld,
     unreachable,
 )
-from desk.simcity_parts import MONTH, Archive, Night
+from desk.simcity_parts import MONTH, Archive, Night, _behind, _gapped, _killed
 from desk.simcity_parts import _market as dealt
-from desk.simcity_parts2 import _behind, _gapped, _killed
 from desk.store import Bar
 from desk.strategy import Action
 
