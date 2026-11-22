@@ -237,7 +237,12 @@ def _currency(
 ) -> None:
     """BIC-04: what the closed trades so far owe to the currency's move, told apart from what
     they made by trading; told only when there is some."""
-    lines = tuple(archive)
+    ledger, lines = book.fills(root), tuple(archive)
+    kept, currency = book.rates_kept(root), {line.symbol: line.currency for line in lines}
+    if tell is None or not any(f.quantity < 0 for f in ledger):
+        return  #: no trade has closed
+    if any((f.day, currency.get(f.symbol)) not in kept for f in ledger):
+        return  #: a fill whose day's rate was never kept cannot be told apart
     trips = book.round_trips(root, lines)
     gain = book.currency_gain(root, lines, trips)
     if tell is not None and gain:
