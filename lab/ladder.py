@@ -70,7 +70,7 @@ from pathlib import Path
 from typing import Any, cast
 
 import desk
-from desk import archive, carry, keeper
+from desk import carry, keeper
 from desk.command import CAPITAL, DOLLARS, POUND
 from desk.lines import LINES, Line
 from desk.store import Bar
@@ -101,7 +101,7 @@ START, END = date(2000, 1, 1), date(2026, 11, 13)
 FOLDS = verdict.FOLDS
 #: The market each venue's lines are set beside: the S&P 500 in New York, the FTSE 100 in London.
 MARKETS = {"US": "SPY", "LSE": "ISF"}
-FOLDER, RESULTS, POUNDS = "ladder", "set1.jsonl", "pound.jsonl"
+FOLDER, RESULTS = "ladder", "set1.jsonl"
 DESK = Path(desk.__file__).parent  #: the one list of eponymous files: this folder
 
 
@@ -190,27 +190,13 @@ class Kept:
         return (cast(verdict.Row, self.get(key)) for key in self.at)
 
 
-def stored(home: Path) -> Bars:
-    """Each line's daily bars to the window's end, by the keeper; a stale line is refused."""
-
-    def bars(line: Line) -> Sequence[Bar]:
-        held, parked = keeper.saved(home, END + keeper.DAY, [line])
-        if parked:
-            raise ValueError(f"{line.symbol}: parked by the price store; waits on its bars")
-        return held[line]
-
-    return bars
-
-
-def rates(
-    ask: Callable[[Line, date], Sequence[Bar]] = archive.fetch, home: Path | None = None
-) -> dict[date, Decimal]:
+def rates(ask: Callable[[Line, date], Sequence[Bar]] | None = None) -> dict[date, Decimal]:
     """Pounds per dollar for each day to the window's end, by `desk/carry.py`'s one rule: one over
     the pound's last close before the day while fresh, carried across a UK-only holiday, else none.
-    With a home, asked of the archive only while the kept table lacks END."""
-    held = rung.kept_closes(
-        home and home / FOLDER / POUNDS, END, lambda: ask(POUND, END + keeper.DAY)
-    )
+    The pound's bars come from `ask` alone, the one door (`history_bars.pounds`); none: raises."""
+    if ask is None:
+        raise ValueError("ladder.rates: no source of the pound's bars; pass history_bars' door")
+    held = {bar.day: bar.close for bar in ask(POUND, END + keeper.DAY)}
     closes = {day: close for day, close in held.items() if DOLLARS[0] < close < DOLLARS[1]}
     first = min(closes, default=END)  #: no closes, no days, no rates
     days = [first + n * keeper.DAY for n in range(1, (END - first).days + 1)]

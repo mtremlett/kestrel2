@@ -172,8 +172,9 @@ escape hatch is not a guard** (failure pattern 1).
 - Parameters are chosen in-sample only. Results show in-sample and out-of-sample side by
   side, after costs, with the worst fold reported and judged on.
 - Every winner is corrected for luck, and records how many trials it was picked from.
-- Promote the centre of a plateau, never a lone peak. A daily Sharpe above 2 is a red flag.
-- A strategy is promoted only through the engine, with contract tests and a golden run.
+- Promote only through the engine (contract tests, golden run): a plateau's centre, never a lone
+  peak; a daily Sharpe over 2 is a red flag. Unjudged rules trade only as a paper MACHINERY TEST
+  (one share, one switch, off by default): never evidence, promoted or near live (his 22 Nov).
 
 # Part C — seats, cards and memory (his rulings, 22 Nov)
 Every rule names its check. One marked OWED is built before any new work.
