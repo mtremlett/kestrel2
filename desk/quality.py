@@ -12,7 +12,7 @@ import json
 import os
 import shutil
 import sys
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from datetime import UTC, date, datetime, time, timedelta
 from functools import partial
 from pathlib import Path
@@ -239,6 +239,20 @@ def against_record(path: Path, line: Line, record: Bar) -> list[str]:
     return [f"{line.symbol} {record.day}: held close {held.close}, broker's {record.close}"]
 
 
+def check_records(path: Path, lines: Iterable[Line], ask: backfill.Ask, now: datetime) -> list[str]:
+    """The daily check: each line's last ended session asked of the broker and judged by
+    `against_record`; a refusal is said, never skipped. Empty when every line agrees."""
+    red: list[str] = []
+    for line in lines:
+        day = _last_session(line, now)
+        got = ask(line, day)
+        if isinstance(got, Sequence) and got:
+            red += against_record(path, line, got[-1])
+        else:
+            red.append(f"{line.symbol} {day}: the broker gave no bar to check against: {got}")
+    return red
+
+
 GOLDEN = ("SPY", "QQQ", "VUAG", "IITU")  #: always green, or the table says why (his 22 Nov)
 OFFERED = {"VUAG": ("1m", "15m", "30m", "4h")}  #: spans a line's venue never supplies: not a gap
 HOVER_SPANS = ("5m", "15m", "30m", "1h", "4h", "daily", "1wk", "1m")  #: every span, as stored
@@ -374,6 +388,10 @@ if __name__ == "__main__":
         counts, replaced = register(home / keeper.HOT, LINES)
         sys.stdout.write(f"sources: {counts}; replaced: {'; '.join(replaced) or 'none'}\n")
         sys.exit(0)
+    if sys.argv[1:] == ["record"]:
+        red = check_records(home / keeper.HOT, LINES, backfill._broker(home, now), now)
+        sys.stdout.write("record: " + ("RED: " + "; ".join(red) if red else "green") + "\n")
+        sys.exit(1 if red else 0)
     said = monitor(home / keeper.HOT, LINES, backfill._broker(home, now), backfill._archive, now)
     sys.stdout.write(f"{said}\n")
     sys.exit(0 if " green," in said else 1)
