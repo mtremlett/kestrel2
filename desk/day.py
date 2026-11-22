@@ -232,6 +232,22 @@ def _peak_fall(root: Path, day: date, tell: book.Tell | None) -> None:
         )
 
 
+def _currency(
+    root: Path, archive: Mapping[Line, Sequence[Bar]], day: date, tell: book.Tell | None
+) -> None:
+    """BIC-04: what the closed trades so far owe to the currency's move, told apart from what
+    they made by trading; told only when there is some."""
+    lines = tuple(archive)
+    trips = book.round_trips(root, lines)
+    gain = book.currency_gain(root, lines, trips)
+    if tell is not None and gain:
+        trading = sum((t.gross for t in trips), Decimal(0)) - gain
+        tell(
+            f"currency {day}",
+            f"CURRENCY: £{gain} of the gross is the currency, £{trading} trading.",
+        )
+
+
 def _orders(
     root: Path,
     broker: Broker,
@@ -254,6 +270,7 @@ def _orders(
         sent.append(answer)
     _alert(root, day, settings, tell)
     _peak_fall(root, day, tell)
+    _currency(root, archive, day, tell)
     watch = partial(_watch, root, archive, rates)  #: read again at each buy
     for d in (d for d in decided if d.action is Action.BUY):
         line = due[d.symbol]

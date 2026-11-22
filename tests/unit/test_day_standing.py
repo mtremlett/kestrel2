@@ -130,3 +130,20 @@ def test_a_buy_that_moves_with_a_held_line_is_refused_and_one_that_does_not_goes
         orders.moves({"H"}, archive, "P"),
     )
     assert sent.filled == 1
+
+
+def test_the_currency_apart_from_trading_is_told_once_a_trade_has_closed(tmp_path: Path) -> None:
+    dollar, told = Line("U", "US", "USD", 1), list[tuple[str, str]]()
+    broker = Pretend({dollar: BARS[A]}, {})
+    for on, rate in ((MON, "0.8"), (TUE, "0.75")):
+        broker.open(on)
+        book.record_rates(tmp_path, on, {"GBP": Decimal(1), "USD": Decimal(rate)})
+        if on == MON:
+            book.send(
+                tmp_path, broker, Order("o-2", dollar, 10, *map(Decimal, (50, 0.8, 45))), ROOM
+            )
+    day._currency(tmp_path, {dollar: BARS[A]}, TUE, lambda n, w: told.append((n, w)))
+    assert told == []
+    book.send(tmp_path, broker, orders.Sale("s-2", dollar, 10), ROOM)
+    day._currency(tmp_path, {dollar: BARS[A]}, TUE, lambda n, w: told.append((n, w)))
+    assert [n for n, _ in told] == ["currency 2025-11-11"] and "£-25" in told[0][1]
