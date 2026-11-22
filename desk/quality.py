@@ -8,6 +8,7 @@ from a pulled one is a red fault. Exit 0 only when green."""
 
 from __future__ import annotations
 
+import json
 import os
 import shutil
 import sys
@@ -284,11 +285,32 @@ def alarm(
     return since, sent, None
 
 
+def watch(state: Path, said: str, ok: bool, now: datetime) -> str | None:
+    """One alarm step with its memory kept in `state` between runs (written whole, then
+    replaced): the message to send now, if any. An unreadable state fails loudly."""
+    kept = json.loads(state.read_text("utf-8")) if state.exists() else {}  # bounded: two timestamps
+    since, sent = (
+        datetime.fromisoformat(kept[k]) if kept.get(k) else None for k in ("since", "sent")
+    )
+    since, sent, told = alarm(since, sent, ok, said, now)
+    fresh = state.with_suffix(".new")
+    fresh.write_text(
+        json.dumps({"since": since and since.isoformat(), "sent": sent and sent.isoformat()}),
+        "utf-8",
+    )
+    fresh.replace(state)
+    return told
+
+
 if __name__ == "__main__":
     home, now = Path(os.environ["KESTREL2_DATA"]), datetime.now(UTC)
     if sys.argv[1:] == ["hover"]:
         said, ok = hover(home / keeper.HOT, LINES, now)
         sys.stdout.write(f"{said}\n")
+        sys.exit(0 if ok else 1)
+    if sys.argv[1:] == ["watch"]:
+        said, ok = hover(home / keeper.HOT, LINES, now)
+        sys.stdout.write(f"{watch(home / 'hover_alarm.json', said, ok, now) or said}\n")
         sys.exit(0 if ok else 1)
     said = monitor(home / keeper.HOT, LINES, backfill._broker(home, now), backfill._archive, now)
     sys.stdout.write(f"{said}\n")

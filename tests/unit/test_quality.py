@@ -242,3 +242,8 @@ def test_hover_judges_every_span_and_the_alarm_tells_only_of_change(tmp_path: Pa
         "back to green, red for 40 minutes",
     )
     assert quality.alarm(None, None, True, "", later) == (None, None, None)
+    state = tmp_path / "alarm.json"
+    assert quality.watch(state, "SPY/1h", False, NOW) == "data quality RED: SPY/1h"
+    assert quality.watch(state, "SPY/1h", False, soon) is None
+    assert quality.watch(state, "", True, soon) == "back to green, red for 10 minutes"
+    assert quality.watch(state, "", True, later) is None
