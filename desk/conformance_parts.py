@@ -12,7 +12,7 @@ from decimal import Decimal
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from desk import archive, book, day, keeper, venues
+from desk import book, day, keeper, venues
 from desk.broker import Broker, Pretend
 from desk.command import CAPITAL
 from desk.halt import Blocker
@@ -62,20 +62,17 @@ class Barless(ValueError):
     """A line with no bar of the session before: the plan leaves it out."""
 
 
-def _last(line: Line, today: date, home: Path | None) -> Bar:
-    """A line's bar of the session before today: from the desk's store (the long database, IBKR
-    first) when a home is given, else the archive; none, and nothing is sized."""
+def _last(line: Line, today: date, home: Path) -> Bar:
+    """A line's bar of the session before today, from the desk's store (the long database, IBKR
+    first), never the archive; none, and nothing is sized."""
     last = _named(line, today, "bar").day
-    if home is None:
-        held, source = archive.fetch(line, today), "the archive"
-    else:
-        try:
-            held, source = keeper.saved(home, today, [line])[0][line], "the store"
-        except keeper.Stale as e:
-            raise Barless(f"{line.symbol}: the store has no bar of {last}: {e}") from e
+    try:
+        held = keeper.saved(home, today, [line])[0][line]
+    except keeper.Stale as e:
+        raise Barless(f"{line.symbol}: the store has no bar of {last}: {e}") from e
     bars = [bar for bar in held if bar.day == last]
     if not bars:
-        raise Barless(f"{line.symbol}: {source} has no bar of {last}, the session before")
+        raise Barless(f"{line.symbol}: the store has no bar of {last}, the session before")
     return bars[-1]
 
 
@@ -85,7 +82,7 @@ def plan(
     today: date,
     fx: Mapping[str, Decimal],
     stamp: str,
-    home: Path | None = None,
+    home: Path,
     seed: int | None = None,
 ) -> Plan:
     """The run's orders: on the line given that traded the most money in its last session (or,

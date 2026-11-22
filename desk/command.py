@@ -64,7 +64,7 @@ from desk.keeper import Broker
 from desk.lines import LINES
 from desk.messenger_parts import SMTP, Mail
 from desk.orders import Settings
-from desk.running import DAY, VENUES, Desk
+from desk.running import DAY, VENUES, ZOO_ON, Desk
 from desk.trading_hours import trading
 
 ROOT, STORE, REHEARSALS = "desk", "store", "rehearsals"  #: folders, each inside the one before
@@ -116,6 +116,7 @@ def _desk(root: Path, post: messenger.Post, home: Path, broker: Broker | None = 
         home / keeper.HOT,
         partial(keeper.saved, home),
         paper.Door(paper.DESK),
+        zoo=(root / ZOO_ON).exists(),  #: the zoo's paper switch, OFF unless its file is there
     )
 
 
@@ -290,7 +291,8 @@ def hourly(desk: Desk, now: datetime) -> None:
 
     def words() -> str:
         daily = desk.held(today)[0]
-        return pnl.told(desk.root, desk.hot, daily, desk.rates(today), desk.room.capital, now)
+        told = pnl.told(desk.root, desk.hot, daily, desk.rates(today), desk.room.capital, now)
+        return told + running.zoo_hour(desk.root, now)  #: the zoo's hour, in this message alone
 
     messenger.hourly(desk.root, now, words, desk.post)
 
