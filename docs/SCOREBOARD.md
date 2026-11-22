@@ -219,6 +219,8 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1596 money-honest step: currency on open holdings told (BIC-04), SimCity-checked. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1641 money-door-slippage done: slippage reads the two databases only. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1628 R-MONEY-66 done: currency and interest kept in the day's record, profit untouched. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1690 money-small step 1: SIZ-10 cap built in the sizer, one test; not yet fed by the day. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1716 money-story part 1 of 3: chain written before send, strangers chained. |
 
 
 ### DATA
