@@ -178,6 +178,15 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       2.5 times re-measured on the full universe; WWH, SHC and three windfalls settled by a
       second source; a home for the research store)
       {id: data-parked-fifth; files: lab/universe.py, tests/unit/test_lab_universe_parked.py}
+- [ ] **ONE DOOR FOR PRICES, bars** (his 22 Nov ~10:00, "paramount": every price is read from market_history.db or market_live.db alone): `lab/universe_parts.read` reads `bars.daily` of the history database,
+      keeping its rescale cut, never the `grid/store` CSV files (`store.read`, line 63), so the grid, sweep, batch,
+      transfer, montecarlo and the research refresh read the database; wire: the research refresh and the grid
+      job; gate: a contract test where a bar present only in a CSV is never read
+      {id: data-door-bars; files: lab/universe_parts.py, tests/unit/test_lab_universe*.py}
+- [ ] One door, one writer: `universe.nightly` and the Stooq files write into the history database through
+      `bars.writing`, never the CSV store; `store.read`, `faults`, `shelve` and the CSV half of `prepare` are
+      deleted with their tests; wire: the research refresh job; gate: the deleted names import nowhere
+      {id: data-door-writer; files: lab/universe.py, lab/universe_parts.py, lab/universe_history.py, desk/store.py, tests/unit/test_lab_universe*.py, tests/unit/test_store*.py; after: data-door-bars, money-door-slippage}
 - [ ] **The old desk's stores as a head start, now** (his ask, 14 November): its daily and
       five-minute bars (Stooq and IBKR stores, and its per-ticker matrices) read in through
       the one store's checks, every bar re-checked, each kept with its source; where a fresh
@@ -408,16 +417,6 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       own bars next; VIX term structure, credit spreads and the yield curve recorded each day
       but acting only once each passes REG-07; news for event awareness, never a signal until
       proven (REG-01, REG-07, STR-20)
-
-- [ ] **ONE DOOR FOR PRICES, bars** (his 22 Nov ~10:00, "paramount": every price is read from market_history.db or market_live.db alone): `lab/universe_parts.read` reads `bars.daily` of the history database,
-      keeping its rescale cut, never the `grid/store` CSV files (`store.read`, line 63), so the grid, sweep, batch,
-      transfer, montecarlo and the research refresh read the database; wire: the research refresh and the grid
-      job; gate: a contract test where a bar present only in a CSV is never read
-      {id: data-door-bars; files: lab/universe_parts.py, tests/unit/test_lab_universe*.py}
-- [ ] One door, one writer: `universe.nightly` and the Stooq files write into the history database through
-      `bars.writing`, never the CSV store; `store.read`, `faults`, `shelve` and the CSV half of `prepare` are
-      deleted with their tests; wire: the research refresh job; gate: the deleted names import nowhere
-      {id: data-door-writer; files: lab/universe.py, lab/universe_parts.py, lab/universe_history.py, desk/store.py, tests/unit/test_lab_universe*.py, tests/unit/test_store*.py; after: data-door-bars, money-door-slippage}
 
 ## Phase 2 — the money path, in simulation
 
@@ -821,6 +820,11 @@ grid-tune and grid-key side by side; then grid-pass, grid-week, grid-declared, g
 each judged after costs, the two shown side by side, and the verdict given on the worst
 fold; every fold is a trial the luck rung counts (canon B6, AG-01).
 
+- [ ] **ONE DOOR FOR PRICES, the ladder's pound** (his 22 Nov ~10:00, "paramount": every price is read from market_history.db or market_live.db alone): `ladder.rates` loses its `archive.fetch` default and the
+      `ladder/pound.jsonl` table (`rung.kept_closes`), so every caller passes `history_bars.pounds`; montecarlo's
+      pound and bars come from the database; wire: the ladder sets and montecarlo; gate: `ladder.rates()` with no
+      source fails loudly
+      {id: rungs-door-pound; files: lab/ladder.py, lab/rung.py, lab/montecarlo.py, tests/unit/test_lab_ladder*.py, tests/unit/test_lab_rung*.py, tests/unit/test_lab_montecarlo*.py}
 - [x] The first rung proven: it catches a planted edge and rejects a planted non-edge, after
       the broker's costs and the desk's own stop (`lab/rung.py`)
 - [x] Luck correction counting every trial: a verdict's chance multiplied by the number of
@@ -1005,12 +1009,6 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       (STR-18). Built: set LEV, six trend rules on the leveraged lines (#423). Remains: inverse
       leveraged lines, once a Line may state an inverse fund (R-RUNGS-21, R-RUNGS-22); a real run of LEV
       {id: rungs-leveraged; files: *; after: rungs-trustworthy; waits: R-RUNGS-21}
-
-- [ ] **ONE DOOR FOR PRICES, the ladder's pound** (his 22 Nov ~10:00, "paramount": every price is read from market_history.db or market_live.db alone): `ladder.rates` loses its `archive.fetch` default and the
-      `ladder/pound.jsonl` table (`rung.kept_closes`), so every caller passes `history_bars.pounds`; montecarlo's
-      pound and bars come from the database; wire: the ladder sets and montecarlo; gate: `ladder.rates()` with no
-      source fails loudly
-      {id: rungs-door-pound; files: lab/ladder.py, lab/rung.py, lab/montecarlo.py, tests/unit/test_lab_ladder*.py, tests/unit/test_lab_rung*.py, tests/unit/test_lab_montecarlo*.py}
 
 ## Phase 5 — the edge
 
