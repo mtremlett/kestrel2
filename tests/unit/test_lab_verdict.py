@@ -15,7 +15,7 @@ import pytest
 from test_lab_ladder import EDGE, ISF, NOISE, VUSA, eased_off  # noqa: F401 - used by name
 
 from desk.store import Bar
-from lab import ladder, market, shuffle, trials, verdict
+from lab import ladder, market, plateau, shuffle, trials, verdict
 from lab.cell import Cell
 from lab.folds import Pooled
 from lab.rung import Answer, Rates
@@ -26,13 +26,13 @@ CELL = Cell("breakout_20_10", VUSA, EDGE[0].day, ladder.END)
 
 
 def _judge(
-    bars: Sequence[Bar] = EDGE, pounds: Rates | None = None, sour: bool = False
+    bars: Sequence[Bar] = EDGE, pounds: Rates | None = None, worst: Answer | None = None
 ) -> dict[str, Any]:
-    """The cell's verdict with the folds of its rule, the one line pooled; `sour` has the
-    worst year fail."""
+    """The cell's verdict with the folds of its rule, the one line pooled; `worst` is the
+    worst year's answer, where one is planted."""
     pooled = verdict.pool([(CELL, EDGE)], {})
-    if sour:
-        pooled = replace(pooled, years=(replace(pooled.years[0], answer=Answer.FAIL),))
+    if worst is not None:
+        pooled = replace(pooled, years=(replace(pooled.years[0], answer=worst),))
     return verdict.judge(CELL, bars, ISF, NOISE, pounds or {}, 6, (), lambda: pooled)
 
 
@@ -46,11 +46,11 @@ def test_a_cell_failing_only_one_rung_is_not_a_pass(
         monkeypatch.setattr(
             market, "judge", lambda *a: replace(real(*a), answer=Answer.FAIL, line=None)
         )
-    sour = rung_failing == "folds"
-    rungs = _judge(sour=sour)["rungs"]
+    sour = Answer.FAIL if rung_failing == "folds" else None
+    rungs = _judge(worst=sour)["rungs"]
     others = {name: answer for name, (answer, _) in rungs.items() if name != rung_failing}
     assert rungs[rung_failing][0] == "FAIL" and others["first"] == "PASS"
-    assert _judge(sour=sour)["every"] is False and _judge(sour=sour)["answer"] == "FAIL"
+    assert _judge(worst=sour)["every"] is False and _judge(worst=sour)["answer"] == "FAIL"
 
 
 def test_a_step_of_units_is_refused_unless_the_master_names_it() -> None:
@@ -114,6 +114,18 @@ def test_the_table_s_path_never_holds_a_partial_file(
     verdict.write_table(tmp_path, "T", "Does it earn?", [], [], 0, (0, 1))
     assert seen == [("T.json", False), ("T.md", False)], "content appears only by the replace"
     assert sorted(p.name for p in tmp_path.iterdir()) == ["T.json", "T.md"], "no .tmp left"
+
+
+@OFF
+def test_a_planted_edge_goes_forward_and_plateau_blocks_no_rule_without_settings(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    #: L17 (blind review 22 Nov): plateau UNRUN on every cell kept every cell back for good
+    monkeypatch.setattr(verdict, "_weathered", lambda *_: (Answer.PASS, "planted: both passed"))
+    done = _judge(worst=Answer.PASS)  #: a planted edge: enough trades pooled in every year
+    assert done["rungs"]["plateau"] == [plateau.NOT_APPLICABLE, plateau.SETTLED]
+    assert done["unrun"] == {"reproduce": verdict.NO_FIGURE}, "only the author's figure is owed"
+    assert verdict.goes(done | {"unrun": {}}), done["rungs"]
 
 
 @OFF
