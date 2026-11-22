@@ -8,6 +8,7 @@ from a pulled one is a red fault. Exit 0 only when green."""
 
 from __future__ import annotations
 
+import json
 import os
 import shutil
 import sys
@@ -294,6 +295,23 @@ def alarm(
     if now - sent >= REMIND:
         return since, now, f"data quality still RED: {why}"
     return since, sent, None
+
+
+def watch(state: Path, said: str, green: bool, now: datetime) -> str | None:
+    """One check of the alarm with its state (since, sent) kept in a file between runs, replaced
+    whole; returns the message to send, if any."""
+    held = json.loads(state.read_text("utf-8")) if state.exists() else {}  # bounded: two timestamps
+    since, sent = (
+        datetime.fromisoformat(held[k]) if held.get(k) else None for k in ("since", "sent")
+    )
+    since, sent, told = alarm(since, sent, green, said, now)
+    temp = state.with_suffix(".tmp")
+    temp.write_text(
+        json.dumps({"since": since and since.isoformat(), "sent": sent and sent.isoformat()}),
+        "utf-8",
+    )
+    temp.replace(state)
+    return told
 
 
 if __name__ == "__main__":

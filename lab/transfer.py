@@ -31,7 +31,7 @@ from desk.command import CAPITAL
 from desk.lines import Line
 from desk.orders import Settings
 from desk.strategy import STRATEGIES
-from lab import batch, ladder, plateau, rung, sweep
+from lab import batch, history_bars, ladder, plateau, rung, sweep
 from lab.batch import Failed
 from lab.cell import Cell
 from lab.plateau import Grid, Setting
@@ -167,7 +167,7 @@ def main(argv: Sequence[str]) -> None:
     root, kept, data = (Path(folder).resolve() for folder in argv[:3])
     lines = sweep.held(root)
     with sweep.alone(kept):
-        done = study(families(), lines, scorer(root, kept, ladder.rates()))
+        done = study(families(), lines, scorer(root, kept, history_bars.pounds(data)))
     page, rows = report(done, len(lines))
     (data / FOLDER).mkdir(parents=True, exist_ok=True)
     for suffix, text in ((".md", page), (".json", json.dumps(rows, indent=1))):

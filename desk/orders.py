@@ -253,6 +253,9 @@ def order_id_of(decision: Decision) -> str:
 
 
 ZOO = "zoo_"  #: the front of every zoo rule's name (desk/intraday.py): a MACHINERY TEST's
+#: THE ZOO'S OWN ALLOWANCE, apart from the desk's (day.standing counts each alone): pounds whose
+#: 2% a day and 5% a week bound its losses, and the new lines it may enter in a day.
+ZOO_ROOM = Settings(Decimal(1_000), new_lines=10)
 
 
 def is_zoo(order_id: str) -> bool:

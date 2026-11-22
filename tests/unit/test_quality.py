@@ -242,6 +242,12 @@ def test_hover_judges_every_span_and_the_alarm_tells_only_of_change(tmp_path: Pa
         "back to green, red for 40 minutes",
     )
     assert quality.alarm(None, None, True, "", later) == (None, None, None)
+    state = tmp_path / "alarm.json"
+    sent = [
+        quality.watch(state, "x", ok, at) for ok, at in ((False, NOW), (False, soon), (True, later))
+    ]
+    assert sent == ["data quality RED: x", None, "back to green, red for 31 minutes"]
+    assert quality.watch(state, "", True, later) is None
 
 
 def test_the_register_names_the_source_of_each_newest_bar(tmp_path: Path) -> None:

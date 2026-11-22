@@ -152,7 +152,7 @@ def test_the_sizing_block_sizes_by_the_desks_volatility_rule() -> None:
         sizer, sized = VolatilitySize(n), []
         for close in closes:
             c = Decimal(close)
-            sizer.see(Bar(date(2020, 1, 1), c, c, c, c, 1000))
+            assert not sizer.see(Bar(date(2020, 1, 1), c, c, c, c, 1000), holding=False)
             sized.append(sizer.shares(Decimal(1000)))
         return sized
 
