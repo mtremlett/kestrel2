@@ -483,6 +483,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1379 DATA: R-RUNNER-352 thin sessions rolled, 1h/4h audited. |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1396 R-RUNNER-351: the keeper reads no shelf CSV; `headstart.daily` removed. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1480 DATA R-RUNNER-350 part 3: five timeframes of the old database enter by their marks. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1568 DATA: R-DATA-62, the old desk's 1m rows can enter the store's checks. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
