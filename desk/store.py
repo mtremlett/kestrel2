@@ -233,6 +233,7 @@ def prepare(
             (*COLUMNS, _FAULT),
             [*((*astuple(bar), "") for bar in kept), *((*blank, f.what) for f in faults)],
         )
+        (root / f"{line.symbol}.faults.csv").unlink(missing_ok=True)  # the old format's orphan
         parked += [park] if park else []
     return tuple(parked)
 
