@@ -9,7 +9,7 @@ from decimal import Decimal
 from desk import intraday, venues
 from desk.rollup import Candle
 from desk.strategy import Action
-from lab.scalping import MomentumBurst
+from lab.scalping import MomentumBurst, VwapReversion
 
 #: closes by bar number; bars hold 101 but for the bursts at 5, 20 and 505 (held to the end)
 CLOSES = {n: 100 for n in range(5)} | {
@@ -56,3 +56,34 @@ def test_decisions_on_the_first_bars_equal_the_first_of_all() -> None:
     everything = _actions(bars)
     for k in (4, 5, 6, 15, 21, 506, 509):
         assert _actions(bars[:k]) == everything[:k]
+
+
+def _flat(given: dict[int, tuple[int, int]]) -> list[Candle]:
+    """510 bars at 98 of volume 1, but those given by number as (price, volume)."""
+    start, made = venues.hours("LSE", date(2026, 11, 16)).open, []
+    for n in range(510):
+        price, volume = given.get(n, (98, 1))
+        p = Decimal(price)
+        made.append(Candle(start + timedelta(minutes=n), p, p, p, p, volume, "x"))
+    return made
+
+
+VWAP_BARS = _flat(
+    {0: (100, 1), 1: (100, 1), 2: (96, 2), 3: (97, 0), **{n: (96, 0) for n in range(505, 509)}}
+)
+
+
+def test_the_vwap_is_worked_by_hand_and_the_reversion_acts_on_it() -> None:
+    rule = VwapReversion()
+    seen = [(rule.step(b, False), rule.vwap) for b in VWAP_BARS[:4]]
+    assert [v for _, v in seen] == [100, 100, 98, 98]  # (100+100+96*2)/4; no volume adds none
+    got = [d.action for d in intraday.run("vwap", VwapReversion(), "LSE", "X", VWAP_BARS)]
+    assert {n: a for n, a in enumerate(got) if a is not Action.HOLD} == {
+        2: Action.BUY,  # 96 under 98 less a hundredth (97.02)
+        4: Action.SELL,  # back at 98
+        505: Action.BUY,
+        509: Action.SELL,  # the session's last bar
+    }
+    for k in (2, 3, 4, 505, 509):
+        again = intraday.run("vwap", VwapReversion(), "LSE", "X", VWAP_BARS[:k])
+        assert [d.action for d in again] == got[:k]

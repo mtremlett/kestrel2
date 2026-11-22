@@ -5,9 +5,10 @@ left working. Conformance trades are a cost of their own (conformance_cost)."""
 
 from __future__ import annotations
 
+import csv
 from collections import Counter, deque
-from collections.abc import Callable, Iterable, Mapping, Sequence
-from dataclasses import dataclass, replace
+from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
+from dataclasses import astuple, dataclass, replace
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
@@ -49,6 +50,7 @@ from desk.lines import Line
 from desk.orders import Charges, Order, Refused, Sale, Settings, charges, gate, leg_of, strategy_of
 from desk.risk import Standing
 from desk.store import Bar
+from desk.strategy import Decision
 
 #: what moved to desk.book_parts and desk.book_parts2 and is still given from here, for the callers
 __all__ = (
@@ -389,3 +391,42 @@ def told(trips: Iterable[RoundTrip], archive: Mapping[Line, Sequence[Bar]]) -> t
         held = (trip.sell.day - buy.day).days
         stories.append(Story(strategy_of(buy.order_id), read[-1], trip, held))
     return tuple(stories)
+
+
+STORY = "story.csv"
+
+
+@dataclass(frozen=True)
+class Link:
+    """THE ID CHAIN AT DECISION TIME (TRD-11, DQ-08): one decision's signal (strategy, line,
+    session), the bar it read, and the send path's answer, under the id its order and fills have."""
+
+    order_id: str
+    strategy: str
+    symbol: str
+    session: date
+    bar_day: date
+    bar_close: Decimal
+    filled: int  #: shares the order filled at once
+    blocker: str  #: what stood in its way; empty when nothing did
+
+
+def chain(root: Path, d: Decision, bar: Bar, answer: Sent) -> Link:
+    """Keep the decision's chain on a line of its own, after those already kept."""
+    blocker = answer.blocker.name if answer.blocker else ""
+    made = Link(
+        answer.order_id, d.strategy, d.symbol, d.day, bar.day, bar.close, answer.filled, blocker
+    )
+    with (root / STORY).open("a", newline="", encoding="utf-8") as out:
+        csv.writer(out).writerow(astuple(made))
+    return made
+
+
+def chains(root: Path) -> Iterator[Link]:
+    """The chains kept, oldest first, streamed; none if no decision has been kept."""
+    if not (root / STORY).exists():
+        return
+    with (root / STORY).open(newline="", encoding="utf-8") as kept:
+        for r in csv.reader(kept):
+            sees, read = date.fromisoformat(r[3]), date.fromisoformat(r[4])
+            yield Link(r[0], r[1], r[2], sees, read, Decimal(r[5]), int(r[6]), r[7])
