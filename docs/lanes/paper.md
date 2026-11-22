@@ -555,3 +555,11 @@ Options: (a) leave the step running round the clock and forgive bad receipts at 
 ### 2026-11-22 — the streak is shown beside the verdict (#1636)
 
 Options: a separate message (more lines; desk ceiling has 92 left) or the last-day lines carrying it (3 lines, chosen). The streak is the run of newest records whose verdict counts.
+
+### 2026-11-22 — the verdict's streak read from one home (#1665)
+
+Options: keep the day message's own streak count ("streak N") or call `desk/streak.count` and use `Streak.says` ("3 of 10 clean days in a row, since <day> did not count"). Chose the call: a second home for the number would drift (failure pattern 8).
+
+### 2026-11-22 — the 05:40 card and 09:30 alarm need a wider claim (#1675)
+
+Options: a separate start constant in messenger.py (more code; desk/ has 92 lines left) or change `MORNING` to 05:40 / owed 09:30 and move the "he sleeps" moments in tests/unit/test_running.py and test_command.py to before 05:40 (chosen, fewer lines). Tried inside the narrow claim, those two tests failed (`desk/running.py` reads MORNING.start as "he is awake"), so it was reverted; the card's claim must add desk/running.py and both tests.
