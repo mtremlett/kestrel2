@@ -235,6 +235,10 @@ entry = { n = 20 }
 exit = { n = 10 }
 filter = { n = 10, slow = 20 }
 
+[kell_breakout.ranges]
+entry = { n = [10, 20, 40] }
+exit = { n = [5, 10, 20] }
+
 # twenty flat sessions, a close over their high and both averages (buy), then a collapse under the 10-day average (sell)
 [[kell_breakout.cases]]
 bars = [[11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [11, 9, 10], [13, 11, 12], [10, 7, 8]]
