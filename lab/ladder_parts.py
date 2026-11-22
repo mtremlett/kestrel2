@@ -15,7 +15,7 @@ from typing import Any
 from desk import keeper
 from desk.lines import LINES, Line
 from desk.store import Bar
-from lab import cell, reproduce, verdict
+from lab import cell, folds, reproduce, verdict
 from lab.batch import Bars
 from lab.cell import Cell
 from lab.reproduce import Reproduction
@@ -127,16 +127,20 @@ def _due(was: verdict.Row, now: datetime) -> bool:
 
 def faults(rows: Iterable[verdict.Row]) -> tuple[list[str], bool]:
     """One line for each rung that any judged cell FAULTed on: its share of the cells, the rung
-    and the commonest reason; and whether most of the cells did (a set that judged nothing)."""
+    and the commonest reason; and whether the set's table may be published (L20): a cell with any
+    rung FAULT is a fault, and over `folds.FAULTS_PUBLISHED` of the cells stops it."""
     judged = [row["rungs"] for row in rows if "rungs" in row]
-    said, mostly = [], False
+    said = []
     for name in dict.fromkeys(n for rungs in judged for n in rungs):
         reasons = Counter(
             r[name][1] for r in judged if name in r and r[name][0] == Answer.FAULT.name
         )
         if reasons:
-            share = sum(reasons.values())
             why = reasons.most_common(1)[0][0]
-            said.append(f"FAULT: {share} of {len(judged)} cells at rung {name}: {why}")
-            mostly |= 2 * share > len(judged)
-    return said, mostly
+            said.append(
+                f"FAULT: {sum(reasons.values())} of {len(judged)} cells at rung {name}: {why}"
+            )
+    faulted = sum(any(a == Answer.FAULT.name for a, _ in r.values()) for r in judged)
+    if not (published := folds.published(faulted, len(judged))):
+        said.append(f"NOT PUBLISHED: {faulted} of {len(judged)} cells FAULT")
+    return said, published

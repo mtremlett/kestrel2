@@ -127,5 +127,5 @@ def test_a_dollar_line_with_a_day_unrated_is_a_gap_before_the_folds_start() -> N
     folds.preflight([usd], rated)  #: whole: the set starts
     with pytest.raises(ValueError, match=f"^1 gap in the set's inputs.* {bars[1].day}"):
         folds.preflight([usd], rated | {bars[1].day: Decimal(0)})
-    one = [Answer.PASS] * 99 + [Answer.FAULT]  #: 1% FAULT is published; over 1% is not
-    assert folds.published(one) and not folds.published(one[1:]) and folds.published([])
+    #: 1% FAULT is published; over 1% is not
+    assert folds.published(1, 100) and not folds.published(1, 99) and folds.published(0, 0)

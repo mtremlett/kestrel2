@@ -30,7 +30,7 @@ cell (`reproduced`), so a rule with one is folded like any other.
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal, localcontext
@@ -221,14 +221,14 @@ def pool(
     return Pooled(tuple(year(y) for y in range(first, last + 1)))
 
 
-def gaps(cells: Sequence[tuple[Cell, Sequence[Bar]]], rates: Rates) -> tuple[str, ...]:
+def gaps(cells: Iterable[tuple[Cell, Sequence[Bar]]], rates: Rates) -> tuple[str, ...]:
     """Every gap in the pooled lines' inputs over each one's whole window (`market.gaps`), the
     span every rung reads, not the folded years alone: a set with one refuses to start, never a
     FAULT counted as an answer (L20)."""
     return tuple(g for c, bars in cells for g in market.gaps(c.line, bars, rates, c.start, c.end))
 
 
-def preflight(cells: Sequence[tuple[Cell, Sequence[Bar]]], rates: Rates) -> None:
+def preflight(cells: Iterable[tuple[Cell, Sequence[Bar]]], rates: Rates) -> None:
     """The set runner's pre-flight (L20): a set whose inputs have a gap refuses to start, naming
     how many and the first, so the gap is mended at entry by the one writer, never in a rung."""
     if found := gaps(cells, rates):
@@ -236,10 +236,10 @@ def preflight(cells: Sequence[tuple[Cell, Sequence[Bar]]], rates: Rates) -> None
         raise ValueError(f"{many} in the set's inputs: the set refuses to start, first {found[0]}")
 
 
-def published(answers: Sequence[Answer]) -> bool:
+def published(faults: int, cells: int) -> bool:
     """Whether a set's table may be published (L20): FAULT in at most `FAULTS_PUBLISHED` of its
-    answers. Over it, the faults are the table's news and its passes are not believed."""
-    return answers.count(Answer.FAULT) <= FAULTS_PUBLISHED * len(answers)
+    cells. Over it, the faults are the table's news and its passes are not believed."""
+    return faults <= FAULTS_PUBLISHED * cells
 
 
 def _answer(trades: int, t: Decimal | None, mean: Decimal) -> Answer:
