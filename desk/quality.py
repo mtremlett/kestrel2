@@ -256,7 +256,12 @@ def cell(path: Path, line: Line, span: str, now: datetime) -> str | None:
     at = date.fromordinal(got[0]) if name == "daily" else (EPOCH + timedelta(seconds=got[0])).date()
     if name == "1wk":
         due -= timedelta(due.weekday() + 7)
-    return None if at >= due else f"newest {at}, last session {due}"
+    if at < due:
+        return f"newest {at}, last session {due}"
+    if name == "daily" and line.symbol in GOLDEN:  # a hole inside the history is red too
+        hole = _missing(line, backfill._held(path, line), due + timedelta(1))
+        return f"{len(hole)} sessions missing, the first {hole[0]}" if hole else None
+    return None
 
 
 def _cells(
