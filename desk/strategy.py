@@ -18,7 +18,9 @@ sell that any other hand writes is the gate's to refuse (`orders.gate`).
 
 from __future__ import annotations
 
+import copy
 import inspect
+import operator
 from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
@@ -324,6 +326,14 @@ def _make(name: str, settings: Settings) -> Rule:
     return STRATEGIES[name](**settings.get(name, {}))
 
 
+def _step(rule: Rule, bar: Bar, holding: bool, since: int, limit: int | None) -> tuple[bool, int]:
+    """The rule shown one more bar: what it wants, out after a declared holding period whatever
+    it answered (STP-11), and the sessions it has now held."""
+    wants = rule.step(bar, holding)
+    since = since + 1 if holding else 0
+    return (False if limit is not None and since >= limit else wants), since
+
+
 def _run(
     name: str,
     rule: Rule,
@@ -331,26 +341,50 @@ def _run(
     bars: Sequence[Bar],
     last: bool | None = None,
     opened: date | None = None,
+    begun: tuple[int, bool, int] = (0, False, 0),
 ) -> Iterator[Decision]:
     """The rule's decisions, holding what it last chose; on the last bar, holding `last`
     instead when it is given, its age the sessions since `opened`, the book's fill date.
-    A rule that declares a holding period is sold out of at its end, whatever it answered."""
+    A rule that declares a holding period is sold out of at its end, whatever it answered.
+    begun: the bars the rule was already shown, and its holding and age after them."""
     declared = getattr(rule, "declared", None)  #: test doubles of a Rule declare nothing
-    holding, since, limit = False, 0, declared.hold if declared else None
-    for n, bar in enumerate(bars):
+    (start, holding, since), limit = begun, declared.hold if declared else None
+    for n, bar in enumerate(bars[start:], start):
         if last is not None and n == len(bars) - 1:
             holding = last
             #: STP-11: the age is the book's, never the replay's
             since = sum(b.day >= opened for b in bars[:-1]) if last and opened else 0
-        wants = rule.step(bar, holding)
-        since = since + 1 if holding else 0
-        if limit is not None and since >= limit:  #: STP-11: out after the declared sessions
-            wants = False
+        wants, since = _step(rule, bar, holding, since, limit)
         #: a sale only of what is held, a buy only of what is not, whatever the rule answered
         sells, buys = holding and not wants, wants and not holding
         action = Action.SELL if sells else Action.BUY if buys else Action.HOLD
         holding = wants
         yield Decision(name, symbol, bar.day, action)
+
+
+#: Each rule's replay of each line as it stood before the line's last bar, by rule, line and
+#: settings. SimCity shows `today` each day the bars of the day before and one more, the very
+#: same bars: the rule steps only the new ones, not the whole history again (R-RUNNER-438).
+_REPLAYS: dict[tuple[object, ...], tuple[Sequence[Bar], Rule, bool, int]] = {}
+
+
+def _resumed(
+    name: str, symbol: str, bars: Sequence[Bar], given: Settings
+) -> tuple[Rule, tuple[int, bool, int]]:
+    """A rule at its settings shown every bar but the last, as `_run` shows them, and `_run`'s
+    `begun` after them; picked up from its last replay of the line when today's bars begin with
+    that replay's very bars, else from the first bar."""
+    key = (name, STRATEGIES.get(name), symbol, repr(given.get(name)))
+    rule, upto = _make(name, given), len(bars) - 1
+    declared = getattr(rule, "declared", None)
+    start, holding, since, limit = 0, False, 0, declared.hold if declared else None
+    seen = _REPLAYS.pop(key, None)  #: none kept while it steps: an error leaves none half-done
+    if seen and len(seen[0]) <= upto and all(map(operator.is_, seen[0], bars)):
+        start, rule, holding, since = len(seen[0]), *seen[1:]
+    for bar in bars[start:upto]:
+        holding, since = _step(rule, bar, holding, since, limit)
+    _REPLAYS[key] = (bars[:upto], copy.deepcopy(rule), holding, since)
+    return rule, (upto, holding, since)
 
 
 def decide(
@@ -380,16 +414,18 @@ def today(
     given = settings or {}
     with localcontext(ARITHMETIC):
         return tuple(
-            [
-                *_run(
-                    name,
-                    _make(name, given),
-                    symbol,
-                    series,
-                    held.get(symbol) == name,
-                    (opened or {}).get(symbol),
-                )
-            ][-1]
+            _today(
+                name, symbol, series, given, held.get(symbol) == name, (opened or {}).get(symbol)
+            )
             for symbol, series in bars.items()
             for name in STRATEGIES
         )
+
+
+def _today(
+    name: str, symbol: str, bars: Sequence[Bar], given: Settings, last: bool, opened: date | None
+) -> Decision:
+    """One rule's decision on a line's last bar, holding `last`, after its replay of the rest."""
+    rule, begun = _resumed(name, symbol, bars, given)
+    *_, decision = _run(name, rule, symbol, bars, last, opened, begun)
+    return decision
