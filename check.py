@@ -41,31 +41,33 @@ FAST: list[Step] = [
 FULL: list[Step] = [
     *FAST,
     ("types", ["mypy"]),
-    ("unit", ["pytest", "tests/unit", "-q"]),
+    ("unit", ["pytest", "tests/unit", "-q", "--durations=15"]),
     ("scenes", ["pytest", "tests/scenes", "-q"]),
 ]
 
 UNIT_DIR = "tests/unit"
 
-#: Seconds each slow unit file took, measured on 16 Nov (one local run of the whole unit step).
-#: A file not named here weighs its size at 20 KB a second. Split by size alone, three of the
-#: four slowest files shared one share, and the check waited 7 of its 7.5 minutes on it.
+#: Seconds each slow unit file took in GitHub's check, measured on 22 Nov (draft #1627, one
+#: run of all five shares). A file not named here weighs its size at 20 KB a second. The 16 Nov
+#: table had gone stale as the ladder grew (the epon file 13 s -> 222 s), and share 4 held three
+#: of the four slowest files: 10-15 minutes against the 15-minute limit, main red. The unit step
+#: prints its slowest tests, so a stale entry shows in every log.
 SECONDS = {
-    "test_lab_tune.py": 334,
+    "test_lab_ladder_pool.py": 364,
+    "test_lab_ladder.py": 356,
+    "test_lab_tune.py": 284,
     "test_lab_sweep.py": 226,
-    "test_simcity.py": 200,
-    "test_lab_ladder_pool.py": 127,
-    "test_lab_ladder.py": 50,
-    "test_lab_shuffle.py": 49,
-    "test_lab_tape.py": 46,
-    "test_command.py": 44,
-    "test_lab_cell.py": 42,
-    "test_lab_rung_placebo.py": 24,
-    "test_lab_ladder_spec.py": 23,
-    "test_lab_ladder_epon.py": 13,
-    "test_supervisor.py": 12,
-    "test_book_invariants.py": 10,
-    "test_lab_ladder_rates.py": 7,
+    "test_lab_ladder_epon.py": 222,
+    "test_simcity.py": 168,
+    "test_simcity_incidents.py": 162,
+    "test_lab_shuffle.py": 51,
+    "test_lab_verdict.py": 49,
+    "test_lab_tape.py": 43,
+    "test_lab_cell.py": 40,
+    "test_command.py": 29,
+    "test_simcity_fills.py": 27,
+    "test_lab_ladder_spec.py": 27,
+    "test_lab_rung_placebo.py": 23,
 }
 
 
