@@ -12,13 +12,16 @@ Opening range: the session's first OPENING bars of time (30 minutes from its fir
 `forming`; after that a bar is `above` the range when its close is over the range's high,
 `below` when under its low, else `inside`. Range expansion: a bar is `wide` when its high-low
 exceeds EXPANSION times the mean high-low of the session's EARLIER bars, `narrow` otherwise,
-`warming` until MIN_BARS earlier bars of the session exist. Neither layer feeds any verdict.
+`warming` until MIN_BARS earlier bars of the session exist. Volatility: the deviation of the
+session's returns to date against the earlier sessions' at the same time of day, in thirds.
+No layer feeds any verdict.
 """
 
 from __future__ import annotations
 
+import statistics
 from collections.abc import Sequence
-from datetime import datetime, timedelta
+from datetime import datetime, time, timedelta
 from decimal import Decimal
 
 from desk.rollup import Candle
@@ -95,4 +98,43 @@ def expansion(bars: Sequence[Candle]) -> dict[datetime, str]:
         else:
             named[bar.start] = WIDE if size * len(ranges) > EXPANSION * sum(ranges) else NARROW
         ranges.append(size)
+    return named
+
+
+#: Earlier sessions holding a value at the same time of day before a volatility is named.
+MIN_SESSIONS = 5
+#: Returns of the session needed before its own volatility exists.
+MIN_RETURNS = 2
+QUIET, NORMAL, WILD = "quiet", "normal", "wild"
+
+
+def volatility(bars: Sequence[Candle]) -> dict[datetime, str]:
+    """Each bar's start under `quiet`, `normal` or `wild`: the deviation of its session's
+    bar-to-bar returns up to it, ranked in thirds against the same measure at the same time
+    of day in the earlier sessions; `warming` until MIN_SESSIONS of them are held."""
+    _check_order(bars)
+    named: dict[datetime, str] = {}
+    held: dict[time, list[Decimal]] = {}
+    session = None
+    closes: list[Decimal] = []
+    today: list[tuple[time, Decimal]] = []
+    for bar in bars:
+        if bar.start.date() != session:
+            for at, vol in today:
+                held.setdefault(at, []).append(vol)
+            session, closes, today = bar.start.date(), [], []
+        closes.append(bar.close)
+        returns = [closes[n] / closes[n - 1] - 1 for n in range(1, len(closes))]
+        earlier = held.get(bar.start.time(), [])
+        if len(returns) < MIN_RETURNS or len(earlier) < MIN_SESSIONS:
+            named[bar.start] = WARMING
+            if len(returns) >= MIN_RETURNS:
+                today.append((bar.start.time(), Decimal(statistics.pstdev(returns))))
+            continue
+        vol = Decimal(statistics.pstdev(returns))
+        today.append((bar.start.time(), vol))
+        below = sum(1 for v in earlier if v < vol) * 3
+        named[bar.start] = (
+            QUIET if below < len(earlier) else NORMAL if below < 2 * len(earlier) else WILD
+        )
     return named
