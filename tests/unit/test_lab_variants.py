@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import tomllib
 from pathlib import Path
 
@@ -42,16 +43,24 @@ def test_twelve_variants_all_counted_and_the_pick_is_the_plateau_centre(
     register = tmp_path / "trials.jsonl"
     trials.start(register)
     trials.ask(register, "donchian")
-    assert variants.enter(register, "donchian", made) == 12 == trials.count(register, "donchian")
+    names = [v.spec.name for v in made]
+    assert trials.enter(register, "donchian", names) == 12 == trials.count(register, "donchian")
     assert trials.family(register, "donchian", ROW.name) == 12, "a rule's variants are its family"
 
     def edge(setting: plateau.Setting) -> str:
         return PEAK if setting == (40, 80) else PASS if setting[1] <= 40 else FAIL
 
     surface = {v.setting: _verdict(edge(v.setting), v.spec.name) for v in made}
-    chosen = variants.centre(ROW, surface)
+    chosen = plateau.choose(list(ROW.ranges.values()), surface)
     assert chosen.setting == (20, 20) and chosen.passed
     assert max(surface, key=lambda s: surface[s].t or 0) == (40, 80), "the best is a lone peak"
+    tree = ast.parse(Path(variants.__file__).read_text("utf-8"))  #: the rule book may import it
+    read = {
+        "." * n.level + (n.module or "") for n in ast.walk(tree) if isinstance(n, ast.ImportFrom)
+    }
+    read |= {a.name for n in ast.walk(tree) if isinstance(n, ast.Import) for a in n.names}
+    lab = {module for module in read if module.startswith(("lab", "."))}
+    assert lab == {"lab.spec"}, "variants reaches the rule book back through lab: a cycle (#1608)"
 
 
 @pytest.mark.parametrize("name", [name for name, row in BOOK.items() if "ranges" in row])
@@ -59,7 +68,9 @@ def test_every_ranged_row_centres_on_a_plateau(name: str, monkeypatch: pytest.Mo
     monkeypatch.setattr(cell, "STRATEGIES", _AnyRule())
     row = Spec.parse({"name": name, **BOOK[name]})
     made = variants.variants(row)
-    chosen = variants.centre(row, {v.setting: _verdict(PASS, v.spec.name) for v in made})
+    chosen = plateau.choose(
+        list(row.ranges.values()), {v.setting: _verdict(PASS, v.spec.name) for v in made}
+    )
     assert chosen.passed, f"{name}: an all-passing surface shows no plateau"
     own = tuple(row.params[place.split("+")[0]][param] for place, param in row.ranges)
     assert chosen.setting == own, f"{name}: its published setting is not its ranges' centre"
