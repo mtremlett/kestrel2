@@ -105,3 +105,21 @@ def test_a_record_that_contradicts_the_list_or_itself_is_refused() -> None:
     )
     assert record.symbols(day) == {pair[0].symbol, "OLD"}
     assert record.symbols(day - timedelta(1)) == {pair[0].symbol, "OLD", "GONE"}
+
+
+def test_a_review_is_taken_when_its_announcement_and_the_page_agree_and_a_difference_is_named() -> (
+    None
+):
+    """The FTSE's free route: the announcement of one review beside the page's members either
+    side of it (a committed fixture of both)."""
+    day = date(2024, 12, 18)
+    announced = members.changes("2024-12-18 +BAB +CCR -DLG -ITV")
+    before, after = frozenset({"AAL", "DLG", "ITV"}), frozenset({"AAL", "BAB", "CCR"})
+    got = members.reconcile(day, announced, before, after)
+    assert [(c.symbol, c.joined) for c in got] == [
+        ("BAB", True), ("CCR", True), ("DLG", False), ("ITV", False),
+    ]  # fmt: skip
+    with pytest.raises(
+        members.Disagreement, match=r"only the announcement has \['-ITV'\].*page has \['\+XYZ'\]"
+    ):
+        members.reconcile(day, announced, before - {"ITV"}, after | {"XYZ"})
