@@ -994,3 +994,4 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1740 rungs-each-rung step: empty rung_beta.py folded away, off-path rung modules 8 -> 7. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1742 RUNGS: plateau.of builds each cell's plateau surface or FIXED; one call left to wire it in the ladder (L17 step 2). |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1749 RUNGS: indicator tables also held while holding (STR-14), net +17 lines. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1753 PAPER messages: "desk is not trading" alarm built and tested (not yet called by the step). |

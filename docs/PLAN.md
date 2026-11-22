@@ -768,8 +768,7 @@ his PC with the desk's own client id (222), never 4001.
       {id: paper-supervised; files: desk/supervisor.py, tests/unit/test_supervisor.py,
       manifest.toml; after: paper-running; waits: 2026-11-29}
 - [ ] Windows starts the supervisor and `tell` at boot: a new Windows task on his PC (his yes in chat, Sun 22 Nov 09:5x: "Yes, add it")
-      {id: paper-supervisor-windows; files: desk/supervisor.py, tests/unit/test_supervisor.py;
-      after: paper-supervised}
+      {id: paper-supervisor-windows; files: desk/supervisor.py, tests/unit/test_supervisor.py}
 - [x] The running process always on main's latest code, and a money-path change reaching
       it only at a safe point, never mid-send (OPS-05, OPS-16) (#752: the supervisor pulls main fast-forward only between runs with every job's lock held; a failed pull is a receipt and the old code runs on; remains: Windows starting the supervisor)
       {id: paper-on-main; files: desk/supervisor.py, tests/unit/test_supervisor.py}
@@ -778,23 +777,22 @@ his PC with the desk's own client id (222), never 4001.
       trading" by 09:30 UK; urgency levels without storms; one messenger with a delivery
       record, the merge line and the runner's alerts behind the same door (MSG-02, MSG-03,
       MSG-04, MSG-09, MSG-11)
-      Remains: hourly P&L (#471, #492), the kill and halt line (#502) and the email fallback (#484, wired into the step in #1309; the runner must hand SMTP_*, a preflight line is owed) landed; desk/messenger.py is at its 400-line limit and desk/ has 92 of 10,500 lines left, so the new messages are a fold inside the desk/ ceiling: shrink or merge messenger code first, as split-desk-keeper did, never a ceiling raise (coordinator 54, 22 Nov: re-carded so it is not blocked; a raise would be his). The daily messages end the last-day lines with the verdict and streak (#1636, MSG-03); still owed: the 05:40 start-of-day card, "the desk is not trading" by 09:30 UK, the SMTP preflight line (the streak shows as N of 10, #1665; the streak-above-0 test landed, #1675; messenger.py shrunk to 395 lines, #1698). The 05:40 card and 09:30 alarm need MORNING changed, which desk/running.py reads as "he is awake", so that card's claim adds desk/running.py, tests/unit/test_running.py, tests/unit/test_command.py (#1675). The evening message now names each lost stop (#805); messenger split to 349 lines (#782)
+      Remains: hourly P&L (#471, #492), the kill and halt line (#502) and the email fallback (#484, wired into the step in #1309; the runner must hand SMTP_*, a preflight line is owed) landed; desk/messenger.py is at its 400-line limit and desk/ has 92 of 10,500 lines left, so the new messages are a fold inside the desk/ ceiling: shrink or merge messenger code first, as split-desk-keeper did, never a ceiling raise (coordinator 54, 22 Nov: re-carded so it is not blocked; a raise would be his). The daily messages end the last-day lines with the verdict and streak (#1636, MSG-03); still owed: the 05:40 start-of-day card, "the desk is not trading" by 09:30 UK, the SMTP preflight line (the streak shows as N of 10, #1665; the streak-above-0 test landed, #1675; messenger.py shrunk to 395 lines, #1698). `messenger.idle` ("The desk is not trading", once, 09:30-22:00 UK, no fill dated today) is built and tested, not yet called (#1753): owed, calling it from desk/running.py The 05:40 card and 09:30 alarm need MORNING changed, which desk/running.py reads as "he is awake", so that card's claim adds desk/running.py, tests/unit/test_running.py, tests/unit/test_command.py (#1675). The evening message now names each lost stop (#805); messenger split to 349 lines (#782)
       {id: paper-cards; files: desk/messenger.py, desk/messenger_parts.py, manifest.toml,
-      tests/unit/test_messenger.py, tests/unit/test_messenger_parts.py; after: paper-messages, paper-running}
+      tests/unit/test_messenger.py, tests/unit/test_messenger_parts.py; after: paper-messages, paper-running; waits: 2026-11-23}
 - [x] FIRST-LIGHT counted by the desk itself: ten consecutive clean days, and a day that
       sent nothing cannot be green (NS-10) (#511: `desk/streak.py`; remains: showing the streak in the day's message and the pre-flight line)
       {id: paper-first-light; files: desk/streak.py, tests/unit/test_streak.py,
       manifest.toml; after: paper-running}
 - [ ] An independent watcher of the supervisor, which is restarted weekly (OPS-03)
       {id: paper-watcher; files: desk/watcher.py, tests/unit/test_watcher.py,
-      manifest.toml; after: paper-supervised}
+      manifest.toml}
 - [x] Backups: the fill ledger and the day records copied twice, one copy off the PC, and a
       restore drilled every quarter (DQ-05, DQ-09) (#515: `desk/records_kept.py`; remains: the runner calling it nightly, runner-side work, coordinator 54, 22 Nov: not his)
       {id: paper-backups; files: desk/backup.py, tests/unit/test_backup.py, manifest.toml}
 - [ ] The day's extras: missed winners, blocked signals, and the running cost set against
       net profit each week (MSG-13, NS-14) (coordinator 54, 22 Nov: it comes after paper-cards and edits the same messenger file; not his)
-      {id: paper-extras; files: desk/messenger.py, tests/unit/test_messenger.py;
-      after: paper-cards}
+      {id: paper-extras; files: desk/messenger.py, tests/unit/test_messenger.py}
 
 - [x] **ONE DOOR FOR PRICES, the command's pound** (his 22 Nov ~10:00, "paramount": every price is read from market_history.db or market_live.db alone): `command_parts.rates` asks `keeper.pound`, never
       `rates.csv` first nor IBKR or the archive directly (desk/command_parts.py:36-64); conformance never falls back

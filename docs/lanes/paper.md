@@ -567,3 +567,7 @@ Options: keep the message's own 'streak N' (a second home for the count, failure
 ### 2026-11-22 — the pound is read from the price store alone (#1674)
 
 (1) The day's recorded rate is no longer read first. Options: keep it first, or the store alone (chosen: his ruling "every price is read from the database alone"; the store gives the same rate per day). (2) A stale pound becomes a ValueError inside `rates`, because `command.NAMED` (outside the claim) does not name `keeper.Stale`. Options: widen NAMED, or translate in `rates` (chosen).
+
+### 2026-11-22 — what "not trading" means for the 09:30 alarm (#1753)
+
+The alarm (`messenger.idle`) speaks once on a trading day, from 09:30 UK until 22:00, when the ledger holds no fill dated today. Options for "not trading": no order sent; no fill; no step run. Chose no fill: the ledger is the one record the module already reads, and an order that never fills is also not trading. Telegram only, never in his night.
