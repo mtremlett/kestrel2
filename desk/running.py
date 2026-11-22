@@ -22,7 +22,9 @@ What a step owes, in this order, and only of a gateway that says it is ready:
   the broker of every order first, so a round begun twice sends nothing twice. A round is
   made once, whatever was answered: an order refused in it is not sent later.
 - THE INTRADAY ROUNDS (`_intraday`), after the day's own: each intraday rule of the desk's at
-  each whole bar of its span, through the same check, gate, stops and records (none trade yet).
+  each whole bar of its span, through the same check, gate, stops and records (none trade yet);
+  with the paper switch (ZOO_ON) the zoo's day-trading rules too, on its lines, one share each,
+  each order said to be a MACHINERY TEST, NOT EVIDENCE OF AN EDGE (CANON B6, his 22 Nov ruling).
 - THE DAY'S RECORD (day.publish), once every market that traded has its closes kept
   (keeper.HELD); a session the desk missed gets its own first, oldest first.
 
@@ -86,6 +88,8 @@ UNDRILLED = (
     "account and makes no record until one does. It was a rehearsal on a pretend desk: no real "
     "order was involved. Each promise named next was NOT kept: {}"
 )
+ZOO_ON = "zoo-on-paper"  #: the one paper switch: this file in the desk's root turns the zoo on
+MACHINERY = "MACHINERY TEST, NOT EVIDENCE OF AN EDGE"  #: said of every zoo order, never a verdict
 UNASKED = Known(State.UNWELL, gateway.UNWELL.format("the desk's knock on it failed"))
 Rules = Mapping[str, Callable[[], intraday.IntradayRule]]
 Saved = tuple[Mapping[Line, Sequence[Bar]], Collection[str]]  #: bars by line; who is parked
@@ -108,6 +112,7 @@ class Desk:
     mail: Mail | None = None  #: the email door, if his SMTP_ settings are set
     #: The intraday rules the desk may trade, as `intraday.RULES`: none until one passes the ladder.
     rules: Rules = field(default_factory=lambda: intraday.RULES)
+    zoo: bool = False  #: whether the zoo's rules trade on paper too (ZOO_ON): OFF unless set
 
 
 class Note(NamedTuple):
@@ -267,37 +272,65 @@ def _latest(
     return bars
 
 
+def _rules(desk: Desk) -> Rules:
+    """The intraday rules a step trades: the desk's, and the zoo's behind its switch."""
+    return {**desk.rules, **(intraday.ZOO_RULES if desk.zoo else {})}
+
+
 def _intraday(desk: Desk, broker: placing.Paper, venue: str, now: datetime) -> None:
     """THE INTRADAY ROUND (R-RUNNER-202): each rule decides on each line of the venue at its
-    latest whole bar; its orders go by the one send path, each id dated with its bar's start,
-    so a bar seen twice sends once. Stops are then moved; a round that sent nothing is not kept."""
+    latest whole bar (a zoo rule, on the zoo's lines); its orders go by the one send path, each
+    id dated with its bar's start, so a bar seen twice sends once. A buy is refused as the
+    daily one is (day.refusal). Stops are then moved; a round that sent nothing is not kept."""
     root, today, said, held = desk.root, now.date(), list[str](), book.positions(desk.root)
-    lines, rates = {ln.symbol: ln for ln in LINES if ln.venue == venue}, desk.rates(today)
+    lines = {ln.symbol: ln for ln in LINES if ln.venue == venue}
+    zoo = {ln.symbol: ln for ln in intraday.zoo_lines() if ln.venue == venue}
     owner = {f.symbol: strategy_of(f.order_id) for f in book.fills(root) if f.quantity > 0}
-    for name, make in desk.rules.items():
-        bars = _latest(desk, lines, make().span, now)
+    for name, make in _rules(desk).items():
+        machine = name in intraday.ZOO_RULES
+        bars = _latest(desk, zoo if machine else lines, make().span, now)
         mine = {s: owner[s] for s in held if s in owner}
         for d in intraday.today(venue, bars, mine, {name: make}):
-            if d.action is Action.HOLD:
-                continue
-            line, stamp = lines[d.symbol], f"{today:%Y%m%d}-{name}-{d.symbol}"
-            oid = f"{stamp}-{d.at:%H%M}{d.action.name[0]}"  #: a bar's buy and its sale differ
-            if d.action is Action.SELL:
-                order: Sale | Order = Sale(oid, line, held[d.symbol], session=today)
-            else:
-                buy, fx = Decision(name, d.symbol, today, d.action), rates[line.currency]
-                try:
-                    order = size(buy, line, bars[d.symbol][-1].close, fx, desk.room, held)
-                    order = replace(order, order_id=oid)
-                except Refused as refused:
-                    said.append(str(refused))
+            if d.action is not Action.HOLD:
+                oid = f"{today:%Y%m%d}-{name}-{d.symbol}-{d.at:%H%M}{d.action.name[0]}"
+                order = _order(desk, d, lines[d.symbol], oid, bars[d.symbol][-1].close, held)
+                if isinstance(order, str):
+                    said.append(order)
                     continue
-            sent = day._send(root, broker, order, desk.room, None, day.standing(root, today))
-            said.append(f"{sent.order_id}, {sent.filled} shares done ({sent.reason or 'sent'})")
+                if machine and isinstance(order, Order):  #: tiny: one share, never the room
+                    order = replace(order, quantity=1)
+                sent = day._send(root, broker, order, desk.room, None, day.standing(root, today))
+                tag = f" ({MACHINERY})" * machine
+                said.append(
+                    f"{sent.order_id}, {sent.filled} shares done ({sent.reason or 'sent'}){tag}"
+                )
     if said:
         restop.move(root, broker, LINES)
         words = f"{VENUES[venue]}, this bar's orders: {'; '.join(said)}."
         _note(root, now, f"intraday {venue} {now:%H%M}", words)
+
+
+def _order(
+    desk: Desk,
+    d: intraday.IntradayDecision,
+    line: Line,
+    oid: str,
+    close: Decimal,
+    held: Mapping[str, int],
+) -> Order | Sale | str:
+    """An intraday decision's order, under its bar's id; or, of a buy refused, why."""
+    today = d.at.date()
+    if d.action is Action.SELL:
+        return Sale(oid, line, held[d.symbol], session=today)
+    if no := day.refusal(desk.root, oid, line, held):  #: the daily buy's own refusals
+        return no[0]
+    buy = Decision(d.strategy, d.symbol, today, d.action)
+    try:
+        return replace(
+            size(buy, line, close, desk.rates(today)[line.currency], desk.room, held), order_id=oid
+        )
+    except Refused as refused:
+        return str(refused)
 
 
 def _held_out(
@@ -366,7 +399,7 @@ def _work(desk: Desk, now: datetime, seen: watch.Look | None) -> None:
     rounds, owed, last = _pending(root, now, seen), _owed(root, now), clearance.checks(root)[-1:]
     checked = bool(last) and last[0].at.date() == now.date() and last[0].found is not None
     awake = gateway._uk(now).time() >= messenger.MORNING.start
-    live = _pending(root, now, seen, False) if desk.rules else []
+    live = _pending(root, now, seen, False) if _rules(desk) else []
     again = _again(root, now, seen)
     check = bool(rounds or owed or live or again) or (awake and not checked)
     if not (check or owed or any(venues.open_at(venue, now) for venue in VENUES)):

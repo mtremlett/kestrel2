@@ -363,6 +363,26 @@ def _answer(root: Path, day: date, sent: book.Sent) -> book.Sent:
     return sent
 
 
+def refusal(
+    root: Path, name: str, line: Line, held: Mapping[str, int]
+) -> tuple[str, Blocker] | None:
+    """THE ONE HOME of a buy's refusals before sizing, daily or intraday (R-RUNNER-436): a line
+    no ISA can hold (line.isa no) or no retail customer may buy (line.retail no), one parked by
+    hand, or one held already; each said with its blocker. None: the buy may be sized."""
+    if line.isa is False or line.retail is False:
+        why = (
+            "is recorded as a line no stocks and shares ISA can hold"
+            if line.isa is False
+            else "is recorded as a line no UK retail customer may buy"
+        )
+        return f"{name}: not sent, {line.symbol} {why}", Blocker.GATE
+    if hand := handpark.parked(root).get(line.symbol):
+        return f"{name}: not sent, parked by hand: {line.symbol} ({hand})", Blocker.GATE
+    if held.get(line.symbol):
+        return f"{name}: not sent, {line.symbol} is held already", Blocker.HELD
+    return None
+
+
 def _buy(
     root: Path,
     broker: Broker,
@@ -379,21 +399,12 @@ def _buy(
     one an ISA is not recorded as able to hold (line.isa no): the ISA buys only those; nor one no
     retail customer may buy (line.retail no), which the broker would only refuse, slowly."""
     now, name = book.positions(root), order_id_of(d)
-    if line.isa is False or line.retail is False:
-        why = (
-            "is recorded as a line no stocks and shares ISA can hold"
-            if line.isa is False
-            else "is recorded as a line no UK retail customer may buy"
-        )
-        return book.Sent(name, 0, f"{name}: not sent, {d.symbol} {why}", Blocker.GATE)
-    if hand := handpark.parked(root).get(d.symbol):
+    if no := refusal(root, name, line, now):
+        return book.Sent(name, 0, *no)
+    if d.symbol in {f.symbol for f in book.fills(root) if f.day == day and f.quantity < 0}:
         return book.Sent(
-            name, 0, f"{name}: not sent, parked by hand: {d.symbol} ({hand})", Blocker.GATE
+            name, 0, f"{name}: not sent, {d.symbol} was sold this morning", Blocker.HELD
         )
-    sold = {f.symbol for f in book.fills(root) if f.day == day and f.quantity < 0}
-    if d.symbol in now or d.symbol in sold:
-        why = "is held already" if d.symbol in now else "was sold this morning"
-        return book.Sent(name, 0, f"{name}: not sent, {d.symbol} {why}", Blocker.HELD)
     try:
         order = size(d, line, *price, settings, now)
     except Refused as refused:  #: the gate's answer, kept with the day's others

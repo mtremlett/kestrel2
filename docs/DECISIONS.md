@@ -2200,3 +2200,30 @@ dropped to make room: each was merged or moved (A7's story is failure pattern 1)
 
 The failure patterns are capped at today's 221 lines, down-only (a tightening). Guard proven (A7):
 with the cap at 220, `test_the_rulebooks_stay_short` failed; at 221 it passed.
+
+## 22 Nov - the zoo trades on paper as a MACHINERY TEST while the ladder runs, by his own words
+
+His ruling in chat (Sun 22 Nov 14:1x): "CANON B6 is correct, but, when the ladder testing is taking so
+long then we need to revise this ruling... run these strategies to test the desk whilst we wait for the
+ladder to finish." The ladder will not finish before about Wed to Thu. Options: (a) wait for the ladder,
+which leaves the desk's intraday path untested on paper for days; (b) let the collated rules trade at the
+desk's normal size, which would read as evidence and risk the desk's book; (c) DECIDED: a machinery test,
+inside the existing safety design. CANON B6 gains the one line (merged with its promotion line, 198 lines).
+
+What (c) is, and the check that fails on each breach (`tests/unit/test_running_intraday.py`,
+`test_the_zoo_is_off_by_default_and_trades_one_share_labelled_only_behind_its_switch`):
+- OFF by default: `Desk.zoo` is False, and `command._desk` turns it on only when the file `zoo-on-paper`
+  (`running.ZOO_ON`) is in the desk's root. The rehearsal's root is its own folder, so it never trades it.
+- PAPER only: the step's one broker is the paper Gateway's (`running._paper`); nothing new dials anything.
+- TINY: each zoo buy is one share; the one gate (`day._send`: loss, rate, exposure, kill switch) is unchanged.
+- ITS OWN ORDER IDS: `<day>-zoo_<rule>-<line>-<HHMM><B|S>`; `strategy_of` reads `zoo_<rule>`, so its
+  fills stand apart in the ledger and a zoo rule sells only what it bought. A buy of a line held already
+  (by any rule), parked by hand, or no ISA can hold sends nothing, through the daily buy's own
+  refusals now in one home (`day.refusal`, R-RUNNER-436), so a zoo sale never sells the desk's shares.
+- LABELLED: every zoo order's line in the record says "MACHINERY TEST, NOT EVIDENCE OF AN EDGE".
+- NEVER A-GATE, NEVER PROMOTED: zoo names are never in `STRATEGIES` or `intraday.RULES`
+  (`test_intraday_zoo.py`), and promotion reads only its candidates' own fills (`lab/promotion.py`).
+Scope for Mon 23 Nov: the zoo's seven day-trading rules (5- and 15-minute bars) on the zoo's lines. Owed:
+the zoo's thirteen daily rules (they need the daily round, `desk/day.py`), and the Grimes AG catalogue
+(no AG rule exists as code yet). Guard proven (A7): with `zoo` defaulting to True the test failed at its
+first assert; with the one-share cap removed it failed (23 shares bought, not 1).
