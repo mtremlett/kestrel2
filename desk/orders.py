@@ -240,7 +240,7 @@ def size(
     if fits <= already:
         raise Refused(f"{order_id}: {already} shares held leave no room for more")
     bought = order(fits - already)
-    gate(bought, settings, held)
+    gate(bought, settings, held, traded=traded)
     return bought
 
 
@@ -302,6 +302,7 @@ def gate(
     standing: Standing | None = None,
     exposure: Mapping[str, Decimal] | None = None,
     moves: Mapping[str, tuple[float, ...]] | None = None,
+    traded: Decimal | None = None,
 ) -> None:
     """The one pre-trade gate, on the send path: raises Refused, or lets the order through.
     held is the book (book.positions): a sale needs the shares in it, for the desk is long
@@ -313,7 +314,8 @@ def gate(
     its underlying market over its share of the capital; None checks nothing. Given the daily
     returns of the order's line and of the lines held, over the same days (moves, by symbol), a
     buy is refused that moves with a held line above the settings' correlation; None checks
-    nothing, as does a line with no returns."""
+    nothing, as does a line with no returns. Given the pounds the line traded (traded_value), a
+    buy is refused that takes shares, held and ordered, above LIQUIDITY of them (SIZ-10)."""
     symbol = order.line.symbol
     if isinstance(order, Sale):
         if order.quantity > held.get(symbol, 0):
@@ -332,11 +334,21 @@ def gate(
     if symbol not in held and len(held) >= HOLDINGS:
         raise Refused(f"{order.order_id}: {len(held)} holdings already, at most {HOLDINGS}")
     whole = replace(order, quantity=order.quantity + held.get(symbol, 0))
+    _liquid(whole, traded)
     if cost(whole) > _room(order.line, settings):
         raise Refused(
             f"{order.order_id}: {cost(whole)} pounds for {whole.quantity} shares, counted "
             f"{order.line.leverage} times for what it controls, is over a fifth of the "
             f"capital of {settings.capital}"
+        )
+
+
+def _liquid(whole: Order, traded: Decimal | None) -> None:
+    """Refuses shares worth over LIQUIDITY of the pounds the line traded; None checks nothing."""
+    if traded is not None and whole.quantity * whole.price * whole.fx > LIQUIDITY * traded:
+        raise Refused(
+            f"{whole.order_id}: {whole.quantity} shares are over {LIQUIDITY:.0%} of the "
+            f"{traded} pounds {whole.line.symbol} traded in {TRADED_DAYS} days"
         )
 
 

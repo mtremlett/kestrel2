@@ -2,10 +2,11 @@
 tradable: it lives in lab/, which desk/ may never import, and the desk trades only the lines of
 its instrument master (ten of which are also here, to be studied).
 
-Four published lists as they stood on 13 November 2026, by the operator's ruling of that day:
-the S&P 500, the Nasdaq 100, the FTSE 350 and 200 much-traded US funds. A ticker is named as
-the archive names it (BRK-B, BT-A). Every one is a member today: a study of the past on this
-list sees only the survivors, and must say so.
+Published lists as they stood on 13 November 2026, by the operator's ruling of that day: the
+S&P 500, the Nasdaq 100, the FTSE 350 and 200 much-traded US funds; the S&P 400 and 600 were
+added on 22 November, the rest of the full list waiting on the grid's first pass. A ticker is
+named as the archive names it (BRK-B, BT-A). Every one is a member today: a study of the past
+on this list sees only the survivors, and must say so.
 
 Their bars are kept by the one store, under its checks, in a folder for each venue, because
 one symbol can be two companies: BA is Boeing in New York and BAE Systems in London.

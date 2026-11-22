@@ -285,3 +285,10 @@ The 2,810 failures are `ValueError: Invalid isoformat string: ''` from the week'
 `[file:line]`, so before #1370); on current main the same cells run. The 15 Nov 11:22 stop left empty logs, no trigger
 provable. Options: (a) re-date the wait; (b) drop it; (c) keep 2026-11-28. **Decided (c)**, recommended, on his
 "always go with recommended". Remains: the runner brings the clone to current main and restarts the week.
+
+### 2026-11-22 — only the sweep failures of a two-part card done (#1748)
+
+The card's first item (why 2,810 cells fail) was done: the cause is the week's pre-#1210 clone against the new-format
+store, and the pass line now carries the causes. Its second item, R-RUNGS-34 (`rule()` with `[`), is already met on
+main (`lab/rulebook.py`). Options: (a) do both; (b) the sweep only. **Decided (b)**, recommended, on his "always go with
+recommended". Remains: the runner brings the clone to current main and restarts the week job.

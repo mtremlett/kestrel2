@@ -198,3 +198,6 @@ def test_no_position_is_above_a_hundredth_of_the_twenty_day_traded_value() -> No
     assert orders.size(_buy(PLAIN), PLAIN, one, one, TEN_K, {}, None, traded).quantity == 200
     with pytest.raises(orders.Refused, match="no room"):
         orders.size(_buy(PLAIN), PLAIN, one, one, TEN_K, {PLAIN.symbol: 200}, None, traded)
+    big = replace(orders.size(_buy(PLAIN), PLAIN, one, one, TEN_K, {}), quantity=201)
+    with pytest.raises(orders.Refused, match="over 1%"):
+        orders.gate(big, TEN_K, {}, traded=traded)
