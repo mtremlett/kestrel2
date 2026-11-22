@@ -654,6 +654,16 @@ day's trading and reconciliation are built, and any broker can stand behind them
       one-share orders sends only the cap and names the rest carried
       {id: money-round-cap; files: desk/day.py, desk/paper.py, desk/simcity_incidents.py, tests/unit/test_day*.py,
       tests/unit/test_paper*.py, tests/unit/test_simcity*.py}
+- [ ] **Fault, the deep run (A3: a red deep test is a fault):** deep SimCity on 067062cd ended 22 Nov 22:37
+      "stuck in the worlds: no end in 7200 s" at `desk/book_parts2.py:48` (`_ledger`). The ledger file is read and
+      parsed whole on every `book.fills` and `book.found` call, and the day and the book call them about twenty
+      times a simulated day (desk/day.py:94-491, desk/book.py:145-441, desk/day_money.py:36, 79), so a world's
+      fourteen months re-read a growing file thousands of times: the twin of #1755 and #1704 (failure pattern 26).
+      Fix at the source: the ledger is read once per change of the file, never once per call; no retry, no longer
+      timeout, no second reader. Gate: a test, written first, where a planted ledger of 2,000 fills is opened at
+      most once across a simulated day's calls with no fill written, and once more after `_record` adds one
+      {id: money-ledger-once; files: desk/book_parts2.py, desk/book.py, desk/day.py, desk/day_money.py,
+      tests/unit/test_book*.py, tests/unit/test_day*.py, tests/unit/test_simcity*.py}
 
 ## Phase 3 — the money path, on paper
 
