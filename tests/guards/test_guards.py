@@ -156,7 +156,11 @@ def test_the_rulebooks_stay_short() -> None:
     shows what a promise in prose is worth: 56 lessons and 64 deny rules that nobody read.
     A new rule replaces or merges an old one, or becomes a check like this one."""
     caps: dict[str, int] = _budget()["max_lines_per_rulebook"]
-    assert set(caps) == {"CLAUDE.md", "CANON.md"}, f"the rulebooks capped: {sorted(caps)}"
+    assert set(caps) == {
+        "CLAUDE.md",
+        "CANON.md",
+        "docs/FAILURE_PATTERNS.md",
+    }, f"the rulebooks capped: {sorted(caps)}"
     over = {
         name: lines
         for name, cap in caps.items()
