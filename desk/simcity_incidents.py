@@ -30,6 +30,7 @@ from desk import (
     book,
     conformance,
     conformance_parts,
+    day,
     halt,
     keeper,
     keeper_live,
@@ -73,7 +74,6 @@ UNBARRED = "a conformance plan with no bar of the session before the day refuses
 LOCKED = "a store another writer holds refuses the round by name, loses nothing, serves the next"
 SILENT = "a broker silent after an order is sent: the kill switch is on, the alarm names the order"
 SLOW = "a broker that fills nothing cannot keep the desk's day past the step's time"
-STEP_SECONDS = 900  #: the runner's time for the desk step (its drive_atjobs): waits plus a margin
 STOP_SILENT = (
     "a gateway silent when the stop is to fire fails that step by name and puts the account back"
 )
@@ -369,7 +369,7 @@ def slow(life: _Life, on: date) -> None:
     seen = len(life.pretend.submitted())
     life.live(on)
     sent = len(life.pretend.submitted()) - seen
-    life.promise(SLOW, sent * paper.FILL_SECONDS + paper.SECONDS <= STEP_SECONDS)
+    life.promise(SLOW, sent * paper.FILL_SECONDS + paper.SECONDS <= day.STEP_SECONDS)
 
 
 def gateway_silent(life: _Life, on: date) -> None:

@@ -285,3 +285,24 @@ def test_the_daily_zoo_buys_one_share_a_rule_only_when_on_and_yields_the_desks_l
         "zoo_in",
         "desk_in",
     ]
+
+
+def test_a_round_sends_only_what_the_steps_time_allows_and_carries_the_rest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    lines = [ln for ln in LINES if ln.retail and ln.leverage == 1 and ln.isa][:20]
+    cheap = replace(BARS[A][0], open=Decimal(5), high=Decimal(5), low=Decimal(5), close=Decimal(5))
+    bars = {ln: tuple(replace(cheap, day=d) for d in (MON, TUE)) for ln in lines}
+    broker = Pretend(bars, {})
+    monkeypatch.setattr(strategy, "STRATEGIES", {})
+    monkeypatch.setattr(intraday, "ZOO_DAILY", {"zoo_in": _In})
+    monkeypatch.setattr(intraday, "zoo_lines", lambda: tuple(lines))
+    monkeypatch.setattr(orders, "HOLDINGS", 20)
+    broker.open(TUE)
+    first = {ln: (bars[ln][0],) for ln in lines}
+    answers = day.trade(
+        tmp_path, first, broker, ROOM, TUE, {ln.currency: Decimal(1) for ln in lines}, zoo=True
+    )
+    carried = [s for s in answers if "carried to the next step" in (s.reason or "")]
+    assert len(broker.submitted()) == day.MAX_ORDERS == 7
+    assert len(carried) == len(lines) - 7 and all(s.filled == 0 for s in carried)
