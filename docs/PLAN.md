@@ -846,7 +846,7 @@ grid-tune and grid-key side by side; then grid-pass, grid-week, grid-declared, g
 each judged after costs, the two shown side by side, and the verdict given on the worst
 fold; every fold is a trial the luck rung counts (canon B6, AG-01).
 
-- [ ] **ONE DOOR FOR PRICES, the ladder's pound** (his 22 Nov ~10:00, "paramount": every price is read from market_history.db or market_live.db alone): `ladder.rates` loses its `archive.fetch` default and the
+- [x] **ONE DOOR FOR PRICES, the ladder's pound** (his 22 Nov ~10:00, "paramount": every price is read from market_history.db or market_live.db alone): `ladder.rates` loses its `archive.fetch` default and the
       `ladder/pound.jsonl` table (`rung.kept_closes`), so every caller passes `history_bars.pounds`; montecarlo's
       pound and bars come from the database; wire: the ladder sets and montecarlo; gate: `ladder.rates()` with no
       source fails loudly
@@ -933,8 +933,10 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         Decision e: no dead rungs; dsr merges into deflated, placebo into shuffle, bootstrap into ci, sample into rung
         1's trade minimum, benchmark into market; wire: each on verdict.judge's path; gate: a ladder test fails when
         any lab/rung_*.py is off that path (rungs_built equals the map)
-        {id: rungs-each-rung; files: lab/rung_*.py, tests/unit/test_lab_rung_*.py; after: rungs-rung-map}
-  - [ ] L14 one clustered set of trials for the deflated Sharpe, its spread measured
+        Gate done (#1676): the registry test pins the eight rung modules off the path (benchmark, beta, bootstrap, dsr, placebo, retail, sample, stops); it may only fall.
+        Remains: wire or merge each (each needs lab/ladder.py, manifest.toml and its target in the claim; merges need R-RUNGS-29), then pin 'waiting is empty'
+        {id: rungs-each-rung; files: lab/rung_*.py, tests/unit/test_lab_rung_*.py; after: rungs-rung-map; waits: R-RUNGS-29}
+  - [x] L14 one clustered set of trials for the deflated Sharpe, its spread measured
         {id: rungs-clustered-trials; files: lab/trials.py, lab/rung_dsr.py, tests/unit/test_lab_trials_clustered.py; after: rungs-rung-map}
   - [ ] L15 the blind review of the whole ladder (R-RUNNER-40), every blocking finding fixed
         {id: rungs-blind-review; files: lab/ladder*.py, tests/unit/test_lab_ladder*.py; after: rungs-each-rung, rungs-clustered-trials}
@@ -946,6 +948,8 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         (the centre of a plateau, canon B6), so a cell with a real edge can pass; a planted edge goes forward
         A rule with no settings is declared NOT APPLICABLE for plateau, reviewed, never UNRUN by default (decision a);
         wire: verdict.judge on every cell; gate: a planted edge goes forward and a no-settings rule is not blocked
+        Step 1 landed (#1660): plateau.Surface and plateau.judged, verdict.judge(surface=); no surface stays UNRUN.
+        Remains: lab/ladder.py and lab/ladder_sets.py build each variant cell's Surface; a rule with no ranges is NOT APPLICABLE (changes test_lab_ladder.py and test_lab_ladder_epon.py, which the claim must name)
         {id: rungs-plateau-wired; files: lab/plateau.py, lab/verdict.py, tests/unit/test_lab_plateau.py, tests/unit/test_lab_verdict.py}
   - [ ] L18 TRIALS COUNTED HONESTLY: `trials.family` counts every line ever entered and never shrinks (3,435 per
         rule against ~1,017 judged), luck then needs t>=4.6 and no line reaches it (highest 4.36). The family is
