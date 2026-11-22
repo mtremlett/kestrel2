@@ -285,31 +285,28 @@ def alarm(
     return since, sent, None
 
 
-ALARM_STATE = "hover_alarm.json"  #: when red began and when the alarm last spoke, between runs
-
-
-def watch(home: Path, lines: Iterable[Line], now: datetime) -> tuple[str, bool, str | None]:
-    """One HOVER check: the freshness line, whether green, and the alarm's message to send (or
-    None). The alarm's state is kept in the store's folder between runs, replaced whole."""
-    said, ok = hover(home / keeper.HOT, lines, now)
-    file = home / ALARM_STATE
-    held = json.loads(file.read_text("utf-8")) if file.exists() else {}  # bounded: two stamps
+def watch(state: Path, said: str, green: bool, now: datetime) -> str | None:
+    """One check of the alarm with its state (since, sent) kept in a file between runs, replaced
+    whole; returns the message to send, if any."""
+    held = json.loads(state.read_text("utf-8")) if state.exists() else {}  # bounded: two timestamps
     since, sent = (
-        datetime.fromisoformat(held[k]) if k in held else None for k in ("since", "sent")
+        datetime.fromisoformat(held[k]) if held.get(k) else None for k in ("since", "sent")
     )
-    since, sent, told = alarm(since, sent, ok, said, now)
-    kept = {k: v.isoformat() for k, v in (("since", since), ("sent", sent)) if v}
-    scratch = file.with_suffix(".tmp")
-    scratch.write_text(json.dumps(kept), "utf-8")
-    scratch.replace(file)
-    return said, ok, told
+    since, sent, told = alarm(since, sent, green, said, now)
+    temp = state.with_suffix(".tmp")
+    temp.write_text(
+        json.dumps({"since": since and since.isoformat(), "sent": sent and sent.isoformat()}),
+        "utf-8",
+    )
+    temp.replace(state)
+    return told
 
 
 if __name__ == "__main__":
     home, now = Path(os.environ["KESTREL2_DATA"]), datetime.now(UTC)
     if sys.argv[1:] == ["hover"]:
-        said, ok, told = watch(home, LINES, now)
-        sys.stdout.write(f"{said}\n" + (f"send: {told}\n" if told else ""))
+        said, ok = hover(home / keeper.HOT, LINES, now)
+        sys.stdout.write(f"{said}\n")
         sys.exit(0 if ok else 1)
     said = monitor(home / keeper.HOT, LINES, backfill._broker(home, now), backfill._archive, now)
     sys.stdout.write(f"{said}\n")

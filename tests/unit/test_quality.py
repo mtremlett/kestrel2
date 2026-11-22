@@ -242,13 +242,9 @@ def test_hover_judges_every_span_and_the_alarm_tells_only_of_change(tmp_path: Pa
         "back to green, red for 40 minutes",
     )
     assert quality.alarm(None, None, True, "", later) == (None, None, None)
-
-
-def test_watch_keeps_the_alarm_between_runs_and_speaks_only_of_change(tmp_path: Path) -> None:
-    seeded(tmp_path, set())
-    first = quality.watch(tmp_path, [SPY], NOW)
-    assert not first[1] and (first[2] or "").startswith("data quality RED: data quality:")
-    assert quality.watch(tmp_path, [SPY], NOW + timedelta(minutes=5))[2] is None
-    assert (quality.watch(tmp_path, [SPY], NOW + timedelta(minutes=31))[2] or "").startswith(
-        "data quality still RED"
-    )
+    state = tmp_path / "alarm.json"
+    sent = [
+        quality.watch(state, "x", ok, at) for ok, at in ((False, NOW), (False, soon), (True, later))
+    ]
+    assert sent == ["data quality RED: x", None, "back to green, red for 31 minutes"]
+    assert quality.watch(state, "", True, later) is None

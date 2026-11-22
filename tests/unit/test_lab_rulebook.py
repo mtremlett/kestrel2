@@ -12,7 +12,7 @@ import pytest
 import desk
 from desk.lines import LINES
 from desk.strategy import STRATEGIES, VARIANTS
-from lab import rulebook
+from lab import rulebook, variants
 from lab.cell import Cell
 from lab.rulebook import CATALOGUE
 
@@ -58,3 +58,11 @@ def test_the_catalogue_names_only_python_rules_each_proven(tmp_path: Path) -> No
     book.write_text(text.replace("wants = [0,", "wants = [1,", 1), "utf-8")
     with pytest.raises(ValueError, match="case 0 gives"):
         rulebook.specs(book)
+
+
+def test_a_variant_is_a_rule_by_name_and_stays_out_of_the_book() -> None:
+    made = next(v for v in variants.family(rulebook.specs()))
+    assert made.spec.name not in rulebook.rules()
+    assert rulebook.rule(made.spec.name).__name__ == "SpecRule"
+    with pytest.raises(ValueError, match="no variant is called"):
+        rulebook.rule("breakout_20_10[nope=1]")
