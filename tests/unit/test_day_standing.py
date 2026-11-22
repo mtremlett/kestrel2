@@ -242,7 +242,7 @@ class _In:
 def test_the_daily_zoo_buys_one_share_a_rule_only_when_on_and_yields_the_desks_lines(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    assert len(intraday.ZOO_DAILY) == 13 and all(
+    assert len(intraday.ZOO_DAILY) == 23 and all(
         n.startswith(orders.ZOO) for n in intraday.ZOO_DAILY
     )
     wed, a, b = date(2025, 11, 12), YARDSTICK, next(ln for ln in LINES if ln.symbol == "ISF")

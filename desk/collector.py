@@ -15,13 +15,15 @@ NewsAPI and Trading 212 are never asked."""
 
 from __future__ import annotations
 
+import csv
+import io
 import json
 import os
 import sqlite3
 import sys
 from collections.abc import Callable, Iterator, Mapping
 from contextlib import closing
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from http.client import HTTPException
@@ -69,6 +71,9 @@ class Source:
     key: str
     asks: Callable[[str, date], Iterator[tuple[str, str]]]
     read: Callable[[str, Any, date], Iterator[Fact]]
+    parse: Callable[[bytes], Any] = field(
+        default=lambda body: json.loads(body, parse_float=Decimal)
+    )
 
 
 def _utc(moment: str | int) -> str:
@@ -185,6 +190,21 @@ def _earnings_read(_: str, answer: Any, _day: date) -> Iterator[Fact]:
             yield Fact(EARNINGS, row["symbol"], row["date"], row.get("hour") or "")
 
 
+def _alpha_earnings(key: str, _: date) -> Iterator[tuple[str, str]]:
+    address = "https://www.alphavantage.co/query?function=EARNINGS_CALENDAR&horizon=3month"
+    yield "calendar", f"{address}&apikey={key}"
+
+
+def _csv(body: bytes) -> list[dict[str, str]]:
+    return list(csv.DictReader(io.StringIO(body.decode("utf-8"))))
+
+
+def _alpha_earnings_read(_: str, answer: Any, day: date) -> Iterator[Fact]:
+    for row in answer:  # a rate-limit note comes as JSON: no symbol column, so a loud KeyError
+        if row["symbol"] in US and row["reportDate"] <= str(day + AHEAD):
+            yield Fact(EARNINGS, row["symbol"], row["reportDate"], "")
+
+
 def _finnhub_news(key: str, _: date) -> Iterator[tuple[str, str]]:
     yield "general", f"https://finnhub.io/api/v1/news?category=general&token={key}"
 
@@ -223,6 +243,7 @@ SOURCES = (
     Source("eia", "EIA", _eia, _eia_read),
     Source("bea", "BEA", _bea, _bea_read),
     Source("finnhub", "FINNHUB", _earnings, _earnings_read),
+    Source("alphavantage-earnings", "ALPHAVANTAGE", _alpha_earnings, _alpha_earnings_read, _csv),
     Source("finnhub-news", "FINNHUB", _finnhub_news, _finnhub_news_read),
     Source("marketaux", "MARKETAUX", _marketaux, _marketaux_read),
     Source("gnews", "GNEWS", _gnews, _gnews_read),
@@ -250,7 +271,7 @@ def _keep(
     with store:  # the network is done with: one short write, all of a source's answers or none
         for subject, body in answers:
             store.execute("INSERT INTO raw VALUES (?, ?, ?, ?)", (source.name, subject, at, body))
-            answer = json.loads(body, parse_float=Decimal)
+            answer = source.parse(body)
             for fact in source.read(subject, answer, day):
                 store.execute(
                     "INSERT OR IGNORE INTO fact VALUES (?, ?, ?, ?, ?)",

@@ -46,6 +46,7 @@ def _trades(name: str, legs: list[Leg]) -> dict[int, Action]:
 
 RISE: list[Leg] = [(96, 4), (104, 8), (101, 3), (109, 4), (113, 6)]  #: two legs up: TR, LEG 2
 RANGE: list[Leg] = [(104, 4), (100, 4)] * 3  #: a range: highs 104.4, lows 99.6, tested
+FALL: list[Leg] = [(90, 5), (96, 3), (86, 5), (92, 3), (82, 5), (88, 3), (78, 5), (84, 3)]
 
 CASES: dict[str, tuple[list[Leg], int, list[Leg]]] = {
     # AG-01: PQ on a 45% pullback, three bars share the high 110.9; the bar to 112 trades through
@@ -95,11 +96,43 @@ CASES: dict[str, tuple[list[Leg], int, list[Leg]]] = {
         [(98, 3), (99, 2), (97, 3), (98, 2), (96, 3), (97, 2), (95, 3), (96, 2), (94, 3)]
         + [(92, 2), (97, 4), (93, 3), ("bar", 93, 93.2, 91.0, 92.4), (94, 2), (95, 3)],
     ),
+    # AG-07: four small bounces in a fall, a climax low 69.6, a CoC up (5 bars against 4), a 58%
+    # pullback with smaller bars; the bar over the prior high. Near-miss: a 77% pullback.
+    "ag07_anti": (
+        [*FALL, (70, 4), (80, 5), (74.5, 3), (76, 1), (79, 1)],
+        105,
+        [*FALL, (70, 4), (80, 5), (72.5, 3), (74, 1), (77, 3), (80, 3)],
+    ),
+    # AG-08: highs pierce K's upper band, a dip, and the close where the fast line hooks up.
+    # Near-miss: a slower rise that never pierces the band, the same dip and hook.
+    "ag08_macd_hook": (
+        [(105, 5), (102.5, 3), ("bar", 102.5, 105.3, 102.3, 105.0), (106, 2)],
+        69,
+        [(102.5, 6), (100, 3), ("bar", 100, 102.6, 99.8, 102.4), (103, 2), (103.5, 3)],
+    ),
+    # AG-09: support 99.6 tested over 20 bars; a narrow (weak) close under it; a probe to 98.7
+    # under the low 99.2 closes back at 99.5. Near-miss: a wide breakdown, a small bounce.
+    "ag09_failed_breakdown": (
+        [*RANGE, (104, 4), (101, 3), ("bar", 100.4, 100.5, 99.2, 99.3)]
+        + [("bar", 99.3, 99.8, 99.25, 99.6), ("bar", 99.6, 99.8, 98.7, 99.5), (101, 2)],
+        93,
+        [*RANGE, (104, 4), (101, 3), ("bar", 100.4, 100.5, 97.1, 97.3)]
+        + [("bar", 97.3, 97.8, 97.25, 97.6), ("bar", 97.6, 97.8, 96.7, 97.5), (99, 2)],
+    ),
+    # AG-10: two bars thrust 5.8 (over 3 ATRb), two bars hold its top third, the next trades
+    # over their high 105.5. Near-miss: a flag bar dips to 103.0, under the top third.
+    "ag10_high_tight_flag": (
+        [(102.8, 1), (105.3, 1), ("bar", 105.3, 105.5, 104.6, 104.9)]
+        + [("bar", 104.9, 105.4, 104.5, 105.2), ("bar", 105.2, 106.4, 105.0, 106.2)],
+        64,
+        [(102.8, 1), (105.3, 1), ("bar", 105.3, 105.5, 103.0, 104.9)]
+        + [("bar", 104.9, 105.4, 104.5, 105.2), ("bar", 105.2, 106.4, 105.0, 106.2), (107, 2)],
+    ),
 }
 
 
-def test_each_coded_setup_has_a_known_answer() -> None:
-    assert set(CASES) == set(GRIMES)
+def test_the_ten_are_coded_and_each_has_a_known_answer() -> None:
+    assert set(CASES) == set(GRIMES) and len(GRIMES) == 10
 
 
 @pytest.mark.parametrize("name", sorted(CASES))

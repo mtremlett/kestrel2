@@ -15,7 +15,7 @@ import pytest
 from test_lab_ladder import EDGE, ISF, NOISE, VUSA, eased_off  # noqa: F401 - used by name
 
 from desk.store import Bar
-from lab import ladder, market, shuffle, trials, verdict
+from lab import deflated, ladder, market, shuffle, trials, verdict
 from lab.cell import Cell
 from lab.folds import Pooled
 from lab.rung import Answer, Rates
@@ -51,6 +51,13 @@ def test_a_cell_failing_only_one_rung_is_not_a_pass(
     others = {name: answer for name, (answer, _) in rungs.items() if name != rung_failing}
     assert rungs[rung_failing][0] == "FAIL" and others["first"] == "PASS"
     assert _judge(sour=sour)["every"] is False and _judge(sour=sour)["answer"] == "FAIL"
+
+
+def test_a_luck_fail_alone_never_holds_a_cell_back() -> None:
+    #: L18: the luck rung is reported only, the deflated Sharpe the gate (R-RUNGS-36)
+    passed = dict.fromkeys([*deflated.NAMED, "stress"], (Answer.PASS, "why"))
+    assert verdict.every(passed | {"luck": (Answer.FAIL, "why")})
+    assert not verdict.every(passed | {"stress": (Answer.FAIL, "why")})
 
 
 def test_a_step_of_units_is_refused_unless_the_master_names_it() -> None:
@@ -262,6 +269,6 @@ def test_one_weak_soft_rung_no_longer_kills_a_cell_and_one_failed_hard_gate_alwa
         "regime": (Answer.DOUBT, ""),
         "luck": (Answer.FAIL, ""),
     }
-    assert all(passed for _, passed in verdict.ruled(weak)), "WEAK soft and luck: never ruled"
+    assert verdict.gates(weak), "WEAK soft and luck: never ruled"
     monkeypatch.setattr(verdict, "one_answer", lambda *_: "WIRED")
     assert _judge()["answer"] == "WIRED", "judge answers by the one rule"

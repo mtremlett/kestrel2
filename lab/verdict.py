@@ -177,14 +177,20 @@ def judge(
         "drawdown": drawdowns([t.gross - t.costs.total for t in verdict.trades], trials.name(c)),
         "holding": _held(verdict, own, beside, held, pounds, settings),
         "unrun": unrun,
-        "every": answer == Answer.PASS.name and all(passed for name, passed in ruled(rungs)),
+        "every": answer == Answer.PASS.name and gates(rungs),
     } | ({} if answer is None else {"answer": answer})
 
 
-def ruled(rungs: Judged) -> list[tuple[str, bool]]:
-    """Each rung the one answer does not grade (the luck rung is never ruled), and whether it
-    passed: a SOFT rung's WEAK is the scorecard's, and never stops a cell going forward."""
-    return [(n, a is Answer.PASS) for n, (a, _) in rungs.items() if n not in (*SOFT, "luck")]
+def every(rungs: Judged) -> bool:
+    """Every rung that gates passed: a rung only reported (`deflated.REPORTED`, the luck rung
+    since L18) holds nothing back."""
+    return all(a is Answer.PASS for n, (a, _) in rungs.items() if n not in deflated.REPORTED)
+
+
+def gates(rungs: Judged) -> bool:
+    """`every` for the one answer's cell: the SOFT rungs are left out, as their WEAK is the
+    scorecard's and never stops a cell going forward."""
+    return every({name: judged for name, judged in rungs.items() if name not in SOFT})
 
 
 def _plateaued(
