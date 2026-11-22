@@ -998,3 +998,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1736 data-monitor: per-span table and persisted alarm; box stays open. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1750 data-survivorship: bias measured and stated as a line; not yet wired into verdicts. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1752 collector adds BEA; 11 of the planned sources. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1766 RUNGS: indicator tables say truly which days are fresh 14-day lows; two tables searched for, none found (box open). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1768 RUNGS: registry test reads the real rungs from the registry; net 0 test lines (rungs-each-rung still blocked on its claim). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1771 RUNGS L18 step 2: judge_lines, a rule judged on its own clustered lines, known answer pinned (box open: wiring). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1795 RUNGS: rungs-indicators searched, no printed source for the last two tables; recorded and held back. |

@@ -964,11 +964,11 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         wire: verdict.judge on every cell; gate: a planted edge goes forward and a no-settings rule is not blocked
         Step 1 landed (#1660): plateau.Surface and plateau.judged, verdict.judge(surface=); no surface stays UNRUN. Built: `plateau.Fixed` (#1702) and `plateau.of(rule, book, firsts)` builds a cell's Surface or FIXED (#1742).
         Remains: wire it: lab/ladder.py and lab/ladder_sets.py pass `surface=plateau.of(c.strategy, rulebook.specs(), firsts)` into verdict.judge (changes test_lab_ladder.py and test_lab_ladder_epon.py; the claim must name those four files)
-        {id: rungs-plateau-wired; files: lab/plateau.py, lab/verdict.py, lab/ladder.py, lab/ladder_sets.py, tests/unit/test_lab_plateau.py, tests/unit/test_lab_verdict.py, tests/unit/test_lab_ladder.py, tests/unit/test_lab_ladder_epon.py; after: rungs-faults-not-answers}
+        {id: rungs-plateau-wired; files: lab/plateau.py, lab/verdict.py, lab/ladder.py, lab/ladder_sets.py, tests/unit/test_lab_plateau.py, tests/unit/test_lab_verdict.py, tests/unit/test_lab_ladder.py, tests/unit/test_lab_ladder_epon.py; after: rungs-faults-not-answers; waits: operator}
   - [ ] L18 TRIALS COUNTED HONESTLY: `trials.family` counts every line ever entered and never shrinks (3,435 per
         rule against ~1,017 judged), luck then needs t>=4.6 and no line reaches it (highest 4.36). The family is
         the set's own lines, clustered (L14) and passed into `deflated.read`; a known-answer case pins both bars
-        Step 1 landed (#1714): the luck rung is report-only (`deflated.OWN`), the deflated Sharpe the gate. Remains: lab/verdict.py `every`/`goes` still count the luck rung, the set runners pass clustered trials into `deflated.read`, a known-answer case
+        Step 1 landed (#1714): the luck rung is report-only (`deflated.OWN`), the deflated Sharpe the gate. Step 2 built (#1771): `trials.daily` and `deflated.judge_lines` judge a rule on its own clustered lines (never-traded lines count in the luck tally, not the looks). Remains: wire `judge_lines` for `deflated.judge(..., family - 1)` in lab/verdict.py, lab/ladder_sets.py, lab/ladder.py, lab/ladder_pool.py, lab/basket.py (then delete `trials.family`; book the planted loss in `trials.daily`); lab/verdict.py `every`/`goes` still count the luck rung, the set runners pass clustered trials into `deflated.read`, a known-answer case
         One correction, not two (decision b): the deflated Sharpe on clustered effective trials is the gate, the
         Bonferroni luck rung is report-only, and a rule is also judged on its pooled basket of lines;
         wire: verdict.judge and the set runner; gate: a known-answer case pins the effective trial count and both bars
@@ -979,7 +979,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         Hard gates pre-registered before a run (costs, deflated Sharpe, out-of-sample folds, shuffle) must PASS; regime,
         market and stress are scored with MAX_WEAK; "lowest of NAMED" is deleted (decision c); wire: verdict.judge;
         gate: one WEAK soft rung no longer kills a cell, one failed hard gate always does
-        {id: rungs-scorecard; files: lab/verdict.py, lab/rung_regimes.py, tests/unit/test_lab_verdict.py, tests/unit/test_lab_rung_regimes.py; after: rungs-plateau-wired}
+        {id: rungs-scorecard; files: lab/verdict.py, lab/rung_regimes.py, tests/unit/test_lab_verdict.py, tests/unit/test_lab_rung_regimes.py}
   - [ ] L20 FAULTS ARE NOT ANSWERS: 6,788 lines read FAULT at market (SPY has no bar on a day, e.g. 2022-09-28) and
         ~5,300 at folds (no pounds-per-USD rate): each rung reads its missing day from the one store's calendar and
         the rate table, and a fault count over 1% of a set stops its table being published
@@ -1016,9 +1016,9 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         {id: rungs-grid-chain; files: lab/ladder_sets.py, lab/ladder_pool.py, tests/unit/test_lab_ladder_pool.py; after: rungs-gate, rungs-b5}
 - [ ] Each indicator known-answer tested against a published reference series (STR-14).
       Built: moving average, Bollinger deviation, Wilder smoothing (#145); true range, RSI gains
-      and losses, channel (#154): five tables, 250 printed numbers; the tables now in lab/published_tables.py and the RSI held to cs-rsi.xls's 19 printed rows (#1640). Built: the band line held to StockCharts' printed Lower Band, 23 rows (#1707); every table also run while a rule is holding (#1749). Remains: Supertrend's carried band and a fresh-low table, each against a printed worked example from a free source or a book held locally. Settled (coordinator 54, 22 Nov: no spend: the published worked examples come from the books already held locally, kestrel2_research/grimes/book_text, as fixtures)
+      and losses, channel (#154): five tables, 250 printed numbers; the tables now in lab/published_tables.py and the RSI held to cs-rsi.xls's 19 printed rows (#1640). Built: the band line held to StockCharts' printed Lower Band, 23 rows (#1707); every table also run while a rule is holding (#1749). Remains: Supertrend's carried band and a fresh-low table, each against a printed worked example. Searched (#1766, #1795): the Grimes book text (31 files) prints only result tables; StockCharts' cs-percentr.xls has the same series as cs-soo.xls, no fresh low; blogs contradict themselves; next try Chandelier Exit or Aroon sheets, or retire the remainder (the carried band is held by known answers in lab/published.py). Settled (coordinator 54, 22 Nov: no spend: the published worked examples come from the books already held locally, kestrel2_research/grimes/book_text, as fixtures)
       {id: rungs-indicators; files: lab/published.py, lab/published_tables.py, manifest.toml,
-      tests/unit/test_lab_published*.py}
+      tests/unit/test_lab_published*.py; waits: operator}
 - [ ] Before paper: a kill condition declared for each strategy; promotion only after at
       least thirty effective paper trades, net positive (STR-17, LAD-11). Built:
       `lab/promotion.py` (#127). Remains: the desk reads it (R-RUNGS-7, MONEY's, open); each candidate's
