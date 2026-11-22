@@ -216,8 +216,8 @@ def test_hover_judges_every_span_and_the_alarm_tells_only_of_change(tmp_path: Pa
         held.five(SPY, [Five(last, price, price, price, price, 5)])
         for span, at in spans.items():
             held.timed(SPY, span, [Timed(span, at, price, price, price, price, 5)])
-    said, ok = quality.hover(path, [SPY], NOW)
-    assert said.startswith("data quality: 75% fresh, 1 faults, 1 gaps, worst SPY/")
+    said, ok = quality.hover({"live": path}, [SPY], NOW)
+    assert said.startswith("data quality: 75% fresh, 1 faults, 1 gaps, worst live/SPY/")
     assert not ok
     with bars.writing(path, bars.Source.IBKR) as held:
         held.timed(SPY, "1h", [Timed("1h", last, price, price, price, price, 5)])
@@ -229,10 +229,14 @@ def test_hover_judges_every_span_and_the_alarm_tells_only_of_change(tmp_path: Pa
     shown = quality.table(path, [SPY], NOW)
     assert "1h: 100% fresh, 0 faults, 0 gaps" in shown
     assert shown.endswith("sources: IBKR paper 1; replaced: none")
-    assert quality.hover(path, [SPY], NOW) == (
+    assert quality.hover({"live": path}, [SPY], NOW) == (
         "data quality: 100% fresh, 0 faults, 0 gaps, worst none",
         True,
     )
+    assert quality.databases(tmp_path) == {
+        bars.HISTORY: tmp_path / bars.HISTORY,
+        bars.LIVE: tmp_path / bars.LIVE,
+    }
     holed = seeded(tmp_path / "holed", {date(2026, 11, 12)})
     assert quality.cell(holed, SPY, "daily", NOW) == "1 sessions missing, the first 2026-11-12"
     first = quality.alarm(None, None, False, "SPY/1h", NOW)
