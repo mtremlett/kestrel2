@@ -114,6 +114,19 @@ def _eodhd_read(symbol: str, answer: Any, _: date) -> Iterator[Fact]:
         yield Fact(PRICE, symbol, row["date"], str(row["close"]))
 
 
+def _alpha(key: str, day: date) -> Iterator[tuple[str, str]]:
+    """A second London audit line a day, the turn after EODHD's, so each day two are audited."""
+    symbol = LONDON[(day.toordinal() + 1) % len(LONDON)]
+    address = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&outputsize=compact"
+    yield symbol, f"{address}&symbol={symbol}.LON&apikey={key}"
+
+
+def _alpha_read(symbol: str, answer: Any, day: date) -> Iterator[Fact]:
+    row = answer["Time Series (Daily)"].get(str(day))  # absent on a day the exchange was shut
+    if row:
+        yield Fact(PRICE, symbol, str(day), row["4. close"])
+
+
 def _fred(key: str, _: date) -> Iterator[tuple[str, str]]:
     address = "https://api.stlouisfed.org/fred/series/observations?file_type=json&limit=5"
     for series in SERIES:
@@ -192,6 +205,7 @@ SOURCES = (
     Source("massive", "MASSIVE", _massive, _massive_read),
     Source("tiingo", "TIINGO", _tiingo, _tiingo_read),
     Source("eodhd", "EODHD", _eodhd, _eodhd_read),
+    Source("alphavantage", "ALPHAVANTAGE", _alpha, _alpha_read),
     Source("fred", "FRED", _fred, _fred_read),
     Source("bls", "BLS", _bls, _bls_read),
     Source("eia", "EIA", _eia, _eia_read),
