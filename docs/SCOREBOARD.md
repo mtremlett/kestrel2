@@ -980,3 +980,12 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1676 RUNGS gate pinned: 8 rung modules off the verdict's path may only fall (0 of 8 wired this change). |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1680 RUNGS L20 step 1: market and folds rungs name their input gaps (calendar and rates) before a set runs; wiring next. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | data-door-bars: grid, sweep, batch, transfer, montecarlo, breadth read prices only from the history database; CSV reader deleted. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1702 RUNGS: plateau NOT APPLICABLE for a rule with no settings, ranged rules refused; ladder wiring remains (rungs-plateau-wired). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1706 RUNGS L20 step 2: set pre-flight refusal and 1% FAULT publishing stop built in lab/folds.py (unwired). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1707 rungs-indicators: the band line is held to StockCharts' printed lower band, 23 rows (step; box still open). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1711 RUNGS: sizing block put on the one block interface, ready to register (rungs-blocks, step; no tick). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1714 RUNGS: luck rung report-only, deflated Sharpe the one luck gate (L18 step 1; verdict wiring open). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1721 rungs-epon-first step 1: twenty rules' published tests written down; one (Faber) is the author's own and a candidate for reproduction. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1740 rungs-each-rung step: empty rung_beta.py folded away, off-path rung modules 8 -> 7. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1742 RUNGS: plateau.of builds each cell's plateau surface or FIXED; one call left to wire it in the ladder (L17 step 2). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1749 RUNGS: indicator tables also held while holding (STR-14), net +17 lines. |
