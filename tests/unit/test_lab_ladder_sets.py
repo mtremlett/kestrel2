@@ -17,6 +17,7 @@ from lab import (
     ladder_sets,
     members,
     rulebook,
+    scalping,
     trials,
     variants,
     verdict,
@@ -148,6 +149,9 @@ def test_the_door_takes_intraday_and_variants_and_refuses_an_unknown_set(
     env = {"KESTREL2_DATA": str(tmp_path)}
     assert ladder_sets.main(env, ["intraday"]) == 0
     assert "SET INTRADAY: stub" in capsys.readouterr().out
+    monkeypatch.setattr(scalping, "judge_set", lambda *_: "SET SCALP: stub")
+    assert ladder_sets.main(env, ["scalping"]) == 0
+    assert "SET SCALP: stub" in capsys.readouterr().out
     made = variants.family(rulebook.specs())  #: every ranged row's variants, each a trial
     assert len(made) > 12 and len({v.spec.name for v in made}) == len(made)
     for _ in range(2):  #: entered again, counted once

@@ -5,11 +5,14 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 from decimal import Decimal
+from pathlib import Path
 
-from desk import intraday, orders, venues
+import lab.scalping as scalping
+from desk import bars, intraday, orders, venues
 from desk.lines import LINES
 from desk.orders import Leg, Settings
 from desk.rollup import Candle
+from desk.spans import Timed
 from desk.strategy import Action
 from lab import rung
 from lab.scalping import MomentumBurst, VwapReversion, edge_needed, round_trip_cost, trades_of
@@ -108,3 +111,28 @@ def test_a_round_trip_costs_two_legs_and_a_trade_gaining_less_shows_a_loss() -> 
     assert edge_needed(Decimal("0.01"), trades[:1]) is None
     se = rung.mean_and_error([p.gain for p in trades])
     assert se is not None and edge_needed(Decimal("0.01"), trades) == Decimal("0.01") + 2 * se[1]
+
+
+def test_the_set_runs_two_rules_on_two_lines_with_their_answers_and_costs(tmp_path: Path) -> None:
+    one, two = LINES[0], LINES[1]
+    with bars.writing(tmp_path / bars.LIVE) as opened:
+        for line in (one, two):
+            opened.timed(
+                line,
+                "1m",
+                [Timed("1m", c.start, c.open, c.high, c.low, c.close, 1) for c in _session()],
+            )
+    said = scalping.judge_set(tmp_path, {})
+    assert said.startswith("SET SCALP: 2 rules, 0 passed")
+    table = (tmp_path / "ladder" / "sets" / "SCALP.md").read_text(encoding="utf-8")
+    assert "PRE-REVIEW" in table and "Each is judged against 4 trials." in table
+    rows = [r for r in table.splitlines() if r.startswith("| ") and "(LSE)" in r]
+    assert len(rows) == 4 and all(len(r.split("|")) == 8 for r in rows)
+    assert (
+        sum(f"| {r} | {x.symbol} (LSE) |" in table for r in scalping.RULES for x in (one, two)) == 4
+    )
+    assert (table.count("THIN"), table.count("FAULT")) == (
+        2,
+        2,
+    )  # the burst trades, too few; VWAP none
+    assert table.count("%") == 4  # a cost and an edge for each burst line, trades being three
