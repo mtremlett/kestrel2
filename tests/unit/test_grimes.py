@@ -142,6 +142,18 @@ def test_mgmt_time_stop_partials_breakeven_chandelier_and_never_widening() -> No
     assert not run.step(_mark(9, 100.9, 102, 101)) and run.stopped
 
 
+def test_a_trade_opened_re_entry_included_starts_its_rule_state_afresh() -> None:
+    ag04, ag05, ag06 = (
+        GRIMES[n]() for n in ("ag04_first_pullback", "ag05_base_spring", "ag06_failure_test")
+    )
+    ag04._run = (Decimal(1), Decimal(2), 3)  # type: ignore[attr-defined]
+    ag05._base = (Decimal(1), Decimal(2))  # type: ignore[attr-defined]
+    ag06._near = 1  # type: ignore[attr-defined]
+    for rule in (ag04, ag05, ag06):
+        rule.open(Decimal(90))
+    assert ag04._run is None and ag05._base is None and ag06._near == 0  # type: ignore[attr-defined]
+
+
 def test_mgmt_parabolic_stop_follows_each_bar_after_two_free_bars() -> None:
     trade = Trade(Decimal(95), limit=5)  #: entry 103, risk 8
     assert trade.step(_mark(0, 102.5, 104, 103.5, 103))  #: wholly over 102.25: a free bar

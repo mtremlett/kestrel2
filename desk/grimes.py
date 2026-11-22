@@ -547,7 +547,8 @@ class _Ag04(Grimes):
     def arm(self, mark: Mark) -> tuple[Decimal, Decimal] | None:
         """The breakout's first reaction's buy-stop."""
         k = self.chart.last(-1)
-        if thrust(self.chart, 1, mark) and _wide(self.chart, mark) >= Decimal("1.25") and k:
+        wide = _wide(self.chart, mark) >= Decimal("1.25")
+        if thrust(self.chart, 1, mark) and wide and k is not None:
             self._run = (self.chart.pivots[k].price, mark.bar.low, mark.n)
             return None
         if self._run is None:
@@ -606,6 +607,11 @@ class _Ag05(Grimes):
             return None
         return self.open(self.stop(base[0], mark), start=base[1], back=base[0])
 
+    def open(self, stop: Decimal, **more: Decimal | None) -> Trade:
+        """MGMT's trade; the base it came from is spent, so none stands when it ends."""
+        self._base = None
+        return super().open(stop, **more)
+
 
 def ncl(chart: Chart) -> int:
     """NCL: the median length in bars of the last 5 swings [P: the book's pullbacks, any swing]."""
@@ -649,8 +655,13 @@ class _Ag06(Grimes):
         price = self.chart.pivots[k].price
         if not mark.bar.low < price < mark.bar.close:
             return None
-        self._level, self._near = price, 0
+        self._level = price
         return self.open(self.stop(mark.bar.low, mark), back=price)
+
+    def open(self, stop: Decimal, **more: Decimal | None) -> Trade:
+        """MGMT's trade, the fakeout re-entry's too, its count of closes near the level at 0."""
+        self._near = 0
+        return super().open(stop, **more)
 
     def keep(self, mark: Mark) -> bool:
         """Out on 2 closes running near the level before +0.5R: it must work fast."""
