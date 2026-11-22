@@ -217,10 +217,16 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
 - [ ] The lists' members year by year, so a study of the past is not the survivors' alone
       (S&P 500 and Nasdaq 100 built in #96, `lab/members.py`; remains: the FTSE 350 and the funds,
       joining the lists' records up, a second source for 2010 to 2014)
-      Remains (#638): no free source for the FTSE 350's changes, the funds' records or a 2010-2014 second
-      source; needs his choice to buy or supply one (recommendation: defer, the US lists cover the US study)
-      Waits on him: its session said so in #638
-      {id: data-members; files: lab/members.py, tests/unit/test_lab_members*.py, manifest.toml; waits: operator}
+      Remains (#638): the FTSE 350's changes, the funds' records and a 2010-2014 second source.
+      Re-carded to a free route (his ruling 22 Nov ~10:05: no paid data until the desk earns consistently):
+      the FTSE 100 and 250 changes from FTSE Russell's published quarterly-review announcements, joined to
+      the revision history of Wikipedia's FTSE 100 and FTSE 250 pages read through the MediaWiki API; a change
+      the two disagree on is a named fault, never a guess; the funds and the 2010-2014 second source by the same
+      rule, or the box says which free source is missing and why
+      wire: the nightly research refresh reads the lists' members by date; gate: a contract test on a committed
+      fixture of one review's announcement and the page revision either side finds the joiners and leavers, and a
+      planted disagreement is a named fault
+      {id: data-members; files: lab/members.py, tests/unit/test_lab_members*.py, manifest.toml}
 - [x] Kept hot, always: the runner runs the store's keeper after the US close and before the
       London open on every trading day, a dated receipt each time; a line staler than one
       session raises an alert, and a keeper that misses its slot raises one too (DQ-12,
