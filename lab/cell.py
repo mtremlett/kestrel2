@@ -140,39 +140,54 @@ def _closure(root: Path, graph: dict[str, set[str]], start: set[str], out: set[s
     return seen
 
 
-def reached(root: Path, module: str = CELL) -> tuple[str, ...]:
+def reached(
+    root: Path, module: str = CELL, graph: dict[str, set[str]] | None = None
+) -> tuple[str, ...]:
     """The module's file, its packages', and every file under root they reach through imports,
     except the files that reach the module in turn: they run it, they do not judge for it, so
-    a change to a runner of the module is not a change to what it makes."""
+    a change to a runner of the module is not a change to what it makes. `graph` is shared by
+    callers that ask for many modules, so each file is parsed once (R-GRID-7)."""
     if (own := _file(root, module)) is None:
         raise ValueError(f"{module}: no module of that name under {root}")
-    graph: dict[str, set[str]] = {}
+    graph = {} if graph is None else graph
     start = _files(root, module)
     everything = _closure(root, graph, start, set())
-    runners = {p for p in everything - start if own in _closure(root, graph, {p}, set())}
-    return tuple(sorted(_closure(root, graph, start, runners)))
+    upward, waiting = (
+        set(),
+        {own},
+    )  # the files that reach the module, found walking the imports backwards once
+    while waiting:
+        waiting = {p for p in everything if graph[p] & waiting} - upward
+        upward |= waiting
+    return tuple(sorted(_closure(root, graph, start, upward - start)))
 
 
-def code_version(root: Path = ROOT, module: str = CELL) -> str:
+def code_version(
+    root: Path = ROOT, module: str = CELL, graph: dict[str, set[str]] | None = None
+) -> str:
     """sha256 of the text of every file reached; a Windows line ending is not a change."""
     digest = hashlib.sha256()
-    for path in reached(root, module):
+    for path in reached(root, module, graph):
         digest.update((root / path).read_bytes().replace(b"\r\n", b"\n") + b"\0")
     return digest.hexdigest()
 
 
-def rungs(root: Path = ROOT) -> dict[str, str]:
+def rungs(root: Path = ROOT, graph: dict[str, set[str]] | None = None) -> dict[str, str]:
     """The code version of each rung: a module of lab/ that reaches this one, whose trades
-    it makes something of."""
+    it makes something of. One import graph for all of them: each file parsed once."""
+    graph = {} if graph is None else graph
     names = [f"lab.{path.stem}" for path in sorted((root / "lab").glob("[!_]*.py"))]
-    upon = [name for name in names if name != CELL and _file(root, CELL) in reached(root, name)]
-    return {name: code_version(root, name) for name in upon}
+    upon = [
+        name for name in names if name != CELL and _file(root, CELL) in reached(root, name, graph)
+    ]
+    return {name: code_version(root, name, graph) for name in upon}
 
 
 #: The code this process loaded, read once as it loads it: this module's, and each rung's,
-#: so no key claims a cost model or a rung edited on disk since.
-LOADED = code_version()
-RUNGS = rungs()
+#: so no key claims a cost model or a rung edited on disk since. One graph: each file parsed once.
+_GRAPH: dict[str, set[str]] = {}
+LOADED = code_version(ROOT, CELL, _GRAPH)
+RUNGS = rungs(ROOT, _GRAPH)
 
 
 def _data_version(bars: Sequence[Bar]) -> str:

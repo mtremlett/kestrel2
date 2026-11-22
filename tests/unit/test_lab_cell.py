@@ -246,3 +246,26 @@ def test_a_rungs_key_ignores_the_modules_that_run_it_and_moves_with_those_that_j
         assert cell.rungs(tmp_path)["lab.ladder"] == before, runner
     _tree(tmp_path, {"lab/cost.py": "C = 2"})
     assert cell.rungs(tmp_path)["lab.ladder"] != before, "a judge changed"
+
+
+def test_the_code_versions_read_each_file_once(monkeypatch: pytest.MonkeyPatch) -> None:
+    """R-GRID-7: loading took 9.4 minutes on a busy PC, as each rung's version parsed the lab again
+    (5,822 parses of about 80 files). The versions are unchanged; each file is parsed once."""
+    parsed: list[str] = []
+    real = cell.ast.parse
+    monkeypatch.setattr(
+        cell,
+        "ast",
+        type(
+            "Ast",
+            (),
+            {
+                **vars(cell.ast),
+                "parse": staticmethod(
+                    lambda source, name, *more: parsed.append(name) or real(source, name, *more)
+                ),
+            },
+        ),
+    )
+    assert cell.rungs() == cell.RUNGS
+    assert len(parsed) == len(set(parsed)), f"{len(parsed)} parses of {len(set(parsed))} files"
