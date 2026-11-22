@@ -96,7 +96,7 @@ def rates_kept(root: Path) -> dict[tuple[date, str], Decimal]:
         }
 
 
-def _pounds(root: Path) -> Callable[[str, date], Decimal]:
+def pounds_per(root: Path) -> Callable[[str, date], Decimal]:
     """Pounds per unit of a currency kept for a day, carried over a UK-only holiday (desk.carry),
     the rates read once for every question asked of it (22 Nov: once a trip hung SimCity)."""
     by: dict[str, dict[date, Decimal]] = {}
@@ -114,7 +114,7 @@ def _pounds(root: Path) -> Callable[[str, date], Decimal]:
 
 def rate(root: Path, currency: str, day: date) -> Decimal:
     """Pounds per unit of a currency kept for a day, carried over a UK-only holiday (desk.carry)."""
-    return _pounds(root)(currency, day)
+    return pounds_per(root)(currency, day)
 
 
 def cancel_all(root: Path, broker: Broker, day: date) -> tuple[str, ...]:

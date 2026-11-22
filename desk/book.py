@@ -20,11 +20,11 @@ from desk.book_parts import (
     SWITCH,
     TURNS,
     Switch,
-    _pounds,
     cancel_all,
     entry,
     keep,
     killed,
+    pounds_per,
     rate,
     record_rates,
     retry_id,
@@ -85,6 +85,7 @@ __all__ = (
     "keep",
     "killed",
     "levels",
+    "pounds_per",
     "rate",
     "record_rates",
     "switch",
@@ -398,7 +399,7 @@ def currency_gain(root: Path, lines: Iterable[Line], trips: Iterable[RoundTrip])
     """CURRENCY APART FROM TRADING (BIC-04): the pounds the trips gained or lost because the
     currency moved between the buy's day and the sale's, the shares sold at the sale's price
     times the change in the day's rate. A trip's gross less this is its trading profit."""
-    currency, rate = {line.symbol: line.currency for line in lines}, _pounds(root)
+    currency, rate = {line.symbol: line.currency for line in lines}, pounds_per(root)
     return sum(
         (
             -t.sell.quantity
@@ -419,7 +420,7 @@ def open_currency_gain(
     money, total, rate, ledger = (
         {x.symbol: x.currency for x in lines},
         Decimal(0),
-        _pounds(root),
+        pounds_per(root),
         fills(root),
     )
     for symbol, held in positions(root, day).items():

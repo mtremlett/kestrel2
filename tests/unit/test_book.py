@@ -374,7 +374,10 @@ def test_a_round_trip_pairs_each_sale_with_the_buys_it_closes_in_pounds_after_ev
     kept, rates_read = book_parts.rates_kept, []
     monkeypatch.setattr(book_parts, "rates_kept", lambda root: rates_read.append(1) or kept(root))
     assert book.currency_gain(tmp_path, (share, dollar), trips * 20) == Decimal(-500)
-    assert book.open_currency_gain(tmp_path, (dollar,), {"U": Decimal(50)}, TUE) == 0
+    assert (
+        book.open_currency_gain(tmp_path, (share, dollar), dict.fromkeys("AU", Decimal(50)), MON)
+        == 0
+    )
     assert len(rates_read) == 2, f"{len(rates_read)} reads of the rates, not one a call"
     #: BIC-03: before any fill the whole 3650 pounds is idle, a tenth a year is a pound a day
     early = trips[0].buy.day - timedelta(days=2)
