@@ -123,3 +123,9 @@ def test_a_review_is_taken_when_its_announcement_and_the_page_agree_and_a_differ
         members.Disagreement, match=r"only the announcement has \['-ITV'\].*page has \['\+XYZ'\]"
     ):
         members.reconcile(day, announced, before - {"ITV"}, after | {"XYZ"})
+
+
+def test_the_survivors_share_of_a_past_day_is_the_bias_a_study_of_todays_list_carries() -> None:
+    """On 1 January 2010 279 of the S&P 500's 500 were still members; today, all of them."""
+    assert members.on("SP500", date(2010, 1, 1)).survived == 279 / 500
+    assert members.on("SP500", members.LAST).survived == 1.0
