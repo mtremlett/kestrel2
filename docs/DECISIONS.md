@@ -2226,7 +2226,16 @@ What (c) is, and the check that fails on each breach (`tests/unit/test_running_i
 - ITS OWN ALLOWANCE (coordinator 78): zoo orders meet the gate with `running.ZOO_ROOM` (£1,000: 2% a day,
   5% a week, 10 new lines a day) and the zoo's own standing; the desk's standing (`day.standing`, also
   the drawdown halt) leaves out the zoo's lines and its round trips' pounds, so the zoo never spends the
-  desk's four new lines or its loss limits (`test_day_standing.py`, driven red both ways).
+  desk's four new lines or its loss limits (`test_day_standing.py`, driven red both ways). The gate also
+  counts a buy's holdings and room by side (`book.side`), so the zoo's holdings never fill the desk's five;
+  a sale meets the whole book, so go flat (the second kill level) still sells every zoo share.
+BLIND REVIEW (A6 step 6, a fresh reviewer given only the diff and this claim): BLOCKING, the zoo and the
+desk shared the gate's five holdings; fixed by `book.side` (test seen red without it). Also fixed: two zoo
+rules stacking a line in one bar (the book is read afresh for each rule), zoo orders sized with the zoo's
+allowance, the day's rates kept first in the intraday round. Accepted as approximate, with one share each
+worth pence: the zoo's pounds are taken from the day its round trip closes (a zoo line held overnight shifts
+a day's split), and the hourly line counts a refusal's own '; ' as an order. The reviewer's re-check of the
+fixes found one more BLOCKING issue (go flat could not sell zoo shares through `book.side`); fixed, test seen red.
 - NEVER A-GATE, NEVER PROMOTED: zoo names are never in `STRATEGIES` or `intraday.RULES`
   (`test_intraday_zoo.py`), and promotion reads only its candidates' own fills (`lab/promotion.py`).
 Scope for Mon 23 Nov: the zoo's seven day-trading rules (5- and 15-minute bars) on the zoo's lines. Owed:
@@ -2246,7 +2255,7 @@ the stop follows the line's newest buy, `restop`), so ONE OWNER PER LINE stands,
 - THE ZOO YIELDS (`day._yields`): a line one of the desk's rules buys today that a zoo rule (daily or
   intraday) holds is sold out of the zoo first, under the zoo rule's id; the desk's "sold this morning"
   reads only the desk's own sales, so its buy goes as if the zoo were not there.
-- THE GATE SEES ONE SIDE (`book._side`): a zoo order's gate counts the zoo's lines alone, a desk order's
+- THE GATE SEES ONE SIDE (`book.side`): a zoo order's gate counts the zoo's lines alone, a desk order's
   the desk's, so zoo lines fill none of the desk's five holdings, room or correlation cap. Not split: the
   pounds per underlying (`day_money.exposure`) still count the zoo's single shares (a few pounds against
   a 40% cap), recorded rather than built.

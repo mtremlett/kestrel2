@@ -135,6 +135,16 @@ Tell = Callable[[str, str], None]  #: the door to his phone: a message's name, t
 Reckoning = tuple[dict[str, int], tuple[str, ...], set[str], tuple[Difference, ...]]
 
 
+def side(root: Path, held: Mapping[str, int], order_id: str) -> dict[str, int]:
+    """THE ZOO STANDS APART (his 22 Nov ruling): of the lines held, those of the order's own side,
+    the zoo's (orders.is_zoo) or the desk's, by the side of each line's last buy (a line with no
+    buy of the desk's records is the desk's). The gate counts a buy's holdings and room by it; a
+    sale (its rule's, a stop's or go flat's) meets the whole book, so every share can be sold."""
+    owner = {f.symbol: is_zoo(f.order_id) for f in fills(root) if f.quantity > 0}
+    zoo = is_zoo(order_id)
+    return {symbol: shares for symbol, shares in held.items() if owner.get(symbol, False) == zoo}
+
+
 def send(
     root: Path,
     broker: Broker,
@@ -165,7 +175,8 @@ def send(
             words = f"{order.order_id}: not sent, the book is not the broker's on {list(differ)}"
             raise Stopped(Blocker.BOOK, words)
         try:
-            gate(order, settings, _side(root, held, order.order_id), standing, exposure, moves)
+            mine = held if isinstance(order, Sale) else side(root, held, order.order_id)
+            gate(order, settings, mine, standing, exposure, moves)
         except Refused as refused:
             raise Stopped(Blocker.GATE, str(refused)) from refused
         _unless_stopped(root, order)  #: read again, at the last moment before it goes
@@ -176,14 +187,6 @@ def send(
     collect(root, broker)  #: a stop sold on the day of its buy is in no answer
     filled, short = sum(abs(f.quantity) for f in report.fills), report.reason is not None
     return Sent(order.order_id, filled, report.reason, Blocker.BROKER if short else None)
-
-
-def _side(root: Path, held: Mapping[str, int], order_id: str) -> dict[str, int]:
-    """The book as the order's own side holds it (orders.is_zoo, his 22 Nov ruling): a zoo
-    order's gate sees the zoo's lines alone, the desk's the desk's, so neither fills the other's
-    holdings, room or correlation cap; a line's side is its last buy's. No zoo: the whole book."""
-    owner = {f.symbol: f.order_id for f in fills(root) if f.quantity > 0}
-    return {s: n for s, n in held.items() if is_zoo(owner.get(s, "")) == is_zoo(order_id)}
 
 
 def _place(root: Path, broker: Broker, order: Order | Sale, tell: Tell | None) -> Report:
