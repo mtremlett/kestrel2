@@ -886,3 +886,10 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1473 B5 Williams %R row ranged, 9 variants centred on its published setting; no scene moved. |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1479 R-RUNNER-363 part 2 built (tape key per rule, not per module). |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1481 R-RUNNER-371 weather table written by the ladder job. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1488 R-RUNNER-354 intraday trades priced by the first rung's rule. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1489 B5 Keltner's row ranged, 4 of 24 rows carry variants. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1494 R-RUNNER-372 built, weather.named joins winning layers; none joined yet. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1496 B5 Connors three-day row carries its variants' ranges; scenes unchanged. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1505 R-RUNNER-355 set INTRADAY built and reachable by the ladder's door. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1503 B5 Connors %b ranges, 5 rows ranged, two settings in one place; scenes unchanged. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1510 R-RUNNER-373 macro weather layer built, contested beside the others. |
