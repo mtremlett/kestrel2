@@ -397,6 +397,12 @@ filter = "no_filter"
 source = "Darvas, How I Made $2,000,000 in the Stock Market (1960), the box: buy a close over the top of a box whose top and bottom each stood for 3 sessions; sell a close under the stop, the highest bottom of the boxes formed while held"
 
 [darvas_box.params]
+entry = { n = 3 }
+stop = { n = 3 }
+
+# the entry and the stop read one set of boxes, so the sessions a box stands ranges in both at once
+[darvas_box.ranges]
+"entry+stop" = { n = [2, 3, 4] }
 
 # a box (top 10, bottom 9) stands on the 4th session, the 5th closes over it (buy), higher boxes raise the stop to 10, a close under it sells, the next box is broken again (buy)
 [[darvas_box.cases]]

@@ -58,6 +58,9 @@ class Line:
     #: The ISIN, the twelve-character international id the issuer and the broker both give
     #: (R-PAPER-3); None only for a reference series that is no security.
     isin: str | None = None
+    #: The first day of each change of the currency its prices are quoted in, recorded from the
+    #: issuer's notice, never inferred from the bars: the step that day is the unit, not a move.
+    requoted: frozenset[date] = field(default_factory=frozenset)
     #: The first day whose bars the store keeps, where the archive's older ones are in another
     #: unit than its newer: earlier bars are dropped with one fault, never rescaled by a guess.
     starts: date | None = None
