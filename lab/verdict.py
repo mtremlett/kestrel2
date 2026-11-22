@@ -67,7 +67,7 @@ FOLDS = folds.YEARS
 RESAMPLES = 1000
 #: Rungs that are built and that this set cannot yet be run through, each with why.
 UNRUN = {
-    "plateau": "the published rules carry no settings to choose among yet",
+    "plateau": "neither its rule's variants nor its rule declared fixed were handed in",
 }
 NO_FIGURE = "no author's figure is on file for the rule: no published result stands behind it"
 #: A rule trades a line five to ten times a year and wants 200 sessions to warm up: a line of
@@ -122,12 +122,13 @@ def judge(
     pooled: Callable[[], Pooled],
     first: Verdict | None = None,
     family: int | None = None,
-    surface: plateau.Surface | None = None,
+    surface: plateau.Surface | plateau.Fixed | None = None,
 ) -> dict[str, Any]:
     """Every rung's answer with its reason, the rungs not run with theirs, the verdict's.
     The folds are the rule's, pooled over its lines: `pooled` is asked only when they are read.
     `first` is the cell's first rung where the caller has run it already; `family` the trials
-    of its rule, used only when EASED; `surface` its rule at its settings (`_plateaued`)."""
+    of its rule, used only when EASED; `surface` its rule at its settings, or FIXED where it
+    has none (`_plateaued`)."""
     try:
         reproduce.settled(c.strategy, made)
     except ValueError as missed:  #: the rule as coded is not the author's: no verdict on ours
@@ -163,10 +164,10 @@ def judge(
 
 
 def _plateaued(
-    surface: plateau.Surface | None, rungs: Judged, unrun: Mapping[str, str]
+    surface: plateau.Surface | plateau.Fixed | None, rungs: Judged, unrun: Mapping[str, str]
 ) -> dict[str, str]:
-    """The rungs left unrun once plateau is judged into `rungs` where the cell's surface is
-    handed in; with none, plateau stays UNRUN, with why."""
+    """The rungs left unrun once plateau is judged into `rungs` where the cell's surface, or
+    its rule FIXED, is handed in; with neither, plateau stays UNRUN, with why."""
     if surface is None:
         return dict(unrun)
     rungs["plateau"] = plateau.judged(surface)
