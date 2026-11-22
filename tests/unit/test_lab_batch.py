@@ -13,7 +13,9 @@ from typing import Any
 
 import pytest
 
+from desk import bars as database
 from desk import store, strategy, venues
+from desk.bars import Source
 from desk.lines import LINES, STAMP_DUTY, Line
 from desk.store import Bar
 from lab import batch, cell
@@ -85,7 +87,8 @@ def test_a_bad_cell_is_recorded_and_the_rest_carry_on(tmp_path: Path) -> None:
     assert batch.run(cells, _reader(), journal) == outcomes
     assert len(_lines(journal)) == 4, "a failure the journal holds was written again"
     for _ in range(2):  # no bars to read at all: each cell's new failure is written, once
-        assert all(isinstance(o, Failed) for o in batch.run(cells, batch.stored(tmp_path), journal))
+        none = batch.stored(tmp_path / database.LIVE)
+        assert all(isinstance(o, Failed) for o in batch.run(cells, none, journal))
     assert [row["error"][:17] for row in _lines(journal)[4:]] == ["FileNotFoundError"] * 4
     assert batch.run(cells, _reader(), journal) == outcomes  # the bars back: two records found
     assert _lines(journal)[8:] == _lines(journal)[:4], "a cell's last line is not its outcome"
@@ -127,10 +130,11 @@ def test_only_a_cell_whose_bars_changed_is_run_again(tmp_path: Path, ran: list[C
     assert _lines(journal)[-1] == _lines(journal)[0], "a cell's last line is not its outcome"
 
 
-def test_one_symbol_is_two_companies_each_read_from_its_venues_folder(
+def test_one_symbol_is_two_companies_each_read_from_the_database_never_a_csv(
     tmp_path: Path, ran: list[Cell]
 ) -> None:
-    day, journal = date(2026, 11, 13), tmp_path / "journal"
+    day, journal, path = date(2026, 11, 13), tmp_path / "journal", tmp_path / database.LIVE
+    held: dict[str, tuple[Bar, ...]] = {}
     both = (Line("BA", "US", "USD", 1), Line("BA", "LSE", "GBP", 1, STAMP_DUTY))
     for line in both:
         base = Decimal(100 if line.venue == "US" else 200)
@@ -138,12 +142,19 @@ def test_one_symbol_is_two_companies_each_read_from_its_venues_folder(
         bars = [
             Bar(d, base + n % 7, base + 8, base - 1, base + n % 7, 9) for n, d in enumerate(days)
         ]
-        assert store.prepare(tmp_path / line.venue, {line: bars}, day) == ()
+        assert store.prepare(tmp_path / line.venue, {line: bars}, day) == ()  # every day
+        with database.writing(path, Source.ARCHIVE) as opened:  # all but the last
+            opened.days(line, bars[:-1])
+        held[line.venue] = database.daily(path, line)
     cells = tuple(Cell("breakout_20_10", line, day - timedelta(120), day) for line in both)
-    us, london = batch.run(cells, batch.stored(tmp_path), journal)
-    assert us == cell.run(cells[0], store.read(tmp_path / "US", "BA"))
-    assert london == cell.run(cells[1], store.read(tmp_path / "LSE", "BA"))
+    us, london = batch.run(cells, batch.stored(path), journal)
+    assert (
+        us
+        == cell.run(cells[0], held["US"])
+        != cell.run(cells[0], store.read(tmp_path / "US", "BA"))
+    )
+    assert london == cell.run(cells[1], held["LSE"])
     assert [row["cell"][1:3] for row in _lines(journal)] == [["BA", "US"], ["BA", "LSE"]]
     del ran[:]
-    assert batch.run(cells[::-1], batch.stored(tmp_path), journal) == (london, us)
+    assert batch.run(cells[::-1], batch.stored(path), journal) == (london, us)
     assert ran == [], "a finished cell was run again"

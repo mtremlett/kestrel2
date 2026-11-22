@@ -13,10 +13,11 @@ from statistics import median
 import numpy as np
 import pytest
 
+from desk import bars as database
 from desk import store, venues
 from desk.lines import LINES, NO_TAX, STAMP_DUTY, Line
 from desk.store import Bar
-from lab import universe
+from lab import universe, universe_history
 
 DAY = date(2026, 11, 13)
 
@@ -188,8 +189,11 @@ def _stepped(by: Decimal | int, at: int = AT, bars: tuple[Bar, ...] | None = Non
 
 
 def _read(tmp_path: Path, bars: list[Bar], line: Line = MMM) -> universe.History:
+    path = tmp_path / database.LIVE
+    database.files(path)[database.DAILY].unlink(missing_ok=True)  # it never deletes a bar
     parked = universe.keep(tmp_path, DAY, [line], lambda *_: tuple(bars))
-    read = universe.read(tmp_path, line)
+    universe_history.enter(tmp_path, path, line)  # as the refresh enters it
+    read = universe.read(path, line)  # the one door
     #: research's rule loosens nothing: the store parks the ticker for every move it finds
     assert list(parked) == ([line] if read.moves or read.rescaled else [])
     assert all(f"{day} moved" in parked[line].reason for day in read.moves + read.rescaled)
@@ -282,13 +286,13 @@ def test_a_move_the_line_records_as_real_is_no_longer_a_question(tmp_path: Path)
     assert _read(tmp_path, bars, line) == universe.History(tuple(bars), (), ())
 
 
-def test_breadth_counts_each_sessions_advances_and_declines_and_skips_a_line_with_no_file(
+def test_breadth_counts_each_sessions_advances_and_declines_and_skips_a_line_with_no_bar(
     tmp_path: Path,
 ) -> None:
-    kept = universe.SP500[:2]
-    universe.keep(tmp_path, DAY, kept, _ask)
-    held = store.read(tmp_path / "US", MMM.symbol)
-    counted = universe.breadth(tmp_path, [*kept, universe.SP500[2]])
+    kept, path = universe.SP500[:2], tmp_path / database.LIVE
+    universe.refresh(tmp_path, DAY, kept, _ask, history=path)  # into the database too
+    held = database.daily(path, MMM)
+    counted = universe.breadth(path, [*kept, universe.SP500[2]])
     assert list(counted) == [b.day for b in held[1:]]
     for before, bar in zip(held, held[1:], strict=False):
         assert counted[bar.day] == ((2, 0) if bar.close > before.close else (0, 2))

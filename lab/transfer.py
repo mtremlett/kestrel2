@@ -27,6 +27,7 @@ from itertools import product
 from pathlib import Path
 from typing import Any
 
+from desk.bars import LIVE
 from desk.command import CAPITAL
 from desk.lines import Line
 from desk.orders import Settings
@@ -115,12 +116,13 @@ def study(kinds: Sequence[Family], lines: Sequence[Line], score: Score) -> Study
     return Study(tuple(rows), fits, bare)
 
 
-def scorer(root: Path, kept: Path, rates: Rates) -> Score:
-    """The first rung's verdict on a strategy and a line of the store at root, its cell kept
-    in the sweep's journal of that line under kept, over the ladder's one window."""
+def scorer(path: Path, kept: Path, rates: Rates) -> Score:
+    """The first rung's verdict on a strategy and a line, its bars from the history database
+    at path, its cell kept in the sweep's journal of that line under kept, over the ladder's
+    one window."""
     settings = Settings(CAPITAL)
 
-    bars = sweep.reader(root)
+    bars = sweep.reader(path)
 
     def score(name: str, line: Line) -> Verdict | None:
         try:
@@ -167,7 +169,7 @@ def main(argv: Sequence[str]) -> None:
     root, kept, data = (Path(folder).resolve() for folder in argv[:3])
     lines = sweep.held(root)
     with sweep.alone(kept):
-        done = study(families(), lines, scorer(root, kept, ladder.rates()))
+        done = study(families(), lines, scorer(data / LIVE, kept, ladder.rates()))
     page, rows = report(done, len(lines))
     (data / FOLDER).mkdir(parents=True, exist_ok=True)
     for suffix, text in ((".md", page), (".json", json.dumps(rows, indent=1))):

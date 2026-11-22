@@ -8,6 +8,8 @@ from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
 
+import pytest
+
 from desk import bars, store, venues
 from desk.bars import Source
 from desk.lines import POUND, Line
@@ -88,5 +90,6 @@ def test_research_reads_the_database_and_never_a_bar_held_only_in_a_csv(tmp_path
     )  # the CSV holds every day, the database all but the last
     with bars.writing(path, Source.ARCHIVE) as opened:
         opened.days(US, held[:-1])
-    assert universe_parts.read(root, US).bars == held
-    assert universe_parts.read_db(path, US).bars == held[:-1]
+    assert universe_parts.read(path, US).bars == held[:-1]
+    with pytest.raises(LookupError, match="ISF on LSE"):  # a line it lacks is named, never empty
+        universe_parts.read(path, LSE)

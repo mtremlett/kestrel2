@@ -14,8 +14,9 @@ idea carries over, and no cell of it is judged on a line its strategy did not de
 
 The unit handed to the auto-tune (`lab/tune.py`) is a ticker, not a cell: a worker reads one
 ticker's bars once, runs every strategy on them and lets them go, so no worker ever holds the
-universe. The bars are read as research reads them (`universe.read`): a ticker the store has
-parked for trading is studied too, on its longest run at one scale of price.
+universe. The bars are read as research reads them (`universe.read`), from the history database
+alone: a ticker the store has parked for trading is studied too, on its longest run at one
+scale of price.
 
 Each ticker has a journal of its own, in its venue's folder since one symbol can be two
 companies, written by the batch service: one worker at a time holds a ticker, so one process
@@ -52,7 +53,7 @@ from functools import lru_cache, partial
 from pathlib import Path
 from typing import IO, Any
 
-from desk import archive, venues
+from desk import archive, bars, venues
 from desk.lines import NO_TAX, STAMP_DUTY, Line
 from desk.store import Bar
 from desk.strategy import STRATEGIES, VARIANTS
@@ -128,23 +129,23 @@ def journal(kept: Path, line: Line) -> Path:
     return kept / line.venue / f"{line.symbol}.jsonl"
 
 
-def reader(root: Path) -> Callable[[Line], tuple[Bar, ...]]:
-    """A ticker's bars from the research store at root, one ticker's at a time (a read that
-    fails is tried, and fails, for each cell)."""
+def reader(path: Path) -> Callable[[Line], tuple[Bar, ...]]:
+    """A ticker's bars from the history database beside the live file at path, one ticker's
+    at a time (a read that fails is tried, and fails, for each cell)."""
 
     @lru_cache(maxsize=1)
     def bars(line: Line) -> tuple[Bar, ...]:
-        return universe.read(root, line).bars
+        return universe.read(path, line).bars
 
     return bars
 
 
 def work(
-    root: Path, kept: Path, start: date, end: date, lines: Sequence[Line], transfer: bool = False
+    path: Path, kept: Path, start: date, end: date, lines: Sequence[Line], transfer: bool = False
 ) -> None:
-    """A worker's work: each ticker's bars read once from the research store at root, every
+    """A worker's work: each ticker's bars read once from the history database at path, every
     strategy run on them, each outcome kept in the ticker's journal as it finishes."""
-    bars = reader(root)
+    bars = reader(path)
     for line in lines:
         journal(kept, line).parent.mkdir(parents=True, exist_ok=True)
         batch.run(cells(line, start, end, transfer), bars, journal(kept, line))
@@ -193,7 +194,7 @@ def alone(kept: Path) -> IO[bytes]:
 
 def run(
     lines: Sequence[Line],
-    root: Path,
+    path: Path,
     kept: Path,
     start: date,
     end: date,
@@ -203,7 +204,7 @@ def run(
     clock: Callable[[], datetime] = lambda: datetime.now(UTC),
     transfer: bool = False,
 ) -> Pass:
-    """One pass over the lines, whose bars the research store at root holds: every cell (of
+    """One pass over the lines, whose bars the history database at path holds: every cell (of
     the strategies declaring the line, or all of them for a transfer study) from
     start to end run under the auto-tune or found kept, in the journals under kept. The
     auto-tune's flag and log are written in data. A ticker listed twice is refused: two
@@ -215,7 +216,7 @@ def run(
     with alone(kept):
         began = clock()
         before = [len(batch.rows(journal(kept, line))) for line in lines]
-        each = partial(work, root, kept, start, end, transfer=transfer)
+        each = partial(work, path, kept, start, end, transfer=transfer)
         report = tune.run(lines, each, machine, data, threads, clock)
         done = _tally(todo, kept, before, report)
         return replace(done, seconds=(clock() - began).total_seconds())
@@ -310,7 +311,7 @@ def main(argv: Sequence[str]) -> None:
     if args.days:
         return week(partial(fresh, args.store, args.kept, args.data), args.data, args.days)
     window, threads = (archive.SINCE, datetime.now(UTC).date()), workers(datetime.now(UTC))
-    folders = (args.store, args.kept)
+    folders = (args.data / bars.LIVE, args.kept)  # the bars from the one door, never the store
     study = args.held or args.transfer
     lines = held(args.store) if args.held else universe.UNIVERSE if study else declared()
     done = run(lines, *folders, *window, tune.windows(), args.data, threads, transfer=study)
