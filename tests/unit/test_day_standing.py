@@ -17,7 +17,9 @@ from desk.store import Bar
 
 ROOM = Settings(Decimal(10_000))
 MON, TUE, A = date(2025, 11, 10), date(2025, 11, 11), Line("A", "LSE", "GBP", 1)
-BARS = {A: tuple(Bar(d, Decimal(50), Decimal(51), Decimal(49), Decimal(51), 1) for d in (MON, TUE))}
+BARS = {
+    A: tuple(Bar(d, Decimal(50), Decimal(51), Decimal(49), Decimal(51), 10**7) for d in (MON, TUE))
+}
 
 
 def test_a_lost_day_is_the_standing_that_makes_the_send_path_refuse_a_buy(tmp_path: Path) -> None:
@@ -95,7 +97,7 @@ def test_a_buy_that_moves_with_a_held_line_is_refused_and_one_that_does_not_goes
 
     def line(symbol: str, closes: list[Decimal]) -> tuple[Line, tuple[Bar, ...]]:
         return Line(symbol, "LSE", "GBP", 1), tuple(
-            Bar(d, c, c, c, c, 1) for d, c in zip(days, closes, strict=True)
+            Bar(d, c, c, c, c, 10**7) for d, c in zip(days, closes, strict=True)
         )
 
     held, twin, apart = line("H", wiggle), line("T", [c * 2 for c in wiggle]), line("P", other)
