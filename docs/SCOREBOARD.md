@@ -636,6 +636,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #766 R-RUNNER-285 soak folded into the tape (restructuring only). |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1370 grid-week not ticked; a failed cell now names the line that raised it, and the cause of the 2,810 failures is found (old code, new store). |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1487 R-RUNNER-362 variants swept as cells. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1555 R-DATA-61 done; grid-week cause traced to a stale clone (R-GRID-8). |
 
 ### RUNGS
 
@@ -911,3 +912,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1538 B5: Bollinger squeeze row carries 3x3 variant ranges, scenes unchanged. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1541 R-RUNNER-360 intraday volatility layer built. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1514 PAPER s2 R-MONEY-56 conformance plan survives one bar-less line. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1535 set VAR's 84 variant trials entered before any runs (B5 caller); scenes unchanged. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1550 intraday layers contested against the daily label, R-RUNNER-361. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1543 B5 ranges on Kell and Bollinger squeeze rows (3x3 each), plateau-centred; scenes unchanged. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1546 Donchian fade row carries 3x3 variant ranges (B5); scenes unchanged. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1544 R-RUNNER-358 set SCALP and its door built (restored after a conflict with set VAR). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1551 Minervini's row has variant ranges, 3x3, centred on the published setting (B5). |

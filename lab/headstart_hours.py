@@ -44,15 +44,19 @@ def hours(line: Line, folder: Path) -> tuple[Five, ...]:
     )
 
 
-def enter(line: Line, given: tuple[Five, ...], path: Path, span: str, source: Source) -> str:
+def enter(
+    line: Line, given: tuple[Five | Timed, ...], path: Path, span: str, source: Source
+) -> str:
     """A line's old bars of a span into the history database at path's side, each vouched for by
     its day's fresh daily bar, and one line saying what came of them."""
     days = {bar.day: bar for bar in bars.daily(path, line)}
     judged = [headstart._vouched(line, b, days.get(b.start.date())) for b in given]  # noqa: SLF001
-    sound = [b for b in judged if isinstance(b, Five)]
+    sound = [b for b in judged if not isinstance(b, str)]
     kept, faults = bars.checked(line, sound)
     with bars.writing(path, source) as round_:
-        filled = round_.timed(line, span, [Timed(span, *astuple(b)) for b in kept])
+        filled = round_.timed(
+            line, span, [b if isinstance(b, Timed) else Timed(span, *astuple(b)) for b in kept]
+        )
     return (
         f"{line.symbol}: {filled} {span} bars filled; {len(given) - len(sound)} not vouched,"
         f" {len(faults)} faults"

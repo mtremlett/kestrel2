@@ -369,6 +369,11 @@ def test_a_round_trip_pairs_each_sale_with_the_buys_it_closes_in_pounds_after_ev
     ]
     #: the 10 dollar shares bought at 50 and 0.8 sold at 50 and 0.75: 25 pounds lost to the currency
     assert book.currency_gain(tmp_path, (share, dollar), trips) == Decimal(-25)
+    #: BIC-03: before any fill the whole 3650 pounds is idle, a tenth a year is a pound a day
+    early = trips[0].buy.day - timedelta(days=2)
+    assert (
+        book.interest(tmp_path, (share, dollar), Decimal(3650), Decimal("0.1"), early, early) == 1
+    )
     #: 500 dollars at 0.8, back at 0.75: a dollar's commission each way and the regulators'
     #: 1.225 cents on the sale; 0.03% conversion on the dollars moved each way
     conversion = Decimal("0.0003") * (501 * Decimal("0.8") + Decimal("498.98775") * Decimal("0.75"))

@@ -19,7 +19,7 @@ import pyarrow.parquet as pq  # type: ignore[import-untyped]  # ships no stubs
 from desk import archive, venues
 from desk.bars import EPOCH, Five, Source
 from desk.lines import Line
-from desk.spans import SPANS
+from desk.spans import SPANS, Timed
 from desk.store import Bar
 
 MARKET = {"LSE": "UK", "US": "US"}  #: the matrices' name for a line is its symbol and this
@@ -127,7 +127,7 @@ def database(line: Line, path: Path) -> tuple[Five, ...]:
     return _stamped(((datetime.fromisoformat(at), *rest) for at, *rest in rows), False)
 
 
-def timeframe(line: Line, path: Path, span: str) -> tuple[tuple[Five, ...], int]:
+def timeframe(line: Line, path: Path, span: str) -> tuple[tuple[Timed, ...], int]:
     """A line's bars of one timeframe from the old desk's database at path, and how many rows
     were refused: a bar off its span's marks (mark_the_trend's :30 hours, its Friday weeks) is
     counted, never re-stamped. None held is refused."""
@@ -137,7 +137,12 @@ def timeframe(line: Line, path: Path, span: str) -> tuple[tuple[Five, ...], int]
         raise ValueError(f"{path.name} holds no {span} bar of {ticker}")
     given = [(datetime.fromisoformat(at), *rest) for at, *rest in rows]
     on = [row for row in given if SPANS[span].marks(row[0])]
-    return _stamped(on, False), len(given) - len(on)
+    held = tuple(
+        Timed(span, at.replace(tzinfo=UTC), *_priced(rest[:4], Decimal(1)), int(rest[4]))
+        for at, *rest in on
+        if None not in (at, *rest) and all(math.isfinite(x) for x in rest)
+    )
+    return held, len(given) - len(on)
 
 
 def matrix_days(line: Line, folder: Path) -> tuple[Bar, ...]:
