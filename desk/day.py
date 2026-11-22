@@ -495,13 +495,16 @@ def _zoo(
                 *_, d = strategy._run(name, rule(), symbol, archive[line], last, opened.get(symbol))
             if d.action is Action.HOLD:
                 continue
+            made = book.intend(
+                root, order_id_of(d), (d.strategy, d.symbol, d.day), archive[line][-1]
+            )
             if d.action is Action.SELL:
                 sale = Sale(order_id_of(d), line, held[symbol], session=d.day)
                 answer = _send(root, broker, sale, ZOO_ROOM, tell, None)
             else:
                 close = archive[line][-1].close, rates[line.currency]
                 answer = _zoo_buy(root, broker, d, line, close, day, tell)
-            book.chain(root, d, archive[line][-1], answer)
+            book.chain(root, made, answer)
             sent.append(answer)
     return sent
 
