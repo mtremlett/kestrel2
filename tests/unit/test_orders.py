@@ -12,6 +12,7 @@ import pytest
 
 from desk import orders
 from desk.lines import STAMP_DUTY, Line
+from desk.store import Bar
 from desk.strategy import Action, Decision
 
 PLAIN, THREE_X, FIVE_X = (
@@ -187,3 +188,14 @@ def test_a_sale_passes_the_gate_only_for_shares_the_book_holds() -> None:
     for bad in ("", "garbage", "20261116-rule", "20261116--P"):
         with pytest.raises(ValueError, match="no strategy can be read"):
             orders.strategy_of(bad)
+
+
+def test_a_position_is_held_to_one_percent_of_the_traded_value_and_a_thin_edge_is_flagged() -> None:
+    bars = [Bar(ON, Decimal(10), Decimal(10), Decimal(10), Decimal(10), 10_000)] * 25
+    assert orders.traded_value(bars, Decimal(1)) == Decimal(100_000)
+    big = orders.Settings(capital=Decimal(1_000_000))
+    sized = orders.size(
+        _buy(PLAIN), PLAIN, Decimal(10), Decimal(1), big, {}, traded=Decimal(100_000)
+    )
+    assert sized.quantity == 100  #: 1% of 100,000 pounds at 10 pounds, not a fifth of the capital
+    assert orders.thin_edge(sized, Decimal(1)) and not orders.thin_edge(sized, Decimal(1_000))
