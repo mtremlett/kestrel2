@@ -6,10 +6,13 @@ from __future__ import annotations
 from datetime import date, timedelta
 from decimal import Decimal
 
-from desk import intraday, venues
+from desk import intraday, orders, venues
+from desk.lines import LINES
+from desk.orders import Leg, Settings
 from desk.rollup import Candle
 from desk.strategy import Action
-from lab.scalping import MomentumBurst, VwapReversion
+from lab import rung
+from lab.scalping import MomentumBurst, VwapReversion, edge_needed, round_trip_cost, trades_of
 
 #: closes by bar number; bars hold 101 but for the bursts at 5, 20 and 505 (held to the end)
 CLOSES = {n: 100 for n in range(5)} | {
@@ -87,3 +90,21 @@ def test_the_vwap_is_worked_by_hand_and_the_reversion_acts_on_it() -> None:
     for k in (2, 3, 4, 505, 509):
         again = intraday.run("vwap", VwapReversion(), "LSE", "X", VWAP_BARS[:k])
         assert [d.action for d in again] == got[:k]
+
+
+def test_a_round_trip_costs_two_legs_and_a_trade_gaining_less_shows_a_loss() -> None:
+    isf, day = next(x for x in LINES if x.symbol == "ISF"), date(2026, 11, 16)
+    settings, price = Settings(Decimal(10000)), Decimal(100)
+    rule = MomentumBurst()
+    bars = _session()
+    trades = trades_of(rule, isf, bars, {}, settings)
+    n = trades[0].shares
+    cost = orders.charges(isf, Leg.BUY, n, price, Decimal(1)) + orders.charges(
+        isf, Leg.SALE, n, price, Decimal(1)
+    )
+    assert round_trip_cost(isf, price, day, {}, settings) == cost.total / (n * price)
+    assert trades[0].gross == 0 and trades[0].gain < 0  # gaining nothing is a loss after cost
+    assert trades[0].gain == (trades[0].gross - trades[0].costs.total) / trades[0].paid
+    assert edge_needed(Decimal("0.01"), trades[:1]) is None
+    se = rung.mean_and_error([p.gain for p in trades])
+    assert se is not None and edge_needed(Decimal("0.01"), trades) == Decimal("0.01") + 2 * se[1]
