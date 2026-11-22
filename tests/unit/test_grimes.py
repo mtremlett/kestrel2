@@ -45,6 +45,7 @@ def _trades(name: str, legs: list[Leg]) -> dict[int, Action]:
 
 
 RISE: list[Leg] = [(96, 4), (104, 8), (101, 3), (109, 4), (113, 6)]  #: two legs up: TR, LEG 2
+RANGE: list[Leg] = [(104, 4), (100, 4)] * 3  #: a range: highs 104.4, lows 99.6, tested
 
 CASES: dict[str, tuple[list[Leg], int, list[Leg]]] = {
     # AG-01: PQ on a 45% pullback, three bars share the high 110.9; the bar to 112 trades through
@@ -67,6 +68,32 @@ CASES: dict[str, tuple[list[Leg], int, list[Leg]]] = {
         [*RISE, (108, 5), (111.5, 3), (106.5, 4), (107.3, 1), (107.3, 1), (109, 1)],
         99,
         [*RISE, (108, 5), (111.5, 3), (103.5, 6), (104.3, 1), (104.3, 1), (106, 1), (108, 3)],
+    ),
+    # AG-04: 104.4 tested three times over 20 bars; a wide close over it; the first reaction holds
+    # half the thrust; bars share 111.2; the bar to 113 trades through. Near-miss: it retraces 71%.
+    "ag04_first_pullback": (
+        [*RANGE, (103, 3), ("bar", 103, 106.9, 102.8, 106.5), (112, 3), (108.2, 3), (110.8, 2)]
+        + [(110.8, 1), (110.8, 1), (113, 1)],
+        98,
+        [*RANGE, (103, 3), ("bar", 103, 106.9, 102.8, 106.5), (112, 3), (106, 3), (108.6, 2)]
+        + [(108.6, 1), (108.6, 1), (113, 1), (115, 3)],
+    ),
+    # AG-05: a 20-bar range under 108.4, a tight base at its top (lows 106.4 up); a spring to
+    # 105.9 closes back inside. Near-miss: the probe closes under the base low (106.0).
+    "ag05_base_spring": (
+        [(108, 4), (100, 5), (107, 5), (107.2, 1), (106.8, 1), (107.2, 1), (107, 1)]
+        + [("bar", 107, 107.3, 105.9, 107.1)],
+        78,
+        [(108, 4), (100, 5), (107, 5), (107.2, 1), (106.8, 1), (107.2, 1), (107, 1)]
+        + [("bar", 107, 107.3, 105.9, 106.0), (109, 2), (110, 3)],
+    ),
+    # AG-06: a selling climax to 91.6, a rally, then a probe to 91.0 closes back at 92.4 (a CLX
+    # extreme retested). Near-miss: the same probe after a choppy fall: no context holds.
+    "ag06_failure_test": (
+        [(92, 4), (97, 4), (93, 3), ("bar", 93, 93.2, 91.0, 92.4), (94, 2)],
+        71,
+        [(98, 3), (99, 2), (97, 3), (98, 2), (96, 3), (97, 2), (95, 3), (96, 2), (94, 3)]
+        + [(92, 2), (97, 4), (93, 3), ("bar", 93, 93.2, 91.0, 92.4), (94, 2), (95, 3)],
     ),
 }
 
@@ -113,6 +140,19 @@ def test_mgmt_time_stop_partials_breakeven_chandelier_and_never_widening() -> No
     assert run.step(_mark(2, 101.5, 103, 102)) and run.stop == Decimal(101)  #: never down
     assert all(run.step(_mark(n, 102, 104, 103)) for n in range(3, 9))  #: no time stop now
     assert not run.step(_mark(9, 100.9, 102, 101)) and run.stopped
+
+
+def test_a_trade_opened_re_entry_included_starts_its_rule_state_afresh() -> None:
+    ag04, ag05, ag06 = (
+        GRIMES[n]() for n in ("ag04_first_pullback", "ag05_base_spring", "ag06_failure_test")
+    )
+    vars(ag04)["_run"] = (Decimal(1), Decimal(2), 3)
+    vars(ag05)["_base"] = (Decimal(1), Decimal(2))
+    vars(ag06)["_near"] = 1
+    for rule in (ag04, ag05, ag06):
+        rule.open(Decimal(90))
+    left = [vars(ag04)["_run"], vars(ag05)["_base"], vars(ag06)["_near"]]
+    assert left == [None, None, 0]
 
 
 def test_mgmt_parabolic_stop_follows_each_bar_after_two_free_bars() -> None:
