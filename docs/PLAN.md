@@ -589,7 +589,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       after: money-simcity}
 - [ ] Small and illiquid trades: a trade whose expected gain is under twice its round-trip
       cost is flagged, and no position is above 1% of its line's twenty-day traded value
-      (SIZ-10, TRD-10). On main (#1690): the 1% cap in `orders.size` (`orders.traded_value`, `LIQUIDITY`), fed by nothing yet. Remains: `day._buy` feeding it (restore 3bf88fa2's day.py change; fixtures volume 10**7 in test_restop, test_running, test_running_tell, which needs a card claiming them); the expected-gain flag (TRD-10); the cap in `orders.gate`
+      (SIZ-10, TRD-10). On main: the 1% cap in `orders.size` (`orders.traded_value`, `LIQUIDITY`, #1690) and in `orders.gate`, which takes `traded` (#1796), fed by nothing yet. Remains: `day._buy` feeding it (restore 3bf88fa2's day.py change; fixtures volume 10**7 in test_restop, test_running, test_running_tell, which needs a card claiming them); the expected-gain flag (TRD-10)
       {id: money-small; files: desk/orders.py, desk/day.py, tests/unit/test_orders*.py,
       tests/unit/test_day*.py, desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml;
       after: money-limits}
@@ -609,9 +609,9 @@ day's trading and reconciliation are built, and any broker can stand behind them
 - [x] The golden reference run committed; a change to a size, a stop or a threshold is
       replayed on it before it lands (TST-21, GOV-09, canon B5)
       {id: money-golden; files: *; after: money-fills, money-limits, money-halts}
-- [ ] Every trade's whole story: signal, intent, risk decision, order, fill and the bar it
+- [x] Every trade's whole story: signal, intent, risk decision, order, fill and the bar it
       read, linked by ids; profit attributed by strategy, line, holding time and cost
-      (TRD-11, TRD-12, DQ-08) On main: `book.story`/`attributed` (#1468); `book.told` trade stories with strategy, bar read and days held, run in SimCity (#1486); `book.chain` decision-time id chain in story.csv (#1509). Step 1 on main (#1716): chain kept before the send (`book.intend`), strangers chained. Remains (2) and (3) below; (1) was: the chain is kept BEFORE the order is sent and completed with the answer after: today `desk/day.py` writes `book.chain` only after `_send`/`_buy` return, so a send that raises leaves an order at the broker with no chain (B5); the contract test, written first, sends through a broker that raises and finds a chain row naming the order id and its intent, never a try/except around the send; a stranger sale (`day.py`, no strategy signal) keeps a chain too, its signal the stranger reason, by the same write-before-send rule (coordinator 54, 22 Nov: canon B5, every order traceable); (2) the sized shares the intent asked for as a `Link` field beside `filled`; (3) a scene for the profit table (`book.attributed`).
+      (TRD-11, TRD-12, DQ-08) On main: `book.story`/`attributed` (#1468); `book.told` trade stories with strategy, bar read and days held, run in SimCity (#1486); `book.chain` decision-time id chain in story.csv (#1509). Step 1 on main (#1716): chain kept before the send (`book.intend`), strangers chained. Step 2 on main (#1777): the sized shares as `Link.asked` beside `filled`. Step 3 on main (#1805): SimCity's trips scenario attributes profit by strategy, line, holding time and cost (`book.attributed`).
       {id: money-story; files: desk/story.py, desk/book.py, desk/day.py,
       tests/unit/test_story*.py, tests/unit/test_book*.py, tests/unit/test_day*.py,
       desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml; after: money-fills, money-limits}
@@ -643,7 +643,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       (desk/day.py:201, 241, 274; day_money.py:23; book.py:318; simcitycmd.py:176; simcity_fills.py:111);
       `rates.csv` stays an audit record and is never read as a source; wire: the trading day and SimCity;
       gate: a test where `rates.csv` disagrees with the database and the database wins
-      {id: money-door-pound; files: desk/day.py, desk/day_money.py, desk/book.py, desk/simcitycmd.py, desk/simcity_fills.py, tests/unit/test_day*.py, tests/unit/test_book*.py, tests/unit/test_simcity*.py; after: paper-door-pound}
+      {id: money-door-pound; files: desk/day.py, desk/day_money.py, desk/book.py, desk/simcitycmd.py, desk/simcity_fills.py, tests/unit/test_day*.py, tests/unit/test_book*.py, tests/unit/test_simcity*.py; waits: 2026-11-23}
 - [ ] A round never sends more orders than its step's time allows (coordinator 93's 20:5x ruling, option 2):
       each market order waits `paper.FILL_SECONDS` (120 s) and the runner ends the desk step at 900 s, so a zoo
       round of many one-share orders died mid-send (20 Nov, failure pattern 24). The step's time moves from
