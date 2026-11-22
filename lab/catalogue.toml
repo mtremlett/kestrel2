@@ -426,6 +426,10 @@ source = "Zweig, Winning on Wall Street (1986), Breadth Thrust, read on ratio ba
 [zweig_breadth_thrust.params]
 stop = { n = 230 }
 
+# the 230-session hold is the port's, not Zweig's, so it is the one setting to range
+[zweig_breadth_thrust.ranges]
+stop = { n = [115, 230, 345] }
+
 # twenty days at 0.30 seed the average, then 0.90 lifts it over 0.615 on the fourth day (buy)
 [[zweig_breadth_thrust.cases]]
 bars = [[0.3, 0.3, 0.3], [0.3, 0.3, 0.3], [0.3, 0.3, 0.3], [0.3, 0.3, 0.3], [0.3, 0.3, 0.3], [0.3, 0.3, 0.3], [0.3, 0.3, 0.3], [0.3, 0.3, 0.3], [0.3, 0.3, 0.3], [0.3, 0.3, 0.3], [0.3, 0.3, 0.3], [0.3, 0.3, 0.3], [0.3, 0.3, 0.3], [0.3, 0.3, 0.3], [0.3, 0.3, 0.3], [0.3, 0.3, 0.3], [0.3, 0.3, 0.3], [0.3, 0.3, 0.3], [0.3, 0.3, 0.3], [0.3, 0.3, 0.3], [0.9, 0.9, 0.9], [0.9, 0.9, 0.9], [0.9, 0.9, 0.9], [0.9, 0.9, 0.9]]
