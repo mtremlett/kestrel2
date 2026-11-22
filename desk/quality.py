@@ -214,6 +214,18 @@ def monitor(
     return f"quality: RED, {said}; {'; '.join(red)}; unfilled {len(named)}"
 
 
+def register(path: Path, lines: Iterable[Line]) -> tuple[str, list[str]]:
+    """The register of sources: each line's newest daily bar and the source that gave it, and
+    the lines whose newest bar came from a replacement (not the broker, the price of record)."""
+    rows = [(line, bars.newest(path, line, "daily")) for line in lines]
+    held = [(line.symbol, got[1]) for line, got in rows if got]
+    replaced = [f"{name}: {src.value}" for name, src in held if src is not Source.IBKR]
+    counts = {
+        src.value: sum(s is src for _, s in held) for src in dict.fromkeys(s for _, s in held)
+    }
+    return ", ".join(f"{name} {n}" for name, n in sorted(counts.items())), replaced
+
+
 GOLDEN = ("SPY", "QQQ", "VUAG", "IITU")  #: always green, or the table says why (his 22 Nov)
 OFFERED = {"VUAG": ("1m", "15m", "30m", "4h")}  #: spans a line's venue never supplies: not a gap
 HOVER_SPANS = ("5m", "15m", "30m", "1h", "4h", "daily", "1wk", "1m")  #: every span, as stored
@@ -290,6 +302,10 @@ if __name__ == "__main__":
         said, ok = hover(home / keeper.HOT, LINES, now)
         sys.stdout.write(f"{said}\n")
         sys.exit(0 if ok else 1)
+    if sys.argv[1:] == ["register"]:
+        counts, replaced = register(home / keeper.HOT, LINES)
+        sys.stdout.write(f"sources: {counts}; replaced: {'; '.join(replaced) or 'none'}\n")
+        sys.exit(0)
     said = monitor(home / keeper.HOT, LINES, backfill._broker(home, now), backfill._archive, now)
     sys.stdout.write(f"{said}\n")
     sys.exit(0 if " green," in said else 1)
