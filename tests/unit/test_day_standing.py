@@ -9,7 +9,7 @@ from pathlib import Path
 from desk import book, day, day_money, orders
 from desk.broker import Pretend
 from desk.halt import Blocker, Stopped
-from desk.lines import Line
+from desk.lines import YARDSTICK, Line
 from desk.orders import Charges, Order, Settings
 from desk.risk import Standing
 from desk.store import Bar
@@ -161,3 +161,23 @@ def test_the_interest_on_idle_cash_is_told_once_a_fill_has_begun_it(tmp_path: Pa
     book.send(tmp_path, broker, Order("o-4", A, 1, *map(Decimal, (50, 1, 45))), ROOM)
     day._interest(tmp_path, BARS, TUE, ROOM, lambda n, w: told.append((n, w)))
     assert [n for n, _ in told] == ["interest 2025-11-11"] and "£2.18" in told[0][1]
+
+
+def test_the_zoo_stands_apart_so_neither_spends_the_others_losses_or_new_lines(
+    tmp_path: Path,
+) -> None:
+    bars, zoo = {YARDSTICK: BARS[A]}, "20251110-zoo_flip-VUAG-0800"
+    broker = Pretend(bars, {})
+    broker.open(MON)
+    book.record_rates(tmp_path, MON, {"GBP": Decimal(1)})
+    book.send(tmp_path, broker, Order(f"{zoo}B", YARDSTICK, 1, *map(Decimal, (50, 1, 45))), ROOM)
+    assert (day.standing(tmp_path, MON).new_lines, day.standing(tmp_path, MON, True).new_lines) == (
+        0,
+        1,
+    )
+    book.send(tmp_path, broker, orders.Sale(f"{zoo}S", YARDSTICK, 1), ROOM)
+    free = Charges(*[Decimal(0)] * 5)
+    lost = day.Record(MON, Decimal(-300), free, Decimal(0), (), Decimal(0), 0)
+    book._write(tmp_path / day.RECORDS, [day.HEADER, day._row(lost)])
+    ours, theirs = day.standing(tmp_path, TUE), day.standing(tmp_path, TUE, True)
+    assert theirs.day_loss > 0 and ours.day_loss + theirs.day_loss == 300  # one record, split

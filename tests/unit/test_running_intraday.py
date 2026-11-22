@@ -16,6 +16,7 @@ from desk import book, command, handpark, intraday, kill, running, venues
 from desk.broker import Pretend
 from desk.intraday import Span
 from desk.lines import YARDSTICK
+from desk.orders import is_zoo
 from desk.rollup import Candle
 from desk.store import Bar
 
@@ -55,7 +56,7 @@ def test_a_step_at_each_bar_makes_its_round_once_and_a_restart_sends_nothing_twi
 def test_the_zoo_is_off_by_default_and_trades_one_share_labelled_only_behind_its_switch(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    desk, today = _desk(tmp_path)[0], MON.date()
+    (desk, post), today = _desk(tmp_path), MON.date()
     assert not desk.zoo and not command._desk(tmp_path, desk.post, tmp_path).zoo  # OFF by default
     (tmp_path / running.ZOO_ON).touch()
     assert command._desk(tmp_path, desk.post, tmp_path).zoo  # the one paper switch turns it on
@@ -63,6 +64,7 @@ def test_the_zoo_is_off_by_default_and_trades_one_share_labelled_only_behind_its
     kill.drill(tmp_path, open_)
     broker = Pretend({YARDSTICK: [Bar(today, *(Decimal(40),) * 4, 1)]}, {})
     broker.open(today)
+    assert len(intraday.ZOO_RULES) == 7 and all(is_zoo(f"d-{n}-L") for n in intraday.ZOO_RULES)
     monkeypatch.setattr(intraday, "ZOO_RULES", {"zoo_flip": _Flip})
     running._intraday(desk, broker, "LSE", open_ + timedelta(minutes=5))  # type: ignore[arg-type]
     assert book.positions(tmp_path).get("VUAG", 0) == 0  # switch off: the zoo sends nothing
@@ -75,3 +77,7 @@ def test_the_zoo_is_off_by_default_and_trades_one_share_labelled_only_behind_its
     assert book.positions(tmp_path)["VUAG"] == 1  # tiny: one share, through the one gate
     assert [f.order_id for f in book.fills(tmp_path)][0].split("-")[1] == "zoo_flip"
     assert running.MACHINERY in running.notes(tmp_path)[-1].words
+    later = open_ + timedelta(minutes=6)  # his waking hours: each note of the day is told...
+    running._say(zoo, later, running.UNASKED)
+    assert not any("zoo_flip" in str(call) for call in post.call_args_list)  # ...not the zoo's
+    assert "1 of 2 orders filled" in running.zoo_hour(tmp_path, later)  # it is the hour's line

@@ -14,8 +14,8 @@ from pathlib import Path
 
 from desk import book, day_money, halt, venues
 from desk.halt import Blocker
-from desk.lines import Line
-from desk.orders import Charges, Settings, moves, order_id_of
+from desk.lines import LINES, Line
+from desk.orders import Charges, Settings, is_zoo, moves, order_id_of
 from desk.risk import Standing
 from desk.store import Bar
 from desk.strategy import Action, Decision
@@ -169,16 +169,35 @@ def _unread(root: Path, lines: Sequence[Line], due: Mapping[str, Line], day: dat
     halt.note(root, day, unread, (line.symbol for line in lines))
 
 
-def standing(root: Path, day: date) -> Standing:
+def standing(root: Path, day: date, zoo: bool = False) -> Standing:
     """WHERE THE BOOK STANDS AGAINST ITS LOSS AND ORDER-RATE LIMITS when the day opens
     (canon B1, risk.loss_limit): the day's loss is the pounds the last published record lost
     (0 when it gained or was withheld), the week's the net pounds lost over the records of
-    day's own ISO week, and the new lines the lines first bought today."""
-    profits = [(r.day, r.profit or Decimal(0)) for r in records(root)]
+    day's own ISO week, and the new lines the lines first bought today. THE ZOO STANDS APART
+    (orders.is_zoo, his 22 Nov ruling): the desk's standing leaves out its round trips' pounds
+    and its lines, and the zoo's own (zoo) counts them alone, so neither spends the other's."""
+    fills = book.fills(root)
+    made = _zoo_made(root) if any(is_zoo(f.order_id) for f in fills) else {}
+    profits = list[tuple[date, Decimal]]()
+    for r in records(root):
+        theirs = made.get(r.day, Decimal(0))  #: a withheld record (no profit) counts 0 for both
+        ours = Decimal(0) if r.profit is None else r.profit - theirs
+        profits.append((r.day, theirs if zoo else ours))
     week = sum((p for d, p in profits if d.isocalendar()[:2] == day.isocalendar()[:2]), Decimal(0))
     lost = -profits[-1][1] if profits else Decimal(0)
-    bought = {f.symbol for f in book.fills(root) if f.day == day and f.quantity > 0}
+    bought = {
+        f.symbol for f in fills if f.day == day and f.quantity > 0 and is_zoo(f.order_id) == zoo
+    }
     return Standing(max(lost, Decimal(0)), max(-week, Decimal(0)), len(bought))
+
+
+def _zoo_made(root: Path) -> dict[date, Decimal]:
+    """The zoo's pounds after every cost by the day each of its round trips closed."""
+    made = dict[date, Decimal]()
+    for trip in book.round_trips(root, LINES):
+        if is_zoo(trip.buy.order_id):
+            made[trip.sell.day] = made.get(trip.sell.day, Decimal(0)) + trip.profit
+    return made
 
 
 def _due(line: Line, bars: Sequence[Bar], day: date) -> bool:

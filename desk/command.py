@@ -291,7 +291,8 @@ def hourly(desk: Desk, now: datetime) -> None:
 
     def words() -> str:
         daily = desk.held(today)[0]
-        return pnl.told(desk.root, desk.hot, daily, desk.rates(today), desk.room.capital, now)
+        told = pnl.told(desk.root, desk.hot, daily, desk.rates(today), desk.room.capital, now)
+        return told + running.zoo_hour(desk.root, now)  #: the zoo's hour, in this message alone
 
     messenger.hourly(desk.root, now, words, desk.post)
 

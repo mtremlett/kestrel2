@@ -2221,6 +2221,12 @@ What (c) is, and the check that fails on each breach (`tests/unit/test_running_i
   (by any rule), parked by hand, or no ISA can hold sends nothing, through the daily buy's own
   refusals now in one home (`day.refusal`, R-RUNNER-436), so a zoo sale never sells the desk's shares.
 - LABELLED: every zoo order's line in the record says "MACHINERY TEST, NOT EVIDENCE OF AN EDGE".
+- NOT ON HIS PHONE AT EACH BAR (coordinator 78): zoo notes are kept as `zoo <venue> <HHMM>`, never sent
+  one by one; his hourly message carries one line of the zoo's last hour (`running.zoo_hour`).
+- ITS OWN ALLOWANCE (coordinator 78): zoo orders meet the gate with `running.ZOO_ROOM` (£1,000: 2% a day,
+  5% a week, 10 new lines a day) and the zoo's own standing; the desk's standing (`day.standing`, also
+  the drawdown halt) leaves out the zoo's lines and its round trips' pounds, so the zoo never spends the
+  desk's four new lines or its loss limits (`test_day_standing.py`, driven red both ways).
 - NEVER A-GATE, NEVER PROMOTED: zoo names are never in `STRATEGIES` or `intraday.RULES`
   (`test_intraday_zoo.py`), and promotion reads only its candidates' own fills (`lab/promotion.py`).
 Scope for Mon 23 Nov: the zoo's seven day-trading rules (5- and 15-minute bars) on the zoo's lines. Owed:

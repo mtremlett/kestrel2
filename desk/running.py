@@ -76,7 +76,7 @@ from desk.strategy import Action, Decision
 
 NOTES, HEAD = "running.csv", ("at", "what", "words")
 VENUES = {"LSE": "London", "US": "New York"}  #: each venue of the desk's lines, as he is told it
-DAY = timedelta(days=1)
+DAY, HOUR = timedelta(days=1), timedelta(hours=1)
 ORDERS, RECOVERED, UNCLEAN, TROUBLE = "orders {}", "recovered", "unclean", "trouble"
 ONCE = (UNCLEAN, TROUBLE)  #: told once a day, the first: of a failure, the first of its kind
 NOT_THE_BOOK = "The paper account is not the desk's book, so no order goes. Its check named: {}."
@@ -89,6 +89,10 @@ UNDRILLED = (
     "order was involved. Each promise named next was NOT kept: {}"
 )
 ZOO_ON = "zoo-on-paper"  #: the one paper switch: this file in the desk's root turns the zoo on
+#: THE ZOO'S OWN ALLOWANCE, apart from the desk's (day.standing counts each alone): pounds whose
+#: 2% a day and 5% a week bound its losses, and the new lines it may enter in a day.
+ZOO_ROOM = Settings(Decimal(1_000), new_lines=10)
+ZOO_NOTE = "zoo"  #: the name the zoo's notes are kept under: told in the hourly message alone
 MACHINERY = "MACHINERY TEST, NOT EVIDENCE OF AN EDGE"  #: said of every zoo order, never a verdict
 UNASKED = Known(State.UNWELL, gateway.UNWELL.format("the desk's knock on it failed"))
 Rules = Mapping[str, Callable[[], intraday.IntradayRule]]
@@ -282,7 +286,8 @@ def _intraday(desk: Desk, broker: placing.Paper, venue: str, now: datetime) -> N
     latest whole bar (a zoo rule, on the zoo's lines); its orders go by the one send path, each
     id dated with its bar's start, so a bar seen twice sends once. A buy is refused as the
     daily one is (day.refusal). Stops are then moved; a round that sent nothing is not kept."""
-    root, today, said, held = desk.root, now.date(), list[str](), book.positions(desk.root)
+    root, today, held = desk.root, now.date(), book.positions(desk.root)
+    said: dict[bool, list[str]] = {False: [], True: []}  #: the desk's rules' words; the zoo's
     lines = {ln.symbol: ln for ln in LINES if ln.venue == venue}
     zoo = {ln.symbol: ln for ln in intraday.zoo_lines() if ln.venue == venue}
     owner = {f.symbol: strategy_of(f.order_id) for f in book.fills(root) if f.quantity > 0}
@@ -295,19 +300,39 @@ def _intraday(desk: Desk, broker: placing.Paper, venue: str, now: datetime) -> N
                 oid = f"{today:%Y%m%d}-{name}-{d.symbol}-{d.at:%H%M}{d.action.name[0]}"
                 order = _order(desk, d, lines[d.symbol], oid, bars[d.symbol][-1].close, held)
                 if isinstance(order, str):
-                    said.append(order)
+                    said[machine].append(order)
                     continue
                 if machine and isinstance(order, Order):  #: tiny: one share, never the room
                     order = replace(order, quantity=1)
-                sent = day._send(root, broker, order, desk.room, None, day.standing(root, today))
+                room, stand = (ZOO_ROOM, True) if machine else (desk.room, False)
+                sent = day._send(root, broker, order, room, None, day.standing(root, today, stand))
                 tag = f" ({MACHINERY})" * machine
-                said.append(
+                said[machine].append(
                     f"{sent.order_id}, {sent.filled} shares done ({sent.reason or 'sent'}){tag}"
                 )
-    if said:
+    if said[False] or said[True]:
         restop.move(root, broker, LINES)
-        words = f"{VENUES[venue]}, this bar's orders: {'; '.join(said)}."
-        _note(root, now, f"intraday {venue} {now:%H%M}", words)
+    _bar_notes(root, now, venue, said)
+
+
+def _bar_notes(root: Path, now: datetime, venue: str, said: Mapping[bool, list[str]]) -> None:
+    """A bar's orders on the record: the desk's rules' under `intraday`, the zoo's under its own
+    name (ZOO_NOTE), told in his hourly message, never at each bar."""
+    for machine, words in said.items():
+        if words:
+            name = f"{ZOO_NOTE if machine else 'intraday'} {venue} {now:%H%M}"
+            _note(root, now, name, f"{VENUES[venue]}, this bar's orders: {'; '.join(words)}.")
+
+
+def zoo_hour(root: Path, now: datetime) -> str:
+    """The zoo's last hour for his hourly message, in one line (none: no words): its orders
+    filled and those not, never a message of its own at each bar."""
+    words = [n.words for n in notes(root) if n.what.split()[0] == ZOO_NOTE and now - n.at < HOUR]
+    if not words:
+        return ""
+    done = sum(w.count(" shares done") - w.count(", 0 shares done") for w in words)
+    told = sum(w.count("; ") + 1 for w in words)
+    return f"\nZoo ({MACHINERY}): {done} of {told} orders filled in the last hour."
 
 
 def _order(
@@ -437,7 +462,7 @@ def _say(desk: Desk, now: datetime, known: Known) -> None:
         messenger.summary(root, now, desk.mail)
     if messenger.MORNING.start <= local.time() < messenger.SLEEPS:
         messenger.remind(root, now, post)
-        for note in (n for n in notes(root) if now - n.at < DAY):
+        for note in (n for n in notes(root) if now - n.at < DAY and n.what.split()[0] != ZOO_NOTE):
             messenger.send(root, now, f"{note.what} {note.at:%Y-%m-%d %H:%M:%S}", note.words, post)
 
 
