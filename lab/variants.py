@@ -10,22 +10,20 @@ the range's order is the plateau grid's (`lab.plateau`).
 
 A variant is its row with other settings, so the row's known answers, which hold only at
 the row's own, are not asked of it. Its name carries its settings and so tells it apart as a
-trial; `find` makes it again from that name alone, and `enter` counts them all under the
-question, and a variant never run counts as much as one that won. The pick is `lab.plateau`'s:
-the deepest setting of the passing surface.
+trial; `find` makes it again from that name alone. `lab.trials.enter` counts them all under
+the question, a variant never run as much as one that won, and the pick is `lab.plateau`'s,
+the deepest setting of the passing surface. This module reads `lab.spec` alone, so the rule
+book can make a variant from its name without a cycle back through the rungs (#1608).
 """
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from dataclasses import dataclass, replace
+from decimal import Decimal
 from itertools import product
-from pathlib import Path
 from types import MappingProxyType
 
-from lab import plateau, trials
-from lab.plateau import Chosen, Setting
-from lab.rung import Verdict
 from lab.spec import PLACES, Spec
 
 
@@ -33,7 +31,9 @@ from lab.spec import PLACES, Spec
 class Variant:
     """A row with other settings, and the settings that made it."""
 
-    setting: Setting  #: one value for each range, in the ranges' order
+    setting: tuple[
+        int | Decimal, ...
+    ]  #: one value for each range, in the ranges' order (a plateau's)
     spec: Spec  #: the row with these settings, named by them
 
 
@@ -69,14 +69,3 @@ def find(specs: Mapping[str, Spec], name: str) -> Spec:
     if name not in made:
         raise ValueError(f"no variant is called {name!r}")
     return made[name]
-
-
-def enter(register: Path, question: str, made: Sequence[Variant]) -> int:
-    """All the variants counted as trials under the question, before any is run; the
-    question's count after them."""
-    return trials.enter(register, question, [variant.spec.name for variant in made])
-
-
-def centre(spec: Spec, surface: Mapping[Setting, Verdict]) -> Chosen:
-    """The centre of the best plateau on the row's surface, as the plateau module finds it."""
-    return plateau.choose(list(spec.ranges.values()), surface)
