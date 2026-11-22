@@ -7,10 +7,12 @@ from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
 
-from desk import book, day, day_money, orders
+import pytest
+
+from desk import book, day, day_money, intraday, orders, strategy
 from desk.broker import Pretend
 from desk.halt import Blocker, Stopped
-from desk.lines import YARDSTICK, Line
+from desk.lines import LINES, YARDSTICK, Line
 from desk.orders import Charges, Order, Settings
 from desk.risk import Standing
 from desk.store import Bar
@@ -208,3 +210,53 @@ def test_the_zoo_stands_apart_so_neither_spends_the_others_losses_or_new_lines(
     book._write(tmp_path / day.RECORDS, [day.HEADER, day._row(lost)])
     ours, theirs = day.standing(tmp_path, TUE), day.standing(tmp_path, TUE, True)
     assert theirs.day_loss > 0 and ours.day_loss + theirs.day_loss == 300  # one record, split
+
+
+class _In:
+    """Always in the market."""
+
+    def step(self, bar: Bar, holding: bool) -> bool:  # noqa: ARG002  # a double: it reads nothing
+        return True
+
+
+def test_the_daily_zoo_buys_one_share_a_rule_only_when_on_and_yields_the_desks_lines(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    assert len(intraday.ZOO_DAILY) == 13 and all(
+        n.startswith(orders.ZOO) for n in intraday.ZOO_DAILY
+    )
+    wed, a, b = date(2025, 11, 12), YARDSTICK, next(ln for ln in LINES if ln.symbol == "ISF")
+    bars = {
+        ln: tuple(Bar(d, *map(Decimal, (50, 51, 49, 51)), 1) for d in (MON, TUE, wed))
+        for ln in (a, b)
+    }
+    broker, rates, upto = (
+        Pretend(bars, {}),
+        {"GBP": Decimal(1)},
+        lambda d: {a: bars[a][: d.day - 10]},
+    )
+    monkeypatch.setattr(strategy, "STRATEGIES", {})
+    monkeypatch.setattr(intraday, "ZOO_DAILY", {"zoo_in": _In})
+    monkeypatch.setattr(intraday, "zoo_lines", lambda: (a,))
+    broker.open(TUE)
+    day.trade(tmp_path, upto(TUE), broker, ROOM, TUE, rates)
+    assert book.positions(tmp_path) == {}  # the switch off: the zoo sends nothing
+    day.trade(tmp_path, upto(TUE), broker, ROOM, TUE, rates, zoo=True)
+    assert book.positions(tmp_path) == {"VUAG": 1}  # on: one share, under its own allowance
+    assert (day.standing(tmp_path, TUE).new_lines, day.standing(tmp_path, TUE, True).new_lines) == (
+        0,
+        1,
+    )
+    monkeypatch.setattr(orders, "HOLDINGS", 1)  # the zoo's line fills none of the desk's holdings
+    book.send(
+        tmp_path, broker, Order("20251111-desk_in-ISF", b, 1, *map(Decimal, (50, 1, 45))), ROOM
+    )
+    monkeypatch.setattr(orders, "HOLDINGS", 5)
+    monkeypatch.setattr(strategy, "STRATEGIES", {"desk_in": _In})
+    broker.open(wed)
+    day.trade(tmp_path, upto(wed), broker, ROOM, wed, rates, zoo=True)
+    assert book.positions(tmp_path)["VUAG"] > 1  # the zoo yielded the line the desk's rule bought
+    assert [f.order_id.split("-")[1] for f in book.fills(tmp_path) if f.day == wed] == [
+        "zoo_in",
+        "desk_in",
+    ]

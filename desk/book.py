@@ -49,7 +49,18 @@ from desk.book_parts2 import (
 from desk.broker import Broker, Crash, Disconnected, Fill, Report
 from desk.halt import Blocker, Stopped
 from desk.lines import Line
-from desk.orders import Charges, Order, Refused, Sale, Settings, charges, gate, leg_of, strategy_of
+from desk.orders import (
+    Charges,
+    Order,
+    Refused,
+    Sale,
+    Settings,
+    charges,
+    gate,
+    is_zoo,
+    leg_of,
+    strategy_of,
+)
 from desk.risk import Standing
 from desk.store import Bar
 from desk.strategy import Decision
@@ -154,7 +165,7 @@ def send(
             words = f"{order.order_id}: not sent, the book is not the broker's on {list(differ)}"
             raise Stopped(Blocker.BOOK, words)
         try:
-            gate(order, settings, held, standing, exposure, moves)
+            gate(order, settings, _side(root, held, order.order_id), standing, exposure, moves)
         except Refused as refused:
             raise Stopped(Blocker.GATE, str(refused)) from refused
         _unless_stopped(root, order)  #: read again, at the last moment before it goes
@@ -165,6 +176,14 @@ def send(
     collect(root, broker)  #: a stop sold on the day of its buy is in no answer
     filled, short = sum(abs(f.quantity) for f in report.fills), report.reason is not None
     return Sent(order.order_id, filled, report.reason, Blocker.BROKER if short else None)
+
+
+def _side(root: Path, held: Mapping[str, int], order_id: str) -> dict[str, int]:
+    """The book as the order's own side holds it (orders.is_zoo, his 22 Nov ruling): a zoo
+    order's gate sees the zoo's lines alone, the desk's the desk's, so neither fills the other's
+    holdings, room or correlation cap; a line's side is its last buy's. No zoo: the whole book."""
+    owner = {f.symbol: f.order_id for f in fills(root) if f.quantity > 0}
+    return {s: n for s, n in held.items() if is_zoo(owner.get(s, "")) == is_zoo(order_id)}
 
 
 def _place(root: Path, broker: Broker, order: Order | Sale, tell: Tell | None) -> Report:
