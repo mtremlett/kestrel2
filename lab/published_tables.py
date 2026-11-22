@@ -13,9 +13,11 @@ shown the table's days and its smoothing read after each: the RSI's gains and lo
 the true range and its average, from prices alone. No rule is proven while one of them
 gives another number. Each table is run twice: with the rule holding nothing, and again
 holding from its first smoothed day, so a rule that stops feeding its lines while it holds is
-refused (the windows are no rule's lines, and give the same either way). No table has a day
-whose own low is its lowest of 14. Supertrend's carried band, which no table here
-prints, is left to the known answers of `lab/published.py` and the strategies' contract test.
+refused (the windows are no rule's lines, and give the same either way). The channel's
+printed days (cs-soo.xls, the same series as cs-percentr.xls) have none whose own low is its
+lowest of 14; the true range's of 4 to 6 May 2010 are (6 May's 41.55), but none prints it.
+Supertrend's carried band, which no table here prints, is left to the known answers of
+`lab/published.py` and the strategies' contract test.
 """
 
 from __future__ import annotations
