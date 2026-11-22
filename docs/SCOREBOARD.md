@@ -219,6 +219,8 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1596 money-honest step: currency on open holdings told (BIC-04), SimCity-checked. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1641 money-door-slippage done: slippage reads the two databases only. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1628 R-MONEY-66 done: currency and interest kept in the day's record, profit untouched. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1690 money-small step 1: SIZ-10 cap built in the sizer, one test; not yet fed by the day. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1716 money-story part 1 of 3: chain written before send, strangers chained. |
 
 
 ### DATA
@@ -507,6 +509,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1712 collector adds BLS and EIA. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1715 survivors' share measured for the two US lists, no box ticked (BT-09). |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1728 collector adds Alpha Vantage London sample; 9 of the planned sources. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1736 data-monitor: span table and kept alarm; box stays open. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1750 data-survivorship: bias stated as a verdict line; not wired into verdicts. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1752 collector now 11 of the planned sources (BEA). |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1699 data-second-source step 1: register of sources, replaced newest bars named. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)

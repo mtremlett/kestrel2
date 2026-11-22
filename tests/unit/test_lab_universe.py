@@ -15,9 +15,10 @@ import pytest
 
 from desk import bars as database
 from desk import store, venues
+from desk.bars import Source
 from desk.lines import LINES, NO_TAX, STAMP_DUTY, Line
 from desk.store import Bar
-from lab import universe, universe_history
+from lab import universe
 
 DAY = date(2026, 11, 13)
 
@@ -77,17 +78,13 @@ def test_only_a_fund_built_to_multiply_its_market_is_leveraged_and_says_by_how_m
         universe._lines("US", "USD", "SOXL:")
 
 
-def test_one_symbol_is_two_companies_so_each_venue_keeps_its_own_folder(tmp_path: Path) -> None:
+def test_one_symbol_is_two_companies_so_each_venue_keeps_its_own_series(tmp_path: Path) -> None:
     both = [line for line in universe.UNIVERSE if line.symbol == "BA"]
     assert {line.venue for line in both} == {"US", "LSE"}
-    assert universe.keep(tmp_path, DAY, both, _ask) == {}
-    assert store.read(tmp_path / "US", "BA")[-1].close < 150
-    assert store.read(tmp_path / "LSE", "BA")[-1].close > 150
-
-
-def test_a_refresh_writes_londons_yardstick_where_the_ladder_reads_it(tmp_path: Path) -> None:
-    assert universe.keep(tmp_path, DAY, universe.YARDSTICKS, _ask) == {}
-    assert (tmp_path / "LSE" / "ISF.csv").is_file()
+    path = tmp_path / database.LIVE
+    assert universe.keep(path, DAY, both, _ask) == {}
+    closes = {line.venue: database.daily(path, line)[-1].close for line in both}
+    assert closes["US"] < 150 < closes["LSE"]
 
 
 def test_a_yardstick_with_a_missing_day_is_named_and_filled_from_a_second_source(
@@ -100,7 +97,8 @@ def test_a_yardstick_with_a_missing_day_is_named_and_filled_from_a_second_source
     def holed(line: Line, day: date) -> tuple[Bar, ...]:
         return tuple(b for b in _ask(line, day) if b.day != lost)
 
-    told = universe.refresh(tmp_path, DAY, yard, holed)
+    path = tmp_path / database.LIVE
+    told = universe.refresh(path, DAY, yard, holed)
     assert told.endswith(f"1 parked; yardstick ISF has no bar on {lost}")
     #: the second source is the old desk's Stooq matrices: London, in pence, only that day wanted
     folder = tmp_path / "matrix"
@@ -115,13 +113,14 @@ def test_a_yardstick_with_a_missing_day_is_named_and_filled_from_a_second_source
     np.save(folder / "ISF.UK_1d_ts.npy", np.array(stamps))
     second = universe.matrix(folder)
     assert second(universe.UNIVERSE[0], DAY) == ()
-    assert universe.refresh(tmp_path, DAY, yard, holed, second).endswith("0 parked")
-    assert lost in {b.day for b in store.read(tmp_path / "LSE", "ISF")}
-    #: shelved, so the next refresh with the archive still short keeps the filled day
-    assert universe.refresh(tmp_path, DAY, yard, holed).endswith("0 parked")
+    assert universe.refresh(path, DAY, yard, holed, second).endswith("0 parked")
+    assert lost in {b.day for b in database.daily(path, yard[0])}
+    assert database.sources(path, yard[0], database.DAILY)[Source.MATRIX_DAILY] == 1
+    #: held in the database, so the next refresh with the archive still short keeps the day
+    assert universe.refresh(path, DAY, yard, holed).endswith("0 parked")
 
 
-def test_a_refused_ticker_is_parked_by_line_and_keeps_no_bars_and_the_rest_are_kept(
+def test_a_refused_ticker_is_parked_by_line_and_adds_no_bars_and_the_rest_are_kept(
     tmp_path: Path,
 ) -> None:
     def refuse_london(line: Line, day: date) -> tuple[Bar, ...]:
@@ -132,13 +131,13 @@ def test_a_refused_ticker_is_parked_by_line_and_keeps_no_bars_and_the_rest_are_k
     both = [line for line in universe.UNIVERSE if line.symbol in ("BA", "COST")]
     london = [line for line in both if line.venue == "LSE"]
     assert len(both) == 4
-    assert universe.keep(tmp_path, DAY, both, _ask) == {}
-    parked = universe.keep(tmp_path, DAY, both, refuse_london)
+    path = tmp_path / database.LIVE
+    assert universe.keep(path, DAY, both, _ask) == {}
+    parked = universe.keep(path, DAY, both, refuse_london)
     assert list(parked) == london
     for p in parked.values():
         assert p.day == DAY and p.reason.endswith("TimeoutError: the archive did not answer")
-    assert [store.read(tmp_path / "LSE", line.symbol) for line in london] == [(), ()]
-    assert all(len(store.read(tmp_path / "US", symbol)) > 60 for symbol in ("BA", "COST"))
+    assert all(len(database.daily(path, line)) > 60 for line in both)  # held from the first run
 
 
 def test_a_refresh_gives_a_line_with_no_file_one_counts_it_and_adds_nothing_the_second_time(
@@ -146,30 +145,24 @@ def test_a_refresh_gives_a_line_with_no_file_one_counts_it_and_adds_nothing_the_
 ) -> None:
     line = universe.YARDSTICKS
     bars = len(_ask(line[0], DAY))
-    first = universe.refresh(tmp_path, DAY, line, _ask)
+    path = tmp_path / database.LIVE
+    first = universe.refresh(path, DAY, line, _ask)
     assert first == f"research refresh: 1 lines refreshed, {bars} bars added, 0 parked"
-    assert universe.refresh(tmp_path, DAY, line, _ask).endswith(
+    assert universe.refresh(path, DAY, line, _ask).endswith(
         "1 lines refreshed, 0 bars added, 0 parked"
     )
 
 
-def test_the_nightly_refresh_clears_out_a_ticker_that_left_and_writes_the_day_and_list(
+def test_the_nightly_refresh_enters_the_database_and_writes_the_day_and_list(
     tmp_path: Path,
 ) -> None:
-    home = tmp_path / "grid" / "store"
-    (home / "US" / "history").mkdir(parents=True)
-    for name in ("OLD.csv", "history/OLD.csv"):
-        (home / "US" / name).write_text("x", encoding="utf-8")
-    said = universe.nightly(tmp_path, DAY, (universe.SP500[0],), _ask)
-    assert said.endswith("; 2 cleared out")
-    assert sorted(p.name for p in (home / "US").iterdir()) == [
-        "MMM.csv",
-        "history",
-    ]
-    note = (home / "REFLECTS.txt").read_text(encoding="utf-8").splitlines()
+    said = universe.nightly(tmp_path, DAY, (universe.SP500[0],), _ask, noon=lambda _: "noon")
+    assert said.startswith("research refresh: 1 lines refreshed")
+    assert said.endswith("; noon")
+    assert database.daily(tmp_path / database.LIVE, MMM) == _ask(MMM, DAY)
+    note = (tmp_path / "grid" / "store" / "REFLECTS.txt").read_text(encoding="utf-8").splitlines()
     sizes = " ".join(f"{k}={len(v)}" for k, v in universe.LISTS.items())
     assert note[:2] == [f"day {DAY}", f"lines 1 {sizes}"]
-    assert note[3] == "cleared US:OLD US:OLD"
 
 
 MMM = universe.SP500[0]
@@ -191,13 +184,16 @@ def _stepped(by: Decimal | int, at: int = AT, bars: tuple[Bar, ...] | None = Non
 def _read(tmp_path: Path, bars: list[Bar], line: Line = MMM) -> universe.History:
     path = tmp_path / database.LIVE
     database.files(path)[database.DAILY].unlink(missing_ok=True)  # it never deletes a bar
-    parked = universe.keep(tmp_path, DAY, [line], lambda *_: tuple(bars))
-    universe_history.enter(tmp_path, path, line)  # as the refresh enters it
+    parked = universe.keep(path, DAY, [line], lambda *_: tuple(bars))
     read = universe.read(path, line)  # the one door
     #: research's rule loosens nothing: the store parks the ticker for every move it finds
     assert list(parked) == ([line] if read.moves or read.rescaled else [])
     assert all(f"{day} moved" in parked[line].reason for day in read.moves + read.rescaled)
     return read
+
+
+def _faults(bars: list[Bar]) -> list[str]:
+    return [f.what for f in store.judge(MMM, bars, DAY)[1]]
 
 
 def _heavy(bars: list[Bar], at: int = AT) -> int:
@@ -247,14 +243,12 @@ def test_a_move_made_within_the_day_is_the_markets_and_is_read(tmp_path: Path) -
         days = (bars[AT].day, bars[AT + 1].day)
         assert _read(tmp_path, bars) == universe.History(tuple(bars), days, ())
         #: the close falls with the low: the market's, so no low is repaired
-        assert not any("low repaired" in f for f in store.faults(tmp_path / MMM.venue, MMM.symbol))
+        assert not any("low repaired" in f for f in _faults(bars))
     spike = list(_ask(MMM, DAY))  #: a bad low long enough ago that the line is not parked for it
     spike[10] = replace(spike[10], low=spike[10].low / 2)
     mended = replace(spike[10], low=min(spike[10].open, spike[10].close))
     assert _read(tmp_path, spike) == universe.History((*spike[:10], mended, *spike[11:]), (), ())
-    assert f"{mended.day} low repaired: was {spike[10].low}" in store.faults(
-        tmp_path / MMM.venue, MMM.symbol
-    )
+    assert f"{mended.day} low repaired: was {spike[10].low}" in _faults(spike)
 
 
 def test_a_fall_with_no_volume_to_judge_it_by_is_read_as_the_markets(tmp_path: Path) -> None:
@@ -290,8 +284,7 @@ def test_breadth_counts_each_sessions_advances_and_declines_and_skips_a_line_wit
     tmp_path: Path,
 ) -> None:
     kept, path = universe.SP500[:2], tmp_path / database.LIVE
-    universe.refresh(tmp_path, DAY, kept, _ask, history=path)  # into the database too
-    universe.keep(tmp_path, DAY, [universe.SP500[2]], _ask)  # a line held only in a CSV: unread
+    universe.refresh(path, DAY, kept, _ask)
     held = database.daily(path, MMM)
     counted = universe.breadth(path, [*kept, universe.SP500[2]])
     assert list(counted) == [b.day for b in held[1:]]
