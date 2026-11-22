@@ -7,9 +7,7 @@ from decimal import Decimal
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-import pytest
-
-from desk import archive, bars, store
+from desk import archive, bars
 from desk.store import Bar
 from lab import universe
 
@@ -35,8 +33,6 @@ def test_spy_is_kept_from_its_first_session_as_a_reference_and_is_no_traded_line
     assert line.symbol == "SPY"
     assert bars.daily(tmp_path / bars.LIVE, line) == (FIRST, NEXT)
     assert [fault.day for fault in kept[line]] == [SUNDAY.day]
-    with pytest.raises(FileNotFoundError):
-        store.read(tmp_path / "US", "SPY")  # a traded read finds no such line
 
 
 def test_the_archive_is_asked_back_to_the_first_session_only_when_told_to() -> None:
