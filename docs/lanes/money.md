@@ -758,3 +758,9 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 - The card named `keeper.HOT`; the daily bars live in the long database `bars.files` names beside it (`market_history.db`), so that is read: `bars.files` is the one owner of that rule.
 - Options: (a) read `keeper.HOT` as carded (it holds no daily bars); (b) read the long database through `bars.files` (taken).
 - money-connors7 held off MONEY and handed to RUNGS as a re-carded box (his "always go with recommended"); MONEY goes on with money-saved-fx and money-time-gaps.
+
+### 2026-11-22 - Currency and interest kept in the day's record (#1628, R-MONEY-66)
+- Options: a second file for the two figures, or two columns after heat in records.csv. Took columns: one record per day.
+- `currency` is stored as pennies of currency (closed-trade gain plus open-holding gain); `interest` is idle-cash interest at `RISK_FREE` since the first fill. Each is None when no fill traded or a day's rate was never kept; older files still read, blanks as None.
+- Profit and every golden day are unchanged; the tell lines read the same two `desk/day_money.py` functions, one home for the sums.
+- money-connors7 held off MONEY, re-carded to RUNGS (his "always go with recommended"); MONEY goes to money-time-gaps.
