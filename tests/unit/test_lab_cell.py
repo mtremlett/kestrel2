@@ -11,6 +11,7 @@ from dataclasses import replace
 from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
+from typing import Any
 
 import pytest
 from test_strategy import GOLDEN, _jumpy, _walk
@@ -255,9 +256,11 @@ def test_the_code_versions_read_each_file_once(monkeypatch: pytest.MonkeyPatch) 
     parsed: list[str] = []
     real = ast.parse
 
-    def counting(source: str | bytes, filename: str) -> ast.Module:
-        parsed.append(filename)
-        return real(source, filename)
+    def counting(source: str | bytes, filename: str = "<unknown>", *more: Any, **named: Any) -> Any:
+        parsed.extend(
+            [filename] if filename.endswith(".py") else []
+        )  # pytest's own reports parse too
+        return real(source, filename, *more, **named)
 
     monkeypatch.setattr(ast, "parse", counting)
     assert cell.rungs() == cell.RUNGS
