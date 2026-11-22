@@ -267,6 +267,14 @@ def order_id_of(decision: Decision) -> str:
     return f"{decision.day:%Y%m%d}-{decision.strategy}-{decision.symbol}"
 
 
+ZOO = "zoo_"  #: the front of every zoo rule's name (desk/intraday.py): a MACHINERY TEST's
+
+
+def is_zoo(order_id: str) -> bool:
+    """Whether the order, or the stop it left, is a zoo rule's: its strategy part begins ZOO."""
+    return order_id.split("-")[1:2] != [] and order_id.split("-")[1].startswith(ZOO)
+
+
 def strategy_of(order_id: str) -> str:
     """The strategy whose decision made the order, or the stop it left."""
     parts = order_id.split("-")

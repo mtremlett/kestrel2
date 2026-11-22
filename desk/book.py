@@ -49,7 +49,18 @@ from desk.book_parts2 import (
 from desk.broker import Broker, Crash, Disconnected, Fill, Report
 from desk.halt import Blocker, Stopped
 from desk.lines import Line
-from desk.orders import Charges, Order, Refused, Sale, Settings, charges, gate, leg_of, strategy_of
+from desk.orders import (
+    Charges,
+    Order,
+    Refused,
+    Sale,
+    Settings,
+    charges,
+    gate,
+    is_zoo,
+    leg_of,
+    strategy_of,
+)
 from desk.risk import Standing
 from desk.store import Bar
 from desk.strategy import Decision
@@ -124,6 +135,16 @@ Tell = Callable[[str, str], None]  #: the door to his phone: a message's name, t
 Reckoning = tuple[dict[str, int], tuple[str, ...], set[str], tuple[Difference, ...]]
 
 
+def side(root: Path, held: Mapping[str, int], order_id: str) -> dict[str, int]:
+    """THE ZOO STANDS APART (his 22 Nov ruling): of the lines held, those of the order's own side,
+    the zoo's (orders.is_zoo) or the desk's, by the side of each line's last buy (a line with no
+    buy of the desk's records is the desk's). The gate counts a buy's holdings and room by it; a
+    sale (its rule's, a stop's or go flat's) meets the whole book, so every share can be sold."""
+    owner = {f.symbol: is_zoo(f.order_id) for f in fills(root) if f.quantity > 0}
+    zoo = is_zoo(order_id)
+    return {symbol: shares for symbol, shares in held.items() if owner.get(symbol, False) == zoo}
+
+
 def send(
     root: Path,
     broker: Broker,
@@ -154,7 +175,8 @@ def send(
             words = f"{order.order_id}: not sent, the book is not the broker's on {list(differ)}"
             raise Stopped(Blocker.BOOK, words)
         try:
-            gate(order, settings, held, standing, exposure, moves)
+            mine = held if isinstance(order, Sale) else side(root, held, order.order_id)
+            gate(order, settings, mine, standing, exposure, moves)
         except Refused as refused:
             raise Stopped(Blocker.GATE, str(refused)) from refused
         _unless_stopped(root, order)  #: read again, at the last moment before it goes
