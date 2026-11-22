@@ -5,7 +5,7 @@ and gives them to its callers under the same names."""
 from __future__ import annotations
 
 import csv
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from enum import Enum
@@ -96,12 +96,25 @@ def rates_kept(root: Path) -> dict[tuple[date, str], Decimal]:
         }
 
 
+def _pounds(root: Path) -> Callable[[str, date], Decimal]:
+    """Pounds per unit of a currency kept for a day, carried over a UK-only holiday (desk.carry),
+    the rates read once for every question asked of it (22 Nov: once a trip hung SimCity)."""
+    by: dict[str, dict[date, Decimal]] = {}
+    for (day, currency), pounds in rates_kept(root).items():
+        by.setdefault(currency, {})[day] = pounds
+
+    def rate(currency: str, day: date) -> Decimal:
+        kept = carried(by.get(currency, {}), day)
+        if kept is None:
+            raise ValueError(f"no {currency} rate kept for {day}")
+        return kept
+
+    return rate
+
+
 def rate(root: Path, currency: str, day: date) -> Decimal:
     """Pounds per unit of a currency kept for a day, carried over a UK-only holiday (desk.carry)."""
-    kept = carried({d: r for (d, c), r in rates_kept(root).items() if c == currency}, day)
-    if kept is None:
-        raise ValueError(f"no {currency} rate kept for {day}")
-    return kept
+    return _pounds(root)(currency, day)
 
 
 def cancel_all(root: Path, broker: Broker, day: date) -> tuple[str, ...]:

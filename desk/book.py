@@ -20,6 +20,7 @@ from desk.book_parts import (
     SWITCH,
     TURNS,
     Switch,
+    _pounds,
     cancel_all,
     entry,
     keep,
@@ -397,15 +398,12 @@ def currency_gain(root: Path, lines: Iterable[Line], trips: Iterable[RoundTrip])
     """CURRENCY APART FROM TRADING (BIC-04): the pounds the trips gained or lost because the
     currency moved between the buy's day and the sale's, the shares sold at the sale's price
     times the change in the day's rate. A trip's gross less this is its trading profit."""
-    currency = {line.symbol: line.currency for line in lines}
+    currency, rate = {line.symbol: line.currency for line in lines}, _pounds(root)
     return sum(
         (
             -t.sell.quantity
             * t.sell.price
-            * (
-                rate(root, currency[t.sell.symbol], t.sell.day)
-                - rate(root, currency[t.buy.symbol], t.buy.day)
-            )
+            * (rate(currency[t.sell.symbol], t.sell.day) - rate(currency[t.buy.symbol], t.buy.day))
             for t in trips
         ),
         Decimal(0),
@@ -418,11 +416,16 @@ def open_currency_gain(
     """CURRENCY ON OPEN HOLDINGS (BIC-04): what the shares still held, the newest buys (sales
     close the oldest), have gained or lost at today's price from the currency's move since the
     buy's day, apart from the price's own."""
-    money, total = {line.symbol: line.currency for line in lines}, Decimal(0)
+    money, total, rate, ledger = (
+        {x.symbol: x.currency for x in lines},
+        Decimal(0),
+        _pounds(root),
+        fills(root),
+    )
     for symbol, held in positions(root, day).items():
-        for buy in (f for f in reversed(fills(root)) if f.symbol == symbol and f.quantity > 0):
+        for buy in (f for f in reversed(ledger) if f.symbol == symbol and f.quantity > 0):
             shares, held = min(held, buy.quantity), held - min(held, buy.quantity)
-            move = rate(root, money[symbol], day) - rate(root, money[symbol], buy.day)
+            move = rate(money[symbol], day) - rate(money[symbol], buy.day)
             total += shares * prices[symbol] * move
     return total
 
