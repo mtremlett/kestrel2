@@ -113,6 +113,11 @@ def test_no_rule_is_proven_on_an_indicator_that_does_not_give_its_published_tabl
         with pytest.raises(ValueError, match=wrong):
             refused()
     monkeypatch.undo()
+    #: and a band line drawn one deviation under the average, where Bollinger's is two
+    monkeypatch.setattr(strategy, "lower_band", lambda mean, dev: mean - dev)
+    with pytest.raises(ValueError, match=r"its Lower Band, is not.*87\.4160 at row 0"):
+        published_tables.indicators()
+    monkeypatch.undo()
     #: and a plain 14-day average passed off as Wilder's: right on the first row, wrong after
     monkeypatch.setattr(strategy._Wilder, "add", _plain)
     with pytest.raises(ValueError, match=r"under the RSI, its Avg Gain,.*0\.2384 at row 1"):
