@@ -760,3 +760,15 @@ Options: full past lists for FTSE 350 (no record exists) vs measuring and statin
 
 ### 2026-11-22 — BEA added, earnings CSV left to a later card (DATA, #1752)
 Options: a CSV parse hook in the collector now vs a later card (chosen, smallest green step). Collector at 11 sources.
+
+### 2026-11-22 — research refresh writes the database; shelf kept only under the archive (DATA, #1767)
+Options: the whole database as shelf (rejected: it would park a ticker for any adjusted close); no shelf (rejected: a filled day would park the yardstick again); chosen: the database's held bars stand under the archive's only for days the archive lacks. REFLECTS.txt stays at data/grid/store; the clear-out of departed tickers is dropped (a database never deletes a bar).
+
+### 2026-11-22 — hover prints SEND:, not ALARM (DATA, #1769, #1782)
+Three documents and the runner request name `SEND:`; nothing reads `ALARM`. Printing both words rejected (two homes for one line). The command prints through `announce`.
+
+### 2026-11-22 — pound noon rates fetched keyless (DATA, #1774, #1790)
+FRED's public fredgraph.csv works without a key; the session-env key option adds moving parts for no gain, so no credential is read. The gap line lives in lab/universe.py because lab/universe_history.py is outside the claim.
+
+### 2026-11-22 — scribe folds only the missing three (DATA, #1775)
+Folded #1736, #1750, #1752 rather than redo closed #1761's conflicting diff.
