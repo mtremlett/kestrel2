@@ -2200,3 +2200,102 @@ dropped to make room: each was merged or moved (A7's story is failure pattern 1)
 
 The failure patterns are capped at today's 221 lines, down-only (a tightening). Guard proven (A7):
 with the cap at 220, `test_the_rulebooks_stay_short` failed; at 221 it passed.
+
+## 22 Nov - the zoo trades on paper as a MACHINERY TEST while the ladder runs, by his own words
+
+His ruling in chat (Sun 22 Nov 14:1x): "CANON B6 is correct, but, when the ladder testing is taking so
+long then we need to revise this ruling... run these strategies to test the desk whilst we wait for the
+ladder to finish." The ladder will not finish before about Wed to Thu. Options: (a) wait for the ladder,
+which leaves the desk's intraday path untested on paper for days; (b) let the collated rules trade at the
+desk's normal size, which would read as evidence and risk the desk's book; (c) DECIDED: a machinery test,
+inside the existing safety design. CANON B6 gains the one line (merged with its promotion line, 198 lines).
+
+What (c) is, and the check that fails on each breach (`tests/unit/test_running_intraday.py`,
+`test_the_zoo_is_off_by_default_and_trades_one_share_labelled_only_behind_its_switch`):
+- OFF by default: `Desk.zoo` is False, and `command._desk` turns it on only when the file `zoo-on-paper`
+  (`running.ZOO_ON`) is in the desk's root. The rehearsal's root is its own folder, so it never trades it.
+- PAPER only: the step's one broker is the paper Gateway's (`running._paper`); nothing new dials anything.
+- TINY: each zoo buy is one share; the one gate (`day._send`: loss, rate, exposure, kill switch) is unchanged.
+- ITS OWN ORDER IDS: `<day>-zoo_<rule>-<line>-<HHMM><B|S>`; `strategy_of` reads `zoo_<rule>`, so its
+  fills stand apart in the ledger and a zoo rule sells only what it bought. A buy of a line held already
+  (by any rule), parked by hand, or no ISA can hold sends nothing, through the daily buy's own
+  refusals now in one home (`day.refusal`, R-RUNNER-436), so a zoo sale never sells the desk's shares.
+- LABELLED: every zoo order's line in the record says "MACHINERY TEST, NOT EVIDENCE OF AN EDGE".
+- NOT ON HIS PHONE AT EACH BAR (coordinator 78): zoo notes are kept as `zoo <venue> <HHMM>`, never sent
+  one by one; his hourly message carries one line of the zoo's last hour (`running.zoo_hour`).
+- ITS OWN ALLOWANCE (coordinator 78): zoo orders meet the gate with `running.ZOO_ROOM` (£1,000: 2% a day,
+  5% a week, 10 new lines a day) and the zoo's own standing; the desk's standing (`day.standing`, also
+  the drawdown halt) leaves out the zoo's lines and its round trips' pounds, so the zoo never spends the
+  desk's four new lines or its loss limits (`test_day_standing.py`, driven red both ways). The gate also
+  counts a buy's holdings and room by side (`book.side`), so the zoo's holdings never fill the desk's five;
+  a sale meets the whole book, so go flat (the second kill level) still sells every zoo share.
+BLIND REVIEW (A6 step 6, a fresh reviewer given only the diff and this claim): BLOCKING, the zoo and the
+desk shared the gate's five holdings; fixed by `book.side` (test seen red without it). Also fixed: two zoo
+rules stacking a line in one bar (the book is read afresh for each rule), zoo orders sized with the zoo's
+allowance, the day's rates kept first in the intraday round. Accepted as approximate, with one share each
+worth pence: the zoo's pounds are taken from the day its round trip closes (a zoo line held overnight shifts
+a day's split), and the hourly line counts a refusal's own '; ' as an order. The reviewer's re-check of the
+fixes found one more BLOCKING issue (go flat could not sell zoo shares through `book.side`); fixed, test seen red.
+- NEVER A-GATE, NEVER PROMOTED: zoo names are never in `STRATEGIES` or `intraday.RULES`
+  (`test_intraday_zoo.py`), and promotion reads only its candidates' own fills (`lab/promotion.py`).
+Scope for Mon 23 Nov: the zoo's seven day-trading rules (5- and 15-minute bars) on the zoo's lines. Owed:
+the zoo's thirteen daily rules (they need the daily round, `desk/day.py`), and the Grimes AG catalogue
+(no AG rule exists as code yet). Guard proven (A7): with `zoo` defaulting to True the test failed at its
+first assert; with the one-share cap removed it failed (23 shares bought, not 1).
+
+## 22 Nov - a lane may fold away its own module (R-RUNGS-29), by his own words
+
+**His words** (chat seat 44, Sun 22 Nov ~18:1x), asked whether lanes may remove their own
+modules' lines from the manifest so the ladder's eight owed rungs can be wired and merged:
+"Yes / I trust your recommendations / Do what is required to speed up". Loosening a guard
+is his alone (CLAUDE.md); this is that yes.
+
+**What changed.** `tests/guards/test_lanes.py`: a lane branch may now also *remove* the
+manifest line of a module it owned on main (the merge-base manifest), and change that
+module's files and tests while folding it away. Nothing else moves: removing or adding
+another lane's line, editing any non-module line, and touching another lane's files are
+refused as before. Before, `rungs-each-rung` waited on this since 19 Nov (R-RUNGS-29:
+five of the eight owed rungs fold into another module), and MONEY rightly declined it
+(#1417): a guard no lane owns.
+
+**Driven (A7)**, on scratch clones whose main held the guard, each scenario on a
+`lane/rungs-...` branch, `test_a_lane_changes_only_its_own_files`:
+
+| scenario | old guard | new guard |
+|---|---|---|
+| fold own: remove `lab/rung_ci.py`'s line, delete it and its tests | FAIL | pass |
+| remove MONEY's `desk/orders.py` line | FAIL | FAIL |
+| add a planted `desk/zzz.py` line under MONEY's heading | FAIL | FAIL |
+| edit a non-module line (MONEY's heading) | FAIL | FAIL |
+| delete MONEY's `desk/orders.py` | FAIL | FAIL |
+
+## 22 Nov - the zoo's thirteen daily rules join the morning round, and the zoo yields every line to the desk
+
+His order (Sun 22 Nov 15:3x, "both now") under the same 14:1x ruling and conditions as above. Options for
+where the daily zoo trades: (a) a second daily engine beside `day.trade`, which B2 forbids; (b) the zoo's
+rules added to `strategy.STRATEGIES`, which would make them A-GATE candidates and change the desk's goldens;
+(c) DECIDED: one more step at the end of the same morning round (`day._zoo`), after the desk's own orders,
+on the same bars, the same send path and gate, behind the same switch (`Desk.zoo`, the file `zoo-on-paper`).
+Options for the book: a separate book file cannot work (the paper account holds one position per line, and
+the stop follows the line's newest buy, `restop`), so ONE OWNER PER LINE stands, and the desk comes first:
+- THE ZOO YIELDS (`day._yields`): a line one of the desk's rules buys today that a zoo rule (daily or
+  intraday) holds is sold out of the zoo first, under the zoo rule's id; the desk's "sold this morning"
+  reads only the desk's own sales, so its buy goes as if the zoo were not there.
+- THE GATE SEES ONE SIDE (`book.side`): a zoo order's gate counts the zoo's lines alone, a desk order's
+  the desk's, so zoo lines fill none of the desk's five holdings, room or correlation cap. Not split: the
+  pounds per underlying (`day_money.exposure`) still count the zoo's single shares (a few pounds against
+  a 40% cap), recorded rather than built.
+- ONE SHARE, ITS OWN ALLOWANCE: a daily zoo buy is one share on `orders.ZOO_ROOM` (moved from running.py,
+  one home) and the zoo's own standing; refused as the desk's own (`day.refusal`, sold this morning).
+- NEWS HOURLY: the morning round's zoo answers are kept as a `zoo <venue>` note, labelled MACHINERY TEST,
+  NOT EVIDENCE OF AN EDGE, told only in his hourly line (`running.zoo_hour`), never in the round's message.
+- Goldens unchanged: with no zoo fills every new path is a no-op (`_yields` sends nothing, `_side` is the
+  whole book), and SimCity and replays never set the switch.
+Check: `tests/unit/test_day_standing.py::test_the_daily_zoo_buys_one_share_a_rule_only_when_on_and_yields_the_desks_lines`.
+Guard proven (A7): it failed first (no `intraday.ZOO_DAILY`); then with the gate given the whole book
+("1 holdings already, at most 1"), with no yield (1 share, not more), and with the desk's "sold this
+morning" reading the zoo's sales too (no VUAG bought).
+Blind review (CANON A6.6) found one blocking fault, fixed: the zoo's sales were dated today, and the
+paper door refuses an order not dated the session before (`placing.py`; the pretend broker never checks,
+failure pattern 15), so no zoo sale would ever have filled. Now dated as the desk's own; the test records
+every placed order's session and failed (dated Wednesday) before the fix.

@@ -49,7 +49,18 @@ from desk.book_parts2 import (
 from desk.broker import Broker, Crash, Disconnected, Fill, Report
 from desk.halt import Blocker, Stopped
 from desk.lines import Line
-from desk.orders import Charges, Order, Refused, Sale, Settings, charges, gate, leg_of, strategy_of
+from desk.orders import (
+    Charges,
+    Order,
+    Refused,
+    Sale,
+    Settings,
+    charges,
+    gate,
+    is_zoo,
+    leg_of,
+    strategy_of,
+)
 from desk.risk import Standing
 from desk.store import Bar
 from desk.strategy import Decision
@@ -124,6 +135,16 @@ Tell = Callable[[str, str], None]  #: the door to his phone: a message's name, t
 Reckoning = tuple[dict[str, int], tuple[str, ...], set[str], tuple[Difference, ...]]
 
 
+def side(root: Path, held: Mapping[str, int], order_id: str) -> dict[str, int]:
+    """THE ZOO STANDS APART (his 22 Nov ruling): of the lines held, those of the order's own side,
+    the zoo's (orders.is_zoo) or the desk's, by the side of each line's last buy (a line with no
+    buy of the desk's records is the desk's). The gate counts a buy's holdings and room by it; a
+    sale (its rule's, a stop's or go flat's) meets the whole book, so every share can be sold."""
+    owner = {f.symbol: is_zoo(f.order_id) for f in fills(root) if f.quantity > 0}
+    zoo = is_zoo(order_id)
+    return {symbol: shares for symbol, shares in held.items() if owner.get(symbol, False) == zoo}
+
+
 def send(
     root: Path,
     broker: Broker,
@@ -154,7 +175,8 @@ def send(
             words = f"{order.order_id}: not sent, the book is not the broker's on {list(differ)}"
             raise Stopped(Blocker.BOOK, words)
         try:
-            gate(order, settings, held, standing, exposure, moves)
+            mine = held if isinstance(order, Sale) else side(root, held, order.order_id)
+            gate(order, settings, mine, standing, exposure, moves)
         except Refused as refused:
             raise Stopped(Blocker.GATE, str(refused)) from refused
         _unless_stopped(root, order)  #: read again, at the last moment before it goes
@@ -306,8 +328,18 @@ def dealt(
     old = [fill for fill in ledger if fill.day <= last]
     if len(old) < counted:
         raise ValueError(f"the ledger holds {len(old)} fills by {last}, fewer than the {counted}")
-    cash, costs = Decimal(0), Charges(*(Decimal(0),) * 5)
-    for fill in old[counted:] + [fill for fill in ledger if last < fill.day <= day]:
+    fresh = old[counted:] + [fill for fill in ledger if last < fill.day <= day]
+    return _moved(pounds, fresh, Decimal(0), Charges(*(Decimal(0),) * 5))
+
+
+def _moved(
+    pounds: Callable[[Fill, int], tuple[Decimal, Charges]],
+    ledger: Iterable[Fill],
+    cash: Decimal,
+    costs: Charges,
+) -> tuple[Decimal, Charges]:
+    """The fills' sales less buys and every cost, in pounds, added to cash and costs so far."""
+    for fill in ledger:
         value, fee = pounds(fill, abs(fill.quantity))
         cash, costs = cash + (value if fill.quantity < 0 else -value), costs + fee
     return cash, costs
@@ -399,10 +431,16 @@ def interest(
     root: Path, lines: Iterable[Line], capital: Decimal, annual: Decimal, first: date, last: date
 ) -> Decimal:
     """INTEREST ON IDLE CASH (BIC-03): each day from first to last, the capital less what the
-    ledger has spent by its end (costs too), if positive, earns annual / 365 of itself."""
-    held, total, day = tuple(lines), Decimal(0), first
+    ledger has spent by its end (costs too), if positive, earns annual / 365 of itself. The ledger
+    is read once and its fills added up as the days pass them (#1628: SimCity asks every day)."""
+    pounds, dated = _priced(root, lines), dict[date, list[Fill]]()
+    for fill in fills(root):
+        dated.setdefault(fill.day, []).append(fill)
+    before = (fill for d in sorted(dated) if d < first for fill in dated[d])
+    cash, costs = _moved(pounds, before, Decimal(0), Charges(*(Decimal(0),) * 5))
+    total, day = Decimal(0), first
     while day <= last:
-        cash, costs = dealt(root, held, day, date.min, 0)
+        cash, costs = _moved(pounds, dated.get(day, ()), cash, costs)
         total += max(capital + cash - costs.total, Decimal(0)) * annual / 365
         day += timedelta(days=1)
     return total

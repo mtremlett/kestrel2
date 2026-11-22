@@ -318,20 +318,22 @@ class Never(Block):
         return False
 
 
-class VolatilitySize:
+class VolatilitySize(Block):
     """The SIZING block: shares whose one-day typical move is the pounds of risk allowed, the
     move read from the last n close-to-close returns. The desk's own rule (`desk.risk`), never
     a copy, so the lab sizes as the desk will: before n returns are seen it sizes nothing, and a
-    window that never moved has no risk to size by, so it refuses (ValueError), as the desk does."""
+    window that never moved has no risk to size by, so it refuses (ValueError), as the desk does.
+    Shown bars through the one block interface, so the registry can hold it; it never fires."""
 
     def __init__(self, n: int) -> None:
         if n < 2:
             raise ValueError(f"volatility sizing needs a window of two or more returns, got {n}")
         self.n, self.closes = n, deque[Decimal](maxlen=n + 1)
 
-    def see(self, bar: Bar) -> None:
-        """Takes in the next bar's close."""
+    def see(self, bar: Bar, holding: bool) -> bool:  # noqa: ARG002 - the one interface of every block
+        """Takes in the next bar's close; a sizer never fires."""
         self.closes.append(bar.close)
+        return False
 
     def shares(self, risk: Decimal) -> int:
         """Shares to buy at the last close for this much risk; 0 until n returns are seen."""

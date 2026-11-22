@@ -344,6 +344,14 @@ def _stops(life: _Life) -> None:
     except orders.Refused:
         refused = True
     life.promise("a gap down past the stop refuses the buy", refused)
+    traded = orders.traded_value(life.market[line], fx)
+    try:
+        bought = orders.size(buy, line, price, fx, life.room, {}, None, traded).quantity
+    except orders.Refused:
+        bought = 0
+    life.promise(
+        "a buy is held to a hundredth of the traded pounds", bought * price * fx <= traded / 100
+    )
 
 
 def _apart(life: _Life, trips: tuple[book.RoundTrip, ...]) -> bool:

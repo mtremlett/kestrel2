@@ -54,6 +54,7 @@ from datetime import date
 from decimal import Decimal, localcontext
 from statistics import fmean
 
+from desk import venues
 from desk.lines import Line
 from desk.store import Bar
 from desk.strategy import ARITHMETIC
@@ -113,6 +114,25 @@ def judge(
         wide = fit(own, _moves(market, held, rates, days))
     passed = min(line.t, wide.t) >= rung.T_PASS
     return Against(verdict, market, len(own), line, wide, Answer.PASS if passed else Answer.FAIL)
+
+
+def gaps(line: Line, bars: Sequence[Bar], rates: Rates, first: date, last: date) -> tuple[str, ...]:
+    """A rung's input checked before it is judged (L20), oldest first: each session of the line's
+    venue inside its bars from first to last, read from the one calendar, with no bar and no
+    suspension; and each bar there with no rate of pounds to price it by. Empty: it is whole."""
+    days = [bar.day for bar in bars if first <= bar.day <= last]
+    if not days:
+        return ()
+    held, said = set(days), list[tuple[date, str]]()
+    for day in venues.sessions(line.venue, days[0], days[-1]):
+        if day not in held and day not in line.suspended:
+            said.append((day, f"{line.symbol} has no bar on {day}, a session of {line.venue}"))
+    for day in days:
+        try:
+            rung.rate(line, rates, day)
+        except ValueError as unrated:  #: named, never passed over: the set refuses on it
+            said.append((day, str(unrated)))
+    return tuple(text for _, text in sorted(said))
 
 
 def _moves(line: Line, bars: Sequence[Bar], rates: Rates, days: Sequence[date]) -> list[float]:

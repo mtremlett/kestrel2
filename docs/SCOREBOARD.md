@@ -218,6 +218,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1584 money-honest step 2: day tells interest on idle cash at the risk-free rate (BIC-03). |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1596 money-honest step: currency on open holdings told (BIC-04), SimCity-checked. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1641 money-door-slippage done: slippage reads the two databases only. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1628 R-MONEY-66 done: currency and interest kept in the day's record, profit untouched. |
 
 
 ### DATA
@@ -965,3 +966,4 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1672 rungs-door-pound: ladder and montecarlo read the pound only from the history database; -49 lines. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1673 RUNGS L14: rung 7 judges on one clustered set, same answer as deflated.read (copies PASS, strangers DOUBT). |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1676 RUNGS gate pinned: 8 rung modules off the verdict's path may only fall (0 of 8 wired this change). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1680 RUNGS L20 step 1: market and folds rungs name their input gaps (calendar and rates) before a set runs; wiring next. |
