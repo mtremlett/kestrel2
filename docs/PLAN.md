@@ -840,6 +840,22 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
   - [ ] L16 the gate: the runner runs the catalogue 24x7, each change re-running only its
         own specs, each set's table published with "rungs built: n of 11"
         {id: rungs-gate; files: lab/ladder_sets.py, lab/ladder_pool.py, tests/unit/test_lab_ladder_pool.py; after: rungs-blind-review}
+  - [ ] L17 A PASS CAN EXIST: `verdict.UNRUN` names plateau on every cell and `goes()` needs no rung unrun, so
+        no cell could ever go forward (blind review 22 Nov 09:2x). Plateau judged on each rule's B5 variants
+        (the centre of a plateau, canon B6), so a cell with a real edge can pass; a planted edge goes forward
+        {id: rungs-plateau-wired; files: lab/plateau.py, lab/verdict.py, tests/unit/test_lab_plateau.py, tests/unit/test_lab_verdict.py}
+  - [ ] L18 TRIALS COUNTED HONESTLY: `trials.family` counts every line ever entered and never shrinks (3,435 per
+        rule against ~1,017 judged), luck then needs t>=4.6 and no line reaches it (highest 4.36). The family is
+        the set's own lines, clustered (L14) and passed into `deflated.read`; a known-answer case pins both bars
+        {id: rungs-trials-live; files: lab/trials.py, lab/deflated.py, tests/unit/test_lab_trials.py, tests/unit/test_lab_deflated.py; after: rungs-clustered-trials}
+  - [ ] L19 ONE VERDICT RULE: the eased scorecard (`verdict.scorecard`, MAX_WEAK) is built but never called, so one
+        WEAK kills a cell; it is wired as the one answer or deleted, and regime's 30 trades in each half is
+        proven fair by a power case (a t=3 edge over 60 trades)
+        {id: rungs-scorecard; files: lab/verdict.py, lab/rung_regimes.py, tests/unit/test_lab_verdict.py, tests/unit/test_lab_rung_regimes.py; after: rungs-plateau-wired}
+  - [ ] L20 FAULTS ARE NOT ANSWERS: 6,788 lines read FAULT at market (SPY has no bar on a day, e.g. 2022-09-28) and
+        ~5,300 at folds (no pounds-per-USD rate): each rung reads its missing day from the one store's calendar and
+        the rate table, and a fault count over 1% of a set stops its table being published
+        {id: rungs-faults-not-answers; files: lab/market.py, lab/folds.py, tests/unit/test_lab_market.py, tests/unit/test_lab_folds.py; after: rungs-rung-map}
 - [ ] **STRATEGIES AS DATA (his goal: 1,000+ strategies over 1,000+ tickers):**
   - [ ] B1 building blocks written once, each known-answer tested: indicators, entries,
         exits, stops, filters (regime filters among them), sizing. Built: every block has its
