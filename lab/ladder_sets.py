@@ -257,7 +257,7 @@ def entered(home: Path) -> str:
     """Set VAR's family entered before any of it runs: each variant a trial, run or not."""
     made = variants.family(rulebook.specs())
     register = ladder.begun(home, (), VAR)[0].with_suffix(".trials.jsonl")
-    count = variants.enter(register, VAR.question, made)
+    count = trials.enter(register, VAR.question, [variant.spec.name for variant in made])
     return f"SET VAR: {len(made)} variants entered, {count} trials counted; none judged yet (GC)"
 
 
