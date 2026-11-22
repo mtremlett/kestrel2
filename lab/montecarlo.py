@@ -137,14 +137,16 @@ def _cell(lines: Mapping[tuple[str, str], Line], row: Mapping[str, Any], start: 
     return Cell(strategy, line, date.fromisoformat(start), date.fromisoformat(end))
 
 
-def jobs(home: Path, kept: Mapping[tuple[str, ...], str] | None = None) -> list[Job]:
-    """Every ladder cell that traded and every grid cell held, the latest line of each.
+def jobs(home: Path, kept: Mapping[tuple[str, ...], str] | None = None) -> tuple[list[Job], int]:
+    """Every ladder cell that traded and every grid cell held, the latest line of each, and the
+    count of the grid journals' error rows passed over (a cell that failed holds no trades).
 
     A grid row whose resampling is in `kept` (same id and key) has its trades left unparsed
     (None): `run` counts it kept and never asks for its gains.
     """
     kept = kept or {}
     found: dict[tuple[str, ...], Job] = {}
+    errors = 0
     stored = sweep.held(
         home / "grid" / "store"
     )  #: the grid's lines; the desk's own take precedence
@@ -156,6 +158,9 @@ def jobs(home: Path, kept: Mapping[tuple[str, ...], str] | None = None) -> list[
             )
     for path in sorted((home / "grid" / "held").glob("*/*.jsonl")):
         for row in _lines(path):
+            if "error" in row:
+                errors += 1
+                continue
             made = row["code"] + row["data"]
             id_ = ("grid", *row["cell"])
             held = None if kept.get(id_) == _key(made) else row["trades"]
@@ -165,7 +170,7 @@ def jobs(home: Path, kept: Mapping[tuple[str, ...], str] | None = None) -> list[
                     Trade(date.fromisoformat(b), s and date.fromisoformat(s)) for b, s in held
                 )
             found[id_] = Job("grid", _cell(lines, row, row["cell"][3]), made, trades)
-    return [job for job in found.values() if job.trades is None or job.trades]
+    return [job for job in found.values() if job.trades is None or job.trades], errors
 
 
 def _key(made: str) -> str:
@@ -182,7 +187,8 @@ def run(home: Path, gains: Gains) -> str:
     size = results.exists() and results.stat().st_size
     with results.open("ab") as out:
         out.truncate(_whole(results) if size else 0)
-        for job in jobs(home, kept):
+        todo, errors = jobs(home, kept)
+        for job in todo:
             id_, key = [job.source, *batch.row(job.cell)], _key(job.made)
             if kept.get(tuple(id_)) == key:
                 tally["before"] += 1
@@ -206,7 +212,8 @@ def run(home: Path, gains: Gains) -> str:
             tally["now"] += 1
     done = f"{tally['now']} resampled now, {tally['before']} kept from before"
     done += f", {tally['refused']} refused by the desk's sizing" if tally["refused"] else ""
-    return done + (f", {tally['failed']} could not be resampled" if tally["failed"] else "")
+    done += f", {tally['failed']} could not be resampled" if tally["failed"] else ""
+    return done + (f", {errors} grid error row{'s' * (errors != 1)} passed over" if errors else "")
 
 
 def _keep(out: BinaryIO, row: dict[str, Any]) -> None:

@@ -31,6 +31,10 @@ def test_twelve_variants_all_counted_and_the_pick_is_the_plateau_centre(
     assert variants.variants(Spec.parse(shared))[0].spec.params["exit"] == {"n": 10}
     with pytest.raises(ValueError, match="one setting"):  # the places disagree: two settings
         Spec.parse({**shared, "params": {**ROW_RAW["params"], "exit": {"n": 40}}})
+    four = {"entry": {"n": 4}, "stop": {"n": 4}}
+    box = {"name": "darvas_box", **BOOK["darvas_box"], "params": four}
+    with pytest.raises(ValueError, match="case 0 gives"):  # the box's sessions reach its blocks
+        Spec.parse(box)
     for stray in (ROW.name, f"{ROW.name}[entry.n=30,exit.n=10]", "nobody[entry.n=10]"):
         with pytest.raises(ValueError, match="no variant"):
             variants.find({ROW.name: ROW}, stray)
