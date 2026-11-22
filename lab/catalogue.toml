@@ -102,6 +102,10 @@ source = "Jegadeesh, Journal of Finance 45(3) (1990), in Lehmann's weekly form: 
 entry = { n = 5 }
 stop = { n = 5 }
 
+[weekly_reversal_jegadeesh.ranges]
+entry = { n = [3, 5, 10] }
+stop = { n = [3, 5, 10] }
+
 # five flat days, a lower close (buy), five sessions held, then sold; the next lower close buys again
 [[weekly_reversal_jegadeesh.cases]]
 bars = [[10, 10, 10], [10, 10, 10], [10, 10, 10], [10, 10, 10], [10, 10, 10], [9, 9, 9], [9, 9, 9], [9, 9, 9], [9, 9, 9], [9, 9, 9], [9, 9, 9], [9, 9, 8]]
