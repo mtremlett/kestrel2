@@ -926,11 +926,35 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         Decision e: no dead rungs; dsr merges into deflated, placebo into shuffle, bootstrap into ci, sample into rung
         1's trade minimum, benchmark into market; wire: each on verdict.judge's path; gate: a ladder test fails when
         any lab/rung_*.py is off that path (rungs_built equals the map)
-        {id: rungs-each-rung; files: lab/rung_*.py, tests/unit/test_lab_rung_*.py; after: rungs-rung-map}
+        Built per the map (L2): rungs 2 costs, 3 ci, 5 regimes, 8 cpcv declare a RUNG. Each owed rung is its own box below
+    - [ ] rung 1 sample size, effective trades: declares its RUNG in `lab/rung_sample.py`; wire: `lab/ladder.py` judges by
+          the module's RUNG; gate: `tests/unit/test_lab_rung_sample.py` (and the map test reads the row as built)
+          {id: rungs-rung-1-sample; files: lab/rung_sample.py, tests/unit/test_lab_rung_sample.py; after: rungs-rung-map}
+    - [ ] rung 4 excess after market risk, by size: declares its RUNG in `lab/market.py`; wire: `lab/ladder.py` judges by
+          the module's RUNG; gate: `tests/unit/test_lab_rung_beta.py` (and the map test reads the row as built)
+          {id: rungs-rung-4-market; files: lab/market.py, tests/unit/test_lab_rung_beta.py; after: rungs-rung-map}
+    - [ ] rung 6 benchmark excess: declares its RUNG in `lab/rung_benchmark.py`; wire: `lab/ladder.py` judges by
+          the module's RUNG; gate: `tests/unit/test_lab_rung_benchmark.py` (and the map test reads the row as built)
+          {id: rungs-rung-6-benchmark; files: lab/rung_benchmark.py, tests/unit/test_lab_rung_benchmark.py; after: rungs-rung-map}
+    - [ ] rung 7 deflated Sharpe, on L14's clustered set: declares its RUNG in `lab/rung_dsr.py`; wire: `lab/ladder.py` judges by
+          the module's RUNG; gate: `tests/unit/test_lab_rung_dsr.py` (and the map test reads the row as built)
+          {id: rungs-rung-7-dsr; files: lab/rung_dsr.py, tests/unit/test_lab_rung_dsr.py; after: rungs-rung-map, rungs-clustered-trials}
+    - [ ] rung 9 placebo on blocks of days: declares its RUNG in `lab/rung_placebo.py`; wire: `lab/ladder.py` judges by
+          the module's RUNG; gate: `tests/unit/test_lab_rung_placebo.py` (and the map test reads the row as built)
+          {id: rungs-rung-9-placebo; files: lab/rung_placebo.py, tests/unit/test_lab_rung_placebo.py; after: rungs-rung-map}
+    - [ ] rung 10 walk-forward folds (the ladder runs `pool`): declares its RUNG in `lab/folds.py`; wire: `lab/ladder.py` judges by
+          the module's RUNG; gate: `tests/unit/test_lab_folds.py` (and the map test reads the row as built)
+          {id: rungs-rung-10-folds; files: lab/folds.py, tests/unit/test_lab_folds.py; after: rungs-rung-map}
+    - [ ] rung 11 block bootstrap (no gate yet): declares its RUNG in `lab/rung_bootstrap.py`; wire: `lab/ladder.py` judges by
+          the module's RUNG; gate: `tests/unit/test_lab_rung_bootstrap.py` (and the map test reads the row as built)
+          {id: rungs-rung-11-bootstrap; files: lab/rung_bootstrap.py, tests/unit/test_lab_rung_bootstrap.py; after: rungs-rung-map}
+    - [ ] rung 12 retail, basket beside market: declares its RUNG in `lab/rung_retail.py`; wire: `lab/ladder.py` judges by
+          the module's RUNG; gate: `tests/unit/test_lab_rung_retail.py` (and the map test reads the row as built)
+          {id: rungs-rung-12-retail; files: lab/rung_retail.py, tests/unit/test_lab_rung_retail.py; after: rungs-rung-map}
   - [ ] L14 one clustered set of trials for the deflated Sharpe, its spread measured
         {id: rungs-clustered-trials; files: lab/trials.py, lab/rung_dsr.py, tests/unit/test_lab_trials_clustered.py; after: rungs-rung-map}
   - [ ] L15 the blind review of the whole ladder (R-RUNNER-40), every blocking finding fixed
-        {id: rungs-blind-review; files: lab/ladder*.py, tests/unit/test_lab_ladder*.py; after: rungs-each-rung, rungs-clustered-trials}
+        {id: rungs-blind-review; files: lab/ladder*.py, tests/unit/test_lab_ladder*.py; after: rungs-rung-1-sample, rungs-rung-4-market, rungs-rung-6-benchmark, rungs-rung-7-dsr, rungs-rung-9-placebo, rungs-rung-10-folds, rungs-rung-11-bootstrap, rungs-rung-12-retail, rungs-clustered-trials}
   - [ ] L16 the gate: the runner runs the catalogue 24x7, each change re-running only its
         own specs, each set's table published with "rungs built: n of 12"
         {id: rungs-gate; files: lab/ladder_sets.py, lab/ladder_pool.py, tests/unit/test_lab_ladder_pool.py; after: rungs-blind-review}
