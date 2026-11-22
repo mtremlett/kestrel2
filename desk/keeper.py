@@ -29,6 +29,10 @@ from typing import TypeVar
 
 from desk import archive, bars, carry, history, keeper_live, keeper_receipt, live, store, venues
 from desk.bars import Five
+from desk.keeper_parts import delays as delays
+from desk.keeper_parts import parked_live as parked_live
+from desk.keeper_parts import dropped as _dropped
+from desk.keeper_parts import source as _source
 from desk.keeper_rotate import Kept, order
 from desk.keeper_rotate import load as _kept
 from desk.keeper_rotate import record as _record
@@ -43,7 +47,6 @@ MARKS = "reference"  #: beside a venue's record, the day each reference series w
 RULES = hashlib.sha256(Path(store.__file__).read_bytes().replace(b"\r\n", b"\n")).hexdigest()
 SETTLED = timedelta(minutes=30)
 HELD = SETTLED + timedelta(minutes=5 + 4)  #: by this long after the auction the closes are held
-LATE = timedelta(minutes=15)  #: a line's five-minute bars are late, and it is parked, after this
 ROOM = 6  #: lines one call asks the broker for, per venue: at its pacing, two venues fit in SPENT
 TRIES = 6  #: the calls at which a line parked for a fault is asked again (half an hour)
 SPENT = 150.0  #: seconds of a call in which the archive is still asked (runner: 240)
@@ -80,22 +83,6 @@ def pound_closes(hot: Path) -> store.Rates:
     except (LookupError, FileNotFoundError):  # never kept: no close is held
         held = ()
     return {bar.day: bar.close for bar in held if DOLLARS[0] < bar.close < DOLLARS[1]}
-
-
-def _source(kept: Sequence[Bar], answer: store.Answer, broker: store.Answer | None) -> str:
-    """Who gave a line's newest kept bar: the broker, else the archive (and why not the broker)."""
-    gave = [{b.day for b in a} if isinstance(a, list | tuple) else None for a in (broker, answer)]
-    day = kept[-1].day if kept else None
-    if day in (gave[0] or ()):
-        return "IBKR"
-    why = "not asked" if gave[0] is None else "gave none"
-    return f"archive (IBKR {why})" if day in (gave[1] or ()) else "the shelf, or none"
-
-
-def _dropped(kept: Sequence[Bar], *answers: store.Answer | None) -> set[date]:
-    """The days the answers gave that the judge did not keep: withdrawn, never deleted."""
-    given = {b.day for a in answers if not isinstance(a, Refused | None) for b in a}
-    return given - {b.day for b in kept}
 
 
 def _standing(hot: Path, line: Line, day: date, broker: store.Answer | None) -> store.Answer | None:
@@ -244,37 +231,6 @@ def _reference(
         mark.write_text(day.isoformat(), encoding="utf-8")
         told.append(f"{line.symbol}: reference kept before {day}, {len(faults)} faults listed")
     return told
-
-
-def _ended(hot: Path, line: Line, now: datetime) -> list[Five] | None:
-    """A line's ended bars of the last LATE; none until its venue has been open for LATE."""
-    session = venues.open_at(line.venue, now)
-    if session is None or now - session.open < LATE:
-        return None
-    try:
-        held = bars.five(hot, line, now - LATE, now)
-    except LookupError:  # the store never held a bar of the line: it is missing
-        return []
-    return [bar for bar in held if bar.start + live.BAR <= now]
-
-
-def parked_live(hot: Path, lines: Sequence[Line], now: datetime) -> dict[str, str]:
-    """EACH LINE NOT TO BE TRADED NOW, and why: in session for LATE with no ended bar in the last
-    LATE, or whose bars there are out of line."""
-    parked = {}
-    for line in lines:
-        ended = _ended(hot, line, now)
-        if ended is not None and (
-            faults := bars.checked(line, ended)[1] if ended else ["no ended bar"]
-        ):
-            parked[line.symbol] = f"{faults[0]} in the last {LATE.seconds // 60} minutes"
-    return parked
-
-
-def delays(hot: Path, lines: Sequence[Line], now: datetime) -> dict[str, int]:
-    """THE SOURCE'S DELAY: minutes since each line's newest ended bar ended; parked lines absent."""
-    found = {line.symbol: _ended(hot, line, now) for line in lines}
-    return {s: (now - (e[-1].start + live.BAR)).seconds // 60 for s, e in found.items() if e}
 
 
 def stale(hot: Path, lines: Sequence[Line], now: datetime) -> list[str]:
