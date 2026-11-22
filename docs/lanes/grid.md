@@ -246,3 +246,11 @@ quietly taking the trading line of the same symbol. Blind review, nothing blocki
 rewritten in the new format. Options: (a) make `lab/sweep.py` refuse a store newer than its code, (b) have the runner
 update the week's clone before each pass, (c) wait. **Decided (b)**, as R-GRID-8: the code a pass runs is the runner's to
 supply, and (a) would guard a symptom; (c) loses days. The grid-week wait is 2026-11-28 (seven unbroken days from the restart).
+
+### 2026-11-22 — variants run as cells; the transfer study stays on the five
+
+R-RUNNER-362: `sweep.cells()` now adds a cell per variant of each rule declaring the line (`desk.strategy.VARIANTS` joins the
+rule book; a variant named like an existing rule is refused). Question: should `transfer=True` include the variants?
+Options: (a) include them; (b) keep transfer on the published five. **Decided (b)**: the request says the fast grid stays on
+the published five and transfer is on STRATEGIES; variants go through the desk engine unchanged (no edit to `lab/cell.py`).
+
