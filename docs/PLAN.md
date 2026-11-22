@@ -540,7 +540,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       (Box money-story: card money-story ended red or landed nothing 2 runs in a row; held, its lane goes on.)
 - [ ] Money honestly counted: interest on idle cash, with the risk-free rate in every
       Sharpe; currency gains and losses on dollar holdings reported apart from trading
-      profit; a fall from the book's highest point alerted on paper (BIC-03, BIC-04, BIC-05). BIC-05 on main (#1516); BIC-04 first step on main (#1542, `book.currency_gain`). Remains: BIC-03 (moves golden days, B5); BIC-04 for open holdings and the day's record
+      profit; a fall from the book's highest point alerted on paper (BIC-03, BIC-04, BIC-05). BIC-05 on main (#1516); BIC-04 on main for closed trades (#1542, #1569) and open holdings (#1596); BIC-03 interest told daily at `RISK_FREE` beside profit (#1560, #1584). Remains: interest inside the day's profit (moves golden days, B5); `RISK_FREE` in every Sharpe (lab, R-MONEY-65); currency and interest in the saved record (R-MONEY-66)
       {id: money-honest; files: desk/day.py, desk/book.py, tests/unit/test_day*.py,
       tests/unit/test_book*.py, desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml;
       after: money-fills}
