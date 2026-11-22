@@ -367,6 +367,8 @@ def test_a_round_trip_pairs_each_sale_with_the_buys_it_closes_in_pounds_after_ev
         (Decimal(0), Charges(*map(Decimal, ("4.2", "0.2", "0.2", "0", "1")))),
         (Decimal(-30), Charges(*map(Decimal, ("4.8", "0.285", "0.555", "0", "1.5")))),
     ]
+    #: the 10 dollar shares bought at 50 and 0.8 sold at 50 and 0.75: 25 pounds lost to the currency
+    assert book.currency_gain(tmp_path, (share, dollar), trips) == Decimal(-25)
     #: 500 dollars at 0.8, back at 0.75: a dollar's commission each way and the regulators'
     #: 1.225 cents on the sale; 0.03% conversion on the dollars moved each way
     conversion = Decimal("0.0003") * (501 * Decimal("0.8") + Decimal("498.98775") * Decimal("0.75"))
