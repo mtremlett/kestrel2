@@ -30,7 +30,7 @@ from typing import Any, BinaryIO
 from desk.command import CAPITAL
 from desk.lines import LINES, Line
 from desk.orders import Settings
-from lab import batch, cell, ladder, rung, sweep
+from lab import batch, cell, history_bars, ladder, rung, sweep
 from lab.cell import Cell, Record, Trade
 
 ME = "lab.montecarlo"  #: this module as the cell knows it
@@ -229,10 +229,11 @@ def _out(spread: Spread) -> list[str]:
 
 
 def priced(home: Path) -> Gains:
-    """The gains of a job from its line's bars in the data folder and the ladder's rates."""
-    pounds = cache(lambda: ladder.rates(home=home))
+    """The gains of a job from its line's bars and the pound, both from the history database (the
+    one door for prices); a grid job's bars from the grid's own store, which made its trades."""
+    pounds = cache(lambda: history_bars.pounds(home))
     settings = Settings(CAPITAL)
-    stores = {"ladder": ladder.stored(home), "grid": batch.stored(home / "grid" / "store")}
+    stores = {"ladder": history_bars.reader(home), "grid": batch.stored(home / "grid" / "store")}
 
     def gains(job: Job) -> Sequence[Decimal] | str:
         bars = stores[job.source](job.cell.line)
