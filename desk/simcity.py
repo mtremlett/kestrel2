@@ -347,9 +347,25 @@ def _stops(life: _Life) -> None:
     life.promise("a gap down past the stop refuses the buy", refused)
 
 
+def _apart(life: _Life, trips: tuple[book.RoundTrip, ...]) -> bool:
+    """BIC-04: the trips' gross is their trading at the buy's rate plus the currency's move."""
+    money = {line.symbol: line.currency for line in life.market}
+    traded = sum(
+        (
+            -t.sell.quantity
+            * (t.sell.price - t.buy.price)
+            * book.rate(life.desk, money[t.buy.symbol], t.buy.day)
+            for t in trips
+        ),
+        Decimal(0),
+    )
+    gross = sum((t.gross for t in trips), Decimal(0))
+    return traded + book.currency_gain(life.desk, life.market, trips) == gross
+
+
 def _told(life: _Life, trips: tuple[book.RoundTrip, ...]) -> bool:
     """Each trip has its story, and the profit attributed by line, and by days held, is each the
-    trips' own total."""
+    trips' own total; currency and trading add up to the gross (BIC-04)."""
     totals = (
         sum(book.attributed(trips, by).values(), Decimal(0))
         for by in (lambda t: t.buy.symbol, lambda t: (t.sell.day - t.buy.day).days)
@@ -359,6 +375,7 @@ def _told(life: _Life, trips: tuple[book.RoundTrip, ...]) -> bool:
     return (
         whole
         and chained
+        and _apart(life, trips)
         and all(total == sum((t.profit for t in trips), Decimal(0)) for total in totals)
     )
 

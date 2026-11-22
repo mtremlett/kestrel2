@@ -359,6 +359,25 @@ def round_trips(root: Path, lines: Iterable[Line]) -> tuple[RoundTrip, ...]:
     return tuple(trips)
 
 
+def currency_gain(root: Path, lines: Iterable[Line], trips: Iterable[RoundTrip]) -> Decimal:
+    """CURRENCY APART FROM TRADING (BIC-04): the pounds the trips gained or lost because the
+    currency moved between the buy's day and the sale's, the shares sold at the sale's price
+    times the change in the day's rate. A trip's gross less this is its trading profit."""
+    currency = {line.symbol: line.currency for line in lines}
+    return sum(
+        (
+            -t.sell.quantity
+            * t.sell.price
+            * (
+                rate(root, currency[t.sell.symbol], t.sell.day)
+                - rate(root, currency[t.buy.symbol], t.buy.day)
+            )
+            for t in trips
+        ),
+        Decimal(0),
+    )
+
+
 def attributed(
     trips: Iterable[RoundTrip], by: Callable[[RoundTrip], object]
 ) -> dict[object, Decimal]:
