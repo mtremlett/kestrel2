@@ -41,6 +41,14 @@ ANSWERS = {
 
 def _ask(address: str) -> bytes:
     assert HIDDEN in address
+    if "EARNINGS_CALENDAR" in address:
+        rows = (
+            "symbol,name,reportDate",
+            "NVDA,N,2026-11-19",
+            "NVDA,N,2027-02-01",
+            "ZZZZ,Z,2026-11-19",
+        )
+        return "\n".join(rows).encode()
     return json.dumps(next(a for host, a in ANSWERS.items() if host in address)).encode()
 
 
@@ -73,7 +81,7 @@ def test_one_run_writes_the_four_kinds_and_never_prints_a_key(
     assert held[("macro", "LNS14000000")] == [("2026-10", "3")]
     assert held[("macro", "T10101-GDP")] == [("2026Q3", "2.1")]
     assert held[("macro", "RWTC")] == [("2026-11-13", "60.5")]
-    assert held[("earnings", "NVDA")] == [("2026-11-19", "")]
+    assert held[("earnings", "NVDA")] == [("2026-11-19", "")] * 2  # Finnhub and Alpha agree
     assert ("2025-11-16T08:00:00+00:00", "Markets rally") in held[("news", "finnhub")]
     assert ("2026-11-16T09:30:00+00:00", "M") in held[("news", "marketaux")]
     out = capsys.readouterr()
