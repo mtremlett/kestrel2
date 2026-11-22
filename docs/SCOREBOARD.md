@@ -1002,3 +1002,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1768 RUNGS: registry test reads the real rungs from the registry; net 0 test lines (rungs-each-rung still blocked on its claim). |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1771 RUNGS L18 step 2: judge_lines, a rule judged on its own clustered lines, known answer pinned (box open: wiring). |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1795 RUNGS: rungs-indicators searched, no printed source for the last two tables; recorded and held back. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1767 data-door-writer: research refresh on the one writer; CSV half of lab/universe deleted. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1769 DATA: HOVER's alarm line prints SEND: for the runner (announce added). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1774 data-pound-history: nightly refresh wires the pound's noon rates; box open. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1782 DATA: hover command prints through announce, SEND: reaches the runner. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1790 data-pound-history: stored, read by the ladder, gaps named nightly; HOVER's filler remains. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1775 DATA scribe: folds #1736, #1750, #1752 (three lines). |
