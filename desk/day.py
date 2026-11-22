@@ -253,6 +253,31 @@ def _currency(
         )
 
 
+#: BIC-03: the yearly rate idle cash is told to earn, and the Sharpe's risk-free rate (4%).
+RISK_FREE = Decimal("0.04")
+
+
+def _interest(
+    root: Path,
+    archive: Mapping[Line, Sequence[Bar]],
+    day: date,
+    settings: Settings,
+    tell: book.Tell | None,
+) -> None:
+    """BIC-03: what the capital's idle cash earned at RISK_FREE from the first fill to this day,
+    told once a day beside the profit, not in it (golden days stand), only when positive."""
+    ledger, lines = book.fills(root), tuple(archive)
+    kept, currency = book.rates_kept(root), {line.symbol: line.currency for line in lines}
+    first = min((f.day for f in ledger), default=None)
+    if tell is None or first is None:
+        return  #: nothing traded, no idle cash to count
+    if any((f.day, currency.get(f.symbol)) not in kept for f in ledger):
+        return  #: a fill whose day's rate was never kept cannot be priced
+    earned = book.interest(root, lines, settings.capital, RISK_FREE, first, day)
+    if earned > 0:
+        tell(f"interest {day}", f"INTEREST: £{earned:.2f} earned on idle cash since {first}.")
+
+
 def _orders(
     root: Path,
     broker: Broker,
@@ -276,6 +301,7 @@ def _orders(
     _alert(root, day, settings, tell)
     _peak_fall(root, day, tell)
     _currency(root, archive, day, tell)
+    _interest(root, archive, day, settings, tell)
     watch = partial(_watch, root, archive, rates)  #: read again at each buy
     for d in (d for d in decided if d.action is Action.BUY):
         line = due[d.symbol]
