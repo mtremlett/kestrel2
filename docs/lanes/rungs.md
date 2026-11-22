@@ -366,3 +366,24 @@ then the break was removed:
 
 ### 2026-11-21 — one market for the weather table (R-RUNNER-371, #1481)
 - `weather.write` keeps one table, so the ladder job runs it on the US line (SPY) only. Options: SPY only, or a table per venue. Chosen SPY only (smallest step). The test drives `weather_line` directly, since a fixture database is heavy.
+
+### 2026-11-22 — intraday pricing lives beside the rules (R-RUNNER-354, #1488)
+- lab/intraday.py already held the rules and the claim named only it. Options: a new module (outside the claim) or add beside the rules. Chose the second; a later card may split it. No stop is modelled intraday: a 10% stop cannot be reached within a session.
+
+### 2026-11-22 — Keltner's ranges (B5, #1489)
+- Options: (a) 5/10/20 on both bands, as Donchian's row; (b) finer 8/10/12; (c) one band. Chose (a): meaningful spread, published 10 at the centre, nine trials keep the luck bar modest.
+
+### 2026-11-22 — weather names stay up/down (R-RUNNER-372, #1494)
+- `weather.named` keeps up/down so `by_weather` is unchanged. Rejected a new good/bad pair: it touches rung_regimes and verdict for nothing.
+
+### 2026-11-22 — Connors three-day ranges (B5, #1496)
+- Options: (a) entry run 2/3/4 and exit average 3/5/8, nine variants; (b) the 200-day filter too, 27. Chose (a): fewer trials for the luck test, same shape as ranged rows.
+
+### 2026-11-22 — a refused line is a row, not a crash (R-RUNNER-355, #1505)
+- A line whose bars the store cannot serve whole is a row saying "refused" and why. Options: crash the set, skip silently, refuse in the table. Chose the table, so nothing is hidden. Capital is the desk's CAPITAL as in other sets.
+
+### 2026-11-22 — Connors %b ranges (B5, #1503)
+- Options: (a) buy threshold only; (b) buy threshold, run and sale threshold together; (c) every setting incl. band and filter. Chose (b): 27 variants, published 20/3/80 centred; (c) would be 81+ trials and raise the luck bar for nothing.
+
+### 2026-11-22 — manifest line left alone (R-RUNNER-373, #1510)
+- The lanes guard allows only added manifest lines, so lab/history_bars.py's purpose line was not widened. Options: leave it, or loosen the guard. Taken (recommended): leave it; no guard loosened.
