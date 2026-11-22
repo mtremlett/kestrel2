@@ -274,7 +274,14 @@ def main(env: Mapping[str, str], argv: Sequence[str] = ()) -> int:
     if not env.get("KESTREL2_DATA"):
         sys.exit("ladder: KESTREL2_DATA names no data folder, so the set has no home")
     home = Path(env["KESTREL2_DATA"])
-    sets = ([], ["first"], ["leveraged"], ["intraday"], ["scalping"], ["variants"])
+    sets: tuple[list[str], ...] = (
+        [],
+        ["first"],
+        ["leveraged"],
+        ["intraday"],
+        ["scalping"],
+        ["variants"],
+    )
     if list(argv) not in sets:
         sys.exit(
             f"ladder: {list(argv)} is no set; the command takes nothing, `first`, `leveraged`, "
