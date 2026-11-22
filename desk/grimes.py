@@ -1,15 +1,10 @@
-"""grimes - ADAM GRIMES'S SETUPS AS A MACHINERY TEST ON PAPER (his ruling, 22 November 2026): the
-strategy catalogue (kestrel2_research/grimes/catalogue.md, version 3, reviewed at 9.8) of *The Art
-and Science of Technical Analysis* (Wiley, 2012), at its defaults, long only, on the daily bar,
-under the desk's one engine (`desk.strategy`). Its shared blocks (section 1) are worked once a bar
-by `Chart` and `Setup`; its one management module, MGMT (section 2), is `Trade`.
-
-WHAT THE ENGINE MAKES OF IT. The engine holds a line or not, deciding at a bar's close, filled at
-the next open: so a resting order (a buy-stop trigger, a protective stop) is a bar trading through
-its level, filled at the next open; the partials keep the share left (`Trade.left`) and sell
-nothing of one share; sizing by risk, the jitter's symbol, the higher-timeframe contexts, shorts
-(section 5) and every sweep are the ladder's. NONE IS EVIDENCE OF AN EDGE: none is in STRATEGIES
-or the ladder's rule book, and only the ladder judges (CANON B6)."""
+"""grimes - ADAM GRIMES'S SETUPS, A MACHINERY TEST ON PAPER (his ruling, 22 November 2026): the
+catalogue (kestrel2_research/grimes/catalogue.md v3, review 9.8), *The Art and Science of Technical
+Analysis* (2012) at its defaults, long only, daily, under the one engine (`desk.strategy`): blocks
+(section 1) worked once a bar by `Chart` and `Setup`, MGMT (section 2) by `Trade`. A resting order
+is a bar trading through its level, filled next open; one share: partials sell nothing; sizing
+by risk, the jitter's symbol, weekly contexts, shorts and sweeps are the ladder's. NEVER EVIDENCE:
+none is in STRATEGIES or the ladder's book; only the ladder judges (CANON B6)."""
 
 from __future__ import annotations
 
@@ -118,6 +113,8 @@ class Chart:
         mark = Mark(self._n, bar, mid, atr, fast, mx)
         self.marks.append(mark)
         self._swing(mark)
+        while self.pivots and self.pivots[0].n < self.marks[0].n:  #: none outlives its bar
+            self.pivots.popleft()
         return mark if full else None
 
     def _swing(self, mark: Mark) -> None:
@@ -166,7 +163,9 @@ def diverged(chart: Chart, k: int, upto: int) -> bool:
     returns to the EMA20, the fast line crosses zero, or 10 bars pass."""
     end, side = chart.pivots[k], chart.pivots[k].side
     prior = [p for p in list(chart.pivots)[:k] if p.side == side][-1:]
-    if not prior or _x(end.fast, side) > _x(prior[0].fast, side):
+    if not prior or _x(end.price, side) <= _x(prior[0].price, side):
+        return False  #: DIV needs a new swing extreme in price
+    if _x(end.fast, side) > _x(prior[0].fast, side):
         return False
     between, after = chart.since(prior[0].n, end.n), chart.since(end.n, upto)
     if not after or min(abs(m.fast) for m in between) > JITTER * after[-1].atr:
