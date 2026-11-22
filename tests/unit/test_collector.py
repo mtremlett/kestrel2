@@ -21,6 +21,7 @@ ANSWERS = {
     "api.massive.com": {"results": [{"T": "AAPL", "c": 190.5}, {"T": "ZZZZ", "c": 1}]},
     "api.tiingo.com": [{"date": "2026-11-13T00:00:00.000Z", "close": 190.4}],
     "eodhd.com": [{"date": "2026-11-13", "close": 51.2}],
+    "alphavantage.co": {"Time Series (Daily)": {"2026-11-13": {"4. close": "52.3"}}},
     "api.stlouisfed.org": {"observations": [{"date": "2026-11-13", "value": "4.1"}]},
     "finnhub.io/api/v1/calendar": {"earningsCalendar": [{"date": "2026-11-19", "symbol": "NVDA"}]},
     "finnhub.io/api/v1/news": [{"datetime": 1763280000, "headline": "Markets rally"}],
@@ -56,6 +57,8 @@ def test_one_run_writes_the_four_kinds_and_never_prints_a_key(
     assert ("price", "ZZZZ") not in held  # a ticker the desk holds no line for
     audited = collector.LONDON[datetime(2026, 11, 13).toordinal() % len(collector.LONDON)]
     assert held[("price", audited)] == [("2026-11-13", "51.2")]  # the day's London line
+    second = collector.LONDON[(datetime(2026, 11, 13).toordinal() + 1) % len(collector.LONDON)]
+    assert held[("price", second)] == [("2026-11-13", "52.3")]  # and the turn after it
     assert held[("macro", "DGS10")] == [("2026-11-13", "4.1")]
     assert held[("earnings", "NVDA")] == [("2026-11-19", "")]
     assert ("2025-11-16T08:00:00+00:00", "Markets rally") in held[("news", "finnhub")]
