@@ -287,3 +287,12 @@ def on(name: str, day: date) -> Members:
     names = record.symbols(day)
     listed = tuple(line for line in record.today if line.symbol in names)
     return Members(day, listed, tuple(sorted(names - {line.symbol for line in listed})))
+
+
+def bias(name: str, day: date) -> str:
+    """The survivorship bias of a study of today's list from day on, as a verdict's line."""
+    found = on(name, day)
+    return (
+        f"survivorship: {name} on {day}: {len(found.listed)} of "
+        f"{len(found.listed) + len(found.left)} members still listed, {len(found.left)} left"
+    )
