@@ -51,11 +51,11 @@ def rules(folder: Path | None = None) -> dict[str, type[Rule]]:
 
 
 def rule(name: str, folder: Path | None = None) -> type[Rule]:
-    """The class of the rule of that name; a variant (`row[settings]`) is made again from its
-    row, kept out of `rules()`; a name the book does not know is refused."""
-    if "[" in name:
-        return variants.rule(specs(folder=folder), name)
+    """The class of the rule of that name; a variant of a row (`row[settings]`) the book lacks
+    is made again from its row, kept out of `rules()`; any other name is refused."""
     book = rules(folder)
+    if name not in book and "[" in name:
+        return variants.rule(specs(folder=folder), name)
     if name not in book:
         raise ValueError(f"no strategy is called {name!r}")
     return book[name]
