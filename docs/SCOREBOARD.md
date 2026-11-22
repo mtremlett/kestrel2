@@ -647,6 +647,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1555 R-DATA-61 done; grid-week cause traced to a stale clone (R-GRID-8). |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1562 grid-week: failure cause found (stale clone), week survives a raising pass. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1563 grid-week: pass log names its failure causes; restart waits on the runner. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1612 grid-week: stale .faults notes swept as phantom tickers, held() filter restored. |
 
 ### RUNGS
 
