@@ -404,6 +404,13 @@ ZOO_RULES: Mapping[str, Callable[[], IntradayRule]] = {
     for m in ZOO
     if m.span and issubclass(m.rule, _Day)
 }
+#: The zoo's daily rules, which the desk's morning round trades on PAPER behind the same switch
+#: (desk/day.py _zoo), one share each, as a MACHINERY TEST: never in STRATEGIES, never judged.
+ZOO_DAILY: Mapping[str, type[Rule]] = {
+    m.name: m.rule  # type: ignore[misc]  # span None: a daily Rule (Machine.__post_init__)
+    for m in ZOO
+    if m.span is None
+}
 
 
 def zoo_lines() -> tuple[Line, ...]:

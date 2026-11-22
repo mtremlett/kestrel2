@@ -12,7 +12,7 @@ import pytest
 from desk import eponymous_keltner_channel_trend
 from lab import ladder, published
 from lab.published import Published
-from lab.published_epon import EPONYMOUS_PUBLISHED
+from lab.published_epon import EPONYMOUS_PUBLISHED, TESTED, Printed, Search
 
 RULE = "keltner_channel_trend"
 
@@ -28,6 +28,13 @@ def test_each_rule_on_file_is_proven_on_its_cases_and_names_its_source() -> None
     for name in EPONYMOUS_PUBLISHED:
         assert published.proven(name) is EPONYMOUS_PUBLISHED[name]
         assert name not in published.PUBLISHED and EPONYMOUS_PUBLISHED[name].source.strip()
+    assert set(TESTED) == set(names)  #: every rule's published test written down, or where looked
+    assert [n for n, t in TESTED.items() if t.candidate] == ["faber_tactical"]
+    assert TESTED["darvas_box"].said().startswith("no numbers found free (looked: web search")
+    with pytest.raises(ValueError, match="no page read and nowhere looked"):
+        Printed(Search.NONE, " ")
+    with pytest.raises(ValueError, match="no address, market, period or numbers"):
+        Printed(Search.SECOND, "https://x", "SPY")  #: no period, no numbers
 
 
 def test_a_rule_off_file_or_with_other_trades_or_other_code_is_refused_by_name(
