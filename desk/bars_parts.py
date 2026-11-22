@@ -20,14 +20,17 @@ from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
 from statistics import median_low
+from typing import TypeVar
 
 from desk import venues
 from desk.lines import Line
-from desk.spans import Five
+from desk.spans import Five, Timed
 from desk.store import FAR, JUMP, STRETCH
 
+B = TypeVar("B", bound=Five | Timed)  #: a bar of the five-minute kind or of any other span
 
-def _entered(line: Line, bar: Five) -> Five | str:
+
+def _entered(line: Line, bar: B) -> B | str:
     """The bar as it enters the store, or why it cannot be true on its own: the daily store's
     checks, made at five minutes. A bar belongs to a session's continuous trading: one that
     starts before the open, or at the close or after it, is no bar of that session."""
@@ -47,14 +50,14 @@ def _entered(line: Line, bar: Five) -> Five | str:
     return replace(bar, high=max(bar.high, *ends), low=min(bar.low, *ends))
 
 
-def _near(bar: Five, other: Five) -> bool:
+def _near(bar: Five | Timed, other: Five | Timed) -> bool:
     """The bar's whole range lies within a market's move of the other's close."""
     return other.close / JUMP <= bar.low and bar.high <= other.close * JUMP
 
 
 def checked(
-    line: Line, bars: Iterable[Five], held: Sequence[Decimal] = ()
-) -> tuple[list[Five], list[str]]:
+    line: Line, bars: Iterable[B], held: Sequence[Decimal] = ()
+) -> tuple[list[B], list[str]]:
     """The bars of one line that can be true, oldest first, and every fault found on the way.
     A moment given twice differently keeps neither bar. A bar a hundredfold from the middle
     of the closes held, or with none held the middle close of all that was given, is in a
@@ -62,20 +65,20 @@ def checked(
     than the store believes a market makes may be real: its bar is kept, and the move is a
     fault. Five minutes in which nothing traded have no bar, and that is no fault."""
     faults: list[str] = []
-    given: dict[datetime, set[Five]] = {}
+    given: dict[datetime, set[B]] = {}
     for bar in bars:
         given.setdefault(bar.start, set()).add(bar)
-    sound: list[Five] = []
+    sound: list[B] = []
     for start, said in sorted(given.items()):
         entered = _entered(line, next(iter(said))) if len(said) == 1 else None
-        if isinstance(entered, Five):
+        if entered is not None and not isinstance(entered, str):
             sound.append(entered)
         else:
             faults.append(entered or f"{start:%Y-%m-%d %H:%M} given {len(said)} ways; none kept")
     if not sound:
         return [], faults
     middle = median_low(held or [bar.close for bar in sound])
-    kept: list[Five] = []
+    kept: list[B] = []
     for bar in sound:
         at = f"{bar.start:%Y-%m-%d %H:%M}"
         if any(p >= middle * FAR or p * FAR <= middle for p in (bar.high, bar.low)):

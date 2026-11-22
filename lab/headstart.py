@@ -30,7 +30,7 @@ import tempfile
 from collections import Counter
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from contextlib import suppress
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, time
 from decimal import Decimal
 from functools import partial
@@ -38,6 +38,7 @@ from pathlib import Path
 
 from desk import archive, bars, store
 from desk.bars import EPOCH, Five, Source
+from desk.bars_parts import B
 from desk.compare import doubt
 from desk.lines import LINES, Line
 from desk.store import STRETCH, Bar, Refused
@@ -93,7 +94,7 @@ _ADJUSTED = "that are the adjusted form of the store's as-traded bars: not taken
 IMPORT = "| IMPORT |"  #: how a row of the data register naming a store to read in begins
 
 
-def _vouched(line: Line, bar: Five, day: Bar | None) -> Five | str:
+def _vouched(line: Line, bar: B, day: Bar | None) -> B | str:
     """The bar in the line's currency, if its day's fresh daily bar vouches for it; else why
     it does not."""
     if day is None:
@@ -102,7 +103,8 @@ def _vouched(line: Line, bar: Five, day: Bar | None) -> Five | str:
     for unit in (Decimal(1), PENCE) if line.currency in archive.PENCE else (Decimal(1),):
         if low <= bar.low * unit and bar.high * unit <= high:
             prices = (bar.open, bar.high, bar.low, bar.close)
-            return Five(bar.start, *_priced(prices, unit), bar.volume)
+            o, h, lo, c = _priced(prices, unit)
+            return replace(bar, open=o, high=h, low=lo, close=c)
     return "outside their day's fresh high and low"
 
 
