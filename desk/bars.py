@@ -27,6 +27,7 @@ from __future__ import annotations
 import sqlite3
 from collections.abc import Collection, Iterable, Iterator, Mapping
 from contextlib import ExitStack, closing, contextmanager
+from dataclasses import replace
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -54,7 +55,7 @@ from desk.bars_schema import SOURCED as SOURCED
 from desk.bars_schema import Source as Source
 from desk.compare import AGREE as AGREE
 from desk.compare import Verdict, judge
-from desk.lines import Line
+from desk.lines import REFERENCE, TAG, Line
 from desk.spans import DAILY as DAILY
 from desk.spans import EPOCH as EPOCH
 from desk.spans import FIVE as FIVE
@@ -252,6 +253,12 @@ def daily(path: Path, line: Line) -> tuple[Bar, ...]:
         Bar(date.fromordinal(at), Decimal(o), Decimal(h), Decimal(lo), Decimal(c), volume)
         for at, o, h, lo, c, volume in rows
     )
+
+
+def total_return(path: Path, line: Line) -> tuple[Bar, ...]:
+    """A line's daily history with its dividends kept in (UNI-07): a reference series' adjusted
+    twin, as the archive adjusts it; any other line as held (the yardstick VUAG accumulates)."""
+    return daily(path, replace(line, symbol=line.symbol + TAG) if line in REFERENCE else line)
 
 
 def five(path: Path, line: Line, since: datetime, until: datetime) -> tuple[Five, ...]:
