@@ -176,11 +176,11 @@ def held(spec: Spec, shared: Shared) -> Bools:
             holding = rule.step(bar, holding)
             out.append(holding)
         return np.array(out, dtype=np.bool_)
-    fire = {
-        place: shared.fires(getattr(spec, place), spec.params[place])
-        for place in ("entry", "exit", "filter")
-    }
+    walked = spec.stop in {"trailing_stop", "time_stop", "under_entry_low"}  #: held in the walk
+    places = ("entry", "exit", "filter") if walked else ("entry", "exit", "filter", "stop")
+    fire = {place: shared.fires(getattr(spec, place), spec.params[place]) for place in places}
     stop = Decimal(spec.params["stop"]["pct"]) if spec.stop == "trailing_stop" else None
     days = int(spec.params["stop"]["n"]) if spec.stop == "time_stop" else 0
     floor = spec.stop == "under_entry_low"
-    return _walk(shared.prices, fire["entry"] & fire["filter"], fire["exit"], stop, days, floor)
+    leave = fire["exit"] if walked else fire["exit"] | fire["stop"]  # the desk sells on either
+    return _walk(shared.prices, fire["entry"] & fire["filter"], leave, stop, days, floor)
