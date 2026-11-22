@@ -736,3 +736,6 @@ EODHD answers plain JSON; rotation by day ordinal audits all 13 London lines in 
 
 ### 2026-11-22 — note files chosen from each box's subject (DATA, #1623, #1649)
 Files and ordering for the unnoted boxes chosen from each box's subject and wiring; boxes needing deletion or new spend are marked waits: operator.
+
+### 2026-11-22 — one price reader; breadth kept, moved (data-door-bars, non-lane PR)
+Options: (a) delete `breadth` with the CSV reader, as the box said; (b) keep it, read through the door. Chose (b): R-RUNGS-32 owes it a caller, and moving it costs no new code. A line the database lacks raises FileNotFoundError, as a missing CSV did, so the ladder counts the cell as failed (`ladder.FAILED`; widening FAILED to LookupError would swallow KeyError bugs; blind review finding), and breadth leaves such a line out, as before.

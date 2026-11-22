@@ -12,9 +12,9 @@ import pytest
 from test_lab_plateau import FAIL, FIVE, PASS, PEAK, _a_rule_at_every_setting, _verdict
 from test_lab_sweep import BAE, _keep
 
-from desk import strategy
+from desk import bars, strategy
 from desk.lines import STAMP_DUTY, Line
-from lab import history_bars, transfer
+from lab import batch, history_bars, sweep, transfer
 from lab.rung import Answer, Verdict
 
 pytestmark = pytest.mark.usefixtures(_a_rule_at_every_setting.__name__)
@@ -78,6 +78,8 @@ def test_the_command_writes_the_labelled_page_and_data_and_a_second_run_gives_th
     transfer.main(argv)
     assert homes == [tmp_path.resolve()]  # the pound from the one door, the data folder
     first = (tmp_path / transfer.FOLDER / "grid-transfer.json").read_text(encoding="utf-8")
+    held = len(bars.daily(tmp_path / bars.LIVE, BAE))  # the CSV holds one bar more, never read
+    assert {row["bars"] for row in batch.rows(sweep.journal(tmp_path / "kept", BAE))} == {held}
     transfer.main(argv)
     sets = tmp_path / transfer.FOLDER
     assert (sets / "grid-transfer.json").read_text(encoding="utf-8") == first
