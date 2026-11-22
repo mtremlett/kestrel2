@@ -377,10 +377,13 @@ def _apart(life: _Life, trips: tuple[book.RoundTrip, ...]) -> bool:
 def _told(life: _Life, trips: tuple[book.RoundTrip, ...]) -> bool:
     """Each trip has its story, and the profit attributed by line, and by days held, is each the
     trips' own total; currency and trading add up to the gross (BIC-04)."""
-    totals = (
-        sum(book.attributed(trips, by).values(), Decimal(0))
-        for by in (lambda t: t.buy.symbol, lambda t: (t.sell.day - t.buy.day).days)
+    cuts = (  # strategy, line, holding time, cost: each cut of the profit table (TRD-12)
+        lambda t: orders.strategy_of(t.buy.order_id),
+        lambda t: t.buy.symbol,
+        lambda t: (t.sell.day - t.buy.day).days,
+        lambda t: t.costs.total,
     )
+    totals = (sum(book.attributed(trips, by).values(), Decimal(0)) for by in cuts)
     whole = len(book.told(trips, life.market)) == len(trips)
     chained = all(c.order_id and c.bar_day <= c.session for c in book.chains(life.desk))
     return (

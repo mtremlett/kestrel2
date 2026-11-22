@@ -249,7 +249,7 @@ its seconds: cold transfer 5,330 cells in 17 min, declared about 8 min, far insi
 
 ### Next step
 grid-week (waits: 2026-11-28): the pass runs old code (pre-#1210) on the new-format store, so 2,810 of 5,325 cells fail
-each hour (#1370, and 348 LSE/US stale `*.faults.csv` notes swept as phantom tickers until `held()` skipped them again, #1612; a failure now names its file, line and function; each pass line carries `why`, its three commonest errors, #1563; a raising pass is logged and the week carries on, #1562). The week must restart unbroken once the runner updates
+each hour (#1370, and 348 LSE/US stale `*.faults.csv` notes swept as phantom tickers until `held()` skipped them again, #1612; a failure now names its file, line and function; each pass line carries `why`, its three commonest errors, #1563, #1748: failed cells read `Invalid isoformat string: ''`, last written 21 Nov 03:27 under code 86bce5; a raising pass is logged and the week carries on, #1562). The week must restart unbroken once the runner updates
 its clone (R-GRID-8; frozen at 6793651f of 14 Nov, main's code runs these cells fine, #1555, #1700): 7 days not before 28 Nov, then read `sweep.unbroken(Path(KESTREL2_DATA))`.
 Every other box is ticked. Open: R-DATA-7 (`batch.stored` now reads through `universe.read`, #618; remains: a cell keeping
 `History.moves` and `.rescaled` in its record, which changes the cell's record and key), R-RUNGS-2 (declared sweep enters every cell in the register), R-RUNGS-4.

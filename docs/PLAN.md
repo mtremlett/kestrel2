@@ -187,7 +187,8 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
 - [ ] One door, one writer: `universe.nightly` and the Stooq files write into the history database through
       `bars.writing`, never the CSV store; `store.read`, `faults`, `shelve` and the CSV half of `prepare` are
       deleted with their tests; wire: the research refresh job; gate: the deleted names import nowhere
-      {id: data-door-writer; files: lab/universe.py, lab/universe_parts.py, lab/universe_history.py, desk/store.py, tests/unit/test_lab_universe*.py, tests/unit/test_store*.py; after: data-door-bars, money-door-slippage}
+      {id: data-door-writer; files: lab/universe.py, lab/universe_parts.py, lab/universe_history.py, lab/headstart.py, lab/headstart_days.py, desk/store.py, desk/store_scope.py,
+      tests/unit/test_lab_universe*.py, tests/unit/test_store*.py, tests/unit/test_lab_headstart*.py, tests/unit/test_keeper.py, tests/unit/test_lab_batch.py, tests/unit/test_lab_sweep.py, tests/scenes/test_scenes.py; after: data-door-bars, money-door-slippage}
 - [ ] **The old desk's stores as a head start, now** (his ask, 14 November): its daily and
       five-minute bars (Stooq and IBKR stores, and its per-ticker matrices) read in through
       the one store's checks, every bar re-checked, each kept with its source; where a fresh
@@ -299,7 +300,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       into the history database as rollup:<from>; #780: a rolled bar differing from a held one is a FAULT line on stderr; #797: `python -m desk.quality` audits, backfills and re-audits the daily timeframe; remains the other timeframes, market_live.db, local Stooq and rollup sources, the runner job; #930: backfill.fill takes one ordered source list, the rollup step needs Source.ROLLUP_5M in desk/bars_schema.py, outside the box's claim; #935: the audit counts a closed session of today), the long database for daily and up
       Re-carded (coordinator 54, 22 Nov: claim scope, not his: the claim now holds desk/bars_schema.py, which the rollup step's Source.ROLLUP_5M needs; inside the desk/ ceiling)
       Remainder (the monitor's filler writing 1h/4h/1wk rollups into market_history.db, audits of other spans and market_live.db) lives in desk/quality.py and desk/history_write.py (and desk/coverage.py), outside the claim; desk/quality.py is data-monitor's file: hold until data-monitor lands, then re-card with those files or fold into data-monitor. Its old stated wait was wrong: that request is done (#1568).
-      {id: data-two-stores; files: desk/bars.py, tests/unit/test_bars*.py, desk/keeper.py, tests/unit/test_keeper*.py, desk/bars_schema.py; after: data-ingest; waits: 2026-11-23}
+      {id: data-two-stores; files: desk/coverage.py, desk/history_write.py, desk/quality.py, tests/unit/test_coverage.py, tests/unit/test_history_write.py, tests/unit/test_quality.py, desk/bars.py, tests/unit/test_bars*.py, desk/keeper.py, tests/unit/test_keeper*.py, desk/bars_schema.py; after: data-ingest; waits: 2026-11-23}
 - [ ] **THE DATA MONITOR, FIRST (his priority, 22 Nov: "data quality needs to be top priority"; "the data monitor
       should always be running"):** measured 22 Nov 09:4x, both databases: daily 1,083 of 1,084 lines fresh and
       five-minute 43 of 44, but every other span stale: 1h 0 of 1,074 (newest 23 Oct), 4h 0 of 546 (29 Jul), 1wk
@@ -360,7 +361,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       Checked on main (#1101): venues.SESSION_YEARS 1993-2029, archive.SINCE 2000-01-01; nothing left to build.
       Built (#841): venues.KNOWN split into HOURS_YEARS and SESSION_YEARS, the store keeps bars from 2000, five real moves recorded. Remains: the first keeper round to fill 2000-2009 for all twenty lines and read any park. (coordinator 54, 22 Nov: not his: the keeper round is a runner job)
       Earlier (#819, #821, #822): the old Stooq store holds nothing before the archive's first bar, so no head start is left to write. `desk/store.py:152` and `desk/bars_parts.py:24` read `venues.KNOWN` (hours years, 2010-2029) as the sessions years (`venues.SESSION_YEARS`, 1993-2029), so every bar before 2010 is dropped; the US calendar's 2000-2009 sessions are pinned (#819). One session claiming desk/venues.py, store.py, bars_parts.py, lines.py and their tests: split KNOWN, point store at the sessions years, record five real moves in `real_moves` (AAPL 2000-09-29; NVDA 2000-04-05, 2004-08-06; AMD 2008-09-29, -30; confirm each on the archive's bars), then `python -m lab.headstart_days` and the keeper fill 2000-2009
-      {id: data-deep-history; files: desk/venues.py, tests/unit/test_venues*.py, lab/headstart.py, tests/unit/test_lab_headstart.py, desk/archive.py, tests/unit/test_archive*.py; after: data-calendar-years, data-polite; waits: 2026-11-23}
+      {id: data-deep-history; files: desk/bars_parts.py, desk/store.py, tests/unit/test_bars*.py, tests/unit/test_store*.py, desk/venues.py, tests/unit/test_venues*.py, lab/headstart.py, tests/unit/test_lab_headstart.py, desk/archive.py, tests/unit/test_archive*.py; after: data-calendar-years, data-polite; waits: 2026-11-23}
 - [x] A frozen feed: a week of one bar repeated is dropped and parks a recent line
 - [x] A suspension recorded on its line is no gap
 - [x] A one-day crash is kept and parks until recorded; only a hundredfold bar is a wrong unit
@@ -478,7 +479,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       MONEY file, but the ladder finds every `desk/eponymous_*.py` and `lab/published_epon.py` (RUNGS)
       must name it and `test_lab_published_epon.py` count 21, so neither lane's pull request is green
       alone. Needs one session claiming both lanes' files (the runner's to grant; coordinator 54, 22 Nov: not his)
-      {id: money-connors7; waits: R-RUNGS-10; files: desk/eponymous_connors_double_7.py, tests/unit/test_eponymous_connors_double_7.py, lab/published_epon.py, tests/unit/test_lab_published_epon.py, manifest.toml}
+      {id: money-connors7; waits: R-RUNGS-10; files: desk/eponymous_connors.py, tests/unit/test_eponymous_connors.py, desk/eponymous_connors_double_7.py, tests/unit/test_eponymous_connors_double_7.py, lab/published_epon.py, tests/unit/test_lab_published_epon.py, manifest.toml}
       (desk/ holds 100 of its 100 allowed files and the box adds a new desk file; lab/published_epon.py and its test are RUNGS files that the lane-ownership guard refuses on a MONEY branch. Re-card it in the RUNGS book with Double 7's folded into desk/eponymous_connors.py (131 lines, already holds %B and RSI-2), reusing commit 35158bb6, and drop R-MONEY-67 rather than raise the ceiling.) (Its files span MONEY (desk/eponymous_connors_double_7.py) and RUNGS (lab/published_epon.py and its test); the lane-ownership guard refuses that on a MONEY branch. It needs the coordinator to move the box to the RUNGS lane's book, with the rule file registered under RUNGS in manifest.toml. That loosens no guard. PR 588's branch holds working code to reuse.)
 - [x] The pretend broker: fills at the day's prices, rejects, partial fills, disconnection,
       a crash, resting stops, positions, and a position injected behind the desk's back
@@ -642,6 +643,27 @@ day's trading and reconciliation are built, and any broker can stand behind them
       `rates.csv` stays an audit record and is never read as a source; wire: the trading day and SimCity;
       gate: a test where `rates.csv` disagrees with the database and the database wins
       {id: money-door-pound; files: desk/day.py, desk/day_money.py, desk/book.py, desk/simcitycmd.py, desk/simcity_fills.py, tests/unit/test_day*.py, tests/unit/test_book*.py, tests/unit/test_simcity*.py; after: paper-door-pound}
+- [ ] A round never sends more orders than its step's time allows (coordinator 93's 20:5x ruling, option 2):
+      each market order waits `paper.FILL_SECONDS` (120 s) and the runner ends the desk step at 900 s, so a zoo
+      round of many one-share orders died mid-send (20 Nov, failure pattern 24). The step's time moves from
+      `desk/simcity_incidents.py:76` (STEP_SECONDS) to `desk/paper.py` beside FILL_SECONDS, one home, never a copy;
+      a round sends at most (STEP_SECONDS - margin) // FILL_SECONDS orders, the desk's own first, and the rest are
+      not sent, each kept in the day's record as carried to the next step. Opus, A6 blind review (money path).
+      Rejected: zoo orders that do not wait (a second send path), a longer timeout. The zoo goes back on only
+      after this lands and a zoo-on rehearsal says GO; gate: a test, written first, where a planted round of 20
+      one-share orders sends only the cap and names the rest carried
+      {id: money-round-cap; files: desk/day.py, desk/paper.py, desk/simcity_incidents.py, tests/unit/test_day*.py,
+      tests/unit/test_paper*.py, tests/unit/test_simcity*.py}
+- [ ] **Fault, the deep run (A3: a red deep test is a fault):** deep SimCity on 067062cd ended 22 Nov 22:37
+      "stuck in the worlds: no end in 7200 s" at `desk/book_parts2.py:48` (`_ledger`). The ledger file is read and
+      parsed whole on every `book.fills` and `book.found` call, and the day and the book call them about twenty
+      times a simulated day (desk/day.py:94-491, desk/book.py:145-441, desk/day_money.py:36, 79), so a world's
+      fourteen months re-read a growing file thousands of times: the twin of #1755 and #1704 (failure pattern 26).
+      Fix at the source: the ledger is read once per change of the file, never once per call; no retry, no longer
+      timeout, no second reader. Gate: a test, written first, where a planted ledger of 2,000 fills is opened at
+      most once across a simulated day's calls with no fill written, and once more after `_record` adds one
+      {id: money-ledger-once; files: desk/book_parts2.py, desk/book.py, desk/day.py, desk/day_money.py,
+      tests/unit/test_book*.py, tests/unit/test_day*.py, tests/unit/test_simcity*.py}
 
 ## Phase 3 — the money path, on paper
 
@@ -767,7 +789,7 @@ his PC with the desk's own client id (222), never 4001.
       record, the merge line and the runner's alerts behind the same door (MSG-02, MSG-03,
       MSG-04, MSG-09, MSG-11)
       Remains: hourly P&L (#471, #492), the kill and halt line (#502) and the email fallback (#484, wired into the step in #1309; the runner must hand SMTP_*, a preflight line is owed) landed; desk/messenger.py is at its 400-line limit and desk/ has 92 of 10,500 lines left, so the new messages are a fold inside the desk/ ceiling: shrink or merge messenger code first, as split-desk-keeper did, never a ceiling raise (coordinator 54, 22 Nov: re-carded so it is not blocked; a raise would be his). The daily messages end the last-day lines with the verdict and streak (#1636, MSG-03); still owed: the 05:40 start-of-day card, "the desk is not trading" by 09:30 UK, the SMTP preflight line (the streak shows as N of 10, #1665; the streak-above-0 test landed, #1675; messenger.py shrunk to 395 lines, #1698). The 05:40 card and 09:30 alarm need MORNING changed, which desk/running.py reads as "he is awake", so that card's claim adds desk/running.py, tests/unit/test_running.py, tests/unit/test_command.py (#1675). The evening message now names each lost stop (#805); messenger split to 349 lines (#782)
-      {id: paper-cards; files: desk/messenger.py, desk/messenger_parts.py, manifest.toml,
+      {id: paper-cards; files: desk/running.py, tests/unit/test_running*.py, tests/unit/test_command.py, desk/messenger.py, desk/messenger_parts.py, manifest.toml,
       tests/unit/test_messenger.py, tests/unit/test_messenger_parts.py; after: paper-messages, paper-running}
 - [x] FIRST-LIGHT counted by the desk itself: ten consecutive clean days, and a day that
       sent nothing cannot be green (NS-10) (#511: `desk/streak.py`; remains: showing the streak in the day's message and the pre-flight line)
@@ -829,7 +851,7 @@ grid-tune and grid-key side by side; then grid-pass, grid-week, grid-declared, g
       lab/sweep.py, lab/batch.py, lab/tune.py, tests/unit/test_lab_sweep.py,
       tests/unit/test_lab_batch.py, tests/unit/test_lab_tune.py, manifest.toml; after:
       grid-venue, grid-tune, grid-key}
-- [ ] Runs seven days without stopping. Remains: the week's clone runs pre-#1210 code against the new-format store (2,810 cells fail each hour since 21 Nov 03:21 UTC: #1370, and stale `.faults` notes swept as phantom tickers, filter restored in #1612), so the seven days restart unbroken once the runner brings it to current main and restarts the job; read `sweep.unbroken` on or after 28 Nov and tick if 7 days. A pass that raises is now logged and the week carries on (#1562); each pass line names its commonest failure causes (`why`, #1563); the 15 Nov stop's trigger is unproven {id: grid-week; waits: 2026-11-29; files: lab/batch.py, lab/sweep.py,
+- [ ] Runs seven days without stopping. Remains: the week's clone runs pre-#1210 code against the new-format store (2,810 cells fail each hour since 21 Nov 03:21 UTC: #1370, and stale `.faults` notes swept as phantom tickers, filter restored in #1612), so the seven days restart unbroken once the runner brings it to current main and restarts the job; read `sweep.unbroken` on or after 28 Nov and tick if 7 days. A pass that raises is now logged and the week carries on (#1562); each pass line names its commonest failure causes (`why`, #1563; the log line carries them, #1748); the 15 Nov stop's trigger is unproven {id: grid-week; waits: 2026-11-28; files: lab/batch.py, lab/sweep.py,
       lab/tune.py, tests/unit/test_lab_batch.py, tests/unit/test_lab_sweep.py,
       tests/unit/test_lab_tune.py}
 - [x] Each strategy judged on its own declared universe; the everything-on-everything grid
@@ -937,7 +959,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         any lab/rung_*.py is off that path (rungs_built equals the map)
         Gate done (#1676): the registry test pins the rung modules off the path, now seven after empty rung_beta.py was folded away (#1740) (benchmark, bootstrap, dsr, placebo, retail, sample, stops); it may only fall.
         Remains: wire or merge each (each needs lab/ladder.py, manifest.toml and its target in the claim; merges need R-RUNGS-29), then pin 'waiting is empty'
-        {id: rungs-each-rung; files: lab/rung_*.py, tests/unit/test_lab_rung_*.py; after: rungs-rung-map; waits: R-RUNGS-29}
+        {id: rungs-each-rung; files: lab/ladder.py, tests/unit/test_lab_ladder.py, lab/rung_*.py, tests/unit/test_lab_rung_*.py; after: rungs-rung-map; waits: R-RUNGS-29}
   - [x] L14 one clustered set of trials for the deflated Sharpe, its spread measured
         {id: rungs-clustered-trials; files: lab/trials.py, lab/rung_dsr.py, tests/unit/test_lab_trials_clustered.py; after: rungs-rung-map}
   - [ ] L15 the blind review of the whole ladder (R-RUNNER-40), every blocking finding fixed
@@ -960,7 +982,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         One correction, not two (decision b): the deflated Sharpe on clustered effective trials is the gate, the
         Bonferroni luck rung is report-only, and a rule is also judged on its pooled basket of lines;
         wire: verdict.judge and the set runner; gate: a known-answer case pins the effective trial count and both bars
-        {id: rungs-trials-live; files: lab/trials.py, lab/deflated.py, tests/unit/test_lab_trials.py, tests/unit/test_lab_deflated.py; after: rungs-clustered-trials}
+        {id: rungs-trials-live; files: lab/verdict.py, tests/unit/test_lab_verdict.py, lab/trials.py, lab/deflated.py, tests/unit/test_lab_trials.py, tests/unit/test_lab_deflated.py; after: rungs-clustered-trials}
   - [ ] L19 ONE VERDICT RULE: the eased scorecard (`verdict.scorecard`, MAX_WEAK) is built but never called, so one
         WEAK kills a cell; it is wired as the one answer or deleted, and regime's 30 trades in each half is
         proven fair by a power case (a t=3 edge over 60 trades)
@@ -975,13 +997,13 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         set runner's pre-flight; gate: a set whose inputs have gaps refuses to start.
         Step 1 built (#1680): `market.gaps`, `folds.gaps`. Step 2 built (#1706): `folds.preflight` (refuses a set with input gaps) and `folds.published` (1% FAULT), both uncalled. Remains: wire them into the set runner's pre-flight
         and the 1% publishing stop, both in lab/ladder_sets.py (claim must widen to it and its test), then rerun EPON; the gaps themselves are DATA's; claim widened to them (runner ops 92, 22 Nov)
-        {id: rungs-faults-not-answers; files: lab/ladder.py, lab/ladder_parts.py, lab/market.py, lab/folds.py, tests/unit/test_lab_ladder.py, tests/unit/test_lab_market.py, tests/unit/test_lab_folds.py; after: rungs-rung-map; waits: 2026-11-23}
+        {id: rungs-faults-not-answers; files: lab/ladder_sets.py, tests/unit/test_lab_ladder_sets.py, lab/ladder.py, lab/ladder_parts.py, lab/market.py, lab/folds.py, tests/unit/test_lab_ladder.py, tests/unit/test_lab_market.py, tests/unit/test_lab_folds.py; after: rungs-rung-map; waits: 2026-11-23}
 - [ ] **STRATEGIES AS DATA (his goal: 1,000+ strategies over 1,000+ tickers):**
   - [ ] B1 building blocks written once, each known-answer tested: indicators, entries,
         exits, stops, filters (regime filters among them), sizing. Built: every block has its
         known answer (#396). Built: the sizing block `VolatilitySize(n)`, by the desk's own `desk.risk.volatility` (#1637), now on the one `Block` interface (#1711). Remains: register it (a SIZE kind in lab/block_base.py, `volatility_size` in `BLOCKS`, the spec and simulator reading it; the claim must widen to those files; manifest line for lab/blocks.py to name sizing). Was: sizing blocks, once the volatility-sizing research settles their form
         (coordinator 54, 22 Nov: a research wait, not his: the volatility-sizing contest table is written, R-RUNNER-205, #1481; the session reads it to settle the sizing blocks' form)
-        {id: rungs-blocks; files: lab/blocks.py, tests/unit/test_lab_blocks.py; waits: operator}
+        {id: rungs-blocks; files: lab/block_base.py, lab/blocks.py, tests/unit/test_lab_blocks.py; waits: operator}
   - [ ] B2 a typed Spec, validated on entry: an unknown block or a bad setting is refused
         Remains (R-MONEY-45, #809, #823, #1382): 21 of 21 rules are rows (mansfield_rs_momentum #873, zweig breadth_thrust #1382, both run on ratio bars the caller builds); remains: a caller building Zweig's ratio bars from `lab.universe.breadth` (R-MONEY-35 wiring)
       {id: rungs-spec; files: lab/spec.py, tests/unit/test_lab_spec.py; waits: R-MONEY-35}
@@ -1025,7 +1047,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       of the figures); each reproduced on its author's own market first, and only then judged
       on ours. The bar for twenty-one trials is high and most are expected to fail: that is
       the information (BT-15, STR-14). Step 1 built (#1721): each rule's published test written down in `published_epon.TESTED` (only Faber has an author's own test); remains: reproduction (`lab/reproduce.py` taking an eponymous rule and CAGR, drawdown, time invested; S&P 500 total-return monthly from 1901)
-      {id: rungs-epon-first; files: lab/ladder_sets.py, lab/published_epon.py, tests/unit/test_lab_published_epon.py; after: rungs-trustworthy}
+      {id: rungs-epon-first; files: lab/reproduce.py, tests/unit/test_lab_reproduce.py, lab/ladder_sets.py, lab/published_epon.py, tests/unit/test_lab_published_epon.py; after: rungs-trustworthy}
 - [ ] **Published figures without buying books** (his ruling, 14 November): where an
       author's own table is not to be had free, the best published replication found on the
       internet stands in, labelled secondary, with its source, date, rules and period
