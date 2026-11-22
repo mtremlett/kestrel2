@@ -141,6 +141,13 @@ def test_what_cannot_be_the_market_it_took_is_refused() -> None:
     lost = market.judge(verdict, bars, YARDSTICK, up[:2500] + up[2501:], POUND)
     assert lost.answer is Answer.FAULT and (lost.line, lost.wide, lost.days) == (None, None, 0)
     assert f"VUAG has no bar on {hole} to set beside it" in lost.fault
+    #: L20: before a set starts, its input is read against the one calendar and the rates
+    gap, span = up[:2502] + up[2503:], (up[0].day, up[-1].day)
+    assert market.gaps(YARDSTICK, up, POUND, *span) == () == market.gaps(AAPL, [], POUND, *span)
+    said = f"VUAG has no bar on {up[2502].day}, a session of LSE"
+    assert market.gaps(YARDSTICK, gap, POUND, *span) == (said,)
+    shut = replace(YARDSTICK, suspended=frozenset({up[2502].day}))  #: a suspension is no gap
+    assert market.gaps(shut, gap, POUND, *span) == ()
     with pytest.raises(ValueError, match="did not make the verdict"):
         market.judge(verdict, bars[:-1], YARDSTICK, up, POUND)
     with pytest.raises(ValueError, match="never moved"):
