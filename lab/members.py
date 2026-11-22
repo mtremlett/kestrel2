@@ -63,6 +63,11 @@ class Members:
     listed: tuple[Line, ...]  #: still on the list today, in today's order: today's lines
     left: tuple[str, ...]  #: off this list since, in order of name: a name, not a line
 
+    @property
+    def survived(self) -> float:
+        """The share of that day's members still on the list today: the survivors' bias."""
+        return len(self.listed) / (len(self.listed) + len(self.left))
+
 
 @dataclass(frozen=True)
 class Record:
