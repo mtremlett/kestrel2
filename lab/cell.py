@@ -152,10 +152,10 @@ def reached(
     graph = {} if graph is None else graph
     start = _files(root, module)
     everything = _closure(root, graph, start, set())
-    upward, waiting = (
-        set(),
-        {own},
+    upward: set[str] = (
+        set()
     )  # the files that reach the module, found walking the imports backwards once
+    waiting = {own}
     while waiting:
         waiting = {p for p in everything if graph[p] & waiting} - upward
         upward |= waiting

@@ -5,6 +5,7 @@ move, and only then."""
 
 from __future__ import annotations
 
+import ast
 from collections.abc import Mapping, Sequence
 from dataclasses import replace
 from datetime import date, timedelta
@@ -252,20 +253,12 @@ def test_the_code_versions_read_each_file_once(monkeypatch: pytest.MonkeyPatch) 
     """R-GRID-7: loading took 9.4 minutes on a busy PC, as each rung's version parsed the lab again
     (5,822 parses of about 80 files). The versions are unchanged; each file is parsed once."""
     parsed: list[str] = []
-    real = cell.ast.parse
-    monkeypatch.setattr(
-        cell,
-        "ast",
-        type(
-            "Ast",
-            (),
-            {
-                **vars(cell.ast),
-                "parse": staticmethod(
-                    lambda source, name, *more: parsed.append(name) or real(source, name, *more)
-                ),
-            },
-        ),
-    )
+    real = ast.parse
+
+    def counting(source: str | bytes, filename: str) -> ast.Module:
+        parsed.append(filename)
+        return real(source, filename)
+
+    monkeypatch.setattr(ast, "parse", counting)
     assert cell.rungs() == cell.RUNGS
     assert len(parsed) == len(set(parsed)), f"{len(parsed)} parses of {len(set(parsed))} files"
