@@ -285,34 +285,51 @@ def _intraday(desk: Desk, broker: placing.Paper, venue: str, now: datetime) -> N
     """THE INTRADAY ROUND (R-RUNNER-202): each rule decides on each line of the venue at its
     latest whole bar (a zoo rule, on the zoo's lines); its orders go by the one send path, each
     id dated with its bar's start, so a bar seen twice sends once. A buy is refused as the
-    daily one is (day.refusal). Stops are then moved; a round that sent nothing is not kept."""
-    root, today, held = desk.root, now.date(), book.positions(desk.root)
+    daily one is (day.refusal). The day's rates are kept first, as the day's own round keeps
+    them, so every fill can be priced. Stops are then moved; a round sending nothing is unkept."""
+    book.record_rates(desk.root, now.date(), desk.rates(now.date()))
     said: dict[bool, list[str]] = {False: [], True: []}  #: the desk's rules' words; the zoo's
-    lines = {ln.symbol: ln for ln in LINES if ln.venue == venue}
-    zoo = {ln.symbol: ln for ln in intraday.zoo_lines() if ln.venue == venue}
-    owner = {f.symbol: strategy_of(f.order_id) for f in book.fills(root) if f.quantity > 0}
     for name, make in _rules(desk).items():
         machine = name in intraday.ZOO_RULES
-        bars = _latest(desk, zoo if machine else lines, make().span, now)
-        mine = {s: owner[s] for s in held if s in owner}
-        for d in intraday.today(venue, bars, mine, {name: make}):
-            if d.action is not Action.HOLD:
-                oid = f"{today:%Y%m%d}-{name}-{d.symbol}-{d.at:%H%M}{d.action.name[0]}"
-                order = _order(desk, d, lines[d.symbol], oid, bars[d.symbol][-1].close, held)
-                if isinstance(order, str):
-                    said[machine].append(order)
-                    continue
-                if machine and isinstance(order, Order):  #: tiny: one share, never the room
-                    order = replace(order, quantity=1)
-                room, stand = (ZOO_ROOM, True) if machine else (desk.room, False)
-                sent = day._send(root, broker, order, room, None, day.standing(root, today, stand))
-                tag = f" ({MACHINERY})" * machine
-                said[machine].append(
-                    f"{sent.order_id}, {sent.filled} shares done ({sent.reason or 'sent'}){tag}"
-                )
+        said[machine] += _rule_round(desk, broker, venue, now, name, make)
     if said[False] or said[True]:
-        restop.move(root, broker, LINES)
-    _bar_notes(root, now, venue, said)
+        restop.move(desk.root, broker, LINES)
+    _bar_notes(desk.root, now, venue, said)
+
+
+def _rule_round(
+    desk: Desk,
+    broker: placing.Paper,
+    venue: str,
+    now: datetime,
+    name: str,
+    make: Callable[[], intraday.IntradayRule],
+) -> list[str]:
+    """One rule's orders at the bar, each said; the book read afresh for it, so a line another
+    rule bought at this bar is held. A zoo rule decides on the zoo's lines, buys one share and
+    meets the gate with its own allowance (ZOO_ROOM, its own standing)."""
+    root, today, said = desk.root, now.date(), list[str]()
+    machine, held = name in intraday.ZOO_RULES, book.positions(desk.root)
+    owner = {f.symbol: strategy_of(f.order_id) for f in book.fills(root) if f.quantity > 0}
+    pool = intraday.zoo_lines() if machine else LINES
+    lines = {ln.symbol: ln for ln in pool if ln.venue == venue}
+    room = ZOO_ROOM if machine else desk.room
+    bars = _latest(desk, lines, make().span, now)
+    mine = {s: owner[s] for s in held if s in owner}
+    for d in intraday.today(venue, bars, mine, {name: make}):
+        if d.action is Action.HOLD:
+            continue
+        oid = f"{today:%Y%m%d}-{name}-{d.symbol}-{d.at:%H%M}{d.action.name[0]}"
+        order = _order(desk, room, d, lines[d.symbol], oid, bars[d.symbol][-1].close, held)
+        if isinstance(order, str):
+            said.append(order)
+            continue
+        if machine and isinstance(order, Order):  #: tiny: one share, never the room
+            order = replace(order, quantity=1)
+        sent = day._send(root, broker, order, room, None, day.standing(root, today, machine))
+        tag = f" ({MACHINERY})" * machine
+        said.append(f"{sent.order_id}, {sent.filled} shares done ({sent.reason or 'sent'}){tag}")
+    return said
 
 
 def _bar_notes(root: Path, now: datetime, venue: str, said: Mapping[bool, list[str]]) -> None:
@@ -337,6 +354,7 @@ def zoo_hour(root: Path, now: datetime) -> str:
 
 def _order(
     desk: Desk,
+    room: Settings,
     d: intraday.IntradayDecision,
     line: Line,
     oid: str,
@@ -352,7 +370,7 @@ def _order(
     buy = Decision(d.strategy, d.symbol, today, d.action)
     try:
         return replace(
-            size(buy, line, close, desk.rates(today)[line.currency], desk.room, held), order_id=oid
+            size(buy, line, close, desk.rates(today)[line.currency], room, held), order_id=oid
         )
     except Refused as refused:
         return str(refused)

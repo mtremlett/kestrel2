@@ -7,6 +7,8 @@ from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
 
+import pytest
+
 from desk import book, day, day_money, orders
 from desk.broker import Pretend
 from desk.halt import Blocker, Stopped
@@ -208,3 +210,22 @@ def test_the_zoo_stands_apart_so_neither_spends_the_others_losses_or_new_lines(
     book._write(tmp_path / day.RECORDS, [day.HEADER, day._row(lost)])
     ours, theirs = day.standing(tmp_path, TUE), day.standing(tmp_path, TUE, True)
     assert theirs.day_loss > 0 and ours.day_loss + theirs.day_loss == 300  # one record, split
+
+
+def test_the_zoos_holdings_never_fill_the_desks_five_nor_the_desks_the_zoos(tmp_path: Path) -> None:
+    lines = [Line(s, "LSE", "GBP", 1) for s in "ABCDEFGHIJ"]
+    broker = Pretend({line: BARS[A] for line in lines}, {})
+    broker.open(MON)
+
+    def buy(oid: str, line: Line) -> int:
+        return book.send(
+            tmp_path, broker, Order(oid, line, 1, *map(Decimal, (50, 1, 45))), ROOM
+        ).filled
+
+    assert [buy(f"20251110-zoo_x-{ln.symbol}-0800B", ln) for ln in lines[:5]] == [1] * 5
+    assert buy("20251110-trend-F", lines[5]) == 1  # the zoo's five leave the desk its own
+    assert [buy(f"20251110-d{n}-{ln.symbol}", ln) for n, ln in enumerate(lines[6:9])] == [1] * 3
+    with pytest.raises(Stopped, match="5 holdings already"):  # the zoo has five: its sixth goes not
+        buy("20251110-zoo_x-J-0805B", lines[9])
+    gone = book.send(tmp_path, broker, orders.Sale("20251110-goflat-A", lines[0], 1), ROOM)
+    assert gone.filled == 1  # go flat, the second kill level, still sells the zoo's shares
