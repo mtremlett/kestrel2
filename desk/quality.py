@@ -318,7 +318,8 @@ if __name__ == "__main__":
     home, now = Path(os.environ["KESTREL2_DATA"]), datetime.now(UTC)
     if sys.argv[1:] == ["hover"]:
         said, ok = hover(home / keeper.HOT, LINES, now)
-        sys.stdout.write(f"{said}\n")
+        told = watch(home / "hover_alarm.json", said, ok, now)
+        sys.stdout.write(f"{said}\n" + (f"{told}\n" if told else ""))
         sys.exit(0 if ok else 1)
     if sys.argv[1:] == ["register"]:
         counts, replaced = register(home / keeper.HOT, LINES)
