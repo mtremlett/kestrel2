@@ -176,6 +176,24 @@ def _holders(root: Path) -> dict[str, str]:
     return {symbol: h for symbol, h in buys.items() if h != "stranger"}
 
 
+#: BIC-05, AG-05: the pounds the book may stand below its highest point (his "£1,500").
+PEAK_FALL = Decimal(1500)
+
+
+def _peak_fall(root: Path, day: date, tell: book.Tell | None) -> None:
+    """ON PAPER A FALL FROM THE BOOK'S HIGHEST POINT PAST PEAK_FALL IS TOLD TO HIM (BIC-05): the
+    profits of the records so far, summed, against their highest running total. Alert only."""
+    total = peak = Decimal(0)
+    for record in records(root):
+        total += record.profit or Decimal(0)
+        peak = max(peak, total)
+    if tell is not None and peak - total > PEAK_FALL:
+        tell(
+            f"peak fall {day}",
+            f"DRAWDOWN ALERT: £{peak - total} below its highest; paper, trading on.",
+        )
+
+
 def _orders(
     root: Path,
     broker: Broker,
@@ -195,6 +213,7 @@ def _orders(
         sale = Sale(order_id_of(d), due[d.symbol], held[d.symbol], session=d.day)
         sent.append(_answer(root, day, _send(root, broker, sale, settings, tell, None)))
     _alert(root, day, settings, tell)
+    _peak_fall(root, day, tell)
     watch = partial(_watch, root, archive, rates)  #: read again at each buy
     for d in (d for d in decided if d.action is Action.BUY):
         line = due[d.symbol]

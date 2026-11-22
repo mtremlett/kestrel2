@@ -67,6 +67,24 @@ def test_a_day_that_opens_past_a_loss_limit_tells_him_once_a_drawdown_alert(tmp_
     assert [n for n, _ in told] == ["drawdown 2025-11-11"] * 2 and "DRAWDOWN ALERT" in told[0][1]
 
 
+def test_a_fall_past_1500_from_the_highest_point_tells_him_and_a_smaller_one_does_not(
+    tmp_path: Path,
+) -> None:
+    free = Charges(*[Decimal(0)] * 5)
+    told: list[tuple[str, str]] = []
+    for profit in (2_000, -1_500, -1):
+        n = len(day.records(tmp_path))
+        rows = [day.HEADER, *(day._row(r) for r in day.records(tmp_path))]
+        rows.append(
+            day._row(
+                day.Record(MON + timedelta(n), Decimal(profit), free, Decimal(0), (), Decimal(0), 0)
+            )
+        )
+        book._write(tmp_path / day.RECORDS, rows)
+        day._peak_fall(tmp_path, TUE, lambda n, w: told.append((n, w)))
+    assert [w for _, w in told] == ["DRAWDOWN ALERT: £1501 below its highest; paper, trading on."]
+
+
 def test_a_buy_that_moves_with_a_held_line_is_refused_and_one_that_does_not_goes(
     tmp_path: Path,
 ) -> None:
