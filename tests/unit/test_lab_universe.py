@@ -291,6 +291,7 @@ def test_breadth_counts_each_sessions_advances_and_declines_and_skips_a_line_wit
 ) -> None:
     kept, path = universe.SP500[:2], tmp_path / database.LIVE
     universe.refresh(tmp_path, DAY, kept, _ask, history=path)  # into the database too
+    universe.keep(tmp_path, DAY, [universe.SP500[2]], _ask)  # a line held only in a CSV: unread
     held = database.daily(path, MMM)
     counted = universe.breadth(path, [*kept, universe.SP500[2]])
     assert list(counted) == [b.day for b in held[1:]]

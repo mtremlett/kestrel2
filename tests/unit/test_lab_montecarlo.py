@@ -15,7 +15,7 @@ from desk import bars
 from desk.bars import Source
 from desk.lines import POUND
 from desk.store import Bar
-from lab import cell, montecarlo, universe
+from lab import cell, ladder, montecarlo, universe
 
 D = Decimal
 
@@ -154,3 +154,5 @@ def test_a_grid_cell_is_priced_from_the_database_never_a_bar_held_only_in_a_csv(
     job = montecarlo.Job("grid", todo, made.key.code + made.key.data, made.trades)
     priced = montecarlo.priced(tmp_path)
     assert priced(job) == priced(replace(job, trades=None)), "its trades were made on these bars"
+    with pytest.raises(ladder.FAILED, match="NONE on US"):  # counted as one failure, never a stop
+        priced(replace(job, cell=replace(todo, line=replace(BOEING, symbol="NONE"))))

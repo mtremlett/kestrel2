@@ -59,10 +59,14 @@ def _rescaled(before: Sequence[Bar], bar: Bar) -> bool:
 def read(path: Path, line: Line) -> History:
     """A ticker's bars from the history database beside the live file at path, the one door
     for prices: a bar held only in a CSV file is never read. Else as `_history`. A line the
-    database holds no bar for raises LookupError naming it."""
-    held = database.daily(path, line)
+    database holds no bar for raises FileNotFoundError naming it, as a missing file did: a
+    cell left unjudged and counted (`ladder.FAILED`), never a stopped run."""
+    try:
+        held = database.daily(path, line)
+    except LookupError:  # never held: told as no bar, below
+        held = ()
     if not held:
-        raise LookupError(f"{line.symbol} on {line.venue}: the history database holds no bar")
+        raise FileNotFoundError(f"{line.symbol} on {line.venue}: the history database holds no bar")
     return _history(held, line)
 
 
@@ -111,7 +115,7 @@ def breadth(path: Path, lines: Sequence[Line]) -> dict[date, tuple[int, int]]:
     for line in lines:
         try:
             held = read(path, line).bars
-        except LookupError:
+        except FileNotFoundError:
             continue
         for before, bar in zip(held, held[1:], strict=False):
             if bar.close != before.close:

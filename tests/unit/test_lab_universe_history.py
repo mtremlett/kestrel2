@@ -91,5 +91,7 @@ def test_research_reads_the_database_and_never_a_bar_held_only_in_a_csv(tmp_path
     with bars.writing(path, Source.ARCHIVE) as opened:
         opened.days(US, held[:-1])
     assert universe_parts.read(path, US).bars == held[:-1]
-    with pytest.raises(LookupError, match="ISF on LSE"):  # a line it lacks is named, never empty
+    with pytest.raises(
+        FileNotFoundError, match="ISF on LSE"
+    ):  # a line it lacks is named, never empty
         universe_parts.read(path, LSE)
