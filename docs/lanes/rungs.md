@@ -436,3 +436,12 @@ then the break was removed:
 - Blind review skipped on #1543, #1546, #1551 (four to eight lines of data, held by the plateau test, seen failing; ten-minute cards) and on #1550 (card under ten minutes).
 - SCALP (#1544): a rule with no trades on a line shows FAULT (no spread), as INTRADAY does; cost column a dash.
 - Intraday contest (#1550): edges scored on bars where both layer and daily label are named (same bars, a fair contest); scoring is `lab.weather.edges`' rule restated on bar starts; folds are contiguous slices of bar pairs.
+
+### 2026-11-22 — B5 ranges finished, bracket refused (#1591, #1574, #1595, #1604, #1615)
+- Promotion held: his standing ruling ("please always go with recommended to avoid waiting for me to attend") keeps rungs-promotion back until R-RUNGS-7 is ticked and a rule has passed the ladder; B5 was worked instead.
+- Bracket in a row name (#1591): refuse in `Spec.parse` (A2: the bad state cannot be built) rather than a cleverer `variants.find` or leaving it.
+- A setting two places share (#1574): (a) range each place apart (9 trials, six of rules nobody published); (b) a joined key `entry+exit` moving one value in both; (c) leave unranged. Chose (b). On conflicts with #1578 and #1587 it kept the joined key and main's values (Mansfield 130/260/390).
+- Zweig (#1595): range the port's 230-session hold (115/230/345), not Zweig's published thresholds. Blind review skipped (3-line data change under the plateau test).
+- Darvas (#1604): `n` ranged 2/3/4 jointly over entry and stop, both read one set of boxes.
+- DeMark (#1615): range the setup length 9 (7/9/11) shared by entry and exit, not the countdown 13 (nine variants for little gain).
+- Montecarlo (#1597): an error row is skipped before its keys are read, no try/except; a later error row keeps the same cell's earlier good row, since `priced` refuses stale trades.
