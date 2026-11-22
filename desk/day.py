@@ -295,8 +295,11 @@ def _orders(
     held = book.positions(root)
     for d in (d for d in decided if d.action is Action.SELL):  #: by the rule that holds it
         sale = Sale(order_id_of(d), due[d.symbol], held[d.symbol], session=d.day)
+        made = book.intend(
+            root, sale.order_id, (d.strategy, d.symbol, d.day), archive[sale.line][-1]
+        )
         answer = _answer(root, day, _send(root, broker, sale, settings, tell, None))
-        book.chain(root, d, archive[due[d.symbol]][-1], answer)
+        book.chain(root, made, answer)
         sent.append(answer)
     _alert(root, day, settings, tell)
     _peak_fall(root, day, tell)
@@ -307,8 +310,9 @@ def _orders(
         line = due[d.symbol]
         price = archive[line][-1].close, rates[line.currency]
         args = (root, broker, d, line, price, settings, day, tell, watch)
+        made = book.intend(root, order_id_of(d), (d.strategy, d.symbol, d.day), archive[line][-1])
         answer = _answer(root, day, _barred(d) if d.strategy in killed else _buy(*args))
-        book.chain(root, d, archive[line][-1], answer)
+        book.chain(root, made, answer)
         sent.append(answer)
 
 
@@ -345,7 +349,9 @@ def _strangers(
     for name in sorted({f.symbol for f in mine} & lines.keys()):  #: those a sale left whole too
         if (shares := sum(f.quantity for f in mine if f.symbol == name)) > 0:
             sale = Sale(f"{day:%Y%m%d}-stranger-{name}", lines[name], shares, session=day)
+            made = book.intend(root, sale.order_id, ("stranger", name, day), archive[sale.line][-1])
             sold.append(_answer(root, day, _send(root, broker, sale, settings, tell, None)))
+            book.chain(root, made, sold[-1])
     return sold
 
 
