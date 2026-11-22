@@ -45,7 +45,8 @@ def found(root: Path) -> tuple[Fill, ...]:
 
 
 #: each ledger as last read, under the file's (inode, mtime ns, size) then: SimCity asks for the
-#: fills some forty times a simulated day, and reading it whole each time hung the deep run
+#: fills some forty times a simulated day, and reading it whole each time hung the deep run; only
+#: the newest ledger is kept, so a night of a hundred worlds never holds a hundred ledgers
 _READ: dict[Path, tuple[tuple[int, int, int], tuple[Fill, ...]]] = {}
 
 
@@ -57,6 +58,7 @@ def _ledger(root: Path) -> tuple[Fill, ...]:
     seen = path.stat()
     stamp = (seen.st_ino, seen.st_mtime_ns, seen.st_size)
     if (kept := _READ.get(path)) is None or kept[0] != stamp:
+        _READ.clear()
         _READ[path] = kept = (stamp, _parse(path))
     return kept[1]
 
