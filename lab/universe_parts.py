@@ -14,6 +14,7 @@ from statistics import median
 
 import numpy as np
 
+from desk import bars as database
 from desk import store
 from desk.lines import Line
 from desk.store import Bar
@@ -56,11 +57,22 @@ def _rescaled(before: Sequence[Bar], bar: Bar) -> bool:
 
 
 def read(root: Path, line: Line) -> History:
-    """A ticker's bars from the research store at root, parked or not. No trade is priced
+    """A ticker's bars from the research store's CSV files at root (to be retired: `read_db`)."""
+    return _history(store.read(root / line.venue, line.symbol), line)
+
+
+def read_db(path: Path, line: Line) -> History:
+    """A ticker's bars from the history database beside the live file at path, the one door
+    for prices: a bar held only in a CSV file is never read. Else as `_history`. A line the
+    database holds nothing for has no bars."""
+    return _history(database.daily(path, line), line)
+
+
+def _history(bars: tuple[Bar, ...], line: Line) -> History:
+    """The longest run of bars on one scale. No trade is priced
     across a change of scale: the bars are the longest run between two (the later of two as
     long), and the unconfirmed moves inside it are named, so that a verdict can say how many
-    it was held through. A ticker the archive refused has no bars to read."""
-    bars = store.read(root / line.venue, line.symbol)
+    it was held through."""
     at = {bar.day: n for n, bar in enumerate(bars)}
     moved = [at[day] for day in store.moves(line, bars)]
     cuts = [n for n in moved if _rescaled(bars[:n], bars[n])]
