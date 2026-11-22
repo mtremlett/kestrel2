@@ -32,7 +32,9 @@ def _parked(tmp_path: Path, bars: tuple[Bar, ...], line: Line = US) -> list[str]
 
 
 def test_a_clean_line_is_stored_exactly_and_not_parked(tmp_path: Path) -> None:
+    (tmp_path / f"{US.symbol}.faults.csv").write_text("old")  # the old format's orphan
     assert store.prepare(tmp_path, {US: _bars(US), UK: _bars(UK)}, DAY) == ()
+    assert not list(tmp_path.glob("*.faults.csv"))  # a line is its one file, nothing beside it
     assert store.prepare(tmp_path, {US: _bars(US, LONG)}, DAY) == ()
     assert store.faults(tmp_path, US.symbol) == ()
     assert store.read(tmp_path, US.symbol) == _bars(US, LONG)
