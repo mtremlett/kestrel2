@@ -233,10 +233,13 @@ def test_the_rehearsal_lives_the_last_session_again_on_its_own_record_with_no_ma
     # the desk's zoo switch is rehearsed too: on in the desk, on at every rehearsed step
     zoos: list[bool] = []
     monkeypatch.setattr(running, "step", lambda desk, _now: zoos.append(desk.zoo))
-    (tmp_path / "desk" / command.ZOO_ON).touch()
+    (tmp_path / "desk" / running.ZOO_ON).touch()
     rehearse(5)
     assert zoos and all(zoos)
-    (tmp_path / "desk" / command.ZOO_ON).unlink()
+    (tmp_path / "desk" / running.ZOO_ON).unlink()
+    zoos.clear()
+    rehearse(6)
+    assert zoos and not any(zoos)  #: off by default: no file, no zoo (CANON B6)
     # not begun: on a day a market trades, or with the desk's own kill switch on; and with
     # the kill switch on
     book.turn(tmp_path / "desk", book.Switch.ON, MON, "his word")
