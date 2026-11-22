@@ -612,6 +612,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1478 R-RUNNER-160 morning heat line. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1482 R-RUNNER-208 compact messages landed; no scene changes. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1472 R-MONEY-58 closed; session set on every Sale. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1631 PAPER paper-supervised: supervised step has hours; Gateway night restart is no fault; box open. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1636 PAPER paper-cards: verdict and streak in the daily messages (MSG-03), partial. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1639 PAPER paper-supervised: restart window no longer a false alarm; box still open. |
 
 ### GRID
 
