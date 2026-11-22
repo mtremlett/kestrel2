@@ -212,6 +212,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1504 gapped stop halts buying (STP-10); hold limits and money-honest remain. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1509 money-story: decision-time id chain kept per decision; story.csv. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1516 BIC-05 paper alert on a £1,500 fall from the highest point. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1542 money-honest step 1: currency gain apart from trading profit (BIC-04), SimCity-proven. |
 
 
 ### DATA
@@ -482,6 +483,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1379 DATA: R-RUNNER-352 thin sessions rolled, 1h/4h audited. |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1396 R-RUNNER-351: the keeper reads no shelf CSV; `headstart.daily` removed. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1480 DATA R-RUNNER-350 part 3: five timeframes of the old database enter by their marks. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1568 DATA: R-DATA-62, the old desk's 1m rows can enter the store's checks. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
@@ -636,6 +638,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-17 | 7 of 7 | - | - | - | 14 of 14 proven | green | #766 R-RUNNER-285 soak folded into the tape (restructuring only). |
 | 2026-11-21 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1370 grid-week not ticked; a failed cell now names the line that raised it, and the cause of the 2,810 failures is found (old code, new store). |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1487 R-RUNNER-362 variants swept as cells. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1555 R-DATA-61 done; grid-week cause traced to a stale clone (R-GRID-8). |
 
 ### RUNGS
 
