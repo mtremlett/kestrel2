@@ -8,13 +8,20 @@ session's last bar. A new session empties the window."""
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from collections.abc import Sequence
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import ClassVar
 
-from desk import venues
-from desk.intraday import Span
+from desk import intraday, orders, venues
+from desk.intraday import IntradayRule, Span
+from desk.lines import Line
+from desk.orders import Leg, Settings
 from desk.rollup import Candle
+from desk.strategy import Action, Decision
+from lab import rung
+from lab.intraday import priced
+from lab.rung import Priced, Rates
 
 LOOKBACK = 3  #: bars the rise is measured over
 BURST = Decimal(2)  #: how many average ranges the rise must exceed
@@ -97,3 +104,33 @@ class VwapReversion:
         if vwap is None or bar.start + timedelta(minutes=self.span.value) >= found.close:
             return False
         return bar.close < vwap if holding else bar.close < vwap * (1 - BELOW_VWAP)
+
+
+def round_trip_cost(
+    line: Line, price: Decimal, day: date, rates: Rates, settings: Settings
+) -> Decimal:
+    """What a round trip costs on the line at the size the rung sizes, as a fraction of the
+    price paid: both legs by `orders.charges` (commission, fees, half the spread, slippage,
+    conversion, UK tax), the buy and the sale both at `price`."""
+    fx = rung.rate(line, rates, day)
+    buy = Decision("cost", line.symbol, day, Action.BUY)
+    shares = orders.size(buy, line, price, fx, settings, {}).quantity
+    both = orders.charges(line, Leg.BUY, shares, price, fx) + orders.charges(
+        line, Leg.SALE, shares, price, fx
+    )
+    return both.total / (shares * price * fx)
+
+
+def edge_needed(cost: Decimal, trades: Sequence[Priced]) -> Decimal | None:
+    """The gain per trade, before costs, the first rung needs to pass the trades seen: the
+    round trip's cost plus T_PASS standard errors of their gains; None under two trades."""
+    found = rung.mean_and_error([p.gain for p in trades])
+    return None if found is None else cost + rung.T_PASS * found[1]
+
+
+def trades_of(
+    rule: IntradayRule, line: Line, bars: Sequence[Candle], rates: Rates, settings: Settings
+) -> tuple[Priced, ...]:
+    """The rule run on one session's bars, its trades priced through `lab.intraday.priced`."""
+    got = intraday.run(type(rule).__name__, rule, line.venue, line.symbol, bars)
+    return priced(line, [*got], bars, rates, settings)
