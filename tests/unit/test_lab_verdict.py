@@ -20,7 +20,7 @@ from lab.cell import Cell
 from lab.folds import Pooled
 from lab.rung import Answer, Rates
 
-#: EASED refuses a judge asked without the rule's family count: the off path asks by name
+#: the off ladder's cells, asked for by name
 OFF = pytest.mark.usefixtures("eased_off")
 CELL = Cell("breakout_20_10", VUSA, EDGE[0].day, ladder.END)
 

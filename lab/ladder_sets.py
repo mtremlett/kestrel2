@@ -45,7 +45,7 @@ from lab.cell import Cell
 from lab.ladder import END, FOLDER, START, Kept, Plan, eponymous, run
 from lab.ladder_parts import FAILED, Shared, _made, _resolve, faults
 from lab.published_epon import TESTED
-from lab.rung import Answer, Rates
+from lab.rung import Answer, Rates, Verdict
 
 EPON = Plan("EPON", "set EPON: does an eponymous rule earn on a line the store holds?", "EPON")
 LEV = Plan("LEV", "set LEV: does a trend rule earn on a leveraged line the store holds?", "LEV")
@@ -206,7 +206,7 @@ def baskets(
     """One basket row for each rule that has a line to pool: the lines' first rungs (a line that
     cannot be read or that the sizing refuses is left out), each basket one look among the set's
     baskets, one a rule (L18: never every line the register ever held)."""
-    shared, rows = Shared(todo), list[verdict.Row]()
+    shared, pooled = Shared(todo), list[tuple[str, list[Verdict], Answer]]()
     for rule in rules:
         firsts, stresses = [], []
         for c in (one for one in todo if one.strategy == rule):
@@ -220,16 +220,18 @@ def baskets(
                 continue
         firsts = [first for first in firsts if not first.refused]
         stressed = next((a for a in stresses if a is not Answer.PASS), Answer.PASS)
-        if firsts:
-            against = _against(firsts[0].key.cell.line, bars, pounds)
-            rows.append(basket.row(plan.tag, rule, firsts, len(rules), stressed, against))
-    return rows
+        pooled += [(rule, firsts, stressed)] if firsts else []
+    return [  #: charged the baskets the set judges, never a rule that gave none
+        basket.row(plan.tag, rule, firsts, len(pooled), stressed, _against(firsts[0], bars, pounds))
+        for rule, firsts, stressed in pooled
+    ]
 
 
-def _against(line: Line, bars: Bars, pounds: Rates) -> rung_retail.Against:
+def _against(first: Verdict, bars: Bars, pounds: Rates) -> rung_retail.Against:
     """The market a basket is set beside: its first line's venue's (`ladder.MARKETS`), its bars
     and the pound rates."""
-    market = next(one for one in LINES if one.symbol == ladder.MARKETS[line.venue])
+    venue = first.key.cell.line.venue
+    market = next(one for one in LINES if one.symbol == ladder.MARKETS[venue])
     return rung_retail.Against(market, bars(market), pounds)
 
 

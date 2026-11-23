@@ -57,7 +57,7 @@ def row(
     is the market it is set beside: while EASED the retail rung (`lab/rung_retail.py`) is read."""
     basket = pool(lines)
     (one,) = deflated.judge([basket], looks - 1)  #: every other basket of the set
-    rungs = verdict.named(basket, one, rule)
+    rungs = verdict.named(basket, one)  #: its trials the set's baskets, no family's
     if against is not None and (retail := rung_retail.grade(basket, against)) is not None:
         rungs["retail"] = retail
     return {

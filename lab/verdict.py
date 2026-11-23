@@ -307,9 +307,9 @@ class Pool:
         if self.unlooked is not None:  #: remembered, as `fold` remembers its own
             raise self.unlooked
         try:
-            if self.looks is None:
-                judged = deflated.judge_lines(list(self.firsts.values()))
-                self.looks = dict(zip(self.firsts, judged, strict=True))
+            if self.looks is None:  #: a line the sizing refused is no look of the rule's
+                kept = {c: first for c, first in self.firsts.items() if first.refusal is None}
+                self.looks = dict(zip(kept, deflated.judge_lines(list(kept.values())), strict=True))
         except ValueError as cannot:
             self.unlooked = cannot
             raise
