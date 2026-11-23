@@ -715,3 +715,25 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 - Options: resend the CARRIED ids in `running._again` now, or list them honestly under `halt.morning` and resend later. Chosen: list them, with words saying "not sent today". The churn guard bars a third fix to `desk/running.py` until FAILURE_PATTERNS names the file, which a lane cannot write. His words: "always go with recommended".
 - The cap has one count, `day._room`. Carried ids equal the morning list's (tested).
 - Reverted 23 Nov (coordinator 140): #2036 landed over its A6 NO-GO (B1: carried orders dropped for the day) and moved the golden; R-RUNNER-456 is rebuilt from main with a real carry.
+
+### 2026-11-23 - A day's loss never crosses into a new week; golden re-pinned (#2039, R-RUNNER-455)
+London refused every buy on Mon 23 Nov 08:13 for "386.17 pounds lost this day", which was
+Friday's loss: `day_parts.standing` took the last record whatever its week, while the week's
+loss already reset on Monday. His words, Mon 23 Nov 09:05: "Reset the loss value asap".
+Decided: the day's loss is the last record of the day's own ISO week, so a Monday opens free
+of Friday and a lost day still stands against the next within the week. Options: (a) only a
+record dated today (coordinator 128), rejected: it turns three tested within-week refusals
+red and loosens the gate (canon A3); (b) the week's last record, chosen (#2005, brought here
+by R-RUNNER-455). Test: `test_a_monday_opens_free_of_fridays_loss_and_a_record_of_today_still_counts`,
+red on main 0f495ec6, green with the fix. The golden run moves (canon B5, the desk approves,
+his 22 Nov ruling): fills 68 -> 64, round trips 34 -> 32, profit over the fixture 1098.41 ->
+61.86, costs 368.78 -> 353.78, market 783.73 unchanged. Why: a week's first day after a losing week is
+no longer barred from buying, so which lines are held, and so every later buy and stop, differs
+from there on; net, four fewer fills (not traced fill by fill). The new figures are the rule's
+true result on the fixture, not a tuning target.
+
+- Stopped at the churn guard (third `fix` to `desk/day_parts.py` in ten changes, no failure pattern names it); retitling to dodge it is forbidden, so no retry. It waits on one line in pattern 20 naming the file, recorded outside the lanes.
+- Golden run now (310, 64, 32, 61.86, 353.78, 783.73), matching runner ops 132. Found, not fixed: `desk/risk.py` `day_loss` comment and its "in the last session" text still describe the old rule.
+
+### 2026-11-23 - money-connors7 waits on R-RUNGS-10 (#2052)
+- Options: raise the desk/ ceiling (100 of 100 files; his alone), or hand the box to RUNGS. Chosen: re-card it in the RUNGS book with Double 7 folded into `desk/eponymous_connors.py` (reusing commit 35158bb6) and drop R-MONEY-67. MONEY goes on to money-saved-fx (R-MONEY-66) and money-time-gaps (R-MONEY-62/64). By his "always go with recommended".

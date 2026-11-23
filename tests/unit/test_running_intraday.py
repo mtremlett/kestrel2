@@ -4,16 +4,19 @@ once, a restart mid-session sends nothing twice, and with no rule the day is unc
 from __future__ import annotations
 
 from dataclasses import replace
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 from typing import ClassVar
+from unittest.mock import Mock
 
 import pytest
-from test_running import MON, _desk
+import test_placing as tp
+from test_reports import END
+from test_running import FLAT_, MON, _desk, _step
 
-from desk import book, command, handpark, intraday, kill, running, venues, watch
-from desk.broker import Pretend
+from desk import book, command, handpark, intraday, kill, paper, running, venues, watch
+from desk.broker import Disconnected, Pretend
 from desk.intraday import Span
 from desk.lines import YARDSTICK
 from desk.orders import is_zoo
@@ -105,3 +108,17 @@ def test_londons_round_waits_for_nine_after_the_dead_window(tmp_path: Path) -> N
     look = watch.Look(MON, (), {})  # R-RUNNER-453: no London market order before 09:00 has filled
     assert running._pending(tmp_path, MON.replace(hour=8, minute=10), look) == []
     assert running._pending(tmp_path, MON.replace(hour=9, minute=5), look) == ["LSE"]
+
+
+def test_the_steps_intraday_round_sends_through_a_broker_that_takes_an_order_dated_today(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    desk = replace(_desk(tmp_path, IITU=FLAT_)[0], rules={"flip": _Flip})
+    now, bar = datetime(2026, 12, 1, 9, 5, tzinfo=UTC), Mock()  # R-RUNNER-468: 143 refused
+    monkeypatch.setattr(watch, "look", lambda *_, **__: watch.Look(now, (), {}))
+    monkeypatch.setattr(running, "_round", Mock())
+    monkeypatch.setattr(running, "_intraday", bar)
+    _step(monkeypatch, desk, now, [END], tp.EMPTY)
+    monkeypatch.setattr(paper, "dial", Mock(side_effect=ConnectionRefusedError))
+    with pytest.raises(Disconnected):  # past the session's gate: only the gateway is left
+        bar.call_args.args[1]._cleared(replace(tp.SALE, session=now.date()))
