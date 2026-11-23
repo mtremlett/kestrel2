@@ -224,6 +224,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1777 money-story: chain now carries asked beside filled. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1796 money-small: gate cap on traded value (SIZ-10) landed, feed and TRD-10 flag open. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1805 money-story done: profit table scene covers all four cuts. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1823 money-round-cap: cap built and tested (7 orders a round), 1 file move left; box not ticked. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1833 money-small: fixtures ready, liquidity cap still unfed. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1861 money-honest: no box ticked; docstring only, interest stays beside profit. |
 
 
 ### DATA

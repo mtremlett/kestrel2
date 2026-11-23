@@ -601,7 +601,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
 - [ ] Time and gaps: a time stop after the strategy's declared holding period; a gap that
       jumps the stop held against the loss limit; a hold limit and gap sizing for the
       leveraged lines (STP-11, STP-10, SIZ-09). Step 1 on main (#845): time stop in `strategy._run`, `orders.gap_loss`/`gapped`. Step 2 on main (#1449): the time stop ages from the book's fill date. Step 3 on main (#1504): a gapped stop halts buying (`day._stand_down`). Remains: each rule's hold limit from its own sell logic (his ruling Sat 21 Nov 21:33; moves golden days, strategy files outside this claim, B5), then `orders.gapped` at `book.collect`.
-      {id: money-time-gaps; files: desk/day.py, desk/orders.py, desk/strategy.py,
+      {id: money-time-gaps; waits: 2026-11-24; files: desk/day.py, desk/orders.py, desk/strategy.py,
       tests/unit/test_day*.py, tests/unit/test_orders*.py, tests/unit/test_strategy*.py,
       desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml, desk/book.py, tests/unit/test_book*.py,
       desk/eponymous_*.py, tests/unit/test_eponymous*.py, desk/grimes.py, tests/unit/test_grimes*.py, tests/scenes/test_scenes.py; after: money-limits}
@@ -624,8 +624,8 @@ day's trading and reconciliation are built, and any broker can stand behind them
       (coordinator 54, 22 Nov: settled: its Remains were rewritten to name the real jobs, #1573)
 - [ ] Money honestly counted: interest on idle cash, with the risk-free rate in every
       Sharpe; currency gains and losses on dollar holdings reported apart from trading
-      profit; a fall from the book's highest point alerted on paper (BIC-03, BIC-04, BIC-05). BIC-05 on main (#1516); BIC-04 on main for closed trades (#1542, #1569) and open holdings (#1596); BIC-03 interest told daily at `RISK_FREE` beside profit (#1560, #1584). Remains: interest inside the day's profit (moves golden days, B5; tests/scenes/test_scenes.py claimed, runner ops 106, 23 Nov). `RISK_FREE` in every Sharpe is RUNGS's request R-MONEY-65; the saved record is money-saved-fx, done
-      {id: money-honest; files: desk/day.py, desk/book.py, tests/unit/test_day*.py,
+      profit; a fall from the book's highest point alerted on paper (BIC-03, BIC-04, BIC-05). BIC-05 on main (#1516); BIC-04 on main for closed trades (#1542, #1569) and open holdings (#1596); BIC-03 interest told daily at `RISK_FREE` beside profit (#1560, #1584). Remains: `RISK_FREE` in every Sharpe (lab, R-MONEY-65), then drop "interest inside the day's profit" from the box: interest stays beside profit as its own column and daily line, since profit must equal the ledger (#1861, decided). `RISK_FREE` in every Sharpe is RUNGS's request R-MONEY-65; the saved record is money-saved-fx, done
+      {id: money-honest; waits: R-MONEY-65; files: desk/day.py, desk/book.py, tests/unit/test_day*.py,
       tests/unit/test_book*.py, tests/scenes/test_scenes.py, desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml;
       after: money-fills}
 - [x] Currency and interest kept in the day's saved record, beside profit, so a later day
@@ -639,8 +639,8 @@ day's trading and reconciliation are built, and any broker can stand behind them
       needs `desk/simcity.py, tests/unit/test_simcity*.py` in its files, one session at a time;
       a function no scenario runs turns the check red: halts and limits among them.)
       {id: money-census; files: desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml;
-      after: money-watch, money-stranger, money-time-gaps,
-      money-golden, money-story, money-honest}
+      after: money-watch, money-stranger,
+      money-golden, money-story}
 
 - [x] **ONE DOOR FOR PRICES, slippage** (his 22 Nov ~10:00, "paramount": every price is read from market_history.db or market_live.db alone): `lab/slippage.py:104` reads `bars.daily(home / keeper.HOT, line)`,
       not the `daily/*.csv` files nothing writes any more; wire: its study; gate: its contract test on a database fixture
@@ -649,7 +649,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       (desk/day.py:201, 241, 274; day_money.py:23; book.py:318; simcitycmd.py:176; simcity_fills.py:111);
       `rates.csv` stays an audit record and is never read as a source; wire: the trading day and SimCity;
       gate: a test where `rates.csv` disagrees with the database and the database wins
-      {id: money-door-pound; files: desk/day.py, desk/day_money.py, desk/book.py, desk/simcitycmd.py, desk/simcity_fills.py, tests/unit/test_day*.py, tests/unit/test_book*.py, tests/unit/test_simcity*.py; waits: 2026-11-23}
+      {id: money-door-pound; files: desk/day.py, desk/day_money.py, desk/book.py, desk/simcitycmd.py, desk/simcity_fills.py, tests/unit/test_day*.py, tests/unit/test_book*.py, tests/unit/test_simcity*.py; waits: 2026-11-24}
 - [ ] A round never sends more orders than its step's time allows (coordinator 93's 20:5x ruling, option 2):
       each market order waits `paper.FILL_SECONDS` (120 s) and the runner ends the desk step at 900 s, so a zoo
       round of many one-share orders died mid-send (20 Nov, failure pattern 24). The step's time moves from
@@ -660,6 +660,8 @@ day's trading and reconciliation are built, and any broker can stand behind them
       after this lands and a zoo-on rehearsal says GO; gate: a test, written first, where a planted round of 20
       one-share orders sends only the cap and names the rest carried
       (runner ops 106, 23 Nov, coordinator 103's D1: desk/paper.py is PAPER's; its constants come from paper-step-time, then this box points simcity_incidents at them and drops its own)
+      (money-time-gaps waits to 2026-11-24: 5 sessions in a row landed no change, the doctor asks why; money-honest waits on R-MONEY-65, said in #1861; money-door-pound parked a day, MONEY-s10, canon A8)
+      (#1823: cap built, MAX_ORDERS = 7, the rest carried; constants sit in desk/day.py. Remains: move STEP_SECONDS, STEP_MARGIN, MAX_ORDERS to desk/paper.py (R-MONEY-69); Blocker.CARRIED in desk/halt.py; blind review (A6); zoo-on rehearsal GO before the zoo returns)
       {id: money-round-cap; files: desk/day.py, desk/simcity_incidents.py, tests/unit/test_day*.py,
       tests/unit/test_simcity*.py; after: paper-step-time}
 - [x] **Fault, the deep run (A3: a red deep test is a fault):** (#1813: ledger opened once per change, 50,412 -> 228 opens on the fixture night) deep SimCity on 067062cd ended 22 Nov 22:37
