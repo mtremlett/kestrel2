@@ -517,3 +517,9 @@ then the break was removed:
 
 ### 2026-11-23 — a missing pound day named in the cell (#1951)
 - A missing pound day (#1951). Options: (a) keep refusing the whole set, (b) name it in the cell's reason, (c) fill it inside the ladder. Took (b): the cell's key carries the rates, so it is judged again once the one writer mends the day; (c) is forbidden (mending is at entry). Bar gaps still refuse the set. Left open: the pooled path (`ladder_sets._pooled`) still calls `folds.preflight`, so the real EPON run still refuses on a pound gap until its one line changes.
+
+### 2026-11-23 — placebo dropped, pound read pinned, merges' claims named (#1961, #1966, #1974)
+- Placebo (#1961). Options: (a) move the block method into shuffle (wider claim, a second method for one question), (b) delete the unwired duplicate, (c) leave it. Took (b): shuffle stays the one home of the timing question; git keeps it. Lost: placebo kept fortnights whole.
+- Pound read (#1966). Options: (a) end unchanged, (b) pin the read half in a test inside the claim, (c) edit lab/ladder_sets.py (breaks the claim, pattern 21). Took (b).
+- Rung merges (#1974). Options: (a) move rung_sample/rung_dsr and break outside tests, (b) a second weaker deflated rung on rung_dsr (a duplicate), (c) name in the rung map the claim each merge needs. Took (c).
+- rungs-epon-first stays held on R-RUNGS-38 (his standing ruling, "please always go with recommended to avoid waiting for me to attend"); the monthly line needs desk files outside any RUNGS claim.
