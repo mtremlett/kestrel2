@@ -866,7 +866,8 @@ his PC with the desk's own client id (222), never 4001.
 - [x] The kill drill: a test in test_supervisor.py kills the supervisor's real step child mid-run and sees it restarted with a dated receipt (G3 split, runner ops 123); never the live desk in market hours (#1993: the real `supervise` loop, the step's child killed from outside, receipts dated 08:00 and 08:05)
       {id: paper-supervised-drill; files: desk/supervisor.py, tests/unit/test_supervisor.py; after: paper-running}
 - [ ] Windows starts the supervisor and `tell` at boot: a new Windows task on his PC (his yes in chat, Sun 22 Nov 09:5x: "Yes, add it")
-      {id: paper-supervisor-windows; files: desk/supervisor.py, tests/unit/test_supervisor.py}
+      Done: `python -m desk.supervisor install ROOT` makes both schtasks, each starting in the code folder (#2102, #2110). Remains: he runs it once from an administrator console on his PC (tasks run as that user, so KESTREL2_DATA and Telegram settings are seen)
+      {id: paper-supervisor-windows; files: desk/supervisor.py, tests/unit/test_supervisor.py; waits: operator}
 - [x] The running process always on main's latest code, and a money-path change reaching
       it only at a safe point, never mid-send (OPS-05, OPS-16) (#752: the supervisor pulls main fast-forward only between runs with every job's lock held; a failed pull is a receipt and the old code runs on; remains: Windows starting the supervisor)
       {id: paper-on-main; files: desk/supervisor.py, tests/unit/test_supervisor.py}
@@ -884,8 +885,9 @@ his PC with the desk's own client id (222), never 4001.
       {id: paper-first-light; files: desk/streak.py, tests/unit/test_streak.py,
       manifest.toml; after: paper-running}
 - [ ] An independent watcher of the supervisor, which is restarted weekly (OPS-03)
+      Remains: #2107 is red only on the desk/ 18,000-line ceiling (18,073); #2109 freed 49 lines, 75+ more needed (a deletion card outside this claim; raising the ceiling is his)
       {id: paper-watcher; files: desk/watcher.py, tests/unit/test_watcher.py,
-      manifest.toml}
+      manifest.toml; waits: operator}
 - [x] Backups: the fill ledger and the day records copied twice, one copy off the PC, and a
       restore drilled every quarter (DQ-05, DQ-09) (#515: `desk/records_kept.py`; remains: the runner calling it nightly, runner-side work, coordinator 54, 22 Nov: not his)
       {id: paper-backups; files: desk/backup.py, tests/unit/test_backup.py, manifest.toml}

@@ -600,3 +600,12 @@ London's orders filled 31 of 31 only from 09:00 UK. One number, `conformance_tap
 ### 2026-11-23 — an intraday order is due in its own bar's session (#2075)
 
 All 143 intraday orders since 10:43 were refused: `desk/placing.py` sent only an order dated the session before today's, the daily rule. Options: (a) a due-session field on Order and Sale (`desk/orders.py`, MONEY's, outside the claim); (b) read the intraday id's -HHMM suffix (a fact read from a name, forbidden by A2 and B3); (c) the broker built for a bar's round treats orders as due in the session they are dated (`placing.Paper(..., within=True)`). Chose (c): one rule in placing, set by the round's kind and not by the zoo, inside the claim. (a) is the real fix and is asked of MONEY as R-PAPER-42. The money path is held for a fresh A6 blind review.
+
+### 2026-11-23 — Windows boot task: ONSTART plus hourly `tell`, started in the code folder (#2102, #2110)
+
+`python -m desk.supervisor install ROOT` makes KestrelSupervisor (ONSTART, `run`) and KestrelTell (hourly; `tell` dedups per UTC hour); run again it replaces them. Options: ONLOGON (rejected, not at boot); a task file (rejected, more code). His yes: "Yes, add it" (Sun 22 Nov). #2110 fixed that each command ran with no working folder (a Windows task starts in System32: "No module named desk"); each now runs `cmd /c cd /d <code folder> && python -m desk.supervisor ...`. Remains: he runs the install once as administrator; not ticked.
+
+### 2026-11-23 — the paper-watcher hold: the blocking card's own deletion taken (#2109)
+
+Options: wait, or delete. Chose delete (his "always go with recommended"): `day_gap`, `_result`, `Gap` in `desk/reports.py` had no caller (49 lines, R-RUNNER-478). #2107 still needs 75+ more lines of room; that is a separate card for runner ops.
+
