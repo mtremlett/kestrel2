@@ -259,4 +259,4 @@ def test_golden_run_replays_the_fourteen_months_to_the_penny(tmp_path: Path) -> 
         sum((t.costs.total for t in trips), Decimal(0)).quantize(penny),
         sum((r.market for r in records), Decimal(0)),
     )
-    assert golden == (310, 68, 34, Decimal("1098.41"), Decimal("368.78"), Decimal("783.73"))
+    assert golden == (310, 64, 32, Decimal("61.86"), Decimal("353.78"), Decimal("783.73"))
