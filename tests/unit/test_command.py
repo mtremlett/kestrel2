@@ -25,6 +25,7 @@ from desk import (
     book,
     clearance,
     command,
+    command_parts,
     day,
     halt,
     history,
@@ -115,6 +116,11 @@ def test_a_step_does_the_days_work_under_the_data_folder_and_fails_by_name_witho
     assert ASKED and {home for home, _ in ASKED} == {tmp_path}
     with pytest.raises(SystemExit, match="--preflight"):
         _run(tmp_path, MON, "--now")
+
+
+def test_the_dollar_band_has_one_home_desk_lines() -> None:
+    assert not hasattr(command, "DOLLARS")
+    assert not hasattr(command_parts, "DOLLARS")
 
 
 def test_the_pound_is_read_from_the_price_store_alone_the_broker_and_archive_never_asked(

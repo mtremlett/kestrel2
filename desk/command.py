@@ -55,7 +55,6 @@ from desk import (
     venues,
 )
 from desk import day as days
-from desk.command_parts import DOLLARS as DOLLARS
 from desk.command_parts import POUND as POUND
 from desk.command_parts import POUND_LOG as POUND_LOG
 from desk.command_parts import Found as Found
