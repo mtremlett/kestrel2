@@ -287,6 +287,9 @@ def test_the_daily_zoo_buys_one_share_a_rule_only_when_on_and_yields_the_desks_l
         "zoo_in",
         "desk_in",
     ]
+    yielded = next(f.order_id for f in book.fills(tmp_path) if f.day == wed and f.quantity < 0)
+    story = (tmp_path / book.STORY).read_text(encoding="utf-8")  # bounded: one test's few lines
+    assert story.count(yielded) == 4  # the yield intended and chained, then the zoo's own buy
 
 
 def test_a_round_sends_only_what_the_steps_time_allows_and_carries_the_rest(

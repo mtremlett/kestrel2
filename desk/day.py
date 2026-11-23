@@ -305,7 +305,7 @@ def _orders(
         answer = _answer(root, day, _send(root, broker, sale, settings, tell, None, round_=sent))
         book.chain(root, made, answer)
         sent.append(answer)
-    _yields(root, broker, settings, tell, decided, due, sent)  #: none without the zoo
+    _yields(root, broker, settings, (day, tell), decided, archive, sent)  #: none without the zoo
     _alert(root, day, settings, tell)
     _peak_fall(root, day, tell)
     _currency(root, archive, day, tell)
@@ -469,21 +469,28 @@ def _yields(
     root: Path,
     broker: Broker,
     settings: Settings,
-    tell: book.Tell | None,
+    told: tuple[date, book.Tell | None],
     decided: Sequence[Decision],
-    due: Mapping[str, Line],
+    archive: Mapping[Line, Sequence[Bar]],
     sold: list[book.Sent],
 ) -> None:
     """THE ZOO YIELDS (his 22 Nov ruling): a line a rule of the desk's buys today that a zoo rule
     holds is sold out of the zoo first, under the zoo rule's own id, so the desk's five trade as
-    if the zoo were not there, each answer added to the round's (sold). No zoo holding: none."""
+    if the zoo were not there, each answer intended, chained and added to the round's (sold) as
+    any sale's is (told: the day and its teller). No zoo holding: none."""
+    (day, tell), lines = told, {line.symbol: line for line in archive}
     held, holders = book.positions(root), _holders(root)
     wanted = {d.symbol: d.day for d in decided if d.action is Action.BUY and d.symbol in held}
     for symbol, on in wanted.items():  #: once a line, dated as the buy: the paper door's session
         if (holder := holders.get(symbol, "")).startswith(ZOO):
             zoo = order_id_of(Decision(holder, symbol, on, Action.SELL))
-            sale = Sale(zoo, due[symbol], held[symbol], session=on)
-            sold.append(_send(root, broker, sale, settings, tell, None, round_=sold))
+            sale = Sale(zoo, lines[symbol], held[symbol], session=on)
+            made = book.intend(root, zoo, (holder, symbol, on), archive[sale.line][-1])
+            answer = _answer(
+                root, day, _send(root, broker, sale, settings, tell, None, round_=sold)
+            )
+            book.chain(root, made, answer)
+            sold.append(answer)
 
 
 def _zoo(
