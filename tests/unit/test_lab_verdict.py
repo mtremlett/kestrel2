@@ -248,3 +248,27 @@ def test_a_basket_at_one_standard_error_incubates_and_over_the_stress_limit_neve
     for over in (Answer.FAIL, Answer.THIN, Answer.FAULT):  #: stress over its limit or untested
         assert said("1.5", Answer.FAIL, over) == "FAIL"
     assert said("1.5", Answer.THIN) == "THIN"  #: too few trades says nothing
+
+
+@OFF
+def test_one_weak_soft_rung_no_longer_kills_a_cell_and_one_failed_hard_gate_always_does(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    passes = dict.fromkeys(verdict.HARD + verdict.SOFT, Answer.PASS)
+    said = verdict.one_answer
+    assert said(passes | {"regime": Answer.DOUBT, "market": Answer.THIN}, 1.0) == "PASS"
+    assert said(passes | dict.fromkeys(verdict.SOFT, Answer.DOUBT), 1.0) == "FAIL", "over MAX_WEAK"
+    assert said(passes | {"stress": Answer.FAIL}, 1.0) == "FAIL"
+    for gate in verdict.HARD:
+        assert said(passes | {gate: Answer.FAIL}, 1.0) == "FAIL", gate
+    assert said(passes | {"first": Answer.THIN}, 1.0) == "THIN" and said(passes, 2.5) == "STOP"
+    assert said({name: a for name, a in passes.items() if name != "shuffle"}, 1.0) is None
+    assert said(passes | {"stress": Answer.FAULT}, 1.0) == "FAULT", "a fault in the test"
+    assert said(passes | {"stress": Answer.FAULT, "folds": Answer.THIN}, 1.0) == "THIN"
+    weak = dict.fromkeys(verdict.HARD + verdict.SOFT + ("luck",), (Answer.PASS, "")) | {
+        "regime": (Answer.DOUBT, ""),
+        "luck": (Answer.FAIL, ""),
+    }
+    assert verdict.gates(weak), "WEAK soft and luck: never ruled"
+    monkeypatch.setattr(verdict, "one_answer", lambda *_: "WIRED")
+    assert _judge()["answer"] == "WIRED", "judge answers by the one rule"
