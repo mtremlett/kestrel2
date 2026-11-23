@@ -342,6 +342,17 @@ def test_the_newest_bars_are_asked_read_only_and_read_whole(
     )
 
 
+def test_bars_are_asked_at_any_size_and_read_by_the_reader_given(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    bar = ("1794000060", "171.1", "171.6", "171.0", "171.5", "7", "171.3", "4")
+    sent = _gateway(monkeypatch, [FEED, ("17", "1", "from", "to", "1", *bar)])
+    line = Line("AAPL", "US", "USD", 1, NO_TAX)
+    got = paper.bars(line, "265598", "SMART", "1 min", 120, lambda fields: fields[0])
+    told = sent[0][4:].decode().split(chr(0))
+    assert got == ("1794000060",) and told[16:18] == ["1 min", "120 S"]
+
+
 @pytest.mark.parametrize(
     "answer",
     [

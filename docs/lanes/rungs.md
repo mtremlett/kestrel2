@@ -527,3 +527,10 @@ then the break was removed:
 - Rung merges (#1974). Options: (a) move rung_sample/rung_dsr and break tests outside the claim, (b) a second, weaker deflated rung on rung_dsr (a duplicate, canon A2), (c) name in the rung map the claim each merge needs. Took (c).
 - Scribe #1984 conflicted with main: #1976 had folded #1951, #1961 and #1966, and runner ops had already widened rungs-pound-gap to lab/ladder_sets.py and its tests. Options: (a) rebase #1984, (b) close it and fold only #1974 here. Took (b): one home per fact, no double rows.
 - Scribes #1965, #1976, #1987 (23 Nov): each restored over main by keeping main's text and adding only the fold main lacked (one home per fact); rungs-epon-first stays held on R-RUNGS-38 under his standing ruling ("please always go with recommended to avoid waiting for me to attend").
+
+### 2026-11-23 — pooled set names a missing pound day, dsr merged into deflated, last merges' claims named (#1992, #2010, #2020)
+- Standing ruling taken for him ("please always go with recommended to avoid waiting for me to attend"): rungs-pound-gap's claim gap acted on inside the widened claim; rungs-each-rung held (waits: operator) until runner ops widen its files (R-RUNGS-41).
+- Pooled pre-flight (#1992). Options: (a) call `ladder.preflight` from `_pooled.go` (one pre-flight for both set runners, canon A1.2); (b) duplicate the unrated filter in ladder_sets (a second code path, refused by A2). Took (a). The test sits inside the existing pooled-set test (unit-test lines guard).
+- Merging dsr (#2010). Options: (a) keep rung_dsr's caller API (trials, spread) as a new public function in deflated; (b) delete it and prove rung 7 through the functions `_deflated` already uses. Took (b): the API had no caller (A1.3, A4). The refusal of a bad count or spread moved to `best_by_luck`.
+- The re-issued dsr card (#2020). Options: (a) busy work inside the claim; (b) correct the rung map and say Waits. Took (b) (failure patterns 12 and 22): sample and retail merges break tests outside the claim; pattern 21 forbids drifting it. Request R-RUNGS-41 asks runner ops to widen the claim.
+

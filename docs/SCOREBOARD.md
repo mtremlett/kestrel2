@@ -682,6 +682,8 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1925 PAPER paper-cards: SMTP preflight line landed; box done.
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1940 PAPER paper-extras partly: blocked signals and weekly cost vs net profit in the evening message.
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1993 PAPER paper-supervised-drill done: kill of a real step child restarted under supervise, two dated receipts. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2019 PAPER R-RUNNER-436 closed by test: intraday buy refusals (ISA, retail, held) pinned. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2026 PAPER R-RUNNER-449 decided: the real side is right on the VHYG buy, the pretend side is wrong. |
 
 ### GRID
 
@@ -1090,3 +1092,6 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1965 RUNGS scribe restored by merging main: #1951's fold added. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1976 RUNGS scribe: #1961 and #1966 folded; rungs-pound-gap's files widened. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1987 RUNGS scribe: #1974 folded; #1984 closed as superseded by #1976. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1992 rungs-pound-gap: the pooled set names a missing pound day in the cell's reason, never refuses the set. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2010 rung_dsr merged into deflated; off-path rung modules 3 -> 2; product -114 lines. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2020 rungs-each-rung: rung map names the full claim for the last two merges; off-path modules still 2. |

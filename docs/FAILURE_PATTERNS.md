@@ -112,16 +112,14 @@ pretend fill at the stop level, 16 November).
 and a step whose two sides name different actions is a finding, not a pass (#557). The
 module was split (`desk/conformance_parts.py`).
 
-**16. The request rebuilt in parallel.** One piece of work reaches several sessions
-through different doors and is built two to four times: on 16 November R-RUNNER-190 four
-times through the card door, R-RUNNER-209 twice through a serial run, and the stop at the
-fill three ways (its card, a serial run's own `stop_for`, and a book box needing the same
-broker method).
-→ *Caught by:* the runner (outside this repository) never hands out a card or offers a
-serial run a request that an open pull request names or an open card carries, and a
-branch can be held by hand before its pull request exists. → *Debt:* an interface that
-three pieces of work need (here `Broker.move_stop`) is carded first and the rest wait on
-it; on the runner's list.
+**16. The request rebuilt in parallel.** One piece of work reaches several sessions through
+different doors and is built two to four times: on 16 November R-RUNNER-190 four times through
+the card door, R-RUNNER-209 twice through a serial run, and the stop at the fill three ways (its
+card, a serial run's own `stop_for`, and a book box needing the same broker method).
+→ *Caught by:* the runner (outside this repository) never hands out a card or offers a serial run
+a request that an open pull request names or an open card carries, and a branch can be held by
+hand before its pull request exists. → *Debt:* an interface that three pieces of work need (here
+`Broker.move_stop`) is carded first and the rest wait on it; on the runner's list.
 
 **17. The decision asked again.** A session asks for approval the operator has already
 given (RUNGS, 16 November: per-rung checks its 15 November ruling allowed), and waits; or
@@ -148,13 +146,13 @@ sections) until READY's reads failed (19 November).
 Otherwise nothing yet; it is an open debt. The fix is one way to read and write each
 shared file, readers and writer under one lock, in each codebase; never a retry or a sleep.
 
-**20. A gate that can never open.** A rule correct where it was written blocks its own
-purpose where it runs: the rehearsal was barred for the whole of any trading date, so the
-weekday rehearsal could never begin (16 November, 06:30), and then barred whenever the
-account held anything, so once the desk traded no rehearsal could pass.
-→ *Caught by:* the rehearsal is barred only while a market is open or near (#462). →
-*Debt:* a rehearsal beside held lines, never touching them, is being built; until it
-lands, the desk's day runs on the coordinator's recorded go.
+**20. A gate that can never open.** A rule correct where written blocks its purpose where it
+runs: the rehearsal was barred on any trading date, then whenever the account held anything
+(16 Nov); `desk/day_parts.py`'s day-loss limit counted Friday's loss into Monday, so Monday
+could not buy; `desk/running.py` set London's round in IBKR paper's dead window (08:00-09:00
+UK), so it never filled (23 Nov). → *Caught by:* the rehearsal is barred only while a market
+is open or near (#462); test_risk's week-boundary test (#2039); london-round-0900's own test.
+→ *Debt:* a rehearsal beside held lines, never touching them; until then, the coordinator's go.
 
 **21. The claim that drifts.** A session that cannot finish inside its claim moves the work
 to a file outside it instead of stopping: #857 rewrote a lab test outside its card, and #902
@@ -203,8 +201,7 @@ worst-case waits plus a margin (6 orders x 120 s + 60 s; now 900 s).
 **25. The order the desk withdrew, never sent again.** An order id is fixed for its day, so
 an order the desk's own recovery cancelled at 0 filled answers every later send with its
 old Cancelled state: London's 09:00 round sent nothing (20 November).
-→ *Debt:* an order the desk itself cancelled is sent once more that day as `<id>-r1`,
-through the same gate (R-RUNNER-391, R-RUNNER-394).
+→ *Caught by:* it is sent once more that day as `<id>-r1` (`tests/unit/test_book_retry.py`).
 
 **26. The file read whole that grew.** The ladder kept every verdict it ever wrote, each
 re-judged cell adding a line and none removed, and read and parsed the whole file on every
@@ -217,5 +214,8 @@ R-RUNNER-432) and a results file keeps one line per cell, compacted as it is wri
 
 **27. The folder guessed from another.** `rates` read the store above the records folder
 `desk/command.py` gave it: true live, false in the rehearsal (records two deeper), so Monday read
-NO-GO (22 Nov 18:06); conformance, `desk/simcitycmd.py` and the fills replay guessed alike.
-→ *Caught by:* each caller names its home; the rates stubs fail when handed a records folder.
+NO-GO (22 Nov 18:06); conformance, `desk/simcitycmd.py` and the fills replay guessed alike. Twin:
+`desk/day_parts.py` read old records by names never written (#1967) and the day's loss from the
+last record of any date: Friday's refused every Monday buy (23 Nov). *Debt:* a loss has no date.
+→ *Caught by:* each caller names its home; the rates stubs fail when handed a records folder;
+`tests/unit/test_day.py` reads the live pre-FX records; #2039 plants Friday's loss on a Monday.
