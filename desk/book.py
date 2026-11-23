@@ -395,11 +395,14 @@ def round_trips(root: Path, lines: Iterable[Line]) -> tuple[RoundTrip, ...]:
     return tuple(trips)
 
 
-def currency_gain(root: Path, lines: Iterable[Line], trips: Iterable[RoundTrip]) -> Decimal:
+def currency_gain(
+    lines: Iterable[Line], trips: Iterable[RoundTrip], rate: Callable[[str, date], Decimal]
+) -> Decimal:
     """CURRENCY APART FROM TRADING (BIC-04): the pounds the trips gained or lost because the
     currency moved between the buy's day and the sale's, the shares sold at the sale's price
-    times the change in the day's rate. A trip's gross less this is its trading profit."""
-    currency, rate = {line.symbol: line.currency for line in lines}, pounds_per(root)
+    times the change in the day's rate, which the caller's `rate` gives (the one door, never a
+    record read here). A trip's gross less this is its trading profit."""
+    currency = {line.symbol: line.currency for line in lines}
     return sum(
         (
             -t.sell.quantity
@@ -412,17 +415,16 @@ def currency_gain(root: Path, lines: Iterable[Line], trips: Iterable[RoundTrip])
 
 
 def open_currency_gain(
-    root: Path, lines: Iterable[Line], prices: Mapping[str, Decimal], day: date
+    root: Path,
+    lines: Iterable[Line],
+    prices: Mapping[str, Decimal],
+    day: date,
+    rate: Callable[[str, date], Decimal],
 ) -> Decimal:
     """CURRENCY ON OPEN HOLDINGS (BIC-04): what the shares still held, the newest buys (sales
     close the oldest), have gained or lost at today's price from the currency's move since the
     buy's day, apart from the price's own."""
-    money, total, rate, ledger = (
-        {x.symbol: x.currency for x in lines},
-        Decimal(0),
-        pounds_per(root),
-        fills(root),
-    )
+    money, total, ledger = {x.symbol: x.currency for x in lines}, Decimal(0), fills(root)
     for symbol, held in positions(root, day).items():
         for buy in (f for f in reversed(ledger) if f.symbol == symbol and f.quantity > 0):
             shares, held = min(held, buy.quantity), held - min(held, buy.quantity)

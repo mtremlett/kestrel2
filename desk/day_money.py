@@ -81,10 +81,14 @@ def fx_split(
     if not ledger or any((f.day, money.get(f.symbol)) not in kept for f in ledger):
         return None
     trips = book.round_trips(root, lines)
-    gain = book.currency_gain(root, lines, trips)
+    gain = book.currency_gain(lines, trips, book.pounds_per(root))
     last = {line.symbol: bars[-1].close for line, bars in archive.items()}
     today = all((day, m) in kept for m in set(money.values()))
-    held = book.open_currency_gain(root, lines, last, day) if today else Decimal(0)
+    held = (
+        book.open_currency_gain(root, lines, last, day, book.pounds_per(root))
+        if today
+        else Decimal(0)
+    )
     return gain, sum((t.gross for t in trips), Decimal(0)) - gain, held
 
 
