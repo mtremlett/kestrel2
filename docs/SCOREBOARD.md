@@ -1008,6 +1008,12 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1782 DATA: hover command prints through announce, SEND: reaches the runner. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1790 data-pound-history: stored, read by the ladder, gaps named nightly; HOVER's filler remains. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1775 DATA scribe: folds #1736, #1750, #1752 (three lines). |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1798 DATA: data-door-writer: head start off the CSV store (no product caller of store.prepare/read/shelve now). |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1814 DATA: data-full-universe not ticked; docstring corrected, waits on the grid's first pass. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1809 DATA: data-monitor: hover reds a missing golden day. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1826 DATA: data-second-source: record check built, not wired. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1827 DATA: data-door-writer part 1: shelve and faults deleted, 7 test files rewritten onto judge, net -66 lines. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1832 DATA: data-monitor: hover covers both databases. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1766 RUNGS: indicator tables name their fresh 14-day lows truly; no fresh-low or Supertrend table found (STR-14). |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1768 RUNGS: registry test reads the real rungs from `rung.found()`; one list fewer. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1771 RUNGS: L18 step 2, a rule judged on its own clustered lines (`deflated.judge_lines`); box open: wiring. |
