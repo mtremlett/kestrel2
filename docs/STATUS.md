@@ -108,7 +108,6 @@ money-census-book, money-door-writer and money-loss-words are done (#1983, #1991
 - [ ] R-MONEY-19 (later): a typed command to call and lift a halt.
 - [ ] R-MONEY-20 (later): `test_messenger.py` states each Record's `halted`, `stopped` (say `(), 0`); the evening message says when a day does not count.
 - [ ] R-MONEY-21 (later): `test_running.py` (line 213) keeps Friday's record through `day._row(day.Record(...))`.
-- [ ] R-MONEY-23 (later): reword `desk/placing.py` (lines 269-272 too, "no cancel either", stale since #285) and its `manifest.toml` line: a desk that died mid-send asks the same cancel through `book._settle`.
 - [ ] R-MONEY-25 (blocking): the unattended step calls `watch.look(root, fast store, daily bars by line, now, post)` every step, every hour, BEFORE its round of orders, and decides if London's morning round waits for the 08:05 bar.
 - [ ] R-MONEY-26 (later): a messenger call sending again what was never delivered.
 - [ ] R-MONEY-27 (later): the halt-lifting command names him (`by=halt.OPERATOR`), with a command for his word against the market.
@@ -127,7 +126,6 @@ money-census-book, money-door-writer and money-loss-words are done (#1983, #1991
 - [ ] R-MONEY-12 (later): on the master, the market's lines: the yardstick's twin (VUSA), one in New York hours.
 - [ ] R-MONEY-29 (later): the keeper or monitor tells him when a whole venue is not heard from.
 - [ ] R-MONEY-35 (later, opened 14 November 2026): a daily advances/declines series for the US market, so Zweig's breadth thrust (#275) can run on real days.
-- [ ] R-MONEY-48 (later): delete `HISTORY = CLEAN` in `tests/scenes/rehearsal.py`; nothing reads it (#522).
 ### Requests to GRID
 - [ ] R-DATA-61 (later, #1210): delete the `.faults` filter in `lab/sweep.py` held() and the `ZZZ.faults.csv` line in test_lab_sweep.py; the store no longer writes that file.
 - [ ] R-MONEY-41 (later): the engine takes settings (`strategy.decide(bars, settings)`); the grid sweeps them once its cell matches the engine at those settings (#240).
