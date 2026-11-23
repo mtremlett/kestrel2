@@ -341,7 +341,14 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       into the history database as `rollup:<from>` on every keeper round, so they are as fresh as their base;
       a rolled bar that differs from a held one is a FAULT, never a silent overwrite (canon B3)
       wire: every keeper round; gate: a rolled hour equals its twelve five-minute bars, and a differing held bar is a FAULT
-      {id: data-rollup-hot; files: desk/rollup.py, tests/unit/test_rollup.py; after: data-monitor}
+      Built (#2083): the keeper's five-minute round rolls each line's five-minute and daily bars up. Remains: his 08:00
+      check, data-hover's line showing the history database's 15m, 30m, 1h, 4h and 1wk fresh; and a rolled bar that differs
+      from a held one told as a FAULT on every keeper round (the comparison exists in the history writer, nothing calls it)
+      {id: data-rollup-hot; files: desk/rollup.py, desk/keeper.py, desk/history_write.py, tests/unit/test_rollup.py, tests/unit/test_keeper*.py, tests/unit/test_history_write.py}
+- [ ] The history database keeps the live day's five-minute and one-minute bars from every keeper round, not once at
+      21:30, so research and the monitor read them as fresh as the live store
+      wire: every keeper round; gate: a round over a planted live store leaves its newest five-minute bar in the history database
+      {id: data-history-fine; files: desk/keeper.py, desk/keeper_live.py, tests/unit/test_keeper*.py; after: data-rollup-hot}
 - [ ] No missing trading day: a line's gap on a day its venue traded (SPY 2022-09-28, ISF 2012-05-28 among
       6,788 market FAULTs in the ladder) is filled from IBKR, then Yahoo, or the one calendar names it a
       holiday; a line's audit lists no unnamed gap
@@ -508,6 +515,14 @@ day's trading and reconciliation are built, and any broker can stand behind them
       list is unchanged without the seven files, and each served row gives the same decisions as its Python twin on
       a fixture (the donchian twin test's way), so EPON's book does not change.
       {id: money-epon-room; files: lab/ladder.py, tests/unit/test_lab_ladder_epon.py, tests/unit/test_lab_published_epon.py, tests/unit/test_eponymous_connors.py, desk/eponymous_dan_zanger.py, desk/eponymous_demark_sequential.py, desk/eponymous_kell_breakout.py, desk/eponymous_mansfield_rs_momentum.py, desk/eponymous_minervini_breakout.py, desk/eponymous_swing.py, desk/eponymous_weinstein_stage.py, tests/unit/test_eponymous_dan_zanger.py, tests/unit/test_eponymous_demark_sequential.py, tests/unit/test_eponymous_kell_breakout.py, tests/unit/test_eponymous_mansfield_rs_momentum.py, tests/unit/test_eponymous_minervini_breakout.py, tests/unit/test_eponymous_swing.py, tests/unit/test_eponymous_weinstein_stage.py, manifest.toml, docs/lanes/money.md}
+- [ ] The zoo's one-share orders are judged on the zoo's own side (coordinator 163's ruling, 23 Nov 20:3x, his
+      'one share each' and 'trade freely across uk and us'; paper only, a MACHINERY TEST): 'held already' reads what
+      the zoo holds, never the desk's whole book (the mechanism #2105 fixed for sizing), and the per-line room never
+      refuses one share while it is within the zoo's 1,000 pounds and the zoo's total stays within it; the one risk
+      gate still judges every order. Net lines in desk/ must not rise (no ceiling room)
+      wire: the desk-day job's zoo round; gate: the evening's 36 refusals (AAPL, TSLA, NVDA among them) replayed as a
+      test pass, written first with their refusal words; an A6 blind review before the train
+      {id: zoo-own-side; files: desk/running.py, desk/day.py, desk/orders.py, tests/unit/test_running*.py, tests/unit/test_orders*.py, tests/unit/test_day*.py}
 - [ ] Connors' Double 7's as a desk rule (R-RUNGS-10): `desk/eponymous_connors_double_7.py` is a
       MONEY file, but the ladder finds every `desk/eponymous_*.py` and `lab/published_epon.py` (RUNGS)
       must name it and `test_lab_published_epon.py` count 21, so neither lane's pull request is green
@@ -688,6 +703,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       (money-round-cap waits to 2026-11-24: stall watch 09:46, built on main; only a blind review and the zoo-on rehearsal remain, never a coding session)
       {id: money-round-cap; files: desk/day.py, desk/simcity_incidents.py, desk/halt.py, tests/unit/test_day*.py, tests/unit/test_halt*.py,
       tests/unit/test_simcity*.py; waits: 2026-11-24}
+      (#2084: the cap acts once, in day._send; every carried order is intended, chained and listed; golden re-pinned. Remains: blind review, zoo-on rehearsal; money-round-whole waits: operator)
 - [x] **Fault, the deep run (A3: a red deep test is a fault):** (#1813: ledger opened once per change, 50,412 -> 228 opens on the fixture night) deep SimCity on 067062cd ended 22 Nov 22:37
       "stuck in the worlds: no end in 7200 s" at `desk/book_parts2.py:48` (`_ledger`). The ledger file is read and
       parsed whole on every `book.fills` and `book.found` call, and the day and the book call them about twenty
