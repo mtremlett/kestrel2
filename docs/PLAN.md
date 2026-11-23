@@ -445,8 +445,8 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
 - [ ] Leveraged-product lifecycle watched: an issuer's closure, a compulsory redemption or
       an ISA eligibility change on any line held or researched raises an alert (BIC-11)
       {id: data-lifecycle; files: desk/lifecycle.py, tests/unit/test_lifecycle.py, manifest.toml; after: data-isa-twins}
-- [ ] Disk watched; old research files roll off by rule (OPS-07)
-      Built (#1098, #1107): `python -m desk.quality` goes red under 10% free on the store's drive (`quality.disk`, called from `monitor`). Remains: the roll-off rule, his (23 Nov 19:4x, "it depends is these files can be used for research or a trully duplcates"): it deletes by itself only a verified true duplicate (a copy proven held in the one store, byte- or row-checked); a file usable for research is listed for his yes each time, never deleted by the rule. Also the runner job reading the red; other monitor tests read the real drive's free space.
+- [x] Disk watched; old research files roll off by rule (OPS-07)
+      Built (#1098, #1107, #2122): `python -m desk.quality` goes red under 10% free on the store's drive; `quality.rolloff(old, kept)` / `python -m desk.quality rolloff <folder>` deletes only a file whose same-named copy in the store matches byte for byte; every other file is listed for his yes. Remains: the runner job reading the red and calling rolloff (runner ops); a row-check against market.db for files with no byte twin.
       {id: data-disk-rolloff; files: desk/quality.py, tests/unit/test_quality*.py}
 - [ ] **IBKR's capacity, no new spend, 10% kept spare** (research of 14 November,
       `free_data_2026-11-14.md` in the notes folder): 90 tickers streamed live, 1-minute bars
