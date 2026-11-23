@@ -148,13 +148,13 @@ sections) until READY's reads failed (19 November).
 Otherwise nothing yet; it is an open debt. The fix is one way to read and write each
 shared file, readers and writer under one lock, in each codebase; never a retry or a sleep.
 
-**20. A gate that can never open.** A rule correct where it was written blocks its own
-purpose where it runs: the rehearsal was barred for the whole of any trading date, so the
-weekday rehearsal could never begin (16 November, 06:30), and then barred whenever the
-account held anything, so once the desk traded no rehearsal could pass.
-→ *Caught by:* the rehearsal is barred only while a market is open or near (#462). →
-*Debt:* a rehearsal beside held lines, never touching them, is being built; until it
-lands, the desk's day runs on the coordinator's recorded go.
+**20. A gate that can never open.** A rule correct where written blocks its purpose where it
+runs: the rehearsal was barred on any trading date, then whenever the account held anything
+(16 Nov); `desk/day_parts.py`'s day-loss limit counted Friday's loss into Monday, so Monday
+could not buy; `desk/running.py` set London's round in IBKR paper's dead window (08:00-09:00
+UK), so it never filled (23 Nov). → *Caught by:* the rehearsal is barred only while a market
+is open or near (#462); test_risk's week-boundary test (#2039); london-round-0900's own test.
+→ *Debt:* a rehearsal beside held lines, never touching them; until then, the coordinator's go.
 
 **21. The claim that drifts.** A session that cannot finish inside its claim moves the work
 to a file outside it instead of stopping: #857 rewrote a lab test outside its card, and #902
