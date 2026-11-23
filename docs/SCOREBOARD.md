@@ -239,6 +239,10 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2009 money-loss-words done: the loss refusal and alert say "lost in the last session"; words only, golden unchanged. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2008 money-round-cap: one home for step time, carried orders named CARRIED. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2012 R-RUNNER-445 met, test pinned (12 test lines). |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2052 STATUS size cut (68 to 55 lines); money-connors7 handed to RUNGS (R-RUNGS-10).
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2039 R-RUNNER-455 built and green but for the churn guard; waits on a failure-pattern line naming desk/day_parts.py.
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2060 R-RUNNER-459 done: cancel_all keeps no -stop id in cancels.csv.
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2065 R-RUNNER-458 done: watch PARK words say parked by hand.
 
 
 ### DATA
