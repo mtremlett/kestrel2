@@ -10,7 +10,7 @@ from decimal import Decimal, localcontext
 from functools import partial
 from pathlib import Path
 
-from desk import book, day_money, halt, handpark, intraday, restop, strategy, venues
+from desk import book, day_money, halt, handpark, intraday, paper, restop, strategy, venues
 from desk.broker import Broker, Crash, Restopping
 from desk.day_parts import BEFORE_HEAT as BEFORE_HEAT
 from desk.day_parts import HEADER as HEADER
@@ -43,10 +43,16 @@ from desk.orders import (
     size,
     stop_under,
     strategy_of,
+    traded_value,
 )
 from desk.risk import Standing
 from desk.store import Bar
 from desk.strategy import Action, Decision
+
+#: The runner's time for the desk step (its drive_atjobs) and the margin kept of it: a round sends
+#: at most MAX_ORDERS market orders, each waiting paper.FILL_SECONDS (failure pattern 24).
+STEP_SECONDS, STEP_MARGIN = 900, 60
+MAX_ORDERS = (STEP_SECONDS - STEP_MARGIN) // paper.FILL_SECONDS
 
 
 def run(
@@ -175,7 +181,7 @@ def trade(
     sent = list[book.Sent]()
     try:
         _orders(root, broker, settings, day, tell, killed, decided, due, archive, rates, sent)
-        sent += _zoo(root, broker, day, tell, due, archive, rates) if zoo else []
+        sent += _zoo(root, broker, day, tell, due, archive, rates, sent) if zoo else []
     except (Crash, book.Alarm) as dead:
         _unreached(root, day, decided, sent, dead)
         raise
@@ -273,7 +279,8 @@ def _interest(
     tell: book.Tell | None,
 ) -> None:
     """BIC-03: what the capital's idle cash earned at RISK_FREE from the first fill to this day,
-    told once a day beside the profit, not in it (golden days stand), only when positive."""
+    told once a day beside the profit, not in it: the day's profit must equal the ledger's and
+    the broker's (day_parts reconcile), which interest is in neither. Only when positive."""
     if tell is None:
         return  #: nobody to tell: the sum (a read of every fill's day) is not made
     earned = day_money.idle_interest(root, archive, day, settings.capital, RISK_FREE)
@@ -314,7 +321,7 @@ def _orders(
     for d in (d for d in decided if d.action is Action.BUY):
         line = due[d.symbol]
         price = archive[line][-1].close, rates[line.currency]
-        args = (root, broker, d, line, price, settings, day, tell, watch)
+        args = (root, broker, d, line, price, settings, day, tell, watch, archive[line])
         made = book.intend(root, order_id_of(d), (d.strategy, d.symbol, d.day), archive[line][-1])
         answer = _answer(root, day, _barred(d) if d.strategy in killed else _buy(*args))
         book.chain(root, made, answer)
@@ -400,6 +407,7 @@ def _buy(
     day: date,
     tell: book.Tell | None,
     watch: Callable[[str], tuple[dict[str, Decimal], dict[str, tuple[float, ...]]]] | None = None,
+    bars: Sequence[Bar] = (),
 ) -> book.Sent:
     """One rule's buy, sized from the book as the send before it left it, at the line's last
     close and the day's rate. A line held, or sold this morning, is not bought: said so. Nor is
@@ -413,7 +421,7 @@ def _buy(
             name, 0, f"{name}: not sent, {d.symbol} was sold this morning", Blocker.HELD
         )
     try:
-        order = size(d, line, *price, settings, now)
+        order = size(d, line, *price, settings, now, None, traded_value(bars, price[1]))
     except Refused as refused:  #: the gate's answer, kept with the day's others
         return book.Sent(name, 0, str(refused), Blocker.GATE)
     looked = watch and watch(d.symbol)
@@ -435,11 +443,12 @@ def _send(
     """Send through the one door; its refusal is the order's answer, kept with the day's
     under the blocker the send path names; one it does not name is the broker's own door's."""
     try:
-        return book.send(root, broker, order, settings, tell, held, pounds, moves)
+        sent = book.send(root, broker, order, settings, tell, held, pounds, moves)
     except Stopped as stopped:
-        return book.Sent(order.order_id, 0, str(stopped), stopped.blocker)
+        sent = book.Sent(order.order_id, 0, str(stopped), stopped.blocker)
     except Refused as refused:
-        return book.Sent(order.order_id, 0, str(refused), Blocker.BROKER)
+        sent = book.Sent(order.order_id, 0, str(refused), Blocker.BROKER)
+    return replace(sent, asked=order.quantity)
 
 
 def _sold(root: Path, day: date, zoo: bool) -> set[str]:
@@ -480,11 +489,15 @@ def _zoo(
     due: Mapping[str, Line],
     archive: Mapping[Line, Sequence[Bar]],
     rates: Mapping[str, Decimal],
+    desks: Sequence[book.Sent],
 ) -> list[book.Sent]:
     """THE ZOO'S DAILY ROUND, A MACHINERY TEST, NOT EVIDENCE OF AN EDGE (his 22 Nov ruling): after
     the desk's own orders, each zoo daily rule (intraday.ZOO_DAILY) decides on each zoo line due
     today, holding what it bought; a sale sells it, a buy is one share, refused as the desk's are,
-    through the one gate on the zoo's own allowance (ZOO_ROOM, standing of the zoo alone)."""
+    through the one gate on the zoo's own allowance (ZOO_ROOM, standing of the zoo alone). Only
+    MAX_ORDERS in all go to the broker, the desk's own (desks) first; the rest are kept in the
+    day's answers as carried to the next step, never sent."""
+    room = MAX_ORDERS - sum(1 for s in desks if s.asked)
     lines = sorted({ln.symbol for ln in intraday.zoo_lines()} & due.keys())
     held, holders, sent = book.positions(root), _holders(root), list[book.Sent]()
     opened = {f.symbol: f.day for f in book.fills(root) if f.quantity > 0}
@@ -494,6 +507,10 @@ def _zoo(
             with localcontext(strategy.ARITHMETIC):
                 *_, d = strategy._run(name, rule(), symbol, archive[line], last, opened.get(symbol))
             if d.action is Action.HOLD:
+                continue
+            if room <= 0:
+                words = f"{order_id_of(d)}: not sent, carried to the next step (the step's time)"
+                sent.append(book.Sent(order_id_of(d), 0, words, Blocker.BROKER))
                 continue
             made = book.intend(
                 root, order_id_of(d), (d.strategy, d.symbol, d.day), archive[line][-1]
@@ -506,6 +523,7 @@ def _zoo(
                 answer = _zoo_buy(root, broker, d, line, close, day, tell)
             book.chain(root, made, answer)
             sent.append(answer)
+            room -= 1 if answer.asked else 0
     return sent
 
 

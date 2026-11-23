@@ -20,7 +20,9 @@ from desk.store import Bar
 
 ROOM = Settings(Decimal(10_000))
 MON, TUE, A = date(2025, 11, 10), date(2025, 11, 11), Line("A", "LSE", "GBP", 1)
-BARS = {A: tuple(Bar(d, Decimal(50), Decimal(51), Decimal(49), Decimal(51), 1) for d in (MON, TUE))}
+BARS = {
+    A: tuple(Bar(d, Decimal(50), Decimal(51), Decimal(49), Decimal(51), 10**7) for d in (MON, TUE))
+}
 
 
 def test_a_lost_day_is_the_standing_that_makes_the_send_path_refuse_a_buy(tmp_path: Path) -> None:
@@ -98,7 +100,7 @@ def test_a_buy_that_moves_with_a_held_line_is_refused_and_one_that_does_not_goes
 
     def line(symbol: str, closes: list[Decimal]) -> tuple[Line, tuple[Bar, ...]]:
         return Line(symbol, "LSE", "GBP", 1), tuple(
-            Bar(d, c, c, c, c, 1) for d, c in zip(days, closes, strict=True)
+            Bar(d, c, c, c, c, 10**7) for d, c in zip(days, closes, strict=True)
         )
 
     held, twin, apart = line("H", wiggle), line("T", [c * 2 for c in wiggle]), line("P", other)
@@ -242,7 +244,7 @@ class _In:
 def test_the_daily_zoo_buys_one_share_a_rule_only_when_on_and_yields_the_desks_lines(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    assert len(intraday.ZOO_DAILY) == 13 and all(
+    assert len(intraday.ZOO_DAILY) == 23 and all(
         n.startswith(orders.ZOO) for n in intraday.ZOO_DAILY
     )
     wed, a, b = date(2025, 11, 12), YARDSTICK, next(ln for ln in LINES if ln.symbol == "ISF")
@@ -285,3 +287,24 @@ def test_the_daily_zoo_buys_one_share_a_rule_only_when_on_and_yields_the_desks_l
         "zoo_in",
         "desk_in",
     ]
+
+
+def test_a_round_sends_only_what_the_steps_time_allows_and_carries_the_rest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    lines = [ln for ln in LINES if ln.retail and ln.leverage == 1 and ln.isa][:20]
+    cheap = replace(BARS[A][0], open=Decimal(5), high=Decimal(5), low=Decimal(5), close=Decimal(5))
+    bars = {ln: tuple(replace(cheap, day=d) for d in (MON, TUE)) for ln in lines}
+    broker = Pretend(bars, {})
+    monkeypatch.setattr(strategy, "STRATEGIES", {})
+    monkeypatch.setattr(intraday, "ZOO_DAILY", {"zoo_in": _In})
+    monkeypatch.setattr(intraday, "zoo_lines", lambda: tuple(lines))
+    monkeypatch.setattr(orders, "HOLDINGS", 20)
+    broker.open(TUE)
+    first = {ln: (bars[ln][0],) for ln in lines}
+    answers = day.trade(
+        tmp_path, first, broker, ROOM, TUE, {ln.currency: Decimal(1) for ln in lines}, zoo=True
+    )
+    carried = [s for s in answers if "carried to the next step" in (s.reason or "")]
+    assert len(broker.submitted()) == day.MAX_ORDERS == 7
+    assert len(carried) == len(lines) - 7 and all(s.filled == 0 for s in carried)

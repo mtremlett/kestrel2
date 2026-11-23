@@ -772,3 +772,28 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 ### 2026-11-22 - Decision chain written before the send (#1716, money-story)
 - Options: rewrite the chain file in place after the answer; wrap the send in a try/except (refused by canon A2); write a pending row first and append a second row on the answer (taken). `book.chains` gives the last row per order id.
 - money-connors7 held off MONEY and handed to RUNGS per his standing "always go with recommended"; no file of this change touched it.
+
+### 2026-11-22 - The chain file gains an `asked` column (#1777, money-story)
+- Options: tolerate old 8-column story.csv rows with a fallback (refused by canon A2); read only new files (taken). The chain file is per desk run and nothing live reads it but SimCity.
+
+### 2026-11-22 - Gate cap landed before its feed; Double 7's re-carded (#1796, money-small)
+- Options: feed `orders.gate` from `day._buy` now, which turns test_restop, test_running and test_running_tell red (their bars have volume 1; outside the claim); or land the gate cap alone (taken, the largest green step).
+- money-connors7: wait for R-RUNGS-10, or re-card in the RUNGS book (taken on his "always go with recommended", the runner's ruling); re-card keeps both lanes moving.
+
+### 2026-11-22 - Profit table scene is SimCity's trips scenario (#1805, money-story)
+- Options: a new unit scene file (adds test lines, and main has no margin); extend SimCity's existing trips scenario, which already runs every money-path part in order (taken). The census requires `book.attributed` to be run by it.
+
+### 2026-11-23 - Zoo round cap kept in day.py; connors7 off MONEY (#1823, #1833, #1861)
+- Round cap (#1823): STEP_SECONDS, STEP_MARGIN and MAX_ORDERS sit in desk/day.py, not desk/paper.py, because the lane guard refuses MONEY any edit to PAPER's file and loosening a guard is his alone. The file move is left to PAPER (R-MONEY-69). Carried orders use Blocker.BROKER, as desk/halt.py has no CARRIED blocker yet.
+- Liquidity cap (#1833): options were to widen the claim to test_running, test_running_tell and test_restop and feed `day._buy` at once, or split. Split chosen: only the green step (fixtures with volume 10**7) landed, because feeding the cap would turn those three tests red.
+- Interest (#1861): options were inside the day's profit (rewrite the reconciliation and golden days) or beside it as its own record column and daily line. Beside chosen, recommended, since profit must equal the ledger (day_parts reconcile, simcity). His words: "please always go with recommended".
+- Double 7's (money-connors7) is held off MONEY on his "always go with recommended" (13 Nov): desk/ is at its file ceiling and lab/published_epon.py is RUNGS's. It goes to RUNGS, re-carded to claim desk/eponymous_connors.py, its unit test, lab/published_epon.py and its test (R-MONEY-68); it waits on R-RUNGS-10.
+
+### 2026-11-23 - The TRD-10 flag flags, never skips (#1891, money-small)
+- Options: skip a trade whose expected gain is under twice the round trip's every charge, or flag it. Flag chosen: the box says "flagged", and `orders.thin(order, gain)` rounds nothing. It is pure and tested at the boundary, not yet called, because a Decision carries no expected gain.
+- The 1% liquidity-cap feed (`day._buy` passing `traded_value`) was tried and not landed: it turns test_restop, test_running and test_running_tell red (their bars have volume 1) and those files are outside the claim. Left to a card claiming them.
+- Double 7's (money-connors7) stays off MONEY on his "always go with recommended"; it waits on R-RUNGS-10 (RUNGS re-card, R-MONEY-68).
+
+### 2026-11-23 - No FAULT for lines before their first bar (#1909, money-simcity-firstbar)
+- Options: keep the per-line FAULT promise for a line with no bar before the day; skip such lines in the scenarios. Skip chosen: the night already names them under "Left out until their first bar" and the trading day is unaffected. `_Life.begun(on)` now feeds the gateway-silent, unbarred and gap scenarios.
+- Double 7's (money-connors7) stays off MONEY on his standing "always go with recommended"; the lane goes to money-saved-fx and money-time-gaps; Double 7's goes to RUNGS.

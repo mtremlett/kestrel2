@@ -16,7 +16,7 @@ import pytest
 from desk import bars as database
 from desk import store, venues
 from desk.bars import Source
-from desk.lines import LINES, NO_TAX, STAMP_DUTY, Line
+from desk.lines import LINES, NO_TAX, POUND, STAMP_DUTY, Line
 from desk.store import Bar
 from lab import universe
 
@@ -33,11 +33,12 @@ def _ask(line: Line, day: date) -> tuple[Bar, ...]:
     )
 
 
-def test_the_research_list_is_the_four_lists_of_the_ruling_each_on_its_own_venue() -> None:
-    parts = (universe.SP500, universe.NASDAQ100, universe.FTSE350, universe.ETFS)
+def test_the_research_list_is_the_six_lists_each_on_its_own_venue() -> None:
+    mid, small = universe.MIDCAP400, universe.SMALLCAP600
+    parts = (universe.SP500, universe.NASDAQ100, universe.FTSE350, universe.ETFS, mid, small)
     sizes = [len(part) for part in parts]
-    assert sizes == [len(set(part)) for part in parts] == [503, 101, 347, 200]
-    american = universe.SP500 + universe.NASDAQ100 + universe.ETFS
+    assert sizes == [len(set(part)) for part in parts] == [503, 101, 347, 200, 400, 603]
+    american = universe.SP500 + universe.NASDAQ100 + universe.ETFS + mid + small
     assert {(line.venue, line.currency) for line in american} == {("US", "USD")}
     assert {line.venue for line in universe.FTSE350} == {"LSE"}
     #: a London share pays stamp duty on a purchase; no US ticker, share or fund, pays UK tax
@@ -46,7 +47,7 @@ def test_the_research_list_is_the_four_lists_of_the_ruling_each_on_its_own_venue
     dollars = {line.symbol for line in universe.FTSE350 if line.currency == "USD"}
     assert dollars == {"BPCR", "CPG", "IHG", "MNTN", "RTW"}
     named = [(line.symbol, line.venue) for line in universe.UNIVERSE]
-    assert len(named) == len(set(named)) == len(set(american + universe.FTSE350)) + 1 == 1066
+    assert len(named) == len(set(named)) == len(set(american + universe.FTSE350)) + 1 == 2065
     #: ISF, London's yardstick, is studied so that the store holds LSE/ISF.csv for the ladder
     assert [x.symbol for x in universe.YARDSTICKS] == ["ISF"]
     assert all(re.fullmatch("[A-Z0-9]+(-[A-Z])?", symbol) for symbol, _ in named)
@@ -158,7 +159,14 @@ def test_the_nightly_refresh_enters_the_database_and_writes_the_day_and_list(
 ) -> None:
     said = universe.nightly(tmp_path, DAY, (universe.SP500[0],), _ask, noon=lambda _: "noon")
     assert said.startswith("research refresh: 1 lines refreshed")
-    assert said.endswith("; noon")
+    assert (tmp_path / database.HISTORY).exists()  # the night's dailies land in the history file
+    assert said.endswith("; noon")  # the pound is not held: no gap to name
+    ONE = Decimal("1.3")
+    days = venues.sessions("US", DAY - timedelta(10), DAY - timedelta(1))
+    with database.writing(tmp_path / database.LIVE, Source.ARCHIVE) as opened:
+        opened.days(POUND, [Bar(d, ONE, ONE, ONE, ONE, 0) for d in days if d != days[3]])
+    gap = universe.nightly(tmp_path, DAY, (universe.SP500[0],), _ask, noon=lambda _: "noon")
+    assert gap.endswith(f"; noon; the pound has no rate on 1 sessions, last {days[3]}")
     assert database.daily(tmp_path / database.LIVE, MMM) == _ask(MMM, DAY)
     note = (tmp_path / "grid" / "store" / "REFLECTS.txt").read_text(encoding="utf-8").splitlines()
     sizes = " ".join(f"{k}={len(v)}" for k, v in universe.LISTS.items())

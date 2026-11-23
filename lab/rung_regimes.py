@@ -18,7 +18,11 @@ again and simulates nothing.
 BY THE WEATHER (REG-01, `lab/weather.py`). `by_weather` cuts the same priced trades not at a
 day but by the trend state of the day each was bought: `up` and `down` are each judged alone,
 by the same rule, and both must pass. A trade bought while the weather is still `warming` has
-no regime yet and is left out; a day the weather never named is a fault, not a guess.
+no regime yet and is left out; a day the weather never named is a fault, not a guess. Each
+state is GRADED (`graded`, L19): thirty trades a state cannot prove a real edge in both (a t of
+3 over 60 trades is about 2.1 in each), so a state of enough trades short of T_PASS is DOUBT,
+and only one T_PASS standard errors below nothing FAILS; the verdict scores the rung soft
+(MAX_WEAK), and a power case in its tests holds that fair.
 
 PROVEN ALONE, by `tests/unit/test_lab_rung_regimes.py`: a planted edge passes; noise passes
 at the rate of two windows both clearing the bar by chance; a broken copy is caught.
@@ -64,6 +68,13 @@ class Regimes:
 def decide(first: Answer, second: Answer) -> Answer:
     """The rung's one rule: the least of the two windows' answers, so both must pass."""
     return min(first, second)
+
+
+def graded(window: Verdict) -> Answer:
+    """A window's answer on the three bands (`rung.band`): enough trades short of T_PASS is a
+    DOUBT, and only a window T_PASS standard errors below nothing FAILS."""
+    failed = window.answer is Answer.FAIL
+    return rung.band(window.t) if failed and window.t is not None else window.answer
 
 
 def judge(
@@ -115,7 +126,7 @@ class Weathered:
     def answer(self) -> Answer:
         """The same rule over the two states: both must pass. A state the rule never traded in
         is too thin to say (the weather's fault, not the rule's), never a FAULT."""
-        return decide(*(v.answer if v.trades else Answer.THIN for v in (self.up, self.down)))
+        return decide(*(graded(v) if v.trades else Answer.THIN for v in (self.up, self.down)))
 
 
 def by_weather(

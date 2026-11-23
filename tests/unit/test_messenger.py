@@ -222,12 +222,12 @@ def test_the_morning_message_tells_the_heat_of_the_last_day_in_pounds_and_share(
 @pytest.mark.parametrize(
     ("moment", "owed", "trades"),
     [
-        ("2026-11-16 07:59:59", False, True),  # he sleeps until 08:00, and news waits for him
-        ("2026-11-16 08:00", True, True),
+        ("2026-11-16 05:39:59", False, True),  # the start-of-day card goes at 05:40, not before
+        ("2026-11-16 05:40", True, True),
         ("2026-11-16 21:59:59", True, True),  # late is better than never, while he is awake
         ("2026-11-16 22:00", False, True),  # then he sleeps, and it is not sent
-        ("2026-07-01 06:59:59", False, True),  # summer: 08:00 on a UK clock is 07:00 UTC
-        ("2026-07-01 07:00", True, True),
+        ("2026-07-01 04:39:59", False, True),  # summer: 05:40 on a UK clock is 04:40 UTC
+        ("2026-07-01 04:40", True, True),
         ("2026-11-14 12:00", False, False),  # a Saturday
         ("2026-12-25 12:00", False, False),  # Christmas Day, a Friday: no venue trades
         ("2026-11-26 12:00", True, True),  # Thanksgiving: London trades, so the desk does

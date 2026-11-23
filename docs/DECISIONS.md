@@ -2243,6 +2243,30 @@ the zoo's thirteen daily rules (they need the daily round, `desk/day.py`), and t
 (no AG rule exists as code yet). Guard proven (A7): with `zoo` defaulting to True the test failed at its
 first assert; with the one-share cap removed it failed (23 shares bought, not 1).
 
+## 22 Nov - Grimes's ten setups join the zoo as a paper MACHINERY TEST (his "both now")
+
+His words in chat (Sun 22 Nov 15:3x, via the coordinator): "both now": build the ten AG strategies now, beside
+the ladder, to trade on paper as a test of the desk; the ladder stays the only gate for edge and money (CANON
+B6, his 22 Nov ruling on zoo machinery above, PR #1682). Decided, with options:
+- WHERE: desk/ may never import lab/, so rules the desk runs live in desk/; an `eponymous_*` file would put them
+  in the ladder's rule book and its published-figure checks, so they get their own `desk/grimes.py`; desk/ held
+  100 of 100 files, so `desk/simcity_parts2.py` was folded into `simcity_parts.py` first (#1691, a pure move).
+- WHAT: the catalogue (kestrel2_research/grimes/catalogue.md v3, review 9.8) at its defaults, long only, on the
+  daily bar (the intraday round shows a rule one session, under the 60-bar warm-up the blocks need), one share.
+  Left to the ladder: sweeps, sizing by risk, shorts through inverse ETFs, the weekly (HTF) contexts, the MGMT
+  study. A resting order becomes a bar trading through its level, filled at the next open (the engine's fill).
+- HOW IT TRADES: as daily zoo machines `zoo_ag01_...` to `zoo_ag10_...` in `desk/intraday.py` ZOO, so the zoo's
+  switch, its own allowance, its one-share cap and its MACHINERY TEST label apply; they trade only when the
+  zoo's daily round (zoo-daily) reads ZOO's daily machines, behind the `zoo-on-paper` file. Never in STRATEGIES,
+  never A-GATE (`test_intraday_zoo.py`).
+Guard proven (A7): the tests were written after the code, so each was driven red by a planted mutation of the
+condition it names, 13 of 13 caught: AG-01 shared high not needed, AG-02 close back over the boundary dropped,
+AG-03 CD/AB band widened, AG-04 reaction limit 50% to 80%, AG-05 spring's close inside dropped, AG-06 context
+always true, AG-07 retrace 62% to 80%, AG-08 pierce of K by any bar, AG-09 weak thrust under 2x mean, AG-10 top
+third to two thirds, MGMT breakeven dropped, MGMT parabolic stop dropped, SW confirming at a third of z. The drive
+first found three near-misses blocked by a second condition (AG-01, AG-02, AG-08) and a swing test passing on a
+tie; each was rebuilt until the named condition alone decided it.
+
 ## 22 Nov - a lane may fold away its own module (R-RUNGS-29), by his own words
 
 **His words** (chat seat 44, Sun 22 Nov ~18:1x), asked whether lanes may remove their own
@@ -2329,3 +2353,13 @@ eponymous_* (lab/rulebook.py globs those) or is imported by desk/intraday.py, th
 Driven (A7) on a scratch worktree: red on main 10004db0 naming desk/grimes.py; green with #1696's
 desk/intraday.py (the ten AG setups join the zoo). Rejected: "imported by any module" (the
 rungs and eponymous rules are found by glob and would all read as orphans). It lands after #1696.
+
+## 23 Nov - every open request has its own box (guard), and 30 run-on lines split
+Runner ops 113, coordinator 107/110's H1: the runner reads one request per `- [ ]` line in STATUS, so a
+request written inside another's line was never offered or was read as met (data-survivorship's re-offer
+loop, R-DATA-68, 01:36). `tests/guards/test_lanes.py::test_every_open_request_has_its_own_box` refuses any
+`R-X-n (later` or `(blocking` not at the head of its own checkbox line. Driven: RED on main's STATUS
+(a63c9bf2 era, 26 run-on requests, R-MONEY-8 first), GREEN after this change splits all 30 run-on lines
+mechanically, each request on its own line with its own words. A split request keeps its line's box
+unless its own words say it is done (`[x]` before it, `(done ...`, `done in #n`, `Met by #n`): 15 such.
+Tightening only; nothing is loosened.

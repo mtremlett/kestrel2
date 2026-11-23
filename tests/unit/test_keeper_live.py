@@ -21,3 +21,25 @@ def test_a_line_with_no_one_minute_history_is_started_and_the_job_is_clean(tmp_p
     words, stale = keeper_live.minute_round(hot, (line,) * 2, now, ask)
     assert stale == [] and words.startswith("live: ")
     assert len(bars.timed(hot, line, "1m", now - timedelta(hours=1), now)) == 1
+
+
+def test_a_polled_round_counts_its_requests_and_a_pacing_refusal_halves_the_rate(
+    tmp_path: Path,
+) -> None:
+    hot, now = tmp_path / keeper.HOT, datetime(2026, 11, 17, 10, tzinfo=bars.EPOCH.tzinfo)
+    lines = [Line(f"S{k}", "LSE", "GBP", 1) for k in range(40)]
+    asked: list[str] = []
+
+    def ask(one: Line, when: datetime) -> tuple[Timed, ...]:
+        asked.append(one.symbol)
+        if one.symbol == "S1":
+            raise ValueError("pacing violation")
+        return (
+            Timed(
+                "1m", when - timedelta(minutes=1), Decimal(5), Decimal(5), Decimal(5), Decimal(5), 1
+            ),
+        )
+
+    words, requests, refusals = keeper_live.polled_round(hot, lines, now, ask, 5, 27)
+    assert (requests, refusals, len(asked)) == (27, 1, 27) and "1 pacing refusals" in words
+    assert keeper.pace(5, 27, refusals) == 27 and keeper.pace(5, 100, refusals) == 50

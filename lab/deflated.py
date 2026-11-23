@@ -80,6 +80,8 @@ FLAG = 2.0
 NAMED = ("first", "deflated", "yearly", "folds", "market", "shuffle")
 #: The rungs read here from the trial's trades: the luck rung reported, the rest in NAMED.
 OWN = ("first", "luck", "deflated", "yearly")
+#: The rungs reported and never gating: whatever this module reads that the rule does not.
+REPORTED = tuple(name for name in OWN if name not in NAMED)
 
 _NORMAL = NormalDist()
 _EULER = 0.5772156649015329

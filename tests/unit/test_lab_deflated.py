@@ -13,7 +13,7 @@ import pytest
 from test_lab_rung import FREE
 
 from desk.lines import LINES, Line
-from lab import deflated, luck, rung, trials
+from lab import deflated, luck, rung, trials, verdict
 from lab.cell import Cell, Key, Trade
 from lab.rung import Answer, Priced, Verdict
 
@@ -176,13 +176,26 @@ def test_a_rule_is_judged_on_its_own_lines_clustered_and_one_correction_gates() 
     bars = [n for j in judged[1:] for n in (j.bar, j.deflated, j.luck.corrected)]
     assert bars == pytest.approx([0.1166, 0.7602, 0.2354, 0.1145, 0.9971, 0.0008], abs=1e-4)
     assert judged[2].luck.chance * 3435 > luck.FAMILY, "charged every line ever, it would fail"
+    refused = replace(_verdict(other, 0.5, "7", NVDA, 3), refusal="too big at this capital")
+    pool = verdict.Pool([], {one.key.cell: one for one in (*lines, refused)}, "", False)
+    assert [pool.among(one.key.cell) for one in lines] == list(judged), "the pool's lines, once"
     *both, idle = deflated.judge_lines([*lines[:2], _verdict([], 0.33, "4", NVDA)])
     assert (idle.least, idle.luck.trials) == (Answer.FAULT, 3) and (both[0].bar or 1) < (
         bars[0] or 0
     )
     rsi = rung.verdict(Key(replace(lines[2].key.cell, strategy="rsi2_pullback"), "", ""), ())
+    with pytest.raises(ValueError, match="no first rung"):
+        pool.among(rsi.key.cell)
     for odd in ([], [*lines[:2], rsi]):
         with pytest.raises(ValueError, match="one rule's"):
             deflated.judge_lines(odd)
     with pytest.raises(ValueError, match="not one set"):
-        trials.daily([lines[0], _verdict(twin, 1, "5", NVDA, 3)])
+        trials.daily([lines[0], lines[0]])
+    longer = trials.daily([lines[0], _verdict(twin, 1, "5", NVDA, 3)])  #: one window, aligned
+    assert [len(row) for row in longer.values()] == [366, 366]
+    assert len({tuple(row) for row in longer.values()}) == 1, "day for day on the span"
+    sour = verdict.Pool([], {one.key.cell: one for one in (lines[0], rsi)}, "", False)
+    for _ in range(2):  #: the set's failure remembered, as `fold` remembers its own
+        with pytest.raises(ValueError, match="one rule's"):
+            sour.among(rsi.key.cell)
+    assert isinstance(sour.unlooked, ValueError)

@@ -63,68 +63,12 @@ Nineteen settled and built entries folded into one; git keeps every word (`git l
 - *Head start* jobs write the two databases: stooq_store daily rows and matrix arrays under their own source (R-RUNNER-10; #520, #527, #533); intraday rollup from 1m bars begun (R-RUNNER-215, #539).
 - *Rules:* the cleaner's bad-high/low repair settled (R-RUNNER-194, #518); a recovering fall as large as the pound is the market's move (R-RUNNER-178, #532); R-RUNNER-12 held for a wider claim (#531, #535).
 
-### 2026-11-16 — intraday rollup from 1m bars (R-RUNNER-215, step) (#539)
-
-- the bar is a new Candle type (timestamped, with source) since store.Bar is daily only;
-  options were widening Bar (touches the store, outside the claim) or a new type; chose the
-  new type, to be reconciled when the stores take intraday bars.
-
-### 2026-11-16 — the reference series live in the long database (R-RUNNER-189) (#524)
-
-- marker file kept as a file rather than a table (option: a table in the database; chosen the
-  file for the smallest change, since it holds no price).
-
-### 2026-11-16 — rollup.weekly builds weekly bars from daily bars (R-RUNNER-215, step) (#542)
-
-- manifest line for desk/rollup.py left as is (a lane may not edit an existing manifest line;
-  guard test_lanes refused it), so it still says "intraday"; the scribe/owner may widen the
-  wording.
-
-### 2026-11-16 — every line names its underlying market and source (R-RUNNER-157) (#528)
-
-- Fields default to empty so other Line builders (lab, tests) stay valid; the wiring test, not
-  the type, demands them on LINES. Options: required field (touches files outside claim) vs
-  default (chosen).
-
-### 2026-11-16 — stooq_raw's daily zips enter the history database under their own source (R-RUNNER-10, step) (#545)
-
-- reused Source.STOOQ_RAW for the daily span (its 5m rows are a different span, so no clash)
-  rather than add an enum member outside my claim.
-
-### 2026-11-16 — research bars and the pound enter market_history.db (R-RUNNER-221) (#548)
-
-- the CSV carries no source, so the source is inferred: options (a) all Yahoo, (b) shelf-equal
-  bars Stooq, rest Yahoo. Took (b), his "go with recommended" ruling, since the shelf is where
-  Stooq fills live.
-
-### 2026-11-16 — spans.py holds one Span per timeframe; bars.py writes and reads any span (R-RUNNER-218) (#547)
-
-- Where a 4h bar starts: (a) UTC multiples of 4h, (b) per-venue session marks. Took (a),
-  because bars.py has no venue at write time and desk/rollup.py already builds session-aligned
-  bars; 08:00 London is still a mark. A week starts Monday 00:00 UTC.
-
-### 2026-11-16 — stooq_store's hourly bars enter the history database under their own source (R-RUNNER-10, step) (#549)
-
-- the hourly span lives in market_history.db (his 18:32 ruling: history keeps every
-  timeframe), option: a separate third file, rejected as a needless extra database.
-
-### 2026-11-16 — Stooq matrices' 15m, 30m and 1h arrays enter the databases (R-RUNNER-10, step) (#566)
-
-- the arrays' hourly stamps are read as hour-end because the first bar of each London day is
-  stamped 10:00 on Stooq's clock (options: start-stamped; chosen end-stamped on that
-  evidence).
-
-### 2026-11-16 — rollup.merged - a pulled bar wins over a rolled one, a disagreement is a fault (R-RUNNER-215, step) (#571)
-
-- a "disagreement" means any difference in open, high, low, close or volume (options: price-
-  only, or with a tolerance; chose exact, the strictest, as the fault is only recorded and the
-  pulled bar wins either way).
-
-### 2026-11-16 — dividend-adjusted twins of the reference series (R-RUNGS-9) (#544)
-
-- the twin is a separate Line with a tagged symbol, because the store's key is (venue, symbol,
-  span, at) and holds one source per day. Option B was a second source on the same key, which
-  the key does not allow. Option A was chosen.
+### 2026-11-16 — eleven settled store and rollup rules, folded (#524-#571)
+- Intraday rollup bars are a new Candle type (timestamped, with source), not a widened daily Bar (#539); weekly bars roll from daily (#542; its manifest wording left, a lane may not edit a manifest line).
+- The reference series' marker stays a file, not a table (#524). Every line names its market and source as fields defaulting to empty, the wiring test demanding them on LINES (#528).
+- Stooq daily zips reuse `Source.STOOQ_RAW`; hourly and 15m/30m/1h arrays enter the history database (his 18:32 ruling: history keeps every timeframe), hourly stamps read as hour-end on the evidence of London's 10:00 first bar (#545, #549, #566).
+- Research CSVs carry no source: shelf-equal bars are Stooq, the rest Yahoo, on his "go with recommended" (#548). A 4h bar starts at UTC multiples of 4h, a week on Monday 00:00 UTC (#547).
+- A pulled bar wins over a rolled one and any difference in OHLCV is a fault, recorded (#571). The dividend-adjusted twin is a separate tagged Line, since the store key holds one source per day (#544).
 
 ### 2026-11-16 — SGLN's 15 April 2013 close is a recorded real move, so SGLN clears (R-RUNGS-16); R-MONEY-28, R-RUNGS-3, 5, 9, 15 already on main (#582)
 
@@ -760,3 +704,57 @@ Options: full past lists for FTSE 350 (no record exists) vs measuring and statin
 
 ### 2026-11-22 — BEA added, earnings CSV left to a later card (DATA, #1752)
 Options: a CSV parse hook in the collector now vs a later card (chosen, smallest green step). Collector at 11 sources.
+
+### 2026-11-22 — research refresh writes the database; shelf kept only under the archive (DATA, #1767)
+Options: the whole database as shelf (rejected: it would park a ticker for any adjusted close); no shelf (rejected: a filled day would park the yardstick again); chosen: the database's held bars stand under the archive's only for days the archive lacks. REFLECTS.txt stays at data/grid/store; the clear-out of departed tickers is dropped (a database never deletes a bar).
+
+### 2026-11-22 — hover prints SEND:, not ALARM (DATA, #1769, #1782)
+Three documents and the runner request name `SEND:`; nothing reads `ALARM`. Printing both words rejected (two homes for one line). The command prints through `announce`.
+
+### 2026-11-22 — pound noon rates fetched keyless (DATA, #1774, #1790)
+FRED's public fredgraph.csv works without a key; the session-env key option adds moving parts for no gain, so no credential is read. The gap line lives in lab/universe.py because lab/universe_history.py is outside the claim.
+
+### 2026-11-22 — scribe folds only the missing three (DATA, #1775)
+Folded #1736, #1750, #1752 rather than redo closed #1761's conflicting diff.
+
+### 2026-11-23 — stop the head-start change at the product step (DATA, #1798)
+Options: rewrite about 400 lines of test_store*, scenes, keeper, batch and sweep tests onto judge in this PR, or land the product step first. Took the second (ten-minute card, unit-test line guard).
+
+### 2026-11-23 — full universe waits on the grid's first pass (DATA, #1814)
+Options: (a) add thousands of Russell tickers from memory, (b) wait for the grid's first pass. Took (b): his 13 November ruling puts the full list after the first pass, and a list from memory would be wrong names parked one by one. Waits: 2026-11-29.
+
+### 2026-11-23 — hover's hole check covers golden lines only (DATA, #1809)
+Options: all 1,000+ lines every five minutes (reads every daily file each time), or golden lines only. Took golden: it is what decides green.
+
+### 2026-11-23 — the record check reuses store.AGREE (DATA, #1826)
+One home per number: the 2% tolerance is not repeated in quality.py.
+
+### 2026-11-23 — guarded test files left, rest of the store door landed (DATA, #1827)
+Options for tests/scenes/test_scenes.py, test_lab_batch.py, test_lab_sweep.py, which the lane guard refuses DATA: (a) loosen the guard (his alone, no); (b) edit anyway (red on GitHub); (c) leave prepare/read and land the rest. Took (c). Request to RUNNER OPS: lend ownership for one PR or have a MONEY/GRID card edit them.
+
+### 2026-11-23 — both databases count toward green (DATA, #1832)
+Options: live database only, as before; both. Took both: his 22 Nov terms say both databases x every span, and a stale history store must not read green. HOVER will read red on the history database's stale spans until gap filling for 15m-1wk exists; that is true.
+
+### 2026-11-23 — the daily record check is its own command (DATA, #1834)
+Options: fold it into the monitor (rejected: the broker would be dialled twice a round) or keep `python -m desk.quality record` in quality.py. Took the second; the runner schedules it daily after the close.
+
+### 2026-11-23 — unmeasured lists state it, never raise (DATA, #1839)
+Options: keep raising for FTSE350 and ETFS (a verdict would crash), omit the line, or state "past members not recorded, bias unmeasured". Took stating it: BT-09 wants the bias on every verdict, and a missing measurement is said loudly, never hidden.
+
+### 2026-11-23 — members waits for a fetcher card, free route only (DATA, #1841, #1858)
+Options: wait, or build the FTSE fetcher outside the claim. Took waiting (the claim forbids the second); the fetcher is requested as R-DATA-72. His 22 Nov ruling: free data only, so funds and 2010-2014 stay unmeasured. data-deep-history stays held to 24 November.
+
+### 2026-11-23 — HOVER's worst cell is the first golden fault (DATA, #1860)
+Options: worst by age (rejected: needs a span-aware age scale), or first golden fault, else the first fault. Took the second, so the red alarm names the cell that made it red.
+
+### 2026-11-23 — one hourly table for both databases (DATA, #1850)
+Options: two commands or one table with database-prefixed rows. Took one table, so the runner posts one message.
+
+### 2026-11-23 — the members feed lands in two steps, pure parsing first (DATA, #1870, #1885, #1899)
+Options: wire the nightly refresh now (needs files outside the claim) or land the in-claim steps. Took the steps: parsing and URL building pure with one thin `fetch`, then `fetch_review` over a fixture getter. The wikitext rule "second cell is the ticker" is an assumption recorded in the module docstring; the live shape is unverified until the first real fetch, and a different shape raises.
+
+### 2026-11-23 — the pound's noon rate is written unjudged (DATA, #1902)
+Options: judge it through `store.judge` (rejected: one noon price has no high or low for the bar judge) or write it as `lab/universe_history` already does. Took the second; a day the Fed gives none is named, never invented.
+
+### 2026-11-23 — kind is a function of the fault text, the pre-2010 refusal stays, the ramp is 25% (DATA, #1874, #1883, #1886)
+HOVER's kind: a function of the fault text (rejected: a new tuple field, which breaks the runner's parse of the line). Pre-2010 five-minute bars: keep the named refusal (rejected: widen hours to older clock rules, no intraday history before 2010 exists, DECISIONS 17 Nov). Polling ramp: a clean round rises 25%, so the ramp is measured, not leapt; the rule landed alone since the wiring needs files outside the claim.

@@ -136,6 +136,12 @@ class _Life:
         self.kept, self.done, self.held = dict[str, bool](), set[str](), set[str]()
         self.stopped = ""  #: the day the desk said it could not go on, and its words
 
+    def begun(self, on: date) -> list[Line]:
+        """The lines with a bar before the day, by name: the only lines a scenario may choose."""
+        return sorted(
+            (x for x, bars in self.market.items() if bars[0].day < on), key=lambda x: x.symbol
+        )
+
     def promise(self, words: str, kept: bool) -> None:
         self.kept[words] = kept and self.kept.get(words, True)
 
@@ -335,6 +341,7 @@ def _stops(life: _Life) -> None:
         order, order.price, life.room
     )
     life.promise("a sale at the price it was sized at loses nothing to a gap", kept)
+    life.promise("a trade gaining nothing is flagged thin", orders.thin(order, Decimal(0)))
     buy = strategy.Decision("rule", symbol, life.records[-1].day, strategy.Action.BUY)
     price, fx, held = Decimal(100), life.rates[line.currency], book.positions(life.desk)
     gap = orders.stop_under(line, price) - 1  #: the live price gaps under the signal's stop
@@ -377,10 +384,13 @@ def _apart(life: _Life, trips: tuple[book.RoundTrip, ...]) -> bool:
 def _told(life: _Life, trips: tuple[book.RoundTrip, ...]) -> bool:
     """Each trip has its story, and the profit attributed by line, and by days held, is each the
     trips' own total; currency and trading add up to the gross (BIC-04)."""
-    totals = (
-        sum(book.attributed(trips, by).values(), Decimal(0))
-        for by in (lambda t: t.buy.symbol, lambda t: (t.sell.day - t.buy.day).days)
+    cuts = (  # strategy, line, holding time, cost: each cut of the profit table (TRD-12)
+        lambda t: orders.strategy_of(t.buy.order_id),
+        lambda t: t.buy.symbol,
+        lambda t: (t.sell.day - t.buy.day).days,
+        lambda t: t.costs.total,
     )
+    totals = (sum(book.attributed(trips, by).values(), Decimal(0)) for by in cuts)
     whole = len(book.told(trips, life.market)) == len(trips)
     chained = all(c.order_id and c.bar_day <= c.session for c in book.chains(life.desk))
     return (

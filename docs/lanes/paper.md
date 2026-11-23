@@ -567,3 +567,15 @@ Options: keep the message's own 'streak N' (a second home for the count, failure
 ### 2026-11-22 — the pound is read from the price store alone (#1674)
 
 (1) The day's recorded rate is no longer read first. Options: keep it first, or the store alone (chosen: his ruling "every price is read from the database alone"; the store gives the same rate per day). (2) A stale pound becomes a ValueError inside `rates`, because `command.NAMED` (outside the claim) does not name `keeper.Stale`. Options: widen NAMED, or translate in `rates` (chosen).
+
+### 2026-11-22 — "the desk is not trading" means no fill today (#1753)
+
+Options for "not trading" by 09:30 UK: no order sent; no fill; no step run. Chosen: no fill on the ledger dated today, because the ledger is the one record `desk/messenger.py` already reads, and an order that never fills is also not trading. Telegram only, once a day, never in his night (09:30 to 22:00). Remains: call `messenger.idle` from `desk/running.py` (outside the claim, R-PAPER-38).
+
+### 2026-11-23 — the not-trading alarm is sent from `_say` (#1852)
+
+Wired in `running._say`, the one place daily messages go, before the evening message, not a new door; `messenger.idle` already guards the hours and once-per-day. The rehearsal's message count rises 4 to 5 (it writes the alarm on a day with no fill).
+
+### 2026-11-23 — only the 05:40 card moves earlier, not his waking hour (#1864)
+
+MORNING starts 05:40 (the plan's time). Options: move the whole "awake" gate to 05:40, or only the card (chosen, so the account check, notes and weekly reminders never reach him before 08:00; `running.py` reads `gateway.WAKES`, not `MORNING.start`).

@@ -136,3 +136,6 @@ def test_the_bias_is_stated_as_a_line_a_verdict_can_carry() -> None:
     assert members.bias("SP500", date(2010, 1, 1)) == (
         "survivorship: SP500 on 2010-01-01: 279 of 500 members still listed, 221 left"
     )
+    assert members.bias("FTSE350", date(2020, 1, 1)) == (
+        "survivorship: FTSE350 on 2020-01-01: past members not recorded, bias unmeasured"
+    )

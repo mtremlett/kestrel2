@@ -42,6 +42,10 @@ SECONDS = 30
 #: IBKR's own status times, so the fill time is not measured; 120 s is two minutes within one
 #: five-minute step, the cancel and the reads after it still inside it. Tune it from the tapes.
 FILL_SECONDS = 120
+#: The desk step's time (the runner kills it after this) and the margin kept beside the fills.
+STEP_SECONDS, STEP_MARGIN = 900, 60
+#: The most market orders one round sends, each waiting FILL_SECONDS inside the step (pattern 24).
+MAX_ORDERS = (STEP_SECONDS - STEP_MARGIN) // FILL_SECONDS
 #: The kinds of message, by the gateway's own numbers.
 ACCOUNTS, READY, NEWS, STATUS = "15", "9", "4", "3"
 HOLDING, HOLDINGS_END, ORDER, ORDERS_END = "61", "62", "5", "53"

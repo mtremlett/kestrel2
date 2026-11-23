@@ -102,8 +102,8 @@ def test_a_step_does_the_days_work_under_the_data_folder_and_fails_by_name_witho
 ) -> None:
     _world(monkeypatch)
     fast_store(tmp_path / keeper.HOT, 51)
-    assert _run(tmp_path, MON) == 0  # he sleeps: a knock
-    assert capsys.readouterr().out == "STEP Mon 16 Nov 07:15 UTC: done.\n"
+    assert _run(tmp_path, MON.replace(hour=5, minute=35)) == 0  # he sleeps: a knock
+    assert capsys.readouterr().out == "STEP Mon 16 Nov 05:35 UTC: done.\n"
     # London open, and no key of his: the round is made on the store's bars at the pound's
     # rate, and only then the step fails, naming what he must set
     with pytest.raises(messenger.Undelivered, match="no TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID"):
@@ -146,8 +146,10 @@ def test_the_preflight_says_ready_or_names_each_thing_that_is_not_and_sends_no_o
     answers, desk = _world(monkeypatch), tmp_path / "desk"
     assert _run(tmp_path, MON, "--preflight", **KEYS) == 0
     assert capsys.readouterr().out == (
-        "PREFLIGHT Mon 16 Nov: READY. his phone: its key is set; the Gateway: it answered; the "
-        "kill switch: off, and drilled today; the paper account: it is the desk's book; prices: "
+        "PREFLIGHT Mon 16 Nov: READY. his phone: its key is set; "
+        "the email: no SMTP_ setting, his phone alone; the Gateway: it answered; "
+        "the kill switch: off, and drilled today; the paper account: it is the desk's book; "
+        "prices: "
         "22 lines to trade on; the pound: a dollar is £0.800000, kept for the day "
         "(kept before); halts: "
         "none in force.\n"
@@ -166,7 +168,8 @@ def test_the_preflight_says_ready_or_names_each_thing_that_is_not_and_sends_no_o
     assert line.startswith("PREFLIGHT Mon 16 Nov: NOT READY. his phone: ValueError: no TELEGRAM")
     assert "the kill switch: ValueError: the kill switch is on, pulled at" in line
     assert "the paper account: ValueError: it is not the desk's book: IITU" in line
-    assert ". Ready: the Gateway: it answered; prices: 22 lines to trade on; the pound" in line
+    assert ". Ready: the email: no SMTP_ setting, his phone alone; the Gateway: it answered" in line
+    assert "prices: 22 lines to trade on; the pound" in line
 
     def shut(_talk: object) -> object:
         raise ConnectionRefusedError
@@ -206,7 +209,7 @@ def test_the_rehearsal_lives_the_last_session_again_on_its_own_record_with_no_ma
         0,
         "REHEARSAL GO: Fri 13 Nov lived again in 199 steps at the paper Gateway (0 failed and "
         "the next carried on), no market trading: 0 orders decided, 0 of them sent to the broker "
-        "and cancelled, none filled; the account left as found, the day's record made, 4 messages "
+        "and cancelled, none filled; the account left as found, the day's record made, 5 messages "
         "written and none sent to his phone. NO ORDER REACHED THE BROKER: this rehearsal does not "
         "prove the sending.\n",
     )

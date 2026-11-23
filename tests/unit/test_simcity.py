@@ -21,7 +21,7 @@ from typing import Any
 
 import pytest
 
-from desk import book, day, orders, simcity, strategy
+from desk import book, day, orders, simcity, simcity_incidents, strategy
 from desk.broker import Crash, Disconnected, Fault, Pretend
 from desk.lines import YARDSTICK
 from desk.orders import Settings
@@ -131,6 +131,7 @@ def test_the_census_names_every_part_of_the_money_path_and_the_scenarios_that_ra
         "book.round_trips": simcity.TRIPS,
         "book.conformance_cost": simcity.TRIPS,
         "book.told": simcity.TRIPS,
+        "book.attributed": simcity.TRIPS,
         "book.currency_gain": simcity.TRIPS,
         **{f"broker.Fault.{fault.name}": simcity.FAULTS for fault in Fault},
     }
@@ -387,17 +388,19 @@ def test_a_line_not_yet_begun_is_left_out_and_named_while_every_day_is_lived(
     assert night.days == len(SESSIONS[1:51])
 
 
-def test_a_gap_on_a_line_with_no_bar_before_it_is_a_fault_by_name_and_other_lines_are_unchanged(
+def test_scenarios_choose_only_lines_that_have_begun_so_a_late_line_halts_and_faults_nothing(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(simcity, "EVENTS", ((simcity.GAPPED, simcity._gapped),))
+    both = {name: (name, fn) for name, fn in simcity.EVENTS}
+    chosen = (
+        both[simcity.GAPPED],
+        both[simcity_incidents.UNBARRED],
+        both[simcity_incidents.STOP_SILENT],
+    )
+    monkeypatch.setattr(simcity, "EVENTS", chosen)
     monkeypatch.setattr(simcity, "EVENTFUL", 1)
-    late = LINES[0]
-    young = {**SHORT, late: [bar for bar in SHORT[late] if bar.day >= SESSIONS[30]]}
-    faults = [
-        b for b in simcity.run(tmp_path, young, ROOM, RATES, NOW, (3,)).broken if "FAULT" in b
-    ]
-    assert faults and all(f"line {late.symbol}:" in b and "world 3" in b for b in faults), faults
-    assert not [
-        b for b in simcity.run(tmp_path, SHORT, ROOM, RATES, NOW, (3,)).broken if "FAULT" in b
-    ]
+    late = LINES[0]  #: the first London line by name, which the scenarios once always chose
+    young = {**SHORT, late: [bar for bar in SHORT[late] if bar.day >= SESSIONS[49]]}
+    night = simcity.run(tmp_path, young, ROOM, RATES, NOW, (3,))
+    assert late.symbol in night.left
+    assert not [b for b in night.broken if "FAULT" in b or "stops on" in b], night.broken
