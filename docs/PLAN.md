@@ -656,12 +656,6 @@ day's trading and reconciliation are built, and any broker can stand behind them
       {id: money-saved-fx; files: desk/day.py, desk/day_parts.py, desk/day_money.py,
       tests/unit/test_day*.py, desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml;
       after: money-fills}
-- [ ] (Every box adding a public function to strategy, orders, broker, book, day or kill also
-      needs `desk/simcity.py, tests/unit/test_simcity*.py` in its files, one session at a time;
-      a function no scenario runs turns the check red: halts and limits among them.)
-      {id: money-census; files: desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml;
-      after: money-watch, money-stranger,
-      money-golden, money-story}
 
 - [x] **ONE DOOR FOR PRICES, slippage** (his 22 Nov ~10:00, "paramount": every price is read from market_history.db or market_live.db alone): `lab/slippage.py:104` reads `bars.daily(home / keeper.HOT, line)`,
       not the `daily/*.csv` files nothing writes any more; wire: its study; gate: its contract test on a database fixture
@@ -730,7 +724,9 @@ day's trading and reconciliation are built, and any broker can stand behind them
 - [ ] **Scenarios for four book parts** (coordinator 107 E1, deep 23 Nov 00:44 census: 67 parts, 4 with no
       scenario): `book.attributed`, `book.chains`, `book.conformance_cost` and `book.told` are run by no SimCity
       scenario; give each one in the night's census, no change to the parts themselves. Gate: the census test
-      names zero parts without a scenario
+      names zero parts without a scenario. That gate holds the standing rule too: every box adding a public
+      function to strategy, orders, broker, book, day or kill also claims `desk/simcity*.py` and
+      `tests/unit/test_simcity*.py`, one session at a time
       {id: money-census-book; files: desk/simcity*.py, tests/unit/test_simcity*.py}
 
 ## Phase 3 — the money path, on paper
