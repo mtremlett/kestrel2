@@ -660,13 +660,13 @@ day's trading and reconciliation are built, and any broker can stand behind them
 - [ ] A round never sends more orders than its step's time allows (coordinator 93's 20:5x ruling, option 2):
       each market order waits `paper.FILL_SECONDS` (120 s) and the runner ends the desk step at 900 s, so a zoo
       round of many one-share orders died mid-send (20 Nov, failure pattern 24). The step's time moves from
-      `desk/simcity_incidents.py:76` (STEP_SECONDS) to `desk/paper.py` beside FILL_SECONDS, one home, never a copy;
+      `desk/simcity_incidents.py:76` (STEP_SECONDS) to paper's module beside FILL_SECONDS, one home, never a copy;
       a round sends at most (STEP_SECONDS - margin) // FILL_SECONDS orders, the desk's own first, and the rest are
       not sent, each kept in the day's record as carried to the next step. Opus, A6 blind review (money path).
       Rejected: zoo orders that do not wait (a second send path), a longer timeout. The zoo goes back on only
       after this lands and a zoo-on rehearsal says GO; gate: a test, written first, where a planted round of 20
       one-share orders sends only the cap and names the rest carried
-      (runner ops 106, 23 Nov, coordinator 103's D1: desk/paper.py is PAPER's; its constants come from paper-step-time, then this box points simcity_incidents at them and drops its own)
+      (runner ops 106, 23 Nov, coordinator 103's D1: paper's module is PAPER's; its constants come from paper-step-time, then this box points simcity_incidents at them and drops its own)
       (money-time-gaps waits to 2026-11-24: 5 sessions in a row landed no change, the doctor asks why; money-honest waits on R-MONEY-65, said in #1861; money-door-pound parked a day, MONEY-s10, canon A8)
       (#1823: cap built, MAX_ORDERS = 7, the rest carried; constants sit in desk/day.py. #1906 put MAX_ORDERS beside the step time in paper's module. Remains: the day reads all three from there and drops its own; Blocker.CARRIED in desk/halt.py (widened to it by runner ops 114, 23 Nov: K1 refused 03:32); blind review (A6); zoo-on rehearsal GO before the zoo returns)
       {id: money-round-cap; files: desk/day.py, desk/simcity_incidents.py, desk/halt.py, tests/unit/test_day*.py, tests/unit/test_halt*.py,
@@ -937,7 +937,7 @@ grid-tune and grid-key side by side; then grid-pass, grid-week, grid-declared, g
       gate: none of the three files names them
       (split from data-door-writer by runner ops 112; moved from DATA's book to GRID's by runner ops 122, 23 Nov:
       manifest.toml gives these files to the grid lane; #1969's one commit is the start, its tests green, refused only
-      for its lane. `lab/montecarlo.py` is the rungs lane's: `sweep.held` keeps its folder argument here)
+      for its lane. The Monte Carlo module is the rungs lane's: `sweep.held` keeps its folder argument here)
       {id: grid-door-writer; files: lab/sweep.py, lab/transfer.py, tests/unit/test_lab_sweep.py,
       tests/unit/test_lab_batch.py, tests/unit/test_lab_transfer.py}
 - [x] **ONE DOOR FOR PRICES, the transfer study's pound** (his 22 Nov ~10:00, "paramount": every price is read from market_history.db or market_live.db alone): `lab/transfer.py:170` passes
@@ -1038,9 +1038,9 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         Decision e: no dead rungs; dsr merges into deflated, placebo into shuffle, bootstrap into ci, sample into rung
         1's trade minimum, benchmark into market; wire: each on verdict.judge's path; gate: a ladder test fails when
         any lab/rung_*.py is off that path (rungs_built equals the map)
-        Gate done (#1676): the registry test pins the rung modules off the path, now seven after empty rung_beta.py was folded away (#1740) (benchmark, bootstrap, dsr, placebo, retail, sample, stops); it may only fall. Step 2 (#1901): the stop-rule study renamed `lab/stop_rules.py`, off-path five; step 3 (#1934): benchmark merged into market (`lab/market.py`, `rung_benchmark.py` deleted), off-path now four (dsr, placebo, retail, sample).
-        Step 4 (#1961): the unwired placebo rung deleted (shuffle is the one home of the timing question), off-path three (dsr, retail, sample); #1974: the rung map in lab/ladder.py names the files each remaining merge needs. Remains: wire or merge each of dsr (into deflated; needs lab/deflated.py, its test and tests/unit/test_lab_trials_clustered.py in the claim), sample (into rung 1; needs lab/rung.py, test_lab_rung.py, test_lab_calibration.py), retail (needs lab/basket.py or lab/verdict.py); (each needs lab/ladder.py, manifest.toml and its target in the claim; merges need R-RUNGS-29), then pin 'waiting is empty'. Step 1 built (#1844): rung_bootstrap folded into rung_ci (off-path modules 7 to 6, FOLDED pin until it is wired); next: dsr (into deflated), sample (into rung 1), retail, each needing its target in the claim; merges need R-RUNGS-29; then pin 'waiting is empty' and take `rung_ci.bootstrap(` off FOLDED once wired. Registry test reads the real rungs from `rung.found()` (#1768)
-        {id: rungs-each-rung; files: lab/ladder.py, tests/unit/test_lab_ladder.py, lab/rung_*.py, tests/unit/test_lab_rung_*.py, lab/stop_rules.py, tests/unit/test_lab_stop_rules.py, manifest.toml; after: rungs-rung-map; waits: R-RUNGS-29}
+        Gate done (#1676): the registry test pins the rung modules off the path, now seven after empty rung_beta.py was folded away (#1740) (benchmark, bootstrap, dsr, placebo, retail, sample, stops); it may only fall. Step 2 (#1901): the stop-rule study renamed `lab/stop_rules.py`, off-path five; step 3 (#1934): benchmark merged into market (`rung_benchmark.py` deleted), off-path now four (dsr, placebo, retail, sample).
+        Step 4 (#1961): the unwired placebo rung deleted (shuffle is the one home of the timing question), off-path three (dsr, retail, sample); #1974: the rung map in lab/ladder.py names the files each remaining merge needs. Remains: dsr merged into deflated (lab/deflated.py, tests/unit/test_lab_deflated.py, tests/unit/test_lab_trials_clustered.py, claimed by runner ops 127, 23 Nov: K1 refused the box 07:33-08:05 for naming them unclaimed); then sample into rung 1 and retail into the basket or the verdict, runner ops widening this claim to each target as the one before lands; then pin 'waiting is empty'. Step 1 built (#1844): rung_bootstrap folded into rung_ci (off-path modules 7 to 6, FOLDED pin until it is wired); next: dsr (into deflated), sample (into rung 1), retail, each needing its target in the claim; merges need R-RUNGS-29; then pin 'waiting is empty' and take `rung_ci.bootstrap(` off FOLDED once wired. Registry test reads the real rungs from `rung.found()` (#1768)
+        {id: rungs-each-rung; files: lab/ladder.py, tests/unit/test_lab_ladder.py, lab/rung_*.py, tests/unit/test_lab_rung_*.py, lab/stop_rules.py, tests/unit/test_lab_stop_rules.py, manifest.toml, lab/deflated.py, tests/unit/test_lab_deflated.py, tests/unit/test_lab_trials_clustered.py; after: rungs-rung-map; waits: R-RUNGS-29}
   - [x] L14 one clustered set of trials for the deflated Sharpe, its spread measured
         {id: rungs-clustered-trials; files: lab/trials.py, lab/rung_dsr.py, tests/unit/test_lab_trials_clustered.py; after: rungs-rung-map}
   - [ ] L15 the blind review of the whole ladder (R-RUNNER-40), every blocking finding fixed
