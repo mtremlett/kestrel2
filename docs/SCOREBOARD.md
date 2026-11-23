@@ -544,6 +544,10 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1948 DATA members feed: live page shape verified (100 and 250 tickers). |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1962 data-members: page side verified live, announcement source missing. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1963 DATA: keeper --polled ramp command, tested; ceiling restored. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2053 R-RUNNER-457 done: history's Busy message reads conformance_tape.ROUNDS.
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2063 R-RUNNER-463 done: history import retires the pound-table step.
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2080 R-RUNNER-469: weekly freshness rule pinned by a test, no product change.
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2083 R-RUNNER-470 done: keeper rolls 5m, 30m and daily up every round.
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
@@ -727,6 +731,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1748 grid-week: pass log names failure causes. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2007 grid-door-writer ticked; CSV half of the store no longer named by the grid's sweep/batch tests. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2021 GRID: held() skips faults notes again (R-RUNNER-451). |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2073 R-RUNNER-465 done, Cell.symbol removed. |
 
 ### RUNGS
 
