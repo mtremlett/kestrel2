@@ -1055,3 +1055,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1896 PAPER paper-small-volume done: running fixtures carry a traded volume, no product change.
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1906 PAPER R-MONEY-69 half: paper.MAX_ORDERS home built; MONEY deletes day.py's copies (R-PAPER-40).
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1925 PAPER paper-cards done: the pre-flight line names the email door.
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1869 RUNGS rungs-scorecard step 2: the shuffle no longer waits on a soft rung, an early stop answers by the one rule; lowest-of-NAMED gone from the verdict. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1876 RUNGS rungs-eponymous step: the paper gate opens for eponymous rules; Faber held until reproduced. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1895 RUNGS rungs-eponymous step: a paper candidate must be judged for luck at its set's full trial count. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1901 RUNGS rungs-each-rung step 2: stop-rule study out of rung_ (off-path rungs 6 to 5), no behaviour change. |

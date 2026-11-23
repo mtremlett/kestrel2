@@ -14,7 +14,7 @@ from test_lab_rung import FREE
 
 from desk.book import RoundTrip
 from desk.broker import Fill
-from lab import deflated, promotion
+from lab import promotion
 from lab.promotion import Candidate, Kill, Standing
 from lab.rung import Answer
 from lab.verdict import NO_FIGURE
@@ -24,9 +24,10 @@ RULE, DAY, SET = "breakout_20_10", date(2026, 1, 1), 100  #: SET: trials its reg
 
 def _row(rule: str = RULE, answer: str = "PASS", **rungs: str) -> dict[str, Any]:
     """The ladder's line for the rule on VUSA: every named rung passed, but those given."""
-    named = dict.fromkeys(deflated.NAMED, "PASS") | rungs
+    named = dict.fromkeys(promotion.READ, "PASS") | rungs
     said = {name: [one, f"{name}'s reason"] for name, one in named.items()}
-    return {"cell": [rule, "VUSA", "LSE"], "rungs": said, "answer": answer, "trials": SET}
+    line = {"cell": [rule, "VUSA", "LSE"], "rungs": said, "answer": answer, "trials": SET}
+    return line | {"every": True, "unrun": {}}
 
 
 ON_PAPER = Candidate(_row(), DAY, Kill(Decimal(300), 4), SET)
@@ -77,7 +78,12 @@ def test_no_candidate_without_the_ladders_pass_and_a_kill_condition_that_can_bit
     for free in (RULE, "donchian_fade_chop"):
         assert Candidate(_row(free) | owed, DAY, ON_PAPER.kill, SET).strategy == free
     faber = _row("faber_tactical") | owed
-    for row in (thin, beaten, _row(answer="DOUBT"), _row(folds="OK"), short, unrun, faber):
+    #: the one verdict rule (L19): a WEAK soft rung passes; a WEAK hard gate or yearly stop never
+    assert Candidate(_row(regime="WEAK", stress="WEAK"), DAY, ON_PAPER.kill, SET).strategy == RULE
+    hard = [_row(deflated="WEAK"), _row(shuffle="FAIL"), _row(yearly="WEAK"), _row(regime="FAIL")]
+    del (silent := _row())["unrun"]  #: a line that does not say what was unrun
+    hard += [_row(ci="FAIL") | {"every": False}, silent]
+    for row in (thin, beaten, _row(answer="DOUBT"), _row(folds="OK"), short, unrun, faber, *hard):
         with pytest.raises(ValueError, match="has not passed the ladder"):
             Candidate(row, DAY, ON_PAPER.kill, SET)
     for judged, register in ((SET, SET + 1), (None, 0), (SET, 0)):
