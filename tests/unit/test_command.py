@@ -102,8 +102,8 @@ def test_a_step_does_the_days_work_under_the_data_folder_and_fails_by_name_witho
 ) -> None:
     _world(monkeypatch)
     fast_store(tmp_path / keeper.HOT, 51)
-    assert _run(tmp_path, MON) == 0  # he sleeps: a knock
-    assert capsys.readouterr().out == "STEP Mon 16 Nov 07:15 UTC: done.\n"
+    assert _run(tmp_path, MON.replace(hour=5, minute=35)) == 0  # he sleeps: a knock
+    assert capsys.readouterr().out == "STEP Mon 16 Nov 05:35 UTC: done.\n"
     # London open, and no key of his: the round is made on the store's bars at the pound's
     # rate, and only then the step fails, naming what he must set
     with pytest.raises(messenger.Undelivered, match="no TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID"):
