@@ -167,6 +167,8 @@ def test_the_nightly_refresh_enters_the_database_and_writes_the_day_and_list(
         opened.days(POUND, [Bar(d, ONE, ONE, ONE, ONE, 0) for d in days if d != days[3]])
     gap = universe.nightly(tmp_path, DAY, (universe.SP500[0],), _ask, noon=lambda _: "noon")
     assert gap.endswith(f"; noon; the pound has no rate on 1 sessions, last {days[3]}")
+    last = universe.nightly(tmp_path, DAY, (MMM,), _ask, listed=lambda d: f"members {d}")
+    assert last.endswith(f"; members {DAY}")  # the members by date are said last
     assert database.daily(tmp_path / database.LIVE, MMM) == _ask(MMM, DAY)
     note = (tmp_path / "grid" / "store" / "REFLECTS.txt").read_text(encoding="utf-8").splitlines()
     sizes = " ".join(f"{k}={len(v)}" for k, v in universe.LISTS.items())
