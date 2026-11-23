@@ -136,6 +136,12 @@ class _Life:
         self.kept, self.done, self.held = dict[str, bool](), set[str](), set[str]()
         self.stopped = ""  #: the day the desk said it could not go on, and its words
 
+    def begun(self, on: date) -> list[Line]:
+        """The lines with a bar before the day, by name: the only lines a scenario may choose."""
+        return sorted(
+            (x for x, bars in self.market.items() if bars[0].day < on), key=lambda x: x.symbol
+        )
+
     def promise(self, words: str, kept: bool) -> None:
         self.kept[words] = kept and self.kept.get(words, True)
 
