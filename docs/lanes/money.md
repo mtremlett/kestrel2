@@ -782,3 +782,15 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 
 ### 2026-11-22 - Profit table scene is SimCity's trips scenario (#1805, money-story)
 - Options: a new unit scene file (adds test lines, and main has no margin); extend SimCity's existing trips scenario, which already runs every money-path part in order (taken). The census requires `book.attributed` to be run by it.
+
+### 2026-11-23 - Zoo round capped; constants left in day.py (#1823, money-round-cap)
+- Options: keep the step's constants in desk/paper.py (the plan's home; the lane guard refuses MONEY any edit to PAPER's file, and loosening a guard is his alone); or put them in desk/day.py now and move them later (taken). `STEP_SECONDS` left simcity_incidents.py for day.py, one home that simcity reads.
+- A carried order uses `Blocker.BROKER`, as `desk/halt.py` has no CARRIED blocker and is outside the claim. No blind review yet (A6): owed before the zoo goes back on.
+- money-connors7 held off MONEY on his "always go with recommended" (13 Nov); it goes to RUNGS re-carded claiming desk/eponymous_connors.py (Double 7's folded in), its unit test, lab/published_epon.py and its test.
+
+### 2026-11-23 - Feed of the liquidity cap split from its fixtures (#1833, money-small)
+- Options: feed `day._buy` now (restore 3bf88fa2), which turns test_running, test_running_tell and test_restop red (volume 1; outside the claim); widen the claim; or land only the green step (taken). The feed waits for a card claiming those three files.
+
+### 2026-11-23 - Interest stays beside profit (#1861, money-honest)
+- Options: interest inside the day's profit, which breaks the check that profit equals the trades' and the broker's and means rewriting the reconciliation and goldens; or beside it as its own record column and daily line (taken, recommended, his "please always go with recommended"). Profit must equal the ledger.
+- `RISK_FREE` in every Sharpe is lab code (R-MONEY-65), so money-honest waits on it. Double 7's re-carding is already R-MONEY-68.
