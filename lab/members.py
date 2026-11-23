@@ -290,7 +290,10 @@ def on(name: str, day: date) -> Members:
 
 
 def bias(name: str, day: date) -> str:
-    """The survivorship bias of a study of today's list from day on, as a verdict's line."""
+    """The survivorship bias of a study of today's list from day on, as a verdict's line. A
+    list whose past is not recorded says so: the bias is stated unmeasured, never left out."""
+    if name in OWED:
+        return f"survivorship: {name} on {day}: past members not recorded, bias unmeasured"
     found = on(name, day)
     return (
         f"survivorship: {name} on {day}: {len(found.listed)} of "
