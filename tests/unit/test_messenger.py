@@ -264,7 +264,9 @@ def test_the_evening_message_tells_the_fills_the_holdings_and_last_record(tmp_pa
     said = (
         f"🌙 Evening Mon 16 Nov 21:05 UK\n⚠️ Paper Gateway not ready just now: ledger as last "
         f"read ({GONE.words[:-1]})\n🧾 Fills today\n🟢 bought 2 VUSA\n🔴 sold 4 AAPL\n"
-        f"{OFF}\n📒 Held: AAPL 5, VUSA 12\n📅 Last day on record Thu 12 Nov (withheld days "
+        f"💷 Costs, last 7 days: £2,004.00\n🔴 Net profit lost £1,234.50 in them\n{OFF}\n"
+        "📒 Held: AAPL 5, VUSA 12\n"
+        "📅 Last day on record Thu 12 Nov (withheld days "
         f"before it)\n🔴 Book lost £1,234.50 after £1,002.00 costs\n🟢 Holding the market "
         "made £8.00\n🏁 Verdict: does not count · "
         "0 of 10 clean days in a row, since 2026-11-12 did not count."
@@ -276,6 +278,14 @@ def test_the_evening_message_tells_the_fills_the_holdings_and_last_record(tmp_pa
     book._write(clean / day.RECORDS, [day.HEADER, *map(day._row, kept)])
     told = messenger.evening(clean, NINE, READY, _posts())
     assert told and "Verdict: counts · 1 of 10 clean days in a row." in told.text
+    assert "Costs, last 7 days: £0.00" in told.text
+    assert "🟢 Net profit made £5.00" in told.text
+    assert "Blocked signals" not in told.text  # none today: no word
+    kept.append(day.Record(MON.date(), Decimal(2), costs, zero, (), zero, 0, (), 3))
+    book._write(clean.parent / "blocked" / day.RECORDS, [day.HEADER, *map(day._row, kept)])
+    told = messenger.evening(clean.parent / "blocked", NINE, READY, _posts())
+    assert told and "🚧 Blocked signals today: 3" in told.text
+    assert "Net profit made £7.00" in told.text
 
 
 def test_each_daily_message_names_the_halts_in_force_beside_the_kill_switch(tmp_path: Path) -> None:
