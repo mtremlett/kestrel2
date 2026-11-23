@@ -278,7 +278,8 @@ def _interest(
     tell: book.Tell | None,
 ) -> None:
     """BIC-03: what the capital's idle cash earned at RISK_FREE from the first fill to this day,
-    told once a day beside the profit, not in it (golden days stand), only when positive."""
+    told once a day beside the profit, not in it: the day's profit must equal the ledger's and
+    the broker's (day_parts reconcile), which interest is in neither. Only when positive."""
     if tell is None:
         return  #: nobody to tell: the sum (a read of every fill's day) is not made
     earned = day_money.idle_interest(root, archive, day, settings.capital, RISK_FREE)
