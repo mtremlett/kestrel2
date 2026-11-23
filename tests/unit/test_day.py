@@ -123,7 +123,7 @@ def test_a_day_the_book_is_not_the_brokers_buys_nothing_and_sells_only_lines_tha
     bought = _trade(tmp_path, broker, DAYS[21])  #: the same morning, once the books agree
     assert [s.filled > 0 for s in bought] == [True] * 5 + [False]
     #: the morning's list as its last run left it: G unread, F at the gate, no order at the book
-    assert [len(b) for b in halt.morning(tmp_path, DAYS[21]).values()] == [1, 0, 0, 0, 0, 1, 0]
+    assert [len(b) for b in halt.morning(tmp_path, DAYS[21]).values()] == [1, 0, 0, 0, 0, 1, 0, 0]
     broker.open(DAYS[22])
     broker.inject("A", -1)  #: one share of A sold by hand
     sold = _trade(tmp_path, broker, DAYS[22])
