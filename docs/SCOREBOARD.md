@@ -237,6 +237,8 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1991 money-door-writer done: halt writes its own record and scenes read through the history judge, neither names the store's CSV half.
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1995 MONEY scribe folds #1983; no box ticked.
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2009 money-loss-words done: the loss refusal and alert say "lost in the last session"; words only, golden unchanged. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2008 money-round-cap: one home for step time, carried orders named CARRIED. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2012 R-RUNNER-445 met, test pinned (12 test lines). |
 
 
 ### DATA

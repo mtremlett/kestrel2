@@ -703,3 +703,10 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 ### 2026-11-23 - The loss limit says which session (#2009, money-loss-words)
 - Options: add the session's date to the words (widen `Standing` so a caller passes it; behaviour change, rejected) or say "lost in the last session" without a date. Date left out because no caller passes one. Week limit reads "lost this week". `Standing.day_loss` comment and `day_parts.standing` docstring say "the last published session's loss".
 - Double 7's (money-connors7) stays held off MONEY on his standing "always go with recommended"; re-card to RUNGS asked as R-MONEY-71, waits on R-RUNGS-10.
+
+### 2026-11-23 - Step time one home; carried orders named (#2008, money-round-cap)
+- Options for the orders past the zoo's cap: reuse `Blocker.BROKER` (rejected: it hides the cap behind broker faults) or a new `Blocker.CARRIED`, placed last in the enum. Taken: the morning list names them apart. `desk/day.py` keeps no `STEP_SECONDS` of its own; paper's is the one home.
+- Double 7's (money-connors7) stays held off MONEY on his standing "always go with recommended"; the re-card to RUNGS is R-MONEY-71, waits on R-RUNGS-10.
+
+### 2026-11-23 - Daily buy refusals have one tested home (#2012, R-RUNNER-445)
+- `day.refusal` already landed in #1682; only its direct test was missing. Options: leave it covered through `day._buy`, or pin it directly. Pinned: PAPER's R-RUNNER-436 will call it. No product change.
