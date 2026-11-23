@@ -725,6 +725,13 @@ day's trading and reconciliation are built, and any broker can stand behind them
       (split from data-door-writer by runner ops 112; moved from DATA's book to MONEY's by runner ops 122, 23 Nov:
       manifest.toml gives these files to the money lane)
       {id: money-door-writer; files: desk/halt.py, tests/unit/test_halt*.py, tests/scenes/test_scenes.py}
+- [ ] **The loss limit says which session** (coordinator 128 DL1 ruling (iii), 23 Nov 08:4x): London's buys were
+      refused at 08:13 by the one-session cool-off working as built (Friday's session lost 386.17 pounds), but the
+      refusal said "lost this day". Words only, no behaviour change, golden unchanged, line-neutral: the refusal and
+      the alert from `risk.loss_limit` say "lost in the last session" (with its date where the caller has it), and
+      the `Standing.day_loss` comment and `day_parts.standing` docstring say "the last published session's loss",
+      never "since the day's open". Gate: a test, written first, red on main, pins the new words
+      {id: money-loss-words; files: desk/risk.py, desk/day_parts.py, tests/unit/test_risk.py, tests/unit/test_day_standing.py}
 
 ## Phase 3 — the money path, on paper
 
