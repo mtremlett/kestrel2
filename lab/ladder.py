@@ -21,8 +21,7 @@ A row's names differ:
 `first` holds 1-3, `market` 4 and 6. Each rung's proof is in its own test; (unbuilt) marks a file
 not yet there; after the dash, what is owed. BUILT: its module declares a RUNG, so the ladder
 judges by it; every other row owes `no RUNG` first (the test holds the two to agree).
- 1 sample size, effective trades: lab/rung_sample.py, tests/unit/test_lab_rung_sample.py - no RUNG;
-   merge into rung 1's minimum needs rung.py and test_lab_calibration.py (imports `band`) claimed
+ 1 sample size, effective trades: lab/rung.py, tests/unit/test_lab_calibration.py - no RUNG; merged
  2 costs charged: lab/rung_costs.py, tests/unit/test_lab_rung_costs.py
  3 a confidence interval: lab/rung_ci.py, tests/unit/test_lab_rung_ci.py
  4 excess after market risk, by size: lab/market.py, tests/unit/test_lab_rung_beta.py - no RUNG

@@ -329,6 +329,29 @@ def test_the_days_zoo_buys_are_sized_on_their_own_sides_holdings_with_the_desk_h
     assert len(book.positions(tmp_path)) == 8  # five of the desk's and three of the zoo's
 
 
+def test_a_zoo_share_over_a_fifth_of_its_pounds_is_bought_while_the_zoos_total_fits(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """23 Nov: 36 zoo buys (AAPL, TSLA, NVDA) refused 'one share costs more than the room of 200
+    pounds'; a share costing 300 is bought now, and the fourth would take the zoo past 1,000."""
+    lines = [ln for ln in LINES if ln.retail and ln.leverage == 1 and ln.isa][:4]
+    dear = tuple(
+        Bar(d, Decimal(300), Decimal(301), Decimal(299), Decimal(300), 10**7) for d in (MON, TUE)
+    )
+    broker = Pretend({ln: dear for ln in lines}, {})
+    broker.open(TUE)
+    monkeypatch.setattr(strategy, "STRATEGIES", {})
+    monkeypatch.setattr(intraday, "ZOO_DAILY", {"zoo_in": _In})
+    monkeypatch.setattr(intraday, "zoo_lines", lambda: tuple(lines))
+    rates = {ln.currency: Decimal(1) for ln in lines}
+    answers = day.trade(
+        tmp_path, {ln: dear[:1] for ln in lines}, broker, ROOM, TUE, rates, zoo=True
+    )
+    assert sorted(a.filled for a in answers) == [0, 1, 1, 1]
+    over = next(a for a in answers if a.filled == 0)
+    assert "the zoo would hold 12" in str(over.reason) and over.blocker is Blocker.GATE
+
+
 def test_a_round_sends_only_what_the_steps_time_allows_and_carries_the_rest(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
