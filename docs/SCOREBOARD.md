@@ -521,6 +521,13 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1750 data-survivorship: bias stated as a verdict line; not wired into verdicts. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1752 collector now 11 of the planned sources (BEA). |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1699 data-second-source step 1: register of sources, replaced newest bars named. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1870 data-members: FTSE review feed built (`lab/members_feed.py`), offline; box open. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1874 HOVER's worst cell names its kind (gap, hole or stale). |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1883 data-pre-2010 ticked: window before mid-April 2010 pinned by a test. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1885 data-members: `fetch_review` reads a review's two revisions, offline; box open. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1886 data-ibkr-capacity step 1: `keeper.pace` ramp rule, not yet wired. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1899 data-members docstring corrected, no box ticked. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1902 pound-history filler `fill_pound` built; command wiring open. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
