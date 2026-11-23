@@ -230,6 +230,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1889 MONEY scribe folds #1823, #1833, #1861; no box ticked.
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1891 money-small: TRD-10 flag function `orders.thin` landed; liquidity-cap feed and the flag's caller open.
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1909 money-simcity-firstbar: SimCity world 0 passes day 56 (was halted); halts later at day 870. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1918 money-small: SIZ-10 cap now live in the day's buy path (`day._buy` passes the line's bars to `orders.size`). |
 
 
 ### DATA
