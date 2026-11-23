@@ -33,7 +33,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
-from desk.bars_form import entered, restated
+from desk.bars_form import entered, judged, restated
 from desk.bars_parts import CLOSES as CLOSES
 from desk.bars_parts import NEWEST as NEWEST
 from desk.bars_parts import OTHERS as OTHERS
@@ -119,11 +119,19 @@ class Round:
         held.execute("RELEASE line")
         return landed + given - len(rows)
 
-    def daily(self, line: Line, bars: Iterable[Bar], withdrawn: Iterable[date] = ()) -> None:
+    def daily(
+        self,
+        line: Line,
+        bars: Iterable[Bar],
+        withdrawn: Iterable[date] = (),
+        refused: Iterable[Bar] = (),
+    ) -> None:
         """A line's daily bars from this source, joined by day into what the store holds, and
         none held is ever deleted (B3): a fresh source's bar takes the day of another's, the old
         value kept in `correction` if it differs. A day in `withdrawn` was judged untrue: its row
-        stays, marked, unread until a bar is given for it again. A day given twice is refused."""
+        stays, marked, unread until a bar is given for it again. A bar in `refused` was judged
+        untrue: its day is withdrawn only if the row held is that very bar, else the held row
+        stands. A day given twice is refused."""
         if not self._source.fresh:
             raise ValueError(f"{self._source.value} is no fresh source: it restates nothing")
         given = [(b.day.toordinal(), b) for b in bars]
@@ -134,8 +142,13 @@ class Round:
         self._write(PUT, line, DAILY, given)
         held.execute("SAVEPOINT marks")
         try:
-            held.executemany(RESTORE, ((*key, at) for at, _ in given))
-            gone = {day.toordinal() for day in withdrawn} - {at for at, _ in given}
+            ours = {at for at, _ in given}
+            bad = [
+                (b.day.toordinal(), entered(b)) for b in refused if b.day.toordinal() not in ours
+            ]
+            drop, stand = judged(held, key, bad)
+            held.executemany(RESTORE, ((*key, at) for at in (*ours, *stand)))
+            gone = ({day.toordinal() for day in withdrawn} | set(drop)) - ours
             held.executemany(WITHDRAW, ((*key, at) for at in sorted(gone)))
         except BaseException:
             held.execute("ROLLBACK TO marks")

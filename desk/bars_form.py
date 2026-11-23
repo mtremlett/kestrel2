@@ -37,6 +37,18 @@ def same(held: Sequence[str | int], given: Row) -> bool:
     return prices == [Decimal(p) for p in given[:4]] and held[4] == given[4]
 
 
+def judged(
+    held: sqlite3.Connection, key: tuple[str, str, str], refused: Sequence[tuple[int, Row]]
+) -> tuple[list[int], list[int]]:
+    """Of the days the judge refused, those whose held row IS the refused bar (to withdraw) and
+    the rest (a held row of another bar, or none: to stand, any old mark taken off)."""
+    out: tuple[list[int], list[int]] = ([], [])
+    for at, price in refused:
+        row = held.execute(HOLDING, (*key, at, at)).fetchone()
+        out[0 if row and same(row[1:6], price) else 1].append(at)
+    return out
+
+
 def restated(
     held: sqlite3.Connection,
     source: str,

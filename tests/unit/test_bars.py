@@ -133,6 +133,15 @@ def test_a_short_call_never_loses_a_held_day_a_change_is_corrected_and_a_withdra
     with bars.writing(store) as round_:
         round_.daily(US, days[5:6])  # a bar for a withdrawn day brings it back
     assert days[5] in bars.daily(store, US)
+    other = replace(days[7], close=Decimal("3"))
+    with bars.writing(store, Source.IBKR) as round_:  # refused: day 6's held row is another bar
+        round_.daily(US, (), withdrawn=[days[6].day], refused=[other, days[8]])
+    shown = {b.day: b for b in bars.daily(store, US)}
+    assert days[6].day not in shown and shown[days[7].day] == days[7]  # held row stands
+    assert days[8].day not in shown  # the held row is the refused bar: withdrawn
+    with bars.writing(store, Source.IBKR) as round_:
+        round_.daily(US, (), refused=[replace(days[6], close=Decimal("3"))])
+    assert days[6] in bars.daily(store, US)  # a mark on a row not the refused bar is lifted
 
 
 def test_a_store_made_before_withdrawals_is_read_and_gains_the_table(tmp_path: Path) -> None:
