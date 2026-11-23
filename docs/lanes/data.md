@@ -772,3 +772,21 @@ FRED's public fredgraph.csv works without a key; the session-env key option adds
 
 ### 2026-11-22 — scribe folds only the missing three (DATA, #1775)
 Folded #1736, #1750, #1752 rather than redo closed #1761's conflicting diff.
+
+### 2026-11-23 — stop the head-start change at the product step (DATA, #1798)
+Options: rewrite about 400 lines of test_store*, scenes, keeper, batch and sweep tests onto judge in this PR, or land the product step first. Took the second (ten-minute card, unit-test line guard).
+
+### 2026-11-23 — full universe waits on the grid's first pass (DATA, #1814)
+Options: (a) add thousands of Russell tickers from memory, (b) wait for the grid's first pass. Took (b): his 13 November ruling puts the full list after the first pass, and a list from memory would be wrong names parked one by one. Waits: 2026-11-29.
+
+### 2026-11-23 — hover's hole check covers golden lines only (DATA, #1809)
+Options: all 1,000+ lines every five minutes (reads every daily file each time), or golden lines only. Took golden: it is what decides green.
+
+### 2026-11-23 — the record check reuses store.AGREE (DATA, #1826)
+One home per number: the 2% tolerance is not repeated in quality.py.
+
+### 2026-11-23 — guarded test files left, rest of the store door landed (DATA, #1827)
+Options for tests/scenes/test_scenes.py, test_lab_batch.py, test_lab_sweep.py, which the lane guard refuses DATA: (a) loosen the guard (his alone, no); (b) edit anyway (red on GitHub); (c) leave prepare/read and land the rest. Took (c). Request to RUNNER OPS: lend ownership for one PR or have a MONEY/GRID card edit them.
+
+### 2026-11-23 — both databases count toward green (DATA, #1832)
+Options: live database only, as before; both. Took both: his 22 Nov terms say both databases x every span, and a stale history store must not read green. HOVER will read red on the history database's stale spans until gap filling for 15m-1wk exists; that is true.
