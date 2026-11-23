@@ -200,6 +200,11 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       gate: none of the three files names them
       (split from data-door-writer by runner ops 112, 23 Nov: these are GRID's files)
       {id: grid-door-writer; files: lab/sweep.py, tests/unit/test_lab_sweep.py, tests/unit/test_lab_batch.py}
+- [ ] THE NIGHT REFRESH WRITES THE DATABASE IT NAMES: `universe.nightly`'s docstring says the history
+      database but it writes `bars.LIVE` (market_live.db); STATUS says research reads the history database
+      alone. Settle which is meant, make code and docstring agree, and pin the target file in a test
+      (coordinator 110, 23 Nov 03:1x: J2, found with research-refresh's 02:30 failure)
+      {id: data-nightly-target; files: lab/universe.py, tests/unit/test_lab_universe*.py}
 - [x] **The old desk's stores as a head start, now** (his ask, 14 November): its daily and
       five-minute bars (Stooq and IBKR stores, and its per-ticker matrices) read in through
       the one store's checks, every bar re-checked, each kept with its source; where a fresh
