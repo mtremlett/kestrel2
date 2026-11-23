@@ -627,9 +627,9 @@ day's trading and reconciliation are built, and any broker can stand behind them
       tests/unit/test_day*.py, tests/unit/test_orders*.py, tests/unit/test_strategy*.py,
       desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml, desk/book.py, tests/unit/test_book*.py,
       desk/eponymous_*.py, tests/unit/test_eponymous*.py, desk/grimes.py, tests/unit/test_grimes*.py, tests/scenes/test_scenes.py,
-      desk/grimes_rules.py}
+      desk/grimes_parts.py}
       (runner ops 168, 23 Nov 22:0x, chat 167's order: desk/grimes.py holds 799 of its 800 lines, so the Grimes rules' hold
-      limits move what they need into desk/grimes_rules.py (manifest row claimed); desk/ room comes from money-epon-room, above it in this book)
+      limits move what they need into desk/grimes_parts.py (manifest row claimed); desk/ room comes from money-epon-room, above it in this book)
       (runner ops 106, 23 Nov, coordinator 103's D1: claim widened to the files its Remains name, the rules' sell logic and book.collect; the golden days move on his recorded yes)
       (coordinator 54, 22 Nov: settled: his yes to the golden days moving is recorded in STATUS, R-MONEY-62)
 - [x] Fills realistic: spread and slippage in every fill, from the one cost model (TRD-09)
