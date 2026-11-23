@@ -1,9 +1,8 @@
-"""The research bars in the history database: what grid/store and the pound's table hold is
+"""The research bars in the history database: what grid/store holds is
 read back from it bar for bar, each under its source, and a second import adds nothing."""
 
 from __future__ import annotations
 
-import json
 from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -30,26 +29,21 @@ def _bars(line: Line) -> tuple[Bar, ...]:
     )
 
 
-def test_the_pound_enters_and_a_second_import_adds_nothing_and_a_missing_session_is_named(
-    tmp_path: Path,
-) -> None:
-    path, table = tmp_path / bars.LIVE, tmp_path / "pound.jsonl"
-    table.write_text(
-        "".join(json.dumps([d.isoformat(), "1.30"]) + chr(10) for d in DAYS[US]), encoding="utf-8"
-    )
+def test_a_missing_session_is_named_and_a_complete_line_is_not(tmp_path: Path) -> None:
+    path = tmp_path / bars.LIVE
     with bars.writing(path, Source.ARCHIVE) as opened:  # ISF lacks its fifth session
         opened.days(LSE, [b for b in _bars(LSE) if b.day != DAYS[LSE][4]])
-    first = universe_history.run(path, table, universe.YARDSTICKS, END)
-    assert f"{len(DAYS[US])} pound days added; ISF has no bar on {DAYS[LSE][4]}" in first
-    assert [b.close for b in bars.daily(path, POUND)] == [Decimal("1.30")] * len(DAYS[US])
+        opened.days(US, _bars(US))
+    first = universe_history.run(path, universe.YARDSTICKS, END)
+    assert f"research history; ISF has no bar on {DAYS[LSE][4]}" in first
     assert universe_history.missing(path, LSE, DAYS[LSE][-1] + timedelta(1)) == (DAYS[LSE][4],)
-    assert universe_history.run(path, table, [], END) == "research history: 0 pound days added"
+    assert universe_history.run(path, [US], END) == "research history"
 
 
 def test_the_pounds_noon_rates_fill_only_the_days_before_the_archives_first(tmp_path: Path) -> None:
-    path, table = tmp_path / bars.LIVE, tmp_path / "pound.jsonl"
-    table.write_text(json.dumps([DAYS[US][2].isoformat(), "1.30"]) + "\n", encoding="utf-8")
-    universe_history.enter_pound(table, path)
+    path, one = tmp_path / bars.LIVE, Decimal("1.30")
+    with bars.writing(path, Source.ARCHIVE) as opened:
+        opened.days(POUND, [Bar(DAYS[US][2], one, one, one, one, 0)])
     given = f"observation_date,DEXUSUK\n{DAYS[US][0]},1.50\n{DAYS[US][1]},\n{DAYS[US][2]},1.99\n"
     assert universe_history.enter_noon(path, given) == 1  # the blank day and the held day: none
     assert universe_history.enter_noon(path, given) == 0

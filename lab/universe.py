@@ -373,11 +373,9 @@ def nightly(
 
 
 def import_history(data: Path, day: date) -> str:
-    """The ladder's pound table under data, let into the history database there; the
-    yardsticks' missing sessions are named."""
+    """The yardsticks' and reference lines' sessions missing from the history database, named."""
     return universe_history.run(
         data / bars.LIVE,
-        data / "ladder" / "pound.jsonl",
         (*YARDSTICKS, *REFERENCE),
         day,
     )
