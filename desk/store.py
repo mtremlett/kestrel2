@@ -30,8 +30,6 @@ from desk.store_parts import Fault as Fault
 from desk.store_parts import Rates as Rates
 from desk.store_parts import _priced as _priced
 from desk.store_parts import moves as moves
-from desk.store_parts import pound_on as pound_on
-from desk.store_parts import same_as_pound as same_as_pound
 
 #: London's auctions can put an open or close just outside the day's range: within this fraction
 #: the range stretches (his ruling, 13 Nov 2026).
