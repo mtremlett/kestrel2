@@ -147,12 +147,12 @@ Otherwise nothing yet; it is an open debt. The fix is one way to read and write 
 shared file, readers and writer under one lock, in each codebase; never a retry or a sleep.
 
 **20. A gate that can never open.** A rule correct where written blocks its purpose where it
-runs: the rehearsal was barred on any trading date, then whenever the account held anything
-(16 Nov); `desk/running.py` set London's round in IBKR paper's dead window (08:00-09:00 UK),
-so it never filled; `desk/placing.py` judged an intraday order by a daily order's sessions, so
-all 143 zoo orders were refused (both 23 Nov). → *Caught by:* rehearsal barred only near an open
-market (#462); the London round's test; zoo-due-session's (judged by the session it is due in).
-→ *Debt:* a rehearsal beside held lines, never touching them; until then, the coordinator's go.
+runs: the rehearsal barred on any trading date, then whenever the account held anything (16 Nov);
+`desk/running.py` set London's round in IBKR paper's dead window (08:00-09:00 UK); `desk/placing.py`
+judged an intraday order by a daily one's sessions (143 zoo orders refused); `desk/day.py` sized
+the zoo on the desk's holdings and capped its round's five order streams one call site at a
+time (#2036, #2084, #2105; 23 Nov): limits written for the desk's book, met by the zoo live.
+→ *Caught by:* #462; the London round's test; zoo-due-session's; `test_day_standing.py`'s round test. *Debt:* a rehearsal beside held lines; until then, the coordinator's go.
 
 **21. The claim that drifts.** A session that cannot finish inside its claim moves the work
 to a file outside it instead of stopping: #857 rewrote a lab test outside its card, and #902
