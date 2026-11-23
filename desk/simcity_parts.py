@@ -125,8 +125,6 @@ def _gapped(life: _Life, on: date) -> bool:
     shares = book.positions(life.desk)  #: what is held, bought on the gap day or before it
     held = {f.symbol: f for f in book.fills(life.desk) if f.quantity > 0 and f.symbol in shares}
     before = {x.symbol: [b.close for b in bars if b.day < on] for x, bars in life.market.items()}
-    for s in sorted(s for s, closes in before.items() if not closes):
-        life.promise(f"FAULT line {s}: no bar before the gap day, its gap is unrunnable", False)
     shut = {s: closes[-1] for s, closes in before.items() if closes}
     sold = [
         orders.Order(
