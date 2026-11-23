@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from datetime import date
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -171,9 +172,10 @@ def test_the_door_takes_intraday_and_variants_and_refuses_an_unknown_set(
 def test_the_pooled_set_refuses_input_gaps_and_a_set_over_one_percent_fault_is_withheld(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from test_lab_ladder import EDGE, ISF, NOISE, VUSA, _door
+    from test_lab_ladder import AAPL, EDGE, ISF, NOISE, SPY, VUSA, _door
 
     from lab import ladder_pool
+    from lab.cell import Cell
 
     ran: list[object] = []
     monkeypatch.setattr(ladder_pool, "run", lambda *a: ran.append(a))  #: the pool never begun
@@ -184,6 +186,10 @@ def test_the_pooled_set_refuses_input_gaps_and_a_set_over_one_percent_fault_is_w
             tmp_path, holed, {}, [VUSA], rules=rule, go=ladder_sets._pooled(lambda: holed)
         )
     assert not ran and not (tmp_path / "ladder").exists()
+    dollar, todo = _door({AAPL: EDGE, SPY: NOISE}), [Cell(rule[0], AAPL, START, END)]
+    pounds = {bar.day: Decimal("0.8") for bar in EDGE if bar != EDGE[50]}  #: a pound day missing
+    ladder_sets._pooled(lambda: dollar)(tmp_path, dollar, pounds, todo)
+    assert ran  #: its cell's named gap (`ladder.preflight`), never a refused set
     monkeypatch.setattr(ladder_pool, "run", lambda *a: ladder.run(a[0], a[1](), *a[2:]))
     whole = _door({VUSA: EDGE, ISF: NOISE})
     said = ladder_sets.epon(
