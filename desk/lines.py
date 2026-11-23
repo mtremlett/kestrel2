@@ -101,9 +101,6 @@ class Line:
 #: thirteen in London and seven in the US. GLD is gone; SPY and QQQ stay only as price
 #: references (REFERENCE below), never traded, until the callers outside this module read
 #: REFERENCE instead of LINES (docs/PLAN.md, data-isa-twins).
-#: Four inverse London funds join by his words of 21 November 2026 (XSPS, SUK1, 1MCS, LQQS):
-#: each moves against its index, so a purchase is the long-only desk's short of that market;
-#: seventeen lines in London now. Their ISA and retail facts are not yet recorded.
 #: Each row records whether an ISA can hold its lines and whether a retail customer can buy
 #: them. IB1T, a note on bitcoin, has been open to retail since 8 October 2025 and shut out
 #: of a stocks and shares ISA since 6 April 2026. The leveraged three are as their issuers
@@ -194,8 +191,6 @@ UNDERLYING = {
     "SPCX": ("SPCX", "Space Exploration Technologies Corp."),
     "MSTR": ("MSTR", "Strategy Inc."),
     "AMD": ("AMD", "Advanced Micro Devices Inc."),
-    #: the four inverse lines (his words, Sat 21 Nov 2026): each moves against its index, so a
-    #: purchase is the desk's short of that market; the underlying stays the index it tracks
     "XSPS": ("S&P 500", "Xtrackers S&P 500 Inverse Daily Swap UCITS ETF factsheet"),
     "SUK1": ("FTSE 100", "WisdomTree FTSE 100 1x Daily Short factsheet"),
     "1MCS": ("FTSE 250", "WisdomTree FTSE 250 1x Daily Short factsheet"),
@@ -220,10 +215,7 @@ LINES = tuple(
     for venue, currency, isa, retail, symbols in (
         ("LSE", "GBP", True, True, "3LGO:3 2MU:2 SMGB:1 IITU:1 VHYG:1 5QQQ:5 ISF:1 VUSA:1 SGLN:1"),
         ("LSE", "GBP", True, True, "VUAG:1 EQQQ:1"),
-        #: ISA and retail not yet recorded: Trading 212's list (17 Apr 2026) only infers both by
-        #: rule, unconfirmed by a broker. The paper broker lists each on LSEETF in pounds
-        #: (read-only listing, 21 Nov 2026); paper refuses only a recorded no.
-        ("LSE", "GBP", None, None, "XSPS:1 SUK1:1 1MCS:1 LQQS:3"),
+        ("LSE", "GBP", None, None, "XSPS:1 SUK1:1 1MCS:1 LQQS:3"),  # inverse; ISA, retail unknown
         ("LSE", "GBP", False, True, "IB1T:1"),
         ("LSE", "USD", True, True, "IDTL:1"),
         ("US", "USD", True, True, "AAPL:1 TSLA:1 NVDA:1 SPCX:1 MSTR:1 AMD:1 MU:1"),
