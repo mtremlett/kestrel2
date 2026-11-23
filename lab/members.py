@@ -29,7 +29,9 @@ securities, so two classes of one company's shares count twice. Four rules name 
 Still owed: the FTSE 350 and the funds, a list this desk measured itself on one day. Asked
 for either, `on` refuses. The FTSE's free route is two sources joined by `reconcile`: a
 quarterly review's announced joiners and leavers, and the members of the page's revision
-either side of it; where they differ the fault is named, never guessed."""
+either side of it; where they differ the fault is named, never guessed.
+The fetching of both (FTSE Russell's announcements, the MediaWiki API) is a module of its
+own, not yet written."""
 
 from __future__ import annotations
 
