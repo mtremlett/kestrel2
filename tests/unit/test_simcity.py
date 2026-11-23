@@ -132,6 +132,7 @@ def test_the_census_names_every_part_of_the_money_path_and_the_scenarios_that_ra
         "book.conformance_cost": simcity.TRIPS,
         "book.told": simcity.TRIPS,
         "book.attributed": simcity.TRIPS,
+        "book.chains": simcity.TRIPS,
         "book.currency_gain": simcity.TRIPS,
         **{f"broker.Fault.{fault.name}": simcity.FAULTS for fault in Fault},
     }
