@@ -691,3 +691,7 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 
 ### 2026-11-23 - Step cap read from paper; alias kept (#1973)
 - Options: edit desk/simcity_incidents.py (held, not MONEY's; refused) so `day.STEP_SECONDS` can go at once, or keep `day.STEP_SECONDS` as an alias of `paper.STEP_SECONDS` until PAPER's file reads paper's. Alias kept; day.py's own STEP_MARGIN and MAX_ORDERS are deleted (one home each, in paper). R-MONEY-70 asks PAPER to change the reader, then the alias goes.
+
+### 2026-11-23 - Census pins book.chains; Double 7's re-carded (#1983, money-census-book)
+- Options: build a new scenario for the four book parts, or pin the existing ones. Pinned: the night's trips scenario already ran book.attributed, chains, conformance_cost and told; the census test now names book.chains beside the other three, so a part losing its scenario fails.
+- Double 7's (money-connors7): wait on R-RUNGS-10, or move the box. Moved to RUNGS as a re-carded box (his standing "always go with recommended"), as it blocks nothing else; this lane went to money-saved-fx and money-time-gaps.

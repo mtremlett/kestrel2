@@ -712,7 +712,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       top of it. Opus, A6 blind review (money path). Gate: a test, written first, red on main, replaying world 4
       {id: money-stranger-stopped; waits: 2026-11-24; files: desk/book.py, desk/book_parts2.py, tests/unit/test_book*.py,
       desk/simcity*.py, tests/unit/test_simcity*.py}
-- [ ] **Scenarios for four book parts** (coordinator 107 E1, deep 23 Nov 00:44 census: 67 parts, 4 with no
+- [x] **Scenarios for four book parts** (coordinator 107 E1, deep 23 Nov 00:44 census: 67 parts, 4 with no
       scenario): `book.attributed`, `book.chains`, `book.conformance_cost` and `book.told` are run by no SimCity
       scenario; give each one in the night's census, no change to the parts themselves. Gate: the census test
       names zero parts without a scenario. That gate holds the standing rule too: every box adding a public
