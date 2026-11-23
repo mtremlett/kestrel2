@@ -2363,3 +2363,14 @@ loop, R-DATA-68, 01:36). `tests/guards/test_lanes.py::test_every_open_request_ha
 mechanically, each request on its own line with its own words. A split request keeps its line's box
 unless its own words say it is done (`[x]` before it, `(done ...`, `done in #n`, `Met by #n`): 15 such.
 Tightening only; nothing is loosened.
+
+## R-RUNNER-455 - a day's loss never crosses into a new week; the golden run re-pinned (amends R-RUNNER-156) (Mon 23 Nov 2026, MONEY lane)
+
+His words, Mon 23 Nov 09:05: "Reset the loss value asap". London refused every buy on Monday for
+Friday's 386.17 pounds lost, because `day_parts.standing` took the last record of any week as the
+day's loss. Now the day's loss is the last record of the day's own ISO week (0 when none), as the
+week's loss already was. Options: (a) reset in the gate, (b) reset where it is produced. Chosen (b).
+Test: `test_a_monday_opens_free_of_fridays_loss_and_a_record_of_today_still_counts`.
+Golden run (canon B5, his ruling 22 Nov: the desk approves): (310, 68, 34, 1098.41, 368.78, 783.73)
+becomes (310, 64, 32, 61.86, 353.78, 783.73): Friday-to-Monday losses no longer block buys, so
+four fewer orders, two fewer round trips, profit 61.86 pounds (matches runner ops 132's measure).
