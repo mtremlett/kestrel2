@@ -200,6 +200,7 @@ def test_held_is_every_ticker_the_store_has_bars_for_the_list_or_not(tmp_path: P
     root = tmp_path / "store"
     for line in (BOEING, BAE, other):
         _keep(root, line)
+    (root / "LSE" / "BAE.faults.csv").write_text("a note, not a ticker")
     assert sweep.held(root) == (BAE, other, BOEING)
     assert sweep.held(root)[0] is next(x for x in universe.UNIVERSE if x == BAE)
 
