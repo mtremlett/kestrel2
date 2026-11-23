@@ -749,3 +749,12 @@ Options: worst by age (rejected: needs a span-aware age scale), or first golden 
 
 ### 2026-11-23 — one hourly table for both databases (DATA, #1850)
 Options: two commands or one table with database-prefixed rows. Took one table, so the runner posts one message.
+
+### 2026-11-23 — the members feed lands in two steps, pure parsing first (DATA, #1870, #1885, #1899)
+Options: wire the nightly refresh now (needs files outside the claim) or land the in-claim steps. Took the steps: parsing and URL building pure with one thin `fetch`, then `fetch_review` over a fixture getter. The wikitext rule "second cell is the ticker" is an assumption recorded in the module docstring; the live shape is unverified until the first real fetch, and a different shape raises.
+
+### 2026-11-23 — the pound's noon rate is written unjudged (DATA, #1902)
+Options: judge it through `store.judge` (rejected: one noon price has no high or low for the bar judge) or write it as `lab/universe_history` already does. Took the second; a day the Fed gives none is named, never invented.
+
+### 2026-11-23 — kind is a function of the fault text, the pre-2010 refusal stays, the ramp is 25% (DATA, #1874, #1883, #1886)
+HOVER's kind: a function of the fault text (rejected: a new tuple field, which breaks the runner's parse of the line). Pre-2010 five-minute bars: keep the named refusal (rejected: widen hours to older clock rules, no intraday history before 2010 exists, DECISIONS 17 Nov). Polling ramp: a clean round rises 25%, so the ramp is measured, not leapt; the rule landed alone since the wiring needs files outside the claim.

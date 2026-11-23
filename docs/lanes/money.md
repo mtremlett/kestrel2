@@ -793,3 +793,7 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 - Options: skip a trade whose expected gain is under twice the round trip's every charge, or flag it. Flag chosen: the box says "flagged", and `orders.thin(order, gain)` rounds nothing. It is pure and tested at the boundary, not yet called, because a Decision carries no expected gain.
 - The 1% liquidity-cap feed (`day._buy` passing `traded_value`) was tried and not landed: it turns test_restop, test_running and test_running_tell red (their bars have volume 1) and those files are outside the claim. Left to a card claiming them.
 - Double 7's (money-connors7) stays off MONEY on his "always go with recommended"; it waits on R-RUNGS-10 (RUNGS re-card, R-MONEY-68).
+
+### 2026-11-23 - No FAULT for lines before their first bar (#1909, money-simcity-firstbar)
+- Options: keep the per-line FAULT promise for a line with no bar before the day; skip such lines in the scenarios. Skip chosen: the night already names them under "Left out until their first bar" and the trading day is unaffected. `_Life.begun(on)` now feeds the gateway-silent, unbarred and gap scenarios.
+- Double 7's (money-connors7) stays off MONEY on his standing "always go with recommended"; the lane goes to money-saved-fx and money-time-gaps; Double 7's goes to RUNGS.
