@@ -656,12 +656,6 @@ day's trading and reconciliation are built, and any broker can stand behind them
       {id: money-saved-fx; files: desk/day.py, desk/day_parts.py, desk/day_money.py,
       tests/unit/test_day*.py, desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml;
       after: money-fills}
-- [ ] (Every box adding a public function to strategy, orders, broker, book, day or kill also
-      needs `desk/simcity.py, tests/unit/test_simcity*.py` in its files, one session at a time;
-      a function no scenario runs turns the check red: halts and limits among them.)
-      {id: money-census; files: desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml;
-      after: money-watch, money-stranger,
-      money-golden, money-story}
 
 - [x] **ONE DOOR FOR PRICES, slippage** (his 22 Nov ~10:00, "paramount": every price is read from market_history.db or market_live.db alone): `lab/slippage.py:104` reads `bars.daily(home / keeper.HOT, line)`,
       not the `daily/*.csv` files nothing writes any more; wire: its study; gate: its contract test on a database fixture
@@ -730,7 +724,9 @@ day's trading and reconciliation are built, and any broker can stand behind them
 - [ ] **Scenarios for four book parts** (coordinator 107 E1, deep 23 Nov 00:44 census: 67 parts, 4 with no
       scenario): `book.attributed`, `book.chains`, `book.conformance_cost` and `book.told` are run by no SimCity
       scenario; give each one in the night's census, no change to the parts themselves. Gate: the census test
-      names zero parts without a scenario
+      names zero parts without a scenario. That gate holds the standing rule too: every box adding a public
+      function to strategy, orders, broker, book, day or kill also claims `desk/simcity*.py` and
+      `tests/unit/test_simcity*.py`, one session at a time
       {id: money-census-book; files: desk/simcity*.py, tests/unit/test_simcity*.py}
 
 ## Phase 3 — the money path, on paper
@@ -851,12 +847,12 @@ his PC with the desk's own client id (222), never 4001.
 - [x] The running process always on main's latest code, and a money-path change reaching
       it only at a safe point, never mid-send (OPS-05, OPS-16) (#752: the supervisor pulls main fast-forward only between runs with every job's lock held; a failed pull is a receipt and the old code runs on; remains: Windows starting the supervisor)
       {id: paper-on-main; files: desk/supervisor.py, tests/unit/test_supervisor.py}
-- [ ] The messages: a start-of-day card by 05:40; an end-of-day summary with the profit,
+- [x] The messages: a start-of-day card by 05:40; an end-of-day summary with the profit,
       the streak and the verdict; a line on every change of state and "the desk is not
       trading" by 09:30 UK; urgency levels without storms; one messenger with a delivery
       record, the merge line and the runner's alerts behind the same door (MSG-02, MSG-03,
       MSG-04, MSG-09, MSG-11)
-      Remains: hourly P&L (#471, #492), the kill and halt line (#502) and the email fallback (#484, wired into the step in #1309; the runner must hand SMTP_*, a preflight line is owed) landed; desk/messenger.py is at its 400-line limit and desk/ has 92 of 10,500 lines left, so the new messages are a fold inside the desk/ ceiling: shrink or merge messenger code first, as split-desk-keeper did, never a ceiling raise (coordinator 54, 22 Nov: re-carded so it is not blocked; a raise would be his). The daily messages end the last-day lines with the verdict and streak (#1636, MSG-03); the 05:40 start-of-day card (#1864; only the card moved, notes and reminders stay at his 08:00) and the 09:30 "not trading" line (#1852 wired `messenger.idle` into `running._say`; #1880 proves it through the step) landed; still owed: the SMTP preflight line in desk/command.py (claim must add it; the runner must hand SMTP_*) (the streak shows as N of 10, #1665; the streak-above-0 test landed, #1675; messenger.py shrunk to 395 lines, #1698). The evening message now names each lost stop (#805); messenger split to 349 lines (#782)
+      Remains: hourly P&L (#471, #492), the kill and halt line (#502) and the email fallback (#484, wired into the step in #1309; the runner must hand SMTP_*, a preflight line is owed) landed; desk/messenger.py is at its 400-line limit and desk/ has 92 of 10,500 lines left, so the new messages are a fold inside the desk/ ceiling: shrink or merge messenger code first, as split-desk-keeper did, never a ceiling raise (coordinator 54, 22 Nov: re-carded so it is not blocked; a raise would be his). The daily messages end the last-day lines with the verdict and streak (#1636, MSG-03); the 05:40 start-of-day card (#1864; only the card moved, notes and reminders stay at his 08:00) and the 09:30 "not trading" line (#1852 wired `messenger.idle` into `running._say`; #1880 proves it through the step) landed; the pre-flight line now names the email door (#1925; unset email is READY, phone alone works; the runner must still hand SMTP_*, runner ops) (the streak shows as N of 10, #1665; the streak-above-0 test landed, #1675; messenger.py shrunk to 395 lines, #1698). The evening message now names each lost stop (#805); messenger split to 349 lines (#782)
       (runner ops 112, 23 Nov: claim adds desk/command.py for the SMTP preflight line, the one item left; the 2026-11-24 wait was that missing file, so it is lifted)
       {id: paper-cards; files: desk/running.py, tests/unit/test_running*.py, tests/unit/test_command.py, desk/messenger.py, desk/messenger_parts.py, manifest.toml,
       tests/unit/test_messenger.py, tests/unit/test_messenger_parts.py, desk/command.py; after: paper-messages, paper-running}
@@ -872,6 +868,7 @@ his PC with the desk's own client id (222), never 4001.
       {id: paper-backups; files: desk/backup.py, tests/unit/test_backup.py, manifest.toml}
 - [ ] The day's extras: missed winners, blocked signals, and the running cost set against
       net profit each week (MSG-13, NS-14) (coordinator 54, 22 Nov: it comes after paper-cards and edits the same messenger file; not his)
+      Remains: blocked signals and weekly cost beside net profit landed (#1940); missed winners wait on a record of signals not taken (R-PAPER-41)
       {id: paper-extras; files: desk/messenger.py, tests/unit/test_messenger.py;
       after: paper-cards}
 
@@ -884,10 +881,10 @@ his PC with the desk's own client id (222), never 4001.
       MONEY from desk/paper.py): `STEP_SECONDS, STEP_MARGIN = 900, 60` in desk/paper.py beside `FILL_SECONDS`, the one home
       money-round-cap then reads; gate: a test that (STEP_SECONDS - STEP_MARGIN) // FILL_SECONDS is 7
       {id: paper-step-time; files: desk/paper.py, tests/unit/test_paper*.py}
-- [ ] Running fixtures carry a traded volume (split from money-small by runner ops 108, 23 Nov: the lane wall bars
+- [x] Running fixtures carry a traded volume (split from money-small by runner ops 108, 23 Nov: the lane wall bars
       MONEY from these tests): the fixtures of tests/unit/test_running.py and tests/unit/test_running_tell.py give
       each line a volume of 10**7 shares a day, so the 1% liquidity cap money-small feeds from the trading day
-      never shrinks their orders; no behaviour changes today; gate: both files green on main with the volume set
+      never shrinks their orders; no behaviour changes today; gate: both files green on main with the volume set (#1896)
       {id: paper-small-volume; files: tests/unit/test_running.py, tests/unit/test_running_tell.py}
 
 ## Phase 4 — the ladder
@@ -1035,8 +1032,8 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         Decision e: no dead rungs; dsr merges into deflated, placebo into shuffle, bootstrap into ci, sample into rung
         1's trade minimum, benchmark into market; wire: each on verdict.judge's path; gate: a ladder test fails when
         any lab/rung_*.py is off that path (rungs_built equals the map)
-        Gate done (#1676): the registry test pins the rung modules off the path, now seven after empty rung_beta.py was folded away (#1740); it may only fall. Step 2 (#1901): the stop-rule study renamed `lab/stop_rules.py`. Step 3 (#1934): `lab/rung_benchmark.py` merged into market by deletion; off-path now four (dsr, placebo, retail, sample).
-        Remains: dsr (into lab/deflated.py), placebo (into lab/shuffle.py), sample (into rung 1: lab/rung.py, test_lab_calibration.py reads `rung_sample.band`), retail (reads the market's days; needs lab/basket.py or lab/verdict.py), each needing its target in the claim (runner ops; merges need R-RUNGS-29); then pin 'waiting is empty' and take `rung_ci.bootstrap(` off FOLDED once wired. Step 1 (#1844): rung_bootstrap folded into rung_ci. Stale: market.py's docstring still says nothing calls it Registry test reads the real rungs from `rung.found()` (#1768)
+        Gate done (#1676): the registry test pins the rung modules off the path, now seven after empty rung_beta.py was folded away (#1740) (benchmark, bootstrap, dsr, placebo, retail, sample, stops); it may only fall. Step 2 (#1901): the stop-rule study renamed `lab/stop_rules.py`, off-path five; step 3 (#1934): benchmark merged into market (`lab/market.py`, `rung_benchmark.py` deleted), off-path now four (dsr, placebo, retail, sample).
+        Remains: wire or merge each of dsr (into deflated; needs lab/deflated.py and its test in the claim), placebo (into shuffle), sample (into rung 1; needs lab/rung.py, test_lab_rung.py, test_lab_calibration.py), retail (needs lab/basket.py or lab/verdict.py); (each needs lab/ladder.py, manifest.toml and its target in the claim; merges need R-RUNGS-29), then pin 'waiting is empty'. Step 1 built (#1844): rung_bootstrap folded into rung_ci (off-path modules 7 to 6, FOLDED pin until it is wired); next: dsr (into deflated), placebo (into shuffle), sample (into rung 1), retail, each needing its target in the claim; merges need R-RUNGS-29; then pin 'waiting is empty' and take `rung_ci.bootstrap(` off FOLDED once wired. Registry test reads the real rungs from `rung.found()` (#1768)
         {id: rungs-each-rung; files: lab/ladder.py, tests/unit/test_lab_ladder.py, lab/rung_*.py, tests/unit/test_lab_rung_*.py, lab/stop_rules.py, tests/unit/test_lab_stop_rules.py, manifest.toml; after: rungs-rung-map; waits: R-RUNGS-29}
   - [x] L14 one clustered set of trials for the deflated Sharpe, its spread measured
         {id: rungs-clustered-trials; files: lab/trials.py, lab/rung_dsr.py, tests/unit/test_lab_trials_clustered.py; after: rungs-rung-map}
@@ -1053,9 +1050,14 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         Step 1 landed (#1660): plateau.Surface and plateau.judged, verdict.judge(surface=); no surface stays UNRUN. Built: `plateau.Fixed` (#1702) and `plateau.of(rule, book, firsts)` builds a cell's Surface or FIXED (#1742).
         Waits: operator (its step lies in files outside its claim; runner ops must widen it after rungs-faults-not-answers releases lab/ladder.py). Remains: wire it: lab/ladder.py and lab/ladder_sets.py pass `surface=plateau.of(c.strategy, rulebook.specs(), firsts)` into verdict.judge (changes test_lab_ladder.py and test_lab_ladder_epon.py; the claim must name those four files)
         {id: rungs-plateau-wired; files: lab/plateau.py, lab/verdict.py, lab/ladder.py, lab/ladder_sets.py, tests/unit/test_lab_plateau.py, tests/unit/test_lab_verdict.py, tests/unit/test_lab_ladder.py, tests/unit/test_lab_ladder_epon.py; after: rungs-faults-not-answers; waits: operator}
-  - [x] L18 TRIALS COUNTED HONESTLY: a ladder cell is judged among its own rule's lines in the set, clustered (L14),
-        not against every line the rule ever had; the ever-growing `trials.family` is deleted
-        Built (#1714, #1792, #1771, #1845, #1924): the luck rung is report-only, the deflated Sharpe the gate; `ladder._one`, `ladder_pool` and the set runners pass `verdict.Pool.among`; a set-level failure is remembered; lines on different windows are aligned on the span of all; a basket is charged one look per basket the set judges.
+  - [x] L18 TRIALS COUNTED HONESTLY: `trials.family` counts every line ever entered and never shrinks (3,435 per
+        rule against ~1,017 judged), luck then needs t>=4.6 and no line reaches it (highest 4.36). The family is
+        the set's own lines, clustered (L14) and passed into `deflated.read`; a known-answer case pins both bars
+        Step 1 landed (#1714): the luck rung is report-only (`deflated.OWN`), the deflated Sharpe the gate; `verdict.every` no longer counts the luck rung (#1792); step 2 (#1771): `trials.daily` and `deflated.judge_lines` judge a rule on its own clustered lines, known answer pinned. Done (#1924, step 4): every ladder cell is judged among its own rule's lines (`verdict.Pool.among`); `trials.family`, `judge`'s `family` and `_charged` are deleted; a basket is charged one look per basket in the set; lines on different windows are aligned on the span of all windows.
+        One correction, not two (decision b): the deflated Sharpe on clustered effective trials is the gate, the
+        Bonferroni luck rung is report-only, and a rule is also judged on its pooled basket of lines;
+        wire: verdict.judge and the set runner; gate: a known-answer case pins the effective trial count and both bars
+        Step 3 built (#1845): `verdict.Pool.among(cell)` judges a rule's lines once as one clustered set and `verdict.judge(..., among=)` takes it for the luck and deflated rungs. Done (#1924): wired through `ladder._one` and the pool.
         {id: rungs-trials-live; files: lab/verdict.py, tests/unit/test_lab_verdict.py, lab/trials.py, lab/deflated.py, tests/unit/test_lab_trials.py, tests/unit/test_lab_deflated.py, lab/ladder.py, lab/ladder_sets.py, lab/ladder_pool.py, lab/basket.py, tests/unit/test_lab_ladder.py, tests/unit/test_lab_ladder_sets.py, tests/unit/test_lab_ladder_pool.py, tests/unit/test_lab_basket.py, tests/unit/test_lab_variants.py; after: rungs-clustered-trials}
   - [ ] THE POUND'S MISSING DAY A NAMED GAP: a fold whose pound-per-dollar rate is missing reads it from the stored
         DEXUSUK series (data-pound-history); a planted missing day is a named gap in the cell's reason, never FAULT
@@ -1068,7 +1070,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         Hard gates pre-registered before a run (costs, deflated Sharpe, out-of-sample folds, shuffle) must PASS; regime,
         market and stress are scored with MAX_WEAK; "lowest of NAMED" is deleted (decision c); wire: verdict.judge;
         gate: one WEAK soft rung no longer kills a cell, one failed hard gate always does
-        Built (#1803, #1869, #1942): `verdict.judge` answers by one rule (`one_answer`); the shuffle waits on the hard gates and yearly only; `promotion.Candidate` and `ladder_parts`' `every` follow it (a graded rung's WEAK is left out, its FAIL kept); `deflated.rule` deleted. Found, not fixed: on a stress stop `_stopped` gives FAIL where `one_answer` would give FAULT or STOP; a malformed rung entry raises IndexError (fails closed); the declared regime rung's WEAK is not in the scorecard's count of weak rungs.
+        Built (#1803): `verdict.judge` answers by one rule (`one_answer`): hard gates must PASS, soft rungs through the scorecard (MAX_WEAK 2), a soft FAULT gives FAULT; the weather regime rung grades three bands. Step 2 built (#1869): the shuffle waits on the hard gates and yearly only, and an early stop answers by the one rule; lowest-of-NAMED is gone from lab/verdict.py. Done (#1942): `promotion.Candidate` reads `verdict.one_answer` (and the line's `every`); `ladder_parts` judges `every` through `verdict.gates`, leaving a GRADED rung's WEAK out; `deflated.rule` deleted. Minor, not fixed: on a stress stop `_stopped` gives FAIL where `one_answer` would give FAULT or STOP; a malformed rung entry raises IndexError (fails closed).
         (widened by runner ops 114, 23 Nov: its Remains name deflated.rule's users, promotion and ladder_parts, all RUNGS files; K1 refused it 03:32)
         {id: rungs-scorecard; files: lab/verdict.py, lab/rung_regimes.py, lab/deflated.py, lab/promotion.py, lab/ladder_parts.py, tests/unit/test_lab_verdict.py, tests/unit/test_lab_rung_regimes.py, tests/unit/test_lab_deflated.py, tests/unit/test_lab_promotion.py}
   - [ ] L20 FAULTS ARE NOT ANSWERS: 6,788 lines read FAULT at market (SPY has no bar on a day, e.g. 2022-09-28) and

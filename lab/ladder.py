@@ -29,7 +29,7 @@ judges by it; every other row owes `no RUNG` first (the test holds the two to ag
  6 benchmark excess: lab/market.py, tests/unit/test_lab_market.py - no RUNG; rung_benchmark merged
  7 deflated Sharpe: lab/rung_dsr.py, tests/unit/test_lab_rung_dsr.py - no RUNG; L14's clustered set
  8 purged cross-validation: lab/rung_cpcv.py, tests/unit/test_lab_rung_cpcv.py
- 9 placebo on blocks of days: lab/rung_placebo.py, tests/unit/test_lab_rung_placebo.py - no RUNG
+ 9 placebo, days shuffled: lab/shuffle.py, tests/unit/test_lab_shuffle.py - no RUNG; blocks dropped
 10 walk-forward folds: lab/folds.py, tests/unit/test_lab_folds.py - no RUNG; the ladder runs `pool`
 11 block bootstrap: lab/rung_ci.py, tests/unit/test_lab_rung_bootstrap.py - `bootstrap`, unwired
 12 retail, basket beside market: lab/rung_retail.py, tests/unit/test_lab_rung_retail.py - no RUNG

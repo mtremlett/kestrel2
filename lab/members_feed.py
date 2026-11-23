@@ -7,7 +7,10 @@ them. Page text: the wikitext table `constituents` (or the first table), rows sp
 ticker the second cell of each row, one line (`|Co|| EPIC || Sector`) or one cell a line. Nothing
 here dials out except `fetch`, one fixed public address family; parsing takes text, so every
 test runs on committed fixtures. The shape of the live answers is read once from the first
-real fetch; a shape that differs raises, never guesses."""
+real fetch; a shape that differs raises, never guesses. First real fetch, 23 Nov 2026: the pages
+"FTSE 100 Index" and "FTSE 250 Index" read through `revision_url` give 100 and 250 tickers at
+2025-03-25, 2026-06-01 and 2026-09-22; FTSE Russell's own site offers no stable machine-readable
+announcement, so `announced` still reads text handed to it."""
 
 from __future__ import annotations
 
