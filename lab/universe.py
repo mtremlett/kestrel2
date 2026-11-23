@@ -356,7 +356,8 @@ def nightly(
     second: Callable[[Line, date], tuple[Bar, ...]] | None = None,
     noon: Callable[[Path], str] | None = None,
 ) -> str:
-    """The night's work: refresh every line into the history database under data, and write
+    """The night's work: refresh every line's daily bars into the history database
+    (market_history.db: `bars.files` puts dailies beside the live path, the door), and write
     REFLECTS.txt in data/grid/store: the day, each list's size and a fingerprint of the
     tickers, so a reader knows which day and which list the database reflects. Given `noon`, the
     pound's noon rates are let in last, and its one line is said."""
