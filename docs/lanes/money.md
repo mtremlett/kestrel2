@@ -699,3 +699,7 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 ### 2026-11-23 - Halt writes its own record (#1991, money-door-writer)
 - Options for halt's record writer: reuse `store._write` (barred by the gate, which forbids the store's CSV half in these files) or a 4-line part-file-then-swap writer in `desk/halt.py`. Own writer taken: no other shared writer exists for it. Scenes 1 and 2 read through `store.judge`.
 - Double 7's (money-connors7) stays held off MONEY on his standing "always go with recommended"; re-carded to RUNGS (R-MONEY-68), waits on R-RUNGS-10.
+
+### 2026-11-23 - The loss limit says which session (#2009, money-loss-words)
+- Options: add the session's date to the words (widen `Standing` so a caller passes it; behaviour change, rejected) or say "lost in the last session" without a date. Date left out because no caller passes one. Week limit reads "lost this week". `Standing.day_loss` comment and `day_parts.standing` docstring say "the last published session's loss".
+- Double 7's (money-connors7) stays held off MONEY on his standing "always go with recommended"; re-card to RUNGS asked as R-MONEY-71, waits on R-RUNGS-10.
