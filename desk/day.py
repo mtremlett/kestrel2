@@ -171,14 +171,14 @@ def trade(
         {symbol: holders[symbol] for symbol in held if symbol in due and symbol in holders},
         opened={f.symbol: f.day for f in book.fills(root) if f.quantity > 0},
     )
-    sent = list[book.Sent]()
+    sent = list[book.Sent](taken)  #: the strangers' sales count in the round's cap too
     try:
         _orders(root, broker, settings, day, tell, killed, decided, due, archive, rates, sent)
         sent += _zoo(root, broker, day, tell, due, archive, rates, sent) if zoo else []
     except (Crash, book.Alarm) as dead:
         _unreached(root, day, decided, sent, dead)
         raise
-    return (*taken, *sent)
+    return tuple(sent)
 
 
 def _stand_down(
@@ -298,6 +298,9 @@ def _orders(
     """The sales, the zoo's yields (_yields), then the buys, each answer added to sent."""
     held = book.positions(root)
     for d in (d for d in decided if d.action is Action.SELL):  #: by the rule that holds it
+        if _full(sent):
+            sent.append(_answer(root, day, _carried(order_id_of(d))))
+            continue
         sale = Sale(order_id_of(d), due[d.symbol], held[d.symbol], session=d.day)
         made = book.intend(
             root, sale.order_id, (d.strategy, d.symbol, d.day), archive[sale.line][-1]
@@ -305,13 +308,16 @@ def _orders(
         answer = _answer(root, day, _send(root, broker, sale, settings, tell, None))
         book.chain(root, made, answer)
         sent.append(answer)
-    sent += _yields(root, broker, settings, tell, decided, due)  #: none without the zoo
+    sent += _yields(root, broker, settings, tell, decided, due, sent)  #: none without the zoo
     _alert(root, day, settings, tell)
     _peak_fall(root, day, tell)
     _currency(root, archive, day, tell)
     _interest(root, archive, day, settings, tell)
     watch = partial(_watch, root, archive, rates)  #: read again at each buy
     for d in (d for d in decided if d.action is Action.BUY):
+        if _full(sent):
+            sent.append(_answer(root, day, _carried(order_id_of(d))))
+            continue
         line = due[d.symbol]
         price = archive[line][-1].close, rates[line.currency]
         args = (root, broker, d, line, price, settings, day, tell, watch, archive[line])
@@ -319,6 +325,23 @@ def _orders(
         answer = _answer(root, day, _barred(d) if d.strategy in killed else _buy(*args))
         book.chain(root, made, answer)
         sent.append(answer)
+
+
+def _full(sent: Sequence[book.Sent]) -> bool:
+    """THE ROUND'S ONE CAP (R-RUNNER-456): paper.MAX_ORDERS orders asked of the broker in all,
+    the step's time (failure pattern 24) holding no more."""
+    return _room(sent) <= 0
+
+
+def _room(sent: Sequence[book.Sent]) -> int:
+    """The orders the round may still ask of the broker: the one count, _full's and _zoo's."""
+    return paper.MAX_ORDERS - sum(1 for s in sent if s.asked)
+
+
+def _carried(name: str) -> book.Sent:
+    """An order past the cap: not sent, its reason named, on the morning's list."""
+    words = f"{name}: not sent today (the step's time), on the morning's list"
+    return book.Sent(name, 0, words, Blocker.CARRIED)
 
 
 def _strangers(
@@ -331,10 +354,11 @@ def _strangers(
 ) -> list[book.Sent]:
     """THE POSITIONS THE DESK DID NOT MAKE (TRD-06): each is named (told, and on the morning's
     list when it cannot be sold), taken into the book at its line's last close, and sold at the
-    market, answered like any sale. A name in no line of the desk's is left for a hand."""
+    market, answered like any sale, first under the round's one cap (_full). A name in no line of
+    the desk's is left for a hand."""
     lines, sold, found = (
         {line.symbol: line for line in archive},
-        [],
+        list[book.Sent](),
         dict(book.strangers(root, broker)),
     )
     listed = halt.morning(root, day).values() if halt.stopped(root, day) is not None else ()
@@ -352,7 +376,9 @@ def _strangers(
             )
     mine = [f for f in book.fills(root) if strategy_of(f.order_id) == "stranger"]
     for name in sorted({f.symbol for f in mine} & lines.keys()):  #: those a sale left whole too
-        if (shares := sum(f.quantity for f in mine if f.symbol == name)) > 0:
+        if (shares := sum(f.quantity for f in mine if f.symbol == name)) > 0 and _full(sold):
+            sold.append(_answer(root, day, _carried(f"{day:%Y%m%d}-stranger-{name}")))
+        elif shares > 0:
             sale = Sale(f"{day:%Y%m%d}-stranger-{name}", lines[name], shares, session=day)
             made = book.intend(root, sale.order_id, ("stranger", name, day), archive[sale.line][-1])
             sold.append(_answer(root, day, _send(root, broker, sale, settings, tell, None)))
@@ -460,6 +486,7 @@ def _yields(
     tell: book.Tell | None,
     decided: Sequence[Decision],
     due: Mapping[str, Line],
+    round_: Sequence[book.Sent],
 ) -> list[book.Sent]:
     """THE ZOO YIELDS (his 22 Nov ruling): a line a rule of the desk's buys today that a zoo rule
     holds is sold out of the zoo first, under the zoo rule's own id, so the desk's five trade as
@@ -468,6 +495,8 @@ def _yields(
     wanted = {d.symbol: d.day for d in decided if d.action is Action.BUY and d.symbol in held}
     for symbol, on in wanted.items():  #: once a line, dated as the buy: the paper door's session
         if (holder := holders.get(symbol, "")).startswith(ZOO):
+            if _full([*round_, *sold]):
+                continue  #: its buy is carried at the cap too; the zoo's line stays held
             zoo = order_id_of(Decision(holder, symbol, on, Action.SELL))
             sale = Sale(zoo, due[symbol], held[symbol], session=on)
             sold.append(_send(root, broker, sale, settings, tell, None))
@@ -489,8 +518,8 @@ def _zoo(
     today, holding what it bought; a sale sells it, a buy is one share, refused as the desk's are,
     through the one gate on the zoo's own allowance (ZOO_ROOM, standing of the zoo alone). Only
     paper.MAX_ORDERS in all go to the broker, the desk's own (desks) first; the rest are kept in the
-    day's answers as carried to the next step, never sent."""
-    room = paper.MAX_ORDERS - sum(1 for s in desks if s.asked)
+    day's answers as not sent today, on the morning's list."""
+    room = _room(desks)
     lines = sorted({ln.symbol for ln in intraday.zoo_lines()} & due.keys())
     held, holders, sent = book.positions(root), _holders(root), list[book.Sent]()
     opened = {f.symbol: f.day for f in book.fills(root) if f.quantity > 0}
@@ -502,8 +531,7 @@ def _zoo(
             if d.action is Action.HOLD:
                 continue
             if room <= 0:
-                words = f"{order_id_of(d)}: not sent, carried to the next step (the step's time)"
-                sent.append(book.Sent(order_id_of(d), 0, words, Blocker.CARRIED))
+                sent.append(_answer(root, day, _carried(order_id_of(d))))
                 continue
             made = book.intend(
                 root, order_id_of(d), (d.strategy, d.symbol, d.day), archive[line][-1]

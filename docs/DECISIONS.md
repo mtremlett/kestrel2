@@ -2363,3 +2363,14 @@ loop, R-DATA-68, 01:36). `tests/guards/test_lanes.py::test_every_open_request_ha
 mechanically, each request on its own line with its own words. A split request keeps its line's box
 unless its own words say it is done (`[x]` before it, `(done ...`, `done in #n`, `Met by #n`): 15 such.
 Tightening only; nothing is loosened.
+
+## R-RUNNER-456: one cap over the whole round, each order past it listed (23 Nov, MONEY)
+Options: (1) one count over the round, every order past it on the morning's list as not sent today;
+(2) the same plus a same-day resend in `desk/running.py`; (3) the zoo alone capped, as before (#2008).
+Taken: (1). The step's 900 s hold 7 market orders (`paper.MAX_ORDERS`), so one count in
+`desk/day.py` (`_full`, `_room`) caps strangers' sales, desk sales, zoo yields, desk buys, then the
+zoo, in that order: exits before entries, the desk before the zoo. Each order past it goes through
+`_answer` onto `halt.morning` under CARRIED, worded "not sent today", so none is dropped silently
+(review B1 of #2036). The resend is a separate PAPER card (coordinator 140, R4), and claiming
+"carried to the next step" before it exists would be untrue. No golden moves: the fixture rounds stay
+under 7 orders. The test plants all four kinds over a cap of 6 and fails on main (one zoo order sent past it).

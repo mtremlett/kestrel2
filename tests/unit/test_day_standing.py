@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from desk import book, day, day_money, intraday, orders, paper, strategy
+from desk import book, day, day_money, halt, intraday, orders, paper, strategy
 from desk.broker import Pretend, Report
 from desk.halt import Blocker, Stopped
 from desk.lines import LINES, YARDSTICK, Line
@@ -289,24 +289,46 @@ def test_the_daily_zoo_buys_one_share_a_rule_only_when_on_and_yields_the_desks_l
     ]
 
 
-def test_a_round_sends_only_what_the_steps_time_allows_and_carries_the_rest(
+class _Cheap:
+    """In the market while the close is under 6."""
+
+    def step(self, bar: Bar, holding: bool) -> bool:  # noqa: ARG002  # a double: reads the close
+        return bar.close < 6
+
+
+def test_one_cap_over_the_whole_round_strangers_desk_sales_desk_buys_then_the_zoo(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    lines = [ln for ln in LINES if ln.retail and ln.leverage == 1 and ln.isa][:20]
-    cheap = replace(BARS[A][0], open=Decimal(5), high=Decimal(5), low=Decimal(5), close=Decimal(5))
-    bars = {ln: tuple(replace(cheap, day=d) for d in (MON, TUE)) for ln in lines}
+    lines = [ln for ln in LINES if ln.retail and ln.leverage == 1 and ln.isa][:9]
+    odd, outs, ins, zoo = lines[:2], lines[2:4], lines[4:7], lines[7:]
+    bar = replace(BARS[A][0], open=Decimal(7), high=Decimal(7), low=Decimal(7), close=Decimal(7))
+    five = replace(bar, open=Decimal(5), high=Decimal(5), low=Decimal(5), close=Decimal(5))
+    bars = {
+        ln: tuple(replace(five if ln in ins else bar, day=d) for d in (MON, TUE)) for ln in lines
+    }
     broker = Pretend(bars, {})
-    monkeypatch.setattr(strategy, "STRATEGIES", {})
+    monkeypatch.setattr(strategy, "STRATEGIES", {"desk_in": _Cheap})
     monkeypatch.setattr(intraday, "ZOO_DAILY", {"zoo_in": _In})
-    monkeypatch.setattr(intraday, "zoo_lines", lambda: tuple(lines))
+    monkeypatch.setattr(intraday, "zoo_lines", lambda: tuple(zoo))
     monkeypatch.setattr(orders, "HOLDINGS", 20)
+    monkeypatch.setattr(paper, "MAX_ORDERS", 6)
+    broker.open(MON)
+    for ln in outs:  #: the desk's own, its rule now selling them
+        book.send(
+            tmp_path,
+            broker,
+            Order(f"20251107-desk_in-{ln.symbol}", ln, 1, *map(Decimal, (7, 1, 1))),
+            ROOM,
+        )
+    for ln in odd:
+        broker.inject(ln.symbol, 1)
     broker.open(TUE)
-    first = {ln: (bars[ln][0],) for ln in lines}
-    answers = day.trade(
-        tmp_path, first, broker, ROOM, TUE, {ln.currency: Decimal(1) for ln in lines}, zoo=True
-    )
-    carried = [s for s in answers if "carried to the next step" in (s.reason or "")]
-    assert len(broker.submitted()) == paper.MAX_ORDERS == 7
-    assert len(carried) == len(lines) - 7 and all(
-        s.filled == 0 and s.blocker is Blocker.CARRIED for s in carried
-    )
+    first, before = {ln: (bars[ln][0],) for ln in lines}, len(broker.submitted())
+    rates = {ln.currency: Decimal(1) for ln in lines}
+    answers = day.trade(tmp_path, first, broker, ROOM, TUE, rates, strangers=True, zoo=True)
+    went = [i.split("-")[-1] for i in broker.submitted()[before:]]
+    assert went == sorted(ln.symbol for ln in odd) + [ln.symbol for ln in (*outs, *ins[:2])]
+    carried = [s.order_id for s in answers if s.blocker is Blocker.CARRIED]
+    assert [i.split("-")[-1] for i in carried] == [ln.symbol for ln in (ins[2], *zoo)]
+    assert {b.order_id for b in halt.morning(tmp_path, TUE)[Blocker.CARRIED]} == set(carried)
+    assert all("not sent today" in (s.reason or "") for s in answers if s.order_id in carried)
