@@ -304,11 +304,21 @@ def table(path: Path, lines: Iterable[Line], now: datetime) -> str:
     return "\n".join(rows)
 
 
-def hover(path: Path, lines: Iterable[Line], now: datetime) -> tuple[str, bool]:
-    """Every line x span judged against the venue's last ended session: the one line saying the
-    share fresh, the faults (held but behind), the gaps (no bar) and the worst cell, and whether
-    it is green: every golden line fresh at every span its venue supplies."""
-    cells = _cells(path, lines, now)
+def databases(home: Path) -> dict[str, Path]:
+    """The two databases the monitor watches, by name: the long one and the short one."""
+    return {name: home / name for name in (bars.HISTORY, keeper.HOT)}
+
+
+def hover(paths: dict[str, Path], lines: Iterable[Line], now: datetime) -> tuple[str, bool]:
+    """Every database x line x span judged against the venue's last ended session: the one line
+    saying the share fresh, the faults (held but behind), the gaps (no bar) and the worst cell, and
+    whether it is green: every golden line fresh at every span its venue supplies."""
+    held = list(lines)
+    cells = [
+        (f"{db}/{name}", line, why)
+        for db, path in paths.items()
+        for name, line, why in _cells(path, held, now)
+    ]
     bad = [(name, line, why) for name, line, why in cells if why]
     gap = sum(why == "holds no bar" for _, _, why in bad)
     worst = (bad[0][0] + ": " + bad[0][2]) if bad else "none"
@@ -366,7 +376,7 @@ if __name__ == "__main__":
         sys.stdout.write(table(home / keeper.HOT, LINES, now) + "\n")
         sys.exit(0)
     if sys.argv[1:] == ["hover"]:
-        said, ok = hover(home / keeper.HOT, LINES, now)
+        said, ok = hover(databases(home), LINES, now)
         told = watch(home / "hover_alarm.json", said, ok, now)
         sys.stdout.write(announce(said, told))
         sys.exit(0 if ok else 1)
