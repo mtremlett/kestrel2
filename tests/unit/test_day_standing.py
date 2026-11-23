@@ -285,3 +285,17 @@ def test_the_daily_zoo_buys_one_share_a_rule_only_when_on_and_yields_the_desks_l
         "zoo_in",
         "desk_in",
     ]
+
+
+def test_a_monday_opens_free_of_fridays_loss_and_a_record_of_today_still_counts(
+    tmp_path: Path,
+) -> None:
+    """London refused every buy on Mon 23 Nov for Friday's 386.17 pounds lost: a loss never
+    crosses into a new week, as the week's own loss does not; within the week it stands."""
+    free, fri = Charges(*[Decimal(0)] * 5), MON - timedelta(days=3)
+    lost = day.Record(fri, Decimal("-386.17"), free, Decimal(0), (), Decimal(0), 0)
+    book._write(tmp_path / day.RECORDS, [day.HEADER, day._row(lost)])
+    assert day.standing(tmp_path, MON) == Standing(Decimal(0), Decimal(0), 0)
+    today = replace(lost, day=MON, profit=Decimal(-300))
+    book._write(tmp_path / day.RECORDS, [day.HEADER, day._row(lost), day._row(today)])
+    assert day.standing(tmp_path, MON) == Standing(Decimal(300), Decimal(300), 0)
