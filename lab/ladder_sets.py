@@ -25,6 +25,7 @@ from desk.lines import LINES, Line
 from lab import (
     basket,
     batch,
+    folds,
     history_bars,
     intraday,
     ladder,
@@ -42,7 +43,7 @@ from lab import (
 from lab.batch import Bars
 from lab.cell import Cell
 from lab.ladder import END, FOLDER, START, Kept, Plan, eponymous, run
-from lab.ladder_parts import FAILED, Shared, _made, _resolve
+from lab.ladder_parts import FAILED, Shared, _made, _resolve, faults
 from lab.published_epon import TESTED
 from lab.rung import Answer, Rates
 
@@ -141,16 +142,19 @@ def epon(
     count = trials.count(home / FOLDER / f"{plan.stem}.trials.jsonl", plan.question)
     last = Kept(home / FOLDER / f"{plan.stem}.jsonl")
     rows = [cast(verdict.Row, last.get(tuple(batch.row(c)))) for c in todo]
+    stop, shown = faults(rows)  #: over 1% of the cells FAULT, baskets aside: withheld (L20)
     if verdict.EASED:  #: easing 2: each rule's lines also judged pooled, one basket a rule
         rows += baskets(home, bars, pounds, todo, rules, plan)
     sets = home / FOLDER / "sets"
     table = verdict.write_table(
         sets, plan.tag, plan.question, rows, rules, count, ladder.rungs_built()
     )
+    withheld = [] if shown else ["", "## NOT PUBLISHED", "", *(f"- {line}" for line in stop)]
     with table.open("a", encoding="utf-8") as out:
         out.write("\n## Survivorship\n\n" + "".join(f"- {note}\n" for note in notes))
-        out.write(NL.join(_authors(rules)) + NL)
+        out.write(NL.join(_authors(rules) + withheld) + NL)
     said = f"survivorship: {len(notes)} of {len(lines)} lines not corrected, none guessed"
+    said += "" if shown else NL + stop[-1]
     passed = sum(any(map(verdict.goes, mine)) for mine in verdict.by_rule(rows, rules).values())
     last_line = f"SET {plan.tag}: {len(rules)} rules, {passed} passed, table {table}"
     return f"{counts}\n{said}\n{tapes_held(home)}\n{last_line}"
@@ -255,10 +259,21 @@ def weather_line(home: Path, bars: Bars, held: Sequence[Line]) -> str:
 
 
 def _pooled(make: Callable[[], Bars]) -> Callable[..., str]:
-    """`run` on the pool, the bars made in each worker by `make`."""
-    return lambda home, _, pounds, todo, now, plan: ladder_pool.run(
-        home, make, pounds, todo, now, plan
-    )
+    """`run` on the pool, the bars made in each worker by `make`, after the same pre-flight as
+    `ladder.run` (L20): a set whose inputs have a gap refuses to start."""
+
+    def go(
+        home: Path,
+        _: object,
+        pounds: Rates,
+        todo: Sequence[Cell],
+        now: Callable[[], datetime] = lambda: datetime.now(UTC),
+        plan: Plan = ladder.FIRST,
+    ) -> str:
+        folds.preflight(ladder.inputs(todo, make()), pounds)
+        return ladder_pool.run(home, make, pounds, todo, now, plan)
+
+    return go
 
 
 def entered(home: Path) -> str:
@@ -308,7 +323,7 @@ def main(env: Mapping[str, str], argv: Sequence[str] = ()) -> int:
         held = leveraged(held)
         said = epon(home, make(), pounds, held, rules=TREND, go=_pooled(make), plan=LEV)
     elif argv:
-        said = ladder_pool.run(home, make, pounds, ladder.cells())
+        said = _pooled(make)(home, None, pounds, ladder.cells())
     else:
         said = epon(home, make(), pounds, held, go=_pooled(make))
         said += "\n" + weather_line(home, make(), held)

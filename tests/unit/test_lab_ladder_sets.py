@@ -167,3 +167,28 @@ def test_the_door_takes_intraday_and_variants_and_refuses_an_unknown_set(
     assert trials.family(register, ladder_sets.VAR.question, "donchian_channel_breakout") == 12
     with pytest.raises(SystemExit, match="intraday"):
         ladder_sets.main(env, ["nonsense"])
+
+
+def test_the_pooled_set_refuses_input_gaps_and_a_set_over_one_percent_fault_is_withheld(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from test_lab_ladder import EDGE, ISF, NOISE, VUSA, _door
+
+    from lab import ladder_pool
+
+    ran: list[object] = []
+    monkeypatch.setattr(ladder_pool, "run", lambda *a: ran.append(a))  #: the pool never begun
+    rule = ["trend_50_200"]
+    holed = _door({VUSA: EDGE, ISF: NOISE[:4] + NOISE[5:]})  #: ISF lacks a session (L20)
+    with pytest.raises(ValueError, match="refuses to start, first ISF has no bar on 2010-01-05"):
+        ladder_sets.epon(
+            tmp_path, holed, {}, [VUSA], rules=rule, go=ladder_sets._pooled(lambda: holed)
+        )
+    assert not ran and not (tmp_path / "ladder").exists()
+    monkeypatch.setattr(ladder_pool, "run", lambda *a: ladder.run(a[0], a[1](), *a[2:]))
+    whole = _door({VUSA: EDGE, ISF: NOISE})
+    said = ladder_sets.epon(
+        tmp_path, whole, {}, [VUSA, ISF], rules=rule, go=ladder_sets._pooled(lambda: whole)
+    )
+    assert "NOT PUBLISHED: " in said
+    assert "## NOT PUBLISHED" in (tmp_path / "ladder" / "sets" / "EPON.md").read_text()
