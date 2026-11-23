@@ -25,7 +25,6 @@ from desk.lines import LINES, Line
 from lab import (
     basket,
     batch,
-    folds,
     history_bars,
     intraday,
     ladder,
@@ -262,7 +261,8 @@ def weather_line(home: Path, bars: Bars, held: Sequence[Line]) -> str:
 
 def _pooled(make: Callable[[], Bars]) -> Callable[..., str]:
     """`run` on the pool, the bars made in each worker by `make`, after the same pre-flight as
-    `ladder.run` (L20): a set whose inputs have a gap refuses to start."""
+    `ladder.run` (L20): a set whose bars have a gap refuses to start; a missing pound day is its
+    cell's named reason, never a refused set."""
 
     def go(
         home: Path,
@@ -272,7 +272,7 @@ def _pooled(make: Callable[[], Bars]) -> Callable[..., str]:
         now: Callable[[], datetime] = lambda: datetime.now(UTC),
         plan: Plan = ladder.FIRST,
     ) -> str:
-        folds.preflight(ladder.inputs(todo, make()), pounds)
+        ladder.preflight(todo, make(), pounds)
         return ladder_pool.run(home, make, pounds, todo, now, plan)
 
     return go
