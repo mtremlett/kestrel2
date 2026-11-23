@@ -788,3 +788,8 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 - Liquidity cap (#1833): options were to widen the claim to test_running, test_running_tell and test_restop and feed `day._buy` at once, or split. Split chosen: only the green step (fixtures with volume 10**7) landed, because feeding the cap would turn those three tests red.
 - Interest (#1861): options were inside the day's profit (rewrite the reconciliation and golden days) or beside it as its own record column and daily line. Beside chosen, recommended, since profit must equal the ledger (day_parts reconcile, simcity). His words: "please always go with recommended".
 - Double 7's (money-connors7) is held off MONEY on his "always go with recommended" (13 Nov): desk/ is at its file ceiling and lab/published_epon.py is RUNGS's. It goes to RUNGS, re-carded to claim desk/eponymous_connors.py, its unit test, lab/published_epon.py and its test (R-MONEY-68); it waits on R-RUNGS-10.
+
+### 2026-11-23 - The TRD-10 flag flags, never skips (#1891, money-small)
+- Options: skip a trade whose expected gain is under twice the round trip's every charge, or flag it. Flag chosen: the box says "flagged", and `orders.thin(order, gain)` rounds nothing. It is pure and tested at the boundary, not yet called, because a Decision carries no expected gain.
+- The 1% liquidity-cap feed (`day._buy` passing `traded_value`) was tried and not landed: it turns test_restop, test_running and test_running_tell red (their bars have volume 1) and those files are outside the claim. Left to a card claiming them.
+- Double 7's (money-connors7) stays off MONEY on his "always go with recommended"; it waits on R-RUNGS-10 (RUNGS re-card, R-MONEY-68).

@@ -253,14 +253,12 @@ def run(
     results, count = begun(home, todo, plan)
     last = Kept(results)
     shared = Shared(todo)
-    register = results.with_suffix(".trials.jsonl")
-    kin = lambda rule: trials.family(register, plan.question, rule)  # noqa: E731 - read when EASED
     tally: Counter[str] = Counter()
     with tape.on(home / FOLDER / tape.FOLDER), results.open("ab") as out:
         out.truncate(last.end)
         for c in todo:
             was = last.get(tuple(batch.row(c)))
-            row = _one(c, bars, pounds, (plan.tag, count), was, shared, now(), kin)
+            row = _one(c, bars, pounds, (plan.tag, count), was, shared, now())
             if row != was:
                 out.write(json.dumps(row).encode() + b"\n")
                 out.flush()
@@ -287,12 +285,10 @@ def _one(
     was: verdict.Row | None,
     shared: Shared,
     now: datetime,
-    kin: Callable[[str], int] | None = None,
 ) -> verdict.Row:
     """The cell's line: the one kept under the key these bars, rates and trials give, else its
     answers now, or why it could not be judged."""
     tag, count = tagged
-    family = kin(c.strategy) if verdict.EASED and kin else None  #: the rule's trials, if EASED
     head: dict[str, Any] = {"set": tag, "cell": batch.row(c), "trials": count}
     key = None  #: what this try covers, once the cell's bars are read
     try:
@@ -307,7 +303,7 @@ def _one(
         )
         market = cell.key(Cell(c.strategy, beside, c.start, c.end), held).data
         parts = [mine.code, mine.data, market, pool.data, str(count), f"capital {CAPITAL}"]
-        parts += [f"{d} {pounds[d]}" for d in days] + ([] if family is None else [f"in {family}"])
+        parts += [f"{d} {pounds[d]}" for d in days]
         parts += [tape.rule_code(c.strategy)] + [one.key.code + one.key.data for one in made]
         found = rung.found(RUNGS)
         parts += [one.name + one.code for one in found[0]] + list(found[1])  #: both are in its key
@@ -318,7 +314,8 @@ def _one(
         if (first := pool.firsts.get(c)) is not None and first.refusal is not None:
             return head | {"key": key, "refused": f"refused by the desk's sizing: {first.refusal}"}
         folded = lambda: pool.fold(pounds, made)  # noqa: E731 - asked for only if the folds are read
-        judged = verdict.judge(c, own, beside, held, pounds, count, made, folded, first, family)
+        look = None if first is None else pool.among(c)  #: L18: among its rule's own lines
+        judged = verdict.judge(c, own, beside, held, pounds, count, made, folded, first, None, look)
         done = _declared(judged, pool, c, own, pounds, made, found)
         return head | {"key": key, "from": c.start.isoformat()} | done
     except FAILED as error:

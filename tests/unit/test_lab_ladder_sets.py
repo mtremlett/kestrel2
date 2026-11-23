@@ -78,14 +78,13 @@ def test_a_set_whose_cells_all_fault_ends_red_naming_the_rung_and_real_fails_end
 
 
 def test_a_basket_row_carries_the_market_its_lines_venue_is_set_beside(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from test_lab_ladder import EDGE, ISF, VUSA, _door
 
-    from lab import basket, rung_retail, trials
+    from lab import basket, rung_retail
     from lab.cell import Cell
 
-    monkeypatch.setattr(trials, "family", lambda *_: 1)
     seen: list[rung_retail.Against | None] = []
     row = basket.row
 
@@ -96,7 +95,7 @@ def test_a_basket_row_carries_the_market_its_lines_venue_is_set_beside(
     monkeypatch.setattr(basket, "row", spy)
     todo = [Cell("breakout_20_10", VUSA, START, END)]
     door = _door({VUSA: EDGE, ISF: EDGE})
-    ladder_sets.baskets(tmp_path, door, {}, todo, ["breakout_20_10"], ladder_sets.EPON)
+    ladder_sets.baskets(door, {}, todo, ["breakout_20_10"], ladder_sets.EPON)
     (against,) = seen
     assert against is not None
     assert (against.line, against.bars, against.rates) == (ISF, EDGE, {})
@@ -164,7 +163,7 @@ def test_the_door_takes_intraday_and_variants_and_refuses_an_unknown_set(
         said = capsys.readouterr().out
         assert f"SET VAR: {len(made)} variants entered, {len(made)} trials" in said
     register = tmp_path / "ladder" / "VAR.trials.jsonl"
-    assert trials.family(register, ladder_sets.VAR.question, "donchian_channel_breakout") == 12
+    assert trials.count(register, ladder_sets.VAR.question) == len(made)
     with pytest.raises(SystemExit, match="intraday"):
         ladder_sets.main(env, ["nonsense"])
 
