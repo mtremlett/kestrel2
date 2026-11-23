@@ -2365,6 +2365,23 @@ mechanically, each request on its own line with its own words. A split request k
 unless its own words say it is done (`[x]` before it, `(done ...`, `done in #n`, `Met by #n`): 15 such.
 Tightening only; nothing is loosened.
 
+## 23 Nov - one cap at one place over the whole round; the golden run moves (R-RUNNER-456)
+Coordinator 140's ruling 13:1x(b), after two NO-GOs (#2036, #2055: a carried order had no intent and
+no chain): the cap acts at ONE place, `day._send`, the one door every order of the round passes after
+`book.intend` and before `book.chain`. It reads the round's answers so far; once `paper.MAX_ORDERS` (7,
+paper's step time) asked the broker, the order is answered `Blocker.CARRIED`, chained and on the
+morning's list. Order: stranger sales, desk sales, zoo yields, desk buys, then the zoo. Options: the
+cap at each call site (rejected twice: no chain, four copies) or in the send door (taken). N2 decided:
+an answer takes a slot only if the broker was asked (filled, or the broker's own BROKER answer); one
+the gate, a halt, the kill switch, the book or a held line stopped takes none (test plants 16 killed
+buys and the zoo still gets all 7). Golden run (canon B5, the desk approves goldens, his 22 Nov):
+Mon 11 Aug 2025 decides 17 orders on Friday's bars; 7 go, 9 desk buys are carried (L07, L09, L11, L12,
+L13, L16, L17, L20, VUAG), 1 is held. Carried buys are not re-sent (R-RUNNER-456 leaves the re-send
+open), so the desk buys L12, L15, L16 on 13 Aug instead of L07, L09 on the 11th; two of them stop out
+on 14-15 Aug. Fills (64), trips (32) and days (310) stand; costs move from 353.78 to 351.96 and
+profit from 61.86 to -154.51. Before, the round sent every order whatever the step's time, which the 900 s step cannot hold
+at 120 s a fill (failure pattern 24).
+
 ## 23 Nov - six operator waits that were not his hard lines, decided by the desk
 Coordinator 140's ORDER 13:2x, carried out by runner ops 144. His 22 Nov ruling: "nothing parks on him but
 hard lines" (live, credentials, spend, deleting data, loosening a guard). Six PLAN boxes carried
