@@ -281,7 +281,7 @@ ZOO = "zoo_"  #: the front of every zoo rule's name (desk/intraday.py): a MACHIN
 #: 2% a day and 5% a week bound its losses, and the new lines it may enter in a day.
 ZOO_ROOM = Settings(Decimal(1_000), new_lines=10)
 #: The daily round's: a line's room the whole of it (a share of AAPL is not refused for costing
-#: over a fifth); the zoo's total within it is day.zoo_full's.
+#: over a fifth); the zoo's total within it is day._zoo_full's.
 ZOO_DAY = replace(ZOO_ROOM, holdings=1)
 
 

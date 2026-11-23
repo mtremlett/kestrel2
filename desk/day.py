@@ -520,7 +520,7 @@ def _zoo(
             sent.append(_answer(root, day, answer))
 
 
-def zoo_full(root: Path, order: Order, rates: Mapping[str, Decimal]) -> str | None:
+def _zoo_full(root: Path, order: Order, rates: Mapping[str, Decimal]) -> str | None:
     """Why the zoo's total would pass its pounds with this order (each zoo line held, at its last
     buy's price and the day's rate, and the order); None while within ZOO_DAY's capital."""
     zoo = book.side(root, book.positions(root), order.order_id)
@@ -558,7 +558,7 @@ def _zoo_buy(
         )
     try:
         order = replace(size(d, line, *price, ZOO_DAY, mine), quantity=1)
-        if full := zoo_full(root, order, rates):
+        if full := _zoo_full(root, order, rates):
             raise Refused(full)
     except Refused as refused:
         return book.Sent(name, 0, str(refused), Blocker.GATE)
