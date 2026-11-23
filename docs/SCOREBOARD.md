@@ -1014,6 +1014,13 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1826 DATA: data-second-source: record check built, not wired. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1827 DATA: data-door-writer part 1: shelve and faults deleted, 7 test files rewritten onto judge, net -66 lines. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1832 DATA: data-monitor: hover covers both databases. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1834 DATA: data-second-source: daily broker-record check built, not yet scheduled. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1839 DATA: data-survivorship: bias line total over all lists; still unwired, FTSE 350 and funds unrecorded. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1841 DATA: data-members: docs only, no box ticked. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1850 DATA: data-monitor: hourly table covers both databases x every span. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1858 DATA: data-members: docs only, no box ticked. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1860 DATA: data-monitor: alarm names the golden fault that turned it red. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1848 DATA: scribe folds six PRs (docs only). |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1766 RUNGS: indicator tables name their fresh 14-day lows truly; no fresh-low or Supertrend table found (STR-14). |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1768 RUNGS: registry test reads the real rungs from `rung.found()`; one list fewer. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1771 RUNGS: L18 step 2, a rule judged on its own clustered lines (`deflated.judge_lines`); box open: wiring. |
