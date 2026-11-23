@@ -11,7 +11,8 @@ real fetch; a shape that differs raises, never guesses."""
 from __future__ import annotations
 
 import json
-from datetime import date
+from collections.abc import Callable
+from datetime import date, timedelta
 from urllib.parse import urlencode
 from urllib.request import urlopen
 
@@ -67,3 +68,12 @@ def review(day: date, text: str, before: str, after: str) -> tuple[Change, ...]:
     """One review's changes, the announcement joined to the page's two revisions; a
     `members.Disagreement` where they differ."""
     return members.reconcile(day, announced(day, text), page_members(before), page_members(after))
+
+
+def fetch_review(
+    page: str, day: date, text: str, get: Callable[[str], str] = fetch
+) -> tuple[Change, ...]:
+    """One review read from the page's last revision the day before and on day; `get` is
+    `fetch`, or a fixture's answer in tests."""
+    before = get(revision_url(page, day - timedelta(days=1)))
+    return review(day, text, before, get(revision_url(page, day)))

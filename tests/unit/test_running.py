@@ -17,7 +17,7 @@ import test_placing as tp
 from test_paper import FLAT, Said, _account, _but, _gateway, _order
 from test_reports import AAPL, BOUGHT, DONE, END, IITU, LISTED, SMGB
 
-from desk import book, clearance, day, kill, listing, paper, running, venues
+from desk import book, clearance, day, kill, listing, messenger, paper, running, venues
 from desk.bars import Five, writing
 from desk.book import Switch
 from desk.book_parts import keep
@@ -371,6 +371,8 @@ def test_a_step_that_fails_tells_him_once_and_is_an_error_and_a_silent_gateway_i
     assert his.startswith("The paper Gateway does not answer: its port is closed.")
     assert again == his and dial.call_count == 3
     assert "would send NO order today" in morning and running.notes(silent.root) == ()
+    running.step(silent, MON.replace(hour=9, minute=30))  # no fill by 09:30 UK: he is told so
+    assert _told(door)[-1] == messenger.NOT_TRADING
     sunday, bell = _desk(tmp_path / "sunday")  # his login's reminder waits for his waking hours
     running.step(sunday, MON.replace(day=15, hour=23, minute=30))
     assert _told(bell) == [his]
