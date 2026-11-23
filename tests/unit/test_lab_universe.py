@@ -159,6 +159,7 @@ def test_the_nightly_refresh_enters_the_database_and_writes_the_day_and_list(
 ) -> None:
     said = universe.nightly(tmp_path, DAY, (universe.SP500[0],), _ask, noon=lambda _: "noon")
     assert said.startswith("research refresh: 1 lines refreshed")
+    assert (tmp_path / database.HISTORY).exists()  # the night's dailies land in the history file
     assert said.endswith("; noon")  # the pound is not held: no gap to name
     ONE = Decimal("1.3")
     days = venues.sessions("US", DAY - timedelta(10), DAY - timedelta(1))
