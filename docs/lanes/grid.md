@@ -300,3 +300,10 @@ string: ''`); current code on 3IN gives a Record, so they heal on the next full 
 fixed by #1612. The week stopped 15-21 Nov because a raising pass ended the job; #1562 logs it and carries on. Options:
 wait for the date, or run again earlier. **Decided** the date, recommended (his 13 Nov "always go with recommended"):
 the root causes are fixed on main and a full week needs a clean run.
+
+### 2026-11-23 — grid-week wait kept at 2026-11-28 (#2021)
+
+#2007 dropped the `.faults` filter, so each line's `<SYM>.faults.csv` note was swept as a ticker (about 2,810 of 5,325
+failing cells); #2021 restores it with a test. Options: start the week sooner, or wait for the date. **Decided** the date,
+recommended (his standing "always go with recommended"): the runner holds the box to that date. Remains: why the job
+stopped 15-21 Nov (no log), held lines from the history database alone.
