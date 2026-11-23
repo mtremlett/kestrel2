@@ -707,7 +707,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       (money-grimes-zoo waits to 2026-11-24: 2 sessions in a row landed no change, the doctor asks why)
       {id: money-grimes-zoo; waits: 2026-11-24; files: desk/intraday.py, desk/grimes.py, desk/grimes_parts.py, manifest.toml, tests/unit/test_intraday*.py,
       tests/unit/test_grimes*.py}
-- [ ] **SimCity's gaps on lines before their first bar** (coordinator 107 E1, deep 23 Nov 00:44, SIMCITY RED):
+- [x] **SimCity's gaps on lines before their first bar** (coordinator 107 E1, deep 23 Nov 00:44, SIMCITY RED):
       the night's gap scenarios pick 2MU, 5QQQ, IB1T, SMGB, SPCX and VHYG on days before their first bar ("no bar
       before the gap day, its gap is unrunnable", 8-9 of 20 worlds, first world 1), and its conformance scenario
       stops on a line with no bar the session before ("the desk stops on no day", 20 of 20 worlds, world 0 day 56:
@@ -717,6 +717,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       never held a line" is these halts or a fault of its own. Fix where the line is chosen, never a special case per
       line; if the fix needs a file outside this claim, stop and say so. Gate: a test, written first, red on main,
       replaying world 0 to day 56 and world 1's gap scenario on a fixture with a late-starting line
+      Remains: world 0 halts at day 870 (no close of VUAG) and the world-1 gap-limit finding needs a replay (#1909).
       {id: money-simcity-firstbar; files: desk/simcity*.py, tests/unit/test_simcity*.py}
 - [ ] **Shares under a broker stop, taken in and sold** (coordinator 107 E1, deep 23 Nov 00:44): "shares the book
       lacks, under a stop at the broker, are taken into the book and sold" in 6 of 20 worlds, first world 4: the
