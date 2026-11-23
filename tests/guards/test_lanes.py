@@ -250,3 +250,18 @@ def test_the_books_notes_can_be_handed_out() -> None:
             if box not in seen:
                 seen.add(box)
                 todo += after.get(box, [])
+
+
+def test_every_open_request_has_its_own_box() -> None:
+    """A request written inside another's line rides that line's box: the runner reads one
+    request per `- [ ]` line, so a run-on is handed out as met or never (failure pattern 22).
+    Each `R-X-n (later` or `(blocking` in STATUS opens its own line."""
+    text = (ROOT / "docs" / "STATUS.md").read_text(encoding="utf-8")
+    asks = re.compile(r"R-[A-Z]+-\d+ \((?:later|blocking)")
+    loose = [
+        m[0]
+        for ln in text.splitlines()
+        for m in asks.finditer(ln)
+        if not re.match(r"- \[[ x]\] $", ln[: m.start()])
+    ]
+    assert not loose, f"requests inside another's line; give each its own `- [ ]` line: {loose}"
