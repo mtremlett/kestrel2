@@ -768,3 +768,12 @@ User-Agent: options were none (Wikipedia answers 403), or a contact email (would
 
 ### 2026-11-23 — the polled round's rate is a one-integer file per interval (DATA, #1963)
 Options: a database table, or a file. Took the file, `polled_<minutes>.rate`, written temp-then-replace: simplest, and no schema. No ruling needed from him.
+
+### 2026-11-23 — the VUAG refusal stands; the reader's handling goes to its own request (DATA, #2028)
+Options: (a) loosen `store.FROZEN` or exempt VUAG: refused, a frozen archive run (19 sessions at 39.915, no volume) is real bad data and a special case is forbidden; (b) make `keeper._dropped` withdraw only days whose held row is the refused bar: needs the held-with-withdrawn read in desk/bars.py, outside the claim; (c) leave as is and name the reader's handling as a request. Took (c): R-DATA-77.
+
+### 2026-11-23 — the deleted store names are pinned in the store's own test (DATA, #2025)
+Options: a guard over all imports in tests/guards (out of the card's claim; the names are gone so an import fails anyway), or one test in tests/unit/test_store.py. Took the test.
+
+### 2026-11-23 — an undefined line is named untradeable, not dropped (DATA, #2031)
+Option A name IDTL `untradeable` in keeper-live's words (taken); option B drop IDTL from the lines (no: it is the ISA twin). His 13 Nov "always go with recommended" settles it.
