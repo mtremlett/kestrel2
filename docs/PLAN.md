@@ -513,6 +513,13 @@ each line's UK tax on the line: scenes 6 and 7 read the same record, so they pas
 (`docs/DECISIONS.md`, the money lane's). The pretend broker, the send path, the book, the
 day's trading and reconciliation are built, and any broker can stand behind them.
 
+- [ ] The day's rate is kept once (coordinator 169, 22:1x): desk-day FAILED 21:43 and 21:48 Mon 23 Nov,
+      'USD was kept at 0.764701, not 0.764175': each step fetches the rate again and the day's record refuses
+      a second figure, so no paper trade is placed. The day's rate is fixed at its first record and later steps
+      price at the kept one; a different fetched rate later that day is neither an error nor an overwrite.
+      Gate, written first: two steps of one day with different fetched rates both pass and both price at the
+      first. Money path: A6 blind review
+      {id: money-rate-once; files: desk/book_parts.py, desk/running.py, tests/unit/test_book*.py, tests/unit/test_running*.py, docs/lanes/money.md}
 - [ ] Room in desk/ first (coordinator 165, 21:5x, his 21:3x "Keep cap, auto room-keeper"): the seven
       eponymous rule files no desk or lab module imports leave desk/ with their tests and manifest rows,
       about 550 lines, so the 08:00 data fix and the zoo's own-side card fit under the 18,000 ceiling
