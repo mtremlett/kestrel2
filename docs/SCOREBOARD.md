@@ -552,6 +552,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2063 R-RUNNER-463 done: history import retires the pound-table step.
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2080 R-RUNNER-469: weekly freshness rule pinned by a test, no product change.
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2083 R-RUNNER-470 done: keeper rolls 5m, 30m and daily up every round.
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2088 R-DATA-77 met: keeper withdraws only the refused bar; no scene moved. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2098 data-members: nightly reads FTSE members by date from the free page revisions. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2103 R-RUNNER-476 done: IDTL's ISIN corrected to IBKR's. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
