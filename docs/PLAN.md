@@ -250,7 +250,9 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       Re-carded (runner ops 106, 23 Nov, coordinator 103's D1: the remainder was a new file outside the claim): the fetcher is `lab/members_feed.py`, registered in manifest.toml, its test `tests/unit/test_lab_members_feed.py` on committed fixtures, no network; count lab/ room against BUDGET first
       Built (#1870, #1885, #1899): `lab/members_feed.py` parses a review's page table and announcement, `fetch_review(page, day, text)` reads the two revisions and hands them to `reconcile`; offline fixtures only; the page side fetched live (#1948, #1962: FTSE 100 and 250 give 100 and 250 tickers; a generic User-Agent, no personal detail). Remains: the FTSE Russell announcement reader (needs a stable free source: lseg.com has none machine-readable), the funds and a 2010-2014 source (no free one), the nightly refresh reading members by date.
       (widened by runner ops 114, 23 Nov: six runs ended with no change because the nightly wire sits in lab/universe.py; after data-nightly-target, which holds that file now. The bias on verdicts is RUNGS', its request in STATUS)
-      {id: data-members; files: lab/members.py, lab/members_feed.py, lab/universe.py, tests/unit/test_lab_members*.py, tests/unit/test_lab_universe*.py, manifest.toml; waits: operator}
+      Ruled by the desk (23 Nov, his 22 Nov 'nothing parks on him but hard lines'; DECISIONS): build the nightly refresh reading members by date from the free page revisions; a source with no free
+      feed (FTSE Russell announcements, the funds, 2010-2014) is named UNMEASURED in the table, never bought (no paid data before profit)
+      {id: data-members; files: lab/members.py, lab/members_feed.py, lab/universe.py, tests/unit/test_lab_members*.py, tests/unit/test_lab_universe*.py, manifest.toml}
 - [x] Kept hot, always: the runner runs the store's keeper after the US close and before the
       London open on every trading day, a dated receipt each time; a line staler than one
       session raises an alert, and a keeper that misses its slot raises one too (DQ-12,
@@ -1049,7 +1051,8 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         Gate done (#1676): the registry test pins the rung modules off the path, now seven after empty rung_beta.py was folded away (#1740) (benchmark, bootstrap, dsr, placebo, retail, sample, stops); it may only fall. Step 2 (#1901): the stop-rule study renamed `lab/stop_rules.py`, off-path five; step 3 (#1934): benchmark merged into market (`rung_benchmark.py` deleted), off-path now four (dsr, placebo, retail, sample).
         Step 4 (#1961): the unwired placebo rung deleted (shuffle is the one home of the timing question), off-path three (dsr, retail, sample); #1974: the rung map in lab/ladder.py names the files each remaining merge needs. Remains: dsr merged into deflated (lab/deflated.py, tests/unit/test_lab_deflated.py, tests/unit/test_lab_trials_clustered.py, claimed by runner ops 127, 23 Nov: K1 refused the box 07:33-08:05 for naming them unclaimed); then sample into rung 1 and retail into the basket or the verdict, runner ops widening this claim to each target as the one before lands; then pin 'waiting is empty'. Step 1 built (#1844): rung_bootstrap folded into rung_ci (off-path modules 7 to 6, FOLDED pin until it is wired); next: dsr (into deflated), sample (into rung 1), retail, each needing its target in the claim; merges need R-RUNGS-29; then pin 'waiting is empty' and take `rung_ci.bootstrap(` off FOLDED once wired. Registry test reads the real rungs from `rung.found()` (#1768)
         Step 5 (#2010): rung_dsr merged into deflated (its refusal now in `deflated.best_by_luck`), off-path two (retail, sample). Remains: sample into rung 1 (claim lab/rung.py, tests/unit/test_lab_calibration.py), retail into the basket (lab/basket.py, tests/unit/test_lab_basket.py, lab/ladder_sets.py, tests/unit/test_lab_ladder_sets.py), then pin 'waiting is empty' and wire rung_ci.bootstrap; runner ops widen the claim (R-RUNGS-41, #2020).
-        {id: rungs-each-rung; files: lab/ladder.py, tests/unit/test_lab_ladder.py, lab/rung_*.py, tests/unit/test_lab_rung_*.py, lab/stop_rules.py, tests/unit/test_lab_stop_rules.py, manifest.toml, lab/deflated.py, tests/unit/test_lab_deflated.py, tests/unit/test_lab_trials_clustered.py; after: rungs-rung-map; waits: operator}
+        Ruled by the desk (23 Nov, his 22 Nov 'nothing parks on him but hard lines'; DECISIONS): the claim widens to the next merge's target, sample into rung 1 (lab/rung.py, tests/unit/test_lab_calibration.py); retail's targets follow when it lands
+        {id: rungs-each-rung; files: lab/ladder.py, tests/unit/test_lab_ladder.py, lab/rung_*.py, tests/unit/test_lab_rung_*.py, lab/stop_rules.py, tests/unit/test_lab_stop_rules.py, manifest.toml, lab/deflated.py, tests/unit/test_lab_deflated.py, tests/unit/test_lab_trials_clustered.py, lab/rung.py, tests/unit/test_lab_calibration.py; after: rungs-rung-map}
   - [x] L14 one clustered set of trials for the deflated Sharpe, its spread measured
         {id: rungs-clustered-trials; files: lab/trials.py, lab/rung_dsr.py, tests/unit/test_lab_trials_clustered.py; after: rungs-rung-map}
   - [ ] L15 the blind review of the whole ladder (R-RUNNER-40), every blocking finding fixed
@@ -1063,8 +1066,8 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         A rule with no settings is declared NOT APPLICABLE for plateau, reviewed, never UNRUN by default (decision a);
         wire: verdict.judge on every cell; gate: a planted edge goes forward and a no-settings rule is not blocked
         Step 1 landed (#1660): plateau.Surface and plateau.judged, verdict.judge(surface=); no surface stays UNRUN. Built: `plateau.Fixed` (#1702) and `plateau.of(rule, book, firsts)` builds a cell's Surface or FIXED (#1742).
-        Waits: operator (its step lies in files outside its claim; runner ops must widen it after rungs-faults-not-answers releases lab/ladder.py). Remains: wire it: lab/ladder.py and lab/ladder_sets.py pass `surface=plateau.of(c.strategy, rulebook.specs(), firsts)` into verdict.judge (changes test_lab_ladder.py and test_lab_ladder_epon.py; the claim must name those four files)
-        {id: rungs-plateau-wired; files: lab/plateau.py, lab/verdict.py, lab/ladder.py, lab/ladder_sets.py, tests/unit/test_lab_plateau.py, tests/unit/test_lab_verdict.py, tests/unit/test_lab_ladder.py, tests/unit/test_lab_ladder_epon.py; after: rungs-faults-not-answers; waits: operator}
+        Ruled by the desk (23 Nov, his 22 Nov 'nothing parks on him but hard lines'; DECISIONS): the claim below already names the four files; it is held only by its after: link (rungs-faults-not-answers, which holds lab/ladder.py). Remains: wire it: lab/ladder.py and lab/ladder_sets.py pass `surface=plateau.of(c.strategy, rulebook.specs(), firsts)` into verdict.judge (changes test_lab_ladder.py and test_lab_ladder_epon.py; the claim must name those four files)
+        {id: rungs-plateau-wired; files: lab/plateau.py, lab/verdict.py, lab/ladder.py, lab/ladder_sets.py, tests/unit/test_lab_plateau.py, tests/unit/test_lab_verdict.py, tests/unit/test_lab_ladder.py, tests/unit/test_lab_ladder_epon.py; after: rungs-faults-not-answers}
   - [x] L18 TRIALS COUNTED HONESTLY: `trials.family` counts every line ever entered and never shrinks (3,435 per
         rule against ~1,017 judged), luck then needs t>=4.6 and no line reaches it (highest 4.36). The family is
         the set's own lines, clustered (L14) and passed into `deflated.read`; a known-answer case pins both bars
@@ -1100,9 +1103,9 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
 - [ ] **STRATEGIES AS DATA (his goal: 1,000+ strategies over 1,000+ tickers):**
   - [ ] B1 building blocks written once, each known-answer tested: indicators, entries,
         exits, stops, filters (regime filters among them), sizing. Built: every block has its
-        known answer (#396). Built: the sizing block `VolatilitySize(n)`, by the desk's own `desk.risk.volatility` (#1637), now on the one `Block` interface (#1711). Waits: operator (the last step needs files outside the claim; runner ops must widen it). Remains: register it (a SIZE kind in lab/block_base.py, `volatility_size` in `BLOCKS`, the spec and simulator reading it; the claim must widen to those files; manifest line for lab/blocks.py to name sizing). Was: sizing blocks, once the volatility-sizing research settles their form
+        known answer (#396). Built: the sizing block `VolatilitySize(n)`, by the desk's own `desk.risk.volatility` (#1637), now on the one `Block` interface (#1711). Ruled by the desk (23 Nov, his 22 Nov 'nothing parks on him but hard lines'; DECISIONS): the claim widens to the spec that reads the kinds (lab/spec.py) and the manifest. Remains: register it (a SIZE kind in lab/block_base.py, `volatility_size` in `BLOCKS`, the spec and simulator reading it; the claim must widen to those files; manifest line for lab/blocks.py to name sizing). Was: sizing blocks, once the volatility-sizing research settles their form
         (coordinator 54, 22 Nov: a research wait, not his: the volatility-sizing contest table is written, R-RUNNER-205, #1481; the session reads it to settle the sizing blocks' form)
-        {id: rungs-blocks; files: lab/block_base.py, lab/blocks.py, tests/unit/test_lab_blocks.py; waits: operator}
+        {id: rungs-blocks; files: lab/block_base.py, lab/blocks.py, lab/spec.py, tests/unit/test_lab_blocks.py, tests/unit/test_lab_spec.py, manifest.toml}
   - [ ] B2 a typed Spec, validated on entry: an unknown block or a bad setting is refused
         Remains (R-MONEY-45, #809, #823, #1382): 21 of 21 rules are rows (mansfield_rs_momentum #873, zweig breadth_thrust #1382, both run on ratio bars the caller builds); remains: a caller building Zweig's ratio bars from `lab.universe.breadth` (R-MONEY-35 wiring)
       {id: rungs-spec; files: lab/spec.py, tests/unit/test_lab_spec.py; waits: R-MONEY-35}
@@ -1119,7 +1122,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         {id: rungs-quarry-rows; files: lab/catalogue.toml, tests/unit/test_lab_catalogue*.py; after: rungs-rows-as-rules}
   - [ ] P1 a fast engine for rows, vectorised in `lab/`, matching the desk's engine on the
         golden fixture (canon B2) or removed; indicators computed once per ticker and shared
-        {id: rungs-fast-engine; files: lab/fast.py, tests/unit/test_lab_fast.py, manifest.toml; after: rungs-blocks; waits: operator}
+        {id: rungs-fast-engine; files: lab/fast.py, tests/unit/test_lab_fast.py, manifest.toml; after: rungs-blocks}
   - [ ] GC the grid chained onto each set: rows swept over their ranges and the research
         universe, through the same tapes and rungs, the plateau's centre reported (canon B6)
         {id: rungs-grid-chain; files: lab/ladder_sets.py, lab/ladder_pool.py, tests/unit/test_lab_ladder_pool.py; after: rungs-gate, rungs-b5}
@@ -1165,7 +1168,8 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       with its kill condition, before its first paper day; it then trades paper side by side
       with up to nine others under the A-GATE terms. Nothing reaches real money without his
       signature (STR-17, LAD-11, MIG-07)
-      {id: rungs-eponymous; files: *; after: rungs-trustworthy, rungs-indicators; waits: operator}
+      Ruled by the desk (23 Nov, his 22 Nov 'nothing parks on him but hard lines'; DECISIONS): held by its after: links only; paper is the desk's; real money stays his alone (a hard line)
+      {id: rungs-eponymous; files: *; after: rungs-trustworthy, rungs-indicators}
 - [ ] His paramount case: long and inverse leveraged-ETP trend strategies through the ladder
       (STR-18). Built: set LEV, six trend rules on the leveraged lines (#423). Remains: inverse
       leveraged lines, once a Line may state an inverse fund (R-RUNGS-21, R-RUNGS-22); a real run of LEV
