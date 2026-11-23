@@ -299,6 +299,36 @@ def test_the_daily_zoo_buys_one_share_a_rule_only_when_on_and_yields_the_desks_l
     assert story.count(yielded) == 4  # the yield intended and chained, then the zoo's own buy
 
 
+def test_the_days_zoo_buys_are_sized_on_their_own_sides_holdings_with_the_desk_holding_five(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Pins #2105: the desk already holds 5 lines (its limit), yet each zoo buy of the day's
+    round fills one share, as the zoo is sized on the zoo's holdings alone (book.side)."""
+    lines = [ln for ln in LINES if ln.retail and ln.leverage == 1 and ln.isa][:8]
+    bars = {ln: BARS[A] for ln in lines}
+    broker = Pretend(bars, {})
+    broker.open(MON)
+    for ln in lines[:5]:
+        sent = book.send(
+            tmp_path,
+            broker,
+            Order(f"20251110-desk-{ln.symbol}", ln, 1, *map(Decimal, (50, 1, 45))),
+            ROOM,
+        )
+        assert sent.filled == 1
+    assert len(book.positions(tmp_path)) == orders.HOLDINGS
+    monkeypatch.setattr(strategy, "STRATEGIES", {})
+    monkeypatch.setattr(intraday, "ZOO_DAILY", {"zoo_in": _In})
+    monkeypatch.setattr(intraday, "zoo_lines", lambda: tuple(lines[5:]))
+    first, rates = {ln: (BARS[A][0],) for ln in lines}, {ln.currency: Decimal(1) for ln in lines}
+    broker.open(TUE)
+    answers = day.trade(tmp_path, first, broker, ROOM, TUE, rates, zoo=True)
+    assert {(a.order_id.split("-")[-1], a.filled, a.blocker) for a in answers} == {
+        (ln.symbol, 1, None) for ln in lines[5:]
+    }
+    assert len(book.positions(tmp_path)) == 8  # five of the desk's and three of the zoo's
+
+
 def test_a_round_sends_only_what_the_steps_time_allows_and_carries_the_rest(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
