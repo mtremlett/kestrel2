@@ -116,7 +116,7 @@ def cut(window: Cell, bars: Sequence[Bar], folds: int) -> tuple[tuple[Cell, Cell
     parts = folds + 1
     if folds < 1 or len(days) < parts:
         raise ValueError(
-            f"{window.strategy} on {window.symbol}, {window.start} to {window.end}: "
+            f"{window.strategy} on {window.line.symbol}, {window.start} to {window.end}: "
             f"{len(days)} bars cannot be cut into {folds} folds and the part before them"
         )
     edges = [n * len(days) // parts for n in range(1, parts + 1)]
