@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from desk import book, day, day_money, intraday, orders, paper, strategy
+from desk import book, day, day_money, halt, intraday, orders, paper, strategy
 from desk.broker import Pretend, Report
 from desk.halt import Blocker, Stopped
 from desk.lines import LINES, YARDSTICK, Line
@@ -292,24 +292,28 @@ def test_the_daily_zoo_buys_one_share_a_rule_only_when_on_and_yields_the_desks_l
 def test_a_round_sends_only_what_the_steps_time_allows_and_carries_the_rest(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """One cap over the whole round (R-RUNNER-456): the desk's buys, then the zoo's, ask the
+    broker for paper.MAX_ORDERS in all; a buy the gate refuses takes no slot; every order past
+    the cap is decided, chained in the story and on the morning's list as CARRIED."""
     lines = [ln for ln in LINES if ln.retail and ln.leverage == 1 and ln.isa][:20]
     cheap = replace(BARS[A][0], open=Decimal(5), high=Decimal(5), low=Decimal(5), close=Decimal(5))
     bars = {ln: tuple(replace(cheap, day=d) for d in (MON, TUE)) for ln in lines}
-    broker = Pretend(bars, {})
-    monkeypatch.setattr(strategy, "STRATEGIES", {})
+    monkeypatch.setattr(strategy, "STRATEGIES", {"desk_in": _In})
     monkeypatch.setattr(intraday, "ZOO_DAILY", {"zoo_in": _In})
     monkeypatch.setattr(intraday, "zoo_lines", lambda: tuple(lines))
     monkeypatch.setattr(orders, "HOLDINGS", 20)
-    broker.open(TUE)
-    first = {ln: (bars[ln][0],) for ln in lines}
-    answers = day.trade(
-        tmp_path, first, broker, ROOM, TUE, {ln.currency: Decimal(1) for ln in lines}, zoo=True
-    )
-    carried = [s for s in answers if "carried to the next step" in (s.reason or "")]
-    assert len(broker.submitted()) == paper.MAX_ORDERS == 7
-    assert len(carried) == len(lines) - 7 and all(
-        s.filled == 0 and s.blocker is Blocker.CARRIED for s in carried
-    )
+    first, rates = {ln: (bars[ln][0],) for ln in lines}, {ln.currency: Decimal(1) for ln in lines}
+    for killed, cap in ((frozenset({"desk_in"}), paper.MAX_ORDERS), (frozenset(), 2)):
+        root, broker = tmp_path / str(cap), Pretend(bars, {})
+        monkeypatch.setattr(paper, "MAX_ORDERS", cap)
+        broker.open(TUE)
+        answers = day.trade(root, first, broker, ROOM, TUE, rates, killed=killed, zoo=True)
+        carried = {s.order_id for s in answers if s.blocker is Blocker.CARRIED}
+        assert len(broker.submitted()) == sum(s.blocker is None for s in answers) == cap
+        rules = {"zoo_in"} if killed else {"desk_in", "zoo_in"}  #: a killed rule's buys take none
+        assert {i.split("-")[1] for i in carried} == rules
+        assert {c.order_id for c in book.chains(root) if c.blocker == "CARRIED"} == carried
+        assert {b.order_id for b in halt.morning(root, TUE)[Blocker.CARRIED]} == carried
 
 
 def test_a_monday_opens_free_of_fridays_loss_and_a_record_of_today_still_counts(
