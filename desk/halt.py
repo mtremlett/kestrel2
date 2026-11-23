@@ -23,7 +23,6 @@ from pathlib import Path
 from desk.broker import Broker
 from desk.orders import Refused, Settings
 from desk.risk import Standing, loss_limit
-from desk.store import _write
 
 HALTS, BLOCKED = "halts.csv", "blocked"  #: the one record of halts; a folder, a list a morning
 WOULD = "would_have_halted.csv"  #: beside it, what a halt would have been on paper: no halt
@@ -142,8 +141,7 @@ def stop(
     """A HALT THAT CANCELS: the halt is on the record first, so no buy is sent even if the
     broker cannot be reached; then the broker cancels every order of the desk's still working
     (a working order is a buy; the stops resting stay). Called again, it cancels again."""
-    called = call(root, at, why, by, his)
-    return Halted(called, tuple(broker.cancel()))
+    return Halted(call(root, at, why, by, his), tuple(broker.cancel()))
 
 
 def lift(root: Path, halt: Halt, at: datetime, why: str, by: str = OPERATOR) -> Halt:
@@ -181,9 +179,8 @@ def _halt(path: Path, row: list[str]) -> Halt:
 
 def _row(halt: Halt) -> tuple[str, ...]:
     at, why, who = halt.lifted or (None, "", "")
-    may_lift = ALONE if halt.his else EITHER
-    lifted = (at.isoformat() if at else "", why, who)
-    return (halt.at.isoformat(), halt.why, halt.by, may_lift, *lifted)
+    who_may = ALONE if halt.his else EITHER
+    return (halt.at.isoformat(), halt.why, halt.by, who_may, at.isoformat() if at else "", why, who)
 
 
 def in_force(root: Path) -> tuple[Halt, ...]:
@@ -275,6 +272,9 @@ def _rows(path: Path, names: tuple[str, ...]) -> list[list[str]]:
 
 
 def _keep(path: Path, names: tuple[str, ...], rows: Iterable[tuple[object, ...]]) -> None:
-    """Written whole, then swapped in, by the store's one writer."""
+    """Written whole to a part file, then swapped in, so a crash leaves the old file whole."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    _write(path, names, list(rows))
+    part = path.with_suffix(".part")
+    with part.open("w", newline="", encoding="utf-8") as out:
+        csv.writer(out).writerows([names, *rows])
+    part.replace(path)

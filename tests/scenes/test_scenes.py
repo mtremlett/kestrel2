@@ -30,7 +30,7 @@ from rehearsal import (
 
 from desk import book, day, orders, store, strategy, venues
 from desk.broker import Crash, Fault, Pretend
-from desk.lines import YARDSTICK
+from desk.lines import YARDSTICK, Line
 
 # ---------------------------------------------------------------- the money
 
@@ -57,26 +57,34 @@ def _run_days(root: Path, broker: Pretend, days: Sequence[date]) -> list[day.Rec
     return records
 
 
+def _judged() -> tuple[dict[Line, tuple[store.Bar, ...]], list[store.Parked]]:
+    """The archive's bars judged line by line, as the store's one judgement does."""
+    judged = {line: store.judge(line, SPOILT[line], TODAY) for line in LINES}
+    parks = [park for _, _, park in judged.values() if park]
+    return {line: tuple(kept) for line, (kept, _, _) in judged.items()}, parks
+
+
 # ---------------------------------------------------------------- the scenes
 
 
-def test_scene_1_the_days_data_is_clean_or_the_line_is_parked(tmp_path: Path) -> None:
-    parked = store.prepare(tmp_path, SPOILT, TODAY)
+def test_scene_1_the_days_data_is_clean_or_the_line_is_parked() -> None:
+    kept_by, parked = _judged()
 
     assert [(p.symbol, p.day) for p in parked] == [(BAD.symbol, TODAY)]
     assert parked[0].reason.strip(), "a parked line names its reason"
     for line in LINES:
         if line != BAD:
-            assert store.read(tmp_path, line.symbol) == CLEAN[line], f"{line.symbol} incomplete"
-    kept = store.read(tmp_path, BAD.symbol)
+            assert kept_by[line] == CLEAN[line], f"{line.symbol} incomplete"
+    kept = kept_by[BAD]
     assert WRONG_UNIT not in kept, "the bad bar reached the store"
     assert [b.day for b in kept] == sorted({b.day for b in kept}), "a date is stored twice"
 
 
-def test_scene_2_the_decision_cannot_see_the_future(tmp_path: Path) -> None:
-    parked = {p.symbol for p in store.prepare(tmp_path, SPOILT, TODAY)}
+def test_scene_2_the_decision_cannot_see_the_future() -> None:
+    kept_by, found = _judged()
+    parked = {p.symbol for p in found}
     trading = [line.symbol for line in LINES if line.symbol not in parked]
-    bars = {symbol: store.read(tmp_path, symbol) for symbol in trading}
+    bars = {line.symbol: kept_by[line] for line in LINES if line.symbol in trading}
 
     every = strategy.decide(bars)
     names = {d.strategy for d in every}
