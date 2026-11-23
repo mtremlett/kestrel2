@@ -24,6 +24,7 @@ PER_RUN = (
 )
 LATE = timedelta(minutes=2)  #: how stale a due line's newest bar may be
 Minutes = Callable[[Line, datetime], tuple[Timed, ...]]
+NONE = live.Untradeable.__name__ + ":"  #: how a refusal begins for a line the broker cannot define
 
 
 def recent(line: Line, now: datetime) -> tuple[Five, ...]:
@@ -88,9 +89,11 @@ def due(lines: Sequence[Line], now: datetime) -> tuple[Line, ...]:
     return tuple(lines[(slot * PER_RUN + k) % len(lines)] for k in range(PER_RUN))
 
 
-def _asked(hot: Path, mine: Sequence[Line], now: datetime, ask: Minutes) -> list[str]:
+def _asked(
+    hot: Path, mine: Sequence[Line], now: datetime, ask: Minutes
+) -> tuple[list[str], list[str]]:
     """The lines asked for their one-minute bars and kept as IBKR's; each one refused, or whose
-    newest bar is later than LATE, in words."""
+    newest bar is later than LATE, in words; and apart, each the broker has no definition for."""
     with bars.writing(hot, bars.Source.IBKR) as started:  # a line with no history is started
         for line in mine:
             started.timed(line, MINUTES, ())
@@ -99,13 +102,15 @@ def _asked(hot: Path, mine: Sequence[Line], now: datetime, ask: Minutes) -> list
         for line, answer in answers.items():
             if not isinstance(answer, Refused):
                 kept.timed(line, MINUTES, answer)
-    stale = []
+    stale, none = [], []
     for line, answer in answers.items():
-        if isinstance(answer, Refused):
+        if isinstance(answer, Refused) and answer.reason.startswith(NONE):
+            none.append(line.symbol)
+        elif isinstance(answer, Refused):
             stale.append(f"{line.symbol}: {answer.reason}")
         elif not answer or now - max(b.start for b in answer) - live.MINUTE > LATE:
             stale.append(f"{line.symbol}: no bar within {LATE.seconds // 60} minutes")
-    return stale
+    return stale, none
 
 
 def minute_round(
@@ -114,10 +119,12 @@ def minute_round(
     """One run of `--live`: the due lines in session asked for their one-minute bars, kept as
     IBKR's; the words, and each line whose newest bar is later than LATE or was refused."""
     mine = [line for line in due(lines, now) if venues.open_at(line.venue, now)]
-    stale = _asked(hot, mine, now, ask)
+    stale, none = _asked(hot, mine, now, ask)
     paced = sum("pacing" in words.lower() for words in stale)
+    untradeable = f", untradeable: {' '.join(none)}" if none else ""
     return (
-        f"live: one-minute bars asked for {len(mine)} lines, {len(stale)} stale, pacing {paced}",
+        f"live: one-minute bars asked for {len(mine)} lines, {len(stale)} stale, "
+        f"pacing {paced}{untradeable}",
         stale,
     )
 
@@ -131,7 +138,7 @@ def polled_round(
     slot = int(now.timestamp()) // (60 * minutes)
     rota = [lines[(slot * rate + k) % len(lines)] for k in range(min(rate, len(lines)))]
     mine = [line for line in rota if venues.open_at(line.venue, now)]
-    stale = _asked(hot, mine, now, ask)
+    stale, _ = _asked(hot, mine, now, ask)
     refusals = sum("pacing" in words.lower() for words in stale)
     words = (
         f"polled {minutes}-minute round: {len(mine)} requests, {len(stale)} stale, "

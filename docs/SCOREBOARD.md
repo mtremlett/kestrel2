@@ -237,6 +237,8 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1991 money-door-writer done: halt writes its own record and scenes read through the history judge, neither names the store's CSV half.
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1995 MONEY scribe folds #1983; no box ticked.
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2009 money-loss-words done: the loss refusal and alert say "lost in the last session"; words only, golden unchanged. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2008 money-round-cap: one home for step time, carried orders named CARRIED. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2012 R-RUNNER-445 met, test pinned (12 test lines). |
 
 
 ### DATA
@@ -1088,3 +1090,6 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1965 RUNGS scribe restored by merging main: #1951's fold added. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1976 RUNGS scribe: #1961 and #1966 folded; rungs-pound-gap's files widened. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1987 RUNGS scribe: #1974 folded; #1984 closed as superseded by #1976. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1992 rungs-pound-gap: the pooled set names a missing pound day in the cell's reason, never refuses the set. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2010 rung_dsr merged into deflated; off-path rung modules 3 -> 2; product -114 lines. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2020 rungs-each-rung: rung map names the full claim for the last two merges; off-path modules still 2. |
