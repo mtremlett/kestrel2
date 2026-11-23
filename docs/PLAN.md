@@ -830,13 +830,13 @@ his PC with the desk's own client id (222), never 4001.
       Done: Monday 16 Nov's London and US files compared; ids, the stop step, the gate's refusal, the broker's reasons and the soak command landed (#433, #452, #488, #512, #565, #572, #610, #686). The stop step is judged on fills and holdings (#779). Remains: a part fill is unseen (the paper broker gave none at 1, 16 or 18 shares); the next live US run to confirm 6 of 6
       {id: paper-conformance; files: *; after: paper-gateway, paper-check, paper-stops,
       paper-drill; waits: 2026-11-16}
-- [ ] The desk's own process supervised: one supervisor, restarts proven by killing it,
-      health judged from outside by dated receipts, surviving a reboot, a dropped network
-      and a broker disconnect; a ledger of operator actions proving seven days without one,
-      bar the ruled Gateway re-login (OPS-01, OPS-02, OPS-04, OPS-10, NS-01)
-      Remains: the step is the first registered job (#490) and `python -m desk.supervisor tell` sends what health finds (#499). The hours (05:30-22:00 UTC) and the 03:00 restart window are done (#1631, #1639). Still to do: the kill drill on the real step, seven days counted (time, not code). Windows starting the supervisor is its own box below, which waits on him (coordinator 54, 22 Nov: a new Windows task is persistent config on his machine; the rest is not his)
-      {id: paper-supervised; files: desk/supervisor.py, tests/unit/test_supervisor.py,
-      manifest.toml; after: paper-running; waits: 2026-11-29}
+- [ ] The desk's own process supervised: one supervisor, health judged from outside by dated
+      receipts, surviving a reboot, a dropped network and a broker disconnect; a ledger of
+      operator actions proving seven days without one, bar the ruled Gateway re-login (OPS-01, OPS-02, OPS-04, OPS-10, NS-01)
+      Done: the step is the first registered job (#490), `tell` sends what health finds (#499), the hours and the 03:00 window (#1631, #1639). Remains: seven days counted (time, not code). Windows starting it is its own box below (his, coordinator 54)
+      {id: paper-supervised; files: desk/supervisor.py, tests/unit/test_supervisor.py, manifest.toml; after: paper-supervised-drill; waits: 2026-11-29}
+- [ ] The kill drill: a test in test_supervisor.py kills the supervisor's real step child mid-run and sees it restarted with a dated receipt (G3 split, runner ops 123); never the live desk in market hours
+      {id: paper-supervised-drill; files: desk/supervisor.py, tests/unit/test_supervisor.py; after: paper-running}
 - [ ] Windows starts the supervisor and `tell` at boot: a new Windows task on his PC (his yes in chat, Sun 22 Nov 09:5x: "Yes, add it")
       {id: paper-supervisor-windows; files: desk/supervisor.py, tests/unit/test_supervisor.py;
       after: paper-supervised}
