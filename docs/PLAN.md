@@ -343,8 +343,8 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       market_history.db as a reference series beside the bars, through the one writer and its checks
       wire: the nightly research refresh and HOVER's filler; gate: a fold whose rate was missing reads it
       from the stored series, and a planted missing day is a named gap, never a FAULT
-      Built (#1774, #1790): the nightly refresh fetches FRED's DEXUSUK (keyless) through the one writer (Source.FED_NOON) and names the pound's sessions with no rate. Remains: HOVER's filler (desk/backfill.py) filling the gaps; the ladder reading a missing rate as a named gap, not FAULT (lab/ladder.py, RUNGS)
-      {id: data-pound-history; files: desk/keeper.py, tests/unit/test_keeper*.py, desk/bars.py, tests/unit/test_bars*.py, lab/universe.py, tests/unit/test_lab_universe*.py}
+      Built (#1774, #1790): the nightly refresh fetches FRED's DEXUSUK (keyless) through the one writer (Source.FED_NOON) and names the pound's sessions with no rate. Remains: HOVER's filler (desk/backfill.py) filling the gaps; the ladder's half is RUNGS's own box, rungs-pound-gap
+      {id: data-pound-history; files: desk/keeper.py, tests/unit/test_keeper*.py, desk/bars.py, tests/unit/test_bars*.py, lab/universe.py, tests/unit/test_lab_universe*.py, desk/backfill.py, tests/unit/test_backfill.py}
 - [ ] **Data in tiers, for 4,000+ tickers** (research of 14 November, kept in the notes
       folder as `data_stack_2026-11-14.md`). Tier A: held, signalled and watched names, live
       1-minute from IBKR within his line allowance (100 now). Tier B: US breadth at 1 minute
@@ -682,7 +682,8 @@ day's trading and reconciliation are built, and any broker can stand behind them
       (ZOO_ON off by default; Z2 and a zoo-on rehearsal GO unchanged), one share, a paper MACHINERY TEST, never
       evidence (CANON B6). No exemption in the guard (a loosening). Gate: a test, written first, red on main, where
       the zoo's listing names all ten setups. Opus, A6 blind review (money path). #1783 relabels after this lands
-      {id: money-grimes-zoo; files: desk/intraday.py, desk/grimes.py, tests/unit/test_intraday*.py,
+      desk/grimes.py is at 799 lines: what moves out goes to desk/grimes_parts.py, registered in the manifest first
+      {id: money-grimes-zoo; files: desk/intraday.py, desk/grimes.py, desk/grimes_parts.py, manifest.toml, tests/unit/test_intraday*.py,
       tests/unit/test_grimes*.py}
 - [ ] **SimCity's gaps on lines before their first bar** (coordinator 107 E1, deep 23 Nov 00:44, SIMCITY RED):
       the night's gap scenarios pick 2MU, 5QQQ, IB1T, SMGB, SPCX and VHYG on days before their first bar ("no bar
@@ -1011,7 +1012,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         any lab/rung_*.py is off that path (rungs_built equals the map)
         Gate done (#1676): the registry test pins the rung modules off the path, now seven after empty rung_beta.py was folded away (#1740) (benchmark, bootstrap, dsr, placebo, retail, sample, stops); it may only fall.
         Remains: wire or merge each (each needs lab/ladder.py, manifest.toml and its target in the claim; merges need R-RUNGS-29), then pin 'waiting is empty'. Step 1 built (#1844): rung_bootstrap folded into rung_ci (off-path modules 7 to 6, FOLDED pin until it is wired); next: benchmark, dsr, placebo, sample, retail, stops, each needing its target in the claim; rung_stops is the stop-rule study, rename it out of rung_ (e.g. lab/stop_rules.py). Registry test reads the real rungs from `rung.found()` (#1768)
-        {id: rungs-each-rung; files: lab/ladder.py, tests/unit/test_lab_ladder.py, lab/rung_*.py, tests/unit/test_lab_rung_*.py; after: rungs-rung-map; waits: R-RUNGS-29}
+        {id: rungs-each-rung; files: lab/ladder.py, tests/unit/test_lab_ladder.py, lab/rung_*.py, tests/unit/test_lab_rung_*.py, lab/stop_rules.py, tests/unit/test_lab_stop_rules.py, manifest.toml; after: rungs-rung-map; waits: R-RUNGS-29}
   - [x] L14 one clustered set of trials for the deflated Sharpe, its spread measured
         {id: rungs-clustered-trials; files: lab/trials.py, lab/rung_dsr.py, tests/unit/test_lab_trials_clustered.py; after: rungs-rung-map}
   - [ ] L15 the blind review of the whole ladder (R-RUNNER-40), every blocking finding fixed
@@ -1035,7 +1036,11 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         Bonferroni luck rung is report-only, and a rule is also judged on its pooled basket of lines;
         wire: verdict.judge and the set runner; gate: a known-answer case pins the effective trial count and both bars
         Step 3 built (#1845): `verdict.Pool.among(cell)` judges a rule's lines once as one clustered set and `verdict.judge(..., among=)` takes it for the luck and deflated rungs. Remains: `ladder._one`, ladder_sets and ladder_pool pass `among=pool.among(c)`, then `family`, `trials.family` and `_charged`'s family path go (claim: verdict, ladder, ladder_sets, ladder_pool and their tests); cover a set-level `judge_lines` failure (remember it as `Pool.fold` does) and align each line's daily returns to one window first.
-        {id: rungs-trials-live; files: lab/verdict.py, tests/unit/test_lab_verdict.py, lab/trials.py, lab/deflated.py, tests/unit/test_lab_trials.py, tests/unit/test_lab_deflated.py; after: rungs-clustered-trials}
+        {id: rungs-trials-live; files: lab/verdict.py, tests/unit/test_lab_verdict.py, lab/trials.py, lab/deflated.py, tests/unit/test_lab_trials.py, tests/unit/test_lab_deflated.py, lab/ladder.py, lab/ladder_sets.py, lab/ladder_pool.py, lab/basket.py, tests/unit/test_lab_ladder.py, tests/unit/test_lab_ladder_sets.py, tests/unit/test_lab_ladder_pool.py, tests/unit/test_lab_basket.py, tests/unit/test_lab_variants.py; after: rungs-clustered-trials}
+  - [ ] THE POUND'S MISSING DAY A NAMED GAP: a fold whose pound-per-dollar rate is missing reads it from the stored
+        DEXUSUK series (data-pound-history); a planted missing day is a named gap in the cell's reason, never FAULT
+        (split from data-pound-history by runner ops 111, 23 Nov: the ladder is RUNGS's file)
+        {id: rungs-pound-gap; files: lab/ladder.py, tests/unit/test_lab_ladder.py, lab/history_bars.py, tests/unit/test_lab_history_bars*.py; after: data-pound-history}
   - [ ] L19 ONE VERDICT RULE: the eased scorecard (`verdict.scorecard`, MAX_WEAK) is built but never called, so one
         WEAK kills a cell; it is wired as the one answer or deleted, and regime's 30 trades in each half is
         proven fair by a power case (a t=3 edge over 60 trades)
