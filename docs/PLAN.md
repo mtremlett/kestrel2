@@ -256,7 +256,9 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       planted disagreement is a named fault
       Built (#1651): `lab/members.reconcile` joins one FTSE review's announced changes to the page revisions either side; disagreement is a named `Disagreement`; feeds not wired. Also (#1715): `Members.survived` measures the share of a day's members still listed (279 of 500 on 1 Jan 2010). Remains: the fetcher module (FTSE Russell announcements, MediaWiki API; a request to RUNNER in STATUS), the nightly refresh reading members by date; no free source exists for the funds' past members or a second 2010-2014 record, so they stay unmeasured (#1841, #1858).
       Re-carded (runner ops 106, 23 Nov, coordinator 103's D1: the remainder was a new file outside the claim): the fetcher is `lab/members_feed.py`, registered in manifest.toml, its test `tests/unit/test_lab_members_feed.py` on committed fixtures, no network; count lab/ room against BUDGET first
-      {id: data-members; files: lab/members.py, lab/members_feed.py, tests/unit/test_lab_members*.py, manifest.toml}
+      Built (#1870, #1885, #1899): `lab/members_feed.py` parses a review's page table and announcement, `fetch_review(page, day, text)` reads the two revisions and hands them to `reconcile`; offline fixtures only. Remains: the FTSE Russell announcement reader, a first real fetch (live shape unverified), the funds and a 2010-2014 source (no free one), the nightly refresh reading members by date.
+      (widened by runner ops 114, 23 Nov: six runs ended with no change because the nightly wire sits in lab/universe.py; after data-nightly-target, which holds that file now. The bias on verdicts is RUNGS', its request in STATUS)
+      {id: data-members; files: lab/members.py, lab/members_feed.py, lab/universe.py, tests/unit/test_lab_members*.py, tests/unit/test_lab_universe*.py, manifest.toml; after: data-nightly-target}
 - [x] Kept hot, always: the runner runs the store's keeper after the US close and before the
       London open on every trading day, a dated receipt each time; a line staler than one
       session raises an alert, and a keeper that misses its slot raises one too (DQ-12,
@@ -340,7 +342,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       wire: a runner job every 5 minutes, 7 days, and the hourly Telegram table; gate: a contract test where a
       planted stale span, missing day and stale golden line each turn the line red, and the alarm sends red once and green once
       Built (#1654): `desk.quality.hover` (freshness line, exit 0/1) and `alarm` (red once, 30-minute reminder, one green). Also built (#1658, #1689): the monitor reads the archive's six-hour outage alarm; `hover` keeps its alarm state in hover_alarm.json and prints `SEND: <message>` (the runner's line, via `announce`) when it speaks (#1736, #1769, #1782), and `table` gives the per-span line for the hourly report; #1699 adds `register` (a report, not a red); #1809 reds a missing day inside a golden line's history (golden lines only); #1832 judges both databases (market_history.db and market_live.db), the worst cell naming its database, a missing database fails loudly (history reads red on stale spans until gap filling exists). Also #1850: `table` covers both databases (one table, db-prefixed rows, each database's register); #1860: the worst cell names a golden line's fault first. Remains: the 5-minute runner job posting SEND lines and the hourly table to Telegram (runner; see STATUS), the Haiku/Sonnet/Opus escalation, gap filling for 15m-1wk, the two-store daily read.
-      {id: data-monitor; files: desk/quality.py, tests/unit/test_quality.py}
+      {id: data-monitor; files: desk/quality.py, tests/unit/test_quality.py; waits: 2026-11-24}
 - [ ] Derived spans rolled, never fetched: 15m, 30m, 1h and 4h rolled from five-minute bars and 1wk from daily,
       into the history database as `rollup:<from>` on every keeper round, so they are as fresh as their base;
       a rolled bar that differs from a held one is a FAULT, never a silent overwrite (canon B3)
@@ -413,7 +415,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
 - [x] Each line's UK tax a fact on the line, from one table of two rates: nil for a fund or
       an exchange-traded product, stamp duty for a UK share; the twenty lines each state nil,
       and one London line of the rehearsal data pays it (R-MONEY-1)
-- [ ] The window before mid-April 2010 prepared
+- [x] The window before mid-April 2010 prepared (#1883: SESSION_YEARS 1993-2029 pinned; a five-minute bar before 2010 is refused by name, hours stay 2010-2029)
       {id: data-pre-2010; files: lab/headstart.py, tests/unit/test_lab_headstart.py; after: data-deep-history}
 - [ ] Coverage and quality measured: history at least twice the longest lookback for every
       line, five years by the A-GATE; a quality score per line and desk-wide, and a cap on
@@ -452,7 +454,8 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       measured ramp on the paper port allows (every request counted with its error codes;
       any pacing refusal halves the rate); daily bars for every ticker (DAT-01, DAT-05)
       (runner ops 112, 23 Nov: claim adds desk/keeper_live.py, where the polled rounds must use keeper.pace and count each request, and desk/lines.py with its test, for the lines beyond today's twenty; two runs stopped on it, real_loop)
-      {id: data-ibkr-capacity; files: desk/keeper.py, tests/unit/test_keeper*.py, desk/keeper_live.py, desk/lines.py, tests/unit/test_lines.py; after: data-broker-bars; waits: 2026-11-23}
+      Built (#1886): `keeper.pace` and the `POLLED` floor/ceiling table (a pacing refusal halves the rate, never below the floor; a clean round rises 25%, never above the ceiling); nothing calls it yet. Remains: wire it into the polled 1-minute rounds in keeper_live.py with every request counted, the 90 streams and lines beyond twenty, the measured ramp on port 4002, daily bars for every ticker.
+      {id: data-ibkr-capacity; files: desk/keeper.py, tests/unit/test_keeper*.py, desk/keeper_live.py, desk/lines.py, tests/unit/test_lines.py; after: data-broker-bars; waits: 2026-11-24}
 - [ ] **A free collector, started now, before anything uses it:** once a day, about 300 calls
       across the free tiers he already has, each response kept raw and timestamped: a US
       second opinion on every bar (Massive's whole-market daily), a third (Tiingo), a rotating
@@ -461,7 +464,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       with timestamps (Finnhub, Marketaux, GNews). NewsAPI is not used: its free terms forbid
       it. History that free tiers do not keep cannot be bought back later (BIC-06, DAT-01)
       Built (#1663, #1712, #1728, #1752): EODHD, Alpha Vantage London sample, BLS, EIA, BEA (11 sources). Remains: Alpha Vantage earnings CSV (own reader; cross-check of Finnhub dates).
-      {id: data-collector; files: desk/collector.py, tests/unit/test_collector.py, manifest.toml; after: data-polite}
+      {id: data-collector; files: desk/collector.py, tests/unit/test_collector.py, manifest.toml; after: data-polite; waits: 2026-11-24}
 - [ ] **Market weather recorded before it acts:** realised-volatility sizing researched first,
       the one effect with strong published evidence; index trend and breadth from the desk's
       own bars next; VIX term structure, credit spreads and the yield curve recorded each day
@@ -679,8 +682,8 @@ day's trading and reconciliation are built, and any broker can stand behind them
       one-share orders sends only the cap and names the rest carried
       (runner ops 106, 23 Nov, coordinator 103's D1: desk/paper.py is PAPER's; its constants come from paper-step-time, then this box points simcity_incidents at them and drops its own)
       (money-time-gaps waits to 2026-11-24: 5 sessions in a row landed no change, the doctor asks why; money-honest waits on R-MONEY-65, said in #1861; money-door-pound parked a day, MONEY-s10, canon A8)
-      (#1823: cap built, MAX_ORDERS = 7, the rest carried; constants sit in desk/day.py. Remains: move STEP_SECONDS, STEP_MARGIN, MAX_ORDERS to desk/paper.py (R-MONEY-69); Blocker.CARRIED in desk/halt.py; blind review (A6); zoo-on rehearsal GO before the zoo returns)
-      {id: money-round-cap; files: desk/day.py, desk/simcity_incidents.py, tests/unit/test_day*.py,
+      (#1823: cap built, MAX_ORDERS = 7, the rest carried; constants sit in desk/day.py. #1906 put MAX_ORDERS beside the step time in paper's module. Remains: the day reads all three from there and drops its own; Blocker.CARRIED in desk/halt.py (widened to it by runner ops 114, 23 Nov: K1 refused 03:32); blind review (A6); zoo-on rehearsal GO before the zoo returns)
+      {id: money-round-cap; files: desk/day.py, desk/simcity_incidents.py, desk/halt.py, tests/unit/test_day*.py, tests/unit/test_halt*.py,
       tests/unit/test_simcity*.py; after: paper-step-time}
 - [x] **Fault, the deep run (A3: a red deep test is a fault):** (#1813: ledger opened once per change, 50,412 -> 228 opens on the fixture night) deep SimCity on 067062cd ended 22 Nov 22:37
       "stuck in the worlds: no end in 7200 s" at `desk/book_parts2.py:48` (`_ledger`). The ledger file is read and
@@ -1069,7 +1072,8 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         market and stress are scored with MAX_WEAK; "lowest of NAMED" is deleted (decision c); wire: verdict.judge;
         gate: one WEAK soft rung no longer kills a cell, one failed hard gate always does
         Built (#1803): `verdict.judge` answers by one rule (`one_answer`): hard gates must PASS, soft rungs through the scorecard (MAX_WEAK 2), a soft FAULT gives FAULT; the weather regime rung grades three bands. Remains: delete `deflated.rule` and its test; wire `promotion.Candidate` to `verdict.one_answer`; `ladder_parts` (line 112) leaves soft-graded rungs out of `every`.
-        {id: rungs-scorecard; files: lab/verdict.py, lab/rung_regimes.py, tests/unit/test_lab_verdict.py, tests/unit/test_lab_rung_regimes.py}
+        (widened by runner ops 114, 23 Nov: its Remains name deflated.rule's users, promotion and ladder_parts, all RUNGS files; K1 refused it 03:32)
+        {id: rungs-scorecard; files: lab/verdict.py, lab/rung_regimes.py, lab/deflated.py, lab/promotion.py, lab/ladder_parts.py, tests/unit/test_lab_verdict.py, tests/unit/test_lab_rung_regimes.py, tests/unit/test_lab_deflated.py, tests/unit/test_lab_promotion.py}
   - [ ] L20 FAULTS ARE NOT ANSWERS: 6,788 lines read FAULT at market (SPY has no bar on a day, e.g. 2022-09-28) and
         ~5,300 at folds (no pounds-per-USD rate): each rung reads its missing day from the one store's calendar and
         the rate table, and a fault count over 1% of a set stops its table being published
