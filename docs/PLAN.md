@@ -186,10 +186,20 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       {id: data-door-bars; files: lab/universe_parts.py, tests/unit/test_lab_universe*.py; waits: 2026-11-24}
 - [ ] One door, one writer: `universe.nightly` and the Stooq files write into the history database through
       `bars.writing`, never the CSV store; `store.read`, `faults`, `shelve` and the CSV half of `prepare` are
-      deleted with their tests; wire: the research refresh job; gate: the deleted names import nowhere
-      Built (#1767): the research refresh writes the history database through `bars.writing`, no CSV; `universe_history.enter` deleted. Also built (#1798, #1827): headstart judges through `store.judge` (no scratch CSV store); `store.shelve`, `faults`, `HISTORY` deleted, seven store tests rewritten onto judge. Remains: delete `store.prepare`, `read`, `_bar`, `_FAULT`, `_write`'s CSV use (halt.py imports `_write`) and the `.faults` filter in lab/sweep.py; tests/scenes/test_scenes.py, test_lab_batch.py, test_lab_sweep.py call them and the lane guard refuses DATA editing those (MONEY/GRID files): waits for runner ops to lend ownership or a MONEY/GRID card to edit them; then the gate that the deleted names import nowhere
+      deleted with their tests; wire: the research refresh job; gate: the deleted names import nowhere.
+      Built (#1767): the research refresh writes the history database through `bars.writing`, no CSV; `universe_history.enter` deleted. Also built (#1798, #1827): headstart judges through `store.judge` (no scratch CSV store); `store.shelve`, `faults`, `HISTORY` deleted, seven store tests rewritten onto judge. Remains: delete `store.prepare`, `read`, `_bar`, `_FAULT` and `_write`'s CSV use; their MONEY and GRID callers are split to their owners (runner ops 112, 23 Nov: money-door-writer, grid-door-writer); once both land, the deletions and the gate that the deleted names import nowhere
       {id: data-door-writer; files: lab/universe.py, lab/universe_parts.py, lab/universe_history.py, lab/headstart.py, lab/headstart_days.py, desk/store.py, desk/store_scope.py,
-      tests/unit/test_lab_universe*.py, tests/unit/test_store*.py, tests/unit/test_lab_headstart*.py, tests/unit/test_keeper.py, tests/unit/test_lab_batch.py, tests/unit/test_lab_sweep.py, tests/scenes/test_scenes.py; after: data-door-bars, money-door-slippage}
+      tests/unit/test_lab_universe*.py, tests/unit/test_store*.py, tests/unit/test_lab_headstart*.py, tests/unit/test_keeper.py; after: data-door-bars, money-door-slippage, money-door-writer, grid-door-writer}
+- [ ] THE STORE'S CSV HALF UNUSED BY MONEY: `desk/halt.py` writes its file without `store._write`, and the
+      scenes read their prices through the history database (`bars.writing`, `universe_parts.read` or `store.judge`),
+      never `store.prepare` or `store.read`; gate: neither file names those three
+      (split from data-door-writer by runner ops 112, 23 Nov: these are MONEY's files)
+      {id: money-door-writer; files: desk/halt.py, tests/unit/test_halt*.py, tests/scenes/test_scenes.py}
+- [ ] THE STORE'S CSV HALF UNUSED BY THE GRID: the `.faults` filter in `lab/sweep.py` deleted; the batch
+      and sweep tests set their prices through the history database, never `store.prepare` or `store.read`;
+      gate: none of the three files names them
+      (split from data-door-writer by runner ops 112, 23 Nov: these are GRID's files)
+      {id: grid-door-writer; files: lab/sweep.py, tests/unit/test_lab_sweep.py, tests/unit/test_lab_batch.py}
 - [x] **The old desk's stores as a head start, now** (his ask, 14 November): its daily and
       five-minute bars (Stooq and IBKR stores, and its per-ticker matrices) read in through
       the one store's checks, every bar re-checked, each kept with its source; where a fresh
