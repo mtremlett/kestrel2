@@ -11,7 +11,7 @@ import pytest
 
 from desk import backfill, bars, history, paper, venues
 from desk.bars import Source
-from desk.lines import LINES
+from desk.lines import LINES, POUND
 from desk.store import Bar, Refused
 
 SPY = next(line for line in LINES if line.symbol == "SPY")
@@ -81,6 +81,19 @@ def test_a_hole_among_years_of_bars_is_judged_beside_both_sides_as_of_today(tmp_
     )
     assert wrote == [f"ISF {LOST}: IBKR paper"] and not named
     assert [b.day for b in bars.daily(path, ISF)] == sorted([*days, LOST])
+
+
+def test_the_pounds_gaps_are_filled_from_the_fed_and_a_day_it_lacks_is_named(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / bars.LIVE
+    with bars.writing(path) as held:
+        held.days(POUND, [bar(date(2020, 1, 6), "1")])
+    table = "d,r\n2020-01-07,1.31\n2020-01-08,\n2020-01-09,1.32\n"
+    wrote, named = backfill.fill_pound(path, table, date(2020, 1, 10))
+    assert wrote == ["2020-01-07: 1.31", "2020-01-09: 1.32"] and named == ["2020-01-08"]
+    assert bars.sources(path, POUND, bars.DAILY)[Source.FED_NOON] == 2
+    assert backfill.fill_pound(path, table, date(2020, 1, 10))[0] == []
 
 
 def test_the_brokers_pence_are_turned_into_pounds_on_entry() -> None:
