@@ -49,10 +49,8 @@ from desk.risk import Standing
 from desk.store import Bar
 from desk.strategy import Action, Decision
 
-#: The runner's time for the desk step (its drive_atjobs) and the margin kept of it: a round sends
-#: at most MAX_ORDERS market orders, each waiting paper.FILL_SECONDS (failure pattern 24).
-STEP_SECONDS, STEP_MARGIN = 900, 60
-MAX_ORDERS = (STEP_SECONDS - STEP_MARGIN) // paper.FILL_SECONDS
+#: The runner's step time and the most orders a round sends are paper's (STEP_SECONDS, MAX_ORDERS).
+STEP_SECONDS = paper.STEP_SECONDS
 
 
 def run(
@@ -495,9 +493,9 @@ def _zoo(
     the desk's own orders, each zoo daily rule (intraday.ZOO_DAILY) decides on each zoo line due
     today, holding what it bought; a sale sells it, a buy is one share, refused as the desk's are,
     through the one gate on the zoo's own allowance (ZOO_ROOM, standing of the zoo alone). Only
-    MAX_ORDERS in all go to the broker, the desk's own (desks) first; the rest are kept in the
+    paper.MAX_ORDERS in all go to the broker, the desk's own (desks) first; the rest are kept in the
     day's answers as carried to the next step, never sent."""
-    room = MAX_ORDERS - sum(1 for s in desks if s.asked)
+    room = paper.MAX_ORDERS - sum(1 for s in desks if s.asked)
     lines = sorted({ln.symbol for ln in intraday.zoo_lines()} & due.keys())
     held, holders, sent = book.positions(root), _holders(root), list[book.Sent]()
     opened = {f.symbol: f.day for f in book.fills(root) if f.quantity > 0}
