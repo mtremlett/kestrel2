@@ -38,8 +38,12 @@ def test_each_set_reads_lines_bars_and_pound_from_the_history_database_and_names
         read(TWO)
     with pytest.raises(LookupError, match=POUND.symbol):
         history_bars.pounds(tmp_path)
-    with bars.writing(tmp_path / bars.LIVE) as opened:
-        opened.days(POUND, _series("1.25"))
+    #: a day the archive lacks, filled by the one writer from FRED's DEXUSUK, is the rate read
+    held, fed = _series("1.25"), _series("1.6")[5:6]
+    for source, given in (bars.Source.ARCHIVE, held[:5] + held[6:]), (bars.Source.FED_NOON, fed):
+        with bars.writing(tmp_path / bars.LIVE, source) as opened:
+            opened.days(POUND, given)
     rates = history_bars.pounds(tmp_path)
+    assert rates[DAYS[6]] == Decimal("0.625") and rates[DAYS[5]] == Decimal("0.8")
     assert rates[ladder.END] == Decimal("0.8") and min(rates) > DAYS[0]
     assert max(rates) == ladder.END and isinstance(next(iter(rates)), date)
