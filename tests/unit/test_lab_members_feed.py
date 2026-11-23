@@ -7,7 +7,7 @@ from datetime import date
 
 import pytest
 
-from lab import members, members_feed
+from lab import members, members_feed, universe
 
 DAY = date(2026, 9, 21)
 
@@ -54,3 +54,11 @@ def test_a_fetched_review_asks_for_the_day_before_and_the_day() -> None:
 
     got = members_feed.fetch_review("FTSE 100", DAY, TEXT, get)
     assert len(got) == 2 and "2026-09-20T23" in asked[0] and "2026-09-21T23" in asked[1]
+
+
+def test_the_nightly_line_sets_the_pages_beside_the_list_and_names_the_unmeasured() -> None:
+    names = [line.symbol for line in universe.FTSE350]
+    page = _page("AV.", "BT.A", names[0], "ZZZ")
+    line = members_feed.drift(DAY, lambda _: page)
+    assert "page only ['ZZZ']" in line and "list only" in line and "unmeasured: FTSE" in line
+    assert "BT-A" not in line.split("page only")[1].split("list only")[0]

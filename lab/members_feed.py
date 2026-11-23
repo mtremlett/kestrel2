@@ -20,7 +20,7 @@ from datetime import date, timedelta
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
-from lab import members
+from lab import members, universe
 from lab.members import Change
 
 API = "https://en.wikipedia.org/w/api.php"  #: keyless, public
@@ -84,3 +84,26 @@ def fetch_review(
     `fetch`, or a fixture's answer in tests."""
     before = get(revision_url(page, day - timedelta(days=1)))
     return review(day, text, before, get(revision_url(page, day)))
+
+
+PAGES = ("FTSE 100 Index", "FTSE 250 Index")
+UNMEASURED = (
+    "unmeasured: FTSE review announcements, the funds' past members and a 2010-2014 second"
+    " source (no free feed)"
+)
+
+
+def _name(ticker: str) -> str:
+    """A page's EPIC as the archive names it: AV. is AV, BT.A is BT-A."""
+    return ticker.rstrip(".").replace(".", "-")
+
+
+def drift(day: date, get: Callable[[str], str] = fetch) -> str:
+    """The nightly line: the FTSE 100 and 250 pages' members on day set beside the research
+    list's FTSE 350, each side's extras named, and what no free source measures."""
+    page = {_name(t) for p in PAGES for t in page_members(get(revision_url(p, day)))}
+    ours = {line.symbol for line in universe.FTSE350}
+    return (
+        f"members: FTSE pages {len(page)}, list {len(ours)}; page only {sorted(page - ours)}, "
+        f"list only {sorted(ours - page)}; {UNMEASURED}"
+    )

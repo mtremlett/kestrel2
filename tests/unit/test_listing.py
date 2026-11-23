@@ -84,7 +84,7 @@ def test_the_request_for_idtl_carries_the_masters_exchange_currency_and_isin() -
     sent: list[bytes] = []
     listed = listing.converse(wire, sent.append, (idtl,))["IDTL"]
     assert sent[2] == _frame(
-        "9|8|0|0|IDTL|STK||0.0|||SMART|LSEETF|USD|||0|ISIN|IE00BSKRJX20|".split("|")
+        f"9|8|0|0|IDTL|STK||0.0|||SMART|LSEETF|USD|||0|ISIN|{idtl.isin}|".split("|")
     )
     assert isinstance(listed, Listing) and listed.exchange == "LSEETF"
 

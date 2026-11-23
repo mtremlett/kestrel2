@@ -252,7 +252,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       (widened by runner ops 114, 23 Nov: six runs ended with no change because the nightly wire sits in lab/universe.py; after data-nightly-target, which holds that file now. The bias on verdicts is RUNGS', its request in STATUS)
       Ruled by the desk (23 Nov, his 22 Nov 'nothing parks on him but hard lines'; DECISIONS): build the nightly refresh reading members by date from the free page revisions; a source with no free
       feed (FTSE Russell announcements, the funds, 2010-2014) is named UNMEASURED in the table, never bought (no paid data before profit)
-      {id: data-members; files: lab/members.py, lab/members_feed.py, lab/universe.py, tests/unit/test_lab_members*.py, tests/unit/test_lab_universe*.py, manifest.toml; waits: operator}
+      {id: data-members; files: lab/members.py, lab/members_feed.py, lab/universe.py, tests/unit/test_lab_members*.py, tests/unit/test_lab_universe*.py, manifest.toml}
 - [x] Kept hot, always: the runner runs the store's keeper after the US close and before the
       London open on every trading day, a dated receipt each time; a line staler than one
       session raises an alert, and a keeper that misses its slot raises one too (DQ-12,
@@ -850,8 +850,7 @@ his PC with the desk's own client id (222), never 4001.
 - [x] The kill drill: a test in test_supervisor.py kills the supervisor's real step child mid-run and sees it restarted with a dated receipt (G3 split, runner ops 123); never the live desk in market hours (#1993: the real `supervise` loop, the step's child killed from outside, receipts dated 08:00 and 08:05)
       {id: paper-supervised-drill; files: desk/supervisor.py, tests/unit/test_supervisor.py; after: paper-running}
 - [ ] Windows starts the supervisor and `tell` at boot: a new Windows task on his PC (his yes in chat, Sun 22 Nov 09:5x: "Yes, add it")
-      {id: paper-supervisor-windows; files: desk/supervisor.py, tests/unit/test_supervisor.py;
-      after: paper-supervised}
+      {id: paper-supervisor-windows; files: desk/supervisor.py, tests/unit/test_supervisor.py}
 - [x] The running process always on main's latest code, and a money-path change reaching
       it only at a safe point, never mid-send (OPS-05, OPS-16) (#752: the supervisor pulls main fast-forward only between runs with every job's lock held; a failed pull is a receipt and the old code runs on; remains: Windows starting the supervisor)
       {id: paper-on-main; files: desk/supervisor.py, tests/unit/test_supervisor.py}
@@ -870,7 +869,7 @@ his PC with the desk's own client id (222), never 4001.
       manifest.toml; after: paper-running}
 - [ ] An independent watcher of the supervisor, which is restarted weekly (OPS-03)
       {id: paper-watcher; files: desk/watcher.py, tests/unit/test_watcher.py,
-      manifest.toml; after: paper-supervised}
+      manifest.toml}
 - [x] Backups: the fill ledger and the day records copied twice, one copy off the PC, and a
       restore drilled every quarter (DQ-05, DQ-09) (#515: `desk/records_kept.py`; remains: the runner calling it nightly, runner-side work, coordinator 54, 22 Nov: not his)
       {id: paper-backups; files: desk/backup.py, tests/unit/test_backup.py, manifest.toml}
@@ -1053,7 +1052,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         Step 4 (#1961): the unwired placebo rung deleted (shuffle is the one home of the timing question), off-path three (dsr, retail, sample); #1974: the rung map in lab/ladder.py names the files each remaining merge needs. Remains: dsr merged into deflated (lab/deflated.py, tests/unit/test_lab_deflated.py, tests/unit/test_lab_trials_clustered.py, claimed by runner ops 127, 23 Nov: K1 refused the box 07:33-08:05 for naming them unclaimed); then sample into rung 1 and retail into the basket or the verdict, runner ops widening this claim to each target as the one before lands; then pin 'waiting is empty'. Step 1 built (#1844): rung_bootstrap folded into rung_ci (off-path modules 7 to 6, FOLDED pin until it is wired); next: dsr (into deflated), sample (into rung 1), retail, each needing its target in the claim; merges need R-RUNGS-29; then pin 'waiting is empty' and take `rung_ci.bootstrap(` off FOLDED once wired. Registry test reads the real rungs from `rung.found()` (#1768)
         Step 5 (#2010): rung_dsr merged into deflated (its refusal now in `deflated.best_by_luck`), off-path two (retail, sample). Remains: sample into rung 1 (claim lab/rung.py, tests/unit/test_lab_calibration.py), retail into the basket (lab/basket.py, tests/unit/test_lab_basket.py, lab/ladder_sets.py, tests/unit/test_lab_ladder_sets.py), then pin 'waiting is empty' and wire rung_ci.bootstrap; runner ops widen the claim (R-RUNGS-41, #2020).
         Ruled by the desk (23 Nov, his 22 Nov 'nothing parks on him but hard lines'; DECISIONS): the claim widens to the next merge's target, sample into rung 1 (lab/rung.py, tests/unit/test_lab_calibration.py); retail's targets follow when it lands
-        {id: rungs-each-rung; files: lab/ladder.py, tests/unit/test_lab_ladder.py, lab/rung_*.py, tests/unit/test_lab_rung_*.py, lab/stop_rules.py, tests/unit/test_lab_stop_rules.py, manifest.toml, lab/deflated.py, tests/unit/test_lab_deflated.py, tests/unit/test_lab_trials_clustered.py, lab/rung.py, tests/unit/test_lab_calibration.py; after: rungs-rung-map; waits: operator}
+        {id: rungs-each-rung; files: lab/ladder.py, tests/unit/test_lab_ladder.py, lab/rung_*.py, tests/unit/test_lab_rung_*.py, lab/stop_rules.py, tests/unit/test_lab_stop_rules.py, manifest.toml, lab/deflated.py, tests/unit/test_lab_deflated.py, tests/unit/test_lab_trials_clustered.py, lab/rung.py, tests/unit/test_lab_calibration.py; after: rungs-rung-map}
   - [x] L14 one clustered set of trials for the deflated Sharpe, its spread measured
         {id: rungs-clustered-trials; files: lab/trials.py, lab/rung_dsr.py, tests/unit/test_lab_trials_clustered.py; after: rungs-rung-map}
   - [ ] L15 the blind review of the whole ladder (R-RUNNER-40), every blocking finding fixed
@@ -1102,11 +1101,11 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         Step 3 built (#1865): the pooled runner behind EPON, LEV and `first` runs the same pre-flight and refuses a set with input gaps; tables end `## NOT PUBLISHED` over 1% FAULT. Remains: DATA mends 77,870 input gaps (R-RUNGS-40), then rerun EPON and tick.
         {id: rungs-faults-not-answers; files: lab/ladder_sets.py, tests/unit/test_lab_ladder_sets.py, lab/ladder.py, lab/ladder_parts.py, lab/market.py, lab/folds.py, tests/unit/test_lab_ladder.py, tests/unit/test_lab_market.py, tests/unit/test_lab_folds.py; after: rungs-rung-map; waits: R-RUNGS-40}
 - [ ] **STRATEGIES AS DATA (his goal: 1,000+ strategies over 1,000+ tickers):**
-  - [ ] B1 building blocks written once, each known-answer tested: indicators, entries,
+  - [x] B1 building blocks written once, each known-answer tested: indicators, entries,
         exits, stops, filters (regime filters among them), sizing. Built: every block has its
-        known answer (#396). Built: the sizing block `VolatilitySize(n)`, by the desk's own `desk.risk.volatility` (#1637), now on the one `Block` interface (#1711). Ruled by the desk (23 Nov, his 22 Nov 'nothing parks on him but hard lines'; DECISIONS): the claim widens to the spec that reads the kinds (lab/spec.py) and the manifest. Remains: register it (a SIZE kind in lab/block_base.py, `volatility_size` in `BLOCKS`, the spec and simulator reading it; the claim must widen to those files; manifest line for lab/blocks.py to name sizing). Was: sizing blocks, once the volatility-sizing research settles their form
+        known answer (#396). Built: the sizing block `VolatilitySize(n)`, by the desk's own `desk.risk.volatility` (#1637), now on the one `Block` interface (#1711). Ruled by the desk (23 Nov, his 22 Nov 'nothing parks on him but hard lines'; DECISIONS): the claim widens to the spec that reads the kinds (lab/spec.py) and the manifest. Registered (#2097): a SIZE kind, `SIZES` beside `BLOCKS` (`volatility_size`), a spec row may name `size`, `SpecRule.shares(risk)`. Remains: the simulator acting on a spec's size (outside this claim). Was: sizing blocks, once the volatility-sizing research settles their form
         (coordinator 54, 22 Nov: a research wait, not his: the volatility-sizing contest table is written, R-RUNNER-205, #1481; the session reads it to settle the sizing blocks' form)
-        {id: rungs-blocks; files: lab/block_base.py, lab/blocks.py, lab/spec.py, tests/unit/test_lab_blocks.py, tests/unit/test_lab_spec.py, manifest.toml; waits: operator}
+        {id: rungs-blocks; files: lab/block_base.py, lab/blocks.py, lab/spec.py, tests/unit/test_lab_blocks.py, tests/unit/test_lab_spec.py, manifest.toml}
   - [ ] B2 a typed Spec, validated on entry: an unknown block or a bad setting is refused
         Remains (R-MONEY-45, #809, #823, #1382): 21 of 21 rules are rows (mansfield_rs_momentum #873, zweig breadth_thrust #1382, both run on ratio bars the caller builds); remains: a caller building Zweig's ratio bars from `lab.universe.breadth` (R-MONEY-35 wiring)
       {id: rungs-spec; files: lab/spec.py, tests/unit/test_lab_spec.py; waits: R-MONEY-35}
