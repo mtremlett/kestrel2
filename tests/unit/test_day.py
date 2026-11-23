@@ -425,3 +425,15 @@ def test_records_kept_before_currency_and_interest_are_read_not_refused(tmp_path
     (kept,) = day.records(tmp_path)
     assert (kept.day, kept.profit) == (date(2026, 11, 16), Decimal("-35.95"))
     assert kept.costs.currency == Decimal("0.55"), "Charges' currency moved or lost"
+
+
+def test_one_home_gives_each_buy_refusal_or_none(tmp_path: Path) -> None:
+    """R-RUNNER-445: an ISA-no line, a hand-parked line and a held line each get their refusal."""
+    line = Line("A", "LSE", "GBP", 1)
+    (tmp_path / "parked.csv").write_text("symbol,who,why\nB,him,a test\n", encoding="utf-8")
+    no_isa = day.refusal(tmp_path, "n", replace(line, isa=False), {})
+    assert no_isa and no_isa[1] is Blocker.GATE and "ISA" in no_isa[0]
+    assert (hand := day.refusal(tmp_path, "n", replace(line, symbol="B"), {}))
+    assert hand[1] is Blocker.GATE and "parked by hand" in hand[0]
+    assert (held := day.refusal(tmp_path, "n", line, {"A": 5})) and held[1] is Blocker.HELD
+    assert day.refusal(tmp_path, "n", line, {}) is None
