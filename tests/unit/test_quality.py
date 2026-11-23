@@ -239,6 +239,7 @@ def test_hover_judges_every_span_and_the_alarm_tells_only_of_change(tmp_path: Pa
     assert "(gap): holds no bar" in said or "(stale): newest" in said
     odd = replace(SPY, symbol="ZZZ")  # a line first in order, but not golden: SPY's fault leads
     assert "worst live/SPY/" in quality.hover({"live": path}, [odd, SPY], NOW)[0]
+    assert "live golden: SPY/" in quality.table({"live": path}, [SPY], NOW)
     with bars.writing(path, bars.Source.IBKR) as held:
         held.timed(SPY, "1h", [Timed("1h", last, price, price, price, price, 5)])
         held.timed(
@@ -248,6 +249,7 @@ def test_hover_judges_every_span_and_the_alarm_tells_only_of_change(tmp_path: Pa
         )
     shown = quality.table({"live": path}, [SPY], NOW)
     assert "live/1h: 100% fresh, 0 faults, 0 gaps" in shown
+    assert "live golden: green" in shown
     assert shown.endswith("live sources: IBKR paper 1; replaced: none")
     assert quality.hover({"live": path}, [SPY], NOW) == (
         "data quality: 100% fresh, 0 faults, 0 gaps, worst none",
