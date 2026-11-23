@@ -202,15 +202,18 @@ Open: members' FTSE Russell announcement reader (lseg.com has no stable machine-
 - [ ] R-DATA-7: a cell reads `universe.read(root, line).bars`, keeps `History.moves`, `.rescaled`.
 - [ ] R-DATA-10 (blocking): `test_lab_batch.py`, `test_lab_cell.py` name SPY and QQQ; name lines that stay.
 ### Requests to MONEY
+- [ ] R-DATA-80 (later, opened 2026-11-23 23:15 UK, #1659): the hold-the-market yardstick reads `desk.bars.total_return(path, line)` (UNI-07; data-dividends waits).
 - [ ] R-DATA-66 (later, opened 2026-11-22 12:00 UK, #1634): conformance tests name lines that stay, not SPY/QQQ.
 - [ ] R-DATA-3: the day run reads the archive through `archive.gather`. R-DATA-12: `day.run` takes "simply holding the market" from `lines.YARDSTICK`; no ISA buy where isa is not yes. R-DATA-13: `test_watch.py`, `test_pnl.py` name the store "bars.db"; use `keeper.HOT`. R-DATA-30: `lab/slippage.py` reads `bars.daily(home / keeper.HOT, line)`, not CSVs.
 - [ ] R-DATA-33: `command.rates` calls `keeper.pound(home, day)`; POUND, DOLLARS from `desk.lines`. R-DATA-45, -47: refuse a buy on a line in `keeper.parked_live(home / keeper.HOT, LINES, now)`; say why. R-DATA-46: `conformance.py` picks its refused line from `lines.REFERENCE`, so SPY can leave LINES. R-DATA-48: a per-bar source in the daily store (`store.judge` returns it, `Round.daily` writes it); #844: carry a bar's own source label (IBKR or archive) to the store's row so the keeper stops inferring it per round.
 - [ ] R-DATA-51 (later, #753): the lane owning `desk/lines.py` sets IB1T to USD (dollar-quoted on the LSE); then the store may read the unit from it.
 ### Requests to PAPER
+- [ ] R-DATA-79 (later, opened 2026-11-23 23:15 UK, #1659): paper profit reads reference lines through `desk.bars.total_return(path, line)` (UNI-07; data-dividends waits).
 - [ ] R-DATA-14 (blocking): wire `keeper.saved(home, day)` and the crash watch's `home / keeper.HOT`; the day's record only once `keeper.target(venue, now)` is past, or the door refuses 25 minutes every evening.
 - [ ] R-DATA-37: look IDTL up by `Line.isin`. R-DATA-42: `test_conformance_action.py` restores `paper.CLIENT`, `paper.APART`. R-DATA-44: `command.py` drops its own POUND and DOLLARS.
 - [ ] R-DATA-50 (later, #747, #2031): keeper-live now names IDTL `untradeable` (R-RUNNER-454 part), no longer a miss; its real IBKR contract (exchange, currency, symbol) still needs a live paper-gateway lookup session; the master's ISIN gives none.
 ### Requests to RUNGS
+- [ ] R-DATA-78 (later, opened 2026-11-23 23:15 UK, #1659): the ladder prices reference lines through `desk.bars.total_return(path, line)` (UNI-07; data-dividends waits).
 - [ ] R-DATA-65 (later, opened 2026-11-22 12:00 UK, #1634): read `lines.REFERENCE` for SPY/QQQ in the Mansfield rule and its tests.
 - [ ] R-DATA-70 (later, #1790): the ladder names a fold with no pound rate a gap, not FAULT.
 - [ ] R-DATA-68 (later, opened 2026-11-22 20:00 UK, #1750): verdicts print `lab.members.bias(list, first day)` for a study of a research list.
