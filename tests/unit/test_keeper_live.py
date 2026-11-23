@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
-from desk import bars, keeper, keeper_live
+from desk import bars, keeper, keeper_live, live
 from desk.lines import Line
 from desk.spans import Timed
 
@@ -43,3 +43,14 @@ def test_a_polled_round_counts_its_requests_and_a_pacing_refusal_halves_the_rate
     words, requests, refusals = keeper_live.polled_round(hot, lines, now, ask, 5, 27)
     assert (requests, refusals, len(asked)) == (27, 1, 27) and "1 pacing refusals" in words
     assert keeper.pace(5, 27, refusals) == 27 and keeper.pace(5, 100, refusals) == 50
+
+
+def test_a_line_the_broker_has_no_definition_for_is_untradeable_not_a_miss(tmp_path: Path) -> None:
+    hot, now = tmp_path / keeper.HOT, datetime(2026, 11, 17, 10, tzinfo=bars.EPOCH.tzinfo)
+    line = Line("IDTL", "LSE", "USD", 1)
+
+    def ask(one: Line, _: datetime) -> tuple[Timed, ...]:
+        raise live.Untradeable(f"no IBKR real-time data on paper for {one.symbol}: no definition")
+
+    words, stale = keeper_live.minute_round(hot, (line,) * 2, now, ask)
+    assert stale == [] and "untradeable: IDTL" in words
