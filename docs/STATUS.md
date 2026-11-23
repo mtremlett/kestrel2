@@ -108,17 +108,17 @@ money-restop waits on R-MONEY-18, R-MONEY-31 (the lost-stop list in `desk/messen
 - [x] R-MONEY-8 (blocking): paper day calls `day.trade`/`day.publish`, never `day.run`; done in #152.
 - [ ] R-MONEY-9 (later): a stop's fills get the order's id plus "-stop".
 - [ ] R-MONEY-10 (later): in conformance set paper fills beside `orders.charges` and the 0.05% spread.
-- [ ] R-MONEY-11 (later): say when you hold `desk/clearance.py`.
+- [x] R-MONEY-11 (later): say when you hold `desk/clearance.py`.; closed unanswered (opened 14 Nov, a question nothing on main waits on; K2, ro116)
 - [ ] R-MONEY-17 (blocking): no paper sale unattended while a stop rests under the same shares, unless tied at the broker (#163); record in conformance what paper does. [ ]
 - [ ] R-MONEY-18 (later): the morning message carries `halt.listed(root, day)`, every day's `halt.said(root, day)`.
 - [ ] R-MONEY-19 (later): a typed command to call and lift a halt.
 - [x] R-MONEY-30: paper put-back done in #657 (`running.recover`); a Pretend door remains (R-MONEY-51).
-- [ ] R-MONEY-31 (later): with R-MONEY-18, the day's list message includes its lost-stop entries.
+- [x] R-MONEY-31 (later): with R-MONEY-18, the day's list message includes its lost-stop entries.; met in #805 (`messenger._lost`, "Lost stops to put back", in the day's message)
 - [ ] R-MONEY-20 (later): `test_messenger.py` states each Record's `halted`, `stopped` (say `(), 0`); the evening message says when a day does not count.
 - [ ] R-MONEY-21 (later): `test_running.py` (line 213) keeps Friday's record through `day._row(day.Record(...))`.
-- [ ] R-MONEY-22 (later): say if `Broker.place` refusals need a blocker of their own.
+- [x] R-MONEY-22 (later): say if `Broker.place` refusals need a blocker of their own.; closed unanswered (opened 14 Nov, a question nothing on main waits on; K2, ro116)
 - [ ] R-MONEY-23 (later): reword `desk/placing.py` (lines 269-272 too, "no cancel either", stale since #285) and its `manifest.toml` line: a desk that died mid-send asks the same cancel through `book._settle`.
-- [ ] R-MONEY-24 (later): keep the day's check and `recover` before every round; say if you would rather the send path called one recovery.
+- [x] R-MONEY-24 (later): keep the day's check and `recover` before every round; say if you would rather the send path called one recovery.; met in #152 (`running._clean` runs `clearance.check` then `recover` before every `_round`, desk/running.py:460)
 - [ ] R-MONEY-25 (blocking): the unattended step calls `watch.look(root, fast store, daily bars by line, now, post)` every step, every hour, BEFORE its round of orders, and decides if London's morning round waits for the 08:05 bar.
 - [ ] R-MONEY-26 (later): a messenger call sending again what was never delivered.
 - [ ] R-MONEY-27 (later): the halt-lifting command names him (`by=halt.OPERATOR`), with a command for his word against the market.
@@ -129,7 +129,7 @@ money-restop waits on R-MONEY-18, R-MONEY-31 (the lost-stop list in `desk/messen
 - [ ] R-MONEY-36 (blocking, opened 15 November 2026): catch `book.Alarm` in the day's send path (`desk/day.py` or `desk/messenger.py`) and message him its words once.
 - [ ] R-MONEY-38 (later): `reports.fills` collapses a fill and its correction in one reading (keeps the highest version) instead of raising; the ledger now does (#288).
 - [ ] R-MONEY-47 (later): `desk/running.py` passes `killed=` to `day.trade` from `lab.promotion` standings, read outside desk/ (R-RUNGS-7, #519).
-- [ ] R-MONEY-39 (later): the same file passes `tell=messenger.send` to `day.trade` so a disagreeing place reaches his phone (#290).
+- [x] R-MONEY-39 (later): the same file passes `tell=messenger.send` to `day.trade` so a disagreeing place reaches his phone (#290).; met in #295 (`running` keeps `tell` as a note and sends it by `messenger.send`)
 - [ ] R-MONEY-61 (blocking, opened 2026-11-21 14:30 UK): in `desk/running.py` `step`, pass `watch.look` a door building the `placing.Paper` broker on demand, so a crash halt cancels working buys (R-MONEY-54, #1405).
 ### Requests to MONEY
 - [ ] R-RUNGS-7 (open): the desk reads `lab.promotion` standings so a killed strategy's buys are refused from them (its desk half, `day.run(killed=...)`, is on main); rungs-promotion waits on it.
