@@ -758,3 +758,7 @@ Options: judge it through `store.judge` (rejected: one noon price has no high or
 
 ### 2026-11-23 — kind is a function of the fault text, the pre-2010 refusal stays, the ramp is 25% (DATA, #1874, #1883, #1886)
 HOVER's kind: a function of the fault text (rejected: a new tuple field, which breaks the runner's parse of the line). Pre-2010 five-minute bars: keep the named refusal (rejected: widen hours to older clock rules, no intraday history before 2010 exists, DECISIONS 17 Nov). Polling ramp: a clean round rises 25%, so the ramp is measured, not leapt; the rule landed alone since the wiring needs files outside the claim.
+
+### 2026-11-23 — the Fed's pound is filled by a command; the polled round returns counts; the nightly docstring is fixed (DATA, #1910, #1916, #1922)
+Pound: `desk/backfill.py` repeats the FRED URL because desk/ may not import lab/ (options: import from lab, or a second constant; took the constant, lab/universe_history should import it from desk/backfill later). Polled round: `pace` stays in keeper.py and `keeper_live` returns the refusal count (options: a late import of keeper, a cycle; or moving pace); no new module. Nightly target: move the write to market_history.db (rejected: the code already lands there) or fix the docstring (chosen); the test now pins the file.
+
