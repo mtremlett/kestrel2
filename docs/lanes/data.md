@@ -792,3 +792,7 @@ Option A name IDTL `untradeable` in keeper-live's words (taken); option B drop I
 ### 2026-11-23 — #2088 (R-DATA-77) cannot land from a lane: desk/keeper.py needs a failure pattern (DATA)
 Found, not fixed: `desk/keeper.py` has three fixes in its last ten changes, so `tests/guards/test_churn.py` stops a fourth until `docs/FAILURE_PATTERNS.md` names the file's mechanism. A lane cannot write that pattern, and a retitle to dodge the guard was refused. Branch lane/data-1123-145659-s2 holds the green fix (only the guards step is red); a session the operator starts records the pattern, then #2088 lands.
 Options: retitle #2088 to dodge the guard (rejected, a relabel); close #2088 (rejected, the fix is correct and its only red is the missing pattern). Left open with a comment (#2089).
+
+### 2026-11-23 — #2122 (data-disk-rolloff): a true duplicate is a byte-identical same-named copy (DATA)
+"Held in the one store" is read as a byte-identical, same-named copy under the store folder; anything else is listed for his yes, never deleted (his 23 Nov ruling).
+Options: a row-check against market.db (heavier, and a file with no byte twin may still be research); the byte check (chosen: the stricter proof of a true duplicate). The row-check stays open for files with no byte twin; the runner job calling `rolloff` is runner ops'.
