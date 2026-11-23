@@ -93,6 +93,8 @@ WEAK = (Answer.THIN, Answer.DOUBT)  #: a scorecard's WEAK: neither a win nor a l
 #: SHARPE_STOP is a hard stop, whatever the rungs say. The luck rung is reported, never ruled.
 HARD = ("first", "deflated", "folds", "shuffle")
 SOFT = ("market", "regime", "stress")
+#: The rungs a shuffle waits on: the hard gates before it and the yearly hard stop, none soft.
+BEFORE_SHUFFLE = (*HARD[:-1], "yearly")
 MAX_WEAK = 2
 SHARPE_STOP = deflated.FLAG
 Pair = tuple[Answer, str]
@@ -121,12 +123,17 @@ def one_answer(rungs: Mapping[str, Answer], yearly_sharpe: float | None) -> str 
     fault in the test, said as one), else the SOFT rungs' `scorecard`; None while unanswered."""
     if not set(HARD + SOFT) <= set(rungs):
         return None
-    least = min(rungs[name] for name in HARD)
-    if least is not Answer.PASS:
+    if (least := _short(rungs)) is not None:
         return least.name
     if any(rungs[name] is Answer.FAULT for name in SOFT):
         return Answer.FAULT.name
     return scorecard([rungs[name] for name in SOFT], yearly_sharpe or 0.0)
+
+
+def _short(rungs: Mapping[str, Answer]) -> Answer | None:
+    """The least HARD gate answered so far, where it is short of PASS; else None."""
+    least = min((said for name, said in rungs.items() if name in HARD), default=Answer.PASS)
+    return None if least is Answer.PASS else least
 
 
 def judge(
@@ -250,9 +257,11 @@ def _marketed(against: market.Against, beside: Line, rungs: Judged) -> Pair:
 
 
 def _stopped(trades: int, rungs: Judged, unrun: Mapping[str, str]) -> dict[str, Any]:
-    """A line stopped at a hard fail: the rungs judged so far, the verdict FAIL, no shuffle."""
+    """A line stopped at a hard fail: the rungs judged so far, no shuffle, and the verdict the
+    one rule's: the least hard gate short of PASS (a THIN first rung stays THIN), else FAIL."""
+    least = _short({name: said for name, (said, _) in rungs.items()})
     return {"trades": trades, "rungs": reported(rungs), "unrun": unrun, "every": False} | {
-        "answer": Answer.FAIL.name
+        "answer": (Answer.FAIL if least is None else least).name
     }
 
 
@@ -396,13 +405,13 @@ def shuffled(
     made: Sequence[Reproduction],
     graded: bool = False,
 ) -> Pair | None:
-    """The shuffle rung, run last and only on a trial that passed every rung before it: any
-    other is given the least of their answers and told it was not run, since a shuffle costs a
-    hundred runs; `graded` (EASED) runs it on every trial that reaches it. A trial short of a
-    rung before it (the folds,
-    behind an author's result) has no verdict to shuffle."""
-    before = {name: rungs[name][0] for name in deflated.NAMED[:-1] if name in rungs}
-    if len(before) < len(deflated.NAMED) - 1:
+    """The shuffle rung, run last and only on a trial that passed every rung it waits on
+    (BEFORE_SHUFFLE, no soft rung among them): any other is given the least of their answers and
+    told it was not run, since a shuffle costs a hundred runs; `graded` (EASED) runs it on every
+    trial that reaches it. A trial short of a rung it waits on (the folds, behind an author's
+    result) has no verdict to shuffle."""
+    before = {name: rungs[name][0] for name in BEFORE_SHUFFLE if name in rungs}
+    if len(before) < len(BEFORE_SHUFFLE):
         return None
     name, least = min(before.items(), key=lambda one: one[1])
     if least is not Answer.PASS and not graded:
