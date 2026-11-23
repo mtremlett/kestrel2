@@ -52,7 +52,7 @@ def test_a_window_is_cut_into_equal_parts_and_a_trade_across_a_boundary_is_in_ne
     ends = [(i.end, o.start, o.end) for i, o in folds.cut(inner, bars, 2)]
     assert ends == [(days[4], days[5], days[8]), (days[8], days[9], days[12])]
     for count, bad in [(0, bars), (25, bars), (1, bars[:1])]:
-        with pytest.raises(ValueError, match="cannot be cut"):
+        with pytest.raises(ValueError, match=f"on {VUSA.symbol},.*cannot be cut"):
             folds.cut(_window(bad), bad, count)
     assert len(folds.cut(_window(bars), bars, 24)) == 24, "a bar a part is the limit"
     research = replace(LINES[0], symbol="ABBV")  #: a research line the desk does not trade
