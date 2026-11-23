@@ -1,16 +1,15 @@
 """universe_history - THE RESEARCH BARS IN THE HISTORY DATABASE (R-RUNNER-221, 16 November 2026).
-Research's daily bars were CSV files in grid/store, filled from Yahoo; the ladder's pound per
-dollar a table of closes beside its results. Here both enter market_history.db through the one
+Research's daily bars were CSV files in grid/store, filled from Yahoo; the pound's noon rates
+enter market_history.db through the one
 writer, each bar keeping its source: a bar the store's shelf also holds (the Stooq matrices'
 fill of a missing day) under Source.MATRIX_DAILY, every other under Source.ARCHIVE (Yahoo).
 The bars were cleaned by the store when the CSV was written, so they are not judged again. Only
 days the database holds no bar for are written, so a second run adds nothing and a bar already
 in is never restated. A session with no bar is named, for quality-backfill, never invented.
-`python -m lab.universe history` imports the whole research list and the pound."""
+`python -m lab.universe history` names the research list's missing sessions."""
 
 from __future__ import annotations
 
-import json
 from collections.abc import Iterable
 from datetime import date, timedelta
 from decimal import Decimal
@@ -60,14 +59,6 @@ def noon(path: Path) -> str:
     return f"the pound before the archive's: {added} noon-rate days added"
 
 
-def enter_pound(table: Path, path: Path) -> int:
-    """The ladder's table of the pound's daily closes (one [day, close] a line) into the
-    database as its own series, a bar of one price and no volume."""
-    rows = map(json.loads, table.read_text(encoding="utf-8").splitlines())
-    closes = [(date.fromisoformat(day), Decimal(close)) for day, close in rows]
-    return fill(path, POUND, Source.ARCHIVE, (Bar(d, c, c, c, c, 0) for d, c in closes))
-
-
 def missing(path: Path, line: Line, until: date) -> tuple[date, ...]:
     """The sessions from the line's first bar to before `until` that the database holds no bar
     for; none for a line it holds nothing of."""
@@ -82,13 +73,11 @@ def missing(path: Path, line: Line, until: date) -> tuple[date, ...]:
     )
 
 
-def run(path: Path, table: Path, named: Iterable[Line], day: date) -> str:
-    """The pound imported; one line saying the days added and, for the named lines (the
-    yardsticks), the sessions missing before day."""
-    pounds = enter_pound(table, path)
+def run(path: Path, named: Iterable[Line], day: date) -> str:
+    """One line naming, for the named lines (the yardsticks), the sessions missing before day."""
     gaps = "".join(
         f"; {line.symbol} has no bar on {', '.join(map(str, lost))}"
         for line in named
         if (lost := missing(path, line, day))
     )
-    return f"research history: {pounds} pound days added{gaps}"
+    return f"research history{gaps}"
