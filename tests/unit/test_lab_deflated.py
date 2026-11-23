@@ -21,7 +21,7 @@ from desk.strategy import ARITHMETIC
 from lab import deflated, luck, rung, trials, verdict
 from lab.cell import Cell, Key, Trade
 from lab.rung import Answer, Priced, Verdict
-from lab.rung_sample import band
+from lab.rung import noise_band as band
 
 VUSA, AAPL, NVDA = (next(n for n in LINES if n.symbol == s) for s in ("VUSA", "AAPL", "NVDA"))
 
