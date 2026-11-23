@@ -1,4 +1,4 @@
-"""rung_stops - THE STOP-RULE RUNG (research only, R-RUNNER-408): does a stop set from the line's
+"""stop_rules - THE STOP-RULE STUDY (research only, R-RUNNER-408): does a stop set from the line's
 own range beat today's fixed one, after the broker's costs, in and out of sample?
 
 The rivals, the judging rule and the trial count are pre-registered in `docs/DECISIONS.md`
