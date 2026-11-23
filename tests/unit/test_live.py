@@ -82,9 +82,13 @@ def _answer(*minutes: int) -> io.BytesIO:
 def test_one_minute_bars_off_a_five_minute_mark_are_kept_and_the_five_minute_ask_refuses(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(paper, "dial", lambda talk: talk(_answer(30, 31, 32), lambda _: None))
+    sent: list[bytes] = []
+    monkeypatch.setattr(paper, "dial", lambda talk: talk(_answer(30, 31, 32), sent.append))
     got = live.newest_minutes(UK, "123", "LSE", 300, paper.Door(live.CLIENT))
     assert [(b.span, b.start.minute) for b in got] == [("1m", 30), ("1m", 31), ("1m", 32)]
+    asked = ("123", UK.symbol, "STK", "", "0.0", "", "", "LSE", "", UK.currency, "", "", 0)
+    ask = ("", "1 min", "300 S", 0, "TRADES", 2, 0, "")
+    assert sent[-1] == paper.message(paper.ASK_BARS, 1, *asked, *ask)
     monkeypatch.setattr(paper, "dial", lambda talk: talk(_answer(30, 31), lambda _: None))
     with pytest.raises(ValueError, match="five-minute mark"):
         paper.newest(UK, "123", "LSE", 2, paper.Door(live.CLIENT))
