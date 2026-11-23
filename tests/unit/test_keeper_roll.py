@@ -50,3 +50,11 @@ def test_a_round_writes_the_hour_the_five_minute_bars_complete_and_no_partial_sp
         got = bars.timed(hot, line, span, open_, open_ + timedelta(hours=3))
         assert len(got) == count
         assert not count or set(bars.sources(hot, line, span)) == {source}
+    assert keeper.rolled(hot, [line], minutes[-1] + timedelta(minutes=5)) == []  # nothing differs
+    late, other = open_ + timedelta(hours=5), price + 1  # a held hour the fives do not make
+    with bars.writing(hot, Source.IBKR) as kept:
+        kept.timed(line, "1h", (Timed("1h", late, other, other, other, other, 1),))
+        kept.five(line, [Five(late + timedelta(minutes=5 * n), price, price, price, price, 1)
+                         for n in range(12)])  # fmt: skip
+    told = keeper.rolled(hot, [line], late + timedelta(hours=2))
+    assert any(t.startswith("FAULT BBB 1h") for t in told)

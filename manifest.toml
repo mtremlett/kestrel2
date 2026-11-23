@@ -170,7 +170,6 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "lab/stop_rules.py" = "the stop-rule study (research only, not a rung of the ladder): today's fixed stop against ATR(20) stops at k = 2 and 3 and a chandelier trail, each sized by risk, judged after costs in and out of sample on the worst fold; no live stop changes"
 "lab/luck.py" = "the ladder's luck rung: every trial counted, and each verdict's chance corrected for the number of trials it was picked from"
 "lab/calibration.py" = "the deep run's Calibration line: each rung's pass rate on seeded worlds of noise, a command the desk may not compute (R-MONEY-43)"
-"lab/rung_sample.py" = "the first rung's stated false-pass rate, taken from its own bar and minimum, and the exact binomial band that many noise cells must fall in"
 "lab/folds.py" = "the ladder's folds rung: a history cut into folds, each judged after costs beside the history before it, and the verdict given on the worst"
 "lab/montecarlo.py" = "the ladder's Monte Carlo rung: a trial's trades resampled, seeded, into the spread of its drawdowns and returns; it measures and never gates"
 "lab/weather_intraday.py" = "the market weather on intraday bars, first layer: each bar's trend state from the session's own last closes, warming until a full window of the session is seen, keyed by the bar's start"
