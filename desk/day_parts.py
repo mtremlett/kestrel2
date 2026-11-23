@@ -189,7 +189,7 @@ def _unread(root: Path, lines: Sequence[Line], due: Mapping[str, Line], day: dat
 
 def standing(root: Path, day: date, zoo: bool = False) -> Standing:
     """WHERE THE BOOK STANDS AGAINST ITS LOSS AND ORDER-RATE LIMITS when the day opens
-    (canon B1, risk.loss_limit): the last published session's loss is the pounds its record lost
+    (canon B1, risk.loss_limit): the day's loss is the pounds the week's last record lost
     (0 when it gained or was withheld), the week's the net pounds lost over the records of
     day's own ISO week, and the new lines the lines first bought today. THE ZOO STANDS APART
     (orders.is_zoo, his 22 Nov ruling): the desk's standing leaves out its round trips' pounds
@@ -201,8 +201,8 @@ def standing(root: Path, day: date, zoo: bool = False) -> Standing:
         theirs = made.get(r.day, Decimal(0))  #: a withheld record (no profit) counts 0 for both
         ours = Decimal(0) if r.profit is None else r.profit - theirs
         profits.append((r.day, theirs if zoo else ours))
-    week = sum((p for d, p in profits if d.isocalendar()[:2] == day.isocalendar()[:2]), Decimal(0))
-    lost = -profits[-1][1] if profits else Decimal(0)
+    this = [p for d, p in profits if d.isocalendar()[:2] == day.isocalendar()[:2]] or [Decimal(0)]
+    week, lost = sum(this, Decimal(0)), -this[-1]
     bought = {
         f.symbol for f in fills if f.day == day and f.quantity > 0 and is_zoo(f.order_id) == zoo
     }
