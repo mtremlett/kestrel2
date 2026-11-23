@@ -233,6 +233,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1918 money-small: SIZ-10 1% traded-value cap now live in the day's buy path; TRD-10 flag caller open. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1941 money-small: SIZ-10 now proved through the day (a thin line is bought to under 1% of its 20-day traded pounds); TRD-10 flag still uncalled. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1973 R-PAPER-40/R-MONEY-69 mostly done: day.py reads paper's step margin and order cap; one STEP_SECONDS alias left for SimCity incidents (R-MONEY-70). |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1983 money-census-book closed: 4 of 4 book parts pinned to a scenario (census names book.chains). |
 
 
 ### DATA
@@ -535,6 +536,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1910 data-pound-history ticked: `desk.backfill POUND` fills the pound from the Fed. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1916 data-ibkr-capacity step 2: `keeper_live.polled_round` counts requests and refusals for `pace`; not yet wired. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1922 data-nightly-target ticked: nightly docstring names market_history.db, test pins it. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1948 DATA members feed: live page shape verified (100 and 250 tickers). |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1962 data-members: page side verified live, announcement source missing. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1963 DATA: keeper --polled ramp command, tested; ceiling restored. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
