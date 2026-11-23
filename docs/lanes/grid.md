@@ -292,3 +292,11 @@ The card's first item (why 2,810 cells fail) was done: the cause is the week's p
 store, and the pass line now carries the causes. Its second item, R-RUNGS-34 (`rule()` with `[`), is already met on
 main (`lab/rulebook.py`). Options: (a) do both; (b) the sweep only. **Decided (b)**, recommended, on his "always go with
 recommended". Remains: the runner brings the clone to current main and restarts the week job.
+
+### 2026-11-23 — grid-week wait recorded as 2026-11-28 (#2007)
+
+The 2,810 failed cells were journals written on 21 Nov by the old door that read the store's CSV (`Invalid isoformat
+string: ''`); current code on 3IN gives a Record, so they heal on the next full pass, and the `.faults` journals are
+fixed by #1612. The week stopped 15-21 Nov because a raising pass ended the job; #1562 logs it and carries on. Options:
+wait for the date, or run again earlier. **Decided** the date, recommended (his 13 Nov "always go with recommended"):
+the root causes are fixed on main and a full week needs a clean run.
