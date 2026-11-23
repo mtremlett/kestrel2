@@ -782,3 +782,9 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 
 ### 2026-11-22 - Profit table scene is SimCity's trips scenario (#1805, money-story)
 - Options: a new unit scene file (adds test lines, and main has no margin); extend SimCity's existing trips scenario, which already runs every money-path part in order (taken). The census requires `book.attributed` to be run by it.
+
+### 2026-11-23 - Zoo round cap kept in day.py; connors7 off MONEY (#1823, #1833, #1861)
+- Round cap (#1823): STEP_SECONDS, STEP_MARGIN and MAX_ORDERS sit in desk/day.py, not desk/paper.py, because the lane guard refuses MONEY any edit to PAPER's file and loosening a guard is his alone. The file move is left to PAPER (R-MONEY-69). Carried orders use Blocker.BROKER, as desk/halt.py has no CARRIED blocker yet.
+- Liquidity cap (#1833): options were to widen the claim to test_running, test_running_tell and test_restop and feed `day._buy` at once, or split. Split chosen: only the green step (fixtures with volume 10**7) landed, because feeding the cap would turn those three tests red.
+- Interest (#1861): options were inside the day's profit (rewrite the reconciliation and golden days) or beside it as its own record column and daily line. Beside chosen, recommended, since profit must equal the ledger (day_parts reconcile, simcity). His words: "please always go with recommended".
+- Double 7's (money-connors7) is held off MONEY on his "always go with recommended" (13 Nov): desk/ is at its file ceiling and lab/published_epon.py is RUNGS's. It goes to RUNGS, re-carded to claim desk/eponymous_connors.py, its unit test, lab/published_epon.py and its test (R-MONEY-68); it waits on R-RUNGS-10.
