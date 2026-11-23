@@ -2344,6 +2344,16 @@ frees rungs-reproduce of them. R-RUNGS-7 is written as the open MONEY request it
 money-restop waited on R-MONEY-31, never a line: its text ("the day's list message includes its
 lost-stop entries") is the open R-MONEY-53, so the wait names that.
 
+## 22 Nov - every desk rule is reached by the rulebook or the zoo (guard, G27)
+
+Coordinator 96 (G27): desk/grimes.py landed (#1693, #1694) and nothing in desk/ or lab/ reaches
+it, so its rules can never trade, even as the machinery test he ordered (zoo plus AG on paper).
+`tests/guards/test_zoo_reach.py`: a desk module importing the rule declaration is named
+eponymous_* (lab/rulebook.py globs those) or is imported by desk/intraday.py, the zoo's path.
+Driven (A7) on a scratch worktree: red on main 10004db0 naming desk/grimes.py; green with #1696's
+desk/intraday.py (the ten AG setups join the zoo). Rejected: "imported by any module" (the
+rungs and eponymous rules are found by glob and would all read as orphans). It lands after #1696.
+
 ## 23 Nov - every open request has its own box (guard), and 30 run-on lines split
 Runner ops 113, coordinator 107/110's H1: the runner reads one request per `- [ ]` line in STATUS, so a
 request written inside another's line was never offered or was read as met (data-survivorship's re-offer

@@ -36,6 +36,15 @@ def test_a_planted_disagreement_is_a_named_fault_and_the_url_asks_for_the_day() 
     assert "rvstart=2026-09-21T23%3A59%3A59Z" in members_feed.revision_url("FTSE 100", DAY)
 
 
+def test_the_live_pages_one_line_rows_are_read() -> None:
+    rows = ['{| id="constituents"', "|-", "!|Company|| EPIC", "|-", "|[[3i]]||III||FS"]
+    rows += ["|-", "|[[A]] || ADM || N", "|}", "|-", "|x||NO||y"]
+    content = "\n".join(rows)
+    page = {"revisions": [{"slots": {"main": {"content": content}}}]}
+    got = members_feed.page_members(json.dumps({"query": {"pages": [page]}}))
+    assert got == {"III", "ADM"}
+
+
 def test_a_fetched_review_asks_for_the_day_before_and_the_day() -> None:
     asked: list[str] = []
 
