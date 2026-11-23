@@ -276,3 +276,12 @@ def test_a_held_close_is_checked_against_the_brokers_price_of_record(tmp_path: P
     off = Bar(held.day, held.open, held.high, held.low, held.close + 20, 1)
     assert "held close" in quality.against_record(path, SPY, off)[0]
     assert "no daily bar" in quality.against_record(path, SPY, bar(date(2026, 11, 20)))[0]
+
+
+def test_the_daily_check_asks_the_broker_for_each_line(tmp_path: Path) -> None:
+    path = seeded(tmp_path, set())
+    day = quality._last_session(SPY, NOW)
+    held = {b.day: b for b in bars.daily(path, SPY)}
+    if day in held:
+        assert quality.check_records(path, [SPY], lambda _l, _d: [held[day]], NOW) == []
+    assert "gave no bar" in quality.check_records(path, [SPY], lambda _l, _d: [], NOW)[0]
