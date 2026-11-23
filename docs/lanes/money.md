@@ -695,3 +695,7 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 ### 2026-11-23 - Census pins book.chains; Double 7's re-carded (#1983, money-census-book)
 - Options: build a new scenario for the four book parts, or pin the existing ones. Pinned: the night's trips scenario already ran book.attributed, chains, conformance_cost and told; the census test now names book.chains beside the other three, so a part losing its scenario fails.
 - Double 7's (money-connors7): wait on R-RUNGS-10, or move the box. Moved to RUNGS as a re-carded box (his standing "always go with recommended"), as it blocks nothing else; this lane went to money-saved-fx and money-time-gaps.
+
+### 2026-11-23 - Halt writes its own record (#1991, money-door-writer)
+- Options for halt's record writer: reuse `store._write` (barred by the gate, which forbids the store's CSV half in these files) or a 4-line part-file-then-swap writer in `desk/halt.py`. Own writer taken: no other shared writer exists for it. Scenes 1 and 2 read through `store.judge`.
+- Double 7's (money-connors7) stays held off MONEY on his standing "always go with recommended"; re-carded to RUNGS (R-MONEY-68), waits on R-RUNGS-10.
