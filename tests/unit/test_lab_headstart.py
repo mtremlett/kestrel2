@@ -341,3 +341,14 @@ def test_ibkr_stores_stamps_are_the_venues_wall_clock_read_to_utc_and_adopted_on
     assert bars.sources(store, uk, bars.FIVE) == {Source.ARCHIVE: 1, Source.IBKR_STORE: 1}
     again = headstart.adopt(store, Source.IBKR_STORE, answers, daily)
     assert [got.filled for got in again.values()] == [0, 0]
+
+
+def test_a_bar_before_the_hours_are_known_is_refused_by_name_not_dropped_silently(
+    tmp_path: Path,
+) -> None:
+    """The window before mid-April 2010: sessions reach 1993, hours only 2010 (venues)."""
+    old = datetime(2009, 3, 3, 14, 35, tzinfo=UTC)
+    day = replace(DAY, day=old.date())
+    got = headstart.adopt(tmp_path / "bars.db", Source.DATABASE, {UK: [_five(old)]}, {UK: [day]})
+    why = f"{old:%Y-%m-%d %H:%M} is outside the trading hours of the LSE calendar"
+    assert got == {UK: Adopted(0, 0, 0, (why,))}
