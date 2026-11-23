@@ -130,8 +130,11 @@ def clashes(path: Path, line: Line, now: datetime) -> list[str]:
     open, high, low or close (a pulled bar stays; the disagreement is recorded)."""
     faults = []
     for frame, candles in _made(path, line, now).items():
-        got = bars.five(path, line, EPOCH, now) if frame == "5m" else bars.timed(
-            path, line, frame, EPOCH, now)  # fmt: skip
+        try:
+            got = bars.five(path, line, EPOCH, now) if frame == "5m" else bars.timed(
+                path, line, frame, EPOCH, now)  # fmt: skip
+        except LookupError:  # the store never held this span: no held bar to differ from
+            continue
         have = {b.start: b for b in got}
         for c in candles:
             one = have.get(c.start)

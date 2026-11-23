@@ -385,9 +385,10 @@ def rolled(hot: Path, lines: Sequence[Line], now: datetime) -> list[str]:
     if not (hot.is_file() and long.is_file()):
         return []
     landed = sum(history_write.roll(hot, line, now) for line in lines for _ in range(2))
-    return [f"roll-up: {landed} coarser bars built from the five-minute and daily bars"] * bool(
-        landed
-    )
+    faults = [f"FAULT {f}" for line in lines for f in history_write.clashes(hot, line, now)]
+    return faults + [
+        f"roll-up: {landed} coarser bars built from the five-minute and daily bars"
+    ] * bool(landed)
 
 
 def main(home: Path, now: datetime, args: Sequence[str] = (), broker: Broker | None = None) -> int:
