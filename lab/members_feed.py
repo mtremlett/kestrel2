@@ -3,8 +3,7 @@
 it (the MediaWiki API's JSON), handed to `members.reconcile`, which names every disagreement.
 
 Announcement text: a line `Joiners: A, B` and a line `Leavers: C`, tickers as the page writes
-them. Page text: the wikitext table `constituents` (or the first table), rows split on `|-`, the
-ticker the second cell of each row, one line (`|Co|| EPIC || Sector`) or one cell a line. Nothing
+them. Page text: wikitext table rows (`|-`), the ticker the second cell of each row. Nothing
 here dials out except `fetch`, one fixed public address family; parsing takes text, so every
 test runs on committed fixtures. The shape of the live answers is read once from the first
 real fetch; a shape that differs raises, never guesses."""
@@ -15,7 +14,7 @@ import json
 from collections.abc import Callable
 from datetime import date, timedelta
 from urllib.parse import urlencode
-from urllib.request import Request, urlopen
+from urllib.request import urlopen
 
 from lab import members
 from lab.members import Change
@@ -36,8 +35,7 @@ def revision_url(page: str, day: date) -> str:
 
 def fetch(url: str) -> str:
     """The text answered at a url built here."""
-    asking = Request(url, headers={"User-Agent": "research-desk/1.0 (public list reader)"})  # noqa: S310
-    with urlopen(asking, timeout=60) as answer:  # noqa: S310 - API above, one fixed public host
+    with urlopen(url, timeout=60) as answer:  # noqa: S310 - API above, one fixed public host
         return str(answer.read().decode("utf-8"))  # bounded: one API answer for one revision
 
 
@@ -47,13 +45,11 @@ def page_members(answer: str) -> frozenset[str]:
     if len(pages) != 1 or not pages[0].get("revisions"):
         raise ValueError(f"expected one page with a revision, got {len(pages)} pages")
     text = pages[0]["revisions"][0]["slots"]["main"]["content"]
-    start = text.find('id="constituents"')
-    table = text[max(start, 0) :].split("\n|}")[0]
     tickers = set()
-    for row in table.split("\n|-")[1:]:
-        cells = [c.strip() for c in row.strip().removeprefix("|").replace("\n|", "||").split("||")]
-        if len(cells) >= 2 and not cells[0].startswith("!"):
-            tickers.add(cells[1])
+    for row in text.split("|-")[1:]:
+        cells = [c.strip() for c in row.split("\n|") if c.strip()]
+        if len(cells) >= 2:
+            tickers.add(cells[1].split("||")[0].strip())
     return frozenset(tickers)
 
 

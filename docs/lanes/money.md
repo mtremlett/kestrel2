@@ -11,8 +11,126 @@ settled entries into one short summary entry; git keeps every word.
 ### 2026-11-13 — summary of the first five decisions (folded 17 November; git keeps every word)
 - Pretend broker: behaves as the paper one will, with its five faults. Send path: ask the broker first, gate second, a fill written once. Book: the ledger's fills, read by the gate. Day run: whose position, which day, which rate. Reconciliation: shares and stops checked before every order; scenes 6 and 7 together.
 
-### 2026-11-13 — summary: the book is the broker's; any broker behind the send path (folded 23 November; git keeps every word)
-- One rule decides whether the book is the broker's, for every broker, and the send path, ledger and day run know a broker by five questions, each asked once (R-PAPER-2). Decided by the lane as the desk's mentor.
+### 2026-11-13 — one rule for "is the book the broker's?", for every broker
+
+**Decided**, by the lane as the desk's mentor (no one watching), on the paper lane's request
+R-PAPER-1: the comparison of the desk's book with a broker's holdings has one home,
+`book.differences`, and reconciliation (`book.reconcile`, `book.send`) is rebuilt on it.
+
+1. **What it is handed: the book, and the broker's entries, each a name and its shares.**
+   Options were (a) the pretend broker's own answer, one number a line, which a real
+   account's rows would have to be added together to fit, the very fault the paper lane's
+   blind review found; (b) a typed holding carrying the real broker's own words (its kind
+   of product, its currency), which puts one broker's language in the core and means
+   nothing at the pretend one; (c) plain entries, each named by the door that read them in
+   the same words it names the book's lines in. Chosen (c): the paper door names an entry
+   by its symbol, kind and currency, the pretend broker by its symbol, and the rule itself
+   knows no broker.
+2. **Entry by entry, never added up.** Taken whole from the paper lane's rule: each entry
+   must itself be the book's shares; a line the book holds and the broker does not list is
+   named at no shares; a line listed at no shares is no holding.
+3. **A line with shares in two entries is never the book's.** The paper door's rule passed
+   two entries that were each the book's shares, which is what two accounts each holding
+   the line would look like: twice the book, read as clean. Options were to carry the rule
+   over exactly as it stood, or to close this while it was being given its one home.
+   Chosen: close it. The book holds a line once. Zero entries do not count as a second
+   place, so every case the paper door's tests hold today comes out as before.
+4. **The resting stops go through the same rule.** "The stop is for exactly the shares
+   held" is the same comparison with the stops as the entries, so reconciliation asks one
+   rule twice and has none of its own. When the paper door is taught the desk's own stops,
+   it can hand them to the same rule.
+5. **What comes back: one typed difference for each entry that is not the book's**, with
+   the name, the broker's shares and the book's. Reconciliation keeps the names, as scene 6
+   reads them; the paper door can word its sentences from the same record.
+6. **The paper door's own comparison stays until the paper lane moves it** (its file, asked
+   as R-MONEY-4). Until then the rule is written twice; after it, once.
+7. **The other blocking request (R-PAPER-2, any broker behind the send path) is the next
+   session's**, not folded into this one: one objective a session. It should have a broker
+   give its holdings and stops as entries, so a real account's rows reach this rule whole.
+
+**Evidence.** The contract test was seen failing first (`book.differences` did not exist).
+Run from outside the repository, the old book and the new traded the rehearsal's fourteen
+months to the same 68 fills, 34 round trips and every order's answer, with and without each
+line's first order rejected. A blind review found nothing blocking. It set the rule against
+its own separate statement of it on 210,525 accounts of up to three entries (whole, short,
+fractional and zero shares): no disagreement passed as clean and no agreement was named. It
+ran the old reconciliation and the new side by side over 8,000 random runs at the pretend
+broker with every fault, hand trades and cancelled stops: no difference in any answer,
+ledger or refusal. And it rebuilt the paper door on the rule in a copy: all forty of the
+door's tests passed unchanged, and of 83,793 accounts none became less safe (23 false
+cleans, all "two entries each the book's", became named). Sixty-seven deliberate breaks were
+driven in copies outside the repository, with Python's cache off: forty-three by the lane
+(thirty-nine caught at once, two gaps closed, two that cannot differ) and twenty-four by
+the review (eight survived: six gaps, one of them found by the lane too, each closed and
+caught; two that cannot differ at the pretend broker). The seven gaps were a one-share
+line, a zero entry beside two that cancel, the lines named out of order, a stop for fewer
+shares than held, entries given as a stream that can be read once, a matching entry beside
+a wrong one, and a line listed only at no shares. What the review left is in
+`docs/STATUS.md`.
+
+### 2026-11-13 — any broker behind the send path: five questions, entries, each asked once
+
+**Decided**, by the lane as the desk's mentor (no one watching), on the paper lane's request
+R-PAPER-2: the send path, the ledger and the day run know a broker by five questions
+(`broker.Broker`) and no longer by the pretend broker's name.
+
+1. **A stated interface, not a parent class.** Options were (a) the paper adapter inherits
+   from the pretend broker, and with it a simulation's insides; (b) a parent class both must
+   inherit; (c) a typed statement of the questions, which any class that answers them
+   satisfies, the type check proving it wherever one is handed over. Chosen (c). It sits in
+   `desk/broker.py` beside the answers a broker gives (`Fill`, `Report`, `Disconnected`), so
+   an adapter imports one module. The manifest's line for that file still says only "the
+   pretend broker": a lane may not reword it, so a session he starts should.
+2. **Five questions, the ones the send path and the day run ask:** what did you do with
+   this order id; take this order; your fills; your holdings; your resting stops. Opening a
+   day, planting a position, cancelling a stop by hand and the stops' levels are the
+   simulation's own instruments and stay off it. Cancelling orders will be the sixth, added
+   with the kill switch that needs it, not before.
+3. **Holdings and stops are entries, a name and its shares each, as the broker gives them.**
+   The pretend broker gave one number a line, a shape a real account's rows would have to be
+   added together to fit. It now gives entries too (`holdings`, `stops`), and its old answer
+   (`positions`) is gone, not kept beside: one job, one path. Its stops with their levels
+   (`resting_stops`) stay for the simulation's tests, which prove the level.
+4. **A line's symbol names that line and nothing else.** The door that reads an account
+   names each entry; anything that is not the line itself (another kind of product, another
+   currency) goes under a name of its own. Such an entry is named as a difference and stops
+   all buying. Options for the line's own sale were to refuse it too, or to allow it while
+   the line's own entry agrees. Chosen: allow it, as a line that has lost its stop may be
+   sold: the shares are known to be there, and a sale only lowers risk.
+5. **Each question asked once for an order, the stops before the holdings.** The send path
+   asked for the holdings twice, once to name what differs and once to judge the order's own
+   line. It now asks once for the fills, the stops and the holdings, and judges both from
+   those answers (`book._compare`). They are three moments at a real broker, and the order
+   matters (the blind review's blocking finding): with the holdings read first, a stop that
+   sold between the two readings looked like "shares there, stop gone", a line that may be
+   sold, and its sale went out for shares already sold. Read stops first and the same moment
+   shows the shares gone, and the sale is refused. A stop that sells after the last reading
+   no order of questions can catch: that is the broker's to refuse.
+6. **`place` gives an order's last answer.** The send path and the gate count fills only, so
+   an order left working at the broker is in none of the five answers, and six buys could
+   each pass a gate that sees an empty book. Options were to add working orders to the
+   interface now, or to state that an adapter must not leave one working. Chosen: state it
+   (what is not filled is cancelled), and let working orders arrive with cancelling, in the
+   kill switch's step. The interface also states what the send path leans on: one stop a
+   line, for all the shares held; fills in the order made, under ids that never change; an
+   answer whole or an error.
+7. **Left open, in `docs/STATUS.md`:** a resting order that is not a sell stop is unseen, a
+   stop's level is never compared, and a connection lost while reading is not a stated answer.
+
+**Evidence.** Tests seen failing first: the type check refused any broker but the pretend
+one (seven errors), the new contract test failed on "one order, two readings", and the
+review's race test failed with the sale not refused. Run from outside the repository, main
+and this branch traded the fourteen months to the same ledger and the same answers, with and
+without every first order rejected (68 fills, 34 round trips), before the repair and after.
+The blind review rebuilt the old send path and ran it beside the new over 4,000 random
+sequences (179,764 steps: buys, sales, every fault, hand trades, cancelled stops) and 600
+random mornings of the day run: no answer, refusal, ledger or holding differed. Its one
+blocking finding is point 5, fixed and tested; its lesser ones are taken (the interface's
+wording, three test gaps) or recorded. Eighty-five deliberate breaks were driven in copies
+outside the repository, Python's cache off: thirty-nine by the lane (one gap: a broker's
+rows collapsed into one a name), thirty-one by the review (five survived), fifteen on the
+repaired code (one gap: two stops collapsed). Six gaps are closed and each is now caught; the
+one left narrows a type of the interface's, which can refuse a broker, never admit one.
 
 ### 2026-11-13 — the money book's next boxes noted: the kill switch first (#76)
 
@@ -679,8 +797,3 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 ### 2026-11-23 - No FAULT for lines before their first bar (#1909, money-simcity-firstbar)
 - Options: keep the per-line FAULT promise for a line with no bar before the day; skip such lines in the scenarios. Skip chosen: the night already names them under "Left out until their first bar" and the trading day is unaffected. `_Life.begun(on)` now feeds the gateway-silent, unbarred and gap scenarios.
 - Double 7's (money-connors7) stays off MONEY on his standing "always go with recommended"; the lane goes to money-saved-fx and money-time-gaps; Double 7's goes to RUNGS.
-
-### 2026-11-23 - The 1% cap fed from the day's buy (#1918, money-small)
-- Options: leave the cap unfed until a card claims the three restop and running tests, or feed it now with the claim widened to test_restop. Fed now: `day._buy` passes the line's bars to `orders.size`, and test_restop fixtures carry volume 10**7 so they stay green; the two running tests passed unchanged.
-- The TRD-10 expected-gain flag stays unwired: `orders.thin` exists but a Decision carries no expected gain, which is not on main.
-- Double 7's (money-connors7) stays off MONEY on his standing "always go with recommended"; it goes to RUNGS (needs a re-carded box).
