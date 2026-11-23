@@ -126,6 +126,9 @@ class Leg(Enum):
     STOP = "sold by the stop resting at the broker"
 
 
+_TRIP = (Leg.BUY, Leg.SALE)
+
+
 @dataclass(frozen=True)
 class Charges:
     """Every cost of a leg, or of legs added together, in pounds: none can be left out."""
@@ -247,6 +250,13 @@ def size(
 def traded_value(bars: Sequence[Bar], fx: Decimal) -> Decimal:
     """The pounds a line traded over its last TRADED_DAYS bars, each at its close, at fx."""
     return sum((b.close * b.volume for b in bars[-TRADED_DAYS:]), Decimal(0)) * fx
+
+
+def thin(order: Order, gain: Decimal) -> bool:
+    """TRD-10: whether the pounds a trade is expected to gain are under twice the pounds its
+    round trip costs, every charge of both legs (charges), so it is flagged, not skipped."""
+    legs = (charges(order.line, leg, order.quantity, order.price, order.fx) for leg in _TRIP)
+    return gain < 2 * sum((c.total for c in legs), Decimal(0))
 
 
 def gap_loss(order: Order, fill: Decimal) -> Decimal:
