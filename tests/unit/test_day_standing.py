@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from desk import book, day, day_money, intraday, orders, strategy
+from desk import book, day, day_money, intraday, orders, paper, strategy
 from desk.broker import Pretend, Report
 from desk.halt import Blocker, Stopped
 from desk.lines import LINES, YARDSTICK, Line
@@ -306,5 +306,5 @@ def test_a_round_sends_only_what_the_steps_time_allows_and_carries_the_rest(
         tmp_path, first, broker, ROOM, TUE, {ln.currency: Decimal(1) for ln in lines}, zoo=True
     )
     carried = [s for s in answers if "carried to the next step" in (s.reason or "")]
-    assert len(broker.submitted()) == day.MAX_ORDERS == 7
+    assert len(broker.submitted()) == paper.MAX_ORDERS == 7
     assert len(carried) == len(lines) - 7 and all(s.filled == 0 for s in carried)
