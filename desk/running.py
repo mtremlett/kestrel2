@@ -451,8 +451,8 @@ def _work(desk: Desk, now: datetime, seen: watch.Look | None) -> None:
     check = bool(rounds or owed or live or again) or (awake and not checked)
     if not (check or owed or any(venues.open_at(venue, now) for venue in VENUES)):
         return
-    listings = listing.kept(root, now, LINES, desk.door)
-    broker = _paper(desk, listings, now)
+    broker = _paper(desk, listings := listing.kept(root, now, LINES, desk.door), now)
+    bar = placing.Paper(listings, root, lambda: now, desk.door, within=True)  #: R-RUNNER-468
     book.collect(root, broker)
     _stand(root, broker, now)
     if sold := goflat.step(root, broker, desk.room, now):
@@ -463,8 +463,8 @@ def _work(desk: Desk, now: datetime, seen: watch.Look | None) -> None:
         _round(desk, broker, venue, now)
     for venue, symbols in again.items():  #: once more, the same check, gate and send
         _round(desk, broker, venue, now, symbols)
-    for venue in live:  #: the intraday rounds, after the day's own
-        _intraday(desk, broker, venue, now)
+    for venue in live:  #: the intraday rounds, after the day's own, their orders due today
+        _intraday(desk, bar, venue, now)
     for on in owed:  #: a missed session's rates are kept first, as its own day would have
         book.record_rates(root, on, desk.rates(on))
         day.publish(root, desk.held(on + DAY)[0], broker, desk.room, on)
