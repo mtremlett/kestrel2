@@ -22,6 +22,8 @@ def test_a_day_the_judge_later_drops_is_withdrawn_not_deleted_and_no_line_shrink
     still = [
         replace(b, open=nine, high=nine, low=nine, close=nine, volume=0) for b in before[tk.UK][-6:]
     ]
+    with bars.writing(hot) as round_:
+        round_.daily(tk.UK, still)  # the older rules kept the frozen run: it is the bar held
     monkeypatch.setattr(keeper, "RULES", "an older set of rules")
     monkeypatch.setattr(
         pretend,
@@ -36,3 +38,15 @@ def test_a_day_the_judge_later_drops_is_withdrawn_not_deleted_and_no_line_shrink
     with bars.writing(hot) as round_:
         round_.daily(tk.UK, before[tk.UK][-6:])  # a true bar brings a day back
     assert bars.daily(hot, tk.UK) == before[tk.UK]
+
+
+def test_a_refused_day_over_an_older_different_bar_hides_nothing(tmp_path: Path) -> None:
+    store, old = tmp_path / "bars.db", tk.Archive().daily(tk.UK, tk._at(6).date())[0]
+    new = replace(old, open=Decimal(9), high=Decimal(9), low=Decimal(9), close=Decimal(9))
+    with bars.writing(store) as round_:
+        round_.daily(tk.UK, (old,))
+        round_.daily(tk.UK, (), refused=(new,))
+    assert bars.daily(store, tk.UK) == (old,)
+    with bars.writing(store) as round_:
+        round_.daily(tk.UK, (), refused=(old,))
+    assert bars.daily(store, tk.UK) == ()
