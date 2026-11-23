@@ -710,3 +710,7 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 
 ### 2026-11-23 - Daily buy refusals have one tested home (#2012, R-RUNNER-445)
 - `day.refusal` already landed in #1682; only its direct test was missing. Options: leave it covered through `day._buy`, or pin it directly. Pinned: PAPER's R-RUNNER-436 will call it. No product change.
+
+### 2026-11-23 - Orders past the round's cap are listed, not resent (#2036, R-RUNNER-456)
+- Options: resend the CARRIED ids in `running._again` now, or list them honestly under `halt.morning` and resend later. Chosen: list them, with words saying "not sent today". The churn guard bars a third fix to `desk/running.py` until FAILURE_PATTERNS names the file, which a lane cannot write. His words: "always go with recommended".
+- The cap has one count, `day._room`. Carried ids equal the morning list's (tested).

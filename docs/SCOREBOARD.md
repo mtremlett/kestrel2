@@ -1096,3 +1096,4 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1992 rungs-pound-gap: the pooled set names a missing pound day in the cell's reason, never refuses the set. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2010 rung_dsr merged into deflated; off-path rung modules 3 -> 2; product -114 lines. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2020 rungs-each-rung: rung map names the full claim for the last two merges; off-path modules still 2. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2036 R-RUNNER-456: orders past the round's cap listed as CARRIED, one count in day._room; resend open. |
