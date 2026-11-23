@@ -370,3 +370,8 @@ def test_a_wait_that_runs_out_names_the_call_and_its_seconds(
 
     with pytest.raises(TimeoutError, match=r"silent waited 7 s at each step: timed out"):
         paper.dial(silent, 7)
+
+
+def test_the_step_time_holds_seven_fill_waits_beside_its_margin() -> None:
+    """Failure pattern 24: the step outlasts its orders' waits."""
+    assert (paper.STEP_SECONDS - paper.STEP_MARGIN) // paper.FILL_SECONDS == 7
