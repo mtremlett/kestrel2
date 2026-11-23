@@ -1062,6 +1062,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
   - [ ] THE POUND'S MISSING DAY A NAMED GAP: a fold whose pound-per-dollar rate is missing reads it from the stored
         DEXUSUK series (data-pound-history); a planted missing day is a named gap in the cell's reason, never FAULT
         (split from data-pound-history by runner ops 111, 23 Nov: the ladder is RUNGS's file)
+        Built (#1951): in `ladder.run` a day with no pound rate is the cell's named gap, never FAULT; the cell is judged again once the one writer fills the day (`desk/backfill.py POUND`). Remains: `lab/ladder_sets.py` `_pooled.go` calls `ladder.preflight(todo, make(), pounds)` in place of `folds.preflight(ladder.inputs(todo, make()), pounds)`, then `ladder.inputs` has one caller; runner ops: widen the files to lab/ladder_sets.py and tests/unit/test_lab_ladder_sets*.py.
         {id: rungs-pound-gap; files: lab/ladder.py, tests/unit/test_lab_ladder.py, lab/history_bars.py, tests/unit/test_lab_history_bars*.py; after: data-pound-history}
   - [x] L19 ONE VERDICT RULE: the eased scorecard (`verdict.scorecard`, MAX_WEAK) is built but never called, so one
         WEAK kills a cell; it is wired as the one answer or deleted, and regime's 30 trades in each half is
