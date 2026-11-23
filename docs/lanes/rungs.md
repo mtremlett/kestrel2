@@ -522,3 +522,7 @@ then the break was removed:
 - Pound read (#1966). Options: (a) end with no change, (b) pin the read half in a test inside the claim, (c) edit lab/ladder_sets.py anyway. Took (b): (c) breaks the claim (failure pattern 21), and (a) leaves "reads it from the stored DEXUSUK series" unproved.
 - Scribes #1952 and #1954: #1952 closed scribe #1943 on a misreading; #1954 restored the fold, as every PR it folds is on main (squash-merged).
 - rungs-pound-gap's claim gap (runner ops, 23 Nov, taken by his standing ruling "please always go with recommended to avoid waiting for me to attend"). Options: (a) keep `waits: operator`, (b) widen the box's files to lab/ladder_sets.py and tests/unit/test_lab_ladder_sets*.py. Took (b): the remaining line lives in lab/ladder_sets.py, and the wait was only for the claim.
+
+### 2026-11-23 — rung merges' claims named; scribe #1984 closed (#1974)
+- Rung merges (#1974). Options: (a) move rung_sample/rung_dsr and break tests outside the claim, (b) a second, weaker deflated rung on rung_dsr (a duplicate, canon A2), (c) name in the rung map the claim each merge needs. Took (c).
+- Scribe #1984 conflicted with main: #1976 had folded #1951, #1961 and #1966, and runner ops had already widened rungs-pound-gap to lab/ladder_sets.py and its tests. Options: (a) rebase #1984, (b) close it and fold only #1974 here. Took (b): one home per fact, no double rows.
