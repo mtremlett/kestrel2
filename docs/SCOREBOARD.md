@@ -1117,3 +1117,5 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2068 R-RUNNER-453 done: London sends only from 09:00 UK, the window where 31 of 31 paper orders filled. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2079 R-RUNNER-461 done: command drops its own DOLLARS, a cut of 2 lines. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2075 R-RUNNER-468 intraday orders due in their own session; built, held for A6 blind review. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2071 R-RUNNER-460 done: ladder.rates reads the one dollars band (1 to 3), a 2.05 pound close now rates the next day.
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2082 R-RUNNER-466 done, test-only: the ladder test reads SPY from lines.REFERENCE.
