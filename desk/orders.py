@@ -30,8 +30,6 @@ from desk.orders_parts import (
 from desk.orders_parts import (
     STOP_SLIPS as STOP_SLIPS,
 )
-from desk.orders_parts2 import MOVES_DAYS as MOVES_DAYS
-from desk.orders_parts2 import MOVES_FROM as MOVES_FROM
 from desk.orders_parts2 import Refused as Refused
 from desk.orders_parts2 import _apart, _within_limits, _within_underlying, daily_moves
 from desk.risk import Standing

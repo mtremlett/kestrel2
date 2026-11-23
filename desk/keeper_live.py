@@ -18,7 +18,7 @@ from desk.store import Refused
 
 RECENT = timedelta(days=7)  #: how far back a five-minute round asks: the week kept hot
 Ask = Callable[[Line, datetime], tuple[Five, ...]]
-MINUTES = "1m"  #: the span of the live keeper's bars
+MINUTES = live.MINUTES  #: the span of the live keeper's bars: the one-minute bars
 PER_RUN = (
     2  #: lines asked each minute: twenty lines, each once in ten minutes, inside IBKR's pacing
 )
