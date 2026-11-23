@@ -26,7 +26,7 @@ judges by it; every other row owes `no RUNG` first (the test holds the two to ag
  3 a confidence interval: lab/rung_ci.py, tests/unit/test_lab_rung_ci.py
  4 excess after market risk, by size: lab/market.py, tests/unit/test_lab_rung_beta.py - no RUNG
  5 two regime windows: lab/rung_regimes.py, tests/unit/test_lab_rung_regimes.py
- 6 benchmark excess: lab/rung_benchmark.py, tests/unit/test_lab_rung_benchmark.py - no RUNG
+ 6 benchmark excess: lab/market.py, tests/unit/test_lab_market.py - no RUNG; rung_benchmark merged
  7 deflated Sharpe: lab/rung_dsr.py, tests/unit/test_lab_rung_dsr.py - no RUNG; L14's clustered set
  8 purged cross-validation: lab/rung_cpcv.py, tests/unit/test_lab_rung_cpcv.py
  9 placebo on blocks of days: lab/rung_placebo.py, tests/unit/test_lab_rung_placebo.py - no RUNG

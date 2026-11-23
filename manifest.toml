@@ -195,7 +195,6 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "lab/market.py" = "the market's rung: a strategy's days set beside its market's, its beta measured, and its excess over the market risk it took judged by its confidence interval"
 "lab/holding.py" = "each strategy beside simply holding its market: its pounds after costs and the market held through the same window after the same costs, and the difference (Q6)"
 "lab/rung_retail.py" = "the retail rung (easing 4): a basket's days beside its market's, passed on an equal Sharpe or on 80% of the return for 60% of the worst fall; answers only while the ladder is EASED"
-"lab/rung_benchmark.py" = "the benchmark rung: each judged trade set beside what its benchmark made over the same days, and the rule passed only if the whole confidence interval of its excess lies above nothing; proven alone"
 "lab/feasibility.py" = "before A-GATE paper: the count of ladder-passed rules (three asked) and the feasibility number, their summed net pounds a day against the A-GATE's hundred, each shortfall named"
 "lab/bets.py" = "the book's concentration: its number of independent bets from how its lines move together, and its profit split by correlated cluster"
 "lab/ladder.py" = "the ladder's first set: one command that takes every published rule on every line through every rung built, keeps each answer with its reason and its count of trials, skips what is kept, and ends with one line of counts"
