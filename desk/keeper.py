@@ -33,6 +33,7 @@ from desk import (
     venues,
 )
 from desk.bars import Five
+from desk.bars_form import entered
 from desk.keeper_rotate import Kept, order
 from desk.keeper_rotate import load as _kept
 from desk.keeper_rotate import record as _record
@@ -101,11 +102,7 @@ def _short(venue: str, last: Kept | None, day: date) -> bool:
 
 def pound_closes(hot: Path) -> store.Rates:
     """The pound's closes in dollars held (R-RUNGS-16): a bar in dollars is told from a move."""
-    try:
-        held = bars.daily(hot, POUND)
-    except (LookupError, FileNotFoundError):  # never kept: no close is held
-        held = ()
-    return {bar.day: bar.close for bar in held if DOLLARS[0] < bar.close < DOLLARS[1]}
+    return {bar.day: bar.close for bar in _held(hot, POUND) if DOLLARS[0] < bar.close < DOLLARS[1]}
 
 
 def _source(kept: Sequence[Bar], answer: store.Answer, broker: store.Answer | None) -> str:
@@ -118,20 +115,26 @@ def _source(kept: Sequence[Bar], answer: store.Answer, broker: store.Answer | No
     return f"archive (IBKR {why})" if day in (gave[1] or ()) else "the shelf, or none"
 
 
-def _dropped(kept: Sequence[Bar], *answers: store.Answer | None) -> set[date]:
-    """The days the answers gave that the judge did not keep: withdrawn, never deleted."""
-    given = {b.day for a in answers if not isinstance(a, Refused | None) for b in a}
-    return given - {b.day for b in kept}
+def _dropped(held: Sequence[Bar], *answers: store.Answer | None) -> set[date]:
+    """Days answered whose held bar is the answered one itself (R-DATA-77): an older one stays."""
+    shown = {b.day: entered(b) for b in held}
+    given = [b for a in answers if not isinstance(a, Refused | None) for b in a]
+    return {b.day for b in given if shown.get(b.day, entered(b)) == entered(b)}
+
+
+def _held(hot: Path, line: Line) -> tuple[Bar, ...]:
+    """The daily bars the store shows for a line, none if never kept."""
+    try:
+        return tuple(bars.daily(hot, line))
+    except (LookupError, FileNotFoundError):  # never kept: nothing stands over the archive
+        return ()
 
 
 def _standing(hot: Path, line: Line, day: date, broker: store.Answer | None) -> store.Answer | None:
     """The bars standing first: the broker's if given, else those the store holds (R-RUNNER-341)."""
     if isinstance(broker, list | tuple):
         return broker
-    try:
-        return tuple(b for b in bars.daily(hot, line) if b.day >= day - history.RECENT) or broker
-    except (LookupError, FileNotFoundError):
-        return broker  # the line was never kept: nothing stands over the archive
+    return tuple(b for b in _held(hot, line) if b.day >= day - history.RECENT) or broker
 
 
 def _kept_in(
@@ -149,7 +152,7 @@ def _kept_in(
             shelf = bars.bridged(hot, line, day, None, answer, broker)
             stands = _standing(hot, line, day, broker) if standing else broker
             kept, faults, park = scoped_judge(line, answer, day, rates, shelf=shelf, broker=stands)
-            round_.daily(line, kept, withdrawn=_dropped(kept, answer, broker))
+            round_.daily(line, kept, withdrawn=_dropped(_held(hot, line), answer, broker))
             parked += [park] if park else []
             named.setdefault(_source(kept, answer, broker), []).append(line.symbol)
             said += [f"{line.symbol}: {f.what}, held" for f in faults if "(broker)" in f.what]

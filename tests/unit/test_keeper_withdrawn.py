@@ -29,10 +29,7 @@ def test_a_day_the_judge_later_drops_is_withdrawn_not_deleted_and_no_line_shrink
         lambda line, _day: (*before[line][:-6], *still) if line == tk.UK else before[line],
     )
     pretend.keep(tmp_path, tk._at(6, 10))
-    assert [b.day for b in bars.daily(hot, tk.UK)] == [
-        b.day for b in before[tk.UK][:-5]
-    ]  # the frozen run is unserved
+    now = bars.daily(hot, tk.UK)
+    assert [b.day for b in now] == [b.day for b in before[tk.UK]]
+    assert [b for b in now if b not in before[tk.UK]] == [still[0]]  # only the kept day moved
     assert all(bars.daily(hot, x) == before[x] for x in (tk.US, tk.TWIN))
-    with bars.writing(hot) as round_:
-        round_.daily(tk.UK, before[tk.UK][-6:])  # a true bar brings a day back
-    assert bars.daily(hot, tk.UK) == before[tk.UK]
