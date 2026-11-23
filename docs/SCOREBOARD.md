@@ -1067,3 +1067,6 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1924 RUNGS rungs-trials-live: every ladder cell judged among its own rule's lines; the ever-growing family count deleted. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1934 RUNGS rungs-each-rung step 3: benchmark rung merged into market; off-path rung modules 5 to 4. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1942 RUNGS rungs-scorecard: the gate before paper and the ladder's `every` follow the one verdict rule; deflated.rule deleted. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1951 RUNGS rungs-pound-gap: a missing pound day is the cell's named gap in ladder.run, never FAULT; the pooled sets' one line remains. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1961 RUNGS rungs-each-rung step 3: dead placebo rung removed, off-path rung modules 4 to 3, -299 lines. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1966 RUNGS rungs-pound-gap: a DEXUSUK-filled pound day pinned as the rate the ladder reads. |
