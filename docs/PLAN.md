@@ -1035,7 +1035,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         1's trade minimum, benchmark into market; wire: each on verdict.judge's path; gate: a ladder test fails when
         any lab/rung_*.py is off that path (rungs_built equals the map)
         Gate done (#1676): the registry test pins the rung modules off the path, now seven after empty rung_beta.py was folded away (#1740) (benchmark, bootstrap, dsr, placebo, retail, sample, stops); it may only fall.
-        Remains: wire or merge each (each needs lab/ladder.py, manifest.toml and its target in the claim; merges need R-RUNGS-29), then pin 'waiting is empty'. Step 1 built (#1844): rung_bootstrap folded into rung_ci (off-path modules 7 to 6, FOLDED pin until it is wired); next: benchmark, dsr, placebo, sample, retail, stops, each needing its target in the claim; rung_stops is the stop-rule study, rename it out of rung_ (e.g. lab/stop_rules.py). Registry test reads the real rungs from `rung.found()` (#1768)
+        Remains: wire or merge each (each needs lab/ladder.py, manifest.toml and its target in the claim; merges need R-RUNGS-29), then pin 'waiting is empty'. Step 1 built (#1844): rung_bootstrap folded into rung_ci (FOLDED pin until it is wired); Step 2 built (#1901): the stop-rule study renamed `lab/stop_rules.py` (off-path modules 6 to 5: benchmark, dsr, placebo, retail, sample); next: merge or wire those five, each needing its target in the claim (merges need R-RUNGS-29), then pin 'waiting is empty' and take `rung_ci.bootstrap(` off FOLDED. Registry test reads the real rungs from `rung.found()` (#1768)
         {id: rungs-each-rung; files: lab/ladder.py, tests/unit/test_lab_ladder.py, lab/rung_*.py, tests/unit/test_lab_rung_*.py, lab/stop_rules.py, tests/unit/test_lab_stop_rules.py, manifest.toml; after: rungs-rung-map; waits: R-RUNGS-29}
   - [x] L14 one clustered set of trials for the deflated Sharpe, its spread measured
         {id: rungs-clustered-trials; files: lab/trials.py, lab/rung_dsr.py, tests/unit/test_lab_trials_clustered.py; after: rungs-rung-map}
@@ -1052,14 +1052,14 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         Step 1 landed (#1660): plateau.Surface and plateau.judged, verdict.judge(surface=); no surface stays UNRUN. Built: `plateau.Fixed` (#1702) and `plateau.of(rule, book, firsts)` builds a cell's Surface or FIXED (#1742).
         Remains: wire it: lab/ladder.py and lab/ladder_sets.py pass `surface=plateau.of(c.strategy, rulebook.specs(), firsts)` into verdict.judge (changes test_lab_ladder.py and test_lab_ladder_epon.py; the claim must name those four files)
         {id: rungs-plateau-wired; files: lab/plateau.py, lab/verdict.py, lab/ladder.py, lab/ladder_sets.py, tests/unit/test_lab_plateau.py, tests/unit/test_lab_verdict.py, tests/unit/test_lab_ladder.py, tests/unit/test_lab_ladder_epon.py; after: rungs-faults-not-answers; waits: operator}
-  - [ ] L18 TRIALS COUNTED HONESTLY: `trials.family` counts every line ever entered and never shrinks (3,435 per
+  - [x] L18 TRIALS COUNTED HONESTLY: `trials.family` counts every line ever entered and never shrinks (3,435 per
         rule against ~1,017 judged), luck then needs t>=4.6 and no line reaches it (highest 4.36). The family is
         the set's own lines, clustered (L14) and passed into `deflated.read`; a known-answer case pins both bars
         Step 1 landed (#1714): the luck rung is report-only (`deflated.OWN`), the deflated Sharpe the gate; `verdict.every` no longer counts the luck rung (#1792); step 2 (#1771): `trials.daily` and `deflated.judge_lines` judge a rule on its own clustered lines, known answer pinned. Remains: wire `judge_lines` in place of `deflated.judge(..., family - 1)` in lab/verdict.py, lab/ladder_sets.py, lab/ladder.py, lab/ladder_pool.py, lab/basket.py (tests: test_lab_verdict.py, test_lab_ladder_sets.py, test_lab_ladder_pool.py), then delete `trials.family`; book the planted loss in `trials.daily` on the window's last day
         One correction, not two (decision b): the deflated Sharpe on clustered effective trials is the gate, the
         Bonferroni luck rung is report-only, and a rule is also judged on its pooled basket of lines;
         wire: verdict.judge and the set runner; gate: a known-answer case pins the effective trial count and both bars
-        Step 3 built (#1845): `verdict.Pool.among(cell)` judges a rule's lines once as one clustered set and `verdict.judge(..., among=)` takes it for the luck and deflated rungs. Remains: `ladder._one`, ladder_sets and ladder_pool pass `among=pool.among(c)`, then `family`, `trials.family` and `_charged`'s family path go (claim: verdict, ladder, ladder_sets, ladder_pool and their tests); cover a set-level `judge_lines` failure (remember it as `Pool.fold` does) and align each line's daily returns to one window first.
+        Step 3 built (#1845): `verdict.Pool.among(cell)` judges a rule's lines once as one clustered set and `verdict.judge(..., among=)` takes it for the luck and deflated rungs. Step 4 built (#1924): `ladder._one` and `ladder_pool` pass `among` (`Pool.among`, a set-level failure remembered); `trials.family`, `verdict._charged`, `judge(family=)` deleted; `trials.daily` aligns lines on the span of all windows; a basket is charged one look per basket the set judges. Remains: none. (Found: a cell's key still holds the register's count, so cells are judged again when it grows.)
         {id: rungs-trials-live; files: lab/verdict.py, tests/unit/test_lab_verdict.py, lab/trials.py, lab/deflated.py, tests/unit/test_lab_trials.py, tests/unit/test_lab_deflated.py, lab/ladder.py, lab/ladder_sets.py, lab/ladder_pool.py, lab/basket.py, tests/unit/test_lab_ladder.py, tests/unit/test_lab_ladder_sets.py, tests/unit/test_lab_ladder_pool.py, tests/unit/test_lab_basket.py, tests/unit/test_lab_variants.py; after: rungs-clustered-trials}
   - [ ] THE POUND'S MISSING DAY A NAMED GAP: a fold whose pound-per-dollar rate is missing reads it from the stored
         DEXUSUK series (data-pound-history); a planted missing day is a named gap in the cell's reason, never FAULT
@@ -1071,7 +1071,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         Hard gates pre-registered before a run (costs, deflated Sharpe, out-of-sample folds, shuffle) must PASS; regime,
         market and stress are scored with MAX_WEAK; "lowest of NAMED" is deleted (decision c); wire: verdict.judge;
         gate: one WEAK soft rung no longer kills a cell, one failed hard gate always does
-        Built (#1803): `verdict.judge` answers by one rule (`one_answer`): hard gates must PASS, soft rungs through the scorecard (MAX_WEAK 2), a soft FAULT gives FAULT; the weather regime rung grades three bands. Remains: delete `deflated.rule` and its test; wire `promotion.Candidate` to `verdict.one_answer`; `ladder_parts` (line 112) leaves soft-graded rungs out of `every`.
+        Built (#1803): `verdict.judge` answers by one rule (`one_answer`): hard gates must PASS, soft rungs through the scorecard (MAX_WEAK 2), a soft FAULT gives FAULT; the weather regime rung grades three bands. Step 2 built (#1869): the shuffle waits on `BEFORE_SHUFFLE` (hard gates and the yearly stop), not the soft market rung; an early stop answers by `one_answer`; `deflated.NAMED` is no longer read by verdict. Remains: delete `deflated.rule` and its test; wire `promotion.Candidate` to `verdict.one_answer` (reading WEAK grades); `ladder_parts` (line 112) leaves soft rungs out of `every`; minor: `_stopped` gives FAIL where `one_answer` would give FAULT or STOP (unreachable while EASED).
         (widened by runner ops 114, 23 Nov: its Remains name deflated.rule's users, promotion and ladder_parts, all RUNGS files; K1 refused it 03:32)
         {id: rungs-scorecard; files: lab/verdict.py, lab/rung_regimes.py, lab/deflated.py, lab/promotion.py, lab/ladder_parts.py, tests/unit/test_lab_verdict.py, tests/unit/test_lab_rung_regimes.py, tests/unit/test_lab_deflated.py, tests/unit/test_lab_promotion.py}
   - [ ] L20 FAULTS ARE NOT ANSWERS: 6,788 lines read FAULT at market (SPY has no bar on a day, e.g. 2022-09-28) and
@@ -1115,7 +1115,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       tests/unit/test_lab_published*.py; waits: operator}
 - [ ] Before paper: a kill condition declared for each strategy; promotion only after at
       least thirty effective paper trades, net positive (STR-17, LAD-11). Built:
-      `lab/promotion.py` (#127). Remains: the desk reads it (R-RUNGS-7, MONEY's, open); each candidate's
+      `lab/promotion.py` (#127); the gate admits the five and every eponymous rule, excusing an unrun reproduction only where no author's test binds the rule (#1876), and demands the ladder line judged at the set's full trial count (#1895). Remains: the desk reads it (R-RUNGS-7, MONEY's, open); each candidate's
       kill numbers need a ladder-passed candidate (#413)
       {id: rungs-promotion; files: lab/promotion.py, tests/unit/test_lab_promotion.py;
       waits: R-RUNGS-7}
@@ -1150,7 +1150,8 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       with its kill condition, before its first paper day; it then trades paper side by side
       with up to nine others under the A-GATE terms. Nothing reaches real money without his
       signature (STR-17, LAD-11, MIG-07)
-      {id: rungs-eponymous; files: *; after: rungs-trustworthy, rungs-indicators}
+      Built (#1876, #1895): the paper gate (`lab/promotion.py`) opens for eponymous rules and needs the full trial count. Remains: a rule that passes all eleven rungs (none yet: the market rung reads FAULT on SPY's missing 2022-09-28, unwired rungs), then its name and kill numbers here before its first paper day, a cap of ten side by side under the A-GATE terms (R-RUNGS-7), and his signature before real money.
+      {id: rungs-eponymous; files: *; after: rungs-trustworthy, rungs-indicators; waits: operator}
 - [ ] His paramount case: long and inverse leveraged-ETP trend strategies through the ladder
       (STR-18). Built: set LEV, six trend rules on the leveraged lines (#423). Remains: inverse
       leveraged lines, once a Line may state an inverse fund (R-RUNGS-21, R-RUNGS-22); a real run of LEV
