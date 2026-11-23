@@ -1,18 +1,16 @@
 """store - THE ONE PRICE STORE AND ITS ONE WRITER. Bars are cleaned once, on entry; a line
 that cannot be made clean is parked with a reason and a date, and the others carry on.
 
-The store is rebuilt from the archive on every prepare, so a parked line comes back out by itself
-on the first clean day. One file per line, written whole, then swapped in: no half a write."""
+`judge` is the one judgement; `bars.writing` writes its answer into the history database. A parked
+line comes back out by itself on the first clean day."""
 
 from __future__ import annotations
 
-import csv
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Sequence
 from dataclasses import astuple, dataclass, replace
 from datetime import date, timedelta
 from decimal import Decimal
 from itertools import groupby
-from pathlib import Path
 
 from desk import venues
 from desk.lines import Line
@@ -43,7 +41,6 @@ UNIT_SHARE = Decimal("0.95")  #: of shared sessions a hundredth under; the rest,
 SPLIT_NEAR = Decimal("0.25")  #: a recorded split is adopted if the jump is this near its ratio
 UNRECORDED = "a gap in the archive, or a suspension the line does not record"
 COLUMNS = ("day", "open", "high", "low", "close", "volume")
-_FAULT = "fault"  #: last column of a line's file: a fault row has it and no day
 
 
 @dataclass(frozen=True)
@@ -170,17 +167,6 @@ def _clean(
     return kept, faults
 
 
-def _write(path: Path, header: Sequence[str], rows: Iterable[Sequence[object]]) -> None:
-    """Write a file whole to a part file beside path, then swap it in in one step, so a crash
-    leaves the old file whole (halt.py writes its record this way too)."""
-    part = path.with_suffix(".part")
-    with part.open("w", newline="", encoding="utf-8") as out:
-        writer = csv.writer(out)
-        writer.writerow(header)
-        writer.writerows(rows)
-    part.replace(path)
-
-
 Answer = Sequence[Bar] | Refused  #: what the archive gave for a line
 Older = Sequence[Bar] | None  #: a line's older bars
 
@@ -213,25 +199,6 @@ def judge(
     return kept, faults, Parked(line.symbol, "; ".join(recent), day) if recent else None
 
 
-def prepare(
-    root: Path, archive: Mapping[Line, Answer], day: date, rates: Rates = NO_RATES
-) -> tuple[Parked, ...]:
-    """Clean the archive's bars into the CSV store at root, ready to trade on day."""
-    root.mkdir(parents=True, exist_ok=True)
-    parked: list[Parked] = []
-    for line, answer in archive.items():
-        kept, faults, park = judge(line, answer, day, rates)
-        blank = ("",) * len(COLUMNS)
-        _write(
-            root / f"{line.symbol}.csv",
-            (*COLUMNS, _FAULT),
-            [*((*astuple(bar), "") for bar in kept), *((*blank, f.what) for f in faults)],
-        )
-        (root / f"{line.symbol}.faults.csv").unlink(missing_ok=True)  # the old format's orphan
-        parked += [park] if park else []
-    return tuple(parked)
-
-
 def _joined(
     shelf: Older, bars: Sequence[Bar], over: str = "archive", under: str = "shelf"
 ) -> tuple[list[Bar], list[Fault]]:
@@ -255,14 +222,3 @@ def _joined(
     ]
     fills = [bar for bar in lower if bar.day not in given]
     return sorted([*fills, *given.values()], key=lambda x: x.day), put + differ
-
-
-def _bar(r: Mapping[str, str]) -> Bar:
-    o, h, low, c = (Decimal(r[name]) for name in COLUMNS[1:5])
-    return Bar(date.fromisoformat(r["day"]), o, h, low, c, int(r["volume"]))
-
-
-def read(root: Path, symbol: str) -> tuple[Bar, ...]:
-    """Every bar the store kept for one line, oldest first (a parked line's too)."""
-    with (root / f"{symbol}.csv").open(newline="", encoding="utf-8") as stored:
-        return tuple(_bar(r) for r in csv.DictReader(stored) if r["day"])
