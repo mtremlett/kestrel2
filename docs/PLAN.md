@@ -1062,8 +1062,8 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
   - [ ] THE POUND'S MISSING DAY A NAMED GAP: a fold whose pound-per-dollar rate is missing reads it from the stored
         DEXUSUK series (data-pound-history); a planted missing day is a named gap in the cell's reason, never FAULT
         (split from data-pound-history by runner ops 111, 23 Nov: the ladder is RUNGS's file)
-        Built (#1951, #1966): `ladder.run` names a missing pound day in the cell's reason (kept under a key carrying the rates, so judged again once the day is filled), never FAULT; the read of a DEXUSUK-filled day is pinned in test_lab_history_bars. Remains: `lab/ladder_sets.py` line 275, `_pooled.go` to call `ladder.preflight(todo, make(), pounds)` with a test of a planted missing pound day; claim must widen to lab/ladder_sets.py and tests/unit/test_lab_ladder_sets*.py (runner ops); do not hand this box out again until it does.
-        {id: rungs-pound-gap; files: lab/ladder.py, tests/unit/test_lab_ladder.py, lab/history_bars.py, tests/unit/test_lab_history_bars*.py; after: data-pound-history; waits: operator}
+        Built (#1951, #1966): `ladder.run` names a missing pound day in the cell's reason (kept under a key carrying the rates, so judged again once the day is filled), never FAULT; the read of a DEXUSUK-filled day is pinned in test_lab_history_bars. Remains: `lab/ladder_sets.py` line 275, `_pooled.go` to call `ladder.preflight(todo, make(), pounds)` with a test of a planted missing pound day. Files widened to lab/ladder_sets.py and tests/unit/test_lab_ladder_sets*.py (runner ops, 23 Nov), so the wait is gone.
+        {id: rungs-pound-gap; files: lab/ladder.py, tests/unit/test_lab_ladder.py, lab/history_bars.py, tests/unit/test_lab_history_bars*.py, lab/ladder_sets.py, tests/unit/test_lab_ladder_sets*.py; after: data-pound-history}
   - [x] L19 ONE VERDICT RULE: the eased scorecard (`verdict.scorecard`, MAX_WEAK) is built but never called, so one
         WEAK kills a cell; it is wired as the one answer or deleted, and regime's 30 trades in each half is
         proven fair by a power case (a t=3 edge over 60 trades)
