@@ -73,8 +73,8 @@ from typing import Any, cast
 
 import desk
 from desk import carry, keeper
-from desk.command import CAPITAL, DOLLARS, POUND
-from desk.lines import LINES, Line
+from desk.command import CAPITAL, POUND
+from desk.lines import DOLLARS, LINES, Line
 from desk.store import Bar
 from desk.strategy import STRATEGIES, Rule
 from lab import batch, cell, folds, published, reproduce, rulebook, rung, tape, trials, verdict

@@ -207,7 +207,7 @@ def test_windows_refuses_a_hungry_cell_its_memory_and_the_batch_carries_on(
         report = tune.run(cells, partial(_study, tmp_path), pc, tmp_path, 2)
         journal = (tmp_path / "journal.jsonl").read_text(encoding="utf-8")
         rows = [json.loads(row) for row in journal.splitlines()]
-        assert [row["cell"][:2] for row in rows] == [[c.strategy, c.symbol] for c in cells]
+        assert [row["cell"][:2] for row in rows] == [[c.strategy, c.line.symbol] for c in cells]
         assert [row.get("error", "")[:11] for row in rows] == ["", "MemoryError", *[""] * 4]
         assert not report.died and report.batches == 1  # one worker: refused, it ran the rest
         assert 0 < report.peak_memory <= report.ceiling <= SMALL
