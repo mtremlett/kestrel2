@@ -645,6 +645,10 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1675 PAPER paper-cards: streak-above-0 test landed; 05:40 card and 09:30 alarm wait on a wider claim. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1698 PAPER paper-cards: messenger.py 395 lines, room made for the three owed messages; box stays open. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1753 PAPER messages: "desk is not trading" alarm built and tested (not yet called by the step). |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1852 PAPER paper-cards: 09:30 not-trading alarm now sent by the step.
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1864 PAPER paper-cards: 05:40 start-of-day card live in code; not-trading alarm confirmed wired.
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1868 PAPER paper-step-time done, one constant pair and one test.
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1880 PAPER paper-cards: 09:30 alarm proven through running.step.
 
 ### GRID
 
