@@ -1096,3 +1096,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2010 rung_dsr merged into deflated; off-path rung modules 3 -> 2; product -114 lines. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2020 rungs-each-rung: rung map names the full claim for the last two merges; off-path modules still 2. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2036 R-RUNNER-456: orders past the round's cap listed as CARRIED, one count in day._room; resend open. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2028 R-RUNNER-450 answered, no code: the VUAG frozen-run refusal is right. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2025 data-door-writer finished; a test keeps the CSV store's names deleted. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2031 DATA: keeper-live names an undefined line untradeable, no longer a miss (R-RUNNER-454 part). |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2042 R-RUNNER-448 done, desk/live.py -14 lines. |

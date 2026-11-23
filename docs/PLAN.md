@@ -184,10 +184,11 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       job; gate: a contract test where a bar present only in a CSV is never read
       Built (#1653, then one non-lane PR, 22 Nov): `universe_parts.read(path, line)` is the one reader (CSV `read` deleted, a line the database lacks raises LookupError); batch.stored, sweep (the grid job reads DATA/market_live.db's history beside it), transfer, montecarlo's grid jobs and breadth read it. store.read stays only in the CSV writer, its importer and headstart: data-door-writer deletes them.
       {id: data-door-bars; files: lab/universe_parts.py, tests/unit/test_lab_universe*.py; waits: 2026-11-24}
-- [ ] One door, one writer: `universe.nightly` and the Stooq files write into the history database through
+- [x] One door, one writer: `universe.nightly` and the Stooq files write into the history database through
       `bars.writing`, never the CSV store; `store.read`, `faults`, `shelve` and the CSV half of `prepare` are
       deleted with their tests; wire: the research refresh job; gate: the deleted names import nowhere.
       Built (#1767): the research refresh writes the history database through `bars.writing`, no CSV; `universe_history.enter` deleted. Also built (#1798, #1827): headstart judges through `store.judge` (no scratch CSV store); `store.shelve`, `faults`, `HISTORY` deleted, seven store tests rewritten onto judge. Remains: delete `store.prepare`, `read`, `_bar`, `_FAULT` and `_write`'s CSV use; their MONEY and GRID callers are split to their owners (runner ops 112, 23 Nov: money-door-writer, grid-door-writer); once both land, the deletions and the gate that the deleted names import nowhere
+      Done (#2015, #2025): the deleted store names stay gone, pinned by a test in test_store.py.
       {id: data-door-writer; files: lab/universe.py, lab/universe_parts.py, lab/universe_history.py, lab/headstart.py, lab/headstart_days.py, desk/store.py, desk/store_scope.py,
       tests/unit/test_lab_universe*.py, tests/unit/test_store*.py, tests/unit/test_lab_headstart*.py, tests/unit/test_keeper.py; after: data-door-bars, money-door-slippage, money-door-writer, grid-door-writer}
 - [x] THE NIGHT REFRESH WRITES THE DATABASE IT NAMES: `universe.nightly`'s docstring says the history
