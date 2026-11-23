@@ -697,6 +697,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2026 PAPER R-RUNNER-449 decided: the real side is right on the VHYG buy, the pretend side is wrong. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2038 PAPER R-RUNNER-447 done: one bars question in paper.py. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2096 R-RUNNER-475 done, test-only: IDTL's ISIN in the listing test is read from the master. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2102 paper-supervisor-windows: install command built, tested. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2109 R-RUNNER-478 done, desk/ -49 lines. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2110 paper-supervisor-windows: install command fixed to start in the code folder; box still needs the operator's one run. |
 
 ### GRID
 
