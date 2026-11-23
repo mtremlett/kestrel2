@@ -47,9 +47,6 @@ from desk.risk import Standing
 from desk.store import Bar
 from desk.strategy import Action, Decision
 
-#: The runner's step time and the most orders a round sends are paper's (STEP_SECONDS, MAX_ORDERS).
-STEP_SECONDS = paper.STEP_SECONDS
-
 
 def run(
     root: Path,
@@ -506,7 +503,7 @@ def _zoo(
                 continue
             if room <= 0:
                 words = f"{order_id_of(d)}: not sent, carried to the next step (the step's time)"
-                sent.append(book.Sent(order_id_of(d), 0, words, Blocker.BROKER))
+                sent.append(book.Sent(order_id_of(d), 0, words, Blocker.CARRIED))
                 continue
             made = book.intend(
                 root, order_id_of(d), (d.strategy, d.symbol, d.day), archive[line][-1]
