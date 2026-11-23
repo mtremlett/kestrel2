@@ -39,7 +39,7 @@ def test_every_step_looks_at_the_market_first_and_london_waits_for_its_first_bar
     # its first bar lands: at the next step the round is made, and the look is made before it
     with writing(desk.hot) as round_:
         round_.five(YARDSTICK, [Five(open_ - timedelta(minutes=5), *(Decimal(40),) * 4, 1)])
-    later = open_ + timedelta(minutes=5)
+    later = open_ + timedelta(hours=1)  # London's round starts at 09:00
     _step(monkeypatch, desk, later, none, tp.EMPTY, none)
     assert [n.what for n in running.notes(tmp_path)] == ["orders LSE"] and look.call_count == 2
     assert [c.args[3] for c in look.call_args_list] == [open_, later]
