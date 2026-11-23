@@ -11,11 +11,12 @@ import os
 import sys
 from collections.abc import Callable, Iterable, Sequence
 from datetime import UTC, date, datetime, timedelta
+from decimal import Decimal
 from pathlib import Path
 
-from desk import archive, bars, history, keeper, paper, store
+from desk import archive, bars, history, keeper, paper, store, venues
 from desk.bars import Source
-from desk.lines import LINES, Line
+from desk.lines import LINES, POUND, Line
 from desk.store import Bar, Refused
 
 in_currency = history.in_currency  #: the one unit rule lives in desk/history.py
@@ -71,6 +72,25 @@ def fill(
         else:
             named.append(f"{line.symbol} {day}: no source gives it ({'; '.join(why)})")
     return wrote, named
+
+
+def fill_pound(path: Path, table: str, today: date) -> tuple[list[str], list[str]]:
+    """The pound's sessions (from its first bar to before today) the database holds no rate for,
+    filled from FRED's noon table (`date,dollars` a line, a blank where the Fed gave none) under
+    Source.FED_NOON; the days written, and the days the Fed gave none, named, never invented."""
+    held = {bar.day for bar in _held(path, POUND)}
+    if not held:
+        return [], []
+    rows = (row.split(",") for row in table.splitlines()[1:])
+    given = {date.fromisoformat(day): Decimal(rate) for day, rate in rows if rate}
+    lost = [
+        d for d in venues.sessions(POUND.venue, min(held), today - timedelta(1)) if d not in held
+    ]
+    found = [Bar(d, given[d], given[d], given[d], given[d], 0) for d in lost if d in given]
+    if found:
+        with bars.writing(path, Source.FED_NOON) as opened:
+            opened.days(POUND, found)
+    return [f"{b.day}: {b.close}" for b in found], [str(d) for d in lost if d not in given]
 
 
 def _broker(home: Path, now: datetime) -> Ask:
