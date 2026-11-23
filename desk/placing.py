@@ -153,15 +153,15 @@ class Paper:
         clock: Callable[[], datetime],
         door: paper.Door,
         stamp: Callable[[], datetime] = lambda: datetime.now(UTC),
+        within: bool = False,
     ) -> None:
-        """listings is each of the desk's lines as the broker lists it now (listing.read): by
-        them a fill, an order and a holding are known as a line's. root holds the desk's record,
-        the day's checks among it; clock gives the moment, in UTC: read only before a send;
-        stamp is the real moment, taken on each event of an order for its trail;
-        door is who the paper broker is spoken to as, and what of the account is its own."""
+        """listings is each of the desk's lines as the broker lists it now (listing.read): by them
+        a fill, an order and a holding are known as a line's. root holds the desk's record, the
+        day's checks among it; clock gives the moment, in UTC: read only before a send; stamp is
+        the real moment, taken on each event of an order for its trail; door is who the broker
+        is spoken to as, and what of the account is its own; within, a bar's round's broker."""
         self._listings, self._root, self._clock = dict(listings), root, clock
-        self._stamp = stamp
-        self._door = door
+        self._stamp, self._door, self._within = stamp, door, within
 
     def _orders(self) -> reports.Orders:
         return reports.orders(paper.read(self._door).orders, self._listings, self._door)
@@ -237,10 +237,10 @@ class Paper:
 
     def _cleared(self, order: Order | Sale) -> tuple[Listing, Stop | None]:
         """The line as the broker lists it, and the stop a buy goes with (_with), for an order
-        cleared to go: the broker lists the line and its price is above the buy's stop (an
-        error raised), the order is dated (its session) the venue's session before today's, the kill
-        switch was drilled within its month and today's check came back clean (Refused, all),
-        and the gateway says it is ready: Disconnected, the order never received."""
+        cleared to go: the broker lists the line and its price is above the buy's stop (an error
+        raised), the order is DUE today (dated the venue's session before today's; within a bar's
+        round, today's), the kill switch was drilled within its month and today's check came back
+        clean (Refused, all), and the gateway says it is ready: Disconnected."""
         symbol, now = order.line.symbol, self._clock()
         listed = self._listings.get(symbol)
         if not isinstance(listed, Listing):
@@ -250,9 +250,9 @@ class Paper:
         if order.session is None:
             raise ValueError(f"{order.order_id}: not sent, the order is dated no session")
         last = venues.sessions(order.line.venue, now.date() - timedelta(days=9), now.date())[-2:]
-        if last != (order.session, now.date()):
-            why = f"{now:%Y-%m-%d} is not the session of {order.line.venue}'s next after"
-            raise Refused(f"{order.order_id}: not sent, {why} the one it is dated")
+        if last[1:] != (now.date(),) or order.session != last[-1 if self._within else 0]:
+            why = "is not the session of" + f" {order.line.venue}'s next after" * (not self._within)
+            raise Refused(f"{order.order_id}: not sent, {now:%Y-%m-%d} {why} the one it is dated")
         if not kill.drilled(self._root, now.date()):
             why = f"the kill switch was not drilled in the last {kill.DRILL_DAYS} days"
             raise Refused(f"{order.order_id}: not sent, {why}")
