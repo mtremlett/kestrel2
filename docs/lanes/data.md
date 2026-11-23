@@ -305,6 +305,12 @@ Options: 4 places, 6 places, significant figures; chose 4, the broker's own form
 
 Options: 60 sessions (too short, hides a lasting step the strategies still read), 400 sessions (coverage.NEED, what a rule needs before trading), all history (today's fault). Chose 400; lasting faults dated outside it are named only.
 
+### 2026-11-23 — #2088 (R-DATA-77): the withdraw rule, not the SimCity start (DATA)
+Options: move the SimCity start past 2019-06-18 (rejected: it hides the fault); fix `keeper._dropped` to withdraw a refused day only when the stored bar is the refused bar (chosen: the withdraw rule was the cause). Days already hidden stay hidden until a bar is given again.
+
+### 2026-11-23 — #2098 (data-members): unmeasured sources named, never bought (DATA)
+Options: buy FTSE Russell/funds data (rejected: no paid data before profit; his 22 Nov "nothing parks on him but hard lines"); store by-date members in a file (left: the nightly line is the record for now); name them UNMEASURED in the nightly line (chosen).
+
 ## LADDER (until 13 November; since then GRID and RUNGS)
 
 ### 2026-11-13 — the ladder's unit of work: days only, the whole history, keyed by what it read
