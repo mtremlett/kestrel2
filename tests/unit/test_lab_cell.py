@@ -50,6 +50,7 @@ def test_a_cell_names_a_real_strategy_a_real_line_and_a_window() -> None:
     with pytest.raises(ValueError, match="ends before it starts"):
         _cell(9, 8)
     assert _cell(9, 9).end == _day(9)
+    assert not hasattr(_cell(9, 9), "symbol")
     #: one symbol can be two companies: a cell names its line, venue and all, and a line of
     #: the research list need not be one of the twenty
     boeing, bae = Line("BA", "US", "USD", 1), Line("BA", "LSE", "GBP", 1, STAMP_DUTY)

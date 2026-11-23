@@ -12,7 +12,7 @@ from typing import ClassVar
 import pytest
 from test_running import MON, _desk
 
-from desk import book, command, handpark, intraday, kill, running, venues
+from desk import book, command, handpark, intraday, kill, running, venues, watch
 from desk.broker import Pretend
 from desk.intraday import Span
 from desk.lines import YARDSTICK
@@ -99,3 +99,9 @@ def test_an_intraday_buy_gets_the_daily_buys_refusals(
     buy = intraday.IntradayDecision("flip", "VUAG", at, Action.BUY)
     said = running._order(desk, desk.room, buy, line, "id", Decimal(40), held)  # type: ignore[arg-type]
     assert isinstance(said, str) and "not sent" in said and words in said
+
+
+def test_londons_round_waits_for_nine_after_the_dead_window(tmp_path: Path) -> None:
+    look = watch.Look(MON, (), {})  # R-RUNNER-453: no London market order before 09:00 has filled
+    assert running._pending(tmp_path, MON.replace(hour=8, minute=10), look) == []
+    assert running._pending(tmp_path, MON.replace(hour=9, minute=5), look) == ["LSE"]

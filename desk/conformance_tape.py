@@ -17,6 +17,9 @@ from desk import paper, venues
 LEAD = 5  #: minutes before a desk round's start from which no run begins
 #: A desk round's hours (UK), when the read of the day's cancelled orders is not made.
 ROUNDS = ((hour(8, 0), hour(8, 30)), (hour(14, 30), hour(15, 0)))
+#: When each venue's round of orders may begin (UK): no London market order sent before 09:00 has
+#: filled, 31 of 31 after it did (R-RUNNER-453), so London's waits out the dead window.
+STARTS = {"LSE": hour(9, 0), "US": hour(14, 30)}
 
 
 def round_at(now: datetime, lead: int) -> bool:

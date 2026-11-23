@@ -107,7 +107,7 @@ def test_a_step_does_the_days_work_under_the_data_folder_and_fails_by_name_witho
     # London open, and no key of his: the round is made on the store's bars at the pound's
     # rate, and only then the step fails, naming what he must set
     with pytest.raises(messenger.Undelivered, match="no TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID"):
-        _run(tmp_path, MON.replace(hour=8, minute=5))
+        _run(tmp_path, MON.replace(hour=9, minute=5))
     desk = tmp_path / "desk"
     (note,) = running.notes(desk)
     assert note.what == "orders LSE" and "none sent in this round" in note.words

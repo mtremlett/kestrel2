@@ -148,9 +148,10 @@ shared file, readers and writer under one lock, in each codebase; never a retry 
 
 **20. A gate that can never open.** A rule correct where written blocks its purpose where it
 runs: the rehearsal was barred on any trading date, then whenever the account held anything
-(16 Nov); `desk/running.py` set London's round in IBKR paper's dead window (08:00-09:00
-UK), so it never filled (23 Nov; Monday's barred buys are pattern 27). → *Caught by:* the
-rehearsal is barred only while a market is open or near (#462); london-round-0900's own test.
+(16 Nov); `desk/running.py` set London's round in IBKR paper's dead window (08:00-09:00 UK),
+so it never filled; `desk/placing.py` judged an intraday order by a daily order's sessions, so
+all 143 zoo orders were refused (both 23 Nov). → *Caught by:* rehearsal barred only near an open
+market (#462); the London round's test; zoo-due-session's (judged by the session it is due in).
 → *Debt:* a rehearsal beside held lines, never touching them; until then, the coordinator's go.
 
 **21. The claim that drifts.** A session that cannot finish inside its claim moves the work
