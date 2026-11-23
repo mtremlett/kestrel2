@@ -402,10 +402,9 @@ def _buy(
     watch: Callable[[str], tuple[dict[str, Decimal], dict[str, tuple[float, ...]]]] | None = None,
     bars: Sequence[Bar] = (),
 ) -> book.Sent:
-    """One rule's buy, sized from the book as the send before it left it, at the line's last
-    close and the day's rate. A line held, or sold this morning, is not bought: said so. Nor is
-    one an ISA is not recorded as able to hold (line.isa no): the ISA buys only those; nor one no
-    retail customer may buy (line.retail no), which the broker would only refuse, slowly."""
+    """One rule's buy, sized on its own side's holdings (book.side, as the send gates it) at the
+    line's last close and the day's rate. Not bought, and said so: a line held or sold this
+    morning, or one no ISA can hold (line.isa no) or no retail customer may buy (line.retail no)."""
     now, name = book.positions(root), order_id_of(d)
     if no := refusal(root, name, line, now):
         return book.Sent(name, 0, *no)
@@ -414,7 +413,7 @@ def _buy(
             name, 0, f"{name}: not sent, {d.symbol} was sold this morning", Blocker.HELD
         )
     try:
-        mine = book.side(root, now, name)  #: its own side's holdings, as book.send gates
+        mine = book.side(root, now, name)
         order = size(d, line, *price, settings, mine, None, traded_value(bars, price[1]))
     except Refused as refused:  #: the gate's answer, kept with the day's others
         return book.Sent(name, 0, str(refused), Blocker.GATE)
