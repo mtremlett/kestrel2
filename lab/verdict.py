@@ -93,6 +93,8 @@ WEAK = (Answer.THIN, Answer.DOUBT)  #: a scorecard's WEAK: neither a win nor a l
 #: SHARPE_STOP is a hard stop, whatever the rungs say. The luck rung is reported, never ruled.
 HARD = ("first", "deflated", "folds", "shuffle")
 SOFT = ("market", "regime", "stress")
+#: The rungs graded soft: SOFT, and the declared regime rung, added after (`ladder_parts`).
+GRADED = (*SOFT, rung_regimes.RUNG.name)
 #: The rungs a shuffle waits on: the hard gates before it and the yearly hard stop, none soft.
 BEFORE_SHUFFLE = (*HARD[:-1], "yearly")
 MAX_WEAK = 2
@@ -194,9 +196,9 @@ def every(rungs: Judged) -> bool:
 
 
 def gates(rungs: Judged) -> bool:
-    """`every` for the one answer's cell: the SOFT rungs are left out, as their WEAK is the
-    scorecard's and never stops a cell going forward."""
-    return every({name: judged for name, judged in rungs.items() if name not in SOFT})
+    """`every` for the one answer's cell: a GRADED rung's WEAK is left out, as it is the
+    scorecard's and never stops a cell going forward; its FAIL still does."""
+    return every({n: (a, why) for n, (a, why) in rungs.items() if n not in GRADED or a not in WEAK})
 
 
 def _plateaued(

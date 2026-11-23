@@ -55,20 +55,7 @@ def test_the_deflated_sharpe_is_the_published_one() -> None:
     with pytest.raises(ValueError, match="no error left"):
         deflated.deflate(1, 0, 3, 2, 5)
     assert (deflated.PASS, deflated.FAIL, deflated.FLAG, luck.FAMILY) == (0.90, 0.50, 2.0, 0.05)
-
-
-def test_one_rule_reads_every_named_rung_and_gives_the_worst() -> None:
-    assert deflated.NAMED == ("first", "deflated", "yearly", "folds", "market", "shuffle")
     assert set(deflated.OWN) - set(deflated.NAMED) == {"luck"}, "one correction, not two"
-    passes = dict.fromkeys(deflated.NAMED, Answer.PASS)
-    assert deflated.rule(passes) is Answer.PASS
-    assert deflated.rule(passes | {"yearly": Answer.DOUBT}) is Answer.DOUBT
-    assert deflated.rule(passes | {"folds": Answer.THIN}) is Answer.THIN, "a thin fold: no pass"
-    assert deflated.rule(passes | {"market": Answer.FAIL}) is Answer.FAIL
-    without = {name: Answer.PASS for name in deflated.NAMED if name != "folds"}
-    for rungs in (without, passes | {"another": Answer.PASS}, passes | {"luck": Answer.FAIL}):
-        with pytest.raises(ValueError, match="the rule reads"):
-            deflated.rule(rungs)
 
 
 def test_a_winner_falls_through_the_bands_as_the_trials_it_was_picked_from_grow() -> None:

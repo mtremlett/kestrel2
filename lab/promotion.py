@@ -3,8 +3,9 @@ pass and a kill condition written first, and comes off it promoted only on thirt
 paper trades, net positive (STR-17, LAD-11).
 
 BEFORE PAPER. A candidate is a strategy of the desk's with the ladder's own line for it
-(`lab/ladder.py`), never a bare word: every rung the one verdict rule names (`lab/deflated.py`)
-answered on it, the rule read again over those answers a pass, and the line saying the same;
+(`lab/ladder.py`), never a bare word: every rung the one verdict rule reads (`verdict.one_answer`:
+hard gates, soft rungs, the yearly stop) answered on it, the rule read again a pass, and the line
+saying the same, so one WEAK soft rung passes and one failed hard gate never does;
 and no rung of the ladder listed unrun on it but one: reproduction, unrun only for want of an
 author's figure, by a rule whose author's test (`published_epon.TESTED`) is none it may be held
 to; a rule with one is reproduced first (rungs-eponymous). It is one of the desk's five or an
@@ -59,17 +60,18 @@ from desk.book import RoundTrip
 from desk.broker import Fill
 from desk.orders import pennies, strategy_of
 from desk.strategy import STRATEGIES
-from lab.deflated import NAMED, rule
 from lab.published_epon import TESTED
 from lab.rulebook import eponymous
 from lab.rung import MIN_TRADES, Answer
-from lab.verdict import NO_FIGURE
+from lab.verdict import HARD, NO_FIGURE, SHARPE_STOP, SOFT, one_answer
 
 #: The rules that may graduate to paper: the desk's five and every eponymous rule.
 RULES = frozenset(STRATEGIES) | frozenset(eponymous())
 
 #: The A-GATE's own fall (AG-05, pounds): no candidate's kill condition may sit beneath it.
 DEEPEST = Decimal(1500)
+#: The rungs the one verdict rule reads off the ladder's line; its yearly rung is the yearly stop.
+READ = (*HARD, *SOFT, "yearly")
 
 
 @dataclass(frozen=True)
@@ -114,15 +116,23 @@ class Candidate:
                 f"{self.register}: its luck test is owed at the full count"
             )
         rungs, said = self.ladder.get("rungs", {}), self.ladder.get("answer")
-        answers = {name: Answer.__members__.get(str(rungs.get(name, [""])[0])) for name in NAMED}
-        if None in answers.values():
-            raise ValueError(f"{self.strategy} has not passed the ladder: no {NAMED} in {rungs}")
-        verdict = rule({name: answer for name, answer in answers.items() if answer is not None})
-        if verdict is not Answer.PASS or said != verdict.name:
+        graded = {name: _graded(rungs.get(name, [""])[0]) for name in READ}
+        answers = {name: said for name, said in graded.items() if said is not None}
+        if len(answers) < len(READ):
+            raise ValueError(f"{self.strategy} has not passed the ladder: no {READ} in {rungs}")
+        stop = None if answers["yearly"] is Answer.PASS else SHARPE_STOP + 1
+        verdict = one_answer(answers, stop)
+        if verdict != Answer.PASS.name or said != verdict:
             raise ValueError(
-                f"{self.strategy} has not passed the ladder: its rungs give {verdict.name}, "
+                f"{self.strategy} has not passed the ladder: its rungs give {verdict}, "
                 f"its line says {said}"
             )
+
+
+def _graded(name: object) -> Answer | None:
+    """A rung's answer as the ladder's line writes it: its grade WEAK (`verdict.reported`) is a
+    DOUBT, weak to the scorecard alike; a name that is no answer is None."""
+    return Answer.DOUBT if name == "WEAK" else Answer.__members__.get(str(name))
 
 
 @dataclass(frozen=True)

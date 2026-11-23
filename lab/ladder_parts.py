@@ -97,7 +97,8 @@ def _declared(
     found: tuple[Sequence[Any], Sequence[str]],
 ) -> dict[str, Any]:
     """The cell's answers with each rung that its module declares (`rung.found`) added, judged
-    on the first rung's verdict; the one rule's answer stays the named rungs'. A rung module
+    on the first rung's verdict; the one answer stays `verdict.one_answer`'s, and a soft rung
+    added is left out of `every` (`verdict.gates`), as its WEAK is the scorecard's. A rung module
     that declares none is named unrun. A cell with no first rung (the author's result not
     reproduced) has none to read."""
     declared, waiting = found
@@ -109,7 +110,7 @@ def _declared(
     for one in declared:
         added[one.name] = one.judge(pool.firsts.get(c) or verdict.ready(c, own, pounds, made))
         rungs[one.name] = [added[one.name][0].name, added[one.name][1]]
-    every = judged["every"] and verdict.every(added)
+    every = judged["every"] and verdict.gates(added)
     return judged | {"rungs": rungs, "unrun": unrun, "every": every}
 
 
