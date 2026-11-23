@@ -579,3 +579,7 @@ Wired in `running._say`, the one place daily messages go, before the evening mes
 ### 2026-11-23 — only the 05:40 card moves earlier, not his waking hour (#1864)
 
 MORNING starts 05:40 (the plan's time). Options: move the whole "awake" gate to 05:40, or only the card (chosen, so the account check, notes and weekly reminders never reach him before 08:00; `running.py` reads `gateway.WAKES`, not `MORNING.start`).
+
+### 2026-11-23 — an unset email door leaves the desk READY (#1925)
+
+The morning pre-flight line names the email door: "no SMTP_ setting, his phone alone" when none is set, "its settings are set" when all five are (a partial set is refused by name at start-up). Options: unset email is READY with a note, or NOT READY. Chose READY: the phone is a working door and email is only the fallback, so a desk without SMTP is not blocked from trading. The runner handing SMTP_* stays with runner ops.
