@@ -31,7 +31,6 @@ from lab import (
     ladder_pool,
     members,
     rulebook,
-    rung_retail,
     scalping,
     tape,
     trials,
@@ -239,12 +238,12 @@ def baskets(
     ]
 
 
-def _against(first: Verdict, bars: Bars, pounds: Rates) -> rung_retail.Against:
+def _against(first: Verdict, bars: Bars, pounds: Rates) -> basket.Against:
     """The market a basket is set beside: its first line's venue's (`ladder.MARKETS`), its bars
     and the pound rates."""
     venue = first.key.cell.line.venue
     market = next(one for one in LINES if one.symbol == ladder.MARKETS[venue])
-    return rung_retail.Against(market, bars(market), pounds)
+    return basket.Against(market, bars(market), pounds)
 
 
 def tapes_held(home: Path) -> str:
