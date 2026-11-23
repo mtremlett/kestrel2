@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from desk import bars, history
+from desk import bars, conformance_tape, history
 from desk.history_write import clashes, held, keeper, main, roll
 from desk.lines import LINES
 from desk.rollup import Candle
@@ -45,7 +45,8 @@ def test_what_the_database_holds_from_the_broker_is_done_and_the_command_stops_i
     )
     assert held(tmp_path / bars.LIVE, [LINE]) == {(LINE, "1d")}
     assert (LINE, "1d") not in history.plan([LINE], held(tmp_path / bars.LIVE, [LINE]))
-    assert main(tmp_path, datetime(2026, 11, 16, 8, 10, tzinfo=UTC), ["3"]) == 1
+    first = datetime.combine(date(2026, 11, 16), conformance_tape.ROUNDS[0][0], UTC)
+    assert main(tmp_path, first + timedelta(minutes=10), ["3"]) == 1
     assert "desk round" in capsys.readouterr().err
 
 
