@@ -85,10 +85,10 @@ def test_a_basket_row_carries_the_market_its_lines_venue_is_set_beside(
 ) -> None:
     from test_lab_ladder import EDGE, ISF, VUSA, _door
 
-    from lab import basket, rung_retail
+    from lab import basket
     from lab.cell import Cell
 
-    seen: list[rung_retail.Against | None] = []
+    seen: list[basket.Against | None] = []
     row = basket.row
 
     def spy(*a: Any) -> Any:
