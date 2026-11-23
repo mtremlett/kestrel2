@@ -366,7 +366,7 @@ def test_the_set_is_every_published_rule_on_every_line_and_its_doors_are_the_des
     #: before it while fresh, none from a close that is no pound's; 2025-04-22, the day after
     #: Easter Monday, whose last close is five days old, has its rate
     step = keeper.DAY
-    at = [(date(2025, 4, 17), "1.25"), (date(2025, 4, 23), "2.5"), (date(2025, 4, 24), "1.6")]
+    at = [(date(2025, 4, 17), "1.25"), (date(2025, 4, 23), "3.5"), (date(2025, 4, 24), "1.6")]
 
     def ask(line: Line, before: date) -> list[Bar]:
         assert (line, before) == (POUND, ladder.END + step)
@@ -375,6 +375,10 @@ def test_the_set_is_every_published_rule_on_every_line_and_its_doors_are_the_des
     pounds = ladder.rates(ask)
     assert pounds[date(2025, 4, 22)] == Decimal("0.8") and date(2025, 4, 21) in pounds
     assert date(2025, 4, 24) not in pounds and pounds[date(2025, 4, 25)] == Decimal("0.625")
+    #: the pound above 2 dollars (2007) is inside the desk's one band (1 to 3): it has a rate
+    two = Decimal("2.05")
+    old = ladder.rates(lambda *_: [Bar(date(2007, 11, 1), two, two, two, two, 0)])
+    assert old[date(2007, 11, 2)] == Decimal("0.487805")
     with pytest.raises(SystemExit, match="KESTREL2_DATA names no data folder"):
         ladder_sets.main({})
 
