@@ -290,3 +290,17 @@ def test_the_daily_check_asks_the_broker_for_each_line(tmp_path: Path) -> None:
     if day in held:
         assert quality.check_records(path, [SPY], lambda _l, _d: [held[day]], NOW) == []
     assert "gave no bar" in quality.check_records(path, [SPY], lambda _l, _d: [], NOW)[0]
+
+
+def test_a_weekly_bar_is_fresh_for_the_last_complete_week_and_stale_after_a_fortnight(
+    tmp_path: Path,
+) -> None:
+    price, mondays = Decimal(600), (date(2026, 11, 2), date(2026, 11, 9), date(2026, 11, 16))
+    for monday, why in zip(
+        mondays, ("newest 2026-11-02, last session 2026-11-09", None, None), strict=True
+    ):
+        path = tmp_path / str(monday) / bars.LIVE
+        at = datetime.combine(monday, time(), UTC)
+        with bars.writing(path, bars.Source.IBKR) as held:
+            held.timed(SPY, "1wk", [Timed("1wk", at, price, price, price, price, 5)])
+        assert quality.cell(path, SPY, "1wk", NOW) == why
