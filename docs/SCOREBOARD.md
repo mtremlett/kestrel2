@@ -231,6 +231,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1891 money-small: TRD-10 flag function `orders.thin` landed; liquidity-cap feed and the flag's caller open.
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1909 money-simcity-firstbar: SimCity world 0 passes day 56 (was halted); halts later at day 870. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1918 money-small: SIZ-10 1% traded-value cap now live in the day's buy path; TRD-10 flag caller open. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1941 money-small: SIZ-10 now proved through the day (a thin line is bought to under 1% of its 20-day traded pounds); TRD-10 flag still uncalled. |
 
 
 ### DATA
@@ -1067,3 +1068,4 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1924 RUNGS rungs-trials-live: every ladder cell judged among its own rule's lines; the ever-growing family count deleted. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1934 RUNGS rungs-each-rung step 3: benchmark rung merged into market; off-path rung modules 5 to 4. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1942 RUNGS rungs-scorecard: the gate before paper and the ladder's `every` follow the one verdict rule; deflated.rule deleted. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1951 RUNGS rungs-pound-gap step: a missing pound day is the cell's named gap, never a FAULT, in ladder.run; the pooled path's one line remains. |

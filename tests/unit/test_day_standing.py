@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from desk import book, day, day_money, intraday, orders, strategy
+from desk import book, day, day_money, intraday, orders, paper, strategy
 from desk.broker import Pretend, Report
 from desk.halt import Blocker, Stopped
 from desk.lines import LINES, YARDSTICK, Line
@@ -189,7 +189,7 @@ def test_currency_and_interest_are_read_back_unchanged_and_older_files_still_rea
     )
     book._write(tmp_path / day.RECORDS, [day.HEADER, *(day._row(r) for r in (kept, both))])
     assert day.records(tmp_path) == (kept, both)
-    old = [n for n in day.HEADER if n not in ("currency", "interest")]
+    old = [*day.HEADER[:11], *day.HEADER[13:]]  #: the header written before FX, by place
     rows: list[Sequence[object]] = [old, [*day._row(kept)[:11], *day._row(kept)[13:]]]
     book._write(tmp_path / day.RECORDS, rows)
     assert day.records(tmp_path) == (kept,)
@@ -306,5 +306,5 @@ def test_a_round_sends_only_what_the_steps_time_allows_and_carries_the_rest(
         tmp_path, first, broker, ROOM, TUE, {ln.currency: Decimal(1) for ln in lines}, zoo=True
     )
     carried = [s for s in answers if "carried to the next step" in (s.reason or "")]
-    assert len(broker.submitted()) == day.MAX_ORDERS == 7
+    assert len(broker.submitted()) == paper.MAX_ORDERS == 7
     assert len(carried) == len(lines) - 7 and all(s.filled == 0 for s in carried)
