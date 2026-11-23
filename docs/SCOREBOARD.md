@@ -232,6 +232,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1909 money-simcity-firstbar: SimCity world 0 passes day 56 (was halted); halts later at day 870. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1918 money-small: SIZ-10 1% traded-value cap now live in the day's buy path; TRD-10 flag caller open. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1941 money-small: SIZ-10 now proved through the day (a thin line is bought to under 1% of its 20-day traded pounds); TRD-10 flag still uncalled. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1973 R-PAPER-40/R-MONEY-69 mostly done: day.py reads paper's step margin and order cap; one STEP_SECONDS alias left for SimCity incidents (R-MONEY-70). |
 
 
 ### DATA
@@ -1074,3 +1075,4 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1951 RUNGS rungs-pound-gap step: a missing pound day is the cell's named gap, never a FAULT, in ladder.run; the pooled path's one line remains. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1961 RUNGS rungs-each-rung step 3: dead placebo rung removed, off-path rung modules 4 to 3, -299 lines. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1966 RUNGS rungs-pound-gap: a DEXUSUK-filled pound day pinned as the rate the ladder reads. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1974 RUNGS rungs-each-rung: rung map names the claim each of the last three rung merges needs. |
