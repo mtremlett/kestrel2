@@ -772,3 +772,18 @@ FRED's public fredgraph.csv works without a key; the session-env key option adds
 
 ### 2026-11-22 — scribe folds only the missing three (DATA, #1775)
 Folded #1736, #1750, #1752 rather than redo closed #1761's conflicting diff.
+
+### 2026-11-23 — head start and store: the product step lands first (data-door-writer, #1798, #1827)
+Options: rewrite about 400 lines of store, scene, keeper, batch and sweep tests from prepare/read/faults to `store.judge` in one pull request; or land the product step first. Took the second (a 10-minute card, the unit-test line guard). Then, for the three guarded test files (test_scenes.py, test_lab_batch.py, test_lab_sweep.py, MONEY's and GRID's by manifest): (a) loosen the lane guard (his alone, no); (b) edit them anyway (red on GitHub); (c) delete `shelve` and `faults`, leave `prepare` and `read`. Chose (c); the change was tried and worked, and needs those files lent to the DATA lane for one card (R-DATA-72).
+
+### 2026-11-23 — the full universe waits on the grid (data-full-universe, #1814)
+Options: (a) add thousands of Russell tickers from memory; (b) wait for the grid's first pass. Took (b): his 13 November ruling puts the full list after the first pass, and a list written from memory would be wrong names parked one by one. The grid shows 2,810 cells failing each hour on the old clone, so the condition is unmet. Waits to 29 November.
+
+### 2026-11-23 — the monitor's reach: golden lines' holes, both databases (data-monitor, #1809, #1832)
+Hole check (a session with no bar between held ones): all 1,000+ lines every five minutes would read every daily file each time, so golden lines only, which are what decide green. Databases: live only, as before, or both; both, by his 22 Nov terms ("both databases x every span"), so a stale history store never reads green. A missing database fails loudly.
+
+### 2026-11-23 — the broker's price of record (data-second-source, #1826, #1834)
+Reused `store.AGREE` (2%) rather than a new tolerance (one home per number). The daily command stays in `desk/quality.py`, not folded into the monitor, which would dial the broker twice per round.
+
+### 2026-11-23 — unmeasured survivorship is stated, not raised (data-survivorship, #1839)
+Options: keep raising for FTSE350 and ETFS (a verdict crashes or omits the line); state "past members not recorded, bias unmeasured". Chose to state it: a missing measurement is said loudly, never hidden (BT-09, stated on every verdict). The free route stays (his 22 Nov ruling; no paid data; #1841).

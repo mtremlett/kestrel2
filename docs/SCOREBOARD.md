@@ -516,6 +516,15 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1750 data-survivorship: bias stated as a verdict line; not wired into verdicts. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1752 collector now 11 of the planned sources (BEA). |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1699 data-second-source step 1: register of sources, replaced newest bars named. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1798 DATA data-door-writer: head start off the CSV store (no product caller of store.prepare/read/shelve left). |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1814 DATA data-full-universe not ticked; docstring corrected, no behaviour change. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1809 DATA data-monitor: hover reds a missing golden day. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1826 DATA data-second-source: record check built (`quality.against_record`), not wired. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1827 DATA data-door-writer part 1: shelve and faults deleted, 7 test files rewritten onto judge, net -66 lines. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1832 DATA data-monitor: hover covers both databases. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1834 DATA data-second-source: daily broker-record check built (`desk.quality record`), not yet scheduled. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1839 DATA data-survivorship: bias line total over all lists; still unwired, FTSE 350 and funds unrecorded. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1841 DATA data-members: module note names the FTSE fetchers still owed; no box ticked. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
