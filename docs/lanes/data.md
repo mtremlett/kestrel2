@@ -777,3 +777,8 @@ Options: a guard over all imports in tests/guards (out of the card's claim; the 
 
 ### 2026-11-23 — an undefined line is named untradeable, not dropped (DATA, #2031)
 Option A name IDTL `untradeable` in keeper-live's words (taken); option B drop IDTL from the lines (no: it is the ISA twin). His 13 Nov "always go with recommended" settles it.
+
+### 2026-11-23 — the history output drops its pound count; the keeper reuses the one roll; the weekly rule stays (DATA, #2063, #2083, #2080)
+#2063: the output line dropped "N pound days added" (nothing is added now); chosen over keeping a zero count, which would say nothing.
+#2083: the keeper rolls through `history_write.roll` (one owner); a new builder in rollup.py was rejected as a duplicate path. The 1h bar's label is rollup:30m, its schema source, as the store already names it.
+#2080: tightening the weekly rule to the last complete week only was rejected: the weekly bar is rolled after the week ends, so one week of grace is needed or Friday evening reads stale.
