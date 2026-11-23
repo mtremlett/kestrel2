@@ -23,7 +23,6 @@ from pathlib import Path
 from desk.broker import Broker
 from desk.orders import Refused, Settings
 from desk.risk import Standing, loss_limit
-from desk.store import _write
 
 HALTS, BLOCKED = "halts.csv", "blocked"  #: the one record of halts; a folder, a list a morning
 WOULD = "would_have_halted.csv"  #: beside it, what a halt would have been on paper: no halt
@@ -275,6 +274,8 @@ def _rows(path: Path, names: tuple[str, ...]) -> list[list[str]]:
 
 
 def _keep(path: Path, names: tuple[str, ...], rows: Iterable[tuple[object, ...]]) -> None:
-    """Written whole, then swapped in, by the store's one writer."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    _write(path, names, list(rows))
+    """Written whole, then swapped in, by the book's one keeper (imported here, not above:
+    the book's parts import this module's names)."""
+    from desk.book_parts import keep  # noqa: PLC0415
+
+    keep(path, [names, *rows])
