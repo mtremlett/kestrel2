@@ -18,7 +18,7 @@ from test_lab_rung import _walk
 
 from desk import keeper
 from desk.command import CAPITAL, POUND
-from desk.lines import LINES, Line
+from desk.lines import LINES, REFERENCE, Line
 from desk.orders import Settings
 from desk.store import Bar
 from lab import (
@@ -48,8 +48,9 @@ from lab.cell import Cell
 from lab.reproduce import Fill
 from lab.rung import Answer
 
-VUSA, ISF, AAPL, SPY = (
-    next(line for line in LINES if line.symbol == s) for s in ("VUSA", "ISF", "AAPL", "SPY")
+(SPY,) = (line for line in REFERENCE if line.symbol == "SPY")
+VUSA, ISF, AAPL = (
+    next(line for line in LINES if line.symbol == s) for s in ("VUSA", "ISF", "AAPL")
 )
 #: a breakout that goes on rising, planted from 2010 to past the window's end; and none
 EDGE, NOISE = _walk(1, 0.012, 0.012, days=3100), _walk(2, 0, 0, days=3100)
