@@ -290,6 +290,12 @@ def cell(path: Path, line: Line, span: str, now: datetime) -> str | None:
     return None
 
 
+def kind(why: str) -> str:
+    """The kind of a red cell, for the escalation (a model fixes a kind already seen): a gap holds
+    no bar, a hole misses sessions inside its history, else the cell is stale."""
+    return "gap" if why == "holds no bar" else "hole" if "missing" in why else "stale"
+
+
 def _cells(
     path: Path, lines: Iterable[Line], now: datetime, spans: Iterable[str] = HOVER_SPANS
 ) -> list[tuple[str, Line, str | None]]:
@@ -336,7 +342,9 @@ def hover(paths: dict[str, Path], lines: Iterable[Line], now: datetime) -> tuple
     bad = [(name, line, why) for name, line, why in cells if why]
     gap = sum(why == "holds no bar" for _, _, why in bad)
     first = next((b for b in bad if b[1].symbol in GOLDEN), bad[0]) if bad else None
-    worst = f"{first[0]}: {first[2]}" if first else "none"  # a golden line's fault leads
+    worst = (
+        f"{first[0]} ({kind(first[2])}): {first[2]}" if first else "none"
+    )  # a golden line's fault leads
     share = 100 * (len(cells) - len(bad)) // max(len(cells), 1)
     said = f"data quality: {share}% fresh, {len(bad) - gap} faults, {gap} gaps, worst {worst}"
     return said, not any(line.symbol in GOLDEN for _, line, _ in bad)
