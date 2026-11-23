@@ -960,7 +960,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         1's trade minimum, benchmark into market; wire: each on verdict.judge's path; gate: a ladder test fails when
         any lab/rung_*.py is off that path (rungs_built equals the map)
         Gate done (#1676): the registry test pins the rung modules off the path, now seven after empty rung_beta.py was folded away (#1740) (benchmark, bootstrap, dsr, placebo, retail, sample, stops); it may only fall.
-        Remains: wire or merge each (each needs lab/ladder.py, manifest.toml and its target in the claim; merges need R-RUNGS-29), then pin 'waiting is empty'
+        Remains: wire or merge each (each needs lab/ladder.py, manifest.toml and its target in the claim; merges need R-RUNGS-29), then pin 'waiting is empty'. Smallest next card: merge rung_bootstrap into rung_ci (claim lab/rung_*.py, test_lab_rung_*.py, lab/ladder.py, test_lab_ladder.py, test_lab_ladder_map.py, manifest.toml); rung_stops is the stop-rule study, rename it out of rung_ (e.g. lab/stop_rules.py). Registry test reads the real rungs from `rung.found()` (#1768)
         {id: rungs-each-rung; files: lab/ladder.py, tests/unit/test_lab_ladder.py, lab/rung_*.py, tests/unit/test_lab_rung_*.py; after: rungs-rung-map; waits: R-RUNGS-29}
   - [x] L14 one clustered set of trials for the deflated Sharpe, its spread measured
         {id: rungs-clustered-trials; files: lab/trials.py, lab/rung_dsr.py, tests/unit/test_lab_trials_clustered.py; after: rungs-rung-map}
@@ -976,11 +976,11 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         wire: verdict.judge on every cell; gate: a planted edge goes forward and a no-settings rule is not blocked
         Step 1 landed (#1660): plateau.Surface and plateau.judged, verdict.judge(surface=); no surface stays UNRUN. Built: `plateau.Fixed` (#1702) and `plateau.of(rule, book, firsts)` builds a cell's Surface or FIXED (#1742).
         Remains: wire it: lab/ladder.py and lab/ladder_sets.py pass `surface=plateau.of(c.strategy, rulebook.specs(), firsts)` into verdict.judge (changes test_lab_ladder.py and test_lab_ladder_epon.py; the claim must name those four files)
-        {id: rungs-plateau-wired; files: lab/plateau.py, lab/verdict.py, lab/ladder.py, lab/ladder_sets.py, tests/unit/test_lab_plateau.py, tests/unit/test_lab_verdict.py, tests/unit/test_lab_ladder.py, tests/unit/test_lab_ladder_epon.py; after: rungs-faults-not-answers}
+        {id: rungs-plateau-wired; files: lab/plateau.py, lab/verdict.py, lab/ladder.py, lab/ladder_sets.py, tests/unit/test_lab_plateau.py, tests/unit/test_lab_verdict.py, tests/unit/test_lab_ladder.py, tests/unit/test_lab_ladder_epon.py; after: rungs-faults-not-answers; waits: operator}
   - [ ] L18 TRIALS COUNTED HONESTLY: `trials.family` counts every line ever entered and never shrinks (3,435 per
         rule against ~1,017 judged), luck then needs t>=4.6 and no line reaches it (highest 4.36). The family is
         the set's own lines, clustered (L14) and passed into `deflated.read`; a known-answer case pins both bars
-        Step 1 landed (#1714): the luck rung is report-only (`deflated.OWN`), the deflated Sharpe the gate. Remains: lab/verdict.py `every`/`goes` still count the luck rung, the set runners pass clustered trials into `deflated.read`, a known-answer case
+        Step 1 landed (#1714): the luck rung is report-only (`deflated.OWN`), the deflated Sharpe the gate; `verdict.every` no longer counts the luck rung (#1792); step 2 (#1771): `trials.daily` and `deflated.judge_lines` judge a rule on its own clustered lines, known answer pinned. Remains: wire `judge_lines` in place of `deflated.judge(..., family - 1)` in lab/verdict.py, lab/ladder_sets.py, lab/ladder.py, lab/ladder_pool.py, lab/basket.py (tests: test_lab_verdict.py, test_lab_ladder_sets.py, test_lab_ladder_pool.py), then delete `trials.family`; book the planted loss in `trials.daily` on the window's last day
         One correction, not two (decision b): the deflated Sharpe on clustered effective trials is the gate, the
         Bonferroni luck rung is report-only, and a rule is also judged on its pooled basket of lines;
         wire: verdict.judge and the set runner; gate: a known-answer case pins the effective trial count and both bars
@@ -991,14 +991,13 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         Hard gates pre-registered before a run (costs, deflated Sharpe, out-of-sample folds, shuffle) must PASS; regime,
         market and stress are scored with MAX_WEAK; "lowest of NAMED" is deleted (decision c); wire: verdict.judge;
         gate: one WEAK soft rung no longer kills a cell, one failed hard gate always does
-        {id: rungs-scorecard; files: lab/verdict.py, lab/rung_regimes.py, tests/unit/test_lab_verdict.py, tests/unit/test_lab_rung_regimes.py; after: rungs-plateau-wired}
+        {id: rungs-scorecard; files: lab/verdict.py, lab/rung_regimes.py, tests/unit/test_lab_verdict.py, tests/unit/test_lab_rung_regimes.py}
   - [ ] L20 FAULTS ARE NOT ANSWERS: 6,788 lines read FAULT at market (SPY has no bar on a day, e.g. 2022-09-28) and
         ~5,300 at folds (no pounds-per-USD rate): each rung reads its missing day from the one store's calendar and
         the rate table, and a fault count over 1% of a set stops its table being published
         Faults are fixed at entry, never in a rung (decision d, the data cards and one door for prices); wire: the
         set runner's pre-flight; gate: a set whose inputs have gaps refuses to start.
-        Step 1 built (#1680): `market.gaps`, `folds.gaps`. Step 2 built (#1706): `folds.preflight` (refuses a set with input gaps) and `folds.published` (1% FAULT), both uncalled. Remains: wire them into the set runner's pre-flight
-        and the 1% publishing stop, both in lab/ladder_sets.py (claim must widen to it and its test), then rerun EPON; the gaps themselves are DATA's; claim widened to them (runner ops 92, 22 Nov)
+        Step 1 built (#1680): `market.gaps`, `folds.gaps`. Step 2 built (#1706, #1786): `ladder.run` runs `folds.preflight` before anything is written and its door refuses (NOT PUBLISHED) over 1% FAULT cells (`folds.published(faults, cells)`). Remains: the pooled runner `ladder_pool.run` skips the pre-flight (add `folds.preflight(ladder.inputs(todo, make_bars()), pounds)` before `ladder.begun`; claim widens to lab/ladder_pool.py and tests/unit/test_lab_ladder_pool.py), `ladder_sets.epon` writes its table before the fault count (lab/ladder_sets.py), then rerun EPON; the gaps themselves are DATA's; claim widened to them (runner ops 92, 22 Nov)
         {id: rungs-faults-not-answers; files: lab/ladder_sets.py, tests/unit/test_lab_ladder_sets.py, lab/ladder.py, lab/ladder_parts.py, lab/market.py, lab/folds.py, tests/unit/test_lab_ladder.py, tests/unit/test_lab_market.py, tests/unit/test_lab_folds.py; after: rungs-rung-map; waits: 2026-11-23}
 - [ ] **STRATEGIES AS DATA (his goal: 1,000+ strategies over 1,000+ tickers):**
   - [ ] B1 building blocks written once, each known-answer tested: indicators, entries,
@@ -1022,7 +1021,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         {id: rungs-quarry-rows; files: lab/catalogue.toml, tests/unit/test_lab_catalogue*.py; after: rungs-rows-as-rules}
   - [ ] P1 a fast engine for rows, vectorised in `lab/`, matching the desk's engine on the
         golden fixture (canon B2) or removed; indicators computed once per ticker and shared
-        {id: rungs-fast-engine; files: lab/fast.py, tests/unit/test_lab_fast.py, manifest.toml; after: rungs-blocks}
+        {id: rungs-fast-engine; files: lab/fast.py, tests/unit/test_lab_fast.py, manifest.toml; after: rungs-blocks; waits: operator}
   - [ ] GC the grid chained onto each set: rows swept over their ranges and the research
         universe, through the same tapes and rungs, the plateau's centre reported (canon B6)
         {id: rungs-grid-chain; files: lab/ladder_sets.py, lab/ladder_pool.py, tests/unit/test_lab_ladder_pool.py; after: rungs-gate, rungs-b5}
@@ -1048,7 +1047,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       figure written down, so that reproduction can run (the old desk's never did, for want
       of the figures); each reproduced on its author's own market first, and only then judged
       on ours. The bar for twenty-one trials is high and most are expected to fail: that is
-      the information (BT-15, STR-14). Step 1 built (#1721): each rule's published test written down in `published_epon.TESTED` (only Faber has an author's own test); remains: reproduction (`lab/reproduce.py` taking an eponymous rule and CAGR, drawdown, time invested; S&P 500 total-return monthly from 1901)
+      the information (BT-15, STR-14). Step 1 built (#1721): each rule's published test written down in `published_epon.TESTED` (only Faber has an author's own test); Step 2 built (#1804, #1829): Faber's printed figures word for word (compounded 10.18%, drawdown 42.24%, ~70% invested), and `lab/reproduce.py` takes an eponymous rule and measures CAGR, drawdown, time invested (R-RUNGS-37). Remains: Faber's figure on file in `reproduce.FIGURES` (tolerances, fixed before a run: CAGR within 0.5 points, drawdown 3, invested 5), which needs the S&P 500 total-return monthly series from 1901 held through the one writer (R-RUNGS-38, 39, DATA) and a monthly line with its own calendar (the desk's Faber rule judges a month-end on the next bar; desk files, outside this claim)
       {id: rungs-epon-first; files: lab/reproduce.py, tests/unit/test_lab_reproduce.py, lab/ladder_sets.py, lab/published_epon.py, tests/unit/test_lab_published_epon.py; after: rungs-trustworthy}
 - [ ] **Published figures without buying books** (his ruling, 14 November): where an
       author's own table is not to be had free, the best published replication found on the
