@@ -146,8 +146,10 @@ def test_the_preflight_says_ready_or_names_each_thing_that_is_not_and_sends_no_o
     answers, desk = _world(monkeypatch), tmp_path / "desk"
     assert _run(tmp_path, MON, "--preflight", **KEYS) == 0
     assert capsys.readouterr().out == (
-        "PREFLIGHT Mon 16 Nov: READY. his phone: its key is set; the Gateway: it answered; the "
-        "kill switch: off, and drilled today; the paper account: it is the desk's book; prices: "
+        "PREFLIGHT Mon 16 Nov: READY. his phone: its key is set; "
+        "the email: no SMTP_ setting, his phone alone; the Gateway: it answered; "
+        "the kill switch: off, and drilled today; the paper account: it is the desk's book; "
+        "prices: "
         "22 lines to trade on; the pound: a dollar is £0.800000, kept for the day "
         "(kept before); halts: "
         "none in force.\n"
@@ -166,7 +168,8 @@ def test_the_preflight_says_ready_or_names_each_thing_that_is_not_and_sends_no_o
     assert line.startswith("PREFLIGHT Mon 16 Nov: NOT READY. his phone: ValueError: no TELEGRAM")
     assert "the kill switch: ValueError: the kill switch is on, pulled at" in line
     assert "the paper account: ValueError: it is not the desk's book: IITU" in line
-    assert ". Ready: the Gateway: it answered; prices: 22 lines to trade on; the pound" in line
+    assert ". Ready: the email: no SMTP_ setting, his phone alone; the Gateway: it answered" in line
+    assert "prices: 22 lines to trade on; the pound" in line
 
     def shut(_talk: object) -> object:
         raise ConnectionRefusedError
