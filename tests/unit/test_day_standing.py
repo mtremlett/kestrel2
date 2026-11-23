@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from desk import book, day, day_money, intraday, orders, paper, strategy
+from desk import book, day, day_money, halt, intraday, orders, paper, strategy
 from desk.broker import Pretend, Report
 from desk.halt import Blocker, Stopped
 from desk.lines import LINES, YARDSTICK, Line
@@ -305,7 +305,7 @@ def test_a_round_sends_only_what_the_steps_time_allows_and_carries_the_rest(
     answers = day.trade(
         tmp_path, first, broker, ROOM, TUE, {ln.currency: Decimal(1) for ln in lines}, zoo=True
     )
-    carried = [s for s in answers if "carried to the next step" in (s.reason or "")]
+    carried = [s for s in answers if "not sent today" in (s.reason or "")]
     assert len(broker.submitted()) == paper.MAX_ORDERS == 7
     assert len(carried) == len(lines) - 7 and all(
         s.filled == 0 and s.blocker is Blocker.CARRIED for s in carried
@@ -329,3 +329,5 @@ def test_the_desks_own_orders_are_inside_the_rounds_one_cap(
     carried = [s for s in answers if s.blocker is Blocker.CARRIED]
     assert len(broker.submitted()) == 2
     assert len(carried) == len(answers) - 2 > 0
+    ids = {s.order_id for s in carried}
+    assert {b.order_id for b in halt.morning(tmp_path, TUE)[Blocker.CARRIED]} == ids

@@ -2363,3 +2363,12 @@ loop, R-DATA-68, 01:36). `tests/guards/test_lanes.py::test_every_open_request_ha
 mechanically, each request on its own line with its own words. A split request keeps its line's box
 unless its own words say it is done (`[x]` before it, `(done ...`, `done in #n`, `Met by #n`): 15 such.
 Tightening only; nothing is loosened.
+
+## R-RUNNER-456 (#2036): an order past the round's cap is listed, not claimed as carried (23 Nov, MONEY)
+Options: (1) route every carried answer onto the morning's list and re-run the round for it
+(`running._again`); (2) list it and say so honestly. Taken: (2) for this change, because a third
+`fix` to `desk/running.py` in ten changes stops at the churn guard until `docs/FAILURE_PATTERNS.md`
+names the file, which a lane cannot write. Every over-cap desk and zoo order now goes through
+`_answer` onto `halt.morning` under CARRIED; the words say "not sent today", never "carried to the
+next step", since no code sends it. The same-day resend (`_again` reading the CARRIED ids) is
+open as a request to the coordinator. `_zoo` and `_full` read one count, `day._room` (N5).
