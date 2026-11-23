@@ -69,3 +69,13 @@ def test_the_keeper_of_records_writes_whole_and_a_death_mid_write_leaves_the_old
 
     book.keep(path, second_writer())  # two writers, two temp files, no unreadable record
     assert path.read_text(encoding="utf-8").split() == ["first", "done"]
+
+
+def test_shares_under_the_brokers_stop_are_no_stranger_to_sell_twice(tmp_path: Path) -> None:
+    from desk.broker import Pretend
+
+    broker = Pretend({}, {})
+    broker.inject("H", 5)
+    broker.inject("Z", 3)
+    broker.put_stop_back("H", Decimal(1))  #: world 4: shares the book lacks, a stop over them
+    assert book.strangers(tmp_path, broker) == (("Z", 3),)

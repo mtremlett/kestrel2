@@ -55,7 +55,7 @@ if TYPE_CHECKING:
 
 HOLE = "a held line has no bar for the session"
 LEFT = "shares the book lacks rest at the broker under a stop"
-SOLD = "shares the book lacks, under a stop at the broker, are taken into the book and sold"
+KEPT = "shares the book lacks, under a stop at the broker, are never sold on top of it"
 CANCELLED = "the broker cancels every order of the day with nothing filled"
 NAMED = "an order cancelled unfilled is named that day, and the book stays the broker's"
 HALTED = "a halt is in force while the day's buys are asked for"
@@ -105,18 +105,19 @@ def hole(life: _Life, on: date) -> None:
 
 
 def beside(life: _Life, on: date) -> None:
-    """Shares the book never saw rest at the broker under their own stop. The desk must take
-    them into the book (else its sale is refused, the desk being long only) and send the sale;
-    after the day the book and the broker hold the same shares, a stop only under what is held."""
+    """Shares the book never saw rest at the broker under their own stop. The desk must not sell
+    them on top of it: after the day the broker holds them still, the stop under all of them."""
     free = sorted({x.symbol for x in life.market} - set(book.positions(life.desk)))
     symbol = life.rng.choice(free)
     level = min(b.low for x, bars in life.market.items() if x.symbol == symbol for b in bars)
-    life.pretend.inject(symbol, life.rng.randint(1, 50))
+    shares = life.rng.randint(1, 50)
+    life.pretend.inject(symbol, shares)
     life.pretend.put_stop_back(symbol, level / 2)
     life.live(on)
     held = dict(life.pretend.holdings()).get(symbol, 0)
-    taken = book.positions(life.desk).get(symbol, 0) == held
-    life.promise(SOLD, taken and dict(life.pretend.stops()).get(symbol, 0) in (0, held))
+    life.promise(KEPT, held == shares and dict(life.pretend.stops()).get(symbol, 0) == shares)
+    life.pretend.cancel_stop(symbol)  #: left to a hand, who sells them: the world goes on
+    life.pretend.inject(symbol, -held)
 
 
 def cancelled(life: _Life, on: date) -> None:
