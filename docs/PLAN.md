@@ -686,7 +686,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       {id: money-ledger-once; files: desk/book_parts2.py, desk/book.py, desk/day.py, desk/day_money.py,
       tests/unit/test_book*.py, tests/unit/test_day*.py, tests/unit/test_simcity*.py}
 
-- [ ] **Grimes's ten in the zoo (coordinator 103 G1 ruling, 22 Nov 23:5x; G27):** `manifest.toml:107` says the zoo
+- [x] **Grimes's ten in the zoo (coordinator 103 G1 ruling, 22 Nov 23:5x; G27):** (met by #1696: `desk/intraday.py` imports `GRIMES` and `test_intraday_zoo.py` names all ten; found by #1900's run, test run on main by runner ops 112, 23 Nov) `manifest.toml:107` says the zoo
       holds "Grimes's ten among the daily", but `desk/intraday.py` imports nothing of `desk/grimes.py`, so that line is
       false and #1783's guard (every desk rule reached by the rulebook or the zoo) is red on main. Wire the zoo in
       `desk/intraday.py` to reach `desk/grimes.py`'s ten setups (the AG catalogue) as daily rules; the zoo stays OFF
