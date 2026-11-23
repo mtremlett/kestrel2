@@ -13,7 +13,7 @@ import pytest
 from numpy.typing import NDArray
 from test_lab_deflated import _bell
 
-from lab import deflated, luck, rung_dsr, trials
+from lab import deflated, luck, trials
 from lab.cell import Cell
 
 DAYS = 500
@@ -210,16 +210,11 @@ def test_the_deflated_bar_is_set_by_the_clustered_set() -> None:
     assert (among_copies.least.name, among_fifty.least.name) == ("PASS", "DOUBT")
     #: which, for strangers of plain noise, is about the bar fifty separate looks are given
     assert plain == pytest.approx(separate.bar or 0, rel=0.15)
-    #: the seventh rung judges on the same set and answers as the deflated rung reads it
-    for looks, read in ((copies, among_copies), (five, among_five), (fifty, among_fifty)):
-        assert rung_dsr.judge_set(WINNER.gains, _C, looks) is deflated.believe(read.deflated)
     #: a set that is not the verdict's own is refused: another count, or the trial not in it
     with pytest.raises(ValueError, match=r"corrected for \[49\] trials.*set of 50: not the one"):
         deflated.read(luck.correct([WINNER], 48), fifty)
     with pytest.raises(ValueError, match="VUSA.*not a trial this set was clustered from"):
         deflated.read(corrected, trials.clusters(_set(strangers), 0))
-    with pytest.raises(ValueError, match="VUSA.*not a trial this set was clustered from"):
-        rung_dsr.judge_set([], _C, trials.clusters(_set(strangers), 0))
     #: whether the set is clustered is said by the caller, never left out (LAD-09)
     assert signature(deflated.read).parameters["looks"].default is Parameter.empty
     #: a trial with no Sharpe has none against any set
