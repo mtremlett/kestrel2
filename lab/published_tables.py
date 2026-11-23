@@ -18,8 +18,9 @@ printed days (cs-soo.xls, the same series as cs-percentr.xls) have none whose ow
 lowest of 14; the true range's of 4 to 6 May 2010 are (6 May's 41.55), but none prints it.
 Supertrend's carried band, which no table here prints, is left to the known answers of
 `lab/published.py` and the strategies' contract test. Looked for both, 22 Nov: Grimes's book
-(kestrel2_research/grimes) prints result tables only, no series; the free web, one-bar
-examples (Mudrex, LuxAlgo) and blog tables that contradict themselves, none worth holding to.
+(kestrel2_research/grimes) prints result tables only, no series, and no Supertrend at all;
+the free web, one-bar examples (Mudrex, LuxAlgo) and blog tables that contradict themselves,
+none worth holding to; ChartSchool's Price Channels and Aroon pages, no spreadsheet.
 """
 
 from __future__ import annotations
