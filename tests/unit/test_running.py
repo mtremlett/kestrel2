@@ -112,7 +112,7 @@ def test_at_each_open_the_step_checks_the_account_and_sends_the_days_orders_once
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     desk, post = _desk(tmp_path, IITU=DIP, AAPL=DIP, SMGB=DIP)
-    assert _step(monkeypatch, desk, MON.replace(hour=7, minute=55)) == []  # he sleeps: a knock
+    assert _step(monkeypatch, desk, MON.replace(hour=5, minute=35)) == []  # he sleeps: a knock
     assert not (clearance.checks(tmp_path) or post.called or book.switch(tmp_path))
     # London is open: the ledger, the kill switch's drill (till then no order goes: this desk
     # was never drilled), the day's check, then London's lines through the money path.
