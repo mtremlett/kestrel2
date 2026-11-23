@@ -17,7 +17,7 @@ import pytest
 from test_lab_tune import Pc
 
 from desk import bars as database
-from desk import store, strategy, venues
+from desk import strategy, venues
 from desk.bars import Source
 from desk.lines import STAMP_DUTY, Line
 from desk.store import Bar
@@ -34,14 +34,15 @@ EACH = len(strategy.STRATEGIES)
 
 
 def _keep(root: Path, line: Line, lift: int = 0, split: int = 0, path: Path | None = None) -> None:
-    """A line's bars cleaned into the store at root, and all but the last into the history
-    database beside it (or at path): a slow wave, so rules trade on it, its first `split`
-    bars at ten times the price, as before a split nobody adjusted."""
+    """A line's file listed in the store folder at root (`held` lists it), and its bars but
+    the last in the history database beside it (or at path): a slow wave, so rules trade on it,
+    its first `split` bars at ten times the price, as before a split nobody adjusted."""
     days = venues.sessions(line.venue, START, DAY - timedelta(1))
     up = [n % 40 if n % 80 < 40 else 40 - n % 40 for n in range(len(days))]
     wave = [Decimal(100 + lift + step) * (10 if n < split else 1) for n, step in enumerate(up)]
     bars = [Bar(d, p, p + 1, p - 1, p, 9) for d, p in zip(days, wave, strict=True)]
-    assert bool(store.prepare(root / line.venue, {line: bars}, DAY)) == bool(split)
+    (root / line.venue).mkdir(parents=True, exist_ok=True)
+    (root / line.venue / f"{line.symbol}.csv").touch()
     with database.writing(path or root.parent / database.LIVE, Source.ARCHIVE) as opened:
         opened.daily(line, bars[:-1])
 
@@ -82,8 +83,8 @@ def test_every_strategy_on_every_ticker_is_kept_and_only_what_changed_is_run_aga
     assert (first.kept, first.undone, first.report.died) == (0, 0, ())
     for line in (BOEING, BAE):  # the two companies called BA, each from its own venue's bars
         bars = universe.read(tmp_path / database.LIVE, line).bars  # none before a split
-        csv = len(store.read(root / line.venue, "BA"))  # its last bar is held only there
-        assert len(bars) == csv - 1 - 30 * (line == BAE)
+        days = len(venues.sessions(line.venue, START, DAY - timedelta(1)))
+        assert len(bars) == days - 1 - 30 * (line == BAE)  # its last bar is held back
         cells = sweep.cells(line, START, DAY, transfer=True)
         assert [c.strategy for c in cells] == list(strategy.STRATEGIES)
         held = batch.run(cells, {line: bars}.__getitem__, sweep.journal(kept, line))
@@ -199,7 +200,6 @@ def test_held_is_every_ticker_the_store_has_bars_for_the_list_or_not(tmp_path: P
     root = tmp_path / "store"
     for line in (BOEING, BAE, other):
         _keep(root, line)
-    (root / "US" / "ZZZ.faults.csv").write_text("fault\n")  # an old note, not a ticker
     assert sweep.held(root) == (BAE, other, BOEING)
     assert sweep.held(root)[0] is next(x for x in universe.UNIVERSE if x == BAE)
 
