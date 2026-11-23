@@ -13,7 +13,7 @@ import pytest
 from test_lab_rung import FREE
 
 from desk.lines import LINES, Line
-from lab import deflated, luck, rung, trials
+from lab import deflated, luck, rung, trials, verdict
 from lab.cell import Cell, Key, Trade
 from lab.rung import Answer, Priced, Verdict
 
@@ -176,11 +176,15 @@ def test_a_rule_is_judged_on_its_own_lines_clustered_and_one_correction_gates() 
     bars = [n for j in judged[1:] for n in (j.bar, j.deflated, j.luck.corrected)]
     assert bars == pytest.approx([0.1166, 0.7602, 0.2354, 0.1145, 0.9971, 0.0008], abs=1e-4)
     assert judged[2].luck.chance * 3435 > luck.FAMILY, "charged every line ever, it would fail"
+    pool = verdict.Pool([], {one.key.cell: one for one in lines}, "", False)
+    assert [pool.among(one.key.cell) for one in lines] == list(judged), "the pool's lines, once"
     *both, idle = deflated.judge_lines([*lines[:2], _verdict([], 0.33, "4", NVDA)])
     assert (idle.least, idle.luck.trials) == (Answer.FAULT, 3) and (both[0].bar or 1) < (
         bars[0] or 0
     )
     rsi = rung.verdict(Key(replace(lines[2].key.cell, strategy="rsi2_pullback"), "", ""), ())
+    with pytest.raises(ValueError, match="no first rung"):
+        pool.among(rsi.key.cell)
     for odd in ([], [*lines[:2], rsi]):
         with pytest.raises(ValueError, match="one rule's"):
             deflated.judge_lines(odd)
