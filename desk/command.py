@@ -125,6 +125,13 @@ def _phone(env: Mapping[str, str]) -> str:
     return "its key is set"
 
 
+def _email(env: Mapping[str, str]) -> str:
+    if not any(env.get(name, "").strip() for name in SMTP):
+        return "no SMTP_ setting, his phone alone"
+    messenger.smtp(env)  #: names each missing setting
+    return "its settings are set"
+
+
 def _knock(now: datetime, door: paper.Door) -> str:
     if not (known := gateway.known(now, door=door)):
         raise ConnectionError(known.words)
@@ -175,6 +182,7 @@ def preflight(desk: Desk, env: Mapping[str, str], now: datetime) -> tuple[bool, 
     today, root = now.date(), desk.root
     probes: tuple[tuple[str, Callable[[], object]], ...] = (
         ("his phone", lambda: _phone(env)),
+        ("the email", lambda: _email(env)),
         ("the Gateway", lambda: _knock(now, desk.door)),
         ("the kill switch", lambda: _switch(root, now)),
         ("the paper account", lambda: _account(root, now, desk.door)),

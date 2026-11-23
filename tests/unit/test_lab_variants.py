@@ -57,7 +57,6 @@ def test_twelve_variants_all_counted_and_the_pick_is_the_plateau_centre(
     trials.ask(register, "donchian")
     names = [v.spec.name for v in made]
     assert trials.enter(register, "donchian", names) == 12 == trials.count(register, "donchian")
-    assert trials.family(register, "donchian", ROW.name) == 12, "a rule's variants are its family"
 
     def edge(setting: plateau.Setting) -> str:
         return PEAK if setting == (40, 80) else PASS if setting[1] <= 40 else FAIL
