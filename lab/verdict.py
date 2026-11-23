@@ -86,10 +86,15 @@ STEP = Decimal("0.03")
 EASED = True
 T_INCUBATE = Decimal(1)  #: a basket's mean this many standard errors above nothing, or over
 WEAK = (Answer.THIN, Answer.DOUBT)  #: a scorecard's WEAK: neither a win nor a loss
-#: THE RULE OVER THE RUNGS, once (R-RUNNER-435): a cell passes with no FAIL and at most MAX_WEAK
-#: WEAK; a yearly Sharpe above SHARPE_STOP is a hard stop, whatever the rungs say.
+#: THE ONE VERDICT RULE (R-RUNNER-435, L19), whether EASED or not. The HARD gates, registered
+#: before any run (the after-cost mean, the deflated Sharpe, the out-of-sample folds, the
+#: shuffle), must every one PASS, or the cell's answer is the least of them. The SOFT rungs are
+#: then scored by `scorecard`: no FAIL and at most MAX_WEAK WEAK; and a yearly Sharpe above
+#: SHARPE_STOP is a hard stop, whatever the rungs say. The luck rung is reported, never ruled.
+HARD = ("first", "deflated", "folds", "shuffle")
+SOFT = ("market", "regime", "stress")
 MAX_WEAK = 2
-SHARPE_STOP = 2.0
+SHARPE_STOP = deflated.FLAG
 Pair = tuple[Answer, str]
 Judged = dict[str, Pair]  #: each rung's answer on a cell, and its reason
 
@@ -109,6 +114,19 @@ def scorecard(answers: Sequence[Answer], yearly_sharpe: float) -> str:
     weak = sum(a in WEAK for a in answers)
     fails = any(a in (Answer.FAIL, Answer.FAULT) for a in answers)
     return "PASS" if not fails and weak <= MAX_WEAK else "FAIL"
+
+
+def one_answer(rungs: Mapping[str, Answer], yearly_sharpe: float | None) -> str | None:
+    """The cell's one answer: the least HARD gate short of PASS, else a SOFT rung's FAULT (a
+    fault in the test, said as one), else the SOFT rungs' `scorecard`; None while unanswered."""
+    if not set(HARD + SOFT) <= set(rungs):
+        return None
+    least = min(rungs[name] for name in HARD)
+    if least is not Answer.PASS:
+        return least.name
+    if any(rungs[name] is Answer.FAULT for name in SOFT):
+        return Answer.FAULT.name
+    return scorecard([rungs[name] for name in SOFT], yearly_sharpe or 0.0)
 
 
 def judge(
@@ -152,21 +170,27 @@ def judge(
     if (last := shuffled(c, own, settings, pounds, rungs, made, EASED)) is not None:
         rungs["shuffle"] = last
     unrun = _plateaued(surface, rungs, unrun)
-    read = {name: rungs[name][0] for name in deflated.NAMED if name in rungs}
+    answer = one_answer({name: said for name, (said, _) in rungs.items()}, one.yearly)
     return {
         "trades": len(verdict.trades),
         "rungs": reported(rungs),
         "drawdown": drawdowns([t.gross - t.costs.total for t in verdict.trades], trials.name(c)),
         "holding": _held(verdict, own, beside, held, pounds, settings),
         "unrun": unrun,
-        "every": every(rungs),
-    } | ({"answer": deflated.rule(read).name} if len(read) == len(deflated.NAMED) else {})
+        "every": answer == Answer.PASS.name and gates(rungs),
+    } | ({} if answer is None else {"answer": answer})
 
 
 def every(rungs: Judged) -> bool:
     """Every rung that gates passed: a rung only reported (`deflated.REPORTED`, the luck rung
     since L18) holds nothing back."""
     return all(a is Answer.PASS for n, (a, _) in rungs.items() if n not in deflated.REPORTED)
+
+
+def gates(rungs: Judged) -> bool:
+    """`every` for the one answer's cell: the SOFT rungs are left out, as their WEAK is the
+    scorecard's and never stops a cell going forward."""
+    return every({name: judged for name, judged in rungs.items() if name not in SOFT})
 
 
 def _plateaued(
