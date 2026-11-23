@@ -2,10 +2,10 @@
 shown every bar after its close, answering whether it fires. The indicators are the desk's
 own proven parts (`desk.strategy`'s windows, held to the published tables), never copied.
 
-Four kinds: an ENTRY fires when the rule should buy; an EXIT when it should sell; a STOP when
+Five kinds: an ENTRY fires when the rule should buy; an EXIT when it should sell; a STOP when
 a held position has lost too much; a FILTER allows or forbids a buy. A block compares the bar
 with what it saw BEFORE it, then takes it in. One not yet fed enough bars does not fire (a
-filter then forbids). Apart from these, `VolatilitySize` says how many shares to buy.
+filter then forbids). A SIZE block never fires: it says how many shares a buy takes.
 """
 
 from __future__ import annotations
@@ -399,3 +399,6 @@ BLOCKS: Mapping[str, Spot] = {
     "no_filter": Spot(Kind.FILTER, Always, {}),
     "trend_template": Spot(Kind.FILTER, TrendTemplate, {}),
 }
+#: The one list of SIZE blocks by name, apart from BLOCKS: a sizer never fires, so it has no
+#: firing for the fast engine to match (`lab.fast`) and no place among the four that decide.
+SIZES: Mapping[str, Spot] = {"volatility_size": Spot(Kind.SIZE, VolatilitySize, {"n": _DAYS})}
