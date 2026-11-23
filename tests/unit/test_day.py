@@ -414,3 +414,14 @@ def test_a_holding_whose_stop_was_lost_is_on_that_days_list_with_the_stop_to_put
     book.record_rates(tmp_path, DAYS[22], {"GBP": Decimal(1)})
     day.publish(tmp_path, MARKET, broker, room, DAYS[22])
     assert halt.stopped(tmp_path, DAYS[22]) is None, "a list for a day whose orders never went"
+
+
+def test_records_kept_before_currency_and_interest_are_read_not_refused(tmp_path: Path) -> None:
+    """The live desk's records.csv of 16 November, written before the FX columns: Charges' own
+    'currency' column stays in its place and the record reads (London NO-GO, 23 Nov 05:30)."""
+    names = "day,profit,commission,spread,slippage,currency,uk_taxes,market,worth,counted,heat"
+    first = "2026-11-16,-35.95,3.76,1.85,1.85,0.55,0.00,-36.26,3675.63,2,163.15,,0"
+    (tmp_path / day.RECORDS).write_text(f"{names},halted,stopped,differ\n{first}\n", "utf-8")
+    (kept,) = day.records(tmp_path)
+    assert (kept.day, kept.profit) == (date(2026, 11, 16), Decimal("-35.95"))
+    assert kept.costs.currency == Decimal("0.55"), "Charges' currency moved or lost"

@@ -24,7 +24,7 @@ RECORDS = "records.csv"
 FX = ("currency", "interest")
 MONEY = ("day", "profit", *Charges.__dataclass_fields__, "market", "worth", "counted", "heat", *FX)
 HEADER = (*MONEY, "halted", "stopped", "differ")
-BEFORE_FX = [name for name in HEADER if name not in FX]  #: the records' names until currency
+BEFORE_FX = [*MONEY[: -len(FX)], *HEADER[len(MONEY) :]]  #: by place: Charges has a currency
 BEFORE_HEAT = [name for name in BEFORE_FX if name != "heat"]  #: and until the heat
 
 
