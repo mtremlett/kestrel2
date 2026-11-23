@@ -236,6 +236,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1983 money-census-book closed: 4 of 4 book parts pinned to a scenario (census names book.chains). |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1991 money-door-writer done: halt writes its own record and scenes read through the history judge, neither names the store's CSV half.
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1995 MONEY scribe folds #1983; no box ticked.
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2009 money-loss-words done: the loss refusal and alert say "lost in the last session"; words only, golden unchanged. |
 
 
 ### DATA
