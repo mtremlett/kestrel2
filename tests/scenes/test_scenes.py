@@ -60,23 +60,31 @@ def _run_days(root: Path, broker: Pretend, days: Sequence[date]) -> list[day.Rec
 # ---------------------------------------------------------------- the scenes
 
 
-def test_scene_1_the_days_data_is_clean_or_the_line_is_parked(tmp_path: Path) -> None:
-    parked = store.prepare(tmp_path, SPOILT, TODAY)
+def _judged() -> tuple[dict[str, list[store.Bar]], list[store.Parked]]:
+    """Each line's judged bars by symbol, and the lines parked, on the spoilt archive."""
+    judged = {line: store.judge(line, answer, TODAY) for line, answer in SPOILT.items()}
+    kept = {line.symbol: bars for line, (bars, _, _) in judged.items()}
+    return kept, [park for _, _, park in judged.values() if park]
+
+
+def test_scene_1_the_days_data_is_clean_or_the_line_is_parked() -> None:
+    kept_by, parked = _judged()
 
     assert [(p.symbol, p.day) for p in parked] == [(BAD.symbol, TODAY)]
     assert parked[0].reason.strip(), "a parked line names its reason"
     for line in LINES:
         if line != BAD:
-            assert store.read(tmp_path, line.symbol) == CLEAN[line], f"{line.symbol} incomplete"
-    kept = store.read(tmp_path, BAD.symbol)
+            assert tuple(kept_by[line.symbol]) == CLEAN[line], f"{line.symbol} incomplete"
+    kept = kept_by[BAD.symbol]
     assert WRONG_UNIT not in kept, "the bad bar reached the store"
     assert [b.day for b in kept] == sorted({b.day for b in kept}), "a date is stored twice"
 
 
-def test_scene_2_the_decision_cannot_see_the_future(tmp_path: Path) -> None:
-    parked = {p.symbol for p in store.prepare(tmp_path, SPOILT, TODAY)}
+def test_scene_2_the_decision_cannot_see_the_future() -> None:
+    kept_by, parked_lines = _judged()
+    parked = {p.symbol for p in parked_lines}
     trading = [line.symbol for line in LINES if line.symbol not in parked]
-    bars = {symbol: store.read(tmp_path, symbol) for symbol in trading}
+    bars = {symbol: tuple(kept_by[symbol]) for symbol in trading}
 
     every = strategy.decide(bars)
     names = {d.strategy for d in every}
