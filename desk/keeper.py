@@ -48,6 +48,19 @@ ROOM = 6  #: lines one call asks the broker for, per venue: at its pacing, two v
 TRIES = 6  #: the calls at which a line parked for a fault is asked again (half an hour)
 SPENT = 150.0  #: seconds of a call in which the archive is still asked (runner: 240)
 DAY = timedelta(days=1)
+#: IBKR's polled one-minute bars, tickers per interval: (floor, ceiling) at 5, 15 and 60 minutes.
+#: The floor is guaranteed; the ceiling is reached only as far as the paper port's ramp allows.
+POLLED = {5: (27, 270), 15: (81, 810), 60: (324, 3240)}
+STEP = 1.25  #: the ramp's rise each clean round
+
+
+def pace(minutes: int, rate: int, refusals: int) -> int:
+    """The tickers one interval asks for next round: a pacing refusal halves the rate (never below
+    the floor), a clean round rises by STEP (never above the ceiling)."""
+    floor, ceiling = POLLED[minutes]
+    return max(floor, rate // 2) if refusals else min(ceiling, max(rate + 1, int(rate * STEP)))
+
+
 ANCIENT = partial(archive.fetch, since=archive.REFERENCE_SINCE)  #: the reference series
 When = TypeVar("When")
 Read = TypeVar("Read")
