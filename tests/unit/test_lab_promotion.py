@@ -17,6 +17,7 @@ from desk.broker import Fill
 from lab import deflated, promotion
 from lab.promotion import Candidate, Kill, Standing
 from lab.rung import Answer
+from lab.verdict import NO_FIGURE
 
 RULE, DAY = "breakout_20_10", date(2026, 1, 1)
 
@@ -71,7 +72,12 @@ def test_no_candidate_without_the_ladders_pass_and_a_kill_condition_that_can_bit
     thin, beaten = _row(folds="THIN"), _row(answer="THIN", market="FAIL")
     del (short := _row())["rungs"]["market"]
     unrun = _row() | {"unrun": {"costs": "declares no rung"}}
-    for row in (thin, beaten, _row(answer="DOUBT"), _row(folds="OK"), short, unrun):
+    #: reproduction unrun for want of a figure: excused only where no author's test binds
+    owed = {"unrun": {"reproduce": NO_FIGURE}}
+    for free in (RULE, "donchian_fade_chop"):
+        assert Candidate(_row(free) | owed, DAY, ON_PAPER.kill).strategy == free
+    faber = _row("faber_tactical") | owed
+    for row in (thin, beaten, _row(answer="DOUBT"), _row(folds="OK"), short, unrun, faber):
         with pytest.raises(ValueError, match="has not passed the ladder"):
             Candidate(row, DAY, ON_PAPER.kill)
     with pytest.raises(ValueError, match="no strategy of the desk's"):
