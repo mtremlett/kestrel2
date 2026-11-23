@@ -33,17 +33,17 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
-from desk.bars_form import entered, restated
+from desk.bars_form import entered, restated, same
 from desk.bars_parts import CLOSES as CLOSES
 from desk.bars_parts import NEWEST as NEWEST
 from desk.bars_parts import OTHERS as OTHERS
 from desk.bars_parts import READ as READ
 from desk.bars_parts import RESTORE as RESTORE
+from desk.bars_parts import ROW, named
 from desk.bars_parts import SOURCES as SOURCES
 from desk.bars_parts import WITHDRAW as WITHDRAW
 from desk.bars_parts import StoreWait as StoreWait
 from desk.bars_parts import checked as checked
-from desk.bars_parts import named
 from desk.bars_schema import ADD as ADD
 from desk.bars_schema import FILL as FILL
 from desk.bars_schema import HELD as HELD
@@ -119,11 +119,19 @@ class Round:
         held.execute("RELEASE line")
         return landed + given - len(rows)
 
-    def daily(self, line: Line, bars: Iterable[Bar], withdrawn: Iterable[date] = ()) -> None:
+    def daily(
+        self,
+        line: Line,
+        bars: Iterable[Bar],
+        withdrawn: Iterable[date] = (),
+        refused: Iterable[Bar] = (),
+    ) -> None:
         """A line's daily bars from this source, joined by day into what the store holds, and
         none held is ever deleted (B3): a fresh source's bar takes the day of another's, the old
         value kept in `correction` if it differs. A day in `withdrawn` was judged untrue: its row
-        stays, marked, unread until a bar is given for it again. A day given twice is refused."""
+        stays, marked, unread until a bar is given for it again. A bar in `refused` withdraws the
+        row held for its day only if that row is the refused bar; a day held as another bar is
+        served, and any mark on it lifted. A day given twice is refused."""
         if not self._source.fresh:
             raise ValueError(f"{self._source.value} is no fresh source: it restates nothing")
         given = [(b.day.toordinal(), b) for b in bars]
@@ -135,8 +143,15 @@ class Round:
         held.execute("SAVEPOINT marks")
         try:
             held.executemany(RESTORE, ((*key, at) for at, _ in given))
-            gone = {day.toordinal() for day in withdrawn} - {at for at, _ in given}
+            now = {at for at, _ in given}
+            gone = {day.toordinal() for day in withdrawn} - now
             held.executemany(WITHDRAW, ((*key, at) for at in sorted(gone)))
+            for at, bad in sorted(
+                (b.day.toordinal(), b) for b in refused if b.day.toordinal() not in now
+            ):
+                row = held.execute(ROW, (*key, at)).fetchone()
+                if row is not None:
+                    held.execute(WITHDRAW if same(row, entered(bad)) else RESTORE, (*key, at))
         except BaseException:
             held.execute("ROLLBACK TO marks")
             raise

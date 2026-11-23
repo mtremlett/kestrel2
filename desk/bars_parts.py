@@ -98,6 +98,10 @@ NOTE = (
 )
 #: A day the desk judged untrue: its raw row stays in `bar`, but no reader is given it.
 WITHDRAW = "INSERT OR IGNORE INTO withdrawn VALUES (?, ?, ?, ?)"
+ROW = (
+    "SELECT open, high, low, close, volume FROM bar"
+    " WHERE venue = ? AND symbol = ? AND span = ? AND at = ?"
+)
 RESTORE = "DELETE FROM withdrawn WHERE venue = ? AND symbol = ? AND span = ? AND at = ?"
 OTHERS = (
     "SELECT at, open, high, low, close FROM bar WHERE venue = ? AND symbol = ? AND span = ?"

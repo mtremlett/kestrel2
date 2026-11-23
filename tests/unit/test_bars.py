@@ -121,9 +121,19 @@ def test_a_short_call_never_loses_a_held_day_a_change_is_corrected_and_a_withdra
         round_.daily(US, days)
     changed = replace(days[-1], close=Decimal("7"))
     with bars.writing(store, Source.IBKR) as round_:  # the broker's recent 21 days, one changed
-        round_.daily(US, (*days[-21:-1], changed), withdrawn=[days[-2].day, days[5].day])
+        round_.daily(
+            US,
+            (*days[-21:-1], changed),
+            withdrawn=[days[-2].day],
+            refused=[days[5], replace(days[7], close=Decimal(3))],
+        )
     shown = {b.day: b for b in bars.daily(store, US)}
-    assert len(shown) == 3999 and days[5].day not in shown and shown[days[-1].day] == changed
+    assert (
+        len(shown) == 3999
+        and days[5].day not in shown
+        and days[7].day in shown
+        and shown[days[-1].day] == changed
+    )
     assert days[-2].day in shown  # given again in the same call: not withdrawn
     with closing(sqlite3.connect(tmp_path / bars.HISTORY)) as raw:
         assert raw.execute("SELECT count(*) FROM bar").fetchone() == (4000,)  # no row deleted
@@ -132,6 +142,7 @@ def test_a_short_call_never_loses_a_held_day_a_change_is_corrected_and_a_withdra
         ]
     with bars.writing(store) as round_:
         round_.daily(US, days[5:6])  # a bar for a withdrawn day brings it back
+    assert days[7] in bars.daily(store, US)  # a refused bar held as another is no withdrawal
     assert days[5] in bars.daily(store, US)
 
 
