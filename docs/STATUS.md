@@ -266,7 +266,7 @@ and 1d (#739). 1h, 4h, 1wk rolled locally as rollup:<from> (#760); keeper takes 
 - [ ] R-DATA-29, -38, -34, -43: the ladder reads SPY and its sets from `market_history.db`, rates from `keeper.pound`, POUND and DOLLARS from `desk.lines`. R-DATA-39: re-run the 35 waiting cells.
 ### Requests to RUNNER
 - [ ] R-DATA-16 (blocking): `test_check.py::test_at_most_n_full_checks_run_at_once` flaky on Windows.
-- [ ] R-DATA-69 (later, #1790): `desk/backfill.py` fills the pound's named gaps. R-DATA-72: done in #1870 (feed built; announcement reader open).
+- [x] R-DATA-69: done in #1910 (`python -m desk.backfill POUND`); schedule it (R-DATA-74's job). R-DATA-72: done in #1870 (feed built; announcement reader open).
 - [ ] R-DATA-74 (later, #1834): schedule `python -m desk.quality record` daily after the close.
 - [ ] R-DATA-75 (later, #1899): schedule the nightly refresh to read `lab.members.on` by date once a review is fetched; also the runner's 5-minute HOVER job (#1874). R-DATA-18: keeper to 21:40 UK with logs; schedule the head start, `lab.universe nightly`, audit,
   snapshot, `desk.history_write`, `desk.backfill`; the hourly report calls `desk.archive.alert`, sends its line. R-DATA-32: READY counts desk/ room. R-DATA-71 (to runner ops, #1827): the data-door-writer claim names test_scenes.py, test_lab_batch.py, test_lab_sweep.py but the ownership guard refuses them for DATA: drop them from the card (a MONEY/GRID card edits them) or lend ownership for the card.

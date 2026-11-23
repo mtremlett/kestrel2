@@ -529,6 +529,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1886 data-ibkr-capacity step 1: `keeper.pace` ramp rule, not yet wired. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1899 data-members docstring corrected, no box ticked. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1902 pound-history filler `fill_pound` built; command wiring open. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1910 data-pound-history ticked: `desk.backfill POUND` fills the pound from the Fed. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1916 data-ibkr-capacity step 2: `keeper_live.polled_round` counts requests and refusals for `pace`; not yet wired. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1922 data-nightly-target ticked: nightly docstring names market_history.db, test pins it. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
