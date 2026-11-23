@@ -251,15 +251,14 @@ The 2,810 failures were journals the old CSV door wrote on 21 Nov; current code 
 ### Done for other lanes
 - R-DATA-1: done in #73; R-DATA-10: #391; R-RUNNER-4: #171; R-RUNNER-8: #391; R-RUNNER-19: #197; R-RUNNER-82: #263
 - R-RUNNER-362: done in #1487
-- R-RUNNER-451: done in #2021
+- R-RUNNER-451: done in #2021; R-RUNNER-465: done in #2073
 - R-DATA-61: done in #1555; R-RUNGS-34 rule half met in #1700, pound half in #1683
 - R-RUNNER-89: #281; R-RUNNER-128: #360; R-RUNNER-140: #330; R-RUNNER-164: #397; R-RUNNER-167: #359; R-RUNNER-170: #372; R-RUNNER-112: #449
 ### Requests to MONEY
 - [ ] R-GRID-1 (later, 2026-11-13 18:15): the five rules at other settings in `desk/strategy.py`, each with a grid and
   a name per setting in `transfer.families()`; the grid runs the published five until then.
 ### Requests to RUNGS
-- [ ] R-GRID-2 (later, 2026-11-13 20:04 UK): make each cell from a Line in `test_lab_rung.py`, `test_lab_luck.py`,
-  and price in `lab/rung.py` with `c.line`. Then GRID drops `Cell.symbol`.
+- [x] R-GRID-2: RUNGS side done (#392); `Cell.symbol` dropped in #2073.
 - [ ] R-GRID-3 (later, 2026-11-13 21:10 UK): stamp each verdict with `record.key.rung("lab.rung")`, each luck
   correction with `.rung("lab.luck")`; include capital and exchange rate in what a kept verdict is found by.
 - [ ] R-GRID-6 (blocking, 2026-11-14 10:30 UK): the rungs' tests (`test_lab_rung/trials/bets/regime/reproduce.py`) name

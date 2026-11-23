@@ -727,6 +727,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1748 grid-week: pass log names failure causes. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2007 grid-door-writer ticked; CSV half of the store no longer named by the grid's sweep/batch tests. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2021 GRID: held() skips faults notes again (R-RUNNER-451). |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2073 R-RUNNER-465 done, Cell.symbol removed. |
 
 ### RUNGS
 
