@@ -8,6 +8,7 @@ from a pulled one is a red fault. Exit 0 only when green."""
 
 from __future__ import annotations
 
+import filecmp
 import json
 import os
 import shutil
@@ -186,6 +187,21 @@ def disk(home: Path) -> list[str]:
     if share >= FREE_FLOOR:
         return []
     return [f"disk: {share:.0%} free on the drive of {home.name}, floor {FREE_FLOOR:.0%}"]
+
+
+def rolloff(old: Path, kept: Path) -> tuple[list[Path], list[Path]]:
+    """Roll old research files off the drive (OPS-07, his 23 Nov ruling): a file whose copy of
+    the same relative name under `kept` matches it byte for byte is a true duplicate and is
+    deleted; every other file is only returned, to be listed for his yes. -> (deleted, listed)."""
+    deleted, listed = [], []
+    for file in sorted(f for f in old.rglob("*") if f.is_file()):
+        twin = kept / file.relative_to(old)
+        if twin.is_file() and filecmp.cmp(file, twin, shallow=False):
+            file.unlink()
+            deleted.append(file)
+        else:
+            listed.append(file)
+    return deleted, listed
 
 
 def monitor(
@@ -411,6 +427,10 @@ if __name__ == "__main__":
         red = check_records(home / keeper.HOT, LINES, backfill._broker(home, now), now)
         sys.stdout.write("record: " + ("RED: " + "; ".join(red) if red else "green") + "\n")
         sys.exit(1 if red else 0)
+    if sys.argv[1:2] == ["rolloff"]:
+        gone, left = rolloff(Path(sys.argv[2]), home)
+        sys.stdout.write(f"rolloff: {len(gone)} duplicates deleted; for his yes: {left}\n")
+        sys.exit(0)
     said = monitor(home / keeper.HOT, LINES, backfill._broker(home, now), backfill._archive, now)
     sys.stdout.write(f"{said}\n")
     sys.exit(0 if " green," in said else 1)

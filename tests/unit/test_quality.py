@@ -170,6 +170,22 @@ def test_a_drive_with_under_a_tenth_free_turns_the_monitor_red(tmp_path: Path, m
         assert ("disk: 5% free" in said) is red
 
 
+def test_rolloff_deletes_only_a_byte_identical_copy_and_lists_the_rest(tmp_path: Path) -> None:
+    old, kept = tmp_path / "old", tmp_path / "kept"
+    (old / "sub").mkdir(parents=True)
+    (kept / "sub").mkdir(parents=True)
+    for folder, name, text in (
+        (old, "a.csv", "1"), (kept, "a.csv", "1"), (old, "b.csv", "1"), (kept, "b.csv", "2"),
+        (old, "sub/c.csv", "3"), (old, "sub/d.csv", "4"), (kept, "sub/d.csv", "4"),
+    ):  # fmt: skip
+        (folder / name).write_text(text, "utf-8")
+    deleted, listed = quality.rolloff(old, kept)
+    assert [p.name for p in deleted] == ["a.csv", "d.csv"]
+    assert [p.name for p in listed] == ["b.csv", "c.csv"]
+    assert sorted(p.name for p in old.rglob("*.csv")) == ["b.csv", "c.csv"]
+    assert (kept / "a.csv").exists()
+
+
 def test_an_archive_refusing_for_six_hours_turns_the_monitor_red(tmp_path: Path) -> None:
     path = seeded(tmp_path, set())
     state = tmp_path / "archive.json"

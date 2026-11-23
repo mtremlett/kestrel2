@@ -243,6 +243,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2039 R-RUNNER-455 built and green but for the churn guard; waits on a failure-pattern line naming desk/day_parts.py.
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2060 R-RUNNER-459 done: cancel_all keeps no -stop id in cancels.csv.
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2065 R-RUNNER-458 done: watch PARK words say parked by hand.
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2084 R-RUNNER-456: one cap at one place over the whole round; every carried order is intended, chained and listed; golden re-pinned (11 Aug 2025, 9 carried). |
 
 
 ### DATA
