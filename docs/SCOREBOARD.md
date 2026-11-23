@@ -1044,3 +1044,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1849 RUNGS: rungs-fast-engine held with rungs-blocks (waits: operator); #1836 superseded by #1843. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1845 RUNGS: L18 step 3, a cell can be judged among its rule's own lines (Pool.among, judge(among=)); wiring the set runners remains. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1865 RUNGS: L20 wired into pooled sets (gap pre-flight + 1% NOT PUBLISHED); EPON refuses on 77,870 store gaps pending DATA. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1869 RUNGS rungs-scorecard step 2: the shuffle no longer waits on a soft rung, an early stop answers by the one rule; lowest-of-NAMED gone from the verdict. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1876 RUNGS rungs-eponymous step: the paper gate opens for eponymous rules; Faber held until reproduced. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1895 RUNGS rungs-eponymous step: a paper candidate must be judged for luck at its set's full trial count. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1901 RUNGS rungs-each-rung step 2: stop-rule study out of rung_ (off-path rungs 6 to 5), no behaviour change. |

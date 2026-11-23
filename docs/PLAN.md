@@ -1030,8 +1030,8 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         Decision e: no dead rungs; dsr merges into deflated, placebo into shuffle, bootstrap into ci, sample into rung
         1's trade minimum, benchmark into market; wire: each on verdict.judge's path; gate: a ladder test fails when
         any lab/rung_*.py is off that path (rungs_built equals the map)
-        Gate done (#1676): the registry test pins the rung modules off the path, now seven after empty rung_beta.py was folded away (#1740) (benchmark, bootstrap, dsr, placebo, retail, sample, stops); it may only fall.
-        Remains: wire or merge each (each needs lab/ladder.py, manifest.toml and its target in the claim; merges need R-RUNGS-29), then pin 'waiting is empty'. Step 1 built (#1844): rung_bootstrap folded into rung_ci (off-path modules 7 to 6, FOLDED pin until it is wired); next: benchmark, dsr, placebo, sample, retail, stops, each needing its target in the claim; rung_stops is the stop-rule study, rename it out of rung_ (e.g. lab/stop_rules.py). Registry test reads the real rungs from `rung.found()` (#1768)
+        Gate done (#1676): the registry test pins the rung modules off the path, now seven after empty rung_beta.py was folded away (#1740) (benchmark, bootstrap, dsr, placebo, retail, sample, stops); it may only fall. Step 2 (#1901): the stop-rule study renamed `lab/stop_rules.py`, off-path now five (benchmark, dsr, placebo, retail, sample).
+        Remains: wire or merge each (each needs lab/ladder.py, manifest.toml and its target in the claim; merges need R-RUNGS-29), then pin 'waiting is empty'. Step 1 built (#1844): rung_bootstrap folded into rung_ci (off-path modules 7 to 6, FOLDED pin until it is wired); next: benchmark (into market), dsr (into deflated), placebo (into shuffle), sample (into rung 1), retail, each needing its target in the claim; merges need R-RUNGS-29; then pin 'waiting is empty' and take `rung_ci.bootstrap(` off FOLDED once wired. Registry test reads the real rungs from `rung.found()` (#1768)
         {id: rungs-each-rung; files: lab/ladder.py, tests/unit/test_lab_ladder.py, lab/rung_*.py, tests/unit/test_lab_rung_*.py, lab/stop_rules.py, tests/unit/test_lab_stop_rules.py, manifest.toml; after: rungs-rung-map; waits: R-RUNGS-29}
   - [x] L14 one clustered set of trials for the deflated Sharpe, its spread measured
         {id: rungs-clustered-trials; files: lab/trials.py, lab/rung_dsr.py, tests/unit/test_lab_trials_clustered.py; after: rungs-rung-map}
@@ -1046,7 +1046,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         A rule with no settings is declared NOT APPLICABLE for plateau, reviewed, never UNRUN by default (decision a);
         wire: verdict.judge on every cell; gate: a planted edge goes forward and a no-settings rule is not blocked
         Step 1 landed (#1660): plateau.Surface and plateau.judged, verdict.judge(surface=); no surface stays UNRUN. Built: `plateau.Fixed` (#1702) and `plateau.of(rule, book, firsts)` builds a cell's Surface or FIXED (#1742).
-        Remains: wire it: lab/ladder.py and lab/ladder_sets.py pass `surface=plateau.of(c.strategy, rulebook.specs(), firsts)` into verdict.judge (changes test_lab_ladder.py and test_lab_ladder_epon.py; the claim must name those four files)
+        Waits: operator (its step lies in files outside its claim; runner ops must widen it after rungs-faults-not-answers releases lab/ladder.py). Remains: wire it: lab/ladder.py and lab/ladder_sets.py pass `surface=plateau.of(c.strategy, rulebook.specs(), firsts)` into verdict.judge (changes test_lab_ladder.py and test_lab_ladder_epon.py; the claim must name those four files)
         {id: rungs-plateau-wired; files: lab/plateau.py, lab/verdict.py, lab/ladder.py, lab/ladder_sets.py, tests/unit/test_lab_plateau.py, tests/unit/test_lab_verdict.py, tests/unit/test_lab_ladder.py, tests/unit/test_lab_ladder_epon.py; after: rungs-faults-not-answers; waits: operator}
   - [ ] L18 TRIALS COUNTED HONESTLY: `trials.family` counts every line ever entered and never shrinks (3,435 per
         rule against ~1,017 judged), luck then needs t>=4.6 and no line reaches it (highest 4.36). The family is
@@ -1067,7 +1067,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         Hard gates pre-registered before a run (costs, deflated Sharpe, out-of-sample folds, shuffle) must PASS; regime,
         market and stress are scored with MAX_WEAK; "lowest of NAMED" is deleted (decision c); wire: verdict.judge;
         gate: one WEAK soft rung no longer kills a cell, one failed hard gate always does
-        Built (#1803): `verdict.judge` answers by one rule (`one_answer`): hard gates must PASS, soft rungs through the scorecard (MAX_WEAK 2), a soft FAULT gives FAULT; the weather regime rung grades three bands. Remains: delete `deflated.rule` and its test; wire `promotion.Candidate` to `verdict.one_answer`; `ladder_parts` (line 112) leaves soft-graded rungs out of `every`.
+        Built (#1803): `verdict.judge` answers by one rule (`one_answer`): hard gates must PASS, soft rungs through the scorecard (MAX_WEAK 2), a soft FAULT gives FAULT; the weather regime rung grades three bands. Step 2 built (#1869): the shuffle waits on the hard gates and yearly only, and an early stop answers by the one rule; lowest-of-NAMED is gone from lab/verdict.py. Remains: delete `deflated.rule` and its test; wire `promotion.Candidate` to `verdict.one_answer` (reading WEAK grades); `ladder_parts` (line 112) leaves soft-graded rungs out of `every` (claim must widen to lab/deflated.py, lab/promotion.py, lab/ladder_parts.py and their tests). Minor: on a stress stop `_stopped` gives FAIL where `one_answer` would give FAULT or STOP.
         {id: rungs-scorecard; files: lab/verdict.py, lab/rung_regimes.py, tests/unit/test_lab_verdict.py, tests/unit/test_lab_rung_regimes.py}
   - [ ] L20 FAULTS ARE NOT ANSWERS: 6,788 lines read FAULT at market (SPY has no bar on a day, e.g. 2022-09-28) and
         ~5,300 at folds (no pounds-per-USD rate): each rung reads its missing day from the one store's calendar and
@@ -1080,7 +1080,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
 - [ ] **STRATEGIES AS DATA (his goal: 1,000+ strategies over 1,000+ tickers):**
   - [ ] B1 building blocks written once, each known-answer tested: indicators, entries,
         exits, stops, filters (regime filters among them), sizing. Built: every block has its
-        known answer (#396). Built: the sizing block `VolatilitySize(n)`, by the desk's own `desk.risk.volatility` (#1637), now on the one `Block` interface (#1711). Remains: register it (a SIZE kind in lab/block_base.py, `volatility_size` in `BLOCKS`, the spec and simulator reading it; the claim must widen to those files; manifest line for lab/blocks.py to name sizing). Was: sizing blocks, once the volatility-sizing research settles their form
+        known answer (#396). Built: the sizing block `VolatilitySize(n)`, by the desk's own `desk.risk.volatility` (#1637), now on the one `Block` interface (#1711). Waits: operator (the last step needs files outside the claim; runner ops must widen it). Remains: register it (a SIZE kind in lab/block_base.py, `volatility_size` in `BLOCKS`, the spec and simulator reading it; the claim must widen to those files; manifest line for lab/blocks.py to name sizing). Was: sizing blocks, once the volatility-sizing research settles their form
         (coordinator 54, 22 Nov: a research wait, not his: the volatility-sizing contest table is written, R-RUNNER-205, #1481; the session reads it to settle the sizing blocks' form)
         {id: rungs-blocks; files: lab/block_base.py, lab/blocks.py, tests/unit/test_lab_blocks.py; waits: operator}
   - [ ] B2 a typed Spec, validated on entry: an unknown block or a bad setting is refused
@@ -1110,7 +1110,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       tests/unit/test_lab_published*.py; waits: operator}
 - [ ] Before paper: a kill condition declared for each strategy; promotion only after at
       least thirty effective paper trades, net positive (STR-17, LAD-11). Built:
-      `lab/promotion.py` (#127). Remains: the desk reads it (R-RUNGS-7, MONEY's, open); each candidate's
+      `lab/promotion.py` (#127); its gate opens for every eponymous rule, Faber held until reproduced (#1876), and a candidate needs the set's full trial count (#1895). Remains: the desk reads it (R-RUNGS-7, MONEY's, open); each candidate's
       kill numbers need a ladder-passed candidate (#413)
       {id: rungs-promotion; files: lab/promotion.py, tests/unit/test_lab_promotion.py;
       waits: R-RUNGS-7}
@@ -1145,7 +1145,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       with its kill condition, before its first paper day; it then trades paper side by side
       with up to nine others under the A-GATE terms. Nothing reaches real money without his
       signature (STR-17, LAD-11, MIG-07)
-      {id: rungs-eponymous; files: *; after: rungs-trustworthy, rungs-indicators}
+      {id: rungs-eponymous; files: *; after: rungs-trustworthy, rungs-indicators; waits: operator}
 - [ ] His paramount case: long and inverse leveraged-ETP trend strategies through the ladder
       (STR-18). Built: set LEV, six trend rules on the leveraged lines (#423). Remains: inverse
       leveraged lines, once a Line may state an inverse fund (R-RUNGS-21, R-RUNGS-22); a real run of LEV
