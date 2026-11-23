@@ -27,17 +27,21 @@ DAY = date(2026, 11, 13)
 START = DAY - timedelta(200)
 SATURDAY = datetime(2026, 11, 14, 12, tzinfo=UTC)
 BOEING, BAE = Line("BA", "US", "USD", 1), Line("BA", "LSE", "GBP", 1, STAMP_DUTY)
-ABSENT = Line("NONE", "US", "USD", 1)  #: on the list, with no bars in the store
+ABSENT = Line("NONE", "US", "USD", 1)  #: on the list, with no bars in the database
 FATAL = Line("FATAL", "US", "USD", 1)  #: the ticker whose worker dies
 LINES = (BOEING, ABSENT, BAE)
 EACH = len(strategy.STRATEGIES)
 
 
+def _days(line: Line) -> list[date]:
+    return list(venues.sessions(line.venue, START, DAY - timedelta(1)))
+
+
 def _keep(root: Path, line: Line, lift: int = 0, split: int = 0, path: Path | None = None) -> None:
-    """A line's bars cleaned into the store at root, and all but the last into the history
-    database beside it (or at path): a slow wave, so rules trade on it, its first `split`
-    bars at ten times the price, as before a split nobody adjusted."""
-    days = venues.sessions(line.venue, START, DAY - timedelta(1))
+    """A line's bars, all but the last, into the history database beside root (or at path): a
+    slow wave, so rules trade on it, its first `split` bars at ten times the price, as before
+    a split nobody adjusted."""
+    days = _days(line)
     up = [n % 40 if n % 80 < 40 else 40 - n % 40 for n in range(len(days))]
     wave = [Decimal(100 + lift + step) * (10 if n < split else 1) for n, step in enumerate(up)]
     bars = [Bar(d, p, p + 1, p - 1, p, 9) for d, p in zip(days, wave, strict=True)]
@@ -82,8 +86,7 @@ def test_every_strategy_on_every_ticker_is_kept_and_only_what_changed_is_run_aga
     assert (first.kept, first.undone, first.report.died) == (0, 0, ())
     for line in (BOEING, BAE):  # the two companies called BA, each from its own venue's bars
         bars = universe.read(tmp_path / database.LIVE, line).bars  # none before a split
-        csv = len(store.read(root / line.venue, "BA"))  # its last bar is held only there
-        assert len(bars) == csv - 1 - 30 * (line == BAE)
+        assert len(bars) == len(_days(line)) - 1 - 30 * (line == BAE)
         cells = sweep.cells(line, START, DAY, transfer=True)
         assert [c.strategy for c in cells] == list(strategy.STRATEGIES)
         held = batch.run(cells, {line: bars}.__getitem__, sweep.journal(kept, line))
@@ -194,14 +197,23 @@ def test_a_week_is_pass_after_pass_and_its_log_shows_how_long_without_stopping(
     assert late == {"error": "TimeoutExpired: ended at its limit of 0:00:00.001000"}
 
 
-def test_held_is_every_ticker_the_store_has_bars_for_the_list_or_not(tmp_path: Path) -> None:
+def test_held_is_every_ticker_the_database_has_bars_for_the_list_or_not(tmp_path: Path) -> None:
     other = Line("ZZZZ", "LSE", "GBP", 1, STAMP_DUTY)
-    root = tmp_path / "store"
     for line in (BOEING, BAE, other):
+        _keep(tmp_path / "store", line)
+    path = tmp_path / database.LIVE
+    assert sweep.held_in(path) == (BAE, other, BOEING)
+    assert sweep.held_in(path)[0] is next(x for x in universe.UNIVERSE if x == BAE)
+
+
+def test_held_is_every_ticker_the_csv_store_has_bars_for_the_old_notes_aside(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "store"  # until its two other callers read the database: Remains
+    for line in (BOEING, BAE):
         _keep(root, line)
-    (root / "US" / "ZZZ.faults.csv").write_text("fault\n")  # an old note, not a ticker
-    assert sweep.held(root) == (BAE, other, BOEING)
-    assert sweep.held(root)[0] is next(x for x in universe.UNIVERSE if x == BAE)
+    (root / "US" / "ZZZ.faults.csv").write_text("fault\n", encoding="utf-8")
+    assert sweep.held(root) == (BAE, BOEING)
 
 
 def test_a_pass_leaves_one_thread_free_when_london_is_shut_and_two_in_its_session() -> None:

@@ -41,12 +41,14 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import sqlite3
 import subprocess
 import sys
 import tempfile
 import time
 from collections import Counter
 from collections.abc import Callable, Sequence
+from contextlib import closing
 from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, timedelta
 from functools import lru_cache, partial
@@ -110,18 +112,33 @@ def cells(line: Line, start: date, end: date, transfer: bool = False) -> tuple[C
     )
 
 
-def held(root: Path) -> tuple[Line, ...]:
-    """Every ticker the research store at root holds bars for, venue by venue, in order. One
-    on the research list is its own line; any other is plain (no leverage), quoted in its
-    venue's currency, and a London share pays stamp duty, as the list's shares do."""
+def _line(symbol: str, venue: str) -> Line:
+    """The line for a ticker held: on the research list its own; any other is plain (no
+    leverage), quoted in its venue's currency, and a London share pays stamp duty."""
     known = {(line.symbol, line.venue): line for line in universe.UNIVERSE}
     money = {"LSE": ("GBP", STAMP_DUTY), "US": ("USD", NO_TAX)}
+    return known.get((symbol, venue), Line(symbol, venue, money[venue][0], 1, money[venue][1]))
+
+
+def held(root: Path) -> tuple[Line, ...]:
+    """Every ticker the research store at root holds bars for, venue by venue, in order."""
     return tuple(
-        known.get((path.stem, venue), Line(path.stem, venue, *money[venue][:1], 1, money[venue][1]))
+        _line(path.stem, venue)
         for venue in sorted(venues.RULES)
         for path in sorted((root / venue).glob("*.csv"))
         if not path.stem.endswith(".faults")  # an old note beside the bars, never a ticker
     )
+
+
+def held_in(path: Path) -> tuple[Line, ...]:
+    """Every ticker the history database beside the live file at path holds daily bars for,
+    venue by venue, in order, as `held` makes its lines."""
+    file = bars.files(path)[bars.DAILY]
+    with closing(sqlite3.connect(f"{file.as_uri()}?mode=ro", uri=True)) as database:
+        rows = database.execute(
+            "SELECT venue, symbol FROM held WHERE span = ? ORDER BY venue, symbol", (bars.DAILY,)
+        ).fetchall()
+    return tuple(_line(symbol, venue) for venue, symbol in rows if venue in venues.RULES)
 
 
 def journal(kept: Path, line: Line) -> Path:
@@ -321,7 +338,7 @@ def main(argv: Sequence[str]) -> None:
     window, threads = (archive.SINCE, datetime.now(UTC).date()), workers(datetime.now(UTC))
     folders = (args.data / bars.LIVE, args.kept)  # the bars from the one door, never the store
     study = args.held or args.transfer
-    lines = held(args.store) if args.held else universe.UNIVERSE if study else declared()
+    lines = held_in(folders[0]) if args.held else universe.UNIVERSE if study else declared()
     done = run(lines, *folders, *window, tune.windows(), args.data, threads, transfer=study)
     died = [f"{line.symbol} on {line.venue}" for line in done.report.died]
     counts = {name: getattr(done, name) for name in (*COUNTS, "seconds")}
