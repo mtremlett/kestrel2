@@ -374,4 +374,4 @@ def test_a_wait_that_runs_out_names_the_call_and_its_seconds(
 
 def test_the_step_time_holds_seven_fill_waits_beside_its_margin() -> None:
     """Failure pattern 24: the step outlasts its orders' waits."""
-    assert (paper.STEP_SECONDS - paper.STEP_MARGIN) // paper.FILL_SECONDS == 7
+    assert (paper.STEP_SECONDS - paper.STEP_MARGIN) // paper.FILL_SECONDS == paper.MAX_ORDERS == 7
