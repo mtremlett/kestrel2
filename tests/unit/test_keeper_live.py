@@ -3,8 +3,11 @@
 from datetime import datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
+from unittest.mock import patch
 
-from desk import bars, keeper, keeper_live
+import pytest
+
+from desk import bars, keeper, keeper_live, live
 from desk.lines import Line
 from desk.spans import Timed
 
@@ -43,3 +46,20 @@ def test_a_polled_round_counts_its_requests_and_a_pacing_refusal_halves_the_rate
     words, requests, refusals = keeper_live.polled_round(hot, lines, now, ask, 5, 27)
     assert (requests, refusals, len(asked)) == (27, 1, 27) and "1 pacing refusals" in words
     assert keeper.pace(5, 27, refusals) == 27 and keeper.pace(5, 100, refusals) == 50
+
+
+def test_a_line_the_gateway_has_no_definition_for_is_untradeable_not_a_miss(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    def ask(one: Line, _when: datetime) -> tuple[Timed, ...]:
+        raise ValueError(
+            f"no IBKR real-time data on paper for {one.symbol}: No security definition"
+        )
+
+    now = datetime(2026, 11, 17, 10, tzinfo=bars.EPOCH.tzinfo)
+    with (
+        patch.object(live, "minutes", return_value=ask),
+        patch.object(keeper, "LINES", (Line("IDTL", "LSE", "USD", 1),)),
+    ):
+        assert keeper.main(tmp_path, now, ["--live"]) == 0
+    assert "UNTRADEABLE" in capsys.readouterr().out

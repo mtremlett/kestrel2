@@ -40,6 +40,7 @@ ROOM = 6  #: lines one call asks the broker for, per venue: at its pacing, two v
 TRIES = 6  #: the calls at which a line parked for a fault is asked again (half an hour)
 SPENT = 150.0  #: seconds of a call in which the archive is still asked (runner: 240)
 DAY = timedelta(days=1)
+NO_DEFINITION = "No security definition"  #: the gateway's word for a line it lists nowhere
 POLLED = {
     5: (27, 270),
     15: (81, 810),
@@ -371,7 +372,9 @@ def main(home: Path, now: datetime, args: Sequence[str] = (), broker: Broker | N
     elif args == ["--live"]:
         ask = live.minutes(home, home / HOT)
         words, missed = keeper_live.minute_round(home / HOT, LINES, now, ask)
-        done = [words]
+        nodef = [m for m in missed if NO_DEFINITION in m]  #: not a miss: nothing to ask for
+        missed = [m for m in missed if m not in nodef]
+        done = [words, *(f"UNTRADEABLE, the broker has no definition: {m}" for m in nodef)]
     elif len(args) == 2 and args[0] == "--polled":
         done = [polled(home, now, int(args[1]), live.minutes(home, home / HOT))]
     else:
