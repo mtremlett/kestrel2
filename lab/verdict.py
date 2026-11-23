@@ -446,10 +446,7 @@ def _weathered(own: Sequence[Bar], verdict: Verdict, made: Sequence[Reproduction
         )
     except ValueError as cannot:  #: a fault in the test, said as one with its reason
         return Answer.FAULT, f"the weather could not be named: {cannot}"
-    return said.answer, (
-        f"up days {said.up.answer.name} on {len(said.up.trades)} trades, down days "
-        f"{said.down.answer.name} on {len(said.down.trades)}; both must pass"
-    )
+    return said.answer, said.words
 
 
 def _n(number: Decimal | float | None) -> str:

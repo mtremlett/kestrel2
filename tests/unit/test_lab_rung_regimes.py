@@ -137,7 +137,9 @@ def test_power_case_a_real_edge_over_sixty_trades_is_never_failed_by_the_weather
     def weathered(edge: float) -> Answer:
         priced = _priced(rng, edge, 30, 30)
         labels = {p.trade.bought: "up" if p.trade.bought < CUT else "down" for p in priced}
-        return rung_regimes.by_weather(KEY, priced, labels).answer
+        judged = rung_regimes.by_weather(KEY, priced, labels)
+        assert ("FAIL" in judged.words) is (judged.answer is Answer.FAIL), judged.words
+        return judged.answer
 
     said = [weathered(3 / 60**0.5) for _ in range(300)]
     #: recorded: about a third PASS, the rest DOUBT, none FAIL; a state that lost fails

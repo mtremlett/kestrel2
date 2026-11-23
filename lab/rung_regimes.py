@@ -126,7 +126,22 @@ class Weathered:
     def answer(self) -> Answer:
         """The same rule over the two states: both must pass. A state the rule never traded in
         is too thin to say (the weather's fault, not the rule's), never a FAULT."""
-        return decide(*(graded(v) if v.trades else Answer.THIN for v in (self.up, self.down)))
+        return decide(*self.states)
+
+    @property
+    def states(self) -> tuple[Answer, Answer]:
+        """Each state's graded answer, up then down; a state never traded in is THIN."""
+        up, down = (graded(v) if v.trades else Answer.THIN for v in (self.up, self.down))
+        return up, down
+
+    @property
+    def words(self) -> str:
+        """The rung's reason: each state's graded answer, the one the rule reads, and its trades."""
+        up, down = self.states
+        return (
+            f"up days {up.name} on {len(self.up.trades)} trades, down days {down.name} on "
+            f"{len(self.down.trades)}; both must pass"
+        )
 
 
 def by_weather(
