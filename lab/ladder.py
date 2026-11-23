@@ -28,8 +28,7 @@ judges by it; every other row owes `no RUNG` first (the test holds the two to ag
  4 excess after market risk, by size: lab/market.py, tests/unit/test_lab_rung_beta.py - no RUNG
  5 two regime windows: lab/rung_regimes.py, tests/unit/test_lab_rung_regimes.py
  6 benchmark excess: lab/market.py, tests/unit/test_lab_market.py - no RUNG; rung_benchmark merged
- 7 deflated Sharpe: lab/rung_dsr.py, tests/unit/test_lab_rung_dsr.py - no RUNG; merge into
-   deflated needs deflated.py and test_lab_trials_clustered.py in the claim
+ 7 deflated Sharpe: lab/deflated.py, tests/unit/test_lab_deflated.py - no RUNG; rung_dsr merged
  8 purged cross-validation: lab/rung_cpcv.py, tests/unit/test_lab_rung_cpcv.py
  9 placebo, days shuffled: lab/shuffle.py, tests/unit/test_lab_shuffle.py - no RUNG; blocks dropped
 10 walk-forward folds: lab/folds.py, tests/unit/test_lab_folds.py - no RUNG; the ladder runs `pool`
