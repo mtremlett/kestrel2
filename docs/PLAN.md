@@ -500,7 +500,11 @@ day's trading and reconciliation are built, and any broker can stand behind them
       (main 17,951, room -26 with riding PRs). The eleven the zoo imports stay. Gate: the whole check green and
       the desk/ line count on main falls by the deleted lines; a rule the ladder still needs has its catalogue row
       (if one has none, keep that file and say so under Remains:).
-      {id: money-epon-room; files: desk/eponymous_dan_zanger.py, desk/eponymous_demark_sequential.py, desk/eponymous_kell_breakout.py, desk/eponymous_mansfield_rs_momentum.py, desk/eponymous_minervini_breakout.py, desk/eponymous_swing.py, desk/eponymous_weinstein_stage.py, tests/unit/test_eponymous_dan_zanger.py, tests/unit/test_eponymous_demark_sequential.py, tests/unit/test_eponymous_kell_breakout.py, tests/unit/test_eponymous_mansfield_rs_momentum.py, tests/unit/test_eponymous_minervini_breakout.py, tests/unit/test_eponymous_swing.py, tests/unit/test_eponymous_weinstein_stage.py, manifest.toml, docs/lanes/money.md}
+      Two things the deletion meets (read on main by runner ops 168): `lab/ladder.py` eponymous() looks every
+      catalogue name up among the Python rules, so a row whose file is gone raises KeyError there: it reads a
+      spec-only row through the rulebook's spec maker instead; and the swing test file also holds the check that
+      every eponymous module declares unique runnable rules, which moves to the Connors test file, never lost.
+      {id: money-epon-room; files: lab/ladder.py, tests/unit/test_lab_ladder_epon.py, tests/unit/test_lab_published_epon.py, tests/unit/test_eponymous_connors.py, desk/eponymous_dan_zanger.py, desk/eponymous_demark_sequential.py, desk/eponymous_kell_breakout.py, desk/eponymous_mansfield_rs_momentum.py, desk/eponymous_minervini_breakout.py, desk/eponymous_swing.py, desk/eponymous_weinstein_stage.py, tests/unit/test_eponymous_dan_zanger.py, tests/unit/test_eponymous_demark_sequential.py, tests/unit/test_eponymous_kell_breakout.py, tests/unit/test_eponymous_mansfield_rs_momentum.py, tests/unit/test_eponymous_minervini_breakout.py, tests/unit/test_eponymous_swing.py, tests/unit/test_eponymous_weinstein_stage.py, manifest.toml, docs/lanes/money.md}
 - [ ] Connors' Double 7's as a desk rule (R-RUNGS-10): `desk/eponymous_connors_double_7.py` is a
       MONEY file, but the ladder finds every `desk/eponymous_*.py` and `lab/published_epon.py` (RUNGS)
       must name it and `test_lab_published_epon.py` count 21, so neither lane's pull request is green
