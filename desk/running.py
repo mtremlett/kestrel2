@@ -47,6 +47,7 @@ from typing import NamedTuple
 from desk import (
     book,
     clearance,
+    conformance_tape,
     day,
     gateway,
     goflat,
@@ -175,6 +176,7 @@ def _pending(root: Path, now: datetime, seen: watch.Look | None, once: bool = Tr
         for venue, hours in trading.items()
         if hours and now < hours.close and not (once and ORDERS.format(venue) in done)
         if not (venue == YARDSTICK.venue and seen.unread.get(YARDSTICK) == watch.EARLY)
+        if not (venue == "LSE" and venues.uk_time(now).time() < conformance_tape.LONDON)
     ]
 
 

@@ -39,10 +39,13 @@ def test_every_step_looks_at_the_market_first_and_london_waits_for_its_first_bar
     # its first bar lands: at the next step the round is made, and the look is made before it
     with writing(desk.hot) as round_:
         round_.five(YARDSTICK, [Five(open_ - timedelta(minutes=5), *(Decimal(40),) * 4, 1)])
-    later = open_ + timedelta(minutes=5)
+    # London's orders wait for 09:00 UK (R-RUNNER-453): 08:10 sends none, 09:05 sends the round
+    _step(monkeypatch, desk, open_ + timedelta(minutes=5), none, tp.EMPTY)
+    assert not running.notes(tmp_path)
+    later = open_ + timedelta(minutes=60)
     _step(monkeypatch, desk, later, none, tp.EMPTY, none)
-    assert [n.what for n in running.notes(tmp_path)] == ["orders LSE"] and look.call_count == 2
-    assert [c.args[3] for c in look.call_args_list] == [open_, later]
+    assert [n.what for n in running.notes(tmp_path)] == ["orders LSE"] and look.call_count == 3
+    assert [c.args[3] for c in look.call_args_list][::2] == [open_, later]
     # a look that fails holds the round, and the rest of the step is done; the failure is raised
     look.side_effect = OSError("the store is gone")
     with pytest.raises(OSError, match="store is gone"):
