@@ -501,6 +501,14 @@ each line's UK tax on the line: scenes 6 and 7 read the same record, so they pas
 (`docs/DECISIONS.md`, the money lane's). The pretend broker, the send path, the book, the
 day's trading and reconciliation are built, and any broker can stand behind them.
 
+- [ ] The zoo's one-share orders are judged on the zoo's own side (coordinator 163's ruling, 23 Nov 20:3x, his
+      'one share each' and 'trade freely across uk and us'; paper only, a MACHINERY TEST): 'held already' reads what
+      the zoo holds, never the desk's whole book (the mechanism #2105 fixed for sizing), and the per-line room never
+      refuses one share while it is within the zoo's 1,000 pounds and the zoo's total stays within it; the one risk
+      gate still judges every order. Net lines in desk/ must not rise (no ceiling room)
+      wire: the desk-day job's zoo round; gate: the evening's 36 refusals (AAPL, TSLA, NVDA among them) replayed as a
+      test pass, written first with their refusal words; an A6 blind review before the train
+      {id: zoo-own-side; files: desk/running.py, desk/day.py, desk/orders.py, tests/unit/test_running*.py, tests/unit/test_orders*.py, tests/unit/test_day*.py}
 - [ ] Connors' Double 7's as a desk rule (R-RUNGS-10): `desk/eponymous_connors_double_7.py` is a
       MONEY file, but the ladder finds every `desk/eponymous_*.py` and `lab/published_epon.py` (RUNGS)
       must name it and `test_lab_published_epon.py` count 21, so neither lane's pull request is green
@@ -686,6 +694,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       which pattern 20's naming of the zoo's path now allows; zoo-own-side, above it, holds the same files)
       {id: money-round-cap; files: desk/day.py, desk/simcity_incidents.py, desk/halt.py, tests/unit/test_day*.py, tests/unit/test_halt*.py,
       tests/unit/test_simcity*.py, desk/running.py, tests/unit/test_running*.py; waits: 2026-11-24}
+      (#2084: the cap acts once, in day._send; every carried order is intended, chained and listed; golden re-pinned. Remains: blind review, zoo-on rehearsal; money-round-whole waits: operator)
 - [x] **Fault, the deep run (A3: a red deep test is a fault):** (#1813: ledger opened once per change, 50,412 -> 228 opens on the fixture night) deep SimCity on 067062cd ended 22 Nov 22:37
       "stuck in the worlds: no end in 7200 s" at `desk/book_parts2.py:48` (`_ledger`). The ledger file is read and
       parsed whole on every `book.fills` and `book.found` call, and the day and the book call them about twenty
