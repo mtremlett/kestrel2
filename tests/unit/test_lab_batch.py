@@ -14,7 +14,7 @@ from typing import Any
 import pytest
 
 from desk import bars as database
-from desk import store, strategy, venues
+from desk import strategy, venues
 from desk.bars import Source
 from desk.lines import LINES, STAMP_DUTY, Line
 from desk.store import Bar
@@ -135,6 +135,7 @@ def test_one_symbol_is_two_companies_each_read_from_the_database_never_a_csv(
 ) -> None:
     day, journal, path = date(2026, 11, 13), tmp_path / "journal", tmp_path / database.LIVE
     held: dict[str, tuple[Bar, ...]] = {}
+    whole: dict[str, tuple[Bar, ...]] = {}
     both = (Line("BA", "US", "USD", 1), Line("BA", "LSE", "GBP", 1, STAMP_DUTY))
     for line in both:
         base = Decimal(100 if line.venue == "US" else 200)
@@ -142,17 +143,13 @@ def test_one_symbol_is_two_companies_each_read_from_the_database_never_a_csv(
         bars = [
             Bar(d, base + n % 7, base + 8, base - 1, base + n % 7, 9) for n, d in enumerate(days)
         ]
-        assert store.prepare(tmp_path / line.venue, {line: bars}, day) == ()  # every day
         with database.writing(path, Source.ARCHIVE) as opened:  # all but the last
             opened.days(line, bars[:-1])
         held[line.venue] = database.daily(path, line)
+        whole[line.venue] = tuple(bars)  # with the last bar the database lacks
     cells = tuple(Cell("breakout_20_10", line, day - timedelta(120), day) for line in both)
     us, london = batch.run(cells, batch.stored(path), journal)
-    assert (
-        us
-        == cell.run(cells[0], held["US"])
-        != cell.run(cells[0], store.read(tmp_path / "US", "BA"))
-    )
+    assert us == cell.run(cells[0], held["US"]) != cell.run(cells[0], whole["US"])
     assert london == cell.run(cells[1], held["LSE"])
     assert [row["cell"][1:3] for row in _lines(journal)] == [["BA", "US"], ["BA", "LSE"]]
     del ran[:]

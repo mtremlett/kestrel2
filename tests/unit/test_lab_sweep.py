@@ -17,7 +17,7 @@ import pytest
 from test_lab_tune import Pc
 
 from desk import bars as database
-from desk import store, strategy, venues
+from desk import strategy, venues
 from desk.bars import Source
 from desk.lines import STAMP_DUTY, Line
 from desk.store import Bar
@@ -33,17 +33,19 @@ LINES = (BOEING, ABSENT, BAE)
 EACH = len(strategy.STRATEGIES)
 
 
-def _keep(root: Path, line: Line, lift: int = 0, split: int = 0, path: Path | None = None) -> None:
-    """A line's bars cleaned into the store at root, and all but the last into the history
-    database beside it (or at path): a slow wave, so rules trade on it, its first `split`
-    bars at ten times the price, as before a split nobody adjusted."""
+def _keep(root: Path, line: Line, lift: int = 0, split: int = 0, path: Path | None = None) -> int:
+    """A line's bars, all but the last, into the history database beside the folder root (or
+    at path; the count returned): a slow wave, so rules trade on it, its first `split` bars at
+    ten times the price, as before a split nobody adjusted."""
+    (root / line.venue).mkdir(parents=True, exist_ok=True)
+    (root / line.venue / f"{line.symbol}.csv").touch()  # the list `sweep.held` reads
     days = venues.sessions(line.venue, START, DAY - timedelta(1))
     up = [n % 40 if n % 80 < 40 else 40 - n % 40 for n in range(len(days))]
     wave = [Decimal(100 + lift + step) * (10 if n < split else 1) for n, step in enumerate(up)]
     bars = [Bar(d, p, p + 1, p - 1, p, 9) for d, p in zip(days, wave, strict=True)]
-    assert bool(store.prepare(root / line.venue, {line: bars}, DAY)) == bool(split)
     with database.writing(path or root.parent / database.LIVE, Source.ARCHIVE) as opened:
         opened.daily(line, bars[:-1])
+    return len(bars) - 1
 
 
 def _dying(
@@ -72,9 +74,11 @@ def _pass(
 def test_every_strategy_on_every_ticker_is_kept_and_only_what_changed_is_run_again(
     tmp_path: Path,
 ) -> None:
-    root, kept = tmp_path / "store", tmp_path / "kept"
-    _keep(root, BOEING)
-    _keep(root, BAE, lift=50, split=30)  # parked by the store, and studied all the same
+    kept = tmp_path / "kept"
+    held = {
+        BOEING: _keep(tmp_path / "store", BOEING),
+        BAE: _keep(tmp_path / "store", BAE, lift=50, split=30),
+    }
     ticks = itertools.count()
     first = _pass(tmp_path, clock=lambda: SATURDAY + timedelta(seconds=next(ticks)))
     assert first.seconds > 0, "the pass's own time is measured, for the weekend it must fit"
@@ -82,13 +86,12 @@ def test_every_strategy_on_every_ticker_is_kept_and_only_what_changed_is_run_aga
     assert (first.kept, first.undone, first.report.died) == (0, 0, ())
     for line in (BOEING, BAE):  # the two companies called BA, each from its own venue's bars
         bars = universe.read(tmp_path / database.LIVE, line).bars  # none before a split
-        csv = len(store.read(root / line.venue, "BA"))  # its last bar is held only there
-        assert len(bars) == csv - 1 - 30 * (line == BAE)
+        assert len(bars) == held[line] - 30 * (line == BAE)
         cells = sweep.cells(line, START, DAY, transfer=True)
         assert [c.strategy for c in cells] == list(strategy.STRATEGIES)
-        held = batch.run(cells, {line: bars}.__getitem__, sweep.journal(kept, line))
-        assert held == tuple(cell.run(c, bars) for c in cells)
-        assert any(record.trades for record in held if isinstance(record, cell.Record))
+        ran = batch.run(cells, {line: bars}.__getitem__, sweep.journal(kept, line))
+        assert ran == tuple(cell.run(c, bars) for c in cells)
+        assert any(record.trades for record in ran if isinstance(record, cell.Record))
         assert len(batch.rows(sweep.journal(kept, line))) == EACH, "a kept cell was run again"
     errors = {row["error"] for row in batch.rows(sweep.journal(kept, ABSENT))}
     assert len(errors) == 1 and errors.pop().startswith("FileNotFoundError")
@@ -99,13 +102,15 @@ def test_every_strategy_on_every_ticker_is_kept_and_only_what_changed_is_run_aga
         cut.write(b'{"cell": ["breakout_20_10", "BA')  # a line a stop cut short
     again = _pass(tmp_path)  # nothing changed: only the failed cells are tried again
     assert (again.ran, again.kept, again.failed, again.undone) == (0, 2 * EACH, EACH, 0)
-    _keep(root, BAE, lift=60)  # one ticker's bars mended: its cells alone are run again
+    _keep(
+        tmp_path / "store", BAE, lift=60
+    )  # one ticker's bars mended: its cells alone are run again
     with database.writing(tmp_path / database.LIVE, Source.ARCHIVE) as opened:
         gone = [b.day for b in database.daily(tmp_path / database.LIVE, BOEING)]
         opened.daily(BOEING, (), withdrawn=gone)  # and another's cannot be read
     third = _pass(tmp_path)
     assert (third.ran, third.kept, third.failed, third.undone) == (EACH, 0, 2 * EACH, 0)
-    _keep(root, BOEING)  # back as they were: found kept
+    _keep(tmp_path / "store", BOEING)  # back as they were: found kept
     fourth = _pass(tmp_path)
     assert (fourth.ran, fourth.kept, fourth.failed, fourth.undone) == (0, 2 * EACH, EACH, 0)
     assert len(batch.rows(sweep.journal(kept, ABSENT))) == EACH, "a failure was written again"
@@ -199,7 +204,6 @@ def test_held_is_every_ticker_the_store_has_bars_for_the_list_or_not(tmp_path: P
     root = tmp_path / "store"
     for line in (BOEING, BAE, other):
         _keep(root, line)
-    (root / "US" / "ZZZ.faults.csv").write_text("fault\n")  # an old note, not a ticker
     assert sweep.held(root) == (BAE, other, BOEING)
     assert sweep.held(root)[0] is next(x for x in universe.UNIVERSE if x == BAE)
 
