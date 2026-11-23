@@ -28,7 +28,11 @@ from desk.orders import Settings
 from desk.running import Desk, Note
 from desk.store import Bar
 
-MON, ID, OLD = tp.AT, "20261113-bollinger_pullback-IITU", "20261112-rsi2_pullback-IITU"
+MON, ID, OLD = (
+    tp.AT + timedelta(hours=1),
+    "20261113-bollinger_pullback-IITU",
+    "20261112-rsi2_pullback-IITU",
+)
 OPEN, SHUT = MON.replace(hour=14, minute=35), MON.replace(hour=21, minute=39)
 DAY = timedelta(days=1)
 SPAN = date(2026, 7, 1), date(2026, 11, 30)
@@ -134,7 +138,7 @@ def test_at_each_open_the_step_checks_the_account_and_sends_the_days_orders_once
     words = f"London, today's orders: {ID}, 26 shares done. {OUT.format('Fri 13', 'SMGB')}"
     assert running.notes(tmp_path) == (Note(MON, "orders LSE", words),)
     morning, orders = _told(post)  # he is told, each thing once
-    assert morning.startswith("🌅 Morning Mon 16 Nov 08:05 UK\n✅ Ready for today (paper)")
+    assert morning.startswith("🌅 Morning Mon 16 Nov 09:05 UK\n✅ Ready for today (paper)")
     assert "📒 Held: IITU 26" in morning and orders == words
     # the next step sends nothing: while a market is open the broker's fills are read, no more
     later = MON + timedelta(minutes=5)
@@ -365,7 +369,7 @@ def test_a_step_that_fails_tells_him_once_and_is_an_error_and_a_silent_gateway_i
     dial = Mock(side_effect=ConnectionRefusedError)
     monkeypatch.setattr(paper, "dial", dial)
     silent, door = _desk(tmp_path / "silent", VUAG=WEEK)
-    for hours, told_by_then in ((15, 1), (16, 1), (19, 1), (24, 3)):  # 23:05, 00:05, 03:05, 08:05
+    for hours, told_by_then in ((14, 1), (15, 1), (18, 1), (23, 3)):  # 23:05, 00:05, 03:05, 08:05
         running.step(silent, MON + timedelta(hours=hours))
         assert door.call_count == told_by_then
     his, again, morning = _told(door)
@@ -398,4 +402,4 @@ def test_a_step_that_fails_tells_him_once_and_is_an_error_and_a_silent_gateway_i
     assert not (clearance.checks(broken.root) or day.records(broken.root))
     _, failed, _ = _told(bell)  # the morning message, one line of it in his words, the evening's
     assert "Failed: today's rehearsal of the kill switch did not pass, so the desk" in failed
-    assert "NOT kept: the kill switch's drill at 2026-11-16 08:05 UTC broke: ['the ord" in failed
+    assert "NOT kept: the kill switch's drill at 2026-11-16 09:05 UTC broke: ['the ord" in failed

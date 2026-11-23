@@ -61,10 +61,6 @@ class Cell:
         for field, value in made:
             object.__setattr__(self, field, value)
 
-    @property
-    def symbol(self) -> str:
-        return self.line.symbol
-
     def __str__(self) -> str:
         on = f"{self.line.symbol} on {self.line.venue}"
         return f"{self.strategy} on {on}, {self.start} to {self.end}"
@@ -221,7 +217,9 @@ def _held(cell: Cell, bars: Sequence[Bar]) -> list[bool]:
     if cell.strategy not in STRATEGIES:  #: an eponymous rule has no array form: the desk's engine
         held: list[bool] = []
         with localcontext(ARITHMETIC):
-            for decision in _run(cell.strategy, rulebook.rule(cell.strategy)(), cell.symbol, bars):
+            for decision in _run(
+                cell.strategy, rulebook.rule(cell.strategy)(), cell.line.symbol, bars
+            ):
                 was = held[-1] if held else False
                 held.append({Action.BUY: True, Action.SELL: False}.get(decision.action, was))
         return held
@@ -229,7 +227,7 @@ def _held(cell: Cell, bars: Sequence[Bar]) -> list[bool]:
         held = grid.held(cell.strategy, grid.prices(bars)).tolist()
     except grid.TooClose:
         held = []
-        for decision in strategy.decide({cell.symbol: bars}):
+        for decision in strategy.decide({cell.line.symbol: bars}):
             if decision.strategy == cell.strategy:
                 was = held[-1] if held else False
                 held.append({Action.BUY: True, Action.SELL: False}.get(decision.action, was))

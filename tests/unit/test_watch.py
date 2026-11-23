@@ -15,7 +15,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from desk import bars, halt, messenger, venues, watch
+from desk import bars, halt, keeper, messenger, venues, watch
 from desk.bars import Five
 from desk.emergency import Level
 from desk.lines import YARDSTICK, Line
@@ -55,14 +55,14 @@ def _daily(day: date = WED, market: Sequence[int] = CALM) -> dict[Line, list[Bar
 
 def _trade(tmp: Path, line: Line, closes: Mapping[str, int | str], day: date = WED) -> None:
     """The line's five-minute bars into the fast store, each by the clock it starts at."""
-    with bars.writing(tmp / "bars.db") as round_:
+    with bars.writing(tmp / keeper.HOT) as round_:
         round_.five(line, [Five(_at(at, day), *_flat(c)) for at, c in closes.items()])
 
 
 def _look(
     tmp: Path, clock: str, post: Mock, day: date = WED, market: Sequence[int] = CALM
 ) -> watch.Look:
-    return watch.look(tmp / "desk", tmp / "bars.db", _daily(day, market), _at(clock, day), post)
+    return watch.look(tmp / "desk", tmp / keeper.HOT, _daily(day, market), _at(clock, day), post)
 
 
 def _names(tmp: Path) -> list[str]:
@@ -72,7 +72,7 @@ def _names(tmp: Path) -> list[str]:
 def test_a_look_reads_each_trading_line_at_its_newest_ended_bar_or_says_why_not(
     tmp_path: Path,
 ) -> None:
-    hot, daily = tmp_path / "bars.db", _daily()
+    hot, daily = tmp_path / keeper.HOT, _daily()
     _trade(tmp_path, YARDSTICK, {"08:00": 99, "10:00": 98, "10:05": 95})
     _trade(tmp_path, THIN, {"08:30": 97})
     _trade(tmp_path, ONE, {"14:30": 99, "16:40": 96})
@@ -121,7 +121,7 @@ def test_a_crash_halts_all_buying_at_once_tells_him_once_and_the_halt_says_why(
     with pytest.raises(messenger.Undelivered):  #: his phone's door is down: halted all the same
         _look(tmp_path, "10:05", Mock(side_effect=messenger.Undelivered("no line")))
     (called,) = halt.in_force(root)
-    fall = watch.read(tmp_path / "bars.db", _daily(), _at("10:05")).falls[0]
+    fall = watch.read(tmp_path / keeper.HOT, _daily(), _at("10:05")).falls[0]
     assert (called.at, called.why) == (_at("10:05"), fall.words())
     assert (called.by, called.his) == (watch.WATCH, False)
     assert "CRASH" in called.why and "5.0% below its last close" in called.why
@@ -146,7 +146,7 @@ def test_a_crash_halt_cancels_the_working_buys_at_the_broker_once(tmp_path: Path
     for clock in ("10:05", "10:10"):
         post = Mock(side_effect=count(1))
         watch.look(
-            tmp_path / "desk", tmp_path / "bars.db", _daily(), _at(clock), post, lambda: broker
+            tmp_path / "desk", tmp_path / keeper.HOT, _daily(), _at(clock), post, lambda: broker
         )
     assert len(halt.in_force(tmp_path / "desk")) == 1 and broker.cancel.call_count == 1
 
@@ -228,7 +228,7 @@ def test_a_black_swan_is_his_alone_to_lift_and_is_read_twice_before_any_sale(
     _trade(tmp_path, YARDSTICK, {"10:15": 88, "16:25": 99})
     _trade(tmp_path, TRIPLE, {"10:15": 70})  #: one line's emergency in the same look
     assert _look(tmp_path, "10:20", post).cash, "its two newest bars said so: read twice"
-    stale = watch.read(tmp_path / "bars.db", _daily(), _at("10:41"))
+    stale = watch.read(tmp_path / keeper.HOT, _daily(), _at("10:41"))
     assert stale.blind and not stale.cash, "sold on a market no longer heard from"
     _, once, twice, _ = messenger.deliveries(root)
     assert _names(tmp_path) == [
@@ -287,6 +287,7 @@ def test_one_lines_emergency_halts_nothing_and_a_market_unread_is_told_and_never
         "watch 2025-11-13 08h blind",
     ]
     assert "30.0% below its last close" in shock.text and "NOT DONE" in shock.text
+    assert "park the line by hand" in shock.text and "cannot" not in shock.text
     assert "THE CRASH WATCH IS BLIND" in blind.text and "since 10:05 UTC" in blind.text
     assert "ONE, on 2025-11-12, is 10.0% below" in alone.text
     assert "no fall is read from its bar of 2025-11-13 08:00" in unbelieved.text
