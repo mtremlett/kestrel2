@@ -175,7 +175,7 @@ Intraday round built (#1371, `running._intraday`, `Desk.rules` empty); its buy n
 - R-MONEY-55: done in #1066; R-RUNNER-418: done in #1417 (steps joined day_parts, desk/ at its file ceiling); R-RUNGS-29 declined in #1417 (a guard file no lane owns)
 - R-RUNNER-410: done in #1264; R-MONEY-58: done in #1267; R-RUNNER-400: done in #1260; R-RUNNER-415: done in #1280; R-RUNNER-283: done in #1350; R-RUNNER-348: done in #1366; R-RUNNER-202: done in #1371; R-RUNNER-281: done in #1393; R-RUNNER-310: done in #1395; R-RUNNER-394: done in #1403 (stops half is R-PAPER-37); R-RUNNER-395: done in #1406
 - R-MONEY-54: done in #1414; R-MONEY-61: done in #1428; R-MONEY-56: done in #1514; R-RUNNER-160: done in #1478 (morning message tells the heat); R-RUNNER-208: done in #1482 (compact phone layout, `pnl.icon` public); R-MONEY-58: last Sale carries `session` in #1472
-- R-RUNNER-436: done in #2019; R-PAPER-38: done in #1852; R-PAPER-39: done in #1925; R-RUNNER-447: done in #2038; R-RUNNER-462: done in #2059; R-RUNNER-453: done in #2068; R-RUNNER-461: done in #2079; R-RUNNER-468: done in #2075 (held for A6 review)
+- R-RUNNER-436: done in #2019; R-PAPER-38: done in #1852; R-PAPER-39: done in #1925; R-RUNNER-447: done in #2038; R-RUNNER-462: done in #2059; R-RUNNER-453: done in #2068; R-RUNNER-461: done in #2079; R-RUNNER-468: done in #2075 (held for A6 review); R-RUNNER-475: done in #2096
 
 ### Found, not fixed
 
