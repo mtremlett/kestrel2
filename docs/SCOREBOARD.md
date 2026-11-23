@@ -1057,6 +1057,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1858 DATA: data-members: docs only, no box ticked. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1860 DATA: data-monitor: alarm names the golden fault that turned it red. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1848 DATA: scribe folds six PRs (docs only). |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2015 DATA: data-door-writer: CSV store code deleted from desk/store.py. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1766 RUNGS: indicator tables name their fresh 14-day lows truly; no fresh-low or Supertrend table found (STR-14). |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1768 RUNGS: registry test reads the real rungs from `rung.found()`; one list fewer. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1771 RUNGS: L18 step 2, a rule judged on its own clustered lines (`deflated.judge_lines`); box open: wiring. |
