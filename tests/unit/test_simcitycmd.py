@@ -37,7 +37,13 @@ def saved(monkeypatch: pytest.MonkeyPatch) -> None:
         "saved",
         lambda _home, _day, lines: ({x: tuple(SHORT[x]) for x in lines}, frozenset()),
     )
-    monkeypatch.setattr(command, "rates", lambda _root, _day: RATES)
+    monkeypatch.setattr(
+        command,
+        "rates",
+        lambda home, _day: RATES
+        if home.name not in ("desk", "conformance")
+        else pytest.fail(f"rates given a records folder, not the store's home: {home}"),
+    )
 
 
 def test_the_command_lives_the_saved_store_in_a_night_and_its_code_is_zero_only_for_green(
@@ -92,7 +98,13 @@ def test_the_worlds_are_built_from_the_keepers_store_and_not_the_old_desk_store(
     )
     keeper.keep(tmp_path, NOW, (line,), lambda _line, _day: bars, lambda _l, _n: (), lambda: 0.0)
     monkeypatch.setattr(simcitycmd, "LINES", (line,))
-    monkeypatch.setattr(command, "rates", lambda _root, _day: RATES)
+    monkeypatch.setattr(
+        command,
+        "rates",
+        lambda home, _day: RATES
+        if home.name not in ("desk", "conformance")
+        else pytest.fail(f"rates given a records folder, not the store's home: {home}"),
+    )
     monkeypatch.setattr(simcity, "run", run)
     with pytest.raises(RuntimeError, match="keeper holds"):
         simcitycmd.main([], {"KESTREL2_DATA": str(tmp_path)}, lambda: NOW)

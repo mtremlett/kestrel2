@@ -28,6 +28,7 @@ from desk import eponymous_keltner_channel_trend as keltner
 from desk import eponymous_momentum as momentum
 from desk import eponymous_raschke_swing as raschke
 from desk import eponymous_williams_r as williams
+from desk.grimes import GRIMES
 from desk.lines import LINES, Line
 from desk.rollup import Candle
 from desk.spans import Five, Timed
@@ -158,7 +159,7 @@ def today(
     )
 
 
-# THE ZOO (the operator, 21 November 2026): twenty textbook rules kept as MACHINERY, NOT EDGE,
+# THE ZOO (the operator, 21 November 2026): thirty textbook rules kept as MACHINERY, NOT EDGE,
 # to exercise the desk on every regime and on daily, 15- and 5-minute bars while the ladder
 # looks for edge. None is in STRATEGIES or RULES; none reaches money without the whole ladder.
 GAP = Decimal("0.01")  #: a gap: the session opens a hundredth or more from the last close
@@ -342,6 +343,7 @@ _FILES = (bands, squeeze, breakouts, clenow, connors, three_day, faber, keltner,
 _DAILY: Mapping[str, type[Rule]] = {
     **WIRING,
     **{name: rule for file in (*_FILES, williams) for name, rule in file.EPONYMOUS.items()},
+    **GRIMES,  #: Grimes's ten setups (desk/grimes.py), a MACHINERY TEST since his 22 Nov ruling
 }
 
 
@@ -363,7 +365,8 @@ _T, _MR, _MO, _V, _R = (
     Regime.RANGE,
 )
 _G, _S = Regime.GAPPER, Regime.SCALP
-#: The twenty, their sources cited in full on the pull request that chose them (21 November 2026).
+#: The twenty, their sources cited in full on the pull request that chose them (21 November 2026);
+#: then Grimes's ten (22 November 2026), each a setup of his catalogue's section 3.
 ZOO: tuple[Machine, ...] = (
     _daily("ema_9_21", _T, "the 9/21 exponential cross, the desk's wiring rule"),
     _daily("donchian_channel_breakout", _T, "Faith, Way of the Turtle (2007)"),
@@ -385,6 +388,12 @@ ZOO: tuple[Machine, ...] = (
     _intraday("micro_pullback_5m", _S, _MicroPullback, "the 9/21 pullback scalp"),
     _intraday("rsi2_scalp_5m", _S, _Rsi2Scalp, "Connors and Alvarez (2008), on 5-minute bars"),
     _intraday("ema_cross_5m", _S, _EmaCross, "the 9/21 exponential cross, on 5-minute bars"),
+    *(
+        _daily(
+            name, regime, f"Grimes, The Art and Science of Technical Analysis (2012), {name[:4]}"
+        )
+        for name, regime in zip(GRIMES, (_T, _T, _T, _T, _V, _R, _MR, _MO, _R, _MO), strict=True)
+    ),
 )
 
 
@@ -394,6 +403,13 @@ ZOO_RULES: Mapping[str, Callable[[], IntradayRule]] = {
     m.name: m.rule  # type: ignore[misc]  # each zoo _Day defines step: test_intraday_zoo runs it
     for m in ZOO
     if m.span and issubclass(m.rule, _Day)
+}
+#: The zoo's daily rules, which the desk's morning round trades on PAPER behind the same switch
+#: (desk/day.py _zoo), one share each, as a MACHINERY TEST: never in STRATEGIES, never judged.
+ZOO_DAILY: Mapping[str, type[Rule]] = {
+    m.name: m.rule  # type: ignore[misc]  # span None: a daily Rule (Machine.__post_init__)
+    for m in ZOO
+    if m.span is None
 }
 
 

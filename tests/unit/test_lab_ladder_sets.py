@@ -78,14 +78,13 @@ def test_a_set_whose_cells_all_fault_ends_red_naming_the_rung_and_real_fails_end
 
 
 def test_a_basket_row_carries_the_market_its_lines_venue_is_set_beside(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from test_lab_ladder import EDGE, ISF, VUSA, _door
 
-    from lab import basket, rung_retail, trials
+    from lab import basket, rung_retail
     from lab.cell import Cell
 
-    monkeypatch.setattr(trials, "family", lambda *_: 1)
     seen: list[rung_retail.Against | None] = []
     row = basket.row
 
@@ -96,7 +95,7 @@ def test_a_basket_row_carries_the_market_its_lines_venue_is_set_beside(
     monkeypatch.setattr(basket, "row", spy)
     todo = [Cell("breakout_20_10", VUSA, START, END)]
     door = _door({VUSA: EDGE, ISF: EDGE})
-    ladder_sets.baskets(tmp_path, door, {}, todo, ["breakout_20_10"], ladder_sets.EPON)
+    ladder_sets.baskets(door, {}, todo, ["breakout_20_10"], ladder_sets.EPON)
     (against,) = seen
     assert against is not None
     assert (against.line, against.bars, against.rates) == (ISF, EDGE, {})
@@ -164,6 +163,31 @@ def test_the_door_takes_intraday_and_variants_and_refuses_an_unknown_set(
         said = capsys.readouterr().out
         assert f"SET VAR: {len(made)} variants entered, {len(made)} trials" in said
     register = tmp_path / "ladder" / "VAR.trials.jsonl"
-    assert trials.family(register, ladder_sets.VAR.question, "donchian_channel_breakout") == 12
+    assert trials.count(register, ladder_sets.VAR.question) == len(made)
     with pytest.raises(SystemExit, match="intraday"):
         ladder_sets.main(env, ["nonsense"])
+
+
+def test_the_pooled_set_refuses_input_gaps_and_a_set_over_one_percent_fault_is_withheld(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from test_lab_ladder import EDGE, ISF, NOISE, VUSA, _door
+
+    from lab import ladder_pool
+
+    ran: list[object] = []
+    monkeypatch.setattr(ladder_pool, "run", lambda *a: ran.append(a))  #: the pool never begun
+    rule = ["trend_50_200"]
+    holed = _door({VUSA: EDGE, ISF: NOISE[:4] + NOISE[5:]})  #: ISF lacks a session (L20)
+    with pytest.raises(ValueError, match="refuses to start, first ISF has no bar on 2010-01-05"):
+        ladder_sets.epon(
+            tmp_path, holed, {}, [VUSA], rules=rule, go=ladder_sets._pooled(lambda: holed)
+        )
+    assert not ran and not (tmp_path / "ladder").exists()
+    monkeypatch.setattr(ladder_pool, "run", lambda *a: ladder.run(a[0], a[1](), *a[2:]))
+    whole = _door({VUSA: EDGE, ISF: NOISE})
+    said = ladder_sets.epon(
+        tmp_path, whole, {}, [VUSA, ISF], rules=rule, go=ladder_sets._pooled(lambda: whole)
+    )
+    assert "NOT PUBLISHED: " in said
+    assert "## NOT PUBLISHED" in (tmp_path / "ladder" / "sets" / "EPON.md").read_text()

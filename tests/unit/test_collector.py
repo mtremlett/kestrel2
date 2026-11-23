@@ -21,7 +21,17 @@ ANSWERS = {
     "api.massive.com": {"results": [{"T": "AAPL", "c": 190.5}, {"T": "ZZZZ", "c": 1}]},
     "api.tiingo.com": [{"date": "2026-11-13T00:00:00.000Z", "close": 190.4}],
     "eodhd.com": [{"date": "2026-11-13", "close": 51.2}],
+    "alphavantage.co": {"Time Series (Daily)": {"2026-11-13": {"4. close": "52.3"}}},
     "api.stlouisfed.org": {"observations": [{"date": "2026-11-13", "value": "4.1"}]},
+    "api.bls.gov": {
+        "Results": {"series": [{"data": [{"year": "2026", "period": "M10", "value": "3"}]}]}
+    },
+    "apps.bea.gov": {
+        "BEAAPI": {
+            "Results": {"Data": [{"LineNumber": "1", "TimePeriod": "2026Q3", "DataValue": "2.1"}]}
+        }
+    },
+    "api.eia.gov": {"response": {"data": [{"period": "2026-11-13", "value": 60.5}]}},
     "finnhub.io/api/v1/calendar": {"earningsCalendar": [{"date": "2026-11-19", "symbol": "NVDA"}]},
     "finnhub.io/api/v1/news": [{"datetime": 1763280000, "headline": "Markets rally"}],
     "api.marketaux.com": {"data": [{"published_at": "2026-11-16T09:30:00.000000Z", "title": "M"}]},
@@ -31,6 +41,14 @@ ANSWERS = {
 
 def _ask(address: str) -> bytes:
     assert HIDDEN in address
+    if "EARNINGS_CALENDAR" in address:
+        rows = (
+            "symbol,name,reportDate",
+            "NVDA,N,2026-11-19",
+            "NVDA,N,2027-02-01",
+            "ZZZZ,Z,2026-11-19",
+        )
+        return "\n".join(rows).encode()
     return json.dumps(next(a for host, a in ANSWERS.items() if host in address)).encode()
 
 
@@ -56,8 +74,14 @@ def test_one_run_writes_the_four_kinds_and_never_prints_a_key(
     assert ("price", "ZZZZ") not in held  # a ticker the desk holds no line for
     audited = collector.LONDON[datetime(2026, 11, 13).toordinal() % len(collector.LONDON)]
     assert held[("price", audited)] == [("2026-11-13", "51.2")]  # the day's London line
+    second = collector.LONDON[(datetime(2026, 11, 13).toordinal() + 1) % len(collector.LONDON)]
+    assert held[("price", second)] == [("2026-11-13", "52.3")]  # and the turn after it
     assert held[("macro", "DGS10")] == [("2026-11-13", "4.1")]
-    assert held[("earnings", "NVDA")] == [("2026-11-19", "")]
+    assert held[("macro", "UNRATE")] == [("2026-11-13", "4.1")]
+    assert held[("macro", "LNS14000000")] == [("2026-10", "3")]
+    assert held[("macro", "T10101-GDP")] == [("2026Q3", "2.1")]
+    assert held[("macro", "RWTC")] == [("2026-11-13", "60.5")]
+    assert held[("earnings", "NVDA")] == [("2026-11-19", "")] * 2  # Finnhub and Alpha agree
     assert ("2025-11-16T08:00:00+00:00", "Markets rally") in held[("news", "finnhub")]
     assert ("2026-11-16T09:30:00+00:00", "M") in held[("news", "marketaux")]
     out = capsys.readouterr()

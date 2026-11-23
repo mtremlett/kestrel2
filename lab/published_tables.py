@@ -11,9 +11,16 @@ deviation of Bollinger's bands, the breakout's highest high and lowest low, and 
 deviations under the average. Held as the rule's own lines work them, the rule
 shown the table's days and its smoothing read after each: the RSI's gains and losses, and
 the true range and its average, from prices alone. No rule is proven while one of them
-gives another number. The tables show a rule only days on which it holds nothing, and none
-has a day whose own low is its lowest of 14. Supertrend's carried band, which no table here
-prints, is left to the known answers of `lab/published.py` and the strategies' contract test.
+gives another number. Each table is run twice: with the rule holding nothing, and again
+holding from its first smoothed day, so a rule that stops feeding its lines while it holds is
+refused (the windows are no rule's lines, and give the same either way). The channel's
+printed days (cs-soo.xls, the same series as cs-percentr.xls) have none whose own low is its
+lowest of 14; the true range's of 4 to 6 May 2010 are (6 May's 41.55), but none prints it.
+Supertrend's carried band, which no table here prints, is left to the known answers of
+`lab/published.py` and the strategies' contract test. Looked for both, 22 Nov: Grimes's book
+(kestrel2_research/grimes) prints result tables only, no series, and no Supertrend at all;
+the free web, one-bar examples (Mudrex, LuxAlgo) and blog tables that contradict themselves,
+none worth holding to; ChartSchool's Price Channels and Aroon pages, no spreadsheet.
 """
 
 from __future__ import annotations
@@ -41,7 +48,7 @@ class Table:
     source: str
     given: Columns
     printed: Columns
-    made: Callable[[Columns], Mapping[str, Sequence[Decimal]]]  #: the desk's own, by column
+    made: Callable[[Columns, bool], Mapping[str, Sequence[Decimal]]]  #: the desk's, holding or not
 
     def __post_init__(self) -> None:
         if not self.source.strip() or not self.printed:
@@ -63,17 +70,19 @@ def _windows(size: int, values: Sequence[Decimal]) -> Iterator[_Window]:
             yield window
 
 
-def _fed(make: type[Rule], size: int, part: str, given: Columns) -> list[Decimal]:
+def _fed(make: type[Rule], size: int, part: str, given: Columns, holding: bool) -> list[Decimal]:
     """What the rule's own lines feed its Wilder's smoothing `part` on the table's days (a
-    gain, a loss, a true range), smoothed over `size` days, from the first day it has a value.
-    Over 1 day the smoothing is the number fed itself. A table of closes has days of no range."""
+    gain, a loss, a true range), smoothed over `size` days, from the first day it has a value,
+    the rule `holding` from then on or never. Over 1 day the smoothing is the number fed
+    itself. A table of closes has days of no range."""
     rule, closes = make(), given["Close"]
     smooth = {name: _Wilder(size) for name, was in vars(rule).items() if isinstance(was, _Wilder)}
     vars(rule).update(smooth)
     made = []
     days = zip(given.get("High", closes), given.get("Low", closes), closes, strict=True)
     for n, (high, low, close) in enumerate(days):
-        rule.step(Bar(FIRST + timedelta(n), close, high, low, close, 1000), False)
+        held = holding and smooth[part].value is not None
+        rule.step(Bar(FIRST + timedelta(n), close, high, low, close, 1000), held)
         made.append(smooth[part].value)
     return [value for value in made if value is not None]
 
@@ -92,7 +101,7 @@ INDICATORS: Mapping[str, Table] = {
             "22.766920 22.906930 23.077730 23.211780 23.378610 23.526570 23.653780 23.711390 "
             "23.685570 23.612980 23.505730 23.432250 23.277340 23.131210",
         ),
-        lambda given: {"10-day SMA": [w.mean() for w in _windows(10, given["Price"])]},
+        lambda given, _held: {"10-day SMA": [w.mean() for w in _windows(10, given["Price"])]},
     ),
     "Bollinger's bands": Table(
         _SCHOOL + "Bollinger Bands (cs-bbands.xls): SPY, 1 May to 30 June 2009, 20 days",
@@ -114,7 +123,7 @@ INDICATORS: Mapping[str, Table] = {
             "85.9775 86.2743 86.8204 86.8653 86.9150 87.1168 87.6331 87.8256 87.5622 87.7595 "
             "87.9663 87.9520 87.9639 87.9519",
         ),
-        lambda given: {
+        lambda given, _held: {
             "Middle Band": [w.mean() for w in _windows(20, given["Price"])],
             "Standard Deviation": [w.deviation() for w in _windows(20, given["Price"])],
             "Lower Band": [
@@ -144,13 +153,17 @@ INDICATORS: Mapping[str, Table] = {
             "RSI: 70.53 66.32 66.55 69.41 66.36 57.97 62.93 63.26 56.06 62.38 54.71 50.42 39.99 "
             "41.46 41.87 45.46 37.30 33.08 37.77",
         ),
-        lambda given: {
-            "Gain": _fed(_Rsi2, 1, "_gain", given),
-            "Loss": _fed(_Rsi2, 1, "_loss", given),
-            "Avg Gain": _fed(_Rsi2, 14, "_gain", given),
-            "Avg Loss": _fed(_Rsi2, 14, "_loss", given),
+        lambda given, held: {
+            "Gain": _fed(_Rsi2, 1, "_gain", given, held),
+            "Loss": _fed(_Rsi2, 1, "_loss", given, held),
+            "Avg Gain": _fed(_Rsi2, 14, "_gain", given, held),
+            "Avg Loss": _fed(_Rsi2, 14, "_loss", given, held),
             "RSI": list(
-                map(strategy.rsi, _fed(_Rsi2, 14, "_gain", given), _fed(_Rsi2, 14, "_loss", given))
+                map(
+                    strategy.rsi,
+                    _fed(_Rsi2, 14, "_gain", given, held),
+                    _fed(_Rsi2, 14, "_loss", given, held),
+                )
             ),
         },
     ),
@@ -174,9 +187,9 @@ INDICATORS: Mapping[str, Table] = {
             "ATR: 0.5550 0.5939 0.5858 0.5689 0.6155 0.6179 0.6424 0.6743 0.6928 0.7754 0.7815 "
             "1.2092 1.3026 1.3803 1.3667 1.3362 1.3165",
         ),
-        lambda given: {
-            "TR": _fed(_Supertrend, 1, "_range", given),
-            "ATR": _fed(_Supertrend, 14, "_range", given),
+        lambda given, held: {
+            "TR": _fed(_Supertrend, 1, "_range", given, held),
+            "ATR": _fed(_Supertrend, 14, "_range", given, held),
         },
     ),
     "channel": Table(
@@ -199,7 +212,7 @@ INDICATORS: Mapping[str, Table] = {
             "124.5615 124.5615 124.5615 124.5615 124.5715 125.0689 125.9245 125.9245 125.9245 "
             "125.9245",
         ),
-        lambda given: {
+        lambda given, _held: {
             "Highest High (14)": [w.high() for w in _windows(14, given["High"])],
             "Lowest Low (14)": [w.low() for w in _windows(14, given["Low"])],
         },
@@ -214,9 +227,11 @@ def indicators() -> Mapping[str, Table]:
     that does not."""
     with localcontext(strategy.ARITHMETIC):
         for name, table in INDICATORS.items():
-            columns = table.made(table.given)
-            for column, printed in table.printed.items():
-                _hold(f"the desk's {name}, its {column}", table, columns[column], printed)
+            for held, holding in ((False, ""), (True, ", while holding")):
+                columns = table.made(table.given, held)
+                for column, printed in table.printed.items():
+                    whose = f"the desk's {name}, its {column}{holding}"
+                    _hold(whose, table, columns[column], printed)
     return INDICATORS
 
 

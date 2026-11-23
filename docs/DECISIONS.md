@@ -2242,3 +2242,114 @@ Scope for Mon 23 Nov: the zoo's seven day-trading rules (5- and 15-minute bars) 
 the zoo's thirteen daily rules (they need the daily round, `desk/day.py`), and the Grimes AG catalogue
 (no AG rule exists as code yet). Guard proven (A7): with `zoo` defaulting to True the test failed at its
 first assert; with the one-share cap removed it failed (23 shares bought, not 1).
+
+## 22 Nov - Grimes's ten setups join the zoo as a paper MACHINERY TEST (his "both now")
+
+His words in chat (Sun 22 Nov 15:3x, via the coordinator): "both now": build the ten AG strategies now, beside
+the ladder, to trade on paper as a test of the desk; the ladder stays the only gate for edge and money (CANON
+B6, his 22 Nov ruling on zoo machinery above, PR #1682). Decided, with options:
+- WHERE: desk/ may never import lab/, so rules the desk runs live in desk/; an `eponymous_*` file would put them
+  in the ladder's rule book and its published-figure checks, so they get their own `desk/grimes.py`; desk/ held
+  100 of 100 files, so `desk/simcity_parts2.py` was folded into `simcity_parts.py` first (#1691, a pure move).
+- WHAT: the catalogue (kestrel2_research/grimes/catalogue.md v3, review 9.8) at its defaults, long only, on the
+  daily bar (the intraday round shows a rule one session, under the 60-bar warm-up the blocks need), one share.
+  Left to the ladder: sweeps, sizing by risk, shorts through inverse ETFs, the weekly (HTF) contexts, the MGMT
+  study. A resting order becomes a bar trading through its level, filled at the next open (the engine's fill).
+- HOW IT TRADES: as daily zoo machines `zoo_ag01_...` to `zoo_ag10_...` in `desk/intraday.py` ZOO, so the zoo's
+  switch, its own allowance, its one-share cap and its MACHINERY TEST label apply; they trade only when the
+  zoo's daily round (zoo-daily) reads ZOO's daily machines, behind the `zoo-on-paper` file. Never in STRATEGIES,
+  never A-GATE (`test_intraday_zoo.py`).
+Guard proven (A7): the tests were written after the code, so each was driven red by a planted mutation of the
+condition it names, 13 of 13 caught: AG-01 shared high not needed, AG-02 close back over the boundary dropped,
+AG-03 CD/AB band widened, AG-04 reaction limit 50% to 80%, AG-05 spring's close inside dropped, AG-06 context
+always true, AG-07 retrace 62% to 80%, AG-08 pierce of K by any bar, AG-09 weak thrust under 2x mean, AG-10 top
+third to two thirds, MGMT breakeven dropped, MGMT parabolic stop dropped, SW confirming at a third of z. The drive
+first found three near-misses blocked by a second condition (AG-01, AG-02, AG-08) and a swing test passing on a
+tie; each was rebuilt until the named condition alone decided it.
+
+## 22 Nov - a lane may fold away its own module (R-RUNGS-29), by his own words
+
+**His words** (chat seat 44, Sun 22 Nov ~18:1x), asked whether lanes may remove their own
+modules' lines from the manifest so the ladder's eight owed rungs can be wired and merged:
+"Yes / I trust your recommendations / Do what is required to speed up". Loosening a guard
+is his alone (CLAUDE.md); this is that yes.
+
+**What changed.** `tests/guards/test_lanes.py`: a lane branch may now also *remove* the
+manifest line of a module it owned on main (the merge-base manifest), and change that
+module's files and tests while folding it away. Nothing else moves: removing or adding
+another lane's line, editing any non-module line, and touching another lane's files are
+refused as before. Before, `rungs-each-rung` waited on this since 19 Nov (R-RUNGS-29:
+five of the eight owed rungs fold into another module), and MONEY rightly declined it
+(#1417): a guard no lane owns.
+
+**Driven (A7)**, on scratch clones whose main held the guard, each scenario on a
+`lane/rungs-...` branch, `test_a_lane_changes_only_its_own_files`:
+
+| scenario | old guard | new guard |
+|---|---|---|
+| fold own: remove `lab/rung_ci.py`'s line, delete it and its tests | FAIL | pass |
+| remove MONEY's `desk/orders.py` line | FAIL | FAIL |
+| add a planted `desk/zzz.py` line under MONEY's heading | FAIL | FAIL |
+| edit a non-module line (MONEY's heading) | FAIL | FAIL |
+| delete MONEY's `desk/orders.py` | FAIL | FAIL |
+
+## 22 Nov - the zoo's thirteen daily rules join the morning round, and the zoo yields every line to the desk
+
+His order (Sun 22 Nov 15:3x, "both now") under the same 14:1x ruling and conditions as above. Options for
+where the daily zoo trades: (a) a second daily engine beside `day.trade`, which B2 forbids; (b) the zoo's
+rules added to `strategy.STRATEGIES`, which would make them A-GATE candidates and change the desk's goldens;
+(c) DECIDED: one more step at the end of the same morning round (`day._zoo`), after the desk's own orders,
+on the same bars, the same send path and gate, behind the same switch (`Desk.zoo`, the file `zoo-on-paper`).
+Options for the book: a separate book file cannot work (the paper account holds one position per line, and
+the stop follows the line's newest buy, `restop`), so ONE OWNER PER LINE stands, and the desk comes first:
+- THE ZOO YIELDS (`day._yields`): a line one of the desk's rules buys today that a zoo rule (daily or
+  intraday) holds is sold out of the zoo first, under the zoo rule's id; the desk's "sold this morning"
+  reads only the desk's own sales, so its buy goes as if the zoo were not there.
+- THE GATE SEES ONE SIDE (`book.side`): a zoo order's gate counts the zoo's lines alone, a desk order's
+  the desk's, so zoo lines fill none of the desk's five holdings, room or correlation cap. Not split: the
+  pounds per underlying (`day_money.exposure`) still count the zoo's single shares (a few pounds against
+  a 40% cap), recorded rather than built.
+- ONE SHARE, ITS OWN ALLOWANCE: a daily zoo buy is one share on `orders.ZOO_ROOM` (moved from running.py,
+  one home) and the zoo's own standing; refused as the desk's own (`day.refusal`, sold this morning).
+- NEWS HOURLY: the morning round's zoo answers are kept as a `zoo <venue>` note, labelled MACHINERY TEST,
+  NOT EVIDENCE OF AN EDGE, told only in his hourly line (`running.zoo_hour`), never in the round's message.
+- Goldens unchanged: with no zoo fills every new path is a no-op (`_yields` sends nothing, `_side` is the
+  whole book), and SimCity and replays never set the switch.
+Check: `tests/unit/test_day_standing.py::test_the_daily_zoo_buys_one_share_a_rule_only_when_on_and_yields_the_desks_lines`.
+Guard proven (A7): it failed first (no `intraday.ZOO_DAILY`); then with the gate given the whole book
+("1 holdings already, at most 1"), with no yield (1 share, not more), and with the desk's "sold this
+morning" reading the zoo's sales too (no VUAG bought).
+Blind review (CANON A6.6) found one blocking fault, fixed: the zoo's sales were dated today, and the
+paper door refuses an order not dated the session before (`placing.py`; the pretend broker never checks,
+failure pattern 15), so no zoo sale would ever have filled. Now dated as the desk's own; the test records
+every placed order's session and failed (dated Wednesday) before the fix.
+
+## 22 Nov - the one-price-door guard, the last condition on the price-one-door hold
+
+His ruling (~10:00, "paramount"): every price is read from market_history.db or market_live.db.
+The hold on the ladder and grid jobs (runner ops 69) asked for all five doors AND
+`tests/guards/test_one_price_door.py`; the five doors are on main (#1672, #1674, #1683, #1697,
+money-door-slippage), but no card ever built the guard, so the hold could never lift (pattern 20).
+The guard: outside seven writers named in the manifest as letting outside prices in, no line in
+desk/ or lab/ asks the archive or reads a price file. Driven (A7) on a scratch worktree: green on
+main; red naming `lab/ladder.py:354` for a planted `archive.fetch`, and `desk/day.py:525` for a
+planted `read_csv`; green again with both removed.
+
+## 22 Nov - a wait names a real request (guard), and four waits that could never lift
+
+`tests/guards/test_waits.py`: every request an open box waits on is a request line in STATUS.
+Driven (A7): red on main naming R-MONEY-31, R-RUNGS-14, R-RUNGS-7, R-RUNGS-9; green after.
+R-RUNGS-9 (#544, #889) and R-RUNGS-14 (#508) were done but never lines: now `- [x]`, which
+frees rungs-reproduce of them. R-RUNGS-7 is written as the open MONEY request it is.
+money-restop waited on R-MONEY-31, never a line: its text ("the day's list message includes its
+lost-stop entries") is the open R-MONEY-53, so the wait names that.
+
+## 23 Nov - every open request has its own box (guard), and 30 run-on lines split
+Runner ops 113, coordinator 107/110's H1: the runner reads one request per `- [ ]` line in STATUS, so a
+request written inside another's line was never offered or was read as met (data-survivorship's re-offer
+loop, R-DATA-68, 01:36). `tests/guards/test_lanes.py::test_every_open_request_has_its_own_box` refuses any
+`R-X-n (later` or `(blocking` not at the head of its own checkbox line. Driven: RED on main's STATUS
+(a63c9bf2 era, 26 run-on requests, R-MONEY-8 first), GREEN after this change splits all 30 run-on lines
+mechanically, each request on its own line with its own words. A split request keeps its line's box
+unless its own words say it is done (`[x]` before it, `(done ...`, `done in #n`, `Met by #n`): 15 such.
+Tightening only; nothing is loosened.

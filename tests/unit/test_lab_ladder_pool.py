@@ -7,7 +7,6 @@ import os
 from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
-from functools import partial
 from pathlib import Path
 from typing import Any
 
@@ -121,7 +120,7 @@ def test_the_pool_is_sized_by_free_memory_beyond_a_reserve_of_a_fifth_and_never_
 
 
 @pytest.mark.parametrize("eased", [True, False])
-def test_a_pooled_cell_is_judged_with_its_family_count_only_while_eased(
+def test_a_pooled_cell_is_judged_among_its_rules_lines_eased_or_not(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, eased: bool
 ) -> None:
     monkeypatch.setattr(verdict, "EASED", eased)
@@ -132,14 +131,12 @@ def test_a_pooled_cell_is_judged_with_its_family_count_only_while_eased(
     trials.start(register)
     trials.ask(register, ladder.FIRST.question)
     trials.enter(register, ladder.FIRST.question, [trials.name(c) for c in cells])
-    kin = partial(trials.family, register, ladder.FIRST.question)
     task: ladder_pool.Task = (
         cells,
         cells,
         (ladder.FIRST.tag, 1),
         [None],
         datetime(2026, 11, 14, tzinfo=UTC),
-        kin,
     )
     (row,) = ladder_pool._group(task)
     assert "error" not in row and "answer" in row

@@ -12,15 +12,15 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from test_lab_ladder import EDGE, ISF, NOISE, VUSA, eased_off  # noqa: F401 - used by name
+from test_lab_ladder import EDGE, ISF, NOISE, ROOM, VUSA, eased_off  # noqa: F401 - used by name
 
 from desk.store import Bar
-from lab import ladder, market, shuffle, trials, verdict
+from lab import deflated, ladder, market, shuffle, verdict
 from lab.cell import Cell
 from lab.folds import Pooled
 from lab.rung import Answer, Rates
 
-#: EASED refuses a judge asked without the rule's family count: the off path asks by name
+#: the off ladder's cells, asked for by name
 OFF = pytest.mark.usefixtures("eased_off")
 CELL = Cell("breakout_20_10", VUSA, EDGE[0].day, ladder.END)
 
@@ -50,7 +50,16 @@ def test_a_cell_failing_only_one_rung_is_not_a_pass(
     rungs = _judge(sour=sour)["rungs"]
     others = {name: answer for name, (answer, _) in rungs.items() if name != rung_failing}
     assert rungs[rung_failing][0] == "FAIL" and others["first"] == "PASS"
-    assert _judge(sour=sour)["every"] is False and _judge(sour=sour)["answer"] == "FAIL"
+    #: a soft market FAIL never leaks into the shuffle; the fixture's THIN folds decide
+    said = {"folds": "FAIL", "market": "THIN"}[rung_failing]
+    assert _judge(sour=sour)["every"] is False and _judge(sour=sour)["answer"] == said
+
+
+def test_a_luck_fail_alone_never_holds_a_cell_back() -> None:
+    #: L18: the luck rung is reported only, the deflated Sharpe the gate (R-RUNGS-36)
+    passed = dict.fromkeys([*deflated.NAMED, "stress"], (Answer.PASS, "why"))
+    assert verdict.every(passed | {"luck": (Answer.FAIL, "why")})
+    assert not verdict.every(passed | {"stress": (Answer.FAIL, "why")})
 
 
 def test_a_step_of_units_is_refused_unless_the_master_names_it() -> None:
@@ -160,26 +169,19 @@ def test_a_market_with_a_missing_day_is_a_fault_in_its_own_words() -> None:
 
 
 @OFF
-def test_eased_charges_a_cell_its_rules_family_and_says_the_count(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+def test_a_cell_is_judged_among_its_rules_own_lines_else_charged_the_count(
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    register = tmp_path / "t.jsonl"
-    trials.start(register)
-    trials.ask(register, "q")
-    trials.enter(register, "q", [f"{r} h{n}" for r, k in (("a", 3), ("b", 40)) for n in range(k)])
-    assert [trials.family(register, "q", r) for r in "ab"] == [3, 40]
     pooled = verdict.pool([(CELL, EDGE)], {})
-
-    def luck_said(family: int | None) -> str:
-        done = verdict.judge(CELL, EDGE, ISF, NOISE, {}, 63920, (), lambda: pooled, None, family)
-        return str(done["rungs"]["luck"][1])
-
-    assert "63920 trials, " in luck_said(3)  #: off: the whole register, whatever the family
-    monkeypatch.setattr(verdict, "EASED", True)
-    assert "times 3 trials of the breakout_20_10 family" in luck_said(3)
-    assert "times 40 trials of the breakout_20_10 family" in luck_said(40)
-    with pytest.raises(ValueError, match="family count"):
-        luck_said(None)
+    (among,) = deflated.judge([verdict.ready(CELL, EDGE, {}, ())], 4)  #: L18: the rule's own lines
+    for eased in (False, True):
+        monkeypatch.setattr(verdict, "EASED", eased)
+        alone, lines = (
+            verdict.judge(CELL, EDGE, ISF, NOISE, {}, 63920, (), lambda: pooled, among=one)
+            for one in (None, among)
+        )
+        assert "63920 trials" in alone["rungs"]["luck"][1], "no lines given: the count"
+        assert "times 5 trials" in lines["rungs"]["luck"][1], "judged among its lines"
 
 
 @pytest.mark.parametrize("path", ["whole", "sour folds", "missing market day"])
@@ -214,7 +216,7 @@ def test_the_scorecard_grades_every_rung_after_a_soft_fail_and_stops_at_a_negati
 
     def judged(t: str) -> dict[str, Any]:
         failed = replace(first, answer=Answer.FAIL, t=Decimal(t))
-        return verdict.judge(CELL, EDGE, ISF, NOISE, {}, 6, (), lambda: pooled, failed, 6)
+        return verdict.judge(CELL, EDGE, ISF, NOISE, {}, 6, (), lambda: pooled, failed)
 
     soft = judged("1.5")  #: failing only the confidence interval, its mean above nothing
     assert soft["rungs"]["first"][0] == "FAIL" and soft["answer"] == "FAIL"
@@ -241,3 +243,35 @@ def test_a_basket_at_one_standard_error_incubates_and_over_the_stress_limit_neve
     for over in (Answer.FAIL, Answer.THIN, Answer.FAULT):  #: stress over its limit or untested
         assert said("1.5", Answer.FAIL, over) == "FAIL"
     assert said("1.5", Answer.THIN) == "THIN"  #: too few trades says nothing
+
+
+@OFF
+def test_one_weak_soft_rung_no_longer_kills_a_cell_and_one_failed_hard_gate_always_does(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    passes = dict.fromkeys(verdict.HARD + verdict.SOFT, Answer.PASS)
+    said = verdict.one_answer
+    assert said(passes | {"regime": Answer.DOUBT, "market": Answer.THIN}, 1.0) == "PASS"
+    assert said(passes | dict.fromkeys(verdict.SOFT, Answer.DOUBT), 1.0) == "FAIL", "over MAX_WEAK"
+    for soft in verdict.SOFT:
+        assert said(passes | {soft: Answer.FAIL}, 1.0) == "FAIL", soft
+    for gate in verdict.HARD:
+        assert said(passes | {gate: Answer.FAIL}, 1.0) == "FAIL", gate
+    assert said(passes | {"first": Answer.THIN}, 1.0) == "THIN" and said(passes, 2.5) == "STOP"
+    assert said({name: a for name, a in passes.items() if name != "shuffle"}, 1.0) is None
+    assert said(passes | {"stress": Answer.FAULT}, 1.0) == "FAULT", "a fault in the test"
+    assert said(passes | {"stress": Answer.FAULT, "folds": Answer.THIN}, 1.0) == "THIN"
+    weak = dict.fromkeys(verdict.HARD + verdict.SOFT + ("luck",), (Answer.PASS, "")) | {
+        "regime": (Answer.DOUBT, ""),
+        "luck": (Answer.FAIL, ""),
+    }
+    assert verdict.gates(weak), "WEAK soft and luck: never ruled"
+    monkeypatch.setattr(shuffle, "share", lambda *_: 0.0)  #: a WEAK market never skips it
+    ran = verdict.shuffled(
+        CELL, EDGE, ROOM, {}, weak | {"market": weak["regime"], "yearly": weak["first"]}, ()
+    )
+    assert ran is not None and ran[0] is Answer.PASS, "no lowest of NAMED before the shuffle"
+    stopped = weak | {"folds": (Answer.FAULT, ""), "stress": (Answer.FAIL, "")}
+    assert verdict._stopped(0, stopped, {})["answer"] == "FAULT", "a FAULT is no FAIL"
+    monkeypatch.setattr(verdict, "one_answer", lambda *_: "WIRED")
+    assert _judge()["answer"] == "WIRED", "judge answers by the one rule"

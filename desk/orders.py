@@ -5,7 +5,7 @@ ONE ROUNDING POLICY for what is published of it."""
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import astuple, dataclass, field, replace
 from datetime import date
 from decimal import ROUND_HALF_EVEN, Decimal
@@ -35,6 +35,7 @@ from desk.orders_parts2 import MOVES_FROM as MOVES_FROM
 from desk.orders_parts2 import Refused as Refused
 from desk.orders_parts2 import _apart, _within_limits, _within_underlying, daily_moves
 from desk.risk import Standing
+from desk.store import Bar
 from desk.strategy import Action, Decision
 
 moves = daily_moves  #: the daily returns the correlation gate reads (orders_parts2)
@@ -46,6 +47,10 @@ STOP_FALL = Decimal("0.10")
 #: STP-10, the one home (R-RUNGS-11, docs/DECISIONS.md): the most of the capital one holding may
 #: lose when a gap jumps its stop; the stop alone risks STOP_FALL / HOLDINGS of it (2%).
 GAP_LOSS = Decimal("0.05")
+#: SIZ-10, the one home (R-MONEY, docs/DECISIONS.md): no position above this share of its line's
+#: traded value over the last TRADED_DAYS sessions, so the desk never is the market.
+LIQUIDITY = Decimal("0.01")
+TRADED_DAYS = 20
 
 
 @dataclass(frozen=True)
@@ -119,6 +124,9 @@ class Leg(Enum):
     BUY = "bought"
     SALE = "sold at the market"
     STOP = "sold by the stop resting at the broker"
+
+
+_TRIP = (Leg.BUY, Leg.SALE)
 
 
 @dataclass(frozen=True)
@@ -203,11 +211,14 @@ def size(
     settings: Settings,
     held: Mapping[str, int],
     market: Decimal | None = None,
+    traded: Decimal | None = None,
 ) -> Order:
     """The most whole shares whose cost, with the shares of the line already held, fits the
     line's room, and the stop, for a buy; fx is pounds per unit of the line's currency, and
     held is the book (book.positions). Given the live price (market), the stop rests 10% under
-    it, never above the signal's, and a buy is refused that the signal's stop would sell at once."""
+    it, never above the signal's, and a buy is refused that the signal's stop would sell at once.
+    Given the pounds the line traded over its last TRADED_DAYS sessions (traded_value), the shares
+    held and ordered are held to LIQUIDITY of them; None caps nothing."""
     if decision.action is not Action.BUY or decision.symbol != line.symbol:
         raise ValueError(f"{line.symbol}: only a buy for this line is sized, not {decision}")
     order_id = order_id_of(decision)
@@ -227,11 +238,25 @@ def size(
         middle = (fits + over) // 2
         fits, over = (middle, over) if cost(order(middle)) <= room else (fits, middle)
     already = held.get(line.symbol, 0)
+    if traded is not None:
+        fits = min(fits, int(LIQUIDITY * traded / (price * fx)))
     if fits <= already:
         raise Refused(f"{order_id}: {already} shares held leave no room for more")
     bought = order(fits - already)
-    gate(bought, settings, held)
+    gate(bought, settings, held, traded=traded)
     return bought
+
+
+def traded_value(bars: Sequence[Bar], fx: Decimal) -> Decimal:
+    """The pounds a line traded over its last TRADED_DAYS bars, each at its close, at fx."""
+    return sum((b.close * b.volume for b in bars[-TRADED_DAYS:]), Decimal(0)) * fx
+
+
+def thin(order: Order, gain: Decimal) -> bool:
+    """TRD-10: whether the pounds a trade is expected to gain are under twice the pounds its
+    round trip costs, every charge of both legs (charges), so it is flagged, not skipped."""
+    legs = (charges(order.line, leg, order.quantity, order.price, order.fx) for leg in _TRIP)
+    return gain < 2 * sum((c.total for c in legs), Decimal(0))
 
 
 def gap_loss(order: Order, fill: Decimal) -> Decimal:
@@ -253,6 +278,9 @@ def order_id_of(decision: Decision) -> str:
 
 
 ZOO = "zoo_"  #: the front of every zoo rule's name (desk/intraday.py): a MACHINERY TEST's
+#: THE ZOO'S OWN ALLOWANCE, apart from the desk's (day.standing counts each alone): pounds whose
+#: 2% a day and 5% a week bound its losses, and the new lines it may enter in a day.
+ZOO_ROOM = Settings(Decimal(1_000), new_lines=10)
 
 
 def is_zoo(order_id: str) -> bool:
@@ -284,6 +312,7 @@ def gate(
     standing: Standing | None = None,
     exposure: Mapping[str, Decimal] | None = None,
     moves: Mapping[str, tuple[float, ...]] | None = None,
+    traded: Decimal | None = None,
 ) -> None:
     """The one pre-trade gate, on the send path: raises Refused, or lets the order through.
     held is the book (book.positions): a sale needs the shares in it, for the desk is long
@@ -295,7 +324,8 @@ def gate(
     its underlying market over its share of the capital; None checks nothing. Given the daily
     returns of the order's line and of the lines held, over the same days (moves, by symbol), a
     buy is refused that moves with a held line above the settings' correlation; None checks
-    nothing, as does a line with no returns."""
+    nothing, as does a line with no returns. Given the pounds the line traded (traded_value), a
+    buy is refused that takes shares, held and ordered, above LIQUIDITY of them (SIZ-10)."""
     symbol = order.line.symbol
     if isinstance(order, Sale):
         if order.quantity > held.get(symbol, 0):
@@ -314,11 +344,21 @@ def gate(
     if symbol not in held and len(held) >= HOLDINGS:
         raise Refused(f"{order.order_id}: {len(held)} holdings already, at most {HOLDINGS}")
     whole = replace(order, quantity=order.quantity + held.get(symbol, 0))
+    _liquid(whole, traded)
     if cost(whole) > _room(order.line, settings):
         raise Refused(
             f"{order.order_id}: {cost(whole)} pounds for {whole.quantity} shares, counted "
             f"{order.line.leverage} times for what it controls, is over a fifth of the "
             f"capital of {settings.capital}"
+        )
+
+
+def _liquid(whole: Order, traded: Decimal | None) -> None:
+    """Refuses shares worth over LIQUIDITY of the pounds the line traded; None checks nothing."""
+    if traded is not None and whole.quantity * whole.price * whole.fx > LIQUIDITY * traded:
+        raise Refused(
+            f"{whole.order_id}: {whole.quantity} shares are over {LIQUIDITY:.0%} of the "
+            f"{traded} pounds {whole.line.symbol} traded in {TRADED_DAYS} days"
         )
 
 

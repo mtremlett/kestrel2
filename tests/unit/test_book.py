@@ -4,7 +4,7 @@ the gate reads, built from every fill. Scene 4 holds the gate's refusal and a cr
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
-from dataclasses import replace
+from dataclasses import astuple, replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -12,7 +12,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from desk import book, halt
+from desk import book, book_parts, halt
 from desk.broker import Broker, Crash, Fault, Fill, Pretend
 from desk.halt import Blocker, Stopped
 from desk.lines import STAMP_DUTY, Line
@@ -87,6 +87,23 @@ def test_the_book_is_every_fill_the_broker_made_and_the_gate_reads_it(tmp_path: 
     )
     with pytest.raises(ValueError, match="A"):
         book.positions(tmp_path)
+
+
+def test_the_ledger_is_opened_once_until_it_is_written_never_twice_a_call(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """SimCity asks for the fills some forty times a simulated day: a ledger of 2,000 is opened
+    once until it is written, by the desk or anyone else (the deep run's 7200 s, 22 Nov 22:37)."""
+    planted = [Fill(f"x-{n}", f"o-{n}", "A", 1, Decimal(50), MON) for n in range(2000)]
+    book_parts.keep(tmp_path / book.LEDGER, [book.COLUMNS, *map(astuple, planted)])
+    log, was = list[str](), Path.open
+    monkeypatch.setattr(Path, "open", lambda *a, **k: log.__iadd__([a[0].name]) and was(*a, **k))
+    assert all(book.fills(tmp_path) == tuple(planted) for _ in range(40))
+    assert log.count(book.LEDGER) == 1, f"{log.count(book.LEDGER)} opens for 40 asks"
+    book._record(tmp_path, [replace(planted[0], execution_id="y-0")])
+    assert len(book.fills(tmp_path)) == 2001 and log.count(book.LEDGER) == 2, "its write unseen"
+    book_parts.keep(tmp_path / book.LEDGER, [book.COLUMNS, astuple(planted[1])])
+    assert book.fills(tmp_path) == (planted[1],) and log.count(book.LEDGER) == 3, "another's"
 
 
 def test_a_desk_that_died_mid_send_has_what_it_left_working_cancelled_before_it_sends_again(
@@ -369,6 +386,21 @@ def test_a_round_trip_pairs_each_sale_with_the_buys_it_closes_in_pounds_after_ev
     ]
     #: the 10 dollar shares bought at 50 and 0.8 sold at 50 and 0.75: 25 pounds lost to the currency
     assert book.currency_gain(tmp_path, (share, dollar), trips) == Decimal(-25)
+    #: the rates are read once for all the trips, never once a trip: SimCity asks every day,
+    #: and its deep run hung two hours on one read per trip (22 Nov 19:29, book.py:406)
+    kept, rates_read = book_parts.rates_kept, list[Path]()
+
+    def counted_rates(root: Path) -> dict[tuple[date, str], Decimal]:
+        rates_read.append(root)
+        return kept(root)
+
+    monkeypatch.setattr(book_parts, "rates_kept", counted_rates)
+    assert book.currency_gain(tmp_path, (share, dollar), trips * 20) == Decimal(-500)
+    assert (
+        book.open_currency_gain(tmp_path, (share, dollar), dict.fromkeys("AU", Decimal(50)), MON)
+        == 0
+    )
+    assert len(rates_read) == 2, f"{len(rates_read)} reads of the rates, not one a call"
     #: BIC-03: before any fill the whole 3650 pounds is idle, a tenth a year is a pound a day
     early = trips[0].buy.day - timedelta(days=2)
     assert (

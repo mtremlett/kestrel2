@@ -25,6 +25,7 @@ from desk.lines import LINES, Line
 from lab import (
     basket,
     batch,
+    folds,
     history_bars,
     intraday,
     ladder,
@@ -42,8 +43,9 @@ from lab import (
 from lab.batch import Bars
 from lab.cell import Cell
 from lab.ladder import END, FOLDER, START, Kept, Plan, eponymous, run
-from lab.ladder_parts import FAILED, Shared, _made, _resolve
-from lab.rung import Answer, Rates
+from lab.ladder_parts import FAILED, Shared, _made, _resolve, faults
+from lab.published_epon import TESTED
+from lab.rung import Answer, Rates, Verdict
 
 EPON = Plan("EPON", "set EPON: does an eponymous rule earn on a line the store holds?", "EPON")
 LEV = Plan("LEV", "set LEV: does a trend rule earn on a leveraged line the store holds?", "LEV")
@@ -140,18 +142,28 @@ def epon(
     count = trials.count(home / FOLDER / f"{plan.stem}.trials.jsonl", plan.question)
     last = Kept(home / FOLDER / f"{plan.stem}.jsonl")
     rows = [cast(verdict.Row, last.get(tuple(batch.row(c)))) for c in todo]
+    stop, shown = faults(rows)  #: over 1% of the cells FAULT, baskets aside: withheld (L20)
     if verdict.EASED:  #: easing 2: each rule's lines also judged pooled, one basket a rule
-        rows += baskets(home, bars, pounds, todo, rules, plan)
+        rows += baskets(bars, pounds, todo, rules, plan)
     sets = home / FOLDER / "sets"
     table = verdict.write_table(
         sets, plan.tag, plan.question, rows, rules, count, ladder.rungs_built()
     )
+    withheld = [] if shown else ["", "## NOT PUBLISHED", "", *(f"- {line}" for line in stop)]
     with table.open("a", encoding="utf-8") as out:
         out.write("\n## Survivorship\n\n" + "".join(f"- {note}\n" for note in notes))
+        out.write(NL.join(_authors(rules) + withheld) + NL)
     said = f"survivorship: {len(notes)} of {len(lines)} lines not corrected, none guessed"
+    said += "" if shown else NL + stop[-1]
     passed = sum(any(map(verdict.goes, mine)) for mine in verdict.by_rule(rows, rules).values())
     last_line = f"SET {plan.tag}: {len(rules)} rules, {passed} passed, table {table}"
     return f"{counts}\n{said}\n{tapes_held(home)}\n{last_line}"
+
+
+def _authors(rules: Sequence[str]) -> list[str]:
+    """The table's lines for each rule's published test (`published_epon.TESTED`)."""
+    tested = [f"- {rule}: {TESTED[rule].said()}" for rule in rules if rule in TESTED]
+    return ["", "## The authors' tests, none yet reproduced", "", *tested]
 
 
 def _furthest(rows: Sequence[verdict.Row]) -> tuple[verdict.Row, str, str]:
@@ -184,16 +196,17 @@ def condense(
         fields = [rule, rung, why, f"{judged} of {len(mine)}", best["cell"][1]]
         fields.append("yes" if any(map(verdict.goes, mine)) else "no")
         out.append("| " + " | ".join(f.replace("|", "/").replace(NL, " ") for f in fields) + " |")
-    out += ["", "## Survivorship", ""] + [f"- {note}" for note in notes]
+    out += ["", "## Survivorship", ""] + [f"- {note}" for note in notes] + _authors(rules)
     table.write_text(NL.join(out) + NL, encoding="utf-8")
 
 
 def baskets(
-    home: Path, bars: Bars, pounds: Rates, todo: Sequence[Cell], rules: Sequence[str], plan: Plan
+    bars: Bars, pounds: Rates, todo: Sequence[Cell], rules: Sequence[str], plan: Plan
 ) -> list[verdict.Row]:
     """One basket row for each rule that has a line to pool: the lines' first rungs (a line that
-    cannot be read or that the sizing refuses is left out), charged the rule's family of trials."""
-    shared, rows = Shared(todo), list[verdict.Row]()
+    cannot be read or that the sizing refuses is left out), each basket one look among the set's
+    baskets, one a rule (L18: never every line the register ever held)."""
+    shared, pooled = Shared(todo), list[tuple[str, list[Verdict], Answer]]()
     for rule in rules:
         firsts, stresses = [], []
         for c in (one for one in todo if one.strategy == rule):
@@ -207,17 +220,18 @@ def baskets(
                 continue
         firsts = [first for first in firsts if not first.refused]
         stressed = next((a for a in stresses if a is not Answer.PASS), Answer.PASS)
-        if firsts:
-            family = trials.family(home / FOLDER / f"{plan.stem}.trials.jsonl", plan.question, rule)
-            against = _against(firsts[0].key.cell.line, bars, pounds)
-            rows.append(basket.row(plan.tag, rule, firsts, family, stressed, against))
-    return rows
+        pooled += [(rule, firsts, stressed)] if firsts else []
+    return [  #: charged the baskets the set judges, never a rule that gave none
+        basket.row(plan.tag, rule, firsts, len(pooled), stressed, _against(firsts[0], bars, pounds))
+        for rule, firsts, stressed in pooled
+    ]
 
 
-def _against(line: Line, bars: Bars, pounds: Rates) -> rung_retail.Against:
+def _against(first: Verdict, bars: Bars, pounds: Rates) -> rung_retail.Against:
     """The market a basket is set beside: its first line's venue's (`ladder.MARKETS`), its bars
     and the pound rates."""
-    market = next(one for one in LINES if one.symbol == ladder.MARKETS[line.venue])
+    venue = first.key.cell.line.venue
+    market = next(one for one in LINES if one.symbol == ladder.MARKETS[venue])
     return rung_retail.Against(market, bars(market), pounds)
 
 
@@ -247,10 +261,21 @@ def weather_line(home: Path, bars: Bars, held: Sequence[Line]) -> str:
 
 
 def _pooled(make: Callable[[], Bars]) -> Callable[..., str]:
-    """`run` on the pool, the bars made in each worker by `make`."""
-    return lambda home, _, pounds, todo, now, plan: ladder_pool.run(
-        home, make, pounds, todo, now, plan
-    )
+    """`run` on the pool, the bars made in each worker by `make`, after the same pre-flight as
+    `ladder.run` (L20): a set whose inputs have a gap refuses to start."""
+
+    def go(
+        home: Path,
+        _: object,
+        pounds: Rates,
+        todo: Sequence[Cell],
+        now: Callable[[], datetime] = lambda: datetime.now(UTC),
+        plan: Plan = ladder.FIRST,
+    ) -> str:
+        folds.preflight(ladder.inputs(todo, make()), pounds)
+        return ladder_pool.run(home, make, pounds, todo, now, plan)
+
+    return go
 
 
 def entered(home: Path) -> str:
@@ -300,7 +325,7 @@ def main(env: Mapping[str, str], argv: Sequence[str] = ()) -> int:
         held = leveraged(held)
         said = epon(home, make(), pounds, held, rules=TREND, go=_pooled(make), plan=LEV)
     elif argv:
-        said = ladder_pool.run(home, make, pounds, ladder.cells())
+        said = _pooled(make)(home, None, pounds, ladder.cells())
     else:
         said = epon(home, make(), pounds, held, go=_pooled(make))
         said += "\n" + weather_line(home, make(), held)

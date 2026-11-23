@@ -4,12 +4,13 @@ and publish one record. The same days run again from the same saved data give th
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
+from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
-from decimal import Decimal
+from decimal import Decimal, localcontext
 from functools import partial
 from pathlib import Path
 
-from desk import book, day_money, halt, handpark, restop, strategy, venues
+from desk import book, day_money, halt, handpark, intraday, paper, restop, strategy, venues
 from desk.broker import Broker, Crash, Restopping
 from desk.day_parts import BEFORE_HEAT as BEFORE_HEAT
 from desk.day_parts import HEADER as HEADER
@@ -29,20 +30,29 @@ from desk.day_parts import standing as standing
 from desk.halt import Blocker, Stopped
 from desk.lines import YARDSTICK, Line
 from desk.orders import (
+    ZOO,
+    ZOO_ROOM,
     Order,
     Refused,
     Sale,
     Settings,
     gapped,
+    is_zoo,
     order_id_of,
     pennies,
     size,
     stop_under,
     strategy_of,
+    traded_value,
 )
 from desk.risk import Standing
 from desk.store import Bar
 from desk.strategy import Action, Decision
+
+#: The runner's time for the desk step (its drive_atjobs) and the margin kept of it: a round sends
+#: at most MAX_ORDERS market orders, each waiting paper.FILL_SECONDS (failure pattern 24).
+STEP_SECONDS, STEP_MARGIN = 900, 60
+MAX_ORDERS = (STEP_SECONDS - STEP_MARGIN) // paper.FILL_SECONDS
 
 
 def run(
@@ -136,20 +146,21 @@ def trade(
     tell: book.Tell | None = None,
     killed: frozenset[str] = frozenset(),
     strangers: bool = False,
+    zoo: bool = False,
 ) -> tuple[book.Sent, ...]:
-    """The day's orders, after the market opens: each rule's decision on the session before,
-    its position read from the book; the sales first, then each buy sized from the book after
-    the send before it. A line sold this morning, by its rule or its stop, is not bought
-    again today. While the book is not the broker's the send path refuses every buy, and the
-    sale of a line whose shares differ. rates are the day's pounds per unit of each currency.
-    Nothing is sent for a day that is over: its record made, or a later fill in the ledger.
-    Every signal has its answer, each not filled whole on the morning's list (halt.morning) under
-    its blocker, with the lines no rule could decide; the desk dying leaves none unlisted
-    (_unreached). A place the broker disagrees with is told through tell (book.send). A position
-    the desk did not make is sold first (_strangers), when strangers is set: the step's scripted
-    wire (desk/running.py) has no room yet for the broker's holdings read it needs.
-    A strategy in killed (its own kill condition met, lab/promotion.py) buys nothing, said so;
-    what it holds is still sold by its rule or its stop."""
+    """The day's orders, after the market opens: each rule's decision on the session before, its
+    position read from the book; the sales first, then each buy sized from the book after the send
+    before it. A line sold this morning, by its rule or its stop, is not bought again today. While
+    the book is not the broker's the send path refuses every buy, and the sale of a line whose
+    shares differ. rates are the day's pounds per unit of each currency. Nothing is sent for a day
+    that is over: its record made, or a later fill in the ledger. Every signal has its answer, each
+    not filled whole on the morning's list (halt.morning) under its blocker, with the lines no rule
+    could decide; the desk dying leaves none unlisted (_unreached). A place the broker disagrees
+    with is told through tell (book.send). A position the desk did not make is sold first
+    (_strangers), when strangers is set: the step's scripted wire (desk/running.py) has no room yet
+    for the broker's holdings read it needs. A strategy in killed (its own kill condition met,
+    lab/promotion.py) buys nothing, said so; what it holds is still sold by its rule or its stop.
+    The zoo trades after the desk (_zoo, its paper switch), selling first a line the desk buys."""
     _stand_down(root, archive, broker, settings, tell)
     if later := max((fill.day for fill in book.fills(root) if fill.day > day), default=None):
         raise ValueError(f"{day}: the day is over, the ledger holding a fill of {later}")
@@ -157,11 +168,9 @@ def trade(
         raise ValueError(f"{day}: the day is over, the records running to {made[-1]}")
     book.record_rates(root, day, rates)
     taken = _strangers(root, archive, broker, settings, day, tell) if strangers else []
-    held = book.positions(root)
-    holders = _holders(root)
+    held, holders = book.positions(root), _holders(root)
     due = {line.symbol: line for line, bars in archive.items() if _due(line, bars, day)}
-    unpriced = sorted({line.currency for line in due.values()} - set(rates))
-    if unpriced:
+    if unpriced := sorted({line.currency for line in due.values()} - set(rates)):
         raise ValueError(f"{day}: no rate in pounds for {unpriced}; nothing sent")
     _unread(root, tuple(archive), due, day)
     decided = strategy.today(
@@ -172,6 +181,7 @@ def trade(
     sent = list[book.Sent]()
     try:
         _orders(root, broker, settings, day, tell, killed, decided, due, archive, rates, sent)
+        sent += _zoo(root, broker, day, tell, due, archive, rates, sent) if zoo else []
     except (Crash, book.Alarm) as dead:
         _unreached(root, day, decided, sent, dead)
         raise
@@ -269,7 +279,8 @@ def _interest(
     tell: book.Tell | None,
 ) -> None:
     """BIC-03: what the capital's idle cash earned at RISK_FREE from the first fill to this day,
-    told once a day beside the profit, not in it (golden days stand), only when positive."""
+    told once a day beside the profit, not in it: the day's profit must equal the ledger's and
+    the broker's (day_parts reconcile), which interest is in neither. Only when positive."""
     if tell is None:
         return  #: nobody to tell: the sum (a read of every fill's day) is not made
     earned = day_money.idle_interest(root, archive, day, settings.capital, RISK_FREE)
@@ -291,13 +302,17 @@ def _orders(
     rates: Mapping[str, Decimal],
     sent: list[book.Sent],
 ) -> None:
-    """The sales, then the buys, each answer added to sent as it is given."""
+    """The sales, the zoo's yields (_yields), then the buys, each answer added to sent."""
     held = book.positions(root)
     for d in (d for d in decided if d.action is Action.SELL):  #: by the rule that holds it
         sale = Sale(order_id_of(d), due[d.symbol], held[d.symbol], session=d.day)
+        made = book.intend(
+            root, sale.order_id, (d.strategy, d.symbol, d.day), archive[sale.line][-1]
+        )
         answer = _answer(root, day, _send(root, broker, sale, settings, tell, None))
-        book.chain(root, d, archive[due[d.symbol]][-1], answer)
+        book.chain(root, made, answer)
         sent.append(answer)
+    sent += _yields(root, broker, settings, tell, decided, due)  #: none without the zoo
     _alert(root, day, settings, tell)
     _peak_fall(root, day, tell)
     _currency(root, archive, day, tell)
@@ -306,9 +321,10 @@ def _orders(
     for d in (d for d in decided if d.action is Action.BUY):
         line = due[d.symbol]
         price = archive[line][-1].close, rates[line.currency]
-        args = (root, broker, d, line, price, settings, day, tell, watch)
+        args = (root, broker, d, line, price, settings, day, tell, watch, archive[line])
+        made = book.intend(root, order_id_of(d), (d.strategy, d.symbol, d.day), archive[line][-1])
         answer = _answer(root, day, _barred(d) if d.strategy in killed else _buy(*args))
-        book.chain(root, d, archive[line][-1], answer)
+        book.chain(root, made, answer)
         sent.append(answer)
 
 
@@ -345,7 +361,9 @@ def _strangers(
     for name in sorted({f.symbol for f in mine} & lines.keys()):  #: those a sale left whole too
         if (shares := sum(f.quantity for f in mine if f.symbol == name)) > 0:
             sale = Sale(f"{day:%Y%m%d}-stranger-{name}", lines[name], shares, session=day)
+            made = book.intend(root, sale.order_id, ("stranger", name, day), archive[sale.line][-1])
             sold.append(_answer(root, day, _send(root, broker, sale, settings, tell, None)))
+            book.chain(root, made, sold[-1])
     return sold
 
 
@@ -389,6 +407,7 @@ def _buy(
     day: date,
     tell: book.Tell | None,
     watch: Callable[[str], tuple[dict[str, Decimal], dict[str, tuple[float, ...]]]] | None = None,
+    bars: Sequence[Bar] = (),
 ) -> book.Sent:
     """One rule's buy, sized from the book as the send before it left it, at the line's last
     close and the day's rate. A line held, or sold this morning, is not bought: said so. Nor is
@@ -397,12 +416,12 @@ def _buy(
     now, name = book.positions(root), order_id_of(d)
     if no := refusal(root, name, line, now):
         return book.Sent(name, 0, *no)
-    if d.symbol in {f.symbol for f in book.fills(root) if f.day == day and f.quantity < 0}:
+    if d.symbol in _sold(root, day, False):
         return book.Sent(
             name, 0, f"{name}: not sent, {d.symbol} was sold this morning", Blocker.HELD
         )
     try:
-        order = size(d, line, *price, settings, now)
+        order = size(d, line, *price, settings, now, None, traded_value(bars, price[1]))
     except Refused as refused:  #: the gate's answer, kept with the day's others
         return book.Sent(name, 0, str(refused), Blocker.GATE)
     looked = watch and watch(d.symbol)
@@ -424,8 +443,109 @@ def _send(
     """Send through the one door; its refusal is the order's answer, kept with the day's
     under the blocker the send path names; one it does not name is the broker's own door's."""
     try:
-        return book.send(root, broker, order, settings, tell, held, pounds, moves)
+        sent = book.send(root, broker, order, settings, tell, held, pounds, moves)
     except Stopped as stopped:
-        return book.Sent(order.order_id, 0, str(stopped), stopped.blocker)
+        sent = book.Sent(order.order_id, 0, str(stopped), stopped.blocker)
     except Refused as refused:
-        return book.Sent(order.order_id, 0, str(refused), Blocker.BROKER)
+        sent = book.Sent(order.order_id, 0, str(refused), Blocker.BROKER)
+    return replace(sent, asked=order.quantity)
+
+
+def _sold(root: Path, day: date, zoo: bool) -> set[str]:
+    """The lines one side (orders.is_zoo) sold on day, by its rule or its stop."""
+    return {
+        f.symbol
+        for f in book.fills(root)
+        if f.day == day and f.quantity < 0 and is_zoo(f.order_id) == zoo
+    }
+
+
+def _yields(
+    root: Path,
+    broker: Broker,
+    settings: Settings,
+    tell: book.Tell | None,
+    decided: Sequence[Decision],
+    due: Mapping[str, Line],
+) -> list[book.Sent]:
+    """THE ZOO YIELDS (his 22 Nov ruling): a line a rule of the desk's buys today that a zoo rule
+    holds is sold out of the zoo first, under the zoo rule's own id, so the desk's five trade as
+    if the zoo were not there. No zoo holding: nothing is sent."""
+    held, holders, sold = book.positions(root), _holders(root), list[book.Sent]()
+    wanted = {d.symbol: d.day for d in decided if d.action is Action.BUY and d.symbol in held}
+    for symbol, on in wanted.items():  #: once a line, dated as the buy: the paper door's session
+        if (holder := holders.get(symbol, "")).startswith(ZOO):
+            zoo = order_id_of(Decision(holder, symbol, on, Action.SELL))
+            sale = Sale(zoo, due[symbol], held[symbol], session=on)
+            sold.append(_send(root, broker, sale, settings, tell, None))
+    return sold
+
+
+def _zoo(
+    root: Path,
+    broker: Broker,
+    day: date,
+    tell: book.Tell | None,
+    due: Mapping[str, Line],
+    archive: Mapping[Line, Sequence[Bar]],
+    rates: Mapping[str, Decimal],
+    desks: Sequence[book.Sent],
+) -> list[book.Sent]:
+    """THE ZOO'S DAILY ROUND, A MACHINERY TEST, NOT EVIDENCE OF AN EDGE (his 22 Nov ruling): after
+    the desk's own orders, each zoo daily rule (intraday.ZOO_DAILY) decides on each zoo line due
+    today, holding what it bought; a sale sells it, a buy is one share, refused as the desk's are,
+    through the one gate on the zoo's own allowance (ZOO_ROOM, standing of the zoo alone). Only
+    MAX_ORDERS in all go to the broker, the desk's own (desks) first; the rest are kept in the
+    day's answers as carried to the next step, never sent."""
+    room = MAX_ORDERS - sum(1 for s in desks if s.asked)
+    lines = sorted({ln.symbol for ln in intraday.zoo_lines()} & due.keys())
+    held, holders, sent = book.positions(root), _holders(root), list[book.Sent]()
+    opened = {f.symbol: f.day for f in book.fills(root) if f.quantity > 0}
+    for name, rule in intraday.ZOO_DAILY.items():
+        for symbol in lines:
+            line, last = due[symbol], symbol in held and holders.get(symbol) == name
+            with localcontext(strategy.ARITHMETIC):
+                *_, d = strategy._run(name, rule(), symbol, archive[line], last, opened.get(symbol))
+            if d.action is Action.HOLD:
+                continue
+            if room <= 0:
+                words = f"{order_id_of(d)}: not sent, carried to the next step (the step's time)"
+                sent.append(book.Sent(order_id_of(d), 0, words, Blocker.BROKER))
+                continue
+            made = book.intend(
+                root, order_id_of(d), (d.strategy, d.symbol, d.day), archive[line][-1]
+            )
+            if d.action is Action.SELL:
+                sale = Sale(order_id_of(d), line, held[symbol], session=d.day)
+                answer = _send(root, broker, sale, ZOO_ROOM, tell, None)
+            else:
+                close = archive[line][-1].close, rates[line.currency]
+                answer = _zoo_buy(root, broker, d, line, close, day, tell)
+            book.chain(root, made, answer)
+            sent.append(answer)
+            room -= 1 if answer.asked else 0
+    return sent
+
+
+def _zoo_buy(
+    root: Path,
+    broker: Broker,
+    d: Decision,
+    line: Line,
+    price: tuple[Decimal, Decimal],
+    day: date,
+    tell: book.Tell | None,
+) -> book.Sent:
+    """A zoo rule's buy: one share, never the room, refused as the desk's own buy is."""
+    held, name = book.positions(root), order_id_of(d)
+    if no := refusal(root, name, line, held):
+        return book.Sent(name, 0, *no)
+    if d.symbol in _sold(root, day, True) | _sold(root, day, False):
+        return book.Sent(
+            name, 0, f"{name}: not sent, {d.symbol} was sold this morning", Blocker.HELD
+        )
+    try:
+        order = replace(size(d, line, *price, ZOO_ROOM, held), quantity=1)
+    except Refused as refused:
+        return book.Sent(name, 0, str(refused), Blocker.GATE)
+    return _send(root, broker, order, ZOO_ROOM, tell, standing(root, day, True))

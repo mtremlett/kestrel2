@@ -67,7 +67,7 @@ from desk.gateway import Known, State
 from desk.lines import LINES, YARDSTICK, Line
 from desk.listing import Listing, Unlisted
 from desk.messenger_parts import Mail
-from desk.orders import Order, Refused, Sale, Settings, size, strategy_of
+from desk.orders import ZOO_ROOM, Order, Refused, Sale, Settings, is_zoo, size, strategy_of
 from desk.rollup import Candle
 from desk.running_parts import PUT_RIGHT
 from desk.running_parts import recover as recover
@@ -89,9 +89,6 @@ UNDRILLED = (
     "order was involved. Each promise named next was NOT kept: {}"
 )
 ZOO_ON = "zoo-on-paper"  #: the one paper switch: this file in the desk's root turns the zoo on
-#: THE ZOO'S OWN ALLOWANCE, apart from the desk's (day.standing counts each alone): pounds whose
-#: 2% a day and 5% a week bound its losses, and the new lines it may enter in a day.
-ZOO_ROOM = Settings(Decimal(1_000), new_lines=10)
 ZOO_NOTE = "zoo"  #: the name the zoo's notes are kept under: told in the hourly message alone
 MACHINERY = "MACHINERY TEST, NOT EVIDENCE OF AN EDGE"  #: said of every zoo order, never a verdict
 UNASKED = Known(State.UNWELL, gateway.UNWELL.format("the desk's knock on it failed"))
@@ -246,11 +243,18 @@ def _round(
     ) -> None:  #: kept as a note: told at his next step until delivered
         _note(desk.root, now, name, words)
 
-    sent = day.trade(desk.root, saved, broker, desk.room, today, desk.rates(today), tell)
+    rates = desk.rates(today)
+    sent = day.trade(desk.root, saved, broker, desk.room, today, rates, tell, zoo=desk.zoo)
     restop.move(desk.root, broker, LINES)  #: each held line's stop, under its fill (R-RUNNER-220)
-    said = [
-        f"{s.order_id}, {s.filled} shares done" + f" ({s.reason})" * bool(s.reason) for s in sent
+    said, zoo = [
+        [
+            f"{s.order_id}, {s.filled} shares done" + f" ({s.reason})" * bool(s.reason)
+            for s in sent
+            if is_zoo(s.order_id) == machine
+        ]
+        for machine in (False, True)
     ]
+    _bar_notes(desk.root, now, venue, {True: [f"{w} ({MACHINERY})" for w in zoo]})  #: hourly alone
     words = f"{VENUES[venue]}, today's orders: {'; '.join(said) or 'none sent in this round'}."
     held = _held_out(desk.root, out, kept[1], last)
     out = [symbol for symbol in out if symbol not in held]
@@ -441,7 +445,7 @@ def _work(desk: Desk, now: datetime, seen: watch.Look | None) -> None:
     root = desk.root
     rounds, owed, last = _pending(root, now, seen), _owed(root, now), clearance.checks(root)[-1:]
     checked = bool(last) and last[0].at.date() == now.date() and last[0].found is not None
-    awake = gateway._uk(now).time() >= messenger.MORNING.start
+    awake = gateway._uk(now).time() >= gateway.WAKES
     live = _pending(root, now, seen, False) if _rules(desk) else []
     again = _again(root, now, seen)
     check = bool(rounds or owed or live or again) or (awake and not checked)
@@ -475,10 +479,11 @@ def _say(desk: Desk, now: datetime, known: Known) -> None:
         since = local - timedelta(hours=gateway.WAKES.hour)
         messenger.send(root, now, f"gateway {since:%Y-%m-%d}", known.words, post)
     messenger.morning(root, now, known, post, desk.room.capital)
+    messenger.idle(root, now, post)
     messenger.evening(root, now, known, post)
     if desk.mail:
         messenger.summary(root, now, desk.mail)
-    if messenger.MORNING.start <= local.time() < messenger.SLEEPS:
+    if gateway.WAKES <= local.time() < messenger.SLEEPS:
         messenger.remind(root, now, post)
         for note in (n for n in notes(root) if now - n.at < DAY and n.what.split()[0] != ZOO_NOTE):
             messenger.send(root, now, f"{note.what} {note.at:%Y-%m-%d %H:%M:%S}", note.words, post)

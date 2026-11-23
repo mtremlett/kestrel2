@@ -17,7 +17,7 @@ import test_placing as tp
 from test_paper import FLAT, Said, _account, _but, _gateway, _order
 from test_reports import AAPL, BOUGHT, DONE, END, IITU, LISTED, SMGB
 
-from desk import book, clearance, day, kill, listing, paper, running, venues
+from desk import book, clearance, day, kill, listing, messenger, paper, running, venues
 from desk.bars import Five, writing
 from desk.book import Switch
 from desk.book_parts import keep
@@ -32,12 +32,13 @@ MON, ID, OLD = tp.AT, "20261113-bollinger_pullback-IITU", "20261112-rsi2_pullbac
 OPEN, SHUT = MON.replace(hour=14, minute=35), MON.replace(hour=21, minute=39)
 DAY = timedelta(days=1)
 SPAN = date(2026, 7, 1), date(2026, 11, 30)
+VOLUME = 10**7  #: shares a day, so the 1% liquidity cap never shrinks an order
 DAYS = [date(2026, 10, 16) + timedelta(days=n) for n in range(29)]
 ACCOUNT, FILLS, ASKED = tp.ACCOUNT, tp.FILLS, tp.ASKED
 #: Twenty-one sessions to Friday the 13th: flat, and with a last close Bollinger's rule buys.
 FLAT_, DIP = (
     tuple(
-        Bar(on, c, c + 1, c - 1, c, 1)
+        Bar(on, c, c + 1, c - 1, c, VOLUME)
         for on, c in zip([d for d in DAYS if d.weekday() < 5], map(Decimal, closes), strict=True)
     )
     for closes in ([40] * 21, [*[40] * 20, 36])
@@ -58,9 +59,9 @@ NAMED = "IITU: the desk's own stop resting at the broker is for 26, the desk's b
 RATES = {"GBP": Decimal(1), "USD": Decimal("0.8")}
 #: The same bars with Monday's and Tuesday's, each a pound up; and a round's last words.
 UP = Decimal(41)
-WEEK = (*FLAT_, *(Bar(SHUT.date() + timedelta(days=n), UP, UP, UP, UP, 1) for n in (0, 1)))
+WEEK = (*FLAT_, *(Bar(SHUT.date() + timedelta(days=n), UP, UP, UP, UP, VOLUME) for n in (0, 1)))
 JULY = tuple(
-    Bar(d, *(Decimal(40),) * 4, 1)
+    Bar(d, *(Decimal(40),) * 4, VOLUME)
     for d in venues.sessions("LSE", date(2026, 6, 1), date(2026, 7, 3))
 )
 OUT = "Left out, parked or with no bar of {} Nov: {}."
@@ -112,7 +113,7 @@ def test_at_each_open_the_step_checks_the_account_and_sends_the_days_orders_once
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     desk, post = _desk(tmp_path, IITU=DIP, AAPL=DIP, SMGB=DIP)
-    assert _step(monkeypatch, desk, MON.replace(hour=7, minute=55)) == []  # he sleeps: a knock
+    assert _step(monkeypatch, desk, MON.replace(hour=5, minute=35)) == []  # he sleeps: a knock
     assert not (clearance.checks(tmp_path) or post.called or book.switch(tmp_path))
     # London is open: the ledger, the kill switch's drill (till then no order goes: this desk
     # was never drilled), the day's check, then London's lines through the money path.
@@ -371,6 +372,8 @@ def test_a_step_that_fails_tells_him_once_and_is_an_error_and_a_silent_gateway_i
     assert his.startswith("The paper Gateway does not answer: its port is closed.")
     assert again == his and dial.call_count == 3
     assert "would send NO order today" in morning and running.notes(silent.root) == ()
+    running.step(silent, MON.replace(hour=9, minute=30))  # no fill by 09:30 UK: he is told so
+    assert _told(door)[-1] == messenger.NOT_TRADING
     sunday, bell = _desk(tmp_path / "sunday")  # his login's reminder waits for his waking hours
     running.step(sunday, MON.replace(day=15, hour=23, minute=30))
     assert _told(bell) == [his]

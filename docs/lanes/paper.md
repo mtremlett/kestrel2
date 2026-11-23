@@ -555,3 +555,27 @@ Options: (a) leave the step running round the clock and forgive bad receipts at 
 ### 2026-11-22 — the streak is shown beside the verdict (#1636)
 
 Options: a separate message (more lines; desk ceiling has 92 left) or the last-day lines carrying it (3 lines, chosen). The streak is the run of newest records whose verdict counts.
+
+### 2026-11-22 — the streak's wording comes from Streak.says (#1665)
+
+Options: keep the message's own 'streak N' (a second home for the count, failure pattern 8) or call `desk/streak.count` and use its words, "3 of 10 clean days in a row, since <day> did not count" (chosen).
+
+### 2026-11-22 — the 05:40 card and 09:30 alarm need a wider claim (#1675)
+
+`messenger.MORNING` start 05:40 / owed 09:30 turns messenger tests green but `desk/running.py` reads `MORNING.start` as "he is awake", so `tests/unit/test_running.py` and `tests/unit/test_command.py` ("he sleeps" at 07:55, 07:15) fail; reverted, nothing half-landed. Options: a separate start constant in messenger.py (more code; desk/ has 92 lines left) or change `MORNING` and move those tests' "he sleeps" moments before 05:40 (chosen, fewer lines). Claim for that card: desk/messenger.py, desk/running.py, tests/unit/test_messenger.py, tests/unit/test_running.py, tests/unit/test_command.py.
+
+### 2026-11-22 — the pound is read from the price store alone (#1674)
+
+(1) The day's recorded rate is no longer read first. Options: keep it first, or the store alone (chosen: his ruling "every price is read from the database alone"; the store gives the same rate per day). (2) A stale pound becomes a ValueError inside `rates`, because `command.NAMED` (outside the claim) does not name `keeper.Stale`. Options: widen NAMED, or translate in `rates` (chosen).
+
+### 2026-11-22 — "the desk is not trading" means no fill today (#1753)
+
+Options for "not trading" by 09:30 UK: no order sent; no fill; no step run. Chosen: no fill on the ledger dated today, because the ledger is the one record `desk/messenger.py` already reads, and an order that never fills is also not trading. Telegram only, once a day, never in his night (09:30 to 22:00). Remains: call `messenger.idle` from `desk/running.py` (outside the claim, R-PAPER-38).
+
+### 2026-11-23 — the not-trading alarm is sent from `_say` (#1852)
+
+Wired in `running._say`, the one place daily messages go, before the evening message, not a new door; `messenger.idle` already guards the hours and once-per-day. The rehearsal's message count rises 4 to 5 (it writes the alarm on a day with no fill).
+
+### 2026-11-23 — only the 05:40 card moves earlier, not his waking hour (#1864)
+
+MORNING starts 05:40 (the plan's time). Options: move the whole "awake" gate to 05:40, or only the card (chosen, so the account check, notes and weekly reminders never reach him before 08:00; `running.py` reads `gateway.WAKES`, not `MORNING.start`).

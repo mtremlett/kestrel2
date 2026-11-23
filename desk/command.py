@@ -112,7 +112,7 @@ def _desk(root: Path, post: messenger.Post, home: Path, broker: Broker | None = 
         root,
         Settings(CAPITAL),
         post,
-        partial(rates, root, broker=broker),
+        partial(rates, home, broker=broker),
         home / keeper.HOT,
         partial(keeper.saved, home),
         paper.Door(paper.DESK),
@@ -123,6 +123,13 @@ def _desk(root: Path, post: messenger.Post, home: Path, broker: Broker | None = 
 def _phone(env: Mapping[str, str]) -> str:
     messenger.telegram(env)
     return "its key is set"
+
+
+def _email(env: Mapping[str, str]) -> str:
+    if not any(env.get(name, "").strip() for name in SMTP):
+        return "no SMTP_ setting, his phone alone"
+    messenger.smtp(env)  #: names each missing setting
+    return "its settings are set"
 
 
 def _knock(now: datetime, door: paper.Door) -> str:
@@ -175,6 +182,7 @@ def preflight(desk: Desk, env: Mapping[str, str], now: datetime) -> tuple[bool, 
     today, root = now.date(), desk.root
     probes: tuple[tuple[str, Callable[[], object]], ...] = (
         ("his phone", lambda: _phone(env)),
+        ("the email", lambda: _email(env)),
         ("the Gateway", lambda: _knock(now, desk.door)),
         ("the kill switch", lambda: _switch(root, now)),
         ("the paper account", lambda: _account(root, now, desk.door)),
@@ -273,7 +281,8 @@ def rehearse(
         frozenset(o.broker_id for o in before.orders),
     )
     door = paper.Door(paper.DESK, found)  #: the account found is not the rehearsal's to see
-    desk = replace(_desk(root / REHEARSALS / f"{now:%Y%m%dT%H%M%S}", post, root.parent), door=door)
+    desk = _desk(root / REHEARSALS / f"{now:%Y%m%dT%H%M%S}", post, root.parent)
+    desk = replace(desk, door=door, zoo=(root / ZOO_ON).exists())  #: the desk's switch, rehearsed
     failed = _live(desk, moments, clock)
     left = placing.Paper(listing.read(LINES, door), desk.root, lambda: now, door).cancel()
     if wrong := _amiss(desk, on, left, found.changes(before, paper.whole(door))):

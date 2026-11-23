@@ -31,7 +31,7 @@ judges by it; every other row owes `no RUNG` first (the test holds the two to ag
  8 purged cross-validation: lab/rung_cpcv.py, tests/unit/test_lab_rung_cpcv.py
  9 placebo on blocks of days: lab/rung_placebo.py, tests/unit/test_lab_rung_placebo.py - no RUNG
 10 walk-forward folds: lab/folds.py, tests/unit/test_lab_folds.py - no RUNG; the ladder runs `pool`
-11 block bootstrap: lab/rung_bootstrap.py, tests/unit/test_lab_rung_bootstrap.py - no RUNG, no gate
+11 block bootstrap: lab/rung_ci.py, tests/unit/test_lab_rung_bootstrap.py - `bootstrap`, unwired
 12 retail, basket beside market: lab/rung_retail.py, tests/unit/test_lab_rung_retail.py - no RUNG
 
 RARE LARGE LOSSES (G2, R-RUNNER-103). The first rung counts ONE MORE trade the rule did not make: a
@@ -75,7 +75,7 @@ from desk.command import CAPITAL, DOLLARS, POUND
 from desk.lines import LINES, Line
 from desk.store import Bar
 from desk.strategy import STRATEGIES, Rule
-from lab import batch, cell, published, reproduce, rulebook, rung, tape, trials, verdict
+from lab import batch, cell, folds, published, reproduce, rulebook, rung, tape, trials, verdict
 from lab.batch import Bars
 from lab.cell import Cell
 from lab.ladder_parts import (
@@ -204,6 +204,27 @@ def rates(ask: Callable[[Line, date], Sequence[Bar]] | None = None) -> dict[date
     return {day: rate for day in days if (rate := carry.carried(known, day))}
 
 
+def inputs(todo: Sequence[Cell], bars: Bars) -> Iterator[tuple[Cell, Sequence[Bar]]]:
+    """Each line the set's cells read, its own (or its proxy's) and its market's, from its first
+    bar to the window's end, once, one at a time: the set runner's pre-flight (L20). A line whose
+    bars cannot be read is its cell's to say, as it does now."""
+    seen, asked = set[tuple[str, date, date]](), set[tuple[Line, date, date]]()
+    for one in todo:
+        if (one.line, one.start, one.end) in asked:  #: a line's window is read once, not per rule
+            continue
+        asked.add((one.line, one.start, one.end))
+        try:
+            c, own, _ = _resolve(one, bars)
+            beside = next(line for line in LINES if line.symbol == MARKETS[c.line.venue])
+            held = bars(beside)
+        except FAILED:
+            continue
+        for line, read in ((c.line, own), (beside, held)):
+            if (line.symbol, c.start, c.end) not in seen:
+                seen.add((line.symbol, c.start, c.end))
+                yield Cell(c.strategy, line, c.start, c.end), read
+
+
 def begun(home: Path, todo: Sequence[Cell], plan: Plan) -> tuple[Path, int]:
     """The set's results file and its count of trials entered; the register made on a first run."""
     results, register = (home / FOLDER / (plan.stem + e) for e in (".jsonl", ".trials.jsonl"))
@@ -228,17 +249,16 @@ def run(
     if cell.code_version(module=ME) != cell.RUNGS[ME]:
         raise RuntimeError("the code on disk has changed since this process loaded it")
     todo = cells() if todo is None else todo
+    folds.preflight(inputs(todo, bars), pounds)
     results, count = begun(home, todo, plan)
     last = Kept(results)
     shared = Shared(todo)
-    register = results.with_suffix(".trials.jsonl")
-    kin = lambda rule: trials.family(register, plan.question, rule)  # noqa: E731 - read when EASED
     tally: Counter[str] = Counter()
     with tape.on(home / FOLDER / tape.FOLDER), results.open("ab") as out:
         out.truncate(last.end)
         for c in todo:
             was = last.get(tuple(batch.row(c)))
-            row = _one(c, bars, pounds, (plan.tag, count), was, shared, now(), kin)
+            row = _one(c, bars, pounds, (plan.tag, count), was, shared, now())
             if row != was:
                 out.write(json.dumps(row).encode() + b"\n")
                 out.flush()
@@ -265,12 +285,10 @@ def _one(
     was: verdict.Row | None,
     shared: Shared,
     now: datetime,
-    kin: Callable[[str], int] | None = None,
 ) -> verdict.Row:
     """The cell's line: the one kept under the key these bars, rates and trials give, else its
     answers now, or why it could not be judged."""
     tag, count = tagged
-    family = kin(c.strategy) if verdict.EASED and kin else None  #: the rule's trials, if EASED
     head: dict[str, Any] = {"set": tag, "cell": batch.row(c), "trials": count}
     key = None  #: what this try covers, once the cell's bars are read
     try:
@@ -285,7 +303,7 @@ def _one(
         )
         market = cell.key(Cell(c.strategy, beside, c.start, c.end), held).data
         parts = [mine.code, mine.data, market, pool.data, str(count), f"capital {CAPITAL}"]
-        parts += [f"{d} {pounds[d]}" for d in days] + ([] if family is None else [f"in {family}"])
+        parts += [f"{d} {pounds[d]}" for d in days]
         parts += [tape.rule_code(c.strategy)] + [one.key.code + one.key.data for one in made]
         found = rung.found(RUNGS)
         parts += [one.name + one.code for one in found[0]] + list(found[1])  #: both are in its key
@@ -296,7 +314,8 @@ def _one(
         if (first := pool.firsts.get(c)) is not None and first.refusal is not None:
             return head | {"key": key, "refused": f"refused by the desk's sizing: {first.refusal}"}
         folded = lambda: pool.fold(pounds, made)  # noqa: E731 - asked for only if the folds are read
-        judged = verdict.judge(c, own, beside, held, pounds, count, made, folded, first, family)
+        look = None if first is None else pool.among(c)  #: L18: among its rule's own lines
+        judged = verdict.judge(c, own, beside, held, pounds, count, made, folded, first, None, look)
         done = _declared(judged, pool, c, own, pounds, made, found)
         return head | {"key": key, "from": c.start.isoformat()} | done
     except FAILED as error:
@@ -332,7 +351,7 @@ def _needs_data(make: type[Rule]) -> bool:
 
 def door(env: Mapping[str, str], argv: Sequence[str]) -> int:
     """The command: the set run, then each rung any cell FAULTed on said on its own line with its
-    share and reason; 1 when most cells FAULTed, so a set that judged nothing is never green.
+    share and reason; 1, and NOT PUBLISHED said, when over 1% of its cells FAULTed (L20).
     The intraday and scalping sets keep no results file (their table is all), so none is read."""
     from lab import ladder_sets
 
@@ -344,9 +363,9 @@ def door(env: Mapping[str, str], argv: Sequence[str]) -> int:
         return code
     kept = Kept(Path(env["KESTREL2_DATA"]) / FOLDER / f"{plan.stem}.jsonl")
     kept.compact()  #: once the set is judged, never while a run holds the file
-    said, mostly = faults(kept.rows())
+    said, shown = faults(kept.rows())
     sys.stdout.write("".join(f"{line}" + chr(10) for line in said))
-    return code or int(mostly)
+    return code or int(not shown)
 
 
 if __name__ == "__main__":

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import shutil
+from dataclasses import replace
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -216,9 +217,12 @@ def test_hover_judges_every_span_and_the_alarm_tells_only_of_change(tmp_path: Pa
         held.five(SPY, [Five(last, price, price, price, price, 5)])
         for span, at in spans.items():
             held.timed(SPY, span, [Timed(span, at, price, price, price, price, 5)])
-    said, ok = quality.hover(path, [SPY], NOW)
-    assert said.startswith("data quality: 75% fresh, 1 faults, 1 gaps, worst SPY/")
+    said, ok = quality.hover({"live": path}, [SPY], NOW)
+    assert said.startswith("data quality: 75% fresh, 1 faults, 1 gaps, worst live/SPY/")
     assert not ok
+    assert "(gap): holds no bar" in said or "(stale): newest" in said
+    odd = replace(SPY, symbol="ZZZ")  # a line first in order, but not golden: SPY's fault leads
+    assert "worst live/SPY/" in quality.hover({"live": path}, [odd, SPY], NOW)[0]
     with bars.writing(path, bars.Source.IBKR) as held:
         held.timed(SPY, "1h", [Timed("1h", last, price, price, price, price, 5)])
         held.timed(
@@ -226,10 +230,20 @@ def test_hover_judges_every_span_and_the_alarm_tells_only_of_change(tmp_path: Pa
             "1wk",
             [Timed("1wk", datetime(2026, 11, 9, tzinfo=UTC), price, price, price, price, 5)],
         )
-    assert quality.hover(path, [SPY], NOW) == (
+    shown = quality.table({"live": path}, [SPY], NOW)
+    assert "live/1h: 100% fresh, 0 faults, 0 gaps" in shown
+    assert shown.endswith("live sources: IBKR paper 1; replaced: none")
+    assert quality.hover({"live": path}, [SPY], NOW) == (
         "data quality: 100% fresh, 0 faults, 0 gaps, worst none",
         True,
     )
+    assert quality.databases(tmp_path) == {
+        bars.HISTORY: tmp_path / bars.HISTORY,
+        bars.LIVE: tmp_path / bars.LIVE,
+    }
+    holed = seeded(tmp_path / "holed", {date(2026, 11, 12)})
+    assert quality.cell(holed, SPY, "daily", NOW) == "1 sessions missing, the first 2026-11-12"
+    assert quality.kind("1 sessions missing, the first x") == "hole"
     first = quality.alarm(None, None, False, "SPY/1h", NOW)
     assert first == (NOW, NOW, "data quality RED: SPY/1h")
     soon = NOW + timedelta(minutes=10)
@@ -248,3 +262,31 @@ def test_hover_judges_every_span_and_the_alarm_tells_only_of_change(tmp_path: Pa
     ]
     assert sent == ["data quality RED: x", None, "back to green, red for 31 minutes"]
     assert quality.watch(state, "", True, later) is None
+    assert quality.announce("l", "x") == "l\nSEND: x\n"
+    assert quality.announce("l", None) == "l\n"
+
+
+def test_the_register_names_the_source_of_each_newest_bar(tmp_path: Path) -> None:
+    path = seeded(tmp_path, set())
+    assert quality.register(path, [SPY]) == ("IBKR paper 1", [])
+    with bars.writing(path, bars.Source.BACKFILL) as held:
+        held.days(SPY, [bar(date(2026, 11, 17))])
+    assert quality.register(path, [SPY]) == ("archive, backfilled 1", ["SPY: archive, backfilled"])
+
+
+def test_a_held_close_is_checked_against_the_brokers_price_of_record(tmp_path: Path) -> None:
+    path = seeded(tmp_path, set())
+    held = bar(DAYS[0])
+    assert quality.against_record(path, SPY, held) == []
+    off = Bar(held.day, held.open, held.high, held.low, held.close + 20, 1)
+    assert "held close" in quality.against_record(path, SPY, off)[0]
+    assert "no daily bar" in quality.against_record(path, SPY, bar(date(2026, 11, 20)))[0]
+
+
+def test_the_daily_check_asks_the_broker_for_each_line(tmp_path: Path) -> None:
+    path = seeded(tmp_path, set())
+    day = quality._last_session(SPY, NOW)
+    held = {b.day: b for b in bars.daily(path, SPY)}
+    if day in held:
+        assert quality.check_records(path, [SPY], lambda _l, _d: [held[day]], NOW) == []
+    assert "gave no bar" in quality.check_records(path, [SPY], lambda _l, _d: [], NOW)[0]

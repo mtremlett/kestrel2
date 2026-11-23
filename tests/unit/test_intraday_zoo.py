@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import ClassVar
 
 from desk import bars, intraday, venues
+from desk.grimes import GRIMES
 from desk.intraday import ZOO, Regime, Span
 from desk.lines import Line
 from desk.rollup import Candle
@@ -41,9 +42,10 @@ def _actions(name: str, candles: list[Candle]) -> list[Action]:
     return [d.action for d in intraday.run(name, rule, "LSE", "X", candles)]  # type: ignore[arg-type]
 
 
-def test_the_zoo_is_twenty_machines_over_every_regime_and_none_a_candidate() -> None:
+def test_the_zoo_is_thirty_machines_over_every_regime_and_none_a_candidate() -> None:
     names = [m.name for m in ZOO]
-    assert len(names) == 20 == len(set(names)) and all(n.startswith("zoo_") for n in names)
+    assert len(names) == 30 == len(set(names)) and all(n.startswith("zoo_") for n in names)
+    assert [n for n in names if n.startswith("zoo_ag")] == [f"zoo_{n}" for n in GRIMES]
     assert not set(names) & (set(STRATEGIES) | set(intraday.RULES))
     assert {m.regime for m in ZOO} == set(Regime)
     fives = [m for m in ZOO if m.span is Span.FIVE_MINUTES]
@@ -153,7 +155,7 @@ def test_fifteen_minute_bars_are_rolled_from_the_five_minute_store(tmp_path: Pat
 
 
 def test_every_intraday_machine_runs_through_the_one_engine_on_a_fixture_session() -> None:
-    assert len([m for m in ZOO if m.span is None]) == 13  #: the daily ones: strategy's engine
+    assert len([m for m in ZOO if m.span is None]) == 23  #: the daily ones: strategy's engine
     for m in ZOO:
         if m.span is not None:
             candles = _session(DAY, [_flat(100 + n % 3) for n in range(20)], m.span.value)

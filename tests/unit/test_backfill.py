@@ -9,9 +9,9 @@ from pathlib import Path
 
 import pytest
 
-from desk import backfill, bars, history, paper, venues
+from desk import backfill, bars, history, keeper, paper, venues
 from desk.bars import Source
-from desk.lines import LINES
+from desk.lines import LINES, POUND
 from desk.store import Bar, Refused
 
 SPY = next(line for line in LINES if line.symbol == "SPY")
@@ -83,6 +83,19 @@ def test_a_hole_among_years_of_bars_is_judged_beside_both_sides_as_of_today(tmp_
     assert [b.day for b in bars.daily(path, ISF)] == sorted([*days, LOST])
 
 
+def test_the_pounds_gaps_are_filled_from_the_fed_and_a_day_it_lacks_is_named(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / bars.LIVE
+    with bars.writing(path) as held:
+        held.days(POUND, [bar(date(2020, 1, 6), "1")])
+    table = "d,r\n2020-01-07,1.31\n2020-01-08,\n2020-01-09,1.32\n"
+    wrote, named = backfill.fill_pound(path, table, date(2020, 1, 10))
+    assert wrote == ["2020-01-07: 1.31", "2020-01-09: 1.32"] and named == ["2020-01-08"]
+    assert bars.sources(path, POUND, bars.DAILY)[Source.FED_NOON] == 2
+    assert backfill.fill_pound(path, table, date(2020, 1, 10))[0] == []
+
+
 def test_the_brokers_pence_are_turned_into_pounds_on_entry() -> None:
     pence = Bar(FRIDAY, Decimal("7791"), Decimal("7823"), Decimal("7626"), Decimal("7716"), 9)
     pounds = Bar(FRIDAY, Decimal("77.91"), Decimal("78.23"), Decimal("76.26"), Decimal("77.16"), 9)
@@ -121,3 +134,15 @@ def test_a_day_the_broker_lacks_is_taken_from_local_stooq_before_the_archive(
     )
     wrote, named = backfill.fill(path, [(ISF, LOST)], asks, TODAY)
     assert wrote == [f"ISF {LOST}: old desk: stooq_store daily rows"] and not named
+
+
+def test_the_pound_command_fills_from_the_fed_and_exits_1_on_a_named_day(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = tmp_path / keeper.HOT
+    with bars.writing(path) as held:
+        held.days(POUND, [bar(date(2020, 1, 6), "1")])
+    monkeypatch.setattr(backfill, "_fed", lambda: "d,r\n2020-01-07,1.31\n2020-01-08,\n")
+    now = datetime(2020, 1, 10, 6, tzinfo=UTC)
+    assert backfill.main(tmp_path, now, ["POUND"]) == 1
+    assert [b.day for b in bars.daily(path, POUND)] == [date(2020, 1, 6), date(2020, 1, 7)]

@@ -278,3 +278,17 @@ longer wrote those notes; 348 LSE and as many US `*.faults.csv` notes still sit 
 (`KeyError: 'day'`). Options: (A) delete the old files (deletes data, not GRID's to do); (B) skip them in `held()`.
 **Decided (B)**, recommended, on his "always go with recommended". Remains: the runner restarts the week job on current
 code; the grid-week wait stays 2026-11-28; old rows of the phantom journals in grid/held are inert.
+
+### 2026-11-22 — grid-week wait kept after the stale-clone finding (#1700)
+
+The 2,810 failures are `ValueError: Invalid isoformat string: ''` from the week's pre-#1210 clone (lines without
+`[file:line]`, so before #1370); on current main the same cells run. The 15 Nov 11:22 stop left empty logs, no trigger
+provable. Options: (a) re-date the wait; (b) drop it; (c) keep 2026-11-28. **Decided (c)**, recommended, on his
+"always go with recommended". Remains: the runner brings the clone to current main and restarts the week.
+
+### 2026-11-22 — only the sweep failures of a two-part card done (#1748)
+
+The card's first item (why 2,810 cells fail) was done: the cause is the week's pre-#1210 clone against the new-format
+store, and the pass line now carries the causes. Its second item, R-RUNGS-34 (`rule()` with `[`), is already met on
+main (`lab/rulebook.py`). Options: (a) do both; (b) the sweep only. **Decided (b)**, recommended, on his "always go with
+recommended". Remains: the runner brings the clone to current main and restarts the week job.

@@ -18,6 +18,7 @@ from desk.store import Bar
 from lab import cell, published, reproduce, rung
 from lab.cell import Cell
 from lab.published import Case, Published
+from lab.published_epon import EPONYMOUS_PUBLISHED
 from lab.reproduce import Figure, Fill, Hand, Measure, Reproduction, Stated
 
 AAPL = next(line for line in LINES if line.symbol == "AAPL")
@@ -59,6 +60,12 @@ def test_the_authors_own_figure_is_reproduced_counted_as_the_author_counted() ->
     assert made.reproduced and measured == ["2.000000", "50.000000", "22.363636", "1.000000"]
     kept = cell.key(made.key.cell, bars).rung("lab.reproduce")
     assert made.key == kept, "the code, this module's too, and the bars that made it"
+    #: an eponymous rule's author prints one pound's path: 20/11 at its high, 19/11 x 18/25 at
+    #: the end 48 days on, a fall of 31.6% from the high, and in the market at 12 closes of 35
+    pound = ((Measure.CAGR, "425.48", ".01"), (Measure.DRAWDOWN, "31.6", ".000001"))
+    assert reproduce.reproduce(
+        _figure(Fill.CLOSE, *pound, (Measure.INVESTED, "34.29", ".01")), bars
+    ).reproduced
     #: history before the period warms the rule, and a trade belongs to the period it was
     #: bought in: from bar 21 the second trade alone is the author's
     later = replace(_figure(Fill.CLOSE, (Measure.MEAN_GAIN, "-28", "0")), start=DAYS[21])
@@ -126,9 +133,11 @@ def test_nothing_is_called_a_reproduction_that_could_not_be_one(
     ):
         with pytest.raises(ValueError, match=why):
             replace(figure, **wrong)
+    assert replace(figure, strategy="faber_tactical").strategy  #: an eponymous rule is on file
     #: every figure on file is of a rule on file; and code that is not the published rule
     #: reproduces nothing
-    assert all(kept.strategy in published.PUBLISHED for kept in reproduce.FIGURES)
+    on_file = {*published.PUBLISHED, *EPONYMOUS_PUBLISHED}
+    assert all(kept.strategy in on_file for kept in reproduce.FIGURES)
     monkeypatch.delitem(cast(MutableMapping[str, Published], published.PUBLISHED), figure.strategy)
     published.proven.cache_clear()
     with pytest.raises(ValueError, match="no published rule on file"):

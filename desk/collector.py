@@ -3,9 +3,9 @@ asks the free tiers the desk already holds a key for, a few dozen calls a day, a
 what they say before any use is made of it, because history a free tier does not keep cannot
 be bought back (BIC-06, DAT-01). Four kinds of fact land in the one store (the long database
 of desk.bars): a PRICE second opinion on each US line's last session (Massive, Tiingo; EODHD one
-London line a day), MACRO series (FRED), EARNINGS dates (Finnhub) and NEWS with the moment
-each was published (Finnhub, Marketaux, GNews). Every answer is also kept raw and timestamped,
-under its source and subject.
+London line a day), MACRO series (FRED, BLS, BEA, EIA), EARNINGS dates (Finnhub) and NEWS with
+the moment each was published (Finnhub, Marketaux, GNews). Every answer is also kept raw and
+timestamped, under its source and subject.
 
 A key is read from the environment as <NAME>_API_KEY and goes into an address and nowhere
 else: nothing prints or stores an address. A source with no key is skipped, saying which; one
@@ -15,13 +15,15 @@ NewsAPI and Trading 212 are never asked."""
 
 from __future__ import annotations
 
+import csv
+import io
 import json
 import os
 import sqlite3
 import sys
 from collections.abc import Callable, Iterator, Mapping
 from contextlib import closing
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from http.client import HTTPException
@@ -43,6 +45,7 @@ SCHEMA = (
     " PRIMARY KEY (kind, source, subject, at, value)) WITHOUT ROWID",
 )
 SERIES = ("DGS10", "DGS2", "T10Y2Y", "VIXCLS", "BAMLH0A0HYM2", "FEDFUNDS", "CPIAUCSL", "UNRATE")
+BLS_SERIES = ("CUUR0000SA0", "LNS14000000", "CES0000000001")  #: CPI, unemployment, payrolls
 AHEAD = timedelta(days=14)  #: how far ahead earnings dates are asked for
 US = tuple(line.symbol for line in LINES if line.venue == "US")
 LONDON = tuple(line.symbol for line in LINES if line.venue == "LSE")
@@ -68,6 +71,9 @@ class Source:
     key: str
     asks: Callable[[str, date], Iterator[tuple[str, str]]]
     read: Callable[[str, Any, date], Iterator[Fact]]
+    parse: Callable[[bytes], Any] = field(
+        default=lambda body: json.loads(body, parse_float=Decimal)
+    )
 
 
 def _utc(moment: str | int) -> str:
@@ -113,6 +119,19 @@ def _eodhd_read(symbol: str, answer: Any, _: date) -> Iterator[Fact]:
         yield Fact(PRICE, symbol, row["date"], str(row["close"]))
 
 
+def _alpha(key: str, day: date) -> Iterator[tuple[str, str]]:
+    """A second London audit line a day, the turn after EODHD's, so each day two are audited."""
+    symbol = LONDON[(day.toordinal() + 1) % len(LONDON)]
+    address = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&outputsize=compact"
+    yield symbol, f"{address}&symbol={symbol}.LON&apikey={key}"
+
+
+def _alpha_read(symbol: str, answer: Any, day: date) -> Iterator[Fact]:
+    row = answer["Time Series (Daily)"].get(str(day))  # absent on a day the exchange was shut
+    if row:
+        yield Fact(PRICE, symbol, str(day), row["4. close"])
+
+
 def _fred(key: str, _: date) -> Iterator[tuple[str, str]]:
     address = "https://api.stlouisfed.org/fred/series/observations?file_type=json&limit=5"
     for series in SERIES:
@@ -125,6 +144,41 @@ def _fred_read(series: str, answer: Any, _: date) -> Iterator[Fact]:
             yield Fact(MACRO, series, row["date"], row["value"])
 
 
+def _bls(key: str, _: date) -> Iterator[tuple[str, str]]:
+    for series in BLS_SERIES:
+        address = "https://api.bls.gov/publicAPI/v2/timeseries/data/"
+        yield series, f"{address}{series}?registrationkey={key}"
+
+
+def _bls_read(series: str, answer: Any, _: date) -> Iterator[Fact]:
+    for row in answer["Results"]["series"][0]["data"]:
+        if row["period"] != "M13":  # the year's average, not a month
+            yield Fact(MACRO, series, f"{row['year']}-{row['period'][1:]}", row["value"])
+
+
+def _eia(key: str, _: date) -> Iterator[tuple[str, str]]:
+    address = "https://api.eia.gov/v2/petroleum/pri/spt/data/?frequency=daily&data[0]=value"
+    sort = "sort[0][column]=period&sort[0][direction]=desc&length=5"
+    yield "RWTC", f"{address}&facets[series][]=RWTC&{sort}&api_key={key}"
+
+
+def _eia_read(series: str, answer: Any, _: date) -> Iterator[Fact]:
+    for row in answer["response"]["data"]:
+        yield Fact(MACRO, series, row["period"], str(row["value"]))
+
+
+def _bea(key: str, day: date) -> Iterator[tuple[str, str]]:
+    address = "https://apps.bea.gov/api/data/?method=GetData&datasetname=NIPA&TableName=T10101"
+    years = f"{day.year - 1},{day.year}"
+    yield "T10101", f"{address}&Frequency=Q&Year={years}&ResultFormat=JSON&UserID={key}"
+
+
+def _bea_read(table: str, answer: Any, _: date) -> Iterator[Fact]:
+    for row in answer["BEAAPI"]["Results"]["Data"]:
+        if row["LineNumber"] == "1":  # real GDP, percent change on the quarter
+            yield Fact(MACRO, f"{table}-GDP", row["TimePeriod"], row["DataValue"])
+
+
 def _earnings(key: str, day: date) -> Iterator[tuple[str, str]]:
     address = "https://finnhub.io/api/v1/calendar/earnings"
     yield "calendar", f"{address}?from={day}&to={day + AHEAD}&token={key}"
@@ -134,6 +188,21 @@ def _earnings_read(_: str, answer: Any, _day: date) -> Iterator[Fact]:
     for row in answer["earningsCalendar"]:
         if row["symbol"] in US:
             yield Fact(EARNINGS, row["symbol"], row["date"], row.get("hour") or "")
+
+
+def _alpha_earnings(key: str, _: date) -> Iterator[tuple[str, str]]:
+    address = "https://www.alphavantage.co/query?function=EARNINGS_CALENDAR&horizon=3month"
+    yield "calendar", f"{address}&apikey={key}"
+
+
+def _csv(body: bytes) -> list[dict[str, str]]:
+    return list(csv.DictReader(io.StringIO(body.decode("utf-8"))))
+
+
+def _alpha_earnings_read(_: str, answer: Any, day: date) -> Iterator[Fact]:
+    for row in answer:  # a rate-limit note comes as JSON: no symbol column, so a loud KeyError
+        if row["symbol"] in US and row["reportDate"] <= str(day + AHEAD):
+            yield Fact(EARNINGS, row["symbol"], row["reportDate"], "")
 
 
 def _finnhub_news(key: str, _: date) -> Iterator[tuple[str, str]]:
@@ -168,8 +237,13 @@ SOURCES = (
     Source("massive", "MASSIVE", _massive, _massive_read),
     Source("tiingo", "TIINGO", _tiingo, _tiingo_read),
     Source("eodhd", "EODHD", _eodhd, _eodhd_read),
+    Source("alphavantage", "ALPHAVANTAGE", _alpha, _alpha_read),
     Source("fred", "FRED", _fred, _fred_read),
+    Source("bls", "BLS", _bls, _bls_read),
+    Source("eia", "EIA", _eia, _eia_read),
+    Source("bea", "BEA", _bea, _bea_read),
     Source("finnhub", "FINNHUB", _earnings, _earnings_read),
+    Source("alphavantage-earnings", "ALPHAVANTAGE", _alpha_earnings, _alpha_earnings_read, _csv),
     Source("finnhub-news", "FINNHUB", _finnhub_news, _finnhub_news_read),
     Source("marketaux", "MARKETAUX", _marketaux, _marketaux_read),
     Source("gnews", "GNEWS", _gnews, _gnews_read),
@@ -197,7 +271,7 @@ def _keep(
     with store:  # the network is done with: one short write, all of a source's answers or none
         for subject, body in answers:
             store.execute("INSERT INTO raw VALUES (?, ?, ?, ?)", (source.name, subject, at, body))
-            answer = json.loads(body, parse_float=Decimal)
+            answer = source.parse(body)
             for fact in source.read(subject, answer, day):
                 store.execute(
                     "INSERT OR IGNORE INTO fact VALUES (?, ?, ?, ?, ?)",

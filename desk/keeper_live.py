@@ -88,12 +88,9 @@ def due(lines: Sequence[Line], now: datetime) -> tuple[Line, ...]:
     return tuple(lines[(slot * PER_RUN + k) % len(lines)] for k in range(PER_RUN))
 
 
-def minute_round(
-    hot: Path, lines: Sequence[Line], now: datetime, ask: Minutes
-) -> tuple[str, list[str]]:
-    """One run of `--live`: the due lines in session asked for their one-minute bars, kept as
-    IBKR's; the words, and each line whose newest bar is later than LATE or was refused."""
-    mine = [line for line in due(lines, now) if venues.open_at(line.venue, now)]
+def _asked(hot: Path, mine: Sequence[Line], now: datetime, ask: Minutes) -> list[str]:
+    """The lines asked for their one-minute bars and kept as IBKR's; each one refused, or whose
+    newest bar is later than LATE, in words."""
     with bars.writing(hot, bars.Source.IBKR) as started:  # a line with no history is started
         for line in mine:
             started.timed(line, MINUTES, ())
@@ -108,11 +105,39 @@ def minute_round(
             stale.append(f"{line.symbol}: {answer.reason}")
         elif not answer or now - max(b.start for b in answer) - live.MINUTE > LATE:
             stale.append(f"{line.symbol}: no bar within {LATE.seconds // 60} minutes")
+    return stale
+
+
+def minute_round(
+    hot: Path, lines: Sequence[Line], now: datetime, ask: Minutes
+) -> tuple[str, list[str]]:
+    """One run of `--live`: the due lines in session asked for their one-minute bars, kept as
+    IBKR's; the words, and each line whose newest bar is later than LATE or was refused."""
+    mine = [line for line in due(lines, now) if venues.open_at(line.venue, now)]
+    stale = _asked(hot, mine, now, ask)
     paced = sum("pacing" in words.lower() for words in stale)
     return (
         f"live: one-minute bars asked for {len(mine)} lines, {len(stale)} stale, pacing {paced}",
         stale,
     )
+
+
+def polled_round(
+    hot: Path, lines: Sequence[Line], now: datetime, ask: Minutes, minutes: int, rate: int
+) -> tuple[str, int, int]:
+    """One polled round of the `minutes` interval: the next `rate` lines of its rota, those in
+    session, asked once each for their one-minute bars; the words, the requests made and the
+    pacing refusals among them, which the keeper feeds to keeper.pace for the next rate."""
+    slot = int(now.timestamp()) // (60 * minutes)
+    rota = [lines[(slot * rate + k) % len(lines)] for k in range(min(rate, len(lines)))]
+    mine = [line for line in rota if venues.open_at(line.venue, now)]
+    stale = _asked(hot, mine, now, ask)
+    refusals = sum("pacing" in words.lower() for words in stale)
+    words = (
+        f"polled {minutes}-minute round: {len(mine)} requests, {len(stale)} stale, "
+        f"{refusals} pacing refusals, rate {rate}"
+    )
+    return words, len(mine), refusals
 
 
 ROLLED = "SELECT * FROM bar WHERE span IN (?, ?)"

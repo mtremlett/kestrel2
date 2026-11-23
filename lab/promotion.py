@@ -5,13 +5,19 @@ paper trades, net positive (STR-17, LAD-11).
 BEFORE PAPER. A candidate is a strategy of the desk's with the ladder's own line for it
 (`lab/ladder.py`), never a bare word: every rung the one verdict rule names (`lab/deflated.py`)
 answered on it, the rule read again over those answers a pass, and the line saying the same;
-and no rung of the ladder listed unrun on it; and with its kill condition: the numbers,
-written down before its first paper trade, at which it is stopped. Written first, because a
-limit chosen while the losses are being watched is always a little further off. A candidate
-without the pass or without the condition cannot be made at all. The condition is two
-measured things, either one enough: its paper profit after every cost fallen so many pounds
-beneath its highest point (nothing made, until it has been ahead), or so many trades lost in
-a row. A fall deeper than the A-GATE's own (AG-05) is no condition, and is refused.
+and no rung of the ladder listed unrun on it but one: reproduction, unrun only for want of an
+author's figure, by a rule whose author's test (`published_epon.TESTED`) is none it may be held
+to; a rule with one is reproduced first (rungs-eponymous). It is one of the desk's five or an
+eponymous rule (`lab/rulebook.py`), each graduating by the same gate; and with its kill
+condition: the numbers, written down before its first paper trade, at which it is stopped. Its
+line was judged for luck at its set's full count of trials, every one its register holds: a line
+judged when the register held fewer is luck corrected for less than was tried (rungs-eponymous).
+Written first, because a limit chosen while the losses are being watched is always a little
+further off. A candidate without the pass or without the condition cannot be made at all. The
+condition is two measured things, either one enough: its paper profit after every cost fallen
+so many pounds beneath its highest point (nothing made, until it has been ahead), or so many
+trades lost in a row. A fall deeper than the A-GATE's own (AG-05) is no condition, and is
+refused.
 
 ON PAPER. The facts are the desk's own ledger's: its fills (`book.fills`) and the round
 trips made of them (`book.round_trips`), in pounds after every cost of both legs; nothing is
@@ -54,7 +60,13 @@ from desk.broker import Fill
 from desk.orders import pennies, strategy_of
 from desk.strategy import STRATEGIES
 from lab.deflated import NAMED, rule
+from lab.published_epon import TESTED
+from lab.rulebook import eponymous
 from lab.rung import MIN_TRADES, Answer
+from lab.verdict import NO_FIGURE
+
+#: The rules that may graduate to paper: the desk's five and every eponymous rule.
+RULES = frozenset(STRATEGIES) | frozenset(eponymous())
 
 #: The A-GATE's own fall (AG-05, pounds): no candidate's kill condition may sit beneath it.
 DEEPEST = Decimal(1500)
@@ -81,17 +93,25 @@ class Candidate:
     ladder: Mapping[str, Any]  #: the ladder's line for the strategy on one of the desk's lines
     declared: date  #: the day its kill condition was written; its paper trades come after
     kill: Kill
+    register: int  #: the set's full trial count (`trials.count`); its line judged at no fewer
 
     @property
     def strategy(self) -> str:
         return str((self.ladder.get("cell") or [""])[0])
 
     def __post_init__(self) -> None:
-        if self.strategy not in STRATEGIES:
+        if self.strategy not in RULES:
             raise ValueError(f"{self.strategy}: no strategy of the desk's to put on paper")
-        if self.ladder.get("unrun"):
+        test = TESTED.get(self.strategy)
+        excused = {} if test is not None and test.candidate else {"reproduce": NO_FIGURE}
+        unrun = {k: v for k, v in (self.ladder.get("unrun") or {}).items() if excused.get(k) != v}
+        if unrun:
+            raise ValueError(f"{self.strategy} has not passed the ladder: unrun {unrun}")
+        judged = self.ladder.get("trials")
+        if not isinstance(judged, int) or self.register < 1 or judged < self.register:
             raise ValueError(
-                f"{self.strategy} has not passed the ladder: unrun {self.ladder['unrun']}"
+                f"{self.strategy} was judged against {judged} trials, its set's register "
+                f"{self.register}: its luck test is owed at the full count"
             )
         rungs, said = self.ladder.get("rungs", {}), self.ladder.get("answer")
         answers = {name: Answer.__members__.get(str(rungs.get(name, [""])[0])) for name in NAMED}

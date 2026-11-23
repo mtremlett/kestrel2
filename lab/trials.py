@@ -161,13 +161,6 @@ def count(register: Path, question: str) -> int:
     return len(_asked(_read(register)[0], question))
 
 
-def family(register: Path, question: str, rule: str) -> int:
-    """Every trial ever entered under the question for this rule: all its variants, abandoned
-    sets included, whatever line, window or version of its code (a cell's name opens with its
-    rule and a space, a variant's, `lab.variants`, with its rule and its settings in brackets)."""
-    return sum(t.startswith((rule + " ", rule + "[")) for t in _asked(_read(register)[0], question))
-
-
 def correct(register: Path, question: str, verdicts: Sequence[Verdict]) -> tuple[Corrected, ...]:
     """The luck rung's correction of these verdicts, for every trial the register holds on
     the question: the verdicts are among them, and the rest count as trials without one."""
@@ -255,6 +248,25 @@ def clustered(register: Path, question: str, returns: Mapping[str, Sequence[floa
     """The question's trials as one clustered set: those with returns as their clusters, and
     every other trial the register holds a look of its own."""
     return clusters(returns, _rest(register, question, returns))
+
+
+def daily(verdicts: Sequence[Verdict]) -> dict[str, list[float]]:
+    """THE RETURNS TO HAND IN from a set's own lines: each trial's gain after costs on the day
+    its sale filled, nothing on any other day of one window: the span of all their windows, so
+    a line whose bars begin later is aligned day for day with the rest (L18)."""
+    if not verdicts or len({name(v.key.cell) for v in verdicts}) < len(verdicts):
+        raise ValueError(f"{len(verdicts)} lines, none or one trial twice: not one set")
+    first = min(v.key.cell.start for v in verdicts)
+    last = max(v.key.cell.end for v in verdicts)
+    out: dict[str, list[float]] = {}
+    for verdict in verdicts:
+        row = [0.0] * ((last - first).days + 1)
+        for trade in verdict.trades:
+            if not first <= (sold := trade.held[1]) <= last:
+                raise ValueError(f"{name(verdict.key.cell)}: sold {sold}, outside its window")
+            row[(sold - first).days] += float(trade.gain)
+        out[name(verdict.key.cell)] = row
+    return out
 
 
 def _groups(alike: NDArray[np.float64]) -> list[list[int]]:

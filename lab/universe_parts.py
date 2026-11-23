@@ -56,16 +56,18 @@ def _rescaled(before: Sequence[Bar], bar: Bar) -> bool:
     return bar.low > last * store.JUMP or (bar.high * store.JUMP < last and quiet)
 
 
-def read(root: Path, line: Line) -> History:
-    """A ticker's bars from the research store's CSV files at root (to be retired: `read_db`)."""
-    return _history(store.read(root / line.venue, line.symbol), line)
-
-
-def read_db(path: Path, line: Line) -> History:
+def read(path: Path, line: Line) -> History:
     """A ticker's bars from the history database beside the live file at path, the one door
     for prices: a bar held only in a CSV file is never read. Else as `_history`. A line the
-    database holds nothing for has no bars."""
-    return _history(database.daily(path, line), line)
+    database holds no bar for raises FileNotFoundError naming it, as a missing file did: a
+    cell left unjudged and counted (`ladder.FAILED`), never a stopped run."""
+    try:
+        held = database.daily(path, line)
+    except LookupError:  # never held: told as no bar, below
+        held = ()
+    if not held:
+        raise FileNotFoundError(f"{line.symbol} on {line.venue}: the history database holds no bar")
+    return _history(held, line)
 
 
 def _history(bars: tuple[Bar, ...], line: Line) -> History:
@@ -103,15 +105,16 @@ def matrix(folder: Path) -> Callable[[Line, date], tuple[Bar, ...]]:
     return second
 
 
-def breadth(root: Path, lines: Sequence[Line]) -> dict[date, tuple[int, int]]:
+def breadth(path: Path, lines: Sequence[Line]) -> dict[date, tuple[int, int]]:
     """Each session's advances and declines among the lines (R-RUNNER-346): a line advances
     when its close is above its previous bar's, declines when below, and is left out when
-    unchanged or first. Read through `read`, so no change of scale counts as a move; a
-    line with no file is left out. Counts only: a day's ratio is the caller's."""
+    unchanged or first. Read through `read`, the history database at path, so no change of
+    scale counts as a move; a line it holds no bar for is left out. Counts only: a day's ratio
+    is the caller's."""
     tally: dict[date, list[int]] = {}
     for line in lines:
         try:
-            held = read(root, line).bars
+            held = read(path, line).bars
         except FileNotFoundError:
             continue
         for before, bar in zip(held, held[1:], strict=False):

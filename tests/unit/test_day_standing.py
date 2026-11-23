@@ -3,23 +3,26 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import replace
 from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
 
 import pytest
 
-from desk import book, day, day_money, orders
-from desk.broker import Pretend
+from desk import book, day, day_money, intraday, orders, strategy
+from desk.broker import Pretend, Report
 from desk.halt import Blocker, Stopped
-from desk.lines import YARDSTICK, Line
+from desk.lines import LINES, YARDSTICK, Line
 from desk.orders import Charges, Order, Settings
 from desk.risk import Standing
 from desk.store import Bar
 
 ROOM = Settings(Decimal(10_000))
 MON, TUE, A = date(2025, 11, 10), date(2025, 11, 11), Line("A", "LSE", "GBP", 1)
-BARS = {A: tuple(Bar(d, Decimal(50), Decimal(51), Decimal(49), Decimal(51), 1) for d in (MON, TUE))}
+BARS = {
+    A: tuple(Bar(d, Decimal(50), Decimal(51), Decimal(49), Decimal(51), 10**7) for d in (MON, TUE))
+}
 
 
 def test_a_lost_day_is_the_standing_that_makes_the_send_path_refuse_a_buy(tmp_path: Path) -> None:
@@ -97,7 +100,7 @@ def test_a_buy_that_moves_with_a_held_line_is_refused_and_one_that_does_not_goes
 
     def line(symbol: str, closes: list[Decimal]) -> tuple[Line, tuple[Bar, ...]]:
         return Line(symbol, "LSE", "GBP", 1), tuple(
-            Bar(d, c, c, c, c, 1) for d, c in zip(days, closes, strict=True)
+            Bar(d, c, c, c, c, 10**7) for d, c in zip(days, closes, strict=True)
         )
 
     held, twin, apart = line("H", wiggle), line("T", [c * 2 for c in wiggle]), line("P", other)
@@ -229,3 +232,79 @@ def test_the_zoos_holdings_never_fill_the_desks_five_nor_the_desks_the_zoos(tmp_
         buy("20251110-zoo_x-J-0805B", lines[9])
     gone = book.send(tmp_path, broker, orders.Sale("20251110-goflat-A", lines[0], 1), ROOM)
     assert gone.filled == 1  # go flat, the second kill level, still sells the zoo's shares
+
+
+class _In:
+    """Always in the market."""
+
+    def step(self, bar: Bar, holding: bool) -> bool:  # noqa: ARG002  # a double: it reads nothing
+        return True
+
+
+def test_the_daily_zoo_buys_one_share_a_rule_only_when_on_and_yields_the_desks_lines(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    assert len(intraday.ZOO_DAILY) == 23 and all(
+        n.startswith(orders.ZOO) for n in intraday.ZOO_DAILY
+    )
+    wed, a, b = date(2025, 11, 12), YARDSTICK, next(ln for ln in LINES if ln.symbol == "ISF")
+    bars = {ln: tuple(replace(BARS[A][0], day=d) for d in (MON, TUE, wed)) for ln in (a, b)}
+    broker, rates = Pretend(bars, {}), {"GBP": Decimal(1)}
+
+    def upto(on: date) -> dict[Line, tuple[Bar, ...]]:  # the bars saved before the day
+        return {a: tuple(bar for bar in bars[a] if bar.day < on)}
+
+    monkeypatch.setattr(strategy, "STRATEGIES", {})
+    monkeypatch.setattr(intraday, "ZOO_DAILY", {"zoo_in": _In})
+    monkeypatch.setattr(intraday, "zoo_lines", lambda: (a,))
+    broker.open(TUE)
+    day.trade(tmp_path, upto(TUE), broker, ROOM, TUE, rates)
+    assert book.positions(tmp_path) == {}  # the switch off: the zoo sends nothing
+    day.trade(tmp_path, upto(TUE), broker, ROOM, TUE, rates, zoo=True)
+    assert book.positions(tmp_path) == {"VUAG": 1}  # on: one share, under its own allowance
+    assert (day.standing(tmp_path, TUE).new_lines, day.standing(tmp_path, TUE, True).new_lines) == (
+        0,
+        1,
+    )
+    monkeypatch.setattr(orders, "HOLDINGS", 1)  # the zoo's line fills none of the desk's holdings
+    book.send(
+        tmp_path, broker, Order("20251111-desk_in-ISF", b, 1, *map(Decimal, (50, 1, 45))), ROOM
+    )
+    monkeypatch.setattr(orders, "HOLDINGS", 5)
+    monkeypatch.setattr(strategy, "STRATEGIES", {"desk_in": _In})
+    broker.open(wed)
+    sessions, place = list[date | None](), broker.place
+
+    def placed(order: Order | orders.Sale) -> Report:  # the session each order is dated
+        sessions.append(order.session)
+        return place(order)
+
+    monkeypatch.setattr(broker, "place", placed)
+    day.trade(tmp_path, upto(wed), broker, ROOM, wed, rates, zoo=True)
+    assert set(sessions) == {TUE}  # dated the session it was decided on, as the paper door demands
+    assert book.positions(tmp_path)["VUAG"] > 1  # the zoo yielded the line the desk's rule bought
+    assert [f.order_id.split("-")[1] for f in book.fills(tmp_path) if f.day == wed] == [
+        "zoo_in",
+        "desk_in",
+    ]
+
+
+def test_a_round_sends_only_what_the_steps_time_allows_and_carries_the_rest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    lines = [ln for ln in LINES if ln.retail and ln.leverage == 1 and ln.isa][:20]
+    cheap = replace(BARS[A][0], open=Decimal(5), high=Decimal(5), low=Decimal(5), close=Decimal(5))
+    bars = {ln: tuple(replace(cheap, day=d) for d in (MON, TUE)) for ln in lines}
+    broker = Pretend(bars, {})
+    monkeypatch.setattr(strategy, "STRATEGIES", {})
+    monkeypatch.setattr(intraday, "ZOO_DAILY", {"zoo_in": _In})
+    monkeypatch.setattr(intraday, "zoo_lines", lambda: tuple(lines))
+    monkeypatch.setattr(orders, "HOLDINGS", 20)
+    broker.open(TUE)
+    first = {ln: (bars[ln][0],) for ln in lines}
+    answers = day.trade(
+        tmp_path, first, broker, ROOM, TUE, {ln.currency: Decimal(1) for ln in lines}, zoo=True
+    )
+    carried = [s for s in answers if "carried to the next step" in (s.reason or "")]
+    assert len(broker.submitted()) == day.MAX_ORDERS == 7
+    assert len(carried) == len(lines) - 7 and all(s.filled == 0 for s in carried)

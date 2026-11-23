@@ -47,6 +47,12 @@ be left out after its answer is seen. Four are read here from the trial's trades
 folds (`lab/folds.py`) and the market (`lab/market.py`) are read where they are run, and a
 trial short of any one has no verdict. A later rung joins by being named here.
 
+ONE CORRECTION, NOT TWO (L18, decision b). The luck rung multiplies a trial's chance by every
+trial ever entered (3,435 a rule against about 1,017 judged), asking a t of 4.6 no line has
+reached, and the deflated Sharpe corrects the same pick for luck again. Charged twice, a real
+edge cannot pass. So the deflated Sharpe, on the set's clustered looks, is the gate; the luck
+rung is read and reported (OWN) and is no rung of the rule (NAMED), so it bounds no verdict.
+
 FAILING FAIRLY (LAD-06). Every rung here reads the one trial's trades, so where the first
 rung found too few of them, or none, no rung has anything more to judge: each gives the
 first rung's own answer, not enough evidence or a fault in the test, and none a fail. Such
@@ -60,10 +66,9 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from statistics import NormalDist, fmean
 
-from lab import luck
+from lab import luck, trials
 from lab.luck import Corrected
 from lab.rung import Answer, Verdict
-from lab.trials import Clustered
 
 #: The bands of the deflated Sharpe (LAD-03): believed at nine chances in ten that the true
 #: Sharpe beats luck's best; failed under an even chance; in doubt between.
@@ -71,9 +76,12 @@ PASS = 0.90
 FAIL = 0.50
 #: The yearly Sharpe above which a result is flagged (canon B6).
 FLAG = 2.0
-#: The rungs the one rule reads (LAD-09), each trial judged on every one; the first four here.
-NAMED = ("first", "luck", "deflated", "yearly", "folds", "market", "shuffle")
-OWN = NAMED[:4]
+#: The rungs the one rule reads (LAD-09), each trial judged on every one.
+NAMED = ("first", "deflated", "yearly", "folds", "market", "shuffle")
+#: The rungs read here from the trial's trades: the luck rung reported, the rest in NAMED.
+OWN = ("first", "luck", "deflated", "yearly")
+#: The rungs reported and never gating: whatever this module reads that the rule does not.
+REPORTED = tuple(name for name in OWN if name not in NAMED)
 
 _NORMAL = NormalDist()
 _EULER = 0.5772156649015329
@@ -111,8 +119,9 @@ class Deflated:
 
     @property
     def least(self) -> Answer:
-        """The least of the rungs read here: a bound on the verdict, never the verdict."""
-        return min(self.rungs.values())
+        """The least of the named rungs read here: a bound on the verdict, never the verdict;
+        the luck rung, reported only, bounds nothing."""
+        return min(answer for name, answer in self.rungs.items() if name in NAMED)
 
 
 def judge(verdicts: Sequence[Verdict], unjudged: int) -> tuple[Deflated, ...]:
@@ -121,7 +130,7 @@ def judge(verdicts: Sequence[Verdict], unjudged: int) -> tuple[Deflated, ...]:
     return read(luck.correct(verdicts, unjudged), None)
 
 
-def read(corrected: Sequence[Corrected], looks: Clustered | None) -> tuple[Deflated, ...]:
+def read(corrected: Sequence[Corrected], looks: trials.Clustered | None) -> tuple[Deflated, ...]:
     """Verdicts already corrected for their count, judged on the rungs read here: the door for
     a count the register of trials keeps from batch to batch (`trials.correct`). Given the
     same set clustered, the deflated Sharpe's bar is set by its looks, their measured spread
@@ -132,6 +141,24 @@ def read(corrected: Sequence[Corrected], looks: Clustered | None) -> tuple[Defla
             f"{looks.held}: not the one set"
         )
     return tuple(_deflated(one, looks) for one in corrected)
+
+
+def judge_lines(verdicts: Sequence[Verdict]) -> tuple[Deflated, ...]:
+    """A RULE JUDGED ON ITS OWN LINES (L18): the set's lines of one rule are its family, never
+    every line the register ever held. The luck rung, reported, counts them all; the deflated
+    Sharpe's bar is set by the looks of those that traded, clustered on their daily returns
+    (`trials.daily`). A line whose returns never moved has no Sharpe to be picked: no look."""
+    if len({v.key.cell.strategy for v in verdicts}) != 1:
+        raise ValueError(f"{len(verdicts)} lines of more than one rule, or none: one rule's")
+    returns = trials.daily(verdicts)
+    moved = {trial: row for trial, row in returns.items() if max(row) > min(row)}
+    looks = trials.clusters(moved, 0) if moved else None
+    judged = []
+    for one in luck.correct(verdicts, 0):
+        if (trial := trials.name(one.verdict.key.cell)) not in moved and one.verdict.t is not None:
+            raise ValueError(f"{trial}: a t of {one.verdict.t} on returns that never moved")
+        judged.append(_deflated(one, looks if trial in moved else None))
+    return tuple(judged)
 
 
 def best_by_luck(spread: float, trials: int) -> float:
@@ -169,7 +196,7 @@ def deflate(sharpe: float, bar: float, trades: int, skew: float, kurtosis: float
     return _NORMAL.cdf((sharpe - bar) * math.sqrt((trades - 1) / wobble))
 
 
-def _deflated(corrected: Corrected, looks: Clustered | None) -> Deflated:
+def _deflated(corrected: Corrected, looks: trials.Clustered | None) -> Deflated:
     verdict = corrected.verdict
     if verdict.t is None:
         return Deflated(corrected, None, None, None, 0.0)

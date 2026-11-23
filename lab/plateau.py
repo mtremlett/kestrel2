@@ -97,6 +97,21 @@ class Fixed:
             raise ValueError(f"{self.rule}: it has settings to choose among, never FIXED")
 
 
+def of(rule: str, book: Mapping[str, Spec], firsts: Mapping[str, Verdict]) -> Surface | Fixed:
+    """A cell's plateau for `verdict.judge`: its row's variants' first rungs on the cell's line
+    and window (`firsts`, by rule name), the cell's own setting among them, a row's own being
+    its written settings; a rule with no ranges is FIXED, a variant no row makes refused."""
+    named, _, _ = rule.partition("[")
+    row = book.get(named) if named == rule else variants.find(book, rule) and book[named]
+    if row is None or not row.ranges:
+        return Fixed(rule, book)
+    made = variants.variants(row)
+    tried = {v.setting: firsts[v.spec.name] for v in made if v.spec.name in firsts}
+    written = tuple(row.params[places.split("+")[0]][param] for places, param in row.ranges)
+    own = next((v.setting for v in made if v.spec.name == rule), written)
+    return Surface(tuple(row.ranges.values()), tried, own)
+
+
 def judged(surface: Surface | Fixed) -> tuple[Answer, str]:
     """The plateau rung on a cell: PASS where its own setting is DEPTH deep, else FAIL; a
     FIXED rule passes as NOT APPLICABLE, its reason saying so for the review."""

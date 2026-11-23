@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 from test_reports import IITU
-from test_running import DIP, ID, MON, _desk, _told
+from test_running import DIP, ID, MON, VOLUME, _desk, _told
 
 from desk import halt, running
 from desk.broker import Pretend
@@ -23,7 +23,7 @@ def test_a_broker_that_disagrees_after_an_order_has_gone_reaches_him_once_naming
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     desk, post = _desk(tmp_path, IITU=DIP)
-    today = Bar(MON.date(), Decimal(36), Decimal(36), Decimal(36), Decimal(36), 1)
+    today = Bar(MON.date(), Decimal(36), Decimal(36), Decimal(36), Decimal(36), VOLUME)
     broker = Pretend({IITU: (*DIP, today)}, {})
     broker.open(MON.date())
     place = broker.place

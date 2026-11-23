@@ -12,6 +12,7 @@ import pytest
 
 from desk import orders
 from desk.lines import STAMP_DUTY, Line
+from desk.store import Bar
 from desk.strategy import Action, Decision
 
 PLAIN, THREE_X, FIVE_X = (
@@ -187,3 +188,30 @@ def test_a_sale_passes_the_gate_only_for_shares_the_book_holds() -> None:
     for bad in ("", "garbage", "20261116-rule", "20261116--P"):
         with pytest.raises(ValueError, match="no strategy can be read"):
             orders.strategy_of(bad)
+
+
+def test_no_position_is_above_a_hundredth_of_the_twenty_day_traded_value() -> None:
+    bar = Bar(ON, Decimal(1), Decimal(1), Decimal(1), Decimal(1), 1000)
+    traded = orders.traded_value([bar] * 25, Decimal(1))
+    assert traded == 20000  #: only the last twenty bars count
+    one = Decimal(1)
+    assert orders.size(_buy(PLAIN), PLAIN, one, one, TEN_K, {}, None, traded).quantity == 200
+    with pytest.raises(orders.Refused, match="no room"):
+        orders.size(_buy(PLAIN), PLAIN, one, one, TEN_K, {PLAIN.symbol: 200}, None, traded)
+    big = replace(orders.size(_buy(PLAIN), PLAIN, one, one, TEN_K, {}), quantity=201)
+    with pytest.raises(orders.Refused, match="over 1%"):
+        orders.gate(big, TEN_K, {}, traded=traded)
+
+
+def test_a_trade_expected_to_gain_under_twice_its_round_trip_cost_is_flagged() -> None:
+    order = _order(PLAIN, 100, "10")
+    trip = sum(
+        (
+            orders.charges(PLAIN, leg, 100, Decimal(10), Decimal(1)).total
+            for leg in (orders.Leg.BUY, orders.Leg.SALE)
+        ),
+        Decimal(0),
+    )
+    assert trip > 0
+    assert orders.thin(order, 2 * trip - Decimal("0.01"))
+    assert not orders.thin(order, 2 * trip)

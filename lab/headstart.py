@@ -26,7 +26,6 @@ from __future__ import annotations
 import os
 import sqlite3
 import sys
-import tempfile
 from collections import Counter
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from contextlib import suppress
@@ -203,9 +202,7 @@ def fresh(path: Path, day: date) -> dict[Line, tuple[Bar, ...]]:
         if all(isinstance(answer, Refused) for answer in given.values()):
             raise ValueError(f"the archive gave no line's {span} bars before {day}: none proves")
     bars.keep(path, fives)
-    with tempfile.TemporaryDirectory() as scratch:
-        store.prepare(Path(scratch), answers, day)
-        return {line: store.read(Path(scratch), line.symbol) for line in LINES}
+    return {line: tuple(store.judge(line, answers[line], day)[0]) for line in LINES}
 
 
 Reader = tuple[Path, Source, Callable[[Line, Path], tuple[Five, ...]]]

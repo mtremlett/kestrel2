@@ -46,8 +46,6 @@ SPLIT_NEAR = Decimal("0.25")  #: a recorded split is adopted if the jump is this
 UNRECORDED = "a gap in the archive, or a suspension the line does not record"
 COLUMNS = ("day", "open", "high", "low", "close", "volume")
 _FAULT = "fault"  #: last column of a line's file: a fault row has it and no day
-#: Where a line's older bars wait: the store is rebuilt on every prepare, joined to the archive's.
-HISTORY = "history"
 
 
 @dataclass(frozen=True)
@@ -224,9 +222,7 @@ def prepare(
     root.mkdir(parents=True, exist_ok=True)
     parked: list[Parked] = []
     for line, answer in archive.items():
-        shelved = (root / HISTORY / f"{line.symbol}.csv").is_file()
-        older = read(root / HISTORY, line.symbol) if shelved else None
-        kept, faults, park = judge(line, answer, day, rates, older)
+        kept, faults, park = judge(line, answer, day, rates)
         blank = ("",) * len(COLUMNS)
         _write(
             root / f"{line.symbol}.csv",
@@ -236,14 +232,6 @@ def prepare(
         (root / f"{line.symbol}.faults.csv").unlink(missing_ok=True)  # the old format's orphan
         parked += [park] if park else []
     return tuple(parked)
-
-
-def shelve(root: Path, line: Line, bars: Iterable[Bar]) -> None:
-    """A line's older bars, kept for every prepare to join to the archive's, replacing any
-    shelved before. They are cleaned as the archive's are, with it, on each prepare."""
-    (root / HISTORY).mkdir(parents=True, exist_ok=True)
-    path = root / HISTORY / f"{line.symbol}.csv"
-    _write(path, COLUMNS, (astuple(bar) for bar in bars))
 
 
 def _joined(
@@ -280,10 +268,3 @@ def read(root: Path, symbol: str) -> tuple[Bar, ...]:
     """Every bar the store kept for one line, oldest first (a parked line's too)."""
     with (root / f"{symbol}.csv").open(newline="", encoding="utf-8") as stored:
         return tuple(_bar(r) for r in csv.DictReader(stored) if r["day"])
-
-
-def faults(root: Path, symbol: str) -> tuple[str, ...]:
-    """Every fault found in a line's bars on the last prepare, the old ones that no longer
-    park it included."""
-    with (root / f"{symbol}.csv").open(newline="", encoding="utf-8") as stored:
-        return tuple(row[_FAULT] for row in csv.DictReader(stored) if not row["day"])

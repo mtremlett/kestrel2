@@ -222,12 +222,12 @@ def test_the_morning_message_tells_the_heat_of_the_last_day_in_pounds_and_share(
 @pytest.mark.parametrize(
     ("moment", "owed", "trades"),
     [
-        ("2026-11-16 07:59:59", False, True),  # he sleeps until 08:00, and news waits for him
-        ("2026-11-16 08:00", True, True),
+        ("2026-11-16 05:39:59", False, True),  # the start-of-day card goes at 05:40, not before
+        ("2026-11-16 05:40", True, True),
         ("2026-11-16 21:59:59", True, True),  # late is better than never, while he is awake
         ("2026-11-16 22:00", False, True),  # then he sleeps, and it is not sent
-        ("2026-07-01 06:59:59", False, True),  # summer: 08:00 on a UK clock is 07:00 UTC
-        ("2026-07-01 07:00", True, True),
+        ("2026-07-01 04:39:59", False, True),  # summer: 05:40 on a UK clock is 04:40 UTC
+        ("2026-07-01 04:40", True, True),
         ("2026-11-14 12:00", False, False),  # a Saturday
         ("2026-12-25 12:00", False, False),  # Christmas Day, a Friday: no venue trades
         ("2026-11-26 12:00", True, True),  # Thanksgiving: London trades, so the desk does
@@ -318,6 +318,19 @@ def test_a_daily_message_not_delivered_by_its_hour_is_told_once(tmp_path: Path) 
     assert messenger.watch(summer, sunny + timedelta(hours=15), post) == (missed,)  # at any hour
     assert messenger.evening(summer, sunny + timedelta(hours=13, minutes=30), READY, post)
     assert messenger.watch(summer, sunny + timedelta(hours=15), post) == () and post.call_count == 6
+
+
+def test_the_desk_not_trading_is_told_once_from_half_past_nine_on_a_day_with_no_fill(
+    tmp_path: Path,
+) -> None:
+    post, half = _posts(), MON.replace(hour=9, minute=30)
+    assert messenger.idle(tmp_path, half - timedelta(seconds=1), post) is None
+    assert messenger.idle(tmp_path, _at("2026-11-14 10:00"), post) is None  # a Saturday
+    told = messenger.idle(tmp_path, half, post)
+    assert told and told.name == "idle morning 2026-11-16" and "not trading" in told.text
+    assert messenger.idle(tmp_path, half, post) == told and post.call_count == 1
+    book._record(tmp_path, [Fill("X1", "o", "VUSA", 2, Decimal(80), date(2026, 11, 16))])
+    assert messenger.idle(tmp_path, half.replace(hour=11), post) is None
 
 
 def test_his_weekly_login_reminder_is_delivered_once_each_sunday(tmp_path: Path) -> None:

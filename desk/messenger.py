@@ -69,6 +69,7 @@ SILENT = (
 CLEAR = (
     "✅ Ready for today (paper)\nGateway answered · account check clean · kill switch off, drilled"
 )
+NOT_TRADING = "🚨 The desk is not trading: no fill on the ledger for today by 09:30 UK"
 PUT_BACK = "; put back "  #: where day._bare's reason names the stop to put back
 STALE = "⚠️ Paper Gateway not ready just now: ledger as last read ({})"
 Post = Callable[[str], int]  #: the door: words to his phone, Telegram's number for them back
@@ -90,7 +91,7 @@ class Delivery:
             raise ValueError(f"the message {self.name!r}: {self.number!r} is not Telegram's number")
 
 
-MORNING = Daily("morning", gateway.WAKES, time(8, 30))
+MORNING = Daily("morning", time(5, 40), time(8, 30))
 EVENING = Daily("evening", time(21, 5), time(21, 30))
 SLEEPS = time(22)  #: the hour he sleeps, on a UK clock: from then a late daily message is not sent
 
@@ -189,10 +190,9 @@ def _goes(daily: Daily, now: datetime) -> tuple[str | None, str]:
 
 
 def stops(root: Path, now: datetime, known: Known) -> tuple[str, ...]:
-    """What the desk can ask before the open that would stop every order today, each in the
-    words of whoever would refuse it: the kill switch on, no drill of it within its month,
-    today's check of the paper account not clean, the gateway not ready. The send path
-    also asks what the broker lists (desk/placing.py)."""
+    """What the desk can ask before the open that would stop every order today, each in its
+    refuser's words: kill switch on, no drill within its month, today's account check not
+    clean, gateway not ready. The send path also asks what the broker lists (desk/placing.py)."""
     unchecked = None
     try:
         clearance.require(root, now, "today's orders")
@@ -233,8 +233,7 @@ def _gate(root: Path) -> str:
 
 
 def _lost(root: Path, today: date) -> str:
-    """The stops lost today and still to be put back, each once, by order id, shares and level
-    (day._bare's list); no word at all on a day with none."""
+    """The stops lost today and still to be put back (day._bare); none on a day without."""
     if halt.stopped(root, today) is None:
         return ""
     found = halt.morning(root, today)[Blocker.BOOK]
@@ -243,9 +242,8 @@ def _lost(root: Path, today: date) -> str:
 
 
 def _stopped(root: Path, today: date) -> str:
-    """Each stop that filled today, told with its money: the shares and price sold, the average
-    price bought, the result in pounds after every cost (book.round_trips); no word, and no
-    pricing asked, on a day with none."""
+    """Each stop that filled today, with shares and price sold, average bought, and the result
+    after every cost (book.round_trips); no word, and no pricing asked, on a day with none."""
     if not any(
         f.day == today and leg_of(f.order_id, f.quantity) is Leg.STOP for f in book.fills(root)
     ):
@@ -271,8 +269,7 @@ def _made(who: str, amount: Decimal) -> str:
 
 
 def _heat(root: Path, capital: Decimal) -> str:
-    """The last day's heat (the pounds lost were every stop it held hit), in pounds and as a
-    share of the capital; reported only. No word when the record holds none."""
+    """The last day's heat (pounds lost were every stop hit), in pounds and share of capital."""
     kept = day.records(root)
     heat = kept[-1].heat if kept else None
     if heat is None:
@@ -284,9 +281,8 @@ def morning(
     root: Path, now: datetime, known: Known, post: Post, capital: Decimal
 ) -> Delivery | None:
     """THE MORNING MESSAGE, once on each day a venue trades, from the hour he wakes: whether
-    anything the desk can ask stops today's orders (stops), as of the moment it says; what it
-    holds; the stops lost and still to be put back; the last day on record and its heat.
-    known is the gateway as it was just asked. None when no message goes now."""
+    anything (stops) halts today's orders; what is held; stops lost and to be put back; the last
+    day on record and its heat. known is the gateway just asked. None when none goes now."""
     name, opens = _goes(MORNING, now)
     if name is None:
         return None
@@ -298,10 +294,9 @@ def morning(
 
 
 def evening(root: Path, now: datetime, known: Known, post: Post) -> Delivery | None:
-    """THE EVENING MESSAGE, once on each day a venue trades, once every market has been shut
-    five minutes: the fills the ledger holds for the day, what the desk holds and the last
-    day on record; and, when the gateway just asked was not ready, that the ledger may be
-    behind the broker. None when no message goes now."""
+    """THE EVENING MESSAGE, once on each day a venue trades, five minutes after every market
+    shuts: the day's fills, what is held, the last day on record; and, if the gateway was not
+    ready, that the ledger may be behind the broker. None when none goes now."""
     name, opens = _goes(EVENING, now)
     if name is None:
         return None
@@ -339,9 +334,9 @@ def remind(root: Path, now: datetime, post: Post) -> Delivery | None:
 
 
 def watch(root: Path, now: datetime, post: Post) -> tuple[Delivery, ...]:
-    """THE ALARM ON SILENCE, asked from outside the desk's own process every few minutes:
-    each daily message owed by now and not delivered is told to him, once, at any hour.
-    Given back: every such alarm standing, told now or before. A late message ends its own."""
+    """THE ALARM ON SILENCE, asked from outside the desk's process every few minutes: each
+    daily message owed and not delivered is told to him, once, at any hour. Given back: every
+    such alarm standing. A late message ends its own."""
     owed = [(d, *_today(d, now)) for d in (MORNING, EVENING)]
     with _record(root) as record:
         taken = record.execute("SELECT name FROM messages WHERE number IS NOT NULL").fetchall()
@@ -350,6 +345,16 @@ def watch(root: Path, now: datetime, post: Post) -> tuple[Delivery, ...]:
         for d, name, at in owed
         if name and at.time() >= d.owed and (name,) not in taken
     )
+
+
+def idle(root: Path, now: datetime, post: Post) -> Delivery | None:
+    """ "THE DESK IS NOT TRADING", once on a day a venue trades, from 09:30 UK, when the ledger
+    holds no fill dated today. Telegram only; never at his night."""
+    name, at = _today(MORNING, now)
+    traded = any(fill.day == at.date() for fill in book.fills(root))
+    if name is None or traded or not time(9, 30) <= at.time() < SLEEPS:
+        return None
+    return send(root, now, f"idle {name}", NOT_TRADING, post)
 
 
 def _mailed(root: Path, now: datetime, name: str, text: str, mail: Mail) -> None:

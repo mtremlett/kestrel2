@@ -17,19 +17,20 @@ from desk.broker import Fill
 from lab import deflated, promotion
 from lab.promotion import Candidate, Kill, Standing
 from lab.rung import Answer
+from lab.verdict import NO_FIGURE
 
-RULE, DAY = "breakout_20_10", date(2026, 1, 1)
+RULE, DAY, SET = "breakout_20_10", date(2026, 1, 1), 100  #: SET: trials its register holds
 
 
 def _row(rule: str = RULE, answer: str = "PASS", **rungs: str) -> dict[str, Any]:
     """The ladder's line for the rule on VUSA: every named rung passed, but those given."""
     named = dict.fromkeys(deflated.NAMED, "PASS") | rungs
     said = {name: [one, f"{name}'s reason"] for name, one in named.items()}
-    return {"cell": [rule, "VUSA", "LSE"], "rungs": said, "answer": answer}
+    return {"cell": [rule, "VUSA", "LSE"], "rungs": said, "answer": answer, "trials": SET}
 
 
-ON_PAPER = Candidate(_row(), DAY, Kill(Decimal(300), 4))
-TWO = Candidate(_row(), DAY, Kill(Decimal(300), 2))
+ON_PAPER = Candidate(_row(), DAY, Kill(Decimal(300), 4), SET)
+TWO = Candidate(_row(), DAY, Kill(Decimal(300), 2), SET)
 
 
 def _buy(day: int, line: str = "VUSA", rule: str = RULE, order: int | None = None) -> Fill:
@@ -71,11 +72,19 @@ def test_no_candidate_without_the_ladders_pass_and_a_kill_condition_that_can_bit
     thin, beaten = _row(folds="THIN"), _row(answer="THIN", market="FAIL")
     del (short := _row())["rungs"]["market"]
     unrun = _row() | {"unrun": {"costs": "declares no rung"}}
-    for row in (thin, beaten, _row(answer="DOUBT"), _row(folds="OK"), short, unrun):
+    #: reproduction unrun for want of a figure: excused only where no author's test binds
+    owed = {"unrun": {"reproduce": NO_FIGURE}}
+    for free in (RULE, "donchian_fade_chop"):
+        assert Candidate(_row(free) | owed, DAY, ON_PAPER.kill, SET).strategy == free
+    faber = _row("faber_tactical") | owed
+    for row in (thin, beaten, _row(answer="DOUBT"), _row(folds="OK"), short, unrun, faber):
         with pytest.raises(ValueError, match="has not passed the ladder"):
-            Candidate(row, DAY, ON_PAPER.kill)
+            Candidate(row, DAY, ON_PAPER.kill, SET)
+    for judged, register in ((SET, SET + 1), (None, 0), (SET, 0)):
+        with pytest.raises(ValueError, match=f"judged against {judged} trials, .* {register}"):
+            Candidate(_row() | {"trials": judged}, DAY, ON_PAPER.kill, register)
     with pytest.raises(ValueError, match="no strategy of the desk's"):
-        Candidate(_row("a_hunch"), DAY, ON_PAPER.kill)
+        Candidate(_row("a_hunch"), DAY, ON_PAPER.kill, SET)
     for fall in ("0", "-1", "NaN", "Infinity", "1500.01"):
         with pytest.raises(ValueError, match="a fall of"):
             Kill(Decimal(fall), 4)
@@ -170,7 +179,7 @@ def test_the_kill_condition_written_first_kills_and_nothing_after_revives() -> N
     row = _stand(losers)
     assert row.answer is Answer.FAIL
     #: the day's run is given the killed strategies, the living left out
-    alive = Candidate(_row("trend_50_200"), DAY, ON_PAPER.kill)
+    alive = Candidate(_row("trend_50_200"), DAY, ON_PAPER.kill, SET)
     fills = [trip.buy for trip in losers]
     assert promotion.killed([ON_PAPER, alive], fills, losers) == {RULE}
     assert promotion.killed([TWO, alive], fills, losers[4:]) == frozenset()
