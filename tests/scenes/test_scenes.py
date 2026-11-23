@@ -28,9 +28,10 @@ from rehearsal import (
     before,
 )
 
-from desk import book, day, orders, store, strategy, venues
+from desk import bars, book, day, orders, store, strategy, venues
 from desk.broker import Crash, Fault, Pretend
 from desk.lines import YARDSTICK
+from lab import universe_parts
 
 # ---------------------------------------------------------------- the money
 
@@ -60,25 +61,37 @@ def _run_days(root: Path, broker: Pretend, days: Sequence[date]) -> list[day.Rec
 # ---------------------------------------------------------------- the scenes
 
 
+def _prepare(tmp_path: Path) -> tuple[list[store.Parked], Path]:
+    """The spoilt archive judged once, each line's kept bars written to the history database."""
+    path, parked = tmp_path / bars.LIVE, []
+    with bars.writing(path) as opened:
+        for line, answer in SPOILT.items():
+            kept, _, park = store.judge(line, answer, TODAY)
+            opened.days(line, kept)
+            parked += [park] if park else []
+    return parked, path
+
+
 def test_scene_1_the_days_data_is_clean_or_the_line_is_parked(tmp_path: Path) -> None:
-    parked = store.prepare(tmp_path, SPOILT, TODAY)
+    parked, path = _prepare(tmp_path)
 
     assert [(p.symbol, p.day) for p in parked] == [(BAD.symbol, TODAY)]
     assert parked[0].reason.strip(), "a parked line names its reason"
     for line in LINES:
         if line != BAD:
-            assert store.read(tmp_path, line.symbol) == CLEAN[line], f"{line.symbol} incomplete"
-    kept = store.read(tmp_path, BAD.symbol)
+            assert universe_parts.read(path, line).bars == CLEAN[line], f"{line.symbol} incomplete"
+    kept = universe_parts.read(path, BAD).bars
     assert WRONG_UNIT not in kept, "the bad bar reached the store"
     assert [b.day for b in kept] == sorted({b.day for b in kept}), "a date is stored twice"
 
 
 def test_scene_2_the_decision_cannot_see_the_future(tmp_path: Path) -> None:
-    parked = {p.symbol for p in store.prepare(tmp_path, SPOILT, TODAY)}
-    trading = [line.symbol for line in LINES if line.symbol not in parked]
-    bars = {symbol: store.read(tmp_path, symbol) for symbol in trading}
+    parked, path = _prepare(tmp_path)
+    trading = [line.symbol for line in LINES if line.symbol not in {p.symbol for p in parked}]
+    held = {line.symbol: universe_parts.read(path, line).bars for line in LINES}
+    bars_of = {symbol: held[symbol] for symbol in trading}
 
-    every = strategy.decide(bars)
+    every = strategy.decide(bars_of)
     names = {d.strategy for d in every}
     assert len(trading) == 19 and len(names) == 5
     days = {line.symbol: venues.sessions(line.venue, SESSIONS[0], SESSIONS[-1]) for line in LINES}
@@ -86,7 +99,7 @@ def test_scene_2_the_decision_cannot_see_the_future(tmp_path: Path) -> None:
         len(days[symbol]) for symbol in trading
     ), "a line or a day of its own venue's went unanswered"
     for cut in SESSIONS:
-        blind = {s: tuple(bar for bar in b if bar.day <= cut) for s, b in bars.items()}
+        blind = {s: tuple(bar for bar in b if bar.day <= cut) for s, b in bars_of.items()}
         assert set(strategy.decide(blind)) == {
             d for d in every if d.day <= cut
         }, f"the decisions up to {cut} changed when the later bars were deleted"
@@ -155,7 +168,7 @@ def test_scene_4_the_order_is_sent_and_the_stop_rests_at_the_broker(tmp_path: Pa
 def test_scene_5_the_position_is_closed(tmp_path: Path) -> None:
     #: the whole fourteen months: the rules need months of history before they trade
     broker = Pretend(CLEAN, {})
-    for on in sorted({bar.day for bars in CLEAN.values() for bar in bars})[1:]:
+    for on in sorted({bar.day for each in CLEAN.values() for bar in each})[1:]:
         broker.open(on)
         day.trade(tmp_path, before(CLEAN, on), broker, SETTINGS, on, RATES)
 
