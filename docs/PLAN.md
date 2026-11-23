@@ -195,11 +195,6 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       never `store.prepare` or `store.read`; gate: neither file names those three
       (split from data-door-writer by runner ops 112, 23 Nov: these are MONEY's files)
       {id: money-door-writer; files: desk/halt.py, tests/unit/test_halt*.py, tests/scenes/test_scenes.py}
-- [ ] THE STORE'S CSV HALF UNUSED BY THE GRID: the `.faults` filter in `lab/sweep.py` deleted; the batch
-      and sweep tests set their prices through the history database, never `store.prepare` or `store.read`;
-      gate: none of the three files names them
-      (split from data-door-writer by runner ops 112, 23 Nov: these are GRID's files)
-      {id: grid-door-writer; files: lab/sweep.py, tests/unit/test_lab_sweep.py, tests/unit/test_lab_batch.py}
 - [x] THE NIGHT REFRESH WRITES THE DATABASE IT NAMES: `universe.nightly`'s docstring says the history
       database but it writes `bars.LIVE` (market_live.db); STATUS says research reads the history database
       alone. Settle which is meant, make code and docstring agree, and pin the target file in a test
@@ -934,6 +929,14 @@ grid-tune and grid-key side by side; then grid-pass, grid-week, grid-declared, g
       LAD-13) {id: grid-declared; files: lab/sweep.py, tests/unit/test_lab_sweep.py}
 - [x] A full sweep within a weekend, its time measured (LAD-10). Remains: nothing; a cold transfer study took 17 min, the declared pass about 8 min, against 48 h {id: grid-weekend; files: *}
 
+- [ ] THE STORE'S CSV HALF UNUSED BY THE GRID: the `.faults` filter in `lab/sweep.py` deleted; the batch
+      and sweep tests set their prices through the history database, never `store.prepare` or `store.read`;
+      gate: none of the three files names them
+      (split from data-door-writer by runner ops 112; moved from DATA's book to GRID's by runner ops 122, 23 Nov:
+      manifest.toml gives these files to the grid lane; #1969's one commit is the start, its tests green, refused only
+      for its lane. `lab/montecarlo.py` is the rungs lane's: `sweep.held` keeps its folder argument here)
+      {id: grid-door-writer; files: lab/sweep.py, lab/transfer.py, tests/unit/test_lab_sweep.py,
+      tests/unit/test_lab_batch.py, tests/unit/test_lab_transfer.py}
 - [x] **ONE DOOR FOR PRICES, the transfer study's pound** (his 22 Nov ~10:00, "paramount": every price is read from market_history.db or market_live.db alone): `lab/transfer.py:170` passes
       `history_bars.pounds(home)` to `ladder.rates`, never the archive; wire: the grid-transfer job; gate: its test
       with the archive stubbed to fail
