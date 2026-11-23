@@ -3,7 +3,7 @@
 The one judgement (`store.judge`) parks a line for a lasting fault of any age: a real crash in
 2000 parks a line the desk trades on its last two years. The keeper judges through here: a fault
 dated before the window is named, on its own day, and parks nothing; one inside it parks as ever.
-`store.judge`, `store.prepare` and every research read are untouched."""
+`store.judge` and every research read are untouched."""
 
 from __future__ import annotations
 
