@@ -230,6 +230,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1889 MONEY scribe folds #1823, #1833, #1861; no box ticked.
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1891 money-small: TRD-10 flag function `orders.thin` landed; liquidity-cap feed and the flag's caller open.
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1909 money-simcity-firstbar: SimCity world 0 passes day 56 (was halted); halts later at day 870. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1918 money-small: SIZ-10 1% traded-value cap now live in the day's buy path; TRD-10 flag caller open. |
 
 
 ### DATA
@@ -529,6 +530,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1886 data-ibkr-capacity step 1: `keeper.pace` ramp rule, not yet wired. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1899 data-members docstring corrected, no box ticked. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1902 pound-history filler `fill_pound` built; command wiring open. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1910 data-pound-history ticked: `desk.backfill POUND` fills the pound from the Fed. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1916 data-ibkr-capacity step 2: `keeper_live.polled_round` counts requests and refusals for `pace`; not yet wired. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1922 data-nightly-target ticked: nightly docstring names market_history.db, test pins it. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
@@ -662,6 +666,10 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1864 PAPER paper-cards: 05:40 start-of-day card live in code; not-trading alarm confirmed wired.
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1868 PAPER paper-step-time done, one constant pair and one test.
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1880 PAPER paper-cards: 09:30 alarm proven through running.step.
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1896 PAPER paper-small-volume done, two test files, no product change.
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1906 PAPER R-MONEY-69 half done, paper.MAX_ORDERS home built.
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1925 PAPER paper-cards: SMTP preflight line landed; box done.
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1940 PAPER paper-extras partly: blocked signals and weekly cost vs net profit in the evening message.
 
 ### GRID
 
@@ -1052,3 +1060,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1849 RUNGS: rungs-fast-engine held with rungs-blocks (waits: operator); #1836 superseded by #1843. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1845 RUNGS: L18 step 3, a cell can be judged among its rule's own lines (Pool.among, judge(among=)); wiring the set runners remains. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1865 RUNGS: L20 wired into pooled sets (gap pre-flight + 1% NOT PUBLISHED); EPON refuses on 77,870 store gaps pending DATA. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1869 RUNGS rungs-scorecard step 2: the shuffle no longer waits on a soft rung, an early stop answers by the one rule; lowest-of-NAMED gone from the verdict. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1876 RUNGS rungs-eponymous step: the paper gate opens for eponymous rules; Faber held until reproduced. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1895 RUNGS rungs-eponymous step: a paper candidate must be judged for luck at its set's full trial count. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1901 RUNGS rungs-each-rung step 2: stop-rule study out of rung_ (off-path rungs 6 to 5), no behaviour change. |

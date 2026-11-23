@@ -200,10 +200,11 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       gate: none of the three files names them
       (split from data-door-writer by runner ops 112, 23 Nov: these are GRID's files)
       {id: grid-door-writer; files: lab/sweep.py, tests/unit/test_lab_sweep.py, tests/unit/test_lab_batch.py}
-- [ ] THE NIGHT REFRESH WRITES THE DATABASE IT NAMES: `universe.nightly`'s docstring says the history
+- [x] THE NIGHT REFRESH WRITES THE DATABASE IT NAMES: `universe.nightly`'s docstring says the history
       database but it writes `bars.LIVE` (market_live.db); STATUS says research reads the history database
       alone. Settle which is meant, make code and docstring agree, and pin the target file in a test
       (coordinator 110, 23 Nov 03:1x: J2, found with research-refresh's 02:30 failure)
+      Done (#1922): the code already wrote market_history.db (`bars.files` sends dailies beside the live file); the docstring now says so and the nightly test pins that file
       {id: data-nightly-target; files: lab/universe.py, tests/unit/test_lab_universe*.py}
 - [x] **The old desk's stores as a head start, now** (his ask, 14 November): its daily and
       five-minute bars (Stooq and IBKR stores, and its per-ticker matrices) read in through
@@ -353,14 +354,14 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       holiday; a line's audit lists no unnamed gap
       wire: HOVER's filler; gate: SPY's 2022-09-28 planted missing is filled, and a named holiday stays empty
       {id: data-no-missing-day; files: desk/backfill.py, desk/venues.py, tests/unit/test_backfill.py, tests/unit/test_venues*.py; after: data-monitor}
-- [ ] One pounds-per-dollar history back to the earliest bar held, so no fold reads FAULT for a missing rate
+- [x] One pounds-per-dollar history back to the earliest bar held, so no fold reads FAULT for a missing rate
       (about 5,300 in the ladder); conversion stays in its one place
       Source (his ruling 22 Nov ~10:05, free data only): FRED's DEXUSUK daily series (US dollars to one pound),
       fetched with the FRED key handed to the job by the runner's session environment alone, stored in
       market_history.db as a reference series beside the bars, through the one writer and its checks
       wire: the nightly research refresh and HOVER's filler; gate: a fold whose rate was missing reads it
       from the stored series, and a planted missing day is a named gap, never a FAULT
-      Built (#1774, #1790): the nightly refresh fetches FRED's DEXUSUK (keyless) through the one writer (Source.FED_NOON) and names the pound's sessions with no rate. Remains: HOVER's filler (desk/backfill.py) filling the gaps; the ladder's half is RUNGS's own box, rungs-pound-gap
+      Built (#1774, #1790): the nightly refresh fetches FRED's DEXUSUK (keyless) through the one writer (Source.FED_NOON) and names the pound's sessions with no rate. Built (#1902, #1910): `python -m desk.backfill POUND` fills the sessions with no rate from FRED's DEXUSUK (Source.FED_NOON, unjudged, one writer); a day the Fed gives none is named on stderr, exit 1. The ladder's half is RUNGS's own (rungs-pound-gap); lab/universe_history should import the FRED URL from desk/backfill (one home) box, rungs-pound-gap
       {id: data-pound-history; files: desk/keeper.py, tests/unit/test_keeper*.py, desk/bars.py, tests/unit/test_bars*.py, lab/universe.py, tests/unit/test_lab_universe*.py, desk/backfill.py, tests/unit/test_backfill.py}
 - [ ] **Data in tiers, for 4,000+ tickers** (research of 14 November, kept in the notes
       folder as `data_stack_2026-11-14.md`). Tier A: held, signalled and watched names, live
@@ -454,7 +455,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       measured ramp on the paper port allows (every request counted with its error codes;
       any pacing refusal halves the rate); daily bars for every ticker (DAT-01, DAT-05)
       (runner ops 112, 23 Nov: claim adds desk/keeper_live.py, where the polled rounds must use keeper.pace and count each request, and desk/lines.py with its test, for the lines beyond today's twenty; two runs stopped on it, real_loop)
-      Built (#1886): `keeper.pace` and the `POLLED` floor/ceiling table (a pacing refusal halves the rate, never below the floor; a clean round rises 25%, never above the ceiling); nothing calls it yet. Remains: wire it into the polled 1-minute rounds in keeper_live.py with every request counted, the 90 streams and lines beyond twenty, the measured ramp on port 4002, daily bars for every ticker.
+      Built (#1886): `keeper.pace` and the `POLLED` floor/ceiling table (a pacing refusal halves the rate, never below the floor; a clean round rises 25%, never above the ceiling); nothing calls it yet. Also (#1916): `keeper_live.polled_round` asks a rota's next `rate` lines for one-minute bars, counts requests and pacing refusals for `pace`; not yet in keeper.main (the rate must persist between runs). Remains: wire it into the polled 1-minute rounds in keeper_live.py with every request counted, the 90 streams and lines beyond twenty, the measured ramp on port 4002, daily bars for every ticker.
       {id: data-ibkr-capacity; files: desk/keeper.py, tests/unit/test_keeper*.py, desk/keeper_live.py, desk/lines.py, tests/unit/test_lines.py; after: data-broker-bars; waits: 2026-11-24}
 - [ ] **A free collector, started now, before anything uses it:** once a day, about 300 calls
       across the free tiers he already has, each response kept raw and timestamped: a US
@@ -655,12 +656,6 @@ day's trading and reconciliation are built, and any broker can stand behind them
       {id: money-saved-fx; files: desk/day.py, desk/day_parts.py, desk/day_money.py,
       tests/unit/test_day*.py, desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml;
       after: money-fills}
-- [ ] (Every box adding a public function to strategy, orders, broker, book, day or kill also
-      needs `desk/simcity.py, tests/unit/test_simcity*.py` in its files, one session at a time;
-      a function no scenario runs turns the check red: halts and limits among them.)
-      {id: money-census; files: desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml;
-      after: money-watch, money-stranger,
-      money-golden, money-story}
 
 - [x] **ONE DOOR FOR PRICES, slippage** (his 22 Nov ~10:00, "paramount": every price is read from market_history.db or market_live.db alone): `lab/slippage.py:104` reads `bars.daily(home / keeper.HOT, line)`,
       not the `daily/*.csv` files nothing writes any more; wire: its study; gate: its contract test on a database fixture
@@ -729,7 +724,9 @@ day's trading and reconciliation are built, and any broker can stand behind them
 - [ ] **Scenarios for four book parts** (coordinator 107 E1, deep 23 Nov 00:44 census: 67 parts, 4 with no
       scenario): `book.attributed`, `book.chains`, `book.conformance_cost` and `book.told` are run by no SimCity
       scenario; give each one in the night's census, no change to the parts themselves. Gate: the census test
-      names zero parts without a scenario
+      names zero parts without a scenario. That gate holds the standing rule too: every box adding a public
+      function to strategy, orders, broker, book, day or kill also claims `desk/simcity*.py` and
+      `tests/unit/test_simcity*.py`, one session at a time
       {id: money-census-book; files: desk/simcity*.py, tests/unit/test_simcity*.py}
 
 ## Phase 3 — the money path, on paper
@@ -850,12 +847,12 @@ his PC with the desk's own client id (222), never 4001.
 - [x] The running process always on main's latest code, and a money-path change reaching
       it only at a safe point, never mid-send (OPS-05, OPS-16) (#752: the supervisor pulls main fast-forward only between runs with every job's lock held; a failed pull is a receipt and the old code runs on; remains: Windows starting the supervisor)
       {id: paper-on-main; files: desk/supervisor.py, tests/unit/test_supervisor.py}
-- [ ] The messages: a start-of-day card by 05:40; an end-of-day summary with the profit,
+- [x] The messages: a start-of-day card by 05:40; an end-of-day summary with the profit,
       the streak and the verdict; a line on every change of state and "the desk is not
       trading" by 09:30 UK; urgency levels without storms; one messenger with a delivery
       record, the merge line and the runner's alerts behind the same door (MSG-02, MSG-03,
       MSG-04, MSG-09, MSG-11)
-      Remains: hourly P&L (#471, #492), the kill and halt line (#502) and the email fallback (#484, wired into the step in #1309; the runner must hand SMTP_*, a preflight line is owed) landed; desk/messenger.py is at its 400-line limit and desk/ has 92 of 10,500 lines left, so the new messages are a fold inside the desk/ ceiling: shrink or merge messenger code first, as split-desk-keeper did, never a ceiling raise (coordinator 54, 22 Nov: re-carded so it is not blocked; a raise would be his). The daily messages end the last-day lines with the verdict and streak (#1636, MSG-03); the 05:40 start-of-day card (#1864; only the card moved, notes and reminders stay at his 08:00) and the 09:30 "not trading" line (#1852 wired `messenger.idle` into `running._say`; #1880 proves it through the step) landed; still owed: the SMTP preflight line in desk/command.py (claim must add it; the runner must hand SMTP_*) (the streak shows as N of 10, #1665; the streak-above-0 test landed, #1675; messenger.py shrunk to 395 lines, #1698). The evening message now names each lost stop (#805); messenger split to 349 lines (#782)
+      Remains: hourly P&L (#471, #492), the kill and halt line (#502) and the email fallback (#484, wired into the step in #1309; the runner must hand SMTP_*, a preflight line is owed) landed; desk/messenger.py is at its 400-line limit and desk/ has 92 of 10,500 lines left, so the new messages are a fold inside the desk/ ceiling: shrink or merge messenger code first, as split-desk-keeper did, never a ceiling raise (coordinator 54, 22 Nov: re-carded so it is not blocked; a raise would be his). The daily messages end the last-day lines with the verdict and streak (#1636, MSG-03); the 05:40 start-of-day card (#1864; only the card moved, notes and reminders stay at his 08:00) and the 09:30 "not trading" line (#1852 wired `messenger.idle` into `running._say`; #1880 proves it through the step) landed; the pre-flight line now names the email door (#1925; unset email is READY, phone alone works; the runner must still hand SMTP_*, runner ops) (the streak shows as N of 10, #1665; the streak-above-0 test landed, #1675; messenger.py shrunk to 395 lines, #1698). The evening message now names each lost stop (#805); messenger split to 349 lines (#782)
       (runner ops 112, 23 Nov: claim adds desk/command.py for the SMTP preflight line, the one item left; the 2026-11-24 wait was that missing file, so it is lifted)
       {id: paper-cards; files: desk/running.py, tests/unit/test_running*.py, tests/unit/test_command.py, desk/messenger.py, desk/messenger_parts.py, manifest.toml,
       tests/unit/test_messenger.py, tests/unit/test_messenger_parts.py, desk/command.py; after: paper-messages, paper-running}
@@ -871,6 +868,7 @@ his PC with the desk's own client id (222), never 4001.
       {id: paper-backups; files: desk/backup.py, tests/unit/test_backup.py, manifest.toml}
 - [ ] The day's extras: missed winners, blocked signals, and the running cost set against
       net profit each week (MSG-13, NS-14) (coordinator 54, 22 Nov: it comes after paper-cards and edits the same messenger file; not his)
+      Remains: blocked signals and weekly cost beside net profit landed (#1940); missed winners wait on a record of signals not taken (R-PAPER-41)
       {id: paper-extras; files: desk/messenger.py, tests/unit/test_messenger.py;
       after: paper-cards}
 
@@ -883,10 +881,10 @@ his PC with the desk's own client id (222), never 4001.
       MONEY from desk/paper.py): `STEP_SECONDS, STEP_MARGIN = 900, 60` in desk/paper.py beside `FILL_SECONDS`, the one home
       money-round-cap then reads; gate: a test that (STEP_SECONDS - STEP_MARGIN) // FILL_SECONDS is 7
       {id: paper-step-time; files: desk/paper.py, tests/unit/test_paper*.py}
-- [ ] Running fixtures carry a traded volume (split from money-small by runner ops 108, 23 Nov: the lane wall bars
+- [x] Running fixtures carry a traded volume (split from money-small by runner ops 108, 23 Nov: the lane wall bars
       MONEY from these tests): the fixtures of tests/unit/test_running.py and tests/unit/test_running_tell.py give
       each line a volume of 10**7 shares a day, so the 1% liquidity cap money-small feeds from the trading day
-      never shrinks their orders; no behaviour changes today; gate: both files green on main with the volume set
+      never shrinks their orders; no behaviour changes today; gate: both files green on main with the volume set (#1896)
       {id: paper-small-volume; files: tests/unit/test_running.py, tests/unit/test_running_tell.py}
 
 ## Phase 4 — the ladder
@@ -1034,8 +1032,8 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         Decision e: no dead rungs; dsr merges into deflated, placebo into shuffle, bootstrap into ci, sample into rung
         1's trade minimum, benchmark into market; wire: each on verdict.judge's path; gate: a ladder test fails when
         any lab/rung_*.py is off that path (rungs_built equals the map)
-        Gate done (#1676): the registry test pins the rung modules off the path, now seven after empty rung_beta.py was folded away (#1740) (benchmark, bootstrap, dsr, placebo, retail, sample, stops); it may only fall.
-        Remains: wire or merge each (each needs lab/ladder.py, manifest.toml and its target in the claim; merges need R-RUNGS-29), then pin 'waiting is empty'. Step 1 built (#1844): rung_bootstrap folded into rung_ci (off-path modules 7 to 6, FOLDED pin until it is wired); next: benchmark, dsr, placebo, sample, retail, stops, each needing its target in the claim; rung_stops is the stop-rule study, rename it out of rung_ (e.g. lab/stop_rules.py). Registry test reads the real rungs from `rung.found()` (#1768)
+        Gate done (#1676): the registry test pins the rung modules off the path, now seven after empty rung_beta.py was folded away (#1740) (benchmark, bootstrap, dsr, placebo, retail, sample, stops); it may only fall. Step 2 (#1901): the stop-rule study renamed `lab/stop_rules.py`, off-path now five (benchmark, dsr, placebo, retail, sample).
+        Remains: wire or merge each (each needs lab/ladder.py, manifest.toml and its target in the claim; merges need R-RUNGS-29), then pin 'waiting is empty'. Step 1 built (#1844): rung_bootstrap folded into rung_ci (off-path modules 7 to 6, FOLDED pin until it is wired); next: benchmark (into market), dsr (into deflated), placebo (into shuffle), sample (into rung 1), retail, each needing its target in the claim; merges need R-RUNGS-29; then pin 'waiting is empty' and take `rung_ci.bootstrap(` off FOLDED once wired. Registry test reads the real rungs from `rung.found()` (#1768)
         {id: rungs-each-rung; files: lab/ladder.py, tests/unit/test_lab_ladder.py, lab/rung_*.py, tests/unit/test_lab_rung_*.py, lab/stop_rules.py, tests/unit/test_lab_stop_rules.py, manifest.toml; after: rungs-rung-map; waits: R-RUNGS-29}
   - [x] L14 one clustered set of trials for the deflated Sharpe, its spread measured
         {id: rungs-clustered-trials; files: lab/trials.py, lab/rung_dsr.py, tests/unit/test_lab_trials_clustered.py; after: rungs-rung-map}
@@ -1050,7 +1048,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         A rule with no settings is declared NOT APPLICABLE for plateau, reviewed, never UNRUN by default (decision a);
         wire: verdict.judge on every cell; gate: a planted edge goes forward and a no-settings rule is not blocked
         Step 1 landed (#1660): plateau.Surface and plateau.judged, verdict.judge(surface=); no surface stays UNRUN. Built: `plateau.Fixed` (#1702) and `plateau.of(rule, book, firsts)` builds a cell's Surface or FIXED (#1742).
-        Remains: wire it: lab/ladder.py and lab/ladder_sets.py pass `surface=plateau.of(c.strategy, rulebook.specs(), firsts)` into verdict.judge (changes test_lab_ladder.py and test_lab_ladder_epon.py; the claim must name those four files)
+        Waits: operator (its step lies in files outside its claim; runner ops must widen it after rungs-faults-not-answers releases lab/ladder.py). Remains: wire it: lab/ladder.py and lab/ladder_sets.py pass `surface=plateau.of(c.strategy, rulebook.specs(), firsts)` into verdict.judge (changes test_lab_ladder.py and test_lab_ladder_epon.py; the claim must name those four files)
         {id: rungs-plateau-wired; files: lab/plateau.py, lab/verdict.py, lab/ladder.py, lab/ladder_sets.py, tests/unit/test_lab_plateau.py, tests/unit/test_lab_verdict.py, tests/unit/test_lab_ladder.py, tests/unit/test_lab_ladder_epon.py; after: rungs-faults-not-answers; waits: operator}
   - [ ] L18 TRIALS COUNTED HONESTLY: `trials.family` counts every line ever entered and never shrinks (3,435 per
         rule against ~1,017 judged), luck then needs t>=4.6 and no line reaches it (highest 4.36). The family is
@@ -1071,7 +1069,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         Hard gates pre-registered before a run (costs, deflated Sharpe, out-of-sample folds, shuffle) must PASS; regime,
         market and stress are scored with MAX_WEAK; "lowest of NAMED" is deleted (decision c); wire: verdict.judge;
         gate: one WEAK soft rung no longer kills a cell, one failed hard gate always does
-        Built (#1803): `verdict.judge` answers by one rule (`one_answer`): hard gates must PASS, soft rungs through the scorecard (MAX_WEAK 2), a soft FAULT gives FAULT; the weather regime rung grades three bands. Remains: delete `deflated.rule` and its test; wire `promotion.Candidate` to `verdict.one_answer`; `ladder_parts` (line 112) leaves soft-graded rungs out of `every`.
+        Built (#1803): `verdict.judge` answers by one rule (`one_answer`): hard gates must PASS, soft rungs through the scorecard (MAX_WEAK 2), a soft FAULT gives FAULT; the weather regime rung grades three bands. Step 2 built (#1869): the shuffle waits on the hard gates and yearly only, and an early stop answers by the one rule; lowest-of-NAMED is gone from lab/verdict.py. Remains: delete `deflated.rule` and its test; wire `promotion.Candidate` to `verdict.one_answer` (reading WEAK grades); `ladder_parts` (line 112) leaves soft-graded rungs out of `every`. Minor: on a stress stop `_stopped` gives FAIL where `one_answer` would give FAULT or STOP.
         (widened by runner ops 114, 23 Nov: its Remains name deflated.rule's users, promotion and ladder_parts, all RUNGS files; K1 refused it 03:32)
         {id: rungs-scorecard; files: lab/verdict.py, lab/rung_regimes.py, lab/deflated.py, lab/promotion.py, lab/ladder_parts.py, tests/unit/test_lab_verdict.py, tests/unit/test_lab_rung_regimes.py, tests/unit/test_lab_deflated.py, tests/unit/test_lab_promotion.py}
   - [ ] L20 FAULTS ARE NOT ANSWERS: 6,788 lines read FAULT at market (SPY has no bar on a day, e.g. 2022-09-28) and
@@ -1085,7 +1083,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
 - [ ] **STRATEGIES AS DATA (his goal: 1,000+ strategies over 1,000+ tickers):**
   - [ ] B1 building blocks written once, each known-answer tested: indicators, entries,
         exits, stops, filters (regime filters among them), sizing. Built: every block has its
-        known answer (#396). Built: the sizing block `VolatilitySize(n)`, by the desk's own `desk.risk.volatility` (#1637), now on the one `Block` interface (#1711). Remains: register it (a SIZE kind in lab/block_base.py, `volatility_size` in `BLOCKS`, the spec and simulator reading it; the claim must widen to those files; manifest line for lab/blocks.py to name sizing). Was: sizing blocks, once the volatility-sizing research settles their form
+        known answer (#396). Built: the sizing block `VolatilitySize(n)`, by the desk's own `desk.risk.volatility` (#1637), now on the one `Block` interface (#1711). Waits: operator (the last step needs files outside the claim; runner ops must widen it). Remains: register it (a SIZE kind in lab/block_base.py, `volatility_size` in `BLOCKS`, the spec and simulator reading it; the claim must widen to those files; manifest line for lab/blocks.py to name sizing). Was: sizing blocks, once the volatility-sizing research settles their form
         (coordinator 54, 22 Nov: a research wait, not his: the volatility-sizing contest table is written, R-RUNNER-205, #1481; the session reads it to settle the sizing blocks' form)
         {id: rungs-blocks; files: lab/block_base.py, lab/blocks.py, tests/unit/test_lab_blocks.py; waits: operator}
   - [ ] B2 a typed Spec, validated on entry: an unknown block or a bad setting is refused
@@ -1115,7 +1113,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       tests/unit/test_lab_published*.py; waits: operator}
 - [ ] Before paper: a kill condition declared for each strategy; promotion only after at
       least thirty effective paper trades, net positive (STR-17, LAD-11). Built:
-      `lab/promotion.py` (#127). Remains: the desk reads it (R-RUNGS-7, MONEY's, open); each candidate's
+      `lab/promotion.py` (#127); its gate opens for every eponymous rule, Faber held until reproduced (#1876), and a candidate needs the set's full trial count (#1895). Remains: the desk reads it (R-RUNGS-7, MONEY's, open); each candidate's
       kill numbers need a ladder-passed candidate (#413)
       {id: rungs-promotion; files: lab/promotion.py, tests/unit/test_lab_promotion.py;
       waits: R-RUNGS-7}
@@ -1150,7 +1148,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       with its kill condition, before its first paper day; it then trades paper side by side
       with up to nine others under the A-GATE terms. Nothing reaches real money without his
       signature (STR-17, LAD-11, MIG-07)
-      {id: rungs-eponymous; files: *; after: rungs-trustworthy, rungs-indicators}
+      {id: rungs-eponymous; files: *; after: rungs-trustworthy, rungs-indicators; waits: operator}
 - [ ] His paramount case: long and inverse leveraged-ETP trend strategies through the ladder
       (STR-18). Built: set LEV, six trend rules on the leveraged lines (#423). Remains: inverse
       leveraged lines, once a Line may state an inverse fund (R-RUNGS-21, R-RUNGS-22); a real run of LEV
