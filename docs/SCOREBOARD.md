@@ -1071,3 +1071,4 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1951 RUNGS rungs-pound-gap step: a missing pound day is the cell's named gap, never a FAULT, in ladder.run; the pooled path's one line remains. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1961 RUNGS rungs-each-rung step 3: dead placebo rung removed, off-path rung modules 4 to 3, -299 lines. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1966 RUNGS rungs-pound-gap: a DEXUSUK-filled pound day pinned as the rate the ladder reads. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1974 RUNGS rungs-each-rung: rung map names the claim each of the last three rung merges needs. |
