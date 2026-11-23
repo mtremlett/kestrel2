@@ -67,6 +67,7 @@ class Settings:
     #: correlated past it with a line held is refused (canon B1, docs/DECISIONS.md); above 1 it
     #: never refuses.
     correlation: Decimal = Decimal("0.90")
+    holdings: int = HOLDINGS  #: the parts the capital is cut in; one line's room is a part
 
     def __post_init__(self) -> None:
         if not self.capital.is_finite() or self.capital <= 0:
@@ -279,6 +280,9 @@ ZOO = "zoo_"  #: the front of every zoo rule's name (desk/intraday.py): a MACHIN
 #: THE ZOO'S OWN ALLOWANCE, apart from the desk's (day.standing counts each alone): pounds whose
 #: 2% a day and 5% a week bound its losses, and the new lines it may enter in a day.
 ZOO_ROOM = Settings(Decimal(1_000), new_lines=10)
+#: The daily round's: a line's room the whole of it (a share of AAPL is not refused for costing
+#: over a fifth); the zoo's total within it is day._zoo_full's.
+ZOO_DAY = replace(ZOO_ROOM, holdings=1)
 
 
 def is_zoo(order_id: str) -> bool:
@@ -372,4 +376,4 @@ def _above_stop(order: Order) -> None:
 def _room(line: Line, settings: Settings) -> Decimal:
     """Pounds one holding in the line may cost: a fifth of the capital, counted at what the
     line controls."""
-    return settings.capital / HOLDINGS / line.leverage
+    return settings.capital / settings.holdings / line.leverage

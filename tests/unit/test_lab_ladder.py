@@ -138,7 +138,7 @@ def test_each_cell_is_judged_on_every_rung_and_kept_with_its_reasons_and_trials(
     assert lost["rungs"]["first"][0] == lost["rungs"]["market"][0] == "FAIL"
     assert set(won["unrun"]) == {"reproduce", "plateau", "unwired"}
     #: the rungs built in modules the ladder does not yet judge are named, never left in silence
-    assert "rung_sample" in won["unrun"]["unwired"] and "declare no RUNG" in won["unrun"]["unwired"]
+    assert "rung_retail" in won["unrun"]["unwired"] and "declare no RUNG" in won["unrun"]["unwired"]
     assert 0 <= won["drawdown"]["median"] <= won["drawdown"]["p95"] < 1, "measured, never gated"
 
 
