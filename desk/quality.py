@@ -302,19 +302,19 @@ def _cells(
     ]
 
 
-def table(path: Path, lines: Iterable[Line], now: datetime) -> str:
-    """The hourly table of one database: per span, the share fresh, the faults and the gaps, then
-    the register of sources (each newest daily bar's source, and the lines on a replacement)."""
+def table(paths: dict[str, Path], lines: Iterable[Line], now: datetime) -> str:
+    """The hourly table: per database and span, the share fresh, the faults and the gaps, then each
+    database's register of sources (each newest daily bar's source, lines on a replacement)."""
     held, rows = list(lines), []
-    for span in HOVER_SPANS:
-        why = [w for _, _, w in _cells(path, held, now, (span,))]
-        gap = sum(w == "holds no bar" for w in why)
-        fresh = 100 * (len(why) - sum(w is not None for w in why)) // max(len(why), 1)
-        rows.append(
-            f"{span}: {fresh}% fresh, {sum(w is not None for w in why) - gap} faults, {gap} gaps"
-        )
-    counts, replaced = register(path, held)
-    rows.append(f"sources: {counts}; replaced: {', '.join(replaced) or 'none'}")
+    for db, path in paths.items():
+        for span in HOVER_SPANS:
+            why = [w for _, _, w in _cells(path, held, now, (span,))]
+            gap = sum(w == "holds no bar" for w in why)
+            bad = sum(w is not None for w in why)
+            fresh = 100 * (len(why) - bad) // max(len(why), 1)
+            rows.append(f"{db}/{span}: {fresh}% fresh, {bad - gap} faults, {gap} gaps")
+        counts, replaced = register(path, held)
+        rows.append(f"{db} sources: {counts}; replaced: {', '.join(replaced) or 'none'}")
     return "\n".join(rows)
 
 
@@ -387,7 +387,7 @@ def watch(state: Path, said: str, green: bool, now: datetime) -> str | None:
 if __name__ == "__main__":
     home, now = Path(os.environ["KESTREL2_DATA"]), datetime.now(UTC)
     if sys.argv[1:] == ["table"]:
-        sys.stdout.write(table(home / keeper.HOT, LINES, now) + "\n")
+        sys.stdout.write(table(databases(home), LINES, now) + "\n")
         sys.exit(0)
     if sys.argv[1:] == ["hover"]:
         said, ok = hover(databases(home), LINES, now)

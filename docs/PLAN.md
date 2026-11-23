@@ -672,6 +672,16 @@ day's trading and reconciliation are built, and any broker can stand behind them
       {id: money-ledger-once; files: desk/book_parts2.py, desk/book.py, desk/day.py, desk/day_money.py,
       tests/unit/test_book*.py, tests/unit/test_day*.py, tests/unit/test_simcity*.py}
 
+- [ ] **Grimes's ten in the zoo (coordinator 103 G1 ruling, 22 Nov 23:5x; G27):** `manifest.toml:107` says the zoo
+      holds "Grimes's ten among the daily", but `desk/intraday.py` imports nothing of `desk/grimes.py`, so that line is
+      false and #1783's guard (every desk rule reached by the rulebook or the zoo) is red on main. Wire the zoo in
+      `desk/intraday.py` to reach `desk/grimes.py`'s ten setups (the AG catalogue) as daily rules; the zoo stays OFF
+      (ZOO_ON off by default; Z2 and a zoo-on rehearsal GO unchanged), one share, a paper MACHINERY TEST, never
+      evidence (CANON B6). No exemption in the guard (a loosening). Gate: a test, written first, red on main, where
+      the zoo's listing names all ten setups. Opus, A6 blind review (money path). #1783 relabels after this lands
+      {id: money-grimes-zoo; files: desk/intraday.py, desk/grimes.py, tests/unit/test_intraday*.py,
+      tests/unit/test_grimes*.py}
+
 ## Phase 3 — the money path, on paper
 
 Begun alongside phase 2 by his ruling of 13 November: "Five lanes, phase 3 now".

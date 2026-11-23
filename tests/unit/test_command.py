@@ -206,7 +206,7 @@ def test_the_rehearsal_lives_the_last_session_again_on_its_own_record_with_no_ma
         0,
         "REHEARSAL GO: Fri 13 Nov lived again in 199 steps at the paper Gateway (0 failed and "
         "the next carried on), no market trading: 0 orders decided, 0 of them sent to the broker "
-        "and cancelled, none filled; the account left as found, the day's record made, 4 messages "
+        "and cancelled, none filled; the account left as found, the day's record made, 5 messages "
         "written and none sent to his phone. NO ORDER REACHED THE BROKER: this rehearsal does not "
         "prove the sending.\n",
     )
