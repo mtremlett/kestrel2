@@ -29,11 +29,12 @@ from desk.halt import Blocker, Stopped
 from desk.lines import YARDSTICK, Line
 from desk.orders import (
     ZOO,
-    ZOO_ROOM,
+    ZOO_DAY,
     Order,
     Refused,
     Sale,
     Settings,
+    cost,
     gapped,
     is_zoo,
     order_id_of,
@@ -494,7 +495,7 @@ def _zoo(
     """THE ZOO'S DAILY ROUND, A MACHINERY TEST, NOT EVIDENCE OF AN EDGE (his 22 Nov ruling): after
     the desk's own orders, each zoo daily rule (intraday.ZOO_DAILY) decides on each zoo line due
     today, holding what it bought; a sale sells it, a buy is one share, refused as the desk's are,
-    through the one gate on the zoo's own allowance (ZOO_ROOM, standing of the zoo alone). Each
+    through the one gate on the zoo's own allowance (ZOO_DAY, standing of the zoo alone). Each
     answer is added to the round's (sent), after the desk's, under the round's one cap (_send)."""
     lines = sorted({ln.symbol for ln in intraday.zoo_lines()} & due.keys())
     held, holders = book.positions(root), _holders(root)
@@ -511,12 +512,27 @@ def _zoo(
             )
             if d.action is Action.SELL:
                 sale = Sale(order_id_of(d), line, held[symbol], session=d.day)
-                answer = _send(root, broker, sale, ZOO_ROOM, tell, None, round_=sent)
+                answer = _send(root, broker, sale, ZOO_DAY, tell, None, round_=sent)
             else:
                 close = archive[line][-1].close, rates[line.currency]
-                answer = _zoo_buy(root, broker, d, line, close, day, tell, sent)
+                answer = _zoo_buy(root, broker, d, line, close, day, tell, sent, rates)
             book.chain(root, made, answer)
             sent.append(_answer(root, day, answer))
+
+
+def _zoo_full(root: Path, order: Order, rates: Mapping[str, Decimal]) -> str | None:
+    """Why the zoo's total would pass its pounds with this order (each zoo line held, at its last
+    buy's price and the day's rate, and the order); None while within ZOO_DAY's capital."""
+    zoo = book.side(root, book.positions(root), order.order_id)
+    lines = {ln.symbol: ln for ln in intraday.zoo_lines()}
+    last = {f.symbol: f.price for f in book.fills(root) if f.quantity > 0}
+    spent = sum(
+        (n * last[s] * rates[lines[s].currency] for s, n in zoo.items() if s in lines),
+        start=Decimal(0),
+    ) + cost(order)
+    if spent > ZOO_DAY.capital:
+        return f"{order.order_id}: the zoo would hold {spent} pounds, over its {ZOO_DAY.capital}"
+    return None
 
 
 def _zoo_buy(
@@ -528,9 +544,12 @@ def _zoo_buy(
     day: date,
     tell: book.Tell | None,
     round_: Sequence[book.Sent],
+    rates: Mapping[str, Decimal],
 ) -> book.Sent:
-    """A zoo rule's buy: one share, never the room, refused as the desk's own buy is."""
+    """A zoo rule's buy: one share, refused as the desk's own buy is (a line the desk holds stays
+    refused: the zoo's sale would sell its shares), sized on the zoo's side, within its pounds."""
     held, name = book.positions(root), order_id_of(d)
+    mine = book.side(root, held, name)
     if no := refusal(root, name, line, held):
         return book.Sent(name, 0, *no)
     if d.symbol in _sold(root, day, True) | _sold(root, day, False):
@@ -538,7 +557,9 @@ def _zoo_buy(
             name, 0, f"{name}: not sent, {d.symbol} was sold this morning", Blocker.HELD
         )
     try:
-        order = replace(size(d, line, *price, ZOO_ROOM, book.side(root, held, name)), quantity=1)
+        order = replace(size(d, line, *price, ZOO_DAY, mine), quantity=1)
+        if full := _zoo_full(root, order, rates):
+            raise Refused(full)
     except Refused as refused:
         return book.Sent(name, 0, str(refused), Blocker.GATE)
-    return _send(root, broker, order, ZOO_ROOM, tell, standing(root, day, True), round_=round_)
+    return _send(root, broker, order, ZOO_DAY, tell, standing(root, day, True), round_=round_)
