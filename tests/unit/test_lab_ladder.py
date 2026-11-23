@@ -211,17 +211,21 @@ def test_a_run_skips_what_is_kept_and_judges_again_only_what_has_changed(
     assert "0 judged now, 2 kept from before, 1 could" in run(tmp_path, _door(book), {}, more)
     assert [row["trials"] for row in _rows(tmp_path)] == [2, 2, 2, 2, 3, 3, 3, 3]
     assert _rows(tmp_path)[-1]["error"].startswith("Stale") and "key" not in _rows(tmp_path)[-1]
-    #: its bars found, and no rate of exchange: the set refuses to start, naming the first day
-    #: unrated, and writes nothing (L20); the rates given, judged
+    #: its bars found, and the pound's rate missing on one planted day: a named gap in that
+    #: cell's reason, kept under its key, never a FAULT nor a refused set; the day filled, judged
     book |= {AAPL: EDGE, SPY: NOISE}
-    with pytest.raises(ValueError, match="refuses to start, first AAPL: no rate of pounds per"):
-        run(tmp_path, _door(book), {}, more)
-    assert len(_rows(tmp_path)) == 8
     pounds = {bar.day: Decimal("0.8") for bar in EDGE}
+    gap = pounds.pop(EDGE[50].day)
+    assert "2 kept from before, 1 could not" in run(tmp_path, _door(book), pounds, more)
+    row = _rows(tmp_path)[-1]
+    assert row["error"].startswith("ValueError: a gap in the pound's rates") and "key" in row
+    assert f"no rate of pounds per USD to price {EDGE[50].day}" in row["error"]
+    assert "rungs" not in row and len(_rows(tmp_path)) == 9
+    pounds[EDGE[50].day] = gap
     said = run(tmp_path, _door(book), pounds, more)
     #: the dollar line joins its rule's pooled folds, so the two pound lines are judged again too
     assert "3 judged now, 0 kept from before, 0 could" in said
-    assert _rows(tmp_path)[-1]["answer"] == "THIN" and len(_rows(tmp_path)) == 11
+    assert _rows(tmp_path)[-1]["answer"] == "THIN" and len(_rows(tmp_path)) == 12
     #: a dearer dollar on one day is another price, in the folds of all three
     pounds[EDGE[50].day] = Decimal("0.9")
     assert "3 judged now, 0 kept" in run(tmp_path, _door(book), pounds, more)
