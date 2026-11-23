@@ -691,3 +691,6 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 
 ### 2026-11-23 - Step cap read from paper; alias kept (#1973)
 - Options: edit desk/simcity_incidents.py (held, not MONEY's; refused) so `day.STEP_SECONDS` can go at once, or keep `day.STEP_SECONDS` as an alias of `paper.STEP_SECONDS` until PAPER's file reads paper's. Alias kept; day.py's own STEP_MARGIN and MAX_ORDERS are deleted (one home each, in paper). R-MONEY-70 asks PAPER to change the reader, then the alias goes.
+
+### 2026-11-23 - money-connors7 handed to RUNGS (#1983)
+- Options: wait on R-RUNGS-10 inside MONEY, or move the box. Moved: re-carded in the RUNGS book (R-MONEY-68) claiming desk/eponymous_connors.py, lab/published_epon.py and their tests, as it blocks nothing else; this lane went to money-saved-fx and money-time-gaps. His standing "always go with recommended".
