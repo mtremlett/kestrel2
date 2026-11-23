@@ -22,10 +22,14 @@ ROOM, POUNDS = Settings(Decimal(10_000)), {"GBP": Decimal(1)}
 
 def _bars(open_: str) -> tuple[Bar, ...]:
     """Twenty flat days, a close of 9 that Bollinger buys, then a morning opening at open_."""
-    flat = [Bar(on, *(Decimal(10),) * 4, 1) for on in DAYS[:20]]
-    signal = Bar(DAYS[20], *(Decimal(9),) * 4, 1)
+    flat = [Bar(on, *(Decimal(10),) * 4, 10**7) for on in DAYS[:20]]
+    signal = Bar(DAYS[20], *(Decimal(9),) * 4, 10**7)
     opened = Decimal(open_)
-    return (*flat, signal, Bar(DAYS[21], opened, opened + 1, opened - Decimal("0.2"), opened, 1))
+    return (
+        *flat,
+        signal,
+        Bar(DAYS[21], opened, opened + 1, opened - Decimal("0.2"), opened, 10**7),
+    )
 
 
 @pytest.mark.parametrize(
