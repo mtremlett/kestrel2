@@ -36,14 +36,16 @@ LONDON = next(line for line in LINES if line.venue == "LSE")
 
 def test_a_line_is_traded_only_while_a_member_and_a_london_line_says_it_is_not_corrected() -> None:
     cells, notes = ladder_sets.survivors(
-        ["breakout_20_10"], [STAYS, LEFT, JOINED, LONDON], {"X": RECORD}
+        ["breakout_20_10"], [STAYS, LEFT, JOINED, LONDON], {"SP500": RECORD}
     )
     spans = {c.line.symbol: (c.start, c.end) for c in cells}
     assert spans["LEFT"] == (START, date(2015, 5, 31))  #: out on the day it left
     assert spans["NEW"] == (date(2018, 3, 1), END)
     assert spans["STAY"] == (START, END)
     assert spans[LONDON.symbol] == (START, END)
-    assert notes == (f"{LONDON.symbol} (LSE): survivorship: not corrected",)
+    assert f"NEW (US): {members.bias('SP500', date(2018, 3, 1))}" in notes  #: its list's bias
+    assert f"STAY (US): {members.bias('SP500', members.FIRST)}" in notes  #: from the record's start
+    assert notes[-1] == f"{LONDON.symbol} (LSE): survivorship: not corrected"
 
 
 def test_the_real_lists_trade_a_leaver_only_up_to_its_leaving() -> None:
