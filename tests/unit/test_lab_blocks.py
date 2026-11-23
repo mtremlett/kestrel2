@@ -14,7 +14,7 @@ from desk.eponymous_clenow_momentum import score
 from desk.store import Bar
 from desk.strategy import ARITHMETIC
 from lab.block_base import Block, Kind
-from lab.blocks import BLOCKS, LogSlope, VolatilitySize
+from lab.blocks import BLOCKS, SIZES, LogSlope, VolatilitySize
 
 
 def _fire(name: str, bars: list[tuple[int, int, int]], holding: bool = False, **params: int) -> str:
@@ -133,8 +133,14 @@ def test_block_fires_on_the_bars_its_definition_fixes(
 
 
 def test_every_block_has_its_kind_and_parameters_in_range() -> None:
-    assert {s.kind for s in BLOCKS.values()} == set(Kind)
-    assert all(p.low < p.high for s in BLOCKS.values() for p in s.params.values())
+    spots = (*BLOCKS.values(), *SIZES.values())
+    assert {s.kind for s in spots} == set(Kind)
+    assert (
+        {s.kind for s in SIZES.values()}
+        == {Kind.SIZE}
+        == set(Kind) - {s.kind for s in BLOCKS.values()}
+    )
+    assert all(p.low < p.high for s in spots for p in s.params.values())
 
 
 def test_the_rolling_log_slope_scores_exactly_as_the_desks_clenow_score() -> None:

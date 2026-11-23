@@ -6,7 +6,8 @@ the one engine decides on it as it decides on a Python rule.
 A row: name, entry, exit, stop, filter (block names), params (per place), source and cases
 (known answers: bars as [high, low, close], the wish after each), and may carry ranges (per
 place, a setting's values to try, lowest first, each held to its block; `lab.variants` makes
-them). A spec with no case is refused. Out of the market it buys when its entry fires and its
+them), and may name a size (a SIZE block, its parameters under params["size"]; never ranged).
+A spec with no case is refused. Out of the market it buys when its entry fires and its
 filter allows; in it, it sells when its exit or its stop fires.
 """
 
@@ -23,12 +24,13 @@ from desk.lines import LINES
 from desk.store import Bar
 from desk.strategy import ARITHMETIC, RANGES, Declared, Timeframe
 from lab.block_base import Block, Kind, Param
-from lab.blocks import BLOCKS
+from lab.blocks import BLOCKS, SIZES
 
-PLACES = tuple(kind.value for kind in Kind)
+PLACES = tuple(kind.value for kind in Kind if kind is not Kind.SIZE)  #: the places that decide
 #: One setting of a row, as (place, parameter), and the values to try, lowest first.
 Ranges = Mapping[tuple[str, str], tuple[int | Decimal, ...]]
 _DAY = date(2020, 1, 1)
+_KNOWN = {**BLOCKS, **SIZES}  #: every block a place may name; its kind says which place
 
 
 @dataclass(frozen=True)
@@ -59,9 +61,9 @@ def _number(where: str, param: Param, value: Any) -> int | Decimal:
 def _place(row: Mapping[str, Any], place: str) -> tuple[str, Mapping[str, int | Decimal]]:
     """The block a place names, and its parameters checked against what the block takes."""
     name = row[place]
-    spot = BLOCKS.get(name) if isinstance(name, str) else None
+    spot = _KNOWN.get(name) if isinstance(name, str) else None
     if spot is None:
-        raise ValueError(f"{place}: unknown block {name!r}; known: {sorted(BLOCKS)}")
+        raise ValueError(f"{place}: unknown block {name!r}; known: {sorted(_KNOWN)}")
     if spot.kind.value != place:
         raise ValueError(f"{place}: block {name!r} is a {spot.kind.value}, not a {place}")
     given = row["params"].get(place, {})
@@ -123,12 +125,13 @@ class Spec:
     source: str
     cases: tuple[Case, ...]
     ranges: Ranges  #: the settings `lab.variants` tries; none for a row tried as written
+    size: tuple[str, Mapping[str, int | Decimal]] | None  #: its SIZE block; None: sized as before
 
     @classmethod
     def parse(cls, row: Mapping[str, Any]) -> Spec:
         """The spec a row describes, or a ValueError naming what is wrong with it."""
         fields = {"name", "source", "params", "cases", *PLACES}
-        extra = set(row) - fields - {"ranges"}
+        extra = set(row) - fields - {"ranges", "size"}
         if fields - set(row) or extra:
             raise ValueError(
                 f"spec row: missing {sorted(fields - set(row))}, extra {sorted(extra)}"
@@ -138,8 +141,9 @@ class Spec:
             raise ValueError(f"spec {name!r}: a name and a source are written")
         if "[" in name:  # `lab.variants` names a variant `row[settings]`: one trial, one name
             raise ValueError(f"spec {name!r}: a bracket is a variant's name, never a row's")
-        if not isinstance(row["params"], Mapping) or set(row["params"]) - set(PLACES):
-            raise ValueError(f"spec {name}: params are given for the places {PLACES} only")
+        named = (*PLACES, "size") if "size" in row else PLACES
+        if not isinstance(row["params"], Mapping) or set(row["params"]) - set(named):
+            raise ValueError(f"spec {name}: params are given for the places {named} only")
         if not row["cases"]:
             raise ValueError(f"spec {name}: no known-answer case")
         chosen = {place: _place(row, place) for place in PLACES}
@@ -149,6 +153,7 @@ class Spec:
             params=MappingProxyType({place: chosen[place][1] for place in PLACES}),
             cases=tuple(_case(n, raw) for n, raw in enumerate(row["cases"])),
             ranges=_ranges(row, {place: chosen[place][1] for place in PLACES}),
+            size=_place(row, "size") if "size" in row else None,
             **{place: chosen[place][0] for place in PLACES},
         )
         spec.hold_cases()
@@ -175,6 +180,8 @@ class SpecRule:
         self._blocks: dict[str, Block] = {
             place: BLOCKS[getattr(spec, place)].make(**spec.params[place]) for place in PLACES
         }
+        if spec.size is not None:
+            self._blocks["size"] = SIZES[spec.size[0]].make(**spec.size[1])
 
     def step(self, bar: Bar, holding: bool) -> bool:
         """Shown the next bar after its close: whether to be in the market from here."""
@@ -183,3 +190,9 @@ class SpecRule:
         if holding:
             return not (fired["exit"] or fired["stop"])
         return fired["entry"] and fired["filter"]
+
+    def shares(self, risk: Decimal) -> int:
+        """Shares a buy at the last close takes for this much risk, by the spec's SIZE block."""
+        if "size" not in self._blocks:
+            raise ValueError("this spec names no size block")
+        return self._blocks["size"].shares(risk)

@@ -18,6 +18,7 @@ class Kind(Enum):
     EXIT = "exit"
     STOP = "stop"
     FILTER = "filter"
+    SIZE = "size"  #: how many shares a buy takes; a spec may name one, never must
 
 
 class Block:
@@ -26,6 +27,10 @@ class Block:
     def see(self, bar: Bar, holding: bool) -> bool:
         """Shown the next bar: whether the block fires."""
         raise NotImplementedError
+
+    def shares(self, risk: Decimal) -> int:
+        """A SIZE block: shares to buy at the last close for this much risk."""
+        raise NotImplementedError(f"{type(self).__name__} is no sizing block")
 
 
 @dataclass(frozen=True)
