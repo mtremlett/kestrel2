@@ -302,19 +302,19 @@ def _cells(
     ]
 
 
-def table(path: Path, lines: Iterable[Line], now: datetime) -> str:
-    """The hourly table of one database: per span, the share fresh, the faults and the gaps, then
-    the register of sources (each newest daily bar's source, and the lines on a replacement)."""
+def table(paths: dict[str, Path], lines: Iterable[Line], now: datetime) -> str:
+    """The hourly table: per database and span, the share fresh, the faults and the gaps, then each
+    database's register of sources (each newest daily bar's source, lines on a replacement)."""
     held, rows = list(lines), []
-    for span in HOVER_SPANS:
-        why = [w for _, _, w in _cells(path, held, now, (span,))]
-        gap = sum(w == "holds no bar" for w in why)
-        fresh = 100 * (len(why) - sum(w is not None for w in why)) // max(len(why), 1)
-        rows.append(
-            f"{span}: {fresh}% fresh, {sum(w is not None for w in why) - gap} faults, {gap} gaps"
-        )
-    counts, replaced = register(path, held)
-    rows.append(f"sources: {counts}; replaced: {', '.join(replaced) or 'none'}")
+    for db, path in paths.items():
+        for span in HOVER_SPANS:
+            why = [w for _, _, w in _cells(path, held, now, (span,))]
+            gap = sum(w == "holds no bar" for w in why)
+            bad = sum(w is not None for w in why)
+            fresh = 100 * (len(why) - bad) // max(len(why), 1)
+            rows.append(f"{db}/{span}: {fresh}% fresh, {bad - gap} faults, {gap} gaps")
+        counts, replaced = register(path, held)
+        rows.append(f"{db} sources: {counts}; replaced: {', '.join(replaced) or 'none'}")
     return "\n".join(rows)
 
 
@@ -335,7 +335,8 @@ def hover(paths: dict[str, Path], lines: Iterable[Line], now: datetime) -> tuple
     ]
     bad = [(name, line, why) for name, line, why in cells if why]
     gap = sum(why == "holds no bar" for _, _, why in bad)
-    worst = (bad[0][0] + ": " + bad[0][2]) if bad else "none"
+    first = next((b for b in bad if b[1].symbol in GOLDEN), bad[0]) if bad else None
+    worst = f"{first[0]}: {first[2]}" if first else "none"  # a golden line's fault leads
     share = 100 * (len(cells) - len(bad)) // max(len(cells), 1)
     said = f"data quality: {share}% fresh, {len(bad) - gap} faults, {gap} gaps, worst {worst}"
     return said, not any(line.symbol in GOLDEN for _, line, _ in bad)
@@ -387,7 +388,7 @@ def watch(state: Path, said: str, green: bool, now: datetime) -> str | None:
 if __name__ == "__main__":
     home, now = Path(os.environ["KESTREL2_DATA"]), datetime.now(UTC)
     if sys.argv[1:] == ["table"]:
-        sys.stdout.write(table(home / keeper.HOT, LINES, now) + "\n")
+        sys.stdout.write(table(databases(home), LINES, now) + "\n")
         sys.exit(0)
     if sys.argv[1:] == ["hover"]:
         said, ok = hover(databases(home), LINES, now)

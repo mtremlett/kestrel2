@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import shutil
+from dataclasses import replace
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -219,6 +220,8 @@ def test_hover_judges_every_span_and_the_alarm_tells_only_of_change(tmp_path: Pa
     said, ok = quality.hover({"live": path}, [SPY], NOW)
     assert said.startswith("data quality: 75% fresh, 1 faults, 1 gaps, worst live/SPY/")
     assert not ok
+    odd = replace(SPY, symbol="ZZZ")  # a line first in order, but not golden: SPY's fault leads
+    assert "worst live/SPY/" in quality.hover({"live": path}, [odd, SPY], NOW)[0]
     with bars.writing(path, bars.Source.IBKR) as held:
         held.timed(SPY, "1h", [Timed("1h", last, price, price, price, price, 5)])
         held.timed(
@@ -226,9 +229,9 @@ def test_hover_judges_every_span_and_the_alarm_tells_only_of_change(tmp_path: Pa
             "1wk",
             [Timed("1wk", datetime(2026, 11, 9, tzinfo=UTC), price, price, price, price, 5)],
         )
-    shown = quality.table(path, [SPY], NOW)
-    assert "1h: 100% fresh, 0 faults, 0 gaps" in shown
-    assert shown.endswith("sources: IBKR paper 1; replaced: none")
+    shown = quality.table({"live": path}, [SPY], NOW)
+    assert "live/1h: 100% fresh, 0 faults, 0 gaps" in shown
+    assert shown.endswith("live sources: IBKR paper 1; replaced: none")
     assert quality.hover({"live": path}, [SPY], NOW) == (
         "data quality: 100% fresh, 0 faults, 0 gaps, worst none",
         True,

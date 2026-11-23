@@ -187,6 +187,11 @@ def test_eased_charges_a_cell_its_rules_family_and_says_the_count(
     assert "times 40 trials of the breakout_20_10 family" in luck_said(40)
     with pytest.raises(ValueError, match="family count"):
         luck_said(None)
+    (among,) = deflated.judge([verdict.ready(CELL, EDGE, {}, ())], 4)  #: L18: the rule's own lines
+    done = verdict.judge(
+        CELL, EDGE, ISF, NOISE, {}, 63920, (), lambda: pooled, None, None, None, among
+    )
+    assert "times 5 trials" in done["rungs"]["luck"][1], "judged among its lines, no count asked"
 
 
 @pytest.mark.parametrize("path", ["whole", "sour folds", "missing market day"])
