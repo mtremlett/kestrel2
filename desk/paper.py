@@ -41,6 +41,9 @@ SECONDS = 30
 #: the cancel, the same buy filled within a second at 09:36). The gateway keeps no API log of
 #: IBKR's own status times, so the fill time is not measured; 120 s is two minutes within one
 #: five-minute step, the cancel and the reads after it still inside it. Tune it from the tapes.
+#: 23 Nov 08:37: VHYG again unfilled in 120 s (broker Cancelled, 0 filled; tape
+#: trades-london-20261123-0835.csv), filled in a second at 09:06: the real side's wait and
+#: withdrawal are true; the pretend broker, filling at once, is the side that differs.
 FILL_SECONDS = 120
 #: The desk step's time (the runner kills it after this) and the margin kept beside the fills.
 STEP_SECONDS, STEP_MARGIN = 900, 60
