@@ -516,6 +516,18 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1750 data-survivorship: bias stated as a verdict line; not wired into verdicts. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1752 collector now 11 of the planned sources (BEA). |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1699 data-second-source step 1: register of sources, replaced newest bars named. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1798 data-door-writer: head start judges bars directly, off the CSV store. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1814 DATA: data-full-universe not ticked, waits on the grid's first pass; docstring corrected. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1809 data-monitor: hover reds a missing golden day. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1826 data-second-source: record check built, not wired. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1827 data-door-writer part 1: shelve and faults deleted, 7 test files rewritten onto judge, net -66 lines. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1832 DATA: hover covers both databases, 1 step of data-monitor. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1834 data-second-source: daily broker-record check built, not yet scheduled. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1839 data-survivorship: bias line total over all lists; still unwired, FTSE 350 and funds unrecorded. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1841 data-members: docs only, no box ticked. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1850 data-monitor: hourly table covers both databases x every span. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1858 data-members: docs only, no box ticked. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1860 data-monitor: alarm names the golden fault that turned it red. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 

@@ -38,14 +38,9 @@ dating; a long run of dollar-quoted bars is dropped (#217, #220); the six parked
 Every rule and constant of `desk/store.py` is pinned by a row of one synthetic table, and that guard was driven red
 (#225, #227, #230; R-RUNNER-43, -46). The lane's open boxes were put in working order (#180).
 
-### 2026-11-15 — adjusted against as-traded closes; the 39-minute close rule, folded (#286, #294)
+### 2026-11-15 — adjusted closes, the 39-minute close rule and nine store and keeper rules, folded (#286-#381)
 
-The head start recognises a store of adjusted prices beside the as-traded one and never writes over raw (R-RUNNER-90, #286).
-The store holds each venue's closes within 39 minutes of its close (R-PAPER-23, #294). Details are in git history.
-
-### 2026-11-15 — nine settled store and keeper rules, folded (#314-#381)
-
-VUAG's 2019 gap filled from a checked shelf, never forward-filled (R-RUNNER-104); every venue has a calendar and SimCity worlds are dated on trading days (R-RUNNER-107); `python -m lab.universe` refreshes research (R-RUNNER-116); a bar with only a bad high or low is kept and repaired, and an impossible low likewise (R-RUNNER-175, -185); the keeper cleans kept history again when the store rules change (R-RUNNER-182); a missing yardstick day is a named fault filled from a second source (R-RUNNER-179). Each took its recommended option; git keeps the full entries.
+The head start never writes over raw prices (R-RUNNER-90); the store holds closes within 39 minutes of a venue's close (R-PAPER-23); gaps are filled from a checked second source, never forward-filled; every venue has a calendar; bad highs and lows are repaired. Each took its recommended option; git keeps the full entries.
 
 ### 2026-11-16 — the first two-database steps and the free collector, folded (#424-#460)
 The store became two databases, long and short (#442); the free collector runs once a day, writing second-opinion prices,
@@ -772,3 +767,30 @@ FRED's public fredgraph.csv works without a key; the session-env key option adds
 
 ### 2026-11-22 — scribe folds only the missing three (DATA, #1775)
 Folded #1736, #1750, #1752 rather than redo closed #1761's conflicting diff.
+
+### 2026-11-23 — hover's hole check covers golden lines only (DATA, #1809)
+Options: all 1,000+ lines every 5 minutes, which reads every daily file each time; golden lines only. Chose golden: it is what decides green.
+
+### 2026-11-23 — both databases count toward green (DATA, #1832)
+Options: live database only, as before; both. Both, because his 22 Nov terms say both databases x every span and a stale history store must not read green. HOVER may read red on the history database's stale spans until gap filling for 15m-1wk exists; that is true.
+
+### 2026-11-23 — record check reuses store.AGREE; its command stays in quality.py (DATA, #1826, #1834)
+Tolerance: 2%, store.AGREE, one home per number, not a new constant. Command: in quality.py (own claim) rather than folded into monitor, which would dial the broker twice per round.
+
+### 2026-11-23 — unmeasured lists state it, never raise (DATA, #1839)
+Options: keep raising (a verdict crashes), omit the line, or state it. Stated: 'survivorship: <list> on <day>: past members not recorded, bias unmeasured'. A missing measurement is said loudly, never hidden.
+
+### 2026-11-23 — hourly table: one table, database-prefixed rows (DATA, #1850)
+Options: two separate commands, or one table with db-prefixed rows. One, so the runner posts one message.
+
+### 2026-11-23 — HOVER's worst cell is the first golden fault (DATA, #1860)
+Worst = first golden fault, else first fault. Rejected: worst by age, which needs a span-aware age scale.
+
+### 2026-11-23 — head start judges directly; prepare and read stay for now (DATA, #1798, #1827)
+Options: rewrite about 400 lines of test_store*, scenes, keeper, batch and sweep tests in one PR; land the product step first; loosen the lane guard (his alone, no); edit the three guarded tests anyway (red on GitHub). Chose to land the product step and leave prepare/read: the change was tried and worked, but needs the scenes, batch and sweep tests lent to DATA for one PR (R-DATA-74).
+
+### 2026-11-23 — full universe waits for the grid (DATA, #1814)
+Options: add thousands of Russell tickers from memory; wait for the grid's first pass. Waited: his 13 November ruling puts the full list after the first pass, and a list from memory would be wrong names parked one by one.
+
+### 2026-11-23 — FTSE fetcher left unbuilt, no paid data (DATA, #1841, #1858)
+Options: wait for a card with its own claim, or build the fetcher outside the claim. Waited: the claim forbids the latter. Funds and 2010-2014 stay unmeasured: no free source exists (his 22 Nov free-route ruling).
