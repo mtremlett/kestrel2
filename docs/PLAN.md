@@ -594,9 +594,10 @@ day's trading and reconciliation are built, and any broker can stand behind them
 - [ ] Small and illiquid trades: a trade whose expected gain is under twice its round-trip
       cost is flagged, and no position is above 1% of its line's twenty-day traded value
       (SIZ-10, TRD-10). On main: the 1% cap in `orders.size` (`orders.traded_value`, `LIQUIDITY`, #1690) and in `orders.gate`, which takes `traded` (#1796), fed by nothing yet. Remains: `day._buy` feeding it (restore 3bf88fa2's day.py change; fixtures volume 10**7 in test_restop, test_running, test_running_tell, which needs a card claiming them); the expected-gain flag (TRD-10)
+      (runner ops 108, 23 Nov, stall watch 01:0x: claim adds tests/unit/test_restop.py; the two running tests' fixtures are PAPER's, set first by paper-small-volume)
       {id: money-small; files: desk/orders.py, desk/day.py, tests/unit/test_orders*.py,
-      tests/unit/test_day*.py, desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml;
-      after: money-limits}
+      tests/unit/test_day*.py, desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml,
+      tests/unit/test_restop.py; after: money-limits, paper-small-volume}
       (coordinator 54, 22 Nov: not his: SIZ-10 and TRD-10 fix the numbers, a flag under twice the round-trip cost and a cap at 1% of the twenty-day traded value)
 - [ ] Time and gaps: a time stop after the strategy's declared holding period; a gap that
       jumps the stop held against the loss limit; a hold limit and gap sizing for the
@@ -649,7 +650,8 @@ day's trading and reconciliation are built, and any broker can stand behind them
       (desk/day.py:201, 241, 274; day_money.py:23; book.py:318; simcitycmd.py:176; simcity_fills.py:111);
       `rates.csv` stays an audit record and is never read as a source; wire: the trading day and SimCity;
       gate: a test where `rates.csv` disagrees with the database and the database wins
-      {id: money-door-pound; files: desk/day.py, desk/day_money.py, desk/book.py, desk/simcitycmd.py, desk/simcity_fills.py, tests/unit/test_day*.py, tests/unit/test_book*.py, tests/unit/test_simcity*.py; waits: 2026-11-23}
+      (runner ops 108, 23 Nov, stall watch 01:31: claim adds desk/book_parts.py, where the rates record is read, and desk/simcity.py, which reads it through `book.pounds_per`; two sessions stopped at that wall)
+      {id: money-door-pound; files: desk/day.py, desk/day_money.py, desk/book.py, desk/simcitycmd.py, desk/simcity_fills.py, tests/unit/test_day*.py, tests/unit/test_book*.py, tests/unit/test_simcity*.py, desk/book_parts.py, desk/simcity.py}
 - [ ] A round never sends more orders than its step's time allows (coordinator 93's 20:5x ruling, option 2):
       each market order waits `paper.FILL_SECONDS` (120 s) and the runner ends the desk step at 900 s, so a zoo
       round of many one-share orders died mid-send (20 Nov, failure pattern 24). The step's time moves from
@@ -682,6 +684,29 @@ day's trading and reconciliation are built, and any broker can stand behind them
       the zoo's listing names all ten setups. Opus, A6 blind review (money path). #1783 relabels after this lands
       {id: money-grimes-zoo; files: desk/intraday.py, desk/grimes.py, tests/unit/test_intraday*.py,
       tests/unit/test_grimes*.py}
+- [ ] **SimCity's gaps on lines before their first bar** (coordinator 107 E1, deep 23 Nov 00:44, SIMCITY RED):
+      the night's gap scenarios pick 2MU, 5QQQ, IB1T, SMGB, SPCX and VHYG on days before their first bar ("no bar
+      before the gap day, its gap is unrunnable", 8-9 of 20 worlds, first world 1), and its conformance scenario
+      stops on a line with no bar the session before ("the desk stops on no day", 20 of 20 worlds, world 0 day 56:
+      SMGB has no bar of 2019-08-02). Hypothesis: the scenarios choose lines unlike the trading day, which leaves a
+      line out until its first bar; the trading day itself is not affected. Also judge here "a gap down to the low
+      leaves a stop's loss inside the gap limit" (3 worlds, first world 1) and say whether "0 round trips, five rules
+      never held a line" is these halts or a fault of its own. Fix where the line is chosen, never a special case per
+      line; if the fix needs a file outside this claim, stop and say so. Gate: a test, written first, red on main,
+      replaying world 0 to day 56 and world 1's gap scenario on a fixture with a late-starting line
+      {id: money-simcity-firstbar; files: desk/simcity*.py, tests/unit/test_simcity*.py}
+- [ ] **Shares under a broker stop, taken in and sold** (coordinator 107 E1, deep 23 Nov 00:44): "shares the book
+      lacks, under a stop at the broker, are taken into the book and sold" in 6 of 20 worlds, first world 4: the
+      stranger path adopts shares that already sit under a working stop and sells them, which can sell twice. Find
+      where the adoption reads the broker's stops; a stranger under a stop is booked with that stop, never sold on
+      top of it. Opus, A6 blind review (money path). Gate: a test, written first, red on main, replaying world 4
+      {id: money-stranger-stopped; files: desk/book.py, desk/book_parts2.py, tests/unit/test_book*.py,
+      desk/simcity*.py, tests/unit/test_simcity*.py}
+- [ ] **Scenarios for four book parts** (coordinator 107 E1, deep 23 Nov 00:44 census: 67 parts, 4 with no
+      scenario): `book.attributed`, `book.chains`, `book.conformance_cost` and `book.told` are run by no SimCity
+      scenario; give each one in the night's census, no change to the parts themselves. Gate: the census test
+      names zero parts without a scenario
+      {id: money-census-book; files: desk/simcity*.py, tests/unit/test_simcity*.py}
 
 ## Phase 3 — the money path, on paper
 
@@ -833,6 +858,11 @@ his PC with the desk's own client id (222), never 4001.
       MONEY from desk/paper.py): `STEP_SECONDS, STEP_MARGIN = 900, 60` in desk/paper.py beside `FILL_SECONDS`, the one home
       money-round-cap then reads; gate: a test that (STEP_SECONDS - STEP_MARGIN) // FILL_SECONDS is 7
       {id: paper-step-time; files: desk/paper.py, tests/unit/test_paper*.py}
+- [ ] Running fixtures carry a traded volume (split from money-small by runner ops 108, 23 Nov: the lane wall bars
+      MONEY from these tests): the fixtures of tests/unit/test_running.py and tests/unit/test_running_tell.py give
+      each line a volume of 10**7 shares a day, so the 1% liquidity cap money-small feeds from the trading day
+      never shrinks their orders; no behaviour changes today; gate: both files green on main with the volume set
+      {id: paper-small-volume; files: tests/unit/test_running.py, tests/unit/test_running_tell.py}
 
 ## Phase 4 — the ladder
 
