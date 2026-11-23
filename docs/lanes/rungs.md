@@ -536,3 +536,8 @@ then the break was removed:
 
 ### 2026-11-23 — survivorship bias per listed line (#2061)
 - Where several research lists name a line, the first in the mapping is used (options: first, or the worst bias; first is the simple one and deterministic). A first day before the record starts is clamped to `members.FIRST`, otherwise `members.on` raises.
+
+### 2026-11-23 — the sizing block registered (#2097)
+- Sizers live in their own registry `SIZES` beside `BLOCKS`, not inside `BLOCKS` as the box wrote. Options: (a) inside `BLOCKS`: turns `tests/unit/test_lab_fast.py::test_the_fast_engine_has_a_firing_for_every_block_that_needs_no_position` red, a file outside this claim, and wrong anyway (a sizer never fires, so it has no fast firing to match); (b) a sibling registry, one home for sizers, the spec reading both. Took (b).
+- A spec's size is optional and never ranged (no `lab.variants` change). Options: required (breaks every catalogue row, outside the claim) or optional. Took optional; a row without one is sized as today.
+- Runner ops' ruling, taken for him by his standing ruling ("please always go with recommended to avoid waiting for me to attend"): rungs-pound-gap's claim gap needs lab/ladder_sets.py and tests/unit/test_lab_ladder_sets*.py, outside this claim; left to the card that holds them.
