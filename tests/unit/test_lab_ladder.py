@@ -345,7 +345,7 @@ def test_a_rule_with_a_figure_on_file_is_judged_only_behind_its_authors_result(
     assert "1 judged now, 0 kept" in ladder.run(tmp_path / "made", _door(book), {}, todo)
 
 
-def test_eased_on_a_cell_is_judged_with_its_rules_family_count_not_left_as_could_not(
+def test_eased_on_a_cell_is_judged_among_its_rules_lines_not_left_as_could_not(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(verdict, "EASED", True)

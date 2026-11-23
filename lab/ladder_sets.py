@@ -144,7 +144,7 @@ def epon(
     rows = [cast(verdict.Row, last.get(tuple(batch.row(c)))) for c in todo]
     stop, shown = faults(rows)  #: over 1% of the cells FAULT, baskets aside: withheld (L20)
     if verdict.EASED:  #: easing 2: each rule's lines also judged pooled, one basket a rule
-        rows += baskets(home, bars, pounds, todo, rules, plan)
+        rows += baskets(bars, pounds, todo, rules, plan)
     sets = home / FOLDER / "sets"
     table = verdict.write_table(
         sets, plan.tag, plan.question, rows, rules, count, ladder.rungs_built()
@@ -201,10 +201,11 @@ def condense(
 
 
 def baskets(
-    home: Path, bars: Bars, pounds: Rates, todo: Sequence[Cell], rules: Sequence[str], plan: Plan
+    bars: Bars, pounds: Rates, todo: Sequence[Cell], rules: Sequence[str], plan: Plan
 ) -> list[verdict.Row]:
     """One basket row for each rule that has a line to pool: the lines' first rungs (a line that
-    cannot be read or that the sizing refuses is left out), charged the rule's family of trials."""
+    cannot be read or that the sizing refuses is left out), each basket one look among the set's
+    baskets, one a rule (L18: never every line the register ever held)."""
     shared, rows = Shared(todo), list[verdict.Row]()
     for rule in rules:
         firsts, stresses = [], []
@@ -220,9 +221,8 @@ def baskets(
         firsts = [first for first in firsts if not first.refused]
         stressed = next((a for a in stresses if a is not Answer.PASS), Answer.PASS)
         if firsts:
-            family = trials.family(home / FOLDER / f"{plan.stem}.trials.jsonl", plan.question, rule)
             against = _against(firsts[0].key.cell.line, bars, pounds)
-            rows.append(basket.row(plan.tag, rule, firsts, family, stressed, against))
+            rows.append(basket.row(plan.tag, rule, firsts, len(rules), stressed, against))
     return rows
 
 

@@ -189,4 +189,12 @@ def test_a_rule_is_judged_on_its_own_lines_clustered_and_one_correction_gates() 
         with pytest.raises(ValueError, match="one rule's"):
             deflated.judge_lines(odd)
     with pytest.raises(ValueError, match="not one set"):
-        trials.daily([lines[0], _verdict(twin, 1, "5", NVDA, 3)])
+        trials.daily([lines[0], lines[0]])
+    longer = trials.daily([lines[0], _verdict(twin, 1, "5", NVDA, 3)])  #: one window, aligned
+    assert [len(row) for row in longer.values()] == [366, 366]
+    assert len({tuple(row) for row in longer.values()}) == 1, "day for day on the span"
+    sour = verdict.Pool([], {one.key.cell: one for one in (lines[0], rsi)}, "", False)
+    for _ in range(2):  #: the set's failure remembered, as `fold` remembers its own
+        with pytest.raises(ValueError, match="one rule's"):
+            sour.among(rsi.key.cell)
+    assert isinstance(sour.unlooked, ValueError)

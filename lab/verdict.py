@@ -146,14 +146,13 @@ def judge(
     made: Sequence[Reproduction],
     pooled: Callable[[], Pooled],
     first: Verdict | None = None,
-    family: int | None = None,
     surface: plateau.Surface | plateau.Fixed | None = None,
     among: Deflated | None = None,
 ) -> dict[str, Any]:
     """Every rung's answer with its reason, the rungs not run with theirs, the verdict's.
     The folds are the rule's, pooled over its lines: `pooled` is asked only when they are read.
-    `first` the cell's first rung if run already; `family` its rule's trials (EASED); `surface`
-    its rule at its settings, or FIXED (`_plateaued`); `among` it among its rule's lines (L18)."""
+    `first` the cell's first rung if run already; `surface` its rule at its settings, or
+    FIXED (`_plateaued`); `among` it among its rule's own lines (L18), else charged `count`."""
     try:
         reproduce.settled(c.strategy, made)
     except ValueError as missed:  #: the rule as coded is not the author's: no verdict on ours
@@ -161,7 +160,7 @@ def judge(
     verdict = first or ready(c, own, pounds, made)
     unrun = UNRUN | ({} if made else {"reproduce": NO_FIGURE})
     settings = Settings(CAPITAL)
-    one = among or _charged(c, verdict, count, family)
+    (one,) = (among,) if among is not None else deflated.judge([verdict], count - 1)
     rungs = named(verdict, one, c.strategy if EASED else None)
     if EASED and verdict.answer is Answer.FAIL and verdict.t is not None and verdict.t < 0:
         return _stopped(len(verdict.trades), {"first": rungs["first"]}, unrun)  #: a hard fail
@@ -222,15 +221,6 @@ def basket_answer(basket: Verdict, stressed: Answer) -> str:
 def stress_answer(c: Cell, own: Sequence[Bar], pounds: Rates) -> Answer:
     """The stress rung's answer on a line, for a basket: it stands on its lines' stress."""
     return _stressed(c, own, Settings(CAPITAL), pounds)[0]
-
-
-def _charged(c: Cell, verdict: Verdict, count: int, family: int | None) -> Deflated:
-    """The cell judged alone, charged the register's trials, or with EASED its rule's family's,
-    each a separate look: where no `among` judged it with its rule's own lines (L18)."""
-    if EASED and family is None:
-        raise ValueError(f"{c.strategy}: EASED judges by the rule's family count, none given")
-    (one,) = deflated.judge([verdict], (family if EASED and family is not None else count) - 1)
-    return one
 
 
 def _held(
@@ -309,13 +299,20 @@ class Pool:
     folded: Pooled | None = None  #: pooled once, when first read
     failed: ValueError | None = None  #: why it could not be, told to every cell of the rule
     looks: dict[Cell, Deflated] | None = None  #: the lines judged as one set, once, when first read
+    unlooked: ValueError | None = None  #: why they could not be, told to every cell of the rule
 
     def among(self, c: Cell) -> Deflated:
         """THE RULE'S OWN LINES ARE ITS FAMILY (L18): the cell's line judged among its rule's lines,
         clustered (`deflated.judge_lines`), never against every line the register ever held."""
-        if self.looks is None:
-            judged = deflated.judge_lines(list(self.firsts.values()))
-            self.looks = dict(zip(self.firsts, judged, strict=True))
+        if self.unlooked is not None:  #: remembered, as `fold` remembers its own
+            raise self.unlooked
+        try:
+            if self.looks is None:
+                judged = deflated.judge_lines(list(self.firsts.values()))
+                self.looks = dict(zip(self.firsts, judged, strict=True))
+        except ValueError as cannot:
+            self.unlooked = cannot
+            raise
         if c not in self.looks:  #: its line could not be read: an error row, never a crash
             raise ValueError(f"{trials.name(c)}: no first rung in its rule's pool, no look")
         return self.looks[c]
