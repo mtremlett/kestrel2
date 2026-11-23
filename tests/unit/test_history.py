@@ -5,13 +5,13 @@ from __future__ import annotations
 
 import io
 import re
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from pathlib import Path
 
 import pytest
 
-from desk import history, live, paper
+from desk import conformance_tape, history, live, paper
 from desk.bars import Five
 from desk.history import Busy
 from desk.lines import LINES, POUND, Line
@@ -96,6 +96,12 @@ def test_each_line_is_asked_as_its_own_client_paced_apart(monkeypatch: pytest.Mo
 
 
 def test_nothing_is_asked_in_a_desk_round(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(conformance_tape, "ROUNDS", ((time(9, 0), time(9, 30)),))
+    moment = datetime(2026, 11, 16, 9, 10, tzinfo=UTC)
+    with pytest.raises(Busy, match="09:00-09:30"):
+        history.gather((VUAG,), DAY, SINCE, moment)
+    assert history.quiet(datetime(2026, 11, 16, 8, 10, tzinfo=UTC))
+    monkeypatch.undo()
     monkeypatch.setattr(paper, "dial", lambda _: pytest.fail("dialled in a desk round"))
     for hour, minute in ((8, 0), (8, 29), (14, 30), (14, 59)):
         with pytest.raises(Busy):

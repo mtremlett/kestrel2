@@ -149,6 +149,12 @@ def ask(
         paper.other(fields)  # news of the feeds is let by; any other stops the read
 
 
+def _busy() -> str:
+    """The refusal's words, the round hours read from the one list of them."""
+    hours = ", ".join(f"{a:%H:%M}-{b:%H:%M}" for a, b in conformance_tape.ROUNDS)
+    return f"a desk round runs ({hours} UK): history is not asked now"
+
+
 def quiet(now: datetime) -> bool:
     """Whether no desk round runs at the moment: the account is the desk's then."""
     return not conformance_tape.round_at(now, 0)
@@ -160,7 +166,7 @@ def gather(
     """Each line's daily bars before day, from since, the broker asked on one connection at
     PACING seconds apart. Not asked in a desk round: it raises Busy, and nothing is sent."""
     if not quiet(now):
-        raise Busy("a desk round runs (08:00-08:30, 14:30-15:00 UK): history is not asked now")
+        raise Busy(_busy())
     door = paper.Door(CLIENT)  #: the history reader's own door, passed down
 
     def talk(wire: BinaryIO, send: paper.Send) -> dict[Line, Answer]:
@@ -305,7 +311,7 @@ def run(
     how many asks were made. Bars reach keep in the broker's unit (pence for a London line):
     `history_write.keeper` turns them into the line's currency, once, on entry."""
     if not quiet(now):
-        raise Busy("a desk round runs (08:00-08:30, 14:30-15:00 UK): history is not asked now")
+        raise Busy(_busy())
     door = paper.Door(CLIENT)
 
     def talk(wire: BinaryIO, send: paper.Send) -> int:
