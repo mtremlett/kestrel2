@@ -2343,3 +2343,13 @@ R-RUNGS-9 (#544, #889) and R-RUNGS-14 (#508) were done but never lines: now `- [
 frees rungs-reproduce of them. R-RUNGS-7 is written as the open MONEY request it is.
 money-restop waited on R-MONEY-31, never a line: its text ("the day's list message includes its
 lost-stop entries") is the open R-MONEY-53, so the wait names that.
+
+## 23 Nov - every open request has its own box (guard), and 30 run-on lines split
+Runner ops 113, coordinator 107/110's H1: the runner reads one request per `- [ ]` line in STATUS, so a
+request written inside another's line was never offered or was read as met (data-survivorship's re-offer
+loop, R-DATA-68, 01:36). `tests/guards/test_lanes.py::test_every_open_request_has_its_own_box` refuses any
+`R-X-n (later` or `(blocking` not at the head of its own checkbox line. Driven: RED on main's STATUS
+(a63c9bf2 era, 26 run-on requests, R-MONEY-8 first), GREEN after this change splits all 30 run-on lines
+mechanically, each request on its own line with its own words. A split request keeps its line's box
+unless its own words say it is done (`[x]` before it, `(done ...`, `done in #n`, `Met by #n`): 15 such.
+Tightening only; nothing is loosened.
