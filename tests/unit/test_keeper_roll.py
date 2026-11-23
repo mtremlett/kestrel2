@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import sqlite3
 from contextlib import closing
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
@@ -30,3 +30,23 @@ def test_a_roll_leaves_the_long_database_holding_the_live_bars_with_their_source
         with closing(sqlite3.connect(file)) as held:
             found.append(held.execute("SELECT * FROM bar ORDER BY span").fetchall())
     assert found[0] == found[1] and len(found[0]) == 2 and found[0][0][-1] == Source.IBKR.value
+
+
+def test_a_round_writes_the_hour_the_five_minute_bars_complete_and_no_partial_span(
+    tmp_path: Path,
+) -> None:
+    hot, open_, price = tmp_path / keeper.HOT, datetime(2026, 11, 16, 8, tzinfo=UTC), Decimal(5)
+    line = Line("BBB", "LSE", "GBP", 1)
+    minutes = [open_ + timedelta(minutes=5 * n) for n in range(16)]  # 08:00-09:15: one whole hour
+    with bars.writing(hot, Source.IBKR) as kept:
+        kept.five(line, [Five(at, price, price, price, price, 1) for at in minutes])
+    keeper.rolled(hot, [line], minutes[-1] + timedelta(minutes=5))
+    for span, count, source in (
+        ("15m", 5, Source.ROLLUP_5M),
+        ("30m", 2, Source.ROLLUP_5M),
+        ("1h", 1, Source.ROLLUP_30M),
+        ("4h", 0, None),
+    ):
+        got = bars.timed(hot, line, span, open_, open_ + timedelta(hours=3))
+        assert len(got) == count
+        assert not count or set(bars.sources(hot, line, span)) == {source}
