@@ -106,7 +106,10 @@ class Candidate:
             raise ValueError(f"{self.strategy}: no strategy of the desk's to put on paper")
         test = TESTED.get(self.strategy)
         excused = {} if test is not None and test.candidate else {"reproduce": NO_FIGURE}
-        unrun = {k: v for k, v in (self.ladder.get("unrun") or {}).items() if excused.get(k) != v}
+        unrun = self.ladder.get("unrun")
+        if not isinstance(unrun, Mapping):
+            raise ValueError(f"{self.strategy} has not passed the ladder: no rungs unrun said")
+        unrun = {k: v for k, v in unrun.items() if excused.get(k) != v}
         if unrun:
             raise ValueError(f"{self.strategy} has not passed the ladder: unrun {unrun}")
         judged = self.ladder.get("trials")
@@ -122,10 +125,10 @@ class Candidate:
             raise ValueError(f"{self.strategy} has not passed the ladder: no {READ} in {rungs}")
         stop = None if answers["yearly"] is Answer.PASS else SHARPE_STOP + 1
         verdict = one_answer(answers, stop)
-        if verdict != Answer.PASS.name or said != verdict:
-            raise ValueError(
+        if verdict != Answer.PASS.name or said != verdict or self.ladder.get("every") is not True:
+            raise ValueError(  #: `every`: the rungs it declares (`ladder_parts`) passed too
                 f"{self.strategy} has not passed the ladder: its rungs give {verdict}, "
-                f"its line says {said}"
+                f"its line says {said}, every rung {self.ladder.get('every')}"
             )
 
 
