@@ -247,9 +247,9 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       planted disagreement is a named fault
       Built (#1651): `lab/members.reconcile` joins one FTSE review's announced changes to the page revisions either side; disagreement is a named `Disagreement`; feeds not wired. Also (#1715): `Members.survived` measures the share of a day's members still listed (279 of 500 on 1 Jan 2010). Remains: the fetcher module (FTSE Russell announcements, MediaWiki API; a request to RUNNER in STATUS), the nightly refresh reading members by date; no free source exists for the funds' past members or a second 2010-2014 record, so they stay unmeasured (#1841, #1858).
       Re-carded (runner ops 106, 23 Nov, coordinator 103's D1: the remainder was a new file outside the claim): the fetcher is `lab/members_feed.py`, registered in manifest.toml, its test `tests/unit/test_lab_members_feed.py` on committed fixtures, no network; count lab/ room against BUDGET first
-      Built (#1870, #1885, #1899): `lab/members_feed.py` parses a review's page table and announcement, `fetch_review(page, day, text)` reads the two revisions and hands them to `reconcile`; offline fixtures only. Remains: the FTSE Russell announcement reader, a first real fetch (live shape unverified), the funds and a 2010-2014 source (no free one), the nightly refresh reading members by date.
+      Built (#1870, #1885, #1899): `lab/members_feed.py` parses a review's page table and announcement, `fetch_review(page, day, text)` reads the two revisions and hands them to `reconcile`; offline fixtures only; the page side fetched live (#1948, #1962: FTSE 100 and 250 give 100 and 250 tickers; a generic User-Agent, no personal detail). Remains: the FTSE Russell announcement reader (needs a stable free source: lseg.com has none machine-readable), the funds and a 2010-2014 source (no free one), the nightly refresh reading members by date.
       (widened by runner ops 114, 23 Nov: six runs ended with no change because the nightly wire sits in lab/universe.py; after data-nightly-target, which holds that file now. The bias on verdicts is RUNGS', its request in STATUS)
-      {id: data-members; files: lab/members.py, lab/members_feed.py, lab/universe.py, tests/unit/test_lab_members*.py, tests/unit/test_lab_universe*.py, manifest.toml; after: data-nightly-target}
+      {id: data-members; files: lab/members.py, lab/members_feed.py, lab/universe.py, tests/unit/test_lab_members*.py, tests/unit/test_lab_universe*.py, manifest.toml; waits: operator}
 - [x] Kept hot, always: the runner runs the store's keeper after the US close and before the
       London open on every trading day, a dated receipt each time; a line staler than one
       session raises an alert, and a keeper that misses its slot raises one too (DQ-12,
@@ -605,9 +605,9 @@ day's trading and reconciliation are built, and any broker can stand behind them
       cost is flagged, and no position is above 1% of its line's twenty-day traded value
       (SIZ-10, TRD-10). On main: the 1% cap in `orders.size` (`orders.traded_value`, `LIQUIDITY`, #1690) and in `orders.gate`, which takes `traded` (#1796), fed by nothing yet. Remains: `day._buy` feeding it (restore 3bf88fa2's day.py change; fixtures volume 10**7 in test_restop, test_running, test_running_tell, which needs a card claiming them); the expected-gain flag (TRD-10): `orders.thin(order, gain)` is on main (#1891, pure, flags rather than skips, not yet called: a Decision carries no expected gain; remains the gain's source and a caller)
       (runner ops 108, 23 Nov, stall watch 01:0x: claim adds tests/unit/test_restop.py; the two running tests' fixtures are PAPER's, set first by paper-small-volume)
-      {id: money-small; files: desk/orders.py, desk/day.py, tests/unit/test_orders*.py,
+      {id: money-small; waits: 2026-11-24; files: desk/orders.py, desk/day.py, tests/unit/test_orders*.py,
       tests/unit/test_day*.py, desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml,
-      tests/unit/test_restop.py; after: money-limits, paper-small-volume}
+      tests/unit/test_restop.py}
       (coordinator 54, 22 Nov: not his: SIZ-10 and TRD-10 fix the numbers, a flag under twice the round-trip cost and a cap at 1% of the twenty-day traded value)
 - [ ] Time and gaps: a time stop after the strategy's declared holding period; a gap that
       jumps the stop held against the loss limit; a hold limit and gap sizing for the
@@ -709,7 +709,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       stranger path adopts shares that already sit under a working stop and sells them, which can sell twice. Find
       where the adoption reads the broker's stops; a stranger under a stop is booked with that stop, never sold on
       top of it. Opus, A6 blind review (money path). Gate: a test, written first, red on main, replaying world 4
-      {id: money-stranger-stopped; files: desk/book.py, desk/book_parts2.py, tests/unit/test_book*.py,
+      {id: money-stranger-stopped; waits: 2026-11-24; files: desk/book.py, desk/book_parts2.py, tests/unit/test_book*.py,
       desk/simcity*.py, tests/unit/test_simcity*.py}
 - [ ] **Scenarios for four book parts** (coordinator 107 E1, deep 23 Nov 00:44 census: 67 parts, 4 with no
       scenario): `book.attributed`, `book.chains`, `book.conformance_cost` and `book.told` are run by no SimCity
@@ -717,7 +717,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       names zero parts without a scenario. That gate holds the standing rule too: every box adding a public
       function to strategy, orders, broker, book, day or kill also claims `desk/simcity*.py` and
       `tests/unit/test_simcity*.py`, one session at a time
-      {id: money-census-book; files: desk/simcity*.py, tests/unit/test_simcity*.py}
+      {id: money-census-book; waits: 2026-11-24; files: desk/simcity*.py, tests/unit/test_simcity*.py}
 - [ ] THE STORE'S CSV HALF UNUSED BY MONEY: `desk/halt.py` writes its file without `store._write`, and the
       scenes read their prices through the history database (`bars.writing`, `universe_parts.read` or `store.judge`),
       never `store.prepare` or `store.read`; gate: neither file names those three
@@ -1038,7 +1038,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         1's trade minimum, benchmark into market; wire: each on verdict.judge's path; gate: a ladder test fails when
         any lab/rung_*.py is off that path (rungs_built equals the map)
         Gate done (#1676): the registry test pins the rung modules off the path, now seven after empty rung_beta.py was folded away (#1740) (benchmark, bootstrap, dsr, placebo, retail, sample, stops); it may only fall. Step 2 (#1901): the stop-rule study renamed `lab/stop_rules.py`, off-path five; step 3 (#1934): benchmark merged into market (`lab/market.py`, `rung_benchmark.py` deleted), off-path now four (dsr, placebo, retail, sample).
-        Step 4 (#1961): the unwired placebo rung deleted (shuffle is the one home of the timing question), off-path three (dsr, retail, sample). Remains: wire or merge each of dsr (into deflated; needs lab/deflated.py, its test and tests/unit/test_lab_trials_clustered.py in the claim), sample (into rung 1; needs lab/rung.py, test_lab_rung.py, test_lab_calibration.py), retail (needs lab/basket.py or lab/verdict.py); (each needs lab/ladder.py, manifest.toml and its target in the claim; merges need R-RUNGS-29), then pin 'waiting is empty'. Step 1 built (#1844): rung_bootstrap folded into rung_ci (off-path modules 7 to 6, FOLDED pin until it is wired); next: dsr (into deflated), sample (into rung 1), retail, each needing its target in the claim; merges need R-RUNGS-29; then pin 'waiting is empty' and take `rung_ci.bootstrap(` off FOLDED once wired. Registry test reads the real rungs from `rung.found()` (#1768)
+        Step 4 (#1961): the unwired placebo rung deleted (shuffle is the one home of the timing question), off-path three (dsr, retail, sample); #1974: the rung map in lab/ladder.py names the files each remaining merge needs. Remains: wire or merge each of dsr (into deflated; needs lab/deflated.py, its test and tests/unit/test_lab_trials_clustered.py in the claim), sample (into rung 1; needs lab/rung.py, test_lab_rung.py, test_lab_calibration.py), retail (needs lab/basket.py or lab/verdict.py); (each needs lab/ladder.py, manifest.toml and its target in the claim; merges need R-RUNGS-29), then pin 'waiting is empty'. Step 1 built (#1844): rung_bootstrap folded into rung_ci (off-path modules 7 to 6, FOLDED pin until it is wired); next: dsr (into deflated), sample (into rung 1), retail, each needing its target in the claim; merges need R-RUNGS-29; then pin 'waiting is empty' and take `rung_ci.bootstrap(` off FOLDED once wired. Registry test reads the real rungs from `rung.found()` (#1768)
         {id: rungs-each-rung; files: lab/ladder.py, tests/unit/test_lab_ladder.py, lab/rung_*.py, tests/unit/test_lab_rung_*.py, lab/stop_rules.py, tests/unit/test_lab_stop_rules.py, manifest.toml; after: rungs-rung-map; waits: R-RUNGS-29}
   - [x] L14 one clustered set of trials for the deflated Sharpe, its spread measured
         {id: rungs-clustered-trials; files: lab/trials.py, lab/rung_dsr.py, tests/unit/test_lab_trials_clustered.py; after: rungs-rung-map}
