@@ -186,10 +186,20 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       {id: data-door-bars; files: lab/universe_parts.py, tests/unit/test_lab_universe*.py; waits: 2026-11-24}
 - [ ] One door, one writer: `universe.nightly` and the Stooq files write into the history database through
       `bars.writing`, never the CSV store; `store.read`, `faults`, `shelve` and the CSV half of `prepare` are
-      deleted with their tests; wire: the research refresh job; gate: the deleted names import nowhere
-      Built (#1767): the research refresh writes the history database through `bars.writing`, no CSV; `universe_history.enter` deleted. Also built (#1798, #1827): headstart judges through `store.judge` (no scratch CSV store); `store.shelve`, `faults`, `HISTORY` deleted, seven store tests rewritten onto judge. Remains: delete `store.prepare`, `read`, `_bar`, `_FAULT`, `_write`'s CSV use (halt.py imports `_write`) and the `.faults` filter in lab/sweep.py; tests/scenes/test_scenes.py, test_lab_batch.py, test_lab_sweep.py call them and the lane guard refuses DATA editing those (MONEY/GRID files): waits for runner ops to lend ownership or a MONEY/GRID card to edit them; then the gate that the deleted names import nowhere
+      deleted with their tests; wire: the research refresh job; gate: the deleted names import nowhere.
+      Built (#1767): the research refresh writes the history database through `bars.writing`, no CSV; `universe_history.enter` deleted. Also built (#1798, #1827): headstart judges through `store.judge` (no scratch CSV store); `store.shelve`, `faults`, `HISTORY` deleted, seven store tests rewritten onto judge. Remains: delete `store.prepare`, `read`, `_bar`, `_FAULT` and `_write`'s CSV use; their MONEY and GRID callers are split to their owners (runner ops 112, 23 Nov: money-door-writer, grid-door-writer); once both land, the deletions and the gate that the deleted names import nowhere
       {id: data-door-writer; files: lab/universe.py, lab/universe_parts.py, lab/universe_history.py, lab/headstart.py, lab/headstart_days.py, desk/store.py, desk/store_scope.py,
-      tests/unit/test_lab_universe*.py, tests/unit/test_store*.py, tests/unit/test_lab_headstart*.py, tests/unit/test_keeper.py, tests/unit/test_lab_batch.py, tests/unit/test_lab_sweep.py, tests/scenes/test_scenes.py; after: data-door-bars, money-door-slippage}
+      tests/unit/test_lab_universe*.py, tests/unit/test_store*.py, tests/unit/test_lab_headstart*.py, tests/unit/test_keeper.py; after: data-door-bars, money-door-slippage, money-door-writer, grid-door-writer}
+- [ ] THE STORE'S CSV HALF UNUSED BY MONEY: `desk/halt.py` writes its file without `store._write`, and the
+      scenes read their prices through the history database (`bars.writing`, `universe_parts.read` or `store.judge`),
+      never `store.prepare` or `store.read`; gate: neither file names those three
+      (split from data-door-writer by runner ops 112, 23 Nov: these are MONEY's files)
+      {id: money-door-writer; files: desk/halt.py, tests/unit/test_halt*.py, tests/scenes/test_scenes.py}
+- [ ] THE STORE'S CSV HALF UNUSED BY THE GRID: the `.faults` filter in `lab/sweep.py` deleted; the batch
+      and sweep tests set their prices through the history database, never `store.prepare` or `store.read`;
+      gate: none of the three files names them
+      (split from data-door-writer by runner ops 112, 23 Nov: these are GRID's files)
+      {id: grid-door-writer; files: lab/sweep.py, tests/unit/test_lab_sweep.py, tests/unit/test_lab_batch.py}
 - [x] **The old desk's stores as a head start, now** (his ask, 14 November): its daily and
       five-minute bars (Stooq and IBKR stores, and its per-ticker matrices) read in through
       the one store's checks, every bar re-checked, each kept with its source; where a fresh
@@ -438,7 +448,8 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       measured ramp on the paper port allows (every request counted with its error codes;
       any pacing refusal halves the rate); daily bars for every ticker (DAT-01, DAT-05)
       Built (#1886): the pure ramp rule `keeper.pace` and table `POLLED` (floors 27/81/324, ceilings 270/810/3,240; a refusal halves the rate, a clean round adds 25%); nothing calls it yet. Remains: wire it to polled 1-minute rounds (keeper_live.py, lines.py: claim to widen), 90 streams, the measured ramp on port 4002, daily bars for every ticker.
-      {id: data-ibkr-capacity; files: desk/keeper.py, tests/unit/test_keeper*.py; waits: 2026-11-24}
+      (runner ops 112, 23 Nov: claim adds desk/keeper_live.py, where the polled rounds must use keeper.pace and count each request, and desk/lines.py with its test, for the lines beyond today's twenty; two runs stopped on it, real_loop)
+      {id: data-ibkr-capacity; files: desk/keeper.py, tests/unit/test_keeper*.py, desk/keeper_live.py, desk/lines.py, tests/unit/test_lines.py; after: data-broker-bars; waits: 2026-11-23}
 - [ ] **A free collector, started now, before anything uses it:** once a day, about 300 calls
       across the free tiers he already has, each response kept raw and timestamped: a US
       second opinion on every bar (Massive's whole-market daily), a third (Tiingo), a rotating
@@ -679,7 +690,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       {id: money-ledger-once; files: desk/book_parts2.py, desk/book.py, desk/day.py, desk/day_money.py,
       tests/unit/test_book*.py, tests/unit/test_day*.py, tests/unit/test_simcity*.py}
 
-- [ ] **Grimes's ten in the zoo (coordinator 103 G1 ruling, 22 Nov 23:5x; G27):** `manifest.toml:107` says the zoo
+- [x] **Grimes's ten in the zoo (coordinator 103 G1 ruling, 22 Nov 23:5x; G27):** (met by #1696: `desk/intraday.py` imports `GRIMES` and `test_intraday_zoo.py` names all ten; found by #1900's run, test run on main by runner ops 112, 23 Nov) `manifest.toml:107` says the zoo
       holds "Grimes's ten among the daily", but `desk/intraday.py` imports nothing of `desk/grimes.py`, so that line is
       false and #1783's guard (every desk rule reached by the rulebook or the zoo) is red on main. Wire the zoo in
       `desk/intraday.py` to reach `desk/grimes.py`'s ten setups (the AG catalogue) as daily rules; the zoo stays OFF
@@ -837,8 +848,9 @@ his PC with the desk's own client id (222), never 4001.
       record, the merge line and the runner's alerts behind the same door (MSG-02, MSG-03,
       MSG-04, MSG-09, MSG-11)
       Remains: hourly P&L (#471, #492), the kill and halt line (#502) and the email fallback (#484, wired into the step in #1309; the runner must hand SMTP_*, a preflight line is owed) landed; desk/messenger.py is at its 400-line limit and desk/ has 92 of 10,500 lines left, so the new messages are a fold inside the desk/ ceiling: shrink or merge messenger code first, as split-desk-keeper did, never a ceiling raise (coordinator 54, 22 Nov: re-carded so it is not blocked; a raise would be his). The daily messages end the last-day lines with the verdict and streak (#1636, MSG-03); the 05:40 start-of-day card (#1864; only the card moved, notes and reminders stay at his 08:00) and the 09:30 "not trading" line (#1852 wired `messenger.idle` into `running._say`; #1880 proves it through the step) landed; still owed: the SMTP preflight line in desk/command.py (claim must add it; the runner must hand SMTP_*) (the streak shows as N of 10, #1665; the streak-above-0 test landed, #1675; messenger.py shrunk to 395 lines, #1698). The evening message now names each lost stop (#805); messenger split to 349 lines (#782)
+      (runner ops 112, 23 Nov: claim adds desk/command.py for the SMTP preflight line, the one item left; the 2026-11-24 wait was that missing file, so it is lifted)
       {id: paper-cards; files: desk/running.py, tests/unit/test_running*.py, tests/unit/test_command.py, desk/messenger.py, desk/messenger_parts.py, manifest.toml,
-      tests/unit/test_messenger.py, tests/unit/test_messenger_parts.py; after: paper-messages, paper-running; waits: 2026-11-24}
+      tests/unit/test_messenger.py, tests/unit/test_messenger_parts.py, desk/command.py; after: paper-messages, paper-running}
 - [x] FIRST-LIGHT counted by the desk itself: ten consecutive clean days, and a day that
       sent nothing cannot be green (NS-10) (#511: `desk/streak.py`; remains: showing the streak in the day's message and the pre-flight line)
       {id: paper-first-light; files: desk/streak.py, tests/unit/test_streak.py,
