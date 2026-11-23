@@ -33,7 +33,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
-from desk.bars_form import entered, restated
+from desk.bars_form import HOLDING, entered, restated, same
 from desk.bars_parts import CLOSES as CLOSES
 from desk.bars_parts import NEWEST as NEWEST
 from desk.bars_parts import OTHERS as OTHERS
@@ -119,11 +119,13 @@ class Round:
         held.execute("RELEASE line")
         return landed + given - len(rows)
 
-    def daily(self, line: Line, bars: Iterable[Bar], withdrawn: Iterable[date] = ()) -> None:
+    def daily(self, line: Line, bars: Iterable[Bar], withdrawn: Iterable[Bar | date] = ()) -> None:
         """A line's daily bars from this source, joined by day into what the store holds, and
         none held is ever deleted (B3): a fresh source's bar takes the day of another's, the old
-        value kept in `correction` if it differs. A day in `withdrawn` was judged untrue: its row
-        stays, marked, unread until a bar is given for it again. A day given twice is refused."""
+        value kept in `correction` if it differs. A bar in `withdrawn` was judged untrue: the row
+        held for its day, if it is that bar, stays, marked, unread until a bar is given for the
+        day again; a different held row is the day's truth and is restored. A bare date withdraws
+        whatever is held for it. A day given twice is refused."""
         if not self._source.fresh:
             raise ValueError(f"{self._source.value} is no fresh source: it restates nothing")
         given = [(b.day.toordinal(), b) for b in bars]
@@ -135,8 +137,11 @@ class Round:
         held.execute("SAVEPOINT marks")
         try:
             held.executemany(RESTORE, ((*key, at) for at, _ in given))
-            gone = {day.toordinal() for day in withdrawn} - {at for at, _ in given}
-            held.executemany(WITHDRAW, ((*key, at) for at in sorted(gone)))
+            refused = {(w if isinstance(w, date) else w.day).toordinal(): w for w in withdrawn}
+            for at in sorted(refused.keys() - {at for at, _ in given}):
+                now, bar = held.execute(HOLDING, (*key, at, at)).fetchone(), refused[at]
+                if isinstance(bar, date) or (now and same(now[1:6], entered(bar))):
+                    held.execute(WITHDRAW, (*key, at))
         except BaseException:
             held.execute("ROLLBACK TO marks")
             raise

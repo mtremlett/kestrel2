@@ -107,10 +107,10 @@ def _source(kept: Sequence[Bar], answer: store.Answer, broker: store.Answer | No
     return f"archive (IBKR {why})" if day in (gave[1] or ()) else "the shelf, or none"
 
 
-def _dropped(kept: Sequence[Bar], *answers: store.Answer | None) -> set[date]:
-    """The days the answers gave that the judge did not keep: withdrawn, never deleted."""
-    given = {b.day for a in answers if not isinstance(a, Refused | None) for b in a}
-    return given - {b.day for b in kept}
+def _dropped(kept: Sequence[Bar], *answers: store.Answer | None) -> list[Bar]:
+    """The bars the answers gave that the judge did not keep: withdrawn, never deleted."""
+    given = [b for a in answers if not isinstance(a, Refused | None) for b in a]
+    return [b for b in given if b not in kept]
 
 
 def _standing(hot: Path, line: Line, day: date, broker: store.Answer | None) -> store.Answer | None:

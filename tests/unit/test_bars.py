@@ -121,7 +121,7 @@ def test_a_short_call_never_loses_a_held_day_a_change_is_corrected_and_a_withdra
         round_.daily(US, days)
     changed = replace(days[-1], close=Decimal("7"))
     with bars.writing(store, Source.IBKR) as round_:  # the broker's recent 21 days, one changed
-        round_.daily(US, (*days[-21:-1], changed), withdrawn=[days[-2].day, days[5].day])
+        round_.daily(US, (*days[-21:-1], changed), withdrawn=[days[-2], days[5]])
     shown = {b.day: b for b in bars.daily(store, US)}
     assert len(shown) == 3999 and days[5].day not in shown and shown[days[-1].day] == changed
     assert days[-2].day in shown  # given again in the same call: not withdrawn
@@ -133,6 +133,9 @@ def test_a_short_call_never_loses_a_held_day_a_change_is_corrected_and_a_withdra
     with bars.writing(store) as round_:
         round_.daily(US, days[5:6])  # a bar for a withdrawn day brings it back
     assert days[5] in bars.daily(store, US)
+    with bars.writing(store, Source.IBKR) as round_:  # a refused bar that is not the held one
+        round_.daily(US, (), withdrawn=[replace(days[7], close=Decimal("9")), days[8]])
+    assert days[7] in bars.daily(store, US) and days[8] not in bars.daily(store, US)
 
 
 def test_a_store_made_before_withdrawals_is_read_and_gains_the_table(tmp_path: Path) -> None:
