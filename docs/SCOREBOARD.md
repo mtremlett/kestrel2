@@ -535,6 +535,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1910 data-pound-history ticked: `desk.backfill POUND` fills the pound from the Fed. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1916 data-ibkr-capacity step 2: `keeper_live.polled_round` counts requests and refusals for `pace`; not yet wired. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1922 data-nightly-target ticked: nightly docstring names market_history.db, test pins it. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1948 DATA members feed: live page shape verified (100 and 250 tickers). |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1962 data-members: page side verified live, announcement source missing. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1963 DATA: keeper --polled ramp command, tested; ceiling restored. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
