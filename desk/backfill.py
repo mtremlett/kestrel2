@@ -13,6 +13,7 @@ from collections.abc import Callable, Iterable, Sequence
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
+from urllib.request import urlopen
 
 from desk import archive, bars, history, keeper, paper, store, venues
 from desk.bars import Source
@@ -93,6 +94,14 @@ def fill_pound(path: Path, table: str, today: date) -> tuple[list[str], list[str
     return [f"{b.day}: {b.close}" for b in found], [str(d) for d in lost if d not in given]
 
 
+FED = "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DEXUSUK&cosd=1993-01-01"  #: keyless
+
+
+def _fed() -> str:
+    with urlopen(FED, timeout=60) as answer:  # noqa: S310 - one fixed public address
+        return str(answer.read().decode("utf-8"))  # bounded: one table, 30 years of a day a line
+
+
 def _broker(home: Path, now: datetime) -> Ask:
     """The broker's bar of one day, in the line's currency: its own dial, in the history
     reader's pace and quiet, and the unit it prices the line in, as it lists the line today."""
@@ -113,9 +122,15 @@ def _archive(line: Line, day: date) -> store.Answer:
 
 
 def main(home: Path, now: datetime, wanted: Iterable[str]) -> int:
-    """THE COMMAND: `SYMBOL DAY...` filled; what was written, then what no source gave (exit 1)."""
+    """THE COMMAND: `POUND` fills the pound (the Fed), `SYMBOL DAY...` lines; what was written,
+    then what no source gave (exit 1)."""
     lines = {line.symbol: line for line in LINES}
     names = list(wanted)
+    if names == ["POUND"]:
+        wrote, named = fill_pound(home / keeper.HOT, _fed(), now.date())
+        sys.stdout.write("".join(f"{line}\n" for line in wrote))
+        sys.stderr.write("".join(f"NOT FILLED: pound {day}\n" for day in named))
+        return int(bool(named))
     if len(names) % 2:
         raise ValueError(f"SYMBOL DAY pairs are asked for, not {names}")
     pairs = zip(names[::2], names[1::2], strict=True)

@@ -292,7 +292,7 @@ def unbarred(life: _Life, on: date) -> None:
     """The store holds a London line's daily bars but not the session before the day (17 November,
     the conformance job). The plan of the run must refuse, naming the line and the session, and
     never size an order from an older close."""
-    line = sorted((x for x in life.market if x.venue == YARDSTICK.venue), key=lambda x: x.symbol)[0]
+    line = next(x for x in life.begun(on) if x.venue == YARDSTICK.venue)
     before = venues.sessions(line.venue, on - timedelta(days=9), on)[-2]
     home = life.desk / "unbarred"
     with bars.writing(home / keeper.HOT) as round_:
@@ -377,7 +377,7 @@ def gateway_silent(life: _Life, on: date) -> None:
     "conformance-us", TimeoutError). The step must be recorded as failed, naming TimeoutError;
     the last step must still put the account back, so neither the book nor the broker holds a
     share and no order rests."""
-    held = sorted((x for x in life.market if x.venue == YARDSTICK.venue), key=lambda x: x.symbol)
+    held = [x for x in life.begun(on) if x.venue == YARDSTICK.venue]
     line = next(x for x in LINES if x.retail and x.leverage == 1 and x.venue == YARDSTICK.venue)
     whole = life.market[held[0]]  #: the world's bars on a line the desk's own list knows
     home = life.desk / f"silent-{on}"
