@@ -727,7 +727,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       names zero parts without a scenario. That gate holds the standing rule too: every box adding a public
       function to strategy, orders, broker, book, day or kill also claims `desk/simcity*.py` and
       `tests/unit/test_simcity*.py`, one session at a time
-      {id: money-census-book; files: desk/simcity*.py, tests/unit/test_simcity*.py}
+      {id: money-census-book; waits: 2026-11-24; files: desk/simcity*.py, tests/unit/test_simcity*.py}
 
 ## Phase 3 — the money path, on paper
 
