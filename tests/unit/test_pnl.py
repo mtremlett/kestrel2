@@ -6,7 +6,7 @@ from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
-from desk import bars, book, halt, pnl
+from desk import bars, book, halt, keeper, pnl
 from desk.bars import Five
 from desk.book import Switch
 from desk.broker import Fill
@@ -88,7 +88,7 @@ def test_the_message_is_read_from_the_ledger_the_bars_and_the_halts(tmp_path: Pa
     def flat(c: int) -> tuple[Decimal, Decimal, Decimal, Decimal, int]:
         return (Decimal(c),) * 4 + (1,)
 
-    with bars.writing(tmp_path / "bars.db") as round_:  # VUAG: 13:50, 13:55 and 14:00 (unended)
+    with bars.writing(tmp_path / keeper.HOT) as round_:  # VUAG: 13:50, 13:55 and 14:00 (unended)
         round_.five(
             VUAG,
             [Five(_at(t), *flat(c)) for t, c in (("13:50", 99), ("13:55", 101), ("14:00", 150))],
@@ -97,7 +97,7 @@ def test_the_message_is_read_from_the_ledger_the_bars_and_the_halts(tmp_path: Pa
     daily = {VUAG: [Bar(FRI, *flat(100))], EQQQ: [Bar(FRI, *flat(300))], UNHELD: []}
 
     def told() -> str:
-        return pnl.told(tmp_path, tmp_path / "bars.db", daily, {}, Decimal(1000), NOW)
+        return pnl.told(tmp_path, tmp_path / keeper.HOT, daily, {}, Decimal(1000), NOW)
 
     assert told() == TEXT
     halt.call(tmp_path, NOW, "a crash", by=halt.OPERATOR)

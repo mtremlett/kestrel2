@@ -55,8 +55,8 @@ BACK = timedelta(days=10)  #: the market's last session is looked for no further
 WATCH = "the crash watch"  #: who calls the watch's halts, and lifts its own
 EARLY = "no bar of its own has ended this session"
 PARK = (
-    "NOT DONE: the desk cannot yet park one line, so its rules may still buy this one. A "
-    "holding's stop rests at the broker as ever."
+    "NOT DONE: its rules may still buy this one until the line is parked: park the line by hand "
+    "(name it in parked.csv). A holding's stop rests at the broker as ever."
 )
 DONE = {
     Level.CRASH: (

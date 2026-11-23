@@ -47,6 +47,10 @@ def test_only_the_desks_own_nil_fill_cancel_is_sent_once_more(tmp_path: Path) ->
     book.cancel_all(tmp_path / "c", part, today)
     assert book.send(tmp_path / "c", part, order, ROOM).filled == 5
     assert part.submitted() == ("o-1",)
+    both, _ = _stranded(Fault.PARTIAL)  #: a stop the broker cancelled with it is not kept
+    both.cancel = lambda: ("o-1", "o-1-stop")  # type: ignore[method-assign]
+    assert book.cancel_all(tmp_path / "d", both, today) == ("o-1", "o-1-stop")
+    assert (tmp_path / "d" / "cancels.csv").read_text().split() == [f"o-1,{today}"]
 
 
 def test_the_retry_is_refused_like_any_order_while_the_kill_switch_is_on(tmp_path: Path) -> None:

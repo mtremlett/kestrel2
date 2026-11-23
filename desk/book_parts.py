@@ -126,7 +126,7 @@ def cancel_all(root: Path, broker: Broker, day: date) -> tuple[str, ...]:
     if path.exists():
         with path.open(newline="", encoding="utf-8") as rows:
             kept = list(csv.reader(rows))
-    keep(path, [*kept, *((i, day.isoformat()) for i in ids)])
+    keep(path, [*kept, *((i, day.isoformat()) for i in ids if not i.endswith("-stop"))])
     return ids
 
 
