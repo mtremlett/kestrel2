@@ -345,10 +345,22 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       check, data-hover's line showing the history database's 15m, 30m, 1h, 4h and 1wk fresh; and a rolled bar that differs
       from a held one told as a FAULT on every keeper round (the comparison exists in the history writer, nothing calls it)
       {id: data-rollup-hot; files: desk/rollup.py, desk/keeper.py, desk/history_write.py, tests/unit/test_rollup.py, tests/unit/test_keeper*.py, tests/unit/test_history_write.py}
+- [ ] Every line's newest daily bar comes from IBKR when the broker answered that day (his 'IBKR always primary';
+      coordinator 165, 23 Nov 21:4x): the data table says 'sources: archive 22' in both stores, so every newest daily
+      bar is the free archive's though IBKR-first is ticked. The session first names the mechanism (the keeper's room
+      per call, the writer's order between sources, or a failed ask passed over silently) and fixes it where the wrong
+      source wins, never by a second path
+      wire: every keeper round; gate: a line whose newest daily bar is the archive's while the broker fake answered that day fails the keeper's contract test
+      {id: data-ibkr-daily-newest; files: desk/keeper.py, desk/bars.py, tests/unit/test_keeper*.py, tests/unit/test_bars*.py; after: data-rollup-hot}
 - [ ] The history database keeps the live day's five-minute and one-minute bars from every keeper round, not once at
       21:30, so research and the monitor read them as fresh as the live store
       wire: every keeper round; gate: a round over a planted live store leaves its newest five-minute bar in the history database
-      {id: data-history-fine; files: desk/keeper.py, desk/keeper_live.py, tests/unit/test_keeper*.py; after: data-rollup-hot}
+      {id: data-history-fine; files: desk/keeper.py, desk/keeper_live.py, tests/unit/test_keeper*.py; after: data-ibkr-daily-newest}
+- [ ] The history pull paces by bar size (coordinator 165, 23 Nov 21:4x): IBKR's sixty-requests-in-ten-minutes limit binds
+      only bars of thirty seconds and under; one-minute and longer bars are held back only by open requests, so the
+      pull asks them as fast as the broker answers, and slows only where the broker says pacing
+      wire: the history pull; gate: a planted pull of one-minute and daily asks is never held by the small-bar count, and a planted pacing refusal still slows it
+      {id: data-history-pacing; files: desk/history.py, tests/unit/test_history*.py; after: data-rollup-hot}
 - [ ] No missing trading day: a line's gap on a day its venue traded (SPY 2022-09-28, ISF 2012-05-28 among
       6,788 market FAULTs in the ladder) is filled from IBKR, then Yahoo, or the one calendar names it a
       holiday; a line's audit lists no unnamed gap
