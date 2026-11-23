@@ -1,7 +1,9 @@
 """Known answer: the published RSI-2 rule fixes the entry and exit days of a made-up series."""
 
+import importlib
 from datetime import date, timedelta
 from decimal import Decimal
+from pathlib import Path
 
 from desk.eponymous_connors import decide, decide_percent_b
 from desk.store import Bar
@@ -48,3 +50,14 @@ def test_percent_b_buys_after_three_low_days_and_sells_over_point_eight() -> Non
     }
     two_low = decide_percent_b({"X": _bars([*range(100, 300), 280, 275, 285])})
     assert all(d.action is Action.HOLD for d in two_low)  # only two low days: no buy
+
+
+def test_every_eponymous_module_declares_unique_runnable_rules() -> None:
+    names: list[str] = []
+    for path in sorted((Path(__file__).resolve().parents[2] / "desk").glob("eponymous_*.py")):
+        mapping = getattr(importlib.import_module(f"desk.{path.stem}"), "EPONYMOUS", None)
+        assert mapping, f"desk.{path.stem} declares no EPONYMOUS"
+        for name, rule in mapping.items():
+            assert hasattr(rule, "declared") and hasattr(rule, "step"), f"{path.stem}: {name}"
+            names.append(name)
+    assert len(names) == len(set(names)), "a rule name is used twice"

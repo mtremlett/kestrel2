@@ -129,6 +129,14 @@ def test_the_set_from_the_catalogues_specs_gives_the_rows_of_the_set_from_the_py
     assert rows[0] == rows[1]
 
 
+def test_a_catalogue_row_with_no_python_file_is_listed_like_the_rest(tmp_path: Path) -> None:
+    """A spec-only row (its Python file gone from desk/) is read through its spec: no KeyError."""
+    book = tmp_path / "book.toml"
+    text = rulebook.CATALOGUE.read_text(encoding="utf-8")
+    book.write_text(text.replace("[kell_breakout", "[kell_spec_only"), encoding="utf-8")
+    assert "kell_spec_only" in ladder.eponymous(book=book)
+
+
 def test_every_eponymous_file_of_the_real_desk_gives_a_rule_a_cell_and_a_first_rung_answer(
     tmp_path: Path,
 ) -> None:

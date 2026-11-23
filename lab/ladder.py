@@ -381,8 +381,10 @@ def eponymous(folder: Path = DESK, book: Path | None = None) -> tuple[str, ...]:
     every = rulebook.eponymous(folder)
     python = tuple(n for n, make in every.items() if not _needs_data(make))
     return python + tuple(
-        n for n in rulebook.specs(book, folder) if n not in python and not _needs_data(every[n])
-    )
+        n
+        for n in rulebook.specs(book, folder)
+        if n not in python and (n not in every or not _needs_data(every[n]))
+    )  #: a row with no Python file is made from its spec, which takes no argument
 
 
 def _needs_data(make: type[Rule]) -> bool:

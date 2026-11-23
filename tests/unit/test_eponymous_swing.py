@@ -3,18 +3,14 @@ out by hand on a synthetic series, and is blind to every later bar."""
 
 from __future__ import annotations
 
-import importlib
 from datetime import date, timedelta
 from decimal import Decimal
-from pathlib import Path
 
 from desk import eponymous_swing as swing
 from desk.store import Bar
 from desk.strategy import Action, Timeframe
 
 START = date(2020, 1, 1)
-DESK = Path(__file__).resolve().parents[2] / "desk"
-MODULES = sorted(p.stem for p in DESK.glob("eponymous_*.py"))
 
 
 def _bars(closes: list[int]) -> tuple[Bar, ...]:
@@ -82,14 +78,3 @@ def test_a_later_bar_changes_no_earlier_decision() -> None:
 def test_it_declares_five_sessions_on_daily_closes() -> None:
     declared = swing.EPONYMOUS["weekly_reversal_jegadeesh"].declared
     assert declared.bar is Timeframe.DAILY and declared.hold == 5
-
-
-def test_every_eponymous_module_declares_unique_runnable_rules() -> None:
-    names: list[str] = []
-    for module in MODULES:
-        mapping = getattr(importlib.import_module(f"desk.{module}"), "EPONYMOUS", None)
-        assert mapping, f"desk.{module} declares no EPONYMOUS"
-        for name, rule in mapping.items():
-            assert hasattr(rule, "declared") and hasattr(rule, "step"), f"{module}: {name}"
-            names.append(name)
-    assert len(names) == len(set(names)), "a rule name is used twice"
