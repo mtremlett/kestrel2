@@ -14,7 +14,7 @@ from decimal import Decimal
 class Standing:
     """The book's losses so far, in pounds (0 when it is up), and the new lines it entered today."""
 
-    day_loss: Decimal  #: since the day's open
+    day_loss: Decimal  #: the last published session's loss
     week_loss: Decimal  #: since the week's open
     new_lines: int
 
@@ -26,10 +26,13 @@ class Standing:
 def loss_limit(standing: Standing, capital: Decimal, day: Decimal, week: Decimal) -> str | None:
     """Which loss limit the book has reached (its loss at or past that share of the capital),
     in words, or None while it is under both."""
-    for name, lost, share in (("day", standing.day_loss, day), ("week", standing.week_loss, week)):
+    for name, lost, share, when in (
+        ("day", standing.day_loss, day, "in the last session"),
+        ("week", standing.week_loss, week, "this week"),
+    ):
         if lost >= capital * share:
             return (
-                f"the {name}-loss limit: {lost} pounds lost this {name}, the limit "
+                f"the {name}-loss limit: {lost} pounds lost {when}, the limit "
                 f"{share:.0%} of the capital of {capital} ({capital * share} pounds)"
             )
     return None

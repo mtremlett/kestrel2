@@ -189,7 +189,7 @@ def _unread(root: Path, lines: Sequence[Line], due: Mapping[str, Line], day: dat
 
 def standing(root: Path, day: date, zoo: bool = False) -> Standing:
     """WHERE THE BOOK STANDS AGAINST ITS LOSS AND ORDER-RATE LIMITS when the day opens
-    (canon B1, risk.loss_limit): the day's loss is the pounds the last published record lost
+    (canon B1, risk.loss_limit): the last published session's loss is the pounds its record lost
     (0 when it gained or was withheld), the week's the net pounds lost over the records of
     day's own ISO week, and the new lines the lines first bought today. THE ZOO STANDS APART
     (orders.is_zoo, his 22 Nov ruling): the desk's standing leaves out its round trips' pounds
