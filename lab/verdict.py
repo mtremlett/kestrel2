@@ -283,6 +283,8 @@ class Pool:
         if self.looks is None:
             judged = deflated.judge_lines(list(self.firsts.values()))
             self.looks = dict(zip(self.firsts, judged, strict=True))
+        if c not in self.looks:  #: its line could not be read: an error row, never a crash
+            raise ValueError(f"{trials.name(c)}: no first rung in its rule's pool, no look")
         return self.looks[c]
 
     def fold(self, pounds: Rates, made: Sequence[Reproduction] = ()) -> Pooled:

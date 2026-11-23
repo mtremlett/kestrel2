@@ -183,6 +183,8 @@ def test_a_rule_is_judged_on_its_own_lines_clustered_and_one_correction_gates() 
         bars[0] or 0
     )
     rsi = rung.verdict(Key(replace(lines[2].key.cell, strategy="rsi2_pullback"), "", ""), ())
+    with pytest.raises(ValueError, match="no first rung"):
+        pool.among(rsi.key.cell)
     for odd in ([], [*lines[:2], rsi]):
         with pytest.raises(ValueError, match="one rule's"):
             deflated.judge_lines(odd)
