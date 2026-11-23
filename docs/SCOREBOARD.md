@@ -678,6 +678,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1906 PAPER R-MONEY-69 half done, paper.MAX_ORDERS home built.
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1925 PAPER paper-cards: SMTP preflight line landed; box done.
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1940 PAPER paper-extras partly: blocked signals and weekly cost vs net profit in the evening message.
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1993 PAPER paper-supervised-drill done: kill of a real step child restarted under supervise, two dated receipts. |
 
 ### GRID
 
@@ -1079,3 +1080,8 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1961 RUNGS rungs-each-rung step 3: dead placebo rung removed, off-path rung modules 4 to 3, -299 lines. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1966 RUNGS rungs-pound-gap: a DEXUSUK-filled pound day pinned as the rate the ladder reads. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1974 RUNGS rungs-each-rung: rung map names the claim each of the last three rung merges needs. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1952 RUNGS scribe #1943 closed: its L18 tick rested on #1924, which never landed (later found to be on main, #1954). |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1954 RUNGS scribe restored: #1924, #1934 and #1942 folded; L18 and L19 ticked. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1965 RUNGS scribe restored by merging main: #1951's fold added. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1976 RUNGS scribe: #1961 and #1966 folded; rungs-pound-gap's files widened. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1987 RUNGS scribe: #1974 folded; #1984 closed as superseded by #1976. |

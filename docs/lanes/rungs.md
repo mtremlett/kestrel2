@@ -526,3 +526,4 @@ then the break was removed:
 ### 2026-11-23 — rung merges' claims named; scribe #1984 closed (#1974)
 - Rung merges (#1974). Options: (a) move rung_sample/rung_dsr and break tests outside the claim, (b) a second, weaker deflated rung on rung_dsr (a duplicate, canon A2), (c) name in the rung map the claim each merge needs. Took (c).
 - Scribe #1984 conflicted with main: #1976 had folded #1951, #1961 and #1966, and runner ops had already widened rungs-pound-gap to lab/ladder_sets.py and its tests. Options: (a) rebase #1984, (b) close it and fold only #1974 here. Took (b): one home per fact, no double rows.
+- Scribes #1965, #1976, #1987 (23 Nov): each restored over main by keeping main's text and adding only the fold main lacked (one home per fact); rungs-epon-first stays held on R-RUNGS-38 under his standing ruling ("please always go with recommended to avoid waiting for me to attend").
