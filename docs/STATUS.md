@@ -221,7 +221,8 @@ and 1d (#739). 1h, 4h, 1wk rolled locally as rollup:<from> (#760); keeper takes 
   #747): IDTL has no security definition at the broker, so the live round refuses it; needs its ISIN/contract.
 ### Requests to RUNGS
 - [ ] R-DATA-65 (later, opened 2026-11-22 12:00 UK, #1634): read `lines.REFERENCE` for SPY/QQQ in the Mansfield rule and its tests.
-- [ ] R-DATA-70 (later, #1790): the ladder names a fold with no pound rate a gap, not FAULT. R-DATA-68 (later, opened 2026-11-22 20:00 UK, #1750): verdicts print `lab.members.bias(list, first day)` for a study of a research list.
+- [ ] R-DATA-70 (later, #1790): the ladder names a fold with no pound rate a gap, not FAULT.
+- [ ] R-DATA-68 (later, opened 2026-11-22 20:00 UK, #1750): verdicts print `lab.members.bias(list, first day)` for a study of a research list.
 - [ ] R-DATA-8: a verdict counts trades held through a day in `History.moves`, with and without. R-DATA-11 (blocking): `test_lab_rung.py` prices a dollar trade on "SPY"; name a US line that stays.
 - [ ] R-DATA-29, -38, -34, -43: the ladder reads SPY and its sets from `market_history.db`, rates from `keeper.pound`, POUND and DOLLARS from `desk.lines`. R-DATA-39: re-run the 35 waiting cells.
 ### Requests to RUNNER
