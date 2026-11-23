@@ -613,7 +613,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       after: money-simcity}
 - [ ] Small and illiquid trades: a trade whose expected gain is under twice its round-trip
       cost is flagged, and no position is above 1% of its line's twenty-day traded value
-      (SIZ-10, TRD-10). On main: the 1% cap in `orders.size` (`orders.traded_value`, `LIQUIDITY`, #1690) and in `orders.gate`, which takes `traded` (#1796), fed by nothing yet. Remains: `day._buy` feeding it (restore 3bf88fa2's day.py change; fixtures volume 10**7 in test_restop, test_running, test_running_tell, which needs a card claiming them); the expected-gain flag (TRD-10): `orders.thin(order, gain)` is on main (#1891, pure, flags rather than skips, not yet called: a Decision carries no expected gain; remains the gain's source and a caller)
+      (SIZ-10, TRD-10). On main: the 1% cap in `orders.size` (`orders.traded_value`, `LIQUIDITY`, #1690) and in `orders.gate`, which takes `traded` (#1796), fed by `day._buy` (#1918) and proved end to end (#1941). Remains: the expected-gain flag (TRD-10): `orders.thin(order, gain)` is on main (#1891, pure, flags rather than skips, not yet called: a Decision carries no expected gain; remains the gain's source and a caller)
       (runner ops 108, 23 Nov, stall watch 01:0x: claim adds tests/unit/test_restop.py; the two running tests' fixtures are PAPER's, set first by paper-small-volume)
       {id: money-small; files: desk/orders.py, desk/day.py, tests/unit/test_orders*.py,
       tests/unit/test_day*.py, desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml,
@@ -659,7 +659,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
 - [ ] (Every box adding a public function to strategy, orders, broker, book, day or kill also
       needs `desk/simcity.py, tests/unit/test_simcity*.py` in its files, one session at a time;
       a function no scenario runs turns the check red: halts and limits among them.)
-      {id: money-census; files: desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml;
+      {id: money-census; waits: 2026-11-24; files: desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml;
       after: money-watch, money-stranger,
       money-golden, money-story}
 

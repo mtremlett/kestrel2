@@ -684,3 +684,7 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 - Options: leave the cap unfed until a card claims the three restop and running tests, or feed it now with the claim widened to test_restop. Fed now: `day._buy` passes the line's bars to `orders.size`, and test_restop fixtures carry volume 10**7 so they stay green; the two running tests passed unchanged.
 - The TRD-10 expected-gain flag stays unwired: `orders.thin` exists but a Decision carries no expected gain, which is not on main.
 - Double 7's (money-connors7) stays off MONEY on his standing "always go with recommended"; it goes to RUNGS (needs a re-carded box).
+
+### 2026-11-23 - Double 7's handed to RUNGS (#1941, money-connors7)
+- Options: keep money-connors7 on MONEY; re-card it in the RUNGS book. Re-card chosen on his standing "always go with recommended": desk/ is at its 100-file ceiling and lab/published_epon.py and its test are RUNGS files the lane-ownership guard refuses on a MONEY branch.
+- The box waits on R-RUNGS-10; RUNGS re-cards it with Double 7's folded into desk/eponymous_connors.py (reusing commit 35158bb6) and R-MONEY-67 is dropped rather than raising the ceiling.
