@@ -2381,3 +2381,16 @@ loop, R-DATA-68, 01:36). `tests/guards/test_lanes.py::test_every_open_request_ha
 mechanically, each request on its own line with its own words. A split request keeps its line's box
 unless its own words say it is done (`[x]` before it, `(done ...`, `done in #n`, `Met by #n`): 15 such.
 Tightening only; nothing is loosened.
+
+## 23 Nov - six operator waits that were not his hard lines, decided by the desk
+Coordinator 140's ORDER 13:2x, carried out by runner ops 144. His 22 Nov ruling: "nothing parks on him but
+hard lines" (live, credentials, spend, deleting data, loosening a guard). Six PLAN boxes carried
+`waits: operator` with none of those behind them; four only needed runner ops to widen a claim.
+Options: leave them parked (lanes idle for want of a card), or decide each by rule. Decided by rule:
+data-members builds from the free page revisions and names every source with no free feed UNMEASURED (no
+paid data before profit); rungs-each-rung widens to lab/rung.py and its calibration test (sample into rung
+1); rungs-plateau-wired already names its four files and is held by its after: link alone; rungs-blocks
+widens to lab/spec.py, its test and the manifest; rungs-fast-engine and rungs-eponymous are held by their
+after: links alone, and real money stays his. data-disk-rolloff keeps its wait: deleting data is his.
+Check: `tests/guards/test_lanes.py` still reads every remaining wait; the runner's READY gate holds each box
+behind its after: link.
