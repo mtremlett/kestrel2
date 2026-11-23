@@ -494,6 +494,13 @@ each line's UK tax on the line: scenes 6 and 7 read the same record, so they pas
 (`docs/DECISIONS.md`, the money lane's). The pretend broker, the send path, the book, the
 day's trading and reconciliation are built, and any broker can stand behind them.
 
+- [ ] Room in desk/ first (coordinator 165, 21:5x, his 21:3x "Keep cap, auto room-keeper"): the seven
+      eponymous rule files no desk or lab module imports leave desk/ with their tests and manifest rows,
+      about 550 lines, so the 08:00 data fix and the zoo's own-side card fit under the 18,000 ceiling
+      (main 17,951, room -26 with riding PRs). The eleven the zoo imports stay. Gate: the whole check green and
+      the desk/ line count on main falls by the deleted lines; a rule the ladder still needs has its catalogue row
+      (if one has none, keep that file and say so under Remains:).
+      {id: money-epon-room; files: desk/eponymous_dan_zanger.py, desk/eponymous_demark_sequential.py, desk/eponymous_kell_breakout.py, desk/eponymous_mansfield_rs_momentum.py, desk/eponymous_minervini_breakout.py, desk/eponymous_swing.py, desk/eponymous_weinstein_stage.py, tests/unit/test_eponymous_dan_zanger.py, tests/unit/test_eponymous_demark_sequential.py, tests/unit/test_eponymous_kell_breakout.py, tests/unit/test_eponymous_mansfield_rs_momentum.py, tests/unit/test_eponymous_minervini_breakout.py, tests/unit/test_eponymous_swing.py, tests/unit/test_eponymous_weinstein_stage.py, manifest.toml, docs/lanes/money.md}
 - [ ] Connors' Double 7's as a desk rule (R-RUNGS-10): `desk/eponymous_connors_double_7.py` is a
       MONEY file, but the ladder finds every `desk/eponymous_*.py` and `lab/published_epon.py` (RUNGS)
       must name it and `test_lab_published_epon.py` count 21, so neither lane's pull request is green
