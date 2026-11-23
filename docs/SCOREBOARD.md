@@ -1008,3 +1008,11 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1782 DATA: hover command prints through announce, SEND: reaches the runner. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1790 data-pound-history: stored, read by the ladder, gaps named nightly; HOVER's filler remains. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1775 DATA scribe: folds #1736, #1750, #1752 (three lines). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1766 RUNGS: indicator tables name their fresh 14-day lows truly; no fresh-low or Supertrend table found (STR-14). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1768 RUNGS: registry test reads the real rungs from `rung.found()`; one list fewer. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1771 RUNGS: L18 step 2, a rule judged on its own clustered lines (`deflated.judge_lines`); box open: wiring. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1795 RUNGS: rungs-indicators searched, no printed source for the last two tables; recorded, no tick. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1804 RUNGS: Faber's 1901-2012 figures read again and named as timing's own (10.18%, 42.24%, ~70% invested). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1792 RUNGS: luck FAIL alone no longer holds a cell back (R-RUNGS-36). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1786 RUNGS: L20 step 2, the ladder refuses a set with input gaps; over 1% FAULT not published; pooled runner owed. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1829 RUNGS: reproduction measures CAGR, drawdown, time invested (R-RUNGS-37); Faber's figure waits on 1901 data. |
