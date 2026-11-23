@@ -385,3 +385,20 @@ def test_a_job_with_hours_is_not_run_judged_or_missed_in_the_night_the_gateway_r
     morning = _at(5, 30) + 24 * HOUR  # the night is no break in the desk's running
     assert supervisor.attend(tmp_path, [day], Mock(return_value=morning), run)
     assert supervisor.unattended(tmp_path, morning + MIN, [day]) == morning - _at(21, 59)
+
+
+def test_install_makes_windows_start_the_supervisor_at_boot_and_tell_every_hour(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    made = Mock()
+    monkeypatch.setattr(subprocess, "run", made)
+    boot, hourly = supervisor.install(tmp_path, "py.exe")
+    assert supervisor.main(["install", str(tmp_path)]) == 0
+    assert made.call_count == 4
+    assert (boot[boot.index("/TN") + 1], boot[boot.index("/SC") + 1]) == (
+        "KestrelSupervisor",
+        "ONSTART",
+    )
+    assert hourly[hourly.index("/SC") + 1] == "HOURLY"
+    assert boot[-1] == f'"py.exe" -m desk.supervisor run "{tmp_path}"'
+    assert hourly[-1].endswith(f'tell "{tmp_path}"')
