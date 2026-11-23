@@ -19,6 +19,7 @@ from desk.lines import YARDSTICK
 from desk.orders import is_zoo
 from desk.rollup import Candle
 from desk.store import Bar
+from desk.strategy import Action
 
 
 class _Flip:
@@ -81,3 +82,20 @@ def test_the_zoo_is_off_by_default_and_trades_one_share_labelled_only_behind_its
     running._say(zoo, later, running.UNASKED)
     assert not any("zoo_flip" in str(call) for call in post.call_args_list)  # ...not the zoo's
     assert "1 of 2 orders filled" in running.zoo_hour(tmp_path, later)  # it is the hour's line
+
+
+@pytest.mark.parametrize(
+    ("line", "held", "words"),
+    [
+        (replace(YARDSTICK, isa=False), {}, "ISA"),
+        (replace(YARDSTICK, retail=False), {}, "retail"),
+        (YARDSTICK, {"VUAG": 3}, "held already"),
+    ],
+)
+def test_an_intraday_buy_gets_the_daily_buys_refusals(
+    tmp_path: Path, line: object, held: dict[str, int], words: str
+) -> None:
+    desk, at = _desk(tmp_path)[0], venues.hours("LSE", MON.date()).open
+    buy = intraday.IntradayDecision("flip", "VUAG", at, Action.BUY)
+    said = running._order(desk, desk.room, buy, line, "id", Decimal(40), held)  # type: ignore[arg-type]
+    assert isinstance(said, str) and "not sent" in said and words in said
