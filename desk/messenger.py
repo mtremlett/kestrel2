@@ -91,7 +91,7 @@ class Delivery:
             raise ValueError(f"the message {self.name!r}: {self.number!r} is not Telegram's number")
 
 
-MORNING = Daily("morning", gateway.WAKES, time(8, 30))
+MORNING = Daily("morning", time(5, 40), time(8, 30))
 EVENING = Daily("evening", time(21, 5), time(21, 30))
 SLEEPS = time(22)  #: the hour he sleeps, on a UK clock: from then a late daily message is not sent
 

@@ -445,7 +445,7 @@ def _work(desk: Desk, now: datetime, seen: watch.Look | None) -> None:
     root = desk.root
     rounds, owed, last = _pending(root, now, seen), _owed(root, now), clearance.checks(root)[-1:]
     checked = bool(last) and last[0].at.date() == now.date() and last[0].found is not None
-    awake = gateway._uk(now).time() >= messenger.MORNING.start
+    awake = gateway._uk(now).time() >= gateway.WAKES
     live = _pending(root, now, seen, False) if _rules(desk) else []
     again = _again(root, now, seen)
     check = bool(rounds or owed or live or again) or (awake and not checked)
@@ -483,7 +483,7 @@ def _say(desk: Desk, now: datetime, known: Known) -> None:
     messenger.evening(root, now, known, post)
     if desk.mail:
         messenger.summary(root, now, desk.mail)
-    if messenger.MORNING.start <= local.time() < messenger.SLEEPS:
+    if gateway.WAKES <= local.time() < messenger.SLEEPS:
         messenger.remind(root, now, post)
         for note in (n for n in notes(root) if now - n.at < DAY and n.what.split()[0] != ZOO_NOTE):
             messenger.send(root, now, f"{note.what} {note.at:%Y-%m-%d %H:%M:%S}", note.words, post)
