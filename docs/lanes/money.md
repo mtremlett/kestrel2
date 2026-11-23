@@ -737,3 +737,11 @@ true result on the fixture, not a tuning target.
 
 ### 2026-11-23 - money-connors7 waits on R-RUNGS-10 (#2052)
 - Options: raise the desk/ ceiling (100 of 100 files; his alone), or hand the box to RUNGS. Chosen: re-card it in the RUNGS book with Double 7 folded into `desk/eponymous_connors.py` (reusing commit 35158bb6) and drop R-MONEY-67. MONEY goes on to money-saved-fx (R-MONEY-66) and money-time-gaps (R-MONEY-62/64). By his "always go with recommended".
+
+### 2026-11-23 - One cap at one door; carried orders are intended and chained (#2084, R-RUNNER-456)
+- Churn guard red: options (a) close this change, (b) retitle it `feat`/`refactor`, (c) keep it open, write the finding where the guard says, and wait. Took (c): (b) is a relabel the canon forbids (A3), (a) throws away a reviewed GO fix whose only red is a missing pattern line.
+- Blind review NO-GO on the yield: options (a) land as is and list it, (b) fix it here. Took (b): the same defect as the two earlier NO-GOs, a three-line fix inside the claim.
+- Where the cap acts: (a) a check at each call site, as #2036 and #2055 did and both got NO-GO; (b) inside `_send`, the one door, after the intent is recorded. Took (b), per coordinator 140 (A2: fix at the source).
+- What takes a slot: (a) every send attempt, as on main; (b) only an answer for which the broker was asked (filled, or blocker BROKER). Took (b). An order the gate would refuse inside `book.send` after the cap is reached is answered CARRIED, not GATE; it still sends nothing.
+- Golden re-pinned (his 22 Nov: the desk approves goldens): on Mon 11 Aug 2025, 17 orders decided, 7 sent, 9 desk buys carried, 1 held; profit 61.86 -> -154.51, costs 353.78 -> 351.96; days 310, fills 64, trips 32 stand.
+- money-connors7 held off MONEY (waits R-RUNGS-10); Double 7's goes to RUNGS, re-carded by runner ops.
