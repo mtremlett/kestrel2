@@ -519,6 +519,13 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1750 data-survivorship: bias stated as a verdict line; not wired into verdicts. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1752 collector now 11 of the planned sources (BEA). |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1699 data-second-source step 1: register of sources, replaced newest bars named. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1870 DATA: data-members: FTSE review feed built (parse, URL, reconcile); box open. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1874 DATA: data-monitor: HOVER names the kind (gap, hole, stale) of its worst red cell. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1883 DATA: data-pre-2010 ticked: the window before mid-April 2010 prepared and pinned by a test. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1885 DATA: data-members: feed fetches a review's two revisions, tested offline; box open. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1886 DATA: data-ibkr-capacity: polling ramp rule `keeper.pace` built, not yet wired. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1899 DATA: data-members: docstring corrected, no box ticked. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1902 DATA: data-pound-history: `fill_pound` fills pound gaps from the Fed's noon table; command wiring open. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 

@@ -749,3 +749,18 @@ Options: worst by age (rejected: needs a span-aware age scale), or first golden 
 
 ### 2026-11-23 — one hourly table for both databases (DATA, #1850)
 Options: two commands or one table with database-prefixed rows. Took one table, so the runner posts one message.
+
+### 2026-11-23 — HOVER's worst cell names its kind (DATA, #1874)
+Options: a new field on the return (breaks the runner's parse of the line) or a kind derived from the fault text. Took the second: `desk.quality.kind` returns gap, hole or stale, so escalation can route on it.
+
+### 2026-11-23 — pre-2010 five-minute bars stay refused by name (DATA, #1883)
+Options: widen hours to older clock rules (rejected: no intraday history before 2010 exists in the old stores, DECISIONS 17 Nov) or keep the named refusal. Kept the refusal; the calendar already spans 1993-2029, so the daily window is prepared.
+
+### 2026-11-23 — FTSE feed: parsing pure, fetch thin; land the in-claim step (DATA, #1870, #1885)
+Options: wire the nightly refresh now (needs files outside the claim) or land the step. Landed the step: pure parsing, one thin fetch, `fetch_review` reconciling two revisions. Assumption recorded: the wikitext's second cell is the ticker; the live shape is unverified until the first real fetch, and a different shape raises.
+
+### 2026-11-23 — the polling ramp: 25% per clean round (DATA, #1886)
+Options: an empty change, or land the rule alone since wiring needs files outside the claim. Landed the rule: a refusal halves the rate (never below the floor), a clean round adds 25% (never above the ceiling), so the ramp is measured, not leapt. Widening the claim is R-DATA-75.
+
+### 2026-11-23 — the Fed's pound rate is written unjudged (DATA, #1902)
+Options: judge it through `store.judge` (rejected: a single noon price has no high or low for the bar judge) or write it as `lab/universe_history` already does. Took the second; a day the Fed gives none is named, never invented.
