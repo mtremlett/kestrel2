@@ -494,6 +494,14 @@ each line's UK tax on the line: scenes 6 and 7 read the same record, so they pas
 (`docs/DECISIONS.md`, the money lane's). The pretend broker, the send path, the book, the
 day's trading and reconciliation are built, and any broker can stand behind them.
 
+- [ ] The zoo's one-share orders are judged on the zoo's own side (coordinator 163's ruling, 23 Nov 20:3x, his
+      'one share each' and 'trade freely across uk and us'; paper only, a MACHINERY TEST): 'held already' reads what
+      the zoo holds, never the desk's whole book (the mechanism #2105 fixed for sizing), and the per-line room never
+      refuses one share while it is within the zoo's 1,000 pounds and the zoo's total stays within it; the one risk
+      gate still judges every order. Net lines in desk/ must not rise (no ceiling room)
+      wire: the desk-day job's zoo round; gate: the evening's 36 refusals (AAPL, TSLA, NVDA among them) replayed as a
+      test pass, written first with their refusal words; an A6 blind review before the train
+      {id: zoo-own-side; files: desk/running.py, desk/day.py, desk/orders.py, tests/unit/test_running*.py, tests/unit/test_orders*.py, tests/unit/test_day*.py}
 - [ ] Connors' Double 7's as a desk rule (R-RUNGS-10): `desk/eponymous_connors_double_7.py` is a
       MONEY file, but the ladder finds every `desk/eponymous_*.py` and `lab/published_epon.py` (RUNGS)
       must name it and `test_lab_published_epon.py` count 21, so neither lane's pull request is green
