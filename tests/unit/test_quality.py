@@ -220,6 +220,7 @@ def test_hover_judges_every_span_and_the_alarm_tells_only_of_change(tmp_path: Pa
     said, ok = quality.hover({"live": path}, [SPY], NOW)
     assert said.startswith("data quality: 75% fresh, 1 faults, 1 gaps, worst live/SPY/")
     assert not ok
+    assert "(gap): holds no bar" in said or "(stale): newest" in said
     odd = replace(SPY, symbol="ZZZ")  # a line first in order, but not golden: SPY's fault leads
     assert "worst live/SPY/" in quality.hover({"live": path}, [odd, SPY], NOW)[0]
     with bars.writing(path, bars.Source.IBKR) as held:
@@ -242,6 +243,7 @@ def test_hover_judges_every_span_and_the_alarm_tells_only_of_change(tmp_path: Pa
     }
     holed = seeded(tmp_path / "holed", {date(2026, 11, 12)})
     assert quality.cell(holed, SPY, "daily", NOW) == "1 sessions missing, the first 2026-11-12"
+    assert quality.kind("1 sessions missing, the first x") == "hole"
     first = quality.alarm(None, None, False, "SPY/1h", NOW)
     assert first == (NOW, NOW, "data quality RED: SPY/1h")
     soon = NOW + timedelta(minutes=10)
