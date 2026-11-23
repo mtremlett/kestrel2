@@ -1,4 +1,4 @@
-"""The stop-rule rung (R-RUNNER-408): four rival stops sized by risk, judged after costs in and out
+"""The stop-rule study (R-RUNNER-408): four rival stops sized by risk, judged after costs in and out
 of sample, the worst fold given."""
 
 from __future__ import annotations
@@ -9,7 +9,7 @@ from test_lab_rung import POUND, _bars, _walk
 
 from desk.lines import LINES
 from desk.orders import Leg, stop_under
-from lab import rung_stops as stops
+from lab import stop_rules as stops
 from lab.cell import Cell
 from lab.rung import Answer
 
