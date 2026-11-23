@@ -234,6 +234,8 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1941 money-small: SIZ-10 now proved through the day (a thin line is bought to under 1% of its 20-day traded pounds); TRD-10 flag still uncalled. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1973 R-PAPER-40/R-MONEY-69 mostly done: day.py reads paper's step margin and order cap; one STEP_SECONDS alias left for SimCity incidents (R-MONEY-70). |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1983 money-census-book closed: 4 of 4 book parts pinned to a scenario (census names book.chains). |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1991 money-door-writer done: halt writes its own record and scenes read through the history judge, neither names the store's CSV half.
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1995 MONEY scribe folds #1983; no box ticked.
 
 
 ### DATA
@@ -676,6 +678,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1906 PAPER R-MONEY-69 half done, paper.MAX_ORDERS home built.
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1925 PAPER paper-cards: SMTP preflight line landed; box done.
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1940 PAPER paper-extras partly: blocked signals and weekly cost vs net profit in the evening message.
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1993 PAPER paper-supervised-drill done: kill of a real step child restarted under supervise, two dated receipts. |
 
 ### GRID
 
