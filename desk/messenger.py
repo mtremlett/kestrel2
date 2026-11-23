@@ -6,15 +6,15 @@ sent again. One the door did not take is an error raised, and is asked again. Th
 one SQLite file: the desk and the watch outside it are two processes, each write whole.
 
 Two messages are owed on every day a venue of the desk's trades, each by an hour on a UK
-clock inside his waking day (he sleeps 22:00 to 08:00, docs/DECISIONS.md). THE MORNING
-MESSAGE, from 08:00 and owed by 08:30: whether what the desk can ask before the open would
-stop today's orders. THE EVENING MESSAGE, from 21:05 and owed by 21:30: the day's fills,
-what is held, and the last day on record. One that is late still goes, until 22:00.
+clock inside his waking day (he sleeps 22:00 to 08:00). THE MORNING MESSAGE, owed by 08:30:
+whether anything the desk can ask before the open would stop today's orders. THE EVENING
+MESSAGE, from 21:05, owed by 21:30: fills, blocked signals, the week's cost against its net
+profit, what is held, the last day on record. One that is late still goes, until 22:00.
 
-THE ALARM ON SILENCE (`watch`), judged from outside the desk's process: a daily message not
-delivered by its hour is told to him, once, at any hour. Each daily message says the kill
-switch and halts, read and never written (_gate). THE EMAIL FALLBACK (with_mail, summary):
-after two Telegram refusals in a row every line also goes by email; one summary each day."""
+THE ALARM ON SILENCE (`watch`), from outside the desk's process: a daily message not
+delivered by its hour is told to him, once. Each says the kill switch and halts (_gate).
+THE EMAIL FALLBACK (with_mail, summary): after two Telegram refusals every line also goes by
+email; one summary each day."""
 
 from __future__ import annotations
 
@@ -97,11 +97,10 @@ SLEEPS = time(22)  #: the hour he sleeps, on a UK clock: from then a late daily 
 
 
 def telegram(env: Mapping[str, str]) -> Post:
-    """THE ONE REAL DOOR: his phone, by Telegram's bot service, with the key and the chat id
-    the environment gives. Either missing, or a key of no key's shape, is refused here by
-    name and never shown. What it posts is Undelivered unless Telegram says yes and gives the
-    message's number, each step inside SECONDS. Its words never hold the key: of what the far
-    end said they repeat the refusal's number and Telegram's own description, no more."""
+    """THE ONE REAL DOOR: his phone, by Telegram's bot service, with the key and chat id the
+    environment gives; one missing or of no key's shape is refused here by name, never shown.
+    A post is Undelivered unless Telegram says yes with the message's number, each step inside
+    SECONDS. Its words never hold the key, only the refusal's number and Telegram's description."""
     missing = [name for name in SECRETS if not env.get(name, "").strip()]
     if missing:
         raise ValueError(f"no {' or '.join(missing)} in the desk's environment: his to set")
@@ -155,11 +154,10 @@ def deliveries(root: Path) -> tuple[Delivery, ...]:
 
 def send(root: Path, now: datetime, name: str, text: str, post: Post) -> Delivery:
     """A MESSAGE THROUGH THE ONE DOOR, ONCE. It is written on the record as asked first: a
-    record that cannot be written is an error raised with nothing said. Already delivered
-    under its name, it is not sent again and the delivery made is given back. Else it goes,
-    cut where Telegram would refuse its length, and its number is kept. Undelivered, it stays
-    asked and goes at the next asking; so does one whose number was never kept (he may be
-    told twice, never not at all). A moment not in UTC, or no name or words, is refused."""
+    record that cannot be written stops it unsaid. Already delivered under its name, it is not
+    sent again. Else it goes, cut where Telegram would refuse its length, and its number is
+    kept. Undelivered, it stays asked and goes at the next asking, as does one whose number was
+    never kept (told twice, never not at all). A moment not in UTC, or no words, is refused."""
     sound(now, name, text)
     with _record(root) as record:
         record.execute(ASK, {"at": now.isoformat(), "name": name, "text": text})
@@ -191,8 +189,8 @@ def _goes(daily: Daily, now: datetime) -> tuple[str | None, str]:
 
 def stops(root: Path, now: datetime, known: Known) -> tuple[str, ...]:
     """What the desk can ask before the open that would stop every order today, each in its
-    refuser's words: kill switch on, no drill within its month, today's account check not
-    clean, gateway not ready. The send path also asks what the broker lists (desk/placing.py)."""
+    refuser's words: kill switch on, no drill this month, account check not clean, gateway not
+    ready. The send path also asks what the broker lists (desk/placing.py)."""
     unchecked = None
     try:
         clearance.require(root, now, "today's orders")
@@ -264,14 +262,23 @@ def _stopped(root: Path, today: date) -> str:
     return "".join(told)
 
 
+def _extras(root: Path, today: date) -> str:
+    """Blocked signals today; the last 7 days' costs against net profit (MSG-13, NS-14)."""
+    week = [r for r in day.records(root) if 0 <= (today - r.day).days < 7]
+    blocked = sum(r.stopped or 0 for r in week if r.day == today)
+    costs = sum((r.costs.total for r in week), Decimal(0))
+    net = _made("Net profit", sum((r.profit or Decimal(0) for r in week), Decimal(0)))
+    told = f"💷 Costs, last 7 days: £{costs:,.2f}\n{net} in them\n" if week else ""
+    return (f"🚧 Blocked signals today: {blocked}\n" if blocked else "") + told
+
+
 def _made(who: str, amount: Decimal) -> str:
     return f"{pnl.icon(amount)} {who} {'lost' if amount < 0 else 'made'} £{abs(amount):,.2f}"
 
 
 def _heat(root: Path, capital: Decimal) -> str:
     """The last day's heat (pounds lost were every stop hit), in pounds and share of capital."""
-    kept = day.records(root)
-    heat = kept[-1].heat if kept else None
+    heat = next((r.heat for r in day.records(root)[-1:]), None)
     if heat is None:
         return ""
     return f"\n🔥 Stops held at its end: heat £{heat:,.0f} ({heat / capital:.1%})"
@@ -308,7 +315,7 @@ def evening(root: Path, now: datetime, known: Known, post: Post) -> Delivery | N
     )
     stale = "" if known else f"\n{STALE.format(known.words.rstrip('.'))}"
     fills = f"{_stopped(root, today)}🧾 Fills today{dealt or ': none'}\n{_lost(root, today)}"
-    told = f"{opens}{stale}\n{fills}{_gate(root)}\n{_state(root)}"
+    told = f"{opens}{stale}\n{fills}{_extras(root, today)}{_gate(root)}\n{_state(root)}"
     return send(root, now, name, told, post)
 
 
@@ -334,9 +341,8 @@ def remind(root: Path, now: datetime, post: Post) -> Delivery | None:
 
 
 def watch(root: Path, now: datetime, post: Post) -> tuple[Delivery, ...]:
-    """THE ALARM ON SILENCE, asked from outside the desk's process every few minutes: each
-    daily message owed and not delivered is told to him, once, at any hour. Given back: every
-    such alarm standing. A late message ends its own."""
+    """THE ALARM ON SILENCE, asked from outside the desk every few minutes: each daily message
+    owed and not delivered is told to him, once, at any hour. Given back: each alarm standing."""
     owed = [(d, *_today(d, now)) for d in (MORNING, EVENING)]
     with _record(root) as record:
         taken = record.execute("SELECT name FROM messages WHERE number IS NOT NULL").fetchall()
