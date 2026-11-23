@@ -16,7 +16,7 @@ from desk.store import Bar
 DAYS = venues.sessions("LSE", date(2025, 1, 6), date(2025, 1, 31))[:10]
 TEN = Decimal(10)
 LINE = Line("H", "LSE", "GBP", 1)
-ARCHIVE = {LINE: tuple(Bar(d, TEN, TEN + 1, TEN - 1, TEN, 1) for d in DAYS)}
+ARCHIVE = {LINE: tuple(Bar(d, TEN, TEN + 1, TEN - 1, TEN, 10**7) for d in DAYS)}
 
 
 def _trade(root: Path, broker: Pretend, on: date, told: list[str]) -> tuple[book.Sent, ...]:
