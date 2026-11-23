@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from test_lab_ladder import EDGE, ISF, NOISE, VUSA, eased_off  # noqa: F401 - used by name
+from test_lab_ladder import EDGE, ISF, NOISE, ROOM, VUSA, eased_off  # noqa: F401 - used by name
 
 from desk.store import Bar
 from lab import deflated, ladder, market, shuffle, trials, verdict
@@ -50,7 +50,9 @@ def test_a_cell_failing_only_one_rung_is_not_a_pass(
     rungs = _judge(sour=sour)["rungs"]
     others = {name: answer for name, (answer, _) in rungs.items() if name != rung_failing}
     assert rungs[rung_failing][0] == "FAIL" and others["first"] == "PASS"
-    assert _judge(sour=sour)["every"] is False and _judge(sour=sour)["answer"] == "FAIL"
+    #: a soft market FAIL never leaks into the shuffle; the fixture's THIN folds decide
+    said = {"folds": "FAIL", "market": "THIN"}[rung_failing]
+    assert _judge(sour=sour)["every"] is False and _judge(sour=sour)["answer"] == said
 
 
 def test_a_luck_fail_alone_never_holds_a_cell_back() -> None:
@@ -258,7 +260,8 @@ def test_one_weak_soft_rung_no_longer_kills_a_cell_and_one_failed_hard_gate_alwa
     said = verdict.one_answer
     assert said(passes | {"regime": Answer.DOUBT, "market": Answer.THIN}, 1.0) == "PASS"
     assert said(passes | dict.fromkeys(verdict.SOFT, Answer.DOUBT), 1.0) == "FAIL", "over MAX_WEAK"
-    assert said(passes | {"stress": Answer.FAIL}, 1.0) == "FAIL"
+    for soft in verdict.SOFT:
+        assert said(passes | {soft: Answer.FAIL}, 1.0) == "FAIL", soft
     for gate in verdict.HARD:
         assert said(passes | {gate: Answer.FAIL}, 1.0) == "FAIL", gate
     assert said(passes | {"first": Answer.THIN}, 1.0) == "THIN" and said(passes, 2.5) == "STOP"
@@ -270,5 +273,12 @@ def test_one_weak_soft_rung_no_longer_kills_a_cell_and_one_failed_hard_gate_alwa
         "luck": (Answer.FAIL, ""),
     }
     assert verdict.gates(weak), "WEAK soft and luck: never ruled"
+    monkeypatch.setattr(shuffle, "share", lambda *_: 0.0)  #: a WEAK market never skips it
+    ran = verdict.shuffled(
+        CELL, EDGE, ROOM, {}, weak | {"market": weak["regime"], "yearly": weak["first"]}, ()
+    )
+    assert ran is not None and ran[0] is Answer.PASS, "no lowest of NAMED before the shuffle"
+    stopped = weak | {"folds": (Answer.FAULT, ""), "stress": (Answer.FAIL, "")}
+    assert verdict._stopped(0, stopped, {})["answer"] == "FAULT", "a FAULT is no FAIL"
     monkeypatch.setattr(verdict, "one_answer", lambda *_: "WIRED")
     assert _judge()["answer"] == "WIRED", "judge answers by the one rule"
