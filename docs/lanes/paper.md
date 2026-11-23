@@ -592,3 +592,11 @@ The weekly cost beside net profit reads the records of the last 7 calendar days.
 ### 2026-11-23 — the real side is right on the VHYG buy; the pretend side is asked to follow (#2026)
 
 R-RUNNER-449 from the tapes: the 1-share VHYG market buy (plain DAY MKT) at 08:37 sat unfilled 120 s and was cancelled with 0 filled (trades-london-20261123-0835.csv); at 09:06 the same buy filled within a second at 77.90 (-0906.csv); 19 Nov alike (08:10, 08:35 unfilled, 09:36 filled). Options: (a) lengthen the real wait (rejected: no fill ever came after a cancel); (b) change the real order (rejected: the same order fills at 09:06); (c) leave the real side, ask the pretend broker's owner to leave such a buy unfilled before the hour IBKR fills (chosen, nothing hidden). Only a comment in `desk/paper.py` changed. The hour of first fill (between 08:37 and 09:06) is unmeasured; R-RUNNER-399's one-share probe at 08:45/09:00 would pin it. Request: R-MONEY-72.
+
+### 2026-11-23 — London's round starts at 09:00; the busy-hours window stays (#2068)
+
+London's orders filled 31 of 31 only from 09:00 UK. One number, `conformance_tape.STARTS`, now says when each round begins and `running._pending` reads it. Options: also move `ROUNDS` (the hours history and conformance keep out of) to 09:00-09:30, or leave it at 08:00-08:30. Chose to leave it: moving it breaks `tests/unit/test_history.py`, outside the claim, and conformance only stays quiet a little longer. Remains: move it with that test.
+
+### 2026-11-23 — an intraday order is due in its own bar's session (#2075)
+
+All 143 intraday orders since 10:43 were refused: `desk/placing.py` sent only an order dated the session before today's, the daily rule. Options: (a) a due-session field on Order and Sale (`desk/orders.py`, MONEY's, outside the claim); (b) read the intraday id's -HHMM suffix (a fact read from a name, forbidden by A2 and B3); (c) the broker built for a bar's round treats orders as due in the session they are dated (`placing.Paper(..., within=True)`). Chose (c): one rule in placing, set by the round's kind and not by the zoo, inside the claim. (a) is the real fix and is asked of MONEY as R-PAPER-42. The money path is held for a fresh A6 blind review.

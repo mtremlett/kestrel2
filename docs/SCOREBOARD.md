@@ -1113,3 +1113,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2042 R-RUNNER-448 done, desk/live.py -14 lines. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2061 R-RUNNER-467 done: ladder sets note survivorship bias per listed line.
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2062 R-RUNNER-464 done: folds.cut names its window by window.line.symbol; no behaviour change.
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2059 R-RUNNER-462 done, test-only: test_pnl names its hot store keeper.HOT. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2068 R-RUNNER-453 done: London sends only from 09:00 UK, the window where 31 of 31 paper orders filled. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2079 R-RUNNER-461 done: command drops its own DOLLARS, a cut of 2 lines. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2075 R-RUNNER-468 intraday orders due in their own session; built, held for A6 blind review. |
