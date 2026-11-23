@@ -190,11 +190,6 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       Built (#1767): the research refresh writes the history database through `bars.writing`, no CSV; `universe_history.enter` deleted. Also built (#1798, #1827): headstart judges through `store.judge` (no scratch CSV store); `store.shelve`, `faults`, `HISTORY` deleted, seven store tests rewritten onto judge. Remains: delete `store.prepare`, `read`, `_bar`, `_FAULT` and `_write`'s CSV use; their MONEY and GRID callers are split to their owners (runner ops 112, 23 Nov: money-door-writer, grid-door-writer); once both land, the deletions and the gate that the deleted names import nowhere
       {id: data-door-writer; files: lab/universe.py, lab/universe_parts.py, lab/universe_history.py, lab/headstart.py, lab/headstart_days.py, desk/store.py, desk/store_scope.py,
       tests/unit/test_lab_universe*.py, tests/unit/test_store*.py, tests/unit/test_lab_headstart*.py, tests/unit/test_keeper.py; after: data-door-bars, money-door-slippage, money-door-writer, grid-door-writer}
-- [ ] THE STORE'S CSV HALF UNUSED BY MONEY: `desk/halt.py` writes its file without `store._write`, and the
-      scenes read their prices through the history database (`bars.writing`, `universe_parts.read` or `store.judge`),
-      never `store.prepare` or `store.read`; gate: neither file names those three
-      (split from data-door-writer by runner ops 112, 23 Nov: these are MONEY's files)
-      {id: money-door-writer; files: desk/halt.py, tests/unit/test_halt*.py, tests/scenes/test_scenes.py}
 - [x] THE NIGHT REFRESH WRITES THE DATABASE IT NAMES: `universe.nightly`'s docstring says the history
       database but it writes `bars.LIVE` (market_live.db); STATUS says research reads the history database
       alone. Settle which is meant, make code and docstring agree, and pin the target file in a test
@@ -723,6 +718,12 @@ day's trading and reconciliation are built, and any broker can stand behind them
       function to strategy, orders, broker, book, day or kill also claims `desk/simcity*.py` and
       `tests/unit/test_simcity*.py`, one session at a time
       {id: money-census-book; files: desk/simcity*.py, tests/unit/test_simcity*.py}
+- [ ] THE STORE'S CSV HALF UNUSED BY MONEY: `desk/halt.py` writes its file without `store._write`, and the
+      scenes read their prices through the history database (`bars.writing`, `universe_parts.read` or `store.judge`),
+      never `store.prepare` or `store.read`; gate: neither file names those three
+      (split from data-door-writer by runner ops 112; moved from DATA's book to MONEY's by runner ops 122, 23 Nov:
+      manifest.toml gives these files to the money lane)
+      {id: money-door-writer; files: desk/halt.py, tests/unit/test_halt*.py, tests/scenes/test_scenes.py}
 
 ## Phase 3 — the money path, on paper
 
