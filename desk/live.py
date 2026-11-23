@@ -12,7 +12,6 @@ from collections.abc import Callable
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import BinaryIO
 
 from desk import bars, listing, paper, venues
 from desk.bars import Five
@@ -118,23 +117,8 @@ def newest_minutes(
     line: Line, contract: str, route: str, seconds: int, mine: paper.Door
 ) -> tuple[Timed, ...]:
     """The line's one-minute bars of the last `seconds` (the last may still be forming) from the
-    paper gateway, oldest first, trades only: `paper.newest`'s question at a minute's size."""
-    asked = (contract, line.symbol, "STK", "", "0.0", "", "", route, "", line.currency, "", "", 0)
-    ask = paper.message(
-        paper.ASK_BARS, 1, *asked, "", "1 min", f"{seconds} S", 0, "TRADES", 2, 0, ""
-    )
-
-    def talk(wire: BinaryIO, send: paper.Send) -> tuple[Timed, ...]:
-        paper.start(wire, send, mine)
-        send(ask)
-        while (fields := paper.receive(wire))[:2] != [paper.BARS, "1"]:
-            paper.other(fields)
-        count = fields[4] if len(fields) > 4 else ""
-        if not (count.isascii() and count.isdigit()) or len(fields) != 5 + 8 * int(count):
-            raise ValueError(f"bars of a shape the desk does not read: {fields}")
-        return tuple(_minute(fields[n : n + 6]) for n in range(5, len(fields), 8))
-
-    return paper.dial(talk)
+    paper gateway, oldest first, trades only: `paper.bars` at a minute's size."""
+    return paper.bars(line, contract, route, "1 min", seconds, _minute, mine)
 
 
 def minutes(
