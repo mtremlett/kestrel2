@@ -719,7 +719,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       function to strategy, orders, broker, book, day or kill also claims `desk/simcity*.py` and
       `tests/unit/test_simcity*.py`, one session at a time
       {id: money-census-book; waits: 2026-11-24; files: desk/simcity*.py, tests/unit/test_simcity*.py}
-- [ ] THE STORE'S CSV HALF UNUSED BY MONEY: `desk/halt.py` writes its file without `store._write`, and the
+- [x] THE STORE'S CSV HALF UNUSED BY MONEY: `desk/halt.py` writes its file without `store._write`, and the
       scenes read their prices through the history database (`bars.writing`, `universe_parts.read` or `store.judge`),
       never `store.prepare` or `store.read`; gate: neither file names those three
       (split from data-door-writer by runner ops 112; moved from DATA's book to MONEY's by runner ops 122, 23 Nov:
