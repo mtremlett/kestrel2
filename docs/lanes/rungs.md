@@ -534,3 +534,5 @@ then the break was removed:
 - Merging dsr (#2010). Options: (a) keep rung_dsr's caller API (trials, spread) as a new public function in deflated; (b) delete it and prove rung 7 through the functions `_deflated` already uses. Took (b): the API had no caller (A1.3, A4). The refusal of a bad count or spread moved to `best_by_luck`.
 - The re-issued dsr card (#2020). Options: (a) busy work inside the claim; (b) correct the rung map and say Waits. Took (b) (failure patterns 12 and 22): sample and retail merges break tests outside the claim; pattern 21 forbids drifting it. Request R-RUNGS-41 asks runner ops to widen the claim.
 
+### 2026-11-23 — survivorship bias per listed line (#2061)
+- Where several research lists name a line, the first in the mapping is used (options: first, or the worst bias; first is the simple one and deterministic). A first day before the record starts is clamped to `members.FIRST`, otherwise `members.on` raises.

@@ -1101,3 +1101,5 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2025 data-door-writer finished; a test keeps the CSV store's names deleted. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2031 DATA: keeper-live names an undefined line untradeable, no longer a miss (R-RUNNER-454 part). |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2042 R-RUNNER-448 done, desk/live.py -14 lines. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2061 R-RUNNER-467 done: ladder sets note survivorship bias per listed line.
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2062 R-RUNNER-464 done: folds.cut names its window by window.line.symbol; no behaviour change.
