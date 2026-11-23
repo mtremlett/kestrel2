@@ -501,6 +501,20 @@ each line's UK tax on the line: scenes 6 and 7 read the same record, so they pas
 (`docs/DECISIONS.md`, the money lane's). The pretend broker, the send path, the book, the
 day's trading and reconciliation are built, and any broker can stand behind them.
 
+- [ ] Room in desk/ first (coordinator 165, 21:5x, his 21:3x "Keep cap, auto room-keeper"): the seven
+      eponymous rule files no desk or lab module imports leave desk/ with their tests and manifest rows,
+      about 550 lines, so the 08:00 data fix and the zoo's own-side card fit under the 18,000 ceiling
+      (main 17,951, room -26 with riding PRs). The eleven the zoo imports stay. Gate: the whole check green and
+      the desk/ line count on main falls by the deleted lines; a rule the ladder still needs has its catalogue row
+      (if one has none, keep that file and say so under Remains:).
+      Two things the deletion meets (read on main by runner ops 168): `lab/ladder.py` eponymous() looks every
+      catalogue name up among the Python rules, so a row whose file is gone raises KeyError there: it reads a
+      spec-only row through the rulebook's spec maker instead; and the swing test file also holds the check that
+      every eponymous module declares unique runnable rules, which moves to the Connors test file, never lost.
+      Written first (chat 167, 22:0x: today the seven gone raise KeyError weekly_reversal_jegadeesh): the EPON rule
+      list is unchanged without the seven files, and each served row gives the same decisions as its Python twin on
+      a fixture (the donchian twin test's way), so EPON's book does not change.
+      {id: money-epon-room; files: lab/ladder.py, tests/unit/test_lab_ladder_epon.py, tests/unit/test_lab_published_epon.py, tests/unit/test_eponymous_connors.py, desk/eponymous_dan_zanger.py, desk/eponymous_demark_sequential.py, desk/eponymous_kell_breakout.py, desk/eponymous_mansfield_rs_momentum.py, desk/eponymous_minervini_breakout.py, desk/eponymous_swing.py, desk/eponymous_weinstein_stage.py, tests/unit/test_eponymous_dan_zanger.py, tests/unit/test_eponymous_demark_sequential.py, tests/unit/test_eponymous_kell_breakout.py, tests/unit/test_eponymous_mansfield_rs_momentum.py, tests/unit/test_eponymous_minervini_breakout.py, tests/unit/test_eponymous_swing.py, tests/unit/test_eponymous_weinstein_stage.py, manifest.toml, docs/lanes/money.md}
 - [ ] The zoo's one-share orders are judged on the zoo's own side (coordinator 163's ruling, 23 Nov 20:3x, his
       'one share each' and 'trade freely across uk and us'; paper only, a MACHINERY TEST): 'held already' reads what
       the zoo holds, never the desk's whole book (the mechanism #2105 fixed for sizing), and the per-line room never
