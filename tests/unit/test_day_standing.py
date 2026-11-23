@@ -307,7 +307,9 @@ def test_a_round_sends_only_what_the_steps_time_allows_and_carries_the_rest(
     )
     carried = [s for s in answers if "carried to the next step" in (s.reason or "")]
     assert len(broker.submitted()) == paper.MAX_ORDERS == 7
-    assert len(carried) == len(lines) - 7 and all(s.filled == 0 for s in carried)
+    assert len(carried) == len(lines) - 7 and all(
+        s.filled == 0 and s.blocker is Blocker.CARRIED for s in carried
+    )
 
 
 def test_a_monday_opens_free_of_fridays_loss_and_a_record_of_today_still_counts(

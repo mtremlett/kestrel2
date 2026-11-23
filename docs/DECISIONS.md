@@ -1796,9 +1796,10 @@ red and loosens the gate (canon A3); (b) the week's last record, chosen (#2005, 
 by R-RUNNER-455). Test: `test_a_monday_opens_free_of_fridays_loss_and_a_record_of_today_still_counts`,
 red on main 0f495ec6, green with the fix. The golden run moves (canon B5, the desk approves,
 his 22 Nov ruling): fills 68 -> 64, round trips 34 -> 32, profit over the fixture 1098.41 ->
-61.86, costs 368.78 -> 353.78, market 783.73 unchanged. Why: a Monday after a losing Friday is no
-longer barred from buying, so the fixture's weeks trade differently from there on; the new
-figures are the rule's true result on the fixture, not a tuning target.
+61.86, costs 368.78 -> 353.78, market 783.73 unchanged. Why: a week's first day after a losing week is
+no longer barred from buying, so which lines are held, and so every later buy and stop, differs
+from there on; net, four fewer fills (not traced fill by fill). The new figures are the rule's
+true result on the fixture, not a tuning target.
 
 
 ## DATA
