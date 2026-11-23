@@ -6,6 +6,7 @@ from __future__ import annotations
 from datetime import timedelta
 from decimal import Decimal
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -31,6 +32,7 @@ from desk.simcity_incidents import (
     DROPPED,
     HALTED,
     HOLE,
+    KEPT,
     LEFT,
     LIVE,
     LOCKED,
@@ -42,7 +44,6 @@ from desk.simcity_incidents import (
     SHUT,
     SILENT,
     SLOW,
-    SOLD,
     STALE,
     STOP_SILENT,
     UNBARRED,
@@ -87,24 +88,26 @@ def test_without_the_refusal_the_scenario_is_red(
     assert any(PROMISE in broken for broken in night(monkeypatch, tmp_path).broken)
 
 
-def test_shares_beside_the_book_under_a_stop_are_sold_with_it_and_the_census_counts_it(
+def test_shares_beside_the_book_under_a_stop_are_never_sold_on_top_of_it_and_the_census_counts_it(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     monkeypatch.setattr(simcity, "EVENTS", ((LEFT, beside),))
     monkeypatch.setattr(simcity, "EVENTFUL", 1)
     result = simcity.run(tmp_path, SHORT, ROOM, RATES, NOW, (1, 2, 3))
-    assert not any(SOLD in broken for broken in result.broken)
+    assert not any(KEPT in broken for broken in result.broken)
     assert LEFT in result.census["day.run"]
 
 
-def test_without_taking_the_shares_in_the_scenario_is_red(
+def test_with_the_brokers_stops_unread_the_scenario_is_red(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    monkeypatch.setattr(book, "adopt", lambda *_a: None)  #: no sale of shares the book lacks
+    was = book.strangers
+    blind = lambda root, broker: was(root, SimpleNamespace(holdings=broker.holdings, stops=tuple))  # noqa: E731
+    monkeypatch.setattr(book, "strangers", blind)  #: the old reading: stops unseen
     monkeypatch.setattr(simcity, "EVENTS", ((LEFT, beside),))
     monkeypatch.setattr(simcity, "EVENTFUL", 1)
     result = simcity.run(tmp_path, SHORT, ROOM, RATES, NOW, (1, 2, 3))
-    assert any(SOLD in broken for broken in result.broken)
+    assert any(KEPT in broken for broken in result.broken)
 
 
 def cancelled_night(patch: pytest.MonkeyPatch, root: Path) -> simcity.Night:
