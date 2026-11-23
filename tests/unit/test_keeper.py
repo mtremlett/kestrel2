@@ -301,7 +301,7 @@ def test_nothing_is_asked_on_a_day_no_venue_trades_nor_once_the_calls_time_is_sp
     monkeypatch.setattr(paper, "dial", no_gateway)
     assert keeper.main(tmp_path / "real", _at(9)) == 1  # the command itself, the archive away
     out, err = capsys.readouterr()
-    assert len(out.splitlines()) == 4 and "parked live, not traded" in out
+    assert len(out.splitlines()) == 5 and "roll-up: " in out and "parked live, not traded" in out
     assert err.count("MISSED: ") == 6 and "MISSED: US: daily" in err
     assert err.count("MISSED: stale: ") == 3  # nothing held: each line is staler than a session
 
