@@ -31,8 +31,8 @@ AFTER = _but(DONE, 22, f"{ID}-stop")  # and that stop's own order, ended: not th
 AT = datetime(2026, 11, 16, 8, 5, tzinfo=UTC)
 
 
-def _paper(root: Path = Path("unread"), at: datetime = AT) -> placing.Paper:
-    return placing.Paper(LISTED, root, lambda: at, paper.Door(paper.DESK))
+def _paper(root: Path = Path("unread"), at: datetime = AT, within: bool = False) -> placing.Paper:
+    return placing.Paper(LISTED, root, lambda: at, paper.Door(paper.DESK), within=within)
 
 
 def _ready(root: Path) -> Path:
@@ -228,7 +228,7 @@ def test_a_sale_is_sent_once_and_answered_with_what_the_broker_did(
     # ended by the broker itself, a reason given: no cancel (a real refusal: test_placing_seen.py)
     over = [REJECTED, _but(MINE[1], 2, "Cancelled")]
     sent = _gateway(monkeypatch, [], BARE, over, BARE, [("102",)], [END], BARE)
-    told = broker.place(SALE)
+    told = _paper(tmp_path, within=True).place(replace(SALE, session=AT.date()))  # a bar's, today
     assert told.fills == () and "201: Order rejected - reason: closed" in str(told.reason)
     assert sent == [b"", ACCOUNT, PLACED, ACCOUNT, ENDED, FILLS, ACCOUNT]
 
@@ -369,6 +369,7 @@ def test_nothing_is_sent_without_a_drill_a_clean_day_a_ready_gateway_and_the_sto
         (_paper(ready), (replace(SALE, line=SMGB),), Refused, "does not list SMGB: the"),
         (_paper(ready), (replace(SALE, line=VUSA),), Refused, "VUSA: it was not"),
         (_paper(ready), (replace(SALE, session=AT.date()),), Refused, "the one it is dated"),
+        (_paper(ready, within=True), either, Refused, "not the session of the one it is dated"),
         (_paper(ready, AT + timedelta(days=1)), either, Refused, "17 is not the session of"),
         (_paper(ready, AT - timedelta(days=2)), either, Refused, "next after the one it is dated"),
         (_paper(tmp_path / "new"), either, Refused, "was not drilled in the last 31 days"),

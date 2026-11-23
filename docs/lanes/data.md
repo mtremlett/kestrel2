@@ -782,3 +782,6 @@ Option A name IDTL `untradeable` in keeper-live's words (taken); option B drop I
 #2063: the output line dropped "N pound days added" (nothing is added now); chosen over keeping a zero count, which would say nothing.
 #2083: the keeper rolls through `history_write.roll` (one owner); a new builder in rollup.py was rejected as a duplicate path. The 1h bar's label is rollup:30m, its schema source, as the store already names it.
 #2080: tightening the weekly rule to the last complete week only was rejected: the weekly bar is rolled after the week ends, so one week of grace is needed or Friday evening reads stale.
+
+### 2026-11-23 — #2088 (R-DATA-77) cannot land from a lane: desk/keeper.py needs a failure pattern (DATA)
+Found, not fixed: `desk/keeper.py` has three fixes in its last ten changes, so `tests/guards/test_churn.py` stops a fourth until `docs/FAILURE_PATTERNS.md` names the file's mechanism. A lane cannot write that pattern, and a retitle to dodge the guard was refused. Branch lane/data-1123-145659-s2 holds the green fix (only the guards step is red); a session the operator starts records the pattern, then #2088 lands.
