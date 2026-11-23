@@ -386,3 +386,8 @@ def test_bars_before_the_day_a_line_starts_are_dropped_with_a_fault_each() -> No
     kept, listed, reasons = _run((*old, *clean[30:]), line)
     assert reasons == [] and kept == clean[30:]
     assert len(listed) == 30  # each old bar, with why
+
+
+def test_the_csv_store_is_gone_and_judge_is_the_one_door() -> None:
+    gone = ("prepare", "read", "shelve", "faults", "_bar", "_FAULT", "_write", "HISTORY")
+    assert not [name for name in gone if hasattr(store, name)]

@@ -34,6 +34,10 @@ FIRST = 3600  #: seconds of one-minute bars asked of a line with none held
 MOST = 86400  #: the most one question of one-minute bars may reach back
 
 
+class Untradeable(ValueError):
+    """The broker has no definition for the line: it cannot be traded, which is no miss."""
+
+
 def ibkr(
     home: Path,
     wait: Wait = time.sleep,
@@ -90,7 +94,7 @@ def _door(
         if (one := known.get(line.symbol)) is None:
             raise ValueError(f"{line.symbol} is not a line of the desk: the broker was not asked")
         if isinstance(one, listing.Unlisted):
-            raise ValueError(f"no IBKR real-time data on paper for {line.symbol}: {one.reason}")
+            raise Untradeable(f"no IBKR real-time data on paper for {line.symbol}: {one.reason}")
         if asked:
             wait(PACING)
         asked.append(line.symbol)

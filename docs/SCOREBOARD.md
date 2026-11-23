@@ -237,6 +237,8 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1991 money-door-writer done: halt writes its own record and scenes read through the history judge, neither names the store's CSV half.
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1995 MONEY scribe folds #1983; no box ticked.
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2009 money-loss-words done: the loss refusal and alert say "lost in the last session"; words only, golden unchanged. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2008 money-round-cap: one home for step time, carried orders named CARRIED. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2012 R-RUNNER-445 met, test pinned (12 test lines). |
 
 
 ### DATA
@@ -1057,6 +1059,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1858 DATA: data-members: docs only, no box ticked. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1860 DATA: data-monitor: alarm names the golden fault that turned it red. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1848 DATA: scribe folds six PRs (docs only). |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2015 DATA: data-door-writer: CSV store code deleted from desk/store.py. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1766 RUNGS: indicator tables name their fresh 14-day lows truly; no fresh-low or Supertrend table found (STR-14). |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1768 RUNGS: registry test reads the real rungs from `rung.found()`; one list fewer. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1771 RUNGS: L18 step 2, a rule judged on its own clustered lines (`deflated.judge_lines`); box open: wiring. |
