@@ -20,7 +20,18 @@ from functools import partial
 from pathlib import Path
 from typing import TypeVar
 
-from desk import archive, bars, carry, history, keeper_live, keeper_receipt, live, store, venues
+from desk import (
+    archive,
+    bars,
+    carry,
+    history,
+    history_write,
+    keeper_live,
+    keeper_receipt,
+    live,
+    store,
+    venues,
+)
 from desk.bars import Five
 from desk.keeper_rotate import Kept, order
 from desk.keeper_rotate import load as _kept
@@ -362,6 +373,20 @@ def keep(
     return spoken, [words for words, miss in told if miss]
 
 
+def rolled(hot: Path, lines: Sequence[Line], now: datetime) -> list[str]:
+    """THE ROLL-UP ROUND: each line's held five-minute bars built into 15m, 30m, 1h and 4h bars
+    and its daily bars into weekly ones, through the one writer, marked rollup:<from>; a partial
+    span writes nothing, and a round that built nothing says nothing.
+    Twice: the 30m bars of the first pass are the second's 1h and 4h."""
+    long = bars.files(hot)[bars.DAILY]
+    if not (hot.is_file() and long.is_file()):
+        return []
+    landed = sum(history_write.roll(hot, line, now) for line in lines for _ in range(2))
+    return [f"roll-up: {landed} coarser bars built from the five-minute and daily bars"] * bool(
+        landed
+    )
+
+
 def main(home: Path, now: datetime, args: Sequence[str] = (), broker: Broker | None = None) -> int:
     """THE COMMAND: what was done, a line each; a miss on stderr, exit 1. `--live`: one-minute bars;
     `--polled 5|15|60`: a ramped round; `--roll`: the live day copied to the long database."""
@@ -376,6 +401,7 @@ def main(home: Path, now: datetime, args: Sequence[str] = (), broker: Broker | N
         done = [polled(home, now, int(args[1]), live.minutes(home, home / HOT))]
     else:
         done, missed = keep(home, now, broker=broker or history.daily(now, home=home))
+        done += rolled(home / HOT, LINES, now)
         if stopped := parked_live(home / HOT, LINES, now):
             done.append(f"parked live, not traded: {stopped}")
         if late := delays(home / HOT, LINES, now):
