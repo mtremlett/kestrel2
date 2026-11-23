@@ -221,6 +221,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1628 R-MONEY-66 done: currency and interest kept in the day's record, profit untouched. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1690 money-small step 1: SIZ-10 cap built in the sizer, one test; not yet fed by the day. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1716 money-story part 1 of 3: chain written before send, strangers chained. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1777 money-story: chain now carries asked beside filled. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1796 money-small: gate cap on traded value (SIZ-10) landed, feed and TRD-10 flag open. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1805 money-story done: profit table scene covers all four cuts. |
 
 
 ### DATA
@@ -641,6 +644,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1674 PAPER paper-door-pound: the pound and conformance bars read from the store alone, archive and broker stubbed to fail in tests. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1675 PAPER paper-cards: streak-above-0 test landed; 05:40 card and 09:30 alarm wait on a wider claim. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1698 PAPER paper-cards: messenger.py 395 lines, room made for the three owed messages; box stays open. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1753 PAPER messages: "desk is not trading" alarm built and tested (not yet called by the step). |
 
 ### GRID
 
@@ -680,6 +684,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1612 grid-week: stale .faults notes swept as phantom tickers, held() filter restored. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1683 grid-door-pound done; transfer study reads prices from the one door. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1700 R-RUNGS-34 rule half met (rulebook.rule makes a variant from its row), 1 test. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1748 grid-week: pass log names failure causes. |
 
 ### RUNGS
 
@@ -994,3 +999,20 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1740 rungs-each-rung step: empty rung_beta.py folded away, off-path rung modules 8 -> 7. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1742 RUNGS: plateau.of builds each cell's plateau surface or FIXED; one call left to wire it in the ladder (L17 step 2). |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1749 RUNGS: indicator tables also held while holding (STR-14), net +17 lines. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1736 data-monitor: per-span table and persisted alarm; box stays open. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1750 data-survivorship: bias measured and stated as a line; not yet wired into verdicts. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1752 collector adds BEA; 11 of the planned sources. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1767 data-door-writer: research refresh on the one writer; CSV half of lab/universe deleted. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1769 DATA: HOVER's alarm line prints SEND: for the runner (announce added). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1774 data-pound-history: nightly refresh wires the pound's noon rates; box open. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1782 DATA: hover command prints through announce, SEND: reaches the runner. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1790 data-pound-history: stored, read by the ladder, gaps named nightly; HOVER's filler remains. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1775 DATA scribe: folds #1736, #1750, #1752 (three lines). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1766 RUNGS: indicator tables name their fresh 14-day lows truly; no fresh-low or Supertrend table found (STR-14). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1768 RUNGS: registry test reads the real rungs from `rung.found()`; one list fewer. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1771 RUNGS: L18 step 2, a rule judged on its own clustered lines (`deflated.judge_lines`); box open: wiring. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1795 RUNGS: rungs-indicators searched, no printed source for the last two tables; recorded, no tick. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1804 RUNGS: Faber's 1901-2012 figures read again and named as timing's own (10.18%, 42.24%, ~70% invested). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1792 RUNGS: luck FAIL alone no longer holds a cell back (R-RUNGS-36). |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1786 RUNGS: L20 step 2, the ladder refuses a set with input gaps; over 1% FAULT not published; pooled runner owed. |
+| 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1829 RUNGS: reproduction measures CAGR, drawdown, time invested (R-RUNGS-37); Faber's figure waits on 1901 data. |

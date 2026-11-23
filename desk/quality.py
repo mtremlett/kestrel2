@@ -12,7 +12,7 @@ import json
 import os
 import shutil
 import sys
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from datetime import UTC, date, datetime, time, timedelta
 from functools import partial
 from pathlib import Path
@@ -21,7 +21,7 @@ from desk import archive, backfill, bars, coverage, history_write, keeper, venue
 from desk.bars import Source
 from desk.lines import LINES, Line
 from desk.spans import EPOCH, FIVE
-from desk.store import Bar
+from desk.store import AGREE, Bar
 from desk.store import _clean as cleaned
 
 
@@ -227,6 +227,32 @@ def register(path: Path, lines: Iterable[Line]) -> tuple[str, list[str]]:
     return ", ".join(f"{name} {n}" for name, n in sorted(counts.items())), replaced
 
 
+def against_record(path: Path, line: Line, record: Bar) -> list[str]:
+    """Red when the store's close for the broker's bar day differs from the broker's close (the
+    price of record) by more than the sources' agreement (store.AGREE),
+    or the store holds no bar for that day."""
+    held = {bar.day: bar for bar in bars.daily(path, line)}.get(record.day)
+    if held is None:
+        return [f"{line.symbol}: no daily bar held for {record.day}, the broker has one"]
+    if abs(held.close - record.close) <= record.close * AGREE:
+        return []
+    return [f"{line.symbol} {record.day}: held close {held.close}, broker's {record.close}"]
+
+
+def check_records(path: Path, lines: Iterable[Line], ask: backfill.Ask, now: datetime) -> list[str]:
+    """The daily check: each line's last ended session asked of the broker and judged by
+    `against_record`; a refusal is said, never skipped. Empty when every line agrees."""
+    red: list[str] = []
+    for line in lines:
+        day = _last_session(line, now)
+        got = ask(line, day)
+        if isinstance(got, Sequence) and got:
+            red += against_record(path, line, got[-1])
+        else:
+            red.append(f"{line.symbol} {day}: the broker gave no bar to check against: {got}")
+    return red
+
+
 GOLDEN = ("SPY", "QQQ", "VUAG", "IITU")  #: always green, or the table says why (his 22 Nov)
 OFFERED = {"VUAG": ("1m", "15m", "30m", "4h")}  #: spans a line's venue never supplies: not a gap
 HOVER_SPANS = ("5m", "15m", "30m", "1h", "4h", "daily", "1wk", "1m")  #: every span, as stored
@@ -256,7 +282,12 @@ def cell(path: Path, line: Line, span: str, now: datetime) -> str | None:
     at = date.fromordinal(got[0]) if name == "daily" else (EPOCH + timedelta(seconds=got[0])).date()
     if name == "1wk":
         due -= timedelta(due.weekday() + 7)
-    return None if at >= due else f"newest {at}, last session {due}"
+    if at < due:
+        return f"newest {at}, last session {due}"
+    if name == "daily" and line.symbol in GOLDEN:  # a hole inside the history is red too
+        hole = _missing(line, backfill._held(path, line), due + timedelta(1))
+        return f"{len(hole)} sessions missing, the first {hole[0]}" if hole else None
+    return None
 
 
 def _cells(
@@ -271,24 +302,37 @@ def _cells(
     ]
 
 
-def table(path: Path, lines: Iterable[Line], now: datetime) -> str:
-    """The hourly table of one database: per span, the share fresh, the faults and the gaps."""
+def table(paths: dict[str, Path], lines: Iterable[Line], now: datetime) -> str:
+    """The hourly table: per database and span, the share fresh, the faults and the gaps, then each
+    database's register of sources (each newest daily bar's source, lines on a replacement)."""
     held, rows = list(lines), []
-    for span in HOVER_SPANS:
-        why = [w for _, _, w in _cells(path, held, now, (span,))]
-        gap = sum(w == "holds no bar" for w in why)
-        fresh = 100 * (len(why) - sum(w is not None for w in why)) // max(len(why), 1)
-        rows.append(
-            f"{span}: {fresh}% fresh, {sum(w is not None for w in why) - gap} faults, {gap} gaps"
-        )
+    for db, path in paths.items():
+        for span in HOVER_SPANS:
+            why = [w for _, _, w in _cells(path, held, now, (span,))]
+            gap = sum(w == "holds no bar" for w in why)
+            bad = sum(w is not None for w in why)
+            fresh = 100 * (len(why) - bad) // max(len(why), 1)
+            rows.append(f"{db}/{span}: {fresh}% fresh, {bad - gap} faults, {gap} gaps")
+        counts, replaced = register(path, held)
+        rows.append(f"{db} sources: {counts}; replaced: {', '.join(replaced) or 'none'}")
     return "\n".join(rows)
 
 
-def hover(path: Path, lines: Iterable[Line], now: datetime) -> tuple[str, bool]:
-    """Every line x span judged against the venue's last ended session: the one line saying the
-    share fresh, the faults (held but behind), the gaps (no bar) and the worst cell, and whether
-    it is green: every golden line fresh at every span its venue supplies."""
-    cells = _cells(path, lines, now)
+def databases(home: Path) -> dict[str, Path]:
+    """The two databases the monitor watches, by name: the long one and the short one."""
+    return {name: home / name for name in (bars.HISTORY, keeper.HOT)}
+
+
+def hover(paths: dict[str, Path], lines: Iterable[Line], now: datetime) -> tuple[str, bool]:
+    """Every database x line x span judged against the venue's last ended session: the one line
+    saying the share fresh, the faults (held but behind), the gaps (no bar) and the worst cell, and
+    whether it is green: every golden line fresh at every span its venue supplies."""
+    held = list(lines)
+    cells = [
+        (f"{db}/{name}", line, why)
+        for db, path in paths.items()
+        for name, line, why in _cells(path, held, now)
+    ]
     bad = [(name, line, why) for name, line, why in cells if why]
     gap = sum(why == "holds no bar" for _, _, why in bad)
     worst = (bad[0][0] + ": " + bad[0][2]) if bad else "none"
@@ -343,17 +387,21 @@ def watch(state: Path, said: str, green: bool, now: datetime) -> str | None:
 if __name__ == "__main__":
     home, now = Path(os.environ["KESTREL2_DATA"]), datetime.now(UTC)
     if sys.argv[1:] == ["table"]:
-        sys.stdout.write(table(home / keeper.HOT, LINES, now) + "\n")
+        sys.stdout.write(table(databases(home), LINES, now) + "\n")
         sys.exit(0)
     if sys.argv[1:] == ["hover"]:
-        said, ok = hover(home / keeper.HOT, LINES, now)
+        said, ok = hover(databases(home), LINES, now)
         told = watch(home / "hover_alarm.json", said, ok, now)
-        sys.stdout.write(f"{said}\n" + (f"ALARM {told}\n" if told else ""))
+        sys.stdout.write(announce(said, told))
         sys.exit(0 if ok else 1)
     if sys.argv[1:] == ["register"]:
         counts, replaced = register(home / keeper.HOT, LINES)
         sys.stdout.write(f"sources: {counts}; replaced: {'; '.join(replaced) or 'none'}\n")
         sys.exit(0)
+    if sys.argv[1:] == ["record"]:
+        red = check_records(home / keeper.HOT, LINES, backfill._broker(home, now), now)
+        sys.stdout.write("record: " + ("RED: " + "; ".join(red) if red else "green") + "\n")
+        sys.exit(1 if red else 0)
     said = monitor(home / keeper.HOT, LINES, backfill._broker(home, now), backfill._archive, now)
     sys.stdout.write(f"{said}\n")
     sys.exit(0 if " green," in said else 1)

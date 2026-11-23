@@ -29,7 +29,9 @@ securities, so two classes of one company's shares count twice. Four rules name 
 Still owed: the FTSE 350 and the funds, a list this desk measured itself on one day. Asked
 for either, `on` refuses. The FTSE's free route is two sources joined by `reconcile`: a
 quarterly review's announced joiners and leavers, and the members of the page's revision
-either side of it; where they differ the fault is named, never guessed."""
+either side of it; where they differ the fault is named, never guessed.
+The fetching of both (FTSE Russell's announcements, the MediaWiki API) is a module of its
+own, not yet written."""
 
 from __future__ import annotations
 
@@ -290,7 +292,10 @@ def on(name: str, day: date) -> Members:
 
 
 def bias(name: str, day: date) -> str:
-    """The survivorship bias of a study of today's list from day on, as a verdict's line."""
+    """The survivorship bias of a study of today's list from day on, as a verdict's line. A
+    list whose past is not recorded says so: the bias is stated unmeasured, never left out."""
+    if name in OWED:
+        return f"survivorship: {name} on {day}: past members not recorded, bias unmeasured"
     found = on(name, day)
     return (
         f"survivorship: {name} on {day}: {len(found.listed)} of "

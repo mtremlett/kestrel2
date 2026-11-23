@@ -371,8 +371,8 @@ class Printed:
 
     @property
     def candidate(self) -> bool:
-        """Whether reproduction may be held to it: the rule as coded, its numbers printed. It
-        waits for `lab/reproduce.py` to take an eponymous rule and the numbers it prints."""
+        """Whether reproduction may be held to it: the rule as coded, its numbers printed. Its
+        figure goes on file in `lab/reproduce.py` once the desk holds its market and period."""
         return self.found in (Search.AUTHOR, Search.SECOND)
 
     def said(self) -> str:
@@ -436,9 +436,11 @@ TESTED: Mapping[str, Printed] = {
         "S&P 500 total return (Cowles Commission and S&P data before 1971)",
         "1901-2012, filled at the month's last close (the February 2013 update)",
         "invested in the market approximately 70% of the time and making less than one "
-        "round-trip trade per year; timing the S&P 500 returned 11.22%; compounded returns "
-        "9.32% and 10.18%; drawdown from 83.66% to 42.24%; Taxes, commissions, and slippage "
-        "are excluded",
+        "round-trip trade per year; The average return for the S&P 500 since 1901 was 11.26%, "
+        "while timing the S&P 500 returned 11.22%. However, the compounded returns for the two "
+        "are 9.32% and 10.18%, respectively; it would have reduced the drawdown from a "
+        "catastrophic 83.66% to a more manageable 42.24%; Taxes, commissions, and slippage "
+        "are excluded (timing's own: compounded 10.18%, drawdown 42.24%, ~70% invested)",
     ),
     "kell_breakout": Printed(Search.NONE, _NOWHERE + " (interviews only)"),
     "keltner_channel_trend": Printed(Search.NONE, _NOWHERE + " (the 1960 rule defined only)"),

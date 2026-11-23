@@ -86,10 +86,15 @@ STEP = Decimal("0.03")
 EASED = True
 T_INCUBATE = Decimal(1)  #: a basket's mean this many standard errors above nothing, or over
 WEAK = (Answer.THIN, Answer.DOUBT)  #: a scorecard's WEAK: neither a win nor a loss
-#: THE RULE OVER THE RUNGS, once (R-RUNNER-435): a cell passes with no FAIL and at most MAX_WEAK
-#: WEAK; a yearly Sharpe above SHARPE_STOP is a hard stop, whatever the rungs say.
+#: THE ONE VERDICT RULE (R-RUNNER-435, L19), whether EASED or not. The HARD gates, registered
+#: before any run (the after-cost mean, the deflated Sharpe, the out-of-sample folds, the
+#: shuffle), must every one PASS, or the cell's answer is the least of them. The SOFT rungs are
+#: then scored by `scorecard`: no FAIL and at most MAX_WEAK WEAK; and a yearly Sharpe above
+#: SHARPE_STOP is a hard stop, whatever the rungs say. The luck rung is reported, never ruled.
+HARD = ("first", "deflated", "folds", "shuffle")
+SOFT = ("market", "regime", "stress")
 MAX_WEAK = 2
-SHARPE_STOP = 2.0
+SHARPE_STOP = deflated.FLAG
 Pair = tuple[Answer, str]
 Judged = dict[str, Pair]  #: each rung's answer on a cell, and its reason
 
@@ -111,6 +116,19 @@ def scorecard(answers: Sequence[Answer], yearly_sharpe: float) -> str:
     return "PASS" if not fails and weak <= MAX_WEAK else "FAIL"
 
 
+def one_answer(rungs: Mapping[str, Answer], yearly_sharpe: float | None) -> str | None:
+    """The cell's one answer: the least HARD gate short of PASS, else a SOFT rung's FAULT (a
+    fault in the test, said as one), else the SOFT rungs' `scorecard`; None while unanswered."""
+    if not set(HARD + SOFT) <= set(rungs):
+        return None
+    least = min(rungs[name] for name in HARD)
+    if least is not Answer.PASS:
+        return least.name
+    if any(rungs[name] is Answer.FAULT for name in SOFT):
+        return Answer.FAULT.name
+    return scorecard([rungs[name] for name in SOFT], yearly_sharpe or 0.0)
+
+
 def judge(
     c: Cell,
     own: Sequence[Bar],
@@ -123,12 +141,12 @@ def judge(
     first: Verdict | None = None,
     family: int | None = None,
     surface: plateau.Surface | plateau.Fixed | None = None,
+    among: Deflated | None = None,
 ) -> dict[str, Any]:
     """Every rung's answer with its reason, the rungs not run with theirs, the verdict's.
     The folds are the rule's, pooled over its lines: `pooled` is asked only when they are read.
-    `first` is the cell's first rung where the caller has run it already; `family` the trials
-    of its rule, used only when EASED; `surface` its rule at its settings, or FIXED where it
-    has none (`_plateaued`)."""
+    `first` the cell's first rung if run already; `family` its rule's trials (EASED); `surface`
+    its rule at its settings, or FIXED (`_plateaued`); `among` it among its rule's lines (L18)."""
     try:
         reproduce.settled(c.strategy, made)
     except ValueError as missed:  #: the rule as coded is not the author's: no verdict on ours
@@ -136,7 +154,7 @@ def judge(
     verdict = first or ready(c, own, pounds, made)
     unrun = UNRUN | ({} if made else {"reproduce": NO_FIGURE})
     settings = Settings(CAPITAL)
-    (one,) = deflated.judge([verdict], _charged(c, count, family) - 1)  #: every other trial
+    one = among or _charged(c, verdict, count, family)
     rungs = named(verdict, one, c.strategy if EASED else None)
     if EASED and verdict.answer is Answer.FAIL and verdict.t is not None and verdict.t < 0:
         return _stopped(len(verdict.trades), {"first": rungs["first"]}, unrun)  #: a hard fail
@@ -152,15 +170,27 @@ def judge(
     if (last := shuffled(c, own, settings, pounds, rungs, made, EASED)) is not None:
         rungs["shuffle"] = last
     unrun = _plateaued(surface, rungs, unrun)
-    read = {name: rungs[name][0] for name in deflated.NAMED if name in rungs}
+    answer = one_answer({name: said for name, (said, _) in rungs.items()}, one.yearly)
     return {
         "trades": len(verdict.trades),
         "rungs": reported(rungs),
         "drawdown": drawdowns([t.gross - t.costs.total for t in verdict.trades], trials.name(c)),
         "holding": _held(verdict, own, beside, held, pounds, settings),
         "unrun": unrun,
-        "every": all(answer is Answer.PASS for answer, _ in rungs.values()),
-    } | ({"answer": deflated.rule(read).name} if len(read) == len(deflated.NAMED) else {})
+        "every": answer == Answer.PASS.name and gates(rungs),
+    } | ({} if answer is None else {"answer": answer})
+
+
+def every(rungs: Judged) -> bool:
+    """Every rung that gates passed: a rung only reported (`deflated.REPORTED`, the luck rung
+    since L18) holds nothing back."""
+    return all(a is Answer.PASS for n, (a, _) in rungs.items() if n not in deflated.REPORTED)
+
+
+def gates(rungs: Judged) -> bool:
+    """`every` for the one answer's cell: the SOFT rungs are left out, as their WEAK is the
+    scorecard's and never stops a cell going forward."""
+    return every({name: judged for name, judged in rungs.items() if name not in SOFT})
 
 
 def _plateaued(
@@ -187,11 +217,13 @@ def stress_answer(c: Cell, own: Sequence[Bar], pounds: Rates) -> Answer:
     return _stressed(c, own, Settings(CAPITAL), pounds)[0]
 
 
-def _charged(c: Cell, count: int, family: int | None) -> int:
-    """The trials a cell is charged: the register's, or with EASED its rule's family's."""
+def _charged(c: Cell, verdict: Verdict, count: int, family: int | None) -> Deflated:
+    """The cell judged alone, charged the register's trials, or with EASED its rule's family's,
+    each a separate look: where no `among` judged it with its rule's own lines (L18)."""
     if EASED and family is None:
         raise ValueError(f"{c.strategy}: EASED judges by the rule's family count, none given")
-    return family if EASED and family is not None else count
+    (one,) = deflated.judge([verdict], (family if EASED and family is not None else count) - 1)
+    return one
 
 
 def _held(
@@ -267,6 +299,17 @@ class Pool:
     dollars: bool  #: a line in dollars is pooled: the rates of exchange are in every cell's key
     folded: Pooled | None = None  #: pooled once, when first read
     failed: ValueError | None = None  #: why it could not be, told to every cell of the rule
+    looks: dict[Cell, Deflated] | None = None  #: the lines judged as one set, once, when first read
+
+    def among(self, c: Cell) -> Deflated:
+        """THE RULE'S OWN LINES ARE ITS FAMILY (L18): the cell's line judged among its rule's lines,
+        clustered (`deflated.judge_lines`), never against every line the register ever held."""
+        if self.looks is None:
+            judged = deflated.judge_lines(list(self.firsts.values()))
+            self.looks = dict(zip(self.firsts, judged, strict=True))
+        if c not in self.looks:  #: its line could not be read: an error row, never a crash
+            raise ValueError(f"{trials.name(c)}: no first rung in its rule's pool, no look")
+        return self.looks[c]
 
     def fold(self, pounds: Rates, made: Sequence[Reproduction] = ()) -> Pooled:
         """The lines folded by the last five whole years: once, a failure remembered."""

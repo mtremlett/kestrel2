@@ -26,6 +26,12 @@ The rule is shown every bar the line has up to the period's end, so history befo
 period warms it, and a trade belongs to the period it was bought in. A trade is counted once
 both its fills fall on bars the rule was shown: one still held at the end is not.
 
+AN EPONYMOUS RULE IS COUNTED AS ITS AUTHOR COUNTED TOO (`published_epon`). Its author prints
+what one pound put in did, not trade by trade: compounded a year, the deepest fall from a high
+and the time in the market, each on the counted trades' pound marked at every close of the
+period, out of the market earning nothing (an author's cash that earned bills is another
+arithmetic, and its figure says so in its tolerance).
+
 NOTHING IS CALLED A REPRODUCTION THAT COULD NOT BE ONE. Refused loudly: bars that miss a
 session, or hold a bar on a day that is none, from the first bar the rule is shown to the
 period's end (the one calendar says which days those are); code that is not
@@ -64,7 +70,7 @@ from desk import venues
 from desk.lines import Line
 from desk.store import Bar
 from desk.strategy import ARITHMETIC
-from lab import cell, published
+from lab import cell, published, published_epon
 from lab.cell import Cell, Key, Trade
 
 
@@ -89,6 +95,9 @@ class Measure(enum.Enum):
     WINNERS = "trades that gained, per cent"
     MEAN_GAIN = "mean gain a trade, per cent"
     NET_POINTS = "points gained, every trade's together"
+    CAGR = "compounded a year, per cent"
+    DRAWDOWN = "deepest fall from a high, per cent"
+    INVESTED = "time in the market, per cent"
 
 
 @dataclass(frozen=True)
@@ -118,7 +127,7 @@ class Figure:
     hand: Hand  #: the author's own table, or a replication standing in for it
 
     def __post_init__(self) -> None:
-        if self.strategy not in published.PUBLISHED:
+        if self.strategy not in {*published.PUBLISHED, *published_epon.EPONYMOUS_PUBLISHED}:
             raise ValueError(f"{self.strategy}: no published rule on file for a figure to be of")
         if not self.source.strip():
             raise ValueError(f"{self.strategy}: a figure with no source is nobody's result")
@@ -184,13 +193,15 @@ def reproduce(figure: Figure, bars: Sequence[Bar]) -> Reproduction:
         fills = _fills(record.trades, read, figure.fill)
         if not fills:
             raise ValueError(f"{figure.source}: {c} made no trade to set beside the figure")
-        gains = [sold / bought - 1 for bought, sold in fills]
+        gains = [sold / bought - 1 for _, bought, _, sold in fills]
         made = {
             Measure.TRADES: Decimal(len(gains)),
             Measure.WINNERS: Decimal(100 * sum(1 for gain in gains if gain > 0)) / len(gains),
             Measure.MEAN_GAIN: 100 * sum(gains, Decimal(0)) / len(gains),
-            Measure.NET_POINTS: sum((sold - bought for bought, sold in fills), Decimal(0)),
+            Measure.NET_POINTS: sum((sold - bought for _, bought, _, sold in fills), Decimal(0)),
         }
+        if any(stated.measure in _POUND for stated in figure.stated):
+            made |= _pound(fills, read, figure.start)
     found = tuple(Found(stated, made[stated.measure]) for stated in figure.stated)
     return Reproduction(figure, record.key.rung(__name__), found)
 
@@ -207,25 +218,54 @@ def said(one: Reproduction) -> str:
     return f"{verb}: {one.figure.hand.value} result, {one.figure.source}: {numbers}"
 
 
-def _fills(
-    trades: Sequence[Trade], read: Sequence[Bar], fill: Fill
-) -> list[tuple[Decimal, Decimal]]:
-    """Each counted trade's two prices before any cost, bought and sold, both legs filled
-    where the author's test fills them."""
+_POUND = (Measure.CAGR, Measure.DRAWDOWN, Measure.INVESTED)  #: one pound's path, made only if asked
+_Legs = tuple[int, Decimal, int, Decimal]  #: bought and sold: the bar each fills on, its price
+
+
+def _fills(trades: Sequence[Trade], read: Sequence[Bar], fill: Fill) -> list[_Legs]:
+    """Each counted trade's two legs before any cost, bought and sold, each the bar it fills on
+    and its price, both filled where the author's test fills them."""
     at = {bar.day: n for n, bar in enumerate(read)}
 
-    def price(day: date) -> Decimal | None:
+    def leg(day: date) -> tuple[int, Decimal] | None:
         if fill is Fill.CLOSE:
-            return read[at[day]].close
-        return read[at[day] + 1].open if at[day] + 1 < len(read) else None
+            return at[day], read[at[day]].close
+        n = at[day] + 1
+        return (n, read[n].open) if n < len(read) else None
 
     fills = []
     for trade in trades:
-        sold = None if trade.sold is None else price(trade.sold)
-        bought = price(trade.bought)
+        sold = None if trade.sold is None else leg(trade.sold)
+        bought = leg(trade.bought)
         if bought is not None and sold is not None:
-            fills.append((bought, sold))
+            fills.append((*bought, *sold))
     return fills
+
+
+def _pound(fills: Sequence[_Legs], read: Sequence[Bar], start: date) -> dict[Measure, Decimal]:
+    """One pound through the counted trades, marked at each close from the period's first bar:
+    compounded a year, its deepest fall from a high, and the share of closes it was in."""
+    first = next(n for n, bar in enumerate(read) if bar.day >= start)
+    level, peak, deepest, held = Decimal(1), Decimal(1), Decimal(0), 0
+    trades = iter(sorted(fills))
+    trade = next(trades, None)
+    for n in range(first, len(read)):
+        mark = level
+        while trade is not None and trade[0] <= n:
+            _, paid, sold, got = trade
+            if n < sold:
+                mark, held = level * read[n].close / paid, held + 1
+                break
+            level = mark = level * got / paid
+            trade = next(trades, None)
+        peak = max(peak, mark)
+        deepest = max(deepest, 1 - mark / peak)
+    years = Decimal((read[-1].day - read[first].day).days) / Decimal("365.25")
+    return {
+        Measure.CAGR: 100 * (level ** (1 / years) - 1),
+        Measure.DRAWDOWN: 100 * deepest,
+        Measure.INVESTED: Decimal(100 * held) / (len(read) - first),
+    }
 
 
 def settled(strategy: str, made: Sequence[Reproduction]) -> tuple[Reproduction, ...]:

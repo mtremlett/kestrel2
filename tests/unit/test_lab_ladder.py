@@ -26,6 +26,7 @@ from lab import (
     deflated,
     folds,
     ladder,
+    ladder_parts,
     ladder_sets,
     market,
     published,
@@ -136,9 +137,7 @@ def test_each_cell_is_judged_on_every_rung_and_kept_with_its_reasons_and_trials(
     assert lost["rungs"]["first"][0] == lost["rungs"]["market"][0] == "FAIL"
     assert set(won["unrun"]) == {"reproduce", "plateau", "unwired"}
     #: the rungs built in modules the ladder does not yet judge are named, never left in silence
-    assert (
-        "rung_bootstrap" in won["unrun"]["unwired"] and "declare no RUNG" in won["unrun"]["unwired"]
-    )
+    assert "rung_dsr" in won["unrun"]["unwired"] and "declare no RUNG" in won["unrun"]["unwired"]
     assert 0 <= won["drawdown"]["median"] <= won["drawdown"]["p95"] < 1, "measured, never gated"
 
 
@@ -212,18 +211,17 @@ def test_a_run_skips_what_is_kept_and_judges_again_only_what_has_changed(
     assert "0 judged now, 2 kept from before, 1 could" in run(tmp_path, _door(book), {}, more)
     assert [row["trials"] for row in _rows(tmp_path)] == [2, 2, 2, 2, 3, 3, 3, 3]
     assert _rows(tmp_path)[-1]["error"].startswith("Stale") and "key" not in _rows(tmp_path)[-1]
-    #: its bars found, and no rate of exchange: refused with the day; the rates given, judged
+    #: its bars found, and no rate of exchange: the set refuses to start, naming the first day
+    #: unrated, and writes nothing (L20); the rates given, judged
     book |= {AAPL: EDGE, SPY: NOISE}
-    assert "1 could not be judged" in run(tmp_path, _door(book), {}, more)
-    assert "no rate of pounds per USD" in _rows(tmp_path)[-1]["error"]
+    with pytest.raises(ValueError, match="refuses to start, first AAPL: no rate of pounds per"):
+        run(tmp_path, _door(book), {}, more)
+    assert len(_rows(tmp_path)) == 8
     pounds = {bar.day: Decimal("0.8") for bar in EDGE}
-    at = datetime.fromisoformat(_rows(tmp_path)[-1]["tried"]) + timedelta(minutes=5)
-    ladder.run(tmp_path, _door(book), {}, more, lambda: at)  #: nothing changed: it waits
-    assert len(_rows(tmp_path)) == 9
-    said = ladder.run(tmp_path, _door(book), pounds, more, lambda: at)  #: the rates, at once
+    said = run(tmp_path, _door(book), pounds, more)
     #: the dollar line joins its rule's pooled folds, so the two pound lines are judged again too
     assert "3 judged now, 0 kept from before, 0 could" in said
-    assert _rows(tmp_path)[-1]["answer"] == "THIN" and len(_rows(tmp_path)) == 12
+    assert _rows(tmp_path)[-1]["answer"] == "THIN" and len(_rows(tmp_path)) == 11
     #: a dearer dollar on one day is another price, in the folds of all three
     pounds[EDGE[50].day] = Decimal("0.9")
     assert "3 judged now, 0 kept" in run(tmp_path, _door(book), pounds, more)
@@ -298,6 +296,18 @@ def test_every_trial_is_counted_before_any_is_run_and_the_count_never_begins_aga
     #: both are judged again, for their rule's lines are not as they were: the edge, with
     #: 6 or 7 trades a year pooled over two lines, is too thin to say; the noise fails
     assert [row["answer"] for row in _rows(tmp_path)[-2:]] == ["THIN", "FAIL"]
+    holed = NOISE[:4] + NOISE[5:]  #: the market missing Tuesday 5 January 2010, a session
+    with pytest.raises(
+        ValueError, match="^1 gap in the set's inputs.* ISF has no bar on 2010-01-05"
+    ):
+        ladder.run(tmp_path / "holed", _door({VUSA: EDGE, ISF: holed}), {}, todo)
+    assert not (tmp_path / "holed").exists()  #: refused before its register or a row
+    #: a cell with a rung FAULT is a fault; over 1% of the cells and the table is withheld
+    ok, bad = {"rungs": {"first": ["WEAK", ""]}}, {"rungs": {"folds": ["FAULT", "no years"]}}
+    assert (
+        ladder_parts.faults([ok] * 99 + [bad])[1] and not ladder_parts.faults([ok] * 98 + [bad])[1]
+    )
+    assert ladder_parts.faults([ok] * 98 + [bad])[0][-1] == "NOT PUBLISHED: 1 of 99 cells FAULT"
     register.unlink()  #: results with no register beside them: refused, never counted anew
     with pytest.raises(FileNotFoundError, match="no register of trials"):
         ladder.run(tmp_path, _door({}), {}, _set(VUSA, ISF))

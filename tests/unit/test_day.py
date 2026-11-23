@@ -29,7 +29,7 @@ def _line(
 ) -> tuple[Line, tuple[Bar, ...]]:
     half = Decimal(reach)
     return Line(symbol, "LSE", "GBP", 1), tuple(
-        Bar(on, c, c + half, c - half, c, 1)
+        Bar(on, c, c + half, c - half, c, 10**7)
         for on, c in zip(DAYS, map(Decimal, map(str, closes)), strict=False)
     )
 
@@ -44,7 +44,7 @@ ARCHIVE = dict(
 MARKET = {
     **ARCHIVE,
     YARDSTICK: tuple(
-        Bar(on, c + 1, c + 1, c, c, 1)
+        Bar(on, c + 1, c + 1, c, c, 10**7)
         for on, c in zip(DAYS[19:], map(Decimal, ("10", "10", "10.2", "10.1")), strict=True)
     ),
 }
@@ -349,7 +349,7 @@ def test_a_record_opens_from_what_the_last_one_closed_on_at_each_days_own_rate(
     dollar, capital, (fri, mon) = Line("U", "US", "USD", 1), Settings(Decimal(10_000)), DAYS[19:21]
     #: three days' closes, each a dollar over its open
     closes = zip(DAYS[18:21], map(Decimal, (50, 51, 52)), strict=True)
-    held = tuple(Bar(on, c - 1, c + 1, c - 2, c, 1) for on, c in closes)
+    held = tuple(Bar(on, c - 1, c + 1, c - 2, c, 10**7) for on, c in closes)
     archive = {dollar: held, YARDSTICK: tuple(replace(bar, close=Decimal(10)) for bar in held)}
     broker, at = Pretend(archive, {}), {"USD": Decimal("0.8005"), "GBP": Decimal(1)}
     broker.open(fri)  #: ten bought by hand at the open of 50, through the send path

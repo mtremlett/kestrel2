@@ -31,7 +31,7 @@ judges by it; every other row owes `no RUNG` first (the test holds the two to ag
  8 purged cross-validation: lab/rung_cpcv.py, tests/unit/test_lab_rung_cpcv.py
  9 placebo on blocks of days: lab/rung_placebo.py, tests/unit/test_lab_rung_placebo.py - no RUNG
 10 walk-forward folds: lab/folds.py, tests/unit/test_lab_folds.py - no RUNG; the ladder runs `pool`
-11 block bootstrap: lab/rung_bootstrap.py, tests/unit/test_lab_rung_bootstrap.py - no RUNG, no gate
+11 block bootstrap: lab/rung_ci.py, tests/unit/test_lab_rung_bootstrap.py - `bootstrap`, unwired
 12 retail, basket beside market: lab/rung_retail.py, tests/unit/test_lab_rung_retail.py - no RUNG
 
 RARE LARGE LOSSES (G2, R-RUNNER-103). The first rung counts ONE MORE trade the rule did not make: a
@@ -75,7 +75,7 @@ from desk.command import CAPITAL, DOLLARS, POUND
 from desk.lines import LINES, Line
 from desk.store import Bar
 from desk.strategy import STRATEGIES, Rule
-from lab import batch, cell, published, reproduce, rulebook, rung, tape, trials, verdict
+from lab import batch, cell, folds, published, reproduce, rulebook, rung, tape, trials, verdict
 from lab.batch import Bars
 from lab.cell import Cell
 from lab.ladder_parts import (
@@ -204,6 +204,24 @@ def rates(ask: Callable[[Line, date], Sequence[Bar]] | None = None) -> dict[date
     return {day: rate for day in days if (rate := carry.carried(known, day))}
 
 
+def inputs(todo: Sequence[Cell], bars: Bars) -> Iterator[tuple[Cell, Sequence[Bar]]]:
+    """Each line the set's cells read, its own (or its proxy's) and its market's, from its first
+    bar to the window's end, once, one at a time: the set runner's pre-flight (L20). A line whose
+    bars cannot be read is its cell's to say, as it does now."""
+    seen = set[tuple[str, date, date]]()
+    for one in todo:
+        try:
+            c, own, _ = _resolve(one, bars)
+            beside = next(line for line in LINES if line.symbol == MARKETS[c.line.venue])
+            held = bars(beside)
+        except FAILED:
+            continue
+        for line, read in ((c.line, own), (beside, held)):
+            if (line.symbol, c.start, c.end) not in seen:
+                seen.add((line.symbol, c.start, c.end))
+                yield Cell(c.strategy, line, c.start, c.end), read
+
+
 def begun(home: Path, todo: Sequence[Cell], plan: Plan) -> tuple[Path, int]:
     """The set's results file and its count of trials entered; the register made on a first run."""
     results, register = (home / FOLDER / (plan.stem + e) for e in (".jsonl", ".trials.jsonl"))
@@ -228,6 +246,7 @@ def run(
     if cell.code_version(module=ME) != cell.RUNGS[ME]:
         raise RuntimeError("the code on disk has changed since this process loaded it")
     todo = cells() if todo is None else todo
+    folds.preflight(inputs(todo, bars), pounds)
     results, count = begun(home, todo, plan)
     last = Kept(results)
     shared = Shared(todo)
@@ -332,7 +351,7 @@ def _needs_data(make: type[Rule]) -> bool:
 
 def door(env: Mapping[str, str], argv: Sequence[str]) -> int:
     """The command: the set run, then each rung any cell FAULTed on said on its own line with its
-    share and reason; 1 when most cells FAULTed, so a set that judged nothing is never green.
+    share and reason; 1, and NOT PUBLISHED said, when over 1% of its cells FAULTed (L20).
     The intraday and scalping sets keep no results file (their table is all), so none is read."""
     from lab import ladder_sets
 
@@ -344,9 +363,9 @@ def door(env: Mapping[str, str], argv: Sequence[str]) -> int:
         return code
     kept = Kept(Path(env["KESTREL2_DATA"]) / FOLDER / f"{plan.stem}.jsonl")
     kept.compact()  #: once the set is judged, never while a run holds the file
-    said, mostly = faults(kept.rows())
+    said, shown = faults(kept.rows())
     sys.stdout.write("".join(f"{line}" + chr(10) for line in said))
-    return code or int(mostly)
+    return code or int(not shown)
 
 
 if __name__ == "__main__":

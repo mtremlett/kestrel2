@@ -127,3 +127,19 @@ def test_known_answer_thirty_trades_a_window_worked_by_hand() -> None:
         Answer.FAIL,
         Answer.FAIL,
     )
+
+
+def test_power_case_a_real_edge_over_sixty_trades_is_never_failed_by_the_weather() -> None:
+    #: a t=3 edge over 60 trades is about 2.1 standard errors in each state of 30: a coin toss to
+    #: pass both, so a state short of T_PASS is DOUBT (soft, MAX_WEAK); only a state that lost fails
+    rng = random.Random(11)  # noqa: S311 - a repeatable test sample, not a secret
+
+    def weathered(edge: float) -> Answer:
+        priced = _priced(rng, edge, 30, 30)
+        labels = {p.trade.bought: "up" if p.trade.bought < CUT else "down" for p in priced}
+        return rung_regimes.by_weather(KEY, priced, labels).answer
+
+    said = [weathered(3 / 60**0.5) for _ in range(300)]
+    #: recorded: about a third PASS, the rest DOUBT, none FAIL; a state that lost fails
+    assert Answer.FAIL not in said and 0.15 <= said.count(Answer.PASS) / 300 <= 0.6, said
+    assert weathered(-1.0) is Answer.FAIL
