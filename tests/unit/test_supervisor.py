@@ -400,5 +400,7 @@ def test_install_makes_windows_start_the_supervisor_at_boot_and_tell_every_hour(
         "ONSTART",
     )
     assert hourly[hourly.index("/SC") + 1] == "HOURLY"
-    assert boot[-1] == f'"py.exe" -m desk.supervisor run "{tmp_path}"'
+    assert boot[-1] == (
+        f'cmd /c cd /d "{supervisor.CODE}" && "py.exe" -m desk.supervisor run "{tmp_path}"'
+    )
     assert hourly[-1].endswith(f'tell "{tmp_path}"')

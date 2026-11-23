@@ -401,10 +401,9 @@ def _buy(
     bars: Sequence[Bar] = (),
     round_: Sequence[book.Sent] = (),
 ) -> book.Sent:
-    """One rule's buy, sized from the book as the send before it left it, at the line's last
-    close and the day's rate. A line held, or sold this morning, is not bought: said so. Nor is
-    one an ISA is not recorded as able to hold (line.isa no): the ISA buys only those; nor one no
-    retail customer may buy (line.retail no), which the broker would only refuse, slowly."""
+    """One rule's buy, sized on its own side's holdings (book.side, as the send gates it) at the
+    line's last close and the day's rate. Not bought, and said so: a line held or sold this
+    morning, or one no ISA can hold (line.isa no) or no retail customer may buy (line.retail no)."""
     now, name = book.positions(root), order_id_of(d)
     if no := refusal(root, name, line, now):
         return book.Sent(name, 0, *no)
@@ -413,7 +412,8 @@ def _buy(
             name, 0, f"{name}: not sent, {d.symbol} was sold this morning", Blocker.HELD
         )
     try:
-        order = size(d, line, *price, settings, now, None, traded_value(bars, price[1]))
+        mine = book.side(root, now, name)
+        order = size(d, line, *price, settings, mine, None, traded_value(bars, price[1]))
     except Refused as refused:  #: the gate's answer, kept with the day's others
         return book.Sent(name, 0, str(refused), Blocker.GATE)
     looked = watch and watch(d.symbol)
@@ -538,7 +538,7 @@ def _zoo_buy(
             name, 0, f"{name}: not sent, {d.symbol} was sold this morning", Blocker.HELD
         )
     try:
-        order = replace(size(d, line, *price, ZOO_ROOM, held), quantity=1)
+        order = replace(size(d, line, *price, ZOO_ROOM, book.side(root, held, name)), quantity=1)
     except Refused as refused:
         return book.Sent(name, 0, str(refused), Blocker.GATE)
     return _send(root, broker, order, ZOO_ROOM, tell, standing(root, day, True), round_=round_)

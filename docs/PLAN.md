@@ -234,7 +234,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       the same checks; the last week kept hot for reading, everything older archived, none
       thrown away (DAT-11)
       {id: data-five-minute; files: desk/archive.py, tests/unit/test_archive*.py, desk/bars.py, tests/unit/test_bars*.py; after: data-fast-store}
-- [ ] The lists' members year by year, so a study of the past is not the survivors' alone
+- [x] The lists' members year by year, so a study of the past is not the survivors' alone
       (S&P 500 and Nasdaq 100 built in #96, `lab/members.py`; remains: the FTSE 350 and the funds,
       joining the lists' records up, a second source for 2010 to 2014)
       Remains (#638): the FTSE 350's changes, the funds' records and a 2010-2014 second source.
@@ -248,7 +248,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       planted disagreement is a named fault
       Built (#1651): `lab/members.reconcile` joins one FTSE review's announced changes to the page revisions either side; disagreement is a named `Disagreement`; feeds not wired. Also (#1715): `Members.survived` measures the share of a day's members still listed (279 of 500 on 1 Jan 2010). Remains: the fetcher module (FTSE Russell announcements, MediaWiki API; a request to RUNNER in STATUS), the nightly refresh reading members by date; no free source exists for the funds' past members or a second 2010-2014 record, so they stay unmeasured (#1841, #1858).
       Re-carded (runner ops 106, 23 Nov, coordinator 103's D1: the remainder was a new file outside the claim): the fetcher is `lab/members_feed.py`, registered in manifest.toml, its test `tests/unit/test_lab_members_feed.py` on committed fixtures, no network; count lab/ room against BUDGET first
-      Built (#1870, #1885, #1899): `lab/members_feed.py` parses a review's page table and announcement, `fetch_review(page, day, text)` reads the two revisions and hands them to `reconcile`; offline fixtures only; the page side fetched live (#1948, #1962: FTSE 100 and 250 give 100 and 250 tickers; a generic User-Agent, no personal detail). Remains: the FTSE Russell announcement reader (needs a stable free source: lseg.com has none machine-readable), the funds and a 2010-2014 source (no free one), the nightly refresh reading members by date.
+      Built (#1870, #1885, #1899): `lab/members_feed.py` parses a review's page table and announcement, `fetch_review(page, day, text)` reads the two revisions and hands them to `reconcile`; offline fixtures only; the page side fetched live (#1948, #1962: FTSE 100 and 250 give 100 and 250 tickers; a generic User-Agent, no personal detail). Remains: the FTSE Russell announcement reader (needs a stable free source: lseg.com has none machine-readable), the funds and a 2010-2014 source (no free one), the nightly refresh reading members by date (done, #2098: `lab.members_feed.drift`; the unmeasured sources are named in the nightly line, no free feed).
       (widened by runner ops 114, 23 Nov: six runs ended with no change because the nightly wire sits in lab/universe.py; after data-nightly-target, which holds that file now. The bias on verdicts is RUNGS', its request in STATUS)
       Ruled by the desk (23 Nov, his 22 Nov 'nothing parks on him but hard lines'; DECISIONS): build the nightly refresh reading members by date from the free page revisions; a source with no free
       feed (FTSE Russell announcements, the funds, 2010-2014) is named UNMEASURED in the table, never bought (no paid data before profit)
@@ -428,7 +428,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       {id: data-dividends; files: desk/bars.py, tests/unit/test_bars*.py; waits: 2026-11-24}
 - [ ] Survivorship: the research list taken as it stood on each past date, with the names
       that left it, or the bias measured and stated on every verdict (BT-09)
-      Built (#1715, #1750): `Members.survived` and `members.bias(name, day)` give the stated line; not wired into verdicts (a request to RUNGS in STATUS). #1839: `members.bias` answers for every list (FTSE350 and ETFS state "past members not recorded, bias unmeasured", never raise). Remains: FTSE 350 and funds' past members. Waits for RUNGS printing the bias on verdicts (request in STATUS); a box may not name a two-digit id, so no `waits:` note.
+      Built (#1715, #1750): `Members.survived` and `members.bias(name, day)` give the stated line; not wired into verdicts (a request to RUNGS in STATUS). #1839: `members.bias` answers for every list (FTSE350 and ETFS state "past members not recorded, bias unmeasured", never raise). Remains: FTSE 350 and funds' past members. Waits for RUNGS printing the bias on verdicts (request in STATUS; the plan guard refuses two-digit ids here, so the wait stays a date).
       {id: data-survivorship; files: lab/members.py, tests/unit/test_lab_members*.py; waits: 2026-11-24}
 - [ ] UK stamp duty and taxes confirmed line by line, in one table by instrument type
       (NS-05): the table is built and the five London funds confirmed; still owed, the five
