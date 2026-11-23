@@ -307,3 +307,9 @@ the root causes are fixed on main and a full week needs a clean run.
 failing cells); #2021 restores it with a test. Options: start the week sooner, or wait for the date. **Decided** the date,
 recommended (his standing "always go with recommended"): the runner holds the box to that date. Remains: why the job
 stopped 15-21 Nov (no log), held lines from the history database alone.
+
+### 2026-11-23 — catalogue-only rows made into rules inside rulebook (#2104)
+
+A catalogue row with no `desk/eponymous_*.py` twin was refused by `specs()`. Options: make the rule through
+`variants.rule` (takes bracketed names only, outside the claim), or a tiny `SpecRule` subclass in `lab/rulebook.py`.
+**Decided** the subclass, inside the claim. `specs()` keeps an unused `folder` argument for `lab/ladder.py:384`.
