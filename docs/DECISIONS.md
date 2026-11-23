@@ -1784,6 +1784,24 @@ Not done, left in the lane's book: a rule with an author's figure still has its 
 This lane's decisions are in `docs/lanes/money.md`; its scribe writes there (from
 14 November 2026, 21:04) and moves there any entry that lands below.
 
+### 23 Nov - a day's loss never crosses into a new week; the golden run re-pinned (amends R-RUNNER-156)
+
+London refused every buy on Mon 23 Nov 08:13 for "386.17 pounds lost this day", which was
+Friday's loss: `day_parts.standing` took the last record whatever its week, while the week's
+loss already reset on Monday. His words, Mon 23 Nov 09:05: "Reset the loss value asap".
+Decided: the day's loss is the last record of the day's own ISO week, so a Monday opens free
+of Friday and a lost day still stands against the next within the week. Options: (a) only a
+record dated today (coordinator 128), rejected: it turns three tested within-week refusals
+red and loosens the gate (canon A3); (b) the week's last record, chosen (#2005, brought here
+by R-RUNNER-455). Test: `test_a_monday_opens_free_of_fridays_loss_and_a_record_of_today_still_counts`,
+red on main 0f495ec6, green with the fix. The golden run moves (canon B5, the desk approves,
+his 22 Nov ruling): fills 68 -> 64, round trips 34 -> 32, profit over the fixture 1098.41 ->
+61.86, costs 368.78 -> 353.78, market 783.73 unchanged. Why: a week's first day after a losing week is
+no longer barred from buying, so which lines are held, and so every later buy and stop, differs
+from there on; net, four fewer fills (not traced fill by fill). The new figures are the rule's
+true result on the fixture, not a tuning target.
+
+
 ## DATA
 
 This lane's decisions are in `docs/lanes/data.md`; its scribe writes there (from

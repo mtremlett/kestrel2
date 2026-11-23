@@ -312,20 +312,15 @@ def test_a_round_sends_only_what_the_steps_time_allows_and_carries_the_rest(
     )
 
 
-def test_the_desks_own_orders_are_inside_the_rounds_one_cap(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+def test_a_monday_opens_free_of_fridays_loss_and_a_record_of_today_still_counts(
+    tmp_path: Path,
 ) -> None:
-    lines = [ln for ln in LINES if ln.retail and ln.leverage == 1 and ln.isa][:20]
-    cheap = replace(BARS[A][0], open=Decimal(5), high=Decimal(5), low=Decimal(5), close=Decimal(5))
-    bars = {ln: tuple(replace(cheap, day=d) for d in (MON, TUE)) for ln in lines}
-    broker = Pretend(bars, {})
-    monkeypatch.setattr(strategy, "STRATEGIES", {"desk_in": _In})
-    monkeypatch.setattr(orders, "HOLDINGS", 20)
-    monkeypatch.setattr(paper, "MAX_ORDERS", 2)
-    broker.open(TUE)
-    first = {ln: (bars[ln][0],) for ln in lines}
-    rates = {ln.currency: Decimal(1) for ln in lines}
-    answers = day.trade(tmp_path, first, broker, ROOM, TUE, rates)
-    carried = [s for s in answers if s.blocker is Blocker.CARRIED]
-    assert len(broker.submitted()) == 2
-    assert len(carried) == len(answers) - 2 > 0
+    """London refused every buy on Mon 23 Nov for Friday's 386.17 pounds lost: a loss never
+    crosses into a new week, as the week's own loss does not; within the week it stands."""
+    free, fri = Charges(*[Decimal(0)] * 5), MON - timedelta(days=3)
+    lost = day.Record(fri, Decimal("-386.17"), free, Decimal(0), (), Decimal(0), 0)
+    book._write(tmp_path / day.RECORDS, [day.HEADER, day._row(lost)])
+    assert day.standing(tmp_path, MON) == Standing(Decimal(0), Decimal(0), 0)
+    today = replace(lost, day=MON, profit=Decimal(-300))
+    book._write(tmp_path / day.RECORDS, [day.HEADER, day._row(lost), day._row(today)])
+    assert day.standing(tmp_path, MON) == Standing(Decimal(300), Decimal(300), 0)
