@@ -587,3 +587,8 @@ The morning pre-flight line now carries "the email:" ("no SMTP_ setting, his pho
 ### 2026-11-23 — the evening week is the last 7 days; missed winners left out (#1940)
 
 The weekly cost beside net profit reads the records of the last 7 calendar days. Options: Monday-to-Sunday, or last 7 days. Chose last 7 days: the message goes daily and needs no calendar edge. Missed winners are not shown: no record on main holds a signal the desk would have won on and did not take, and a faked one would break canon A5; R-PAPER-41 asks MONEY for the record.
+
+
+### 2026-11-23 — the real side is right on the VHYG buy; the pretend side is asked to follow (#2026)
+
+R-RUNNER-449 from the tapes: the 1-share VHYG market buy (plain DAY MKT) at 08:37 sat unfilled 120 s and was cancelled with 0 filled (trades-london-20261123-0835.csv); at 09:06 the same buy filled within a second at 77.90 (-0906.csv); 19 Nov alike (08:10, 08:35 unfilled, 09:36 filled). Options: (a) lengthen the real wait (rejected: no fill ever came after a cancel); (b) change the real order (rejected: the same order fills at 09:06); (c) leave the real side, ask the pretend broker's owner to leave such a buy unfilled before the hour IBKR fills (chosen, nothing hidden). Only a comment in `desk/paper.py` changed. The hour of first fill (between 08:37 and 09:06) is unmeasured; R-RUNNER-399's one-share probe at 08:45/09:00 would pin it. Request: R-MONEY-72.

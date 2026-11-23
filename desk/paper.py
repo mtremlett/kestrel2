@@ -328,19 +328,24 @@ def _five(fields: list[str]) -> Five:
     return Five(at, opened, high, low, close, int(volume))
 
 
-def newest(
-    line: Line, contract: str, route: str, count: int, door: Door | None = None
-) -> tuple[Five, ...]:
-    """THE READ-ONLY QUESTION OF BARS: the line's newest `count` five-minute bars (the last
-    may still be forming) as the paper gateway gives them, oldest first, trades only, outside
-    regular hours too. contract is the broker's number for the line (desk/listing.py), route
+def bars(
+    line: Line,
+    contract: str,
+    route: str,
+    size: str,
+    seconds: int,
+    read: Callable[[list[str]], T],
+    door: Door | None = None,
+) -> tuple[T, ...]:
+    """THE READ-ONLY QUESTION OF BARS AT ANY SIZE: the line's bars of the last `seconds`, each
+    `size` long ("1 min", "5 mins"; the last may still be forming) as the paper gateway gives
+    them, oldest first, trades only, outside regular hours too, each read from its first six
+    fields by `read`. contract is the broker's number for the line (desk/listing.py), route
     where it is priced. It places nothing, and it dials the paper port alone (`dial`)."""
-    if not 0 < count <= 288:
-        raise ValueError(f"{line.symbol}: {count} bars is not a day of five-minute bars or less")
     asked = (contract, line.symbol, "STK", "", "0.0", "", "", route, "", line.currency, "", "", 0)
-    ask = message(ASK_BARS, 1, *asked, "", "5 mins", f"{count * 300} S", 0, "TRADES", 2, 0, "")
+    ask = message(ASK_BARS, 1, *asked, "", size, f"{seconds} S", 0, "TRADES", 2, 0, "")
 
-    def talk(wire: BinaryIO, send: Send) -> tuple[Five, ...]:
+    def talk(wire: BinaryIO, send: Send) -> tuple[T, ...]:
         start(wire, send, door)
         send(ask)
         while (fields := receive(wire))[:2] != [BARS, "1"]:
@@ -348,9 +353,18 @@ def newest(
         count = fields[4] if len(fields) > 4 else ""  # after the request's number and its span
         if not (count.isascii() and count.isdigit()) or len(fields) != 5 + 8 * int(count):
             raise ValueError(f"bars of a shape the desk does not read: {fields}")
-        return tuple(_five(fields[n : n + 6]) for n in range(5, len(fields), 8))
+        return tuple(read(fields[n : n + 6]) for n in range(5, len(fields), 8))
 
     return dial(talk)
+
+
+def newest(
+    line: Line, contract: str, route: str, count: int, door: Door | None = None
+) -> tuple[Five, ...]:
+    """The line's newest `count` five-minute bars: `bars` at that size."""
+    if not 0 < count <= 288:
+        raise ValueError(f"{line.symbol}: {count} bars is not a day of five-minute bars or less")
+    return bars(line, contract, route, "5 mins", count * 300, _five, door)
 
 
 def named(
