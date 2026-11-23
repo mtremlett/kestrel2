@@ -1,45 +1,34 @@
 """supervisor - THE DESK'S OWN PROCESSES, KEPT ALIVE BY ONE SUPERVISOR. Everything the desk
-runs unattended is a job on one register (JOBS): its name, the module that is its program,
-how often it is due and how long it may take. The one supervisor (`supervise`) looks every
-few seconds and runs each job that is due, one at a time, each in a process of its own in a
-window nobody sees. It remembers nothing: a job is due when its last receipt began its own
-interval ago, so a supervisor started again, after a kill or a reboot, simply carries on.
+runs unattended is a job on one register (JOBS): its name, its program's module, how often it
+is due and how long it may take. The one supervisor (`supervise`) looks every few seconds and
+runs each job that is due, one at a time, each in a hidden process of its own. It remembers
+nothing: a job is due when its last receipt began its own interval ago, so a supervisor started
+again, after a kill or a reboot, simply carries on.
 
 ONE OF EACH, held by the system and not by a note in a file. The supervisor holds a lock in
-the desk's root for its whole life, and so does each job's process (`work`). The system lets
-go of a lock when its process is gone, however it went. So a second supervisor leaves at
-once; and a job left running by a supervisor that was killed is never joined by a second of
-the same job: the next is refused, and its receipt says so, until that one has ended. A
-job's process ends itself at its time limit, with nobody there to kill it (all but one stuck
-where Python itself cannot run: only the supervisor that started it can kill that).
+the desk's root for its whole life, and so does each job's process (`work`); the system lets
+go of a lock when its process is gone, however it went. So a second supervisor leaves at once,
+and a job left running by a killed supervisor is never joined by a second of the same job: the
+next is refused, with a receipt, until that one has ended. A job ends itself at its time limit.
 
-A DATED RECEIPT for every run the supervisor sees end: the job, when it began and ended, and
-how: done, or the code it ended with and its last words, or that it ran to its time limit.
-A job that fails is run again when next due and not before. The supervisor dials nothing, so
-a dropped network or a lost broker is one bad receipt after another, and then a good one.
-
-HEALTH IS JUDGED FROM OUTSIDE (`health`), by the receipts alone, by whoever asks: a job with
-no receipt in the time one must come is not being run (the supervisor is dead, or stuck), and
-a job whose last runs ended badly is named with how. No job registered is itself not well.
+A DATED RECEIPT for every run the supervisor sees end: the job, when it began and ended, and how
+it ended. HEALTH (`health`) is judged from outside, by the receipts alone: a job with none in
+the time one must come is not being run, and one whose last runs ended badly is named.
 
 THE LEDGER OF WHAT HE DID (`acted`): each thing the operator does for the desk is written
-here by whoever does or sees it. `unattended` measures how long the desk has run without
-him: back to the last thing he did other than the paper Gateway's weekly login (his by
-ruling, docs/DECISIONS.md), or to the last hour in which some job had no run that ended
-well, whichever is the later. A desk not running proves nothing. Seven days are owed (NS-01).
+here. `unattended` measures how long the desk has run without him: back to his last act other
+than the Gateway's weekly login (his by ruling), or to the last hour in which some job had no
+run that ended well. Seven days are owed (NS-01).
 
-TOLD (`tell`): what `health` finds goes to his phone through the messenger's one door, under
-a name of the UTC hour, so a fault is told once an hour and never in a storm. Run from outside
-the supervisor (whatever Windows starts beside it), so a dead supervisor is still told.
+TOLD (`tell`): what `health` finds goes to his phone through the messenger's one door, once an
+hour, run from outside the supervisor so a dead supervisor is still told.
 
-ON MAIN'S LATEST CODE, AT A SAFE POINT (OPS-05, OPS-16). Each look, before any job is run, the
-supervisor takes every job's lock (so none is mid-send, not even one a dead supervisor left),
-pulls main into the desk's code folder (`pull`, fast-forward only), and lets go. A job is a
-fresh process, so the next run is the new code; a supervisor whose own file changed leaves,
-and whatever started it starts it again. A pull that fails is a receipt of the job "update"
-and the old code runs on.
+ON MAIN'S LATEST CODE, AT A SAFE POINT (OPS-05, OPS-16). Each look, with every job's lock held,
+the supervisor pulls main (`pull`, fast-forward only); a supervisor whose own file changed
+leaves, to be started again. A failed pull is a receipt of the job "update"; old code runs on.
 
-Not built (docs/STATUS.md): the supervisor's own start, and `tell`'s, by Windows."""
+WINDOWS STARTS BOTH (`install`): two tasks, the supervisor at boot and `tell` every hour, made
+by `schtasks` once, from a console he has opened as administrator. Run again, it replaces them."""
 
 from __future__ import annotations
 
@@ -90,7 +79,8 @@ BADLY = "The desk's {} has not ended well since {:%a %d %b %H:%M} UTC ({} in a r
 ALONE = "The desk has run {} days {} hours without him: {} days are owed (NS-01)."
 NL = chr(10)  #: one fault to a line
 LOGIN = "the paper Gateway's weekly login"
-USAGE = "python -m desk.supervisor run|health|tell|login ROOT | acted ROOT WHAT HE DID"
+USAGE = "python -m desk.supervisor run|health|tell|login|install ROOT | acted ROOT WHAT HE DID"
+TASKS = (("KestrelSupervisor", "ONSTART", "run"), ("KestrelTell", "HOURLY", "tell"))  #: Windows'
 Clock = Callable[[], datetime]
 _now: Clock = partial(datetime.now, UTC)
 
@@ -381,6 +371,18 @@ def supervise(
             wait(LOOK)
 
 
+def install(root: Path, python: str = sys.executable) -> list[list[str]]:
+    """The `schtasks` call for each of Windows' two tasks, made and returned; a failure raises."""
+    head = ["schtasks", "/Create", "/F", "/SC"]
+    calls = [
+        [*head, when, "/TN", name, "/TR", f'"{python}" -m desk.supervisor {w} "{root}"']
+        for name, when, w in TASKS
+    ]
+    for call in calls:
+        subprocess.run(call, check=True, capture_output=True)  # noqa: S603 - fixed words, his root
+    return calls
+
+
 def main(argv: Sequence[str], clock: Clock = _now) -> int:
     """THE COMMAND LINE (USAGE). run: the supervisor, which leaves at once and without fault
     when another is alive. health: what is wrong and how long the desk has run without him,
@@ -410,8 +412,8 @@ def main(argv: Sequence[str], clock: Clock = _now) -> int:
             )
         case ["acted", root, *words] if words:
             acted(Path(root), clock(), " ".join(words))
-        case ["login", root]:
-            acted(Path(root), clock(), LOGIN)
+        case ["login" | "install" as word, root]:
+            install(Path(root)) if word == "install" else acted(Path(root), clock(), LOGIN)
         case _:
             raise SystemExit(USAGE)
     return 0
