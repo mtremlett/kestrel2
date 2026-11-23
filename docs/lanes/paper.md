@@ -579,3 +579,11 @@ Wired in `running._say`, the one place daily messages go, before the evening mes
 ### 2026-11-23 — only the 05:40 card moves earlier, not his waking hour (#1864)
 
 MORNING starts 05:40 (the plan's time). Options: move the whole "awake" gate to 05:40, or only the card (chosen, so the account check, notes and weekly reminders never reach him before 08:00; `running.py` reads `gateway.WAKES`, not `MORNING.start`).
+
+### 2026-11-23 — an unset email door is READY, not NOT READY (#1925)
+
+The morning pre-flight line now carries "the email:" ("no SMTP_ setting, his phone alone" or "its settings are set"; a partial set is refused by name at start-up). Options: ready-with-note, or not-ready. Chose ready-with-note: the phone is a working door and email is only the fallback, so a desk without SMTP is not blocked from trading.
+
+### 2026-11-23 — the evening week is the last 7 days; missed winners left out (#1940)
+
+The weekly cost beside net profit reads the records of the last 7 calendar days. Options: Monday-to-Sunday, or last 7 days. Chose last 7 days: the message goes daily and needs no calendar edge. Missed winners are not shown: no record on main holds a signal the desk would have won on and did not take, and a faked one would break canon A5; R-PAPER-41 asks MONEY for the record.
