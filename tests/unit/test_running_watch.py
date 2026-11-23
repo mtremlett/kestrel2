@@ -3,7 +3,7 @@ the daily bars, and London's morning round waits for the market's first bar."""
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, time, timedelta
 from decimal import Decimal
 from pathlib import Path
 from unittest.mock import Mock
@@ -17,6 +17,7 @@ from test_running import FLAT_, _desk, _step
 
 from desk import book, clearance, halt, paper, placing, running, watch
 from desk.bars import Five, writing
+from desk.conformance_tape import STARTS
 from desk.lines import YARDSTICK
 
 
@@ -26,6 +27,7 @@ def test_every_step_looks_at_the_market_first_and_london_waits_for_its_first_bar
     desk, post = _desk(tmp_path, IITU=FLAT_)
     look = Mock(wraps=watch.look)
     monkeypatch.setattr(watch, "look", look)
+    monkeypatch.setitem(STARTS, "LSE", time(8, 0))  # the first bar's own rule, apart from 09:00
     none: Said = [END]
     open_ = datetime(2026, 12, 1, 8, 5, tzinfo=UTC)  # the fast store holds no bar of this day
     # the market is unheard of at 08:05: the look says wait, and no round of orders is begun

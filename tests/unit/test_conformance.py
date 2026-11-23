@@ -341,12 +341,12 @@ def test_the_why_read_gives_each_cancelled_order_its_reason_but_not_in_a_desk_ro
 ) -> None:
     _world(monkeypatch)
     env = {"KESTREL2_DATA": str(tmp_path)}
-    for now in (MON.replace(hour=8, minute=15), MON.replace(hour=14, minute=45), MON):
+    for now in (MON.replace(hour=9, minute=15), MON.replace(hour=14, minute=45), MON):
         asked = conformance.main(["--conformance-why"], env, _at(now))
         assert asked == (now.hour != 10)
     assert set(SEEN) == {223}  # read as the conformance desk, never the desk's 222
     first, second, said = capsys.readouterr().out.strip().split(chr(10), 2)
-    assert "not read now" in first + second  # 08:15 and 14:45 are a desk round's
+    assert "not read now" in first + second  # 09:15 and 14:45 are a desk round's
     assert said == f"{NO}: {WHY[NO]}{chr(10)}{ID.format(1)}: {conformance.GIVEN}"
 
 

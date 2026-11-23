@@ -20,6 +20,7 @@ from desk.orders import is_zoo
 from desk.rollup import Candle
 from desk.store import Bar
 from desk.strategy import Action
+from desk.watch import Look
 
 
 class _Flip:
@@ -99,3 +100,10 @@ def test_an_intraday_buy_gets_the_daily_buys_refusals(
     buy = intraday.IntradayDecision("flip", "VUAG", at, Action.BUY)
     said = running._order(desk, desk.room, buy, line, "id", Decimal(40), held)  # type: ignore[arg-type]
     assert isinstance(said, str) and "not sent" in said and words in said
+
+
+def test_londons_round_waits_for_its_dead_window_to_pass(tmp_path: Path) -> None:
+    """R-RUNNER-453: orders sent before 09:00 UK never filled; the round begins at 09:00."""
+    look = Look(MON, (), {})
+    assert running._pending(tmp_path, MON.replace(hour=8, minute=10), look) == []
+    assert running._pending(tmp_path, MON.replace(hour=9, minute=5), look) == ["LSE"]

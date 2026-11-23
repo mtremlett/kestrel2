@@ -22,8 +22,8 @@ def test_two_rounds_of_a_day_send_distinct_ids_and_both_are_recorded_and_a_desk_
     ids = [path.read_text(encoding="utf-8") for path in (first, second)]
     assert "conf1lse1005" in ids[0] and "conf1lse1105" in ids[1]
     assert "conf1lse1105" not in ids[0] and "conf1lse1005" not in ids[1]
-    assert _run_soak(tmp_path, MON.replace(hour=8, minute=10), "london") == 0
-    assert "a desk round runs 08:00-08:30" in capsys.readouterr().out.splitlines()[-1]
+    assert _run_soak(tmp_path, MON.replace(hour=9, minute=10), "london") == 0
+    assert "a desk round runs 08:00-09:30" in capsys.readouterr().out.splitlines()[-1]
     with (tmp_path / "conformance" / conformance_tape.LEDGER).open(encoding="utf-8") as kept:
         rows = list(csv.reader(kept))
     assert [row[0] for row in rows[1:]][:2] == [

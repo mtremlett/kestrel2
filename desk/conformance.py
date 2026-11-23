@@ -157,7 +157,7 @@ def why(now: datetime) -> tuple[bool, str]:
     in a desk round's hours."""
     door = paper.Door(CLIENT)
     if tape.round_at(now, 0):
-        return False, "CONFORMANCE WHY: not read now, a desk round runs 08:00-08:30 and 14:30-15:00"
+        return False, "CONFORMANCE WHY: not read now, a desk round runs 08:00-09:30 and 14:30-15:00"
     said = [f"{ref}: {words or GIVEN}" for ref, words in reasons(door).items()]
     return True, "\n".join(said) or "CONFORMANCE WHY: no order was cancelled today"
 
@@ -170,7 +170,7 @@ def _barred(
     if hours is None or now >= hours.close or not venues.sessions(refused.venue, today, today):
         return True, NOTHING.format(market, f"{VENUES[venue]} is shut, or the rejection's market")
     if tape.round_at(now, tape.LEAD):
-        return True, NOTHING.format(market, "a desk round runs 08:00-08:30 and 14:30-15:00")
+        return True, NOTHING.format(market, "a desk round runs 08:00-09:30 and 14:30-15:00")
     known, killed = (
         gateway.known(now, door=door),
         book.killed(root) or book.killed(root.parent / command.ROOT),

@@ -63,6 +63,7 @@ from desk import (
     watch,
 )
 from desk.book import Switch
+from desk.conformance_tape import STARTS
 from desk.gateway import Known, State
 from desk.lines import LINES, YARDSTICK, Line
 from desk.listing import Listing, Unlisted
@@ -174,6 +175,7 @@ def _pending(root: Path, now: datetime, seen: watch.Look | None, once: bool = Tr
         venue
         for venue, hours in trading.items()
         if hours and now < hours.close and not (once and ORDERS.format(venue) in done)
+        if venues.uk_time(now).time() >= STARTS[venue]
         if not (venue == YARDSTICK.venue and seen.unread.get(YARDSTICK) == watch.EARLY)
     ]
 
