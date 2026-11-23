@@ -688,3 +688,6 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 ### 2026-11-23 - Double 7's handed to RUNGS (#1941, money-small)
 - Options: keep money-connors7 on MONEY and raise the desk/ ceiling, or hand it to RUNGS. Handed over: MONEY's branch cannot edit the RUNGS files (lab/published_epon.py and its test) and desk/ is full, so it waits on R-RUNGS-10 and is re-carded there, per his standing "always go with recommended".
 - The TRD-10 expected-gain flag stays uncalled: a Decision has no expected gain, so calling `orders.thin` would invent one. A strategy-side source needs a design decision first.
+
+### 2026-11-23 - Step cap read from paper; alias kept (#1973)
+- Options: edit desk/simcity_incidents.py (held, not MONEY's; refused) so `day.STEP_SECONDS` can go at once, or keep `day.STEP_SECONDS` as an alias of `paper.STEP_SECONDS` until PAPER's file reads paper's. Alias kept; day.py's own STEP_MARGIN and MAX_ORDERS are deleted (one home each, in paper). R-MONEY-70 asks PAPER to change the reader, then the alias goes.
