@@ -29,6 +29,7 @@ from desk import (
     halt,
     history,
     keeper,
+    lines,
     listing,
     messenger,
     paper,
@@ -79,7 +80,7 @@ def _world(patch: pytest.MonkeyPatch, fetch: Fetch = _fetch) -> dict[bytes, Said
     #: IBKR's answer for the pound, by default none: the gateway of the day says it was not asked
     ibkr = {command.POUND: Refused("the broker was not asked")}
     patch.setattr(
-        history, "daily", lambda _now, **_kw: lambda lines, _day: {n: ibkr[n] for n in lines}
+        history, "daily", lambda _now, **_kw: lambda held, _day: {n: ibkr[n] for n in held}
     )
 
     def saved(home: Path, day: date) -> tuple[dict[Line, tuple[Bar, ...]], set[str]]:
@@ -349,3 +350,8 @@ def test_the_evening_summary_goes_by_email_once_when_the_desk_has_a_mail_door(
         running._say(replace(desk, mail=mail), moment, running.UNASKED)
     (call,) = mail.call_args_list
     assert call.args[0].startswith("Kestrel desk: summary")
+
+
+def test_the_commands_pound_band_is_the_masters_and_holds_2007s_two_dollars() -> None:
+    assert command.DOLLARS is lines.DOLLARS
+    assert command.DOLLARS[0] < Decimal("2.05") < command.DOLLARS[1]

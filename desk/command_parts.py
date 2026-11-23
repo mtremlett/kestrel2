@@ -11,10 +11,10 @@ from pathlib import Path
 
 from desk import keeper
 from desk.keeper import Broker
+from desk.lines import DOLLARS as DOLLARS
 from desk.lines import POUND as POUND
 from desk.paper import Account, Apart
 
-DOLLARS = (Decimal(1), Decimal(2))  #: the ladder's band for a pound close (desk.lines has its own)
 POUND_LOG = "pound.log"  #: the log the preflight reads
 
 
