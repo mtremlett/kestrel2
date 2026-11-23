@@ -50,6 +50,8 @@ GAP_LOSS = Decimal("0.05")
 #: SIZ-10, the one home (R-MONEY, docs/DECISIONS.md): no position above this share of its line's
 #: traded value over the last TRADED_DAYS sessions, so the desk never is the market.
 LIQUIDITY = Decimal("0.01")
+#: a trade whose expected gain is under this many times its round-trip cost is flagged (TRD-10).
+THIN_GAIN = 2
 TRADED_DAYS = 20
 
 
@@ -247,6 +249,19 @@ def size(
 def traded_value(bars: Sequence[Bar], fx: Decimal) -> Decimal:
     """The pounds a line traded over its last TRADED_DAYS bars, each at its close, at fx."""
     return sum((b.close * b.volume for b in bars[-TRADED_DAYS:]), Decimal(0)) * fx
+
+
+def thin(order: Order, expected_gain: Decimal) -> bool:
+    """TRD-10: whether a buy's expected gain, in pounds, is under THIN_GAIN times its round trip,
+    the buy and the sale of its shares at its price with every cost of the one model (charges)."""
+    trip = sum(
+        (
+            charges(order.line, leg, order.quantity, order.price, order.fx).total
+            for leg in (Leg.BUY, Leg.SALE)
+        ),
+        Decimal(0),
+    )
+    return expected_gain < THIN_GAIN * trip
 
 
 def gap_loss(order: Order, fill: Decimal) -> Decimal:

@@ -201,3 +201,18 @@ def test_no_position_is_above_a_hundredth_of_the_twenty_day_traded_value() -> No
     big = replace(orders.size(_buy(PLAIN), PLAIN, one, one, TEN_K, {}), quantity=201)
     with pytest.raises(orders.Refused, match="over 1%"):
         orders.gate(big, TEN_K, {}, traded=traded)
+
+
+def test_a_trade_whose_expected_gain_is_under_twice_its_round_trip_cost_is_flagged() -> None:
+    order = orders.Order(
+        "o", DOLLAR, 100, Decimal(10), Decimal(1), Decimal(9), session=date(2026, 1, 5)
+    )
+    trip = sum(
+        (
+            orders.charges(DOLLAR, leg, 100, Decimal(10), Decimal(1)).total
+            for leg in orders.Leg.BUY.__class__
+            if leg is not orders.Leg.STOP
+        ),
+        Decimal(0),
+    )
+    assert orders.thin(order, 2 * trip - Decimal("0.01")) and not orders.thin(order, 2 * trip)
