@@ -30,10 +30,11 @@ Still owed: the FTSE 350 and the funds, a list this desk measured itself on one 
 for either, `on` refuses. The FTSE's free route is two sources joined by `reconcile`: a
 quarterly review's announced joiners and leavers, and the members of the page's revision
 either side of it; where they differ the fault is named, never guessed.
-The fetching of both (FTSE Russell's announcements, the MediaWiki API) is a module of its
-own, not yet written. No free source is known for the funds' past members (an ETF
-publishes today's holdings, not its history) nor for a second 2010-2014 record of the
-S&P 500 and Nasdaq 100 (the index owners' archives are paid): both stay unmeasured."""
+The MediaWiki side is read by `lab/members_feed.py` (fixtures only, no review fetched yet;
+FTSE Russell's announcement text has no reader). No free source is known for the funds'
+past members (an ETF publishes today's holdings, not its history) nor for a second
+2010-2014 record of the S&P 500 and Nasdaq 100 (the index owners' archives are paid): both
+stay unmeasured."""
 
 from __future__ import annotations
 
