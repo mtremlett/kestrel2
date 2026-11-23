@@ -331,8 +331,8 @@ def _strangers(
 ) -> list[book.Sent]:
     """THE POSITIONS THE DESK DID NOT MAKE (TRD-06): each is named (told, and on the morning's
     list when it cannot be sold), taken into the book at its line's last close, and sold at the
-    market, answered like any sale: the round's first answers, under its one cap (_send). A name
-    in no line of the desk's is left for a hand."""
+    market, answered like any sale, the round's first, under its one cap. A name in no line of
+    the desk's is left for a hand."""
     lines, found = {line.symbol: line for line in archive}, dict(book.strangers(root, broker))
     sold = list[book.Sent]()
     listed = halt.morning(root, day).values() if halt.stopped(root, day) is not None else ()
@@ -435,10 +435,10 @@ def _send(
 ) -> book.Sent:
     """Send through the one door; its refusal is the order's answer, kept with the day's
     under the blocker the send path names; one it does not name is the broker's own door's.
-    THE ROUND'S ONE CAP (R-RUNNER-456): once the round's answers so far (round_) asked the
-    broker paper.MAX_ORDERS times (_asked), the order is carried instead, its intent and chain
-    kept by its caller as for any answer: not sent today, on the morning's list (pattern 24)."""
-    if sum(map(_asked, round_)) >= paper.MAX_ORDERS:
+    THE ROUND'S ONE CAP (R-RUNNER-456): once its answers (round_) asked the broker MAX_ORDERS
+    times (filled or refused there; a gate, halt, kill, book or carry takes none), the order is
+    carried, its caller keeping its intent and chain: not sent today, on the morning's list."""
+    if sum(a.blocker in (None, Blocker.BROKER) for a in round_) >= paper.MAX_ORDERS:
         words = f"{order.order_id}: not sent today, the round's {paper.MAX_ORDERS} orders spent"
         return book.Sent(order.order_id, 0, f"{words} (the step's time)", Blocker.CARRIED)
     try:
@@ -448,12 +448,6 @@ def _send(
     except Refused as refused:
         sent = book.Sent(order.order_id, 0, str(refused), Blocker.BROKER)
     return replace(sent, asked=order.quantity)
-
-
-def _asked(answer: book.Sent) -> bool:
-    """Whether an answer took one of the round's slots: the broker was asked. An order the gate,
-    a halt, the kill switch or the book stopped, or one carried, took none."""
-    return answer.blocker in (None, Blocker.BROKER)
 
 
 def _sold(root: Path, day: date, zoo: bool) -> set[str]:
@@ -486,9 +480,8 @@ def _yields(
             zoo = order_id_of(Decision(holder, symbol, on, Action.SELL))
             sale = Sale(zoo, lines[symbol], held[symbol], session=on)
             made = book.intend(root, zoo, (holder, symbol, on), archive[sale.line][-1])
-            answer = _answer(
-                root, day, _send(root, broker, sale, settings, tell, None, round_=sold)
-            )
+            sent = _send(root, broker, sale, settings, tell, None, round_=sold)
+            answer = _answer(root, day, sent)
             book.chain(root, made, answer)
             sold.append(answer)
 
