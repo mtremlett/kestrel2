@@ -80,15 +80,17 @@ def _spells(record: members.Record, line: Line) -> list[tuple[date, date]]:
     return spells + ([(open_from, END)] if open_from is not None else [])
 
 
+def _names(record: members.Record, line: Line) -> bool:
+    """Whether the list's record names the line, today or in its changes."""
+    return any(t.venue == line.venue for t in record.today) and line.symbol in (
+        {t.symbol for t in record.today} | {c.symbol for c in record.changes}
+    )
+
+
 def window(line: Line, records: Mapping[str, members.Record]) -> tuple[date, date] | None:
     """The days a line was a member of any list that names it, as one window: its longest
     run of membership. None when no list's record names the line: it is traded as it is."""
-    named = [
-        r
-        for r in records.values()
-        if any(t.venue == line.venue for t in r.today)
-        and line.symbol in {t.symbol for t in r.today} | {c.symbol for c in r.changes}
-    ]
+    named = [r for r in records.values() if _names(r, line)]
     if not named:
         return None
     runs = sorted(run for r in named for run in _spells(r, line))
@@ -102,6 +104,15 @@ def window(line: Line, records: Mapping[str, members.Record]) -> tuple[date, dat
     return max(merged, key=lambda w: w[1] - w[0]) if merged else never
 
 
+def _bias(line: Line, first: date, records: Mapping[str, members.Record]) -> str:
+    """A line's survivorship note: `members.bias` of the first list naming it, from its first
+    day; a line no list names says it is not corrected."""
+    for name, record in records.items():
+        if _names(record, line):
+            return members.bias(name, max(first, members.FIRST))  #: a record starts at FIRST
+    return NOT_CORRECTED
+
+
 def survivors(
     rules: Sequence[str], lines: Sequence[Line], records: Mapping[str, members.Record]
 ) -> tuple[tuple[Cell, ...], tuple[str, ...]]:
@@ -109,10 +120,12 @@ def survivors(
     line saying whether its survivorship was corrected. A line the lists never named is traded
     over the whole window and its note says so; a line that was never a member is left out."""
     windows = {line: window(line, records) for line in lines}
-    notes = tuple(
-        f"{line.symbol} ({line.venue}): {NOT_CORRECTED}" for line in lines if windows[line] is None
-    )
     spans = {line: windows[line] or (START, END) for line in lines}
+    notes = tuple(
+        f"{line.symbol} ({line.venue}): " + _bias(line, spans[line][0], records)
+        for line in lines
+        if spans[line][0] <= spans[line][1]
+    )
     cells = tuple(
         Cell(rule, line, *spans[line])
         for rule in rules
