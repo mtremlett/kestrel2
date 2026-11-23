@@ -6,13 +6,12 @@ THE DAILY BARS of a venue's lines, cleaned by the one store, at the first call b
 once its session is over and SETTLED has passed (`target`). IBKR is asked first, ROOM lines a call
 (`history.daily`, R-RUNNER-276, his ruling of 17 November); the archive fills what it gives none,
 each line's newest bar named by its source, a close the two differ on recorded and the broker's
-held. A record says what was held and who is parked; the door (`saved`) reads no bars it does not
-cover. A line refused, or the broker not asked, is asked again; one parked, for TRIES calls.
+held. A line refused, or the broker not asked, is asked again; one parked, for TRIES calls.
 
 THE FIVE-MINUTE ROUND, in each venue's hours, comes from IBKR's paper gateway alone (`live`); the
-archive only fills past gaps. THE REFERENCE SERIES (SPY, the pound in dollars) are kept once a day
-after the US close. A venue with no line answered or clean is a miss (exit 1), as is a line whose
-newest daily bar is older than its venue's last settled session (`stale`)."""
+archive only fills past gaps. THE REFERENCE SERIES (SPY, the pound in dollars) are kept daily after
+the US close. A venue with no line answered or clean is a miss (exit 1), as is a line whose newest
+daily bar is older than its venue's last settled session (`stale`)."""
 
 from __future__ import annotations
 
@@ -48,8 +47,7 @@ ROOM = 6  #: lines one call asks the broker for, per venue: at its pacing, two v
 TRIES = 6  #: the calls at which a line parked for a fault is asked again (half an hour)
 SPENT = 150.0  #: seconds of a call in which the archive is still asked (runner: 240)
 DAY = timedelta(days=1)
-#: IBKR's polled one-minute bars, tickers per interval: (floor, ceiling) at 5, 15 and 60 minutes.
-#: The floor is guaranteed; the ceiling is reached only as far as the paper port's ramp allows.
+#: IBKR's polled one-minute bars, tickers per interval (floor kept, ceiling by ramp).
 POLLED = {5: (27, 270), 15: (81, 810), 60: (324, 3240)}
 STEP = 1.25  #: the ramp's rise each clean round
 
@@ -62,8 +60,7 @@ def pace(minutes: int, rate: int, refusals: int) -> int:
 
 
 def polled(home: Path, now: datetime, minutes: int, ask: keeper_live.Minutes) -> str:
-    """One `--polled <minutes>` run: the round at the kept rate (the floor at first), the next rate
-    kept beside the data by keeper.pace from its pacing refusals; the round's words."""
+    """One `--polled <minutes>` run at the kept rate (floor first); keeps pace()'s next rate."""
     kept = home / f"polled_{minutes}.rate"
     rate = int(kept.read_text()) if kept.is_file() else POLLED[minutes][0]  # bounded: one integer
     words, _, refusals = keeper_live.polled_round(home / HOT, LINES, now, ask, minutes, rate)
@@ -85,8 +82,7 @@ class Stale(LookupError):
 
 
 def target(venue: str, now: datetime) -> date:
-    """The day a venue's bars are readied for: today until its session is over and SETTLED has
-    passed, else tomorrow."""
+    """The day a venue's bars are readied for: today until its session is settled, else tomorrow."""
     day = now.date()
     trades = venues.sessions(venue, day, day) == (day,)
     return day if trades and now < venues.hours(venue, day).auction + SETTLED else day + DAY
@@ -123,9 +119,8 @@ def _dropped(kept: Sequence[Bar], *answers: store.Answer | None) -> set[date]:
 
 
 def _standing(hot: Path, line: Line, day: date, broker: store.Answer | None) -> store.Answer | None:
-    """The bars that stand first for a line: the broker's if it gave any this call, else the days
-    of its window the store already holds, so a call that did not ask the broker leaves its bars
-    as they are and the archive restates none (R-RUNNER-341)."""
+    """The bars standing first: the broker's if given, else the window the store holds, so a call
+    that did not ask the broker restates none (R-RUNNER-341)."""
     if isinstance(broker, list | tuple):
         return broker
     try:
@@ -141,8 +136,7 @@ def _kept_in(
     first: Mapping[Line, store.Answer],
     standing: bool = True,
 ) -> tuple[list[Parked], tuple[str, ...]]:
-    """The answers judged by the one store and kept as one round, whole; the lines parked, and in
-    words each source of a newest bar and each close the broker and the archive differ on."""
+    """Answers judged by the one store, kept as one round: lines parked, sources in words."""
     parked, rates, named, said = [], pound_closes(hot), dict[str, list[str]](), []
     with bars.writing(hot) as round_:
         for line, answer in answers.items():
@@ -158,8 +152,7 @@ def _kept_in(
 
 
 def _due(last: Kept | None, lines: Sequence[Line], now: datetime) -> tuple[list[Line], int]:
-    """The lines asked on this call, and its number: all on a first call of a date, else those
-    refused, not asked, or parked (a parked one for TRIES calls)."""
+    """The lines asked on this call and its number: all on a date's first, else those still owed."""
     if last is None or last.at.date() != now.date():
         return list(lines), 1
     again = last.refused
@@ -376,9 +369,8 @@ def keep(
 
 
 def main(home: Path, now: datetime, args: Sequence[str] = (), broker: Broker | None = None) -> int:
-    """THE COMMAND: what was done, a line each; a miss on stderr, and exit 1. `--live`: one run of
-    one-minute bars; `--polled 5|15|60`: a polled round at its ramp; `--roll`: the live day
-    copied to the long database."""
+    """THE COMMAND: what was done, a line each; a miss on stderr, and exit 1. `--live`: one-minute
+    bars; `--polled 5|15|60`: a ramped round; `--roll`: the live day copied to the long database."""
     missed: list[str] = []
     if args == ["--roll"]:
         done = [keeper_live.roll(home / HOT)]
