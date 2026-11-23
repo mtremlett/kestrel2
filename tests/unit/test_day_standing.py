@@ -189,7 +189,7 @@ def test_currency_and_interest_are_read_back_unchanged_and_older_files_still_rea
     )
     book._write(tmp_path / day.RECORDS, [day.HEADER, *(day._row(r) for r in (kept, both))])
     assert day.records(tmp_path) == (kept, both)
-    old = [n for n in day.HEADER if n not in ("currency", "interest")]
+    old = [*day.HEADER[:11], *day.HEADER[13:]]  #: the header written before FX, by place
     rows: list[Sequence[object]] = [old, [*day._row(kept)[:11], *day._row(kept)[13:]]]
     book._write(tmp_path / day.RECORDS, rows)
     assert day.records(tmp_path) == (kept,)
