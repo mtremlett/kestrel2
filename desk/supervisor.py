@@ -372,10 +372,10 @@ def supervise(
 
 
 def install(root: Path, python: str = sys.executable) -> list[list[str]]:
-    """The `schtasks` call for each of Windows' two tasks, made and returned; a failure raises."""
-    head = ["schtasks", "/Create", "/F", "/SC"]
+    """Windows' two tasks made by `schtasks`, each first moving into CODE."""
+    run = f'cmd /c cd /d "{CODE}" && "{python}" -m desk.supervisor'
     calls = [
-        [*head, when, "/TN", name, "/TR", f'"{python}" -m desk.supervisor {w} "{root}"']
+        ["schtasks", "/Create", "/F", "/SC", when, "/TN", name, "/TR", f'{run} {w} "{root}"']
         for name, when, w in TASKS
     ]
     for call in calls:
