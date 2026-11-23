@@ -330,9 +330,8 @@ def _strangers(
     tell: book.Tell | None,
 ) -> list[book.Sent]:
     """THE POSITIONS THE DESK DID NOT MAKE (TRD-06): each is named (told, and on the morning's
-    list when it cannot be sold), taken into the book at its line's last close, and sold at the
-    market, answered like any sale, the round's first, under its one cap. A name in no line of
-    the desk's is left for a hand."""
+    list when it cannot be sold), booked at its line's last close, sold at the market as the
+    round's first sales, under its one cap. A name in no line of the desk's is left for a hand."""
     lines, found = {line.symbol: line for line in archive}, dict(book.strangers(root, broker))
     sold = list[book.Sent]()
     listed = halt.morning(root, day).values() if halt.stopped(root, day) is not None else ()
@@ -435,9 +434,8 @@ def _send(
 ) -> book.Sent:
     """Send through the one door; its refusal is the order's answer, kept with the day's
     under the blocker the send path names; one it does not name is the broker's own door's.
-    THE ROUND'S ONE CAP (R-RUNNER-456): once its answers (round_) asked the broker MAX_ORDERS
-    times (filled or refused there; a gate, halt, kill, book or carry takes none), the order is
-    carried, its caller keeping its intent and chain: not sent today, on the morning's list."""
+    THE ROUND'S ONE CAP (R-RUNNER-456): once the round's answers asked the broker MAX_ORDERS
+    times (filled or refused there; nothing else counts), the order is CARRIED, not sent."""
     if sum(a.blocker in (None, Blocker.BROKER) for a in round_) >= paper.MAX_ORDERS:
         words = f"{order.order_id}: not sent today, the round's {paper.MAX_ORDERS} orders spent"
         return book.Sent(order.order_id, 0, f"{words} (the step's time)", Blocker.CARRIED)
@@ -468,10 +466,9 @@ def _yields(
     archive: Mapping[Line, Sequence[Bar]],
     sold: list[book.Sent],
 ) -> None:
-    """THE ZOO YIELDS (his 22 Nov ruling): a line a rule of the desk's buys today that a zoo rule
-    holds is sold out of the zoo first, under the zoo rule's own id, so the desk's five trade as
-    if the zoo were not there, each answer intended, chained and added to the round's (sold) as
-    any sale's is (told: the day and its teller). No zoo holding: none."""
+    """THE ZOO YIELDS (his 22 Nov ruling): a line a desk rule buys today that a zoo rule holds is
+    sold out of the zoo first, under the zoo rule's id, so the desk's five trade as if it were not
+    there; each sale intended, chained and added to the round's (sold); told: day and teller."""
     (day, tell), lines = told, {line.symbol: line for line in archive}
     held, holders = book.positions(root), _holders(root)
     wanted = {d.symbol: d.day for d in decided if d.action is Action.BUY and d.symbol in held}
