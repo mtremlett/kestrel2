@@ -542,6 +542,6 @@ then the break was removed:
 - A spec's size is optional and never ranged (no `lab.variants` change). Options: required (breaks every catalogue row, outside the claim) or optional. Took optional; a row without one is sized as today.
 - Runner ops' ruling, taken for him by his standing ruling ("please always go with recommended to avoid waiting for me to attend"): rungs-pound-gap's claim gap needs lab/ladder_sets.py and tests/unit/test_lab_ladder_sets*.py, outside this claim; left to the card that holds them.
 
-### 2026-11-23 — rungs-eponymous handed out with nothing to graduate
+### 2026-11-23 — rungs-eponymous handed out with nothing to graduate (#2132)
 - Read on the research store (23 Nov 21:5x): EPON.jsonl holds 0 PASS (FAIL 124,585, FAULT 318,066, THIN 57,489); the grid-transfer set's 43 PASS are PRE-REVIEW transfer scores, not the eleven rungs. Its after: link rungs-trustworthy is unticked. Options: (a) build the cap of ten on paper in lab/promotion.py now, with no caller; (b) record and hold. Took (b): uncalled code is dead code (canon A1.3, A4), and the gate a candidate passes is built (#127, #1256, #1876, #1895, #1942).
 - Runner ops' ruling, taken by his standing ruling ("please always go with recommended to avoid waiting for me to attend"): rungs-pound-gap's claim already holds lab/ladder_sets.py and its tests (PLAN); nothing left to act on.

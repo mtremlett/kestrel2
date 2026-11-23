@@ -1190,6 +1190,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       with up to nine others under the A-GATE terms. Nothing reaches real money without his
       signature (STR-17, LAD-11, MIG-07)
       Ruled by the desk (23 Nov, his 22 Nov 'nothing parks on him but hard lines'; DECISIONS): held by its after: links only; paper is the desk's; real money stays his alone (a hard line)
+      Held (#2132): 0 PASS of 500,140 EPON verdicts; remains: a strategy through all eleven rungs at its set's full trial count, its naming here with its kill condition, then the cap of ten on paper
       {id: rungs-eponymous; files: *; after: rungs-trustworthy, rungs-indicators}
 - [ ] His paramount case: long and inverse leveraged-ETP trend strategies through the ladder
       (STR-18). Built: set LEV, six trend rules on the leveraged lines (#423). Remains: inverse
