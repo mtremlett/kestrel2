@@ -61,6 +61,17 @@ def pace(minutes: int, rate: int, refusals: int) -> int:
     return max(floor, rate // 2) if refusals else min(ceiling, max(rate + 1, int(rate * STEP)))
 
 
+def polled(home: Path, now: datetime, minutes: int, ask: keeper_live.Minutes) -> str:
+    """One `--polled <minutes>` run: the round at the kept rate (the floor at first), the next rate
+    kept beside the data by keeper.pace from its pacing refusals; the round's words."""
+    kept = home / f"polled_{minutes}.rate"
+    rate = int(kept.read_text()) if kept.is_file() else POLLED[minutes][0]  # bounded: one integer
+    words, _, refusals = keeper_live.polled_round(home / HOT, LINES, now, ask, minutes, rate)
+    kept.with_suffix(".tmp").write_text(str(pace(minutes, rate, refusals)))
+    kept.with_suffix(".tmp").replace(kept)
+    return words
+
+
 ANCIENT = partial(archive.fetch, since=archive.REFERENCE_SINCE)  #: the reference series
 When = TypeVar("When")
 Read = TypeVar("Read")
@@ -366,7 +377,8 @@ def keep(
 
 def main(home: Path, now: datetime, args: Sequence[str] = (), broker: Broker | None = None) -> int:
     """THE COMMAND: what was done, a line each; a miss on stderr, and exit 1. `--live`: one run of
-    one-minute bars; `--roll`: the live day copied to the long database."""
+    one-minute bars; `--polled 5|15|60`: a polled round at its ramp; `--roll`: the live day
+    copied to the long database."""
     missed: list[str] = []
     if args == ["--roll"]:
         done = [keeper_live.roll(home / HOT)]
@@ -374,6 +386,8 @@ def main(home: Path, now: datetime, args: Sequence[str] = (), broker: Broker | N
         ask = live.minutes(home, home / HOT)
         words, missed = keeper_live.minute_round(home / HOT, LINES, now, ask)
         done = [words]
+    elif len(args) == 2 and args[0] == "--polled":
+        done = [polled(home, now, int(args[1]), live.minutes(home, home / HOT))]
     else:
         done, missed = keep(home, now, broker=broker or history.daily(now, home=home))
         if stopped := parked_live(home / HOT, LINES, now):
