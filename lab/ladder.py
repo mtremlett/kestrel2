@@ -208,8 +208,11 @@ def inputs(todo: Sequence[Cell], bars: Bars) -> Iterator[tuple[Cell, Sequence[Ba
     """Each line the set's cells read, its own (or its proxy's) and its market's, from its first
     bar to the window's end, once, one at a time: the set runner's pre-flight (L20). A line whose
     bars cannot be read is its cell's to say, as it does now."""
-    seen = set[tuple[str, date, date]]()
+    seen, asked = set[tuple[str, date, date]](), set[tuple[Line, date, date]]()
     for one in todo:
+        if (one.line, one.start, one.end) in asked:  #: a line's window is read once, not per rule
+            continue
+        asked.add((one.line, one.start, one.end))
         try:
             c, own, _ = _resolve(one, bars)
             beside = next(line for line in LINES if line.symbol == MARKETS[c.line.venue])

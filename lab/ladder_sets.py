@@ -142,13 +142,13 @@ def epon(
     count = trials.count(home / FOLDER / f"{plan.stem}.trials.jsonl", plan.question)
     last = Kept(home / FOLDER / f"{plan.stem}.jsonl")
     rows = [cast(verdict.Row, last.get(tuple(batch.row(c)))) for c in todo]
+    stop, shown = faults(rows)  #: over 1% of the cells FAULT, baskets aside: withheld (L20)
     if verdict.EASED:  #: easing 2: each rule's lines also judged pooled, one basket a rule
         rows += baskets(home, bars, pounds, todo, rules, plan)
     sets = home / FOLDER / "sets"
     table = verdict.write_table(
         sets, plan.tag, plan.question, rows, rules, count, ladder.rungs_built()
     )
-    stop, shown = faults(rows)  #: over 1% of the cells FAULT: the table says it is withheld (L20)
     withheld = [] if shown else ["", "## NOT PUBLISHED", "", *(f"- {line}" for line in stop)]
     with table.open("a", encoding="utf-8") as out:
         out.write("\n## Survivorship\n\n" + "".join(f"- {note}\n" for note in notes))
