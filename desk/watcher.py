@@ -48,7 +48,7 @@ def watched(root: Path, now: datetime, say: Callable[[str, str], object]) -> boo
         return False
     if not note.exists():
         note.write_text(now.isoformat())
-    since = datetime.fromisoformat(note.read_text())
+    since = datetime.fromisoformat(note.read_text())  # bounded: one timestamp
     if now - since < RESTART:
         return False
     say(f"supervisor {now:%Y-%m-%d %H}", GONE.format(since))
