@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from desk import backfill, bars, history, paper, venues
+from desk import backfill, bars, history, keeper, paper, venues
 from desk.bars import Source
 from desk.lines import LINES, POUND
 from desk.store import Bar, Refused
@@ -134,3 +134,15 @@ def test_a_day_the_broker_lacks_is_taken_from_local_stooq_before_the_archive(
     )
     wrote, named = backfill.fill(path, [(ISF, LOST)], asks, TODAY)
     assert wrote == [f"ISF {LOST}: old desk: stooq_store daily rows"] and not named
+
+
+def test_the_pound_command_fills_from_the_fed_and_exits_1_on_a_named_day(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = tmp_path / keeper.HOT
+    with bars.writing(path) as held:
+        held.days(POUND, [bar(date(2020, 1, 6), "1")])
+    monkeypatch.setattr(backfill, "_fed", lambda: "d,r\n2020-01-07,1.31\n2020-01-08,\n")
+    now = datetime(2020, 1, 10, 6, tzinfo=UTC)
+    assert backfill.main(tmp_path, now, ["POUND"]) == 1
+    assert [b.day for b in bars.daily(path, POUND)] == [date(2020, 1, 6), date(2020, 1, 7)]
