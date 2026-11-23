@@ -1022,3 +1022,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1792 RUNGS: luck FAIL alone no longer holds a cell back (R-RUNGS-36). |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1786 RUNGS: L20 step 2, the ladder refuses a set with input gaps; over 1% FAULT not published; pooled runner owed. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1829 RUNGS: reproduction measures CAGR, drawdown, time invested (R-RUNGS-37); Faber's figure waits on 1901 data. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1803 RUNGS: verdict.judge answers by one rule; one WEAK soft rung no longer kills a cell, one failed hard gate always does; regime's power case pinned. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1837 RUNGS rungs-indicators: sources exhausted for the last two tables; box parked (waits: operator), no tick. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1844 RUNGS folds rung_bootstrap into rung_ci; off-path rung modules 7 to 6, the bootstrap pinned until wired. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1849 RUNGS: rungs-fast-engine held with rungs-blocks (waits: operator); #1836 superseded by #1843. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1845 RUNGS: L18 step 3, a cell can be judged among its rule's own lines (Pool.among, judge(among=)); wiring the set runners remains. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1865 RUNGS: L20 wired into pooled sets (gap pre-flight + 1% NOT PUBLISHED); EPON refuses on 77,870 store gaps pending DATA. |
