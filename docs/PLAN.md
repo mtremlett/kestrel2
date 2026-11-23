@@ -835,8 +835,8 @@ his PC with the desk's own client id (222), never 4001.
       receipts, surviving a reboot, a dropped network and a broker disconnect; a ledger of
       operator actions proving seven days without one, bar the ruled Gateway re-login (OPS-01, OPS-02, OPS-04, OPS-10, NS-01)
       Done: the step is the first registered job (#490), `tell` sends what health finds (#499), the hours and the 03:00 window (#1631, #1639). Remains: seven days counted (time, not code). Windows starting it is its own box below (his, coordinator 54)
-      {id: paper-supervised; files: desk/supervisor.py, tests/unit/test_supervisor.py, manifest.toml; after: paper-supervised-drill; waits: 2026-11-29}
-- [ ] The kill drill: a test in test_supervisor.py kills the supervisor's real step child mid-run and sees it restarted with a dated receipt (G3 split, runner ops 123); never the live desk in market hours
+      {id: paper-supervised; files: desk/supervisor.py, tests/unit/test_supervisor.py, manifest.toml; waits: 2026-11-29}
+- [x] The kill drill: a test in test_supervisor.py kills the supervisor's real step child mid-run and sees it restarted with a dated receipt (G3 split, runner ops 123); never the live desk in market hours (#1993: the real `supervise` loop, the step's child killed from outside, receipts dated 08:00 and 08:05)
       {id: paper-supervised-drill; files: desk/supervisor.py, tests/unit/test_supervisor.py; after: paper-running}
 - [ ] Windows starts the supervisor and `tell` at boot: a new Windows task on his PC (his yes in chat, Sun 22 Nov 09:5x: "Yes, add it")
       {id: paper-supervisor-windows; files: desk/supervisor.py, tests/unit/test_supervisor.py;
@@ -868,7 +868,7 @@ his PC with the desk's own client id (222), never 4001.
       Remains: blocked signals and weekly cost beside net profit landed (#1940); missed winners wait on a record of signals not taken (R-PAPER-41, MONEY's `desk/day*.py`: runner ops 122, 23 Nov,
       after two PAPER sessions stopped at their claim)
       {id: paper-extras; files: desk/messenger.py, tests/unit/test_messenger.py;
-      after: paper-cards; waits: R-PAPER-41}
+      after: paper-cards; waits: 2026-11-24}
 
 - [x] **ONE DOOR FOR PRICES, the command's pound** (his 22 Nov ~10:00, "paramount": every price is read from market_history.db or market_live.db alone): `command_parts.rates` asks `keeper.pound`, never
       `rates.csv` first nor IBKR or the archive directly (desk/command_parts.py:36-64); conformance never falls back

@@ -676,6 +676,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1906 PAPER R-MONEY-69 half done, paper.MAX_ORDERS home built.
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1925 PAPER paper-cards: SMTP preflight line landed; box done.
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1940 PAPER paper-extras partly: blocked signals and weekly cost vs net profit in the evening message.
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1993 PAPER paper-supervised-drill done: kill of a real step child restarted under supervise, two dated receipts. |
 
 ### GRID
 
