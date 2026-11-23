@@ -151,8 +151,7 @@ def ask(
 
 def quiet(now: datetime) -> bool:
     """Whether no desk round runs at the moment: the account is the desk's then."""
-    at = venues.uk_time(now).time()
-    return not any(start <= at < end for start, end in conformance_tape.ROUNDS)
+    return not conformance_tape.round_at(now, 0)
 
 
 def gather(

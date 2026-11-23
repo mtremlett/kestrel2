@@ -72,7 +72,6 @@ CAPITAL = Decimal(10_000)  #: the paper desk's one capital, in pounds, until he 
 FIRST, LAST, EVERY = time(5, 30), time(22), timedelta(minutes=5)  #: the runner's day, UK clock
 NAMED = (OSError, HTTPException, ValueError, kill.Failed, messenger.Undelivered, paper.NotPaper)
 USAGE = "python -m desk.running [--preflight | --rehearse]"
-RUN = timedelta(minutes=30)  #: the rehearsal's longest run, as the runner allows it
 OPEN = "REHEARSAL NO-GO: not begun: {}."
 GO = (
     "REHEARSAL GO: {:%a %d %b} lived again in {} steps at the paper Gateway ({} failed and the "
