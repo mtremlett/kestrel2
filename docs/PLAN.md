@@ -190,16 +190,6 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       Built (#1767): the research refresh writes the history database through `bars.writing`, no CSV; `universe_history.enter` deleted. Also built (#1798, #1827): headstart judges through `store.judge` (no scratch CSV store); `store.shelve`, `faults`, `HISTORY` deleted, seven store tests rewritten onto judge. Remains: delete `store.prepare`, `read`, `_bar`, `_FAULT` and `_write`'s CSV use; their MONEY and GRID callers are split to their owners (runner ops 112, 23 Nov: money-door-writer, grid-door-writer); once both land, the deletions and the gate that the deleted names import nowhere
       {id: data-door-writer; files: lab/universe.py, lab/universe_parts.py, lab/universe_history.py, lab/headstart.py, lab/headstart_days.py, desk/store.py, desk/store_scope.py,
       tests/unit/test_lab_universe*.py, tests/unit/test_store*.py, tests/unit/test_lab_headstart*.py, tests/unit/test_keeper.py; after: data-door-bars, money-door-slippage, money-door-writer, grid-door-writer}
-- [ ] THE STORE'S CSV HALF UNUSED BY MONEY: `desk/halt.py` writes its file without `store._write`, and the
-      scenes read their prices through the history database (`bars.writing`, `universe_parts.read` or `store.judge`),
-      never `store.prepare` or `store.read`; gate: neither file names those three
-      (split from data-door-writer by runner ops 112, 23 Nov: these are MONEY's files)
-      {id: money-door-writer; files: desk/halt.py, tests/unit/test_halt*.py, tests/scenes/test_scenes.py}
-- [ ] THE STORE'S CSV HALF UNUSED BY THE GRID: the `.faults` filter in `lab/sweep.py` deleted; the batch
-      and sweep tests set their prices through the history database, never `store.prepare` or `store.read`;
-      gate: none of the three files names them
-      (split from data-door-writer by runner ops 112, 23 Nov: these are GRID's files)
-      {id: grid-door-writer; files: lab/sweep.py, tests/unit/test_lab_sweep.py, tests/unit/test_lab_batch.py}
 - [x] THE NIGHT REFRESH WRITES THE DATABASE IT NAMES: `universe.nightly`'s docstring says the history
       database but it writes `bars.LIVE` (market_live.db); STATUS says research reads the history database
       alone. Settle which is meant, make code and docstring agree, and pin the target file in a test
@@ -728,6 +718,12 @@ day's trading and reconciliation are built, and any broker can stand behind them
       function to strategy, orders, broker, book, day or kill also claims `desk/simcity*.py` and
       `tests/unit/test_simcity*.py`, one session at a time
       {id: money-census-book; waits: 2026-11-24; files: desk/simcity*.py, tests/unit/test_simcity*.py}
+- [ ] THE STORE'S CSV HALF UNUSED BY MONEY: `desk/halt.py` writes its file without `store._write`, and the
+      scenes read their prices through the history database (`bars.writing`, `universe_parts.read` or `store.judge`),
+      never `store.prepare` or `store.read`; gate: neither file names those three
+      (split from data-door-writer by runner ops 112; moved from DATA's book to MONEY's by runner ops 122, 23 Nov:
+      manifest.toml gives these files to the money lane)
+      {id: money-door-writer; files: desk/halt.py, tests/unit/test_halt*.py, tests/scenes/test_scenes.py}
 
 ## Phase 3 — the money path, on paper
 
@@ -868,9 +864,10 @@ his PC with the desk's own client id (222), never 4001.
       {id: paper-backups; files: desk/backup.py, tests/unit/test_backup.py, manifest.toml}
 - [ ] The day's extras: missed winners, blocked signals, and the running cost set against
       net profit each week (MSG-13, NS-14) (coordinator 54, 22 Nov: it comes after paper-cards and edits the same messenger file; not his)
-      Remains: blocked signals and weekly cost beside net profit landed (#1940); missed winners wait on a record of signals not taken (R-PAPER-41)
+      Remains: blocked signals and weekly cost beside net profit landed (#1940); missed winners wait on a record of signals not taken (R-PAPER-41, MONEY's `desk/day*.py`: runner ops 122, 23 Nov,
+      after two PAPER sessions stopped at their claim)
       {id: paper-extras; files: desk/messenger.py, tests/unit/test_messenger.py;
-      after: paper-cards}
+      after: paper-cards; waits: R-PAPER-41}
 
 - [x] **ONE DOOR FOR PRICES, the command's pound** (his 22 Nov ~10:00, "paramount": every price is read from market_history.db or market_live.db alone): `command_parts.rates` asks `keeper.pound`, never
       `rates.csv` first nor IBKR or the archive directly (desk/command_parts.py:36-64); conformance never falls back
@@ -934,6 +931,14 @@ grid-tune and grid-key side by side; then grid-pass, grid-week, grid-declared, g
       LAD-13) {id: grid-declared; files: lab/sweep.py, tests/unit/test_lab_sweep.py}
 - [x] A full sweep within a weekend, its time measured (LAD-10). Remains: nothing; a cold transfer study took 17 min, the declared pass about 8 min, against 48 h {id: grid-weekend; files: *}
 
+- [ ] THE STORE'S CSV HALF UNUSED BY THE GRID: the `.faults` filter in `lab/sweep.py` deleted; the batch
+      and sweep tests set their prices through the history database, never `store.prepare` or `store.read`;
+      gate: none of the three files names them
+      (split from data-door-writer by runner ops 112; moved from DATA's book to GRID's by runner ops 122, 23 Nov:
+      manifest.toml gives these files to the grid lane; #1969's one commit is the start, its tests green, refused only
+      for its lane. `lab/montecarlo.py` is the rungs lane's: `sweep.held` keeps its folder argument here)
+      {id: grid-door-writer; files: lab/sweep.py, lab/transfer.py, tests/unit/test_lab_sweep.py,
+      tests/unit/test_lab_batch.py, tests/unit/test_lab_transfer.py}
 - [x] **ONE DOOR FOR PRICES, the transfer study's pound** (his 22 Nov ~10:00, "paramount": every price is read from market_history.db or market_live.db alone): `lab/transfer.py:170` passes
       `history_bars.pounds(home)` to `ladder.rates`, never the archive; wire: the grid-transfer job; gate: its test
       with the archive stubbed to fail
@@ -1062,6 +1067,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
   - [ ] THE POUND'S MISSING DAY A NAMED GAP: a fold whose pound-per-dollar rate is missing reads it from the stored
         DEXUSUK series (data-pound-history); a planted missing day is a named gap in the cell's reason, never FAULT
         (split from data-pound-history by runner ops 111, 23 Nov: the ladder is RUNGS's file)
+        Built (#1951): in `ladder.run` a day with no pound rate is the cell's named gap, never FAULT; the cell is judged again once the one writer fills the day (`desk/backfill.py POUND`). Remains: `lab/ladder_sets.py` `_pooled.go` calls `ladder.preflight(todo, make(), pounds)` in place of `folds.preflight(ladder.inputs(todo, make()), pounds)`, then `ladder.inputs` has one caller; runner ops: widen the files to lab/ladder_sets.py and tests/unit/test_lab_ladder_sets*.py.
         {id: rungs-pound-gap; files: lab/ladder.py, tests/unit/test_lab_ladder.py, lab/history_bars.py, tests/unit/test_lab_history_bars*.py; after: data-pound-history}
   - [x] L19 ONE VERDICT RULE: the eased scorecard (`verdict.scorecard`, MAX_WEAK) is built but never called, so one
         WEAK kills a cell; it is wired as the one answer or deleted, and regime's 30 trades in each half is
