@@ -1060,3 +1060,8 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1876 RUNGS rungs-eponymous step: the paper gate opens for eponymous rules; Faber held until reproduced. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1895 RUNGS rungs-eponymous step: a paper candidate must be judged for luck at its set's full trial count. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1901 RUNGS rungs-each-rung step 2: stop-rule study out of rung_ (off-path rungs 6 to 5), no behaviour change. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1924 RUNGS rungs-trials-live: every ladder cell judged among its own rule's lines; the ever-growing family count deleted. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1934 RUNGS rungs-each-rung step 3: benchmark rung merged into market; off-path rung modules 5 to 4. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1942 RUNGS rungs-scorecard: the gate before paper and the ladder's `every` follow the one verdict rule; deflated.rule deleted. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1951 RUNGS rungs-pound-gap step: a missing pound day is the cell's named gap, never a FAULT, in ladder.run; the pooled path's one line remains. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1952 RUNGS scribe #1943 closed: its L18 tick rested on #1924, which had not landed then. |
