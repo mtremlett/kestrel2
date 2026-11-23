@@ -155,7 +155,12 @@ def judge_lines(verdicts: Sequence[Verdict]) -> tuple[Deflated, ...]:
 
 def best_by_luck(spread: float, trials: int) -> float:
     """The Sharpe to expect of the best of so many trials with no edge, their Sharpes spread
-    by this variance: nothing for one trial alone."""
+    by this variance: nothing for one trial alone. Never skipped (LAD-09): a count under one,
+    a spread that is no number, or more than one trial with no spread, is refused."""
+    if trials < 1 or not 0 <= spread < math.inf or (trials > 1 and not spread):
+        raise ValueError(
+            f"{trials} trials, their Sharpes spread by {spread}: nothing to deflate by"
+        )
     if trials == 1:
         return 0.0
     best = (1 - _EULER) * _NORMAL.inv_cdf(1 / trials)
