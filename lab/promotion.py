@@ -9,7 +9,9 @@ and no rung of the ladder listed unrun on it but one: reproduction, unrun only f
 author's figure, by a rule whose author's test (`published_epon.TESTED`) is none it may be held
 to; a rule with one is reproduced first (rungs-eponymous). It is one of the desk's five or an
 eponymous rule (`lab/rulebook.py`), each graduating by the same gate; and with its kill
-condition: the numbers, written down before its first paper trade, at which it is stopped.
+condition: the numbers, written down before its first paper trade, at which it is stopped. Its
+line was judged for luck at its set's full count of trials, every one its register holds: a line
+judged when the register held fewer is luck corrected for less than was tried (rungs-eponymous).
 Written first, because a limit chosen while the losses are being watched is always a little
 further off. A candidate without the pass or without the condition cannot be made at all. The
 condition is two measured things, either one enough: its paper profit after every cost fallen
@@ -91,6 +93,7 @@ class Candidate:
     ladder: Mapping[str, Any]  #: the ladder's line for the strategy on one of the desk's lines
     declared: date  #: the day its kill condition was written; its paper trades come after
     kill: Kill
+    register: int  #: the set's full trial count (`trials.count`); its line judged at no fewer
 
     @property
     def strategy(self) -> str:
@@ -104,6 +107,12 @@ class Candidate:
         unrun = {k: v for k, v in (self.ladder.get("unrun") or {}).items() if excused.get(k) != v}
         if unrun:
             raise ValueError(f"{self.strategy} has not passed the ladder: unrun {unrun}")
+        judged = self.ladder.get("trials")
+        if not isinstance(judged, int) or self.register < 1 or judged < self.register:
+            raise ValueError(
+                f"{self.strategy} was judged against {judged} trials, its set's register "
+                f"{self.register}: its luck test is owed at the full count"
+            )
         rungs, said = self.ladder.get("rungs", {}), self.ladder.get("answer")
         answers = {name: Answer.__members__.get(str(rungs.get(name, [""])[0])) for name in NAMED}
         if None in answers.values():
