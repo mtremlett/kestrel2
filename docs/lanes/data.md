@@ -762,3 +762,9 @@ HOVER's kind: a function of the fault text (rejected: a new tuple field, which b
 ### 2026-11-23 — the Fed's pound is filled by a command; the polled round returns counts; the nightly docstring is fixed (DATA, #1910, #1916, #1922)
 Pound: `desk/backfill.py` repeats the FRED URL because desk/ may not import lab/ (options: import from lab, or a second constant; took the constant, lab/universe_history should import it from desk/backfill later). Polled round: `pace` stays in keeper.py and `keeper_live` returns the refusal count (options: a late import of keeper, a cycle; or moving pace); no new module. Nightly target: move the write to market_history.db (rejected: the code already lands there) or fix the docstring (chosen); the test now pins the file.
 
+### 2026-11-23 — no announcement scraper on an unverified shape; a generic User-Agent (DATA, #1948, #1962)
+Announcement: options were to scrape the lseg.com HTML, or take the announcement from the page diff alone. The first guesses a shape (the regulatory-news address answers 404, no stable machine-readable source), the second drops the two-source check. Took neither: the box waits (operator) for a stable free announcement source; nightly wiring waits too, as FTSE lists are still owed in `lab.members`.
+User-Agent: options were none (Wikipedia answers 403), or a contact email (would publish private details). Took a generic client name with no personal detail.
+
+### 2026-11-23 — the polled round's rate is a one-integer file per interval (DATA, #1963)
+Options: a database table, or a file. Took the file, `polled_<minutes>.rate`, written temp-then-replace: simplest, and no schema. No ruling needed from him.
