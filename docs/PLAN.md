@@ -504,6 +504,9 @@ day's trading and reconciliation are built, and any broker can stand behind them
       catalogue name up among the Python rules, so a row whose file is gone raises KeyError there: it reads a
       spec-only row through the rulebook's spec maker instead; and the swing test file also holds the check that
       every eponymous module declares unique runnable rules, which moves to the Connors test file, never lost.
+      Written first (chat 167, 22:0x: today the seven gone raise KeyError weekly_reversal_jegadeesh): the EPON rule
+      list is unchanged without the seven files, and each served row gives the same decisions as its Python twin on
+      a fixture (the donchian twin test's way), so EPON's book does not change.
       {id: money-epon-room; files: lab/ladder.py, tests/unit/test_lab_ladder_epon.py, tests/unit/test_lab_published_epon.py, tests/unit/test_eponymous_connors.py, desk/eponymous_dan_zanger.py, desk/eponymous_demark_sequential.py, desk/eponymous_kell_breakout.py, desk/eponymous_mansfield_rs_momentum.py, desk/eponymous_minervini_breakout.py, desk/eponymous_swing.py, desk/eponymous_weinstein_stage.py, tests/unit/test_eponymous_dan_zanger.py, tests/unit/test_eponymous_demark_sequential.py, tests/unit/test_eponymous_kell_breakout.py, tests/unit/test_eponymous_mansfield_rs_momentum.py, tests/unit/test_eponymous_minervini_breakout.py, tests/unit/test_eponymous_swing.py, tests/unit/test_eponymous_weinstein_stage.py, manifest.toml, docs/lanes/money.md}
 - [ ] Connors' Double 7's as a desk rule (R-RUNGS-10): `desk/eponymous_connors_double_7.py` is a
       MONEY file, but the ladder finds every `desk/eponymous_*.py` and `lab/published_epon.py` (RUNGS)
