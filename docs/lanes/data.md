@@ -749,3 +749,21 @@ Options: worst by age (rejected: needs a span-aware age scale), or first golden 
 
 ### 2026-11-23 — one hourly table for both databases (DATA, #1850)
 Options: two commands or one table with database-prefixed rows. Took one table, so the runner posts one message.
+
+### 2026-11-23 — members feed keeps parsing pure (DATA, #1870, #1885)
+Options: one module that fetches and parses, or pure parsing with one thin `fetch`. Took the second so the contract test runs offline on fixtures. For the rest: wire now (needs files outside the claim) or land the in-claim step; took the step. The wikitext rule 'second cell is the ticker' is an assumption, recorded in the module docstring.
+
+### 2026-11-23 — HOVER's kind is a function of the fault text (DATA, #1874)
+Options: a new tuple field on the return (breaks the runner's parse of the line) or `desk.quality.kind` reading the fault text. Took the function; standing ruling 'always go with recommended'.
+
+### 2026-11-23 — pre-2010 five-minute bars stay refused by name (DATA, #1883)
+Options: widen hours to older clock rules (rejected: no intraday history before 2010 exists in the old stores, 17 Nov) or keep the named refusal. Kept the refusal; sessions already reach 1993.
+
+### 2026-11-23 — the keeper's ramp is 25% per clean round (DATA, #1886, #1916)
+Options for #1886: an empty change or the rule alone; took the rule. 25% per clean round so the ramp is measured, not leapt; a refusal halves. For #1916, `pace` stays in keeper.py and keeper_live returns the refusal count (options: a late import, a circular import, or moving `pace`): no cycle, no new module.
+
+### 2026-11-23 — the pound's Fed rates are written unjudged (DATA, #1902, #1910)
+Options: judge each rate through store.judge (rejected: a single noon price has no high/low) or write it unjudged as lab/universe_history does. Took the second. The FRED URL is repeated in desk/backfill.py because desk/ may not import lab/ (options: import from lab, or a second constant); took the constant, with the one-home fix noted under Remains.
+
+### 2026-11-23 — the nightly docstring is fixed, not the code (DATA, #1922)
+Options: move the night's write to market_history.db in code, or fix the docstring. The code already lands there (`bars.files` sends daily bars beside the live file), so the docstring was fixed and a test pins the file.

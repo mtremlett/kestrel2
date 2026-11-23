@@ -200,10 +200,11 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       gate: none of the three files names them
       (split from data-door-writer by runner ops 112, 23 Nov: these are GRID's files)
       {id: grid-door-writer; files: lab/sweep.py, tests/unit/test_lab_sweep.py, tests/unit/test_lab_batch.py}
-- [ ] THE NIGHT REFRESH WRITES THE DATABASE IT NAMES: `universe.nightly`'s docstring says the history
+- [x] THE NIGHT REFRESH WRITES THE DATABASE IT NAMES: `universe.nightly`'s docstring says the history
       database but it writes `bars.LIVE` (market_live.db); STATUS says research reads the history database
       alone. Settle which is meant, make code and docstring agree, and pin the target file in a test
       (coordinator 110, 23 Nov 03:1x: J2, found with research-refresh's 02:30 failure)
+      Done (#1922): the code already landed in market_history.db (`bars.files` sends daily bars there); the docstring now says so and the nightly test pins the file
       {id: data-nightly-target; files: lab/universe.py, tests/unit/test_lab_universe*.py}
 - [x] **The old desk's stores as a head start, now** (his ask, 14 November): its daily and
       five-minute bars (Stooq and IBKR stores, and its per-ticker matrices) read in through
@@ -254,7 +255,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       wire: the nightly research refresh reads the lists' members by date; gate: a contract test on a committed
       fixture of one review's announcement and the page revision either side finds the joiners and leavers, and a
       planted disagreement is a named fault
-      Built (#1651): `lab/members.reconcile` joins one FTSE review's announced changes to the page revisions either side; disagreement is a named `Disagreement`; feeds not wired. Also (#1715): `Members.survived` measures the share of a day's members still listed (279 of 500 on 1 Jan 2010). Remains: the fetcher module (FTSE Russell announcements, MediaWiki API; a request to RUNNER in STATUS), the nightly refresh reading members by date; no free source exists for the funds' past members or a second 2010-2014 record, so they stay unmeasured (#1841, #1858).
+      Built (#1651): `lab/members.reconcile` joins one FTSE review's announced changes to the page revisions either side; disagreement is a named `Disagreement`; feeds not wired. Also (#1715): `Members.survived` measures the share of a day's members still listed (279 of 500 on 1 Jan 2010). Built (#1870, #1885, #1899): `lab/members_feed.py` parses a revision's table and an announcement's Joiners/Leavers lines, `fetch_review(page, day, text)` reads the page's revisions either side and `reconcile`s them; tested offline on fixtures; live answer shape unverified. Remains: a reader for FTSE Russell's announcements, the FTSE 350 record itself (fetch each review since 2010), a first real fetch, the nightly refresh reading members by date (a request to RUNNER in STATUS); no free source exists for the funds' past members or a second 2010-2014 record, so they stay unmeasured (#1841, #1858).
       Re-carded (runner ops 106, 23 Nov, coordinator 103's D1: the remainder was a new file outside the claim): the fetcher is `lab/members_feed.py`, registered in manifest.toml, its test `tests/unit/test_lab_members_feed.py` on committed fixtures, no network; count lab/ room against BUDGET first
       (widened by runner ops 114, 23 Nov: six runs ended with no change because the nightly wire sits in lab/universe.py; after data-nightly-target, which holds that file now. The bias on verdicts is RUNGS', its request in STATUS)
       {id: data-members; files: lab/members.py, lab/members_feed.py, lab/universe.py, tests/unit/test_lab_members*.py, tests/unit/test_lab_universe*.py, manifest.toml; after: data-nightly-target}
@@ -281,6 +282,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       (the requests to GRID, RUNGS and MONEY) and the tests name lines that stay; they are kept as price references (#455, #543)
       Settled (coordinator 54, 22 Nov: not his: his 13 November ruling is that SPY and QQQ leave the twenty traded lines; kept only as price references in `lines.REFERENCE`, never traded, they honour it; remains: the callers outside the claim read `lines.REFERENCE` and the tests name lines that stay)
       Waits for the three requests to GRID, RUNGS and MONEY (STATUS) to read `lines.REFERENCE`; their ids are two-digit, which the requirements guard refuses in a box, so the wait is dated and the next scribe moves it to the request when it lands. Not the operator's (coordinator 54, 22 Nov).
+      Held on the three requests to GRID, RUNGS and MONEY in STATUS (two-digit ids, which a box may not name, so the wait is dated); not the operator's (coordinator 54, 22 Nov)
       {id: data-isa-twins; files: desk/lines.py, tests/unit/test_lines.py, tests/unit/test_lab_universe.py; waits: 2026-11-24}
 - [x] A home for the research store on his PC, refreshed nightly, a ticker that left a list
       cleared out, and the day and list it reflects written beside it
@@ -341,7 +343,8 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       wire: a runner job every 5 minutes, 7 days, and the hourly Telegram table; gate: a contract test where a
       planted stale span, missing day and stale golden line each turn the line red, and the alarm sends red once and green once
       Built (#1654): `desk.quality.hover` (freshness line, exit 0/1) and `alarm` (red once, 30-minute reminder, one green). Also built (#1658, #1689): the monitor reads the archive's six-hour outage alarm; `hover` keeps its alarm state in hover_alarm.json and prints `SEND: <message>` (the runner's line, via `announce`) when it speaks (#1736, #1769, #1782), and `table` gives the per-span line for the hourly report; #1699 adds `register` (a report, not a red); #1809 reds a missing day inside a golden line's history (golden lines only); #1832 judges both databases (market_history.db and market_live.db), the worst cell naming its database, a missing database fails loudly (history reads red on stale spans until gap filling exists). Also #1850: `table` covers both databases (one table, db-prefixed rows, each database's register); #1860: the worst cell names a golden line's fault first. Remains: the 5-minute runner job posting SEND lines and the hourly table to Telegram (runner; see STATUS), the Haiku/Sonnet/Opus escalation, gap filling for 15m-1wk, the two-store daily read.
-      {id: data-monitor; files: desk/quality.py, tests/unit/test_quality.py}
+      Also (#1874): HOVER's worst cell names its kind (gap, hole or stale) from `desk.quality.kind`, so the escalation can route on it.
+      {id: data-monitor; files: desk/quality.py, tests/unit/test_quality.py; waits: 2026-11-24}
 - [ ] Derived spans rolled, never fetched: 15m, 30m, 1h and 4h rolled from five-minute bars and 1wk from daily,
       into the history database as `rollup:<from>` on every keeper round, so they are as fresh as their base;
       a rolled bar that differs from a held one is a FAULT, never a silent overwrite (canon B3)
@@ -352,14 +355,14 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       holiday; a line's audit lists no unnamed gap
       wire: HOVER's filler; gate: SPY's 2022-09-28 planted missing is filled, and a named holiday stays empty
       {id: data-no-missing-day; files: desk/backfill.py, desk/venues.py, tests/unit/test_backfill.py, tests/unit/test_venues*.py; after: data-monitor}
-- [ ] One pounds-per-dollar history back to the earliest bar held, so no fold reads FAULT for a missing rate
+- [x] One pounds-per-dollar history back to the earliest bar held, so no fold reads FAULT for a missing rate
       (about 5,300 in the ladder); conversion stays in its one place
       Source (his ruling 22 Nov ~10:05, free data only): FRED's DEXUSUK daily series (US dollars to one pound),
       fetched with the FRED key handed to the job by the runner's session environment alone, stored in
       market_history.db as a reference series beside the bars, through the one writer and its checks
       wire: the nightly research refresh and HOVER's filler; gate: a fold whose rate was missing reads it
       from the stored series, and a planted missing day is a named gap, never a FAULT
-      Built (#1774, #1790): the nightly refresh fetches FRED's DEXUSUK (keyless) through the one writer (Source.FED_NOON) and names the pound's sessions with no rate. Remains: HOVER's filler (desk/backfill.py) filling the gaps; the ladder's half is RUNGS's own box, rungs-pound-gap
+      Built (#1774, #1790): the nightly refresh fetches FRED's DEXUSUK (keyless) through the one writer (Source.FED_NOON) and names the pound's sessions with no rate. Built (#1902, #1910): `python -m desk.backfill POUND` fetches DEXUSUK and fills the sessions with no rate (Source.FED_NOON, one writer); days the Fed gives none are named on stderr, exit 1. Remains: `lab/universe_history.py` should import the FRED URL from desk/backfill (one home; outside the claim); the ladder's half is RUNGS's own box, rungs-pound-gap
       {id: data-pound-history; files: desk/keeper.py, tests/unit/test_keeper*.py, desk/bars.py, tests/unit/test_bars*.py, lab/universe.py, tests/unit/test_lab_universe*.py, desk/backfill.py, tests/unit/test_backfill.py}
 - [ ] **Data in tiers, for 4,000+ tickers** (research of 14 November, kept in the notes
       folder as `data_stack_2026-11-14.md`). Tier A: held, signalled and watched names, live
@@ -414,7 +417,8 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
 - [x] Each line's UK tax a fact on the line, from one table of two rates: nil for a fund or
       an exchange-traded product, stamp duty for a UK share; the twenty lines each state nil,
       and one London line of the rehearsal data pays it (R-MONEY-1)
-- [ ] The window before mid-April 2010 prepared
+- [x] The window before mid-April 2010 prepared
+      Done (#1883): `venues.SESSION_YEARS` is 1993-2029 and a February 2010 day finds its 60 sessions; hours stay 2010-2029, so an older five-minute bar is refused with a named fault; pinned in test_lab_headstart.py
       {id: data-pre-2010; files: lab/headstart.py, tests/unit/test_lab_headstart.py; after: data-deep-history}
 - [ ] Coverage and quality measured: history at least twice the longest lookback for every
       line, five years by the A-GATE; a quality score per line and desk-wide, and a cap on
@@ -433,7 +437,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       {id: data-dividends; files: desk/bars.py, tests/unit/test_bars*.py; waits: 2026-11-24}
 - [ ] Survivorship: the research list taken as it stood on each past date, with the names
       that left it, or the bias measured and stated on every verdict (BT-09)
-      Built (#1715, #1750): `Members.survived` and `members.bias(name, day)` give the stated line; not wired into verdicts (a request to RUNGS in STATUS). #1839: `members.bias` answers for every list (FTSE350 and ETFS state "past members not recorded, bias unmeasured", never raise). Remains: FTSE 350 and funds' past members. Waits for RUNGS printing the bias on verdicts (request in STATUS); a box may not name a two-digit id, so no `waits:` note.
+      Built (#1715, #1750): `Members.survived` and `members.bias(name, day)` give the stated line; not wired into verdicts (a request to RUNGS in STATUS). #1839: `members.bias` answers for every list (FTSE350 and ETFS state "past members not recorded, bias unmeasured", never raise). Remains: FTSE 350 and funds' past members. Waits for RUNGS printing the bias on verdicts (the request to RUNGS in STATUS; a box may not name a two-digit id, so no `waits:` note).
       {id: data-survivorship; files: lab/members.py, tests/unit/test_lab_members*.py}
 - [ ] UK stamp duty and taxes confirmed line by line, in one table by instrument type
       (NS-05): the table is built and the five London funds confirmed; still owed, the five
@@ -453,6 +457,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       measured ramp on the paper port allows (every request counted with its error codes;
       any pacing refusal halves the rate); daily bars for every ticker (DAT-01, DAT-05)
       (runner ops 112, 23 Nov: claim adds desk/keeper_live.py, where the polled rounds must use keeper.pace and count each request, and desk/lines.py with its test, for the lines beyond today's twenty; two runs stopped on it, real_loop)
+      Built (#1886, #1916): `keeper.pace` (a pacing refusal halves the rate, never below the floor; a clean round rises 25%, never above the ceiling; table `POLLED`) and `keeper_live.polled_round` (counts every request and refusal). Remains: wire polled rounds into keeper.main with the rate kept between runs; lines beyond twenty in desk/lines.py; the measured ramp on port 4002; 15 and 60 minute schedules; daily bars for every ticker
       {id: data-ibkr-capacity; files: desk/keeper.py, tests/unit/test_keeper*.py, desk/keeper_live.py, desk/lines.py, tests/unit/test_lines.py; after: data-broker-bars; waits: 2026-11-23}
 - [ ] **A free collector, started now, before anything uses it:** once a day, about 300 calls
       across the free tiers he already has, each response kept raw and timestamped: a US
@@ -462,7 +467,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       with timestamps (Finnhub, Marketaux, GNews). NewsAPI is not used: its free terms forbid
       it. History that free tiers do not keep cannot be bought back later (BIC-06, DAT-01)
       Built (#1663, #1712, #1728, #1752): EODHD, Alpha Vantage London sample, BLS, EIA, BEA (11 sources). Remains: Alpha Vantage earnings CSV (own reader; cross-check of Finnhub dates).
-      {id: data-collector; files: desk/collector.py, tests/unit/test_collector.py, manifest.toml; after: data-polite}
+      {id: data-collector; files: desk/collector.py, tests/unit/test_collector.py, manifest.toml; after: data-polite; waits: 2026-11-24}
 - [ ] **Market weather recorded before it acts:** realised-volatility sizing researched first,
       the one effect with strong published evidence; index trend and breadth from the desk's
       own bars next; VIX term structure, credit spreads and the yield curve recorded each day

@@ -521,6 +521,16 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1750 data-survivorship: bias stated as a verdict line; not wired into verdicts. |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1752 collector now 11 of the planned sources (BEA). |
 | 2026-11-22 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1699 data-second-source step 1: register of sources, replaced newest bars named. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1870 DATA: FTSE review feed for members built (parse and reconcile, offline fixtures); box open. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1874 DATA: HOVER's worst cell names its kind (gap, hole, stale). |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1883 DATA: data-pre-2010 ticked, pre-2010 bars refused by name and pinned by a test. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1885 DATA: members feed fetches a review's two page revisions, tested offline; box open. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1886 DATA: data-ibkr-capacity step 1, the keeper's pacing ramp rule only. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1899 DATA: members docstring names the feed module; no box ticked. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1902 DATA: pound gaps filled from the Fed's noon table (fill_pound); command wiring open. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1910 DATA: data-pound-history ticked, `desk.backfill POUND` fills the pound from the Fed. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1916 DATA: data-ibkr-capacity step 2, a counted polled round feeding keeper.pace. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1922 DATA: data-nightly-target ticked, nightly docstring names the history database. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
