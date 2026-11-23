@@ -41,9 +41,9 @@ from desk.bars_parts import READ as READ
 from desk.bars_parts import RESTORE as RESTORE
 from desk.bars_parts import SOURCES as SOURCES
 from desk.bars_parts import WITHDRAW as WITHDRAW
+from desk.bars_parts import WITHDRAW_BAR, named
 from desk.bars_parts import StoreWait as StoreWait
 from desk.bars_parts import checked as checked
-from desk.bars_parts import named
 from desk.bars_schema import ADD as ADD
 from desk.bars_schema import FILL as FILL
 from desk.bars_schema import HELD as HELD
@@ -119,11 +119,19 @@ class Round:
         held.execute("RELEASE line")
         return landed + given - len(rows)
 
-    def daily(self, line: Line, bars: Iterable[Bar], withdrawn: Iterable[date] = ()) -> None:
+    def daily(
+        self,
+        line: Line,
+        bars: Iterable[Bar],
+        withdrawn: Iterable[date] = (),
+        refused: Iterable[Bar] = (),
+    ) -> None:
         """A line's daily bars from this source, joined by day into what the store holds, and
         none held is ever deleted (B3): a fresh source's bar takes the day of another's, the old
         value kept in `correction` if it differs. A day in `withdrawn` was judged untrue: its row
-        stays, marked, unread until a bar is given for it again. A day given twice is refused."""
+        stays, marked, unread until a bar is given for it again. A refused bar withdraws its day
+        only if the row held is that bar; a different held row is restored. A day given twice is
+        refused."""
         if not self._source.fresh:
             raise ValueError(f"{self._source.value} is no fresh source: it restates nothing")
         given = [(b.day.toordinal(), b) for b in bars]
@@ -135,8 +143,12 @@ class Round:
         held.execute("SAVEPOINT marks")
         try:
             held.executemany(RESTORE, ((*key, at) for at, _ in given))
-            gone = {day.toordinal() for day in withdrawn} - {at for at, _ in given}
+            kept = {at for at, _ in given}
+            gone = {day.toordinal() for day in withdrawn} - kept
             held.executemany(WITHDRAW, ((*key, at) for at in sorted(gone)))
+            bad = {b.day.toordinal(): b for b in refused if b.day.toordinal() not in kept}
+            held.executemany(RESTORE, ((*key, at) for at in bad))
+            held.executemany(WITHDRAW_BAR, ((*key, at, *entered(bad[at])) for at in sorted(bad)))
         except BaseException:
             held.execute("ROLLBACK TO marks")
             raise

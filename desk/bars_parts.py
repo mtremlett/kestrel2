@@ -98,6 +98,12 @@ NOTE = (
 )
 #: A day the desk judged untrue: its raw row stays in `bar`, but no reader is given it.
 WITHDRAW = "INSERT OR IGNORE INTO withdrawn VALUES (?, ?, ?, ?)"
+#: As WITHDRAW, but only a row that is the refused bar itself (its five values after the day).
+WITHDRAW_BAR = (
+    "INSERT OR IGNORE INTO withdrawn SELECT venue, symbol, span, at FROM bar"
+    " WHERE venue = ? AND symbol = ? AND span = ? AND at = ?"
+    " AND open = ? AND high = ? AND low = ? AND close = ? AND volume = ?"
+)
 RESTORE = "DELETE FROM withdrawn WHERE venue = ? AND symbol = ? AND span = ? AND at = ?"
 OTHERS = (
     "SELECT at, open, high, low, close FROM bar WHERE venue = ? AND symbol = ? AND span = ?"
