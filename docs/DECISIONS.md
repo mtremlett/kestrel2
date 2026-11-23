@@ -2381,3 +2381,15 @@ loop, R-DATA-68, 01:36). `tests/guards/test_lanes.py::test_every_open_request_ha
 mechanically, each request on its own line with its own words. A split request keeps its line's box
 unless its own words say it is done (`[x]` before it, `(done ...`, `done in #n`, `Met by #n`): 15 such.
 Tightening only; nothing is loosened.
+
+## 23 Nov - the round's one cap (R-RUNNER-456) waits for a claim that holds the golden run
+#2055 (one cap over the whole round) was closed, not landed. Merged with main it moves the golden run
+(profit 61.86 to -154.51; fills, trips, costs unchanged in count): #2039 frees Monday buys, so the
+fixture's Mon 11 Aug 2025 round asks 17 orders and the cap of 7 carries 9. The pinned figure is in
+`tests/scenes/test_scenes.py`, outside the card's claim. Options: (1) land without the re-pin: red,
+refused; (2) close and re-card with the scene file claimed and the reason written here (B5); (3) drop the
+cap: the 900 s step still cannot send 17 orders (pattern 24). Took (2). Open with it: N2, gate and held
+refusals count against the cap (six took slots on 12 Aug 2025).
+Also ruled for him ("please always go with recommended", 13 Nov): money-connors7 is held off MONEY (it
+waits on R-RUNGS-10); Double 7's is re-carded to RUNGS with desk/eponymous_connors.py, its unit test,
+lab/published_epon.py and tests/unit/test_lab_published_epon.py; MONEY goes to R-MONEY-66 and R-MONEY-62/64.
